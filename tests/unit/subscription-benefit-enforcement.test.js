@@ -51,6 +51,7 @@ function pastDate(daysAgo = 5) {
 
 let mockSubscriptions = [];
 let mockUsers = [{ id: 'usr-1', isPro: false }];
+let mockSuppliers = [];
 
 function setupMocks() {
   dbUnified.read.mockImplementation(async collection => {
@@ -59,6 +60,9 @@ function setupMocks() {
     }
     if (collection === 'users') {
       return [...mockUsers];
+    }
+    if (collection === 'suppliers') {
+      return [...mockSuppliers];
     }
     return [];
   });
@@ -74,13 +78,72 @@ function setupMocks() {
     if (collection === 'subscriptions') {
       mockSubscriptions.push(data);
     }
+    return data; // return truthy so insertOne null-checks pass
   });
-  dbUnified.updateOne.mockImplementation(async () => {});
+  dbUnified.updateOne.mockImplementation(async (collection, filter, update) => {
+    if (update && update.$set) {
+      if (collection === 'subscriptions') {
+        const idx = mockSubscriptions.findIndex(s =>
+          Object.keys(filter).every(k => s[k] === filter[k])
+        );
+        if (idx >= 0) {
+          mockSubscriptions[idx] = { ...mockSubscriptions[idx], ...update.$set };
+        }
+      }
+      if (collection === 'users') {
+        const idx = mockUsers.findIndex(u => Object.keys(filter).every(k => u[k] === filter[k]));
+        if (idx >= 0) {
+          mockUsers[idx] = { ...mockUsers[idx], ...update.$set };
+        }
+      }
+    }
+  });
+  dbUnified.findOne.mockImplementation(async (collection, filter) => {
+    const arr =
+      collection === 'subscriptions'
+        ? mockSubscriptions
+        : collection === 'users'
+          ? mockUsers
+          : collection === 'suppliers'
+            ? mockSuppliers
+            : [];
+    if (typeof filter === 'function') {
+      return arr.find(filter) || null;
+    }
+    return arr.find(item => Object.keys(filter).every(k => item[k] === filter[k])) || null;
+  });
+
+  dbUnified.find.mockImplementation(async (collection, filter) => {
+    const arr =
+      collection === 'subscriptions'
+        ? mockSubscriptions
+        : collection === 'users'
+          ? mockUsers
+          : collection === 'suppliers'
+            ? mockSuppliers
+            : [];
+    if (typeof filter === 'function') {
+      return arr.filter(filter);
+    }
+    return arr.filter(item =>
+      Object.keys(filter).every(k => {
+        const val = filter[k];
+        if (val && typeof val === 'object' && val.$ne !== undefined) {
+          return item[k] !== val.$ne;
+        }
+        if (val && typeof val === 'object' && val.$in !== undefined) {
+          return Array.isArray(val.$in) && val.$in.includes(item[k]);
+        }
+        return item[k] === val;
+      })
+    );
+  });
 }
 
 beforeEach(() => {
   mockSubscriptions = [];
   mockUsers = [{ id: 'usr-1', isPro: false }];
+  mockSuppliers = [];
   jest.clearAllMocks();
   setupMocks();
 });
@@ -353,6 +416,24 @@ describe('subscriptionService.createSubscription', () => {
       { id: 'usr-1' },
       expect.objectContaining({
         $set: expect.objectContaining({ isPro: false, subscriptionTier: 'free' }),
+      })
+    );
+  });
+
+  it('syncs supplier tier fields so public badges reflect the account level', async () => {
+    mockSuppliers = [{ id: 'sup-1', ownerUserId: 'usr-1', subscriptionTier: 'free' }];
+    await subscriptionService.createSubscription({
+      userId: 'usr-1',
+      plan: 'pro_plus',
+      stripeSubscriptionId: 'sub_stripe_1',
+      stripeCustomerId: 'cus_1',
+      currentPeriodEnd: futureDate(),
+    });
+    expect(dbUnified.updateOne).toHaveBeenCalledWith(
+      'suppliers',
+      { id: 'sup-1' },
+      expect.objectContaining({
+        $set: expect.objectContaining({ subscriptionTier: 'pro_plus', isPro: true }),
       })
     );
   });

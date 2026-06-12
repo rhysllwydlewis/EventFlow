@@ -578,6 +578,14 @@ app.get('/package.html', (req, res) => {
   res.redirect(301, `/package${qs ? `?${qs}` : ''}`);
 });
 
+// Mirror the main Express app's clean package detail route for static/E2E mode.
+app.get('/package/:slug', (req, res) => {
+  if (!req.params.slug) {
+    return res.redirect(301, '/suppliers');
+  }
+  return res.sendFile(path.join(PUBLIC_DIR, 'package.html'));
+});
+
 // Dead-end singular routes — permanently redirect to the canonical plural/listing page.
 // Crawlers hitting /supplier or /category land here via old links; send them somewhere useful.
 app.get('/supplier', (req, res) => {
@@ -622,6 +630,170 @@ app.get('/chat', (req, res) => {
 
 app.get('/chat/', (req, res) => {
   res.sendFile(path.join(PUBLIC_DIR, 'chat', 'index.html'));
+});
+
+// Stub public calendar API and detail route for static visual/E2E runs.
+// The production server mounts the real API; static mode needs representative data
+// so the calendar page does not render as a false error state during screenshots.
+function daysFromNow(days, hour, minute = 0) {
+  const date = new Date();
+  date.setUTCDate(date.getUTCDate() + days);
+  date.setUTCHours(hour, minute, 0, 0);
+  return date.toISOString();
+}
+
+const mockPublicCalendarEvents = [
+  {
+    id: 'pce_static_fayre',
+    slug: 'spring-wedding-fayre-static',
+    title: 'Spring Wedding Fayre',
+    description:
+      'Meet trusted local suppliers, tour styled ceremony spaces and collect practical planning ideas for your celebration.',
+    startDate: daysFromNow(14, 10),
+    endDate: daysFromNow(14, 15),
+    location: 'The Grand Rustic Venue, Cotswolds',
+    venueName: 'The Grand Rustic Venue',
+    townCity: 'Cotswolds',
+    county: 'Gloucestershire',
+    category: 'Wedding Fayre',
+    eventType: 'Wedding Fayre',
+    priceType: 'free',
+    bookingRequired: true,
+    organiserName: 'EventFlow Venues Collective',
+    status: 'published',
+    featuredImageUrl: '/assets/images/collage-venue.jpg',
+    externalBookingUrl: 'https://example.com/spring-wedding-fayre',
+    createdByUserId: 'mock-supplier-user',
+  },
+  {
+    id: 'pce_static_workshop',
+    slug: 'budget-planning-workshop-static',
+    title: 'Budget Planning Workshop',
+    description:
+      'A hands-on session for couples who want a realistic wedding budget, supplier shortlist and next-step checklist.',
+    startDate: daysFromNow(32, 18, 30),
+    endDate: daysFromNow(32, 20),
+    location: 'Online event',
+    category: 'Planning Event',
+    eventType: 'Workshop',
+    priceType: 'paid',
+    ticketPrice: 15,
+    bookingRequired: true,
+    organiserName: 'JadeAssist Planning Team',
+    status: 'published',
+    isOnline: true,
+    featuredImageUrl: '/assets/images/collage-catering.jpg',
+    externalBookingUrl: 'https://example.com/budget-workshop',
+    createdByUserId: 'mock-supplier-user-2',
+  },
+  {
+    id: 'pce_static_tour',
+    slug: 'summer-venue-tour-static',
+    title: 'Summer Venue Tour',
+    description:
+      'Walk through ceremony, reception and photography locations with the venue team and sample seasonal canapes.',
+    startDate: daysFromNow(60, 11),
+    endDate: daysFromNow(60, 13),
+    location: 'Riverside Hall, Manchester',
+    venueName: 'Riverside Hall',
+    townCity: 'Manchester',
+    county: 'Greater Manchester',
+    category: 'Venues',
+    eventType: 'Venue Tour',
+    priceType: 'free',
+    bookingRequired: false,
+    organiserName: 'Riverside Hall Events',
+    status: 'published',
+    featuredImageUrl: '/assets/images/collage-entertainment.jpg',
+    createdByUserId: 'mock-supplier-user-3',
+  },
+];
+
+function filterMockPublicCalendarEvents(query) {
+  let events = [...mockPublicCalendarEvents];
+  const includePast = String(query.includePast || '').toLowerCase() === 'true';
+  if (!includePast) {
+    events = events.filter(event => new Date(event.endDate || event.startDate) >= new Date());
+  }
+  if (query.eventType) {
+    const eventType = String(query.eventType).toLowerCase();
+    events = events.filter(event => String(event.eventType || '').toLowerCase() === eventType);
+  }
+  if (query.location) {
+    const location = String(query.location).toLowerCase();
+    events = events.filter(event =>
+      String(event.location || '')
+        .toLowerCase()
+        .includes(location)
+    );
+  }
+  if (query.q) {
+    const q = String(query.q).toLowerCase();
+    events = events.filter(event =>
+      [event.title, event.description, event.organiserName, event.location]
+        .join(' ')
+        .toLowerCase()
+        .includes(q)
+    );
+  }
+  events.sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+  return events;
+}
+
+app.get(['/api/public-calendar/events', '/api/v1/public-calendar/events'], (req, res) => {
+  const events = filterMockPublicCalendarEvents(req.query);
+  const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 50, 1), 200);
+  const offset = Math.max(parseInt(req.query.offset, 10) || 0, 0);
+  res.json({
+    ok: true,
+    events: events.slice(offset, offset + limit),
+    total: events.length,
+    limit,
+    offset,
+  });
+});
+
+app.get(
+  ['/api/public-calendar/events/:id/ics', '/api/v1/public-calendar/events/:id/ics'],
+  (req, res) => {
+    const event = mockPublicCalendarEvents.find(
+      e => e.id === req.params.id || e.slug === req.params.id
+    );
+    if (!event) {
+      return res.status(404).json({ error: 'Event not found' });
+    }
+    res
+      .type('text/calendar')
+      .send(
+        `BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:${event.id}@event-flow.co.uk\r\nDTSTART:${event.startDate.replace(/[-:]/g, '').replace('.000Z', 'Z')}\r\nSUMMARY:${event.title}\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n`
+      );
+  }
+);
+
+app.get(['/api/public-calendar/events/:id', '/api/v1/public-calendar/events/:id'], (req, res) => {
+  const event = mockPublicCalendarEvents.find(
+    e => e.id === req.params.id || e.slug === req.params.id
+  );
+  if (!event) {
+    return res.status(404).json({ error: 'Event not found' });
+  }
+  res.json({ ok: true, event: { ...event, savedByMe: false } });
+});
+
+app.post(
+  ['/api/public-calendar/events/:id/report', '/api/v1/public-calendar/events/:id/report'],
+  (req, res) => {
+    res
+      .status(201)
+      .json({ ok: true, report: { id: 'pcer_static', eventId: req.params.id, status: 'open' } });
+  }
+);
+
+app.get('/events/:slug', (req, res, next) => {
+  if (!/^[a-zA-Z0-9_-]+$/.test(req.params.slug)) {
+    return next();
+  }
+  res.sendFile(path.join(PUBLIC_DIR, 'event-detail.html'));
 });
 
 // Canonical routes for other pages (matching server.js behavior)
@@ -694,6 +866,7 @@ const adminPages = [
   'admin-content',
   'admin-content-dates',
   'admin-exports',
+  'admin-emails',
   'admin-homepage',
   'admin-marketplace',
   'admin-messenger',
@@ -705,17 +878,21 @@ const adminPages = [
   'admin-reviews',
   'admin-search',
   'admin-photos',
+  'admin-public-calendar',
   'admin-reports',
   'admin-settings',
   'admin-supplier-detail',
   'admin-suppliers',
+  'admin-external-contacts',
   'admin-tickets',
   'admin-user-detail',
   'admin-users',
   'admin-debug',
   'admin-partners',
+  'admin-partner-campaign-report',
   'admin-cashout-requests',
   'admin-campaigns',
+  'admin-email-previews',
 ];
 
 adminPages.forEach(page => {
@@ -725,6 +902,10 @@ adminPages.forEach(page => {
   });
   // In static-mode we keep .html paths working too (no redirect) so that
   // existing E2E tests that navigate to /<page>.html are not broken.
+});
+
+app.get('/admin/email-previews', staticLimiter, (req, res) => {
+  res.sendFile(path.join(PUBLIC_DIR, 'admin-email-previews.html'));
 });
 
 // Article pages — serve clean URLs and redirect .html to canonical

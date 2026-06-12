@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="x-apple-disable-message-reformatting">
+  <meta name="color-scheme" content="light dark">
+  <meta name="supported-color-schemes" content="light dark">
+  <title>Welcome to the EventFlow Partner Programme</title>
+  <style>
+    @media only screen and (max-width: 620px) {
+      .email-container { width: 100% !important; border-radius: 0 !important; }
+      .email-body { padding: 28px 20px !important; }
+      .email-footer { padding: 20px !important; }
+      .cta-btn { display: block !important; text-align: center !important; padding: 14px 20px !important; }
+      .ref-code-box { padding: 16px 20px !important; }
+    }
+    @media (prefers-color-scheme: dark) {
+      .email-body { background-color: #1a2332 !important; }
+      .email-body h1, .email-body h2 { color: #f1f5f9 !important; }
+      .email-body p, .email-body li { color: #cbd5e1 !important; }
+      .email-footer { background-color: #1a2f2b !important; border-top-color: #2a4a45 !important; }
+      .step-row { background-color: #1e2d3d !important; border-color: #2a4a45 !important; }
+    }
+  </style>
+</head>
+<body style="margin:0;padding:0;background-color:#EBF7F5;font-family:Inter,system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#EBF7F5;">
+    <tr>
+      <td align="center" style="padding:24px 16px 32px;">
+        <table class="email-container" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;border-radius:20px;overflow:hidden;box-shadow:0 12px 48px rgba(11,128,115,0.16);">
+
+          <!-- ══ Header ═══════════════════════════════════════════════ -->
+          <tr>
+            <td style="background:linear-gradient(135deg,#0B5E56 0%,#0B8073 45%,#13B6A2 100%);padding:32px 40px 28px;text-align:center;">
+              <table cellpadding="0" cellspacing="0" border="0" style="margin:0 auto 16px auto;">
+                <tr>
+                  <td style="width:56px;height:56px;background:rgba(255,255,255,0.15);border:1.5px solid rgba(255,255,255,0.25);border-radius:16px;text-align:center;vertical-align:middle;font-size:22px;font-weight:900;color:#ffffff;letter-spacing:-1px;line-height:56px;">EF</td>
+                </tr>
+              </table>
+              <div style="font-size:22px;font-weight:800;color:#ffffff;letter-spacing:-0.3px;">EventFlow</div>
+              <div style="font-size:12px;color:rgba(255,255,255,0.72);margin-top:3px;letter-spacing:0.5px;text-transform:uppercase;">Partner Programme</div>
+            </td>
+          </tr>
+
+          <!-- ══ Body ════════════════════════════════════════════════ -->
+          <tr>
+            <td class="email-body" style="background-color:#ffffff;padding:40px 40px 32px;">
+
+              <!-- Greeting -->
+              <h1 style="margin:0 0 16px;font-size:22px;font-weight:700;color:#0B1220;line-height:1.3;">Welcome to the Partner Programme, {{name}}.</h1>
+              <p style="margin:0 0 24px;font-size:15px;color:#334155;line-height:1.75;">You now have everything you need to start referring suppliers to EventFlow and earn rewards for each one who joins.</p>
+
+              <!-- Referral code box -->
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px;">
+                <tr>
+                  <td class="ref-code-box" style="background:linear-gradient(135deg,#F0FDF9,#E6FAF6);border:1px solid #99E6D8;border-radius:14px;padding:20px 28px;text-align:center;">
+                    <p style="margin:0 0 6px;font-size:12px;font-weight:700;color:#0B8073;text-transform:uppercase;letter-spacing:0.08em;">Your referral code</p>
+                    <p style="margin:0 0 14px;font-size:28px;font-weight:900;color:#0B5E56;letter-spacing:3px;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;">{{refCode}}</p>
+                    <p style="margin:0 0 6px;font-size:12px;color:#64748B;">Your unique referral link</p>
+                    <p style="margin:0;font-size:12px;font-weight:600;color:#0B8073;word-break:break-all;"><a href="{{refLink}}" style="color:#0B8073;text-decoration:none;">{{refLink}}</a></p>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Primary CTA -->
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:30px;">
+                <tr>
+                  <td align="center">
+                    <a class="cta-btn" href="{{dashboardLink}}" style="display:inline-block;padding:15px 36px;background:linear-gradient(135deg,#0B8073,#13B6A2);color:#ffffff;text-decoration:none;border-radius:10px;font-weight:700;font-size:15px;letter-spacing:0.1px;">Open Partner Dashboard</a>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- How it works -->
+              <h2 style="margin:0 0 16px;font-size:16px;font-weight:700;color:#0B1220;">How the programme works</h2>
+
+              <table class="step-row" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:10px;border:1px solid #E2F5F1;border-radius:10px;background-color:#FAFFFE;">
+                <tr>
+                  <td style="padding:14px 18px;vertical-align:middle;">
+                    <table cellpadding="0" cellspacing="0" border="0"><tr>
+                      <td style="width:32px;height:32px;background:#E6FAF6;border-radius:8px;text-align:center;vertical-align:middle;font-size:14px;font-weight:800;color:#0B8073;line-height:32px;">1</td>
+                      <td style="padding-left:14px;">
+                        <p style="margin:0 0 2px;font-size:14px;font-weight:700;color:#0B1220;">Share your referral link</p>
+                        <p style="margin:0;font-size:13px;color:#64748B;line-height:1.5;">Share your personal referral link with any supplier you'd like to invite to EventFlow.</p>
+                      </td>
+                    </tr></table>
+                  </td>
+                </tr>
+              </table>
+
+              <table class="step-row" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:10px;border:1px solid #E2F5F1;border-radius:10px;background-color:#FAFFFE;">
+                <tr>
+                  <td style="padding:14px 18px;vertical-align:middle;">
+                    <table cellpadding="0" cellspacing="0" border="0"><tr>
+                      <td style="width:32px;height:32px;background:#E6FAF6;border-radius:8px;text-align:center;vertical-align:middle;font-size:14px;font-weight:800;color:#0B8073;line-height:32px;">2</td>
+                      <td style="padding-left:14px;">
+                        <p style="margin:0 0 2px;font-size:14px;font-weight:700;color:#0B1220;">They sign up and join</p>
+                        <p style="margin:0;font-size:13px;color:#64748B;line-height:1.5;">When they register using your code, they're linked to your partner account automatically.</p>
+                      </td>
+                    </tr></table>
+                  </td>
+                </tr>
+              </table>
+
+              <table class="step-row" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:28px;border:1px solid #E2F5F1;border-radius:10px;background-color:#FAFFFE;">
+                <tr>
+                  <td style="padding:14px 18px;vertical-align:middle;">
+                    <table cellpadding="0" cellspacing="0" border="0"><tr>
+                      <td style="width:32px;height:32px;background:#E6FAF6;border-radius:8px;text-align:center;vertical-align:middle;font-size:14px;font-weight:800;color:#0B8073;line-height:32px;">3</td>
+                      <td style="padding-left:14px;">
+                        <p style="margin:0 0 2px;font-size:14px;font-weight:700;color:#0B1220;">Track referrals and rewards</p>
+                        <p style="margin:0;font-size:13px;color:#64748B;line-height:1.5;">View your referred suppliers and any earned rewards directly in your partner dashboard.</p>
+                      </td>
+                    </tr></table>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Support note -->
+              <p style="margin:0;font-size:13px;color:#64748B;line-height:1.7;text-align:center;">Questions about the programme? Contact us at <a href="mailto:hello@event-flow.co.uk" style="color:#0B8073;text-decoration:none;">hello@event-flow.co.uk</a></p>
+            </td>
+          </tr>
+
+          <!-- ══ Footer ══════════════════════════════════════════════ -->
+          <tr>
+            <td class="email-footer" style="background-color:#F2FBF9;padding:24px 40px;text-align:center;border-top:1px solid #D9F0EC;">
+              <p style="margin:0 0 8px;font-size:13px;color:#64748B;">© {{year}} EventFlow. All rights reserved. · Operated by VEXI</p>
+              <p style="margin:0;font-size:12px;color:#94A3B8;"><a href="{{baseUrl}}/privacy" style="color:#0B8073;text-decoration:none;">Privacy Policy</a> · <a href="{{baseUrl}}/terms" style="color:#0B8073;text-decoration:none;">Terms</a> · <a href="{{baseUrl}}/contact" style="color:#0B8073;text-decoration:none;">Contact</a></p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

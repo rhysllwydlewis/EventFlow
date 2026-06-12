@@ -1,13 +1,17 @@
-// Wait for dependencies to load before initializing (max 3 s / 60 × 50 ms)
-const FORM_INIT_MAX_RETRIES = 60;
+const FORM_INIT_MAX_RETRIES = 40; // 40 × 50 ms = 2 s max wait
 let formInitRetries = 0;
+
 function initFormValidation() {
-  // Check if dependencies are loaded
+  // FormValidator and ErrorBoundary load via defer — they may not be ready yet.
+  // Poll with a bounded retry loop (max FORM_INIT_MAX_RETRIES attempts).
   if (typeof FormValidator === 'undefined' || typeof ErrorBoundary === 'undefined') {
-    formInitRetries++;
     if (formInitRetries < FORM_INIT_MAX_RETRIES) {
-      // Retry after a short delay
+      formInitRetries += 1;
       setTimeout(initFormValidation, 50);
+    } else if (typeof console !== 'undefined') {
+      console.warn(
+        '[auth-form-init] FormValidator or ErrorBoundary not available after max retries — skipping validation setup'
+      );
     }
     return;
   }
@@ -81,9 +85,5 @@ function initFormValidation() {
   }
 }
 
-// Start initialization when DOM is ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initFormValidation);
-} else {
-  initFormValidation();
-}
+// Script runs with defer — DOM is always ready; call directly
+initFormValidation();

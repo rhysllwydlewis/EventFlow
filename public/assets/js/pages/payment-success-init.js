@@ -1,3 +1,10 @@
+function escapeHtml(s) {
+  if (s === null || s === undefined) return '';
+  const d = document.createElement('div');
+  d.textContent = String(s);
+  return d.innerHTML;
+}
+
 // Get session ID from URL
 const urlParams = new URLSearchParams(window.location.search);
 const sessionId = urlParams.get('session_id');
@@ -32,11 +39,11 @@ async function showSuccess() {
         <h3>Transaction Details</h3>
         <div class="info-row">
           <span class="label">Session ID:</span>
-          <span class="value">${sessionId.substring(0, 20)}...</span>
+          <span class="value">${escapeHtml(sessionId.substring(0, 20))}...</span>
         </div>
         <div class="info-row">
           <span class="label">Status:</span>
-          <span class="value" style="color: #10b981; font-weight: bold;">Completed</span>
+          <span class="value" class="status-completed">Completed</span>
         </div>
         <div class="info-row">
           <span class="label">Date:</span>
@@ -46,15 +53,28 @@ async function showSuccess() {
     `;
   }
 
+  // Auto-redirect to dashboard after 8 seconds
+  const AUTO_REDIRECT_SECONDS = 8;
+  let autoRedirectCountdown = AUTO_REDIRECT_SECONDS;
+  const redirectTimer = setInterval(() => {
+    autoRedirectCountdown--;
+    const countdownEl = document.getElementById('redirect-countdown');
+    if (countdownEl) countdownEl.textContent = autoRedirectCountdown;
+    if (autoRedirectCountdown <= 0) {
+      clearInterval(redirectTimer);
+      window.location.href = dashboardUrl;
+    }
+  }, 1000);
+
   content.innerHTML =
     `<div class="success-icon">✓</div>` +
     `<div class="success-content">` +
     `<h1>Payment Successful!</h1>` +
-    `<p>Thank you for your payment. Your transaction has been completed successfully. You will receive a confirmation email shortly.</p>${
+    `<p>Thank you for your payment. Your transaction has been completed successfully. You will receive a confirmation email shortly.</p><p class="redirect-notice">You will be redirected to your dashboard in <strong><span id="redirect-countdown">8</span></strong> seconds.</p>${
       sessionInfoHtml
-    }<p style="font-size: 0.9rem; color: #9ca3af;">If you have any questions about your payment, please contact our support team.</p>` +
+    }<p class="payment-note">If you have any questions about your payment, please contact our support team.</p>` +
     `<div class="action-buttons">` +
-    `<a href="${dashboardUrl}" class="btn btn-primary">Go to Dashboard</a>` +
+    `<a href="${escapeHtml(dashboardUrl)}" class="btn btn-primary">Go to Dashboard</a>` +
     `<a href="/suppliers" class="btn btn-secondary">Browse Suppliers</a>` +
     `</div></div>`;
 }
@@ -65,9 +85,9 @@ function showError(message) {
   if (!content) return;
   content.className = '';
   content.innerHTML =
-    `<div class="success-icon" style="color: #ef4444;">✗</div>` +
-    `<div class="success-content" style="border-color: #ef4444;">` +
-    `<h1 style="color: #ef4444;">Payment Verification Failed</h1>` +
+    `<div class="success-icon success-icon--error">✗</div>` +
+    `<div class="success-content success-content--error">` +
+    `<h1 class="error-title">Payment Verification Failed</h1>` +
     `<p>${message}</p>` +
     `<div class="action-buttons">` +
     `<a href="/checkout" class="btn btn-primary">Try Again</a>` +
@@ -108,3 +128,5 @@ async function verifyPayment() {
 
 // Initialize
 verifyPayment();
+
+

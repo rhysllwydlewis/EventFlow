@@ -29,8 +29,12 @@ process.env.NODE_ENV = 'test';
 jest.mock('../../db-unified', () => ({
   read: jest.fn(),
   write: jest.fn().mockResolvedValue(undefined),
+  find: jest.fn().mockResolvedValue([]),
   findOne: jest.fn(),
-  updateOne: jest.fn().mockResolvedValue(undefined),
+  insertOne: jest.fn().mockImplementation(async (_col, doc) => doc),
+  updateOne: jest.fn().mockResolvedValue(true),
+  deleteOne: jest.fn().mockResolvedValue(true),
+  deleteMany: jest.fn().mockResolvedValue(0),
 }));
 
 jest.mock('../../utils/logger', () => ({
@@ -139,7 +143,23 @@ function withAuth(req, user) {
 
 // ─── Mock helpers ─────────────────────────────────────────────────────────────
 
-function setupReadMock({ events = [], saves = [], suppliers = [], users = [] } = {}) {
+let currentTestSuppliers = [];
+
+function setupReadMock({
+  events = [],
+  saves = [],
+  suppliers = [],
+  users = [],
+  public_calendar_publisher_requests = [],
+  public_calendar_event_reports = [],
+  settings = {},
+} = {}) {
+  // Track current test suppliers so findOne sees the same data as read
+  // Include test-supplied suppliers first so they take priority over defaults
+  currentTestSuppliers =
+    suppliers.length > 0
+      ? suppliers
+      : [PUBLISHER_SUPPLIER_DOC, OTHER_PUBLISHER_SUPPLIER_DOC, NON_PUBLISHER_SUPPLIER_DOC];
   dbUnified.read.mockImplementation(async collection => {
     if (collection === 'public_calendar_events') {
       return [...events];
@@ -152,6 +172,15 @@ function setupReadMock({ events = [], saves = [], suppliers = [], users = [] } =
     }
     if (collection === 'users') {
       return [...users];
+    }
+    if (collection === 'public_calendar_publisher_requests') {
+      return [...public_calendar_publisher_requests];
+    }
+    if (collection === 'public_calendar_event_reports') {
+      return [...public_calendar_event_reports];
+    }
+    if (collection === 'settings') {
+      return settings;
     }
     return [];
   });
@@ -167,17 +196,52 @@ function setupReadMock({ events = [], saves = [], suppliers = [], users = [] } =
       return allUsers.find(u => u.id === filter.id) || null;
     }
     if (collection === 'suppliers') {
-      const all = [
-        PUBLISHER_SUPPLIER_DOC,
-        OTHER_PUBLISHER_SUPPLIER_DOC,
-        NON_PUBLISHER_SUPPLIER_DOC,
-        ...suppliers,
-      ];
       return (
-        all.find(
+        currentTestSuppliers.find(
           s =>
             (!filter.id || s.id === filter.id) &&
             (!filter.ownerUserId || s.ownerUserId === filter.ownerUserId)
+        ) || null
+      );
+    }
+    if (collection === 'public_calendar_events') {
+      if (typeof filter === 'function') {
+        return events.find(filter) || null;
+      }
+      // Handle $or filter used by the UPDATE route (id-or-slug lookup)
+      if (filter.$or) {
+        return (
+          events.find(e =>
+            filter.$or.some(cond => Object.keys(cond).every(k => e[k] === cond[k]))
+          ) || null
+        );
+      }
+      return (
+        events.find(
+          e => (!filter.id || e.id === filter.id) && (!filter.slug || e.slug === filter.slug)
+        ) || null
+      );
+    }
+    if (collection === 'public_calendar_saves') {
+      return (
+        saves.find(
+          s =>
+            (!filter.userId || s.userId === filter.userId) &&
+            (!filter.eventId || s.eventId === filter.eventId)
+        ) || null
+      );
+    }
+    if (collection === 'public_calendar_publisher_requests') {
+      return (
+        public_calendar_publisher_requests.find(r =>
+          Object.keys(filter).every(k => r[k] === filter[k])
+        ) || null
+      );
+    }
+    if (collection === 'public_calendar_event_reports') {
+      return (
+        public_calendar_event_reports.find(r =>
+          Object.keys(filter).every(k => r[k] === filter[k])
         ) || null
       );
     }
@@ -483,11 +547,14 @@ describe('DELETE /api/public-calendar/events/:id/save — unsave', () => {
       CUSTOMER_USER
     );
     expect(res.status).toBe(200);
-    expect(dbUnified.write).toHaveBeenCalledWith('public_calendar_saves', []);
+    expect(dbUnified.deleteOne).toHaveBeenCalledWith('public_calendar_saves', {
+      userId: CUSTOMER_USER.id,
+      eventId: SAMPLE_EVENT.id,
+    });
   });
 
   it('returns 404 when save does not exist', async () => {
-    setupReadMock({ saves: [] });
+    dbUnified.deleteOne.mockResolvedValueOnce(false); // no matching save
     const res = await withAuth(
       request(app).delete(`/api/public-calendar/events/${SAMPLE_EVENT.id}/save`),
       CUSTOMER_USER
@@ -534,6 +601,34 @@ describe('GET /api/public-calendar/events/saved', () => {
     );
     expect(res.status).toBe(200);
     expect(res.body.events.length).toBe(0);
+  });
+
+  it('removes stale saves for events removed from the shared calendar', async () => {
+    setupReadMock({
+      events: [],
+      saves: [
+        {
+          ...save,
+          eventDeleted: true,
+          eventDeletedAt: '2026-01-03T00:00:00.000Z',
+          eventSnapshot: {
+            title: SAMPLE_EVENT.title,
+            startDate: SAMPLE_EVENT.startDate,
+            slug: 'spring-wedding-fayre-deleted',
+            eventType: 'Wedding Fayre',
+          },
+        },
+      ],
+    });
+
+    const res = await withAuth(
+      request(app).get('/api/public-calendar/events/saved'),
+      CUSTOMER_USER
+    );
+
+    expect(res.status).toBe(200);
+    expect(res.body.events).toEqual([]);
+    expect(res.body.count).toBe(0);
   });
 });
 
@@ -740,5 +835,338 @@ describe('PUT /api/public-calendar/events/:id — updatedByUserId', () => {
     );
     expect(res.status).toBe(200);
     expect(res.body.event.updatedByUserId).toBe(ADMIN_USER.id);
+  });
+});
+
+describe('Public calendar lifecycle, richer fields, export and publishing requests', () => {
+  let app;
+
+  beforeEach(() => {
+    app = buildApp();
+    dbUnified.write.mockClear();
+    dbUnified.updateOne.mockClear();
+  });
+
+  it('hides draft and cancelled events from the default public listing', async () => {
+    setupReadMock({
+      events: [
+        { ...SAMPLE_EVENT, id: 'pce_published', status: 'published' },
+        { ...SAMPLE_EVENT, id: 'pce_draft', status: 'draft' },
+        { ...SAMPLE_EVENT, id: 'pce_cancelled', status: 'cancelled' },
+      ],
+    });
+
+    const res = await request(app).get('/api/public-calendar/events?includePast=true');
+    expect(res.status).toBe(200);
+    expect(res.body.events.map(e => e.id)).toEqual(['pce_published']);
+  });
+
+  it('treats missing status old events as published and normalises fallbacks', async () => {
+    setupReadMock({
+      events: [
+        {
+          ...SAMPLE_EVENT,
+          imageUrl: 'https://example.com/old.jpg',
+          externalUrl: 'https://example.com/book',
+        },
+      ],
+    });
+
+    const res = await request(app).get('/api/public-calendar/events?includePast=true');
+    expect(res.status).toBe(200);
+    expect(res.body.events[0].status).toBe('published');
+    expect(res.body.events[0].featuredImageUrl).toBe('https://example.com/old.jpg');
+    expect(res.body.events[0].externalBookingUrl).toBe('https://example.com/book');
+    expect(res.body.events[0].slug).toMatch(/^spring-wedding-fayre-/);
+  });
+
+  it('supports richer event fields on creation', async () => {
+    setupReadMock({ events: [], suppliers: [PUBLISHER_SUPPLIER_DOC] });
+    const res = await withAuth(
+      request(app).post('/api/public-calendar/events').send({
+        title: 'Venue Tour Evening',
+        startDate: '2027-07-01T18:00:00Z',
+        eventType: 'Venue Tour',
+        priceType: 'free',
+        bookingRequired: true,
+        postcode: 'M1 1AE',
+        county: 'Greater Manchester',
+        externalBookingUrl: 'https://example.com/tour',
+      }),
+      PUBLISHER_SUPPLIER_USER
+    );
+    expect(res.status).toBe(201);
+    expect(res.body.event.eventType).toBe('Venue Tour');
+    expect(res.body.event.priceType).toBe('free');
+    expect(res.body.event.bookingRequired).toBe(true);
+    expect(res.body.event.externalBookingUrl).toBe('https://example.com/tour');
+  });
+
+  it('holds supplier-created events for review when public calendar approval is required', async () => {
+    setupReadMock({
+      events: [],
+      suppliers: [PUBLISHER_SUPPLIER_DOC],
+      settings: { features: { requirePublicCalendarApproval: true } },
+    });
+    const res = await withAuth(
+      request(app).post('/api/public-calendar/events').send({
+        title: 'Approval Needed',
+        startDate: '2027-07-01T18:00:00Z',
+        status: 'published',
+      }),
+      PUBLISHER_SUPPLIER_USER
+    );
+    expect(res.status).toBe(201);
+    expect(res.body.event.status).toBe('pending_review');
+    expect(res.body.event.publishedAt).toBeNull();
+  });
+
+  it('rejects unsafe rich URLs and invalid dates', async () => {
+    setupReadMock({ events: [], suppliers: [PUBLISHER_SUPPLIER_DOC] });
+    const res = await withAuth(
+      request(app).post('/api/public-calendar/events').send({
+        title: 'Bad Event',
+        startDate: '2027-07-02T18:00:00Z',
+        endDate: '2027-07-01T18:00:00Z',
+        externalBookingUrl: 'data:text/html,bad',
+      }),
+      PUBLISHER_SUPPLIER_USER
+    );
+    expect(res.status).toBe(400);
+    expect(res.body.details).toEqual(
+      expect.arrayContaining([
+        'endDate must be on or after startDate',
+        'externalBookingUrl must be a valid http or https URL',
+      ])
+    );
+  });
+
+  it('exports an .ics file for visible public events', async () => {
+    setupReadMock({
+      events: [{ ...SAMPLE_EVENT, status: 'published', organiserName: 'Fayre Co' }],
+    });
+    const res = await request(app).get(`/api/public-calendar/events/${SAMPLE_EVENT.id}/ics`);
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toContain('text/calendar');
+    expect(res.text).toContain('BEGIN:VCALENDAR');
+    expect(res.text).toContain('SUMMARY:Spring Wedding Fayre');
+  });
+
+  it('allows a non-publisher supplier to create a publishing access request', async () => {
+    setupReadMock({
+      suppliers: [NON_PUBLISHER_SUPPLIER_DOC],
+      public_calendar_publisher_requests: [],
+    });
+    const res = await withAuth(
+      request(app).post('/api/public-calendar/publisher-request').send({
+        reason: 'We host quarterly open days and supplier showcases.',
+        eventTypes: 'Open Day, Supplier Showcase',
+        exampleEventTitle: 'Autumn Studio Open Day',
+        expectedFrequency: 'quarterly',
+      }),
+      NON_PUBLISHER_USER
+    );
+    expect(res.status).toBe(201);
+    expect(res.body.request.status).toBe('pending');
+  });
+
+  it('prevents duplicate pending publishing access requests', async () => {
+    setupReadMock({
+      suppliers: [NON_PUBLISHER_SUPPLIER_DOC],
+      public_calendar_publisher_requests: [
+        { id: 'pcpr_1', supplierId: NON_PUBLISHER_SUPPLIER_DOC.id, status: 'pending' },
+      ],
+    });
+    const res = await withAuth(
+      request(app)
+        .post('/api/public-calendar/publisher-request')
+        .send({ reason: 'We host regular workshops.' }),
+      NON_PUBLISHER_USER
+    );
+    expect(res.status).toBe(409);
+  });
+
+  it('admin approval updates the supplier override to true', async () => {
+    setupReadMock({
+      public_calendar_publisher_requests: [
+        {
+          id: 'pcpr_1',
+          supplierId: NON_PUBLISHER_SUPPLIER_DOC.id,
+          status: 'pending',
+          createdAt: '2026-01-01T00:00:00.000Z',
+        },
+      ],
+    });
+    const res = await withAuth(
+      request(app)
+        .post('/api/public-calendar/publisher-requests/pcpr_1/approve')
+        .send({ reason: 'Looks valid' }),
+      ADMIN_USER
+    );
+    expect(res.status).toBe(200);
+    expect(res.body.request.status).toBe('approved');
+    expect(dbUnified.updateOne).toHaveBeenCalledWith(
+      'suppliers',
+      { id: NON_PUBLISHER_SUPPLIER_DOC.id },
+      expect.objectContaining({
+        $set: expect.objectContaining({ publicCalendarPublisherOverride: true }),
+      })
+    );
+  });
+});
+
+describe('Public calendar regression fixes', () => {
+  let app;
+
+  beforeEach(() => {
+    app = buildApp();
+    dbUnified.write.mockClear();
+  });
+
+  it('hides past events without endDate from default public listings', async () => {
+    setupReadMock({
+      events: [
+        {
+          ...SAMPLE_EVENT,
+          id: 'pce_past_no_end',
+          startDate: '2020-01-01T10:00:00.000Z',
+          endDate: '',
+          status: 'published',
+        },
+        {
+          ...SAMPLE_EVENT,
+          id: 'pce_future_no_end',
+          startDate: '2027-01-01T10:00:00.000Z',
+          endDate: '',
+          status: 'published',
+        },
+      ],
+    });
+
+    const res = await request(app).get('/api/public-calendar/events');
+    expect(res.status).toBe(200);
+    expect(res.body.events.map(e => e.id)).toEqual(['pce_future_no_end']);
+  });
+
+  it('allows direct public access to cancelled event details with status included', async () => {
+    setupReadMock({
+      events: [{ ...SAMPLE_EVENT, status: 'cancelled', cancelledReason: 'Venue issue' }],
+    });
+
+    const res = await request(app).get(`/api/public-calendar/events/${SAMPLE_EVENT.id}`);
+    expect(res.status).toBe(200);
+    expect(res.body.event.status).toBe('cancelled');
+    expect(res.body.event.cancelledReason).toBe('Venue issue');
+  });
+
+  it('rejects updating startDate beyond an existing endDate', async () => {
+    setupReadMock({ events: [SAMPLE_EVENT], suppliers: [PUBLISHER_SUPPLIER_DOC] });
+
+    const res = await withAuth(
+      request(app)
+        .put(`/api/public-calendar/events/${SAMPLE_EVENT.id}`)
+        .send({ startDate: '2027-03-02T10:00:00.000Z' }),
+      PUBLISHER_SUPPLIER_USER
+    );
+    expect(res.status).toBe(400);
+    expect(res.body.details).toEqual(
+      expect.arrayContaining(['endDate must be on or after startDate'])
+    );
+  });
+});
+
+describe('Public calendar admin management surfaces', () => {
+  let app;
+
+  beforeEach(() => {
+    app = buildApp();
+  });
+
+  it('includes savesCount for admin event listings', async () => {
+    setupReadMock({
+      events: [SAMPLE_EVENT],
+      saves: [
+        { id: 'pcs_1', userId: CUSTOMER_USER.id, eventId: SAMPLE_EVENT.id },
+        { id: 'pcs_2', userId: OTHER_PUBLISHER_USER.id, eventId: SAMPLE_EVENT.id },
+      ],
+    });
+
+    const res = await withAuth(
+      request(app).get('/api/public-calendar/events?status=all&includePast=true'),
+      ADMIN_USER
+    );
+    expect(res.status).toBe(200);
+    expect(res.body.events[0].savesCount).toBe(2);
+  });
+
+  it('excludes soft-deleted legacy events from admin counts and listings', async () => {
+    setupReadMock({
+      events: [
+        SAMPLE_EVENT,
+        { ...SAMPLE_EVENT, id: 'pce_deleted_status', status: 'deleted' },
+        { ...SAMPLE_EVENT, id: 'pce_deleted_at', deletedAt: '2026-01-03T00:00:00.000Z' },
+      ],
+    });
+
+    const res = await withAuth(
+      request(app).get('/api/public-calendar/events?status=all&includePast=true'),
+      ADMIN_USER
+    );
+    expect(res.status).toBe(200);
+    expect(res.body.total).toBe(1);
+    expect(res.body.events.map(event => event.id)).toEqual([SAMPLE_EVENT.id]);
+  });
+
+  it('creates a support ticket when a customer reports a public event', async () => {
+    setupReadMock({ events: [SAMPLE_EVENT] });
+
+    const res = await withAuth(
+      request(app).post(`/api/public-calendar/events/${SAMPLE_EVENT.id}/report`).send({
+        reason: 'Incorrect information',
+        notes: 'The venue address is wrong.',
+      }),
+      CUSTOMER_USER
+    );
+
+    expect(res.status).toBe(201);
+    expect(dbUnified.write).not.toHaveBeenCalledWith(
+      'public_calendar_event_reports',
+      expect.any(Array)
+    );
+    expect(dbUnified.insertOne).toHaveBeenCalledWith(
+      'tickets',
+      expect.objectContaining({
+        senderId: CUSTOMER_USER.id,
+        senderType: 'customer',
+        source: 'public_calendar_report',
+        relatedEventId: SAMPLE_EVENT.id,
+        subject: expect.stringContaining(SAMPLE_EVENT.title),
+        message: expect.stringContaining('The venue address is wrong.'),
+      })
+    );
+  });
+
+  it('enriches admin event reports with event details', async () => {
+    setupReadMock({
+      events: [SAMPLE_EVENT],
+      public_calendar_event_reports: [
+        {
+          id: 'pcer_1',
+          eventId: SAMPLE_EVENT.id,
+          reporterUserId: CUSTOMER_USER.id,
+          reason: 'Incorrect information',
+          status: 'open',
+          createdAt: '2026-01-01T00:00:00.000Z',
+        },
+      ],
+    });
+
+    const res = await withAuth(
+      request(app).get('/api/public-calendar/reports?status=open'),
+      ADMIN_USER
+    );
+    expect(res.status).toBe(200);
+    expect(res.body.reports[0].eventTitle).toBe(SAMPLE_EVENT.title);
+    expect(res.body.reports[0].eventSlug).toMatch(/^spring-wedding-fayre-/);
   });
 });

@@ -1693,7 +1693,7 @@ function showToast(message, type = 'info') {
   }
 
   const toast = document.createElement('div');
-  toast.className = 'toast-notification';
+  toast.className = `toast-notification toast-notification--${type || 'info'}`;
   toast.textContent = message;
 
   const colors = {
@@ -1702,21 +1702,7 @@ function showToast(message, type = 'info') {
     info: '#3b82f6',
   };
 
-  toast.style.cssText = `
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    background: ${colors[type] || colors.info};
-    color: white;
-    padding: 16px 24px;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    z-index: 10000;
-    animation: slideInUp 0.3s ease-out;
-    max-width: 400px;
-    font-size: 14px;
-    line-height: 1.5;
-  `;
+  // Colour and positioning handled by CSS class
 
   document.body.appendChild(toast);
 
@@ -2844,12 +2830,7 @@ function efMaybeShowOnboarding(page) {
       </div>
     `;
 
-    const hero = container.querySelector('#customer-hero');
-    if (hero && hero.parentNode === container) {
-      container.insertBefore(box, hero);
-    } else {
-      container.insertBefore(box, container.firstChild);
-    }
+    container.insertBefore(box, container.firstChild);
 
     // Hide the static #welcome-section to prevent two welcome messages on first visit
     const welcomeSection = container.querySelector('#welcome-section');
@@ -2917,7 +2898,7 @@ function efMaybeShowOnboarding(page) {
 
   box.innerHTML = `<h2 class="h4">Welcome to EventFlow</h2>${
     body
-  }<div class="form-actions" style="margin-top:8px"><button type="button" class="cta secondary" id="ef-onboarding-dismiss">Got it</button></div>`;
+  }<div class="form-actions form-actions--modal"><button type="button" class="cta secondary" id="ef-onboarding-dismiss">Got it</button></div>`;
 
   const cards = container.querySelector('.cards');
   if (cards && cards.parentNode === container) {
@@ -3055,7 +3036,11 @@ async function initDashSupplier() {
         // migration). The thrown Error propagates to the caller's catch block, which shows a
         // user-visible message via the status element — so 404s never fail silently.
         const errorData = await r.json().catch(() => ({ error: 'Request failed' }));
-        throw new Error(errorData.error || `HTTP ${r.status}`);
+        const err = new Error(errorData.message || errorData.error || `HTTP ${r.status}`);
+        err.code = errorData.code || '';
+        err.setupUrl = errorData.setupUrl || '';
+        err.status = r.status;
+        throw err;
       }
       return r.json();
     } catch (error) {
@@ -3101,6 +3086,10 @@ async function initDashSupplier() {
       );
       cachedSuppliers = items; // Cache for use within initDashSupplier scope
       window._efCachedSuppliers = items; // Expose globally for editProfile()
+      const hasSupplierProfile = items.length > 0;
+      const hasApprovedSupplierProfile = items.some(s => s && s.approved === true);
+      window._supplierProfileMissing = !hasSupplierProfile;
+      window._supplierApprovalBlocked = hasSupplierProfile && !hasApprovedSupplierProfile;
       // If this user has at least one Pro supplier, treat them as Pro.
       // Check subscriptionTier (new field) first, then subscription.tier, then legacy isPro boolean.
       currentIsPro = items.some(s => {
@@ -3187,7 +3176,7 @@ async function initDashSupplier() {
 
       if (!items || items.length === 0) {
         supWrap.innerHTML =
-          '<div class="sd-empty-state"><div class="sd-empty-state__icon" aria-hidden="true">👤</div><div class="sd-empty-state__body"><p class="sd-empty-state__title">No profiles yet</p><p class="sd-empty-state__desc">Create your first supplier profile to start attracting clients.</p></div></div>';
+          '<div class="sd-empty-state"><div class="sd-empty-state__icon" aria-hidden="true">👤</div><div class="sd-empty-state__body"><p class="sd-empty-state__title">Supplier profile setup needed</p><p class="sd-empty-state__desc">Your supplier account needs a linked business profile before you can create packages.</p><a class="sd-empty-state__cta" href="#profile-form" data-action="open-profile-form">Complete supplier profile →</a></div></div>';
         // Update quick-stat-profiles with the real count (0)
         const quickStatProfiles = document.getElementById('quick-stat-profiles');
         if (quickStatProfiles) {
@@ -3653,12 +3642,12 @@ async function initDashSupplier() {
         // Create image element safely to avoid XSS
         const imgDiv = document.createElement('div');
         imgDiv.className = 'photo-preview-item';
-        imgDiv.style.cssText = 'width:100%;height:150px;border-radius:8px;position:relative;';
+        imgDiv.classList.add('photo-preview-item-inner');
 
         const img = document.createElement('img');
         img.src = supplier.bannerUrl; // Browser automatically sanitizes
         img.alt = 'Banner preview';
-        img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:8px;';
+        img.classList.add('photo-preview-img');
         img.addEventListener(
           'error',
           () => {
@@ -3775,6 +3764,10 @@ async function initDashSupplier() {
       // Only block *creating* new packages — editing existing ones must remain allowed.
       const pkgForm = document.getElementById('package-form');
       const pkgStatus = document.getElementById('pkg-status');
+      const supplierBlocked = window._supplierProfileMissing || window._supplierApprovalBlocked;
+      const supplierBlockMessage = window._supplierProfileMissing
+        ? 'Complete your supplier profile setup before creating packages.'
+        : 'Your supplier profile is pending approval. Package creation unlocks after approval.';
       const atLimit = !currentIsPro && activeCount >= freeLimit;
       // Expose globally so togglePackageForm() and editPackage() can reference it.
       window._pkgAtLimit = atLimit;
@@ -3801,6 +3794,16 @@ async function initDashSupplier() {
             toggleBtn.title = `You've reached your ${freeLimit}-package limit. Pause or delete a package, or upgrade your plan.`;
             if (labelEl) {
               labelEl.textContent = window._pkgLimitLabel;
+            }
+          } else if (supplierBlocked) {
+            toggleBtn.disabled = true;
+            toggleBtn.classList.add('form-toggle-btn--at-limit');
+            toggleBtn.setAttribute('aria-label', supplierBlockMessage);
+            toggleBtn.title = supplierBlockMessage;
+            if (labelEl) {
+              labelEl.textContent = window._supplierProfileMissing
+                ? 'Profile setup needed'
+                : 'Pending approval';
             }
           } else {
             toggleBtn.disabled = false;
@@ -3835,8 +3838,8 @@ async function initDashSupplier() {
         const isEditMode = !!editingId;
 
         // Only apply the limit restriction when in create mode.
-        const shouldDisable = atLimit && !isEditMode;
-        setPkgFormDisabled(shouldDisable);
+        const shouldDisable = (atLimit || supplierBlocked) && !isEditMode;
+        setPkgFormDisabled(shouldDisable, supplierBlocked ? supplierBlockMessage : undefined);
       }
 
       if (!items || items.length === 0) {
@@ -3891,8 +3894,16 @@ async function initDashSupplier() {
     } catch (err) {
       console.error('Error loading packages:', err);
       if (pkgsWrap) {
-        pkgsWrap.innerHTML =
-          '<div class="sd-empty-state"><div class="sd-empty-state__icon" aria-hidden="true">⚠️</div><div class="sd-empty-state__body"><p class="sd-empty-state__title">Could not load packages</p><p class="sd-empty-state__desc">Please refresh the page to try again.</p></div></div>';
+        if (err.code === 'SUPPLIER_PROFILE_MISSING') {
+          pkgsWrap.innerHTML =
+            '<div class="sd-empty-state"><div class="sd-empty-state__icon" aria-hidden="true">👤</div><div class="sd-empty-state__body"><p class="sd-empty-state__title">Supplier profile setup needed</p><p class="sd-empty-state__desc">Complete your supplier profile setup before creating packages.</p><a class="sd-empty-state__cta" href="#profile-form" data-action="open-profile-form">Complete supplier profile →</a></div></div>';
+        } else if (err.code === 'SUPPLIER_NOT_APPROVED') {
+          pkgsWrap.innerHTML =
+            '<div class="sd-empty-state"><div class="sd-empty-state__icon" aria-hidden="true">⏳</div><div class="sd-empty-state__body"><p class="sd-empty-state__title">Profile pending approval</p><p class="sd-empty-state__desc">Your supplier profile is awaiting admin approval. Package creation unlocks after approval.</p></div></div>';
+        } else {
+          pkgsWrap.innerHTML =
+            '<div class="sd-empty-state"><div class="sd-empty-state__icon" aria-hidden="true">⚠️</div><div class="sd-empty-state__body"><p class="sd-empty-state__title">Could not load packages</p><p class="sd-empty-state__desc">Please refresh the page to try again.</p></div></div>';
+        }
       }
     }
   }
@@ -4562,7 +4573,7 @@ async function initDashSupplier() {
         return;
       }
       if (!payload.eventTypes || payload.eventTypes.length === 0) {
-        alert('Please select at least one event type (Wedding or Other)');
+        alert('Please select at least one event type.');
         return;
       }
       if (!payload.price || !String(payload.price).trim()) {
@@ -4626,7 +4637,15 @@ async function initDashSupplier() {
           setPkgFormDisabled(true);
         }
       } catch (err) {
-        alert(`Error saving package: ${err.message || 'Please try again'}`);
+        if (err.code === 'SUPPLIER_PROFILE_MISSING') {
+          alert('Complete your supplier profile setup before creating packages.');
+        } else if (err.code === 'SUPPLIER_NOT_APPROVED') {
+          alert(
+            'Your supplier profile is pending approval. Package creation unlocks after approval.'
+          );
+        } else {
+          alert(`Error saving package: ${err.message || 'Please try again'}`);
+        }
       } finally {
         if (saveBtn) {
           // Restore button label. Only re-enable if NOT at the package limit:
@@ -4767,7 +4786,7 @@ const PKG_LIMIT_MESSAGE =
  *
  * @param {boolean} disable - true to disable (limit reached), false to enable.
  */
-function setPkgFormDisabled(disable) {
+function setPkgFormDisabled(disable, message) {
   const form = document.getElementById('package-form');
   if (!form) {
     return;
@@ -4777,7 +4796,7 @@ function setPkgFormDisabled(disable) {
   });
   const status = document.getElementById('pkg-status');
   if (status) {
-    status.textContent = disable ? PKG_LIMIT_MESSAGE : '';
+    status.textContent = disable ? message || PKG_LIMIT_MESSAGE : '';
   }
 }
 
@@ -4927,9 +4946,13 @@ function editPackage(packageId) {
       }
 
       // Set event type checkboxes
+      // Set event type checkboxes
       if (pkg.eventTypes && Array.isArray(pkg.eventTypes)) {
-        document.getElementById('pkg-event-wedding').checked = pkg.eventTypes.includes('wedding');
-        document.getElementById('pkg-event-other').checked = pkg.eventTypes.includes('other');
+        const ALL_EVENT_TYPES = ['wedding','birthday','corporate','anniversary','christening','graduation','engagement','other'];
+        ALL_EVENT_TYPES.forEach(type => {
+          const el = document.getElementById(`pkg-event-${type}`);
+          if (el) el.checked = pkg.eventTypes.includes(type);
+        });
       }
 
       // Populate existing gallery photos for editing
@@ -5813,22 +5836,30 @@ document.addEventListener('DOMContentLoaded', () => {
     toggle.className = 'password-toggle';
     toggle.innerHTML = SVG_EYE;
     toggle.setAttribute('aria-label', 'Show password');
+    toggle.setAttribute('aria-pressed', 'false');
     toggle.addEventListener('click', () => {
-      if (input.type === 'password') {
-        input.type = 'text';
-        toggle.innerHTML = SVG_EYE_OFF;
-        toggle.setAttribute('aria-label', 'Hide password');
-      } else {
-        input.type = 'password';
-        toggle.innerHTML = SVG_EYE;
-        toggle.setAttribute('aria-label', 'Show password');
-      }
+      const isHidden = input.type === 'password';
+      input.type = isHidden ? 'text' : 'password';
+      toggle.innerHTML = isHidden ? SVG_EYE_OFF : SVG_EYE;
+      toggle.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
+      toggle.setAttribute('aria-pressed', isHidden ? 'true' : 'false');
     });
     input.classList.add('has-toggle');
     wrapper.appendChild(toggle);
   };
 
   if (page === 'auth') {
+    // Ensure Google auth initialisation is present even if an older cached auth.html omits it.
+    if (
+      !window.__eventflowGoogleAuthInitStarted &&
+      !document.querySelector('script[src^="/assets/js/pages/auth-google-init.js"]')
+    ) {
+      const googleAuthInitScript = document.createElement('script');
+      googleAuthInitScript.src = '/assets/js/pages/auth-google-init.js';
+      googleAuthInitScript.defer = true;
+      document.head.appendChild(googleAuthInitScript);
+    }
+
     // auth form handlers
     const loginForm = document.getElementById('login-form');
     const loginStatus = document.getElementById('login-status');
@@ -6151,24 +6182,33 @@ document.addEventListener('DOMContentLoaded', () => {
           if (btn.dataset.disabled === 'true' || btn.getAttribute('aria-disabled') === 'true') {
             return;
           }
-          rolePills.forEach(b => b.classList.remove('is-active'));
-          btn.classList.add('is-active');
+          const val = btn.getAttribute('data-role') || 'customer';
+          rolePills.forEach(b => {
+            const isSelected = b === btn;
+            b.classList.toggle('is-active', isSelected);
+            b.classList.toggle('auth-role-option--active', isSelected);
+            b.setAttribute('aria-checked', isSelected ? 'true' : 'false');
+          });
+          const rolePicker = btn.closest('.auth-role-picker, .role-toggle');
+          if (rolePicker) {
+            rolePicker.classList.toggle('is-customer-selected', val === 'customer');
+            rolePicker.classList.toggle('is-supplier-selected', val === 'supplier');
+          }
           if (roleHidden) {
-            const val = btn.getAttribute('data-role') || 'customer';
             roleHidden.value = val;
+          }
 
-            // Show/hide supplier-specific fields
-            if (supplierFields) {
-              if (val === 'supplier') {
-                supplierFields.style.display = 'block';
-                if (companyInput) {
-                  companyInput.required = true;
-                }
-              } else {
-                supplierFields.style.display = 'none';
-                if (companyInput) {
-                  companyInput.required = false;
-                }
+          // Show/hide supplier-specific fields
+          if (supplierFields) {
+            if (val === 'supplier') {
+              supplierFields.style.display = 'block';
+              if (companyInput) {
+                companyInput.required = true;
+              }
+            } else {
+              supplierFields.style.display = 'none';
+              if (companyInput) {
+                companyInput.required = false;
               }
             }
           }
@@ -6186,25 +6226,33 @@ document.addEventListener('DOMContentLoaded', () => {
       return headers;
     };
 
+    const setAuthSubmitButtonState = (button, label, isLoading = false) => {
+      if (!button) {
+        return;
+      }
+
+      const labelEl = button.querySelector('.auth-submit-text');
+      if (labelEl) {
+        labelEl.textContent = label;
+      } else {
+        button.textContent = label;
+      }
+
+      button.disabled = isLoading;
+      button.classList.toggle('is-loading', isLoading);
+      if (isLoading) {
+        button.setAttribute('aria-busy', 'true');
+      } else {
+        button.removeAttribute('aria-busy');
+      }
+    };
+
     // Helper function to show toast notification
     const showToast = function (message, type = 'info') {
       const toast = document.createElement('div');
-      toast.className = 'ef-toast';
+      toast.className = `ef-toast ef-toast--${type || 'info'}`;
       toast.textContent = message;
-      toast.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        padding: 1rem 1.5rem;
-        background: ${type === 'success' ? '#22c55e' : type === 'error' ? '#ef4444' : '#3b82f6'};
-        color: white;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        z-index: 10000;
-        opacity: 0;
-        transform: translateX(400px);
-        transition: all 0.3s ease;
-      `;
+      // Colour and positioning handled by CSS class
       document.body.appendChild(toast);
 
       setTimeout(() => {
@@ -6310,11 +6358,7 @@ document.addEventListener('DOMContentLoaded', () => {
           loginErrorEl.textContent = '';
         }
 
-        if (loginBtn) {
-          loginBtn.disabled = true;
-          loginBtn.setAttribute('aria-busy', 'true');
-          loginBtn.textContent = 'Signing in…';
-        }
+        setAuthSubmitButtonState(loginBtn, 'Signing in…', true);
         try {
           const r = await fetch('/api/v1/auth/login', {
             method: 'POST',
@@ -6417,22 +6461,57 @@ document.addEventListener('DOMContentLoaded', () => {
           }
           console.error('Login error', err);
         } finally {
-          if (loginBtn) {
-            loginBtn.disabled = false;
-            loginBtn.removeAttribute('aria-busy');
-            loginBtn.textContent = 'Log in';
-          }
+          setAuthSubmitButtonState(loginBtn, 'Log in');
         }
       });
     }
 
     if (regForm && regEmail && regPassword) {
       const regBtn = regForm.querySelector('button[type="submit"]');
+      const setAuthFieldError = (field, message) => {
+        if (!field) {
+          return;
+        }
+        if (regForm._validator && typeof regForm._validator.showError === 'function') {
+          regForm._validator.showError(field, message);
+        } else {
+          field.classList.add('form-field-error');
+          field.setAttribute('aria-invalid', 'true');
+          let container = field.parentElement;
+          if (container && container.classList.contains('auth-input-wrap')) {
+            container = container.parentElement || container;
+          }
+          let errorEl = container ? container.querySelector(':scope > .form-error-message') : null;
+          if (!errorEl && container) {
+            errorEl = document.createElement('span');
+            errorEl.className = 'form-error-message';
+            errorEl.setAttribute('role', 'alert');
+            container.appendChild(errorEl);
+          }
+          if (errorEl) {
+            errorEl.textContent = message;
+            errorEl.style.display = 'block';
+          }
+        }
+        field.focus();
+      };
+
       regForm.addEventListener('submit', async e => {
         e.preventDefault();
+        if (regForm._validator && typeof regForm._validator.clearAllErrors === 'function') {
+          regForm._validator.clearAllErrors();
+        }
         if (regStatus) {
           regStatus.textContent = '';
-          regStatus.style.cssText = '';
+          regStatus.classList.remove('reg-status-visible');
+        }
+
+        if (regForm._validator && !regForm._validator.validateAll()) {
+          const firstError = regForm.querySelector('.form-field-error');
+          if (firstError) {
+            firstError.focus();
+          }
+          return;
         }
 
         // Pre-check: registration feature flag (set by auth-init.js)
@@ -6455,12 +6534,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const hasNumber = /\d/.test(password);
 
         if (!hasMinLength || !hasLetter || !hasNumber) {
+          const message =
+            'Password must be at least 8 characters and contain both letters and numbers';
           if (regStatus) {
-            regStatus.textContent =
-              'Password must be at least 8 characters and contain both letters and numbers';
+            regStatus.textContent = message;
           }
-          // Scroll to password field
-          regPassword.focus();
+          setAuthFieldError(regPassword, message);
           return;
         }
 
@@ -6475,27 +6554,22 @@ document.addEventListener('DOMContentLoaded', () => {
             passwordMatchMsg.style.display = 'block';
             passwordMatchMsg.style.color = '#b00020';
           }
-          if (regPasswordConfirm) {
-            regPasswordConfirm.focus();
-          }
+          setAuthFieldError(regPasswordConfirm, 'Passwords do not match');
           return;
         }
 
         // Validate terms checkbox
         const termsCheckbox = document.getElementById('reg-terms');
         if (termsCheckbox && !termsCheckbox.checked) {
+          const message = 'You must agree to the Terms and Privacy Policy to create an account.';
           if (regStatus) {
-            regStatus.textContent =
-              'You must agree to the Terms and Privacy Policy to create an account.';
+            regStatus.textContent = message;
           }
+          setAuthFieldError(termsCheckbox, message);
           return;
         }
 
-        if (regBtn) {
-          regBtn.disabled = true;
-          regBtn.setAttribute('aria-busy', 'true');
-          regBtn.textContent = 'Creating…';
-        }
+        setAuthSubmitButtonState(regBtn, 'Creating…', true);
         try {
           const firstName = regFirstName ? regFirstName.value.trim() : '';
           const lastName = regLastName ? regLastName.value.trim() : '';
@@ -6533,24 +6607,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
           // Validate required fields
           if (!location) {
+            const message = 'Please select your location';
             if (regStatus) {
-              regStatus.textContent = 'Please select your location';
+              regStatus.textContent = message;
             }
-            if (regBtn) {
-              regBtn.disabled = false;
-              regBtn.textContent = 'Create account';
-            }
+            setAuthFieldError(locationEl, message);
+            setAuthSubmitButtonState(regBtn, 'Create account');
             return;
           }
 
           if (role === 'supplier' && !company) {
+            const message = 'Company name is required for suppliers';
             if (regStatus) {
-              regStatus.textContent = 'Company name is required for suppliers';
+              regStatus.textContent = message;
             }
-            if (regBtn) {
-              regBtn.disabled = false;
-              regBtn.textContent = 'Create account';
-            }
+            setAuthFieldError(companyEl, message);
+            setAuthSubmitButtonState(regBtn, 'Create account');
             return;
           }
 
@@ -6608,10 +6680,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 regStatus.textContent =
                   'Please complete the verification challenge before creating your account.';
               }
-              if (regBtn) {
-                regBtn.disabled = false;
-                regBtn.textContent = 'Create account';
-              }
+              setAuthSubmitButtonState(regBtn, 'Create account');
               return;
             }
 
@@ -6622,10 +6691,7 @@ document.addEventListener('DOMContentLoaded', () => {
               regStatus.textContent =
                 'Verification is unavailable. Please refresh the page and try again.';
             }
-            if (regBtn) {
-              regBtn.disabled = false;
-              regBtn.textContent = 'Create account';
-            }
+            setAuthSubmitButtonState(regBtn, 'Create account');
             return;
           } else if (altchaContainer) {
             // Container exists but widget element isn't in DOM yet (still loading).
@@ -6634,10 +6700,7 @@ document.addEventListener('DOMContentLoaded', () => {
               regStatus.textContent =
                 'Please wait for the verification to load and complete the challenge.';
             }
-            if (regBtn) {
-              regBtn.disabled = false;
-              regBtn.textContent = 'Create account';
-            }
+            setAuthSubmitButtonState(regBtn, 'Create account');
             return;
           }
 
@@ -6669,39 +6732,13 @@ document.addEventListener('DOMContentLoaded', () => {
               regStatus.textContent = errorMsg;
             }
           } else {
-            // Handle avatar upload if file was selected
-            const avatarInput = document.getElementById('reg-avatar');
-            if (avatarInput && avatarInput.files && avatarInput.files[0]) {
-              try {
-                const formData = new FormData();
-                formData.append('avatar', avatarInput.files[0]);
-
-                const uploadRes = await fetch('/api/v1/profile/avatar', {
-                  method: 'POST',
-                  credentials: 'include',
-                  body: formData,
-                });
-
-                if (!uploadRes.ok) {
-                  console.warn('Avatar upload failed, but account was created');
-                }
-              } catch (uploadErr) {
-                console.warn('Avatar upload error:', uploadErr);
-              }
-            }
-
-            // Check if there's a redirect parameter
-            const urlParams = new URLSearchParams(window.location.search);
-            const redirect = urlParams.get('redirect');
-            const plan = urlParams.get('plan');
-
-            // Helper: display the verification-pending success state and wire up resend
+            // Helper: display the verification-pending success state and wire up resend.
+            // Unverified accounts do not receive an auth cookie, so do not upload avatars or redirect yet.
             const showVerificationPending = emailAddr => {
               if (!regStatus) {
                 return;
               }
-              regStatus.style.cssText =
-                'display:flex;flex-direction:column;align-items:flex-start;gap:12px;';
+              regStatus.classList.add('reg-status-visible');
               regStatus.innerHTML =
                 '<span style="color:#0B8073;font-weight:500;">\u2713 Account created! Check your email to verify your account, then you can sign in.</span>' +
                 '<button type="button" id="resend-verify-btn" class="ef-cta ef-btn ef-btn-primary">Resend email</button>';
@@ -6732,6 +6769,38 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
               }
             };
+
+            if (data.requiresVerification) {
+              showVerificationPending(email);
+              return;
+            }
+
+            // Handle avatar upload if file was selected. This only runs when the backend
+            // established an authenticated session (for example, an already-verified owner account).
+            const avatarInput = document.getElementById('reg-avatar');
+            if (avatarInput && avatarInput.files && avatarInput.files[0]) {
+              try {
+                const formData = new FormData();
+                formData.append('avatar', avatarInput.files[0]);
+
+                const uploadRes = await fetch('/api/v1/profile/avatar', {
+                  method: 'POST',
+                  credentials: 'include',
+                  body: formData,
+                });
+
+                if (!uploadRes.ok) {
+                  console.warn('Avatar upload failed, but account was created');
+                }
+              } catch (uploadErr) {
+                console.warn('Avatar upload error:', uploadErr);
+              }
+            }
+
+            // Check if there's a redirect parameter
+            const urlParams = new URLSearchParams(window.location.search);
+            const redirect = urlParams.get('redirect');
+            const plan = urlParams.get('plan');
 
             if (redirect) {
               // Validate redirect is safe: same-origin and allowlisted for user's role
@@ -6767,11 +6836,7 @@ document.addEventListener('DOMContentLoaded', () => {
           }
           console.error('Register error', err);
         } finally {
-          if (regBtn) {
-            regBtn.disabled = false;
-            regBtn.removeAttribute('aria-busy');
-            regBtn.textContent = 'Create account';
-          }
+          setAuthSubmitButtonState(regBtn, 'Create account');
         }
       });
     }
@@ -6834,7 +6899,7 @@ function createResendVerificationForm(containerId, initialEmail = '') {
         const resendData = await resendResp.json();
         if (resendResp.ok) {
           showNetworkError(resendData.message || 'Verification email sent!', 'success');
-          container.innerHTML = `<p class="small">${resendData.message || 'Verification email sent! Check your inbox.'}</p>`;
+          container.innerHTML = `<p class="small">${escapeHtml(resendData.message || 'Verification email sent! Check your inbox.')}</p>`;
         } else {
           showNetworkError(resendData.error || 'Failed to send email', 'error');
         }
@@ -6890,7 +6955,7 @@ async function initVerify() {
             const resendData = await resendResp.json();
             if (resendResp.ok) {
               showNetworkError(resendData.message || 'Verification email sent!', 'success');
-              statusEl.innerHTML = `<p class="small">${resendData.message || 'Verification email sent! Check your inbox.'}</p>`;
+              statusEl.innerHTML = `<p class="small">${escapeHtml(resendData.message || 'Verification email sent! Check your inbox.')}</p>`;
             } else {
               showNetworkError(resendData.error || 'Failed to send email', 'error');
             }
@@ -6924,7 +6989,7 @@ async function initVerify() {
 
         // Show error message with resend option
         statusEl.innerHTML =
-          `<p class="small">${errorMessage}</p>` +
+          `<p class="small">${escapeHtml(errorMessage)}</p>` +
           `<div style="margin-top:16px;">` +
           `<input type="email" id="resend-email" placeholder="Enter your email" style="padding:8px;border:1px solid #ccc;border-radius:4px;margin-right:8px;">` +
           `<button type="button" id="resend-verify-btn" class="ef-cta btn btn-primary">Send new verification email</button>` +
@@ -6952,7 +7017,7 @@ async function initVerify() {
               const resendData = await resendResp.json();
               if (resendResp.ok) {
                 showNetworkError(resendData.message || 'Verification email sent!', 'success');
-                statusEl.innerHTML = `<p class="small">${resendData.message || 'Verification email sent! Check your inbox.'}</p>`;
+                statusEl.innerHTML = `<p class="small">${escapeHtml(resendData.message || 'Verification email sent! Check your inbox.')}</p>`;
               } else {
                 showNetworkError(resendData.error || 'Failed to send email', 'error');
               }

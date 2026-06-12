@@ -2,14 +2,20 @@
 <html lang="en-GB">
   <head>
     <meta charset="utf-8" />
-  <meta name="ef-page" content="auth">
+    <meta name="ef-page" content="auth" />
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes"
     />
     <meta name="theme-color" content="#0B8073" />
     <title>Sign in / Create account — EventFlow</title>
+    <meta
+      name="description"
+      content="Securely log in to EventFlow or create a free account to plan events, shortlist suppliers and manage enquiries."
+    />
     <meta name="robots" content="noindex,nofollow" />
+    <link rel="preconnect" href="https://images.pexels.com" crossorigin />
+    <link rel="preconnect" href="https://accounts.google.com" crossorigin />
     <link rel="stylesheet" href="/assets/css/styles.css?v=18.3.0" />
     <link rel="stylesheet" href="/assets/css/eventflow-17.0.0.css?v=18.3.0" />
     <link rel="stylesheet" href="/assets/css/utilities.css?v=18.3.0" />
@@ -20,7 +26,7 @@
     <link rel="stylesheet" href="/assets/css/navbar.css?v=18.3.0" />
     <link rel="stylesheet" href="/assets/css/p3-features.css?v=18.3.0" />
     <link rel="stylesheet" href="/assets/css/liquid-glass.css?v=18.3.0" />
-    <link rel="stylesheet" href="/assets/css/auth.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/auth.css?v=18.4.0" />
     <meta name="sentry-dsn" content="" />
     <meta name="sentry-release" content="eventflow@18.1.0" />
     <meta name="sentry-environment" content="production" />
@@ -28,9 +34,15 @@
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
-  </head>
+    <!-- Social preview (even for noindex pages — link previews still use these) -->
+  <meta property="og:image" content="https://event-flow.co.uk/assets/images/eventflow-og-image.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:image" content="https://event-flow.co.uk/assets/images/eventflow-og-image.png" />
+</head>
   <body class="auth-page">
-    <!-- TOP NAVBAR - GOLD STANDARD REBUILD -->
+<!-- TOP NAVBAR - GOLD STANDARD REBUILD -->
     <header class="ef-header" role="banner">
       <div class="ef-container">
         <div class="ef-header-content">
@@ -46,6 +58,7 @@
           <nav class="ef-nav-desktop" aria-label="Main navigation">
             <a href="/start" class="ef-nav-link">Plan</a>
             <a href="/suppliers" class="ef-nav-link">Suppliers</a>
+            <a href="/public-calendar" class="ef-nav-link">Events</a>
             <a href="/marketplace" class="ef-nav-link">Marketplace</a>
             <a href="/guides" class="ef-nav-link">Guides</a>
             <a href="/pricing" class="ef-nav-link">Pricing</a>
@@ -113,6 +126,7 @@
         <nav class="ef-mobile-nav" aria-label="Primary navigation">
           <a href="/start" class="ef-mobile-link">Plan an Event</a>
           <a href="/suppliers" class="ef-mobile-link">Browse Suppliers</a>
+          <a href="/public-calendar" class="ef-mobile-link">Events Calendar</a>
           <a href="/marketplace" class="ef-mobile-link">Marketplace</a>
           <a href="/guides" class="ef-mobile-link">Guides</a>
           <a href="/pricing" class="ef-mobile-link">Pricing</a>
@@ -195,13 +209,13 @@
           <!-- Trust stats row at the bottom -->
           <div class="auth-panel-stats">
             <div class="auth-panel-stat">
-              <span class="auth-panel-stat-value">500+</span>
-              <span class="auth-panel-stat-label">Verified suppliers</span>
+              <span class="auth-panel-stat-value">Verified</span>
+              <span class="auth-panel-stat-label">Supplier profiles</span>
             </div>
             <div class="auth-panel-stat-divider"></div>
             <div class="auth-panel-stat">
-              <span class="auth-panel-stat-value">10K+</span>
-              <span class="auth-panel-stat-label">Events planned</span>
+              <span class="auth-panel-stat-value">Secure</span>
+              <span class="auth-panel-stat-label">Direct messaging</span>
             </div>
             <div class="auth-panel-stat-divider"></div>
             <div class="auth-panel-stat">
@@ -216,20 +230,30 @@
         <!-- Right panel: auth form -->
         <div class="auth-split-right">
           <div class="auth-container">
+            <nav class="auth-breadcrumbs" aria-label="Breadcrumb">
+              <a href="/">Home</a>
+              <span aria-hidden="true">/</span>
+              <span>Account</span>
+            </nav>
             <div class="auth-header">
               <h1 class="auth-heading">Welcome back</h1>
-              <p class="auth-subtitle">Sign in to your EventFlow account or create a new one to get started.</p>
+              <p class="auth-subtitle">
+                Sign in to your EventFlow account or create a new one to get started.
+              </p>
             </div>
 
             <!-- Intent-based contextual notice (populated by auth-intent.js) -->
-            <div id="auth-intent-notice" class="auth-status auth-status--intent" role="status" aria-live="polite" aria-atomic="true" style="display:none;"></div>
+            <div
+              id="auth-intent-notice"
+              class="auth-status auth-status--intent"
+              role="status"
+              aria-live="polite"
+              aria-atomic="true"
+              style="display: none"
+            ></div>
 
             <!-- Tab switcher — ARIA tablist pattern -->
-            <div
-              role="tablist"
-              aria-label="Authentication options"
-              class="auth-tabs"
-            >
+            <div role="tablist" aria-label="Authentication options" class="auth-tabs">
               <button
                 id="tab-signin"
                 role="tab"
@@ -238,7 +262,9 @@
                 aria-controls="panel-signin"
                 tabindex="0"
                 class="auth-tab"
-              >Log in</button>
+              >
+                Log in
+              </button>
               <button
                 id="tab-create"
                 role="tab"
@@ -247,11 +273,19 @@
                 aria-controls="panel-create"
                 tabindex="-1"
                 class="auth-tab"
-              >Create a free account</button>
+              >
+                Create a free account
+              </button>
             </div>
 
             <!-- Shared status message -->
-            <div id="auth-status" class="auth-status" role="alert" aria-live="polite" aria-atomic="true"></div>
+            <div
+              id="auth-status"
+              class="auth-status"
+              role="alert"
+              aria-live="polite"
+              aria-atomic="true"
+            ></div>
 
             <!-- SIGN IN PANEL -->
             <div
@@ -263,6 +297,15 @@
               <form id="login-form" class="auth-card" action="#" novalidate autocomplete="on">
                 <div class="auth-loading-overlay" aria-hidden="true">
                   <div class="auth-spinner"></div>
+                </div>
+
+                <div class="auth-google">
+                  <div
+                    id="google-signin-button"
+                    class="auth-google-button"
+                    aria-label="Sign in with Google"
+                  ></div>
+                  <div class="auth-divider"><span>or use email</span></div>
                 </div>
 
                 <div class="auth-field form-row">
@@ -282,7 +325,12 @@
                 <div class="auth-field form-row">
                   <div class="auth-label-row">
                     <label class="auth-label" for="login-password">Password</label>
-                    <a href="/forgot-password" class="auth-forgot-link auth-forgot-link--label" id="forgot-password-link">Forgot password?</a>
+                    <a
+                      href="/forgot-password"
+                      class="auth-forgot-link auth-forgot-link--label"
+                      id="forgot-password-link"
+                      >Forgot password?</a
+                    >
                   </div>
                   <div class="auth-input-wrap auth-pw-wrap">
                     <input
@@ -313,18 +361,36 @@
 
                 <div class="auth-field auth-field--inline form-row">
                   <label class="auth-checkbox-label checkbox-label-right" for="login-remember">
-                    <input type="checkbox" id="login-remember" name="remember" class="auth-checkbox" />
+                    <input
+                      type="checkbox"
+                      id="login-remember"
+                      name="remember"
+                      class="auth-checkbox"
+                    />
                     <span class="auth-checkbox-custom"></span>
                     <span>Remember me</span>
                   </label>
-                  <a href="/forgot-password" class="auth-forgot-link auth-forgot-link--below" aria-label="Forgot your password?">Forgot password?</a>
+                  <a
+                    href="/forgot-password"
+                    class="auth-forgot-link auth-forgot-link--below"
+                    aria-label="Forgot your password?"
+                    >Forgot password?</a
+                  >
                 </div>
 
-                <button class="auth-submit cta ef-btn ef-btn-primary auth-submit--full" type="submit">
+                <button
+                  class="auth-submit cta ef-btn ef-btn-primary auth-submit--full"
+                  type="submit"
+                >
                   <span class="auth-submit-text">Log in</span>
                   <span class="auth-submit-spinner" aria-hidden="true"></span>
                 </button>
-                <span class="auth-status-inline small" id="login-status" role="status" aria-live="polite"></span>
+                <span
+                  class="auth-status-inline small"
+                  id="login-status"
+                  role="status"
+                  aria-live="polite"
+                ></span>
 
                 <div id="resend-verification-container" style="display: none">
                   <button type="button" class="auth-resend-btn cta" id="resend-verification-btn">
@@ -345,6 +411,232 @@
               <form id="register-form" class="auth-card" action="#" novalidate autocomplete="on">
                 <div class="auth-loading-overlay" aria-hidden="true">
                   <div class="auth-spinner"></div>
+                </div>
+
+                <div class="auth-signup-choice" aria-describedby="signup-choice-help">
+                  <div class="auth-signup-choice__header">
+                    <span class="auth-step-badge">Step 1</span>
+                    <div>
+                      <span class="auth-label auth-step-title" id="role-label"
+                        >Choose your account type</span
+                      >
+                      <p class="auth-field-help small" id="signup-choice-help">
+                        We’ll tune your signup and dashboard for planning an event or managing a
+                        supplier business.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div
+                    class="role-toggle auth-role-picker"
+                    role="radiogroup"
+                    aria-labelledby="role-label"
+                    id="reg-role-picker"
+                  >
+                    <button
+                      type="button"
+                      class="role-pill auth-role-option auth-role-option--active is-active"
+                      data-role="customer"
+                      role="radio"
+                      aria-checked="true"
+                    >
+                      <span class="auth-role-icon">🎉</span>
+                      <span class="auth-role-copy">
+                        <span class="auth-role-title">Customer</span>
+                        <span class="auth-role-description"
+                          >Plan, shortlist and message suppliers.</span
+                        >
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      class="role-pill auth-role-option"
+                      data-role="supplier"
+                      role="radio"
+                      aria-checked="false"
+                    >
+                      <span class="auth-role-icon">🏪</span>
+                      <span class="auth-role-copy">
+                        <span class="auth-role-title">Supplier</span>
+                        <span class="auth-role-description"
+                          >List your business and manage enquiries.</span
+                        >
+                      </span>
+                    </button>
+                  </div>
+                  <input type="hidden" id="reg-role" name="role" value="customer" />
+
+                  <div class="auth-signup-choice__divider"><span>Profile essentials</span></div>
+
+                  <div class="auth-field-row auth-field-row--location">
+                    <div class="auth-field form-row">
+                      <label class="auth-label" for="reg-location">County or region *</label>
+                      <select
+                        id="reg-location"
+                        name="location"
+                        class="auth-input"
+                        required
+                        aria-required="true"
+                      >
+                        <option value="">Select your county...</option>
+                        <option value="Bedfordshire">Bedfordshire</option>
+                        <option value="Berkshire">Berkshire</option>
+                        <option value="Bristol">Bristol</option>
+                        <option value="Buckinghamshire">Buckinghamshire</option>
+                        <option value="Cambridgeshire">Cambridgeshire</option>
+                        <option value="Cheshire">Cheshire</option>
+                        <option value="Cornwall">Cornwall</option>
+                        <option value="Cumbria">Cumbria</option>
+                        <option value="Derbyshire">Derbyshire</option>
+                        <option value="Devon">Devon</option>
+                        <option value="Dorset">Dorset</option>
+                        <option value="Durham">Durham</option>
+                        <option value="East Sussex">East Sussex</option>
+                        <option value="Essex">Essex</option>
+                        <option value="Gloucestershire">Gloucestershire</option>
+                        <option value="Greater London">Greater London</option>
+                        <option value="Greater Manchester">Greater Manchester</option>
+                        <option value="Hampshire">Hampshire</option>
+                        <option value="Herefordshire">Herefordshire</option>
+                        <option value="Hertfordshire">Hertfordshire</option>
+                        <option value="Isle of Wight">Isle of Wight</option>
+                        <option value="Kent">Kent</option>
+                        <option value="Lancashire">Lancashire</option>
+                        <option value="Leicestershire">Leicestershire</option>
+                        <option value="Lincolnshire">Lincolnshire</option>
+                        <option value="Merseyside">Merseyside</option>
+                        <option value="Norfolk">Norfolk</option>
+                        <option value="North Yorkshire">North Yorkshire</option>
+                        <option value="Northamptonshire">Northamptonshire</option>
+                        <option value="Northumberland">Northumberland</option>
+                        <option value="Nottinghamshire">Nottinghamshire</option>
+                        <option value="Oxfordshire">Oxfordshire</option>
+                        <option value="Rutland">Rutland</option>
+                        <option value="Shropshire">Shropshire</option>
+                        <option value="Somerset">Somerset</option>
+                        <option value="South Yorkshire">South Yorkshire</option>
+                        <option value="Staffordshire">Staffordshire</option>
+                        <option value="Suffolk">Suffolk</option>
+                        <option value="Surrey">Surrey</option>
+                        <option value="Tyne and Wear">Tyne and Wear</option>
+                        <option value="Warwickshire">Warwickshire</option>
+                        <option value="West Midlands">West Midlands</option>
+                        <option value="West Sussex">West Sussex</option>
+                        <option value="West Yorkshire">West Yorkshire</option>
+                        <option value="Wiltshire">Wiltshire</option>
+                        <option value="Worcestershire">Worcestershire</option>
+                        <option value="Wales">Wales</option>
+                        <option value="Scotland">Scotland</option>
+                        <option value="Northern Ireland">Northern Ireland</option>
+                      </select>
+                    </div>
+
+                    <div class="auth-field form-row">
+                      <label class="auth-label" for="reg-postcode"
+                        >Postcode <span class="auth-label-optional">(Optional)</span></label
+                      >
+                      <input
+                        id="reg-postcode"
+                        name="postcode"
+                        type="text"
+                        class="auth-input"
+                        placeholder="e.g. SW1A 1AA"
+                        autocomplete="postal-code"
+                      />
+                    </div>
+                  </div>
+
+                  <!-- Supplier-specific fields (shown when supplier role is selected) -->
+                  <div id="supplier-fields" class="auth-supplier-fields" style="display: none">
+                    <div class="auth-field form-row">
+                      <label class="auth-label" for="reg-company">Company name *</label>
+                      <input
+                        id="reg-company"
+                        name="company"
+                        type="text"
+                        class="auth-input"
+                        placeholder="Your business name"
+                        autocomplete="organization"
+                      />
+                    </div>
+                    <div class="auth-field-row auth-field-row--supplier">
+                      <div class="auth-field form-row">
+                        <label class="auth-label" for="reg-jobtitle"
+                          >Job Title <span class="auth-label-optional">(Optional)</span></label
+                        >
+                        <input
+                          id="reg-jobtitle"
+                          name="jobtitle"
+                          type="text"
+                          class="auth-input"
+                          placeholder="e.g. Event Manager"
+                          autocomplete="organization-title"
+                        />
+                      </div>
+                      <div class="auth-field form-row">
+                        <label class="auth-label" for="reg-website"
+                          >Website <span class="auth-label-optional">(Optional)</span></label
+                        >
+                        <input
+                          id="reg-website"
+                          name="website"
+                          type="url"
+                          class="auth-input"
+                          placeholder="https://example.com"
+                          autocomplete="url"
+                        />
+                      </div>
+                    </div>
+                    <div class="auth-field form-row">
+                      <label class="auth-label"
+                        >Social Media <span class="auth-label-optional">(Optional)</span></label
+                      >
+                      <input
+                        id="reg-instagram"
+                        name="instagram"
+                        type="url"
+                        class="auth-input auth-input--stacked"
+                        placeholder="Instagram URL"
+                      />
+                      <input
+                        id="reg-facebook"
+                        name="facebook"
+                        type="url"
+                        class="auth-input auth-input--stacked"
+                        placeholder="Facebook URL"
+                      />
+                      <input
+                        id="reg-twitter"
+                        name="twitter"
+                        type="url"
+                        class="auth-input auth-input--stacked"
+                        placeholder="Twitter/X URL"
+                      />
+                      <input
+                        id="reg-linkedin"
+                        name="linkedin"
+                        type="url"
+                        class="auth-input auth-input--stacked"
+                        placeholder="LinkedIn URL"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div class="auth-google auth-google--signup">
+                  <div class="auth-google-heading">
+                    <span class="auth-step-badge auth-step-badge--muted">Step 2</span>
+                    <span class="auth-step-title">Continue with Google or email</span>
+                  </div>
+                  <div
+                    id="google-signup-button"
+                    class="auth-google-button"
+                    aria-label="Sign up with Google"
+                  ></div>
+                  <p class="auth-google-note small">
+                    Choose your account type above before continuing with Google.
+                  </p>
+                  <div class="auth-divider"><span>or use email</span></div>
                 </div>
 
                 <div class="auth-field-row">
@@ -414,20 +706,28 @@
                   <div id="password-strength-container" style="display: none">
                     <div class="auth-pwd-strength auth-strength-container">
                       <div class="auth-pwd-bar auth-strength-track">
-                        <div id="password-strength-bar" class="auth-pwd-fill auth-strength-bar"></div>
+                        <div
+                          id="password-strength-bar"
+                          class="auth-pwd-fill auth-strength-bar"
+                        ></div>
                       </div>
-                      <span id="password-strength-label" class="auth-pwd-label auth-strength-label"></span>
+                      <span
+                        id="password-strength-label"
+                        class="auth-pwd-label auth-strength-label"
+                      ></span>
                     </div>
-                    <span class="small auth-strength-msg" id="password-strength-msg" role="status"></span>
+                    <span
+                      class="small auth-strength-msg"
+                      id="password-strength-msg"
+                      role="status"
+                    ></span>
                   </div>
                   <ul id="password-requirements" class="small auth-requirements">
                     <li id="req-length">At least 8 characters</li>
                     <li id="req-letter">Contains a letter</li>
                     <li id="req-number">Contains a number</li>
                   </ul>
-                  <div id="caps-lock-warning" class="auth-caps-warning">
-                    ⚠️ Caps Lock is on
-                  </div>
+                  <div id="caps-lock-warning" class="auth-caps-warning">⚠️ Caps Lock is on</div>
                 </div>
 
                 <div class="auth-field form-row">
@@ -445,138 +745,17 @@
                       aria-describedby="password-match-msg"
                     />
                   </div>
-                  <span class="small auth-match-msg auth-field-error" id="password-match-msg" role="alert"></span>
+                  <span
+                    class="small auth-match-msg auth-field-error"
+                    id="password-match-msg"
+                    role="alert"
+                  ></span>
                 </div>
 
                 <div class="auth-field form-row">
-                  <label class="auth-label" for="reg-location">Location (UK County) *</label>
-                  <select id="reg-location" name="location" class="auth-input" required aria-required="true">
-                    <option value="">Select your county...</option>
-                    <option value="Bedfordshire">Bedfordshire</option>
-                    <option value="Berkshire">Berkshire</option>
-                    <option value="Bristol">Bristol</option>
-                    <option value="Buckinghamshire">Buckinghamshire</option>
-                    <option value="Cambridgeshire">Cambridgeshire</option>
-                    <option value="Cheshire">Cheshire</option>
-                    <option value="Cornwall">Cornwall</option>
-                    <option value="Cumbria">Cumbria</option>
-                    <option value="Derbyshire">Derbyshire</option>
-                    <option value="Devon">Devon</option>
-                    <option value="Dorset">Dorset</option>
-                    <option value="Durham">Durham</option>
-                    <option value="East Sussex">East Sussex</option>
-                    <option value="Essex">Essex</option>
-                    <option value="Gloucestershire">Gloucestershire</option>
-                    <option value="Greater London">Greater London</option>
-                    <option value="Greater Manchester">Greater Manchester</option>
-                    <option value="Hampshire">Hampshire</option>
-                    <option value="Herefordshire">Herefordshire</option>
-                    <option value="Hertfordshire">Hertfordshire</option>
-                    <option value="Isle of Wight">Isle of Wight</option>
-                    <option value="Kent">Kent</option>
-                    <option value="Lancashire">Lancashire</option>
-                    <option value="Leicestershire">Leicestershire</option>
-                    <option value="Lincolnshire">Lincolnshire</option>
-                    <option value="Merseyside">Merseyside</option>
-                    <option value="Norfolk">Norfolk</option>
-                    <option value="North Yorkshire">North Yorkshire</option>
-                    <option value="Northamptonshire">Northamptonshire</option>
-                    <option value="Northumberland">Northumberland</option>
-                    <option value="Nottinghamshire">Nottinghamshire</option>
-                    <option value="Oxfordshire">Oxfordshire</option>
-                    <option value="Rutland">Rutland</option>
-                    <option value="Shropshire">Shropshire</option>
-                    <option value="Somerset">Somerset</option>
-                    <option value="South Yorkshire">South Yorkshire</option>
-                    <option value="Staffordshire">Staffordshire</option>
-                    <option value="Suffolk">Suffolk</option>
-                    <option value="Surrey">Surrey</option>
-                    <option value="Tyne and Wear">Tyne and Wear</option>
-                    <option value="Warwickshire">Warwickshire</option>
-                    <option value="West Midlands">West Midlands</option>
-                    <option value="West Sussex">West Sussex</option>
-                    <option value="West Yorkshire">West Yorkshire</option>
-                    <option value="Wiltshire">Wiltshire</option>
-                    <option value="Worcestershire">Worcestershire</option>
-                    <option value="Wales">Wales</option>
-                    <option value="Scotland">Scotland</option>
-                    <option value="Northern Ireland">Northern Ireland</option>
-                  </select>
-                </div>
-
-                <div class="auth-field form-row">
-                  <label class="auth-label" for="reg-postcode">Postcode <span class="auth-label-optional">(Optional)</span></label>
-                  <input
-                    id="reg-postcode"
-                    name="postcode"
-                    type="text"
-                    class="auth-input"
-                    placeholder="e.g. SW1A 1AA"
-                    autocomplete="postal-code"
-                  />
-                </div>
-
-                <div class="auth-field form-row">
-                  <span class="auth-label" id="role-label">I am a…</span>
-                  <div class="role-toggle auth-role-picker" role="radiogroup" aria-labelledby="role-label" id="reg-role-picker">
-                    <button type="button" class="role-pill auth-role-option auth-role-option--active is-active" data-role="customer" role="radio" aria-checked="true">
-                      <span class="auth-role-icon">🎉</span>
-                      <span>Customer</span>
-                    </button>
-                    <button type="button" class="role-pill auth-role-option" data-role="supplier" role="radio" aria-checked="false">
-                      <span class="auth-role-icon">🏪</span>
-                      <span>Supplier</span>
-                    </button>
-                  </div>
-                  <input type="hidden" id="reg-role" name="role" value="customer" />
-                </div>
-
-                <!-- Supplier-specific fields (shown when supplier role is selected) -->
-                <div id="supplier-fields" style="display: none">
-                  <div class="auth-field form-row">
-                    <label class="auth-label" for="reg-company">Company Name *</label>
-                    <input
-                      id="reg-company"
-                      name="company"
-                      type="text"
-                      class="auth-input"
-                      placeholder="Your business name"
-                      autocomplete="organization"
-                    />
-                  </div>
-                  <div class="auth-field form-row">
-                    <label class="auth-label" for="reg-jobtitle">Job Title <span class="auth-label-optional">(Optional)</span></label>
-                    <input
-                      id="reg-jobtitle"
-                      name="jobtitle"
-                      type="text"
-                      class="auth-input"
-                      placeholder="e.g. Event Manager"
-                      autocomplete="organization-title"
-                    />
-                  </div>
-                  <div class="auth-field form-row">
-                    <label class="auth-label" for="reg-website">Website <span class="auth-label-optional">(Optional)</span></label>
-                    <input
-                      id="reg-website"
-                      name="website"
-                      type="url"
-                      class="auth-input"
-                      placeholder="https://example.com"
-                      autocomplete="url"
-                    />
-                  </div>
-                  <div class="auth-field form-row">
-                    <label class="auth-label">Social Media <span class="auth-label-optional">(Optional)</span></label>
-                    <input id="reg-instagram" name="instagram" type="url" class="auth-input auth-input--stacked" placeholder="Instagram URL" />
-                    <input id="reg-facebook" name="facebook" type="url" class="auth-input auth-input--stacked" placeholder="Facebook URL" />
-                    <input id="reg-twitter" name="twitter" type="url" class="auth-input auth-input--stacked" placeholder="Twitter/X URL" />
-                    <input id="reg-linkedin" name="linkedin" type="url" class="auth-input auth-input--stacked" placeholder="LinkedIn URL" />
-                  </div>
-                </div>
-
-                <div class="auth-field form-row">
-                  <label class="auth-label" for="reg-avatar">Profile Picture <span class="auth-label-optional">(Optional)</span></label>
+                  <label class="auth-label" for="reg-avatar"
+                    >Profile picture <span class="auth-label-optional">(Optional)</span></label
+                  >
                   <div class="auth-file-upload">
                     <input
                       id="reg-avatar"
@@ -586,12 +765,19 @@
                       aria-describedby="reg-avatar-help"
                     />
                   </div>
-                  <span class="small auth-file-help" id="reg-avatar-help">Max 5MB. Formats: JPEG, PNG, WebP</span>
+                  <span class="small auth-file-help" id="reg-avatar-help"
+                    >Max 5MB. Formats: JPEG, PNG, WebP</span
+                  >
                 </div>
 
                 <div class="auth-field auth-field--inline form-row">
                   <label class="auth-checkbox-label checkbox-label-right small" for="reg-marketing">
-                    <input type="checkbox" id="reg-marketing" name="marketing" class="auth-checkbox" />
+                    <input
+                      type="checkbox"
+                      id="reg-marketing"
+                      name="marketing"
+                      class="auth-checkbox"
+                    />
                     <span class="auth-checkbox-custom"></span>
                     <span>Send me the occasional EventFlow update and planning tips.</span>
                   </label>
@@ -599,53 +785,88 @@
 
                 <div class="auth-field auth-field--inline form-row">
                   <label class="auth-checkbox-label checkbox-label-right small" for="reg-terms">
-                    <input type="checkbox" id="reg-terms" name="terms" required aria-required="true" class="auth-checkbox" />
+                    <input
+                      type="checkbox"
+                      id="reg-terms"
+                      name="terms"
+                      required
+                      aria-required="true"
+                      class="auth-checkbox"
+                    />
                     <span class="auth-checkbox-custom"></span>
-                    <span>I agree to the <a href="/terms" target="_blank" class="auth-link">Terms</a> and <a href="/privacy" target="_blank" class="auth-link">Privacy Policy</a>. *</span>
+                    <span
+                      >I agree to the
+                      <a href="/terms" target="_blank" rel="noopener noreferrer" class="auth-link"
+                        >Terms</a
+                      >
+                      and
+                      <a href="/privacy" target="_blank" rel="noopener noreferrer" class="auth-link"
+                        >Privacy Policy</a
+                      >. *</span
+                    >
                   </label>
                 </div>
 
                 <div class="auth-field form-row" id="reg-altcha-container">
-                  <altcha-widget challengeurl="/api/v1/altcha/challenge" id="reg-altcha-widget"></altcha-widget>
+                  <altcha-widget
+                    challengeurl="/api/v1/altcha/challenge"
+                    id="reg-altcha-widget"
+                  ></altcha-widget>
                 </div>
 
-                <button class="auth-submit cta ef-btn ef-btn-primary auth-submit--full" type="submit">
+                <button
+                  class="auth-submit cta ef-btn ef-btn-primary auth-submit--full"
+                  type="submit"
+                >
                   <span class="auth-submit-text">Create account</span>
                   <span class="auth-submit-spinner" aria-hidden="true"></span>
                 </button>
-                <span class="small auth-status-inline" id="reg-status" role="status" aria-live="polite"></span>
+                <p class="auth-security-note small">
+                  Protected by CSRF checks, encrypted sessions and anti-bot verification. We never
+                  sell your data.
+                </p>
+                <span
+                  class="small auth-status-inline"
+                  id="reg-status"
+                  role="status"
+                  aria-live="polite"
+                ></span>
               </form>
             </div>
-
-          </div><!-- /.auth-container -->
-        </div><!-- /.auth-split-right -->
-      </div><!-- /.auth-split -->
+          </div>
+          <!-- /.auth-container -->
+        </div>
+        <!-- /.auth-split-right -->
+      </div>
+      <!-- /.auth-split -->
     </main>
 
-        <!-- Load utilities -->
-        <script src="/assets/js/utils/api-client.js" defer></script>
-        <script src="/assets/js/utils/auth-helpers.js" defer></script>
-        <script src="/assets/js/utils/form-validator.js" defer></script>
-        <script src="/assets/js/components/ErrorBoundary.js" defer></script>
-        <script src="/assets/js/utils/keyboard-nav.js" defer></script>
-        <script src="/assets/js/utils/mobile-enhancements.js" defer></script>
+    <!-- Load utilities -->
+    <script src="/assets/js/utils/api-client.js" defer></script>
+    <script src="/assets/js/utils/auth-helpers.js" defer></script>
+    <script src="/assets/js/utils/form-validator.js" defer></script>
+    <script src="/assets/js/components/ErrorBoundary.js" defer></script>
+    <script src="/assets/js/utils/keyboard-nav.js" defer></script>
+    <script src="/assets/js/utils/mobile-enhancements.js" defer></script>
 
-        <script src="/assets/js/pages/auth-init.js" defer></script>
-        <script src="/assets/js/config/page-init.js"></script>
-  <script src="/assets/js/app.js" defer></script>
-        
+    <script src="/assets/js/pages/auth-init.js" defer></script>
+    <script src="/assets/js/config/page-init.js"></script>
+    <script src="/assets/js/app.js" defer></script>
 
-        <!-- ALTCHA: loader shim that dynamically fetches the widget from CDN sources -->
-        <script src="/assets/js/vendor/altcha.min.js" defer></script>
+    <!-- ALTCHA: loader shim that dynamically fetches the widget from CDN sources -->
+    <script src="/assets/js/vendor/altcha.min.js" defer></script>
 
-        <!-- ALTCHA widget initialisation: show loading state and re-create widget once custom element is ready -->
-        <script src="/assets/js/pages/auth-altcha-init.js" defer></script>
+    <!-- ALTCHA widget initialisation: show loading state and re-create widget once custom element is ready -->
+    <script src="/assets/js/pages/auth-altcha-init.js" defer></script>
 
-        <!-- Fetch CSRF token on page load using api-client -->
-        <script src="/assets/js/pages/auth-api-init.js" defer></script>
+    <!-- Fetch CSRF token on page load using api-client -->
+    <script src="/assets/js/pages/auth-api-init.js" defer></script>
 
-        <!-- Initialize form validation -->
-        <script src="/assets/js/pages/auth-form-init.js" defer></script>
+    <!-- Google Identity Services sign-in/sign-up -->
+    <script src="/assets/js/pages/auth-google-init.js" defer></script>
+
+    <!-- Initialize form validation -->
+    <script src="/assets/js/pages/auth-form-init.js" defer></script>
 
     <!-- BOTTOM NAVBAR - GOLD STANDARD REBUILD (Mobile Only) -->
     <nav class="ef-bottom-nav" role="navigation" aria-label="Mobile bottom navigation">
@@ -787,19 +1008,20 @@
           <a href="/legal">Legal Hub</a> ·
           <button type="button" data-cookie-prefs>Cookie preferences</button>
         </div>
-        <div class="small" style="width: 100%; margin-top: 8px; text-align: center;">Operated by <a href="https://vexi.co.uk" target="_blank" rel="noopener noreferrer">VEXI</a></div>
+        <div class="small" class="footer-credit">
+          Operated by
+          <a href="https://vexi.co.uk" target="_blank" rel="noopener noreferrer">VEXI</a>
+        </div>
       </div>
-  </footer>
+    </footer>
     <script src="/assets/js/cookie-consent.js?v=2.0.0" defer></script>
     <script src="/assets/js/keyboard-shortcuts.js" defer></script>
     <script src="/assets/js/pages/auth-slideshow.js" defer></script>
     <script src="/assets/js/pages/auth-intent.js" defer></script>
 
     <!-- JadeAssist Chat Widget -->
-    <script
-      src="/assets/js/vendor/jade-widget.js"
-      defer
-    ></script>
+    <script src="/assets/js/vendor/jade-widget.js" defer></script>
     <script src="/assets/js/jadeassist-init.v2.js" defer></script>
-</body>
+  </body>
 </html>
+

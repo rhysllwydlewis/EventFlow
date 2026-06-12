@@ -103,7 +103,11 @@ router.post('/', writeLimiter, csrfProtection, async (req, res) => {
       updatedAt: new Date().toISOString(),
     };
 
-    await dbUnified.insertOne('quoteRequests', quoteRequest);
+    const savedQuote = await dbUnified.insertOne('quoteRequests', quoteRequest);
+    if (!savedQuote) {
+      logger.error('[QUOTE] insertOne failed', { quoteId: quoteRequest.id });
+      return res.status(500).json({ error: 'Failed to submit quote request. Please try again.' });
+    }
 
     res.json({
       success: true,

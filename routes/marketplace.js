@@ -312,8 +312,7 @@ router.get('/listings', async (req, res) => {
 // Get single marketplace listing (public)
 router.get('/listings/:id', async (req, res) => {
   try {
-    const listings = await dbUnified.read('marketplace_listings');
-    const listing = listings.find(l => l.id === req.params.id);
+    const listing = await dbUnified.findOne('marketplace_listings', { id: req.params.id });
 
     if (!listing) {
       logger.warn('Marketplace listing not found', { listingId: req.params.id });
@@ -355,8 +354,7 @@ router.get('/listings/:id', async (req, res) => {
  */
 router.get('/my-listings/:id', applyAuthRequired, async (req, res) => {
   try {
-    const listings = await dbUnified.read('marketplace_listings');
-    const listing = listings.find(l => l.id === req.params.id);
+    const listing = await dbUnified.findOne('marketplace_listings', { id: req.params.id });
 
     if (!listing) {
       logger.warn('Marketplace listing not found', { listingId: req.params.id });
@@ -500,7 +498,11 @@ router.post(
         updatedAt: new Date().toISOString(),
       };
 
-      await dbUnified.insertOne('marketplace_listings', listing);
+      const savedListing = await dbUnified.insertOne('marketplace_listings', listing);
+      if (!savedListing) {
+        logger.error('[MARKETPLACE] insertOne failed', { listingId: listing.id });
+        return res.status(500).json({ error: 'Failed to create listing. Please try again.' });
+      }
 
       logger.info('Marketplace listing created', {
         listingId: listing.id,
@@ -533,8 +535,7 @@ router.get('/my-listings', applyAuthRequired, async (req, res) => {
       endpoint: '/api/marketplace/my-listings',
     });
 
-    const listings = await dbUnified.read('marketplace_listings');
-    const myListings = listings.filter(l => l.userId === req.user.id);
+    const myListings = await dbUnified.find('marketplace_listings', { userId: req.user.id });
 
     logger.info('Marketplace listings retrieved', {
       userId: req.user.id,
@@ -617,12 +618,16 @@ router.post(
         return res.status(200).json({ ok: true, message: 'Listing already saved' });
       }
 
-      await dbUnified.insertOne('marketplace_saved_items', {
+      const mktSaveInserted = await dbUnified.insertOne('marketplace_saved_items', {
         id: uid('mkt_saved'),
         userId: req.user.id,
         listingId,
         savedAt: new Date().toISOString(),
       });
+      if (!mktSaveInserted) {
+        logger.error('[MARKETPLACE] saved_item insertOne failed');
+        return res.status(500).json({ error: 'Failed to save item. Please try again.' });
+      }
 
       res.status(201).json({ ok: true, message: 'Listing saved' });
     } catch (error) {

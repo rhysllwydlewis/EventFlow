@@ -5,7 +5,7 @@
 
 const isDevelopment =
   self.location.hostname === 'localhost' || self.location.hostname === '127.0.0.1';
-const CACHE_VERSION = 'eventflow-v18.6.0';
+const CACHE_VERSION = 'eventflow-v18.7.1';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
 const IMAGE_CACHE = `${CACHE_VERSION}-images`;
@@ -124,6 +124,34 @@ self.addEventListener('fetch', event => {
     return;
   }
 
+  // Network-first for API-backed photos so stale/incorrect image responses are
+  // replaced as soon as the origin is healthy. Other images remain cache-first
+  // below, but only successful responses are written to the image cache.
+  if (request.destination === 'image' && url.pathname.startsWith('/api/photos/')) {
+    event.respondWith(
+      fetch(request)
+        .then(fetchResponse => {
+          if (fetchResponse.ok) {
+            const responseClone = fetchResponse.clone();
+            caches
+              .open(IMAGE_CACHE)
+              .then(cache => {
+                cache.put(request, responseClone).catch(err => {
+                  console.warn('[SW] Cache write failed:', err.message);
+                });
+                limitCacheSize(IMAGE_CACHE, MAX_IMAGE_CACHE_SIZE);
+              })
+              .catch(err => {
+                console.warn('[SW] Cache open failed:', err.message);
+              });
+          }
+          return fetchResponse;
+        })
+        .catch(() => caches.match(request))
+    );
+    return;
+  }
+
   // API requests - secure caching strategy
   if (url.pathname.startsWith('/api/')) {
     // Allowlist of safe public endpoints that may be cached
@@ -219,18 +247,20 @@ self.addEventListener('fetch', event => {
         return (
           response ||
           fetch(request).then(fetchResponse => {
-            const responseClone = fetchResponse.clone();
-            caches
-              .open(IMAGE_CACHE)
-              .then(cache => {
-                cache.put(request, responseClone).catch(err => {
-                  console.warn('[SW] Cache write failed:', err.message);
+            if (fetchResponse.ok) {
+              const responseClone = fetchResponse.clone();
+              caches
+                .open(IMAGE_CACHE)
+                .then(cache => {
+                  cache.put(request, responseClone).catch(err => {
+                    console.warn('[SW] Cache write failed:', err.message);
+                  });
+                  limitCacheSize(IMAGE_CACHE, MAX_IMAGE_CACHE_SIZE);
+                })
+                .catch(err => {
+                  console.warn('[SW] Cache open failed:', err.message);
                 });
-                limitCacheSize(IMAGE_CACHE, MAX_IMAGE_CACHE_SIZE);
-              })
-              .catch(err => {
-                console.warn('[SW] Cache open failed:', err.message);
-              });
+            }
             return fetchResponse;
           })
         );

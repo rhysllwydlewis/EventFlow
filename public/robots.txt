@@ -6,6 +6,7 @@ Allow: /
 
 # Prioritize important pages
 Allow: /blog
+Allow: /guides
 Allow: /articles/
 Allow: /suppliers
 Allow: /pricing

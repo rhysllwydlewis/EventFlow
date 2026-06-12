@@ -62,6 +62,16 @@ describe('Admin Bulk User Actions (contract tests)', () => {
       { id: 'usr-1', email: 'u1@example.com', role: 'customer', verified: false },
       { id: 'usr-2', email: 'owner@example.com', role: 'customer', verified: false },
       { id: 'usr-3', email: 'u3@example.com', role: 'customer', verified: true },
+      { id: 'admin-2', email: 'admin2@example.com', role: 'admin', verified: false },
+      { id: 'owner-role', email: 'role-owner@example.com', role: 'owner', verified: false },
+      {
+        id: 'owner-flag',
+        email: 'flag-owner@example.com',
+        role: 'customer',
+        isOwner: true,
+        verified: false,
+      },
+      { _id: 'legacy-1', email: 'legacy@example.com', role: 'customer', verified: false },
     ];
 
     dbUnified.read.mockImplementation(async collection => {
@@ -93,7 +103,9 @@ describe('Admin Bulk User Actions (contract tests)', () => {
     // deleteOne: remove matching user from in-memory array
     dbUnified.deleteOne.mockImplementation(async (collection, id) => {
       if (collection === 'users') {
-        const idx = users.findIndex(u => u.id === id);
+        const idx = users.findIndex(u =>
+          typeof id === 'object' ? Object.keys(id).every(k => u[k] === id[k]) : u.id === id
+        );
         if (idx >= 0) {
           users.splice(idx, 1);
           return true;
@@ -136,7 +148,14 @@ describe('Admin Bulk User Actions (contract tests)', () => {
       expect(res.body.deletedCount).toBe(1);
       expect(res.body.totalRequested).toBe(3);
 
-      expect(users.map(u => u.id)).toEqual(['admin-1', 'usr-2', 'usr-3']);
+      expect(users.map(u => u.id)).toEqual([
+        'admin-1',
+        'usr-2',
+        'usr-3',
+        'admin-2',
+        'owner-role',
+        'owner-flag',
+      ]);
       expect(dbUnified.deleteOne).toHaveBeenCalledTimes(1);
       expect(dbUnified.deleteOne).toHaveBeenCalledWith('users', 'usr-1');
       expect(mockAuditLog).toHaveBeenCalledWith(
@@ -152,19 +171,40 @@ describe('Admin Bulk User Actions (contract tests)', () => {
   });
 
   describe('POST /api/admin/users/bulk-verify', () => {
-    it('verifies unverified users and returns verification counters', async () => {
+    it('skips protected admin and owner accounts when called directly', async () => {
       const res = await request(app)
         .post('/api/admin/users/bulk-verify')
-        .send({ userIds: ['usr-1', 'usr-3', 'missing'] });
+        .send({ userIds: ['admin-1', 'admin-2', 'usr-2', 'owner-role', 'owner-flag', 'missing'] });
+
+      expect(res.status).toBe(200);
+      expect(res.body.updated).toBe(0);
+      expect(res.body.skippedProtected).toBe(5);
+      expect(res.body.notFound).toBe(1);
+      expect(res.body.totalRequested).toBe(6);
+      expect(users.find(u => u.id === 'admin-2').verified).toBe(false);
+      expect(users.find(u => u.id === 'owner-role').verified).toBe(false);
+      expect(res.body.skipped).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ id: 'admin-2', reason: 'protected_account' }),
+          expect.objectContaining({ id: 'missing', reason: 'not_found' }),
+        ])
+      );
+    });
+
+    it('verifies unverified users and _id-only users and returns verification counters', async () => {
+      const res = await request(app)
+        .post('/api/admin/users/bulk-verify')
+        .send({ userIds: ['usr-1', 'usr-3', 'legacy-1', 'missing'] });
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
-      expect(res.body.verifiedCount).toBe(1);
+      expect(res.body.verifiedCount).toBe(2);
       expect(res.body.alreadyVerifiedCount).toBe(1);
-      expect(res.body.totalRequested).toBe(3);
+      expect(res.body.totalRequested).toBe(4);
 
       expect(users.find(u => u.id === 'usr-1').verified).toBe(true);
-      expect(dbUnified.updateOne).toHaveBeenCalledTimes(1);
+      expect(users.find(u => u._id === 'legacy-1').verified).toBe(true);
+      expect(dbUnified.updateOne).toHaveBeenCalledTimes(2);
       expect(dbUnified.updateOne).toHaveBeenCalledWith(
         'users',
         { id: 'usr-1' },
@@ -173,13 +213,26 @@ describe('Admin Bulk User Actions (contract tests)', () => {
       expect(mockAuditLog).toHaveBeenCalledWith(
         expect.objectContaining({
           action: 'BULK_USERS_VERIFIED',
-          details: expect.objectContaining({ verifiedCount: 1, alreadyVerifiedCount: 1 }),
+          details: expect.objectContaining({ verifiedCount: 2, alreadyVerifiedCount: 1 }),
         })
       );
     });
   });
 
   describe('POST /api/admin/users/bulk-suspend', () => {
+    it('skips admin and owner accounts for suspension when called directly', async () => {
+      const res = await request(app)
+        .post('/api/admin/users/bulk-suspend')
+        .send({ userIds: ['admin-2', 'owner-role', 'owner-flag', 'usr-1'], suspended: true });
+
+      expect(res.status).toBe(200);
+      expect(res.body.updated).toBe(1);
+      expect(res.body.skippedProtected).toBe(3);
+      expect(users.find(u => u.id === 'usr-1').suspended).toBe(true);
+      expect(users.find(u => u.id === 'admin-2').suspended).toBeUndefined();
+      expect(users.find(u => u.id === 'owner-role').suspended).toBeUndefined();
+    });
+
     it('suspends requested users except self and returns updatedCount', async () => {
       const res = await request(app)
         .post('/api/admin/users/bulk-suspend')

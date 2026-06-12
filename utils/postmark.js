@@ -42,8 +42,14 @@
 
 const path = require('path');
 const logger = require('./logger');
+const {
+  getPreheader,
+  renderPlainTextTemplate,
+  isKnownTemplate,
+} = require('./emailTemplateRegistry');
 const fs = require('fs');
 const crypto = require('crypto');
+const emailLogService = require('../services/emailLog.service');
 
 // Lazy-load Postmark to avoid errors if not configured
 let postmarkClient = null;
@@ -140,6 +146,66 @@ function maskEmail(email) {
   return `${maskedLocal}@${domain}`;
 }
 
+function escapeHtmlValue(text) {
+  if (typeof text !== 'string') {
+    return text;
+  }
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function safeHttpUrl(url) {
+  if (typeof url !== 'string' || !/^https?:\/\//i.test(url)) {
+    return '#';
+  }
+  return url.replace(/"/g, '%22');
+}
+
+const RAW_HTML_TEMPLATE_KEYS = new Set([
+  // Backend-generated or sanitised rich content only. See docs/EMAIL_TEMPLATES.md.
+  'message',
+  'html',
+  'features',
+  'actionsHtml',
+  'unsubscribeSection',
+  'notesSection',
+  'ctaSection',
+  'replyMessageHtml',
+]);
+
+function buildHiddenPreheader(preheader) {
+  if (!preheader) {
+    return '';
+  }
+  return `<div class="ef-preheader" style="display:none!important;visibility:hidden;opacity:0;color:transparent;height:0;width:0;max-height:0;max-width:0;overflow:hidden;mso-hide:all;font-size:1px;line-height:1px;">${preheader}</div>`;
+}
+
+function injectPreheader(html, preheader) {
+  if (!preheader || html.includes('ef-preheader')) {
+    return html;
+  }
+  const hidden = buildHiddenPreheader(preheader);
+  if (/<body[^>]*>/i.test(html)) {
+    return html.replace(/<body([^>]*)>/i, `<body$1>${hidden}`);
+  }
+  return `${hidden}${html}`;
+}
+
+function injectEmailBranding(html) {
+  const fallbackTile =
+    '<span style="display:inline-block;width:100%;height:100%;line-height:inherit;color:inherit;font:inherit;letter-spacing:inherit;">EF</span>';
+  return html
+    .replace(/<td([^>]*?)>EF<\/td>/, `<td$1>${fallbackTile}</td>`)
+    .replace(
+      />EventFlow<\/div>/,
+      '>EventFlow<span style="font-size:13px;font-weight:500;opacity:.82;"> &middot; Event planning made simple</span></div>'
+    );
+}
+
 /**
  * Load and process email template
  * @param {string} templateName - Name of template file (without .html)
@@ -148,6 +214,10 @@ function maskEmail(email) {
  */
 function loadEmailTemplate(templateName, data = {}) {
   try {
+    if (!isKnownTemplate(templateName)) {
+      logger.error(`Email template not found or not allowlisted: ${templateName}.html`);
+      return null;
+    }
     const templatePath = path.join(__dirname, '..', 'email-templates', `${templateName}.html`);
     if (!fs.existsSync(templatePath)) {
       logger.error(`Email template not found: ${templateName}.html`);
@@ -173,14 +243,7 @@ function loadEmailTemplate(templateName, data = {}) {
     Object.keys(data).forEach(key => {
       const regex = new RegExp(`{{${key}}}`, 'g');
       // Don't escape if the value contains HTML tags (for message content)
-      const value =
-        key === 'message' ||
-        key === 'html' ||
-        key === 'features' ||
-        key === 'actionsHtml' ||
-        key === 'unsubscribeSection'
-          ? data[key]
-          : escapeHtml(data[key]);
+      const value = RAW_HTML_TEMPLATE_KEYS.has(key) ? data[key] : escapeHtml(data[key]);
       html = html.replace(regex, value || '');
     });
 
@@ -190,12 +253,40 @@ function loadEmailTemplate(templateName, data = {}) {
     // Add base URL
     html = html.replace(/{{baseUrl}}/g, APP_BASE_URL);
 
+    const preheader = escapeHtml(data.preheader || getPreheader(templateName));
+    html = html.replace(/{{preheader}}/g, preheader);
+    html = injectPreheader(html, preheader);
+    html = injectEmailBranding(html);
+
     // Clear any remaining unresolved template placeholders
     html = html.replace(/\{\{[^}]+\}\}/g, '');
 
     return html;
   } catch (err) {
     logger.error('Error loading email template:', err.message);
+    return null;
+  }
+}
+
+async function updateEmailLogSafe(log, updates) {
+  if (!log || !log.id) {
+    return;
+  }
+  try {
+    await emailLogService.updateStatus(log.id, updates);
+  } catch (err) {
+    logger.warn('[email-log] Failed to update email log:', err.message);
+  }
+}
+
+async function createEmailAttemptLogSafe(options) {
+  if (options && options.logEmail === false) {
+    return null;
+  }
+  try {
+    return await emailLogService.createAttempt(options);
+  } catch (err) {
+    logger.warn('[email-log] Failed to create email log:', err.message);
     return null;
   }
 }
@@ -235,7 +326,17 @@ async function sendMail(options) {
     tags,
     trackOpens = true,
     trackLinks = 'HtmlAndText',
+    criticalDelivery = false,
   } = options;
+
+  const logOptions = {
+    ...options,
+    from,
+    subject: subject || '(from template)',
+    messageStream: options.messageStream || 'outbound',
+  };
+  const emailLog = await createEmailAttemptLogSafe(logOptions);
+  const logId = emailLog && emailLog.id ? emailLog.id : null;
 
   // Log email attempt for debugging (mask email in production)
   const isProduction = process.env.NODE_ENV === 'production';
@@ -250,108 +351,159 @@ async function sendMail(options) {
   logger.info(`   Template: ${template || 'none'}`);
   logger.info(`   Message Stream: ${options.messageStream || 'outbound'}`);
 
-  // Check if Postmark is enabled
-  if (!POSTMARK_ENABLED || !postmarkClient) {
-    logger.warn('⚠️  Postmark not configured - saving email to /outbox instead');
+  try {
+    // Check if Postmark is enabled
+    if (!POSTMARK_ENABLED || !postmarkClient) {
+      logger.warn('⚠️  Postmark not configured - saving email to /outbox instead');
+      if (criticalDelivery && process.env.NODE_ENV === 'production') {
+        const criticalError = new Error(
+          'Critical email delivery failed: Postmark is not configured in production'
+        );
+        await updateEmailLogSafe(emailLog, {
+          provider: 'postmark',
+          status: 'failed',
+          errorMessage: criticalError.message,
+        });
+        throw criticalError;
+      }
 
-    // Load template for outbox if needed
-    let outboxHtml = html;
-    if (template && !html) {
-      outboxHtml = loadEmailTemplate(template, templateData);
+      // Load template for outbox if needed
+      let outboxHtml = html;
+      if (template && !html) {
+        outboxHtml = loadEmailTemplate(template, templateData);
+      }
+
+      // Save to outbox for development/testing
+      const outboxData = {
+        To: Array.isArray(to) ? to.join(',') : to,
+        From: from,
+        Subject: subject || '(from template)',
+        HtmlBody: outboxHtml,
+        TextBody: text || (template ? renderPlainTextTemplate(template, templateData) : undefined),
+        Template: template,
+      };
+      saveEmailToOutbox(outboxData);
+
+      const outboxMessageId = `outbox-${Date.now()}`;
+      const sentAt = new Date().toISOString();
+      await updateEmailLogSafe(emailLog, {
+        provider: 'outbox',
+        status: 'sent',
+        postmarkMessageId: outboxMessageId,
+        sentAt,
+      });
+
+      return {
+        status: 'disabled',
+        message: 'Postmark not configured. Email saved to outbox.',
+        MessageID: outboxMessageId,
+        PostmarkMessageID: null,
+        emailLogId: logId,
+        provider: 'outbox',
+        emailLogStatus: 'sent',
+        sentAt,
+      };
     }
 
-    // Save to outbox for development/testing
-    const outboxData = {
-      To: Array.isArray(to) ? to.join(',') : to,
-      From: from,
-      Subject: subject || '(from template)',
-      HtmlBody: outboxHtml,
-      TextBody: text,
-      Template: template,
-    };
-    saveEmailToOutbox(outboxData);
-
-    return {
-      status: 'disabled',
-      message: 'Postmark not configured. Email saved to outbox.',
-      MessageID: `outbox-${Date.now()}`,
-    };
-  }
-
-  // Require subject for all emails
-  if (!subject) {
-    const error = new Error('Missing required email field: subject');
-    logger.error('❌ Email send failed:', error.message);
-    throw error;
-  }
-
-  // Load local template if specified and HTML not provided
-  let emailHtml = html;
-  if (template && !html) {
-    logger.info(`   Loading local template: ${template}.html`);
-    emailHtml = loadEmailTemplate(template, templateData);
-    if (!emailHtml) {
-      const error = new Error(`Failed to load email template: ${template}`);
+    // Require subject for all emails
+    if (!subject) {
+      const error = new Error('Missing required email field: subject');
       logger.error('❌ Email send failed:', error.message);
       throw error;
     }
-  }
 
-  // Build email data for Postmark
-  const emailData = {
-    From: from,
-    To: Array.isArray(to) ? to.join(',') : to,
-    Subject: subject,
-    TrackOpens: trackOpens,
-    TrackLinks: trackLinks,
-    MessageStream: options.messageStream || 'outbound',
-  };
-
-  // Add body content
-  if (emailHtml) {
-    emailData.HtmlBody = emailHtml;
-    // Provide text fallback if HTML is used
-    if (!text) {
-      // Simple HTML to text conversion
-      emailData.TextBody = emailHtml
-        .replace(/<[^>]*>/g, '')
-        .replace(/\s+/g, ' ')
-        .trim();
-    } else {
-      emailData.TextBody = text;
+    // Load local template if specified and HTML not provided
+    let emailHtml = html;
+    if (template && !html) {
+      logger.info(`   Loading local template: ${template}.html`);
+      emailHtml = loadEmailTemplate(template, templateData);
+      if (!emailHtml) {
+        const error = new Error(`Failed to load email template: ${template}`);
+        logger.error('❌ Email send failed:', error.message);
+        throw error;
+      }
     }
-  } else if (text) {
-    emailData.TextBody = text;
-  } else {
-    const error = new Error('Email must have either text, html, or template content');
-    logger.error('❌ Email send failed:', error.message);
+
+    // Build email data for Postmark
+    const emailData = {
+      From: from,
+      To: Array.isArray(to) ? to.join(',') : to,
+      Subject: subject,
+      TrackOpens: trackOpens,
+      TrackLinks: trackLinks,
+      MessageStream: options.messageStream || 'outbound',
+    };
+
+    // Add body content
+    if (emailHtml) {
+      emailData.HtmlBody = emailHtml;
+      // Provide text fallback if HTML is used. Prefer curated template text, then caller text.
+      if (!text && template) {
+        emailData.TextBody = renderPlainTextTemplate(template, templateData);
+      } else if (!text) {
+        // Simple HTML to text conversion fallback for ad-hoc HTML emails
+        emailData.TextBody = emailHtml
+          .replace(/<[^>]*>/g, '')
+          .replace(/\s+/g, ' ')
+          .trim();
+      } else {
+        emailData.TextBody = text;
+      }
+    } else if (text) {
+      emailData.TextBody = text;
+    } else {
+      const error = new Error('Email must have either text, html, or template content');
+      logger.error('❌ Email send failed:', error.message);
+      throw error;
+    }
+
+    // Add tags if provided (Postmark supports up to 10 tags)
+    if (tags) {
+      const tagArray = Array.isArray(tags) ? tags : [tags];
+      emailData.Tag = tagArray.slice(0, 10).join(',');
+    }
+
+    try {
+      const response = await postmarkClient.sendEmail(emailData);
+      logger.info(`✅ Email sent successfully via Postmark`);
+      logger.info(`   To: ${emailData.To}`);
+      logger.info(`   Subject: ${emailData.Subject}`);
+      logger.info(`   MessageID: ${response.MessageID}`);
+      logger.info(`   Stream: ${emailData.MessageStream}`);
+      const sentAt = new Date().toISOString();
+      await updateEmailLogSafe(emailLog, {
+        provider: 'postmark',
+        status: 'sent',
+        postmarkMessageId: response.MessageID || null,
+        sentAt,
+      });
+      return {
+        ...response,
+        PostmarkMessageID: response.MessageID || null,
+        emailLogId: logId,
+        provider: 'postmark',
+        emailLogStatus: 'sent',
+        sentAt,
+      };
+    } catch (err) {
+      logger.error('❌ Postmark send error:', err.message);
+      logger.error('   To:', emailData.To);
+      logger.error('   Subject:', emailData.Subject);
+
+      // Save to outbox as fallback for debugging outside production critical auth flows
+      if (!(criticalDelivery && process.env.NODE_ENV === 'production')) {
+        saveEmailToOutbox(emailData);
+      }
+
+      // Re-throw error so calling code can handle it (e.g., rollback)
+      throw new Error(`Failed to send email via Postmark: ${err.message}`);
+    }
+  } catch (error) {
+    await updateEmailLogSafe(emailLog, {
+      status: 'failed',
+      errorMessage: error.message ? error.message.slice(0, 500) : 'Email send failed',
+    });
     throw error;
-  }
-
-  // Add tags if provided (Postmark supports up to 10 tags)
-  if (tags) {
-    const tagArray = Array.isArray(tags) ? tags : [tags];
-    emailData.Tag = tagArray.slice(0, 10).join(',');
-  }
-
-  try {
-    const response = await postmarkClient.sendEmail(emailData);
-    logger.info(`✅ Email sent successfully via Postmark`);
-    logger.info(`   To: ${emailData.To}`);
-    logger.info(`   Subject: ${emailData.Subject}`);
-    logger.info(`   MessageID: ${response.MessageID}`);
-    logger.info(`   Stream: ${emailData.MessageStream}`);
-    return response;
-  } catch (err) {
-    logger.error('❌ Postmark send error:', err.message);
-    logger.error('   To:', emailData.To);
-    logger.error('   Subject:', emailData.Subject);
-
-    // Save to outbox as fallback for debugging
-    saveEmailToOutbox(emailData);
-
-    // Re-throw error so calling code can handle it (e.g., rollback)
-    throw new Error(`Failed to send email via Postmark: ${err.message}`);
   }
 }
 
@@ -405,6 +557,7 @@ async function sendVerificationEmail(user, verificationToken) {
     from: FROM_NOREPLY,
     tags: ['verification', 'transactional'],
     messageStream: 'outbound',
+    criticalDelivery: true,
   });
 }
 
@@ -431,6 +584,7 @@ async function sendPasswordResetEmail(user, resetToken) {
     from: FROM_NOREPLY,
     tags: ['password-reset', 'transactional'],
     messageStream: 'password-reset', // Use dedicated password-reset stream
+    criticalDelivery: true,
   });
 }
 
@@ -496,6 +650,15 @@ async function sendPasswordResetConfirmation(user) {
  * @returns {Promise<Object|null>} Send result or null if user opted out
  */
 async function sendMarketingEmail(user, subject, message, options = {}) {
+  const {
+    template: selectedTemplate = 'marketing',
+    templateData: extraTemplateData = {},
+    messageStream: selectedMessageStream = 'broadcasts',
+    ctaText,
+    ctaLink,
+    ...sendOptions
+  } = options;
+
   // Check if user has opted in to marketing emails
   if (user.notify_marketing === false) {
     logger.info(`Skipping marketing email to ${user.email} (user opted out)`);
@@ -508,29 +671,29 @@ async function sendMarketingEmail(user, subject, message, options = {}) {
 
   // Build message with optional CTA button
   let fullMessage = message;
-  if (options.ctaText && options.ctaLink) {
+  if (ctaText && ctaLink) {
     fullMessage += `\n\n<div style="text-align: center; margin: 24px 0;">
-      <a href="${options.ctaLink}" class="cta-button" style="display: inline-block; padding: 14px 28px; background: linear-gradient(180deg, #16c3ad, #0ea896); color: #ffffff; text-decoration: none; border-radius: 12px; font-weight: 700; font-size: 16px;">${options.ctaText}</a>
+      <a href="${safeHttpUrl(ctaLink)}" class="cta-button" style="display: inline-block; padding: 14px 28px; background: linear-gradient(180deg, #16c3ad, #0ea896); color: #ffffff; text-decoration: none; border-radius: 12px; font-weight: 700; font-size: 16px;">${escapeHtmlValue(ctaText)}</a>
     </div>`;
   }
 
   const templateData = {
+    ...extraTemplateData,
     name: user.name || 'there',
     title: subject,
     message: fullMessage,
     unsubscribeLink: unsubscribeLink,
-    ...(options.templateData || {}),
   };
 
   return sendMail({
+    ...sendOptions,
     to: user.email,
     subject: subject,
-    template: options.template || 'marketing',
+    template: selectedTemplate,
     templateData: templateData,
-    from: FROM_INFO,
-    tags: ['marketing'],
-    messageStream: options.messageStream || 'broadcasts',
-    ...options,
+    from: sendOptions.from || FROM_INFO,
+    tags: sendOptions.tags || ['marketing'],
+    messageStream: selectedMessageStream,
   });
 }
 
@@ -543,29 +706,46 @@ async function sendMarketingEmail(user, subject, message, options = {}) {
  * @returns {Promise<Object|null>} Send result or null if user opted out
  */
 async function sendNotificationEmail(user, subject, message, options = {}) {
+  const {
+    template: selectedTemplate = 'notification',
+    templateData: extraTemplateData = {},
+    actionUrl: optionActionUrl,
+    actionText: optionActionText,
+    ...sendOptions
+  } = options;
+
   // Check if user has opted in to account notifications
   if (user.notify_account === false) {
     logger.info(`Skipping notification email to ${user.email} (user opted out)`);
     return null;
   }
 
+  // Build optional CTA section — avoids empty href="" in template when no CTA is needed
+  const actionUrl = optionActionUrl || extraTemplateData.actionUrl;
+  const actionText = optionActionText || extraTemplateData.actionText;
+  const ctaSection =
+    actionUrl && actionText && /^https?:\/\//i.test(actionUrl)
+      ? `<table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px;"><tr><td align="center"><a href="${safeHttpUrl(actionUrl)}" style="display:inline-block;padding:15px 40px;background:linear-gradient(135deg,#0B8073,#13B6A2);color:#ffffff;text-decoration:none;border-radius:10px;font-weight:700;font-size:15px;letter-spacing:0.2px;">${escapeHtmlValue(actionText)}</a></td></tr></table>`
+      : '';
+
   const templateData = {
+    ...extraTemplateData,
     name: user.name || 'there',
     title: subject,
     message: message,
     preferencesLink: `${APP_BASE_URL}/settings/notifications`,
-    ...(options.templateData || {}),
+    ctaSection,
   };
 
   return sendMail({
+    ...sendOptions,
     to: user.email,
     subject: subject,
-    template: options.template || 'notification',
+    template: selectedTemplate,
     templateData: templateData,
-    from: FROM_SUPPORT,
-    tags: ['notification', 'transactional'],
-    messageStream: 'outbound',
-    ...options,
+    from: sendOptions.from || FROM_SUPPORT,
+    tags: sendOptions.tags || ['notification', 'transactional'],
+    messageStream: sendOptions.messageStream || 'outbound',
   });
 }
 
@@ -613,6 +793,7 @@ module.exports = {
   isPostmarkEnabled,
   getPostmarkStatus,
   loadEmailTemplate,
+  RAW_HTML_TEMPLATE_KEYS,
   generateUnsubscribeToken,
   verifyUnsubscribeToken,
 };

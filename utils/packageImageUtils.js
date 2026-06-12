@@ -25,6 +25,135 @@ const KNOWN_PLACEHOLDERS = new Set([
   '/assets/images/placeholder-package.jpg',
 ]);
 
+/** Field names that can hold image URLs, in package-card display preference order. */
+const PACKAGE_IMAGE_URL_FIELDS = Object.freeze([
+  'url',
+  'optimized',
+  'large',
+  'original',
+  'src',
+  'path',
+  'image',
+  'imageUrl',
+  'photoUrl',
+  'secureUrl',
+  'cdnUrl',
+  'originalUrl',
+  'thumbnail',
+]);
+
+/** Field names that have appeared in package image payloads or upload results. */
+const INSPECTED_PACKAGE_IMAGE_FIELDS = Object.freeze([
+  'original',
+  'optimized',
+  'large',
+  'thumbnail',
+  'photoUrl',
+  'imageUrl',
+  'secureUrl',
+  'cdnUrl',
+]);
+
+function sanitizeCandidateValue(value) {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function hasHtmlOrScriptPayload(value) {
+  return /<\s*\/?\s*(script|img|svg|iframe|object|embed|html|body|video|source|a)\b/i.test(value);
+}
+
+function isKnownPlaceholderPath(value) {
+  if (!value) {
+    return false;
+  }
+  try {
+    const parsed = new URL(value, 'https://event-flow.local');
+    return KNOWN_PLACEHOLDERS.has(parsed.pathname);
+  } catch (_err) {
+    return KNOWN_PLACEHOLDERS.has(value.split(/[?#]/)[0]);
+  }
+}
+
+/**
+ * Classify whether an image candidate is safe and usable for public API output.
+ *
+ * @param {*} value
+ * @returns {{value: string|null, usable: boolean, reason: string, isDataUri: boolean, isApiPhoto: boolean, isPlaceholder: boolean}}
+ */
+function classifyPackageImageCandidate(value) {
+  const trimmed = sanitizeCandidateValue(value);
+  const isDataUri = /^data:/i.test(trimmed);
+  const isApiPhoto = /^\/api\/photos\//i.test(trimmed);
+  if (typeof value !== 'string') {
+    return {
+      value: null,
+      usable: false,
+      reason: 'non-string',
+      isDataUri: false,
+      isApiPhoto: false,
+      isPlaceholder: true,
+    };
+  }
+  if (!trimmed) {
+    return {
+      value: null,
+      usable: false,
+      reason: 'empty',
+      isDataUri: false,
+      isApiPhoto: false,
+      isPlaceholder: true,
+    };
+  }
+  if (isKnownPlaceholderPath(trimmed)) {
+    return {
+      value: trimmed,
+      usable: false,
+      reason: 'placeholder',
+      isDataUri: false,
+      isApiPhoto,
+      isPlaceholder: true,
+    };
+  }
+  if (isDataUri) {
+    return {
+      value: trimmed,
+      usable: false,
+      reason: 'data-uri',
+      isDataUri: true,
+      isApiPhoto: false,
+      isPlaceholder: true,
+    };
+  }
+  if (/^javascript:/i.test(trimmed)) {
+    return {
+      value: trimmed,
+      usable: false,
+      reason: 'javascript-url',
+      isDataUri: false,
+      isApiPhoto: false,
+      isPlaceholder: false,
+    };
+  }
+  if (hasHtmlOrScriptPayload(trimmed)) {
+    return {
+      value: trimmed,
+      usable: false,
+      reason: 'html-payload',
+      isDataUri: false,
+      isApiPhoto: false,
+      isPlaceholder: false,
+    };
+  }
+  return {
+    value: trimmed,
+    usable: true,
+    reason: 'usable',
+    isDataUri: false,
+    isApiPhoto,
+    isPlaceholder: false,
+  };
+}
+
 /**
  * Return true when a URL represents a placeholder, is absent, empty, or a
  * data: URI that should not be stored / returned in public API responses.
@@ -33,18 +162,7 @@ const KNOWN_PLACEHOLDERS = new Set([
  * @returns {boolean}
  */
 function isPlaceholderImage(url) {
-  if (!url || typeof url !== 'string') {
-    return true;
-  }
-  const trimmed = url.trim();
-  if (!trimmed) {
-    return true;
-  }
-  // data: URIs are not usable as public image URLs; treat as "no image".
-  if (/^data:/i.test(trimmed)) {
-    return true;
-  }
-  return KNOWN_PLACEHOLDERS.has(trimmed);
+  return !classifyPackageImageCandidate(url).usable;
 }
 
 /**
@@ -59,50 +177,179 @@ function extractGalleryItemUrl(img) {
     return '';
   }
   if (typeof img === 'string') {
-    return img;
+    const classification = classifyPackageImageCandidate(img);
+    return classification.usable ? classification.value : '';
   }
-  return img.url || img.src || img.path || img.image || img.originalUrl || img.thumbnail || '';
+  for (const field of PACKAGE_IMAGE_URL_FIELDS) {
+    const classification = classifyPackageImageCandidate(img[field]);
+    if (classification.usable) {
+      return classification.value;
+    }
+  }
+  return '';
+}
+
+function pushCandidate(candidates, source, value) {
+  const classification = classifyPackageImageCandidate(value);
+  candidates.push({
+    source,
+    value: classification.value,
+    usable: classification.usable,
+    reason: classification.reason,
+  });
+}
+
+function pushRejectedCandidate(candidates, source, reason) {
+  candidates.push({
+    source,
+    value: null,
+    usable: false,
+    reason,
+  });
+}
+
+function addGalleryCandidates(candidates, source, gallery) {
+  if (gallery === undefined || gallery === null) {
+    pushRejectedCandidate(candidates, source, 'empty');
+    return;
+  }
+  if (!Array.isArray(gallery)) {
+    pushRejectedCandidate(candidates, source, 'non-array');
+    return;
+  }
+  gallery.forEach((img, index) => {
+    if (typeof img === 'string') {
+      pushCandidate(candidates, `${source}[${index}]`, img);
+      return;
+    }
+    if (!img || typeof img !== 'object') {
+      pushCandidate(candidates, `${source}[${index}]`, img);
+      return;
+    }
+    PACKAGE_IMAGE_URL_FIELDS.forEach(field => {
+      if (Object.prototype.hasOwnProperty.call(img, field)) {
+        pushCandidate(candidates, `${source}[${index}].${field}`, img[field]);
+      }
+    });
+  });
+}
+
+/**
+ * List every package image candidate considered by the public resolver, with
+ * source paths and rejection reasons for diagnostics.
+ *
+ * @param {Object} pkg
+ * @returns {Array<{source: string, value: string|null, usable: boolean, reason: string}>}
+ */
+function listPackageImageCandidates(pkg) {
+  const candidates = [];
+  if (!pkg || typeof pkg !== 'object') {
+    pushRejectedCandidate(candidates, 'pkg', 'invalid-package');
+    return candidates;
+  }
+
+  pushCandidate(candidates, 'pkg.resolvedImage', pkg.resolvedImage);
+  pushCandidate(candidates, 'pkg.image', pkg.image);
+  PACKAGE_IMAGE_URL_FIELDS.forEach(field => {
+    if (field !== 'image' && Object.prototype.hasOwnProperty.call(pkg, field)) {
+      pushCandidate(candidates, `pkg.${field}`, pkg[field]);
+    }
+  });
+  addGalleryCandidates(candidates, 'pkg.resolvedGallery', pkg.resolvedGallery);
+  addGalleryCandidates(candidates, 'pkg.gallery', pkg.gallery);
+  addGalleryCandidates(candidates, 'pkg.images', pkg.images);
+
+  return candidates;
+}
+
+function getBestPackageImageCandidate(pkg) {
+  return listPackageImageCandidates(pkg).find(candidate => candidate.usable) || null;
+}
+
+/**
+ * Return structured facts about an image-like value for diagnostics.
+ *
+ * @param {string|null|undefined} url
+ * @returns {{value: string|null, isDataUri: boolean, isApiPhoto: boolean, isPlaceholder: boolean}}
+ */
+function classifyPackageImageValue(url) {
+  const classification = classifyPackageImageCandidate(url);
+  return {
+    value: classification.value,
+    isDataUri: classification.isDataUri,
+    isApiPhoto: classification.isApiPhoto,
+    isPlaceholder: classification.isPlaceholder,
+  };
+}
+
+/**
+ * Collect known image field names anywhere in a package payload. The path makes
+ * it clear whether a value came from the root package document, gallery item,
+ * nested upload result, etc.
+ *
+ * @param {*} value
+ * @param {Object} [opts]
+ * @param {string} [opts.path]
+ * @param {number} [opts.depth]
+ * @param {Set<*>} [opts.seen]
+ * @returns {Array<{path: string, field: string, value: *}>}
+ */
+function collectNamedPackageImageFields(value, opts = {}) {
+  const path = opts.path || 'pkg';
+  const depth = opts.depth || 0;
+  const seen = opts.seen || new Set();
+  if (!value || typeof value !== 'object' || depth > 5 || seen.has(value)) {
+    return [];
+  }
+  seen.add(value);
+
+  const found = [];
+  if (Array.isArray(value)) {
+    value.forEach((item, index) => {
+      found.push(
+        ...collectNamedPackageImageFields(item, {
+          path: `${path}[${index}]`,
+          depth: depth + 1,
+          seen,
+        })
+      );
+    });
+    return found;
+  }
+
+  Object.entries(value).forEach(([key, child]) => {
+    const childPath = `${path}.${key}`;
+    if (PACKAGE_IMAGE_URL_FIELDS.includes(key) || INSPECTED_PACKAGE_IMAGE_FIELDS.includes(key)) {
+      found.push({ path: childPath, field: key, value: child });
+    }
+    if (child && typeof child === 'object') {
+      found.push(
+        ...collectNamedPackageImageFields(child, {
+          path: childPath,
+          depth: depth + 1,
+          seen,
+        })
+      );
+    }
+  });
+  return found;
 }
 
 /**
  * Resolve the best available image URL for a package.
  *
- * Resolution order:
- *   1. pkg.image  — if present and not a known placeholder.
- *   2. pkg.gallery — first non-placeholder entry wins.
- *   3. Canonical placeholder path — always returns a non-empty string.
- *
  * @param {Object} pkg
  * @returns {string}
  */
 function resolvePackageImage(pkg) {
-  if (!pkg || typeof pkg !== 'object') {
-    return PLACEHOLDER_PACKAGE_IMAGE;
-  }
-
-  if (pkg.image && !isPlaceholderImage(pkg.image)) {
-    return pkg.image;
-  }
-
-  if (Array.isArray(pkg.gallery) && pkg.gallery.length > 0) {
-    for (const img of pkg.gallery) {
-      const url = extractGalleryItemUrl(img);
-      if (url && !isPlaceholderImage(url)) {
-        return url;
-      }
-    }
-  }
-
-  return PLACEHOLDER_PACKAGE_IMAGE;
+  const chosen = getBestPackageImageCandidate(pkg);
+  return chosen ? chosen.value : PLACEHOLDER_PACKAGE_IMAGE;
 }
 
 /**
  * Normalise a raw gallery array into a consistent array of objects, each with
  * a guaranteed `url` field set to the best available URL for that entry.
  * Items with no usable URL or a placeholder URL are excluded from the result.
- *
- * Returned as `resolvedGallery` in the package detail API response so clients
- * never need to guess which field name holds the URL.
  *
  * @param {Array} gallery  Raw gallery array (strings or mixed-schema objects)
  * @returns {Array<{url: string, [key: string]: any}>}
@@ -116,6 +363,8 @@ function normalizeGallery(gallery) {
     if (!img) {
       continue;
     }
+    // Legacy field coverage: extractGalleryItemUrl handles img.originalUrl and img.thumbnail
+    // through PACKAGE_IMAGE_URL_FIELDS without allowing either to outrank optimized/large.
     const url = extractGalleryItemUrl(img);
     if (url && !isPlaceholderImage(url)) {
       normalized.push(typeof img === 'string' ? { url } : { ...img, url });
@@ -124,11 +373,65 @@ function normalizeGallery(gallery) {
   return normalized;
 }
 
+/**
+ * Build a complete audit record for package image investigation.
+ *
+ * @param {Object} pkg
+ * @returns {Object}
+ */
+function buildPackageImageAudit(pkg, opts = {}) {
+  const resolvedImage = resolvePackageImage(pkg);
+  const chosen = getBestPackageImageCandidate(pkg);
+  const resolvedGallery = normalizeGallery(pkg && pkg.gallery);
+  const imageFacts = classifyPackageImageValue(pkg && pkg.image);
+  const publicImageFacts = classifyPackageImageValue(resolvedImage);
+  return {
+    id: pkg && pkg.id,
+    title: pkg && (pkg.title || pkg.name),
+    approved: pkg && pkg.approved,
+    supplierId: pkg && (pkg.supplierId || pkg.supplier_id),
+
+    imageRaw: (pkg && pkg.image) || null,
+    imageRawIsEmpty: !(pkg && pkg.image),
+    imageRawIsDataUri: imageFacts.isDataUri,
+    imageRawIsApiPhoto: imageFacts.isApiPhoto,
+    imageRawIsPlaceholder: imageFacts.isPlaceholder,
+    galleryRaw: pkg && Array.isArray(pkg.gallery) ? pkg.gallery : null,
+    imagesRaw: pkg && Array.isArray(pkg.images) ? pkg.images : null,
+    namedImageFields: collectNamedPackageImageFields(pkg),
+    resolverCandidates: listPackageImageCandidates(pkg),
+    chosenImageSource: chosen ? chosen.source : 'fallback.placeholder',
+    duplicateTitleCountForSupplier: opts.duplicateTitleCountForSupplier,
+
+    image: resolvedImage,
+    resolvedImage,
+    resolvedImageIsDataUri: publicImageFacts.isDataUri,
+    resolvedImageIsApiPhoto: publicImageFacts.isApiPhoto,
+    isPlaceholder: publicImageFacts.isPlaceholder,
+    resolvedGallery,
+
+    galleryLength: Array.isArray(pkg && pkg.gallery) ? pkg.gallery.length : 0,
+    imagesLength: Array.isArray(pkg && pkg.images) ? pkg.images.length : 0,
+    resolvedGalleryLength: resolvedGallery.length,
+    firstGalleryUrl: resolvedGallery.length > 0 ? resolvedGallery[0].url : null,
+    firstRawGalleryItem:
+      Array.isArray(pkg && pkg.gallery) && pkg.gallery.length > 0 ? pkg.gallery[0] : null,
+  };
+}
+
 module.exports = {
   PLACEHOLDER_PACKAGE_IMAGE,
   KNOWN_PLACEHOLDERS,
+  PACKAGE_IMAGE_URL_FIELDS,
+  INSPECTED_PACKAGE_IMAGE_FIELDS,
+  classifyPackageImageCandidate,
   isPlaceholderImage,
   extractGalleryItemUrl,
+  listPackageImageCandidates,
+  getBestPackageImageCandidate,
+  classifyPackageImageValue,
+  collectNamedPackageImageFields,
+  buildPackageImageAudit,
   resolvePackageImage,
   normalizeGallery,
 };

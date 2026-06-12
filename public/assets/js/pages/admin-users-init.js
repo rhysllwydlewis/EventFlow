@@ -1,1103 +1,904 @@
-// Standalone admin users loader with search and filters
+/**
+ * EventFlow Admin — Users Centre
+ * Drives /admin-users (Users Centre page).
+ * Uses the /api/admin/users/summary and /api/admin/users/list endpoints
+ * from services/adminUserSummary.service.js so counts match /admin dashboard.
+ */
 (function () {
-  let allUsers = [];
+  'use strict';
+
+  const $ = id => document.getElementById(id);
   const selectedUserIds = new Set();
 
-  function escapeHtml(str) {
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
+  let currentUsers = [];
+  let currentPage = 1;
+  let currentLimit = 50;
+  let currentTotal = 0;
+  let currentPages = 1;
+  let debounceTimer = null;
+
+  function esc(value) {
+    const d = document.createElement('div');
+    d.textContent = String(value ?? '');
+    return d.innerHTML;
   }
 
-  function formatDate(dateStr) {
-    if (!dateStr) {
-      return 'Never';
+  function fmtDate(value) {
+    if (!value) {
+      return '—';
     }
-    try {
-      return new Date(dateStr).toLocaleString();
-    } catch (e) {
-      return dateStr;
+    const parsed = Date.parse(value);
+    if (Number.isNaN(parsed)) {
+      return '—';
     }
-  }
-
-  async function loadAdminUsers() {
-    const summary = document.getElementById('user-summary');
-    const tbody = document.querySelector('table.table tbody');
-    if (!summary || !tbody) {
-      return;
-    }
-
-    summary.textContent = 'Loading users…';
-
-    // Show loading state
-    AdminShared.showLoadingState(tbody, {
-      rows: 5,
-      cols: 10,
-      message: 'Loading users...',
-    });
-
-    try {
-      // Use AdminShared.api for consistent error handling
-      const data = await AdminShared.api('/api/admin/users');
-      allUsers = (data && data.items) || [];
-
-      renderUsers();
-    } catch (e) {
-      AdminShared.debugError('Admin users load failed', e);
-      summary.textContent = 'Error loading users';
-
-      // Show error state with retry button
-      AdminShared.showErrorState(tbody, {
-        message: 'Failed to load users. Please try again.',
-        onRetry: loadAdminUsers,
-        colspan: 10,
-      });
-    }
-  }
-
-  function renderUsers() {
-    const summary = document.getElementById('user-summary');
-    const tbody = document.querySelector('table.table tbody');
-
-    // Get filter values
-    const searchTerm = document.getElementById('userSearch')?.value.toLowerCase() || '';
-    const roleFilter = document.getElementById('roleFilter')?.value || '';
-    const subscriptionFilter = document.getElementById('subscriptionFilter')?.value || '';
-    const verifiedFilter = document.getElementById('verifiedFilter')?.value || '';
-
-    // Filter users
-    const filtered = allUsers.filter(u => {
-      // Search filter
-      if (searchTerm) {
-        const name = (u.name || '').toLowerCase();
-        const email = (u.email || '').toLowerCase();
-        if (!name.includes(searchTerm) && !email.includes(searchTerm)) {
-          return false;
-        }
-      }
-
-      // Role filter
-      if (roleFilter && u.role !== roleFilter) {
-        return false;
-      }
-
-      // Subscription filter
-      if (subscriptionFilter) {
-        const userTier = u.subscription?.tier || 'free';
-        if (userTier !== subscriptionFilter) {
-          return false;
-        }
-      }
-
-      // Verified filter
-      if (verifiedFilter === 'yes' && !u.verified) {
-        return false;
-      }
-      if (verifiedFilter === 'no' && u.verified) {
-        return false;
-      }
-
-      return true;
-    });
-
-    summary.textContent = filtered.length
-      ? `${filtered.length} user${filtered.length === 1 ? '' : 's'} found (${allUsers.length} total)`
-      : 'No users match the filters.';
-
-    if (!filtered.length) {
-      // Show empty state
-      AdminShared.showEmptyState(tbody, {
-        message: 'No users found matching your filters.',
-        icon: '👥',
-        actionLabel: 'Clear Filters',
-        onAction: () => {
-          // Clear all filters
-          const searchInput = document.getElementById('userSearch');
-          const roleFilter = document.getElementById('roleFilter');
-          const subscriptionFilter = document.getElementById('subscriptionFilter');
-          const verifiedFilter = document.getElementById('verifiedFilter');
-
-          if (searchInput) {
-            searchInput.value = '';
-          }
-          if (roleFilter) {
-            roleFilter.value = '';
-          }
-          if (subscriptionFilter) {
-            subscriptionFilter.value = '';
-          }
-          if (verifiedFilter) {
-            verifiedFilter.value = '';
-          }
-
-          renderUsers();
-        },
-        colspan: 10,
-      });
-      return;
-    }
-
-    tbody.innerHTML = filtered
-      .map(u => {
-        // Build role badge using shared helper
-        const roleBadge = AdminShared.getRoleBadge(u.role);
-
-        // Admin users get an Admin badge — they have full privileges, not a subscription tier
-        const isAdminUser = u.role === 'admin';
-        let subscriptionBadge = '';
-        if (isAdminUser) {
-          subscriptionBadge = '—';
-        } else {
-          const subscription = u.subscription || { tier: 'free', status: 'active' };
-          if (subscription.tier === 'pro') {
-            subscriptionBadge = '<span class="badge badge-pro">Pro</span>';
-          } else if (subscription.tier === 'pro_plus') {
-            subscriptionBadge = '<span class="badge badge-pro-plus">Pro Plus</span>';
-          } else {
-            subscriptionBadge = '<span class="badge badge-starter">Starter</span>';
-          }
-        }
-
-        const userId = escapeHtml(u.id || u._id || '');
-        const isChecked = selectedUserIds.has(userId);
-
-        const actionsHtml = `
-          <button class="btn btn-secondary btn-sm" data-manage-subscription="${userId}" style="font-size:12px;padding:4px 8px;margin-right:4px;">Manage Subscription</button>
-          ${
-            !u.verified
-              ? `<button class="btn btn-secondary btn-sm" data-resend-verification="${userId}" style="font-size:12px;padding:4px 8px;">Resend Verification</button>`
-              : ''
-          }
-        `;
-
-        return (
-          `<tr>` +
-          `<td class="checkbox-cell"><input type="checkbox" class="user-checkbox table-checkbox" data-user-id="${userId}" ${isChecked ? 'checked' : ''}></td>` +
-          `<td><a href="/admin-user-detail?id=${userId}" style="color:#3b82f6;text-decoration:none;">${escapeHtml(u.name || '')}</a></td>` +
-          `<td><a href="/admin-user-detail?id=${userId}" style="color:#3b82f6;text-decoration:none;">${escapeHtml(u.email || '')}</a></td>` +
-          `<td>${roleBadge}</td>` +
-          `<td>${subscriptionBadge}</td>` +
-          `<td>${u.verified ? '✓ Yes' : '✗ No'}</td>` +
-          `<td>${u.marketingOptIn ? 'Yes' : 'No'}</td>` +
-          `<td>${formatDate(u.createdAt)}</td>` +
-          `<td>${formatDate(u.lastLoginAt)}</td>` +
-          `<td>${actionsHtml}</td>` +
-          `</tr>`
-        );
-      })
-      .join('');
-
-    // Add event listeners to manage subscription buttons
-    document.querySelectorAll('[data-manage-subscription]').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        // Use btn directly from the closure rather than e.target, which can point to a child
-        // element (e.g. a badge or icon inside the button) on some browsers/renderings and
-        // would then lack the data attribute, silently preventing the modal from opening.
-        const userId = btn.getAttribute('data-manage-subscription');
-        if (userId) {
-          openSubscriptionModal(userId);
-        }
-      });
-    });
-
-    // Add event listeners to resend buttons
-    document.querySelectorAll('[data-resend-verification]').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        const userId = btn.getAttribute('data-resend-verification');
-        if (!userId) {
-          return;
-        }
-
-        // Use showConfirmModal instead of browser confirm
-        const confirmed = await AdminShared.showConfirmModal({
-          title: 'Resend Verification Email',
-          message: 'Send a new verification email to this user?',
-          confirmText: 'Send Email',
-          cancelText: 'Cancel',
-          type: 'info',
-        });
-
-        if (!confirmed) {
-          return;
-        }
-
-        // Use safeAction for consistent button state management
-        await AdminShared.safeAction(
-          btn,
-          async () => {
-            const data = await AdminShared.adminFetch(
-              `/api/admin/users/${userId}/resend-verification`,
-              { method: 'POST' }
-            );
-            return data;
-          },
-          {
-            loadingText: 'Sending...',
-            successMessage: 'Verification email sent successfully',
-            errorMessage: 'Failed to send verification email',
-          }
-        );
-      });
-    });
-
-    // Add event listeners to checkboxes
-    document.querySelectorAll('.user-checkbox').forEach(checkbox => {
-      checkbox.addEventListener('change', e => {
-        const userId = e.target.getAttribute('data-user-id');
-        if (e.target.checked) {
-          selectedUserIds.add(userId);
-        } else {
-          selectedUserIds.delete(userId);
-        }
-        updateBulkActionsUI();
-      });
-    });
-
-    // Update "Select All" checkbox state
-    updateSelectAllCheckbox();
-  }
-
-  function updateBulkActionsUI() {
-    const bulkActionsBar = document.getElementById('bulkActionsBar');
-    const selectedCount = document.getElementById('selectedCount');
-
-    if (!bulkActionsBar || !selectedCount) {
-      return;
-    }
-
-    if (selectedUserIds.size > 0) {
-      bulkActionsBar.style.display = 'block';
-      selectedCount.textContent = `${selectedUserIds.size} user${selectedUserIds.size === 1 ? '' : 's'} selected`;
-    } else {
-      bulkActionsBar.style.display = 'none';
-    }
-  }
-
-  function updateSelectAllCheckbox() {
-    const selectAllCheckbox = document.getElementById('selectAll');
-    if (!selectAllCheckbox) {
-      return;
-    }
-
-    const checkboxes = document.querySelectorAll('.user-checkbox');
-    const checkedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
-
-    if (checkedCount === 0) {
-      selectAllCheckbox.checked = false;
-      selectAllCheckbox.indeterminate = false;
-    } else if (checkedCount === checkboxes.length) {
-      selectAllCheckbox.checked = true;
-      selectAllCheckbox.indeterminate = false;
-    } else {
-      selectAllCheckbox.checked = false;
-      selectAllCheckbox.indeterminate = true;
-    }
-  }
-
-  function setupSelectAllCheckbox() {
-    const selectAllCheckbox = document.getElementById('selectAll');
-    if (!selectAllCheckbox) {
-      return;
-    }
-
-    selectAllCheckbox.addEventListener('change', e => {
-      const checkboxes = document.querySelectorAll('.user-checkbox');
-      const isChecked = e.target.checked;
-
-      checkboxes.forEach(checkbox => {
-        checkbox.checked = isChecked;
-        const userId = checkbox.getAttribute('data-user-id');
-        if (isChecked) {
-          selectedUserIds.add(userId);
-        } else {
-          selectedUserIds.delete(userId);
-        }
-      });
-
-      updateBulkActionsUI();
+    return new Date(parsed).toLocaleDateString('en-GB', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
     });
   }
 
-  function setupBulkActions() {
-    const executeBulkActionBtn = document.getElementById('executeBulkAction');
-    const clearSelectionBtn = document.getElementById('clearSelection');
-    const bulkActionSelect = document.getElementById('bulkActionSelect');
-
-    if (executeBulkActionBtn) {
-      executeBulkActionBtn.addEventListener('click', async () => {
-        const action = bulkActionSelect?.value;
-        if (!action) {
-          AdminShared.showToast('Please select an action', 'error');
-          return;
-        }
-
-        if (selectedUserIds.size === 0) {
-          AdminShared.showToast('No users selected', 'error');
-          return;
-        }
-
-        const userIds = Array.from(selectedUserIds);
-
-        switch (action) {
-          case 'delete':
-            await bulkDeleteUsers(userIds);
-            break;
-          case 'verify':
-            await bulkVerifyUsers(userIds);
-            break;
-          case 'suspend':
-            await bulkSuspendUsers(userIds, true);
-            break;
-          case 'unsuspend':
-            await bulkSuspendUsers(userIds, false);
-            break;
-          case 'export':
-            await exportSelectedUsers(userIds);
-            break;
-          default:
-            AdminShared.showToast('Unknown action', 'error');
-        }
-      });
+  function fmtRelative(value) {
+    if (!value) {
+      return '—';
     }
-
-    if (clearSelectionBtn) {
-      clearSelectionBtn.addEventListener('click', () => {
-        selectedUserIds.clear();
-        const checkboxes = document.querySelectorAll('.user-checkbox');
-        checkboxes.forEach(cb => (cb.checked = false));
-        const selectAll = document.getElementById('selectAll');
-        if (selectAll) {
-          selectAll.checked = false;
-          selectAll.indeterminate = false;
-        }
-        updateBulkActionsUI();
-      });
+    const parsed = Date.parse(value);
+    if (Number.isNaN(parsed)) {
+      return '—';
     }
+    const days = Math.floor((Date.now() - parsed) / 86400000);
+    if (days <= 0) {
+      return 'Today';
+    }
+    if (days === 1) {
+      return 'Yesterday';
+    }
+    if (days < 7) {
+      return `${days}d ago`;
+    }
+    if (days < 30) {
+      return `${Math.floor(days / 7)}w ago`;
+    }
+    return fmtDate(value);
   }
 
-  async function bulkDeleteUsers(userIds) {
-    const confirmed = await AdminShared.showConfirmModal({
-      title: 'Delete Users',
-      message: `Are you sure you want to delete ${userIds.length} user${userIds.length === 1 ? '' : 's'}? This action cannot be undone.`,
-      confirmText: 'Delete',
-      cancelText: 'Cancel',
-      type: 'danger',
-    });
-
-    if (!confirmed) {
-      return;
-    }
-
-    const executeBtn = document.getElementById('executeBulkAction');
-    let successCount = 0;
-    let failedCount = 0;
-    const errors = [];
-
-    await AdminShared.safeAction(
-      executeBtn,
-      async () => {
-        // Process deletions sequentially to respect API rate limits
-        for (const userId of userIds) {
-          try {
-            await AdminShared.adminFetch(`/api/admin/users/${userId}`, {
-              method: 'DELETE',
-            });
-            successCount++;
-            selectedUserIds.delete(userId);
-          } catch (error) {
-            failedCount++;
-            errors.push(`Failed to delete user ${userId}: ${error.message}`);
-          }
-        }
-
-        // Clear selection and refresh
-        selectedUserIds.clear();
-        await loadAdminUsers();
-
-        return { successCount, failedCount };
-      },
-      {
-        loadingText: 'Deleting...',
-        successMessage: `Deleted ${successCount} user${successCount === 1 ? '' : 's'}${failedCount > 0 ? `, ${failedCount} failed` : ''}`,
-        errorMessage: 'Bulk delete operation failed',
-        showDefaultToast: false,
-      }
-    );
-
-    // Show summary
-    if (successCount > 0 || failedCount > 0) {
-      const message = `Deleted ${successCount} user${successCount === 1 ? '' : 's'} successfully${failedCount > 0 ? `. ${failedCount} failed.` : '.'}`;
-      AdminShared.showToast(message, failedCount > 0 ? 'warning' : 'success');
-    }
+  function humanize(value) {
+    return String(value || 'unknown')
+      .replace(/_/g, ' ')
+      .replace(/(^|\s)([a-z])/g, (_m, prefix, c) => prefix + c.toUpperCase());
   }
 
-  async function bulkVerifyUsers(userIds) {
-    const confirmed = await AdminShared.showConfirmModal({
-      title: 'Verify Users',
-      message: `Verify ${userIds.length} user${userIds.length === 1 ? '' : 's'}?`,
-      confirmText: 'Verify',
-      cancelText: 'Cancel',
-      type: 'info',
-    });
-
-    if (!confirmed) {
-      return;
-    }
-
-    const executeBtn = document.getElementById('executeBulkAction');
-
-    await AdminShared.safeAction(
-      executeBtn,
-      async () => {
-        const result = await AdminShared.adminFetch('/api/admin/users/bulk-verify', {
-          method: 'POST',
-          body: { userIds },
-        });
-
-        // Clear selection and refresh
-        selectedUserIds.clear();
-        await loadAdminUsers();
-
-        return result;
-      },
-      {
-        loadingText: 'Verifying...',
-        successMessage: data => {
-          return `Verified ${data.verifiedCount} user${data.verifiedCount === 1 ? '' : 's'}${data.alreadyVerifiedCount > 0 ? ` (${data.alreadyVerifiedCount} already verified)` : ''}`;
-        },
-        errorMessage: 'Failed to verify users',
-      }
-    );
+  function badge(label, type) {
+    return `<span class="badge badge-${type || 'secondary'}">${esc(label)}</span>`;
   }
 
-  async function bulkSuspendUsers(userIds, suspend = true) {
-    const action = suspend ? 'Suspend' : 'Unsuspend';
-
-    let reason = '';
-    let duration = '';
-
-    if (suspend) {
-      // Ask for reason and duration
-      const reasonResult = await AdminShared.showInputModal({
-        title: 'Suspension Reason',
-        message: 'Please provide a reason for suspending these users',
-        label: 'Reason',
-        placeholder: 'e.g., Terms of service violation',
-        required: false,
-        type: 'textarea',
-      });
-
-      if (!reasonResult.confirmed) {
-        return;
-      }
-      reason = reasonResult.value || 'Bulk suspension';
-
-      const durationResult = await AdminShared.showInputModal({
-        title: 'Suspension Duration',
-        message: 'Enter duration (e.g., "7d", "30d", "1y") or leave blank for permanent',
-        label: 'Duration',
-        placeholder: 'e.g., 7d, 30d, 1y',
-        required: false,
-      });
-
-      if (!durationResult.confirmed) {
-        return;
-      }
-      duration = durationResult.value || '';
-    }
-
-    const confirmed = await AdminShared.showConfirmModal({
-      title: `${action} Users`,
-      message: `${action} ${userIds.length} user${userIds.length === 1 ? '' : 's'}?`,
-      confirmText: action,
-      cancelText: 'Cancel',
-      type: suspend ? 'warning' : 'info',
-    });
-
-    if (!confirmed) {
-      return;
-    }
-
-    const executeBtn = document.getElementById('executeBulkAction');
-
-    await AdminShared.safeAction(
-      executeBtn,
-      async () => {
-        const result = await AdminShared.adminFetch('/api/admin/users/bulk-suspend', {
-          method: 'POST',
-          body: { userIds, suspended: suspend, reason, duration },
-        });
-
-        // Clear selection and refresh
-        selectedUserIds.clear();
-        await loadAdminUsers();
-
-        return result;
-      },
-      {
-        loadingText: `${suspend ? 'Suspending' : 'Unsuspending'}...`,
-        successMessage: data => {
-          return `${suspend ? 'Suspended' : 'Unsuspended'} ${data.updatedCount} user${data.updatedCount === 1 ? '' : 's'}`;
-        },
-        errorMessage: `Failed to ${suspend ? 'suspend' : 'unsuspend'} users`,
-      }
-    );
-  }
-
-  async function exportSelectedUsers(userIds) {
-    try {
-      // Get full user data
-      const selectedUsers = allUsers.filter(u => userIds.includes(u.id || u._id));
-
-      if (selectedUsers.length === 0) {
-        AdminShared.showToast('No users to export', 'error');
-        return;
-      }
-
-      // Create CSV content
-      const headers = [
-        'Name',
-        'Email',
-        'Role',
-        'Subscription',
-        'Verified',
-        'Marketing Opt-In',
-        'Joined',
-        'Last Login',
-      ];
-      const rows = selectedUsers.map(u => [
-        u.name || '',
-        u.email || '',
-        u.role || '',
-        u.subscription?.tier || 'free',
-        u.verified ? 'Yes' : 'No',
-        u.marketingOptIn ? 'Yes' : 'No',
-        u.createdAt || '',
-        u.lastLoginAt || '',
-      ]);
-
-      const csv = [
-        headers.join(','),
-        ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')),
-      ].join('\n');
-
-      // Create and download file
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement('a');
-      const url = URL.createObjectURL(blob);
-      link.setAttribute('href', url);
-      link.setAttribute('download', `users-export-${new Date().toISOString().split('T')[0]}.csv`);
-      link.style.visibility = 'hidden';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
-      AdminShared.showToast(
-        `Exported ${selectedUsers.length} user${selectedUsers.length === 1 ? '' : 's'}`,
-        'success'
-      );
-    } catch (error) {
-      AdminShared.debugError('Export error:', error);
-      AdminShared.showToast('Failed to export users', 'error');
-    }
-  }
-
-  function setupFilterListeners() {
-    const searchInput = document.getElementById('userSearch');
-    const roleFilter = document.getElementById('roleFilter');
-    const subscriptionFilter = document.getElementById('subscriptionFilter');
-    const verifiedFilter = document.getElementById('verifiedFilter');
-    const clearBtn = document.getElementById('clearFilters');
-
-    // Debounced search for better performance
-    if (searchInput) {
-      if (window.AdminShared && window.AdminShared.debounce) {
-        const debouncedRender = window.AdminShared.debounce(renderUsers, 300);
-        searchInput.addEventListener('input', debouncedRender);
-      } else {
-        searchInput.addEventListener('input', renderUsers);
-      }
-    }
-
-    if (roleFilter) {
-      roleFilter.addEventListener('change', renderUsers);
-    }
-
-    if (subscriptionFilter) {
-      subscriptionFilter.addEventListener('change', renderUsers);
-    }
-
-    if (verifiedFilter) {
-      verifiedFilter.addEventListener('change', renderUsers);
-    }
-
-    if (clearBtn) {
-      clearBtn.addEventListener('click', () => {
-        if (searchInput) {
-          searchInput.value = '';
-        }
-        if (roleFilter) {
-          roleFilter.value = '';
-        }
-        if (subscriptionFilter) {
-          subscriptionFilter.value = '';
-        }
-        if (verifiedFilter) {
-          verifiedFilter.value = '';
-        }
-        renderUsers();
-      });
-    }
-  }
-
-  // Subscription Modal Management
-  let currentSubscriptionUserId = null;
-
-  /**
-   * Returns a human-readable countdown string for a subscription end date.
-   * e.g. "Expires in 28 days", "Expired 3 days ago", "Expires today"
-   */
-  function expiryCountdown(endDateStr) {
-    if (!endDateStr) {
-      return null;
-    }
-    try {
-      const now = new Date();
-      const end = new Date(endDateStr);
-      const diffMs = end.getTime() - now.getTime();
-      const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
-      if (diffDays < 0) {
-        const absDays = Math.abs(diffDays);
-        return { label: `Expired ${absDays} day${absDays === 1 ? '' : 's'} ago`, expired: true };
-      }
-      if (diffDays === 0) {
-        return { label: 'Expires today', urgent: true };
-      }
-      if (diffDays <= 7) {
-        return { label: `Expires in ${diffDays} day${diffDays === 1 ? '' : 's'}`, urgent: true };
-      }
-      return { label: `Expires in ${diffDays} day${diffDays === 1 ? '' : 's'}`, expired: false };
-    } catch (_) {
-      return null;
-    }
-  }
-
-  /**
-   * Returns CSS class name for a history action type.
-   */
-  function historyActionClass(action) {
+  function roleBadge(role) {
     const map = {
-      granted: 'sub-action--granted',
-      renewed: 'sub-action--renewed',
-      upgraded: 'sub-action--upgraded',
-      downgraded: 'sub-action--downgraded',
-      cancelled: 'sub-action--cancelled',
-      removed: 'sub-action--cancelled',
+      customer: badge('Customer', 'customer'),
+      supplier: badge('Supplier', 'supplier-account'),
+      admin: badge('Admin', 'admin'),
+      owner: badge('Owner', 'admin'),
     };
-    return map[action] || 'sub-action--default';
+    return map[role] || badge(humanize(role), 'secondary');
   }
 
-  /**
-   * Render tier label from tier string.
-   */
-  function tierLabel(tier) {
+  function signupBadge(method) {
+    const map = {
+      google: badge('Google', 'google'),
+      email_password: badge('Email/password', 'email'),
+      admin_created: badge('Admin-created', 'admin-created'),
+      owner: badge('Owner', 'admin'),
+      unknown: badge('Unknown', 'warning'),
+    };
+    return map[method] || badge(humanize(method), 'warning');
+  }
+
+  function verificationBadge(method) {
+    const map = {
+      google: badge('Google verified', 'google'),
+      google_verified_email: badge('Google verified', 'google'),
+      email_link: badge('Email link', 'yes'),
+      eventflow_email: badge('EventFlow email', 'yes'),
+      admin: badge('Admin verified', 'admin-created'),
+      admin_created: badge('Admin-created', 'admin-created'),
+      owner_account: badge('Owner account', 'admin'),
+      legacy: badge('Legacy verified', 'secondary'),
+      pending: badge('Pending', 'no'),
+      unknown: badge('Unknown', 'warning'),
+    };
+    return map[method] || badge(humanize(method), 'warning');
+  }
+
+  function emailStatusBadge(status) {
+    const map = {
+      not_required: badge('Not required', 'secondary'),
+      sent: badge('Sent', 'info'),
+      delivered: badge('Delivered', 'yes'),
+      failed: badge('Failed', 'danger'),
+      bounced: badge('Bounced', 'danger'),
+      outbox: badge('Outbox fallback', 'warning'),
+      pending: badge('Pending', 'warning'),
+    };
+    return map[status] || badge(humanize(status), 'secondary');
+  }
+
+  function subscriptionBadge(subscription, role) {
+    if (role === 'admin' || role === 'owner') {
+      return '—';
+    }
+    const tier = (subscription && subscription.tier) || 'free';
     if (tier === 'pro_plus') {
-      return 'Pro Plus';
+      return badge('Pro Plus', 'pro-plus');
     }
     if (tier === 'pro') {
-      return 'Pro';
+      return badge('Pro', 'pro');
     }
-    return 'Starter';
+    return badge('Starter', 'starter');
+  }
+
+  function issueBadges(issues) {
+    const labels = {
+      email_unverified: ['Email unverified', 'warning'],
+      unknown_verification_source: ['Unknown source', 'warning'],
+      supplier_profile_missing: ['No supplier profile', 'warning'],
+      suspended: ['Suspended', 'danger'],
+    };
+    return (issues || [])
+      .map(issue => {
+        const [label, type] = labels[issue] || [humanize(issue), 'secondary'];
+        return `<span class="uc-issue-badge uc-issue-badge--${type}">${esc(label)}</span>`;
+      })
+      .join(' ');
+  }
+
+  function canResendVerification(user) {
+    return (
+      user &&
+      user.signupMethod === 'email_password' &&
+      user.verified !== true &&
+      user.emailDeliveryStatus !== 'not_required'
+    );
+  }
+
+  function renderSummaryCards(data) {
+    const grid = $('ucSummaryGrid');
+    if (!grid) {
+      return;
+    }
+    const summary = data.summary || {};
+    const health = data.health || {};
+    const supplierHealth = data.supplierHealth || {};
+    const card = (value, label, href, accent) => `
+      <a href="${href}" class="uc-summary-card uc-summary-card--${accent || 'blue'}">
+        <span class="uc-summary-card__value">${Number(value || 0).toLocaleString()}</span>
+        <span class="uc-summary-card__label">${esc(label)}</span>
+      </a>`;
+
+    grid.innerHTML = [
+      card(summary.totalUsers ?? data.total, 'Total users', '/admin-users', 'blue'),
+      card(
+        summary.unverifiedUsers ?? data.unverified,
+        'Unverified users',
+        '/admin-users?verificationMethod=pending',
+        'amber'
+      ),
+      card(health.googleVerified, 'Google verified', '/admin-users?signupMethod=google', 'green'),
+      card(
+        health.emailPasswordPending,
+        'Email/password pending',
+        '/admin-users?signupMethod=email_password&verificationMethod=pending',
+        'amber'
+      ),
+      card(
+        supplierHealth.totalSupplierUsers ?? (data.byRole && data.byRole.supplier),
+        'Supplier users',
+        '/admin-users?role=supplier',
+        'teal'
+      ),
+      card(
+        supplierHealth.linkIssues ?? (data.suppliers && data.suppliers.linkIssues),
+        'Supplier link issues',
+        '/admin-users?issue=supplier_profile_missing',
+        'red'
+      ),
+    ].join('');
+  }
+
+  function renderTable(users) {
+    const tbody = $('ucTableBody');
+    if (!tbody) {
+      return;
+    }
+
+    if (!users.length) {
+      tbody.innerHTML = `<tr><td colspan="12" class="uc-empty-cell">
+        <div class="admin-empty-state">
+          <p>No users match the current filters.</p>
+          <button type="button" class="btn btn-ghost btn-sm" id="ucEmptyClear">Clear filters</button>
+        </div>
+      </td></tr>`;
+      const emptyClear = $('ucEmptyClear');
+      if (emptyClear) {
+        emptyClear.addEventListener('click', clearFilters);
+      }
+      updateSelectAllState();
+      return;
+    }
+
+    tbody.innerHTML = users
+      .map(user => {
+        const userId = esc(user.id || '');
+        const checked = selectedUserIds.has(user.id) ? 'checked' : '';
+        const hasProfile = Boolean(user.supplierProfile);
+        const supplierLink = hasProfile
+          ? `<a href="${esc(user.supplierProfile.profileUrl)}" class="btn btn-ghost btn-xs" style="white-space:nowrap;">Supplier</a>`
+          : user.role === 'supplier'
+            ? `<button type="button" class="btn btn-warning btn-xs" style="white-space:nowrap;" data-provision-profile="${userId}" title="Create missing supplier profile">⚠️ Provision</button>`
+            : '';
+        return `<tr class="${user.suspended ? 'uc-row--suspended' : ''} ${(user.accountIssues || []).length ? 'uc-row--issues' : ''}">
+          <td class="checkbox-cell"><input type="checkbox" class="uc-user-checkbox table-checkbox" data-user-id="${userId}" ${checked} aria-label="Select ${esc(user.name || user.email || 'user')}"></td>
+          <td style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:155px;"><a href="/admin-user-detail?id=${userId}" class="uc-user-link" title="${esc(user.name || '(no name)')}">${esc(user.name || '(no name)')}</a>${issueBadges(user.accountIssues)}</td>
+          <td style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:195px;"><a href="/admin-user-detail?id=${userId}" class="uc-user-link" title="${esc(user.email || '')}">${esc(user.email || '')}</a></td>
+          <td style="white-space:nowrap;">${roleBadge(user.role)}</td>
+          <td style="white-space:nowrap;">${subscriptionBadge(user.subscription, user.role)}</td>
+          <td>${user.verified ? '✓ Yes' : '✗ No'}<div style="margin-top:2px;">${verificationBadge(user.verificationMethod)}</div></td>
+          <td style="white-space:nowrap;">${signupBadge(user.signupMethod)}</td>
+          <td style="white-space:nowrap;">${emailStatusBadge(user.emailDeliveryStatus)}</td>
+          <td style="white-space:nowrap;">${user.marketingOptIn ? 'Yes' : 'No'}</td>
+          <td style="white-space:nowrap;">${fmtDate(user.createdAt)}</td>
+          <td style="white-space:nowrap;">${fmtRelative(user.lastLoginAt)}</td>
+          <td class="uc-actions-cell" style="white-space:nowrap;">
+            <a href="/admin-user-detail?id=${userId}" class="btn btn-ghost btn-xs">View</a>
+            ${supplierLink}
+            <button type="button" class="btn btn-secondary btn-xs" data-manage-subscription="${userId}">Subscription</button>
+            ${canResendVerification(user) ? `<button type="button" class="btn btn-secondary btn-xs" data-resend-verification="${userId}">Resend</button>` : ''}
+          </td>
+        </tr>`;
+      })
+      .join('');
+    updateSelectAllState();
+  }
+
+  function getFilters() {
+    return {
+      search: ($('ucSearch') || {}).value || '',
+      role: ($('ucRoleFilter') || {}).value || '',
+      signupMethod: ($('ucSignupFilter') || {}).value || '',
+      verificationMethod: ($('ucVerifFilter') || {}).value || '',
+      issue: ($('ucIssueFilter') || {}).value || '',
+    };
+  }
+
+  function buildListUrl() {
+    const params = new URLSearchParams();
+    const filters = getFilters();
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value) {
+        params.set(key, value);
+      }
+    });
+    params.set('page', String(currentPage));
+    params.set('limit', String(currentLimit));
+    return `/api/admin/users/list?${params.toString()}`;
+  }
+
+  function syncFilterUrl() {
+    const params = new URLSearchParams();
+    Object.entries(getFilters()).forEach(([key, value]) => {
+      if (value) {
+        params.set(key, value);
+      }
+    });
+    if (currentPage > 1) {
+      params.set('page', String(currentPage));
+    }
+    if (currentLimit !== 50) {
+      params.set('limit', String(currentLimit));
+    }
+    const query = params.toString();
+    window.history.replaceState({}, '', query ? `/admin-users?${query}` : '/admin-users');
+  }
+
+  async function applyFilters() {
+    syncFilterUrl();
+    await loadUsers();
+  }
+
+  function updateSummaryText(total, pages) {
+    const el = $('ucUserSummary') || $('user-summary');
+    const start = total ? (currentPage - 1) * currentLimit + 1 : 0;
+    const end = Math.min(currentPage * currentLimit, total);
+    if (el) {
+      el.textContent = `${total.toLocaleString()} users · showing ${start.toLocaleString()}–${end.toLocaleString()} · page ${currentPage} of ${pages}`;
+    }
+    const pageEl = $('ucCurrentPage');
+    if (pageEl) {
+      pageEl.textContent = String(currentPage);
+    }
+    const pagesEl = $('ucTotalPages');
+    if (pagesEl) {
+      pagesEl.textContent = String(pages);
+    }
+    const totalEl = $('ucTotalCount');
+    if (totalEl) {
+      totalEl.textContent = total.toLocaleString();
+    }
+    const prev = $('ucPrevPage');
+    const next = $('ucNextPage');
+    if (prev) {
+      prev.disabled = currentPage <= 1;
+      prev.setAttribute('aria-disabled', String(prev.disabled));
+    }
+    if (next) {
+      next.disabled = currentPage >= pages;
+      next.setAttribute('aria-disabled', String(next.disabled));
+    }
+  }
+
+  function clearFilters() {
+    ['ucSearch', 'ucRoleFilter', 'ucSignupFilter', 'ucVerifFilter', 'ucIssueFilter'].forEach(id => {
+      const el = $(id);
+      if (el) {
+        el.value = '';
+      }
+    });
+    selectedUserIds.clear();
+    currentPage = 1;
+    applyFilters();
+  }
+
+  function applyUrlFilters() {
+    const params = new URLSearchParams(window.location.search);
+    const mapping = {
+      role: 'ucRoleFilter',
+      signupMethod: 'ucSignupFilter',
+      verificationMethod: 'ucVerifFilter',
+      issue: 'ucIssueFilter',
+    };
+    Object.entries(mapping).forEach(([param, id]) => {
+      const value = params.get(param);
+      const el = $(id);
+      if (value && el) {
+        el.value = value;
+      }
+    });
+    const search = params.get('search');
+    if (search && $('ucSearch')) {
+      $('ucSearch').value = search;
+    }
+    const page = Number(params.get('page'));
+    currentPage = Number.isFinite(page) && page > 0 ? page : 1;
+    const limit = Number(params.get('limit'));
+    if ([25, 50, 100, 200].includes(limit)) {
+      currentLimit = limit;
+    }
+  }
+
+  function visibleCheckboxes() {
+    return [...document.querySelectorAll('.uc-user-checkbox')];
+  }
+
+  function updateSelectAllState() {
+    const selectAll = $('ucSelectAll');
+    if (!selectAll) {
+      return;
+    }
+    const checkboxes = visibleCheckboxes();
+    const checkedCount = checkboxes.filter(checkbox => checkbox.checked).length;
+    selectAll.checked = checkboxes.length > 0 && checkedCount === checkboxes.length;
+    selectAll.indeterminate = checkedCount > 0 && checkedCount < checkboxes.length;
+  }
+
+  function selectedEligible(ids, predicate) {
+    return currentUsers
+      .filter(user => ids.includes(user.id) && predicate(user))
+      .map(user => user.id);
+  }
+
+  async function bulkVerify(ids) {
+    const safeIds = selectedEligible(
+      ids,
+      user =>
+        user.role !== 'admin' && user.role !== 'owner' && user.signupMethod === 'email_password'
+    );
+    if (!safeIds.length) {
+      AdminShared.showToast('No eligible email/password users selected.', 'warning');
+      return;
+    }
+    const ok = await AdminShared.showConfirmModal({
+      title: `Verify ${safeIds.length} user${safeIds.length !== 1 ? 's' : ''}?`,
+      message: 'Admin and owner accounts are excluded from this bulk action.',
+      confirmText: 'Verify',
+      type: 'warning',
+    });
+    if (!ok) {
+      return;
+    }
+    await AdminShared.adminFetch('/api/admin/users/bulk-verify', {
+      method: 'POST',
+      body: JSON.stringify({ userIds: safeIds }),
+    });
+    selectedUserIds.clear();
+    AdminShared.showToast(
+      `Verified ${safeIds.length} account${safeIds.length !== 1 ? 's' : ''}.`,
+      'success'
+    );
+    await loadData();
+  }
+
+  async function bulkSuspend(ids) {
+    const safeIds = selectedEligible(ids, user => user.role !== 'admin' && user.role !== 'owner');
+    if (!safeIds.length) {
+      AdminShared.showToast(
+        'No eligible users — admin and owner accounts cannot be suspended.',
+        'warning'
+      );
+      return;
+    }
+    const ok = await AdminShared.showConfirmModal({
+      title: `Suspend ${safeIds.length} user${safeIds.length !== 1 ? 's' : ''}?`,
+      message: 'Admin and owner accounts are excluded from this bulk action.',
+      confirmText: 'Suspend',
+      type: 'danger',
+    });
+    if (!ok) {
+      return;
+    }
+    await AdminShared.adminFetch('/api/admin/users/bulk-suspend', {
+      method: 'POST',
+      body: JSON.stringify({
+        userIds: safeIds,
+        suspended: true,
+        reason: 'Bulk suspension from Users Centre',
+      }),
+    });
+    selectedUserIds.clear();
+    AdminShared.showToast(
+      `Suspended ${safeIds.length} account${safeIds.length !== 1 ? 's' : ''}.`,
+      'success'
+    );
+    await loadData();
+  }
+
+  async function bulkDelete(ids) {
+    const safeIds = selectedEligible(ids, user => user.role !== 'admin' && user.role !== 'owner');
+    if (!safeIds.length) {
+      AdminShared.showToast(
+        'No eligible users — admin and owner accounts cannot be bulk deleted.',
+        'warning'
+      );
+      return;
+    }
+    const ok = await AdminShared.showConfirmModal({
+      title: `Permanently delete ${safeIds.length} user${safeIds.length !== 1 ? 's' : ''}?`,
+      message:
+        'This cannot be undone. Supplier users will also have their supplier profile, packages and public listing data deleted. Admin and owner accounts are excluded.',
+      confirmText: 'Delete permanently',
+      type: 'danger',
+    });
+    if (!ok) {
+      return;
+    }
+    await AdminShared.adminFetch('/api/admin/users/bulk-delete', {
+      method: 'POST',
+      body: JSON.stringify({ userIds: safeIds }),
+    });
+    selectedUserIds.clear();
+    AdminShared.showToast(
+      `Deleted ${safeIds.length} account${safeIds.length !== 1 ? 's' : ''}.`,
+      'success'
+    );
+    await loadData();
+  }
+
+  async function provisionMissingProfile(userId) {
+    const ok = await AdminShared.showConfirmModal({
+      title: 'Create supplier profile?',
+      message: 'This will create a blank supplier profile for this user. They can customise it from their dashboard.',
+      confirmText: 'Create profile',
+      type: 'warning',
+    });
+    if (!ok) return;
+    try {
+      await AdminShared.adminFetch(
+        `/api/admin/users/${encodeURIComponent(userId)}/provision-supplier-profile`,
+        { method: 'POST' }
+      );
+      AdminShared.showToast('Supplier profile created.', 'success');
+      await loadData();
+    } catch (err) {
+      AdminShared.showToast(`Failed: ${err.message}`, 'error');
+    }
+  }
+
+  async function bulkProvisionProfiles() {
+    const ok = await AdminShared.showConfirmModal({
+      title: 'Fix all missing supplier profiles?',
+      message: 'This will create blank supplier profiles for every supplier account that is missing one. Safe to run multiple times.',
+      confirmText: 'Fix all',
+      type: 'warning',
+    });
+    if (!ok) return;
+    try {
+      const data = await AdminShared.adminFetch(
+        '/api/admin/users/bulk-provision-supplier-profiles',
+        { method: 'POST' }
+      );
+      AdminShared.showToast(
+        `Done — ${data.provisioned || 0} profile(s) created out of ${data.checked || 0} supplier account(s).`,
+        'success'
+      );
+      await loadData();
+    } catch (err) {
+      AdminShared.showToast(`Failed: ${err.message}`, 'error');
+    }
+  }
+
+  async function resendVerification(userId) {
+    const user = currentUsers.find(item => item.id === userId);
+    if (!canResendVerification(user)) {
+      AdminShared.showToast('Verification email is not required for this account.', 'warning');
+      return;
+    }
+    await AdminShared.adminFetch(
+      `/api/admin/users/${encodeURIComponent(userId)}/resend-verification`,
+      {
+        method: 'POST',
+      }
+    );
+    AdminShared.showToast('Verification email queued.', 'success');
+  }
+
+  function updateBulkBar() {
+    const bar = $('ucBulkActionsBar');
+    const count = $('ucBulkCount');
+    const selectedCount = selectedUserIds.size;
+    if (bar) {
+      bar.style.display = selectedCount ? 'flex' : 'none';
+    }
+    if (count) {
+      count.textContent = `${selectedCount} visible user${selectedCount === 1 ? '' : 's'} selected`;
+    }
+  }
+
+  async function bulkExportSelected() {
+    const ids = [...selectedUserIds];
+    if (!ids.length) {
+      AdminShared.showToast('Select visible users to export.', 'warning');
+      return;
+    }
+    const params = new URLSearchParams();
+    params.set('ids', ids.join(','));
+    window.open(`/api/admin/users/export?${params.toString()}`, '_blank', 'noopener');
+  }
+
+  function renderSubscriptionHistory(history) {
+    const target = $('subscriptionHistory');
+    if (!target) {
+      return;
+    }
+    if (!Array.isArray(history) || !history.length) {
+      target.innerHTML = '<div class="text-muted">No subscription history.</div>';
+      return;
+    }
+    target.innerHTML = history
+      .map(
+        item =>
+          `<div class="subscription-history-item"><strong>${esc(humanize(item.action || 'updated'))}</strong> ${esc(humanize(item.tier || 'free'))}<div class="small">${fmtDate(item.date)}${item.reason ? ` · ${esc(item.reason)}` : ''}</div></div>`
+      )
+      .join('');
+  }
+
+  async function loadSubscriptionHistory(userId) {
+    renderSubscriptionHistory([]);
+    try {
+      const data = await AdminShared.api(
+        `/api/admin/users/${encodeURIComponent(userId)}/subscription-history`
+      );
+      renderSubscriptionHistory(data.history || []);
+    } catch (_err) {
+      const target = $('subscriptionHistory');
+      if (target) {
+        target.innerHTML = '<div class="text-muted">Could not load subscription history.</div>';
+      }
+    }
   }
 
   function openSubscriptionModal(userId) {
-    currentSubscriptionUserId = userId;
-    const modal = document.getElementById('subscriptionModal');
-    if (!modal) {
-      console.error(
-        '[AdminUsers] #subscriptionModal not found in DOM. Cannot open subscription modal.'
-      );
+    const user = currentUsers.find(item => item.id === userId);
+    if (!user) {
+      // User not in current page cache — can happen on filtered views with a single result.
+      // Fetch directly so the modal still works.
+      AdminShared.api(`/api/admin/users/${encodeURIComponent(userId)}`)
+        .then(fetchedUser => _showSubscriptionModal(userId, fetchedUser))
+        .catch(err => AdminShared.showToast(`Could not load user: ${err.message}`, 'error'));
       return;
     }
+    _showSubscriptionModal(userId, user);
+  }
 
-    // Show the modal. components.css uses opacity:0/visibility:hidden on .modal-overlay and
-    // only reveals it with the .active class. Setting display alone is not enough.
-    modal.style.display = 'flex';
-    modal.classList.add('active');
-
-    const userIdInput = document.getElementById('subscriptionUserId');
+  function _showSubscriptionModal(userId, user) {
+    const modal = $('subscriptionModal');
+    const userIdInput = $('subscriptionUserId');
+    const subtitle = $('subscriptionModalSubtitle');
+    const status = $('currentSubscriptionStatus');
     if (userIdInput) {
       userIdInput.value = userId;
-    } else {
-      console.error('[AdminUsers] #subscriptionUserId not found in DOM.');
     }
-
-    // Update modal title with user context
-    const user = allUsers.find(u => (u.id || u._id) === userId);
-    const titleEl = document.getElementById('subscriptionModalTitle');
-    const subtitleEl = document.getElementById('subscriptionModalSubtitle');
-    if (titleEl) {
-      titleEl.textContent = user
-        ? `Manage Subscription — ${user.name || user.email}`
-        : 'Manage Subscription';
+    if (subtitle) {
+      subtitle.textContent = `${user.name || '(no name)'} · ${user.email || 'No email'}`;
     }
-    if (subtitleEl) {
-      subtitleEl.textContent = user && user.name && user.email ? user.email : '';
+    if (status) {
+      status.innerHTML = `<p>${subscriptionBadge(user.subscription, user.role)} ${esc((user.subscription && user.subscription.status) || 'active')}</p>`;
     }
-
-    // Load current subscription status and history (always live from API)
-    loadSubscriptionData(userId);
+    if (modal) {
+      modal.style.display = 'flex';
+    }
+    loadSubscriptionHistory(userId);
   }
 
   function closeSubscriptionModal() {
-    const modal = document.getElementById('subscriptionModal');
+    const modal = $('subscriptionModal');
     if (modal) {
       modal.style.display = 'none';
-      modal.classList.remove('active');
-    }
-    currentSubscriptionUserId = null;
-
-    // Reset form
-    const form = document.getElementById('subscriptionForm');
-    if (form) {
-      form.reset();
     }
   }
 
-  async function loadSubscriptionData(userId) {
-    const statusDiv = document.getElementById('currentSubscriptionStatus');
-    const historyDiv = document.getElementById('subscriptionHistory');
-
-    if (!statusDiv || !historyDiv) {
-      console.error(
-        '[AdminUsers] Missing required DOM elements: #currentSubscriptionStatus or #subscriptionHistory. Cannot render subscription data.'
-      );
+  async function saveSubscription(event) {
+    event.preventDefault();
+    const userId = ($('subscriptionUserId') || {}).value;
+    const tier = ($('subscriptionTier') || {}).value;
+    const duration = ($('subscriptionDuration') || {}).value;
+    const reason = ($('subscriptionReason') || {}).value;
+    if (!userId || !tier) {
+      AdminShared.showToast('Choose a user and subscription tier.', 'warning');
       return;
     }
+    if (tier === 'free') {
+      await removeSubscription(userId, reason);
+      return;
+    }
+    await AdminShared.adminFetch(`/api/admin/users/${encodeURIComponent(userId)}/subscription`, {
+      method: 'POST',
+      body: JSON.stringify({ tier, duration, reason }),
+    });
+    closeSubscriptionModal();
+    AdminShared.showToast('Subscription updated.', 'success');
+    await loadData();
+  }
 
-    // Show skeleton loading states while fetching
-    statusDiv.innerHTML =
-      '<div class="sub-status-skeleton"><div class="skeleton-list-item" style="height:72px;border-radius:10px;"></div></div>';
-    historyDiv.innerHTML = '<div class="text-muted" style="padding:8px 0;">Loading history…</div>';
+  async function removeSubscription(userId, reason) {
+    const ok = await AdminShared.showConfirmModal({
+      title: 'Remove subscription?',
+      message: 'This user will be moved back to the free tier.',
+      confirmText: 'Remove subscription',
+      type: 'danger',
+    });
+    if (!ok) {
+      return;
+    }
+    await AdminShared.adminFetch(`/api/admin/users/${encodeURIComponent(userId)}/subscription`, {
+      method: 'DELETE',
+      body: JSON.stringify({ reason: reason || 'Removed from Users Centre' }),
+    });
+    closeSubscriptionModal();
+    AdminShared.showToast('Subscription removed.', 'success');
+    await loadData();
+  }
 
+  async function loadSummary() {
     try {
-      // Single API call returns both currentSubscription and history (newest-first)
-      const data = await AdminShared.api(`/api/admin/users/${userId}/subscription-history`);
-      const subscription = data.currentSubscription || { tier: 'free', status: 'active' };
-      const history = data.history || [];
-
-      // ── Current status card ───────────────────────────────────────────────────
-      const tier = subscription.tier || 'free';
-      const tLabel = tierLabel(tier);
-      const isFree = tier === 'free';
-      const isCancelled = subscription.status === 'cancelled';
-      const statusBadgeClass = isFree || isCancelled ? 'badge-secondary' : 'badge-success';
-      const statusText = isCancelled ? 'Cancelled' : subscription.status || 'Active';
-      const cardClass =
-        isFree || isCancelled
-          ? 'subscription-status-card subscription-status-card--free'
-          : `subscription-status-card subscription-status-card--${tier.replace('_', '-')}`;
-      const countdown = expiryCountdown(subscription.endDate);
-      const countdownHtml = countdown
-        ? `<div class="sub-countdown ${countdown.expired ? 'sub-countdown--expired' : countdown.urgent ? 'sub-countdown--urgent' : ''}">
-             <span class="sub-countdown-icon">${countdown.expired ? '⚠️' : '🕐'}</span>
-             ${escapeHtml(countdown.label)}
-           </div>`
-        : subscription.endDate === null && !isFree
-          ? '<div class="sub-countdown sub-countdown--lifetime">♾️ Lifetime</div>'
-          : '';
-
-      statusDiv.innerHTML = `
-        <div class="${cardClass}">
-          <div class="sub-status-top-row">
-            <div class="sub-tier-info">
-              <span class="sub-tier-icon">${tier === 'pro_plus' ? '💎' : tier === 'pro' ? '⭐' : '◆'}</span>
-              <span class="sub-tier-name">${escapeHtml(tLabel)}</span>
-            </div>
-            <span class="badge ${statusBadgeClass}">${escapeHtml(statusText)}</span>
-          </div>
-          ${subscription.startDate ? `<div class="sub-status-row"><span class="sub-label">Since:</span> <span>${formatDate(subscription.startDate)}</span></div>` : ''}
-          ${subscription.endDate ? `<div class="sub-status-row"><span class="sub-label">Until:</span> <span>${formatDate(subscription.endDate)}</span></div>` : ''}
-          ${countdownHtml}
-          ${subscription.reason ? `<div class="sub-status-row sub-status-reason"><span class="sub-label">Reason:</span> <span class="text-muted">${escapeHtml(subscription.reason)}</span></div>` : ''}
-        </div>
-      `;
-
-      // Update allUsers cache so table badge reflects latest without a full reload
-      const cachedUser = allUsers.find(u => (u.id || u._id) === userId);
-      if (cachedUser) {
-        cachedUser.subscription = subscription;
+      const data = await AdminShared.api('/api/admin/users/summary');
+      renderSummaryCards(data);
+    } catch (err) {
+      const grid = $('ucSummaryGrid');
+      if (grid) {
+        grid.innerHTML = '<div class="admin-inline-error">Could not load user summary.</div>';
       }
-
-      // ── History list ─────────────────────────────────────────────────────────
-      if (history.length === 0) {
-        historyDiv.innerHTML =
-          '<p class="text-muted" style="padding:4px 0;">No subscription history found.</p>';
-      } else {
-        historyDiv.innerHTML = history
-          .map(
-            h => `
-            <div class="subscription-history-item">
-              <div class="sub-history-header">
-                <span class="sub-action-badge ${historyActionClass(h.action)}">${escapeHtml(h.action || 'changed')}</span>
-                <span class="sub-history-tier">${escapeHtml(tierLabel(h.tier))}</span>
-                <span class="sub-history-date text-muted">${formatDate(h.date)}</span>
-              </div>
-              <div class="text-muted sub-history-meta">
-                By: ${escapeHtml(h.adminEmail || 'Unknown')}
-                ${h.reason ? ` · ${escapeHtml(h.reason)}` : ''}
-                ${h.endDate ? ` · Ends: ${formatDate(h.endDate)}` : ''}
-              </div>
-            </div>
-          `
-          )
-          .join('');
-      }
-    } catch (error) {
-      AdminShared.debugError('Error loading subscription data:', error);
-      statusDiv.innerHTML = '<p class="text-error">Failed to load subscription status</p>';
-      historyDiv.innerHTML = '<p class="text-error">Failed to load subscription history</p>';
+      AdminShared.showToast('Failed to load user summary.', 'error');
     }
   }
 
-  function setupSubscriptionModal() {
-    const closeBtn = document.getElementById('closeSubscriptionModal');
-    const cancelBtn = document.getElementById('cancelSubscriptionBtn');
-    const form = document.getElementById('subscriptionForm');
-    const removeBtn = document.getElementById('removeSubscriptionBtn');
-    const modal = document.getElementById('subscriptionModal');
+  async function loadUsers() {
+    const tbody = $('ucTableBody');
+    if (tbody && window.AdminShared && AdminShared.showLoadingState) {
+      AdminShared.showLoadingState(tbody, { rows: 5, cols: 12, message: 'Loading users...' });
+    }
+    try {
+      const data = await AdminShared.api(buildListUrl());
+      currentUsers = data.items || [];
+      currentTotal = Number(data.total || 0);
+      currentPages = Math.max(Number(data.pages || 1), 1);
+      currentPage = Math.min(Number(data.page || currentPage), currentPages);
+      currentLimit = Number(data.limit || currentLimit);
+      selectedUserIds.clear();
+      renderTable(currentUsers);
+      updateSummaryText(currentTotal, currentPages);
+      updateBulkBar();
+    } catch (err) {
+      if (tbody) {
+        tbody.innerHTML =
+          '<tr><td colspan="12" class="uc-empty-cell">Failed to load users. Please refresh.</td></tr>';
+      }
+      AdminShared.showToast('Failed to load users.', 'error');
+    }
+  }
 
-    // Close modal handlers
-    if (closeBtn) {
-      closeBtn.addEventListener('click', closeSubscriptionModal);
+  async function loadData() {
+    await Promise.allSettled([loadSummary(), loadUsers()]);
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    applyUrlFilters();
+
+    const refreshBtn = $('ucRefreshBtn');
+    if (refreshBtn) {
+      refreshBtn.addEventListener('click', () => loadData());
     }
 
-    if (cancelBtn) {
-      cancelBtn.addEventListener('click', closeSubscriptionModal);
+    const prevBtn = $('ucPrevPage');
+    if (prevBtn) {
+      prevBtn.addEventListener('click', () => {
+        if (currentPage > 1) {
+          currentPage -= 1;
+          applyFilters();
+        }
+      });
+    }
+    const nextBtn = $('ucNextPage');
+    if (nextBtn) {
+      nextBtn.addEventListener('click', () => {
+        if (currentPage < currentPages) {
+          currentPage += 1;
+          applyFilters();
+        }
+      });
+    }
+    const pageSize = $('ucPageSize');
+    if (pageSize) {
+      pageSize.value = String(currentLimit);
+      pageSize.addEventListener('change', () => {
+        currentLimit = Number(pageSize.value) || 50;
+        selectedUserIds.clear();
+        currentPage = 1;
+        applyFilters();
+      });
     }
 
-    // Click outside to close
+    const clearBtn = $('ucClearFilters');
+    if (clearBtn) {
+      clearBtn.addEventListener('click', clearFilters);
+    }
+
+    ['ucSearch', 'ucRoleFilter', 'ucSignupFilter', 'ucVerifFilter', 'ucIssueFilter'].forEach(id => {
+      const el = $(id);
+      if (!el) {
+        return;
+      }
+      el.addEventListener('input', () => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+          selectedUserIds.clear();
+          currentPage = 1;
+          applyFilters();
+        }, 250);
+      });
+      el.addEventListener('change', () => {
+        selectedUserIds.clear();
+        currentPage = 1;
+        applyFilters();
+      });
+    });
+
+    const selectAll = $('ucSelectAll');
+    if (selectAll) {
+      selectAll.addEventListener('change', () => {
+        visibleCheckboxes().forEach(checkbox => {
+          checkbox.checked = selectAll.checked;
+          const uid = checkbox.dataset.userId;
+          if (!uid) {
+            return;
+          }
+          if (selectAll.checked) {
+            selectedUserIds.add(uid);
+          } else {
+            selectedUserIds.delete(uid);
+          }
+        });
+        updateBulkBar();
+      });
+    }
+
+    document.addEventListener('change', event => {
+      const checkbox = event.target && event.target.closest('.uc-user-checkbox');
+      if (!checkbox) {
+        return;
+      }
+      const uid = checkbox.dataset.userId;
+      if (!uid) {
+        return;
+      }
+      if (checkbox.checked) {
+        selectedUserIds.add(uid);
+      } else {
+        selectedUserIds.delete(uid);
+      }
+      updateBulkBar();
+      updateSelectAllState();
+    });
+
+    document.addEventListener('click', event => {
+      const subscriptionBtn = event.target && event.target.closest('[data-manage-subscription]');
+      const resendBtn = event.target && event.target.closest('[data-resend-verification]');
+      const provisionBtn = event.target && event.target.closest('[data-provision-profile]');
+      if (subscriptionBtn) {
+        openSubscriptionModal(subscriptionBtn.dataset.manageSubscription);
+      }
+      if (resendBtn) {
+        resendVerification(resendBtn.dataset.resendVerification).catch(err =>
+          AdminShared.showToast(`Failed: ${err.message}`, 'error')
+        );
+      }
+      if (provisionBtn) {
+        provisionMissingProfile(provisionBtn.dataset.provisionProfile);
+      }
+    });
+
+    [
+      ['ucBulkVerify', () => bulkVerify([...selectedUserIds])],
+      ['ucBulkSuspend', () => bulkSuspend([...selectedUserIds])],
+      ['ucBulkDelete', () => bulkDelete([...selectedUserIds])],
+      ['ucBulkExport', bulkExportSelected],
+      ['ucBulkProvisionProfiles', bulkProvisionProfiles],
+    ].forEach(([id, handler]) => {
+      const btn = $(id);
+      if (btn) {
+        btn.addEventListener('click', () =>
+          handler().catch(err => AdminShared.showToast(`Failed: ${err.message}`, 'error'))
+        );
+      }
+    });
+
+    const closePanelBtn = $('closeSubPanel');
+    if (closePanelBtn) {
+      closePanelBtn.addEventListener('click', closeSubscriptionModal);
+    }
+    const modal = $('subscriptionModal');
     if (modal) {
-      modal.addEventListener('click', e => {
-        if (e.target === modal) {
+      modal.addEventListener('click', event => {
+        if (event.target === modal) {
           closeSubscriptionModal();
         }
       });
     }
-
-    // Handle tier change - hide duration if free is selected
-    const tierSelect = document.getElementById('subscriptionTier');
-    const durationGroup = document.getElementById('subscriptionDurationGroup');
-
-    if (tierSelect && durationGroup) {
-      tierSelect.addEventListener('change', e => {
-        if (e.target.value === 'free' || e.target.value === '') {
-          durationGroup.style.display = 'none';
-          document.getElementById('subscriptionDuration').removeAttribute('required');
-        } else {
-          durationGroup.style.display = 'block';
-          document.getElementById('subscriptionDuration').setAttribute('required', 'required');
-        }
-      });
-    }
-
-    // Form submission
-    if (form) {
-      form.addEventListener('submit', async e => {
-        e.preventDefault();
-
-        const userId = document.getElementById('subscriptionUserId').value;
-        const tier = document.getElementById('subscriptionTier').value;
-        const duration = document.getElementById('subscriptionDuration').value;
-        const reason = document.getElementById('subscriptionReason').value;
-
-        if (!userId) {
-          AdminShared.showToast('No user selected', 'error');
-          return;
-        }
-
-        // If tier is free, remove subscription instead
-        if (tier === 'free') {
-          const confirmed = await AdminShared.showConfirmModal({
-            title: 'Remove Subscription',
-            message: 'This will remove the current subscription. Continue?',
-            confirmText: 'Remove',
-            cancelText: 'Cancel',
-            type: 'warning',
-          });
-
-          if (!confirmed) {
-            return;
-          }
-
-          const submitBtn = form.querySelector('button[type="submit"]');
-          await AdminShared.safeAction(
-            submitBtn,
-            async () => {
-              const data = await AdminShared.adminFetch(`/api/admin/users/${userId}/subscription`, {
-                method: 'DELETE',
-                body: { reason: reason || 'Admin set to free tier' },
-              });
-              // Reload status panel inside the modal to reflect the change
-              await loadSubscriptionData(userId);
-              // Update table row badge without a full reload
-              _updateTableSubscriptionBadge(userId, { tier: 'free', status: 'cancelled' });
-              return data;
-            },
-            {
-              loadingText: 'Removing...',
-              successMessage: 'Subscription removed successfully',
-              errorMessage: 'Failed to remove subscription',
-            }
-          );
-          return;
-        }
-
-        if (!tier || !duration) {
-          AdminShared.showToast('Please select both tier and duration', 'error');
-          return;
-        }
-
-        const submitBtn = form.querySelector('button[type="submit"]');
-        await AdminShared.safeAction(
-          submitBtn,
-          async () => {
-            const data = await AdminShared.adminFetch(`/api/admin/users/${userId}/subscription`, {
-              method: 'POST',
-              body: { tier, duration, reason },
-            });
-            // Reload status panel inside the modal to reflect the new subscription
-            await loadSubscriptionData(userId);
-            // Update table row badge without a full reload
-            if (data && data.subscription) {
-              _updateTableSubscriptionBadge(userId, data.subscription);
-            }
-            return data;
-          },
-          {
-            loadingText: 'Granting...',
-            successMessage: 'Subscription granted successfully',
-            errorMessage: 'Failed to grant subscription',
-          }
-        );
-      });
-    }
-
-    // Remove subscription button
-    if (removeBtn) {
-      removeBtn.addEventListener('click', async () => {
-        if (!currentSubscriptionUserId) {
-          AdminShared.showToast('No user selected', 'error');
-          return;
-        }
-
-        // Use modal for reason input instead of prompt
-        const confirmed = await AdminShared.showConfirmModal({
-          title: 'Remove Subscription',
-          message:
-            'Are you sure you want to remove this subscription? This action cannot be undone.',
-          confirmText: 'Remove',
-          cancelText: 'Cancel',
-          type: 'danger',
-        });
-
-        if (!confirmed) {
-          return;
-        }
-
-        const reasonResult = await AdminShared.showInputModal({
-          title: 'Removal Reason',
-          message: 'Please provide a reason for removing this subscription',
-          label: 'Reason',
-          placeholder: 'e.g., Requested by user, Payment issue, etc.',
-          required: false,
-          type: 'textarea',
-        });
-
-        if (!reasonResult.confirmed) {
-          return; // Cancelled
-        }
-
-        await AdminShared.safeAction(
-          removeBtn,
-          async () => {
-            const data = await AdminShared.adminFetch(
-              `/api/admin/users/${currentSubscriptionUserId}/subscription`,
-              {
-                method: 'DELETE',
-                body: { reason: reasonResult.value || 'Manual admin removal' },
-              }
-            );
-            // Reload status panel inside the modal to reflect the removal
-            await loadSubscriptionData(currentSubscriptionUserId);
-            // Update table row badge
-            _updateTableSubscriptionBadge(currentSubscriptionUserId, {
-              tier: 'free',
-              status: 'cancelled',
-            });
-            return data;
-          },
-          {
-            loadingText: 'Removing...',
-            successMessage: 'Subscription removed successfully',
-            errorMessage: 'Failed to remove subscription',
-          }
-        );
-      });
-    }
-  }
-
-  /**
-   * Updates the subscription badge for a specific user row in the table without
-   * performing a full reload. This gives the admin instant visual feedback.
-   * Admin-role users always show the Admin badge regardless of subscription tier.
-   */
-  function _updateTableSubscriptionBadge(userId, subscription) {
-    const cachedUser = allUsers.find(u => (u.id || u._id) === userId);
-    // Admin users always show Admin badge — don't overwrite with a tier badge
-    if (cachedUser && cachedUser.role === 'admin') {
-      return;
-    }
-    const tier = subscription?.tier || 'free';
-    let badgeHtml = '';
-    if (tier === 'pro') {
-      badgeHtml = '<span class="badge badge-pro">Pro</span>';
-    } else if (tier === 'pro_plus') {
-      badgeHtml = '<span class="badge badge-pro-plus">Pro Plus</span>';
-    } else {
-      badgeHtml = '<span class="badge badge-starter">Starter</span>';
-    }
-    // Find the table row for this user and update the subscription cell (column index 4)
-    const btn = document.querySelector(`[data-manage-subscription="${CSS.escape(userId)}"]`);
-    if (btn) {
-      const row = btn.closest('tr');
-      if (row) {
-        const cells = row.querySelectorAll('td');
-        if (cells[4]) {
-          cells[4].innerHTML = badgeHtml;
-        }
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape') {
+        closeSubscriptionModal();
       }
-    }
-    // Also update allUsers cache
-    if (cachedUser) {
-      cachedUser.subscription = subscription;
-    }
-  }
-
-  // Load when DOM is ready
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-      loadAdminUsers();
-      setupFilterListeners();
-      setupSubscriptionModal();
-      setupSelectAllCheckbox();
-      setupBulkActions();
     });
-  } else {
-    loadAdminUsers();
-    setupFilterListeners();
-    setupSubscriptionModal();
-    setupSelectAllCheckbox();
-    setupBulkActions();
-  }
+
+    const closeBtn = $('closeSubscriptionModal');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', closeSubscriptionModal);
+    }
+    const cancelBtn = $('cancelSubscriptionBtn');
+    if (cancelBtn) {
+      cancelBtn.addEventListener('click', closeSubscriptionModal);
+    }
+    const form = $('subscriptionForm');
+    if (form) {
+      form.addEventListener('submit', saveSubscription);
+    }
+    const removeBtn = $('removeSubscriptionBtn');
+    if (removeBtn) {
+      removeBtn.addEventListener('click', () => {
+        const userId = ($('subscriptionUserId') || {}).value;
+        removeSubscription(userId).catch(err =>
+          AdminShared.showToast(`Failed: ${err.message}`, 'error')
+        );
+      });
+    }
+
+    loadData();
+  });
 })();

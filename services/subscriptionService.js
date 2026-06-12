@@ -15,31 +15,92 @@ const {
 } = require('../models/Subscription');
 const logger = require('../utils/logger');
 
-async function persistUserSubscriptionState(userId, updates) {
-  const nowIso = new Date().toISOString();
-  const normalizedUpdates = {
-    ...updates,
-    updatedAt: nowIso,
-  };
-
-  await dbUnified.updateOne('users', { id: userId }, { $set: normalizedUpdates });
+function isFuture(value) {
+  if (!value) {
+    return false;
+  }
+  const parsed = new Date(value);
+  return Number.isFinite(parsed.getTime()) && parsed > new Date();
 }
 
-/**
- * Create a new subscription
- * @param {Object} params - Subscription parameters
- * @param {string} params.userId - User ID
- * @param {string} params.plan - Plan tier (free, pro, pro_plus)
- * @param {string} params.stripeSubscriptionId - Stripe subscription ID
- * @param {string} params.stripeCustomerId - Stripe customer ID
- * @param {Date} params.trialEnd - Trial end date (optional)
- * @param {string} params.billingInterval - Billing interval ('month' or 'year') (optional)
- * @param {string} params.currentPeriodStart - ISO string of current period start (optional)
- * @param {string} params.currentPeriodEnd - ISO string of current period end (optional)
- * @param {string} params.discountName - Coupon/discount name (optional)
- * @param {number} params.discountPercent - Discount percent off (optional)
- * @returns {Promise<Object>} Created subscription
- */
+function isLiveEntitlement(subscription) {
+  if (!subscription) {
+    return false;
+  }
+  if (subscription.status !== 'active' && subscription.status !== 'trialing') {
+    return false;
+  }
+  if (subscription.plan === 'free') {
+    return true;
+  }
+  if (isFuture(subscription.currentPeriodEnd) || isFuture(subscription.trialEnd)) {
+    return true;
+  }
+  return (
+    !subscription.stripeSubscriptionId &&
+    !subscription.currentPeriodEnd &&
+    subscription.status === 'active'
+  );
+}
+
+function addBillingPeriod(startIso, billingInterval = 'month') {
+  const start = startIso ? new Date(startIso) : new Date();
+  if (!Number.isFinite(start.getTime())) {
+    return null;
+  }
+  const end = new Date(start);
+  if (billingInterval === 'year') {
+    end.setFullYear(end.getFullYear() + 1);
+  } else {
+    end.setMonth(end.getMonth() + 1);
+  }
+  return end.toISOString();
+}
+
+function resolveSubscriptionStatus({ status, trialEnd }) {
+  if (status) {
+    return status;
+  }
+  if (trialEnd) {
+    return 'trialing';
+  }
+  return 'active';
+}
+
+async function persistUserSubscriptionState(userId, updates) {
+  const nowIso = new Date().toISOString();
+  const state = { ...updates, updatedAt: nowIso };
+  await dbUnified.updateOne('users', { id: userId }, { $set: state });
+
+  const supplierState = {};
+  if (Object.prototype.hasOwnProperty.call(updates, 'subscriptionTier')) {
+    supplierState.subscriptionTier = updates.subscriptionTier;
+  }
+  if (Object.prototype.hasOwnProperty.call(updates, 'isPro')) {
+    supplierState.isPro = updates.isPro;
+  }
+  if (Object.prototype.hasOwnProperty.call(updates, 'proExpiresAt')) {
+    supplierState.proExpiresAt = updates.proExpiresAt;
+  }
+
+  if (Object.keys(supplierState).length > 0) {
+    try {
+      const ownedSuppliers = await dbUnified.find('suppliers', { ownerUserId: userId }); // indexed
+      await Promise.all(
+        ownedSuppliers.map(supplier =>
+          dbUnified.updateOne(
+            'suppliers',
+            { id: supplier.id },
+            { $set: { ...supplierState, updatedAt: nowIso } }
+          )
+        )
+      );
+    } catch (err) {
+      logger.warn('Unable to sync supplier subscription badges:', err.message);
+    }
+  }
+}
+
 async function createSubscription({
   userId,
   plan,
@@ -51,20 +112,28 @@ async function createSubscription({
   currentPeriodEnd = null,
   discountName = null,
   discountPercent = null,
+  status = null,
 }) {
   const now = new Date().toISOString();
+  const trialEndIso = trialEnd ? trialEnd.toISOString() : null;
+  const resolvedStatus = resolveSubscriptionStatus({ status, trialEnd, plan });
+  const resolvedCurrentPeriodEnd =
+    currentPeriodEnd ||
+    (resolvedStatus === 'active' && plan !== 'free'
+      ? addBillingPeriod(currentPeriodStart || now, billingInterval || 'month')
+      : null);
   const subscription = {
     id: store.uid('sub'),
     userId,
     plan,
-    status: trialEnd ? 'trialing' : 'active',
+    status: resolvedStatus,
     stripeSubscriptionId: stripeSubscriptionId || null,
     stripeCustomerId: stripeCustomerId || null,
     trialStart: trialEnd ? now : null,
-    trialEnd: trialEnd ? trialEnd.toISOString() : null,
+    trialEnd: trialEndIso,
     currentPeriodStart: currentPeriodStart || now,
-    currentPeriodEnd: currentPeriodEnd || null,
-    nextBillingDate: currentPeriodEnd || (trialEnd ? trialEnd.toISOString() : null),
+    currentPeriodEnd: resolvedCurrentPeriodEnd,
+    nextBillingDate: resolvedCurrentPeriodEnd || trialEndIso,
     cancelAtPeriodEnd: false,
     canceledAt: null,
     cancelReason: null,
@@ -77,215 +146,146 @@ async function createSubscription({
     updatedAt: now,
   };
 
-  await dbUnified.insertOne('subscriptions', subscription);
-
-  // Update user record with subscription reference and tier.
+  const subInserted = await dbUnified.insertOne('subscriptions', subscription);
+  if (!subInserted) {
+    logger.error('[SUB-SVC] insertOne failed', { subscriptionId: subscription.id });
+    throw new Error('Failed to save subscription record');
+  }
   await persistUserSubscriptionState(userId, {
     subscriptionId: subscription.id,
-    subscriptionTier: plan,
-    isPro: plan !== 'free',
+    subscriptionTier: isLiveEntitlement(subscription) ? plan : 'free',
+    isPro: isLiveEntitlement(subscription) && plan !== 'free',
+    proExpiresAt: isLiveEntitlement(subscription)
+      ? subscription.currentPeriodEnd || subscription.trialEnd || null
+      : null,
   });
-
   return subscription;
 }
 
-/**
- * Get subscription by ID
- * @param {string} subscriptionId - Subscription ID
- * @returns {Promise<Object|null>} Subscription object or null
- */
 async function getSubscription(subscriptionId) {
-  const subscriptions = await dbUnified.read('subscriptions');
-  return subscriptions.find(s => s.id === subscriptionId) || null;
+  return dbUnified.findOne('subscriptions', { id: subscriptionId });
 }
 
-/**
- * Get subscription by user ID
- * @param {string} userId - User ID
- * @returns {Promise<Object|null>} Subscription object or null
- */
 async function getSubscriptionByUserId(userId) {
-  const subscriptions = await dbUnified.read('subscriptions');
-  return subscriptions.find(s => s.userId === userId && s.status !== 'canceled') || null;
+  // Fetch only non-canceled subscriptions for this user — avoids full collection scan.
+  // The $ne operator is supported by matchesFilter on the local store.
+  const candidates = await dbUnified.find('subscriptions', {
+    userId,
+    status: { $ne: 'canceled' },
+  });
+  if (!candidates || candidates.length === 0) {
+    return null;
+  }
+  // Sort to prefer live entitlements, then most recently updated
+  return (
+    candidates.sort((a, b) => {
+      const aLive = isLiveEntitlement(a) ? 1 : 0;
+      const bLive = isLiveEntitlement(b) ? 1 : 0;
+      if (aLive !== bLive) {
+        return bLive - aLive;
+      }
+      return new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0);
+    })[0] || null
+  );
 }
 
-/**
- * Get subscription by Stripe subscription ID
- * @param {string} stripeSubscriptionId - Stripe subscription ID
- * @returns {Promise<Object|null>} Subscription object or null
- */
 async function getSubscriptionByStripeId(stripeSubscriptionId) {
-  const subscriptions = await dbUnified.read('subscriptions');
-  return subscriptions.find(s => s.stripeSubscriptionId === stripeSubscriptionId) || null;
+  return dbUnified.findOne('subscriptions', { stripeSubscriptionId });
 }
 
-/**
- * Update subscription
- * @param {string} subscriptionId - Subscription ID
- * @param {Object} updates - Fields to update
- * @returns {Promise<Object>} Updated subscription
- */
 async function updateSubscription(subscriptionId, updates) {
-  const subscriptions = await dbUnified.read('subscriptions');
-  const subscription = subscriptions.find(s => s.id === subscriptionId);
-
+  const subscription = await getSubscription(subscriptionId);
   if (!subscription) {
     throw new Error('Subscription not found');
   }
 
-  Object.assign(subscription, updates, {
-    updatedAt: new Date().toISOString(),
-  });
+  const updatePayload = { ...updates, updatedAt: new Date().toISOString() };
+  await dbUnified.updateOne('subscriptions', { id: subscriptionId }, { $set: updatePayload });
+  const updated = { ...subscription, ...updatePayload };
 
-  await dbUnified.updateOne(
-    'subscriptions',
-    { id: subscriptionId },
-    {
-      $set: { ...updates, updatedAt: new Date().toISOString() },
-    }
+  const entitlementFieldsChanged = ['plan', 'status', 'currentPeriodEnd', 'trialEnd'].some(key =>
+    Object.prototype.hasOwnProperty.call(updates, key)
   );
-
-  // Update user isPro status and subscriptionTier if plan changed
-  if (updates.plan) {
-    await persistUserSubscriptionState(subscription.userId, {
-      subscriptionTier: updates.plan,
-      isPro: updates.plan !== 'free',
+  if (entitlementFieldsChanged) {
+    const hasLiveEntitlement = isLiveEntitlement(updated);
+    await persistUserSubscriptionState(updated.userId, {
+      subscriptionTier: hasLiveEntitlement ? updated.plan : 'free',
+      isPro: hasLiveEntitlement && updated.plan !== 'free',
+      proExpiresAt: hasLiveEntitlement
+        ? updated.currentPeriodEnd || updated.trialEnd || null
+        : null,
     });
   }
 
-  return subscription;
+  return updated;
 }
 
-/**
- * Process pro-rated payment difference when changing subscription plan.
- * Uses Stripe's proration API when a Stripe subscription ID is present.
- * Gracefully skips payment processing when Stripe is not configured.
- *
- * @param {Object} subscription - Current subscription object
- * @param {string} newPlan - New plan tier
- * @returns {Promise<void>}
- */
 async function processSubscriptionPlanChange(subscription, newPlan) {
   const oldPrice = PLAN_FEATURES[subscription.plan]?.price || 0;
   const newPrice = PLAN_FEATURES[newPlan]?.price || 0;
   const priceDifference = newPrice - oldPrice;
 
-  // If there's no Stripe subscription ID, skip Stripe payment processing
   if (!subscription.stripeSubscriptionId) {
     if (priceDifference !== 0) {
       logger.info(
-        `Plan change from ${subscription.plan} to ${newPlan}: ` +
-          `price difference £${priceDifference.toFixed(2)}/mo — no Stripe subscription linked, skipping payment processing`
+        `Plan change from ${subscription.plan} to ${newPlan}: no Stripe subscription linked`
       );
     }
     return;
   }
 
-  // Lazy-load paymentService to avoid circular dependency
   const paymentService = require('./paymentService');
-
   if (!paymentService.STRIPE_ENABLED) {
+    logger.warn('Stripe is not configured — skipping prorated payment processing');
+    return;
+  }
+
+  const stripeConfig = require('../config/stripe');
+  const stripe = stripeConfig.getStripeClient();
+  if (!stripe) {
+    logger.warn('Stripe client unavailable — skipping prorated payment processing');
+    return;
+  }
+
+  const stripeSub = await stripe.subscriptions.retrieve(subscription.stripeSubscriptionId);
+  const currentItem = stripeSub.items?.data?.[0];
+  if (!currentItem) {
+    logger.warn('Stripe subscription has no items; skipping plan change');
+    return;
+  }
+
+  if (newPlan === 'free') {
+    return;
+  }
+
+  const { resolvePriceId } = require('../config/billingPlans');
+  const interval =
+    currentItem.price?.recurring?.interval || subscription.billingInterval || 'month';
+  const envPriceIds = {
+    pro: { month: process.env.STRIPE_PRO_PRICE_ID, year: process.env.STRIPE_PRO_YEARLY_PRICE_ID },
+    pro_plus: {
+      month: process.env.STRIPE_PRO_PLUS_PRICE_ID,
+      year: process.env.STRIPE_PRO_PLUS_YEARLY_PRICE_ID,
+    },
+  };
+  const newPriceId = resolvePriceId(newPlan, interval) || envPriceIds[newPlan]?.[interval] || null;
+  if (!newPriceId) {
     logger.warn(
-      `Plan change from ${subscription.plan} to ${newPlan}: ` +
-        `Stripe is not configured — skipping prorated payment processing`
+      `No Stripe price ID configured for plan ${newPlan} (${interval}); skipping plan change`
     );
     return;
   }
 
-  try {
-    // Retrieve current Stripe subscription to get the current price item
-    const stripeConfig = require('../config/stripe');
-    const stripe = stripeConfig.getStripeClient();
-
-    if (!stripe) {
-      logger.warn('Stripe client unavailable — skipping prorated payment processing');
-      return;
-    }
-
-    const stripeSub = await stripe.subscriptions.retrieve(subscription.stripeSubscriptionId);
-    const currentItem = stripeSub.items.data[0];
-
-    if (!currentItem) {
-      logger.warn(
-        `No items found on Stripe subscription ${subscription.stripeSubscriptionId} — skipping proration`
-      );
-      return;
-    }
-
-    // Look up the Stripe price ID for the new plan using the same env var convention
-    // as the rest of the codebase (see routes/subscriptions-v2.js and routes/payments.js).
-    //   STRIPE_PRO_PRICE_ID      → pro plan monthly price ID
-    //   STRIPE_PRO_PLUS_PRICE_ID → pro_plus plan monthly price ID
-    // Set these in your .env file (see .env.example for details).
-    const PLAN_PRICE_ENV_MAP = {
-      free: null, // Free plan — no Stripe price needed; cancellation is handled separately
-      pro: process.env.STRIPE_PRO_PRICE_ID || null,
-      pro_plus: process.env.STRIPE_PRO_PLUS_PRICE_ID || null,
-    };
-
-    // Changing to the free plan requires subscription cancellation, not a price change.
-    // Callers should use cancelSubscription() instead.
-    if (newPlan === 'free') {
-      logger.info(
-        `Plan change to "free" — subscription cancellation should be handled via cancelSubscription(). Skipping Stripe price update.`
-      );
-      return;
-    }
-
-    const newPriceId = PLAN_PRICE_ENV_MAP[newPlan];
-
-    if (!newPriceId) {
-      // Map plan name to the conventional env var name used across the codebase
-      const PLAN_ENV_VAR_NAMES = {
-        pro: 'STRIPE_PRO_PRICE_ID',
-        pro_plus: 'STRIPE_PRO_PLUS_PRICE_ID',
-      };
-      const envVarHint = PLAN_ENV_VAR_NAMES[newPlan] || `STRIPE_${newPlan.toUpperCase()}_PRICE_ID`;
-      logger.warn(
-        `No Stripe price ID configured for plan "${newPlan}" (set ${envVarHint} in .env). ` +
-          `Skipping Stripe proration — update the subscription plan in the Stripe dashboard manually.`
-      );
-      return;
-    }
-
-    // Apply proration immediately for upgrades (create_prorations charges the customer for the
-    // remainder of the current billing period at the new higher price).
-    // For downgrades, use 'none' and set cancel_at_period_end on the subscription item so the
-    // customer keeps access until the end of the paid period and is billed at the lower rate
-    // on the next renewal date.
-    const isUpgrade = priceDifference > 0;
-    const updateParams = {
-      items: [{ id: currentItem.id, price: newPriceId }],
-      proration_behavior: isUpgrade ? 'create_prorations' : 'none',
-    };
-
-    await stripe.subscriptions.update(subscription.stripeSubscriptionId, updateParams);
-
-    logger.info(
-      `Stripe subscription ${subscription.stripeSubscriptionId} updated: ` +
-        `${subscription.plan} → ${newPlan}, proration_behavior=${isUpgrade ? 'create_prorations' : 'none'}`
-    );
-  } catch (err) {
-    // Payment failure should not block the local subscription record update;
-    // log the error so ops can investigate and retry manually.
-    logger.error(
-      `Failed to process Stripe proration for subscription ${subscription.stripeSubscriptionId}: ${err.message}`
-    );
-    throw err;
-  }
+  const isUpgrade = priceDifference > 0;
+  await stripe.subscriptions.update(subscription.stripeSubscriptionId, {
+    items: [{ id: currentItem.id, price: newPriceId }],
+    proration_behavior: isUpgrade ? 'create_prorations' : 'none',
+    metadata: { planId: newPlan, billingInterval: interval },
+  });
 }
 
-/**
- * Upgrade subscription to a higher tier.
- * The upgrade applies immediately and clears any pending downgrade.
- *
- * @param {string} subscriptionId - Subscription ID
- * @param {string} newPlan - New plan tier (must be higher than current)
- * @returns {Promise<Object>} Updated subscription
- */
 async function upgradeSubscription(subscriptionId, newPlan, { skipStripe = false } = {}) {
   const subscription = await getSubscription(subscriptionId);
-
   if (!subscription) {
     throw new Error('Subscription not found');
   }
@@ -293,21 +293,17 @@ async function upgradeSubscription(subscriptionId, newPlan, { skipStripe = false
   const planHierarchy = ['free', 'pro', 'pro_plus'];
   const currentIndex = planHierarchy.indexOf(subscription.plan);
   const newIndex = planHierarchy.indexOf(newPlan);
-
   if (newIndex === -1) {
     throw new Error(`Unknown plan: ${newPlan}`);
   }
-
   if (newIndex <= currentIndex) {
     throw new Error('New plan must be higher tier than current plan');
   }
 
-  // Process prorated payment difference via Stripe (skip if caller already handled it)
   if (!skipStripe) {
     await processSubscriptionPlanChange(subscription, newPlan);
   }
 
-  // Upgrades apply immediately — clear any pending downgrade and reset cancelAtPeriodEnd
   return updateSubscription(subscriptionId, {
     plan: newPlan,
     status: 'active',
@@ -316,18 +312,8 @@ async function upgradeSubscription(subscriptionId, newPlan, { skipStripe = false
   });
 }
 
-/**
- * Schedule a downgrade to a lower tier at the end of the current billing period.
- * The current plan (and its access rights) are preserved until `applyPendingPlan`
- * is called when Stripe signals the period has ended.
- *
- * @param {string} subscriptionId - Subscription ID
- * @param {string} newPlan - New (lower) plan tier
- * @returns {Promise<Object>} Updated subscription
- */
-async function downgradeSubscription(subscriptionId, newPlan) {
+async function downgradeSubscription(subscriptionId, newPlan, { skipStripe = false } = {}) {
   const subscription = await getSubscription(subscriptionId);
-
   if (!subscription) {
     throw new Error('Subscription not found');
   }
@@ -335,88 +321,54 @@ async function downgradeSubscription(subscriptionId, newPlan) {
   const planHierarchy = ['free', 'pro', 'pro_plus'];
   const currentIndex = planHierarchy.indexOf(subscription.plan);
   const newIndex = planHierarchy.indexOf(newPlan);
-
   if (newIndex === -1) {
     throw new Error(`Unknown plan: ${newPlan}`);
   }
-
   if (newIndex >= currentIndex) {
     throw new Error('New plan must be lower tier than current plan');
   }
 
-  // Inform Stripe of the upcoming price change without immediate proration
-  await processSubscriptionPlanChange(subscription, newPlan);
+  if (!skipStripe) {
+    await processSubscriptionPlanChange(subscription, newPlan);
+  }
 
-  // Store the desired next plan but keep `plan` unchanged so the user retains
-  // their current access rights until the billing period ends.
-  return updateSubscription(subscriptionId, {
-    pendingPlan: newPlan,
-    cancelAtPeriodEnd: true,
-  });
+  return updateSubscription(subscriptionId, { pendingPlan: newPlan, cancelAtPeriodEnd: true });
 }
 
-/**
- * Apply a pending plan change when the current billing period ends.
- * Called by the Stripe webhook when a renewal/deletion event confirms the
- * period has ended and the scheduled downgrade should take effect.
- * Automatically pauses overflow active packages when the new plan has a
- * lower maxPackages limit.
- *
- * @param {string} subscriptionId - Subscription ID
- * @returns {Promise<Object|null>} Updated subscription, or null if nothing to apply
- */
 async function applyPendingPlan(subscriptionId) {
   const subscription = await getSubscription(subscriptionId);
-
   if (!subscription || !subscription.pendingPlan) {
     return null;
   }
-
   const updated = await updateSubscription(subscriptionId, {
     plan: subscription.pendingPlan,
     pendingPlan: null,
     cancelAtPeriodEnd: false,
   });
-
-  // Auto-pause overflow packages so active count stays within the new plan limit
   try {
     await enforceActivePackageLimit(subscription.userId);
   } catch (err) {
     logger.error('applyPendingPlan: enforceActivePackageLimit failed:', err);
   }
-
   return updated;
 }
 
-/**
- * Cancel subscription
- * @param {string} subscriptionId - Subscription ID
- * @param {string} reason - Cancellation reason (optional)
- * @param {boolean} immediately - Cancel immediately vs at period end
- * @returns {Promise<Object>} Updated subscription
- */
 async function cancelSubscription(subscriptionId, reason = null, immediately = false) {
   const subscription = await getSubscription(subscriptionId);
-
   if (!subscription) {
     throw new Error('Subscription not found');
   }
 
-  const updates = {
-    canceledAt: new Date().toISOString(),
-    cancelReason: reason,
-  };
-
+  const updates = { canceledAt: new Date().toISOString(), cancelReason: reason };
   if (immediately) {
     updates.status = 'canceled';
     updates.plan = 'free';
+    updates.currentPeriodEnd = new Date().toISOString();
   } else {
     updates.cancelAtPeriodEnd = true;
   }
-
   const updated = await updateSubscription(subscriptionId, updates);
 
-  // When canceling immediately (plan drops to free), auto-pause overflow packages
   if (immediately) {
     try {
       await enforceActivePackageLimit(subscription.userId);
@@ -424,158 +376,75 @@ async function cancelSubscription(subscriptionId, reason = null, immediately = f
       logger.error('cancelSubscription: enforceActivePackageLimit failed:', err);
     }
   }
-
   return updated;
 }
 
-/**
- * Check if user has access to a feature
- * @param {string} userId - User ID
- * @param {string} feature - Feature name
- * @returns {Promise<boolean>} Whether user has feature access
- */
+async function getFallbackUserTier(userId) {
+  const user = await dbUnified.findOne('users', { id: userId });
+  if (user?.subscriptionTier && user.subscriptionTier !== 'free' && isFuture(user.proExpiresAt)) {
+    return user.subscriptionTier;
+  }
+  return 'free';
+}
+
 async function checkFeatureAccess(userId, feature) {
   const subscription = await getSubscriptionByUserId(userId);
-
   if (subscription) {
-    const { plan, status, currentPeriodEnd } = subscription;
-    const periodValid = !currentPeriodEnd || new Date(currentPeriodEnd) > new Date();
-    if ((status === 'active' || status === 'trialing') && periodValid) {
-      return hasFeature(plan, feature);
-    }
-    // Subscription record exists but is expired / past_due / canceled:
-    // return free immediately — do not fall through to a potentially stale user fallback.
-    return hasFeature('free', feature);
+    return hasFeature(isLiveEntitlement(subscription) ? subscription.plan : 'free', feature);
   }
-
-  // Fallback: check subscriptionTier on user record (set by Stripe webhook)
-  const users = await dbUnified.read('users');
-  const user = users.find(u => u.id === userId);
-  if (user?.subscriptionTier && user.subscriptionTier !== 'free') {
-    if (!user.proExpiresAt || new Date(user.proExpiresAt) > new Date()) {
-      return hasFeature(user.subscriptionTier, feature);
-    }
-  }
-
-  // No subscription, check free plan
-  return hasFeature('free', feature);
+  return hasFeature(await getFallbackUserTier(userId), feature);
 }
 
-/**
- * Get features for user's subscription.
- * Respects subscription status and currentPeriodEnd so that expired,
- * past_due, or canceled subscriptions do not grant Pro/Pro+ limits.
- * @param {string} userId - User ID
- * @returns {Promise<Object>} Feature configuration
- */
 async function getUserFeatures(userId) {
   const subscription = await getSubscriptionByUserId(userId);
-
   if (subscription) {
-    const { plan, status, currentPeriodEnd } = subscription;
-    const periodValid = !currentPeriodEnd || new Date(currentPeriodEnd) > new Date();
-    if ((status === 'active' || status === 'trialing') && periodValid) {
-      return getPlanFeatures(plan);
-    }
-    // Subscription exists but is expired/past_due/canceled — fall back to free
-    return getPlanFeatures('free');
+    return getPlanFeatures(isLiveEntitlement(subscription) ? subscription.plan : 'free');
   }
-
-  // Fallback: check subscriptionTier on user record (set by Stripe webhook)
-  const users = await dbUnified.read('users');
-  const user = users.find(u => u.id === userId);
-  if (user?.subscriptionTier && user.subscriptionTier !== 'free') {
-    if (!user.proExpiresAt || new Date(user.proExpiresAt) > new Date()) {
-      return getPlanFeatures(user.subscriptionTier);
-    }
-  }
-
-  return getPlanFeatures('free');
+  return getPlanFeatures(await getFallbackUserTier(userId));
 }
 
-/**
- * Enforce the active package limit for a user after a plan change.
- * If the user has more active packages than their tier allows, the oldest
- * packages (by createdAt) are automatically paused until the active count
- * is within the limit. The N most recently created packages remain active.
- *
- * "active" is defined as paused !== true.
- *
- * @param {string} userId - User ID
- * @returns {Promise<string[]>} IDs of packages that were paused
- */
 async function enforceActivePackageLimit(userId) {
   const features = await getUserFeatures(userId);
   const maxPackages = features.features.maxPackages;
-
-  // Unlimited plans (-1) never need enforcement
   if (maxPackages === -1) {
     return [];
   }
 
-  // Find all suppliers owned by this user
-  const allSuppliers = await dbUnified.read('suppliers');
-  const supplierIds = allSuppliers.filter(s => s.ownerUserId === userId).map(s => s.id);
-
+  const mySuppliers = await dbUnified.find('suppliers', { ownerUserId: userId });
+  const supplierIds = mySuppliers.map(s => s.id);
   if (supplierIds.length === 0) {
     return [];
   }
 
-  // Gather all packages belonging to those suppliers
-  const allPkgs = await dbUnified.read('packages');
-  const userPkgs = allPkgs.filter(p => supplierIds.includes(p.supplierId));
-
-  // Split into active (paused !== true) and already-paused
-  const activePkgs = userPkgs.filter(p => p.paused !== true);
-
+  const allPkgs = await dbUnified.find('packages', { supplierId: { $in: supplierIds } });
+  const activePkgs = allPkgs.filter(p => p.paused !== true);
   if (activePkgs.length <= maxPackages) {
     return [];
   }
 
-  // Sort active packages by createdAt ascending (oldest first) so we pause the oldest ones
   const sorted = [...activePkgs].sort((a, b) => {
     const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
     const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
     return aTime - bTime;
   });
-
-  // Packages to pause = all but the last maxPackages (most recently created)
   const toPause = sorted.slice(0, sorted.length - maxPackages);
-  const now = Date.now();
   const pausedIds = [];
-
   for (const pkg of toPause) {
     await dbUnified.updateOne(
       'packages',
       { id: pkg.id },
-      { $set: { paused: true, updatedAt: now } }
+      { $set: { paused: true, updatedAt: Date.now() } }
     );
     pausedIds.push(pkg.id);
   }
-
-  if (pausedIds.length > 0) {
-    logger.info(
-      `enforceActivePackageLimit: paused ${pausedIds.length} package(s) for user ${userId} ` +
-        `(plan limit: ${maxPackages} active)`
-    );
-  }
-
   return pausedIds;
 }
 
-/**
- * Add billing record to subscription
- * @param {string} subscriptionId - Subscription ID
- * @param {Object} billingRecord - Billing record details
- * @returns {Promise<Object>} Updated subscription
- */
 async function addBillingRecord(subscriptionId, billingRecord) {
   const subscription = await getSubscription(subscriptionId);
-
   if (!subscription) {
     throw new Error('Subscription not found');
   }
-
   const billingHistory = subscription.billingHistory || [];
   billingHistory.push({
     invoiceId: billingRecord.invoiceId,
@@ -584,19 +453,9 @@ async function addBillingRecord(subscriptionId, billingRecord) {
     paid: billingRecord.paid,
     date: billingRecord.date || new Date().toISOString(),
   });
-
-  return updateSubscription(subscriptionId, {
-    billingHistory,
-  });
+  return updateSubscription(subscriptionId, { billingHistory });
 }
 
-/**
- * Update subscription billing dates
- * @param {string} subscriptionId - Subscription ID
- * @param {Date} periodStart - Period start date
- * @param {Date} periodEnd - Period end date
- * @returns {Promise<Object>} Updated subscription
- */
 async function updateBillingDates(subscriptionId, periodStart, periodEnd) {
   return updateSubscription(subscriptionId, {
     currentPeriodStart: periodStart.toISOString(),
@@ -605,53 +464,32 @@ async function updateBillingDates(subscriptionId, periodStart, periodEnd) {
   });
 }
 
-/**
- * Check if subscription is in trial period
- * @param {Object} subscription - Subscription object
- * @returns {boolean} Whether subscription is in trial
- */
 function isInTrial(subscription) {
-  if (!subscription.trialEnd) {
-    return false;
-  }
-
-  const now = new Date();
-  const trialEnd = new Date(subscription.trialEnd);
-  return now < trialEnd && subscription.status === 'trialing';
+  return (
+    !!subscription?.trialEnd &&
+    isFuture(subscription.trialEnd) &&
+    subscription.status === 'trialing'
+  );
 }
 
-/**
- * Get all subscriptions with filters
- * @param {Object} filters - Query filters
- * @returns {Promise<Array>} Array of subscriptions
- */
 async function listSubscriptions(filters = {}) {
   const subscriptions = await dbUnified.read('subscriptions');
   let result = subscriptions;
-
   if (filters.status) {
     result = result.filter(s => s.status === filters.status);
   }
-
   if (filters.plan) {
     result = result.filter(s => s.plan === filters.plan);
   }
-
   if (filters.userId) {
     result = result.filter(s => s.userId === filters.userId);
   }
-
   return result;
 }
 
-/**
- * Get subscription statistics
- * @returns {Promise<Object>} Subscription statistics
- */
 async function getSubscriptionStats() {
   const subscriptions = await dbUnified.read('subscriptions');
-
-  const stats = {
+  return {
     total: subscriptions.length,
     active: subscriptions.filter(s => s.status === 'active').length,
     trialing: subscriptions.filter(s => s.status === 'trialing').length,
@@ -663,8 +501,6 @@ async function getSubscriptionStats() {
       pro_plus: subscriptions.filter(s => s.plan === 'pro_plus').length,
     },
   };
-
-  return stats;
 }
 
 module.exports = {
@@ -683,6 +519,7 @@ module.exports = {
   addBillingRecord,
   updateBillingDates,
   isInTrial,
+  isLiveEntitlement,
   listSubscriptions,
   getSubscriptionStats,
   getAllPlans,

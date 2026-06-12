@@ -10,6 +10,34 @@ const { PLACEHOLDER_PACKAGE_IMAGE, isPlaceholderImage } = require('../utils/pack
 const suppliersRouter = require('./suppliers');
 const router = express.Router();
 
+/**
+ * Canonical set of allowed event type values.
+ * Add new types here — the client-side form and display code read this via
+ * GET /api/v1/me/packages/event-types so there is only one source of truth.
+ */
+const VALID_EVENT_TYPES = new Set([
+  'wedding',
+  'birthday',
+  'corporate',
+  'anniversary',
+  'christening',
+  'graduation',
+  'engagement',
+  'other',
+]);
+
+/** Human-readable labels for each event type, used in API responses. */
+const EVENT_TYPE_LABELS = {
+  wedding:     'Wedding',
+  birthday:    'Birthday',
+  corporate:   'Corporate',
+  anniversary: 'Anniversary',
+  christening: 'Christening',
+  graduation:  'Graduation',
+  engagement:  'Engagement',
+  other:       'Other',
+};
+
 // Dependencies injected by server.js
 let dbUnified;
 let authRequired;
@@ -181,21 +209,45 @@ async function saveImageBase64(base64, namePrefix) {
 }
 
 /**
+ * GET /api/me/packages/event-types
+ * Returns the canonical list of allowed event types with their labels.
+ * Public data (fully static, non-sensitive) used by the supplier dashboard
+ * form to populate checkboxes dynamically. No auth required.
+ */
+router.get('/me/packages/event-types', (req, res) => {
+  const types = [...VALID_EVENT_TYPES].map(value => ({
+    value,
+    label: EVENT_TYPE_LABELS[value] || value.charAt(0).toUpperCase() + value.slice(1),
+  }));
+  res.json({ eventTypes: types });
+});
+
+/**
  * GET /api/me/packages
  * List supplier's packages
  */
-router.get('/me/packages', applyAuthRequired, applyRoleRequired('supplier'), async (req, res) => {
-  try {
-    const mine = (await dbUnified.read('suppliers'))
-      .filter(s => s.ownerUserId === req.user.id)
-      .map(s => s.id);
-    const items = (await dbUnified.read('packages')).filter(p => mine.includes(p.supplierId));
-    res.json({ items });
-  } catch (error) {
-    logger.error('Error reading supplier packages:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+router.get(
+  '/me/packages',
+  applyAuthRequired,
+  applyRoleRequired('supplier'),
+  applyRequireApprovedSupplier,
+  async (req, res) => {
+    try {
+      // Use the approved supplier profile resolved by requireApprovedSupplier where available.
+      const supplierIds = req.supplierProfile?.id
+        ? [req.supplierProfile.id]
+        : (await dbUnified.find('suppliers', { ownerUserId: req.user.id })).map(s => s.id);
+      const items =
+        supplierIds.length > 0
+          ? await dbUnified.find('packages', { supplierId: { $in: supplierIds } })
+          : [];
+      res.json({ items });
+    } catch (error) {
+      logger.error('Error reading supplier packages:', error);
+      return res.status(500).json({ error: 'Internal server error' });
+    }
   }
-});
+);
 
 /**
  * POST /api/me/packages
@@ -210,10 +262,10 @@ router.post(
   applyRequireApprovedSupplier,
   applyCsrfProtection,
   async (req, res) => {
-    const { supplierId, title, description, price, image, primaryCategoryKey, eventTypes } =
-      req.body || {};
-    if (!supplierId || !title) {
-      return res.status(400).json({ error: 'Missing required fields: supplierId and title' });
+    let { supplierId } = req.body || {};
+    const { title, description, price, image, primaryCategoryKey, eventTypes } = req.body || {};
+    if (!title) {
+      return res.status(400).json({ error: 'Missing required field: title' });
     }
 
     // Price is required — suppliers must provide a specific figure
@@ -231,20 +283,55 @@ router.post(
     if (!eventTypes || !Array.isArray(eventTypes) || eventTypes.length === 0) {
       return res
         .status(400)
-        .json({ error: 'At least one event type is required (wedding or other)' });
+        .json({ error: 'At least one event type is required' });
     }
 
-    // Validate event types
-    const validEventTypes = eventTypes.filter(t => t === 'wedding' || t === 'other');
+    // Validate event types against the canonical allowed set
+    const validEventTypes = eventTypes.filter(t => VALID_EVENT_TYPES.has(t));
     if (validEventTypes.length === 0) {
-      return res.status(400).json({ error: 'Event types must be "wedding" or "other"' });
+      return res.status(400).json({
+        error: `Invalid event type(s). Allowed values: ${[...VALID_EVENT_TYPES].join(', ')}`,
+      });
     }
 
-    const own = (await dbUnified.read('suppliers')).find(
-      s => s.id === supplierId && s.ownerUserId === req.user.id
-    );
+    const ownedSuppliers = req.supplierProfile
+      ? [req.supplierProfile]
+      : await dbUnified.find('suppliers', { ownerUserId: req.user.id });
+
+    if (!supplierId && ownedSuppliers.length === 1) {
+      supplierId = ownedSuppliers[0].id;
+      logger.warn(
+        'Package create defaulted missing supplierId to the only owned supplier profile',
+        {
+          userId: req.user.id,
+          supplierId,
+        }
+      );
+    }
+
+    if (!supplierId) {
+      return res.status(400).json({
+        error: 'Missing required field: supplierId',
+        code: 'SUPPLIER_ID_REQUIRED',
+      });
+    }
+
+    const own = ownedSuppliers.find(s => s && s.id === supplierId);
     if (!own) {
-      return res.status(403).json({ error: 'Forbidden' });
+      return res.status(403).json({
+        error: 'Supplier profile ownership failed',
+        code: 'SUPPLIER_PROFILE_OWNERSHIP_FAILED',
+        message: 'Packages can only be created for a supplier profile owned by your account.',
+      });
+    }
+
+    if (own.approved !== true) {
+      return res.status(403).json({
+        error: 'Supplier not approved',
+        code: 'SUPPLIER_NOT_APPROVED',
+        message:
+          'Your supplier profile is pending admin approval. You will be notified once your account has been reviewed.',
+      });
     }
 
     // Check subscription and get package limit
@@ -253,8 +340,7 @@ router.post(
     const packageLimit = features.features.maxPackages;
 
     // Count existing ACTIVE packages for this supplier (paused !== true)
-    const allPkgs = await dbUnified.read('packages');
-    const existingForSupplier = allPkgs.filter(p => p.supplierId === supplierId);
+    const existingForSupplier = await dbUnified.find('packages', { supplierId });
     const activeCount = existingForSupplier.filter(p => p.paused !== true).length;
 
     // Check if active limit is reached (packageLimit = -1 means unlimited)
@@ -315,16 +401,18 @@ router.post(
     } catch (_e) {
       // If settings read fails, default to auto-approved
     }
-    await dbUnified.insertOne('packages', pkg);
+    const savedPkg = await dbUnified.insertOne('packages', pkg);
+    if (!savedPkg) {
+      logger.error('[PACKAGES] insertOne failed', { packageId: pkg.id });
+      return res.status(500).json({ error: 'Failed to save package. Please try again.' });
+    }
     suppliersRouter.invalidatePackageCaches();
 
     // Award partner package bonus if this is the supplier's first package
     // (non-blocking — must not affect the primary create flow)
     try {
       const partnerService = require('../services/partnerService');
-      const existingAfterInsert = (await dbUnified.read('packages')).filter(
-        p => p.supplierId === supplierId
-      );
+      const existingAfterInsert = await dbUnified.find('packages', { supplierId });
       if (existingAfterInsert.length === 1) {
         // This was the first package for this supplier
         await partnerService.awardPackageBonus(req.user.id);
@@ -346,18 +434,16 @@ router.post(
  * @returns {Promise<{pkg: Object, own: Object}|null>}
  */
 async function resolveOwnedPackage(id, req, res) {
-  const [packages, suppliers] = await Promise.all([
-    dbUnified.read('packages'),
-    dbUnified.read('suppliers'),
-  ]);
-
-  const pkg = packages.find(p => p.id === id);
+  const pkg = await dbUnified.findOne('packages', { id });
   if (!pkg) {
     res.status(404).json({ error: 'Package not found' });
     return null;
   }
 
-  const own = suppliers.find(s => s.id === pkg.supplierId && s.ownerUserId === req.user.id);
+  const own = await dbUnified.findOne('suppliers', {
+    id: pkg.supplierId,
+    ownerUserId: req.user.id,
+  });
   if (!own) {
     res.status(403).json({ error: 'Forbidden' });
     return null;
@@ -472,7 +558,7 @@ router.put(
         pkgUpdates.primaryCategoryKey = String(req.body.primaryCategoryKey);
       }
       if (req.body.eventTypes !== undefined && Array.isArray(req.body.eventTypes)) {
-        const validEventTypes = req.body.eventTypes.filter(t => t === 'wedding' || t === 'other');
+        const validEventTypes = req.body.eventTypes.filter(t => VALID_EVENT_TYPES.has(t));
         if (validEventTypes.length > 0) {
           pkgUpdates.eventTypes = validEventTypes;
         }
@@ -578,8 +664,7 @@ router.put(
 
       if (packageLimit !== -1) {
         // Count currently active packages for this supplier (excluding the one being unpaused)
-        const allPkgs = await dbUnified.read('packages');
-        const supplierPkgs = allPkgs.filter(p => p.supplierId === pkg.supplierId);
+        const supplierPkgs = await dbUnified.find('packages', { supplierId: pkg.supplierId });
         const activeCount = supplierPkgs.filter(p => p.paused !== true && p.id !== pkg.id).length;
 
         if (activeCount >= packageLimit) {
@@ -622,13 +707,11 @@ router.post(
     if (!image) {
       return res.status(400).json({ error: 'Missing image' });
     }
-    const pkgs = await dbUnified.read('packages');
-    const p = pkgs.find(x => x.id === req.params.id);
+    const p = await dbUnified.findOne('packages', { id: req.params.id });
     if (!p) {
       return res.status(404).json({ error: 'Not found' });
     }
-    const suppliers = await dbUnified.read('suppliers');
-    const own = suppliers.find(x => x.id === p.supplierId && x.ownerUserId === req.userId);
+    const own = await dbUnified.findOne('suppliers', { id: p.supplierId, ownerUserId: req.userId });
     if (!own) {
       return res.status(403).json({ error: 'Not owner' });
     }
@@ -673,13 +756,11 @@ router.delete(
     if (!url) {
       return res.status(400).json({ error: 'Missing url' });
     }
-    const pkgs = await dbUnified.read('packages');
-    const p = pkgs.find(x => x.id === req.params.id);
+    const p = await dbUnified.findOne('packages', { id: req.params.id });
     if (!p) {
       return res.status(404).json({ error: 'Not found' });
     }
-    const suppliers = await dbUnified.read('suppliers');
-    const own = suppliers.find(x => x.id === p.supplierId && x.ownerUserId === req.userId);
+    const own = await dbUnified.findOne('suppliers', { id: p.supplierId, ownerUserId: req.userId });
     if (!own) {
       return res.status(403).json({ error: 'Not owner' });
     }
@@ -730,14 +811,12 @@ router.put(
       return res.status(400).json({ error: 'urls must be an array' });
     }
 
-    const pkgs = await dbUnified.read('packages');
-    const p = pkgs.find(x => x.id === req.params.id);
+    const p = await dbUnified.findOne('packages', { id: req.params.id });
     if (!p) {
       return res.status(404).json({ error: 'Not found' });
     }
 
-    const suppliers = await dbUnified.read('suppliers');
-    const own = suppliers.find(x => x.id === p.supplierId && x.ownerUserId === req.userId);
+    const own = await dbUnified.findOne('suppliers', { id: p.supplierId, ownerUserId: req.userId });
     if (!own) {
       return res.status(403).json({ error: 'Not owner' });
     }
@@ -802,8 +881,7 @@ router.post(
   applyRoleRequired('admin'),
   applyCsrfProtection,
   async (req, res) => {
-    const all = await dbUnified.read('packages');
-    const pkg = all.find(p => p.id === req.params.id);
+    const pkg = await dbUnified.findOne('packages', { id: req.params.id });
     if (!pkg) {
       return res.status(404).json({ error: 'Not found' });
     }
@@ -828,8 +906,7 @@ router.post(
   applyRoleRequired('admin'),
   applyCsrfProtection,
   async (req, res) => {
-    const all = await dbUnified.read('packages');
-    const pkg = all.find(p => p.id === req.params.id);
+    const pkg = await dbUnified.findOne('packages', { id: req.params.id });
     if (!pkg) {
       return res.status(404).json({ error: 'Not found' });
     }
@@ -855,8 +932,7 @@ router.put(
   applyCsrfProtection,
   async (req, res) => {
     const { id } = req.params;
-    const packages = await dbUnified.read('packages');
-    const pkg = packages.find(p => p.id === id);
+    const pkg = await dbUnified.findOne('packages', { id });
 
     if (!pkg) {
       return res.status(404).json({ error: 'Package not found' });
@@ -918,8 +994,7 @@ router.delete(
   applyCsrfProtection,
   async (req, res) => {
     const { id } = req.params;
-    const packages = await dbUnified.read('packages');
-    const pkg = packages.find(p => p.id === id);
+    const pkg = await dbUnified.findOne('packages', { id });
 
     if (!pkg) {
       return res.status(404).json({ error: 'Package not found' });
@@ -943,10 +1018,9 @@ router.post(
   async (req, res) => {
     try {
       const packageId = req.params.id;
-      const packages = await dbUnified.read('packages');
-      const packageIndex = packages.findIndex(p => p.id === packageId);
+      const pkgForUpload = await dbUnified.findOne('packages', { id: packageId });
 
-      if (packageIndex === -1) {
+      if (!pkgForUpload) {
         return res.status(404).json({ error: 'Package not found' });
       }
 
@@ -967,7 +1041,7 @@ router.post(
         'supplier'
       );
 
-      const pkg = packages[packageIndex];
+      const pkg = pkgForUpload;
       const uploadedUrl = imageData.optimized || imageData.large;
 
       // Build update: always set pkg.image; also prepend to gallery so the
@@ -994,7 +1068,7 @@ router.post(
 
       res.json({
         ok: true,
-        package: { ...packages[packageIndex], ...imageUpdates },
+        package: { ...pkgForUpload, ...imageUpdates },
         imageUrl: imageUpdates.image,
       });
     } catch (error) {

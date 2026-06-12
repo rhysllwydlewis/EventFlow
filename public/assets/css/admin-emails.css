@@ -1,0 +1,244 @@
+.email-centre-admin {
+  color: #102a43;
+}
+
+.email-centre-hero .header-content,
+.email-log-card-head,
+.email-log-dialog-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.email-centre-eyebrow {
+  margin: 0 0 0.35rem;
+  color: #0b8073;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.email-centre-hero-actions,
+.email-centre-filter-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.email-centre-tabs {
+  display: inline-flex;
+  gap: 0.35rem;
+  padding: 0.35rem;
+  margin: 1rem 0 1.25rem;
+  border-radius: 999px;
+  background: #eef8f6;
+}
+
+.email-centre-tab {
+  border: 0;
+  border-radius: 999px;
+  padding: 0.75rem 1rem;
+  background: transparent;
+  color: #31566b;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.email-centre-tab.is-active,
+.email-centre-tab:focus-visible {
+  background: linear-gradient(135deg, #0b8073, #13b6a2);
+  color: #fff;
+  outline: none;
+}
+
+.email-centre-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+.email-stat-card {
+  padding: 1rem;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 10px 30px rgba(15, 35, 55, 0.08);
+}
+
+.email-stat-card span {
+  display: block;
+  color: #64748b;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.email-stat-card strong {
+  display: block;
+  margin-top: 0.25rem;
+  color: #0b8073;
+  font-size: 1.8rem;
+}
+
+.email-centre-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 0.85rem;
+  align-items: end;
+  margin-bottom: 1rem;
+}
+
+.email-centre-filters label span {
+  display: block;
+  margin-bottom: 0.25rem;
+  color: #4b6475;
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
+.email-centre-filters input,
+.email-centre-filters select {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid #d8e4ea;
+  border-radius: 12px;
+  padding: 0.65rem 0.75rem;
+}
+
+.email-log-table-wrap {
+  overflow-x: auto;
+}
+
+.email-log-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 900px;
+}
+
+.email-log-table th,
+.email-log-table td {
+  padding: 0.8rem 0.65rem;
+  border-bottom: 1px solid #eef2f4;
+  text-align: left;
+  vertical-align: top;
+}
+
+.email-log-table th {
+  color: #476174;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.email-status {
+  display: inline-flex;
+  padding: 0.25rem 0.55rem;
+  border-radius: 999px;
+  background: #e8f7f3;
+  color: #0b8073;
+  font-weight: 800;
+  font-size: 0.8rem;
+}
+
+.email-status--failed,
+.email-status--bounced,
+.email-status--complained {
+  background: #fff1f2;
+  color: #be123c;
+}
+
+.email-status--attempted {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.email-log-empty {
+  text-align: center;
+  color: #64748b;
+}
+
+.email-centre-tool-card {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  max-width: 760px;
+}
+
+.email-centre-tool-icon {
+  display: grid;
+  place-items: center;
+  min-width: 64px;
+  height: 64px;
+  border-radius: 18px;
+  background: #eef8f6;
+  font-size: 2rem;
+}
+
+.email-health-list,
+.email-log-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.85rem;
+}
+
+.email-health-list div,
+.email-log-detail-grid div {
+  padding: 0.85rem;
+  border-radius: 14px;
+  background: #f8fbfc;
+}
+
+.email-health-list dt,
+.email-log-detail-grid dt {
+  color: #64748b;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.email-health-list dd,
+.email-log-detail-grid dd {
+  margin: 0.25rem 0 0;
+  overflow-wrap: anywhere;
+  color: #102a43;
+  font-weight: 700;
+}
+
+.email-log-dialog {
+  width: min(900px, calc(100vw - 2rem));
+  border: 0;
+  border-radius: 22px;
+  padding: 1.25rem;
+  box-shadow: 0 24px 90px rgba(15, 35, 55, 0.25);
+}
+
+.email-log-timeline {
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
+.email-log-timeline li {
+  margin-bottom: 0.85rem;
+}
+
+.email-log-timeline span {
+  display: block;
+  color: #64748b;
+  font-size: 0.85rem;
+}
+
+@media (max-width: 720px) {
+  .email-centre-hero .header-content,
+  .email-log-card-head,
+  .email-log-dialog-head,
+  .email-centre-tool-card {
+    flex-direction: column;
+  }
+
+  .email-centre-tabs {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    border-radius: 18px;
+    width: 100%;
+  }
+}

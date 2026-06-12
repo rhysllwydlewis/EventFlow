@@ -38,7 +38,8 @@ const {
   normaliseState,
   canTransition,
 } = require('../utils/supplierVerificationStateMachine');
-const partnerService = require('../services/partnerService');
+const { ensureSupplierProfileForUser } = require('../services/supplierProfileProvisioning.service');
+const { deleteUserAndOwnedData } = require('../services/adminUserDeletion.service');
 const { sanitiseText } = require('../utils/sanitise');
 
 const router = express.Router();
@@ -417,6 +418,30 @@ router.put(
       adminUpdates.updatedAt = new Date().toISOString();
       await dbUnified.updateOne('users', { id }, { $set: adminUpdates });
 
+      let supplierProfile = null;
+      if (user.role !== 'supplier' && adminUpdates.role === 'supplier') {
+        try {
+          supplierProfile = await ensureSupplierProfileForUser({ ...user, ...adminUpdates });
+        } catch (provisionErr) {
+          await dbUnified.updateOne(
+            'users',
+            { id },
+            { $set: { role: user.role, updatedAt: new Date().toISOString() } }
+          );
+          logger.error('Failed to provision supplier profile after admin v2 role change', {
+            userId: user.id,
+            previousRole: user.role,
+            error: provisionErr.message,
+          });
+          return res.status(500).json({
+            success: false,
+            error: 'Failed to provision supplier profile for role change to supplier.',
+            code: 'SUPPLIER_PROFILE_PROVISIONING_FAILED',
+            timestamp: new Date().toISOString(),
+          });
+        }
+      }
+
       // Create audit log
       await createAuditLog({
         actor: {
@@ -438,9 +463,10 @@ router.put(
         success: true,
         data: {
           id: user.id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
+          name: adminUpdates.name || user.name,
+          email: adminUpdates.email || user.email,
+          role: adminUpdates.role || user.role,
+          supplierProfile,
         },
         message: 'User updated successfully',
         timestamp: new Date().toISOString(),
@@ -491,14 +517,7 @@ router.delete(
         });
       }
 
-      await dbUnified.deleteOne('users', id);
-
-      // Soft-delete any associated partner record to preserve audit trail
-      try {
-        await partnerService.softDeletePartnerByUserId(id);
-      } catch (partnerErr) {
-        logger.warn(`Could not soft-delete partner record for user ${id}:`, partnerErr);
-      }
+      const cascadeSummary = await deleteUserAndOwnedData(user, req.user);
 
       // Create audit log
       await createAuditLog({
@@ -515,6 +534,9 @@ router.delete(
         details: {
           email: user.email,
           name: user.name,
+          supplierIds: cascadeSummary.supplierIds,
+          deletedPackages: cascadeSummary.deletedPackages,
+          cascadeSummary,
         },
         ipAddress: req.ip,
         userAgent: req.get('user-agent'),
@@ -523,14 +545,16 @@ router.delete(
       res.json({
         success: true,
         message: 'User deleted successfully',
+        cascadeSummary,
         timestamp: new Date().toISOString(),
       });
     } catch (error) {
       logger.error('Failed to delete user', { error: error.message });
-      res.status(500).json({
+      res.status(error.status || 500).json({
         success: false,
         error: error.message,
-        code: 'DELETE_USER_FAILED',
+        code: error.code || 'DELETE_USER_FAILED',
+        cascadeSummary: error.summary,
         timestamp: new Date().toISOString(),
       });
     }

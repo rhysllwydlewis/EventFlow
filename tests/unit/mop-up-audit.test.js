@@ -48,6 +48,14 @@ const publicCalendarHtml = fs.readFileSync(
   path.join(__dirname, '../../public/public-calendar.html'),
   'utf8'
 );
+const eventDetailInitSrc = fs.readFileSync(
+  path.join(__dirname, '../../public/assets/js/pages/event-detail-init.js'),
+  'utf8'
+);
+const serveStaticSrc = fs.readFileSync(
+  path.join(__dirname, '../../scripts/serve-static.js'),
+  'utf8'
+);
 const publicCalendarInitSrc = fs.readFileSync(
   path.join(__dirname, '../../public/assets/js/pages/public-calendar-init.js'),
   'utf8'
@@ -313,5 +321,23 @@ describe('public-calendar-init.js — publisher categories match server model', 
     for (const cat of PUBLISHER_CATEGORIES) {
       expect(publicCalendarInitSrc).toContain(`'${cat}'`);
     }
+  });
+});
+
+describe('event-detail-init.js — no native report dialogs', () => {
+  it('uses the inline report modal instead of native prompt/confirm dialogs', () => {
+    const violations = eventDetailInitSrc
+      .split('\n')
+      .filter(line => /\b(prompt|confirm)\s*\(/.test(line));
+    expect(violations).toEqual([]);
+    expect(eventDetailInitSrc).toContain('event-report-overlay');
+  });
+});
+
+describe('scripts/serve-static.js — public calendar visual stubs', () => {
+  it('serves representative public calendar API data and clean event detail URLs', () => {
+    expect(serveStaticSrc).toContain('/api/v1/public-calendar/events');
+    expect(serveStaticSrc).toContain("app.get('/events/:slug'");
+    expect(serveStaticSrc).toContain('mockPublicCalendarEvents');
   });
 });

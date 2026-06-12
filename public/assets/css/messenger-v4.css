@@ -1108,6 +1108,10 @@
   padding: var(--messenger-space-2xl);
   text-align: center;
   color: var(--ef-text-muted);
+  border-radius: 24px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.88), rgba(240, 253, 250, 0.72));
+  border: 1px solid rgba(19, 182, 162, 0.18);
+  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.08);
 }
 
 .messenger-v4__empty-icon {

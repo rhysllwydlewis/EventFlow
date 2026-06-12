@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>EventFlow Google Sign-In Diagnostics</title>
+    <style>
+      body {
+        font-family:
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          sans-serif;
+        margin: 0;
+        background: #f6f8f7;
+        color: #17332f;
+      }
+      main {
+        max-width: 920px;
+        margin: 0 auto;
+        padding: 32px 20px;
+      }
+      h1 {
+        margin: 0 0 8px;
+        font-size: clamp(1.8rem, 4vw, 2.6rem);
+      }
+      .card {
+        background: #fff;
+        border: 1px solid rgba(23, 51, 47, 0.12);
+        border-radius: 18px;
+        box-shadow: 0 18px 45px rgba(23, 51, 47, 0.08);
+        padding: 20px;
+        margin-top: 18px;
+      }
+      dt {
+        font-weight: 700;
+        margin-top: 14px;
+      }
+      dd {
+        margin: 6px 0 0;
+        padding: 10px 12px;
+        background: #f1f5f4;
+        border-radius: 10px;
+        overflow-wrap: anywhere;
+        font-family: ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace;
+      }
+      .ok {
+        color: #0f7a43;
+        font-weight: 700;
+      }
+      .warn {
+        color: #9f5b00;
+        font-weight: 700;
+      }
+      .bad {
+        color: #a12828;
+        font-weight: 700;
+      }
+      button {
+        border: 0;
+        border-radius: 999px;
+        padding: 10px 16px;
+        background: #17332f;
+        color: #fff;
+        cursor: pointer;
+        font-weight: 700;
+      }
+      pre {
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        background: #0d1f1d;
+        color: #e7f5f1;
+        padding: 14px;
+        border-radius: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Google Sign-In Diagnostics</h1>
+      <p>
+        This page exposes only public, non-secret Google Sign-In values from the live deployment so
+        the OAuth client can be checked against Google Cloud.
+      </p>
+
+      <section class="card">
+        <button id="refresh" type="button">Refresh diagnostics</button>
+        <dl id="results"></dl>
+      </section>
+
+      <section class="card">
+        <h2>Expected Google Cloud values</h2>
+        <dl>
+          <dt>Authorised JavaScript origin</dt>
+          <dd>https://event-flow.co.uk</dd>
+          <dt>Authorised redirect URI</dt>
+          <dd>https://event-flow.co.uk/api/auth/callback/google</dd>
+        </dl>
+      </section>
+
+      <section class="card">
+        <h2>Raw diagnostics responses</h2>
+        <pre id="raw">Loading…</pre>
+      </section>
+    </main>
+
+    <script src="/assets/js/pages/google-auth-diagnostics-init.js" defer></script>
+  </body>
+</html>

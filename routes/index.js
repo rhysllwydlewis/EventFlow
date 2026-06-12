@@ -14,6 +14,7 @@ const logger = require('../utils/logger');
 const systemRoutes = require('./system');
 const publicRoutes = require('./public');
 const authRoutes = require('./auth');
+const googleRedirectAuthRoutes = require('./google-redirect-auth');
 const adminRoutes = require('./admin');
 const systemChecksAdminRoutes = require('./system-checks-admin');
 const newsletterRoutes = require('./newsletter');
@@ -30,11 +31,16 @@ const quoteRequestsRoutes = require('./quote-requests');
 const analyticsRoutes = require('./analytics');
 const plansRoutes = require('./plans');
 const guestsRoutes = require('./guests');
+const weddingWebsiteRoutes = require('./wedding-websites');
+const weddingThemeMediaRoutes = require('./wedding-theme-media');
 const savedRoutes = require('./saved');
 const supplierRoutes = require('./supplier');
 const supplierAdminRoutes = require('./supplier-admin');
 const supplierManagementRoutes = require('./supplier-management');
 const suppliersV2Routes = require('./suppliers-v2');
+const supplierProfileSafeRoutes = require('./supplier-profile-safe');
+const supplierProfilePackageCardRoutes = require('./supplier-profile-package-cards');
+const partnerReferralCampaignCapture = require('../middleware/partnerReferralCampaignCapture');
 
 // New extracted route modules
 const suppliersRoutes = require('./suppliers');
@@ -62,6 +68,7 @@ const emailVerificationRoutes = require('./emailVerification');
 const catalogRoutes = require('./catalog');
 const publicCalendarRoutes = require('./public-calendar');
 const customerCalendarRoutes = require('./customer-calendar');
+const customerDashboardRoutes = require('./customer-dashboard');
 const emailUnsubscribeRoutes = require('./emailUnsubscribe');
 const telemetryRoutes = require('./telemetry');
 
@@ -108,8 +115,13 @@ function mountRoutes(app, deps) {
   if (deps && authRoutes.initializeDependencies) {
     authRoutes.initializeDependencies(deps);
   }
-  app.use('/api/v1/auth', authRoutes);
-  app.use('/api/auth', authRoutes); // Backward compatibility
+  app.use('/api/v1/auth', partnerReferralCampaignCapture, authRoutes);
+  app.use('/api/auth', partnerReferralCampaignCapture, authRoutes); // Backward compatibility
+
+  // Sign in with Google redirect-mode callback. This is mounted separately from
+  // the JSON auth API because Google posts x-www-form-urlencoded credentials.
+  app.use('/api/v1/auth', googleRedirectAuthRoutes);
+  app.use('/api/auth', googleRedirectAuthRoutes); // Backward compatibility
 
   // Email verification routes
   app.use('/api/v1/auth', emailVerificationRoutes);
@@ -132,13 +144,29 @@ function mountRoutes(app, deps) {
   app.use('/api/v1/admin/campaigns', adminCampaignsRoutes);
   app.use('/api/admin/campaigns', adminCampaignsRoutes); // Backward compatibility
 
+  // Admin email preview routes
+  const adminEmailPreviewRoutes = require('./admin-email-previews');
+  app.use('/api/v1/admin/email-previews', adminEmailPreviewRoutes);
+  app.use('/api/admin/email-previews', adminEmailPreviewRoutes); // Backward compatibility
+
+  // Admin Email Centre and sent email log routes
+  const adminEmailCentreRoutes = require('./admin-email-centre');
+  const adminEmailLogsRoutes = require('./admin-email-logs');
+  app.use('/api/v1/admin/email-centre', adminEmailCentreRoutes);
+  app.use('/api/admin/email-centre', adminEmailCentreRoutes); // Backward compatibility
+  app.use('/api/v1/admin/email-logs', adminEmailLogsRoutes);
+  app.use('/api/admin/email-logs', adminEmailLogsRoutes); // Backward compatibility
+
+  // Postmark delivery webhooks (Basic Auth protected, no admin session required)
+  const postmarkWebhookRoutes = require('./postmark-webhook');
+  app.use('/api/v1/webhooks', postmarkWebhookRoutes);
+  app.use('/api/webhooks', postmarkWebhookRoutes); // Backward compatibility
+
   // System-checks admin routes
   app.use('/api/v1/admin', systemChecksAdminRoutes);
   app.use('/api/admin', systemChecksAdminRoutes); // Backward compatibility
 
   // Admin debug routes (emergency auth debugging)
-  // SECURITY: Only mounted in non-production environments with explicit opt-in.
-  // Set ENABLE_ADMIN_DEBUG_ROUTES=true to enable (never default to true in production).
   const isProduction = process.env.NODE_ENV === 'production';
   const debugRoutesEnabled = process.env.ENABLE_ADMIN_DEBUG_ROUTES === 'true';
 
@@ -167,9 +195,7 @@ function mountRoutes(app, deps) {
       : 'ENABLE_ADMIN_DEBUG_ROUTES not set to true';
     adminDebugStatusRoutes.setDebugRoutesStatus(false, disabledReason);
     logger.info(
-      `[admin-debug] Debug routes DISABLED and NOT mounted${
-        isProduction ? ' (production environment)' : ' (ENABLE_ADMIN_DEBUG_ROUTES not set to true)'
-      }`
+      `[admin-debug] Debug routes DISABLED and NOT mounted${isProduction ? ' (production environment)' : ' (ENABLE_ADMIN_DEBUG_ROUTES not set to true)'}`
     );
   }
 
@@ -182,16 +208,11 @@ function mountRoutes(app, deps) {
   app.use('/api/payments', paymentsRoutes); // Backward compatibility
 
   // Billing alias routes (used by app.js supplier upgrade flow)
-  // Shared key resolution: prefer STRIPE_SECRET_KEY, fall back to STRIPE_SECRET_KEY_LIVE
   const getBillingStripeKey = () =>
     process.env.STRIPE_SECRET_KEY || process.env.STRIPE_SECRET_KEY_LIVE || '';
-
-  // GET /api/v1/billing/config - returns whether Stripe billing is enabled
   app.get('/api/v1/billing/config', (_req, res) => {
     res.json({ enabled: !!getBillingStripeKey() });
   });
-
-  // POST /api/v1/billing/checkout - creates a Stripe checkout session for the default Pro plan
   app.post('/api/v1/billing/checkout', deps.authRequired, deps.csrfProtection, async (req, res) => {
     try {
       const stripeKey = getBillingStripeKey();
@@ -223,248 +244,186 @@ function mountRoutes(app, deps) {
     }
   });
 
-  // Pexels image search routes
   app.use('/api/v1/pexels', pexelsRoutes);
-  app.use('/api/pexels', pexelsRoutes); // Backward compatibility
-
-  // Profile routes
+  app.use('/api/pexels', pexelsRoutes);
   app.use('/api/v1/profile', profileRoutes);
-  app.use('/api/profile', profileRoutes); // Backward compatibility
-
-  // Reports routes
+  app.use('/api/profile', profileRoutes);
   app.use('/api/v1/reports', reportsRoutes);
-  app.use('/api/reports', reportsRoutes); // Backward compatibility
-
-  // Reviews routes (public endpoint at /api/reviews for homepage testimonials)
-  // Note: /api/v2/reviews is mounted separately in server.js for v2 API endpoints
+  app.use('/api/reports', reportsRoutes);
   app.use('/api/v1/reviews', reviewsV2Routes);
-  app.use('/api/reviews', reviewsV2Routes); // Backward compatibility
-
-  // Tickets routes
+  app.use('/api/reviews', reviewsV2Routes);
   app.use('/api/v1/tickets', ticketsRoutes);
-  app.use('/api/tickets', ticketsRoutes); // Backward compatibility
-
-  // Webhook routes
+  app.use('/api/tickets', ticketsRoutes);
   app.use('/api/v1/webhooks', webhooksRoutes);
-  app.use('/api/webhooks', webhooksRoutes); // Backward compatibility
-
-  // Search V2 routes (advanced search with caching and analytics)
+  app.use('/api/webhooks', webhooksRoutes);
   app.use('/api/v2/search', searchV2Routes);
 
-  // Shortlist routes (user favorites)
+  // Wedding website and RSVP routes
+  app.use('/api/v1/me/plans', weddingThemeMediaRoutes);
+  app.use('/api/me/plans', weddingThemeMediaRoutes);
+  app.use('/api/v1', weddingThemeMediaRoutes);
+  app.use('/api', weddingThemeMediaRoutes);
+  app.use('/api/v1/me/plans', weddingWebsiteRoutes);
+  app.use('/api/me/plans', weddingWebsiteRoutes); // Backward compatibility
+  app.use('/api/v1', weddingWebsiteRoutes);
+  app.use('/api', weddingWebsiteRoutes); // Backward compatibility
+
   app.use('/api/v1/shortlist', shortlistRoutes);
-  app.use('/api/shortlist', shortlistRoutes); // Backward compatibility
-
-  // Quote request routes (customer to supplier inquiries)
+  app.use('/api/shortlist', shortlistRoutes);
   app.use('/api/v1/quote-requests', quoteRequestsRoutes);
-  app.use('/api/quote-requests', quoteRequestsRoutes); // Backward compatibility
-
-  // Analytics routes (event tracking)
+  app.use('/api/quote-requests', quoteRequestsRoutes);
   app.use('/api/v1/analytics', analyticsRoutes);
-  app.use('/api/analytics', analyticsRoutes); // Backward compatibility
-
-  // Plans routes (user wedding/event plans)
+  app.use('/api/analytics', analyticsRoutes);
   app.use('/api/v1/me/plans', plansRoutes);
-  app.use('/api/me/plans', plansRoutes); // Backward compatibility
-
-  // Customer calendar entries (personal meetings/events/appointments)
+  app.use('/api/me/plans', plansRoutes);
   app.use('/api/v1/me/calendar-entries', customerCalendarRoutes);
-  app.use('/api/me/calendar-entries', customerCalendarRoutes); // Backward compatibility
+  app.use('/api/me/calendar-entries', customerCalendarRoutes);
 
-  // Guests routes (guest list management for plans)
+  // Customer dashboard aggregated API
+  app.use('/api/v1/customer', customerDashboardRoutes);
+  app.use('/api/customer', customerDashboardRoutes);
   app.use('/api/v1/me/plans', guestsRoutes);
-  app.use('/api/me/plans', guestsRoutes); // Backward compatibility
-
-  // Saved items routes (user favorites)
+  app.use('/api/me/plans', guestsRoutes);
   app.use('/api/v1/me/saved', savedRoutes);
-  app.use('/api/me/saved', savedRoutes); // Backward compatibility
-
-  // Supplier routes (trial activation, analytics)
+  app.use('/api/me/saved', savedRoutes);
   app.use('/api/v1/supplier', supplierRoutes);
-  app.use('/api/supplier', supplierRoutes); // Backward compatibility
+  app.use('/api/supplier', supplierRoutes);
 
-  // Supplier Admin routes (admin-only supplier management)
   if (deps && supplierAdminRoutes.initializeDependencies) {
     supplierAdminRoutes.initializeDependencies(deps);
   }
   app.use('/api/v1/admin', supplierAdminRoutes);
-  app.use('/api/admin', supplierAdminRoutes); // Backward compatibility
-
-  // Supplier Management routes (supplier owner CRUD and analytics)
+  app.use('/api/admin', supplierAdminRoutes);
   if (deps && supplierManagementRoutes.initializeDependencies) {
     supplierManagementRoutes.initializeDependencies(deps);
   }
-  // Mount at /api/me/suppliers for routes like POST /api/me/suppliers, PATCH /api/me/suppliers/:id
   app.use('/api/v1/me/suppliers', supplierManagementRoutes);
-  app.use('/api/me/suppliers', supplierManagementRoutes); // Backward compatibility
-  // Also mount at /api/me for /api/me/subscription/upgrade route
+  app.use('/api/me/suppliers', supplierManagementRoutes);
   app.use('/api/v1/me', supplierManagementRoutes);
-  app.use('/api/me', supplierManagementRoutes); // Backward compatibility
-
-  // Suppliers V2 routes (photo gallery management)
+  app.use('/api/me', supplierManagementRoutes);
   if (deps && suppliersV2Routes.initializeDependencies) {
     suppliersV2Routes.initializeDependencies(deps);
   }
   app.use('/api/v1/me/suppliers', suppliersV2Routes);
-  app.use('/api/me/suppliers', suppliersV2Routes); // Backward compatibility
+  app.use('/api/me/suppliers', suppliersV2Routes);
 
-  // ===== NEW EXTRACTED ROUTES (from server.js refactor) =====
-
-  // Suppliers & Packages routes (Phase 1)
+  if (deps && supplierProfilePackageCardRoutes.initializeDependencies) {
+    supplierProfilePackageCardRoutes.initializeDependencies(deps);
+  }
+  app.use('/api/v1', supplierProfilePackageCardRoutes);
+  app.use('/api', supplierProfilePackageCardRoutes);
+  if (deps && supplierProfileSafeRoutes.initializeDependencies) {
+    supplierProfileSafeRoutes.initializeDependencies(deps);
+  }
+  app.use('/api/v1', supplierProfileSafeRoutes);
+  app.use('/api', supplierProfileSafeRoutes);
   if (deps && suppliersRoutes.initializeDependencies) {
     suppliersRoutes.initializeDependencies(deps);
   }
   app.use('/api/v1', suppliersRoutes);
-  app.use('/api', suppliersRoutes); // Backward compatibility
-
-  // Packages routes (Phase 1 - Step 1)
+  app.use('/api', suppliersRoutes);
   if (deps && packagesRoutes.initializeDependencies) {
     packagesRoutes.initializeDependencies(deps);
   }
   app.use('/api/v1', packagesRoutes);
-  app.use('/api', packagesRoutes); // Backward compatibility
-
-  // Categories routes (Phase 2)
+  app.use('/api', packagesRoutes);
   if (deps && categoriesRoutes.initializeDependencies) {
     categoriesRoutes.initializeDependencies(deps);
   }
   app.use('/api/v1/categories', categoriesRoutes);
-  app.use('/api/categories', categoriesRoutes); // Backward compatibility
-
-  // Plans Legacy & Notes routes (Phase 3)
+  app.use('/api/categories', categoriesRoutes);
   if (deps && plansLegacyRoutes.initializeDependencies) {
     plansLegacyRoutes.initializeDependencies(deps);
   }
   app.use('/api/v1', plansLegacyRoutes);
-  app.use('/api', plansLegacyRoutes); // Backward compatibility
-
-  // Marketplace routes (Phase 4)
+  app.use('/api', plansLegacyRoutes);
   if (deps && marketplaceRoutes.initializeDependencies) {
     marketplaceRoutes.initializeDependencies(deps);
   }
   app.use('/api/v1/marketplace', marketplaceRoutes);
-  app.use('/api/marketplace', marketplaceRoutes); // Backward compatibility
-
-  // Discovery routes (Phase 5)
+  app.use('/api/marketplace', marketplaceRoutes);
   if (deps && discoveryRoutes.initializeDependencies) {
     discoveryRoutes.initializeDependencies(deps);
   }
   app.use('/api/v1/discovery', discoveryRoutes);
-  app.use('/api/discovery', discoveryRoutes); // Backward compatibility
-
-  // Search routes (Phase 5)
+  app.use('/api/discovery', discoveryRoutes);
   if (deps && searchRoutes.initializeDependencies) {
     searchRoutes.initializeDependencies(deps);
   }
   app.use('/api/v1/search', searchRoutes);
-  app.use('/api/search', searchRoutes); // Backward compatibility
-
-  // Reviews routes (Phase 5)
+  app.use('/api/search', searchRoutes);
   if (deps && reviewsRoutes.initializeDependencies) {
     reviewsRoutes.initializeDependencies(deps);
   }
   app.use('/api/v1', reviewsRoutes);
-  app.use('/api', reviewsRoutes); // Backward compatibility
-
-  // Photos routes (Phase 6)
+  app.use('/api', reviewsRoutes);
   if (deps && photosRoutes.initializeDependencies) {
     photosRoutes.initializeDependencies(deps);
   }
   app.use('/api/v1', photosRoutes);
-  app.use('/api', photosRoutes); // Backward compatibility
-
-  // Metrics routes (Phase 7)
+  app.use('/api', photosRoutes);
   if (deps && metricsRoutes.initializeDependencies) {
     metricsRoutes.initializeDependencies(deps);
   }
   app.use('/api/v1', metricsRoutes);
-  app.use('/api', metricsRoutes); // Backward compatibility
-
-  // Cache routes (Phase 7)
+  app.use('/api', metricsRoutes);
   if (deps && cacheRoutes.initializeDependencies) {
     cacheRoutes.initializeDependencies(deps);
   }
   app.use('/api/v1/admin/cache', cacheRoutes);
-  app.use('/api/admin/cache', cacheRoutes); // Backward compatibility
-  app.use('/api/v1/admin', cacheRoutes); // For /database/metrics route
-  app.use('/api/admin', cacheRoutes); // For /database/metrics route - Backward compatibility
-
-  // Miscellaneous routes (Phase 7) — venues/near
+  app.use('/api/admin/cache', cacheRoutes);
+  app.use('/api/v1/admin', cacheRoutes);
+  app.use('/api/admin', cacheRoutes);
   if (deps && miscRoutes.initializeDependencies) {
     miscRoutes.initializeDependencies(deps);
   }
   app.use('/api/v1', miscRoutes);
-  app.use('/api', legacyApiDeprecation('/api', '/api/v1'), miscRoutes); // Backward compatibility
-
-  // Captcha / ALTCHA (Effort 3.1 — split from misc.js)
+  app.use('/api', legacyApiDeprecation('/api', '/api/v1'), miscRoutes);
   if (deps && captchaRoutes.initializeDependencies) {
     captchaRoutes.initializeDependencies(deps);
   }
   app.use('/api/v1', captchaRoutes);
-  app.use('/api', legacyApiDeprecation('/api', '/api/v1'), captchaRoutes); // Backward compatibility
-
-  // Contact forms (Effort 3.1 — split from misc.js)
+  app.use('/api', legacyApiDeprecation('/api', '/api/v1'), captchaRoutes);
   if (deps && contactRoutes.initializeDependencies) {
     contactRoutes.initializeDependencies(deps);
   }
   app.use('/api/v1', contactRoutes);
-  app.use('/api', legacyApiDeprecation('/api', '/api/v1'), contactRoutes); // Backward compatibility
-
-  // Maintenance message (Effort 3.1 — split from misc.js)
+  app.use('/api', legacyApiDeprecation('/api', '/api/v1'), contactRoutes);
   if (deps && maintenanceRoutes.initializeDependencies) {
     maintenanceRoutes.initializeDependencies(deps);
   }
   app.use('/api/v1', maintenanceRoutes);
-  app.use('/api', legacyApiDeprecation('/api', '/api/v1'), maintenanceRoutes); // Backward compatibility
-
-  // CSP reporting (Effort 3.1 — split from misc.js)
+  app.use('/api', legacyApiDeprecation('/api', '/api/v1'), maintenanceRoutes);
   if (deps && cspRoutes.initializeDependencies) {
     cspRoutes.initializeDependencies(deps);
   }
   app.use('/api/v1', cspRoutes);
-  app.use('/api', legacyApiDeprecation('/api', '/api/v1'), cspRoutes); // Backward compatibility
-
-  // Notifications routes (Step 4 - Server.js refactoring)
+  app.use('/api', legacyApiDeprecation('/api', '/api/v1'), cspRoutes);
   if (deps && notificationsRoutes.initializeDependencies) {
     notificationsRoutes.initializeDependencies(deps);
   }
   app.use('/api/v1/notifications', notificationsRoutes);
-  app.use('/api/notifications', notificationsRoutes); // Backward compatibility
-
-  // Telemetry routes (messenger client metrics)
+  app.use('/api/notifications', notificationsRoutes);
   app.use('/api/v1/telemetry', telemetryRoutes);
-  app.use('/api/telemetry', telemetryRoutes); // Backward compatibility
-
-  // Admin Config routes (Step 8 - Badge & Category Management)
+  app.use('/api/telemetry', telemetryRoutes);
   if (deps && adminConfigRoutes.initializeDependencies) {
     adminConfigRoutes.initializeDependencies(deps);
   }
   app.use('/api/v1/admin', adminConfigRoutes);
-  app.use('/api/admin', adminConfigRoutes); // Backward compatibility
+  app.use('/api/admin', adminConfigRoutes);
 
-  // ===== MESSENGER V4 ROUTES (Next Generation Messaging System) =====
-  // Purpose-built, gold standard real-time chat platform with liquid glass design
   const messengerV4 = require('./messenger-v4');
   if (deps && messengerV4.initialize) {
-    // Pass mongoDb module for lazy db initialization in routes
     const messengerV4Deps = { ...deps };
-    messengerV4Deps.db = deps.mongoDb; // Pass module, routes will call getDb() when needed
-    // Pass the getter function, NOT the resolved value - the WS server is initialized
-    // after HTTP listen() so it would be null if resolved here at startup.
+    messengerV4Deps.db = deps.mongoDb;
     messengerV4Deps.getWebSocketServer = deps.getWebSocketServer || null;
     const messengerV4Router = messengerV4.initialize(messengerV4Deps);
     app.use('/api/v4/messenger', messengerV4Router);
   }
 
-  // ===== LEGACY REDIRECTS =====
-  // Redirect old messages page to new messenger
   app.get('/messages', (req, res) => res.redirect(301, '/messenger/'));
   app.get('/messages.html', (req, res) => res.redirect(301, '/messenger/'));
-
-  // Email unsubscribe routes (public — no auth required)
   app.use('/email', emailUnsubscribeRoutes);
-
-  // Redirect old conversation page to new messenger
   app.get('/conversation', (req, res) => {
     const id = req.query.id;
     if (id) {
@@ -479,10 +438,9 @@ function mountRoutes(app, deps) {
     }
     return res.redirect(301, '/messenger/');
   });
-  // Redirect /conversation/:id path-param style URLs
-  app.get('/conversation/:id', (req, res) => {
-    return res.redirect(301, `/messenger/?conversation=${encodeURIComponent(req.params.id)}`);
-  });
+  app.get('/conversation/:id', (req, res) =>
+    res.redirect(301, `/messenger/?conversation=${encodeURIComponent(req.params.id)}`)
+  );
 }
 
 module.exports = {

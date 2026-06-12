@@ -15,37 +15,37 @@
    ============================================================ */
 body.customer-dashboard-page {
   /* Glass surfaces */
-  --cdlg-bg:              rgba(255, 255, 255, 0.58);
-  --cdlg-bg-hover:        rgba(255, 255, 255, 0.72);
-  --cdlg-border:          rgba(255, 255, 255, 0.32);
-  --cdlg-border-hover:    rgba(255, 255, 255, 0.52);
-  --cdlg-shadow:          0 8px 32px rgba(0, 0, 0, 0.09), 0 2px 8px rgba(0, 0, 0, 0.05);
-  --cdlg-shadow-hover:    0 16px 48px rgba(0, 0, 0, 0.13), 0 4px 12px rgba(0, 0, 0, 0.07);
+  --cdlg-bg: rgba(255, 255, 255, 0.58);
+  --cdlg-bg-hover: rgba(255, 255, 255, 0.72);
+  --cdlg-border: rgba(255, 255, 255, 0.32);
+  --cdlg-border-hover: rgba(255, 255, 255, 0.52);
+  --cdlg-shadow: 0 8px 32px rgba(0, 0, 0, 0.09), 0 2px 8px rgba(0, 0, 0, 0.05);
+  --cdlg-shadow-hover: 0 16px 48px rgba(0, 0, 0, 0.13), 0 4px 12px rgba(0, 0, 0, 0.07);
 
   /* Blur */
-  --cdlg-blur:            16px;
-  --cdlg-blur-light:       8px;
+  --cdlg-blur: 16px;
+  --cdlg-blur-light: 8px;
 
   /* Radius */
-  --cdlg-radius:          20px;
-  --cdlg-radius-sm:       14px;
+  --cdlg-radius: 20px;
+  --cdlg-radius-sm: 14px;
 
   /* Transition */
-  --cdlg-transition:      0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  --cdlg-transition: 0.28s cubic-bezier(0.4, 0, 0.2, 1);
 
   /* Tinted header overlays */
-  --cdlg-teal:            rgba(11, 128, 115, 0.14);
-  --cdlg-teal-border:     rgba(11, 128, 115, 0.25);
-  --cdlg-indigo:          rgba(99, 102, 241, 0.14);
-  --cdlg-indigo-border:   rgba(99, 102, 241, 0.25);
-  --cdlg-blue:            rgba(59, 130, 246, 0.14);
-  --cdlg-blue-border:     rgba(59, 130, 246, 0.25);
-  --cdlg-red:             rgba(239, 68, 68, 0.14);
-  --cdlg-red-border:      rgba(239, 68, 68, 0.25);
-  --cdlg-amber:           rgba(245, 158, 11, 0.14);
-  --cdlg-amber-border:    rgba(245, 158, 11, 0.25);
-  --cdlg-emerald:         rgba(16, 185, 129, 0.14);
-  --cdlg-emerald-border:  rgba(16, 185, 129, 0.25);
+  --cdlg-teal: rgba(11, 128, 115, 0.14);
+  --cdlg-teal-border: rgba(11, 128, 115, 0.25);
+  --cdlg-indigo: rgba(99, 102, 241, 0.14);
+  --cdlg-indigo-border: rgba(99, 102, 241, 0.25);
+  --cdlg-blue: rgba(59, 130, 246, 0.14);
+  --cdlg-blue-border: rgba(59, 130, 246, 0.25);
+  --cdlg-red: rgba(239, 68, 68, 0.14);
+  --cdlg-red-border: rgba(239, 68, 68, 0.25);
+  --cdlg-amber: rgba(245, 158, 11, 0.14);
+  --cdlg-amber-border: rgba(245, 158, 11, 0.25);
+  --cdlg-emerald: rgba(16, 185, 129, 0.14);
+  --cdlg-emerald-border: rgba(16, 185, 129, 0.25);
 }
 
 /* ============================================================
@@ -75,7 +75,7 @@ body.customer-dashboard-page .card {
   border-radius: var(--cdlg-radius);
   box-shadow:
     var(--cdlg-shadow),
-    inset 0 1px 1px rgba(255, 255, 255, 0.70);
+    inset 0 1px 1px rgba(255, 255, 255, 0.7);
   transition:
     box-shadow var(--cdlg-transition),
     border-color var(--cdlg-transition),
@@ -92,9 +92,9 @@ body.customer-dashboard-page .card::before {
   border-radius: inherit;
   background: linear-gradient(
     155deg,
-    rgba(255, 255, 255, 0.40) 0%,
-    rgba(255, 255, 255, 0.10) 40%,
-    rgba(255, 255, 255, 0.00) 65%
+    rgba(255, 255, 255, 0.4) 0%,
+    rgba(255, 255, 255, 0.1) 40%,
+    rgba(255, 255, 255, 0) 65%
   );
   pointer-events: none;
   z-index: 0;
@@ -111,14 +111,22 @@ body.customer-dashboard-page .card:hover {
   border-color: var(--cdlg-border-hover);
   box-shadow:
     var(--cdlg-shadow-hover),
-    inset 0 1px 1px rgba(255, 255, 255, 0.80);
+    inset 0 1px 1px rgba(255, 255, 255, 0.8);
 }
 
 /* Shimmer sweep on hover */
 @keyframes cdlg-shimmer {
-  0%   { transform: translateX(-100%) skewX(-12deg); opacity: 0; }
-  20%  { opacity: 1; }
-  100% { transform: translateX(250%) skewX(-12deg); opacity: 0; }
+  0% {
+    transform: translateX(-100%) skewX(-12deg);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(250%) skewX(-12deg);
+    opacity: 0;
+  }
 }
 
 body.customer-dashboard-page .card::after {
@@ -166,8 +174,8 @@ body.customer-dashboard-page .sd-card-header::after {
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(255, 255, 255, 0.80) 25%,
-    rgba(255, 255, 255, 0.80) 75%,
+    rgba(255, 255, 255, 0.8) 25%,
+    rgba(255, 255, 255, 0.8) 75%,
     transparent 100%
   );
   pointer-events: none;
@@ -175,37 +183,37 @@ body.customer-dashboard-page .sd-card-header::after {
 
 /* Teal */
 body.customer-dashboard-page .sd-card-header--teal {
-  --sd-header-bg:     linear-gradient(135deg, var(--cdlg-teal) 0%, rgba(16, 185, 129, 0.07) 100%);
+  --sd-header-bg: linear-gradient(135deg, var(--cdlg-teal) 0%, rgba(16, 185, 129, 0.07) 100%);
   --sd-header-border: var(--cdlg-teal-border);
 }
 
 /* Blue */
 body.customer-dashboard-page .sd-card-header--blue {
-  --sd-header-bg:     linear-gradient(135deg, var(--cdlg-blue) 0%, rgba(37, 99, 235, 0.07) 100%);
+  --sd-header-bg: linear-gradient(135deg, var(--cdlg-blue) 0%, rgba(37, 99, 235, 0.07) 100%);
   --sd-header-border: var(--cdlg-blue-border);
 }
 
 /* Amber */
 body.customer-dashboard-page .sd-card-header--amber {
-  --sd-header-bg:     linear-gradient(135deg, var(--cdlg-amber) 0%, rgba(251, 191, 36, 0.07) 100%);
+  --sd-header-bg: linear-gradient(135deg, var(--cdlg-amber) 0%, rgba(251, 191, 36, 0.07) 100%);
   --sd-header-border: var(--cdlg-amber-border);
 }
 
 /* Emerald */
 body.customer-dashboard-page .sd-card-header--emerald {
-  --sd-header-bg:     linear-gradient(135deg, var(--cdlg-emerald) 0%, rgba(5, 150, 105, 0.07) 100%);
+  --sd-header-bg: linear-gradient(135deg, var(--cdlg-emerald) 0%, rgba(5, 150, 105, 0.07) 100%);
   --sd-header-border: var(--cdlg-emerald-border);
 }
 
 /* Red */
 body.customer-dashboard-page .sd-card-header--red {
-  --sd-header-bg:     linear-gradient(135deg, var(--cdlg-red) 0%, rgba(220, 38, 38, 0.07) 100%);
+  --sd-header-bg: linear-gradient(135deg, var(--cdlg-red) 0%, rgba(220, 38, 38, 0.07) 100%);
   --sd-header-border: var(--cdlg-red-border);
 }
 
 /* Indigo */
 body.customer-dashboard-page .sd-card-header--indigo {
-  --sd-header-bg:     linear-gradient(135deg, var(--cdlg-indigo) 0%, rgba(139, 92, 246, 0.07) 100%);
+  --sd-header-bg: linear-gradient(135deg, var(--cdlg-indigo) 0%, rgba(139, 92, 246, 0.07) 100%);
   --sd-header-border: var(--cdlg-indigo-border);
 }
 

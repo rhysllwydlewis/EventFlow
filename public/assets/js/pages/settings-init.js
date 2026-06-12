@@ -1,3 +1,12 @@
+'use strict';
+
+function escapeHtml(s) {
+  if (s === null || s === undefined) return '';
+  const d = document.createElement('div');
+  d.textContent = String(s);
+  return d.innerHTML;
+}
+
 // ===== SHARED HELPERS =====
 function getInitials(firstName, lastName) {
   return (
@@ -354,7 +363,13 @@ document.getElementById('restart-tour').addEventListener('click', function () {
 function loadNotificationSettings() {
   const soundEnabled = localStorage.getItem('ef_notification_sound_enabled');
   const volume = localStorage.getItem('ef_notification_volume');
-  document.getElementById('notification-sound-enabled').checked = soundEnabled !== 'false';
+  const soundToggle = document.getElementById('notification-sound-enabled');
+  soundToggle.checked = soundEnabled !== 'false';
+  soundToggle.setAttribute('role', 'switch');
+  soundToggle.setAttribute('aria-checked', String(soundEnabled !== 'false'));
+  soundToggle.addEventListener('change', () => {
+    soundToggle.setAttribute('aria-checked', String(soundToggle.checked));
+  });
   document.getElementById('notification-volume').value = volume || '30';
   document.getElementById('volume-value').textContent = volume || '30';
   updateVolumeControlVisibility();
@@ -586,23 +601,37 @@ loadNotificationSettings();
   const step3 = document.getElementById('delete-step-3');
 
   function showStep(n) {
-    step1.style.display = n === 1 ? 'block' : 'none';
-    step2.style.display = n === 2 ? 'block' : 'none';
-    step3.style.display = n === 3 ? 'block' : 'none';
+    [step1, step2, step3].forEach((el, i) => {
+      if (el) el.hidden = (i + 1) !== n;
+    });
   }
+
+  let _deleteModalOpener = null;
+  const _escapeHandler = e => { if (e.key === 'Escape') closeModal(); };
 
   function openModal() {
     showStep(1);
     document.getElementById('delete-email-input').value = '';
     document.getElementById('delete-email-error').style.display = 'none';
     document.getElementById('delete-step3-error').style.display = 'none';
-    modal.style.display = 'flex';
+    modal.classList.add('is-open');
     document.body.style.overflow = 'hidden';
+    _deleteModalOpener = document.activeElement;
+    document.addEventListener('keydown', _escapeHandler);
+    // Focus the close button for keyboard users
+    requestAnimationFrame(() => {
+      const closeBtn = document.getElementById('delete-modal-close');
+      if (closeBtn) closeBtn.focus();
+    });
   }
 
   function closeModal() {
-    modal.style.display = 'none';
+    modal.classList.remove('is-open');
     document.body.style.overflow = '';
+    document.removeEventListener('keydown', _escapeHandler);
+    if (_deleteModalOpener && typeof _deleteModalOpener.focus === 'function') {
+      _deleteModalOpener.focus();
+    }
   }
 
   // Open modal
@@ -703,9 +732,7 @@ loadNotificationSettings();
   });
 
   // Close modal on Escape key
-  document.addEventListener('keydown', e => {
-    if (e.key === 'Escape' && modal.style.display === 'flex') {
-      closeModal();
-    }
-  });
+  // Escape key handled by _escapeHandler (registered on modal open)
 })();
+
+

@@ -342,6 +342,7 @@
       <nav class="ef-nav-desktop" aria-label="Main navigation">
         <a href="/start" class="ef-nav-link">Plan</a>
         <a href="/suppliers" class="ef-nav-link">Suppliers</a>
+        <a href="/public-calendar" class="ef-nav-link">Events</a>
         <a href="/marketplace" class="ef-nav-link">Marketplace</a>
         <a href="/guides" class="ef-nav-link">Guides</a>
         <a href="/pricing" class="ef-nav-link">Pricing</a>
@@ -396,6 +397,7 @@
     <nav class="ef-mobile-nav" aria-label="Primary navigation">
       <a href="/start" class="ef-mobile-link">Plan an Event</a>
       <a href="/suppliers" class="ef-mobile-link">Browse Suppliers</a>
+      <a href="/public-calendar" class="ef-mobile-link">Events Calendar</a>
       <a href="/marketplace" class="ef-mobile-link">Marketplace</a>
       <a href="/pricing" class="ef-mobile-link">Pricing</a>
       <a href="/guides" class="ef-mobile-link">Guides</a>
@@ -410,7 +412,7 @@
 </header>
 
 <!-- Notification Dropdown (Pre-rendered, shown/hidden by JS) -->
-<div id="notification-dropdown" class="notification-dropdown" style="display: none;">
+<div id="notification-dropdown" class="notification-dropdown" role="dialog" aria-label="Notifications" style="display: none;">
   <div class="notification-header">
     <h3>Notifications</h3>
     <button class="notification-mark-all" id="notification-mark-all-read" type="button">
@@ -511,7 +513,7 @@
     <div class="version">Version: <span id="ef-version-label">loading…</span></div>
     <div class="small"><a href="/guides">Guides</a> ·
       <a href="/credits">Credits</a> · <a href="/contact">Contact</a> · <a href="/legal">Legal Hub</a> · <button type="button" data-cookie-prefs>Cookie preferences</button></div>
-    <div class="small" style="width: 100%; margin-top: 8px; text-align: center;">Operated by <a href="https://vexi.co.uk" target="_blank" rel="noopener noreferrer">VEXI</a></div>
+    <div class="footer-credit small">Operated by <a href="https://vexi.co.uk" target="_blank" rel="noopener noreferrer">VEXI</a></div>
   </div>
   </footer>
 
@@ -590,3 +592,4 @@
 <script src="/assets/js/jadeassist-init.v2.js" defer></script>
 </body>
 </html>
+

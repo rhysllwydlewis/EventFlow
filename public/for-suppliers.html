@@ -48,6 +48,31 @@
     <link rel="stylesheet" href="/assets/css/navbar.css?v=18.3.0" />
   <link rel="stylesheet" href="/assets/css/for-suppliers.css?v=1.0.0" />
   <link rel="stylesheet" href="/assets/css/eventflow-footer.css">
+  <!-- Structured Data: Service schema for For Suppliers page -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Service",
+    "name": "EventFlow Supplier Platform",
+    "description": "Join the UK\'s leading event planning marketplace. Reach thousands of couples and event planners looking for photographers, caterers, venues and more. List your services, manage enquiries and grow your events business.",
+    "provider": {
+      "@type": "Organization",
+      "name": "EventFlow",
+      "url": "https://event-flow.co.uk"
+    },
+    "serviceType": "Event Supplier Directory",
+    "areaServed": {
+      "@type": "Country",
+      "name": "United Kingdom"
+    },
+    "url": "https://event-flow.co.uk/for-suppliers",
+    "offers": {
+      "@type": "Offer",
+      "name": "Supplier Listing Plans",
+      "url": "https://event-flow.co.uk/pricing"
+    }
+  }
+  </script>
 </head>
 <body>
 <!-- TOP NAVBAR - GOLD STANDARD REBUILD -->
@@ -294,7 +319,7 @@
       <a href="/legal">Legal Hub</a> ·
       <button type="button" data-cookie-prefs>Cookie preferences</button>
     </div>
-    <div class="small" style="width: 100%; margin-top: 8px; text-align: center;">Operated by <a href="https://vexi.co.uk" target="_blank" rel="noopener noreferrer">VEXI</a></div>
+    <div class="footer-credit small">Operated by <a href="https://vexi.co.uk" target="_blank" rel="noopener noreferrer">VEXI</a></div>
   </div>
   </footer>
 <script src="/assets/js/components/footer-nav.js" defer></script>

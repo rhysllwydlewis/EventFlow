@@ -7,6 +7,15 @@
 (function () {
   'use strict';
 
+  function escapeHtml(s) {
+    if (s === null || s === undefined) {
+      return '';
+    }
+    const d = document.createElement('div');
+    d.textContent = String(s);
+    return d.innerHTML;
+  }
+
   // Check authentication and get user info
   async function checkAuthAndUpdateButtons() {
     try {
@@ -159,7 +168,8 @@
   // Attach direct checkout click handlers for authenticated users.
   // This replaces the (now-removed) inline script in pricing.html.
   function attachCheckoutHandlers() {
-    const returnUrl = `${window.location.origin}/dashboard/supplier`;
+    const successUrl = `${window.location.origin}/dashboard/supplier?billing=success`;
+    const cancelUrl = `${window.location.origin}/pricing?checkout=cancelled`;
 
     const pricingButtons = document.querySelectorAll('.pricing-cta');
     pricingButtons.forEach(button => {
@@ -202,7 +212,8 @@
             credentials: 'include',
             body: JSON.stringify({
               planId: planId,
-              returnUrl: returnUrl,
+              successUrl,
+              cancelUrl,
             }),
           });
 
@@ -265,9 +276,12 @@
    * @param {'amber'|'green'|'red'} variant - Colour variant key
    */
   function showBanner(message, variant) {
-    // Safe colour map — never interpolate untrusted values into style strings
-    const COLORS = { amber: '#f59e0b', green: '#10b981', red: '#ef4444' };
-    const bg = COLORS[variant] || COLORS.amber;
+    const variantConfig = {
+      amber: { className: 'pricing-notice-banner--info', background: '#f59e0b' },
+      green: { className: 'pricing-notice-banner--success' },
+      red: { className: 'pricing-notice-banner--error' },
+    };
+    const config = variantConfig[variant] || variantConfig.amber;
 
     // Remove any existing pricing banner
     const existing = document.getElementById('pricing-status-banner');
@@ -278,13 +292,16 @@
     const banner = document.createElement('div');
     banner.id = 'pricing-status-banner';
     banner.setAttribute('role', 'status');
-    banner.style.cssText =
-      `position:fixed;bottom:1.25rem;right:1.25rem;background:${bg};color:#fff;` +
-      `padding:0.875rem 1.25rem;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.18);` +
-      `z-index:10000;font-size:.9375rem;font-weight:500;max-width:360px;line-height:1.5;` +
-      `display:flex;align-items:flex-start;gap:0.625rem;`;
+    banner.className = `pricing-notice-banner ${config.className}`;
+    banner.style.display = 'flex';
+    banner.style.alignItems = 'flex-start';
+    banner.style.gap = '0.625rem';
+    banner.style.lineHeight = '1.5';
+    if (config.background) {
+      banner.style.background = config.background;
+    }
     banner.innerHTML =
-      `<span style="flex:1;">${message}</span>` +
+      `<span class="pricing-banner-msg">${escapeHtml(message)}</span>` +
       `<button data-dismiss-pricing-banner aria-label="Dismiss" ` +
       `style="background:none;border:none;color:#fff;cursor:pointer;font-size:1.25rem;` +
       `line-height:1;padding:0;margin-left:0.25rem;flex-shrink:0;">&#x00D7;</button>`;

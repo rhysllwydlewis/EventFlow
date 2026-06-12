@@ -11,13 +11,17 @@ function escapeHtml(unsafe) {
 // Check auth and personalize dashboard
 (async function () {
   try {
-    const response = await fetch('/api/v1/auth/me', { credentials: 'include' });
-    if (!response.ok) {
+    // Use _efFetchOnceJSON so all concurrent /auth/me calls on this page share one request
+    const data = window._efFetchOnceJSON
+      ? await window._efFetchOnceJSON('/api/v1/auth/me', { credentials: 'include' })
+      : await fetch('/api/v1/auth/me', { credentials: 'include' })
+          .then(r => (r.ok ? r.json() : null))
+          .catch(() => null);
+    if (!data) {
       // Redirect to homepage if not authenticated
-      window.location.href = '/';
+      window.location.href = '/auth';
       return;
     }
-    const data = await response.json();
     const user = data.user;
 
     if (user) {

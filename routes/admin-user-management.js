@@ -17,13 +17,119 @@ const validator = require('validator');
 const bcrypt = require('bcryptjs');
 const { passwordOk } = require('../utils/validators');
 const domainAdmin = require('../middleware/domain-admin');
-const partnerService = require('../services/partnerService');
+const verificationProvenance = require('../services/verificationProvenance.service');
+const userProvenance = require('../services/userProvenance.service');
+const adminUserSummary = require('../services/adminUserSummary.service');
+const { ensureSupplierProfileForUser } = require('../services/supplierProfileProvisioning.service');
+const {
+  deleteUserAndOwnedData,
+  mergeSummaries,
+  emptySummary,
+} = require('../services/adminUserDeletion.service');
 
 const router = express.Router();
 
 // Constants for user management
 const VALID_USER_ROLES = ['customer', 'supplier', 'admin'];
 const MAX_NAME_LENGTH = 80;
+
+function sanitizeAdminUser(u, verificationLogs) {
+  const summary = verificationLogs ? verificationProvenance.summariseUser(u, verificationLogs) : {};
+  return {
+    id: u.id || (u._id ? u._id.toString() : undefined),
+    name: u.name,
+    email: u.email,
+    role: u.role,
+    verified: !!u.verified,
+    suspended: !!u.suspended,
+    marketingOptIn: !!u.marketingOptIn,
+    createdAt: u.createdAt,
+    lastLoginAt: u.lastLoginAt || null,
+    subscription: u.subscription || { tier: 'free', status: 'active' },
+    ...userProvenance.safeUserProvenance(u, summary),
+  };
+}
+
+function getUserIdentifier(user) {
+  return user && (user.id || (user._id ? String(user._id) : undefined));
+}
+
+function getUserWriteFilter(user) {
+  if (user && user.id) {
+    return { id: user.id };
+  }
+  return user && user._id ? { _id: user._id } : { id: undefined };
+}
+
+function safeAuditUser(user, reason) {
+  return {
+    id: getUserIdentifier(user),
+    email: user && user.email,
+    role: user && user.role,
+    reason,
+  };
+}
+
+function isProtectedUser(user, actor, action = 'destructive') {
+  if (!user) {
+    return false;
+  }
+  const userId = getUserIdentifier(user);
+  const actorId = getUserIdentifier(actor);
+  if (userId && actorId && String(userId) === String(actorId)) {
+    return true;
+  }
+  if (
+    user.isOwner === true ||
+    user.role === 'owner' ||
+    domainAdmin.isOwnerEmail(user.email || '')
+  ) {
+    return true;
+  }
+  if (action === 'destructive' && user.role === 'admin') {
+    return true;
+  }
+  if (action === 'verify' && user.role === 'admin') {
+    return true;
+  }
+  return false;
+}
+
+function buildBulkResult(userIds, users, actor, action) {
+  const requested = userIds.map(id => String(id));
+  const byId = new Map();
+  for (const user of users || []) {
+    const userId = getUserIdentifier(user);
+    if (userId) {
+      byId.set(String(userId), user);
+    }
+  }
+  const result = {
+    updated: 0,
+    alreadyDone: 0,
+    skippedProtected: 0,
+    notFound: 0,
+    totalRequested: requested.length,
+    skipped: [],
+    targets: [],
+  };
+
+  for (const userId of requested) {
+    const user = byId.get(userId);
+    if (!user) {
+      result.notFound += 1;
+      result.skipped.push({ id: userId, reason: 'not_found' });
+      continue;
+    }
+    if (isProtectedUser(user, actor, action)) {
+      result.skippedProtected += 1;
+      result.skipped.push(safeAuditUser(user, 'protected_account'));
+      continue;
+    }
+    result.targets.push(user);
+  }
+  return result;
+}
 
 // Helper function to parse duration strings like "7d", "1h", "30m"
 function parseDuration(duration) {
@@ -115,23 +221,74 @@ async function findUserByIdOrObjectId(id) {
  * GET /api/admin/users
  * List all users (without password hashes)
  */
+/**
+ * GET /api/admin/users/summary
+ * Returns aggregated user and supplier counts for the dashboard and Users Centre.
+ * Both pages import this so the numbers are always consistent.
+ */
+router.get('/users/summary', authRequired, roleRequired('admin'), async (req, res) => {
+  try {
+    const summary = await adminUserSummary.buildUserSummary();
+    res.json({ ok: true, ...summary });
+  } catch (err) {
+    logger.error('[admin users/summary] Failed to build user summary', {
+      message: err && err.message,
+      stack: err && err.stack,
+      stage: err && err.stage,
+    });
+    res.status(500).json({ ok: false, error: 'Failed to build user summary' });
+  }
+});
+
+/**
+ * GET /api/admin/users/list
+ * Paginated, filtered, safe user list for the Users Centre.
+ * Supports: role, signupMethod, verificationMethod, issue, search, page, limit.
+ * Never returns raw secrets (googleSub, resetToken, verificationToken, passwordHash).
+ */
+router.get('/users/list', authRequired, roleRequired('admin'), async (req, res) => {
+  try {
+    const { role, signupMethod, verificationMethod, issue, search, page, limit } = req.query;
+    const result = await adminUserSummary.listUsers({
+      role,
+      signupMethod,
+      verificationMethod,
+      issue,
+      search,
+      page,
+      limit,
+    });
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    logger.error('[admin users/list] Error:', err.message);
+    res.status(500).json({ ok: false, error: 'Failed to list users', items: [] });
+  }
+});
+
+/**
+ * GET /api/admin/users/:id/detail
+ * Safe detailed user projection including supplier linkage and account health.
+ * Never returns raw secrets.
+ */
+router.get('/users/:id/detail', authRequired, roleRequired('admin'), async (req, res) => {
+  try {
+    const user = await adminUserSummary.getUserDetail(req.params.id);
+    if (!user) {
+      return res.status(404).json({ ok: false, error: 'User not found' });
+    }
+    res.json({ ok: true, user });
+  } catch (err) {
+    logger.error('[admin users/:id/detail] Error:', err.message);
+    res.status(500).json({ ok: false, error: 'Failed to load user detail' });
+  }
+});
+
 router.get('/users', authRequired, roleRequired('admin'), async (req, res) => {
   try {
     const allUsers = await dbUnified.read('users');
-    const users = (allUsers || []).map(u => ({
-      // Fall back to the MongoDB _id string so users created without an explicit `id`
-      // field (e.g. older admin accounts) still receive a non-empty identifier that the
-      // "Manage Subscription" button can use as its data attribute value.
-      id: u.id || (u._id ? u._id.toString() : undefined),
-      name: u.name,
-      email: u.email,
-      role: u.role,
-      verified: !!u.verified,
-      marketingOptIn: !!u.marketingOptIn,
-      createdAt: u.createdAt,
-      lastLoginAt: u.lastLoginAt || null,
-      subscription: u.subscription || { tier: 'free', status: 'active' },
-    }));
+    const verificationLogs = await verificationProvenance.readVerificationLogs();
+    // sanitizeAdminUser preserves the legacy fallback id shape: u.id || u._id.
+    const users = (allUsers || []).map(u => sanitizeAdminUser(u, verificationLogs));
     // Sort newest first by createdAt
     users.sort((a, b) => {
       if (!a.createdAt && !b.createdAt) {
@@ -183,8 +340,8 @@ router.post('/users', authRequired, roleRequired('admin'), csrfProtection, async
     const roleFinal = VALID_USER_ROLES.includes(role) ? role : 'customer';
 
     // Check if user already exists
-    const users = await dbUnified.read('users');
-    if (users.find(u => u.email.toLowerCase() === String(email).toLowerCase())) {
+    const emailNormalized = String(email).toLowerCase();
+    if (await dbUnified.findOne('users', { email: emailNormalized })) {
       return res.status(409).json({ error: 'A user with this email already exists' });
     }
 
@@ -200,9 +357,32 @@ router.post('/users', authRequired, roleRequired('admin'), csrfProtection, async
       verified: true, // Admin-created users are pre-verified
       createdAt: new Date().toISOString(),
       createdBy: req.user.id, // Track who created the user
+      ...userProvenance.adminCreatedProvenance(req.user.id, new Date().toISOString()),
     };
 
-    await dbUnified.insertOne('users', user);
+    const adminCreatedUser = await dbUnified.insertOne('users', user);
+    if (!adminCreatedUser) {
+      logger.error('[ADMIN] insertOne failed for user creation', { email: user.email });
+      return res.status(500).json({ error: 'Failed to create user. Please try again.' });
+    }
+
+    let supplierProfile = null;
+    if (roleFinal === 'supplier') {
+      try {
+        supplierProfile = await ensureSupplierProfileForUser(user);
+      } catch (provisionErr) {
+        await dbUnified.deleteOne('users', { id: user.id });
+        logger.error('[ADMIN] supplier profile provisioning failed for admin-created user', {
+          userId: user.id,
+          email: user.email,
+          error: provisionErr.message,
+        });
+        return res.status(500).json({
+          error: 'Failed to provision supplier profile for admin-created supplier user.',
+          code: 'SUPPLIER_PROFILE_PROVISIONING_FAILED',
+        });
+      }
+    }
 
     // Create audit log
     auditLog({
@@ -215,6 +395,11 @@ router.post('/users', authRequired, roleRequired('admin'), csrfProtection, async
         email: user.email,
         name: user.name,
         role: user.role,
+        signupMethod: user.signupMethod,
+        verificationMethod: user.verificationMethod,
+        verifiedByType: user.verifiedBy && user.verifiedBy.type,
+        adminActorId: req.user.id,
+        supplierProfileId: supplierProfile && supplierProfile.id,
       },
     });
 
@@ -227,6 +412,7 @@ router.post('/users', authRequired, roleRequired('admin'), csrfProtection, async
         email: user.email,
         role: user.role,
         verified: user.verified,
+        supplierProfileId: supplierProfile && supplierProfile.id,
       },
     });
   } catch (error) {
@@ -299,19 +485,8 @@ router.get('/users/search', authRequired, roleRequired('admin'), async (req, res
         sort: { createdAt: -1 },
       });
 
-      // Remove sensitive data
-      const sanitizedUsers = users.map(u => ({
-        id: u.id,
-        name: u.name,
-        email: u.email,
-        role: u.role,
-        verified: !!u.verified,
-        suspended: !!u.suspended,
-        marketingOptIn: !!u.marketingOptIn,
-        createdAt: u.createdAt,
-        lastLoginAt: u.lastLoginAt || null,
-        subscription: u.subscription || { tier: 'free', status: 'active' },
-      }));
+      const verificationLogs = await verificationProvenance.readVerificationLogs();
+      const sanitizedUsers = users.map(u => sanitizeAdminUser(u, verificationLogs));
 
       res.json({
         items: sanitizedUsers,
@@ -384,19 +559,8 @@ router.get('/users/search', authRequired, roleRequired('admin'), async (req, res
       const endIndex = startIndex + (parseInt(limit, 10) || 50);
       const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
 
-      // Remove sensitive data
-      const sanitizedUsers = paginatedUsers.map(u => ({
-        id: u.id,
-        name: u.name,
-        email: u.email,
-        role: u.role,
-        verified: !!u.verified,
-        suspended: !!u.suspended,
-        marketingOptIn: !!u.marketingOptIn,
-        createdAt: u.createdAt,
-        lastLoginAt: u.lastLoginAt || null,
-        subscription: u.subscription || { tier: 'free', status: 'active' },
-      }));
+      const verificationLogs = await verificationProvenance.readVerificationLogs();
+      const sanitizedUsers = paginatedUsers.map(u => sanitizeAdminUser(u, verificationLogs));
 
       res.json({
         items: sanitizedUsers,
@@ -442,16 +606,23 @@ router.get('/marketing-export', authRequired, roleRequired('admin'), async (req,
  * GET /api/admin/users-export
  * Export all users as CSV
  */
-router.get('/users-export', authRequired, roleRequired('admin'), async (req, res) => {
+async function sendUsersCsv(req, res) {
   try {
-    const users = await dbUnified.read('users');
+    const ids = String(req.query.ids || '')
+      .split(',')
+      .map(id => id.trim())
+      .filter(Boolean);
+    const idSet = new Set(ids);
+    const users = (await dbUnified.read('users')).filter(
+      u => !idSet.size || idSet.has(String(getUserIdentifier(u) || ''))
+    );
     const header = 'id,name,email,role,verified,marketingOptIn,createdAt,lastLoginAt\n';
     const rows = users
       .map(u => {
         const esc = v => String(v ?? '').replace(/"/g, '""');
         const verified = u.verified ? 'yes' : 'no';
         const marketing = u.marketingOptIn ? 'yes' : 'no';
-        return `"${esc(u.id)}","${esc(u.name)}","${esc(u.email)}","${esc(u.role)}","${verified}","${marketing}","${esc(u.createdAt)}","${esc(u.lastLoginAt || '')}"`;
+        return `"${esc(getUserIdentifier(u))}","${esc(u.name)}","${esc(u.email)}","${esc(u.role)}","${verified}","${marketing}","${esc(u.createdAt)}","${esc(u.lastLoginAt || '')}"`;
       })
       .join('\n');
     const csv = header + rows + (rows ? '\n' : '');
@@ -462,7 +633,10 @@ router.get('/users-export', authRequired, roleRequired('admin'), async (req, res
     logger.error('Error exporting users:', error);
     return res.status(500).json({ error: 'Internal server error' });
   }
-});
+}
+
+router.get('/users-export', authRequired, roleRequired('admin'), sendUsersCsv);
+router.get('/users/export', authRequired, roleRequired('admin'), sendUsersCsv);
 
 // ---------- User Management ----------
 
@@ -639,7 +813,9 @@ router.post(
         $set: {
           verified: true,
           verifiedAt: now,
-          verifiedBy: req.user.id,
+          verificationMethod: 'manual_admin',
+          verifiedBy: { type: 'admin', userId: req.user.id, reason: 'Manually verified by admin' },
+          emailDeliveryStatus: 'not_required',
           verificationToken: null,
           updatedAt: now,
         },
@@ -653,7 +829,12 @@ router.post(
       action: AUDIT_ACTIONS.USER_VERIFIED,
       targetType: 'user',
       targetId: user.id,
-      details: { email: user.email },
+      details: {
+        email: user.email,
+        verificationMethod: 'manual_admin',
+        verifiedByType: 'admin',
+        adminActorId: req.user.id,
+      },
     });
 
     res.json({
@@ -759,54 +940,70 @@ router.post(
 
       const users = await dbUnified.read('users');
       const now = new Date().toISOString();
-      let verifiedCount = 0;
-      let alreadyVerifiedCount = 0;
-
+      const bulk = buildBulkResult(userIds, users, req.user, 'verify');
       const updatePromises = [];
-      userIds.forEach(userId => {
-        const user = users.find(u => u.id === userId);
-        if (user && !user.verified) {
-          updatePromises.push(
-            dbUnified.updateOne(
-              'users',
-              { id: userId },
-              {
-                $set: {
-                  verified: true,
-                  verifiedAt: now,
-                  verifiedBy: req.user.id,
-                  verificationToken: null,
-                  updatedAt: now,
-                },
-              }
-            )
-          );
-          verifiedCount++;
-        } else if (user && user.verified) {
-          alreadyVerifiedCount++;
+
+      bulk.targets.forEach(user => {
+        if (user.verified || user.emailVerified) {
+          bulk.alreadyDone += 1;
+          return;
         }
+        updatePromises.push(
+          dbUnified.updateOne('users', getUserWriteFilter(user), {
+            $set: {
+              verified: true,
+              emailVerified: true,
+              verifiedAt: now,
+              verificationMethod: 'manual_admin',
+              verifiedBy: {
+                type: 'admin',
+                userId: req.user.id,
+                reason: 'Bulk manually verified by admin',
+              },
+              emailDeliveryStatus: 'not_required',
+              verificationToken: null,
+              emailVerificationToken: null,
+              updatedAt: now,
+            },
+          })
+        );
+        bulk.updated += 1;
       });
 
       await Promise.all(updatePromises);
 
-      // Create audit log
       await auditLog({
         adminId: req.user.id,
         adminEmail: req.user.email,
         action: 'BULK_USERS_VERIFIED',
         targetType: 'users',
         targetId: 'bulk',
-        details: { userIds, verifiedCount, alreadyVerifiedCount },
+        details: {
+          userIds,
+          updated: bulk.updated,
+          alreadyDone: bulk.alreadyDone,
+          skippedProtected: bulk.skippedProtected,
+          notFound: bulk.notFound,
+          totalRequested: bulk.totalRequested,
+          skipped: bulk.skipped,
+          verifiedCount: bulk.updated,
+          alreadyVerifiedCount: bulk.alreadyDone,
+        },
         ipAddress: req.ip || req.connection.remoteAddress,
         userAgent: req.get('user-agent'),
       });
 
       res.json({
         success: true,
-        message: `Successfully verified ${verifiedCount} user(s)`,
-        verifiedCount,
-        alreadyVerifiedCount,
-        totalRequested: userIds.length,
+        message: `Successfully verified ${bulk.updated} user(s)`,
+        updated: bulk.updated,
+        alreadyDone: bulk.alreadyDone,
+        skippedProtected: bulk.skippedProtected,
+        notFound: bulk.notFound,
+        totalRequested: bulk.totalRequested,
+        skipped: bulk.skipped,
+        verifiedCount: bulk.updated,
+        alreadyVerifiedCount: bulk.alreadyDone,
       });
     } catch (error) {
       logger.error('Error bulk verifying users:', error);
@@ -835,57 +1032,71 @@ router.post(
 
       const users = await dbUnified.read('users');
       const now = new Date().toISOString();
-      let updatedCount = 0;
-
+      const bulk = buildBulkResult(userIds, users, req.user, 'destructive');
       const suspendPromises = [];
-      userIds.forEach(userId => {
-        const user = users.find(u => u.id === userId);
-        if (user && user.id !== req.user.id) {
-          // Don't allow admins to suspend themselves
-          const suspendUpdates = {
-            suspended: !!suspended,
-            suspendedAt: suspended ? now : null,
-            suspendedBy: suspended ? req.user.id : null,
-            suspensionReason: suspended ? reason || 'Bulk suspension' : null,
-            suspensionDuration: suspended ? duration : null,
-            suspensionExpiresAt: null,
-            updatedAt: now,
-          };
 
-          // Calculate expiry if duration is provided
-          if (suspended && duration) {
-            const durationMs = parseDuration(duration);
-            if (durationMs > 0) {
-              suspendUpdates.suspensionExpiresAt = new Date(Date.now() + durationMs).toISOString();
-            }
-          }
-
-          suspendPromises.push(
-            dbUnified.updateOne('users', { id: userId }, { $set: suspendUpdates })
-          );
-          updatedCount++;
+      bulk.targets.forEach(user => {
+        if (!!user.suspended === !!suspended) {
+          bulk.alreadyDone += 1;
+          return;
         }
+        const suspendUpdates = {
+          suspended: !!suspended,
+          suspendedAt: suspended ? now : null,
+          suspendedBy: suspended ? req.user.id : null,
+          suspensionReason: suspended ? reason || 'Bulk suspension' : null,
+          suspensionDuration: suspended ? duration : null,
+          suspensionExpiresAt: null,
+          updatedAt: now,
+        };
+
+        if (suspended && duration) {
+          const durationMs = parseDuration(duration);
+          if (durationMs > 0) {
+            suspendUpdates.suspensionExpiresAt = new Date(Date.now() + durationMs).toISOString();
+          }
+        }
+
+        suspendPromises.push(
+          dbUnified.updateOne('users', getUserWriteFilter(user), { $set: suspendUpdates })
+        );
+        bulk.updated += 1;
       });
 
       await Promise.all(suspendPromises);
 
-      // Create audit log
       await auditLog({
         adminId: req.user.id,
         adminEmail: req.user.email,
         action: suspended ? 'BULK_USERS_SUSPENDED' : 'BULK_USERS_UNSUSPENDED',
         targetType: 'users',
         targetId: 'bulk',
-        details: { userIds, count: updatedCount, reason, duration },
+        details: {
+          userIds,
+          updated: bulk.updated,
+          alreadyDone: bulk.alreadyDone,
+          skippedProtected: bulk.skippedProtected,
+          notFound: bulk.notFound,
+          totalRequested: bulk.totalRequested,
+          skipped: bulk.skipped,
+          count: bulk.updated,
+          reason,
+          duration,
+        },
         ipAddress: req.ip || req.connection.remoteAddress,
         userAgent: req.get('user-agent'),
       });
 
       res.json({
         success: true,
-        message: `Successfully ${suspended ? 'suspended' : 'unsuspended'} ${updatedCount} user(s)`,
-        updatedCount,
-        totalRequested: userIds.length,
+        message: `Successfully ${suspended ? 'suspended' : 'unsuspended'} ${bulk.updated} user(s)`,
+        updated: bulk.updated,
+        alreadyDone: bulk.alreadyDone,
+        skippedProtected: bulk.skippedProtected,
+        notFound: bulk.notFound,
+        totalRequested: bulk.totalRequested,
+        skipped: bulk.skipped,
+        updatedCount: bulk.updated,
       });
     } catch (error) {
       logger.error('Error bulk suspending users:', error);
@@ -913,62 +1124,59 @@ router.post(
       }
 
       const users = await dbUnified.read('users');
-      let deletedCount = 0;
+      const bulk = buildBulkResult(userIds, users, req.user, 'destructive');
       const deletedUsers = [];
+      const cascadeSummary = emptySummary();
 
-      // Filter out users that cannot be deleted
-      const deletePromises = [];
-      userIds.forEach(userId => {
-        const user = users.find(u => u.id === userId);
-        if (user) {
-          // Prevent admins from deleting themselves
-          if (user.id === req.user.id) {
-            return;
-          }
-
-          // ⚠️ SECURITY: Prevent deletion of the owner account
-          const isOwner = domainAdmin.isOwnerEmail(user.email) || user.isOwner;
-          if (isOwner) {
-            return;
-          }
-
-          deletedUsers.push({ id: user.id, email: user.email, name: user.name });
-          deletePromises.push(dbUnified.deleteOne('users', userId));
-          deletedCount++;
-        }
-      });
-
-      await Promise.all(deletePromises);
-
-      // Soft-delete partner records for all deleted users to preserve audit trail
-      for (const deletedUser of deletedUsers) {
-        try {
-          await partnerService.softDeletePartnerByUserId(deletedUser.id);
-        } catch (partnerErr) {
-          logger.warn(
-            `Could not soft-delete partner record for user ${deletedUser.id}:`,
-            partnerErr
-          );
-        }
+      for (const user of bulk.targets) {
+        const userId = getUserIdentifier(user);
+        const deletionSummary = await deleteUserAndOwnedData(user, req.user, {
+          skipProtection: true,
+        });
+        mergeSummaries(cascadeSummary, deletionSummary);
+        deletedUsers.push({
+          id: userId,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+          cascade: deletionSummary,
+        });
+        bulk.updated += 1;
       }
 
-      // Create audit log
       await auditLog({
         adminId: req.user.id,
         adminEmail: req.user.email,
         action: 'BULK_USERS_DELETED',
         targetType: 'users',
         targetId: 'bulk',
-        details: { userIds, deletedCount, deletedUsers },
+        details: {
+          userIds,
+          updated: bulk.updated,
+          alreadyDone: bulk.alreadyDone,
+          skippedProtected: bulk.skippedProtected,
+          notFound: bulk.notFound,
+          totalRequested: bulk.totalRequested,
+          skipped: bulk.skipped,
+          deletedCount: bulk.updated,
+          deletedUsers,
+          cascadeSummary,
+        },
         ipAddress: req.ip || req.connection.remoteAddress,
         userAgent: req.get('user-agent'),
       });
 
       res.json({
         success: true,
-        message: `Successfully deleted ${deletedCount} user(s)`,
-        deletedCount,
-        totalRequested: userIds.length,
+        message: `Successfully deleted ${bulk.updated} user(s)`,
+        updated: bulk.updated,
+        alreadyDone: bulk.alreadyDone,
+        skippedProtected: bulk.skippedProtected,
+        notFound: bulk.notFound,
+        totalRequested: bulk.totalRequested,
+        skipped: bulk.skipped,
+        deletedCount: bulk.updated,
+        cascadeSummary,
       });
     } catch (error) {
       logger.error('Error bulk deleting users:', error);
@@ -1745,12 +1953,49 @@ router.put('/users/:id', authRequired, roleRequired('admin'), csrfProtection, as
   }
   if (verified !== undefined) {
     setFields.verified = verified;
+    if (verified === true && user.verified !== true) {
+      setFields.verifiedAt = new Date().toISOString();
+      setFields.verificationMethod = 'manual_admin';
+      setFields.verifiedBy = {
+        type: 'admin',
+        userId: req.user.id,
+        reason: 'Manually verified by admin',
+      };
+      setFields.emailDeliveryStatus = 'not_required';
+    } else if (verified === false && user.verified === true) {
+      setFields.verificationMethod = 'pending';
+      setFields.verifiedBy = null;
+      setFields.verifiedAt = null;
+      setFields.emailDeliveryStatus = user.emailDeliveryStatus || 'pending';
+    }
   }
   if (marketingOptIn !== undefined) {
     setFields.marketingOptIn = marketingOptIn;
   }
 
   await dbUnified.updateOne('users', { id }, { $set: setFields });
+
+  let supplierProfile = null;
+  if (user.role !== 'supplier' && setFields.role === 'supplier') {
+    try {
+      supplierProfile = await ensureSupplierProfileForUser({ ...user, ...setFields });
+    } catch (provisionErr) {
+      await dbUnified.updateOne(
+        'users',
+        { id },
+        { $set: { role: user.role, updatedAt: new Date().toISOString() } }
+      );
+      logger.error('[ADMIN] supplier profile provisioning failed after role change', {
+        userId: user.id,
+        previousRole: user.role,
+        error: provisionErr.message,
+      });
+      return res.status(500).json({
+        error: 'Failed to provision supplier profile for role change to supplier.',
+        code: 'SUPPLIER_PROFILE_PROVISIONING_FAILED',
+      });
+    }
+  }
 
   // Create audit log
   auditLog({
@@ -1759,10 +2004,19 @@ router.put('/users/:id', authRequired, roleRequired('admin'), csrfProtection, as
     action: 'user_edited',
     targetType: 'user',
     targetId: user.id,
-    details: { email: user.email, changes: req.body },
+    details: {
+      email: user.email,
+      changes: req.body,
+      verificationMethod: setFields.verificationMethod || user.verificationMethod || null,
+      verifiedByType: setFields.verifiedBy
+        ? setFields.verifiedBy.type
+        : user.verifiedBy?.type || null,
+      adminActorId: req.user.id,
+      supplierProfileId: supplierProfile && supplierProfile.id,
+    },
   });
 
-  res.json({ success: true, user: { ...user, ...setFields } });
+  res.json({ success: true, user: { ...user, ...setFields }, supplierProfile });
 });
 
 /**
@@ -1797,14 +2051,16 @@ router.delete(
       });
     }
 
-    // Remove the user
-    await dbUnified.deleteOne('users', id);
-
-    // Soft-delete any associated partner record to preserve audit trail
+    let cascadeSummary;
     try {
-      await partnerService.softDeletePartnerByUserId(id);
-    } catch (partnerErr) {
-      logger.warn(`Could not soft-delete partner record for user ${id}:`, partnerErr);
+      cascadeSummary = await deleteUserAndOwnedData(user, req.user);
+    } catch (deleteErr) {
+      logger.error('Error deleting user with owned data:', deleteErr);
+      return res.status(deleteErr.status || 500).json({
+        error: deleteErr.message || 'Failed to delete user',
+        code: deleteErr.code || 'USER_DELETE_FAILED',
+        cascadeSummary: deleteErr.summary,
+      });
     }
 
     // Create audit log
@@ -1814,10 +2070,16 @@ router.delete(
       action: AUDIT_ACTIONS.USER_DELETED,
       targetType: 'user',
       targetId: user.id,
-      details: { email: user.email, name: user.name },
+      details: {
+        email: user.email,
+        name: user.name,
+        supplierIds: cascadeSummary.supplierIds,
+        deletedPackages: cascadeSummary.deletedPackages,
+        cascadeSummary,
+      },
     });
 
-    res.json({ success: true, message: 'User deleted successfully' });
+    res.json({ success: true, message: 'User deleted successfully', cascadeSummary });
   }
 );
 
@@ -2106,6 +2368,36 @@ router.post(
       }
     );
 
+    let supplierProfile = null;
+    if (newRole === 'supplier') {
+      try {
+        supplierProfile = await ensureSupplierProfileForUser({
+          ...user,
+          role: newRole,
+          updatedAt: now,
+        });
+      } catch (provisionErr) {
+        await dbUnified.updateOne(
+          'users',
+          { id },
+          { $set: { role: user.role, updatedAt: new Date().toISOString() } }
+        );
+        logger.error(
+          '[ADMIN] supplier profile provisioning failed after admin revoke role change',
+          {
+            userId: user.id,
+            previousRole: user.role,
+            newRole,
+            error: provisionErr.message,
+          }
+        );
+        return res.status(500).json({
+          error: 'Failed to provision supplier profile for role change to supplier.',
+          code: 'SUPPLIER_PROFILE_PROVISIONING_FAILED',
+        });
+      }
+    }
+
     // Create audit log
     auditLog({
       adminId: req.user.id,
@@ -2117,6 +2409,7 @@ router.post(
         email: user.email,
         previousRole: 'admin',
         newRole: newRole,
+        supplierProfileId: supplierProfile && supplierProfile.id,
       },
     });
 
@@ -2281,11 +2574,105 @@ router.get('/users/:id', authRequired, roleRequired('admin'), async (req, res) =
     return res.status(404).json({ error: 'User not found' });
   }
 
-  // Return user without password
-  // eslint-disable-next-line no-unused-vars
-  const { password, ...userWithoutPassword } = user;
-  res.json(userWithoutPassword);
+  const verificationLogs = await verificationProvenance.readVerificationLogs();
+  res.json(sanitizeAdminUser(user, verificationLogs));
 });
+
+/**
+ * POST /api/admin/users/:id/provision-supplier-profile
+ * Create a missing supplier profile for a supplier-role user.
+ * Idempotent: if a profile already exists the existing one is returned.
+ */
+router.post(
+  '/users/:id/provision-supplier-profile',
+  authRequired,
+  roleRequired('admin'),
+  csrfProtection,
+  async (req, res) => {
+    try {
+      const user = await dbUnified.findOne('users', { id: req.params.id });
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+      if (user.role !== 'supplier') {
+        return res.status(400).json({
+          error: 'User is not a supplier',
+          code: 'NOT_A_SUPPLIER',
+        });
+      }
+      const profile = await ensureSupplierProfileForUser(user);
+      auditLog({
+        adminId: req.user.id,
+        adminEmail: req.user.email,
+        action: 'SUPPLIER_PROFILE_PROVISIONED',
+        targetType: 'user',
+        targetId: user.id,
+        details: { supplierId: profile && profile.id, userEmail: user.email },
+      });
+      logger.info(
+        `[admin] Supplier profile provisioned for user ${user.id} by admin ${req.user.email}`
+      );
+      res.json({ ok: true, supplierId: profile && profile.id });
+    } catch (err) {
+      logger.error('[admin] provision-supplier-profile error:', err.message);
+      res.status(500).json({ error: 'Failed to provision supplier profile' });
+    }
+  }
+);
+
+/**
+ * POST /api/admin/users/bulk-provision-supplier-profiles
+ * Create missing supplier profiles for ALL supplier-role users that don't have one.
+ * Safe to call multiple times (idempotent per user).
+ */
+router.post(
+  '/users/bulk-provision-supplier-profiles',
+  authRequired,
+  roleRequired('admin'),
+  csrfProtection,
+  async (req, res) => {
+    try {
+      const allUsers = await dbUnified.read('users');
+      const supplierUsers = (allUsers || []).filter(u => u.role === 'supplier');
+      const existingProfiles = await dbUnified.read('suppliers');
+      const profiledOwnerIds = new Set(
+        (existingProfiles || []).map(s => s.ownerUserId).filter(Boolean)
+      );
+
+      const missing = supplierUsers.filter(u => u.id && !profiledOwnerIds.has(u.id));
+      let provisioned = 0;
+      const errors = [];
+
+      for (const user of missing) {
+        try {
+          await ensureSupplierProfileForUser(user);
+          provisioned += 1;
+        } catch (err) {
+          errors.push({ userId: user.id, error: err.message });
+          logger.error(`[admin] bulk-provision failed for user ${user.id}:`, err.message);
+        }
+      }
+
+      auditLog({
+        adminId: req.user.id,
+        adminEmail: req.user.email,
+        action: 'SUPPLIER_PROFILES_BULK_PROVISIONED',
+        targetType: 'users',
+        targetId: null,
+        details: { checked: supplierUsers.length, provisioned, errors: errors.length },
+      });
+
+      logger.info(
+        `[admin] Bulk supplier profile provisioning: ${provisioned}/${missing.length} created by ${req.user.email}`
+      );
+
+      res.json({ ok: true, checked: supplierUsers.length, provisioned, errors });
+    } catch (err) {
+      logger.error('[admin] bulk-provision-supplier-profiles error:', err.message);
+      res.status(500).json({ error: 'Failed to bulk provision supplier profiles' });
+    }
+  }
+);
 
 /**
  * POST /api/admin/users/:id/reset-password
@@ -2425,9 +2812,13 @@ router.post(
       return res.status(404).json({ error: 'User not found' });
     }
 
-    // Check if user is already verified
-    if (user.verified === true) {
-      return res.status(400).json({ error: 'User is already verified' });
+    if (!userProvenance.canResendVerification(user)) {
+      return res.status(400).json({
+        error:
+          user.verified === true
+            ? 'User is already verified'
+            : 'No EventFlow verification email is required for this account',
+      });
     }
 
     // Generate new verification token with 24-hour expiration
@@ -2435,9 +2826,10 @@ router.post(
     const tokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
     // Send verification email via Postmark BEFORE saving token
+    let sendResult;
     try {
       logger.info(`📧 Admin ${req.user.email} resending verification email to ${user.email}`);
-      await postmark.sendVerificationEmail(user, verificationToken);
+      sendResult = await postmark.sendVerificationEmail(user, verificationToken);
       logger.info(`✅ Verification email resent successfully to ${user.email}`);
     } catch (emailError) {
       logger.error('❌ Failed to resend verification email:', emailError.message);
@@ -2452,7 +2844,11 @@ router.post(
       'users',
       { id: user.id },
       {
-        $set: { verificationToken, verificationTokenExpiresAt: tokenExpiresAt },
+        $set: {
+          verificationToken,
+          verificationTokenExpiresAt: tokenExpiresAt,
+          ...userProvenance.metadataFromSendResult(sendResult),
+        },
       }
     );
 

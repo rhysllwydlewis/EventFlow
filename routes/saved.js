@@ -22,8 +22,7 @@ const router = express.Router();
 router.get('/', authRequired, async (req, res) => {
   try {
     const userId = req.user.id;
-    const savedItems = await dbUnified.read('savedItems');
-    const userSavedItems = savedItems.filter(item => item.userId === userId);
+    const userSavedItems = await dbUnified.find('savedItems', { userId: userId });
 
     // Populate item details
     const suppliers = await dbUnified.read('suppliers');
@@ -88,23 +87,17 @@ router.post(
 
       // Verify item exists
       if (itemType === 'supplier') {
-        const suppliers = await dbUnified.read('suppliers');
-        if (!suppliers.find(s => s.id === itemId)) {
+        if (!(await dbUnified.findOne('suppliers', { id: itemId }))) {
           return res.status(404).json({ error: 'Supplier not found' });
         }
       } else if (itemType === 'package') {
-        const packages = await dbUnified.read('packages');
-        if (!packages.find(p => p.id === itemId)) {
+        if (!(await dbUnified.findOne('packages', { id: itemId }))) {
           return res.status(404).json({ error: 'Package not found' });
         }
       }
 
-      const savedItems = await dbUnified.read('savedItems');
-
       // Check if already saved
-      const existing = savedItems.find(
-        item => item.userId === userId && item.itemType === itemType && item.itemId === itemId
-      );
+      const existing = await dbUnified.findOne('savedItems', { userId, itemType, itemId });
 
       if (existing) {
         return res.status(400).json({ error: 'Item already saved' });
@@ -119,8 +112,11 @@ router.post(
         savedAt: now,
       };
 
-      savedItems.push(newSavedItem);
-      await dbUnified.insertOne('savedItems', newSavedItem);
+      const savedItemResult = await dbUnified.insertOne('savedItems', newSavedItem);
+      if (!savedItemResult) {
+        logger.error('[SAVED] insertOne failed');
+        return res.status(500).json({ error: 'Failed to save item. Please try again.' });
+      }
 
       res.status(201).json({
         success: true,
@@ -168,25 +164,21 @@ router.delete(
         });
       }
 
-      const savedItems = await dbUnified.read('savedItems');
-      const itemIndex = savedItems.findIndex(
-        item => item.userId === userId && item.itemType === itemType && item.itemId === itemId
-      );
+      const itemToRemove = await dbUnified.findOne('savedItems', { userId, itemType, itemId });
 
-      if (itemIndex === -1) {
+      if (!itemToRemove) {
         return res.status(404).json({ error: 'Saved item not found' });
       }
 
       // Remove the item
-      const removedItem = savedItems[itemIndex];
-      await dbUnified.deleteOne('savedItems', removedItem.id);
+      await dbUnified.deleteOne('savedItems', { id: itemToRemove.id });
 
       res.json({
         success: true,
         message: 'Item removed from saved',
         removedItem: {
-          itemType: removedItem.itemType,
-          itemId: removedItem.itemId,
+          itemType: itemToRemove.itemType,
+          itemId: itemToRemove.itemId,
         },
       });
     } catch (error) {
@@ -214,15 +206,13 @@ router.delete(
       const userId = req.user.id;
       const { id } = req.params;
 
-      const savedItems = await dbUnified.read('savedItems');
-      const itemIndex = savedItems.findIndex(item => item.id === id && item.userId === userId);
+      const removedById = await dbUnified.findOne('savedItems', { id, userId });
 
-      if (itemIndex === -1) {
+      if (!removedById) {
         return res.status(404).json({ error: 'Saved item not found' });
       }
 
-      const removedById = savedItems[itemIndex];
-      await dbUnified.deleteOne('savedItems', removedById.id);
+      await dbUnified.deleteOne('savedItems', { id: removedById.id });
 
       res.json({
         success: true,

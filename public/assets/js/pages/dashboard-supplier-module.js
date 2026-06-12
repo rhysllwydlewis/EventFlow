@@ -32,8 +32,11 @@ initializeFeatureAccess().catch(err => {
 
 // Placeholder function for earnings feature (coming soon)
 window.showEarningsComingSoon = function () {
-  if (typeof Toast !== 'undefined') {
-    Toast.info('Earnings dashboard coming soon! Track your revenue, payments, and invoices.');
+  if (typeof showToast === 'function') {
+    showToast(
+      'Earnings dashboard coming soon! Track your revenue, payments, and invoices.',
+      'info'
+    );
   } else {
     alert('Earnings dashboard coming soon! Track your revenue, payments, and invoices.');
   }
@@ -84,22 +87,18 @@ function showEmailVerificationBanner(userEmail) {
 
   const banner = document.createElement('div');
   banner.id = 'email-verify-banner';
+  banner.className = 'sd-email-verify-banner';
   banner.setAttribute('role', 'alert');
-  banner.style.cssText =
-    'background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:0.75rem 1rem;' +
-    'margin-bottom:1rem;display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;font-size:0.875rem;';
 
   const msg = document.createElement('span');
+  msg.className = 'sd-email-verify-banner__msg';
   msg.textContent =
     '⚠️ Please verify your email address to unlock all features. Check your inbox for a verification link.';
-  msg.style.flex = '1';
 
   const resendBtn = document.createElement('button');
   resendBtn.type = 'button';
+  resendBtn.className = 'sd-email-verify-banner__btn';
   resendBtn.textContent = 'Resend email';
-  resendBtn.style.cssText =
-    'background:none;border:1px solid #d97706;border-radius:6px;padding:0.25rem 0.75rem;' +
-    'cursor:pointer;color:#92400e;font-size:0.8rem;white-space:nowrap;';
 
   resendBtn.addEventListener('click', async () => {
     resendBtn.disabled = true;
@@ -120,9 +119,12 @@ function showEmailVerificationBanner(userEmail) {
       // Use provided email; fall back to a /me call only if not available
       let email = userEmail;
       if (!email) {
-        const meResp = await fetch('/api/v1/auth/me', { credentials: 'include' });
-        const meData = meResp.ok ? await meResp.json() : {};
-        email = meData.user?.email || '';
+        const meData = window._efFetchOnceJSON
+          ? await window._efFetchOnceJSON('/api/v1/auth/me', { credentials: 'include' })
+          : await fetch('/api/v1/auth/me', { credentials: 'include' })
+              .then(r => (r.ok ? r.json() : null))
+              .catch(() => null);
+        email = meData?.user?.email || '';
       }
       if (!email) {
         throw new Error('No email found');
@@ -475,7 +477,23 @@ async function initSupplierDashboardWidgets() {
     }
 
     // Initialize Reviews & Ratings section
-    await loadReviewStats('supplier-reviews-section');
+    // supplier-reviews-init.js exposes window.SupplierReviews.init().
+    // supplierId comes from summaryData.profile.topProfileId which the
+    // dashboard-summary endpoint always returns for authenticated suppliers.
+    const _reviewSupplierId = summaryData?.profile?.topProfileId || null;
+    if (_reviewSupplierId && window.SupplierReviews?.init) {
+      await window.SupplierReviews.init(_reviewSupplierId, 'supplier-reviews-section');
+    } else {
+      // Fallback: legacy stats-only view if new script hasn't loaded or the supplier ID is unavailable.
+      console.warn(
+        '[supplier-dashboard] Review management panel unavailable; loading legacy review stats fallback.',
+        {
+          hasSupplierId: Boolean(_reviewSupplierId),
+          hasReviewModule: Boolean(window.SupplierReviews?.init),
+        }
+      );
+      await loadReviewStats('supplier-reviews-section');
+    }
 
     // Fetch supplier profiles to check completion
     let hasProfile = false;
@@ -540,9 +558,12 @@ async function initSupplierDashboardWidgets() {
     let userEmail = '';
 
     try {
-      const userResponse = await fetch('/api/v1/auth/me', { credentials: 'include' });
-      if (userResponse.ok) {
-        const userData = await userResponse.json();
+      const userData = window._efFetchOnceJSON
+        ? await window._efFetchOnceJSON('/api/v1/auth/me', { credentials: 'include' })
+        : await fetch('/api/v1/auth/me', { credentials: 'include' })
+            .then(r => (r.ok ? r.json() : null))
+            .catch(() => null);
+      if (userData) {
         emailVerified = userData.user?.emailVerified || userData.user?.verified || false;
         userEmail = userData.user?.email || '';
       }
@@ -583,7 +604,7 @@ function handleRealtimeNotification(data) {
     if (data.type === 'enquiry_received') {
       const enquiriesDataset = analyticsChartInstance?.data?.datasets?.[1]; // datasets[1]
 
-      if (typeof EventFlowNotifications !== 'undefined') {
+      if (typeof NotificationDispatcher !== 'undefined') {
         NotificationDispatcher.info('New enquiry received.');
       }
 
@@ -664,7 +685,7 @@ window.addEventListener('load', () => {
             clearTimeout(pendingDisconnectNoticeTimer);
             pendingDisconnectNoticeTimer = null;
           }
-          if (typeof EventFlowNotifications !== 'undefined') {
+          if (typeof NotificationDispatcher !== 'undefined') {
             NotificationDispatcher.success(
               isReconnect || hasConnectedOnce
                 ? 'Live Dashboard Reconnected'
@@ -684,10 +705,10 @@ window.addEventListener('load', () => {
           }
           pendingDisconnectNoticeTimer = setTimeout(() => {
             lastDisconnectToastAt = Date.now();
-            if (typeof EventFlowNotifications !== 'undefined') {
-              NotificationDispatcher.warning('Live dashboard disconnected\nReconnecting…', 4000);
+            if (typeof NotificationDispatcher !== 'undefined') {
+              NotificationDispatcher.warning('Live dashboard disconnected\nretrying...', 4000);
             }
-            showUrgentAlert('Live updates disconnected. Retrying…', 'warning');
+            showUrgentAlert('Live updates disconnected. retrying...', 'warning');
             pendingDisconnectNoticeTimer = null;
           }, DISCONNECT_TOAST_DELAY_MS);
         },
@@ -711,11 +732,13 @@ window.addEventListener('beforeunload', () => {
 });
 
 // Initialize widgets after page loads
-window.addEventListener('load', () => {
-  setTimeout(() => {
-    initSupplierDashboardWidgets();
-  }, 500);
-});
+// The 500ms delay has been removed — ES modules defer by default, so the DOM
+// is guaranteed ready by the time this module evaluates.
+if (document.readyState === 'complete') {
+  initSupplierDashboardWidgets();
+} else {
+  window.addEventListener('load', initSupplierDashboardWidgets, { once: true });
+}
 
 // Expose init function for external callers
 window.initSupplierDashboardWidgets = initSupplierDashboardWidgets;
@@ -728,8 +751,11 @@ async function displaySubscriptionStatus() {
 
   try {
     // Load current user data (most reliable for tier)
-    const authResponse = await fetch('/api/v1/auth/me', { credentials: 'include' });
-    const authData = authResponse.ok ? await authResponse.json() : null;
+    const authData = window._efFetchOnceJSON
+      ? await window._efFetchOnceJSON('/api/v1/auth/me', { credentials: 'include' })
+      : await fetch('/api/v1/auth/me', { credentials: 'include' })
+          .then(r => (r.ok ? r.json() : null))
+          .catch(() => null);
     const user = authData?.user || null;
     const currentTier = user?.subscriptionTier || 'free';
 
@@ -954,7 +980,7 @@ async function updatePackageLimitDisplay() {
       const packages = packagesData.items || [];
 
       // Hide limit notice if user has packages (implementation can be enhanced later)
-      limitContainer.style.display = 'none';
+      limitContainer.classList.add('sd-hidden');
     }
   } catch (error) {
     console.error('Error checking package limit:', error);
@@ -992,11 +1018,12 @@ async function displayLeadQualityBreakdown() {
     // Resolve current user ID for per-participant unread counts
     let currentUserId = null;
     try {
-      const authRes = await fetch('/api/v1/auth/me', { credentials: 'include' });
-      if (authRes.ok) {
-        const authData = await authRes.json();
-        currentUserId = authData?.user?.id || null;
-      }
+      const authData = window._efFetchOnceJSON
+        ? await window._efFetchOnceJSON('/api/v1/auth/me', { credentials: 'include' })
+        : await fetch('/api/v1/auth/me', { credentials: 'include' })
+            .then(r => (r.ok ? r.json() : null))
+            .catch(() => null);
+      currentUserId = authData?.user?.id || null;
     } catch (_e) {
       /* ignore */
     }
@@ -1258,23 +1285,10 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function severityStyle(severity) {
-    if (severity === 'red') {
-      return {
-        bg: '#fee2e2',
-        border: '#dc2626',
-        text: '#991b1b',
-        badge: '#dc2626',
-        badgeText: '#fff',
-        label: 'Required',
-      };
-    }
+    // Returns only the label — colour styling is now handled by CSS classes
+    // (.sd-next-steps__item--red / --amber, .sd-next-steps__badge--red / --amber)
     return {
-      bg: '#fffbeb',
-      border: '#d97706',
-      text: '#92400e',
-      badge: '#d97706',
-      badgeText: '#fff',
-      label: 'Recommended',
+      label: severity === 'red' ? 'Required' : 'Recommended',
     };
   }
 
@@ -1301,23 +1315,23 @@ document.addEventListener('DOMContentLoaded', () => {
       .map(action => {
         const s = severityStyle(action.severity);
         const ctaHtml = action.ctaUrl
-          ? `<a href="${action.ctaUrl}" style="display:inline-block;margin-top:0.5rem;padding:0.35rem 0.875rem;background:#0b8073;color:#fff;border-radius:6px;font-size:0.8rem;font-weight:600;text-decoration:none;">${action.ctaText || 'Fix now'}</a>`
+          ? `<a href="${action.ctaUrl}" class="sd-next-steps__cta">${action.ctaText || 'Fix now'}</a>`
           : '';
-        return `<div style="display:flex;gap:0.875rem;padding:0.875rem;background:${s.bg};border:1px solid ${s.border};border-radius:8px;margin-bottom:0.625rem;">
-        <div style="flex-shrink:0;margin-top:0.125rem;">
-          <span style="display:inline-block;padding:0.15rem 0.5rem;border-radius:9999px;background:${s.badge};color:${s.badgeText};font-size:0.7rem;font-weight:700;">${s.label}</span>
+        return `<div class="sd-next-steps__item sd-next-steps__item--${action.severity || 'amber'}">
+        <div class="sd-next-steps__badge-col">
+          <span class="sd-next-steps__badge sd-next-steps__badge--${action.severity || 'amber'}">${s.label}</span>
         </div>
-        <div style="flex:1;">
-          <div style="font-weight:600;color:${s.text};margin-bottom:0.25rem;">${action.title || action.key}</div>
-          <div style="font-size:0.82rem;color:${s.text};opacity:0.9;">${action.description || ''}</div>
+        <div class="sd-next-steps__content">
+          <div class="sd-next-steps__title">${action.title || action.key}</div>
+          <div class="sd-next-steps__desc">${action.description || ''}</div>
           ${ctaHtml}
         </div>
       </div>`;
       })
       .join('');
 
-    const dismissHtml = `<div style="text-align:right;margin-top:0.25rem;">
-      <button type="button" id="nextStepsDismissBtn" style="background:none;border:none;color:#94a3b8;font-size:0.78rem;cursor:pointer;padding:0.25rem 0;">Dismiss for now</button>
+    const dismissHtml = `<div class="sd-next-steps__dismiss-row">
+      <button type="button" id="nextStepsDismissBtn" class="sd-next-steps__dismiss-btn">Dismiss for now</button>
     </div>`;
 
     list.innerHTML = items + dismissHtml;

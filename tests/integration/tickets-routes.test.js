@@ -32,6 +32,8 @@ jest.mock('../../middleware/audit', () => ({
 jest.mock('../../db-unified', () => ({
   read: jest.fn(),
   write: jest.fn(),
+  find: jest.fn().mockResolvedValue([]),
+  findOne: jest.fn().mockResolvedValue(null),
   insertOne: jest.fn(),
   updateOne: jest.fn(),
   deleteOne: jest.fn(),
@@ -42,7 +44,8 @@ jest.mock('../../db', () => ({
 }));
 
 jest.mock('../../utils/postmark', () => ({
-  sendEmail: jest.fn().mockResolvedValue({ MessageID: 'mock-id' }),
+  sendMail: jest.fn().mockResolvedValue({ MessageID: 'mock-id' }),
+  FROM_SUPPORT: 'support@event-flow.co.uk',
 }));
 
 const dbUnified = require('../../db-unified');
@@ -238,6 +241,16 @@ describe('Tickets Routes Integration', () => {
 
     dbUnified.read.mockResolvedValue(existing);
     dbUnified.write.mockResolvedValue(true);
+    // PUT/reply routes now use findOne({ id }) — provide mock
+    dbUnified.findOne.mockImplementation(async (collection, filter) => {
+      if (collection === 'tickets') {
+        return existing.find(t => t.id === filter.id) || null;
+      }
+      if (collection === 'users' && filter.role === 'admin') {
+        return null;
+      } // no admin notify needed
+      return null;
+    });
 
     const replyResponse = await request(app)
       .post('/api/tickets/ticket-reopen/reply')
@@ -283,6 +296,15 @@ describe('Tickets Routes Integration', () => {
 
     dbUnified.read.mockResolvedValue(existing);
     dbUnified.write.mockResolvedValue(true);
+    dbUnified.findOne.mockImplementation(async (collection, filter) => {
+      if (collection === 'tickets') {
+        return existing.find(t => t.id === filter.id) || null;
+      }
+      if (collection === 'users' && filter.role === 'admin') {
+        return null;
+      }
+      return null;
+    });
 
     const response = await request(app)
       .post('/api/tickets/ticket-1/reply')
@@ -321,14 +343,13 @@ describe('Tickets Routes Integration', () => {
 
     it('assigns urgent priority to a pro_plus supplier without reading user-supplied priority', async () => {
       // First read → tickets collection (empty), second read → suppliers with pro_plus tier
-      dbUnified.read
-        .mockResolvedValueOnce([]) // tickets read in POST handler
-        .mockResolvedValueOnce([
-          {
-            userId: 'sup-user-1',
-            subscription: { tier: 'pro_plus', status: 'active' },
-          },
-        ]); // suppliers read in deriveTicketPriority
+      // Only read() remaining in POST handler is for suppliers in deriveTicketPriority
+      dbUnified.read.mockResolvedValueOnce([
+        {
+          userId: 'sup-user-1',
+          subscription: { tier: 'pro_plus', status: 'active' },
+        },
+      ]); // suppliers read in deriveTicketPriority
 
       dbUnified.insertOne.mockResolvedValue(true);
 
@@ -350,14 +371,12 @@ describe('Tickets Routes Integration', () => {
     });
 
     it('assigns high priority to a pro supplier', async () => {
-      dbUnified.read
-        .mockResolvedValueOnce([]) // tickets
-        .mockResolvedValueOnce([
-          {
-            userId: 'sup-user-2',
-            subscription: { tier: 'pro', status: 'active' },
-          },
-        ]); // suppliers
+      dbUnified.read.mockResolvedValueOnce([
+        {
+          userId: 'sup-user-2',
+          subscription: { tier: 'pro', status: 'active' },
+        },
+      ]); // suppliers
 
       dbUnified.insertOne.mockResolvedValue(true);
 
@@ -378,14 +397,12 @@ describe('Tickets Routes Integration', () => {
     });
 
     it('assigns medium priority to a free supplier', async () => {
-      dbUnified.read
-        .mockResolvedValueOnce([]) // tickets
-        .mockResolvedValueOnce([
-          {
-            userId: 'sup-user-3',
-            subscription: { tier: 'free', status: 'active' },
-          },
-        ]); // suppliers
+      dbUnified.read.mockResolvedValueOnce([
+        {
+          userId: 'sup-user-3',
+          subscription: { tier: 'free', status: 'active' },
+        },
+      ]); // suppliers
 
       dbUnified.insertOne.mockResolvedValue(true);
 
@@ -406,9 +423,7 @@ describe('Tickets Routes Integration', () => {
     });
 
     it('falls back to medium priority when supplier record cannot be found', async () => {
-      dbUnified.read
-        .mockResolvedValueOnce([]) // tickets
-        .mockResolvedValueOnce([]); // suppliers — no matching record
+      dbUnified.read.mockResolvedValueOnce([]); // suppliers — no matching record
 
       dbUnified.insertOne.mockResolvedValue(true);
 
@@ -480,6 +495,12 @@ describe('Tickets Routes Integration', () => {
       ];
 
       dbUnified.read.mockResolvedValue(existing);
+      dbUnified.findOne.mockImplementation(async (collection, filter) => {
+        if (collection === 'tickets') {
+          return existing.find(t => t.id === filter.id) || null;
+        }
+        return null;
+      });
 
       const response = await request(app)
         .put('/api/tickets/ticket-admin-pri')
@@ -496,14 +517,14 @@ describe('Tickets Routes Integration', () => {
   describe('Admin notification on ticket creation', () => {
     it('notifies admins when a new ticket is created', async () => {
       const postmark = require('../../utils/postmark');
-      postmark.sendEmail.mockClear();
+      postmark.sendMail.mockClear();
 
-      // Customer ticket: only 2 reads - tickets then users (no supplier tier lookup)
-      dbUnified.read
-        .mockResolvedValueOnce([]) // tickets collection
-        .mockResolvedValueOnce([
-          { id: 'admin-1', role: 'admin', email: 'admin@example.com' }, // users query for admin notifications
-        ]);
+      // Customer ticket: one read for suppliers in deriveTicketPriority (empty = medium)
+      // Admin users fetched via find({ role: 'admin' })
+      dbUnified.read.mockResolvedValueOnce([]); // suppliers in deriveTicketPriority
+      dbUnified.find.mockResolvedValueOnce([
+        { id: 'admin-1', role: 'admin', email: 'admin@example.com' },
+      ]); // admin users notification
       dbUnified.insertOne.mockResolvedValue(true);
 
       const response = await request(app)
@@ -516,8 +537,8 @@ describe('Tickets Routes Integration', () => {
         });
 
       expect(response.status).toBe(201);
-      // postmark.sendEmail should have been called for the admin notification
-      expect(postmark.sendEmail).toHaveBeenCalledWith(
+      // postmark.sendMail should have been called for the admin notification
+      expect(postmark.sendMail).toHaveBeenCalledWith(
         expect.objectContaining({
           to: 'admin@example.com',
           subject: expect.stringContaining('New support ticket'),
@@ -527,7 +548,7 @@ describe('Tickets Routes Integration', () => {
 
     it('does not break ticket creation when admin notification fails', async () => {
       const postmark = require('../../utils/postmark');
-      postmark.sendEmail.mockRejectedValueOnce(new Error('email service down'));
+      postmark.sendMail.mockRejectedValueOnce(new Error('email service down'));
 
       dbUnified.read
         .mockResolvedValueOnce([]) // tickets
@@ -566,11 +587,20 @@ describe('Tickets Routes Integration', () => {
 
     it('notifies admins when a non-admin user replies to a ticket', async () => {
       const postmark = require('../../utils/postmark');
-      postmark.sendEmail.mockClear();
+      postmark.sendMail.mockClear();
 
-      dbUnified.read
-        .mockResolvedValueOnce([existingTicket]) // tickets
-        .mockResolvedValueOnce([{ id: 'admin-1', role: 'admin', email: 'admin@example.com' }]); // users
+      dbUnified.findOne.mockImplementation(async (collection, filter) => {
+        if (collection === 'tickets' && filter.id === 'ticket-reply-test') {
+          return existingTicket;
+        }
+        return null;
+      });
+      dbUnified.find.mockImplementation(async (collection, filter) => {
+        if (collection === 'users' && filter.role === 'admin') {
+          return [{ id: 'admin-1', role: 'admin', email: 'admin@example.com' }];
+        }
+        return [];
+      });
       dbUnified.updateOne.mockResolvedValue(true);
 
       const response = await request(app)
@@ -579,7 +609,7 @@ describe('Tickets Routes Integration', () => {
         .send({ message: 'Customer follow-up reply' });
 
       expect(response.status).toBe(200);
-      expect(postmark.sendEmail).toHaveBeenCalledWith(
+      expect(postmark.sendMail).toHaveBeenCalledWith(
         expect.objectContaining({
           to: 'admin@example.com',
           subject: expect.stringContaining('New reply on ticket'),
@@ -589,9 +619,14 @@ describe('Tickets Routes Integration', () => {
 
     it('does not notify admins when an admin replies', async () => {
       const postmark = require('../../utils/postmark');
-      postmark.sendEmail.mockClear();
+      postmark.sendMail.mockClear();
 
-      dbUnified.read.mockResolvedValueOnce([existingTicket]);
+      dbUnified.findOne.mockImplementation(async (collection, filter) => {
+        if (collection === 'tickets' && filter.id === 'ticket-reply-test') {
+          return existingTicket;
+        }
+        return null;
+      });
       dbUnified.updateOne.mockResolvedValue(true);
 
       await request(app)
@@ -600,7 +635,7 @@ describe('Tickets Routes Integration', () => {
         .send({ message: 'Admin response' });
 
       // Admin reply should NOT trigger admin notification (only customer email)
-      const adminNotificationCall = postmark.sendEmail.mock.calls.find(
+      const adminNotificationCall = postmark.sendMail.mock.calls.find(
         call => call[0] && call[0].subject && call[0].subject.includes('New reply on ticket')
       );
       expect(adminNotificationCall).toBeUndefined();

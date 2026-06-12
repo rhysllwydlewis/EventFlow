@@ -237,6 +237,12 @@ describe('PexelsService', () => {
 
     beforeEach(() => {
       service = new PexelsService('test-key');
+      service.makeRequest = jest.fn(async path => ({
+        data: path.startsWith('/v1/videos')
+          ? { page: 1, per_page: 15, total_results: 0, videos: [] }
+          : { page: 1, per_page: 15, total_results: 0, photos: [] },
+        rateLimit: {},
+      }));
     });
 
     it('should accept filters object for searchPhotos', async () => {
@@ -247,14 +253,15 @@ describe('PexelsService', () => {
         locale: 'en-US',
       };
 
-      // The method should accept filters parameter without throwing synchronously
-      // We catch the actual API call error since we can't make real requests
-      try {
-        await service.searchPhotos('test', 15, 1, filters);
-      } catch (error) {
-        // Expected to fail due to network, but filters were accepted
-        expect(error.message).toBeTruthy();
-      }
+      await expect(service.searchPhotos('test', 15, 1, filters)).resolves.toMatchObject({
+        photos: [],
+      });
+      expect(service.makeRequest).toHaveBeenCalledWith(
+        '/v1/search?query=test&per_page=15&page=1&orientation=landscape&size=large&color=red&locale=en-US',
+        0,
+        3,
+        'search:test:15:1:{"orientation":"landscape","size":"large","color":"red","locale":"en-US"}'
+      );
     });
 
     it('should accept filters object for searchVideos', async () => {
@@ -264,14 +271,12 @@ describe('PexelsService', () => {
         locale: 'pt-BR',
       };
 
-      // The method should accept filters parameter without throwing synchronously
-      // We catch the actual API call error since we can't make real requests
-      try {
-        await service.searchVideos('test', 15, 1, filters);
-      } catch (error) {
-        // Expected to fail due to network, but filters were accepted
-        expect(error.message).toBeTruthy();
-      }
+      await expect(service.searchVideos('test', 15, 1, filters)).resolves.toMatchObject({
+        videos: [],
+      });
+      expect(service.makeRequest).toHaveBeenCalledWith(
+        '/v1/videos/search?query=test&per_page=15&page=1&orientation=portrait&size=medium&locale=pt-BR'
+      );
     });
   });
 

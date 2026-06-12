@@ -33,8 +33,7 @@ router.get('/', apiLimiter, authRequired, async (req, res) => {
   }
 
   try {
-    const users = await dbUnified.read('users');
-    const user = users.find(u => u.id === req.user.id);
+    const user = await dbUnified.findOne('users', { id: req.user.id });
 
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
@@ -79,14 +78,11 @@ router.put('/', writeLimiter, authRequired, csrfProtection, async (req, res) => 
     const { firstName, lastName, location, postcode, company, jobTitle, website, socials, phone } =
       req.body || {};
 
-    const users = await dbUnified.read('users');
-    const idx = users.findIndex(u => u.id === req.user.id);
+    const user = await dbUnified.findOne('users', { id: req.user.id });
 
-    if (idx === -1) {
+    if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
-
-    const user = users[idx];
     const profileUpdates = {};
 
     // Validate required fields
@@ -320,8 +316,7 @@ router.delete('/avatar', writeLimiter, authRequired, csrfProtection, async (req,
   }
 
   try {
-    const users = await dbUnified.read('users');
-    const user = users.find(u => u.id === req.user.id);
+    const user = await dbUnified.findOne('users', { id: req.user.id });
 
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
@@ -373,8 +368,7 @@ router.delete('/', writeLimiter, authRequired, csrfProtection, async (req, res) 
   }
 
   try {
-    const users = await dbUnified.read('users');
-    const user = users.find(u => u.id === req.user.id);
+    const user = await dbUnified.findOne('users', { id: req.user.id });
 
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
@@ -389,8 +383,7 @@ router.delete('/', writeLimiter, authRequired, csrfProtection, async (req, res) 
 
     // Delete associated supplier profiles first
     try {
-      const suppliers = await dbUnified.read('suppliers');
-      const userSuppliers = suppliers.filter(s => s.ownerUserId === userId);
+      const userSuppliers = await dbUnified.find('suppliers', { ownerUserId: userId });
       for (const supplier of userSuppliers) {
         await dbUnified.deleteOne('suppliers', supplier.id);
       }

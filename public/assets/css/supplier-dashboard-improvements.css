@@ -8822,3 +8822,1148 @@ label .required {
 .spc-checklist-step--complete .spc-checklist-step-detail {
   color: #0f766e;
 }
+
+/* Liquid glass supplier calendar polish and scrollbar-free month layout */
+.supplier-calendar-viewport.fc-loaded {
+  min-height: 0;
+}
+
+.supplier-calendar-viewport .fc,
+.supplier-calendar-viewport .fc-view-harness,
+.supplier-calendar-viewport .fc-scroller,
+.supplier-calendar-viewport .fc-scroller-liquid,
+.supplier-calendar-viewport .fc-scroller-liquid-absolute {
+  height: auto !important;
+  overflow: visible !important;
+  position: relative !important;
+}
+
+.supplier-calendar-viewport .fc-scrollgrid {
+  border-radius: 18px;
+  overflow: hidden;
+  border-color: rgba(11, 128, 115, 0.14);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+}
+
+.supplier-calendar-viewport .fc-daygrid-day-frame {
+  min-height: 70px;
+}
+
+/* ===========================================
+   EMAIL VERIFICATION BANNER
+   Replaces inline style.cssText in showEmailVerificationBanner()
+   (dashboard-supplier-module.js)
+   =========================================== */
+.sd-email-verify-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  border-radius: 8px;
+  font-size: 0.875rem;
+}
+
+.sd-email-verify-banner__msg {
+  flex: 1;
+  color: #78350f;
+}
+
+.sd-email-verify-banner__btn {
+  flex-shrink: 0;
+  background: none;
+  border: 1px solid #d97706;
+  border-radius: 6px;
+  padding: 0.25rem 0.75rem;
+  cursor: pointer;
+  color: #92400e;
+  font-size: 0.8rem;
+  font-family: inherit;
+  white-space: nowrap;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.sd-email-verify-banner__btn:hover,
+.sd-email-verify-banner__btn:focus-visible {
+  background: #d97706;
+  color: #fff;
+  outline: none;
+}
+
+.sd-email-verify-banner__btn:focus-visible {
+  outline: 2px solid #d97706;
+  outline-offset: 2px;
+}
+
+@media (prefers-contrast: more) {
+  .sd-email-verify-banner {
+    border-width: 2px;
+    border-color: #92400e;
+  }
+}
+
+/* ===========================================
+   NEXT STEPS / ACTION CHECKLIST CARD
+   Replaces 100% inline styles in renderNextSteps()
+   =========================================== */
+.sd-next-steps__item {
+  display: flex;
+  gap: 0.875rem;
+  padding: 0.875rem;
+  border-radius: 8px;
+  margin-bottom: 0.625rem;
+  border-width: 1px;
+  border-style: solid;
+}
+
+.sd-next-steps__item--red {
+  background: #fee2e2;
+  border-color: #dc2626;
+}
+
+.sd-next-steps__item--amber,
+.sd-next-steps__item--warning {
+  background: #fffbeb;
+  border-color: #d97706;
+}
+
+.sd-next-steps__badge-col {
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+.sd-next-steps__badge {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.sd-next-steps__badge--red    { background: #dc2626; }
+.sd-next-steps__badge--amber,
+.sd-next-steps__badge--warning { background: #d97706; }
+
+.sd-next-steps__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.sd-next-steps__title {
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 0.25rem;
+}
+
+.sd-next-steps__item--red .sd-next-steps__title,
+.sd-next-steps__item--red .sd-next-steps__desc {
+  color: #991b1b;
+}
+
+.sd-next-steps__item--amber .sd-next-steps__title,
+.sd-next-steps__item--amber .sd-next-steps__desc {
+  color: #92400e;
+}
+
+.sd-next-steps__desc {
+  font-size: 0.82rem;
+  opacity: 0.9;
+}
+
+.sd-next-steps__cta {
+  display: inline-block;
+  margin-top: 0.5rem;
+  padding: 0.35rem 0.875rem;
+  background: #0b8073;
+  color: #fff;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.sd-next-steps__cta:hover {
+  background: #097267;
+  transform: translateY(-1px);
+}
+
+.sd-next-steps__dismiss-row {
+  text-align: right;
+  margin-top: 0.25rem;
+}
+
+.sd-next-steps__dismiss-btn {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-size: 0.78rem;
+  cursor: pointer;
+  padding: 0.25rem 0;
+  font-family: inherit;
+  transition: color 0.15s ease;
+}
+
+.sd-next-steps__dismiss-btn:hover {
+  color: #64748b;
+}
+
+/* ===========================================
+   LEAD QUALITY SUMMARY BAR (Messages section)
+   Replaces inline styles on #lead-quality-summary-stats
+   =========================================== */
+.sd-lqs-bar {
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.75rem;
+  background: #f9fafb;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.sd-lqs-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.sd-lqs-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.sd-lqs-item {
+  font-size: 0.8125rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.sd-lqs-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.sd-lqs-dot--high   { background: #10b981; }
+.sd-lqs-dot--medium { background: #f59e0b; }
+.sd-lqs-dot--low    { background: #ef4444; }
+
+.sd-lqs-pct {
+  font-size: 0.8125rem;
+  color: #6b7280;
+  margin-left: auto;
+}
+
+/* ===========================================
+   MESSAGES SECTION
+   =========================================== */
+.sd-messages-heading-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* ===========================================
+   CALENDAR SECTION
+   =========================================== */
+.sup-cal-permission-notice {
+  margin-bottom: 1rem;
+  padding: 0.85rem 1rem;
+  border-radius: 0.75rem;
+  background: #f0fdfa;
+  border: 1px solid #99f6e4;
+  color: #115e59;
+  font-size: 0.875rem;
+}
+
+.sup-my-public-events {
+  margin-bottom: 1rem;
+}
+
+/* ===========================================
+   TICKET BUTTON
+   Replaces inline padding/font-size on #createSupplierTicketBtn
+   =========================================== */
+.sd-ticket-create-btn {
+  padding: 0.625rem 1.25rem;
+  font-size: 0.875rem;
+}
+
+.sd-ticket-btn-icon {
+  margin-right: 0.5rem;
+  display: inline-block;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+/* ===========================================
+   EARNINGS STAT CHANGE — MUTED
+   Replaces inline color: var(--ef-text-light)
+   =========================================== */
+.ef-stat-change--muted {
+  color: var(--ef-text-light, #9ca3af);
+}
+
+/* ===========================================
+   SD-HIDDEN UTILITY
+   Used by updatePackageLimitDisplay() and others
+   =========================================== */
+.sd-hidden {
+  display: none !important;
+}
+
+/* ===========================================
+   SUPPLIER VERIFICATION STATUS BANNER
+   Replaces style.cssText in dashboard-supplier-verification.js
+   =========================================== */
+.sv-status-banner {
+  display: block;
+  margin-bottom: 1.25rem;
+  padding: 1rem 1.25rem;
+  border-radius: 0.75rem;
+  border-left: 4px solid transparent;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.sv-status-banner--warning {
+  border-left-color: #f59e0b;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(251, 191, 36, 0.06) 100%);
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.12);
+  color: #92400e;
+}
+
+.sv-status-banner--danger {
+  border-left-color: #ef4444;
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.10) 0%, rgba(254, 202, 202, 0.06) 100%);
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.12);
+  color: #991b1b;
+}
+
+/* ===========================================
+   SUPPLIER VERIFICATION MODAL OVERLAY
+   Replaces style.cssText in dashboard-supplier-verification.js
+   =========================================== */
+.sv-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.55);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.sv-modal-overlay--open {
+  display: flex;
+}
+
+.sv-modal-dialog {
+  background: #fff;
+  border-radius: 1rem;
+  padding: 2rem;
+  max-width: 520px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sv-modal-overlay { transition: none; }
+}
+
+/* ===========================================
+   ANALYTICS CHART COMPONENTS
+   Replaces inline styles in supplier-analytics-chart.js
+   =========================================== */
+.sd-chart-period-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.sd-chart-period-btn {
+  padding: 0.5rem 1rem;
+  border: 1px solid #e7eaf0;
+  background: white;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  font-family: inherit;
+  color: #374151;
+  transition: all 0.15s ease;
+}
+
+.sd-chart-period-btn:hover {
+  border-color: #0b8073;
+  color: #0b8073;
+}
+
+.sd-chart-period-btn--active,
+.sd-chart-period-btn.active {
+  border-color: #0b8073;
+  background: #0b8073;
+  color: white;
+}
+
+.sd-chart-period-btn:focus-visible {
+  outline: 2px solid #0b8073;
+  outline-offset: 2px;
+}
+
+.sd-chart-metric-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.sd-chart-metric-value {
+  margin: 0;
+  font-size: 1.25rem;
+  color: #0b1220;
+  font-weight: 600;
+}
+
+.sd-chart-metric-label {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #667085;
+}
+
+.sd-analytics-card {
+  padding: 1.5rem;
+}
+
+.sd-analytics-error {
+  color: #667085;
+}
+
+.sd-analytics-error-block {
+  padding: 1.5rem;
+  text-align: center;
+  color: #ef4444;
+  background: #fef2f2;
+  border-radius: 8px;
+}
+
+.sd-analytics-empty {
+  padding: 1.5rem;
+  text-align: center;
+  color: #6b7280;
+}
+
+.sd-analytics-empty-state {
+  padding: 2rem;
+  text-align: center;
+  background: #f9fafb;
+  border-radius: 8px;
+}
+
+.sd-analytics-empty-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.sd-analytics-period {
+  color: #667085;
+  font-size: 0.875rem;
+  margin: 0 0 1.25rem 0;
+}
+
+.sd-analytics-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.sd-funnel-step {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: #f9fafb;
+  border-radius: 8px;
+}
+
+.sd-funnel-step__icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.125rem;
+  background: #f0fdf4;
+  flex-shrink: 0;
+}
+
+.sd-funnel-step__body { flex: 1; }
+
+.sd-funnel-step__label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #0b1220;
+  margin-bottom: 0.25rem;
+}
+
+.sd-funnel-step__val {
+  font-size: 0.75rem;
+  color: #667085;
+}
+
+.sd-response-stats {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.sd-response-stat-box {
+  flex: 1;
+  min-width: 120px;
+  background: #f9fafb;
+  border-radius: 8px;
+  padding: 1rem;
+  text-align: center;
+}
+
+.sd-response-stat-val {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #0b1220;
+}
+
+.sd-response-stat-lbl {
+  font-size: 0.75rem;
+  color: #667085;
+  margin-top: 0.25rem;
+}
+
+/* ===========================================
+   CALENDAR TOOLTIP
+   Matches the .calendar-tooltip pattern used in customer dashboard (calendar-view.js fix)
+   and now extended to the supplier calendar (dashboard-supplier-calendar.js)
+   =========================================== */
+.calendar-tooltip {
+  display: none;
+  position: fixed;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 8px 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  z-index: 9999;
+  max-width: 260px;
+  font-size: 0.85rem;
+  pointer-events: none;
+  color: #0b1220;
+}
+
+.calendar-tooltip.is-visible {
+  display: block;
+}
+
+/* ===========================================
+   FUNNEL PROGRESS BAR COMPONENT
+   Used in supplier-analytics-chart.js createConversionFunnelWidget
+   =========================================== */
+.sd-funnel-bar-item {
+  margin-bottom: 1rem;
+}
+
+.sd-funnel-bar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.25rem;
+}
+
+.sd-funnel-bar-label {
+  font-size: 0.875rem;
+  color: #374151;
+  font-weight: 500;
+}
+
+.sd-funnel-bar-value {
+  font-size: 0.875rem;
+  color: #374151;
+  font-weight: 700;
+}
+
+.sd-funnel-bar-track {
+  height: 10px;
+  background: #e5e7eb;
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.sd-funnel-bar-fill {
+  height: 100%;
+  border-radius: 5px;
+  transition: width 0.6s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sd-funnel-bar-fill { transition: none; }
+}
+
+.sd-analytics-period {
+  color: #6b7280;
+  font-size: 0.875rem;
+  margin: 0 0 1rem 0;
+}
+
+/* ── Button / text polish ──────────────────────────────────────────────────── */
+
+/* dashboard-action-chip hover — was completely missing */
+.dashboard-action-chip:hover {
+  background: rgba(11, 128, 115, 0.08);
+  border-color: rgba(11, 128, 115, 0.35);
+  color: #0B8073;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(11, 128, 115, 0.12);
+}
+
+.dashboard-action-chip:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+.dashboard-action-chip:focus-visible {
+  outline: 2px solid #0B8073;
+  outline-offset: 2px;
+}
+
+/* form-toggle-btn focus-visible (was missing) */
+.form-toggle-btn:focus-visible {
+  outline: 2px solid #0B8073;
+  outline-offset: 2px;
+}
+
+/* mobile-nav-pill active state — was not defined */
+.mobile-nav-pill.active,
+.mobile-nav-pill[aria-pressed="true"] {
+  background: rgba(11, 128, 115, 0.12);
+  color: #0B8073;
+  border-color: rgba(11, 128, 115, 0.3);
+}
+
+.mobile-nav-pill.active .pill-icon svg,
+.mobile-nav-pill[aria-pressed="true"] .pill-icon svg {
+  stroke: #0B8073;
+}
+
+/* Consistent font-family on all supplier dashboard buttons */
+.form-toggle-btn,
+.dashboard-action-chip,
+.mobile-nav-pill,
+.glass-btn,
+.cta,
+.sd-reviews-cta-btn {
+  font-family: inherit;
+}
+
+/* sd-reviews-cta-btn focus-visible */
+.sd-reviews-cta-btn:focus-visible {
+  outline: 2px solid #0B8073;
+  outline-offset: 2px;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SUPPLIER REVIEW MANAGEMENT — feat/supplier-review-management
+   Styles for supplier-reviews-init.js components.
+   All rules scoped to #supplier-reviews-section to avoid bleed.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Stars ───────────────────────────────────────────────────────────────── */
+#supplier-reviews-section .sr-stars {
+  color: #f59e0b;
+  font-size: 1rem;
+  letter-spacing: 0.05em;
+}
+#supplier-reviews-section .sr-stars--empty {
+  color: #e5e7eb;
+}
+
+/* ── Loading / error states ──────────────────────────────────────────────── */
+#supplier-reviews-section .sr-loading,
+#supplier-reviews-section .sr-error {
+  padding: 2.5rem;
+  text-align: center;
+  color: #6b7280;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* Self-contained spinner — does not rely on partner.css */
+#supplier-reviews-section .sr-spinner {
+  display: inline-block;
+  width: 28px;
+  height: 28px;
+  border: 3px solid #e5e7eb;
+  border-top-color: #0b8073;
+  border-radius: 50%;
+  animation: sr-spin 0.7s linear infinite;
+}
+
+@keyframes sr-spin {
+  to { transform: rotate(360deg); }
+}
+
+#supplier-reviews-section .sr-error {
+  color: #dc2626;
+  background: #fef2f2;
+  border-radius: 8px;
+}
+
+/* ── Empty state ─────────────────────────────────────────────────────────── */
+#supplier-reviews-section .sr-empty {
+  padding: 2.5rem 1.5rem;
+  text-align: center;
+}
+#supplier-reviews-section .sr-empty-icon {
+  font-size: 2rem;
+  margin-bottom: 0.75rem;
+}
+#supplier-reviews-section .sr-empty-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem;
+  color: #111827;
+}
+#supplier-reviews-section .sr-empty-desc {
+  font-size: 0.9rem;
+  color: #6b7280;
+  max-width: 420px;
+  margin: 0 auto 1.25rem;
+  line-height: 1.6;
+}
+
+/* ── Summary header ──────────────────────────────────────────────────────── */
+#supplier-reviews-section .sr-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  align-items: flex-start;
+  padding: 1.25rem 1.5rem;
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  border: 1px solid #fde68a;
+  border-radius: 12px;
+  margin-bottom: 1.25rem;
+}
+#supplier-reviews-section .sr-summary-score {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  min-width: 90px;
+}
+#supplier-reviews-section .sr-big-rating {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: #92400e;
+  line-height: 1;
+}
+#supplier-reviews-section .sr-total-count {
+  font-size: 0.78rem;
+  color: #92400e;
+  margin-top: 0.2rem;
+}
+
+/* ── Star distribution ───────────────────────────────────────────────────── */
+#supplier-reviews-section .sr-distribution {
+  flex: 1;
+  min-width: 180px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+#supplier-reviews-section .sr-dist-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+#supplier-reviews-section .sr-dist-label {
+  font-size: 0.78rem;
+  color: #92400e;
+  width: 2rem;
+  text-align: right;
+  flex-shrink: 0;
+}
+#supplier-reviews-section .sr-dist-track {
+  flex: 1;
+  height: 8px;
+  background: #fde68a;
+  border-radius: 100px;
+  overflow: hidden;
+}
+#supplier-reviews-section .sr-dist-fill {
+  height: 100%;
+  border-radius: 100px;
+  background: #f59e0b;
+  transition: width 0.4s ease;
+}
+#supplier-reviews-section .sr-dist-fill--5 { background: #16a34a; }
+#supplier-reviews-section .sr-dist-fill--4 { background: #65a30d; }
+#supplier-reviews-section .sr-dist-fill--3 { background: #ca8a04; }
+#supplier-reviews-section .sr-dist-fill--2 { background: #ea580c; }
+#supplier-reviews-section .sr-dist-fill--1 { background: #dc2626; }
+#supplier-reviews-section .sr-dist-count {
+  font-size: 0.75rem;
+  color: #92400e;
+  width: 1.5rem;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* ── Response-rate stat card in summary ──────────────────────────────────── */
+#supplier-reviews-section .sr-stat-card {
+  background: #fff;
+  border: 1px solid #fde68a;
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  min-width: 110px;
+  text-align: center;
+}
+#supplier-reviews-section .sr-stat-label {
+  font-size: 0.72rem;
+  color: #92400e;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.2rem;
+}
+#supplier-reviews-section .sr-stat-value {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #b45309;
+}
+#supplier-reviews-section .sr-stat-sub {
+  font-size: 0.72rem;
+  color: #92400e;
+}
+
+/* ── Toolbar (sort + page info) ──────────────────────────────────────────── */
+#supplier-reviews-section .sr-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+#supplier-reviews-section .sr-sort-label {
+  font-size: 0.82rem;
+  color: #6b7280;
+  white-space: nowrap;
+}
+#supplier-reviews-section .sr-sort-select {
+  padding: 0.35rem 0.625rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  background: #fff;
+  color: #111827;
+  cursor: pointer;
+}
+#supplier-reviews-section .sr-sort-select:focus {
+  outline: 2px solid var(--ef-brand, #0b8073);
+  outline-offset: 1px;
+}
+#supplier-reviews-section .sr-page-info {
+  font-size: 0.8rem;
+  color: #9ca3af;
+  margin-left: auto;
+}
+
+/* ── Review list and cards ───────────────────────────────────────────────── */
+#supplier-reviews-section .sr-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+#supplier-reviews-section .sr-review-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+  transition: box-shadow 0.15s;
+}
+#supplier-reviews-section .sr-review-card:hover {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+}
+#supplier-reviews-section .sr-review-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.35rem;
+  flex-wrap: wrap;
+}
+#supplier-reviews-section .sr-review-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+#supplier-reviews-section .sr-review-rating-num {
+  font-weight: 700;
+  color: #92400e;
+  font-size: 0.9rem;
+}
+#supplier-reviews-section .sr-badge {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 100px;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+#supplier-reviews-section .sr-badge--verified {
+  background: #d1fae5;
+  color: #065f46;
+}
+#supplier-reviews-section .sr-review-date {
+  font-size: 0.78rem;
+  color: #9ca3af;
+}
+#supplier-reviews-section .sr-review-author {
+  font-size: 0.82rem;
+  color: #6b7280;
+  margin: 0 0 0.4rem;
+}
+#supplier-reviews-section .sr-review-title {
+  font-weight: 700;
+  margin: 0 0 0.35rem;
+  font-size: 0.95rem;
+}
+#supplier-reviews-section .sr-review-text {
+  font-size: 0.9rem;
+  color: #374151;
+  line-height: 1.6;
+  margin: 0 0 1rem;
+  white-space: pre-line;
+}
+
+/* ── Supplier response block ─────────────────────────────────────────────── */
+#supplier-reviews-section .sr-response {
+  background: #f0fdf4;
+  border-left: 3px solid #16a34a;
+  border-radius: 0 8px 8px 0;
+  padding: 0.875rem 1rem;
+  margin: 0 0 0.75rem;
+}
+#supplier-reviews-section .sr-response-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+}
+#supplier-reviews-section .sr-response-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #15803d;
+}
+#supplier-reviews-section .sr-response-date {
+  font-size: 0.72rem;
+  color: #6b7280;
+}
+#supplier-reviews-section .sr-response-text {
+  font-size: 0.875rem;
+  color: #1f2937;
+  line-height: 1.6;
+  margin: 0 0 0.5rem;
+  white-space: pre-line;
+}
+#supplier-reviews-section .sr-edit-reply-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 0.78rem;
+  color: #0b8073;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+#supplier-reviews-section .sr-edit-reply-btn:hover { color: #065f46; }
+
+/* ── Reply button in footer ──────────────────────────────────────────────── */
+#supplier-reviews-section .sr-review-footer {
+  margin-top: 0.25rem;
+}
+#supplier-reviews-section .sr-reply-btn {
+  font-size: 0.82rem;
+  padding: 0.4rem 0.875rem;
+  border-radius: 6px;
+  border: 1px solid var(--ef-brand, #0b8073);
+  color: var(--ef-brand, #0b8073);
+  background: transparent;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.13s, color 0.13s;
+}
+#supplier-reviews-section .sr-reply-btn:hover {
+  background: var(--ef-brand, #0b8073);
+  color: #fff;
+}
+
+/* ── Reply form ──────────────────────────────────────────────────────────── */
+#supplier-reviews-section .sr-reply-form {
+  margin-top: 0.875rem;
+  padding: 1rem 1.125rem;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+}
+#supplier-reviews-section .sr-reply-label {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0.5rem;
+}
+#supplier-reviews-section .sr-reply-textarea {
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  resize: vertical;
+  min-height: 100px;
+  box-sizing: border-box;
+  font-family: inherit;
+  color: #111827;
+  background: #fff;
+  transition: border-color 0.15s;
+}
+#supplier-reviews-section .sr-reply-textarea:focus {
+  outline: 2px solid var(--ef-brand, #0b8073);
+  outline-offset: 1px;
+  border-color: var(--ef-brand, #0b8073);
+}
+#supplier-reviews-section .sr-reply-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.35rem;
+  flex-wrap: wrap;
+}
+#supplier-reviews-section .sr-reply-count {
+  font-size: 0.75rem;
+  color: #9ca3af;
+}
+#supplier-reviews-section .sr-reply-tip {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  text-align: right;
+}
+#supplier-reviews-section .sr-reply-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+  flex-wrap: wrap;
+}
+#supplier-reviews-section .sr-reply-submit {
+  font-size: 0.875rem;
+  padding: 0.45rem 1.125rem;
+}
+#supplier-reviews-section .sr-reply-cancel {
+  background: none;
+  border: none;
+  font-size: 0.875rem;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+#supplier-reviews-section .sr-reply-cancel:hover { color: #111827; }
+#supplier-reviews-section .sr-reply-status {
+  font-size: 0.82rem;
+}
+
+/* ── Confirmation flash ──────────────────────────────────────────────────── */
+#supplier-reviews-section .sr-reply-confirm {
+  display: inline-block;
+  font-size: 0.78rem;
+  color: #15803d;
+  background: #d1fae5;
+  padding: 0.2rem 0.6rem;
+  border-radius: 100px;
+  margin-top: 0.5rem;
+  animation: sr-fade-in 0.2s ease;
+}
+
+/* ── Pagination ──────────────────────────────────────────────────────────── */
+#supplier-reviews-section .sr-pagination {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid #f3f4f6;
+}
+#supplier-reviews-section .sr-page-btn {
+  padding: 0.45rem 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: #fff;
+  color: #374151;
+  transition: background 0.13s, border-color 0.13s;
+}
+#supplier-reviews-section .sr-page-btn:hover:not(:disabled) {
+  background: #f9fafb;
+  border-color: #d1d5db;
+}
+#supplier-reviews-section .sr-page-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ── Animation ───────────────────────────────────────────────────────────── */
+@keyframes sr-fade-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  #supplier-reviews-section .sr-summary {
+    flex-direction: column;
+    padding: 1rem;
+  }
+  #supplier-reviews-section .sr-summary-score {
+    flex-direction: row;
+    gap: 0.75rem;
+    align-items: baseline;
+  }
+  #supplier-reviews-section .sr-review-card {
+    padding: 1rem;
+  }
+  #supplier-reviews-section .sr-toolbar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  #supplier-reviews-section .sr-page-info {
+    margin-left: 0;
+  }
+}

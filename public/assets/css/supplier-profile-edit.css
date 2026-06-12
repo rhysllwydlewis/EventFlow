@@ -1,0 +1,657 @@
+/**
+ * Supplier Profile — Owner Inline Edit Overlays
+ * Pencil-on-hover editing for every profile section.
+ */
+
+/* ── Editable section wrapper ───────────────────────────────────────────── */
+.sp-editable {
+  position: relative;
+}
+
+/* Subtle teal ring on hover */
+.sp-editable:hover > .sp-card,
+.sp-editable:hover > .sp-stats,
+.sp-editable:hover > .sp-highlights {
+  outline: 2px solid rgba(11, 128, 115, 0.35);
+  outline-offset: 0px;
+  border-radius: var(--sp-card-radius, 16px);
+}
+
+/* ── Pencil edit button ─────────────────────────────────────────────────── */
+.sp-edit-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 20;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 1.5px solid #e5e7eb;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transform: scale(0.8);
+  transition: opacity 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease,
+    background 0.15s ease;
+  pointer-events: none;
+  font-size: 0;
+  line-height: 1;
+}
+
+.sp-edit-btn svg {
+  width: 15px;
+  height: 15px;
+  stroke: #374151;
+  transition: stroke 0.15s ease;
+}
+
+.sp-editable:hover .sp-edit-btn {
+  opacity: 1;
+  transform: scale(1);
+  pointer-events: auto;
+}
+
+.sp-edit-btn:hover {
+  background: #0B8073;
+  border-color: #0B8073;
+  box-shadow: 0 4px 16px rgba(11, 128, 115, 0.35);
+}
+
+.sp-edit-btn:hover svg {
+  stroke: #ffffff;
+}
+
+.sp-edit-btn:active {
+  transform: scale(0.94);
+}
+
+/* Hero edit button — always visible on dark background */
+.sp-hero-edit-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px 7px 10px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  color: #ffffff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease, transform 0.15s ease;
+}
+
+.sp-hero-edit-btn svg {
+  width: 14px;
+  height: 14px;
+  stroke: #ffffff;
+  flex-shrink: 0;
+}
+
+.sp-hero-edit-btn:hover {
+  background: rgba(255, 255, 255, 0.28);
+  border-color: rgba(255, 255, 255, 0.55);
+  transform: translateY(-1px);
+}
+
+.sp-hero-edit-btn:active {
+  transform: scale(0.97);
+}
+
+/* "Owner view" banner strip */
+.sp-owner-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 20px;
+  background: linear-gradient(90deg, #0B8073 0%, #13B6A2 100%);
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 700;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  box-shadow: 0 2px 12px rgba(11, 128, 115, 0.25);
+}
+
+.sp-owner-bar svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.sp-owner-bar__label { flex: 1; }
+
+.sp-owner-bar__link {
+  color: rgba(255, 255, 255, 0.88);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.78rem;
+  padding: 4px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 12px;
+  transition: background 0.15s ease;
+}
+
+.sp-owner-bar__link:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+/* ── Edit modal backdrop ─────────────────────────────────────────────────── */
+.sp-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: sp-overlay-in 0.18s ease;
+}
+
+@keyframes sp-overlay-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ── Edit modal panel ────────────────────────────────────────────────────── */
+.sp-modal {
+  background: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.22), 0 2px 8px rgba(0, 0, 0, 0.08);
+  width: 100%;
+  max-width: 560px;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: sp-modal-in 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+  scrollbar-width: thin;
+}
+
+@keyframes sp-modal-in {
+  from { opacity: 0; transform: scale(0.92) translateY(12px); }
+  to   { opacity: 1; transform: scale(1) translateY(0);        }
+}
+
+.sp-modal--wide { max-width: 680px; }
+
+.sp-modal__header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 22px 24px 0;
+}
+
+.sp-modal__icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #0B8073, #13B6A2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sp-modal__icon svg {
+  width: 18px;
+  height: 18px;
+  stroke: #ffffff;
+}
+
+.sp-modal__title {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #111827;
+  line-height: 1.2;
+}
+
+.sp-modal__subtitle {
+  font-size: 0.78rem;
+  color: #6b7280;
+  margin-top: 1px;
+}
+
+.sp-modal__close {
+  margin-left: auto;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: none;
+  background: #f3f4f6;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease;
+  flex-shrink: 0;
+}
+
+.sp-modal__close:hover { background: #e5e7eb; }
+
+.sp-modal__close svg {
+  width: 16px;
+  height: 16px;
+  stroke: #374151;
+}
+
+.sp-modal__body {
+  padding: 20px 24px 8px;
+}
+
+.sp-modal__footer {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  padding: 16px 24px 24px;
+  border-top: 1px solid #f3f4f6;
+}
+
+/* ── Form fields inside modal ───────────────────────────────────────────── */
+.sp-field {
+  margin-bottom: 18px;
+}
+
+.sp-field:last-child { margin-bottom: 0; }
+
+.sp-field__label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #374151;
+  margin-bottom: 6px;
+  letter-spacing: 0.02em;
+}
+
+.sp-field__hint {
+  font-size: 0.73rem;
+  color: #9ca3af;
+  margin-top: 4px;
+}
+
+.sp-field__char-count {
+  float: right;
+  font-size: 0.73rem;
+  color: #9ca3af;
+  font-weight: 500;
+}
+
+.sp-field__input,
+.sp-field__textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  color: #111827;
+  background: #fafafa;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  outline: none;
+  box-sizing: border-box;
+  font-family: inherit;
+  resize: vertical;
+}
+
+.sp-field__input:focus,
+.sp-field__textarea:focus {
+  border-color: #0B8073;
+  box-shadow: 0 0 0 3px rgba(11, 128, 115, 0.12);
+  background: #ffffff;
+}
+
+.sp-field__textarea {
+  min-height: 110px;
+  line-height: 1.6;
+}
+
+.sp-field__textarea--tall { min-height: 180px; }
+
+/* Save / cancel buttons */
+.sp-btn {
+  padding: 9px 22px;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sp-btn--primary {
+  background: linear-gradient(135deg, #0B8073, #13B6A2);
+  color: #ffffff;
+  border-color: transparent;
+}
+
+.sp-btn--primary:hover {
+  box-shadow: 0 4px 14px rgba(11, 128, 115, 0.38);
+  transform: translateY(-1px);
+}
+
+.sp-btn--primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.sp-btn--ghost {
+  background: transparent;
+  color: #6b7280;
+  border-color: #e5e7eb;
+}
+
+.sp-btn--ghost:hover {
+  background: #f9fafb;
+  color: #374151;
+}
+
+.sp-btn--danger {
+  background: transparent;
+  color: #ef4444;
+  border-color: #fecaca;
+}
+
+.sp-btn--danger:hover {
+  background: #fef2f2;
+}
+
+/* Loading spinner inside button */
+.sp-btn__spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255,255,255,0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: sp-spin 0.7s linear infinite;
+  display: none;
+}
+
+.sp-btn--loading .sp-btn__spinner { display: inline-block; }
+.sp-btn--loading .sp-btn__label { opacity: 0.7; }
+
+@keyframes sp-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Hero preset picker ──────────────────────────────────────────────────── */
+.sp-preset-section-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 18px 0 10px;
+}
+
+.sp-preset-section-label:first-child { margin-top: 0; }
+
+.sp-preset-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.sp-preset-swatch {
+  position: relative;
+  height: 52px;
+  border-radius: 10px;
+  cursor: pointer;
+  border: 2.5px solid transparent;
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  overflow: hidden;
+}
+
+.sp-preset-swatch:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+}
+
+.sp-preset-swatch.is-selected {
+  border-color: #111827;
+  box-shadow: 0 0 0 2px #111827, 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.sp-preset-swatch__check {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.sp-preset-swatch.is-selected .sp-preset-swatch__check {
+  opacity: 1;
+}
+
+.sp-preset-swatch__check svg {
+  width: 20px;
+  height: 20px;
+  stroke: #ffffff;
+  filter: drop-shadow(0 1px 3px rgba(0,0,0,0.5));
+}
+
+.sp-preset-swatch__label {
+  position: absolute;
+  bottom: 3px;
+  left: 0; right: 0;
+  text-align: center;
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: rgba(255,255,255,0.9);
+  text-shadow: 0 1px 3px rgba(0,0,0,0.55);
+  letter-spacing: 0.02em;
+  line-height: 1;
+}
+
+/* Custom colour row */
+.sp-color-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.sp-color-row label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #374151;
+  flex-shrink: 0;
+}
+
+.sp-color-input {
+  width: 40px;
+  height: 40px;
+  padding: 2px;
+  border-radius: 8px;
+  border: 1.5px solid #e5e7eb;
+  cursor: pointer;
+  background: none;
+}
+
+.sp-color-hex-input {
+  flex: 1;
+  padding: 9px 12px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 9px;
+  font-size: 0.85rem;
+  font-family: monospace;
+  color: #111827;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.sp-color-hex-input:focus {
+  border-color: #0B8073;
+  box-shadow: 0 0 0 3px rgba(11, 128, 115, 0.12);
+}
+
+/* Banner upload row */
+.sp-banner-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.sp-banner-row .sp-field__input { flex: 1; }
+
+.sp-banner-preview {
+  width: 100%;
+  height: 90px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #f3f4f6;
+  margin-top: 8px;
+  display: none;
+  position: relative;
+}
+
+.sp-banner-preview.has-image { display: block; }
+
+.sp-banner-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.sp-banner-preview__remove {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.55);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  line-height: 1;
+  transition: background 0.15s ease;
+}
+
+.sp-banner-preview__remove:hover { background: rgba(239, 68, 68, 0.85); }
+
+/* ── Toast / inline save feedback ───────────────────────────────────────── */
+.sp-save-toast {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
+  background: #111827;
+  color: #ffffff;
+  border-radius: 14px;
+  font-size: 0.86rem;
+  font-weight: 700;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.22);
+  animation: sp-toast-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  pointer-events: none;
+}
+
+.sp-save-toast--success { background: #065f46; }
+.sp-save-toast--error   { background: #7f1d1d; }
+
+@keyframes sp-toast-in {
+  from { opacity: 0; transform: translateY(16px) scale(0.93); }
+  to   { opacity: 1; transform: translateY(0)   scale(1);     }
+}
+
+/* ── Profile completeness prompt (shown in empty sections) ──────────────── */
+.sp-owner-empty-prompt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 28px 20px;
+  border: 2px dashed rgba(11, 128, 115, 0.3);
+  border-radius: 14px;
+  background: rgba(11, 128, 115, 0.03);
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.18s ease, background 0.18s ease;
+}
+
+.sp-owner-empty-prompt:hover {
+  border-color: rgba(11, 128, 115, 0.65);
+  background: rgba(11, 128, 115, 0.06);
+}
+
+.sp-owner-empty-prompt__icon {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.sp-owner-empty-prompt__title {
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: #111827;
+}
+
+.sp-owner-empty-prompt__text {
+  font-size: 0.8rem;
+  color: #6b7280;
+  max-width: 280px;
+}
+
+.sp-owner-empty-prompt__cta {
+  padding: 8px 20px;
+  border-radius: 10px;
+  background: #0B8073;
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.sp-owner-empty-prompt__cta:hover { background: #096b62; }
+
+/* ── Responsive ─────────────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .sp-modal {
+    border-radius: 16px;
+    max-width: 100%;
+  }
+
+  .sp-preset-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .sp-modal__header,
+  .sp-modal__body,
+  .sp-modal__footer {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
+  .sp-owner-bar {
+    font-size: 0.75rem;
+    padding: 8px 14px;
+  }
+}

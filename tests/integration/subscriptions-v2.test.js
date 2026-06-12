@@ -52,8 +52,28 @@ describe('Subscription Service Integration Tests', () => {
       switch (collection) {
         case 'subscriptions':
           mockSubscriptions.push(data);
-          break;
+          return data; // return truthy so insertOne checks pass
       }
+    });
+
+    // findOne needed since getSubscription/getSubscriptionByUserId/getFallbackUserTier
+    // now use findOne instead of read()
+    dbUnified.findOne.mockImplementation(async (collection, filter) => {
+      if (collection === 'subscriptions') {
+        if (typeof filter === 'function') {
+          return mockSubscriptions.find(filter) || null;
+        }
+        return (
+          mockSubscriptions.find(s => Object.keys(filter).every(k => s[k] === filter[k])) || null
+        );
+      }
+      if (collection === 'users') {
+        if (typeof filter === 'function') {
+          return mockUsers.find(filter) || null;
+        }
+        return mockUsers.find(u => Object.keys(filter).every(k => u[k] === filter[k])) || null;
+      }
+      return null;
     });
 
     dbUnified.updateOne.mockImplementation(async (collection, filter, update) => {
@@ -74,6 +94,31 @@ describe('Subscription Service Integration Tests', () => {
     });
 
     // Clear any existing mocks
+
+    // find() is used by getSubscriptionByUserId — supports $ne/$in operators
+    dbUnified.find.mockImplementation(async (collection, filter) => {
+      const arr =
+        collection === 'subscriptions'
+          ? mockSubscriptions
+          : collection === 'users'
+            ? mockUsers
+            : [];
+      if (typeof filter === 'function') {
+        return arr.filter(filter);
+      }
+      return arr.filter(item =>
+        Object.keys(filter).every(k => {
+          const val = filter[k];
+          if (val && typeof val === 'object' && val.$ne !== undefined) {
+            return item[k] !== val.$ne;
+          }
+          if (val && typeof val === 'object' && val.$in !== undefined) {
+            return Array.isArray(val.$in) && val.$in.includes(item[k]);
+          }
+          return item[k] === val;
+        })
+      );
+    });
     jest.clearAllMocks();
   });
 
@@ -571,6 +616,40 @@ describe('Subscription Service Integration Tests', () => {
           default:
             return [];
         }
+      });
+
+      // enforceActivePackageLimit now uses find() for suppliers and packages
+      dbUnified.find.mockImplementation(async (collection, filter) => {
+        const applyFilter = arr => {
+          if (typeof filter === 'function') {
+            return arr.filter(filter);
+          }
+          return arr.filter(item =>
+            Object.keys(filter).every(k => {
+              const val = filter[k];
+              if (val && typeof val === 'object' && val.$in !== undefined) {
+                return Array.isArray(val.$in) && val.$in.includes(item[k]);
+              }
+              if (val && typeof val === 'object' && val.$ne !== undefined) {
+                return item[k] !== val.$ne;
+              }
+              return item[k] === val;
+            })
+          );
+        };
+        if (collection === 'suppliers') {
+          return applyFilter([...mockSuppliers]);
+        }
+        if (collection === 'packages') {
+          return applyFilter([...mockPackages]);
+        }
+        if (collection === 'subscriptions') {
+          return applyFilter([...mockSubscriptions]);
+        }
+        if (collection === 'users') {
+          return applyFilter([...mockUsers]);
+        }
+        return [];
       });
 
       dbUnified.updateOne.mockImplementation(async (collection, filter, update) => {

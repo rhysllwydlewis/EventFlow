@@ -1,0 +1,78 @@
+/*
+ * Customer dashboard welcome card compact spacing refinement.
+ * This file intentionally tightens text scale and nearby spacing so the
+ * welcome card uses less vertical space in the dashboard viewport.
+ */
+
+body.customer-dashboard-page #main-content.section {
+  padding-top: clamp(0.25rem, 0.45vw, 0.5rem) !important;
+}
+
+body.customer-dashboard-page #welcome-section.customer-welcome-card.card.no-collapse {
+  padding: clamp(0.75rem, 1.05vw, 1rem) clamp(1rem, 1.8vw, 2rem) !important;
+}
+
+body.customer-dashboard-page #welcome-section .customer-welcome-kicker {
+  min-height: clamp(1.55rem, 1.8vw, 2rem) !important;
+  gap: clamp(0.4rem, 0.55vw, 0.65rem) !important;
+  margin-bottom: clamp(0.4rem, 0.6vw, 0.65rem) !important;
+  padding-inline: clamp(0.55rem, 0.75vw, 0.85rem) !important;
+  font-size: clamp(0.78rem, 0.82vw, 0.88rem) !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.025em !important;
+}
+
+body.customer-dashboard-page #welcome-section .customer-welcome-kicker::before {
+  font-size: clamp(0.95rem, 1vw, 1.08rem) !important;
+}
+
+body.customer-dashboard-page #welcome-section .customer-welcome-heading {
+  max-width: 590px !important;
+  margin-bottom: clamp(0.35rem, 0.55vw, 0.6rem) !important;
+  font-size: clamp(1.75rem, 2.1vw, 2.25rem) !important;
+  line-height: 1.12 !important;
+  letter-spacing: -0.035em !important;
+  font-weight: 800 !important;
+}
+
+body.customer-dashboard-page #welcome-section .customer-welcome-intro {
+  max-width: 560px !important;
+  font-size: clamp(0.98rem, 1.05vw, 1.125rem) !important;
+  line-height: 1.4 !important;
+}
+
+body.customer-dashboard-page #welcome-section .customer-welcome-actions {
+  padding-top: clamp(0.65rem, 0.85vw, 0.95rem) !important;
+}
+
+body.customer-dashboard-page #welcome-section .customer-welcome-action-card {
+  min-height: clamp(4.2rem, 5.15vw, 5.9rem) !important;
+}
+
+body.customer-dashboard-page #welcome-section .customer-welcome-action-card strong {
+  font-size: clamp(0.95rem, 1.06vw, 1.14rem) !important;
+  font-weight: 800 !important;
+}
+
+body.customer-dashboard-page #welcome-section .customer-welcome-action-card small {
+  font-size: clamp(0.88rem, 0.96vw, 1.02rem) !important;
+}
+
+body.customer-dashboard-page #welcome-section .customer-welcome-contextual-prompt,
+body.customer-dashboard-page #welcome-section .customer-welcome-footer {
+  margin-top: clamp(0.55rem, 0.8vw, 0.9rem) !important;
+}
+
+@media (max-width: 700px) {
+  body.customer-dashboard-page #welcome-section .customer-welcome-kicker {
+    min-height: 30px !important;
+    margin-bottom: 0.45rem !important;
+    font-size: 0.78rem !important;
+  }
+
+  body.customer-dashboard-page #welcome-section .customer-welcome-heading {
+    margin-bottom: 0.4rem !important;
+    font-size: 1.65rem !important;
+    line-height: 1.14 !important;
+  }
+}

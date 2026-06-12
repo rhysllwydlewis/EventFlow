@@ -13,6 +13,7 @@
     const countDisplay = document.getElementById('faq-count');
     const noResultsEl = document.getElementById('faq-no-results');
     const faqList = document.getElementById('faq-list');
+    const groupHeadings = document.querySelectorAll('.faq-group-heading[data-group]');
 
     // Store original content for each FAQ item
     const originalContent = new Map();
@@ -63,7 +64,8 @@
           // Apply highlighting if there's a query
           if (query.trim() && window.TextHighlighting) {
             summary.innerHTML = window.TextHighlighting.highlightQuery(original.summaryText, query);
-            content.innerHTML = window.TextHighlighting.highlightQuery(original.contentText, query);
+            // Preserve answer HTML (including important inline links) while search is active.
+            content.innerHTML = original.contentHTML;
           } else {
             // Restore original HTML when no query
             summary.innerHTML = original.summaryHTML;
@@ -72,20 +74,30 @@
         }
       });
 
+      // Keep category headings aligned with the currently visible FAQ items.
+      groupHeadings.forEach(heading => {
+        const group = heading.dataset.group;
+        const hasVisibleItems = Array.from(faqItems).some(
+          item => item.dataset.category === group && item.style.display !== 'none'
+        );
+        heading.style.display = hasVisibleItems ? '' : 'none';
+      });
+
       // Update count display
-      if (keywords.length > 0) {
-        countDisplay.textContent = `${visibleCount} result${visibleCount !== 1 ? 's' : ''} found`;
-      } else {
-        countDisplay.textContent = `Showing all ${visibleCount} questions`;
+      if (countDisplay) {
+        if (keywords.length > 0) {
+          countDisplay.textContent = `${visibleCount} result${visibleCount !== 1 ? 's' : ''} found`;
+        } else {
+          countDisplay.textContent = `Showing all ${visibleCount} questions`;
+        }
       }
 
-      // Show/hide no results message and FAQ list
-      if (visibleCount === 0) {
-        noResultsEl.style.display = 'block';
-        faqList.style.display = 'none';
-      } else {
-        noResultsEl.style.display = 'none';
-        faqList.style.display = 'block';
+      // Show/hide no results message and FAQ list without fighting the hidden attribute.
+      if (noResultsEl) {
+        noResultsEl.hidden = visibleCount !== 0;
+      }
+      if (faqList) {
+        faqList.hidden = visibleCount === 0;
       }
     }
 

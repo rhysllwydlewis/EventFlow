@@ -84,6 +84,45 @@ describe('CORS Configuration', () => {
       expect(response.body).toEqual({ ok: true });
     });
 
+    test('should allow Google Identity Services callback origin', async () => {
+      const response = await request(app).get('/test').set('Origin', 'https://accounts.google.com');
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({ ok: true });
+    });
+
+    test('should allow configured BASE_URL origin when env has a trailing slash', async () => {
+      delete process.env.BASE_URL;
+      app = express();
+      process.env.BASE_URL = 'https://event-flow.co.uk/';
+      app.use(cors(configureCORS(true)));
+      app.get('/test', (req, res) => {
+        res.json({ ok: true });
+      });
+      app.use(errorHandler);
+
+      const response = await request(app).get('/test').set('Origin', 'https://event-flow.co.uk');
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({ ok: true });
+    });
+
+    test('should allow canonical production domain even when BASE_URL is an internal deployment URL', async () => {
+      delete process.env.BASE_URL;
+      app = express();
+      process.env.BASE_URL = 'https://eventflow-production.up.railway.app';
+      app.use(cors(configureCORS(true)));
+      app.get('/test', (req, res) => {
+        res.json({ ok: true });
+      });
+      app.use(errorHandler);
+
+      const response = await request(app).get('/test').set('Origin', 'https://event-flow.co.uk');
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({ ok: true });
+    });
+
     test('should reject non-configured origin with 403', async () => {
       const response = await request(app).get('/test').set('Origin', 'https://malicious-site.com');
 

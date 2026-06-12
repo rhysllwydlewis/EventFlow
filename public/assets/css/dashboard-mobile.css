@@ -459,46 +459,9 @@
 }
 
 /* ============================================================
-   L) CUSTOMER DASHBOARD — hero + cards + quick actions
+   L) CUSTOMER DASHBOARD — cards + quick actions
    ============================================================ */
 @media (max-width: 768px) {
-  /* Customer hero */
-  .customer-hero {
-    padding: var(--mob-card-pad) !important;
-    margin-bottom: var(--mob-section-gap) !important;
-    border-radius: var(--mob-radius-lg) !important;
-  }
-
-  .customer-hero__content {
-    gap: var(--mob-gap-md) !important;
-  }
-
-  .customer-hero__greeting {
-    font-size: 1.25rem !important;
-  }
-
-  .customer-hero__subtitle {
-    font-size: 0.875rem !important;
-  }
-
-  /* Stats row: 2×2 on mobile */
-  .customer-hero__stats {
-    grid-template-columns: repeat(2, 1fr) !important;
-    gap: var(--mob-gap-sm) !important;
-  }
-
-  .customer-hero__stat {
-    padding: var(--mob-gap-md) var(--mob-card-pad-sm) !important;
-  }
-
-  .customer-hero__stat-value {
-    font-size: 1.25rem !important;
-  }
-
-  .customer-hero__stat-label {
-    font-size: 0.7rem !important;
-  }
-
   /* Customer welcome card */
   .customer-welcome-card {
     padding: var(--mob-card-pad) !important;
@@ -559,12 +522,6 @@
   body.customer-dashboard-page .card.customer-budget-card,
   body.customer-dashboard-page .card.customer-calendar-card {
     margin-bottom: var(--mob-section-gap) !important;
-  }
-}
-
-@media (max-width: 430px) {
-  .customer-hero {
-    padding: var(--mob-card-pad-sm) !important;
   }
 }
 
@@ -674,8 +631,12 @@
    O) PREVENT HORIZONTAL OVERFLOW
    ============================================================ */
 @media (max-width: 768px) {
+  body.customer-dashboard-page main.section,
+  body.customer-dashboard-page .container {
+    overflow-x: hidden;
+  }
+
   .dashboard-hero,
-  .customer-hero,
   .supplier-quick-actions,
   .package-card,
   .sd-card,
@@ -1025,7 +986,7 @@
   /* Show description text */
   .pro-ribbon.pro-ribbon--starter .pro-ribbon__desc {
     display: block;
-    font-size: 0.90rem;
+    font-size: 0.9rem;
     color: #92400e;
     opacity: 0.92;
     line-height: 1.3;

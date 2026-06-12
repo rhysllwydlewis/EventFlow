@@ -101,7 +101,7 @@ function applyWriteLimiter(req, res, next) {
  * Derives the correct file extension from the data URI MIME type.
  * @param {string} base64 - Base64 data URI (data:image/...;base64,...)
  * @param {string} namePrefix - Filename prefix (e.g. "supplier_id_1234")
- * @returns {Promise<string>} Stored photo URL in /api/photos/{id} format
+ * @returns {Promise<{url:string, thumbnail:string, large:string, original:string}>}
  * @throws {Error} If the base64 data is invalid or storage fails
  */
 async function saveImageBase64(base64, namePrefix) {
@@ -121,7 +121,14 @@ async function saveImageBase64(base64, namePrefix) {
     err.name = 'ImageProcessingError';
     throw err;
   }
-  return results.original;
+  // Return all size variants so callers can store the full photo record.
+  // url = optimized (1200px) — best general-purpose display size.
+  return {
+    url:      results.optimized || results.original,
+    thumbnail: results.thumbnail || results.optimized || results.original,
+    large:    results.large     || results.original,
+    original: results.original,
+  };
 }
 
 /**
@@ -190,9 +197,9 @@ router.post(
     if (!s) {
       return res.status(403).json({ error: 'Not owner' });
     }
-    let url;
+    let imageVariants;
     try {
-      url = await saveImageBase64(image, `supplier_${req.params.id}_${Date.now()}`);
+      imageVariants = await saveImageBase64(image, `supplier_${req.params.id}_${Date.now()}`);
     } catch (e) {
       logger.error('Supplier photo upload failed:', e.message);
       if (e.name === 'InvalidImageError' || e.name === 'ValidationError') {
@@ -201,9 +208,17 @@ router.post(
       return res.status(503).json({ error: 'Photo storage unavailable', details: e.message });
     }
     const photosGallery = s.photosGallery || [];
-    photosGallery.push({ url, approved: true, uploadedAt: new Date().toISOString() });
+    const photoRecord = {
+      url:       imageVariants.url,
+      thumbnail: imageVariants.thumbnail,
+      large:     imageVariants.large,
+      original:  imageVariants.original,
+      approved:  true,
+      uploadedAt: new Date().toISOString(),
+    };
+    photosGallery.push(photoRecord);
     await dbUnified.updateOne('suppliers', { id: req.params.id }, { $set: { photosGallery } });
-    res.json({ ok: true, url });
+    res.json({ ok: true, url: photoRecord.url, photo: photoRecord });
   }
 );
 

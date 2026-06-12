@@ -289,6 +289,7 @@
       <p><strong>Supplier category:</strong> ${AdminShared.escapeHtml(supplierData.category || 'Unknown')}</p>
       <p><strong>Default publishing right:</strong> ${defaultPublisher ? '<span style="color:#16a34a">Yes</span>' : '<span style="color:#6b7280">No</span>'}</p>
       <p><strong>Override:</strong> ${overrideLabel}</p>
+      <p class="small" style="color:#6b7280;margin-top:0.35rem;">Override meanings: <strong>true</strong> = supplier can publish regardless of category; <strong>false</strong> = supplier cannot publish regardless of category; <strong>null</strong> = use Event Planner / Wedding Fayre category defaults.</p>
       <p><strong>Effective permission:</strong> ${effectivePublisher ? '<span style="color:#16a34a;font-weight:600">Can publish</span>' : '<span style="color:#dc2626;font-weight:600">Read-only</span>'}</p>
       <div style="margin-top:1rem;border-top:1px solid #e5e7eb;padding-top:1rem;">
         <h4 style="margin-bottom:0.75rem;font-size:0.9rem;font-weight:600;">Set Override</h4>
@@ -1109,6 +1110,7 @@
               ? `<table style="width:100%;border-collapse:collapse;font-size:0.875rem;">
             <tr><td style="padding:0.3rem 0;color:#6b7280;">Email</td><td style="padding:0.3rem 0;word-break:break-all;">${escapeHtml(user.email)}</td></tr>
             <tr><td style="padding:0.3rem 0;color:#6b7280;">Verified</td><td>${apBool(user.verified)}</td></tr>
+            <tr><td style="padding:0.3rem 0;color:#6b7280;">User account</td><td style="padding:0.3rem 0;"><a href="/admin-user-detail?id=${escapeHtml(user.id || '')}" style="color:#0B8073;text-decoration:none;font-weight:600;">View User Detail →</a></td></tr>
             <tr><td style="padding:0.3rem 0;color:#6b7280;">Prefs enabled</td><td>${apBool(user.emailPrefsEnabled)}</td></tr>
             <tr><td style="padding:0.3rem 0;color:#6b7280;">Pref: packages</td><td>${apBool(user.emailPrefsPerType.missingPackages)}</td></tr>
             <tr><td style="padding:0.3rem 0;color:#6b7280;">Pref: profile</td><td>${apBool(user.emailPrefsPerType.incompleteProfile)}</td></tr>

@@ -3,7 +3,7 @@
  *
  * Verifies that the endpoint handles:
  *   1. JWT verification tokens (System A)
- *   2. Legacy verificationToken field (System B)
+ *   2. Legacy verificationToken field (System B) with active expiry records
  *   3. emailVerificationToken field from emailVerification.js (System C)
  *   4. Expired tokens in both legacy fields
  *   5. Already-verified users
@@ -28,8 +28,16 @@ jest.mock('../../db-unified', () => ({
   }),
   updateOne: jest.fn().mockResolvedValue(true),
   findOne: jest.fn((_collection, query) => {
+    // Support all query shapes used by auth routes:
+    //   function filter, { id }, { email }, { $or: [...] }
+    if (typeof query === 'function') {
+      return Promise.resolve(mockUsers.find(query) || null);
+    }
     if (query && query.id) {
       return Promise.resolve(mockUsers.find(u => u.id === query.id) || null);
+    }
+    if (query && query.email) {
+      return Promise.resolve(mockUsers.find(u => u.email === query.email) || null);
     }
     return Promise.resolve(null);
   }),
@@ -112,7 +120,8 @@ describe('GET /api/auth/verify — missing token', () => {
 describe('GET /api/auth/verify — legacy verificationToken field', () => {
   it('should verify user with a plain-hex verificationToken', async () => {
     const token = crypto.randomBytes(16).toString('hex');
-    mockUsers = [makeUser({ verificationToken: token, verificationTokenExpiresAt: null })];
+    const futureExpiry = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+    mockUsers = [makeUser({ verificationToken: token, verificationTokenExpiresAt: futureExpiry })];
 
     const dbUnified = require('../../db-unified');
     dbUnified.read.mockResolvedValue([...mockUsers]);

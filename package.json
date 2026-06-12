@@ -44,7 +44,9 @@
     "worker": "node scripts/worker.js",
     "build": "node -e \"console.log('No build step required for EventFlow')\"",
     "test:visual:setup": "playwright install --with-deps chromium",
-    "test:visual:local": "npm run test:visual:setup && npm run test:visual"
+    "test:visual:local": "npm run test:visual:setup && npm run test:visual",
+    "debug:supplier-provisioning-smoke": "node scripts/debug-supplier-provisioning-smoke.js",
+    "audit:orphan-supplier-data": "node scripts/audit-orphaned-supplier-data.js"
   },
   "dependencies": {
     "@sentry/node": "^8.0.0",

@@ -29,19 +29,12 @@ const MAX_RESPONSE_LENGTH = 2000; // Maximum characters for supplier response
  * @returns {Promise<Object>} Eligibility result
  */
 async function checkReviewEligibility(userId, supplierId, _bookingId = null) {
-  const reviews = await dbUnified.read('reviews');
   const now = Date.now();
   const cooldownMs = REVIEW_COOLDOWN_DAYS * 24 * 60 * 60 * 1000;
 
-  // Check if user already reviewed this supplier recently
-  const existingReview = reviews.find(
-    r =>
-      r.authorId === userId &&
-      r.supplierId === supplierId &&
-      now - new Date(r.createdAt).getTime() < cooldownMs
-  );
-
-  if (existingReview) {
+  // Check cooldown: has user reviewed this supplier within the cooldown window?
+  const existingReview = await dbUnified.findOne('reviews', { authorId: userId, supplierId });
+  if (existingReview && now - new Date(existingReview.createdAt).getTime() < cooldownMs) {
     const daysRemaining = Math.ceil(
       (cooldownMs - (now - new Date(existingReview.createdAt).getTime())) / (24 * 60 * 60 * 1000)
     );
@@ -52,11 +45,10 @@ async function checkReviewEligibility(userId, supplierId, _bookingId = null) {
     };
   }
 
-  // Check rate limiting (5 reviews per hour)
+  // Check rate limiting (5 reviews per hour) — fetch user's recent reviews
   const oneHourAgo = now - 60 * 60 * 1000;
-  const recentReviews = reviews.filter(
-    r => r.authorId === userId && new Date(r.createdAt).getTime() > oneHourAgo
-  );
+  const userReviews = await dbUnified.find('reviews', { authorId: userId });
+  const recentReviews = userReviews.filter(r => new Date(r.createdAt).getTime() > oneHourAgo);
 
   if (recentReviews.length >= MAX_REVIEWS_PER_HOUR) {
     return {
@@ -176,7 +168,11 @@ async function createReview(reviewData, userId) {
   });
 
   // Save review
-  await dbUnified.insertOne('reviews', review);
+  const reviewInserted = await dbUnified.insertOne('reviews', review);
+  if (!reviewInserted) {
+    logger.error('[REVIEW-SVC] insertOne failed', { reviewId: review._id });
+    throw new Error('Failed to save review');
+  }
 
   // Track review received event
   const supplierAnalytics = require('../utils/supplierAnalytics');
@@ -226,10 +222,8 @@ async function getSupplierReviews(supplierId, options = {}) {
     approvedOnly = true,
   } = options;
 
-  const reviews = await dbUnified.read('reviews');
-
-  // Filter by supplier
-  let filtered = reviews.filter(r => r.supplierId === supplierId);
+  // Find reviews for this supplier — uses supplierId index
+  let filtered = await dbUnified.find('reviews', { supplierId: supplierId });
 
   // Filter by approval status
   if (approvedOnly) {
@@ -246,16 +240,26 @@ async function getSupplierReviews(supplierId, options = {}) {
   }
 
   // Sort reviews
+  const helpfulCount = review => Number(review?.votes?.helpful) || 0;
+  const safeRating = review => {
+    const rating = Number(review?.rating);
+    return Number.isFinite(rating) ? rating : 0;
+  };
+  const safeTime = review => {
+    const time = new Date(review?.createdAt || 0).getTime();
+    return Number.isFinite(time) ? time : 0;
+  };
+
   switch (sortBy) {
     case 'helpful':
-      filtered.sort((a, b) => b.votes.helpful - a.votes.helpful);
+      filtered.sort((a, b) => helpfulCount(b) - helpfulCount(a));
       break;
     case 'rating':
-      filtered.sort((a, b) => b.rating - a.rating);
+      filtered.sort((a, b) => safeRating(b) - safeRating(a));
       break;
     case 'recent':
     default:
-      filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      filtered.sort((a, b) => safeTime(b) - safeTime(a));
   }
 
   // Pagination
@@ -266,9 +270,18 @@ async function getSupplierReviews(supplierId, options = {}) {
   const paginatedReviews = filtered.slice(start, end);
 
   // Get analytics for supplier
-  const analytics = ReviewAnalytics.generateSupplierAnalytics(
-    reviews.filter(r => r.supplierId === supplierId)
-  );
+  const analytics = ReviewAnalytics.generateSupplierAnalytics(filtered);
+
+  // Compute star distribution from ALL filtered reviews (not just the current page)
+  // so the bar chart is accurate regardless of which page the supplier is viewing.
+  const ratingDistribution = [0, 0, 0, 0, 0]; // index 0 = 1★ … index 4 = 5★
+  filtered.forEach(r => {
+    const rating = Number(r.rating);
+    const i = Math.round(Number.isFinite(rating) ? rating : 0) - 1;
+    if (i >= 0 && i <= 4) {
+      ratingDistribution[i]++;
+    }
+  });
 
   return {
     reviews: paginatedReviews,
@@ -281,7 +294,8 @@ async function getSupplierReviews(supplierId, options = {}) {
     analytics: {
       avgRating: analytics.metrics.averageRating,
       totalReviews: analytics.metrics.totalReviews,
-      responseRate: analytics.response.responseRate,
+      responseRate: Math.round((analytics.response.responseRate || 0) * 100),
+      ratingDistribution, // [1★count, 2★count, 3★count, 4★count, 5★count]
     },
   };
 }
@@ -563,8 +577,7 @@ async function getModerationStats() {
  * @returns {Promise<Object>} Analytics data
  */
 async function getSupplierAnalytics(supplierId) {
-  const reviews = await dbUnified.read('reviews');
-  const supplierReviews = reviews.filter(r => r.supplierId === supplierId);
+  const supplierReviews = await dbUnified.find('reviews', { supplierId: supplierId }); // uses supplierId index
 
   return ReviewAnalytics.generateSupplierAnalytics(supplierReviews);
 }
@@ -586,8 +599,7 @@ async function getPlatformAnalytics(_timeRange = '1m') {
  * @returns {Promise<Object>} Verified count info
  */
 async function getVerifiedCount(supplierId) {
-  const reviews = await dbUnified.read('reviews');
-  const supplierReviews = reviews.filter(r => r.supplierId === supplierId);
+  const supplierReviews = await dbUnified.find('reviews', { supplierId: supplierId }); // indexed
 
   const verified = supplierReviews.filter(
     r => r.verification?.status !== ReviewModel.VERIFICATION_TYPES.UNVERIFIED
@@ -618,4 +630,8 @@ module.exports = {
   getSupplierAnalytics,
   getPlatformAnalytics,
   getVerifiedCount,
+  constants: {
+    MIN_RESPONSE_LENGTH,
+    MAX_RESPONSE_LENGTH,
+  },
 };

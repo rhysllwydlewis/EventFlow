@@ -40,6 +40,9 @@
   <link rel="stylesheet" href="/assets/css/supplier-profile.css?v=18.3.0">
   <link rel="stylesheet" href="/assets/css/badges.css?v=18.3.0">
   
+  <link rel="stylesheet" href="/assets/css/supplier-profile-edit.css?v=18.4.0">
+  <link rel="stylesheet" href="/assets/css/supplier-profile-v2.css?v=19.1.0">
+  
   <script src="/assets/js/toast-notifications.js?v=18.3.0"></script>
   <script src="/assets/js/reviews.js" defer></script>
 </head>
@@ -60,6 +63,7 @@
       <nav class="ef-nav-desktop" aria-label="Main navigation">
         <a href="/start" class="ef-nav-link">Plan</a>
         <a href="/suppliers" class="ef-nav-link">Suppliers</a>
+        <a href="/public-calendar" class="ef-nav-link">Events</a>
         <a href="/marketplace" class="ef-nav-link">Marketplace</a>
         <a href="/guides" class="ef-nav-link">Guides</a>
         <a href="/pricing" class="ef-nav-link">Pricing</a>
@@ -114,6 +118,7 @@
     <nav class="ef-mobile-nav" aria-label="Primary navigation">
       <a href="/start" class="ef-mobile-link">Plan an Event</a>
       <a href="/suppliers" class="ef-mobile-link">Browse Suppliers</a>
+      <a href="/public-calendar" class="ef-mobile-link">Events Calendar</a>
       <a href="/marketplace" class="ef-mobile-link">Marketplace</a>
       <a href="/pricing" class="ef-mobile-link">Pricing</a>
       <a href="/guides" class="ef-mobile-link">Guides</a>
@@ -176,6 +181,13 @@
           <!-- Badges will be dynamically inserted here -->
         </div>
       </div>
+
+      <!-- Avatar overlaps the hero bottom -->
+      <div class="hero-avatar-wrap">
+        <div class="hero-avatar" id="hero-avatar" aria-hidden="true">
+          <span id="hero-avatar-initials">?</span>
+        </div>
+      </div>
       
       <div class="hero-content">
         <div class="hero-identity">
@@ -235,8 +247,10 @@
             <!-- Gallery (rendered by supplier-profile.js) -->
             <div id="sp-section-gallery" class="sp-section" aria-label="Photo gallery"></div>
 
-            <!-- Packages &amp; Services (rendered by supplier-profile.js) -->
-            <div id="sp-section-packages" class="sp-section" aria-label="Packages and services"></div>
+            <!-- Packages &amp; Services (rendered by supplier-profile-packages-v2.js) -->
+            <div id="sp-section-packages" class="sp-section" aria-label="Packages and services">
+              <div id="supplier-package-cards-root" data-renderer="v2"></div>
+            </div>
 
             <!-- Reviews (rendered by supplier-profile.js + reviews.js) -->
             <div id="sp-section-reviews" class="sp-section" aria-label="Customer reviews"></div>
@@ -270,8 +284,12 @@
     <script src="/assets/js/config/page-init.js"></script>
     <script src="/assets/js/app.js"></script>
     <script src="/assets/js/utils/tier-icon.js"></script>
+    <script src="/assets/js/utils/package-image-resolver.js?v=18.7.0"></script>
     <script src="/assets/js/notification-dispatcher.js"></script>
-    <script type="module" src="/assets/js/supplier-profile.js"></script>
+    <script type="module" src="/assets/js/supplier-profile.js?v=19.1.0"></script>
+    <script type="module" src="/assets/js/supplier-profile-packages-v2.js?v=19.0.0"></script>
+    <!-- Owner inline-edit overlays — activates only for the profile owner -->
+    <script defer src="/assets/js/supplier-profile-owner-edit.js?v=18.6.0"></script>
 <footer class="footer" role="contentinfo">
   <div class="container supplier-footer-content">
     <div><strong>EventFlow</strong><br><span class="small">Event planning made simple.</span></div>
@@ -280,7 +298,7 @@
       <a href="/marketplace">Marketplace</a> ·
       <a href="/pricing">Pricing</a> ·
       <a href="/credits">Credits</a> · <a href="/contact">Contact</a> · <a href="/legal">Legal Hub</a> · <button type="button" data-cookie-prefs>Cookie preferences</button></div>
-    <div class="small" style="width: 100%; margin-top: 8px; text-align: center;">Operated by <a href="https://vexi.co.uk" target="_blank" rel="noopener noreferrer">VEXI</a></div>
+    <div class="footer-credit small">Operated by <a href="https://vexi.co.uk" target="_blank" rel="noopener noreferrer">VEXI</a></div>
   </div>
   </footer>
 <script src="/assets/js/components/footer-nav.js" defer></script>

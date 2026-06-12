@@ -331,7 +331,7 @@ app.disable('x-powered-by');
 app.use(security.configureHTTPSRedirect(isProduction));
 app.use(security.configureHelmet(isProduction));
 app.use(security.configurePermissionsPolicy());
-app.use(require('cors')(security.configureCORS(isProduction)));
+app.use(security.configureCORSMiddleware(isProduction));
 
 // Sentry request and tracing handlers
 app.use(sentry.getRequestHandler());
@@ -532,6 +532,16 @@ app.get('/package', (req, res, next) => {
   return res.redirect(301, '/suppliers');
 });
 
+// /package/:slug — support clean package detail URLs used by package cards and
+// older audit-reported links such as /package/full-day-capture. The client reads
+// the final path segment and resolves it through the same API as query URLs.
+app.get('/package/:slug', (req, res) => {
+  if (!req.params.slug) {
+    return res.redirect(301, '/suppliers');
+  }
+  return res.sendFile(path.join(__dirname, 'public', 'package.html'));
+});
+
 // Deprecated admin pages — 302 to canonical replacements (query string preserved).
 // These must come BEFORE the general .html redirect so both the clean URL and the
 // .html variant are handled in a single hop rather than two hops.
@@ -594,6 +604,23 @@ app.get('/articles/:slug', (req, res, next) => {
 app.get('/articles/:slug.html', (req, res) => {
   const qs = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
   res.redirect(301, `/articles/${req.params.slug}${qs}`);
+});
+
+// Public wedding website pages
+app.get('/wedding/:slug', apiLimiter, (req, res, next) => {
+  if (!/^[a-z0-9-]+$/i.test(req.params.slug)) {
+    return next();
+  }
+  res.sendFile(path.join(__dirname, 'public', 'wedding.html'));
+});
+
+// Public event detail pages — clean, shareable event URLs backed by API data.
+app.get('/events/:slug', apiLimiter, (req, res, next) => {
+  const slug = req.params.slug;
+  if (!/^[a-zA-Z0-9_-]+$/.test(slug)) {
+    return next();
+  }
+  res.sendFile(path.join(__dirname, 'public', 'event-detail.html'));
 });
 
 // Block test/dev pages in production
@@ -861,8 +888,11 @@ const getAuthMeHandler = async (req, res) => {
     if (!p) {
       return res.status(200).json({ user: null });
     }
-    const users = await dbUnified.read('users');
-    const u = users.find(x => x.id === p.id);
+    // Use a targeted findOne rather than loading all users into memory.
+    // This endpoint is called on every page load (and multiple times per
+    // dashboard), so avoiding the full collection scan meaningfully reduces
+    // login and page-load latency.
+    const u = await dbUnified.findOne('users', { id: p.id });
     if (!u) {
       return res.status(200).json({ user: null });
     }
@@ -886,12 +916,31 @@ const getAuthMeHandler = async (req, res) => {
       id: u.id,
       name: u.name,
       firstName: u.firstName || u.name,
+      lastName: u.lastName || '',
       email: u.email,
       role: isOwner ? 'admin' : u.role,
       isOwner,
-      verified: u.verified,
+      // verified / emailVerified: both fields used by dashboard verification banner
+      verified: u.verified === true,
+      emailVerified: u.verified === true || u.emailVerified === true,
       supplierApproved,
       avatarUrl: u.avatarUrl || null,
+      // Profile fields used by settings and supplier profile pages
+      location: u.location || '',
+      postcode: u.postcode || '',
+      company: u.company || '',
+      jobTitle: u.jobTitle || '',
+      website: u.website || '',
+      socials: u.socials || {},
+      // Subscription / feature fields used by dashboard tier display
+      isPro: u.isPro || false,
+      proExpiresAt: u.proExpiresAt || null,
+      subscriptionTier: u.subscriptionTier || 'free',
+      badges: u.badges || [],
+      // Notification preferences
+      notify: u.notify !== false,
+      notify_account: u.notify_account !== false,
+      notify_marketing: u.notify_marketing === true,
     };
     return res.json({ user: userData, ...userData });
   } catch (err) {
@@ -937,6 +986,33 @@ mountDeprecatedApiAlias('/api/admin', '/api/v1/admin', adminRoutes); // Backward
 const adminUserManagementRoutes = require('./routes/admin-user-management');
 app.use('/api/v1/admin', adminUserManagementRoutes);
 mountDeprecatedApiAlias('/api/admin', '/api/v1/admin', adminUserManagementRoutes); // Backward compatibility
+
+// Admin notification centre routes
+const adminNotificationsRoutes = require('./routes/admin-notifications');
+app.use('/api/v1/admin/notifications', adminNotificationsRoutes);
+mountDeprecatedApiAlias(
+  '/api/admin/notifications',
+  '/api/v1/admin/notifications',
+  adminNotificationsRoutes
+);
+
+// External contacts ingestion (server-to-server from VEXI, Chlo, etc.)
+const externalContactsIngestRoutes = require('./routes/integrations-external-contacts');
+app.use('/api/v1/integrations/external-contacts', externalContactsIngestRoutes);
+mountDeprecatedApiAlias(
+  '/api/integrations/external-contacts',
+  '/api/v1/integrations/external-contacts',
+  externalContactsIngestRoutes
+);
+
+// Admin external contacts management
+const adminExternalContactsRoutes = require('./routes/admin-external-contacts');
+app.use('/api/v1/admin/external-contacts', adminExternalContactsRoutes);
+mountDeprecatedApiAlias(
+  '/api/admin/external-contacts',
+  '/api/v1/admin/external-contacts',
+  adminExternalContactsRoutes
+);
 
 // Admin V2 routes (RBAC with granular permissions)
 const adminV2Routes = require('./routes/admin-v2');

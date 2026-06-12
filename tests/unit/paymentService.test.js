@@ -69,10 +69,36 @@ describe('Payment Service Unit Tests', () => {
       switch (collection) {
         case 'payments':
           mockPayments.push(data);
-          break;
+          return data; // return truthy so insertOne null-check passes
       }
+      return data;
     });
 
+    dbUnified.updateOne.mockImplementation(async (collection, filter, update) => {
+      const setFields = update?.$set || update || {};
+      const matches = item => Object.keys(filter || {}).every(key => item[key] === filter[key]);
+      if (collection === 'payments') {
+        const index = mockPayments.findIndex(matches);
+        if (index >= 0) {
+          mockPayments[index] = { ...mockPayments[index], ...setFields };
+        }
+      }
+      if (collection === 'subscriptions') {
+        const index = mockSubscriptions.findIndex(matches);
+        if (index >= 0) {
+          mockSubscriptions[index] = { ...mockSubscriptions[index], ...setFields };
+        }
+      }
+      return true;
+    });
+
+    dbUnified.findOne.mockImplementation(async (collection, filter) => {
+      const arr = collection === 'payments' ? mockPayments : mockSubscriptions;
+      if (typeof filter === 'function') {
+        return arr.find(filter) || null;
+      }
+      return arr.find(item => Object.keys(filter).every(k => item[k] === filter[k])) || null;
+    });
     jest.spyOn(require('../../store'), 'uid').mockReturnValue('pay-test-123');
   });
 

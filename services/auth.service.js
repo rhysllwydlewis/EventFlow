@@ -15,6 +15,7 @@ const { passwordOk } = require('../middleware/validation');
 const postmark = require('../utils/postmark');
 const tokenUtils = require('../utils/token');
 const logger = require('../utils/logger');
+const userProvenance = require('./userProvenance.service');
 
 const JWT_SECRET = String(process.env.JWT_SECRET || 'change_me');
 
@@ -72,9 +73,9 @@ class AuthService {
       throw new ValidationError('Company name is required for suppliers');
     }
 
-    // Check for existing user
-    const users = await dbUnified.read('users');
-    if (users.find(u => u.email.toLowerCase() === String(email).toLowerCase())) {
+    // Check for existing user — uses email index
+    const emailLower = String(email).toLowerCase();
+    if (await dbUnified.findOne('users', { email: emailLower })) {
       throw new ConflictError('Email already registered');
     }
 
@@ -128,6 +129,7 @@ class AuthService {
       marketingOptIn: !!marketingOptIn,
       verified: false,
       createdAt: new Date().toISOString(),
+      ...userProvenance.emailPasswordPendingProvenance(),
     };
 
     // Generate verification token
@@ -141,14 +143,19 @@ class AuthService {
     // Send verification email BEFORE saving user
     try {
       logger.debug(`Sending verification email to ${user.email}`);
-      await postmark.sendVerificationEmail(user, verificationToken);
+      const sendResult = await postmark.sendVerificationEmail(user, verificationToken);
+      Object.assign(user, userProvenance.metadataFromSendResult(sendResult));
     } catch (emailError) {
       logger.error('Failed to send verification email:', emailError);
       throw new Error('Failed to send verification email. Please try again later.');
     }
 
     // Save user
-    await dbUnified.insertOne('users', user);
+    const authUserInserted = await dbUnified.insertOne('users', user);
+    if (!authUserInserted) {
+      logger.error('[AUTH-SVC] insertOne failed', { email: user.email });
+      throw new Error('Failed to create user account');
+    }
 
     // Update last login timestamp
     this._updateLastLogin(user.id);
@@ -173,8 +180,8 @@ class AuthService {
       throw new ValidationError('Email and password are required');
     }
 
-    const users = await dbUnified.read('users');
-    const user = users.find(u => u.email.toLowerCase() === String(email).toLowerCase());
+    // Look up by email — uses email index
+    const user = await dbUnified.findOne('users', { email: String(email).toLowerCase() });
 
     if (!user) {
       throw new AuthenticationError('Invalid credentials');
@@ -206,8 +213,8 @@ class AuthService {
       throw new ValidationError('Invalid email');
     }
 
-    const users = await dbUnified.read('users');
-    const user = users.find(u => u.email.toLowerCase() === String(email).toLowerCase());
+    // Look up by email — uses email index
+    const user = await dbUnified.findOne('users', { email: String(email).toLowerCase() });
 
     if (!user) {
       // Don't reveal whether email exists
@@ -216,7 +223,7 @@ class AuthService {
     }
 
     // Generate reset token
-    const resetToken = tokenUtils.generatePasswordResetToken(user, {
+    const resetToken = tokenUtils.generatePasswordResetToken(user.email, {
       expiresInHours: 1,
     });
 
@@ -255,15 +262,14 @@ class AuthService {
       throw new ValidationError('Weak password');
     }
 
-    // Verify token
-    let decoded;
-    try {
-      decoded = jwt.verify(token, JWT_SECRET);
-    } catch (error) {
+    const validation = tokenUtils.validatePasswordResetToken(token, { allowGracePeriod: false });
+    if (!validation.valid) {
       throw new AuthenticationError('Invalid or expired token');
     }
 
-    const user = await dbUnified.findOne('users', { id: decoded.id });
+    const user = await dbUnified.findOne('users', {
+      email: String(validation.email).toLowerCase(),
+    });
 
     if (!user) {
       throw new AuthenticationError('Invalid token');
@@ -304,18 +310,28 @@ class AuthService {
       throw new ValidationError('Token is required');
     }
 
-    // Verify token
-    let decoded;
-    try {
-      decoded = jwt.verify(token, JWT_SECRET);
-    } catch (error) {
+    const validation = tokenUtils.validateVerificationToken(token, {
+      allowGracePeriod: true,
+      expectedType: tokenUtils.TOKEN_TYPES.EMAIL_VERIFICATION,
+    });
+    if (!validation.valid) {
       throw new AuthenticationError('Invalid or expired token');
     }
 
-    const user = await dbUnified.findOne('users', { id: decoded.id });
+    const user = await dbUnified.findOne('users', {
+      email: String(validation.email).toLowerCase(),
+    });
 
     if (!user) {
       throw new AuthenticationError('Invalid token');
+    }
+
+    if (user.verificationToken && user.verificationToken !== token) {
+      throw new AuthenticationError('Invalid token');
+    }
+
+    if (user.verificationTokenExpiresAt && new Date(user.verificationTokenExpiresAt) < new Date()) {
+      throw new AuthenticationError('Token has expired');
     }
 
     if (user.verified) {
@@ -332,7 +348,7 @@ class AuthService {
       { id: user.id },
       {
         $set: {
-          verified: true,
+          ...userProvenance.eventflowEmailVerifiedProvenance(new Date().toISOString()),
           verificationToken: null,
           verificationTokenExpiresAt: null,
         },
@@ -406,7 +422,14 @@ class AuthService {
    */
   _sanitizeUser(user) {
     // eslint-disable-next-line no-unused-vars
-    const { passwordHash, resetToken, verificationToken, ...sanitized } = user;
+    const {
+      passwordHash,
+      resetToken,
+      resetTokenExpiresAt,
+      verificationToken,
+      verificationTokenExpiresAt,
+      ...sanitized
+    } = user;
     return sanitized;
   }
 }

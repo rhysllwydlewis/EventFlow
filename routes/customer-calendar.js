@@ -88,6 +88,133 @@ function validateEntryBody(body) {
   return { data, errors };
 }
 
+function daysUntilDate(dateStr, now = new Date()) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr || '')) {
+    return null;
+  }
+  const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const target = new Date(`${dateStr}T00:00:00Z`);
+  if (Number.isNaN(target.getTime())) {
+    return null;
+  }
+  return Math.round((target - today) / 86400000);
+}
+
+function reminderNotificationForEntry(userId, entry, daysUntil) {
+  const label = daysUntil === 1 ? 'tomorrow' : `in ${daysUntil} days`;
+  const time = entry.time ? ` at ${entry.time}` : '';
+  const source = entry.source || 'personal';
+  const reminderId =
+    source === 'personal'
+      ? `calrem_${userId}_${entry.id}_${daysUntil}_${entry.date}`
+      : `calrem_${source}_${userId}_${entry.id}_${daysUntil}_${entry.date}`;
+  const typeLabel = entry.type || (source === 'public' ? 'public event' : 'an event');
+  return {
+    id: reminderId,
+    userId,
+    type: 'reminder',
+    title: `Calendar reminder: ${entry.title}`,
+    message: `You have ${typeLabel} ${label}${time}.`,
+    actionUrl: entry.actionUrl || '/dashboard/customer#events-calendar',
+    actionText: 'View calendar',
+    icon: '⏰',
+    priority: daysUntil === 1 ? 'high' : 'normal',
+    category: 'calendar',
+    metadata: {
+      calendarEntryId: entry.id,
+      reminderDays: daysUntil,
+      entryDate: entry.date,
+      entryType: entry.type,
+      source,
+    },
+    isRead: false,
+    readAt: null,
+    isDismissed: false,
+    dismissedAt: null,
+    expiresAt: new Date(`${entry.date}T23:59:59.999Z`).toISOString(),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+function calendarEntryReminderItem(entry) {
+  return {
+    id: entry.id,
+    title: entry.title,
+    type: entry.type,
+    date: entry.date,
+    time: entry.time,
+    source: 'personal',
+    actionUrl: '/dashboard/customer#events-calendar',
+  };
+}
+
+function publicEventReminderItem(event) {
+  const start = new Date(event.startDate);
+  if (Number.isNaN(start.getTime())) {
+    return null;
+  }
+  return {
+    id: event.id,
+    title: event.title || 'Saved public event',
+    type: 'public event',
+    date: start.toISOString().slice(0, 10),
+    time: start.toISOString().slice(11, 16),
+    source: 'public',
+    actionUrl: `/events/${encodeURIComponent(event.slug || event.id)}`,
+  };
+}
+
+async function getSavedPublicEventReminderItems(userId) {
+  const saves = await dbUnified.read('public_calendar_saves');
+  const savedEventIds = new Set(
+    saves.filter(save => save.userId === userId).map(save => save.eventId)
+  );
+  if (!savedEventIds.size) {
+    return [];
+  }
+  const publicEvents = await dbUnified.read('public_calendar_events');
+  return publicEvents
+    .filter(event => savedEventIds.has(event.id))
+    .map(publicEventReminderItem)
+    .filter(Boolean);
+}
+
+async function ensureCalendarReminderNotifications(userId, entries) {
+  const reminderItems = entries.map(calendarEntryReminderItem);
+  try {
+    reminderItems.push(...(await getSavedPublicEventReminderItems(userId)));
+  } catch (err) {
+    logger.warn('Failed to include saved public events in calendar reminders:', err.message);
+  }
+
+  const dueReminders = reminderItems
+    .map(entry => ({ entry, daysUntil: daysUntilDate(entry.date) }))
+    .filter(({ daysUntil }) => daysUntil === 7 || daysUntil === 1)
+    .map(({ entry, daysUntil }) => reminderNotificationForEntry(userId, entry, daysUntil));
+
+  if (!dueReminders.length) {
+    return [];
+  }
+
+  let created = [];
+  await withLock('notifications', async () => {
+    // Use dedup-then-insertOne instead of read-entire-collection+write-entire-collection.
+    // We still need to check for existing IDs, but we fetch only a targeted set.
+    const existingNotifications = await dbUnified.find('notifications', {
+      id: { $in: dueReminders.map(n => n.id) },
+    });
+    const existingIds = new Set(existingNotifications.map(n => n.id));
+    created = dueReminders.filter(notification => !existingIds.has(notification.id));
+    if (!created.length) {
+      return;
+    }
+    await Promise.all(created.map(n => dbUnified.insertOne('notifications', n)));
+  });
+
+  return created;
+}
+
 /**
  * GET /api/me/calendar-entries
  * List current user's personal calendar entries.
@@ -97,7 +224,8 @@ router.get('/', authRequired, async (req, res) => {
     const userId = req.user.id;
     const entries = await dbUnified.read('customer_calendar_entries');
     const userEntries = entries.filter(e => e.userId === userId);
-    res.json({ ok: true, entries: userEntries });
+    const reminderNotifications = await ensureCalendarReminderNotifications(userId, userEntries);
+    res.json({ ok: true, entries: userEntries, remindersCreated: reminderNotifications.length });
   } catch (error) {
     logger.error('Error fetching calendar entries:', error);
     res.status(500).json({ error: 'Failed to fetch calendar entries' });
@@ -133,11 +261,11 @@ router.post(
         createdAt: new Date().toISOString(),
       };
 
-      await withLock('customer_calendar_entries', async () => {
-        const entries = await dbUnified.read('customer_calendar_entries');
-        entries.push(entry);
-        await dbUnified.write('customer_calendar_entries', entries);
-      });
+      const entrySaved = await dbUnified.insertOne('customer_calendar_entries', entry);
+      if (!entrySaved) {
+        logger.error('[CALENDAR] entry insertOne failed', { entryId: entry.id });
+        return res.status(500).json({ error: 'Failed to save calendar entry. Please try again.' });
+      }
 
       logger.info(`Calendar entry created: ${entry.id} by user ${userId}`);
       res.status(201).json({ ok: true, entry });
@@ -167,34 +295,28 @@ router.put(
         return res.status(400).json({ error: errors[0] });
       }
 
-      let earlyExit = null;
-      let updatedEntry = null;
-
-      await withLock('customer_calendar_entries', async () => {
-        const entries = await dbUnified.read('customer_calendar_entries');
-        const idx = entries.findIndex(e => e.id === entryId && e.userId === userId);
-
-        if (idx === -1) {
-          earlyExit = { status: 404, body: { error: 'Entry not found' } };
-          return;
-        }
-
-        entries[idx] = {
-          ...entries[idx],
-          title: data.title,
-          type: data.type,
-          date: data.date,
-          time: data.time !== undefined ? data.time : entries[idx].time,
-          description: data.description !== undefined ? data.description : entries[idx].description,
-          updatedAt: new Date().toISOString(),
-        };
-        await dbUnified.write('customer_calendar_entries', entries);
-        updatedEntry = entries[idx];
+      const existing = await dbUnified.findOne('customer_calendar_entries', {
+        id: entryId,
+        userId,
       });
-
-      if (earlyExit) {
-        return res.status(earlyExit.status).json(earlyExit.body);
+      if (!existing) {
+        return res.status(404).json({ error: 'Entry not found' });
       }
+
+      const patch = {
+        title: data.title,
+        type: data.type,
+        date: data.date,
+        time: data.time !== undefined ? data.time : existing.time,
+        description: data.description !== undefined ? data.description : existing.description,
+        updatedAt: new Date().toISOString(),
+      };
+      await dbUnified.updateOne(
+        'customer_calendar_entries',
+        { id: entryId, userId },
+        { $set: patch }
+      );
+      const updatedEntry = { ...existing, ...patch };
 
       logger.info(`Calendar entry updated: ${entryId} by user ${userId}`);
       res.json({ ok: true, entry: updatedEntry });
@@ -219,20 +341,11 @@ router.delete(
     try {
       const userId = req.user.id;
       const entryId = req.params.id;
-      let found = false;
-
-      await withLock('customer_calendar_entries', async () => {
-        const entries = await dbUnified.read('customer_calendar_entries');
-        const idx = entries.findIndex(e => e.id === entryId && e.userId === userId);
-        if (idx === -1) {
-          return;
-        }
-        found = true;
-        entries.splice(idx, 1);
-        await dbUnified.write('customer_calendar_entries', entries);
+      const deleted = await dbUnified.deleteOne('customer_calendar_entries', {
+        id: entryId,
+        userId,
       });
-
-      if (!found) {
+      if (!deleted) {
         return res.status(404).json({ error: 'Entry not found' });
       }
       res.json({ ok: true });

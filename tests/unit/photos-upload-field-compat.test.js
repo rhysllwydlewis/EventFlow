@@ -18,6 +18,17 @@ function buildDeps() {
       }
       return [];
     }),
+    // findOne used by the refactored route (marketplace listing lookup)
+    findOne: jest.fn(async (collection, filter) => {
+      if (collection === 'marketplace_listings') {
+        return listings.find(l => l.id === filter.id) || null;
+      }
+      if (collection === 'suppliers') {
+        return null; // no supplier needed for marketplace type
+      }
+      return null;
+    }),
+    find: jest.fn().mockResolvedValue([]),
     write: jest.fn(async () => {}),
     updateOne: jest.fn().mockResolvedValue(true),
     insertOne: jest.fn().mockResolvedValue(true),

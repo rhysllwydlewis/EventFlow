@@ -64,7 +64,7 @@
       <div class="amv-meta-grid">
         <div class="amv-meta-item">
           <span class="amv-meta-label">ID</span>
-          <span class="amv-meta-value" style="font-family:monospace;font-size:0.78rem">${escapeHtml(conv._id || '')}</span>
+          <span class="amv-meta-value" class="ef-msg-code">${escapeHtml(conv._id || '')}</span>
         </div>
         <div class="amv-meta-item">
           <span class="amv-meta-label">Type</span>
@@ -291,3 +291,4 @@
     init();
   });
 })();
+

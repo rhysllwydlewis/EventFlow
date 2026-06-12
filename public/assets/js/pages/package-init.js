@@ -4,16 +4,18 @@ window.__EF_PAGE__ = 'package';
 document.addEventListener('DOMContentLoaded', () => {
   const urlParams = new URLSearchParams(window.location.search);
   const slug = urlParams.get('slug');
-  const id = urlParams.get('id');
+  const id = urlParams.get('id') || urlParams.get('packageId');
+  const pathMatch = window.location.pathname.match(/^\/package\/([^/?#]+)\/?$/);
+  const pathSlug = pathMatch ? decodeURIComponent(pathMatch[1]) : '';
 
-  if (!slug && !id) {
+  if (!slug && !id && !pathSlug) {
     document.getElementById('package-loading').style.display = 'none';
     document.getElementById('package-error').style.display = 'block';
     return;
   }
 
-  // Prefer slug for SEO-friendly URLs; fall back to id-based lookup
-  const slugOrId = encodeURIComponent(slug || id);
+  // Prefer clean path/slug for SEO-friendly URLs; fall back to id-based lookup.
+  const slugOrId = encodeURIComponent(pathSlug || slug || id);
 
   // Fetch package data and current user in parallel
   Promise.all([
@@ -138,10 +140,25 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         const etContainer = document.getElementById('package-event-types');
         if (etContainer) {
+          // Human-readable labels and distinct emojis for each event type
+          const EVENT_DISPLAY = {
+            wedding:     { label: 'Wedding',     emoji: '💍' },
+            birthday:    { label: 'Birthday',    emoji: '🎂' },
+            corporate:   { label: 'Corporate',   emoji: '💼' },
+            anniversary: { label: 'Anniversary', emoji: '🥂' },
+            christening: { label: 'Christening', emoji: '✨' },
+            graduation:  { label: 'Graduation',  emoji: '🎓' },
+            engagement:  { label: 'Engagement',  emoji: '💎' },
+            other:       { label: 'Other',       emoji: '🎉' },
+          };
           etContainer.innerHTML = pkg.eventTypes
             .map(et => {
-              const label = typeof et === 'string' ? et : et.name || et.label || String(et);
-              return `<span class="pkg-event-type-pill"><span aria-hidden="true">🎉</span> ${label}</span>`;
+              const key = typeof et === 'string' ? et.toLowerCase() : String(et).toLowerCase();
+              const display = EVENT_DISPLAY[key] || {
+                label: key.charAt(0).toUpperCase() + key.slice(1),
+                emoji: '🎉',
+              };
+              return `<span class="pkg-event-type-pill"><span aria-hidden="true">${display.emoji}</span> ${display.label}</span>`;
             })
             .join('');
         }
@@ -154,7 +171,9 @@ document.addEventListener('DOMContentLoaded', () => {
       wirePackageActions(pkg, supplier, currentUser);
     })
     .catch(err => {
-      console.error('Error loading package:', err);
+      if (window.DEBUG) {
+        console.warn('Package details unavailable:', err.message);
+      }
       document.getElementById('package-loading').style.display = 'none';
       document.getElementById('package-error').style.display = 'block';
     });
@@ -247,7 +266,17 @@ function buildSupplierSidebar(supplier, pkg, currentUser) {
 
   // View Profile link
   const viewBtn = document.getElementById('pkg-view-profile-btn');
-  if (supplier.id) {
+  const isSupplierFallback = supplier.isPackageSupplierFallback === true;
+  if (isSupplierFallback) {
+    viewBtn.href = '/suppliers';
+    viewBtn.textContent = 'Browse Suppliers';
+    viewBtn.setAttribute('aria-label', 'Browse available suppliers');
+    if (!blurb) {
+      blurbEl.textContent =
+        'Supplier profile details are currently unavailable, but this package information is still available.';
+      blurbEl.style.display = '';
+    }
+  } else if (supplier.id) {
     viewBtn.href = `/supplier?id=${encodeURIComponent(supplier.id)}`;
   }
 
@@ -258,6 +287,14 @@ function buildSupplierSidebar(supplier, pkg, currentUser) {
   saveBtn.dataset.supplierCategory = supplier.category || '';
   saveBtn.dataset.supplierLocation = supplier.location || '';
   saveBtn.dataset.supplierImage = supplier.logo || '';
+
+  if (isSupplierFallback) {
+    saveBtn.disabled = true;
+    saveBtn.style.opacity = '0.45';
+    saveBtn.style.cursor = 'not-allowed';
+    saveBtn.textContent = 'Supplier unavailable';
+    saveBtn.setAttribute('aria-label', 'Supplier profile is currently unavailable');
+  }
 
   // Reflect current shortlist state
   const sm = window.shortlistManager;
@@ -301,7 +338,13 @@ function buildSupplierSidebar(supplier, pkg, currentUser) {
   const isOwnSupplier =
     currentUser && supplier.ownerUserId && currentUser.id === supplier.ownerUserId;
 
-  if (isOwnSupplier) {
+  if (isSupplierFallback) {
+    msgBtn.disabled = true;
+    msgBtn.setAttribute('aria-label', 'Supplier contact is currently unavailable');
+    msgBtn.style.opacity = '0.45';
+    msgBtn.style.cursor = 'not-allowed';
+    msgBtn.textContent = 'Contact unavailable';
+  } else if (isOwnSupplier) {
     // Supplier viewing their own package — disable message button
     msgBtn.disabled = true;
     msgBtn.setAttribute('aria-label', 'This is your own listing');

@@ -184,6 +184,25 @@ describe('Admin Settings — requirePackageApproval Feature Flag', () => {
   });
 });
 
+describe('Admin Settings — requirePublicCalendarApproval Feature Flag', () => {
+  let settingsHtmlContent;
+  beforeAll(() => {
+    settingsHtmlContent = fs.readFileSync(SETTINGS_HTML, 'utf8');
+  });
+
+  it('GET /settings/features includes requirePublicCalendarApproval in response', () => {
+    expect(adminContent).toContain('requirePublicCalendarApproval');
+  });
+
+  it('admin-settings.html has featureRequirePublicCalendarApproval toggle', () => {
+    expect(settingsHtmlContent).toContain('featureRequirePublicCalendarApproval');
+  });
+
+  it('admin-settings-init.js includes requirePublicCalendarApproval in save payload', () => {
+    expect(settingsInitContent).toContain('requirePublicCalendarApproval');
+  });
+});
+
 describe('Supplier Packages — Auto-Approval Behaviour', () => {
   let packagesContent;
   beforeAll(() => {

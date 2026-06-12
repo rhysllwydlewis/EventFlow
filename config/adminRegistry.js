@@ -62,11 +62,11 @@ const REGISTRY = [
   {
     route: '/admin-users',
     htmlFile: 'admin-users',
-    label: 'Users',
+    label: 'Users Centre',
     icon: '👥',
     category: 'users',
     inNav: true,
-    desc: 'User accounts & management',
+    desc: 'User accounts, verification health and supplier linkage',
   },
   {
     route: '/admin-user-detail',
@@ -116,6 +116,16 @@ const REGISTRY = [
     desc: 'Marketplace management',
   },
   {
+    route: '/admin-public-calendar',
+    htmlFile: 'admin-public-calendar',
+    label: 'Events',
+    icon: '📅',
+    category: 'catalogue',
+    inNav: true,
+    desc: 'Shared calendar events & publishing requests',
+    badgeId: 'navBadgePublicCalendar',
+  },
+  {
     route: '/admin-photos',
     htmlFile: 'admin-photos',
     label: 'Photos',
@@ -155,6 +165,16 @@ const REGISTRY = [
     inNav: true,
     desc: 'Support ticket queue',
     badgeId: 'openTicketsBadge',
+  },
+  {
+    route: '/admin-external-contacts',
+    htmlFile: 'admin-external-contacts',
+    label: 'External Contacts',
+    icon: '📩',
+    category: 'moderation',
+    inNav: true,
+    desc: 'Enquiries from VEXI, Chlo and other integrated sites',
+    badgeId: 'navBadgeExternalContacts',
   },
   {
     route: '/admin-reports',
@@ -213,6 +233,15 @@ const REGISTRY = [
     desc: 'Data export & downloads',
   },
   {
+    route: '/admin-emails',
+    htmlFile: 'admin-emails',
+    label: 'Email Centre',
+    icon: '📨',
+    category: 'operations',
+    inNav: true,
+    desc: 'Campaigns, templates, sent email logs and delivery status',
+  },
+  {
     route: '/admin-campaigns',
     htmlFile: 'admin-campaigns',
     label: 'Campaigns',
@@ -220,6 +249,15 @@ const REGISTRY = [
     category: 'operations',
     inNav: true,
     desc: 'Compose & send marketing email campaigns',
+  },
+  {
+    route: '/admin-email-previews',
+    htmlFile: 'admin-email-previews',
+    label: 'Email Previews',
+    icon: '✉️',
+    category: 'operations',
+    inNav: false,
+    desc: 'Review and test every local email template',
   },
 
   // ── Content ───────────────────────────────────────────────────────────────
@@ -278,6 +316,15 @@ const REGISTRY = [
     category: 'moderation',
     inNav: true,
     desc: 'Partner cashout requests — approve, process and deliver',
+  },
+  {
+    route: '/admin-partner-campaign-report',
+    htmlFile: 'admin-partner-campaign-report',
+    label: 'Partner Campaign Report',
+    icon: '📊',
+    category: 'moderation',
+    inNav: false,
+    desc: 'Partner referral campaign reporting for manual cashout review',
   },
 
   // ── Compatibility stubs (legacy aliases — no nav link, server-side redirect) ──

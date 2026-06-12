@@ -124,8 +124,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('ef-notification-btn') ||
         document.getElementById('notification-bell');
       if (notificationBell) {
-        notificationBell.style.display = user ? 'block' : 'none';
+        if (user) { notificationBell.classList.remove('is-hidden'); }
+        else { notificationBell.classList.add('is-hidden'); }
       }
     });
   }
 });
+

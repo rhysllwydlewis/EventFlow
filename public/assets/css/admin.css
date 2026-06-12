@@ -456,26 +456,6 @@ select:focus {
 }
 
 /* Skip-to-main-content link (keyboard accessibility) */
-.skip-to-content {
-  position: absolute;
-  top: -999px;
-  left: 0;
-  z-index: 9999;
-  padding: 12px 20px;
-  background: #0B8073;
-  color: #ffffff;
-  font-weight: 600;
-  font-size: 14px;
-  border-radius: 0 0 8px 0;
-  text-decoration: none;
-}
-
-.skip-to-content:focus {
-  top: 0;
-  outline: 2px solid #0B8073;
-  outline-offset: 2px;
-}
-
 /* Focus visible for keyboard navigation */
 *:focus-visible {
   outline: 2px solid #0B8073;
@@ -1101,6 +1081,11 @@ button.btn-sm.btn-primary:hover {
   font-size: 0.82rem;
   color: #374151;
 }
+/* Center-aligned column modifier for admin-messenger table headers */
+.admin-messenger-th--center {
+  text-align: center;
+}
+
 
 /* Pagination bar */
 .admin-messenger-pagination {
@@ -1247,3 +1232,37 @@ button.btn-sm.btn-primary:hover {
     transition: none;
   }
 }
+
+/* ── Button / text polish ──────────────────────────────────────────────────── */
+
+/* Ensure all button variants inherit the site font stack */
+.btn-secondary,
+.btn-primary,
+.btn-mod,
+.btn-sm,
+.btn-brand,
+.action-btn,
+.bulk-action-select {
+  font-family: inherit;
+}
+
+/* btn-mod focus ring (was missing) */
+.btn-mod:focus-visible {
+  outline: 2px solid #0B8073;
+  outline-offset: 2px;
+}
+
+/* action-btn hover — add explicit label colour so text visibly responds */
+.action-btn:hover .action-label {
+  color: #0B8073;
+}
+
+/* Consistent focus ring on all admin interactive controls */
+.btn-secondary:focus-visible,
+.btn-primary:focus-visible,
+.btn-sm:focus-visible,
+.btn-brand:focus-visible {
+  outline: 2px solid #0B8073;
+  outline-offset: 2px;
+}
+

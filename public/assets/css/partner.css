@@ -2093,3 +2093,530 @@ select.partner-modal-input option {
     transform: none;
   }
 }
+
+/* ===========================================
+   PARTNER HEADER COMPONENT
+   Replaces inline styles in partner/dashboard.html
+   =========================================== */
+.partner-header {
+  position: relative;
+  z-index: 10;
+  padding: 1rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.partner-logo-link {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  text-decoration: none;
+}
+
+.partner-logo-icon {
+  width: 34px;
+  height: 34px;
+  font-size: 0.9rem;
+}
+
+.partner-brand-text {
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.95rem;
+  letter-spacing: -0.01em;
+}
+
+.partner-verified-label {
+  color: rgba(16, 185, 129, 0.8);
+  font-weight: 500;
+}
+
+.partner-user-area {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.partner-role-label {
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.85rem;
+}
+
+.partner-stat-badge {
+  padding: 0.45rem 0.9rem;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.partner-mono {
+  font-family: monospace;
+  font-size: 0.8rem;
+}
+
+.partner-sep {
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.partner-muted-sm {
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 0.82rem;
+}
+
+.partner-section-title {
+  margin: 0;
+  font-weight: 600;
+}
+
+.partner-section-subtitle {
+  margin: 0.25rem 0 0;
+  font-size: 0.85rem;
+  opacity: 0.8;
+}
+
+.partner-footer-credit {
+  color: rgba(255, 255, 255, 0.35);
+  font-weight: 400;
+}
+
+.partner-input-narrow {
+  width: auto;
+  max-width: 260px;
+  margin: 0;
+}
+
+.partner-body-copy {
+  font-size: 0.88rem;
+  color: rgba(255, 255, 255, 0.65);
+  line-height: 1.6;
+  margin: 0 0 1rem;
+}
+/* code history container */
+.partner-code-history {
+  margin-top: 1rem;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PARTNER PORTAL OVERHAUL — v2
+   Fixes:
+     • Landing page brand-panel text overflow (min-width:0 on grid children)
+     • Hero layout at mid-range viewports (wider max-width, proportional cols)
+   Additions:
+     • Social share buttons (WhatsApp, email)
+     • Milestone / cashout progress bar
+     • Earnings breakdown bar chart
+     • Referral progress cards (qualification stages)
+     • Account settings section
+     • Share tip card
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ─── Landing: fix overflow + improve hero layout ─────────────────────────── */
+
+.partner-hero-inner {
+  max-width: 1080px;
+  grid-template-columns: 1.15fr 1fr;
+}
+
+/* CRITICAL: without min-width:0, grid children can overflow their tracks */
+.partner-hero-inner > * {
+  min-width: 0;
+}
+
+.partner-hero-desc {
+  max-width: 520px;
+}
+
+/* Improve pill layout at narrower widths */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .partner-hero-inner {
+    max-width: 900px;
+    grid-template-columns: 1.1fr 1fr;
+    gap: 2.5rem;
+  }
+}
+
+/* ─── Social share buttons ────────────────────────────────────────────────── */
+
+.partner-share-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.625rem;
+  margin-top: 1rem;
+}
+
+.partner-share-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  text-decoration: none;
+  transition: opacity 0.15s, transform 0.12s;
+  white-space: nowrap;
+}
+
+.partner-share-btn:hover {
+  opacity: 0.88;
+  transform: translateY(-1px);
+}
+
+.partner-share-btn--whatsapp {
+  background: #25d366;
+  color: #fff;
+}
+
+.partner-share-btn--email {
+  background: rgba(255,255,255,0.12);
+  color: rgba(255,255,255,0.88);
+  border: 1px solid rgba(255,255,255,0.18);
+}
+
+.partner-share-btn--twitter {
+  background: #1da1f2;
+  color: #fff;
+}
+
+/* ─── Milestone progress bar ──────────────────────────────────────────────── */
+
+.partner-milestone {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 14px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.partner-milestone-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+  gap: 1rem;
+}
+
+.partner-milestone-label {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: rgba(255,255,255,0.75);
+}
+
+.partner-milestone-value {
+  font-size: 0.82rem;
+  color: rgba(255,255,255,0.45);
+  white-space: nowrap;
+}
+
+.partner-milestone-track {
+  height: 8px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 100px;
+  overflow: hidden;
+}
+
+.partner-milestone-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #0b8073, #10b981);
+  border-radius: 100px;
+  transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+  min-width: 4px;
+}
+
+.partner-milestone-fill--complete {
+  background: linear-gradient(90deg, #10b981, #34d399);
+}
+
+.partner-milestone-hint {
+  margin-top: 0.5rem;
+  font-size: 0.78rem;
+  color: rgba(255,255,255,0.4);
+}
+
+.partner-milestone-hint strong {
+  color: #34d399;
+}
+
+/* ─── Earnings breakdown ──────────────────────────────────────────────────── */
+
+.partner-breakdown {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.partner-breakdown-item {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+}
+
+.partner-breakdown-icon {
+  font-size: 1.25rem;
+  margin-bottom: 0.4rem;
+}
+
+.partner-breakdown-label {
+  font-size: 0.78rem;
+  color: rgba(255,255,255,0.5);
+  margin-bottom: 0.25rem;
+}
+
+.partner-breakdown-pts {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1;
+}
+
+.partner-breakdown-pts span {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: rgba(255,255,255,0.4);
+}
+
+.partner-breakdown-gbp {
+  font-size: 0.78rem;
+  color: #6ee7b7;
+  margin-top: 0.2rem;
+}
+
+/* Bar within breakdown item */
+.partner-breakdown-bar-track {
+  height: 4px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 100px;
+  margin-top: 0.6rem;
+  overflow: hidden;
+}
+
+.partner-breakdown-bar-fill {
+  height: 100%;
+  border-radius: 100px;
+  background: linear-gradient(90deg, #0b8073, #10b981);
+  transition: width 0.5s ease;
+}
+
+/* ─── Referral progress cards ─────────────────────────────────────────────── */
+
+.partner-referral-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.partner-referral-card {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+}
+
+.partner-referral-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.partner-referral-card__name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: rgba(255,255,255,0.85);
+}
+
+.partner-referral-card__date {
+  font-size: 0.76rem;
+  color: rgba(255,255,255,0.4);
+}
+
+.partner-referral-card__stages {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.partner-stage {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.28rem 0.65rem;
+  border-radius: 100px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.partner-stage--done {
+  background: rgba(16, 185, 129, 0.2);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: #6ee7b7;
+}
+
+.partner-stage--pending {
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  color: #fcd34d;
+}
+
+.partner-stage--expired {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.3);
+}
+
+.partner-stage-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.7;
+}
+
+/* ─── Account settings section ────────────────────────────────────────────── */
+
+.partner-settings-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+}
+
+@media (max-width: 640px) {
+  .partner-settings-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.partner-settings-group {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 14px;
+  padding: 1.25rem 1.5rem;
+}
+
+.partner-settings-group-title {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: rgba(255,255,255,0.7);
+  margin-bottom: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.partner-settings-save-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.partner-settings-status {
+  font-size: 0.82rem;
+}
+
+.partner-settings-btn {
+  padding: 0.55rem 1.25rem;
+  font-size: 0.875rem;
+  border-radius: 8px;
+  min-width: 110px;
+}
+
+/* ─── Share tip card (help new partners) ─────────────────────────────────── */
+
+.partner-share-tip {
+  background: linear-gradient(135deg, rgba(11,128,115,0.25), rgba(16,185,129,0.12));
+  border: 1px solid rgba(16,185,129,0.3);
+  border-radius: 14px;
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.partner-share-tip__icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+.partner-share-tip__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.partner-share-tip__title {
+  margin: 0 0 0.3rem;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #a7f3d0;
+}
+
+.partner-share-tip__text {
+  margin: 0;
+  font-size: 0.83rem;
+  color: rgba(255,255,255,0.6);
+  line-height: 1.5;
+}
+
+/* ─── Partner section tabs (for Credit Activity) ──────────────────────────── */
+
+.partner-section-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.partner-section-tab {
+  padding: 0.35rem 0.875rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: transparent;
+  color: rgba(255,255,255,0.5);
+  transition: all 0.15s;
+}
+
+.partner-section-tab.active,
+.partner-section-tab:hover {
+  background: rgba(16,185,129,0.15);
+  border-color: rgba(16,185,129,0.4);
+  color: #6ee7b7;
+}
+
+/* ─── Responsive tweaks ───────────────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  .partner-breakdown {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .partner-milestone {
+    padding: 1rem 1.125rem;
+  }
+
+  .partner-share-row {
+    flex-direction: column;
+  }
+
+  .partner-share-btn {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 400px) {
+  .partner-breakdown {
+    grid-template-columns: 1fr;
+  }
+}

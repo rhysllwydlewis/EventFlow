@@ -106,7 +106,7 @@ router.get('/plan', deprecationWarning, applyWriteLimiter, applyAuthRequired, as
     if (req.user.role !== 'customer') {
       return res.status(403).json({ error: 'Customers only' });
     }
-    const plans = (await dbUnified.read('plans')).filter(p => p.userId === req.user.id);
+    const plans = await dbUnified.find('plans', { userId: req.user.id });
     const suppliers = (await dbUnified.read('suppliers')).filter(s => s.approved);
     const items = plans.map(p => suppliers.find(s => s.id === p.supplierId)).filter(Boolean);
     res.json({ items });
@@ -131,12 +131,12 @@ router.post(
       if (!supplierId) {
         return res.status(400).json({ error: 'Missing supplierId' });
       }
-      const s = (await dbUnified.read('suppliers')).find(x => x.id === supplierId && x.approved);
+      const s = await dbUnified.findOne('suppliers', { id: supplierId, approved: true });
       if (!s) {
         return res.status(404).json({ error: 'Supplier not found' });
       }
-      const all = await dbUnified.read('plans');
-      if (!all.find(p => p.userId === req.user.id && p.supplierId === supplierId)) {
+      const existingPlan = await dbUnified.findOne('plans', { userId: req.user.id, supplierId });
+      if (!existingPlan) {
         await dbUnified.insertOne('plans', {
           id: uid('pln'),
           userId: req.user.id,
@@ -182,7 +182,7 @@ router.get('/notes', applyAuthRequired, async (req, res) => {
     if (req.user.role !== 'customer') {
       return res.status(403).json({ error: 'Customers only' });
     }
-    const n = (await dbUnified.read('notes')).find(x => x.userId === req.user.id);
+    const n = await dbUnified.findOne('notes', { userId: req.user.id });
     res.json({ text: (n && n.text) || '' });
   } catch (error) {
     logger.error('Error reading notes:', error);
@@ -195,13 +195,12 @@ router.post('/notes', applyAuthRequired, applyCsrfProtection, async (req, res) =
     if (req.user.role !== 'customer') {
       return res.status(403).json({ error: 'Customers only' });
     }
-    const all = await dbUnified.read('notes');
-    const i = all.findIndex(x => x.userId === req.user.id);
+    const existingNote = await dbUnified.findOne('notes', { userId: req.user.id });
     const noteText = stripHtml(String((req.body && req.body.text) || '').trim()).slice(
       0,
       MAX_NOTES_LENGTH
     );
-    if (i >= 0) {
+    if (existingNote) {
       await dbUnified.updateOne(
         'notes',
         { userId: req.user.id },
@@ -235,11 +234,13 @@ router.post(
     if (!plan) {
       return res.status(400).json({ error: 'Missing plan' });
     }
-    const plans = await dbUnified.read('plans');
-    let p = plans.find(x => x.userId === req.userId);
+    let p = await dbUnified.findOne('plans', { userId: req.userId });
     if (!p) {
       p = { id: uid('pln'), userId: req.userId, plan };
-      await dbUnified.insertOne('plans', p);
+      const planDupInserted = await dbUnified.insertOne('plans', p);
+      if (!planDupInserted) {
+        logger.error('[PLANS-LEGACY] dup insertOne failed');
+      }
     } else {
       p.plan = plan;
       await dbUnified.updateOne('plans', { userId: req.userId }, { $set: { plan } });
@@ -256,8 +257,7 @@ router.get(
   planOwnerOnly,
   async (req, res) => {
     try {
-      const plans = await dbUnified.read('plans');
-      const p = plans.find(x => x.userId === req.userId);
+      const p = await dbUnified.findOne('plans', { userId: req.userId });
       if (!p) {
         return res.json({ ok: true, plan: null });
       }
@@ -321,7 +321,11 @@ router.post('/plans/guest', applyWriteLimiter, applyCsrfProtection, async (req, 
       updatedAt: new Date().toISOString(),
     };
 
-    await dbUnified.insertOne('plans', newPlan);
+    const newLegacyPlanInserted = await dbUnified.insertOne('plans', newPlan);
+    if (!newLegacyPlanInserted) {
+      logger.error('[PLANS-LEGACY] newPlan insertOne failed', { planId: newPlan.id });
+      return res.status(500).json({ error: 'Failed to create plan. Please try again.' });
+    }
 
     res.json({
       ok: true,
@@ -354,15 +358,14 @@ router.post(
         return res.status(400).json({ error: 'Guest plan token is required' });
       }
 
-      const plans = await dbUnified.read('plans');
-      const planIndex = plans.findIndex(p => p.guestToken === token && p.isGuestPlan === true);
+      const guestPlan = await dbUnified.findOne('plans', { guestToken: token, isGuestPlan: true });
 
-      if (planIndex === -1) {
+      if (!guestPlan) {
         return res.status(404).json({ error: 'Guest plan not found or already claimed' });
       }
 
-      // Check if user already has a plan
-      const existingUserPlan = plans.find(p => p.userId === req.user.id);
+      // Check if user already has a plan (targeted findOne — no full scan)
+      const existingUserPlan = await dbUnified.findOne('plans', { userId: req.user.id });
       if (existingUserPlan) {
         return res.status(400).json({
           error: 'You already have a plan. Guest plan cannot be claimed.',
@@ -372,20 +375,16 @@ router.post(
 
       // Attach plan to user
       const claimedAt = new Date().toISOString();
-      plans[planIndex].userId = req.user.id;
-      plans[planIndex].isGuestPlan = false;
-      plans[planIndex].claimedAt = claimedAt;
-      // Keep guestToken for audit trail but plan is now claimed
 
       await dbUnified.updateOne(
         'plans',
-        { id: plans[planIndex].id },
+        { id: guestPlan.id },
         { $set: { userId: req.user.id, isGuestPlan: false, claimedAt } }
       );
 
       res.json({
         ok: true,
-        plan: plans[planIndex],
+        plan: { ...guestPlan, userId: req.user.id, isGuestPlan: false, claimedAt },
         message: 'Plan successfully claimed!',
       });
     } catch (error) {
@@ -399,15 +398,17 @@ router.post(
 
 router.get('/plan/export/pdf', applyAuthRequired, planOwnerOnly, async (req, res) => {
   try {
-    const plans = await dbUnified.read('plans');
-    const p = plans.find(x => x.userId === req.userId);
+    const p = await dbUnified.findOne('plans', { userId: req.userId });
     if (!p) {
       return res.status(400).json({ error: 'No plan saved' });
     }
 
-    const suppliers = await dbUnified.read('suppliers');
-    // eslint-disable-next-line no-unused-vars
-    const _packages = await dbUnified.read('packages'); // currently unused, but kept for future detail
+    // Load only the suppliers referenced in this user's plan (avoids full collection scan)
+    const supIds = (p.plan && p.plan.suppliers ? p.plan.suppliers : []).map(s => s.id);
+    const supplierDocs = supIds.length
+      ? await Promise.all(supIds.map(id => dbUnified.findOne('suppliers', { id })))
+      : [];
+    const suppliers = supplierDocs.filter(Boolean);
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', 'attachment; filename=event_plan.pdf');
@@ -429,14 +430,11 @@ router.get('/plan/export/pdf', applyAuthRequired, planOwnerOnly, async (req, res
     doc.moveDown();
 
     doc.fontSize(16).text('Suppliers', { underline: true });
-    const supIds = (p.plan.suppliers || []).map(s => s.id);
-    suppliers
-      .filter(s => supIds.includes(s.id))
-      .forEach(s => {
-        doc.fontSize(14).text(s.name);
-        doc.fontSize(12).text(s.category);
-        doc.moveDown();
-      });
+    suppliers.forEach(s => {
+      doc.fontSize(14).text(s.name);
+      doc.fontSize(12).text(s.category);
+      doc.moveDown();
+    });
 
     doc.fontSize(16).text('Notes', { underline: true });
     doc.fontSize(12).text(p.plan.notes || 'None');

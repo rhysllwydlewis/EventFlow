@@ -95,7 +95,11 @@ router.post('/subscribe', newsletterLimiter, async (req, res) => {
         updatedAt: new Date().toISOString(),
       };
 
-      await dbUnified.insertOne('newsletterSubscribers', newSubscriber);
+      const nlInserted = await dbUnified.insertOne('newsletterSubscribers', newSubscriber);
+      if (!nlInserted) {
+        logger.error('[NEWSLETTER] insertOne failed', { email: newSubscriber.email });
+        return res.status(500).json({ error: 'Failed to subscribe. Please try again.' });
+      }
     }
 
     // Send confirmation email

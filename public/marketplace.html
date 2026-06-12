@@ -95,7 +95,7 @@
     <link rel="stylesheet" href="/assets/css/eventflow-footer.css">
 </head>
   <body>
-    <!-- TOP NAVBAR - GOLD STANDARD REBUILD -->
+<!-- TOP NAVBAR - GOLD STANDARD REBUILD -->
 <header class="ef-header" role="banner">
   <div class="ef-container">
     <div class="ef-header-content">
@@ -417,7 +417,7 @@
       <section class="section">
         <div class="container marketplace-container">
           <!-- Left Sidebar: Filters -->
-          <aside class="marketplace-sidebar">
+          <aside class="marketplace-sidebar" role="search" aria-label="Search and filter suppliers">
             <div class="card">
               <h2 style="margin-top: 0;">Filters</h2>
               
@@ -485,8 +485,8 @@
 
             <!-- Quick Search Tips -->
             <div class="card" id="marketplace-quick-tips">
-              <p class="small" style="margin: 0 0 0.75rem 0; font-weight: 600;">Popular searches:</p>
-              <div style="display: flex; flex-direction: column; gap: 6px;">
+              <p class="small" class="marketplace-list-title">Popular searches:</p>
+              <div class="marketplace-list-links">
                 <button type="button" class="ef-cta btn-quick-search" data-marketplace-search="wedding dress">Wedding Dress</button>
                 <button type="button" class="ef-cta btn-quick-search" data-marketplace-search="table decorations">Table Décor</button>
                 <button type="button" class="ef-cta btn-quick-search" data-marketplace-search="sound system">Sound System</button>
@@ -516,7 +516,7 @@
 
             <!-- Marketplace Items -->
             <div id="marketplace-results" class="marketplace-grid">
-              <div class="card"><p style="text-align: center; padding: 2rem;">Loading listings...</p></div>
+              <div class="card"><p class="marketplace-empty-state">Loading listings...</p></div>
             </div>
 
             <!-- Load More -->
@@ -524,6 +524,7 @@
               <button class="ef-cta" type="button" id="marketplace-load-more-btn" aria-label="Load more listings">Load More</button>
             </div>
           </main>
+    <script src="/assets/js/pages/marketplace-hero-init.js" defer></script>
         </div>
       </section>
 
@@ -543,10 +544,10 @@
 
           <div class="card" id="marketplace-cta-section">
             <h3 style="text-align: center;">Ready to buy or sell?</h3>
-            <p class="small" style="margin: 1rem 0; text-align: center;">
+            <p class="small" class="marketplace-text-center">
               Create a free account to list items for sale or message sellers about listings you're interested in.
             </p>
-            <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; margin-top: 1.5rem;">
+            <div class="marketplace-cta-row">
               <a href="/auth" class="cta" id="auth-cta">Create Free Account</a>
               <button class="cta secondary" id="sell-item-btn">Create new listing</button>
             </div>
@@ -637,7 +638,7 @@
           <a href="/legal">Legal Hub</a> ·
       <button type="button" data-cookie-prefs>Cookie preferences</button>
         </div>
-        <div class="small" style="width: 100%; margin-top: 8px; text-align: center;">Operated by <a href="https://vexi.co.uk" target="_blank" rel="noopener noreferrer">VEXI</a></div>
+        <div class="footer-credit small">Operated by <a href="https://vexi.co.uk" target="_blank" rel="noopener noreferrer">VEXI</a></div>
       </div>
   </footer>
 

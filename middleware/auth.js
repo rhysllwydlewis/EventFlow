@@ -378,12 +378,15 @@ async function requireApprovedSupplier(req, res, next) {
 
     if (!supplier) {
       return res.status(403).json({
-        error: 'Supplier profile not found',
-        code: 'SUPPLIER_NOT_APPROVED',
+        error: 'Supplier profile missing',
+        code: 'SUPPLIER_PROFILE_MISSING',
         message:
-          'No supplier profile found for your account. Please complete your supplier profile setup.',
+          'Your supplier account is missing its business profile. Please complete your supplier profile setup.',
+        setupUrl: '/dashboard-supplier#profile-form',
       });
     }
+
+    req.supplierProfile = supplier;
 
     if (supplier.approved !== true) {
       logger.warn('Unapproved supplier attempted restricted action', {

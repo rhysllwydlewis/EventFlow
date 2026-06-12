@@ -67,6 +67,35 @@ function applyAuthRequired(req, res, next) {
   return authRequired(req, res, next);
 }
 
+async function resolveEffectiveSupplierTier(supplier) {
+  if (!supplier?.ownerUserId) {
+    return supplier?.subscriptionTier || (supplier?.isPro ? 'pro' : 'free');
+  }
+
+  const subscription = await subscriptionService.getSubscriptionByUserId(supplier.ownerUserId);
+  if (subscriptionService.isLiveEntitlement(subscription)) {
+    return subscription.plan;
+  }
+
+  const expiry = supplier.proExpiresAt || supplier.subscription?.endDate || null;
+  if (supplier.subscriptionTier && supplier.subscriptionTier !== 'free') {
+    if (!expiry || new Date(expiry) > new Date()) {
+      return supplier.subscriptionTier;
+    }
+  }
+  if (supplier.subscription?.tier && supplier.subscription.tier !== 'free') {
+    if (!expiry || new Date(expiry) > new Date()) {
+      return supplier.subscription.tier;
+    }
+  }
+  if (supplier.isPro) {
+    if (!expiry || new Date(expiry) > new Date()) {
+      return 'pro';
+    }
+  }
+  return 'free';
+}
+
 function applyRoleRequired(role) {
   return (req, res, next) => {
     if (!roleRequired) {
@@ -74,6 +103,21 @@ function applyRoleRequired(role) {
     }
     return roleRequired(role)(req, res, next);
   };
+}
+
+function normalisePackageSlug(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/&/g, ' and ')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+function getPackageLookupValues(pkg) {
+  return [pkg.id, pkg.packageId, pkg.slug, pkg.title && normalisePackageSlug(pkg.title)]
+    .filter(Boolean)
+    .map(value => String(value));
 }
 
 // Helper function to check if package is featured
@@ -87,10 +131,40 @@ function isFeaturedPackage(pkg) {
  * package-image-resolver.js.
  */
 const {
+  buildPackageImageAudit,
+  classifyPackageImageValue,
   isPlaceholderImage,
+  collectNamedPackageImageFields,
+  getBestPackageImageCandidate,
+  listPackageImageCandidates,
   resolvePackageImage,
   normalizeGallery,
 } = require('../utils/packageImageUtils');
+
+function normalizePackageDuplicateKey(pkg) {
+  const raw = (pkg && (pkg.slug || pkg.title || pkg.name)) || '';
+  return String(raw)
+    .trim()
+    .toLowerCase()
+    .replace(/-[a-z0-9]{6,}$/i, '')
+    .replace(/[^a-z0-9]+/g, '-');
+}
+
+function buildDuplicateTitleCounts(pkgs) {
+  const counts = new Map();
+  (pkgs || []).forEach(pkg => {
+    const key = normalizePackageDuplicateKey(pkg);
+    if (key) {
+      counts.set(key, (counts.get(key) || 0) + 1);
+    }
+  });
+  return counts;
+}
+
+function getDuplicateTitleCountForSupplier(pkg, counts) {
+  const key = normalizePackageDuplicateKey(pkg);
+  return key ? counts.get(key) || 0 : 0;
+}
 
 // Cache for featured packages
 let featuredPackagesCache = null;
@@ -107,11 +181,22 @@ const SPOTLIGHT_PACKAGES_CACHE_TTL = 3600000; // 1 hour (they rotate hourly anyw
  * Call this after any package photo upload so the next carousel request
  * reflects the newly-uploaded image instead of serving stale placeholder data.
  */
+const catalogCache = require('../services/catalogCache');
+
 function invalidatePackageCaches() {
   featuredPackagesCache = null;
   featuredPackagesCacheTime = 0;
   spotlightPackagesCache = null;
   spotlightPackagesCacheTime = 0;
+  // Also clear the search-service packages cache so stale data isn't served
+  catalogCache
+    .invalidate()
+    .catch(err =>
+      require('../utils/logger').warn(
+        '[invalidatePackageCaches] catalogCache.invalidate failed:',
+        err.message
+      )
+    );
 }
 
 /**
@@ -121,7 +206,15 @@ function invalidatePackageCaches() {
 router.get('/suppliers', async (req, res) => {
   try {
     const { category, q, price } = req.query;
-    let items = (await dbUnified.read('suppliers')).filter(s => s.approved);
+
+    // Load users once and build a fast lookup set so orphaned supplier profiles
+    // (whose owner account was deleted) are excluded from public results.
+    const users = await dbUnified.read('users');
+    const validUserIds = new Set(users.map(u => u.id).filter(Boolean));
+
+    let items = (await dbUnified.read('suppliers')).filter(
+      s => s.approved && (!s.ownerUserId || validUserIds.has(s.ownerUserId))
+    );
     if (category) {
       items = items.filter(s => s.category === category);
     }
@@ -143,11 +236,13 @@ router.get('/suppliers', async (req, res) => {
     const itemsWithMeta = await Promise.all(
       items.map(async s => {
         const featuredSupplier = pkgs.some(p => p.supplierId === s.id && p.featured);
-        const isProActive = await supplierIsProActive(s);
+        const subscriptionTier = await resolveEffectiveSupplierTier(s);
+        const isProActive = subscriptionTier !== 'free';
         return {
           ...s,
           featuredSupplier,
           isPro: isProActive,
+          subscriptionTier,
           proExpiresAt: s.proExpiresAt || null,
         };
       })
@@ -204,9 +299,20 @@ router.get('/suppliers/:id', async (req, res) => {
       return res.status(404).json({ error: 'Supplier not found' });
     }
 
+    // Reject orphaned supplier profiles whose owner account no longer exists.
+    // Admins can still view them for moderation; the supplier owner (logged in as themselves)
+    // can also still access their profile (e.g. during an account-transition window).
+    if (!isAdmin && !isOwner && sRaw.ownerUserId) {
+      const ownerUser = await dbUnified.findOne('users', { id: sRaw.ownerUserId });
+      if (!ownerUser) {
+        return res.status(404).json({ error: 'Supplier not found' });
+      }
+    }
+
     const pkgs = await dbUnified.read('packages');
     const featuredSupplier = pkgs.some(p => p.supplierId === sRaw.id && p.featured);
-    const isProActive = await supplierIsProActive(sRaw);
+    const subscriptionTier = await resolveEffectiveSupplierTier(sRaw);
+    const isProActive = subscriptionTier !== 'free';
 
     // Enrich badges array: look up full badge definitions for each badge ID
     let badgeDetails = [];
@@ -235,6 +341,7 @@ router.get('/suppliers/:id', async (req, res) => {
       ...sRaw,
       featuredSupplier,
       isPro: isProActive,
+      subscriptionTier,
       proExpiresAt: sRaw.proExpiresAt || null,
       badgeDetails,
     };
@@ -263,19 +370,54 @@ router.get('/suppliers/:id', async (req, res) => {
  */
 router.get('/suppliers/:id/packages', async (req, res) => {
   try {
-    const supplier = (await dbUnified.read('suppliers')).find(
-      x => x.id === req.params.id && x.approved
-    );
+    const supplier = await dbUnified.findOne('suppliers', { id: req.params.id, approved: true });
     if (!supplier) {
       return res.status(404).json({ error: 'Supplier not found' });
     }
-    const pkgs = (await dbUnified.read('packages')).filter(
-      p => p.supplierId === supplier.id && p.approved
-    );
-    const items = pkgs.map(pkg => ({
-      ...pkg,
-      image: resolvePackageImage(pkg),
-    }));
+    // Use all supplier package records for duplicate diagnostics, but only return approved
+    // packages to public clients.
+    const supplierPkgs = await dbUnified.find('packages', { supplierId: supplier.id });
+    const duplicateCounts = buildDuplicateTitleCounts(supplierPkgs);
+    const pkgs = supplierPkgs.filter(pkg => pkg.approved === true);
+    const debug = req.query.debugImages === '1';
+    const dbBackendType =
+      typeof dbUnified.getDatabaseType === 'function' ? dbUnified.getDatabaseType() : 'unknown';
+    const items = pkgs.map(pkg => {
+      const resolvedImage = resolvePackageImage(pkg);
+      const chosen = getBestPackageImageCandidate(pkg);
+      const resolvedGallery = normalizeGallery(pkg.gallery);
+      const item = {
+        ...pkg,
+        image: resolvedImage,
+        resolvedImage,
+        // rawImage is the unmodified stored value for diagnostics/backwards
+        // compatibility only; supplier-profile.js must not prefer it over
+        // resolved non-placeholder images.
+        rawImage: pkg.image || null,
+        // Include the pre-normalised gallery so the profile page card renderer
+        // can use the same image-resolution strategy as the package detail page.
+        resolvedGallery,
+      };
+      if (debug) {
+        item._debug = {
+          chosenImage: resolvedImage,
+          chosenImageSource: chosen ? chosen.source : 'fallback.placeholder',
+          resolverCandidates: listPackageImageCandidates(pkg),
+          rawImageValue: pkg.image || '(empty)',
+          imageFieldWasEmpty: !pkg.image,
+          imageFieldWasDataUri: classifyPackageImageValue(pkg.image).isDataUri,
+          imageFieldWasApiPhoto: classifyPackageImageValue(pkg.image).isApiPhoto,
+          imageFieldWasPlaceholder: isPlaceholderImage(pkg.image),
+          rawGalleryLength: Array.isArray(pkg.gallery) ? pkg.gallery.length : 0,
+          rawImagesLength: Array.isArray(pkg.images) ? pkg.images.length : 0,
+          resolvedGalleryLength: resolvedGallery.length,
+          namedImageFields: collectNamedPackageImageFields(pkg),
+          duplicateTitleCountForSupplier: getDuplicateTitleCountForSupplier(pkg, duplicateCounts),
+          dbBackendType,
+        };
+      }
+      return item;
+    });
     res.json({ items });
   } catch (error) {
     logger.error('Error reading supplier packages:', error);
@@ -289,14 +431,13 @@ router.get('/suppliers/:id/packages', async (req, res) => {
  */
 router.get('/me/suppliers', applyAuthRequired, applyRoleRequired('supplier'), async (req, res) => {
   try {
-    const listRaw = (await dbUnified.read('suppliers')).filter(s => s.ownerUserId === req.user.id);
+    const listRaw = await dbUnified.find('suppliers', { ownerUserId: req.user.id });
     // Fetch the user's subscription once and attach the plan name to every supplier object
     // so the client-side tier checks (s.subscriptionTier === 'pro') work correctly.
     const userSubscription = await subscriptionService.getSubscriptionByUserId(req.user.id);
-    const subscriptionTier =
-      userSubscription && ['active', 'trialing'].includes(userSubscription.status)
-        ? userSubscription.plan
-        : null;
+    const subscriptionTier = subscriptionService.isLiveEntitlement(userSubscription)
+      ? userSubscription.plan
+      : null;
     const list = await Promise.all(
       listRaw.map(async s => ({
         ...s,
@@ -328,6 +469,10 @@ router.get('/packages/featured', async (_req, res) => {
       return res.json(featuredPackagesCache);
     }
 
+    // Build valid user IDs set once for orphan filtering
+    const users = await dbUnified.read('users');
+    const validUserIds = new Set(users.map(u => u.id).filter(Boolean));
+
     // Use efficient querying for MongoDB
     const dbType = dbUnified.getDatabaseType();
     let items;
@@ -344,28 +489,38 @@ router.get('/packages/featured', async (_req, res) => {
         { limit: 6, sort: { createdAt: -1 } }
       );
 
-      // Get supplier names for the packages
+      // Get supplier names for the packages — filter out orphaned suppliers
       const supplierIds = [...new Set(packages.map(p => p.supplierId))];
       const suppliers = await Promise.all(
         supplierIds.map(id => dbUnified.findOne('suppliers', { id }))
       );
-      const suppliersMap = new Map(suppliers.filter(Boolean).map(s => [s.id, s]));
+      const suppliersMap = new Map(
+        suppliers
+          .filter(s => s && s.approved && (!s.ownerUserId || validUserIds.has(s.ownerUserId)))
+          .map(s => [s.id, s])
+      );
 
-      items = packages.map(pkg => ({
-        ...pkg,
-        image: resolvePackageImage(pkg),
-        supplier_name: suppliersMap.get(pkg.supplierId)?.name || null,
-      }));
+      items = packages
+        .filter(pkg => suppliersMap.has(pkg.supplierId))
+        .map(pkg => ({
+          ...pkg,
+          image: resolvePackageImage(pkg),
+          supplier_name: suppliersMap.get(pkg.supplierId)?.name || null,
+        }));
     } else {
       // Local storage fallback
       const packages = await dbUnified.read('packages');
       const suppliers = await dbUnified.read('suppliers');
 
-      // Create a suppliers lookup map for O(1) access
-      const suppliersMap = new Map(suppliers.map(s => [s.id, s]));
+      // Create a suppliers lookup map for O(1) access; exclude orphaned suppliers
+      const suppliersMap = new Map(
+        suppliers
+          .filter(s => s.approved && (!s.ownerUserId || validUserIds.has(s.ownerUserId)))
+          .map(s => [s.id, s])
+      );
 
       items = packages
-        .filter(p => p.approved && isFeaturedPackage(p))
+        .filter(p => p.approved && isFeaturedPackage(p) && suppliersMap.has(p.supplierId))
         .slice(0, 6)
         .map(pkg => {
           const supplier = suppliersMap.get(pkg.supplierId);
@@ -405,6 +560,10 @@ router.get('/packages/spotlight', async (_req, res) => {
       return res.json(spotlightPackagesCache);
     }
 
+    // Build valid user IDs set once for orphan filtering
+    const users = await dbUnified.read('users');
+    const validUserIds = new Set(users.map(u => u.id).filter(Boolean));
+
     // Get approved packages
     const dbType = dbUnified.getDatabaseType();
     let approvedPackages;
@@ -421,6 +580,15 @@ router.get('/packages/spotlight', async (_req, res) => {
       const packages = await dbUnified.read('packages');
       approvedPackages = packages.filter(p => p.approved);
     }
+
+    const allSuppliersForSpotlight = await dbUnified.read('suppliers');
+    // Only include approved suppliers whose owner account still exists
+    const approvedSpotlightSupplierIds = new Set(
+      allSuppliersForSpotlight
+        .filter(s => s.approved && (!s.ownerUserId || validUserIds.has(s.ownerUserId)))
+        .map(s => s.id)
+    );
+    approvedPackages = approvedPackages.filter(p => approvedSpotlightSupplierIds.has(p.supplierId));
 
     // Use current hour as seed for consistent selection within the hour
     // Encode date as integer: YYYYMMDD * 24 + HH (e.g., 20260116 * 24 + 14 = 486147854)
@@ -458,21 +626,31 @@ router.get('/packages/spotlight', async (_req, res) => {
       const suppliers = await Promise.all(
         supplierIds.map(id => dbUnified.findOne('suppliers', { id }))
       );
-      suppliersMap = new Map(suppliers.filter(Boolean).map(s => [s.id, s]));
+      suppliersMap = new Map(
+        suppliers
+          .filter(s => s && s.approved && (!s.ownerUserId || validUserIds.has(s.ownerUserId)))
+          .map(s => [s.id, s])
+      );
     } else {
       const suppliers = await dbUnified.read('suppliers');
-      suppliersMap = new Map(suppliers.map(s => [s.id, s]));
+      suppliersMap = new Map(
+        suppliers
+          .filter(s => s.approved && (!s.ownerUserId || validUserIds.has(s.ownerUserId)))
+          .map(s => [s.id, s])
+      );
     }
 
-    // Select up to 6 spotlight packages
-    const items = selectedPackages.map(pkg => {
-      const supplier = suppliersMap.get(pkg.supplierId);
-      return {
-        ...pkg,
-        image: resolvePackageImage(pkg),
-        supplier_name: supplier ? supplier.name : null,
-      };
-    });
+    // Select up to 6 spotlight packages (filter any whose supplier is orphaned)
+    const items = selectedPackages
+      .filter(pkg => suppliersMap.has(pkg.supplierId))
+      .map(pkg => {
+        const supplier = suppliersMap.get(pkg.supplierId);
+        return {
+          ...pkg,
+          image: resolvePackageImage(pkg),
+          supplier_name: supplier ? supplier.name : null,
+        };
+      });
 
     const result = { items };
     spotlightPackagesCache = result;
@@ -497,6 +675,16 @@ router.get('/packages/search', async (req, res) => {
     const approved = req.query.approved === 'true';
 
     let items = await dbUnified.read('packages');
+    const publicSuppliers = await dbUnified.find('suppliers', { approved: true });
+    // Also load users to exclude packages from suppliers whose owner was deleted
+    const usersForPkgSearch = await dbUnified.read('users');
+    const validUserIdsForPkgSearch = new Set(usersForPkgSearch.map(u => u.id).filter(Boolean));
+    const publicSupplierIds = new Set(
+      publicSuppliers
+        .filter(s => !s.ownerUserId || validUserIdsForPkgSearch.has(s.ownerUserId))
+        .map(s => s.id)
+    );
+    items = items.filter(p => p.approved && publicSupplierIds.has(p.supplierId));
 
     // Apply filters
     items = items.filter(p => {
@@ -529,7 +717,13 @@ router.get('/packages/search', async (req, res) => {
       return true;
     });
 
-    res.json({ items: items.map(pkg => ({ ...pkg, image: resolvePackageImage(pkg) })) });
+    res.json({
+      items: items.map(pkg => ({
+        ...pkg,
+        image: resolvePackageImage(pkg),
+        resolvedGallery: normalizeGallery(pkg.gallery),
+      })),
+    });
   } catch (error) {
     logger.error('Error searching packages:', error);
     return res.status(500).json({ error: 'Internal server error' });
@@ -568,7 +762,11 @@ router.post('/packages/bulk', apiLimiter, applyAuthRequired, async (req, res) =>
     }
 
     const allPackages = await dbUnified.read('packages');
-    const matched = allPackages.filter(p => p.approved && uniqueIds.includes(p.id));
+    const publicSuppliers = await dbUnified.find('suppliers', { approved: true });
+    const publicSupplierIds = new Set(publicSuppliers.map(s => s.id));
+    const matched = allPackages.filter(
+      p => p.approved && uniqueIds.includes(p.id) && publicSupplierIds.has(p.supplierId)
+    );
 
     res.json({ packages: matched });
   } catch (error) {
@@ -584,19 +782,37 @@ router.post('/packages/bulk', apiLimiter, applyAuthRequired, async (req, res) =>
 router.get('/packages/:slug', async (req, res) => {
   try {
     const packages = await dbUnified.read('packages');
-    const param = req.params.slug;
-    const pkg = packages.find(p => (p.slug === param || p.id === param) && p.approved);
+    const suppliers = await dbUnified.read('suppliers');
+    const users = await dbUnified.read('users');
+    const validUserIds = new Set(users.map(u => u.id).filter(Boolean));
+    // Only include approved suppliers whose owner account still exists
+    const approvedSupplierIds = new Set(
+      suppliers
+        .filter(s => s.approved && (!s.ownerUserId || validUserIds.has(s.ownerUserId)))
+        .map(s => s.id)
+    );
+    const param = decodeURIComponent(req.params.slug || '').trim();
+    const normalisedParam = normalisePackageSlug(param);
+    const pkg = packages.find(p => {
+      if (!p.approved || !approvedSupplierIds.has(p.supplierId)) {
+        return false;
+      }
+      const lookups = getPackageLookupValues(p);
+      return lookups.some(
+        value => value === param || normalisePackageSlug(value) === normalisedParam
+      );
+    });
 
     if (!pkg) {
       return res.status(404).json({ error: 'Package not found' });
     }
 
-    // Get supplier details
-    const suppliers = await dbUnified.read('suppliers');
-    const supplier = suppliers.find(s => s.id === pkg.supplierId && s.approved);
-
+    const supplier = suppliers.find(
+      s =>
+        s.id === pkg.supplierId && s.approved && (!s.ownerUserId || validUserIds.has(s.ownerUserId))
+    );
     if (!supplier) {
-      return res.status(404).json({ error: 'Supplier not found' });
+      return res.status(404).json({ error: 'Package not found' });
     }
 
     // Get category details
@@ -620,12 +836,27 @@ router.get('/packages/:slug', async (req, res) => {
     // ?debugImages=1 — include diagnostic fields in the response.
     // Off by default; intended for development / production troubleshooting only.
     if (req.query.debugImages === '1') {
+      const supplierPackageRecords = await dbUnified.find('packages', {
+        supplierId: pkg.supplierId,
+      });
+      const duplicateCounts = buildDuplicateTitleCounts(supplierPackageRecords);
+      const chosen = getBestPackageImageCandidate(pkg);
       packageResponse._debug = {
         chosenImage: resolvedImg,
+        chosenImageSource: chosen ? chosen.source : 'fallback.placeholder',
+        resolverCandidates: listPackageImageCandidates(pkg),
+        rawImageValue: pkg.image || '(empty)',
+        imageFieldWasEmpty: !pkg.image,
+        imageFieldWasDataUri: classifyPackageImageValue(pkg.image).isDataUri,
+        imageFieldWasApiPhoto: classifyPackageImageValue(pkg.image).isApiPhoto,
         imageFieldWasPlaceholder: isPlaceholderImage(pkg.image),
         rawGalleryLength: Array.isArray(pkg.gallery) ? pkg.gallery.length : 0,
+        rawImagesLength: Array.isArray(pkg.images) ? pkg.images.length : 0,
         resolvedGalleryLength: resolvedGallery.length,
-        resolvedGalleryFirstUrl: resolvedGallery.length > 0 ? resolvedGallery[0].url : null,
+        namedImageFields: collectNamedPackageImageFields(pkg),
+        duplicateTitleCountForSupplier: getDuplicateTitleCountForSupplier(pkg, duplicateCounts),
+        dbBackendType:
+          typeof dbUnified.getDatabaseType === 'function' ? dbUnified.getDatabaseType() : 'unknown',
       };
     }
 
@@ -695,6 +926,45 @@ router.get(
     } catch (error) {
       logger.error('Error loading action-prompt checklist:', error);
       res.status(500).json({ error: 'Failed to load checklist' });
+    }
+  }
+);
+
+/**
+ * GET /api/v1/admin/suppliers/:id/package-image-audit
+ * Admin-only diagnostic: shows exact image fields for every package belonging to a supplier.
+ * Useful for troubleshooting "images not showing on profile page" reports without needing
+ * direct DB access.
+ *
+ * Response per package:
+ *   id, title, image (resolved), imageRaw (stored), gallery.length, images.length,
+ *   resolvedGallery.length, firstGalleryUrl, isPlaceholder
+ */
+router.get(
+  '/admin/suppliers/:id/package-image-audit',
+  applyAuthRequired,
+  applyRoleRequired('admin'),
+  async (req, res) => {
+    try {
+      const pkgs = await dbUnified.find('packages', { supplierId: req.params.id });
+      const duplicateCounts = buildDuplicateTitleCounts(pkgs);
+      const audit = pkgs.map(pkg =>
+        buildPackageImageAudit(pkg, {
+          duplicateTitleCountForSupplier: getDuplicateTitleCountForSupplier(pkg, duplicateCounts),
+        })
+      );
+      res.json({
+        supplierId: req.params.id,
+        packageCount: audit.length,
+        packagesWithImages: audit.filter(p => !p.isPlaceholder).length,
+        packages: audit,
+      });
+    } catch (err) {
+      logger.error('Package image audit error:', err);
+      res.status(500).json({
+        error: 'Audit failed',
+        ...(process.env.NODE_ENV !== 'production' && { details: err.message }),
+      });
     }
   }
 );

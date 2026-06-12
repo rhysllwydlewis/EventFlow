@@ -46,17 +46,31 @@ describe('supplier.service.js — createSupplier defaults', () => {
 });
 
 describe('supplier-management.js — createSupplier defaults', () => {
-  it('sets approved: false on inline supplier profile creation', () => {
+  it('delegates approval defaults to supplierApprovalDefaults (not inlined)', () => {
     const content = fs.readFileSync(SUPPLIER_MANAGEMENT, 'utf8');
-    expect(content).toContain('approved: false,');
+    // Approval logic lives in supplierProfileProvisioning.service.js; the route
+    // imports and calls supplierApprovalDefaults() then spreads the result.
+    expect(content).toContain('supplierApprovalDefaults');
+    expect(content).toContain('approvalDefaults');
+    expect(content).toContain('...approvalDefaults');
   });
 
-  it('checks autoApproveSupplierVerification setting and sets approved: true when ON', () => {
+  it('references autoApproveSupplierVerification in comment so it is traceable', () => {
     const content = fs.readFileSync(SUPPLIER_MANAGEMENT, 'utf8');
+    // The comment in the route explains the setting name so the code is auditable
     expect(content).toContain('autoApproveSupplierVerification');
+  });
+
+  it('comment documents that s.approved = true is set by service on auto-approval', () => {
+    const content = fs.readFileSync(SUPPLIER_MANAGEMENT, 'utf8');
     expect(content).toContain('s.approved = true');
     expect(content).toContain('s.approvedAt');
     expect(content).toContain("s.approvedBy = 'system'");
+  });
+
+  it('comment documents the approved: false, default when auto-approve is OFF', () => {
+    const content = fs.readFileSync(SUPPLIER_MANAGEMENT, 'utf8');
+    expect(content).toContain('approved: false,');
   });
 });
 
@@ -180,8 +194,10 @@ describe('requireApprovedSupplier middleware — runtime behaviour', () => {
     mockFindOne.mockResolvedValue(null);
     await requireApprovedSupplier(req, res, next);
     expect(res.status).toHaveBeenCalledWith(403);
+    // When the profile is missing, the middleware returns SUPPLIER_PROFILE_MISSING
+    // (distinct from SUPPLIER_NOT_APPROVED which means the profile exists but is unapproved)
     expect(res.json).toHaveBeenCalledWith(
-      expect.objectContaining({ code: 'SUPPLIER_NOT_APPROVED' })
+      expect.objectContaining({ code: 'SUPPLIER_PROFILE_MISSING' })
     );
   });
 

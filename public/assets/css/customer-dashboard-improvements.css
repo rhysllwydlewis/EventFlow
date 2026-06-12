@@ -2,7 +2,7 @@
  * Customer Dashboard Improvements
  * Design tokens and CSS classes for the customer dashboard
  * Modelled after supplier-dashboard-improvements.css
- * Version: 1.0.0
+ * Version: 1.0.1
  */
 
 /* ===========================================
@@ -28,147 +28,99 @@
 }
 
 /* ===========================================
-   2. CUSTOMER HERO SECTION
-   =========================================== */
-.customer-hero {
-  position: relative;
-  border-radius: var(--ef-radius-lg);
-  overflow: hidden;
-  margin-bottom: var(--ef-space-5);
-  padding: clamp(24px, 4vw, 40px);
-  background: linear-gradient(135deg, #0b8073 0%, #096b60 40%, #13b6a2 100%);
-  color: #fff;
-  isolation: isolate;
-}
-
-.customer-hero::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(ellipse at top right, rgba(19, 182, 162, 0.35) 0%, transparent 65%),
-              radial-gradient(ellipse at bottom left, rgba(11, 128, 115, 0.4) 0%, transparent 60%);
-  z-index: 0;
-}
-
-.customer-hero__content {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  gap: var(--ef-space-4);
-}
-
-.customer-hero__greeting {
-  font-size: clamp(1.4rem, 3vw, 2rem);
-  font-weight: 700;
-  margin: 0;
-  line-height: 1.2;
-  letter-spacing: -0.02em;
-}
-
-.customer-hero__subtitle {
-  font-size: 1rem;
-  opacity: 0.88;
-  margin: 0;
-}
-
-.customer-hero__stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-  gap: var(--ef-space-3);
-  margin-top: var(--ef-space-2);
-}
-
-.customer-hero__stat {
-  background: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  border-radius: var(--ef-radius-md);
-  padding: var(--ef-space-3) var(--ef-space-4);
-  text-align: center;
-  transition: background 0.2s ease;
-}
-
-.customer-hero__stat:hover {
-  background: rgba(255, 255, 255, 0.22);
-}
-
-.customer-hero__stat-value {
-  font-size: 1.5rem;
-  font-weight: 700;
-  line-height: 1;
-  margin-bottom: var(--ef-space-1);
-}
-
-.customer-hero__stat-label {
-  font-size: 0.75rem;
-  opacity: 0.85;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-/* ===========================================
-   3. WELCOME SECTION
+   2. WELCOME SECTION
    =========================================== */
 .customer-welcome-card {
-  background: #fff;
-  border-radius: var(--ef-radius-lg);
-  border: 1px solid var(--ef-border);
-  padding: var(--ef-space-6);
+  background:
+    radial-gradient(circle at 92% 10%, rgba(20, 184, 166, 0.18), transparent 30%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(240, 253, 250, 0.86));
+  border-radius: 22px;
+  border: 1px solid rgba(11, 128, 115, 0.14);
+  padding: clamp(1.35rem, 2.5vw, 2rem);
   margin-bottom: var(--ef-space-5);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  box-shadow:
+    0 18px 48px rgba(15, 23, 42, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
   position: relative;
+  overflow: hidden;
 }
 
-/* Dismiss (close) button for the welcome card */
-.customer-welcome-dismiss {
+.customer-welcome-card::before {
+  content: '';
   position: absolute;
-  top: var(--ef-space-4);
-  right: var(--ef-space-4);
-  display: flex;
+  inset: 0 auto 0 0;
+  width: 5px;
+  background: linear-gradient(180deg, #0b8073, #14b8a6);
+}
+
+.customer-welcome-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.55rem;
+  padding: 0.28rem 0.7rem;
+  border: 1px solid rgba(13, 148, 136, 0.18);
+  border-radius: 999px;
+  background: rgba(240, 253, 250, 0.85);
+  color: #0f766e;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Dismiss button for the welcome card */
+.customer-welcome-dismiss {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
-  padding: 0;
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: var(--ef-radius-sm);
-  color: var(--ef-text-muted);
+  min-width: 132px;
+  padding: 0.72rem 1.2rem !important;
+  background: linear-gradient(135deg, #22c55e, #16a34a) !important;
+  border: 0 !important;
+  border-radius: 12px !important;
+  color: #fff !important;
   cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  font-weight: 800 !important;
+  box-shadow: 0 10px 24px rgba(22, 163, 74, 0.24);
+  transition:
+    transform 0.16s ease,
+    box-shadow 0.16s ease;
+  width: auto !important;
+  margin-top: 0 !important;
 }
 
 .customer-welcome-dismiss:hover,
 .customer-welcome-dismiss:focus-visible {
-  background: var(--ef-bg-subtle);
-  border-color: var(--ef-border);
-  color: var(--ef-text);
+  transform: translateY(-1px);
+  box-shadow: 0 14px 30px rgba(22, 163, 74, 0.32);
   outline: none;
 }
 
 .customer-welcome-dismiss:focus-visible {
-  outline: 2px solid var(--ef-primary);
-  outline-offset: 2px;
+  outline: 2px solid #0d9488;
+  outline-offset: 3px;
 }
 
 .customer-welcome-heading {
+  max-width: 720px;
   margin: 0 0 0.75rem;
-  color: #1f2937;
-  font-size: 1.75rem;
+  color: #102a43;
+  font-size: clamp(1.75rem, 3vw, 2.35rem);
+  line-height: 1.08;
+  letter-spacing: -0.035em;
 }
 
 .customer-welcome-card h2 {
   margin: 0 0 0.75rem;
-  color: #1f2937;
-  font-size: 1.75rem;
 }
 
 .customer-welcome-card .customer-welcome-intro {
-  color: #4b5563;
+  max-width: 760px;
+  color: #475569;
   margin: 0 0 var(--ef-space-4);
   font-size: 1rem;
+  line-height: 1.7;
 }
 
 .customer-welcome-intro {
@@ -180,13 +132,84 @@
 .customer-welcome-actions {
   margin-top: var(--ef-space-4);
   padding-top: var(--ef-space-4);
-  border-top: 1px solid var(--ef-border);
+  border-top: 1px solid rgba(11, 128, 115, 0.12);
 }
 
 .customer-welcome-actions__title {
-  margin: 0 0 0.5rem;
-  color: #1f2937;
-  font-size: 1.1rem;
+  margin: 0 0 0.75rem;
+  color: #102a43;
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.customer-welcome-actions__grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.customer-welcome-action-card {
+  display: flex;
+  gap: 0.7rem;
+  min-width: 0;
+  padding: 0.85rem;
+  border: 1px solid rgba(11, 128, 115, 0.14);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.72);
+  color: #102a43;
+  text-decoration: none;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.05);
+  transition:
+    transform 0.16s ease,
+    border-color 0.16s ease,
+    box-shadow 0.16s ease;
+}
+
+.customer-welcome-action-card:hover,
+.customer-welcome-action-card:focus-visible {
+  transform: translateY(-2px);
+  border-color: rgba(13, 148, 136, 0.38);
+  box-shadow: 0 14px 28px rgba(13, 148, 136, 0.12);
+  outline: none;
+}
+
+.customer-welcome-action-card__icon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 10px;
+  background: #ecfdf5;
+}
+
+.customer-welcome-action-card strong,
+.customer-welcome-action-card small {
+  display: block;
+}
+
+.customer-welcome-action-card strong {
+  margin-bottom: 0.18rem;
+  font-size: 0.92rem;
+}
+
+.customer-welcome-action-card small {
+  color: #64748b;
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+@media (max-width: 980px) {
+  .customer-welcome-actions__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .customer-welcome-actions__grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .customer-welcome-actions__list {
@@ -221,6 +244,36 @@
   margin-top: var(--ef-space-4);
 }
 
+.customer-welcome-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 1rem;
+  padding: 0.95rem 1rem;
+  border: 1px solid rgba(16, 185, 129, 0.18);
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(236, 253, 245, 0.92), rgba(240, 253, 250, 0.82));
+}
+
+.customer-welcome-footer p {
+  margin: 0;
+  color: #166534;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  .customer-welcome-footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .customer-welcome-dismiss {
+    width: 100% !important;
+  }
+}
+
 /* Contextual prompt variants */
 .customer-welcome-prompt {
   display: flex;
@@ -229,7 +282,7 @@
   background: linear-gradient(135deg, #f0fdf4, #ecfdf5);
   border: 1px solid #bbf7d0;
   border-radius: var(--ef-radius-md);
-  padding: var(--ef-space-3) var(--ef-space-4);
+  padding: 0.55rem 0.85rem;
   font-size: 0.9rem;
   color: #166534;
 }
@@ -272,7 +325,9 @@
   padding: 0.75rem var(--ef-space-4);
   margin-bottom: 0.75rem;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
   cursor: default;
 }
 
@@ -324,7 +379,9 @@
   margin-bottom: 0.5rem;
   cursor: pointer;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .customer-ticket-item:hover,
@@ -375,7 +432,9 @@
   padding: var(--ef-space-2) var(--ef-space-4);
   border: 1px solid var(--ef-primary);
   border-radius: var(--ef-radius-sm);
-  transition: background 0.2s ease, color 0.2s ease;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
 }
 
 .customer-tickets-view-all:hover {
@@ -461,7 +520,9 @@
   border-radius: var(--ef-radius-md);
   padding: var(--ef-space-5);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .customer-stat-card:hover {
@@ -628,14 +689,6 @@
    17. MOBILE RESPONSIVENESS
    =========================================== */
 @media (max-width: 640px) {
-  .customer-hero__stats {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .customer-hero {
-    padding: var(--ef-space-5);
-  }
-
   .customer-conversations-controls {
     flex-direction: column;
     align-items: stretch;
@@ -651,7 +704,6 @@
    18. REDUCED MOTION
    =========================================== */
 @media (prefers-reduced-motion: reduce) {
-  .customer-hero::before,
   .customer-plan-item,
   .customer-ticket-item,
   .customer-stat-card {
@@ -685,6 +737,52 @@
 /* Calendar card spacing */
 .customer-calendar-card {
   margin-bottom: 1.5rem;
+}
+
+/* Next-up summary beneath the customer calendar keeps future entries visible even when they are outside the current month view. */
+.customer-calendar-next-up {
+  margin-top: 1rem;
+  border: 1px solid rgba(11, 128, 115, 0.16);
+  border-radius: var(--ef-radius-md, 14px);
+  background: linear-gradient(135deg, rgba(11, 128, 115, 0.08), rgba(255, 255, 255, 0.96));
+  padding: 0.95rem 1rem;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.customer-calendar-next-up__eyebrow {
+  color: var(--ef-primary, #0b8073);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.customer-calendar-next-up__body {
+  color: #334155;
+  font-size: 0.95rem;
+}
+
+.customer-calendar-next-up__title {
+  color: #0f172a;
+  font-weight: 800;
+}
+
+.customer-calendar-next-up__meta {
+  color: #64748b;
+  margin-top: 0.2rem;
+}
+
+.customer-calendar-next-up__badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 800;
+  margin-right: 0.45rem;
+  padding: 0.15rem 0.5rem;
+  text-transform: capitalize;
 }
 
 /* Plans list container bottom margin */
@@ -756,7 +854,9 @@
   background: transparent;
   color: var(--ef-primary);
   cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
   white-space: nowrap;
 }
 
@@ -794,6 +894,157 @@
   height: 10px;
   border-radius: 50%;
   flex-shrink: 0;
+}
+
+.cal-fallback-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.cal-fallback-month {
+  border: 1px solid rgba(11, 128, 115, 0.16);
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(240, 253, 250, 0.74), rgba(255, 255, 255, 0.92));
+  overflow: hidden;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.cal-fallback-month__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.95rem 1rem;
+  border-bottom: 1px solid rgba(11, 128, 115, 0.12);
+}
+
+.cal-fallback-month__eyebrow {
+  color: #0f766e;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.cal-fallback-month__title {
+  margin: 0.1rem 0 0;
+  color: #102a43;
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.cal-fallback-month__hint {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.86rem;
+  text-align: right;
+}
+
+.cal-fallback-month__weekdays,
+.cal-fallback-month__grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.cal-fallback-month__weekdays span {
+  padding: 0.55rem 0.35rem;
+  background: rgba(15, 118, 110, 0.07);
+  color: #0f766e;
+  font-size: 0.74rem;
+  font-weight: 800;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.cal-fallback-day {
+  min-height: 76px;
+  padding: 0.45rem;
+  border: 0;
+  border-right: 1px solid rgba(11, 128, 115, 0.1);
+  border-bottom: 1px solid rgba(11, 128, 115, 0.1);
+  background: rgba(255, 255, 255, 0.72);
+  color: #334155;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cal-fallback-day:nth-child(7n) {
+  border-right: 0;
+}
+
+.cal-fallback-day:hover,
+.cal-fallback-day:focus-visible {
+  background: #f0fdfa;
+  outline: 2px solid rgba(13, 148, 136, 0.45);
+  outline-offset: -2px;
+}
+
+.cal-fallback-day--muted {
+  color: #94a3b8;
+  background: rgba(248, 250, 252, 0.76);
+}
+
+.cal-fallback-day--today .cal-fallback-day__num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.55rem;
+  height: 1.55rem;
+  border-radius: 999px;
+  background: #0b8073;
+  color: #fff;
+  font-weight: 800;
+}
+
+.cal-fallback-day__events {
+  display: flex;
+  flex-direction: column;
+  gap: 0.22rem;
+  margin-top: 0.35rem;
+}
+
+.cal-fallback-day__event,
+.cal-fallback-day__more {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border-left: 3px solid var(--cal-event-color, #0b8073);
+  border-radius: 5px;
+  background: rgba(11, 128, 115, 0.08);
+  padding: 0.13rem 0.25rem;
+  color: #134e4a;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.cal-fallback-day__more {
+  border-left-color: #94a3b8;
+  background: rgba(148, 163, 184, 0.12);
+  color: #64748b;
+}
+
+@media (max-width: 720px) {
+  .cal-fallback-month__header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .cal-fallback-month__hint {
+    text-align: left;
+  }
+
+  .cal-fallback-day {
+    min-height: 58px;
+    padding: 0.32rem;
+  }
+
+  .cal-fallback-day__event,
+  .cal-fallback-day__more {
+    display: none;
+  }
 }
 
 /* Fallback list when FullCalendar is unavailable */
@@ -855,7 +1106,9 @@
   cursor: pointer;
   border-radius: var(--ef-radius-sm);
   flex-shrink: 0;
-  transition: color 0.15s ease, background 0.15s ease;
+  transition:
+    color 0.15s ease,
+    background 0.15s ease;
 }
 
 .cal-fallback-item__edit {
@@ -871,7 +1124,9 @@
   cursor: pointer;
   border-radius: var(--ef-radius-sm);
   flex-shrink: 0;
-  transition: color 0.15s ease, background 0.15s ease;
+  transition:
+    color 0.15s ease,
+    background 0.15s ease;
 }
 
 .cal-fallback-item__delete:hover,
@@ -922,7 +1177,9 @@
   z-index: 11000;
   opacity: 0;
   transform: translateY(8px);
-  transition: opacity 0.25s ease, transform 0.25s ease;
+  transition:
+    opacity 0.25s ease,
+    transform 0.25s ease;
   pointer-events: none;
   max-width: 320px;
 }
@@ -970,7 +1227,9 @@
   border-radius: var(--ef-radius-sm);
   cursor: pointer;
   border: 1px solid transparent;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
 }
 
 .cal-delete-popover__btn--cancel {
@@ -1209,7 +1468,9 @@ body.customer-dashboard-page .ef-bottom-nav.logged-in #ef-bottom-menu {
   border-radius: 50%;
   cursor: pointer;
   opacity: 0;
-  transition: opacity 0.15s ease, transform 0.15s ease;
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease;
   z-index: 2;
 }
 
@@ -1264,8 +1525,14 @@ body.customer-dashboard-page .ef-bottom-nav.logged-in #ef-bottom-menu {
 }
 
 @keyframes calModalIn {
-  from { opacity: 0; transform: translateY(-12px) scale(0.97); }
-  to   { opacity: 1; transform: translateY(0)    scale(1); }
+  from {
+    opacity: 0;
+    transform: translateY(-12px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .cal-entry-modal__header {
@@ -1295,7 +1562,9 @@ body.customer-dashboard-page .ef-bottom-nav.logged-in #ef-bottom-menu {
   border-radius: var(--ef-radius-sm);
   color: var(--ef-text-muted);
   cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
 }
 
 .cal-entry-modal__close:hover,
@@ -1358,7 +1627,9 @@ body.customer-dashboard-page .ef-bottom-nav.logged-in #ef-bottom-menu {
   font-size: 0.9375rem;
   color: var(--ef-text);
   background: #fff;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
   box-sizing: border-box;
 }
 
@@ -1401,7 +1672,10 @@ body.customer-dashboard-page .ef-bottom-nav.logged-in #ef-bottom-menu {
   font-weight: 500;
   cursor: pointer;
   border: 1px solid transparent;
-  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
 }
 
 .cal-entry-modal__btn--cancel {
@@ -1522,24 +1796,43 @@ body.customer-dashboard-page .sd-card-header {
   margin-bottom: 0;
   border-radius: 0;
   border-bottom: 1px solid var(--sd-header-border, rgba(11, 128, 115, 0.1));
-  background: var(--sd-header-bg, linear-gradient(135deg, rgba(11, 128, 115, 0.04) 0%, rgba(16, 185, 129, 0.03) 100%));
+  background: var(
+    --sd-header-bg,
+    linear-gradient(135deg, rgba(11, 128, 115, 0.04) 0%, rgba(16, 185, 129, 0.03) 100%)
+  );
 }
 
 /* Colour variants */
 body.customer-dashboard-page .sd-card-header--teal {
-  --sd-header-bg: linear-gradient(135deg, rgba(11, 128, 115, 0.07) 0%, rgba(16, 185, 129, 0.04) 100%);
+  --sd-header-bg: linear-gradient(
+    135deg,
+    rgba(11, 128, 115, 0.07) 0%,
+    rgba(16, 185, 129, 0.04) 100%
+  );
   --sd-header-border: rgba(11, 128, 115, 0.12);
 }
 body.customer-dashboard-page .sd-card-header--blue {
-  --sd-header-bg: linear-gradient(135deg, rgba(59, 130, 246, 0.07) 0%, rgba(37, 99, 235, 0.04) 100%);
+  --sd-header-bg: linear-gradient(
+    135deg,
+    rgba(59, 130, 246, 0.07) 0%,
+    rgba(37, 99, 235, 0.04) 100%
+  );
   --sd-header-border: rgba(59, 130, 246, 0.12);
 }
 body.customer-dashboard-page .sd-card-header--amber {
-  --sd-header-bg: linear-gradient(135deg, rgba(245, 158, 11, 0.07) 0%, rgba(251, 191, 36, 0.04) 100%);
+  --sd-header-bg: linear-gradient(
+    135deg,
+    rgba(245, 158, 11, 0.07) 0%,
+    rgba(251, 191, 36, 0.04) 100%
+  );
   --sd-header-border: rgba(245, 158, 11, 0.12);
 }
 body.customer-dashboard-page .sd-card-header--emerald {
-  --sd-header-bg: linear-gradient(135deg, rgba(16, 185, 129, 0.07) 0%, rgba(5, 150, 105, 0.04) 100%);
+  --sd-header-bg: linear-gradient(
+    135deg,
+    rgba(16, 185, 129, 0.07) 0%,
+    rgba(5, 150, 105, 0.04) 100%
+  );
   --sd-header-border: rgba(16, 185, 129, 0.12);
 }
 body.customer-dashboard-page .sd-card-header--red {
@@ -1547,7 +1840,11 @@ body.customer-dashboard-page .sd-card-header--red {
   --sd-header-border: rgba(239, 68, 68, 0.12);
 }
 body.customer-dashboard-page .sd-card-header--indigo {
-  --sd-header-bg: linear-gradient(135deg, rgba(99, 102, 241, 0.07) 0%, rgba(139, 92, 246, 0.04) 100%);
+  --sd-header-bg: linear-gradient(
+    135deg,
+    rgba(99, 102, 241, 0.07) 0%,
+    rgba(139, 92, 246, 0.04) 100%
+  );
   --sd-header-border: rgba(99, 102, 241, 0.12);
 }
 
@@ -1587,12 +1884,24 @@ body.customer-dashboard-page .sd-card-header__icon svg {
 }
 
 /* Icon colour variants */
-body.customer-dashboard-page .sd-card-header__icon--teal    { background: linear-gradient(135deg, #0b8073 0%, #10b981 100%); }
-body.customer-dashboard-page .sd-card-header__icon--blue    { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); }
-body.customer-dashboard-page .sd-card-header__icon--amber   { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
-body.customer-dashboard-page .sd-card-header__icon--emerald { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
-body.customer-dashboard-page .sd-card-header__icon--red     { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); }
-body.customer-dashboard-page .sd-card-header__icon--indigo  { background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); }
+body.customer-dashboard-page .sd-card-header__icon--teal {
+  background: linear-gradient(135deg, #0b8073 0%, #10b981 100%);
+}
+body.customer-dashboard-page .sd-card-header__icon--blue {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+}
+body.customer-dashboard-page .sd-card-header__icon--amber {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+}
+body.customer-dashboard-page .sd-card-header__icon--emerald {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+body.customer-dashboard-page .sd-card-header__icon--red {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+}
+body.customer-dashboard-page .sd-card-header__icon--indigo {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+}
 
 /* Heading */
 body.customer-dashboard-page .sd-card-header__heading {
@@ -1634,6 +1943,34 @@ body.customer-dashboard-page .sd-card-header__actions {
   }
 }
 
+/* Conversations header: stack left content and actions vertically on mobile/tablet
+   so "View Inbox" never clips off screen. At ≤768px the header row can't
+   accommodate icon + title + subtitle + badge + View Inbox + Expand in one line. */
+@media (max-width: 768px) {
+  body.customer-dashboard-page .cd-card--conversations .sd-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.625rem;
+  }
+
+  body.customer-dashboard-page .cd-card--conversations .sd-card-header__actions {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  /* View Inbox becomes a full-width tappable button — easy to hit on touch */
+  body.customer-dashboard-page .cd-card--conversations .customer-inbox-btn {
+    flex: 1 1 auto;
+    text-align: center;
+    min-height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
 /* On very narrow screens, compact the header action buttons */
 @media (max-width: 480px) {
   body.customer-dashboard-page .sd-card-header__actions .cta,
@@ -1667,7 +2004,10 @@ body.customer-dashboard-page .customer-tickets-create-btn {
   font-weight: 500;
   white-space: nowrap;
   cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 body.customer-dashboard-page .customer-tickets-create-btn:hover,
@@ -1696,7 +2036,9 @@ body.customer-dashboard-page .customer-inbox-btn {
   text-decoration: none;
   display: inline-flex;
   align-items: center;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
 }
 
 body.customer-dashboard-page .customer-inbox-btn:hover,
@@ -1719,7 +2061,9 @@ body.customer-dashboard-page .customer-card-action--full {
   font-size: 0.9rem;
   font-weight: 500;
   cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
 }
 
 body.customer-dashboard-page .customer-card-action--full:hover,
@@ -1730,18 +2074,257 @@ body.customer-dashboard-page .customer-card-action--full:focus-visible {
 }
 
 /* ===========================================
-   29. CARD SPACING — consistent vertical rhythm
+   29. HUB CARDS GRID
+       Layout (HTML order: Plans → Conversations → Saved Suppliers
+                          → Quick Actions → Support Tickets):
+
+         Mobile  (<640px):  1 column — all full-width
+
+         Tablet  (640-899): 2 columns
+                            [Plans            full-width]
+                            [Conversations    full-width]
+                            [Saved Suppliers] [Quick Actions]
+                            [Support Tickets  full-width]
+
+         Desktop (≥900px):  3 columns, align-items:start (natural heights)
+                            [Plans                 full-width]
+                            [Conversations         full-width]
+                            [Saved] [Quick] [Support Tickets]
    =========================================== */
 body.customer-dashboard-page .cards {
-  display: flex;
-  flex-direction: column;
-  gap: var(--ef-space-5);
-  margin-bottom: var(--ef-space-5);
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.125rem;
+  align-items: start;
+  margin-bottom: var(--ef-space-5, 1.25rem);
+}
+
+/* Tablet: 2-col grid */
+@media (min-width: 640px) {
+  body.customer-dashboard-page .cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Plans and Conversations each take a full row at tablet */
+  body.customer-dashboard-page .cards .cd-card--plans,
+  body.customer-dashboard-page .cards .cd-card--conversations {
+    grid-column: 1 / -1;
+  }
+
+  /* Support Tickets full-width at tablet — avoids a lone card in a
+     half-empty row after Saved Suppliers + Quick Actions fill row 3 */
+  body.customer-dashboard-page .cards .cd-card--support {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Desktop: 3-col grid */
+@media (min-width: 900px) {
+  body.customer-dashboard-page .cards {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.25rem;
+    /* align-items:start — each card is its natural height.
+       Avoids empty white-space in shorter cards when a neighbour
+       (e.g. Support Tickets with a long description) is taller. */
+    align-items: start;
+  }
+
+  /* Plans and Conversations each take a full row on desktop */
+  body.customer-dashboard-page .cards .cd-card--plans,
+  body.customer-dashboard-page .cards .cd-card--conversations {
+    grid-column: 1 / -1;
+  }
+
+  /* Support Tickets resets to auto (1/3 column) at desktop —
+     sits alongside Saved Suppliers and Quick Actions in row 3 */
+  body.customer-dashboard-page .cards .cd-card--support {
+    grid-column: span 1;
+  }
 }
 
 body.customer-dashboard-page .card.customer-budget-card,
 body.customer-dashboard-page .card.customer-calendar-card {
   margin-bottom: var(--ef-space-5);
+}
+
+/* ===========================================
+   30a. HUB CARD COLLAPSED STATE
+        card-collapse.css globally hides .sd-card-header__subtitle and
+        .sd-card-header__actions when any .card--collapsed fires, keeping
+        the collapsed state minimal across the whole app.
+
+        For customer dashboard hub cards (.cards > .card) we want a
+        different behaviour: show the description even when collapsed so
+        every card looks the same (icon + title + description). This makes
+        the five hub cards visually consistent regardless of whether their
+        body content has loaded yet.
+
+        We also restore .sd-card-header__actions so "View Inbox" stays
+        tappable on Conversations without the user needing to expand it.
+
+        Specificity breakdown for the subtitle rule:
+          body           = type selector  → (0,0,1)
+          .cd-page       = class selector → (0,1,0)
+          .cards         = class selector → (0,1,0)
+          .card--collapsed = class        → (0,1,0)
+          .sd-card-header__subtitle = class → (0,1,0)
+          TOTAL          = (0,4,1)
+
+        card-collapse.css rule is just (0,2,0) — our rule wins even
+        though both use !important (higher specificity wins when
+        importance is equal, per CSS Cascade Level 5).
+
+        Desktop note: card-collapse.js only activates at ≤1024px
+        (BREAKPOINT constant in card-collapse.js). On desktop .card--collapsed
+        is never applied, so these rules have zero effect on desktop.
+   =========================================== */
+
+/* Always show the description line on collapsed hub cards */
+body.customer-dashboard-page .cards .card--collapsed .sd-card-header__subtitle {
+  display: block !important;
+  /* Slightly muted so the collapsed state still feels different from expanded */
+  opacity: 0.72;
+}
+
+/* Restore header actions on hub cards so primary CTAs remain reachable
+   when the card body is collapsed (e.g. "View Inbox" on Conversations) */
+body.customer-dashboard-page .cards .card--collapsed .sd-card-header__actions {
+  display: flex !important;
+}
+
+/* ===========================================
+   30b. HUB CARD STANDARDISATION
+        Addresses three problems visible in screenshots:
+
+        DESKTOP — unequal 3-column row:
+          Saved Suppliers (~98px header) and Quick Actions (~98px) are
+          shorter than Support Tickets (~144px header) because Support
+          Tickets has TWO buttons in its __actions (Create Ticket injected
+          in HTML + Expand toggle from customer-dashboard-polish.js).
+          Those two buttons eat ~218px from the available header width,
+          compressing __left to ~162px and wrapping the description into
+          4+ lines.
+
+        MOBILE — "Supp ort..." title break:
+          At 412px, the same button pair eats ~218px leaving only ~69px
+          for a 16px heading. word-break:break-word then mid-word breaks
+          "Support" to "Supp" on line 1 and "ort..." on line 2.
+
+        FIX STRATEGY:
+          a) Desktop + tablet: stack Support Tickets header vertically
+             (flex-direction: column) so __left gets the full column width.
+             Description now fits on one line. Buttons form a clean row below.
+          b) Mobile: same stacking, matching the Conversations fix already in
+             dashboard-mobile.css / customer-dashboard-improvements.css.
+          c) Desktop equal-height: align-items:stretch on the grid so all 3
+             bottom-row cards reach the same outer height. When collapsed,
+             flex:1 on the header makes the coloured gradient fill the full
+             card cleanly instead of leaving dead whitespace below the header.
+   =========================================== */
+
+/* ── Desktop + tablet: equal-height 3-column row + Support Tickets layout ── */
+/* All rules that apply at ≥640px are in a single block.
+   Combining the equal-height grid rules with the Support Tickets column
+   stacking avoids having two separate min-width:640px blocks. */
+@media (min-width: 640px) {
+  /* Stretch grid items in each row to equal height */
+  body.customer-dashboard-page .cards {
+    align-items: stretch;
+  }
+
+  /* Full-width cards sit in their own row — stretching would only match
+     their own height, so revert to start to avoid any visual side-effects */
+  body.customer-dashboard-page .cards .cd-card--plans,
+  body.customer-dashboard-page .cards .cd-card--conversations {
+    align-self: start;
+  }
+
+  /* Each hub card is a flex column so header and body stack vertically */
+  body.customer-dashboard-page .cards > .cd-card {
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Expanded card: body fills remaining space after the header */
+  body.customer-dashboard-page .cards > .cd-card > .cd-card-body {
+    flex: 1;
+  }
+
+  /* Collapsed card (ef-dashboard-collapse-toggle system from
+     customer-dashboard-polish.js):
+     The card body is display:none, leaving empty space at the bottom.
+     flex:1 on the header extends the coloured gradient to fill the full
+     card height cleanly, matching the look of the taller Support Tickets
+     card beside it. Content stays pinned to the top because the base
+     .sd-card-header rule already sets align-items:flex-start. */
+  body.customer-dashboard-page .cards > .ef-dashboard-card--collapsed > .sd-card-header {
+    flex: 1;
+  }
+
+  /* ── Support Tickets: stack header vertically (desktop + tablet) ──────────
+     Places __left (icon + title + subtitle) and __actions (Create Ticket +
+     Expand) in a column instead of a row. align-items:stretch is essential —
+     in flex-direction:column, align-items controls the HORIZONTAL axis, so
+     stretch ensures both __left and __actions fill the full column width
+     (without it they would shrink to content-width). */
+  body.customer-dashboard-page .cd-card--support .sd-card-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  body.customer-dashboard-page .cd-card--support .sd-card-header__actions {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+  }
+}
+
+/* ── Support Tickets: stack header vertically (mobile) ───────────────────── */
+/* Same column stacking on mobile — prevents mid-word break at 412px.
+   Mirrors the identical fix already applied to Conversations.
+   Uses max-width:767px to match the mobile breakpoint used by every other
+   rule in dashboard-mobile.css and customer-dashboard-polish.css. */
+@media (max-width: 767px) {
+  body.customer-dashboard-page .cd-card--support .sd-card-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  body.customer-dashboard-page .cd-card--support .sd-card-header__actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  body.customer-dashboard-page .cd-card--support .customer-tickets-create-btn {
+    width: 100%;
+    min-height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    white-space: normal;
+    text-align: center;
+  }
+}
+
+/* ── Standardise hub action button heights ───────────────────────────────── */
+/* The "Expand/Minimise" toggle (ef-dashboard-collapse-toggle) from
+   customer-dashboard-polish.js and the Create Ticket CTA should share
+   the same minimum height so button baselines align across cards.
+   2.5rem = 40px — meets practical touch-target minimums and overrides
+   the JS-injected 2.25rem for the toggle at correct specificity. */
+body.customer-dashboard-page .cards .sd-card-header__actions .ef-dashboard-collapse-toggle,
+body.customer-dashboard-page .cards .sd-card-header__actions .customer-tickets-create-btn {
+  min-height: 2.5rem;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* ===========================================
@@ -1789,9 +2372,8 @@ body.customer-dashboard-page #budget-settings-form {
        identity within the glass design system.
    =========================================== */
 body.customer-dashboard-page .customer-welcome-card.card {
-  background: rgba(255, 255, 255, 0.85);
-  border: 1px solid rgba(11, 128, 115, 0.12);
-  border-radius: var(--ef-radius-lg, 14px);
+  border-color: rgba(11, 128, 115, 0.14);
+  border-radius: 22px;
 }
 
 /* ===========================================
@@ -1811,7 +2393,283 @@ body.customer-dashboard-page .customer-unread-badge {
 }
 
 /* Hide badge when count is 0 */
-body.customer-dashboard-page .customer-unread-badge[data-count="0"],
+body.customer-dashboard-page .customer-unread-badge[data-count='0'],
 body.customer-dashboard-page .customer-unread-badge:empty {
   display: none;
 }
+
+/* Liquid glass calendar polish and scrollbar-free month layout */
+body.customer-dashboard-page .customer-calendar-card {
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(11, 128, 115, 0.12);
+  backdrop-filter: blur(18px) saturate(1.15);
+  -webkit-backdrop-filter: blur(18px) saturate(1.15);
+  box-shadow:
+    0 18px 55px rgba(15, 23, 42, 0.09),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+body.customer-dashboard-page .customer-calendar-card .fc,
+body.customer-dashboard-page .customer-calendar-card .fc-view-harness,
+body.customer-dashboard-page .customer-calendar-card .fc-scroller,
+body.customer-dashboard-page .customer-calendar-card .fc-scroller-liquid,
+body.customer-dashboard-page .customer-calendar-card .fc-scroller-liquid-absolute {
+  height: auto !important;
+  overflow: visible !important;
+  position: relative !important;
+}
+
+body.customer-dashboard-page .customer-calendar-card .fc-scrollgrid {
+  border-radius: 18px;
+  overflow: hidden;
+  border-color: rgba(11, 128, 115, 0.14);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+}
+
+body.customer-dashboard-page .customer-calendar-card .fc-daygrid-day-frame {
+  min-height: 70px;
+}
+
+body.customer-dashboard-page .customer-calendar-card .fc-event-title,
+body.customer-dashboard-page .customer-calendar-next-up__title {
+  text-transform: none;
+}
+
+/* ===========================================
+   35. EMAIL VERIFICATION BANNER
+       Companion CSS for the dynamically-created
+       #email-verify-banner in dashboard-customer-init.js.
+       Inline styles will override these, but having
+       semantic classes here improves maintainability
+       and dark-mode / high-contrast coverage.
+   =========================================== */
+#email-verify-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  border-radius: var(--ef-radius-md, 10px);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+#email-verify-banner > span:first-child {
+  flex: 1;
+  color: #78350f;
+}
+
+#email-verify-banner button {
+  flex-shrink: 0;
+  background: none;
+  border: 1px solid #d97706;
+  border-radius: var(--ef-radius-sm, 6px);
+  padding: 0.25rem 0.75rem;
+  cursor: pointer;
+  color: #92400e;
+  font-size: 0.8rem;
+  font-family: inherit;
+  white-space: nowrap;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+#email-verify-banner button:hover,
+#email-verify-banner button:focus-visible {
+  background: #d97706;
+  color: #fff;
+  outline: none;
+}
+
+#email-verify-banner button:focus-visible {
+  outline: 2px solid #d97706;
+  outline-offset: 2px;
+}
+
+@media (prefers-contrast: more) {
+  #email-verify-banner {
+    border-width: 2px;
+    border-color: #92400e;
+    background: #fef3c7;
+  }
+}
+
+/* ===========================================
+   36. BUDGET STATUS BADGE
+       Replaces inline hex styles in dashboard-widgets.js.
+       Three semantic variants: on-track, attention, over-budget.
+   =========================================== */
+.budget-status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  white-space: nowrap;
+  color: #fff;
+}
+
+.budget-status-badge--on-track {
+  background: #16a34a;
+}
+
+.budget-status-badge--attention {
+  background: #d97706;
+}
+
+.budget-status-badge--over-budget {
+  background: #dc2626;
+}
+
+@media (prefers-contrast: more) {
+  .budget-status-badge {
+    outline: 2px solid currentColor;
+    outline-offset: 1px;
+  }
+}
+
+/* ===========================================
+   37. TIMELINE COMPONENT
+       Replaces opacity:0 inline style that
+       permanently hid all timeline steps.
+       Staggered fade-in-up on render.
+   =========================================== */
+.timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.timeline-step {
+  animation: ef-step-in 0.3s ease both;
+}
+
+.timeline-step:nth-child(1) { animation-delay: 0ms; }
+.timeline-step:nth-child(2) { animation-delay: 60ms; }
+.timeline-step:nth-child(3) { animation-delay: 120ms; }
+.timeline-step:nth-child(4) { animation-delay: 180ms; }
+
+@keyframes ef-step-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .timeline-step {
+    animation: none;
+    opacity: 1;
+  }
+}
+
+/* ===========================================
+   38. DETAILS / SUMMARY ARROW TRANSITION
+       .details-arrow is placed in the budget
+       breakdown <summary>. The arrow character
+       is toggled by JS (▼ → ▲) but the
+       transition is handled in CSS.
+   =========================================== */
+.details-arrow {
+  display: inline-block;
+  font-size: 1rem;
+  line-height: 1;
+  transition: transform 0.2s ease;
+  user-select: none;
+}
+
+/* ===========================================
+   39. CALENDAR TOOLTIP
+       Replaces inline style.cssText on
+       tooltip elements in calendar-view.js.
+   =========================================== */
+.calendar-tooltip {
+  display: none;
+  position: fixed;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 8px 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  z-index: 9999;
+  max-width: 260px;
+  font-size: 0.85rem;
+  pointer-events: none;
+  color: var(--ef-text, #0b1220);
+}
+
+.calendar-tooltip.is-visible {
+  display: block;
+}
+
+/* ===========================================
+   40. WIDGET LAYOUT CLASSES
+       Extracted from inline styles in
+       dashboard-widgets.js to improve
+       maintainability and theme support.
+   =========================================== */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.stat-widget {
+  padding: 1.5rem;
+}
+
+.stat-widget__inner {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.progress-ring-body {
+  text-align: center;
+  padding: 1.25rem 1.5rem;
+}
+
+.progress-ring-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-top: 1.25rem;
+}
+
+.progress-ring-stat {
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.65);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.budget-stat-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.875rem;
+}
+
+.budget-stat-cell {
+  padding: 0.875rem 1rem;
+  background: rgba(255, 255, 255, 0.65);
+  border-radius: 10px;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.budget-stat-cell__label {
+  font-size: 0.8125rem;
+  color: var(--ef-text-muted, #667085);
+  margin-bottom: 0.35rem;
+}
+
+@media (prefers-contrast: more) {
+  .budget-stat-cell,
+  .progress-ring-stat {
+    border: 1px solid currentColor;
+    background: var(--color-background-primary, #fff);
+  }
+}
+

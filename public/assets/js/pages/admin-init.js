@@ -23,15 +23,12 @@
 
   // HTML sanitization helper to prevent XSS
   function escapeHtml(unsafe) {
-    if (!unsafe) {
+    if (unsafe === null || unsafe === undefined) {
       return '';
     }
-    return String(unsafe)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#039;');
+    const div = document.createElement('div');
+    div.textContent = String(unsafe);
+    return div.innerHTML;
   }
 
   function _adminToast(msg, type) {
@@ -123,6 +120,59 @@
   let allUsers = [];
   let allSuppliers = [];
   let allPackages = [];
+  let summary = null; // populated by /users/summary; shared with renderAnalytics
+  let summaryLoadFailed = false;
+  let summaryWarningShown = false;
+
+  function renderAccountHealthFallback() {
+    const userRowsEl = document.getElementById('dashUserHealthRows');
+    const supplierRowsEl = document.getElementById('dashSupplierHealthRows');
+    const fallbackHtml = `
+      <div class="dash-health-row dash-health-row--error">
+        <span class="dash-health-row__label">Could not load account health.</span>
+        <button type="button" class="ef-cta" data-action="retryAccountHealth">Retry</button>
+      </div>
+      <div class="dash-health-row">
+        <span class="dash-health-row__label"><a href="/admin-users">Open Users Centre</a></span>
+        <span class="dash-health-row__value">↗</span>
+      </div>
+      <div class="dash-health-row">
+        <span class="dash-health-row__label"><a href="/admin-emails">Open Email Centre</a></span>
+        <span class="dash-health-row__value">↗</span>
+      </div>`;
+    const supplierFallbackHtml = `
+      <div class="dash-health-row dash-health-row--error">
+        <span class="dash-health-row__label">Supplier account health is temporarily unavailable.</span>
+        <button type="button" class="ef-cta" data-action="retryAccountHealth">Retry</button>
+      </div>
+      <div class="dash-health-row">
+        <span class="dash-health-row__label"><a href="/admin-suppliers">Supplier Management</a></span>
+        <span class="dash-health-row__value">↗</span>
+      </div>
+      <div class="dash-health-row">
+        <span class="dash-health-row__label"><a href="/admin-users">Open Users Centre</a></span>
+        <span class="dash-health-row__value">↗</span>
+      </div>`;
+    if (userRowsEl) {
+      userRowsEl.innerHTML = fallbackHtml;
+    }
+    if (supplierRowsEl) {
+      supplierRowsEl.innerHTML = supplierFallbackHtml;
+    }
+    if (!summaryWarningShown) {
+      _adminToast('Could not load account health. Try again or open Users Centre.', 'warning');
+      summaryWarningShown = true;
+    }
+  }
+
+  document.addEventListener('click', e => {
+    const btn = e.target && e.target.closest('[data-action="retryAccountHealth"]');
+    if (btn) {
+      e.preventDefault();
+      summaryWarningShown = false;
+      loadAll();
+    }
+  });
 
   function renderUsersTable(list) {
     const el = document.getElementById('users');
@@ -278,7 +328,7 @@
       }
       let out = '';
       for (let i = 0; i < c; i++) {
-        out += '▮';
+        out += '<span aria-hidden="true">▮</span>';
       }
       return out;
     }
@@ -286,7 +336,109 @@
     // Update stat cards with animated counters
     const totalUsersEl = document.getElementById('totalUsersCount');
     if (totalUsersEl && window.AdminShared && window.AdminShared.animateCounter) {
-      window.AdminShared.animateCounter(totalUsersEl, counts.usersTotal || 0);
+      window.AdminShared.animateCounter(
+        totalUsersEl,
+        (summary && summary.total) || counts.usersTotal || 0
+      );
+
+      // ── Account Health panels (from summary data) ───────────────────────
+      if (summary) {
+        const healthRowsEl = document.getElementById('dashUserHealthRows');
+        const supplierHealthEl = document.getElementById('dashSupplierHealthRows');
+
+        if (healthRowsEl) {
+          const bySig = summary.bySignup || {};
+          const byVerif = summary.byVerification || {};
+          healthRowsEl.innerHTML = [
+            {
+              label: 'Unverified (pending)',
+              value: byVerif.pending || 0,
+              href: '/admin-users?verificationMethod=pending',
+              warn: (byVerif.pending || 0) > 0,
+            },
+            {
+              label: 'Unknown verification source',
+              value: byVerif.unknown || 0,
+              href: '/admin-users?verificationMethod=unknown',
+              warn: (byVerif.unknown || 0) > 0,
+            },
+            {
+              label: 'Google sign-in',
+              value: bySig.google || 0,
+              href: '/admin-users?signupMethod=google',
+              warn: false,
+            },
+            {
+              label: 'Email / password',
+              value: bySig.email_password || 0,
+              href: '/admin-users?signupMethod=email_password',
+              warn: false,
+            },
+            {
+              label: 'Admin-created',
+              value: bySig.admin_created || 0,
+              href: '/admin-users?signupMethod=admin_created',
+              warn: false,
+            },
+            {
+              label: 'Account issues',
+              value: summary.issueCount || 0,
+              href: '/admin-users?issue=email_unverified',
+              warn: (summary.issueCount || 0) > 0,
+            },
+          ]
+            .map(
+              r => `<div class="dash-health-row">
+              <span class="dash-health-row__label">${r.label}</span>
+              <a href="${r.href}" class="dash-health-row__value ${r.warn && r.value > 0 ? 'dash-health-row__value--warn' : ''}">${r.value.toLocaleString()}</a>
+            </div>`
+            )
+            .join('');
+        }
+
+        if (supplierHealthEl && summary.suppliers) {
+          const s = summary.suppliers;
+          supplierHealthEl.innerHTML = [
+            {
+              label: 'Total supplier accounts',
+              value: s.total || 0,
+              href: '/admin-users?role=supplier',
+              warn: false,
+            },
+            {
+              label: 'Pending approval',
+              value: s.pending || 0,
+              href: '/admin-suppliers?status=pending',
+              warn: (s.pending || 0) > 0,
+            },
+            {
+              label: 'Approved',
+              value: s.approved || 0,
+              href: '/admin-suppliers?status=approved',
+              warn: false,
+            },
+            {
+              label: 'Supplier with no profile',
+              value: s.suppliersWithoutProfile || 0,
+              href: '/admin-users?issue=supplier_profile_missing',
+              warn: (s.suppliersWithoutProfile || 0) > 0,
+            },
+            {
+              label: 'Orphaned profiles',
+              value: s.orphanedSuppliers || 0,
+              href: '/admin-suppliers',
+              warn: (s.orphanedSuppliers || 0) > 0,
+            },
+          ]
+            .map(
+              r => `<div class="dash-health-row">
+              <span class="dash-health-row__label">${r.label}</span>
+              <a href="${r.href}" class="dash-health-row__value ${r.warn && r.value > 0 ? 'dash-health-row__value--warn' : ''}">${r.value.toLocaleString()}</a>
+            </div>`
+            )
+            .join('');
+        }
+      }
     } else if (totalUsersEl) {
       totalUsersEl.textContent = counts.usersTotal || 0;
     }
@@ -300,7 +452,10 @@
 
     const totalSuppliersEl = document.getElementById('totalSuppliersCount');
     if (totalSuppliersEl && window.AdminShared && window.AdminShared.animateCounter) {
-      window.AdminShared.animateCounter(totalSuppliersEl, counts.suppliersTotal || 0);
+      window.AdminShared.animateCounter(
+        totalSuppliersEl,
+        (summary && summary.byRole && summary.byRole.supplier) || counts.suppliersTotal || 0
+      );
     } else if (totalSuppliersEl) {
       totalSuppliersEl.textContent = counts.suppliersTotal || 0;
     }
@@ -335,6 +490,38 @@
     if (featuredPackagesEl) {
       featuredPackagesEl.textContent = counts.featuredPackages || 0;
     }
+
+    // Shared public calendar management card — load asynchronously (best-effort)
+    (async () => {
+      try {
+        const [eventsData, publishedData, requestsData, reportsData] = await Promise.all([
+          AdminShared.api('/api/v1/public-calendar/events?status=all&includePast=true&limit=1'),
+          AdminShared.api(
+            '/api/v1/public-calendar/events?status=published&includePast=true&limit=1'
+          ),
+          AdminShared.api('/api/v1/public-calendar/publisher-requests?status=pending'),
+          AdminShared.api('/api/v1/public-calendar/reports?status=open'),
+        ]);
+        const totalCalendarEventsEl = document.getElementById('totalCalendarEventsCountCard');
+        if (totalCalendarEventsEl) {
+          totalCalendarEventsEl.textContent = eventsData.total || 0;
+        }
+        const publishedCalendarEventsEl = document.getElementById('publishedCalendarEventsCount');
+        if (publishedCalendarEventsEl) {
+          publishedCalendarEventsEl.textContent = publishedData.total || 0;
+        }
+        const pendingRequestsEl = document.getElementById('pendingCalendarRequestsCount');
+        if (pendingRequestsEl) {
+          pendingRequestsEl.textContent = requestsData.total || 0;
+        }
+        const openReportsEl = document.getElementById('openCalendarReportsCount');
+        if (openReportsEl) {
+          openReportsEl.textContent = reportsData.total || 0;
+        }
+      } catch (_) {
+        // Non-blocking — card shows — if API fails stats stay at —
+      }
+    })();
 
     // Partners management card — load asynchronously (best-effort)
     (async () => {
@@ -402,22 +589,12 @@
       }
     })();
 
-    // Trend indicators — real period-over-period comparison
-    // Users: compare last 7 days vs previous 7 days using allUsers (already loaded)
+    // Trend indicators — use summary.newLast7 (from shared summary service)
+    // allUsers is no longer pre-loaded on the dashboard; Users Centre has the full list
     (function () {
-      const now = Date.now();
-      const oneWeek = 7 * 24 * 60 * 60 * 1000;
-      const cutoffRecent = now - oneWeek;
-      const cutoffPrev = now - 2 * oneWeek;
-      const usersList = Array.isArray(allUsers) ? allUsers : [];
-      const recentUsers = usersList.filter(u => {
-        const t = u.createdAt ? Date.parse(u.createdAt) : NaN;
-        return !isNaN(t) && t >= cutoffRecent;
-      }).length;
-      const prevUsers = usersList.filter(u => {
-        const t = u.createdAt ? Date.parse(u.createdAt) : NaN;
-        return !isNaN(t) && t >= cutoffPrev && t < cutoffRecent;
-      }).length;
+      // Use pre-computed summary.newLast7 (allUsers no longer pre-loaded on dashboard)
+      const recentUsers = (typeof summary !== 'undefined' && summary && summary.newLast7) || 0;
+      const prevUsers = 0; // period-over-period not available from summary; defaults to 0
 
       const usersChangeEl = document.getElementById('totalUsersChange');
       if (usersChangeEl) {
@@ -475,12 +652,12 @@
 
     el.innerHTML =
       `<div class="card">` +
-      `<p><b>Total Users:</b> ${counts.usersTotal || 0}</p>` +
-      `<p><b>Users by role:</b> ${roleParts}</p>` +
-      `<p><b>Total Suppliers:</b> ${counts.suppliersTotal || 0}</p>` +
-      `<p><b>Total Packages:</b> ${counts.packagesTotal || 0}</p>` +
-      `<p><b>Signups last 7 days:</b> ${last7} <span class="small">${bar(last7)}</span></p>` +
-      `<p><b>Signups last 30 days:</b> ${last30} <span class="small">${bar(last30)}</span></p>` +
+      `<p><strong>Total Users:</strong> ${counts.usersTotal || 0}</p>` +
+      `<p><strong>Users by role:</strong> ${roleParts}</p>` +
+      `<p><strong>Total Suppliers:</strong> ${counts.suppliersTotal || 0}</p>` +
+      `<p><strong>Total Packages:</strong> ${counts.packagesTotal || 0}</p>` +
+      `<p><strong>Signups last 7 days:</strong> ${last7} <span class="small">${bar(last7)}</span></p>` +
+      `<p><strong>Signups last 30 days:</strong> ${last30} <span class="small">${bar(last30)}</span></p>` +
       `<p class="small">Plans: ${counts.plansTotal || 0} · Threads: ${
         counts.threadsTotal || 0
       } · Messages: ${counts.messagesTotal || 0}</p>` +
@@ -490,7 +667,8 @@
   function loadAll() {
     const statusEl = document.getElementById('status');
     if (statusEl) {
-      statusEl.innerText = 'Checking admin…';
+      statusEl.textContent = 'Checking admin…';
+      statusEl.classList.add('is-loading');
     }
 
     api('/api/v1/auth/me')
@@ -504,19 +682,31 @@
 
         if (!isAdmin) {
           if (statusEl) {
-            statusEl.innerText = 'Not admin / not logged in.';
+            statusEl.textContent = 'Access denied.';
+            statusEl.style.background = 'rgba(254,242,242,0.95)';
+            statusEl.style.color = '#991b1b';
           }
+          // Hide all dashboard content sections so unauthorised users
+          // don't see the empty admin UI chrome
+          document
+            .querySelectorAll(
+              '.stats-grid, .moderation-grid, .quick-actions, .management-grid, .data-section, .section-header'
+            )
+            .forEach(el => {
+              el.hidden = true;
+            });
           return;
         }
 
         if (statusEl) {
-          statusEl.innerText = 'Loading data…';
+          statusEl.textContent = 'Loading data…';
         }
 
         return Promise.all([
-          api('/api/admin/users').catch(err => {
-            console.warn('Failed to load users:', err.message);
-            return { items: [] };
+          // Use the shared summary service — same source as Users Centre
+          api('/api/admin/users/summary').catch(err => {
+            console.warn('Failed to load account health:', err.message);
+            return { __summaryError: true };
           }),
           api('/api/admin/metrics').catch(err => {
             console.warn('Failed to load metrics:', err.message);
@@ -530,18 +720,37 @@
             console.warn('Failed to load pending reviews:', err.message);
             return { reviews: [] };
           }),
-        ]).then(results => {
+        ]).then(async results => {
           const usersResp = results[0] || {};
           const metricsResp = results[1] || {};
           const photosResp = results[2] || {};
           const reviewsResp = results[3] || {};
 
-          allUsers = usersResp.items || [];
+          // results[0] is now the /api/admin/users/summary response (stats only, no items)
+          // allUsers is populated separately via the legacy user management section
+          summaryLoadFailed = !!usersResp.__summaryError;
+          summary =
+            !summaryLoadFailed && usersResp.total !== null && usersResp.total !== undefined
+              ? usersResp
+              : null; // set on outer scope for renderAnalytics
+
+          // Load a small set of recent users for the dashboard table (most-recent 20).
+          // The full paginated list lives in the Users Centre.
+          try {
+            const recentData = await api('/api/admin/users/list?limit=20&page=1');
+            allUsers = (recentData && recentData.items) || [];
+          } catch (_) {
+            allUsers = [];
+          }
+
           // Reset supplier/package caches so edits refetch fresh data after a reload
           allSuppliers = [];
           allPackages = [];
           applyUserFilters();
           renderAnalytics(metricsResp);
+          if (summaryLoadFailed) {
+            renderAccountHealthFallback();
+          }
 
           // Update moderation queue counts
           const pendingPhotos = (photosResp.photos || []).filter(p => !p.approved && !p.rejected);
@@ -557,23 +766,23 @@
           );
 
           if (photosEl) {
-            photosEl.innerText = pendingPhotos.length;
+            photosEl.textContent = pendingPhotos.length;
           }
           if (reviewsEl) {
-            reviewsEl.innerText = pendingReviews.length;
+            reviewsEl.textContent = pendingReviews.length;
           }
 
           // Fetch pending reports count
           api('/api/admin/reports/pending', 'GET')
             .then(reportsResp => {
               if (reportsEl) {
-                reportsEl.innerText = reportsResp.count || 0;
+                reportsEl.textContent = reportsResp.count || 0;
               }
             })
             .catch(err => {
               console.warn('Failed to load pending reports:', err.message);
               if (reportsEl) {
-                reportsEl.innerText = '0';
+                reportsEl.textContent = '0';
               }
             });
 
@@ -581,18 +790,23 @@
           api('/api/admin/suppliers/pending-verification', 'GET')
             .then(suppliersResp => {
               if (suppliersVerificationEl) {
-                suppliersVerificationEl.innerText = suppliersResp.count || 0;
+                suppliersVerificationEl.textContent = suppliersResp.count || 0;
               }
             })
             .catch(err => {
               console.warn('Failed to load pending supplier verifications:', err.message);
               if (suppliersVerificationEl) {
-                suppliersVerificationEl.innerText = '0';
+                suppliersVerificationEl.textContent = '0';
               }
             });
 
           if (statusEl) {
-            statusEl.innerText = `Loaded ${allUsers.length} users.`;
+            statusEl.textContent = summary
+              ? `${summary.total || 0} users · ${summary.suppliers ? summary.suppliers.total : 0} suppliers`
+              : summaryLoadFailed
+                ? 'Dashboard loaded with warnings.'
+                : 'Dashboard loaded.';
+            statusEl.classList.remove('is-loading');
           }
         });
       })
@@ -606,7 +820,8 @@
           typeof err.message === 'string' &&
           !err.message.includes('Authentication required')
         ) {
-          statusEl.innerText = 'Error loading data. Some features may be unavailable.';
+          statusEl.textContent = 'Error loading data. Some features may be unavailable.';
+          statusEl.classList.remove('is-loading');
         }
       });
   }
@@ -876,14 +1091,6 @@
           }
         });
     });
-  };
-
-  window.disableUser = function (id) {
-    api(`/api/admin/users/${id}/suspend`, 'POST', { suspended: true, reason: 'Disabled by admin' })
-      .then(loadAll)
-      .catch(err => {
-        console.error('disableUser failed', err);
-      });
   };
 
   // New user management functions
@@ -1242,6 +1449,36 @@
           }
         });
     }
+  };
+
+  // Suspend / unsuspend a user account
+  window.suspendUser = async function (id, currentlySuspended) {
+    return safeExecute(async () => {
+      const action = currentlySuspended ? 'Unsuspend' : 'Suspend';
+      const msg = currentlySuspended
+        ? 'Reactivate this user account?'
+        : 'Suspend this user? They will be locked out immediately.';
+      if (!(await _adminConfirm(msg))) {
+        return;
+      }
+      api(`/api/admin/users/${id}/suspend`, 'POST', { suspended: !currentlySuspended })
+        .then(() => {
+          if (typeof Toast !== 'undefined') {
+            Toast.success(`User ${action.toLowerCase()}ed successfully.`);
+          } else {
+            _adminToast(`User ${action.toLowerCase()}ed successfully.`, 'success');
+          }
+          loadAll();
+        })
+        .catch(err => {
+          console.error('suspendUser failed', err);
+          if (typeof Toast !== 'undefined') {
+            Toast.error(`Failed to ${action.toLowerCase()} user: ${err.message}`);
+          } else {
+            _adminToast(`Failed to ${action.toLowerCase()} user: ${err.message}`, 'error');
+          }
+        });
+    });
   };
 
   // Supplier management functions
@@ -1641,7 +1878,7 @@
       if (smartTagBtn) {
         smartTagBtn.addEventListener('click', () => {
           smartTagBtn.disabled = true;
-          smartTagBtn.innerText = 'Running smart tagging…';
+          smartTagBtn.textContent = 'Running smart tagging…';
           api('/api/admin/suppliers/smart-tags', 'POST', {})
             .then(() => {
               return loadAll();
@@ -1652,7 +1889,7 @@
             })
             .finally(() => {
               smartTagBtn.disabled = false;
-              smartTagBtn.innerText = 'Run smart tagging (beta)';
+              smartTagBtn.textContent = 'Run smart tagging (beta)';
             });
         });
       }
@@ -1693,12 +1930,14 @@
       setupNavButton('supportTicketsBtn', '/admin-tickets');
       setupNavButton('paymentsAnalyticsBtn', '/admin-payments');
       setupNavButton('reportsQueueBtn', '/admin-reports');
+      setupNavButton('eventsCalendarBtn', '/admin-public-calendar');
       setupNavButton('auditLogBtn', '/admin-audit');
       setupNavButton('adminSettingsBtn', '/admin-settings');
       setupNavButton('contentManagementBtn', '/admin-content');
       setupNavButton('mediaCenterBtn', '/admin-media');
       setupNavButton('globalSearchBtn', '/admin-search');
       setupNavButton('analyticsBtn', '/admin-analytics');
+      setupNavButton('emailCentreBtn', '/admin-emails');
 
       // Moderation queue buttons
       setupNavButton('reviewPhotosBtn', '/admin-photos');
@@ -1908,78 +2147,6 @@
         );
       }
     }
-  };
-
-  window.reviewPendingReviews = function () {
-    api('/api/admin/reviews/pending')
-      .then(data => {
-        const reviews = (data.reviews || []).filter(r => !r.approved && !r.rejected);
-        if (reviews.length === 0) {
-          if (typeof Toast !== 'undefined') {
-            Toast.info('No pending reviews to moderate.');
-          } else {
-            _adminToast('No pending reviews to moderate.', 'warning');
-          }
-          return;
-        }
-
-        const modal = document.createElement('div');
-        modal.className = 'review-modal-overlay review-modal';
-        modal.setAttribute('role', 'dialog');
-        modal.setAttribute('aria-modal', 'true');
-        modal.setAttribute('aria-label', 'Pending Reviews');
-        modal.innerHTML =
-          `<div class="review-modal-container">` +
-          `<h2>Pending Reviews (${reviews.length})</h2>` +
-          `<div id="review-list"></div>` +
-          `<button class="ef-cta" data-action="closeReviewModal">Close</button>` +
-          `</div>`;
-        document.body.appendChild(modal);
-
-        // Close on backdrop click
-        modal.addEventListener('click', e => {
-          if (e.target === modal) {
-            modal.remove();
-          }
-        });
-
-        // Close on Escape key
-        function onKeyDown(e) {
-          if (e.key === 'Escape') {
-            modal.remove();
-            document.removeEventListener('keydown', onKeyDown);
-          }
-        }
-        document.addEventListener('keydown', onKeyDown);
-
-        const list = modal.querySelector('#review-list');
-        reviews.forEach(r => {
-          const item = document.createElement('div');
-          item.className = 'review-modal-item';
-          item.innerHTML =
-            `<p><b>Rating:</b> ${escapeHtml(String(r.rating || 0))} stars</p>` +
-            `<p><b>Comment:</b> ${escapeHtml(r.comment || '')}</p>` +
-            `<p class="small"><b>Supplier ID:</b> ${escapeHtml(r.supplierId)}</p>` +
-            `<p class="small"><b>Date:</b> ${escapeHtml(
-              new Date(r.createdAt).toLocaleString()
-            )}</p>` +
-            `<button class="ef-cta" data-action="approveReview" data-id="${escapeHtml(
-              r.id
-            )}" data-param="true">Approve</button> ` +
-            `<button class="ef-cta" data-action="approveReview" data-id="${escapeHtml(
-              r.id
-            )}" data-param="false">Reject</button>`;
-          list.appendChild(item);
-        });
-      })
-      .catch(err => {
-        console.error('Failed to load reviews', err);
-        if (typeof Toast !== 'undefined') {
-          Toast.error('Failed to load reviews');
-        } else {
-          _adminToast('Failed to load reviews', 'error');
-        }
-      });
   };
 
   window.approveReview = function (id, approved) {

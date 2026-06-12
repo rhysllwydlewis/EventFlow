@@ -28,14 +28,18 @@
 
 <main id="main-content" class="section">
   <div class="container">
-    <div class="flex-between-mb">
-      <h1 class="my-0">User Details</h1>
-      <a href="/admin-users" class="btn btn-secondary">← Back to Users</a>
-    </div>
-    
-    <div id="userDetailsContainer">
-      <div class="card">
-        <p class="small">Loading user details...</p>
+    <div id="userDetailsContainer" aria-live="polite">
+      <!-- Page header and all panels are rendered by admin-user-detail-init.js -->
+      <div class="card" style="padding:20px 24px;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div class="skeleton" style="width:140px;height:24px;border-radius:6px;"></div>
+          <div class="skeleton" style="width:80px;height:20px;border-radius:10px;"></div>
+        </div>
+        <div style="margin-top:16px;display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+          <div class="skeleton" style="height:48px;border-radius:8px;"></div>
+          <div class="skeleton" style="height:48px;border-radius:8px;"></div>
+          <div class="skeleton" style="height:48px;border-radius:8px;"></div>
+        </div>
       </div>
     </div>
   </div>

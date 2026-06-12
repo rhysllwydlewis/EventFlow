@@ -68,13 +68,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const categoryIcon = escapeHtml(category.icon || '');
 
         heroSection.innerHTML = `
-          <div style="position: relative; border-radius: 12px; overflow: hidden; height: 300px;">
-            <img src="${heroImage}" alt="${categoryName}" 
-                 style="width: 100%; height: 100%; object-fit: cover;">
-            <div style="position: absolute; bottom: 0; left: 0; right: 0; 
-                        background: linear-gradient(to top, rgba(0,0,0,0.7), transparent); 
-                        padding: 32px; color: white;">
-              <h1 style="margin: 0; font-size: 2.5rem;">${categoryIcon} ${categoryName}</h1>
+          <div class="category-hero-img-wrap">
+            <img src="${escapeHtml(heroImage)}" alt="${escapeHtml(categoryName)}" 
+                 class="category-hero-img">
+            <div class="category-hero-overlay">
+              <h1 class="category-hero-title">${escapeHtml(categoryIcon)} ${escapeHtml(categoryName)}</h1>
             </div>
           </div>
         `;
@@ -98,3 +96,4 @@ document.addEventListener('DOMContentLoaded', () => {
         '<div class="package-empty-state"><p>This category could not be found. <a href="/">Return home</a></p></div>';
     });
 });
+

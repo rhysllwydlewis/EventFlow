@@ -6,15 +6,27 @@
     "excerpt": "Discover how to choose the perfect wedding venue with our comprehensive guide. Expert tips on location, capacity, budget, and must-have amenities for your dream wedding.",
     "image": "https://images.pexels.com/photos/1616113/pexels-photo-1616113.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
     "category": "Venues",
-    "tags": ["venues", "wedding", "planning"],
+    "tags": [
+      "venues",
+      "wedding",
+      "planning"
+    ],
     "href": "/articles/wedding-venue-selection-guide",
     "readingMins": 8,
     "publishedDate": "2026-03-01",
     "featured": true,
     "featuredOrder": 1,
     "affiliate": false,
-    "tool": { "label": "Find venues", "href": "/suppliers" },
-    "author": "EventFlow Team"
+    "tool": {
+      "label": "Find venues",
+      "href": "/suppliers"
+    },
+    "author": "EventFlow Team",
+    "summary": "Discover how to choose the perfect wedding venue with our comprehensive guide.",
+    "difficulty": "Intermediate",
+    "lastUpdated": "2026-03-01",
+    "primaryTag": "venues",
+    "ogImage": "https://images.pexels.com/photos/1616113/pexels-photo-1616113.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1"
   },
   {
     "id": 2,
@@ -23,15 +35,27 @@
     "excerpt": "Explore the latest food and beverage trends that will make your event menu stand out. From sustainable sourcing to interactive food stations, discover what's making waves.",
     "image": "https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
     "category": "Catering",
-    "tags": ["catering", "wedding", "trends"],
+    "tags": [
+      "catering",
+      "wedding",
+      "trends"
+    ],
     "href": "/articles/wedding-catering-trends-2024",
     "readingMins": 6,
     "publishedDate": "2026-03-01",
     "featured": true,
     "featuredOrder": 2,
     "affiliate": true,
-    "tool": { "label": "Browse caterers", "href": "/suppliers" },
-    "author": "EventFlow Team"
+    "tool": {
+      "label": "Browse caterers",
+      "href": "/suppliers"
+    },
+    "author": "EventFlow Team",
+    "summary": "Explore the latest food and beverage trends that will make your event menu stand out.",
+    "difficulty": "Intermediate",
+    "lastUpdated": "2026-03-01",
+    "primaryTag": "catering",
+    "ogImage": "https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1"
   },
   {
     "id": 3,
@@ -40,15 +64,27 @@
     "excerpt": "Master event photography with our comprehensive guide. Learn expert tips on capturing special moments, working with photographers, and creating lasting memories.",
     "image": "https://images.pexels.com/photos/2788792/pexels-photo-2788792.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
     "category": "Photography",
-    "tags": ["photography", "tips", "wedding"],
+    "tags": [
+      "photography",
+      "tips",
+      "wedding"
+    ],
     "href": "/articles/event-photography-complete-guide",
     "readingMins": 10,
     "publishedDate": "2026-03-01",
     "featured": true,
     "featuredOrder": 3,
     "affiliate": false,
-    "tool": { "label": "Find photographers", "href": "/suppliers" },
-    "author": "EventFlow Team"
+    "tool": {
+      "label": "Find photographers",
+      "href": "/suppliers"
+    },
+    "author": "EventFlow Team",
+    "summary": "Master event photography with our comprehensive guide.",
+    "difficulty": "Intermediate",
+    "lastUpdated": "2026-03-01",
+    "primaryTag": "photography",
+    "ogImage": "https://images.pexels.com/photos/2788792/pexels-photo-2788792.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1"
   },
   {
     "id": 4,
@@ -57,14 +93,26 @@
     "excerpt": "Create the perfect wedding day timeline with our comprehensive hour-by-hour guide. Expert tips on scheduling, timing, and coordinating every moment for a stress-free celebration.",
     "image": "https://images.pexels.com/photos/265722/pexels-photo-265722.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
     "category": "Timelines",
-    "tags": ["planning", "wedding", "timeline"],
+    "tags": [
+      "planning",
+      "wedding",
+      "timeline"
+    ],
     "href": "/articles/perfect-wedding-day-timeline-guide",
     "readingMins": 12,
     "publishedDate": "2026-02-28",
     "featured": false,
     "affiliate": false,
-    "tool": { "label": "Build your timeline", "href": "/timeline" },
-    "author": "EventFlow Team"
+    "tool": {
+      "label": "Build your timeline",
+      "href": "/timeline"
+    },
+    "author": "EventFlow Team",
+    "summary": "Create the perfect wedding day timeline with our comprehensive hour-by-hour guide.",
+    "difficulty": "Intermediate",
+    "lastUpdated": "2026-02-28",
+    "primaryTag": "planning",
+    "ogImage": "https://images.pexels.com/photos/265722/pexels-photo-265722.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1"
   },
   {
     "id": 5,
@@ -73,14 +121,26 @@
     "excerpt": "Plan eco-friendly events with our comprehensive sustainability guide. Discover how to reduce waste, choose green vendors, and create memorable events while protecting the environment.",
     "image": "https://images.pexels.com/photos/1054218/pexels-photo-1054218.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
     "category": "Sustainability",
-    "tags": ["planning", "sustainability", "tips"],
+    "tags": [
+      "planning",
+      "sustainability",
+      "tips"
+    ],
     "href": "/articles/sustainable-event-planning-guide",
     "readingMins": 9,
     "publishedDate": "2026-02-25",
     "featured": false,
     "affiliate": false,
-    "tool": { "label": "Find eco suppliers", "href": "/suppliers" },
-    "author": "EventFlow Team"
+    "tool": {
+      "label": "Find eco suppliers",
+      "href": "/suppliers"
+    },
+    "author": "EventFlow Team",
+    "summary": "Plan eco-friendly events with our comprehensive sustainability guide.",
+    "difficulty": "Intermediate",
+    "lastUpdated": "2026-02-25",
+    "primaryTag": "planning",
+    "ogImage": "https://images.pexels.com/photos/1054218/pexels-photo-1054218.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1"
   },
   {
     "id": 6,
@@ -89,14 +149,26 @@
     "excerpt": "Master event budgeting with expert strategies for tracking expenses, negotiating with vendors, and maximising value while staying on budget.",
     "image": "https://images.pexels.com/photos/3483098/pexels-photo-3483098.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
     "category": "Budget",
-    "tags": ["planning", "budget", "tips"],
+    "tags": [
+      "planning",
+      "budget",
+      "tips"
+    ],
     "href": "/articles/event-budget-management-guide",
     "readingMins": 11,
     "publishedDate": "2026-02-20",
     "featured": false,
     "affiliate": false,
-    "tool": { "label": "Open budget planner", "href": "/budget" },
-    "author": "EventFlow Team"
+    "tool": {
+      "label": "Open budget planner",
+      "href": "/budget"
+    },
+    "author": "EventFlow Team",
+    "summary": "Master event budgeting with expert strategies for tracking expenses, negotiating with vendors, and maximising value while staying on budget.",
+    "difficulty": "Intermediate",
+    "lastUpdated": "2026-02-20",
+    "primaryTag": "planning",
+    "ogImage": "https://images.pexels.com/photos/3483098/pexels-photo-3483098.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1"
   },
   {
     "id": 7,
@@ -105,14 +177,26 @@
     "excerpt": "Plan successful corporate events from conferences to team building. Expert tips on venue selection, catering, technology, and creating engaging professional experiences.",
     "image": "https://images.pexels.com/photos/1181406/pexels-photo-1181406.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
     "category": "Corporate",
-    "tags": ["corporate", "planning", "venues"],
+    "tags": [
+      "corporate",
+      "planning",
+      "venues"
+    ],
     "href": "/articles/corporate-event-planning-guide",
     "readingMins": 14,
     "publishedDate": "2026-02-15",
     "featured": false,
     "affiliate": false,
-    "tool": { "label": "Find venues", "href": "/suppliers" },
-    "author": "EventFlow Team"
+    "tool": {
+      "label": "Find venues",
+      "href": "/suppliers"
+    },
+    "author": "EventFlow Team",
+    "summary": "Plan successful corporate events from conferences to team building.",
+    "difficulty": "Advanced",
+    "lastUpdated": "2026-02-15",
+    "primaryTag": "corporate",
+    "ogImage": "https://images.pexels.com/photos/1181406/pexels-photo-1181406.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1"
   },
   {
     "id": 8,
@@ -121,14 +205,26 @@
     "excerpt": "Create unforgettable birthday celebrations with our comprehensive planning guide. Tips for themes, venues, entertainment, and catering for children and adults.",
     "image": "https://images.pexels.com/photos/796602/pexels-photo-796602.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
     "category": "Parties",
-    "tags": ["parties", "planning", "venues"],
+    "tags": [
+      "parties",
+      "planning",
+      "venues"
+    ],
     "href": "/articles/birthday-party-planning-guide",
     "readingMins": 7,
     "publishedDate": "2026-02-10",
     "featured": false,
     "affiliate": false,
-    "tool": { "label": "Plan your party", "href": "/start" },
-    "author": "EventFlow Team"
+    "tool": {
+      "label": "Plan your party",
+      "href": "/start"
+    },
+    "author": "EventFlow Team",
+    "summary": "Create unforgettable birthday celebrations with our comprehensive planning guide.",
+    "difficulty": "Intermediate",
+    "lastUpdated": "2026-02-10",
+    "primaryTag": "parties",
+    "ogImage": "https://images.pexels.com/photos/796602/pexels-photo-796602.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1"
   },
   {
     "id": 9,
@@ -137,14 +233,26 @@
     "excerpt": "Learn how to buy and sell event items safely on the EventFlow Marketplace. Step-by-step guide for listing items, finding deals, and completing transactions securely.",
     "image": "https://images.pexels.com/photos/3768916/pexels-photo-3768916.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
     "category": "Marketplace",
-    "tags": ["marketplace", "buying", "selling"],
+    "tags": [
+      "marketplace",
+      "buying",
+      "selling"
+    ],
     "href": "/articles/marketplace-guide",
     "readingMins": 12,
     "publishedDate": "2026-02-05",
     "featured": false,
     "affiliate": false,
-    "tool": { "label": "Browse Marketplace", "href": "/marketplace" },
-    "author": "EventFlow Team"
+    "tool": {
+      "label": "Browse Marketplace",
+      "href": "/marketplace"
+    },
+    "author": "EventFlow Team",
+    "summary": "Learn how to buy and sell event items safely on the EventFlow Marketplace.",
+    "difficulty": "Beginner",
+    "lastUpdated": "2026-02-05",
+    "primaryTag": "marketplace",
+    "ogImage": "https://images.pexels.com/photos/3768916/pexels-photo-3768916.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1"
   },
   {
     "id": 10,
@@ -153,14 +261,26 @@
     "excerpt": "Find the perfect entertainment for your wedding day, from live bands and DJs to magicians and photo booths. Expert advice on booking, budgeting, and keeping guests entertained all evening.",
     "image": "https://images.pexels.com/photos/1190297/pexels-photo-1190297.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
     "category": "Entertainment",
-    "tags": ["entertainment", "wedding", "planning"],
+    "tags": [
+      "entertainment",
+      "wedding",
+      "planning"
+    ],
     "href": "/articles/entertainment-guide",
     "readingMins": 8,
     "publishedDate": "2026-03-05",
     "featured": false,
     "affiliate": false,
-    "tool": { "label": "Find entertainment", "href": "/suppliers" },
-    "author": "EventFlow Team"
+    "tool": {
+      "label": "Find entertainment",
+      "href": "/suppliers"
+    },
+    "author": "EventFlow Team",
+    "summary": "Find the perfect entertainment for your wedding day, from live bands and DJs to magicians and photo booths.",
+    "difficulty": "Intermediate",
+    "lastUpdated": "2026-03-05",
+    "primaryTag": "entertainment",
+    "ogImage": "https://images.pexels.com/photos/1190297/pexels-photo-1190297.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1"
   },
   {
     "id": 11,
@@ -169,14 +289,26 @@
     "excerpt": "Master your event guest list with tips on managing RSVPs, dietary requirements, seating, and plus-ones. Keep everything organised with EventFlow's guest management tools.",
     "image": "https://images.pexels.com/photos/1595391/pexels-photo-1595391.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
     "category": "Planning",
-    "tags": ["guests", "planning", "wedding"],
+    "tags": [
+      "guests",
+      "planning",
+      "wedding"
+    ],
     "href": "/articles/guest-list-management-guide",
     "readingMins": 9,
     "publishedDate": "2026-03-06",
     "featured": false,
     "affiliate": false,
-    "tool": { "label": "Manage your guests", "href": "/guests" },
-    "author": "EventFlow Team"
+    "tool": {
+      "label": "Manage your guests",
+      "href": "/guests"
+    },
+    "author": "EventFlow Team",
+    "summary": "Master your event guest list with tips on managing RSVPs, dietary requirements, seating, and plus-ones.",
+    "difficulty": "Beginner",
+    "lastUpdated": "2026-03-06",
+    "primaryTag": "guests",
+    "ogImage": "https://images.pexels.com/photos/1595391/pexels-photo-1595391.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1"
   },
   {
     "id": 12,
@@ -185,14 +317,26 @@
     "excerpt": "A step-by-step walkthrough of EventFlow's built-in budget planner tool. Learn how to set your total budget, allocate funds by category, track spending, and export your plan.",
     "image": "https://images.pexels.com/photos/4386431/pexels-photo-4386431.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
     "category": "Tools",
-    "tags": ["budget", "tools", "planning"],
+    "tags": [
+      "budget",
+      "tools",
+      "planning"
+    ],
     "href": "/articles/budget-planner-guide",
     "readingMins": 6,
     "publishedDate": "2026-03-07",
     "featured": false,
     "affiliate": false,
-    "tool": { "label": "Open budget planner", "href": "/budget" },
-    "author": "EventFlow Team"
+    "tool": {
+      "label": "Open budget planner",
+      "href": "/budget"
+    },
+    "author": "EventFlow Team",
+    "summary": "A step-by-step walkthrough of EventFlow's built-in budget planner tool.",
+    "difficulty": "Beginner",
+    "lastUpdated": "2026-03-07",
+    "primaryTag": "budget",
+    "ogImage": "https://images.pexels.com/photos/4386431/pexels-photo-4386431.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1"
   },
   {
     "id": 13,
@@ -201,14 +345,26 @@
     "excerpt": "Create a stunning event aesthetic without overspending. Discover DIY décor ideas, how to hire styling props, and the secrets to making a venue look spectacular on any budget.",
     "image": "https://images.pexels.com/photos/931177/pexels-photo-931177.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
     "category": "Décor",
-    "tags": ["decor", "styling", "budget"],
+    "tags": [
+      "decor",
+      "styling",
+      "budget"
+    ],
     "href": "/articles/event-decoration-styling-guide",
     "readingMins": 7,
     "publishedDate": "2026-03-08",
     "featured": false,
     "affiliate": false,
-    "tool": { "label": "Find suppliers", "href": "/suppliers" },
-    "author": "EventFlow Team"
+    "tool": {
+      "label": "Find suppliers",
+      "href": "/suppliers"
+    },
+    "author": "EventFlow Team",
+    "summary": "Create a stunning event aesthetic without overspending.",
+    "difficulty": "Intermediate",
+    "lastUpdated": "2026-03-08",
+    "primaryTag": "decor",
+    "ogImage": "https://images.pexels.com/photos/931177/pexels-photo-931177.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1"
   },
   {
     "id": 14,
@@ -217,14 +373,26 @@
     "excerpt": "Know exactly what to ask when meeting potential caterers for your event. From menu flexibility and dietary options to staffing and licensing, this guide covers all the essentials.",
     "image": "https://images.pexels.com/photos/958545/pexels-photo-958545.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
     "category": "Catering",
-    "tags": ["catering", "suppliers", "planning"],
+    "tags": [
+      "catering",
+      "suppliers",
+      "planning"
+    ],
     "href": "/articles/choosing-event-caterer-guide",
     "readingMins": 8,
     "publishedDate": "2026-03-09",
     "featured": false,
     "affiliate": false,
-    "tool": { "label": "Browse caterers", "href": "/suppliers" },
-    "author": "EventFlow Team"
+    "tool": {
+      "label": "Browse caterers",
+      "href": "/suppliers"
+    },
+    "author": "EventFlow Team",
+    "summary": "Know exactly what to ask when meeting potential caterers for your event.",
+    "difficulty": "Intermediate",
+    "lastUpdated": "2026-03-09",
+    "primaryTag": "catering",
+    "ogImage": "https://images.pexels.com/photos/958545/pexels-photo-958545.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1"
   },
   {
     "id": 15,
@@ -233,14 +401,26 @@
     "excerpt": "Everything you need to know about wedding stationery, from save-the-dates to on-the-day menus. Explore paper types, printing options, wording etiquette, and timeline for sending.",
     "image": "https://images.pexels.com/photos/1027130/pexels-photo-1027130.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
     "category": "Stationery",
-    "tags": ["stationery", "invitations", "wedding"],
+    "tags": [
+      "stationery",
+      "invitations",
+      "wedding"
+    ],
     "href": "/articles/wedding-stationery-invitations-guide",
     "readingMins": 6,
     "publishedDate": "2026-03-10",
     "featured": false,
     "affiliate": false,
-    "tool": { "label": "Browse Marketplace", "href": "/marketplace" },
-    "author": "EventFlow Team"
+    "tool": {
+      "label": "Browse Marketplace",
+      "href": "/marketplace"
+    },
+    "author": "EventFlow Team",
+    "summary": "Everything you need to know about wedding stationery, from save-the-dates to on-the-day menus.",
+    "difficulty": "Beginner",
+    "lastUpdated": "2026-03-10",
+    "primaryTag": "stationery",
+    "ogImage": "https://images.pexels.com/photos/1027130/pexels-photo-1027130.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1"
   },
   {
     "id": 16,
@@ -249,14 +429,26 @@
     "excerpt": "Plan your dream destination wedding with confidence, whether you're getting married in the UK countryside or overseas. Covers legal requirements, travel logistics, and supplier sourcing.",
     "image": "https://images.pexels.com/photos/1024993/pexels-photo-1024993.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
     "category": "Wedding",
-    "tags": ["wedding", "destination", "planning"],
+    "tags": [
+      "wedding",
+      "destination",
+      "planning"
+    ],
     "href": "/articles/destination-wedding-planning-guide",
     "readingMins": 10,
     "publishedDate": "2026-03-11",
     "featured": false,
     "affiliate": false,
-    "tool": { "label": "Find suppliers", "href": "/suppliers" },
-    "author": "EventFlow Team"
+    "tool": {
+      "label": "Find suppliers",
+      "href": "/suppliers"
+    },
+    "author": "EventFlow Team",
+    "summary": "Plan your dream destination wedding with confidence, whether you're getting married in the UK countryside or overseas.",
+    "difficulty": "Intermediate",
+    "lastUpdated": "2026-03-11",
+    "primaryTag": "wedding",
+    "ogImage": "https://images.pexels.com/photos/1024993/pexels-photo-1024993.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1"
   },
   {
     "id": 17,
@@ -265,14 +457,26 @@
     "excerpt": "Stay on top of every task with our week-by-week event planning countdown checklist. From the moment you set a date to the morning of the event, we've got you covered.",
     "image": "https://images.pexels.com/photos/3299906/pexels-photo-3299906.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
     "category": "Planning",
-    "tags": ["planning", "checklist", "timeline"],
+    "tags": [
+      "planning",
+      "checklist",
+      "timeline"
+    ],
     "href": "/articles/event-planning-checklist-guide",
     "readingMins": 8,
     "publishedDate": "2026-03-12",
     "featured": false,
     "affiliate": false,
-    "tool": { "label": "Start planning", "href": "/start" },
-    "author": "EventFlow Team"
+    "tool": {
+      "label": "Start planning",
+      "href": "/start"
+    },
+    "author": "EventFlow Team",
+    "summary": "Stay on top of every task with our week-by-week event planning countdown checklist.",
+    "difficulty": "Beginner",
+    "lastUpdated": "2026-03-12",
+    "primaryTag": "planning",
+    "ogImage": "https://images.pexels.com/photos/3299906/pexels-photo-3299906.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1"
   },
   {
     "id": 18,
@@ -281,14 +485,26 @@
     "excerpt": "Craft a heartfelt, memorable wedding speech with our step-by-step writing guide. Includes tips for the best man, maid of honour, parents, and the couple themselves.",
     "image": "https://images.pexels.com/photos/3171837/pexels-photo-3171837.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
     "category": "Wedding",
-    "tags": ["wedding", "speech", "tips"],
+    "tags": [
+      "wedding",
+      "speech",
+      "tips"
+    ],
     "href": "/articles/how-to-write-wedding-speech",
     "readingMins": 7,
     "publishedDate": "2026-03-13",
     "featured": false,
     "affiliate": false,
-    "tool": { "label": "View guides", "href": "/guides" },
-    "author": "EventFlow Team"
+    "tool": {
+      "label": "View guides",
+      "href": "/guides"
+    },
+    "author": "EventFlow Team",
+    "summary": "Craft a heartfelt, memorable wedding speech with our step-by-step writing guide.",
+    "difficulty": "Intermediate",
+    "lastUpdated": "2026-03-13",
+    "primaryTag": "wedding",
+    "ogImage": "https://images.pexels.com/photos/3171837/pexels-photo-3171837.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1"
   },
   {
     "id": 19,
@@ -297,14 +513,26 @@
     "excerpt": "Save money and reduce waste by buying or selling pre-loved wedding items on the EventFlow Marketplace. Covers what sells best, how to price items, and how to buy safely.",
     "image": "https://images.pexels.com/photos/5632459/pexels-photo-5632459.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
     "category": "Marketplace",
-    "tags": ["marketplace", "second-hand", "wedding"],
+    "tags": [
+      "marketplace",
+      "second-hand",
+      "wedding"
+    ],
     "href": "/articles/second-hand-wedding-items-guide",
     "readingMins": 8,
     "publishedDate": "2026-03-14",
     "featured": false,
     "affiliate": false,
-    "tool": { "label": "Browse Marketplace", "href": "/marketplace" },
-    "author": "EventFlow Team"
+    "tool": {
+      "label": "Browse Marketplace",
+      "href": "/marketplace"
+    },
+    "author": "EventFlow Team",
+    "summary": "Save money and reduce waste by buying or selling pre-loved wedding items on the EventFlow Marketplace.",
+    "difficulty": "Beginner",
+    "lastUpdated": "2026-03-14",
+    "primaryTag": "marketplace",
+    "ogImage": "https://images.pexels.com/photos/5632459/pexels-photo-5632459.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1"
   },
   {
     "id": 20,
@@ -313,14 +541,26 @@
     "excerpt": "Discover the best seasons and months for weddings, parties, corporate events, and outdoor celebrations. Learn how seasonality affects pricing, availability, and guest attendance.",
     "image": "https://images.pexels.com/photos/1046744/pexels-photo-1046744.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
     "category": "Planning",
-    "tags": ["planning", "seasonal", "tips"],
+    "tags": [
+      "planning",
+      "seasonal",
+      "tips"
+    ],
     "href": "/articles/seasonal-event-planning-guide",
     "readingMins": 9,
     "publishedDate": "2026-03-15",
     "featured": false,
     "affiliate": false,
-    "tool": { "label": "Start planning", "href": "/start" },
-    "author": "EventFlow Team"
+    "tool": {
+      "label": "Start planning",
+      "href": "/start"
+    },
+    "author": "EventFlow Team",
+    "summary": "Discover the best seasons and months for weddings, parties, corporate events, and outdoor celebrations.",
+    "difficulty": "Beginner",
+    "lastUpdated": "2026-03-15",
+    "primaryTag": "planning",
+    "ogImage": "https://images.pexels.com/photos/1046744/pexels-photo-1046744.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1"
   },
   {
     "id": 21,
@@ -329,14 +569,26 @@
     "excerpt": "Ensure every guest feels welcome with our guide to planning accessible events. Covers venue accessibility, dietary needs, sensory considerations, and inclusive communication.",
     "image": "https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
     "category": "Planning",
-    "tags": ["accessibility", "planning", "inclusive"],
+    "tags": [
+      "accessibility",
+      "planning",
+      "inclusive"
+    ],
     "href": "/articles/accessibility-at-events-guide",
     "readingMins": 8,
     "publishedDate": "2026-03-15",
     "featured": false,
     "affiliate": false,
-    "tool": { "label": "Start planning", "href": "/start" },
-    "author": "EventFlow Team"
+    "tool": {
+      "label": "Start planning",
+      "href": "/start"
+    },
+    "author": "EventFlow Team",
+    "summary": "Ensure every guest feels welcome with our guide to planning accessible events.",
+    "difficulty": "Beginner",
+    "lastUpdated": "2026-03-15",
+    "primaryTag": "accessibility",
+    "ogImage": "https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1"
   },
   {
     "id": 22,
@@ -345,14 +597,26 @@
     "excerpt": "Protect your event investment with the right insurance cover. Learn about public liability, cancellation insurance, supplier failure cover, and what UK policies typically include.",
     "image": "https://images.pexels.com/photos/1181772/pexels-photo-1181772.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
     "category": "Planning",
-    "tags": ["insurance", "planning", "tips"],
+    "tags": [
+      "insurance",
+      "planning",
+      "tips"
+    ],
     "href": "/articles/event-insurance-guide",
     "readingMins": 6,
     "publishedDate": "2026-03-15",
     "featured": false,
     "affiliate": false,
-    "tool": { "label": "View guides", "href": "/guides" },
-    "author": "EventFlow Team"
+    "tool": {
+      "label": "View guides",
+      "href": "/guides"
+    },
+    "author": "EventFlow Team",
+    "summary": "Protect your event investment with the right insurance cover.",
+    "difficulty": "Beginner",
+    "lastUpdated": "2026-03-15",
+    "primaryTag": "insurance",
+    "ogImage": "https://images.pexels.com/photos/1181772/pexels-photo-1181772.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1"
   },
   {
     "id": 23,
@@ -361,14 +625,26 @@
     "excerpt": "New to EventFlow? Learn how to search, compare, and book the best suppliers for your event. A friendly walkthrough of our directory, messaging, and review features.",
     "image": "https://images.pexels.com/photos/3760263/pexels-photo-3760263.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
     "category": "Tools",
-    "tags": ["suppliers", "tools", "planning"],
+    "tags": [
+      "suppliers",
+      "tools",
+      "planning"
+    ],
     "href": "/articles/hiring-suppliers-on-eventflow-guide",
     "readingMins": 7,
     "publishedDate": "2026-03-15",
     "featured": false,
     "affiliate": false,
-    "tool": { "label": "Browse suppliers", "href": "/suppliers" },
-    "author": "EventFlow Team"
+    "tool": {
+      "label": "Browse suppliers",
+      "href": "/suppliers"
+    },
+    "author": "EventFlow Team",
+    "summary": "New to EventFlow? Learn how to shortlist, compare and confidently hire suppliers for your first event.",
+    "difficulty": "Beginner",
+    "lastUpdated": "2026-03-15",
+    "primaryTag": "suppliers",
+    "ogImage": "https://images.pexels.com/photos/3760263/pexels-photo-3760263.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1"
   },
   {
     "id": 24,
@@ -377,29 +653,25 @@
     "excerpt": "Plan a brilliant outdoor event in the UK with contingency plans for every kind of weather. Covers marquees, wet-weather suppliers, ground protection, and guest communication.",
     "image": "https://images.pexels.com/photos/1580913/pexels-photo-1580913.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
     "category": "Venues",
-    "tags": ["outdoor", "venues", "weather"],
+    "tags": [
+      "outdoor",
+      "venues",
+      "weather"
+    ],
     "href": "/articles/outdoor-events-uk-guide",
     "readingMins": 7,
     "publishedDate": "2026-03-15",
     "featured": false,
     "affiliate": false,
-    "tool": { "label": "Find suppliers", "href": "/suppliers" },
-    "author": "EventFlow Team"
-  },
-  {
-    "id": 25,
-    "title": "Event Photography: Shot List Template",
-    "description": "Never miss a key moment with our ready-to-use event photography shot list template.",
-    "excerpt": "Never miss a key moment with our ready-to-use event photography shot list template. Covers weddings, parties, and corporate events with tips for briefing your photographer.",
-    "image": "https://images.pexels.com/photos/3014853/pexels-photo-3014853.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
-    "category": "Photography",
-    "tags": ["photography", "shot-list", "tips"],
-    "href": "/articles/event-photography-shot-list-guide",
-    "readingMins": 5,
-    "publishedDate": "2026-03-15",
-    "featured": false,
-    "affiliate": false,
-    "tool": { "label": "Find photographers", "href": "/suppliers" },
-    "author": "EventFlow Team"
+    "tool": {
+      "label": "Find suppliers",
+      "href": "/suppliers"
+    },
+    "author": "EventFlow Team",
+    "summary": "Plan a brilliant outdoor event in the UK with contingency plans for every kind of weather.",
+    "difficulty": "Intermediate",
+    "lastUpdated": "2026-03-15",
+    "primaryTag": "outdoor",
+    "ogImage": "https://images.pexels.com/photos/1580913/pexels-photo-1580913.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1"
   }
 ]

@@ -78,6 +78,22 @@ function applyHealthCheckLimiter(req, res, next) {
   next();
 }
 
+function parseGoogleClientIds(value) {
+  return String(value || '')
+    .split(',')
+    .map(id => id.trim())
+    .filter(Boolean);
+}
+
+function getPublicGoogleClientId() {
+  return (
+    process.env.GOOGLE_CLIENT_ID ||
+    process.env.GOOGLE_OAUTH_CLIENT_ID ||
+    parseGoogleClientIds(process.env.GOOGLE_CLIENT_IDS)[0] ||
+    ''
+  );
+}
+
 function getIntegrationStatus() {
   let redisAdapterInstalled = false;
   try {
@@ -176,6 +192,7 @@ router.get('/config', apiLimiter, async (req, res) => {
 
   res.json({
     googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY || '',
+    googleClientId: getPublicGoogleClientId(),
     version: APP_VERSION,
     sentryDsn: process.env.SENTRY_DSN_FRONTEND || '',
     altchaChallengeUrl: '/api/v1/altcha/challenge',
@@ -219,12 +236,24 @@ router.get('/meta', async (_req, res) => {
 router.get('/health', applyHealthCheckLimiter, async (_req, res) => {
   const startTime = Date.now();
 
-  // Check if dependencies are initialized
+  // During server startup, DI-injected dependencies (mongoDb, dbUnified, postmark)
+  // may not be available yet because the server begins listening before database
+  // initialization completes (by design, so Railway healthchecks can reach this
+  // endpoint immediately).
+  //
+  // Previously this returned 503, which caused Railway to treat the deployment as
+  // failed if database initialization took longer than the healthcheck retry window
+  // (60 s) — e.g. under DB load from a concurrent deployment.
+  //
+  // Fix: return 200 with status "starting" so Railway knows the server is alive
+  // and running. The process exits on its own if the database never connects in
+  // production, which Railway correctly interprets as a crash rather than a
+  // healthcheck failure.
   if (!mongoDb || !dbUnified || !postmark) {
-    return res.status(503).json({
-      status: 'error',
+    return res.status(200).json({
+      status: 'starting',
       timestamp: new Date().toISOString(),
-      error: 'Health check service dependencies not initialized',
+      message: 'Server is running. Database initialization in progress.',
       responseTime: Date.now() - startTime,
     });
   }

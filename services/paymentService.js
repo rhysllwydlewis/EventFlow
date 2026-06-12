@@ -81,11 +81,14 @@ async function getOrCreateStripeCustomer(user) {
     throw new Error('Stripe is not configured');
   }
 
-  // Check if user already has a customer ID
-  const payments = await dbUnified.read('payments');
-  const existingCustomerId = payments.find(
-    p => p.userId === user.id && p.stripeCustomerId
-  )?.stripeCustomerId;
+  // Check if user already has a customer ID from either legacy payments or v2 subscriptions.
+  const [payments, subscriptions] = await Promise.all([
+    dbUnified.read('payments'),
+    dbUnified.read('subscriptions'),
+  ]);
+  const existingCustomerId =
+    payments.find(p => p.userId === user.id && p.stripeCustomerId)?.stripeCustomerId ||
+    subscriptions.find(s => s.userId === user.id && s.stripeCustomerId)?.stripeCustomerId;
 
   if (existingCustomerId) {
     try {
@@ -259,7 +262,11 @@ async function createPaymentRecord(params) {
     updatedAt: new Date().toISOString(),
   };
 
-  await dbUnified.insertOne('payments', payment);
+  const paymentInserted = await dbUnified.insertOne('payments', payment);
+  if (!paymentInserted) {
+    logger.error('[PAYMENT-SVC] insertOne failed', { paymentId: payment.id });
+    throw new Error('Failed to save payment record');
+  }
   return payment;
 }
 
@@ -270,8 +277,7 @@ async function createPaymentRecord(params) {
  * @returns {Promise<Object>} Updated payment record
  */
 async function updatePaymentRecord(paymentId, updates) {
-  const payments = await dbUnified.read('payments');
-  const payment = payments.find(p => p.id === paymentId);
+  const payment = await dbUnified.findOne('payments', { id: paymentId });
 
   if (!payment) {
     throw new Error('Payment not found');
@@ -288,8 +294,7 @@ async function updatePaymentRecord(paymentId, updates) {
  * @returns {Promise<Object|null>} Payment record or null
  */
 async function getPaymentByStripeId(stripePaymentId) {
-  const payments = await dbUnified.read('payments');
-  return payments.find(p => p.stripePaymentId === stripePaymentId) || null;
+  return dbUnified.findOne('payments', { stripePaymentId });
 }
 
 /**
@@ -302,7 +307,8 @@ async function handleFailedPayment(subscriptionId, invoice) {
   // Avoid circular dependency by lazy loading
   const subscriptionService = require('./subscriptionService');
 
-  // Update subscription status to past_due
+  // Update subscription status to past_due and let the subscription service revoke
+  // user entitlements immediately.
   await subscriptionService.updateSubscription(subscriptionId, {
     status: 'past_due',
   });

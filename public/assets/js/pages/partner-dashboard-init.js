@@ -4,6 +4,7 @@
  */
 (function () {
   'use strict';
+function escapeHtml(s){if(!s)return '';const d=document.createElement('div');d.textContent=String(s);return d.innerHTML;}
 
   // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -57,11 +58,7 @@
       overlay.setAttribute('role', 'dialog');
       overlay.setAttribute('aria-modal', 'true');
       overlay.setAttribute('aria-label', 'Confirm action');
-      overlay.style.cssText = [
-        'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.55)',
-        'backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)',
-        'display:flex;align-items:center;justify-content:center;padding:1rem',
-      ].join(';');
+      overlay.className = 'partner-confirm-overlay';
 
       overlay.innerHTML = `
         <div style="background:rgba(15,28,35,0.97);border:1px solid rgba(255,255,255,0.14);border-radius:16px;max-width:400px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,0.5);padding:1.5rem;">
@@ -221,75 +218,23 @@
       potentialEl.textContent = fmtCredits(potential);
     }
     document.getElementById('stat-earned').textContent = fmtCredits(credits.totalEarned);
+    const earnedSubEl = document.getElementById('stat-earned-sub');
+    if (earnedSubEl) {
+      earnedSubEl.textContent = `= ${toPounds(credits.totalEarned, pointsPerGbp)}`;
+    }
     const bonusesEl = document.getElementById('stat-bonuses');
     if (bonusesEl) {
       bonusesEl.textContent = fmtCredits(
-        (credits.packageBonusTotal || 0) + (credits.subscriptionBonusTotal || 0)
+        (credits.signupBonusTotal || 0) +
+        (credits.packageBonusTotal || 0) +
+        (credits.reviewBonusTotal || 0) +
+        (credits.subscriptionBonusTotal || 0)
       );
     }
     document.getElementById('stat-referrals').textContent = fmtCredits(referralCount);
   }
 
   // ── Render referrals ──────────────────────────────────────────────────────────
-
-  function renderReferrals(referrals) {
-    const container = document.getElementById('referrals-container');
-    if (!container) {
-      return;
-    }
-
-    if (!referrals || referrals.length === 0) {
-      container.innerHTML = `
-        <div class="partner-empty">
-          <div class="partner-empty-icon" aria-hidden="true">🔗</div>
-          <p class="partner-empty-text">No referred suppliers yet. Share your link to get started!</p>
-        </div>`;
-      return;
-    }
-
-    const rows = referrals.map(r => {
-      const withinWindow = r.withinWindow;
-      const windowLabel = withinWindow
-        ? `<span class="p-badge p-badge--success">Active window</span>`
-        : `<span class="p-badge p-badge--inactive">Expired</span>`;
-
-      const pkgStatus = r.packageQualified
-        ? `<span class="p-badge p-badge--success">✓ Package bonus</span>`
-        : withinWindow
-          ? `<span class="p-badge p-badge--pending">Pending</span>`
-          : `<span class="p-badge p-badge--inactive">—</span>`;
-
-      const subStatus = r.subscriptionQualified
-        ? `<span class="p-badge p-badge--success">✓ Sub bonus</span>`
-        : withinWindow
-          ? `<span class="p-badge p-badge--pending">Pending</span>`
-          : `<span class="p-badge p-badge--inactive">—</span>`;
-
-      return `<tr>
-        <td>${esc(r.supplierName || '—')}</td>
-        <td>${fmtDate(r.signedUpAt)}</td>
-        <td>${windowLabel}</td>
-        <td>${pkgStatus}</td>
-        <td>${subStatus}</td>
-      </tr>`;
-    });
-
-    container.innerHTML = `
-      <div class="partner-table-wrap">
-        <table class="partner-table" aria-label="Referred suppliers">
-          <thead>
-            <tr>
-              <th>Supplier</th>
-              <th>Signed Up</th>
-              <th>Window</th>
-              <th>Package Bonus</th>
-              <th>Sub Bonus</th>
-            </tr>
-          </thead>
-          <tbody>${rows.join('')}</tbody>
-        </table>
-      </div>`;
-  }
 
   // ── Render transactions ───────────────────────────────────────────────────────
 
@@ -347,6 +292,352 @@
           <tbody>${rows.join('')}</tbody>
         </table>
       </div>`;
+  }
+
+  // ── Earnings breakdown ───────────────────────────────────────────────────────
+
+  function renderBreakdown(breakdown, pointsPerGbp) {
+    const container = document.getElementById('breakdown-container');
+    if (!container) return;
+
+    const items = [
+      { key: 'signup',       icon: '🔗', label: 'Signup bonuses',      pts: breakdown.signup || 0 },
+      { key: 'package',      icon: '📦', label: 'Package bonuses',     pts: breakdown.package || 0 },
+      { key: 'review',       icon: '⭐', label: 'Review bonuses',      pts: breakdown.review || 0 },
+      { key: 'subscription', icon: '💳', label: 'Subscription bonuses',pts: breakdown.subscription || 0 },
+    ];
+
+    const total = items.reduce((s, i) => s + i.pts, 0);
+
+    if (total === 0) {
+      container.innerHTML = `
+        <div class="partner-share-tip" style="margin-bottom:1rem;">
+          <div class="partner-share-tip__icon">💡</div>
+          <div class="partner-share-tip__body">
+            <p class="partner-share-tip__title">No earnings yet — here's how to start</p>
+            <p class="partner-share-tip__text">Share your referral link with event suppliers. When they sign up and get active, you earn points for each milestone they hit.</p>
+          </div>
+        </div>
+        <div class="partner-breakdown">
+          ${items.map(item => `
+            <div class="partner-breakdown-item">
+              <div class="partner-breakdown-icon">${item.icon}</div>
+              <div class="partner-breakdown-label">${esc(item.label)}</div>
+              <div class="partner-breakdown-pts">0 <span>pts</span></div>
+              <div class="partner-breakdown-gbp">£0.00</div>
+              <div class="partner-breakdown-bar-track"><div class="partner-breakdown-bar-fill" style="width:0%"></div></div>
+            </div>`).join('')}
+        </div>`;
+      return;
+    }
+
+    container.innerHTML = `<div class="partner-breakdown">
+      ${items.map(item => {
+        const pct = total > 0 ? Math.round((item.pts / total) * 100) : 0;
+        const gbp = toPounds(item.pts, pointsPerGbp);
+        return `
+          <div class="partner-breakdown-item">
+            <div class="partner-breakdown-icon">${item.icon}</div>
+            <div class="partner-breakdown-label">${esc(item.label)}</div>
+            <div class="partner-breakdown-pts">${item.pts.toLocaleString()} <span>pts</span></div>
+            <div class="partner-breakdown-gbp">${gbp}</div>
+            <div class="partner-breakdown-bar-track">
+              <div class="partner-breakdown-bar-fill" style="width:${pct}%"></div>
+            </div>
+          </div>`;
+      }).join('')}
+    </div>`;
+  }
+
+  // ── Milestone progress ─────────────────────────────────────────────────────
+
+  function renderMilestone(cashoutProgress, pointsPerGbp) {
+    const fill = document.getElementById('milestone-fill');
+    const track = document.getElementById('milestone-track');
+    const label = document.getElementById('milestone-value-label');
+    const hint  = document.getElementById('milestone-hint');
+    if (!fill || !label || !hint) return;
+
+    const {
+      availablePoints = 0,
+      minCashoutPoints = 1500,
+      pointsToNextCashout = 1500,
+      percentToNextCashout = 0,
+    } = cashoutProgress || {};
+    const pct = Math.min(100, percentToNextCashout || 0);
+    const availGbp = toPounds(availablePoints, pointsPerGbp);
+
+    fill.style.width = `${pct}%`;
+    if (track) {
+      track.setAttribute('aria-valuenow', pct);
+    }
+    if (pct >= 100) fill.classList.add('partner-milestone-fill--complete');
+
+    label.textContent = `${(availablePoints || 0).toLocaleString()} / ${minCashoutPoints.toLocaleString()} pts (${availGbp})`;
+
+    if (availablePoints >= minCashoutPoints) {
+      hint.innerHTML = `<strong>🎉 Ready to cashout!</strong> Scroll down to request your cashout below.`;
+      // Update section title to reflect readiness
+      const milestoneTitle = document.querySelector('#milestone-section .partner-section-title');
+      if (milestoneTitle) milestoneTitle.textContent = '✅ Cashout Available!';
+    } else {
+      const needed = toPounds(pointsToNextCashout, pointsPerGbp);
+      hint.innerHTML = `<strong>${(pointsToNextCashout || 0).toLocaleString()} pts (${needed})</strong> more to reach your first cashout.`;
+    }
+  }
+
+  // ── Share buttons ──────────────────────────────────────────────────────────
+
+  function initShareButtons(refLink) {
+    const whatsappBtn = document.getElementById('partner-share-whatsapp');
+    const emailBtn    = document.getElementById('partner-share-email');
+    if (!refLink) return;
+
+    const message = encodeURIComponent(
+      `Hey! I thought you might be interested in listing your event business on EventFlow — it's a great way to reach more customers. You can sign up here: ${refLink}`
+    );
+
+    if (whatsappBtn) {
+      whatsappBtn.href = `https://wa.me/?text=${message}`;
+    }
+    if (emailBtn) {
+      const subject = encodeURIComponent('Join EventFlow — great for event suppliers');
+      const body    = encodeURIComponent(
+        `Hi,
+
+I thought you might want to check out EventFlow — it's a platform for event suppliers to reach more customers and manage their bookings.
+
+Here's my referral link to sign up:
+${refLink}
+
+Best wishes`
+      );
+      emailBtn.href = `mailto:?subject=${subject}&body=${body}`;
+    }
+  }
+
+  // ── Credit Activity tabs ───────────────────────────────────────────────────
+
+  function initCreditTabs() {
+    const tabBreakdown    = document.getElementById('tab-breakdown');
+    const tabTransactions = document.getElementById('tab-transactions');
+    const panelBreakdown    = document.getElementById('panel-breakdown');
+    const panelTransactions = document.getElementById('panel-transactions');
+    if (!tabBreakdown || !tabTransactions) return;
+
+    function switchTab(active, inactive, showPanel, hidePanel) {
+      active.classList.add('active');
+      active.setAttribute('aria-selected', 'true');
+      inactive.classList.remove('active');
+      inactive.setAttribute('aria-selected', 'false');
+      showPanel.hidden = false;
+      hidePanel.hidden = true;
+    }
+
+    tabBreakdown.addEventListener('click', () =>
+      switchTab(tabBreakdown, tabTransactions, panelBreakdown, panelTransactions)
+    );
+    tabTransactions.addEventListener('click', () =>
+      switchTab(tabTransactions, tabBreakdown, panelTransactions, panelBreakdown)
+    );
+  }
+
+  // ── Referrals as progress cards ─────────────────────────────────────────────
+
+  function renderReferralCards(referrals) {
+    const container = document.getElementById('referrals-container');
+    if (!container) return;
+
+    if (!referrals || referrals.length === 0) {
+      container.innerHTML = `
+        <div class="partner-share-tip">
+          <div class="partner-share-tip__icon">🔗</div>
+          <div class="partner-share-tip__body">
+            <p class="partner-share-tip__title">No referred suppliers yet</p>
+            <p class="partner-share-tip__text">Copy your referral link above and share it with event suppliers — photographers, venues, caterers, DJs — anyone looking to grow their bookings.</p>
+          </div>
+        </div>`;
+      return;
+    }
+
+    const cards = referrals.map(r => {
+      const withinWindow = r.withinWindow;
+
+      function stage(done, pendingText, doneText) {
+        if (done) return `<span class="partner-stage partner-stage--done"><span class="partner-stage-dot"></span>${esc(doneText)}</span>`;
+        if (withinWindow) return `<span class="partner-stage partner-stage--pending"><span class="partner-stage-dot"></span>${esc(pendingText)}</span>`;
+        return `<span class="partner-stage partner-stage--expired"><span class="partner-stage-dot"></span>${esc(pendingText)}</span>`;
+      }
+
+      return `
+        <div class="partner-referral-card">
+          <div class="partner-referral-card__top">
+            <span class="partner-referral-card__name">${esc(r.supplierName || '—')}</span>
+            <span class="partner-referral-card__date">${fmtDate(r.signedUpAt)}</span>
+          </div>
+          <div class="partner-referral-card__stages">
+            <span class="partner-stage partner-stage--done"><span class="partner-stage-dot"></span>✓ Signed up (+5)</span>
+            ${stage(r.packageQualified, 'Package pending', '✓ Package (+10)')}
+            ${stage(r.subscriptionQualified, 'Subscription pending', '✓ Subscription (+100)')}
+            ${withinWindow
+              ? '<span class="partner-stage partner-stage--pending"><span class="partner-stage-dot"></span>Active window</span>'
+              : '<span class="partner-stage partner-stage--expired"><span class="partner-stage-dot"></span>Window closed</span>'}
+          </div>
+        </div>`;
+    });
+
+    container.innerHTML = `<div class="partner-referral-cards">${cards.join('')}</div>`;
+  }
+
+  // ── Account settings ─────────────────────────────────────────────────────────
+
+  function initAccountSettings(user, userProfile) {
+    // Pre-fill profile form — use userProfile (from GET /partner/me which reads the DB)
+    // since the JWT user object only contains id/email/role, not first/last/company
+    const fnInput = document.getElementById('settings-firstname');
+    const lnInput = document.getElementById('settings-lastname');
+    const coInput = document.getElementById('settings-company');
+    const profile = userProfile || {};
+
+    if (fnInput && profile.firstName) fnInput.value = profile.firstName;
+    if (lnInput && profile.lastName)  lnInput.value = profile.lastName;
+    if (coInput && profile.company)   coInput.value = profile.company;
+
+    // Profile form
+    const profileForm = document.getElementById('partner-profile-form');
+    const profileStatus = document.getElementById('profile-status');
+    const profileBtn    = document.getElementById('profile-save-btn');
+
+    if (profileForm) {
+      profileForm.addEventListener('submit', async e => {
+        e.preventDefault();
+        profileBtn.disabled = true;
+        profileStatus.textContent = '';
+        profileStatus.className = 'partner-status partner-settings-status';
+
+        const payload = {};
+        if (fnInput && fnInput.value.trim()) payload.firstName = fnInput.value.trim();
+        if (lnInput && lnInput.value.trim()) payload.lastName  = lnInput.value.trim();
+        if (coInput !== undefined) payload.company = coInput.value.trim() || null;
+
+        // Guard: nothing to update
+        if (Object.keys(payload).length === 0) {
+          profileStatus.textContent = 'No changes to save';
+          profileStatus.style.color = 'rgba(255,255,255,0.45)';
+          profileBtn.disabled = false;
+          return;
+        }
+
+        try {
+          const csrfToken = await getCsrfToken();
+          const res = await fetch('/api/v1/partner/me', {
+            method: 'PATCH',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+            body: JSON.stringify(payload),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (res.ok) {
+            profileStatus.textContent = '✓ Profile saved';
+            profileStatus.style.color = '#6ee7b7';
+            showToast('Profile updated successfully', 'success');
+            // Update greeting if name changed
+            const nameEl = document.getElementById('partner-name-heading');
+            if (nameEl && payload.firstName) nameEl.textContent = payload.firstName;
+            // Also update the header user-name area (shows full name)
+            const headerNameEl = document.getElementById('partner-user-name');
+            if (headerNameEl && (payload.firstName || payload.lastName)) {
+              const fn = payload.firstName || fnInput?.value?.trim() || '';
+              const ln = payload.lastName  || lnInput?.value?.trim() || '';
+              headerNameEl.textContent = `${fn} ${ln}`.trim();
+            }
+          } else {
+            profileStatus.textContent = data.error || 'Failed to save profile';
+            profileStatus.style.color = '#fca5a5';
+          }
+        } catch (_) {
+          profileStatus.textContent = 'Network error — please try again';
+          profileStatus.style.color = '#fca5a5';
+        } finally {
+          profileBtn.disabled = false;
+        }
+      });
+    }
+
+    // Password form
+    const passwordForm   = document.getElementById('partner-password-form');
+    const passwordStatus = document.getElementById('password-status');
+    const passwordBtn    = document.getElementById('password-save-btn');
+
+    if (passwordForm) {
+      passwordForm.addEventListener('submit', async e => {
+        e.preventDefault();
+        passwordBtn.disabled = true;
+        passwordStatus.textContent = '';
+        passwordStatus.className = 'partner-status partner-settings-status';
+
+        const currentPw = document.getElementById('settings-current-pw')?.value || '';
+        const newPw     = document.getElementById('settings-new-pw')?.value || '';
+
+        if (!currentPw || !newPw) {
+          passwordStatus.textContent = 'Both fields are required';
+          passwordStatus.style.color = '#fca5a5';
+          passwordBtn.disabled = false;
+          return;
+        }
+
+        try {
+          const csrfToken = await getCsrfToken();
+          const res = await fetch('/api/v1/partner/change-password', {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+            body: JSON.stringify({ currentPassword: currentPw, newPassword: newPw }),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (res.ok) {
+            passwordStatus.textContent = '✓ Password changed';
+            passwordStatus.style.color = '#6ee7b7';
+            passwordForm.reset();
+            showToast('Password changed successfully', 'success');
+          } else {
+            passwordStatus.textContent = data.error || 'Failed to change password';
+            passwordStatus.style.color = '#fca5a5';
+          }
+        } catch (_) {
+          passwordStatus.textContent = 'Network error — please try again';
+          passwordStatus.style.color = '#fca5a5';
+        } finally {
+          passwordBtn.disabled = false;
+        }
+      });
+    }
+
+    // Password visibility toggles in settings
+    document.querySelectorAll('#partner-profile-form .partner-pw-toggle, #partner-password-form .partner-pw-toggle').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const inputId = btn.dataset.target;
+        if (!inputId) return;
+        const input = document.getElementById(inputId);
+        if (!input) return;
+        input.type = input.type === 'password' ? 'text' : 'password';
+        btn.setAttribute('aria-label', input.type === 'password' ? 'Show password' : 'Hide password');
+      });
+    });
+  }
+
+  // ── Fetch and render partner stats ────────────────────────────────────────
+
+  async function loadAndRenderStats(pointsPerGbp) {
+    try {
+      const res = await fetch('/api/v1/partner/stats', { credentials: 'include' });
+      if (!res.ok) return;
+      const data = await res.json();
+      renderBreakdown(data.breakdown || {}, pointsPerGbp);
+      renderMilestone(data.cashoutProgress || {}, pointsPerGbp);
+    } catch (_) {
+      // Non-critical — silently fail
+    }
   }
 
   // ── Referral link copy ────────────────────────────────────────────────────────
@@ -1213,9 +1504,21 @@
       // Cashout request history
       loadCashoutHistory();
 
-      // Referrals & transactions
-      renderReferrals(referrals);
+      // Referrals as progress cards
+      renderReferralCards(referrals);
+
+      // Credit Activity — breakdown + transactions
       renderTransactions(transactions, pointsPerGbp);
+      initCreditTabs();
+
+      // Share buttons
+      initShareButtons(partner.refLink);
+
+      // Stats (earnings breakdown + milestone)
+      loadAndRenderStats(pointsPerGbp);
+
+      // Account settings — pass userProfile from /partner/me for pre-fill
+      initAccountSettings(user, partnerData.userProfile || {});
     } catch (err) {
       console.error('Dashboard load error:', err);
 
@@ -1308,3 +1611,4 @@
     init();
   }
 })();
+

@@ -69,10 +69,10 @@ describe('Complete Subscription Flow Integration', () => {
       switch (collection) {
         case 'subscriptions':
           mockSubscriptions.push(data);
-          break;
+          return data; // return truthy so insertOne checks pass
         case 'payments':
           mockPayments.push(data);
-          break;
+          return data;
         case 'invoices':
           mockInvoices.push(data);
           break;
@@ -97,6 +97,42 @@ describe('Complete Subscription Flow Integration', () => {
       }
     });
 
+    dbUnified.findOne.mockImplementation(async (collection, filter) => {
+      const mockMap = {
+        subscriptions: mockSubscriptions,
+        users: mockUsers,
+      };
+      const arr = mockMap[collection] || [];
+      if (typeof filter === 'function') {
+        return arr.find(filter) || null;
+      }
+      return arr.find(item => Object.keys(filter).every(k => item[k] === filter[k])) || null;
+    });
+
+    // find() is used by getSubscriptionByUserId — supports $ne/$in operators
+    dbUnified.find.mockImplementation(async (collection, filter) => {
+      const arr =
+        collection === 'subscriptions'
+          ? mockSubscriptions
+          : collection === 'users'
+            ? mockUsers
+            : [];
+      if (typeof filter === 'function') {
+        return arr.filter(filter);
+      }
+      return arr.filter(item =>
+        Object.keys(filter).every(k => {
+          const val = filter[k];
+          if (val && typeof val === 'object' && val.$ne !== undefined) {
+            return item[k] !== val.$ne;
+          }
+          if (val && typeof val === 'object' && val.$in !== undefined) {
+            return Array.isArray(val.$in) && val.$in.includes(item[k]);
+          }
+          return item[k] === val;
+        })
+      );
+    });
     jest.clearAllMocks();
   });
 

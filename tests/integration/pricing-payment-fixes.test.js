@@ -109,6 +109,7 @@ describe('Pricing and payment system fixes', () => {
       const src = readSrc('routes', 'subscriptions-v2.js');
       expect(src).toContain('STRIPE_PRO_PRICE_ID');
       expect(src).toContain('pro: process.env.STRIPE_PRO_PRICE_ID');
+      expect(src).toContain('pro_plus: process.env.STRIPE_PRO_PLUS_PRICE_ID');
     });
 
     it('creates a subscription-mode Checkout Session', () => {
@@ -136,15 +137,15 @@ describe('Pricing and payment system fixes', () => {
       expect(src).toContain('stripeConfig = config');
     });
 
-    it('sends type=subscription when priceId is available from config', () => {
+    it('sends canonical subscription plan identifiers instead of client-supplied Stripe prices', () => {
       const src = readSrc('public', 'assets', 'js', 'checkout.js');
       expect(src).toContain("type: 'subscription'");
-      expect(src).toContain('priceId: stripeConfig.proPriceId');
-    });
-
-    it('falls back to one_time payment when no priceId is configured', () => {
-      const src = readSrc('public', 'assets', 'js', 'checkout.js');
-      expect(src).toContain("type: 'one_time'");
+      expect(src).toContain('planId: planKey');
+      expect(src).toContain(
+        "billingInterval: plan.interval || configuredPlan?.billingInterval || 'month'"
+      );
+      expect(src).not.toContain('priceId: stripeConfig.proPriceId');
+      expect(src).not.toContain("type: 'one_time'");
     });
 
     it('prefers data.url over sessionId for redirect', () => {
@@ -230,12 +231,13 @@ describe('Pricing and payment system fixes', () => {
 
   // Fix 6: payments.js handles missing priceId via planName fallback
   describe('payments.js: priceId fallback for subscription without explicit priceId', () => {
-    it('contains fallback logic using getSubscriptionTier + STRIPE_PRO_PRICE_ID', () => {
+    it('contains distinct fallback logic using getSubscriptionTier and configured Stripe prices', () => {
       const src = readSrc('routes', 'payments.js');
-      expect(src).toContain('getSubscriptionTier(planName)');
+      expect(src).toContain('getSubscriptionTier(planName, billingInterval');
       expect(src).toContain('STRIPE_PRO_PRICE_ID');
-      // Should set priceId from fallback
-      expect(src).toContain('priceId = STRIPE_PRO_PRICE_ID');
+      expect(src).toContain('STRIPE_PRO_PLUS_PRICE_ID');
+      expect(src).toContain('STRIPE_PRO_PLUS_YEARLY_PRICE_ID');
+      expect(src).toContain('priceIds[tier]?.[interval]');
     });
 
     it('still rejects subscription with no priceId and no matching planName', () => {

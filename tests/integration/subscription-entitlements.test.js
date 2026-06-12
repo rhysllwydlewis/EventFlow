@@ -69,9 +69,10 @@ function setupMocks() {
     if (collection === 'webhook_events') {
       mockWebhookEvents.push(data);
     }
+    return data; // return truthy so insertOne null-checks pass
   });
   dbUnified.updateOne.mockImplementation(async (collection, filter, update) => {
-    const applySet = (arr, key) => {
+    const applySet = arr => {
       const idx = arr.findIndex(item => Object.keys(filter).every(k => item[k] === filter[k]));
       if (idx >= 0) {
         arr[idx] = { ...arr[idx], ...update.$set };
@@ -87,6 +88,38 @@ function setupMocks() {
     }
   });
   dbUnified.write.mockImplementation(async () => {});
+  dbUnified.findOne.mockImplementation(async (collection, filter) => {
+    if (collection === 'webhook_events') {
+      // Check mockWebhookEvents for idempotency lookups
+      return mockWebhookEvents.find(e => e.eventId === filter.eventId) || null;
+    }
+    const arr =
+      collection === 'subscriptions' ? mockSubscriptions : collection === 'users' ? mockUsers : [];
+    if (typeof filter === 'function') {
+      return arr.find(filter) || null;
+    }
+    return arr.find(item => Object.keys(filter).every(k => item[k] === filter[k])) || null;
+  });
+
+  dbUnified.find.mockImplementation(async (collection, filter) => {
+    const arr =
+      collection === 'subscriptions' ? mockSubscriptions : collection === 'users' ? mockUsers : [];
+    if (typeof filter === 'function') {
+      return arr.filter(filter);
+    }
+    return arr.filter(item =>
+      Object.keys(filter).every(k => {
+        const val = filter[k];
+        if (val && typeof val === 'object' && val.$ne !== undefined) {
+          return item[k] !== val.$ne;
+        }
+        if (val && typeof val === 'object' && val.$in !== undefined) {
+          return Array.isArray(val.$in) && val.$in.includes(item[k]);
+        }
+        return item[k] === val;
+      })
+    );
+  });
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -189,7 +222,7 @@ describe('1. New purchase — entitlements become active', () => {
   });
 
   it('dashboard GET /me returns correct plan and no pendingPlan', async () => {
-    const sub = await subscriptionService.createSubscription({
+    await subscriptionService.createSubscription({
       userId: 'usr-1',
       plan: 'pro',
       stripeSubscriptionId: 'sub_s1',
@@ -500,10 +533,10 @@ describe('6. Expired / past_due / payment_failed — entitlements removed', () =
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('7. Webhook idempotency', () => {
-  it('isEventAlreadyProcessed returns false for a new event ID and records it', async () => {
+  it('isEventAlreadyProcessed returns false for a new event ID without recording it early', async () => {
     const result = await isEventAlreadyProcessed('evt_new_001');
     expect(result).toBe(false);
-    expect(mockWebhookEvents.some(e => e.eventId === 'evt_new_001')).toBe(true);
+    expect(mockWebhookEvents.some(e => e.eventId === 'evt_new_001')).toBe(false);
   });
 
   it('isEventAlreadyProcessed returns true for an already-recorded event ID', async () => {
@@ -515,6 +548,32 @@ describe('7. Webhook idempotency', () => {
   it('isEventAlreadyProcessed returns false when event.id is absent (allows dev payloads)', async () => {
     const result = await isEventAlreadyProcessed(undefined);
     expect(result).toBe(false);
+  });
+
+  it('processWebhookEvent records the event only after successful processing', async () => {
+    const event = { id: 'evt_unknown_success', type: 'unknown.event', data: { object: {} } };
+
+    await processWebhookEvent(event);
+
+    expect(mockWebhookEvents.some(e => e.eventId === 'evt_unknown_success')).toBe(true);
+  });
+
+  it('processWebhookEvent does not record failed events before Stripe can retry them', async () => {
+    // isEventAlreadyProcessed uses findOne('webhook_events') — return null (not yet processed).
+    // Then make the next findOne call (subscriptions lookup in handler) throw to simulate
+    // a mid-processing DB failure, ensuring markEventProcessed is never reached.
+    dbUnified.findOne
+      .mockImplementationOnce(async () => null) // webhook_events: not yet processed
+      .mockImplementationOnce(async () => {
+        throw new Error('database unavailable'); // subscriptions lookup throws
+      });
+    const failingEvent = {
+      id: 'evt_failed_read',
+      type: 'invoice.created',
+      data: { object: { subscription: 'sub_test' } },
+    };
+    await expect(processWebhookEvent(failingEvent)).rejects.toThrow('database unavailable');
+    expect(mockWebhookEvents.some(e => e.eventId === 'evt_failed_read')).toBe(false);
   });
 
   it('processWebhookEvent skips already-processed event', async () => {

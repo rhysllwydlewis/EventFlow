@@ -610,7 +610,10 @@ async function runSystemChecks({ triggeredBy } = {}) {
 
   // Persist to MongoDB (non-fatal: log warning and continue if unavailable)
   try {
-    await dbUnified.insertOne(COLLECTION, runDoc);
+    const sysCheckInserted = await dbUnified.insertOne(COLLECTION, runDoc);
+    if (!sysCheckInserted) {
+      logger.warn('[SYSTEM-CHECK] insertOne failed — run not recorded');
+    }
     logger.info('[SystemCheck] Run persisted to MongoDB');
   } catch (dbErr) {
     logger.warn('[SystemCheck] Could not persist run to MongoDB:', dbErr.message);

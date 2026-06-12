@@ -47,6 +47,18 @@ function escHtml(str) {
     .replace(/'/g, '&#39;');
 }
 
+function safeLineBreakHtml(str) {
+  return escHtml(str)
+    .split(/\r?\n/)
+    .map(line => (line.trim() ? line : '&nbsp;'))
+    .join('<br>');
+}
+
+function publicTicketUrl(ticketId) {
+  const baseUrl = process.env.APP_BASE_URL || process.env.BASE_URL || 'https://event-flow.co.uk';
+  return `${baseUrl.replace(/\/$/, '')}/tickets/${encodeURIComponent(ticketId)}`;
+}
+
 /**
  * Get a NotificationService instance using the live DB and WebSocket server.
  * @param {Object} req - Express request (used to resolve the WS server)
@@ -155,10 +167,6 @@ router.post(
 
       // Create ticket
       const now = new Date().toISOString();
-      const tickets = (await dbUnified.read('tickets')).map(ticket =>
-        normalizeTicketRecord(ticket, { generateId: uid })
-      );
-
       // Auto-derive priority from the sender's subscription tier.
       // User-supplied priority values are intentionally ignored.
       const { priority, accountTier, prioritySource } = await deriveTicketPriority(
@@ -187,15 +195,18 @@ router.post(
         updatedAt: now,
       };
 
-      tickets.push(newTicket);
-      await dbUnified.insertOne('tickets', newTicket);
+      const savedTicket = await dbUnified.insertOne('tickets', newTicket);
+      if (!savedTicket) {
+        logger.error('[TICKET] insertOne failed', { ticketId: newTicket.id });
+        return res.status(500).json({ error: 'Failed to save ticket. Please try again.' });
+      }
 
       // Notify admin users about the new ticket
       try {
-        const allUsers = await dbUnified.read('users');
-        const adminUsers = allUsers.filter(u => u.role === 'admin');
+        const adminUsers = await dbUnified.find('users', { role: 'admin' });
         const notifSvc = await getNotificationService(req);
-        const baseUrl = process.env.BASE_URL || 'https://event-flow.co.uk';
+        const baseUrl =
+          process.env.APP_BASE_URL || process.env.BASE_URL || 'https://event-flow.co.uk';
         const ticketCreatorName = newTicket.senderName || getUserDisplayName(req.user, 'User');
 
         for (const adminUser of adminUsers) {
@@ -209,7 +220,7 @@ router.post(
           }
           if (adminUser.email) {
             await postmark
-              .sendEmail({
+              .sendMail({
                 to: adminUser.email,
                 subject: `New support ticket: ${newTicket.subject}`,
                 text: `A new support ticket has been submitted.\n\nFrom: ${ticketCreatorName}\nSubject: ${newTicket.subject}\n\nView and manage tickets at: ${baseUrl}/admin-tickets`,
@@ -348,10 +359,8 @@ router.get('/:id', authRequired, async (req, res) => {
   try {
     const { id } = req.params;
 
-    const tickets = (await dbUnified.read('tickets')).map(ticket =>
-      normalizeTicketRecord(ticket, { generateId: uid })
-    );
-    const ticket = tickets.find(t => t.id === id);
+    const rawTicket = await dbUnified.findOne('tickets', { id });
+    const ticket = rawTicket ? normalizeTicketRecord(rawTicket, { generateId: uid }) : null;
 
     if (!ticket) {
       return res.status(404).json({ error: 'Ticket not found' });
@@ -383,16 +392,12 @@ router.put('/:id', authRequired, csrfProtection, writeLimiter, async (req, res) 
     const { id } = req.params;
     const { status, response, priority, assignedTo, resolutionNote } = req.body;
 
-    const tickets = (await dbUnified.read('tickets')).map(ticket =>
-      normalizeTicketRecord(ticket, { generateId: uid })
-    );
-    const ticketIndex = tickets.findIndex(t => t.id === id);
-
-    if (ticketIndex === -1) {
+    const rawTicketToUpdate = await dbUnified.findOne('tickets', { id });
+    if (!rawTicketToUpdate) {
       return res.status(404).json({ error: 'Ticket not found' });
     }
 
-    const ticket = tickets[ticketIndex];
+    const ticket = normalizeTicketRecord(rawTicketToUpdate, { generateId: uid });
 
     // Check access permissions
     if (!canUserAccessTicket(req.user, ticket)) {
@@ -465,7 +470,6 @@ router.put('/:id', authRequired, csrfProtection, writeLimiter, async (req, res) 
     }
 
     ticket.updatedAt = now;
-    tickets[ticketIndex] = ticket;
     await dbUnified.updateOne('tickets', { id: ticket.id }, { $set: ticket });
 
     // Audit log
@@ -502,16 +506,12 @@ router.delete('/:id', authRequired, csrfProtection, writeLimiter, async (req, re
       return res.status(403).json({ error: 'Only admins can delete tickets' });
     }
 
-    const tickets = (await dbUnified.read('tickets')).map(ticket =>
-      normalizeTicketRecord(ticket, { generateId: uid })
-    );
-    const ticketIndex = tickets.findIndex(t => t.id === id);
-
-    if (ticketIndex === -1) {
+    const rawTicketForAction = await dbUnified.findOne('tickets', { id });
+    if (!rawTicketForAction) {
       return res.status(404).json({ error: 'Ticket not found' });
     }
 
-    const ticket = tickets[ticketIndex];
+    const ticket = normalizeTicketRecord(rawTicketForAction, { generateId: uid });
     await dbUnified.deleteOne('tickets', ticket.id);
 
     // Audit log
@@ -557,16 +557,12 @@ router.post('/:id/reply', authRequired, csrfProtection, writeLimiter, async (req
       return res.status(400).json({ error: 'Reply message is too long (max 5000 characters)' });
     }
 
-    const tickets = (await dbUnified.read('tickets')).map(ticket =>
-      normalizeTicketRecord(ticket, { generateId: uid })
-    );
-    const ticketIndex = tickets.findIndex(t => t.id === id);
-
-    if (ticketIndex === -1) {
+    const rawTicketForAction = await dbUnified.findOne('tickets', { id });
+    if (!rawTicketForAction) {
       return res.status(404).json({ error: 'Ticket not found' });
     }
 
-    const ticket = tickets[ticketIndex];
+    const ticket = normalizeTicketRecord(rawTicketForAction, { generateId: uid });
 
     // Check access: admins can reply to any ticket, users can only reply to their own
     if (!canUserAccessTicket(req.user, ticket)) {
@@ -602,24 +598,35 @@ router.post('/:id/reply', authRequired, csrfProtection, writeLimiter, async (req
     ticket.lastReplyAt = now;
     ticket.lastReplyBy = userRole;
 
-    tickets[ticketIndex] = ticket;
     await dbUnified.updateOne('tickets', { id: ticket.id }, { $set: ticket });
 
     // Send email notification to ticket creator (if reply is from admin)
     if (userRole === 'admin' && ticket.senderEmail) {
       try {
-        const emailBaseUrl = process.env.BASE_URL || 'https://event-flow.co.uk';
-        await postmark.sendEmail({
+        const ticketUrl = publicTicketUrl(ticket.id);
+        await postmark.sendMail({
           to: ticket.senderEmail,
-          subject: `Reply to your support ticket: ${ticket.subject}`,
-          text: `You have received a reply to your support ticket.\n\nTicket: ${ticket.subject}\n\nReply: ${message}\n\nView your ticket at: ${emailBaseUrl}/tickets/${ticket.id}`,
-          html: `
-            <h2>Reply to Your Support Ticket</h2>
-            <p><strong>Ticket:</strong> ${escHtml(ticket.subject)}</p>
-            <p><strong>Reply:</strong></p>
-            <p>${escHtml(message).replace(/\n/g, '<br>')}</p>
-            <p><a href="${escHtml(`${emailBaseUrl}/tickets/${ticket.id}`)}">View Ticket</a></p>
-          `,
+          from: postmark.FROM_SUPPORT,
+          subject: `Reply to your EventFlow support ticket: ${ticket.subject}`,
+          template: 'support-ticket-reply',
+          templateData: {
+            name: ticket.senderName || 'there',
+            ticketSubject: ticket.subject,
+            replyMessageHtml: safeLineBreakHtml(message),
+            ticketUrl,
+            supportEmail: postmark.FROM_SUPPORT,
+            preheader: 'The EventFlow Support Team has replied to your ticket.',
+          },
+          text: `You have received a reply to your EventFlow support ticket.
+
+Ticket: ${ticket.subject}
+
+Reply:
+${message}
+
+View your ticket: ${ticketUrl}`,
+          tags: ['support', 'ticket-reply', 'transactional'],
+          messageStream: 'outbound',
         });
       } catch (emailError) {
         logger.error('Failed to send reply notification email:', emailError);
@@ -629,10 +636,10 @@ router.post('/:id/reply', authRequired, csrfProtection, writeLimiter, async (req
     // Notify admin users when a non-admin replies to a ticket
     if (userRole !== 'admin') {
       try {
-        const allUsers = await dbUnified.read('users');
-        const adminUsers = allUsers.filter(u => u.role === 'admin');
+        const adminUsers = await dbUnified.find('users', { role: 'admin' });
         const notifSvc = await getNotificationService(req);
-        const baseUrl = process.env.BASE_URL || 'https://event-flow.co.uk';
+        const baseUrl =
+          process.env.APP_BASE_URL || process.env.BASE_URL || 'https://event-flow.co.uk';
         const replierName = reply.userName || 'User';
 
         for (const adminUser of adminUsers) {
@@ -641,7 +648,7 @@ router.post('/:id/reply', authRequired, csrfProtection, writeLimiter, async (req
           }
           if (adminUser.email) {
             await postmark
-              .sendEmail({
+              .sendMail({
                 to: adminUser.email,
                 subject: `New reply on ticket: ${ticket.subject}`,
                 text: `${replierName} has replied to a support ticket.\n\nTicket: ${ticket.subject}\n\nReply: ${message}\n\nView and manage tickets at: ${baseUrl}/admin-tickets`,

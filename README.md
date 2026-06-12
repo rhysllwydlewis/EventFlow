@@ -136,35 +136,80 @@ Suppliers are classified into the following categories (available in signup and 
 
 ### Public Calendar & Publishing Permissions
 
-EventFlow includes a shared public calendar at `/public-calendar` where wedding fayres, planning events and supplier showcases can be listed.
+EventFlow includes a shared public calendar at `/public-calendar` where wedding fayres, open days, supplier showcases, workshops, venue tours, planning events and similar public events can be listed.
+
+#### Permission overview
+
+| User type              | View public events | Save events | Create events | Edit own events | Edit all events |
+| ---------------------- | -----------------: | ----------: | ------------: | --------------: | --------------: |
+| Public visitor         |                Yes |          No |            No |              No |              No |
+| Customer               |                Yes |         Yes |            No |              No |              No |
+| Non-publisher supplier |                Yes |         Yes |            No |              No |              No |
+| Publisher supplier     |                Yes |         Yes |           Yes |             Yes |              No |
+| Admin                  |                Yes |         Yes |           Yes |             Yes |             Yes |
 
 #### Who can publish?
 
 - **Event Planner** and **Wedding Fayre** suppliers can create/update/delete public calendar events by default.
-- All other suppliers and customers are **read-only**.
-- Permissions are **enforced at the API layer** — the frontend cannot bypass them.
+- Suppliers with `publicCalendarPublisherOverride === true` can publish regardless of category.
+- Suppliers with `publicCalendarPublisherOverride === false` cannot publish regardless of category.
+- Customers, public visitors and non-publisher suppliers cannot publish.
+- Permissions are **enforced at the API layer** — frontend messaging is helpful, but the server remains authoritative.
 
-#### Ownership rule
+#### Request publishing access workflow
 
-A publisher supplier can only edit or delete their **own** events.  
-Admins can manage any event.
+Non-publisher suppliers can request shared calendar publishing access from the supplier/public calendar UI. Requests collect the reason, intended event types, an example event title, expected frequency, optional supporting URL and notes.
 
-#### Admin override (tri-state)
+Request statuses are:
 
-Each supplier has a `publicCalendarPublisherOverride` field settable from the Admin → Supplier Detail page:
+- `pending`
+- `approved`
+- `rejected`
+- `cancelled`
+
+Admins can review requests, approve them, or reject them with a reason. Approval sets the supplier's `publicCalendarPublisherOverride` to `true`; rejection does not force-deny the supplier unless an admin separately sets the override to `false`.
+
+#### Event lifecycle and visibility
+
+Public calendar events support lifecycle status values including:
+
+- `draft`
+- `pending_review`
+- `published`
+- `rejected`
+- `cancelled`
+- `expired`
+
+Current public listings show only `published` future/current events by default. Past events can be included with the `includePast=true` API filter. Draft, rejected and cancelled events are hidden from default public listings; direct detail pages can show a cancelled event with a clear cancellation notice when the viewer is allowed to see it. Older events with no `status` are treated as `published` for backward compatibility.
+
+#### Rich event details
+
+Public events can include richer marketplace information such as event type, venue/address fields, county/postcode, online event URL, free/paid/donation price type, ticket price, booking-required status, external booking URL, capacity, organiser name, contact details, accessibility notes, parking information, featured image/gallery URLs and a stable slug.
+
+Backward-compatible fallbacks are preserved:
+
+- `featuredImageUrl` falls back to existing `imageUrl`.
+- `externalBookingUrl` falls back to existing `externalUrl`.
+- `eventType` falls back to `category` or `Other`.
+- Missing `slug` is generated safely at runtime.
+
+#### Add to calendar / `.ics` export
+
+Public events expose a simple `.ics` download endpoint so visitors and logged-in users can add an event to common calendar apps without Google Calendar API integration or OAuth scopes. The export includes the event title, dates, description, location, organiser where available and a link back to EventFlow.
+
+#### Customer "Save to my calendar"
+
+Logged-in customers (and other users) can click **Save** on any published public event. Saved events appear on the **customer dashboard calendar** (purple colour). Saving the same event twice is idempotent — no duplicate is created. Users can also remove a saved event via the **Saved** toggle.
+
+#### Ownership and admin controls
+
+Publisher suppliers can edit, cancel or delete only their **own** events. Admins can manage any event, filter by status/supplier/date/event type via the API, review publishing requests, and use the Admin → Supplier Detail tri-state override controls:
 
 | Value            | Effect                                         |
 | ---------------- | ---------------------------------------------- |
 | `true`           | Supplier can publish regardless of category    |
 | `false`          | Supplier cannot publish regardless of category |
 | `null` (default) | Derive from category (see table above)         |
-
-#### Customer "Save to my calendar"
-
-Logged-in customers (and other users) can click **"+ Save to my calendar"** on any public event.  
-Saved events appear on the **customer dashboard calendar** (purple colour).  
-Saving the same event twice is idempotent — no duplicate is created.  
-Users can also remove a saved event via the "✓ Saved" toggle button.
 
 ### Admin Authentication
 
@@ -506,6 +551,23 @@ EMAIL_ENABLED=true
 POSTMARK_API_KEY=your-server-token
 POSTMARK_FROM=admin@yourdomain.com
 ```
+
+**Optional - Google sign-in:**
+
+```env
+GOOGLE_CLIENT_ID=your-google-web-client-id.apps.googleusercontent.com
+# Optional: comma-separated list of additional client IDs accepted by the backend.
+# GOOGLE_CLIENT_IDS=web-client-id,ios-client-id
+```
+
+Google sign-in uses Google Identity Services (`https://accounts.google.com/gsi/client`) for
+the branded login/sign-up buttons and server-verified ID tokens. The public
+`google/google-api-javascript-client` repository is useful for future browser-side
+Google API calls through `gapi.client`, but that repository is archived, does not
+ship the `gapi` source itself, and its `gapi.auth2` authentication path is
+deprecated in favour of Google Identity Services. Keep EventFlow authentication
+on GIS; only add the API client loader later if we need Google Calendar, Drive,
+or other Google API calls after obtaining the user's explicit OAuth consent.
 
 **Optional - AWS S3:**
 

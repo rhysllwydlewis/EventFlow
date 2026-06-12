@@ -1,0 +1,26 @@
+name: Report an outdated guide
+about: Tell us when EventFlow guide content needs refreshing
+labels: [content, guides]
+body:
+  - type: input
+    id: guide-url
+    attributes:
+      label: Guide URL
+      description: Paste the EventFlow guide URL.
+      placeholder: https://event-flow.co.uk/articles/example-guide
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What is outdated or incorrect?
+      description: Include the section heading and any source that helps us verify the update.
+    validations:
+      required: true
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested update
+      description: Optional replacement text or guidance.
+    validations:
+      required: false

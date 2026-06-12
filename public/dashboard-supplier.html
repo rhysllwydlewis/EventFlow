@@ -4,12 +4,14 @@
     <meta charset="utf-8" />
   <meta name="ef-page" content="dash_supplier">
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Supplier dashboard — EventFlow</title>
+    <title>Supplier Dashboard — EventFlow</title>
 <meta name="robots" content="noindex,nofollow">
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
+    <!-- Preconnect: FullCalendar loads from jsDelivr; early connection cuts DNS+TLS overhead -->
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
     <link rel="stylesheet" href="/assets/css/design-tokens.css?v=18.3.0" />
     <link rel="stylesheet" href="/assets/css/styles.css?v=18.3.0" />
     <link rel="stylesheet" href="/assets/css/eventflow-17.0.0.css?v=18.3.0" />
@@ -32,13 +34,14 @@
     <link rel="stylesheet" href="/assets/css/supplier-utils.css?v=18.3.0" />
     <link rel="stylesheet" href="/assets/css/profile-health.css?v=18.3.0" />
     <link rel="stylesheet" href="/assets/css/dashboard-mobile.css?v=1.0.0" />
-    <script src="/assets/js/dashboard-guard.js?v=17.0.2"></script>
+    <script src="/assets/js/dashboard-guard.js?v=18.3.0"></script>
     <script src="/assets/js/toast-notifications.js?v=18.3.0"></script>
     <script src="/assets/js/pages/dashboard-supplier-inline.js" defer></script>
   <link rel="stylesheet" href="/messenger/css/messenger-widget-v4.css">
-  </head>
+    <link rel="stylesheet" href="/assets/css/dashboard-overhaul.css?v=18.3.0">
+</head>
   <body class="supplier-dashboard-page">
-    <!--
+<!--
       Liquid Glass SVG Filter Definitions — Mobile (≤768px)
       Injected statically for CSS backdrop-filter: url(#...) references.
       Adapted from:
@@ -93,6 +96,7 @@
           <nav class="ef-nav-desktop" aria-label="Main navigation">
             <a href="/start" class="ef-nav-link">Plan</a>
             <a href="/suppliers" class="ef-nav-link">Suppliers</a>
+            <a href="/public-calendar" class="ef-nav-link">Events</a>
             <a href="/marketplace" class="ef-nav-link">Marketplace</a>
             <a href="/guides" class="ef-nav-link">Guides</a>
             <a href="/pricing" class="ef-nav-link">Pricing</a>
@@ -160,6 +164,7 @@
         <nav class="ef-mobile-nav" aria-label="Primary navigation">
           <a href="/start" class="ef-mobile-link">Plan an Event</a>
           <a href="/suppliers" class="ef-mobile-link">Browse Suppliers</a>
+          <a href="/public-calendar" class="ef-mobile-link">Events Calendar</a>
           <a href="/marketplace" class="ef-mobile-link">Marketplace</a>
           <a href="/pricing" class="ef-mobile-link">Pricing</a>
           <a href="/guides" class="ef-mobile-link">Guides</a>
@@ -591,6 +596,17 @@
           </div>
         </section>
 
+        <!-- KPI Grid — rendered by dashboard-supplier-overhaul.js -->
+        <div id="supplier-kpi-grid" class="kpi-grid" aria-live="polite" aria-label="Key performance metrics">
+          <!-- Skeleton placeholders until JS populates -->
+          <div class="skeleton" style="height:110px;border-radius:16px;"></div>
+          <div class="skeleton" style="height:110px;border-radius:16px;"></div>
+          <div class="skeleton" style="height:110px;border-radius:16px;"></div>
+          <div class="skeleton" style="height:110px;border-radius:16px;"></div>
+          <div class="skeleton" style="height:110px;border-radius:16px;"></div>
+          <div class="skeleton" style="height:110px;border-radius:16px;"></div>
+        </div>
+
         <!-- Section Divider -->
         <div class="sd-section-divider" role="separator" aria-hidden="true">
           <span class="sd-section-divider__label">Profile Management</span>
@@ -856,7 +872,6 @@
           </div>
         </div>
 
-        <script src="/assets/js/pages/dashboard-supplier-category.js"></script>
 
         <!-- Section Divider -->
         <div class="sd-section-divider" role="separator" aria-hidden="true">
@@ -969,7 +984,7 @@
               </div>
               <div class="form-row">
                 <div class="form-group">
-                  <label class="form-label">Event Types <span class="required">*</span></label>
+                  <label class="form-label">Suitable for <span class="required">*</span></label>
                   <div class="checkbox-group">
                     <label class="checkbox-inline">
                       <input
@@ -984,15 +999,75 @@
                     <label class="checkbox-inline">
                       <input
                         type="checkbox"
+                        id="pkg-event-birthday"
+                        name="eventTypes"
+                        value="birthday"
+                        class="form-checkbox"
+                      />
+                      <span class="checkbox-text">Birthday</span>
+                    </label>
+                    <label class="checkbox-inline">
+                      <input
+                        type="checkbox"
+                        id="pkg-event-corporate"
+                        name="eventTypes"
+                        value="corporate"
+                        class="form-checkbox"
+                      />
+                      <span class="checkbox-text">Corporate</span>
+                    </label>
+                    <label class="checkbox-inline">
+                      <input
+                        type="checkbox"
+                        id="pkg-event-anniversary"
+                        name="eventTypes"
+                        value="anniversary"
+                        class="form-checkbox"
+                      />
+                      <span class="checkbox-text">Anniversary</span>
+                    </label>
+                    <label class="checkbox-inline">
+                      <input
+                        type="checkbox"
+                        id="pkg-event-christening"
+                        name="eventTypes"
+                        value="christening"
+                        class="form-checkbox"
+                      />
+                      <span class="checkbox-text">Christening</span>
+                    </label>
+                    <label class="checkbox-inline">
+                      <input
+                        type="checkbox"
+                        id="pkg-event-graduation"
+                        name="eventTypes"
+                        value="graduation"
+                        class="form-checkbox"
+                      />
+                      <span class="checkbox-text">Graduation</span>
+                    </label>
+                    <label class="checkbox-inline">
+                      <input
+                        type="checkbox"
+                        id="pkg-event-engagement"
+                        name="eventTypes"
+                        value="engagement"
+                        class="form-checkbox"
+                      />
+                      <span class="checkbox-text">Engagement</span>
+                    </label>
+                    <label class="checkbox-inline">
+                      <input
+                        type="checkbox"
                         id="pkg-event-other"
                         name="eventTypes"
                         value="other"
                         class="form-checkbox"
                       />
-                      <span class="checkbox-text">Other Events</span>
+                      <span class="checkbox-text">Other</span>
                     </label>
                   </div>
-                  <p class="form-help">Select at least one</p>
+                  <p class="form-help">Select all event types this package is suitable for</p>
                 </div>
               </div>
               <div class="form-row">
@@ -1052,7 +1127,7 @@
                     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                   </svg>
                 </div>
-                <div style="display: flex; align-items: center; gap: 0.75rem">
+                <div class="sd-messages-heading-row">
                   <h3 id="messages-heading" class="sd-card-header__heading">Messages</h3>
                   <span
                     id="unreadMessageBadge"
@@ -1103,13 +1178,13 @@
           </div>
           <!-- Lead Quality Summary Stats -->
           <div class="sd-card-body">
-          <div id="lead-quality-summary-stats" style="display:none;padding:0.75rem 1rem;margin-bottom:0.75rem;background:#F9FAFB;border-radius:8px;border:1px solid #E5E7EB;">
-            <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
-              <span style="font-size:0.8125rem;font-weight:600;color:#374151;">Lead Quality:</span>
-              <span id="lqs-high" style="font-size:0.8125rem;display:inline-flex;align-items:center;gap:0.25rem;"><span style="width:8px;height:8px;border-radius:50%;background:#10b981;display:inline-block;"></span><span id="lqs-high-text">0 High</span></span>
-              <span id="lqs-medium" style="font-size:0.8125rem;display:inline-flex;align-items:center;gap:0.25rem;"><span style="width:8px;height:8px;border-radius:50%;background:#f59e0b;display:inline-block;"></span><span id="lqs-medium-text">0 Medium</span></span>
-              <span id="lqs-low" style="font-size:0.8125rem;display:inline-flex;align-items:center;gap:0.25rem;"><span style="width:8px;height:8px;border-radius:50%;background:#ef4444;display:inline-block;"></span><span id="lqs-low-text">0 Low</span></span>
-              <span id="lqs-pct" style="font-size:0.8125rem;color:#6B7280;margin-left:auto;"></span>
+          <div id="lead-quality-summary-stats" class="sd-lqs-bar" hidden>
+            <div class="sd-lqs-row">
+              <span class="sd-lqs-label">Lead Quality:</span>
+              <span id="lqs-high" class="sd-lqs-item"><span class="sd-lqs-dot sd-lqs-dot--high" aria-hidden="true"></span><span id="lqs-high-text">0 High</span></span>
+              <span id="lqs-medium" class="sd-lqs-item"><span class="sd-lqs-dot sd-lqs-dot--medium" aria-hidden="true"></span><span id="lqs-medium-text">0 Medium</span></span>
+              <span id="lqs-low" class="sd-lqs-item"><span class="sd-lqs-dot sd-lqs-dot--low" aria-hidden="true"></span><span id="lqs-low-text">0 Low</span></span>
+              <span id="lqs-pct" class="sd-lqs-pct"></span>
             </div>
           </div>
           <!-- Messenger Dashboard Widget -->
@@ -1238,17 +1313,17 @@
             <div class="ef-stat-card">
               <div class="ef-stat-label">Total Revenue</div>
               <div class="ef-stat-value" aria-label="Not available">—</div>
-              <div class="ef-stat-change" style="color: var(--ef-text-light, #9ca3af)">Not yet tracked</div>
+              <div class="ef-stat-change ef-stat-change--muted">Not yet tracked</div>
             </div>
             <div class="ef-stat-card">
               <div class="ef-stat-label">This Month</div>
               <div class="ef-stat-value" aria-label="Not available">—</div>
-              <div class="ef-stat-change" style="color: var(--ef-text-light, #9ca3af)">Coming soon</div>
+              <div class="ef-stat-change ef-stat-change--muted">Coming soon</div>
             </div>
             <div class="ef-stat-card">
               <div class="ef-stat-label">Pending</div>
               <div class="ef-stat-value" aria-label="Not available">—</div>
-              <div class="ef-stat-change" style="color: var(--ef-text-light, #9ca3af)">Coming soon</div>
+              <div class="ef-stat-change ef-stat-change--muted">Coming soon</div>
             </div>
           </div>
 
@@ -1284,6 +1359,53 @@
             </div>
           </div>
           <div id="profile-completeness-widget" class="section"></div>
+        </div>
+
+        <!-- Availability Widget -->
+        <div class="card sd-card supplier-dashboard-card" aria-labelledby="avail-heading">
+          <div class="supplier-card-header sd-card-header sd-card-header--teal">
+            <div class="sd-card-header__left">
+              <div class="sd-card-header__title-row">
+                <div class="sd-card-header__icon sd-card-header__icon--teal" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/>
+                  </svg>
+                </div>
+                <h3 id="avail-heading" class="sd-card-header__heading">Availability Status</h3>
+              </div>
+              <p class="sd-card-header__subtitle">Show customers when you can take bookings</p>
+            </div>
+          </div>
+          <div class="sd-card-body" style="padding:20px">
+            <div id="supplier-availability-widget" aria-live="polite">
+              <div class="skeleton" style="height:120px;border-radius:12px;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Performance Tips -->
+        <div class="card sd-card supplier-dashboard-card" aria-labelledby="tips-heading">
+          <div class="supplier-card-header sd-card-header sd-card-header--amber">
+            <div class="sd-card-header__left">
+              <div class="sd-card-header__title-row">
+                <div class="sd-card-header__icon sd-card-header__icon--amber" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>
+                  </svg>
+                </div>
+                <h3 id="tips-heading" class="sd-card-header__heading">Performance Tips</h3>
+              </div>
+              <p class="sd-card-header__subtitle">Personalised actions to grow your enquiries</p>
+            </div>
+          </div>
+          <div class="sd-card-body" style="padding:20px">
+            <div id="supplier-perf-tips" aria-live="polite">
+              <div class="skeleton" style="height:60px;border-radius:12px;margin-bottom:10px;"></div>
+              <div class="skeleton" style="height:60px;border-radius:12px;margin-bottom:10px;"></div>
+              <div class="skeleton" style="height:60px;border-radius:12px;"></div>
+            </div>
+            <div id="supplier-review-request-widget" style="margin-top:12px"></div>
+          </div>
         </div>
 
         <!-- Next Steps / Action Items -->
@@ -1360,13 +1482,15 @@
           </div>
 
           <div class="sd-card-body">
+            <div id="sup-cal-permission-notice" class="sup-cal-permission-notice"></div>
+            <div id="sup-my-public-events" class="sup-my-public-events"></div>
             <div id="sup-cal-legend" class="supplier-calendar-legend" aria-label="Calendar colour legend">
               <span class="cal-legend-item"><span class="cal-legend-dot" style="background:#0b8073;"></span>My events</span>
               <span class="cal-legend-item"><span class="cal-legend-dot" style="background:#e11d48;"></span>Public events</span>
               <span class="cal-legend-item"><span class="cal-legend-dot" style="background:#7c3aed;"></span>Saved</span>
               <span class="cal-legend-item"><span class="cal-legend-dot" style="background:#6366f1;"></span>Meeting</span>
               <span class="cal-legend-item"><span class="cal-legend-dot" style="background:#f59e0b;"></span>Appointment</span>
-              <span class="cal-legend-item"><span class="cal-legend-dot" style="background:#0b8073;"></span>Entry</span>
+
             </div>
             <div id="supplier-events-calendar" class="supplier-calendar-viewport"></div>
           </div>
@@ -1452,9 +1576,8 @@
             </div>
             <div class="sd-card-header__actions">
               <button
-                class="glass-btn glass-btn--primary"
+                class="glass-btn glass-btn--primary sd-ticket-create-btn"
                 id="createSupplierTicketBtn"
-                style="padding: 0.625rem 1.25rem; font-size: 0.875rem"
               >
                 <svg
                   viewBox="0 0 24 24"
@@ -1465,13 +1588,13 @@
                   stroke-linejoin="round"
                   width="16"
                   height="16"
-                  style="margin-right: 0.5rem; display: inline-block; vertical-align: middle"
                   aria-hidden="true"
+                  class="sd-ticket-btn-icon"
                 >
                   <path d="M5 12h14"/>
                   <path d="M12 5v14"/>
                 </svg>
-                <span style="vertical-align: middle">Create Ticket</span>
+                <span>Create Ticket</span>
               </button>
             </div>
           </div>
@@ -1568,17 +1691,18 @@
           </div>
         </section>
 
-        <script src="/assets/js/config/page-init.js"></script>
-  <script src="/assets/js/app.js?v=18.4.0"></script>
-        <script src="/assets/js/components.js?v=18.3.0"></script>
-        <script src="/assets/js/unread-badge-manager.js?v=18.3.0"></script>
-        <script type="module" src="/assets/js/supplier-tickets.js?v=18.3.0"></script>
-        <script type="module" src="/assets/js/supplier-gallery.js?v=18.3.0"></script>
-        <script type="module" src="/assets/js/pages/dashboard-supplier-module.js"></script>
-        
-        <script src="/assets/js/pages/dashboard-supplier-auth.js"></script>
       </div>
     </main>
+    <script src="/assets/js/config/page-init.js" defer></script>
+    <script src="/assets/js/app.js?v=18.4.0" defer></script>
+    <script src="/assets/js/components.js?v=18.3.0" defer></script>
+    <script src="/assets/js/unread-badge-manager.js?v=18.3.0" defer></script>
+    <script src="/assets/js/pages/dashboard-supplier-category.js" defer></script>
+    <script src="/assets/js/pages/supplier-reviews-init.js" defer></script>
+    <script type="module" src="/assets/js/supplier-tickets.js?v=18.3.0"></script>
+    <script type="module" src="/assets/js/supplier-gallery.js?v=18.3.0"></script>
+    <script type="module" src="/assets/js/pages/dashboard-supplier-module.js"></script>
+    <script src="/assets/js/pages/dashboard-supplier-auth.js" defer></script>
     <!-- BOTTOM NAVBAR - GOLD STANDARD REBUILD (Mobile Only) -->
     <nav class="ef-bottom-nav" role="navigation" aria-label="Mobile bottom navigation">
       <a href="/start" class="ef-bottom-link" aria-label="Plan your event">
@@ -1634,7 +1758,7 @@
 
       <!-- Dashboard with notification badge (shown when logged in, replaces Alerts) -->
       <a
-        href="#"
+        href="/dashboard/supplier"
         id="ef-bottom-dashboard"
         class="ef-bottom-link"
         style="display: none"
@@ -1718,15 +1842,18 @@
           <a href="/contact">Contact</a> · <a href="/legal">Legal Hub</a> ·
       <button type="button" data-cookie-prefs>Cookie preferences</button>
         </div>
-        <div class="small" style="width: 100%; margin-top: 8px; text-align: center;">Operated by <a href="https://vexi.co.uk" target="_blank" rel="noopener noreferrer">VEXI</a></div>
+        <div class="footer-credit small">Operated by <a href="https://vexi.co.uk" target="_blank" rel="noopener noreferrer">VEXI</a></div>
       </div>
   </footer>
     <script src="/assets/js/cookie-consent.js?v=2.0.0" defer></script>
 
     <!-- FullCalendar for Events Calendar -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
-    <script src="/assets/js/pages/dashboard-supplier-calendar.js"></script>
+    <!-- NOTE: the fullcalendar global bundle injects its own <style> tag at
+         runtime — there is no separate CSS file in the package. The <link>
+         that previously pointed to index.global.min.css returned a 404 on
+         every page load and has been removed. -->
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js" defer></script>
+    <script src="/assets/js/pages/dashboard-supplier-calendar.js" defer></script>
 
     <!-- Dashboard avoids third-party chat/widget scripts to reduce CSP/tracking noise -->
 
@@ -1755,5 +1882,8 @@
     <!-- Liquid Glass Engine — mobile displacement maps + chromatic aberration (≤768px only) -->
     <script src="/assets/js/liquid-glass-engine.js?v=19.0.0" defer></script>
     <script src="/assets/js/card-collapse.js" defer></script>
-</body>
+    <!-- Dashboard Overhaul Widgets — PR #1150 -->
+    <script src="/assets/js/dashboard-supplier-overhaul.js" defer></script>
+  </body>
 </html>
+

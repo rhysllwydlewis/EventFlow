@@ -196,11 +196,10 @@ function createSupplierCard(supplier, position) {
             ? `<img src="${escapeHtml(resolvedImg)}" alt="${escapeHtml(pkg.title)}" class="sp-pkg-mini-img" loading="lazy" data-fallback-hide data-fallback-show-next>
                <div class="sp-pkg-mini-img-fallback" style="display:none;" aria-hidden="true">📦</div>`
             : `<div class="sp-pkg-mini-img-fallback" aria-hidden="true">📦</div>`;
-        const pkgHref = pkg.slug
-          ? `/package?slug=${encodeURIComponent(pkg.slug)}`
-          : pkg.id
-            ? `/package?id=${encodeURIComponent(pkg.id)}`
-            : null;
+        const packageIdentifier = pkg.slug || pkg.id || pkg.packageId || '';
+        const pkgHref = packageIdentifier
+          ? `/package/${encodeURIComponent(String(packageIdentifier))}`
+          : null;
         const cardTag = pkgHref ? 'a' : 'div';
         const cardHrefAttr = pkgHref ? ` href="${escapeHtml(pkgHref)}"` : '';
         return `

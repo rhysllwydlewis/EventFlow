@@ -75,7 +75,7 @@ class BudgetManager {
         this.budget.total = amount;
         this.saveToStorage();
         this.render();
-        Toast.success(`Budget set to £${amount.toLocaleString()}`);
+        showToast(`Budget set to £${amount.toLocaleString()}`);
       },
     });
 
@@ -151,13 +151,13 @@ class BudgetManager {
         const notes = document.getElementById('expense-notes').value.trim();
 
         if (!name || amount <= 0) {
-          Toast.error('Please fill in required fields');
+          showToast('Please fill in required fields', 'error');
           return;
         }
 
         if (isEdit) {
           Object.assign(expense, { name, category, amount, status, date, vendor, notes });
-          Toast.success('Expense updated');
+          showToast('Expense updated', 'success');
         } else {
           this.budget.expenses.push({
             id: this.generateId(),
@@ -170,7 +170,7 @@ class BudgetManager {
             notes,
             createdAt: Date.now(),
           });
-          Toast.success('Expense added');
+          showToast('Expense added', 'success');
 
           // Show confetti if this is a significant expense (only if confetti is available)
           if (amount > 1000 && typeof confetti === 'function') {
@@ -201,7 +201,7 @@ class BudgetManager {
         this.budget.expenses = this.budget.expenses.filter(e => e.id !== id);
         this.saveToStorage();
         this.render();
-        Toast.success('Expense deleted');
+        showToast('Expense deleted', 'success');
       },
     });
 
@@ -499,13 +499,13 @@ class BudgetManager {
             budgetData,
             `eventflow-budget-${new Date().toISOString().split('T')[0]}.pdf`
           );
-          Toast.success('Budget exported as PDF');
+          showToast('Budget exported as PDF', 'success');
         } else {
-          Toast.error('Export utility not loaded');
+          showToast('Export utility not loaded', 'error');
         }
       } catch (error) {
         console.error('PDF export error:', error);
-        Toast.error('Failed to export PDF');
+        showToast('Failed to export PDF', 'error');
       }
       modal.remove();
     });
@@ -520,7 +520,7 @@ class BudgetManager {
       a.download = `eventflow-budget-${new Date().toISOString().split('T')[0]}.csv`;
       a.click();
       URL.revokeObjectURL(url);
-      Toast.success('Budget exported as CSV');
+      showToast('Budget exported as CSV', 'success');
       modal.remove();
     });
 
@@ -615,3 +615,4 @@ let budgetManager;
 document.addEventListener('DOMContentLoaded', () => {
   budgetManager = new BudgetManager();
 });
+

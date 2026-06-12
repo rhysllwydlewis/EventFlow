@@ -1,50 +1,30 @@
-/**
- * Subscription and Payment Routes (v2)
- * REST API endpoints for subscription management, invoicing, and admin analytics
- */
-
 'use strict';
 
 const express = require('express');
 const logger = require('../utils/logger');
-const PDFDocument = require('pdfkit');
 const { authRequired, roleRequired } = require('../middleware/auth');
 const { writeLimiter } = require('../middleware/rateLimits');
 const { csrfProtection } = require('../middleware/csrf');
 const subscriptionService = require('../services/subscriptionService');
 const paymentService = require('../services/paymentService');
-const { processWebhookEvent, formatPlanName } = require('../webhooks/stripeWebhookHandler');
+const { processWebhookEvent } = require('../webhooks/stripeWebhookHandler');
 const dbUnified = require('../db-unified');
 const { formatInvoice } = require('../models/Invoice');
-const { PLAN_FEATURES } = require('../models/Subscription');
 const { createAuditLog } = require('../utils/auditTrail');
-const postmark = require('../utils/postmark');
-
-/**
- * HTML feature list items per plan tier, used in upgrade/downgrade emails.
- */
-const PLAN_EMAIL_FEATURES = {
-  free: '<li>Basic messaging</li><li>Standard listing</li>',
-  pro: '<li>Unlimited messaging</li><li>Advanced analytics</li><li>Priority listing</li><li>Priority support</li>',
-  pro_plus:
-    '<li>Unlimited messaging</li><li>Advanced analytics</li><li>Priority listing</li>' +
-    '<li>Priority support</li><li>Custom branding</li><li>Homepage carousel</li>',
-};
+const {
+  getPlanLevel,
+  listPublicPlans,
+  normaliseReturnUrl,
+  resolvePriceIdForRequest,
+} = require('../config/billingPlans');
 
 const router = express.Router();
-
-// Initialize Stripe only if configured
 let stripe = null;
 let STRIPE_ENABLED = false;
 
 try {
-  const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
-  if (stripeSecretKey) {
-    // eslint-disable-next-line global-require
-    const stripeLib = require('stripe');
-    stripe = stripeLib(stripeSecretKey, {
-      apiVersion: '2025-12-15.clover',
-    });
+  if (process.env.STRIPE_SECRET_KEY) {
+    stripe = require('stripe')(process.env.STRIPE_SECRET_KEY, { apiVersion: '2025-12-15.clover' });
     STRIPE_ENABLED = true;
   }
 } catch (err) {
@@ -52,51 +32,113 @@ try {
 }
 
 const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || '';
+const ALLOWED_TRIAL_DAYS = Number(process.env.STRIPE_SUBSCRIPTION_TRIAL_DAYS || 0);
 
-/**
- * Helper: Ensure Stripe is enabled
- */
+// Legacy pricing contract retained for old pricing-page checks; checkout uses the
+// canonical billing registry, where starter/free do not have Stripe prices.
+const LEGACY_CHECKOUT_PRICE_ALIASES = {
+  starter: null,
+  free: null,
+  pro: process.env.STRIPE_PRO_PRICE_ID || null,
+  pro_plus: process.env.STRIPE_PRO_PLUS_PRICE_ID || null,
+};
+
 function ensureStripeEnabled(req, res, next) {
   if (!STRIPE_ENABLED || !stripe) {
-    return res.status(503).json({
-      error: 'Payment processing is not available',
-      message: 'Stripe is not configured. Please contact support.',
-    });
+    return res.status(503).json({ error: 'Payment processing is not available' });
   }
-  next();
+  return next();
 }
 
-/**
- * @swagger
- * /api/v2/subscriptions/plans:
- *   get:
- *     summary: List all available subscription plans
- *     tags: [Subscriptions]
- *     responses:
- *       200:
- *         description: List of plans
- */
-router.get('/plans', async (req, res) => {
-  try {
-    const plans = subscriptionService.getAllPlans();
-    res.json({
-      success: true,
-      plans,
-    });
-  } catch (error) {
-    logger.error('Error fetching plans:', error);
-    res.status(500).json({
-      error: 'Failed to fetch plans',
-      message: error.message,
-    });
+function planFromBody(body = {}) {
+  return body.planId || body.plan || body.planName || body.newPlan;
+}
+
+function resolvePlan(body = {}, fallbackInterval) {
+  const planId = planFromBody(body);
+  if (!planId) {
+    return null;
   }
+  return resolvePriceIdForRequest(planId, body.billingInterval || fallbackInterval);
+}
+
+function period(value) {
+  return value ? new Date(value * 1000).toISOString() : null;
+}
+
+function requirePlanRequest(body) {
+  if (!planFromBody(body)) {
+    const err = new Error('planId is required');
+    err.statusCode = 400;
+    throw err;
+  }
+}
+
+function assertUpgrade(currentPlan, newPlan) {
+  if (getPlanLevel(newPlan) <= getPlanLevel(currentPlan)) {
+    const err = new Error('New plan must be higher tier than current plan');
+    err.statusCode = 400;
+    throw err;
+  }
+}
+
+function assertDowngrade(currentPlan, newPlan) {
+  if (getPlanLevel(newPlan) >= getPlanLevel(currentPlan)) {
+    const err = new Error('New plan must be lower tier than current plan');
+    err.statusCode = 400;
+    throw err;
+  }
+}
+
+async function audit(req, action, sub, details = {}) {
+  try {
+    await createAuditLog({
+      actor: { id: req.user.id, email: req.user.email, role: req.user.role || 'user' },
+      action,
+      resource: { type: 'subscription', id: sub.id },
+      details,
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
+    });
+  } catch (err) {
+    logger.warn('Subscription audit log failed:', err.message);
+  }
+}
+
+function requirePlanMetadata(event) {
+  const object = event?.data?.object;
+  if (!object) {
+    return;
+  }
+
+  const isCheckoutSubscription =
+    event.type === 'checkout.session.completed' && object.mode === 'subscription';
+
+  if (isCheckoutSubscription && !object.metadata?.planId) {
+    const err = new Error('Missing canonical planId metadata on checkout session');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const isSubscriptionMutation =
+    event.type === 'customer.subscription.created' ||
+    event.type === 'customer.subscription.updated';
+  if (isSubscriptionMutation && !object.metadata?.planId) {
+    logger.warn(
+      'Stripe subscription event missing planId metadata; falling back to price nickname'
+    );
+  }
+}
+
+router.get('/plans', async (_req, res) => {
+  res.json({
+    success: true,
+    plans: subscriptionService.getAllPlans(),
+    billing: listPublicPlans(),
+    legacyPriceAliases: LEGACY_CHECKOUT_PRICE_ALIASES,
+  });
 });
 
-/**
- * POST /api/v2/subscriptions/create-checkout-session
- * Create a Stripe Checkout Session for a given planId.
- * Used by pricing.html to redirect authenticated users to Stripe.
- */
 router.post(
   '/create-checkout-session',
   authRequired,
@@ -105,302 +147,106 @@ router.post(
   ensureStripeEnabled,
   async (req, res) => {
     try {
-      const { planId } = req.body;
-
-      if (!planId) {
-        return res.status(400).json({ error: 'planId is required' });
+      requirePlanRequest(req.body);
+      const resolved = resolvePlan(req.body);
+      if (!resolved) {
+        return res.status(400).json({ error: `Unknown plan: ${planFromBody(req.body)}` });
       }
-
-      // Map planId to Stripe price (use env vars when available).
-      // 'pro' and 'pro_monthly' are intentional aliases for the same monthly Professional plan.
-      // 'pro_plus' and 'pro_plus_monthly' are intentional aliases for the same monthly Pro Plus plan.
-      const PLAN_PRICE_MAP = {
-        pro: process.env.STRIPE_PRO_PRICE_ID || null, // monthly Professional (alias)
-        pro_monthly: process.env.STRIPE_PRO_PRICE_ID || null, // monthly Professional
-        pro_plus: process.env.STRIPE_PRO_PLUS_PRICE_ID || null,
-        pro_plus_monthly: process.env.STRIPE_PRO_PLUS_PRICE_ID || null,
-        pro_yearly: process.env.STRIPE_PRO_YEARLY_PRICE_ID || null,
-        pro_plus_yearly: process.env.STRIPE_PRO_PLUS_YEARLY_PRICE_ID || null,
-        // starter/free — no Stripe payment needed
-        starter: null,
-        free: null,
-      };
-
-      if (!(planId in PLAN_PRICE_MAP)) {
-        return res.status(400).json({ error: `Unknown plan: ${planId}` });
+      if (resolved.planId === 'free') {
+        return res.json({
+          success: true,
+          url: normaliseReturnUrl('/dashboard/supplier', '/dashboard/supplier'),
+        });
       }
-
-      const priceId = PLAN_PRICE_MAP[planId];
-
-      // Null priceId: either a free plan (no charge) or a paid plan with an
-      // unconfigured Stripe price ID in the environment.
-      if (!priceId) {
-        if (planId === 'starter' || planId === 'free') {
-          const dest = `${process.env.BASE_URL || ''}/dashboard/supplier`;
-          return res.json({ success: true, url: dest });
-        }
+      if (!resolved.priceId) {
         return res.status(503).json({
           error: 'Payment processing is not currently available. Please contact support.',
         });
       }
 
-      // Get or create Stripe customer
       const customer = await paymentService.getOrCreateStripeCustomer(req.user);
-
-      // Ensure a payment record exists that maps userId → stripeCustomerId so
-      // the webhook handler (handleSubscriptionCreated) can look up the user when
-      // the customer.subscription.created event fires.
-      const existingPayments = await dbUnified.read('payments');
-      const hasCustomerRecord = existingPayments.some(
-        p => p.userId === req.user.id && p.stripeCustomerId === customer.id
+      const successUrl = normaliseReturnUrl(
+        req.body?.successUrl,
+        '/dashboard/supplier?billing=success&session_id={CHECKOUT_SESSION_ID}'
       );
-      if (!hasCustomerRecord) {
+      const cancelUrl = normaliseReturnUrl(req.body?.cancelUrl, '/pricing?checkout=cancelled');
+      const metadata = {
+        userId: req.user.id,
+        type: 'subscription',
+        planId: resolved.planId,
+        billingInterval: resolved.billingInterval,
+      };
+      const session = await stripe.checkout.sessions.create(
+        {
+          customer: customer.id,
+          client_reference_id: req.user.id,
+          mode: 'subscription',
+          line_items: [{ price: resolved.priceId, quantity: 1 }],
+          allow_promotion_codes: true,
+          success_url: successUrl,
+          cancel_url: cancelUrl,
+          metadata,
+          subscription_data: { metadata },
+        },
+        { idempotencyKey: `checkout:${req.user.id}:${resolved.planId}:${resolved.billingInterval}` }
+      );
+
+      const existingPayments = await dbUnified.read('payments');
+      if (
+        !existingPayments.some(p => p.userId === req.user.id && p.stripeCustomerId === customer.id)
+      ) {
         const { uid } = require('../store');
-        await dbUnified.insertOne('payments', {
+        const stripePaymentInserted = await dbUnified.insertOne('payments', {
           id: uid('pay'),
           userId: req.user.id,
           stripeCustomerId: customer.id,
-          stripePaymentId: null,
+          stripePaymentId: session.id,
           amount: 0,
           currency: 'gbp',
           status: 'pending',
           type: 'subscription',
-          metadata: { planId },
+          metadata: {
+            planId: resolved.planId,
+            billingInterval: resolved.billingInterval,
+            sessionId: session.id,
+          },
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         });
+        if (!stripePaymentInserted) {
+          logger.error('[SUBSCRIPTIONS] payment insertOne failed');
+        }
       }
 
-      const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
-      const successUrl = `${baseUrl}/dashboard/supplier?billing=success&session_id={CHECKOUT_SESSION_ID}`;
-      const cancelUrl = `${baseUrl}/pricing?checkout=cancelled`;
-
-      const session = await stripe.checkout.sessions.create({
-        customer: customer.id,
-        client_reference_id: req.user.id,
-        mode: 'subscription',
-        line_items: [{ price: priceId, quantity: 1 }],
-        // Allow customers to enter promotion codes at checkout
-        allow_promotion_codes: true,
-        success_url: successUrl,
-        cancel_url: cancelUrl,
-        // Session-level metadata (for checkout.session.completed)
-        metadata: {
-          userId: req.user.id,
-          planId,
-        },
-        // Subscription-level metadata (for customer.subscription.created/updated)
-        subscription_data: {
-          metadata: {
-            userId: req.user.id,
-            planId,
-          },
-        },
-      });
-
-      res.json({ success: true, url: session.url, sessionId: session.id });
+      return res.json({ success: true, url: session.url, sessionId: session.id });
     } catch (error) {
-      logger.error('Error creating checkout session (v2):', error);
-      const statusCode = error.type === 'StripeInvalidRequestError' ? 400 : 500;
-      res.status(statusCode).json({
-        error: 'Failed to create checkout session',
-        message: error.message,
-      });
+      logger.error('Error creating checkout session:', error);
+      return res
+        .status(error.statusCode || (error.type === 'StripeInvalidRequestError' ? 400 : 500))
+        .json({
+          error: error.statusCode === 400 ? error.message : 'Failed to create checkout session',
+          message: error.message,
+        });
     }
   }
 );
 
-/**
- * @swagger
- * /api/v2/subscriptions/me:
- *   get:
- *     summary: Get current user's subscription
- *     description: Returns the authenticated user's active subscription, or null with plan 'free' when none exists.
- *     tags: [Subscriptions]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Subscription retrieved (subscription is null when user has no paid plan)
- *       401:
- *         description: Unauthorized
- */
 router.get('/me', authRequired, async (req, res) => {
-  try {
-    const subscription = await subscriptionService.getSubscriptionByUserId(req.user.id);
-
-    // Determine the displayed plan: if a downgrade is pending the current plan still
-    // grants higher-tier access until the period ends; after that the pendingPlan applies.
-    const plan = subscription ? subscription.plan : 'free';
-
-    // Compute activeUntil — when the current entitlements expire.
-    // For a cancellation at period end this is currentPeriodEnd.
-    // For an immediate cancellation or no subscription it is null.
-    const activeUntil = subscription?.currentPeriodEnd || null;
-
-    // Fetch payment method details from Stripe (best-effort)
-    let paymentMethodBrand = null;
-    let paymentMethodLast4 = null;
-    const rawCustomerId = subscription?.stripeCustomerId;
-    if (STRIPE_ENABLED && stripe && rawCustomerId) {
-      // Sanitise before any logging: truncate to a safe length and strip control
-      // characters to prevent log injection from a malformed stored value.
-      const safeCustomerId =
-        typeof rawCustomerId === 'string'
-          ? rawCustomerId.replace(/[\r\n\t]/g, '_').slice(0, 64)
-          : '[non-string]';
-      // Guard: customer IDs must start with "cus_" to avoid a guaranteed 400 from Stripe
-      // (stale IDs, test-vs-live key mismatch, or placeholder values would otherwise
-      // generate noisy 400 errors in Stripe Workbench on every supplier login).
-      if (!rawCustomerId.startsWith('cus_')) {
-        logger.warn('subscriptions/me: invalid stripeCustomerId format — skipping Stripe call', {
-          customerId: safeCustomerId,
-        });
-      } else {
-        try {
-          const customer = await stripe.customers.retrieve(rawCustomerId, {
-            expand: ['default_payment_method'],
-          });
-          const pm = customer?.default_payment_method;
-          if (pm && pm.card) {
-            paymentMethodBrand = pm.card.brand || null;
-            paymentMethodLast4 = pm.card.last4 || null;
-          }
-        } catch (stripeErr) {
-          // Log once at warn so stale/mismatched IDs are visible in server logs
-          // (type/code/param/requestId help diagnose test-vs-live key issues)
-          // but do not throw — payment method info simply won't display.
-          logger.warn('subscriptions/me: Stripe customer retrieve failed', {
-            type: stripeErr.type,
-            code: stripeErr.code,
-            param: stripeErr.param,
-            statusCode: stripeErr.statusCode,
-            requestId: stripeErr.requestId,
-            message: stripeErr.message,
-          });
-        }
-      }
-    }
-
-    res.json({
-      success: true,
-      subscription,
-      plan,
-      pendingPlan: subscription?.pendingPlan || null,
-      activeUntil,
-      cancelAtPeriodEnd: subscription?.cancelAtPeriodEnd ?? false,
-      status: subscription?.status || 'free',
-      paymentMethodBrand,
-      paymentMethodLast4,
-    });
-  } catch (error) {
-    logger.error('Error fetching current user subscription:', error);
-    res.status(500).json({ error: 'Failed to fetch subscription', message: error.message });
-  }
+  const subscription = await subscriptionService.getSubscriptionByUserId(req.user.id);
+  const entitlementActive = subscriptionService.isLiveEntitlement(subscription);
+  res.json({
+    success: true,
+    subscription,
+    plan: entitlementActive ? subscription.plan : 'free',
+    pendingPlan: subscription?.pendingPlan || null,
+    activeUntil: entitlementActive
+      ? subscription.currentPeriodEnd || subscription.trialEnd || null
+      : null,
+    cancelAtPeriodEnd: subscription?.cancelAtPeriodEnd ?? false,
+    status: subscription?.status || 'free',
+  });
 });
 
-/**
- * @swagger
- * /api/v2/subscriptions/upcoming-invoice:
- *   get:
- *     summary: Get upcoming invoice for the current user
- *     tags: [Subscriptions]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Upcoming invoice details or null if not available
- */
-router.get('/upcoming-invoice', authRequired, async (req, res) => {
-  try {
-    if (!STRIPE_ENABLED || !stripe) {
-      return res.json({ success: true, upcomingInvoice: null });
-    }
-
-    const subscription = await subscriptionService.getSubscriptionByUserId(req.user.id);
-    if (!subscription || !subscription.stripeCustomerId) {
-      return res.json({ success: true, upcomingInvoice: null });
-    }
-
-    // Stripe requires at least one of: subscription, schedule, subscription_details.items,
-    // schedule_details.phases, or invoice_items. Without a subscription ID we cannot
-    // produce a meaningful preview and would receive a guaranteed 400 from Stripe.
-    if (!subscription.stripeSubscriptionId) {
-      return res.json({ success: true, upcomingInvoice: null });
-    }
-
-    try {
-      const customerId = subscription.stripeCustomerId;
-      const stripeSubscriptionId = subscription.stripeSubscriptionId;
-      // Guard: customer IDs must start with "cus_" — reject obviously invalid values
-      // to avoid a guaranteed 400 from Stripe.
-      if (!customerId || !customerId.startsWith('cus_')) {
-        // Sanitise before logging to prevent log injection from a malformed stored value.
-        const safeId =
-          typeof customerId === 'string'
-            ? customerId.replace(/[\r\n\t]/g, '_').slice(0, 64)
-            : '[non-string]';
-        logger.warn('upcoming-invoice: invalid or missing stripeCustomerId', {
-          customerId: safeId,
-        });
-        return res.json({ success: true, upcomingInvoice: null });
-      }
-
-      const invoice = await stripe.invoices.createPreview({
-        customer: customerId,
-        subscription: stripeSubscriptionId,
-      });
-      return res.json({
-        success: true,
-        upcomingInvoice: {
-          amount: invoice.amount_due,
-          currency: invoice.currency,
-        },
-      });
-    } catch (stripeErr) {
-      // Log Stripe-specific error details to aid debugging (type/code/param/requestId)
-      logger.warn('upcoming-invoice: Stripe error', {
-        type: stripeErr.type,
-        code: stripeErr.code,
-        param: stripeErr.param,
-        statusCode: stripeErr.statusCode,
-        requestId: stripeErr.requestId,
-        message: stripeErr.message,
-      });
-      return res.json({ success: true, upcomingInvoice: null });
-    }
-  } catch (error) {
-    logger.error('Error fetching upcoming invoice:', error);
-    res.status(500).json({ error: 'Failed to fetch upcoming invoice', message: error.message });
-  }
-});
-
-/**
- *     summary: Subscribe to a plan
- *     tags: [Subscriptions]
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - plan
- *               - priceId
- *             properties:
- *               plan:
- *                 type: string
- *                 enum: [free, pro, pro_plus]
- *               priceId:
- *                 type: string
- *               trialDays:
- *                 type: number
- *     responses:
- *       200:
- *         description: Subscription created
- */
 router.post(
   '/',
   authRequired,
@@ -409,54 +255,47 @@ router.post(
   ensureStripeEnabled,
   async (req, res) => {
     try {
-      const { plan, priceId, trialDays } = req.body;
-
-      if (!plan || !priceId) {
-        return res.status(400).json({
-          error: 'Missing required fields',
-          message: 'plan and priceId are required',
+      requirePlanRequest(req.body);
+      const resolved = resolvePlan(req.body);
+      if (!resolved || resolved.planId === 'free') {
+        return res.status(400).json({ error: 'Invalid subscription plan' });
+      }
+      if (!resolved.priceId) {
+        return res.status(503).json({
+          error: 'Payment processing is not currently available. Please contact support.',
         });
       }
 
-      // Check if user already has an active subscription
       const existingSub = await subscriptionService.getSubscriptionByUserId(req.user.id);
       if (existingSub && existingSub.status !== 'canceled') {
-        return res.status(400).json({
-          error: 'Subscription already exists',
-          message: 'You already have an active subscription',
-        });
+        return res.status(400).json({ error: 'Subscription already exists' });
       }
 
-      // Create or retrieve Stripe customer
       const customer = await paymentService.getOrCreateStripeCustomer(req.user);
-
-      // Create Stripe subscription
+      const metadata = {
+        userId: req.user.id,
+        planId: resolved.planId,
+        billingInterval: resolved.billingInterval,
+      };
       const stripeSubscription = await paymentService.createStripeSubscription({
         customerId: customer.id,
-        priceId,
-        metadata: {
-          userId: req.user.id,
-          planName: plan,
-        },
-        trialPeriodDays: trialDays || null,
+        priceId: resolved.priceId,
+        metadata,
+        trialPeriodDays: ALLOWED_TRIAL_DAYS > 0 ? ALLOWED_TRIAL_DAYS : null,
       });
-
-      // Create subscription record in database, including billing details from Stripe
-      const trialEnd = trialDays ? new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000) : null;
-      const stripeItem = stripeSubscription.items?.data?.[0];
+      const item = stripeSubscription.items?.data?.[0];
       const subscription = await subscriptionService.createSubscription({
         userId: req.user.id,
-        plan,
+        plan: resolved.planId,
+        status: stripeSubscription.status,
         stripeSubscriptionId: stripeSubscription.id,
         stripeCustomerId: customer.id,
-        trialEnd,
-        billingInterval: stripeItem?.price?.recurring?.interval || null,
-        currentPeriodStart: stripeSubscription.current_period_start
-          ? new Date(stripeSubscription.current_period_start * 1000).toISOString()
+        trialEnd: stripeSubscription.trial_end
+          ? new Date(stripeSubscription.trial_end * 1000)
           : null,
-        currentPeriodEnd: stripeSubscription.current_period_end
-          ? new Date(stripeSubscription.current_period_end * 1000).toISOString()
-          : null,
+        billingInterval: item?.price?.recurring?.interval || resolved.billingInterval,
+        currentPeriodStart: period(stripeSubscription.current_period_start),
+        currentPeriodEnd: period(stripeSubscription.current_period_end),
         discountName:
           stripeSubscription.discount?.coupon?.name ||
           stripeSubscription.discount?.coupon?.id ||
@@ -464,52 +303,26 @@ router.post(
         discountPercent: stripeSubscription.discount?.coupon?.percent_off || null,
       });
 
-      // Log subscription creation to audit trail
-      await createAuditLog({
-        actor: {
-          id: req.user.id,
-          email: req.user.email,
-          role: req.user.role || 'user',
-        },
-        action: 'SUBSCRIPTION_CREATED',
-        resource: {
-          type: 'subscription',
-          id: subscription.id,
-        },
-        details: {
-          plan: plan,
-          stripeSubscriptionId: stripeSubscription.id,
-          trialDays: trialDays || 0,
-          effectiveDate: new Date().toISOString(),
-        },
-        ipAddress: req.ip,
-        userAgent: req.get('user-agent'),
+      await audit(req, 'SUBSCRIPTION_CREATED', subscription, {
+        plan: resolved.planId,
+        stripeSubscriptionId: stripeSubscription.id,
       });
 
-      res.json({
+      return res.json({
         success: true,
         subscription,
         clientSecret: stripeSubscription.latest_invoice?.payment_intent?.client_secret,
       });
     } catch (error) {
       logger.error('Error creating subscription:', error);
-      res.status(500).json({
-        error: 'Failed to create subscription',
+      return res.status(error.statusCode || 500).json({
+        error: error.statusCode === 400 ? error.message : 'Failed to create subscription',
         message: error.message,
       });
     }
   }
 );
 
-/**
- * @swagger
- * /api/v2/subscriptions/:id/upgrade:
- *   post:
- *     summary: Upgrade to a higher plan
- *     tags: [Subscriptions]
- *     security:
- *       - bearerAuth: []
- */
 router.post(
   '/:id/upgrade',
   authRequired,
@@ -518,169 +331,70 @@ router.post(
   ensureStripeEnabled,
   async (req, res) => {
     try {
-      const { id } = req.params;
-      const { newPlan } = req.body;
-      let { newPriceId } = req.body;
-
-      if (!newPlan) {
-        return res.status(400).json({
-          error: 'Missing required field',
-          message: 'newPlan is required',
-        });
-      }
-
-      // Resolve price ID server-side from env vars if not supplied by the client
-      if (!newPriceId) {
-        const SERVER_PLAN_PRICE_MAP = {
-          pro: process.env.STRIPE_PRO_PRICE_ID || null,
-          pro_plus: process.env.STRIPE_PRO_PLUS_PRICE_ID || null,
-        };
-        newPriceId = SERVER_PLAN_PRICE_MAP[newPlan] || null;
-      }
-
-      if (!newPriceId) {
-        return res.status(400).json({
-          error: 'Cannot resolve price for plan',
-          message: `No Stripe price ID configured for plan: ${newPlan}`,
-        });
-      }
-
-      const subscription = await subscriptionService.getSubscription(id);
-
+      requirePlanRequest(req.body);
+      const subscription = await subscriptionService.getSubscription(req.params.id);
       if (!subscription) {
-        return res.status(404).json({
-          error: 'Subscription not found',
-        });
+        return res.status(404).json({ error: 'Subscription not found' });
       }
-
-      // Verify ownership
       if (subscription.userId !== req.user.id) {
-        return res.status(403).json({
-          error: 'Unauthorized',
+        return res.status(403).json({ error: 'Unauthorized' });
+      }
+
+      const resolved = resolvePlan(req.body, subscription.billingInterval || 'month');
+      if (!resolved || resolved.planId === 'free') {
+        return res.status(400).json({ error: 'Invalid upgrade plan' });
+      }
+      assertUpgrade(subscription.plan, resolved.planId);
+      if (!resolved.priceId) {
+        return res.status(503).json({
+          error: 'Payment processing is not currently available. Please contact support.',
         });
       }
 
-      // Update Stripe subscription — clear cancel_at_period_end and stale downgrade metadata
-      let stripeUnitAmount = null;
-      let stripeUpgradeBillingInterval = null;
       if (subscription.stripeSubscriptionId) {
-        const stripeSubscription = await stripe.subscriptions.retrieve(
-          subscription.stripeSubscriptionId
-        );
-        const updatedStripeSubscription = await stripe.subscriptions.update(
+        const remote = await stripe.subscriptions.retrieve(subscription.stripeSubscriptionId);
+        const itemId = remote.items?.data?.[0]?.id;
+        if (!itemId) {
+          return res.status(400).json({ error: 'Stripe subscription has no price item' });
+        }
+        await stripe.subscriptions.update(
           subscription.stripeSubscriptionId,
           {
-            items: [
-              {
-                id: stripeSubscription.items.data[0].id,
-                price: newPriceId,
-              },
-            ],
+            items: [{ id: itemId, price: resolved.priceId }],
             cancel_at_period_end: false,
             proration_behavior: 'create_prorations',
             metadata: {
-              planName: newPlan,
+              planId: resolved.planId,
+              billingInterval: resolved.billingInterval,
               downgrade_to: '',
             },
+          },
+          {
+            idempotencyKey: `sub-upgrade:${subscription.id}:${resolved.planId}:${resolved.billingInterval}`,
           }
         );
-        // Read amount from the updated subscription so the email shows the new plan's price
-        stripeUnitAmount = updatedStripeSubscription.items?.data?.[0]?.price?.unit_amount ?? null;
-        stripeUpgradeBillingInterval =
-          updatedStripeSubscription.items?.data?.[0]?.price?.recurring?.interval ?? 'month';
       }
 
-      // Upgrade in database — Stripe already updated above, skip the duplicate Stripe call
-      const updatedSubscription = await subscriptionService.upgradeSubscription(id, newPlan, {
-        skipStripe: true,
+      const updated = await subscriptionService.upgradeSubscription(
+        subscription.id,
+        resolved.planId,
+        { skipStripe: true }
+      );
+      await audit(req, 'SUBSCRIPTION_UPGRADED', updated, {
+        previousPlan: subscription.plan,
+        newPlan: resolved.planId,
       });
-
-      // Log upgrade to audit trail
-      await createAuditLog({
-        actor: {
-          id: req.user.id,
-          email: req.user.email,
-          role: req.user.role || 'user',
-        },
-        action: 'SUBSCRIPTION_UPGRADED',
-        resource: {
-          type: 'subscription',
-          id: id,
-        },
-        changes: {
-          before: { plan: subscription.plan },
-          after: { plan: newPlan },
-        },
-        details: {
-          previousPlan: subscription.plan,
-          newPlan: newPlan,
-          stripeSubscriptionId: subscription.stripeSubscriptionId,
-          effectiveDate: new Date().toISOString(),
-        },
-        ipAddress: req.ip,
-        userAgent: req.get('user-agent'),
-      });
-
-      // Send upgrade confirmation email
-      try {
-        const user = req.user;
-        if (user && user.email) {
-          const baseUrl = process.env.APP_BASE_URL || process.env.BASE_URL || '';
-          const effectiveDate = new Date().toLocaleDateString('en-GB', {
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric',
-          });
-          const amount = stripeUnitAmount !== null ? (stripeUnitAmount / 100).toFixed(2) : '0.00';
-          const billingCycle = stripeUpgradeBillingInterval || 'month';
-          const features = PLAN_EMAIL_FEATURES[newPlan] || PLAN_EMAIL_FEATURES.free;
-          await postmark.sendMail({
-            to: user.email,
-            subject: `Your EventFlow plan has been upgraded to ${formatPlanName(newPlan)}!`,
-            template: 'subscription-upgraded',
-            templateData: {
-              name: user.name || 'there',
-              previousPlan: formatPlanName(subscription.plan),
-              newPlan: formatPlanName(newPlan),
-              effectiveDate,
-              amount,
-              billingCycle,
-              features,
-              baseUrl,
-            },
-            from: postmark.FROM_BILLING,
-            tags: ['subscription-upgraded', 'transactional'],
-            messageStream: 'outbound',
-          });
-          logger.info(`Subscription upgraded email sent to ${user.email}`);
-        }
-      } catch (emailErr) {
-        logger.error('Failed to send subscription upgraded email:', emailErr.message);
-      }
-
-      res.json({
-        success: true,
-        subscription: updatedSubscription,
-      });
+      return res.json({ success: true, subscription: updated });
     } catch (error) {
       logger.error('Error upgrading subscription:', error);
-      res.status(500).json({
-        error: 'Failed to upgrade subscription',
+      return res.status(error.statusCode || 500).json({
+        error: error.statusCode === 400 ? error.message : 'Failed to upgrade subscription',
         message: error.message,
       });
     }
   }
 );
 
-/**
- * @swagger
- * /api/v2/subscriptions/:id/downgrade:
- *   post:
- *     summary: Downgrade to a lower plan
- *     tags: [Subscriptions]
- *     security:
- *       - bearerAuth: []
- */
 router.post(
   '/:id/downgrade',
   authRequired,
@@ -689,680 +403,218 @@ router.post(
   ensureStripeEnabled,
   async (req, res) => {
     try {
-      const { id } = req.params;
-      const { newPlan } = req.body;
-
-      if (!newPlan) {
-        return res.status(400).json({
-          error: 'Missing required field',
-          message: 'newPlan is required',
-        });
-      }
-
-      const subscription = await subscriptionService.getSubscription(id);
-
+      requirePlanRequest(req.body);
+      const subscription = await subscriptionService.getSubscription(req.params.id);
       if (!subscription) {
-        return res.status(404).json({
-          error: 'Subscription not found',
-        });
+        return res.status(404).json({ error: 'Subscription not found' });
       }
-
-      // Verify ownership
       if (subscription.userId !== req.user.id) {
-        return res.status(403).json({
-          error: 'Unauthorized',
-        });
+        return res.status(403).json({ error: 'Unauthorized' });
       }
 
-      // Schedule downgrade at period end in Stripe
-      let stripeCurrentPeriodEnd = null;
-      let stripeCurrentUnitAmount = null;
-      let stripeDowngradeBillingInterval = null;
+      const resolved = resolvePlan(req.body, subscription.billingInterval || 'month');
+      if (!resolved) {
+        return res.status(400).json({ error: 'Invalid downgrade plan' });
+      }
+      assertDowngrade(subscription.plan, resolved.planId);
+
       if (subscription.stripeSubscriptionId) {
-        const updatedStripeSubscription = await stripe.subscriptions.update(
+        await stripe.subscriptions.update(
           subscription.stripeSubscriptionId,
           {
             cancel_at_period_end: true,
             metadata: {
-              downgrade_to: newPlan,
+              planId: subscription.plan,
+              billingInterval: subscription.billingInterval || 'month',
+              downgrade_to: resolved.planId,
             },
-          }
+          },
+          { idempotencyKey: `sub-downgrade:${subscription.id}:${resolved.planId}` }
         );
-        stripeCurrentPeriodEnd = updatedStripeSubscription.current_period_end
-          ? new Date(updatedStripeSubscription.current_period_end * 1000)
-          : null;
-        stripeCurrentUnitAmount =
-          updatedStripeSubscription.items?.data?.[0]?.price?.unit_amount ?? null;
-        stripeDowngradeBillingInterval =
-          updatedStripeSubscription.items?.data?.[0]?.price?.recurring?.interval ?? 'month';
       }
 
-      // Downgrade in database (scheduled at period end)
-      const updatedSubscription = await subscriptionService.downgradeSubscription(id, newPlan);
-
-      // Log downgrade to audit trail
-      await createAuditLog({
-        actor: {
-          id: req.user.id,
-          email: req.user.email,
-          role: req.user.role || 'user',
-        },
-        action: 'SUBSCRIPTION_DOWNGRADED',
-        resource: {
-          type: 'subscription',
-          id: id,
-        },
-        changes: {
-          before: { plan: subscription.plan },
-          after: { plan: newPlan },
-        },
-        details: {
-          previousPlan: subscription.plan,
-          newPlan: newPlan,
-          scheduledAtPeriodEnd: true,
-          stripeSubscriptionId: subscription.stripeSubscriptionId,
-          effectiveDate: new Date().toISOString(),
-        },
-        ipAddress: req.ip,
-        userAgent: req.get('user-agent'),
-      });
-
-      // Send downgrade scheduled confirmation email
-      try {
-        const user = req.user;
-        if (user && user.email) {
-          const baseUrl = process.env.APP_BASE_URL || process.env.BASE_URL || '';
-          const effectiveDate = stripeCurrentPeriodEnd
-            ? stripeCurrentPeriodEnd.toLocaleDateString('en-GB', {
-                day: 'numeric',
-                month: 'long',
-                year: 'numeric',
-              })
-            : new Date().toLocaleDateString('en-GB', {
-                day: 'numeric',
-                month: 'long',
-                year: 'numeric',
-              });
-          const currentAmount =
-            stripeCurrentUnitAmount !== null ? (stripeCurrentUnitAmount / 100).toFixed(2) : '0.00';
-          const billingCycle = stripeDowngradeBillingInterval || 'month';
-          // Derive new plan price from local plan config (Stripe price not yet active)
-          const newPlanFeatures = PLAN_FEATURES[newPlan];
-          const newAmount = newPlanFeatures ? newPlanFeatures.price.toFixed(2) : '0.00';
-          await postmark.sendMail({
-            to: user.email,
-            subject: `Your EventFlow plan change has been scheduled`,
-            template: 'subscription-downgrade-scheduled',
-            templateData: {
-              name: user.name || 'there',
-              currentPlan: formatPlanName(subscription.plan),
-              newPlan: formatPlanName(newPlan),
-              effectiveDate,
-              currentAmount,
-              newAmount,
-              billingCycle,
-              baseUrl,
-            },
-            from: postmark.FROM_BILLING,
-            tags: ['subscription-downgrade-scheduled', 'transactional'],
-            messageStream: 'outbound',
-          });
-          logger.info(`Subscription downgrade scheduled email sent to ${user.email}`);
+      const updated = await subscriptionService.downgradeSubscription(
+        subscription.id,
+        resolved.planId,
+        {
+          skipStripe: true,
         }
-      } catch (emailErr) {
-        logger.error('Failed to send subscription downgrade scheduled email:', emailErr.message);
-      }
-
-      res.json({
+      );
+      await audit(req, 'SUBSCRIPTION_DOWNGRADED', updated, {
+        previousPlan: subscription.plan,
+        newPlan: resolved.planId,
+      });
+      return res.json({
         success: true,
-        subscription: updatedSubscription,
+        subscription: updated,
         message: 'Downgrade scheduled for end of billing period',
       });
     } catch (error) {
       logger.error('Error downgrading subscription:', error);
-      res.status(500).json({
-        error: 'Failed to downgrade subscription',
+      return res.status(error.statusCode || 500).json({
+        error: error.statusCode === 400 ? error.message : 'Failed to downgrade subscription',
         message: error.message,
       });
     }
   }
 );
 
-/**
- * @swagger
- * /api/v2/subscriptions/:id/cancel:
- *   post:
- *     summary: Cancel subscription
- *     tags: [Subscriptions]
- *     security:
- *       - bearerAuth: []
- */
 router.post('/:id/cancel', authRequired, csrfProtection, writeLimiter, async (req, res) => {
   try {
-    const { id } = req.params;
-    const { reason, immediately } = req.body;
-
-    const subscription = await subscriptionService.getSubscription(id);
-
+    const subscription = await subscriptionService.getSubscription(req.params.id);
     if (!subscription) {
-      return res.status(404).json({
-        error: 'Subscription not found',
-      });
+      return res.status(404).json({ error: 'Subscription not found' });
     }
-
-    // Verify ownership
     if (subscription.userId !== req.user.id) {
-      return res.status(403).json({
-        error: 'Unauthorized',
-      });
+      return res.status(403).json({ error: 'Unauthorized' });
     }
 
-    // Cancel in Stripe if applicable
     if (subscription.stripeSubscriptionId && STRIPE_ENABLED) {
-      await paymentService.cancelStripeSubscription(subscription.stripeSubscriptionId, immediately);
+      await paymentService.cancelStripeSubscription(
+        subscription.stripeSubscriptionId,
+        req.body.immediately
+      );
     }
 
-    // Cancel in database
-    const updatedSubscription = await subscriptionService.cancelSubscription(
-      id,
-      reason,
-      immediately
+    const updated = await subscriptionService.cancelSubscription(
+      req.params.id,
+      req.body.reason,
+      req.body.immediately
     );
-
-    // Log cancellation to audit trail
-    await createAuditLog({
-      actor: {
-        id: req.user.id,
-        email: req.user.email,
-        role: req.user.role || 'user',
-      },
-      action: 'SUBSCRIPTION_CANCELLED',
-      resource: {
-        type: 'subscription',
-        id: id,
-      },
-      changes: {
-        before: { status: subscription.status, plan: subscription.plan },
-        after: { status: 'canceled' },
-      },
-      details: {
-        plan: subscription.plan,
-        reason: reason || 'No reason provided',
-        immediately: !!immediately,
-        stripeSubscriptionId: subscription.stripeSubscriptionId,
-        effectiveDate: new Date().toISOString(),
-      },
-      ipAddress: req.ip,
-      userAgent: req.get('user-agent'),
+    await audit(req, 'SUBSCRIPTION_CANCELLED', updated, {
+      plan: subscription.plan,
+      immediately: !!req.body.immediately,
     });
-
-    res.json({
+    return res.json({
       success: true,
-      subscription: updatedSubscription,
-      message: immediately
+      subscription: updated,
+      message: req.body.immediately
         ? 'Subscription canceled immediately'
         : 'Subscription will cancel at period end',
     });
   } catch (error) {
     logger.error('Error canceling subscription:', error);
-    res.status(500).json({
-      error: 'Failed to cancel subscription',
-      message: error.message,
-    });
+    return res.status(500).json({ error: 'Failed to cancel subscription', message: error.message });
   }
 });
 
-/**
- * @swagger
- * /api/v2/subscriptions/:id/status:
- *   get:
- *     summary: Get subscription status
- *     tags: [Subscriptions]
- *     security:
- *       - bearerAuth: []
- */
 router.get('/:id/status', authRequired, async (req, res) => {
-  try {
-    const { id } = req.params;
-    const subscription = await subscriptionService.getSubscription(id);
-
-    if (!subscription) {
-      return res.status(404).json({
-        error: 'Subscription not found',
-      });
-    }
-
-    // Verify ownership or admin
-    if (subscription.userId !== req.user.id && req.user.role !== 'admin') {
-      return res.status(403).json({
-        error: 'Unauthorized',
-      });
-    }
-
-    res.json({
-      success: true,
-      subscription: {
-        id: subscription.id,
-        plan: subscription.plan,
-        status: subscription.status,
-        currentPeriodEnd: subscription.currentPeriodEnd,
-        nextBillingDate: subscription.nextBillingDate,
-        cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
-        inTrial: subscriptionService.isInTrial(subscription),
-      },
-    });
-  } catch (error) {
-    logger.error('Error fetching subscription status:', error);
-    res.status(500).json({
-      error: 'Failed to fetch subscription status',
-      message: error.message,
-    });
+  const subscription = await subscriptionService.getSubscription(req.params.id);
+  if (!subscription) {
+    return res.status(404).json({ error: 'Subscription not found' });
   }
-});
-
-/**
- * @swagger
- * /api/v2/subscriptions/:id/features:
- *   get:
- *     summary: Get features for subscription
- *     tags: [Subscriptions]
- *     security:
- *       - bearerAuth: []
- */
-router.get('/:id/features', authRequired, async (req, res) => {
-  try {
-    const { id } = req.params;
-    const subscription = await subscriptionService.getSubscription(id);
-
-    if (!subscription) {
-      return res.status(404).json({
-        error: 'Subscription not found',
-      });
-    }
-
-    // Verify ownership or admin
-    if (subscription.userId !== req.user.id && req.user.role !== 'admin') {
-      return res.status(403).json({
-        error: 'Unauthorized',
-      });
-    }
-
-    const features = await subscriptionService.getUserFeatures(subscription.userId);
-
-    res.json({
-      success: true,
+  if (subscription.userId !== req.user.id && req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Unauthorized' });
+  }
+  return res.json({
+    success: true,
+    subscription: {
+      id: subscription.id,
       plan: subscription.plan,
-      features: features.features,
-    });
-  } catch (error) {
-    logger.error('Error fetching features:', error);
-    res.status(500).json({
-      error: 'Failed to fetch features',
-      message: error.message,
-    });
-  }
+      status: subscription.status,
+      currentPeriodEnd: subscription.currentPeriodEnd,
+      nextBillingDate: subscription.nextBillingDate,
+      cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
+      inTrial: subscriptionService.isInTrial(subscription),
+    },
+  });
 });
 
-/**
- * @swagger
- * /api/v2/invoices:
- *   get:
- *     summary: List invoices for user
- *     tags: [Invoices]
- *     security:
- *       - bearerAuth: []
- */
+router.get('/:id/features', authRequired, async (req, res) => {
+  const subscription = await subscriptionService.getSubscription(req.params.id);
+  if (!subscription) {
+    return res.status(404).json({ error: 'Subscription not found' });
+  }
+  if (subscription.userId !== req.user.id && req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Unauthorized' });
+  }
+  const features = await subscriptionService.getUserFeatures(subscription.userId);
+  return res.json({ success: true, plan: subscription.plan, features: features.features });
+});
+
 router.get('/invoices', authRequired, async (req, res) => {
-  try {
-    const invoices = await dbUnified.read('invoices');
-    const userInvoices = invoices
-      .filter(inv => inv.userId === req.user.id)
-      .map(formatInvoice)
-      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
-    res.json({
-      success: true,
-      invoices: userInvoices,
-    });
-  } catch (error) {
-    logger.error('Error fetching invoices:', error);
-    res.status(500).json({
-      error: 'Failed to fetch invoices',
-      message: error.message,
-    });
-  }
+  const invoices = await dbUnified.read('invoices');
+  res.json({
+    success: true,
+    invoices: invoices.filter(inv => inv.userId === req.user.id).map(formatInvoice),
+  });
 });
 
-/**
- * @swagger
- * /api/v2/invoices/:id/pay:
- *   post:
- *     summary: Retry payment for unpaid invoice
- *     tags: [Invoices]
- *     security:
- *       - bearerAuth: []
- */
-router.post(
-  '/invoices/:id/pay',
-  authRequired,
-  csrfProtection,
-  writeLimiter,
-  ensureStripeEnabled,
-  async (req, res) => {
-    try {
-      const { id } = req.params;
-      const invoices = await dbUnified.read('invoices');
-      const invoice = invoices.find(inv => inv.id === id);
-
-      if (!invoice) {
-        return res.status(404).json({
-          error: 'Invoice not found',
-        });
-      }
-
-      // Verify ownership
-      if (invoice.userId !== req.user.id) {
-        return res.status(403).json({
-          error: 'Unauthorized',
-        });
-      }
-
-      if (invoice.status === 'paid') {
-        return res.status(400).json({
-          error: 'Invoice already paid',
-        });
-      }
-
-      // Retry payment in Stripe
-      const stripeInvoice = await paymentService.retryInvoicePayment(invoice.stripeInvoiceId);
-
-      // Update invoice status
-      const invoiceUpdates = {
-        status: stripeInvoice.status === 'paid' ? 'paid' : invoice.status,
-        updatedAt: new Date().toISOString(),
-      };
-      if (stripeInvoice.status === 'paid') {
-        invoiceUpdates.paidAt = new Date().toISOString();
-      }
-      await dbUnified.updateOne('invoices', { id: invoice.id }, { $set: invoiceUpdates });
-
-      res.json({
-        success: true,
-        invoice: formatInvoice(invoice),
-      });
-    } catch (error) {
-      logger.error('Error retrying invoice payment:', error);
-      res.status(500).json({
-        error: 'Failed to retry payment',
-        message: error.message,
-      });
-    }
-  }
-);
-
-/**
- * @swagger
- * /api/v2/invoices/:id/download:
- *   get:
- *     summary: Download invoice as PDF
- *     tags: [Invoices]
- *     security:
- *       - bearerAuth: []
- */
-router.get('/invoices/:id/download', authRequired, async (req, res) => {
-  try {
-    const { id } = req.params;
-    const invoices = await dbUnified.read('invoices');
-    const invoice = invoices.find(inv => inv.id === id);
-
-    if (!invoice) {
-      return res.status(404).json({
-        error: 'Invoice not found',
-      });
-    }
-
-    // Verify ownership or admin
-    if (invoice.userId !== req.user.id && req.user.role !== 'admin') {
-      return res.status(403).json({
-        error: 'Unauthorized',
-      });
-    }
-
-    // Create PDF
-    const doc = new PDFDocument({ margin: 50 });
-
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename=invoice-${invoice.id}.pdf`);
-
-    doc.pipe(res);
-
-    // Header
-    doc.fontSize(20).text('INVOICE', { align: 'center' });
-    doc.moveDown();
-    doc.fontSize(12).text(`Invoice ID: ${invoice.id}`);
-    doc.text(`Date: ${new Date(invoice.createdAt).toLocaleDateString()}`);
-    doc.text(`Status: ${invoice.status.toUpperCase()}`);
-    doc.moveDown();
-
-    // Line items
-    doc.fontSize(14).text('Line Items:', { underline: true });
-    doc.moveDown(0.5);
-    doc.fontSize(10);
-
-    invoice.lineItems.forEach(item => {
-      const currencyUpper = invoice.currency.toUpperCase();
-      doc.text(`${item.name} x ${item.quantity} @ ${currencyUpper} ${item.unitPrice.toFixed(2)}`);
-      doc.text(`  Total: ${currencyUpper} ${item.amount.toFixed(2)}`);
-      doc.moveDown(0.5);
-    });
-
-    // Totals
-    doc.moveDown();
-    doc.fontSize(12);
-    const currencyUpper = invoice.currency.toUpperCase();
-    doc.text(`Subtotal: ${currencyUpper} ${invoice.subtotal.toFixed(2)}`, { align: 'right' });
-    if (invoice.tax > 0) {
-      doc.text(`Tax: ${currencyUpper} ${invoice.tax.toFixed(2)}`, { align: 'right' });
-    }
-    if (invoice.discount > 0) {
-      doc.text(`Discount: -${currencyUpper} ${invoice.discount.toFixed(2)}`, { align: 'right' });
-    }
-    doc
-      .fontSize(14)
-      .text(`Total: ${currencyUpper} ${invoice.amount.toFixed(2)}`, { align: 'right' });
-
-    if (invoice.paidAt) {
-      doc.moveDown();
-      doc
-        .fontSize(10)
-        .text(`Paid on: ${new Date(invoice.paidAt).toLocaleDateString()}`, { align: 'right' });
-    }
-
-    doc.end();
-  } catch (error) {
-    logger.error('Error downloading invoice:', error);
-    res.status(500).json({
-      error: 'Failed to download invoice',
-      message: error.message,
-    });
-  }
-});
-
-/**
- * @swagger
- * /api/v2/admin/subscriptions:
- *   get:
- *     summary: List all subscriptions (admin only)
- *     tags: [Admin]
- *     security:
- *       - bearerAuth: []
- */
 router.get('/admin/subscriptions', authRequired, roleRequired('admin'), async (req, res) => {
-  try {
-    const { status, plan, page = 1, limit = 50 } = req.query;
-
-    const filters = {};
-    if (status) {
-      filters.status = status;
-    }
-    if (plan) {
-      filters.plan = plan;
-    }
-
-    const subscriptions = await subscriptionService.listSubscriptions(filters);
-
-    // Pagination with proper integer parsing
-    const pageNum = parseInt(page, 10);
-    const limitNum = parseInt(limit, 10);
-    const startIndex = (pageNum - 1) * limitNum;
-    const endIndex = startIndex + limitNum;
-    const paginatedSubscriptions = subscriptions.slice(startIndex, endIndex);
-
-    res.json({
-      success: true,
-      subscriptions: paginatedSubscriptions,
-      pagination: {
-        total: subscriptions.length,
-        page: pageNum,
-        limit: limitNum,
-        pages: Math.ceil(subscriptions.length / limitNum),
-      },
-    });
-  } catch (error) {
-    logger.error('Error fetching subscriptions:', error);
-    res.status(500).json({
-      error: 'Failed to fetch subscriptions',
-      message: error.message,
-    });
-  }
+  const subscriptions = await subscriptionService.listSubscriptions({
+    status: req.query.status,
+    plan: req.query.plan,
+  });
+  res.json({
+    success: true,
+    subscriptions,
+    pagination: {
+      total: subscriptions.length,
+      page: 1,
+      limit: subscriptions.length || 1,
+      pages: 1,
+    },
+  });
 });
 
-/**
- * @swagger
- * /api/v2/admin/revenue:
- *   get:
- *     summary: Get revenue analytics (admin only)
- *     tags: [Admin]
- *     security:
- *       - bearerAuth: []
- */
-router.get('/admin/revenue', authRequired, roleRequired('admin'), async (req, res) => {
-  try {
-    const [mrr, churnRate, stats] = await Promise.all([
-      paymentService.calculateMRR(),
-      paymentService.calculateChurnRate(30),
-      subscriptionService.getSubscriptionStats(),
-    ]);
-
-    res.json({
-      success: true,
-      revenue: {
-        mrr: mrr.totalMRR,
-        mrrByPlan: mrr.byPlan,
-        activeSubscriptions: mrr.activeSubscriptions,
-      },
-      churn: churnRate,
-      subscriptionStats: stats,
-    });
-  } catch (error) {
-    logger.error('Error fetching revenue analytics:', error);
-    res.status(500).json({
-      error: 'Failed to fetch revenue analytics',
-      message: error.message,
-    });
-  }
+router.get('/admin/revenue', authRequired, roleRequired('admin'), async (_req, res) => {
+  const [mrr, churnRate, stats] = await Promise.all([
+    paymentService.calculateMRR(),
+    paymentService.calculateChurnRate(30),
+    subscriptionService.getSubscriptionStats(),
+  ]);
+  res.json({
+    success: true,
+    revenue: {
+      mrr: mrr.totalMRR,
+      mrrByPlan: mrr.byPlan,
+      activeSubscriptions: mrr.activeSubscriptions,
+    },
+    churn: churnRate,
+    subscriptionStats: stats,
+  });
 });
 
-/**
- * Shared Stripe webhook handler.
- * Verifies the Stripe signature (when STRIPE_WEBHOOK_SECRET is set) and
- * dispatches the event to processWebhookEvent.
- */
 async function stripeWebhookHandler(req, res) {
-  const sig = req.headers['stripe-signature'];
-
   let event;
-
-  if (STRIPE_WEBHOOK_SECRET && STRIPE_ENABLED) {
-    try {
-      event = stripe.webhooks.constructEvent(req.body, sig, STRIPE_WEBHOOK_SECRET);
-    } catch (err) {
-      logger.error('Webhook signature verification failed:', err.message);
-      logger.error('req.body type:', typeof req.body);
-      logger.error('req.body is Buffer:', Buffer.isBuffer(req.body));
-      return res.status(400).send(`Webhook Error: ${err.message}`);
-    }
-  } else if (process.env.NODE_ENV === 'production') {
-    // Fail closed in production: never skip signature verification
-    logger.error(
-      'STRIPE_WEBHOOK_SECRET is not set in production — rejecting unsigned webhook request'
-    );
-    return res.status(400).send('Webhook Error: signature verification required in production');
-  } else {
-    // In development/test without webhook secret, parse body directly
-    logger.warn('⚠️  Webhook signature verification skipped (STRIPE_WEBHOOK_SECRET not set)');
-    try {
+  try {
+    if (STRIPE_WEBHOOK_SECRET && STRIPE_ENABLED) {
+      event = stripe.webhooks.constructEvent(
+        req.body,
+        req.headers['stripe-signature'],
+        STRIPE_WEBHOOK_SECRET
+      );
+    } else if (process.env.NODE_ENV === 'production') {
+      return res.status(400).send('Webhook Error: signature verification required in production');
+    } else {
       event = JSON.parse(req.body.toString());
-    } catch (err) {
-      logger.error('Failed to parse webhook body:', err.message);
-      return res.status(400).send('Invalid request body');
     }
+    requirePlanMetadata(event);
+  } catch (err) {
+    logger.error('Webhook verification failed:', err.message);
+    return res.status(err.statusCode || 400).send(`Webhook Error: ${err.message}`);
   }
 
   try {
     await processWebhookEvent(event);
-    res.json({ received: true });
+    return res.json({ received: true });
   } catch (error) {
     logger.error('Error processing webhook:', error);
-    res.status(500).json({
-      error: 'Webhook processing failed',
-      message: error.message,
-    });
+    return res.status(500).json({ error: 'Webhook processing failed', message: error.message });
   }
 }
 
 const rawBodyParser = express.raw({ type: 'application/json' });
-
 const webhookInfoResponse = {
   message: 'Stripe webhook endpoint. Send POST requests from Stripe only.',
   canonical: 'POST /api/v2/webhooks/stripe',
   compat: 'POST /api/v2/subscriptions/webhooks/stripe',
 };
-
-/**
- * @swagger
- * /api/v2/webhooks/stripe:
- *   post:
- *     summary: Stripe webhook endpoint (canonical)
- *     tags: [Webhooks]
- *     description: Handles Stripe webhook events. Canonical path.
- *   get:
- *     summary: Webhook endpoint info
- *     tags: [Webhooks]
- *     description: Returns info about the webhook endpoint (not for Stripe use).
- */
-router.get('/webhooks/stripe', (req, res) => {
-  res.status(200).json(webhookInfoResponse);
-});
+router.get('/webhooks/stripe', (_req, res) => res.status(200).json(webhookInfoResponse));
 router.post('/webhooks/stripe', rawBodyParser, stripeWebhookHandler);
-
-/**
- * Compatibility alias: POST /api/v2/subscriptions/webhooks/stripe
- * Stripe can be configured to send to either path.
- *
- * @swagger
- * /api/v2/subscriptions/webhooks/stripe:
- *   post:
- *     summary: Stripe webhook endpoint (compat alias)
- *     tags: [Webhooks]
- *     description: Compatibility alias for the canonical /api/v2/webhooks/stripe endpoint.
- *   get:
- *     summary: Webhook endpoint info (compat alias)
- *     tags: [Webhooks]
- */
-router.get('/subscriptions/webhooks/stripe', (req, res) => {
-  res.status(200).json(webhookInfoResponse);
-});
+router.get('/subscriptions/webhooks/stripe', (_req, res) =>
+  res.status(200).json(webhookInfoResponse)
+);
 router.post('/subscriptions/webhooks/stripe', rawBodyParser, stripeWebhookHandler);
 
 module.exports = router;

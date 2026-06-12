@@ -43,9 +43,9 @@
       </div>
 
       <div class="note-box">
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+        <div class="page-header-row">
           <h4>💳 Stripe Analytics Integration</h4>
-          <span id="stripeStatus" style="padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 600;"></span>
+          <span id="stripeStatus" class="status-pill"></span>
         </div>
         <p>
           This dashboard integrates with live Stripe analytics when available. Revenue, subscriptions, and transaction
@@ -55,7 +55,7 @@
       </div>
 
       <!-- Stats Overview -->
-      <div class="stats-grid">
+      <div class="stats-grid payments-stats-grid">
         <div class="stat-card">
           <h3>Total Revenue (All Time)</h3>
           <p class="stat-value" id="totalRevenue">£0.00</p>
@@ -82,7 +82,7 @@
       </div>
 
       <!-- Charts -->
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+      <div class="payments-detail-grid">
         <div class="chart-container">
           <h3>Revenue Over Time</h3>
           <canvas id="revenueChart"></canvas>
@@ -145,7 +145,7 @@
             </thead>
             <tbody id="paymentsTableBody">
               <tr>
-                <td colspan="6" style="text-align: center; padding: 2rem; color: #6b7280;">
+                <td colspan="6" class="table-empty-state">
                   Loading payment data...
                 </td>
               </tr>
@@ -166,7 +166,7 @@
         <a href="/contact">Contact</a> ·
         <a href="/legal">Legal Hub</a> · <button type="button" data-cookie-prefs>Cookie preferences</button>
       </div>
-      <div class="small" style="width: 100%; margin-top: 8px; text-align: center;">Operated by <a href="https://vexi.co.uk" target="_blank" rel="noopener noreferrer">VEXI</a></div>
+      <div class="footer-credit">Operated by <a href="https://vexi.co.uk" target="_blank" rel="noopener noreferrer">VEXI</a></div>
     </div>
   </footer>
 
@@ -174,3 +174,5 @@
 <script src="/assets/js/cookie-consent.js?v=2.0.0" defer></script>
 </body>
 </html>
+
+

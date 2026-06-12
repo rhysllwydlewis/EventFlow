@@ -8,6 +8,7 @@
 const express = require('express');
 const logger = require('../utils/logger');
 const catalogCache = require('../services/catalogCache');
+const { supplierApprovalDefaults } = require('../services/supplierProfileProvisioning.service');
 const router = express.Router();
 
 /**
@@ -26,6 +27,8 @@ const PATCH_FIELD_MAX_LENGTHS = {
   description_long: 5000,
   bannerUrl: 500,
   tagline: 200,
+  phone: 30,
+  heroPreset: 40,
 };
 
 // Dependencies injected by server.js
@@ -132,8 +135,10 @@ router.get('/:id/analytics', applyAuthRequired, applyRoleRequired('supplier'), a
     const period = parseInt(req.query.period) || 7; // Default 7 days
 
     // Verify ownership
-    const suppliers = await dbUnified.read('suppliers');
-    const supplier = suppliers.find(s => s.id === supplierId && s.ownerUserId === req.user.id);
+    const supplier = await dbUnified.findOne('suppliers', {
+      id: supplierId,
+      ownerUserId: req.user.id,
+    });
     if (!supplier) {
       return res.status(404).json({ error: 'Supplier not found' });
     }
@@ -176,8 +181,10 @@ router.post(
       const supplierId = req.params.id;
 
       // Verify ownership
-      const suppliers = await dbUnified.read('suppliers');
-      const supplier = suppliers.find(s => s.id === supplierId && s.ownerUserId === req.user.id);
+      const supplier = await dbUnified.findOne('suppliers', {
+        id: supplierId,
+        ownerUserId: req.user.id,
+      });
       if (!supplier) {
         return res.status(404).json({ error: 'Supplier not found' });
       }
@@ -214,13 +221,13 @@ router.post(
       return res.status(400).json({ error: 'Missing fields' });
     }
 
-    // Enforce 1:1 relationship: one supplier profile per user account
-    // Fetch user and suppliers concurrently
-    const [existingSuppliers, ownerUser] = await Promise.all([
-      dbUnified.read('suppliers'),
+    // Enforce 1:1 relationship: one supplier profile per user account.
+    // Keep legacy/demo suppliers with ownerUserId null untouched; linked users are checked by ownerUserId.
+    // Uniqueness is enforced by DB query (ownerUserId === req.user.id) rather than an in-memory scan.
+    const [existing, ownerUser] = await Promise.all([
+      dbUnified.findOne('suppliers', { ownerUserId: req.user.id }),
       dbUnified.findOne('users', { id: req.user.id }),
     ]);
-    const existing = existingSuppliers.find(s => s.ownerUserId === req.user.id);
     if (existing) {
       logger.warn('Duplicate supplier profile creation prevented', {
         userId: req.user.id,
@@ -252,6 +259,18 @@ router.post(
     const amenities = (b.amenities ? String(b.amenities).split(',') : [])
       .map(x => x.trim())
       .filter(Boolean);
+    const nowIso = new Date().toISOString();
+
+    // Approval defaults come from the shared provisioning service which reads
+    // the autoApproveSupplierVerification feature flag. When ON, the service
+    // returns { approved: true, approvedAt, approvedBy: 'system', ... }.
+    // When OFF it returns { approved: false, verified: false, ... }.
+    // We spread these onto s so the flag is always set explicitly.
+    const approvalDefaults = await supplierApprovalDefaults(nowIso);
+    // approvalDefaults.approved is either true (auto-approve ON) or false (manual approval needed).
+    // s.approved = true  → set by service when autoApproveSupplierVerification === true
+    // s.approvedAt / s.approvedBy = 'system' → set by service on auto-approval
+    // approved: false, → default when auto-approve is OFF (manual admin review required)
 
     const s = {
       id: uid('sup'),
@@ -267,8 +286,11 @@ router.post(
       description_short: String(b.description_short || '').slice(0, 220),
       description_long: String(b.description_long || '').slice(0, 2000),
       photosGallery: [],
-      email: ownerUser?.email || '',
-      approved: false,
+      email: ownerUser?.email || req.user.email || '',
+      profileComplete: false,
+      createdAt: nowIso,
+      updatedAt: nowIso,
+      ...approvalDefaults,
     };
 
     // Add venue-specific fields if category is Venues
@@ -292,19 +314,27 @@ router.post(
       }
     }
 
-    // Check if admin has enabled auto-approve for new suppliers
-    try {
-      const settings = (await dbUnified.read('settings')) || {};
-      if (settings.features?.autoApproveSupplierVerification === true) {
-        s.approved = true;
-        s.approvedAt = new Date().toISOString();
-        s.approvedBy = 'system';
+    const suppInserted = await dbUnified.insertOne('suppliers', s);
+    if (!suppInserted) {
+      const racedExisting = await dbUnified.findOne('suppliers', { ownerUserId: req.user.id });
+      if (racedExisting) {
+        logger.warn('Duplicate supplier profile creation prevented after insert race', {
+          userId: req.user.id,
+          existingSupplierId: racedExisting.id,
+        });
+        return res.status(409).json({
+          error: 'Supplier profile already exists',
+          code: 'SUPPLIER_PROFILE_EXISTS',
+          supplierId: racedExisting.id,
+          message:
+            'You already have a supplier profile. Each account can only have one supplier profile.',
+        });
       }
-    } catch (settingsErr) {
-      logger.warn('Could not read settings for auto-approve check:', settingsErr.message);
+      logger.error('[SUPP-MGMT] insertOne failed', { supplierId: s.id });
+      return res
+        .status(500)
+        .json({ error: 'Failed to create supplier profile. Please try again.' });
     }
-
-    await dbUnified.insertOne('suppliers', s);
     logger.info('Supplier profile created', {
       supplierId: s.id,
       userId: req.user.id,
@@ -326,8 +356,7 @@ router.patch(
   applyRequireVerifiedUser,
   applyCsrfProtection,
   async (req, res) => {
-    const all = await dbUnified.read('suppliers');
-    const s = all.find(sup => sup.id === req.params.id && sup.ownerUserId === req.user.id);
+    const s = await dbUnified.findOne('suppliers', { id: req.params.id, ownerUserId: req.user.id });
     if (!s) {
       return res.status(404).json({ error: 'Not found' });
     }
@@ -452,17 +481,15 @@ router.post(
   applyRoleRequired('supplier'),
   applyCsrfProtection,
   async (req, res) => {
-    const suppliers = await dbUnified.read('suppliers');
+    const ownedSuppliers = await dbUnified.find('suppliers', { ownerUserId: req.user.id });
     let changed = 0;
     const proUpdatePromises = [];
-    suppliers.forEach(s => {
-      if (s.ownerUserId === req.user.id) {
-        if (!s.isPro) {
-          proUpdatePromises.push(
-            dbUnified.updateOne('suppliers', { id: s.id }, { $set: { isPro: true } })
-          );
-          changed += 1;
-        }
+    ownedSuppliers.forEach(s => {
+      if (!s.isPro) {
+        proUpdatePromises.push(
+          dbUnified.updateOne('suppliers', { id: s.id }, { $set: { isPro: true } })
+        );
+        changed += 1;
       }
     });
     await Promise.all(proUpdatePromises);

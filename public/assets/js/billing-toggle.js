@@ -48,7 +48,7 @@
     toggle.innerHTML = `
       <span class="billing-toggle-label active" id="monthly-label">Monthly</span>
       <label class="toggle-switch">
-        <input type="checkbox" id="billing-period-toggle" aria-label="Toggle billing period">
+        <input type="checkbox" id="billing-period-toggle" role="switch" aria-checked="false" aria-label="Switch between monthly and annual billing">
         <span class="toggle-slider"></span>
       </label>
       <span class="billing-toggle-label" id="annual-label">

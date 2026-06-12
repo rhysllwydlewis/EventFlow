@@ -110,6 +110,22 @@ router.get('/admin', apiLimiter, authRequired, async (req, res) => {
 });
 
 /**
+ * GET /admin/email-previews
+ * Serve admin email preview gallery
+ */
+router.get('/admin/email-previews', apiLimiter, authRequired, async (req, res) => {
+  try {
+    if (req.user.role !== 'admin') {
+      return res.redirect('/auth?reason=forbidden&required=admin');
+    }
+    res.sendFile(path.join(__dirname, '..', 'public', 'admin-email-previews.html'));
+  } catch (error) {
+    logger.error('Error serving admin email previews page:', error);
+    return res.status(500).send('Internal server error');
+  }
+});
+
+/**
  * GET /admin-debug
  * Serve admin debug/system-checks page
  */

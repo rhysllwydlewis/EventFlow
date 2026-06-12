@@ -39,14 +39,8 @@
                 </tr>
               </table>
 
-              <!-- CTA button -->
-              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px;">
-                <tr>
-                  <td align="center">
-                    <a href="{{actionUrl}}" style="display:inline-block;padding:15px 40px;background:linear-gradient(135deg,#0B8073,#13B6A2);color:#ffffff;text-decoration:none;border-radius:10px;font-weight:700;font-size:15px;letter-spacing:0.2px;">{{actionText}}</a>
-                  </td>
-                </tr>
-              </table>
+              <!-- CTA button — only rendered when ctaSection is provided by the backend -->
+              {{ctaSection}}
 
               <p style="margin:0;font-size:13px;color:#667085;line-height:1.6;">You received this email because notifications are enabled for your account. Manage your preferences in <a href="{{baseUrl}}/settings" style="color:#0B8073;text-decoration:none;">account settings</a>.</p>
             </td>
@@ -55,7 +49,7 @@
           <!-- ── Footer ───────────────────────────────────────── -->
           <tr>
             <td style="background-color:#F2FBF9;padding:24px 40px;text-align:center;border-top:1px solid #D9F0EC;">
-              <p style="margin:0 0 8px;font-size:13px;color:#667085;">© 2025–2026 EventFlow. All rights reserved. &nbsp;·&nbsp; Operated by VEXI</p>
+              <p style="margin:0 0 8px;font-size:13px;color:#667085;">© 2025–{{year}} EventFlow. All rights reserved. &nbsp;·&nbsp; Operated by VEXI</p>
               <p style="margin:0 0 8px;font-size:12px;color:#98A2B3;">
                 <a href="{{baseUrl}}/privacy" style="color:#0B8073;text-decoration:none;">Privacy Policy</a>
                 &nbsp;·&nbsp;

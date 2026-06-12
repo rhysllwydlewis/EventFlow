@@ -6,6 +6,7 @@
 (function () {
   'use strict';
 
+  const RECOMMENDATION_LIMIT = 5;
   const isDevelopment =
     window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
@@ -47,6 +48,83 @@
       }
     }
     return '';
+  }
+
+  /**
+   * Register a single global fallback handler so onerror attributes on
+   * recommendation avatars don't need to embed raw HTML inline.
+   *
+   * Root cause of the broken-image bug:
+   *   The previous implementation embedded the `fallback` div HTML directly
+   *   inside onerror="...innerHTML='[fallback]'".  The fallback contains six
+   *   double-quoted HTML attributes (class="..." style="...") which
+   *   PREMATURELY CLOSED the outer onerror="..." attribute delimiter the moment
+   *   the HTML parser hit the first " inside the fallback string.  This caused:
+   *     - The onerror handler to be silently truncated (fallback never ran)
+   *     - Orphaned attribute fragments rendered as visible text inside the card
+   *     - A stray </div> from the malformed content closing the card's flex
+   *       container, breaking the name + category layout below the image
+   *
+   *   Fix: store the initial letter in a data-rec-initial attribute; call a
+   *   pre-registered global function from onerror so NO HTML is embedded inside
+   *   any inline event handler.
+   */
+  function registerAvatarFallback() {
+    if (window.__efRecAvatarFallback) return;
+    window.__efRecAvatarFallback = function (img) {
+      const wrap = img && img.closest && img.closest('.recommendation-avatar-wrap');
+      if (!wrap) return;
+      const initial = escapeHtml(wrap.dataset.recInitial || '?');
+      wrap.innerHTML =
+        '<div class="recommendation-avatar recommendation-avatar--fallback"' +
+        ' aria-hidden="true"' +
+        ' style="width:48px;height:48px;border-radius:999px;' +
+        'background:linear-gradient(135deg,#13b6a2,#0b8073);' +
+        'display:flex;align-items:center;justify-content:center;' +
+        'color:white;font-weight:800;font-size:1.08rem;' +
+        'box-shadow:0 8px 18px rgba(19,182,162,.18);">' +
+        initial +
+        '</div>';
+    };
+  }
+
+  function recommendationAvatar(name, logoSrc) {
+    const initial = escapeHtml(String(name || 'S').charAt(0).toUpperCase());
+    const fallback =
+      '<div class="recommendation-avatar recommendation-avatar--fallback"' +
+      ' aria-hidden="true"' +
+      ' style="width:48px;height:48px;border-radius:999px;' +
+      'background:linear-gradient(135deg,#13b6a2,#0b8073);' +
+      'display:flex;align-items:center;justify-content:center;' +
+      'color:white;font-weight:800;font-size:1.08rem;' +
+      'box-shadow:0 8px 18px rgba(19,182,162,.18);">' +
+      initial +
+      '</div>';
+
+    if (!logoSrc) {
+      return fallback;
+    }
+
+    // Ensure the global handler is registered before the first img is rendered.
+    registerAvatarFallback();
+
+    // data-rec-initial carries the letter so the global handler can build the
+    // fallback avatar without any HTML being embedded in the onerror attribute.
+    return (
+      '<span class="recommendation-avatar-wrap"' +
+      ' data-rec-initial="' + initial + '"' +
+      ' style="display:inline-flex;width:48px;height:48px;flex:0 0 48px;">' +
+      '<img' +
+      ' src="' + escapeHtml(logoSrc) + '"' +
+      ' alt="' + escapeHtml(name) + '"' +
+      ' class="recommendation-avatar"' +
+      ' loading="lazy"' +
+      ' style="width:48px;height:48px;border-radius:999px;object-fit:cover;' +
+      'box-shadow:0 8px 18px rgba(15,23,42,.10);"' +
+      ' onerror="window.__efRecAvatarFallback(this)"' +
+      '>' +
+      '</span>'
+    );
   }
 
   /**
@@ -101,7 +179,7 @@
       // eventType takes precedence over category when both are supplied
       queryParams.set('eventType', params.eventType);
     }
-    queryParams.set('limit', '6');
+    queryParams.set('limit', String(RECOMMENDATION_LIMIT));
 
     // Use Phase 3 personalized discovery endpoint
     const response = await fetch(`/api/v2/search/personalized?${queryParams}`);
@@ -112,7 +190,7 @@
 
     const data = await response.json();
     // Phase 3 response shape: { success, data: { results, context } }
-    return (data.data && data.data.results) || [];
+    return ((data.data && data.data.results) || []).slice(0, RECOMMENDATION_LIMIT);
   }
 
   /**
@@ -126,21 +204,22 @@
     }
 
     widget.innerHTML = `
-      <div class="recommendations-header">
+      <div class="recommendations-header recommendations-widget__header">
         <h3 class="recommendations-title">Recommended for You</h3>
         <a href="/suppliers" class="recommendations-view-all">View All →</a>
       </div>
-      <div class="recommendations-grid">
+      <div class="recommendations-grid recommendations-grid--single-row" style="display:grid;grid-template-columns:repeat(${RECOMMENDATION_LIMIT},minmax(0,1fr));gap:1rem;align-items:stretch;overflow:hidden;">
         ${recommendations
+          .slice(0, RECOMMENDATION_LIMIT)
           .map(supplier => {
             // Phase 3 API returns `name` (not `businessName`)
-            const name = escapeHtml(supplier.name || supplier.businessName || 'Supplier');
+            const rawName = supplier.name || supplier.businessName || 'Supplier';
+            const name = escapeHtml(rawName);
             const category = escapeHtml(supplier.category || '');
             const location = escapeHtml(
               typeof supplier.location === 'string' ? supplier.location : ''
             );
             const logoSrc = safeSrc(supplier.logo || '');
-            const initial = name.charAt(0).toUpperCase();
             const supplierId =
               typeof supplier.id === 'string' || typeof supplier.id === 'number' ? supplier.id : '';
             const href = `/supplier?id=${encodeURIComponent(supplierId)}`;
@@ -149,21 +228,17 @@
               : '';
             const rankingReason = supplier.rankingReason ? escapeHtml(supplier.rankingReason) : '';
             return `
-          <a href="${href}" class="recommendation-card" style="text-decoration: none; color: inherit; display: block; cursor: pointer;">
-            <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
-              ${
-                logoSrc
-                  ? `<img src="${logoSrc}" alt="${name}" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover;">`
-                  : `<div style="width: 50px; height: 50px; border-radius: 50%; background: var(--accent, #13B6A2); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 1.25rem;">${initial}</div>`
-              }
-              <div style="flex: 1;">
-                <h4 style="margin: 0; font-size: 1rem; font-weight: 600; color: #1f2937;">${name}</h4>
-                <p style="margin: 0; font-size: 0.875rem; color: #6b7280;">${category}</p>
+          <a href="${href}" class="recommendation-card" aria-label="View ${name}" style="text-decoration:none;color:inherit;display:block;cursor:pointer;min-width:0;min-height:168px;border-radius:14px;padding:1rem;">
+            <div class="recommendation-card__top" style="display:flex;align-items:center;gap:.78rem;margin-bottom:.82rem;min-width:0;">
+              ${recommendationAvatar(rawName, logoSrc)}
+              <div class="recommendation-card__identity" style="min-width:0;flex:1;">
+                <h4 style="margin:0 0 .25rem;font-size:.98rem;font-weight:800;color:#1f2937;line-height:1.35;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${name}</h4>
+                <p style="margin:0;font-size:.86rem;color:#6b7280;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${category}</p>
               </div>
             </div>
-            ${location ? `<p style="margin: 0 0 0.5rem; font-size: 0.875rem; color: #6b7280;">📍 ${location}</p>` : ''}
-            ${ratingText ? `<p style="margin: 0 0 0.25rem; font-size: 0.875rem; color: #6b7280;">${ratingText}</p>` : ''}
-            ${rankingReason ? `<p style="margin: 0; font-size: 0.75rem; color: #9ca3af; font-style: italic;">${rankingReason}</p>` : ''}
+            ${location ? `<p class="recommendation-card__meta" style="margin:0 0 .55rem;font-size:.84rem;color:#667085;line-height:1.45;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">📍 ${location}</p>` : ''}
+            ${ratingText ? `<p class="recommendation-card__meta" style="margin:0 0 .42rem;font-size:.84rem;color:#667085;line-height:1.35;">${ratingText}</p>` : ''}
+            ${rankingReason ? `<p class="recommendation-card__reason" style="margin:0;font-size:.76rem;color:#8a94a6;font-style:italic;line-height:1.35;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${rankingReason}</p>` : ''}
           </a>
         `;
           })
@@ -176,7 +251,7 @@
     widget.style.display = '';
 
     if (isDevelopment) {
-      console.log(`✓ Rendered ${recommendations.length} recommendations`);
+      console.log(`✓ Rendered ${Math.min(recommendations.length, RECOMMENDATION_LIMIT)} recommendations`);
     }
   }
 

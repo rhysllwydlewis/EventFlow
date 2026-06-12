@@ -88,9 +88,12 @@
   --admin-navbar-height:     70px;
   --admin-navbar-z:          1000;
 
-  /* ─── Typography ─────────────────────────────────────────────────────── */
-  --admin-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
-                       'Helvetica Neue', Arial, sans-serif;
+  /* ─── Typography ───────────────────────────────────────────────────────
+     Keep EventFlow on one Inter-first sans stack. This mirrors the public
+     site while preserving robust system fallbacks if Inter is unavailable. */
+  --admin-font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont,
+                       'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --admin-font-mono: 'Courier New', Courier, monospace;
   --admin-font-size-xs:   11px;
   --admin-font-size-sm:   12px;
   --admin-font-size-base: 14px;

@@ -628,12 +628,23 @@ router.post(
 router.get('/suppliers', authRequired, roleRequired('admin'), async (_req, res) => {
   try {
     const raw = await dbUnified.read('suppliers');
+
+    // Build a set of valid user IDs so we can flag orphaned supplier profiles
+    // (those whose ownerUserId no longer exists in the users collection).
+    const users = await dbUnified.read('users');
+    const validUserIds = new Set(users.map(u => u.id).filter(Boolean));
+
     const items = await Promise.all(
-      raw.map(async s => ({
-        ...s,
-        isPro: supplierIsProActiveFn ? await supplierIsProActiveFn(s) : s.isPro,
-        proExpiresAt: s.proExpiresAt || null,
-      }))
+      raw.map(async s => {
+        const isOrphaned = s.ownerUserId && !validUserIds.has(s.ownerUserId);
+        return {
+          ...s,
+          isPro: supplierIsProActiveFn ? await supplierIsProActiveFn(s) : s.isPro,
+          proExpiresAt: s.proExpiresAt || null,
+          // Expose orphan flag so the admin UI can highlight / filter these
+          _ownerDeleted: isOrphaned,
+        };
+      })
     );
     res.json({ items });
   } catch (error) {
@@ -920,7 +931,7 @@ router.post(
 
       // Write audit log entry
       try {
-        await dbUnified.insertOne('audit_log', {
+        const auditLogInserted = await dbUnified.insertOne('audit_log', {
           id: uid('audit'),
           action: 'supplier_duplicate_cleanup',
           ownerUserId,
@@ -930,6 +941,9 @@ router.post(
           performedBy: req.user?.id,
           performedAt: new Date().toISOString(),
         });
+        if (!auditLogInserted) {
+          logger.warn('[ADMIN] audit_log insertOne failed — non-critical');
+        }
       } catch (auditErr) {
         logger.warn('Failed to write audit log for duplicate cleanup:', auditErr.message);
       }
@@ -991,7 +1005,7 @@ router.get('/suppliers/:id', authRequired, roleRequired('admin'), async (req, re
     // Prefer findOne (O(1) index lookup) when available; fall back to read+find
     const supplier = dbUnified.findOne
       ? await dbUnified.findOne('suppliers', { id: req.params.id })
-      : (await dbUnified.read('suppliers')).find(s => s.id === req.params.id);
+      : await dbUnified.findOne('suppliers', { id: req.params.id });
 
     if (!supplier) {
       return res.status(404).json({ error: 'Supplier not found' });
@@ -1409,7 +1423,10 @@ router.post('/packages', authRequired, roleRequired('admin'), csrfProtection, as
       versionHistory: [],
     };
 
-    await dbUnified.insertOne('packages', newPackage);
+    const adminPkgInserted = await dbUnified.insertOne('packages', newPackage);
+    if (!adminPkgInserted) {
+      logger.error('[ADMIN] package insertOne failed', { pkgId: newPackage.id });
+    }
 
     // Create audit log
     auditLog({
@@ -2031,8 +2048,11 @@ router.post(
         );
         if (!alreadyInGallery) {
           suppliers[supplierIndex].photosGallery.push({
-            url: photo.url,
-            approved: true,
+            url:       photo.url,
+            thumbnail: photo.thumbnail || photo.url,
+            large:     photo.large     || photo.url,
+            original:  photo.original  || photo.url,
+            approved:  true,
             uploadedAt: photo.uploadedAt || new Date().toISOString(),
           });
           await dbUnified.updateOne(
@@ -2182,8 +2202,11 @@ router.post(
               );
               if (!alreadyInGallery) {
                 suppliers[supplierIndex].photosGallery.push({
-                  url: photo.url,
-                  approved: true,
+                  url:       photo.url,
+                  thumbnail: photo.thumbnail || photo.url,
+                  large:     photo.large     || photo.url,
+                  original:  photo.original  || photo.url,
+                  approved:  true,
                   uploadedAt: photo.uploadedAt || new Date().toISOString(),
                 });
                 await dbUnified.updateOne(
@@ -2385,6 +2408,7 @@ function generateUniqueId(prefix) {
  * Returns: pending suppliers, packages, photos, reviews, reports, and totals
  */
 router.get('/badge-counts', authRequired, roleRequired('admin'), async (req, res) => {
+  // Response shape includes pending: and totals: sections for dashboard badges.
   try {
     // Use efficient counting instead of loading full collections
     const [
@@ -2392,6 +2416,8 @@ router.get('/badge-counts', authRequired, roleRequired('admin'), async (req, res
       pendingPackages,
       pendingReviews,
       pendingReports,
+      pendingCalendarRequests,
+      totalCalendarEvents,
       totalSuppliers,
       totalPackages,
       totalReviews,
@@ -2401,6 +2427,8 @@ router.get('/badge-counts', authRequired, roleRequired('admin'), async (req, res
       dbUnified.count('packages', { approved: false }),
       dbUnified.count('reviews', { $or: [{ status: 'pending' }, { flagged: true }] }),
       dbUnified.count('reports', { status: 'pending' }),
+      dbUnified.count('public_calendar_publisher_requests', { status: 'pending' }),
+      dbUnified.count('public_calendar_events'),
       dbUnified.count('suppliers'),
       dbUnified.count('packages'),
       dbUnified.count('reviews'),
@@ -2437,12 +2465,14 @@ router.get('/badge-counts', authRequired, roleRequired('admin'), async (req, res
         reviews: pendingReviews,
         reports: pendingReports,
         tickets: openTickets,
+        publicCalendarRequests: pendingCalendarRequests,
       },
       totals: {
         suppliers: totalSuppliers,
         packages: totalPackages,
         reviews: totalReviews,
         reports: totalReports,
+        publicCalendarEvents: totalCalendarEvents,
       },
       openTickets,
     });
@@ -2458,12 +2488,14 @@ router.get('/badge-counts', authRequired, roleRequired('admin'), async (req, res
         reviews: 0,
         reports: 0,
         tickets: 0,
+        publicCalendarRequests: 0,
       },
       totals: {
         suppliers: 0,
         packages: 0,
         reviews: 0,
         reports: 0,
+        publicCalendarEvents: 0,
       },
       openTickets: 0,
     });
@@ -3270,6 +3302,7 @@ router.get('/settings/features', authRequired, roleRequired('admin'), async (req
       supportTickets: true,
       pexelsCollage: false,
       requirePackageApproval: false,
+      requirePublicCalendarApproval: false,
     };
 
     // Ensure metadata fields are included in response
@@ -3282,6 +3315,7 @@ router.get('/settings/features', authRequired, roleRequired('admin'), async (req
       supportTickets: features.supportTickets !== false,
       pexelsCollage: features.pexelsCollage === true,
       requirePackageApproval: features.requirePackageApproval === true,
+      requirePublicCalendarApproval: features.requirePublicCalendarApproval === true,
       photoAutoApprove: features.photoAutoApprove !== false,
       autoApproveReviews: features.autoApproveReviews !== false,
       autoApproveSupplierVerification: features.autoApproveSupplierVerification === true,
@@ -3320,6 +3354,7 @@ router.put(
         supportTickets,
         pexelsCollage,
         requirePackageApproval,
+        requirePublicCalendarApproval,
         photoAutoApprove,
         autoApproveReviews,
         autoApproveSupplierVerification,
@@ -3351,6 +3386,7 @@ router.put(
         'supportTickets',
         'pexelsCollage',
         'requirePackageApproval',
+        'requirePublicCalendarApproval',
         'photoAutoApprove',
         'autoApproveReviews',
         'autoApproveSupplierVerification',
@@ -3375,6 +3411,7 @@ router.put(
         supportTickets: supportTickets !== false,
         pexelsCollage: pexelsCollage === true,
         requirePackageApproval: requirePackageApproval === true,
+        requirePublicCalendarApproval: requirePublicCalendarApproval === true,
         photoAutoApprove: photoAutoApprove !== false,
         autoApproveReviews: autoApproveReviews !== false,
         autoApproveSupplierVerification: autoApproveSupplierVerification === true,
@@ -3419,8 +3456,67 @@ router.put(
       const totalTime = Date.now() - startTime;
       logger.info(`[${requestId}] Feature flags update completed successfully in ${totalTime}ms`);
 
+      // When auto-approve is being enabled, immediately approve all suppliers
+      // that are currently awaiting review (pending_review) or are unapproved.
+      // This prevents existing suppliers from remaining stuck in a pending state
+      // after the admin flips the switch.
+      let bulkAutoApproved = 0;
+      if (newFeatures.autoApproveSupplierVerification === true) {
+        try {
+          const { VERIFICATION_STATES } = require('../utils/supplierVerificationStateMachine');
+          const pendingSuppliers = await dbUnified.find('suppliers', {
+            $or: [
+              { approved: false },
+              { approved: { $ne: true } },
+              { verificationStatus: VERIFICATION_STATES.PENDING_REVIEW },
+              { verificationStatus: VERIFICATION_STATES.UNVERIFIED },
+            ],
+          });
+          const approvedAt = new Date().toISOString();
+          for (const s of pendingSuppliers) {
+            if (s.approved === true && s.verificationStatus === VERIFICATION_STATES.APPROVED) {
+              continue; // already fully approved, skip
+            }
+            await dbUnified.updateOne(
+              'suppliers',
+              { id: s.id },
+              {
+                $set: {
+                  approved: true,
+                  approvedAt,
+                  approvedBy: 'system',
+                  verified: true,
+                  verificationStatus: VERIFICATION_STATES.APPROVED,
+                  updatedAt: approvedAt,
+                },
+              }
+            );
+            bulkAutoApproved += 1;
+          }
+          if (bulkAutoApproved > 0) {
+            logger.info(
+              `[${requestId}] Auto-approve enabled: bulk-approved ${bulkAutoApproved} pending supplier(s)`
+            );
+            auditLog({
+              adminId: req.user.id,
+              adminEmail: req.user.email,
+              action: 'SUPPLIERS_BULK_AUTO_APPROVED',
+              targetType: 'suppliers',
+              targetId: null,
+              details: { count: bulkAutoApproved, triggeredBy: 'autoApproveSupplierVerification' },
+            });
+          }
+        } catch (bulkErr) {
+          // Non-fatal: log and continue — the feature flag was saved successfully
+          logger.error(
+            `[${requestId}] Bulk auto-approve migration failed (feature flag still saved):`,
+            bulkErr.message
+          );
+        }
+      }
+
       // Return verified data from database
-      res.json({ success: true, features: result.data.features });
+      res.json({ success: true, features: result.data.features, bulkAutoApproved });
     } catch (error) {
       const totalTime = Date.now() - startTime;
       logger.error(
@@ -6274,7 +6370,10 @@ router.post(
       // Remove version history from duplicate
       delete duplicatePkg.versionHistory;
 
-      await dbUnified.insertOne('packages', duplicatePkg);
+      const adminDupPkgInserted = await dbUnified.insertOne('packages', duplicatePkg);
+      if (!adminDupPkgInserted) {
+        logger.error('[ADMIN] dup package insertOne failed');
+      }
 
       // Audit log
       await auditLog({

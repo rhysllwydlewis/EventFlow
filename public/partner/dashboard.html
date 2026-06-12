@@ -16,15 +16,14 @@
     <link rel="stylesheet" href="/assets/css/navbar.css?v=18.3.0" />
     <link rel="stylesheet" href="/assets/css/mobile-optimizations.css?v=18.3.0" />
     <link rel="stylesheet" href="/assets/css/ui-ux-fixes.css?v=18.3.0" />
-    <link rel="stylesheet" href="/assets/css/partner.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/partner.css?v=18.4.0" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
   </head>
   <body class="partner-page">
-
-    <!-- Background -->
+<!-- Background -->
     <div class="partner-bg" aria-hidden="true">
       <div class="partner-bg-blob partner-bg-blob--1"></div>
       <div class="partner-bg-blob partner-bg-blob--2"></div>
@@ -32,19 +31,19 @@
     </div>
 
     <!-- Minimal header bar -->
-    <header style="position:relative;z-index:10;padding:1rem 1.5rem;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.06);">
-      <a href="/partner" style="display:flex;align-items:center;gap:0.6rem;text-decoration:none;">
-        <div class="partner-brand-logo-mark" style="width:34px;height:34px;font-size:0.9rem;" aria-hidden="true">EF</div>
-        <span style="color:#fff;font-weight:700;font-size:0.95rem;letter-spacing:-0.01em;">
-          EventFlow <span style="color:rgba(16,185,129,0.8);font-weight:500;">Partners</span>
+    <header class="partner-header">
+      <a href="/partner" class="partner-logo-link">
+        <div class="partner-brand-logo-mark partner-logo-icon" aria-hidden="true">EF</div>
+        <span class="partner-brand-text">
+          EventFlow <span class="partner-verified-label">Partners</span>
         </span>
       </a>
-      <div style="display:flex;align-items:center;gap:1rem;">
-        <span id="partner-user-name" style="color:rgba(255,255,255,0.55);font-size:0.85rem;"></span>
+      <div class="partner-user-area">
+        <span id="partner-user-name" class="partner-role-label"></span>
         <button
           id="partner-logout-btn"
           type="button"
-          style="padding:0.45rem 0.9rem;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:rgba(255,255,255,0.65);font-size:0.82rem;cursor:pointer;"
+          class="partner-stat-badge"
           aria-label="Log out"
         >Log out</button>
       </div>
@@ -91,12 +90,12 @@
         <div class="partner-stat-card" role="group" aria-labelledby="stat-earned-label">
           <div class="partner-stat-label" id="stat-earned-label">Total Earned</div>
           <div class="partner-stat-value" id="stat-earned">—</div>
-          <div class="partner-stat-sub">all time</div>
+          <div class="partner-stat-sub"><span id="stat-earned-sub">all time</span></div>
         </div>
         <div class="partner-stat-card" role="group" aria-labelledby="stat-bonuses-label">
           <div class="partner-stat-label" id="stat-bonuses-label">Activity Bonuses</div>
           <div class="partner-stat-value" id="stat-bonuses">—</div>
-          <div class="partner-stat-sub">pkg &amp; subscription</div>
+          <div class="partner-stat-sub">signup, pkg, review &amp; sub</div>
         </div>
         <div class="partner-stat-card" role="group" aria-labelledby="stat-refs-label">
           <div class="partner-stat-label" id="stat-refs-label">Referred Suppliers</div>
@@ -128,7 +127,7 @@
             <h2 class="partner-section-title" id="ref-link-heading">Your Referral Link</h2>
             <p class="partner-section-subtitle">Share this link with event suppliers to start earning</p>
           </div>
-          <span id="partner-ref-code-badge" class="p-badge p-badge--success partner-ref-code-badge--copyable" style="font-family:monospace;font-size:0.8rem;" tabindex="0" role="button" aria-label="Copy partner code to clipboard"></span>
+          <span id="partner-ref-code-badge" class="p-badge p-badge--success partner-ref-code-badge--copyable partner-mono" tabindex="0" role="button" aria-label="Copy partner code to clipboard"></span>
         </div>
         <div class="partner-ref-link-box" role="group" aria-label="Referral link">
           <span class="partner-ref-link-text" id="partner-ref-link">Loading…</span>
@@ -147,7 +146,41 @@
           <span>📦 Package = <strong>+10</strong></span>
           <span>⭐ Review = <strong>+15</strong></span>
           <span>💳 Subscription = <strong>+100</strong></span>
-          <span style="color:rgba(255,255,255,0.35);">· Available after 30 days</span>
+          <span class="partner-sep">· Available after 30 days</span>
+        </div>
+
+        <!-- Quick share buttons -->
+        <div class="partner-share-row" id="partner-share-row" aria-label="Share your referral link">
+          <a id="partner-share-whatsapp" class="partner-share-btn partner-share-btn--whatsapp" target="_blank" rel="noopener noreferrer" aria-label="Share on WhatsApp">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+            Share on WhatsApp
+          </a>
+          <a id="partner-share-email" class="partner-share-btn partner-share-btn--email" href="mailto:" aria-label="Share via email">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            Share via email
+          </a>
+        </div>
+      </section>
+
+      <!-- Cashout progress / milestone tracker -->
+      <section class="partner-section" aria-labelledby="milestone-heading" id="milestone-section">
+        <div class="partner-section-header">
+          <div>
+            <h2 class="partner-section-title" id="milestone-heading">🎯 Progress to Next Cashout</h2>
+            <p class="partner-section-subtitle">Track how close you are to your next £15 cashout</p>
+          </div>
+        </div>
+        <div id="milestone-container">
+          <div class="partner-milestone">
+            <div class="partner-milestone-header">
+              <span class="partner-milestone-label">Available points</span>
+              <span class="partner-milestone-value" id="milestone-value-label">Loading…</span>
+            </div>
+            <div class="partner-milestone-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="milestone-track">
+              <div class="partner-milestone-fill" id="milestone-fill" style="width:0%"></div>
+            </div>
+            <p class="partner-milestone-hint" id="milestone-hint"></p>
+          </div>
         </div>
       </section>
 
@@ -181,8 +214,8 @@
         </p>
 
         <!-- Code history table -->
-        <div id="code-history-container" style="margin-top:1rem;">
-          <p class="partner-empty-text" style="color:rgba(255,255,255,0.35);font-size:0.82rem;">No previous codes — your current code has never been regenerated.</p>
+        <div id="code-history-container" class="partner-code-history">
+          <p class="partner-empty-text partner-muted-sm">No previous codes — your current code has never been regenerated.</p>
         </div>
       </section>
 
@@ -215,8 +248,8 @@
         <div id="cashout-insufficient" class="cashout-not-configured" style="display:none;" aria-live="polite">
           <span class="cashout-not-configured-icon" aria-hidden="true">💰</span>
           <div style="flex:1;min-width:0;">
-            <p style="margin:0;font-weight:600;">Cashout not yet available</p>
-            <p style="margin:0.25rem 0 0;font-size:0.85rem;opacity:0.8;">
+            <p class="partner-section-title">Cashout not yet available</p>
+            <p class="partner-section-subtitle">
               You need at least <strong>£15 in available points</strong> to request a cashout.
               Your current available balance is <span id="cashout-avail-gbp-msg">£—</span>.
             </p>
@@ -270,7 +303,7 @@
               <!-- Optional notes -->
               <div class="partner-modal-field" style="grid-column:1/-1;">
                 <label for="cashout-notes">
-                  Notes <span style="color:rgba(255,255,255,0.35);font-weight:400;">(optional)</span>
+                  Notes <span class="partner-footer-credit">(optional)</span>
                 </label>
                 <textarea
                   id="cashout-notes"
@@ -289,7 +322,6 @@
                 type="submit"
                 id="cashout-submit-btn"
                 class="ef-cta partner-submit-btn"
-                style="width:auto;max-width:260px;margin:0;"
               >
                 💸 Submit Cashout Request
               </button>
@@ -344,14 +376,13 @@
           </div>
         </div>
         <div class="partner-payout-info">
-          <p style="font-size:0.88rem;color:rgba(255,255,255,0.65);line-height:1.6;margin:0 0 1rem;">
+          <p class="partner-body-copy">
             Need help with your account, referrals, or anything else? Send our team a message and we'll get back to you.
           </p>
           <button
             id="partner-support-btn"
             type="button"
-            class="ef-cta partner-submit-btn"
-            style="max-width:260px;"
+            class="ef-cta partner-submit-btn partner-input-narrow"
             aria-haspopup="dialog"
           >
             ✉️ Raise a support ticket
@@ -375,18 +406,99 @@
         </div>
       </section>
 
-      <!-- Recent transactions -->
+      <!-- Credit Activity (tabbed: breakdown + history) -->
       <section class="partner-section" aria-labelledby="txns-heading">
         <div class="partner-section-header">
           <div>
-            <h2 class="partner-section-title" id="txns-heading">Credit Activity</h2>
-            <p class="partner-section-subtitle">Recent point transactions</p>
+            <h2 class="partner-section-title" id="txns-heading">💰 Credit Activity</h2>
+            <p class="partner-section-subtitle">Earnings breakdown and full transaction history</p>
           </div>
         </div>
-        <div id="transactions-container">
-          <div class="partner-empty">
-            <span class="partner-spinner" aria-hidden="true"></span>
-            <p class="partner-empty-text">Loading activity…</p>
+        <div class="partner-section-tabs" role="tablist">
+          <button class="partner-section-tab active" id="tab-breakdown" role="tab" aria-selected="true" aria-controls="panel-breakdown" type="button">Earnings breakdown</button>
+          <button class="partner-section-tab" id="tab-transactions" role="tab" aria-selected="false" aria-controls="panel-transactions" type="button">Transaction history</button>
+        </div>
+        <div id="panel-breakdown" role="tabpanel" aria-labelledby="tab-breakdown">
+          <div id="breakdown-container">
+            <div class="partner-empty">
+              <span class="partner-spinner" aria-hidden="true"></span>
+              <p class="partner-empty-text">Loading breakdown…</p>
+            </div>
+          </div>
+        </div>
+        <div id="panel-transactions" role="tabpanel" aria-labelledby="tab-transactions" hidden>
+          <div id="transactions-container">
+            <div class="partner-empty">
+              <span class="partner-spinner" aria-hidden="true"></span>
+              <p class="partner-empty-text">Loading activity…</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Account Settings -->
+      <section class="partner-section" aria-labelledby="settings-heading">
+        <div class="partner-section-header">
+          <div>
+            <h2 class="partner-section-title" id="settings-heading">⚙️ Account Settings</h2>
+            <p class="partner-section-subtitle">Update your profile and change your password</p>
+          </div>
+        </div>
+        <div class="partner-settings-grid">
+
+          <!-- Profile update -->
+          <div class="partner-settings-group">
+            <p class="partner-settings-group-title">Profile</p>
+            <form id="partner-profile-form" novalidate autocomplete="on">
+              <div class="partner-field">
+                <label for="settings-firstname">First name</label>
+                <input id="settings-firstname" name="firstName" type="text" class="partner-input" autocomplete="given-name" placeholder="Jane" maxlength="40" />
+              </div>
+              <div class="partner-field">
+                <label for="settings-lastname">Last name</label>
+                <input id="settings-lastname" name="lastName" type="text" class="partner-input" autocomplete="family-name" placeholder="Smith" maxlength="40" />
+              </div>
+              <div class="partner-field">
+                <label for="settings-company">
+                  Company / channel
+                  <span style="color:rgba(255,255,255,0.35);font-weight:400;">(optional)</span>
+                </label>
+                <input id="settings-company" name="company" type="text" class="partner-input" placeholder="e.g. Wedding Vibes Group" maxlength="100" />
+              </div>
+              <div class="partner-settings-save-row">
+                <button type="submit" class="ef-cta partner-submit-btn partner-settings-btn" id="profile-save-btn">Save profile</button>
+                <div id="profile-status" class="partner-status partner-settings-status" role="alert" aria-live="polite"></div>
+              </div>
+            </form>
+          </div>
+
+          <!-- Password change -->
+          <div class="partner-settings-group">
+            <p class="partner-settings-group-title">Security</p>
+            <form id="partner-password-form" novalidate autocomplete="off">
+              <div class="partner-field">
+                <label for="settings-current-pw">Current password</label>
+                <div class="partner-pw-wrap">
+                  <input id="settings-current-pw" name="currentPassword" type="password" class="partner-input" autocomplete="current-password" placeholder="Your current password" />
+                  <button type="button" class="ef-cta partner-pw-toggle" aria-label="Show current password" data-target="settings-current-pw">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  </button>
+                </div>
+              </div>
+              <div class="partner-field">
+                <label for="settings-new-pw">New password</label>
+                <div class="partner-pw-wrap">
+                  <input id="settings-new-pw" name="newPassword" type="password" class="partner-input" autocomplete="new-password" placeholder="Min 8 characters, letters + numbers" />
+                  <button type="button" class="ef-cta partner-pw-toggle" aria-label="Show new password" data-target="settings-new-pw">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  </button>
+                </div>
+              </div>
+              <div class="partner-settings-save-row">
+                <button type="submit" class="ef-cta partner-submit-btn partner-settings-btn" id="password-save-btn">Change password</button>
+                <div id="password-status" class="partner-status partner-settings-status" role="alert" aria-live="polite"></div>
+              </div>
+            </form>
           </div>
         </div>
       </section>
@@ -455,3 +567,6 @@
     <script src="/assets/js/pages/partner-dashboard-init.js?v=18.3.0" defer></script>
   </body>
 </html>
+
+
+

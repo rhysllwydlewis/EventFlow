@@ -105,15 +105,30 @@ async function createIndexes() {
   try {
     logger.info('📊 Creating database indexes...');
     const usersCollection = mongodb.collection('users');
+    await usersCollection.createIndex({ id: 1 }, { unique: true }); // custom string id — used by all auth lookups
+    await usersCollection.createIndex({ googleSub: 1 }, { sparse: true }); // sparse: only indexes docs that have the field
     await usersCollection.createIndex({ email: 1 }, { unique: true });
     await usersCollection.createIndex({ role: 1 });
     await usersCollection.createIndex({ createdAt: -1 });
     const suppliersCollection = mongodb.collection('suppliers');
+    await suppliersCollection.createIndex({ id: 1 }, { unique: true }); // direct id lookups
+    await suppliersCollection.createIndex({ ownerUserId: 1 }); // used by GET /me supplier approval check
+    await suppliersCollection.createIndex(
+      { ownerUserId: 1 },
+      {
+        unique: true,
+        partialFilterExpression: { ownerUserId: { $type: 'string' } },
+        name: 'uniq_suppliers_ownerUserId_string',
+      }
+    ); // enforce one real linked supplier profile per user while allowing legacy null ownerUserId
+    await suppliersCollection.createIndex({ approved: 1, category: 1 }); // public directory
     await suppliersCollection.createIndex({ category: 1 });
     await suppliersCollection.createIndex({ userId: 1 });
     await suppliersCollection.createIndex({ featured: 1 });
     await suppliersCollection.createIndex({ approved: 1 });
     const packagesCollection = mongodb.collection('packages');
+    await packagesCollection.createIndex({ id: 1 }, { unique: true }); // direct id lookups
+    await packagesCollection.createIndex({ supplierId: 1, approved: 1 }); // supplier package lists
     await packagesCollection.createIndex({ supplierId: 1 });
     await packagesCollection.createIndex({ category: 1 });
     await packagesCollection.createIndex({ price: 1 });
@@ -125,7 +140,9 @@ async function createIndexes() {
     await plansCollection.createIndex({ userId: 1 });
     await plansCollection.createIndex({ eventDate: 1 });
     const reviewsCollection = mongodb.collection('reviews');
+    // Reviews use _id (auto-indexed by MongoDB) — no custom 'id' field
     await reviewsCollection.createIndex({ supplierId: 1 });
+    await reviewsCollection.createIndex({ authorId: 1 }); // eligibility + rate-limit checks
     await reviewsCollection.createIndex({ userId: 1 });
     await reviewsCollection.createIndex({ rating: -1 });
     const threadsCollection = mongodb.collection('threads');
@@ -133,16 +150,22 @@ async function createIndexes() {
     await threadsCollection.createIndex({ createdAt: -1 });
     await threadsCollection.createIndex({ supplierId: 1 });
     const ticketsCollection = mongodb.collection('tickets');
+    await ticketsCollection.createIndex({ id: 1 }, { unique: true }); // direct id lookups
     await ticketsCollection.createIndex({ userId: 1 });
     await ticketsCollection.createIndex({ status: 1 });
     await ticketsCollection.createIndex({ createdAt: -1 });
     const paymentsCollection = mongodb.collection('payments');
+    await paymentsCollection.createIndex({ id: 1 }, { unique: true }); // payment id lookups
+    await paymentsCollection.createIndex({ stripePaymentId: 1 }, { sparse: true }); // Stripe payment lookups
     await paymentsCollection.createIndex({ userId: 1 });
     await paymentsCollection.createIndex({ status: 1 });
     await paymentsCollection.createIndex({ createdAt: -1 });
     const subscriptionsCollection = mongodb.collection('subscriptions');
-    await subscriptionsCollection.createIndex({ userId: 1 });
+    await subscriptionsCollection.createIndex({ id: 1 }, { unique: true }); // subscription id lookups
+    await subscriptionsCollection.createIndex({ userId: 1, status: 1 }); // getSubscriptionByUserId
     await subscriptionsCollection.createIndex({ status: 1 });
+    await subscriptionsCollection.createIndex({ stripeSubscriptionId: 1 }, { sparse: true }); // Stripe webhook lookups
+    await subscriptionsCollection.createIndex({ stripeCustomerId: 1 }, { sparse: true }); // Stripe customer lookups
     const marketplaceCollection = mongodb.collection('marketplace_listings');
     await marketplaceCollection.createIndex({ sellerId: 1 });
     await marketplaceCollection.createIndex({ sellerUserId: 1 });
@@ -164,6 +187,7 @@ async function createIndexes() {
     const shortlistsCollection = mongodb.collection('shortlists');
     await shortlistsCollection.createIndex({ userId: 1 }, { unique: true });
     const notificationsCollection = mongodb.collection('notifications');
+    await notificationsCollection.createIndex({ id: 1 }, { unique: true }); // dedup $in lookups
     await notificationsCollection.createIndex({ userId: 1, createdAt: -1 });
     await notificationsCollection.createIndex({ read: 1 });
     const supplierAnalyticsCollection = mongodb.collection('supplierAnalytics');
@@ -191,6 +215,132 @@ async function createIndexes() {
     const partnerCodeHistoryCollection = mongodb.collection('partner_code_history');
     await partnerCodeHistoryCollection.createIndex({ partnerId: 1 });
     await partnerCodeHistoryCollection.createIndex({ refCode: 1 });
+    // Calendar collections
+    const calendarEntriesCollection = mongodb.collection('customer_calendar_entries');
+    await calendarEntriesCollection.createIndex({ id: 1 }, { unique: true }); // entry id lookups
+    await calendarEntriesCollection.createIndex({ userId: 1 });
+    await calendarEntriesCollection.createIndex({ date: 1 });
+    const pubCalendarCollection = mongodb.collection('public_calendar_events');
+    await pubCalendarCollection.createIndex({ id: 1 }, { unique: true }); // event id lookups
+    await pubCalendarCollection.createIndex({ slug: 1 }, { sparse: true, unique: true }); // slug lookups
+    await pubCalendarCollection.createIndex({ status: 1, date: 1 });
+    await pubCalendarCollection.createIndex({ createdByUserId: 1 });
+    await pubCalendarCollection.createIndex({ supplierId: 1 }, { sparse: true });
+    const pubCalendarSavesCollection = mongodb.collection('public_calendar_saves');
+    await pubCalendarSavesCollection.createIndex({ userId: 1, eventId: 1 }, { unique: true }); // dedup saves
+    // Plans collection
+    const plansCollection2 = mongodb.collection('plans');
+    await plansCollection2.createIndex({ id: 1 }, { unique: true });
+    await plansCollection2.createIndex({ userId: 1 });
+    // Saved items
+    const savedItemsCollection = mongodb.collection('savedItems');
+    await savedItemsCollection.createIndex({ userId: 1 });
+    await savedItemsCollection.createIndex({ userId: 1, itemType: 1, itemId: 1 }, { unique: true });
+    // Marketplace
+    const marketplaceCollection2 = mongodb.collection('marketplace_listings');
+    await marketplaceCollection2.createIndex({ id: 1 }, { unique: true });
+    await marketplaceCollection2.createIndex({ userId: 1 });
+    await marketplaceCollection2.createIndex({ status: 1 });
+    // Reviews compound - authorId+supplierId for eligibility check
+    const reviewsCollection3 = mongodb.collection('reviews');
+    await reviewsCollection3.createIndex({ authorId: 1, supplierId: 1 });
+    await reviewsCollection3.createIndex({ authorId: 1, createdAt: -1 });
+    // Webhook events dedup store
+    const webhookEventsCollection = mongodb.collection('webhook_events');
+    await webhookEventsCollection.createIndex({ eventId: 1 }, { unique: true }); // O(1) dedup lookup
+    await webhookEventsCollection.createIndex({ processedAt: -1 });
+    // Email Centre activity logs
+    const emailLogsCollection = mongodb.collection('email_logs');
+    await emailLogsCollection.createIndex({ id: 1 }, { unique: true });
+    await emailLogsCollection.createIndex({ postmarkMessageId: 1 });
+    await emailLogsCollection.createIndex({ createdAt: -1 });
+    await emailLogsCollection.createIndex({ status: 1, createdAt: -1 });
+    await emailLogsCollection.createIndex({ recipients: 1 });
+    await emailLogsCollection.createIndex({ template: 1 });
+    await emailLogsCollection.createIndex({ messageStream: 1 });
+    // Photos collection
+    const photosCollection = mongodb.collection('photos');
+    await photosCollection.createIndex({ id: 1 }, { unique: true });
+    await photosCollection.createIndex({ supplierId: 1 });
+    await photosCollection.createIndex({ status: 1 }); // pending moderation queue
+    await photosCollection.createIndex({ supplierId: 1, status: 1 }); // per-supplier moderation
+    // Users: referral code lookup (registration via referral link)
+    const usersCollection3 = mongodb.collection('users');
+    await usersCollection3.createIndex({ referralCode: 1 }, { sparse: true });
+
+    // Referrals collection
+    const referralsCollection = mongodb.collection('referrals');
+    await referralsCollection.createIndex({ id: 1 }, { unique: true });
+    await referralsCollection.createIndex({ referrerId: 1 }); // list referrals by partner
+    await referralsCollection.createIndex({ referredUserId: 1 }, { sparse: true, unique: true }); // dedup
+
+    // Wedding websites: public slug lookup
+    const plansCollection3 = mongodb.collection('plans');
+    await plansCollection3.createIndex({ 'weddingWebsite.slug': 1 }, { sparse: true }); // dotted-path
+
+    // Partner credit transactions
+    // partner_credit_transactions — additional indexes for targeted lookups
+    const partnerCreditCollection = mongodb.collection('partner_credit_transactions');
+    await partnerCreditCollection.createIndex({ id: 1 }, { unique: true }); // reverseDebit + releaseCashoutHold
+    // Note: { partnerId, createdAt } compound already exists above (covers getBalance partnerId queries)
+    await partnerCreditCollection.createIndex(
+      { partnerId: 1, supplierUserId: 1, type: 1 },
+      { sparse: true } // _awardCredit idempotency
+    );
+    await partnerCreditCollection.createIndex(
+      { type: 1, partnerId: 1, externalRef: 1 },
+      { sparse: true } // releaseCashoutHold idempotency
+    );
+
+    // partner_code_history.partnerId and partner_referrals.partnerId already indexed above
+
+    // Tickets collection
+    const ticketsCollection2 = mongodb.collection('tickets');
+    await ticketsCollection2.createIndex({ id: 1 }, { unique: true });
+    await ticketsCollection2.createIndex({ senderId: 1, senderType: 1 }); // user/supplier ticket lists
+    await ticketsCollection2.createIndex({ status: 1, createdAt: -1 }); // status filtering + sort
+
+    // Saved searches and history
+    const savedSearchesCollection = mongodb.collection('savedSearches');
+    await savedSearchesCollection.createIndex({ id: 1 }, { unique: true });
+    await savedSearchesCollection.createIndex({ userId: 1 }); // per-user saved search list
+    const searchHistoryCollection = mongodb.collection('searchHistory');
+    await searchHistoryCollection.createIndex({ userId: 1, timestamp: -1 }); // history ordered by time
+
+    // Partner cashout requests
+    const cashoutRequestsCollection = mongodb.collection('partner_cashout_requests');
+    await cashoutRequestsCollection.createIndex({ id: 1 }, { unique: true });
+    await cashoutRequestsCollection.createIndex({ partnerId: 1 });
+
+    // Quote requests, threads, bookings (supplier dashboard data)
+    const quoteReqColl2 = mongodb.collection('quoteRequests');
+    await quoteReqColl2.createIndex({ supplierId: 1 });
+    const threadsColl2 = mongodb.collection('threads');
+    await threadsColl2.createIndex({ supplierId: 1 });
+    const bookingsColl = mongodb.collection('bookings');
+    await bookingsColl.createIndex({ supplierId: 1 }, { sparse: true });
+
+    // Notes — one note per user
+    const notesColl = mongodb.collection('notes');
+    await notesColl.createIndex({ userId: 1 }, { unique: true });
+
+    // Plans — guest token lookups
+    const plansCollection5 = mongodb.collection('plans');
+    await plansCollection5.createIndex({ guestToken: 1 }, { sparse: true });
+
+    // Reviews — approved flag for public widget
+    const reviewsColl4 = mongodb.collection('reviews');
+    await reviewsColl4.createIndex({ approved: 1, createdAt: -1 }); // public review widget
+
+    // Review requests — idempotency check on supplierId+customerEmail
+    const reviewRequestsCollection = mongodb.collection('reviewRequests');
+    await reviewRequestsCollection.createIndex({ id: 1 }, { unique: true });
+    await reviewRequestsCollection.createIndex({ supplierId: 1, customerEmail: 1 }); // dedup check
+
+    // customer_calendar_entries: add compound index for upcoming events query
+    // (collection + userId index already declared above; adding userId+start compound)
+    await calendarEntriesCollection.createIndex({ userId: 1, date: 1 }); // upcoming events filter
+
     logger.info('✅ Database indexes created successfully');
   } catch (error) {
     logger.info('ℹ️  Database indexes:', error.message);
@@ -285,11 +435,9 @@ async function findOne(collectionName, filter) {
       if (typeof filter === 'function') {
         return all.find(filter) || null;
       }
-      return (
-        all.find(item => {
-          return Object.keys(filter).every(key => item[key] === filter[key]);
-        }) || null
-      );
+      // Use matchesFilter so $or, dotted-path keys, and comparison operators ($gte etc.)
+      // all work the same way on the local store as they do on MongoDB.
+      return all.find(item => matchesFilter(item, filter)) || null;
     }
   } catch (error) {
     logger.error(`Error finding in ${collectionName}:`, error.message);
@@ -312,9 +460,8 @@ async function find(collectionName, filter) {
       if (typeof filter === 'function') {
         return all.filter(filter);
       }
-      return all.filter(item => {
-        return Object.keys(filter).every(key => item[key] === filter[key]);
-      });
+      // Use matchesFilter for $or, dotted-path, and operator parity with MongoDB.
+      return all.filter(item => matchesFilter(item, filter));
     }
   } catch (error) {
     logger.error(`Error finding in ${collectionName}:`, error.message);
@@ -342,7 +489,7 @@ async function updateOne(collectionName, id, updates) {
       return result.modifiedCount > 0;
     } else {
       const all = store.read(collectionName);
-      const index = all.findIndex(item => Object.keys(filter).every(k => item[k] === filter[k]));
+      const index = all.findIndex(item => matchesFilter(item, filter));
       if (index >= 0) {
         // Apply $set fields
         const setFields = hasOperators ? updates.$set || {} : updates;
@@ -363,6 +510,46 @@ async function updateOne(collectionName, id, updates) {
   } catch (error) {
     logger.error(`Error updating in ${collectionName}:`, error.message);
     return false;
+  }
+}
+
+async function updateMany(collectionName, filter, updates) {
+  await initializeDatabase();
+  try {
+    const hasOperators =
+      updates !== null &&
+      typeof updates === 'object' &&
+      Object.keys(updates).some(k => k.startsWith('$'));
+
+    if (dbType === 'mongodb') {
+      const collection = mongodb.collection(collectionName);
+      const mongoUpdate = hasOperators ? updates : { $set: updates };
+      const result = await collection.updateMany(filter || {}, mongoUpdate);
+      return result.modifiedCount || 0;
+    }
+
+    const all = store.read(collectionName);
+    let modified = 0;
+    const setFields = hasOperators ? updates.$set || {} : updates;
+    const unsetFields = hasOperators ? updates.$unset || {} : {};
+    const next = all.map(item => {
+      if (!matchesFilter(item, filter || {})) {
+        return item;
+      }
+      modified += 1;
+      const updated = { ...item, ...setFields };
+      for (const key of Object.keys(unsetFields)) {
+        delete updated[key];
+      }
+      return updated;
+    });
+    if (modified > 0) {
+      store.write(collectionName, next);
+    }
+    return modified;
+  } catch (error) {
+    logger.error(`Error in updateMany for ${collectionName}:`, error.message);
+    return 0;
   }
 }
 
@@ -397,7 +584,7 @@ async function deleteOne(collectionName, id) {
       return result.deletedCount > 0;
     } else {
       const all = store.read(collectionName);
-      const index = all.findIndex(item => Object.keys(filter).every(k => item[k] === filter[k]));
+      const index = all.findIndex(item => matchesFilter(item, filter));
       if (index >= 0) {
         all.splice(index, 1);
         store.write(collectionName, all);
@@ -408,6 +595,29 @@ async function deleteOne(collectionName, id) {
   } catch (error) {
     logger.error(`Error deleting from ${collectionName}:`, error.message);
     return false;
+  }
+}
+
+async function deleteMany(collectionName, filter) {
+  await initializeDatabase();
+  try {
+    if (dbType === 'mongodb') {
+      const collection = mongodb.collection(collectionName);
+      const result = await collection.deleteMany(filter);
+      return result.deletedCount;
+    } else {
+      // Local store: filter and rewrite without matching documents
+      const all = store.read(collectionName);
+      const kept = all.filter(item => !matchesFilter(item, filter));
+      const removed = all.length - kept.length;
+      if (removed > 0) {
+        store.write(collectionName, kept);
+      }
+      return removed;
+    }
+  } catch (error) {
+    logger.error(`Error in deleteMany for ${collectionName}:`, error.message);
+    return 0;
   }
 }
 
@@ -475,62 +685,9 @@ async function withPerformanceTracking(operation, fn) {
   }
 }
 
-const validationSchemas = {
-  users: {
-    email: { type: 'string', required: true },
-    role: { type: 'string', enum: ['customer', 'supplier', 'admin'], required: true },
-    createdAt: { type: 'date', required: true },
-  },
-  suppliers: {
-    userId: { type: 'string', required: true },
-    category: { type: 'string', required: true },
-    approved: { type: 'boolean', required: true },
-  },
-  packages: {
-    supplierId: { type: 'string', required: true },
-    name: { type: 'string', required: true },
-    price: { type: 'number', required: true },
-  },
-  messages: {
-    userId: { type: 'string', required: true },
-    threadId: { type: 'string', required: true },
-    content: { type: 'string', required: true },
-    createdAt: { type: 'date', required: true },
-  },
-};
-
-function validateDocument(collectionName, document) {
-  const schema = validationSchemas[collectionName];
-  if (!schema) {
-    return { isValid: true, errors: [] };
-  }
-  const errors = [];
-  for (const [field, rules] of Object.entries(schema)) {
-    const value = document[field];
-    if (rules.required && (value === undefined || value === null)) {
-      errors.push(`Field '${field}' is required`);
-      continue;
-    }
-    if (value === undefined || value === null) {
-      continue;
-    }
-    if (rules.type) {
-      const actualType = rules.type === 'date' ? 'object' : typeof value;
-      if (rules.type === 'date' && !(value instanceof Date)) {
-        errors.push(`Field '${field}' must be a Date`);
-      } else if (rules.type !== 'date' && actualType !== rules.type) {
-        errors.push(`Field '${field}' must be of type ${rules.type}`);
-      }
-    }
-    if (rules.enum && !rules.enum.includes(value)) {
-      errors.push(`Field '${field}' must be one of: ${rules.enum.join(', ')}`);
-    }
-  }
-  return {
-    isValid: errors.length === 0,
-    errors,
-  };
-}
+// validateDocument was previously defined here but was never called anywhere in the
+// codebase. Validation happens at the route layer via field-level checks. Removed
+// to reduce dead-code surface area.
 
 async function count(collectionName, filter = {}) {
   await initializeDatabase();
@@ -551,13 +708,22 @@ async function count(collectionName, filter = {}) {
   }
 }
 
+function getNestedValue(obj, path) {
+  // Resolve dotted paths like 'authProviderIds.google' for local-store filter matching.
+  // MongoDB handles these natively; this brings the local store into parity.
+  return path
+    .split('.')
+    .reduce((cur, seg) => (cur !== null && cur !== undefined ? cur[seg] : undefined), obj);
+}
+
 function matchesFilter(item, filter) {
   return Object.keys(filter).every(key => {
     if (key === '$or' && Array.isArray(filter[key])) {
       return filter[key].some(orFilter => matchesFilter(item, orFilter));
     }
     const filterValue = filter[key];
-    const itemValue = item[key];
+    // Support dotted-path keys (e.g. 'authProviderIds.google') for local store parity with MongoDB
+    const itemValue = key.includes('.') ? getNestedValue(item, key) : item[key];
     if (typeof filterValue === 'object' && filterValue !== null && !Array.isArray(filterValue)) {
       return Object.keys(filterValue).every(operator => {
         const operatorValue = filterValue[operator];
@@ -684,25 +850,18 @@ async function findWithOptions(collectionName, filter = {}, options = {}) {
 async function writeAndVerify(collectionName, data) {
   await initializeDatabase();
   try {
-    // Write the data
-    await write(collectionName, data);
-
-    // Read it back to verify persistence
+    const written = await write(collectionName, data);
+    if (!written) {
+      throw new Error('write() returned falsy');
+    }
+    // Read the document back to confirm persistence and return the live value.
+    // writeAndVerify is only used with the settings collection, where read() is
+    // a single-document findOne on MongoDB (not a full collection scan).
     const verified = await read(collectionName);
-
-    // Return structured result with verification status
-    return {
-      success: true,
-      verified: true,
-      data: verified,
-    };
+    return { success: true, verified: true, data: verified };
   } catch (error) {
     logger.error(`Error in writeAndVerify for ${collectionName}:`, error.message);
-    return {
-      success: false,
-      verified: false,
-      error: error.message,
-    };
+    return { success: false, verified: false, error: error.message };
   }
 }
 
@@ -744,14 +903,15 @@ module.exports = {
   find,
   findOne,
   updateOne,
+  updateMany,
   insertOne,
   deleteOne,
+  deleteMany,
   uid,
   getDatabaseType,
   getDatabaseStatus,
   getQueryMetrics,
   resetQueryMetrics,
-  validateDocument,
   withPerformanceTracking,
   count,
   aggregate,

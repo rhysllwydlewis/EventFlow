@@ -37,6 +37,7 @@
       <nav class="ef-nav-desktop" aria-label="Main navigation">
         <a href="/start" class="ef-nav-link">Plan</a>
         <a href="/suppliers" class="ef-nav-link">Suppliers</a>
+        <a href="/public-calendar" class="ef-nav-link">Events</a>
         <a href="/marketplace" class="ef-nav-link">Marketplace</a>
         <a href="/guides" class="ef-nav-link">Guides</a>
         <a href="/pricing" class="ef-nav-link">Pricing</a>
@@ -91,6 +92,7 @@
     <nav class="ef-mobile-nav" aria-label="Primary navigation">
       <a href="/start" class="ef-mobile-link">Plan an Event</a>
       <a href="/suppliers" class="ef-mobile-link">Browse Suppliers</a>
+      <a href="/public-calendar" class="ef-mobile-link">Events Calendar</a>
       <a href="/marketplace" class="ef-mobile-link">Marketplace</a>
       <a href="/pricing" class="ef-mobile-link">Pricing</a>
       <a href="/guides" class="ef-mobile-link">Guides</a>
@@ -240,7 +242,7 @@
       </div>
     </section>
 
-    <div class="section" style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+    <div class="section" class="dash-space-between">
       <div class="small">Ready to move forward?</div>
       <div class="form-actions">
         <button class="cta" id="message-all">Message all</button>
@@ -250,9 +252,9 @@
     </div>
 
     <div id="modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);align-items:center;justify-content:center;padding:16px">
-      <div style="background:#fff;border-radius:12px;max-width:720px;width:100%;padding:16px">
+      <div class="plan-modal-card">
         <h3>Copy emails &amp; message</h3>
-        <div class="card" id="modal-emails" style="font-family:monospace;word-break:break-all">Loading…</div>
+        <div class="card" id="modal-emails" class="plan-code-text">Loading…</div>
         <label>Your message</label>
         <textarea id="modal-message" rows="6" placeholder="Write your message…"></textarea>
         <div class="form-actions" style="margin-top:10px">
@@ -262,12 +264,13 @@
       </div>
     </div>
 
-    <script src="/assets/js/utils/pexels-client.js"></script>
-    <script src="/assets/js/config/page-init.js"></script>
-  <script src="/assets/js/app.js"></script>
+  
     
   </div>
 </main>
+    <script src="/assets/js/utils/pexels-client.js" defer></script>
+<script src="/assets/js/config/page-init.js" defer></script>
+<script src="/assets/js/app.js" defer></script>
 
 <footer class="footer" role="contentinfo">
   <div class="container ef-footer-content">
@@ -275,7 +278,7 @@
     <div class="version">Version: <span id="ef-version-label">loading…</span></div>
     <div class="small"><a href="/guides">Guides</a> ·
       <a href="/credits">Credits</a> · <a href="/contact">Contact</a> · <a href="/legal">Legal Hub</a> · <button type="button" data-cookie-prefs>Cookie preferences</button></div>
-    <div class="small" style="width: 100%; margin-top: 8px; text-align: center;">Operated by <a href="https://vexi.co.uk" target="_blank" rel="noopener noreferrer">VEXI</a></div>
+    <div class="footer-credit small">Operated by <a href="https://vexi.co.uk" target="_blank" rel="noopener noreferrer">VEXI</a></div>
   </div>
   </footer>
 
@@ -350,3 +353,5 @@
 <script src="/assets/js/jadeassist-init.v2.js" defer></script>
 </body>
 </html>
+
+

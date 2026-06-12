@@ -1,0 +1,269 @@
+/* Header and scroll correction for the Wedding Website & RSVPs rendered widget.
+   Fixes the oversized header and restores a clear internal app scrollbar. */
+.ww-app-dialog.ww-render-polish {
+  height: min(840px, calc(100dvh - 44px)) !important;
+  max-height: calc(100dvh - 44px) !important;
+}
+
+.ww-render-polish .ww-app-shell {
+  height: 100% !important;
+  min-height: 0 !important;
+  max-height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
+
+.ww-render-polish .ww-app-header,
+.ww-render-polish .ww-app-tabs,
+.ww-render-polish .ww-render-trust-line {
+  flex: 0 0 auto !important;
+}
+
+.ww-render-polish .ww-app-body {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow-y: scroll !important;
+  overflow-x: hidden !important;
+  scrollbar-gutter: stable both-edges !important;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 155, 139, 0.58) rgba(80, 192, 176, 0.1);
+}
+
+.ww-render-polish .ww-app-body::-webkit-scrollbar {
+  width: 12px !important;
+}
+
+.ww-render-polish .ww-app-body::-webkit-scrollbar-track {
+  margin-block: 0.45rem;
+  border-radius: 999px;
+  background: rgba(80, 192, 176, 0.1) !important;
+}
+
+.ww-render-polish .ww-app-body::-webkit-scrollbar-thumb {
+  min-height: 3.5rem;
+  border: 3px solid rgba(255, 255, 255, 0.82) !important;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(8, 153, 138, 0.72), rgba(44, 148, 177, 0.62)) !important;
+}
+
+.ww-render-polish .ww-app-header {
+  min-height: clamp(150px, 22vh, 205px) !important;
+  padding: clamp(1.25rem, 2.2vw, 2rem) clamp(1.35rem, 2.7vw, 2.45rem) 0.78rem !important;
+  gap: 1rem !important;
+}
+
+.ww-render-polish .ww-app-title-group {
+  column-gap: clamp(1rem, 2vw, 1.55rem) !important;
+  max-width: min(780px, calc(100vw - 16rem)) !important;
+}
+
+.ww-render-polish .ww-app-icon {
+  width: clamp(3.1rem, 5vw, 3.9rem) !important;
+  height: clamp(3.1rem, 5vw, 3.9rem) !important;
+}
+
+.ww-render-polish .ww-app-icon svg {
+  width: 1.45rem !important;
+  height: 1.45rem !important;
+}
+
+.ww-render-polish .ww-kicker,
+.ww-render-polish .ww-launcher__eyebrow {
+  font-size: 0.74rem !important;
+  letter-spacing: 0.22em !important;
+}
+
+.ww-render-polish .ww-app-header h2 {
+  max-width: 720px !important;
+  margin-top: 0.25rem !important;
+  font-size: clamp(2.35rem, 4.05vw, 3.55rem) !important;
+  line-height: 0.98 !important;
+  letter-spacing: -0.062em !important;
+}
+
+.ww-render-polish .ww-app-header p:not(.ww-kicker) {
+  max-width: 590px !important;
+  margin-top: 0.62rem !important;
+  font-size: clamp(0.98rem, 1.35vw, 1.16rem) !important;
+  line-height: 1.48 !important;
+}
+
+.ww-render-polish .ww-app-header-actions {
+  gap: 0.55rem !important;
+  padding-top: 0 !important;
+}
+
+.ww-render-polish .ww-app-status,
+.ww-render-polish .customer-wedding-status-pill {
+  min-height: 2.35rem !important;
+  padding: 0.5rem 0.88rem !important;
+  font-size: 0.9rem !important;
+}
+
+.ww-render-polish .ww-app-close {
+  width: 2.6rem !important;
+  height: 2.6rem !important;
+  font-size: 1.2rem !important;
+}
+
+.ww-render-header-art {
+  right: clamp(3.5rem, 11vw, 7rem) !important;
+  bottom: -0.2rem !important;
+  width: clamp(10rem, 20vw, 16rem) !important;
+  height: clamp(5rem, 10vw, 8rem) !important;
+  opacity: 0.42 !important;
+}
+
+.ww-render-polish .ww-app-shell::before {
+  top: -13rem !important;
+  right: -5rem !important;
+  width: 29rem !important;
+  height: 22rem !important;
+  opacity: 0.8;
+}
+
+.ww-render-polish .ww-app-shell::after {
+  top: 6.4rem !important;
+  right: 21rem !important;
+  opacity: 0.65;
+}
+
+.ww-render-polish .ww-app-tabs {
+  margin: 0 clamp(1rem, 2.4vw, 2.15rem) 1rem !important;
+  border-radius: 16px !important;
+}
+
+.ww-render-polish .ww-app-tabs button {
+  min-height: 3.95rem !important;
+  font-size: 0.96rem !important;
+}
+
+.ww-render-polish .ww-app-tabs button span,
+.ww-render-polish .ww-svg-tab-icon {
+  width: 1.32rem !important;
+  height: 1.32rem !important;
+}
+
+.ww-render-polish .ww-app-tabs button[aria-selected='true']::after {
+  right: 2rem !important;
+  left: 2rem !important;
+  height: 3px !important;
+}
+
+.ww-render-polish .ww-app-body {
+  padding: 0 clamp(0.9rem, 2.4vw, 2.15rem) 1.05rem !important;
+}
+
+.ww-render-polish .ww-render-workspace-start {
+  min-height: min(430px, 58dvh) !important;
+  padding: clamp(1.35rem, 2.4vw, 2.15rem) !important;
+}
+
+.ww-render-polish .ww-render-workspace-start h2,
+.ww-render-polish .ww-render-workspace-start h3,
+.ww-render-polish .ww-render-overview-hero h3,
+.ww-render-polish .ww-product-next h4,
+.ww-render-polish .ww-product-progress h4 {
+  font-size: clamp(1.65rem, 2.4vw, 2.35rem) !important;
+  line-height: 1.06 !important;
+}
+
+.ww-render-polish .ww-product-next,
+.ww-render-polish .ww-product-progress {
+  min-height: 172px !important;
+  padding: clamp(1.25rem, 2vw, 1.7rem) !important;
+}
+
+.ww-render-polish .ww-product-command {
+  gap: 1.05rem !important;
+  margin-bottom: 1.05rem !important;
+}
+
+.ww-render-polish .ww-progress-list li {
+  min-height: 2.1rem !important;
+  padding: 0.38rem 0.68rem !important;
+  font-size: 0.86rem !important;
+}
+
+.ww-render-polish .ww-render-choice-grid {
+  gap: 1.1rem !important;
+  margin-top: 1.55rem !important;
+}
+
+.ww-render-polish .ww-render-choice-card {
+  min-height: 245px !important;
+  padding: 1.45rem 1.25rem !important;
+}
+
+.ww-render-polish .ww-render-choice-icon {
+  width: 3rem !important;
+  height: 3rem !important;
+}
+
+.ww-render-polish .ww-render-choice-card h3,
+.ww-render-polish .ww-render-choice-card h4,
+.ww-render-polish .ww-render-choice-card strong {
+  font-size: clamp(1.25rem, 1.45vw, 1.58rem) !important;
+}
+
+.ww-render-polish .ww-render-choice-card p {
+  font-size: 0.96rem !important;
+  line-height: 1.55 !important;
+}
+
+.ww-render-polish .ww-render-trust-line {
+  padding: 0.35rem 0.6rem 0.8rem !important;
+}
+
+@media (max-width: 900px) {
+  .ww-render-polish .ww-app-title-group {
+    max-width: none !important;
+  }
+
+  .ww-render-polish .ww-app-header h2 {
+    max-width: 100% !important;
+    font-size: clamp(2rem, 7vw, 2.75rem) !important;
+  }
+
+  .ww-render-header-art {
+    display: none !important;
+  }
+}
+
+@media (max-width: 720px) {
+  .ww-app-dialog.ww-render-polish {
+    height: calc(100dvh - 12px) !important;
+    max-height: calc(100dvh - 12px) !important;
+  }
+
+  .ww-render-polish .ww-app-header {
+    min-height: 0 !important;
+    padding: 0.95rem 0.85rem 0.7rem !important;
+  }
+
+  .ww-render-polish .ww-app-title-group {
+    gap: 0.65rem !important;
+  }
+
+  .ww-render-polish .ww-app-header h2 {
+    font-size: clamp(1.75rem, 8.5vw, 2.25rem) !important;
+  }
+
+  .ww-render-polish .ww-app-header p:not(.ww-kicker) {
+    font-size: 0.95rem !important;
+  }
+
+  .ww-render-polish .ww-app-status {
+    display: none !important;
+  }
+
+  .ww-render-polish .ww-app-tabs button {
+    min-height: 3.35rem !important;
+    min-width: 8.5rem !important;
+  }
+
+  .ww-render-polish .ww-app-body {
+    scrollbar-gutter: auto !important;
+  }
+}

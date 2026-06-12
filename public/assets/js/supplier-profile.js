@@ -10,7 +10,7 @@
  *  - renderHeroSection     — banner, badges, title, tagline, meta, CTAs
  *  - renderAboutSection    — description, stats, highlights, services, social, trust
  *  - renderGallerySection  — photo gallery (featured + thumbs)
- *  - renderPackagesSection — premium package cards
+ *  - supplier-profile-packages-v2.js — premium package cards
  *  - renderReviewsSection  — reviews widget scaffold + ReviewsManager init
  *  - renderSidebarSection  — CTA card, trust card, key details
  *  - renderBadgesSection   — badges & recognition (full-width bottom)
@@ -206,48 +206,140 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
 
   // ─── Hero Section ────────────────────────────────────────────────────────────
 
+  // Map supplier categories to visual preset keys
+  const CATEGORY_PRESETS = {
+    wedding: 'wedding',
+    weddings: 'wedding',
+    'wedding planner': 'wedding',
+    photography: 'photography',
+    photographer: 'photography',
+    catering: 'catering',
+    caterer: 'catering',
+    food: 'catering',
+    music: 'music',
+    dj: 'music',
+    band: 'music',
+    musicians: 'music',
+    entertainment: 'entertainment',
+    flowers: 'flowers',
+    florist: 'flowers',
+    floral: 'flowers',
+    venue: 'venue',
+    venues: 'venue',
+    transport: 'transport',
+    cars: 'transport',
+    chauffeur: 'transport',
+  };
+
+  const PRESET_GRADIENTS_V2 = {
+    'ef-teal':   'linear-gradient(135deg,#0B8073 0%,#13B6A2 100%)',
+    midnight:    'linear-gradient(135deg,#1a1a2e 0%,#0f3460 100%)',
+    'rose-gold': 'linear-gradient(135deg,#b76e79 0%,#f9c8c8 100%)',
+    forest:      'linear-gradient(135deg,#1b4332 0%,#40916c 100%)',
+    ocean:       'linear-gradient(135deg,#03045e 0%,#00b4d8 100%)',
+    sunset:      'linear-gradient(135deg,#f77f00 0%,#d62828 100%)',
+    purple:      'linear-gradient(135deg,#3d0066 0%,#a855f7 100%)',
+    charcoal:    'linear-gradient(135deg,#1a1a1a 0%,#4a5568 100%)',
+    blush:       'linear-gradient(135deg,#c2185b 0%,#ff80ab 100%)',
+    champagne:   'linear-gradient(135deg,#9c7c38 0%,#e8d5a3 100%)',
+  };
+
+  const CATEGORY_ACCENT = {
+    wedding:       '#b76e79',
+    photography:   '#1a3a5c',
+    catering:      '#7f5539',
+    music:         '#6a0dad',
+    entertainment: '#c2185b',
+    flowers:       '#386641',
+    venue:         '#374151',
+    transport:     '#1a3a4a',
+  };
+
+  function _getInitials(name) {
+    if (!name || typeof name !== 'string') return '?';
+    const words = name.trim().split(/\s+/).filter(Boolean);
+    if (words.length === 0) return '?';
+    if (words.length === 1) return words[0].charAt(0).toUpperCase();
+    return (words[0].charAt(0) + words[words.length - 1].charAt(0)).toUpperCase();
+  }
+
+  function _lightenHex(hex, amount) {
+    const num = parseInt(hex.replace('#', ''), 16);
+    const r = Math.min(255, (num >> 16) + Math.round(2.55 * amount));
+    const g = Math.min(255, ((num >> 8) & 0xff) + Math.round(2.55 * amount));
+    const b = Math.min(255, (num & 0xff) + Math.round(2.55 * amount));
+    return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`;
+  }
+
   function renderHeroSection(supplier) {
     if (!supplier) {
       return;
     }
 
-    // Banner image
+    // ── Avatar initials ──────────────────────────────────────────────────────
+    const avatarEl = document.getElementById('hero-avatar');
+    const avatarInitialsEl = document.getElementById('hero-avatar-initials');
+    if (avatarEl && avatarInitialsEl) {
+      avatarInitialsEl.textContent = _getInitials(supplier.name);
+      // Accent: supplier theme > category default > EF teal
+      const catKey = (supplier.category || '').toLowerCase().trim();
+      const catPreset = CATEGORY_PRESETS[catKey] || null;
+      const accentColor =
+        (supplier.themeColor && /^#[0-9A-F]{6}$/i.test(supplier.themeColor)
+          ? supplier.themeColor
+          : null) ||
+        (catPreset ? CATEGORY_ACCENT[catPreset] : null) ||
+        '#0B8073';
+      avatarEl.style.background = `linear-gradient(135deg, ${accentColor} 0%, ${_lightenHex(accentColor, 30)} 100%)`;
+    }
+
+    // ── Hero banner / gradient ───────────────────────────────────────────────
     const heroBanner = document.getElementById('hero-banner');
     const bannerUrl = supplier.bannerUrl || supplier.coverImage || null;
+    const heroSection = document.getElementById('supplier-hero');
+    const heroMedia = heroSection ? heroSection.querySelector('.hero-media') : null;
+
     if (heroBanner) {
       if (bannerUrl) {
         heroBanner.src = bannerUrl;
         heroBanner.alt = `${supplier.name} banner`;
+        heroBanner.style.display = '';
+        if (heroMedia) heroMedia.style.backgroundImage = '';
       } else {
-        heroBanner.src = '/assets/images/placeholder-banner.svg';
-        heroBanner.alt = `${supplier.name} banner`;
-        // Apply brand theme tint
-        const heroSection = document.getElementById('supplier-hero');
-        if (heroSection && supplier.themeColor && /^#[0-9A-F]{6}$/i.test(supplier.themeColor)) {
-          const heroMedia = heroSection.querySelector('.hero-media');
-          if (heroMedia) {
-            heroMedia.style.setProperty('--supplier-theme', supplier.themeColor);
+        heroBanner.style.display = 'none';
+        if (heroMedia) {
+          const preset = supplier.heroPreset && PRESET_GRADIENTS_V2[supplier.heroPreset];
+          if (preset) {
+            heroMedia.style.backgroundImage = preset;
+          } else {
+            const catKey = (supplier.category || '').toLowerCase().trim();
+            const catPreset = CATEGORY_PRESETS[catKey];
+            if (catPreset && heroSection) {
+              heroSection.setAttribute('data-category-preset', catPreset);
+              heroMedia.style.backgroundImage = '';
+            } else if (supplier.themeColor && /^#[0-9A-F]{6}$/i.test(supplier.themeColor)) {
+              heroMedia.style.backgroundImage = '';
+              heroMedia.style.setProperty('--supplier-theme', supplier.themeColor);
+            } else {
+              heroMedia.style.backgroundImage = '';
+            }
           }
         }
       }
     }
 
-    // Prioritized hero badges — show max 3 high-value badges only
+    // ── Badges ───────────────────────────────────────────────────────────────
     const badgesContainer = document.getElementById('hero-badges');
     if (badgesContainer) {
-      // Use verification-badges utility if available
       if (typeof renderVerificationBadges === 'function') {
-        badgesContainer.innerHTML = renderVerificationBadges(supplier, {
-          size: 'normal',
-          maxBadges: 3,
-        });
+        badgesContainer.innerHTML = renderVerificationBadges(supplier, { size: 'normal', maxBadges: 3 });
       } else {
         const heroBadges = _buildHeroBadges(supplier);
         badgesContainer.innerHTML = heroBadges.slice(0, 3).join('');
       }
     }
 
-    // Title + tier icon
+    // ── Title + tier icon ────────────────────────────────────────────────────
     const heroTitle = document.getElementById('hero-title');
     if (heroTitle) {
       heroTitle.removeAttribute('aria-busy');
@@ -257,20 +349,18 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
         const iconFn =
           (typeof EFTierIcon !== 'undefined' && EFTierIcon.render) ||
           (typeof renderTierIcon === 'function' && renderTierIcon);
-        if (iconFn) {
-          tierIconEl.innerHTML = iconFn(supplier);
-        }
+        if (iconFn) tierIconEl.innerHTML = iconFn(supplier);
       }
     }
 
-    // Breadcrumb
+    // ── Breadcrumb ───────────────────────────────────────────────────────────
     const breadcrumbName = document.getElementById('breadcrumb-supplier-name');
     if (breadcrumbName) {
       breadcrumbName.removeAttribute('aria-busy');
       breadcrumbName.textContent = supplier.name;
     }
 
-    // Tagline
+    // ── Tagline ──────────────────────────────────────────────────────────────
     const heroTagline = document.getElementById('hero-tagline');
     if (heroTagline) {
       const tagText = supplier.tagline || '';
@@ -278,7 +368,7 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
       heroTagline.style.display = tagText ? 'block' : 'none';
     }
 
-    // Meta strip
+    // ── Meta strip ───────────────────────────────────────────────────────────
     const heroMeta = document.getElementById('hero-meta');
     if (heroMeta) {
       const items = [];
@@ -288,7 +378,6 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
           `<span class="meta-item meta-category"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>${escapeHtml(supplier.category)}</span>`
         );
       }
-
       if (supplier.rating && supplier.reviewCount) {
         const r = Number(supplier.rating).toFixed(1);
         const rc = Number(supplier.reviewCount);
@@ -296,7 +385,6 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
           `<span class="meta-item meta-rating"><span class="star-icon" aria-hidden="true">★</span>${r} <span class="meta-rating-count">(${rc})</span></span>`
         );
       }
-
       if (supplier.location) {
         const loc = escapeHtml(supplier.location);
         const pc = supplier.postcode ? `, ${escapeHtml(supplier.postcode)}` : '';
@@ -304,22 +392,16 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
           `<span class="meta-item"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>${loc}${pc}</span>`
         );
       }
-
       if (supplier.priceRange) {
         items.push(
           `<span class="meta-item meta-price"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>${escapeHtml(supplier.priceRange)}</span>`
         );
       }
 
-      if (items.length > 0) {
-        heroMeta.innerHTML = items.join('');
-        heroMeta.style.display = '';
-      } else {
-        heroMeta.style.display = 'none';
-      }
+      heroMeta.innerHTML = items.join('');
+      heroMeta.style.display = items.length > 0 ? '' : 'none';
     }
 
-    // Wire up CTA buttons
     _wireHeroCTAs(supplier);
   }
 
@@ -674,25 +756,26 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
     }
 
     const photos = Array.isArray(supplier.photosGallery)
-      ? supplier.photosGallery.map(p => (typeof p === 'string' ? p : p.url)).filter(Boolean)
+      ? supplier.photosGallery
+          .filter(p => p && (typeof p === 'string' ? p : p.url))
+          .map(p => {
+            if (typeof p === 'string') {
+              return { display: p, full: p };
+            }
+            // Use thumbnail for grid (fast load), full url for lightbox
+            return {
+              display: p.thumbnail || p.url || p.original || '',
+              full: p.large || p.url || p.original || '',
+            };
+          })
+          .filter(p => p.display)
       : [];
 
     // Show polished empty state if no photos uploaded yet
+    // Per spec: only show gallery section when the supplier has photos.
+    // For public viewers a "no photos yet" message adds no value and clutters sparse profiles.
     if (photos.length === 0) {
-      container.innerHTML = `
-        <div class="sp-card sp-card--gallery sp-fade-in">
-          <h2 class="sp-card-title">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-            Photo Gallery
-          </h2>
-          <div class="sp-gallery-empty">
-            <svg class="sp-gallery-empty__icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-            <p class="sp-gallery-empty__title">No photos uploaded yet</p>
-            <p class="sp-gallery-empty__text">This supplier hasn't added any gallery photos yet. Check back soon, or contact them directly for more examples of their work.</p>
-          </div>
-        </div>
-      `;
-      container.style.display = '';
+      container.style.display = 'none';
       return;
     }
 
@@ -705,11 +788,11 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
 
       const thumbs = visible
         .slice(1)
-        .map((url, idx) => {
+        .map((photo, idx) => {
           const isLast = idx === 3 && extra > 0;
           return `
-          <div class="sp-gallery__thumb" role="button" aria-label="Open gallery photo ${idx + 2}" tabindex="0">
-            <img loading="lazy" src="${escapeHtml(url)}" alt="${escapeHtml(supplier.name)} — photo ${idx + 2}">
+          <div class="sp-gallery__thumb" role="button" aria-label="Open gallery photo ${idx + 2}" tabindex="0" data-full-url="${escapeHtml(photo.full)}">
+            <img loading="lazy" src="${escapeHtml(photo.display)}" alt="${escapeHtml(supplier.name)} — photo ${idx + 2}">
             ${isLast ? `<div class="sp-gallery__more-overlay">+${extra} more</div>` : `<div class="sp-gallery__overlay" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>`}
           </div>`;
         })
@@ -717,8 +800,8 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
 
       galleryHtml = `
         <div class="sp-gallery">
-          <div class="sp-gallery__featured" role="button" aria-label="Open main gallery photo" tabindex="0">
-            <img src="${escapeHtml(visible[0])}" alt="${escapeHtml(supplier.name)} — main photo">
+          <div class="sp-gallery__featured" role="button" aria-label="Open main gallery photo" tabindex="0" data-full-url="${escapeHtml(visible[0].full)}">
+            <img src="${escapeHtml(visible[0].display)}" alt="${escapeHtml(supplier.name)} — main photo">
             <div class="sp-gallery__overlay" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
           </div>
           ${thumbs}
@@ -727,9 +810,9 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
       // Simple compact grid for 1-2 photos
       const items = photos
         .map(
-          (url, idx) => `
-        <div class="sp-gallery__${idx === 0 ? 'featured' : 'thumb'}" role="button" aria-label="Open gallery photo ${idx + 1}" tabindex="0">
-          <img ${idx > 0 ? 'loading="lazy"' : ''} src="${escapeHtml(url)}" alt="${escapeHtml(supplier.name)} — photo ${idx + 1}">
+          (photo, idx) => `
+        <div class="sp-gallery__${idx === 0 ? 'featured' : 'thumb'}" role="button" aria-label="Open gallery photo ${idx + 1}" tabindex="0" data-full-url="${escapeHtml(photo.full)}">
+          <img ${idx > 0 ? 'loading="lazy"' : ''} src="${escapeHtml(photo.display)}" alt="${escapeHtml(supplier.name)} — photo ${idx + 1}">
           <div class="sp-gallery__overlay" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
         </div>`
         )
@@ -759,11 +842,13 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
     thumbEls.forEach((el, idx) => {
       el.addEventListener('click', () => {
         if (window.ImageCarousel?.openWithImages) {
-          window.ImageCarousel.openWithImages(photos, idx, supplierName);
+          // Pass full-size URLs to the carousel for best quality
+          const fullUrls = photos.map(p => p.full || p.display);
+          window.ImageCarousel.openWithImages(fullUrls, idx, supplierName);
         } else {
-          // Graceful fallback: open the clicked image directly in a new tab
-          const imgEl = el.querySelector('img');
-          const url = photos[idx] || (imgEl ? imgEl.src : '');
+          // Graceful fallback: open the full-size image directly in a new tab
+          const url =
+            el.dataset.fullUrl || (el.querySelector('img') ? el.querySelector('img').src : '');
           if (url) {
             window.open(url, '_blank', 'noopener,noreferrer');
           }
@@ -779,87 +864,7 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
   }
 
   // ─── Packages Section ────────────────────────────────────────────────────────
-
-  function renderPackagesSection(packages) {
-    const container = document.getElementById('sp-section-packages');
-    if (!container) {
-      return;
-    }
-
-    if (!packages || packages.length === 0) {
-      container.style.display = 'none';
-      return;
-    }
-
-    const cards = packages.map(p => _renderPackageCard(p)).join('');
-
-    container.innerHTML = `
-      <div class="sp-card sp-fade-in">
-        <h2 class="sp-card-title">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/><polyline points="16 3 12 7 8 3"/></svg>
-          Packages &amp; Services
-        </h2>
-        <div class="sp-packages-grid">${cards}</div>
-      </div>
-    `;
-
-    container.style.display = '';
-
-    // Wire up package card click handlers
-    container.querySelectorAll('[data-package-id]').forEach(card => {
-      const pkgId = card.getAttribute('data-package-id');
-      const pkgSlug = card.getAttribute('data-package-slug');
-
-      card.addEventListener('click', () => {
-        const dest = pkgSlug
-          ? `/package/${encodeURIComponent(pkgSlug)}`
-          : `/package?id=${encodeURIComponent(pkgId)}`;
-        window.location.href = dest;
-      });
-
-      card.addEventListener('keydown', e => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          card.click();
-        }
-      });
-    });
-  }
-
-  function _renderPackageCard(p) {
-    const title = escapeHtml(p.title || p.name || 'Package');
-    const desc = escapeHtml((p.description || p.description_short || '').substring(0, 160));
-    const price = escapeHtml(p.price_display || p.priceDisplay || '');
-    const imageUrl = p.image || p.imageUrl || '';
-    const pkgId = escapeHtml(p.id || '');
-    const pkgSlug = escapeHtml(p.slug || '');
-
-    const imageHtml = imageUrl
-      ? `<img class="sp-pkg-card__image" src="${escapeHtml(imageUrl)}" alt="${title}" loading="lazy">`
-      : `<div class="sp-pkg-card__image-placeholder"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>`;
-
-    return `
-      <div class="sp-pkg-card"
-           role="button"
-           tabindex="0"
-           data-package-id="${pkgId}"
-           ${pkgSlug ? `data-package-slug="${pkgSlug}"` : ''}
-           aria-label="View ${title} package">
-        ${imageHtml}
-        <div class="sp-pkg-card__body">
-          <h3 class="sp-pkg-card__title">${title}</h3>
-          ${desc ? `<p class="sp-pkg-card__desc">${desc}</p>` : ''}
-          <div class="sp-pkg-card__footer">
-            <span class="sp-pkg-card__price">${price || 'Contact for price'}</span>
-            <span class="sp-pkg-card__cta">
-              View
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
-            </span>
-          </div>
-        </div>
-      </div>
-    `;
-  }
+  // Package cards are intentionally rendered by supplier-profile-packages-v2.js.
 
   // ─── Reviews Section ─────────────────────────────────────────────────────────
 
@@ -1304,39 +1309,52 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
     }
 
     try {
-      // Fetch supplier data and packages in parallel
-      const [supplierResp, packagesResp] = await Promise.allSettled([
-        fetch(`/api/suppliers/${encodeURIComponent(supplierId)}`, { credentials: 'include' }),
-        fetch(`/api/suppliers/${encodeURIComponent(supplierId)}/packages`, {
-          credentials: 'include',
-        }),
-      ]);
+      // Fetch supplier data only. Packages & Services are owned by
+      // supplier-profile-packages-v2.js via /api/supplier-profile/:supplierId/package-cards.
+      const supplierResp = await fetch(`/api/suppliers/${encodeURIComponent(supplierId)}`, {
+        credentials: 'include',
+      });
 
       // Supplier data is required
-      if (supplierResp.status === 'rejected' || !supplierResp.value.ok) {
+      if (!supplierResp.ok) {
         throw new Error('Failed to load supplier data');
       }
 
-      supplierData = await supplierResp.value.json();
-      let packages = [];
-      if (packagesResp.status === 'fulfilled' && packagesResp.value.ok) {
-        try {
-          const pkgData = await packagesResp.value.json();
-          packages = pkgData.items || pkgData.packages || [];
-        } catch (_) {
-          // packages endpoint returned non-JSON (e.g. HTML fallback); use empty list
-        }
-      }
+      supplierData = await supplierResp.json();
+
+      // Expose to window so supplier-profile-owner-edit.js can read them
+      window.__supplierData = supplierData;
+      window.__supplierId = supplierId;
 
       // Render all sections
       updateMetaTags(supplierData);
       renderHeroSection(supplierData);
       renderAboutSection(supplierData);
       renderGallerySection(supplierData);
-      renderPackagesSection(packages);
+      // Do not render legacy package cards here; the V2 package-card module owns #supplier-package-cards-root.
       renderReviewsSection(supplierId, supplierData);
       renderSidebarSection(supplierData);
       renderBadgesSection(supplierData);
+      // Expose rerender helpers so the owner-edit module can refresh
+      // individual sections without a full page reload.
+      window.__spRerender = {
+        hero: () => renderHeroSection(supplierData),
+        about: () => renderAboutSection(supplierData),
+        gallery: () => renderGallerySection(supplierData),
+        sidebar: () => renderSidebarSection(supplierData),
+        badges: () => renderBadgesSection(supplierData),
+        all: () => {
+          renderHeroSection(supplierData);
+          renderAboutSection(supplierData);
+          renderGallerySection(supplierData);
+          renderSidebarSection(supplierData);
+          renderBadgesSection(supplierData);
+          updateMetaTags(supplierData);
+        },
+      };
+
+      // Signal to the edit overlay that data is ready
+      window.dispatchEvent(new CustomEvent('sp:dataReady', { detail: { supplier: supplierData } }));
     } catch (error) {
       console.error('Error loading supplier profile:', error);
       showPageError('This supplier profile could not be loaded. Please try again.');

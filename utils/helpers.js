@@ -39,19 +39,11 @@ async function supplierIsProActive(userIdOrSupplier) {
     const subscription = await subscriptionService.getSubscriptionByUserId(userId);
 
     if (subscription) {
-      // Check subscription is active and not expired
-      if (!['active', 'trialing'].includes(subscription.status)) {
-        return false;
-      }
-
-      // Verify current period hasn't ended
-      if (subscription.currentPeriodEnd && new Date(subscription.currentPeriodEnd) < new Date()) {
-        return false;
-      }
-
-      // Pro or higher tier
       const validPlans = ['pro', 'pro_plus', 'enterprise'];
-      return validPlans.includes(subscription.plan);
+      return (
+        subscriptionService.isLiveEntitlement(subscription) &&
+        validPlans.includes(subscription.plan)
+      );
     }
 
     // 2. Fall back to admin-granted Pro flags on the supplier document itself.
@@ -196,14 +188,17 @@ function parsePaginationParams(query) {
 }
 
 /**
- * Strip HTML tags from a string by removing all angle brackets.
+ * Strip HTML tags from a string while preserving the readable text they wrap.
  * Used as a server-side defence for text-only fields (names, locations, notes).
- * Strips both '<' and '>' so that split/nested patterns cannot survive.
+ * Any unmatched angle brackets are removed afterwards so malformed/split tags
+ * cannot survive in public payloads.
  * @param {string} str - Raw input
  * @returns {string} Sanitized string
  */
 function stripHtml(str) {
-  return String(str).replace(/[<>]/g, '');
+  return String(str)
+    .replace(/<[^>]*>/g, '')
+    .replace(/[<>]/g, '');
 }
 
 module.exports = {

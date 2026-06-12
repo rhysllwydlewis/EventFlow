@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Shared Events Calendar — EventFlow Admin</title>
+  <link rel="stylesheet" href="/assets/css/tokens.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/admin-tokens.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/styles.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/eventflow-17.0.0.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/utilities.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/components.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/admin.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/admin-enhanced.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/admin-navbar.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/calendar.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/admin-cards.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/admin-ui-improvements.css?v=18.3.0">
+  <link rel="icon" href="/favicon.svg">
+  <script src="/assets/js/dashboard-guard.js?v=17.0.2"></script>
+  <script src="/assets/js/admin-shared.js?v=18.3.0"></script>
+  <script src="/assets/js/admin-navbar.js?v=18.3.0" defer></script>
+</head>
+<body class="has-admin-navbar admin">
+<div id="adminNavbarMount"></div>
+
+  <main id="main-content" class="admin-main-content">
+    <section class="calendar-admin-hero" aria-labelledby="calendarAdminTitle">
+      <h1 id="calendarAdminTitle">Shared Events Calendar</h1>
+      <p>Manage public calendar events, supplier publishing access requests and the public Events page from one admin workspace. Event reports now create support tickets.</p>
+      <div class="calendar-admin-actions">
+        <button id="adminCalendarCreateBtn" class="ef-cta btn btn-primary" type="button">Create event</button>
+        <a class="ef-cta btn btn-secondary" href="/public-calendar" target="_blank" rel="noopener noreferrer">View public calendar ↗</a>
+        <a class="ef-cta btn btn-secondary" href="/admin-tickets">Review report tickets</a>
+      </div>
+    </section>
+
+    <section class="calendar-admin-grid" aria-label="Calendar summary">
+      <div class="calendar-admin-stat"><div class="calendar-admin-stat__label">Total events</div><div id="adminCalendarTotalEvents" class="calendar-admin-stat__value">—</div><div class="calendar-admin-stat__hint">Non-deleted records</div></div>
+      <div class="calendar-admin-stat"><div class="calendar-admin-stat__label">Published</div><div id="adminCalendarPublishedEvents" class="calendar-admin-stat__value">—</div><div class="calendar-admin-stat__hint">Visible on Events</div></div>
+      <div class="calendar-admin-stat"><div class="calendar-admin-stat__label">Access requests</div><div id="adminCalendarPendingRequests" class="calendar-admin-stat__value">—</div><div class="calendar-admin-stat__hint">Awaiting action</div></div>
+    </section>
+
+    <section class="calendar-admin-panel calendar-admin-approval-panel" aria-labelledby="calendarSettingsTitle">
+      <div class="calendar-admin-panel__header">
+        <div>
+          <h2 id="calendarSettingsTitle" class="calendar-admin-panel__title">Publishing approval settings</h2>
+          <p class="calendar-admin-panel__subtitle">Choose whether supplier-created public events publish automatically or wait for manual admin approval.</p>
+          <span id="adminCalendarApprovalMode" class="calendar-admin-mode-pill">Loading mode…</span>
+        </div>
+        <label class="toggle-switch" for="adminCalendarRequireApproval" aria-label="Toggle manual public event approval">
+          <input type="checkbox" id="adminCalendarRequireApproval">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <p id="adminCalendarApprovalStatus" class="calendar-admin-panel__subtitle" aria-live="polite">Loading approval setting…</p>
+      <p class="calendar-admin-support-note">Reported event tickets are reviewed in <a href="/admin-tickets">Support Tickets</a>, not in this calendar workspace.</p>
+    </section>
+
+    <section class="calendar-admin-panel" aria-labelledby="eventsPanelTitle">
+      <div class="calendar-admin-panel__header">
+        <div>
+          <h2 id="eventsPanelTitle" class="calendar-admin-panel__title">Public events</h2>
+          <p class="calendar-admin-panel__subtitle">Filter, edit, publish, cancel or delete shared calendar events.</p>
+        </div>
+        <button id="adminCalendarRefreshEvents" class="ef-cta btn btn-secondary" type="button">Refresh</button>
+      </div>
+      <div class="calendar-admin-filters">
+        <div class="calendar-admin-field"><label for="eventSearchFilter">Search</label><input id="eventSearchFilter" type="search" placeholder="Title, organiser, location"></div>
+        <div class="calendar-admin-field"><label for="eventStatusFilter">Status</label><select id="eventStatusFilter"><option value="all">All statuses</option><option value="published">Published</option><option value="draft">Draft</option><option value="pending_review">Pending review</option><option value="rejected">Rejected</option><option value="cancelled">Cancelled</option><option value="expired">Expired</option></select></div>
+        <div class="calendar-admin-field"><label for="eventTypeFilter">Event type</label><select id="eventTypeFilter"><option value="">All types</option><option>Wedding Fayre</option><option>Open Day</option><option>Supplier Showcase</option><option>Workshop</option><option>Venue Tour</option><option>Planning Event</option><option>Networking Event</option><option>Online Event</option><option>Other</option></select></div>
+        <div class="calendar-admin-field"><label for="eventCountyFilter">County</label><input id="eventCountyFilter" type="text" placeholder="County"></div>
+        <div class="calendar-admin-field"><label for="eventIncludePastFilter">Date range</label><select id="eventIncludePastFilter"><option value="false">Upcoming/current</option><option value="true">Include past</option></select></div>
+        <button id="adminCalendarApplyFilters" class="ef-cta btn btn-primary" type="button">Apply filters</button>
+      </div>
+      <div id="adminCalendarEventsContainer" class="calendar-admin-table-wrap" aria-live="polite"></div>
+    </section>
+
+    <section class="calendar-admin-panel" aria-labelledby="requestsPanelTitle">
+      <div class="calendar-admin-panel__header">
+        <div>
+          <h2 id="requestsPanelTitle" class="calendar-admin-panel__title">Publishing access requests</h2>
+          <p class="calendar-admin-panel__subtitle">Approve suitable suppliers or reject requests with a reason. Approval grants calendar publisher override.</p>
+        </div>
+        <button id="adminCalendarRefreshRequests" class="ef-cta btn btn-secondary" type="button">Refresh</button>
+      </div>
+      <div id="adminCalendarRequestsContainer" aria-live="polite"></div>
+    </section>
+
+  </main>
+
+  <div id="adminCalendarEventModal" class="calendar-admin-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="adminCalendarEventModalTitle">
+    <div class="calendar-admin-modal">
+      <div class="calendar-admin-panel__header">
+        <div><h2 id="adminCalendarEventModalTitle" class="calendar-admin-panel__title">Edit event</h2><p class="calendar-admin-panel__subtitle">Changes are saved to the shared public calendar.</p></div>
+        <button id="adminCalendarEventModalClose" class="ef-cta btn btn-secondary" type="button">Close</button>
+      </div>
+      <form id="adminCalendarEventForm" novalidate>
+        <input type="hidden" id="eventFormId">
+        <div class="calendar-admin-form-grid">
+          <div class="calendar-admin-field"><label for="eventFormTitle">Title *</label><input id="eventFormTitle" maxlength="200" required></div>
+          <div class="calendar-admin-field"><label for="eventFormStatus">Status</label><select id="eventFormStatus"><option value="draft">Draft</option><option value="published">Published</option><option value="pending_review">Pending review</option><option value="rejected">Rejected</option><option value="cancelled">Cancelled</option><option value="expired">Expired</option></select></div>
+          <div class="calendar-admin-field"><label for="eventFormStart">Start *</label><input id="eventFormStart" type="datetime-local" required></div>
+          <div class="calendar-admin-field"><label for="eventFormEnd">End</label><input id="eventFormEnd" type="datetime-local"></div>
+          <div class="calendar-admin-field"><label for="eventFormType">Event type</label><select id="eventFormType"><option>Wedding Fayre</option><option>Open Day</option><option>Supplier Showcase</option><option>Workshop</option><option>Venue Tour</option><option>Planning Event</option><option>Networking Event</option><option>Online Event</option><option>Other</option></select></div>
+          <div class="calendar-admin-field"><label for="eventFormVenue">Venue / organiser</label><input id="eventFormVenue" maxlength="160" placeholder="Venue name"></div>
+          <div class="calendar-admin-field"><label for="eventFormTown">Town / city</label><input id="eventFormTown" maxlength="160"></div>
+          <div class="calendar-admin-field"><label for="eventFormCounty">County</label><input id="eventFormCounty" maxlength="160"></div>
+          <div class="calendar-admin-field"><label for="eventFormPostcode">Postcode</label><input id="eventFormPostcode" maxlength="20"></div>
+          <div class="calendar-admin-field"><label for="eventFormPriceType">Price type</label><select id="eventFormPriceType"><option value="unknown">Unknown</option><option value="free">Free</option><option value="paid">Paid</option><option value="donation">Donation</option></select></div>
+          <div class="calendar-admin-field"><label for="eventFormTicketPrice">Ticket price</label><input id="eventFormTicketPrice" type="number" min="0" step="0.01"></div>
+          <div class="calendar-admin-field"><label for="eventFormBookingRequired">Booking required</label><select id="eventFormBookingRequired"><option value="false">No</option><option value="true">Yes</option></select></div>
+          <div class="calendar-admin-field"><label for="eventFormBookingUrl">Booking URL</label><input id="eventFormBookingUrl" type="url" maxlength="500" placeholder="https://…"></div>
+          <div class="calendar-admin-field"><label for="eventFormImageUrl">Featured image URL</label><input id="eventFormImageUrl" type="url" maxlength="500" placeholder="https://…"></div>
+        </div>
+        <div class="calendar-admin-field" style="margin-top:.75rem;"><label for="eventFormDescription">Description</label><textarea id="eventFormDescription" maxlength="5000" rows="4"></textarea></div>
+        <div class="calendar-admin-field" style="margin-top:.75rem;"><label for="eventFormCancelledReason">Cancelled reason</label><textarea id="eventFormCancelledReason" maxlength="500" rows="2"></textarea></div>
+        <div id="adminCalendarEventFormError" class="calendar-admin-error" role="alert"></div>
+        <div class="calendar-admin-actions" style="justify-content:flex-end;"><button type="button" id="adminCalendarEventCancel" class="ef-cta btn btn-secondary">Cancel</button><button type="submit" id="adminCalendarEventSave" class="ef-cta btn btn-primary">Save event</button></div>
+      </form>
+    </div>
+  </div>
+
+  <footer class="admin-footer">
+    <div class="footer-content"><span>EventFlow Admin</span><span>Shared calendar management</span></div>
+  </footer>
+  <script src="/assets/js/pages/admin-public-calendar-init.js?v=18.3.0" defer></script>
+</body>
+</html>
+

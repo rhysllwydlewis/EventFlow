@@ -9,7 +9,7 @@
 
 describe('Admin API Fixes', () => {
   describe('Admin Users Init', () => {
-    it('should use AdminShared.api for loading users', () => {
+    it('should use AdminShared.api for loading users (summary and list)', () => {
       const fs = require('fs');
       const path = require('path');
       const content = fs.readFileSync(
@@ -17,15 +17,36 @@ describe('Admin API Fixes', () => {
         'utf8'
       );
 
-      // Should use AdminShared.api instead of raw fetch
-      expect(content).toContain("AdminShared.api('/api/admin/users'");
-      // Template literal syntax
-      expect(content).toContain(
-        'AdminShared.api(`/api/admin/users/${userId}/subscription-history`'
-      );
+      // Users Centre uses the shared summary and list endpoints
+      expect(content).toContain("AdminShared.api('/api/admin/users/summary')");
+      expect(content).toContain('/api/admin/users/list?');
+      expect(content).toContain('AdminShared.api(buildListUrl())');
+      // Should not use raw fetch for data loading
+      expect(content).not.toContain("fetch('/api/admin/users'");
     });
 
-    it('should handle both id and _id for user lookup', () => {
+    it('should send Users Centre filters and pagination to the server', () => {
+      const fs = require('fs');
+      const path = require('path');
+      const content = fs.readFileSync(
+        path.join(__dirname, '../../public/assets/js/pages/admin-users-init.js'),
+        'utf8'
+      );
+      const html = fs.readFileSync(path.join(__dirname, '../../public/admin-users.html'), 'utf8');
+
+      expect(content).toContain('function buildListUrl()');
+      expect(content).toContain("params.set('page', String(currentPage))");
+      expect(content).toContain("params.set('limit', String(currentLimit))");
+      expect(content).toContain('syncFilterUrl');
+      expect(content).toContain('subscription-history');
+      expect(content).toContain('bulkExportSelected');
+      expect(html).toContain('id="ucPrevPage"');
+      expect(html).toContain('id="ucNextPage"');
+      expect(html).toContain('id="ucTotalPages"');
+      expect(html).toContain('Select all visible users on this page');
+    });
+
+    it('should look up user id via dataset.userId for stable ID resolution', () => {
       const fs = require('fs');
       const path = require('path');
       const content = fs.readFileSync(
@@ -33,12 +54,10 @@ describe('Admin API Fixes', () => {
         'utf8'
       );
 
-      // Should check both id and _id fields when locating a user by userId.
-      // Accepts either the explicit two-condition form or the short-circuit form.
-      const handlesIdAndObjectId =
-        content.includes('u.id === userId || u._id === userId') ||
-        content.includes('(u.id || u._id) === userId');
-      expect(handlesIdAndObjectId).toBe(true);
+      // Users are identified via data-user-id attributes on checkboxes
+      // This is more robust than relying on u.id || u._id in click handlers
+      expect(content).toContain('dataset.userId');
+      expect(content).toContain('data-user-id=');
     });
 
     it('should use AdminShared.showToast for notifications', () => {
@@ -51,6 +70,22 @@ describe('Admin API Fixes', () => {
 
       // Should use AdminShared.showToast instead of alert
       expect(content).toContain('AdminShared.showToast');
+    });
+  });
+
+  describe('Admin Dashboard Account Health', () => {
+    it('shows controlled fallback when summary API fails', () => {
+      const fs = require('fs');
+      const path = require('path');
+      const content = fs.readFileSync(
+        path.join(__dirname, '../../public/assets/js/pages/admin-init.js'),
+        'utf8'
+      );
+
+      expect(content).toContain('renderAccountHealthFallback');
+      expect(content).toContain('Could not load account health. Try again or open Users Centre.');
+      expect(content).toContain('Dashboard loaded with warnings.');
+      expect(content).toContain('data-action="retryAccountHealth"');
     });
   });
 

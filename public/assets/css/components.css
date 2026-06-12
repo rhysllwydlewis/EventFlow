@@ -1162,13 +1162,13 @@
   max-width: calc(100vw - 32px);
   max-height: 500px;
   /* Enhanced Glassmorphism */
-  background: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.88);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.62);
+  border-radius: 22px;
   box-shadow:
-    0 16px 48px rgba(0, 0, 0, 0.18),
+    0 24px 70px rgba(15, 23, 42, 0.16),
     0 0 0 1px rgba(255, 255, 255, 0.2),
     inset 0 1px 0 rgba(255, 255, 255, 0.8);
   z-index: 10001;
@@ -1232,7 +1232,7 @@
   align-items: center;
   justify-content: center;
   padding: 48px 20px;
-  color: #9ca3af;
+  color: #667085;
   font-size: 14px;
   text-align: center;
 }
@@ -1241,7 +1241,7 @@
   display: flex;
   gap: 12px;
   padding: 12px 16px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  border-bottom: 1px solid rgba(15, 23, 42, 0.06);
   cursor: pointer;
   transition: background 0.15s;
   position: relative;
@@ -1443,10 +1443,10 @@
   background: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 18px;
   box-shadow:
-    0 12px 36px rgba(0, 0, 0, 0.18),
+    0 18px 44px rgba(15, 23, 42, 0.16),
     inset 0 1px 0 rgba(255, 255, 255, 0.8);
   cursor: pointer;
   transform: translateX(450px);
@@ -4336,5 +4336,22 @@ body.cookie-prefs-open {
   .ticket-reply-form__actions .btn {
     width: 100%;
     justify-content: center;
+  }
+}
+
+/* PR #1114 follow-up: keep notification glass polish in CSS rather than JS. */
+@media (max-width: 640px) {
+  .notification-dropdown {
+    left: 12px !important;
+    right: 12px !important;
+    width: auto;
+    max-width: none;
+    border-radius: 20px;
+  }
+
+  .notification-toast {
+    left: 12px;
+    right: 12px;
+    width: auto;
   }
 }

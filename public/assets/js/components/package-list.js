@@ -363,15 +363,17 @@ class PackageList {
       card.setAttribute('aria-label', `View ${pkg.title} package details`);
     }
 
+    const packageIdentifier = pkg.slug || pkg.id || pkg.packageId || '';
+    const packageHref = packageIdentifier
+      ? `/package/${encodeURIComponent(String(packageIdentifier))}`
+      : '';
+
     // Navigate to package detail page
     function navigateToPackage() {
-      if (pkg.slug) {
-        window.location.href = `/package?slug=${encodeURIComponent(pkg.slug)}`;
-      } else if (pkg.id) {
-        // Fallback: package.html supports ?id= lookup via the backend
-        window.location.href = `/package?id=${encodeURIComponent(String(pkg.id))}`;
+      if (packageHref) {
+        window.location.href = packageHref;
       }
-      // If neither slug nor id is available, don't navigate
+      // If no stable identifier is available, don't navigate
     }
 
     // Make card clickable

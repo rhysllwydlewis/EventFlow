@@ -1,219 +1,318 @@
-<!DOCTYPE html>
-<html lang='en-GB'>
-<head>
-  <script src="/assets/js/dashboard-guard.js?v=17.0.2"></script>
-<meta charset='utf-8'>
-  <meta name="ef-page" content="admin_users">
-<meta name='viewport' content='width=device-width,initial-scale=1'>
-<title>Users — EventFlow admin</title>
-<meta name="robots" content="noindex,nofollow">
-<link rel="stylesheet" href="/assets/css/tokens.css?v=18.3.0">
-<link rel="stylesheet" href="/assets/css/admin-tokens.css?v=18.3.0">
-<link rel='stylesheet' href='/assets/css/styles.css?v=18.3.0'>
-<link rel='stylesheet' href='/assets/css/eventflow-17.0.0.css?v=18.3.0'>
-<link rel='stylesheet' href='/assets/css/utilities.css?v=18.3.0'>
-<link rel='stylesheet' href='/assets/css/components.css?v=18.3.0'>
-<link rel='stylesheet' href='/assets/css/animations.css?v=18.3.0'>
-<link rel='stylesheet' href='/assets/css/admin.css?v=18.3.0'>
-<link rel='stylesheet' href='/assets/css/admin-enhanced.css?v=18.3.0'>
-<link rel='stylesheet' href='/assets/css/admin-navbar.css?v=18.3.0'>
-<link rel='stylesheet' href='/assets/css/admin-cards.css?v=18.3.0'>
-<link rel='icon' href='/favicon.svg'>
-<script src="/assets/js/components.js?v=18.3.0" defer></script>
-<script src="/assets/js/admin-navbar.js?v=18.3.0" defer></script>
-  <link rel="stylesheet" href="/assets/css/mobile-optimizations.css?v=18.3.0">
-  <link rel="stylesheet" href="/assets/css/ui-ux-fixes.css?v=18.3.0">
-  <link rel="stylesheet" href="/assets/css/admin-ui-improvements.css?v=18.3.0">
-</head>
-<body class="has-admin-navbar admin">
-<a href="#main-content" class="skip-to-content">Skip to main content</a>
-<div id="adminNavbarMount"></div>
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <script src="/assets/js/dashboard-guard.js?v=17.0.2"></script>
+    <meta charset="utf-8" />
+    <meta name="ef-page" content="admin_users" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Users — EventFlow admin</title>
+    <meta name="robots" content="noindex,nofollow" />
+    <link rel="stylesheet" href="/assets/css/tokens.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/admin-tokens.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/styles.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/eventflow-17.0.0.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/utilities.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/components.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/animations.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/admin.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/admin-enhanced.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/admin-navbar.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/admin-cards.css?v=18.3.0" />
+    <link rel="icon" href="/favicon.svg" />
+    <script src="/assets/js/admin-shared.js?v=18.3.0"></script>
+    <script src="/assets/js/components.js?v=18.3.0" defer></script>
+    <script src="/assets/js/admin-navbar.js?v=18.3.0" defer></script>
+    <link rel="stylesheet" href="/assets/css/mobile-optimizations.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/ui-ux-fixes.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/admin-ui-improvements.css?v=18.3.0" />
+  </head>
+  <body class="has-admin-navbar admin">
+    <div id="adminNavbarMount"></div>
 
-<main id="main-content" class="section">
-  <!-- Modern Dashboard Header -->
-  <div class="dashboard-header">
-    <div class="header-content">
-      <div>
-        <h1 class="dashboard-title">User Management</h1>
-        <p class="dashboard-subtitle">Overview of all accounts registered on EventFlow</p>
-      </div>
-      <div class="header-actions">
-        <a href="/api/admin/marketing-export" class="btn-secondary" target="_blank" rel="noopener">📥 Export Marketing List</a>
-      </div>
-    </div>
-  </div>
-
-  <div class="container">
-    <div class="card">
-      <div class="admin-toolbar" role="search" aria-label="Filter users">
-        <input type="text" id="userSearch" placeholder="Search by name, email..." aria-label="Search users by name or email" style="flex:1;min-width:200px;">
-        <label for="roleFilter" class="sr-only">Filter by role</label>
-        <select id="roleFilter" aria-label="Filter by role">
-          <option value="">All Roles</option>
-          <option value="admin">Admin</option>
-          <option value="customer">Customer</option>
-          <option value="supplier">Supplier</option>
-        </select>
-        <label for="subscriptionFilter" class="sr-only">Filter by subscription</label>
-        <select id="subscriptionFilter" aria-label="Filter by subscription">
-          <option value="">All Subscriptions</option>
-          <option value="free">Free</option>
-          <option value="pro">Pro</option>
-          <option value="pro_plus">Pro+</option>
-        </select>
-        <label for="verifiedFilter" class="sr-only">Filter by verification status</label>
-        <select id="verifiedFilter" aria-label="Filter by verification status">
-          <option value="">All Verification</option>
-          <option value="yes">Verified</option>
-          <option value="no">Unverified</option>
-        </select>
-        <button id="clearFilters" class="ef-cta btn btn-secondary">Clear</button>
-      </div>
-      
-      <div id="bulkActionsBar" class="bulk-actions-bar" style="display:none;" role="toolbar" aria-label="Bulk actions">
-        <div class="bulk-actions-content">
-          <span id="selectedCount" class="bulk-selected-count" aria-live="polite">0 users selected</span>
-          <label for="bulkActionSelect" class="sr-only">Choose bulk action</label>
-          <select id="bulkActionSelect" class="bulk-action-select" aria-label="Choose bulk action">
-            <option value="">Select action...</option>
-            <option value="verify">Verify</option>
-            <option value="suspend">Suspend</option>
-            <option value="unsuspend">Unsuspend</option>
-            <option value="delete">Delete</option>
-            <option value="export">Export CSV</option>
-          </select>
-          <button id="executeBulkAction" class="ef-cta btn btn-primary btn-sm">Execute</button>
-          <button id="clearSelection" class="ef-cta btn btn-secondary btn-sm">Clear Selection</button>
-        </div>
-      </div>
-      
-      <div class="small" id="user-summary" role="status" aria-live="polite">Loading…</div>
-      <div style="overflow-x:auto;margin-top:10px">
-        <table class="table" aria-label="Users list">
-          <thead>
-            <tr>
-              <th class="checkbox-cell" scope="col">
-                <input type="checkbox" id="selectAll" class="table-checkbox" aria-label="Select all users">
-              </th>
-              <th scope="col">Name</th>
-              <th scope="col">Email</th>
-              <th scope="col">Role</th>
-              <th scope="col">Subscription</th>
-              <th scope="col">Verified</th>
-              <th scope="col">Marketing</th>
-              <th scope="col">Joined</th>
-              <th scope="col">Last login</th>
-              <th scope="col">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr><td colspan="10" class="small">Loading…</td></tr>
-          </tbody>
-        </table>
-      </div>
-      <p class="small" style="margin-top:8px">
-        Click on a name or email to view full user details.
-      </p>
-      <p class="small" style="margin-top:4px">
-        <a href="/api/admin/marketing-export" target="_blank" rel="noopener">Download marketing list (CSV)</a>
-      </p>
-    </div>
-  </div>
-</main>
-
-<!-- Subscription Management Modal -->
-<div id="subscriptionModal" class="modal-overlay" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="subscriptionModalTitle">
-  <div class="modal-dialog modal-dialog--subscription" style="max-width: 620px;">
-    <div class="modal-header modal-header--subscription">
-      <div class="modal-header-info">
-        <h3 class="modal-title" id="subscriptionModalTitle">Manage Subscription</h3>
-        <p class="modal-subtitle" id="subscriptionModalSubtitle" aria-live="polite"></p>
-      </div>
-      <button class="ef-cta modal-close" id="closeSubscriptionModal" aria-label="Close subscription modal">&times;</button>
-    </div>
-    <div class="modal-body">
-      <div id="subscriptionModalContent">
-        <!-- Current Status -->
-        <div class="subscription-status-section">
-          <h4>Current Status</h4>
-          <div id="currentSubscriptionStatus" class="current-status-display" aria-live="polite">
-            <div class="sub-status-skeleton"><div class="skeleton-list-item" style="height:72px;border-radius:10px;"></div></div>
+    <main id="main-content" class="section">
+      <div class="dashboard-header">
+        <div class="header-content">
+          <div>
+            <h1 class="dashboard-title">Users Centre</h1>
+            <p class="dashboard-subtitle">
+              Account health, provenance and user management for EventFlow
+            </p>
           </div>
-        </div>
-
-        <!-- Grant/Update Subscription -->
-        <div class="subscription-form-section">
-          <h4>Grant or Update Subscription</h4>
-          <form id="subscriptionForm">
-            <input type="hidden" id="subscriptionUserId" name="userId">
-            
-            <div class="form-group">
-              <label for="subscriptionTier">Tier</label>
-              <select id="subscriptionTier" name="tier" class="form-control" required>
-                <option value="">Select tier...</option>
-                <option value="free">Free (remove subscription)</option>
-                <option value="pro">✦ Pro</option>
-                <option value="pro_plus">⭐ Pro+</option>
-              </select>
-            </div>
-
-            <div class="form-group" id="subscriptionDurationGroup">
-              <label for="subscriptionDuration">Duration</label>
-              <select id="subscriptionDuration" name="duration" class="form-control" required>
-                <option value="">Select duration...</option>
-                <option value="7d">7 Days</option>
-                <option value="30d">30 Days</option>
-                <option value="90d">90 Days (3 months)</option>
-                <option value="1y">1 Year</option>
-                <option value="lifetime">♾️ Lifetime</option>
-              </select>
-            </div>
-
-            <div class="form-group">
-              <label for="subscriptionReason">Reason / Notes</label>
-              <textarea id="subscriptionReason" name="reason" class="form-control" rows="2" placeholder="Why are you granting this subscription?"></textarea>
-            </div>
-
-            <div class="form-actions">
-              <button type="submit" class="ef-cta btn btn-primary">Grant Subscription</button>
-              <button type="button" class="ef-cta btn btn-secondary" id="cancelSubscriptionBtn">Cancel</button>
-            </div>
-          </form>
-        </div>
-
-        <!-- Remove Subscription -->
-        <div class="subscription-remove-section">
-          <h4>Remove Subscription</h4>
-          <p class="text-muted" style="margin-bottom:12px;font-size:13px;">Removes the user's active subscription and sets their tier to Free. A reason prompt will appear.</p>
-          <button type="button" class="ef-cta btn btn-danger" id="removeSubscriptionBtn">Remove Current Subscription</button>
-        </div>
-
-        <!-- Subscription History -->
-        <div class="subscription-history-section">
-          <h4>Subscription History</h4>
-          <div id="subscriptionHistory" class="subscription-history-list" aria-live="polite">
-            <div class="text-muted">Loading...</div>
+          <div class="header-actions">
+            <a
+              href="/api/admin/marketing-export"
+              class="btn-secondary"
+              target="_blank"
+              rel="noopener"
+              >📥 Export Marketing List</a
+            >
           </div>
         </div>
       </div>
+
+      <div class="container">
+        <div class="card">
+          <div id="ucSummaryGrid" class="uc-summary-grid" aria-live="polite">
+            <div class="uc-summary-card skeleton" style="height: 88px"></div>
+            <div class="uc-summary-card skeleton" style="height: 88px"></div>
+            <div class="uc-summary-card skeleton" style="height: 88px"></div>
+            <div class="uc-summary-card skeleton" style="height: 88px"></div>
+          </div>
+
+          <div class="admin-toolbar" role="search" aria-label="Filter users">
+            <input
+              type="text"
+              id="ucSearch"
+              placeholder="Search by name, email..."
+              aria-label="Search users by name or email"
+              class="toolbar-search-input"
+            />
+            <label for="ucRoleFilter" class="sr-only">Filter by role</label>
+            <select id="ucRoleFilter" aria-label="Filter by role">
+              <option value="">All Roles</option>
+              <option value="admin">Admin</option>
+              <option value="customer">Customer</option>
+              <option value="supplier">Supplier</option>
+            </select>
+            <label for="ucSignupFilter" class="sr-only">Filter by signup method</label>
+            <select id="ucSignupFilter" aria-label="Filter by signup method">
+              <option value="">All Signups</option>
+              <option value="google">Google</option>
+              <option value="email_password">Email/password</option>
+              <option value="admin_created">Admin-created</option>
+              <option value="owner">Owner</option>
+              <option value="unknown">Unknown</option>
+            </select>
+            <label for="ucVerifFilter" class="sr-only">Filter by verification method</label>
+            <select id="ucVerifFilter" aria-label="Filter by verification method">
+              <option value="">All Verification</option>
+              <option value="google">Google verified</option>
+              <option value="email_link">EventFlow email</option>
+              <option value="admin">Admin verified</option>
+              <option value="legacy">Legacy</option>
+              <option value="pending">Pending</option>
+              <option value="unknown">Unknown</option>
+            </select>
+            <label for="ucIssueFilter" class="sr-only">Filter by account issue</label>
+            <select id="ucIssueFilter" aria-label="Filter by account issue">
+              <option value="">All Account Health</option>
+              <option value="email_unverified">Email unverified</option>
+              <option value="unknown_verification_source">Unknown verification source</option>
+              <option value="supplier_profile_missing">Missing supplier profile</option>
+              <option value="suspended">Suspended</option>
+            </select>
+            <button id="ucClearFilters" class="ef-cta btn btn-secondary">Clear</button>
+            <button id="ucRefreshBtn" class="ef-cta btn btn-secondary">Refresh</button>
+            <button id="ucBulkProvisionProfiles" class="ef-cta btn btn-warning" title="Create supplier profiles for all supplier accounts that are missing one">⚠️ Fix missing profiles</button>
+          </div>
+
+          <div
+            id="ucBulkActionsBar"
+            class="bulk-actions-bar"
+            style="display: none"
+            role="toolbar"
+            aria-label="Bulk actions"
+          >
+            <div class="bulk-actions-content">
+              <span id="ucBulkCount" class="bulk-selected-count" aria-live="polite"
+                >0 visible users selected</span
+              >
+              <button id="ucBulkVerify" class="ef-cta btn btn-primary btn-sm">Verify email</button>
+              <button id="ucBulkSuspend" class="ef-cta btn btn-secondary btn-sm">Suspend</button>
+              <button id="ucBulkDelete" class="ef-cta btn btn-danger btn-sm">Delete</button>
+              <button id="ucBulkExport" class="ef-cta btn btn-secondary btn-sm">Export</button>
+            </div>
+          </div>
+
+          <div class="small" id="ucUserSummary" role="status" aria-live="polite">Loading…</div>
+          <nav class="uc-pagination" aria-label="Users pagination">
+            <button type="button" id="ucPrevPage" class="ef-cta btn btn-secondary btn-sm">Previous</button>
+            <span class="small">Page <strong id="ucCurrentPage">1</strong> of <strong id="ucTotalPages">1</strong></span>
+            <button type="button" id="ucNextPage" class="ef-cta btn btn-secondary btn-sm">Next</button>
+            <label class="small" for="ucPageSize">Page size</label>
+            <select id="ucPageSize" class="form-control form-control-sm" aria-label="Users per page">
+              <option value="25">25</option>
+              <option value="50" selected>50</option>
+              <option value="100">100</option>
+              <option value="200">200</option>
+            </select>
+            <span class="small"><strong id="ucTotalCount">0</strong> total</span>
+          </nav>
+          <div class="table-wrapper" style="overflow-x:auto;width:100%;">
+            <table class="table" aria-label="Users list" style="min-width:1100px;table-layout:fixed;width:100%;">
+              <colgroup>
+                <col style="width:36px;">
+                <col style="width:160px;">
+                <col style="width:200px;">
+                <col style="width:100px;">
+                <col style="width:110px;">
+                <col style="width:150px;">
+                <col style="width:130px;">
+                <col style="width:110px;">
+                <col style="width:80px;">
+                <col style="width:100px;">
+                <col style="width:100px;">
+                <col style="width:200px;">
+              </colgroup>
+              <thead>
+                <tr>
+                  <th class="checkbox-cell" scope="col">
+                    <input
+                      type="checkbox"
+                      id="ucSelectAll"
+                      class="table-checkbox"
+                      aria-label="Select all visible users on this page"
+                    />
+                  </th>
+                  <th scope="col">Name</th>
+                  <th scope="col">Email</th>
+                  <th scope="col">Role</th>
+                  <th scope="col">Subscription</th>
+                  <th scope="col">Verified / method</th>
+                  <th scope="col">Signup / provider</th>
+                  <th scope="col">Email status</th>
+                  <th scope="col">Marketing</th>
+                  <th scope="col">Joined</th>
+                  <th scope="col">Last login</th>
+                  <th scope="col">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="ucTableBody">
+                <tr>
+                  <td colspan="12" class="small">Loading…</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="small" style="margin-top: 8px">
+            Click on a name or email to view full user details.
+          </p>
+          <p class="small" style="margin-top: 4px">
+            <a href="/api/admin/marketing-export" target="_blank" rel="noopener"
+              >Download marketing list (CSV)</a
+            >
+          </p>
+        </div>
+      </div>
+    </main>
+
+    <div
+      id="subscriptionModal"
+      class="modal-overlay"
+      style="display: none"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="subscriptionModalTitle"
+    >
+      <div class="modal-dialog modal-dialog--subscription" style="max-width: 620px">
+        <div class="modal-header modal-header--subscription">
+          <div class="modal-header-info">
+            <h3 class="modal-title" id="subscriptionModalTitle">Manage Subscription</h3>
+            <p class="modal-subtitle" id="subscriptionModalSubtitle" aria-live="polite"></p>
+          </div>
+          <button
+            class="ef-cta modal-close"
+            id="closeSubscriptionModal"
+            aria-label="Close subscription modal"
+          >
+            &times;
+          </button>
+        </div>
+        <div class="modal-body">
+          <div id="subscriptionPanel">
+            <div class="subscription-status-section">
+              <h4>Current Status</h4>
+              <div id="currentSubscriptionStatus" class="current-status-display" aria-live="polite">
+                <div class="sub-status-skeleton">
+                  <div class="skeleton-list-item" class="sub-status-skeleton-card"></div>
+                </div>
+              </div>
+            </div>
+            <div class="subscription-form-section">
+              <h4>Grant or Update Subscription</h4>
+              <form id="subscriptionForm">
+                <input type="hidden" id="subscriptionUserId" name="userId" />
+                <div class="form-group">
+                  <label for="subscriptionTier">Tier</label>
+                  <select id="subscriptionTier" name="tier" class="form-control" required>
+                    <option value="">Select tier...</option>
+                    <option value="free">Free (remove subscription)</option>
+                    <option value="pro">✦ Pro</option>
+                    <option value="pro_plus">⭐ Pro+</option>
+                  </select>
+                </div>
+                <div class="form-group" id="subscriptionDurationGroup">
+                  <label for="subscriptionDuration">Duration</label>
+                  <select id="subscriptionDuration" name="duration" class="form-control" required>
+                    <option value="">Select duration...</option>
+                    <option value="7d">7 Days</option>
+                    <option value="30d">30 Days</option>
+                    <option value="90d">90 Days (3 months)</option>
+                    <option value="1y">1 Year</option>
+                    <option value="lifetime">♾️ Lifetime</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="subscriptionReason">Reason / Notes</label>
+                  <textarea
+                    id="subscriptionReason"
+                    name="reason"
+                    class="form-control"
+                    rows="2"
+                    placeholder="Why are you granting this subscription?"
+                  ></textarea>
+                </div>
+                <div class="form-actions">
+                  <button type="submit" class="ef-cta btn btn-primary">Grant Subscription</button>
+                  <button type="button" class="ef-cta btn btn-secondary" id="cancelSubscriptionBtn">
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+            <div class="subscription-remove-section">
+              <h4>Remove Subscription</h4>
+              <p class="text-muted subscription-remove-hint">
+                Removes the user's active subscription and sets their tier to Free. A reason prompt
+                will appear.
+              </p>
+              <button type="button" class="ef-cta btn btn-danger" id="removeSubscriptionBtn">
+                Remove Current Subscription
+              </button>
+            </div>
+            <div class="subscription-history-section">
+              <h4>Subscription History</h4>
+              <div id="subscriptionHistory" class="subscription-history-list" aria-live="polite">
+                <div class="text-muted">Loading...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <button type="button" class="btn btn-secondary mt-2" id="closeSubPanel">Close</button>
     </div>
-  </div>
-</div>
 
-<footer class="footer" role="contentinfo">
-  <div class="container flex-between">
-    <div><strong>EventFlow</strong><br><span class="small">Event planning made simple.</span></div>
-    <div class="version">Version: <span id="ef-version-label">loading…</span></div>
-    <div class="small"><a href="/guides">Guides</a> ·
-      <a href="/credits">Credits</a> · <a href="/contact">Contact</a> · <a href="/legal">Legal Hub</a> · <button type="button" data-cookie-prefs>Cookie preferences</button></div>
-    <div class="small" style="width: 100%; margin-top: 8px; text-align: center;">Operated by <a href="https://vexi.co.uk" target="_blank" rel="noopener noreferrer">VEXI</a></div>
-  </div>
-  </footer>
-<script src="/assets/js/admin-shared.js?v=18.3.0"></script>
-<script src="/assets/js/config/page-init.js"></script>
-  <script src="/assets/js/app.js"></script>
+    <footer class="footer" role="contentinfo">
+      <div class="container flex-between">
+        <div>
+          <strong>EventFlow</strong><br /><span class="small">Event planning made simple.</span>
+        </div>
+        <div class="version">Version: <span id="ef-version-label">loading…</span></div>
+        <div class="small">
+          <a href="/guides">Guides</a> · <a href="/credits">Credits</a> ·
+          <a href="/contact">Contact</a> · <a href="/legal">Legal Hub</a> ·
+          <button type="button" data-cookie-prefs>Cookie preferences</button>
+        </div>
+        <div class="footer-credit small">
+          Operated by
+          <a href="https://vexi.co.uk" target="_blank" rel="noopener noreferrer">VEXI</a>
+        </div>
+      </div>
+    </footer>
+    <script src="/assets/js/config/page-init.js"></script>
+    <script src="/assets/js/app.js"></script>
 
-<script src="/assets/js/pages/admin-users-init.js?v=18.3.0" defer></script>
-<script src="/assets/js/cookie-consent.js?v=2.0.0" defer></script>
-</body>
+    <script src="/assets/js/pages/admin-users-init.js?v=18.3.0" defer></script>
+    <script src="/assets/js/cookie-consent.js?v=2.0.0" defer></script>
+  </body>
 </html>

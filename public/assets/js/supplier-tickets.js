@@ -318,12 +318,12 @@ function viewTicket(ticketId) {
           await ticketingSystem.addResponse(ticket.id, message);
           field.value = '';
           if (typeof Toast !== 'undefined') {
-            Toast.success('Reply sent');
+            showToast('Reply sent', 'success');
           }
         } catch (error) {
           console.error('Error sending reply:', error);
           if (typeof Toast !== 'undefined') {
-            Toast.error(error.message || 'Failed to send reply');
+            showToast(error.message || 'Failed to send reply', 'error');
           }
         } finally {
           button.disabled = false;
@@ -383,3 +383,4 @@ window.addEventListener('beforeunload', () => {
   }
   ticketingSystem.cleanup();
 });
+

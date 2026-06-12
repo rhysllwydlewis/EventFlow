@@ -174,13 +174,16 @@ export function showUpgradePrompt(featureName, message = null) {
 
   const modal = document.createElement('div');
   modal.className = 'upgrade-modal';
+  modal.setAttribute('role', 'dialog');
+  modal.setAttribute('aria-modal', 'true');
+  modal.setAttribute('aria-labelledby', 'upgrade-modal-title');
   modal.innerHTML = `
-    <div class="upgrade-modal-overlay"></div>
+    <div class="upgrade-modal-overlay" aria-hidden="true"></div>
     <div class="upgrade-modal-content">
-      <button class="ef-cta upgrade-modal-close" aria-label="Close">&times;</button>
-      <div class="upgrade-modal-icon">🔒</div>
-      <h3>Premium Feature</h3>
-      <p>${displayMessage}</p>
+      <button class="upgrade-modal-close" aria-label="Close premium feature dialog">&times;</button>
+      <div class="upgrade-modal-icon" aria-hidden="true">🔒</div>
+      <h3 id="upgrade-modal-title">Premium Feature</h3>
+      <p>${escapeHtml(displayMessage)}</p>
       <div class="upgrade-modal-features">
         <h4>Unlock with Pro:</h4>
         <ul>
@@ -191,8 +194,8 @@ export function showUpgradePrompt(featureName, message = null) {
         </ul>
       </div>
       <div class="upgrade-modal-actions">
-        <a href="/supplier/subscription" class="btn-upgrade">Upgrade Now</a>
-        <button class="ef-cta btn-cancel">Maybe Later</button>
+        <a href="/supplier/subscription" class="upgrade-modal-cta">Upgrade Now</a>
+        <button class="upgrade-modal-cancel">Maybe Later</button>
       </div>
     </div>
   `;
@@ -200,124 +203,21 @@ export function showUpgradePrompt(featureName, message = null) {
   document.body.appendChild(modal);
 
   // Add styles if not already added
-  if (!document.getElementById('upgrade-modal-styles')) {
-    const styles = document.createElement('style');
-    styles.id = 'upgrade-modal-styles';
-    styles.textContent = `
-      .upgrade-modal {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        z-index: 10000;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-      .upgrade-modal-overlay {
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0, 0, 0, 0.7);
-      }
-      .upgrade-modal-content {
-        position: relative;
-        background: white;
-        border-radius: 12px;
-        padding: 2rem;
-        max-width: 500px;
-        width: 90%;
-        text-align: center;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-      }
-      .upgrade-modal-close {
-        position: absolute;
-        top: 1rem;
-        right: 1rem;
-        background: none;
-        border: none;
-        font-size: 1.5rem;
-        cursor: pointer;
-        color: #999;
-      }
-      .upgrade-modal-icon {
-        font-size: 3rem;
-        margin-bottom: 1rem;
-      }
-      .upgrade-modal-content h3 {
-        margin: 0 0 1rem 0;
-        font-size: 1.5rem;
-      }
-      .upgrade-modal-content p {
-        margin-bottom: 1.5rem;
-        color: #666;
-      }
-      .upgrade-modal-features {
-        background: #f8f9fa;
-        border-radius: 8px;
-        padding: 1rem;
-        margin-bottom: 1.5rem;
-        text-align: left;
-      }
-      .upgrade-modal-features h4 {
-        margin: 0 0 0.5rem 0;
-        font-size: 1rem;
-      }
-      .upgrade-modal-features ul {
-        margin: 0;
-        padding: 0;
-        list-style: none;
-      }
-      .upgrade-modal-features li {
-        padding: 0.25rem 0;
-        color: #28a745;
-        font-weight: 600;
-      }
-      .upgrade-modal-actions {
-        display: flex;
-        gap: 1rem;
-      }
-      .btn-upgrade {
-        flex: 1;
-        padding: 0.75rem 1.5rem;
-        background: #007bff;
-        color: white;
-        text-decoration: none;
-        border: none;
-        border-radius: 8px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: background 0.3s;
-      }
-      .btn-upgrade:hover {
-        background: #0056b3;
-      }
-      .btn-cancel {
-        flex: 1;
-        padding: 0.75rem 1.5rem;
-        background: #6c757d;
-        color: white;
-        border: none;
-        border-radius: 8px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: background 0.3s;
-      }
-      .btn-cancel:hover {
-        background: #545b62;
-      }
-    `;
-    document.head.appendChild(styles);
-  }
-
-  // Close handlers
-  const closeModal = () => modal.remove();
+    // Close handlers
+// Close handlers
+  const lastFocused = document.activeElement;
+  const escapeHandler = e => { if (e.key === 'Escape') closeModal(); };
+  document.addEventListener('keydown', escapeHandler);
+  const closeModal = () => {
+    modal.remove();
+    document.removeEventListener('keydown', escapeHandler);
+    if (lastFocused?.focus) lastFocused.focus();
+  };
   modal.querySelector('.upgrade-modal-close').addEventListener('click', closeModal);
-  modal.querySelector('.btn-cancel').addEventListener('click', closeModal);
+  modal.querySelector('.upgrade-modal-cancel') && modal.querySelector('.upgrade-modal-cancel').addEventListener('click', closeModal);
+  modal.querySelector('.btn-cancel') && modal.querySelector('.btn-cancel').addEventListener('click', closeModal);
   modal.querySelector('.upgrade-modal-overlay').addEventListener('click', closeModal);
+  requestAnimationFrame(() => { const f = modal.querySelector('.upgrade-modal-close'); if (f) f.focus(); });
 }
 
 /**
@@ -325,7 +225,7 @@ export function showUpgradePrompt(featureName, message = null) {
  */
 export function lockFeature(element, featureName) {
   element.classList.add('feature-locked');
-  element.style.position = 'relative';
+  element.classList.add('feature-locked-wrapper');
 
   const badge = document.createElement('div');
   badge.className = 'feature-lock-badge';
@@ -394,7 +294,7 @@ export function displayPackageLimitNotice(container, currentCount) {
     </p>
     ${
       remaining <= 0
-        ? '<a href="/supplier/subscription" class="cta" style="margin-top: 0.5rem;">Upgrade to Pro</a>'
+        ? '<a href="/supplier/subscription" class="cta package-limit-upgrade-cta">Upgrade to Pro</a>'
         : ''
     }
   `;
@@ -431,3 +331,4 @@ export function getCurrentTier() {
 export function getCurrentSupplierId() {
   return currentSupplierId;
 }
+

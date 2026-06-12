@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Admin Panel - EventFlow</title>
+  <title>Admin Dashboard — EventFlow</title>
 <meta name="robots" content="noindex,nofollow">
   <link rel="stylesheet" href="/assets/css/tokens.css?v=18.3.0">
   <link rel="stylesheet" href="/assets/css/admin-tokens.css?v=18.3.0">
@@ -26,8 +26,6 @@
   <link rel="stylesheet" href="/assets/css/admin-ui-improvements.css?v=18.3.0">
 </head>
 <body class="has-admin-navbar admin">
-<a href="#main-content" class="skip-to-content">Skip to main content</a>
-
 <div id="adminNavbarMount"></div>
 
 <!-- Main Content -->
@@ -54,7 +52,7 @@
   </div>
 
   <!-- Quick Stats Overview -->
-  <div class="stats-grid">
+  <div class="stats-grid" aria-live="polite" aria-label="Dashboard statistics">
     <div class="stat-card stat-primary">
       <div class="stat-icon stat-icon-purple">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
@@ -112,6 +110,44 @@
     </div>
   </div>
 
+  <!-- User & Account Health ─────────────────────────────────────────── -->
+  <div class="section-header">
+    <h2 class="section-title">Account Health</h2>
+    <p class="section-description">User verification, provenance and supplier status overview</p>
+  </div>
+  <div class="dash-health-grid" id="dashHealthGrid" aria-live="polite">
+    <!-- User health panel -->
+    <div class="dash-health-panel">
+      <div class="dash-health-panel__header">
+        <span class="dash-health-panel__icon dash-health-panel__icon--blue">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+        </span>
+        <span class="dash-health-panel__title">User accounts</span>
+        <a href="/admin-users" class="dash-health-panel__link">Open Users Centre →</a>
+      </div>
+      <div class="dash-health-rows" id="dashUserHealthRows">
+        <div class="dash-health-row skeleton" style="height:32px;border-radius:6px;margin-bottom:6px;"></div>
+        <div class="dash-health-row skeleton" style="height:32px;border-radius:6px;margin-bottom:6px;"></div>
+        <div class="dash-health-row skeleton" style="height:32px;border-radius:6px;"></div>
+      </div>
+    </div>
+    <!-- Supplier health panel -->
+    <div class="dash-health-panel">
+      <div class="dash-health-panel__header">
+        <span class="dash-health-panel__icon dash-health-panel__icon--teal">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        </span>
+        <span class="dash-health-panel__title">Supplier accounts</span>
+        <a href="/admin-suppliers" class="dash-health-panel__link">Supplier Management →</a>
+      </div>
+      <div class="dash-health-rows" id="dashSupplierHealthRows">
+        <div class="dash-health-row skeleton" style="height:32px;border-radius:6px;margin-bottom:6px;"></div>
+        <div class="dash-health-row skeleton" style="height:32px;border-radius:6px;margin-bottom:6px;"></div>
+        <div class="dash-health-row skeleton" style="height:32px;border-radius:6px;"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- Moderation Queue -->
   <div class="section-header">
     <h2 class="section-title">Moderation Queue</h2>
@@ -162,62 +198,71 @@
 
   <!-- Quick Actions -->
   <div class="section-header section-spacer">
-    <h2 class="section-title">Quick Actions</h2>
+    <h2 class="section-title" id="quick-actions-heading">Quick Actions</h2>
     <p class="section-description">Frequently used admin tools</p>
   </div>
 
-  <div class="quick-actions">
-    <button id="userManagementBtn" class="ef-cta action-btn">
+  <div class="quick-actions" role="group" aria-labelledby="quick-actions-heading">
+    <button id="userManagementBtn" class="ef-cta action-btn" aria-label="User Management">
       <div class="action-icon">👥</div>
       <div class="action-label">User Management</div>
     </button>
-    <button id="packageManagementBtn" class="ef-cta action-btn">
+    <button id="packageManagementBtn" class="ef-cta action-btn" aria-label="Package Management">
       <div class="action-icon">📦</div>
       <div class="action-label">Packages</div>
     </button>
-    <button id="homepageChangesBtn" class="ef-cta action-btn">
+    <button id="homepageChangesBtn" class="ef-cta action-btn" aria-label="Homepage Changes">
       <div class="action-icon">🏠</div>
       <div class="action-label">Homepage</div>
     </button>
-    <button id="supportTicketsBtn" class="ef-cta action-btn">
+    <button id="supportTicketsBtn" class="ef-cta action-btn" aria-label="Support Tickets">
       <div class="action-icon">🎫</div>
       <div class="action-label">Tickets</div>
     </button>
-    <button id="paymentsAnalyticsBtn" class="ef-cta action-btn">
+    <button id="paymentsAnalyticsBtn" class="ef-cta action-btn" aria-label="Payments & Analytics">
       <div class="action-icon">💳</div>
       <div class="action-label">Payments</div>
     </button>
-    <button id="reportsQueueBtn" class="ef-cta action-btn">
+    <button id="reportsQueueBtn" class="ef-cta action-btn" aria-label="Reports Queue">
       <div class="action-icon">📊</div>
       <div class="action-label">Reports</div>
     </button>
-    <button id="auditLogBtn" class="ef-cta action-btn">
+    <button id="eventsCalendarBtn" class="ef-cta action-btn" aria-label="Events Calendar">
+      <div class="action-icon">📅</div>
+      <div class="action-label">Events</div>
+    </button>
+    <button id="auditLogBtn" class="ef-cta action-btn" aria-label="Audit Log">
       <div class="action-icon">📋</div>
       <div class="action-label">Audit Log</div>
     </button>
-    <button id="downloadUsersCsv" class="ef-cta action-btn">
+    <button id="downloadUsersCsv" class="ef-cta action-btn" aria-label="Download Users CSV">
       <div class="action-icon">📥</div>
       <div class="action-label">Export Users</div>
     </button>
-    <button id="adminSettingsBtn" class="ef-cta action-btn">
+    <button id="adminSettingsBtn" class="ef-cta action-btn" aria-label="Admin Settings">
       <div class="action-icon">⚙️</div>
       <div class="action-label">Settings</div>
     </button>
-    <button id="contentManagementBtn" class="ef-cta action-btn">
+    <button id="contentManagementBtn" class="ef-cta action-btn" aria-label="Content Management">
       <div class="action-icon">✏️</div>
       <div class="action-label">Content</div>
     </button>
-    <button id="mediaCenterBtn" class="ef-cta action-btn">
+    <button id="mediaCenterBtn" class="ef-cta action-btn" aria-label="Media Center">
       <div class="action-icon">🎨</div>
       <div class="action-label">Media Center</div>
     </button>
-    <button id="globalSearchBtn" class="ef-cta action-btn">
+    <button id="globalSearchBtn" class="ef-cta action-btn" aria-label="Global Search">
       <div class="action-icon">🔍</div>
       <div class="action-label">Global Search</div>
     </button>
-    <button id="analyticsBtn" class="ef-cta action-btn">
+    <button id="analyticsBtn" class="ef-cta action-btn" aria-label="Analytics">
       <div class="action-icon">📈</div>
       <div class="action-label">Analytics</div>
+    </button>
+    <button id="emailCentreBtn" class="ef-cta action-btn" aria-label="Email Centre: Campaigns, templates, sent email logs and delivery status" title="Campaigns, templates, sent email logs and delivery status">
+      <div class="action-icon">📨</div>
+      <div class="action-label">Email Centre</div>
+      <span class="sr-only">Campaigns, templates, sent email logs and delivery status</span>
     </button>
   </div>
 
@@ -278,6 +323,29 @@
       </a>
     </div>
 
+    <!-- Public Events Calendar Management Card -->
+    <div class="management-card">
+      <div class="management-header">
+        <div class="management-icon">📅</div>
+        <div class="management-badge" id="totalCalendarEventsCountCard">—</div>
+      </div>
+      <h3 class="management-title">Shared Events Calendar</h3>
+      <p class="management-description">Manage public events, supplier publishing requests, reports and calendar visibility</p>
+      <div class="management-stats">
+        <div class="stat-item">
+          <span class="stat-value" id="pendingCalendarRequestsCount">—</span>
+          <span class="stat-label-sm">Access Requests</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-value" id="openCalendarReportsCount">—</span>
+          <span class="stat-label-sm">Open Reports</span>
+        </div>
+      </div>
+      <a href="/admin-public-calendar" class="btn-manage">
+        Manage Events →
+      </a>
+    </div>
+
     <!-- Partners Management Card -->
     <div class="management-card">
       <div class="management-header">
@@ -311,7 +379,7 @@
   <div class="data-section" id="messageModerationSection">
     <div class="data-header">
       <div class="data-controls">
-        <input id="msgModerationSearch" type="text" placeholder="Search by name, email or conversation ID…" class="search-input" style="min-width:280px">
+        <input id="msgModerationSearch" type="text" placeholder="Search by name, email or conversation ID…" class="search-input admin-messenger-search">
         <select id="msgModerationStatus" class="filter-select">
           <option value="">All statuses</option>
           <option value="active">Active</option>
@@ -322,24 +390,24 @@
       </div>
     </div>
     <div class="table-wrapper">
-      <table id="msgModerationTable" aria-label="Message Moderation" style="width:100%;border-collapse:collapse">
+      <table id="msgModerationTable" class="admin-messenger-table" aria-label="Message Moderation">
         <thead>
           <tr>
-            <th style="text-align:left;padding:0.5rem 0.75rem">Participants</th>
-            <th style="text-align:left;padding:0.5rem 0.75rem">Context</th>
-            <th style="text-align:left;padding:0.5rem 0.75rem">Last Message</th>
-            <th style="text-align:center;padding:0.5rem 0.75rem">Unread</th>
-            <th style="text-align:center;padding:0.5rem 0.75rem">Action</th>
+            <th class="admin-messenger-th" scope="col">Participants</th>
+            <th class="admin-messenger-th" scope="col">Context</th>
+            <th class="admin-messenger-th" scope="col">Last Message</th>
+            <th class="admin-messenger-th admin-messenger-th--center" scope="col">Unread</th>
+            <th class="admin-messenger-th admin-messenger-th--center" scope="col">Action</th>
           </tr>
         </thead>
         <tbody id="msgModerationBody">
-          <tr><td colspan="5" style="padding:1rem;text-align:center;opacity:0.6">Loading conversations…</td></tr>
+          <tr><td colspan="5" class="admin-messenger-state admin-messenger-state--loading">Loading conversations…</td></tr>
         </tbody>
       </table>
     </div>
-    <div id="msgModerationPager" style="display:flex;gap:0.5rem;align-items:center;padding:0.75rem 0;justify-content:flex-end">
+    <div id="msgModerationPager" class="admin-messenger-pagination">
       <button id="msgModerationPrev" class="ef-cta btn-sm" disabled>← Prev</button>
-      <span id="msgModerationPageInfo" style="font-size:0.85rem;opacity:0.7"></span>
+      <span id="msgModerationPageInfo" class="admin-messenger-page-info"></span>
       <button id="msgModerationNext" class="ef-cta btn-sm" disabled>Next →</button>
     </div>
   </div>
@@ -347,10 +415,10 @@
   <!-- Users Section -->
   <div class="data-section">
     <div class="data-header">
-      <h3 class="subsection-title">Users</h3>
+      <h3 class="subsection-title">Recent Users <span style="font-size:0.75rem;font-weight:400;color:#6b7280;">(20 most recent — <a href="/admin-users">view all in Users Centre</a>)</span></h3>
       <div class="data-controls">
         <button id="createUserBtn" class="ef-cta btn-sm btn-success">+ Create User</button>
-        <input id="userSearch" type="text" placeholder="Search users..." class="search-input">
+        <input id="userSearch" type="text" placeholder="Search recent users..." class="search-input">
         <select id="userDateFilter" class="filter-select">
           <option value="all" selected>All time</option>
           <option value="7">Last 7 days</option>
@@ -358,8 +426,8 @@
         </select>
       </div>
     </div>
-    <div class="table-wrapper">
-      <table id="users" aria-label="Users"></table>
+    <div class="table-wrapper" style="overflow-x:auto;">
+      <table id="users" aria-label="Recent users" style="min-width:700px;"></table>
     </div>
   </div>
 
@@ -373,15 +441,14 @@
 
   
 
-  <script src="/assets/js/notification-system.js?v=18.3.0" defer></script>
-  <script src="/assets/js/notification-dispatcher.js?v=18.3.0" defer></script>
-  <script src="/assets/js/utils/global-error-handler.js?v=18.3.0" defer></script>
-  <script src="/assets/js/utils/sentry-browser-init.js" defer></script>
-  <script src="/assets/js/pages/admin-init.js?v=18.3.0" defer></script>
-  <script src="/assets/js/admin-features.js?v=18.3.0" defer></script>
-  <script src="/assets/js/pages/admin-messages-init.js?v=18.3.0" defer></script>
-</div>
 </main>
+<script src="/assets/js/notification-system.js?v=18.3.0" defer></script>
+<script src="/assets/js/notification-dispatcher.js?v=18.3.0" defer></script>
+<script src="/assets/js/utils/global-error-handler.js?v=18.3.0" defer></script>
+<script src="/assets/js/utils/sentry-browser-init.js" defer></script>
+<script src="/assets/js/pages/admin-init.js?v=18.5.0" defer></script>
+<script src="/assets/js/admin-features.js?v=18.3.0" defer></script>
+<script src="/assets/js/pages/admin-messages-init.js?v=18.3.0" defer></script>
 
 <footer class="footer" role="contentinfo">
   <div class="container flex-between">
@@ -400,3 +467,6 @@
 <script src="/assets/js/cookie-consent.js?v=2.0.0" defer></script>
 </body>
 </html>
+
+
+

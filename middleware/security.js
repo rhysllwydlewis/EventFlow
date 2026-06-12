@@ -6,11 +6,46 @@
 'use strict';
 
 const helmet = require('helmet');
-// cors is used in server.js via require('cors')
-// eslint-disable-next-line no-unused-vars
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const logger = require('../utils/logger');
+
+const PRODUCTION_APP_ORIGINS = ['https://event-flow.co.uk', 'https://www.event-flow.co.uk'];
+
+function normalizeCorsOrigin(value) {
+  const raw = String(value || '').trim();
+  if (!raw) {
+    return '';
+  }
+
+  try {
+    const parsed = new URL(raw);
+    return parsed.origin;
+  } catch (_) {
+    return raw.replace(/\/+$/, '');
+  }
+}
+
+function addAllowedOrigin(allowedOrigins, origin) {
+  const normalized = normalizeCorsOrigin(origin);
+  if (normalized) {
+    allowedOrigins.add(normalized);
+  }
+}
+
+function addWwwVariant(allowedOrigins, origin) {
+  const normalized = normalizeCorsOrigin(origin);
+  if (!normalized || !normalized.includes('://')) {
+    return;
+  }
+
+  const [protocol, domain] = normalized.split('://');
+  if (domain.startsWith('www.')) {
+    addAllowedOrigin(allowedOrigins, `${protocol}://${domain.slice(4)}`);
+  } else {
+    addAllowedOrigin(allowedOrigins, `${protocol}://www.${domain}`);
+  }
+}
 
 /**
  * Configure Helmet with Content Security Policy
@@ -20,6 +55,11 @@ const logger = require('../utils/logger');
  */
 function configureHelmet(isProduction = false) {
   return helmet({
+    // Google Identity Services can briefly use a popup at /gsi/transform even
+    // for button flows. Helmet's default `same-origin` COOP severs the popup's
+    // opener relationship and leaves that window blank, so allow same-origin
+    // isolation while preserving popup communication for trusted sign-in flows.
+    crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
@@ -30,6 +70,7 @@ function configureHelmet(isProduction = false) {
           'https://cdn.tidycal.net',
           'https://estatic.com',
           'https://*.estatic.com',
+          'https://accounts.google.com',
           'https://maps.googleapis.com',
           'https://*.googleapis.com',
           'https://maps.gstatic.com',
@@ -47,6 +88,7 @@ function configureHelmet(isProduction = false) {
           'https://cdn.tidycal.net',
           'https://estatic.com',
           'https://*.estatic.com',
+          'https://accounts.google.com',
           'https://maps.googleapis.com',
           'https://*.googleapis.com',
           'https://maps.gstatic.com',
@@ -63,6 +105,7 @@ function configureHelmet(isProduction = false) {
           'blob:',
           'https://cdn.jsdelivr.net',
           'https://fonts.googleapis.com',
+          'https://accounts.google.com',
         ],
         fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
         imgSrc: [
@@ -97,9 +140,11 @@ function configureHelmet(isProduction = false) {
           'https://*.tidycal.net',
           'https://api.stripe.com',
           'https://static.cloudflareinsights.com',
+          'https://accounts.google.com',
         ],
         frameSrc: [
           "'self'",
+          'https://accounts.google.com',
           'https://www.google.com',
           'https://maps.google.com',
           'https://tidycal.com',
@@ -155,7 +200,32 @@ function configurePermissionsPolicy() {
  * @param {boolean} isProduction - Whether running in production
  * @returns {Object} CORS options
  */
-function configureCORS(isProduction = false) {
+function isGoogleRedirectCallbackRequest(req) {
+  if (!req) {
+    return false;
+  }
+
+  const path = req.path || String(req.originalUrl || req.url || '').split('?')[0];
+  return (
+    req.method === 'POST' &&
+    (path === '/api/auth/callback/google' || path === '/api/v1/auth/callback/google')
+  );
+}
+
+function isOpaqueOrigin(origin) {
+  return origin === 'null';
+}
+
+function isAllowedGoogleCallbackOrigin(origin, allowedOrigins) {
+  const googleIdentityOrigins = new Set(['https://accounts.google.com']);
+  if (googleIdentityOrigins.has(normalizeCorsOrigin(origin))) {
+    return true;
+  }
+
+  return allowedOrigins.has(normalizeCorsOrigin(origin));
+}
+
+function configureCORS(isProduction = false, req = null) {
   return {
     origin: function (origin, callback) {
       // Allow requests with no origin (mobile apps, curl, etc.)
@@ -163,47 +233,76 @@ function configureCORS(isProduction = false) {
         return callback(null, true);
       }
 
-      // Get allowed origins from BASE_URL environment variable
+      const requestOrigin = normalizeCorsOrigin(origin);
+
+      // Google Identity Services redirect mode can send credential callbacks from
+      // accounts.google.com. Keep that origin globally trusted for existing GIS
+      // integrations; the exact callback route below also lets opaque `null`
+      // browser origins reach route-level CSRF and ID-token validation without
+      // granting them CORS response headers.
+      if (requestOrigin === 'https://accounts.google.com') {
+        return callback(null, true);
+      }
+
+      // Get allowed origins from BASE_URL environment variable. Normalize every
+      // configured value to URL.origin so a trailing slash or accidental path in
+      // Railway/env config cannot make the real browser Origin header fail.
       const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
-      const allowedOrigins = [baseUrl];
+      const allowedOrigins = new Set();
+      addAllowedOrigin(allowedOrigins, baseUrl);
+      addWwwVariant(allowedOrigins, baseUrl);
+
+      // The public production domain must remain valid even when deployment
+      // configuration points BASE_URL at a preview/internal URL.
+      if (isProduction) {
+        PRODUCTION_APP_ORIGINS.forEach(appOrigin => addAllowedOrigin(allowedOrigins, appOrigin));
+      }
 
       // Support additional origins via comma-separated ALLOWED_ORIGINS env var
       const additionalOrigins = process.env.ALLOWED_ORIGINS;
       if (additionalOrigins) {
         additionalOrigins.split(',').forEach(o => {
-          const trimmed = o.trim();
-          if (trimmed) {
-            allowedOrigins.push(trimmed);
-          }
+          addAllowedOrigin(allowedOrigins, o);
+          addWwwVariant(allowedOrigins, o);
         });
       }
 
-      // If BASE_URL contains www, also allow non-www version and vice versa
-      if (baseUrl.includes('www.')) {
-        allowedOrigins.push(baseUrl.replace('www.', ''));
-      } else if (baseUrl.includes('://')) {
-        const [protocol, domain] = baseUrl.split('://');
-        allowedOrigins.push(`${protocol}://www.${domain}`);
+      // Google Identity Services redirect-mode callbacks are browser form
+      // navigations rather than application XHR calls. Some browsers/privacy
+      // contexts can send `Origin: null` for those navigations. For that exact
+      // POST callback only, disable CORS header emission but do not reject the
+      // request, so Google's double-submit CSRF and ID-token checks decide it.
+      if (isGoogleRedirectCallbackRequest(req)) {
+        if (isOpaqueOrigin(origin)) {
+          return callback(null, false);
+        }
+
+        if (isAllowedGoogleCallbackOrigin(origin, allowedOrigins)) {
+          return callback(null, true);
+        }
       }
 
       // Support Railway preview URLs in non-production
       // Railway preview URLs follow pattern: https://projectname-pr-123.railway.app
-      if (!isProduction && origin.endsWith('.railway.app')) {
-        allowedOrigins.push(origin);
+      if (!isProduction && requestOrigin.endsWith('.railway.app')) {
+        addAllowedOrigin(allowedOrigins, requestOrigin);
       }
 
       // For development, allow localhost on any port
       if (!isProduction) {
-        allowedOrigins.push('http://localhost:3000');
-        allowedOrigins.push('http://localhost:3001');
-        allowedOrigins.push('http://127.0.0.1:3000');
+        addAllowedOrigin(allowedOrigins, 'http://localhost:3000');
+        addAllowedOrigin(allowedOrigins, 'http://localhost:3001');
+        addAllowedOrigin(allowedOrigins, 'http://127.0.0.1:3000');
         // Also allow any localhost port for flexibility in development
-        if (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
-          allowedOrigins.push(origin);
+        if (
+          requestOrigin.startsWith('http://localhost:') ||
+          requestOrigin.startsWith('http://127.0.0.1:')
+        ) {
+          addAllowedOrigin(allowedOrigins, requestOrigin);
         }
       }
 
-      if (allowedOrigins.includes(origin)) {
+      if (allowedOrigins.has(requestOrigin)) {
         callback(null, true);
       } else {
         // In production, reject disallowed origins with detailed error
@@ -227,6 +326,12 @@ function configureCORS(isProduction = false) {
     credentials: true, // Allow cookies to be sent with requests
     optionsSuccessStatus: 200,
   };
+}
+
+function configureCORSMiddleware(isProduction = false) {
+  return cors((req, callback) => {
+    callback(null, configureCORS(isProduction, req));
+  });
 }
 
 /**
@@ -330,6 +435,7 @@ module.exports = {
   configureHelmet,
   configurePermissionsPolicy,
   configureCORS,
+  configureCORSMiddleware,
   createRateLimiters,
   configureHTTPSRedirect,
 };

@@ -244,15 +244,13 @@ router.post(
       const { rating, title, comment, recommend, eventType, eventDate, photos } = req.body;
 
       // Check if supplier exists
-      const suppliers = await dbUnified.read('suppliers');
-      const supplier = suppliers.find(s => s.id === supplierId);
+      const supplier = await dbUnified.findOne('suppliers', { id: supplierId });
       if (!supplier) {
         return res.status(404).json({ error: 'Supplier not found' });
       }
 
       // Get user info
-      const users = await dbUnified.read('users');
-      const user = users.find(u => u.id === req.user.id);
+      const user = await dbUnified.findOne('users', { id: req.user.id });
 
       // Create review with full validation and anti-abuse checks
       const review = await reviewsSystem.createReview(
@@ -332,15 +330,13 @@ router.post(
       }
 
       // Check if supplier exists
-      const suppliers = await dbUnified.read('suppliers');
-      const supplier = suppliers.find(s => s.id === supplierId);
+      const supplier = await dbUnified.findOne('suppliers', { id: supplierId });
       if (!supplier) {
         return res.status(404).json({ error: 'Supplier not found' });
       }
 
       // Get user info
-      const users = await dbUnified.read('users');
-      const user = users.find(u => u.id === req.user.id);
+      const user = await dbUnified.findOne('users', { id: req.user.id });
 
       // Create review using enhanced system
       const review = await reviewsSystem.createReview(
@@ -548,8 +544,7 @@ router.post(
       }
 
       // Get supplier ID from user's supplier profile
-      const suppliers = await dbUnified.read('suppliers');
-      const supplier = suppliers.find(s => s.ownerUserId === req.user.id);
+      const supplier = await dbUnified.findOne('suppliers', { ownerUserId: req.user.id });
 
       if (!supplier) {
         return res.status(404).json({ error: 'Supplier profile not found' });
@@ -587,8 +582,7 @@ router.get(
   async (req, res) => {
     try {
       // Get supplier ID from user's supplier profile
-      const suppliers = await dbUnified.read('suppliers');
-      const supplier = suppliers.find(s => s.ownerUserId === req.user.id);
+      const supplier = await dbUnified.findOne('suppliers', { ownerUserId: req.user.id });
 
       if (!supplier) {
         return res.status(404).json({ error: 'Supplier profile not found' });
@@ -818,8 +812,7 @@ router.put(
         return res.status(400).json({ error: 'Rating must be between 1 and 5' });
       }
 
-      const reviews = await dbUnified.read('reviews');
-      const review = reviews.find(r => r.id === reviewId);
+      const review = await dbUnified.findOne('reviews', { _id: reviewId });
 
       if (!review) {
         return res.status(404).json({ error: 'Review not found' });
@@ -849,7 +842,7 @@ router.put(
         updates.eventType = eventType;
       }
 
-      await dbUnified.updateOne('reviews', { id: reviewId }, { $set: updates });
+      await dbUnified.updateOne('reviews', { _id: reviewId }, { $set: updates });
 
       res.json({
         success: true,
@@ -883,8 +876,7 @@ router.post(
         return res.status(400).json({ error: 'A valid reason is required to report a review' });
       }
 
-      const reviews = await dbUnified.read('reviews');
-      const review = reviews.find(r => r.id === reviewId);
+      const review = await dbUnified.findOne('reviews', { _id: reviewId });
 
       if (!review) {
         return res.status(404).json({ error: 'Review not found' });
@@ -911,7 +903,7 @@ router.post(
 
       await dbUnified.updateOne(
         'reviews',
-        { id: reviewId },
+        { _id: reviewId },
         { $set: { reports, flagged: true, updatedAt: new Date().toISOString() } }
       );
 
@@ -929,7 +921,11 @@ router.post(
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };
-        await dbUnified.insertOne('support_tickets', ticketData);
+        const reviewTicketInserted = await dbUnified.insertOne('support_tickets', ticketData);
+        if (!reviewTicketInserted) {
+          logger.error('[REVIEWS] support_ticket insertOne failed', { reviewId: reviewId });
+          return res.status(500).json({ error: 'Failed to submit report. Please try again.' });
+        }
       } catch (ticketErr) {
         logger.warn(
           'Failed to create support ticket for review report (non-blocking):',
@@ -939,8 +935,7 @@ router.post(
 
       // Notify all admin users so they can action the report
       try {
-        const allUsers = await dbUnified.read('users');
-        const adminUsers = allUsers.filter(u => u.role === 'admin' && u.id);
+        const adminUsers = await dbUnified.find('users', { role: 'admin' });
         if (adminUsers.length > 0) {
           const notifSvc = await getNotificationService(req);
           if (notifSvc) {

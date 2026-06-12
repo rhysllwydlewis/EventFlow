@@ -26,6 +26,7 @@ const {
   resendEmailLimiter,
   strictAuthLimiter,
   passwordResetLimiter,
+  registrationLimiter,
 } = require('../middleware/rateLimits');
 const { csrfProtection } = require('../middleware/csrf');
 const { featureRequired, getFeatureFlags } = require('../middleware/features');
@@ -33,6 +34,9 @@ const postmark = require('../utils/postmark');
 const tokenUtils = require('../utils/token');
 const { validateToken } = require('../middleware/token');
 const domainAdmin = require('../middleware/domain-admin');
+const googleAuthService = require('../services/googleAuth.service');
+const userProvenance = require('../services/userProvenance.service');
+const { ensureSupplierProfileForUser } = require('../services/supplierProfileProvisioning.service');
 
 const router = express.Router();
 
@@ -73,6 +77,63 @@ async function updateLastLogin(userId) {
   } catch (e) {
     logger.error('Failed to update lastLoginAt', e);
   }
+}
+
+function trimString(value, maxLength) {
+  if (typeof value !== 'string') {
+    return '';
+  }
+
+  const trimmed = value.trim();
+  return maxLength ? trimmed.slice(0, maxLength) : trimmed;
+}
+
+function normalizeEmail(value) {
+  return trimString(value).toLowerCase();
+}
+
+function isUsableEmail(value) {
+  return validator.isEmail(value);
+}
+
+function sanitizeOptionalUrl(url) {
+  const trimmed = trimString(url, 300);
+  if (!trimmed) {
+    return undefined;
+  }
+
+  if (!validator.isURL(trimmed, { require_protocol: false })) {
+    return undefined;
+  }
+
+  return trimmed;
+}
+
+function getStoredTokenStatus(user, token, tokenField, expiresField) {
+  if (!user || !token || user[tokenField] !== token) {
+    return { valid: false, reason: 'missing_or_replaced' };
+  }
+
+  if (user[expiresField]) {
+    const expiresAt = new Date(user[expiresField]);
+    if (Number.isNaN(expiresAt.getTime()) || expiresAt < new Date()) {
+      return { valid: false, reason: 'expired' };
+    }
+  } else {
+    return { valid: false, reason: 'missing_expiry' };
+  }
+
+  return { valid: true };
+}
+
+function applyAdminVerificationUpgrade(user, updates) {
+  if (domainAdmin.shouldUpgradeToAdminOnVerification(user.email)) {
+    const previousRole = user.role;
+    updates.role = 'admin';
+    logger.info('User auto-promoted to admin (admin domain verified)', { previousRole });
+  }
+
+  return updates;
 }
 
 /**
@@ -149,7 +210,7 @@ router.post(
   '/register',
   async (req, res, next) => {
     // Check supplier application feature flag if registering as supplier
-    if (req.body.role === 'supplier') {
+    if ((req.body || {}).role === 'supplier') {
       const features = await getFeatureFlags();
       if (!features.supplierApplications) {
         return res.status(503).json({
@@ -163,7 +224,8 @@ router.post(
     next();
   },
   featureRequired('registration'),
-  authLimiter,
+  csrfProtection, // CSRF guard — was missing from registration unlike all other auth POSTs
+  registrationLimiter, // Tighter than authLimiter: each attempt triggers bcrypt + email send
   async (req, res) => {
     const {
       firstName,
@@ -192,21 +254,34 @@ router.post(
     }
 
     // Both firstName and lastName are required fields
-    const userFirstName = (firstName || '').trim();
-    const userLastName = (lastName || '').trim();
-    const userFullName = userFirstName && userLastName ? `${userFirstName} ${userLastName}` : '';
+    const userFirstName = trimString(firstName, 40);
+    const userLastName = trimString(lastName, 40);
+    const userFullName = `${userFirstName} ${userLastName}`.trim();
+    const normalizedEmail = normalizeEmail(email);
 
     // Required fields validation — firstName and lastName are always required
     if (!userFirstName || !userLastName) {
       return res.status(400).json({ error: 'First name and last name are required' });
     }
-    if (!email || !password) {
+    // Reject names that are purely non-alphabetic (e.g. ";;;", "<script>", "123").
+    // \p{L} matches any Unicode letter — covers Latin, Arabic, Chinese, Hebrew, Cyrillic, etc.
+    if (!/\p{L}/u.test(userFirstName) || !/\p{L}/u.test(userLastName)) {
+      return res
+        .status(400)
+        .json({ error: 'First and last name must contain at least one letter' });
+    }
+    if (!normalizedEmail || !password) {
       return res.status(400).json({
         error: 'Email and password are required',
       });
     }
-    if (!validator.isEmail(String(email))) {
+    if (!isUsableEmail(normalizedEmail)) {
       return res.status(400).json({ error: 'Invalid email' });
+    }
+    if (typeof password !== 'string' || password.length > 1024) {
+      // bcrypt silently truncates at 72 bytes; a multi-KB password is either a
+      // mistake or a DoS probe — reject before we spend cycles hashing it.
+      return res.status(400).json({ error: 'Password is too long (maximum 1,024 characters)' });
     }
     if (!passwordOk(password)) {
       return res.status(400).json({ error: 'Weak password' });
@@ -215,56 +290,42 @@ router.post(
     const roleFinal = role === 'supplier' || role === 'customer' ? role : 'customer';
 
     // Role-specific required field validation
-    if (!location) {
+    const userLocation = trimString(location, 100);
+    const userCompany = trimString(company, 100);
+
+    if (!userLocation) {
       return res.status(400).json({ error: 'Location is required' });
     }
-    if (roleFinal === 'supplier' && !company) {
+    if (roleFinal === 'supplier' && !userCompany) {
       return res.status(400).json({ error: 'Company name is required for suppliers' });
     }
 
-    const users = await dbUnified.read('users');
-
-    // Check if this is the owner email trying to register
-    // Owner account should only be created through seed, not registration
-    if (domainAdmin.isOwnerEmail(email)) {
-      const ownerExists = users.find(u => u.email.toLowerCase() === email.toLowerCase());
-      if (ownerExists) {
+    // ── Duplicate-email check (indexed findOne, BEFORE bcrypt.hash) ──────────────
+    // Doing this before hashing saves ~177 ms on every duplicate attempt.
+    // The unique index on users.email also protects against the race-condition
+    // window between this check and the later insertOne.
+    const existingUser = await dbUnified.findOne('users', { email: normalizedEmail });
+    if (existingUser) {
+      if (domainAdmin.isOwnerEmail(normalizedEmail)) {
         return res.status(409).json({
           error: 'Email already registered',
           message: 'This email is reserved for the system owner account.',
         });
-      } else {
-        // Owner doesn't exist yet - this shouldn't happen normally (seed creates it)
-        // But we'll allow it and create them as owner
-        logger.warn('Owner account being created through registration (should use seed)');
       }
-    } else if (users.find(u => u.email.toLowerCase() === String(email).toLowerCase())) {
       return res.status(409).json({ error: 'Email already registered' });
     }
-
-    // Sanitize and validate optional URLs
-    const sanitizeUrl = url => {
-      if (!url) {
-        return undefined;
-      }
-      const trimmed = String(url).trim();
-      if (!trimmed) {
-        return undefined;
-      }
-      // Basic URL validation
-      if (!validator.isURL(trimmed, { require_protocol: false })) {
-        return undefined;
-      }
-      return trimmed;
-    };
+    if (domainAdmin.isOwnerEmail(normalizedEmail) && !existingUser) {
+      // Owner doesn't exist yet — should only happen via seed, but allow it.
+      logger.warn('Owner account being created through registration (should use seed)');
+    }
 
     // Parse socials object
     const socialsParsed = socials
       ? {
-          instagram: sanitizeUrl(socials.instagram),
-          facebook: sanitizeUrl(socials.facebook),
-          twitter: sanitizeUrl(socials.twitter),
-          linkedin: sanitizeUrl(socials.linkedin),
+          instagram: sanitizeOptionalUrl(socials.instagram),
+          facebook: sanitizeOptionalUrl(socials.facebook),
+          twitter: sanitizeOptionalUrl(socials.twitter),
+          linkedin: sanitizeOptionalUrl(socials.linkedin),
         }
       : {};
 
@@ -285,8 +346,8 @@ router.post(
     // Owner email: always admin, always verified (skip verification email)
     // Admin domain: initial role as requested, upgrade to admin AFTER verification
     // Regular user: use requested role
-    const isOwner = domainAdmin.isOwnerEmail(email);
-    const roleDecision = domainAdmin.determineRole(email, roleFinal, false); // Not verified yet
+    const isOwner = domainAdmin.isOwnerEmail(normalizedEmail);
+    const roleDecision = domainAdmin.determineRole(normalizedEmail, roleFinal, false); // Not verified yet
 
     // Log admin domain detection
     if (roleDecision.willUpgradeOnVerification) {
@@ -300,17 +361,17 @@ router.post(
     // Create user object first (needed for JWT token generation)
     const user = {
       id: uid('usr'),
-      name: String(userFullName).slice(0, 80),
-      firstName: String(userFirstName).trim().slice(0, 40),
-      lastName: String(userLastName).trim().slice(0, 40),
-      email: String(email).toLowerCase(),
+      name: String(userFullName).slice(0, 81), // firstName(40) + ' ' + lastName(40) = 81 max
+      firstName: userFirstName,
+      lastName: userLastName,
+      email: normalizedEmail,
       role: isOwner ? 'admin' : roleDecision.role, // Owner gets admin immediately
       passwordHash: await bcrypt.hash(password, 10),
-      location: String(location).trim().slice(0, 100),
-      postcode: postcode ? String(postcode).trim().slice(0, 10) : undefined,
-      company: company ? String(company).trim().slice(0, 100) : undefined,
-      jobTitle: jobTitle ? String(jobTitle).trim().slice(0, 100) : undefined,
-      website: sanitizeUrl(website),
+      location: userLocation,
+      postcode: trimString(postcode, 10) || undefined,
+      company: userCompany || undefined,
+      jobTitle: trimString(jobTitle, 100) || undefined,
+      website: sanitizeOptionalUrl(website),
       socials: socialsParsed,
       badges,
       notify: true, // Deprecated, kept for backward compatibility
@@ -320,6 +381,9 @@ router.post(
       verified: isOwner, // Owner is pre-verified, others need verification
       isOwner: isOwner, // Special flag to protect owner account
       createdAt: new Date().toISOString(),
+      ...(isOwner
+        ? userProvenance.ownerProvenance(new Date().toISOString(), 'owner')
+        : userProvenance.emailPasswordPendingProvenance()),
     };
 
     // Generate JWT verification token
@@ -337,8 +401,11 @@ router.post(
     if (!isOwner) {
       try {
         logger.info('Attempting to send verification email');
-        await postmark.sendVerificationEmail(user, verificationToken);
-        logger.info('Verification email sent successfully');
+        const sendResult = await postmark.sendVerificationEmail(user, verificationToken);
+        Object.assign(user, userProvenance.metadataFromSendResult(sendResult));
+        logger.info('Verification email sent successfully', {
+          emailLogId: user.lastVerificationEmailLogId,
+        });
       } catch (emailError) {
         logger.error('Failed to send verification email:', emailError.message);
 
@@ -354,10 +421,51 @@ router.post(
     }
 
     // Only save user after email is successfully sent
-    await dbUnified.insertOne('users', user);
+    const inserted = await dbUnified.insertOne('users', user);
+    if (!inserted) {
+      // insertOne returns null on error (e.g. a duplicate-key race between the
+      // duplicate check above and this write). The verification email has already
+      // been sent at this point — ops should investigate if this is seen frequently.
+      // The user is told to retry; a fresh attempt will re-send a new verification
+      // email and will succeed once the DB contention clears.
+      logger.error('[REGISTER] insertOne returned null — account not saved (email already sent)', {
+        email: normalizedEmail,
+      });
+      return res.status(500).json({
+        error: 'Failed to create account. Please try again.',
+      });
+    }
+
+    if (user.role === 'supplier') {
+      try {
+        await ensureSupplierProfileForUser(user);
+      } catch (profileError) {
+        logger.error('[REGISTER] failed to provision supplier profile; rolling back user', {
+          userId: user.id,
+          email: normalizedEmail,
+          error: profileError.message,
+        });
+
+        const rolledBack = await dbUnified.deleteOne('users', { id: user.id });
+        if (!rolledBack) {
+          await dbUnified.updateOne(
+            'users',
+            { id: user.id },
+            { $set: { supplierSetupStatus: 'profile_creation_failed' } }
+          );
+        }
+
+        return res.status(500).json({
+          error: 'Failed to create supplier profile. Please try again.',
+          code: 'SUPPLIER_PROFILE_PROVISIONING_FAILED',
+          message:
+            'We could not finish setting up your supplier business profile. Please try again or contact support if the problem continues.',
+        });
+      }
+    }
 
     // Record partner referral if a valid ref code was provided (non-blocking)
-    if (refCode && roleFinal === 'supplier') {
+    if (refCode && user.role === 'supplier') {
       try {
         const partnerService = require('../services/partnerService');
         const partner = await partnerService.getPartnerByRefCode(String(refCode).trim());
@@ -377,14 +485,19 @@ router.post(
       }
     }
 
-    // Update last login timestamp (non-blocking)
-    await updateLastLogin(user.id);
+    if (user.verified === true) {
+      // Fire-and-forget — doesn't need to block cookie+redirect
+      updateLastLogin(user.id).catch(err =>
+        logger.warn('[GOOGLE-LOGIN] updateLastLogin failed', { error: err.message })
+      );
 
-    const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, JWT_SECRET, {
-      expiresIn: '7d',
-    });
-    // Default to remember=true for registration to provide better UX
-    setAuthCookie(res, token, { remember: true });
+      const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, JWT_SECRET, {
+        expiresIn: '7d',
+      });
+      // Only verified accounts are signed in immediately. New email/password accounts must
+      // complete verification before receiving an authenticated session.
+      setAuthCookie(res, token, { remember: true });
+    }
 
     // Prevent caching of registration responses
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
@@ -392,6 +505,7 @@ router.post(
 
     res.status(201).json({
       ok: true,
+      requiresVerification: user.verified !== true,
       user: { id: user.id, name: user.name, email: user.email, role: user.role },
     });
   }
@@ -478,13 +592,25 @@ router.post('/login', strictAuthLimiter, async (req, res) => {
 
   logger.info('[LOGIN] Attempt');
 
-  if (!email || !password) {
+  const normalizedEmail = normalizeEmail(email);
+
+  if (!normalizedEmail || !password) {
     logger.warn('[LOGIN] Missing email or password');
     return res.status(400).json({ error: 'Missing fields' });
   }
 
-  const users = await dbUnified.read('users');
-  const user = users.find(u => (u.email || '').toLowerCase() === String(email).toLowerCase());
+  if (!isUsableEmail(normalizedEmail)) {
+    logger.warn('[LOGIN] Invalid email format');
+    return res.status(400).json({ error: 'Invalid email' });
+  }
+
+  // Use a targeted findOne rather than loading every user into memory.
+  // normalizedEmail is already lowercased (via normalizeEmail) and emails are
+  // stored lowercase on registration, so the exact-match object filter is safe.
+  // On MongoDB this lets the driver push the filter to the server and use an
+  // index; on the local store it short-circuits at the first match — both are
+  // far faster than the previous full collection scan.
+  const user = await dbUnified.findOne('users', { email: normalizedEmail });
 
   if (!user) {
     logger.warn('[LOGIN] User not found');
@@ -536,9 +662,11 @@ router.post('/login', strictAuthLimiter, async (req, res) => {
     });
   }
 
-  // Update last login timestamp
+  // Update last login timestamp — fire-and-forget so it doesn't delay the response
   logger.info('[LOGIN] Successful login');
-  await updateLastLogin(user.id);
+  updateLastLogin(user.id).catch(err =>
+    logger.warn('[LOGIN] updateLastLogin failed', { error: err.message })
+  );
 
   // Align JWT expiry with remember-me: session-only (24h) vs persistent (7d)
   const tokenExpiry = remember ? '7d' : '24h';
@@ -553,6 +681,254 @@ router.post('/login', strictAuthLimiter, async (req, res) => {
     ok: true,
     user: { id: user.id, name: user.name, email: user.email, role: user.role },
   });
+});
+
+async function recordSupplierPartnerReferral(refCode, user) {
+  if (!refCode) {
+    return;
+  }
+
+  try {
+    const partnerService = require('../services/partnerService');
+    const partner = await partnerService.getPartnerByRefCode(String(refCode).trim());
+    if (partner && partner.status === 'active') {
+      await partnerService.recordReferral({
+        partnerId: partner.id,
+        supplierUserId: user.id,
+        supplierCreatedAt: user.createdAt,
+      });
+      partnerService.awardReferralSignupBonus(user.id).catch(bonusErr => {
+        logger.warn('Partner referral signup bonus failed (non-blocking):', bonusErr.message);
+      });
+    }
+  } catch (_refErr) {
+    logger.warn('Partner referral recording failed (non-blocking):', _refErr.message);
+  }
+}
+
+function buildGoogleUser({
+  googleProfile,
+  roleFinal,
+  location,
+  postcode,
+  company,
+  jobTitle,
+  nowIso,
+}) {
+  const email = String(googleProfile.email || '').toLowerCase();
+  const googleSub = String(googleProfile.sub || '');
+  const givenName = String(googleProfile.given_name || '')
+    .trim()
+    .slice(0, 40);
+  const familyName = String(googleProfile.family_name || '')
+    .trim()
+    .slice(0, 40);
+  const profileName = String(googleProfile.name || '').trim();
+  const fallbackName = email.split('@')[0] || 'Google user';
+  const fullName = (profileName || `${givenName} ${familyName}`.trim() || fallbackName).slice(
+    0,
+    80
+  );
+  const [derivedFirstName, ...derivedLastParts] = fullName.split(/\s+/);
+
+  const founderLaunchTs = process.env.FOUNDER_LAUNCH_TS || '2026-01-01T00:00:00Z';
+  const founderLaunchDate = new Date(founderLaunchTs);
+  const founderEndDate = new Date(founderLaunchDate);
+  founderEndDate.setMonth(founderEndDate.getMonth() + 6);
+  const badges = new Date() <= founderEndDate ? ['founder'] : [];
+
+  const isOwner = domainAdmin.isOwnerEmail(email);
+  const roleDecision = domainAdmin.determineRole(email, roleFinal, true);
+
+  return {
+    id: uid('usr'),
+    name: fullName,
+    firstName: givenName || derivedFirstName || 'Google',
+    lastName: familyName || derivedLastParts.join(' ') || 'User',
+    email,
+    role: isOwner ? 'admin' : roleDecision.role,
+    location: location ? String(location).trim().slice(0, 100) : 'Not specified',
+    postcode: postcode ? String(postcode).trim().slice(0, 10) : undefined,
+    company: company ? String(company).trim().slice(0, 100) : undefined,
+    jobTitle: jobTitle ? String(jobTitle).trim().slice(0, 100) : undefined,
+    badges,
+    notify: true,
+    notify_account: true,
+    notify_marketing: false,
+    marketingOptIn: false,
+    verified: true,
+    isOwner,
+    ...userProvenance.googleSignupProvenance(nowIso),
+    authProvider: 'google',
+    authProviderIds: { google: googleSub },
+    googleSub,
+    googleLinkedAt: nowIso,
+    avatarUrl: googleProfile.picture || undefined,
+    createdAt: nowIso,
+  };
+}
+
+/**
+ * POST /api/auth/google
+ * Sign in or create an account using a Google Identity Services ID token.
+ */
+router.post('/google', strictAuthLimiter, csrfProtection, async (req, res) => {
+  const {
+    credential,
+    role,
+    location,
+    postcode,
+    company,
+    jobTitle,
+    remember,
+    ref: refCode,
+  } = req.body || {};
+
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.setHeader('Pragma', 'no-cache');
+
+  try {
+    const googleProfile = await googleAuthService.verifyGoogleCredential(credential);
+    const email = String(googleProfile.email || '').toLowerCase();
+    const googleSub = String(googleProfile.sub || '');
+    const nowIso = new Date().toISOString();
+    // Two targeted findOne calls instead of a full collection scan.
+    // The $or object filter lets MongoDB use the sparse googleSub index.
+    // The local store's matchesFilter also supports $or natively.
+    let user = await dbUnified.findOne('users', {
+      $or: [{ googleSub }, { 'authProviderIds.google': googleSub }],
+    });
+    const existingByEmail = await dbUnified.findOne('users', { email });
+
+    if (user && user.email && (user.email || '').toLowerCase() !== email) {
+      logger.warn('Google subject matched a user with a different email', { userId: user.id });
+      return res.status(409).json({ error: 'Google account is linked to another user.' });
+    }
+
+    if (!user && existingByEmail) {
+      if (!googleProfile.emailAuthoritative) {
+        return res.status(409).json({
+          error:
+            'An account already exists for this email. Please log in with your password first, then contact support to link Google.',
+        });
+      }
+
+      user = existingByEmail;
+      await dbUnified.updateOne(
+        'users',
+        { id: user.id },
+        {
+          $set: {
+            googleSub,
+            ...userProvenance.googleLinkProvenance(user, nowIso),
+            authProviderIds: { ...(user.authProviderIds || {}), google: googleSub },
+            googleLinkedAt: user.googleLinkedAt || nowIso,
+            avatarUrl: user.avatarUrl || googleProfile.picture || undefined,
+          },
+        }
+      );
+      user = {
+        ...user,
+        googleSub,
+        ...userProvenance.googleLinkProvenance(user, nowIso),
+        authProviderIds: { ...(user.authProviderIds || {}), google: googleSub },
+        googleLinkedAt: user.googleLinkedAt || nowIso,
+      };
+    }
+
+    if (!user) {
+      const roleFinal = role === 'supplier' || role === 'customer' ? role : 'customer';
+      const features = await getFeatureFlags();
+
+      if (!features.registration) {
+        return res.status(503).json({
+          error: 'Feature temporarily unavailable',
+          message: 'New account registrations are temporarily unavailable. Please try again later.',
+          feature: 'registration',
+        });
+      }
+
+      if (roleFinal === 'supplier') {
+        if (!features.supplierApplications) {
+          return res.status(503).json({
+            error: 'Feature temporarily unavailable',
+            message: 'Supplier applications are currently disabled. Please try again later.',
+            feature: 'supplierApplications',
+          });
+        }
+        if (!location) {
+          return res.status(400).json({ error: 'Location is required for supplier sign up' });
+        }
+        if (!company) {
+          return res.status(400).json({ error: 'Company name is required for suppliers' });
+        }
+      }
+
+      user = buildGoogleUser({
+        googleProfile,
+        roleFinal,
+        location,
+        postcode,
+        company,
+        jobTitle,
+        nowIso,
+      });
+
+      const googleUserInserted = await dbUnified.insertOne('users', user);
+      if (!googleUserInserted) {
+        logger.error('[GOOGLE-AUTH] insertOne returned null — user account not saved', {
+          email: user.email,
+        });
+        return res.status(500).json({ error: 'Failed to create account. Please try again.' });
+      }
+
+      if (roleFinal === 'supplier') {
+        await recordSupplierPartnerReferral(refCode, user);
+      }
+    }
+
+    if (user.verified === false) {
+      const googleVerifyUpdates = userProvenance.googleLinkProvenance(user, nowIso);
+      await dbUnified.updateOne('users', { id: user.id }, { $set: googleVerifyUpdates });
+      user = { ...user, ...googleVerifyUpdates };
+    }
+
+    if (user.twoFactorEnabled) {
+      logger.info('[GOOGLE LOGIN] 2FA required');
+      const tempToken = jwt.sign(
+        { id: user.id, email: user.email, role: user.role, requires2FA: true },
+        JWT_SECRET,
+        { expiresIn: '2m' }
+      );
+      return res.json({
+        ok: false,
+        requires2FA: true,
+        tempToken,
+        message: 'Please enter your 2FA code',
+      });
+    }
+
+    // Fire-and-forget — doesn't need to block the login response
+    updateLastLogin(user.id).catch(err =>
+      logger.warn('[GOOGLE-2FA] updateLastLogin failed', { error: err.message })
+    );
+
+    const tokenExpiry = remember ? '7d' : '24h';
+    const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, JWT_SECRET, {
+      expiresIn: tokenExpiry,
+    });
+
+    setAuthCookie(res, token, { remember: !!remember });
+    return res.json({
+      ok: true,
+      user: { id: user.id, name: user.name, email: user.email, role: user.role },
+    });
+  } catch (error) {
+    logger.error('[GOOGLE LOGIN] Failed', { message: error.message });
+    const status = error.statusCode || 500;
+    const message = error.expose ? error.message : 'Google sign-in failed. Please try again.';
+    return res.status(status).json({ error: message });
+  }
 });
 
 /**
@@ -584,9 +960,8 @@ router.post('/login-2fa', strictAuthLimiter, async (req, res) => {
     return res.status(401).json({ error: 'Invalid or expired token' });
   }
 
-  // Get user
-  const users = await dbUnified.read('users');
-  const user = users.find(u => u.id === decoded.id);
+  // Get user — targeted lookup avoids full collection scan
+  const user = await dbUnified.findOne('users', { id: decoded.id });
 
   if (!user || !user.twoFactorEnabled || !user.twoFactorSecret) {
     return res.status(400).json({ error: '2FA is not enabled for this account' });
@@ -638,9 +1013,11 @@ router.post('/login-2fa', strictAuthLimiter, async (req, res) => {
     return res.status(401).json({ error: 'Invalid 2FA token or backup code' });
   }
 
-  // Update last login timestamp
+  // Update last login timestamp — fire-and-forget so it doesn't delay the response
   logger.info('[LOGIN-2FA] Successful 2FA login');
-  await updateLastLogin(user.id);
+  updateLastLogin(user.id).catch(err =>
+    logger.warn('[LOGIN-2FA] updateLastLogin failed', { error: err.message })
+  );
 
   // Align JWT expiry with remember-me: session-only (24h) vs persistent (7d)
   const twoFaTokenExpiry = remember ? '7d' : '24h';
@@ -666,16 +1043,17 @@ router.post('/forgot', passwordResetLimiter, async (req, res) => {
 
   logger.info('[PASSWORD RESET] Request received');
 
-  if (!email) {
+  const normalizedEmail = normalizeEmail(email);
+
+  if (!normalizedEmail) {
     logger.warn('[PASSWORD RESET] Missing email in request');
     return res.status(400).json({ error: 'Missing email' });
   }
 
-  // Look up user by email (case-insensitive)
-  const users = await dbUnified.read('users');
-  const idx = users.findIndex(u => (u.email || '').toLowerCase() === String(email).toLowerCase());
+  // Targeted lookup via indexed email field
+  const user = await dbUnified.findOne('users', { email: normalizedEmail });
 
-  if (idx === -1) {
+  if (!user) {
     logger.warn('[PASSWORD RESET] User not found');
     // Always respond success so we don't leak which emails exist
     return res.json({
@@ -683,8 +1061,6 @@ router.post('/forgot', passwordResetLimiter, async (req, res) => {
       message: 'If an account exists with that email, you will receive a password reset link.',
     });
   }
-
-  const user = users[idx];
   logger.debug('[PASSWORD RESET] Found user', { verified: user.verified });
 
   // Generate password reset token with JWT for better security
@@ -757,16 +1133,15 @@ router.get('/verify', async (req, res) => {
       });
     }
 
-    // Find user by email from JWT
-    const users = await dbUnified.read('users');
-    const idx = users.findIndex(u => u.email.toLowerCase() === validation.email.toLowerCase());
+    // Find user by email from JWT — targeted lookup via indexed email field
+    const user = await dbUnified.findOne('users', {
+      email: String(validation.email).toLowerCase(),
+    });
 
-    if (idx === -1) {
+    if (!user) {
       logger.error('User not found during email verification');
       return res.status(400).json({ error: 'Invalid verification token - user not found' });
     }
-
-    const user = users[idx];
 
     // Check if already verified
     if (user.verified === true) {
@@ -778,18 +1153,30 @@ router.get('/verify', async (req, res) => {
       });
     }
 
+    const storedTokenStatus = getStoredTokenStatus(
+      user,
+      token,
+      'verificationToken',
+      'verificationTokenExpiresAt'
+    );
+    if (!storedTokenStatus.valid) {
+      return res.status(400).json({
+        error:
+          storedTokenStatus.reason === 'expired'
+            ? 'Verification token has expired. Please request a new one.'
+            : 'Invalid or expired token',
+        code: storedTokenStatus.reason === 'expired' ? 'TOKEN_EXPIRED' : 'INVALID_TOKEN',
+        canResend: true,
+      });
+    }
+
     // Mark user as verified and clear token
     const verifyUpdates = {
-      verified: true,
-      verifiedAt: new Date().toISOString(),
+      ...userProvenance.eventflowEmailVerifiedProvenance(new Date().toISOString()),
     };
 
     // Check if this user should be auto-promoted to admin (domain-based)
-    if (domainAdmin.shouldUpgradeToAdminOnVerification(user.email)) {
-      const previousRole = user.role;
-      verifyUpdates.role = 'admin';
-      logger.info('User auto-promoted to admin (admin domain verified)', { previousRole });
-    }
+    applyAdminVerificationUpgrade(user, verifyUpdates);
 
     await dbUnified.updateOne(
       'users',
@@ -824,30 +1211,27 @@ router.get('/verify', async (req, res) => {
   }
 
   // Handle legacy tokens (verificationToken field or emailVerificationToken field)
+  // These are opaque strings with no index — findOne with a function filter is the
+  // correct approach. This code path only runs for pre-JWT-migration tokens.
   logger.info('Processing legacy verification token');
-  const legacyUsers = await dbUnified.read('users');
-
-  // Check both legacy token fields for backward compatibility
-  let legacyIdx = legacyUsers.findIndex(u => u.verificationToken === token);
   let tokenField = 'verificationToken';
   let expiresField = 'verificationTokenExpiresAt';
+  let legacyUser = await dbUnified.findOne('users', u => u.verificationToken === token);
 
-  if (legacyIdx === -1) {
+  if (!legacyUser) {
     // Also check the emailVerificationToken field used by emailVerification.js
-    legacyIdx = legacyUsers.findIndex(u => u.emailVerificationToken === token);
-    if (legacyIdx !== -1) {
+    legacyUser = await dbUnified.findOne('users', u => u.emailVerificationToken === token);
+    if (legacyUser) {
       tokenField = 'emailVerificationToken';
       expiresField = 'emailVerificationExpires';
       logger.info('Matched token via emailVerificationToken field');
     }
   }
 
-  if (legacyIdx === -1) {
+  if (!legacyUser) {
     logger.error('Verification failed: Invalid token');
     return res.status(400).json({ error: 'Invalid or expired token', code: 'INVALID_TOKEN' });
   }
-
-  const legacyUser = legacyUsers[legacyIdx];
   logger.debug('Found user for legacy verification', { tokenField });
 
   // Check if already verified
@@ -860,17 +1244,21 @@ router.get('/verify', async (req, res) => {
     });
   }
 
-  // Check if token has expired
-  if (legacyUser[expiresField]) {
-    const expiresAt = new Date(legacyUser[expiresField]);
-    if (expiresAt < new Date()) {
-      logger.error('Verification failed: Token expired', { tokenField });
-      return res.status(400).json({
-        error: 'Verification token has expired. Please request a new one.',
-        code: 'TOKEN_EXPIRED',
-        canResend: true,
-      });
-    }
+  // Check whether the matched legacy token is still the active, unexpired token.
+  const legacyTokenStatus = getStoredTokenStatus(legacyUser, token, tokenField, expiresField);
+  if (!legacyTokenStatus.valid) {
+    logger.error('Verification failed: Legacy token is not active or has expired', {
+      reason: legacyTokenStatus.reason,
+      tokenField,
+    });
+    return res.status(400).json({
+      error:
+        legacyTokenStatus.reason === 'expired'
+          ? 'Verification token has expired. Please request a new one.'
+          : 'Invalid or expired token',
+      code: legacyTokenStatus.reason === 'expired' ? 'TOKEN_EXPIRED' : 'INVALID_TOKEN',
+      canResend: true,
+    });
   }
 
   // Mark user as verified and clear all legacy token fields
@@ -880,11 +1268,7 @@ router.get('/verify', async (req, res) => {
   };
 
   // Check if this user should be auto-promoted to admin (domain-based)
-  if (domainAdmin.shouldUpgradeToAdminOnVerification(legacyUser.email)) {
-    const previousRole = legacyUser.role;
-    legacyVerifyUpdates.role = 'admin';
-    logger.info('User auto-promoted to admin (admin domain verified)', { previousRole });
-  }
+  applyAdminVerificationUpgrade(legacyUser, legacyVerifyUpdates);
 
   await dbUnified.updateOne(
     'users',
@@ -937,10 +1321,11 @@ router.post('/verify-email', authLimiter, validateToken({ required: true }), asy
 
   // Handle JWT tokens
   if (validation.isJWT && validation.valid) {
-    const users = await dbUnified.read('users');
-    const idx = users.findIndex(u => u.email.toLowerCase() === validation.email.toLowerCase());
+    const user = await dbUnified.findOne('users', {
+      email: String(validation.email).toLowerCase(),
+    });
 
-    if (idx === -1) {
+    if (!user) {
       logger.error('User not found during email verification');
       return res.status(400).json({
         ok: false,
@@ -948,8 +1333,6 @@ router.post('/verify-email', authLimiter, validateToken({ required: true }), asy
         code: 'USER_NOT_FOUND',
       });
     }
-
-    const user = users[idx];
 
     // Check if already verified
     if (user.verified === true) {
@@ -967,12 +1350,34 @@ router.post('/verify-email', authLimiter, validateToken({ required: true }), asy
       });
     }
 
-    // Mark user as verified
+    const storedTokenStatus = getStoredTokenStatus(
+      user,
+      tokenUtils.extractToken(req),
+      'verificationToken',
+      'verificationTokenExpiresAt'
+    );
+    if (!storedTokenStatus.valid) {
+      return res.status(400).json({
+        ok: false,
+        error:
+          storedTokenStatus.reason === 'expired'
+            ? 'Verification token has expired. Please request a new one.'
+            : 'Invalid or expired verification token',
+        code: storedTokenStatus.reason === 'expired' ? 'TOKEN_EXPIRED' : 'INVALID_TOKEN',
+        canResend: true,
+      });
+    }
+
+    // Mark user as verified and apply the same domain-admin promotion rules as GET /verify.
+    const verifyUpdates = applyAdminVerificationUpgrade(user, {
+      ...userProvenance.eventflowEmailVerifiedProvenance(new Date().toISOString()),
+    });
+
     await dbUnified.updateOne(
       'users',
       { id: user.id },
       {
-        $set: { verified: true, verifiedAt: new Date().toISOString() },
+        $set: verifyUpdates,
         $unset: { verificationToken: '', verificationTokenExpiresAt: '' },
       }
     );
@@ -996,7 +1401,7 @@ router.post('/verify-email', authLimiter, validateToken({ required: true }), asy
         id: user.id,
         email: user.email,
         name: user.name,
-        role: user.role,
+        role: verifyUpdates.role || user.role,
       },
       withinGracePeriod: validation.withinGracePeriod,
     });
@@ -1006,10 +1411,25 @@ router.post('/verify-email', authLimiter, validateToken({ required: true }), asy
   if (!validation.isJWT && validation.legacyToken) {
     logger.info('Processing legacy token via POST endpoint');
 
-    const users = await dbUnified.read('users');
-    const idx = users.findIndex(u => u.verificationToken === validation.legacyToken);
+    let tokenField = 'verificationToken';
+    let expiresField = 'verificationTokenExpiresAt';
+    let user = await dbUnified.findOne(
+      'users',
+      u => u.verificationToken === validation.legacyToken
+    );
 
-    if (idx === -1) {
+    if (!user) {
+      user = await dbUnified.findOne(
+        'users',
+        u => u.emailVerificationToken === validation.legacyToken
+      );
+      if (user) {
+        tokenField = 'emailVerificationToken';
+        expiresField = 'emailVerificationExpires';
+      }
+    }
+
+    if (!user) {
       return res.status(400).json({
         ok: false,
         error: 'Invalid or expired verification token',
@@ -1018,32 +1438,45 @@ router.post('/verify-email', authLimiter, validateToken({ required: true }), asy
       });
     }
 
-    const user = users[idx];
-
-    // Check expiration
-    if (user.verificationTokenExpiresAt) {
-      const expiresAt = new Date(user.verificationTokenExpiresAt);
-      if (expiresAt < new Date()) {
-        return res.status(400).json({
-          ok: false,
-          error: 'Verification token has expired. Please request a new one.',
-          code: 'TOKEN_EXPIRED',
-          canResend: true,
-        });
-      }
+    // Check whether the matched legacy token is still active and unexpired.
+    const legacyTokenStatus = getStoredTokenStatus(
+      user,
+      validation.legacyToken,
+      tokenField,
+      expiresField
+    );
+    if (!legacyTokenStatus.valid) {
+      return res.status(400).json({
+        ok: false,
+        error:
+          legacyTokenStatus.reason === 'expired'
+            ? 'Verification token has expired. Please request a new one.'
+            : 'Invalid or expired verification token',
+        code: legacyTokenStatus.reason === 'expired' ? 'TOKEN_EXPIRED' : 'INVALID_TOKEN',
+        canResend: true,
+      });
     }
 
-    // Verify user
+    // Verify user and apply the same domain-admin promotion rules as GET /verify.
+    const legacyVerifyUpdates = applyAdminVerificationUpgrade(user, {
+      ...userProvenance.eventflowEmailVerifiedProvenance(new Date().toISOString()),
+    });
+
     await dbUnified.updateOne(
       'users',
       { id: user.id },
       {
-        $set: { verified: true, verifiedAt: new Date().toISOString() },
-        $unset: { verificationToken: '', verificationTokenExpiresAt: '' },
+        $set: legacyVerifyUpdates,
+        $unset: {
+          verificationToken: '',
+          verificationTokenExpiresAt: '',
+          emailVerificationToken: '',
+          emailVerificationExpires: '',
+        },
       }
     );
 
-    logger.info('User verified via legacy token');
+    logger.info('User verified via legacy token', { tokenField });
 
     // Send welcome email (non-blocking)
     (async () => {
@@ -1061,7 +1494,7 @@ router.post('/verify-email', authLimiter, validateToken({ required: true }), asy
         id: user.id,
         email: user.email,
         name: user.name,
-        role: user.role,
+        role: legacyVerifyUpdates.role || user.role,
       },
     });
   }
@@ -1087,29 +1520,35 @@ router.post('/validate-reset-token', passwordResetLimiter, async (req, res) => {
   }
 
   try {
-    const users = await dbUnified.read('users');
-
     // Try JWT token first
     const jwtValidation = tokenUtils.validatePasswordResetToken(token);
     if (jwtValidation.valid) {
-      const userExists = users.some(
-        u => (u.email || '').toLowerCase() === String(jwtValidation.email).toLowerCase()
-      );
-      if (!userExists) {
-        return res.status(400).json({ error: 'Invalid or expired password reset link' });
+      const user = await dbUnified.findOne('users', {
+        email: String(jwtValidation.email).toLowerCase(),
+      });
+      const status = getStoredTokenStatus(user, token, 'resetToken', 'resetTokenExpiresAt');
+      if (!status.valid) {
+        const message =
+          status.reason === 'expired'
+            ? 'Password reset link has expired. Please request a new one.'
+            : 'Invalid or expired password reset link';
+        return res.status(400).json({ error: message });
       }
       return res.json({ ok: true });
     }
 
-    // Try legacy reset token
-    const user = users.find(u => u.resetToken === token);
+    // Try legacy reset token (opaque string — no index, function scan)
+    const user = await dbUnified.findOne('users', u => u.resetToken === token);
     if (!user) {
       return res.status(400).json({ error: 'Invalid or expired password reset link' });
     }
-    if (user.resetTokenExpiresAt && new Date(user.resetTokenExpiresAt) < new Date()) {
-      return res
-        .status(400)
-        .json({ error: 'Password reset link has expired. Please request a new one.' });
+    const legacyStatus = getStoredTokenStatus(user, token, 'resetToken', 'resetTokenExpiresAt');
+    if (!legacyStatus.valid) {
+      const message =
+        legacyStatus.reason === 'expired'
+          ? 'Password reset link has expired. Please request a new one.'
+          : 'Invalid or expired password reset link';
+      return res.status(400).json({ error: message });
     }
 
     return res.json({ ok: true });
@@ -1142,9 +1581,7 @@ router.post('/reset-password', passwordResetLimiter, async (req, res) => {
   }
 
   try {
-    const users = await dbUnified.read('users');
     let user = null;
-    let userIdx = -1;
 
     // Try JWT token first
     logger.debug('[PASSWORD RESET VERIFY] Checking if JWT token');
@@ -1152,44 +1589,50 @@ router.post('/reset-password', passwordResetLimiter, async (req, res) => {
 
     if (validation.valid) {
       logger.info('[PASSWORD RESET VERIFY] Valid JWT token found');
-      userIdx = users.findIndex(
-        u => (u.email || '').toLowerCase() === String(validation.email).toLowerCase()
-      );
+      user = await dbUnified.findOne('users', { email: String(validation.email).toLowerCase() });
+
+      if (user) {
+        const status = getStoredTokenStatus(user, token, 'resetToken', 'resetTokenExpiresAt');
+        if (!status.valid) {
+          logger.warn('[PASSWORD RESET VERIFY] JWT token is not the active stored reset token', {
+            reason: status.reason,
+          });
+          return res.status(400).json({
+            error:
+              status.reason === 'expired'
+                ? 'Password reset link has expired. Please request a new one.'
+                : 'Invalid or expired password reset link',
+          });
+        }
+      }
     } else {
       logger.debug('[PASSWORD RESET VERIFY] Not a valid JWT, trying legacy token');
-      // Try legacy reset token
-      userIdx = users.findIndex(u => u.resetToken === token);
+      // Legacy opaque reset token — no index, function scan
+      user = await dbUnified.findOne('users', u => u.resetToken === token);
 
-      if (userIdx !== -1) {
-        user = users[userIdx];
+      if (user) {
         logger.info('[PASSWORD RESET VERIFY] Found legacy token');
-
-        // Check if expired
-        if (user.resetTokenExpiresAt) {
-          const expiresAt = new Date(user.resetTokenExpiresAt);
-          if (expiresAt < new Date()) {
+        const legacyStatus = getStoredTokenStatus(user, token, 'resetToken', 'resetTokenExpiresAt');
+        if (!legacyStatus.valid) {
+          if (legacyStatus.reason === 'expired') {
             logger.warn('[PASSWORD RESET VERIFY] Legacy token expired');
             return res.status(400).json({
               error: 'Password reset link has expired. Please request a new one.',
               canRequestNew: true,
             });
           }
-        } else {
-          // If no expiry set, reject for security
-          logger.warn('[PASSWORD RESET VERIFY] Legacy token without expiry');
+          logger.warn('[PASSWORD RESET VERIFY] Legacy token is malformed or has been replaced');
           return res.status(400).json({ error: 'Invalid reset token format' });
         }
       }
     }
 
-    if (userIdx === -1) {
+    if (!user) {
       logger.warn('[PASSWORD RESET VERIFY] Invalid or expired token');
       return res.status(400).json({
         error: 'Invalid or expired password reset link',
       });
     }
-
-    user = users[userIdx];
     logger.info('[PASSWORD RESET VERIFY] Resetting password');
 
     // Hash new password
@@ -1268,8 +1711,8 @@ router.get('/me', async (req, res) => {
   if (!p) {
     return res.json({ user: null });
   }
-  const users = await dbUnified.read('users');
-  const u = users.find(x => x.id === p.id);
+  // Targeted lookup — avoids full collection scan on every page load
+  const u = await dbUnified.findOne('users', { id: p.id });
   if (!u) {
     return res.json({ user: null });
   }
@@ -1281,7 +1724,7 @@ router.get('/me', async (req, res) => {
       const supplierProfile = await dbUnified.findOne('suppliers', { ownerUserId: u.id });
       supplierApproved = supplierProfile ? supplierProfile.approved === true : null;
     } catch (e) {
-      logger.warn('Could not fetch supplier profile for /api/auth/me', {
+      logger.warn('Could not fetch supplier profile for GET /me', {
         userId: u.id,
         error: e.message,
       });
@@ -1344,9 +1787,8 @@ router.put('/preferences', authRequired, csrfProtection, async (req, res) => {
     }
   }
 
-  // Read back to get the current values for the response
-  const users = await dbUnified.read('users');
-  const user = users.find(u => u.id === req.user.id) || {};
+  // Read back current values — targeted lookup avoids full collection scan
+  const user = (await dbUnified.findOne('users', { id: req.user.id })) || {};
 
   res.json({
     ok: true,
@@ -1379,8 +1821,9 @@ router.get('/unsubscribe', async (req, res) => {
     return res.status(400).json({ error: 'Invalid unsubscribe token' });
   }
 
-  const users = await dbUnified.read('users');
-  const user = users.find(u => u.email.toLowerCase() === String(email).toLowerCase());
+  const normalizedEmail = normalizeEmail(email);
+  // Targeted lookup — normalizedEmail is already lowercased, emails stored lowercase
+  const user = await dbUnified.findOne('users', { email: normalizedEmail });
 
   if (!user) {
     // Don't reveal if email exists - return success anyway
@@ -1422,11 +1865,11 @@ router.post('/resend-verification', resendEmailLimiter, csrfProtection, async (r
     return res.status(400).json({ error: 'Invalid email address' });
   }
 
-  // Look up user by email (case-insensitive)
-  const users = await dbUnified.read('users');
-  const idx = users.findIndex(u => (u.email || '').toLowerCase() === String(email).toLowerCase());
+  // Look up user by email — targeted lookup avoids full collection scan
+  const normalizedEmail = normalizeEmail(email);
+  const user = await dbUnified.findOne('users', { email: normalizedEmail });
 
-  if (idx === -1) {
+  if (!user) {
     // Don't reveal if email exists - return success anyway for security
     return res.json({
       ok: true,
@@ -1435,13 +1878,19 @@ router.post('/resend-verification', resendEmailLimiter, csrfProtection, async (r
     });
   }
 
-  const user = users[idx];
-
-  // Check if user is already verified
+  // Check if user is already verified or does not require EventFlow email verification
   if (user.verified === true) {
     return res.json({
       ok: true,
       message: 'This email address is already verified.',
+    });
+  }
+
+  if (!userProvenance.canResendVerification(user)) {
+    return res.json({
+      ok: true,
+      message:
+        'If this email is registered and unverified, a new verification email has been sent.',
     });
   }
 
@@ -1454,9 +1903,10 @@ router.post('/resend-verification', resendEmailLimiter, csrfProtection, async (r
   const tokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(); // 24 hours
 
   // Send verification email via Postmark BEFORE saving token
+  let sendResult;
   try {
     logger.info('Resending verification email');
-    await postmark.sendVerificationEmail(user, verificationToken);
+    sendResult = await postmark.sendVerificationEmail(user, verificationToken);
     logger.info('Verification email resent successfully');
   } catch (emailError) {
     logger.error('Failed to resend verification email:', emailError.message);
@@ -1477,6 +1927,7 @@ router.post('/resend-verification', resendEmailLimiter, csrfProtection, async (r
       $set: {
         verificationToken: verificationToken,
         verificationTokenExpiresAt: tokenExpiresAt,
+        ...userProvenance.metadataFromSendResult(sendResult),
       },
     }
   );
@@ -1505,22 +1956,19 @@ router.put('/profile', authRequired, csrfProtection, async (req, res) => {
     website,
   } = req.body;
 
-  const users = await dbUnified.read('users');
-  const idx = users.findIndex(u => u.id === req.user.id);
+  const user = await dbUnified.findOne('users', { id: req.user.id });
 
-  if (idx === -1) {
+  if (!user) {
     return res.status(404).json({ error: 'User not found' });
   }
-
-  const user = users[idx];
 
   // Check if email is being changed and if it's already taken
   const profileUpdates = {};
   const emailOriginal = user.email;
 
   if (email && email !== user.email) {
-    const emailExists = users.some(u => u.email === email && u.id !== user.id);
-    if (emailExists) {
+    const emailExists = await dbUnified.findOne('users', { email });
+    if (emailExists && emailExists.id !== user.id) {
       return res.status(400).json({ error: 'Email address is already in use' });
     }
 
@@ -1623,8 +2071,8 @@ router.post('/change-password', authRequired, csrfProtection, authLimiter, async
   }
 
   try {
-    const users = await dbUnified.read('users');
-    const user = users.find(u => u.id === req.user.id);
+    // Targeted lookup — avoids full collection scan for every password change
+    const user = await dbUnified.findOne('users', { id: req.user.id });
 
     if (!user) {
       return res.status(404).json({ error: 'User not found' });

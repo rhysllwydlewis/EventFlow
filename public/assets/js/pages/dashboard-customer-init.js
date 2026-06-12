@@ -14,18 +14,19 @@ function dbg(...args) {
   function dismissCustomerWelcomeOverlay() {
     try {
       localStorage.setItem(DISMISS_KEY, '1');
-      localStorage.setItem('ef_onboarding_dismissed', '1');
+      localStorage.setItem('ef_customer_welcome_dismissed', '1');
     } catch (_) {
       /* Ignore localStorage errors */
     }
 
-    const overlay = document.getElementById('ef-onboarding-box');
-    if (overlay) {
+    // Target the actual welcome section element used in the current HTML
+    const section = document.getElementById('welcome-section');
+    if (section) {
       const ease = 'cubic-bezier(0.4, 0, 0.2, 1)';
-      overlay.style.transition = `opacity 0.3s ${ease}, transform 0.3s ${ease}`;
-      overlay.style.opacity = '0';
-      overlay.style.transform = 'scale(0.97)';
-      setTimeout(() => overlay.remove(), 300);
+      section.style.transition = `opacity 0.3s ${ease}, transform 0.3s ${ease}`;
+      section.style.opacity = '0';
+      section.style.transform = 'scale(0.97)';
+      setTimeout(() => { section.style.display = 'none'; }, 300);
     }
   }
 
@@ -368,33 +369,16 @@ async function initDashboard() {
     return;
   }
 
-  // Time-based greeting for hero section
-  const heroGreeting = document.getElementById('customer-hero-greeting');
-  if (heroGreeting) {
-    const hour = new Date().getHours();
-    const MORNING_START = 5;
-    const AFTERNOON_START = 12;
-    const EVENING_START = 17;
-    let greeting = 'Good evening';
-    if (hour >= MORNING_START && hour < AFTERNOON_START) {
-      greeting = 'Good morning';
-    } else if (hour >= AFTERNOON_START && hour < EVENING_START) {
-      greeting = 'Good afternoon';
-    }
-    const firstName = user.firstName || (user.name ? user.name.split(' ')[0] : null);
-    heroGreeting.textContent = firstName ? `${greeting}, ${firstName}!` : `${greeting}!`;
-  }
-
   // Personalize welcome message
   const welcomeHeading = document.getElementById('welcome-heading');
   if (welcomeHeading) {
     if (user.firstName) {
-      welcomeHeading.textContent = `Welcome ${user.firstName}!`;
+      welcomeHeading.textContent = `Welcome back, ${user.firstName}!`;
     } else if (user.name) {
       const firstName = user.name.split(' ')[0];
-      welcomeHeading.textContent = `Welcome ${firstName}!`;
+      welcomeHeading.textContent = `Welcome back, ${firstName}!`;
     } else {
-      welcomeHeading.textContent = `Welcome to EventFlow!`;
+      welcomeHeading.textContent = 'Welcome back!';
     }
   }
 
@@ -448,11 +432,19 @@ async function initDashboard() {
     console.error('Error pre-fetching plans:', err);
   }
 
-  const componentNames = ['loadCustomerPlans', 'initCustomerDashboardWidgets', 'initCalendar'];
+  const componentNames = [
+    'loadCustomerPlans',
+    'initCustomerDashboardWidgets',
+    'initCalendar',
+    'initWeddingWebsiteDashboard',
+  ];
   const settledResults = await Promise.allSettled([
     loadCustomerPlans(sharedPlans),
     initCustomerDashboardWidgets(sharedPlans),
     initCalendar(),
+    window.initWeddingWebsiteDashboard
+      ? window.initWeddingWebsiteDashboard(sharedPlans || [], user)
+      : Promise.resolve(),
   ]);
 
   settledResults.forEach((result, index) => {
@@ -464,8 +456,8 @@ async function initDashboard() {
     }
   });
 
-  // Populate hero stats and make welcome section contextual
-  populateHeroStats(sharedPlans || []);
+  // Populate saved supplier status and make welcome section contextual
+  populateSavedSupplierStatus();
   makeWelcomeContextual(sharedPlans || []);
 
   // Setup event handlers
@@ -475,18 +467,11 @@ async function initDashboard() {
 }
 
 /**
- * Populate the hero section stats from loaded data.
- * Saved supplier count is fetched from the server shortlist API and also
- * written back to localStorage so other parts of the UI stay in sync.
+ * Populate the saved suppliers dashboard status from the server shortlist API.
+ * The count is also written back to localStorage so other parts of the UI stay
+ * in sync with the authoritative shortlist data.
  */
-async function populateHeroStats(plans) {
-  // Plans count
-  const heroPlans = document.getElementById('hero-stat-plans');
-  if (heroPlans) {
-    heroPlans.textContent = plans.length;
-  }
-
-  // Saved suppliers — authoritative source is /api/v1/shortlist
+async function populateSavedSupplierStatus() {
   let savedCount = 0;
   let savedSupplierIds = [];
   try {
@@ -517,11 +502,6 @@ async function populateHeroStats(plans) {
     }
   }
 
-  const heroSuppliers = document.getElementById('hero-stat-suppliers');
-  if (heroSuppliers) {
-    heroSuppliers.textContent = savedCount;
-  }
-
   // Populate saved suppliers card status
   const savedStatusEl = document.getElementById('saved-suppliers-status');
   const openPlanBtn = document.getElementById('openPlanBtn');
@@ -545,35 +525,6 @@ async function populateHeroStats(plans) {
       if (openPlanBtn) {
         openPlanBtn.style.display = '';
       }
-    }
-  }
-
-  // Days to event (nearest upcoming plan with a date)
-  const heroDays = document.getElementById('hero-stat-days');
-  if (heroDays) {
-    const planWithDate = plans.find(p => p.eventDate || p.date);
-    if (planWithDate) {
-      const eventDateObj = new Date(planWithDate.eventDate || planWithDate.date);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const days = Math.ceil((eventDateObj - today) / (1000 * 60 * 60 * 24));
-      heroDays.textContent = days > 0 ? days : '–';
-    } else {
-      heroDays.textContent = '–';
-    }
-  }
-
-  // Unread messages — start at 0; update live when UnreadBadgeManager fires.
-  // Guard against adding multiple listeners if populateHeroStats is ever called again.
-  const heroMessages = document.getElementById('hero-stat-messages');
-  if (heroMessages) {
-    heroMessages.textContent = '0';
-    if (!window.__heroUnreadListenerAdded) {
-      window.__heroUnreadListenerAdded = true;
-      window.addEventListener('unreadCountUpdated', e => {
-        const count = typeof e.detail?.count === 'number' ? e.detail.count : 0;
-        heroMessages.textContent = count > 0 ? count : '0';
-      });
     }
   }
 }
@@ -607,14 +558,49 @@ function makeWelcomeContextual(plans) {
 
   if (!hasBudget && !lsBudget) {
     promptContainer.innerHTML = `
-      <div class="customer-welcome-prompt customer-welcome-prompt--budget">
+      <div class="customer-welcome-prompt customer-welcome-prompt--budget" role="link" tabindex="0" aria-label="Set your budget">
         <span>💰</span>
         <span>Don't forget to <a href="#budget-settings-form" style="color:inherit;font-weight:600;text-decoration:underline;">set your budget</a> so we can track your spending accurately.</span>
       </div>`;
+
+    const budgetPrompt = promptContainer.querySelector('.customer-welcome-prompt--budget');
+    const scrollToBudget = () => {
+      const budgetForm = document.getElementById('budget-settings-form');
+      if (budgetForm) {
+        budgetForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        const firstInput = budgetForm.querySelector('input, select, textarea, button');
+        if (firstInput && typeof firstInput.focus === 'function') {
+          firstInput.focus({ preventScroll: true });
+        }
+      } else {
+        window.location.hash = 'budget-settings-form';
+      }
+    };
+
+    if (budgetPrompt) {
+      budgetPrompt.addEventListener('click', event => {
+        if (event.target.closest('a')) {
+          return;
+        }
+        scrollToBudget();
+      });
+      budgetPrompt.addEventListener('keydown', event => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          scrollToBudget();
+        }
+      });
+    }
     return;
   }
 
-  // Listen for unread count once it arrives from the messaging system (async)
+  // Listen for unread count once it arrives from the messaging system (async).
+  // makeWelcomeContextual can run more than once after dashboard refreshes, so guard
+  // the window listener to avoid duplicate prompts and repeated DOM work.
+  if (window.__heroUnreadListenerAdded) {
+    return;
+  }
+  window.__heroUnreadListenerAdded = true;
   window.addEventListener('unreadCountUpdated', function onUnreadForPrompt(e) {
     window.removeEventListener('unreadCountUpdated', onUnreadForPrompt);
     const unreadCount =
@@ -646,7 +632,7 @@ function initCalendar() {
       try {
         window.CalendarView.init('events-calendar', {
           initialView: 'dayGridMonth',
-          height: 500,
+          height: 'auto',
         });
         dbg('✅ Calendar initialized');
       } catch (err) {
@@ -858,11 +844,12 @@ function setupEventHandlers(latestPlans) {
       // Fire-and-forget: don't block page load; failures are non-fatal
       (async () => {
         try {
+          const retryCsrf = await ensureCsrfToken();
           const retryResp = await fetch(`/api/me/plans/${encodeURIComponent(primaryPlan.id)}`, {
             method: 'PATCH',
             headers: {
               'Content-Type': 'application/json',
-              'X-CSRF-Token': getCsrfToken(),
+              'X-CSRF-Token': retryCsrf,
             },
             credentials: 'include',
             body: JSON.stringify({ budget: pendingBudget }),
@@ -1047,3 +1034,4 @@ if (document.readyState === 'loading') {
 } else {
   initDashboard();
 }
+

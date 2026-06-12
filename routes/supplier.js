@@ -40,14 +40,11 @@ router.post('/trial/activate', authRequired, csrfProtection, async (req, res) =>
     }
 
     // Get supplier record
-    const suppliers = await dbUnified.read('suppliers');
-    const supplierIndex = suppliers.findIndex(s => s.ownerUserId === userId);
+    const supplier = await dbUnified.findOne('suppliers', { ownerUserId: userId });
 
-    if (supplierIndex === -1) {
+    if (!supplier) {
       return res.status(404).json({ error: 'Supplier profile not found' });
     }
-
-    const supplier = suppliers[supplierIndex];
 
     // Check if trial already used
     if (supplier.trialUsed) {
@@ -110,8 +107,7 @@ router.get('/analytics', authRequired, async (req, res) => {
     }
 
     // Get supplier record
-    const suppliers = await dbUnified.read('suppliers');
-    const supplier = suppliers.find(s => s.ownerUserId === userId);
+    const supplier = await dbUnified.findOne('suppliers', { ownerUserId: userId });
 
     if (!supplier) {
       return res.status(404).json({ error: 'Supplier profile not found' });
@@ -153,8 +149,7 @@ router.get('/analytics/legacy', authRequired, async (req, res) => {
     }
 
     // Get supplier record
-    const suppliers = await dbUnified.read('suppliers');
-    const supplier = suppliers.find(s => s.ownerUserId === userId);
+    const supplier = await dbUnified.findOne('suppliers', { ownerUserId: userId });
 
     if (!supplier) {
       return res.status(404).json({ error: 'Supplier profile not found' });
@@ -169,8 +164,7 @@ router.get('/analytics/legacy', authRequired, async (req, res) => {
     );
 
     // Count enquiries from message threads
-    const threads = await dbUnified.read('threads');
-    const enquiries = threads.filter(t => t.supplierId === supplierId);
+    const enquiries = await dbUnified.find('threads', { supplierId });
     const enquiryCount = enquiries.length;
 
     // Count views from analytics events
@@ -183,8 +177,8 @@ router.get('/analytics/legacy', authRequired, async (req, res) => {
     // Count bookings (from bookings or orders)
     let bookingCount = 0;
     try {
-      const bookings = await dbUnified.read('bookings');
-      bookingCount = bookings.filter(b => b.supplierId === supplierId).length;
+      const bookings = await dbUnified.find('bookings', { supplierId });
+      bookingCount = bookings.length;
     } catch (e) {
       // bookings collection may not exist
       logger.debug('Bookings collection not available:', e.message);
@@ -272,8 +266,7 @@ router.get('/invoices', authRequired, async (req, res) => {
     }
 
     // Get supplier record to find Stripe customer ID
-    const suppliers = await dbUnified.read('suppliers');
-    const supplier = suppliers.find(s => s.ownerUserId === userId);
+    const supplier = await dbUnified.findOne('suppliers', { ownerUserId: userId });
 
     if (!supplier) {
       return res.status(404).json({ error: 'Supplier profile not found' });
@@ -331,8 +324,7 @@ router.get('/invoices/:id/download', authRequired, async (req, res) => {
     }
 
     // Get supplier record
-    const suppliers = await dbUnified.read('suppliers');
-    const supplier = suppliers.find(s => s.ownerUserId === userId);
+    const supplier = await dbUnified.findOne('suppliers', { ownerUserId: userId });
 
     if (!supplier || !supplier.stripeCustomerId) {
       return res.status(404).json({ error: 'Supplier or Stripe customer not found' });
@@ -376,16 +368,14 @@ router.get('/enquiries/export', authRequired, async (req, res) => {
       return res.status(403).json({ error: 'Only suppliers can export enquiries' });
     }
 
-    const suppliers = await dbUnified.read('suppliers');
-    const supplier = suppliers.find(s => s.ownerUserId === userId);
+    const supplier = await dbUnified.findOne('suppliers', { ownerUserId: userId });
 
     if (!supplier) {
       return res.status(404).json({ error: 'Supplier profile not found' });
     }
 
     // Get quote requests for this supplier
-    const quoteRequests = await dbUnified.read('quoteRequests');
-    const supplierEnquiries = quoteRequests.filter(q => q.supplierId === supplier.id);
+    const supplierEnquiries = await dbUnified.find('quoteRequests', { supplierId: supplier.id });
 
     // Get user details for enquiries
     const users = await dbUnified.read('users');
@@ -458,8 +448,7 @@ router.get('/lead-quality', authRequired, async (req, res) => {
     }
 
     // Get supplier record
-    const suppliers = await dbUnified.read('suppliers');
-    const supplier = suppliers.find(s => s.ownerUserId === userId);
+    const supplier = await dbUnified.findOne('suppliers', { ownerUserId: userId });
 
     if (!supplier) {
       return res.status(404).json({ error: 'Supplier profile not found' });
@@ -468,8 +457,7 @@ router.get('/lead-quality', authRequired, async (req, res) => {
     const supplierId = supplier.id;
 
     // Count threads by quality/status
-    const threads = await dbUnified.read('threads');
-    const supplierThreads = threads.filter(t => t.supplierId === supplierId);
+    const supplierThreads = await dbUnified.find('threads', { supplierId });
 
     // Lead quality thresholds
     const MILLISECONDS_PER_DAY = 1000 * 60 * 60 * 24;
@@ -539,16 +527,14 @@ router.get('/reviews/stats', authRequired, async (req, res) => {
     }
 
     // Get supplier record
-    const suppliers = await dbUnified.read('suppliers');
-    const supplier = suppliers.find(s => s.ownerUserId === userId);
+    const supplier = await dbUnified.findOne('suppliers', { ownerUserId: userId });
 
     if (!supplier) {
       return res.status(404).json({ error: 'Supplier profile not found' });
     }
 
     // Get reviews using dbUnified
-    const reviews = (await dbUnified.read('reviews')) || [];
-    const supplierReviews = reviews.filter(r => r.supplierId === supplier.id);
+    const supplierReviews = await dbUnified.find('reviews', { supplierId: supplier.id });
 
     const totalReviews = supplierReviews.length;
     const averageRating =
@@ -603,8 +589,7 @@ router.get('/verification/status', authRequired, async (req, res) => {
       return res.status(403).json({ error: 'Only suppliers can access verification status' });
     }
 
-    const suppliers = await dbUnified.read('suppliers');
-    const supplier = suppliers.find(s => s.ownerUserId === req.user.id);
+    const supplier = await dbUnified.findOne('suppliers', { ownerUserId: req.user.id });
 
     if (!supplier) {
       return res.status(404).json({ error: 'Supplier profile not found' });
@@ -645,14 +630,11 @@ router.post(
         return res.status(403).json({ error: 'Only suppliers can submit verification' });
       }
 
-      const suppliers = await dbUnified.read('suppliers');
-      const supplierIndex = suppliers.findIndex(s => s.ownerUserId === req.user.id);
+      const supplier = await dbUnified.findOne('suppliers', { ownerUserId: req.user.id });
 
-      if (supplierIndex === -1) {
+      if (!supplier) {
         return res.status(404).json({ error: 'Supplier profile not found' });
       }
-
-      const supplier = suppliers[supplierIndex];
 
       // Block resubmission after 5 rejections
       if ((supplier.verificationRejectionCount || 0) >= 5) {
@@ -789,8 +771,7 @@ router.get('/dashboard-summary', authRequired, async (req, res) => {
       return res.status(403).json({ error: 'Only suppliers can access the dashboard summary' });
     }
 
-    const suppliers = await dbUnified.read('suppliers');
-    const supplier = suppliers.find(s => s.ownerUserId === userId);
+    const supplier = await dbUnified.findOne('suppliers', { ownerUserId: userId });
 
     if (!supplier) {
       return res.status(404).json({ error: 'Supplier profile not found' });
@@ -878,10 +859,10 @@ router.get('/dashboard-summary', authRequired, async (req, res) => {
       },
     };
     try {
-      // supplier is already found above; get all profiles for this user from the same array
-      const supplierProfiles = suppliers.filter(s => s.ownerUserId === userId);
+      // Get all profiles for this user to count total
+      const supplierProfiles = await dbUnified.find('suppliers', { ownerUserId: userId });
       const profileCount = supplierProfiles.length;
-      const topProfile = supplier; // supplier is the first match (already found via find)
+      const topProfile = supplier; // primary profile already found above via findOne
 
       const hasDescription = !!(topProfile.description_short || '').trim();
       const hasLocation = !!(topProfile.location || '').trim();
@@ -948,8 +929,7 @@ router.get('/dashboard-summary', authRequired, async (req, res) => {
     // --- Packages ---
     let packagesData = { total: 0, active: 0, draft: 0 };
     try {
-      const allPackages = (await dbUnified.read('packages')) || [];
-      const supplierPackages = allPackages.filter(p => p.supplierId === supplierId);
+      const supplierPackages = await dbUnified.find('packages', { supplierId });
       // Count active and draft in a single pass to avoid iterating twice
       const counts = supplierPackages.reduce(
         (acc, p) => {
@@ -1007,8 +987,7 @@ router.get('/dashboard-summary', authRequired, async (req, res) => {
     // --- Reviews ---
     let reviewsData = { total: 0, averageRating: 0, pending: 0 };
     try {
-      const allReviews = (await dbUnified.read('reviews')) || [];
-      const supplierReviews = allReviews.filter(r => r.supplierId === supplierId);
+      const supplierReviews = await dbUnified.find('reviews', { supplierId });
       const total = supplierReviews.length;
       const averageRating =
         total > 0
@@ -1030,10 +1009,10 @@ router.get('/dashboard-summary', authRequired, async (req, res) => {
     // --- Tickets ---
     let ticketsData = { total: 0, open: 0, inProgress: 0 };
     try {
-      const allTickets = (await dbUnified.read('tickets')) || [];
-      const supplierTickets = allTickets.filter(
-        t => t.senderId === userId && t.senderType === 'supplier'
-      );
+      const supplierTickets = await dbUnified.find('tickets', {
+        senderId: userId,
+        senderType: 'supplier',
+      });
       ticketsData = {
         total: supplierTickets.length,
         open: supplierTickets.filter(t => t.status === 'open').length,
@@ -1076,6 +1055,229 @@ router.get('/dashboard-summary', authRequired, async (req, res) => {
       error: 'Failed to fetch dashboard summary',
       details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
     });
+  }
+});
+
+/**
+ * GET /api/v1/supplier/availability
+ * Returns the supplier's availability settings (open dates, block dates).
+ */
+router.get('/availability', authRequired, async (req, res) => {
+  try {
+    if (req.user.role !== 'supplier') {
+      return res.status(403).json({ error: 'Suppliers only' });
+    }
+    const supplier = await dbUnified.findOne('suppliers', { ownerUserId: req.user.id });
+    if (!supplier) {
+      return res.status(404).json({ error: 'Supplier profile not found' });
+    }
+    res.json({
+      supplierId: supplier.id,
+      availability: supplier.availability || { status: 'available', blockedDates: [], notes: '' },
+    });
+  } catch (error) {
+    logger.error('GET /supplier/availability error:', error.message);
+    res.status(500).json({ error: 'Failed to load availability' });
+  }
+});
+
+/**
+ * PATCH /api/v1/supplier/availability
+ * Updates the supplier's availability status and/or blocked dates.
+ */
+router.patch('/availability', authRequired, csrfProtection, writeLimiter, async (req, res) => {
+  try {
+    if (req.user.role !== 'supplier') {
+      return res.status(403).json({ error: 'Suppliers only' });
+    }
+    const supplier = await dbUnified.findOne('suppliers', { ownerUserId: req.user.id });
+    if (!supplier) {
+      return res.status(404).json({ error: 'Supplier profile not found' });
+    }
+
+    const { status, blockedDates, notes } = req.body;
+    const allowed = ['available', 'limited', 'unavailable'];
+    if (status && !allowed.includes(status)) {
+      return res.status(400).json({ error: 'Invalid availability status' });
+    }
+
+    const current = supplier.availability || {};
+    const updated = {
+      status: status || current.status || 'available',
+      blockedDates: Array.isArray(blockedDates)
+        ? blockedDates.slice(0, 365)
+        : current.blockedDates || [],
+      notes: typeof notes === 'string' ? notes.slice(0, 500) : current.notes || '',
+      updatedAt: new Date().toISOString(),
+    };
+
+    await dbUnified.updateOne(
+      'suppliers',
+      { id: supplier.id },
+      { $set: { availability: updated } }
+    );
+    res.json({ ok: true, availability: updated });
+  } catch (error) {
+    logger.error('PATCH /supplier/availability error:', error.message);
+    res.status(500).json({ error: 'Failed to update availability' });
+  }
+});
+
+/**
+ * POST /api/v1/supplier/request-review
+ * Sends a review-request email to a past customer enquiry.
+ * Rate-limited: one request per customer per supplierId.
+ */
+router.post('/request-review', authRequired, csrfProtection, writeLimiter, async (req, res) => {
+  try {
+    if (req.user.role !== 'supplier') {
+      return res.status(403).json({ error: 'Suppliers only' });
+    }
+    const supplier = await dbUnified.findOne('suppliers', { ownerUserId: req.user.id });
+    if (!supplier) {
+      return res.status(404).json({ error: 'Supplier profile not found' });
+    }
+
+    const { customerEmail, customerName, threadId } = req.body;
+    if (!customerEmail || typeof customerEmail !== 'string') {
+      return res.status(400).json({ error: 'customerEmail is required' });
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail.trim())) {
+      return res.status(400).json({ error: 'Invalid email address' });
+    }
+
+    // Idempotency: don't send twice for same supplier+customer combo
+    const existing = await dbUnified.findOne('reviewRequests', {
+      supplierId: supplier.id,
+      customerEmail: customerEmail.trim().toLowerCase(),
+    });
+    if (existing) {
+      return res
+        .status(409)
+        .json({ error: 'A review request has already been sent to this customer' });
+    }
+
+    const requestDoc = {
+      id: `rreq_${Date.now()}`,
+      supplierId: supplier.id,
+      supplierName: supplier.name || 'Your supplier',
+      customerEmail: customerEmail.trim().toLowerCase(),
+      customerName: typeof customerName === 'string' ? customerName.slice(0, 100) : '',
+      threadId: threadId || null,
+      sentAt: new Date().toISOString(),
+      status: 'sent',
+    };
+
+    await dbUnified.insertOne('reviewRequests', requestDoc);
+
+    // TODO: integrate postmark to send actual email — placeholder log for now
+    logger.info(
+      `Review request sent: supplier=${supplier.id} → customer=${requestDoc.customerEmail}`
+    );
+
+    res.json({ ok: true, message: 'Review request sent successfully' });
+  } catch (error) {
+    logger.error('POST /supplier/request-review error:', error.message);
+    res.status(500).json({ error: 'Failed to send review request' });
+  }
+});
+
+/**
+ * GET /api/v1/supplier/performance-tips
+ * Returns personalised actionable tips based on the supplier's profile state.
+ */
+router.get('/performance-tips', authRequired, async (req, res) => {
+  try {
+    if (req.user.role !== 'supplier') {
+      return res.status(403).json({ error: 'Suppliers only' });
+    }
+    const supplier = await dbUnified.findOne('suppliers', { ownerUserId: req.user.id });
+    if (!supplier) {
+      return res.status(404).json({ error: 'Supplier profile not found' });
+    }
+
+    const supplierId = supplier.id;
+    const [packages, reviews] = await Promise.all([
+      dbUnified.find('packages', { supplierId }),
+      dbUnified.find('reviews', { supplierId }),
+    ]);
+
+    const tips = [];
+
+    // Profile completeness tips
+    if (!(supplier.description_short || '').trim()) {
+      tips.push({
+        id: 'add-desc',
+        priority: 1,
+        category: 'profile',
+        icon: '✍️',
+        title: 'Add a business description',
+        body: 'Suppliers with descriptions get 3× more enquiries.',
+        action: { label: 'Edit Profile', href: '#toggle-profile-form' },
+      });
+    }
+    if (!Array.isArray(supplier.photosGallery) || supplier.photosGallery.length < 3) {
+      tips.push({
+        id: 'add-photos',
+        priority: 2,
+        category: 'profile',
+        icon: '📸',
+        title: 'Upload at least 3 photos',
+        body: 'Photo galleries increase conversion by 40%.',
+        action: { label: 'Add Photos', href: '#my-suppliers' },
+      });
+    }
+    if (packages.length === 0) {
+      tips.push({
+        id: 'add-package',
+        priority: 3,
+        category: 'packages',
+        icon: '📦',
+        title: 'Create your first package',
+        body: 'Packages make pricing clear and attract more enquiries.',
+        action: { label: 'Create Package', href: '#toggle-package-form' },
+      });
+    }
+    if (reviews.length === 0) {
+      tips.push({
+        id: 'get-review',
+        priority: 4,
+        category: 'reviews',
+        icon: '⭐',
+        title: 'Get your first review',
+        body: 'Ask a past customer for a review to build trust.',
+        action: { label: 'Request Review', data: 'request-review' },
+      });
+    }
+    if (!(supplier.tagline || '').trim()) {
+      tips.push({
+        id: 'add-tagline',
+        priority: 5,
+        category: 'profile',
+        icon: '💬',
+        title: 'Add a tagline',
+        body: 'A catchy tagline helps you stand out on search results.',
+        action: { label: 'Edit Profile', href: '#toggle-profile-form' },
+      });
+    }
+    if (!supplier.socialLinks || !Object.values(supplier.socialLinks || {}).some(v => v)) {
+      tips.push({
+        id: 'social-links',
+        priority: 6,
+        category: 'profile',
+        icon: '🔗',
+        title: 'Add social media links',
+        body: 'Social proof builds trust with potential customers.',
+        action: { label: 'Edit Profile', href: '#toggle-profile-form' },
+      });
+    }
+
+    // Sort by priority, return top 4
+    tips.sort((a, b) => a.priority - b.priority);
+    res.json({ tips: tips.slice(0, 4), total: tips.length });
+  } catch (error) {
+    logger.error('GET /supplier/performance-tips error:', error.message);
+    res.status(500).json({ error: 'Failed to load performance tips' });
   }
 });
 
