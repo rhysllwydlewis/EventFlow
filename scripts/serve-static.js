@@ -889,6 +889,7 @@ const adminPages = [
   'admin-users',
   'admin-debug',
   'admin-partners',
+  'admin-partner-campaign-report',
   'admin-cashout-requests',
   'admin-campaigns',
   'admin-email-previews',

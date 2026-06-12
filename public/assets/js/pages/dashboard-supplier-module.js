@@ -484,7 +484,14 @@ async function initSupplierDashboardWidgets() {
     if (_reviewSupplierId && window.SupplierReviews?.init) {
       await window.SupplierReviews.init(_reviewSupplierId, 'supplier-reviews-section');
     } else {
-      // Fallback: legacy stats-only view if new script hasn't loaded yet
+      // Fallback: legacy stats-only view if new script hasn't loaded or the supplier ID is unavailable.
+      console.warn(
+        '[supplier-dashboard] Review management panel unavailable; loading legacy review stats fallback.',
+        {
+          hasSupplierId: Boolean(_reviewSupplierId),
+          hasReviewModule: Boolean(window.SupplierReviews?.init),
+        }
+      );
       await loadReviewStats('supplier-reviews-section');
     }
 

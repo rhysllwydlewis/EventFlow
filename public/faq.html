@@ -47,7 +47,7 @@
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   <link rel="manifest" href="/site.webmanifest" />
 
-  <!-- FAQPage structured data -->
+  <!-- FAQPage structured data mirrors the visible .faq-item content; keep tests in sync. -->
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -58,7 +58,7 @@
         "name": "What is EventFlow?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "EventFlow is an all-in-one event planning platform for the UK. You can discover and save venues and suppliers, build structured event plans, track your budget, message suppliers, manage RSVPs, and keep all your event details in one place — for free."
+          "text": "EventFlow is an all-in-one event planning platform for the UK. You can discover and save venues and suppliers, build structured event plans, track your budget, message suppliers directly, manage your guest list and RSVPs, and keep everything in one place — for free."
         }
       },
       {
@@ -66,7 +66,7 @@
         "name": "Is EventFlow free for customers?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Yes. Creating an account and using the planning tools — event plans, budget tracker, supplier search, messaging, and the wedding website — is completely free for customers."
+          "text": "Yes. Creating an account and using the core planning tools — event plans, budget tracker, supplier search, messaging, saved suppliers, and the wedding website — is completely free for customers."
         }
       },
       {
@@ -74,7 +74,7 @@
         "name": "What types of events can I plan on EventFlow?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "EventFlow supports weddings, birthday parties, corporate events, anniversary celebrations, christenings, charity galas, and most other UK events that involve hiring suppliers such as venues, photographers, caterers, and entertainers."
+          "text": "EventFlow supports weddings, birthday parties, corporate events, anniversary celebrations, christenings, charity galas, and most other UK events that involve hiring suppliers — venues, photographers, caterers, florists, DJs, and more."
         }
       },
       {
@@ -90,7 +90,7 @@
         "name": "How do I create an event plan?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "After signing in, click Plan in the top navigation or go to your dashboard and select Create a plan. The plan wizard guides you through setting your event date, guest count, and budget, then gives you a personalised checklist and planning timeline."
+          "text": "After signing in, click Plan in the top navigation, or select Create a plan from your dashboard. The plan wizard walks you through setting your event date, guest count, and budget, then generates a personalised checklist and planning timeline."
         }
       },
       {
@@ -98,31 +98,7 @@
         "name": "How does the budget tracker work?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "The budget tracker lets you set a total budget for your event and track spending as you book suppliers. It shows your total spent, remaining balance, and a breakdown by category — all updated in real time from your dashboard."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "How do I save suppliers to my shortlist?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "On any supplier profile page, click the Save button (bookmark icon). Saved suppliers appear in the Saved Suppliers section of your dashboard. You can add notes, compare options, and message them directly from your shortlist."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "How do enquiries and messages work?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "When you start a conversation with a supplier, EventFlow creates a message thread between the two of you. You can view and reply from your dashboard under Conversations. You can also opt in to email notifications so you are alerted when a supplier replies."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "How do supplier reviews work?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "After your event, you can leave a star rating and written review on any supplier you worked with. Reviews are visible on their profile and help other customers make informed decisions. Suppliers cannot remove legitimate reviews."
+          "text": "The budget tracker lets you set a total budget and log spending as you confirm suppliers. Your dashboard shows your total spent, remaining balance, and a real-time breakdown by category. You can update the budget at any time from Budget Settings on your dashboard."
         }
       },
       {
@@ -130,15 +106,63 @@
         "name": "What is the Wedding Website and RSVP feature?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "EventFlow includes a free mini wedding website builder. You can create a personalised wedding website with your event details, manage your guest list, collect RSVPs online, and share a seating plan — all from your customer dashboard."
+          "text": "EventFlow includes a free mini wedding website builder. You can create a personalised page with your event details, share it with guests, collect RSVPs online, manage your guest list, and build a seating plan — all from your dashboard under Wedding Website & RSVPs."
         }
       },
       {
         "@type": "Question",
-        "name": "What is the EventFlow Marketplace?",
+        "name": "What are the planning checklists and upcoming tasks?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "The Marketplace lets you browse fixed-price packages offered by suppliers — for example a photography package covering a set number of hours, edited images, and an online gallery. Each package has a clear price so you know exactly what you are getting before you enquire."
+          "text": "EventFlow generates a personalised planning checklist based on your event type and date. Each checklist item links directly to the relevant part of the platform. The Upcoming Tasks widget on your dashboard highlights what needs attention soon."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What is the Events Calendar?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The public Events Calendar shows upcoming events listed on EventFlow in the UK. Your personal event date is also visible in your dashboard calendar alongside key planning milestones."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I find and compare suppliers?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Go to Suppliers and use the search filters to narrow by category, location, and price range. Each profile shows photos, a description, pricing, reviews, and available packages. Save suppliers you like and compare them from your dashboard."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I save suppliers to my shortlist?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "On any supplier profile page, click the Save button. Saved suppliers appear in the Saved Suppliers section of your dashboard where you can add notes, compare options, and send enquiries directly."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do enquiries and messages work?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "When you contact a supplier, EventFlow creates a private message thread between you. View and reply from your dashboard under Conversations. Opt in to email notifications so you are alerted as soon as a supplier replies."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do supplier reviews work?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "After your event, you can leave a star rating and written review on any supplier you worked with. Reviews appear on their public profile and help other customers make informed choices. Suppliers cannot remove genuine reviews."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What is the Marketplace?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The Marketplace lets you browse specific packages offered by suppliers — for example a photography package that covers eight hours, edited photos, and an online gallery. Each package has a fixed price so you know exactly what you're getting before you enquire."
         }
       },
       {
@@ -146,7 +170,7 @@
         "name": "How do suppliers get listed on EventFlow?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Suppliers create a free account, set up a profile with photos, service descriptions, and pricing, then submit it for review. Once an admin approves the profile, it appears in search results. Suppliers can optionally upgrade to a paid plan for additional visibility and features."
+          "text": "Suppliers create a free account, complete a profile with photos, a service description, location, and pricing, then submit it for review. Once approved by an admin, the profile appears in search results and the supplier can start receiving enquiries."
         }
       },
       {
@@ -154,7 +178,15 @@
         "name": "What subscription plans are available for suppliers?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "EventFlow offers a free tier and paid subscription plans for suppliers. Paid plans provide benefits such as higher search placement, unlimited photos, featured placement, and access to advanced analytics. Full pricing details are on the Pricing page."
+          "text": "EventFlow offers a free tier and paid subscription plans for suppliers. Paid plans include higher search placement, unlimited photo uploads, featured placement in relevant searches, and advanced analytics. Full details are on the Pricing page."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I create packages on my supplier profile?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "From your supplier dashboard, go to Packages and click Add a package. Set a title, description, price, and what's included. Packages appear on your profile and in the Marketplace for customers to browse and enquire about."
         }
       },
       {
@@ -162,7 +194,7 @@
         "name": "What is the EventFlow Partner Programme?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "The Partner Programme lets you earn reward points by referring event suppliers to EventFlow. You get a unique referral link, and whenever a supplier signs up through it and gets active on the platform, you earn points that can be cashed out as Amazon Vouchers or Pre-Paid Debit Cards. Visit the Partner page to sign up."
+          "text": "The Partner Programme lets anyone earn reward points by referring event suppliers to EventFlow. You receive a unique referral link and earn points each time a referred supplier signs up and gets active on the platform. Points can be cashed out as Amazon Vouchers or Pre-Paid Debit Cards once you reach £15. Sign up free here."
         }
       },
       {
@@ -170,15 +202,7 @@
         "name": "How do I reset my password?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "On the login page, click Forgot password and enter your email address. You will receive a password reset link by email within a few minutes. The link expires after 1 hour. If you do not receive it, check your spam folder or contact support."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "How do I delete my account?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "You can request account deletion by contacting us at hello@event-flow.co.uk with the subject Account Deletion Request. Under UK GDPR you have the right to erasure. We will process your request and confirm once your data has been removed."
+          "text": "On the login page, click Forgot password? and enter your registered email address. You will receive a reset link within a few minutes — it expires after one hour. Check your spam folder if it does not arrive, or email us at hello@event-flow.co.uk."
         }
       },
       {
@@ -191,18 +215,26 @@
       },
       {
         "@type": "Question",
-        "name": "Is my data safe with EventFlow?",
+        "name": "How do I delete my account?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Yes. EventFlow is operated by VEXI and complies with UK GDPR. We use encrypted connections (HTTPS), secure password hashing, and do not sell your personal data to third parties. You can read our full Privacy Notice for details."
+          "text": "Email hello@event-flow.co.uk with the subject Account Deletion Request. Under UK GDPR you have the right to erasure of your personal data. We will acknowledge within 72 hours and confirm once your data has been removed."
         }
       },
       {
         "@type": "Question",
-        "name": "Who do I contact if something is not working?",
+        "name": "Is my data safe with EventFlow?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Use the Contact page on this site or email hello@event-flow.co.uk with a short description of the issue. Logged-in users can also raise a support ticket directly from their dashboard."
+          "text": "Yes. EventFlow is operated by VEXI and complies with UK GDPR and the Data Protection Act 2018. We use encrypted HTTPS connections, secure password hashing, and never sell your personal data. Read our Privacy Notice or visit the Legal Hub for full details."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Who do I contact if something isn't working?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Use the Contact page or email hello@event-flow.co.uk with a short description of the issue. If you are signed in, you can also raise a support ticket directly from your dashboard under Support."
         }
       }
     ]

@@ -29,11 +29,14 @@ function calculateBasicMetrics(reviews) {
     };
   }
 
-  const sum = reviews.reduce((acc, r) => acc + r.rating, 0);
+  const validRatings = reviews
+    .map(r => Number(r.rating))
+    .filter(rating => Number.isFinite(rating) && rating >= 1 && rating <= 5);
+  const sum = validRatings.reduce((acc, rating) => acc + rating, 0);
   const verified = reviews.filter(r => r.verification?.status !== 'unverified').length;
 
   return {
-    averageRating: Number((sum / total).toFixed(2)),
+    averageRating: validRatings.length > 0 ? Number((sum / validRatings.length).toFixed(2)) : 0,
     totalReviews: total,
     verifiedReviews: verified,
     unverifiedReviews: total - verified,
@@ -55,8 +58,8 @@ function calculateRatingDistribution(reviews) {
   };
 
   reviews.forEach(review => {
-    const rating = review.rating;
-    if (rating >= 1 && rating <= 5) {
+    const rating = Number(review.rating);
+    if (Number.isInteger(rating) && rating >= 1 && rating <= 5) {
       distribution[`${rating}_star`]++;
     }
   });
@@ -127,7 +130,11 @@ function calculateResponseMetrics(reviews) {
     };
   }
 
-  const withResponses = reviews.filter(r => r.response && r.response.respondedAt);
+  const getResponse = review => review.response || review.supplierResponse || null;
+  const withResponses = reviews.filter(r => {
+    const response = getResponse(r);
+    return Boolean(response?.respondedAt || response?.createdAt || response?.updatedAt);
+  });
   const totalResponses = withResponses.length;
   const responseRate = totalResponses / reviews.length;
 
@@ -136,11 +143,23 @@ function calculateResponseMetrics(reviews) {
   if (withResponses.length > 0) {
     const responseTimes = withResponses.map(r => {
       const reviewTime = new Date(r.createdAt).getTime();
-      const responseTime = new Date(r.response.respondedAt).getTime();
+      const response = getResponse(r);
+      const responseTime = new Date(
+        response.respondedAt || response.createdAt || response.updatedAt
+      ).getTime();
       return responseTime - reviewTime;
     });
 
-    const avgMs = responseTimes.reduce((sum, t) => sum + t, 0) / responseTimes.length;
+    const validResponseTimes = responseTimes.filter(time => Number.isFinite(time) && time >= 0);
+    if (validResponseTimes.length === 0) {
+      return {
+        responseRate: Number(responseRate.toFixed(2)),
+        avgResponseTime: null,
+        totalResponses,
+      };
+    }
+
+    const avgMs = validResponseTimes.reduce((sum, t) => sum + t, 0) / validResponseTimes.length;
     const avgHours = avgMs / (1000 * 60 * 60);
 
     if (avgHours < 1) {

@@ -253,6 +253,7 @@ router.post(
       if (!text) {
         return res.status(400).json({ error: 'Response text is required' });
       }
+      const trimmedText = String(text).trim();
 
       // Get supplier ID from user
       const dbUnified = require('../db-unified');
@@ -264,7 +265,12 @@ router.post(
 
       const supplierId = supplier ? supplier.id : null;
 
-      const review = await reviewService.addSupplierResponse(id, supplierId, text, req.user.id);
+      const review = await reviewService.addSupplierResponse(
+        id,
+        supplierId,
+        trimmedText,
+        req.user.id
+      );
 
       res.json({
         success: true,
@@ -299,6 +305,18 @@ router.put(
       if (!text) {
         return res.status(400).json({ error: 'Response text is required' });
       }
+      const trimmedText = String(text).trim();
+      const { MIN_RESPONSE_LENGTH, MAX_RESPONSE_LENGTH } = reviewService.constants;
+      if (trimmedText.length < MIN_RESPONSE_LENGTH) {
+        return res
+          .status(400)
+          .json({ error: `Response must be at least ${MIN_RESPONSE_LENGTH} characters` });
+      }
+      if (trimmedText.length > MAX_RESPONSE_LENGTH) {
+        return res
+          .status(400)
+          .json({ error: `Response cannot exceed ${MAX_RESPONSE_LENGTH} characters` });
+      }
 
       const dbUnified = require('../db-unified');
       const review = await dbUnified.findOne('reviews', { _id: id });
@@ -323,7 +341,7 @@ router.put(
         return res.status(403).json({ error: 'Permission denied' });
       }
 
-      review.response.text = text;
+      review.response.text = trimmedText;
       review.response.updatedAt = new Date().toISOString();
       const responseUpdatedAt = new Date().toISOString();
 
@@ -332,7 +350,7 @@ router.put(
         { _id: id },
         {
           $set: {
-            response: { ...review.response, text, updatedAt: responseUpdatedAt },
+            response: { ...review.response, text: trimmedText, updatedAt: responseUpdatedAt },
             updatedAt: responseUpdatedAt,
           },
         }
@@ -340,7 +358,7 @@ router.put(
 
       res.json({
         success: true,
-        data: { ...review.response, text, updatedAt: responseUpdatedAt },
+        data: { ...review.response, text: trimmedText, updatedAt: responseUpdatedAt },
         message: 'Response updated successfully',
       });
     } catch (error) {
