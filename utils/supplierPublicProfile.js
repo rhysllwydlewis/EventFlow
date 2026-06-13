@@ -154,6 +154,9 @@ function safePublicSupplier(supplier = {}, extras = {}) {
       source.displayAvatarUrl ||
       source.avatarUrl ||
       source.profileImage ||
+      source.profilePhoto ||
+      source.photoUrl ||
+      source.image ||
       source.logo
   );
   const website = safeExternalUrl(source.website);

@@ -278,11 +278,25 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
   }
 
   function getSupplierProfileImage(supplier) {
+    const galleryProfileImage = Array.isArray(supplier?.photosGallery)
+      ? supplier.photosGallery
+          .map(photo =>
+            typeof photo === 'string'
+              ? photo
+              : photo?.thumbnail || photo?.url || photo?.src || photo?.large || photo?.original
+          )
+          .find(isUsableSupplierProfileImageUrl)
+      : '';
     const candidates = [
       supplier?.profilePhotoUrl,
       supplier?.displayAvatarUrl,
       supplier?.avatarUrl,
+      supplier?.profileImage,
+      supplier?.profilePhoto,
+      supplier?.photoUrl,
+      supplier?.image,
       supplier?.logo,
+      galleryProfileImage,
     ];
     const imageUrl = candidates.find(isUsableSupplierProfileImageUrl);
     return typeof imageUrl === 'string' ? imageUrl.trim() : '';
