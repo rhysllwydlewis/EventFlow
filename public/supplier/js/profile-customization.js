@@ -49,12 +49,17 @@
   }
 
   function getExistingCsrfToken() {
+    const cookieToken = readCookie('csrf') || readCookie('csrfToken');
+    if (cookieToken) {
+      return cookieToken;
+    }
+
+    // Double-submit CSRF requires the cookie as well as the header. Avoid
+    // trusting stale globals before the readable cookie has been checked.
     return (
+      window.EventFlowCsrf?.get?.() ||
       window.__CSRF_TOKEN__ ||
       window.csrfToken ||
-      window.EventFlowCsrf?.get?.() ||
-      readCookie('csrf') ||
-      readCookie('csrfToken') ||
       document.querySelector('meta[name="csrf-token"]')?.content ||
       ''
     );
