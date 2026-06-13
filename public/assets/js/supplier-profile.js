@@ -232,35 +232,74 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
   };
 
   const PRESET_GRADIENTS_V2 = {
-    'ef-teal':   'linear-gradient(135deg,#0B8073 0%,#13B6A2 100%)',
-    midnight:    'linear-gradient(135deg,#1a1a2e 0%,#0f3460 100%)',
+    'ef-teal': 'linear-gradient(135deg,#0B8073 0%,#13B6A2 100%)',
+    midnight: 'linear-gradient(135deg,#1a1a2e 0%,#0f3460 100%)',
     'rose-gold': 'linear-gradient(135deg,#b76e79 0%,#f9c8c8 100%)',
-    forest:      'linear-gradient(135deg,#1b4332 0%,#40916c 100%)',
-    ocean:       'linear-gradient(135deg,#03045e 0%,#00b4d8 100%)',
-    sunset:      'linear-gradient(135deg,#f77f00 0%,#d62828 100%)',
-    purple:      'linear-gradient(135deg,#3d0066 0%,#a855f7 100%)',
-    charcoal:    'linear-gradient(135deg,#1a1a1a 0%,#4a5568 100%)',
-    blush:       'linear-gradient(135deg,#c2185b 0%,#ff80ab 100%)',
-    champagne:   'linear-gradient(135deg,#9c7c38 0%,#e8d5a3 100%)',
+    forest: 'linear-gradient(135deg,#1b4332 0%,#40916c 100%)',
+    ocean: 'linear-gradient(135deg,#03045e 0%,#00b4d8 100%)',
+    sunset: 'linear-gradient(135deg,#f77f00 0%,#d62828 100%)',
+    purple: 'linear-gradient(135deg,#3d0066 0%,#a855f7 100%)',
+    charcoal: 'linear-gradient(135deg,#1a1a1a 0%,#4a5568 100%)',
+    blush: 'linear-gradient(135deg,#c2185b 0%,#ff80ab 100%)',
+    champagne: 'linear-gradient(135deg,#9c7c38 0%,#e8d5a3 100%)',
   };
 
   const CATEGORY_ACCENT = {
-    wedding:       '#b76e79',
-    photography:   '#1a3a5c',
-    catering:      '#7f5539',
-    music:         '#6a0dad',
+    wedding: '#b76e79',
+    photography: '#1a3a5c',
+    catering: '#7f5539',
+    music: '#6a0dad',
     entertainment: '#c2185b',
-    flowers:       '#386641',
-    venue:         '#374151',
-    transport:     '#1a3a4a',
+    flowers: '#386641',
+    venue: '#374151',
+    transport: '#1a3a4a',
   };
 
   function _getInitials(name) {
-    if (!name || typeof name !== 'string') return '?';
+    if (!name || typeof name !== 'string') {
+      return '?';
+    }
     const words = name.trim().split(/\s+/).filter(Boolean);
-    if (words.length === 0) return '?';
-    if (words.length === 1) return words[0].charAt(0).toUpperCase();
+    if (words.length === 0) {
+      return '?';
+    }
+    if (words.length === 1) {
+      return words[0].charAt(0).toUpperCase();
+    }
     return (words[0].charAt(0) + words[words.length - 1].charAt(0)).toUpperCase();
+  }
+
+  function isUsableSupplierProfileImageUrl(value) {
+    if (!value || typeof value !== 'string') {
+      return false;
+    }
+    const url = value.trim();
+    return /^(https?:\/\/[^\s]+|\/[^/\\:][^:]*)$/i.test(url);
+  }
+
+  function getSupplierProfileImage(supplier) {
+    const galleryProfileImage = Array.isArray(supplier?.photosGallery)
+      ? supplier.photosGallery
+          .map(photo =>
+            typeof photo === 'string'
+              ? photo
+              : photo?.thumbnail || photo?.url || photo?.src || photo?.large || photo?.original
+          )
+          .find(isUsableSupplierProfileImageUrl)
+      : '';
+    const candidates = [
+      supplier?.profilePhotoUrl,
+      supplier?.displayAvatarUrl,
+      supplier?.avatarUrl,
+      supplier?.profileImage,
+      supplier?.profilePhoto,
+      supplier?.photoUrl,
+      supplier?.image,
+      supplier?.logo,
+      galleryProfileImage,
+    ];
+    const imageUrl = candidates.find(isUsableSupplierProfileImageUrl);
+    return typeof imageUrl === 'string' ? imageUrl.trim() : '';
   }
 
   function _lightenHex(hex, amount) {
@@ -279,6 +318,7 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
     // ── Avatar initials + optional profile photo ─────────────────────────────
     const avatarEl = document.getElementById('hero-avatar');
     const avatarInitialsEl = document.getElementById('hero-avatar-initials');
+    const avatarImgEl = document.getElementById('hero-avatar-img');
     if (avatarEl && avatarInitialsEl) {
       avatarInitialsEl.textContent = _getInitials(supplier.name);
       // Accent: supplier theme > category default > EF teal
@@ -292,40 +332,22 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
         '#0B8073';
       avatarEl.style.background = `linear-gradient(135deg, ${accentColor} 0%, ${_lightenHex(accentColor, 30)} 100%)`;
 
-      // If the API returned a real photo URL, overlay an <img> on top of the
-      // gradient so the supplier's actual profile photo is displayed.
-      // Priority matches safePublicSupplier resolution order.
-      const photoUrl =
-        supplier.avatarUrl ||
-        supplier.profilePhotoUrl ||
-        supplier.displayAvatarUrl ||
-        supplier.logo ||
-        supplier.profileImage ||
-        '';
-
-      if (photoUrl) {
-        // Remove any previously injected image (defensive for hot-reload)
-        const existing = document.getElementById('hero-avatar-img');
-        if (existing) existing.remove();
-
-        const img = document.createElement('img');
-        img.id = 'hero-avatar-img';
-        img.src = photoUrl;
-        img.alt = supplier.name ? `${supplier.name} profile photo` : 'Supplier profile photo';
-        img.setAttribute('aria-hidden', 'true'); // decorative — name is in the h1
-        img.style.cssText =
-          'position:absolute;inset:0;width:100%;height:100%;' +
-          'object-fit:cover;border-radius:50%;';
-        // On load failure fall back gracefully — remove the img and keep initials visible
-        img.onerror = function () {
-          this.remove();
-          avatarInitialsEl.style.opacity = '';
-        };
-
-        // Ensure the avatar container clips the image correctly
-        avatarEl.style.overflow = 'hidden';
-        avatarInitialsEl.style.opacity = '0';
-        avatarEl.appendChild(img);
+      if (avatarImgEl) {
+        const profileImage = getSupplierProfileImage(supplier);
+        if (profileImage) {
+          delete avatarImgEl.dataset.fallbackApplied;
+          avatarImgEl.style.display = '';
+          avatarImgEl.src = profileImage;
+          avatarImgEl.alt = `${supplier.name} profile photo`;
+          avatarImgEl.hidden = false;
+          avatarInitialsEl.style.display = '';
+        } else {
+          avatarImgEl.removeAttribute('src');
+          avatarImgEl.alt = '';
+          avatarImgEl.hidden = true;
+          avatarImgEl.style.display = '';
+          avatarInitialsEl.style.display = '';
+        }
       }
     }
 
@@ -340,7 +362,9 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
         heroBanner.src = bannerUrl;
         heroBanner.alt = `${supplier.name} banner`;
         heroBanner.style.display = '';
-        if (heroMedia) heroMedia.style.backgroundImage = '';
+        if (heroMedia) {
+          heroMedia.style.backgroundImage = '';
+        }
       } else {
         heroBanner.style.display = 'none';
         if (heroMedia) {
@@ -368,7 +392,10 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
     const badgesContainer = document.getElementById('hero-badges');
     if (badgesContainer) {
       if (typeof renderVerificationBadges === 'function') {
-        badgesContainer.innerHTML = renderVerificationBadges(supplier, { size: 'normal', maxBadges: 3 });
+        badgesContainer.innerHTML = renderVerificationBadges(supplier, {
+          size: 'normal',
+          maxBadges: 3,
+        });
       } else {
         const heroBadges = _buildHeroBadges(supplier);
         badgesContainer.innerHTML = heroBadges.slice(0, 3).join('');
@@ -385,7 +412,9 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
         const iconFn =
           (typeof EFTierIcon !== 'undefined' && EFTierIcon.render) ||
           (typeof renderTierIcon === 'function' && renderTierIcon);
-        if (iconFn) tierIconEl.innerHTML = iconFn(supplier);
+        if (iconFn) {
+          tierIconEl.innerHTML = iconFn(supplier);
+        }
       }
     }
 
@@ -496,6 +525,22 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
           );
           return;
         }
+
+        // Gate behind auth — QuickComposeV4 checks internally but we also
+        // guard here so logged-out users get the intent-aware redirect.
+        const authState = window.EFAuth || window.__authState__;
+        const isLoggedIn = authState
+          ? authState.isAuthenticated || authState.loggedIn || authState.user
+          : !!document.cookie.includes('ef_session');
+        if (!isLoggedIn && !window.QuickComposeV4) {
+          const returnTo = window.location.pathname + window.location.search;
+          window.NotificationDispatcher?.info('Please log in to message this supplier');
+          setTimeout(() => {
+            window.location.href = `/auth?redirect=${encodeURIComponent(returnTo)}&intent=message`;
+          }, 700);
+          return;
+        }
+
         const safeName = (supplier.name || 'Supplier').replace(/[<>'"&]/g, '').trim() || 'Supplier';
         if (window.QuickComposeV4) {
           window.QuickComposeV4.open({
@@ -559,7 +604,13 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
           } else if (response.status === 409) {
             window.NotificationDispatcher?.info('Already in your shortlist');
           } else if (response.status === 401 || response.status === 403) {
-            window.NotificationDispatcher?.info('Please sign in to save suppliers');
+            // Not authenticated — redirect to auth with intent so user
+            // is returned here after login
+            window.NotificationDispatcher?.info('Please log in to save suppliers');
+            const returnTo = window.location.pathname + window.location.search;
+            setTimeout(() => {
+              window.location.href = `/auth?redirect=${encodeURIComponent(returnTo)}&intent=save`;
+            }, 700);
           } else {
             window.NotificationDispatcher?.error('Could not save — please try again');
           }

@@ -46,6 +46,25 @@ function showToast(message, type = 'info') {
   setTimeout(() => toast.remove(), 3500);
 }
 
+function isUsableSupplierImageUrl(value) {
+  if (!value || typeof value !== 'string') {
+    return false;
+  }
+  const url = value.trim();
+  return /^(https?:\/\/[^\s]+|\/[^/\\:][^:]*)$/i.test(url);
+}
+
+function getSupplierProfileImage(supplier) {
+  const candidates = [
+    supplier?.profilePhotoUrl,
+    supplier?.displayAvatarUrl,
+    supplier?.avatarUrl,
+    supplier?.logo,
+  ];
+  const imageUrl = candidates.find(isUsableSupplierImageUrl);
+  return typeof imageUrl === 'string' ? imageUrl.trim() : '';
+}
+
 // Generate gradient for supplier avatars
 function generateSupplierGradient(name) {
   const colors = [
@@ -63,10 +82,11 @@ function generateSupplierGradient(name) {
 // Enhanced supplier card with shortlist and quote features
 function createSupplierCard(supplier, position) {
   const supplierInitial = supplier.name ? supplier.name.charAt(0).toUpperCase() : 'S';
+  const supplierProfileImage = getSupplierProfileImage(supplier);
 
   // Build avatar HTML
-  const avatarHtml = supplier.logo
-    ? `<img src="${escapeHtml(supplier.logo)}" alt="${escapeHtml(supplier.name)} logo" class="sp-card-avatar" data-fallback-hide data-fallback-show-next>
+  const avatarHtml = supplierProfileImage
+    ? `<img src="${escapeHtml(supplierProfileImage)}" alt="${escapeHtml(supplier.name)} profile photo" class="sp-card-avatar" data-fallback-hide data-fallback-show-next>
        <div class="sp-card-avatar-fallback" style="display:none; background:${generateSupplierGradient(supplier.name)};">${supplierInitial}</div>`
     : `<div class="sp-card-avatar-fallback" style="background:${generateSupplierGradient(supplier.name)};">${supplierInitial}</div>`;
 
@@ -270,7 +290,7 @@ function createSupplierCard(supplier, position) {
                 data-supplier-name="${escapeHtml(supplier.name)}"
                 data-supplier-category="${escapeHtml(supplier.category || '')}"
                 data-supplier-location="${escapeHtml(supplier.location || '')}"
-                data-supplier-image="${escapeHtml(supplier.logo || '')}"
+                data-supplier-image="${escapeHtml(supplierProfileImage)}"
                 data-supplier-price="${escapeHtml(priceDisplay)}"
                 data-supplier-rating="${supplier.rating || ''}"
                 aria-label="${isInShortlist ? 'Remove from' : 'Save to'} shortlist">
@@ -287,7 +307,7 @@ function createSupplierCard(supplier, position) {
                 data-context-type="supplier_profile"
                 data-context-id="${escapeHtml(supplier.id)}"
                 data-context-title="${escapeHtml(supplier.name)}"
-                ${supplier.logo ? `data-context-image="${escapeHtml(supplier.logo)}"` : ''}
+                ${supplierProfileImage ? `data-context-image="${escapeHtml(supplierProfileImage)}"` : ''}
                 aria-label="Message ${escapeHtml(supplier.name)}">
           Message
         </button>
@@ -336,15 +356,57 @@ function createEmptyState(filters) {
     filters.postcode ||
     filters.maxDistance;
 
+  const POPULAR_CATEGORIES = [
+    { label: 'Venues', value: 'Venues' },
+    { label: 'Photography', value: 'Photography' },
+    { label: 'Catering', value: 'Catering' },
+    { label: 'Music/DJ', value: 'Music/DJ' },
+    { label: 'Florist', value: 'Florist' },
+  ];
+
+  const categoryChips = POPULAR_CATEGORIES.map(
+    cat => `
+    <a href="/suppliers?category=${encodeURIComponent(cat.value)}"
+       class="sp-empty-category-chip"
+       aria-label="Browse ${escapeHtml(cat.label)} suppliers">
+      ${escapeHtml(cat.label)}
+    </a>`
+  ).join('');
+
+  const tips = hasFilters
+    ? `
+    <div class="sp-empty-tips">
+      <p class="sp-empty-tips-label">Try:</p>
+      <ul class="sp-empty-tips-list">
+        <li>Removing the location filter to search further afield</li>
+        <li>Using a broader category (e.g. "Venues" instead of a specific style)</li>
+        <li>Searching by supplier name or service keyword</li>
+      </ul>
+    </div>`
+    : '';
+
   return `
     <div class="sp-empty-state" role="status">
       <span class="sp-empty-icon" aria-hidden="true">🔍</span>
-      <h2 class="sp-empty-title">No suppliers found</h2>
-      <p class="sp-empty-text">${hasFilters ? 'No suppliers match your current filters. Try adjusting or clearing your search.' : 'No suppliers are available at the moment. Check back soon.'}</p>
+      <h2 class="sp-empty-title">${hasFilters ? 'No suppliers match your search' : 'No suppliers found'}</h2>
+      <p class="sp-empty-text">${
+        hasFilters
+          ? 'No suppliers match your current filters.'
+          : 'No suppliers are available at the moment — check back soon.'
+      }</p>
+      ${tips}
       <div class="sp-empty-actions">
-        ${hasFilters ? '<button class="ef-cta sp-btn sp-btn--secondary" id="clear-filters-btn">Clear filters</button>' : ''}
-        <a href="/start" class="sp-btn sp-btn--primary">Start planning</a>
+        ${hasFilters ? '<button class="ef-cta sp-btn sp-btn--secondary" id="clear-filters-btn">Clear all filters</button>' : ''}
+        <a href="/suppliers" class="sp-btn sp-btn--outline">Browse all suppliers</a>
       </div>
+      ${
+        hasFilters
+          ? `<div class="sp-empty-categories">
+        <p class="sp-empty-categories-label">Popular categories</p>
+        <div class="sp-empty-categories-chips">${categoryChips}</div>
+      </div>`
+          : ''
+      }
     </div>
   `;
 }
@@ -585,7 +647,8 @@ async function initSuppliersPage() {
       : filters.location
         ? ` in ${filters.location}`
         : '';
-    ctxEl.textContent = `Showing ${base}${locationSuffix}`;
+    const querySuffix = filters.q ? ` for "${filters.q}"` : '';
+    ctxEl.textContent = `Showing ${base}${locationSuffix}${querySuffix}`;
   }
 
   // Render active filter chips below the result count

@@ -46,9 +46,33 @@ describe('supplier public profile safety helpers', () => {
   test('allows only safe public image URL forms', () => {
     expect(safeImageUrl('https://example.com/photo.jpg')).toBe('https://example.com/photo.jpg');
     expect(safeImageUrl('http://example.com/photo.jpg')).toBe('http://example.com/photo.jpg');
-    expect(safeImageUrl('data:image/webp;base64,aaaa')).toBe('data:image/webp;base64,aaaa');
+    expect(safeImageUrl('/api/photos/photo_test')).toBe('/api/photos/photo_test');
+    expect(safeImageUrl('/uploads/avatar.webp')).toBe('/uploads/avatar.webp');
+    expect(safeImageUrl('data:image/webp;base64,aaaa')).toBe('');
     expect(safeImageUrl('javascript:alert(1)')).toBe('');
     expect(safeImageUrl('data:image/svg+xml;base64,PHN2Zy8+')).toBe('');
+    expect(safeImageUrl('//evil.example/avatar.webp')).toBe('');
+  });
+
+  test('returns resolved profile-photo fields without letting logo override the avatar', () => {
+    const payload = safePublicSupplier(
+      {
+        id: 'sup_123',
+        name: 'Profile Photo Supplier',
+        profilePhotoUrl: '/api/photos/photo_test',
+        displayAvatarUrl: '/api/photos/display_should_not_win',
+        avatarUrl: '/api/photos/avatar_should_not_win',
+        logo: '/uploads/logo.webp',
+        profileImage: '/uploads/profile-image.webp',
+      },
+      { profilePhotoUrl: '/api/photos/owner_avatar' }
+    );
+
+    expect(payload.profilePhotoUrl).toBe('/api/photos/owner_avatar');
+    expect(payload.avatarUrl).toBe('/api/photos/owner_avatar');
+    expect(payload.displayAvatarUrl).toBe('/api/photos/owner_avatar');
+    expect(payload.logo).toBe('/uploads/logo.webp');
+    expect(payload.profileImage).toBe('/uploads/logo.webp');
   });
 
   test('handles null and malformed nested public profile fields without leaking placeholders', () => {

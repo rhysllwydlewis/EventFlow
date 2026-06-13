@@ -4,6 +4,7 @@ const { stripHtml } = require('./helpers');
 
 const DEFAULT_MAX_IMAGE_CHARS = 1200000;
 const DATA_IMAGE_RE = /^data:image\/(png|jpe?g|webp|gif);base64,[a-z0-9+/]+={0,2}$/i;
+const ROOTED_IMAGE_RE = /^\/[^/\\:][^:]*$/;
 
 function text(value, max = 500) {
   if (value === null || value === undefined) {
@@ -32,6 +33,9 @@ function safeImageUrl(value, max = DEFAULT_MAX_IMAGE_CHARS) {
     return '';
   }
   if (DATA_IMAGE_RE.test(cleaned)) {
+    return '';
+  }
+  if (ROOTED_IMAGE_RE.test(cleaned)) {
     return cleaned;
   }
   try {
@@ -143,34 +147,18 @@ function safePublicSupplier(supplier = {}, extras = {}) {
   const source = supplier && typeof supplier === 'object' ? supplier : {};
   const extra = extras && typeof extras === 'object' ? extras : {};
   const bannerUrl = safeImageUrl(source.bannerUrl || source.coverImage);
-
-  // Resolve the profile photo. Each candidate is validated individually so
-  // that a non-empty but invalid URL (e.g. javascript:...) is rejected and
-  // the next candidate in the chain is tried instead.
-  //   Priority:
-  //     1. ownerAvatarUrl from route extras (fetched from the linked user)
-  //     2. Supplier's own direct photo fields (profilePhotoUrl → avatarUrl → …)
-  //     3. Empty — frontend falls back to initials + gradient
-  function _firstSafeImage(...candidates) {
-    for (const c of candidates) {
-      const safe = safeImageUrl(c || '');
-      if (safe) return safe;
-    }
-    return '';
-  }
-
-  const resolvedPhoto = _firstSafeImage(
-    extra.ownerAvatarUrl,
-    source.profilePhotoUrl,
-    source.avatarUrl,
-    source.displayAvatarUrl,
-    source.logo,
-    source.profileImage,
-    source.photoUrl,
-    source.image
+  const logo = safeImageUrl(source.logo || source.profileImage);
+  const profilePhotoUrl = safeImageUrl(
+    extra.profilePhotoUrl ||
+      source.profilePhotoUrl ||
+      source.displayAvatarUrl ||
+      source.avatarUrl ||
+      source.profileImage ||
+      source.profilePhoto ||
+      source.photoUrl ||
+      source.image ||
+      source.logo
   );
-
-  const logo = resolvedPhoto || safeImageUrl(source.logo || source.profileImage);
   const website = safeExternalUrl(source.website);
   const socialLinks = safeSocialLinks(source.socialLinks);
   const rating = numberOrNull(source.averageRating ?? source.rating);
@@ -193,11 +181,9 @@ function safePublicSupplier(supplier = {}, extras = {}) {
     openGraphImage: safeImageUrl(source.openGraphImage || bannerUrl || logo),
     logo,
     profileImage: logo,
-    // Canonical photo fields — all point to the same resolved photo so that
-    // the front-end can read whichever field name it prefers
-    avatarUrl: resolvedPhoto,
-    displayAvatarUrl: resolvedPhoto,
-    profilePhotoUrl: resolvedPhoto,
+    profilePhotoUrl,
+    avatarUrl: profilePhotoUrl,
+    displayAvatarUrl: profilePhotoUrl,
     themeColor: /^#[0-9a-f]{6}$/i.test(String(source.themeColor || ''))
       ? String(source.themeColor).trim()
       : null,

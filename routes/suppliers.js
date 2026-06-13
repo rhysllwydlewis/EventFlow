@@ -10,6 +10,10 @@ const router = express.Router();
 const { apiLimiter } = require('../middleware/rateLimits');
 const subscriptionService = require('../services/subscriptionService');
 const { canPublishPublicCalendar } = require('../utils/calendarPermissions');
+const {
+  findOwnerUserForSupplier,
+  resolveSupplierProfilePhoto,
+} = require('../utils/supplierProfilePhoto');
 
 // Dependencies injected by server.js
 let dbUnified;
@@ -238,8 +242,13 @@ router.get('/suppliers', async (req, res) => {
         const featuredSupplier = pkgs.some(p => p.supplierId === s.id && p.featured);
         const subscriptionTier = await resolveEffectiveSupplierTier(s);
         const isProActive = subscriptionTier !== 'free';
+        const ownerUser = findOwnerUserForSupplier(s, users);
+        const profilePhotoUrl = resolveSupplierProfilePhoto(s, ownerUser);
         return {
           ...s,
+          profilePhotoUrl,
+          avatarUrl: profilePhotoUrl,
+          displayAvatarUrl: profilePhotoUrl,
           featuredSupplier,
           isPro: isProActive,
           subscriptionTier,
@@ -302,11 +311,10 @@ router.get('/suppliers/:id', async (req, res) => {
     // Reject orphaned supplier profiles whose owner account no longer exists.
     // Admins can still view them for moderation; the supplier owner (logged in as themselves)
     // can also still access their profile (e.g. during an account-transition window).
-    if (!isAdmin && !isOwner && sRaw.ownerUserId) {
-      const ownerUser = await dbUnified.findOne('users', { id: sRaw.ownerUserId });
-      if (!ownerUser) {
-        return res.status(404).json({ error: 'Supplier not found' });
-      }
+    const users = await dbUnified.read('users');
+    const ownerUser = findOwnerUserForSupplier(sRaw, users);
+    if (sRaw.ownerUserId && !ownerUser && !isAdmin && !isOwner) {
+      return res.status(404).json({ error: 'Supplier not found' });
     }
 
     const pkgs = await dbUnified.read('packages');
@@ -337,8 +345,13 @@ router.get('/suppliers/:id', async (req, res) => {
       }
     }
 
+    const profilePhotoUrl = resolveSupplierProfilePhoto(sRaw, ownerUser);
+
     const s = {
       ...sRaw,
+      profilePhotoUrl,
+      avatarUrl: profilePhotoUrl,
+      displayAvatarUrl: profilePhotoUrl,
       featuredSupplier,
       isPro: isProActive,
       subscriptionTier,
@@ -431,7 +444,32 @@ router.get('/suppliers/:id/packages', async (req, res) => {
  */
 router.get('/me/suppliers', applyAuthRequired, applyRoleRequired('supplier'), async (req, res) => {
   try {
-    const listRaw = await dbUnified.find('suppliers', { ownerUserId: req.user.id });
+    const ownerUser = (await dbUnified.findOne('users', { id: req.user.id })) || req.user;
+    const ownerEmail =
+      typeof ownerUser?.email === 'string' ? ownerUser.email.trim().toLowerCase() : '';
+    const ownedSuppliers = await dbUnified.find('suppliers', { ownerUserId: req.user.id });
+    const allSuppliers = ownerEmail ? await dbUnified.read('suppliers') : [];
+    const suppliersById = new Map(ownedSuppliers.map(supplier => [supplier.id, supplier]));
+    for (const supplier of allSuppliers) {
+      if (supplier.ownerUserId) {
+        continue;
+      }
+      const supplierEmails = [supplier.email, supplier.ownerEmail, supplier.contactEmail]
+        .filter(value => typeof value === 'string')
+        .map(value => value.trim().toLowerCase());
+      if (supplierEmails.includes(ownerEmail)) {
+        suppliersById.set(supplier.id, supplier);
+        await dbUnified.updateOne(
+          'suppliers',
+          { id: supplier.id },
+          { $set: { ownerUserId: req.user.id } }
+        );
+      }
+    }
+    const listRaw = [...suppliersById.values()].map(supplier => ({
+      ...supplier,
+      ownerUserId: supplier.ownerUserId || req.user.id,
+    }));
     // Fetch the user's subscription once and attach the plan name to every supplier object
     // so the client-side tier checks (s.subscriptionTier === 'pro') work correctly.
     const userSubscription = await subscriptionService.getSubscriptionByUserId(req.user.id);
@@ -439,15 +477,21 @@ router.get('/me/suppliers', applyAuthRequired, applyRoleRequired('supplier'), as
       ? userSubscription.plan
       : null;
     const list = await Promise.all(
-      listRaw.map(async s => ({
-        ...s,
-        isPro: await supplierIsProActive(s),
-        // Fresh subscription tier takes precedence over any stale value stored on the supplier document.
-        subscriptionTier: subscriptionTier || s.subscriptionTier || null,
-        proExpiresAt: s.proExpiresAt || null,
-        // Derived publishing right so clients don't need to duplicate the logic.
-        canPublishPublicCalendar: canPublishPublicCalendar(s),
-      }))
+      listRaw.map(async s => {
+        const profilePhotoUrl = resolveSupplierProfilePhoto(s, ownerUser);
+        return {
+          ...s,
+          profilePhotoUrl,
+          avatarUrl: profilePhotoUrl,
+          displayAvatarUrl: profilePhotoUrl,
+          isPro: await supplierIsProActive(s),
+          // Fresh subscription tier takes precedence over any stale value stored on the supplier document.
+          subscriptionTier: subscriptionTier || s.subscriptionTier || null,
+          proExpiresAt: s.proExpiresAt || null,
+          // Derived publishing right so clients don't need to duplicate the logic.
+          canPublishPublicCalendar: canPublishPublicCalendar(s),
+        };
+      })
     );
     res.json({ items: list });
   } catch (error) {
@@ -471,7 +515,8 @@ router.get('/packages/featured', async (_req, res) => {
 
     // Build valid user IDs set once for orphan filtering
     const users = await dbUnified.read('users');
-    const validUserIds = new Set(users.map(u => u.id).filter(Boolean));
+    const ownerUserById = new Map(users.filter(u => u && u.id).map(u => [u.id, u]));
+    const validUserIds = new Set(ownerUserById.keys());
 
     // Use efficient querying for MongoDB
     const dbType = dbUnified.getDatabaseType();
@@ -562,7 +607,8 @@ router.get('/packages/spotlight', async (_req, res) => {
 
     // Build valid user IDs set once for orphan filtering
     const users = await dbUnified.read('users');
-    const validUserIds = new Set(users.map(u => u.id).filter(Boolean));
+    const ownerUserById = new Map(users.filter(u => u && u.id).map(u => [u.id, u]));
+    const validUserIds = new Set(ownerUserById.keys());
 
     // Get approved packages
     const dbType = dbUnified.getDatabaseType();
@@ -784,7 +830,8 @@ router.get('/packages/:slug', async (req, res) => {
     const packages = await dbUnified.read('packages');
     const suppliers = await dbUnified.read('suppliers');
     const users = await dbUnified.read('users');
-    const validUserIds = new Set(users.map(u => u.id).filter(Boolean));
+    const ownerUserById = new Map(users.filter(u => u && u.id).map(u => [u.id, u]));
+    const validUserIds = new Set(ownerUserById.keys());
     // Only include approved suppliers whose owner account still exists
     const approvedSupplierIds = new Set(
       suppliers
@@ -807,13 +854,21 @@ router.get('/packages/:slug', async (req, res) => {
       return res.status(404).json({ error: 'Package not found' });
     }
 
-    const supplier = suppliers.find(
+    const supplierRaw = suppliers.find(
       s =>
         s.id === pkg.supplierId && s.approved && (!s.ownerUserId || validUserIds.has(s.ownerUserId))
     );
-    if (!supplier) {
+    if (!supplierRaw) {
       return res.status(404).json({ error: 'Package not found' });
     }
+    const supplierOwnerUser = findOwnerUserForSupplier(supplierRaw, users);
+    const supplierProfilePhotoUrl = resolveSupplierProfilePhoto(supplierRaw, supplierOwnerUser);
+    const supplier = {
+      ...supplierRaw,
+      profilePhotoUrl: supplierProfilePhotoUrl,
+      avatarUrl: supplierProfilePhotoUrl,
+      displayAvatarUrl: supplierProfilePhotoUrl,
+    };
 
     // Get category details
     const categories = await dbUnified.read('categories');

@@ -23,6 +23,10 @@
       title: 'Log in to add packages to your plan',
       body: "Create an account or log in to add packages to your event plan. After you sign in, we'll take you back to where you were.",
     },
+    listing: {
+      title: 'Log in to list an item',
+      body: "Create an account or log in to list your pre-loved event item on the Marketplace. After you sign in, we'll continue with your listing.",
+    },
   };
 
   // Messages shown when the server redirected the user (reason param)

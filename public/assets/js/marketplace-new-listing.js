@@ -56,7 +56,7 @@
 
       if (res.status === 401) {
         // Not logged in - redirect to auth
-        window.location.href = '/auth?redirect=/supplier/marketplace-new-listing';
+        window.location.href = '/auth?redirect=/supplier/marketplace-new-listing&intent=listing';
         return false;
       }
 
@@ -80,7 +80,7 @@
       }
 
       if (!currentUser) {
-        window.location.href = '/auth?redirect=/supplier/marketplace-new-listing';
+        window.location.href = '/auth?redirect=/supplier/marketplace-new-listing&intent=listing';
         return false;
       }
 
