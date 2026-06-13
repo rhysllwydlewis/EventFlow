@@ -143,7 +143,34 @@ function safePublicSupplier(supplier = {}, extras = {}) {
   const source = supplier && typeof supplier === 'object' ? supplier : {};
   const extra = extras && typeof extras === 'object' ? extras : {};
   const bannerUrl = safeImageUrl(source.bannerUrl || source.coverImage);
-  const logo = safeImageUrl(source.logo || source.profileImage);
+
+  // Resolve the profile photo. Each candidate is validated individually so
+  // that a non-empty but invalid URL (e.g. javascript:...) is rejected and
+  // the next candidate in the chain is tried instead.
+  //   Priority:
+  //     1. ownerAvatarUrl from route extras (fetched from the linked user)
+  //     2. Supplier's own direct photo fields (profilePhotoUrl → avatarUrl → …)
+  //     3. Empty — frontend falls back to initials + gradient
+  function _firstSafeImage(...candidates) {
+    for (const c of candidates) {
+      const safe = safeImageUrl(c || '');
+      if (safe) return safe;
+    }
+    return '';
+  }
+
+  const resolvedPhoto = _firstSafeImage(
+    extra.ownerAvatarUrl,
+    source.profilePhotoUrl,
+    source.avatarUrl,
+    source.displayAvatarUrl,
+    source.logo,
+    source.profileImage,
+    source.photoUrl,
+    source.image
+  );
+
+  const logo = resolvedPhoto || safeImageUrl(source.logo || source.profileImage);
   const website = safeExternalUrl(source.website);
   const socialLinks = safeSocialLinks(source.socialLinks);
   const rating = numberOrNull(source.averageRating ?? source.rating);
@@ -166,6 +193,11 @@ function safePublicSupplier(supplier = {}, extras = {}) {
     openGraphImage: safeImageUrl(source.openGraphImage || bannerUrl || logo),
     logo,
     profileImage: logo,
+    // Canonical photo fields — all point to the same resolved photo so that
+    // the front-end can read whichever field name it prefers
+    avatarUrl: resolvedPhoto,
+    displayAvatarUrl: resolvedPhoto,
+    profilePhotoUrl: resolvedPhoto,
     themeColor: /^#[0-9a-f]{6}$/i.test(String(source.themeColor || ''))
       ? String(source.themeColor).trim()
       : null,

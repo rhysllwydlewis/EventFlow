@@ -276,7 +276,7 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
       return;
     }
 
-    // ── Avatar initials ──────────────────────────────────────────────────────
+    // ── Avatar initials + optional profile photo ─────────────────────────────
     const avatarEl = document.getElementById('hero-avatar');
     const avatarInitialsEl = document.getElementById('hero-avatar-initials');
     if (avatarEl && avatarInitialsEl) {
@@ -291,6 +291,42 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
         (catPreset ? CATEGORY_ACCENT[catPreset] : null) ||
         '#0B8073';
       avatarEl.style.background = `linear-gradient(135deg, ${accentColor} 0%, ${_lightenHex(accentColor, 30)} 100%)`;
+
+      // If the API returned a real photo URL, overlay an <img> on top of the
+      // gradient so the supplier's actual profile photo is displayed.
+      // Priority matches safePublicSupplier resolution order.
+      const photoUrl =
+        supplier.avatarUrl ||
+        supplier.profilePhotoUrl ||
+        supplier.displayAvatarUrl ||
+        supplier.logo ||
+        supplier.profileImage ||
+        '';
+
+      if (photoUrl) {
+        // Remove any previously injected image (defensive for hot-reload)
+        const existing = document.getElementById('hero-avatar-img');
+        if (existing) existing.remove();
+
+        const img = document.createElement('img');
+        img.id = 'hero-avatar-img';
+        img.src = photoUrl;
+        img.alt = supplier.name ? `${supplier.name} profile photo` : 'Supplier profile photo';
+        img.setAttribute('aria-hidden', 'true'); // decorative — name is in the h1
+        img.style.cssText =
+          'position:absolute;inset:0;width:100%;height:100%;' +
+          'object-fit:cover;border-radius:50%;';
+        // On load failure fall back gracefully — remove the img and keep initials visible
+        img.onerror = function () {
+          this.remove();
+          avatarInitialsEl.style.opacity = '';
+        };
+
+        // Ensure the avatar container clips the image correctly
+        avatarEl.style.overflow = 'hidden';
+        avatarInitialsEl.style.opacity = '0';
+        avatarEl.appendChild(img);
+      }
     }
 
     // ── Hero banner / gradient ───────────────────────────────────────────────

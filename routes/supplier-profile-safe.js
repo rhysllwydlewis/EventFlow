@@ -81,12 +81,43 @@ router.get('/suppliers/:id', async (req, res, next) => {
       : Boolean(supplier.isPro);
     const preview = previewMode(req) && canPreview(req, supplier);
 
+    // Resolve the owner user's avatar so the public profile can display the
+    // correct profile photo even when the supplier record has no direct logo.
+    // Walk through all known owner-link field names to support legacy records.
+    let ownerAvatarUrl = '';
+    const ownerUserId =
+      supplier.ownerUserId ||
+      supplier.userId ||
+      supplier.ownerId ||
+      supplier.accountId ||
+      supplier.createdByUserId;
+    if (ownerUserId) {
+      try {
+        const ownerUser = await dbUnified.findOne('users', { id: ownerUserId });
+        if (ownerUser) {
+          // Walk through all known avatar field names on the user record
+          ownerAvatarUrl =
+            ownerUser.avatarUrl ||
+            ownerUser.profilePhotoUrl ||
+            ownerUser.displayAvatarUrl ||
+            ownerUser.photoUrl ||
+            ownerUser.profileImage ||
+            ownerUser.image ||
+            '';
+        }
+      } catch (ownerErr) {
+        // Non-fatal — fall back to the supplier's own photo fields
+        logger.warn('Failed to resolve owner avatar for supplier', supplier.id, ownerErr.message);
+      }
+    }
+
     return res.json(
       safePublicSupplier(supplier, {
         badgeDetails: await badgeDetailsFor(supplier),
         featuredSupplier,
         isPreview: preview,
         isPro,
+        ownerAvatarUrl,
       })
     );
   } catch (error) {
