@@ -21,6 +21,13 @@ describe('profile customization controller', () => {
     expect(controller).not.toContain('if (Object.keys(socialLinks).length > 0)');
   });
 
+  it('uses the app CSRF token pattern instead of the removed auth csrf endpoint', () => {
+    expect(controller).toContain("const endpoints = ['/api/csrf-token', '/api/v1/csrf-token']");
+    expect(controller).toContain("readCookie('csrf')");
+    expect(controller).toContain("readCookie('csrfToken')");
+    expect(controller).not.toContain('/api/auth/csrf');
+  });
+
   it('keeps banner and stock photo interactions observable by the dirty-state system', () => {
     expect(controller).toContain("form.addEventListener('submit', handleFormSubmit, true)");
     expect(controller).toContain("bannerInput.dispatchEvent(new Event('input', { bubbles: true }))");
@@ -42,5 +49,12 @@ describe('profile customization controller', () => {
     expect(controller).toContain('.pc-save-bar.pc-save-bar--visible');
     expect(controller).toContain('.pc-preview-body .pc-preview-name');
     expect(controller).toContain("event.key === 'Enter' || event.key === ' '");
+  });
+
+  it('renders the active colour swatch with an outer animated ring rather than an inner dot', () => {
+    expect(controller).toContain('.color-preset.active::after');
+    expect(controller).toContain('inset: -7px');
+    expect(controller).toContain('@keyframes pcColorRingGlow');
+    expect(controller).not.toContain('inset: 8px');
   });
 });
