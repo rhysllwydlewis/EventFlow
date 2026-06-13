@@ -12,6 +12,16 @@ const logger = require('../utils/logger');
 
 const PRODUCTION_APP_ORIGINS = ['https://event-flow.co.uk', 'https://www.event-flow.co.uk'];
 
+// The supplier profile customisation page still contains two legacy inline scripts
+// in the static HTML shell. Keep CSP strict by allowing only their exact hashes
+// rather than weakening the policy with 'unsafe-inline'. The external controller
+// added in PR #1202 owns the functional behaviour; these hashes remove browser
+// CSP noise until the remaining inline shell can be removed in a later HTML cleanup.
+const LEGACY_PROFILE_CUSTOMIZATION_INLINE_SCRIPT_HASHES = [
+  "'sha256-I4IL+1RPLuuXd92FWbs4xjScLQmVhsgQF+cDe/pnxE='",
+  "'sha256-N1M6EuZ08OtHzXxJT4SHQYVsxH0E0b52S1I4n3CE7A='",
+];
+
 function normalizeCorsOrigin(value) {
   const raw = String(value || '').trim();
   if (!raw) {
@@ -65,6 +75,7 @@ function configureHelmet(isProduction = false) {
         defaultSrc: ["'self'"],
         scriptSrc: [
           "'self'",
+          ...LEGACY_PROFILE_CUSTOMIZATION_INLINE_SCRIPT_HASHES,
           'https://cdn.jsdelivr.net',
           'https://cdn.socket.io',
           'https://cdn.tidycal.net',
@@ -83,6 +94,7 @@ function configureHelmet(isProduction = false) {
         // Explicitly define script-src-elem to avoid fallback ambiguity/noise in browser consoles.
         scriptSrcElem: [
           "'self'",
+          ...LEGACY_PROFILE_CUSTOMIZATION_INLINE_SCRIPT_HASHES,
           'https://cdn.jsdelivr.net',
           'https://cdn.socket.io',
           'https://cdn.tidycal.net',

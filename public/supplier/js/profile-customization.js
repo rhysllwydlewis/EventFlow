@@ -1,25 +1,32 @@
 /**
  * Profile Customization Page
- * Handles loading and saving profile customization settings
+ * Handles loading, live preview, validation and saving for supplier profile customization.
  */
 
 (function () {
   'use strict';
 
-  // Helper function to make API requests
-  async function api(path, opts = {}) {
-    const options = {
-      ...opts,
-      credentials: opts.credentials || 'include',
-    };
-    const r = await fetch(path, options);
-    if (!r.ok) {
-      throw new Error((await r.json()).error || 'Request failed');
-    }
-    return r.json();
+  const DEFAULT_COLOR = '#0B8073';
+  const HEX_RE = /^#[0-9A-F]{6}$/i;
+  const SOCIAL_PLATFORMS = ['facebook', 'instagram', 'twitter', 'linkedin', 'youtube', 'tiktok'];
+  const SOCIAL_LABELS = {
+    facebook: 'Facebook',
+    instagram: 'Instagram',
+    twitter: 'X / Twitter',
+    linkedin: 'LinkedIn',
+    youtube: 'YouTube',
+    tiktok: 'TikTok',
+  };
+
+  let currentEditingSupplierId = null;
+  let suppliers = [];
+  let dirty = false;
+  let initialising = false;
+
+  function $(id) {
+    return document.getElementById(id);
   }
 
-  // Helper to escape HTML special characters to prevent XSS
   function escapeHtml(str) {
     if (!str) {
       return '';
@@ -32,531 +39,415 @@
       .replace(/'/g, '&#39;');
   }
 
-  /**
-   * Validate a social media URL is a recognised HTTPS URL.
-   * Returns an error string or null if valid.
-   */
-  function validateSocialUrl(value) {
-    if (!value || !value.trim()) {
-      return null;
-    } // optional field
-    const trimmed = value.trim();
-    try {
-      const u = new URL(trimmed);
-      if (u.protocol !== 'https:' && u.protocol !== 'http:') {
-        return 'Please enter a full URL (e.g. https://instagram.com/yourpage)';
-      }
-      return null;
-    } catch (_) {
-      return 'Please enter a valid URL (e.g. https://instagram.com/yourpage)';
+  function setStatus(message, type = 'muted') {
+    const statusEl = $('sup-status');
+    if (!statusEl) {
+      return;
     }
+    statusEl.textContent = message || '';
+    const colours = {
+      success: '#0b8073',
+      error: '#dc2626',
+      muted: '#667085',
+      warning: '#b45309',
+    };
+    statusEl.style.color = colours[type] || colours.muted;
   }
 
-  // Helper to get CSRF token
+  function notify(type, message) {
+    const dispatcher = window.NotificationDispatcher;
+    if (dispatcher && typeof dispatcher[type] === 'function') {
+      dispatcher[type](message);
+      return;
+    }
+    setStatus(message, type === 'success' ? 'success' : type === 'error' ? 'error' : 'muted');
+  }
+
+  async function api(path, opts = {}) {
+    const options = {
+      ...opts,
+      credentials: opts.credentials || 'include',
+    };
+    const response = await fetch(path, options);
+    if (!response.ok) {
+      let message = 'Request failed';
+      try {
+        const errorBody = await response.json();
+        message = errorBody.error || errorBody.message || message;
+      } catch (_) {
+        message = response.statusText || message;
+      }
+      throw new Error(message);
+    }
+    if (response.status === 204) {
+      return {};
+    }
+    return response.json();
+  }
+
   async function ensureCsrfToken() {
-    try {
-      const response = await fetch('/api/auth/csrf', { credentials: 'include' });
-      if (!response.ok) {
-        throw new Error('Failed to fetch CSRF token');
-      }
-      const data = await response.json();
-      return data.token;
-    } catch (error) {
-      console.error('Failed to get CSRF token:', error);
-      throw error;
+    const response = await fetch('/api/auth/csrf', { credentials: 'include' });
+    if (!response.ok) {
+      throw new Error('Failed to fetch CSRF token');
     }
+    const data = await response.json();
+    if (!data.token) {
+      throw new Error('Missing CSRF token');
+    }
+    return data.token;
   }
 
-  let currentEditingSupplierId = null;
-  let suppliers = [];
-
-  // Load supplier profiles
-  async function loadSuppliers() {
-    try {
-      const data = await api('/api/me/suppliers');
-      suppliers = data.items || [];
-
-      const container = document.getElementById('profile-selector-container');
-      if (!container) {
-        return;
-      }
-
-      // Hide the selector card if only one profile (already shown in header)
-      const selectorSection = document.getElementById('pc-selector-section');
-
-      if (suppliers.length === 0) {
-        container.innerHTML = `
-          <p class="small" style="color: #667085;">
-            You don't have any supplier profiles yet.
-            <a href="/dashboard/supplier" style="color: #667eea;">Create one on your dashboard</a>.
-          </p>
-        `;
-        return;
-      }
-
-      if (suppliers.length === 1) {
-        // Only one profile — show name inline, hide the full selector card
-        container.innerHTML = `
-          <p class="small" style="color: #667085; margin:0;">
-            Editing: <strong>${escapeHtml(suppliers[0].name)}</strong>
-          </p>
-        `;
-        if (selectorSection) selectorSection.style.display = 'none';
-        currentEditingSupplierId = suppliers[0].id;
-        populateForm(suppliers[0]);
-      } else {
-        // Multiple profiles — show dropdown
-        container.innerHTML = `
-          <label for="profile-select" style="font-size:0.85rem;font-weight:600;color:#374151;margin-bottom:0.375rem;display:block;">Choose a profile to customize:</label>
-          <select id="profile-select">
-            ${suppliers.map(s => `<option value="${escapeHtml(s.id)}">${escapeHtml(s.name)}</option>`).join('')}
-          </select>
-        `;
-
-        const select = document.getElementById('profile-select');
-        if (select) {
-          currentEditingSupplierId = suppliers[0].id;
-          populateForm(suppliers[0]);
-
-          select.addEventListener('change', function () {
-            const selectedSupplier = suppliers.find(s => s.id === this.value);
-            if (selectedSupplier) {
-              currentEditingSupplierId = selectedSupplier.id;
-              populateForm(selectedSupplier);
-              if (window._pcMarkClean) window._pcMarkClean();
-            }
-          });
-        }
-      }
-    } catch (error) {
-      console.error('Failed to load suppliers:', error);
-      const container = document.getElementById('profile-selector-container');
-      if (container) {
-        container.innerHTML = `
-          <p class="small" style="color: #ef4444;">
-            Failed to load profiles. Please try refreshing the page.
-          </p>
-        `;
-      }
-    }
-  }
-
-  // Expose reload hook so the Discard button can call it
-  window._pcReloadCurrentSupplier = function () {
-    if (currentEditingSupplierId) {
-      const sup = suppliers.find(s => s.id === currentEditingSupplierId);
-      if (sup) populateForm(sup);
-    }
-  };
-
-  // Populate form with supplier data
-  function populateForm(supplier) {
-    if (!supplier) {
+  function injectPolishStyles() {
+    if ($('pc-customization-runtime-polish')) {
       return;
     }
-
-    // Set supplier ID
-    const supId = document.getElementById('sup-id');
-    if (supId) {
-      supId.value = supplier.id || '';
-    }
-
-    // Banner
-    const supBanner = document.getElementById('sup-banner');
-    if (supBanner) {
-      supBanner.value = supplier.bannerUrl || '';
-    }
-
-    // Show existing banner image in preview if exists
-    const bannerPreview = document.getElementById('sup-banner-preview');
-    if (bannerPreview) {
-      bannerPreview.innerHTML = '';
-      if (supplier.bannerUrl) {
-        const imgDiv = document.createElement('div');
-        imgDiv.className = 'photo-preview-item';
-        imgDiv.classList.add('photo-preview-item-inner');
-
-        const img = document.createElement('img');
-        img.src = supplier.bannerUrl;
-        img.alt = 'Banner preview';
-        img.className = 'photo-preview-img';
-
-        const removeBtn = document.createElement('button');
-        removeBtn.type = 'button';
-        removeBtn.className = 'photo-preview-remove';
-        removeBtn.setAttribute('aria-label', 'Remove banner image');
-        removeBtn.textContent = '\u2715';
-        removeBtn.addEventListener('click', () => {
-          imgDiv.remove();
-          const bannerInput = document.getElementById('sup-banner');
-          if (bannerInput) bannerInput.value = '';
-          // Update live-preview banner back to color gradient
-          const pBanner = document.getElementById('preview-banner');
-          if (pBanner) {
-            pBanner.innerHTML = '';
-            const color = document.getElementById('sup-theme-color')?.value || '#0B8073';
-            pBanner.style.background = `linear-gradient(135deg, ${color}, ${color}cc)`;
-          }
-          if (window._pcMarkDirty) window._pcMarkDirty();
-          if (window._pcUpdatePreview) window._pcUpdatePreview();
-        });
-
-        imgDiv.appendChild(img);
-        imgDiv.appendChild(removeBtn);
-        bannerPreview.appendChild(imgDiv);
-
-        // Sync to live preview
-        const pBanner = document.getElementById('preview-banner');
-        if (pBanner) {
-          pBanner.innerHTML = '';
-          pBanner.style.background = 'none';
-          const previewImg = document.createElement('img');
-          previewImg.src = supplier.bannerUrl;
-          previewImg.alt = '';
-          pBanner.appendChild(previewImg);
+    const style = document.createElement('style');
+    style.id = 'pc-customization-runtime-polish';
+    style.textContent = `
+      #main-content.section { padding-top: 2rem; }
+      #main-content > .container { max-width: 1180px; }
+      .supplier-breadcrumb { margin-bottom: 1rem; }
+      .supplier-breadcrumb-link {
+        display: inline-flex;
+        align-items: center;
+        gap: .35rem;
+        min-height: 38px;
+        padding: .48rem .82rem;
+        border: 1px solid rgba(11,128,115,.14);
+        border-radius: 999px;
+        background: rgba(255,255,255,.78);
+        box-shadow: 0 8px 22px rgba(15,23,42,.06), inset 0 1px 0 rgba(255,255,255,.9);
+        color: #0b8073;
+        font-weight: 700;
+        text-decoration: none;
+      }
+      .pc-header-card {
+        position: relative;
+        overflow: hidden;
+        border: 1px solid rgba(11,128,115,.16);
+        background:
+          radial-gradient(circle at 8% 0%, rgba(19,182,162,.12), transparent 35%),
+          linear-gradient(135deg, rgba(255,255,255,.94), rgba(240,253,249,.86));
+        box-shadow: 0 18px 46px rgba(15, 23, 42, .08), inset 0 1px 0 rgba(255,255,255,.92);
+      }
+      .pc-header-card::after {
+        content: '';
+        position: absolute;
+        inset: auto -8rem -9rem auto;
+        width: 18rem;
+        height: 18rem;
+        border-radius: 999px;
+        background: rgba(11,128,115,.07);
+        pointer-events: none;
+      }
+      .pc-header-card .supplier-page-title {
+        color: #0f172a !important;
+        letter-spacing: -0.035em;
+      }
+      .pc-header-card .supplier-page-subtitle { color: #667085 !important; }
+      .pc-header-actions .cta { box-shadow: 0 10px 24px rgba(15,23,42,.08); }
+      .pc-selector-card { margin-bottom: 1rem; border: 1px solid rgba(11,128,115,.12); }
+      .pc-layout { align-items: start; }
+      .pc-form-col { min-width: 0; }
+      .pc-step {
+        border-color: rgba(11,128,115,.12);
+        box-shadow: 0 12px 34px rgba(15,23,42,.055), inset 0 1px 0 rgba(255,255,255,.92);
+      }
+      .pc-step:hover { transform: translateY(-1px); }
+      .pc-step-desc { max-width: 72ch; color: #64748b; }
+      .pc-step-header { border-bottom-color: rgba(11,128,115,.09); }
+      .pc-step-num { box-shadow: 0 8px 18px rgba(11,128,115,.22); }
+      .pc-banner-zone {
+        isolation: isolate;
+        min-height: 148px;
+        display: grid;
+        place-items: center;
+      }
+      .pc-banner-zone:focus-visible,
+      #select-stock-photo-btn:focus-visible,
+      .color-preset:focus-visible,
+      #pc-save-bar-save:focus-visible,
+      #pc-save-bar-discard:focus-visible,
+      #sup-save-btn:focus-visible,
+      #reset-theme-color:focus-visible {
+        outline: 3px solid rgba(11,128,115,.28);
+        outline-offset: 3px;
+      }
+      .pc-banner-zone.has-image { border-style: solid; background: rgba(11,128,115,.045); }
+      .photo-preview-grid:empty { display: none; }
+      .photo-preview-grid:not(:empty) { display: grid; grid-template-columns: minmax(0, 1fr); gap: .75rem; }
+      .photo-preview-item-inner {
+        position: relative;
+        overflow: hidden;
+        border-radius: 18px;
+        border: 1px solid rgba(15,23,42,.08);
+        box-shadow: 0 14px 34px rgba(15,23,42,.12);
+      }
+      .photo-preview-img { width: 100%; height: 168px; object-fit: cover; display: block; }
+      .photo-preview-remove {
+        position: absolute;
+        top: .55rem;
+        right: .55rem;
+        width: 32px;
+        height: 32px;
+        border: 0;
+        border-radius: 999px;
+        background: rgba(17,24,39,.76);
+        color: #fff;
+        cursor: pointer;
+        display: grid;
+        place-items: center;
+        box-shadow: 0 8px 18px rgba(0,0,0,.18);
+      }
+      .pc-color-row { gap: .62rem; }
+      .color-preset {
+        position: relative;
+        width: 32px !important;
+        height: 32px !important;
+        border: 2px solid rgba(255,255,255,.95) !important;
+        box-shadow: 0 7px 16px rgba(15,23,42,.14) !important;
+      }
+      .color-preset.active::after {
+        content: '';
+        position: absolute;
+        inset: 8px;
+        border-radius: 999px;
+        border: 2px solid rgba(255,255,255,.98);
+        box-shadow: 0 0 0 1px rgba(15,23,42,.08);
+      }
+      .color-picker-group {
+        align-items: center;
+        gap: .7rem;
+        padding: .72rem;
+        border: 1px solid rgba(11,128,115,.10);
+        border-radius: 14px;
+        background: rgba(255,255,255,.72);
+        width: max-content;
+        max-width: 100%;
+      }
+      .color-preview-card {
+        overflow: hidden;
+        border-radius: 16px;
+        border: 1px solid rgba(15,23,42,.08);
+        box-shadow: 0 10px 26px rgba(15,23,42,.06);
+      }
+      .pc-social-grid { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+      .pc-social-item { min-height: 52px; border-color: rgba(15,23,42,.08); }
+      .pc-social-item:hover { border-color: rgba(11,128,115,.32); background: rgba(255,255,255,.96); }
+      .pc-social-input { min-height: 32px; }
+      .pc-sidebar { z-index: 5; }
+      .pc-completion,
+      .pc-preview-card,
+      .pc-sidebar > .pc-step {
+        border-color: rgba(11,128,115,.13);
+        box-shadow: 0 16px 38px rgba(15,23,42,.07), inset 0 1px 0 rgba(255,255,255,.9);
+      }
+      .pc-preview-card { overflow: hidden; }
+      .pc-preview-banner::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(180deg, transparent, rgba(15,23,42,.20));
+        pointer-events: none;
+      }
+      .pc-preview-body { background: linear-gradient(180deg, rgba(255,255,255,.96), rgba(248,250,252,.94)); }
+      .pc-preview-body .pc-preview-name {
+        color: #0f172a !important;
+        text-shadow: none !important;
+      }
+      .pc-preview-body .pc-preview-tagline {
+        color: #64748b !important;
+        text-shadow: none !important;
+      }
+      .pc-preview-placeholder {
+        font-size: .74rem;
+        color: #94a3b8;
+        line-height: 1.45;
+        margin: .25rem 0 .5rem;
+      }
+      .pc-preview-footer { background: rgba(248,250,252,.92); }
+      .pc-save-bar {
+        left: 50% !important;
+        right: auto !important;
+        bottom: 16px !important;
+        width: min(940px, calc(100% - 32px)) !important;
+        border: 1px solid rgba(11,128,115,.14) !important;
+        border-radius: 18px !important;
+        box-shadow: 0 18px 44px rgba(15,23,42,.16), inset 0 1px 0 rgba(255,255,255,.9) !important;
+        transform: translate(-50%, calc(100% + 32px)) !important;
+      }
+      .pc-save-bar.pc-save-bar--visible { transform: translate(-50%, 0) !important; }
+      .pc-save-bar button:disabled,
+      #sup-save-btn:disabled { opacity: .65; cursor: wait; }
+      .pc-save-bar.pc-save-bar--saving .pc-save-bar__dot { background: #0b8073; }
+      @media (max-width: 1024px) {
+        .pc-sidebar { position: static; }
+      }
+      @media (max-width: 640px) {
+        #main-content.section { padding-top: 1rem; }
+        .pc-header-inner { flex-direction: column; }
+        .pc-header-actions, .pc-header-actions .cta { width: 100%; }
+        .pc-header-actions .cta { justify-content: center; }
+        .pc-step { padding: 1.15rem !important; }
+        .photo-preview-img { height: 132px; }
+        .color-picker-group { width: 100%; }
+        .pc-save-bar {
+          bottom: 10px !important;
+          width: calc(100% - 20px) !important;
         }
       }
-    }
+    `;
+    document.head.appendChild(style);
+  }
 
-    // Tagline
-    const supTagline = document.getElementById('sup-tagline');
-    if (supTagline) {
-      supTagline.value = supplier.tagline || '';
+  function cleanInteractiveElement(el) {
+    if (!el || !el.parentNode) {
+      return el || null;
     }
+    const clone = el.cloneNode(true);
+    if ('value' in clone) {
+      clone.value = el.value;
+    }
+    if ('checked' in clone) {
+      clone.checked = el.checked;
+    }
+    el.replaceWith(clone);
+    return clone;
+  }
 
-    // Theme Color — update preview, presets, inputs
-    const color = supplier.themeColor || '#0B8073';
-    const supThemeColor = document.getElementById('sup-theme-color');
-    const supThemeColorHex = document.getElementById('sup-theme-color-hex');
-    if (supThemeColor) supThemeColor.value = color;
-    if (supThemeColorHex) supThemeColorHex.value = color;
-    const previewHeader = document.getElementById('color-preview-header');
-    const previewButton = document.getElementById('color-preview-button');
-    if (previewHeader) previewHeader.style.backgroundColor = color;
-    if (previewButton) previewButton.style.backgroundColor = color;
-    document.querySelectorAll('.color-preset').forEach(p => {
-      p.classList.toggle('active', p.dataset.color.toLowerCase() === color.toLowerCase());
+  function cleanInteractiveSelector(selector) {
+    return Array.from(document.querySelectorAll(selector)).map(el => cleanInteractiveElement(el));
+  }
+
+  function markDirty() {
+    if (initialising || dirty) {
+      return;
+    }
+    dirty = true;
+    document.body.classList.add('pc-has-unsaved');
+    $('pc-save-bar')?.classList.add('pc-save-bar--visible');
+  }
+
+  function markClean() {
+    dirty = false;
+    document.body.classList.remove('pc-has-unsaved');
+    const saveBar = $('pc-save-bar');
+    if (saveBar) {
+      saveBar.classList.remove('pc-save-bar--visible', 'pc-save-bar--saving');
+    }
+  }
+
+  function setSaving(isSaving) {
+    const ids = ['sup-save-btn', 'pc-save-bar-save', 'pc-save-bar-discard', 'select-stock-photo-btn'];
+    ids.forEach(id => {
+      const el = $(id);
+      if (el) {
+        el.disabled = isSaving;
+      }
     });
-    // Sync preview banner color if no banner image
-    const pBannerEl = document.getElementById('preview-banner');
-    if (pBannerEl && !pBannerEl.querySelector('img')) {
-      pBannerEl.style.background = `linear-gradient(135deg, ${color}, ${color}cc)`;
-    }
+    $('pc-save-bar')?.classList.toggle('pc-save-bar--saving', isSaving);
+  }
 
-    // Populate highlights
-    for (let i = 1; i <= 5; i++) {
-      const highlightInput = document.getElementById(`sup-highlight-${i}`);
-      if (highlightInput) {
-        highlightInput.value =
-          supplier.highlights && supplier.highlights[i - 1] ? supplier.highlights[i - 1] : '';
+  function normaliseSocialUrl(value) {
+    const raw = String(value || '').trim();
+    if (!raw) {
+      return { value: '', error: null };
+    }
+    const withProtocol = /^[a-z][a-z0-9+.-]*:\/\//i.test(raw) ? raw : `https://${raw}`;
+    try {
+      const url = new URL(withProtocol);
+      if (!['http:', 'https:'].includes(url.protocol)) {
+        return { value: '', error: 'Please enter a full website URL.' };
       }
-    }
-
-    // Populate featured services
-    const supFeaturedServices = document.getElementById('sup-featured-services');
-    if (supFeaturedServices) {
-      supFeaturedServices.value = (supplier.featuredServices || []).join('\n');
-    }
-
-    // Populate social links
-    const platforms = ['facebook', 'instagram', 'twitter', 'linkedin', 'youtube', 'tiktok'];
-    platforms.forEach(platform => {
-      const input = document.getElementById(`sup-social-${platform}`);
-      if (input) {
-        input.value = (supplier.socialLinks && supplier.socialLinks[platform]) || '';
+      if (!url.hostname.includes('.')) {
+        return { value: '', error: 'Please enter a valid profile URL.' };
       }
+      return { value: url.toString(), error: null };
+    } catch (_) {
+      return { value: '', error: 'Please enter a valid profile URL.' };
+    }
+  }
+
+  function setInputValue(input, value) {
+    if (!input) {
+      return;
+    }
+    input.value = value || '';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+
+  function getThemeColor() {
+    const candidate = $('sup-theme-color')?.value || $('sup-theme-color-hex')?.value || DEFAULT_COLOR;
+    return HEX_RE.test(candidate) ? candidate : DEFAULT_COLOR;
+  }
+
+  function applyThemeColor(color, shouldMarkDirty = false) {
+    const safeColor = HEX_RE.test(color) ? color : DEFAULT_COLOR;
+    const colorPicker = $('sup-theme-color');
+    const colorHex = $('sup-theme-color-hex');
+    if (colorPicker) {
+      colorPicker.value = safeColor;
+    }
+    if (colorHex) {
+      colorHex.value = safeColor;
+    }
+    const previewHeader = $('color-preview-header');
+    const previewButton = $('color-preview-button');
+    if (previewHeader) {
+      previewHeader.style.backgroundColor = safeColor;
+    }
+    if (previewButton) {
+      previewButton.style.backgroundColor = safeColor;
+    }
+    document.querySelectorAll('.color-preset').forEach(preset => {
+      preset.classList.toggle(
+        'active',
+        String(preset.dataset.color || '').toLowerCase() === safeColor.toLowerCase()
+      );
     });
-
-    // Update live preview name
-    const previewName = document.getElementById('preview-name');
-    if (previewName) previewName.textContent = supplier.name || 'Your Business Name';
-
-    // Show preview button
-    const previewBtn = document.getElementById('sup-preview');
-    if (previewBtn && supplier.id) {
-      previewBtn.style.display = 'inline-flex';
+    const previewBanner = $('preview-banner');
+    if (previewBanner && !previewBanner.querySelector('img')) {
+      previewBanner.style.background = `linear-gradient(135deg, ${safeColor}, ${safeColor}cc)`;
     }
-
-    // Trigger live preview update (with a brief delay to let field values settle)
-    setTimeout(() => {
-      if (window._pcUpdatePreview) window._pcUpdatePreview();
-    }, 50);
+    document.querySelectorAll('.pc-preview-tag').forEach(tag => {
+      tag.style.background = `${safeColor}1a`;
+      tag.style.color = safeColor;
+    });
+    if (shouldMarkDirty) {
+      markDirty();
+      updateLivePreview();
+    }
   }
 
-  // Handle form submission
-  async function handleFormSubmit(e) {
-    e.preventDefault();
-
-    const statusEl = document.getElementById('sup-status');
-    const form = document.getElementById('customization-form');
-
-    if (!currentEditingSupplierId) {
-      if (statusEl) {
-        statusEl.textContent = 'Error: No profile selected';
-        statusEl.style.color = '#ef4444';
-      }
+  function clearChildren(el) {
+    if (!el) {
       return;
     }
-
-    try {
-      const csrfToken = await ensureCsrfToken();
-
-      const fd = new FormData(form);
-      const payload = {};
-      fd.forEach((v, k) => (payload[k] = v));
-
-      // Collect highlights
-      const highlights = [];
-      for (let i = 1; i <= 5; i++) {
-        const highlightInput = document.getElementById(`sup-highlight-${i}`);
-        if (highlightInput && highlightInput.value.trim()) {
-          highlights.push(highlightInput.value.trim());
-        }
-      }
-      if (highlights.length > 0) {
-        payload.highlights = highlights;
-      }
-
-      // Collect featured services
-      const featuredServicesInput = document.getElementById('sup-featured-services');
-      if (featuredServicesInput && featuredServicesInput.value.trim()) {
-        const services = featuredServicesInput.value
-          .split('\n')
-          .map(s => s.trim())
-          .filter(Boolean)
-          .slice(0, 10);
-        if (services.length > 0) {
-          payload.featuredServices = services;
-        }
-      }
-
-      // Collect social links
-      const socialLinks = {};
-      const platforms = ['facebook', 'instagram', 'twitter', 'linkedin', 'youtube', 'tiktok'];
-      for (const platform of platforms) {
-        const input = document.getElementById(`sup-social-${platform}`);
-        if (input && input.value.trim()) {
-          const urlError = validateSocialUrl(input.value.trim());
-          if (urlError) {
-            if (statusEl) {
-              statusEl.textContent = `${platform.charAt(0).toUpperCase() + platform.slice(1)}: ${urlError}`;
-              statusEl.style.color = '#ef4444';
-            }
-            return;
-          }
-          socialLinks[platform] = input.value.trim();
-        }
-      }
-      if (Object.keys(socialLinks).length > 0) {
-        payload.socialLinks = socialLinks;
-      }
-
-      // Get theme color
-      const themeColorInput = document.getElementById('sup-theme-color');
-      if (themeColorInput && themeColorInput.value) {
-        payload.themeColor = themeColorInput.value;
-      }
-
-      if (statusEl) {
-        statusEl.textContent = 'Saving...';
-        statusEl.style.color = '#667085';
-      }
-
-      const path = `/api/me/suppliers/${encodeURIComponent(currentEditingSupplierId)}`;
-      await api(path, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRF-Token': csrfToken,
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (statusEl) {
-        statusEl.textContent = '✓ Saved successfully';
-        statusEl.style.color = '#10b981';
-        setTimeout(() => {
-          statusEl.textContent = '';
-        }, 3000);
-      }
-
-      // Mark clean (hide save bar)
-      if (window._pcMarkClean) window._pcMarkClean();
-
-      // Reload to get latest data
-      await loadSuppliers();
-    } catch (err) {
-      console.error('Error saving customization:', err);
-      if (statusEl) {
-        statusEl.textContent = `Error: ${err.message || 'Please try again'}`;
-        statusEl.style.color = '#ef4444';
-      }
+    while (el.firstChild) {
+      el.removeChild(el.firstChild);
     }
   }
 
-  // Handle preview button
-  function handlePreview() {
-    if (currentEditingSupplierId) {
-      window.open(
-        `/supplier?id=${encodeURIComponent(currentEditingSupplierId)}&preview=true`,
-        '_blank'
-      );
-    } else {
-      alert('Please select a profile first.');
-    }
-  }
-
-  // Initialize page
-  async function init() {
-    // Check authentication
-    try {
-      const response = await fetch('/api/v1/auth/me', { credentials: 'include' });
-      if (!response.ok) {
-        window.location.href = `/auth?redirect=${encodeURIComponent(window.location.pathname)}`;
-        return;
-      }
-      const data = await response.json();
-      if (data.user && data.user.role !== 'supplier') {
-        window.location.href = '/dashboard/customer';
-        return;
-      }
-    } catch (error) {
-      console.error('Auth check failed:', error);
-      window.location.href = '/auth';
-      return;
-    }
-
-    // Load suppliers
-    await loadSuppliers();
-
-    // Attach form handlers
-    const form = document.getElementById('customization-form');
-    if (form) {
-      form.addEventListener('submit', handleFormSubmit);
-    }
-
-    const previewBtn = document.getElementById('sup-preview');
-    if (previewBtn) {
-      previewBtn.addEventListener('click', handlePreview);
-    }
-
-    // Tagline character counter
-    const taglineInput = document.getElementById('sup-tagline');
-    const taglineCount = document.getElementById('tagline-count');
-    if (taglineInput && taglineCount) {
-      const updateCount = () => {
-        const len = taglineInput.value.length;
-        const max = Number(taglineInput.maxLength) || 100;
-        taglineCount.textContent = `${len} / ${max}`;
-        taglineCount.className = `pc-char-count${
-          len > max ? ' pc-char-count--over' : len > max * 0.85 ? ' pc-char-count--warn' : ''
-        }`;
-      };
-      taglineInput.addEventListener('input', updateCount);
-      updateCount();
-    }
-
-    // Initialize banner upload drop zone
-    // efSetupPhotoDropZone is defined in app.js which is loaded before this script
-    if (typeof window.efSetupPhotoDropZone === 'function') {
-      window.efSetupPhotoDropZone(
-        'sup-banner-drop',
-        'sup-banner-preview',
-        dataUrl => {
-          const input = document.getElementById('sup-banner');
-          if (input) input.value = dataUrl;
-          // Show in live preview
-          const pBanner = document.getElementById('preview-banner');
-          if (pBanner) {
-            pBanner.innerHTML = '';
-            pBanner.style.background = 'none';
-            const pImg = document.createElement('img');
-            pImg.src = dataUrl;
-            pImg.alt = '';
-            pBanner.appendChild(pImg);
-          }
-          if (window._pcMarkDirty) window._pcMarkDirty();
-        },
-        () => {
-          const input = document.getElementById('sup-banner');
-          if (input) input.value = '';
-          // Restore gradient in live preview
-          const pBanner = document.getElementById('preview-banner');
-          if (pBanner) {
-            pBanner.innerHTML = '';
-            const color = document.getElementById('sup-theme-color')?.value || '#0B8073';
-            pBanner.style.background = `linear-gradient(135deg, ${color}, ${color}cc)`;
-          }
-          if (window._pcMarkDirty) window._pcMarkDirty();
-        }
-      );
-    }
-
-    // Initialize Pexels stock photo selector
-    const stockPhotoBtn = document.getElementById('select-stock-photo-btn');
-    if (stockPhotoBtn && typeof window.PexelsSelector !== 'undefined') {
-      const pexelsSelector = new window.PexelsSelector();
-
-      stockPhotoBtn.addEventListener('click', () => {
-        pexelsSelector.open(selectedImageUrl => {
-          // Validate URL is from Pexels CDN
-          if (!validatePexelsImageUrl(selectedImageUrl)) {
-            console.error('Invalid image URL from selector');
-            if (
-              window.NotificationDispatcher &&
-              typeof window.NotificationDispatcher.error === 'function'
-            ) {
-              window.NotificationDispatcher.error(
-                'Invalid image URL. Please try selecting another photo.'
-              );
-            }
-            return;
-          }
-
-          // Update banner preview using DOM methods for security
-          updateBannerPreview(selectedImageUrl);
-
-          // Update hidden input
-          const bannerInput = document.getElementById('sup-banner');
-          if (bannerInput) {
-            bannerInput.value = selectedImageUrl;
-          }
-
-          // Show success notification if available
-          if (
-            window.NotificationDispatcher &&
-            typeof window.NotificationDispatcher.success === 'function'
-          ) {
-            window.NotificationDispatcher.success('Stock photo selected successfully!');
-          }
-        });
-      });
-    }
-  }
-
-  // Update banner preview with validated image URL
-  function updateBannerPreview(imageUrl) {
-    const bannerPreview = document.getElementById('sup-banner-preview');
+  function renderBannerPreview(imageUrl) {
+    const bannerPreview = $('sup-banner-preview');
     if (!bannerPreview) {
       return;
     }
-
-    // Clear existing preview using DOM methods
     while (bannerPreview.firstChild) {
       bannerPreview.removeChild(bannerPreview.firstChild);
     }
+    $('sup-banner-drop')?.classList.toggle('has-image', !!imageUrl);
+    if (!imageUrl) {
+      return;
+    }
 
-    // Create preview container
     const container = document.createElement('div');
-    container.className = 'photo-preview-item';
-    container.classList.add('photo-preview-item-inner');
+    container.className = 'photo-preview-item photo-preview-item-inner';
 
-    // Create image element using DOM (safer than innerHTML)
     const imgElement = document.createElement('img');
     imgElement.alt = 'Selected banner';
     imgElement.className = 'photo-preview-img';
-
-    // Set src via DOM property (safe after validation)
     imgElement.src = imageUrl;
 
     const removeBtn = document.createElement('button');
@@ -565,57 +456,587 @@
     removeBtn.setAttribute('aria-label', 'Remove banner image');
     removeBtn.textContent = '\u2715';
     removeBtn.addEventListener('click', () => {
-      container.remove();
       const bannerInput = document.getElementById('sup-banner');
-      if (bannerInput) bannerInput.value = '';
-      // Restore live-preview gradient
-      const pBanner = document.getElementById('preview-banner');
-      if (pBanner) {
-        pBanner.innerHTML = '';
-        const color = document.getElementById('sup-theme-color')?.value || '#0B8073';
-        pBanner.style.background = `linear-gradient(135deg, ${color}, ${color}cc)`;
-      }
-      if (window._pcMarkDirty) window._pcMarkDirty();
+      setInputValue(bannerInput, '');
+      updateBannerPreview('');
+      markDirty();
     });
 
     container.appendChild(imgElement);
     container.appendChild(removeBtn);
     bannerPreview.appendChild(container);
+  }
 
-    // Update live preview banner
-    const pBanner = document.getElementById('preview-banner');
-    if (pBanner) {
-      pBanner.innerHTML = '';
+  function updatePreviewBanner(imageUrl) {
+    const pBanner = $('preview-banner');
+    if (!pBanner) {
+      return;
+    }
+    clearChildren(pBanner);
+    if (imageUrl) {
       pBanner.style.background = 'none';
       const pImg = document.createElement('img');
       pImg.src = imageUrl;
       pImg.alt = '';
       pBanner.appendChild(pImg);
+    } else {
+      const color = getThemeColor();
+      pBanner.style.background = `linear-gradient(135deg, ${color}, ${color}cc)`;
     }
-
-    if (window._pcMarkDirty) window._pcMarkDirty();
   }
 
-  // Validate image URL is from Pexels CDN
+  function updateBannerPreview(imageUrl) {
+    renderBannerPreview(imageUrl);
+    updatePreviewBanner(imageUrl);
+    updateCompletion();
+  }
+
   function validatePexelsImageUrl(url) {
     try {
       const urlObj = new URL(url);
-      // Use shared constant from pexels-selector.js
       const allowedDomains = window.PEXELS_ALLOWED_DOMAINS || [
         'images.pexels.com',
         'www.pexels.com',
       ];
       return allowedDomains.includes(urlObj.hostname);
-    } catch (e) {
+    } catch (_) {
       return false;
     }
   }
 
-  // Run init when DOM is ready
+  function readHighlights() {
+    return [1, 2, 3, 4, 5]
+      .map(i => $(`sup-highlight-${i}`)?.value?.trim() || '')
+      .filter(Boolean)
+      .slice(0, 5);
+  }
+
+  function readFeaturedServices() {
+    return String($('sup-featured-services')?.value || '')
+      .split('\n')
+      .map(s => s.trim())
+      .filter(Boolean)
+      .slice(0, 10);
+  }
+
+  function readSocialLinks() {
+    const socialLinks = {};
+    for (const platform of SOCIAL_PLATFORMS) {
+      const input = $(`sup-social-${platform}`);
+      if (!input || !input.value.trim()) {
+        continue;
+      }
+      const result = normaliseSocialUrl(input.value);
+      if (result.error) {
+        throw new Error(`${SOCIAL_LABELS[platform]}: ${result.error}`);
+      }
+      input.value = result.value;
+      socialLinks[platform] = result.value;
+    }
+    return socialLinks;
+  }
+
+  function buildSavePayload() {
+    const bannerInput = document.getElementById('sup-banner');
+    return {
+      bannerUrl: bannerInput?.value?.trim() || '',
+      tagline: $('sup-tagline')?.value?.trim() || '',
+      themeColor: getThemeColor(),
+      highlights: readHighlights(),
+      featuredServices: readFeaturedServices(),
+      socialLinks: readSocialLinks(),
+    };
+  }
+
+  function renderPlaceholder(container, message) {
+    if (!container) {
+      return;
+    }
+    const placeholder = document.createElement('p');
+    placeholder.className = 'pc-preview-placeholder';
+    placeholder.textContent = message;
+    container.appendChild(placeholder);
+  }
+
+  function updateLivePreview() {
+    const tagline = $('sup-tagline')?.value || '';
+    const pTagline = $('preview-tagline');
+    if (pTagline) {
+      pTagline.textContent = tagline;
+    }
+
+    const pHl = $('preview-highlights');
+    if (pHl) {
+      clearChildren(pHl);
+      const highlights = readHighlights();
+      highlights.forEach(value => {
+        const el = document.createElement('div');
+        el.className = 'pc-preview-highlight';
+        el.textContent = value;
+        pHl.appendChild(el);
+      });
+      if (highlights.length === 0) {
+        renderPlaceholder(pHl, 'Add two strong highlights to show buyers why they should enquire.');
+      }
+    }
+
+    const services = readFeaturedServices().slice(0, 5);
+    const pSvc = $('preview-services');
+    if (pSvc) {
+      clearChildren(pSvc);
+      services.forEach(service => {
+        const tag = document.createElement('span');
+        tag.className = 'pc-preview-tag';
+        tag.textContent = service;
+        pSvc.appendChild(tag);
+      });
+      applyThemeColor(getThemeColor(), false);
+    }
+
+    const activeSocial = SOCIAL_PLATFORMS.filter(platform =>
+      $(`sup-social-${platform}`)?.value?.trim()
+    );
+    const pSocialRow = $('preview-social-row');
+    const pSocialDots = $('preview-social-dots');
+    if (pSocialRow && pSocialDots) {
+      pSocialRow.style.display = activeSocial.length > 0 ? 'flex' : 'none';
+      clearChildren(pSocialDots);
+      activeSocial.forEach(platform => {
+        const dot = document.createElement('span');
+        dot.className = 'pc-preview-social-dot';
+        dot.textContent = SOCIAL_LABELS[platform].charAt(0);
+        dot.title = SOCIAL_LABELS[platform];
+        pSocialDots.appendChild(dot);
+      });
+    }
+
+    updateCompletion();
+  }
+
+  function updateCompletion() {
+    const checks = {
+      banner: !!($('sup-banner')?.value),
+      tagline: !!($('sup-tagline')?.value?.trim()),
+      highlights: readHighlights().length >= 2,
+      services: readFeaturedServices().length > 0,
+      social: SOCIAL_PLATFORMS.some(platform => $(`sup-social-${platform}`)?.value?.trim()),
+    };
+    const done = Object.values(checks).filter(Boolean).length;
+    const total = Object.keys(checks).length;
+    const pct = Math.round((done / total) * 100);
+    const fill = $('pc-progress-fill');
+    const label = $('pc-pct-label');
+    if (fill) {
+      fill.style.width = `${pct}%`;
+    }
+    if (label) {
+      label.textContent = `${pct}%`;
+    }
+    document.querySelectorAll('.pc-tip[data-tip]').forEach(el => {
+      el.classList.toggle('pc-tip--done', !!checks[el.dataset.tip]);
+    });
+  }
+
+  function populateForm(supplier) {
+    if (!supplier) {
+      return;
+    }
+    initialising = true;
+
+    const supId = $('sup-id');
+    if (supId) {
+      supId.value = supplier.id || '';
+    }
+    const bannerInput = $('sup-banner');
+    if (bannerInput) {
+      bannerInput.value = supplier.bannerUrl || '';
+    }
+    updateBannerPreview(supplier.bannerUrl || '');
+
+    const tagline = $('sup-tagline');
+    if (tagline) {
+      tagline.value = supplier.tagline || '';
+      updateTaglineCount();
+    }
+    applyThemeColor(supplier.themeColor || DEFAULT_COLOR, false);
+
+    for (let i = 1; i <= 5; i++) {
+      const input = $(`sup-highlight-${i}`);
+      if (input) {
+        input.value = supplier.highlights && supplier.highlights[i - 1] ? supplier.highlights[i - 1] : '';
+      }
+    }
+    const featured = $('sup-featured-services');
+    if (featured) {
+      featured.value = (supplier.featuredServices || []).join('\n');
+    }
+    SOCIAL_PLATFORMS.forEach(platform => {
+      const input = $(`sup-social-${platform}`);
+      if (input) {
+        input.value = (supplier.socialLinks && supplier.socialLinks[platform]) || '';
+      }
+    });
+
+    const previewName = $('preview-name');
+    if (previewName) {
+      previewName.textContent = supplier.name || 'Your Business Name';
+    }
+    const previewBtn = $('sup-preview');
+    if (previewBtn && supplier.id) {
+      previewBtn.style.display = 'inline-flex';
+    }
+
+    updateLivePreview();
+    markClean();
+    initialising = false;
+  }
+
+  async function loadSuppliers() {
+    const container = $('profile-selector-container');
+    try {
+      const data = await api('/api/me/suppliers');
+      suppliers = data.items || [];
+      const selectorSection = $('pc-selector-section');
+      if (!container) {
+        return;
+      }
+
+      if (suppliers.length === 0) {
+        container.innerHTML = `
+          <p class="small" style="color:#667085;margin:0;">
+            You do not have any supplier profiles yet.
+            <a href="/dashboard/supplier" style="color:#0b8073;font-weight:600;">Create one on your dashboard</a>.
+          </p>
+        `;
+        return;
+      }
+
+      if (suppliers.length === 1) {
+        container.innerHTML = `<p class="small" style="color:#667085;margin:0;">Editing: <strong>${escapeHtml(suppliers[0].name)}</strong></p>`;
+        if (selectorSection) {
+          selectorSection.style.display = 'none';
+        }
+        currentEditingSupplierId = suppliers[0].id;
+        populateForm(suppliers[0]);
+        return;
+      }
+
+      if (selectorSection) {
+        selectorSection.style.display = '';
+      }
+      container.innerHTML = `
+        <label for="profile-select" style="font-size:.85rem;font-weight:600;color:#374151;margin-bottom:.375rem;display:block;">Choose a profile to customise:</label>
+        <select id="profile-select">
+          ${suppliers.map(s => `<option value="${escapeHtml(s.id)}">${escapeHtml(s.name)}</option>`).join('')}
+        </select>
+      `;
+      const select = $('profile-select');
+      currentEditingSupplierId = suppliers[0].id;
+      populateForm(suppliers[0]);
+      select?.addEventListener('change', function () {
+        const selectedSupplier = suppliers.find(s => s.id === this.value);
+        if (selectedSupplier) {
+          currentEditingSupplierId = selectedSupplier.id;
+          populateForm(selectedSupplier);
+        }
+      });
+    } catch (error) {
+      console.error('Failed to load suppliers:', error);
+      if (container) {
+        container.innerHTML = '<p class="small" style="color:#dc2626;margin:0;">Failed to load profiles. Please refresh the page and try again.</p>';
+      }
+    }
+  }
+
+  function updateCachedSupplier(payload, response) {
+    const responseSupplier = response && response.supplier ? response.supplier : null;
+    const index = suppliers.findIndex(supplier => supplier.id === currentEditingSupplierId);
+    if (index === -1) {
+      return;
+    }
+    suppliers[index] = {
+      ...suppliers[index],
+      ...payload,
+      ...(responseSupplier || {}),
+      updatedAt: new Date().toISOString(),
+    };
+  }
+
+  async function handleFormSubmit(e) {
+    e.preventDefault();
+    if (typeof e.stopImmediatePropagation === 'function') {
+      e.stopImmediatePropagation();
+    }
+
+    if (!currentEditingSupplierId) {
+      notify('error', 'Please select a supplier profile first.');
+      return;
+    }
+
+    let payload;
+    try {
+      payload = buildSavePayload();
+    } catch (error) {
+      notify('error', error.message);
+      return;
+    }
+
+    try {
+      setSaving(true);
+      setStatus('Saving changes...', 'muted');
+      const csrfToken = await ensureCsrfToken();
+      const response = await api(`/api/me/suppliers/${encodeURIComponent(currentEditingSupplierId)}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': csrfToken,
+        },
+        body: JSON.stringify(payload),
+      });
+      updateCachedSupplier(payload, response);
+      populateForm(suppliers.find(supplier => supplier.id === currentEditingSupplierId));
+      markClean();
+      notify('success', 'Profile changes saved successfully.');
+      setStatus('✓ Saved successfully', 'success');
+      setTimeout(() => setStatus('', 'muted'), 3500);
+    } catch (error) {
+      console.error('Error saving customization:', error);
+      notify('error', error.message || 'Please try again.');
+      setStatus(`Error: ${error.message || 'Please try again'}`, 'error');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function handlePreview() {
+    if (!currentEditingSupplierId) {
+      notify('warning', 'Please select a profile first.');
+      return;
+    }
+    window.open(`/supplier?id=${encodeURIComponent(currentEditingSupplierId)}&preview=true`, '_blank');
+  }
+
+  function updateTaglineCount() {
+    const taglineInput = $('sup-tagline');
+    const taglineCount = $('tagline-count');
+    if (!taglineInput || !taglineCount) {
+      return;
+    }
+    const len = taglineInput.value.length;
+    const max = Number(taglineInput.maxLength) || 100;
+    taglineCount.textContent = `${len} / ${max}`;
+    taglineCount.className = `pc-char-count${
+      len > max ? ' pc-char-count--over' : len > max * 0.85 ? ' pc-char-count--warn' : ''
+    }`;
+  }
+
+  function setupColourControls() {
+    const colorPicker = cleanInteractiveElement($('sup-theme-color'));
+    const colorHex = cleanInteractiveElement($('sup-theme-color-hex'));
+    const resetBtn = cleanInteractiveElement($('reset-theme-color'));
+    const presets = cleanInteractiveSelector('.color-preset');
+
+    colorPicker?.addEventListener('input', function () {
+      applyThemeColor(this.value, true);
+    });
+    colorHex?.addEventListener('input', function () {
+      const hex = this.value.trim();
+      if (HEX_RE.test(hex)) {
+        applyThemeColor(hex, true);
+      }
+    });
+    resetBtn?.addEventListener('click', event => {
+      event.preventDefault();
+      applyThemeColor(DEFAULT_COLOR, true);
+    });
+    presets.forEach(preset => {
+      preset?.addEventListener('click', function (event) {
+        event.preventDefault();
+        applyThemeColor(this.dataset.color || DEFAULT_COLOR, true);
+      });
+    });
+  }
+
+  function setupDirtyAndPreview() {
+    const form = $('customization-form');
+    if (!form) {
+      return;
+    }
+    form.addEventListener('submit', handleFormSubmit, true);
+    form.querySelectorAll('input, textarea').forEach(el => {
+      el.addEventListener('input', () => {
+        updateTaglineCount();
+        updateLivePreview();
+        markDirty();
+      });
+      el.addEventListener('change', () => {
+        updateLivePreview();
+        markDirty();
+      });
+    });
+
+    const saveBarSave = cleanInteractiveElement($('pc-save-bar-save'));
+    const saveBarDiscard = cleanInteractiveElement($('pc-save-bar-discard'));
+    saveBarSave?.addEventListener('click', event => {
+      event.preventDefault();
+      event.stopPropagation();
+      form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    });
+    saveBarDiscard?.addEventListener('click', event => {
+      event.preventDefault();
+      event.stopPropagation();
+      const supplier = suppliers.find(item => item.id === currentEditingSupplierId);
+      if (supplier) {
+        populateForm(supplier);
+      }
+      markClean();
+    });
+  }
+
+  function setupBannerUpload() {
+    const dropZone = $('sup-banner-drop');
+    if (dropZone) {
+      dropZone.addEventListener('keydown', event => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          dropZone.click();
+        }
+      });
+    }
+
+    if (typeof window.efSetupPhotoDropZone === 'function') {
+      window.efSetupPhotoDropZone(
+        'sup-banner-drop',
+        'sup-banner-preview',
+        dataUrl => {
+          const input = $('sup-banner');
+          setInputValue(input, dataUrl);
+          updateBannerPreview(dataUrl);
+          markDirty();
+        },
+        () => {
+          const input = $('sup-banner');
+          setInputValue(input, '');
+          updateBannerPreview('');
+          markDirty();
+        }
+      );
+      return;
+    }
+
+    if (!dropZone) {
+      return;
+    }
+    const fallbackInput = document.createElement('input');
+    fallbackInput.type = 'file';
+    fallbackInput.accept = 'image/jpeg,image/png,image/webp';
+    fallbackInput.hidden = true;
+    document.body.appendChild(fallbackInput);
+    dropZone.addEventListener('click', () => fallbackInput.click());
+    fallbackInput.addEventListener('change', () => {
+      const file = fallbackInput.files && fallbackInput.files[0];
+      if (!file) {
+        return;
+      }
+      if (!/^image\/(jpeg|png|webp)$/.test(file.type) || file.size > 5 * 1024 * 1024) {
+        notify('error', 'Please choose a JPG, PNG or WebP image under 5 MB.');
+        fallbackInput.value = '';
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        const input = $('sup-banner');
+        setInputValue(input, String(reader.result || ''));
+        updateBannerPreview(String(reader.result || ''));
+        markDirty();
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function setupPexelsSelector() {
+    const stockPhotoBtn = $('select-stock-photo-btn');
+    if (!stockPhotoBtn) {
+      return;
+    }
+    if (typeof window.PexelsSelector === 'undefined') {
+      stockPhotoBtn.addEventListener('click', () => {
+        notify('error', 'Stock photos are not available at the moment. Please upload a banner image instead.');
+      });
+      return;
+    }
+
+    const selector = new window.PexelsSelector();
+    stockPhotoBtn.addEventListener('click', () => {
+      selector.open(selectedImageUrl => {
+        if (!validatePexelsImageUrl(selectedImageUrl)) {
+          notify('error', 'Invalid image URL. Please try selecting another photo.');
+          return;
+        }
+        updateBannerPreview(selectedImageUrl);
+        const bannerInput = document.getElementById('sup-banner');
+        if (bannerInput) {
+          bannerInput.value = selectedImageUrl;
+          bannerInput.dispatchEvent(new Event('input', { bubbles: true }));
+          bannerInput.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        markDirty();
+        notify('success', 'Stock photo selected successfully!');
+      });
+    });
+  }
+
+  async function verifySupplierAccess() {
+    const response = await fetch('/api/v1/auth/me', { credentials: 'include' });
+    if (!response.ok) {
+      window.location.href = `/auth?redirect=${encodeURIComponent(window.location.pathname)}`;
+      return false;
+    }
+    const data = await response.json();
+    if (data.user && data.user.role !== 'supplier') {
+      window.location.href = '/dashboard/customer';
+      return false;
+    }
+    return true;
+  }
+
+  async function init() {
+    injectPolishStyles();
+    try {
+      const allowed = await verifySupplierAccess();
+      if (!allowed) {
+        return;
+      }
+    } catch (error) {
+      console.error('Auth check failed:', error);
+      window.location.href = '/auth';
+      return;
+    }
+
+    setupColourControls();
+    setupDirtyAndPreview();
+    setupBannerUpload();
+    setupPexelsSelector();
+    $('sup-preview')?.addEventListener('click', handlePreview);
+
+    await loadSuppliers();
+    updateTaglineCount();
+    updateLivePreview();
+
+    window._pcReloadCurrentSupplier = function () {
+      const supplier = suppliers.find(item => item.id === currentEditingSupplierId);
+      if (supplier) {
+        populateForm(supplier);
+      }
+    };
+    window._pcMarkClean = markClean;
+    window._pcMarkDirty = markDirty;
+    window._pcUpdatePreview = updateLivePreview;
+  }
+
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {
     init();
   }
 })();
-
