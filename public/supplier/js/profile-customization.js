@@ -39,6 +39,35 @@
       .replace(/'/g, '&#39;');
   }
 
+  function readCookie(name) {
+    if (!name || typeof document === 'undefined') {
+      return '';
+    }
+    const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const match = document.cookie.match(new RegExp(`(?:^|;\\s*)${escaped}=([^;]*)`));
+    return match ? decodeURIComponent(match[1]) : '';
+  }
+
+  function getExistingCsrfToken() {
+    return (
+      window.__CSRF_TOKEN__ ||
+      window.csrfToken ||
+      window.EventFlowCsrf?.get?.() ||
+      readCookie('csrf') ||
+      readCookie('csrfToken') ||
+      document.querySelector('meta[name="csrf-token"]')?.content ||
+      ''
+    );
+  }
+
+  function storeCsrfToken(token) {
+    if (!token) {
+      return;
+    }
+    window.__CSRF_TOKEN__ = token;
+    window.csrfToken = token;
+  }
+
   function setStatus(message, type = 'muted') {
     const statusEl = $('sup-status');
     if (!statusEl) {
@@ -86,15 +115,34 @@
   }
 
   async function ensureCsrfToken() {
-    const response = await fetch('/api/auth/csrf', { credentials: 'include' });
-    if (!response.ok) {
-      throw new Error('Failed to fetch CSRF token');
+    const existing = getExistingCsrfToken();
+    if (existing) {
+      storeCsrfToken(existing);
+      return existing;
     }
-    const data = await response.json();
-    if (!data.token) {
-      throw new Error('Missing CSRF token');
+
+    const endpoints = ['/api/csrf-token', '/api/v1/csrf-token'];
+    const failures = [];
+    for (const endpoint of endpoints) {
+      try {
+        const response = await fetch(endpoint, { credentials: 'include' });
+        if (!response.ok) {
+          failures.push(`${endpoint}: ${response.status}`);
+          continue;
+        }
+        const data = await response.json();
+        const token = data?.csrfToken || data?.token;
+        if (token) {
+          storeCsrfToken(token);
+          return token;
+        }
+        failures.push(`${endpoint}: missing token`);
+      } catch (error) {
+        failures.push(`${endpoint}: ${error.message || 'request failed'}`);
+      }
     }
-    return data.token;
+    console.warn('Failed to resolve CSRF token for profile customisation', failures);
+    throw new Error('Failed to fetch CSRF token');
   }
 
   function injectPolishStyles() {
@@ -199,21 +247,33 @@
         place-items: center;
         box-shadow: 0 8px 18px rgba(0,0,0,.18);
       }
-      .pc-color-row { gap: .62rem; }
+      .pc-color-row { gap: .72rem; }
       .color-preset {
         position: relative;
         width: 32px !important;
         height: 32px !important;
         border: 2px solid rgba(255,255,255,.95) !important;
         box-shadow: 0 7px 16px rgba(15,23,42,.14) !important;
+        transition: transform .18s ease, box-shadow .18s ease;
+      }
+      .color-preset:hover { transform: translateY(-1px); }
+      .color-preset.active {
+        transform: translateY(-1px) scale(1.04);
+        box-shadow: 0 9px 22px rgba(15,23,42,.16), 0 0 0 5px rgba(11,128,115,.10) !important;
       }
       .color-preset.active::after {
         content: '';
         position: absolute;
-        inset: 8px;
+        inset: -7px;
         border-radius: 999px;
-        border: 2px solid rgba(255,255,255,.98);
-        box-shadow: 0 0 0 1px rgba(15,23,42,.08);
+        border: 2px solid rgba(11,128,115,.72);
+        box-shadow: 0 0 0 3px rgba(11,128,115,.09), 0 0 18px rgba(11,128,115,.22);
+        pointer-events: none;
+        animation: pcColorRingGlow 1.9s ease-in-out infinite;
+      }
+      @keyframes pcColorRingGlow {
+        0%, 100% { opacity: .78; transform: scale(.98); }
+        50% { opacity: 1; transform: scale(1.04); }
       }
       .color-picker-group {
         align-items: center;
@@ -295,6 +355,9 @@
           bottom: 10px !important;
           width: calc(100% - 20px) !important;
         }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .color-preset.active::after { animation: none; }
       }
     `;
     document.head.appendChild(style);
