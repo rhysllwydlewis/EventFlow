@@ -315,7 +315,7 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
       return;
     }
 
-    // ── Avatar initials ──────────────────────────────────────────────────────
+    // ── Avatar initials + optional profile photo ─────────────────────────────
     const avatarEl = document.getElementById('hero-avatar');
     const avatarInitialsEl = document.getElementById('hero-avatar-initials');
     const avatarImgEl = document.getElementById('hero-avatar-img');
