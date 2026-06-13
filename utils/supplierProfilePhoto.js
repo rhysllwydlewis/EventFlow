@@ -50,11 +50,19 @@ function findOwnerUserForSupplier(supplier, users = []) {
 
 function resolveSupplierProfilePhoto(supplier, ownerUser) {
   const candidates = [
+    // Dashboard/settings profile-photo fields are authoritative when present.
     supplier?.profilePhotoUrl,
     supplier?.displayAvatarUrl,
     supplier?.avatarUrl,
     supplier?.profileImage,
+    supplier?.profilePhoto,
+    supplier?.photoUrl,
+    supplier?.image,
+    // If older supplier records were not backfilled, keep the public profile in
+    // sync with the owning account avatar before falling back to legacy logos.
     ownerUser?.avatarUrl,
+    ownerUser?.profilePhotoUrl,
+    ownerUser?.displayAvatarUrl,
     supplier?.logo,
   ];
 

@@ -162,6 +162,12 @@ describe('utils/supplierProfilePhoto', () => {
       '/profile.jpg'
     );
     expect(resolveSupplierProfilePhoto({ avatarUrl: '/avatar.jpg' }, {})).toBe('/avatar.jpg');
+    expect(resolveSupplierProfilePhoto({ photoUrl: '/dashboard-photo.jpg' }, {})).toBe(
+      '/dashboard-photo.jpg'
+    );
+    expect(resolveSupplierProfilePhoto({ image: '/dashboard-image.jpg' }, {})).toBe(
+      '/dashboard-image.jpg'
+    );
     expect(resolveSupplierProfilePhoto({ logo: '/logo.jpg' }, {})).toBe('/logo.jpg');
     expect(resolveSupplierProfilePhoto({}, { avatarUrl: '  /user-avatar.jpg  ' })).toBe(
       '/user-avatar.jpg'
@@ -192,6 +198,14 @@ describe('utils/supplierProfilePhoto', () => {
       'user_email'
     );
   });
+});
+
+test('public profile renderer considers dashboard photo aliases before initials fallback', () => {
+  const supplierProfileJs = fs.readFileSync(SUPPLIER_PROFILE_JS, 'utf8');
+  expect(supplierProfileJs).toContain('supplier?.profilePhotoUrl');
+  expect(supplierProfileJs).toContain('supplier?.photoUrl');
+  expect(supplierProfileJs).toContain('supplier?.image');
+  expect(supplierProfileJs).toContain('galleryProfileImage');
 });
 
 describe('public supplier API profile-photo enrichment', () => {
