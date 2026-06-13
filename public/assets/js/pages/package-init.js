@@ -142,14 +142,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (etContainer) {
           // Human-readable labels and distinct emojis for each event type
           const EVENT_DISPLAY = {
-            wedding:     { label: 'Wedding',     emoji: '💍' },
-            birthday:    { label: 'Birthday',    emoji: '🎂' },
-            corporate:   { label: 'Corporate',   emoji: '💼' },
+            wedding: { label: 'Wedding', emoji: '💍' },
+            birthday: { label: 'Birthday', emoji: '🎂' },
+            corporate: { label: 'Corporate', emoji: '💼' },
             anniversary: { label: 'Anniversary', emoji: '🥂' },
             christening: { label: 'Christening', emoji: '✨' },
-            graduation:  { label: 'Graduation',  emoji: '🎓' },
-            engagement:  { label: 'Engagement',  emoji: '💎' },
-            other:       { label: 'Other',       emoji: '🎉' },
+            graduation: { label: 'Graduation', emoji: '🎓' },
+            engagement: { label: 'Engagement', emoji: '💎' },
+            other: { label: 'Other', emoji: '🎉' },
           };
           etContainer.innerHTML = pkg.eventTypes
             .map(et => {
@@ -178,6 +178,26 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('package-error').style.display = 'block';
     });
 });
+
+function isUsableSupplierProfileImageUrl(value) {
+  if (!value || typeof value !== 'string') {
+    return false;
+  }
+  const url = value.trim();
+  return /^(https?:\/\/[^\s]+|\/[^/\\:][^:]*)$/i.test(url);
+}
+
+function getSupplierProfileImage(supplier) {
+  const candidates = [
+    supplier?.profilePhotoUrl,
+    supplier?.displayAvatarUrl,
+    supplier?.avatarUrl,
+    supplier?.profileImage,
+    supplier?.logo,
+  ];
+  const imageUrl = candidates.find(isUsableSupplierProfileImageUrl);
+  return typeof imageUrl === 'string' ? imageUrl.trim() : '';
+}
 
 /**
  * Populate and wire the supplier sidebar widget.
@@ -210,10 +230,12 @@ function buildSupplierSidebar(supplier, pkg, currentUser) {
     avatarEl.textContent = initial;
   }
 
-  if (supplier.logo) {
+  const supplierProfileImage = getSupplierProfileImage(supplier);
+
+  if (supplierProfileImage) {
     const img = document.createElement('img');
-    img.src = supplier.logo;
-    img.alt = `${supplier.name} logo`;
+    img.src = supplierProfileImage;
+    img.alt = `${supplier.name} profile photo`;
     img.addEventListener('error', showAvatarInitial);
     avatarEl.appendChild(img);
   } else {
@@ -286,7 +308,7 @@ function buildSupplierSidebar(supplier, pkg, currentUser) {
   saveBtn.dataset.supplierName = supplier.name || '';
   saveBtn.dataset.supplierCategory = supplier.category || '';
   saveBtn.dataset.supplierLocation = supplier.location || '';
-  saveBtn.dataset.supplierImage = supplier.logo || '';
+  saveBtn.dataset.supplierImage = supplierProfileImage;
 
   if (isSupplierFallback) {
     saveBtn.disabled = true;
@@ -325,7 +347,7 @@ function buildSupplierSidebar(supplier, pkg, currentUser) {
         name: supplier.name,
         category: supplier.category || '',
         location: supplier.location || '',
-        imageUrl: supplier.logo || '',
+        imageUrl: supplierProfileImage,
       });
       saveBtn.classList.replace('sp-btn--shortlist', 'sp-btn--shortlist-active');
       saveBtn.innerHTML = '❤️ Saved';
@@ -358,8 +380,8 @@ function buildSupplierSidebar(supplier, pkg, currentUser) {
     msgBtn.dataset.contextType = 'package';
     msgBtn.dataset.contextId = pkg.id || '';
     msgBtn.dataset.contextTitle = pkg.title || '';
-    if (supplier.logo) {
-      msgBtn.dataset.contextImage = supplier.logo;
+    if (supplierProfileImage) {
+      msgBtn.dataset.contextImage = supplierProfileImage;
     }
 
     // Auth gate for message button (before QuickComposeV4 fires)

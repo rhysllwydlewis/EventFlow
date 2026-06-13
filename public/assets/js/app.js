@@ -3082,10 +3082,28 @@ async function initDashSupplier() {
         [currentUser?.name, currentUser?.firstName, currentUser?.email]
           .find(v => typeof v === 'string' && v.trim())
           ?.trim();
-      const profilePhotoUrl =
-        currentUser?.avatarUrl && /^(https?:\/\/|\/[^:])/i.test(currentUser.avatarUrl)
-          ? escapeHtml(currentUser.avatarUrl)
+      const currentUserProfilePhotoUrl =
+        currentUser?.avatarUrl &&
+        /^(https?:\/\/[^\s]+|\/[^/\\:][^:]*)$/i.test(currentUser.avatarUrl)
+          ? currentUser.avatarUrl.trim()
           : '';
+      const resolveDashboardSupplierProfilePhoto = supplier => {
+        const candidates = [
+          supplier?.profilePhotoUrl,
+          supplier?.displayAvatarUrl,
+          supplier?.avatarUrl,
+          supplier?.profileImage,
+          currentUserProfilePhotoUrl,
+          supplier?.logo,
+        ];
+        const found = candidates.find(value => {
+          if (!value || typeof value !== 'string') {
+            return false;
+          }
+          return /^(https?:\/\/[^\s]+|\/[^/\\:][^:]*)$/i.test(value.trim());
+        });
+        return typeof found === 'string' ? escapeHtml(found.trim()) : '';
+      };
       const profileInitial = escapeHtml(
         (profileDisplayName || '')
           .split(/\s+/)
@@ -3291,6 +3309,7 @@ async function initDashSupplier() {
             ? escapeHtml(descriptionRaw)
             : descriptionFallbackText;
           const approved = !!s.approved;
+          const profilePhotoUrl = resolveDashboardSupplierProfilePhoto(s);
 
           return `<div class="supplier-card card glass-card spc-root" data-supplier-id="${supplierId}">
       <div class="spc-summary">
@@ -4958,10 +4977,21 @@ function editPackage(packageId) {
       // Set event type checkboxes
       // Set event type checkboxes
       if (pkg.eventTypes && Array.isArray(pkg.eventTypes)) {
-        const ALL_EVENT_TYPES = ['wedding','birthday','corporate','anniversary','christening','graduation','engagement','other'];
+        const ALL_EVENT_TYPES = [
+          'wedding',
+          'birthday',
+          'corporate',
+          'anniversary',
+          'christening',
+          'graduation',
+          'engagement',
+          'other',
+        ];
         ALL_EVENT_TYPES.forEach(type => {
           const el = document.getElementById(`pkg-event-${type}`);
-          if (el) el.checked = pkg.eventTypes.includes(type);
+          if (el) {
+            el.checked = pkg.eventTypes.includes(type);
+          }
         });
       }
 

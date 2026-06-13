@@ -4,6 +4,10 @@ const express = require('express');
 const router = express.Router();
 const { resolvePackageImage } = require('../utils/packageImageUtils');
 const { safePublicPackage, safePublicSupplier } = require('../utils/supplierPublicProfile');
+const {
+  findOwnerUserForSupplier,
+  resolveSupplierProfilePhoto,
+} = require('../utils/supplierProfilePhoto');
 
 let dbUnified;
 let getUserFromCookie;
@@ -75,6 +79,15 @@ router.get('/suppliers/:id', async (req, res, next) => {
     }
 
     const packages = await dbUnified.read('packages');
+    const users = await dbUnified.read('users');
+    const ownerUser = findOwnerUserForSupplier(supplier, users);
+    const profilePhotoUrl = resolveSupplierProfilePhoto(supplier, ownerUser);
+    const publicSupplier = {
+      ...supplier,
+      profilePhotoUrl,
+      avatarUrl: profilePhotoUrl,
+      displayAvatarUrl: profilePhotoUrl,
+    };
     const featuredSupplier = packages.some(pkg => pkg.supplierId === supplier.id && pkg.featured);
     const isPro = supplierIsProActive
       ? await supplierIsProActive(supplier)
@@ -82,11 +95,12 @@ router.get('/suppliers/:id', async (req, res, next) => {
     const preview = previewMode(req) && canPreview(req, supplier);
 
     return res.json(
-      safePublicSupplier(supplier, {
+      safePublicSupplier(publicSupplier, {
         badgeDetails: await badgeDetailsFor(supplier),
         featuredSupplier,
         isPreview: preview,
         isPro,
+        profilePhotoUrl,
       })
     );
   } catch (error) {
