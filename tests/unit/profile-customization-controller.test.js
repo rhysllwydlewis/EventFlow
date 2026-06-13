@@ -28,10 +28,19 @@ describe('profile customization controller', () => {
     expect(controller).toContain('Stock photo selected successfully');
   });
 
-  it('adds runtime UX polish for focus states, previews and click targets', () => {
+  it('owns key click targets instead of letting legacy inline handlers double-fire', () => {
+    expect(controller).toContain('function cleanInteractiveElement');
+    expect(controller).toContain("cleanInteractiveSelector('.color-preset')");
+    expect(controller).toContain("cleanInteractiveElement($('pc-save-bar-save'))");
+    expect(controller).toContain("cleanInteractiveElement($('pc-save-bar-discard'))");
+  });
+
+  it('adds runtime UX polish for focus states, previews, sidebar and floating save bar', () => {
     expect(controller).toContain('injectPolishStyles');
     expect(controller).toContain('.pc-banner-zone:focus-visible');
     expect(controller).toContain('.photo-preview-remove');
+    expect(controller).toContain('.pc-save-bar.pc-save-bar--visible');
+    expect(controller).toContain('.pc-preview-body .pc-preview-name');
     expect(controller).toContain("event.key === 'Enter' || event.key === ' '");
   });
 });
