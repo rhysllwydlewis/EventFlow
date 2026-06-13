@@ -229,6 +229,7 @@ function isOpaqueOrigin(origin) {
 }
 
 function isAllowedGoogleCallbackOrigin(origin, allowedOrigins) {
+  const googleIdentityOrigins = new Set(['https://accounts.google.com']);
   if (googleIdentityOrigins.has(normalizeCorsOrigin(origin))) {
     return true;
   }
