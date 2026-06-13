@@ -263,6 +263,25 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
     return (words[0].charAt(0) + words[words.length - 1].charAt(0)).toUpperCase();
   }
 
+  function isUsableSupplierProfileImageUrl(value) {
+    if (!value || typeof value !== 'string') {
+      return false;
+    }
+    const url = value.trim();
+    return /^(https?:\/\/|\/[^:])/i.test(url);
+  }
+
+  function getSupplierProfileImage(supplier) {
+    const candidates = [
+      supplier?.profilePhotoUrl,
+      supplier?.displayAvatarUrl,
+      supplier?.avatarUrl,
+      supplier?.logo,
+    ];
+    const imageUrl = candidates.find(isUsableSupplierProfileImageUrl);
+    return typeof imageUrl === 'string' ? imageUrl.trim() : '';
+  }
+
   function _lightenHex(hex, amount) {
     const num = parseInt(hex.replace('#', ''), 16);
     const r = Math.min(255, (num >> 16) + Math.round(2.55 * amount));
@@ -279,6 +298,7 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
     // ── Avatar initials ──────────────────────────────────────────────────────
     const avatarEl = document.getElementById('hero-avatar');
     const avatarInitialsEl = document.getElementById('hero-avatar-initials');
+    const avatarImgEl = document.getElementById('hero-avatar-img');
     if (avatarEl && avatarInitialsEl) {
       avatarInitialsEl.textContent = _getInitials(supplier.name);
       // Accent: supplier theme > category default > EF teal
@@ -291,6 +311,24 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
         (catPreset ? CATEGORY_ACCENT[catPreset] : null) ||
         '#0B8073';
       avatarEl.style.background = `linear-gradient(135deg, ${accentColor} 0%, ${_lightenHex(accentColor, 30)} 100%)`;
+
+      if (avatarImgEl) {
+        const profileImage = getSupplierProfileImage(supplier);
+        if (profileImage) {
+          delete avatarImgEl.dataset.fallbackApplied;
+          avatarImgEl.style.display = '';
+          avatarImgEl.src = profileImage;
+          avatarImgEl.alt = `${supplier.name} profile photo`;
+          avatarImgEl.hidden = false;
+          avatarInitialsEl.style.display = '';
+        } else {
+          avatarImgEl.removeAttribute('src');
+          avatarImgEl.alt = '';
+          avatarImgEl.hidden = true;
+          avatarImgEl.style.display = '';
+          avatarInitialsEl.style.display = '';
+        }
+      }
     }
 
     // ── Hero banner / gradient ───────────────────────────────────────────────
