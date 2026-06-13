@@ -51,7 +51,7 @@ function isUsableSupplierImageUrl(value) {
     return false;
   }
   const url = value.trim();
-  return /^(https?:\/\/|\/[^:])/i.test(url);
+  return /^(https?:\/\/[^\s]+|\/[^/\\:][^:]*)$/i.test(url);
 }
 
 function getSupplierProfileImage(supplier) {
@@ -364,7 +364,8 @@ function createEmptyState(filters) {
     { label: 'Florist', value: 'Florist' },
   ];
 
-  const categoryChips = POPULAR_CATEGORIES.map(cat => `
+  const categoryChips = POPULAR_CATEGORIES.map(
+    cat => `
     <a href="/suppliers?category=${encodeURIComponent(cat.value)}"
        class="sp-empty-category-chip"
        aria-label="Browse ${escapeHtml(cat.label)} suppliers">
@@ -372,7 +373,8 @@ function createEmptyState(filters) {
     </a>`
   ).join('');
 
-  const tips = hasFilters ? `
+  const tips = hasFilters
+    ? `
     <div class="sp-empty-tips">
       <p class="sp-empty-tips-label">Try:</p>
       <ul class="sp-empty-tips-list">
@@ -380,25 +382,31 @@ function createEmptyState(filters) {
         <li>Using a broader category (e.g. "Venues" instead of a specific style)</li>
         <li>Searching by supplier name or service keyword</li>
       </ul>
-    </div>` : '';
+    </div>`
+    : '';
 
   return `
     <div class="sp-empty-state" role="status">
       <span class="sp-empty-icon" aria-hidden="true">🔍</span>
       <h2 class="sp-empty-title">${hasFilters ? 'No suppliers match your search' : 'No suppliers found'}</h2>
-      <p class="sp-empty-text">${hasFilters
-        ? 'No suppliers match your current filters.'
-        : 'No suppliers are available at the moment — check back soon.'
+      <p class="sp-empty-text">${
+        hasFilters
+          ? 'No suppliers match your current filters.'
+          : 'No suppliers are available at the moment — check back soon.'
       }</p>
       ${tips}
       <div class="sp-empty-actions">
         ${hasFilters ? '<button class="ef-cta sp-btn sp-btn--secondary" id="clear-filters-btn">Clear all filters</button>' : ''}
         <a href="/suppliers" class="sp-btn sp-btn--outline">Browse all suppliers</a>
       </div>
-      ${hasFilters ? `<div class="sp-empty-categories">
+      ${
+        hasFilters
+          ? `<div class="sp-empty-categories">
         <p class="sp-empty-categories-label">Popular categories</p>
         <div class="sp-empty-categories-chips">${categoryChips}</div>
-      </div>` : ''}
+      </div>`
+          : ''
+      }
     </div>
   `;
 }

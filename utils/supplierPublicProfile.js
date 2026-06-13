@@ -4,6 +4,7 @@ const { stripHtml } = require('./helpers');
 
 const DEFAULT_MAX_IMAGE_CHARS = 1200000;
 const DATA_IMAGE_RE = /^data:image\/(png|jpe?g|webp|gif);base64,[a-z0-9+/]+={0,2}$/i;
+const ROOTED_IMAGE_RE = /^\/[^/\\:][^:]*$/;
 
 function text(value, max = 500) {
   if (value === null || value === undefined) {
@@ -32,6 +33,9 @@ function safeImageUrl(value, max = DEFAULT_MAX_IMAGE_CHARS) {
     return '';
   }
   if (DATA_IMAGE_RE.test(cleaned)) {
+    return '';
+  }
+  if (ROOTED_IMAGE_RE.test(cleaned)) {
     return cleaned;
   }
   try {
@@ -144,6 +148,14 @@ function safePublicSupplier(supplier = {}, extras = {}) {
   const extra = extras && typeof extras === 'object' ? extras : {};
   const bannerUrl = safeImageUrl(source.bannerUrl || source.coverImage);
   const logo = safeImageUrl(source.logo || source.profileImage);
+  const profilePhotoUrl = safeImageUrl(
+    extra.profilePhotoUrl ||
+      source.profilePhotoUrl ||
+      source.displayAvatarUrl ||
+      source.avatarUrl ||
+      source.profileImage ||
+      source.logo
+  );
   const website = safeExternalUrl(source.website);
   const socialLinks = safeSocialLinks(source.socialLinks);
   const rating = numberOrNull(source.averageRating ?? source.rating);
@@ -166,6 +178,9 @@ function safePublicSupplier(supplier = {}, extras = {}) {
     openGraphImage: safeImageUrl(source.openGraphImage || bannerUrl || logo),
     logo,
     profileImage: logo,
+    profilePhotoUrl,
+    avatarUrl: profilePhotoUrl,
+    displayAvatarUrl: profilePhotoUrl,
     themeColor: /^#[0-9a-f]{6}$/i.test(String(source.themeColor || ''))
       ? String(source.themeColor).trim()
       : null,
