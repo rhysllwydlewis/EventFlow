@@ -1,34 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="EventFlow favicon">
-  <defs>
-    <linearGradient id="ef-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#3b82f6" />
-      <stop offset="50%" stop-color="#14b8a6" />
-      <stop offset="100%" stop-color="#86efac" />
-    </linearGradient>
-    <linearGradient id="ef-gloss" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.55" />
-      <stop offset="45%" stop-color="#ffffff" stop-opacity="0.08" />
-      <stop offset="100%" stop-color="#ffffff" stop-opacity="0" />
-    </linearGradient>
-    <filter id="ef-shadow" x="-30%" y="-30%" width="160%" height="160%">
-      <feDropShadow dx="0" dy="3" stdDeviation="2.5" flood-color="#0b1220" flood-opacity="0.35" />
-    </filter>
-  </defs>
-
-  <rect x="4" y="4" width="56" height="56" rx="16" fill="url(#ef-gradient)" filter="url(#ef-shadow)" />
-  <path d="M10 9 C 20 3, 41 3, 54 12 L 38 12 C 30 9, 21 9, 13 14 Z" fill="url(#ef-gloss)" opacity="0.85" />
-
-  <text
-    x="50%"
-    y="52%"
-    text-anchor="middle"
-    dominant-baseline="middle"
-    font-family="Inter, Segoe UI, Arial, sans-serif"
-    font-weight="800"
-    font-size="24"
-    letter-spacing="-1.5"
-    fill="#ffffff"
-  >
-    EF
-  </text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="EventFlow">
+  <!-- Solid teal background — no gradient, no shadow, no filter; renders cleanly at any size -->
+  <rect width="64" height="64" rx="14" fill="#0B8073"/>
+  <!-- "E" — bold white paths, readable at 16px -->
+  <rect x="10" y="13" width="6"  height="38" fill="#fff"/>
+  <rect x="10" y="13" width="21" height="7"  fill="#fff"/>
+  <rect x="10" y="28" width="16" height="7"  fill="#fff"/>
+  <rect x="10" y="44" width="21" height="7"  fill="#fff"/>
+  <!-- "F" — bold white paths -->
+  <rect x="35" y="13" width="6"  height="38" fill="#fff"/>
+  <rect x="35" y="13" width="19" height="7"  fill="#fff"/>
+  <rect x="35" y="28" width="14" height="7"  fill="#fff"/>
 </svg>
