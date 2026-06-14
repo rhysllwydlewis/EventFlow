@@ -79,8 +79,47 @@ router.get('/suppliers/:id', async (req, res, next) => {
     }
 
     const packages = await dbUnified.read('packages');
-    const users = await dbUnified.read('users');
-    const ownerUser = findOwnerUserForSupplier(supplier, users);
+    const featuredSupplier = packages.some(pkg => pkg.supplierId === supplier.id && pkg.featured);
+    const isPro = supplierIsProActive
+      ? await supplierIsProActive(supplier)
+      : Boolean(supplier.isPro);
+    const preview = previewMode(req) && canPreview(req, supplier);
+
+    // Resolve the owner user's avatar using targeted findOne lookups rather
+    // than loading every user into memory. Walk all known link-field names so
+    // legacy supplier records without ownerUserId are still covered.
+    let ownerUser = null;
+    const ownerUserId =
+      supplier.ownerUserId ||
+      supplier.userId       ||
+      supplier.ownerId      ||
+      supplier.accountId    ||
+      supplier.createdByUserId ||
+      supplier.createdBy    ||
+      supplier.createdById;
+
+    if (ownerUserId) {
+      try {
+        ownerUser = await dbUnified.findOne('users', { id: String(ownerUserId).trim() });
+      } catch (err) {
+        logger.warn('supplier-profile-safe: id-based owner lookup failed for', supplier.id, err.message);
+      }
+    }
+
+    // Email-based fallback: covers suppliers that pre-date the ownerUserId field
+    if (!ownerUser) {
+      const ownerEmail = supplier.ownerEmail || supplier.contactEmail || supplier.email;
+      if (ownerEmail) {
+        try {
+          ownerUser = await dbUnified.findOne('users', {
+            email: String(ownerEmail).trim().toLowerCase(),
+          });
+        } catch (err) {
+          logger.warn('supplier-profile-safe: email-based owner lookup failed for', supplier.id, err.message);
+        }
+      }
+    }
+
     const profilePhotoUrl = resolveSupplierProfilePhoto(supplier, ownerUser);
     const publicSupplier = {
       ...supplier,
@@ -88,11 +127,6 @@ router.get('/suppliers/:id', async (req, res, next) => {
       avatarUrl: profilePhotoUrl,
       displayAvatarUrl: profilePhotoUrl,
     };
-    const featuredSupplier = packages.some(pkg => pkg.supplierId === supplier.id && pkg.featured);
-    const isPro = supplierIsProActive
-      ? await supplierIsProActive(supplier)
-      : Boolean(supplier.isPro);
-    const preview = previewMode(req) && canPreview(req, supplier);
 
     return res.json(
       safePublicSupplier(publicSupplier, {

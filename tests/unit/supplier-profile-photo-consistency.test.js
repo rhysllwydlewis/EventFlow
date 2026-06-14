@@ -205,7 +205,11 @@ test('public profile renderer considers dashboard photo aliases before initials 
   expect(supplierProfileJs).toContain('supplier?.profilePhotoUrl');
   expect(supplierProfileJs).toContain('supplier?.photoUrl');
   expect(supplierProfileJs).toContain('supplier?.image');
-  expect(supplierProfileJs).toContain('galleryProfileImage');
+  // Gallery photos are intentionally excluded from the avatar resolution to prevent
+  // unrelated or broken gallery URLs from ghosting the avatar (hiding it via
+  // data-fallback-hide without showing any image). Only dedicated profile-photo
+  // fields are used; gallery photos continue to render in the gallery section.
+  expect(supplierProfileJs).not.toContain('galleryProfileImage');
 });
 
 describe('public supplier API profile-photo enrichment', () => {
