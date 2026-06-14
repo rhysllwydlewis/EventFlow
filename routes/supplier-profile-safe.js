@@ -81,12 +81,45 @@ router.get('/suppliers/:id', async (req, res, next) => {
       : Boolean(supplier.isPro);
     const preview = previewMode(req) && canPreview(req, supplier);
 
+    // Resolve the owner user's avatar so the public profile shows the correct
+    // profile photo even when the supplier record has no direct logo/photo.
+    // Walk all known owner-link field names to support legacy supplier records.
+    let ownerAvatarUrl = '';
+    const ownerUserId =
+      supplier.ownerUserId ||
+      supplier.userId ||
+      supplier.ownerId ||
+      supplier.accountId ||
+      supplier.createdByUserId ||
+      supplier.createdBy ||
+      supplier.createdById;
+    if (ownerUserId) {
+      try {
+        const ownerUser = await dbUnified.findOne('users', { id: ownerUserId });
+        if (ownerUser) {
+          ownerAvatarUrl =
+            ownerUser.avatarUrl ||
+            ownerUser.profilePhotoUrl ||
+            ownerUser.displayAvatarUrl ||
+            ownerUser.photoUrl ||
+            ownerUser.profileImage ||
+            ownerUser.image ||
+            (ownerUser.profile && (ownerUser.profile.avatarUrl || ownerUser.profile.photoUrl)) ||
+            '';
+        }
+      } catch (ownerErr) {
+        // Non-fatal — fall back to supplier's own photo fields
+        logger.warn('supplier-profile-safe: owner avatar lookup failed for', supplier.id, ownerErr.message);
+      }
+    }
+
     return res.json(
       safePublicSupplier(supplier, {
         badgeDetails: await badgeDetailsFor(supplier),
         featuredSupplier,
         isPreview: preview,
         isPro,
+        ownerAvatarUrl,
       })
     );
   } catch (error) {

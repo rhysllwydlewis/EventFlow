@@ -143,7 +143,28 @@ function safePublicSupplier(supplier = {}, extras = {}) {
   const source = supplier && typeof supplier === 'object' ? supplier : {};
   const extra = extras && typeof extras === 'object' ? extras : {};
   const bannerUrl = safeImageUrl(source.bannerUrl || source.coverImage);
-  const logo = safeImageUrl(source.logo || source.profileImage);
+
+  // Resolve the profile photo. Try each candidate individually through
+  // safeImageUrl so an invalid/unsafe URL doesn't poison the whole chain.
+  // Priority: owner avatar injected by the route → supplier direct fields.
+  function _firstSafeImage(...candidates) {
+    for (const c of candidates) {
+      const safe = safeImageUrl(c || '');
+      if (safe) return safe;
+    }
+    return '';
+  }
+  const resolvedPhoto = _firstSafeImage(
+    extra.ownerAvatarUrl,
+    source.profilePhotoUrl,
+    source.avatarUrl,
+    source.displayAvatarUrl,
+    source.logo,
+    source.profileImage,
+    source.photoUrl,
+    source.image
+  );
+  const logo = resolvedPhoto || safeImageUrl(source.logo || source.profileImage);
   const website = safeExternalUrl(source.website);
   const socialLinks = safeSocialLinks(source.socialLinks);
   const rating = numberOrNull(source.averageRating ?? source.rating);
@@ -166,6 +187,10 @@ function safePublicSupplier(supplier = {}, extras = {}) {
     openGraphImage: safeImageUrl(source.openGraphImage || bannerUrl || logo),
     logo,
     profileImage: logo,
+    // All three canonical photo fields so the frontend can read any of them
+    avatarUrl: resolvedPhoto,
+    displayAvatarUrl: resolvedPhoto,
+    profilePhotoUrl: resolvedPhoto,
     themeColor: /^#[0-9a-f]{6}$/i.test(String(source.themeColor || ''))
       ? String(source.themeColor).trim()
       : null,

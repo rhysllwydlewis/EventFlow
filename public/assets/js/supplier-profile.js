@@ -276,12 +276,12 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
       return;
     }
 
-    // ── Avatar initials ──────────────────────────────────────────────────────
+    // ── Avatar: initials + optional profile photo ────────────────────────────
     const avatarEl = document.getElementById('hero-avatar');
     const avatarInitialsEl = document.getElementById('hero-avatar-initials');
     if (avatarEl && avatarInitialsEl) {
       avatarInitialsEl.textContent = _getInitials(supplier.name);
-      // Accent: supplier theme > category default > EF teal
+      // Accent colour: supplier theme → category → EF teal
       const catKey = (supplier.category || '').toLowerCase().trim();
       const catPreset = CATEGORY_PRESETS[catKey] || null;
       const accentColor =
@@ -290,7 +290,35 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
           : null) ||
         (catPreset ? CATEGORY_ACCENT[catPreset] : null) ||
         '#0B8073';
+      // Always set gradient first — acts as loading placeholder and fallback
       avatarEl.style.background = `linear-gradient(135deg, ${accentColor} 0%, ${_lightenHex(accentColor, 30)} 100%)`;
+
+      // If a profile photo URL is available, load it and apply as background-image.
+      // Using background-image on the existing div is simpler and more reliable
+      // than injecting an <img> child: border-radius clips background images
+      // natively so no overflow:hidden or absolute positioning is needed.
+      const photoUrl =
+        supplier.avatarUrl ||
+        supplier.profilePhotoUrl ||
+        supplier.displayAvatarUrl ||
+        supplier.logo ||
+        supplier.profileImage ||
+        '';
+
+      if (photoUrl) {
+        const probe = new window.Image();
+        probe.onload = function () {
+          // Photo confirmed loadable — apply over the gradient
+          avatarEl.style.backgroundImage = "url('" + photoUrl.replace(/'/g, '%27') + "')";
+          avatarEl.style.backgroundSize = 'cover';
+          avatarEl.style.backgroundPosition = 'center';
+          avatarInitialsEl.style.opacity = '0';
+          // Expose for rendering contract tests
+          avatarEl.dataset.photoUrl = photoUrl;
+        };
+        // probe.onerror: no action — gradient + initials remain as fallback
+        probe.src = photoUrl;
+      }
     }
 
     // ── Hero banner / gradient ───────────────────────────────────────────────
