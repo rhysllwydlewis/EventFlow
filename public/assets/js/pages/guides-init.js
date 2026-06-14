@@ -1,12 +1,8 @@
 window.__EF_PAGE__ = 'guides';
 
 document.addEventListener('DOMContentLoaded', () => {
-  // ──────────────────────────────────────────────
-  //  DATA
-  // ──────────────────────────────────────────────
   let articles = [];
 
-  // Category emoji map
   const categoryEmoji = {
     Venues: '🏛️',
     Catering: '🍽️',
@@ -27,9 +23,6 @@ document.addEventListener('DOMContentLoaded', () => {
     Marketplace: '🛍️',
   };
 
-  // ──────────────────────────────────────────────
-  //  HELPERS
-  // ──────────────────────────────────────────────
   function escHtml(str) {
     return String(str === null || str === undefined ? '' : str)
       .replace(/&/g, '&amp;')
@@ -39,9 +32,6 @@ document.addEventListener('DOMContentLoaded', () => {
       .replace(/'/g, '&#39;');
   }
 
-  // ──────────────────────────────────────────────
-  //  STATE
-  // ──────────────────────────────────────────────
   let activeFilter = '';
   let searchQuery = '';
   let sortOrder = 'newest';
@@ -61,17 +51,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const resetBtn = document.getElementById('guides-reset-btn');
   const resultsCount = document.getElementById('guides-results-count');
 
-  // ──────────────────────────────────────────────
-  //  HERO CAROUSEL
-  // ──────────────────────────────────────────────
   function formatGuideDate(value) {
-    if (!value) {
-      return 'Updated recently';
-    }
+    if (!value) return 'Updated recently';
     const date = new Date(value);
-    if (Number.isNaN(date.getTime())) {
-      return 'Updated recently';
-    }
+    if (Number.isNaN(date.getTime())) return 'Updated recently';
     return `Updated ${date.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })}`;
   }
 
@@ -91,35 +74,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function buildSideCardHTML(article, eager) {
     return `
-        <a href="${escHtml(article.link)}" class="hero-side-card" data-analytics-event="guide_card_click" data-guide-slug="${escHtml(article.slug)}" data-guide-title="${escHtml(article.title)}" aria-label="Read guide: ${escHtml(article.title)}">
-          <div class="hero-side-card__image-wrap">
-            <img src="${escHtml(article.image)}" alt="" class="hero-side-card__image" loading="${eager ? 'eager' : 'lazy'}" width="400" height="260">
-            <div class="hero-side-card__overlay" aria-hidden="true"></div>
-          </div>
-          <div class="hero-side-card__body">
-            <span class="hero-side-card__category">${categoryEmoji[article.category] || ''} ${escHtml(article.category)}</span>
-            <p class="hero-side-card__title">${escHtml(article.title)}</p>
-            <span class="hero-side-card__footer">
-              <span class="hero-side-card__meta">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                ${article.readTime} min read
-              </span>
-              <span class="hero-side-card__cta" aria-hidden="true">
-                Read guide
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-              </span>
+      <a href="${escHtml(article.link)}" class="hero-side-card" data-analytics-event="guide_card_click" data-guide-slug="${escHtml(article.slug)}" data-guide-title="${escHtml(article.title)}" aria-label="Read guide: ${escHtml(article.title)}">
+        <div class="hero-side-card__image-wrap">
+          <img src="${escHtml(article.image)}" alt="" class="hero-side-card__image" loading="${eager ? 'eager' : 'lazy'}" width="400" height="260">
+          <div class="hero-side-card__overlay" aria-hidden="true"></div>
+        </div>
+        <div class="hero-side-card__body">
+          <span class="hero-side-card__category">${categoryEmoji[article.category] || ''} ${escHtml(article.category)}</span>
+          <p class="hero-side-card__title">${escHtml(article.title)}</p>
+          <span class="hero-side-card__footer">
+            <span class="hero-side-card__meta">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              ${article.readTime} min read
             </span>
-          </div>
-        </a>
-      `;
+            <span class="hero-side-card__cta" aria-hidden="true">Read guide <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span>
+          </span>
+        </div>
+      </a>`;
   }
 
   function buildDots(count, activeIdx, dotsEl) {
-    if (!dotsEl) {
-      return;
-    }
+    if (!dotsEl) return;
     dotsEl.innerHTML = '';
-    for (let i = 0; i < count; i++) {
+    for (let i = 0; i < count; i += 1) {
       const dot = document.createElement('span');
       dot.className = `hero-carousel-dot${i === activeIdx ? ' active' : ''}`;
       dotsEl.appendChild(dot);
@@ -131,22 +108,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const rightWrap = document.getElementById('hero-card-right');
     const dotsLeft = document.getElementById('hero-dots-left');
     const dotsRight = document.getElementById('hero-dots-right');
-    if (!leftWrap || !rightWrap) {
-      return;
-    }
+    if (!leftWrap || !rightWrap) return;
 
-    const featured = articles
-      .filter(a => a.featured)
-      .sort((a, b) => a.featuredOrder - b.featuredOrder);
-    if (featured.length < 2) {
-      return;
-    }
+    const featured = articles.filter(a => a.featured).sort((a, b) => a.featuredOrder - b.featuredOrder);
+    if (featured.length < 2) return;
 
     let idx = 0;
     let carouselInterval = null;
-    const motionQuery = window.matchMedia
-      ? window.matchMedia('(prefers-reduced-motion: reduce)')
-      : { matches: false };
+    const motionQuery = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
 
     function showPair(isFirst) {
       const leftIdx = idx % featured.length;
@@ -174,18 +143,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function startInterval() {
-      if (carouselInterval) {
-        clearInterval(carouselInterval);
-      }
-      if (!motionQuery.matches) {
-        carouselInterval = setInterval(() => showPair(false), 5000);
-      }
+      if (carouselInterval) clearInterval(carouselInterval);
+      if (!motionQuery.matches) carouselInterval = setInterval(() => showPair(false), 5000);
     }
 
     showPair(true);
     startInterval();
-
-    // Respond to live changes in the user's motion preference
     bindMediaQueryChange(motionQuery, () => {
       if (motionQuery.matches) {
         clearInterval(carouselInterval);
@@ -196,30 +159,22 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // ──────────────────────────────────────────────
-  //  FILTER CHIPS
-  // ──────────────────────────────────────────────
   function buildChips() {
-    if (!chipsWrap) {
-      return;
-    }
-    const categories = [...new Set(articles.map(a => a.category))].sort();
-
-    let html = `<button class="guides-chip active" data-filter="" role="radio" aria-checked="true">All guides</button>`;
+    if (!chipsWrap) return;
+    const categories = [...new Set(articles.map(a => a.category).filter(Boolean))].sort();
+    let html = '<button class="guides-chip active" data-filter="" role="radio" aria-checked="true">All guides</button>';
     categories.forEach(cat => {
       const em = categoryEmoji[cat] || '';
-      html += `<button class="guides-chip" data-filter="${escHtml(cat)}" role="radio" aria-checked="false">
-          <span class="guides-chip__icon" aria-hidden="true">${escHtml(em)}</span> ${escHtml(cat)}
-        </button>`;
+      html += `<button class="guides-chip" data-filter="${escHtml(cat)}" role="radio" aria-checked="false"><span class="guides-chip__icon" aria-hidden="true">${escHtml(em)}</span> ${escHtml(cat)}</button>`;
     });
     chipsWrap.innerHTML = html;
-
     chipsWrap.querySelectorAll('.guides-chip').forEach(btn => {
       btn.addEventListener('click', () => {
-        activeFilter = btn.dataset.filter;
+        activeFilter = btn.dataset.filter || '';
         chipsWrap.querySelectorAll('.guides-chip').forEach(b => {
-          b.classList.toggle('active', b === btn);
-          b.setAttribute('aria-checked', b === btn ? 'true' : 'false');
+          const isActive = b === btn;
+          b.classList.toggle('active', isActive);
+          b.setAttribute('aria-checked', isActive ? 'true' : 'false');
         });
         showAllGuides = false;
         updateClearBtn();
@@ -228,112 +183,52 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // ──────────────────────────────────────────────
-  //  SEARCH
-  // ──────────────────────────────────────────────
   function handleSearch() {
     searchQuery = searchInput ? searchInput.value.trim().toLowerCase() : '';
-    if (searchClear) {
-      searchClear.classList.toggle('visible', searchQuery.length > 0);
-    }
+    if (searchClear) searchClear.classList.toggle('visible', searchQuery.length > 0);
     updateClearBtn();
     showAllGuides = false;
     renderGrid();
-  }
-
-  if (searchInput) {
-    searchInput.addEventListener('input', handleSearch);
-    searchInput.addEventListener('keydown', e => {
-      if (e.key === 'Escape') {
-        clearSearch();
-      }
-      if (e.key === 'Enter') {
-        handleSearch();
-        scrollToGuides();
-      }
-    });
-  }
-
-  if (searchClear) {
-    searchClear.addEventListener('click', clearSearch);
-  }
-
-  const searchBtn = document.getElementById('guides-search-btn');
-  if (searchBtn) {
-    searchBtn.addEventListener('click', () => {
-      handleSearch();
-      scrollToGuides();
-    });
   }
 
   function scrollToGuides() {
     const section = document.getElementById('all-guides');
-    if (section) {
-      section.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
+    if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   function clearSearch() {
-    if (searchInput) {
-      searchInput.value = '';
-    }
+    if (searchInput) searchInput.value = '';
     searchQuery = '';
-    if (searchClear) {
-      searchClear.classList.remove('visible');
-    }
+    if (searchClear) searchClear.classList.remove('visible');
     updateClearBtn();
     showAllGuides = false;
     renderGrid();
   }
 
-  // ──────────────────────────────────────────────
-  //  SORT
-  // ──────────────────────────────────────────────
-  if (sortSelect) {
-    sortSelect.addEventListener('change', () => {
-      sortOrder = sortSelect.value;
-      showAllGuides = false;
-      renderGrid();
-    });
-  }
-
-  // ──────────────────────────────────────────────
-  //  CLEAR ALL
-  // ──────────────────────────────────────────────
   function resetAll() {
     activeFilter = '';
     searchQuery = '';
     sortOrder = 'newest';
     showAllGuides = false;
-    if (searchInput) {
-      searchInput.value = '';
+    if (searchInput) searchInput.value = '';
+    if (sortSelect) sortSelect.value = 'newest';
+    if (searchClear) searchClear.classList.remove('visible');
+    if (chipsWrap) {
+      chipsWrap.querySelectorAll('.guides-chip').forEach(b => {
+        const isAll = b.dataset.filter === '';
+        b.classList.toggle('active', isAll);
+        b.setAttribute('aria-checked', isAll ? 'true' : 'false');
+      });
     }
-    if (sortSelect) {
-      sortSelect.value = 'newest';
-    }
-    if (searchClear) {
-      searchClear.classList.remove('visible');
-    }
-    chipsWrap.querySelectorAll('.guides-chip').forEach(b => {
-      const isAll = b.dataset.filter === '';
-      b.classList.toggle('active', isAll);
-      b.setAttribute('aria-checked', isAll ? 'true' : 'false');
-    });
     updateClearBtn();
     renderGrid();
   }
 
-  clearAllBtn.addEventListener('click', resetAll);
-  resetBtn.addEventListener('click', resetAll);
-
   function updateClearBtn() {
-    const hasFilter = activeFilter !== '' || searchQuery !== '';
-    clearAllBtn.classList.toggle('visible', hasFilter);
+    if (!clearAllBtn) return;
+    clearAllBtn.classList.toggle('visible', activeFilter !== '' || searchQuery !== '');
   }
 
-  // ──────────────────────────────────────────────
-  //  FILTER + SORT
-  // ──────────────────────────────────────────────
   function getFiltered() {
     let list = articles.filter(a => {
       const matchCat = !activeFilter || a.category === activeFilter;
@@ -353,46 +248,37 @@ document.addEventListener('DOMContentLoaded', () => {
     } else if (sortOrder === 'category') {
       list = list.slice().sort((a, b) => a.category.localeCompare(b.category));
     } else {
-      // newest: sort by publishedDate descending
-      list = list
-        .slice()
-        .sort((a, b) => new Date(b.publishedDate || 0) - new Date(a.publishedDate || 0));
+      list = list.slice().sort((a, b) => new Date(b.publishedDate || 0) - new Date(a.publishedDate || 0));
     }
     return list;
   }
 
-  // ──────────────────────────────────────────────
-  //  RENDER GRID
-  // ──────────────────────────────────────────────
   function renderGrid() {
+    if (!guidesGrid) return;
     const list = getFiltered();
-
-    // Remove all existing cards (not loading/empty placeholders)
     guidesGrid.querySelectorAll('.guide-card').forEach(c => c.remove());
+    if (guidesLoading) guidesLoading.style.display = 'none';
 
-    if (guidesLoading) {
-      guidesLoading.style.display = 'none';
-    }
-
-    if (list.length === 0) {
-      guidesEmpty.classList.add('visible');
-      if (searchQuery && activeFilter) {
-        emptyMsg.textContent = `No guides match "${searchInput.value}" in ${activeFilter}. Try clearing a filter.`;
-      } else if (searchQuery) {
-        emptyMsg.textContent = `No guides match "${searchInput.value}". Try a different search term.`;
-      } else {
-        emptyMsg.textContent = `No guides in this category yet. More coming soon!`;
+    if (!list.length) {
+      if (guidesEmpty) guidesEmpty.classList.add('visible');
+      if (emptyMsg) {
+        if (searchQuery && activeFilter) {
+          emptyMsg.textContent = `No guides match "${searchInput ? searchInput.value : ''}" in ${activeFilter}. Try clearing a filter.`;
+        } else if (searchQuery) {
+          emptyMsg.textContent = `No guides match "${searchInput ? searchInput.value : ''}". Try a different search term.`;
+        } else {
+          emptyMsg.textContent = 'No guides in this category yet. More coming soon!';
+        }
       }
-      resultsCount.innerHTML = '';
-    } else {
-      guidesEmpty.classList.remove('visible');
-      const totalLabel = list.length === 1 ? '1 guide' : `${list.length} guides`;
-      const filterLabel = activeFilter ? ` in <strong>${escHtml(activeFilter)}</strong>` : '';
-      const searchLabel = searchQuery
-        ? ` matching "<strong>${escHtml(searchInput.value)}</strong>"`
-        : '';
-      resultsCount.innerHTML = `Showing <strong>${escHtml(totalLabel)}</strong>${filterLabel}${searchLabel}`;
+      if (resultsCount) resultsCount.innerHTML = '';
+      return;
     }
+
+    if (guidesEmpty) guidesEmpty.classList.remove('visible');
+    const totalLabel = list.length === 1 ? '1 guide' : `${list.length} guides`;
+    const filterLabel = activeFilter ? ` in <strong>${escHtml(activeFilter)}</strong>` : '';
+    const searchLabel = searchQuery && searchInput ? ` matching "<strong>${escHtml(searchInput.value)}</strong>"` : '';
+    if (resultsCount) resultsCount.innerHTML = `Showing <strong>${escHtml(totalLabel)}</strong>${filterLabel}${searchLabel}`;
 
     const shouldCollapse = list.length > INITIAL_GUIDE_LIMIT && !showAllGuides;
     const visibleList = shouldCollapse ? list.slice(0, INITIAL_GUIDE_LIMIT) : list;
@@ -402,34 +288,28 @@ document.addEventListener('DOMContentLoaded', () => {
       card.className = 'guide-card animate-in';
       card.style.animationDelay = `${Math.min(i * 0.05, 0.3)}s`;
       card.innerHTML = `
-          <div class="guide-card__image-wrap">
-            <img src="${escHtml(article.image)}" alt="" class="guide-card__image" loading="${i < 4 ? 'eager' : 'lazy'}" width="640" height="360">
+        <div class="guide-card__image-wrap">
+          <img src="${escHtml(article.image)}" alt="" class="guide-card__image" loading="${i < 4 ? 'eager' : 'lazy'}" width="640" height="360">
+        </div>
+        <div class="guide-card__body">
+          <div class="guide-card__badges">
+            <span class="guide-card__category">${categoryEmoji[article.category] || ''} ${escHtml(article.category)}</span>
+            <span class="guide-card__tag">#${escHtml(article.primaryTag)}</span>
           </div>
-          <div class="guide-card__body">
-            <div class="guide-card__badges">
-              <span class="guide-card__category">${categoryEmoji[article.category] || ''} ${escHtml(article.category)}</span>
-              <span class="guide-card__tag">#${escHtml(article.primaryTag)}</span>
-            </div>
-            <h3 class="guide-card__title">${escHtml(article.title)}</h3>
-            <p class="guide-card__summary"><strong>TL;DR:</strong> ${escHtml(article.summary)}</p>
-            <p class="guide-card__excerpt">${escHtml(article.excerpt)}</p>
-            <div class="guide-card__meta" aria-label="Guide details">
-              <span class="guide-card__meta-item">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                ${article.readTime} min read
-              </span>
-              <span class="guide-card__meta-item guide-card__difficulty">${escHtml(article.difficulty)}</span>
-              <span class="guide-card__meta-item">${escHtml(formatGuideDate(article.lastUpdated))}</span>
-              ${article.affiliate ? '<span class="guide-card__partner-badge">Partner</span>' : ''}
-            </div>
-            <div class="guide-card__cta-row">
-              <a href="${escHtml(article.link)}" class="guide-card__cta" data-analytics-event="guide_card_click" data-guide-slug="${escHtml(article.slug)}" data-guide-title="${escHtml(article.title)}" aria-label="Read guide: ${escHtml(article.title)}">
-                Read guide <span class="guide-card__cta-arrow" aria-hidden="true">→</span>
-              </a>
-              ${article.tool ? `<a href="${escHtml(article.tool.href)}" class="article-end-cta__tool guide-card__tool-link" aria-label="${escHtml(article.tool.label)}">${escHtml(article.tool.label)}</a>` : ''}
-            </div>
+          <h3 class="guide-card__title">${escHtml(article.title)}</h3>
+          <p class="guide-card__summary"><strong>TL;DR:</strong> ${escHtml(article.summary)}</p>
+          <p class="guide-card__excerpt">${escHtml(article.excerpt)}</p>
+          <div class="guide-card__meta" aria-label="Guide details">
+            <span class="guide-card__meta-item"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${article.readTime} min read</span>
+            <span class="guide-card__meta-item guide-card__difficulty">${escHtml(article.difficulty)}</span>
+            <span class="guide-card__meta-item">${escHtml(formatGuideDate(article.lastUpdated))}</span>
+            ${article.affiliate ? '<span class="guide-card__partner-badge">Partner</span>' : ''}
           </div>
-        `;
+          <div class="guide-card__cta-row">
+            <a href="${escHtml(article.link)}" class="guide-card__cta" data-analytics-event="guide_card_click" data-guide-slug="${escHtml(article.slug)}" data-guide-title="${escHtml(article.title)}" aria-label="Read guide: ${escHtml(article.title)}">Read guide <span class="guide-card__cta-arrow" aria-hidden="true">→</span></a>
+            ${article.tool ? `<a href="${escHtml(article.tool.href)}" class="article-end-cta__tool guide-card__tool-link" aria-label="${escHtml(article.tool.label)}">${escHtml(article.tool.label)}</a>` : ''}
+          </div>
+        </div>`;
       guidesGrid.appendChild(card);
     });
 
@@ -444,75 +324,100 @@ document.addEventListener('DOMContentLoaded', () => {
           <h3 class="guide-card--more__title">${remainingCount} more ${remainingCount === 1 ? 'guide' : 'guides'} ready for you</h3>
           <p class="guide-card--more__text">Keep browsing the full EventFlow guide library without the fallback link list clutter.</p>
           <button class="guide-card--more__button" type="button">View all ${list.length} guides</button>
-        </div>
-      `;
+        </div>`;
       const moreButton = moreCard.querySelector('button');
       moreButton.addEventListener('click', () => {
         showAllGuides = true;
         renderGrid();
         requestAnimationFrame(() => {
           const firstRevealedCard = guidesGrid.children[INITIAL_GUIDE_LIMIT];
-          if (firstRevealedCard) {
-            firstRevealedCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          }
+          if (firstRevealedCard) firstRevealedCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
         });
       });
       guidesGrid.appendChild(moreCard);
     }
   }
 
-  // ──────────────────────────────────────────────
-  //  INIT — load data then render
-  // ──────────────────────────────────────────────
-  fetch('/assets/data/guides.json')
-    .then(r => r.json())
-    .then(data => {
-      articles = data.map(g => ({
-        id: g.id,
-        title: g.title,
-        excerpt: g.excerpt || g.description || '',
-        image: g.image || '',
-        category: g.category || '',
-        tags: Array.isArray(g.tags) ? g.tags : [],
-        link: g.href || g.link || '',
-        slug: (g.href || g.link || '').replace('/articles/', ''),
-        summary: g.summary || g.excerpt || g.description || '',
-        difficulty: g.difficulty || 'Beginner',
-        primaryTag: g.primaryTag || (Array.isArray(g.tags) && g.tags[0]) || g.category || '',
-        readTime: g.readingMins || g.readTime || 0,
-        publishedDate: g.publishedDate || '',
-        lastUpdated: g.lastUpdated || g.publishedDate || '',
-        featured: g.featured || false,
-        featuredOrder: g.featuredOrder || 999,
-        affiliate: g.affiliate || false,
-        tool: g.tool || null,
-      }));
+  async function fetchJson(url, required) {
+    try {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`Failed to load ${url}`);
+      const data = await response.json();
+      return Array.isArray(data) ? data : [];
+    } catch (error) {
+      if (required) throw error;
+      return [];
+    }
+  }
+
+  function normaliseGuide(g) {
+    return {
+      id: g.id,
+      title: g.title || '',
+      excerpt: g.excerpt || g.description || '',
+      image: g.image || '',
+      category: g.category || '',
+      tags: Array.isArray(g.tags) ? g.tags : [],
+      link: g.href || g.link || '',
+      slug: (g.href || g.link || '').replace('/articles/', ''),
+      summary: g.summary || g.excerpt || g.description || '',
+      difficulty: g.difficulty || 'Beginner',
+      primaryTag: g.primaryTag || (Array.isArray(g.tags) && g.tags[0]) || g.category || '',
+      readTime: g.readingMins || g.readTime || 0,
+      publishedDate: g.publishedDate || '',
+      lastUpdated: g.lastUpdated || g.publishedDate || '',
+      featured: g.featured || false,
+      featuredOrder: g.featuredOrder || 999,
+      affiliate: g.affiliate || false,
+      tool: g.tool || null,
+    };
+  }
+
+  async function loadGuides() {
+    try {
+      const [baseGuides, eventflowPack] = await Promise.all([
+        fetchJson('/assets/data/guides.json', true),
+        fetchJson('/assets/data/guides-eventflow-pack.json', false),
+      ]);
+      const byHref = new Map();
+      [...baseGuides, ...eventflowPack].forEach(guide => {
+        if (guide && (guide.href || guide.link)) byHref.set(guide.href || guide.link, guide);
+      });
+      articles = Array.from(byHref.values()).map(normaliseGuide);
       initHeroCarousel();
       buildChips();
       renderGrid();
-      // Hide static fallback list now that the enhanced grid has rendered
-      if (guidesNoJsList) {
-        guidesNoJsList.hidden = true;
-      }
-    })
-    .catch(() => {
-      if (guidesLoading) {
-        guidesLoading.style.display = 'none';
-      }
+      if (guidesNoJsList) guidesNoJsList.hidden = true;
+    } catch (_) {
+      if (guidesLoading) guidesLoading.style.display = 'none';
       if (guidesEmpty) {
         guidesEmpty.classList.add('visible');
-        if (emptyMsg) {
-          emptyMsg.textContent =
-            'Unable to load guides. Please check your connection or try refreshing the page.';
-        }
+        if (emptyMsg) emptyMsg.textContent = 'Unable to load guides. Please check your connection or try refreshing the page.';
+      }
+    }
+  }
+
+  if (searchInput) {
+    searchInput.addEventListener('input', handleSearch);
+    searchInput.addEventListener('keydown', e => {
+      if (e.key === 'Escape') clearSearch();
+      if (e.key === 'Enter') {
+        handleSearch();
+        scrollToGuides();
       }
     });
+  }
+
+  if (searchClear) searchClear.addEventListener('click', clearSearch);
+  const searchBtn = document.getElementById('guides-search-btn');
+  if (searchBtn) searchBtn.addEventListener('click', () => { handleSearch(); scrollToGuides(); });
+  if (sortSelect) sortSelect.addEventListener('change', () => { sortOrder = sortSelect.value; showAllGuides = false; renderGrid(); });
+  if (clearAllBtn) clearAllBtn.addEventListener('click', resetAll);
+  if (resetBtn) resetBtn.addEventListener('click', resetAll);
 
   document.addEventListener('click', event => {
     const target = event.target.closest('[data-analytics-event="guide_card_click"]');
-    if (!target) {
-      return;
-    }
+    if (!target) return;
     trackGuideEvent('guide_card_click', {
       guide_slug: target.dataset.guideSlug || '',
       guide_title: target.dataset.guideTitle || target.textContent.trim(),
@@ -520,34 +425,22 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // ──────────────────────────────────────────────
-  //  AUTH GATE FOR PLANNING TOOLS
-  // ──────────────────────────────────────────────
-  (function () {
+  (function bindAuthGate() {
     const authModal = document.getElementById('guides-auth-modal');
     const authModalClose = document.getElementById('guides-auth-modal-close');
     const authModalBg = document.getElementById('guides-auth-modal-backdrop');
     const authModalSkip = document.getElementById('guides-auth-modal-skip');
     const authModalLogin = document.getElementById('guides-auth-modal-login');
     const authModalReg = document.getElementById('guides-auth-modal-register');
-
-    if (!authModal) {
-      return;
-    }
+    if (!authModal) return;
 
     function openAuthModal(targetHref) {
-      // Append redirect so user lands on the tool after signing in
       const redirect = encodeURIComponent(targetHref);
-      if (authModalLogin) {
-        authModalLogin.href = `/auth?redirect=${redirect}`;
-      }
-      if (authModalReg) {
-        authModalReg.href = `/auth?action=register&redirect=${redirect}`;
-      }
+      if (authModalLogin) authModalLogin.href = `/auth?redirect=${redirect}`;
+      if (authModalReg) authModalReg.href = `/auth?action=register&redirect=${redirect}`;
       authModal.hidden = false;
       document.body.style.overflow = 'hidden';
-      // Focus the close button for keyboard users
-      authModalClose && authModalClose.focus();
+      if (authModalClose) authModalClose.focus();
     }
 
     function closeAuthModal() {
@@ -555,30 +448,19 @@ document.addEventListener('DOMContentLoaded', () => {
       document.body.style.overflow = '';
     }
 
-    authModalClose && authModalClose.addEventListener('click', closeAuthModal);
-    authModalBg && authModalBg.addEventListener('click', closeAuthModal);
-    authModalSkip && authModalSkip.addEventListener('click', closeAuthModal);
-
+    if (authModalClose) authModalClose.addEventListener('click', closeAuthModal);
+    if (authModalBg) authModalBg.addEventListener('click', closeAuthModal);
+    if (authModalSkip) authModalSkip.addEventListener('click', closeAuthModal);
     document.addEventListener('keydown', e => {
-      if (e.key === 'Escape' && !authModal.hidden) {
-        closeAuthModal();
-      }
+      if (e.key === 'Escape' && !authModal.hidden) closeAuthModal();
     });
 
-    // Intercept clicks on every tool card and the CTA button
-    const toolTargets = document.querySelectorAll('.guides-tool-card, .guides-tools__cta-btn');
-    toolTargets.forEach(el => {
+    document.querySelectorAll('.guides-tool-card, .guides-tools__cta-btn').forEach(el => {
       el.addEventListener('click', async e => {
         e.preventDefault();
         const href = el.getAttribute('href') || '/';
-
-        // If AuthStateManager is available, wait for it to resolve
         if (window.AuthStateManager) {
-          try {
-            await window.AuthStateManager.init();
-          } catch (_) {
-            /* ignore */
-          }
+          try { await window.AuthStateManager.init(); } catch (_) { /* ignore */ }
           if (window.AuthStateManager.user) {
             window.location.href = href;
             return;
@@ -588,4 +470,6 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
   })();
+
+  loadGuides();
 });
