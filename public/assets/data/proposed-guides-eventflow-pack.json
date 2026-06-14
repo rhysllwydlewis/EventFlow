@@ -1,0 +1,122 @@
+[
+  {
+    "title": "How to Build Your Wedding Website on EventFlow",
+    "slug": "wedding-website-on-eventflow-guide",
+    "category": "Tools",
+    "primaryTag": "website",
+    "readingMins": 8,
+    "cta": { "label": "Create website", "href": "/start" },
+    "summary": "Build a useful wedding website that keeps guests informed and reduces last-minute messages.",
+    "sections": [
+      "Start with what guests actually need",
+      "Use the website to reduce repeat questions",
+      "Keep it polished and private",
+      "Connect it back to EventFlow tools"
+    ]
+  },
+  {
+    "title": "RSVP Management Guide: Replies, Dietary Needs and Plus-Ones",
+    "slug": "rsvp-management-guide",
+    "category": "Planning",
+    "primaryTag": "rsvp",
+    "readingMins": 7,
+    "cta": { "label": "Manage RSVPs", "href": "/guests" },
+    "summary": "Track who is coming, what they need and what still needs chasing.",
+    "sections": [
+      "Ask the right questions first time",
+      "Keep the guest list clean",
+      "Chase without making it awkward",
+      "Lock numbers before supplier deadlines"
+    ]
+  },
+  {
+    "title": "Seating Plan Guide: Tables, Guests and Layouts",
+    "slug": "seating-plan-guide",
+    "category": "Planning",
+    "primaryTag": "seating",
+    "readingMins": 8,
+    "cta": { "label": "Plan guests", "href": "/guests" },
+    "summary": "Turn your guest list into a calm, practical table plan.",
+    "sections": [
+      "Start from the room, not the people",
+      "Group guests by comfort",
+      "Plan for catering and service",
+      "Keep changes controlled"
+    ]
+  },
+  {
+    "title": "Wedding Fayres and Public Events Calendar Guide",
+    "slug": "wedding-fayres-public-events-calendar-guide",
+    "category": "Tools",
+    "primaryTag": "calendar",
+    "readingMins": 7,
+    "cta": { "label": "View events", "href": "/public-calendar" },
+    "summary": "Use public events to discover suppliers, venues and planning ideas in one place.",
+    "sections": [
+      "What to look for as a couple",
+      "How to prepare before you go",
+      "How suppliers should list public events",
+      "How to use EventFlow after the event"
+    ]
+  },
+  {
+    "title": "Supplier Profile Guide: How to Get More Enquiries on EventFlow",
+    "slug": "supplier-profile-optimisation-guide",
+    "category": "Tools",
+    "primaryTag": "suppliers",
+    "readingMins": 9,
+    "cta": { "label": "Supplier dashboard", "href": "/dashboard" },
+    "summary": "Make your supplier profile clearer, more trustworthy and easier to enquire from.",
+    "sections": [
+      "Make the first screen count",
+      "Write for the customer",
+      "Reduce enquiry friction",
+      "Maintain the profile monthly"
+    ]
+  },
+  {
+    "title": "Supplier Packages and Pricing Guide",
+    "slug": "supplier-packages-pricing-guide",
+    "category": "Tools",
+    "primaryTag": "pricing",
+    "readingMins": 8,
+    "cta": { "label": "Browse suppliers", "href": "/suppliers" },
+    "summary": "Compare supplier packages by value, clarity and what is actually included.",
+    "sections": [
+      "Compare like for like",
+      "Understand POA pricing",
+      "Check deposits and payment schedules",
+      "Build clearer packages as a supplier"
+    ]
+  },
+  {
+    "title": "Event Contracts, Deposits and Cancellation Terms Guide",
+    "slug": "event-contracts-deposits-guide",
+    "category": "Planning",
+    "primaryTag": "contracts",
+    "readingMins": 9,
+    "cta": { "label": "Find suppliers", "href": "/suppliers" },
+    "summary": "Protect your event by checking the practical details before money changes hands.",
+    "sections": [
+      "Get the basics in writing",
+      "Read cancellation and postponement wording",
+      "Manage changes properly",
+      "Know when to pause before paying"
+    ]
+  },
+  {
+    "title": "Event Licences and Legal Basics in the UK",
+    "slug": "event-licences-uk-guide",
+    "category": "Planning",
+    "primaryTag": "licences",
+    "readingMins": 10,
+    "cta": { "label": "Start planning", "href": "/start" },
+    "summary": "Check the licences, permissions and legal basics before your event becomes urgent.",
+    "sections": [
+      "Temporary Event Notices",
+      "Food and catering registration",
+      "Music, entertainment and noise",
+      "Your early legal checklist"
+    ]
+  }
+]
