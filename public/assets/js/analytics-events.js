@@ -1,42 +1,6 @@
 (function () {
   'use strict';
 
-  const OUTDOOR_EVENTS_BROKEN_IMAGE_FRAGMENT = '/photos/1580913/pexels-photo-1580913.jpeg';
-  const OUTDOOR_EVENTS_FALLBACK_IMAGE =
-    'https://images.pexels.com/photos/1616113/pexels-photo-1616113.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1';
-
-  function isOutdoorEventsBrokenImage(src) {
-    return typeof src === 'string' && src.includes(OUTDOOR_EVENTS_BROKEN_IMAGE_FRAGMENT);
-  }
-
-  function applyOutdoorEventsImageFallback(img) {
-    if (!img || img.dataset.outdoorEventsFallbackApplied === 'true') {
-      return;
-    }
-    if (!isOutdoorEventsBrokenImage(img.currentSrc || img.src || img.getAttribute('src'))) {
-      return;
-    }
-    img.dataset.outdoorEventsFallbackApplied = 'true';
-    img.src = OUTDOOR_EVENTS_FALLBACK_IMAGE;
-  }
-
-  function bindOutdoorEventsImageFallback() {
-    document
-      .querySelectorAll(`img[src*="${OUTDOOR_EVENTS_BROKEN_IMAGE_FRAGMENT}"]`)
-      .forEach(applyOutdoorEventsImageFallback);
-
-    document.addEventListener(
-      'error',
-      event => {
-        const target = event.target;
-        if (target && target.tagName === 'IMG') {
-          applyOutdoorEventsImageFallback(target);
-        }
-      },
-      true
-    );
-  }
-
   function hasAnalyticsConsent() {
     if (!window.CookieConsent || typeof window.CookieConsent.getConsent !== 'function') {
       return false;
@@ -122,16 +86,11 @@
     });
   }
 
-  function init() {
-    bindDelegatedEvents();
-    bindOutdoorEventsImageFallback();
-  }
-
   window.EFAnalytics = { track, hasAnalyticsConsent };
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
+    document.addEventListener('DOMContentLoaded', bindDelegatedEvents);
   } else {
-    init();
+    bindDelegatedEvents();
   }
 })();
