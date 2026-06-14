@@ -321,7 +321,7 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
     const avatarImgEl = document.getElementById('hero-avatar-img');
     if (avatarEl && avatarInitialsEl) {
       avatarInitialsEl.textContent = _getInitials(supplier.name);
-      // Accent: supplier theme > category default > EF teal
+      // Accent colour: supplier theme → category → EF teal
       const catKey = (supplier.category || '').toLowerCase().trim();
       const catPreset = CATEGORY_PRESETS[catKey] || null;
       const accentColor =
@@ -330,6 +330,7 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
           : null) ||
         (catPreset ? CATEGORY_ACCENT[catPreset] : null) ||
         '#0B8073';
+      // Always set gradient first — acts as loading placeholder and fallback
       avatarEl.style.background = `linear-gradient(135deg, ${accentColor} 0%, ${_lightenHex(accentColor, 30)} 100%)`;
 
       if (avatarImgEl) {
