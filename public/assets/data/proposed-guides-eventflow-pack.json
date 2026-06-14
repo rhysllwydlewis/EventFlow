@@ -50,7 +50,7 @@
     "category": "Tools",
     "primaryTag": "calendar",
     "readingMins": 7,
-    "cta": { "label": "View events", "href": "/events" },
+    "cta": { "label": "View events", "href": "/public-calendar" },
     "summary": "Use public events to discover suppliers, venues and planning ideas in one place.",
     "sections": [
       "What to look for as a couple",
