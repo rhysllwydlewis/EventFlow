@@ -6,6 +6,7 @@ const express = require('express');
 const request = require('supertest');
 const {
   findOwnerUserForSupplier,
+  hydrateSupplierProfilePhoto,
   isUsableImageUrl,
   resolveSupplierProfilePhoto,
 } = require('../../utils/supplierProfilePhoto');
@@ -198,6 +199,63 @@ describe('utils/supplierProfilePhoto', () => {
       'user_email'
     );
   });
+
+  test('hydrates a supplier consistently for listing and safe detail when linked by legacy accountId', async () => {
+    const supplier = {
+      id: 'sup_wtlrt6uiftxg2y',
+      accountId: 'user_romeo',
+      approved: true,
+      name: 'Romeo Test',
+      contactEmail: 'ROMEO@EXAMPLE.COM',
+      logo: '/uploads/romeo-logo.webp',
+    };
+    const ownerUser = {
+      id: 'user_romeo',
+      email: 'romeo@example.com',
+      settings: { profilePhotoUrl: '/api/photos/romeo-owner-avatar' },
+      passwordHash: 'private-hash',
+      tokens: ['private-token'],
+    };
+
+    const listingOwner = findOwnerUserForSupplier(supplier, [ownerUser]);
+    const listingPayload = hydrateSupplierProfilePhoto(supplier, listingOwner);
+    const { app } = buildSafeRouteApp({ suppliers: [supplier], users: [ownerUser] });
+    const detail = await request(app).get('/api/suppliers/sup_wtlrt6uiftxg2y').expect(200);
+
+    expect(listingPayload.profilePhotoUrl).toBe('/api/photos/romeo-owner-avatar');
+    expect(detail.body.profilePhotoUrl).toBe(listingPayload.profilePhotoUrl);
+    expect(detail.body.avatarUrl).toBe(listingPayload.avatarUrl);
+    expect(detail.body.displayAvatarUrl).toBe(listingPayload.displayAvatarUrl);
+    expect(detail.body.resolvedProfileImageUrl).toBe(listingPayload.resolvedProfileImageUrl);
+    expect(detail.body.logo).toBe('/uploads/romeo-logo.webp');
+    expect(detail.body.email).toBeUndefined();
+    expect(detail.body.contactEmail).toBeUndefined();
+    expect(detail.body.passwordHash).toBeUndefined();
+    expect(detail.body.tokens).toBeUndefined();
+  });
+
+  test('hydrates mixed-case email-linked suppliers from nested user settings photo fields', () => {
+    const supplier = {
+      id: 'sup_email_linked',
+      approved: true,
+      name: 'Email Linked Supplier',
+      ownerEmail: 'Owner@Example.COM',
+    };
+    const ownerUser = {
+      id: 'user_email',
+      email: 'owner@example.com',
+      settings: { profilePhotoUrl: '/api/photos/settings-avatar' },
+    };
+
+    const owner = findOwnerUserForSupplier(supplier, [ownerUser]);
+    expect(owner).toBe(ownerUser);
+    expect(hydrateSupplierProfilePhoto(supplier, owner)).toMatchObject({
+      profilePhotoUrl: '/api/photos/settings-avatar',
+      avatarUrl: '/api/photos/settings-avatar',
+      displayAvatarUrl: '/api/photos/settings-avatar',
+      resolvedProfileImageUrl: '/api/photos/settings-avatar',
+    });
+  });
 });
 
 test('public profile renderer considers dashboard photo aliases before initials fallback', () => {
@@ -270,6 +328,12 @@ describe('public supplier API profile-photo enrichment', () => {
           approved: true,
           name: 'Rhys Test',
           email: 'supplier-private@example.com',
+          ownerEmail: 'owner-private@example.com',
+          contactEmail: 'contact-private@example.com',
+          phone: 'supplier-phone',
+          passwordHash: 'supplier-hash',
+          tokens: ['supplier-token'],
+          adminNotes: 'internal',
           logo: '/legacy-logo.webp',
         },
       ],
@@ -286,7 +350,11 @@ describe('public supplier API profile-photo enrichment', () => {
     });
     expect(res.body.items[0].email).toBeUndefined();
     expect(res.body.items[0].ownerEmail).toBeUndefined();
+    expect(res.body.items[0].contactEmail).toBeUndefined();
+    expect(res.body.items[0].phone).toBeUndefined();
     expect(res.body.items[0].passwordHash).toBeUndefined();
+    expect(res.body.items[0].tokens).toBeUndefined();
+    expect(res.body.items[0].adminNotes).toBeUndefined();
     expect(JSON.stringify(res.body.items[0])).not.toContain('owner@example.com');
   });
 
@@ -300,6 +368,12 @@ describe('public supplier API profile-photo enrichment', () => {
           approved: true,
           name: 'Rhys Test',
           email: 'supplier-private@example.com',
+          ownerEmail: 'owner-private@example.com',
+          contactEmail: 'contact-private@example.com',
+          phone: 'supplier-phone',
+          passwordHash: 'supplier-hash',
+          tokens: ['supplier-token'],
+          adminNotes: 'internal',
           logo: '/legacy-logo.webp',
         },
       ],
@@ -314,6 +388,12 @@ describe('public supplier API profile-photo enrichment', () => {
       logo: '/legacy-logo.webp',
     });
     expect(res.body.email).toBeUndefined();
+    expect(res.body.ownerEmail).toBeUndefined();
+    expect(res.body.contactEmail).toBeUndefined();
+    expect(res.body.phone).toBeUndefined();
+    expect(res.body.passwordHash).toBeUndefined();
+    expect(res.body.tokens).toBeUndefined();
+    expect(res.body.adminNotes).toBeUndefined();
     expect(JSON.stringify(res.body)).not.toContain('owner@example.com');
   });
 

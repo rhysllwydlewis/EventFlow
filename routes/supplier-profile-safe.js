@@ -5,8 +5,8 @@ const router = express.Router();
 const { resolvePackageImage } = require('../utils/packageImageUtils');
 const { safePublicPackage, safePublicSupplier } = require('../utils/supplierPublicProfile');
 const {
-  findOwnerUserForSupplier,
-  resolveSupplierProfilePhoto,
+  findOwnerUserForSupplierFromDb,
+  hydrateSupplierProfilePhoto,
 } = require('../utils/supplierProfilePhoto');
 
 let dbUnified;
@@ -85,48 +85,9 @@ router.get('/suppliers/:id', async (req, res, next) => {
       : Boolean(supplier.isPro);
     const preview = previewMode(req) && canPreview(req, supplier);
 
-    // Resolve the owner user's avatar using targeted findOne lookups rather
-    // than loading every user into memory. Walk all known link-field names so
-    // legacy supplier records without ownerUserId are still covered.
-    let ownerUser = null;
-    const ownerUserId =
-      supplier.ownerUserId ||
-      supplier.userId       ||
-      supplier.ownerId      ||
-      supplier.accountId    ||
-      supplier.createdByUserId ||
-      supplier.createdBy    ||
-      supplier.createdById;
-
-    if (ownerUserId) {
-      try {
-        ownerUser = await dbUnified.findOne('users', { id: String(ownerUserId).trim() });
-      } catch (err) {
-        logger.warn('supplier-profile-safe: id-based owner lookup failed for', supplier.id, err.message);
-      }
-    }
-
-    // Email-based fallback: covers suppliers that pre-date the ownerUserId field
-    if (!ownerUser) {
-      const ownerEmail = supplier.ownerEmail || supplier.contactEmail || supplier.email;
-      if (ownerEmail) {
-        try {
-          ownerUser = await dbUnified.findOne('users', {
-            email: String(ownerEmail).trim().toLowerCase(),
-          });
-        } catch (err) {
-          logger.warn('supplier-profile-safe: email-based owner lookup failed for', supplier.id, err.message);
-        }
-      }
-    }
-
-    const profilePhotoUrl = resolveSupplierProfilePhoto(supplier, ownerUser);
-    const publicSupplier = {
-      ...supplier,
-      profilePhotoUrl,
-      avatarUrl: profilePhotoUrl,
-      displayAvatarUrl: profilePhotoUrl,
-    };
+    const ownerUser = await findOwnerUserForSupplierFromDb(supplier, dbUnified, logger);
+    const publicSupplier = hydrateSupplierProfilePhoto(supplier, ownerUser);
+    const profilePhotoUrl = publicSupplier.profilePhotoUrl;
 
     return res.json(
       safePublicSupplier(publicSupplier, {
