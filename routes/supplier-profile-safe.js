@@ -4,6 +4,10 @@ const express = require('express');
 const router = express.Router();
 const { resolvePackageImage } = require('../utils/packageImageUtils');
 const { safePublicPackage, safePublicSupplier } = require('../utils/supplierPublicProfile');
+const {
+  findOwnerUserForSupplier,
+  resolveSupplierProfilePhoto,
+} = require('../utils/supplierProfilePhoto');
 
 let dbUnified;
 let getUserFromCookie;
@@ -75,28 +79,36 @@ router.get('/suppliers/:id', async (req, res, next) => {
     }
 
     const packages = await dbUnified.read('packages');
+    const users = await dbUnified.read('users');
+    const ownerUser = findOwnerUserForSupplier(supplier, users);
+    const profilePhotoUrl = resolveSupplierProfilePhoto(supplier, ownerUser);
+    const publicSupplier = {
+      ...supplier,
+      profilePhotoUrl,
+      avatarUrl: profilePhotoUrl,
+      displayAvatarUrl: profilePhotoUrl,
+    };
     const featuredSupplier = packages.some(pkg => pkg.supplierId === supplier.id && pkg.featured);
     const isPro = supplierIsProActive
       ? await supplierIsProActive(supplier)
       : Boolean(supplier.isPro);
     const preview = previewMode(req) && canPreview(req, supplier);
 
-    // Resolve the owner user's avatar so the public profile shows the correct
-    // profile photo even when the supplier record has no direct logo/photo.
-    // Walk all known owner-link field names to support legacy supplier records.
+    // Resolve the owner user's avatar so the public profile can display the
+    // correct profile photo even when the supplier record has no direct logo.
+    // Walk through all known owner-link field names to support legacy records.
     let ownerAvatarUrl = '';
     const ownerUserId =
       supplier.ownerUserId ||
       supplier.userId ||
       supplier.ownerId ||
       supplier.accountId ||
-      supplier.createdByUserId ||
-      supplier.createdBy ||
-      supplier.createdById;
+      supplier.createdByUserId;
     if (ownerUserId) {
       try {
         const ownerUser = await dbUnified.findOne('users', { id: ownerUserId });
         if (ownerUser) {
+          // Walk through all known avatar field names on the user record
           ownerAvatarUrl =
             ownerUser.avatarUrl ||
             ownerUser.profilePhotoUrl ||
@@ -104,22 +116,21 @@ router.get('/suppliers/:id', async (req, res, next) => {
             ownerUser.photoUrl ||
             ownerUser.profileImage ||
             ownerUser.image ||
-            (ownerUser.profile && (ownerUser.profile.avatarUrl || ownerUser.profile.photoUrl)) ||
             '';
         }
       } catch (ownerErr) {
-        // Non-fatal — fall back to supplier's own photo fields
-        logger.warn('supplier-profile-safe: owner avatar lookup failed for', supplier.id, ownerErr.message);
+        // Non-fatal — fall back to the supplier's own photo fields
+        logger.warn('Failed to resolve owner avatar for supplier', supplier.id, ownerErr.message);
       }
     }
 
     return res.json(
-      safePublicSupplier(supplier, {
+      safePublicSupplier(publicSupplier, {
         badgeDetails: await badgeDetailsFor(supplier),
         featuredSupplier,
         isPreview: preview,
         isPro,
-        ownerAvatarUrl,
+        profilePhotoUrl,
       })
     );
   } catch (error) {

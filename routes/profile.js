@@ -16,12 +16,76 @@ const { csrfProtection } = require('../middleware/csrf');
 const { writeLimiter, uploadLimiter, apiLimiter } = require('../middleware/rateLimits');
 const photoUpload = require('../photo-upload');
 const partnerService = require('../services/partnerService');
+const catalogCache = require('../services/catalogCache');
+const { clearSearchCache } = require('../middleware/searchCache');
 
 const router = express.Router();
 
 // Use shared photo upload configuration for avatars (memory storage)
 // This ensures consistent validation and security across all uploads
 const avatarUpload = photoUpload.upload;
+
+async function invalidateAvatarDependentCaches() {
+  await Promise.all([
+    clearSearchCache().catch(err =>
+      logger.warn('Failed to clear search cache after avatar change:', err.message)
+    ),
+    catalogCache
+      .invalidate()
+      .catch(err =>
+        logger.warn('Failed to invalidate catalog cache after avatar change:', err.message)
+      ),
+  ]);
+}
+
+function normalizeEmail(value) {
+  return typeof value === 'string' ? value.trim().toLowerCase() : '';
+}
+
+function supplierBelongsToUser(supplier, user) {
+  if (!supplier || !user) {
+    return false;
+  }
+  if (supplier.ownerUserId && supplier.ownerUserId === user.id) {
+    return true;
+  }
+  if (supplier.userId && supplier.userId === user.id) {
+    return true;
+  }
+  if (supplier.createdByUserId && supplier.createdByUserId === user.id) {
+    return true;
+  }
+  const userEmail = normalizeEmail(user.email);
+  return Boolean(
+    userEmail &&
+    [supplier.email, supplier.ownerEmail, supplier.contactEmail]
+      .map(normalizeEmail)
+      .some(email => email === userEmail)
+  );
+}
+
+async function syncSupplierAvatarFieldsForUser(user, avatarUrl) {
+  if (!user || !user.id) {
+    return;
+  }
+  const suppliers = await dbUnified.read('suppliers');
+  const updates = suppliers.filter(supplier => supplierBelongsToUser(supplier, user));
+  for (const supplier of updates) {
+    const $set = { updatedAt: new Date().toISOString() };
+    if (!supplier.ownerUserId) {
+      $set.ownerUserId = user.id;
+    }
+    const update = { $set };
+    if (avatarUrl) {
+      $set.profilePhotoUrl = avatarUrl;
+      $set.avatarUrl = avatarUrl;
+      $set.displayAvatarUrl = avatarUrl;
+    } else {
+      update.$unset = { profilePhotoUrl: '', avatarUrl: '', displayAvatarUrl: '' };
+    }
+    await dbUnified.updateOne('suppliers', { id: supplier.id }, update);
+  }
+}
 
 /**
  * GET /api/profile
@@ -274,6 +338,8 @@ router.post('/avatar', uploadLimiter, authRequired, csrfProtection, (req, res) =
         'avatar' // Use avatar-specific size limits
       );
 
+      const user = await dbUnified.findOne('users', { id: req.user.id });
+
       // Update user avatar URL (use optimized version which is square 400x400)
       await dbUnified.updateOne(
         'users',
@@ -285,6 +351,9 @@ router.post('/avatar', uploadLimiter, authRequired, csrfProtection, (req, res) =
           },
         }
       );
+
+      await syncSupplierAvatarFieldsForUser(user || req.user, images.optimized);
+      await invalidateAvatarDependentCaches();
 
       res.json({
         ok: true,
@@ -343,6 +412,9 @@ router.delete('/avatar', writeLimiter, authRequired, csrfProtection, async (req,
         $unset: { avatarUrl: '' },
       }
     );
+
+    await syncSupplierAvatarFieldsForUser(user, null);
+    await invalidateAvatarDependentCaches();
 
     res.json({ ok: true });
   } catch (err) {

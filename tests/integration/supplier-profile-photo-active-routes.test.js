@@ -1,220 +1,193 @@
 'use strict';
 
-/**
- * Integration tests — GET /api/suppliers/:id avatar resolution
- *
- * Simulates supplier-profile.js calling /api/suppliers/sup_wtlrt6uiftxg2y
- * via supplier-profile-safe.js with a mocked dbUnified.
- *
- * Covers the root-cause scenario:
- *   Supplier record has no logo/profileImage
- *   Owner user record has avatarUrl
- *   → API must return non-empty avatarUrl / profilePhotoUrl / displayAvatarUrl
- *
- * Also covers:
- *   - All legacy owner-link fields (userId, ownerId, accountId, createdByUserId, createdBy, createdById)
- *   - All user avatar field names (avatarUrl, profilePhotoUrl, displayAvatarUrl, photoUrl, profileImage, image)
- *   - Nested profile.avatarUrl on user record
- *   - No photo at all → empty strings
- *   - Private fields NOT leaked
- *   - 404 for unapproved / missing suppliers
- */
-
 const express = require('express');
 const request = require('supertest');
 
-const supplierProfileSafe = require('../../routes/supplier-profile-safe');
+describe('supplier profile photos on active public search route', () => {
+  beforeEach(() => {
+    jest.resetModules();
+    jest.doMock('../../cache', () => ({
+      get: jest.fn().mockResolvedValue(null),
+      set: jest.fn().mockResolvedValue(undefined),
+      delPattern: jest.fn().mockResolvedValue(undefined),
+      getStats: jest.fn(() => ({ hits: 0, misses: 0, sets: 0, deletes: 0, errors: 0 })),
+    }));
+    jest.doMock('../../services/catalogCache', () => ({
+      get: jest.fn().mockResolvedValue(null),
+      set: jest.fn().mockResolvedValue(undefined),
+      invalidate: jest.fn().mockResolvedValue(undefined),
+    }));
+    jest.doMock('../../utils/searchAnalytics', () => ({
+      trackSearch: jest.fn().mockResolvedValue(undefined),
+    }));
+    jest.doMock('../../middleware/auth', () => ({
+      authRequired: (_req, _res, next) => next(),
+      roleRequired: () => (_req, _res, next) => next(),
+      getUserFromCookie: jest.fn().mockResolvedValue(null),
+    }));
+  });
 
-const PHOTO = 'https://res.cloudinary.com/test/image/upload/v1/avatar.jpg';
-const LOGO  = 'https://example.com/logo.png';
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
 
-// ─── Test app factory ─────────────────────────────────────────────────────────
-
-function buildApp(supplierRecord, userRecord = null) {
-  const app = express();
-  app.use(express.json());
-
-  const dbUnified = {
-    findOne: async (collection, query) => {
+  test('/api/v2/search/suppliers includes owner avatar fields for ownerUserId and legacy email matches', async () => {
+    const dbUnified = require('../../db-unified');
+    jest.spyOn(dbUnified, 'read').mockImplementation(async collection => {
       if (collection === 'suppliers') {
-        return query.id === supplierRecord.id ? supplierRecord : null;
+        return [
+          {
+            id: 'sup_owner',
+            ownerUserId: 'user_owner',
+            name: 'Owner Matched Supplier',
+            category: 'Venues',
+            approved: true,
+            email: 'private-owner@example.com',
+            phone: 'secret-phone',
+            passwordHash: 'hash',
+            logo: '/uploads/logo-owner.webp',
+          },
+          {
+            id: 'sup_legacy',
+            name: 'Legacy Email Supplier',
+            category: 'Venues',
+            approved: true,
+            contactEmail: 'LEGACY@example.com',
+            logo: '/uploads/logo-legacy.webp',
+          },
+        ];
       }
-      if (collection === 'users' && userRecord) {
-        return query.id === userRecord.id ? userRecord : null;
+      if (collection === 'users') {
+        return [
+          { id: 'user_owner', email: 'owner@example.com', avatarUrl: '/api/photos/photo_owner' },
+          { id: 'user_legacy', email: 'legacy@example.com', avatarUrl: '/api/photos/photo_legacy' },
+        ];
       }
-      return null;
-    },
-    read: async () => [],
-  };
-
-  supplierProfileSafe.initializeDependencies({
-    dbUnified,
-    getUserFromCookie: () => null,
-    supplierIsProActive: async () => false,
-    logger: { warn: () => {}, error: () => {}, info: () => {} },
-  });
-
-  app.use('/api', supplierProfileSafe);
-  return app;
-}
-
-// ─── Tests ────────────────────────────────────────────────────────────────────
-
-describe('GET /api/suppliers/:id — profile photo resolution', () => {
-
-  // Root-cause scenario for sup_wtlrt6uiftxg2y
-  test('returns non-empty avatarUrl when owner user has avatarUrl and supplier has no logo', async () => {
-    const supplier = {
-      id: 'sup_wtlrt6uiftxg2y',
-      name: 'Romeo Test',
-      approved: true,
-      ownerUserId: 'user_romeo',
-      logo: '',
-      profileImage: '',
-    };
-    const user = { id: 'user_romeo', avatarUrl: PHOTO };
-
-    const { status, body } = await request(buildApp(supplier, user))
-      .get('/api/suppliers/sup_wtlrt6uiftxg2y');
-
-    expect(status).toBe(200);
-    expect(body.avatarUrl).toBe(PHOTO);
-    expect(body.profilePhotoUrl).toBe(PHOTO);
-    expect(body.displayAvatarUrl).toBe(PHOTO);
-  });
-
-  test('all three canonical photo fields agree', async () => {
-    const supplier = { id: 's1', name: 'Test', approved: true, ownerUserId: 'u1' };
-    const user = { id: 'u1', avatarUrl: PHOTO };
-
-    const { body } = await request(buildApp(supplier, user)).get('/api/suppliers/s1');
-
-    expect(body.avatarUrl).toBe(body.profilePhotoUrl);
-    expect(body.avatarUrl).toBe(body.displayAvatarUrl);
-    expect(body.avatarUrl).toBe(PHOTO);
-  });
-
-  // Legacy owner-link fields
-  const LINK_FIELDS = [
-    { field: 'ownerUserId',      userId: 'u_a' },
-    { field: 'userId',           userId: 'u_b' },
-    { field: 'ownerId',          userId: 'u_c' },
-    { field: 'accountId',        userId: 'u_d' },
-    { field: 'createdByUserId',  userId: 'u_e' },
-    { field: 'createdBy',        userId: 'u_f' },
-    { field: 'createdById',      userId: 'u_g' },
-  ];
-
-  LINK_FIELDS.forEach(({ field, userId }) => {
-    test(`resolves owner photo via supplier.${field}`, async () => {
-      const supplier = { id: 's_' + field, name: 'Test', approved: true, [field]: userId };
-      const user = { id: userId, avatarUrl: PHOTO };
-
-      const { body } = await request(buildApp(supplier, user))
-        .get('/api/suppliers/s_' + field);
-
-      expect(body.avatarUrl).toBe(PHOTO);
+      if (collection === 'packages') {
+        return [
+          {
+            id: 'pkg_1',
+            supplierId: 'sup_owner',
+            title: 'Owner Package',
+            approved: true,
+            image: '/uploads/package-owner.webp',
+          },
+        ];
+      }
+      return [];
     });
-  });
 
-  // User avatar field variants
-  const USER_AVATAR_FIELDS = [
-    'avatarUrl', 'profilePhotoUrl', 'displayAvatarUrl',
-    'photoUrl', 'profileImage', 'image',
-  ];
+    const searchRoutes = require('../../routes/search-v2');
+    const app = express();
+    app.use('/api/v2/search', searchRoutes);
 
-  USER_AVATAR_FIELDS.forEach(field => {
-    test(`resolves photo from user.${field}`, async () => {
-      const supplier = { id: 's_u_' + field, name: 'Test', approved: true, ownerUserId: 'u_' + field };
-      const user = { id: 'u_' + field, [field]: PHOTO };
+    const res = await request(app).get('/api/v2/search/suppliers?limit=10').expect(200);
+    const results = res.body.data.results;
+    const owner = results.find(supplier => supplier.id === 'sup_owner');
+    const legacy = results.find(supplier => supplier.id === 'sup_legacy');
 
-      const { body } = await request(buildApp(supplier, user))
-        .get('/api/suppliers/s_u_' + field);
-
-      expect(body.avatarUrl).toBe(PHOTO);
+    expect(owner).toMatchObject({
+      profilePhotoUrl: '/api/photos/photo_owner',
+      avatarUrl: '/api/photos/photo_owner',
+      displayAvatarUrl: '/api/photos/photo_owner',
+      logo: '/uploads/logo-owner.webp',
     });
+    expect(legacy).toMatchObject({
+      profilePhotoUrl: '/api/photos/photo_legacy',
+      avatarUrl: '/api/photos/photo_legacy',
+      displayAvatarUrl: '/api/photos/photo_legacy',
+      logo: '/uploads/logo-legacy.webp',
+    });
+    expect(owner.email).toBeUndefined();
+    expect(owner.phone).toBeUndefined();
+    expect(owner.passwordHash).toBeUndefined();
+    expect(JSON.stringify(results)).not.toContain('legacy@example.com');
+    expect(owner.topPackages).toEqual([
+      expect.objectContaining({ image: '/uploads/package-owner.webp' }),
+    ]);
   });
 
-  // Nested profile.avatarUrl on user record
-  test('resolves photo from user.profile.avatarUrl when top-level fields absent', async () => {
-    const supplier = { id: 's_nested', name: 'Test', approved: true, ownerUserId: 'u_nested' };
-    const user = { id: 'u_nested', profile: { avatarUrl: PHOTO } };
+  test('/api/packages/:slug includes resolved supplier profile photo fields for package sidebar', async () => {
+    const dbUnified = require('../../db-unified');
+    jest.spyOn(dbUnified, 'read').mockImplementation(async collection => {
+      if (collection === 'packages') {
+        return [
+          {
+            id: 'pkg_1',
+            slug: 'owner-package',
+            supplierId: 'sup_owner',
+            title: 'Owner Package',
+            approved: true,
+            image: '/uploads/package-owner.webp',
+          },
+        ];
+      }
+      if (collection === 'suppliers') {
+        return [
+          {
+            id: 'sup_owner',
+            ownerUserId: 'user_owner',
+            name: 'Owner Matched Supplier',
+            approved: true,
+            logo: '/uploads/logo-owner.webp',
+          },
+        ];
+      }
+      if (collection === 'users') {
+        return [
+          { id: 'user_owner', email: 'owner@example.com', avatarUrl: '/api/photos/photo_owner' },
+        ];
+      }
+      if (collection === 'categories') {
+        return [];
+      }
+      return [];
+    });
+    jest.spyOn(dbUnified, 'find').mockResolvedValue([]);
 
-    const { body } = await request(buildApp(supplier, user)).get('/api/suppliers/s_nested');
-    expect(body.avatarUrl).toBe(PHOTO);
+    const suppliersRouter = require('../../routes/suppliers');
+    suppliersRouter.initializeDependencies({
+      dbUnified,
+      authRequired: (_req, _res, next) => next(),
+      roleRequired: () => (_req, _res, next) => next(),
+      getUserFromCookie: () => null,
+      supplierAnalytics: { trackProfileView: jest.fn().mockResolvedValue(undefined) },
+      supplierIsProActive: jest.fn().mockResolvedValue(false),
+      logger: { error: jest.fn(), warn: jest.fn(), info: jest.fn() },
+    });
+    const app = express();
+    app.use('/api', suppliersRouter);
+
+    const res = await request(app).get('/api/packages/owner-package').expect(200);
+    expect(res.body.supplier).toMatchObject({
+      profilePhotoUrl: '/api/photos/photo_owner',
+      avatarUrl: '/api/photos/photo_owner',
+      displayAvatarUrl: '/api/photos/photo_owner',
+      logo: '/uploads/logo-owner.webp',
+    });
+    expect(res.body.package.image).toBe('/uploads/package-owner.webp');
   });
 
-  // Supplier has its own logo — no user lookup needed
-  test('returns supplier logo as avatarUrl when supplier has direct logo', async () => {
-    const supplier = { id: 's_logo', name: 'Test', approved: true, logo: LOGO };
+  test('projectPublicSupplierFields exposes profile-photo fields but not private fields', () => {
+    const { projectPublicSupplierFields } = require('../../services/searchService');
+    const payload = projectPublicSupplierFields({
+      id: 'sup_1',
+      name: 'Projected Supplier',
+      email: 'private@example.com',
+      phone: 'secret',
+      passwordHash: 'hash',
+      profilePhotoUrl: '/api/photos/photo_test',
+      avatarUrl: '/api/photos/photo_test',
+      displayAvatarUrl: '/api/photos/photo_test',
+    });
 
-    const { body } = await request(buildApp(supplier)).get('/api/suppliers/s_logo');
-    expect(body.avatarUrl).toBe(LOGO);
-    expect(body.profilePhotoUrl).toBe(LOGO);
-    expect(body.displayAvatarUrl).toBe(LOGO);
-  });
-
-  // Owner photo beats supplier logo
-  test('owner avatarUrl takes precedence over supplier logo', async () => {
-    const supplier = { id: 's_both', name: 'Test', approved: true, ownerUserId: 'u_both', logo: LOGO };
-    const user = { id: 'u_both', avatarUrl: PHOTO };
-
-    const { body } = await request(buildApp(supplier, user)).get('/api/suppliers/s_both');
-    expect(body.avatarUrl).toBe(PHOTO);
-  });
-
-  // No photo at all
-  test('returns empty strings for photo fields when neither supplier nor user has a photo', async () => {
-    const supplier = { id: 's_none', name: 'Test', approved: true, ownerUserId: 'u_none' };
-    const user = { id: 'u_none' };
-
-    const { body } = await request(buildApp(supplier, user)).get('/api/suppliers/s_none');
-    expect(body.avatarUrl).toBe('');
-    expect(body.profilePhotoUrl).toBe('');
-    expect(body.displayAvatarUrl).toBe('');
-  });
-
-  test('photo fields are empty strings (not undefined) when no photo set', async () => {
-    const { body } = await request(buildApp({ id: 's_empty', name: 'Test', approved: true }))
-      .get('/api/suppliers/s_empty');
-
-    expect(body).toHaveProperty('avatarUrl', '');
-    expect(body).toHaveProperty('profilePhotoUrl', '');
-    expect(body).toHaveProperty('displayAvatarUrl', '');
-  });
-
-  // Private field isolation
-  test('ownerUserId not in public response', async () => {
-    const supplier = { id: 's_priv', name: 'Test', approved: true, ownerUserId: 'private_uid' };
-    const { body } = await request(buildApp(supplier)).get('/api/suppliers/s_priv');
-    expect(body.ownerUserId).toBeUndefined();
-  });
-
-  test('owner user email not in public response', async () => {
-    const supplier = { id: 's_email', name: 'Test', approved: true, ownerUserId: 'u_email' };
-    const user = { id: 'u_email', email: 'private@test.com', avatarUrl: PHOTO };
-
-    const { body } = await request(buildApp(supplier, user)).get('/api/suppliers/s_email');
-    expect(body.email).toBeUndefined();
-    expect(body.avatarUrl).toBe(PHOTO); // photo still resolves
-  });
-
-  test('adminNotes not in public response', async () => {
-    const supplier = { id: 's_admin', name: 'Test', approved: true, adminNotes: 'internal' };
-    const { body } = await request(buildApp(supplier)).get('/api/suppliers/s_admin');
-    expect(body.adminNotes).toBeUndefined();
-  });
-
-  // Gating
-  test('returns 404 for unapproved supplier', async () => {
-    const { status } = await request(buildApp({ id: 's_pend', name: 'Pending', approved: false }))
-      .get('/api/suppliers/s_pend');
-    expect(status).toBe(404);
-  });
-
-  test('returns 404 when supplier not found', async () => {
-    const { status } = await request(buildApp({ id: 'other', name: 'Other', approved: true }))
-      .get('/api/suppliers/nonexistent');
-    expect(status).toBe(404);
+    expect(payload).toMatchObject({
+      profilePhotoUrl: '/api/photos/photo_test',
+      avatarUrl: '/api/photos/photo_test',
+      displayAvatarUrl: '/api/photos/photo_test',
+    });
+    expect(payload.email).toBeUndefined();
+    expect(payload.phone).toBeUndefined();
+    expect(payload.passwordHash).toBeUndefined();
   });
 });

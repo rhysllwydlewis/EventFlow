@@ -7,6 +7,10 @@
 
 const dbUnified = require('../db-unified');
 const catalogCache = require('./catalogCache');
+const {
+  findOwnerUserForSupplier,
+  resolveSupplierProfilePhoto,
+} = require('../utils/supplierProfilePhoto');
 
 // ─── Cached data loaders ──────────────────────────────────────────────────────
 
@@ -200,6 +204,27 @@ function getPriceLevel(priceDisplay) {
   return matches ? matches.length : 0;
 }
 
+async function getSupplierOwnerUsers() {
+  try {
+    return await dbUnified.read('users');
+  } catch (_err) {
+    return [];
+  }
+}
+
+function enrichSuppliersWithProfilePhotos(suppliers, users) {
+  return suppliers.map(supplier => {
+    const ownerUser = findOwnerUserForSupplier(supplier, users);
+    const profilePhotoUrl = resolveSupplierProfilePhoto(supplier, ownerUser);
+    return {
+      ...supplier,
+      profilePhotoUrl,
+      avatarUrl: profilePhotoUrl,
+      displayAvatarUrl: profilePhotoUrl,
+    };
+  });
+}
+
 /**
  * Project safe public fields from supplier object
  * Excludes sensitive information like email, phone, addresses, etc.
@@ -215,6 +240,9 @@ function projectPublicSupplierFields(supplier) {
     description_short: supplier.description_short,
     description_long: supplier.description_long,
     logo: supplier.logo,
+    profilePhotoUrl: supplier.profilePhotoUrl,
+    avatarUrl: supplier.avatarUrl,
+    displayAvatarUrl: supplier.displayAvatarUrl,
     images: supplier.images,
     price_display: supplier.price_display,
     startingPrice: supplier.startingPrice,
@@ -296,7 +324,9 @@ async function searchSuppliers(query) {
   const normalizedQuery = normalizeSupplierQuery(query);
   const startTime = Date.now();
   const suppliersRaw = await getCachedSuppliers();
-  const suppliers = await hydrateSuppliersWithActivePro(suppliersRaw);
+  const ownerUsers = await getSupplierOwnerUsers();
+  const suppliersWithProfilePhotos = enrichSuppliersWithProfilePhotos(suppliersRaw, ownerUsers);
+  const suppliers = await hydrateSuppliersWithActivePro(suppliersWithProfilePhotos);
 
   // Pre-load packages to embed top 3 per supplier (for carousel in search results)
   const allPackages = await getCachedPackages();
@@ -439,7 +469,9 @@ async function searchPackages(query) {
   const startTime = Date.now();
   const packages = await getCachedPackages();
   const suppliersRaw = await getCachedSuppliers();
-  const suppliers = await hydrateSuppliersWithActivePro(suppliersRaw);
+  const ownerUsers = await getSupplierOwnerUsers();
+  const suppliersWithProfilePhotos = enrichSuppliersWithProfilePhotos(suppliersRaw, ownerUsers);
+  const suppliers = await hydrateSuppliersWithActivePro(suppliersWithProfilePhotos);
 
   // Create a supplier lookup map
   const supplierMap = {};
@@ -477,6 +509,9 @@ async function searchPackages(query) {
               id: supplier.id,
               name: supplier.name,
               logo: supplier.logo,
+              profilePhotoUrl: supplier.profilePhotoUrl,
+              avatarUrl: supplier.avatarUrl,
+              displayAvatarUrl: supplier.displayAvatarUrl,
               location: supplier.location,
               averageRating: supplier.averageRating,
               verified: supplier.verified,
@@ -504,6 +539,9 @@ async function searchPackages(query) {
               id: supplier.id,
               name: supplier.name,
               logo: supplier.logo,
+              profilePhotoUrl: supplier.profilePhotoUrl,
+              avatarUrl: supplier.avatarUrl,
+              displayAvatarUrl: supplier.displayAvatarUrl,
               location: supplier.location,
               averageRating: supplier.averageRating,
               verified: supplier.verified,
@@ -1603,6 +1641,7 @@ module.exports = {
   getDiscoveryFeed,
   getPersonalizedFeed,
   getPeopleAlsoViewed,
+  projectPublicSupplierFields,
   buildZeroResultsFallback,
   getPriceLevel,
   VALID_SUPPLIER_SORT_VALUES,
