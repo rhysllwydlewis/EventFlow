@@ -200,6 +200,21 @@ describe('utils/supplierProfilePhoto', () => {
     );
   });
 
+  test('findOwnerUserForSupplier matches Mongo _id owner links used by existing accounts', () => {
+    const users = [
+      {
+        id: 'auth-user-id',
+        _id: '64f1f0000000000000000001',
+        email: 'mongo-owner@example.com',
+        avatarUrl: '/api/photos/mongo-avatar',
+      },
+    ];
+
+    expect(findOwnerUserForSupplier({ ownerUserId: '64f1f0000000000000000001' }, users)).toBe(
+      users[0]
+    );
+  });
+
   test('hydrates a supplier consistently for listing and safe detail when linked by legacy accountId', async () => {
     const supplier = {
       id: 'sup_wtlrt6uiftxg2y',
@@ -271,6 +286,35 @@ test('public profile renderer considers dashboard photo aliases before initials 
 });
 
 describe('public supplier API profile-photo enrichment', () => {
+  test('mounted safe supplier route resolves owner avatar when supplier ownerUserId points at user _id', async () => {
+    const { app } = buildSafeRouteApp({
+      users: [
+        {
+          _id: '64f1f0000000000000000002',
+          email: 'mongo-owner@example.com',
+          avatarUrl: '/api/photos/mongo-owner-avatar',
+        },
+      ],
+      suppliers: [
+        {
+          id: 'sup_mongo_owner',
+          ownerUserId: '64f1f0000000000000000002',
+          approved: true,
+          name: 'Mongo Owner Supplier',
+          logo: '/legacy-logo.webp',
+        },
+      ],
+    });
+
+    const res = await request(app).get('/api/suppliers/sup_mongo_owner').expect(200);
+    expect(res.body).toMatchObject({
+      profilePhotoUrl: '/api/photos/mongo-owner-avatar',
+      avatarUrl: '/api/photos/mongo-owner-avatar',
+      displayAvatarUrl: '/api/photos/mongo-owner-avatar',
+      resolvedProfileImageUrl: '/api/photos/mongo-owner-avatar',
+    });
+  });
+
   test('mounted safe supplier route resolves owner avatar before fallback suppliers route', async () => {
     const { app } = buildSafeRouteApp({
       users: [
