@@ -40,6 +40,7 @@ const supplierManagementRoutes = require('./supplier-management');
 const suppliersV2Routes = require('./suppliers-v2');
 const supplierProfileSafeRoutes = require('./supplier-profile-safe');
 const supplierProfilePackageCardRoutes = require('./supplier-profile-package-cards');
+const publicSupplierAvatarRoutes = require('./public-supplier-avatar');
 const partnerReferralCampaignCapture = require('../middleware/partnerReferralCampaignCapture');
 
 // New extracted route modules
@@ -312,6 +313,11 @@ function mountRoutes(app, deps) {
   }
   app.use('/api/v1', supplierProfilePackageCardRoutes);
   app.use('/api', supplierProfilePackageCardRoutes);
+  if (deps && publicSupplierAvatarRoutes.initializeDependencies) {
+    publicSupplierAvatarRoutes.initializeDependencies(deps);
+  }
+  app.use('/api/v1', publicSupplierAvatarRoutes);
+  app.use('/api', publicSupplierAvatarRoutes);
   if (deps && supplierProfileSafeRoutes.initializeDependencies) {
     supplierProfileSafeRoutes.initializeDependencies(deps);
   }
