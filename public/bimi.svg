@@ -1,7 +1,10 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<svg version="1.2" baseProfile="tiny-ps" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <title>EventFlow Logo</title>
-  <rect width="64" height="64" fill="#13B6A2"/>
-  <path fill="#FFFFFF" d="M18 22h10v2h-8v4h7v2h-7v5h8v2H18V22z"/>
-  <path fill="#FFFFFF" d="M32 22h10v2h-8v4h7v2h-7v7h-2V22z"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="EventFlow">
+  <rect width="64" height="64" rx="14" fill="#0B8073"/>
+  <rect x="10" y="13" width="6"  height="38" fill="#fff"/>
+  <rect x="10" y="13" width="21" height="7"  fill="#fff"/>
+  <rect x="10" y="28" width="16" height="7"  fill="#fff"/>
+  <rect x="10" y="44" width="21" height="7"  fill="#fff"/>
+  <rect x="35" y="13" width="6"  height="38" fill="#fff"/>
+  <rect x="35" y="13" width="19" height="7"  fill="#fff"/>
+  <rect x="35" y="28" width="14" height="7"  fill="#fff"/>
 </svg>
