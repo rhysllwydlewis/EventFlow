@@ -17,7 +17,10 @@ function findUserById(users, id) {
   if (!wanted) {
     return null;
   }
-  return users.find(user => normalizeId(user?.id) === wanted) || null;
+  return (
+    users.find(user => [user?.id, user?._id].map(normalizeId).filter(Boolean).includes(wanted)) ||
+    null
+  );
 }
 
 function normalizeEmail(value) {
@@ -75,6 +78,16 @@ async function findOwnerUserForSupplierFromDb(supplier, dbUnified, logger = cons
       const user = await dbUnified.findOne('users', { id });
       if (user) {
         return user;
+      }
+
+      // Some Mongo-backed user records are keyed by `_id` while the supplier
+      // record stores that same value in ownerUserId/userId/accountId. The
+      // supplier dashboard and settings can still show req.user.avatarUrl in
+      // that case, so the public profile must try the same account id against
+      // `_id` before falling back to legacy email matching.
+      const userByMongoId = await dbUnified.findOne('users', { _id: id });
+      if (userByMongoId) {
+        return userByMongoId;
       }
     } catch (err) {
       logger.warn?.(
