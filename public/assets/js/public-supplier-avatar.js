@@ -74,7 +74,7 @@ function findSupplierInSearchPayload(payload, supplierId) {
   return getSearchResults(payload).find(supplier => String(supplier?.id || '') === String(supplierId));
 }
 
-function getSearchUrls(supplierId) {
+function getSearchUrls() {
   const urls = [];
   const loadedSupplier = typeof window !== 'undefined' ? window.__supplierData : null;
   const supplierName = loadedSupplier && (loadedSupplier.name || loadedSupplier.businessName);
@@ -90,7 +90,7 @@ function getSearchUrls(supplierId) {
 }
 
 async function fetchSupplierFromSearchRoute(supplierId) {
-  for (const url of getSearchUrls(supplierId)) {
+  for (const url of getSearchUrls()) {
     try {
       const response = await fetch(url, {
         credentials: 'include',
@@ -112,6 +112,28 @@ async function fetchSupplierFromSearchRoute(supplierId) {
   return null;
 }
 
+async function fetchLegacyAvatarEndpoint(supplierId) {
+  try {
+    const response = await fetch(`/api/public/suppliers/${encodeURIComponent(supplierId)}/avatar`, {
+      headers: { Accept: 'application/json' },
+      cache: 'no-store',
+    });
+    if (!response.ok) {
+      return null;
+    }
+    const payload = await response.json();
+    if (!payload || !payload.hasPhoto || !payload.avatarUrl) {
+      return payload || null;
+    }
+    return {
+      name: payload.initials || '',
+      profilePhotoUrl: payload.avatarUrl,
+    };
+  } catch (_error) {
+    return null;
+  }
+}
+
 async function loadPublicSupplierAvatar() {
   const supplierId = getSupplierId();
   const img = document.getElementById('hero-avatar-img');
@@ -125,7 +147,8 @@ async function loadPublicSupplierAvatar() {
     setPlaceholder(img, initialsEl);
   }
 
-  const supplier = await fetchSupplierFromSearchRoute(supplierId);
+  const supplier =
+    (await fetchSupplierFromSearchRoute(supplierId)) || (await fetchLegacyAvatarEndpoint(supplierId));
   if (requestId !== activeRequestId) {
     return;
   }
@@ -177,6 +200,7 @@ if (typeof window !== 'undefined' && window.addEventListener) {
 
 if (typeof module !== 'undefined') {
   module.exports = {
+    fetchLegacyAvatarEndpoint,
     fetchSupplierFromSearchRoute,
     findSupplierInSearchPayload,
     getSupplierProfileImage,
