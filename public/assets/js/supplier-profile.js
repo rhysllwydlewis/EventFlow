@@ -278,15 +278,9 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
   }
 
   function getSupplierProfileImage(supplier) {
-    const galleryProfileImage = Array.isArray(supplier?.photosGallery)
-      ? supplier.photosGallery
-          .map(photo =>
-            typeof photo === 'string'
-              ? photo
-              : photo?.thumbnail || photo?.url || photo?.src || photo?.large || photo?.original
-          )
-          .find(isUsableSupplierProfileImageUrl)
-      : '';
+    // Only use dedicated profile-photo fields — do NOT fall back to gallery
+    // photos as those may be unrelated images or broken URLs, which would
+    // cause the fallback-hide handler to fire and leave a blank gradient.
     const candidates = [
       supplier?.profilePhotoUrl,
       supplier?.displayAvatarUrl,
@@ -296,7 +290,6 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
       supplier?.photoUrl,
       supplier?.image,
       supplier?.logo,
-      galleryProfileImage,
     ];
     const imageUrl = candidates.find(isUsableSupplierProfileImageUrl);
     return typeof imageUrl === 'string' ? imageUrl.trim() : '';
