@@ -12,7 +12,7 @@ const subscriptionService = require('../services/subscriptionService');
 const { canPublishPublicCalendar } = require('../utils/calendarPermissions');
 const {
   findOwnerUserForSupplier,
-  resolveSupplierProfilePhoto,
+  hydrateSupplierProfilePhoto,
 } = require('../utils/supplierProfilePhoto');
 
 // Dependencies injected by server.js
@@ -116,6 +116,30 @@ function normalisePackageSlug(value) {
     .replace(/&/g, ' and ')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
+}
+
+const PUBLIC_SUPPLIER_PRIVATE_FIELDS = [
+  'email',
+  'ownerEmail',
+  'contactEmail',
+  'phone',
+  'password',
+  'passwordHash',
+  'tokens',
+  'resetToken',
+  'resetPasswordToken',
+  'verificationToken',
+  'adminNotes',
+  'moderationNotes',
+  'stripeCustomerId',
+];
+
+function stripPublicSupplierPrivateFields(supplier) {
+  const publicSupplier = { ...supplier };
+  for (const field of PUBLIC_SUPPLIER_PRIVATE_FIELDS) {
+    delete publicSupplier[field];
+  }
+  return publicSupplier;
 }
 
 function getPackageLookupValues(pkg) {
@@ -243,12 +267,8 @@ router.get('/suppliers', async (req, res) => {
         const subscriptionTier = await resolveEffectiveSupplierTier(s);
         const isProActive = subscriptionTier !== 'free';
         const ownerUser = findOwnerUserForSupplier(s, users);
-        const profilePhotoUrl = resolveSupplierProfilePhoto(s, ownerUser);
         return {
-          ...s,
-          profilePhotoUrl,
-          avatarUrl: profilePhotoUrl,
-          displayAvatarUrl: profilePhotoUrl,
+          ...hydrateSupplierProfilePhoto(s, ownerUser),
           featuredSupplier,
           isPro: isProActive,
           subscriptionTier,
@@ -273,9 +293,8 @@ router.get('/suppliers', async (req, res) => {
         return eb - ea;
       })
       .map(s => {
-        const copy = { ...s };
+        const copy = stripPublicSupplierPrivateFields(s);
         delete copy._idx;
-        delete copy.email;
         return copy;
       });
 
@@ -345,13 +364,8 @@ router.get('/suppliers/:id', async (req, res) => {
       }
     }
 
-    const profilePhotoUrl = resolveSupplierProfilePhoto(sRaw, ownerUser);
-
     const s = {
-      ...sRaw,
-      profilePhotoUrl,
-      avatarUrl: profilePhotoUrl,
-      displayAvatarUrl: profilePhotoUrl,
+      ...hydrateSupplierProfilePhoto(sRaw, ownerUser),
       featuredSupplier,
       isPro: isProActive,
       subscriptionTier,
@@ -359,7 +373,7 @@ router.get('/suppliers/:id', async (req, res) => {
       badgeDetails,
     };
     // Strip sensitive fields from public response (admins/owners get data via authenticated routes)
-    delete s.email;
+    const publicSupplier = stripPublicSupplierPrivateFields(s);
 
     // Track profile view (unless preview mode)
     const isPreview = req.query.preview === 'true';
@@ -370,7 +384,7 @@ router.get('/suppliers/:id', async (req, res) => {
       .trackProfileView(req.params.id, userId, sessionId, isPreview)
       .catch(err => logger.error('Failed to track profile view:', err));
 
-    res.json(s);
+    res.json(publicSupplier);
   } catch (error) {
     logger.error('Error fetching supplier:', error);
     res.status(500).json({ error: 'Failed to fetch supplier' });
@@ -478,12 +492,8 @@ router.get('/me/suppliers', applyAuthRequired, applyRoleRequired('supplier'), as
       : null;
     const list = await Promise.all(
       listRaw.map(async s => {
-        const profilePhotoUrl = resolveSupplierProfilePhoto(s, ownerUser);
         return {
-          ...s,
-          profilePhotoUrl,
-          avatarUrl: profilePhotoUrl,
-          displayAvatarUrl: profilePhotoUrl,
+          ...hydrateSupplierProfilePhoto(s, ownerUser),
           isPro: await supplierIsProActive(s),
           // Fresh subscription tier takes precedence over any stale value stored on the supplier document.
           subscriptionTier: subscriptionTier || s.subscriptionTier || null,
@@ -862,13 +872,9 @@ router.get('/packages/:slug', async (req, res) => {
       return res.status(404).json({ error: 'Package not found' });
     }
     const supplierOwnerUser = findOwnerUserForSupplier(supplierRaw, users);
-    const supplierProfilePhotoUrl = resolveSupplierProfilePhoto(supplierRaw, supplierOwnerUser);
-    const supplier = {
-      ...supplierRaw,
-      profilePhotoUrl: supplierProfilePhotoUrl,
-      avatarUrl: supplierProfilePhotoUrl,
-      displayAvatarUrl: supplierProfilePhotoUrl,
-    };
+    const supplier = stripPublicSupplierPrivateFields(
+      hydrateSupplierProfilePhoto(supplierRaw, supplierOwnerUser)
+    );
 
     // Get category details
     const categories = await dbUnified.read('categories');
