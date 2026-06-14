@@ -6,6 +6,42 @@ function getSupplierId() {
   return new URLSearchParams(window.location.search).get('id') || '';
 }
 
+function isUsableSupplierImageUrl(value) {
+  if (!value || typeof value !== 'string') {
+    return false;
+  }
+  const url = value.trim();
+  return /^(https?:\/\/[^\s]+|\/[^/\\:][^:]*)$/i.test(url);
+}
+
+function getSupplierProfileImage(supplier) {
+  // Keep this in the same order as the suppliers listing card renderer in
+  // public/assets/js/pages/suppliers-init.js. The public profile avatar should
+  // show the same image users saw before clicking through from /suppliers.
+  const candidates = [
+    supplier?.profilePhotoUrl,
+    supplier?.displayAvatarUrl,
+    supplier?.avatarUrl,
+    supplier?.logo,
+  ];
+  const imageUrl = candidates.find(isUsableSupplierImageUrl);
+  return typeof imageUrl === 'string' ? imageUrl.trim() : '';
+}
+
+function getInitialsFromName(name) {
+  const words = String(name || '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (words.length === 0) {
+    return '?';
+  }
+  if (words.length === 1) {
+    return words[0].charAt(0).toUpperCase();
+  }
+  return `${words[0].charAt(0)}${words[words.length - 1].charAt(0)}`.toUpperCase();
+}
+
 function setPlaceholder(img, initialsEl, initials) {
   if (img) {
     img.removeAttribute('src');
@@ -21,6 +57,61 @@ function setPlaceholder(img, initialsEl, initials) {
   }
 }
 
+function getSearchResults(payload) {
+  if (Array.isArray(payload?.data?.results)) {
+    return payload.data.results;
+  }
+  if (Array.isArray(payload?.results)) {
+    return payload.results;
+  }
+  if (Array.isArray(payload?.items)) {
+    return payload.items;
+  }
+  return [];
+}
+
+function findSupplierInSearchPayload(payload, supplierId) {
+  return getSearchResults(payload).find(supplier => String(supplier?.id || '') === String(supplierId));
+}
+
+function getSearchUrls(supplierId) {
+  const urls = [];
+  const loadedSupplier = typeof window !== 'undefined' ? window.__supplierData : null;
+  const supplierName = loadedSupplier && (loadedSupplier.name || loadedSupplier.businessName);
+  if (supplierName) {
+    const params = new URLSearchParams({ q: String(supplierName), limit: '20' });
+    urls.push(`/api/v2/search/suppliers?${params.toString()}`);
+  }
+  // Fallback to the same browse endpoint used by /suppliers. The exact id check
+  // below prevents a wrong supplier image being used if this page has not yet
+  // received window.__supplierData.
+  urls.push('/api/v2/search/suppliers?limit=100');
+  return [...new Set(urls)];
+}
+
+async function fetchSupplierFromSearchRoute(supplierId) {
+  for (const url of getSearchUrls(supplierId)) {
+    try {
+      const response = await fetch(url, {
+        credentials: 'include',
+        headers: { Accept: 'application/json' },
+        cache: 'no-store',
+      });
+      if (!response.ok) {
+        continue;
+      }
+      const payload = await response.json();
+      const supplier = findSupplierInSearchPayload(payload, supplierId);
+      if (supplier) {
+        return supplier;
+      }
+    } catch (_error) {
+      // Try the next search URL before falling back to initials.
+    }
+  }
+  return null;
+}
+
 async function loadPublicSupplierAvatar() {
   const supplierId = getSupplierId();
   const img = document.getElementById('hero-avatar-img');
@@ -33,33 +124,24 @@ async function loadPublicSupplierAvatar() {
   if (img.hidden || !img.getAttribute('src')) {
     setPlaceholder(img, initialsEl);
   }
-  let payload;
-  try {
-    const response = await fetch(`/api/public/suppliers/${encodeURIComponent(supplierId)}/avatar`, {
-      headers: { Accept: 'application/json' },
-      cache: 'no-store',
-    });
-    if (!response.ok) {
-      return;
-    }
-    payload = await response.json();
-  } catch (_error) {
-    return;
-  }
 
+  const supplier = await fetchSupplierFromSearchRoute(supplierId);
   if (requestId !== activeRequestId) {
     return;
   }
 
-  if (payload && payload.initials) {
-    initialsEl.textContent = payload.initials;
+  const initials = getInitialsFromName(supplier?.name || window.__supplierData?.name);
+  if (initials) {
+    initialsEl.textContent = initials;
   }
-  if (!payload || !payload.hasPhoto || !payload.avatarUrl) {
-    setPlaceholder(img, initialsEl, payload && payload.initials);
+
+  const avatarUrl = getSupplierProfileImage(supplier);
+  if (!avatarUrl) {
+    setPlaceholder(img, initialsEl, initials);
     return;
   }
 
-  if (img.getAttribute('src') === payload.avatarUrl && img.hidden === false) {
+  if (img.getAttribute('src') === avatarUrl && img.hidden === false) {
     initialsEl.style.display = 'none';
     return;
   }
@@ -72,9 +154,9 @@ async function loadPublicSupplierAvatar() {
     initialsEl.style.display = 'none';
   };
   img.onerror = () => {
-    setPlaceholder(img, initialsEl, payload.initials);
+    setPlaceholder(img, initialsEl, initials);
   };
-  img.src = payload.avatarUrl;
+  img.src = avatarUrl;
 }
 
 if (document.readyState === 'loading') {
@@ -94,5 +176,11 @@ if (typeof window !== 'undefined' && window.addEventListener) {
 }
 
 if (typeof module !== 'undefined') {
-  module.exports = { loadPublicSupplierAvatar, setPlaceholder };
+  module.exports = {
+    fetchSupplierFromSearchRoute,
+    findSupplierInSearchPayload,
+    getSupplierProfileImage,
+    loadPublicSupplierAvatar,
+    setPlaceholder,
+  };
 }
