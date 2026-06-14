@@ -273,16 +273,13 @@ describe('utils/supplierProfilePhoto', () => {
   });
 });
 
-test('public profile renderer considers dashboard photo aliases before initials fallback', () => {
+test('public profile renderer no longer resolves hero avatar from dashboard photo aliases', () => {
   const supplierProfileJs = fs.readFileSync(SUPPLIER_PROFILE_JS, 'utf8');
-  expect(supplierProfileJs).toContain('supplier?.profilePhotoUrl');
-  expect(supplierProfileJs).toContain('supplier?.photoUrl');
-  expect(supplierProfileJs).toContain('supplier?.image');
-  // Gallery photos are intentionally excluded from the avatar resolution to prevent
-  // unrelated or broken gallery URLs from ghosting the avatar (hiding it via
-  // data-fallback-hide without showing any image). Only dedicated profile-photo
-  // fields are used; gallery photos continue to render in the gallery section.
+  expect(supplierProfileJs).not.toContain('supplier?.profilePhotoUrl');
+  expect(supplierProfileJs).not.toContain('supplier?.photoUrl');
+  expect(supplierProfileJs).not.toContain('supplier?.image');
   expect(supplierProfileJs).not.toContain('galleryProfileImage');
+  expect(supplierProfileJs).toContain('public-supplier-avatar.js and its dedicated endpoint');
 });
 
 describe('public supplier API profile-photo enrichment', () => {
@@ -576,16 +573,22 @@ describe('public supplier profile-photo rendering contracts', () => {
     expect(supplierHtml).toContain('id="hero-avatar-initials"');
   });
 
-  test('public supplier profile JS resolves and renders profile images while keeping initials fallback', () => {
-    expect(supplierProfileJs).toContain('function getSupplierProfileImage(supplier)');
+  test('public supplier profile JS leaves hero image ownership to canonical avatar script', () => {
+    const publicAvatarJs = fs.readFileSync(
+      path.join(__dirname, '../../public/assets/js/public-supplier-avatar.js'),
+      'utf8'
+    );
     expect(supplierProfileJs).toContain("document.getElementById('hero-avatar-img')");
-    expect(supplierProfileJs).toContain('avatarImgEl.src = profileImage');
-    expect(supplierProfileJs).toContain('delete avatarImgEl.dataset.fallbackApplied');
-    expect(supplierProfileJs).toContain('avatarImgEl.hidden = false');
+    expect(supplierProfileJs).not.toContain('avatarImgEl.src = profileImage');
+    expect(supplierProfileJs).toContain('public-supplier-avatar.js and its dedicated endpoint');
     expect(supplierProfileJs).toContain('avatarImgEl.hidden = true');
     expect(supplierProfileJs).toContain(
       'avatarInitialsEl.textContent = _getInitials(supplier.name)'
     );
+    expect(publicAvatarJs).toContain('/api/public/suppliers/');
+    expect(publicAvatarJs).toContain('img.src = payload.avatarUrl');
+    expect(publicAvatarJs).not.toContain('profilePhotoUrl');
+    expect(publicAvatarJs).not.toContain('displayAvatarUrl');
   });
 
   test('package sidebar uses resolved supplier profile images for avatar, shortlist, and messaging', () => {
