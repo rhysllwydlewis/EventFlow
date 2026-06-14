@@ -25,7 +25,7 @@ function noStore(res) {
 router.get('/public/suppliers/:id/avatar', async (req, res) => {
   try {
     noStore(res);
-    const result = await getPublicSupplierAvatar(req.params.id, { dbUnified });
+    const result = await getPublicSupplierAvatar(req.params.id, { dbUnified, logger });
     if (!result) {
       return res.status(404).json({ error: 'Supplier not found' });
     }

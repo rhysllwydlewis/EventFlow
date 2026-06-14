@@ -15,6 +15,12 @@ async function main() {
   console.log(`skipped because already had publicProfileAvatarUrl: ${summary.skippedExisting}`);
   console.log(`skipped because no image found: ${summary.skippedNoImage}`);
   console.log(`failed updates: ${summary.failed}`);
+  if (summary.sources) {
+    console.log('source fields used:');
+    for (const [source, count] of Object.entries(summary.sources)) {
+      console.log(`- ${source}: ${count}`);
+    }
+  }
 
   const diagnostic = await diagnoseKnownSupplierAvatar({
     supplierId: 'sup_wtlrt6uiftxg2y',

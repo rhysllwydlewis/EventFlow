@@ -1,7 +1,8 @@
 'use strict';
 
 const DEFAULT_SUPPLIER_ID = 'sup_wtlrt6uiftxg2y';
-const PROFILE_PHOTO_FIELDS = [
+const PUBLIC_AVATAR_FALLBACK_FIELDS = [
+  'publicProfileAvatarUrl',
   'profilePhotoUrl',
   'displayAvatarUrl',
   'avatarUrl',
@@ -9,7 +10,11 @@ const PROFILE_PHOTO_FIELDS = [
   'profilePhoto',
   'photoUrl',
   'image',
+  'logo',
 ];
+const PROFILE_PHOTO_FIELDS = PUBLIC_AVATAR_FALLBACK_FIELDS.filter(
+  field => field !== 'publicProfileAvatarUrl'
+);
 
 function getInitials(name) {
   const words = String(name || '')
@@ -68,22 +73,23 @@ function findSupplierOwnerForAvatar(supplier, users = []) {
   return users.find(user => supplierEmails.includes(normalizeEmail(user && user.email))) || null;
 }
 
-function firstSafeUrlFrom(object, fields) {
+function findFirstSafeUrlFrom(object, fields) {
   for (const field of fields) {
     const value = object && object[field];
     if (isSafePublicImageUrl(value)) {
-      return String(value).trim();
+      return { field, url: String(value).trim() };
     }
   }
   return null;
 }
 
-function chooseExistingAvatarForBackfill(supplier, ownerUser) {
-  return (
-    firstSafeUrlFrom(supplier, PROFILE_PHOTO_FIELDS) ||
-    firstSafeUrlFrom(ownerUser, ['avatarUrl', 'avatar']) ||
-    null
-  );
+function chooseExistingAvatarForBackfill(supplier) {
+  const match = findFirstSafeUrlFrom(supplier, PROFILE_PHOTO_FIELDS);
+  return match ? match.url : null;
+}
+
+function choosePublicSupplierAvatar(supplier) {
+  return findFirstSafeUrlFrom(supplier, PUBLIC_AVATAR_FALLBACK_FIELDS);
 }
 
 function supplierIsPublic(supplier) {
@@ -96,15 +102,46 @@ async function getPublicSupplierAvatar(supplierId, options = {}) {
   if (!supplier || !supplierIsPublic(supplier)) {
     return null;
   }
-  const avatarUrl = isSafePublicImageUrl(supplier.publicProfileAvatarUrl)
-    ? String(supplier.publicProfileAvatarUrl).trim()
-    : null;
-  return {
+  const chosen = choosePublicSupplierAvatar(supplier);
+  const avatarUrl = chosen ? chosen.url : null;
+  const hasSafeCanonical = isSafePublicImageUrl(supplier.publicProfileAvatarUrl);
+  const shouldWriteThrough = Boolean(
+    chosen && chosen.field !== 'publicProfileAvatarUrl' && !hasSafeCanonical
+  );
+  let writeThroughAttempted = false;
+  if (shouldWriteThrough) {
+    writeThroughAttempted = true;
+    try {
+      await syncPublicSupplierAvatarForSupplier(supplier.id, chosen.url, { dbUnified: db });
+    } catch (error) {
+      const log = options.logger || console;
+      if (log && typeof log.warn === 'function') {
+        log.warn('Public supplier avatar write-through repair failed:', {
+          supplierId: supplier.id,
+          sourceField: chosen.field,
+          error: error && error.message ? error.message : error,
+        });
+      }
+    }
+  }
+  const result = {
     supplierId: supplier.id,
     hasPhoto: Boolean(avatarUrl),
     avatarUrl,
     initials: getInitials(supplier.name || supplier.company || supplier.businessName),
   };
+  if (options.includeDiagnostics) {
+    result._diagnostics = {
+      hasPublicProfileAvatarUrl: Boolean(supplier.publicProfileAvatarUrl),
+      publicProfileAvatarUrlSafe: hasSafeCanonical,
+      safeFallbackExists: Boolean(chosen && chosen.field !== 'publicProfileAvatarUrl'),
+      fallbackSourceField:
+        chosen && chosen.field !== 'publicProfileAvatarUrl' ? chosen.field : null,
+      chosenSourceField: chosen ? chosen.field : null,
+      writeThroughRepairAttempted: writeThroughAttempted,
+    };
+  }
+  return result;
 }
 
 async function syncPublicSupplierAvatarForSupplier(supplierId, avatarUrl, options = {}) {
@@ -150,7 +187,6 @@ async function repairPublicSupplierAvatars(options = {}) {
   const db = options.dbUnified || require('../db-unified');
   const force = Boolean(options.force);
   const suppliers = (await db.read('suppliers')) || [];
-  const users = (await db.read('users')) || [];
   const summary = {
     scanned: suppliers.length,
     repaired: 0,
@@ -164,14 +200,17 @@ async function repairPublicSupplierAvatars(options = {}) {
         summary.skippedExisting += 1;
         continue;
       }
-      const ownerUser = findSupplierOwnerForAvatar(supplier, users);
-      const chosen = chooseExistingAvatarForBackfill(supplier, ownerUser);
+      const chosen = findFirstSafeUrlFrom(supplier, PROFILE_PHOTO_FIELDS);
       if (!chosen) {
         summary.skippedNoImage += 1;
+        summary.sources = summary.sources || {};
+        summary.sources.skippedNoImage = (summary.sources.skippedNoImage || 0) + 1;
         continue;
       }
-      await syncPublicSupplierAvatarForSupplier(supplier.id, chosen, { dbUnified: db });
+      await syncPublicSupplierAvatarForSupplier(supplier.id, chosen.url, { dbUnified: db });
       summary.repaired += 1;
+      summary.sources = summary.sources || {};
+      summary.sources[chosen.field] = (summary.sources[chosen.field] || 0) + 1;
     } catch (_err) {
       summary.failed += 1;
     }
@@ -220,8 +259,12 @@ async function diagnoseKnownSupplierAvatar(options = {}) {
   const supplierId = options.supplierId || DEFAULT_SUPPLIER_ID;
   const db = options.dbUnified || require('../db-unified');
   const supplier = await db.findOne('suppliers', { id: supplierId });
+  const hasPublicProfileAvatarUrl = Boolean(supplier && supplier.publicProfileAvatarUrl);
+  const publicProfileAvatarUrlSafe = Boolean(
+    supplier && isSafePublicImageUrl(supplier.publicProfileAvatarUrl)
+  );
   const endpointResult = supplier
-    ? await getPublicSupplierAvatar(supplierId, { dbUnified: db })
+    ? await getPublicSupplierAvatar(supplierId, { dbUnified: db, includeDiagnostics: true })
     : null;
   const reachability =
     options.checkReachability && endpointResult && endpointResult.avatarUrl
@@ -230,11 +273,23 @@ async function diagnoseKnownSupplierAvatar(options = {}) {
   return {
     supplierId,
     exists: Boolean(supplier),
-    hasPublicProfileAvatarUrl: Boolean(supplier && supplier.publicProfileAvatarUrl),
-    publicProfileAvatarUrlSafe: Boolean(
-      supplier && isSafePublicImageUrl(supplier.publicProfileAvatarUrl)
+    hasPublicProfileAvatarUrl,
+    publicProfileAvatarUrlSafe,
+    safeFallbackExists: Boolean(
+      endpointResult &&
+      endpointResult._diagnostics &&
+      endpointResult._diagnostics.safeFallbackExists
     ),
+    fallbackSourceField:
+      endpointResult && endpointResult._diagnostics
+        ? endpointResult._diagnostics.fallbackSourceField
+        : null,
     endpointHasPhoto: Boolean(endpointResult && endpointResult.hasPhoto),
+    writeThroughRepairAttempted: Boolean(
+      endpointResult &&
+      endpointResult._diagnostics &&
+      endpointResult._diagnostics.writeThroughRepairAttempted
+    ),
     imageReachability: reachability,
   };
 }
@@ -244,6 +299,7 @@ module.exports = {
   isSafePublicImageUrl,
   findSupplierOwnerForAvatar,
   chooseExistingAvatarForBackfill,
+  choosePublicSupplierAvatar,
   getPublicSupplierAvatar,
   syncPublicSupplierAvatarForUser,
   syncPublicSupplierAvatarForSupplier,

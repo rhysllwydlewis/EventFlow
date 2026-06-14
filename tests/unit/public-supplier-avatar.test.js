@@ -21,7 +21,20 @@ function db({ suppliers = [], users = [] } = {}) {
       }
       return null;
     }),
-    updateOne: jest.fn(async () => undefined),
+    updateOne: jest.fn(async (collection, query, update) => {
+      if (collection === 'suppliers') {
+        const supplier = suppliers.find(s => s.id === query.id);
+        if (supplier && update && update.$set) {
+          Object.assign(supplier, update.$set);
+        }
+        if (supplier && update && update.$unset) {
+          for (const key of Object.keys(update.$unset)) {
+            delete supplier[key];
+          }
+        }
+      }
+      return { matched: 1, modified: 1 };
+    }),
   };
 }
 
@@ -74,6 +87,88 @@ describe('public supplier avatar canonical service and endpoint', () => {
     expect(res.headers['cache-control']).toContain('no-store');
   });
 
+  test('endpoint returns hasPhoto true using logo when canonical avatar is missing', async () => {
+    const { app, mockDb } = routeApp({
+      suppliers: [
+        { id: 'sup_logo', name: 'Logo Supplier', approved: true, logo: '/uploads/logo.png' },
+      ],
+    });
+    const res = await request(app).get('/api/public/suppliers/sup_logo/avatar').expect(200);
+    expect(res.body).toEqual({
+      supplierId: 'sup_logo',
+      hasPhoto: true,
+      avatarUrl: '/uploads/logo.png',
+      initials: 'LS',
+    });
+    expect(mockDb.updateOne).toHaveBeenCalledWith(
+      'suppliers',
+      { id: 'sup_logo' },
+      expect.objectContaining({
+        $set: expect.objectContaining({ publicProfileAvatarUrl: '/uploads/logo.png' }),
+      })
+    );
+  });
+
+  test('endpoint uses highest priority safe fallback when canonical avatar is missing', async () => {
+    const cases = [
+      {
+        id: 'sup_profile',
+        fields: {
+          profilePhotoUrl: '/uploads/profile-photo.png',
+          displayAvatarUrl: '/uploads/display-avatar.png',
+          avatarUrl: '/uploads/avatar.png',
+          logo: '/uploads/logo.png',
+        },
+        expected: '/uploads/profile-photo.png',
+      },
+      {
+        id: 'sup_display',
+        fields: {
+          displayAvatarUrl: '/uploads/display-avatar.png',
+          avatarUrl: '/uploads/avatar.png',
+          logo: '/uploads/logo.png',
+        },
+        expected: '/uploads/display-avatar.png',
+      },
+      {
+        id: 'sup_avatar',
+        fields: { avatarUrl: '/uploads/avatar.png', logo: '/uploads/logo.png' },
+        expected: '/uploads/avatar.png',
+      },
+    ];
+
+    for (const testCase of cases) {
+      const { app } = routeApp({
+        suppliers: [
+          {
+            id: testCase.id,
+            name: 'Priority Supplier',
+            approved: true,
+            ...testCase.fields,
+          },
+        ],
+      });
+      const res = await request(app).get(`/api/public/suppliers/${testCase.id}/avatar`).expect(200);
+      expect(res.body.avatarUrl).toBe(testCase.expected);
+      expect(res.body.hasPhoto).toBe(true);
+    }
+  });
+
+  test('write-through failure still returns safe fallback avatar', async () => {
+    const warn = jest.fn();
+    const { app, mockDb } = routeApp({
+      suppliers: [
+        { id: 'sup_fail', name: 'Fail Write', approved: true, logo: '/uploads/logo.png' },
+      ],
+    });
+    mockDb.updateOne.mockRejectedValueOnce(new Error('disk full'));
+    const router = require('../../routes/public-supplier-avatar');
+    router.initializeDependencies({ dbUnified: mockDb, logger: { error: jest.fn(), warn } });
+    const res = await request(app).get('/api/public/suppliers/sup_fail/avatar').expect(200);
+    expect(res.body).toMatchObject({ hasPhoto: true, avatarUrl: '/uploads/logo.png' });
+    expect(warn).toHaveBeenCalled();
+  });
+
   test('endpoint returns placeholder metadata for approved supplier without photo', async () => {
     const { app } = routeApp({ suppliers: [{ id: 'sup_2', name: 'No Photo', approved: true }] });
     const res = await request(app).get('/api/public/suppliers/sup_2/avatar').expect(200);
@@ -105,6 +200,38 @@ describe('public supplier avatar canonical service and endpoint', () => {
     expect(service.isSafePublicImageUrl('data:image/png;base64,aaa')).toBe(false);
     expect(service.isSafePublicImageUrl('javascript:alert(1)')).toBe(false);
     expect(service.isSafePublicImageUrl('//evil.example/photo.jpg')).toBe(false);
+    expect(service.isSafePublicImageUrl('ftp://evil.example/photo.jpg')).toBe(false);
+    expect(service.isSafePublicImageUrl({ url: '/api/photos/photo' })).toBe(false);
+  });
+
+  test('diagnostic reports fallback source and write-through attempt without exposing private data', async () => {
+    const mockDb = db({
+      suppliers: [
+        {
+          id: 'sup_wtlrt6uiftxg2y',
+          name: 'Romeo Test',
+          approved: true,
+          logo: '/uploads/romeo-logo.png',
+          email: 'private@example.com',
+          ownerUserId: 'user_private',
+        },
+      ],
+    });
+
+    const diagnostic = await service.diagnoseKnownSupplierAvatar({ dbUnified: mockDb });
+
+    expect(diagnostic).toMatchObject({
+      supplierId: 'sup_wtlrt6uiftxg2y',
+      exists: true,
+      hasPublicProfileAvatarUrl: false,
+      publicProfileAvatarUrlSafe: false,
+      safeFallbackExists: true,
+      fallbackSourceField: 'logo',
+      endpointHasPhoto: true,
+      writeThroughRepairAttempted: true,
+    });
+    expect(diagnostic.email).toBeUndefined();
+    expect(diagnostic.ownerUserId).toBeUndefined();
   });
 
   test('diagnostic reachability checks resolve relative safe image URLs against a base URL', async () => {
@@ -183,13 +310,14 @@ describe('public supplier avatar canonical service and endpoint', () => {
     const summary = await service.repairPublicSupplierAvatars({ dbUnified: mockDb });
     expect(summary).toMatchObject({
       scanned: 3,
-      repaired: 2,
+      repaired: 1,
       skippedExisting: 1,
-      skippedNoImage: 0,
+      skippedNoImage: 1,
       failed: 0,
     });
     expect(JSON.stringify(mockDb.updateOne.mock.calls)).toContain('/api/photos/old');
-    expect(JSON.stringify(mockDb.updateOne.mock.calls)).toContain('/api/photos/user3');
+    expect(summary.sources).toMatchObject({ profilePhotoUrl: 1, skippedNoImage: 1 });
+    expect(JSON.stringify(mockDb.updateOne.mock.calls)).not.toContain('/api/photos/user3');
     expect(JSON.stringify(mockDb.updateOne.mock.calls)).not.toContain('/api/photos/other');
   });
 });
