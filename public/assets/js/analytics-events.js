@@ -1,6 +1,74 @@
 (function () {
   'use strict';
 
+  const knownImageReplacements = [
+    {
+      brokenFragment: '/photos/1580913/pexels-photo-1580913.jpeg',
+      replacement:
+        'https://images.pexels.com/photos/1046744/pexels-photo-1046744.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1',
+    },
+  ];
+
+  function findReplacementImage(src) {
+    if (!src) {
+      return '';
+    }
+    const match = knownImageReplacements.find(item => src.includes(item.brokenFragment));
+    return match ? match.replacement : '';
+  }
+
+  function replaceKnownBrokenImage(img) {
+    if (!img || img.tagName !== 'IMG' || img.dataset.efKnownImageReplacementApplied === 'true') {
+      return;
+    }
+
+    const replacement = findReplacementImage(img.currentSrc || img.src || img.getAttribute('src'));
+    if (!replacement) {
+      return;
+    }
+
+    img.dataset.efKnownImageReplacementApplied = 'true';
+    img.removeAttribute('srcset');
+    img.src = replacement;
+  }
+
+  function scanKnownBrokenImages(root) {
+    if (!root || typeof root.querySelectorAll !== 'function') {
+      return;
+    }
+    root.querySelectorAll('img').forEach(replaceKnownBrokenImage);
+  }
+
+  function bindKnownImageReplacements() {
+    scanKnownBrokenImages(document);
+
+    document.addEventListener(
+      'error',
+      event => {
+        replaceKnownBrokenImage(event.target);
+      },
+      true
+    );
+
+    if (typeof MutationObserver !== 'function' || !document.body) {
+      return;
+    }
+
+    const observer = new MutationObserver(mutations => {
+      mutations.forEach(mutation => {
+        mutation.addedNodes.forEach(node => {
+          if (node && node.tagName === 'IMG') {
+            replaceKnownBrokenImage(node);
+          } else {
+            scanKnownBrokenImages(node);
+          }
+        });
+      });
+    });
+
+    observer.observe(document.body, { childList: true, subtree: true });
+  }
+
   function hasAnalyticsConsent() {
     if (!window.CookieConsent || typeof window.CookieConsent.getConsent !== 'function') {
       return false;
@@ -86,11 +154,16 @@
     });
   }
 
+  function init() {
+    bindKnownImageReplacements();
+    bindDelegatedEvents();
+  }
+
   window.EFAnalytics = { track, hasAnalyticsConsent };
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', bindDelegatedEvents);
+    document.addEventListener('DOMContentLoaded', init);
   } else {
-    bindDelegatedEvents();
+    init();
   }
 })();
