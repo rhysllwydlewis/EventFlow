@@ -33,6 +33,12 @@ function isAnonymousRequest(req) {
   return !(req && req.user);
 }
 
+function setHtmlNoStoreHeaders(res) {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+}
+
 function appendVaryHeader(res, value) {
   const existing = res.getHeader('Vary');
   if (!existing) {
@@ -63,7 +69,10 @@ function stripAnonymousAuthText(content) {
     .replace(/(<a\b[^>]*id="ef-dashboard-link"[\s\S]*?>)[\s\S]*?<\/a>/gi, '$1</a>')
     .replace(/(<a\b[^>]*id="ef-mobile-dashboard"[\s\S]*?>)[\s\S]*?<\/a>/gi, '$1</a>')
     .replace(/(<a\b[^>]*id="ef-mobile-logout"[\s\S]*?>)[\s\S]*?<\/a>/gi, '$1</a>')
-    .replace(/(<a\b[^>]*id="ef-bottom-dashboard"[\s\S]*?<span class="ef-bottom-label">)[\s\S]*?(<\/span>)/gi, '$1$2')
+    .replace(
+      /(<a\b[^>]*id="ef-bottom-dashboard"[\s\S]*?<span class="ef-bottom-label">)[\s\S]*?(<\/span>)/gi,
+      '$1$2'
+    )
     .replace(/Dashboard\s+Log out/gi, '')
     .replace(/Mark all as read/gi, '')
     .replace(/View all/gi, '')
@@ -93,6 +102,7 @@ function sanitiseStart(content) {
 
 function sanitisePublicCalendar(content) {
   return content
+    .replace(/\/\*\s*Add event button \(publisher\)\s*\*\//i, '/* Publisher-only banner styles */')
     .replace(
       /<div id="pc-publisher-banner"[\s\S]*?<\/div>\s*(<div id="pc-permission-notice")/i,
       '<div id="pc-publisher-banner" class="pc-publisher-banner" hidden style="display:none;" role="status"></div>\n\n        $1'
@@ -117,7 +127,10 @@ function sanitiseGuides(content) {
       /<div class="guides-empty" id="guides-empty"[\s\S]*?<button[\s\S]*?<\/button>\s*<\/div>/i,
       '<div class="guides-empty" id="guides-empty" role="status" aria-live="polite" hidden></div>'
     )
-    .replace(/Discover vetted photographers, caterers, venues, and more near you\./gi, 'Discover photographers, caterers, venues and more near you.');
+    .replace(
+      /Discover vetted photographers, caterers, venues, and more near you\./gi,
+      'Discover photographers, caterers, venues and more near you.'
+    );
 }
 
 function sanitizeAnonymousPublicHtml(content, requestPath, req) {
@@ -146,7 +159,13 @@ function shouldProcessFile(filePath) {
   }
 
   const fileName = path.basename(filePath);
-  const processFiles = ['legal.html', 'terms.html', 'privacy.html', 'data-rights.html', 'admin-settings.html'];
+  const processFiles = [
+    'legal.html',
+    'terms.html',
+    'privacy.html',
+    'data-rights.html',
+    'admin-settings.html',
+  ];
 
   if (processFiles.includes(fileName)) {
     return true;
@@ -188,7 +207,11 @@ async function getFile(filePath, requestPath, req) {
   }
 
   const content = await fs.readFile(filePath, 'utf8');
-  const processedContent = sanitizeAnonymousPublicHtml(replacePlaceholders(content), requestPath, req);
+  const processedContent = sanitizeAnonymousPublicHtml(
+    replacePlaceholders(content),
+    requestPath,
+    req
+  );
 
   if (cachingEnabled) {
     templateCache.set(cacheKey, {
@@ -227,6 +250,7 @@ function templateMiddleware() {
 
     try {
       const { content } = await getFile(filePath, requestPath, req);
+      setHtmlNoStoreHeaders(res);
       res.setHeader('X-EventFlow-Template-Renderer', 'active');
       res.setHeader(
         'X-EventFlow-Public-Sanitizer',
@@ -250,5 +274,8 @@ module.exports = {
   replacePlaceholders,
   sanitizeAnonymousPublicHtml,
   clearCache,
+  setHtmlNoStoreHeaders,
+  appendVaryHeader,
+  getFile,
   getPlaceholders,
 };

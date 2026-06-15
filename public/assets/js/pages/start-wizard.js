@@ -1210,7 +1210,9 @@
         try {
           localStorage.setItem('eventflow_wizard_pending', JSON.stringify(planData));
           localStorage.setItem('eventflow_wizard_timestamp', Date.now().toString());
-        } catch (_) {}
+        } catch (_) {
+          // localStorage can be unavailable in private browsing or restricted contexts.
+        }
         location.href = `/auth?returnTo=${encodeURIComponent('/start?restore=true')}`;
         return;
       }
@@ -1227,7 +1229,7 @@
       window.scrollTo({ top: 0, behavior: 'smooth' });
       setTimeout(() => {
         window.WizardState.clearState();
-        ['eventflow_wizard_pending','eventflow_wizard_timestamp'].forEach(k => { try { localStorage.removeItem(k); } catch(_){} });
+        ['eventflow_wizard_pending','eventflow_wizard_timestamp'].forEach(k => { try { localStorage.removeItem(k); } catch(_) { /* localStorage may be unavailable. */ } });
       }, 3000);
     } catch (err) {
       console.error('Error saving plan:', err);
@@ -1259,7 +1261,9 @@
     try {
       const r = await fetch('/api/v1/csrf-token', { credentials: 'include' });
       if (r.ok) { const d = await r.json(); return d.csrfToken || ''; }
-    } catch (_) {}
+    } catch (_) {
+      // CSRF fallback is best-effort; callers can continue without a token.
+    }
     return '';
   }
 
@@ -1297,7 +1301,7 @@
       attempt(3);
     } catch (e) {
       console.error('Failed to restore wizard state:', e);
-      ['eventflow_wizard_pending','eventflow_wizard_timestamp'].forEach(k => { try { localStorage.removeItem(k); } catch(_){} });
+      ['eventflow_wizard_pending','eventflow_wizard_timestamp'].forEach(k => { try { localStorage.removeItem(k); } catch(_) { /* localStorage may be unavailable. */ } });
     }
   }
 
