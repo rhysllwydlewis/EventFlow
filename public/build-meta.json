@@ -1,9 +1,9 @@
 {
   "app": "EventFlow",
   "version": "18.1.0",
-  "marker": "pr-1224-public-render-mopup",
+  "marker": "pr-1226-template-renderer-verification",
   "source": "static-public-build-marker",
-  "purpose": "Helps confirm which public build has been deployed when crawler/static renders appear stale.",
-  "createdFor": "public-render-mopup",
+  "purpose": "Confirms the template renderer verification build has reached production.",
+  "createdFor": "template-renderer-verification",
   "createdAt": "2026-06-15"
 }
