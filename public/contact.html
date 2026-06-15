@@ -105,7 +105,7 @@
 </header>
 
     <!-- Notification Dropdown (Pre-rendered, shown/hidden by JS) -->
-    <div id="notification-dropdown" class="notification-dropdown" style="display: none;">
+    <div id="notification-dropdown" class="notification-dropdown" hidden aria-hidden="true" style="display: none;">
       <div class="notification-header">
         <h3>Notifications</h3>
         <button class="notification-mark-all" id="notification-mark-all-read" type="button">
@@ -169,7 +169,7 @@
 <footer class="footer" role="contentinfo">
   <div class="container ef-footer-content">
     <div><strong>EventFlow</strong><br><span class="small">Event planning made simple.</span></div>
-    <div class="version">Version: <span id="ef-version-label">loading…</span></div>
+    <div class="version" id="ef-version-wrap" hidden aria-hidden="true">v<span id="ef-version-label"></span></div>
     <div class="small"><a href="/guides">Guides</a> ·
       <a href="/marketplace">Marketplace</a> ·
       <a href="/credits">Credits</a> · <a href="/contact">Contact</a> · <a href="/legal">Legal Hub</a> · <button type="button" data-cookie-prefs>Cookie preferences</button></div>
