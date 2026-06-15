@@ -176,24 +176,32 @@ describe('Scope C — Footer/version/loading states', () => {
     });
   });
 
-  describe('app.js: version reveal gated to admin users', () => {
-    test('app.js checks user role before revealing version', () => {
+  describe('version reveal: admin-shared.js is the sole handler', () => {
+    test('app.js does NOT make an extra auth/me fetch for version display', () => {
       const js = readJs('app.js');
-      // Should check admin role before removing hidden attribute
+      // Version display was moved out of app.js to avoid a per-page auth fetch.
+      // The comment marks where it was; there should be no auth/me call there.
       const versionBlock = js.slice(
-        js.indexOf('// Display backend version'),
+        js.indexOf('// Version display is handled by admin-shared.js'),
         js.indexOf('// Per-page setup')
       );
-      expect(versionBlock).toContain("role !== 'admin'");
+      expect(versionBlock).not.toContain('/auth/me');
     });
 
-    test('app.js removes hidden attribute on version wrapper for admins', () => {
-      const js = readJs('app.js');
-      const versionBlock = js.slice(
-        js.indexOf('// Display backend version'),
-        js.indexOf('// Per-page setup')
-      );
-      expect(versionBlock).toContain("removeAttribute('hidden')");
+    test('admin-shared.js removes hidden attribute when revealing version', () => {
+      const js = readJs('admin-shared.js');
+      const fnStart = js.indexOf('async function populateVersionLabel');
+      const fnEnd   = js.indexOf('\n  }', fnStart) + 4;
+      const fn = js.slice(fnStart, fnEnd);
+      expect(fn).toContain("removeAttribute('hidden')");
+    });
+
+    test('admin-shared.js removes aria-hidden when revealing version', () => {
+      const js = readJs('admin-shared.js');
+      const fnStart = js.indexOf('async function populateVersionLabel');
+      const fnEnd   = js.indexOf('\n  }', fnStart) + 4;
+      const fn = js.slice(fnStart, fnEnd);
+      expect(fn).toContain("removeAttribute('aria-hidden')");
     });
   });
 
