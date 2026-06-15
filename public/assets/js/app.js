@@ -5765,31 +5765,37 @@ document.addEventListener('DOMContentLoaded', () => {
                       ? 'plan'
                       : '');
 
-  // Display backend version in footer if available
+  // Display backend version in footer — admin users only.
+  // The wrapper element is hidden by default in HTML (hidden attribute).
+  // Only revealed here when the current user is confirmed admin.
   (async () => {
     try {
       const label = document.getElementById('ef-version-label');
-      if (!label) {
-        return;
+      if (!label) return;
+
+      // Check auth role before revealing version metadata
+      const authResp = await fetch('/api/v1/auth/me', { credentials: 'include' });
+      if (!authResp.ok) return; // Not logged in — version stays hidden
+      const authData = await authResp.json();
+      if (!authData || !authData.user || authData.user.role !== 'admin') return;
+
+      // Admin confirmed — fetch and reveal version
+      const r = await fetch('/api/v1/meta', { credentials: 'include' });
+      const wrap = document.getElementById('ef-version-wrap') || label.closest('.version');
+      let versionText = 'unknown';
+      if (r.ok) {
+        const data = await r.json();
+        versionText = data && data.version
+          ? `${data.version} (Node ${data.node || ''})`.trim()
+          : 'dev';
       }
-      const r = await fetch('/api/v1/meta', {
-        credentials: 'include',
-      });
-      if (!r.ok) {
-        label.textContent = 'unknown';
-        return;
-      }
-      const data = await r.json();
-      if (data && data.version) {
-        label.textContent = `${data.version} (Node ${data.node || ''})`.trim();
-      } else {
-        label.textContent = 'dev';
+      label.textContent = versionText;
+      if (wrap) {
+        wrap.removeAttribute('hidden');
+        wrap.removeAttribute('aria-hidden');
       }
     } catch (_err) {
-      const label = document.getElementById('ef-version-label');
-      if (label) {
-        label.textContent = 'offline';
-      }
+      // Non-fatal — version stays hidden for all users if this fails
     }
   })();
 
