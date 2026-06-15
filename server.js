@@ -486,6 +486,8 @@ const canonicalPages = [
   'forgot-password',
   'dashboard',
   'public-calendar',
+  'suppliers',
+  'marketplace',
 ];
 
 canonicalPages.forEach(page => {
@@ -646,6 +648,29 @@ if (process.env.NODE_ENV === 'production') {
     });
   });
 }
+
+// Emergency production public-render allowlist. Railway production starts this
+// file (node server.js), so these routes must reach templateMiddleware() before
+// raw express.static can serve any matching HTML shell. The handler deliberately
+// calls next(): templateMiddleware below performs the actual sanitized render,
+// then express.static is only a fallback for non-HTML assets/missing pages.
+const productionPublicRenderPages = [
+  '/',
+  '/start',
+  '/public-calendar',
+  '/guides',
+  '/suppliers',
+  '/pricing',
+  '/marketplace',
+  '/for-suppliers',
+  '/legal',
+  '/contact',
+  '/auth',
+  '/verify',
+];
+productionPublicRenderPages.forEach(routePath => {
+  app.get(routePath, (req, res, next) => next());
+});
 
 // ---------- Protected HTML Page Routes ----------
 // Server-side auth guard for pages that require authentication.

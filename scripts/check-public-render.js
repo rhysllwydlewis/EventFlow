@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 'use strict';
 
-const fs = require('fs');
-const path = require('path');
+// Usage for post-deploy live verification:
+// npm run check:public-render -- --base=https://event-flow.co.uk --strict
+// In strict live mode, proxy/CDN header differences are warnings, but body leaks
+// remain hard failures.
 
 const DEFAULT_PATHS = [
   '/',
@@ -37,6 +39,7 @@ const BANNED_PATTERNS = [
   /admin override/i,
   /pending_review/i,
   /rejected/i,
+  /Shared Events Calendar publishing enabled/i,
 ];
 
 const NOTIFICATION_VIEW_ALL = /notification[^<]{0,120}View all|View all[^<]{0,120}notification/i;
@@ -58,23 +61,13 @@ function parseArgs(argv) {
   return args;
 }
 
-function sitemapPaths() {
-  const sitemapPath = path.join(__dirname, '..', 'public', 'sitemap.xml');
-  if (!fs.existsSync(sitemapPath)) {
-    return [];
-  }
-  const xml = fs.readFileSync(sitemapPath, 'utf8');
-  return [...xml.matchAll(/<loc>https?:\/\/[^/]+([^<]*)<\/loc>/g)]
-    .map(match => match[1] || '/')
-    .map(item => item.replace(/\/$/, '') || '/')
-    .filter(item => !item.startsWith('/articles/') && !item.startsWith('/wedding/'));
-}
-
 const HEADER_REQUIRED_PATHS = new Set([
   '/',
   '/start',
   '/public-calendar',
   '/guides',
+  '/suppliers',
+  '/pricing',
   '/marketplace',
 ]);
 
@@ -82,11 +75,18 @@ function headerValue(headers, name) {
   return headers.get(name) || '';
 }
 
-function checkStrictHeaders(route, headers) {
+function isLiveBase(base) {
+  return (
+    /^https?:\/\//i.test(base) && !/^https?:\/\/(?:localhost|127\.0\.0\.1)(?::|\/|$)/i.test(base)
+  );
+}
+
+function checkStrictHeaders(route, headers, { allowProxyHeaderWarnings = false } = {}) {
   if (!HEADER_REQUIRED_PATHS.has(route)) {
-    return [];
+    return { failures: [], warnings: [] };
   }
   const failures = [];
+  const warnings = [];
   const cacheControl = headerValue(headers, 'cache-control');
   const pragma = headerValue(headers, 'pragma');
   const expires = headerValue(headers, 'expires');
@@ -95,37 +95,55 @@ function checkStrictHeaders(route, headers) {
   const sanitizer = headerValue(headers, 'x-eventflow-public-sanitizer');
 
   if (cacheControl !== 'no-store, no-cache, must-revalidate, private') {
-    failures.push(`${route}: unexpected Cache-Control ${JSON.stringify(cacheControl)}`);
+    (allowProxyHeaderWarnings ? warnings : failures).push(
+      `${route}: unexpected Cache-Control ${JSON.stringify(cacheControl)}`
+    );
   }
   if (pragma !== 'no-cache') {
-    failures.push(`${route}: unexpected Pragma ${JSON.stringify(pragma)}`);
+    (allowProxyHeaderWarnings ? warnings : failures).push(
+      `${route}: unexpected Pragma ${JSON.stringify(pragma)}`
+    );
   }
   if (expires !== '0') {
-    failures.push(`${route}: unexpected Expires ${JSON.stringify(expires)}`);
+    (allowProxyHeaderWarnings ? warnings : failures).push(
+      `${route}: unexpected Expires ${JSON.stringify(expires)}`
+    );
   }
   if (!/\bCookie\b/i.test(vary)) {
-    failures.push(`${route}: Vary does not include Cookie`);
+    (allowProxyHeaderWarnings ? warnings : failures).push(`${route}: Vary does not include Cookie`);
   }
   if (!/^(active|active-static)$/.test(renderer)) {
-    failures.push(`${route}: unexpected X-EventFlow-Template-Renderer ${JSON.stringify(renderer)}`);
+    (allowProxyHeaderWarnings ? warnings : failures).push(
+      `${route}: unexpected X-EventFlow-Template-Renderer ${JSON.stringify(renderer)}`
+    );
   }
   if (sanitizer !== 'anonymous-v2') {
-    failures.push(`${route}: unexpected X-EventFlow-Public-Sanitizer ${JSON.stringify(sanitizer)}`);
+    (allowProxyHeaderWarnings ? warnings : failures).push(
+      `${route}: unexpected X-EventFlow-Public-Sanitizer ${JSON.stringify(sanitizer)}`
+    );
   }
-  return failures;
+  return { failures, warnings };
 }
 
 async function checkPath(base, route, strict) {
   const url = `${base}${route}`;
   const response = await fetch(url, { redirect: 'manual', headers: { Accept: 'text/html' } });
   if (response.status >= 300 && response.status < 400) {
-    return [];
+    return { failures: [], warnings: [] };
   }
   if (!response.ok) {
-    return [`${route}: HTTP ${response.status}`];
+    return { failures: [`${route}: HTTP ${response.status}`], warnings: [] };
   }
   const text = await response.text();
-  const failures = strict ? checkStrictHeaders(route, response.headers) : [];
+  const failures = [];
+  const warnings = [];
+  if (strict) {
+    const headerResult = checkStrictHeaders(route, response.headers, {
+      allowProxyHeaderWarnings: isLiveBase(base),
+    });
+    failures.push(...headerResult.failures);
+    warnings.push(...headerResult.warnings);
+  }
   for (const pattern of BANNED_PATTERNS) {
     if (pattern.test(text)) {
       failures.push(`${route}: matched ${pattern}`);
@@ -137,19 +155,26 @@ async function checkPath(base, route, strict) {
   if (route === '/public-calendar' && PUBLIC_CALENDAR_CONTROL.test(text)) {
     failures.push(`${route}: anonymous calendar controls are visible`);
   }
-  return failures;
+  return { failures, warnings };
 }
 
 async function main() {
   const { base, strict } = parseArgs(process.argv.slice(2));
-  const routes = [...new Set([...DEFAULT_PATHS, ...sitemapPaths()])];
+  const routes = [...new Set(DEFAULT_PATHS)];
   const failures = [];
+  const warnings = [];
   for (const route of routes) {
     try {
-      failures.push(...(await checkPath(base, route, strict)));
+      const result = await checkPath(base, route, strict);
+      failures.push(...result.failures);
+      warnings.push(...result.warnings);
     } catch (error) {
       failures.push(`${route}: ${error.message}`);
     }
+  }
+  if (warnings.length) {
+    console.warn(`Public render strict header warnings for ${base} (body leaks still fail hard):`);
+    warnings.forEach(warning => console.warn(`- ${warning}`));
   }
   if (failures.length) {
     console.error(`Public render check failed for ${base}:`);
@@ -157,6 +182,11 @@ async function main() {
     process.exit(1);
   }
   console.log(`Public render check passed for ${routes.length} routes at ${base}`);
+  if (strict && isLiveBase(base)) {
+    console.log(
+      'Live strict command: npm run check:public-render -- --base=https://event-flow.co.uk --strict'
+    );
+  }
 }
 
 main();

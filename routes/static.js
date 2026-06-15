@@ -20,8 +20,11 @@ const router = express.Router();
  * The page will extract the token from the query string and call /api/auth/verify
  * Rate limiting applied to prevent abuse
  */
-router.get('/verify', authLimiter, (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'public', 'verify.html'));
+router.get('/verify', authLimiter, (req, res, next) => {
+  // Railway production runs server.js, whose templateMiddleware sanitizes
+  // anonymous public HTML before express.static. Do not send raw verify.html
+  // here or it bypasses the production public sanitizer.
+  next();
 });
 
 /**
