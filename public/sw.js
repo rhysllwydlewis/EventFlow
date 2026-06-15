@@ -5,14 +5,13 @@
 
 const isDevelopment =
   self.location.hostname === 'localhost' || self.location.hostname === '127.0.0.1';
-const CACHE_VERSION = 'eventflow-v18.8.0';
+const CACHE_VERSION = 'eventflow-v18.8.1';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
 const IMAGE_CACHE = `${CACHE_VERSION}-images`;
 
 // Assets to cache on install
 const STATIC_ASSETS = [
-  '/',
   '/offline.html',
   '/assets/css/styles.css',
   '/assets/js/utils/api.js',
@@ -309,7 +308,23 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Network-first strategy for HTML pages
+  // Navigation and HTML requests must never be served from an old deployment
+  // cache. The server varies public HTML by Cookie and marks it no-store, so the
+  // service worker also uses a no-store network request and only falls back to
+  // the offline page when the browser is genuinely offline.
+  if (
+    request.mode === 'navigate' ||
+    request.destination === 'document' ||
+    url.pathname.endsWith('.html') ||
+    (!url.pathname.includes('.') && !url.pathname.startsWith('/api/'))
+  ) {
+    event.respondWith(
+      fetch(request, { cache: 'no-store' }).catch(() => caches.match('/offline.html'))
+    );
+    return;
+  }
+
+  // Network-first strategy for remaining same-origin requests.
   event.respondWith(
     fetch(request)
       .then(response => {

@@ -64,6 +64,20 @@ describe('Service Worker', () => {
       expect(swContent).toContain('offline.html');
     });
 
+    it('should not precache the public homepage HTML shell', () => {
+      const staticAssets = swContent.match(/const STATIC_ASSETS = \[([\s\S]*?)\];/)[1];
+      expect(staticAssets).not.toMatch(/['"]\/['"]/);
+    });
+
+    it('should fetch navigation and HTML requests with no-store and not cache them', () => {
+      const navigationBlock = swContent.match(
+        /Navigation and HTML requests must never[\s\S]*?return;\n\s*}/
+      );
+      expect(navigationBlock).toBeTruthy();
+      expect(navigationBlock[0]).toContain("fetch(request, { cache: 'no-store' })");
+      expect(navigationBlock[0]).not.toContain('cache.put(request');
+    });
+
     it('should handle API requests with network-first', () => {
       expect(swContent).toContain('/api/');
       expect(swContent).toContain('fetch(request)');
