@@ -1,9 +1,9 @@
 {
   "app": "EventFlow",
   "version": "18.1.0",
-  "marker": "pr-1226-template-renderer-verification",
+  "marker": "pr-1228-final-public-render-cache-mopup",
   "source": "static-public-build-marker",
-  "purpose": "Confirms the template renderer verification build has reached production.",
-  "createdFor": "template-renderer-verification",
+  "purpose": "Confirms the final public-render and service-worker cache mop-up after PR #1228 has reached production.",
+  "createdFor": "final-public-render-cache-mopup-after-pr-1228",
   "createdAt": "2026-06-15"
 }
