@@ -1057,3 +1057,97 @@ textarea:focus-visible {
   overflow: hidden;
   z-index: 9999;
 }
+
+/* ─── Pre-hydration fallback card ──────────────────────────────────────────
+   Visible before the wizard JS initialises; removed from DOM when wizard
+   renders its first step. Hidden via JS — never appears alongside the wizard. */
+
+.wizard-preload-card {
+  text-align: center;
+  padding: clamp(28px, 5vw, 48px) clamp(20px, 4vw, 40px);
+}
+
+.wizard-preload__title {
+  font-size: clamp(1.4rem, 3vw, 1.875rem);
+  font-weight: 700;
+  color: #0b1220;
+  margin: 0 0 0.75rem;
+}
+
+.wizard-preload__sub {
+  font-size: 1.0625rem;
+  color: #667085;
+  line-height: 1.6;
+  max-width: 480px;
+  margin: 0 auto 1.75rem;
+}
+
+.wizard-preload__steps {
+  list-style: none;
+  margin: 0 auto 2rem;
+  padding: 0;
+  max-width: 340px;
+  text-align: left;
+  counter-reset: step;
+}
+
+.wizard-preload__steps li {
+  counter-increment: step;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  font-size: 0.9375rem;
+  color: #374151;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.wizard-preload__steps li::before {
+  content: counter(step);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(11, 128, 115, 0.1);
+  color: #0B8073;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.wizard-preload__steps li:last-child {
+  border-bottom: none;
+}
+
+.wizard-preload__loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;
+  font-size: 0.875rem;
+  color: #9ca3af;
+  margin-top: 0.5rem;
+}
+
+.wizard-preload__spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid #e5e7eb;
+  border-top-color: #0B8073;
+  border-radius: 50%;
+  animation: wizard-spin 0.7s linear infinite;
+}
+
+@keyframes wizard-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wizard-preload__spinner {
+    animation: none;
+    border-color: #0B8073;
+  }
+}

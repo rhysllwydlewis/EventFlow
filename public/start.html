@@ -166,7 +166,7 @@
   <!-- Static crawlable intro for SEO (hidden on mobile via .seo-intro-section) -->
   <div class="container seo-intro-section" style="padding-bottom: 0;">
     <p class="small" style="max-width: 680px; color: var(--muted, #667085); line-height: 1.6; margin-bottom: 0.75rem;">
-      Use the planner below to organise a <strong>wedding</strong>, <strong>birthday party</strong>, <strong>corporate event</strong> or any other occasion. Choose a template to get started quickly, or work through the steps at your own pace. Once you've built your plan, you can <a href="/suppliers">browse UK event suppliers</a> and <a href="/marketplace">explore the marketplace</a>.
+      Answer a few questions about your <strong>wedding</strong>, <strong>birthday party</strong>, <strong>corporate event</strong> or any other occasion — and we'll shape a clear checklist, suggest supplier categories and outline your next steps. Once your plan is ready, <a href="/suppliers">browse UK event suppliers</a> and <a href="/marketplace">explore the marketplace</a>.
     </p>
   </div>
   <div class="container wizard-layout">
@@ -179,7 +179,23 @@
       <!-- ARIA live region for screen reader step announcements -->
       <div id="wizard-live-region" class="sr-only" aria-live="polite" aria-atomic="true"></div>
       <div id="wizard-container">
-        <!-- Wizard steps will be rendered here -->
+        <!-- Pre-hydration fallback — replaced by JS when the wizard initialises.
+             Gives the page meaningful content before JS loads. -->
+        <div class="wizard-card wizard-preload-card" id="wizard-preload" aria-hidden="true">
+          <h2 class="wizard-preload__title">Plan your event in minutes</h2>
+          <p class="wizard-preload__sub">Tell us what you're planning and we'll help you shape a clear checklist, supplier priorities and next steps.</p>
+          <ol class="wizard-preload__steps" aria-label="What the planner covers">
+            <li>Event type and date</li>
+            <li>Location, guests and budget</li>
+            <li>Priorities and style</li>
+            <li>Supplier categories to consider</li>
+            <li>Review your plan</li>
+          </ol>
+          <div class="wizard-preload__loading" role="status" aria-label="Loading planner">
+            <span class="wizard-preload__spinner" aria-hidden="true"></span>
+            <span>Loading planner…</span>
+          </div>
+        </div>
       </div>
       <!-- Mobile plan summary (collapsible, visible on small screens only) -->
       <div id="mobile-plan-summary" class="wizard-mobile-summary"></div>
@@ -267,7 +283,7 @@
 <footer class="footer" role="contentinfo">
   <div class="container ef-footer-content">
     <div><strong>EventFlow</strong><br><span class="small">Event planning made simple.</span></div>
-    <div class="version">Version: <span id="ef-version-label">loading…</span></div>
+    <div class="version" id="ef-version-wrap" hidden aria-hidden="true">v<span id="ef-version-label"></span></div>
     <div class="small"><a href="/guides">Guides</a> ·
       <a href="/marketplace">Marketplace</a> ·
       <a href="/credits">Credits</a> · <a href="/contact">Contact</a> · <a href="/legal">Legal Hub</a> · <button type="button" data-cookie-prefs>Cookie preferences</button></div>

@@ -245,6 +245,10 @@
       return;
     }
 
+    // Remove pre-hydration fallback on first real render
+    const preload = document.getElementById('wizard-preload');
+    if (preload) preload.remove();
+
     let html = '';
 
     // Step-specific rendering
