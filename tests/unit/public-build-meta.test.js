@@ -11,15 +11,18 @@ function readPublic(file) {
 }
 
 describe('public build marker and launch-state guardrails', () => {
-  test('public/build-meta.json exists and is valid public JSON', () => {
+  test('public/build-meta.json exists and matches package version', () => {
     const meta = JSON.parse(readPublic('build-meta.json'));
+    const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
     expect(meta.app).toBe('EventFlow');
-    expect(meta.version).toMatch(/^\d+\.\d+\.\d+$/);
+    expect(meta.version).toBe(pkg.version);
+    expect(meta.createdFor).toBe('public-render-mopup');
   });
 
   test('homepage keeps the controlled launch section and no fabricated names', () => {
     const html = readPublic('index.html');
     expect(html).toMatch(/EventFlow is opening|Early access/i);
+    expect(html).not.toMatch(/What Our Customers Say/i);
     expect(html).not.toMatch(/Sarah\s*&(?:amp;)?\s*Tom/i);
     expect(html).not.toMatch(/James Wilson|Emma Davies/i);
   });
