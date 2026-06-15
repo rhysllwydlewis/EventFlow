@@ -1,0 +1,9 @@
+{
+  "app": "EventFlow",
+  "version": "18.1.0",
+  "marker": "pr-1224-public-render-mopup",
+  "source": "static-public-build-marker",
+  "purpose": "Helps confirm which public build has been deployed when crawler/static renders appear stale.",
+  "createdFor": "public-render-mopup",
+  "createdAt": "2026-06-15"
+}
