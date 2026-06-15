@@ -10,29 +10,16 @@ const logger = require('./logger');
 const fs = require('fs').promises;
 const { getPlaceholders } = require('../config/content-config');
 
-/**
- * Cache for rendered templates
- * Key: file path, Value: { content, mtime }
- */
 const templateCache = new Map();
 
-/**
- * Check if caching is enabled (disabled in development for hot reload)
- */
 function isCachingEnabled() {
   return process.env.NODE_ENV === 'production';
 }
 
-/**
- * Replace all placeholders in content with values from content-config
- * @param {string} content - HTML content with placeholders
- * @returns {string} Content with placeholders replaced
- */
 function replacePlaceholders(content) {
   const placeholders = getPlaceholders();
   let result = content;
 
-  // Replace all {{PLACEHOLDER_NAME}} with actual values
   for (const [key, value] of Object.entries(placeholders)) {
     const pattern = new RegExp(`\\{\\{${key}\\}\\}`, 'g');
     result = result.replace(pattern, value);
@@ -41,39 +28,109 @@ function replacePlaceholders(content) {
   return result;
 }
 
-/**
- * Check if file should be processed for template rendering
- * @param {string} filePath - File path to check
- * @returns {boolean} True if file should be processed
- */
+function isAnonymousRequest(req) {
+  return !(req && req.user);
+}
+
+function stripAnonymousAuthText(content) {
+  return content
+    .replace(/aria-label="View notifications"/gi, 'aria-label=""')
+    .replace(/(<a\b[^>]*id="ef-dashboard-link"[\s\S]*?>)[\s\S]*?<\/a>/gi, '$1</a>')
+    .replace(/(<a\b[^>]*id="ef-mobile-dashboard"[\s\S]*?>)[\s\S]*?<\/a>/gi, '$1</a>')
+    .replace(/(<a\b[^>]*id="ef-mobile-logout"[\s\S]*?>)[\s\S]*?<\/a>/gi, '$1</a>')
+    .replace(/(<a\b[^>]*id="ef-bottom-dashboard"[\s\S]*?<span class="ef-bottom-label">)[\s\S]*?(<\/span>)/gi, '$1$2')
+    .replace(/Dashboard\s+Log out/gi, '')
+    .replace(/Mark all as read/gi, '')
+    .replace(/View all/gi, '')
+    .replace(/Version:\s*loading…?/gi, '');
+}
+
+function sanitiseHomepage(content) {
+  return content
+    .replace(/\s*<section id="stats-section"[\s\S]*?<\/section>/i, '')
+    .replace(
+      /<h3 class="ef-card__title">Verified Suppliers<\/h3>\s*<p class="ef-card__text">All suppliers are verified and vetted<\/p>/i,
+      '<h3 class="ef-card__title">Suppliers opening in stages</h3><p class="ef-card__text">New supplier profiles are being added as EventFlow opens across the UK</p>'
+    )
+    .replace(/What Our Customers Say/gi, '')
+    .replace(/Real experiences from real event planners/gi, '')
+    .replace(/Sarah\s*&(?:amp;)?\s*Tom/gi, '')
+    .replace(/James Wilson/gi, '')
+    .replace(/Emma Davies/gi, '');
+}
+
+function sanitiseStart(content) {
+  return content.replace(
+    /(<div class="wizard-card wizard-preload-card" id="wizard-preload")\s+aria-hidden="true"/i,
+    '$1'
+  );
+}
+
+function sanitisePublicCalendar(content) {
+  return content
+    .replace(
+      /<div id="pc-publisher-banner"[\s\S]*?<\/div>\s*(<div id="pc-permission-notice")/i,
+      '<div id="pc-publisher-banner" class="pc-publisher-banner" hidden style="display:none;" role="status"></div>\n\n        $1'
+    )
+    .replace(
+      /<section id="pc-admin-requests-panel"[\s\S]*?<\/section>/i,
+      '<section id="pc-admin-requests-panel" class="pc-publisher-banner pc-notice--slate" hidden style="display:none;" aria-labelledby="pc-admin-requests-title"><div id="pc-admin-requests-list" aria-live="polite"></div></section>'
+    )
+    .replace(
+      /<!-- Add \/ Edit Event Modal -->[\s\S]*?<footer class="footer"/i,
+      '<!-- Role-gated event modal shell: populated only for authenticated calendar publishers. -->\n    <div id="pc-modal-overlay" class="pc-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="pc-modal-title">\n      <div class="pc-modal">\n        <div class="pc-modal__header">\n          <h2 class="pc-modal__title" id="pc-modal-title"></h2>\n          <button class="ef-cta pc-modal__close" id="pc-modal-close-btn" aria-label="Close modal" type="button">×</button>\n        </div>\n        <form id="pc-event-form" novalidate>\n          <input type="hidden" id="pc-form-id" />\n          <div id="pc-form-error" class="pc-form__error" role="alert"></div>\n          <button type="button" id="pc-modal-cancel" class="ef-cta pc-btn pc-btn-ghost" hidden></button>\n          <button type="submit" id="pc-modal-submit" class="ef-cta pc-btn pc-btn-primary" hidden></button>\n        </form>\n      </div>\n    </div>\n\n    <footer class="footer"'
+    );
+}
+
+function sanitiseGuides(content) {
+  return content
+    .replace(
+      /<div class="skeleton-grid" id="guides-loading"[^>]*>[\s\S]*?<\/div>/i,
+      '<div class="skeleton-grid" id="guides-loading" hidden aria-hidden="true"></div>'
+    )
+    .replace(
+      /<div class="guides-empty" id="guides-empty"[\s\S]*?<button[\s\S]*?<\/button>\s*<\/div>/i,
+      '<div class="guides-empty" id="guides-empty" role="status" aria-live="polite" hidden></div>'
+    )
+    .replace(/Discover vetted photographers, caterers, venues, and more near you\./gi, 'Discover photographers, caterers, venues and more near you.');
+}
+
+function sanitizeAnonymousPublicHtml(content, requestPath, req) {
+  if (!isAnonymousRequest(req)) {
+    return content;
+  }
+
+  let result = stripAnonymousAuthText(content);
+
+  if (requestPath === '/index.html') {
+    result = sanitiseHomepage(result);
+  } else if (requestPath === '/start.html') {
+    result = sanitiseStart(result);
+  } else if (requestPath === '/public-calendar.html') {
+    result = sanitisePublicCalendar(result);
+  } else if (requestPath === '/guides.html') {
+    result = sanitiseGuides(result);
+  }
+
+  return result;
+}
+
 function shouldProcessFile(filePath) {
-  // Only process HTML files
   if (!filePath.endsWith('.html')) {
     return false;
   }
 
   const fileName = path.basename(filePath);
-
-  // Process legal documents, articles, and main pages
-  const processFiles = [
-    'legal.html',
-    'terms.html',
-    'privacy.html',
-    'data-rights.html',
-    'admin-settings.html',
-  ];
+  const processFiles = ['legal.html', 'terms.html', 'privacy.html', 'data-rights.html', 'admin-settings.html'];
 
   if (processFiles.includes(fileName)) {
     return true;
   }
 
-  // Process all article HTML files
   if (filePath.includes('/articles/')) {
     return true;
   }
 
-  // Process any HTML file in public root that might have copyright
-  // Exclude only test/dev pages
   if (fileName.startsWith('test-')) {
     return false;
   }
@@ -81,20 +138,13 @@ function shouldProcessFile(filePath) {
   return true;
 }
 
-/**
- * Get file from cache or filesystem
- * @param {string} filePath - Absolute file path
- * @returns {Promise<Object>} Object with content and metadata
- */
-async function getFile(filePath) {
+async function getFile(filePath, requestPath, req) {
   const cachingEnabled = isCachingEnabled();
-
   const stats = await fs.stat(filePath);
   const mtime = stats.mtime.getTime();
-
-  // Include config file mtime in cache key to invalidate when config changes
   const configPath = path.join(__dirname, '..', 'config', 'content-config.js');
   let configMtime = 0;
+
   try {
     const configStats = await fs.stat(configPath);
     configMtime = configStats.mtime.getTime();
@@ -102,9 +152,9 @@ async function getFile(filePath) {
     // Config file doesn't exist or can't be read - use 0
   }
 
-  const cacheKey = `${filePath}:${configMtime}`;
+  const authBucket = isAnonymousRequest(req) ? 'anon' : 'auth';
+  const cacheKey = `${filePath}:${configMtime}:${authBucket}`;
 
-  // Check cache if enabled
   if (cachingEnabled && templateCache.has(cacheKey)) {
     const cached = templateCache.get(cacheKey);
     if (cached.mtime === mtime) {
@@ -112,13 +162,9 @@ async function getFile(filePath) {
     }
   }
 
-  // Read file from filesystem
   const content = await fs.readFile(filePath, 'utf8');
+  const processedContent = sanitizeAnonymousPublicHtml(replacePlaceholders(content), requestPath, req);
 
-  // Process placeholders
-  const processedContent = replacePlaceholders(content);
-
-  // Cache if enabled
   if (cachingEnabled) {
     templateCache.set(cacheKey, {
       content: processedContent,
@@ -129,56 +175,39 @@ async function getFile(filePath) {
   return { content: processedContent, fromCache: false };
 }
 
-/**
- * Clear template cache (useful when content-config is updated)
- */
 function clearCache() {
   templateCache.clear();
 }
 
-/**
- * Express middleware for template rendering
- * Intercepts HTML file requests and replaces placeholders
- */
 function templateMiddleware() {
   return async (req, res, next) => {
-    // Only process GET requests
     if (req.method !== 'GET') {
       return next();
     }
 
-    // Get the file path being requested
     let requestPath = req.path;
 
-    // Normalize path
     if (requestPath === '/') {
       requestPath = '/index.html';
     } else if (!path.extname(requestPath)) {
-      // If no extension, assume .html
       requestPath = `${requestPath}.html`;
     }
 
-    // Check if this file should be processed
     if (!shouldProcessFile(requestPath)) {
       return next();
     }
 
-    // Build absolute file path
     const publicDir = path.join(__dirname, '..', 'public');
     const filePath = path.join(publicDir, requestPath);
 
     try {
-      const { content } = await getFile(filePath);
-
-      // Send processed content
+      const { content } = await getFile(filePath, requestPath, req);
       res.type('html');
       res.send(content);
     } catch (error) {
-      // File not found or error reading - pass to next middleware (static or 404)
       if (error.code === 'ENOENT') {
         return next();
       }
-      // Other errors - log and pass to error handler
       logger.error('Template rendering error:', error);
       return next(error);
     }
@@ -188,6 +217,7 @@ function templateMiddleware() {
 module.exports = {
   templateMiddleware,
   replacePlaceholders,
+  sanitizeAnonymousPublicHtml,
   clearCache,
   getPlaceholders,
 };
