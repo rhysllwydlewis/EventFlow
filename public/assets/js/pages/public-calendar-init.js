@@ -121,12 +121,28 @@
     const notice = document.getElementById('pc-permission-notice');
     if (isAdmin || isPublisher) {
       if (banner) {
+        banner.hidden = false;
         banner.style.display = '';
       }
       if (isAdmin) {
         const wrap = document.getElementById('pc-filter-status-wrap');
         if (wrap) {
+          wrap.hidden = false;
           wrap.style.display = '';
+          // Inject admin-only status options (not in static HTML to keep public render clean)
+          const statusSel = document.getElementById('pc-filter-status');
+          if (statusSel) {
+            statusSel.innerHTML = [
+              '<option value="">All upcoming events</option>',
+              '<option value="published">Published</option>',
+              '<option value="all">All statuses</option>',
+              '<option value="draft">Draft</option>',
+              '<option value="cancelled">Cancelled</option>',
+              '<option value="pending_review">Pending review</option>',
+              '<option value="rejected">Rejected</option>',
+              '<option value="expired">Expired</option>',
+            ].join('');
+          }
         }
         if (bannerText) {
           bannerText.innerHTML =
@@ -145,6 +161,7 @@
     }
     if (currentUser && currentUser.role === 'supplier' && notice) {
       const forceDenied = supplierDoc && supplierDoc.publicCalendarPublisherOverride === false;
+      notice.hidden = false;
       notice.style.display = '';
       notice.innerHTML = forceDenied
         ? '<strong>Calendar publishing has been disabled for this supplier account by an administrator.</strong>'
@@ -295,6 +312,7 @@
     if (!panel) {
       return;
     }
+    panel.hidden = false;
     panel.style.display = '';
     const refresh = document.getElementById('pc-admin-requests-refresh');
     if (refresh && !refresh.dataset.bound) {
