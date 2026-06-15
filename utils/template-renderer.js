@@ -11,6 +11,7 @@ const fs = require('fs').promises;
 const { getPlaceholders } = require('../config/content-config');
 
 const templateCache = new Map();
+const ANONYMOUS_SANITIZER_COMMENT = '<!-- eventflow-anonymous-sanitizer: active -->';
 
 function isCachingEnabled() {
   return process.env.NODE_ENV === 'production';
@@ -30,6 +31,30 @@ function replacePlaceholders(content) {
 
 function isAnonymousRequest(req) {
   return !(req && req.user);
+}
+
+function appendVaryHeader(res, value) {
+  const existing = res.getHeader('Vary');
+  if (!existing) {
+    res.setHeader('Vary', value);
+    return;
+  }
+  const values = String(existing)
+    .split(',')
+    .map(item => item.trim().toLowerCase());
+  if (!values.includes(value.toLowerCase())) {
+    res.setHeader('Vary', `${existing}, ${value}`);
+  }
+}
+
+function addAnonymousSanitizerMarker(content) {
+  if (content.includes(ANONYMOUS_SANITIZER_COMMENT)) {
+    return content;
+  }
+  if (/<body\b[^>]*>/i.test(content)) {
+    return content.replace(/(<body\b[^>]*>)/i, `$1\n${ANONYMOUS_SANITIZER_COMMENT}`);
+  }
+  return `${ANONYMOUS_SANITIZER_COMMENT}\n${content}`;
 }
 
 function stripAnonymousAuthText(content) {
@@ -112,7 +137,7 @@ function sanitizeAnonymousPublicHtml(content, requestPath, req) {
     result = sanitiseGuides(result);
   }
 
-  return result;
+  return addAnonymousSanitizerMarker(result);
 }
 
 function shouldProcessFile(filePath) {
@@ -202,6 +227,12 @@ function templateMiddleware() {
 
     try {
       const { content } = await getFile(filePath, requestPath, req);
+      res.setHeader('X-EventFlow-Template-Renderer', 'active');
+      res.setHeader(
+        'X-EventFlow-Public-Sanitizer',
+        isAnonymousRequest(req) ? 'anonymous-v2' : 'skipped-authenticated'
+      );
+      appendVaryHeader(res, 'Cookie');
       res.type('html');
       res.send(content);
     } catch (error) {
