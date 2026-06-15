@@ -17,8 +17,8 @@ describe('service worker image cache handling', () => {
   });
 
   it('bumps the cache version to evict old image cache entries', () => {
-    expect(content).toContain("const CACHE_VERSION = 'eventflow-v18.7.3'");
-    expect(content).not.toContain("const CACHE_VERSION = 'eventflow-v18.7.2'");
+    expect(content).toContain("const CACHE_VERSION = 'eventflow-v18.8.0'");
+    expect(content).not.toContain("const CACHE_VERSION = 'eventflow-v18.7.3'");
   });
 
   it('routes /api/photos image requests before the generic API handler', () => {

@@ -6,10 +6,12 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Supplier Dashboard — EventFlow</title>
 <meta name="robots" content="noindex,nofollow">
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <link rel="icon" href="/favicon.ico" sizes="any" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <link rel="manifest" href="/site.webmanifest" />
+    <link rel="icon" href="/favicon.ico" sizes="any">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png">
+    <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="manifest" href="/site.webmanifest">
     <!-- Preconnect: FullCalendar loads from jsDelivr; early connection cuts DNS+TLS overhead -->
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
     <link rel="stylesheet" href="/assets/css/design-tokens.css?v=18.3.0" />
@@ -1836,7 +1838,7 @@
         <div>
           <strong>EventFlow</strong><br /><span class="small">Event planning made simple.</span>
         </div>
-        <div class="version">Version: <span id="ef-version-label">loading…</span></div>
+        <div class="version" id="ef-version-wrap" hidden aria-hidden="true">v<span id="ef-version-label"></span></div>
         <div class="small">
           <a href="/guides">Guides</a> · <a href="/pricing">Pricing</a> · <a href="/credits">Credits</a> ·
           <a href="/contact">Contact</a> · <a href="/legal">Legal Hub</a> ·

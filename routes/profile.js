@@ -18,6 +18,7 @@ const photoUpload = require('../photo-upload');
 const partnerService = require('../services/partnerService');
 const catalogCache = require('../services/catalogCache');
 const { clearSearchCache } = require('../middleware/searchCache');
+const { isSafePublicImageUrl } = require('../services/publicSupplierAvatar.service');
 
 const router = express.Router();
 
@@ -80,8 +81,16 @@ async function syncSupplierAvatarFieldsForUser(user, avatarUrl) {
       $set.profilePhotoUrl = avatarUrl;
       $set.avatarUrl = avatarUrl;
       $set.displayAvatarUrl = avatarUrl;
+      if (isSafePublicImageUrl(avatarUrl)) {
+        $set.publicProfileAvatarUrl = avatarUrl;
+      }
     } else {
-      update.$unset = { profilePhotoUrl: '', avatarUrl: '', displayAvatarUrl: '' };
+      update.$unset = {
+        profilePhotoUrl: '',
+        avatarUrl: '',
+        displayAvatarUrl: '',
+        publicProfileAvatarUrl: '',
+      };
     }
     await dbUnified.updateOne('suppliers', { id: supplier.id }, update);
   }

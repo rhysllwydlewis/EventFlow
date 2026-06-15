@@ -5,8 +5,8 @@ const router = express.Router();
 const { resolvePackageImage } = require('../utils/packageImageUtils');
 const { safePublicPackage, safePublicSupplier } = require('../utils/supplierPublicProfile');
 const {
-  findOwnerUserForSupplier,
-  resolveSupplierProfilePhoto,
+  findOwnerUserForSupplierFromDb,
+  hydrateSupplierProfilePhoto,
 } = require('../utils/supplierProfilePhoto');
 
 let dbUnified;
@@ -79,20 +79,15 @@ router.get('/suppliers/:id', async (req, res, next) => {
     }
 
     const packages = await dbUnified.read('packages');
-    const users = await dbUnified.read('users');
-    const ownerUser = findOwnerUserForSupplier(supplier, users);
-    const profilePhotoUrl = resolveSupplierProfilePhoto(supplier, ownerUser);
-    const publicSupplier = {
-      ...supplier,
-      profilePhotoUrl,
-      avatarUrl: profilePhotoUrl,
-      displayAvatarUrl: profilePhotoUrl,
-    };
     const featuredSupplier = packages.some(pkg => pkg.supplierId === supplier.id && pkg.featured);
     const isPro = supplierIsProActive
       ? await supplierIsProActive(supplier)
       : Boolean(supplier.isPro);
     const preview = previewMode(req) && canPreview(req, supplier);
+
+    const ownerUser = await findOwnerUserForSupplierFromDb(supplier, dbUnified, logger);
+    const publicSupplier = hydrateSupplierProfilePhoto(supplier, ownerUser);
+    const profilePhotoUrl = publicSupplier.profilePhotoUrl;
 
     return res.json(
       safePublicSupplier(publicSupplier, {

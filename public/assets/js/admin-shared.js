@@ -1807,6 +1807,12 @@ const AdminShared = (function () {
       }
       const data = await r.json();
       label.textContent = data && data.version ? data.version : 'dev';
+      // Reveal wrapper in case it carries the hidden attribute
+      const wrap = document.getElementById('ef-version-wrap') || label.closest('.version');
+      if (wrap) {
+        wrap.removeAttribute('hidden');
+        wrap.removeAttribute('aria-hidden');
+      }
     } catch (_err) {
       label.textContent = 'offline';
     }

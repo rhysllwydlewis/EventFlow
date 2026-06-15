@@ -6,6 +6,7 @@ const express = require('express');
 const request = require('supertest');
 const {
   findOwnerUserForSupplier,
+  hydrateSupplierProfilePhoto,
   isUsableImageUrl,
   resolveSupplierProfilePhoto,
 } = require('../../utils/supplierProfilePhoto');
@@ -198,17 +199,119 @@ describe('utils/supplierProfilePhoto', () => {
       'user_email'
     );
   });
+
+  test('findOwnerUserForSupplier matches Mongo _id owner links used by existing accounts', () => {
+    const users = [
+      {
+        id: 'auth-user-id',
+        _id: '64f1f0000000000000000001',
+        email: 'mongo-owner@example.com',
+        avatarUrl: '/api/photos/mongo-avatar',
+      },
+    ];
+
+    expect(findOwnerUserForSupplier({ ownerUserId: '64f1f0000000000000000001' }, users)).toBe(
+      users[0]
+    );
+  });
+
+  test('hydrates a supplier consistently for listing and safe detail when linked by legacy accountId', async () => {
+    const supplier = {
+      id: 'sup_wtlrt6uiftxg2y',
+      accountId: 'user_romeo',
+      approved: true,
+      name: 'Romeo Test',
+      contactEmail: 'ROMEO@EXAMPLE.COM',
+      logo: '/uploads/romeo-logo.webp',
+    };
+    const ownerUser = {
+      id: 'user_romeo',
+      email: 'romeo@example.com',
+      settings: { profilePhotoUrl: '/api/photos/romeo-owner-avatar' },
+      passwordHash: 'private-hash',
+      tokens: ['private-token'],
+    };
+
+    const listingOwner = findOwnerUserForSupplier(supplier, [ownerUser]);
+    const listingPayload = hydrateSupplierProfilePhoto(supplier, listingOwner);
+    const { app } = buildSafeRouteApp({ suppliers: [supplier], users: [ownerUser] });
+    const detail = await request(app).get('/api/suppliers/sup_wtlrt6uiftxg2y').expect(200);
+
+    expect(listingPayload.profilePhotoUrl).toBe('/api/photos/romeo-owner-avatar');
+    expect(detail.body.profilePhotoUrl).toBe(listingPayload.profilePhotoUrl);
+    expect(detail.body.avatarUrl).toBe(listingPayload.avatarUrl);
+    expect(detail.body.displayAvatarUrl).toBe(listingPayload.displayAvatarUrl);
+    expect(detail.body.resolvedProfileImageUrl).toBe(listingPayload.resolvedProfileImageUrl);
+    expect(detail.body.logo).toBe('/uploads/romeo-logo.webp');
+    expect(detail.body.email).toBeUndefined();
+    expect(detail.body.contactEmail).toBeUndefined();
+    expect(detail.body.passwordHash).toBeUndefined();
+    expect(detail.body.tokens).toBeUndefined();
+  });
+
+  test('hydrates mixed-case email-linked suppliers from nested user settings photo fields', () => {
+    const supplier = {
+      id: 'sup_email_linked',
+      approved: true,
+      name: 'Email Linked Supplier',
+      ownerEmail: 'Owner@Example.COM',
+    };
+    const ownerUser = {
+      id: 'user_email',
+      email: 'owner@example.com',
+      settings: { profilePhotoUrl: '/api/photos/settings-avatar' },
+    };
+
+    const owner = findOwnerUserForSupplier(supplier, [ownerUser]);
+    expect(owner).toBe(ownerUser);
+    expect(hydrateSupplierProfilePhoto(supplier, owner)).toMatchObject({
+      profilePhotoUrl: '/api/photos/settings-avatar',
+      avatarUrl: '/api/photos/settings-avatar',
+      displayAvatarUrl: '/api/photos/settings-avatar',
+      resolvedProfileImageUrl: '/api/photos/settings-avatar',
+    });
+  });
 });
 
-test('public profile renderer considers dashboard photo aliases before initials fallback', () => {
+test('public profile renderer no longer resolves hero avatar from dashboard photo aliases', () => {
   const supplierProfileJs = fs.readFileSync(SUPPLIER_PROFILE_JS, 'utf8');
-  expect(supplierProfileJs).toContain('supplier?.profilePhotoUrl');
-  expect(supplierProfileJs).toContain('supplier?.photoUrl');
-  expect(supplierProfileJs).toContain('supplier?.image');
-  expect(supplierProfileJs).toContain('galleryProfileImage');
+  expect(supplierProfileJs).not.toContain('supplier?.profilePhotoUrl');
+  expect(supplierProfileJs).not.toContain('supplier?.photoUrl');
+  expect(supplierProfileJs).not.toContain('supplier?.image');
+  expect(supplierProfileJs).not.toContain('galleryProfileImage');
+  expect(supplierProfileJs).toContain('public-supplier-avatar.js and its dedicated endpoint');
 });
 
 describe('public supplier API profile-photo enrichment', () => {
+  test('mounted safe supplier route resolves owner avatar when supplier ownerUserId points at user _id', async () => {
+    const { app } = buildSafeRouteApp({
+      users: [
+        {
+          _id: '64f1f0000000000000000002',
+          email: 'mongo-owner@example.com',
+          avatarUrl: '/api/photos/mongo-owner-avatar',
+        },
+      ],
+      suppliers: [
+        {
+          id: 'sup_mongo_owner',
+          ownerUserId: '64f1f0000000000000000002',
+          approved: true,
+          name: 'Mongo Owner Supplier',
+          logo: '/legacy-logo.webp',
+        },
+      ],
+    });
+
+    const res = await request(app).get('/api/suppliers/sup_mongo_owner').expect(200);
+    expect(res.body).toMatchObject({
+      profilePhotoUrl: '/api/photos/mongo-owner-avatar',
+      avatarUrl: '/api/photos/mongo-owner-avatar',
+      displayAvatarUrl: '/api/photos/mongo-owner-avatar',
+      resolvedProfileImageUrl: '/api/photos/mongo-owner-avatar',
+    });
+  });
+
   test('mounted safe supplier route resolves owner avatar before fallback suppliers route', async () => {
     const { app } = buildSafeRouteApp({
       users: [
@@ -266,6 +369,12 @@ describe('public supplier API profile-photo enrichment', () => {
           approved: true,
           name: 'Rhys Test',
           email: 'supplier-private@example.com',
+          ownerEmail: 'owner-private@example.com',
+          contactEmail: 'contact-private@example.com',
+          phone: 'supplier-phone',
+          passwordHash: 'supplier-hash',
+          tokens: ['supplier-token'],
+          adminNotes: 'internal',
           logo: '/legacy-logo.webp',
         },
       ],
@@ -282,7 +391,11 @@ describe('public supplier API profile-photo enrichment', () => {
     });
     expect(res.body.items[0].email).toBeUndefined();
     expect(res.body.items[0].ownerEmail).toBeUndefined();
+    expect(res.body.items[0].contactEmail).toBeUndefined();
+    expect(res.body.items[0].phone).toBeUndefined();
     expect(res.body.items[0].passwordHash).toBeUndefined();
+    expect(res.body.items[0].tokens).toBeUndefined();
+    expect(res.body.items[0].adminNotes).toBeUndefined();
     expect(JSON.stringify(res.body.items[0])).not.toContain('owner@example.com');
   });
 
@@ -296,6 +409,12 @@ describe('public supplier API profile-photo enrichment', () => {
           approved: true,
           name: 'Rhys Test',
           email: 'supplier-private@example.com',
+          ownerEmail: 'owner-private@example.com',
+          contactEmail: 'contact-private@example.com',
+          phone: 'supplier-phone',
+          passwordHash: 'supplier-hash',
+          tokens: ['supplier-token'],
+          adminNotes: 'internal',
           logo: '/legacy-logo.webp',
         },
       ],
@@ -310,6 +429,12 @@ describe('public supplier API profile-photo enrichment', () => {
       logo: '/legacy-logo.webp',
     });
     expect(res.body.email).toBeUndefined();
+    expect(res.body.ownerEmail).toBeUndefined();
+    expect(res.body.contactEmail).toBeUndefined();
+    expect(res.body.phone).toBeUndefined();
+    expect(res.body.passwordHash).toBeUndefined();
+    expect(res.body.tokens).toBeUndefined();
+    expect(res.body.adminNotes).toBeUndefined();
     expect(JSON.stringify(res.body)).not.toContain('owner@example.com');
   });
 
@@ -448,16 +573,22 @@ describe('public supplier profile-photo rendering contracts', () => {
     expect(supplierHtml).toContain('id="hero-avatar-initials"');
   });
 
-  test('public supplier profile JS resolves and renders profile images while keeping initials fallback', () => {
-    expect(supplierProfileJs).toContain('function getSupplierProfileImage(supplier)');
+  test('public supplier profile JS leaves hero image ownership to canonical avatar script', () => {
+    const publicAvatarJs = fs.readFileSync(
+      path.join(__dirname, '../../public/assets/js/public-supplier-avatar.js'),
+      'utf8'
+    );
     expect(supplierProfileJs).toContain("document.getElementById('hero-avatar-img')");
-    expect(supplierProfileJs).toContain('avatarImgEl.src = profileImage');
-    expect(supplierProfileJs).toContain('delete avatarImgEl.dataset.fallbackApplied');
-    expect(supplierProfileJs).toContain('avatarImgEl.hidden = false');
+    expect(supplierProfileJs).not.toContain('avatarImgEl.src = profileImage');
+    expect(supplierProfileJs).toContain('public-supplier-avatar.js and its dedicated endpoint');
     expect(supplierProfileJs).toContain('avatarImgEl.hidden = true');
     expect(supplierProfileJs).toContain(
       'avatarInitialsEl.textContent = _getInitials(supplier.name)'
     );
+    expect(publicAvatarJs).toContain('/api/public/suppliers/');
+    expect(publicAvatarJs).toContain('img.src = payload.avatarUrl');
+    expect(publicAvatarJs).not.toContain('profilePhotoUrl');
+    expect(publicAvatarJs).not.toContain('displayAvatarUrl');
   });
 
   test('package sidebar uses resolved supplier profile images for avatar, shortlist, and messaging', () => {

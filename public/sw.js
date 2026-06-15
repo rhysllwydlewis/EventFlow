@@ -5,7 +5,7 @@
 
 const isDevelopment =
   self.location.hostname === 'localhost' || self.location.hostname === '127.0.0.1';
-const CACHE_VERSION = 'eventflow-v18.7.3';
+const CACHE_VERSION = 'eventflow-v18.8.0';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
 const IMAGE_CACHE = `${CACHE_VERSION}-images`;
@@ -21,6 +21,10 @@ const STATIC_ASSETS = [
   '/site.webmanifest',
   '/favicon.svg',
   '/favicon.ico',
+  '/favicon-16x16.png',
+  '/favicon-32x32.png',
+  '/favicon-48x48.png',
+  '/favicon-96x96.png',
   '/icon-192.png',
   '/icon-512.png',
   '/icon-maskable-512.png',
@@ -363,8 +367,8 @@ self.addEventListener('push', event => {
   const title = data.title || 'EventFlow Notification';
   const options = {
     body: data.body || 'You have a new notification',
-    icon: '/assets/images/icon-192.png',
-    badge: '/assets/images/badge-72.png',
+    icon: '/icon-192.png',
+    badge: '/icon-192.png',
     vibrate: [200, 100, 200],
     tag: data.tag || 'default',
     data: data.url ? { url: data.url } : {},

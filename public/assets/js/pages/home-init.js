@@ -132,10 +132,16 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!isDebugEnabled()) {
       versionContainer.style.display = 'none';
     } else {
-      // If debug mode, show version
+      // Debug mode: reveal version container and set placeholder text
+      const wrap = document.getElementById('ef-version-wrap') || versionContainer;
+      if (wrap) {
+        wrap.removeAttribute('hidden');
+        wrap.removeAttribute('aria-hidden');
+        wrap.style.display = '';
+      }
       const versionLabel = document.getElementById('ef-version-label');
       if (versionLabel) {
-        versionLabel.textContent = 'v18.1.0';
+        versionLabel.textContent = '18.1.0 (debug)';
       }
     }
   }

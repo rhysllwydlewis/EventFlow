@@ -184,6 +184,7 @@ function safePublicSupplier(supplier = {}, extras = {}) {
     profilePhotoUrl,
     avatarUrl: profilePhotoUrl,
     displayAvatarUrl: profilePhotoUrl,
+    resolvedProfileImageUrl: profilePhotoUrl,
     themeColor: /^#[0-9a-f]{6}$/i.test(String(source.themeColor || ''))
       ? String(source.themeColor).trim()
       : null,

@@ -9,7 +9,7 @@ const dbUnified = require('../db-unified');
 const catalogCache = require('./catalogCache');
 const {
   findOwnerUserForSupplier,
-  resolveSupplierProfilePhoto,
+  hydrateSupplierProfilePhoto,
 } = require('../utils/supplierProfilePhoto');
 
 // ─── Cached data loaders ──────────────────────────────────────────────────────
@@ -215,13 +215,7 @@ async function getSupplierOwnerUsers() {
 function enrichSuppliersWithProfilePhotos(suppliers, users) {
   return suppliers.map(supplier => {
     const ownerUser = findOwnerUserForSupplier(supplier, users);
-    const profilePhotoUrl = resolveSupplierProfilePhoto(supplier, ownerUser);
-    return {
-      ...supplier,
-      profilePhotoUrl,
-      avatarUrl: profilePhotoUrl,
-      displayAvatarUrl: profilePhotoUrl,
-    };
+    return hydrateSupplierProfilePhoto(supplier, ownerUser);
   });
 }
 

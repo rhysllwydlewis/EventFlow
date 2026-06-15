@@ -17,8 +17,12 @@
   <link rel='stylesheet' href='/assets/css/animations.css?v=18.3.0'>
   <link rel='stylesheet' href='/assets/css/mobile-optimizations.css?v=18.3.0'>
   <link rel='icon' href='/favicon.svg'>
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-  <link rel="manifest" href="/site.webmanifest" />
+    <link rel="icon" href="/favicon.ico" sizes="any">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png">
+    <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="manifest" href="/site.webmanifest">
   <style>
     /* Page-specific notification list styles */
     .notifications-page {
@@ -510,7 +514,7 @@
 <footer class="footer" role="contentinfo">
   <div class="container ef-footer-content">
     <div><strong>EventFlow</strong><br><span class="small">Event planning made simple.</span></div>
-    <div class="version">Version: <span id="ef-version-label">loading…</span></div>
+    <div class="version" id="ef-version-wrap" hidden aria-hidden="true">v<span id="ef-version-label"></span></div>
     <div class="small"><a href="/guides">Guides</a> ·
       <a href="/credits">Credits</a> · <a href="/contact">Contact</a> · <a href="/legal">Legal Hub</a> · <button type="button" data-cookie-prefs>Cookie preferences</button></div>
     <div class="footer-credit small">Operated by <a href="https://vexi.co.uk" target="_blank" rel="noopener noreferrer">VEXI</a></div>

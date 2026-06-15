@@ -269,39 +269,6 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
     return (words[0].charAt(0) + words[words.length - 1].charAt(0)).toUpperCase();
   }
 
-  function isUsableSupplierProfileImageUrl(value) {
-    if (!value || typeof value !== 'string') {
-      return false;
-    }
-    const url = value.trim();
-    return /^(https?:\/\/[^\s]+|\/[^/\\:][^:]*)$/i.test(url);
-  }
-
-  function getSupplierProfileImage(supplier) {
-    const galleryProfileImage = Array.isArray(supplier?.photosGallery)
-      ? supplier.photosGallery
-          .map(photo =>
-            typeof photo === 'string'
-              ? photo
-              : photo?.thumbnail || photo?.url || photo?.src || photo?.large || photo?.original
-          )
-          .find(isUsableSupplierProfileImageUrl)
-      : '';
-    const candidates = [
-      supplier?.profilePhotoUrl,
-      supplier?.displayAvatarUrl,
-      supplier?.avatarUrl,
-      supplier?.profileImage,
-      supplier?.profilePhoto,
-      supplier?.photoUrl,
-      supplier?.image,
-      supplier?.logo,
-      galleryProfileImage,
-    ];
-    const imageUrl = candidates.find(isUsableSupplierProfileImageUrl);
-    return typeof imageUrl === 'string' ? imageUrl.trim() : '';
-  }
-
   function _lightenHex(hex, amount) {
     const num = parseInt(hex.replace('#', ''), 16);
     const r = Math.min(255, (num >> 16) + Math.round(2.55 * amount));
@@ -333,22 +300,15 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
       // Always set gradient first — acts as loading placeholder and fallback
       avatarEl.style.background = `linear-gradient(135deg, ${accentColor} 0%, ${_lightenHex(accentColor, 30)} 100%)`;
 
-      if (avatarImgEl) {
-        const profileImage = getSupplierProfileImage(supplier);
-        if (profileImage) {
-          delete avatarImgEl.dataset.fallbackApplied;
-          avatarImgEl.style.display = '';
-          avatarImgEl.src = profileImage;
-          avatarImgEl.alt = `${supplier.name} profile photo`;
-          avatarImgEl.hidden = false;
-          avatarInitialsEl.style.display = '';
-        } else {
-          avatarImgEl.removeAttribute('src');
-          avatarImgEl.alt = '';
-          avatarImgEl.hidden = true;
-          avatarImgEl.style.display = '';
-          avatarInitialsEl.style.display = '';
-        }
+      if (avatarImgEl && !avatarImgEl.src) {
+        // The public profile hero avatar image is now owned exclusively by
+        // public-supplier-avatar.js and its dedicated endpoint. This renderer
+        // only maintains the placeholder/initials so the old general supplier
+        // payload cannot overwrite or clear the canonical avatar pipeline.
+        avatarImgEl.alt = '';
+        avatarImgEl.hidden = true;
+        avatarImgEl.style.display = '';
+        avatarInitialsEl.style.display = '';
       }
     }
 

@@ -85,6 +85,7 @@ describe('profile avatar cache invalidation', () => {
           profilePhotoUrl: '/api/photos/photo_new',
           avatarUrl: '/api/photos/photo_new',
           displayAvatarUrl: '/api/photos/photo_new',
+          publicProfileAvatarUrl: '/api/photos/photo_new',
         }),
       })
     );
@@ -117,7 +118,12 @@ describe('profile avatar cache invalidation', () => {
       'suppliers',
       { id: 'sup_1' },
       expect.objectContaining({
-        $unset: { profilePhotoUrl: '', avatarUrl: '', displayAvatarUrl: '' },
+        $unset: {
+          profilePhotoUrl: '',
+          avatarUrl: '',
+          displayAvatarUrl: '',
+          publicProfileAvatarUrl: '',
+        },
       })
     );
     expect(JSON.stringify(updateOne.mock.calls)).not.toContain('logo');

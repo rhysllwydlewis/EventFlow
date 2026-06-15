@@ -827,6 +827,14 @@
     }
 
     dropdown.classList.toggle('notification-dropdown--open', isOpen);
+    // Remove hidden attribute when opening so it becomes fully accessible
+    if (isOpen) {
+      dropdown.hidden = false;
+      dropdown.removeAttribute('aria-hidden');
+    } else {
+      dropdown.hidden = true;
+      dropdown.setAttribute('aria-hidden', 'true');
+    }
 
     const bell =
       document.getElementById('ef-notification-btn') ||

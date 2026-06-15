@@ -1,10 +1,8 @@
 # EventFlow robots.txt
-# Allow all search engines to crawl the site
-
 User-agent: *
 Allow: /
 
-# Prioritize important pages
+# Important pages
 Allow: /blog
 Allow: /guides
 Allow: /articles/
@@ -12,7 +10,20 @@ Allow: /suppliers
 Allow: /pricing
 Allow: /start
 
-# Prevent crawling of admin and auth pages
+# Favicon and icon assets — explicitly allowed for crawlers
+Allow: /favicon.ico
+Allow: /favicon.svg
+Allow: /favicon-16x16.png
+Allow: /favicon-32x32.png
+Allow: /favicon-48x48.png
+Allow: /favicon-96x96.png
+Allow: /apple-touch-icon.png
+Allow: /icon-192.png
+Allow: /icon-512.png
+Allow: /icon-maskable-512.png
+Allow: /site.webmanifest
+
+# Disallow admin/private areas
 Disallow: /admin
 Disallow: /auth
 Disallow: /settings
@@ -27,12 +38,11 @@ Disallow: /verify
 Disallow: /data-rights
 Disallow: /api/
 Disallow: /uploads/
-Disallow: /*.json$
 
-# Prevent crawling of demo/test pages
+# Demo/test pages
 Disallow: /messaging-demo
 Disallow: /demo-loading-spinner
 Disallow: /test-notifications
 
-# Sitemap location
+# Sitemap
 Sitemap: https://event-flow.co.uk/sitemap.xml

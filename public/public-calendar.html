@@ -24,10 +24,12 @@
     <link rel="stylesheet" href="/assets/css/calendar.css?v=18.3.0" />
     <link rel="stylesheet" href="/assets/css/navbar.css?v=18.3.0" />
     <link rel="stylesheet" href="/assets/css/liquid-glass.css?v=18.3.0" />
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <link rel="icon" href="/favicon.ico" sizes="any" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <link rel="manifest" href="/site.webmanifest" />
+    <link rel="icon" href="/favicon.ico" sizes="any">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png">
+    <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="manifest" href="/site.webmanifest">
     <style>
       /* ── Public Calendar Page Styles ─────────────────────────────────── */
 
@@ -587,9 +589,9 @@
               <label for="pc-filter-to">To date</label>
               <input id="pc-filter-to" type="date" />
             </div>
-            <div class="pc-filters__field" id="pc-filter-status-wrap" style="display:none;">
+            <div class="pc-filters__field" id="pc-filter-status-wrap" hidden style="display:none;">
               <label for="pc-filter-status">Status</label>
-              <select id="pc-filter-status"><option value="">Published</option><option value="all">All statuses</option><option>draft</option><option>published</option><option>cancelled</option><option>pending_review</option><option>rejected</option><option>expired</option></select>
+              <select id="pc-filter-status"><option value="">All upcoming events</option></select>
             </div>
             <div class="pc-filters__field">
               <label class="pc-filters__checkbox-row">
@@ -611,7 +613,7 @@
         </div>
 
         <!-- Publisher banner (shown only to authorized publishers) -->
-        <div id="pc-publisher-banner" class="pc-publisher-banner" style="display:none;" role="status">
+        <div id="pc-publisher-banner" class="pc-publisher-banner" hidden style="display:none;" role="status">
           <span class="pc-publisher-banner__text" id="pc-publisher-banner-text">
             <strong>Shared Events Calendar publishing enabled.</strong> You can publish public events to the shared calendar and manage events you created.
           </span>
@@ -621,9 +623,9 @@
           </button>
         </div>
 
-        <div id="pc-permission-notice" class="pc-publisher-banner pc-notice--amber" style="display:none;background:#fffbeb;border-color:#fde68a;color:#92400e;" role="status"></div>
+        <div id="pc-permission-notice" class="pc-publisher-banner pc-notice--amber" hidden style="display:none;background:#fffbeb;border-color:#fde68a;color:#92400e;" role="status"></div>
 
-        <section id="pc-admin-requests-panel" class="pc-publisher-banner pc-notice--slate" style="display:none;" aria-labelledby="pc-admin-requests-title">
+        <section id="pc-admin-requests-panel" class="pc-publisher-banner pc-notice--slate" hidden style="display:none;" aria-labelledby="pc-admin-requests-title">
           <div style="width:100%;">
             <div class="calendar-admin-requests__header">
               <div>
@@ -756,7 +758,7 @@
     <footer class="footer" role="contentinfo">
       <div class="container ef-footer-content">
         <div><strong>EventFlow</strong><br /><span class="small">Event planning made simple.</span></div>
-        <div class="version">Version: <span id="ef-version-label">loading…</span></div>
+        <div class="version" id="ef-version-wrap" hidden aria-hidden="true">v<span id="ef-version-label"></span></div>
         <div class="small">
           <a href="/guides">Guides</a> · <a href="/marketplace">Marketplace</a> ·
           <a href="/public-calendar">Events Calendar</a> · <a href="/suppliers">Suppliers</a> ·

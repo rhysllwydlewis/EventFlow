@@ -5765,33 +5765,9 @@ document.addEventListener('DOMContentLoaded', () => {
                       ? 'plan'
                       : '');
 
-  // Display backend version in footer if available
-  (async () => {
-    try {
-      const label = document.getElementById('ef-version-label');
-      if (!label) {
-        return;
-      }
-      const r = await fetch('/api/v1/meta', {
-        credentials: 'include',
-      });
-      if (!r.ok) {
-        label.textContent = 'unknown';
-        return;
-      }
-      const data = await r.json();
-      if (data && data.version) {
-        label.textContent = `${data.version} (Node ${data.node || ''})`.trim();
-      } else {
-        label.textContent = 'dev';
-      }
-    } catch (_err) {
-      const label = document.getElementById('ef-version-label');
-      if (label) {
-        label.textContent = 'offline';
-      }
-    }
-  })();
+  // Version display is handled by admin-shared.js for admin pages.
+  // Public pages keep the version wrapper hidden via the HTML hidden attribute.
+  // No version fetch needed here.
 
   // Per-page setup
   // Note: homepage initialization is handled by home-init.js
