@@ -5,6 +5,18 @@ const path = require('path');
 
 const ROOT = path.resolve(__dirname, '../..');
 const PUBLIC = path.join(ROOT, 'public');
+const KEY_PUBLIC_PAGES = [
+  'index.html',
+  'start.html',
+  'public-calendar.html',
+  'guides.html',
+  'pricing.html',
+  'faq.html',
+  'marketplace.html',
+  'suppliers.html',
+  'for-suppliers.html',
+  'legal.html',
+];
 
 function readPublic(file) {
   return fs.readFileSync(path.join(PUBLIC, file), 'utf8');
@@ -18,6 +30,14 @@ describe('public build marker and launch-state guardrails', () => {
     expect(meta.version).toBe(pkg.version);
     expect(meta.marker).toBe('pr-1224-public-render-mopup');
     expect(meta.createdFor).toBe('public-render-mopup');
+  });
+
+  test('key public pages do not contain stale visible version loading text', () => {
+    KEY_PUBLIC_PAGES.forEach(page => {
+      const html = readPublic(page);
+      expect(html).not.toMatch(/Version:\s*loading/i);
+      expect(html).not.toMatch(/Version:\s*<span[^>]*>loading/i);
+    });
   });
 
   test('homepage keeps the controlled launch section and no fabricated names', () => {
