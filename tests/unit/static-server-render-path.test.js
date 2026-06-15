@@ -23,4 +23,11 @@ describe('scripts/serve-static public HTML render path', () => {
     expect(canonicalBlock).toContain('sendRenderedHtml(req, res, `${page}.html`).catch(next);');
     expect(canonicalBlock).not.toContain('res.sendFile(path.join(PUBLIC_DIR, `${page}.html`));');
   });
+
+  test('/suppliers uses the renderer instead of raw sendFile', () => {
+    const suppliersRoute = script.match(/app\.get\('\/suppliers'[\s\S]*?\n\}\);/);
+    expect(suppliersRoute).toBeTruthy();
+    expect(suppliersRoute[0]).toContain("sendRenderedHtml(req, res, 'suppliers.html')");
+    expect(suppliersRoute[0]).not.toContain('res.sendFile');
+  });
 });

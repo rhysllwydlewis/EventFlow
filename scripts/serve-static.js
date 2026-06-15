@@ -627,8 +627,8 @@ app.get('/category.html', (req, res) => {
   res.redirect(301, `/suppliers${qs}`);
 });
 
-app.get('/suppliers', (req, res) => {
-  res.sendFile(path.join(PUBLIC_DIR, 'suppliers.html'));
+app.get('/suppliers', (req, res, next) => {
+  sendRenderedHtml(req, res, 'suppliers.html').catch(next);
 });
 
 app.get('/suppliers.html', (req, res) => {
