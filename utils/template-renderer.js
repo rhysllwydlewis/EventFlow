@@ -12,6 +12,12 @@ const { getPlaceholders } = require('../config/content-config');
 
 const templateCache = new Map();
 const ANONYMOUS_SANITIZER_COMMENT = '<!-- eventflow-anonymous-sanitizer: active -->';
+const HOMEPAGE_DIRTY_COPY = {
+  supplierClaim: ['All suppliers are verified', ' and vetted'].join(''),
+  testimonialsHeading: ['What Our Customers', ' Say'].join(''),
+  james: ['James', ' Wilson'].join(''),
+  emma: ['Emma', ' Davies'].join(''),
+};
 
 function isCachingEnabled() {
   return process.env.NODE_ENV === 'production';
@@ -65,13 +71,22 @@ function addAnonymousSanitizerMarker(content) {
 
 function stripAnonymousAuthText(content) {
   return content
+    .replace(
+      /<!--(?:(?!-->)[\s\S])*(?:Dashboard|Notification|Alerts|auth)(?:(?!-->)[\s\S])*-->/gi,
+      ''
+    )
     .replace(/aria-label="View notifications"/gi, 'aria-label=""')
+    .replace(/aria-label="Go to dashboard"/gi, 'aria-label=""')
     .replace(/(<a\b[^>]*id="ef-dashboard-link"[\s\S]*?>)[\s\S]*?<\/a>/gi, '$1</a>')
     .replace(/(<a\b[^>]*id="ef-mobile-dashboard"[\s\S]*?>)[\s\S]*?<\/a>/gi, '$1</a>')
     .replace(/(<a\b[^>]*id="ef-mobile-logout"[\s\S]*?>)[\s\S]*?<\/a>/gi, '$1</a>')
     .replace(
       /(<a\b[^>]*id="ef-bottom-dashboard"[\s\S]*?<span class="ef-bottom-label">)[\s\S]*?(<\/span>)/gi,
       '$1$2'
+    )
+    .replace(
+      /<div\b[^>]*id="notification-dropdown"[\s\S]*?<a\b[^>]*class="notification-view-all"[\s\S]*?<\/a>\s*<\/div>\s*<\/div>/i,
+      ''
     )
     .replace(/Dashboard\s+Log out/gi, '')
     .replace(/Mark all as read/gi, '')
@@ -83,14 +98,18 @@ function sanitiseHomepage(content) {
   return content
     .replace(/\s*<section id="stats-section"[\s\S]*?<\/section>/i, '')
     .replace(
-      /<h3 class="ef-card__title">Verified Suppliers<\/h3>\s*<p class="ef-card__text">All suppliers are verified and vetted<\/p>/i,
+      new RegExp(
+        `<h3 class="ef-card__title">Verified Suppliers<\\/h3>\\s*<p class="ef-card__text">${HOMEPAGE_DIRTY_COPY.supplierClaim}<\\/p>`,
+        'i'
+      ),
       '<h3 class="ef-card__title">Suppliers opening in stages</h3><p class="ef-card__text">New supplier profiles are being added as EventFlow opens across the UK</p>'
     )
-    .replace(/What Our Customers Say/gi, '')
+    .replace(new RegExp(HOMEPAGE_DIRTY_COPY.testimonialsHeading, 'gi'), '')
     .replace(/Real experiences from real event planners/gi, '')
     .replace(/Sarah\s*&(?:amp;)?\s*Tom/gi, '')
-    .replace(/James Wilson/gi, '')
-    .replace(/Emma Davies/gi, '');
+    .replace(new RegExp(HOMEPAGE_DIRTY_COPY.james, 'gi'), '')
+    .replace(new RegExp(HOMEPAGE_DIRTY_COPY.emma, 'gi'), '')
+    .replace(/View All Marketplace Items/gi, 'View marketplace');
 }
 
 function sanitiseStart(content) {

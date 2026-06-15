@@ -14,11 +14,31 @@ describe('anonymous public HTML render path', () => {
     expect(res.text).toContain('eventflow-anonymous-sanitizer: active');
     expect(res.text).toMatch(/Find UK Event Suppliers|Plan Your Event/i);
     expect(res.text).toMatch(/Suppliers opening in stages|Browse UK event suppliers/i);
+    expect(res.text).toContain('id="ef-dashboard-link"');
+    expect(res.text).toContain('id="ef-bottom-dashboard"');
     expect(res.text).not.toMatch(
       /What Our Customers Say|Sarah\s*&(?:amp;)?\s*Tom|James Wilson|Emma Davies/i
     );
     expect(res.text).not.toMatch(/All suppliers are verified and vetted|Version:\s*loading/i);
-    expect(res.text).not.toMatch(/Mark all as read|View all|Dashboard\s+Log out/i);
+    expect(res.text).not.toMatch(
+      /Mark all as read|View all|>\s*Dashboard\s*<|Log out|Notifications/
+    );
+    expect(res.text).not.toMatch(/Verified Suppliers|Packages Available|Customer Reviews/i);
+    expect(res.text).not.toMatch(/View All Marketplace Items/i);
+  });
+
+  test('GET /start is template-rendered and keeps planner preload without stale auth/version text', async () => {
+    const res = await request(app).get('/start').expect(200);
+
+    expect(res.headers['x-eventflow-template-renderer']).toBe('active');
+    expect(res.headers['x-eventflow-public-sanitizer']).toBe('anonymous-v2');
+    expect(res.headers['cache-control']).toBe('no-store, no-cache, must-revalidate, private');
+    expect(res.headers.vary).toMatch(/Cookie/i);
+    expect(res.text).toContain('eventflow-anonymous-sanitizer: active');
+    expect(res.text).toContain('id="wizard-preload"');
+    expect(res.text).not.toMatch(
+      /Version:\s*loading|Mark all as read|View all|>\s*Dashboard\s*<|Log out|Notifications/
+    );
   });
 
   test('GET /public-calendar removes anonymous admin and publisher controls', async () => {

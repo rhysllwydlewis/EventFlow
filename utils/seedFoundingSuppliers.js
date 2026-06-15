@@ -80,7 +80,7 @@ const SUPPLIER_DATA = {
       photos: [],
     },
     {
-      name: 'James Wilson Photography',
+      name: 'Northlight Photography',
       location: 'Manchester',
       blurb: 'Creative photographer with a cinematic, editorial style',
       description_short: 'Cinematic wedding and portrait photography',
