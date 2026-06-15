@@ -1,0 +1,54 @@
+const request = require('supertest');
+const app = require('../../server');
+
+describe('anonymous public HTML render path', () => {
+  test('GET / is template-rendered, sanitized, and not public-cacheable', async () => {
+    const res = await request(app).get('/').expect(200);
+
+    expect(res.headers['x-eventflow-template-renderer']).toBe('active');
+    expect(res.headers['x-eventflow-public-sanitizer']).toBe('anonymous-v2');
+    expect(res.headers['cache-control']).toBe('no-store, no-cache, must-revalidate, private');
+    expect(res.headers.pragma).toBe('no-cache');
+    expect(res.headers.expires).toBe('0');
+    expect(res.headers.vary).toMatch(/Cookie/i);
+    expect(res.text).toContain('eventflow-anonymous-sanitizer: active');
+    expect(res.text).toMatch(/Find UK Event Suppliers|Plan Your Event/i);
+    expect(res.text).toMatch(/Suppliers opening in stages|Browse UK event suppliers/i);
+    expect(res.text).not.toMatch(
+      /What Our Customers Say|Sarah\s*&(?:amp;)?\s*Tom|James Wilson|Emma Davies/i
+    );
+    expect(res.text).not.toMatch(/All suppliers are verified and vetted|Version:\s*loading/i);
+    expect(res.text).not.toMatch(/Mark all as read|View all|Dashboard\s+Log out/i);
+  });
+
+  test('GET /public-calendar removes anonymous admin and publisher controls', async () => {
+    const res = await request(app).get('/public-calendar').expect(200);
+
+    expect(res.headers['x-eventflow-template-renderer']).toBe('active');
+    expect(res.headers['x-eventflow-public-sanitizer']).toBe('anonymous-v2');
+    expect(res.text).not.toMatch(/Calendar publishing requests|Approve suitable suppliers/i);
+    expect(res.text).not.toMatch(/>\s*Add Event\s*</i);
+    expect(res.text).not.toMatch(/>\s*Publish Event\s*</i);
+    expect(res.text).not.toMatch(/draft|pending_review|rejected management/i);
+  });
+
+  test('GET /guides hides contradictory dynamic loading and empty states but keeps no-JS guide list', async () => {
+    const res = await request(app).get('/guides').expect(200);
+
+    expect(res.headers['x-eventflow-template-renderer']).toBe('active');
+    expect(res.headers['x-eventflow-public-sanitizer']).toBe('anonymous-v2');
+    expect(res.text).not.toMatch(/Loading guides|No guides found/i);
+    expect(res.text).toContain('guides-nojs-list');
+    expect(res.text).toContain('/articles/event-planning-checklist-guide');
+  });
+
+  test('GET /index.html remains canonical redirect to sanitized homepage route', async () => {
+    const redirect = await request(app).get('/index.html').expect(301);
+    expect(redirect.headers.location).toBe('/');
+
+    const res = await request(app).get(redirect.headers.location).expect(200);
+    expect(res.headers['x-eventflow-template-renderer']).toBe('active');
+    expect(res.headers['x-eventflow-public-sanitizer']).toBe('anonymous-v2');
+    expect(res.text).not.toMatch(/What Our Customers Say|Version:\s*loading|Mark all as read/i);
+  });
+});

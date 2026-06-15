@@ -16,6 +16,21 @@ const rateLimit = require('express-rate-limit');
 const app = express();
 const PORT = process.env.PORT || 4173;
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
+const { getFile, setHtmlNoStoreHeaders, appendVaryHeader } = require('../utils/template-renderer');
+
+async function sendRenderedHtml(req, res, fileName) {
+  const requestPath = `/${fileName}`;
+  const filePath = path.join(PUBLIC_DIR, fileName);
+  const { content } = await getFile(filePath, requestPath, req);
+  setHtmlNoStoreHeaders(res);
+  res.setHeader('X-EventFlow-Template-Renderer', 'active-static');
+  res.setHeader(
+    'X-EventFlow-Public-Sanitizer',
+    req.user ? 'skipped-authenticated' : 'anonymous-v2'
+  );
+  appendVaryHeader(res, 'Cookie');
+  res.type('html').send(content);
+}
 
 // Basic rate limiter — limits abusive hammering of the test server
 // (server only listens on 127.0.0.1 so this is defence-in-depth)
@@ -550,12 +565,16 @@ app.post('/api/admin/system-checks/run', (req, res) => {
 
 // Canonical URL redirects (matching server.js behavior)
 // These redirects are needed because express.static serves files directly without redirection
+app.get('/', (req, res, next) => {
+  sendRenderedHtml(req, res, 'index.html').catch(next);
+});
+
 app.get('/index.html', (req, res) => {
   res.redirect(301, '/');
 });
 
-app.get('/marketplace', (req, res) => {
-  res.sendFile(path.join(PUBLIC_DIR, 'marketplace.html'));
+app.get('/marketplace', (req, res, next) => {
+  sendRenderedHtml(req, res, 'marketplace.html').catch(next);
 });
 
 app.get('/marketplace.html', (req, res) => {
@@ -828,8 +847,8 @@ const canonicalPages = [
 
 canonicalPages.forEach(page => {
   // Serve the page at canonical URL
-  app.get(`/${page}`, (req, res) => {
-    res.sendFile(path.join(PUBLIC_DIR, `${page}.html`));
+  app.get(`/${page}`, (req, res, next) => {
+    sendRenderedHtml(req, res, `${page}.html`).catch(next);
   });
   // Redirect .html to canonical, preserving any query string
   app.get(`/${page}.html`, (req, res) => {
@@ -930,8 +949,8 @@ app.get('/articles/:slug.html', (req, res) => {
 app.use(express.static(PUBLIC_DIR));
 
 // Fallback to index.html for client-side routing
-app.get('*', staticLimiter, (req, res) => {
-  res.sendFile(path.join(PUBLIC_DIR, 'index.html'));
+app.get('*', staticLimiter, (req, res, next) => {
+  sendRenderedHtml(req, res, 'index.html').catch(next);
 });
 
 app.listen(PORT, '127.0.0.1', () => {

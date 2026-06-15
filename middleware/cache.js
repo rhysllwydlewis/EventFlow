@@ -5,6 +5,8 @@
 
 'use strict';
 
+const path = require('path');
+
 const cache = require('../cache');
 const logger = require('../utils/logger');
 
@@ -198,9 +200,16 @@ function apiCacheControlMiddleware() {
  */
 function staticCachingMiddleware() {
   return (req, res, next) => {
-    // Short-term caching for HTML pages (5 minutes)
-    if (req.path.endsWith('.html') || req.path === '/') {
-      res.setHeader('Cache-Control', 'public, max-age=300, must-revalidate');
+    // HTML may differ by authentication cookie and is template-rendered later.
+    // Do not mark it public-cacheable before the renderer can add Vary: Cookie.
+    if (
+      req.path.endsWith('.html') ||
+      req.path === '/' ||
+      (!path.extname(req.path) && req.method === 'GET')
+    ) {
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
       return next();
     }
 
