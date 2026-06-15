@@ -62,6 +62,67 @@ describe('anonymous public HTML render path', () => {
     expect(res.text).toContain('/articles/event-planning-checklist-guide');
   });
 
+  test('production public routes are rendered by the actual server.js app before raw static HTML', async () => {
+    const routes = [
+      '/',
+      '/start',
+      '/public-calendar',
+      '/guides',
+      '/suppliers',
+      '/pricing',
+      '/marketplace',
+      '/for-suppliers',
+      '/legal',
+      '/contact',
+      '/auth',
+      '/verify',
+    ];
+    const banned = [
+      /Dashboard\s+Log out/i,
+      /Mark all as read/i,
+      /Version:\s*loading/i,
+      /What Our Customers Say/i,
+      /Sarah\s*&(?:amp;)?\s*Tom/i,
+      /James Wilson/i,
+      /Emma Davies/i,
+      /All suppliers are verified and vetted/i,
+      /Explore our full range of verified UK suppliers/i,
+    ];
+
+    for (const route of routes) {
+      const res = await request(app).get(route).set('Accept', 'text/html').expect(200);
+
+      expect(res.headers['x-eventflow-template-renderer']).toBe('active');
+      expect(res.headers['x-eventflow-public-sanitizer']).toBe('anonymous-v2');
+      expect(res.headers['cache-control']).toBe('no-store, no-cache, must-revalidate, private');
+      expect(res.headers.vary).toMatch(/Cookie/i);
+
+      for (const pattern of banned) {
+        expect(res.text).not.toMatch(pattern);
+      }
+    }
+  });
+
+  test('production /public-calendar anonymous render strips status, publisher, and admin controls', async () => {
+    const res = await request(app).get('/public-calendar').set('Accept', 'text/html').expect(200);
+    const banned = [
+      /pending_review/i,
+      /rejected/i,
+      /Calendar publishing requests/i,
+      /Approve suitable suppliers/i,
+      /admin override/i,
+      /Shared Events Calendar publishing enabled/i,
+      /\bAdd Event\b/i,
+      /\bPublish Event\b/i,
+    ];
+
+    expect(res.headers['x-eventflow-template-renderer']).toBe('active');
+    expect(res.headers['x-eventflow-public-sanitizer']).toBe('anonymous-v2');
+    for (const pattern of banned) {
+      expect(res.text).not.toMatch(pattern);
+    }
+  });
+
   test('GET /index.html remains canonical redirect to sanitized homepage route', async () => {
     const redirect = await request(app).get('/index.html').expect(301);
     expect(redirect.headers.location).toBe('/');

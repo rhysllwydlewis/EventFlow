@@ -1,9 +1,9 @@
 {
   "app": "EventFlow",
   "version": "18.1.0",
-  "marker": "pr-1228-final-public-render-cache-mopup",
+  "marker": "pr-1230-production-render-path-fix",
   "source": "static-public-build-marker",
-  "purpose": "Confirms the final public-render and service-worker cache mop-up after PR #1228 has reached production.",
-  "createdFor": "final-public-render-cache-mopup-after-pr-1228",
+  "purpose": "Confirms the emergency production render-path fix for PR #1230 has reached production.",
+  "createdFor": "production-render-path-fix-pr-1230",
   "createdAt": "2026-06-15"
 }
