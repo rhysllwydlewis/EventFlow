@@ -421,6 +421,34 @@ router.post(
         role: user.role || 'customer',
       }));
 
+      const isGenericNewMessage = metadata?.source === 'generic_new_message';
+      if (isGenericNewMessage && type === 'direct' && !context && participants.length === 2) {
+        const currentParticipant = participants.find(p => p.userId === currentUserId);
+        const otherParticipant = participants.find(p => p.userId !== currentUserId);
+        if (
+          currentParticipant?.role === 'supplier' &&
+          otherParticipant &&
+          otherParticipant.role !== 'supplier'
+        ) {
+          const existingDirectConversation = await dbInstance
+            .collection('conversations_v4')
+            .findOne({
+              type: 'direct',
+              'participants.userId': { $all: [currentParticipant.userId, otherParticipant.userId] },
+              status: 'active',
+              $expr: { $eq: [{ $size: '$participants' }, 2] },
+            });
+
+          if (!existingDirectConversation) {
+            return res.status(403).json({
+              error:
+                'Customers can only be messaged from an existing conversation or valid context.',
+              code: 'GENERIC_CUSTOMER_COLD_MESSAGE_BLOCKED',
+            });
+          }
+        }
+      }
+
       const service = await getMessengerService();
 
       // Create conversation
@@ -1047,18 +1075,21 @@ router.get('/unread-count', applyAuthRequired, async (req, res) => {
 router.get('/contacts', applyAuthRequired, async (req, res) => {
   try {
     const userId = req.user.id;
-    const { q: query, role, limit = 20 } = req.query;
+    const { q: query, role, mode, limit = 20 } = req.query;
 
     // Validate role to prevent admin/privileged user enumeration
     const ALLOWED_CONTACT_ROLES = ['customer', 'supplier'];
-    const validRole = role && ALLOWED_CONTACT_ROLES.includes(role) ? role : undefined;
+    const supplierOnlyMode = mode === 'supplier_search' || mode === 'supplier_only';
+    const requestedRole = supplierOnlyMode ? 'supplier' : role;
+    const validRole =
+      requestedRole && ALLOWED_CONTACT_ROLES.includes(requestedRole) ? requestedRole : undefined;
 
     const contacts = await (
       await getMessengerService()
     ).searchContacts(
       userId,
       query && query.substring(0, 200),
-      { role: validRole },
+      { role: validRole, mode: supplierOnlyMode ? 'supplier_search' : undefined },
       Math.min(Math.max(parseInt(limit, 10) || 20, 1), 100)
     );
 

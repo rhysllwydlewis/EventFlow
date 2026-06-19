@@ -1330,17 +1330,25 @@ class MessengerV4Service {
 
     if (query) {
       // Escape regex metacharacters to prevent ReDoS
-      const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const escapedQuery = String(query).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const searchRegex = new RegExp(escapedQuery, 'i');
       searchQuery.$or = [
         { displayName: searchRegex },
-        { email: searchRegex },
+        { name: searchRegex },
         { businessName: searchRegex },
+        { profileName: searchRegex },
+        { tradingName: searchRegex },
+        { companyName: searchRegex },
+        { email: searchRegex },
       ];
     }
 
     if (filters.role) {
       searchQuery.role = filters.role;
+    }
+
+    if (filters.mode === 'supplier_search') {
+      searchQuery.role = 'supplier';
     }
 
     const users = await usersCollection
@@ -1349,37 +1357,67 @@ class MessengerV4Service {
       .project({
         id: 1,
         displayName: 1,
+        name: 1,
         email: 1,
         role: 1,
         avatar: 1,
+        avatarUrl: 1,
+        profilePhoto: 1,
+        logoUrl: 1,
         businessName: 1,
+        profileName: 1,
+        tradingName: 1,
+        companyName: 1,
+        category: 1,
+        serviceCategory: 1,
+        location: 1,
+        city: 1,
       })
       .toArray();
 
-    return users.map(user => ({
-      // Use the string 'id' field (consistent with JWT auth and all participant lookups)
-      userId: user.id,
-      id: user.id,
-      displayName: (() => {
-        const dn = user.displayName;
-        const bn = user.businessName;
-        const em = user.email;
-        // Prefer non-email display names; fall back to email local part
-        const looksLikeEmail = s => typeof s === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
-        if (dn && !looksLikeEmail(dn)) {
-          return dn;
-        }
-        if (bn && !looksLikeEmail(bn)) {
-          return bn;
-        }
-        if (em) {
-          return em.split('@')[0] || em;
-        }
-        return 'Unknown';
-      })(),
-      role: user.role || 'customer',
-      avatar: user.avatar || null,
-    }));
+    const looksLikeEmail = s => typeof s === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
+    const normalise = value => (typeof value === 'string' ? value.trim() : '');
+    const genericNames = new Set(['info', 'admin', 'hello', 'contact', 'sales', 'bookings']);
+    const emailLocalPart = email =>
+      looksLikeEmail(email) ? email.split('@')[0].toLowerCase() : '';
+    const isWeakName = (value, email) => {
+      const v = normalise(value).toLowerCase();
+      return (
+        !v ||
+        looksLikeEmail(v) ||
+        genericNames.has(v) ||
+        (emailLocalPart(email) && v === emailLocalPart(email))
+      );
+    };
+    const firstGood = (...values) => values.map(normalise).find(v => v && !looksLikeEmail(v));
+
+    return users.map(user => {
+      const businessLabel = firstGood(
+        user.businessName,
+        user.profileName,
+        user.tradingName,
+        user.companyName
+      );
+      const displayLabel = firstGood(user.displayName, user.name);
+      const primaryLabel =
+        user.role === 'supplier' && businessLabel && isWeakName(displayLabel, user.email)
+          ? businessLabel
+          : displayLabel || businessLabel || 'Supplier';
+      const descriptor = firstGood(user.serviceCategory, user.category, user.location, user.city);
+      const secondaryLabel =
+        user.role === 'supplier' ? descriptor || 'Supplier' : 'Existing conversation';
+
+      return {
+        // Use the string 'id' field (consistent with JWT auth and all participant lookups)
+        userId: user.id,
+        id: user.id,
+        displayName: primaryLabel,
+        primaryLabel,
+        secondaryLabel,
+        role: user.role || 'customer',
+        avatar: user.avatarUrl || user.avatar || user.profilePhoto || user.logoUrl || null,
+      };
+    });
   }
 
   /**

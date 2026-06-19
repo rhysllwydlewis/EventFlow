@@ -20,8 +20,6 @@ class ContactPickerV4 {
     };
 
     this._searchTimer = null;
-    this._selectedContext = 'direct';
-    this._recentContacts = this._loadRecentContacts();
     this._isOpen = false;
     this._isSelecting = false;
     this._returnFocusEl = null;
@@ -50,7 +48,7 @@ class ContactPickerV4 {
             <div>
               <p class="messenger-v4__new-message-kicker">Direct message</p>
               <h2 class="messenger-v4__new-message-title" id="v4ContactPickerTitle">New message</h2>
-              <p class="messenger-v4__new-message-subtitle" id="v4ContactPickerDescription">Search for a contact to start a message.</p>
+              <p class="messenger-v4__new-message-subtitle" id="v4ContactPickerDescription">Search suppliers to start a new message. Recent conversations show people you have already spoken to.</p>
             </div>
             <button class="ef-cta messenger-v4__new-message-close" id="v4ContactPickerClose" type="button" aria-label="Close new message picker">✕</button>
           </div>
@@ -61,8 +59,8 @@ class ContactPickerV4 {
             <span class="messenger-v4__new-message-search-icon" aria-hidden="true">🔍</span>
             <input type="search"
                    id="v4ContactSearch"
-                   placeholder="Search by name or email…"
-                   aria-label="Search contacts"
+                   placeholder="Search suppliers by business name..."
+                   aria-label="Search suppliers"
                    autocomplete="off" />
           </label>
 
@@ -151,15 +149,13 @@ class ContactPickerV4 {
    */
   async search(query) {
     try {
-      // For customers, pass role=supplier to the server to avoid fetching unauthorised contacts
-      const myRole = this.options.currentUserRole;
-      const apiOptions = myRole === 'customer' ? { role: 'supplier' } : {};
-      const data = await this.api.getContacts(query, apiOptions);
+      // Generic new-message search is supplier-only; recent conversations cover existing customers.
+      const data = await this.api.getContacts(query, { role: 'supplier', mode: 'supplier_search' });
       // _filterByRole provides client-side enforcement as a defence-in-depth layer
       const contacts = this._filterSelectableContacts(data.contacts || data || []);
       this.resultsEl.innerHTML = contacts.length
         ? contacts.map(c => this._buildContactHTML(c)).join('')
-        : `<div class="messenger-v4__new-message-empty" role="status">No contacts found for "${this.escape(query)}".</div>`;
+        : `<div class="messenger-v4__new-message-empty" role="status">No suppliers found for "${this.escape(query)}".</div>`;
       this._attachResultListeners();
     } catch (err) {
       console.error('[ContactPickerV4] Search failed:', err);
@@ -203,8 +199,16 @@ class ContactPickerV4 {
         return;
       }
 
-      this._saveRecentContact(user);
-      const payload = { contact: user, context: 'direct' };
+      if ((user.role || '').toLowerCase() !== 'supplier') {
+        this._showError('Customers can only be opened here from an existing conversation.');
+        return;
+      }
+
+      const payload = {
+        contact: user,
+        context: 'direct',
+        metadata: { source: 'generic_new_message' },
+      };
 
       if (typeof this.options.onSelect === 'function') {
         await this.options.onSelect(payload);
@@ -239,60 +243,87 @@ class ContactPickerV4 {
   }
 
   /**
-   * Filter contacts based on business rules:
-   * - customer → only suppliers
-   * - supplier → all (customers + suppliers)
+   * Generic new-message search is supplier-only. Customers are shown only
+   * through recent conversations that are backed by an existing thread.
    * @param {Array} contacts
    * @returns {Array}
    */
   _filterByRole(contacts) {
-    const myRole = this.options.currentUserRole;
-    if (myRole === 'customer') {
-      return contacts.filter(c => (c.role || 'customer') === 'supplier');
-    }
-    return contacts;
+    return contacts.filter(c => (c.role || '').toLowerCase() === 'supplier');
   }
 
   _filterSelectableContacts(contacts) {
     const currentUserId = this.options.currentUserId;
     return this._filterByRole(contacts).filter(
-      c => String(c._id || c.id) !== String(currentUserId)
+      c => String(c._id || c.id || c.userId) !== String(currentUserId)
     );
   }
 
   _buildRecentHTML() {
-    if (!this._recentContacts.length) {
-      return '<div class="messenger-v4__new-message-empty" role="status">No recent contacts yet. Search for a contact to start a direct message.</div>';
+    const recent = this._getRecentConversationContacts().slice(0, 5);
+    if (!recent.length) {
+      return '<div class="messenger-v4__recent-label">Recent conversations</div><div class="messenger-v4__new-message-empty" role="status">People you have already spoken to will appear here.</div>';
     }
-    const filtered = this._filterSelectableContacts(this._recentContacts.slice(0, 5));
-    if (!filtered.length) {
-      return '<div class="messenger-v4__new-message-empty" role="status">No recent contacts yet. Search for a contact to start a direct message.</div>';
-    }
-    const items = filtered.map(c => this._buildContactHTML(c)).join('');
-    return `<div class="messenger-v4__recent-label">Recent contacts</div>${items}`;
+    const items = recent.map(c => this._buildContactHTML(c)).join('');
+    return `<div class="messenger-v4__recent-label">Recent conversations</div>${items}`;
+  }
+
+  _getRecentConversationContacts() {
+    const currentUserId = String(this.options.currentUserId || '');
+    const appState = window.messengerAppV4?.state ?? window.messengerState ?? null;
+    const conversations = Array.isArray(appState?.conversations) ? appState.conversations : [];
+    return conversations
+      .filter(c => c?.type === 'direct' && Array.isArray(c.participants))
+      .map(c => {
+        const other = c.participants.find(p => String(p.userId || p.id) !== currentUserId);
+        if (!other) {
+          return null;
+        }
+        return {
+          _id: other.userId || other.id,
+          id: other.userId || other.id,
+          displayName: other.primaryLabel || other.displayName || other.name,
+          primaryLabel: other.primaryLabel || other.displayName || other.name,
+          secondaryLabel: other.secondaryLabel || 'Existing conversation',
+          role: other.role || 'customer',
+          avatar: other.avatar || other.avatarUrl || null,
+          conversationId: c._id,
+        };
+      })
+      .filter(Boolean);
   }
 
   _buildContactHTML(user) {
-    const name = this.escape(user.displayName || user.name || 'Unknown');
-    const email = this.escape(user.email || '');
+    const name = this.escape(user.primaryLabel || user.displayName || user.name || 'Unknown');
+    const detail = this.escape(
+      user.secondaryLabel || (user.role === 'supplier' ? 'Supplier' : 'Existing conversation')
+    );
     const role = user.role || 'customer';
-    const initial = (user.displayName || user.name || 'U').charAt(0).toUpperCase();
-    const uid = this.escape(user._id || user.id);
+    const initial = (user.primaryLabel || user.displayName || user.name || 'U')
+      .charAt(0)
+      .toUpperCase();
+    const avatarUrl = this._safeImageUrl(user.avatar || user.avatarUrl || user.profilePhoto || '');
+    const avatarHTML = avatarUrl
+      ? `<img class="messenger-v4__avatar-image" src="${this.escape(avatarUrl)}" alt="" loading="lazy" decoding="async" />`
+      : this.escape(initial);
+    const uid = this.escape(user._id || user.id || user.userId);
+    const conversationId = this.escape(user.conversationId || '');
     const isOnline = user.isOnline || false;
 
     return `
       <div class="messenger-v4__new-message-contact messenger-v4__contact-item"
            data-user-id="${uid}"
+           ${conversationId ? `data-conversation-id="${conversationId}"` : ''}
            role="option"
            tabindex="0"
-           aria-label="${name}${email ? `, ${email}` : ''}">
+           aria-label="${name}${detail ? `, ${detail}` : ''}">
         <div class="messenger-v4__avatar-wrapper">
-          <div class="messenger-v4__avatar" aria-hidden="true">${this.escape(initial)}</div>
+          <div class="messenger-v4__avatar" aria-hidden="true">${avatarHTML}</div>
           ${isOnline ? '<span class="messenger-v4__presence-dot messenger-v4__presence-dot--online" aria-label="Online"></span>' : ''}
         </div>
         <div class="messenger-v4__contact-info">
           <span class="messenger-v4__contact-name">${name}</span>
-          ${email ? `<span class="messenger-v4__contact-email">${email}</span>` : ''}
+          ${detail ? `<span class="messenger-v4__contact-email">${detail}</span>` : ''}
         </div>
         <span class="messenger-v4__role-badge messenger-v4__role-badge--${this.escape(role)}" aria-label="Role: ${this.escape(role)}">
           ${this.escape(role.charAt(0).toUpperCase() + role.slice(1))}
@@ -317,10 +348,18 @@ class ContactPickerV4 {
     // Reconstruct minimal user object from DOM for simplicity
     const userId = el.dataset.userId;
     const name = el.querySelector('.messenger-v4__contact-name')?.textContent || '';
-    const email = el.querySelector('.messenger-v4__contact-email')?.textContent || '';
+    const secondaryLabel = el.querySelector('.messenger-v4__contact-email')?.textContent || '';
     const roleBadge = el.querySelector('.messenger-v4__role-badge');
     const role = roleBadge ? roleBadge.textContent.trim().toLowerCase() : 'customer';
-    this.selectContact({ _id: userId, displayName: name, email, role });
+    const conversationId = el.dataset.conversationId || null;
+    if (conversationId) {
+      this.close();
+      window.dispatchEvent(
+        new CustomEvent('messenger:conversation-selected', { detail: { id: conversationId } })
+      );
+      return;
+    }
+    this.selectContact({ _id: userId, displayName: name, secondaryLabel, role });
   }
 
   async _findExistingConversation(participantId) {
@@ -395,31 +434,30 @@ class ContactPickerV4 {
     return 'We could not start that conversation. Please try again.';
   }
 
+  _safeImageUrl(url) {
+    if (!url || typeof url !== 'string') {
+      return '';
+    }
+    const trimmed = url.trim();
+    if (!trimmed) {
+      return '';
+    }
+    if (trimmed.startsWith('/') && !trimmed.startsWith('//')) {
+      return trimmed;
+    }
+    try {
+      const parsed = new URL(trimmed, window.location.origin);
+      return ['http:', 'https:'].includes(parsed.protocol) ? parsed.href : '';
+    } catch {
+      return '';
+    }
+  }
+
   _cssEscape(value) {
     if (window.CSS && typeof window.CSS.escape === 'function') {
       return window.CSS.escape(String(value));
     }
     return String(value).replace(/[^a-zA-Z0-9_-]/g, '\\$&');
-  }
-
-  _loadRecentContacts() {
-    try {
-      const raw = localStorage.getItem('messenger_v4_recent_contacts');
-      return raw ? JSON.parse(raw) : [];
-    } catch {
-      return [];
-    }
-  }
-
-  _saveRecentContact(user) {
-    const contacts = this._recentContacts.filter(c => (c._id || c.id) !== (user._id || user.id));
-    contacts.unshift(user);
-    this._recentContacts = contacts.slice(0, 5);
-    try {
-      localStorage.setItem('messenger_v4_recent_contacts', JSON.stringify(this._recentContacts));
-    } catch {
-      // localStorage may be unavailable
-    }
   }
 
   escape(str) {
