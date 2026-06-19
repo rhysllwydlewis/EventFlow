@@ -207,16 +207,15 @@
 }
 
 /* ============================================================
-   7. STICKY DATE HEADERS – polished pill treatment
+   7. INLINE DATE SEPARATORS – compact polished pill treatment
+   Date chips intentionally stay in normal document flow so
+   adjacent days cannot stack behind each other while scrolling.
    ============================================================ */
 .messenger-v4__date-separator {
   display: flex;
   align-items: center;
   gap: 12px;
   margin: 10px 0;
-  position: sticky;
-  top: 8px;
-  z-index: 10;
 }
 
 .messenger-v4__date-separator::before,
@@ -229,6 +228,7 @@
 
 .messenger-v4__date-separator-text {
   display: inline-block;
+  min-width: 92px;
   padding: 5px 14px;
   background: rgba(255, 255, 255, 0.82);
   backdrop-filter: blur(8px);
@@ -1049,10 +1049,11 @@
 .messenger-v4__new-convo-btn {
   width: 36px;
   height: 36px;
+  min-width: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: none;
+  border: 1px solid rgba(255, 255, 255, 0.35);
   border-radius: 10px;
   background: var(--messenger-primary, #0b8073);
   color: #fff;
@@ -1062,6 +1063,17 @@
     transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1),
     box-shadow 200ms ease;
   box-shadow: 0 2px 8px rgba(11, 128, 115, 0.3);
+}
+
+.messenger-v4__new-convo-btn svg {
+  width: 22px;
+  height: 22px;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.22));
+  pointer-events: none;
 }
 
 .messenger-v4__new-convo-btn:hover {
@@ -1668,7 +1680,7 @@
    47. CHAT-VIEW CONTAINER – min-height:0 for correct flex
    overflow; also clip horizontally to prevent bubble overflow.
    (The HTML inline style has been updated to use min-height:0
-   instead of overflow:hidden to allow position:sticky headers.)
+   instead of overflow:hidden so overlays are not clipped.)
    ============================================================ */
 [data-v4='chat-view'] {
   overflow-x: hidden;
@@ -2457,6 +2469,27 @@ body:has(.messenger-v4) {
   border-radius: 50% !important;
   width: auto;
   box-shadow: none;
+}
+
+/* New-conversation is square, not round; keep its visual affordance while
+   neutralising global .ef-cta padding/width rules. */
+.messenger-v4__new-convo-btn.ef-cta {
+  padding: 0 !important;
+  font-size: inherit !important;
+  width: 36px !important;
+  min-width: 36px !important;
+  max-width: 36px !important;
+  margin-top: 0 !important;
+  border-radius: 10px !important;
+}
+
+@media (max-width: 374px) {
+  .messenger-v4__new-convo-btn.ef-cta {
+    width: 32px !important;
+    min-width: 32px !important;
+    max-width: 32px !important;
+    border-radius: 8px !important;
+  }
 }
 
 @media (max-width: 600px) {
