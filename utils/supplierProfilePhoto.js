@@ -157,10 +157,18 @@ function resolveSupplierProfilePhoto(supplier, ownerUser) {
   return typeof imageUrl === 'string' ? imageUrl.trim() : null;
 }
 
+function resolveSupplierOwnerUserId(supplier, ownerUser) {
+  return (
+    normalizeId(supplier?.ownerUserId) || normalizeId(ownerUser?.id) || normalizeId(ownerUser?._id)
+  );
+}
+
 function hydrateSupplierProfilePhoto(supplier, ownerUser) {
   const profilePhotoUrl = resolveSupplierProfilePhoto(supplier, ownerUser);
+  const ownerUserId = resolveSupplierOwnerUserId(supplier, ownerUser);
   return {
     ...supplier,
+    ...(ownerUserId ? { ownerUserId } : {}),
     profilePhotoUrl,
     avatarUrl: profilePhotoUrl,
     displayAvatarUrl: profilePhotoUrl,
@@ -176,5 +184,6 @@ module.exports = {
   getSupplierOwnerIdCandidates,
   getUserImageCandidates,
   hydrateSupplierProfilePhoto,
+  resolveSupplierOwnerUserId,
   resolveSupplierProfilePhoto,
 };
