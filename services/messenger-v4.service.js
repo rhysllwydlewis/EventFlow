@@ -1428,20 +1428,72 @@ class MessengerV4Service {
     const tier = user?.subscriptionTier || 'free';
     const limits = getMessagingLimitsForTier(tier);
 
-    // Check messages sent in the last hour
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-    const recentMessageCount = await this.messagesCollection.countDocuments({
-      senderId: userId,
-      createdAt: { $gte: oneHourAgo },
-    });
+    const now = Date.now();
 
-    if (recentMessageCount >= limits.messagesPerHour) {
-      return {
-        allowed: false,
-        message: `Rate limit: ${limits.messagesPerHour} messages per hour for ${tier} tier`,
-      };
+    // Check messages sent in the last hour
+    if (limits.messagesPerHour > 0) {
+      const oneHourAgo = new Date(now - 60 * 60 * 1000);
+      const recentHourCount = await this.messagesCollection.countDocuments({
+        senderId: userId,
+        createdAt: { $gte: oneHourAgo },
+      });
+      if (recentHourCount >= limits.messagesPerHour) {
+        return {
+          allowed: false,
+          retryAfter: 3600,
+          message: `You\'ve reached the limit of ${limits.messagesPerHour} messages per hour. Please wait a moment before sending more.`,
+        };
+      }
     }
 
+    // Check messages sent today (UTC day boundary)
+    if (limits.messagesPerDay > 0) {
+      const startOfDay = new Date(now);
+      startOfDay.setUTCHours(0, 0, 0, 0);
+      const todayCount = await this.messagesCollection.countDocuments({
+        senderId: userId,
+        createdAt: { $gte: startOfDay },
+      });
+      if (todayCount >= limits.messagesPerDay) {
+        return {
+          allowed: false,
+          retryAfter: 86400,
+          message: `You\'ve reached today\'s messaging limit of ${limits.messagesPerDay} messages. Limits reset at midnight UTC.`,
+        };
+      }
+    }
+
+    return { allowed: true };
+  }
+
+  /**
+   * Check whether the user can start a new conversation today.
+   * Returns { allowed: true } or { allowed: false, message }.
+   */
+  async checkThreadRateLimit(userId) {
+    const usersCollection = this.db.collection('users');
+    const user = await usersCollection.findOne({ id: userId });
+    const tier = user?.subscriptionTier || 'free';
+    const limits = getMessagingLimitsForTier(tier);
+
+    if (!limits.threadsPerDay || limits.threadsPerDay < 0) {
+      return { allowed: true };
+    }
+
+    const startOfDay = new Date();
+    startOfDay.setUTCHours(0, 0, 0, 0);
+    const todayThreads = await this.conversationsCollection.countDocuments({
+      'participants.userId': userId,
+      createdAt: { $gte: startOfDay },
+    });
+
+    if (todayThreads >= limits.threadsPerDay) {
+      return {
+        allowed: false,
+        retryAfter: 86400,
+        message: `You\'ve reached today\'s limit of ${limits.threadsPerDay} new conversations. Limits reset at midnight UTC.`,
+      };
+    }
     return { allowed: true };
   }
 }

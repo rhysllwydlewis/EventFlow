@@ -334,7 +334,20 @@ class MessageComposerV4 {
       sendSucceeded = true;
     } catch (err) {
       console.error('[MessageComposerV4] Send failed:', err);
-      // Keep textarea / attachments / replyTo intact so the user can retry.
+      // Show a friendly inline error near the composer so the user knows why
+      // the message was not sent.  Rate-limit and spam errors get specific copy;
+      // network/server errors get a generic retry prompt.
+      const msg = err?.message || '';
+      if (/rate limit|you've reached|too many/i.test(msg)) {
+        this._showInlineError(
+          msg.replace(/^Rate limit[^.]*\./i, '').trim() ||
+            'You\'ve sent too many messages recently. Please wait a moment and try again.'
+        );
+      } else if (/spam/i.test(msg)) {
+        this._showInlineError('Your message was flagged. Please review the content and try again.');
+      } else if (msg) {
+        this._showInlineError('Message failed to send. Please check your connection and try again.');
+      }
     } finally {
       this.isSending = false;
       this.sendBtn.classList.remove('messenger-v4__send-button--loading');
