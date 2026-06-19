@@ -4,7 +4,10 @@
     const supplierId = params.get('id');
     const isPreview = params.get('preview') === 'true';
     const DATA_IMAGE_RE = /^data:image\/(png|jpe?g|webp|gif);base64,[a-z0-9+/]+={0,2}$/i;
-    const CONTACT_SUPPLIER_PATHS = new Set(['/api/v1/contact-supplier', '/api/contact-supplier']);
+    const CONTACT_SUPPLIER_PATHS = new Set([
+      '/api/v1/contact-supplier',
+      '/api/contact-supplier',
+    ]);
     const ALTCHA_SCRIPT_SRC = '/assets/js/vendor/altcha.min.js';
     const ALTCHA_CHALLENGE_URL = '/api/v1/altcha/challenge';
     let supplierContactCaptchaPayload = null;
@@ -155,7 +158,8 @@
         return null;
       }
       try {
-        const shadowInput = widget.shadowRoot && widget.shadowRoot.querySelector('input[name="altcha"]');
+        const shadowInput =
+          widget.shadowRoot && widget.shadowRoot.querySelector('input[name="altcha"]');
         if (shadowInput && shadowInput.value) {
           return shadowInput.value;
         }
@@ -227,7 +231,8 @@
           widget.setAttribute('challengeurl', ALTCHA_CHALLENGE_URL);
           widget.addEventListener('statechange', event => {
             if (event.detail && event.detail.state === 'verified') {
-              supplierContactCaptchaPayload = event.detail.payload || readSupplierAltchaPayload(widget);
+              supplierContactCaptchaPayload =
+                event.detail.payload || readSupplierAltchaPayload(widget);
               showSupplierCaptchaMessage(form, 'Verification complete.', false);
             } else {
               supplierContactCaptchaPayload = null;
@@ -243,7 +248,8 @@
     };
 
     const supplierCaptchaToken = () =>
-      supplierContactCaptchaPayload || readSupplierAltchaPayload(document.getElementById('supplier-altcha-widget'));
+      supplierContactCaptchaPayload ||
+      readSupplierAltchaPayload(document.getElementById('supplier-altcha-widget'));
 
     const blockedSupplierCaptchaResponse = message =>
       new Response(JSON.stringify({ error: message }), {
@@ -272,7 +278,10 @@
           requestInit = { ...(init || {}) };
           let body = null;
           try {
-            body = requestInit.body && typeof requestInit.body === 'string' ? JSON.parse(requestInit.body) : null;
+            body =
+              requestInit.body && typeof requestInit.body === 'string'
+                ? JSON.parse(requestInit.body)
+                : null;
           } catch (_err) {
             body = null;
           }
