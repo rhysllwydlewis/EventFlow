@@ -268,22 +268,23 @@
         }
 
         if (CONTACT_SUPPLIER_PATHS.has(path)) {
-          const token = supplierCaptchaToken();
           const form = document.querySelector('#supplier-contact-form');
+          requestInit = { ...(init || {}) };
+          let body = null;
+          try {
+            body = requestInit.body && typeof requestInit.body === 'string' ? JSON.parse(requestInit.body) : null;
+          } catch (_err) {
+            body = null;
+          }
+          const token = (body && body.captchaToken) || supplierCaptchaToken();
           if (!token) {
             const message = 'Please complete the verification challenge before sending your message.';
             showSupplierCaptchaMessage(form, message, true);
             return blockedSupplierCaptchaResponse(message);
           }
-          requestInit = { ...(init || {}) };
-          try {
-            const body = requestInit.body && typeof requestInit.body === 'string' ? JSON.parse(requestInit.body) : null;
-            if (body && typeof body === 'object') {
-              body.captchaToken = token;
-              requestInit.body = JSON.stringify(body);
-            }
-          } catch (_err) {
-            // Leave malformed bodies untouched so the server can reject them consistently.
+          if (body && typeof body === 'object' && !body.captchaToken) {
+            body.captchaToken = token;
+            requestInit.body = JSON.stringify(body);
           }
         }
 
