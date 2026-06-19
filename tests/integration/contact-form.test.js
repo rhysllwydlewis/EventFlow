@@ -21,6 +21,10 @@ describe('Contact Form Endpoint', () => {
       expect(miscContent).toContain("router.post('/contact'");
     });
 
+    it('defines POST /contact-supplier endpoint', () => {
+      expect(miscContent).toContain("router.post('/contact-supplier'");
+    });
+
     it('applies rate limiting to contact endpoint', () => {
       // Check that rate limiting is applied alongside the contact handler
       expect(miscContent).toContain("router.post('/contact'");
@@ -30,6 +34,20 @@ describe('Contact Form Endpoint', () => {
     it('verifies captcha before accepting submission', () => {
       expect(miscContent).toContain('verifyAltcha(captchaToken)');
       expect(miscContent).toContain('captchaResult.success');
+    });
+
+    it('verifies captcha before accepting supplier enquiries', () => {
+      const supplierRouteStart = miscContent.indexOf("router.post('/contact-supplier'");
+      const supplierRouteContent = miscContent.slice(supplierRouteStart);
+
+      expect(supplierRouteStart).toBeGreaterThan(-1);
+      expect(supplierRouteContent).toContain('const { captchaToken } = req.body || {};');
+      expect(supplierRouteContent).toContain('verifyAltcha(captchaToken)');
+      expect(supplierRouteContent).toContain('CAPTCHA verification failed');
+      expect(supplierRouteContent).toContain('dbUnified.insertOne');
+      expect(supplierRouteContent.indexOf('verifyAltcha(captchaToken)')).toBeLessThan(
+        supplierRouteContent.indexOf('dbUnified.insertOne')
+      );
     });
 
     it('validates required fields (name, email, message)', () => {
