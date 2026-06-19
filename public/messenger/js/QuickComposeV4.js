@@ -137,7 +137,7 @@
       });
 
       if (!response.ok) {
-        return opts;
+        return { ...opts, recipientMissing: true };
       }
 
       const supplier = await response.json();
@@ -373,6 +373,9 @@
       prefill = '',
     } = opts;
 
+    const supplierRecipientMissing =
+      recipientMissing || (contextType === 'supplier_profile' && !recipientId);
+
     const contextEmoji =
       {
         supplier_profile: '🏢',
@@ -410,10 +413,7 @@
            <input type="hidden" id="qcv4-recipient" value="${escapeHtml(recipientId)}">
          </div>`
       : contextType === 'supplier_profile'
-        ? `<input type="hidden" id="qcv4-recipient" value="">
-           <div class="qcv4-error qcv4-error--visible" role="alert">
-             This supplier is not linked to a messaging account yet.
-           </div>`
+        ? '<input type="hidden" id="qcv4-recipient" value="">'
         : `<div class="qcv4-field">
            <label class="qcv4-label" for="qcv4-recipient">To</label>
            <input type="text" id="qcv4-recipient" class="qcv4-recipient"
@@ -440,8 +440,8 @@
                     aria-describedby="qcv4-chars">${escapeHtml(prefill)}</textarea>
           <div class="qcv4-char-indicator" id="qcv4-chars">${CHAR_LIMIT} characters remaining</div>
         </div>
-        <div class="qcv4-error${recipientMissing ? ' qcv4-error--visible' : ''}" id="qcv4-error" role="alert" aria-live="polite">${
-          recipientMissing ? 'This supplier is not linked to a messaging account yet.' : ''
+        <div class="qcv4-error${supplierRecipientMissing ? ' qcv4-error--visible' : ''}" id="qcv4-error" role="alert" aria-live="polite">${
+          supplierRecipientMissing ? 'This supplier is not linked to a messaging account yet.' : ''
         }</div>
         <div class="qcv4-actions">
           <button class="qcv4-cancel-btn" id="qcv4-cancel-btn">Cancel</button>
@@ -470,10 +470,10 @@
             : ''
       }`;
       document.getElementById('qcv4-submit-btn').disabled =
-        ta.value.trim().length === 0 || remaining < 0 || recipientMissing;
+        ta.value.trim().length === 0 || remaining < 0 || supplierRecipientMissing;
     });
     // Initial state
-    if (ta.value.trim().length === 0 || recipientMissing) {
+    if (ta.value.trim().length === 0 || supplierRecipientMissing) {
       document.getElementById('qcv4-submit-btn').disabled = true;
     }
 
