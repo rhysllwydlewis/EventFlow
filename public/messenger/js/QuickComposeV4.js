@@ -114,7 +114,8 @@
       return '';
     }
     return String(
-      supplier.ownerUserId ||
+      supplier.messagingRecipientId ||
+        supplier.ownerUserId ||
         supplier.userId ||
         supplier.ownerId ||
         supplier.accountId ||
