@@ -95,6 +95,13 @@ describe('QuickComposeV4 — supplier compose polish', () => {
     expect(src).toContain('resolveRecipientIdFromSupplier(supplier)');
   });
 
+  it('prefers the safe messagingRecipientId when resolving supplier recipients', () => {
+    expect(src).toContain('supplier.messagingRecipientId');
+    expect(src.indexOf('supplier.messagingRecipientId')).toBeLessThan(
+      src.indexOf('supplier.ownerUserId')
+    );
+  });
+
   it('shows a read-only recipient summary when the supplier recipient is known', () => {
     expect(src).toContain('qcv4-recipient-summary');
     expect(src).toContain('<input type="hidden" id="qcv4-recipient"');
