@@ -133,10 +133,11 @@ router.post('/contact', applyWriteLimiter, async (req, res) => {
 /**
  * POST /api/v1/contact-supplier
  * Send an enquiry message to a specific supplier
- * Body: { name, email, message, supplierId }
+ * Body: { name, email, message, supplierId, captchaToken }
  */
 router.post('/contact-supplier', applyWriteLimiter, async (req, res) => {
   try {
+    const { captchaToken } = req.body || {};
     const name = String(req.body.name || '')
       .trim()
       .slice(0, CONTACT_MAX_NAME_LENGTH);
@@ -155,6 +156,12 @@ router.post('/contact-supplier', applyWriteLimiter, async (req, res) => {
 
     if (!validator.isEmail(email)) {
       return res.status(400).json({ error: 'Invalid email address' });
+    }
+
+    // Verify ALTCHA before any supplier lookup or enquiry persistence.
+    const captchaResult = await verifyAltcha(captchaToken);
+    if (!captchaResult.success) {
+      return res.status(400).json({ error: captchaResult.error || 'CAPTCHA verification failed' });
     }
 
     // Look up the supplier to verify they exist
