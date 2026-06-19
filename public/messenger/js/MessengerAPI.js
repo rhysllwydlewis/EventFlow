@@ -88,8 +88,14 @@ class MessengerAPI {
       }
 
       if (!response.ok) {
-        const error = await response.json().catch(() => ({ error: 'Request failed' }));
-        throw new Error(error.error || error.message || 'Request failed');
+        const body = await response.json().catch(() => ({ error: 'Request failed' }));
+        const apiError = new Error(body.error || body.message || 'Request failed');
+        apiError.status = response.status;
+        apiError.code = body.code;
+        apiError.retryAfter = body.retryAfter || response.headers.get('Retry-After') || null;
+        apiError.body = body;
+        apiError.safeMessage = body.error || body.message || 'Request failed';
+        throw apiError;
       }
 
       return await response.json();

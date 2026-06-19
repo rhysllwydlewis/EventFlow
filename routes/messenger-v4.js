@@ -355,21 +355,25 @@ router.post(
         });
       }
 
-      // Validate participantIds: each must be a non-empty string, cap at 50
+      // Normalise participant IDs before validation and lookup.
       if (participantIds.length > 50) {
         return res.status(400).json({ error: 'Too many participants (max 50)' });
       }
-      if (participantIds.some(id => typeof id !== 'string' || !id.trim())) {
+      if (participantIds.some(id => typeof id !== 'string')) {
         return res.status(400).json({ error: 'Each participant ID must be a non-empty string' });
       }
-      // Reject self-only conversations: the only listed participant is the current user
-      const otherIds = participantIds.filter(id => id !== currentUserId);
-      if (otherIds.length === 0) {
-        return res.status(400).json({ error: 'A conversation must include at least one other participant' });
+      const normalisedParticipantIds = participantIds.map(id => id.trim()).filter(Boolean);
+      if (normalisedParticipantIds.length === 0) {
+        return res.status(400).json({ error: 'Each participant ID must be a non-empty string' });
       }
-      // Reject duplicate participant IDs
-      if (new Set(participantIds).size !== participantIds.length) {
+      if (new Set(normalisedParticipantIds).size !== normalisedParticipantIds.length) {
         return res.status(400).json({ error: 'Duplicate participant IDs are not allowed' });
+      }
+      const otherIds = normalisedParticipantIds.filter(id => id !== currentUserId);
+      if (otherIds.length === 0) {
+        return res
+          .status(400)
+          .json({ error: 'A conversation must include at least one other participant' });
       }
 
       // Validate type against allowed values (must match ConversationV4 model schema)
@@ -393,7 +397,7 @@ router.post(
       // Fetch user information for all participants
       // Users are keyed by their string 'id' field (from JWT auth), NOT ObjectId '_id'
       const usersCollection = dbInstance.collection('users');
-      const uniqueUserIds = [...new Set([currentUserId, ...participantIds])];
+      const uniqueUserIds = [...new Set([currentUserId, ...normalisedParticipantIds])];
       const participantUsers = await usersCollection
         .find({
           id: { $in: uniqueUserIds },
@@ -417,15 +421,7 @@ router.post(
         role: user.role || 'customer',
       }));
 
-      // Check thread (new-conversation) rate limit
       const service = await getMessengerService();
-      const threadLimitCheck = await service.checkThreadRateLimit(currentUserId);
-      if (!threadLimitCheck.allowed) {
-        return res.status(429).json({
-          error: threadLimitCheck.message || 'Too many new conversations today. Please try again tomorrow.',
-          retryAfter: threadLimitCheck.retryAfter || 86400,
-        });
-      }
 
       // Create conversation
       const conversation = await service.createConversation({
@@ -433,6 +429,7 @@ router.post(
         participants,
         context: context || null,
         metadata: metadata || {},
+        creatorUserId: currentUserId,
       });
 
       // Emit WebSocket event to all participants
@@ -460,10 +457,12 @@ router.post(
         error: error.message,
         userId: req.user?.id,
         durationMs: Date.now() - startMs,
-        statusCode: 500,
+        statusCode: error.statusCode || messengerErrorStatus(error.message || ''),
       });
-      res.status(500).json({
+      res.status(error.statusCode || messengerErrorStatus(error.message || '')).json({
         error: error.message || 'Failed to create conversation',
+        code: error.code,
+        retryAfter: error.retryAfter,
       });
     }
   }
@@ -583,8 +582,10 @@ router.patch(
     } catch (error) {
       logger.error('Error updating conversation:', error);
       const msg = error.message || '';
-      res.status(messengerErrorStatus(msg)).json({
+      res.status(error.statusCode || messengerErrorStatus(msg)).json({
         error: msg || 'Failed to update conversation',
+        code: error.code,
+        retryAfter: error.retryAfter,
       });
     }
   }
@@ -789,7 +790,7 @@ router.post(
     } catch (error) {
       messengerMetrics.increment('messenger_v4_errors_total');
       const msg = error.message || '';
-      const statusCode = messengerErrorStatus(msg);
+      const statusCode = error.statusCode || messengerErrorStatus(msg);
       logger.error('Error sending message:', {
         error: msg,
         userId: req.user?.id,
@@ -799,6 +800,9 @@ router.post(
       });
       res.status(statusCode).json({
         error: msg || 'Failed to send message',
+        code: error.code,
+        retryAfter: error.retryAfter,
+        maxMessageLength: error.maxMessageLength,
       });
     }
   }

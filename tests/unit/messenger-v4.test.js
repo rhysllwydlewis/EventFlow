@@ -1775,3 +1775,241 @@ describeReplicaSet('transaction rollback (replica-set mode)', () => {
     expect(messages).toHaveLength(0);
   });
 });
+
+describe('Messenger v4 polish edge cases', () => {
+  let db;
+  let service;
+
+  beforeEach(async () => {
+    db = createInMemoryDb();
+    service = new MessengerV4Service(db, console);
+    await db.collection('users').insertMany([
+      { id: 'free1', firstName: 'Free', subscriptionTier: 'free' },
+      { id: 'free2', firstName: 'Recipient', subscriptionTier: 'free' },
+      { id: 'free3', firstName: 'Third', subscriptionTier: 'free' },
+      { id: 'pro1', firstName: 'Pro', subscriptionTier: 'pro' },
+      { id: 'plus1', firstName: 'Plus', subscriptionTier: 'pro_plus' },
+      { id: 'legacy1', firstName: 'Legacy', subscriptionTier: 'premium' },
+    ]);
+  });
+
+  const participants = (a = 'free1', b = 'free2') => [
+    { userId: a, displayName: a, role: 'customer' },
+    { userId: b, displayName: b, role: 'customer' },
+  ];
+
+  it('normalises participant IDs and rejects duplicates after trim', async () => {
+    await expect(
+      service.createConversation({
+        type: 'direct',
+        creatorUserId: 'free1',
+        participants: [
+          { userId: 'free2', displayName: 'A', role: 'customer' },
+          { userId: ' free2 ', displayName: 'A', role: 'customer' },
+        ],
+      })
+    ).rejects.toThrow(/Duplicate participant IDs/);
+  });
+
+  it('rejects blank and self-only participants after normalisation', async () => {
+    await expect(
+      service.createConversation({
+        type: 'direct',
+        creatorUserId: 'free1',
+        participants: [{ userId: ' ', displayName: 'Blank', role: 'customer' }],
+      })
+    ).rejects.toThrow(/Validation failed/);
+    await expect(
+      service.createConversation({
+        type: 'direct',
+        creatorUserId: 'free1',
+        participants: [{ userId: ' free1 ', displayName: 'Self', role: 'customer' }],
+      })
+    ).rejects.toThrow(/at least one other participant/);
+  });
+
+  it('allows existing direct and context conversation reuse at the thread limit', async () => {
+    const direct = await service.createConversation({
+      type: 'direct',
+      creatorUserId: 'free1',
+      participants: participants(),
+    });
+    const context = await service.createConversation({
+      type: 'marketplace',
+      creatorUserId: 'free1',
+      participants: participants('free1', 'free3'),
+      context: { type: 'marketplace_listing', referenceId: 'listing-1' },
+    });
+    await service.createConversation({
+      type: 'enquiry',
+      creatorUserId: 'free1',
+      participants: participants('free1', 'pro1'),
+      context: { type: 'package', referenceId: 'pkg-1' },
+    });
+
+    await expect(
+      service.createConversation({
+        type: 'direct',
+        creatorUserId: 'free1',
+        participants: participants().reverse(),
+      })
+    ).resolves.toMatchObject({ _id: direct._id });
+    await expect(
+      service.createConversation({
+        type: 'marketplace',
+        creatorUserId: 'free1',
+        participants: participants('free1', 'free3'),
+        context: { type: 'marketplace_listing', referenceId: 'listing-1' },
+      })
+    ).resolves.toMatchObject({ _id: context._id });
+  });
+
+  it('blocks genuinely new conversations at thread limit and counts only creator metadata', async () => {
+    await service.createConversation({
+      type: 'direct',
+      creatorUserId: 'free2',
+      participants: participants('free2', 'free1'),
+    });
+    expect((await service.checkThreadRateLimit('free1')).allowed).toBe(true);
+
+    await service.createConversation({
+      type: 'enquiry',
+      creatorUserId: 'free1',
+      participants: participants('free1', 'free2'),
+      context: { type: 'package', referenceId: 'a' },
+      metadata: { createdByUserId: 'free2' },
+    });
+    await service.createConversation({
+      type: 'enquiry',
+      creatorUserId: 'free1',
+      participants: participants('free1', 'free3'),
+      context: { type: 'package', referenceId: 'b' },
+    });
+    await service.createConversation({
+      type: 'enquiry',
+      creatorUserId: 'free1',
+      participants: participants('free1', 'pro1'),
+      context: { type: 'package', referenceId: 'c' },
+    });
+    const check = await service.checkThreadRateLimit('free1');
+    expect(check.allowed).toBe(false);
+    await expect(
+      service.createConversation({
+        type: 'enquiry',
+        creatorUserId: 'free1',
+        participants: participants('free1', 'plus1'),
+        context: { type: 'package', referenceId: 'd' },
+      })
+    ).rejects.toMatchObject({ statusCode: 429, code: 'THREAD_LIMIT_EXCEEDED' });
+  });
+
+  it('markUnread is idempotent and markRead clears unreadCount', async () => {
+    const conv = await service.createConversation({
+      type: 'direct',
+      creatorUserId: 'free1',
+      participants: participants(),
+    });
+    await service.updateConversation(conv._id.toString(), 'free1', { markUnread: true });
+    const twice = await service.updateConversation(conv._id.toString(), 'free1', {
+      markUnread: true,
+    });
+    expect(twice.participants.find(p => p.userId === 'free1').unreadCount).toBe(1);
+    const read = await service.updateConversation(conv._id.toString(), 'free1', { markRead: true });
+    expect(read.participants.find(p => p.userId === 'free1').unreadCount).toBe(0);
+  });
+
+  it('enforces maxMessageLength by tier after sanitising content', async () => {
+    const conv = await service.createConversation({
+      type: 'direct',
+      creatorUserId: 'free1',
+      participants: participants('free1', 'pro1'),
+    });
+    await expect(
+      service.sendMessage(conv._id.toString(), {
+        senderId: 'free1',
+        senderName: 'Free',
+        content: 'x'.repeat(501),
+      })
+    ).rejects.toMatchObject({ statusCode: 413, code: 'MESSAGE_TOO_LONG' });
+    await expect(
+      service.sendMessage(conv._id.toString(), {
+        senderId: 'pro1',
+        senderName: 'Pro',
+        content: 'x'.repeat(501),
+      })
+    ).resolves.toBeDefined();
+    await expect(
+      service.sendMessage(conv._id.toString(), {
+        senderId: 'legacy1',
+        senderName: 'Legacy',
+        content: 'x'.repeat(501),
+      })
+    ).rejects.toThrow(/not a participant|not found/);
+    const legacyConv = await service.createConversation({
+      type: 'direct',
+      creatorUserId: 'legacy1',
+      participants: participants('legacy1', 'free2'),
+    });
+    await expect(
+      service.sendMessage(legacyConv._id.toString(), {
+        senderId: 'legacy1',
+        senderName: 'Legacy',
+        content: 'x'.repeat(501),
+      })
+    ).rejects.toMatchObject({ statusCode: 413 });
+  });
+});
+
+const fs = require('fs');
+const path = require('path');
+
+describe('Messenger v4 frontend polish static assertions', () => {
+  const read = rel => fs.readFileSync(path.join(__dirname, '..', '..', rel), 'utf8');
+
+  it('keeps final-loaded polish CSS date separators compact', () => {
+    const css = read('public/messenger/css/messenger-v4-polish.css');
+    expect(css).toMatch(/\.messenger-v4__date-separator\s*{[^}]*margin:\s*10px 0;/s);
+    expect(css).not.toMatch(
+      /\.messenger-v4__date-separator\s*{[^}]*margin:\s*(2[0-9]|[3-9][0-9])px 0;/s
+    );
+  });
+
+  it('has CSS selectors for ContextBannerV4 rendered classes', () => {
+    const js = read('public/messenger/js/ContextBannerV4.js');
+    const css = read('public/messenger/css/messenger-v4-polish.css');
+    const classes = [
+      'messenger-v4__context-banner',
+      'messenger-v4__context-banner-icon',
+      'messenger-v4__context-banner-title',
+      'messenger-v4__context-banner-subtitle',
+      'messenger-v4__context-banner-text',
+      'messenger-v4__context-banner-link',
+      'messenger-v4__context-banner-thumb',
+    ];
+    classes.forEach(cls => {
+      expect(js).toContain(cls);
+      expect(css).toContain(`.${cls}`);
+    });
+  });
+
+  it('preserves MessengerAPI and route error metadata plus composer inline handling', () => {
+    const api = read('public/messenger/js/MessengerAPI.js');
+    const route = read('routes/messenger-v4.js');
+    const composer = read('public/messenger/js/MessageComposerV4.js');
+    expect(api).toContain('apiError.status = response.status');
+    expect(api).toContain('apiError.retryAfter');
+    expect(api).toContain('apiError.code');
+    expect(route).toContain('code: error.code');
+    expect(route).toContain('maxMessageLength: error.maxMessageLength');
+    expect(composer).toContain('err?.status === 429');
+    expect(composer).toContain('MESSAGE_TOO_LONG');
+    expect(composer).toContain('Network error');
+  });
+
+  it('does not link chat headers to participant user ids as supplier ids', () => {
+    const chatView = read('public/messenger/js/ChatViewV4.js');
+    expect(chatView).not.toContain('encodeURIComponent(other.userId)');
+    expect(chatView).toContain("conv.context?.type === 'supplier_profile'");
+    expect(chatView).toContain('encodeURIComponent(supplierProfileId)');
+  });
+});

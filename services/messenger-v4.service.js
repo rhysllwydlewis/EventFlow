@@ -238,16 +238,33 @@ class MessengerV4Service {
   /**
    * Create a new conversation (with deduplication)
    * @param {Object} data - Conversation data
-   * @param {string} data.type - Conversation type
+   * @param {string} conversationData.type - Conversation type
    * @param {Array} data.participants - Array of participant objects
-   * @param {Object} data.context - Optional context information
-   * @param {Object} data.metadata - Optional metadata
+   * @param {Object} conversationData.context - Optional context information
+   * @param {Object} conversationData.metadata - Optional metadata
    * @returns {Object} Created or existing conversation
    */
   async createConversation(data) {
+    const creatorUserId = typeof data.creatorUserId === 'string' ? data.creatorUserId.trim() : null;
+    const normalisedParticipants = Array.isArray(data.participants)
+      ? data.participants
+          .map(p => ({ ...p, userId: typeof p.userId === 'string' ? p.userId.trim() : p.userId }))
+          .filter(p => typeof p.userId === 'string' && p.userId.length > 0)
+      : [];
+    const normalisedIds = normalisedParticipants.map(p => p.userId);
+    if (normalisedIds.length !== new Set(normalisedIds).size) {
+      throw new Error('Validation failed: Duplicate participant IDs are not allowed');
+    }
+    if (creatorUserId && normalisedIds.every(id => id === creatorUserId)) {
+      throw new Error(
+        'Validation failed: A conversation must include at least one other participant'
+      );
+    }
+    const conversationData = { ...data, participants: normalisedParticipants };
+
     // Validate input
     const validationErrors = validateConversation({
-      ...data,
+      ...conversationData,
       status: data.status || 'active',
     });
 
@@ -256,10 +273,10 @@ class MessengerV4Service {
     }
 
     // Deduplicate: Check if conversation already exists between same participants
-    const participantIds = data.participants.map(p => p.userId).sort();
+    const participantIds = conversationData.participants.map(p => p.userId).sort();
 
     // For direct conversations, check if one already exists
-    if (data.type === 'direct' && participantIds.length === 2) {
+    if (conversationData.type === 'direct' && participantIds.length === 2) {
       const existingConversation = await this.conversationsCollection.findOne({
         type: 'direct',
         'participants.userId': { $all: participantIds },
@@ -276,28 +293,41 @@ class MessengerV4Service {
     }
 
     // For context-based conversations, check for existing conversation with same context
-    if (data.context && data.context.referenceId) {
+    if (conversationData.context && conversationData.context.referenceId) {
       const existingContextConversation = await this.conversationsCollection.findOne({
         'participants.userId': { $all: participantIds },
-        'context.type': data.context.type,
-        'context.referenceId': data.context.referenceId,
+        'context.type': conversationData.context.type,
+        'context.referenceId': conversationData.context.referenceId,
         status: 'active',
       });
 
       if (existingContextConversation) {
         this.logger.info('Found existing context-based conversation', {
           conversationId: existingContextConversation._id,
-          contextType: data.context.type,
+          contextType: conversationData.context.type,
         });
         return existingContextConversation;
+      }
+    }
+
+    if (creatorUserId) {
+      const threadLimitCheck = await this.checkThreadRateLimit(creatorUserId);
+      if (!threadLimitCheck.allowed) {
+        const error = new Error(
+          threadLimitCheck.message || 'Too many new conversations today. Please try again tomorrow.'
+        );
+        error.statusCode = 429;
+        error.code = 'THREAD_LIMIT_EXCEEDED';
+        error.retryAfter = threadLimitCheck.retryAfter || 86400;
+        throw error;
       }
     }
 
     // Create new conversation
     const now = new Date();
     const conversation = {
-      type: data.type,
-      participants: data.participants.map(p => ({
+      type: conversationData.type,
+      participants: conversationData.participants.map(p => ({
         userId: p.userId,
         displayName: p.displayName,
         avatar: p.avatar || null,
@@ -308,9 +338,12 @@ class MessengerV4Service {
         unreadCount: 0,
         lastReadAt: null,
       })),
-      context: data.context || null,
+      context: conversationData.context || null,
       lastMessage: null,
-      metadata: data.metadata || {},
+      metadata: {
+        ...(conversationData.metadata || {}),
+        ...(creatorUserId ? { createdByUserId: creatorUserId } : {}),
+      },
       status: 'active',
       messageCount: 0,
       createdAt: now,
@@ -546,9 +579,10 @@ class MessengerV4Service {
     }
 
     if (updates.markUnread) {
-      // Increment unread count by 1 so the badge reflects this each time
+      // Idempotent: mark unread makes the conversation unread without inflating counts.
       const currentUnread = conversation.participants[participantIndex]?.unreadCount || 0;
-      updateOps[`participants.${participantIndex}.unreadCount`] = currentUnread + 1;
+      updateOps[`participants.${participantIndex}.unreadCount`] =
+        currentUnread > 0 ? currentUnread : 1;
     }
 
     updateOps.updatedAt = now;
@@ -633,6 +667,19 @@ class MessengerV4Service {
     // Sanitize content. contentSanitizer.sanitizeContent() returns '' for null/undefined,
     // but we add the || '' guard explicitly as a defensive measure for attachment-only messages.
     const sanitizedContent = contentSanitizer.sanitizeContent(messageData.content || '');
+
+    const usersCollection = this.db.collection('users');
+    const sender = await usersCollection.findOne({ id: messageData.senderId });
+    const senderLimits = getMessagingLimitsForTier(sender?.subscriptionTier || 'free');
+    if (sanitizedContent.length > senderLimits.maxMessageLength) {
+      const error = new Error(
+        `Message is too long. Maximum length is ${senderLimits.maxMessageLength} characters.`
+      );
+      error.statusCode = 413;
+      error.code = 'MESSAGE_TOO_LONG';
+      error.maxMessageLength = senderLimits.maxMessageLength;
+      throw error;
+    }
 
     // Check for spam only when there is text content (attachment-only messages skip text checks)
     if (sanitizedContent.trim().length > 0) {
@@ -1441,7 +1488,7 @@ class MessengerV4Service {
         return {
           allowed: false,
           retryAfter: 3600,
-          message: `You\'ve reached the limit of ${limits.messagesPerHour} messages per hour. Please wait a moment before sending more.`,
+          message: `You've reached the limit of ${limits.messagesPerHour} messages per hour. Please wait a moment before sending more.`,
         };
       }
     }
@@ -1458,7 +1505,7 @@ class MessengerV4Service {
         return {
           allowed: false,
           retryAfter: 86400,
-          message: `You\'ve reached today\'s messaging limit of ${limits.messagesPerDay} messages. Limits reset at midnight UTC.`,
+          message: `You've reached today's messaging limit of ${limits.messagesPerDay} messages. Limits reset at midnight UTC.`,
         };
       }
     }
@@ -1483,7 +1530,7 @@ class MessengerV4Service {
     const startOfDay = new Date();
     startOfDay.setUTCHours(0, 0, 0, 0);
     const todayThreads = await this.conversationsCollection.countDocuments({
-      'participants.userId': userId,
+      'metadata.createdByUserId': userId,
       createdAt: { $gte: startOfDay },
     });
 
@@ -1491,7 +1538,7 @@ class MessengerV4Service {
       return {
         allowed: false,
         retryAfter: 86400,
-        message: `You\'ve reached today\'s limit of ${limits.threadsPerDay} new conversations. Limits reset at midnight UTC.`,
+        message: `You've reached today's limit of ${limits.threadsPerDay} new conversations. Limits reset at midnight UTC.`,
       };
     }
     return { allowed: true };

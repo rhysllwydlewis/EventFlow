@@ -318,12 +318,11 @@ class ConversationListV4 {
     const markLabel = isUnread ? 'Mark as Read' : 'Mark as Unread';
     const markAction = isUnread ? 'mark-read' : 'mark-unread';
     // When the conversation is already archived, the archive action becomes
-    // an un-archive action and the delete action is a permanent deletion
-    // (archived is effectively the recycle bin in this UX).
+    // an un-archive action; remove still archives/removes it from this inbox.
     const isArchived = !!me?.isArchived;
     const archiveLabel = isArchived ? 'Unarchive' : 'Archive';
     const archiveAriaLabel = isArchived ? 'Unarchive conversation' : 'Archive conversation';
-    const deleteLabel = isArchived ? 'Delete permanently' : 'Delete';
+    const deleteLabel = 'Remove from inbox';
     // Swap the archive icon for an "unarchive" (upload-out-of-box) glyph
     // when the conversation is archived so the action is self-describing.
     const archiveIconPath = isArchived
