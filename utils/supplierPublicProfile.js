@@ -164,6 +164,7 @@ function safePublicSupplier(supplier = {}, extras = {}) {
   const rating = numberOrNull(source.averageRating ?? source.rating);
   const reviewCount = numberOrNull(source.reviewCount);
   const avgResponseTime = numberOrNull(source.avgResponseTime);
+  const ownerUserId = maybeText(source.ownerUserId, 100);
 
   return {
     id: maybeText(source.id, 100),
@@ -185,6 +186,8 @@ function safePublicSupplier(supplier = {}, extras = {}) {
     avatarUrl: profilePhotoUrl,
     displayAvatarUrl: profilePhotoUrl,
     resolvedProfileImageUrl: profilePhotoUrl,
+    ownerUserId,
+    messagingRecipientId: ownerUserId,
     themeColor: /^#[0-9a-f]{6}$/i.test(String(source.themeColor || ''))
       ? String(source.themeColor).trim()
       : null,

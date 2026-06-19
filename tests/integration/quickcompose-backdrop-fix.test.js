@@ -1,5 +1,5 @@
 /**
- * Integration test: QuickComposeV4 backdrop pointer-events fix
+ * Integration test: QuickComposeV4 backdrop pointer-events and supplier compose polish
  *
  * The qcv4-backdrop element is appended to document.body on the first call to
  * open() and is NEVER removed — only its CSS class toggles.  If it lacks
@@ -73,5 +73,42 @@ describe('QuickComposeV4 — backdrop pointer-events', () => {
     );
     expect(overlayZMatch).not.toBeNull();
     expect(parseInt(overlayZMatch[1], 10)).toBeLessThan(9998);
+  });
+});
+
+describe('QuickComposeV4 — supplier compose polish', () => {
+  let src;
+
+  beforeAll(() => {
+    src = fs.readFileSync(QCV4_PATH, 'utf8');
+  });
+
+  it('centres the compose panel on desktop instead of forcing it to the bottom edge', () => {
+    expect(src).toContain('@media (min-width: 768px)');
+    expect(src).toContain('top: 50%; bottom: auto; left: 50%; right: auto;');
+    expect(src).toContain('transform: translate(-50%, -50%) scale(1) !important;');
+  });
+
+  it('resolves missing supplier recipients from the supplier profile API before opening', () => {
+    expect(src).toContain('async function hydrateSupplierRecipient(opts)');
+    expect(src).toContain('/api/suppliers/${encodeURIComponent(opts.contextId)}');
+    expect(src).toContain('resolveRecipientIdFromSupplier(supplier)');
+  });
+
+  it('prefers the safe messagingRecipientId when resolving supplier recipients', () => {
+    expect(src).toContain('supplier.messagingRecipientId');
+    expect(src.indexOf('supplier.messagingRecipientId')).toBeLessThan(
+      src.indexOf('supplier.ownerUserId')
+    );
+  });
+
+  it('shows a read-only recipient summary when the supplier recipient is known', () => {
+    expect(src).toContain('qcv4-recipient-summary');
+    expect(src).toContain('<input type="hidden" id="qcv4-recipient"');
+  });
+
+  it('does not ask for a manual recipient on supplier profile messages', () => {
+    expect(src).toContain("contextType === 'supplier_profile'");
+    expect(src).toContain('This supplier is not linked to a messaging account yet.');
   });
 });

@@ -1,7 +1,7 @@
 /**
  * QuickComposeV4 Component
- * Slide-up panel for initiating new conversations from any page.
- * Supports auth gating, draft restoration, and context attachment.
+ * Centred compose modal for initiating new conversations from any page.
+ * Supports auth gating, draft restoration, supplier recipient resolution, and context attachment.
  *
  * Usage:
  *   QuickComposeV4.attachAll()   – scan DOM for [data-quick-compose] buttons.
@@ -10,6 +10,7 @@
  * Button attributes:
  *   data-quick-compose="true"
  *   data-recipient-id="..."
+ *   data-recipient-name="..."
  *   data-context-type="package|supplier_profile|marketplace_listing"
  *   data-context-id="..."
  *   data-context-title="..."
@@ -108,6 +109,58 @@
     }
   }
 
+  function resolveRecipientIdFromSupplier(supplier) {
+    if (!supplier || typeof supplier !== 'object') {
+      return '';
+    }
+    return String(
+      supplier.messagingRecipientId ||
+        supplier.ownerUserId ||
+        supplier.userId ||
+        supplier.ownerId ||
+        supplier.accountId ||
+        supplier.createdByUserId ||
+        supplier.createdBy ||
+        supplier.createdById ||
+        ''
+    ).trim();
+  }
+
+  async function hydrateSupplierRecipient(opts) {
+    if (!opts || opts.contextType !== 'supplier_profile' || opts.recipientId || !opts.contextId) {
+      return opts || {};
+    }
+
+    try {
+      const response = await fetch(`/api/suppliers/${encodeURIComponent(opts.contextId)}`, {
+        credentials: 'include',
+        headers: { Accept: 'application/json' },
+      });
+
+      if (!response.ok) {
+        return { ...opts, recipientMissing: true };
+      }
+
+      const supplier = await response.json();
+      const recipientId = resolveRecipientIdFromSupplier(supplier);
+      if (!recipientId) {
+        return {
+          ...opts,
+          recipientMissing: true,
+          recipientName: opts.recipientName || supplier.name || opts.contextTitle || '',
+        };
+      }
+
+      return {
+        ...opts,
+        recipientId,
+        recipientName: opts.recipientName || supplier.name || opts.contextTitle || '',
+      };
+    } catch (_) {
+      return { ...opts, recipientMissing: true };
+    }
+  }
+
   // ─── Panel DOM ──────────────────────────────────────────────────────────────
 
   let _panel = null;
@@ -146,18 +199,26 @@
           max-height: 90vh;
           overflow-y: auto;
           transform: translateY(100%);
-          transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+          transition: transform 0.3s cubic-bezier(0.4,0,0.2,1), opacity 0.25s ease;
           font-family: inherit;
         }
         @media (min-width: 768px) {
           .qcv4-panel {
+            width: min(540px, calc(100vw - 32px));
             max-width: 540px;
-            left: 50%; transform: translateX(-50%) translateY(100%);
-            border-radius: 20px 20px 0 0;
+            max-height: min(720px, calc(100vh - 48px));
+            top: 50%; bottom: auto; left: 50%; right: auto;
+            border: 1px solid rgba(11,128,115,0.15);
+            border-radius: 20px;
+            box-shadow: 0 24px 90px rgba(15,23,42,0.22), 0 8px 30px rgba(11,128,115,0.16);
+            opacity: 0;
+            transform: translate(-50%, -45%) scale(0.98);
           }
           .qcv4-panel--visible {
-            transform: translateX(-50%) translateY(0) !important;
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1) !important;
           }
+          .qcv4-drag-handle { display: none; }
         }
         .qcv4-panel--visible { transform: translateY(0); }
 
@@ -226,6 +287,13 @@
         }
         .qcv4-recipient:read-only { background: rgba(240,253,244,0.6); color: #374151; }
         .qcv4-recipient:focus { outline: none; border-color: #0b8073; box-shadow: 0 0 0 3px rgba(11,128,115,0.15); }
+        .qcv4-recipient-summary {
+          width: 100%; padding: 9px 12px;
+          border: 1px solid rgba(11,128,115,0.14); border-radius: 8px;
+          font-size: 0.88rem; font-weight: 600; color: #1f2937;
+          background: rgba(240,253,250,0.72); box-sizing: border-box;
+        }
+        .qcv4-recipient-summary span { color: #0b8073; }
 
         .qcv4-textarea {
           width: 100%; min-height: 90px; max-height: 220px;
@@ -299,11 +367,15 @@
     const {
       recipientId = '',
       recipientName = '',
+      recipientMissing = false,
       contextType = '',
       contextTitle = '',
       contextImage = '',
       prefill = '',
     } = opts;
+
+    const supplierRecipientMissing =
+      recipientMissing || (contextType === 'supplier_profile' && !recipientId);
 
     const contextEmoji =
       {
@@ -334,6 +406,22 @@
          </div>`
         : '';
 
+    const recipientDisplayName = recipientName || contextTitle || recipientId;
+    const recipientFieldHtml = recipientId
+      ? `<div class="qcv4-field">
+           <label class="qcv4-label" for="qcv4-recipient-display">To</label>
+           <div class="qcv4-recipient-summary" id="qcv4-recipient-display"><span>${escapeHtml(recipientDisplayName)}</span></div>
+           <input type="hidden" id="qcv4-recipient" value="${escapeHtml(recipientId)}">
+         </div>`
+      : contextType === 'supplier_profile'
+        ? '<input type="hidden" id="qcv4-recipient" value="">'
+        : `<div class="qcv4-field">
+           <label class="qcv4-label" for="qcv4-recipient">To</label>
+           <input type="text" id="qcv4-recipient" class="qcv4-recipient"
+                  placeholder="Recipient name or ID" value="${escapeHtml(recipientName)}"
+                  autocomplete="off">
+         </div>`;
+
     _panel.innerHTML = `
       <div class="qcv4-drag-handle" aria-hidden="true"></div>
       <div class="qcv4-header">
@@ -344,16 +432,7 @@
       </div>
       <div class="qcv4-body">
         ${contextCardHtml}
-        ${
-          !recipientId
-            ? `<div class="qcv4-field">
-          <label class="qcv4-label" for="qcv4-recipient">To</label>
-          <input type="text" id="qcv4-recipient" class="qcv4-recipient"
-                 placeholder="Recipient name or ID" value="${escapeHtml(recipientName)}"
-                 autocomplete="off">
-        </div>`
-            : `<input type="hidden" id="qcv4-recipient" value="${escapeHtml(recipientId)}">`
-        }
+        ${recipientFieldHtml}
         <div class="qcv4-field">
           <label class="qcv4-label" for="qcv4-message">Message</label>
           <textarea id="qcv4-message" class="qcv4-textarea"
@@ -362,7 +441,9 @@
                     aria-describedby="qcv4-chars">${escapeHtml(prefill)}</textarea>
           <div class="qcv4-char-indicator" id="qcv4-chars">${CHAR_LIMIT} characters remaining</div>
         </div>
-        <div class="qcv4-error" id="qcv4-error" role="alert" aria-live="polite"></div>
+        <div class="qcv4-error${supplierRecipientMissing ? ' qcv4-error--visible' : ''}" id="qcv4-error" role="alert" aria-live="polite">${
+          supplierRecipientMissing ? 'This supplier is not linked to a messaging account yet.' : ''
+        }</div>
         <div class="qcv4-actions">
           <button class="qcv4-cancel-btn" id="qcv4-cancel-btn">Cancel</button>
           <button class="qcv4-submit" id="qcv4-submit-btn">Send Message</button>
@@ -390,10 +471,10 @@
             : ''
       }`;
       document.getElementById('qcv4-submit-btn').disabled =
-        ta.value.trim().length === 0 || remaining < 0;
+        ta.value.trim().length === 0 || remaining < 0 || supplierRecipientMissing;
     });
     // Initial state
-    if (ta.value.trim().length === 0) {
+    if (ta.value.trim().length === 0 || supplierRecipientMissing) {
       document.getElementById('qcv4-submit-btn').disabled = true;
     }
 
@@ -435,7 +516,8 @@
       return;
     }
 
-    _buildPanelContent(opts);
+    const hydratedOpts = await hydrateSupplierRecipient(opts);
+    _buildPanelContent(hydratedOpts);
     _isOpen = true;
 
     // Animate in (next frame)
@@ -491,7 +573,12 @@
     }
 
     if (!recipientId) {
-      _showError(errorEl, 'Please enter a recipient.');
+      _showError(
+        errorEl,
+        opts.contextType === 'supplier_profile'
+          ? 'This supplier is not linked to a messaging account yet.'
+          : 'Please enter a recipient.'
+      );
       return;
     }
 
