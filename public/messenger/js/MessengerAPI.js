@@ -445,6 +445,9 @@ class MessengerAPI {
     if (options.role) {
       params.append('role', options.role);
     }
+    if (options.mode) {
+      params.append('mode', options.mode);
+    }
     const qs = params.toString();
     return this.request(`/contacts${qs ? `?${qs}` : ''}`);
   }

@@ -181,8 +181,11 @@ class MessengerAppV4 {
       this.contactPicker = new ContactPickerV4(pickerContainer, this.api, {
         currentUserId: this._getCurrentUserId(),
         currentUserRole: this.state.currentUser?.role || null,
-        onSelect: ({ contact }) =>
-          this.createConversation([contact._id || contact.id], 'direct', { throwOnError: true }),
+        onSelect: ({ contact, metadata }) =>
+          this.createConversation([contact._id || contact.id], 'direct', {
+            throwOnError: true,
+            metadata: metadata || {},
+          }),
       });
     } else {
       console.warn(
@@ -969,7 +972,12 @@ class MessengerAppV4 {
   async createConversation(participantIds, contextOrType = 'direct', options = {}) {
     try {
       const { type, context } = MessengerAppV4._resolveTypeAndContext(contextOrType);
-      const data = await this.api.createConversation({ type, participantIds, context });
+      const data = await this.api.createConversation({
+        type,
+        participantIds,
+        context,
+        metadata: options.metadata || {},
+      });
       const conv = data.conversation || data;
       if (conv?._id) {
         this.state.updateConversation(conv);
