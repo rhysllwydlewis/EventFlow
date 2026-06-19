@@ -21,6 +21,10 @@ describe('Contact Form Endpoint', () => {
       expect(miscContent).toContain("router.post('/contact'");
     });
 
+    it('defines POST /contact-supplier endpoint', () => {
+      expect(miscContent).toContain("router.post('/contact-supplier'");
+    });
+
     it('applies rate limiting to contact endpoint', () => {
       // Check that rate limiting is applied alongside the contact handler
       expect(miscContent).toContain("router.post('/contact'");
@@ -30,6 +34,20 @@ describe('Contact Form Endpoint', () => {
     it('verifies captcha before accepting submission', () => {
       expect(miscContent).toContain('verifyAltcha(captchaToken)');
       expect(miscContent).toContain('captchaResult.success');
+    });
+
+    it('verifies captcha before accepting supplier enquiries', () => {
+      const supplierRouteStart = miscContent.indexOf("router.post('/contact-supplier'");
+      const supplierRouteContent = miscContent.slice(supplierRouteStart);
+
+      expect(supplierRouteStart).toBeGreaterThan(-1);
+      expect(supplierRouteContent).toContain('const { captchaToken } = req.body || {};');
+      expect(supplierRouteContent).toContain('verifyAltcha(captchaToken)');
+      expect(supplierRouteContent).toContain('CAPTCHA verification failed');
+      expect(supplierRouteContent).toContain('dbUnified.insertOne');
+      expect(supplierRouteContent.indexOf('verifyAltcha(captchaToken)')).toBeLessThan(
+        supplierRouteContent.indexOf('dbUnified.insertOne')
+      );
     });
 
     it('validates required fields (name, email, message)', () => {
@@ -95,5 +113,30 @@ describe('Contact Form Endpoint', () => {
     it('auth.js exports initializeDependencies', () => {
       expect(authContent).toContain('module.exports.initializeDependencies');
     });
+  });
+});
+
+describe('Supplier profile contact CAPTCHA frontend', () => {
+  let supplierInitContent;
+
+  beforeAll(() => {
+    supplierInitContent = fs.readFileSync(
+      path.join(__dirname, '../../public/assets/js/pages/supplier-init.js'),
+      'utf8'
+    );
+  });
+
+  it('adds ALTCHA support for the supplier contact form', () => {
+    expect(supplierInitContent).toContain('#supplier-contact-form');
+    expect(supplierInitContent).toContain('altcha-widget');
+    expect(supplierInitContent).toContain('/api/v1/altcha/challenge');
+  });
+
+  it('injects captchaToken into contact-supplier submissions', () => {
+    expect(supplierInitContent).toContain('/api/v1/contact-supplier');
+    expect(supplierInitContent).toContain('body.captchaToken = token');
+    expect(supplierInitContent).toContain(
+      'Please complete the verification challenge before sending your message.'
+    );
   });
 });
