@@ -654,7 +654,12 @@ class ConversationListV4 {
       return '<span class="messenger-v4__message-preview--empty">No messages yet</span>';
     }
     const isOwn = msg.senderId === currentUser?.id || msg.senderId === currentUser?._id;
-    const text = msg.content ? this.escape(msg.content.substring(0, 60)) : '📎 Attachment';
+    // Strip any pre-existing "You: " prefix from stored content before we
+    // apply our own.  Older data or certain write paths may have persisted
+    // the prefix as part of the content, which would cause "You: You: …".
+    const rawContent = msg.content || '';
+    const stripped = /^You:\s/i.test(rawContent) ? rawContent.replace(/^You:\s/i, '') : rawContent;
+    const text = stripped ? this.escape(stripped.substring(0, 60)) : '📎 Attachment';
     return isOwn ? `<span class="messenger-v4__message-preview--you">You: ${text}</span>` : text;
   }
 

@@ -75,7 +75,14 @@ function messengerErrorStatus(msg) {
   if (msg.includes('access denied') || msg.includes('not a participant')) {
     return 403;
   }
-  if (msg.includes('window expired') || msg.includes('Rate limit')) {
+  if (
+    msg.includes('window expired') ||
+    msg.includes('Rate limit') ||
+    msg.includes("You've reached") ||
+    msg.includes('rate limit') ||
+    msg.includes('Too many') ||
+    msg.includes('spam')
+  ) {
     return 429;
   }
   return 500;
@@ -355,6 +362,15 @@ router.post(
       if (participantIds.some(id => typeof id !== 'string' || !id.trim())) {
         return res.status(400).json({ error: 'Each participant ID must be a non-empty string' });
       }
+      // Reject self-only conversations: the only listed participant is the current user
+      const otherIds = participantIds.filter(id => id !== currentUserId);
+      if (otherIds.length === 0) {
+        return res.status(400).json({ error: 'A conversation must include at least one other participant' });
+      }
+      // Reject duplicate participant IDs
+      if (new Set(participantIds).size !== participantIds.length) {
+        return res.status(400).json({ error: 'Duplicate participant IDs are not allowed' });
+      }
 
       // Validate type against allowed values (must match ConversationV4 model schema)
       if (!CONVERSATION_V4_TYPES.includes(type)) {
@@ -401,10 +417,18 @@ router.post(
         role: user.role || 'customer',
       }));
 
+      // Check thread (new-conversation) rate limit
+      const service = await getMessengerService();
+      const threadLimitCheck = await service.checkThreadRateLimit(currentUserId);
+      if (!threadLimitCheck.allowed) {
+        return res.status(429).json({
+          error: threadLimitCheck.message || 'Too many new conversations today. Please try again tomorrow.',
+          retryAfter: threadLimitCheck.retryAfter || 86400,
+        });
+      }
+
       // Create conversation
-      const conversation = await (
-        await getMessengerService()
-      ).createConversation({
+      const conversation = await service.createConversation({
         type,
         participants,
         context: context || null,
