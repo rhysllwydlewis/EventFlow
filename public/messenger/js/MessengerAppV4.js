@@ -181,6 +181,8 @@ class MessengerAppV4 {
       this.contactPicker = new ContactPickerV4(pickerContainer, this.api, {
         currentUserId: this._getCurrentUserId(),
         currentUserRole: this.state.currentUser?.role || null,
+        onSelect: ({ contact }) =>
+          this.createConversation([contact._id || contact.id], 'direct', { throwOnError: true }),
       });
     } else {
       console.warn(
@@ -964,7 +966,7 @@ class MessengerAppV4 {
    *     which will be mapped to the corresponding conversation type, or
    *   - a canonical context object { type, referenceId, referenceTitle, referenceImage }.
    */
-  async createConversation(participantIds, contextOrType = 'direct') {
+  async createConversation(participantIds, contextOrType = 'direct', options = {}) {
     try {
       const { type, context } = MessengerAppV4._resolveTypeAndContext(contextOrType);
       const data = await this.api.createConversation({ type, participantIds, context });
@@ -980,6 +982,9 @@ class MessengerAppV4 {
           err?.message || 'Failed to start conversation. Please try again.',
           'error'
         );
+      }
+      if (options.throwOnError) {
+        throw err;
       }
     }
   }
