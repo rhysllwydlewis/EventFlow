@@ -328,6 +328,7 @@ describe('public-supplier-avatar client', () => {
       hidden: true,
       style: {},
       attributes: {},
+      classList: { remove: jest.fn(), add: jest.fn() },
       set src(value) {
         this.attributes.src = value;
       },

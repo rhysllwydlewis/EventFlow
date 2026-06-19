@@ -13,7 +13,7 @@ function runHomepageScenario({ stats, listings = [], reviews = [] } = {}) {
     cwd: path.join(__dirname, '../..'),
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'pipe'],
-    timeout: 5000,
+    timeout: 15000,
   });
 
   return JSON.parse(output);

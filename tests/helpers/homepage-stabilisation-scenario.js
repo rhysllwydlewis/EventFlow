@@ -79,8 +79,14 @@ function collectResult(document) {
 }
 
 async function waitForAsyncWork() {
-  await new Promise(resolve => setTimeout(resolve, 0));
-  await new Promise(resolve => setTimeout(resolve, 0));
+  // Flush the microtask queue enough times to let the full
+  // fetch → .json() → DOM-update Promise chain settle.
+  // Under Jest parallel load two yields was not always enough.
+  for (let i = 0; i < 8; i++) {
+    await new Promise(resolve => setTimeout(resolve, 0));
+  }
+  // A short real delay as a safety net under system load.
+  await new Promise(resolve => setTimeout(resolve, 30));
 }
 
 async function main() {
