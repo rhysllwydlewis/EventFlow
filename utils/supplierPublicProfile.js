@@ -164,6 +164,7 @@ function safePublicSupplier(supplier = {}, extras = {}) {
   const rating = numberOrNull(source.averageRating ?? source.rating);
   const reviewCount = numberOrNull(source.reviewCount);
   const avgResponseTime = numberOrNull(source.avgResponseTime);
+  const ownerUserId = maybeText(source.ownerUserId, 100);
 
   return {
     id: maybeText(source.id, 100),
@@ -185,6 +186,8 @@ function safePublicSupplier(supplier = {}, extras = {}) {
     avatarUrl: profilePhotoUrl,
     displayAvatarUrl: profilePhotoUrl,
     resolvedProfileImageUrl: profilePhotoUrl,
+    ownerUserId,
+    messagingRecipientId: ownerUserId,
     themeColor: /^#[0-9a-f]{6}$/i.test(String(source.themeColor || ''))
       ? String(source.themeColor).trim()
       : null,
@@ -226,9 +229,7 @@ function safePublicSupplier(supplier = {}, extras = {}) {
     featuredSupplier: bool(extra.featuredSupplier || source.featuredSupplier),
     isPro: bool(extra.isPro || source.isPro),
     subscriptionTier: maybeText(source.subscriptionTier || source.subscription?.tier, 40),
-    subscription: source.subscription?.tier
-      ? { tier: maybeText(source.subscription.tier, 40) }
-      : undefined,
+    subscription: source.subscription?.tier ? { tier: maybeText(source.subscription.tier, 40) } : undefined,
     badges: safeStringArray(source.badges, 24, 80),
     badgeDetails: safeBadgeDetails(extra.badgeDetails || source.badgeDetails),
     topPackages: safeTopPackages(source.topPackages),
