@@ -1,0 +1,64 @@
+/*
+ * Messenger new-message widget safeguards
+ * Small UI fixes layered after messenger-v4-polish.css.
+ */
+
+.messenger-v4__new-message-close {
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  line-height: 1;
+  font-size: 18px;
+  font-weight: 500;
+  text-align: center;
+  border-radius: 999px;
+}
+
+.messenger-v4__new-message-close:focus-visible {
+  outline: 2px solid var(--messenger-primary, #0b8073);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(11, 128, 115, 0.14);
+}
+
+.messenger-v4__new-message-subtitle {
+  max-width: 34rem;
+}
+
+.messenger-v4__avatar {
+  position: relative;
+}
+
+.messenger-v4__avatar-image {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  border-radius: inherit;
+}
+
+.messenger-v4__avatar-initials {
+  width: 100%;
+  height: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.messenger-v4__new-message-contact .messenger-v4__contact-name {
+  font-weight: 700;
+  color: #123633;
+}
+
+.messenger-v4__new-message-contact .messenger-v4__contact-email {
+  color: rgba(18, 54, 51, 0.68);
+}
+
+.messenger-v4__new-message-empty {
+  line-height: 1.45;
+}
