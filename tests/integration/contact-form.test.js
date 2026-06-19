@@ -115,3 +115,26 @@ describe('Contact Form Endpoint', () => {
     });
   });
 });
+
+describe('Supplier profile contact CAPTCHA frontend', () => {
+  let supplierInitContent;
+
+  beforeAll(() => {
+    supplierInitContent = fs.readFileSync(
+      path.join(__dirname, '../../public/assets/js/pages/supplier-init.js'),
+      'utf8'
+    );
+  });
+
+  it('adds ALTCHA support for the supplier contact form', () => {
+    expect(supplierInitContent).toContain('#supplier-contact-form');
+    expect(supplierInitContent).toContain('altcha-widget');
+    expect(supplierInitContent).toContain('/api/v1/altcha/challenge');
+  });
+
+  it('injects captchaToken into contact-supplier submissions', () => {
+    expect(supplierInitContent).toContain('/api/v1/contact-supplier');
+    expect(supplierInitContent).toContain('body.captchaToken = token');
+    expect(supplierInitContent).toContain('Please complete the verification challenge before sending your message.');
+  });
+});
