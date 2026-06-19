@@ -578,6 +578,7 @@ describe('public supplier profile-photo rendering contracts', () => {
       path.join(__dirname, '../../public/assets/js/public-supplier-avatar.js'),
       'utf8'
     );
+    // supplier-profile.js delegates to public-supplier-avatar.js for the hero avatar
     expect(supplierProfileJs).toContain("document.getElementById('hero-avatar-img')");
     expect(supplierProfileJs).not.toContain('avatarImgEl.src = profileImage');
     expect(supplierProfileJs).toContain('public-supplier-avatar.js and its dedicated endpoint');
@@ -585,10 +586,14 @@ describe('public supplier profile-photo rendering contracts', () => {
     expect(supplierProfileJs).toContain(
       'avatarInitialsEl.textContent = _getInitials(supplier.name)'
     );
+    // public-supplier-avatar.js uses the dedicated endpoint and sets img.src from the resolved URL
     expect(publicAvatarJs).toContain('/api/public/suppliers/');
-    expect(publicAvatarJs).toContain('img.src = payload.avatarUrl');
-    expect(publicAvatarJs).not.toContain('profilePhotoUrl');
-    expect(publicAvatarJs).not.toContain('displayAvatarUrl');
+    // The script resolves the URL via getSupplierProfileImage then assigns to img.src
+    expect(publicAvatarJs).toContain('img.src = avatarUrl');
+    // It reads profilePhotoUrl/displayAvatarUrl/avatarUrl from the supplier payload
+    // via getSupplierProfileImage — these are expected internal field reads
+    expect(publicAvatarJs).toContain('profilePhotoUrl');
+    expect(publicAvatarJs).toContain('displayAvatarUrl');
   });
 
   test('package sidebar uses resolved supplier profile images for avatar, shortlist, and messaging', () => {

@@ -28,8 +28,8 @@ describe('public build marker and launch-state guardrails', () => {
     const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
     expect(meta.app).toBe('EventFlow');
     expect(meta.version).toBe(pkg.version);
-    expect(meta.marker).toBe('pr-1228-final-public-render-cache-mopup');
-    expect(meta.createdFor).toBe('final-public-render-cache-mopup-after-pr-1228');
+    expect(meta.marker).toBe('pr-1230-production-render-path-fix');
+    expect(meta.createdFor).toBe('production-render-path-fix-pr-1230');
   });
 
   test('key public pages do not contain stale visible version loading text', () => {
