@@ -19,11 +19,12 @@ describe('Messenger contact picker supplier safeguards', () => {
     );
   });
 
-  it('forces generic contact searches into supplier mode', () => {
+  it('keeps generic contact picker searches in supplier mode', () => {
     const js = read('public/messenger/js/ContactPickerV4Safeguards.js');
     expect(js).toContain('role: SUPPLIER_ROLE');
-    expect(js).toContain("mode: options.mode || 'supplier_search'");
-    expect(js).toContain("roleOf(contact) === SUPPLIER_ROLE");
+    expect(js).toContain("mode: 'supplier_search'");
+    expect(js).toContain('roleOf(contact) === SUPPLIER_ROLE');
+    expect(js).toContain('this.api.getContacts(query');
   });
 
   it('blocks cold non-supplier starts while keeping existing conversations available', () => {
