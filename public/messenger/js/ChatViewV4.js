@@ -92,7 +92,7 @@ class ChatViewV4 {
             <svg class="messenger-v4__archive-icon-off" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5" rx="1"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
             <svg class="messenger-v4__archive-icon-on" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:none"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5" rx="1"/><polyline points="9 14 12 11 15 14"/><line x1="12" y1="11" x2="12" y2="18"/></svg>
           </button>
-          <button class="ef-cta messenger-v4__action-button" id="v4DeleteConvBtn" aria-label="Delete conversation" title="Delete" data-archived="false">
+          <button class="ef-cta messenger-v4__action-button" id="v4DeleteConvBtn" aria-label="Remove from inbox" title="Remove from inbox" data-archived="false">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
           </button>
           <button class="ef-cta messenger-v4__action-button" id="v4MarkUnreadBtn" aria-label="Mark as unread" title="Mark as unread">
@@ -579,15 +579,22 @@ class ChatViewV4 {
     const dot = this.container.querySelector('#v4HeaderPresenceDot');
     dot.classList.toggle('messenger-v4__presence-dot--online', isOnline);
 
-    // Make avatar + name link to the other user's profile
+    // Only link the header when the conversation context supplies a real supplier profile id.
+    // Participant user ids are not always supplier profile ids, so avoid sending users to a wrong profile.
     const profileLink = this.container.querySelector('#v4HeaderProfileLink');
     if (profileLink) {
-      if (other.userId) {
-        profileLink.href = `/supplier?id=${encodeURIComponent(other.userId)}`;
+      const supplierProfileId =
+        conv.context?.type === 'supplier_profile' && conv.context?.referenceId
+          ? String(conv.context.referenceId).trim()
+          : '';
+      if (supplierProfileId) {
+        profileLink.href = `/supplier?id=${encodeURIComponent(supplierProfileId)}`;
         profileLink.style.cursor = '';
+        profileLink.setAttribute('aria-label', 'View supplier profile');
       } else {
         profileLink.removeAttribute('href');
         profileLink.style.cursor = 'default';
+        profileLink.setAttribute('aria-label', 'Conversation header');
       }
     }
 
@@ -627,7 +634,7 @@ class ChatViewV4 {
   /**
    * Swap the Archive action button between Archive ↔ Unarchive based on the
    * current participant state. Also retitles the Delete button to make it
-   * explicit that deleting an already-archived conversation is permanent.
+   * explicit that this removes the conversation from the current inbox.
    * @param {boolean} isArchived
    */
   _updateArchiveBtn(isArchived) {
@@ -651,9 +658,9 @@ class ChatViewV4 {
       del.dataset.archived = isArchived ? 'true' : 'false';
       del.setAttribute(
         'aria-label',
-        isArchived ? 'Delete conversation permanently' : 'Delete conversation'
+        isArchived ? 'Remove conversation from inbox' : 'Remove from inbox'
       );
-      del.setAttribute('title', isArchived ? 'Delete permanently' : 'Delete');
+      del.setAttribute('title', 'Remove from inbox');
     }
   }
 

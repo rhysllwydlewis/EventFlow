@@ -337,17 +337,7 @@ class MessageComposerV4 {
       // Show a friendly inline error near the composer so the user knows why
       // the message was not sent.  Rate-limit and spam errors get specific copy;
       // network/server errors get a generic retry prompt.
-      const msg = err?.message || '';
-      if (/rate limit|you've reached|too many/i.test(msg)) {
-        this._showInlineError(
-          msg.replace(/^Rate limit[^.]*\./i, '').trim() ||
-            'You\'ve sent too many messages recently. Please wait a moment and try again.'
-        );
-      } else if (/spam/i.test(msg)) {
-        this._showInlineError('Your message was flagged. Please review the content and try again.');
-      } else if (msg) {
-        this._showInlineError('Message failed to send. Please check your connection and try again.');
-      }
+      this._showInlineError(this._friendlyErrorMessage(err));
     } finally {
       this.isSending = false;
       this.sendBtn.classList.remove('messenger-v4__send-button--loading');
@@ -389,6 +379,29 @@ class MessageComposerV4 {
   // ---------------------------------------------------------------------------
   // Private helpers
   // ---------------------------------------------------------------------------
+
+  _friendlyErrorMessage(err) {
+    const msg = err?.safeMessage || err?.message || '';
+    const code = err?.code || err?.body?.code || '';
+    if (err?.status === 429 || /rate limit|you've reached|too many/i.test(msg)) {
+      const retry = err?.retryAfter ? ` Please try again in ${err.retryAfter} seconds.` : '';
+      return `You've sent too many messages recently.${retry}`;
+    }
+    if (
+      code === 'MESSAGE_TOO_LONG' ||
+      err?.status === 413 ||
+      /too long|maximum length/i.test(msg)
+    ) {
+      return msg || 'Your message is too long. Please shorten it and try again.';
+    }
+    if (/spam/i.test(msg) || code === 'SPAM_DETECTED') {
+      return 'Your message was flagged. Please review the content and try again.';
+    }
+    if (err?.name === 'TypeError' || /network|fetch/i.test(msg)) {
+      return 'Network error. Please check your connection and try again.';
+    }
+    return 'Message failed to send. Please try again.';
+  }
 
   _onTextareaInput() {
     this._resizeTextarea();

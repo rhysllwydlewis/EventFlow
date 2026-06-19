@@ -454,23 +454,23 @@ class MessengerAppV4 {
       }
     });
 
-    // Delete conversation
+    // Remove from inbox
     window.addEventListener('messenger:delete-conversation', async e => {
       const { id } = e.detail || {};
       if (!id) {
         return;
       }
       // Detect if this conversation is already archived — deleting from the
-      // archive is a permanent deletion, so mirror that in the confirm copy.
+      // Backend behaviour is archive/remove-from-inbox, not permanent deletion.
       const uid = this._getCurrentUserId();
       const convRef = this.state.conversations.find(c => c._id === id);
       const meRef = uid ? convRef?.participants?.find(p => p.userId === uid) : null;
       const isArchived = !!meRef?.isArchived;
-      const confirmTitle = isArchived ? 'Delete Permanently' : 'Delete Conversation';
+      const confirmTitle = 'Remove from inbox';
       const confirmBody = isArchived
-        ? 'Are you sure you want to permanently delete this conversation? This cannot be undone.'
-        : 'Are you sure you want to delete this conversation? This cannot be undone.';
-      const confirmCta = isArchived ? 'Delete permanently' : 'Delete';
+        ? 'Are you sure you want to remove this conversation from your inbox?'
+        : 'Are you sure you want to remove this conversation from your inbox?';
+      const confirmCta = 'Remove from inbox';
       let confirmed;
       if (window.MessengerModals?.showConfirm) {
         confirmed = await window.MessengerModals.showConfirm(
@@ -501,7 +501,7 @@ class MessengerAppV4 {
           this.handleMobilePanel('sidebar');
         }
       } catch (err) {
-        console.error('[MessengerAppV4] Delete conversation failed:', err);
+        console.error('[MessengerAppV4] Remove from inbox failed:', err);
       }
     });
 
