@@ -229,7 +229,9 @@ function safePublicSupplier(supplier = {}, extras = {}) {
     featuredSupplier: bool(extra.featuredSupplier || source.featuredSupplier),
     isPro: bool(extra.isPro || source.isPro),
     subscriptionTier: maybeText(source.subscriptionTier || source.subscription?.tier, 40),
-    subscription: source.subscription?.tier ? { tier: maybeText(source.subscription.tier, 40) } : undefined,
+    subscription: source.subscription?.tier
+      ? { tier: maybeText(source.subscription.tier, 40) }
+      : undefined,
     badges: safeStringArray(source.badges, 24, 80),
     badgeDetails: safeBadgeDetails(extra.badgeDetails || source.badgeDetails),
     topPackages: safeTopPackages(source.topPackages),
