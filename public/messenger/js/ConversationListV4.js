@@ -77,8 +77,11 @@ class ConversationListV4 {
       <div class="messenger-v4__sidebar-header">
         <h2 class="messenger-v4__sidebar-title">Messages</h2>
         <button class="ef-cta messenger-v4__new-convo-btn" aria-label="New conversation" title="New conversation">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          <svg aria-hidden="true" focusable="false" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path d="M4 20h4.4L18.7 9.7a2.1 2.1 0 0 0 0-3L17.3 5.3a2.1 2.1 0 0 0-3 0L4 15.6V20z"/>
+            <path d="M13.5 6.1l4.4 4.4"/>
+            <path d="M19 15v5"/>
+            <path d="M16.5 17.5h5"/>
           </svg>
         </button>
       </div>

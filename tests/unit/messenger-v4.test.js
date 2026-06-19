@@ -1966,11 +1966,28 @@ const path = require('path');
 describe('Messenger v4 frontend polish static assertions', () => {
   const read = rel => fs.readFileSync(path.join(__dirname, '..', '..', rel), 'utf8');
 
-  it('keeps final-loaded polish CSS date separators compact', () => {
+  it('keeps final-loaded polish CSS date separators compact and non-sticky', () => {
     const css = read('public/messenger/css/messenger-v4-polish.css');
-    expect(css).toMatch(/\.messenger-v4__date-separator\s*{[^}]*margin:\s*10px 0;/s);
+    const dateSeparatorBlock = css.match(/\.messenger-v4__date-separator\s*{[^}]*}/s)?.[0] || '';
+    expect(dateSeparatorBlock).toMatch(/margin:\s*10px 0;/);
+    expect(dateSeparatorBlock).not.toMatch(/margin:\s*(2[0-9]|[3-9][0-9])px 0;/);
+    expect(dateSeparatorBlock).not.toMatch(/position:\s*sticky/);
+    expect(dateSeparatorBlock).not.toMatch(/top:\s*8px/);
+  });
+
+  it('renders the new conversation control as a labelled compose button', () => {
+    const js = read('public/messenger/js/ConversationListV4.js');
+    const css = read('public/messenger/css/messenger-v4-polish.css');
+    expect(js).toContain('aria-label="New conversation"');
+    expect(js).toContain('title="New conversation"');
+    expect(js).toContain('focusable="false"');
+    expect(js).toContain('M4 20h4.4L18.7 9.7');
+    expect(css).toMatch(/\.messenger-v4__new-convo-btn svg\s*{[^}]*stroke-width:\s*2\.4;/s);
+    expect(css).toMatch(
+      /\.messenger-v4__new-convo-btn\.ef-cta\s*{[^}]*border-radius:\s*10px\s*!important;/s
+    );
     expect(css).not.toMatch(
-      /\.messenger-v4__date-separator\s*{[^}]*margin:\s*(2[0-9]|[3-9][0-9])px 0;/s
+      /\.messenger-v4__action-button\.ef-cta,\s*\.messenger-v4__new-convo-btn\.ef-cta,/s
     );
   });
 
