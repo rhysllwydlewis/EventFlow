@@ -1,7 +1,7 @@
 /**
  * MessengerSelectionProfileHardening
  *
- * Focused post-load hardening for the Messenger v4 selection flow.  This keeps
+ * Focused post-load hardening for the Messenger v4 selection flow. This keeps
  * newly-created conversations on the selected supplier, reloads the chat pane
  * when the active id is stale/blank, and makes supplier header links use real
  * supplier profile IDs instead of account user IDs.
@@ -10,6 +10,8 @@
 'use strict';
 
 (function () {
+  const supplierProfileCache = new Map();
+
   function clean(value) {
     return value === null || value === undefined ? '' : String(value).trim();
   }
@@ -18,8 +20,7 @@
     if (!value) {
       return '';
     }
-    const id = clean(value._id || value.id || value.conversationId || value);
-    return id;
+    return clean(value._id || value.id || value.conversationId || value);
   }
 
   function safeSupplierProfileId(participant, conversation) {
@@ -39,62 +40,116 @@
       url.searchParams.set('conversation', conversationId);
       window.history.replaceState({}, '', url.toString());
     } catch {
-      // Non-critical.  Selection should still work if history is unavailable.
+      // Non-critical. Selection should still work if history is unavailable.
     }
   }
 
-  function patchMessengerApp() {
-    const App = window.MessengerAppV4;
-    if (!App || App.prototype.__selectionProfileHardeningPatched) {
-      return;
+  function resolveTypeAndContext(contextOrType) {
+    const contextTypeToConversationType = {
+      package: 'enquiry',
+      supplier_profile: 'direct',
+      marketplace_listing: 'marketplace',
+      find_a_supplier: 'direct',
+    };
+    const legacyContextAlias = {
+      supplier: 'supplier_profile',
+      marketplace: 'marketplace_listing',
+    };
+    const conversationTypes = new Set(['direct', 'marketplace', 'enquiry', 'supplier_network', 'support']);
+
+    if (typeof contextOrType === 'string') {
+      const value = contextOrType.trim();
+      if (!value || value === 'direct') {
+        return { type: 'direct', context: null };
+      }
+      if (conversationTypes.has(value)) {
+        return { type: value, context: null };
+      }
+      const canonical = legacyContextAlias[value] || value;
+      if (contextTypeToConversationType[canonical]) {
+        return { type: contextTypeToConversationType[canonical], context: { type: canonical } };
+      }
+      return { type: 'direct', context: null };
     }
 
-    const originalSelectConversation = App.prototype.selectConversation;
-    App.prototype.selectConversation = async function hardenedSelectConversation(id, options = {}) {
+    if (contextOrType && typeof contextOrType === 'object') {
+      const rawType = contextOrType.type || null;
+      const canonical = rawType ? legacyContextAlias[rawType] || rawType : null;
+      if (canonical && contextTypeToConversationType[canonical]) {
+        const context = { type: canonical };
+        if (contextOrType.referenceId !== undefined && contextOrType.referenceId !== null) {
+          context.referenceId = String(contextOrType.referenceId);
+        }
+        if (contextOrType.referenceTitle !== undefined && contextOrType.referenceTitle !== null) {
+          context.referenceTitle = String(contextOrType.referenceTitle);
+        }
+        if (contextOrType.referenceImage !== undefined && contextOrType.referenceImage !== null) {
+          context.referenceImage = String(contextOrType.referenceImage);
+        }
+        return { type: contextTypeToConversationType[canonical], context };
+      }
+      if (canonical && conversationTypes.has(canonical)) {
+        return { type: canonical, context: null };
+      }
+    }
+
+    return { type: 'direct', context: null };
+  }
+
+  function patchMessengerAppInstance() {
+    const app = window.messengerAppV4;
+    if (!app || app.__selectionProfileHardeningPatched) {
+      return false;
+    }
+    if (typeof app.selectConversation !== 'function' || typeof app.createConversation !== 'function') {
+      return false;
+    }
+
+    const originalSelectConversation = app.selectConversation.bind(app);
+
+    app.selectConversation = async function hardenedSelectConversation(id, options = {}) {
       const conversationId = conversationIdOf(id);
       if (!conversationId) {
         return;
       }
 
-      const headerVisible = this.chatView?.headerEl && this.chatView.headerEl.style.display !== 'none';
-      const composerReady = this.composer?.options?.conversationId === conversationId;
-      const chatReady = this.chatView?.conversationId === conversationId && headerVisible && composerReady;
-      if (this._activeConversationId === conversationId && chatReady && !options.force) {
-        this.composer?.focus?.();
+      const headerVisible = app.chatView?.headerEl && app.chatView.headerEl.style.display !== 'none';
+      const composerReady = app.composer?.options?.conversationId === conversationId;
+      const chatReady = app.chatView?.conversationId === conversationId && headerVisible && composerReady;
+      if (app._activeConversationId === conversationId && chatReady && !options.force) {
+        app.composer?.focus?.();
         updateUrlConversation(conversationId);
         return;
       }
 
-      // If state says this conversation is active but the pane is blank/stale, let the
-      // original method run by clearing the early-return condition.
-      if (this._activeConversationId === conversationId && (!chatReady || options.force)) {
-        this._activeConversationId = null;
+      if (app._activeConversationId === conversationId && (!chatReady || options.force)) {
+        app._activeConversationId = null;
       }
 
-      if (!this.state.conversations?.some(conv => conversationIdOf(conv) === conversationId)) {
+      if (!app.state.conversations?.some(conv => conversationIdOf(conv) === conversationId)) {
         try {
-          const data = await this.api.getConversation(conversationId);
+          const data = await app.api.getConversation(conversationId);
           const fetched = data.conversation || data;
           if (fetched && conversationIdOf(fetched)) {
-            this.state.updateConversation(fetched);
+            app.state.updateConversation(fetched);
           }
         } catch (err) {
           console.warn('[MessengerSelectionHardening] Unable to prefetch conversation', err);
         }
       }
 
-      await originalSelectConversation.call(this, conversationId);
+      await originalSelectConversation(conversationId);
       updateUrlConversation(conversationId);
     };
 
-    App.prototype.createConversation = async function hardenedCreateConversation(
+    app.createConversation = async function hardenedCreateConversation(
       participantIds,
       contextOrType = 'direct',
       options = {}
     ) {
       try {
-        const { type, context } = App._resolveTypeAndContext(contextOrType);
-        const data = await this.api.createConversation({
+        const { type, context } = resolveTypeAndContext(contextOrType);
+        const data = await app.api.createConversation({
           type,
           participantIds,
           context,
@@ -103,11 +158,11 @@
         const conversation = data.conversation || data;
         const conversationId = conversationIdOf(conversation);
         if (conversationId) {
-          this.state.updateConversation(conversation);
-          await this._loadConversations().catch(err => {
+          app.state.updateConversation(conversation);
+          await app._loadConversations().catch(err => {
             console.warn('[MessengerSelectionHardening] Conversation list refresh failed', err);
           });
-          await this.selectConversation(conversationId, { force: true });
+          await app.selectConversation(conversationId, { force: true });
           return conversation;
         }
       } catch (err) {
@@ -125,13 +180,65 @@
       return null;
     };
 
-    App.prototype.__selectionProfileHardeningPatched = true;
+    app.__selectionProfileHardeningPatched = true;
+    return true;
+  }
+
+  async function lookupSupplierProfileIdForParticipant(participant) {
+    const userId = clean(participant?.userId || participant?.id);
+    if (!userId) {
+      return '';
+    }
+    if (supplierProfileCache.has(userId)) {
+      return supplierProfileCache.get(userId);
+    }
+    try {
+      const response = await fetch('/api/suppliers', { credentials: 'include' });
+      if (!response.ok) {
+        supplierProfileCache.set(userId, '');
+        return '';
+      }
+      const payload = await response.json();
+      const suppliers = Array.isArray(payload?.items) ? payload.items : Array.isArray(payload) ? payload : [];
+      const match = suppliers.find(supplier =>
+        [
+          supplier.ownerUserId,
+          supplier.messagingRecipientId,
+          supplier.userId,
+          supplier.createdByUserId,
+          supplier.accountId,
+        ]
+          .map(clean)
+          .filter(Boolean)
+          .includes(userId)
+      );
+      const profileId = clean(match?.id || match?.supplierId || match?._id);
+      supplierProfileCache.set(userId, profileId);
+      return profileId;
+    } catch {
+      supplierProfileCache.set(userId, '');
+      return '';
+    }
+  }
+
+  function setSupplierProfileLink(profileLink, supplierProfileId) {
+    if (supplierProfileId) {
+      profileLink.href = `/supplier?id=${encodeURIComponent(supplierProfileId)}`;
+      profileLink.style.cursor = '';
+      profileLink.setAttribute('aria-label', 'View supplier profile');
+      profileLink.setAttribute('title', 'View supplier profile');
+    } else {
+      profileLink.removeAttribute('href');
+      profileLink.style.cursor = 'default';
+      profileLink.setAttribute('aria-label', 'Conversation header');
+      profileLink.removeAttribute('title');
+    }
   }
 
   function patchChatView() {
     const ChatView = window.ChatViewV4;
     if (!ChatView || ChatView.prototype.__profileLinkHardeningPatched) {
-      return;
+      return false;
     }
 
     const originalRenderHeader = ChatView.prototype._renderHeader;
@@ -143,27 +250,42 @@
       const other = (conversation.participants || []).find(
         participant => clean(participant.userId || participant.id) !== currentUserId
       );
-      const supplierProfileId = safeSupplierProfileId(other, conversation);
       const profileLink = this.container.querySelector('#v4HeaderProfileLink');
       if (!profileLink) {
         return;
       }
-      if (supplierProfileId) {
-        profileLink.href = `/supplier?id=${encodeURIComponent(supplierProfileId)}`;
-        profileLink.style.cursor = '';
-        profileLink.setAttribute('aria-label', 'View supplier profile');
-        profileLink.setAttribute('title', 'View supplier profile');
-      } else {
-        profileLink.removeAttribute('href');
-        profileLink.style.cursor = 'default';
-        profileLink.setAttribute('aria-label', 'Conversation header');
-        profileLink.removeAttribute('title');
+
+      const immediateProfileId = safeSupplierProfileId(other, conversation);
+      setSupplierProfileLink(profileLink, immediateProfileId);
+
+      if (!immediateProfileId && clean(other?.role).toLowerCase() === 'supplier') {
+        const expectedConversationId = this.conversationId;
+        lookupSupplierProfileIdForParticipant(other).then(profileId => {
+          if (profileId && this.conversationId === expectedConversationId) {
+            setSupplierProfileLink(profileLink, profileId);
+          }
+        });
       }
     };
 
     ChatView.prototype.__profileLinkHardeningPatched = true;
+    return true;
   }
 
-  patchMessengerApp();
-  patchChatView();
+  function patchNowOrAfterBoot() {
+    patchChatView();
+    if (patchMessengerAppInstance()) {
+      return;
+    }
+    const retry = () => {
+      patchChatView();
+      patchMessengerAppInstance();
+    };
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => setTimeout(retry, 0), { once: true });
+    }
+    setTimeout(retry, 250);
+  }
+
+  patchNowOrAfterBoot();
 })();
