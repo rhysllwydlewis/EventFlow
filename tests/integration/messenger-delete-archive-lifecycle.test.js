@@ -25,18 +25,28 @@ describe('Messenger delete/archive lifecycle', () => {
   it('does not reuse archived or deleted conversations for new generic starts', () => {
     const patch = read('services/messenger-v4-lifecycle-patch.js');
     expect(patch).toContain('withVisibleCreatorFilter');
+    expect(patch).toContain('participantVisibleMatch');
     expect(patch).toContain('isArchived: { $ne: true }');
-    expect(patch).toContain('isDeleted: { $ne: true }');
+    expect(patch).toContain('isDeleted: true');
     expect(patch).toContain('Found existing visible context-based conversation');
     expect(patch).toContain('Found existing visible direct conversation');
   });
 
-  it('loads client hardening that turns delete into a delete action', () => {
+  it('hides deleted conversations from direct fetches, unread counts and message search', () => {
+    const patch = read('services/messenger-v4-lifecycle-patch.js');
+    expect(patch).toContain('isDeletedForUser(conversation, userId)');
+    expect(patch).toContain('searchMessages');
+    expect(patch).toContain("$text: { $search: query }");
+    expect(patch).toContain('!participant.isDeleted');
+  });
+
+  it('loads client hardening that turns delete into a stable delete action', () => {
     const html = read('public/messenger/index.html');
     const client = read('public/messenger/js/MessengerDeleteArchiveLifecycle.js');
     expect(html).toContain('/messenger/js/MessengerDeleteArchiveLifecycle.js?v=1.0.0');
     expect(client).toContain('Delete conversation');
     expect(client).toContain('event.stopImmediatePropagation');
+    expect(client).toContain('MutationObserver');
     expect(client).toContain('Conversation deleted from your Messenger.');
   });
 });
