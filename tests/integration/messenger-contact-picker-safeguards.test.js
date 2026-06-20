@@ -19,7 +19,7 @@ describe('Messenger contact picker supplier safeguards', () => {
     );
   });
 
-  it('keeps generic contact picker searches in supplier mode using public supplier profiles', () => {
+  it('uses public supplier profiles for generic contact picker searches', () => {
     const js = read('public/messenger/js/ContactPickerV4Safeguards.js');
     expect(js).toContain('fetch(`/api/suppliers');
     expect(js).toContain('normalizeSupplierProfile');
@@ -27,12 +27,12 @@ describe('Messenger contact picker supplier safeguards', () => {
     expect(js).toContain('supplierProfileId');
   });
 
-  it('blocks cold non-supplier starts while keeping existing conversations available', () => {
+  it('keeps existing conversations available while preventing new non-supplier starts', () => {
     const js = read('public/messenger/js/ContactPickerV4Safeguards.js');
     expect(js).toContain('Customers can only be opened here from an existing conversation');
     expect(js).toContain('const existing = await this._findExistingConversation(participantId)');
-    expect(js).toContain('if (!existing)');
-    expect(js).toContain('!isSupplier(contact)');
+    expect(js).toContain('if (existing)');
+    expect(js).toContain('if (!isSupplier(contact))');
   });
 
   it('supports profile images and stable initial placeholders', () => {
