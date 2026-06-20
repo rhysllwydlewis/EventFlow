@@ -10,11 +10,11 @@ describe('Messenger contact picker supplier safeguards', () => {
     const html = read('public/messenger/index.html');
     expect(html).toContain('/messenger/css/new-message-widget-safeguards.css?v=1.0.0');
     expect(html).toContain('/messenger/js/ContactPickerV4.js?v=1.0.2');
-    expect(html).toContain('/messenger/js/ContactPickerV4Safeguards.js?v=1.0.2');
+    expect(html).toContain('/messenger/js/ContactPickerV4Safeguards.js?v=1.0.3');
     expect(html.indexOf('ContactPickerV4.js?v=1.0.2')).toBeLessThan(
-      html.indexOf('ContactPickerV4Safeguards.js?v=1.0.2')
+      html.indexOf('ContactPickerV4Safeguards.js?v=1.0.3')
     );
-    expect(html.indexOf('ContactPickerV4Safeguards.js?v=1.0.2')).toBeLessThan(
+    expect(html.indexOf('ContactPickerV4Safeguards.js?v=1.0.3')).toBeLessThan(
       html.indexOf('MessengerAppV4.js')
     );
   });
