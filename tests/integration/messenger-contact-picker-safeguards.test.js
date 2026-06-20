@@ -30,7 +30,9 @@ describe('Messenger contact picker supplier safeguards', () => {
   it('blocks cold non-supplier starts while keeping existing conversations available', () => {
     const js = read('public/messenger/js/ContactPickerV4Safeguards.js');
     expect(js).toContain('Customers can only be opened here from an existing conversation');
-    expect(js).toContain('const existing = participantId ? await this._findExistingConversation(participantId) : null');
+    expect(js).toContain(
+      'const existing = participantId ? await this._findExistingConversation(participantId) : null'
+    );
     expect(js).toContain('if (!existing && !isSupplier(contact))');
   });
 
