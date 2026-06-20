@@ -2,7 +2,7 @@
  * Messenger v4 lifecycle patch
  *
  * Keeps archive and delete as separate user actions without rewriting the
- * whole Messenger v4 route module.  Delete is a per-user hard hide from the
+ * whole Messenger v4 route module. Delete is a per-user hard hide from the
  * user's inbox/archive/search, while archive remains reversible.
  */
 
@@ -20,14 +20,37 @@ function participantVisibleMatch(userId) {
   };
 }
 
-function withVisibleCreatorFilter(query, creatorUserId) {
-  if (!creatorUserId) {
-    return query;
+function withVisibleCreatorFilter(query, creatorUserId, participantIds = []) {
+  const nextQuery = { ...query };
+  const andClauses = Array.isArray(nextQuery.$and) ? [...nextQuery.$and] : [];
+  const norClauses = Array.isArray(nextQuery.$nor) ? [...nextQuery.$nor] : [];
+
+  if (creatorUserId) {
+    andClauses.push({
+      participants: { $elemMatch: participantVisibleMatch(creatorUserId) },
+    });
   }
-  return {
-    ...query,
-    participants: { $elemMatch: participantVisibleMatch(creatorUserId) },
-  };
+
+  const ids = [...new Set((participantIds || []).filter(Boolean).map(String))];
+  if (ids.length > 0) {
+    norClauses.push({
+      participants: {
+        $elemMatch: {
+          userId: { $in: ids },
+          isDeleted: true,
+        },
+      },
+    });
+  }
+
+  if (andClauses.length > 0) {
+    nextQuery.$and = andClauses;
+  }
+  if (norClauses.length > 0) {
+    nextQuery.$nor = norClauses;
+  }
+
+  return nextQuery;
 }
 
 function getParticipant(conversation, userId) {
@@ -67,8 +90,8 @@ if (!MessengerV4Service.__deleteArchiveLifecyclePatched) {
 
     const participantIds = conversationData.participants.map(p => p.userId).sort();
 
-    // Context conversations represent a specific supplier/listing/package.  Do not let
-    // the generic direct dedupe pull users back into a different old direct thread.
+    // Context conversations represent a specific supplier/listing/package. Do not let
+    // generic direct dedupe pull users back into a different old direct thread.
     if (conversationData.context && conversationData.context.referenceId) {
       const existingContextConversation = await this.conversationsCollection.findOne(
         withVisibleCreatorFilter(
@@ -78,7 +101,8 @@ if (!MessengerV4Service.__deleteArchiveLifecyclePatched) {
             'context.referenceId': conversationData.context.referenceId,
             status: 'active',
           },
-          creatorUserId
+          creatorUserId,
+          participantIds
         )
       );
 
@@ -98,7 +122,8 @@ if (!MessengerV4Service.__deleteArchiveLifecyclePatched) {
             status: 'active',
             $expr: { $eq: [{ $size: '$participants' }, 2] },
           },
-          creatorUserId
+          creatorUserId,
+          participantIds
         )
       );
 
@@ -295,6 +320,75 @@ if (!MessengerV4Service.__deleteArchiveLifecyclePatched) {
     );
 
     return true;
+  };
+
+  MessengerV4Service.prototype.searchMessages = async function searchMessages(
+    userId,
+    query,
+    limit = 50,
+    conversationId = null
+  ) {
+    const userConversationFilter = {
+      status: { $ne: 'deleted' },
+      participants: {
+        $elemMatch: {
+          userId,
+          isDeleted: { $ne: true },
+        },
+      },
+    };
+
+    if (conversationId) {
+      try {
+        userConversationFilter._id = new ObjectId(conversationId);
+      } catch {
+        return [];
+      }
+    }
+
+    const conversations = await this.conversationsCollection
+      .find(userConversationFilter)
+      .project({ _id: 1 })
+      .toArray();
+
+    const conversationIds = conversations.map(c => c._id);
+    if (conversationIds.length === 0) {
+      return [];
+    }
+
+    const messages = await this.messagesCollection
+      .find({
+        conversationId: { $in: conversationIds },
+        $text: { $search: query },
+        isDeleted: false,
+      })
+      .limit(limit)
+      .toArray();
+
+    const uniqueConvIds = [...new Set(messages.map(m => m.conversationId.toString()))];
+    const convDocs = await this.conversationsCollection
+      .find({ _id: { $in: uniqueConvIds.map(id => new ObjectId(id)) } })
+      .toArray();
+    const convMap = new Map(convDocs.map(c => [c._id.toString(), c]));
+
+    return messages.map(msg => {
+      const conv = convMap.get(msg.conversationId.toString());
+      return {
+        ...msg,
+        conversation: conv
+          ? {
+              _id: conv._id,
+              type: conv.type,
+              participants: (conv.participants || []).map(p => ({
+                userId: p.userId,
+                displayName: p.displayName,
+                avatar: p.avatar,
+                role: p.role,
+              })),
+            }
+          : null,
+      };
+    });
   };
 
   MessengerV4Service.prototype.getUnreadCount = async function getUnreadCount(userId) {
