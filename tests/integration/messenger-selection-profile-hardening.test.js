@@ -30,14 +30,16 @@ describe('Messenger selection and supplier profile hardening', () => {
     const js = read('public/messenger/js/MessengerSelectionProfileHardening.js');
     expect(js).toContain('hardenedSelectConversation');
     expect(js).toContain('!chatReady || options.force');
-    expect(js).toContain('this._activeConversationId = null');
+    expect(js).toContain('app._activeConversationId = null');
     expect(js).toContain('updateUrlConversation(conversationId)');
+    expect(js).toContain('patchMessengerAppInstance');
   });
 
   it('makes supplier header links use supplier profile ids rather than user ids', () => {
     const js = read('public/messenger/js/MessengerSelectionProfileHardening.js');
     expect(js).toContain('safeSupplierProfileId');
     expect(js).toContain("conversation?.context?.type === 'supplier_profile'");
+    expect(js).toContain('lookupSupplierProfileIdForParticipant');
     expect(js).toContain('/supplier?id=');
     expect(js).toContain('View supplier profile');
   });
