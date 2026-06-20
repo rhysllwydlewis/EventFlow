@@ -421,8 +421,19 @@ class ContactPickerV4 {
   }
 
   _friendlyError(err) {
-    const msg = String(err?.message || '').toLowerCase();
-    if (msg.includes('limit') || msg.includes('rate')) {
+    const apiMessage = [err?.safeMessage, err?.body?.error, err?.body?.message, err?.message]
+      .map(value => (typeof value === 'string' ? value.trim() : ''))
+      .find(Boolean);
+    const msg = String(apiMessage || '').toLowerCase();
+    const code = String(err?.code || err?.body?.code || '').toUpperCase();
+
+    if (err?.status === 429 || msg.includes('limit') || msg.includes('rate')) {
+      if (apiMessage && (code === 'THREAD_LIMIT_EXCEEDED' || msg.includes('new conversation'))) {
+        return apiMessage;
+      }
+      if (apiMessage && msg.includes("you've reached")) {
+        return apiMessage;
+      }
       return 'You have reached a messaging limit. Please wait a moment and try again.';
     }
     if (msg.includes('invalid') || msg.includes('participant') || msg.includes('self')) {
