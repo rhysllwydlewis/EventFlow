@@ -105,7 +105,9 @@
       return clean(contact.secondaryLabel);
     }
     if (isSupplier(contact)) {
-      const category = clean(contact.category || contact.serviceCategory || contact.primaryCategory);
+      const category = clean(
+        contact.category || contact.serviceCategory || contact.primaryCategory
+      );
       const location = clean(contact.location || contact.town || contact.city || contact.area);
       return [category, location].filter(Boolean).join(' · ') || 'Supplier';
     }
@@ -228,14 +230,21 @@
     if (query) {
       params.set('q', query);
     }
-    const response = await fetch(`/api/suppliers${params.toString() ? `?${params.toString()}` : ''}`, {
-      credentials: 'include',
-    });
+    const response = await fetch(
+      `/api/suppliers${params.toString() ? `?${params.toString()}` : ''}`,
+      {
+        credentials: 'include',
+      }
+    );
     if (!response.ok) {
       throw new Error('Supplier search failed');
     }
     const payload = await response.json();
-    const suppliers = Array.isArray(payload?.items) ? payload.items : Array.isArray(payload) ? payload : [];
+    const suppliers = Array.isArray(payload?.items)
+      ? payload.items
+      : Array.isArray(payload)
+        ? payload
+        : [];
     return suppliers.map(normalizeSupplierProfile).filter(Boolean);
   }
 
@@ -264,7 +273,8 @@
       const matcher = supplierProfileId
         ? conversation => isContextMatch(conversation, participantId, currentUserId, supplierProfileId)
         : conversation => isDirectMatch(conversation, participantId, currentUserId);
-      const visibleMatch = conversation => isConversationVisibleFor(conversation, currentUserId) && matcher(conversation);
+      const visibleMatch = conversation =>
+        isConversationVisibleFor(conversation, currentUserId) && matcher(conversation);
       const appState = window.messengerAppV4?.state ?? window.messengerState ?? null;
       if (Array.isArray(appState?.conversations)) {
         const found = appState.conversations.find(visibleMatch);
@@ -286,10 +296,11 @@
       const appState = window.messengerAppV4?.state ?? window.messengerState ?? null;
       const conversations = Array.isArray(appState?.conversations) ? appState.conversations : [];
       return conversations
-        .filter(c =>
-          c?.type === 'direct' &&
-          Array.isArray(c.participants) &&
-          isConversationVisibleFor(c, currentUserId)
+        .filter(
+          c =>
+            c?.type === 'direct' &&
+            Array.isArray(c.participants) &&
+            isConversationVisibleFor(c, currentUserId)
         )
         .map(c => {
           const other = c.participants.find(p => String(p.userId || p.id) !== currentUserId);
