@@ -76,10 +76,11 @@ function getEnvOverridesForTier(tier, baseLimits) {
  */
 function getMessagingLimitsForTier(tier) {
   const normalisedTier = typeof tier === 'string' ? tier.trim().toLowerCase() : 'free';
-  const baseLimits = MESSAGE_LIMITS[normalisedTier] || MESSAGE_LIMITS.free;
+  const effectiveTier = MESSAGE_LIMITS[normalisedTier] ? normalisedTier : 'free';
+  const baseLimits = MESSAGE_LIMITS[effectiveTier];
   return {
     ...baseLimits,
-    ...getEnvOverridesForTier(normalisedTier, baseLimits),
+    ...getEnvOverridesForTier(effectiveTier, baseLimits),
   };
 }
 
