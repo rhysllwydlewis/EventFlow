@@ -1,10 +1,9 @@
 /**
  * ContactPickerV4Safeguards
  *
- * Small post-load guard for the Messenger v4 new-message widget. It keeps the
- * generic composer supplier-first, blocks cold customer/admin/partner starts,
- * and improves contact display names/avatar fallbacks without rebuilding the
- * existing ContactPickerV4 component.
+ * Keeps the generic Messenger v4 new-message widget supplier-first, blocks cold
+ * customer/admin/partner starts, and uses public supplier profile data for
+ * names, avatars and profile routing.
  */
 
 'use strict';
@@ -17,6 +16,7 @@
     'publicProfileAvatarUrl',
     'profilePhotoUrl',
     'displayAvatarUrl',
+    'resolvedProfileImageUrl',
     'avatarUrl',
     'avatar',
     'profilePhoto',
@@ -33,8 +33,8 @@
     'companyName',
     'company',
     'tradingName',
-    'displayName',
     'name',
+    'displayName',
   ];
 
   function roleOf(contact) {
@@ -55,10 +55,7 @@
 
   function isGenericName(value) {
     const candidate = clean(value);
-    if (!candidate) {
-      return true;
-    }
-    if (looksLikeEmail(candidate)) {
+    if (!candidate || looksLikeEmail(candidate)) {
       return true;
     }
     return GENERIC_NAME_RE.test(candidate);
@@ -75,7 +72,7 @@
   }
 
   function supplierDisplayName(contact) {
-    const businessName = firstUseful(contact, [
+    const profileName = firstUseful(contact, [
       'primaryLabel',
       'profileName',
       'supplierName',
@@ -83,23 +80,17 @@
       'companyName',
       'company',
       'tradingName',
+      'name',
     ]);
-    const displayName = firstUseful(contact, ['displayName', 'name']);
+    const accountName = firstUseful(contact, ['displayName']);
 
-    if (businessName && !isGenericName(businessName)) {
-      return businessName;
+    if (profileName && !isGenericName(profileName)) {
+      return profileName;
     }
-    if (displayName && !isGenericName(displayName)) {
-      return displayName;
+    if (accountName && !isGenericName(accountName)) {
+      return accountName;
     }
-    if (businessName) {
-      return businessName;
-    }
-    if (displayName) {
-      return displayName;
-    }
-    const email = clean(contact?.email);
-    return email ? email.split('@')[0] : 'Supplier';
+    return profileName || accountName || 'Supplier';
   }
 
   function contactDisplayName(contact) {
@@ -114,8 +105,8 @@
       return clean(contact.secondaryLabel);
     }
     if (isSupplier(contact)) {
-      const location = clean(contact.location || contact.town || contact.city || contact.area);
       const category = clean(contact.category || contact.serviceCategory || contact.primaryCategory);
+      const location = clean(contact.location || contact.town || contact.city || contact.area);
       return [category, location].filter(Boolean).join(' · ') || 'Supplier';
     }
     return contact?.conversationId ? 'Existing conversation' : 'Contact';
@@ -161,6 +152,57 @@
     return `${parts[0].charAt(0)}${parts[parts.length - 1].charAt(0)}`.toUpperCase();
   }
 
+  function supplierOwnerId(supplier) {
+    return clean(
+      supplier?.ownerUserId ||
+        supplier?.messagingRecipientId ||
+        supplier?.userId ||
+        supplier?.createdByUserId ||
+        supplier?.accountId
+    );
+  }
+
+  function normalizeSupplierProfile(supplier) {
+    const userId = supplierOwnerId(supplier);
+    const profileId = clean(supplier?.id || supplier?.supplierId || supplier?._id);
+    if (!userId || !profileId) {
+      return null;
+    }
+    const displayName = supplierDisplayName({ ...supplier, role: SUPPLIER_ROLE });
+    const avatar = contactAvatar(supplier);
+    return {
+      ...supplier,
+      _id: userId,
+      id: userId,
+      userId,
+      role: SUPPLIER_ROLE,
+      supplierProfileId: profileId,
+      supplierId: profileId,
+      primaryLabel: displayName,
+      displayName,
+      secondaryLabel: contactDetail({ ...supplier, role: SUPPLIER_ROLE }),
+      avatar,
+      avatarUrl: avatar,
+      profileUrl: `/supplier?id=${encodeURIComponent(profileId)}`,
+    };
+  }
+
+  async function fetchSupplierContacts(query) {
+    const params = new URLSearchParams();
+    if (query) {
+      params.set('q', query);
+    }
+    const response = await fetch(`/api/suppliers${params.toString() ? `?${params.toString()}` : ''}`, {
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      throw new Error('Supplier search failed');
+    }
+    const payload = await response.json();
+    const suppliers = Array.isArray(payload?.items) ? payload.items : Array.isArray(payload) ? payload : [];
+    return suppliers.map(normalizeSupplierProfile).filter(Boolean);
+  }
+
   function patchContactPicker() {
     const Picker = window.ContactPickerV4;
     if (!Picker || Picker.prototype.__supplierSafeguardsPatched) {
@@ -189,12 +231,17 @@
         : `<span class="messenger-v4__avatar-initials">${initial}</span>`;
       const uid = this.escape(contact._id || contact.id || contact.userId || '');
       const conversationId = this.escape(contact.conversationId || '');
+      const supplierProfileId = this.escape(contact.supplierProfileId || contact.supplierId || '');
+      const profileUrl = this.escape(contact.profileUrl || '');
       const isOnline = Boolean(contact.isOnline);
 
       return `
         <div class="messenger-v4__new-message-contact messenger-v4__contact-item"
              data-user-id="${uid}"
              ${conversationId ? `data-conversation-id="${conversationId}"` : ''}
+             ${supplierProfileId ? `data-supplier-profile-id="${supplierProfileId}"` : ''}
+             ${profileUrl ? `data-profile-url="${profileUrl}"` : ''}
+             ${avatarUrl ? `data-avatar-url="${this.escape(avatarUrl)}"` : ''}
              role="option"
              tabindex="0"
              aria-label="${name}${detail ? `, ${detail}` : ''}">
@@ -213,37 +260,120 @@
         </div>`;
     };
 
-    const originalSelectContact = Picker.prototype.selectContact;
-    Picker.prototype.selectContact = async function safeguardedSelectContact(contact) {
-      const participantId = contact?._id || contact?.id || contact?.userId;
-      const existing = participantId ? await this._findExistingConversation(participantId) : null;
-      if (!existing && !isSupplier(contact)) {
-        this._showError(
-          'Customers can only be opened here from an existing conversation. Search suppliers to start a new message.'
+    Picker.prototype._handleContactClick = function handleContactClick(el) {
+      const userId = el.dataset.userId;
+      const name = el.querySelector('.messenger-v4__contact-name')?.textContent || '';
+      const secondaryLabel = el.querySelector('.messenger-v4__contact-email')?.textContent || '';
+      const roleBadge = el.querySelector('.messenger-v4__role-badge');
+      const role = roleBadge ? roleBadge.textContent.trim().toLowerCase() : 'customer';
+      const conversationId = el.dataset.conversationId || null;
+      if (conversationId) {
+        this.close();
+        window.dispatchEvent(
+          new CustomEvent('messenger:conversation-selected', { detail: { id: conversationId } })
         );
         return;
       }
-      return originalSelectContact.call(this, contact);
+      this.selectContact({
+        _id: userId,
+        id: userId,
+        userId,
+        displayName: name,
+        primaryLabel: name,
+        secondaryLabel,
+        role,
+        supplierProfileId: el.dataset.supplierProfileId || null,
+        supplierId: el.dataset.supplierProfileId || null,
+        avatar: el.dataset.avatarUrl || null,
+        avatarUrl: el.dataset.avatarUrl || null,
+        profileUrl: el.dataset.profileUrl || null,
+      });
+    };
+
+    Picker.prototype.selectContact = async function safeguardedSelectContact(contact) {
+      if (this._isSelecting) {
+        return;
+      }
+      const participantId = contact?._id || contact?.id || contact?.userId;
+      if (!participantId) {
+        this._showError('That supplier could not be opened. Please choose another supplier.');
+        return;
+      }
+      if (String(participantId) === String(this.options.currentUserId)) {
+        this._showError('You cannot start a conversation with yourself.');
+        return;
+      }
+
+      this._isSelecting = true;
+      this._clearError();
+      this._setContactPending(participantId, true);
+      try {
+        const existing = await this._findExistingConversation(participantId);
+        if (existing) {
+          this.close();
+          window.dispatchEvent(
+            new CustomEvent('messenger:conversation-selected', { detail: { id: existing._id } })
+          );
+          return;
+        }
+        if (!isSupplier(contact)) {
+          this._showError(
+            'Customers can only be opened here from an existing conversation. Search suppliers to start a new message.'
+          );
+          return;
+        }
+
+        const supplierProfileId = clean(contact.supplierProfileId || contact.supplierId);
+        const referenceImage = contactAvatar(contact);
+        const context = supplierProfileId
+          ? {
+              type: 'supplier_profile',
+              referenceId: supplierProfileId,
+              referenceTitle: contactDisplayName(contact),
+              referenceImage,
+            }
+          : 'direct';
+        const metadata = {
+          source: 'generic_new_message',
+          ...(supplierProfileId ? { supplierProfileId } : {}),
+        };
+
+        if (window.messengerAppV4?.createConversation) {
+          await window.messengerAppV4.createConversation([participantId], context, {
+            throwOnError: true,
+            metadata,
+          });
+        } else if (typeof this.options.onSelect === 'function') {
+          await this.options.onSelect({ contact, context, metadata });
+        } else {
+          window.dispatchEvent(
+            new CustomEvent('contactpicker:selected', { detail: { contact, context, metadata } })
+          );
+        }
+        this.close();
+      } catch (err) {
+        console.error('[ContactPickerV4] Conversation start failed:', err);
+        this._showError(this._friendlyError(err));
+      } finally {
+        this._isSelecting = false;
+        this._setContactPending(participantId, false);
+      }
     };
 
     Picker.prototype.search = async function supplierOnlySearch(query) {
       try {
-        const data = await this.api.getContacts(query, {
-          role: SUPPLIER_ROLE,
-          mode: 'supplier_search',
-        });
-        const contacts = this._filterSelectableContacts(data.contacts || data || []);
+        const contacts = this._filterSelectableContacts(await fetchSupplierContacts(query));
         this.resultsEl.innerHTML = contacts.length
           ? contacts.map(contact => this._buildContactHTML(contact)).join('')
           : `<div class="messenger-v4__new-message-empty" role="status">No suppliers found for "${this.escape(query)}".</div>`;
         this._attachResultListeners();
       } catch (err) {
-        console.error('[ContactPickerV4] Search failed:', err);
+        console.error('[ContactPickerV4] Supplier search failed:', err);
         this._showError(
           'We could not search suppliers right now. Please check your connection and try again.'
         );
         this.resultsEl.innerHTML =
-          '<div class="messenger-v4__new-message-empty" role="status">Search is temporarily unavailable.</div>';
+          '<div class="messenger-v4__new-message-empty" role="status">Supplier search is temporarily unavailable.</div>';
       }
     };
 
