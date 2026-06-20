@@ -105,7 +105,9 @@
       return clean(contact.secondaryLabel);
     }
     if (isSupplier(contact)) {
-      const category = clean(contact.category || contact.serviceCategory || contact.primaryCategory);
+      const category = clean(
+        contact.category || contact.serviceCategory || contact.primaryCategory
+      );
       const location = clean(contact.location || contact.town || contact.city || contact.area);
       return [category, location].filter(Boolean).join(' · ') || 'Supplier';
     }
@@ -162,6 +164,42 @@
     );
   }
 
+  function participantFor(conversation, userId) {
+    const target = clean(userId);
+    return (conversation?.participants || []).find(
+      participant => clean(participant.userId || participant.id) === target
+    );
+  }
+
+  function isConversationVisibleFor(conversation, userId) {
+    const participant = participantFor(conversation, userId);
+    return Boolean(participant && !participant.isArchived && !participant.isDeleted);
+  }
+
+  function hasParticipant(conversation, userId) {
+    return Boolean(participantFor(conversation, userId));
+  }
+
+  function isContextMatch(conversation, participantId, currentUserId, supplierProfileId) {
+    if (!supplierProfileId || !conversation?.context?.referenceId) {
+      return false;
+    }
+    return (
+      hasParticipant(conversation, participantId) &&
+      hasParticipant(conversation, currentUserId) &&
+      clean(conversation.context.type) === 'supplier_profile' &&
+      clean(conversation.context.referenceId) === clean(supplierProfileId)
+    );
+  }
+
+  function isDirectMatch(conversation, participantId, currentUserId) {
+    return (
+      conversation?.type === 'direct' &&
+      hasParticipant(conversation, participantId) &&
+      hasParticipant(conversation, currentUserId)
+    );
+  }
+
   function normalizeSupplierProfile(supplier) {
     const userId = supplierOwnerId(supplier);
     const profileId = clean(supplier?.id || supplier?.supplierId || supplier?._id);
@@ -192,14 +230,21 @@
     if (query) {
       params.set('q', query);
     }
-    const response = await fetch(`/api/suppliers${params.toString() ? `?${params.toString()}` : ''}`, {
-      credentials: 'include',
-    });
+    const response = await fetch(
+      `/api/suppliers${params.toString() ? `?${params.toString()}` : ''}`,
+      {
+        credentials: 'include',
+      }
+    );
     if (!response.ok) {
       throw new Error('Supplier search failed');
     }
     const payload = await response.json();
-    const suppliers = Array.isArray(payload?.items) ? payload.items : Array.isArray(payload) ? payload : [];
+    const suppliers = Array.isArray(payload?.items)
+      ? payload.items
+      : Array.isArray(payload)
+        ? payload
+        : [];
     return suppliers.map(normalizeSupplierProfile).filter(Boolean);
   }
 
@@ -218,6 +263,62 @@
       return this._filterByRole(contacts).filter(
         contact => String(contact?._id || contact?.id || contact?.userId) !== currentUserId
       );
+    };
+
+    Picker.prototype._findVisibleExistingConversation = async function findVisibleExistingConversation(
+      participantId,
+      supplierProfileId = null
+    ) {
+      const currentUserId = this.options.currentUserId;
+      const matcher = supplierProfileId
+        ? conversation => isContextMatch(conversation, participantId, currentUserId, supplierProfileId)
+        : conversation => isDirectMatch(conversation, participantId, currentUserId);
+      const visibleMatch = conversation =>
+        isConversationVisibleFor(conversation, currentUserId) && matcher(conversation);
+      const appState = window.messengerAppV4?.state ?? window.messengerState ?? null;
+      if (Array.isArray(appState?.conversations)) {
+        const found = appState.conversations.find(visibleMatch);
+        if (found) {
+          return found;
+        }
+      }
+      try {
+        const data = await this.api.request('/conversations');
+        const conversations = data.conversations || [];
+        return conversations.find(visibleMatch) || null;
+      } catch {
+        return null;
+      }
+    };
+
+    Picker.prototype._getRecentConversationContacts = function getRecentConversationContacts() {
+      const currentUserId = String(this.options.currentUserId || '');
+      const appState = window.messengerAppV4?.state ?? window.messengerState ?? null;
+      const conversations = Array.isArray(appState?.conversations) ? appState.conversations : [];
+      return conversations
+        .filter(
+          c =>
+            c?.type === 'direct' &&
+            Array.isArray(c.participants) &&
+            isConversationVisibleFor(c, currentUserId)
+        )
+        .map(c => {
+          const other = c.participants.find(p => String(p.userId || p.id) !== currentUserId);
+          if (!other) {
+            return null;
+          }
+          return {
+            _id: other.userId || other.id,
+            id: other.userId || other.id,
+            displayName: other.primaryLabel || other.displayName || other.name,
+            primaryLabel: other.primaryLabel || other.displayName || other.name,
+            secondaryLabel: other.secondaryLabel || 'Existing conversation',
+            role: other.role || 'customer',
+            avatar: other.avatar || other.avatarUrl || null,
+            conversationId: c._id,
+          };
+        })
+        .filter(Boolean);
     };
 
     Picker.prototype._buildContactHTML = function buildContactHTML(contact) {
@@ -308,7 +409,8 @@
       this._clearError();
       this._setContactPending(participantId, true);
       try {
-        const existing = await this._findExistingConversation(participantId);
+        const supplierProfileId = clean(contact.supplierProfileId || contact.supplierId);
+        const existing = await this._findVisibleExistingConversation(participantId, supplierProfileId);
         if (existing) {
           this.close();
           window.dispatchEvent(
@@ -323,7 +425,6 @@
           return;
         }
 
-        const supplierProfileId = clean(contact.supplierProfileId || contact.supplierId);
         const referenceImage = contactAvatar(contact);
         const context = supplierProfileId
           ? {
