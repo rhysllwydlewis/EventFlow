@@ -418,6 +418,7 @@ function mountRoutes(app, deps) {
   app.use('/api/v1/admin', adminConfigRoutes);
   app.use('/api/admin', adminConfigRoutes);
 
+  require('../services/messenger-v4-lifecycle-patch');
   const messengerV4 = require('./messenger-v4');
   if (deps && messengerV4.initialize) {
     const messengerV4Deps = { ...deps };
