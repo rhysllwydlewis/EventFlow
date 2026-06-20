@@ -8,6 +8,8 @@
 'use strict';
 
 (function () {
+  let copyObserver = null;
+
   function setDeleteButtonCopy() {
     const button = document.querySelector('#v4DeleteConvBtn');
     if (!button) {
@@ -15,6 +17,19 @@
     }
     button.setAttribute('aria-label', 'Delete conversation');
     button.setAttribute('title', 'Delete conversation');
+  }
+
+  function watchDeleteButtonRenders() {
+    if (copyObserver || !document.body) {
+      return;
+    }
+    copyObserver = new MutationObserver(() => {
+      window.requestAnimationFrame(setDeleteButtonCopy);
+    });
+    copyObserver.observe(document.body, {
+      childList: true,
+      subtree: true,
+    });
   }
 
   function resetActiveConversation(app, conversationId) {
@@ -77,6 +92,7 @@
 
   function init() {
     setDeleteButtonCopy();
+    watchDeleteButtonRenders();
     // Capture phase runs before the existing MessengerAppV4 bubble listener, so
     // this replaces the older remove-from-inbox behaviour without double calls.
     window.addEventListener('messenger:delete-conversation', handleDeleteConversation, true);
