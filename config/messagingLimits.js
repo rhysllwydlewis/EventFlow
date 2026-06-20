@@ -11,7 +11,8 @@ const MESSAGE_LIMITS = {
   free: {
     messagesPerDay: 10,
     messagesPerHour: 20,
-    threadsPerDay: 3,
+    // Beta default: keep an anti-spam guard without blocking normal testing after 3 starts.
+    threadsPerDay: 30,
     maxMessageLength: 500,
   },
   pro: {
@@ -28,6 +29,42 @@ const MESSAGE_LIMITS = {
   },
 };
 
+const TRUE_VALUES = new Set(['1', 'true', 'yes', 'y', 'on']);
+
+function isEnabled(value) {
+  return typeof value === 'string' && TRUE_VALUES.has(value.trim().toLowerCase());
+}
+
+function parseLimitOverride(value, fallback) {
+  if (value === undefined || value === null || String(value).trim() === '') {
+    return fallback;
+  }
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return fallback;
+  }
+  return Math.trunc(parsed);
+}
+
+function getEnvOverridesForTier(tier, baseLimits) {
+  const normalisedTier = typeof tier === 'string' ? tier.trim().toLowerCase() : 'free';
+
+  if (isEnabled(process.env.MESSAGING_DISABLE_THREAD_LIMITS)) {
+    return { threadsPerDay: -1 };
+  }
+
+  if (normalisedTier === 'free') {
+    return {
+      threadsPerDay: parseLimitOverride(
+        process.env.MESSAGING_FREE_THREADS_PER_DAY,
+        baseLimits.threadsPerDay
+      ),
+    };
+  }
+
+  return {};
+}
+
 /**
  * Return the messaging limits for the given tier.
  * Falls back to the free-tier limits for any unrecognised or legacy tier
@@ -38,7 +75,12 @@ const MESSAGE_LIMITS = {
  * @returns {Object} Messaging limits for the tier
  */
 function getMessagingLimitsForTier(tier) {
-  return MESSAGE_LIMITS[tier] || MESSAGE_LIMITS.free;
+  const normalisedTier = typeof tier === 'string' ? tier.trim().toLowerCase() : 'free';
+  const baseLimits = MESSAGE_LIMITS[normalisedTier] || MESSAGE_LIMITS.free;
+  return {
+    ...baseLimits,
+    ...getEnvOverridesForTier(normalisedTier, baseLimits),
+  };
 }
 
 module.exports = { MESSAGE_LIMITS, getMessagingLimitsForTier };
