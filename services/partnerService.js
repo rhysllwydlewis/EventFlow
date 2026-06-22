@@ -264,7 +264,9 @@ async function regenerateCode(partnerId) {
 
   const historyInserted = await dbUnified.insertOne('partner_code_history', historyEntry);
   if (!historyInserted) {
-    logger.error('[PARTNER-SVC] code_history insertOne failed', { partnerId: historyEntry.partnerId });
+    logger.error('[PARTNER-SVC] code_history insertOne failed', {
+      partnerId: historyEntry.partnerId,
+    });
   }
 
   await dbUnified.updateOne(
@@ -558,12 +560,17 @@ async function debitPoints({ partnerId, amount, notes, externalRef }) {
   if (!creditTxInserted) {
     logger.error('[PARTNER-SVC] credit_tx insertOne failed');
   }
-  logger.info(`Points debit: -${Math.abs(amount)} from partner ${partnerId} (ref: ${externalRef || 'n/a'})`);
+  logger.info(
+    `Points debit: -${Math.abs(amount)} from partner ${partnerId} (ref: ${externalRef || 'n/a'})`
+  );
   return txn;
 }
 
 async function reverseDebit(debitTxnId, partnerId) {
-  const debit = await dbUnified.findOne('partner_credit_transactions', { id: debitTxnId, partnerId });
+  const debit = await dbUnified.findOne('partner_credit_transactions', {
+    id: debitTxnId,
+    partnerId,
+  });
   if (!debit) {
     logger.warn(`reverseDebit: transaction ${debitTxnId} not found for partner ${partnerId}`);
     return null;
@@ -583,7 +590,9 @@ async function reverseDebit(debitTxnId, partnerId) {
   if (!creditTxInserted) {
     logger.error('[PARTNER-SVC] credit_tx insertOne failed');
   }
-  logger.info(`Debit reversed: +${reversalAmount} to partner ${partnerId} (debitTxnId: ${debitTxnId})`);
+  logger.info(
+    `Debit reversed: +${reversalAmount} to partner ${partnerId} (debitTxnId: ${debitTxnId})`
+  );
   return reversal;
 }
 
@@ -602,7 +611,9 @@ async function createCashoutHold({ partnerId, amount, cashoutId }) {
   if (!creditTxInserted) {
     logger.error('[PARTNER-SVC] credit_tx insertOne failed');
   }
-  logger.info(`Cashout hold: -${Math.abs(amount)} from partner ${partnerId} (cashoutId: ${cashoutId})`);
+  logger.info(
+    `Cashout hold: -${Math.abs(amount)} from partner ${partnerId} (cashoutId: ${cashoutId})`
+  );
   return txn;
 }
 
@@ -640,7 +651,9 @@ async function releaseCashoutHold(holdTxnId, partnerId) {
   if (!creditTxInserted) {
     logger.error('[PARTNER-SVC] credit_tx insertOne failed');
   }
-  logger.info(`Cashout hold released: +${releaseAmount} to partner ${partnerId} (holdTxnId: ${holdTxnId})`);
+  logger.info(
+    `Cashout hold released: +${releaseAmount} to partner ${partnerId} (holdTxnId: ${holdTxnId})`
+  );
   return release;
 }
 

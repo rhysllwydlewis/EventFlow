@@ -11,10 +11,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const BUNDLE_PATH = path.resolve(
-  __dirname,
-  '../../public/assets/js/vendor/jade-widget.js'
-);
+const BUNDLE_PATH = path.resolve(__dirname, '../../public/assets/js/vendor/jade-widget.js');
 
 describe('vendored jade-widget.js bundle', () => {
   let bundleSource;

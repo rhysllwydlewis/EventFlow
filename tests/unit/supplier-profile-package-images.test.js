@@ -189,7 +189,7 @@ describe('supplier-profile source wiring', () => {
   it('loads package-image-resolver.js before supplier-profile.js', () => {
     // Accept any version query-string — the exact version changes with each deploy.
     const resolverIdx = supplierHtmlContent.search(/package-image-resolver\.js(\?v=[^"']+)?["']/);
-    const profileIdx  = supplierHtmlContent.search(/supplier-profile\.js(\?v=[^"']+)?["']/);
+    const profileIdx = supplierHtmlContent.search(/supplier-profile\.js(\?v=[^"']+)?["']/);
 
     expect(resolverIdx).toBeGreaterThan(-1);
     expect(profileIdx).toBeGreaterThan(-1);

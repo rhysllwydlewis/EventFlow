@@ -36,7 +36,7 @@ describe('Messenger delete/archive lifecycle', () => {
     const patch = read('services/messenger-v4-lifecycle-patch.js');
     expect(patch).toContain('isDeletedForUser(conversation, userId)');
     expect(patch).toContain('searchMessages');
-    expect(patch).toContain("$text: { $search: query }");
+    expect(patch).toContain('$text: { $search: query }');
     expect(patch).toContain('!participant.isDeleted');
   });
 

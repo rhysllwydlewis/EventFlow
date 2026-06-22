@@ -1108,4 +1108,3 @@ export default {
   createConversionFunnelWidget,
   createResponseTimeWidget,
 };
-

@@ -70,7 +70,13 @@ async function getAdminQueueNotifications() {
         `${openCount} open, ${inProgressCount} in progress. Latest: ${latest.subject || 'No subject'}`,
         '/admin-tickets',
         latest.updatedAt || latest.lastReplyAt || latest.createdAt,
-        { icon: '🎫', queueType: 'support_tickets', count: activeTickets.length, urgent: urgentCount, priority: urgentCount ? 'high' : 'normal' }
+        {
+          icon: '🎫',
+          queueType: 'support_tickets',
+          count: activeTickets.length,
+          urgent: urgentCount,
+          priority: urgentCount ? 'high' : 'normal',
+        }
       )
     );
   }

@@ -11,13 +11,17 @@
   const DATA_IMAGE_RE = /^data:image\/(png|jpe?g|webp|gif);base64,[a-z0-9+/]+={0,2}$/i;
 
   function esc(value) {
-    return String(value || '').replace(/[&<>"']/g, ch => ({
-      '&': '&amp;',
-      '<': '&lt;',
-      '>': '&gt;',
-      '"': '&quot;',
-      "'": '&#39;',
-    })[ch]);
+    return String(value || '').replace(
+      /[&<>"']/g,
+      ch =>
+        ({
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#39;',
+        })[ch]
+    );
   }
 
   function safeImageUrl(value) {
@@ -40,7 +44,10 @@
   function apply(theme) {
     if (!theme) return;
     document.documentElement.style.setProperty('--wed-accent', theme.accentColor || '#0B8073');
-    document.documentElement.style.setProperty('--wed-secondary', theme.secondaryColor || '#F4A6C8');
+    document.documentElement.style.setProperty(
+      '--wed-secondary',
+      theme.secondaryColor || '#F4A6C8'
+    );
     document.documentElement.style.setProperty('--wed-bg', theme.backgroundColor || '#FFF7FB');
     document.documentElement.style.setProperty('--wed-text', theme.textColor || '#1E1B4B');
     document.body.classList.add('wed-themed');
@@ -64,16 +71,22 @@
     const section = document.createElement('section');
     section.className = 'wed-card wed-gallery';
     section.innerHTML = `<p class="wed-kicker">Photo gallery</p><h2>Moments we love</h2><div class="wed-gallery-grid">${gallery
-      .map(item => `<figure><img src="${esc(item.imageUrl)}" alt="${esc(item.alt || item.caption || 'Wedding gallery photo')}" loading="lazy">${item.caption ? `<figcaption>${esc(item.caption)}</figcaption>` : ''}</figure>`)
+      .map(
+        item =>
+          `<figure><img src="${esc(item.imageUrl)}" alt="${esc(item.alt || item.caption || 'Wedding gallery photo')}" loading="lazy">${item.caption ? `<figcaption>${esc(item.caption)}</figcaption>` : ''}</figure>`
+      )
       .join('')}</div>`;
     if (rsvp) rsvp.before(section);
     else root.appendChild(section);
   }
 
   async function loadFromThemeEndpoint() {
-    const response = await fetch(`/api/public/wedding-websites/${encodeURIComponent(slug)}/theme-media`, {
-      credentials: 'same-origin',
-    });
+    const response = await fetch(
+      `/api/public/wedding-websites/${encodeURIComponent(slug)}/theme-media`,
+      {
+        credentials: 'same-origin',
+      }
+    );
     if (!response.ok) return null;
     const data = await response.json().catch(() => ({}));
     return data.themeMedia || null;

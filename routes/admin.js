@@ -2048,11 +2048,11 @@ router.post(
         );
         if (!alreadyInGallery) {
           suppliers[supplierIndex].photosGallery.push({
-            url:       photo.url,
+            url: photo.url,
             thumbnail: photo.thumbnail || photo.url,
-            large:     photo.large     || photo.url,
-            original:  photo.original  || photo.url,
-            approved:  true,
+            large: photo.large || photo.url,
+            original: photo.original || photo.url,
+            approved: true,
             uploadedAt: photo.uploadedAt || new Date().toISOString(),
           });
           await dbUnified.updateOne(
@@ -2202,11 +2202,11 @@ router.post(
               );
               if (!alreadyInGallery) {
                 suppliers[supplierIndex].photosGallery.push({
-                  url:       photo.url,
+                  url: photo.url,
                   thumbnail: photo.thumbnail || photo.url,
-                  large:     photo.large     || photo.url,
-                  original:  photo.original  || photo.url,
-                  approved:  true,
+                  large: photo.large || photo.url,
+                  original: photo.original || photo.url,
+                  approved: true,
                   uploadedAt: photo.uploadedAt || new Date().toISOString(),
                 });
                 await dbUnified.updateOne(

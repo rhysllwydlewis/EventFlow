@@ -1,7 +1,8 @@
 (function () {
   'use strict';
 
-  if (!['/dashboard/customer', '/dashboard-customer.html'].includes(window.location.pathname)) return;
+  if (!['/dashboard/customer', '/dashboard-customer.html'].includes(window.location.pathname))
+    return;
 
   const MAX_RECOMMENDATIONS = 5;
   const STYLE_ID = 'customer-dashboard-polish-styles';
@@ -14,7 +15,13 @@
   }
 
   function slug(value) {
-    return String(value || 'card').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 48) || 'card';
+    return (
+      String(value || 'card')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '')
+        .slice(0, 48) || 'card'
+    );
   }
 
   function cardTitle(card) {
@@ -123,20 +130,41 @@
     button.setAttribute('aria-expanded', String(!collapsed));
     button.setAttribute('aria-label', `${collapsed ? 'Expand' : 'Minimise'} ${t}`);
     button.innerHTML = `<span>${collapsed ? 'Expand' : 'Minimise'}</span>${chevronSvg()}`;
-    try { localStorage.setItem(STORE_PREFIX + slug(t), collapsed ? '1' : '0'); } catch (_) { /* ignore */ }
+    try {
+      localStorage.setItem(STORE_PREFIX + slug(t), collapsed ? '1' : '0');
+    } catch (_) {
+      /* ignore */
+    }
   }
 
   function setupCollapsibleCards() {
     document.querySelectorAll('.customer-dashboard-page .card.cd-card').forEach(card => {
-      if (card.dataset.efPolishCollapseReady === '1' || card.id === 'wedding-website-dashboard-card' || card.classList.contains('no-collapse')) return;
+      if (
+        card.dataset.efPolishCollapseReady === '1' ||
+        card.id === 'wedding-website-dashboard-card' ||
+        card.classList.contains('no-collapse')
+      )
+        return;
       const header = card.querySelector(':scope > .sd-card-header');
       const body = card.querySelector(':scope > .cd-card-body');
       if (!header || !body) return;
       const lowerTitle = cardTitle(card).toLowerCase();
-      const allowed = ['budget settings', 'events calendar', 'your plans', 'saved suppliers', 'quick actions', 'support tickets', 'conversations'];
+      const allowed = [
+        'budget settings',
+        'events calendar',
+        'your plans',
+        'saved suppliers',
+        'quick actions',
+        'support tickets',
+        'conversations',
+      ];
       if (!allowed.some(item => lowerTitle.includes(item))) return;
       let actions = header.querySelector(':scope > .sd-card-header__actions');
-      if (!actions) { actions = document.createElement('div'); actions.className = 'sd-card-header__actions'; header.appendChild(actions); }
+      if (!actions) {
+        actions = document.createElement('div');
+        actions.className = 'sd-card-header__actions';
+        header.appendChild(actions);
+      }
       const button = document.createElement('button');
       button.type = 'button';
       button.className = 'ef-dashboard-collapse-toggle';
@@ -146,41 +174,92 @@
       card.dataset.efPolishCollapseReady = '1';
       card.classList.add('ef-dashboard-card--collapsible');
       setCollapsed(card, button, true);
-      button.addEventListener('click', event => { event.stopPropagation(); setCollapsed(card, button, !card.classList.contains('ef-dashboard-card--collapsed')); });
-      header.addEventListener('click', event => { if (event.target.closest('button,a,input,select,textarea')) return; setCollapsed(card, button, !card.classList.contains('ef-dashboard-card--collapsed')); });
+      button.addEventListener('click', event => {
+        event.stopPropagation();
+        setCollapsed(card, button, !card.classList.contains('ef-dashboard-card--collapsed'));
+      });
+      header.addEventListener('click', event => {
+        if (event.target.closest('button,a,input,select,textarea')) return;
+        setCollapsed(card, button, !card.classList.contains('ef-dashboard-card--collapsed'));
+      });
     });
   }
 
   function recommendationWidgets() {
-    const explicit = Array.from(document.querySelectorAll('.recommendations-widget, #recommendations-widget, [data-recommendations-widget]'));
-    const fuzzy = Array.from(document.querySelectorAll('.customer-dashboard-page .card, .customer-dashboard-page section')).filter(el => /recommended for you/i.test(el.textContent || '') && el.querySelector('.recommendation-card, .supplier-card, article'));
+    const explicit = Array.from(
+      document.querySelectorAll(
+        '.recommendations-widget, #recommendations-widget, [data-recommendations-widget]'
+      )
+    );
+    const fuzzy = Array.from(
+      document.querySelectorAll('.customer-dashboard-page .card, .customer-dashboard-page section')
+    ).filter(
+      el =>
+        /recommended for you/i.test(el.textContent || '') &&
+        el.querySelector('.recommendation-card, .supplier-card, article')
+    );
     return Array.from(new Set([...explicit, ...fuzzy]));
   }
 
   function recommendationItems(widget) {
-    return Array.from(widget.querySelectorAll(':scope .recommendation-card, :scope .supplier-card, :scope article')).filter(item => !item.closest('.recommendations-header, .recommendations-widget__header') && item !== widget);
+    return Array.from(
+      widget.querySelectorAll(':scope .recommendation-card, :scope .supplier-card, :scope article')
+    ).filter(
+      item =>
+        !item.closest('.recommendations-header, .recommendations-widget__header') && item !== widget
+    );
   }
 
   function normaliseRecommendations() {
     recommendationWidgets().forEach(widget => {
       const items = recommendationItems(widget);
       if (!items.length) return;
-      items.forEach((item, index) => item.classList.toggle('ef-rec-hidden', index >= MAX_RECOMMENDATIONS));
+      items.forEach((item, index) =>
+        item.classList.toggle('ef-rec-hidden', index >= MAX_RECOMMENDATIONS)
+      );
       const visible = items.slice(0, MAX_RECOMMENDATIONS);
       const parents = new Set(visible.map(item => item.parentElement).filter(Boolean));
-      if (parents.size === 1) { visible[0].parentElement.classList.add('ef-recommendations-row'); return; }
-      const header = widget.querySelector('.recommendations-header, .recommendations-widget__header');
+      if (parents.size === 1) {
+        visible[0].parentElement.classList.add('ef-recommendations-row');
+        return;
+      }
+      const header = widget.querySelector(
+        '.recommendations-header, .recommendations-widget__header'
+      );
       let row = widget.querySelector(':scope > .ef-recommendations-row');
-      if (!row) { row = document.createElement('div'); row.className = 'ef-recommendations-row'; if (header?.parentElement === widget) header.after(row); else widget.appendChild(row); }
+      if (!row) {
+        row = document.createElement('div');
+        row.className = 'ef-recommendations-row';
+        if (header?.parentElement === widget) header.after(row);
+        else widget.appendChild(row);
+      }
       items.forEach(item => row.appendChild(item));
     });
   }
 
-  function run() { injectStyles(); setupCollapsibleCards(); normaliseRecommendations(); }
-  function queueRun() { if (queued) return; queued = true; requestAnimationFrame(() => { queued = false; run(); }); }
-  function init() { run(); observer = new MutationObserver(queueRun); observer.observe(document.documentElement, { childList: true, subtree: true }); }
+  function run() {
+    injectStyles();
+    setupCollapsibleCards();
+    normaliseRecommendations();
+  }
+  function queueRun() {
+    if (queued) return;
+    queued = true;
+    requestAnimationFrame(() => {
+      queued = false;
+      run();
+    });
+  }
+  function init() {
+    run();
+    observer = new MutationObserver(queueRun);
+    observer.observe(document.documentElement, { childList: true, subtree: true });
+  }
 
-  window.addEventListener('beforeunload', () => { if (observer) observer.disconnect(); });
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true });
+  window.addEventListener('beforeunload', () => {
+    if (observer) observer.disconnect();
+  });
+  if (document.readyState === 'loading')
+    document.addEventListener('DOMContentLoaded', init, { once: true });
   else init();
 })();

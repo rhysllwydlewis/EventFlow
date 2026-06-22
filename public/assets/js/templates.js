@@ -12,7 +12,8 @@
       name: 'Wedding',
       emoji: '💒',
       tagline: 'Plan a beautiful wedding celebration',
-      description: 'From venue and catering to photography and flowers — everything you need for the perfect day.',
+      description:
+        'From venue and catering to photography and flowers — everything you need for the perfect day.',
       budgetLabel: '£5,000 – £30,000',
       guestLabel: '50–200 guests',
       budget: 15000,
@@ -78,7 +79,8 @@
       name: 'Conference',
       emoji: '🎤',
       tagline: 'Organise a professional conference',
-      description: 'Venue, AV, catering, signage and registration — everything for a large-scale event.',
+      description:
+        'Venue, AV, catering, signage and registration — everything for a large-scale event.',
       budgetLabel: '£5,000 – £50,000+',
       guestLabel: '100–500+ attendees',
       budget: 20000,
@@ -174,7 +176,10 @@
         if (template && onSelect) onSelect(template);
       });
       card.addEventListener('keydown', e => {
-        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); card.click(); }
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          card.click();
+        }
       });
     });
 
@@ -188,5 +193,9 @@
     return d.innerHTML;
   }
 
-  window.EventTemplates = { getAll: getAllTemplates, getTemplate, renderSelector: renderTemplateSelector };
+  window.EventTemplates = {
+    getAll: getAllTemplates,
+    getTemplate,
+    renderSelector: renderTemplateSelector,
+  };
 })();

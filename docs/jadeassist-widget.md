@@ -24,10 +24,10 @@ event-flow.co.uk (EventFlow — Railway)
 
 JadeAssist runs as two separate Railway services:
 
-| Service | Public URL |
-|---------|-----------|
-| Backend (API) | `https://jadeassistbackend-production.up.railway.app` |
-| Widget (serves widget bundle) | `https://jadeassistwidget-production.up.railway.app` |
+| Service                       | Public URL                                            |
+| ----------------------------- | ----------------------------------------------------- |
+| Backend (API)                 | `https://jadeassistbackend-production.up.railway.app` |
+| Widget (serves widget bundle) | `https://jadeassistwidget-production.up.railway.app`  |
 
 > **Note:** EventFlow self-hosts the widget bundle (see [Widget Library](#widget-library-self-hosted)) to avoid browser tracking prevention blocking CDN requests. The widget service URL above is for reference only — EventFlow does **not** load scripts from it.
 
@@ -50,7 +50,9 @@ The server exposes this via the `/api/config` endpoint (see `routes/system.js`).
 You can override the URL before the init script loads by injecting a config snippet:
 
 ```html
-<script>window.JADEASSIST_CONFIG = { apiBaseUrl: 'https://your-backend.up.railway.app' };</script>
+<script>
+  window.JADEASSIST_CONFIG = { apiBaseUrl: 'https://your-backend.up.railway.app' };
+</script>
 <script src="/assets/js/vendor/jade-widget.js" defer></script>
 <script src="/assets/js/jadeassist-init.v2.js" defer></script>
 ```
@@ -503,13 +505,13 @@ This verifies:
 ### Key Constants
 
 ```javascript
-MAX_RETRIES: 50;               // Widget load retry attempts (5 seconds @ 100ms interval)
-RETRY_INTERVAL: 100;           // Time between retries (ms)
-INIT_DELAY: 2000;              // Delay before first init attempt (ms)
-TEASER_DELAY: 500;             // Delay before showing teaser after init (ms)
+MAX_RETRIES: 50; // Widget load retry attempts (5 seconds @ 100ms interval)
+RETRY_INTERVAL: 100; // Time between retries (ms)
+INIT_DELAY: 2000; // Delay before first init attempt (ms)
+TEASER_DELAY: 500; // Delay before showing teaser after init (ms)
 TEASER_AUTO_DISMISS_MS: 10000; // Auto-dismiss teaser after 10 s of inactivity
-TEASER_EXPIRY_DAYS: 1;         // How long dismissal persists (1 day = 24 h)
-MOBILE_BREAKPOINT: 768;        // px — switches to mobile teaser copy below this width
+TEASER_EXPIRY_DAYS: 1; // How long dismissal persists (1 day = 24 h)
+MOBILE_BREAKPOINT: 768; // px — switches to mobile teaser copy below this width
 ```
 
 ## Support
@@ -701,10 +703,10 @@ Use this checklist after any widget deploy to verify mobile behaviour before sig
 
 ### Debug helpers
 
-| Task | Command |
-|------|---------|
-| Enable debug logging | Append `?jade-debug` to any page URL |
+| Task                 | Command                                                                      |
+| -------------------- | ---------------------------------------------------------------------------- |
+| Enable debug logging | Append `?jade-debug` to any page URL                                         |
 | Force teaser to show | `localStorage.removeItem('jadeassist-teaser-dismissed'); location.reload();` |
-| Set teaser variant | `localStorage.setItem('jadeassist-teaser-variant', 'B'); location.reload();` |
-| Inspect widget state | `window.JadeWidget.instance.state` in console |
-| Check open state | `window.JadeWidget.isOpen()` |
+| Set teaser variant   | `localStorage.setItem('jadeassist-teaser-variant', 'B'); location.reload();` |
+| Inspect widget state | `window.JadeWidget.instance.state` in console                                |
+| Check open state     | `window.JadeWidget.isOpen()`                                                 |

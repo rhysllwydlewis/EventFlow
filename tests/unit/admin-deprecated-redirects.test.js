@@ -35,9 +35,7 @@ describe('server.js — deprecated admin page redirects', () => {
     expect(serverSrc).toMatch(/admin-pexels/);
     expect(serverSrc).toMatch(/admin-media/);
     // The redirect for admin-pexels must point to /admin-media, not serve the file
-    const pexelsBlock = serverSrc.match(
-      /\/admin-pexels[\s\S]{0,400}?admin-media/
-    );
+    const pexelsBlock = serverSrc.match(/\/admin-pexels[\s\S]{0,400}?admin-media/);
     expect(pexelsBlock).not.toBeNull();
   });
 
@@ -55,9 +53,7 @@ describe('server.js — deprecated admin page redirects', () => {
 
   it('defines a redirect for /admin-content-dates to /admin-content with legalDates tab', () => {
     expect(serverSrc).toMatch(/admin-content-dates/);
-    const contentDatesBlock = serverSrc.match(
-      /\/admin-content-dates[\s\S]{0,400}?legalDates/
-    );
+    const contentDatesBlock = serverSrc.match(/\/admin-content-dates[\s\S]{0,400}?legalDates/);
     expect(contentDatesBlock).not.toBeNull();
   });
 
@@ -97,16 +93,12 @@ describe('server.js — deprecated admin page redirects', () => {
 describe('serve-static.js — deprecated admin page redirects (static-mode parity)', () => {
   it('defines a redirect for /admin-pexels to /admin-media', () => {
     expect(serveStaticSrc).toMatch(/admin-pexels/);
-    const pexelsBlock = serveStaticSrc.match(
-      /\/admin-pexels[\s\S]{0,400}?admin-media/
-    );
+    const pexelsBlock = serveStaticSrc.match(/\/admin-pexels[\s\S]{0,400}?admin-media/);
     expect(pexelsBlock).not.toBeNull();
   });
 
   it('defines a redirect for /admin-content-dates to /admin-content with legalDates tab', () => {
-    const datesBlock = serveStaticSrc.match(
-      /\/admin-content-dates[\s\S]{0,400}?legalDates/
-    );
+    const datesBlock = serveStaticSrc.match(/\/admin-content-dates[\s\S]{0,400}?legalDates/);
     expect(datesBlock).not.toBeNull();
   });
 

@@ -28,14 +28,14 @@ const VALID_EVENT_TYPES = new Set([
 
 /** Human-readable labels for each event type, used in API responses. */
 const EVENT_TYPE_LABELS = {
-  wedding:     'Wedding',
-  birthday:    'Birthday',
-  corporate:   'Corporate',
+  wedding: 'Wedding',
+  birthday: 'Birthday',
+  corporate: 'Corporate',
   anniversary: 'Anniversary',
   christening: 'Christening',
-  graduation:  'Graduation',
-  engagement:  'Engagement',
-  other:       'Other',
+  graduation: 'Graduation',
+  engagement: 'Engagement',
+  other: 'Other',
 };
 
 // Dependencies injected by server.js
@@ -281,9 +281,7 @@ router.post(
     }
 
     if (!eventTypes || !Array.isArray(eventTypes) || eventTypes.length === 0) {
-      return res
-        .status(400)
-        .json({ error: 'At least one event type is required' });
+      return res.status(400).json({ error: 'At least one event type is required' });
     }
 
     // Validate event types against the canonical allowed set

@@ -324,8 +324,12 @@
     }
 
     const kicker = panel.querySelector(':scope > .ww-kicker');
-    const title = kicker?.nextElementSibling?.matches('h3') ? kicker.nextElementSibling : panel.querySelector(':scope > h3');
-    const summary = title?.nextElementSibling?.matches('p:not(.ww-success)') ? title.nextElementSibling : null;
+    const title = kicker?.nextElementSibling?.matches('h3')
+      ? kicker.nextElementSibling
+      : panel.querySelector(':scope > h3');
+    const summary = title?.nextElementSibling?.matches('p:not(.ww-success)')
+      ? title.nextElementSibling
+      : null;
     const actions = panel.querySelector(':scope > .ww-actions');
     if (!kicker || !title || !actions) {
       return;
@@ -427,7 +431,8 @@
         Array.from(mutation.addedNodes).some(
           node =>
             node instanceof Element &&
-            (node.matches(OBSERVED_WIDGET_SELECTOR) || node.querySelector?.(OBSERVED_WIDGET_SELECTOR))
+            (node.matches(OBSERVED_WIDGET_SELECTOR) ||
+              node.querySelector?.(OBSERVED_WIDGET_SELECTOR))
         )
       )
     ) {
@@ -439,7 +444,10 @@
   document.addEventListener(
     'click',
     event => {
-      if (event.target instanceof Element && event.target.closest('.ww-app-tabs button,[data-tab]')) {
+      if (
+        event.target instanceof Element &&
+        event.target.closest('.ww-app-tabs button,[data-tab]')
+      ) {
         [0, 120, 450].forEach(delay => window.setTimeout(schedule, delay));
       }
     },

@@ -83,28 +83,28 @@ Wedding Website & RSVPs is now a production feature area for customer wedding pl
 
 ## Completion Matrix
 
-| Area | Status | Notes |
-| --- | --- | --- |
-| Dashboard card | Done | Live in customer dashboard module. |
-| Quick-start website workspace | Done | Users can start without creating a full plan first. |
-| Sectioned website builder | Done | Sections are collapsed by default so users expand what they need. |
-| Repeatable card editors | Done | Accommodation, taxi, local, wedding party, FAQ, meal and custom question rows. |
-| Public website route | Done | `/wedding/:slug` serves the public page. |
-| Public website sections | Done | Hero, timeline, venues, guest info, travel cards, party cards, stories, FAQ and RSVP. |
-| Public RSVP | Done | Published-only, enabled/deadline checks, honeypot, validation and duplicate update. |
-| Password mode | Done | Hashed password, password gate, access cookie/token and protected RSVP. |
-| Theme colours | Done | Presets and colour pickers. |
-| Hero and gallery photos | Partial | Works with current data URL storage; object-storage pipeline remains future hardening. |
-| Mobile dashboard polish | Done | Mobile-first override layer added for dashboard and builder. |
-| Mobile public page polish | Done | Public wedding page has mobile responsive overrides and safe-area handling. |
-| RSVP dashboard | Partial | Summary/table/add-edit-delete/search/sort/filter/pagination live; deeper analytics future. |
-| CSV export | Done | `/guests/export.csv`. |
-| Seating backend | Done | CRUD plus assign/unassign and summary APIs. |
-| Seating dashboard UI | Partial | Compact non-drag-and-drop UI. Full planner remains future work. |
-| Privacy/noindex/public-safe data | Done | Safe public serialisation and noindex defaults. |
-| plan.guests conflict mitigation | Done | guestList-first compatibility logic maintained. |
-| Tests | Partial | Route/unit and browser smoke coverage exists; more mobile, visual and a11y coverage needed. |
-| Docs | Done | This document reflects current implemented state. |
+| Area                             | Status  | Notes                                                                                       |
+| -------------------------------- | ------- | ------------------------------------------------------------------------------------------- |
+| Dashboard card                   | Done    | Live in customer dashboard module.                                                          |
+| Quick-start website workspace    | Done    | Users can start without creating a full plan first.                                         |
+| Sectioned website builder        | Done    | Sections are collapsed by default so users expand what they need.                           |
+| Repeatable card editors          | Done    | Accommodation, taxi, local, wedding party, FAQ, meal and custom question rows.              |
+| Public website route             | Done    | `/wedding/:slug` serves the public page.                                                    |
+| Public website sections          | Done    | Hero, timeline, venues, guest info, travel cards, party cards, stories, FAQ and RSVP.       |
+| Public RSVP                      | Done    | Published-only, enabled/deadline checks, honeypot, validation and duplicate update.         |
+| Password mode                    | Done    | Hashed password, password gate, access cookie/token and protected RSVP.                     |
+| Theme colours                    | Done    | Presets and colour pickers.                                                                 |
+| Hero and gallery photos          | Partial | Works with current data URL storage; object-storage pipeline remains future hardening.      |
+| Mobile dashboard polish          | Done    | Mobile-first override layer added for dashboard and builder.                                |
+| Mobile public page polish        | Done    | Public wedding page has mobile responsive overrides and safe-area handling.                 |
+| RSVP dashboard                   | Partial | Summary/table/add-edit-delete/search/sort/filter/pagination live; deeper analytics future.  |
+| CSV export                       | Done    | `/guests/export.csv`.                                                                       |
+| Seating backend                  | Done    | CRUD plus assign/unassign and summary APIs.                                                 |
+| Seating dashboard UI             | Partial | Compact non-drag-and-drop UI. Full planner remains future work.                             |
+| Privacy/noindex/public-safe data | Done    | Safe public serialisation and noindex defaults.                                             |
+| plan.guests conflict mitigation  | Done    | guestList-first compatibility logic maintained.                                             |
+| Tests                            | Partial | Route/unit and browser smoke coverage exists; more mobile, visual and a11y coverage needed. |
+| Docs                             | Done    | This document reflects current implemented state.                                           |
 
 ## Recommended Next Enhancements
 

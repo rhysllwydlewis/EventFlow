@@ -136,7 +136,7 @@ describe('Admin Campaigns — Email validation & message stream', () => {
     expect(content).toContain('CAMPAIGN_MESSAGE_STREAM');
     // Hardcoded 'broadcasts' stream was replaced by the configurable constant
     const testIdx = content.indexOf("'/test'");
-    const sendIdx = content.indexOf("module.exports");
+    const sendIdx = content.indexOf('module.exports');
     const body = content.substring(testIdx, sendIdx);
     expect(body).not.toContain("messageStream: 'broadcasts'");
   });

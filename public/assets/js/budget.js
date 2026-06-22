@@ -615,4 +615,3 @@ let budgetManager;
 document.addEventListener('DOMContentLoaded', () => {
   budgetManager = new BudgetManager();
 });
-

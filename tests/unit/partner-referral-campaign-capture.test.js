@@ -55,7 +55,11 @@ describe('partnerReferralCampaignCapture middleware', () => {
 
   it('updates the referral record after successful supplier registration', () => {
     const req = createReq({
-      body: { ref: 'p_ABC123', utm_source: 'facebook_group', utm_campaign: 'founding_supplier_push' },
+      body: {
+        ref: 'p_ABC123',
+        utm_source: 'facebook_group',
+        utm_campaign: 'founding_supplier_push',
+      },
     });
     const res = createRes({ statusCode: 201 });
     const next = jest.fn();

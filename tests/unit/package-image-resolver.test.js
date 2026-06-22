@@ -213,10 +213,7 @@ describe('resolvePackageImage', () => {
 
     it('skips data: URLs inside gallery array', () => {
       const pkg = {
-        gallery: [
-          'data:image/jpeg;base64,/9j/AAAB',
-          '/uploads/packages/real.jpg',
-        ],
+        gallery: ['data:image/jpeg;base64,/9j/AAAB', '/uploads/packages/real.jpg'],
       };
       expect(resolvePackageImage(pkg)).toBe('/uploads/packages/real.jpg');
     });

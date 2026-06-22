@@ -157,11 +157,12 @@
           </div>
           <div class="ud-card-actions">
             <a href="/admin-users" class="btn btn-secondary btn-sm">← Users Centre</a>
-            ${user.supplierProfile
-              ? `<a href="${esc(user.supplierProfile.profileUrl)}" class="btn btn-secondary btn-sm">Supplier Profile →</a>`
-              : user.role === 'supplier'
-                ? `<button id="provisionProfileBtn" class="btn btn-warning btn-sm" title="Create missing supplier profile for this user">⚠️ Provision Profile</button>`
-                : ''
+            ${
+              user.supplierProfile
+                ? `<a href="${esc(user.supplierProfile.profileUrl)}" class="btn btn-secondary btn-sm">Supplier Profile →</a>`
+                : user.role === 'supplier'
+                  ? `<button id="provisionProfileBtn" class="btn btn-warning btn-sm" title="Create missing supplier profile for this user">⚠️ Provision Profile</button>`
+                  : ''
             }
           </div>
         </div>
@@ -394,7 +395,10 @@
     });
     if (!ok) return;
     try {
-      await AdminShared.api(`/api/admin/users/${encodeURIComponent(userId)}/provision-supplier-profile`, 'POST');
+      await AdminShared.api(
+        `/api/admin/users/${encodeURIComponent(userId)}/provision-supplier-profile`,
+        'POST'
+      );
       AdminShared.showToast('Supplier profile created successfully', 'success');
       await loadUserDetails();
     } catch (err) {

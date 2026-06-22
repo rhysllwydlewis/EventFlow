@@ -105,12 +105,10 @@ router.get('/trending', searchLimiter, async (req, res) => {
     });
   } catch (error) {
     logger.error('Get trending error:', error);
-    res
-      .status(500)
-      .json({
-        error: 'Failed to get trending suppliers',
-        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
-      });
+    res.status(500).json({
+      error: 'Failed to get trending suppliers',
+      details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+    });
   }
 });
 
@@ -169,12 +167,10 @@ router.get('/new', searchLimiter, async (req, res) => {
     });
   } catch (error) {
     logger.error('Get new arrivals error:', error);
-    res
-      .status(500)
-      .json({
-        error: 'Failed to get new suppliers',
-        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
-      });
+    res.status(500).json({
+      error: 'Failed to get new suppliers',
+      details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+    });
   }
 });
 
@@ -233,12 +229,10 @@ router.get('/popular-packages', searchLimiter, async (req, res) => {
     });
   } catch (error) {
     logger.error('Get popular packages error:', error);
-    res
-      .status(500)
-      .json({
-        error: 'Failed to get popular packages',
-        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
-      });
+    res.status(500).json({
+      error: 'Failed to get popular packages',
+      details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+    });
   }
 });
 
@@ -258,12 +252,10 @@ router.get('/recommendations', searchLimiter, applyAuthRequired, async (req, res
     });
   } catch (error) {
     logger.error('Get recommendations error:', error);
-    res
-      .status(500)
-      .json({
-        error: 'Failed to get recommendations',
-        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
-      });
+    res.status(500).json({
+      error: 'Failed to get recommendations',
+      details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+    });
   }
 });
 

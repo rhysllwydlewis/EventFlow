@@ -7,19 +7,27 @@
  *  Scope C — Footer/version/loading-state cleanup
  */
 
-const fs   = require('fs');
+const fs = require('fs');
 const path = require('path');
 
 const PUBLIC = path.resolve(__dirname, '../../public');
 const JS_DIR = path.resolve(__dirname, '../../public/assets/js');
 
-const read    = f  => fs.readFileSync(path.join(PUBLIC, f), 'utf8');
-const readJs  = f  => fs.readFileSync(path.join(JS_DIR, f), 'utf8');
+const read = f => fs.readFileSync(path.join(PUBLIC, f), 'utf8');
+const readJs = f => fs.readFileSync(path.join(JS_DIR, f), 'utf8');
 
 const KEY_PUBLIC_PAGES = [
-  'index.html', 'start.html', 'suppliers.html', 'marketplace.html',
-  'public-calendar.html', 'guides.html', 'pricing.html', 'faq.html',
-  'for-suppliers.html', 'legal.html', 'terms.html',
+  'index.html',
+  'start.html',
+  'suppliers.html',
+  'marketplace.html',
+  'public-calendar.html',
+  'guides.html',
+  'pricing.html',
+  'faq.html',
+  'for-suppliers.html',
+  'legal.html',
+  'terms.html',
 ];
 
 // ─── Scope A: Public anonymous render ──────────────────────────────────────
@@ -47,14 +55,18 @@ describe('Scope A — Public anonymous render', () => {
       test(`${page}: Dashboard link hidden by default`, () => {
         const html = read(page);
         if (html.includes('ef-dashboard-link')) {
-          expect(html).toMatch(/id="ef-dashboard-link"[^>]*style="display: none;"|id="ef-dashboard-link"[^>]*hidden/);
+          expect(html).toMatch(
+            /id="ef-dashboard-link"[^>]*style="display: none;"|id="ef-dashboard-link"[^>]*hidden/
+          );
         }
       });
 
       test(`${page}: Logout link hidden by default`, () => {
         const html = read(page);
         if (html.includes('ef-mobile-logout')) {
-          expect(html).toMatch(/id="ef-mobile-logout"[^>]*style="display: none;"|id="ef-mobile-logout"[^>]*hidden/);
+          expect(html).toMatch(
+            /id="ef-mobile-logout"[^>]*style="display: none;"|id="ef-mobile-logout"[^>]*hidden/
+          );
         }
       });
     });
@@ -77,22 +89,25 @@ describe('Scope A — Public anonymous render', () => {
 
 describe('Scope B — Public calendar role-gating', () => {
   const calendarHtml = read('public-calendar.html');
-  const calendarJs   = readJs('pages/public-calendar-init.js');
+  const calendarJs = readJs('pages/public-calendar-init.js');
 
   describe('Static HTML: no internal taxonomy in status filter', () => {
     test('draft option NOT in static HTML', () => {
       // draft option should only be injected by JS for admin users
-      const staticOptions = calendarHtml.match(/<select id="pc-filter-status">([\s\S]*?)<\/select>/)?.[1] || '';
+      const staticOptions =
+        calendarHtml.match(/<select id="pc-filter-status">([\s\S]*?)<\/select>/)?.[1] || '';
       expect(staticOptions).not.toContain('draft');
     });
 
     test('pending_review option NOT in static HTML', () => {
-      const staticOptions = calendarHtml.match(/<select id="pc-filter-status">([\s\S]*?)<\/select>/)?.[1] || '';
+      const staticOptions =
+        calendarHtml.match(/<select id="pc-filter-status">([\s\S]*?)<\/select>/)?.[1] || '';
       expect(staticOptions).not.toContain('pending_review');
     });
 
     test('rejected option NOT in static HTML', () => {
-      const staticOptions = calendarHtml.match(/<select id="pc-filter-status">([\s\S]*?)<\/select>/)?.[1] || '';
+      const staticOptions =
+        calendarHtml.match(/<select id="pc-filter-status">([\s\S]*?)<\/select>/)?.[1] || '';
       expect(staticOptions).not.toContain('rejected');
     });
 
@@ -191,7 +206,7 @@ describe('Scope C — Footer/version/loading states', () => {
     test('admin-shared.js removes hidden attribute when revealing version', () => {
       const js = readJs('admin-shared.js');
       const fnStart = js.indexOf('async function populateVersionLabel');
-      const fnEnd   = js.indexOf('\n  }', fnStart) + 4;
+      const fnEnd = js.indexOf('\n  }', fnStart) + 4;
       const fn = js.slice(fnStart, fnEnd);
       expect(fn).toContain("removeAttribute('hidden')");
     });
@@ -199,7 +214,7 @@ describe('Scope C — Footer/version/loading states', () => {
     test('admin-shared.js removes aria-hidden when revealing version', () => {
       const js = readJs('admin-shared.js');
       const fnStart = js.indexOf('async function populateVersionLabel');
-      const fnEnd   = js.indexOf('\n  }', fnStart) + 4;
+      const fnEnd = js.indexOf('\n  }', fnStart) + 4;
       const fn = js.slice(fnStart, fnEnd);
       expect(fn).toContain("removeAttribute('aria-hidden')");
     });
@@ -232,7 +247,9 @@ describe('Scope C — Footer/version/loading states', () => {
 
   describe('Version consistency', () => {
     test('package.json version matches app.js debug version reference', () => {
-      const pkg = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../../package.json'), 'utf8'));
+      const pkg = JSON.parse(
+        fs.readFileSync(path.resolve(__dirname, '../../package.json'), 'utf8')
+      );
       const homeInit = readJs('pages/home-init.js');
       // home-init should reference a reasonable version string
       expect(homeInit).toContain(pkg.version);

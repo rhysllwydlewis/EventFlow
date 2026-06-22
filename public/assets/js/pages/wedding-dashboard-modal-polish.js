@@ -56,7 +56,9 @@
             cancelButton.classList.add('cta', 'secondary', 'ww-modal-cancel');
             cancelButton.setAttribute('formnovalidate', 'formnovalidate');
           }
-          const saveButton = form?.querySelector("button[id^='ww-'], button[id^='save-'], button.cta:not(.secondary)");
+          const saveButton = form?.querySelector(
+            "button[id^='ww-'], button[id^='save-'], button.cta:not(.secondary)"
+          );
           if (saveButton) {
             saveButton.classList.add('ww-modal-save');
           }

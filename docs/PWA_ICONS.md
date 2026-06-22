@@ -6,15 +6,15 @@ This document explains where the Progressive Web App (PWA) icon assets live, wha
 
 ## Asset locations
 
-| File | Size | Purpose |
-|------|------|---------|
-| `public/favicon.svg` | 64×64 viewBox | Primary source SVG — the EventFlow "EF" logo used to generate all raster icons |
-| `public/favicon.ico` | 16×16, 32×32, 48×48 | Multi-size ICO binary; served to browsers that request `/favicon.ico` directly (crawlers, older browsers) |
-| `public/apple-touch-icon.png` | 180×180 | Home-screen icon on iOS/iPadOS Safari |
-| `public/icon-192.png` | 192×192 | Android home-screen / PWA install prompt (standard) |
-| `public/icon-512.png` | 512×512 | Splash screen and high-DPI displays |
-| `public/icon-maskable-512.png` | 512×512 | Maskable variant (safe-area padded) for Android adaptive icons |
-| `public/bimi.svg` | SVG | BIMI email logo (Brand Indicators for Message Identification) |
+| File                           | Size                | Purpose                                                                                                   |
+| ------------------------------ | ------------------- | --------------------------------------------------------------------------------------------------------- |
+| `public/favicon.svg`           | 64×64 viewBox       | Primary source SVG — the EventFlow "EF" logo used to generate all raster icons                            |
+| `public/favicon.ico`           | 16×16, 32×32, 48×48 | Multi-size ICO binary; served to browsers that request `/favicon.ico` directly (crawlers, older browsers) |
+| `public/apple-touch-icon.png`  | 180×180             | Home-screen icon on iOS/iPadOS Safari                                                                     |
+| `public/icon-192.png`          | 192×192             | Android home-screen / PWA install prompt (standard)                                                       |
+| `public/icon-512.png`          | 512×512             | Splash screen and high-DPI displays                                                                       |
+| `public/icon-maskable-512.png` | 512×512             | Maskable variant (safe-area padded) for Android adaptive icons                                            |
+| `public/bimi.svg`              | SVG                 | BIMI email logo (Brand Indicators for Message Identification)                                             |
 
 All PNG/ICO files are referenced by `public/site.webmanifest` and cached by the service worker (`public/sw.js`).
 
@@ -114,7 +114,7 @@ Whenever icon files change, increment `CACHE_VERSION` in **`public/sw.js`** so t
 
 ```js
 // public/sw.js — line 8
-const CACHE_VERSION = 'eventflow-v18.6.0';  // ← increment after every icon update
+const CACHE_VERSION = 'eventflow-v18.6.0'; // ← increment after every icon update
 ```
 
 ---

@@ -8,17 +8,23 @@
   let enhanceQueued = false;
 
   const esc = value =>
-    String(value || '').replace(/[&<>"']/g, ch => ({
-      '&': '&amp;',
-      '<': '&lt;',
-      '>': '&gt;',
-      '"': '&quot;',
-      "'": '&#39;',
-    })[ch]);
+    String(value || '').replace(
+      /[&<>"']/g,
+      ch =>
+        ({
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#39;',
+        })[ch]
+    );
 
   const isWeddingPlan = plan =>
     String(plan?.eventType || '').toLowerCase() === 'wedding' ||
-    String(plan?.name || plan?.eventName || '').toLowerCase().includes('wedding');
+    String(plan?.name || plan?.eventName || '')
+      .toLowerCase()
+      .includes('wedding');
 
   const normalizeSlug = value =>
     String(value || '')
@@ -104,7 +110,10 @@
 
   function markUnsaved(root, form) {
     if (root.querySelector('.ww-unsaved-note')) return;
-    form.insertAdjacentHTML('beforebegin', '<p class="ww-unsaved-note">Unsaved changes — remember to press Save.</p>');
+    form.insertAdjacentHTML(
+      'beforebegin',
+      '<p class="ww-unsaved-note">Unsaved changes — remember to press Save.</p>'
+    );
   }
 
   function enhanceUniqueLinkWording(root) {
@@ -112,7 +121,9 @@
       const text = Array.from(label.childNodes).find(node => node.nodeType === Node.TEXT_NODE);
       if (text && /guest link/i.test(text.textContent)) text.textContent = 'Your unique guest link';
     });
-    root.querySelector('#ww-copy-link')?.replaceChildren(document.createTextNode('Copy wedding website link'));
+    root
+      .querySelector('#ww-copy-link')
+      ?.replaceChildren(document.createTextNode('Copy wedding website link'));
   }
 
   function enhanceBuilder(root) {
@@ -149,7 +160,22 @@
   async function hydrateBuilder(form) {
     const { site } = await getSite();
     if (!site || !form.isConnected) return;
-    ['arrivalTime','ceremonyTime','receptionTime','finishTime','dressCode','childrenPolicy','plusOnePolicy','template','accentColor','parkingInfo','accessibilityInfo','giftInfo','loveStory','proposalStory'].forEach(name => {
+    [
+      'arrivalTime',
+      'ceremonyTime',
+      'receptionTime',
+      'finishTime',
+      'dressCode',
+      'childrenPolicy',
+      'plusOnePolicy',
+      'template',
+      'accentColor',
+      'parkingInfo',
+      'accessibilityInfo',
+      'giftInfo',
+      'loveStory',
+      'proposalStory',
+    ].forEach(name => {
       const field = form.querySelector(`[name="${name}"]`);
       if (field && site[name] !== undefined && site[name] !== null) field.value = site[name];
     });
@@ -191,7 +217,8 @@
   }
 
   function buildVisibilityText(site) {
-    if (site.visibility === 'password') return site.passwordSet ? 'Password protected' : 'Password needed before publishing';
+    if (site.visibility === 'password')
+      return site.passwordSet ? 'Password protected' : 'Password needed before publishing';
     if (site.visibility === 'public') return 'Public and shareable';
     return 'Private link only';
   }
@@ -222,12 +249,14 @@
     const passwordInput = admin.querySelector('#ww-site-pass');
     visibilitySelect.value = site.visibility || 'private_link';
     const togglePassword = () => {
-      passwordInput.closest('label').style.display = visibilitySelect.value === 'password' ? 'grid' : 'none';
+      passwordInput.closest('label').style.display =
+        visibilitySelect.value === 'password' ? 'grid' : 'none';
     };
     togglePassword();
     visibilitySelect.addEventListener('change', togglePassword);
     slugInput.addEventListener('input', event => {
-      admin.querySelector('#ww-slug-preview').textContent = normalizeSlug(event.target.value) || 'our-wedding';
+      admin.querySelector('#ww-slug-preview').textContent =
+        normalizeSlug(event.target.value) || 'our-wedding';
     });
     admin.querySelector('#ww-save-share').addEventListener('click', async event => {
       const button = event.currentTarget;
@@ -235,7 +264,10 @@
       button.disabled = true;
       status.textContent = 'Saving…';
       try {
-        const payload = { slug: normalizeSlug(slugInput.value), visibility: visibilitySelect.value };
+        const payload = {
+          slug: normalizeSlug(slugInput.value),
+          visibility: visibilitySelect.value,
+        };
         if (passwordInput.value) payload.password = passwordInput.value;
         await api(`/api/me/plans/${encodeURIComponent(plan.id)}/wedding-website`, {
           method: 'PATCH',
@@ -267,11 +299,14 @@
   }
 
   async function assignGuest(planId, tableId, guestId) {
-    await api(`/api/me/plans/${encodeURIComponent(planId)}/tables/${encodeURIComponent(tableId)}/assign-guest`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ guestId }),
-    });
+    await api(
+      `/api/me/plans/${encodeURIComponent(planId)}/tables/${encodeURIComponent(tableId)}/assign-guest`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ guestId }),
+      }
+    );
   }
 
   async function unassignGuest(planId, guestId) {
@@ -299,14 +334,17 @@
       .map(card => {
         const id = card.querySelector('.edit-table,.del-table')?.dataset.id;
         const name = card.querySelector('.seat-card__head h5')?.textContent?.trim() || 'Table';
-        const [used, cap] = (card.querySelector('.seat-cap')?.textContent || '0/0').split('/').map(value => Number(value.trim()) || 0);
+        const [used, cap] = (card.querySelector('.seat-cap')?.textContent || '0/0')
+          .split('/')
+          .map(value => Number(value.trim()) || 0);
         return { id, name, used, cap, card };
       })
       .filter(table => table.id);
 
     const toolbox = document.createElement('div');
     toolbox.className = 'ww-seat-toolbox';
-    toolbox.innerHTML = '<strong>Seating tools</strong><div class="ww-actions"><button class="cta secondary small" id="ww-auto-seat" type="button">Auto-seat remaining</button><button class="cta secondary small ww-btn-danger-soft" id="ww-clear-seats" type="button">Clear seating</button></div>';
+    toolbox.innerHTML =
+      '<strong>Seating tools</strong><div class="ww-actions"><button class="cta secondary small" id="ww-auto-seat" type="button">Auto-seat remaining</button><button class="cta secondary small ww-btn-danger-soft" id="ww-clear-seats" type="button">Clear seating</button></div>';
     panel.querySelector('.ww-actions')?.after(toolbox);
 
     async function assign(tableId, guestId) {
@@ -329,7 +367,10 @@
       const pct = table.cap ? Math.min(100, Math.round((table.used / table.cap) * 100)) : 0;
       table.card.classList.add('ww-table-card');
       if (!table.card.querySelector('.ww-capacity-bar')) {
-        table.card.insertAdjacentHTML('beforeend', `<div class="ww-capacity-bar"><span style="width:${pct}%"></span></div>${table.used > table.cap ? '<p class="ww-capacity-warning">Over capacity — move a guest or increase capacity.</p>' : ''}`);
+        table.card.insertAdjacentHTML(
+          'beforeend',
+          `<div class="ww-capacity-bar"><span style="width:${pct}%"></span></div>${table.used > table.cap ? '<p class="ww-capacity-warning">Over capacity — move a guest or increase capacity.</p>' : ''}`
+        );
       }
       if (table.card.dataset.wwAdvancedDrop !== 'true') {
         table.card.dataset.wwAdvancedDrop = 'true';
@@ -337,7 +378,9 @@
           event.preventDefault();
           table.card.classList.add('is-drop-target');
         });
-        table.card.addEventListener('dragleave', () => table.card.classList.remove('is-drop-target'));
+        table.card.addEventListener('dragleave', () =>
+          table.card.classList.remove('is-drop-target')
+        );
         table.card.addEventListener('drop', async event => {
           event.preventDefault();
           table.card.classList.remove('is-drop-target');
@@ -349,7 +392,10 @@
         button.dataset.wwAdvancedMove = 'true';
         const move = document.createElement('select');
         move.className = 'ww-move-select';
-        move.innerHTML = `<option value="">Move to…</option>${tables.filter(option => option.id !== table.id).map(option => `<option value="${esc(option.id)}">${esc(option.name)}</option>`).join('')}`;
+        move.innerHTML = `<option value="">Move to…</option>${tables
+          .filter(option => option.id !== table.id)
+          .map(option => `<option value="${esc(option.id)}">${esc(option.name)}</option>`)
+          .join('')}`;
         move.addEventListener('change', async () => {
           if (move.value) await assign(move.value, button.dataset.id);
         });
@@ -359,13 +405,18 @@
 
     toolbox.querySelector('#ww-auto-seat')?.addEventListener('click', async event => {
       const button = event.currentTarget;
-      const guestIds = Array.from(unseated.querySelectorAll('.assign-select')).map(select => select.dataset.guest);
-      const slots = tables.flatMap(table => Array(Math.max(0, table.cap - table.used)).fill(table.id));
+      const guestIds = Array.from(unseated.querySelectorAll('.assign-select')).map(
+        select => select.dataset.guest
+      );
+      const slots = tables.flatMap(table =>
+        Array(Math.max(0, table.cap - table.used)).fill(table.id)
+      );
       if (!guestIds.length) return toast('No unseated guests to auto-seat');
       if (!slots.length) return toast('Add more table capacity first', 'warn');
       button.disabled = true;
       try {
-        for (let i = 0; i < guestIds.slice(0, slots.length).length; i += 1) await assignGuest(plan.id, slots[i], guestIds[i]);
+        for (let i = 0; i < guestIds.slice(0, slots.length).length; i += 1)
+          await assignGuest(plan.id, slots[i], guestIds[i]);
         toast('Auto-seating complete');
         await refreshSeatingTab(root);
       } catch (err) {
@@ -378,7 +429,9 @@
     toolbox.querySelector('#ww-clear-seats')?.addEventListener('click', async event => {
       if (!window.confirm('Clear all current seating assignments?')) return;
       const button = event.currentTarget;
-      const guestIds = Array.from(grid.querySelectorAll('.unassign')).map(btn => btn.dataset.id).filter(Boolean);
+      const guestIds = Array.from(grid.querySelectorAll('.unassign'))
+        .map(btn => btn.dataset.id)
+        .filter(Boolean);
       button.disabled = true;
       try {
         for (const guestId of guestIds) await unassignGuest(plan.id, guestId);
@@ -391,8 +444,14 @@
       }
     });
 
-    if (tables.some(table => table.used > table.cap) && !panel.querySelector('.ww-seating-warning')) {
-      toolbox.insertAdjacentHTML('afterend', '<p class="ww-seating-warning">One or more tables is over capacity.</p>');
+    if (
+      tables.some(table => table.used > table.cap) &&
+      !panel.querySelector('.ww-seating-warning')
+    ) {
+      toolbox.insertAdjacentHTML(
+        'afterend',
+        '<p class="ww-seating-warning">One or more tables is over capacity.</p>'
+      );
     }
   }
 
@@ -420,7 +479,9 @@
     const obs = new MutationObserver(mutations => {
       const dialogAdded = mutations.some(mutation =>
         Array.from(mutation.addedNodes).some(
-          node => node instanceof Element && (node.matches('.ww-app-dialog') || node.querySelector?.('.ww-app-dialog'))
+          node =>
+            node instanceof Element &&
+            (node.matches('.ww-app-dialog') || node.querySelector?.('.ww-app-dialog'))
         )
       );
       if (dialogAdded) scheduleEnhance();
@@ -431,7 +492,10 @@
   document.addEventListener(
     'click',
     event => {
-      if (event.target instanceof Element && event.target.closest('.ww-app-tabs button,[data-tab],.ww-app-dialog .ww-tile button')) {
+      if (
+        event.target instanceof Element &&
+        event.target.closest('.ww-app-tabs button,[data-tab],.ww-app-dialog .ww-tile button')
+      ) {
         window.setTimeout(scheduleEnhance, 0);
       }
     },
@@ -439,10 +503,11 @@
   );
 
   const previousInit = window.initWeddingWebsiteDashboard;
-  window.initWeddingWebsiteDashboard = async function initWeddingWebsiteDashboardWithAdvancedWeddingPolish(plans) {
-    cachedPlans = plans || [];
-    await previousInit?.(plans);
-  };
+  window.initWeddingWebsiteDashboard =
+    async function initWeddingWebsiteDashboardWithAdvancedWeddingPolish(plans) {
+      cachedPlans = plans || [];
+      await previousInit?.(plans);
+    };
 
   injectStyles();
   scheduleEnhance();

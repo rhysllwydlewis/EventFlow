@@ -273,7 +273,10 @@ if (!MessengerV4Service.__deleteArchiveLifecyclePatched) {
     );
   };
 
-  MessengerV4Service.prototype.getConversation = async function getConversation(conversationId, userId) {
+  MessengerV4Service.prototype.getConversation = async function getConversation(
+    conversationId,
+    userId
+  ) {
     const conversation = await this.conversationsCollection.findOne({
       _id: new ObjectId(conversationId),
       'participants.userId': userId,

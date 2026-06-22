@@ -5,7 +5,7 @@
 (function () {
   'use strict';
 
-  const bar    = document.getElementById('article-progress-bar');
+  const bar = document.getElementById('article-progress-bar');
   const backTop = document.getElementById('article-back-to-top');
 
   if (!bar && !backTop) {
@@ -64,9 +64,10 @@
 
     if (!target) {
       // Try to insert after the first <time> element in the article
-      const timeEl = articleEl.querySelector('time') ||
-                     document.querySelector('.article-meta time') ||
-                     document.querySelector('.guide-meta time');
+      const timeEl =
+        articleEl.querySelector('time') ||
+        document.querySelector('.article-meta time') ||
+        document.querySelector('.guide-meta time');
       if (timeEl) {
         target = document.createElement('span');
         target.id = 'article-reading-time';

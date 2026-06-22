@@ -505,9 +505,9 @@
     const popWidth = 220;
     const left = Math.max(8, Math.min(rect.left, window.innerWidth - popWidth - 8));
     pop.className = 'ef-cal-popup';
-      pop.style.left = `${left}px`;
-      pop.style.top = `${rect.bottom + 6}px`;
-      pop.style.width = `${popWidth}px`;;
+    pop.style.left = `${left}px`;
+    pop.style.top = `${rect.bottom + 6}px`;
+    pop.style.width = `${popWidth}px`;
 
     // Trap first focus on the Edit button
     setTimeout(() => pop.querySelector('.cal-delete-popover__btn--edit').focus(), 50);
@@ -1166,4 +1166,3 @@
     init: initCalendarView,
   };
 })();
-

@@ -124,9 +124,9 @@ async function saveImageBase64(base64, namePrefix) {
   // Return all size variants so callers can store the full photo record.
   // url = optimized (1200px) — best general-purpose display size.
   return {
-    url:      results.optimized || results.original,
+    url: results.optimized || results.original,
     thumbnail: results.thumbnail || results.optimized || results.original,
-    large:    results.large     || results.original,
+    large: results.large || results.original,
     original: results.original,
   };
 }
@@ -209,11 +209,11 @@ router.post(
     }
     const photosGallery = s.photosGallery || [];
     const photoRecord = {
-      url:       imageVariants.url,
+      url: imageVariants.url,
       thumbnail: imageVariants.thumbnail,
-      large:     imageVariants.large,
-      original:  imageVariants.original,
-      approved:  true,
+      large: imageVariants.large,
+      original: imageVariants.original,
+      approved: true,
       uploadedAt: new Date().toISOString(),
     };
     photosGallery.push(photoRecord);

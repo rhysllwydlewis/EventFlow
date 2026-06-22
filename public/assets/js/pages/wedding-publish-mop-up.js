@@ -6,12 +6,36 @@
 
   const rootSelector = '#wedding-website-dashboard-root';
   const readiness = {
-    coupleNames: { label: 'Couple Names', selector: '[name="coupleNames"]', help: 'Add the couple names shown on the public wedding website.' },
-    eventDate: { label: 'Event Date', selector: '[name="eventDate"]', help: 'Add the date of the wedding or main celebration.' },
-    venue: { label: 'Venue Details', selector: '[name="ceremonyVenueName"], [name="receptionVenueName"]', help: 'Add at least one venue name so guests know where to go.' },
-    rsvpEnabled: { label: 'RSVP Settings', selector: '[name="rsvpEnabled"]', help: 'Enable RSVPs before publishing the guest website.' },
-    slug: { label: 'Website Link', selector: '.ww-share-card input, a[href^="/wedding/"]', help: 'Generate or save a valid public website link.' },
-    password: { label: 'Website Password', selector: '[name="password"]', help: 'Set a password before publishing a password-protected website.' },
+    coupleNames: {
+      label: 'Couple Names',
+      selector: '[name="coupleNames"]',
+      help: 'Add the couple names shown on the public wedding website.',
+    },
+    eventDate: {
+      label: 'Event Date',
+      selector: '[name="eventDate"]',
+      help: 'Add the date of the wedding or main celebration.',
+    },
+    venue: {
+      label: 'Venue Details',
+      selector: '[name="ceremonyVenueName"], [name="receptionVenueName"]',
+      help: 'Add at least one venue name so guests know where to go.',
+    },
+    rsvpEnabled: {
+      label: 'RSVP Settings',
+      selector: '[name="rsvpEnabled"]',
+      help: 'Enable RSVPs before publishing the guest website.',
+    },
+    slug: {
+      label: 'Website Link',
+      selector: '.ww-share-card input, a[href^="/wedding/"]',
+      help: 'Generate or save a valid public website link.',
+    },
+    password: {
+      label: 'Website Password',
+      selector: '[name="password"]',
+      help: 'Set a password before publishing a password-protected website.',
+    },
   };
   const requiredKeys = ['coupleNames', 'eventDate', 'venue'];
   let lastPlanId = '';
@@ -19,9 +43,17 @@
   let lastPlanPromise = null;
 
   function esc(value) {
-    return String(value || '').replace(/[&<>"']/g, ch => ({
-      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
-    })[ch]);
+    return String(value || '').replace(
+      /[&<>"']/g,
+      ch =>
+        ({
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#39;',
+        })[ch]
+    );
   }
 
   function getCsrfToken() {
@@ -52,7 +84,9 @@
 
   function findPlanId(root) {
     const exportLink = root.querySelector("a[href*='/api/me/plans/'][href$='/guests/export.csv']");
-    const match = exportLink?.getAttribute('href')?.match(/\/api\/me\/plans\/([^/]+)\/guests\/export\.csv/);
+    const match = exportLink
+      ?.getAttribute('href')
+      ?.match(/\/api\/me\/plans\/([^/]+)\/guests\/export\.csv/);
     return match ? decodeURIComponent(match[1]) : '';
   }
 
@@ -73,7 +107,9 @@
     if (!root || !config) return;
     let target = root.querySelector(config.selector);
     if (!target && key === 'venue') {
-      target = root.querySelector('[name="ceremonyVenueName"]') || root.querySelector('[name="receptionVenueName"]');
+      target =
+        root.querySelector('[name="ceremonyVenueName"]') ||
+        root.querySelector('[name="receptionVenueName"]');
     }
     if (!target) return;
     const details = target.closest('details');
@@ -150,7 +186,10 @@
     const statusEl = getStatusEl(root);
     const cards = missing
       .map(key => {
-        const config = readiness[key] || { label: key, help: 'Complete this item before publishing.' };
+        const config = readiness[key] || {
+          label: key,
+          help: 'Complete this item before publishing.',
+        };
         return `<button type="button" class="ww-checklist-link" data-target="${esc(key)}"><span>${esc(config.label)}</span><small>${esc(config.help)}</small></button>`;
       })
       .join('');
@@ -171,7 +210,11 @@
       actions.after(card);
     }
     const missing = getMissingKeys(root);
-    const states = requiredKeys.map(key => ({ key, ok: !missing.includes(key), ...readiness[key] }));
+    const states = requiredKeys.map(key => ({
+      key,
+      ok: !missing.includes(key),
+      ...readiness[key],
+    }));
     const complete = states.filter(item => item.ok).length;
     const total = states.length;
     const ready = complete === total;
@@ -185,7 +228,10 @@
     if (!statusEl || statusEl.dataset.enhancedChecklist === 'true') return;
     const items = Array.from(statusEl.querySelectorAll('li'));
     if (!items.length) return;
-    renderMissingStatus(document.querySelector(rootSelector), items.map(li => String(li.textContent || '').trim()).filter(Boolean));
+    renderMissingStatus(
+      document.querySelector(rootSelector),
+      items.map(li => String(li.textContent || '').trim()).filter(Boolean)
+    );
   }
 
   async function fetchWebsite(planId) {
@@ -219,10 +265,21 @@
     const fallback = derivePlanEssentials(plan);
     const mapping = {
       eventDate: normaliseDate(website?.eventDate) || fallback.eventDate,
-      ceremonyVenueName: firstValue(website?.ceremonyVenueName, website?.venueName, fallback.ceremonyVenueName),
-      ceremonyVenueAddress: firstValue(website?.ceremonyVenueAddress, website?.venueAddress, fallback.ceremonyVenueAddress),
+      ceremonyVenueName: firstValue(
+        website?.ceremonyVenueName,
+        website?.venueName,
+        fallback.ceremonyVenueName
+      ),
+      ceremonyVenueAddress: firstValue(
+        website?.ceremonyVenueAddress,
+        website?.venueAddress,
+        fallback.ceremonyVenueAddress
+      ),
       receptionVenueName: firstValue(website?.receptionVenueName, fallback.receptionVenueName),
-      receptionVenueAddress: firstValue(website?.receptionVenueAddress, fallback.receptionVenueAddress),
+      receptionVenueAddress: firstValue(
+        website?.receptionVenueAddress,
+        fallback.receptionVenueAddress
+      ),
     };
     Object.entries(mapping).forEach(([name, value]) => {
       const input = root.querySelector(`[name="${name}"]`);
@@ -239,7 +296,10 @@
       return;
     }
     const essentials = Array.from(form.querySelectorAll('details')).find(d =>
-      String(d.querySelector('summary')?.textContent || '').trim().toLowerCase().includes('essentials')
+      String(d.querySelector('summary')?.textContent || '')
+        .trim()
+        .toLowerCase()
+        .includes('essentials')
     );
     if (!essentials) return;
     const fallback = derivePlanEssentials(plan);
@@ -304,7 +364,11 @@
     enhancePreviewLink(root);
     renderReadinessCard(root);
     form.addEventListener('input', event => {
-      if (event.target?.matches?.('[name="coupleNames"], [name="eventDate"], [name="ceremonyVenueName"], [name="receptionVenueName"]')) {
+      if (
+        event.target?.matches?.(
+          '[name="coupleNames"], [name="eventDate"], [name="ceremonyVenueName"], [name="receptionVenueName"]'
+        )
+      ) {
         renderReadinessCard(root);
       }
     });
@@ -316,7 +380,12 @@
     async event => {
       const publishButton = event.target.closest('#ww-pub');
       if (!publishButton || publishButton.dataset.mopUpBypass === 'true') return;
-      if (String(publishButton.textContent || '').toLowerCase().includes('unpublish')) return;
+      if (
+        String(publishButton.textContent || '')
+          .toLowerCase()
+          .includes('unpublish')
+      )
+        return;
       const root = document.querySelector(rootSelector);
       if (!root?.querySelector('#ww-builder')) return;
       event.preventDefault();
@@ -342,7 +411,8 @@
       } catch (_err) {
         publishButton.disabled = false;
         publishButton.textContent = 'Publish';
-        getStatusEl(root).textContent = 'Unable to save publish details. Please try Save, then Publish again.';
+        getStatusEl(root).textContent =
+          'Unable to save publish details. Please try Save, then Publish again.';
       }
     },
     true

@@ -2084,4 +2084,3 @@
   window.ReviewsManager = ReviewsManager;
   window.reviewsManager = ReviewsManager; // Instance for direct access
 })();
-

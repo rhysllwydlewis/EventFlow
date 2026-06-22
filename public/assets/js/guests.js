@@ -800,4 +800,3 @@ let guestManager;
 document.addEventListener('DOMContentLoaded', () => {
   guestManager = new GuestManager();
 });
-

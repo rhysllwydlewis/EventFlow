@@ -42,12 +42,16 @@ function initializeDependencies(deps) {
 
 router.get('/tools/qr.png', async (req, res) => {
   try {
-    const rawUrl = String(req.query.url || '').trim().slice(0, 500);
+    const rawUrl = String(req.query.url || '')
+      .trim()
+      .slice(0, 500);
     const origin = `${req.protocol}://${req.get('host')}`;
     const url = new URL(rawUrl, origin);
 
     if (url.origin !== origin || !url.pathname.startsWith('/wedding/')) {
-      return res.status(400).json({ error: 'QR codes are only available for EventFlow wedding links.' });
+      return res
+        .status(400)
+        .json({ error: 'QR codes are only available for EventFlow wedding links.' });
     }
 
     const png = await QRCode.toBuffer(url.toString(), {

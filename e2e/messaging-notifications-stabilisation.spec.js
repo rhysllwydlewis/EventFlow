@@ -8,7 +8,10 @@ test.describe('Messaging + Notifications stabilisation', () => {
   test('Messenger page loads shared stabilisation helpers without asset 404s', async ({ page }) => {
     const asset404s = [];
     page.on('response', response => {
-      if (response.status() === 404 && /messaging-notifications-stabilisation|csrf-token|notification-state/.test(response.url())) {
+      if (
+        response.status() === 404 &&
+        /messaging-notifications-stabilisation|csrf-token|notification-state/.test(response.url())
+      ) {
         asset404s.push(response.url());
       }
     });
@@ -45,7 +48,9 @@ test.describe('Messaging + Notifications stabilisation', () => {
     await page.goto('/messenger/');
     await page.waitForLoadState('domcontentloaded');
 
-    const hasRuntime = await page.evaluate(() => Boolean(window.__efMessagingNotificationsStabilised));
+    const hasRuntime = await page.evaluate(() =>
+      Boolean(window.__efMessagingNotificationsStabilised)
+    );
     expect(hasRuntime).toBe(true);
   });
 });

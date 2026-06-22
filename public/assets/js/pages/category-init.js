@@ -96,4 +96,3 @@ document.addEventListener('DOMContentLoaded', () => {
         '<div class="package-empty-state"><p>This category could not be found. <a href="/">Return home</a></p></div>';
     });
 });
-

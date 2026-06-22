@@ -5,16 +5,47 @@
   let planLookupPromise = null;
 
   const THEMES = [
-    { id: 'classic', label: 'Classic Mint', template: 'classic', accent: '#0B8073', description: 'Clean EventFlow mint and navy.' },
-    { id: 'romantic', label: 'Romantic Blush', template: 'romantic', accent: '#f5897c', description: 'Warm, soft and wedding-led.' },
-    { id: 'modern', label: 'Modern Blue', template: 'modern', accent: '#24436f', description: 'Crisp navy with a premium feel.' },
-    { id: 'sage', label: 'Sage Garden', template: 'classic', accent: '#6FAF8F', description: 'Natural green for relaxed venues.' },
-    { id: 'gold', label: 'Soft Gold', template: 'classic', accent: '#b9ab2e', description: 'Subtle celebratory gold accent.' },
+    {
+      id: 'classic',
+      label: 'Classic Mint',
+      template: 'classic',
+      accent: '#0B8073',
+      description: 'Clean EventFlow mint and navy.',
+    },
+    {
+      id: 'romantic',
+      label: 'Romantic Blush',
+      template: 'romantic',
+      accent: '#f5897c',
+      description: 'Warm, soft and wedding-led.',
+    },
+    {
+      id: 'modern',
+      label: 'Modern Blue',
+      template: 'modern',
+      accent: '#24436f',
+      description: 'Crisp navy with a premium feel.',
+    },
+    {
+      id: 'sage',
+      label: 'Sage Garden',
+      template: 'classic',
+      accent: '#6FAF8F',
+      description: 'Natural green for relaxed venues.',
+    },
+    {
+      id: 'gold',
+      label: 'Soft Gold',
+      template: 'classic',
+      accent: '#b9ab2e',
+      description: 'Subtle celebratory gold accent.',
+    },
   ];
 
   const esc = value =>
-    String(value || '').replace(/[&<>"']/g, ch =>
-      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]
+    String(value || '').replace(
+      /[&<>"']/g,
+      ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]
     );
 
   function getCsrfToken() {
@@ -275,7 +306,8 @@
       const indicator = document.createElement('span');
       indicator.className = 'ww-expand-indicator';
       indicator.setAttribute('aria-hidden', 'true');
-      indicator.innerHTML = '<svg viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+      indicator.innerHTML =
+        '<svg viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/></svg>';
       summary.appendChild(indicator);
     });
   }
@@ -285,7 +317,11 @@
     if (!form || form.querySelector('.ww-theme-lab')) {
       return;
     }
-    const extraDetails = form.querySelector('#ww-extra-details') || Array.from(form.querySelectorAll('details')).find(details => /guest information/i.test(details.textContent));
+    const extraDetails =
+      form.querySelector('#ww-extra-details') ||
+      Array.from(form.querySelectorAll('details')).find(details =>
+        /guest information/i.test(details.textContent)
+      );
     if (!extraDetails) {
       return;
     }
@@ -325,9 +361,16 @@
       if (originalAccent) {
         originalAccent.value = accent.value;
       }
-      lab.querySelector('#ww-theme-status').textContent = 'Theme selected — press Save to apply it to your guest website.';
+      lab.querySelector('#ww-theme-status').textContent =
+        'Theme selected — press Save to apply it to your guest website.';
       lab.querySelectorAll('.ww-theme-card').forEach(card => {
-        card.setAttribute('aria-pressed', String(card.dataset.template === template.value && card.dataset.accent.toLowerCase() === accent.value.toLowerCase()));
+        card.setAttribute(
+          'aria-pressed',
+          String(
+            card.dataset.template === template.value &&
+              card.dataset.accent.toLowerCase() === accent.value.toLowerCase()
+          )
+        );
       });
     };
     lab.querySelectorAll('.ww-theme-card').forEach(card => {
@@ -363,11 +406,19 @@
         if (!planId) {
           throw new Error('Unable to find this wedding plan. Reopen the widget and try again.');
         }
-        const data = await api(`/api/me/plans/${encodeURIComponent(planId)}/wedding-website/regenerate-slug`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ seed: dialog.querySelector('[name="coupleNames"]')?.value || slugInput?.value || 'our-wedding' }),
-        });
+        const data = await api(
+          `/api/me/plans/${encodeURIComponent(planId)}/wedding-website/regenerate-slug`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              seed:
+                dialog.querySelector('[name="coupleNames"]')?.value ||
+                slugInput?.value ||
+                'our-wedding',
+            }),
+          }
+        );
         const slug = data.website?.slug;
         if (slug) {
           syncLink(sharePane, slug);
@@ -410,7 +461,10 @@
     if (
       mutations.some(mutation =>
         Array.from(mutation.addedNodes).some(
-          node => node instanceof Element && (node.matches('.ww-app-dialog,#ww-builder,#ww-share-admin') || node.querySelector?.('.ww-app-dialog,#ww-builder,#ww-share-admin'))
+          node =>
+            node instanceof Element &&
+            (node.matches('.ww-app-dialog,#ww-builder,#ww-share-admin') ||
+              node.querySelector?.('.ww-app-dialog,#ww-builder,#ww-share-admin'))
         )
       )
     ) {
@@ -419,11 +473,18 @@
   });
 
   observer.observe(document.body, { childList: true, subtree: true });
-  document.addEventListener('click', event => {
-    if (event.target instanceof Element && event.target.closest('.ww-app-tabs button,[data-tab],summary')) {
-      [0, 250, 900].forEach(delay => window.setTimeout(schedule, delay));
-    }
-  }, true);
+  document.addEventListener(
+    'click',
+    event => {
+      if (
+        event.target instanceof Element &&
+        event.target.closest('.ww-app-tabs button,[data-tab],summary')
+      ) {
+        [0, 250, 900].forEach(delay => window.setTimeout(schedule, delay));
+      }
+    },
+    true
+  );
   injectStyles();
   schedule();
 })();

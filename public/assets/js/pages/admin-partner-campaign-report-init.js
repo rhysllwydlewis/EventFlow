@@ -45,7 +45,9 @@
       body.innerHTML = '<tr><td colspan="7" class="pcr-empty">No campaign data yet.</td></tr>';
       return;
     }
-    body.innerHTML = rows.map(row => `<tr>
+    body.innerHTML = rows
+      .map(
+        row => `<tr>
       <td>${esc(text(row.source, 'Direct / unknown'))}</td>
       <td>${esc(text(row.medium, 'Unknown'))}</td>
       <td>${esc(text(row.campaign, 'No campaign'))}</td>
@@ -53,7 +55,9 @@
       <td>${esc(row.packageQualified)}</td>
       <td>${esc(row.subscriptionQualified)}</td>
       <td><strong>${esc(row.pointsAwarded)}</strong></td>
-    </tr>`).join('');
+    </tr>`
+      )
+      .join('');
   }
 
   function renderPartnerSummary() {
@@ -61,27 +65,36 @@
     if (!body) return;
     const rows = (report.partnerSummary || []).slice(0, 25);
     if (!rows.length) {
-      body.innerHTML = '<tr><td colspan="6" class="pcr-empty">No partner referral data yet.</td></tr>';
+      body.innerHTML =
+        '<tr><td colspan="6" class="pcr-empty">No partner referral data yet.</td></tr>';
       return;
     }
-    body.innerHTML = rows.map(row => `<tr>
+    body.innerHTML = rows
+      .map(
+        row => `<tr>
       <td><strong>${esc(row.partnerName)}</strong>${row.partnerEmail ? `<div class="pcr-muted">${esc(row.partnerEmail)}</div>` : ''}</td>
       <td><code>${esc(row.partnerRefCode || '—')}</code></td>
       <td><strong>${esc(row.referrals)}</strong></td>
       <td>${esc(row.packageQualified)}</td>
       <td>${esc(row.subscriptionQualified)}</td>
       <td><strong>${esc(row.pointsAwarded)}</strong></td>
-    </tr>`).join('');
+    </tr>`
+      )
+      .join('');
   }
 
   function renderItems() {
     const body = document.getElementById('pcr-items-body');
     if (!body) return;
     if (!filteredItems.length) {
-      body.innerHTML = '<tr><td colspan="7" class="pcr-empty">No referrals match your search.</td></tr>';
+      body.innerHTML =
+        '<tr><td colspan="7" class="pcr-empty">No referrals match your search.</td></tr>';
       return;
     }
-    body.innerHTML = filteredItems.slice(0, 100).map(item => `<tr>
+    body.innerHTML = filteredItems
+      .slice(0, 100)
+      .map(
+        item => `<tr>
       <td><strong>${esc(item.partnerName)}</strong><div class="pcr-muted">${esc(item.partnerRefCode || '—')}</div></td>
       <td><strong>${esc(item.supplierName)}</strong>${item.supplierCompany ? `<div class="pcr-muted">${esc(item.supplierCompany)}</div>` : ''}</td>
       <td>${esc(text(item.source, 'Direct / unknown'))}<div class="pcr-muted">${esc(text(item.medium, 'Unknown'))}</div></td>
@@ -89,25 +102,35 @@
       <td>${qualifierPills(item)}</td>
       <td><strong>${esc(item.pointsAwarded)}</strong></td>
       <td>${esc(fmtDate(item.supplierCreatedAt || item.createdAt))}</td>
-    </tr>`).join('');
+    </tr>`
+      )
+      .join('');
   }
 
   function applySearch() {
     const q = (document.getElementById('pcr-search')?.value || '').toLowerCase().trim();
     const items = report?.items || [];
-    filteredItems = !q ? items : items.filter(item => [
-      item.partnerName,
-      item.partnerEmail,
-      item.partnerRefCode,
-      item.supplierName,
-      item.supplierEmail,
-      item.supplierCompany,
-      item.source,
-      item.medium,
-      item.campaign,
-      item.content,
-      item.term,
-    ].some(value => String(value || '').toLowerCase().includes(q)));
+    filteredItems = !q
+      ? items
+      : items.filter(item =>
+          [
+            item.partnerName,
+            item.partnerEmail,
+            item.partnerRefCode,
+            item.supplierName,
+            item.supplierEmail,
+            item.supplierCompany,
+            item.source,
+            item.medium,
+            item.campaign,
+            item.content,
+            item.term,
+          ].some(value =>
+            String(value || '')
+              .toLowerCase()
+              .includes(q)
+          )
+        );
     renderItems();
   }
 
@@ -128,8 +151,10 @@
     const campaignBody = document.getElementById('pcr-campaign-body');
     const partnerBody = document.getElementById('pcr-partner-body');
     const itemBody = document.getElementById('pcr-items-body');
-    if (campaignBody) campaignBody.innerHTML = '<tr><td colspan="7" class="pcr-empty">Loading…</td></tr>';
-    if (partnerBody) partnerBody.innerHTML = '<tr><td colspan="6" class="pcr-empty">Loading…</td></tr>';
+    if (campaignBody)
+      campaignBody.innerHTML = '<tr><td colspan="7" class="pcr-empty">Loading…</td></tr>';
+    if (partnerBody)
+      partnerBody.innerHTML = '<tr><td colspan="6" class="pcr-empty">Loading…</td></tr>';
     if (itemBody) itemBody.innerHTML = '<tr><td colspan="7" class="pcr-empty">Loading…</td></tr>';
 
     try {
@@ -137,8 +162,10 @@
       renderReport(data);
     } catch (err) {
       const msg = esc(err.message || 'Failed to load campaign report.');
-      if (campaignBody) campaignBody.innerHTML = `<tr><td colspan="7" class="pcr-empty">${msg}</td></tr>`;
-      if (partnerBody) partnerBody.innerHTML = `<tr><td colspan="6" class="pcr-empty">${msg}</td></tr>`;
+      if (campaignBody)
+        campaignBody.innerHTML = `<tr><td colspan="7" class="pcr-empty">${msg}</td></tr>`;
+      if (partnerBody)
+        partnerBody.innerHTML = `<tr><td colspan="6" class="pcr-empty">${msg}</td></tr>`;
       if (itemBody) itemBody.innerHTML = `<tr><td colspan="7" class="pcr-empty">${msg}</td></tr>`;
     }
   }

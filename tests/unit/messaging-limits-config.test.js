@@ -77,7 +77,9 @@ describe('ContactPickerV4 rate-limit copy', () => {
 
   test('preserves the backend THREAD_LIMIT_EXCEEDED message so the reset time is visible', () => {
     const inst = Object.create(ContactPickerV4.prototype);
-    const err = new Error("You've reached today's limit of 30 new conversations. Limits reset at midnight UTC.");
+    const err = new Error(
+      "You've reached today's limit of 30 new conversations. Limits reset at midnight UTC."
+    );
     err.status = 429;
     err.code = 'THREAD_LIMIT_EXCEEDED';
     err.safeMessage = err.message;

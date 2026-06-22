@@ -387,4 +387,3 @@ export default {
   hasVerificationBadges,
   getVerificationSummary,
 };
-

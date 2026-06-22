@@ -20,19 +20,19 @@
   const DEFAULT_STATE = {
     currentStep: 0,
     completed: false,
-    templateId: null,          // Which template was chosen (if any)
-    eventType: '',             // 'Wedding' | 'Corporate' | 'Birthday' | 'Other'
+    templateId: null, // Which template was chosen (if any)
+    eventType: '', // 'Wedding' | 'Corporate' | 'Birthday' | 'Other'
     eventName: '',
     location: '',
     date: '',
     guests: null,
     budget: '',
-    planningStage: '',         // 'just-starting' | 'venue-booked' | 'some-booked' | 'nearly-ready'
-    priorities: [],            // Selected planning needs e.g. ['venue', 'catering', 'photography']
-    styles: [],                // Style/vibe chips e.g. ['classic', 'luxury']
+    planningStage: '', // 'just-starting' | 'venue-booked' | 'some-booked' | 'nearly-ready'
+    priorities: [], // Selected planning needs e.g. ['venue', 'catering', 'photography']
+    styles: [], // Style/vibe chips e.g. ['classic', 'luxury']
     notes: '',
-    selectedPackages: {},      // { categoryKey: packageId }
-    alreadyHave: {},           // { categoryKey: true } — supplier already booked
+    selectedPackages: {}, // { categoryKey: packageId }
+    alreadyHave: {}, // { categoryKey: true } — supplier already booked
     wizardStartedAt: null,
     lastUpdated: null,
   };

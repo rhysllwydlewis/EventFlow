@@ -1280,7 +1280,7 @@ All critical issues have been resolved in Phases 1-4.
 | -------------------- | -------- | -------- | -------- | ------------- |
 | CSP Inline Handlers  | Medium   | Medium   | 2-3 days | Sprint 5      |
 | Lead Quality Display | Medium   | High     | 2 days   | Sprint 5      |
-| ALTCHA Integration | Medium   | High     | 1 day    | Sprint 5      |
+| ALTCHA Integration   | Medium   | High     | 1 day    | Sprint 5      |
 | xlsx Vulnerability   | Low      | Medium   | 1 day    | Sprint 6      |
 | Stripe Payment Flow  | High     | High     | 3-5 days | Sprint 5-6    |
 | Trust Badges Display | Low      | Medium   | 2 days   | Sprint 6      |

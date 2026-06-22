@@ -78,7 +78,9 @@ describe('Carousel modal CSS regressions', () => {
   });
 
   it('includes a short-landscape viewport fallback for carousel sizing', () => {
-    expect(carouselCss).toContain('@media (min-height: 451px) and (max-height: 500px) and (orientation: landscape)');
+    expect(carouselCss).toContain(
+      '@media (min-height: 451px) and (max-height: 500px) and (orientation: landscape)'
+    );
     expect(carouselCss).toContain('max-height: calc(100vh - 140px);');
   });
 });

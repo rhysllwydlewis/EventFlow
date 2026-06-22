@@ -203,10 +203,12 @@ export function showUpgradePrompt(featureName, message = null) {
   document.body.appendChild(modal);
 
   // Add styles if not already added
-    // Close handlers
-// Close handlers
+  // Close handlers
+  // Close handlers
   const lastFocused = document.activeElement;
-  const escapeHandler = e => { if (e.key === 'Escape') closeModal(); };
+  const escapeHandler = e => {
+    if (e.key === 'Escape') closeModal();
+  };
   document.addEventListener('keydown', escapeHandler);
   const closeModal = () => {
     modal.remove();
@@ -214,10 +216,15 @@ export function showUpgradePrompt(featureName, message = null) {
     if (lastFocused?.focus) lastFocused.focus();
   };
   modal.querySelector('.upgrade-modal-close').addEventListener('click', closeModal);
-  modal.querySelector('.upgrade-modal-cancel') && modal.querySelector('.upgrade-modal-cancel').addEventListener('click', closeModal);
-  modal.querySelector('.btn-cancel') && modal.querySelector('.btn-cancel').addEventListener('click', closeModal);
+  modal.querySelector('.upgrade-modal-cancel') &&
+    modal.querySelector('.upgrade-modal-cancel').addEventListener('click', closeModal);
+  modal.querySelector('.btn-cancel') &&
+    modal.querySelector('.btn-cancel').addEventListener('click', closeModal);
   modal.querySelector('.upgrade-modal-overlay').addEventListener('click', closeModal);
-  requestAnimationFrame(() => { const f = modal.querySelector('.upgrade-modal-close'); if (f) f.focus(); });
+  requestAnimationFrame(() => {
+    const f = modal.querySelector('.upgrade-modal-close');
+    if (f) f.focus();
+  });
 }
 
 /**
@@ -331,4 +338,3 @@ export function getCurrentTier() {
 export function getCurrentSupplierId() {
   return currentSupplierId;
 }
-

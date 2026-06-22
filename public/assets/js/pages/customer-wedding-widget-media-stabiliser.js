@@ -88,7 +88,8 @@
     if (tools && !tools.querySelector('.ww-media-stabiliser-note')) {
       const note = document.createElement('p');
       note.className = 'small ww-media-stabiliser-note';
-      note.textContent = 'Cover photo, colours and gallery images now save through one Theme & photos panel.';
+      note.textContent =
+        'Cover photo, colours and gallery images now save through one Theme & photos panel.';
       tools.insertBefore(note, tools.firstElementChild?.nextSibling || tools.firstChild);
     }
   }

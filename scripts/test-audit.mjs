@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { spawn } from 'child_process';
-import { mkdir, rm, writeFile, readFile } from 'fs/promises';
+import { mkdir, rm, writeFile, readFile, cp } from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
 
@@ -23,6 +23,9 @@ const categories = [
   'Environment/config issue',
   'Flaky/timing issue',
   'Snapshot/visual drift',
+  'Code quality',
+  'Formatting/style issue',
+  'Audit runner timeout / incomplete result',
   'Coverage threshold issue',
   'Workflow policy issue',
   'Dependency/security warning',
@@ -77,57 +80,67 @@ const allChecks = [
   {
     id: 'playwright-static',
     area: 'Static Playwright e2e',
-    command: 'CI=true npm run test:e2e:static',
+    command:
+      'CI=true PLAYWRIGHT_JSON_OUTPUT_NAME=test-results/playwright-static.json npm run test:e2e:static',
     preCommand: "pgrep -f '[s]cripts/serve-static.js' | xargs -r kill",
     log: 'playwright-static.log',
     modes: ['quick', 'default', 'full', 'ci'],
     parser: 'playwright',
-    json: 'test-results/results.json',
-    timeoutMs: 60000,
+    json: 'test-results/playwright-static.json',
+    artifactDirs: ['playwright-report', 'test-results'],
+    timeoutMs: 240000,
   },
   {
     id: 'playwright-full',
     area: 'Backend Playwright e2e',
-    command: 'npm run test:e2e:full',
+    command: 'PLAYWRIGHT_JSON_OUTPUT_NAME=test-results/playwright-full.json npm run test:e2e:full',
     preCommand: "pgrep -f '[s]cripts/serve-static.js' | xargs -r kill",
     log: 'playwright-full.log',
     modes: ['full'],
     parser: 'playwright',
-    json: 'test-results/results.json',
+    json: 'test-results/playwright-full.json',
+    artifactDirs: ['playwright-report', 'test-results'],
     safe: 'Requires a safe local/backend test environment; never uses production by this runner.',
-    timeoutMs: 240000,
+    timeoutMs: 420000,
   },
   {
     id: 'visual',
     area: 'Visual regression',
-    command: 'CI=true npm run test:visual',
+    command:
+      'CI=true PLAYWRIGHT_JSON_OUTPUT_NAME=test-results/visual-results.json npm run test:visual',
     preCommand: "pgrep -f '[s]cripts/serve-static.js' | xargs -r kill",
     log: 'visual.log',
     modes: ['full'],
-    parser: 'playwright-log',
-    timeoutMs: 120000,
+    parser: 'playwright',
+    json: 'test-results/visual-results.json',
+    artifactDirs: ['visual-report', 'test-results', 'tests/visual/__screenshots__'],
+    timeoutMs: 300000,
   },
   {
     id: 'a11y',
     area: 'Accessibility',
-    command: 'CI=true npm run test:a11y',
+    command: 'CI=true PLAYWRIGHT_JSON_OUTPUT_NAME=test-results/a11y-results.json npm run test:a11y',
     preCommand: "pgrep -f '[s]cripts/serve-static.js' | xargs -r kill",
     log: 'a11y.log',
     modes: ['full'],
-    parser: 'playwright-log',
-    timeoutMs: 120000,
+    parser: 'playwright',
+    json: 'test-results/a11y-results.json',
+    artifactDirs: ['visual-report', 'test-results', 'tests/visual/__screenshots__'],
+    timeoutMs: 300000,
   },
   {
     id: 'security-headers',
     area: 'Security headers',
-    command: 'npm run test:headers',
+    command:
+      'JWT_SECRET=test-jwt-secret-for-header-verification-only-min-32-chars npm run test:headers',
     log: 'security-headers.log',
     modes: ['default', 'full', 'ci'],
   },
   {
     id: 'go-live-audit',
     area: 'Go-live audit (local)',
-    command: 'npm run audit:golive',
+    command:
+      'JWT_SECRET=audit-script-test-jwt-secret-do-not-use-in-production-padding-abcde MONGODB_URI=mongodb://127.0.0.1:27017/eventflow_audit BASE_URL=http://localhost:3600 ALLOW_DEGRADED_STARTUP=true npm run audit:golive',
     log: 'go-live-audit.log',
     modes: ['full'],
   },
@@ -207,6 +220,19 @@ function excerpt(text) {
 
 function classify(check, output) {
   const text = output.toLowerCase();
+  if (text.includes('[test audit] command timed out') || text.includes('timed out after')) {
+    return 'Audit runner timeout / incomplete result';
+  }
+  if (check.id === 'lint') {
+    return 'Code quality';
+  }
+  if (
+    check.id === 'format-check' ||
+    text.includes('prettier') ||
+    text.includes('code style issues')
+  ) {
+    return 'Formatting/style issue';
+  }
   if (check.id.includes('visual')) {
     return 'Snapshot/visual drift';
   }
@@ -220,24 +246,46 @@ function classify(check, output) {
     text.includes('unsupported node.js version') ||
     text.includes('node 20') ||
     text.includes('already used') ||
-    text.includes('prettier') ||
-    text.includes('eslint') ||
-    text.includes('code style') ||
     text.includes('chromium') ||
     text.includes('browser') ||
     text.includes('mongodb') ||
     text.includes('econnrefused') ||
-    text.includes('missing')
+    text.includes('missing required environment') ||
+    text.includes('environment variable') ||
+    text.includes('not set')
   ) {
     return 'Environment/config issue';
   }
+  if (text.includes('expect(received)') || text.includes('expected substring')) {
+    return 'Stale test expectation';
+  }
   if (text.includes('timeout') || text.includes('timed out')) {
-    return 'Flaky/timing issue';
+    return 'Audit runner timeout / incomplete result';
   }
   if (check.id.includes('security') || text.includes('csrf') || text.includes('auth')) {
     return 'Real product regression';
   }
   return 'Unknown/manual review required';
+}
+
+async function copyArtifacts(check) {
+  if (!check.artifactDirs?.length) {
+    return [];
+  }
+  const copied = [];
+  const checkOut = path.join(OUT, 'artifacts', check.id);
+  await mkdir(checkOut, { recursive: true });
+  for (const rel of check.artifactDirs) {
+    const src = path.join(ROOT, rel);
+    if (!existsSync(src)) {
+      continue;
+    }
+    const dest = path.join(checkOut, rel.replaceAll('/', '__'));
+    await rm(dest, { recursive: true, force: true });
+    await cp(src, dest, { recursive: true, force: true });
+    copied.push(path.relative(OUT, dest));
+  }
+  return copied;
 }
 
 async function parseJest(check) {
@@ -352,6 +400,9 @@ async function main() {
       `${cleanupNote}$ ${check.command}\n\n[stdout]\n${stdout}\n\n[stderr]\n${stderr}`
     );
     const output = `${stdout}\n${stderr}`;
+    const timedOut =
+      code === 124 || code === 137 || output.includes('[Test audit] Command timed out');
+    const copiedArtifacts = await copyArtifacts(check);
     const status = code === 0 ? 'PASS' : check.warningOnFail ? 'WARNING' : 'FAIL';
     let parsed = { failing: [], passing: {} };
     try {
@@ -388,10 +439,21 @@ async function main() {
       status,
       stdout,
       stderr,
+      timedOut,
+      incomplete: timedOut,
+      copiedArtifacts,
       failureReason: status === 'PASS' ? '' : excerpt(output),
       likelyCategory: status === 'PASS' ? '' : classify(check, output),
       logFile: `logs/${check.log}`,
-      notes: check.safe || '',
+      notes: [
+        check.safe || '',
+        copiedArtifacts.length ? `Artifacts copied: ${copiedArtifacts.join(', ')}` : '',
+        timedOut
+          ? 'Audit runner timed out before this check could complete; review partial artifacts/logs.'
+          : '',
+      ]
+        .filter(Boolean)
+        .join(' '),
     });
   }
 

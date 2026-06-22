@@ -59,7 +59,9 @@ function accessSecret() {
 }
 
 function passwordCookieName(slug) {
-  return `${PASSWORD_COOKIE_PREFIX}${String(slug || '').replace(/[^a-z0-9_-]/gi, '').slice(0, 90)}`;
+  return `${PASSWORD_COOKIE_PREFIX}${String(slug || '')
+    .replace(/[^a-z0-9_-]/gi, '')
+    .slice(0, 90)}`;
 }
 
 function readCookie(req, name) {

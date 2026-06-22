@@ -30,8 +30,12 @@ describe('profile customization controller', () => {
 
   it('keeps banner and stock photo interactions observable by the dirty-state system', () => {
     expect(controller).toContain("form.addEventListener('submit', handleFormSubmit, true)");
-    expect(controller).toContain("bannerInput.dispatchEvent(new Event('input', { bubbles: true }))");
-    expect(controller).toContain("bannerInput.dispatchEvent(new Event('change', { bubbles: true }))");
+    expect(controller).toContain(
+      "bannerInput.dispatchEvent(new Event('input', { bubbles: true }))"
+    );
+    expect(controller).toContain(
+      "bannerInput.dispatchEvent(new Event('change', { bubbles: true }))"
+    );
     expect(controller).toContain('Stock photo selected successfully');
   });
 

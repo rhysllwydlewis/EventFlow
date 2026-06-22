@@ -20,7 +20,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         return t;
       }
-    } catch (_) { /* ignore */ }
+    } catch (_) {
+      /* ignore */
+    }
     const m = document.cookie.match(/(?:^|;\s*)(?:csrf|csrfToken)=([^;]+)/);
     return m ? decodeURIComponent(m[1]) : '';
   }
@@ -35,20 +37,26 @@ document.addEventListener('DOMContentLoaded', async () => {
         csrfToken = await getCsrfToken();
       }
     }
-  } catch (_) { /* not authenticated — use localStorage fallback */ }
+  } catch (_) {
+    /* not authenticated — use localStorage fallback */
+  }
 
   // Load initial events: prefer server plan timeline, fall back to localStorage
   let events = [];
   if (planId) {
     try {
-      const r = await fetch(`/api/me/plans/${encodeURIComponent(planId)}`, { credentials: 'include' });
+      const r = await fetch(`/api/me/plans/${encodeURIComponent(planId)}`, {
+        credentials: 'include',
+      });
       if (r.ok) {
         const d = await r.json();
         if (d.plan && Array.isArray(d.plan.timeline)) {
           events = d.plan.timeline;
         }
       }
-    } catch (_) { /* ignore */ }
+    } catch (_) {
+      /* ignore */
+    }
   }
 
   // Fallback to localStorage if no server data
@@ -58,7 +66,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (saved) {
         events = JSON.parse(saved);
       }
-    } catch (_) { /* ignore */ }
+    } catch (_) {
+      /* ignore */
+    }
   }
 
   // Initialize timeline builder
@@ -66,25 +76,25 @@ document.addEventListener('DOMContentLoaded', async () => {
     container: '#timeline-builder',
     events: events,
     editable: true,
-    onEventAdd: (_event) => {
+    onEventAdd: _event => {
       saveTimeline();
       if (typeof showToast === 'function') {
         showToast('Event added to timeline', 'success');
       }
     },
-    onEventUpdate: (_event) => {
+    onEventUpdate: _event => {
       saveTimeline();
       if (typeof showToast === 'function') {
         showToast('Event updated', 'success');
       }
     },
-    onEventDelete: (_eventId) => {
+    onEventDelete: _eventId => {
       saveTimeline();
       if (typeof showToast === 'function') {
         showToast('Event removed from timeline', 'success');
       }
     },
-    onEventMove: (_events) => {
+    onEventMove: _events => {
       saveTimeline();
     },
   });
@@ -95,7 +105,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Always write to localStorage as fast local cache
     try {
       localStorage.setItem('timeline-events', JSON.stringify(currentEvents));
-    } catch (_) { /* ignore */ }
+    } catch (_) {
+      /* ignore */
+    }
 
     // Persist to server if we have a plan
     if (planId) {
@@ -124,10 +136,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('ef-notification-btn') ||
         document.getElementById('notification-bell');
       if (notificationBell) {
-        if (user) { notificationBell.classList.remove('is-hidden'); }
-        else { notificationBell.classList.add('is-hidden'); }
+        if (user) {
+          notificationBell.classList.remove('is-hidden');
+        } else {
+          notificationBell.classList.add('is-hidden');
+        }
       }
     });
   }
 });
-

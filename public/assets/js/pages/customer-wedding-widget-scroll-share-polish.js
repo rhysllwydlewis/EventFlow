@@ -203,7 +203,9 @@
     });
     const preview = root.querySelector('.ww-link-preview');
     const slugPreview = root.querySelector('#ww-slug-preview');
-    const slug = normalizeSlug(root.querySelector('#ww-custom-slug')?.value || url.split('/').pop());
+    const slug = normalizeSlug(
+      root.querySelector('#ww-custom-slug')?.value || url.split('/').pop()
+    );
     if (preview && slugPreview) {
       slugPreview.textContent = slug;
     }
@@ -257,7 +259,8 @@
           button.textContent = ok ? 'Copied' : 'Copy manually';
           window.setTimeout(() => {
             if (button.isConnected) {
-              button.textContent = button.id === 'ww-copy-link' ? 'Copy wedding website link' : 'Copy link';
+              button.textContent =
+                button.id === 'ww-copy-link' ? 'Copy wedding website link' : 'Copy link';
             }
           }, 1400);
         },
@@ -344,7 +347,10 @@
   document.addEventListener(
     'click',
     event => {
-      if (event.target instanceof Element && event.target.closest('.ww-app-tabs button,[data-tab]')) {
+      if (
+        event.target instanceof Element &&
+        event.target.closest('.ww-app-tabs button,[data-tab]')
+      ) {
         [0, 250, 900].forEach(delay => window.setTimeout(schedule, delay));
       }
     },

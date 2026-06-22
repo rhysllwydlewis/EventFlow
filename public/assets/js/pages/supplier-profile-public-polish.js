@@ -87,7 +87,8 @@
     if (heroIdentity && heroMeta && !heroIdentity.querySelector('.sp-preview-hint')) {
       const hint = document.createElement('p');
       hint.className = 'sp-preview-hint';
-      hint.textContent = 'This preview is private to you and does not count as a public profile view.';
+      hint.textContent =
+        'This preview is private to you and does not count as a public profile view.';
       heroMeta.insertAdjacentElement('afterend', hint);
     }
   }
@@ -127,7 +128,12 @@
     const safeExternalUrl = safety.safeExternalUrl || (value => value || '');
     document.querySelectorAll('a[href]').forEach(link => {
       const href = link.getAttribute('href') || '';
-      if (href.startsWith('tel:') || href.startsWith('#') || href.startsWith('/') || href.startsWith('mailto:')) {
+      if (
+        href.startsWith('tel:') ||
+        href.startsWith('#') ||
+        href.startsWith('/') ||
+        href.startsWith('mailto:')
+      ) {
         return;
       }
       const safe = safeExternalUrl(href);
@@ -140,13 +146,15 @@
 
   function tidyImages() {
     const safeImageUrl = safety.safeImageUrl || (value => value || '');
-    document.querySelectorAll('.supplier-hero img, .sp-gallery img, .sp-pkg-card__image, .wed-party img').forEach(img => {
-      const safe = safeImageUrl(img.getAttribute('src') || '');
-      if (!safe) {
-        img.classList.add('sp-polish-safe-hidden');
-        img.removeAttribute('src');
-      }
-    });
+    document
+      .querySelectorAll('.supplier-hero img, .sp-gallery img, .sp-pkg-card__image, .wed-party img')
+      .forEach(img => {
+        const safe = safeImageUrl(img.getAttribute('src') || '');
+        if (!safe) {
+          img.classList.add('sp-polish-safe-hidden');
+          img.removeAttribute('src');
+        }
+      });
   }
 
   function run() {

@@ -248,14 +248,14 @@ describe('SPA guard — redirect URL encodes originalUrl correctly', () => {
 // ---------------------------------------------------------------------------
 
 describe('SPA guard — /messenger/js/*.js passes through unauthenticated', () => {
-  test.each([
-    '/messenger/js/QuickComposeV4.js',
-    '/messenger/js/MessengerTrigger.js',
-  ])('allows unauthenticated request for %s', originalUrl => {
-    const { redirected, nextCalled } = runSpaGuard(false, originalUrl);
-    expect(redirected).toBe(false);
-    expect(nextCalled).toBe(true);
-  });
+  test.each(['/messenger/js/QuickComposeV4.js', '/messenger/js/MessengerTrigger.js'])(
+    'allows unauthenticated request for %s',
+    originalUrl => {
+      const { redirected, nextCalled } = runSpaGuard(false, originalUrl);
+      expect(redirected).toBe(false);
+      expect(nextCalled).toBe(true);
+    }
+  );
 
   it('still redirects unauthenticated requests to /messenger (SPA root)', () => {
     const { redirected, nextCalled } = runSpaGuard(false, '/messenger');

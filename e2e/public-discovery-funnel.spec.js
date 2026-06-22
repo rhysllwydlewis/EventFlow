@@ -35,7 +35,7 @@ test.describe('Homepage search to suppliers @backend', () => {
     await page.waitForLoadState('domcontentloaded');
 
     const select = page.locator('#ef-search-category, select[name="category"]').first();
-    if (await select.count() > 0) {
+    if ((await select.count()) > 0) {
       await select.selectOption({ value: 'Photography' });
     }
     const input = page.locator('#ef-search-input, input[name="q"]').first();
@@ -75,7 +75,7 @@ test.describe('Suppliers page result context @backend', () => {
     await page.waitForTimeout(2000);
 
     const ctx = page.locator('#results-context');
-    if (await ctx.count() > 0) {
+    if ((await ctx.count()) > 0) {
       const text = await ctx.textContent();
       // Context should include the search query
       if (text && text.trim()) {
@@ -90,7 +90,7 @@ test.describe('Suppliers page result context @backend', () => {
     await page.waitForTimeout(2000);
 
     const ctx = page.locator('#results-context');
-    if (await ctx.count() > 0) {
+    if ((await ctx.count()) > 0) {
       const text = await ctx.textContent();
       if (text && text.trim()) {
         expect(text.toLowerCase()).toMatch(/photography|supplier|showing/i);
@@ -104,7 +104,7 @@ test.describe('Suppliers page result context @backend', () => {
     await page.waitForTimeout(2000);
 
     const chips = page.locator('#active-filters-chips');
-    if (await chips.count() > 0) {
+    if ((await chips.count()) > 0) {
       const hidden = await chips.getAttribute('hidden');
       // When filters are active the chips container should not be hidden
       expect(hidden).toBeNull();
@@ -117,7 +117,7 @@ test.describe('Suppliers page result context @backend', () => {
     await page.waitForTimeout(2000);
 
     const clearAllChip = page.locator('#chip-clear-all');
-    if (await clearAllChip.count() > 0) {
+    if ((await clearAllChip.count()) > 0) {
       await clearAllChip.click();
       await page.waitForTimeout(1500);
       const url = new URL(page.url());
@@ -136,7 +136,7 @@ test.describe('Suppliers no-results state @backend', () => {
     await page.waitForTimeout(3000);
 
     const emptyState = page.locator('.sp-empty-state, .sp-fallback-header');
-    if (await emptyState.count() > 0) {
+    if ((await emptyState.count()) > 0) {
       await expect(emptyState.first()).toBeVisible();
     }
   });
@@ -148,7 +148,7 @@ test.describe('Suppliers no-results state @backend', () => {
 
     // Should offer a way to clear filters
     const clearBtn = page.locator('#clear-filters-btn');
-    if (await clearBtn.count() > 0) {
+    if ((await clearBtn.count()) > 0) {
       await expect(clearBtn).toBeVisible();
     }
   });
@@ -159,7 +159,7 @@ test.describe('Suppliers no-results state @backend', () => {
     await page.waitForTimeout(3000);
 
     const browseLink = page.locator('a[href="/suppliers"]');
-    if (await browseLink.count() > 0) {
+    if ((await browseLink.count()) > 0) {
       await expect(browseLink.first()).toBeVisible();
     }
   });
@@ -177,7 +177,7 @@ test.describe('Logged-out supplier card action gates @backend', () => {
 
   test('logged-out Save redirects to /auth with redirect and intent=save', async ({ page }) => {
     const saveBtn = page.locator('.btn-shortlist').first();
-    if (await saveBtn.count() === 0) return; // no suppliers loaded, skip
+    if ((await saveBtn.count()) === 0) return; // no suppliers loaded, skip
 
     await saveBtn.click();
 
@@ -187,13 +187,15 @@ test.describe('Logged-out supplier card action gates @backend', () => {
     expect(url.searchParams.get('intent')).toBe('save');
     const redirect = url.searchParams.get('redirect');
     expect(redirect).toBeTruthy();
-    expect(redirect).toMatch(/^\//);  // relative path
+    expect(redirect).toMatch(/^\//); // relative path
     expect(redirect).toContain('/suppliers');
   });
 
-  test('logged-out Contact redirects to /auth with redirect and intent=message', async ({ page }) => {
+  test('logged-out Contact redirects to /auth with redirect and intent=message', async ({
+    page,
+  }) => {
     const contactBtn = page.locator('.btn-contact-supplier').first();
-    if (await contactBtn.count() === 0) return;
+    if ((await contactBtn.count()) === 0) return;
 
     await contactBtn.click();
 
@@ -205,9 +207,11 @@ test.describe('Logged-out supplier card action gates @backend', () => {
     expect(redirect).toMatch(/^\//);
   });
 
-  test('logged-out Add to Plan redirects to /auth with redirect and intent=plan', async ({ page }) => {
+  test('logged-out Add to Plan redirects to /auth with redirect and intent=plan', async ({
+    page,
+  }) => {
     const planBtn = page.locator('.btn-add-to-plan').first();
-    if (await planBtn.count() === 0) return;
+    if ((await planBtn.count()) === 0) return;
 
     await planBtn.click();
 
@@ -229,7 +233,7 @@ test.describe('Auth intent notice display @static', () => {
     await page.waitForTimeout(500);
 
     const notice = page.locator('#auth-intent-notice');
-    if (await notice.count() > 0) {
+    if ((await notice.count()) > 0) {
       const isVisible = await notice.evaluate(el => {
         return el.classList.contains('is-visible') || getComputedStyle(el).display !== 'none';
       });
@@ -246,9 +250,9 @@ test.describe('Auth intent notice display @static', () => {
     await page.waitForTimeout(500);
 
     const notice = page.locator('#auth-intent-notice');
-    if (await notice.count() > 0) {
-      const isVisible = await notice.evaluate(el =>
-        el.classList.contains('is-visible') || getComputedStyle(el).display !== 'none'
+    if ((await notice.count()) > 0) {
+      const isVisible = await notice.evaluate(
+        el => el.classList.contains('is-visible') || getComputedStyle(el).display !== 'none'
       );
       if (isVisible) {
         const text = await notice.textContent();
@@ -263,9 +267,9 @@ test.describe('Auth intent notice display @static', () => {
     await page.waitForTimeout(500);
 
     const notice = page.locator('#auth-intent-notice');
-    if (await notice.count() > 0) {
-      const isVisible = await notice.evaluate(el =>
-        el.classList.contains('is-visible') || getComputedStyle(el).display !== 'none'
+    if ((await notice.count()) > 0) {
+      const isVisible = await notice.evaluate(
+        el => el.classList.contains('is-visible') || getComputedStyle(el).display !== 'none'
       );
       if (isVisible) {
         const text = await notice.textContent();
@@ -280,9 +284,9 @@ test.describe('Auth intent notice display @static', () => {
     await page.waitForTimeout(500);
 
     const notice = page.locator('#auth-intent-notice');
-    if (await notice.count() > 0) {
-      const isVisible = await notice.evaluate(el =>
-        el.classList.contains('is-visible') || getComputedStyle(el).display !== 'none'
+    if ((await notice.count()) > 0) {
+      const isVisible = await notice.evaluate(
+        el => el.classList.contains('is-visible') || getComputedStyle(el).display !== 'none'
       );
       if (isVisible) {
         const text = await notice.textContent();
@@ -306,7 +310,7 @@ test.describe('Marketplace browse and listing funnel @backend', () => {
 
     // Should have marketplace content areas
     const results = page.locator('#marketplace-results, .marketplace-results, [data-marketplace]');
-    if (await results.count() > 0) {
+    if ((await results.count()) > 0) {
       await expect(results.first()).toBeVisible();
     }
   });
@@ -317,12 +321,12 @@ test.describe('Marketplace browse and listing funnel @backend', () => {
     await page.waitForTimeout(3000);
 
     const card = page.locator('.listing-card, [data-listing-id]').first();
-    if (await card.count() > 0 && await card.isVisible()) {
+    if ((await card.count()) > 0 && (await card.isVisible())) {
       await card.click();
       await page.waitForTimeout(1000);
       // A modal or detail should appear
       const modal = page.locator('.modal, [role="dialog"], .listing-modal, .listing-detail');
-      if (await modal.count() > 0) {
+      if ((await modal.count()) > 0) {
         await expect(modal.first()).toBeVisible();
       }
     }
@@ -334,7 +338,7 @@ test.describe('Marketplace browse and listing funnel @backend', () => {
     await page.waitForTimeout(3000);
 
     const saveBtn = page.locator('[data-action="save-listing"], .btn-save-listing').first();
-    if (await saveBtn.count() === 0) return;
+    if ((await saveBtn.count()) === 0) return;
 
     await saveBtn.click();
     await page.waitForURL(url => url.pathname === '/auth', { timeout: 5000 });
@@ -342,22 +346,29 @@ test.describe('Marketplace browse and listing funnel @backend', () => {
     expect(url.searchParams.get('intent')).toBe('save');
   });
 
-  test('logged-out marketplace new listing redirects to /auth with intent=listing', async ({ page }) => {
+  test('logged-out marketplace new listing redirects to /auth with intent=listing', async ({
+    page,
+  }) => {
     await page.goto('/marketplace');
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2000);
 
     // Find the "List an item" / "Create listing" button
-    const listBtn = page.locator(
-      'button:has-text("List"), a:has-text("List"), button:has-text("Sell"), a:has-text("Create listing")'
-    ).first();
+    const listBtn = page
+      .locator(
+        'button:has-text("List"), a:has-text("List"), button:has-text("Sell"), a:has-text("Create listing")'
+      )
+      .first();
 
-    if (await listBtn.count() === 0) return;
+    if ((await listBtn.count()) === 0) return;
     await listBtn.click();
 
-    await page.waitForURL(url => url.pathname === '/auth' || url.pathname.includes('marketplace-new'), {
-      timeout: 5000,
-    });
+    await page.waitForURL(
+      url => url.pathname === '/auth' || url.pathname.includes('marketplace-new'),
+      {
+        timeout: 5000,
+      }
+    );
 
     if (new URL(page.url()).pathname === '/auth') {
       const url = new URL(page.url());
@@ -381,10 +392,8 @@ test.describe('Mobile viewport smoke tests @static', () => {
     expect(bodyWidth).toBeLessThanOrEqual(viewportWidth + 10); // 10px tolerance
 
     // Search/filter area should be present
-    const filterArea = page.locator(
-      '.sp-filters, #filter-query, input[name="q"], .sp-search-form'
-    );
-    if (await filterArea.count() > 0) {
+    const filterArea = page.locator('.sp-filters, #filter-query, input[name="q"], .sp-search-form');
+    if ((await filterArea.count()) > 0) {
       // At least one filter element present in DOM
       expect(await filterArea.count()).toBeGreaterThan(0);
     }
@@ -413,8 +422,8 @@ test.describe('Mobile viewport smoke tests @static', () => {
     await page.goto('/auth?redirect=/suppliers&intent=save');
     await page.waitForLoadState('domcontentloaded');
 
-    const hasHScroll = await page.evaluate(() =>
-      document.documentElement.scrollWidth > document.documentElement.clientWidth + 5
+    const hasHScroll = await page.evaluate(
+      () => document.documentElement.scrollWidth > document.documentElement.clientWidth + 5
     );
     expect(hasHScroll).toBe(false);
   });

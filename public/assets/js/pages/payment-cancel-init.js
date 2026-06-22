@@ -5,28 +5,30 @@
 (function () {
   'use strict';
 
-  const urlParams  = new URLSearchParams(window.location.search);
-  const sessionId  = urlParams.get('session_id');
-  const planParam  = urlParams.get('plan') || '';
+  const urlParams = new URLSearchParams(window.location.search);
+  const sessionId = urlParams.get('session_id');
+  const planParam = urlParams.get('plan') || '';
 
   // ── Analytics: log the cancellation ──────────────────────────────────────
   function logCancellation() {
     try {
       const payload = {
-        event:     'payment_cancelled',
+        event: 'payment_cancelled',
         sessionId: sessionId || null,
-        plan:      planParam  || null,
+        plan: planParam || null,
         timestamp: new Date().toISOString(),
-        referrer:  document.referrer || null,
+        referrer: document.referrer || null,
       };
 
       // Fire-and-forget — don't block UX on analytics failure
       fetch('/api/v1/analytics/events', {
-        method:  'POST',
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify(payload),
+        body: JSON.stringify(payload),
         keepalive: true,
-      }).catch(() => { /* ignore analytics errors */ });
+      }).catch(() => {
+        /* ignore analytics errors */
+      });
     } catch (_) {
       // Never let analytics crash the page
     }
@@ -49,7 +51,7 @@
 
     const planNames = { pro: 'Pro', pro_plus: 'Pro Plus', free: 'Free' };
     const planLabel = planNames[planParam] || 'Your Plan';
-    const retryBtn  = btnContainer.querySelector('a[href*="checkout"]');
+    const retryBtn = btnContainer.querySelector('a[href*="checkout"]');
     if (retryBtn) {
       retryBtn.textContent = `Try ${planLabel} Again`;
       retryBtn.href = `/checkout?plan=${encodeURIComponent(planParam)}`;

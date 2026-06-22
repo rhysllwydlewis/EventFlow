@@ -309,18 +309,18 @@ E2E tests use route mocking (no live database required) and run deterministicall
 
 ## Implementation Files
 
-| File                                                   | Purpose                                                                              |
-| ------------------------------------------------------ | ------------------------------------------------------------------------------------ |
-| `utils/supplierVerificationStateMachine.js`            | State definitions, allowed transitions, `canTransition()` helper                    |
-| `routes/supplier-admin.js`                             | Admin endpoints: approve, reject, request-changes, suspend, audit                   |
+| File                                                   | Purpose                                                                                           |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------- |
+| `utils/supplierVerificationStateMachine.js`            | State definitions, allowed transitions, `canTransition()` helper                                  |
+| `routes/supplier-admin.js`                             | Admin endpoints: approve, reject, request-changes, suspend, audit                                 |
 | `routes/admin.js`                                      | Bulk-reject endpoint (`POST /api/admin/suppliers/bulk-reject`) with full state-machine transition |
-| `routes/admin-user-management.js`                      | Legacy `/verify` endpoint (state-machine-backed)                                    |
-| `routes/supplier.js`                                   | Supplier-facing: `/verification/status`, `/verification/submit`                     |
-| `middleware/audit.js`                                  | Audit action constants                                                               |
-| `public/admin-supplier-detail.html`                    | Admin UI with all action buttons                                                     |
-| `public/assets/js/pages/admin-supplier-detail-init.js` | Button wiring, state-aware enable/disable logic                                      |
-| `public/assets/js/pages/admin-suppliers-init.js`       | Supplier list admin UI: single + bulk reject with notes prompt                       |
-| `public/assets/js/pages/admin-init.js`                 | Legacy combined admin page: `rejectSup()` + bulk reject wired to canonical `/reject` |
-| `tests/integration/supplier-verification-flow.test.js` | Unit + integration tests (63 tests)                                                  |
-| `tests/unit/admin-regression.test.js`                  | Admin-side regression guards: reject endpoint, bulk-reject state fields              |
-| `e2e/supplier-verification-flow.spec.js`               | E2E Playwright tests                                                                 |
+| `routes/admin-user-management.js`                      | Legacy `/verify` endpoint (state-machine-backed)                                                  |
+| `routes/supplier.js`                                   | Supplier-facing: `/verification/status`, `/verification/submit`                                   |
+| `middleware/audit.js`                                  | Audit action constants                                                                            |
+| `public/admin-supplier-detail.html`                    | Admin UI with all action buttons                                                                  |
+| `public/assets/js/pages/admin-supplier-detail-init.js` | Button wiring, state-aware enable/disable logic                                                   |
+| `public/assets/js/pages/admin-suppliers-init.js`       | Supplier list admin UI: single + bulk reject with notes prompt                                    |
+| `public/assets/js/pages/admin-init.js`                 | Legacy combined admin page: `rejectSup()` + bulk reject wired to canonical `/reject`              |
+| `tests/integration/supplier-verification-flow.test.js` | Unit + integration tests (63 tests)                                                               |
+| `tests/unit/admin-regression.test.js`                  | Admin-side regression guards: reject endpoint, bulk-reject state fields                           |
+| `e2e/supplier-verification-flow.spec.js`               | E2E Playwright tests                                                                              |

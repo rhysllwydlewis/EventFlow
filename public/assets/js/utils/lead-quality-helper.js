@@ -124,15 +124,20 @@ export function getSupplierBadges(supplier) {
   const badges = [];
 
   // Founding supplier badge
-  if (supplier.isFounding || supplier.founding ||
-      (supplier.badges && (supplier.badges.includes('founding') || supplier.badges.includes('founder')))) {
+  if (
+    supplier.isFounding ||
+    supplier.founding ||
+    (supplier.badges &&
+      (supplier.badges.includes('founding') || supplier.badges.includes('founder')))
+  ) {
     badges.push(
       '<span class="badge badge-founding" data-tooltip="Founding Supplier - One of our first partners">Founding Supplier</span>'
     );
   }
 
   // Subscription tier badge
-  const tier = supplier.subscriptionTier || supplier.subscription?.tier || (supplier.isPro ? 'pro' : null);
+  const tier =
+    supplier.subscriptionTier || supplier.subscription?.tier || (supplier.isPro ? 'pro' : null);
   if (tier === 'featured') {
     badges.push('<span class="badge badge-featured">Featured</span>');
   } else if (tier === 'pro_plus') {

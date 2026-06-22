@@ -14,8 +14,11 @@
 'use strict';
 
 const crypto = require('crypto');
-const { buildMongodbWebhookHandler, verifySignature, deriveEventKey } =
-  require('../../webhooks/mongodbWebhookHandler');
+const {
+  buildMongodbWebhookHandler,
+  verifySignature,
+  deriveEventKey,
+} = require('../../webhooks/mongodbWebhookHandler');
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -274,9 +277,18 @@ describe('mongodbWebhookHandler — malformed body', () => {
     const res = {
       _status: 200,
       _body: null,
-      status(code) { this._status = code; return this; },
-      json(body) { this._body = body; return this; },
-      send(body) { this._body = body; return this; },
+      status(code) {
+        this._status = code;
+        return this;
+      },
+      json(body) {
+        this._body = body;
+        return this;
+      },
+      send(body) {
+        this._body = body;
+        return this;
+      },
     };
     await handler(req, res);
     expect(res._status).toBe(400);

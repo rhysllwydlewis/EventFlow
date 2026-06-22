@@ -5,13 +5,17 @@
   const weddingGetPattern = /^\/api\/public\/wedding-websites\/([^/]+)$/;
 
   function esc(value) {
-    return String(value || '').replace(/[&<>"']/g, ch => ({
-      '&': '&amp;',
-      '<': '&lt;',
-      '>': '&gt;',
-      '"': '&quot;',
-      "'": '&#39;',
-    })[ch]);
+    return String(value || '').replace(
+      /[&<>"']/g,
+      ch =>
+        ({
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#39;',
+        })[ch]
+    );
   }
 
   function renderGate(slug) {
@@ -46,12 +50,15 @@
         button.textContent = 'Checking…';
         try {
           const payload = Object.fromEntries(new FormData(form).entries());
-          const accessRes = await originalFetch(`/api/public/wedding-websites/${encodeURIComponent(slug)}/access`, {
-            method: 'POST',
-            credentials: 'same-origin',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-          });
+          const accessRes = await originalFetch(
+            `/api/public/wedding-websites/${encodeURIComponent(slug)}/access`,
+            {
+              method: 'POST',
+              credentials: 'same-origin',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload),
+            }
+          );
           const accessData = await accessRes.json().catch(() => ({}));
           if (!accessRes.ok) {
             msg.textContent = accessData.error || 'That password was not recognised.';
@@ -60,9 +67,12 @@
           }
           msg.textContent = 'Password accepted. Loading wedding details…';
           msg.className = 'msg msg--ok';
-          const retry = await originalFetch(`/api/public/wedding-websites/${encodeURIComponent(slug)}`, {
-            credentials: 'same-origin',
-          });
+          const retry = await originalFetch(
+            `/api/public/wedding-websites/${encodeURIComponent(slug)}`,
+            {
+              credentials: 'same-origin',
+            }
+          );
           resolve(retry);
         } catch (_err) {
           msg.textContent = 'Unable to check the password right now. Please try again.';

@@ -10,13 +10,13 @@
  */
 
 const path = require('path');
-const fs   = require('fs');
+const fs = require('fs');
+const nodeVm = require('vm');
 
 // ─── 1. Preview formatting ─────────────────────────────────────────────────
 
 describe('ConversationListV4._buildPreview — no duplicate prefix', () => {
   // Load the module via vm so we can call _buildPreview directly without a DOM
-  let vm;
   let ConversationListV4;
 
   beforeAll(() => {
@@ -30,14 +30,18 @@ describe('ConversationListV4._buildPreview — no duplicate prefix', () => {
       document: { querySelector: () => null },
       console,
     };
-    require('vm').runInNewContext(src, sandbox);
+    nodeVm.runInNewContext(src, sandbox);
     ConversationListV4 = sandbox.window.ConversationListV4;
   });
 
   function buildPreview(content, senderId, currentUserId) {
     const inst = Object.create(ConversationListV4.prototype);
     // Minimal escape implementation
-    inst.escape = str => String(str ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    inst.escape = str =>
+      String(str ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
     const conv = { lastMessage: { content, senderId } };
     const user = { id: currentUserId, _id: currentUserId };
     return inst._buildPreview(conv, user);
@@ -104,10 +108,7 @@ describe('messenger-v4.css — You: prefix is not duplicated in CSS', () => {
 // ─── 3. Route validation — participant checks ─────────────────────────────
 
 describe('routes/messenger-v4.js — createConversation participant validation', () => {
-  const routeSrc = fs.readFileSync(
-    path.join(__dirname, '../../routes/messenger-v4.js'),
-    'utf8'
-  );
+  const routeSrc = fs.readFileSync(path.join(__dirname, '../../routes/messenger-v4.js'), 'utf8');
 
   test('rejects self-only conversations (no other participant)', () => {
     expect(routeSrc).toContain("'A conversation must include at least one other participant'");
@@ -130,17 +131,14 @@ describe('routes/messenger-v4.js — createConversation participant validation',
 // ─── 4. messengerErrorStatus returns 429 for all rate-limit patterns ──────
 
 describe('messengerErrorStatus — 429 for rate-limit messages', () => {
-  // Extract and eval just the helper function
-  const routeSrc = fs.readFileSync(
-    path.join(__dirname, '../../routes/messenger-v4.js'),
-    'utf8'
-  );
+  // Extract the helper function into an isolated VM context for focused testing.
+  const routeSrc = fs.readFileSync(path.join(__dirname, '../../routes/messenger-v4.js'), 'utf8');
 
   let messengerErrorStatus;
   beforeAll(() => {
     const fnMatch = routeSrc.match(/function messengerErrorStatus\(msg\)\s*\{[\s\S]*?\n\}/);
     expect(fnMatch).not.toBeNull();
-    messengerErrorStatus = new Function('return ' + fnMatch[0])();
+    messengerErrorStatus = nodeVm.runInNewContext(`(${fnMatch[0]})`);
   });
 
   test('old "Rate limit" string → 429', () => {
@@ -195,8 +193,8 @@ describe('messenger-v4.service.js — checkRateLimit coverage', () => {
 
   test('threadsPerDay is referenced in checkThreadRateLimit', () => {
     const fnStart = svcSrc.indexOf('async checkThreadRateLimit');
-    const fnEnd   = svcSrc.indexOf('\n  }', fnStart) + 4;
-    const fn      = svcSrc.slice(fnStart, fnEnd);
+    const fnEnd = svcSrc.indexOf('\n  }', fnStart) + 4;
+    const fn = svcSrc.slice(fnStart, fnEnd);
     expect(fn).toContain('threadsPerDay');
   });
 
@@ -216,10 +214,7 @@ describe('messenger-v4.service.js — checkRateLimit coverage', () => {
 // ─── 6. Thread rate limit wired into createConversation route ────────────
 
 describe('routes/messenger-v4.js — thread rate limit in createConversation', () => {
-  const routeSrc = fs.readFileSync(
-    path.join(__dirname, '../../routes/messenger-v4.js'),
-    'utf8'
-  );
+  const routeSrc = fs.readFileSync(path.join(__dirname, '../../routes/messenger-v4.js'), 'utf8');
 
   test('createConversation calls checkThreadRateLimit before creating', () => {
     expect(routeSrc).toContain('checkThreadRateLimit(currentUserId)');

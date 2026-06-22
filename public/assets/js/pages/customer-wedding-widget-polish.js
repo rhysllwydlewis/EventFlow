@@ -143,7 +143,10 @@
   document.addEventListener(
     'click',
     event => {
-      if (event.target instanceof Element && event.target.closest('.ww-app-tabs button,[data-tab]')) {
+      if (
+        event.target instanceof Element &&
+        event.target.closest('.ww-app-tabs button,[data-tab]')
+      ) {
         window.setTimeout(scheduleEnhance, 0);
       }
     },

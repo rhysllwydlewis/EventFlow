@@ -268,7 +268,11 @@ To prevent bot spam, EventFlow uses [ALTCHA](https://altcha.org) — a privacy-f
 2. **Add to enquiry form**:
 
    ```html
-   <script src="https://cdn.jsdelivr.net/npm/@altcha-org/altcha/dist/altcha.min.js" async defer></script>
+   <script
+     src="https://cdn.jsdelivr.net/npm/@altcha-org/altcha/dist/altcha.min.js"
+     async
+     defer
+   ></script>
    <form id="enquiry-form">
      <!-- form fields -->
      <altcha-widget challengeurl="/api/v1/altcha/challenge"></altcha-widget>

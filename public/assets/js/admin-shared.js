@@ -343,10 +343,7 @@ const AdminShared = (function () {
     } catch (error) {
       // Only log if not already logged above
       const msg = (error && error.message) || '';
-      if (
-        !msg.includes('Authentication required') &&
-        !msg.includes('Forbidden')
-      ) {
+      if (!msg.includes('Authentication required') && !msg.includes('Forbidden')) {
         debugError(`${method} ${url} - Error:`, msg);
       }
       throw error;
