@@ -17,7 +17,7 @@ jest.mock('../../services/contentSanitizer', () => ({
 }));
 
 const MessengerV4Service = require('../../services/messenger-v4.service');
-const { ObjectId } = require('mongodb');
+const { MongoClient, ObjectId } = require('mongodb');
 
 // ---------------------------------------------------------------------------
 // Lightweight in-memory MongoDB-compatible database for unit tests.
@@ -1749,8 +1749,33 @@ describe('MessengerV4Service', () => {
 const describeReplicaSet = process.env.MONGO_REPLICA_SET === 'true' ? describe : describe.skip;
 
 describeReplicaSet('transaction rollback (replica-set mode)', () => {
+  let mongoClient;
+  let db;
+
+  beforeAll(async () => {
+    const uri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/eventflow?replicaSet=rs0';
+    mongoClient = new MongoClient(uri, { serverSelectionTimeoutMS: 5000 });
+    await mongoClient.connect();
+    db = mongoClient.db(`eventflow_messenger_v4_txn_${process.pid}_${Date.now()}`);
+    await db.dropDatabase();
+  });
+
+  afterEach(async () => {
+    if (db) {
+      await db.dropDatabase();
+    }
+  });
+
+  afterAll(async () => {
+    if (db) {
+      await db.dropDatabase();
+    }
+    if (mongoClient) {
+      await mongoClient.close();
+    }
+  });
+
   it('rolls back message insert when failure occurs after insert', async () => {
-    const db = createInMemoryDb();
     const service = new MessengerV4Service(db, console);
     const conversation = await service.createConversation({
       type: 'direct',
@@ -1773,6 +1798,12 @@ describeReplicaSet('transaction rollback (replica-set mode)', () => {
       .find({ conversationId: conversation._id })
       .toArray();
     expect(messages).toHaveLength(0);
+
+    const conversationAfterRollback = await service.conversationsCollection.findOne({
+      _id: conversation._id,
+    });
+    expect(conversationAfterRollback.messageCount).toBe(0);
+    expect(conversationAfterRollback.lastMessage).toBeNull();
   });
 });
 
@@ -1864,43 +1895,54 @@ describe('Messenger v4 polish edge cases', () => {
     ).resolves.toMatchObject({ _id: context._id });
   });
 
-  it('blocks genuinely new conversations at thread limit and counts only creator metadata', async () => {
-    await service.createConversation({
-      type: 'direct',
-      creatorUserId: 'free2',
-      participants: participants('free2', 'free1'),
-    });
-    expect((await service.checkThreadRateLimit('free1')).allowed).toBe(true);
+  it('blocks genuinely new conversations at the configured free-tier thread limit and counts only creator metadata', async () => {
+    const previousFreeThreadLimit = process.env.MESSAGING_FREE_THREADS_PER_DAY;
+    process.env.MESSAGING_FREE_THREADS_PER_DAY = '3';
 
-    await service.createConversation({
-      type: 'enquiry',
-      creatorUserId: 'free1',
-      participants: participants('free1', 'free2'),
-      context: { type: 'package', referenceId: 'a' },
-      metadata: { createdByUserId: 'free2' },
-    });
-    await service.createConversation({
-      type: 'enquiry',
-      creatorUserId: 'free1',
-      participants: participants('free1', 'free3'),
-      context: { type: 'package', referenceId: 'b' },
-    });
-    await service.createConversation({
-      type: 'enquiry',
-      creatorUserId: 'free1',
-      participants: participants('free1', 'pro1'),
-      context: { type: 'package', referenceId: 'c' },
-    });
-    const check = await service.checkThreadRateLimit('free1');
-    expect(check.allowed).toBe(false);
-    await expect(
-      service.createConversation({
+    try {
+      await service.createConversation({
+        type: 'direct',
+        creatorUserId: 'free2',
+        participants: participants('free2', 'free1'),
+      });
+      expect((await service.checkThreadRateLimit('free1')).allowed).toBe(true);
+
+      await service.createConversation({
         type: 'enquiry',
         creatorUserId: 'free1',
-        participants: participants('free1', 'plus1'),
-        context: { type: 'package', referenceId: 'd' },
-      })
-    ).rejects.toMatchObject({ statusCode: 429, code: 'THREAD_LIMIT_EXCEEDED' });
+        participants: participants('free1', 'free2'),
+        context: { type: 'package', referenceId: 'a' },
+        metadata: { createdByUserId: 'free2' },
+      });
+      await service.createConversation({
+        type: 'enquiry',
+        creatorUserId: 'free1',
+        participants: participants('free1', 'free3'),
+        context: { type: 'package', referenceId: 'b' },
+      });
+      await service.createConversation({
+        type: 'enquiry',
+        creatorUserId: 'free1',
+        participants: participants('free1', 'pro1'),
+        context: { type: 'package', referenceId: 'c' },
+      });
+      const check = await service.checkThreadRateLimit('free1');
+      expect(check.allowed).toBe(false);
+      await expect(
+        service.createConversation({
+          type: 'enquiry',
+          creatorUserId: 'free1',
+          participants: participants('free1', 'plus1'),
+          context: { type: 'package', referenceId: 'd' },
+        })
+      ).rejects.toMatchObject({ statusCode: 429, code: 'THREAD_LIMIT_EXCEEDED' });
+    } finally {
+      if (previousFreeThreadLimit === undefined) {
+        delete process.env.MESSAGING_FREE_THREADS_PER_DAY;
+      } else {
+        process.env.MESSAGING_FREE_THREADS_PER_DAY = previousFreeThreadLimit;
+      }
+    }
   });
 
   it('markUnread is idempotent and markRead clears unreadCount', async () => {
