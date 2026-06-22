@@ -29,7 +29,9 @@
         participant?.supplierId ||
         participant?.profileId ||
         participant?.supplierProfile?.id ||
-        (conversation?.context?.type === 'supplier_profile' ? conversation.context.referenceId : '') ||
+        (conversation?.context?.type === 'supplier_profile'
+          ? conversation.context.referenceId
+          : '') ||
         conversation?.metadata?.supplierProfileId
     );
   }
@@ -55,7 +57,13 @@
       supplier: 'supplier_profile',
       marketplace: 'marketplace_listing',
     };
-    const conversationTypes = new Set(['direct', 'marketplace', 'enquiry', 'supplier_network', 'support']);
+    const conversationTypes = new Set([
+      'direct',
+      'marketplace',
+      'enquiry',
+      'supplier_network',
+      'support',
+    ]);
 
     if (typeof contextOrType === 'string') {
       const value = contextOrType.trim();
@@ -101,7 +109,10 @@
     if (!app || app.__selectionProfileHardeningPatched) {
       return false;
     }
-    if (typeof app.selectConversation !== 'function' || typeof app.createConversation !== 'function') {
+    if (
+      typeof app.selectConversation !== 'function' ||
+      typeof app.createConversation !== 'function'
+    ) {
       return false;
     }
 
@@ -113,9 +124,11 @@
         return;
       }
 
-      const headerVisible = app.chatView?.headerEl && app.chatView.headerEl.style.display !== 'none';
+      const headerVisible =
+        app.chatView?.headerEl && app.chatView.headerEl.style.display !== 'none';
       const composerReady = app.composer?.options?.conversationId === conversationId;
-      const chatReady = app.chatView?.conversationId === conversationId && headerVisible && composerReady;
+      const chatReady =
+        app.chatView?.conversationId === conversationId && headerVisible && composerReady;
       if (app._activeConversationId === conversationId && chatReady && !options.force) {
         app.composer?.focus?.();
         updateUrlConversation(conversationId);
@@ -199,7 +212,11 @@
         return '';
       }
       const payload = await response.json();
-      const suppliers = Array.isArray(payload?.items) ? payload.items : Array.isArray(payload) ? payload : [];
+      const suppliers = Array.isArray(payload?.items)
+        ? payload.items
+        : Array.isArray(payload)
+          ? payload
+          : [];
       const match = suppliers.find(supplier =>
         [
           supplier.ownerUserId,

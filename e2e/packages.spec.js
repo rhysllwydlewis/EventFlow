@@ -166,9 +166,7 @@ test.describe('Supplier results mini package card navigation', () => {
     await page.waitForLoadState('networkidle');
 
     // Trigger a search to load supplier cards (submit the search form or wait for default results)
-    const searchBtn = page.locator(
-      'button[type="submit"], button:has-text("Search"), #search-btn'
-    );
+    const searchBtn = page.locator('button[type="submit"], button:has-text("Search"), #search-btn');
     if ((await searchBtn.count()) > 0) {
       await searchBtn.first().click();
       await page.waitForLoadState('networkidle');
@@ -201,9 +199,7 @@ test.describe('Supplier results mini package card navigation', () => {
     await page.goto('/suppliers.html');
     await page.waitForLoadState('networkidle');
 
-    const searchBtn = page.locator(
-      'button[type="submit"], button:has-text("Search"), #search-btn'
-    );
+    const searchBtn = page.locator('button[type="submit"], button:has-text("Search"), #search-btn');
     if ((await searchBtn.count()) > 0) {
       await searchBtn.first().click();
       await page.waitForLoadState('networkidle');

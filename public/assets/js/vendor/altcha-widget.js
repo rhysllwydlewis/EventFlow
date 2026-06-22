@@ -59,13 +59,7 @@ function Qn(e) {
   for (var t = 0; t < e.length; t++) e[t]();
 }
 function Yi(e, t, r = !1) {
-  return e === void 0
-    ? r
-      ? /** @type {() => V} */
-        t()
-      : /** @type {V} */
-        t
-    : e;
+  return e === void 0 ? (r ? /** @type {() => V} */ t() : /** @type {V} */ t) : e;
 }
 const me = 2,
   eo = 4,
@@ -395,11 +389,7 @@ function jr(e) {
 // @__NO_SIDE_EFFECTS__
 function gr(e) {
   var t = me | Ie,
-    r =
-      $ !== null && ($.f & me) !== 0
-        ? /** @type {Derived} */
-          $
-        : null;
+    r = $ !== null && ($.f & me) !== 0 ? /** @type {Derived} */ $ : null;
   return (
     S === null || (r !== null && (r.f & fe) !== 0) ? (t |= fe) : (S.f |= to),
     {
@@ -618,11 +608,7 @@ function je(e, t = !0) {
 }
 function go(e, t) {
   for (; e !== null; ) {
-    var r =
-      e === t
-        ? null
-        : /** @type {TemplateNode} */
-          /* @__PURE__ */ Be(e);
+    var r = e === t ? null : /** @type {TemplateNode} */ /* @__PURE__ */ Be(e);
     (e.remove(), (e = r));
   }
 }
@@ -1638,8 +1624,7 @@ function qn(e) {
 }
 function qa(e, t) {
   var r = Fo(e);
-  r.value ===
-    (r.value = t ?? void 0) || // treat null and undefined the same for the initial value // @ts-expect-error
+  r.value === (r.value = t ?? void 0) || // treat null and undefined the same for the initial value // @ts-expect-error
     // `progress` elements always need their value set when it's `0`
     (e.value === t && (t !== 0 || e.nodeName !== 'PROGRESS')) ||
     (e.value = t ?? '');

@@ -4,7 +4,12 @@
  */
 (function () {
   'use strict';
-function escapeHtml(s){if(!s)return '';const d=document.createElement('div');d.textContent=String(s);return d.innerHTML;}
+  function escapeHtml(s) {
+    if (!s) return '';
+    const d = document.createElement('div');
+    d.textContent = String(s);
+    return d.innerHTML;
+  }
 
   // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -72,10 +77,17 @@ function escapeHtml(s){if(!s)return '';const d=document.createElement('div');d.t
 
       document.body.appendChild(overlay);
 
-      const cleanup = val => { overlay.remove(); resolve(val); };
-      overlay.querySelector('#_partner_confirm_cancel').addEventListener('click', () => cleanup(false));
+      const cleanup = val => {
+        overlay.remove();
+        resolve(val);
+      };
+      overlay
+        .querySelector('#_partner_confirm_cancel')
+        .addEventListener('click', () => cleanup(false));
       overlay.querySelector('#_partner_confirm_ok').addEventListener('click', () => cleanup(true));
-      overlay.addEventListener('click', e => { if (e.target === overlay) cleanup(false); });
+      overlay.addEventListener('click', e => {
+        if (e.target === overlay) cleanup(false);
+      });
       overlay.querySelector('#_partner_confirm_ok').focus();
     });
   }
@@ -226,9 +238,9 @@ function escapeHtml(s){if(!s)return '';const d=document.createElement('div');d.t
     if (bonusesEl) {
       bonusesEl.textContent = fmtCredits(
         (credits.signupBonusTotal || 0) +
-        (credits.packageBonusTotal || 0) +
-        (credits.reviewBonusTotal || 0) +
-        (credits.subscriptionBonusTotal || 0)
+          (credits.packageBonusTotal || 0) +
+          (credits.reviewBonusTotal || 0) +
+          (credits.subscriptionBonusTotal || 0)
       );
     }
     document.getElementById('stat-referrals').textContent = fmtCredits(referralCount);
@@ -301,10 +313,15 @@ function escapeHtml(s){if(!s)return '';const d=document.createElement('div');d.t
     if (!container) return;
 
     const items = [
-      { key: 'signup',       icon: '🔗', label: 'Signup bonuses',      pts: breakdown.signup || 0 },
-      { key: 'package',      icon: '📦', label: 'Package bonuses',     pts: breakdown.package || 0 },
-      { key: 'review',       icon: '⭐', label: 'Review bonuses',      pts: breakdown.review || 0 },
-      { key: 'subscription', icon: '💳', label: 'Subscription bonuses',pts: breakdown.subscription || 0 },
+      { key: 'signup', icon: '🔗', label: 'Signup bonuses', pts: breakdown.signup || 0 },
+      { key: 'package', icon: '📦', label: 'Package bonuses', pts: breakdown.package || 0 },
+      { key: 'review', icon: '⭐', label: 'Review bonuses', pts: breakdown.review || 0 },
+      {
+        key: 'subscription',
+        icon: '💳',
+        label: 'Subscription bonuses',
+        pts: breakdown.subscription || 0,
+      },
     ];
 
     const total = items.reduce((s, i) => s + i.pts, 0);
@@ -319,23 +336,28 @@ function escapeHtml(s){if(!s)return '';const d=document.createElement('div');d.t
           </div>
         </div>
         <div class="partner-breakdown">
-          ${items.map(item => `
+          ${items
+            .map(
+              item => `
             <div class="partner-breakdown-item">
               <div class="partner-breakdown-icon">${item.icon}</div>
               <div class="partner-breakdown-label">${esc(item.label)}</div>
               <div class="partner-breakdown-pts">0 <span>pts</span></div>
               <div class="partner-breakdown-gbp">£0.00</div>
               <div class="partner-breakdown-bar-track"><div class="partner-breakdown-bar-fill" style="width:0%"></div></div>
-            </div>`).join('')}
+            </div>`
+            )
+            .join('')}
         </div>`;
       return;
     }
 
     container.innerHTML = `<div class="partner-breakdown">
-      ${items.map(item => {
-        const pct = total > 0 ? Math.round((item.pts / total) * 100) : 0;
-        const gbp = toPounds(item.pts, pointsPerGbp);
-        return `
+      ${items
+        .map(item => {
+          const pct = total > 0 ? Math.round((item.pts / total) * 100) : 0;
+          const gbp = toPounds(item.pts, pointsPerGbp);
+          return `
           <div class="partner-breakdown-item">
             <div class="partner-breakdown-icon">${item.icon}</div>
             <div class="partner-breakdown-label">${esc(item.label)}</div>
@@ -345,7 +367,8 @@ function escapeHtml(s){if(!s)return '';const d=document.createElement('div');d.t
               <div class="partner-breakdown-bar-fill" style="width:${pct}%"></div>
             </div>
           </div>`;
-      }).join('')}
+        })
+        .join('')}
     </div>`;
   }
 
@@ -355,7 +378,7 @@ function escapeHtml(s){if(!s)return '';const d=document.createElement('div');d.t
     const fill = document.getElementById('milestone-fill');
     const track = document.getElementById('milestone-track');
     const label = document.getElementById('milestone-value-label');
-    const hint  = document.getElementById('milestone-hint');
+    const hint = document.getElementById('milestone-hint');
     if (!fill || !label || !hint) return;
 
     const {
@@ -390,7 +413,7 @@ function escapeHtml(s){if(!s)return '';const d=document.createElement('div');d.t
 
   function initShareButtons(refLink) {
     const whatsappBtn = document.getElementById('partner-share-whatsapp');
-    const emailBtn    = document.getElementById('partner-share-email');
+    const emailBtn = document.getElementById('partner-share-email');
     if (!refLink) return;
 
     const message = encodeURIComponent(
@@ -402,7 +425,7 @@ function escapeHtml(s){if(!s)return '';const d=document.createElement('div');d.t
     }
     if (emailBtn) {
       const subject = encodeURIComponent('Join EventFlow — great for event suppliers');
-      const body    = encodeURIComponent(
+      const body = encodeURIComponent(
         `Hi,
 
 I thought you might want to check out EventFlow — it's a platform for event suppliers to reach more customers and manage their bookings.
@@ -419,9 +442,9 @@ Best wishes`
   // ── Credit Activity tabs ───────────────────────────────────────────────────
 
   function initCreditTabs() {
-    const tabBreakdown    = document.getElementById('tab-breakdown');
+    const tabBreakdown = document.getElementById('tab-breakdown');
     const tabTransactions = document.getElementById('tab-transactions');
-    const panelBreakdown    = document.getElementById('panel-breakdown');
+    const panelBreakdown = document.getElementById('panel-breakdown');
     const panelTransactions = document.getElementById('panel-transactions');
     if (!tabBreakdown || !tabTransactions) return;
 
@@ -464,8 +487,10 @@ Best wishes`
       const withinWindow = r.withinWindow;
 
       function stage(done, pendingText, doneText) {
-        if (done) return `<span class="partner-stage partner-stage--done"><span class="partner-stage-dot"></span>${esc(doneText)}</span>`;
-        if (withinWindow) return `<span class="partner-stage partner-stage--pending"><span class="partner-stage-dot"></span>${esc(pendingText)}</span>`;
+        if (done)
+          return `<span class="partner-stage partner-stage--done"><span class="partner-stage-dot"></span>${esc(doneText)}</span>`;
+        if (withinWindow)
+          return `<span class="partner-stage partner-stage--pending"><span class="partner-stage-dot"></span>${esc(pendingText)}</span>`;
         return `<span class="partner-stage partner-stage--expired"><span class="partner-stage-dot"></span>${esc(pendingText)}</span>`;
       }
 
@@ -479,9 +504,11 @@ Best wishes`
             <span class="partner-stage partner-stage--done"><span class="partner-stage-dot"></span>✓ Signed up (+5)</span>
             ${stage(r.packageQualified, 'Package pending', '✓ Package (+10)')}
             ${stage(r.subscriptionQualified, 'Subscription pending', '✓ Subscription (+100)')}
-            ${withinWindow
-              ? '<span class="partner-stage partner-stage--pending"><span class="partner-stage-dot"></span>Active window</span>'
-              : '<span class="partner-stage partner-stage--expired"><span class="partner-stage-dot"></span>Window closed</span>'}
+            ${
+              withinWindow
+                ? '<span class="partner-stage partner-stage--pending"><span class="partner-stage-dot"></span>Active window</span>'
+                : '<span class="partner-stage partner-stage--expired"><span class="partner-stage-dot"></span>Window closed</span>'
+            }
           </div>
         </div>`;
     });
@@ -500,13 +527,13 @@ Best wishes`
     const profile = userProfile || {};
 
     if (fnInput && profile.firstName) fnInput.value = profile.firstName;
-    if (lnInput && profile.lastName)  lnInput.value = profile.lastName;
-    if (coInput && profile.company)   coInput.value = profile.company;
+    if (lnInput && profile.lastName) lnInput.value = profile.lastName;
+    if (coInput && profile.company) coInput.value = profile.company;
 
     // Profile form
     const profileForm = document.getElementById('partner-profile-form');
     const profileStatus = document.getElementById('profile-status');
-    const profileBtn    = document.getElementById('profile-save-btn');
+    const profileBtn = document.getElementById('profile-save-btn');
 
     if (profileForm) {
       profileForm.addEventListener('submit', async e => {
@@ -517,7 +544,7 @@ Best wishes`
 
         const payload = {};
         if (fnInput && fnInput.value.trim()) payload.firstName = fnInput.value.trim();
-        if (lnInput && lnInput.value.trim()) payload.lastName  = lnInput.value.trim();
+        if (lnInput && lnInput.value.trim()) payload.lastName = lnInput.value.trim();
         if (coInput !== undefined) payload.company = coInput.value.trim() || null;
 
         // Guard: nothing to update
@@ -548,7 +575,7 @@ Best wishes`
             const headerNameEl = document.getElementById('partner-user-name');
             if (headerNameEl && (payload.firstName || payload.lastName)) {
               const fn = payload.firstName || fnInput?.value?.trim() || '';
-              const ln = payload.lastName  || lnInput?.value?.trim() || '';
+              const ln = payload.lastName || lnInput?.value?.trim() || '';
               headerNameEl.textContent = `${fn} ${ln}`.trim();
             }
           } else {
@@ -565,9 +592,9 @@ Best wishes`
     }
 
     // Password form
-    const passwordForm   = document.getElementById('partner-password-form');
+    const passwordForm = document.getElementById('partner-password-form');
     const passwordStatus = document.getElementById('password-status');
-    const passwordBtn    = document.getElementById('password-save-btn');
+    const passwordBtn = document.getElementById('password-save-btn');
 
     if (passwordForm) {
       passwordForm.addEventListener('submit', async e => {
@@ -577,7 +604,7 @@ Best wishes`
         passwordStatus.className = 'partner-status partner-settings-status';
 
         const currentPw = document.getElementById('settings-current-pw')?.value || '';
-        const newPw     = document.getElementById('settings-new-pw')?.value || '';
+        const newPw = document.getElementById('settings-new-pw')?.value || '';
 
         if (!currentPw || !newPw) {
           passwordStatus.textContent = 'Both fields are required';
@@ -614,16 +641,23 @@ Best wishes`
     }
 
     // Password visibility toggles in settings
-    document.querySelectorAll('#partner-profile-form .partner-pw-toggle, #partner-password-form .partner-pw-toggle').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const inputId = btn.dataset.target;
-        if (!inputId) return;
-        const input = document.getElementById(inputId);
-        if (!input) return;
-        input.type = input.type === 'password' ? 'text' : 'password';
-        btn.setAttribute('aria-label', input.type === 'password' ? 'Show password' : 'Hide password');
+    document
+      .querySelectorAll(
+        '#partner-profile-form .partner-pw-toggle, #partner-password-form .partner-pw-toggle'
+      )
+      .forEach(btn => {
+        btn.addEventListener('click', () => {
+          const inputId = btn.dataset.target;
+          if (!inputId) return;
+          const input = document.getElementById(inputId);
+          if (!input) return;
+          input.type = input.type === 'password' ? 'text' : 'password';
+          btn.setAttribute(
+            'aria-label',
+            input.type === 'password' ? 'Show password' : 'Hide password'
+          );
+        });
       });
-    });
   }
 
   // ── Fetch and render partner stats ────────────────────────────────────────
@@ -999,7 +1033,10 @@ Best wishes`
         const open = () => viewTicket(row.dataset.ticketId);
         row.addEventListener('click', open);
         row.addEventListener('keydown', e => {
-          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); }
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            open();
+          }
         });
       });
     } catch (err) {
@@ -1039,12 +1076,16 @@ Best wishes`
     if (closeBtn) {
       closeBtn.onclick = closeDetail;
     }
-    overlay.onclick = e => { if (e.target === overlay) closeDetail(); };
+    overlay.onclick = e => {
+      if (e.target === overlay) closeDetail();
+    };
 
     document.addEventListener('keydown', handleEsc);
 
     try {
-      const r = await fetch('/api/v1/tickets/' + encodeURIComponent(ticketId), { credentials: 'include' });
+      const r = await fetch('/api/v1/tickets/' + encodeURIComponent(ticketId), {
+        credentials: 'include',
+      });
       if (!r.ok) throw new Error('HTTP ' + r.status);
       const d = await r.json();
       const ticket = d.ticket || d;
@@ -1052,16 +1093,20 @@ Best wishes`
 
       if (titleEl) titleEl.textContent = ticket.subject || 'Support Ticket';
 
-      const replyItems = replies.map(reply => {
-        const isStaff = reply.isStaff || reply.authorRole === 'admin';
-        return `
+      const replyItems = replies
+        .map(reply => {
+          const isStaff = reply.isStaff || reply.authorRole === 'admin';
+          return `
           <div class="partner-reply-item ${isStaff ? 'partner-reply-item--staff' : 'partner-reply-item--user'}">
             <div class="partner-reply-meta">${isStaff ? '🛡 EventFlow Support' : '👤 You'} &nbsp;·&nbsp; ${fmtDate(reply.createdAt)}</div>
             <div style="white-space:pre-wrap;color:rgba(255,255,255,0.8);">${escHtml(reply.message || reply.content || '')}</div>
           </div>`;
-      }).join('');
+        })
+        .join('');
 
-      const replyForm = ticket.status !== 'closed' ? `
+      const replyForm =
+        ticket.status !== 'closed'
+          ? `
         <div class="partner-reply-form">
           <p class="partner-reply-label">Add a reply</p>
           <textarea
@@ -1079,7 +1124,8 @@ Best wishes`
             data-ticket-id="${escHtml(String(ticket._id || ticket.id))}"
           >Send Reply</button>
           <span id="partner-reply-status" role="status" aria-live="polite" style="font-size:0.8rem;margin-top:0.25rem;"></span>
-        </div>` : '<p style="color:rgba(255,255,255,0.35);font-size:0.875rem;margin-top:1rem;">This ticket is closed.</p>';
+        </div>`
+          : '<p style="color:rgba(255,255,255,0.35);font-size:0.875rem;margin-top:1rem;">This ticket is closed.</p>';
 
       body.innerHTML = `
         <div style="font-size:0.78rem;color:rgba(255,255,255,0.4);margin-bottom:0.75rem;">
@@ -1098,7 +1144,10 @@ Best wishes`
           const statusEl = body.querySelector('#partner-reply-status');
           const msg = textarea ? textarea.value.trim() : '';
           if (!msg) {
-            if (statusEl) { statusEl.textContent = 'Please enter a reply.'; statusEl.style.color = '#ef4444'; }
+            if (statusEl) {
+              statusEl.textContent = 'Please enter a reply.';
+              statusEl.style.color = '#ef4444';
+            }
             return;
           }
           sendBtn.disabled = true;
@@ -1116,11 +1165,17 @@ Best wishes`
               }
             );
             if (!rr.ok) throw new Error('HTTP ' + rr.status);
-            if (statusEl) { statusEl.textContent = '✓ Reply sent'; statusEl.style.color = '#10b981'; }
+            if (statusEl) {
+              statusEl.textContent = '✓ Reply sent';
+              statusEl.style.color = '#10b981';
+            }
             if (textarea) textarea.value = '';
             setTimeout(() => viewTicket(sendBtn.dataset.ticketId), 800);
           } catch (err) {
-            if (statusEl) { statusEl.textContent = '✗ Failed: ' + err.message; statusEl.style.color = '#ef4444'; }
+            if (statusEl) {
+              statusEl.textContent = '✗ Failed: ' + err.message;
+              statusEl.style.color = '#ef4444';
+            }
           } finally {
             sendBtn.disabled = false;
             sendBtn.textContent = 'Send Reply';
@@ -1537,8 +1592,7 @@ Best wishes`
 
         if (disabledPanel) {
           if (disabledMsg) {
-            disabledMsg.textContent =
-              err.message || 'Your partner account has been disabled.';
+            disabledMsg.textContent = err.message || 'Your partner account has been disabled.';
           }
           disabledPanel.removeAttribute('hidden');
         }
@@ -1611,4 +1665,3 @@ Best wishes`
     init();
   }
 })();
-

@@ -4,8 +4,8 @@ name: Visual Regression & a11y (soft-fail)
 #
 # Runs Playwright visual regression + axe-core against the static preview
 # server on every PR. The test step is soft-fail only until the configured
-# expiry date; after that, this workflow fails early until `continue-on-error`
-# is removed or the date is intentionally extended.
+# expiry date. Tests and artifacts are always produced before the policy
+# gate reports whether the soft-fail window has expired.
 #
 # Labels:
 #   - `visual-regression-soft` — applied when baselines legitimately drift
@@ -29,13 +29,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Check soft-fail window
+      - name: Record soft-fail policy state
+        id: visual_policy
         run: |
           if [ "$(date +%Y-%m-%d)" \> "$CONTINUE_ON_ERROR_UNTIL" ]; then
-            echo "Soft-fail window expired on $CONTINUE_ON_ERROR_UNTIL — remove \`continue-on-error\` or extend the date in .github/workflows/visual-regression.yml"
-            exit 1
+            echo "expired=true" >> "$GITHUB_OUTPUT"
+            echo "Soft-fail window expired on $CONTINUE_ON_ERROR_UNTIL. Visual/a11y tests will still run and upload artifacts before the policy gate fails."
+          else
+            echo "expired=false" >> "$GITHUB_OUTPUT"
+            echo "Soft-fail window active until $CONTINUE_ON_ERROR_UNTIL. Visual failures remain non-blocking for now."
           fi
-          echo "Soft-fail window active until $CONTINUE_ON_ERROR_UNTIL. Visual failures remain non-blocking for now."
 
       - uses: actions/setup-node@v4
         with:
@@ -49,9 +52,11 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Run visual regression + axe-core
+        id: visual_tests
         continue-on-error: true
         env:
           CI: 'true'
+          PLAYWRIGHT_JSON_OUTPUT_NAME: test-results/visual-results.json
         run: npm run test:visual
 
       - name: Upload Playwright report
@@ -62,12 +67,25 @@ jobs:
           path: |
             visual-report
             test-results
+          if-no-files-found: warn
           retention-days: 14
 
       - name: Upload screenshot diffs
-        if: failure()
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: visual-diffs
           path: tests/visual/__screenshots__
+          if-no-files-found: warn
           retention-days: 14
+
+      - name: Report visual/a11y failures
+        if: steps.visual_tests.outcome == 'failure'
+        run: |
+          echo "Visual/a11y tests failed. Review visual-report, test-results, and visual-diffs artifacts to distinguish snapshot/a11y issues from infrastructure problems."
+
+      - name: Enforce expired soft-fail policy
+        if: steps.visual_policy.outputs.expired == 'true'
+        run: |
+          echo "Soft-fail window expired on $CONTINUE_ON_ERROR_UNTIL. Artifacts have been uploaded; remove continue-on-error or intentionally extend the policy date."
+          exit 1

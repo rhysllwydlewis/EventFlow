@@ -241,8 +241,12 @@ class SupplierCard {
     }
 
     // Founding supplier badge (check both founding and isFounding properties)
-    if (this.supplier.isFounding || this.supplier.founding ||
-        (this.supplier.badges && (this.supplier.badges.includes('founding') || this.supplier.badges.includes('founder')))) {
+    if (
+      this.supplier.isFounding ||
+      this.supplier.founding ||
+      (this.supplier.badges &&
+        (this.supplier.badges.includes('founding') || this.supplier.badges.includes('founder')))
+    ) {
       badges.push('<span class="badge badge-founding">Founding Supplier</span>');
     }
 
@@ -253,7 +257,8 @@ class SupplierCard {
       this.supplier.subscription?.tier ||
       (this.supplier.isPro ? 'pro' : null);
 
-    const isFeatured = tier === 'featured' || this.supplier.featured || this.supplier.featuredSupplier;
+    const isFeatured =
+      tier === 'featured' || this.supplier.featured || this.supplier.featuredSupplier;
 
     if (isFeatured) {
       badges.push('<span class="badge badge-featured">Featured</span>');

@@ -69,7 +69,9 @@ function isRegistrationResponse(req, res, body) {
   const statusOk = res.statusCode >= 200 && res.statusCode < 300;
   const user = body.user || {};
 
-  return methodOk && pathOk && statusOk && body.ok === true && user.role === 'supplier' && !!user.id;
+  return (
+    methodOk && pathOk && statusOk && body.ok === true && user.role === 'supplier' && !!user.id
+  );
 }
 
 function partnerReferralCampaignCapture(req, res, next) {

@@ -61,7 +61,8 @@
           this._setState(AUTH_STATES.UNAUTHENTICATED, null);
           return { state: this.state, user: null };
         }
-        if (window.location.hostname === 'localhost') console.warn('Auth check failed with status:', response.status);
+        if (window.location.hostname === 'localhost')
+          console.warn('Auth check failed with status:', response.status);
         this._setState(AUTH_STATES.UNAUTHENTICATED, null);
         return { state: this.state, user: null };
       } catch (error) {
@@ -75,7 +76,11 @@
       const cookies = document.cookie.split(';');
       return cookies.some(cookie => {
         const trimmed = cookie.trim();
-        return trimmed.startsWith(`${SESSION_COOKIE_NAME}=`) || trimmed.startsWith('token=') || trimmed.startsWith('auth=');
+        return (
+          trimmed.startsWith(`${SESSION_COOKIE_NAME}=`) ||
+          trimmed.startsWith('token=') ||
+          trimmed.startsWith('auth=')
+        );
       });
     }
 
@@ -98,30 +103,51 @@
 
     _notifyListeners() {
       this.listeners.forEach(listener => {
-        try { listener({ state: this.state, user: this.user }); }
-        catch (e) { if (typeof window !== 'undefined' && window.location.hostname === 'localhost') console.error('Error in auth state listener:', e); }
+        try {
+          listener({ state: this.state, user: this.user });
+        } catch (e) {
+          if (typeof window !== 'undefined' && window.location.hostname === 'localhost')
+            console.error('Error in auth state listener:', e);
+        }
       });
     }
 
-    getState() { return this.state; }
-    getUser() { return this.user; }
-    isAuthenticated() { return this.state === AUTH_STATES.AUTHENTICATED && this.user !== null; }
-    isLoading() { return this.state === AUTH_STATES.LOADING; }
+    getState() {
+      return this.state;
+    }
+    getUser() {
+      return this.user;
+    }
+    isAuthenticated() {
+      return this.state === AUTH_STATES.AUTHENTICATED && this.user !== null;
+    }
+    isLoading() {
+      return this.state === AUTH_STATES.LOADING;
+    }
 
     subscribe(callback) {
       this.listeners.push(callback);
-      return () => { this.listeners = this.listeners.filter(l => l !== callback); };
+      return () => {
+        this.listeners = this.listeners.filter(l => l !== callback);
+      };
     }
 
     onchange(callback) {
       const wrappedCallback = stateObj => {
-        const user = stateObj && typeof stateObj === 'object' && 'user' in stateObj ? stateObj.user : stateObj;
+        const user =
+          stateObj && typeof stateObj === 'object' && 'user' in stateObj ? stateObj.user : stateObj;
         callback(user);
       };
-      try { wrappedCallback({ state: this.state, user: this.user }); }
-      catch (e) { if (typeof window !== 'undefined' && window.location.hostname === 'localhost') console.error('Error in auth state onchange callback:', e); }
+      try {
+        wrappedCallback({ state: this.state, user: this.user });
+      } catch (e) {
+        if (typeof window !== 'undefined' && window.location.hostname === 'localhost')
+          console.error('Error in auth state onchange callback:', e);
+      }
       this.listeners.push(wrappedCallback);
-      return () => { this.listeners = this.listeners.filter(l => l !== wrappedCallback); };
+      return () => {
+        this.listeners = this.listeners.filter(l => l !== wrappedCallback);
+      };
     }
 
     async refresh() {
@@ -146,7 +172,8 @@
     window.AuthStateManager = authManager;
     window.AUTH_STATES = AUTH_STATES;
     window.__authState = authManager;
-    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => authManager.init());
+    if (document.readyState === 'loading')
+      document.addEventListener('DOMContentLoaded', () => authManager.init());
     else authManager.init();
     window.addEventListener('auth-state-changed', event => {
       if (event.detail && event.detail.user !== undefined) authManager.setUser(event.detail.user);
@@ -154,7 +181,9 @@
     const originalNotify = authManager._notifyListeners.bind(authManager);
     authManager._notifyListeners = function () {
       originalNotify();
-      window.dispatchEvent(new CustomEvent('__auth-state-updated', { detail: { user: this.user } }));
+      window.dispatchEvent(
+        new CustomEvent('__auth-state-updated', { detail: { user: this.user } })
+      );
     };
   }
 })();
@@ -166,7 +195,10 @@
   if (!customerDashboardPaths.includes(window.location.pathname)) return;
 
   const cssAssets = [
-    ['wedding-dashboard-modal-polish-css', '/assets/css/wedding-dashboard-modal-polish.css?v=1.0.1'],
+    [
+      'wedding-dashboard-modal-polish-css',
+      '/assets/css/wedding-dashboard-modal-polish.css?v=1.0.1',
+    ],
     ['wedding-password-protection-css', '/assets/css/wedding-password-protection.css?v=1.0.1'],
     ['wedding-publish-mop-up-css', '/assets/css/wedding-publish-mop-up.css?v=1.0.0'],
     ['wedding-theme-media-css', '/assets/css/wedding-theme-media.css?v=1.0.0'],
@@ -185,7 +217,10 @@
   });
 
   const jsAssets = [
-    ['wedding-dashboard-modal-polish-js', '/assets/js/pages/wedding-dashboard-modal-polish.js?v=1.0.1'],
+    [
+      'wedding-dashboard-modal-polish-js',
+      '/assets/js/pages/wedding-dashboard-modal-polish.js?v=1.0.1',
+    ],
     ['wedding-password-dashboard-js', '/assets/js/pages/wedding-password-dashboard.js?v=1.0.1'],
     ['wedding-publish-mop-up-js', '/assets/js/pages/wedding-publish-mop-up.js?v=1.0.0'],
     ['wedding-theme-media-js', '/assets/js/pages/wedding-theme-media-customiser.js?v=1.0.0'],

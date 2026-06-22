@@ -62,10 +62,7 @@ function verifySignature(rawBody, header, secret) {
 
   // Constant-time comparison to prevent timing attacks
   try {
-    return crypto.timingSafeEqual(
-      Buffer.from(receivedHex, 'hex'),
-      Buffer.from(expected, 'hex')
-    );
+    return crypto.timingSafeEqual(Buffer.from(receivedHex, 'hex'), Buffer.from(expected, 'hex'));
   } catch {
     return false;
   }
@@ -271,9 +268,7 @@ function buildMongodbWebhookHandler(cfg = {}) {
   const webhookSecret =
     cfg.webhookSecret !== undefined ? cfg.webhookSecret : process.env.MONGODB_WEBHOOK_SECRET;
   const enabled =
-    cfg.enabled !== undefined
-      ? cfg.enabled
-      : process.env.MONGODB_WEBHOOK_ENABLED !== 'false';
+    cfg.enabled !== undefined ? cfg.enabled : process.env.MONGODB_WEBHOOK_ENABLED !== 'false';
   const nodeEnv = cfg.nodeEnv !== undefined ? cfg.nodeEnv : process.env.NODE_ENV;
 
   /**

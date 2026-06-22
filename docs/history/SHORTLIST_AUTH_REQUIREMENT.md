@@ -15,8 +15,8 @@ had been saved to an account.
 
 - **Clicking "Save" while logged out** on the `/suppliers` page shows a brief toast:
   > "Please log in to save suppliers to your shortlist."
-  …and redirects to `/auth?redirect=<encoded current URL>` (including all query params /
-  filters) so the user lands back on the exact results page after signing in.
+  > …and redirects to `/auth?redirect=<encoded current URL>` (including all query params /
+  > filters) so the user lands back on the exact results page after signing in.
 - **`hasItem()` always returns `false`** for unauthenticated users — no supplier card will
   ever be pre-marked as "Saved" for a guest.
 - **`addItem()` / `removeItem()`** return `{ success: false, requiresAuth: true }` when

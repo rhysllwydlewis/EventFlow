@@ -59,7 +59,8 @@
   function updateBadges(count, selectors) {
     const safeCount = normaliseCount(count);
     const seen = new Set();
-    const selectorList = Array.isArray(selectors) && selectors.length ? selectors : DEFAULT_BADGE_SELECTORS;
+    const selectorList =
+      Array.isArray(selectors) && selectors.length ? selectors : DEFAULT_BADGE_SELECTORS;
     selectorList.forEach(selector => {
       document.querySelectorAll(selector).forEach(el => {
         if (seen.has(el)) return;
@@ -67,7 +68,10 @@
         if (safeCount > 0) {
           el.textContent = safeCount > 99 ? '99+' : String(safeCount);
           el.style.display = '';
-          el.setAttribute('aria-label', `${safeCount} unread notification${safeCount === 1 ? '' : 's'}`);
+          el.setAttribute(
+            'aria-label',
+            `${safeCount} unread notification${safeCount === 1 ? '' : 's'}`
+          );
         } else {
           el.textContent = '';
           el.style.display = 'none';

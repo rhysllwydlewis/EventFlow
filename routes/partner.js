@@ -673,7 +673,6 @@ router.get('/cashout-requests/:id', authRequired, roleRequired('partner'), async
   }
 });
 
-
 // ─── Partner Profile Update ───────────────────────────────────────────────────
 
 /**

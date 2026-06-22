@@ -26,7 +26,9 @@ function dbg(...args) {
       section.style.transition = `opacity 0.3s ${ease}, transform 0.3s ${ease}`;
       section.style.opacity = '0';
       section.style.transform = 'scale(0.97)';
-      setTimeout(() => { section.style.display = 'none'; }, 300);
+      setTimeout(() => {
+        section.style.display = 'none';
+      }, 300);
     }
   }
 
@@ -1034,4 +1036,3 @@ if (document.readyState === 'loading') {
 } else {
   initDashboard();
 }
-

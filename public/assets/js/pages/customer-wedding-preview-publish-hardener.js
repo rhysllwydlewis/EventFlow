@@ -12,13 +12,17 @@
   let queued = false;
 
   function esc(value) {
-    return String(value || '').replace(/[&<>"']/g, ch => ({
-      '&': '&amp;',
-      '<': '&lt;',
-      '>': '&gt;',
-      '"': '&quot;',
-      "'": '&#39;',
-    })[ch]);
+    return String(value || '').replace(
+      /[&<>"']/g,
+      ch =>
+        ({
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#39;',
+        })[ch]
+    );
   }
 
   function getRoot(fromElement) {
@@ -48,7 +52,10 @@
   function currentSlug(root, previewLink) {
     const formSlug = String(root?.querySelector('[name="slug"]')?.value || '').trim();
     if (formSlug) {
-      return formSlug.replace(/^\/+|\/+$/g, '').split('/').pop();
+      return formSlug
+        .replace(/^\/+|\/+$/g, '')
+        .split('/')
+        .pop();
     }
     const href = previewLink?.getAttribute('href') || '';
     const match = href.match(/\/wedding\/([^?#]+)/);
@@ -56,7 +63,8 @@
   }
 
   function currentPlanIdFromDom(root) {
-    const direct = root?.dataset?.planId || root?.closest?.('[data-plan-id]')?.dataset?.planId || '';
+    const direct =
+      root?.dataset?.planId || root?.closest?.('[data-plan-id]')?.dataset?.planId || '';
     if (direct) {
       return direct;
     }
@@ -121,14 +129,20 @@
   }
 
   function previewLabel(root) {
-    const publishButtonText = String(root?.querySelector('#ww-pub')?.textContent || '').toLowerCase();
+    const publishButtonText = String(
+      root?.querySelector('#ww-pub')?.textContent || ''
+    ).toLowerCase();
     return publishButtonText.includes('unpublish') ? 'Preview live site' : 'Preview draft';
   }
 
   function isDirty(root) {
     const state = root?.querySelector('#ww-save-state');
-    return String(state?.dataset?.state || '').toLowerCase() === 'dirty' ||
-      String(state?.textContent || '').toLowerCase().includes('unsaved');
+    return (
+      String(state?.dataset?.state || '').toLowerCase() === 'dirty' ||
+      String(state?.textContent || '')
+        .toLowerCase()
+        .includes('unsaved')
+    );
   }
 
   async function hardenPreviewLink(previewLink) {
@@ -150,7 +164,8 @@
       previewLink.href = url;
       previewLink.dataset.planId = context.planId;
       previewLink.dataset.previewSlug = context.slug;
-      previewLink.title = 'Opens an authenticated preview. Draft sites do not need to be publicly published first.';
+      previewLink.title =
+        'Opens an authenticated preview. Draft sites do not need to be publicly published first.';
     }
 
     if (previewLink.dataset.previewHardenerBound === 'true') {
@@ -165,7 +180,11 @@
         const nextUrl = previewUrl(nextContext);
         if (!nextUrl) {
           event.preventDefault();
-          showStatus(activeRoot, 'Unable to find the saved wedding website. Save the workspace, then preview again.', 'warn');
+          showStatus(
+            activeRoot,
+            'Unable to find the saved wedding website. Save the workspace, then preview again.',
+            'warn'
+          );
           return;
         }
 
@@ -216,7 +235,11 @@
     document.querySelectorAll(PREVIEW_SELECTOR).forEach(link => {
       hardenPreviewLink(link).catch(() => {
         const root = getRoot(link);
-        showStatus(root, 'Preview setup could not complete. Save the website and try again.', 'warn');
+        showStatus(
+          root,
+          'Preview setup could not complete. Save the website and try again.',
+          'warn'
+        );
       });
     });
   }
@@ -240,7 +263,10 @@
     }
   });
   document.addEventListener('click', event => {
-    if (event.target instanceof Element && event.target.closest('.ww-app-tabs button, #ww-save, #ww-pub')) {
+    if (
+      event.target instanceof Element &&
+      event.target.closest('.ww-app-tabs button, #ww-save, #ww-pub')
+    ) {
       window.setTimeout(schedule, 300);
       window.setTimeout(schedule, 1200);
     }

@@ -23,12 +23,12 @@
 
   // All categories the wizard can surface. Shown based on selected priorities.
   const ALL_CATEGORIES = [
-    { key: 'venues',        name: 'Venue',                priority: 'venue' },
-    { key: 'catering',      name: 'Catering',             priority: 'catering' },
-    { key: 'photography',   name: 'Photography',          priority: 'photography' },
-    { key: 'flowers',       name: 'Flowers & Décor',      priority: 'flowers' },
-    { key: 'entertainment', name: 'Entertainment',        priority: 'entertainment' },
-    { key: 'av',            name: 'AV & Production',      priority: 'av' },
+    { key: 'venues', name: 'Venue', priority: 'venue' },
+    { key: 'catering', name: 'Catering', priority: 'catering' },
+    { key: 'photography', name: 'Photography', priority: 'photography' },
+    { key: 'flowers', name: 'Flowers & Décor', priority: 'flowers' },
+    { key: 'entertainment', name: 'Entertainment', priority: 'entertainment' },
+    { key: 'av', name: 'AV & Production', priority: 'av' },
   ];
 
   // Default categories shown when no priorities are selected
@@ -36,43 +36,43 @@
 
   // Planning priorities the user can select
   const PRIORITY_OPTIONS = [
-    { key: 'venue',           label: 'Venue' },
-    { key: 'catering',        label: 'Catering' },
-    { key: 'photography',     label: 'Photography & Video' },
-    { key: 'flowers',         label: 'Flowers & Décor' },
-    { key: 'entertainment',   label: 'Entertainment' },
-    { key: 'av',              label: 'AV & Production' },
-    { key: 'transport',       label: 'Transport' },
-    { key: 'accommodation',   label: 'Accommodation' },
-    { key: 'guests',          label: 'Guest Management' },
-    { key: 'timeline',        label: 'Timeline & Schedule' },
-    { key: 'budget',          label: 'Budget Tracking' },
+    { key: 'venue', label: 'Venue' },
+    { key: 'catering', label: 'Catering' },
+    { key: 'photography', label: 'Photography & Video' },
+    { key: 'flowers', label: 'Flowers & Décor' },
+    { key: 'entertainment', label: 'Entertainment' },
+    { key: 'av', label: 'AV & Production' },
+    { key: 'transport', label: 'Transport' },
+    { key: 'accommodation', label: 'Accommodation' },
+    { key: 'guests', label: 'Guest Management' },
+    { key: 'timeline', label: 'Timeline & Schedule' },
+    { key: 'budget', label: 'Budget Tracking' },
   ];
 
   // Style/vibe chips
   const STYLE_OPTIONS = [
-    { key: 'classic',       label: 'Classic' },
-    { key: 'modern',        label: 'Modern' },
-    { key: 'relaxed',       label: 'Relaxed' },
-    { key: 'luxury',        label: 'Luxury' },
-    { key: 'rustic',        label: 'Rustic' },
+    { key: 'classic', label: 'Classic' },
+    { key: 'modern', label: 'Modern' },
+    { key: 'relaxed', label: 'Relaxed' },
+    { key: 'luxury', label: 'Luxury' },
+    { key: 'rustic', label: 'Rustic' },
     { key: 'family-friendly', label: 'Family-friendly' },
-    { key: 'formal',        label: 'Formal' },
-    { key: 'festival',      label: 'Festival-style' },
-    { key: 'corporate',     label: 'Corporate' },
+    { key: 'formal', label: 'Formal' },
+    { key: 'festival', label: 'Festival-style' },
+    { key: 'corporate', label: 'Corporate' },
     { key: 'budget-conscious', label: 'Budget-conscious' },
-    { key: 'eco',           label: 'Eco-conscious' },
-    { key: 'colourful',     label: 'Colourful' },
-    { key: 'romantic',      label: 'Romantic' },
-    { key: 'intimate',      label: 'Intimate' },
+    { key: 'eco', label: 'Eco-conscious' },
+    { key: 'colourful', label: 'Colourful' },
+    { key: 'romantic', label: 'Romantic' },
+    { key: 'intimate', label: 'Intimate' },
   ];
 
   // Planning stage options
   const PLANNING_STAGES = [
     { key: 'just-starting', label: 'Just starting out' },
-    { key: 'venue-booked',  label: 'Venue already booked' },
-    { key: 'some-booked',   label: 'Some suppliers booked' },
-    { key: 'nearly-ready',  label: 'Nearly there' },
+    { key: 'venue-booked', label: 'Venue already booked' },
+    { key: 'some-booked', label: 'Some suppliers booked' },
+    { key: 'nearly-ready', label: 'Nearly there' },
   ];
 
   const WIZARD_DATA_EXPIRY_MS = 24 * 60 * 60 * 1000;
@@ -82,11 +82,11 @@
 
   // Step indices
   const STEP = {
-    WELCOME:    -1,
-    EVENT_TYPE:  0,
+    WELCOME: -1,
+    EVENT_TYPE: 0,
     EVENT_BASICS: 1,
-    PRIORITIES:  2,
-    STYLE:       3,
+    PRIORITIES: 2,
+    STYLE: 3,
     // category steps start at FIXED_STEPS_BEFORE_CATS
   };
 
@@ -98,15 +98,21 @@
     }
     // Categories matching selected priorities (in priority order), max 6
     const matched = ALL_CATEGORIES.filter(c => chosen.includes(c.priority));
-    return matched.length > 0 ? matched.slice(0, 6) : ALL_CATEGORIES.filter(c => DEFAULT_CATEGORY_KEYS.includes(c.key));
+    return matched.length > 0
+      ? matched.slice(0, 6)
+      : ALL_CATEGORIES.filter(c => DEFAULT_CATEGORY_KEYS.includes(c.key));
   }
 
   function getTotalVisible() {
     return FIXED_STEPS_BEFORE_CATS + getActiveCategories().length + 1; // +1 for review
   }
 
-  function getReviewStep()  { return FIXED_STEPS_BEFORE_CATS + getActiveCategories().length; }
-  function getSuccessStep() { return FIXED_STEPS_BEFORE_CATS + getActiveCategories().length + 1; }
+  function getReviewStep() {
+    return FIXED_STEPS_BEFORE_CATS + getActiveCategories().length;
+  }
+  function getSuccessStep() {
+    return FIXED_STEPS_BEFORE_CATS + getActiveCategories().length + 1;
+  }
 
   /* ─── State ──────────────────────────────────────────────────────────────── */
 
@@ -144,7 +150,7 @@
     const urlParams = new URLSearchParams(window.location.search);
     if ([...urlParams.keys()].length > 0) {
       const et = urlParams.get('eventType');
-      if (et && ['Wedding','Corporate','Birthday','Other'].includes(et)) {
+      if (et && ['Wedding', 'Corporate', 'Birthday', 'Other'].includes(et)) {
         window.WizardState.saveStep(STEP.EVENT_TYPE, { eventType: et });
       }
       const pre = {};
@@ -190,8 +196,14 @@
     const liveRegion = document.getElementById('wizard-live-region');
     if (liveRegion && stepIndex >= 0 && stepIndex <= getReviewStep()) {
       const cats = getActiveCategories();
-      const titles = ['Event type', 'The basics', 'Planning priorities', 'Style & vibe',
-        ...cats.map(c => c.name), 'Review your plan'];
+      const titles = [
+        'Event type',
+        'The basics',
+        'Planning priorities',
+        'Style & vibe',
+        ...cats.map(c => c.name),
+        'Review your plan',
+      ];
       const title = titles[stepIndex] || '';
       if (title) liveRegion.textContent = `Step ${stepIndex + 1} of ${getTotalVisible()}: ${title}`;
     }
@@ -200,11 +212,11 @@
   }
 
   function renderStepContent(stepIndex) {
-    if (stepIndex === STEP.EVENT_TYPE)   return renderEventTypeStep();
+    if (stepIndex === STEP.EVENT_TYPE) return renderEventTypeStep();
     if (stepIndex === STEP.EVENT_BASICS) return renderEventBasicsStep();
-    if (stepIndex === STEP.PRIORITIES)   return renderPrioritiesStep();
-    if (stepIndex === STEP.STYLE)        return renderStyleStep();
-    if (stepIndex === getReviewStep())   return renderReviewStep();
+    if (stepIndex === STEP.PRIORITIES) return renderPrioritiesStep();
+    if (stepIndex === STEP.STYLE) return renderStyleStep();
+    if (stepIndex === getReviewStep()) return renderReviewStep();
     // Category step
     const catIndex = stepIndex - FIXED_STEPS_BEFORE_CATS;
     const cats = getActiveCategories();
@@ -217,7 +229,9 @@
   function renderWelcomeScreen() {
     const templates = window.EventTemplates ? window.EventTemplates.getAll() : [];
 
-    const tplCards = templates.map(t => `
+    const tplCards = templates
+      .map(
+        t => `
       <button class="wz-tpl-card" data-template-id="${escapeHtml(t.id)}"
               type="button" aria-label="Use ${escapeHtml(t.name)} template">
         <span class="wz-tpl-emoji" aria-hidden="true">${t.emoji}</span>
@@ -232,15 +246,23 @@
         <svg class="wz-tpl-arrow" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" width="20" height="20">
           <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
         </svg>
-      </button>`).join('');
+      </button>`
+      )
+      .join('');
 
     const savedState = window.WizardState.getState();
-    const hasProgress = !!(savedState.eventType || savedState.eventName || savedState.priorities?.length);
-    const resumeBanner = hasProgress ? `
+    const hasProgress = !!(
+      savedState.eventType ||
+      savedState.eventName ||
+      savedState.priorities?.length
+    );
+    const resumeBanner = hasProgress
+      ? `
       <div class="wz-resume-banner" role="alert">
         <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3.586L7.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7z" clip-rule="evenodd"/></svg>
         <span>You have a plan in progress. <button class="wz-resume-link" type="button" id="resume-plan-btn">Continue where you left off</button></span>
-      </div>` : '';
+      </div>`
+      : '';
 
     return `
       <div class="wizard-card wizard-welcome">
@@ -282,8 +304,14 @@
     const total = getTotalVisible();
     const pct = Math.round(((stepIndex + 1) / total) * 100);
     const cats = getActiveCategories();
-    const stepTitles = ['Event type', 'The basics', 'Priorities', 'Style & vibe',
-      ...cats.map(c => c.name), 'Review'];
+    const stepTitles = [
+      'Event type',
+      'The basics',
+      'Priorities',
+      'Style & vibe',
+      ...cats.map(c => c.name),
+      'Review',
+    ];
     const title = stepTitles[stepIndex] || '';
 
     return `
@@ -305,13 +333,25 @@
   function renderEventTypeStep() {
     const state = window.WizardState.getState();
     const types = [
-      { value: 'Wedding',   label: 'Wedding',        imgId: 'et-img-wedding',   alt: 'Wedding' },
-      { value: 'Corporate', label: 'Corporate Event', imgId: 'et-img-corporate', alt: 'Corporate event' },
-      { value: 'Birthday',  label: 'Birthday Party',  imgId: 'et-img-birthday',  alt: 'Birthday party' },
-      { value: 'Other',     label: 'Other Event',     imgId: 'et-img-other',     alt: 'Other event' },
+      { value: 'Wedding', label: 'Wedding', imgId: 'et-img-wedding', alt: 'Wedding' },
+      {
+        value: 'Corporate',
+        label: 'Corporate Event',
+        imgId: 'et-img-corporate',
+        alt: 'Corporate event',
+      },
+      {
+        value: 'Birthday',
+        label: 'Birthday Party',
+        imgId: 'et-img-birthday',
+        alt: 'Birthday party',
+      },
+      { value: 'Other', label: 'Other Event', imgId: 'et-img-other', alt: 'Other event' },
     ];
 
-    const opts = types.map(t => `
+    const opts = types
+      .map(
+        t => `
       <button class="wizard-option${state.eventType === t.value ? ' selected' : ''}"
               data-value="${escapeHtml(t.value)}" type="button"
               aria-pressed="${state.eventType === t.value ? 'true' : 'false'}">
@@ -319,7 +359,9 @@
           <img class="wizard-option-image" id="${t.imgId}" alt="${escapeHtml(t.alt)}">
         </div>
         <span class="wizard-option-label">${escapeHtml(t.label)}</span>
-      </button>`).join('');
+      </button>`
+      )
+      .join('');
 
     return `
       <div class="wizard-card">
@@ -336,14 +378,29 @@
 
   function loadEventTypeImages() {
     const imgs = {
-      'et-img-wedding':   { src: 'https://images.pexels.com/photos/265885/pexels-photo-265885.jpeg?auto=compress&cs=tinysrgb&w=600', alt: 'Wedding couple' },
-      'et-img-corporate': { src: 'https://images.pexels.com/photos/1181396/pexels-photo-1181396.jpeg?auto=compress&cs=tinysrgb&w=600', alt: 'Corporate event' },
-      'et-img-birthday':  { src: 'https://images.pexels.com/photos/1543762/pexels-photo-1543762.jpeg?auto=compress&cs=tinysrgb&w=600', alt: 'Birthday party' },
-      'et-img-other':     { src: 'https://images.pexels.com/photos/2306281/pexels-photo-2306281.jpeg?auto=compress&cs=tinysrgb&w=600', alt: 'Event gathering' },
+      'et-img-wedding': {
+        src: 'https://images.pexels.com/photos/265885/pexels-photo-265885.jpeg?auto=compress&cs=tinysrgb&w=600',
+        alt: 'Wedding couple',
+      },
+      'et-img-corporate': {
+        src: 'https://images.pexels.com/photos/1181396/pexels-photo-1181396.jpeg?auto=compress&cs=tinysrgb&w=600',
+        alt: 'Corporate event',
+      },
+      'et-img-birthday': {
+        src: 'https://images.pexels.com/photos/1543762/pexels-photo-1543762.jpeg?auto=compress&cs=tinysrgb&w=600',
+        alt: 'Birthday party',
+      },
+      'et-img-other': {
+        src: 'https://images.pexels.com/photos/2306281/pexels-photo-2306281.jpeg?auto=compress&cs=tinysrgb&w=600',
+        alt: 'Event gathering',
+      },
     };
     Object.entries(imgs).forEach(([id, { src, alt }]) => {
       const el = document.getElementById(id);
-      if (el) { el.src = src; el.alt = alt; }
+      if (el) {
+        el.src = src;
+        el.alt = alt;
+      }
     });
   }
 
@@ -352,12 +409,24 @@
   function renderEventBasicsStep() {
     const state = window.WizardState.getState();
 
-    const stageOpts = PLANNING_STAGES.map(s =>
-      `<option value="${escapeHtml(s.key)}" ${state.planningStage === s.key ? 'selected' : ''}>${escapeHtml(s.label)}</option>`
+    const stageOpts = PLANNING_STAGES.map(
+      s =>
+        `<option value="${escapeHtml(s.key)}" ${state.planningStage === s.key ? 'selected' : ''}>${escapeHtml(s.label)}</option>`
     ).join('');
 
-    const budgetOpts = ['', 'Up to £1,000','£1,000–£3,000','£3,000–£5,000','£5,000–£10,000','£10,000–£20,000','£20,000+']
-      .map(v => `<option value="${escapeHtml(v)}" ${state.budget === v ? 'selected' : ''}>${v ? escapeHtml(v) : 'Not sure yet'}</option>`)
+    const budgetOpts = [
+      '',
+      'Up to £1,000',
+      '£1,000–£3,000',
+      '£3,000–£5,000',
+      '£5,000–£10,000',
+      '£10,000–£20,000',
+      '£20,000+',
+    ]
+      .map(
+        v =>
+          `<option value="${escapeHtml(v)}" ${state.budget === v ? 'selected' : ''}>${v ? escapeHtml(v) : 'Not sure yet'}</option>`
+      )
       .join('');
 
     return `
@@ -441,9 +510,11 @@
           ${chips}
         </div>
         <p class="wz-chip-hint">
-          ${selected.length > 0
-            ? `<strong>${selected.length} area${selected.length !== 1 ? 's' : ''} selected</strong> — we'll tailor your next steps`
-            : 'Select at least one area, or continue to use our defaults'}
+          ${
+            selected.length > 0
+              ? `<strong>${selected.length} area${selected.length !== 1 ? 's' : ''} selected</strong> — we'll tailor your next steps`
+              : 'Select at least one area, or continue to use our defaults'
+          }
         </p>
         <div class="wizard-actions">
           <button class="cta secondary wizard-back" type="button">Back</button>
@@ -477,9 +548,11 @@
         <div class="wz-chip-group" role="group" aria-label="Style and vibe options">
           ${chips}
         </div>
-        ${selected.length > 0
-          ? `<p class="wz-chip-hint"><strong>${selected.map(k => STYLE_OPTIONS.find(s => s.key === k)?.label || k).join(', ')}</strong></p>`
-          : '<p class="wz-chip-hint" aria-live="polite">Nothing selected yet — perfectly fine to skip</p>'}
+        ${
+          selected.length > 0
+            ? `<p class="wz-chip-hint"><strong>${selected.map(k => STYLE_OPTIONS.find(s => s.key === k)?.label || k).join(', ')}</strong></p>`
+            : '<p class="wz-chip-hint" aria-live="polite">Nothing selected yet — perfectly fine to skip</p>'
+        }
         <div class="wizard-actions">
           <button class="cta secondary wizard-back" type="button">Back</button>
           <button class="cta wizard-next" type="button">Continue</button>
@@ -495,22 +568,27 @@
     const state = window.WizardState.getState();
     const alreadyHave = (state.alreadyHave || {})[category.key];
 
-    const proximityNote = category.key === 'venues' && state.location
-      ? `<div class="wizard-proximity-info"><p class="small">Showing venues near <strong>${escapeHtml(state.location)}</strong></p></div>`
-      : '';
+    const proximityNote =
+      category.key === 'venues' && state.location
+        ? `<div class="wizard-proximity-info"><p class="small">Showing venues near <strong>${escapeHtml(state.location)}</strong></p></div>`
+        : '';
 
     return `
       <div class="wizard-card">
         <h2>${escapeHtml(category.name)}</h2>
         <p class="small">Browse options for ${escapeHtml(category.name.toLowerCase())}. You can shortlist one now or come back later.</p>
-        ${alreadyHave ? '<div class="wz-already-have-notice"><p>✓ You\'ve indicated you already have this covered.</p> <button class="wz-undo-already-have" data-category="${escapeHtml(category.key)}" type="button">Undo</button></div>' : `
+        ${
+          alreadyHave
+            ? '<div class="wz-already-have-notice"><p>✓ You\'ve indicated you already have this covered.</p> <button class="wz-undo-already-have" data-category="${escapeHtml(category.key)}" type="button">Undo</button></div>'
+            : `
         <button class="wz-already-have-btn" data-category="${escapeHtml(category.key)}" type="button">
           I already have ${escapeHtml(category.name.toLowerCase())} covered — skip
-        </button>`}
+        </button>`
+        }
         ${proximityNote}
         <div id="wizard-packages-${escapeHtml(category.key)}" class="wizard-packages" aria-live="polite" aria-busy="true">
           <div class="wizard-package-grid">
-            ${[1,2,3].map(() => '<div class="wizard-skeleton-card"></div>').join('')}
+            ${[1, 2, 3].map(() => '<div class="wizard-skeleton-card"></div>').join('')}
           </div>
         </div>
         <div class="wizard-actions">
@@ -528,37 +606,62 @@
     const state = window.WizardState.getState();
     const cats = getActiveCategories();
     const selectedPkgs = Object.keys(state.selectedPackages || {});
-    const alreadyHave  = Object.keys(state.alreadyHave || {});
+    const alreadyHave = Object.keys(state.alreadyHave || {});
 
     // Readiness score — 0-100 based on filled fields
-    const fields = [state.eventType, state.eventName, state.location, state.date,
-      state.guests, state.budget, state.planningStage,
+    const fields = [
+      state.eventType,
+      state.eventName,
+      state.location,
+      state.date,
+      state.guests,
+      state.budget,
+      state.planningStage,
       (state.priorities || []).length > 0 ? 'yes' : null,
-      (state.styles || []).length > 0 ? 'yes' : null];
+      (state.styles || []).length > 0 ? 'yes' : null,
+    ];
     const filled = fields.filter(Boolean).length;
     const readiness = Math.round((filled / fields.length) * 100);
-    const readinessLabel = readiness >= 80 ? 'Great shape' : readiness >= 50 ? 'Good start' : 'Getting started';
-    const readinessClass = readiness >= 80 ? 'wz-readiness--high' : readiness >= 50 ? 'wz-readiness--mid' : 'wz-readiness--low';
+    const readinessLabel =
+      readiness >= 80 ? 'Great shape' : readiness >= 50 ? 'Good start' : 'Getting started';
+    const readinessClass =
+      readiness >= 80
+        ? 'wz-readiness--high'
+        : readiness >= 50
+          ? 'wz-readiness--mid'
+          : 'wz-readiness--low';
 
     const formatDate = d => {
       if (!d) return null;
       const dt = new Date(d);
-      return isNaN(dt) ? null : dt.toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric', timeZone:'Europe/London' });
+      return isNaN(dt)
+        ? null
+        : dt.toLocaleDateString('en-GB', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+            timeZone: 'Europe/London',
+          });
     };
 
-    const styleLabels = (state.styles || []).map(k => STYLE_OPTIONS.find(s => s.key === k)?.label || k).join(', ');
+    const styleLabels = (state.styles || [])
+      .map(k => STYLE_OPTIONS.find(s => s.key === k)?.label || k)
+      .join(', ');
 
-    const catEditLinks = cats.map((cat, i) => {
-      const catStep = FIXED_STEPS_BEFORE_CATS + i;
-      return `<a href="#" class="wizard-review-edit" data-step="${catStep}">Edit ${escapeHtml(cat.name)}</a>`;
-    }).join('');
+    const catEditLinks = cats
+      .map((cat, i) => {
+        const catStep = FIXED_STEPS_BEFORE_CATS + i;
+        return `<a href="#" class="wizard-review-edit" data-step="${catStep}">Edit ${escapeHtml(cat.name)}</a>`;
+      })
+      .join('');
 
     const missingItems = [];
     if (!state.eventName) missingItems.push('Event name');
-    if (!state.date)      missingItems.push('Event date');
-    if (!state.location)  missingItems.push('Location');
-    if (!state.budget)    missingItems.push('Budget');
-    if (selectedPkgs.length === 0 && alreadyHave.length === 0) missingItems.push('Supplier selections');
+    if (!state.date) missingItems.push('Event date');
+    if (!state.location) missingItems.push('Location');
+    if (!state.budget) missingItems.push('Budget');
+    if (selectedPkgs.length === 0 && alreadyHave.length === 0)
+      missingItems.push('Supplier selections');
 
     return `
       <div class="wizard-card">
@@ -575,44 +678,58 @@
             <h3>Event details</h3>
             <p><strong>Type:</strong> ${escapeHtml(state.eventType || 'Not specified')}</p>
             ${state.eventName ? `<p><strong>Name:</strong> ${escapeHtml(state.eventName)}</p>` : ''}
-            ${state.location  ? `<p><strong>Location:</strong> ${escapeHtml(state.location)}</p>` : ''}
-            ${state.date      ? `<p><strong>Date:</strong> ${escapeHtml(formatDate(state.date))}</p>` : ''}
-            ${state.guests    ? `<p><strong>Guests:</strong> ${escapeHtml(state.guests)}</p>` : ''}
-            ${state.budget    ? `<p><strong>Budget:</strong> ${escapeHtml(state.budget)}</p>` : ''}
+            ${state.location ? `<p><strong>Location:</strong> ${escapeHtml(state.location)}</p>` : ''}
+            ${state.date ? `<p><strong>Date:</strong> ${escapeHtml(formatDate(state.date))}</p>` : ''}
+            ${state.guests ? `<p><strong>Guests:</strong> ${escapeHtml(state.guests)}</p>` : ''}
+            ${state.budget ? `<p><strong>Budget:</strong> ${escapeHtml(state.budget)}</p>` : ''}
             ${state.planningStage ? `<p><strong>Planning stage:</strong> ${escapeHtml(PLANNING_STAGES.find(s => s.key === state.planningStage)?.label || state.planningStage)}</p>` : ''}
             <a href="#" class="wizard-review-edit" data-step="${STEP.EVENT_TYPE}">Edit event type</a>
             <a href="#" class="wizard-review-edit" data-step="${STEP.EVENT_BASICS}">Edit details</a>
           </div>
 
-          ${(state.priorities || []).length > 0 ? `
+          ${
+            (state.priorities || []).length > 0
+              ? `
           <div class="wizard-review-section">
             <h3>Planning priorities</h3>
-            <p>${escapeHtml((state.priorities).map(k => PRIORITY_OPTIONS.find(p => p.key === k)?.label || k).join(', '))}</p>
+            <p>${escapeHtml(state.priorities.map(k => PRIORITY_OPTIONS.find(p => p.key === k)?.label || k).join(', '))}</p>
             <a href="#" class="wizard-review-edit" data-step="${STEP.PRIORITIES}">Edit priorities</a>
-          </div>` : ''}
+          </div>`
+              : ''
+          }
 
-          ${styleLabels ? `
+          ${
+            styleLabels
+              ? `
           <div class="wizard-review-section">
             <h3>Style & vibe</h3>
             <p>${escapeHtml(styleLabels)}</p>
             <a href="#" class="wizard-review-edit" data-step="${STEP.STYLE}">Edit style</a>
-          </div>` : ''}
+          </div>`
+              : ''
+          }
 
           <div class="wizard-review-section">
             <h3>Supplier selections</h3>
-            ${selectedPkgs.length > 0
-              ? `<p>You've shortlisted <strong>${selectedPkgs.length} supplier${selectedPkgs.length !== 1 ? 's' : ''}</strong>.</p>${catEditLinks}`
-              : alreadyHave.length > 0
-                ? `<p>${alreadyHave.length} area${alreadyHave.length !== 1 ? 's' : ''} already covered. ${catEditLinks}</p>`
-                : `<p class="small">No suppliers shortlisted yet — you can browse after saving. ${catEditLinks}</p>`}
+            ${
+              selectedPkgs.length > 0
+                ? `<p>You've shortlisted <strong>${selectedPkgs.length} supplier${selectedPkgs.length !== 1 ? 's' : ''}</strong>.</p>${catEditLinks}`
+                : alreadyHave.length > 0
+                  ? `<p>${alreadyHave.length} area${alreadyHave.length !== 1 ? 's' : ''} already covered. ${catEditLinks}</p>`
+                  : `<p class="small">No suppliers shortlisted yet — you can browse after saving. ${catEditLinks}</p>`
+            }
           </div>
 
-          ${missingItems.length > 0 ? `
+          ${
+            missingItems.length > 0
+              ? `
           <div class="wizard-review-section wz-review-missing">
             <h3>Still to add</h3>
             <ul class="wz-missing-list">${missingItems.map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul>
             <p class="small">You can fill these in later — your plan saves everything you've entered so far.</p>
-          </div>` : ''}
+          </div>`
+              : ''
+          }
         </div>
 
         <div class="wz-save-notice" role="note">
@@ -664,25 +781,36 @@
     const state = window.WizardState.getState();
     const cats = getActiveCategories();
     const selectedPkgs = Object.keys(state.selectedPackages || {}).length;
-    const alreadyHave  = Object.keys(state.alreadyHave || {}).length;
+    const alreadyHave = Object.keys(state.alreadyHave || {}).length;
     const serviced = selectedPkgs + alreadyHave;
 
     // Completion score
-    const fields = [state.eventType, state.eventName, state.location, state.date,
-      state.guests, state.budget, state.planningStage,
-      (state.priorities||[]).length ? 'y':null, (state.styles||[]).length ? 'y':null];
+    const fields = [
+      state.eventType,
+      state.eventName,
+      state.location,
+      state.date,
+      state.guests,
+      state.budget,
+      state.planningStage,
+      (state.priorities || []).length ? 'y' : null,
+      (state.styles || []).length ? 'y' : null,
+    ];
     const score = Math.round((fields.filter(Boolean).length / fields.length) * 100);
-    const scoreClass = score >= 80 ? 'wz-score--high' : score >= 50 ? 'wz-score--mid' : 'wz-score--low';
+    const scoreClass =
+      score >= 80 ? 'wz-score--high' : score >= 50 ? 'wz-score--mid' : 'wz-score--low';
 
     let rows = '';
     if (state.eventType) rows += sumRow('Type', state.eventType);
     if (state.eventName) rows += sumRow('Name', state.eventName);
-    if (state.location)  rows += sumRow('Location', state.location);
-    if (state.date)      rows += sumRow('Date', fmtDate(state.date));
-    if (state.guests)    rows += sumRow('Guests', state.guests);
-    if (state.budget)    rows += sumRow('Budget', state.budget);
-    if ((state.styles||[]).length) {
-      const labels = (state.styles).map(k => STYLE_OPTIONS.find(s => s.key === k)?.label || k).join(', ');
+    if (state.location) rows += sumRow('Location', state.location);
+    if (state.date) rows += sumRow('Date', fmtDate(state.date));
+    if (state.guests) rows += sumRow('Guests', state.guests);
+    if (state.budget) rows += sumRow('Budget', state.budget);
+    if ((state.styles || []).length) {
+      const labels = state.styles
+        .map(k => STYLE_OPTIONS.find(s => s.key === k)?.label || k)
+        .join(', ');
       rows += sumRow('Vibe', labels);
     }
     rows += sumRow('Suppliers', `${serviced} of ${cats.length} covered`);
@@ -707,7 +835,14 @@
   function fmtDate(d) {
     if (!d) return '';
     const dt = new Date(d);
-    return isNaN(dt) ? '' : dt.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric', timeZone:'Europe/London' });
+    return isNaN(dt)
+      ? ''
+      : dt.toLocaleDateString('en-GB', {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+          timeZone: 'Europe/London',
+        });
   }
 
   function renderMobileSummary() {
@@ -717,18 +852,18 @@
     const selectedPkgs = Object.keys(state.selectedPackages || {}).length;
     const parts = [];
     if (state.eventType) parts.push(state.eventType);
-    if (state.location)  parts.push(state.location);
-    if (selectedPkgs)    parts.push(`${selectedPkgs} supplier${selectedPkgs !== 1 ? 's' : ''}`);
+    if (state.location) parts.push(state.location);
+    if (selectedPkgs) parts.push(`${selectedPkgs} supplier${selectedPkgs !== 1 ? 's' : ''}`);
     const compact = parts.length ? parts.join(' · ') : 'Your plan';
 
     const wasExpanded = _mobileSummaryExpanded;
     let detailHtml = '';
-    if (state.eventType)  detailHtml += sumRow('Type', state.eventType);
-    if (state.eventName)  detailHtml += sumRow('Name', state.eventName);
-    if (state.date)       detailHtml += sumRow('Date', fmtDate(state.date));
-    if (state.location)   detailHtml += sumRow('Location', state.location);
-    if (state.guests)     detailHtml += sumRow('Guests', state.guests);
-    if (state.budget)     detailHtml += sumRow('Budget', state.budget);
+    if (state.eventType) detailHtml += sumRow('Type', state.eventType);
+    if (state.eventName) detailHtml += sumRow('Name', state.eventName);
+    if (state.date) detailHtml += sumRow('Date', fmtDate(state.date));
+    if (state.location) detailHtml += sumRow('Location', state.location);
+    if (state.guests) detailHtml += sumRow('Guests', state.guests);
+    if (state.budget) detailHtml += sumRow('Budget', state.budget);
     detailHtml += sumRow('Suppliers', `${selectedPkgs} selected`);
 
     el.innerHTML = `
@@ -743,13 +878,19 @@
     `;
 
     const btn = el.querySelector('.wizard-mobile-summary-bar');
-    if (btn) btn.addEventListener('click', () => {
-      _mobileSummaryExpanded = !_mobileSummaryExpanded;
-      btn.setAttribute('aria-expanded', String(_mobileSummaryExpanded));
-      btn.querySelector('.wizard-mobile-summary-chevron')?.classList.toggle('is-open', _mobileSummaryExpanded);
-      const d = document.getElementById('mobile-summary-details');
-      if (d) { if (_mobileSummaryExpanded) d.removeAttribute('hidden'); else d.setAttribute('hidden', ''); }
-    });
+    if (btn)
+      btn.addEventListener('click', () => {
+        _mobileSummaryExpanded = !_mobileSummaryExpanded;
+        btn.setAttribute('aria-expanded', String(_mobileSummaryExpanded));
+        btn
+          .querySelector('.wizard-mobile-summary-chevron')
+          ?.classList.toggle('is-open', _mobileSummaryExpanded);
+        const d = document.getElementById('mobile-summary-details');
+        if (d) {
+          if (_mobileSummaryExpanded) d.removeAttribute('hidden');
+          else d.setAttribute('hidden', '');
+        }
+      });
   }
 
   /* ─── Package loading ────────────────────────────────────────────────────── */
@@ -764,15 +905,26 @@
           if (!r.ok) throw new Error(`HTTP ${r.status}`);
           const data = await r.json();
           const venues = (data.venues || []).map(v => ({
-            id: v.id, title: v.name, supplierId: v.id, supplierName: v.name,
-            description: v.description_short || '', price: v.price_display || 'POA',
-            image: v.photos?.[0] || null, category: v.category, distance: v.distance, _isVenue: true,
+            id: v.id,
+            title: v.name,
+            supplierId: v.id,
+            supplierName: v.name,
+            description: v.description_short || '',
+            price: v.price_display || 'POA',
+            image: v.photos?.[0] || null,
+            category: v.category,
+            distance: v.distance,
+            _isVenue: true,
           }));
           availablePackages[categoryKey] = venues;
           return venues;
         }
       }
-      const params = new URLSearchParams({ category: categoryKey, eventType: eventType || 'Other', approved: 'true' });
+      const params = new URLSearchParams({
+        category: categoryKey,
+        eventType: eventType || 'Other',
+        approved: 'true',
+      });
       const r = await fetch(`/api/v1/packages/search?${params}`);
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       const data = await r.json();
@@ -804,8 +956,10 @@
     let html = '<div class="wizard-package-grid" role="listbox" aria-label="Available packages">';
     packages.slice(0, 6).forEach(pkg => {
       const isSel = String(pkg.id) === String(selectedId);
-      const dist = typeof pkg.distance === 'number'
-        ? `<p class="small wizard-package-distance">${pkg.distance.toFixed(1)} miles away</p>` : '';
+      const dist =
+        typeof pkg.distance === 'number'
+          ? `<p class="small wizard-package-distance">${pkg.distance.toFixed(1)} miles away</p>`
+          : '';
       html += `
         <div class="wizard-package-card${isSel ? ' selected' : ''}"
              data-package-id="${escapeHtml(String(pkg.id))}" data-category="${escapeHtml(categoryKey)}"
@@ -814,9 +968,11 @@
           <div class="wz-pkg-body">
             <h4>${escapeHtml(pkg.title)}</h4>
             ${dist}
-            ${pkg.price_display || pkg.price
-              ? `<p class="small wz-pkg-price">${escapeHtml(pkg.price_display || pkg.price)}</p>`
-              : '<p class="small wz-pkg-price price-not-set">Price not set</p>'}
+            ${
+              pkg.price_display || pkg.price
+                ? `<p class="small wz-pkg-price">${escapeHtml(pkg.price_display || pkg.price)}</p>`
+                : '<p class="small wz-pkg-price price-not-set">Price not set</p>'
+            }
             ${isSel ? '<div class="wizard-package-selected" aria-label="Selected">✓ Shortlisted</div>' : ''}
           </div>
         </div>`;
@@ -832,11 +988,21 @@
       const pkgId = card.getAttribute('data-package-id');
       const catKey = card.getAttribute('data-category');
       const wasSel = card.classList.contains('selected');
-      cards.forEach(c => { c.classList.remove('selected'); c.setAttribute('aria-selected', 'false'); });
+      cards.forEach(c => {
+        c.classList.remove('selected');
+        c.setAttribute('aria-selected', 'false');
+      });
       if (!wasSel) {
         card.classList.add('selected');
         card.setAttribute('aria-selected', 'true');
-        card.querySelector('.wz-pkg-body') && (card.querySelector('.wizard-package-selected') || card.querySelector('.wz-pkg-body').insertAdjacentHTML('beforeend', '<div class="wizard-package-selected" aria-label="Selected">✓ Shortlisted</div>'));
+        card.querySelector('.wz-pkg-body') &&
+          (card.querySelector('.wizard-package-selected') ||
+            card
+              .querySelector('.wz-pkg-body')
+              .insertAdjacentHTML(
+                'beforeend',
+                '<div class="wizard-package-selected" aria-label="Selected">✓ Shortlisted</div>'
+              ));
         window.WizardState.selectPackage(catKey, pkgId);
       } else {
         card.querySelector('.wizard-package-selected')?.remove();
@@ -846,7 +1012,12 @@
     }
     cards.forEach(card => {
       card.addEventListener('click', () => activate(card));
-      card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); activate(card); } });
+      card.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          activate(card);
+        }
+      });
     });
   }
 
@@ -880,7 +1051,12 @@
           if (!tpl) return;
           applyTemplate(tpl);
         });
-        card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); card.click(); } });
+        card.addEventListener('keydown', e => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            card.click();
+          }
+        });
       });
       return;
     }
@@ -892,9 +1068,15 @@
       const nextBtn = document.querySelector('.wizard-next');
       options.forEach(opt => {
         opt.addEventListener('click', function () {
-          options.forEach(o => { o.classList.remove('selected'); o.setAttribute('aria-pressed', 'false'); });
-          this.classList.add('selected'); this.setAttribute('aria-pressed', 'true');
-          window.WizardState.saveStep(STEP.EVENT_TYPE, { eventType: this.getAttribute('data-value') });
+          options.forEach(o => {
+            o.classList.remove('selected');
+            o.setAttribute('aria-pressed', 'false');
+          });
+          this.classList.add('selected');
+          this.setAttribute('aria-pressed', 'true');
+          window.WizardState.saveStep(STEP.EVENT_TYPE, {
+            eventType: this.getAttribute('data-value'),
+          });
           if (nextBtn) nextBtn.disabled = false;
           renderPlanSummary();
         });
@@ -909,15 +1091,18 @@
           const state = window.WizardState.getState();
           const prios = [...(state.priorities || [])];
           const idx = prios.indexOf(key);
-          if (idx >= 0) prios.splice(idx, 1); else prios.push(key);
+          if (idx >= 0) prios.splice(idx, 1);
+          else prios.push(key);
           this.classList.toggle('wz-chip--selected', idx < 0);
           this.setAttribute('aria-pressed', String(idx < 0));
           window.WizardState.saveStep(STEP.PRIORITIES, { priorities: prios });
           // Update hint text
           const hint = document.querySelector('.wz-chip-hint');
-          if (hint) hint.innerHTML = prios.length > 0
-            ? `<strong>${prios.length} area${prios.length !== 1 ? 's' : ''} selected</strong> — we'll tailor your next steps`
-            : 'Select at least one area, or continue to use our defaults';
+          if (hint)
+            hint.innerHTML =
+              prios.length > 0
+                ? `<strong>${prios.length} area${prios.length !== 1 ? 's' : ''} selected</strong> — we'll tailor your next steps`
+                : 'Select at least one area, or continue to use our defaults';
         });
       });
     }
@@ -930,14 +1115,17 @@
           const state = window.WizardState.getState();
           const styles = [...(state.styles || [])];
           const idx = styles.indexOf(key);
-          if (idx >= 0) styles.splice(idx, 1); else styles.push(key);
+          if (idx >= 0) styles.splice(idx, 1);
+          else styles.push(key);
           this.classList.toggle('wz-chip--selected', idx < 0);
           this.setAttribute('aria-pressed', String(idx < 0));
           window.WizardState.saveStep(STEP.STYLE, { styles });
           const hint = document.querySelector('.wz-chip-hint');
           if (hint) {
             if (styles.length > 0) {
-              const labels = styles.map(k => STYLE_OPTIONS.find(s => s.key === k)?.label || k).join(', ');
+              const labels = styles
+                .map(k => STYLE_OPTIONS.find(s => s.key === k)?.label || k)
+                .join(', ');
               hint.innerHTML = `<strong>${escapeHtml(labels)}</strong>`;
             } else {
               hint.textContent = 'Nothing selected yet — perfectly fine to skip';
@@ -984,8 +1172,16 @@
               </div>`;
             document.getElementById(`retry-pkg-${category.key}`)?.addEventListener('click', () => {
               pkgContainer.setAttribute('aria-busy', 'true');
-              pkgContainer.innerHTML = '<div class="wizard-package-grid">' + [1,2,3].map(()=>'<div class="wizard-skeleton-card"></div>').join('') + '</div>';
-              loadPackagesForCategory(category.key, state.eventType).then(r => r ? renderPackageList(category.key, r) : (pkgContainer.innerHTML = '<p class="small">Still unavailable — you can continue and browse later.</p>'));
+              pkgContainer.innerHTML =
+                '<div class="wizard-package-grid">' +
+                [1, 2, 3].map(() => '<div class="wizard-skeleton-card"></div>').join('') +
+                '</div>';
+              loadPackagesForCategory(category.key, state.eventType).then(r =>
+                r
+                  ? renderPackageList(category.key, r)
+                  : (pkgContainer.innerHTML =
+                      '<p class="small">Still unavailable — you can continue and browse later.</p>')
+              );
             });
           }
         } else {
@@ -1000,7 +1196,11 @@
         link.addEventListener('click', e => {
           e.preventDefault();
           const target = parseInt(link.getAttribute('data-step'), 10);
-          if (!isNaN(target)) { currentStep = target; renderStep(currentStep); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+          if (!isNaN(target)) {
+            currentStep = target;
+            renderStep(currentStep);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }
         });
       });
     }
@@ -1030,8 +1230,14 @@
   function applyTemplate(tpl) {
     window.WizardState.clearState();
     hasShownWelcome = true;
-    const eventTypeMap = { wedding:'Wedding', birthday:'Birthday', corporate:'Corporate', conference:'Corporate', other:'Other' };
-    const et = eventTypeMap[(tpl.eventType||'').toLowerCase()] || 'Other';
+    const eventTypeMap = {
+      wedding: 'Wedding',
+      birthday: 'Birthday',
+      corporate: 'Corporate',
+      conference: 'Corporate',
+      other: 'Other',
+    };
+    const et = eventTypeMap[(tpl.eventType || '').toLowerCase()] || 'Other';
     const budgetLabel = mapBudget(tpl.budget);
 
     window.WizardState.saveStep(STEP.EVENT_TYPE, {
@@ -1077,18 +1283,23 @@
       const state = window.WizardState.getState();
       if (!state.eventType) {
         const group = document.querySelector('.wizard-options');
-        if (group) { group.classList.add('wizard-shake'); group.addEventListener('animationend', () => group.classList.remove('wizard-shake'), { once: true }); }
+        if (group) {
+          group.classList.add('wizard-shake');
+          group.addEventListener('animationend', () => group.classList.remove('wizard-shake'), {
+            once: true,
+          });
+        }
         return;
       }
     }
 
     if (currentStep === STEP.EVENT_BASICS) {
-      const name     = document.getElementById('wz-name')?.value.trim() || '';
-      const date     = document.getElementById('wz-date')?.value || '';
+      const name = document.getElementById('wz-name')?.value.trim() || '';
+      const date = document.getElementById('wz-date')?.value || '';
       const location = document.getElementById('wz-location')?.value.trim() || '';
       const guestsRaw = document.getElementById('wz-guests')?.value || '';
-      const budget   = document.getElementById('wz-budget')?.value || '';
-      const stage    = document.getElementById('wz-stage')?.value || '';
+      const budget = document.getElementById('wz-budget')?.value || '';
+      const stage = document.getElementById('wz-stage')?.value || '';
 
       // Friendly validation — only for clearly invalid values, not missing optional fields
       const guestsField = document.getElementById('wz-guests');
@@ -1098,7 +1309,11 @@
           const hint = guestsField.closest('.form-row')?.querySelector('.helper-text');
           if (hint) hint.textContent = 'Please enter a whole number greater than 0';
           guestsField.classList.add('wizard-shake');
-          guestsField.addEventListener('animationend', () => guestsField.classList.remove('wizard-shake'), { once: true });
+          guestsField.addEventListener(
+            'animationend',
+            () => guestsField.classList.remove('wizard-shake'),
+            { once: true }
+          );
           guestsField.focus();
         }
         return;
@@ -1107,9 +1322,12 @@
       if (guestsField) guestsField.closest('.form-row')?.classList.remove('error');
 
       window.WizardState.saveStep(currentStep, {
-        eventName: name, date, location,
-        guests: guestsRaw ? (parseInt(guestsRaw, 10) || null) : null,
-        budget, planningStage: stage,
+        eventName: name,
+        date,
+        location,
+        guests: guestsRaw ? parseInt(guestsRaw, 10) || null : null,
+        budget,
+        planningStage: stage,
       });
     }
 
@@ -1122,12 +1340,12 @@
 
   function handleSkip() {
     if (currentStep === STEP.EVENT_BASICS) {
-      const name     = document.getElementById('wz-name')?.value.trim() || '';
-      const date     = document.getElementById('wz-date')?.value || '';
+      const name = document.getElementById('wz-name')?.value.trim() || '';
+      const date = document.getElementById('wz-date')?.value || '';
       const location = document.getElementById('wz-location')?.value.trim() || '';
       const guestsRaw = document.getElementById('wz-guests')?.value || '';
-      const budget   = document.getElementById('wz-budget')?.value || '';
-      const stage    = document.getElementById('wz-stage')?.value || '';
+      const budget = document.getElementById('wz-budget')?.value || '';
+      const stage = document.getElementById('wz-stage')?.value || '';
 
       // Friendly validation — only for clearly invalid values, not missing optional fields
       const guestsField = document.getElementById('wz-guests');
@@ -1137,7 +1355,11 @@
           const hint = guestsField.closest('.form-row')?.querySelector('.helper-text');
           if (hint) hint.textContent = 'Please enter a whole number greater than 0';
           guestsField.classList.add('wizard-shake');
-          guestsField.addEventListener('animationend', () => guestsField.classList.remove('wizard-shake'), { once: true });
+          guestsField.addEventListener(
+            'animationend',
+            () => guestsField.classList.remove('wizard-shake'),
+            { once: true }
+          );
           guestsField.focus();
         }
         return;
@@ -1146,9 +1368,12 @@
       if (guestsField) guestsField.closest('.form-row')?.classList.remove('error');
 
       window.WizardState.saveStep(currentStep, {
-        eventName: name, date, location,
-        guests: guestsRaw ? (parseInt(guestsRaw, 10) || null) : null,
-        budget, planningStage: stage,
+        eventName: name,
+        date,
+        location,
+        guests: guestsRaw ? parseInt(guestsRaw, 10) || null : null,
+        budget,
+        planningStage: stage,
       });
     }
     currentStep = Math.min(currentStep + 1, getReviewStep());
@@ -1188,22 +1413,31 @@
     try {
       let isLoggedIn = false;
       let user = null;
-      if (window.AuthStateManager?.getUser) { user = window.AuthStateManager.getUser(); isLoggedIn = !!user; }
+      if (window.AuthStateManager?.getUser) {
+        user = window.AuthStateManager.getUser();
+        isLoggedIn = !!user;
+      }
       if (!isLoggedIn) {
         const r = await fetch('/api/v1/auth/me', { credentials: 'include' });
-        if (r.ok) { isLoggedIn = true; user = (await r.json()).user || {}; }
+        if (r.ok) {
+          isLoggedIn = true;
+          user = (await r.json()).user || {};
+        }
       }
 
       const planData = window.WizardState.exportForPlanCreation();
       const state = window.WizardState.getState();
       // Enrich plan data with new fields
       planData.planningStage = state.planningStage || null;
-      if ((state.priorities||[]).length || (state.styles||[]).length) {
+      if ((state.priorities || []).length || (state.styles || []).length) {
         planData.notes = [
           planData.notes || '',
-          (state.priorities||[]).length ? `Priorities: ${state.priorities.join(', ')}` : '',
-          (state.styles||[]).length ? `Style: ${state.styles.join(', ')}` : '',
-        ].filter(Boolean).join('\n').trim();
+          (state.priorities || []).length ? `Priorities: ${state.priorities.join(', ')}` : '',
+          (state.styles || []).length ? `Style: ${state.styles.join(', ')}` : '',
+        ]
+          .filter(Boolean)
+          .join('\n')
+          .trim();
       }
 
       if (!isLoggedIn) {
@@ -1218,8 +1452,12 @@
       }
 
       const saveResult = await savePlanToBackend(planData);
-      if (saveResult?.status === 401) { location.href = `/auth?returnTo=${encodeURIComponent('/start?restore=true')}`; return; }
-      savedPlanId = saveResult?.plan?.id || saveResult?.plan?._id || saveResult?._id || saveResult?.id || null;
+      if (saveResult?.status === 401) {
+        location.href = `/auth?returnTo=${encodeURIComponent('/start?restore=true')}`;
+        return;
+      }
+      savedPlanId =
+        saveResult?.plan?.id || saveResult?.plan?._id || saveResult?._id || saveResult?.id || null;
 
       window.WizardState.markCompleted();
       _wizardCompleted = true;
@@ -1229,11 +1467,18 @@
       window.scrollTo({ top: 0, behavior: 'smooth' });
       setTimeout(() => {
         window.WizardState.clearState();
-        ['eventflow_wizard_pending','eventflow_wizard_timestamp'].forEach(k => { try { localStorage.removeItem(k); } catch(_) { /* localStorage may be unavailable. */ } });
+        ['eventflow_wizard_pending', 'eventflow_wizard_timestamp'].forEach(k => {
+          try {
+            localStorage.removeItem(k);
+          } catch (_) {
+            /* localStorage may be unavailable. */
+          }
+        });
       }, 3000);
     } catch (err) {
       console.error('Error saving plan:', err);
-      if (window.showNotification) window.showNotification(err.message || 'Failed to save plan. Please try again.', 'error');
+      if (window.showNotification)
+        window.showNotification(err.message || 'Failed to save plan. Please try again.', 'error');
       else alert('There was an error saving your plan. Please try again.');
       btn.disabled = false;
       btn.textContent = 'Save my plan';
@@ -1249,7 +1494,10 @@
       body: JSON.stringify(planData),
     });
     if (r.status === 401) return { status: 401 };
-    if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.message || e.error || 'Failed to save plan'); }
+    if (!r.ok) {
+      const e = await r.json().catch(() => ({}));
+      throw new Error(e.message || e.error || 'Failed to save plan');
+    }
     return r.json();
   }
 
@@ -1260,7 +1508,10 @@
     if (cookie) return cookie[1];
     try {
       const r = await fetch('/api/v1/csrf-token', { credentials: 'include' });
-      if (r.ok) { const d = await r.json(); return d.csrfToken || ''; }
+      if (r.ok) {
+        const d = await r.json();
+        return d.csrfToken || '';
+      }
     } catch (_) {
       // CSRF fallback is best-effort; callers can continue without a token.
     }
@@ -1277,23 +1528,39 @@
       const ts = localStorage.getItem('eventflow_wizard_timestamp');
       if (!pending || !ts) return;
       if (Date.now() - parseInt(ts, 10) > WIZARD_DATA_EXPIRY_MS) {
-        ['eventflow_wizard_pending','eventflow_wizard_timestamp'].forEach(k => localStorage.removeItem(k));
+        ['eventflow_wizard_pending', 'eventflow_wizard_timestamp'].forEach(k =>
+          localStorage.removeItem(k)
+        );
         return;
       }
       const planData = JSON.parse(pending);
       const attempt = retriesLeft => {
         const user = window.AuthStateManager?.getUser?.();
         if (user) {
-          savePlanToBackend(planData).then(result => {
-            if (result?.status === 401 && retriesLeft > 0) { setTimeout(() => attempt(retriesLeft - 1), 500); return; }
-            ['eventflow_wizard_pending','eventflow_wizard_timestamp'].forEach(k => localStorage.removeItem(k));
-            window.showNotification?.('Your event plan has been saved!', 'success');
-            setTimeout(() => { location.href = '/dashboard/customer'; }, 1500);
-          }).catch(err => {
-            console.error('Failed to save restored plan:', err);
-            ['eventflow_wizard_pending','eventflow_wizard_timestamp'].forEach(k => localStorage.removeItem(k));
-            window.showNotification?.(err.message || 'Your plan could not be saved. Please try again.', 'error');
-          });
+          savePlanToBackend(planData)
+            .then(result => {
+              if (result?.status === 401 && retriesLeft > 0) {
+                setTimeout(() => attempt(retriesLeft - 1), 500);
+                return;
+              }
+              ['eventflow_wizard_pending', 'eventflow_wizard_timestamp'].forEach(k =>
+                localStorage.removeItem(k)
+              );
+              window.showNotification?.('Your event plan has been saved!', 'success');
+              setTimeout(() => {
+                location.href = '/dashboard/customer';
+              }, 1500);
+            })
+            .catch(err => {
+              console.error('Failed to save restored plan:', err);
+              ['eventflow_wizard_pending', 'eventflow_wizard_timestamp'].forEach(k =>
+                localStorage.removeItem(k)
+              );
+              window.showNotification?.(
+                err.message || 'Your plan could not be saved. Please try again.',
+                'error'
+              );
+            });
         } else if (retriesLeft > 0) {
           setTimeout(() => attempt(retriesLeft - 1), 500);
         }
@@ -1301,7 +1568,13 @@
       attempt(3);
     } catch (e) {
       console.error('Failed to restore wizard state:', e);
-      ['eventflow_wizard_pending','eventflow_wizard_timestamp'].forEach(k => { try { localStorage.removeItem(k); } catch(_) { /* localStorage may be unavailable. */ } });
+      ['eventflow_wizard_pending', 'eventflow_wizard_timestamp'].forEach(k => {
+        try {
+          localStorage.removeItem(k);
+        } catch (_) {
+          /* localStorage may be unavailable. */
+        }
+      });
     }
   }
 
@@ -1309,11 +1582,21 @@
 
   function hasFormData() {
     const s = window.WizardState.getState();
-    return !!(s.eventType || s.eventName || s.location || s.date || s.guests || s.budget ||
-      (s.priorities||[]).length || Object.keys(s.selectedPackages||{}).length);
+    return !!(
+      s.eventType ||
+      s.eventName ||
+      s.location ||
+      s.date ||
+      s.guests ||
+      s.budget ||
+      (s.priorities || []).length ||
+      Object.keys(s.selectedPackages || {}).length
+    );
   }
 
-  function handleAutosave() { showAutosaveIndicator(); }
+  function handleAutosave() {
+    showAutosaveIndicator();
+  }
 
   function showAutosaveIndicator() {
     const s = document.getElementById('plan-summary');
@@ -1322,27 +1605,36 @@
     if (!ind) {
       ind = document.createElement('div');
       ind.className = 'wizard-autosave';
-      ind.innerHTML = '<span class="wizard-autosave-icon">✓</span><span class="wizard-autosave-text">Progress saved</span>';
+      ind.innerHTML =
+        '<span class="wizard-autosave-icon">✓</span><span class="wizard-autosave-text">Progress saved</span>';
       s.appendChild(ind);
     }
     ind.style.display = 'flex';
-    setTimeout(() => { ind.style.display = 'none'; }, 3000);
+    setTimeout(() => {
+      ind.style.display = 'none';
+    }, 3000);
   }
 
   function setupBeforeUnload() {
     _beforeunloadHandler = e => {
-      if (!_wizardCompleted && hasFormData()) { e.preventDefault(); e.returnValue = ''; }
+      if (!_wizardCompleted && hasFormData()) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
     };
     window.addEventListener('beforeunload', _beforeunloadHandler);
   }
 
   function removeBeforeUnload() {
-    if (_beforeunloadHandler) { window.removeEventListener('beforeunload', _beforeunloadHandler); _beforeunloadHandler = null; }
+    if (_beforeunloadHandler) {
+      window.removeEventListener('beforeunload', _beforeunloadHandler);
+      _beforeunloadHandler = null;
+    }
   }
 
   function triggerCelebration() {
     if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
-    const colors = ['#0B8073','#13B6A2','#10b981','#34d399'];
+    const colors = ['#0B8073', '#13B6A2', '#10b981', '#34d399'];
     let cc = document.getElementById('wizard-confetti-container');
     if (!cc) {
       cc = document.createElement('div');
@@ -1355,10 +1647,17 @@
       setTimeout(() => {
         const c = document.createElement('div');
         c.className = 'wizard-confetti';
-        c.style.cssText = `left:${Math.random()*100}%;background:${colors[Math.floor(Math.random()*colors.length)]};animation-delay:${Math.random()*0.3}s;animation-duration:${Math.random()*2+2}s`;
+        c.style.cssText = `left:${Math.random() * 100}%;background:${colors[Math.floor(Math.random() * colors.length)]};animation-delay:${Math.random() * 0.3}s;animation-duration:${Math.random() * 2 + 2}s`;
         cc.appendChild(c);
         const t = setTimeout(() => c.parentNode && c.remove(), 5000);
-        c.addEventListener('animationend', () => { clearTimeout(t); c.parentNode && c.remove(); }, { once: true });
+        c.addEventListener(
+          'animationend',
+          () => {
+            clearTimeout(t);
+            c.parentNode && c.remove();
+          },
+          { once: true }
+        );
       }, i * 50);
     }
   }
@@ -1367,5 +1666,4 @@
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
-
 })();

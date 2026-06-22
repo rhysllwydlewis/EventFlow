@@ -494,7 +494,8 @@
   async function provisionMissingProfile(userId) {
     const ok = await AdminShared.showConfirmModal({
       title: 'Create supplier profile?',
-      message: 'This will create a blank supplier profile for this user. They can customise it from their dashboard.',
+      message:
+        'This will create a blank supplier profile for this user. They can customise it from their dashboard.',
       confirmText: 'Create profile',
       type: 'warning',
     });
@@ -514,7 +515,8 @@
   async function bulkProvisionProfiles() {
     const ok = await AdminShared.showConfirmModal({
       title: 'Fix all missing supplier profiles?',
-      message: 'This will create blank supplier profiles for every supplier account that is missing one. Safe to run multiple times.',
+      message:
+        'This will create blank supplier profiles for every supplier account that is missing one. Safe to run multiple times.',
       confirmText: 'Fix all',
       type: 'warning',
     });

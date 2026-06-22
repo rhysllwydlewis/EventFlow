@@ -21,22 +21,46 @@
   // ── Hero preset definitions ──────────────────────────────────────────────
 
   const HERO_PRESETS = [
-    { id: 'ef-teal',   label: 'EventFlow',  gradient: 'linear-gradient(135deg,#0B8073 0%,#13B6A2 100%)' },
-    { id: 'midnight',  label: 'Midnight',   gradient: 'linear-gradient(135deg,#1a1a2e 0%,#0f3460 100%)' },
-    { id: 'rose-gold', label: 'Rose Gold',  gradient: 'linear-gradient(135deg,#b76e79 0%,#f9c8c8 100%)' },
-    { id: 'forest',    label: 'Forest',     gradient: 'linear-gradient(135deg,#1b4332 0%,#40916c 100%)' },
-    { id: 'ocean',     label: 'Ocean',      gradient: 'linear-gradient(135deg,#03045e 0%,#00b4d8 100%)' },
-    { id: 'sunset',    label: 'Sunset',     gradient: 'linear-gradient(135deg,#f77f00 0%,#d62828 100%)' },
-    { id: 'purple',    label: 'Purple',     gradient: 'linear-gradient(135deg,#3d0066 0%,#a855f7 100%)' },
-    { id: 'charcoal',  label: 'Charcoal',   gradient: 'linear-gradient(135deg,#1a1a1a 0%,#4a5568 100%)' },
-    { id: 'blush',     label: 'Blush',      gradient: 'linear-gradient(135deg,#c2185b 0%,#ff80ab 100%)' },
-    { id: 'champagne', label: 'Champagne',  gradient: 'linear-gradient(135deg,#9c7c38 0%,#e8d5a3 100%)' },
+    {
+      id: 'ef-teal',
+      label: 'EventFlow',
+      gradient: 'linear-gradient(135deg,#0B8073 0%,#13B6A2 100%)',
+    },
+    {
+      id: 'midnight',
+      label: 'Midnight',
+      gradient: 'linear-gradient(135deg,#1a1a2e 0%,#0f3460 100%)',
+    },
+    {
+      id: 'rose-gold',
+      label: 'Rose Gold',
+      gradient: 'linear-gradient(135deg,#b76e79 0%,#f9c8c8 100%)',
+    },
+    { id: 'forest', label: 'Forest', gradient: 'linear-gradient(135deg,#1b4332 0%,#40916c 100%)' },
+    { id: 'ocean', label: 'Ocean', gradient: 'linear-gradient(135deg,#03045e 0%,#00b4d8 100%)' },
+    { id: 'sunset', label: 'Sunset', gradient: 'linear-gradient(135deg,#f77f00 0%,#d62828 100%)' },
+    { id: 'purple', label: 'Purple', gradient: 'linear-gradient(135deg,#3d0066 0%,#a855f7 100%)' },
+    {
+      id: 'charcoal',
+      label: 'Charcoal',
+      gradient: 'linear-gradient(135deg,#1a1a1a 0%,#4a5568 100%)',
+    },
+    { id: 'blush', label: 'Blush', gradient: 'linear-gradient(135deg,#c2185b 0%,#ff80ab 100%)' },
+    {
+      id: 'champagne',
+      label: 'Champagne',
+      gradient: 'linear-gradient(135deg,#9c7c38 0%,#e8d5a3 100%)',
+    },
   ];
 
   // ── Utilities ────────────────────────────────────────────────────────────
 
   const esc = str =>
-    String(str ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    String(str ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
 
   function pencilSvg() {
     return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
@@ -111,10 +135,19 @@
 
     overlay.querySelector('.sp-modal__close').addEventListener('click', closeModal);
     overlay.querySelector('.js-modal-cancel').addEventListener('click', closeModal);
-    overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
-    document.addEventListener('keydown', function onKey(e) {
-      if (e.key === 'Escape') { closeModal(); document.removeEventListener('keydown', onKey); }
-    }, { once: true });
+    overlay.addEventListener('click', e => {
+      if (e.target === overlay) closeModal();
+    });
+    document.addEventListener(
+      'keydown',
+      function onKey(e) {
+        if (e.key === 'Escape') {
+          closeModal();
+          document.removeEventListener('keydown', onKey);
+        }
+      },
+      { once: true }
+    );
 
     document.body.appendChild(overlay);
 
@@ -198,9 +231,10 @@
     const supplier = window.__supplierData || {};
     const currentPreset = supplier.heroPreset || 'ef-teal';
     const currentBanner = supplier.bannerUrl || '';
-    const currentColor  = supplier.themeColor || '#0B8073';
+    const currentColor = supplier.themeColor || '#0B8073';
 
-    const swatches = HERO_PRESETS.map(p => `
+    const swatches = HERO_PRESETS.map(
+      p => `
       <button
         class="sp-preset-swatch${currentPreset === p.id && !currentBanner ? ' is-selected' : ''}"
         data-preset="${esc(p.id)}"
@@ -212,7 +246,8 @@
         <span class="sp-preset-swatch__check">${checkSvg()}</span>
         <span class="sp-preset-swatch__label">${esc(p.label)}</span>
       </button>
-    `).join('');
+    `
+    ).join('');
 
     const bodyHtml = `
       <p class="sp-preset-section-label">Choose a theme</p>
@@ -262,7 +297,7 @@
     });
 
     // Swatch selection
-    let selectedPreset = currentBanner ? null : (currentPreset || 'ef-teal');
+    let selectedPreset = currentBanner ? null : currentPreset || 'ef-teal';
     const grid = overlay.querySelector('#spPresetGrid');
     grid.querySelectorAll('.sp-preset-swatch').forEach(sw => {
       sw.addEventListener('click', () => {
@@ -271,7 +306,10 @@
         const bannerInput = overlay.querySelector('#spBannerUrl');
         if (bannerInput) bannerInput.value = '';
         const preview = overlay.querySelector('#spBannerPreview');
-        if (preview) { preview.classList.remove('has-image'); preview.innerHTML = ''; }
+        if (preview) {
+          preview.classList.remove('has-image');
+          preview.innerHTML = '';
+        }
         grid.querySelectorAll('.sp-preset-swatch').forEach(s => s.classList.remove('is-selected'));
         sw.classList.add('is-selected');
       });
@@ -279,7 +317,7 @@
 
     // Colour picker sync
     const colorInput = overlay.querySelector('#spThemeColor');
-    const hexInput   = overlay.querySelector('#spThemeColorHex');
+    const hexInput = overlay.querySelector('#spThemeColorHex');
 
     colorInput.addEventListener('input', () => {
       hexInput.value = colorInput.value;
@@ -294,9 +332,9 @@
     });
 
     // Banner URL preview
-    const bannerInput   = overlay.querySelector('#spBannerUrl');
+    const bannerInput = overlay.querySelector('#spBannerUrl');
     const bannerPreview = overlay.querySelector('#spBannerPreview');
-    const bannerRemove  = overlay.querySelector('#spBannerRemove');
+    const bannerRemove = overlay.querySelector('#spBannerRemove');
 
     let bannerPreviewTimer;
     bannerInput.addEventListener('input', () => {
@@ -305,7 +343,9 @@
         const url = bannerInput.value.trim();
         if (url) {
           selectedPreset = null;
-          grid.querySelectorAll('.sp-preset-swatch').forEach(s => s.classList.remove('is-selected'));
+          grid
+            .querySelectorAll('.sp-preset-swatch')
+            .forEach(s => s.classList.remove('is-selected'));
           bannerPreview.innerHTML = `<img src="${esc(url)}" alt="Banner preview" id="spBannerImg"><button class="sp-banner-preview__remove" id="spBannerRemove" title="Remove" type="button">✕</button>`;
           bannerPreview.classList.add('has-image');
           // Re-wire remove btn after innerHTML replacement
@@ -322,7 +362,9 @@
       bannerPreview.classList.remove('has-image');
       bannerPreview.innerHTML = '';
       // Re-select the current preset
-      const firstSwatch = grid.querySelector(`[data-preset="${esc(currentPreset)}"]`) || grid.querySelector('.sp-preset-swatch');
+      const firstSwatch =
+        grid.querySelector(`[data-preset="${esc(currentPreset)}"]`) ||
+        grid.querySelector('.sp-preset-swatch');
       if (firstSwatch) {
         firstSwatch.classList.add('is-selected');
         selectedPreset = firstSwatch.dataset.preset;
@@ -349,13 +391,13 @@
 
         if (newBanner) {
           patch.bannerUrl = newBanner;
-          patch.heroPreset = '';  // custom image — no preset
+          patch.heroPreset = ''; // custom image — no preset
         } else {
           patch.bannerUrl = '';
           // null means custom colour was chosen (colour picker used), so clear the
           // preset so the renderer falls back to themeColor. Otherwise use the
           // selected preset, defaulting to 'ef-teal' only when nothing was changed.
-          patch.heroPreset = selectedPreset !== null ? (selectedPreset || 'ef-teal') : '';
+          patch.heroPreset = selectedPreset !== null ? selectedPreset || 'ef-teal' : '';
         }
 
         if (/^#[0-9A-Fa-f]{6}$/.test(newColor)) patch.themeColor = newColor;
@@ -396,7 +438,11 @@
 
     // Empty state prompt if no description
     const supplier = window.__supplierData || {};
-    const hasContent = !!(supplier.description_long || supplier.description_short || supplier.description);
+    const hasContent = !!(
+      supplier.description_long ||
+      supplier.description_short ||
+      supplier.description
+    );
     if (!hasContent) {
       injectEmptyPrompt(section, {
         icon: '✍️',
@@ -445,7 +491,10 @@
     });
 
     // Char counts
-    [['#spDescLong', '#spDescLongCount', 5000], ['#spDescShort', '#spDescShortCount', 300]].forEach(([inp, cnt, max]) => {
+    [
+      ['#spDescLong', '#spDescLongCount', 5000],
+      ['#spDescShort', '#spDescShortCount', 300],
+    ].forEach(([inp, cnt, max]) => {
       const input = overlay.querySelector(inp);
       const count = overlay.querySelector(cnt);
       if (input && count) {
@@ -459,12 +508,12 @@
       setSaving(overlay, true);
       try {
         const patch = {
-          description_long:  overlay.querySelector('#spDescLong').value.trim(),
+          description_long: overlay.querySelector('#spDescLong').value.trim(),
           description_short: overlay.querySelector('#spDescShort').value.trim(),
-          website:           overlay.querySelector('#spWebsite').value.trim(),
-          phone:             overlay.querySelector('#spPhone').value.trim(),
-          location:          overlay.querySelector('#spLocation').value.trim(),
-          price_display:     overlay.querySelector('#spPriceDisplay').value.trim(),
+          website: overlay.querySelector('#spWebsite').value.trim(),
+          phone: overlay.querySelector('#spPhone').value.trim(),
+          location: overlay.querySelector('#spLocation').value.trim(),
+          price_display: overlay.querySelector('#spPriceDisplay').value.trim(),
         };
         await patchSupplier(supplierId, patch);
         mergeData(patch);
@@ -510,7 +559,9 @@
         title: 'Show off your work',
         text: 'Upload photos to your gallery to attract more customers.',
         cta: 'Upload photos',
-        onClick: () => { window.location.href = '/dashboard-supplier#photos'; },
+        onClick: () => {
+          window.location.href = '/dashboard-supplier#photos';
+        },
       });
     }
   }
@@ -553,7 +604,9 @@
       title: 'Create your first package',
       text: 'Add service packages with pricing to appear in search results and on your profile.',
       cta: 'Add a package',
-      onClick: () => { window.location.href = '/dashboard-supplier#packages'; },
+      onClick: () => {
+        window.location.href = '/dashboard-supplier#packages';
+      },
     });
     section.replaceWith(wrapper);
     window.__spPackagesEmptyInjected = wrapper;
@@ -567,7 +620,8 @@
 
     const btn = document.createElement('button');
     btn.className = 'sp-hero-edit-btn sp-name-edit-btn';
-    btn.style.cssText = 'top:auto;right:auto;position:relative;margin-left:10px;display:inline-flex;vertical-align:middle;font-size:0.75rem;padding:4px 10px 4px 8px;';
+    btn.style.cssText =
+      'top:auto;right:auto;position:relative;margin-left:10px;display:inline-flex;vertical-align:middle;font-size:0.75rem;padding:4px 10px 4px 8px;';
     btn.setAttribute('aria-label', 'Edit business name');
     btn.innerHTML = `${pencilSvg()} Name`;
     btn.addEventListener('click', e => {
@@ -597,13 +651,16 @@
       bodyHtml,
     });
 
-    overlay.querySelector('#spBizName').addEventListener('input', function() {
+    overlay.querySelector('#spBizName').addEventListener('input', function () {
       overlay.querySelector('#spBizNameCount').textContent = `${this.value.length}/120`;
     });
 
     overlay.querySelector('.js-modal-save').addEventListener('click', async () => {
       const name = overlay.querySelector('#spBizName').value.trim();
-      if (!name) { showToast('Business name cannot be empty', 'error'); return; }
+      if (!name) {
+        showToast('Business name cannot be empty', 'error');
+        return;
+      }
       setSaving(overlay, true);
       try {
         const patch = {
@@ -683,7 +740,9 @@
         const data = await resp.json();
         currentUser = data && data.user;
       }
-    } catch (_) { /* not logged in */ }
+    } catch (_) {
+      /* not logged in */
+    }
 
     // Only activate for the profile owner
     if (!currentUser || !supplier || currentUser.id !== supplier.ownerUserId) return;

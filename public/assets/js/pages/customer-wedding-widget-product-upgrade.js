@@ -4,14 +4,16 @@
   let queued = false;
 
   const esc = value =>
-    String(value || '').replace(/[&<>"']/g, ch =>
-      ({
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;',
-        "'": '&#39;',
-      })[ch]
+    String(value || '').replace(
+      /[&<>"']/g,
+      ch =>
+        ({
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#39;',
+        })[ch]
     );
 
   const cssEscape = value => {
@@ -334,7 +336,9 @@
       { label: 'RSVPs', done: state.expected === 0 ? false : state.responses >= state.expected },
       {
         label: 'Seating',
-        done: state.guests > 0 && state.seated >= Math.min(state.guests, state.expected || state.guests),
+        done:
+          state.guests > 0 &&
+          state.seated >= Math.min(state.guests, state.expected || state.guests),
       },
     ];
   }
@@ -419,7 +423,9 @@
         <h4>${done}/${items.length} complete</h4>
         <div class="ww-progress-track" aria-label="Wedding widget setup ${percent}% complete"><span style="width:${percent}%"></span></div>
         <ul class="ww-progress-list">${items
-          .map(item => `<li data-done="${item.done}">${item.done ? '✓' : '○'} ${esc(item.label)}</li>`)
+          .map(
+            item => `<li data-done="${item.done}">${item.done ? '✓' : '○'} ${esc(item.label)}</li>`
+          )
           .join('')}</ul>
       </section>`;
     panel.prepend(command);
@@ -535,14 +541,16 @@
     const tableCount = summary.match(/Tables:\s*(\d+)/i)?.[1] || '0';
     const seated = summary.match(/Seated:\s*(\d+)/i)?.[1] || '0';
     const unseated = summary.match(/Unseated:\s*(\d+)/i)?.[1] || '0';
-    panel.querySelector('.ww-actions')?.insertAdjacentHTML(
-      'afterend',
-      `<section class="ww-seating-command"><span class="ww-product-kicker">Planner command bar</span><h4>Keep tables balanced and guest needs visible</h4><div class="ww-seating-command__chips"><span>${esc(
-        tableCount
-      )} tables</span><span>${esc(seated)} seated</span><span>${esc(
-        unseated
-      )} unseated</span></div><p class="small">Use table capacity, dietary/access notes and the unseated list to quickly spot anything that needs attention.</p></section>`
-    );
+    panel
+      .querySelector('.ww-actions')
+      ?.insertAdjacentHTML(
+        'afterend',
+        `<section class="ww-seating-command"><span class="ww-product-kicker">Planner command bar</span><h4>Keep tables balanced and guest needs visible</h4><div class="ww-seating-command__chips"><span>${esc(
+          tableCount
+        )} tables</span><span>${esc(seated)} seated</span><span>${esc(
+          unseated
+        )} unseated</span></div><p class="small">Use table capacity, dietary/access notes and the unseated list to quickly spot anything that needs attention.</p></section>`
+      );
   }
 
   function enhanceShare(dialog) {
@@ -552,7 +560,10 @@
       return;
     }
 
-    const url = pane.querySelector('input[readonly]')?.value || pane.querySelector('.ww-link-preview')?.textContent || '';
+    const url =
+      pane.querySelector('input[readonly]')?.value ||
+      pane.querySelector('.ww-link-preview')?.textContent ||
+      '';
     const section = document.createElement('section');
     section.className = 'ww-share-publishing-centre';
     section.innerHTML = `<div><span class="ww-product-kicker">Publishing centre</span><h4>Share the right link with confidence</h4><p>${
@@ -632,7 +643,11 @@
       if (!(node instanceof Element)) {
         return false;
       }
-      if (node.closest?.('.ww-product-command,.ww-share-publishing-centre,.ww-guest-card-list,.ww-seating-command')) {
+      if (
+        node.closest?.(
+          '.ww-product-command,.ww-share-publishing-centre,.ww-guest-card-list,.ww-seating-command'
+        )
+      ) {
         return false;
       }
       return (
@@ -652,7 +667,10 @@
   document.addEventListener(
     'click',
     event => {
-      if (event.target instanceof Element && event.target.closest('.ww-app-tabs button,[data-tab]')) {
+      if (
+        event.target instanceof Element &&
+        event.target.closest('.ww-app-tabs button,[data-tab]')
+      ) {
         [0, 250, 900].forEach(delay => window.setTimeout(schedule, delay));
       }
     },

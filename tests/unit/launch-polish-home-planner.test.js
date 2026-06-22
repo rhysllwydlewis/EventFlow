@@ -5,13 +5,13 @@
  * Quick smoke tests; proportionate to the small scope of the PR.
  */
 
-const fs   = require('fs');
+const fs = require('fs');
 const path = require('path');
 
 const PUBLIC = path.resolve(__dirname, '../../public');
 const JS_DIR = path.resolve(__dirname, '../../public/assets/js');
 
-const read   = f => fs.readFileSync(path.join(PUBLIC, f), 'utf8');
+const read = f => fs.readFileSync(path.join(PUBLIC, f), 'utf8');
 const readJs = f => fs.readFileSync(path.join(JS_DIR, f), 'utf8');
 
 // ─── Item 1: Homepage credibility ─────────────────────────────────────────

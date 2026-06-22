@@ -133,7 +133,9 @@ async function calculateRealBudget(plans) {
   if (packageIds.length > 0) {
     try {
       // Deduplicate IDs before fetching to avoid redundant work
-      const uniquePackageIds = [...new Set(packageIds.filter(id => typeof id === 'string' && id.trim()))];
+      const uniquePackageIds = [
+        ...new Set(packageIds.filter(id => typeof id === 'string' && id.trim())),
+      ];
 
       // Use bulk endpoint to fetch all packages in a single request (avoids N+1 problem)
       const MAX_BULK = 50;
@@ -294,9 +296,13 @@ async function initCustomerDashboardWidgets(preloadedPlans) {
         try {
           localStorage.setItem(
             'eventflow_saved_suppliers',
-            JSON.stringify(savedSuppliers.map(i => i.supplierId || i.id || i.itemId).filter(Boolean))
+            JSON.stringify(
+              savedSuppliers.map(i => i.supplierId || i.id || i.itemId).filter(Boolean)
+            )
           );
-        } catch (_) { /* ignore */ }
+        } catch (_) {
+          /* ignore */
+        }
       } else {
         savedSuppliers = JSON.parse(localStorage.getItem('eventflow_saved_suppliers') || '[]');
       }
@@ -304,7 +310,9 @@ async function initCustomerDashboardWidgets(preloadedPlans) {
       console.error('Error reading saved suppliers:', err);
       try {
         savedSuppliers = JSON.parse(localStorage.getItem('eventflow_saved_suppliers') || '[]');
-      } catch (_) { /* ignore */ }
+      } catch (_) {
+        /* ignore */
+      }
     }
 
     // Count messages/conversations — start at 0; the stats widget will be updated

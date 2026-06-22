@@ -121,9 +121,7 @@ function applyProtectedPageGuard(path, isAuthenticated) {
   ];
 
   const normalised = path.replace(/\.html$/, '');
-  const isProtected = protectedPaths.some(
-    p => normalised === p || normalised.startsWith(`${p}/`)
-  );
+  const isProtected = protectedPaths.some(p => normalised === p || normalised.startsWith(`${p}/`));
 
   if (!isProtected) {
     return { action: 'pass' }; // public page, no guard
@@ -179,7 +177,15 @@ describe('Server-side protected page guard', () => {
   });
 
   describe('public pages are not blocked', () => {
-    const trulyPublicPages = ['/', '/auth', '/legal', '/privacy', '/suppliers', '/marketplace', '/budget'];
+    const trulyPublicPages = [
+      '/',
+      '/auth',
+      '/legal',
+      '/privacy',
+      '/suppliers',
+      '/marketplace',
+      '/budget',
+    ];
 
     trulyPublicPages.forEach(page => {
       it(`allows unauthenticated request to public page ${page}`, () => {

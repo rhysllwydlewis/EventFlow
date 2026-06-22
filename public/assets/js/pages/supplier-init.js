@@ -4,10 +4,7 @@
     const supplierId = params.get('id');
     const isPreview = params.get('preview') === 'true';
     const DATA_IMAGE_RE = /^data:image\/(png|jpe?g|webp|gif);base64,[a-z0-9+/]+={0,2}$/i;
-    const CONTACT_SUPPLIER_PATHS = new Set([
-      '/api/v1/contact-supplier',
-      '/api/contact-supplier',
-    ]);
+    const CONTACT_SUPPLIER_PATHS = new Set(['/api/v1/contact-supplier', '/api/contact-supplier']);
     const ALTCHA_SCRIPT_SRC = '/assets/js/vendor/altcha.min.js';
     const ALTCHA_CHALLENGE_URL = '/api/v1/altcha/challenge';
     let supplierContactCaptchaPayload = null;
@@ -215,7 +212,8 @@
       container.id = 'supplier-altcha-container';
       container.className = 'altcha-container';
       container.style.margin = '0 0 16px 0';
-      container.innerHTML = '<p class="small" style="color:#666;margin:0;">Loading verification…</p>';
+      container.innerHTML =
+        '<p class="small" style="color:#666;margin:0;">Loading verification…</p>';
       const actions = form.querySelector('.form-actions');
       if (actions && actions.parentNode) {
         actions.parentNode.insertBefore(container, actions);
@@ -287,7 +285,8 @@
           }
           const token = (body && body.captchaToken) || supplierCaptchaToken();
           if (!token) {
-            const message = 'Please complete the verification challenge before sending your message.';
+            const message =
+              'Please complete the verification challenge before sending your message.';
             showSupplierCaptchaMessage(form, message, true);
             return blockedSupplierCaptchaResponse(message);
           }

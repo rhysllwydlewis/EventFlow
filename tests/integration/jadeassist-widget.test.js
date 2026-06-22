@@ -214,10 +214,7 @@ describe('JadeAssist Widget Pinning', () => {
     let legacyContent;
 
     beforeAll(() => {
-      legacyContent = fs.readFileSync(
-        path.join(publicDir, 'assets/js/jadeassist-init.js'),
-        'utf8'
-      );
+      legacyContent = fs.readFileSync(path.join(publicDir, 'assets/js/jadeassist-init.js'), 'utf8');
     });
 
     it('should contain DOM singleton guard to prevent duplicate teasers', () => {

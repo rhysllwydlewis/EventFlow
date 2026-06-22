@@ -1,14 +1,13 @@
 (function () {
   'use strict';
 
-// Safe HTML escaping
-function escapeHtml(str) {
-  if (str === null || str === undefined) return '';
-  const d = document.createElement('div');
-  d.textContent = String(str);
-  return d.innerHTML;
-}
-
+  // Safe HTML escaping
+  function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    const d = document.createElement('div');
+    d.textContent = String(str);
+    return d.innerHTML;
+  }
 
   let currentEvent = null;
 
@@ -327,4 +326,3 @@ function escapeHtml(str) {
     init();
   }
 })();
-

@@ -37,7 +37,9 @@ test.describe('Messenger v4 – Core Flows', () => {
       await page.goto(MESSENGER_URL);
       await page.waitForLoadState('domcontentloaded');
 
-      expect(failedRequests.filter(u => u.includes('/assets/') || u.includes('/messenger/'))).toHaveLength(0);
+      expect(
+        failedRequests.filter(u => u.includes('/assets/') || u.includes('/messenger/'))
+      ).toHaveLength(0);
     });
 
     test('should render the messenger v4 container', async ({ page }) => {
@@ -104,15 +106,17 @@ test.describe('Messenger v4 – Core Flows', () => {
       await expect(page.locator('.messenger-v4')).toBeVisible();
 
       const shellStateCount = await page
-        .locator([
-          '.messenger-v4__conversation-list',
-          '.conversation-list',
-          '.conversations-list',
-          '.messenger-v4__empty-state',
-          '[data-empty-state]',
-          '.messenger-v4__chat-panel',
-          '.messenger-v4__composer',
-        ].join(','))
+        .locator(
+          [
+            '.messenger-v4__conversation-list',
+            '.conversation-list',
+            '.conversations-list',
+            '.messenger-v4__empty-state',
+            '[data-empty-state]',
+            '.messenger-v4__chat-panel',
+            '.messenger-v4__composer',
+          ].join(',')
+        )
         .count();
 
       expect(shellStateCount).toBeGreaterThan(0);

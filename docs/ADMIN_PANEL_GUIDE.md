@@ -792,12 +792,12 @@ Unsubscribed / suppressed addresses (`emailUnsubscribed=true` or newsletter `sta
 
 ### Required environment variables
 
-| Variable                    | Purpose                                                     |
-| --------------------------- | ----------------------------------------------------------- |
-| `EMAIL_ENABLED=true`        | Must be set to `true` for test/send to work                 |
-| `POSTMARK_API_KEY`          | Postmark server API key                                     |
-| `POSTMARK_FROM`             | Verified sender address in Postmark                         |
-| `CAMPAIGN_MESSAGE_STREAM`   | Postmark message stream (default: `outbound`)               |
+| Variable                  | Purpose                                       |
+| ------------------------- | --------------------------------------------- |
+| `EMAIL_ENABLED=true`      | Must be set to `true` for test/send to work   |
+| `POSTMARK_API_KEY`        | Postmark server API key                       |
+| `POSTMARK_FROM`           | Verified sender address in Postmark           |
+| `CAMPAIGN_MESSAGE_STREAM` | Postmark message stream (default: `outbound`) |
 
 Preview always works even when `EMAIL_ENABLED` is false. Test and Send return **503** when email is disabled.
 

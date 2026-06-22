@@ -856,7 +856,11 @@
 
         // Close the chat panel cleanly via the API first (triggers close animation)
         if (window.JadeWidget && typeof window.JadeWidget.close === 'function') {
-          try { window.JadeWidget.close(); } catch (_) { /* ignore */ }
+          try {
+            window.JadeWidget.close();
+          } catch (_) {
+            /* ignore */
+          }
         }
 
         // Hide the entire widget root and the launcher element
@@ -951,9 +955,13 @@
 
     // Don't show until the user has given cookie consent
     if (window.CookieConsent && !window.CookieConsent.hasConsent()) {
-      window.addEventListener('cookieConsentChanged', function onConsent() {
-        startInitialization();
-      }, { once: true });
+      window.addEventListener(
+        'cookieConsentChanged',
+        function onConsent() {
+          startInitialization();
+        },
+        { once: true }
+      );
       return;
     }
 

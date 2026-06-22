@@ -64,11 +64,14 @@
               { status: 200, headers: { 'Content-Type': 'application/json' } }
             );
           })
-          .catch(() =>
-            new Response(
-              JSON.stringify({ error: 'Unable to load this authenticated preview. Please sign in and try again.' }),
-              { status: 500, headers: { 'Content-Type': 'application/json' } }
-            )
+          .catch(
+            () =>
+              new Response(
+                JSON.stringify({
+                  error: 'Unable to load this authenticated preview. Please sign in and try again.',
+                }),
+                { status: 500, headers: { 'Content-Type': 'application/json' } }
+              )
           );
       }
     } catch (_err) {

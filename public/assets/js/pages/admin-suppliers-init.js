@@ -423,7 +423,6 @@
             ? '<span style="color: #f59e0b;">Pending</span><br><span style="font-size:10px;background:#fef3c7;color:#92400e;border:1px solid #fde68a;border-radius:999px;padding:1px 6px;white-space:nowrap;">🔍 Awaiting review</span>'
             : '<span style="color: #9ca3af;">Unapproved</span>';
 
-
         // Orphaned supplier — owner account has been deleted; flagged for admin attention
         const orphanBadge = supplier._ownerDeleted
           ? ' <span title="Owner account deleted — hidden from all public pages. Delete it to clean up." style="font-size:10px;background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;border-radius:999px;padding:1px 6px;white-space:nowrap;cursor:help;">⚠️ Owner deleted</span>'

@@ -214,11 +214,7 @@
                 ? '<div class="plan-badge-popular">MOST POPULAR</div>'
                 : ''
             }
-            ${
-              plan.isFree
-                ? '<div class="plan-badge-free">FREE FOREVER</div>'
-                : ''
-            }
+            ${plan.isFree ? '<div class="plan-badge-free">FREE FOREVER</div>' : ''}
             <h3>${escapeHtml(plan.name)}</h3>
             <div class="price">
               ${escapeHtml(plan.priceDisplay)}
@@ -404,4 +400,3 @@
     init();
   }
 })();
-

@@ -89,7 +89,11 @@
   }
 
   function recommendationAvatar(name, logoSrc) {
-    const initial = escapeHtml(String(name || 'S').charAt(0).toUpperCase());
+    const initial = escapeHtml(
+      String(name || 'S')
+        .charAt(0)
+        .toUpperCase()
+    );
     const fallback =
       '<div class="recommendation-avatar recommendation-avatar--fallback"' +
       ' aria-hidden="true"' +
@@ -112,11 +116,17 @@
     // fallback avatar without any HTML being embedded in the onerror attribute.
     return (
       '<span class="recommendation-avatar-wrap"' +
-      ' data-rec-initial="' + initial + '"' +
+      ' data-rec-initial="' +
+      initial +
+      '"' +
       ' style="display:inline-flex;width:48px;height:48px;flex:0 0 48px;">' +
       '<img' +
-      ' src="' + escapeHtml(logoSrc) + '"' +
-      ' alt="' + escapeHtml(name) + '"' +
+      ' src="' +
+      escapeHtml(logoSrc) +
+      '"' +
+      ' alt="' +
+      escapeHtml(name) +
+      '"' +
       ' class="recommendation-avatar"' +
       ' loading="lazy"' +
       ' style="width:48px;height:48px;border-radius:999px;object-fit:cover;' +
@@ -251,7 +261,9 @@
     widget.style.display = '';
 
     if (isDevelopment) {
-      console.log(`✓ Rendered ${Math.min(recommendations.length, RECOMMENDATION_LIMIT)} recommendations`);
+      console.log(
+        `✓ Rendered ${Math.min(recommendations.length, RECOMMENDATION_LIMIT)} recommendations`
+      );
     }
   }
 

@@ -68,7 +68,9 @@ function referralTransactions(txnIndex, referral) {
 }
 
 function hasReferralTxn(txnIndex, referral, type) {
-  return referralTransactions(txnIndex, referral).some(txn => txn.type === type && Number(txn.amount) > 0);
+  return referralTransactions(txnIndex, referral).some(
+    txn => txn.type === type && Number(txn.amount) > 0
+  );
 }
 
 function pointsForReferral(txnIndex, referral) {
@@ -235,7 +237,8 @@ router.get('/campaign-report', async (req, res) => {
       })
       .sort(
         (a, b) =>
-          new Date(b.supplierCreatedAt || b.createdAt) - new Date(a.supplierCreatedAt || a.createdAt)
+          new Date(b.supplierCreatedAt || b.createdAt) -
+          new Date(a.supplierCreatedAt || a.createdAt)
       );
 
     const campaignSummary = Array.from(byCampaign.values()).sort(

@@ -110,12 +110,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const dotsRight = document.getElementById('hero-dots-right');
     if (!leftWrap || !rightWrap) return;
 
-    const featured = articles.filter(a => a.featured).sort((a, b) => a.featuredOrder - b.featuredOrder);
+    const featured = articles
+      .filter(a => a.featured)
+      .sort((a, b) => a.featuredOrder - b.featuredOrder);
     if (featured.length < 2) return;
 
     let idx = 0;
     let carouselInterval = null;
-    const motionQuery = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
+    const motionQuery = window.matchMedia
+      ? window.matchMedia('(prefers-reduced-motion: reduce)')
+      : { matches: false };
 
     function showPair(isFirst) {
       const leftIdx = idx % featured.length;
@@ -162,7 +166,8 @@ document.addEventListener('DOMContentLoaded', () => {
   function buildChips() {
     if (!chipsWrap) return;
     const categories = [...new Set(articles.map(a => a.category).filter(Boolean))].sort();
-    let html = '<button class="guides-chip active" data-filter="" role="radio" aria-checked="true">All guides</button>';
+    let html =
+      '<button class="guides-chip active" data-filter="" role="radio" aria-checked="true">All guides</button>';
     categories.forEach(cat => {
       const em = categoryEmoji[cat] || '';
       html += `<button class="guides-chip" data-filter="${escHtml(cat)}" role="radio" aria-checked="false"><span class="guides-chip__icon" aria-hidden="true">${escHtml(em)}</span> ${escHtml(cat)}</button>`;
@@ -248,7 +253,9 @@ document.addEventListener('DOMContentLoaded', () => {
     } else if (sortOrder === 'category') {
       list = list.slice().sort((a, b) => a.category.localeCompare(b.category));
     } else {
-      list = list.slice().sort((a, b) => new Date(b.publishedDate || 0) - new Date(a.publishedDate || 0));
+      list = list
+        .slice()
+        .sort((a, b) => new Date(b.publishedDate || 0) - new Date(a.publishedDate || 0));
     }
     return list;
   }
@@ -277,8 +284,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (guidesEmpty) guidesEmpty.classList.remove('visible');
     const totalLabel = list.length === 1 ? '1 guide' : `${list.length} guides`;
     const filterLabel = activeFilter ? ` in <strong>${escHtml(activeFilter)}</strong>` : '';
-    const searchLabel = searchQuery && searchInput ? ` matching "<strong>${escHtml(searchInput.value)}</strong>"` : '';
-    if (resultsCount) resultsCount.innerHTML = `Showing <strong>${escHtml(totalLabel)}</strong>${filterLabel}${searchLabel}`;
+    const searchLabel =
+      searchQuery && searchInput
+        ? ` matching "<strong>${escHtml(searchInput.value)}</strong>"`
+        : '';
+    if (resultsCount)
+      resultsCount.innerHTML = `Showing <strong>${escHtml(totalLabel)}</strong>${filterLabel}${searchLabel}`;
 
     const shouldCollapse = list.length > INITIAL_GUIDE_LIMIT && !showAllGuides;
     const visibleList = shouldCollapse ? list.slice(0, INITIAL_GUIDE_LIMIT) : list;
@@ -331,7 +342,8 @@ document.addEventListener('DOMContentLoaded', () => {
         renderGrid();
         requestAnimationFrame(() => {
           const firstRevealedCard = guidesGrid.children[INITIAL_GUIDE_LIMIT];
-          if (firstRevealedCard) firstRevealedCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          if (firstRevealedCard)
+            firstRevealedCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
         });
       });
       guidesGrid.appendChild(moreCard);
@@ -392,7 +404,9 @@ document.addEventListener('DOMContentLoaded', () => {
       if (guidesLoading) guidesLoading.style.display = 'none';
       if (guidesEmpty) {
         guidesEmpty.classList.add('visible');
-        if (emptyMsg) emptyMsg.textContent = 'Unable to load guides. Please check your connection or try refreshing the page.';
+        if (emptyMsg)
+          emptyMsg.textContent =
+            'Unable to load guides. Please check your connection or try refreshing the page.';
       }
     }
   }
@@ -410,8 +424,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (searchClear) searchClear.addEventListener('click', clearSearch);
   const searchBtn = document.getElementById('guides-search-btn');
-  if (searchBtn) searchBtn.addEventListener('click', () => { handleSearch(); scrollToGuides(); });
-  if (sortSelect) sortSelect.addEventListener('change', () => { sortOrder = sortSelect.value; showAllGuides = false; renderGrid(); });
+  if (searchBtn)
+    searchBtn.addEventListener('click', () => {
+      handleSearch();
+      scrollToGuides();
+    });
+  if (sortSelect)
+    sortSelect.addEventListener('change', () => {
+      sortOrder = sortSelect.value;
+      showAllGuides = false;
+      renderGrid();
+    });
   if (clearAllBtn) clearAllBtn.addEventListener('click', resetAll);
   if (resetBtn) resetBtn.addEventListener('click', resetAll);
 
@@ -460,7 +483,11 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
         const href = el.getAttribute('href') || '/';
         if (window.AuthStateManager) {
-          try { await window.AuthStateManager.init(); } catch (_) { /* ignore */ }
+          try {
+            await window.AuthStateManager.init();
+          } catch (_) {
+            /* ignore */
+          }
           if (window.AuthStateManager.user) {
             window.location.href = href;
             return;

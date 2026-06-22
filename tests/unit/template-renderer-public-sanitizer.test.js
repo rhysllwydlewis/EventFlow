@@ -19,12 +19,15 @@ describe('anonymous public template sanitiser', () => {
     `;
     const cleaned = sanitizeAnonymousPublicHtml(html, '/index.html', anonymousReq);
     expect(cleaned).not.toMatch(/stats-section|Loading…|All suppliers are verified and vetted/i);
-    expect(cleaned).not.toMatch(/What Our Customers Say|Sarah\s*&(?:amp;)?\s*Tom|James Wilson|Emma Davies/i);
+    expect(cleaned).not.toMatch(
+      /What Our Customers Say|Sarah\s*&(?:amp;)?\s*Tom|James Wilson|Emma Davies/i
+    );
     expect(cleaned).toContain('Suppliers opening in stages');
   });
 
   test('keeps the planner preload readable before hydration', () => {
-    const html = '<div class="wizard-card wizard-preload-card" id="wizard-preload" aria-hidden="true"><h2>Plan your event in minutes</h2></div>';
+    const html =
+      '<div class="wizard-card wizard-preload-card" id="wizard-preload" aria-hidden="true"><h2>Plan your event in minutes</h2></div>';
     const cleaned = sanitizeAnonymousPublicHtml(html, '/start.html', anonymousReq);
     expect(cleaned).toContain('Plan your event in minutes');
     expect(cleaned).not.toContain('aria-hidden="true"');
@@ -38,7 +41,9 @@ describe('anonymous public template sanitiser', () => {
       <!-- Add / Edit Event Modal --><div id="pc-modal-overlay"><h2>Add Event</h2><button>Publish Event</button></div><footer class="footer"
     `;
     const cleaned = sanitizeAnonymousPublicHtml(html, '/public-calendar.html', anonymousReq);
-    expect(cleaned).not.toMatch(/Shared Events Calendar publishing enabled|Calendar publishing requests|Approve suitable suppliers|admin override|Add Event|Publish Event/i);
+    expect(cleaned).not.toMatch(
+      /Shared Events Calendar publishing enabled|Calendar publishing requests|Approve suitable suppliers|admin override|Add Event|Publish Event/i
+    );
     expect(cleaned).toContain('pc-modal-overlay');
     expect(cleaned).toContain('<footer class="footer"');
   });

@@ -9,7 +9,11 @@
   }
 
   function getCsrfToken() {
-    if (globalScope && typeof globalScope.__CSRF_TOKEN__ === 'string' && globalScope.__CSRF_TOKEN__) {
+    if (
+      globalScope &&
+      typeof globalScope.__CSRF_TOKEN__ === 'string' &&
+      globalScope.__CSRF_TOKEN__
+    ) {
       return globalScope.__CSRF_TOKEN__;
     }
     return readCookie('csrf') || readCookie('csrfToken') || '';

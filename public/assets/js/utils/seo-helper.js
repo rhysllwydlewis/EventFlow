@@ -48,8 +48,7 @@ class SEOHelper {
     if (includeSiteName) {
       // Avoid double-branding: skip the suffix when the title already ends with
       // "— EventFlow" / "| EventFlow" (any case) or starts with "EventFlow —".
-      const alreadyBranded =
-        /[—|]\s*eventflow\s*$/i.test(title) || /^eventflow\s*[—]/i.test(title);
+      const alreadyBranded = /[—|]\s*eventflow\s*$/i.test(title) || /^eventflow\s*[—]/i.test(title);
       fullTitle = alreadyBranded ? title : `${title} — EventFlow`;
     } else {
       fullTitle = title;

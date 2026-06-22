@@ -9,13 +9,17 @@
   let statePlanId = '';
 
   function esc(value) {
-    return String(value || '').replace(/[&<>"']/g, ch => ({
-      '&': '&amp;',
-      '<': '&lt;',
-      '>': '&gt;',
-      '"': '&quot;',
-      "'": '&#39;',
-    })[ch]);
+    return String(value || '').replace(
+      /[&<>"']/g,
+      ch =>
+        ({
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#39;',
+        })[ch]
+    );
   }
 
   function getCsrfToken() {
@@ -46,7 +50,9 @@
 
   function planIdFromDom(root) {
     if (root?.dataset?.planId) return root.dataset.planId;
-    const candidates = Array.from(root.querySelectorAll("a[href*='/api/me/plans/'], a[href*='/guests/export.csv']"));
+    const candidates = Array.from(
+      root.querySelectorAll("a[href*='/api/me/plans/'], a[href*='/guests/export.csv']")
+    );
     for (const link of candidates) {
       const match = link.getAttribute('href')?.match(/\/api\/me\/plans\/([^/]+)/);
       if (match) return decodeURIComponent(match[1]);
@@ -55,7 +61,8 @@
   }
 
   function updateVisibilityUi(form) {
-    const selected = form.querySelector("input[name='visibility']:checked")?.value || 'private_link';
+    const selected =
+      form.querySelector("input[name='visibility']:checked")?.value || 'private_link';
     const passwordFields = form.querySelector('.ww-password-fields');
     const passwordInput = form.querySelector("input[name='password']");
     if (passwordFields) {
@@ -72,9 +79,16 @@
     const card = document.createElement('section');
     card.className = 'ww-share-card';
     actions.after(card);
-    const url = website.slug ? `${window.location.origin}/wedding/${encodeURIComponent(website.slug)}` : '';
+    const url = website.slug
+      ? `${window.location.origin}/wedding/${encodeURIComponent(website.slug)}`
+      : '';
     const isLive = website.shareable || website.status === 'published';
-    const modeLabel = website.visibility === 'password' ? 'Password protected' : website.visibility === 'public' ? 'Public' : 'Anyone with link';
+    const modeLabel =
+      website.visibility === 'password'
+        ? 'Password protected'
+        : website.visibility === 'public'
+          ? 'Public'
+          : 'Anyone with link';
     card.innerHTML = isLive
       ? `<div class="ww-share-card__head"><h4>Your wedding website is live</h4><span class="ww-share-pill">${esc(modeLabel)}</span></div><p class="ww-share-note">Share this link with guests.${website.visibility === 'password' ? ' Send the password separately. EventFlow will never show the saved password again.' : ''}</p><div class="ww-share-link-row"><input readonly value="${esc(url)}" aria-label="Wedding website guest link"><button type="button" class="cta secondary small ww-copy-link">Copy guest link</button></div>`
       : `<div class="ww-share-card__head"><h4>Your wedding website is saved as a draft</h4><span class="ww-share-pill ww-share-pill--draft">Not live yet</span></div><p class="ww-share-note">Publish your wedding website before sharing it with guests. EventFlow will avoid placeholder links such as <strong>/wedding/wedding-website</strong>.</p>${url ? `<div class="ww-share-link-row"><input readonly value="${esc(url)}" aria-label="Draft website link"><button type="button" class="cta secondary small ww-publish-first">Go to Publish</button></div>` : ''}`;
@@ -118,12 +132,15 @@
     const website = await getWebsiteState(planId);
     if (!website) {
       const state = form.querySelector('.ww-password-state');
-      if (state) state.textContent = 'Privacy settings will be saved with the rest of the website details.';
+      if (state)
+        state.textContent = 'Privacy settings will be saved with the rest of the website details.';
       return;
     }
     form.dataset.passwordSet = website.passwordSet ? 'true' : 'false';
     const visibility = website.visibility || 'private_link';
-    const selected = form.querySelector(`input[name='visibility'][value='${window.CSS?.escape ? CSS.escape(visibility) : visibility}']`);
+    const selected = form.querySelector(
+      `input[name='visibility'][value='${window.CSS?.escape ? CSS.escape(visibility) : visibility}']`
+    );
     if (selected) selected.checked = true;
     const state = form.querySelector('.ww-password-state');
     if (state) {
@@ -177,11 +194,18 @@
       if (!form) return;
       const visibility = form.querySelector("input[name='visibility']:checked")?.value;
       const passwordInput = form.querySelector("input[name='password']");
-      if (visibility === 'password' && passwordInput && passwordInput.required && !passwordInput.value) {
+      if (
+        visibility === 'password' &&
+        passwordInput &&
+        passwordInput.required &&
+        !passwordInput.value
+      ) {
         event.preventDefault();
         event.stopImmediatePropagation();
         passwordInput.focus();
-        passwordInput.setCustomValidity('Please set a password before enabling password protection.');
+        passwordInput.setCustomValidity(
+          'Please set a password before enabling password protection.'
+        );
         passwordInput.reportValidity();
         setTimeout(() => passwordInput.setCustomValidity(''), 800);
       }

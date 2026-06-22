@@ -43,7 +43,9 @@ function getInitialsFromName(name) {
 }
 
 function getAvatarEl(img) {
-  return document.getElementById('hero-avatar') || (img && img.closest && img.closest('.hero-avatar'));
+  return (
+    document.getElementById('hero-avatar') || (img && img.closest && img.closest('.hero-avatar'))
+  );
 }
 
 function prepareAvatarShell(img, initialsEl) {
@@ -105,7 +107,9 @@ function getSearchResults(payload) {
 }
 
 function findSupplierInSearchPayload(payload, supplierId) {
-  return getSearchResults(payload).find(supplier => String(supplier?.id || '') === String(supplierId));
+  return getSearchResults(payload).find(
+    supplier => String(supplier?.id || '') === String(supplierId)
+  );
 }
 
 function getSearchUrls() {
@@ -199,7 +203,8 @@ async function loadPublicSupplierAvatar() {
   }
 
   const supplier =
-    (await fetchSupplierFromSearchRoute(supplierId)) || (await fetchLegacyAvatarEndpoint(supplierId));
+    (await fetchSupplierFromSearchRoute(supplierId)) ||
+    (await fetchLegacyAvatarEndpoint(supplierId));
   if (requestId !== activeRequestId) {
     return;
   }

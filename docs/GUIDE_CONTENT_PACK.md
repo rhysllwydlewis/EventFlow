@@ -20,16 +20,16 @@ The next guides should prioritise:
 
 These eight guides should be built first because they fill the biggest product and conversion gaps.
 
-| Priority | Guide title | Suggested slug | Category | Primary CTA | Reason |
-|---:|---|---|---|---|---|
-| 1 | How to Build Your Wedding Website on EventFlow | `/articles/wedding-website-on-eventflow-guide` | Tools | Create website | Strong wedding SEO and directly supports EventFlow's planning product. |
-| 2 | RSVP Management Guide: Replies, Dietary Needs and Plus-Ones | `/articles/rsvp-management-guide` | Planning | Manage RSVPs | Extends the existing guest-list content into a practical workflow. |
-| 3 | Seating Plan Guide: Tables, Guests and Layouts | `/articles/seating-plan-guide` | Planning | Plan guests | Practical pain point, closely linked to guest management and venue layout. |
-| 4 | Wedding Fayres and Public Events Calendar Guide | `/articles/wedding-fayres-public-events-calendar-guide` | Tools | View public calendar | Supports the `/public-calendar` page and supplier open-day use case. |
-| 5 | Supplier Profile Guide: How to Get More Enquiries on EventFlow | `/articles/supplier-profile-optimisation-guide` | Tools | Supplier dashboard | Helps suppliers improve profile quality and convert more enquiries. |
-| 6 | Supplier Packages and Pricing Guide | `/articles/supplier-packages-pricing-guide` | Tools | Browse suppliers | Useful to both customers comparing packages and suppliers creating packages. |
-| 7 | Event Contracts, Deposits and Cancellation Terms Guide | `/articles/event-contracts-deposits-guide` | Planning | Find suppliers | High-trust planning content covering deposits, written terms and change control. |
-| 8 | Event Licences and Legal Basics in the UK | `/articles/event-licences-uk-guide` | Planning | Start planning | UK-specific trust content covering alcohol, entertainment, food, music and council permissions. |
+| Priority | Guide title                                                    | Suggested slug                                          | Category | Primary CTA          | Reason                                                                                          |
+| -------: | -------------------------------------------------------------- | ------------------------------------------------------- | -------- | -------------------- | ----------------------------------------------------------------------------------------------- |
+|        1 | How to Build Your Wedding Website on EventFlow                 | `/articles/wedding-website-on-eventflow-guide`          | Tools    | Create website       | Strong wedding SEO and directly supports EventFlow's planning product.                          |
+|        2 | RSVP Management Guide: Replies, Dietary Needs and Plus-Ones    | `/articles/rsvp-management-guide`                       | Planning | Manage RSVPs         | Extends the existing guest-list content into a practical workflow.                              |
+|        3 | Seating Plan Guide: Tables, Guests and Layouts                 | `/articles/seating-plan-guide`                          | Planning | Plan guests          | Practical pain point, closely linked to guest management and venue layout.                      |
+|        4 | Wedding Fayres and Public Events Calendar Guide                | `/articles/wedding-fayres-public-events-calendar-guide` | Tools    | View public calendar | Supports the `/public-calendar` page and supplier open-day use case.                            |
+|        5 | Supplier Profile Guide: How to Get More Enquiries on EventFlow | `/articles/supplier-profile-optimisation-guide`         | Tools    | Supplier dashboard   | Helps suppliers improve profile quality and convert more enquiries.                             |
+|        6 | Supplier Packages and Pricing Guide                            | `/articles/supplier-packages-pricing-guide`             | Tools    | Browse suppliers     | Useful to both customers comparing packages and suppliers creating packages.                    |
+|        7 | Event Contracts, Deposits and Cancellation Terms Guide         | `/articles/event-contracts-deposits-guide`              | Planning | Find suppliers       | High-trust planning content covering deposits, written terms and change control.                |
+|        8 | Event Licences and Legal Basics in the UK                      | `/articles/event-licences-uk-guide`                     | Planning | Start planning       | UK-specific trust content covering alcohol, entertainment, food, music and council permissions. |
 
 ## Recommended guide structure
 

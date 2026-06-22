@@ -283,11 +283,15 @@ describe('Admin Webhooks Test — Route Mounting (no production gate)', () => {
   });
 
   it('routes/index.js mounts admin-webhooks-test at the canonical versioned path', () => {
-    expect(indexContent).toMatch(/app\.use\(['"]\/api\/v1\/admin\/debug['"],\s*adminWebhooksTestRoutes\)/);
+    expect(indexContent).toMatch(
+      /app\.use\(['"]\/api\/v1\/admin\/debug['"],\s*adminWebhooksTestRoutes\)/
+    );
   });
 
   it('routes/index.js mounts admin-webhooks-test at the backward-compat unversioned path', () => {
-    expect(indexContent).toMatch(/app\.use\(['"]\/api\/admin\/debug['"],\s*adminWebhooksTestRoutes\)/);
+    expect(indexContent).toMatch(
+      /app\.use\(['"]\/api\/admin\/debug['"],\s*adminWebhooksTestRoutes\)/
+    );
   });
 });
 

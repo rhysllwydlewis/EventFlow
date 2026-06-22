@@ -725,4 +725,3 @@ export default {
   createEventsTimeline,
   createProfileChecklist,
 };
-

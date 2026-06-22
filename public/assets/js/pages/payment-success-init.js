@@ -20,7 +20,9 @@ async function getDashboardUrl() {
       if (role === 'supplier') return '/dashboard/supplier';
       if (role === 'admin') return '/admin';
     }
-  } catch (_) { /* ignore */ }
+  } catch (_) {
+    /* ignore */
+  }
   return '/dashboard/supplier'; // safe fallback
 }
 
@@ -128,5 +130,3 @@ async function verifyPayment() {
 
 // Initialize
 verifyPayment();
-
-

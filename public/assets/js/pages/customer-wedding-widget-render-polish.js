@@ -7,7 +7,10 @@
   let queued = false;
 
   function normaliseText(value) {
-    return String(value || '').replace(/\s+/g, ' ').trim().toLowerCase();
+    return String(value || '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .toLowerCase();
   }
 
   function ensureElement(parent, selector, tagName, className) {
@@ -65,7 +68,11 @@
     }
     pane.querySelectorAll('.ww-app-panel, .ww-empty-state').forEach((panel, index) => {
       const text = normaliseText(panel.textContent);
-      if (index === 0 || text.includes('no wedding workspace') || text.includes('next best action')) {
+      if (
+        index === 0 ||
+        text.includes('no wedding workspace') ||
+        text.includes('next best action')
+      ) {
         panel.classList.add('ww-render-overview-hero');
         ensureElement(panel, '.ww-render-panel-art', 'div', 'ww-render-panel-art');
       } else {
@@ -107,7 +114,8 @@
     if (!card) {
       return;
     }
-    const type = card.dataset.wwChoice || inferChoiceType(card) || ['free', 'full', 'existing'][index] || '';
+    const type =
+      card.dataset.wwChoice || inferChoiceType(card) || ['free', 'full', 'existing'][index] || '';
     if (type) {
       card.dataset.wwChoice = type;
     }
@@ -142,7 +150,9 @@
       }
     });
 
-    pane.querySelectorAll('.ww-choice-grid').forEach(grid => grid.classList.add('ww-render-choice-grid'));
+    pane
+      .querySelectorAll('.ww-choice-grid')
+      .forEach(grid => grid.classList.add('ww-render-choice-grid'));
     pane.querySelectorAll('.ww-choice-card').forEach(enhanceChoiceCard);
   }
 
@@ -182,7 +192,10 @@
   document.addEventListener(
     'click',
     event => {
-      if (event.target instanceof Element && event.target.closest('.ww-app-tabs button,[data-tab]')) {
+      if (
+        event.target instanceof Element &&
+        event.target.closest('.ww-app-tabs button,[data-tab]')
+      ) {
         window.setTimeout(schedule, 0);
       }
     },

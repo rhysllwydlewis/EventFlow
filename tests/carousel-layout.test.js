@@ -11,10 +11,7 @@ describe('Carousel layout CSS snapshot', () => {
   let css;
 
   beforeAll(() => {
-    css = fs.readFileSync(
-      path.resolve(__dirname, '../public/assets/css/p3-features.css'),
-      'utf-8'
-    );
+    css = fs.readFileSync(path.resolve(__dirname, '../public/assets/css/p3-features.css'), 'utf-8');
   });
 
   test('carousel-content height is 84vh', () => {

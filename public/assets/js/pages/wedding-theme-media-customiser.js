@@ -7,19 +7,58 @@
   const rootSelector = '#wedding-website-dashboard-root';
   const maxGallery = 12;
   const palettes = [
-    { name: 'Sage & Blush', accentColor: '#0B8073', secondaryColor: '#F4A6C8', backgroundColor: '#FFF7FB', textColor: '#1E1B4B' },
-    { name: 'Champagne Gold', accentColor: '#B88A2B', secondaryColor: '#F4D6A0', backgroundColor: '#FFF9EF', textColor: '#30261C' },
-    { name: 'Midnight Romance', accentColor: '#24436F', secondaryColor: '#BFA2DB', backgroundColor: '#F6F3FF', textColor: '#161B33' },
-    { name: 'Terracotta', accentColor: '#B85C38', secondaryColor: '#E9A178', backgroundColor: '#FFF4EE', textColor: '#3B2119' },
-    { name: 'Coastal Blue', accentColor: '#2C94B1', secondaryColor: '#9AD7E5', backgroundColor: '#F2FBFE', textColor: '#14313B' },
-    { name: 'Classic Rose', accentColor: '#A8325F', secondaryColor: '#F2A7C4', backgroundColor: '#FFF5FA', textColor: '#311827' },
+    {
+      name: 'Sage & Blush',
+      accentColor: '#0B8073',
+      secondaryColor: '#F4A6C8',
+      backgroundColor: '#FFF7FB',
+      textColor: '#1E1B4B',
+    },
+    {
+      name: 'Champagne Gold',
+      accentColor: '#B88A2B',
+      secondaryColor: '#F4D6A0',
+      backgroundColor: '#FFF9EF',
+      textColor: '#30261C',
+    },
+    {
+      name: 'Midnight Romance',
+      accentColor: '#24436F',
+      secondaryColor: '#BFA2DB',
+      backgroundColor: '#F6F3FF',
+      textColor: '#161B33',
+    },
+    {
+      name: 'Terracotta',
+      accentColor: '#B85C38',
+      secondaryColor: '#E9A178',
+      backgroundColor: '#FFF4EE',
+      textColor: '#3B2119',
+    },
+    {
+      name: 'Coastal Blue',
+      accentColor: '#2C94B1',
+      secondaryColor: '#9AD7E5',
+      backgroundColor: '#F2FBFE',
+      textColor: '#14313B',
+    },
+    {
+      name: 'Classic Rose',
+      accentColor: '#A8325F',
+      secondaryColor: '#F2A7C4',
+      backgroundColor: '#FFF5FA',
+      textColor: '#311827',
+    },
   ];
 
   let cachedPlanId = '';
   let cachedState = null;
 
   function esc(value) {
-    return String(value || '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]);
+    return String(value || '').replace(
+      /[&<>"']/g,
+      ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]
+    );
   }
 
   function getCsrfToken() {
@@ -46,7 +85,9 @@
 
   function planIdFromDom(root) {
     if (root?.dataset?.planId) return root.dataset.planId;
-    const candidates = Array.from(root.querySelectorAll("a[href*='/api/me/plans/'], a[href*='/guests/export.csv']"));
+    const candidates = Array.from(
+      root.querySelectorAll("a[href*='/api/me/plans/'], a[href*='/guests/export.csv']")
+    );
     for (const link of candidates) {
       const match = link.getAttribute('href')?.match(/\/api\/me\/plans\/([^/]+)/);
       if (match) return decodeURIComponent(match[1]);
@@ -57,9 +98,14 @@
   function collapseBuilderSections(root) {
     if (!root || root.dataset.defaultCollapsed === 'true') return;
     root.dataset.defaultCollapsed = 'true';
-    const close = () => root.querySelectorAll('#ww-builder > details, .ww-password-privacy-panel, .ww-theme-media-panel').forEach(detail => {
-      detail.open = false;
-    });
+    const close = () =>
+      root
+        .querySelectorAll(
+          '#ww-builder > details, .ww-password-privacy-panel, .ww-theme-media-panel'
+        )
+        .forEach(detail => {
+          detail.open = false;
+        });
     close();
     setTimeout(close, 500);
     setTimeout(close, 1200);
@@ -110,9 +156,16 @@
     preview.style.setProperty('--ww-theme-text', state.textColor);
     preview.className = `ww-theme-preview ww-theme-preview--${state.heroLayout}`;
     const hero = preview.querySelector('.ww-theme-preview__hero');
-    if (hero) hero.style.backgroundImage = state.coverImageUrl ? `linear-gradient(135deg, rgba(0,0,0,.42), rgba(0,0,0,.08)), url('${state.coverImageUrl}')` : '';
+    if (hero)
+      hero.style.backgroundImage = state.coverImageUrl
+        ? `linear-gradient(135deg, rgba(0,0,0,.42), rgba(0,0,0,.08)), url('${state.coverImageUrl}')`
+        : '';
     const gallery = preview.querySelector('.ww-theme-preview__gallery');
-    if (gallery) gallery.innerHTML = state.galleryImages.slice(0, 4).map(item => `<span style="background-image:url('${esc(item.imageUrl)}')"></span>`).join('');
+    if (gallery)
+      gallery.innerHTML = state.galleryImages
+        .slice(0, 4)
+        .map(item => `<span style="background-image:url('${esc(item.imageUrl)}')"></span>`)
+        .join('');
   }
 
   function renderGallery(panel) {
@@ -120,32 +173,44 @@
     const list = panel.querySelector('.ww-media-gallery-list');
     if (!list) return;
     list.innerHTML = gallery.length
-      ? gallery.map((item, index) => `<article class="ww-media-thumb"><img src="${esc(item.imageUrl)}" alt="${esc(item.alt || item.caption || 'Gallery image')}"><input value="${esc(item.caption || '')}" placeholder="Optional caption" data-caption-index="${index}"><div class="ww-media-thumb__actions"><button type="button" data-move-gallery="${index}" data-direction="up" ${index === 0 ? 'disabled' : ''}>Move up</button><button type="button" data-move-gallery="${index}" data-direction="down" ${index === gallery.length - 1 ? 'disabled' : ''}>Move down</button><button type="button" data-remove-gallery="${index}" aria-label="Remove image">Remove</button></div></article>`).join('')
+      ? gallery
+          .map(
+            (item, index) =>
+              `<article class="ww-media-thumb"><img src="${esc(item.imageUrl)}" alt="${esc(item.alt || item.caption || 'Gallery image')}"><input value="${esc(item.caption || '')}" placeholder="Optional caption" data-caption-index="${index}"><div class="ww-media-thumb__actions"><button type="button" data-move-gallery="${index}" data-direction="up" ${index === 0 ? 'disabled' : ''}>Move up</button><button type="button" data-move-gallery="${index}" data-direction="down" ${index === gallery.length - 1 ? 'disabled' : ''}>Move down</button><button type="button" data-remove-gallery="${index}" aria-label="Remove image">Remove</button></div></article>`
+          )
+          .join('')
       : '<p class="small">No gallery photos yet. Add a few moments guests will love.</p>';
-    list.querySelectorAll('[data-remove-gallery]').forEach(button => button.addEventListener('click', () => {
-      const next = JSON.parse(panel.dataset.galleryImages || '[]');
-      next.splice(Number(button.dataset.removeGallery), 1);
-      panel.dataset.galleryImages = JSON.stringify(next);
-      renderGallery(panel);
-      applyPreview(panel);
-    }));
-    list.querySelectorAll('[data-move-gallery]').forEach(button => button.addEventListener('click', () => {
-      const next = JSON.parse(panel.dataset.galleryImages || '[]');
-      const from = Number(button.dataset.moveGallery);
-      const to = button.dataset.direction === 'up' ? from - 1 : from + 1;
-      if (to < 0 || to >= next.length) return;
-      const [item] = next.splice(from, 1);
-      next.splice(to, 0, item);
-      panel.dataset.galleryImages = JSON.stringify(next);
-      renderGallery(panel);
-      applyPreview(panel);
-    }));
-    list.querySelectorAll('[data-caption-index]').forEach(input => input.addEventListener('input', () => {
-      const next = JSON.parse(panel.dataset.galleryImages || '[]');
-      if (next[Number(input.dataset.captionIndex)]) next[Number(input.dataset.captionIndex)].caption = input.value;
-      panel.dataset.galleryImages = JSON.stringify(next);
-      applyPreview(panel);
-    }));
+    list.querySelectorAll('[data-remove-gallery]').forEach(button =>
+      button.addEventListener('click', () => {
+        const next = JSON.parse(panel.dataset.galleryImages || '[]');
+        next.splice(Number(button.dataset.removeGallery), 1);
+        panel.dataset.galleryImages = JSON.stringify(next);
+        renderGallery(panel);
+        applyPreview(panel);
+      })
+    );
+    list.querySelectorAll('[data-move-gallery]').forEach(button =>
+      button.addEventListener('click', () => {
+        const next = JSON.parse(panel.dataset.galleryImages || '[]');
+        const from = Number(button.dataset.moveGallery);
+        const to = button.dataset.direction === 'up' ? from - 1 : from + 1;
+        if (to < 0 || to >= next.length) return;
+        const [item] = next.splice(from, 1);
+        next.splice(to, 0, item);
+        panel.dataset.galleryImages = JSON.stringify(next);
+        renderGallery(panel);
+        applyPreview(panel);
+      })
+    );
+    list.querySelectorAll('[data-caption-index]').forEach(input =>
+      input.addEventListener('input', () => {
+        const next = JSON.parse(panel.dataset.galleryImages || '[]');
+        if (next[Number(input.dataset.captionIndex)])
+          next[Number(input.dataset.captionIndex)].caption = input.value;
+        panel.dataset.galleryImages = JSON.stringify(next);
+        applyPreview(panel);
+      })
+    );
   }
 
   function setState(panel, state) {
@@ -154,10 +219,14 @@
     panel.querySelector('[name="themeSecondary"]').value = merged.secondaryColor;
     panel.querySelector('[name="themeBackground"]').value = merged.backgroundColor;
     panel.querySelector('[name="themeText"]').value = merged.textColor;
-    const layout = panel.querySelector(`[name="heroLayout"][value="${merged.heroLayout || 'classic'}"]`) || panel.querySelector('[name="heroLayout"]');
+    const layout =
+      panel.querySelector(`[name="heroLayout"][value="${merged.heroLayout || 'classic'}"]`) ||
+      panel.querySelector('[name="heroLayout"]');
     if (layout) layout.checked = true;
     panel.dataset.coverImageUrl = merged.coverImageUrl || '';
-    panel.dataset.galleryImages = JSON.stringify(Array.isArray(merged.galleryImages) ? merged.galleryImages : []);
+    panel.dataset.galleryImages = JSON.stringify(
+      Array.isArray(merged.galleryImages) ? merged.galleryImages : []
+    );
     const coverImg = panel.querySelector('.ww-cover-preview img');
     const coverEmpty = panel.querySelector('.ww-cover-empty');
     if (coverImg) {
@@ -210,7 +279,8 @@
         </div>
       </div>`;
     const privacy = form.querySelector('.ww-password-privacy-panel');
-    if (privacy) privacy.after(panel); else form.prepend(panel);
+    if (privacy) privacy.after(panel);
+    else form.prepend(panel);
     return panel;
   }
 
@@ -224,7 +294,9 @@
     if (!panel) return;
     cachedPlanId = planId;
     try {
-      const data = await api(`/api/me/plans/${encodeURIComponent(planId)}/wedding-website/theme-media`);
+      const data = await api(
+        `/api/me/plans/${encodeURIComponent(planId)}/wedding-website/theme-media`
+      );
       cachedState = data.themeMedia || defaultState();
     } catch (_err) {
       cachedState = defaultState();
@@ -232,12 +304,15 @@
     setState(panel, cachedState);
     collapseBuilderSections(root);
     panel.addEventListener('input', event => {
-      if (event.target.matches('input[type="color"], input[name="heroLayout"]')) applyPreview(panel);
+      if (event.target.matches('input[type="color"], input[name="heroLayout"]'))
+        applyPreview(panel);
     });
-    panel.querySelectorAll('[data-palette]').forEach(button => button.addEventListener('click', () => {
-      const p = palettes[Number(button.dataset.palette)] || palettes[0];
-      setState(panel, { ...collect(panel), ...p });
-    }));
+    panel.querySelectorAll('[data-palette]').forEach(button =>
+      button.addEventListener('click', () => {
+        const p = palettes[Number(button.dataset.palette)] || palettes[0];
+        setState(panel, { ...collect(panel), ...p });
+      })
+    );
     panel.querySelector('[data-cover-upload]').addEventListener('change', async event => {
       const msg = panel.querySelector('.ww-theme-message');
       try {
@@ -245,7 +320,9 @@
         panel.dataset.coverImageUrl = dataUrl;
         setState(panel, collect(panel));
         msg.textContent = 'Hero photo ready to save.';
-      } catch (err) { msg.textContent = err.message; }
+      } catch (err) {
+        msg.textContent = err.message;
+      }
       event.target.value = '';
     });
     panel.querySelector('[data-gallery-upload]').addEventListener('change', async event => {
@@ -253,13 +330,20 @@
       const current = JSON.parse(panel.dataset.galleryImages || '[]');
       try {
         for (const file of Array.from(event.target.files).slice(0, maxGallery - current.length)) {
-          current.push({ id: `gallery_${Date.now()}_${current.length}`, imageUrl: await imageToDataUrl(file), caption: '', alt: '' });
+          current.push({
+            id: `gallery_${Date.now()}_${current.length}`,
+            imageUrl: await imageToDataUrl(file),
+            caption: '',
+            alt: '',
+          });
         }
         panel.dataset.galleryImages = JSON.stringify(current.slice(0, maxGallery));
         renderGallery(panel);
         applyPreview(panel);
         msg.textContent = 'Gallery photos ready to save.';
-      } catch (err) { msg.textContent = err.message; }
+      } catch (err) {
+        msg.textContent = err.message;
+      }
       event.target.value = '';
     });
     panel.querySelector('[data-remove-cover]').addEventListener('click', () => {
@@ -276,15 +360,20 @@
       button.disabled = true;
       button.textContent = 'Saving…';
       try {
-        const data = await api(`/api/me/plans/${encodeURIComponent(cachedPlanId)}/wedding-website/theme-media`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(collect(panel)),
-        });
+        const data = await api(
+          `/api/me/plans/${encodeURIComponent(cachedPlanId)}/wedding-website/theme-media`,
+          {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(collect(panel)),
+          }
+        );
         cachedState = data.themeMedia;
         setState(panel, cachedState);
         msg.textContent = 'Theme and photos saved. Preview has been updated.';
-      } catch (err) { msg.textContent = err.message || 'Unable to save theme.'; }
+      } catch (err) {
+        msg.textContent = err.message || 'Unable to save theme.';
+      }
       button.disabled = false;
       button.textContent = 'Save theme & photos';
     });
@@ -302,5 +391,7 @@
     }, 250);
   }
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', waitForBuilder); else waitForBuilder();
+  if (document.readyState === 'loading')
+    document.addEventListener('DOMContentLoaded', waitForBuilder);
+  else waitForBuilder();
 })();

@@ -38,7 +38,9 @@
   ];
 
   function roleOf(contact) {
-    return String(contact?.role || '').trim().toLowerCase();
+    return String(contact?.role || '')
+      .trim()
+      .toLowerCase();
   }
 
   function isSupplier(contact) {
@@ -265,31 +267,30 @@
       );
     };
 
-    Picker.prototype._findVisibleExistingConversation = async function findVisibleExistingConversation(
-      participantId,
-      supplierProfileId = null
-    ) {
-      const currentUserId = this.options.currentUserId;
-      const matcher = supplierProfileId
-        ? conversation => isContextMatch(conversation, participantId, currentUserId, supplierProfileId)
-        : conversation => isDirectMatch(conversation, participantId, currentUserId);
-      const visibleMatch = conversation =>
-        isConversationVisibleFor(conversation, currentUserId) && matcher(conversation);
-      const appState = window.messengerAppV4?.state ?? window.messengerState ?? null;
-      if (Array.isArray(appState?.conversations)) {
-        const found = appState.conversations.find(visibleMatch);
-        if (found) {
-          return found;
+    Picker.prototype._findVisibleExistingConversation =
+      async function findVisibleExistingConversation(participantId, supplierProfileId = null) {
+        const currentUserId = this.options.currentUserId;
+        const matcher = supplierProfileId
+          ? conversation =>
+              isContextMatch(conversation, participantId, currentUserId, supplierProfileId)
+          : conversation => isDirectMatch(conversation, participantId, currentUserId);
+        const visibleMatch = conversation =>
+          isConversationVisibleFor(conversation, currentUserId) && matcher(conversation);
+        const appState = window.messengerAppV4?.state ?? window.messengerState ?? null;
+        if (Array.isArray(appState?.conversations)) {
+          const found = appState.conversations.find(visibleMatch);
+          if (found) {
+            return found;
+          }
         }
-      }
-      try {
-        const data = await this.api.request('/conversations');
-        const conversations = data.conversations || [];
-        return conversations.find(visibleMatch) || null;
-      } catch {
-        return null;
-      }
-    };
+        try {
+          const data = await this.api.request('/conversations');
+          const conversations = data.conversations || [];
+          return conversations.find(visibleMatch) || null;
+        } catch {
+          return null;
+        }
+      };
 
     Picker.prototype._getRecentConversationContacts = function getRecentConversationContacts() {
       const currentUserId = String(this.options.currentUserId || '');
@@ -410,7 +411,10 @@
       this._setContactPending(participantId, true);
       try {
         const supplierProfileId = clean(contact.supplierProfileId || contact.supplierId);
-        const existing = await this._findVisibleExistingConversation(participantId, supplierProfileId);
+        const existing = await this._findVisibleExistingConversation(
+          participantId,
+          supplierProfileId
+        );
         if (existing) {
           this.close();
           window.dispatchEvent(

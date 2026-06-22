@@ -406,7 +406,12 @@
   }
 
   function setSaving(isSaving) {
-    const ids = ['sup-save-btn', 'pc-save-bar-save', 'pc-save-bar-discard', 'select-stock-photo-btn'];
+    const ids = [
+      'sup-save-btn',
+      'pc-save-bar-save',
+      'pc-save-bar-discard',
+      'select-stock-photo-btn',
+    ];
     ids.forEach(id => {
       const el = $(id);
       if (el) {
@@ -446,7 +451,8 @@
   }
 
   function getThemeColor() {
-    const candidate = $('sup-theme-color')?.value || $('sup-theme-color-hex')?.value || DEFAULT_COLOR;
+    const candidate =
+      $('sup-theme-color')?.value || $('sup-theme-color-hex')?.value || DEFAULT_COLOR;
     return HEX_RE.test(candidate) ? candidate : DEFAULT_COLOR;
   }
 
@@ -683,8 +689,8 @@
 
   function updateCompletion() {
     const checks = {
-      banner: !!($('sup-banner')?.value),
-      tagline: !!($('sup-tagline')?.value?.trim()),
+      banner: !!$('sup-banner')?.value,
+      tagline: !!$('sup-tagline')?.value?.trim(),
       highlights: readHighlights().length >= 2,
       services: readFeaturedServices().length > 0,
       social: SOCIAL_PLATFORMS.some(platform => $(`sup-social-${platform}`)?.value?.trim()),
@@ -731,7 +737,8 @@
     for (let i = 1; i <= 5; i++) {
       const input = $(`sup-highlight-${i}`);
       if (input) {
-        input.value = supplier.highlights && supplier.highlights[i - 1] ? supplier.highlights[i - 1] : '';
+        input.value =
+          supplier.highlights && supplier.highlights[i - 1] ? supplier.highlights[i - 1] : '';
       }
     }
     const featured = $('sup-featured-services');
@@ -811,7 +818,8 @@
     } catch (error) {
       console.error('Failed to load suppliers:', error);
       if (container) {
-        container.innerHTML = '<p class="small" style="color:#dc2626;margin:0;">Failed to load profiles. Please refresh the page and try again.</p>';
+        container.innerHTML =
+          '<p class="small" style="color:#dc2626;margin:0;">Failed to load profiles. Please refresh the page and try again.</p>';
       }
     }
   }
@@ -853,14 +861,17 @@
       setSaving(true);
       setStatus('Saving changes...', 'muted');
       const csrfToken = await ensureCsrfToken();
-      const response = await api(`/api/me/suppliers/${encodeURIComponent(currentEditingSupplierId)}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRF-Token': csrfToken,
-        },
-        body: JSON.stringify(payload),
-      });
+      const response = await api(
+        `/api/me/suppliers/${encodeURIComponent(currentEditingSupplierId)}`,
+        {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': csrfToken,
+          },
+          body: JSON.stringify(payload),
+        }
+      );
       updateCachedSupplier(payload, response);
       populateForm(suppliers.find(supplier => supplier.id === currentEditingSupplierId));
       markClean();
@@ -881,7 +892,10 @@
       notify('warning', 'Please select a profile first.');
       return;
     }
-    window.open(`/supplier?id=${encodeURIComponent(currentEditingSupplierId)}&preview=true`, '_blank');
+    window.open(
+      `/supplier?id=${encodeURIComponent(currentEditingSupplierId)}&preview=true`,
+      '_blank'
+    );
   }
 
   function updateTaglineCount() {
@@ -1029,7 +1043,10 @@
     }
     if (typeof window.PexelsSelector === 'undefined') {
       stockPhotoBtn.addEventListener('click', () => {
-        notify('error', 'Stock photos are not available at the moment. Please upload a banner image instead.');
+        notify(
+          'error',
+          'Stock photos are not available at the moment. Please upload a banner image instead.'
+        );
       });
       return;
     }

@@ -507,29 +507,30 @@ loadNotificationSettings();
     return score;
   }
 
-  newPwInput && newPwInput.addEventListener('input', () => {
-    const pw = newPwInput.value;
-    if (!pw) {
-      strengthBar.style.display = 'none';
-      strengthLabel.style.display = 'none';
-      return;
-    }
-    strengthBar.style.display = 'block';
-    strengthLabel.style.display = 'block';
-    const score = calcStrength(pw);
-    const levels = [
-      { pct: '20%',  color: '#ef4444', text: 'Very weak' },
-      { pct: '40%',  color: '#f97316', text: 'Weak' },
-      { pct: '60%',  color: '#eab308', text: 'Fair' },
-      { pct: '80%',  color: '#22c55e', text: 'Strong' },
-      { pct: '100%', color: '#10b981', text: 'Very strong' },
-    ];
-    const lvl = levels[Math.min(Math.max(score - 1, 0), levels.length - 1)];
-    strengthFill.style.width = lvl.pct;
-    strengthFill.style.background = lvl.color;
-    strengthLabel.textContent = lvl.text;
-    strengthLabel.style.color = lvl.color;
-  });
+  newPwInput &&
+    newPwInput.addEventListener('input', () => {
+      const pw = newPwInput.value;
+      if (!pw) {
+        strengthBar.style.display = 'none';
+        strengthLabel.style.display = 'none';
+        return;
+      }
+      strengthBar.style.display = 'block';
+      strengthLabel.style.display = 'block';
+      const score = calcStrength(pw);
+      const levels = [
+        { pct: '20%', color: '#ef4444', text: 'Very weak' },
+        { pct: '40%', color: '#f97316', text: 'Weak' },
+        { pct: '60%', color: '#eab308', text: 'Fair' },
+        { pct: '80%', color: '#22c55e', text: 'Strong' },
+        { pct: '100%', color: '#10b981', text: 'Very strong' },
+      ];
+      const lvl = levels[Math.min(Math.max(score - 1, 0), levels.length - 1)];
+      strengthFill.style.width = lvl.pct;
+      strengthFill.style.background = lvl.color;
+      strengthLabel.textContent = lvl.text;
+      strengthLabel.style.color = lvl.color;
+    });
 
   form.addEventListener('submit', async e => {
     e.preventDefault();
@@ -582,7 +583,9 @@ loadNotificationSettings();
       form.reset();
       status.textContent = '✓ Password updated';
       status.style.color = '#10b981';
-      setTimeout(() => { status.textContent = ''; }, 4000);
+      setTimeout(() => {
+        status.textContent = '';
+      }, 4000);
     } catch (err) {
       status.textContent = `✗ ${err.message}`;
       status.style.color = '#ef4444';
@@ -602,12 +605,14 @@ loadNotificationSettings();
 
   function showStep(n) {
     [step1, step2, step3].forEach((el, i) => {
-      if (el) el.hidden = (i + 1) !== n;
+      if (el) el.hidden = i + 1 !== n;
     });
   }
 
   let _deleteModalOpener = null;
-  const _escapeHandler = e => { if (e.key === 'Escape') closeModal(); };
+  const _escapeHandler = e => {
+    if (e.key === 'Escape') closeModal();
+  };
 
   function openModal() {
     showStep(1);
@@ -734,5 +739,3 @@ loadNotificationSettings();
   // Close modal on Escape key
   // Escape key handled by _escapeHandler (registered on modal open)
 })();
-
-

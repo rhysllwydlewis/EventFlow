@@ -245,9 +245,9 @@
     const banner = document.createElement('div');
     banner.id = 'cookie-consent-banner';
     banner.className = 'cookie-consent-banner';
-  banner.setAttribute('aria-live', 'polite');
-  banner.setAttribute('role', 'region');
-  banner.setAttribute('aria-label', 'Cookie consent');
+    banner.setAttribute('aria-live', 'polite');
+    banner.setAttribute('role', 'region');
+    banner.setAttribute('aria-label', 'Cookie consent');
     banner.setAttribute('role', 'dialog');
     banner.setAttribute('aria-modal', 'true');
     banner.setAttribute('aria-label', 'Cookie consent');
@@ -272,11 +272,11 @@
       '</div>';
 
     document.body.appendChild(banner);
-  // Focus first interactive element for keyboard users
-  requestAnimationFrame(() => {
-    const firstBtn = banner.querySelector('button, [href]');
-    if (firstBtn) firstBtn.focus();
-  });
+    // Focus first interactive element for keyboard users
+    requestAnimationFrame(() => {
+      const firstBtn = banner.querySelector('button, [href]');
+      if (firstBtn) firstBtn.focus();
+    });
 
     setTimeout(() => {
       banner.classList.add('cookie-consent-visible');

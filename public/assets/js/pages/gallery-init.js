@@ -8,7 +8,6 @@ function escapeHtml(str) {
   return d.innerHTML;
 }
 
-
 let selectedFiles = [];
 let currentImages = [];
 let currentLightboxIndex = 0;
@@ -492,4 +491,3 @@ document.getElementById('lightboxNext').addEventListener('click', e => {
 
 // Load gallery on page load
 loadGallery();
-

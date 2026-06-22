@@ -405,4 +405,3 @@ window.addEventListener('beforeunload', () => {
   }
   ticketingSystem.cleanup();
 });
-

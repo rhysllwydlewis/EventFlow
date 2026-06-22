@@ -273,11 +273,11 @@ Fill in the registration form and wait for the ALTCHA widget to show **"Verified
 Confirm the payload is captured by running in the **Console**:
 
 ```js
-window.__altchaRegPayload   // should be a non-empty base64 string
+window.__altchaRegPayload; // should be a non-empty base64 string
 ```
 
 ```js
-document.getElementById('reg-altcha-widget')?.value   // same value, alternative read
+document.getElementById('reg-altcha-widget')?.value; // same value, alternative read
 ```
 
 If either of these is `null` or `undefined` after "Verified" appears, the
@@ -314,10 +314,10 @@ or could not be verified.
 The Playwright E2E suite (`e2e/auth.spec.js`, `ALTCHA Registration Payload` describe
 block) runs three tests that cover this flow automatically:
 
-| Test | What it checks |
-|---|---|
-| `registration request includes captchaToken …` | Outgoing payload has a non-empty `captchaToken` field |
-| `registration request does NOT produce "No ALTCHA payload provided"` | Payload is valid; backend mock returns 201, not 400 |
+| Test                                                                              | What it checks                                              |
+| --------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| `registration request includes captchaToken …`                                    | Outgoing payload has a non-empty `captchaToken` field       |
+| `registration request does NOT produce "No ALTCHA payload provided"`              | Payload is valid; backend mock returns 201, not 400         |
 | `registration form is blocked when ALTCHA widget is present but not yet verified` | Guard prevents submission and shows an inline error message |
 
 Run locally with:
