@@ -173,3 +173,6 @@ middleware/rateLimit.js.backup
 tmp-serve-admin.js
 public/preview_subscription_card.html
 .env.test
+
+# Test audit output
+test-audit/
