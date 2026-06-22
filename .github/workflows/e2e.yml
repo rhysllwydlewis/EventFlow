@@ -12,6 +12,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   setup:
     name: Setup Dependencies
@@ -55,7 +58,8 @@ jobs:
 
   e2e-auth:
     name: E2E Auth Focus
-    timeout-minutes: 30
+    # The test step gets 30 minutes, with extra job time reserved for artifact upload.
+    timeout-minutes: 35
     runs-on: ubuntu-latest
     needs: setup
 
@@ -91,6 +95,7 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Run focused auth E2E tests
+        timeout-minutes: 30
         run: npx playwright test e2e/auth.spec.js --project=chromium
         env:
           CI: true
@@ -115,7 +120,8 @@ jobs:
 
   e2e:
     name: E2E Tests Part ${{ matrix.shard }} of 2
-    timeout-minutes: 30
+    # The test step gets 30 minutes, with extra job time reserved for artifact upload.
+    timeout-minutes: 35
     runs-on: ubuntu-latest
     needs: setup
     strategy:
@@ -155,6 +161,7 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Run E2E tests part ${{ matrix.shard }} of 2
+        timeout-minutes: 30
         run: npm run test:e2e:static -- --shard=${{ matrix.shard }}/2
         env:
           CI: true
@@ -179,7 +186,8 @@ jobs:
 
   visual-regression:
     name: Visual Regression Tests
-    timeout-minutes: 30
+    # The test step gets 30 minutes, with extra job time reserved for artifact upload.
+    timeout-minutes: 35
     runs-on: ubuntu-latest
     needs: [setup, e2e]
     if: github.event_name == 'pull_request'
@@ -206,6 +214,7 @@ jobs:
           key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
 
       - name: Run visual regression tests
+        timeout-minutes: 30
         run: npx playwright test --grep @visual
         env:
           NODE_ENV: test
