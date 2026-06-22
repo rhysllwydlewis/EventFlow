@@ -2,9 +2,9 @@ name: E2E Tests
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
   workflow_dispatch:
 
 # Cancel in-progress runs when a new commit is pushed to the same branch/PR
@@ -17,16 +17,16 @@ jobs:
     name: Setup Dependencies
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-      
+
       - name: Cache node_modules
         id: cache-node-modules
         uses: actions/cache@v4
@@ -35,11 +35,11 @@ jobs:
           key: node-modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
           restore-keys: |
             node-modules-${{ runner.os }}-
-      
+
       - name: Install dependencies
         if: steps.cache-node-modules.outputs.cache-hit != 'true'
         run: npm ci
-      
+
       - name: Cache Playwright browsers
         id: cache-playwright
         uses: actions/cache@v4
@@ -48,33 +48,33 @@ jobs:
           key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
           restore-keys: |
             playwright-${{ runner.os }}-
-      
+
       - name: Install Playwright Browsers
         if: steps.cache-playwright.outputs.cache-hit != 'true'
         run: npx playwright install --with-deps chromium
 
-  e2e:
-    name: E2E Tests
+  e2e-auth:
+    name: E2E Auth Focus
     timeout-minutes: 30
     runs-on: ubuntu-latest
     needs: setup
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-      
+
       - name: Restore node_modules cache
         id: restore-npm-cache
         uses: actions/cache@v4
         with:
           path: node_modules
           key: node-modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-      
+
       - name: Install dependencies (cache miss fallback)
         if: steps.restore-npm-cache.outputs.cache-hit != 'true'
         run: npm ci
@@ -85,30 +85,96 @@ jobs:
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-      
+
       - name: Install Playwright browsers (cache miss fallback)
         if: steps.restore-pw-cache.outputs.cache-hit != 'true'
         run: npx playwright install --with-deps chromium
 
-      - name: Run E2E tests
-        run: npm run test:e2e:static
+      - name: Run focused auth E2E tests
+        run: npx playwright test e2e/auth.spec.js --project=chromium
         env:
           CI: true
-      
-      - name: Upload test results
+
+      - name: Upload auth Playwright report
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: playwright-report
+          name: playwright-report-auth
           path: playwright-report/
+          if-no-files-found: warn
           retention-days: 30
-      
-      - name: Upload test artifacts
+
+      - name: Upload auth test artifacts
         uses: actions/upload-artifact@v4
-        if: failure()
+        if: always()
         with:
-          name: test-results
+          name: test-results-auth
           path: test-results/
+          if-no-files-found: warn
+          retention-days: 30
+
+  e2e:
+    name: E2E Tests Part ${{ matrix.shard }} of 2
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    needs: setup
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Restore node_modules cache
+        id: restore-npm-cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: node-modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Install dependencies (cache miss fallback)
+        if: steps.restore-npm-cache.outputs.cache-hit != 'true'
+        run: npm ci
+
+      - name: Restore Playwright browsers cache
+        id: restore-pw-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Install Playwright browsers (cache miss fallback)
+        if: steps.restore-pw-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+
+      - name: Run E2E tests part ${{ matrix.shard }} of 2
+        run: npm run test:e2e:static -- --shard=${{ matrix.shard }}/2
+        env:
+          CI: true
+
+      - name: Upload Playwright report part ${{ matrix.shard }}
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report-part-${{ matrix.shard }}
+          path: playwright-report/
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Upload test artifacts part ${{ matrix.shard }}
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-part-${{ matrix.shard }}
+          path: test-results/
+          if-no-files-found: warn
           retention-days: 30
 
   visual-regression:
@@ -117,38 +183,39 @@ jobs:
     runs-on: ubuntu-latest
     needs: [setup, e2e]
     if: github.event_name == 'pull_request'
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-      
+
       - name: Restore node_modules cache
         uses: actions/cache@v4
         with:
           path: node_modules
           key: node-modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-      
+
       - name: Restore Playwright browsers cache
         uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-      
+
       - name: Run visual regression tests
         run: npx playwright test --grep @visual
         env:
           NODE_ENV: test
           JWT_SECRET: test-secret-key-for-e2e-testing-only-min-32-chars
-      
+
       - name: Upload visual diffs
         uses: actions/upload-artifact@v4
-        if: failure()
+        if: always()
         with:
           name: visual-diffs
           path: test-results/
+          if-no-files-found: warn
           retention-days: 30
