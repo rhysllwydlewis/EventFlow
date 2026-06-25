@@ -444,6 +444,12 @@ class MessengerV4Service {
       ];
     }
 
+    // Exclude conversations that have never had a message sent.
+    // A conversation with lastMessage: null was created but abandoned before
+    // the first message — it should be invisible to recipients and in
+    // inbox listings.  Conversations with a real lastMessage are always shown.
+    query.lastMessage = { $ne: null };
+
     const conversations = await this.conversationsCollection
       .find(query)
       .sort({ updatedAt: -1 })
