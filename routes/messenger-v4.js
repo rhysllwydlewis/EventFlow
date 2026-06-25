@@ -1363,9 +1363,10 @@ router.get('/admin/conversations', applyAuthRequired, async (req, res) => {
     const collection = dbInstance.collection('conversations_v4');
 
     // Only show conversations where at least one message has been sent.
-    // Conversations with lastMessage: null were created but abandoned —
-    // they should not appear in the admin view either.
-    const query = { lastMessage: { $ne: null } };
+    // messageCount is 0 at creation; sendMessage increments it via $inc.
+    // Conversations with messageCount 0 were created but abandoned —
+    // they should not appear in the admin moderation view.
+    const query = { messageCount: { $gt: 0 } };
     if (search && search.trim()) {
       const escapedSearch = search
         .substring(0, 200)
