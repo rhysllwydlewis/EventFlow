@@ -1200,20 +1200,81 @@
     }
   }
 
+  /**
+   * Position the admin notification panel so it is always within the viewport.
+   *
+   * Root-cause of the original bug: the panel was `position:absolute` inside
+   * `.admin-notif-bell-wrap` (which has `position:relative`).  On mobile the
+   * bell wrap sits at approximately x=240–260 on a 390 px screen, so with
+   * `right:0; width:360px` the panel's left edge was at ~260-360 = -100 px —
+   * 100 px off the left of the viewport.  The old CSS `@media(max-width:480px)`
+   * override (`right:-8px`) still anchored to the same container and did not
+   * solve the problem.
+   *
+   * Fix: switch to `position:fixed` via inline style so the panel is always
+   * positioned relative to the viewport, with `top` computed from the button's
+   * `getBoundingClientRect()` so it still opens directly below the bell.
+   */
+  function positionAdminNotifPanel(panel, btn) {
+    const btnRect = btn.getBoundingClientRect();
+    const vw      = window.innerWidth;
+    const top     = Math.round(btnRect.bottom + 8);
+
+    if (vw <= 600) {
+      // ── Mobile / narrow tablet ────────────────────────────────────────────
+      // Pin the panel to viewport edges with 12 px clearance on each side.
+      panel.style.position   = 'fixed';
+      panel.style.top        = top + 'px';
+      panel.style.left       = '12px';
+      panel.style.right      = '12px';
+      panel.style.width      = 'auto';
+      panel.style.maxWidth   = 'none';
+      panel.style.boxSizing  = 'border-box';
+    } else {
+      // ── Desktop / wide tablet ─────────────────────────────────────────────
+      // Right-align to the bell button and clamp both edges to the viewport.
+      const PANEL_W  = 360;
+      const MARGIN   = 12;
+      let rightEdge  = Math.round(btnRect.right);
+      rightEdge      = Math.min(rightEdge, vw - MARGIN);    // clamp right
+      let leftEdge   = rightEdge - PANEL_W;
+      leftEdge       = Math.max(leftEdge, MARGIN);          // clamp left
+      rightEdge      = leftEdge + PANEL_W;
+
+      panel.style.position   = 'fixed';
+      panel.style.top        = top + 'px';
+      panel.style.left       = leftEdge + 'px';
+      panel.style.right      = '';
+      panel.style.width      = PANEL_W + 'px';
+      panel.style.maxWidth   = 'calc(100vw - 24px)';
+      panel.style.boxSizing  = 'border-box';
+    }
+  }
+
+  function clearAdminNotifPanelStyles(panel) {
+    ['position','top','left','right','width','maxWidth','boxSizing'].forEach(p => {
+      panel.style[p] = '';
+    });
+  }
+
   function toggleNotifPanel(open) {
     const panel = document.getElementById('adminNotifPanel');
-    const btn = document.getElementById('adminNotifBellBtn');
+    const btn   = document.getElementById('adminNotifBellBtn');
     if (!panel || !btn) {
       return;
     }
     notifPanelOpen = open;
-    panel.hidden = !open;
     btn.setAttribute('aria-expanded', String(open));
+
     if (open) {
+      positionAdminNotifPanel(panel, btn);
+      panel.hidden = false;
       loadNotifPanel();
       document.addEventListener('click', closeNotifOnOutsideClick, true);
       document.addEventListener('keydown', closeNotifOnEscape);
     } else {
+      clearAdminNotifPanelStyles(panel);
+      panel.hidden = true;
       document.removeEventListener('click', closeNotifOnOutsideClick, true);
       document.removeEventListener('keydown', closeNotifOnEscape);
     }
