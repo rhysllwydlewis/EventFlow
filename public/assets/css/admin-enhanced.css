@@ -4537,10 +4537,18 @@ tbody tr.selected td {
 
 .admin-notif-footer-link:hover { text-decoration: underline; }
 
-/* Mobile */
-@media(max-width:480px) {
+/* Mobile / narrow screens: CSS safety net for the notification panel.
+   The JS positionAdminNotifPanel() function sets position:fixed with the
+   correct top value at open time.  This rule provides a reasonable fallback
+   if JS is slow to run or fails entirely. */
+@media (max-width: 600px) {
   .admin-notif-panel {
-    width: calc(100vw - 16px);
-    right: -8px;
+    position: fixed;
+    top: 64px;           /* approximate admin header height before JS sets exact top */
+    left: 12px;
+    right: 12px;
+    width: auto;
+    max-width: none;
+    box-sizing: border-box;
   }
 }
