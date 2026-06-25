@@ -925,13 +925,6 @@
       const viewportWidth = window.innerWidth;
       const viewportHeight = window.innerHeight;
 
-      // Check if dropdown goes off the right edge
-      const dropdownLeft = viewportWidth - right - dropdownWidth;
-      if (dropdownLeft < 16) {
-        // Adjust to keep 16px padding from left edge
-        right = viewportWidth - dropdownWidth - 16;
-      }
-
       // Check if dropdown goes off the bottom edge
       if (top + dropdownHeight > viewportHeight - 16) {
         // Position above the bell instead
@@ -943,8 +936,30 @@
         }
       }
 
-      dropdown.style.top = `${top}px`;
-      dropdown.style.right = `${right}px`;
+      if (viewportWidth <= 480) {
+        // ── Mobile: pin to viewport with safe margins ──────────────────────
+        // The right-based calculation produces a negative value on narrow screens
+        // (e.g. 360px viewport, 380px dropdown → right = 360-380-16 = -36px),
+        // which pushes the panel off the right edge.  On mobile we instead
+        // stretch the panel between 12px margins on each side.
+        dropdown.style.top    = `${top}px`;
+        dropdown.style.right  = '12px';
+        dropdown.style.left   = '12px';
+        dropdown.style.width  = 'auto';
+      } else {
+        // ── Desktop/tablet: right-anchored below the bell ─────────────────
+        // Guard against negative right values (would overflow right edge).
+        const dropdownLeft = viewportWidth - right - dropdownWidth;
+        if (dropdownLeft < 16) {
+          right = viewportWidth - dropdownWidth - 16;
+        }
+        right = Math.max(0, right); // Never negative
+
+        dropdown.style.top   = `${top}px`;
+        dropdown.style.right = `${right}px`;
+        dropdown.style.left  = '';   // clear any mobile style
+        dropdown.style.width = '';   // restore CSS-defined width
+      }
     };
 
     // Find pre-rendered dropdown or create if not found
