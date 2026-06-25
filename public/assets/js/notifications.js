@@ -942,10 +942,11 @@
         // (e.g. 360px viewport, 380px dropdown → right = 360-380-16 = -36px),
         // which pushes the panel off the right edge.  On mobile we instead
         // stretch the panel between 12px margins on each side.
-        dropdown.style.top    = `${top}px`;
-        dropdown.style.right  = '12px';
-        dropdown.style.left   = '12px';
-        dropdown.style.width  = 'auto';
+        dropdown.style.top      = `${top}px`;
+        dropdown.style.right    = '12px';
+        dropdown.style.left     = '12px';
+        dropdown.style.width    = 'auto';
+        dropdown.style.maxWidth = 'none'; // let left+right pins control the width exactly
       } else {
         // ── Desktop/tablet: right-anchored below the bell ─────────────────
         // Guard against negative right values (would overflow right edge).
@@ -955,10 +956,11 @@
         }
         right = Math.max(0, right); // Never negative
 
-        dropdown.style.top   = `${top}px`;
-        dropdown.style.right = `${right}px`;
-        dropdown.style.left  = '';   // clear any mobile style
-        dropdown.style.width = '';   // restore CSS-defined width
+        dropdown.style.top      = `${top}px`;
+        dropdown.style.right    = `${right}px`;
+        dropdown.style.left     = '';     // clear any mobile style
+        dropdown.style.width    = '';     // restore CSS-defined width
+        dropdown.style.maxWidth = '';     // restore CSS-defined max-width
       }
     };
 
