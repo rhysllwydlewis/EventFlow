@@ -1362,7 +1362,10 @@ router.get('/admin/conversations', applyAuthRequired, async (req, res) => {
     const dbInstance = await getDbInstance();
     const collection = dbInstance.collection('conversations_v4');
 
-    const query = {};
+    // Only show conversations where at least one message has been sent.
+    // Conversations with lastMessage: null were created but abandoned —
+    // they should not appear in the admin view either.
+    const query = { lastMessage: { $ne: null } };
     if (search && search.trim()) {
       const escapedSearch = search
         .substring(0, 200)
