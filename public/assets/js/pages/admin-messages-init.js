@@ -55,6 +55,49 @@
     }, 0);
   }
 
+  // Build a single conversation row — either as a standard <tr> for wider
+  // viewports, or as a stacked card <tr> for mobile (≤ 600 px).
+  function buildRow(conv) {
+    const id = escapeHtml(conv._id || '');
+    const unread = unreadTotal(conv);
+    const names = participantNames(conv);
+    const chips = contextChips(conv);
+    const dateStr = formatDate(conv.updatedAt || (conv.lastMessage && conv.lastMessage.sentAt));
+    const snippet = conv.lastMessage && conv.lastMessage.content
+      ? escapeHtml(conv.lastMessage.content.substring(0, 80))
+      : '—';
+    const openLink = `<a href="/admin-messenger-view?conversation=${id}" class="btn-sm" style="text-decoration:none" target="_blank">Open</a>`;
+
+    // On narrow screens render as a self-contained card row so nothing is
+    // clipped or pushed off-screen.
+    if (window.innerWidth <= 600) {
+      return (
+        `<tr class="admin-messenger-card-row" style="border-top:1px solid rgba(0,0,0,.07);display:block;padding:0.75rem 0">` +
+        `<td style="display:block;padding:0.25rem 0.75rem">` +
+          `<strong style="font-size:0.85rem">${names}</strong>` +
+          (chips ? ` <span style="margin-left:4px">${chips}</span>` : '') +
+        `</td>` +
+        `<td style="display:block;padding:0.15rem 0.75rem;font-size:0.8rem;opacity:0.7">${snippet}</td>` +
+        `<td style="display:block;padding:0.15rem 0.75rem;font-size:0.75rem;opacity:0.55">${dateStr}` +
+          (unread > 0 ? ` · <span style="color:#dc2626;font-weight:600">${unread} unread</span>` : '') +
+        `</td>` +
+        `<td style="display:block;padding:0.25rem 0.75rem">${openLink}</td>` +
+        `</tr>`
+      );
+    }
+
+    // Desktop: standard table row
+    return (
+      `<tr style="border-top:1px solid rgba(0,0,0,.07)">` +
+      `<td style="padding:0.5rem 0.75rem;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${names}</td>` +
+      `<td style="padding:0.5rem 0.75rem">${chips || '—'}</td>` +
+      `<td style="padding:0.5rem 0.75rem;font-size:0.85rem;opacity:0.8">${dateStr}</td>` +
+      `<td style="padding:0.5rem 0.75rem;text-align:center">${unread > 0 ? `<span class="mod-badge" style="background:rgba(239,68,68,.15);color:#dc2626">${unread}</span>` : '—'}</td>` +
+      `<td style="padding:0.5rem 0.75rem;text-align:center">${openLink}</td>` +
+      `</tr>`
+    );
+  }
+
   function renderTable(conversations) {
     const tbody = document.getElementById('msgModerationBody');
     if (!tbody) {
@@ -65,20 +108,7 @@
         '<tr><td colspan="5" style="padding:1rem;text-align:center;opacity:0.6">No conversations found.</td></tr>';
       return;
     }
-    const rows = conversations.map(conv => {
-      const id = escapeHtml(conv._id || '');
-      const unread = unreadTotal(conv);
-      return (
-        `<tr style="border-top:1px solid rgba(0,0,0,.07)">` +
-        `<td style="padding:0.5rem 0.75rem;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${participantNames(conv)}</td>` +
-        `<td style="padding:0.5rem 0.75rem">${contextChips(conv) || '—'}</td>` +
-        `<td style="padding:0.5rem 0.75rem;font-size:0.85rem;opacity:0.8">${formatDate(conv.updatedAt || (conv.lastMessage && conv.lastMessage.sentAt))}</td>` +
-        `<td style="padding:0.5rem 0.75rem;text-align:center">${unread > 0 ? `<span class="mod-badge" style="background:rgba(239,68,68,.15);color:#dc2626">${unread}</span>` : '—'}</td>` +
-        `<td style="padding:0.5rem 0.75rem;text-align:center"><a href="/admin-messenger-view?conversation=${id}" class="btn-sm" style="text-decoration:none" target="_blank">Open</a></td>` +
-        `</tr>`
-      );
-    });
-    tbody.innerHTML = rows.join('');
+    tbody.innerHTML = conversations.map(buildRow).join('');
   }
 
   function updatePager() {
