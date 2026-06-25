@@ -460,10 +460,16 @@ router.post(
         creatorUserId: currentUserId,
       });
 
-      // Emit WebSocket event to all participants
-      emitToConversation(conversation, 'messenger:v4:conversation-created', {
-        conversation,
-      });
+      // Emit WebSocket event to the creator only.
+      // We do NOT broadcast to other participants here because the conversation
+      // is still empty (lastMessage: null).  Other participants will only see
+      // the conversation once a real message arrives via the existing
+      // 'messenger:v4:new-message' WS event, which carries the conversation
+      // context and is emitted to all participants on message send.
+      const wsServer = _getWsServer ? _getWsServer() : null;
+      if (wsServer) {
+        wsServer.to(currentUserId).emit('messenger:v4:conversation-created', { conversation });
+      }
 
       messengerMetrics.increment('messenger_v4_conversations_created_total');
       logger.info('messenger_v4 conversation_created', {
@@ -1356,7 +1362,11 @@ router.get('/admin/conversations', applyAuthRequired, async (req, res) => {
     const dbInstance = await getDbInstance();
     const collection = dbInstance.collection('conversations_v4');
 
-    const query = {};
+    // Only show conversations where at least one message has been sent.
+    // messageCount is 0 at creation; sendMessage increments it via $inc.
+    // Conversations with messageCount 0 were created but abandoned —
+    // they should not appear in the admin moderation view.
+    const query = { messageCount: { $gt: 0 } };
     if (search && search.trim()) {
       const escapedSearch = search
         .substring(0, 200)

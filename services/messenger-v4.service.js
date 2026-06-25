@@ -444,6 +444,14 @@ class MessengerV4Service {
       ];
     }
 
+    // Exclude conversations that have never had a message sent.
+    // messageCount is 0 at creation and is reliably incremented by sendMessage
+    // via $inc, so messageCount > 0 is the canonical indicator that at least
+    // one real message exists.  Using messageCount (rather than lastMessage)
+    // avoids breaking existing unit tests whose mock data sets messageCount
+    // but does not always populate lastMessage.
+    query.messageCount = { $gt: 0 };
+
     const conversations = await this.conversationsCollection
       .find(query)
       .sort({ updatedAt: -1 })
