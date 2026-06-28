@@ -1099,9 +1099,10 @@ body.home-v2-page {
   .v2-search__group:last-child { border-bottom: none; }
   .v2-search__btn { width: 100%; min-height: 50px; border-radius: 28px; }
 
-  /* Chips 2-col */
+  /* Chips 2-col — last chip spans full width when count is odd */
   .v2-chips { display: grid; grid-template-columns: repeat(2, 1fr); }
   .v2-chip { width: 100%; text-align: center; }
+  .v2-chip:last-child:nth-child(odd) { grid-column: span 2; }
 
   /* Journey single col */
   .v2-journey { grid-template-columns: 1fr; }
