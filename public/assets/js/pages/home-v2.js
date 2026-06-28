@@ -1,60 +1,68 @@
 (() => {
   'use strict';
 
-  const menuButton = document.querySelector('.v2-menu-toggle');
-  const mobileMenu = document.getElementById('v2-mobile-menu');
-  const categoryField = document.getElementById('home-v2-category');
-  const locationField = document.getElementById('home-v2-location');
-  const chipButtons = document.querySelectorAll('.v2-chip-row button[data-category]');
+  // ── Elements ──────────────────────────────────────────────────────────
+  const burger     = document.querySelector('.v2-burger');
+  const mobileNav  = document.getElementById('v2-mobile-nav');
+  const catSelect  = document.getElementById('v2-cat');
+  const locInput   = document.getElementById('v2-loc');
+  const chips      = document.querySelectorAll('.v2-chip[data-category]');
   const searchForm = document.querySelector('.v2-search');
 
-  function closeMenu() {
-    if (!menuButton || !mobileMenu) return;
-    menuButton.setAttribute('aria-expanded', 'false');
-    mobileMenu.hidden = true;
+  // ── Mobile menu ───────────────────────────────────────────────────────
+  function closeNav() {
+    if (!burger || !mobileNav) return;
+    burger.setAttribute('aria-expanded', 'false');
+    burger.setAttribute('aria-label', 'Open navigation menu');
+    mobileNav.hidden = true;
   }
 
-  if (menuButton && mobileMenu) {
-    menuButton.addEventListener('click', () => {
-      const isOpen = menuButton.getAttribute('aria-expanded') === 'true';
-      menuButton.setAttribute('aria-expanded', String(!isOpen));
-      mobileMenu.hidden = isOpen;
+  if (burger && mobileNav) {
+    burger.addEventListener('click', () => {
+      const open = burger.getAttribute('aria-expanded') === 'true';
+      burger.setAttribute('aria-expanded', String(!open));
+      burger.setAttribute('aria-label', open ? 'Open navigation menu' : 'Close navigation menu');
+      mobileNav.hidden = open;
     });
 
-    mobileMenu.addEventListener('click', event => {
-      if (event.target instanceof HTMLAnchorElement) {
-        closeMenu();
-      }
+    // Close when a nav link is tapped
+    mobileNav.addEventListener('click', e => {
+      if (e.target instanceof HTMLAnchorElement) closeNav();
     });
 
-    document.addEventListener('keydown', event => {
-      if (event.key === 'Escape') {
-        closeMenu();
+    // Close on Escape
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') closeNav();
+    });
+
+    // Close when focus leaves the menu
+    document.addEventListener('focusin', e => {
+      if (
+        !mobileNav.hidden &&
+        !mobileNav.contains(e.target) &&
+        e.target !== burger
+      ) {
+        closeNav();
       }
     });
   }
 
-  chipButtons.forEach(button => {
-    button.addEventListener('click', () => {
-      if (categoryField) {
-        categoryField.value = button.dataset.category || '';
-      }
-
-      if (locationField && button.dataset.location) {
-        locationField.value = button.dataset.location;
-      }
-
-      if (searchForm) {
-        searchForm.requestSubmit();
-      }
+  // ── Popular chips → populate form and submit ──────────────────────────
+  chips.forEach(chip => {
+    chip.addEventListener('click', () => {
+      if (catSelect) catSelect.value = chip.dataset.category || '';
+      if (locInput && chip.dataset.location) locInput.value = chip.dataset.location;
+      if (searchForm) searchForm.requestSubmit();
     });
   });
 
+  // ── Search form: loading state ────────────────────────────────────────
   if (searchForm) {
     searchForm.addEventListener('submit', () => {
-      const submitButton = searchForm.querySelector('button[type="submit"]');
-      if (submitButton) {
-        submitButton.setAttribute('aria-busy', 'true');
+      const btn = searchForm.querySelector('.v2-search__btn');
+      if (btn) {
+        btn.setAttribute('aria-busy', 'true');
+        btn.disabled = true;
       }
     });
   }
