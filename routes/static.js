@@ -11,8 +11,11 @@ const { generateSitemap, generateRobotsTxt } = require('../sitemap');
 const { authLimiter, apiLimiter } = require('../middleware/rateLimits');
 const logger = require('../utils/logger');
 const sentry = require('../utils/sentry');
+const homeV2PreviewRoutes = require('./home-v2-preview');
 
 const router = express.Router();
+
+router.use(homeV2PreviewRoutes);
 
 /**
  * GET /verify
