@@ -10,14 +10,14 @@
     <title>EventFlow — Plan Better. Celebrate More.</title>
     <meta
       name="description"
-      content="Plan your event in one place with EventFlow. Discover suppliers, compare options, browse marketplace items and keep budgets, guests, timelines and supplier conversations together."
+      content="Plan your event in one place with EventFlow. Discover suppliers, compare options, browse marketplace items and keep budgets, guests, timelines and conversations together."
     />
     <link rel="canonical" href="https://event-flow.co.uk/" />
 
     <meta property="og:title" content="EventFlow — Plan Better. Celebrate More." />
     <meta
       property="og:description"
-      content="The premium UK event planning platform for suppliers, marketplace finds, budgets, timelines, guests and bookings."
+      content="The premium UK event planning platform. Suppliers, marketplace, budgets, timelines and guests in one place."
     />
     <meta property="og:url" content="https://event-flow.co.uk/" />
     <meta property="og:type" content="website" />
@@ -35,7 +35,7 @@
         "@id": "https://event-flow.co.uk/#home-v2",
         "url": "https://event-flow.co.uk/",
         "name": "EventFlow — Plan Better. Celebrate More.",
-        "description": "Plan your event in one place with EventFlow. Discover suppliers, compare options, browse marketplace items and manage budgets, guests, timelines and supplier conversations.",
+        "description": "Plan your event in one place with EventFlow. Discover suppliers, compare options, browse marketplace items and manage budgets, guests, timelines and conversations.",
         "isPartOf": {
           "@type": "WebSite",
           "@id": "https://event-flow.co.uk/#website",
@@ -51,8 +51,9 @@
       }
     </script>
 
-    <link rel="preload" href="/assets/css/home-v2.css?v=1" as="style" />
-    <link rel="stylesheet" href="/assets/css/home-v2.css?v=1" />
+    <link rel="preload" as="image" href="/assets/images/hero-venue.webp" type="image/webp" />
+    <link rel="preload" href="/assets/css/home-v2.css?v=2" as="style" />
+    <link rel="stylesheet" href="/assets/css/home-v2.css?v=2" />
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
@@ -61,6 +62,7 @@
   <body class="home-v2-page">
     <a class="skip-link" href="#main-content">Skip to main content</a>
 
+    <!-- ── Header ──────────────────────────────────────────────────────── -->
     <header class="v2-header" role="banner">
       <div class="v2-shell v2-header__inner">
         <a class="v2-brand" href="/" aria-label="EventFlow home">
@@ -83,7 +85,7 @@
           <button
             class="v2-menu-toggle"
             type="button"
-            aria-label="Open menu"
+            aria-label="Open navigation menu"
             aria-controls="v2-mobile-menu"
             aria-expanded="false"
           >
@@ -105,17 +107,30 @@
     </header>
 
     <main id="main-content">
+
+      <!-- ── Hero ─────────────────────────────────────────────────────── -->
       <section class="v2-hero" aria-labelledby="home-v2-title">
-        <div class="v2-hero__glow v2-hero__glow--one" aria-hidden="true"></div>
-        <div class="v2-hero__glow v2-hero__glow--two" aria-hidden="true"></div>
+        <div class="v2-hero__bg" aria-hidden="true">
+          <picture>
+            <source srcset="/assets/images/hero-venue.webp" type="image/webp" />
+            <img
+              src="/assets/images/hero-venue.jpg"
+              alt=""
+              width="1400"
+              height="900"
+              loading="eager"
+              decoding="async"
+              fetchpriority="high"
+            />
+          </picture>
+        </div>
 
         <div class="v2-shell v2-hero__grid">
           <div class="v2-hero__copy">
-            <p class="v2-eyebrow">Trusted by event planners</p>
-            <h1 id="home-v2-title">Plan Better. Celebrate More.</h1>
+            <p class="v2-eyebrow">Trusted by UK event planners</p>
+            <h1 id="home-v2-title">Plan Better.<br />Celebrate More.</h1>
             <p class="v2-hero__lead">
-              The smarter way to discover suppliers, compare ideas, browse marketplace finds and
-              keep every event decision moving in one calm, organised place.
+              The calmer way to discover suppliers, browse marketplace finds and keep every event decision in one place.
             </p>
 
             <form
@@ -125,20 +140,20 @@
               aria-label="Find event suppliers"
             >
               <label class="v2-search__field">
-                <span>What are you planning?</span>
+                <span class="v2-search__label">What are you planning?</span>
                 <select name="category" id="home-v2-category">
                   <option value="">All event suppliers</option>
                   <option value="Venues">Wedding venues</option>
                   <option value="Photography">Photographers</option>
                   <option value="Catering">Caterers</option>
-                  <option value="Entertainment">Live bands and DJs</option>
+                  <option value="Entertainment">Live bands &amp; DJs</option>
                   <option value="Event Planner">Event planners</option>
-                  <option value="Decor">Decor and styling</option>
+                  <option value="Decor">Decor &amp; styling</option>
                 </select>
               </label>
 
-              <label class="v2-search__field">
-                <span>Location</span>
+              <label class="v2-search__field v2-search__field--mid">
+                <span class="v2-search__label">Location</span>
                 <input
                   id="home-v2-location"
                   name="location"
@@ -148,354 +163,390 @@
                 />
               </label>
 
-              <label class="v2-search__field">
-                <span>When?</span>
-                <input id="home-v2-date" name="date" type="date" />
-              </label>
-
-              <button class="v2-button v2-search__submit" type="submit">Search</button>
+              <button class="v2-button v2-search__submit" type="submit">
+                <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="8.5" cy="8.5" r="5.75"/>
+                  <line x1="13" y1="13" x2="18" y2="18"/>
+                </svg>
+                <span>Search</span>
+              </button>
             </form>
 
             <div class="v2-chip-row" aria-label="Popular searches">
-              <button type="button" data-category="Venues" data-location="">Wedding venues</button>
-              <button type="button" data-category="Photography" data-location="">
-                Photographers
-              </button>
-              <button type="button" data-category="Catering" data-location="">Caterers</button>
-              <button type="button" data-category="Entertainment" data-location="">
-                Live bands
-              </button>
-              <button type="button" data-category="Event Planner" data-location="">
-                Event planners
-              </button>
+              <button type="button" data-category="Venues">Wedding venues</button>
+              <button type="button" data-category="Photography">Photographers</button>
+              <button type="button" data-category="Catering">Caterers</button>
+              <button type="button" data-category="Entertainment">Live bands</button>
+              <button type="button" data-category="Event Planner">Event planners</button>
             </div>
 
-            <dl class="v2-trust-strip" aria-label="EventFlow trust indicators">
-              <div>
-                <dt>Suppliers</dt>
-                <dd>Opening in stages</dd>
-              </div>
-              <div>
-                <dt>No booking fees</dt>
-                <dd>Plan directly</dd>
-              </div>
-              <div>
-                <dt>Secure messaging</dt>
-                <dd>Keep chats together</dd>
-              </div>
-            </dl>
+            <ul class="v2-trust-row" aria-label="EventFlow platform highlights">
+              <li>
+                <svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 10l4 4 6-7"/></svg>
+                Plan for free
+              </li>
+              <li>
+                <svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 10l4 4 6-7"/></svg>
+                No booking fees
+              </li>
+              <li>
+                <svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 10l4 4 6-7"/></svg>
+                Secure messaging
+              </li>
+              <li>
+                <svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 10l4 4 6-7"/></svg>
+                UK suppliers
+              </li>
+            </ul>
           </div>
 
-          <div class="v2-hero__visual" aria-label="Event planning inspiration">
-            <div class="v2-photo-stack">
-              <figure class="v2-photo-card v2-photo-card--main">
+          <div class="v2-hero__visual" aria-hidden="true">
+            <div class="v2-hero-card v2-hero-card--main">
+              <picture>
+                <source srcset="/assets/images/collage-venue.webp" type="image/webp" />
                 <img
                   src="/assets/images/collage-venue.jpg"
-                  alt="Elegant event venue table setting with soft lighting"
-                  width="720"
-                  height="900"
-                  loading="eager"
-                  decoding="async"
-                  fetchpriority="high"
-                />
-              </figure>
-              <figure class="v2-photo-card v2-photo-card--small v2-photo-card--top">
-                <img
-                  src="/assets/images/collage-catering.jpg"
-                  alt="Catering and drinks prepared for an event"
-                  width="420"
-                  height="340"
+                  alt="Elegant event venue table setting"
+                  width="680"
+                  height="820"
                   loading="eager"
                   decoding="async"
                 />
-              </figure>
-              <figure class="v2-photo-card v2-photo-card--small v2-photo-card--bottom">
+              </picture>
+              <div class="v2-hero-badge v2-hero-badge--top">
+                <svg width="15" height="15" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M10 2l2.39 4.84 5.34.78-3.86 3.76.91 5.32L10 14.27l-4.78 2.51.91-5.32L2.27 7.62l5.34-.78L10 2z"/></svg>
+                <span>3 venues compared</span>
+              </div>
+              <div class="v2-hero-badge v2-hero-badge--bottom">
+                <svg width="14" height="14" viewBox="0 0 20 20" fill="none" aria-hidden="true" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="16" height="12" rx="2"/><path d="M2 8h16"/></svg>
+                <span>Budget on track · £8,400</span>
+              </div>
+            </div>
+            <div class="v2-hero-card v2-hero-card--side">
+              <picture>
+                <source srcset="/assets/images/collage-photography.webp" type="image/webp" />
                 <img
                   src="/assets/images/collage-photography.jpg"
                   alt="Photographer capturing a celebration"
-                  width="420"
-                  height="340"
-                  loading="lazy"
+                  width="340"
+                  height="280"
+                  loading="eager"
                   decoding="async"
                 />
-              </figure>
-              <div class="v2-floating-panel v2-floating-panel--plan">
-                <span class="v2-floating-panel__label">Today’s plan</span>
-                <strong>Venue shortlist ready</strong>
-                <span>3 suppliers saved · 2 quotes to compare</span>
-              </div>
-              <div class="v2-floating-panel v2-floating-panel--budget">
-                <span class="v2-floating-panel__label">Budget</span>
-                <strong>£8,400 tracked</strong>
-                <span>Decor, catering and entertainment in one view</span>
-              </div>
+              </picture>
             </div>
           </div>
         </div>
       </section>
 
-      <section class="v2-section v2-section--compact" aria-label="EventFlow platform benefits">
-        <div class="v2-shell v2-proof-grid">
-          <article>
-            <span aria-hidden="true">✓</span>
-            <h2>Plan from one calm dashboard</h2>
-            <p>Keep budgets, dates, tasks, guests and supplier conversations in the same flow.</p>
+      <!-- ── Pillars ───────────────────────────────────────────────────── -->
+      <section class="v2-section v2-section--pillars" aria-label="Platform pillars">
+        <div class="v2-shell v2-pillars">
+          <article class="v2-pillar">
+            <div class="v2-pillar__icon" aria-hidden="true">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+              </svg>
+            </div>
+            <h2>Discover suppliers</h2>
+            <p>Search by event type, category and location. Save and compare the options that matter.</p>
           </article>
-          <article>
-            <span aria-hidden="true">★</span>
-            <h2>Discover suppliers with context</h2>
-            <p>
-              Search by event type, category and location, then save the options worth comparing.
-            </p>
+          <article class="v2-pillar">
+            <div class="v2-pillar__icon" aria-hidden="true">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+              </svg>
+            </div>
+            <h2>Organise the details</h2>
+            <p>Budgets, checklists, timelines and guest lists — all moving alongside your suppliers.</p>
           </article>
-          <article>
-            <span aria-hidden="true">£</span>
-            <h2>Buy or hire what you need</h2>
-            <p>
-              The marketplace keeps dresses, decor, lighting, furniture and AV close to the plan.
-            </p>
+          <article class="v2-pillar">
+            <div class="v2-pillar__icon" aria-hidden="true">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 12V22H4V12"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/>
+              </svg>
+            </div>
+            <h2>Browse the marketplace</h2>
+            <p>Dresses, decor, lighting, furniture and finishing touches — all close to the plan.</p>
           </article>
         </div>
       </section>
 
-      <section class="v2-section" aria-labelledby="journey-title">
+      <!-- ── Journey ───────────────────────────────────────────────────── -->
+      <section class="v2-section v2-section--cream" aria-labelledby="journey-title">
         <div class="v2-shell">
           <div class="v2-section__header">
-            <p class="v2-eyebrow">Planning journey</p>
+            <p class="v2-eyebrow">How it works</p>
             <h2 id="journey-title">From first idea to final booking</h2>
-            <p>
-              EventFlow brings the scattered parts of planning into a single journey, so customers
-              can move from inspiration to booked suppliers without losing the thread.
-            </p>
           </div>
-
-          <div class="v2-journey" role="list">
-            <article role="listitem">
-              <span>01</span>
+          <ol class="v2-journey" aria-label="Planning journey steps">
+            <li>
+              <span class="v2-journey__num" aria-hidden="true">01</span>
               <h3>Create your event</h3>
-              <p>Add your event type, date, location and must-haves.</p>
-            </article>
-            <article role="listitem">
-              <span>02</span>
+              <p>Add your event type, date, location and must-haves. Takes two minutes.</p>
+            </li>
+            <li>
+              <span class="v2-journey__num" aria-hidden="true">02</span>
               <h3>Build your plan</h3>
-              <p>Use checklists, budgets and timelines to keep decisions visible.</p>
-            </article>
-            <article role="listitem">
-              <span>03</span>
+              <p>Use checklists, budgets and timelines to keep decisions clear.</p>
+            </li>
+            <li>
+              <span class="v2-journey__num" aria-hidden="true">03</span>
               <h3>Compare suppliers</h3>
-              <p>Shortlist venues, caterers, photographers and entertainment.</p>
-            </article>
-            <article role="listitem">
-              <span>04</span>
+              <p>Shortlist and save venues, caterers, photographers and entertainment.</p>
+            </li>
+            <li>
+              <span class="v2-journey__num" aria-hidden="true">04</span>
               <h3>Message directly</h3>
-              <p>Keep quotes, questions and availability checks together.</p>
-            </article>
-            <article role="listitem">
-              <span>05</span>
+              <p>Keep quotes and conversations tied to each supplier and event.</p>
+            </li>
+            <li>
+              <span class="v2-journey__num" aria-hidden="true">05</span>
               <h3>Book with confidence</h3>
-              <p>Make clearer choices and enjoy the event you planned.</p>
-            </article>
-          </div>
+              <p>Make clearer choices and enjoy the event you planned for.</p>
+            </li>
+          </ol>
         </div>
       </section>
 
-      <section class="v2-section v2-section--cream" aria-labelledby="categories-title">
+      <!-- ── Categories ────────────────────────────────────────────────── -->
+      <section class="v2-section" aria-labelledby="categories-title">
         <div class="v2-shell">
           <div class="v2-section__header v2-section__header--split">
             <div>
-              <p class="v2-eyebrow">Supplier discovery</p>
-              <h2 id="categories-title">Start with the suppliers that shape the day</h2>
+              <p class="v2-eyebrow">Supplier categories</p>
+              <h2 id="categories-title">Find the suppliers that shape the day</h2>
             </div>
-            <a class="v2-secondary-link" href="/suppliers">Browse all suppliers</a>
+            <a class="v2-text-link" href="/suppliers">Browse all suppliers</a>
           </div>
-
           <div class="v2-category-grid">
             <a class="v2-category-card" href="/suppliers?category=Venues">
-              <img
-                src="/assets/images/collage-venue.jpg"
-                alt=""
-                width="520"
-                height="360"
-                loading="lazy"
-                decoding="async"
-              />
-              <span>Wedding venues</span>
+              <picture>
+                <source srcset="/assets/images/collage-venue.webp" type="image/webp" />
+                <img src="/assets/images/collage-venue.jpg" alt="" width="540" height="380" loading="lazy" decoding="async" />
+              </picture>
+              <span class="v2-category-card__label">Wedding venues</span>
             </a>
             <a class="v2-category-card" href="/suppliers?category=Photography">
-              <img
-                src="/assets/images/collage-photography.jpg"
-                alt=""
-                width="520"
-                height="360"
-                loading="lazy"
-                decoding="async"
-              />
-              <span>Photographers</span>
+              <picture>
+                <source srcset="/assets/images/collage-photography.webp" type="image/webp" />
+                <img src="/assets/images/collage-photography.jpg" alt="" width="540" height="380" loading="lazy" decoding="async" />
+              </picture>
+              <span class="v2-category-card__label">Photographers</span>
             </a>
             <a class="v2-category-card" href="/suppliers?category=Catering">
-              <img
-                src="/assets/images/collage-catering.jpg"
-                alt=""
-                width="520"
-                height="360"
-                loading="lazy"
-                decoding="async"
-              />
-              <span>Caterers</span>
+              <picture>
+                <source srcset="/assets/images/collage-catering.webp" type="image/webp" />
+                <img src="/assets/images/collage-catering.jpg" alt="" width="540" height="380" loading="lazy" decoding="async" />
+              </picture>
+              <span class="v2-category-card__label">Caterers</span>
             </a>
             <a class="v2-category-card" href="/suppliers?category=Entertainment">
-              <img
-                src="/assets/images/collage-entertainment.jpg"
-                alt=""
-                width="520"
-                height="360"
-                loading="lazy"
-                decoding="async"
-              />
-              <span>Entertainment</span>
+              <picture>
+                <source srcset="/assets/images/collage-entertainment.webp" type="image/webp" />
+                <img src="/assets/images/collage-entertainment.jpg" alt="" width="540" height="380" loading="lazy" decoding="async" />
+              </picture>
+              <span class="v2-category-card__label">Entertainment</span>
             </a>
           </div>
         </div>
       </section>
 
+      <!-- ── Marketplace ───────────────────────────────────────────────── -->
       <section class="v2-section v2-marketplace" aria-labelledby="marketplace-title">
         <div class="v2-shell v2-marketplace__grid">
           <div class="v2-marketplace__copy">
-            <p class="v2-eyebrow">Marketplace</p>
-            <h2 id="marketplace-title">Everything for your event, in one place.</h2>
+            <p class="v2-eyebrow v2-eyebrow--light">Marketplace</p>
+            <h2 id="marketplace-title">Everything for your event, in one place</h2>
             <p>
-              Buy or hire dresses, decor, furniture, AV equipment and finishing touches from the
-              same planning platform you use to manage suppliers.
+              Buy or hire dresses, decor, furniture, lighting, AV equipment and finishing touches — all from the same platform you use to manage suppliers.
             </p>
-            <a class="v2-button" href="/marketplace">Browse marketplace</a>
+            <a class="v2-button v2-button--white" href="/marketplace">Browse marketplace</a>
           </div>
 
-          <div class="v2-marketplace__cards" aria-label="Marketplace examples">
-            <a href="/marketplace?category=decor" class="v2-product-card">
-              <span class="v2-product-card__icon" aria-hidden="true">🌿</span>
-              <strong>Eucalyptus centrepieces</strong>
-              <small>Decor and table styling</small>
+          <div class="v2-marketplace__items" aria-label="Marketplace item examples">
+            <a class="v2-mkt-card" href="/marketplace?category=decor">
+              <div class="v2-mkt-card__img" aria-hidden="true">
+                <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <rect width="80" height="80" rx="16" fill="rgba(255,255,255,0.08)"/>
+                  <path d="M40 18c-3 6-10 10-10 18s4 12 10 12 10-4 10-12-7-12-10-18z" fill="rgba(52,211,153,0.4)" stroke="rgba(52,211,153,0.7)" stroke-width="1.5"/>
+                  <path d="M30 44c-3 2-6 4-6 8h32c0-4-3-6-6-8" stroke="rgba(255,255,255,0.4)" stroke-width="1.5" stroke-linecap="round"/>
+                  <rect x="38" y="52" width="4" height="8" rx="2" fill="rgba(255,255,255,0.3)"/>
+                </svg>
+              </div>
+              <div class="v2-mkt-card__body">
+                <strong>Eucalyptus centrepieces</strong>
+                <span>Decor &amp; table styling</span>
+              </div>
             </a>
-            <a href="/marketplace?category=furniture" class="v2-product-card">
-              <span class="v2-product-card__icon" aria-hidden="true">🪑</span>
-              <strong>Chiavari chair hire</strong>
-              <small>Furniture and seating</small>
+            <a class="v2-mkt-card" href="/marketplace?category=furniture">
+              <div class="v2-mkt-card__img" aria-hidden="true">
+                <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <rect width="80" height="80" rx="16" fill="rgba(255,255,255,0.08)"/>
+                  <rect x="18" y="34" width="44" height="6" rx="3" fill="rgba(255,255,255,0.3)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+                  <rect x="22" y="40" width="4" height="20" rx="2" fill="rgba(255,255,255,0.2)"/>
+                  <rect x="54" y="40" width="4" height="20" rx="2" fill="rgba(255,255,255,0.2)"/>
+                  <rect x="30" y="28" width="20" height="6" rx="3" fill="rgba(255,255,255,0.15)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+                </svg>
+              </div>
+              <div class="v2-mkt-card__body">
+                <strong>Chiavari chair hire</strong>
+                <span>Furniture &amp; seating</span>
+              </div>
             </a>
-            <a href="/marketplace?category=lighting" class="v2-product-card">
-              <span class="v2-product-card__icon" aria-hidden="true">✨</span>
-              <strong>Fairy light backdrop</strong>
-              <small>Lighting and atmosphere</small>
+            <a class="v2-mkt-card" href="/marketplace?category=lighting">
+              <div class="v2-mkt-card__img" aria-hidden="true">
+                <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <rect width="80" height="80" rx="16" fill="rgba(255,255,255,0.08)"/>
+                  <circle cx="40" cy="32" r="12" fill="rgba(255,220,80,0.22)" stroke="rgba(255,220,80,0.5)" stroke-width="1.5"/>
+                  <circle cx="40" cy="32" r="6" fill="rgba(255,220,80,0.4)"/>
+                  <path d="M40 20v-4M40 48v4M20 32h-4M64 32h-4M26 26l-3-3M57 57l-3-3M54 26l3-3M23 57l3-3" stroke="rgba(255,220,80,0.45)" stroke-width="1.5" stroke-linecap="round"/>
+                  <path d="M30 52h20" stroke="rgba(255,255,255,0.2)" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+              </div>
+              <div class="v2-mkt-card__body">
+                <strong>Fairy light backdrop</strong>
+                <span>Lighting &amp; atmosphere</span>
+              </div>
             </a>
-            <a href="/marketplace?category=av" class="v2-product-card">
-              <span class="v2-product-card__icon" aria-hidden="true">🔊</span>
-              <strong>Sound system package</strong>
-              <small>AV and entertainment</small>
+            <a class="v2-mkt-card" href="/marketplace?category=av">
+              <div class="v2-mkt-card__img" aria-hidden="true">
+                <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <rect width="80" height="80" rx="16" fill="rgba(255,255,255,0.08)"/>
+                  <rect x="28" y="20" width="24" height="32" rx="6" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.25)" stroke-width="1.5"/>
+                  <circle cx="40" cy="36" r="7" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
+                  <circle cx="40" cy="36" r="3" fill="rgba(255,255,255,0.2)"/>
+                  <rect x="37" y="52" width="6" height="10" rx="3" fill="rgba(255,255,255,0.15)"/>
+                  <rect x="26" y="62" width="28" height="3" rx="1.5" fill="rgba(255,255,255,0.15)"/>
+                </svg>
+              </div>
+              <div class="v2-mkt-card__body">
+                <strong>Sound system package</strong>
+                <span>AV &amp; entertainment</span>
+              </div>
             </a>
           </div>
         </div>
       </section>
 
+      <!-- ── Planning tools ────────────────────────────────────────────── -->
       <section class="v2-section" aria-labelledby="tools-title">
         <div class="v2-shell">
           <div class="v2-section__header">
             <p class="v2-eyebrow">Planning tools</p>
             <h2 id="tools-title">More than just a supplier directory</h2>
-            <p>
-              EventFlow should feel like a planning operating system, not a list of names. These
-              tools make the platform useful before and after a supplier is chosen.
-            </p>
+            <p>EventFlow keeps the whole event moving — discovery, marketplace, messages, budgets, timeline and decisions in one rhythm.</p>
           </div>
-
           <div class="v2-tools-grid">
-            <article>
-              <span aria-hidden="true">📊</span>
+            <article class="v2-tool">
+              <div class="v2-tool__icon" aria-hidden="true">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                </svg>
+              </div>
+              <h3>Event dashboard</h3>
+              <p>Bring suppliers, marketplace items, tasks and messages back to one home base.</p>
+            </article>
+            <article class="v2-tool">
+              <div class="v2-tool__icon" aria-hidden="true">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 10h20"/><path d="M7 15h4M13 15h4M7 7h4"/>
+                </svg>
+              </div>
               <h3>Budget manager</h3>
-              <p>Track estimated and actual spend across every part of the event.</p>
+              <p>Track estimated and actual spend across every part of the event in one view.</p>
             </article>
-            <article>
-              <span aria-hidden="true">✅</span>
+            <article class="v2-tool">
+              <div class="v2-tool__icon" aria-hidden="true">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+                </svg>
+              </div>
               <h3>Planning checklist</h3>
-              <p>Break the event into practical steps and keep progress visible.</p>
+              <p>Break the event into practical steps and keep progress visible at a glance.</p>
             </article>
-            <article>
-              <span aria-hidden="true">💬</span>
+            <article class="v2-tool">
+              <div class="v2-tool__icon" aria-hidden="true">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                </svg>
+              </div>
               <h3>Supplier messaging</h3>
-              <p>Keep quotes and conversations tied to the supplier and event.</p>
+              <p>Keep quotes, questions and availability checks tied to each supplier and event.</p>
             </article>
-            <article>
-              <span aria-hidden="true">👥</span>
+            <article class="v2-tool">
+              <div class="v2-tool__icon" aria-hidden="true">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+              </div>
               <h3>Guest management</h3>
-              <p>Keep attendance, notes and key details close to the rest of the plan.</p>
+              <p>Keep attendance, notes and key guest details close to the rest of the plan.</p>
             </article>
-            <article>
-              <span aria-hidden="true">🗓️</span>
-              <h3>Calendar and timeline</h3>
+            <article class="v2-tool">
+              <div class="v2-tool__icon" aria-hidden="true">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/>
+                </svg>
+              </div>
+              <h3>Calendar &amp; timeline</h3>
               <p>See deadlines, supplier dates and event milestones in one rhythm.</p>
             </article>
-            <article>
-              <span aria-hidden="true">🧭</span>
-              <h3>Event dashboard</h3>
-              <p>Bring suppliers, marketplace items and tasks back to one home base.</p>
-            </article>
           </div>
         </div>
       </section>
 
-      <section class="v2-section v2-section--comparison" aria-labelledby="why-title">
-        <div class="v2-shell v2-comparison">
-          <div>
+      <!-- ── Why EventFlow ─────────────────────────────────────────────── -->
+      <section class="v2-section v2-section--split-cta" aria-labelledby="why-title">
+        <div class="v2-shell v2-why">
+          <div class="v2-why__copy">
             <p class="v2-eyebrow">Why EventFlow</p>
-            <h2 id="why-title">Replace scattered tabs, screenshots and spreadsheets</h2>
+            <h2 id="why-title">Replace scattered tabs and spreadsheets</h2>
             <p>
-              Directories help you find names. EventFlow helps you keep the whole event moving:
-              discovery, marketplace, messages, budgets, timeline and decisions.
+              Directories help you find names. EventFlow keeps the whole plan together — discovery, marketplace, messages, budgets, timelines and decisions in one place.
             </p>
           </div>
-          <div class="v2-comparison__panel">
-            <div>
-              <span>Old way</span>
-              <strong>Search, screenshot, email, spreadsheet, repeat.</strong>
+          <div class="v2-why__panels">
+            <div class="v2-why-panel v2-why-panel--before">
+              <span class="v2-why-panel__label">Before</span>
+              <p>Search. Screenshot. Email. Spreadsheet. Repeat.</p>
             </div>
-            <div>
-              <span>EventFlow way</span>
-              <strong>Discover, save, compare, message and plan in one flow.</strong>
+            <div class="v2-why-panel v2-why-panel--after">
+              <span class="v2-why-panel__label">With EventFlow</span>
+              <p>Discover, save, compare, message and plan in one calm flow.</p>
             </div>
           </div>
         </div>
       </section>
 
+      <!-- ── CTAs ──────────────────────────────────────────────────────── -->
       <section class="v2-section v2-cta-band" aria-label="Start planning or join as a supplier">
         <div class="v2-shell v2-cta-grid">
           <article class="v2-cta-card v2-cta-card--customer">
-            <p class="v2-eyebrow">For customers</p>
+            <p class="v2-eyebrow">For planners</p>
             <h2>Planning an event?</h2>
             <p>Start your free plan, search suppliers and keep every decision organised.</p>
             <a class="v2-button" href="/start">Start planning for free</a>
           </article>
-
           <article class="v2-cta-card v2-cta-card--supplier">
-            <p class="v2-eyebrow">For suppliers</p>
+            <p class="v2-eyebrow v2-eyebrow--light">For suppliers</p>
             <h2>Are you a supplier?</h2>
-            <p>
-              Join EventFlow, get discovered by customers and manage enquiries without commission.
-            </p>
-            <a class="v2-button v2-button--light" href="/for-suppliers">Join as a supplier</a>
+            <p>Join EventFlow, get discovered and manage enquiries without commission.</p>
+            <a class="v2-button v2-button--white" href="/for-suppliers">Join as a supplier</a>
           </article>
         </div>
       </section>
     </main>
 
+    <!-- ── Footer ───────────────────────────────────────────────────── -->
     <footer class="v2-footer" role="contentinfo">
       <div class="v2-shell v2-footer__grid">
-        <div>
+        <div class="v2-footer__brand">
           <a class="v2-brand v2-brand--footer" href="/" aria-label="EventFlow home">
             <span class="v2-brand__mark" aria-hidden="true"></span>
             <span class="v2-brand__text">EventFlow</span>
           </a>
-          <p>
-            Event planning made simple. Operated by
-            <a href="https://vexi.co.uk" rel="noopener noreferrer" target="_blank">VEXI</a>.
-          </p>
+          <p>Event planning made simple.<br />Operated by <a href="https://vexi.co.uk" rel="noopener noreferrer" target="_blank">VEXI</a>.</p>
         </div>
         <nav aria-label="Footer platform links">
           <h2>Platform</h2>
@@ -523,6 +574,6 @@
       </div>
     </footer>
 
-    <script src="/assets/js/pages/home-v2.js?v=1" defer></script>
+    <script src="/assets/js/pages/home-v2.js?v=2" defer></script>
   </body>
 </html>
