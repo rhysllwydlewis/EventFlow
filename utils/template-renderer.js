@@ -12,6 +12,13 @@ const { getPlaceholders } = require('../config/content-config');
 
 const templateCache = new Map();
 const ANONYMOUS_SANITIZER_COMMENT = '<!-- eventflow-anonymous-sanitizer: active -->';
+const HOMEPAGE_V2_FILE = '/home-v2.html';
+const HOMEPAGE_V2_PREVIEW_PATHS = new Set([
+  '/home-v2',
+  '/home-v2.html',
+  '/home-v2-preview',
+  '/home-v2-preview.html',
+]);
 const HOMEPAGE_DIRTY_COPY = {
   supplierClaim: ['All suppliers are verified', ' and vetted'].join(''),
   testimonialsHeading: ['What Our Customers', ' Say'].join(''),
@@ -152,6 +159,48 @@ function sanitiseGuides(content) {
     );
 }
 
+function useHomepageV2() {
+  return (
+    String(process.env.HOMEPAGE_VARIANT || 'v1')
+      .trim()
+      .toLowerCase() === 'v2'
+  );
+}
+
+function isHomepageV2PreviewPath(requestPath) {
+  return HOMEPAGE_V2_PREVIEW_PATHS.has(requestPath);
+}
+
+function resolvePublicTemplatePath(requestPath) {
+  if (requestPath === '/') {
+    return useHomepageV2() ? HOMEPAGE_V2_FILE : '/index.html';
+  }
+
+  if (isHomepageV2PreviewPath(requestPath)) {
+    return HOMEPAGE_V2_FILE;
+  }
+
+  if (!path.extname(requestPath)) {
+    return `${requestPath}.html`;
+  }
+
+  return requestPath;
+}
+
+function addPreviewRobotsMeta(content) {
+  if (/<meta\s+name=["']robots["'][^>]*noindex[^>]*>/i.test(content)) {
+    return content;
+  }
+
+  const robotsMeta = '    <meta name="robots" content="noindex,nofollow" />\n';
+
+  if (/<head\b[^>]*>/i.test(content)) {
+    return content.replace(/(<head\b[^>]*>\s*)/i, `$1\n${robotsMeta}`);
+  }
+
+  return `${robotsMeta}${content}`;
+}
+
 function sanitizeAnonymousPublicHtml(content, requestPath, req) {
   if (!isAnonymousRequest(req)) {
     return content;
@@ -252,13 +301,9 @@ function templateMiddleware() {
       return next();
     }
 
-    let requestPath = req.path;
-
-    if (requestPath === '/') {
-      requestPath = '/index.html';
-    } else if (!path.extname(requestPath)) {
-      requestPath = `${requestPath}.html`;
-    }
+    const originalRequestPath = req.path;
+    const requestPath = resolvePublicTemplatePath(originalRequestPath);
+    const isHomepageV2Preview = isHomepageV2PreviewPath(originalRequestPath);
 
     if (!shouldProcessFile(requestPath)) {
       return next();
@@ -269,7 +314,12 @@ function templateMiddleware() {
 
     try {
       const { content } = await getFile(filePath, requestPath, req);
+      const responseContent = isHomepageV2Preview ? addPreviewRobotsMeta(content) : content;
+
       setHtmlNoStoreHeaders(res);
+      if (isHomepageV2Preview) {
+        res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+      }
       res.setHeader('X-EventFlow-Template-Renderer', 'active');
       res.setHeader(
         'X-EventFlow-Public-Sanitizer',
@@ -277,7 +327,7 @@ function templateMiddleware() {
       );
       appendVaryHeader(res, 'Cookie');
       res.type('html');
-      res.send(content);
+      res.send(responseContent);
     } catch (error) {
       if (error.code === 'ENOENT') {
         return next();
@@ -297,4 +347,8 @@ module.exports = {
   appendVaryHeader,
   getFile,
   getPlaceholders,
+  useHomepageV2,
+  isHomepageV2PreviewPath,
+  resolvePublicTemplatePath,
+  addPreviewRobotsMeta,
 };

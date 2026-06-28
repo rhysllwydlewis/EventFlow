@@ -1,0 +1,477 @@
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes"
+    />
+    <meta name="theme-color" content="#0B8073" />
+    <title>EventFlow — Plan Better. Celebrate More.</title>
+    <meta
+      name="description"
+      content="Plan your event in one place with EventFlow. Discover suppliers, compare options, browse marketplace items and keep budgets, guests, timelines and supplier conversations together."
+    />
+    <link rel="canonical" href="https://event-flow.co.uk/" />
+
+    <meta property="og:title" content="EventFlow — Plan Better. Celebrate More." />
+    <meta
+      property="og:description"
+      content="The premium UK event planning platform for suppliers, marketplace finds, budgets, timelines, guests and bookings."
+    />
+    <meta property="og:url" content="https://event-flow.co.uk/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="https://event-flow.co.uk/assets/images/eventflow-og-image.png?v=2" />
+    <meta property="og:site_name" content="EventFlow" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        "@id": "https://event-flow.co.uk/#home-v2",
+        "url": "https://event-flow.co.uk/",
+        "name": "EventFlow — Plan Better. Celebrate More.",
+        "description": "Plan your event in one place with EventFlow. Discover suppliers, compare options, browse marketplace items and manage budgets, guests, timelines and supplier conversations.",
+        "isPartOf": {
+          "@type": "WebSite",
+          "@id": "https://event-flow.co.uk/#website",
+          "name": "EventFlow",
+          "url": "https://event-flow.co.uk"
+        },
+        "about": {
+          "@type": "Organization",
+          "@id": "https://event-flow.co.uk/#organization",
+          "name": "EventFlow",
+          "url": "https://event-flow.co.uk"
+        }
+      }
+    </script>
+
+    <link rel="preload" href="/assets/css/home-v2.css?v=1" as="style" />
+    <link rel="stylesheet" href="/assets/css/home-v2.css?v=1" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+  </head>
+
+  <body class="home-v2-page">
+    <a class="skip-link" href="#main-content">Skip to main content</a>
+
+    <header class="v2-header" role="banner">
+      <div class="v2-shell v2-header__inner">
+        <a class="v2-brand" href="/" aria-label="EventFlow home">
+          <span class="v2-brand__mark" aria-hidden="true"></span>
+          <span class="v2-brand__text">EventFlow</span>
+        </a>
+
+        <nav class="v2-nav" aria-label="Primary navigation">
+          <a href="/start">Plan</a>
+          <a href="/suppliers">Suppliers</a>
+          <a href="/marketplace">Marketplace</a>
+          <a href="/public-calendar">Events</a>
+          <a href="/guides">Guides</a>
+          <a href="/pricing">Pricing</a>
+        </nav>
+
+        <div class="v2-header__actions">
+          <a class="v2-link-button" href="/auth">Log in</a>
+          <a class="v2-button v2-button--small" href="/start">Start planning</a>
+          <button
+            class="v2-menu-toggle"
+            type="button"
+            aria-label="Open menu"
+            aria-controls="v2-mobile-menu"
+            aria-expanded="false"
+          >
+            <span></span><span></span><span></span>
+          </button>
+        </div>
+      </div>
+
+      <nav class="v2-mobile-menu" id="v2-mobile-menu" aria-label="Mobile navigation" hidden>
+        <a href="/start">Plan an event</a>
+        <a href="/suppliers">Browse suppliers</a>
+        <a href="/marketplace">Marketplace</a>
+        <a href="/public-calendar">Events calendar</a>
+        <a href="/guides">Guides</a>
+        <a href="/pricing">Pricing</a>
+        <a href="/for-suppliers">For suppliers</a>
+        <a href="/auth">Log in</a>
+      </nav>
+    </header>
+
+    <main id="main-content">
+      <section class="v2-hero" aria-labelledby="home-v2-title">
+        <div class="v2-hero__glow v2-hero__glow--one" aria-hidden="true"></div>
+        <div class="v2-hero__glow v2-hero__glow--two" aria-hidden="true"></div>
+
+        <div class="v2-shell v2-hero__grid">
+          <div class="v2-hero__copy">
+            <p class="v2-eyebrow">Trusted by event planners</p>
+            <h1 id="home-v2-title">Plan Better. Celebrate More.</h1>
+            <p class="v2-hero__lead">
+              The smarter way to discover suppliers, compare ideas, browse marketplace finds
+              and keep every event decision moving in one calm, organised place.
+            </p>
+
+            <form class="v2-search" action="/suppliers" method="GET" aria-label="Find event suppliers">
+              <label class="v2-search__field">
+                <span>What are you planning?</span>
+                <select name="category" id="home-v2-category">
+                  <option value="">All event suppliers</option>
+                  <option value="Venues">Wedding venues</option>
+                  <option value="Photography">Photographers</option>
+                  <option value="Catering">Caterers</option>
+                  <option value="Entertainment">Live bands and DJs</option>
+                  <option value="Event Planner">Event planners</option>
+                  <option value="Decor">Decor and styling</option>
+                </select>
+              </label>
+
+              <label class="v2-search__field">
+                <span>Location</span>
+                <input
+                  id="home-v2-location"
+                  name="location"
+                  type="search"
+                  autocomplete="postal-code"
+                  placeholder="Town, city or postcode"
+                />
+              </label>
+
+              <label class="v2-search__field">
+                <span>When?</span>
+                <input id="home-v2-date" name="date" type="date" />
+              </label>
+
+              <button class="v2-button v2-search__submit" type="submit">Search</button>
+            </form>
+
+            <div class="v2-chip-row" aria-label="Popular searches">
+              <button type="button" data-category="Venues" data-location="">Wedding venues</button>
+              <button type="button" data-category="Photography" data-location="">Photographers</button>
+              <button type="button" data-category="Catering" data-location="">Caterers</button>
+              <button type="button" data-category="Entertainment" data-location="">Live bands</button>
+              <button type="button" data-category="Event Planner" data-location="">Event planners</button>
+            </div>
+
+            <dl class="v2-trust-strip" aria-label="EventFlow trust indicators">
+              <div>
+                <dt>Suppliers</dt>
+                <dd>Opening in stages</dd>
+              </div>
+              <div>
+                <dt>No booking fees</dt>
+                <dd>Plan directly</dd>
+              </div>
+              <div>
+                <dt>Secure messaging</dt>
+                <dd>Keep chats together</dd>
+              </div>
+            </dl>
+          </div>
+
+          <div class="v2-hero__visual" aria-label="Event planning inspiration">
+            <div class="v2-photo-stack">
+              <figure class="v2-photo-card v2-photo-card--main">
+                <img
+                  src="/assets/images/collage-venue.jpg"
+                  alt="Elegant event venue table setting with soft lighting"
+                  width="720"
+                  height="900"
+                  loading="eager"
+                  decoding="async"
+                  fetchpriority="high"
+                />
+              </figure>
+              <figure class="v2-photo-card v2-photo-card--small v2-photo-card--top">
+                <img
+                  src="/assets/images/collage-catering.jpg"
+                  alt="Catering and drinks prepared for an event"
+                  width="420"
+                  height="340"
+                  loading="eager"
+                  decoding="async"
+                />
+              </figure>
+              <figure class="v2-photo-card v2-photo-card--small v2-photo-card--bottom">
+                <img
+                  src="/assets/images/collage-photography.jpg"
+                  alt="Photographer capturing a celebration"
+                  width="420"
+                  height="340"
+                  loading="lazy"
+                  decoding="async"
+                />
+              </figure>
+              <div class="v2-floating-panel v2-floating-panel--plan">
+                <span class="v2-floating-panel__label">Today’s plan</span>
+                <strong>Venue shortlist ready</strong>
+                <span>3 suppliers saved · 2 quotes to compare</span>
+              </div>
+              <div class="v2-floating-panel v2-floating-panel--budget">
+                <span class="v2-floating-panel__label">Budget</span>
+                <strong>£8,400 tracked</strong>
+                <span>Decor, catering and entertainment in one view</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="v2-section v2-section--compact" aria-label="EventFlow platform benefits">
+        <div class="v2-shell v2-proof-grid">
+          <article>
+            <span aria-hidden="true">✓</span>
+            <h2>Plan from one calm dashboard</h2>
+            <p>Keep budgets, dates, tasks, guests and supplier conversations in the same flow.</p>
+          </article>
+          <article>
+            <span aria-hidden="true">★</span>
+            <h2>Discover suppliers with context</h2>
+            <p>Search by event type, category and location, then save the options worth comparing.</p>
+          </article>
+          <article>
+            <span aria-hidden="true">£</span>
+            <h2>Buy or hire what you need</h2>
+            <p>The marketplace keeps dresses, decor, lighting, furniture and AV close to the plan.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="v2-section" aria-labelledby="journey-title">
+        <div class="v2-shell">
+          <div class="v2-section__header">
+            <p class="v2-eyebrow">Planning journey</p>
+            <h2 id="journey-title">From first idea to final booking</h2>
+            <p>
+              EventFlow brings the scattered parts of planning into a single journey, so customers
+              can move from inspiration to booked suppliers without losing the thread.
+            </p>
+          </div>
+
+          <div class="v2-journey" role="list">
+            <article role="listitem">
+              <span>01</span>
+              <h3>Create your event</h3>
+              <p>Add your event type, date, location and must-haves.</p>
+            </article>
+            <article role="listitem">
+              <span>02</span>
+              <h3>Build your plan</h3>
+              <p>Use checklists, budgets and timelines to keep decisions visible.</p>
+            </article>
+            <article role="listitem">
+              <span>03</span>
+              <h3>Compare suppliers</h3>
+              <p>Shortlist venues, caterers, photographers and entertainment.</p>
+            </article>
+            <article role="listitem">
+              <span>04</span>
+              <h3>Message directly</h3>
+              <p>Keep quotes, questions and availability checks together.</p>
+            </article>
+            <article role="listitem">
+              <span>05</span>
+              <h3>Book with confidence</h3>
+              <p>Make clearer choices and enjoy the event you planned.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="v2-section v2-section--cream" aria-labelledby="categories-title">
+        <div class="v2-shell">
+          <div class="v2-section__header v2-section__header--split">
+            <div>
+              <p class="v2-eyebrow">Supplier discovery</p>
+              <h2 id="categories-title">Start with the suppliers that shape the day</h2>
+            </div>
+            <a class="v2-secondary-link" href="/suppliers">Browse all suppliers</a>
+          </div>
+
+          <div class="v2-category-grid">
+            <a class="v2-category-card" href="/suppliers?category=Venues">
+              <img src="/assets/images/collage-venue.jpg" alt="" width="520" height="360" loading="lazy" decoding="async" />
+              <span>Wedding venues</span>
+            </a>
+            <a class="v2-category-card" href="/suppliers?category=Photography">
+              <img src="/assets/images/collage-photography.jpg" alt="" width="520" height="360" loading="lazy" decoding="async" />
+              <span>Photographers</span>
+            </a>
+            <a class="v2-category-card" href="/suppliers?category=Catering">
+              <img src="/assets/images/collage-catering.jpg" alt="" width="520" height="360" loading="lazy" decoding="async" />
+              <span>Caterers</span>
+            </a>
+            <a class="v2-category-card" href="/suppliers?category=Entertainment">
+              <img src="/assets/images/collage-entertainment.jpg" alt="" width="520" height="360" loading="lazy" decoding="async" />
+              <span>Entertainment</span>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <section class="v2-section v2-marketplace" aria-labelledby="marketplace-title">
+        <div class="v2-shell v2-marketplace__grid">
+          <div class="v2-marketplace__copy">
+            <p class="v2-eyebrow">Marketplace</p>
+            <h2 id="marketplace-title">Everything for your event, in one place.</h2>
+            <p>
+              Buy or hire dresses, decor, furniture, AV equipment and finishing touches from the
+              same planning platform you use to manage suppliers.
+            </p>
+            <a class="v2-button" href="/marketplace">Browse marketplace</a>
+          </div>
+
+          <div class="v2-marketplace__cards" aria-label="Marketplace examples">
+            <a href="/marketplace?category=decor" class="v2-product-card">
+              <span class="v2-product-card__icon" aria-hidden="true">🌿</span>
+              <strong>Eucalyptus centrepieces</strong>
+              <small>Decor and table styling</small>
+            </a>
+            <a href="/marketplace?category=furniture" class="v2-product-card">
+              <span class="v2-product-card__icon" aria-hidden="true">🪑</span>
+              <strong>Chiavari chair hire</strong>
+              <small>Furniture and seating</small>
+            </a>
+            <a href="/marketplace?category=lighting" class="v2-product-card">
+              <span class="v2-product-card__icon" aria-hidden="true">✨</span>
+              <strong>Fairy light backdrop</strong>
+              <small>Lighting and atmosphere</small>
+            </a>
+            <a href="/marketplace?category=av" class="v2-product-card">
+              <span class="v2-product-card__icon" aria-hidden="true">🔊</span>
+              <strong>Sound system package</strong>
+              <small>AV and entertainment</small>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <section class="v2-section" aria-labelledby="tools-title">
+        <div class="v2-shell">
+          <div class="v2-section__header">
+            <p class="v2-eyebrow">Planning tools</p>
+            <h2 id="tools-title">More than just a supplier directory</h2>
+            <p>
+              EventFlow should feel like a planning operating system, not a list of names. These
+              tools make the platform useful before and after a supplier is chosen.
+            </p>
+          </div>
+
+          <div class="v2-tools-grid">
+            <article>
+              <span aria-hidden="true">📊</span>
+              <h3>Budget manager</h3>
+              <p>Track estimated and actual spend across every part of the event.</p>
+            </article>
+            <article>
+              <span aria-hidden="true">✅</span>
+              <h3>Planning checklist</h3>
+              <p>Break the event into practical steps and keep progress visible.</p>
+            </article>
+            <article>
+              <span aria-hidden="true">💬</span>
+              <h3>Supplier messaging</h3>
+              <p>Keep quotes and conversations tied to the supplier and event.</p>
+            </article>
+            <article>
+              <span aria-hidden="true">👥</span>
+              <h3>Guest management</h3>
+              <p>Keep attendance, notes and key details close to the rest of the plan.</p>
+            </article>
+            <article>
+              <span aria-hidden="true">🗓️</span>
+              <h3>Calendar and timeline</h3>
+              <p>See deadlines, supplier dates and event milestones in one rhythm.</p>
+            </article>
+            <article>
+              <span aria-hidden="true">🧭</span>
+              <h3>Event dashboard</h3>
+              <p>Bring suppliers, marketplace items and tasks back to one home base.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="v2-section v2-section--comparison" aria-labelledby="why-title">
+        <div class="v2-shell v2-comparison">
+          <div>
+            <p class="v2-eyebrow">Why EventFlow</p>
+            <h2 id="why-title">Replace scattered tabs, screenshots and spreadsheets</h2>
+            <p>
+              Directories help you find names. EventFlow helps you keep the whole event moving:
+              discovery, marketplace, messages, budgets, timeline and decisions.
+            </p>
+          </div>
+          <div class="v2-comparison__panel">
+            <div>
+              <span>Old way</span>
+              <strong>Search, screenshot, email, spreadsheet, repeat.</strong>
+            </div>
+            <div>
+              <span>EventFlow way</span>
+              <strong>Discover, save, compare, message and plan in one flow.</strong>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="v2-section v2-cta-band" aria-label="Start planning or join as a supplier">
+        <div class="v2-shell v2-cta-grid">
+          <article class="v2-cta-card v2-cta-card--customer">
+            <p class="v2-eyebrow">For customers</p>
+            <h2>Planning an event?</h2>
+            <p>Start your free plan, search suppliers and keep every decision organised.</p>
+            <a class="v2-button" href="/start">Start planning for free</a>
+          </article>
+
+          <article class="v2-cta-card v2-cta-card--supplier">
+            <p class="v2-eyebrow">For suppliers</p>
+            <h2>Are you a supplier?</h2>
+            <p>Join EventFlow, get discovered by customers and manage enquiries without commission.</p>
+            <a class="v2-button v2-button--light" href="/for-suppliers">Join as a supplier</a>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer class="v2-footer" role="contentinfo">
+      <div class="v2-shell v2-footer__grid">
+        <div>
+          <a class="v2-brand v2-brand--footer" href="/" aria-label="EventFlow home">
+            <span class="v2-brand__mark" aria-hidden="true"></span>
+            <span class="v2-brand__text">EventFlow</span>
+          </a>
+          <p>Event planning made simple. Operated by <a href="https://vexi.co.uk" rel="noopener noreferrer" target="_blank">VEXI</a>.</p>
+        </div>
+        <nav aria-label="Footer platform links">
+          <h2>Platform</h2>
+          <a href="/start">Plan an event</a>
+          <a href="/suppliers">Browse suppliers</a>
+          <a href="/marketplace">Marketplace</a>
+          <a href="/pricing">Pricing</a>
+        </nav>
+        <nav aria-label="Footer resource links">
+          <h2>Resources</h2>
+          <a href="/guides">Guides</a>
+          <a href="/faq">FAQ</a>
+          <a href="/for-suppliers">For suppliers</a>
+          <a href="/contact">Contact</a>
+        </nav>
+        <nav aria-label="Footer legal links">
+          <h2>Legal</h2>
+          <a href="/legal">Legal hub</a>
+          <a href="/privacy">Privacy policy</a>
+          <a href="/terms">Terms of service</a>
+        </nav>
+      </div>
+      <div class="v2-shell v2-footer__bottom">
+        <span>&copy; 2025&ndash;2026 EventFlow. All rights reserved.</span>
+      </div>
+    </footer>
+
+    <script src="/assets/js/pages/home-v2.js?v=1" defer></script>
+  </body>
+</html>
