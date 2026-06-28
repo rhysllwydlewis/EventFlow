@@ -7,19 +7,24 @@ This branch adds a hidden premium homepage V2 while keeping the current homepage
 - `/home-v2-preview`
 - `/home-v2-preview.html`
 
-Both preview URLs are served from `public/home-v2.html` and protected from indexing by the template renderer.
+Both preview URLs are served from `public/home-v2.html` and protected from indexing by the
+template renderer.
 
 ## Indexing protection
 
-Preview URLs receive an `X-Robots-Tag: noindex, nofollow` response header and an injected `<meta name="robots" content="noindex,nofollow">` tag.
+Preview URLs receive an `X-Robots-Tag: noindex, nofollow` response header and an injected
+`<meta name="robots" content="noindex,nofollow">` tag.
 
-The live-ready file `public/home-v2.html` does not contain a hard-coded robots noindex tag, so it can be served at `/` later without accidentally noindexing the real homepage.
+The live-ready file `public/home-v2.html` does not contain a hard-coded robots noindex tag,
+so it can be served at `/` later without accidentally noindexing the real homepage.
 
 ## Future live switch
 
-The current homepage remains the default. To switch V2 live later, set `HOMEPAGE_VARIANT=v2`. To roll back, set `HOMEPAGE_VARIANT=v1` or remove the variable.
+The current homepage remains the default. To switch V2 live later, set
+`HOMEPAGE_VARIANT=v2`. To roll back, set `HOMEPAGE_VARIANT=v1` or remove the variable.
 
-Only switch after screenshots, mobile checks, analytics expectations and SEO checks have been reviewed.
+Only switch after screenshots, mobile checks, analytics expectations and SEO checks have
+been reviewed.
 
 ## Files added
 
