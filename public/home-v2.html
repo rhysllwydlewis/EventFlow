@@ -7,6 +7,7 @@
       content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes"
     />
     <meta name="theme-color" content="#074534" />
+    <meta name="facebook-domain-verification" content="kfoof3i09rsm0u94mwkhuzemi9dvqs" />
     <title>EventFlow | Plan Your Event in One Place</title>
     <meta
       name="description"
@@ -15,6 +16,8 @@
     <link rel="canonical" href="https://event-flow.co.uk/" />
     <link rel="preconnect" href="https://images.pexels.com" />
     <link rel="dns-prefetch" href="https://images.pexels.com" />
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+    <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
 
     <meta property="og:title" content="EventFlow | Plan Your Event in One Place" />
     <meta
@@ -25,27 +28,70 @@
     <meta property="og:type" content="website" />
     <meta property="og:image" content="https://event-flow.co.uk/assets/images/eventflow-og-image.png?v=2" />
     <meta property="og:site_name" content="EventFlow" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="https://event-flow.co.uk/" />
+    <meta name="twitter:title" content="EventFlow | Plan Your Event in One Place" />
+    <meta
+      name="twitter:description"
+      content="Find UK venues, suppliers and packages, then keep your budget, messages and checklist together."
+    />
+    <meta name="twitter:image" content="https://event-flow.co.uk/assets/images/eventflow-og-image.png?v=2" />
 
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
-        "@type": "WebPage",
-        "@id": "https://event-flow.co.uk/#home-v2",
-        "url": "https://event-flow.co.uk/",
-        "name": "EventFlow | Plan Your Event in One Place",
-        "description": "Find UK venues, suppliers and event packages, then keep your budget, messages and checklist together with EventFlow.",
-        "isPartOf": {
-          "@type": "WebSite",
-          "@id": "https://event-flow.co.uk/#website",
-          "name": "EventFlow",
-          "url": "https://event-flow.co.uk"
-        }
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "https://event-flow.co.uk/#organization",
+            "name": "EventFlow",
+            "url": "https://event-flow.co.uk",
+            "logo": "https://event-flow.co.uk/icon-512.png",
+            "description": "UK event planning platform connecting customers with verified event suppliers for weddings, parties and corporate events",
+            "address": {
+              "@type": "PostalAddress",
+              "addressCountry": "GB"
+            }
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://event-flow.co.uk/#website",
+            "name": "EventFlow",
+            "url": "https://event-flow.co.uk",
+            "publisher": {
+              "@id": "https://event-flow.co.uk/#organization"
+            },
+            "potentialAction": {
+              "@type": "SearchAction",
+              "target": "https://event-flow.co.uk/suppliers?q={search_term_string}",
+              "query-input": "required name=search_term_string"
+            }
+          },
+          {
+            "@type": "WebPage",
+            "@id": "https://event-flow.co.uk/#home-v2",
+            "url": "https://event-flow.co.uk/",
+            "name": "EventFlow | Plan Your Event in One Place",
+            "description": "Find UK venues, suppliers and event packages, then keep your budget, messages and checklist together with EventFlow.",
+            "isPartOf": {
+              "@id": "https://event-flow.co.uk/#website"
+            },
+            "about": {
+              "@id": "https://event-flow.co.uk/#organization"
+            }
+          }
+        ]
       }
     </script>
 
     <link rel="preload" href="/assets/css/home-v2.css?v=11" as="style" />
+    <link rel="preload" href="/assets/css/home-v2-parity.css?v=1" as="style" />
     <link rel="stylesheet" href="/assets/css/home-v2.css?v=11" />
+    <link rel="stylesheet" href="/assets/css/home-v2-parity.css?v=1" />
+    <link rel="stylesheet" href="/assets/css/error-boundary.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/loading-skeleton.css?v=18.3.0" />
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
@@ -72,7 +118,22 @@
       </nav>
 
       <div class="hv2-actions">
-        <a class="hv2-button hv2-button--ghost" href="/auth">Sign in</a>
+        <button
+          id="hv2-notification-btn"
+          class="hv2-icon-button"
+          type="button"
+          aria-label="View notifications"
+          aria-expanded="false"
+          aria-controls="hv2-notification-dropdown"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+          </svg>
+          <span class="hv2-badge-dot" aria-hidden="true"></span>
+        </button>
+        <a id="hv2-auth-link" class="hv2-button hv2-button--ghost hv2-auth-link" href="/auth">Sign in</a>
+        <a class="hv2-button hv2-button--ghost hv2-dashboard-link" href="/dashboard" data-hv2-dashboard-link>Dashboard</a>
         <a class="hv2-button hv2-button--solid" href="/start">Start planning</a>
         <button
           class="hv2-menu"
@@ -92,9 +153,17 @@
       <a href="/guides">Guides</a>
       <a href="/pricing">Pricing</a>
       <a href="/for-suppliers">For suppliers</a>
-      <a href="/auth">Sign in</a>
+      <a class="hv2-mobile-login" href="/auth">Sign in</a>
+      <a class="hv2-mobile-auth-only" href="/dashboard" data-hv2-dashboard-link>Dashboard</a>
       <a href="/start">Start planning</a>
+      <a class="hv2-mobile-logout" href="/logout" data-hv2-logout>Log out</a>
     </nav>
+
+    <div id="hv2-notification-dropdown" class="hv2-notification-dropdown" hidden>
+      <h2>Notifications</h2>
+      <p>Sign in to see supplier replies, saved item updates and planning reminders.</p>
+      <a class="hv2-text-link" href="/notifications">View all notifications</a>
+    </div>
 
     <main id="main-content">
       <section class="hv2-hero" aria-labelledby="hv2-title">
@@ -164,7 +233,7 @@
               <button type="button" data-category="Venues" data-location="London">London venues</button>
               <button type="button" data-category="Photography">Wedding photographers</button>
               <button type="button" data-category="Catering">Corporate catering</button>
-              <button type="button" data-category="Entertainment">DJs near me</button>
+              <button type="button" data-category="Music/DJ">DJs near me</button>
             </div>
           </form>
         </div>
@@ -235,14 +304,14 @@
                 <span class="hv2-category__icon" aria-hidden="true"></span>
                 <strong>Photography</strong>
               </a>
-              <a class="hv2-category" href="/suppliers?category=Florists">
+              <a class="hv2-category" href="/suppliers?category=Florist">
                 <img
                   src="https://images.pexels.com/photos/169190/pexels-photo-169190.jpeg?auto=compress&cs=tinysrgb&w=760&h=500&fit=crop"
                   alt=""
                   loading="lazy"
                 />
                 <span class="hv2-category__icon" aria-hidden="true"></span>
-                <strong>Florists</strong>
+                <strong>Florist</strong>
               </a>
               <a class="hv2-category" href="/suppliers?category=Decor">
                 <img
@@ -272,7 +341,7 @@
             <div class="hv2-dashboard__main">
               <div class="hv2-dashboard__top">
                 <strong>Your planning overview</strong>
-                <a href="/dashboard">View full dashboard</a>
+                <a href="/dashboard" data-hv2-dashboard-link>View full dashboard</a>
               </div>
               <div class="hv2-dashboard__cards">
                 <article class="hv2-mini-card">
@@ -286,7 +355,7 @@
                     <li>Book photographer</li>
                     <li>Plan entertainment</li>
                   </ul>
-                  <a href="/dashboard">Go to checklist</a>
+                  <a href="/dashboard" data-hv2-dashboard-link>Go to checklist</a>
                 </article>
                 <article class="hv2-mini-card">
                   <h3>Budget</h3>
@@ -299,7 +368,7 @@
                     <div><dt>Entertainment</dt><dd>&pound;800</dd></div>
                     <div><dt>Decor & flowers</dt><dd>&pound;1,550</dd></div>
                   </dl>
-                  <a href="/dashboard">Go to budget</a>
+                  <a href="/dashboard" data-hv2-dashboard-link>Go to budget</a>
                 </article>
                 <article class="hv2-mini-card hv2-mini-card--short">
                   <h3>Saved suppliers</h3>
@@ -314,6 +383,101 @@
               </div>
             </div>
           </aside>
+        </div>
+      </section>
+
+      <section class="hv2-section hv2-section--white" aria-labelledby="hv2-marketplace-title">
+        <div class="hv2-shell">
+          <div class="hv2-section__header">
+            <p class="hv2-kicker">Marketplace</p>
+            <h2 id="hv2-marketplace-title">Latest event items</h2>
+            <p class="hv2-section__lead">
+              Buy and sell pre-loved event items, from decor and dresses to AV kit and finishing touches.
+            </p>
+          </div>
+          <div class="hv2-card-grid">
+            <article class="hv2-card hv2-market-card">
+              <img src="https://images.pexels.com/photos/169198/pexels-photo-169198.jpeg?auto=compress&cs=tinysrgb&w=700&h=460&fit=crop" alt="" loading="lazy" />
+              <div class="hv2-market-card__body">
+                <h3>Wedding decor bundle</h3>
+                <p>Centrepieces, table numbers and soft styling pieces ready for a second life.</p>
+                <div class="hv2-market-card__meta"><span>From &pound;85</span><span>Marketplace</span></div>
+              </div>
+            </article>
+            <article class="hv2-card hv2-market-card">
+              <img src="https://images.pexels.com/photos/1779491/pexels-photo-1779491.jpeg?auto=compress&cs=tinysrgb&w=700&h=460&fit=crop" alt="" loading="lazy" />
+              <div class="hv2-market-card__body">
+                <h3>Event lighting set</h3>
+                <p>Warm feature lighting for receptions, parties and private event spaces.</p>
+                <div class="hv2-market-card__meta"><span>From &pound;120</span><span>Marketplace</span></div>
+              </div>
+            </article>
+            <article class="hv2-card hv2-market-card">
+              <img src="https://images.pexels.com/photos/265947/pexels-photo-265947.jpeg?auto=compress&cs=tinysrgb&w=700&h=460&fit=crop" alt="" loading="lazy" />
+              <div class="hv2-market-card__body">
+                <h3>Table styling pieces</h3>
+                <p>Neutral styling items for ceremonies, dinners and brand events.</p>
+                <div class="hv2-market-card__meta"><span>From &pound;45</span><span>Marketplace</span></div>
+              </div>
+            </article>
+          </div>
+          <a class="hv2-text-link" href="/marketplace">View all marketplace items</a>
+        </div>
+      </section>
+
+      <section class="hv2-section hv2-section--cream" aria-labelledby="hv2-guides-title">
+        <div class="hv2-shell">
+          <div class="hv2-section__header">
+            <p class="hv2-kicker">Helpful guides</p>
+            <h2 id="hv2-guides-title">Event planning resources</h2>
+            <p class="hv2-section__lead">
+              Practical guides for budgets, venues, suppliers and marketplace safety.
+            </p>
+          </div>
+          <div class="hv2-card-grid">
+            <article class="hv2-card">
+              <h3>Event budget management</h3>
+              <p>Build a realistic event budget and keep every supplier decision in one organised place.</p>
+              <a href="/articles/event-budget-management-guide">Read guide</a>
+            </article>
+            <article class="hv2-card">
+              <h3>Choosing your venue</h3>
+              <p>Compare capacity, location, style and practical constraints before you commit.</p>
+              <a href="/articles/wedding-venue-selection-guide">Read guide</a>
+            </article>
+            <article class="hv2-card">
+              <h3>Marketplace guide</h3>
+              <p>Buy and sell event items safely with clear listings, messages and sensible checks.</p>
+              <a href="/articles/marketplace-guide">Read guide</a>
+            </article>
+          </div>
+          <a class="hv2-text-link" href="/guides">Browse all guides</a>
+        </div>
+      </section>
+
+      <section class="hv2-section hv2-section--white" aria-labelledby="hv2-how-title">
+        <div class="hv2-shell">
+          <div class="hv2-section__header">
+            <p class="hv2-kicker">Simple process</p>
+            <h2 id="hv2-how-title">How it works</h2>
+          </div>
+          <div class="hv2-card-grid">
+            <article class="hv2-card">
+              <span class="hv2-step-number">1</span>
+              <h3>Tell us about your event</h3>
+              <p>Type, location, date and priorities help shape the suppliers and tools you need.</p>
+            </article>
+            <article class="hv2-card">
+              <span class="hv2-step-number">2</span>
+              <h3>Compare suppliers</h3>
+              <p>Browse venues, catering, entertainment, photography and more by category and location.</p>
+            </article>
+            <article class="hv2-card">
+              <span class="hv2-step-number">3</span>
+              <h3>Save and message</h3>
+              <p>Create a free account to save your plan, track your budget and start conversations.</p>
+            </article>
+          </div>
         </div>
       </section>
 
@@ -363,6 +527,23 @@
           </div>
         </div>
       </section>
+
+      <section class="hv2-section hv2-newsletter" aria-labelledby="hv2-newsletter-title">
+        <div class="hv2-shell">
+          <div class="hv2-newsletter-panel">
+            <div>
+              <p class="hv2-eyebrow">Stay updated</p>
+              <h2 id="hv2-newsletter-title">Planning tips, supplier spotlights and platform updates</h2>
+              <p>Useful event planning ideas, feature updates and marketplace notes, sent occasionally.</p>
+            </div>
+            <form id="hv2-newsletter-form" class="hv2-newsletter-form">
+              <input type="email" name="email" placeholder="Enter your email" aria-label="Email address" required />
+              <button class="hv2-button hv2-button--solid" type="submit">Subscribe</button>
+              <div id="hv2-newsletter-feedback" class="hv2-form-feedback" aria-live="polite"></div>
+            </form>
+          </div>
+        </div>
+      </section>
     </main>
 
     <footer class="hv2-footer" role="contentinfo">
@@ -376,6 +557,17 @@
             Event planning made simple. Operated by
             <a href="https://vexi.co.uk" rel="noopener noreferrer" target="_blank">VEXI</a>.
           </p>
+          <div class="hv2-footer-socials" aria-label="EventFlow on social media">
+            <a class="hv2-social-link" href="https://www.instagram.com/eventflowuk" target="_blank" rel="noopener noreferrer" aria-label="EventFlow on Instagram">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
+            </a>
+            <a class="hv2-social-link" href="https://www.facebook.com/eventflowuk" target="_blank" rel="noopener noreferrer" aria-label="EventFlow on Facebook">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg>
+            </a>
+            <a class="hv2-social-link" href="https://www.linkedin.com/company/eventflowuk" target="_blank" rel="noopener noreferrer" aria-label="EventFlow on LinkedIn">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path><rect x="2" y="9" width="4" height="12"></rect><circle cx="4" cy="4" r="2"></circle></svg>
+            </a>
+          </div>
         </div>
         <nav aria-label="Platform links">
           <h2>Platform</h2>
@@ -396,12 +588,45 @@
           <a href="/legal">Legal hub</a>
           <a href="/privacy">Privacy policy</a>
           <a href="/terms">Terms of service</a>
+          <button id="hv2-cookie-prefs-btn" type="button">Cookie preferences</button>
         </nav>
       </div>
       <div class="hv2-shell hv2-footer__bottom">&copy; 2025-2026 EventFlow. All rights reserved.</div>
     </footer>
 
+    <nav class="hv2-bottom-nav" role="navigation" aria-label="Mobile bottom navigation">
+      <a class="hv2-bottom-link" href="/start" aria-label="Plan your event">
+        <svg class="hv2-bottom-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+        <span>Plan</span>
+      </a>
+      <a class="hv2-bottom-link" href="/suppliers" aria-label="Browse suppliers">
+        <svg class="hv2-bottom-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>
+        <span>Suppliers</span>
+      </a>
+      <a class="hv2-bottom-link" href="/guides" aria-label="View guides">
+        <svg class="hv2-bottom-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+        <span>Guides</span>
+      </a>
+      <a class="hv2-bottom-link hv2-bottom-dashboard" href="/dashboard" data-hv2-dashboard-link aria-label="Go to dashboard">
+        <svg class="hv2-bottom-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect></svg>
+        <span>Dashboard</span>
+      </a>
+      <a class="hv2-bottom-link" href="/marketplace" aria-label="Open marketplace">
+        <svg class="hv2-bottom-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path><path d="M3 6h18"></path><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
+        <span>Market</span>
+      </a>
+      <button id="hv2-bottom-menu" class="hv2-bottom-link hv2-bottom-menu" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="hv2-mobile-nav">
+        <svg class="hv2-bottom-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+        <span>Menu</span>
+      </button>
+    </nav>
+
+    <script src="/assets/js/utils/auth-state.js" defer></script>
+    <script src="/assets/js/utils/global-error-handler.js" defer></script>
+    <script src="/assets/js/utils/sentry-browser-init.js" defer></script>
+    <script src="/assets/js/cookie-consent.js?v=2.0.0" defer></script>
     <script src="/assets/js/utils/pexels-client.js?v=5" defer></script>
     <script src="/assets/js/pages/home-v2.js?v=11" defer></script>
+    <script src="/assets/js/pages/home-v2-parity.js?v=1" defer></script>
   </body>
 </html>
