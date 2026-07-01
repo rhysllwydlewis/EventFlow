@@ -62,8 +62,9 @@
     const hasEventCue = /wedding|reception|tablescape|table|flowers|floral|event|dining|decor|lights|chairs/.test(
       alt
     );
-    const avoidPortraitCue =
-      /person|woman|man|bride|groom|portrait|dress close/i.test(alt);
+    const avoidPortraitCue = /person|woman|man|bride|groom|portrait|dress close/i.test(
+      alt
+    );
 
     return isLandscape && hasEventCue && !avoidPortraitCue;
   }
