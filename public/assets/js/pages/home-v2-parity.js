@@ -372,7 +372,9 @@
         if (typeof galleryItem === 'string') {
           return safeImage(galleryItem);
         }
-        return safeImage(galleryItem.url || galleryItem.src || galleryItem.path || galleryItem.thumbnail);
+        return safeImage(
+          galleryItem.url || galleryItem.src || galleryItem.path || galleryItem.thumbnail
+        );
       }
     }
 
@@ -541,14 +543,18 @@
     }
 
     try {
-      const response = await fetch('/api/pexels/videos?query=event%20reception%20table&per_page=6');
+      const response = await fetch(
+        '/api/pexels/videos?query=event%20reception%20table&per_page=6'
+      );
       if (!response.ok) {
         return;
       }
 
       const data = await response.json();
       const videos = Array.isArray(data.videos) ? data.videos : [];
-      const video = videos.find(item => Array.isArray(item.video_files) && item.video_files.length > 0);
+      const video = videos.find(
+        item => Array.isArray(item.video_files) && item.video_files.length > 0
+      );
       if (!video) {
         return;
       }
@@ -655,8 +661,16 @@
   attachImageFallbacks();
   renderCategories();
   initialiseHeroVideo();
-  loadPackages('/api/packages/featured', 'hv2-featured-packages', 'No featured packages available yet.');
-  loadPackages('/api/packages/spotlight', 'hv2-spotlight-packages', 'No spotlight packages available yet.');
+  loadPackages(
+    '/api/packages/featured',
+    'hv2-featured-packages',
+    'No featured packages available yet.'
+  );
+  loadPackages(
+    '/api/packages/spotlight',
+    'hv2-spotlight-packages',
+    'No spotlight packages available yet.'
+  );
   loadMarketplacePreview();
   loadGuides();
 })();
