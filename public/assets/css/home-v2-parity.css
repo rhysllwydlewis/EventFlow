@@ -748,3 +748,43 @@
       linear-gradient(180deg, #fffefb 0%, rgba(255, 254, 251, 0.2) 52%, #fffefb 100%);
   }
 }
+
+/* Keep the EventFlow wordmark shape from V2; only align it to the brighter teal palette. */
+.home-v2-page .hv2-brand {
+  gap: 11px;
+  color: var(--hv2-green);
+  font-family: var(--hv2-serif);
+  font-size: clamp(1.36rem, 1.6vw, 1.82rem);
+  font-weight: 700;
+}
+
+.home-v2-page .hv2-brand__mark {
+  position: relative;
+  display: inline-grid;
+  width: 23px;
+  height: 21px;
+  flex: 0 0 auto;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.home-v2-page .hv2-brand__mark span {
+  position: absolute;
+  display: block;
+  width: 13px;
+  height: 20px;
+  border-radius: 999px 999px 2px 999px;
+  background: var(--hv2-green);
+  transform-origin: bottom center;
+}
+
+.home-v2-page .hv2-brand__mark span:first-child {
+  left: 2px;
+  transform: rotate(-42deg);
+}
+
+.home-v2-page .hv2-brand__mark span:last-child {
+  right: 0;
+  transform: rotate(42deg);
+}
