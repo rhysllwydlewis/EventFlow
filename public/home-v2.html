@@ -2,7 +2,10 @@
 <html lang="en-GB">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes"
+    />
     <meta name="theme-color" content="#19744f" />
     <title>EventFlow | Plan Better. Celebrate More.</title>
     <meta
@@ -41,8 +44,8 @@
       }
     </script>
 
-    <link rel="preload" href="/assets/css/home-v2.css?v=4" as="style" />
-    <link rel="stylesheet" href="/assets/css/home-v2.css?v=4" />
+    <link rel="preload" href="/assets/css/home-v2.css?v=5" as="style" />
+    <link rel="stylesheet" href="/assets/css/home-v2.css?v=5" />
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
@@ -106,18 +109,24 @@
 
     <main id="main-content">
       <section class="hv2-hero" aria-labelledby="hv2-title">
-        <div class="hv2-hero__wash" aria-hidden="true"></div>
         <div class="hv2-hero__image" aria-hidden="true"></div>
+        <div class="hv2-hero__veil" aria-hidden="true"></div>
+        <div class="hv2-hero__wash" aria-hidden="true"></div>
 
         <div class="hv2-hero__content">
           <p class="hv2-trust-badge">
-            <span aria-hidden="true">✓</span>
+            <span aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <path d="M12 3l7 3v5c0 4.7-2.8 8.4-7 10-4.2-1.6-7-5.3-7-10V6l7-3Z"></path>
+                <path d="m9.2 12.2 2 2 4-5"></path>
+              </svg>
+            </span>
             Trusted by event planners
           </p>
 
           <h1 id="hv2-title">
-            Plan Better.<br />
-            Celebrate <span>More.</span>
+            <span class="hv2-title-line">Plan Better.</span>
+            <span class="hv2-title-line">Celebrate <em>More.</em></span>
           </h1>
 
           <p class="hv2-hero__lead">
@@ -227,6 +236,13 @@
               </div>
             </article>
           </div>
+        </div>
+
+        <div class="hv2-hero__curve" aria-hidden="true">
+          <svg viewBox="0 0 520 130" preserveAspectRatio="none">
+            <path d="M3 96C89 71 138 133 224 95C300 61 344 5 433 35C471 48 493 76 517 72"></path>
+            <circle cx="341" cy="53" r="4"></circle>
+          </svg>
         </div>
       </section>
 
@@ -402,6 +418,7 @@
       <div class="hv2-shell hv2-footer__bottom">&copy; 2025-2026 EventFlow. All rights reserved.</div>
     </footer>
 
-    <script src="/assets/js/pages/home-v2.js?v=4" defer></script>
+    <script src="/assets/js/utils/pexels-client.js?v=5" defer></script>
+    <script src="/assets/js/pages/home-v2.js?v=5" defer></script>
   </body>
 </html>
