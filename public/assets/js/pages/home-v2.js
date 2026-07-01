@@ -12,9 +12,7 @@
   const mobileNav = document.getElementById('hv2-mobile-nav');
   const categoryField = document.getElementById('hv2-category');
   const searchForm = document.querySelector('.hv2-search');
-  const popularButtons = document.querySelectorAll(
-    '.hv2-popular button[data-category]'
-  );
+  const popularButtons = document.querySelectorAll('.hv2-popular button[data-category]');
 
   function closeMenu() {
     if (!menuButton || !mobileNav) return;
@@ -34,15 +32,15 @@
       mobileNav.hidden = isOpen;
     });
 
-    mobileNav.addEventListener('click', event => {
+    mobileNav.addEventListener('click', (event) => {
       if (event.target instanceof HTMLAnchorElement) closeMenu();
     });
 
-    document.addEventListener('keydown', event => {
+    document.addEventListener('keydown', (event) => {
       if (event.key === 'Escape') closeMenu();
     });
 
-    document.addEventListener('focusin', event => {
+    document.addEventListener('focusin', (event) => {
       if (
         !mobileNav.hidden &&
         !mobileNav.contains(event.target) &&
@@ -53,7 +51,7 @@
     });
   }
 
-  popularButtons.forEach(button => {
+  popularButtons.forEach((button) => {
     button.addEventListener('click', () => {
       if (categoryField) {
         categoryField.value = button.dataset.category || '';
