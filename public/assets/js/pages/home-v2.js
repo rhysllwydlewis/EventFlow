@@ -8,7 +8,16 @@
   const heroImage = document.querySelector('.hv2-hero__image');
   const popularButtons = document.querySelectorAll('.hv2-popular button[data-category]');
   const revealTargets = document.querySelectorAll(
-    '.hv2-flow-strip article, .hv2-journey__grid article, .hv2-planner-board, .hv2-category, .hv2-market__showcase, .hv2-tools-panel article, .hv2-moment-cards a, .hv2-cta article'
+    [
+      '.hv2-flow-strip article',
+      '.hv2-journey__grid article',
+      '.hv2-planner-board',
+      '.hv2-category',
+      '.hv2-market__showcase',
+      '.hv2-tools-panel article',
+      '.hv2-moment-cards a',
+      '.hv2-cta article',
+    ].join(', ')
   );
 
   const pexelsImageParams = 'auto=compress&cs=tinysrgb&w=2600&h=1600&fit=crop';
@@ -323,7 +332,11 @@
   }
 
   function initialiseReveals() {
-    if (getReduceMotionPreference() || revealTargets.length === 0 || !('IntersectionObserver' in window)) {
+    if (
+      getReduceMotionPreference() ||
+      revealTargets.length === 0 ||
+      !('IntersectionObserver' in window)
+    ) {
       return;
     }
 
