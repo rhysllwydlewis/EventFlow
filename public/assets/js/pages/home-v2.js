@@ -35,7 +35,15 @@
     'chairs',
   ];
 
-  const heroAvoidWords = ['person', 'woman', 'man', 'bride', 'groom', 'portrait', 'dress close'];
+  const heroAvoidWords = [
+    'person',
+    'woman',
+    'man',
+    'bride',
+    'groom',
+    'portrait',
+    'dress close',
+  ];
 
   function containsAny(text, words) {
     return words.some(word => text.includes(word));
@@ -166,7 +174,11 @@
     });
 
     document.addEventListener('focusin', event => {
-      if (!mobileNav.hidden && !mobileNav.contains(event.target) && event.target !== menuButton) {
+      if (
+        !mobileNav.hidden &&
+        !mobileNav.contains(event.target) &&
+        event.target !== menuButton
+      ) {
         closeMenu();
       }
     });
