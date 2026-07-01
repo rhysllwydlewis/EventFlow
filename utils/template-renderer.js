@@ -32,7 +32,8 @@ const HOMEPAGE_V3_HERO_STYLES = [
   '    <link rel="stylesheet" href="/assets/css/home-v3.css?v=1" />',
   '    <script src="/assets/js/pages/home-v3.js?v=1"></script>',
 ].join('\n');
-const HOMEPAGE_V3_HERO_SCRIPT = '    <script src="/assets/js/pages/home-v2.js?v=11" defer></script>';
+const HOMEPAGE_V3_HERO_SCRIPT =
+  '    <script src="/assets/js/pages/home-v2.js?v=11" defer></script>';
 const HOMEPAGE_V3_HERO = `      <section class="hv2-hero" aria-labelledby="hv3-title">
         <div class="hv2-hero__image" aria-hidden="true"></div>
         <div class="hv2-hero__shade" aria-hidden="true"></div>
@@ -165,7 +166,9 @@ function addAnonymousSanitizerMarker(content) {
 }
 
 function addBodyClass(content, className) {
-  if (new RegExp(`<body\\b[^>]*class=["'][^"']*\\b${className}\\b`, 'i').test(content)) {
+  if (
+    new RegExp(`<body\\b[^>]*class=["'][^"']*\\b${className}\\b`, 'i').test(content)
+  ) {
     return content;
   }
 
@@ -188,7 +191,10 @@ function injectBeforeHeadClose(content, snippet) {
 }
 
 function injectBeforeBodyClose(content, snippet) {
-  if (!/<\/body>/i.test(content) || content.includes('/assets/js/pages/home-v2.js?v=11')) {
+  if (
+    !/<\/body>/i.test(content) ||
+    content.includes('/assets/js/pages/home-v2.js?v=11')
+  ) {
     return content;
   }
 
