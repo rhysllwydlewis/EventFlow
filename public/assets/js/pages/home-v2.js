@@ -106,7 +106,7 @@
 
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const pexelsImages = await fetchPexelsHeroImages();
-    const heroImages = [...pexelsImages, ...heroFallbackImages].filter(Boolean);
+    const heroImages = [...heroFallbackImages, ...pexelsImages].filter(Boolean);
 
     if (heroImages.length === 0) {
       return;
