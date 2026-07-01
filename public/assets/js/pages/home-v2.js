@@ -4,20 +4,13 @@
   const menuButton = document.querySelector('.hv2-menu');
   const mobileNav = document.getElementById('hv2-mobile-nav');
   const categoryField = document.getElementById('hv2-category');
+  const keywordField = document.getElementById('hv2-keyword');
+  const locationField = document.getElementById('hv2-location');
   const searchForm = document.querySelector('.hv2-search');
   const heroImage = document.querySelector('.hv2-hero__image');
   const popularButtons = document.querySelectorAll('.hv2-popular button[data-category]');
   const revealTargets = document.querySelectorAll(
-    [
-      '.hv2-flow-strip article',
-      '.hv2-journey__grid article',
-      '.hv2-planner-board',
-      '.hv2-category',
-      '.hv2-market__showcase',
-      '.hv2-tools-panel article',
-      '.hv2-moment-cards a',
-      '.hv2-cta article',
-    ].join(', ')
+    ['.hv2-category', '.hv2-dashboard', '.hv2-supplier-band__grid'].join(', ')
   );
 
   const pexelsImageParams = 'auto=compress&cs=tinysrgb&w=2600&h=1600&fit=crop';
@@ -307,6 +300,14 @@
       button.addEventListener('click', () => {
         if (categoryField) {
           categoryField.value = button.dataset.category || '';
+        }
+
+        if (keywordField) {
+          keywordField.value = button.textContent.trim();
+        }
+
+        if (locationField && button.dataset.location) {
+          locationField.value = button.dataset.location;
         }
 
         if (searchForm) {
