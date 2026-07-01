@@ -100,9 +100,72 @@
     });
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initialiseEventTypeSelect);
-  } else {
+  function initialiseHeroGuide() {
+    const hero = document.querySelector('.hv2-hero');
+
+    if (!hero || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      return;
+    }
+
+    const nudge = document.createElement('div');
+    nudge.className = 'hv3-hero-guide';
+    nudge.setAttribute('aria-hidden', 'true');
+    nudge.innerHTML = `
+      <div class="hv3-hero-guide__note">
+        <span class="hv3-hero-guide__label">Quick guide</span>
+        <strong>Start with the search</strong>
+        <p>Choose your event type, add a location, then click Search suppliers. Sign up after to save favourites and messages.</p>
+      </div>
+      <span class="hv3-hero-guide__pointer" aria-hidden="true"></span>
+    `;
+
+    hero.appendChild(nudge);
+
+    let hideTimer;
+    let removeTimer;
+
+    function dismissGuide() {
+      window.clearTimeout(hideTimer);
+      nudge.classList.remove('is-visible');
+      nudge.classList.add('is-hiding');
+      removeTimer = window.setTimeout(() => nudge.remove(), 700);
+    }
+
+    const showTimer = window.setTimeout(() => {
+      if (!document.body.contains(nudge)) {
+        return;
+      }
+
+      nudge.classList.add('is-visible');
+      hideTimer = window.setTimeout(dismissGuide, 6500);
+    }, 5000);
+
+    const searchForm = document.querySelector('.hv2-search');
+
+    if (searchForm) {
+      searchForm.addEventListener('focusin', dismissGuide, { once: true });
+      searchForm.addEventListener('submit', dismissGuide, { once: true });
+    }
+
+    window.addEventListener(
+      'pagehide',
+      () => {
+        window.clearTimeout(showTimer);
+        window.clearTimeout(hideTimer);
+        window.clearTimeout(removeTimer);
+      },
+      { once: true }
+    );
+  }
+
+  function initialiseHomeV3() {
     initialiseEventTypeSelect();
+    initialiseHeroGuide();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initialiseHomeV3);
+  } else {
+    initialiseHomeV3();
   }
 })();
