@@ -14,3 +14,4 @@ outbox
 public/uploads
 .env
 .env.*
+utils/template-renderer.js
