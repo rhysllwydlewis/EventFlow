@@ -621,7 +621,7 @@
 
       try {
         const csrfToken = await getCsrfToken();
-        const response = await fetch('/api/newsletter/subscribe', {
+        const response = await fetch('/api/v1/newsletter/subscribe', {
           method: 'POST',
           credentials: 'include',
           headers: {
