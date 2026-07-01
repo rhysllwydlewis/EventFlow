@@ -230,7 +230,9 @@
           data.message || 'Please check your email to confirm your subscription.';
       } catch (error) {
         newsletterFeedback.textContent =
-          error && error.message ? error.message : 'Could not subscribe right now. Please try again.';
+          error && error.message
+            ? error.message
+            : 'Could not subscribe right now. Please try again.';
       } finally {
         if (submitButton) {
           submitButton.disabled = false;
