@@ -9,16 +9,17 @@
   const popularButtons = document.querySelectorAll('.hv2-popular button[data-category]');
 
   const heroFallbackImages = [
-    'https://images.pexels.com/photos/5038747/pexels-photo-5038747.jpeg?auto=compress&cs=tinysrgb&w=2200&h=1400&fit=crop',
-    'https://images.pexels.com/photos/9375427/pexels-photo-9375427.jpeg?auto=compress&cs=tinysrgb&w=2200&h=1400&fit=crop',
-    'https://images.pexels.com/photos/7938122/pexels-photo-7938122.jpeg?auto=compress&cs=tinysrgb&w=2200&h=1400&fit=crop',
-    'https://images.pexels.com/photos/11474280/pexels-photo-11474280.jpeg?auto=compress&cs=tinysrgb&w=2200&h=1400&fit=crop',
+    'https://images.pexels.com/photos/169190/pexels-photo-169190.jpeg?auto=compress&cs=tinysrgb&w=2400&h=1500&fit=crop',
+    'https://images.pexels.com/photos/265947/pexels-photo-265947.jpeg?auto=compress&cs=tinysrgb&w=2400&h=1500&fit=crop',
+    'https://images.pexels.com/photos/587741/pexels-photo-587741.jpeg?auto=compress&cs=tinysrgb&w=2400&h=1500&fit=crop',
+    'https://images.pexels.com/photos/1128783/pexels-photo-1128783.jpeg?auto=compress&cs=tinysrgb&w=2400&h=1500&fit=crop',
   ];
 
   const pexelsHeroQueries = [
-    'luxury wedding reception table flowers string lights',
-    'elegant event table flowers glasses warm lights',
-    'premium wedding reception table white flowers',
+    'luxury wedding reception table flowers warm lights',
+    'elegant wedding table flowers glasses reception',
+    'premium event table flowers chairs soft light',
+    'white floral wedding reception tablescape',
   ];
 
   function closeMenu() {
@@ -58,10 +59,12 @@
   function isUsefulHeroPhoto(photo) {
     const alt = `${photo.alt || ''} ${photo.photographer || ''}`.toLowerCase();
     const isLandscape = !photo.width || !photo.height || photo.width >= photo.height;
-    const hasEventCue = /wedding|reception|table|flowers|floral|event|dining|decor|lights/.test(
+    const hasEventCue = /wedding|reception|tablescape|table|flowers|floral|event|dining|decor|lights|chairs/.test(
       alt
     );
-    return isLandscape && hasEventCue;
+    const avoidPortraitCue = /person|woman|man|bride|groom|portrait|dress close/i.test(alt);
+
+    return isLandscape && hasEventCue && !avoidPortraitCue;
   }
 
   async function fetchPexelsHeroImages() {
@@ -70,7 +73,7 @@
     for (const query of pexelsHeroQueries) {
       try {
         const response = await fetch(
-          `/api/pexels/search?q=${encodeURIComponent(query)}&per_page=5`
+          `/api/pexels/search?q=${encodeURIComponent(query)}&per_page=8`
         );
 
         if (!response.ok) {
@@ -119,7 +122,7 @@
     window.setInterval(() => {
       imageIndex = (imageIndex + 1) % heroImages.length;
       setHeroBackground(heroImages[imageIndex]);
-    }, 9000);
+    }, 11000);
   }
 
   if (menuButton && mobileNav) {
