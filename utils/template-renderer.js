@@ -19,13 +19,18 @@ const HOMEPAGE_V2_PREVIEW_PATHS = new Set([
   '/home-v2-preview',
   '/home-v2-preview.html',
 ]);
-const HOMEPAGE_V3_PREVIEW_PATHS = new Set(['/home-v3', '/home-v3.html', '/home-v3-preview', '/home-v3-preview.html']);
+const HOMEPAGE_V3_PREVIEW_PATHS = new Set([
+  '/home-v3',
+  '/home-v3.html',
+  '/home-v3-preview',
+  '/home-v3-preview.html',
+]);
 const HOMEPAGE_V3_HERO_STYLES = [
   '    <link rel="preload" href="/assets/css/home-v2.css?v=11" as="style" />',
   '    <link rel="preload" href="/assets/css/home-v3.css?v=1" as="style" />',
   '    <link rel="stylesheet" href="/assets/css/home-v2.css?v=11" />',
   '    <link rel="stylesheet" href="/assets/css/home-v3.css?v=1" />',
-  '    <script>window.__EF_HOME_V3_PREVIEW__ = true; window.__collageWidgetInitialized = true;</script>',
+  '    <script src="/assets/js/pages/home-v3.js?v=1"></script>',
 ].join('\n');
 const HOMEPAGE_V3_HERO_SCRIPT = '    <script src="/assets/js/pages/home-v2.js?v=11" defer></script>';
 const HOMEPAGE_V3_HERO = `      <section class="hv2-hero" aria-labelledby="hv3-title">
@@ -165,7 +170,10 @@ function addBodyClass(content, className) {
   }
 
   if (/<body\b[^>]*class=["'][^"']*["'][^>]*>/i.test(content)) {
-    return content.replace(/(<body\b[^>]*class=["'])([^"']*)(["'][^>]*>)/i, `$1$2 ${className}$3`);
+    return content.replace(
+      /(<body\b[^>]*class=["'])([^"']*)(["'][^>]*>)/i,
+      `$1$2 ${className}$3`
+    );
   }
 
   return content.replace(/<body\b/i, `<body class="${className}"`);
@@ -188,7 +196,8 @@ function injectBeforeBodyClose(content, snippet) {
 }
 
 function replaceHomepageHeroWithV3(content) {
-  const heroPattern = /\s*<section class="hero hero-modern">[\s\S]*?<\/section>\s*(?=<!-- Noscript fallback for hero CTAs -->|<noscript>)/i;
+  const heroPattern =
+    /\s*<section class="hero hero-modern">[\s\S]*?<\/section>\s*(?=<!-- Noscript fallback for hero CTAs -->|<noscript>)/i;
 
   if (!heroPattern.test(content)) {
     return content;
