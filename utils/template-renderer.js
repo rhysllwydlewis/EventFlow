@@ -27,10 +27,10 @@ const HOMEPAGE_V3_PREVIEW_PATHS = new Set([
 ]);
 const HOMEPAGE_V3_HERO_STYLES = [
   '    <link rel="preload" href="/assets/css/home-v2.css?v=11" as="style" />',
-  '    <link rel="preload" href="/assets/css/home-v3.css?v=2" as="style" />',
+  '    <link rel="preload" href="/assets/css/home-v3.css?v=3" as="style" />',
   '    <link rel="stylesheet" href="/assets/css/home-v2.css?v=11" />',
-  '    <link rel="stylesheet" href="/assets/css/home-v3.css?v=2" />',
-  '    <script src="/assets/js/pages/home-v3.js?v=1"></script>',
+  '    <link rel="stylesheet" href="/assets/css/home-v3.css?v=3" />',
+  '    <script src="/assets/js/pages/home-v3.js?v=2"></script>',
 ].join('\n');
 const HOMEPAGE_V3_HERO_SCRIPT = '    <script src="/assets/js/pages/home-v2.js?v=11" defer></script>';
 const HOMEPAGE_V3_HERO = `      <section class="hv2-hero" aria-labelledby="hv3-title">
@@ -49,22 +49,42 @@ const HOMEPAGE_V3_HERO = `      <section class="hv2-hero" aria-labelledby="hv3-t
             <form class="hv2-search" action="/suppliers" method="GET" aria-label="Search suppliers">
               <input type="hidden" name="category" id="hv2-category" />
 
-              <label class="hv2-search__field">
+              <div class="hv2-search__field hv2-search__field--select" role="group" aria-labelledby="hv3-event-type-label">
                 <svg viewBox="0 0 24 24" aria-hidden="true">
                   <rect x="4" y="5" width="16" height="15" rx="2"></rect>
                   <path d="M8 3v4M16 3v4M4 10h16"></path>
                 </svg>
                 <span>
-                  <strong>Event type</strong>
-                  <select name="eventType" id="hv2-event-type">
-                    <option value="">e.g. Wedding</option>
-                    <option value="wedding">Wedding</option>
-                    <option value="corporate">Corporate</option>
-                    <option value="party">Party</option>
-                    <option value="celebration">Celebration</option>
-                  </select>
+                  <strong id="hv3-event-type-label">Event type</strong>
+                  <input type="hidden" name="eventType" id="hv2-event-type" />
+                  <span class="hv3-select" data-hv3-event-select>
+                    <button
+                      class="hv3-select__button"
+                      type="button"
+                      aria-haspopup="listbox"
+                      aria-expanded="false"
+                      aria-controls="hv3-event-type-menu"
+                      data-hv3-select-button
+                    >
+                      <span data-hv3-event-label>e.g. Wedding</span>
+                    </button>
+                    <ul class="hv3-select__menu" id="hv3-event-type-menu" role="listbox" hidden data-hv3-select-menu>
+                      <li role="presentation">
+                        <button class="hv3-select__option" type="button" role="option" data-value="wedding" data-hv3-event-option>Wedding</button>
+                      </li>
+                      <li role="presentation">
+                        <button class="hv3-select__option" type="button" role="option" data-value="corporate" data-hv3-event-option>Corporate</button>
+                      </li>
+                      <li role="presentation">
+                        <button class="hv3-select__option" type="button" role="option" data-value="party" data-hv3-event-option>Party</button>
+                      </li>
+                      <li role="presentation">
+                        <button class="hv3-select__option" type="button" role="option" data-value="celebration" data-hv3-event-option>Celebration</button>
+                      </li>
+                    </ul>
+                  </span>
                 </span>
-              </label>
+              </div>
 
               <label class="hv2-search__field">
                 <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -123,7 +143,7 @@ function replacePlaceholders(content) {
   let result = content;
 
   for (const [key, value] of Object.entries(placeholders)) {
-    const pattern = new RegExp(`\\{\\{${key}\\}\\}`, 'g');
+    const pattern = new RegExp(`\\{\\{${key}\\}`, 'g');
     result = result.replace(pattern, value);
   }
 
