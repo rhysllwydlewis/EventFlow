@@ -10,6 +10,20 @@
 
   const DISMISSED_KEY = 'ef_pwa_install_dismissed';
   const BANNER_ID = 'ef-pwa-install-banner';
+  const V3_PREVIEW_PATHS = new Set([
+    '/home-v3',
+    '/home-v3.html',
+    '/home-v3-preview',
+    '/home-v3-preview.html',
+  ]);
+
+  function isInstallPromptSuppressed() {
+    const path = window.location.pathname.replace(/\/+$/, '') || '/';
+    const isV3Preview = V3_PREVIEW_PATHS.has(path);
+    const hasV3BodyClass = document.body && document.body.classList.contains('home-v3-page');
+
+    return isV3Preview || hasV3BodyClass;
+  }
 
   /**
    * Returns true only on desktop devices.
@@ -174,6 +188,10 @@
   }
 
   function createBanner(onInstall, onDismiss) {
+    if (isInstallPromptSuppressed()) {
+      return null;
+    }
+
     injectStyles();
     const banner = document.createElement('div');
     banner.id = BANNER_ID;
@@ -199,6 +217,11 @@
   let deferredPrompt = null;
 
   window.addEventListener('beforeinstallprompt', e => {
+    if (isInstallPromptSuppressed()) {
+      e.preventDefault();
+      return;
+    }
+
     // Only show the install banner on desktop devices
     if (!isDesktopInstallAllowed()) {
       return;
