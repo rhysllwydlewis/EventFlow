@@ -52,13 +52,17 @@
       return '';
     }
 
-    return photo.src.landscape || photo.src.large2x || photo.src.large || photo.src.original || '';
+    return (
+      photo.src.landscape || photo.src.large2x || photo.src.large || photo.src.original || ''
+    );
   }
 
   function isUsefulHeroPhoto(photo) {
     const alt = `${photo.alt || ''} ${photo.photographer || ''}`.toLowerCase();
     const isLandscape = !photo.width || !photo.height || photo.width >= photo.height;
-    const hasEventCue = /wedding|reception|table|flowers|floral|event|dining|decor|lights/.test(alt);
+    const hasEventCue = /wedding|reception|table|flowers|floral|event|dining|decor|lights/.test(
+      alt
+    );
     return isLandscape && hasEventCue;
   }
 
@@ -77,12 +81,16 @@
 
         const data = await response.json();
         const photos = Array.isArray(data.photos) ? data.photos : [];
-        photos.filter(isUsefulHeroPhoto).map(getPhotoUrl).filter(Boolean).forEach(url => {
-          if (!urls.includes(url)) {
-            urls.push(url);
-          }
-        });
-      } catch (_error) {
+        photos
+          .filter(isUsefulHeroPhoto)
+          .map(getPhotoUrl)
+          .filter(Boolean)
+          .forEach(url => {
+            if (!urls.includes(url)) {
+              urls.push(url);
+            }
+          });
+      } catch {
         return urls;
       }
     }
@@ -140,7 +148,11 @@
     });
 
     document.addEventListener('focusin', event => {
-      if (!mobileNav.hidden && !mobileNav.contains(event.target) && event.target !== menuButton) {
+      if (
+        !mobileNav.hidden &&
+        !mobileNav.contains(event.target) &&
+        event.target !== menuButton
+      ) {
         closeMenu();
       }
     });
