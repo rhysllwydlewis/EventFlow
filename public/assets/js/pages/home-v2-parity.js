@@ -25,7 +25,27 @@
       return '/admin';
     }
 
-    return '/dashboard';
+    return '/dashboard/customer';
+  }
+
+  async function getCsrfToken() {
+    if (window.__CSRF_TOKEN__) {
+      return window.__CSRF_TOKEN__;
+    }
+
+    try {
+      const response = await fetch('/api/v1/csrf-token', { credentials: 'include' });
+      if (!response.ok) {
+        return '';
+      }
+
+      const data = await response.json();
+      const token = data.csrfToken || data.token || '';
+      window.__CSRF_TOKEN__ = token;
+      return token;
+    } catch {
+      return '';
+    }
   }
 
   function setAuthenticatedState(user) {
@@ -78,6 +98,17 @@
       notificationDropdown.hidden = isOpen;
     });
 
+    document.addEventListener('click', event => {
+      if (
+        !notificationDropdown.hidden &&
+        !notificationDropdown.contains(event.target) &&
+        event.target !== notificationButton &&
+        !notificationButton.contains(event.target)
+      ) {
+        closeNotifications();
+      }
+    });
+
     document.addEventListener('keydown', event => {
       if (event.key === 'Escape') {
         closeNotifications();
@@ -86,11 +117,13 @@
   }
 
   async function logout() {
+    const csrfToken = await getCsrfToken();
+
     try {
       await fetch('/api/v1/auth/logout', {
         method: 'POST',
         credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        headers: csrfToken ? { 'X-CSRF-Token': csrfToken } : {},
       });
     } catch {
       // Still clear local auth state and send the user home.
@@ -102,7 +135,7 @@
       // ignore
     }
 
-    window.location.href = '/';
+    window.location.href = `/?t=${Date.now()}`;
   }
 
   function initialiseLogout() {
@@ -119,10 +152,15 @@
       return;
     }
 
-    cookiePrefsButton.addEventListener('click', () => {
+    cookiePrefsButton.addEventListener('click', event => {
+      event.preventDefault();
+
       if (window.CookieConsent && typeof window.CookieConsent.openPreferences === 'function') {
-        window.CookieConsent.openPreferences();
+        window.CookieConsent.openPreferences(event);
+        return;
       }
+
+      window.location.href = '/legal#cookies';
     });
   }
 
@@ -151,8 +189,10 @@
       const formData = new FormData(newsletterForm);
       const email = String(formData.get('email') || '').trim();
 
-      if (!email) {
-        newsletterFeedback.textContent = 'Please enter an email address.';
+      newsletterFeedback.textContent = '';
+
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        newsletterFeedback.textContent = 'Please enter a valid email address.';
         return;
       }
 
@@ -161,22 +201,33 @@
         submitButton.setAttribute('aria-busy', 'true');
       }
 
+      newsletterFeedback.textContent = 'Sending confirmation email...';
+
       try {
+        const csrfToken = await getCsrfToken();
         const response = await fetch('/api/newsletter/subscribe', {
           method: 'POST',
           credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email }),
+          headers: {
+            'Content-Type': 'application/json',
+            ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}),
+          },
+          body: JSON.stringify({ email, source: 'home-v2' }),
         });
+        const data = await response.json().catch(() => ({}));
 
         if (!response.ok) {
-          throw new Error('Newsletter request failed');
+          throw new Error(data.error || data.message || 'Subscription failed');
         }
 
         newsletterForm.reset();
-        newsletterFeedback.textContent = 'Thanks, you are on the list.';
-      } catch {
-        newsletterFeedback.textContent = 'We could not subscribe you just now. Please try again later.';
+        newsletterFeedback.textContent =
+          data.message || 'Please check your email to confirm your subscription.';
+      } catch (error) {
+        newsletterFeedback.textContent =
+          error && error.message
+            ? error.message
+            : 'Could not subscribe right now. Please try again.';
       } finally {
         if (submitButton) {
           submitButton.disabled = false;
@@ -186,49 +237,10 @@
     });
   }
 
-  function addStructuredData() {
-    const existing = document.getElementById('hv2-rich-schema');
-    if (existing) {
-      return;
-    }
-
-    const schema = document.createElement('script');
-    schema.id = 'hv2-rich-schema';
-    schema.type = 'application/ld+json';
-    schema.textContent = JSON.stringify({
-      '@context': 'https://schema.org',
-      '@graph': [
-        {
-          '@type': 'Organization',
-          '@id': 'https://event-flow.co.uk/#organization',
-          name: 'EventFlow',
-          url: 'https://event-flow.co.uk',
-          logo: 'https://event-flow.co.uk/icon-512.png',
-          address: { '@type': 'PostalAddress', addressCountry: 'GB' },
-        },
-        {
-          '@type': 'WebSite',
-          '@id': 'https://event-flow.co.uk/#website',
-          name: 'EventFlow',
-          url: 'https://event-flow.co.uk',
-          publisher: { '@id': 'https://event-flow.co.uk/#organization' },
-          potentialAction: {
-            '@type': 'SearchAction',
-            target: 'https://event-flow.co.uk/suppliers?q={search_term_string}',
-            'query-input': 'required name=search_term_string',
-          },
-        },
-      ],
-    });
-
-    document.head.appendChild(schema);
-  }
-
   initialiseAuthAwareNav();
   initialiseNotifications();
   initialiseLogout();
   initialiseCookiePreferences();
   initialiseBottomMenu();
   initialiseNewsletter();
-  addStructuredData();
 })();
