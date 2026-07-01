@@ -1,68 +1,59 @@
 (() => {
   'use strict';
 
-  // ── Elements ──────────────────────────────────────────────────────────
-  const burger     = document.querySelector('.v2-burger');
-  const mobileNav  = document.getElementById('v2-mobile-nav');
-  const catSelect  = document.getElementById('v2-cat');
-  const locInput   = document.getElementById('v2-loc');
-  const chips      = document.querySelectorAll('.v2-chip[data-category]');
-  const searchForm = document.querySelector('.v2-search');
+  const menuButton = document.querySelector('.hv2-menu');
+  const mobileNav = document.getElementById('hv2-mobile-nav');
+  const categoryField = document.getElementById('hv2-category');
+  const searchForm = document.querySelector('.hv2-search');
+  const popularButtons = document.querySelectorAll('.hv2-popular button[data-category]');
 
-  // ── Mobile menu ───────────────────────────────────────────────────────
-  function closeNav() {
-    if (!burger || !mobileNav) return;
-    burger.setAttribute('aria-expanded', 'false');
-    burger.setAttribute('aria-label', 'Open navigation menu');
+  function closeMenu() {
+    if (!menuButton || !mobileNav) return;
+    menuButton.setAttribute('aria-expanded', 'false');
+    menuButton.setAttribute('aria-label', 'Open navigation menu');
     mobileNav.hidden = true;
   }
 
-  if (burger && mobileNav) {
-    burger.addEventListener('click', () => {
-      const open = burger.getAttribute('aria-expanded') === 'true';
-      burger.setAttribute('aria-expanded', String(!open));
-      burger.setAttribute('aria-label', open ? 'Open navigation menu' : 'Close navigation menu');
-      mobileNav.hidden = open;
+  if (menuButton && mobileNav) {
+    menuButton.addEventListener('click', () => {
+      const isOpen = menuButton.getAttribute('aria-expanded') === 'true';
+      menuButton.setAttribute('aria-expanded', String(!isOpen));
+      menuButton.setAttribute('aria-label', isOpen ? 'Open navigation menu' : 'Close navigation menu');
+      mobileNav.hidden = isOpen;
     });
 
-    // Close when a nav link is tapped
-    mobileNav.addEventListener('click', e => {
-      if (e.target instanceof HTMLAnchorElement) closeNav();
+    mobileNav.addEventListener('click', event => {
+      if (event.target instanceof HTMLAnchorElement) closeMenu();
     });
 
-    // Close on Escape
-    document.addEventListener('keydown', e => {
-      if (e.key === 'Escape') closeNav();
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape') closeMenu();
     });
 
-    // Close when focus leaves the menu
-    document.addEventListener('focusin', e => {
-      if (
-        !mobileNav.hidden &&
-        !mobileNav.contains(e.target) &&
-        e.target !== burger
-      ) {
-        closeNav();
+    document.addEventListener('focusin', event => {
+      if (!mobileNav.hidden && !mobileNav.contains(event.target) && event.target !== menuButton) {
+        closeMenu();
       }
     });
   }
 
-  // ── Popular chips → populate form and submit ──────────────────────────
-  chips.forEach(chip => {
-    chip.addEventListener('click', () => {
-      if (catSelect) catSelect.value = chip.dataset.category || '';
-      if (locInput && chip.dataset.location) locInput.value = chip.dataset.location;
-      if (searchForm) searchForm.requestSubmit();
+  popularButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      if (categoryField) {
+        categoryField.value = button.dataset.category || '';
+      }
+      if (searchForm) {
+        searchForm.requestSubmit();
+      }
     });
   });
 
-  // ── Search form: loading state ────────────────────────────────────────
   if (searchForm) {
     searchForm.addEventListener('submit', () => {
-      const btn = searchForm.querySelector('.v2-search__btn');
-      if (btn) {
-        btn.setAttribute('aria-busy', 'true');
-        btn.disabled = true;
+      const submitButton = searchForm.querySelector('.hv2-search__button');
+      if (submitButton) {
+        submitButton.disabled = true;
+        submitButton.setAttribute('aria-busy', 'true');
       }
     });
   }
