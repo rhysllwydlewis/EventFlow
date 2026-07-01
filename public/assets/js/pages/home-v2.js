@@ -5,7 +5,9 @@
   const mobileNav = document.getElementById('hv2-mobile-nav');
   const categoryField = document.getElementById('hv2-category');
   const searchForm = document.querySelector('.hv2-search');
-  const popularButtons = document.querySelectorAll('.hv2-popular button[data-category]');
+  const popularButtons = document.querySelectorAll(
+    '.hv2-popular button[data-category]'
+  );
 
   function closeMenu() {
     if (!menuButton || !mobileNav) return;
@@ -18,7 +20,10 @@
     menuButton.addEventListener('click', () => {
       const isOpen = menuButton.getAttribute('aria-expanded') === 'true';
       menuButton.setAttribute('aria-expanded', String(!isOpen));
-      menuButton.setAttribute('aria-label', isOpen ? 'Open navigation menu' : 'Close navigation menu');
+      menuButton.setAttribute(
+        'aria-label',
+        isOpen ? 'Open navigation menu' : 'Close navigation menu'
+      );
       mobileNav.hidden = isOpen;
     });
 
@@ -31,7 +36,11 @@
     });
 
     document.addEventListener('focusin', event => {
-      if (!mobileNav.hidden && !mobileNav.contains(event.target) && event.target !== menuButton) {
+      if (
+        !mobileNav.hidden &&
+        !mobileNav.contains(event.target) &&
+        event.target !== menuButton
+      ) {
         closeMenu();
       }
     });
