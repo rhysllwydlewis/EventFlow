@@ -34,7 +34,9 @@
     }
 
     try {
-      const response = await fetch('/api/v1/csrf-token', { credentials: 'include' });
+      const response = await fetch('/api/v1/csrf-token', {
+        credentials: 'include',
+      });
       if (!response.ok) {
         return '';
       }
@@ -65,7 +67,10 @@
   async function initialiseAuthAwareNav() {
     setAuthenticatedState(null);
 
-    if (!window.AuthStateManager || typeof window.AuthStateManager.init !== 'function') {
+    if (
+      !window.AuthStateManager ||
+      typeof window.AuthStateManager.init !== 'function'
+    ) {
       return;
     }
 
@@ -155,7 +160,10 @@
     cookiePrefsButton.addEventListener('click', event => {
       event.preventDefault();
 
-      if (window.CookieConsent && typeof window.CookieConsent.openPreferences === 'function') {
+      if (
+        window.CookieConsent &&
+        typeof window.CookieConsent.openPreferences === 'function'
+      ) {
         window.CookieConsent.openPreferences(event);
         return;
       }
@@ -172,7 +180,10 @@
     bottomMenuButton.addEventListener('click', () => {
       const isOpen = menuButton.getAttribute('aria-expanded') === 'true';
       menuButton.setAttribute('aria-expanded', String(!isOpen));
-      menuButton.setAttribute('aria-label', isOpen ? 'Open navigation menu' : 'Close navigation menu');
+      menuButton.setAttribute(
+        'aria-label',
+        isOpen ? 'Open navigation menu' : 'Close navigation menu'
+      );
       mobileNav.hidden = isOpen;
       bottomMenuButton.setAttribute('aria-expanded', String(!isOpen));
     });
