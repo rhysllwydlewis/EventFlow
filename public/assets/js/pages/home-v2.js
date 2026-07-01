@@ -8,41 +8,48 @@
   const heroImage = document.querySelector('.hv2-hero__image');
   const popularButtons = document.querySelectorAll('.hv2-popular button[data-category]');
 
-  const pexelsImageParams = 'auto=compress&cs=tinysrgb&w=2400&h=1500&fit=crop';
-  const heroFallbackImageIds = ['169190', '265947', '587741', '1128783'];
+  const pexelsImageParams = 'auto=compress&cs=tinysrgb&w=2600&h=1600&fit=crop';
+  const heroFallbackImageIds = ['265947', '169190', '1128783', '587741', '931162'];
   const heroFallbackImages = heroFallbackImageIds.map(
     id => `https://images.pexels.com/photos/${id}/pexels-photo-${id}.jpeg?${pexelsImageParams}`
   );
 
   const pexelsHeroQueries = [
     'luxury wedding reception table flowers warm lights',
-    'elegant wedding table flowers glasses reception',
-    'premium event table flowers chairs soft light',
+    'elegant wedding reception table centrepiece candles',
+    'premium event dining table floral arrangement',
+    'wedding breakfast table flowers glasses soft light',
     'white floral wedding reception tablescape',
   ];
 
-  const heroCueWords = [
-    'wedding',
+  const preferredHeroWords = [
     'reception',
-    'tablescape',
     'table',
+    'tablescape',
+    'dining',
+    'dinner',
     'flowers',
     'floral',
-    'event',
-    'dining',
-    'decor',
-    'lights',
+    'centrepiece',
+    'centerpiece',
+    'glasses',
     'chairs',
+    'lights',
+    'wedding',
+    'event',
+    'decor',
   ];
 
-  const heroAvoidWords = [
+  const weakHeroWords = [
     'person',
     'woman',
     'man',
     'bride',
     'groom',
     'portrait',
-    'dress close',
+    'dress',
+    'close up',
+    'bouquet only',
   ];
 
   function containsAny(text, words) {
@@ -67,10 +74,13 @@
     const image = new Image();
     image.decoding = 'async';
     heroImage.classList.add('is-changing');
+
     image.onload = () => {
       heroImage.style.setProperty('--hv2-hero-bg', `url('${url}')`);
+      heroImage.style.setProperty('--hv2-hero-position', 'center right');
       window.setTimeout(() => heroImage.classList.remove('is-changing'), 260);
     };
+
     image.onerror = () => heroImage.classList.remove('is-changing');
     image.src = url;
   }
@@ -83,22 +93,50 @@
     return photo.src.landscape || photo.src.large2x || photo.src.large || photo.src.original || '';
   }
 
-  function isUsefulHeroPhoto(photo) {
+  function scoreHeroPhoto(photo) {
+    if (!photo || !photo.src) {
+      return -100;
+    }
+
     const alt = `${photo.alt || ''} ${photo.photographer || ''}`.toLowerCase();
     const isLandscape = !photo.width || !photo.height || photo.width >= photo.height;
-    const hasEventCue = containsAny(alt, heroCueWords);
-    const avoidPortraitCue = containsAny(alt, heroAvoidWords);
+    let score = isLandscape ? 10 : -25;
 
-    return isLandscape && hasEventCue && !avoidPortraitCue;
+    preferredHeroWords.forEach(word => {
+      if (alt.includes(word)) {
+        score += 4;
+      }
+    });
+
+    weakHeroWords.forEach(word => {
+      if (alt.includes(word)) {
+        score -= 9;
+      }
+    });
+
+    if (photo.width && photo.width >= 1800) {
+      score += 4;
+    }
+
+    if (photo.height && photo.height >= 1000) {
+      score += 3;
+    }
+
+    if (containsAny(alt, ['reception', 'tablescape', 'dining table', 'wedding table'])) {
+      score += 12;
+    }
+
+    return score;
   }
 
   async function fetchPexelsHeroImages() {
-    const urls = [];
+    const seenUrls = new Set();
+    const candidates = [];
 
     for (const query of pexelsHeroQueries) {
       try {
         const response = await fetch(
-          `/api/pexels/search?q=${encodeURIComponent(query)}&per_page=8`
+          `/api/pexels/search?q=${encodeURIComponent(query)}&per_page=10`
         );
 
         if (!response.ok) {
@@ -107,21 +145,24 @@
 
         const data = await response.json();
         const photos = Array.isArray(data.photos) ? data.photos : [];
-        photos
-          .filter(isUsefulHeroPhoto)
-          .map(getPhotoUrl)
-          .filter(Boolean)
-          .forEach(url => {
-            if (!urls.includes(url)) {
-              urls.push(url);
-            }
-          });
+
+        photos.forEach(photo => {
+          const url = getPhotoUrl(photo);
+          const score = scoreHeroPhoto(photo);
+
+          if (!url || seenUrls.has(url) || score < 8) {
+            return;
+          }
+
+          seenUrls.add(url);
+          candidates.push({ score, url });
+        });
       } catch {
-        return urls;
+        return candidates.sort((a, b) => b.score - a.score).map(candidate => candidate.url);
       }
     }
 
-    return urls;
+    return candidates.sort((a, b) => b.score - a.score).map(candidate => candidate.url);
   }
 
   async function initialiseHeroImages() {
@@ -131,7 +172,7 @@
 
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const pexelsImages = await fetchPexelsHeroImages();
-    const heroImages = [...heroFallbackImages, ...pexelsImages].filter(Boolean);
+    const heroImages = [...pexelsImages, ...heroFallbackImages].filter(Boolean);
 
     if (heroImages.length === 0) {
       return;
@@ -147,7 +188,7 @@
     window.setInterval(() => {
       imageIndex = (imageIndex + 1) % heroImages.length;
       setHeroBackground(heroImages[imageIndex]);
-    }, 11000);
+    }, 14000);
   }
 
   if (menuButton && mobileNav) {
@@ -174,11 +215,7 @@
     });
 
     document.addEventListener('focusin', event => {
-      if (
-        !mobileNav.hidden &&
-        !mobileNav.contains(event.target) &&
-        event.target !== menuButton
-      ) {
+      if (!mobileNav.hidden && !mobileNav.contains(event.target) && event.target !== menuButton) {
         closeMenu();
       }
     });
@@ -189,6 +226,7 @@
       if (categoryField) {
         categoryField.value = button.dataset.category || '';
       }
+
       if (searchForm) {
         searchForm.requestSubmit();
       }
@@ -198,6 +236,7 @@
   if (searchForm) {
     searchForm.addEventListener('submit', () => {
       const submitButton = searchForm.querySelector('.hv2-search__button');
+
       if (submitButton) {
         submitButton.disabled = true;
         submitButton.setAttribute('aria-busy', 'true');
