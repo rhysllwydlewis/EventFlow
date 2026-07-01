@@ -19,6 +19,88 @@ const HOMEPAGE_V2_PREVIEW_PATHS = new Set([
   '/home-v2-preview',
   '/home-v2-preview.html',
 ]);
+const HOMEPAGE_V3_PREVIEW_PATHS = new Set(['/home-v3', '/home-v3.html', '/home-v3-preview', '/home-v3-preview.html']);
+const HOMEPAGE_V3_HERO_STYLES = [
+  '    <link rel="preload" href="/assets/css/home-v2.css?v=11" as="style" />',
+  '    <link rel="preload" href="/assets/css/home-v3.css?v=1" as="style" />',
+  '    <link rel="stylesheet" href="/assets/css/home-v2.css?v=11" />',
+  '    <link rel="stylesheet" href="/assets/css/home-v3.css?v=1" />',
+].join('\n');
+const HOMEPAGE_V3_HERO_SCRIPT = '    <script src="/assets/js/pages/home-v2.js?v=11" defer></script>';
+const HOMEPAGE_V3_HERO = `      <section class="hv2-hero" aria-labelledby="hv3-title">
+        <div class="hv2-hero__image" aria-hidden="true"></div>
+        <div class="hv2-hero__shade" aria-hidden="true"></div>
+
+        <div class="hv2-shell hv2-hero__content">
+          <div class="hv2-hero__copy">
+            <p class="hv2-eyebrow">UK event planning marketplace</p>
+            <h1 id="hv3-title">Plan your event in one place</h1>
+            <p class="hv2-hero__lead">
+              Find venues, suppliers and packages, then keep your budget, messages and checklist
+              together.
+            </p>
+
+            <form class="hv2-search" action="/suppliers" method="GET" aria-label="Search suppliers">
+              <input type="hidden" name="category" id="hv2-category" />
+
+              <label class="hv2-search__field">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <rect x="4" y="5" width="16" height="15" rx="2"></rect>
+                  <path d="M8 3v4M16 3v4M4 10h16"></path>
+                </svg>
+                <span>
+                  <strong>Event type</strong>
+                  <select name="eventType" id="hv2-event-type">
+                    <option value="">e.g. Wedding</option>
+                    <option value="wedding">Wedding</option>
+                    <option value="corporate">Corporate</option>
+                    <option value="party">Party</option>
+                    <option value="celebration">Celebration</option>
+                  </select>
+                </span>
+              </label>
+
+              <label class="hv2-search__field">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M12 21s7-6.1 7-12a7 7 0 1 0-14 0c0 5.9 7 12 7 12Z"></path>
+                  <circle cx="12" cy="9" r="2.5"></circle>
+                </svg>
+                <span>
+                  <strong>Location</strong>
+                  <input
+                    id="hv2-location"
+                    name="location"
+                    type="search"
+                    placeholder="e.g. London"
+                    autocomplete="postal-code"
+                  />
+                </span>
+              </label>
+
+              <label class="hv2-search__field hv2-search__field--wide">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <circle cx="11" cy="11" r="7"></circle>
+                  <path d="m16.5 16.5 4 4"></path>
+                </svg>
+                <span>
+                  <strong>Supplier or keyword</strong>
+                  <input id="hv2-keyword" name="q" type="search" placeholder="e.g. Photographer" />
+                </span>
+              </label>
+
+              <button class="hv2-search__button" type="submit">Search suppliers</button>
+
+              <div class="hv2-popular" aria-label="Popular searches">
+                <span>Popular searches:</span>
+                <button type="button" data-category="Venues" data-location="London">London venues</button>
+                <button type="button" data-category="Photography">Wedding photographers</button>
+                <button type="button" data-category="Catering">Corporate catering</button>
+                <button type="button" data-category="Music/DJ">DJs near me</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </section>`;
 const HOMEPAGE_DIRTY_COPY = {
   supplierClaim: ['All suppliers are verified', ' and vetted'].join(''),
   testimonialsHeading: ['What Our Customers', ' Say'].join(''),
@@ -74,6 +156,52 @@ function addAnonymousSanitizerMarker(content) {
     return content.replace(/(<body\b[^>]*>)/i, `$1\n${ANONYMOUS_SANITIZER_COMMENT}`);
   }
   return `${ANONYMOUS_SANITIZER_COMMENT}\n${content}`;
+}
+
+function addBodyClass(content, className) {
+  if (new RegExp(`<body\\b[^>]*class=["'][^"']*\\b${className}\\b`, 'i').test(content)) {
+    return content;
+  }
+
+  if (/<body\b[^>]*class=["'][^"']*["'][^>]*>/i.test(content)) {
+    return content.replace(/(<body\b[^>]*class=["'])([^"']*)(["'][^>]*>)/i, `$1$2 ${className}$3`);
+  }
+
+  return content.replace(/<body\b/i, `<body class="${className}"`);
+}
+
+function injectBeforeHeadClose(content, snippet) {
+  if (!/<\/head>/i.test(content) || content.includes('/assets/css/home-v3.css')) {
+    return content;
+  }
+
+  return content.replace(/\s*<\/head>/i, `\n${snippet}\n</head>`);
+}
+
+function injectBeforeBodyClose(content, snippet) {
+  if (!/<\/body>/i.test(content) || content.includes('/assets/js/pages/home-v2.js?v=11')) {
+    return content;
+  }
+
+  return content.replace(/\s*<\/body>/i, `\n${snippet}\n</body>`);
+}
+
+function replaceHomepageHeroWithV3(content) {
+  const heroPattern = /\s*<section class="hero hero-modern">[\s\S]*?<\/section>\s*(?=<!-- Noscript fallback for hero CTAs -->|<noscript>)/i;
+
+  if (!heroPattern.test(content)) {
+    return content;
+  }
+
+  return content.replace(heroPattern, `\n${HOMEPAGE_V3_HERO}\n\n`);
+}
+
+function buildHomepageV3Preview(content) {
+  let result = addBodyClass(content, 'home-v3-page');
+  result = injectBeforeHeadClose(result, HOMEPAGE_V3_HERO_STYLES);
+  result = replaceHomepageHeroWithV3(result);
+  result = injectBeforeBodyClose(result, HOMEPAGE_V3_HERO_SCRIPT);
+  return result;
 }
 
 function stripAnonymousAuthText(content) {
@@ -171,6 +299,10 @@ function isHomepageV2PreviewPath(requestPath) {
   return HOMEPAGE_V2_PREVIEW_PATHS.has(requestPath);
 }
 
+function isHomepageV3PreviewPath(requestPath) {
+  return HOMEPAGE_V3_PREVIEW_PATHS.has(requestPath);
+}
+
 function resolvePublicTemplatePath(requestPath) {
   if (requestPath === '/') {
     return useHomepageV2() ? HOMEPAGE_V2_FILE : '/index.html';
@@ -178,6 +310,10 @@ function resolvePublicTemplatePath(requestPath) {
 
   if (isHomepageV2PreviewPath(requestPath)) {
     return HOMEPAGE_V2_FILE;
+  }
+
+  if (isHomepageV3PreviewPath(requestPath)) {
+    return '/index.html';
   }
 
   if (!path.extname(requestPath)) {
@@ -304,6 +440,8 @@ function templateMiddleware() {
     const originalRequestPath = req.path;
     const requestPath = resolvePublicTemplatePath(originalRequestPath);
     const isHomepageV2Preview = isHomepageV2PreviewPath(originalRequestPath);
+    const isHomepageV3Preview = isHomepageV3PreviewPath(originalRequestPath);
+    const isHomepagePreview = isHomepageV2Preview || isHomepageV3Preview;
 
     if (!shouldProcessFile(requestPath)) {
       return next();
@@ -314,10 +452,11 @@ function templateMiddleware() {
 
     try {
       const { content } = await getFile(filePath, requestPath, req);
-      const responseContent = isHomepageV2Preview ? addPreviewRobotsMeta(content) : content;
+      let responseContent = isHomepageV3Preview ? buildHomepageV3Preview(content) : content;
+      responseContent = isHomepagePreview ? addPreviewRobotsMeta(responseContent) : responseContent;
 
       setHtmlNoStoreHeaders(res);
-      if (isHomepageV2Preview) {
+      if (isHomepagePreview) {
         res.setHeader('X-Robots-Tag', 'noindex, nofollow');
       }
       res.setHeader('X-EventFlow-Template-Renderer', 'active');
@@ -349,6 +488,8 @@ module.exports = {
   getPlaceholders,
   useHomepageV2,
   isHomepageV2PreviewPath,
+  isHomepageV3PreviewPath,
   resolvePublicTemplatePath,
   addPreviewRobotsMeta,
+  buildHomepageV3Preview,
 };
