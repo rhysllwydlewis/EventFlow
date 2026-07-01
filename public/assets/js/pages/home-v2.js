@@ -1,13 +1,6 @@
 (() => {
   'use strict';
 
-  const iconStyle = document.createElement('style');
-  iconStyle.textContent = [
-    '.hv2-nav a svg{margin-left:8px;fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;stroke-width:1.7;vertical-align:middle}',
-    '.hv2-proof-card__icon svg{width:28px;height:28px;fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;stroke-width:1.8}',
-  ].join('');
-  document.head.append(iconStyle);
-
   const menuButton = document.querySelector('.hv2-menu');
   const mobileNav = document.getElementById('hv2-mobile-nav');
   const categoryField = document.getElementById('hv2-category');
