@@ -166,9 +166,7 @@ function addAnonymousSanitizerMarker(content) {
 }
 
 function addBodyClass(content, className) {
-  if (
-    new RegExp(`<body\\b[^>]*class=["'][^"']*\\b${className}\\b`, 'i').test(content)
-  ) {
+  if (new RegExp(`<body\\b[^>]*class=["'][^"']*\\b${className}\\b`, 'i').test(content)) {
     return content;
   }
 
@@ -191,10 +189,7 @@ function injectBeforeHeadClose(content, snippet) {
 }
 
 function injectBeforeBodyClose(content, snippet) {
-  if (
-    !/<\/body>/i.test(content) ||
-    content.includes('/assets/js/pages/home-v2.js?v=11')
-  ) {
+  if (!/<\/body>/i.test(content) || content.includes('/assets/js/pages/home-v2.js?v=11')) {
     return content;
   }
 
