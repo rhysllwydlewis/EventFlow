@@ -8,12 +8,11 @@
   const heroImage = document.querySelector('.hv2-hero__image');
   const popularButtons = document.querySelectorAll('.hv2-popular button[data-category]');
 
-  const heroFallbackImages = [
-    'https://images.pexels.com/photos/169190/pexels-photo-169190.jpeg?auto=compress&cs=tinysrgb&w=2400&h=1500&fit=crop',
-    'https://images.pexels.com/photos/265947/pexels-photo-265947.jpeg?auto=compress&cs=tinysrgb&w=2400&h=1500&fit=crop',
-    'https://images.pexels.com/photos/587741/pexels-photo-587741.jpeg?auto=compress&cs=tinysrgb&w=2400&h=1500&fit=crop',
-    'https://images.pexels.com/photos/1128783/pexels-photo-1128783.jpeg?auto=compress&cs=tinysrgb&w=2400&h=1500&fit=crop',
-  ];
+  const pexelsImageParams = 'auto=compress&cs=tinysrgb&w=2400&h=1500&fit=crop';
+  const heroFallbackImageIds = ['169190', '265947', '587741', '1128783'];
+  const heroFallbackImages = heroFallbackImageIds.map(
+    id => `https://images.pexels.com/photos/${id}/pexels-photo-${id}.jpeg?${pexelsImageParams}`
+  );
 
   const pexelsHeroQueries = [
     'luxury wedding reception table flowers warm lights',
@@ -21,6 +20,26 @@
     'premium event table flowers chairs soft light',
     'white floral wedding reception tablescape',
   ];
+
+  const heroCueWords = [
+    'wedding',
+    'reception',
+    'tablescape',
+    'table',
+    'flowers',
+    'floral',
+    'event',
+    'dining',
+    'decor',
+    'lights',
+    'chairs',
+  ];
+
+  const heroAvoidWords = ['person', 'woman', 'man', 'bride', 'groom', 'portrait', 'dress close'];
+
+  function containsAny(text, words) {
+    return words.some(word => text.includes(word));
+  }
 
   function closeMenu() {
     if (!menuButton || !mobileNav) {
@@ -59,12 +78,8 @@
   function isUsefulHeroPhoto(photo) {
     const alt = `${photo.alt || ''} ${photo.photographer || ''}`.toLowerCase();
     const isLandscape = !photo.width || !photo.height || photo.width >= photo.height;
-    const hasEventCue = /wedding|reception|tablescape|table|flowers|floral|event|dining|decor|lights|chairs/.test(
-      alt
-    );
-    const avoidPortraitCue = /person|woman|man|bride|groom|portrait|dress close/i.test(
-      alt
-    );
+    const hasEventCue = containsAny(alt, heroCueWords);
+    const avoidPortraitCue = containsAny(alt, heroAvoidWords);
 
     return isLandscape && hasEventCue && !avoidPortraitCue;
   }
