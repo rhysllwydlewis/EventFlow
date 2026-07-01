@@ -44,11 +44,17 @@
       }
     </script>
 
-    <link rel="preload" href="/assets/css/home-v2.css?v=9" as="style" />
-    <link rel="stylesheet" href="/assets/css/home-v2.css?v=9" />
+    <link rel="preload" href="/assets/css/home-v2.css?v=10" as="style" />
+    <link rel="stylesheet" href="/assets/css/home-v2.css?v=10" />
+    <style>
+      .hv2-flow-strip article {
+        position: relative;
+      }
+    </style>
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
   </head>
 
   <body class="home-v2-page">
@@ -111,8 +117,8 @@
       <section class="hv2-hero" aria-labelledby="hv2-title">
         <div class="hv2-hero__image" aria-hidden="true"></div>
         <div class="hv2-hero__wash" aria-hidden="true"></div>
-        <div class="hv2-hero__shine hv2-hero__shine--one" aria-hidden="true"></div>
-        <div class="hv2-hero__shine hv2-hero__shine--two" aria-hidden="true"></div>
+        <div class="hv2-hero__light hv2-hero__light--left" aria-hidden="true"></div>
+        <div class="hv2-hero__light hv2-hero__light--right" aria-hidden="true"></div>
 
         <div class="hv2-hero__content">
           <p class="hv2-trust-badge">
@@ -209,7 +215,7 @@
                 </svg>
               </span>
               <div>
-                <h2>Trusted Suppliers</h2>
+                <h2>Supplier profiles</h2>
                 <p>Quality you can compare</p>
               </div>
             </article>
@@ -221,7 +227,7 @@
                 </svg>
               </span>
               <div>
-                <h2>Saved Ideas</h2>
+                <h2>Saved ideas</h2>
                 <p>Shortlists in one place</p>
               </div>
             </article>
@@ -233,7 +239,7 @@
                 </svg>
               </span>
               <div>
-                <h2>Calm Planning</h2>
+                <h2>Planning tools</h2>
                 <p>Budgets, notes and tasks</p>
               </div>
             </article>
@@ -248,35 +254,112 @@
         </div>
       </section>
 
+      <section class="hv2-flow-strip" aria-label="EventFlow overview">
+        <div class="hv2-shell hv2-flow-strip__grid">
+          <article>
+            <span>01</span>
+            <h2>Find the right people</h2>
+            <p>Search suppliers by category, place and the kind of event you are shaping.</p>
+          </article>
+          <article>
+            <span>02</span>
+            <h2>Save the strongest ideas</h2>
+            <p>Keep venues, creatives, caterers and marketplace finds close to the plan.</p>
+          </article>
+          <article>
+            <span>03</span>
+            <h2>Bring the details together</h2>
+            <p>Turn scattered tabs, notes and quotes into one calmer planning rhythm.</p>
+          </article>
+        </div>
+      </section>
+
       <section class="hv2-section hv2-section--cream hv2-journey" aria-labelledby="hv2-journey-title">
         <div class="hv2-shell hv2-centre">
           <p class="hv2-kicker">How it works</p>
           <h2 id="hv2-journey-title">From first idea to final booking</h2>
           <p class="hv2-section__lead hv2-section__lead--centre">
-            A calmer route from first thought to final detail, shaped around suppliers, saved ideas,
-            notes and the decisions that matter.
+            A calmer route from first thought to final detail, shaped around supplier discovery,
+            shortlists, notes and the decisions that matter.
           </p>
-          <div class="hv2-steps">
-            <article>
-              <span>01</span>
-              <h3>Create your event</h3>
-              <p>Add the basics and give every supplier search a proper home.</p>
-            </article>
-            <article>
-              <span>02</span>
-              <h3>Explore suppliers</h3>
-              <p>Browse by category, location and the type of event you are planning.</p>
-            </article>
-            <article>
-              <span>03</span>
-              <h3>Save favourites</h3>
-              <p>Collect venues, caterers, creatives and marketplace finds in one shortlist.</p>
-            </article>
-            <article>
-              <span>04</span>
-              <h3>Plan the details</h3>
-              <p>Keep budgets, notes, tasks and supplier decisions close to the plan.</p>
-            </article>
+        </div>
+
+        <div class="hv2-shell hv2-journey__grid">
+          <article>
+            <span>01</span>
+            <h3>Create your event</h3>
+            <p>Add the basics and give every supplier search a proper home.</p>
+          </article>
+          <article>
+            <span>02</span>
+            <h3>Explore suppliers</h3>
+            <p>Browse by category, location and the type of event you are planning.</p>
+          </article>
+          <article>
+            <span>03</span>
+            <h3>Save favourites</h3>
+            <p>Collect venues, caterers, creatives and marketplace finds in one shortlist.</p>
+          </article>
+          <article>
+            <span>04</span>
+            <h3>Plan the details</h3>
+            <p>Keep budgets, notes, tasks and supplier decisions close to the plan.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="hv2-section hv2-studio" id="about-eventflow" aria-labelledby="hv2-studio-title">
+        <div class="hv2-shell hv2-studio__grid">
+          <div class="hv2-studio__copy">
+            <p class="hv2-kicker">Planning workspace</p>
+            <h2 id="hv2-studio-title">A polished home for the whole event</h2>
+            <p>
+              EventFlow is designed to feel less like a list and more like a planning workspace:
+              supplier discovery, saved ideas, marketplace finds and useful next steps in one calm
+              view.
+            </p>
+            <div class="hv2-studio__actions">
+              <a class="hv2-pill hv2-pill--solid" href="/start">Start planning</a>
+              <a class="hv2-pill hv2-pill--ghost" href="/suppliers">Explore suppliers</a>
+            </div>
+          </div>
+
+          <div class="hv2-planner-board" aria-label="EventFlow planning preview">
+            <div class="hv2-board-top">
+              <span>Event plan</span>
+              <strong>Summer celebration</strong>
+            </div>
+            <div class="hv2-board-search">
+              <span></span>
+              <p>Venue, caterer, florals, music</p>
+            </div>
+            <div class="hv2-board-grid">
+              <article class="hv2-board-card hv2-board-card--wide">
+                <small>Shortlist</small>
+                <h3>4 supplier ideas saved</h3>
+                <div class="hv2-mini-stack" aria-hidden="true">
+                  <span></span><span></span><span></span>
+                </div>
+              </article>
+              <article class="hv2-board-card">
+                <small>Budget</small>
+                <h3>Track estimates</h3>
+                <div class="hv2-progress" aria-hidden="true"><span></span></div>
+              </article>
+              <article class="hv2-board-card">
+                <small>Checklist</small>
+                <h3>Next decisions</h3>
+                <ul>
+                  <li>Compare venues</li>
+                  <li>Confirm catering brief</li>
+                  <li>Save decor ideas</li>
+                </ul>
+              </article>
+              <article class="hv2-board-card hv2-board-card--green">
+                <small>Marketplace</small>
+                <h3>Tablescape pieces and lighting in one place</h3>
+              </article>
+            </div>
           </div>
         </div>
       </section>
@@ -289,23 +372,28 @@
           </div>
           <a class="hv2-text-link" href="/suppliers">Browse all suppliers</a>
         </div>
-        <div class="hv2-shell hv2-category-grid">
-          <a class="hv2-category hv2-category--large" href="/suppliers?category=Venues">
+
+        <div class="hv2-shell hv2-supplier-stage">
+          <a class="hv2-category hv2-category--feature" href="/suppliers?category=Venues">
             <img src="/assets/images/collage-venue.jpg" alt="" loading="lazy" />
             <span>Wedding venues</span>
+            <strong>Set the scene for the whole plan</strong>
           </a>
-          <a class="hv2-category" href="/suppliers?category=Photography">
-            <img src="/assets/images/collage-photography.jpg" alt="" loading="lazy" />
-            <span>Photographers</span>
-          </a>
-          <a class="hv2-category" href="/suppliers?category=Catering">
-            <img src="/assets/images/collage-catering.jpg" alt="" loading="lazy" />
-            <span>Caterers</span>
-          </a>
-          <a class="hv2-category" href="/suppliers?category=Entertainment">
-            <img src="/assets/images/collage-entertainment.jpg" alt="" loading="lazy" />
-            <span>Live bands</span>
-          </a>
+
+          <div class="hv2-category-list">
+            <a class="hv2-category" href="/suppliers?category=Photography">
+              <img src="/assets/images/collage-photography.jpg" alt="" loading="lazy" />
+              <span>Photographers</span>
+            </a>
+            <a class="hv2-category" href="/suppliers?category=Catering">
+              <img src="/assets/images/collage-catering.jpg" alt="" loading="lazy" />
+              <span>Caterers</span>
+            </a>
+            <a class="hv2-category" href="/suppliers?category=Entertainment">
+              <img src="/assets/images/collage-entertainment.jpg" alt="" loading="lazy" />
+              <span>Entertainment</span>
+            </a>
+          </div>
         </div>
       </section>
 
@@ -320,73 +408,107 @@
             </p>
             <a class="hv2-pill hv2-pill--light" href="/marketplace">Browse marketplace</a>
           </div>
-          <div class="hv2-market__cards">
-            <a href="/marketplace?category=decor">
-              <span>Decor</span>
-              <strong>Centrepieces and styling</strong>
-              <small>Tablescapes, florals and finishing touches</small>
-            </a>
-            <a href="/marketplace?category=furniture">
-              <span>Furniture</span>
-              <strong>Tables, chairs and seating</strong>
-              <small>Build the room around the guest experience</small>
-            </a>
-            <a href="/marketplace?category=lighting">
-              <span>Lighting</span>
-              <strong>Backdrops and atmosphere</strong>
-              <small>Shape the mood from arrival to last dance</small>
-            </a>
-            <a href="/marketplace?category=av">
-              <span>AV</span>
-              <strong>Sound and production</strong>
-              <small>Practical equipment for polished events</small>
-            </a>
+
+          <div class="hv2-market__showcase" aria-label="Marketplace examples">
+            <div class="hv2-market__image">
+              <img
+                src="https://images.pexels.com/photos/265947/pexels-photo-265947.jpeg?auto=compress&cs=tinysrgb&w=900&h=700&fit=crop"
+                alt=""
+                loading="lazy"
+              />
+            </div>
+            <div class="hv2-market__cards">
+              <a href="/marketplace?category=decor">
+                <span>Decor</span>
+                <strong>Centrepieces and styling</strong>
+                <small>Tablescapes, florals and finishing touches</small>
+              </a>
+              <a href="/marketplace?category=furniture">
+                <span>Furniture</span>
+                <strong>Tables, chairs and seating</strong>
+                <small>Build the room around the guest experience</small>
+              </a>
+              <a href="/marketplace?category=lighting">
+                <span>Lighting</span>
+                <strong>Backdrops and atmosphere</strong>
+                <small>Shape the mood from arrival to last dance</small>
+              </a>
+              <a href="/marketplace?category=av">
+                <span>AV</span>
+                <strong>Sound and production</strong>
+                <small>Practical equipment for polished events</small>
+              </a>
+            </div>
           </div>
         </div>
       </section>
 
-      <section class="hv2-section hv2-tools-section" id="about-eventflow" aria-labelledby="hv2-tools-title">
-        <div class="hv2-shell hv2-split-heading hv2-split-heading--tools">
-          <div>
+      <section class="hv2-section hv2-tools-section" aria-labelledby="hv2-tools-title">
+        <div class="hv2-shell hv2-tools-layout">
+          <div class="hv2-tools-copy">
             <p class="hv2-kicker">Planning tools</p>
             <h2 id="hv2-tools-title">More than a supplier directory</h2>
+            <p>
+              Keep every moving part in one calm place, from discovery to the details that make the
+              day feel effortless.
+            </p>
           </div>
-          <p class="hv2-section__lead">
-            Keep every moving part in one calm place, from discovery to the details that make the day
-            feel effortless.
-          </p>
+
+          <div class="hv2-tools-panel">
+            <article>
+              <span>01</span>
+              <h3>Event dashboard</h3>
+              <p>Bring suppliers, tasks and marketplace ideas back to one home base.</p>
+            </article>
+            <article>
+              <span>02</span>
+              <h3>Budget manager</h3>
+              <p>Track estimated and actual spend across the plan.</p>
+            </article>
+            <article>
+              <span>03</span>
+              <h3>Planning checklist</h3>
+              <p>Break the work into clear, manageable steps.</p>
+            </article>
+            <article>
+              <span>04</span>
+              <h3>Supplier messaging</h3>
+              <p>Keep conversations and quote details connected to each event.</p>
+            </article>
+            <article>
+              <span>05</span>
+              <h3>Guest management</h3>
+              <p>Keep attendance and useful notes close to the plan.</p>
+            </article>
+            <article>
+              <span>06</span>
+              <h3>Calendar and timeline</h3>
+              <p>Track deadlines, milestones and supplier dates.</p>
+            </article>
+          </div>
         </div>
-        <div class="hv2-shell hv2-tools">
-          <article>
-            <span>01</span>
-            <h3>Event dashboard</h3>
-            <p>Bring suppliers, tasks and marketplace ideas back to one home base.</p>
-          </article>
-          <article>
-            <span>02</span>
-            <h3>Budget manager</h3>
-            <p>Track estimated and actual spend across the plan.</p>
-          </article>
-          <article>
-            <span>03</span>
-            <h3>Planning checklist</h3>
-            <p>Break the work into clear, manageable steps.</p>
-          </article>
-          <article>
-            <span>04</span>
-            <h3>Supplier messaging</h3>
-            <p>Keep conversations and quote details connected to each event.</p>
-          </article>
-          <article>
-            <span>05</span>
-            <h3>Guest management</h3>
-            <p>Keep attendance and useful notes close to the plan.</p>
-          </article>
-          <article>
-            <span>06</span>
-            <h3>Calendar and timeline</h3>
-            <p>Track deadlines, milestones and supplier dates.</p>
-          </article>
+      </section>
+
+      <section class="hv2-section hv2-moments" aria-labelledby="hv2-moments-title">
+        <div class="hv2-shell hv2-moments__grid">
+          <div>
+            <p class="hv2-kicker">Built for real plans</p>
+            <h2 id="hv2-moments-title">Weddings, celebrations and company moments</h2>
+          </div>
+          <div class="hv2-moment-cards">
+            <a href="/suppliers?eventType=wedding">
+              <span>Weddings</span>
+              <strong>Venues, florals, catering and entertainment in one search flow.</strong>
+            </a>
+            <a href="/suppliers?eventType=party">
+              <span>Private celebrations</span>
+              <strong>Find suppliers for birthdays, anniversaries and special moments.</strong>
+            </a>
+            <a href="/suppliers?eventType=corporate">
+              <span>Corporate events</span>
+              <strong>Shape launches, dinners and team events with a clearer plan.</strong>
+            </a>
+          </div>
         </div>
       </section>
 
@@ -467,6 +589,6 @@
     </footer>
 
     <script src="/assets/js/utils/pexels-client.js?v=5" defer></script>
-    <script src="/assets/js/pages/home-v2.js?v=9" defer></script>
+    <script src="/assets/js/pages/home-v2.js?v=10" defer></script>
   </body>
 </html>
