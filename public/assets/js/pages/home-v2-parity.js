@@ -67,10 +67,7 @@
   async function initialiseAuthAwareNav() {
     setAuthenticatedState(null);
 
-    if (
-      !window.AuthStateManager ||
-      typeof window.AuthStateManager.init !== 'function'
-    ) {
+    if (!window.AuthStateManager || typeof window.AuthStateManager.init !== 'function') {
       return;
     }
 
@@ -160,10 +157,7 @@
     cookiePrefsButton.addEventListener('click', event => {
       event.preventDefault();
 
-      if (
-        window.CookieConsent &&
-        typeof window.CookieConsent.openPreferences === 'function'
-      ) {
+      if (window.CookieConsent && typeof window.CookieConsent.openPreferences === 'function') {
         window.CookieConsent.openPreferences(event);
         return;
       }
@@ -236,9 +230,7 @@
           data.message || 'Please check your email to confirm your subscription.';
       } catch (error) {
         newsletterFeedback.textContent =
-          error && error.message
-            ? error.message
-            : 'Could not subscribe right now. Please try again.';
+          error && error.message ? error.message : 'Could not subscribe right now. Please try again.';
       } finally {
         if (submitButton) {
           submitButton.disabled = false;
