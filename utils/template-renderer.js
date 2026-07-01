@@ -27,9 +27,9 @@ const HOMEPAGE_V3_PREVIEW_PATHS = new Set([
 ]);
 const HOMEPAGE_V3_HERO_STYLES = [
   '    <link rel="preload" href="/assets/css/home-v2.css?v=11" as="style" />',
-  '    <link rel="preload" href="/assets/css/home-v3.css?v=1" as="style" />',
+  '    <link rel="preload" href="/assets/css/home-v3.css?v=2" as="style" />',
   '    <link rel="stylesheet" href="/assets/css/home-v2.css?v=11" />',
-  '    <link rel="stylesheet" href="/assets/css/home-v3.css?v=1" />',
+  '    <link rel="stylesheet" href="/assets/css/home-v3.css?v=2" />',
   '    <script src="/assets/js/pages/home-v3.js?v=1"></script>',
 ].join('\n');
 const HOMEPAGE_V3_HERO_SCRIPT = '    <script src="/assets/js/pages/home-v2.js?v=11" defer></script>';
@@ -123,7 +123,7 @@ function replacePlaceholders(content) {
   let result = content;
 
   for (const [key, value] of Object.entries(placeholders)) {
-    const pattern = new RegExp(`\\{\\{${key}\\}\\}`, 'g');
+    const pattern = new RegExp(`\\{\\{${key}\\}`, 'g');
     result = result.replace(pattern, value);
   }
 
