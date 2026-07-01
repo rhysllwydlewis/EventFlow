@@ -8,18 +8,46 @@
   const heroImage = document.querySelector('.hv2-hero__image');
   const popularButtons = document.querySelectorAll('.hv2-popular button[data-category]');
 
-  const heroFallbackImages = [
-    'https://images.pexels.com/photos/5038747/pexels-photo-5038747.jpeg?auto=compress&cs=tinysrgb&w=2200&h=1400&fit=crop',
-    'https://images.pexels.com/photos/9375427/pexels-photo-9375427.jpeg?auto=compress&cs=tinysrgb&w=2200&h=1400&fit=crop',
-    'https://images.pexels.com/photos/7938122/pexels-photo-7938122.jpeg?auto=compress&cs=tinysrgb&w=2200&h=1400&fit=crop',
-    'https://images.pexels.com/photos/11474280/pexels-photo-11474280.jpeg?auto=compress&cs=tinysrgb&w=2200&h=1400&fit=crop',
-  ];
+  const pexelsImageParams = 'auto=compress&cs=tinysrgb&w=2400&h=1500&fit=crop';
+  const heroFallbackImageIds = ['169190', '265947', '587741', '1128783'];
+  const heroFallbackImages = heroFallbackImageIds.map(
+    id => `https://images.pexels.com/photos/${id}/pexels-photo-${id}.jpeg?${pexelsImageParams}`
+  );
 
   const pexelsHeroQueries = [
-    'luxury wedding reception table flowers string lights',
-    'elegant event table flowers glasses warm lights',
-    'premium wedding reception table white flowers',
+    'luxury wedding reception table flowers warm lights',
+    'elegant wedding table flowers glasses reception',
+    'premium event table flowers chairs soft light',
+    'white floral wedding reception tablescape',
   ];
+
+  const heroCueWords = [
+    'wedding',
+    'reception',
+    'tablescape',
+    'table',
+    'flowers',
+    'floral',
+    'event',
+    'dining',
+    'decor',
+    'lights',
+    'chairs',
+  ];
+
+  const heroAvoidWords = [
+    'person',
+    'woman',
+    'man',
+    'bride',
+    'groom',
+    'portrait',
+    'dress close',
+  ];
+
+  function containsAny(text, words) {
+    return words.some(word => text.includes(word));
+  }
 
   function closeMenu() {
     if (!menuButton || !mobileNav) {
@@ -58,10 +86,10 @@
   function isUsefulHeroPhoto(photo) {
     const alt = `${photo.alt || ''} ${photo.photographer || ''}`.toLowerCase();
     const isLandscape = !photo.width || !photo.height || photo.width >= photo.height;
-    const hasEventCue = /wedding|reception|table|flowers|floral|event|dining|decor|lights/.test(
-      alt
-    );
-    return isLandscape && hasEventCue;
+    const hasEventCue = containsAny(alt, heroCueWords);
+    const avoidPortraitCue = containsAny(alt, heroAvoidWords);
+
+    return isLandscape && hasEventCue && !avoidPortraitCue;
   }
 
   async function fetchPexelsHeroImages() {
@@ -70,7 +98,7 @@
     for (const query of pexelsHeroQueries) {
       try {
         const response = await fetch(
-          `/api/pexels/search?q=${encodeURIComponent(query)}&per_page=5`
+          `/api/pexels/search?q=${encodeURIComponent(query)}&per_page=8`
         );
 
         if (!response.ok) {
@@ -119,7 +147,7 @@
     window.setInterval(() => {
       imageIndex = (imageIndex + 1) % heroImages.length;
       setHeroBackground(heroImages[imageIndex]);
-    }, 9000);
+    }, 11000);
   }
 
   if (menuButton && mobileNav) {
@@ -146,7 +174,11 @@
     });
 
     document.addEventListener('focusin', event => {
-      if (!mobileNav.hidden && !mobileNav.contains(event.target) && event.target !== menuButton) {
+      if (
+        !mobileNav.hidden &&
+        !mobileNav.contains(event.target) &&
+        event.target !== menuButton
+      ) {
         closeMenu();
       }
     });
