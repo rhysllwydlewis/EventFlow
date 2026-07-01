@@ -123,7 +123,7 @@ function replacePlaceholders(content) {
   let result = content;
 
   for (const [key, value] of Object.entries(placeholders)) {
-    const pattern = new RegExp(`\\{\\{${key}\\}`, 'g');
+    const pattern = new RegExp(`\\{\\{${key}\\}\\}`, 'g');
     result = result.replace(pattern, value);
   }
 
