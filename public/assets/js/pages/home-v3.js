@@ -129,6 +129,15 @@
       timers.delete(timer);
     }
 
+    function nextFrame(callback) {
+      if (typeof window.requestAnimationFrame === 'function') {
+        window.requestAnimationFrame(callback);
+        return;
+      }
+
+      queue(callback, 16);
+    }
+
     function buildGuide({ variant, label, title, body }) {
       const guide = document.createElement('div');
       guide.className = `hv3-hero-guide hv3-hero-guide--${variant}`;
@@ -173,7 +182,7 @@
       activeGuide = guide;
       hero.appendChild(guide);
 
-      window.requestAnimationFrame(() => {
+      nextFrame(() => {
         if (document.body.contains(guide)) {
           guide.classList.add('is-visible');
         }
