@@ -12,6 +12,7 @@
   const revealTargets = document.querySelectorAll(
     ['.hv2-category', '.hv2-dashboard', '.hv2-supplier-band__grid'].join(', ')
   );
+  const isHomeV3Preview = window.__EF_HOME_V3_PREVIEW__ === true;
 
   const pexelsImageParams = 'auto=compress&cs=tinysrgb&w=2600&h=1600&fit=crop';
   const heroFallbackImages = [
@@ -239,7 +240,7 @@
     }
 
     const reduceMotion = getReduceMotionPreference();
-    const pexelsImages = await fetchPexelsHeroImages();
+    const pexelsImages = isHomeV3Preview ? [] : await fetchPexelsHeroImages();
     const heroImages = [...pexelsImages, ...heroFallbackImages].filter(candidate => {
       return normaliseHeroImage(candidate).url;
     });
