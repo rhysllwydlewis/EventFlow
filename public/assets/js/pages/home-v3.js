@@ -110,60 +110,135 @@
       return;
     }
 
-    const nudge = document.createElement('div');
-    nudge.className = 'hv3-hero-guide';
-    nudge.setAttribute('aria-hidden', 'true');
-    nudge.innerHTML = `
-      <div class="hv3-hero-guide__note">
-        <span class="hv3-hero-guide__label">Quick guide</span>
-        <strong>Start with the search</strong>
-        <p>Choose your event type, add a location, then click Search suppliers. Sign up after to save favourites and messages.</p>
-      </div>
-      <span class="hv3-hero-guide__pointer" aria-hidden="true"></span>
-    `;
+    const timers = new Set();
+    let activeGuide = null;
+    let userStartedSearch = false;
 
-    hero.appendChild(nudge);
+    function queue(callback, delay) {
+      const timer = window.setTimeout(() => {
+        timers.delete(timer);
+        callback();
+      }, delay);
 
-    let showTimer;
-    let hideTimer;
-    let removeTimer;
-    let isDismissed = false;
-
-    function dismissGuide() {
-      if (isDismissed) {
-        return;
-      }
-
-      isDismissed = true;
-      window.clearTimeout(showTimer);
-      window.clearTimeout(hideTimer);
-      nudge.classList.remove('is-visible');
-      nudge.classList.add('is-hiding');
-      removeTimer = window.setTimeout(() => nudge.remove(), 700);
+      timers.add(timer);
+      return timer;
     }
 
-    showTimer = window.setTimeout(() => {
-      if (isDismissed || !document.body.contains(nudge)) {
+    function clearQueued(timer) {
+      window.clearTimeout(timer);
+      timers.delete(timer);
+    }
+
+    function nextFrame(callback) {
+      if (typeof window.requestAnimationFrame === 'function') {
+        window.requestAnimationFrame(callback);
         return;
       }
 
-      nudge.classList.add('is-visible');
-      hideTimer = window.setTimeout(dismissGuide, 6500);
+      queue(callback, 16);
+    }
+
+    function buildGuide({ variant, label, title, body }) {
+      const guide = document.createElement('div');
+      guide.className = `hv3-hero-guide hv3-hero-guide--${variant}`;
+      guide.setAttribute('aria-hidden', 'true');
+      guide.innerHTML = `
+        <div class="hv3-hero-guide__note">
+          <span class="hv3-hero-guide__label">${label}</span>
+          <strong>${title}</strong>
+          <p>${body}</p>
+        </div>
+        <span class="hv3-hero-guide__pointer" aria-hidden="true"></span>
+        <span class="hv3-hero-guide__arrow hv3-hero-guide__arrow--one" aria-hidden="true"></span>
+        <span class="hv3-hero-guide__arrow hv3-hero-guide__arrow--two" aria-hidden="true"></span>
+        <span class="hv3-hero-guide__arrow hv3-hero-guide__arrow--three" aria-hidden="true"></span>
+      `;
+
+      return guide;
+    }
+
+    function hideGuide(guide, onRemoved) {
+      if (!guide || guide.dataset.dismissed === 'true') {
+        return;
+      }
+
+      guide.dataset.dismissed = 'true';
+      guide.classList.remove('is-visible');
+      guide.classList.add('is-hiding');
+
+      queue(() => {
+        guide.remove();
+        if (activeGuide === guide) {
+          activeGuide = null;
+        }
+        if (typeof onRemoved === 'function') {
+          onRemoved();
+        }
+      }, 700);
+    }
+
+    function showGuide(config, duration, onRemoved) {
+      const guide = buildGuide(config);
+      activeGuide = guide;
+      hero.appendChild(guide);
+
+      nextFrame(() => {
+        if (document.body.contains(guide)) {
+          guide.classList.add('is-visible');
+        }
+      });
+
+      queue(() => hideGuide(guide, onRemoved), duration);
+      return guide;
+    }
+
+    function showSignUpGuide() {
+      if (userStartedSearch) {
+        return;
+      }
+
+      showGuide(
+        {
+          variant: 'signup',
+          label: 'Join free',
+          title: 'Save your plans today',
+          body: 'Create your EventFlow account to keep favourites, messages and supplier shortlists together.',
+        },
+        5600
+      );
+    }
+
+    const showTimer = queue(() => {
+      showGuide(
+        {
+          variant: 'search',
+          label: 'Quick guide',
+          title: 'Start with the search',
+          body: 'Choose your event type, add a location, then click Search suppliers to find the right people faster.',
+        },
+        6400,
+        () => queue(showSignUpGuide, 850)
+      );
     }, 5000);
 
     const searchForm = document.querySelector('.hv2-search');
 
     if (searchForm) {
-      searchForm.addEventListener('focusin', dismissGuide, { once: true });
-      searchForm.addEventListener('submit', dismissGuide, { once: true });
+      const dismissForSearch = () => {
+        userStartedSearch = true;
+        clearQueued(showTimer);
+        hideGuide(activeGuide);
+      };
+
+      searchForm.addEventListener('focusin', dismissForSearch, { once: true });
+      searchForm.addEventListener('submit', dismissForSearch, { once: true });
     }
 
     window.addEventListener(
       'pagehide',
       () => {
-        window.clearTimeout(showTimer);
-        window.clearTimeout(hideTimer);
-        window.clearTimeout(removeTimer);
+        timers.forEach(timer => window.clearTimeout(timer));
+        timers.clear();
       },
       { once: true }
     );
