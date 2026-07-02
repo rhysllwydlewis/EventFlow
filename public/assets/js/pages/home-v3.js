@@ -219,7 +219,7 @@
         6400,
         () => queue(showSignUpGuide, 850)
       );
-    }, 5000);
+    }, 1000);
 
     const searchForm = document.querySelector('.hv2-search');
 
