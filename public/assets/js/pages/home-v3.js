@@ -106,8 +106,7 @@
       typeof window.matchMedia === 'function' &&
       window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const compactViewport =
-      typeof window.matchMedia === 'function' &&
-      window.matchMedia('(max-width: 960px)').matches;
+      typeof window.matchMedia === 'function' && window.matchMedia('(max-width: 960px)').matches;
 
     if (!hero || prefersReducedMotion || compactViewport) {
       return;
