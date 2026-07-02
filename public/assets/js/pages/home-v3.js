@@ -150,9 +150,6 @@
           <p>${body}</p>
         </div>
         <span class="hv3-hero-guide__pointer" aria-hidden="true"></span>
-        <span class="hv3-hero-guide__arrow hv3-hero-guide__arrow--one" aria-hidden="true"></span>
-        <span class="hv3-hero-guide__arrow hv3-hero-guide__arrow--two" aria-hidden="true"></span>
-        <span class="hv3-hero-guide__arrow hv3-hero-guide__arrow--three" aria-hidden="true"></span>
       `;
 
       return guide;
