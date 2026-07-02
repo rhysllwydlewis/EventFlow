@@ -180,14 +180,16 @@
   line-height: 1.42;
 }
 
-.home-v3-page .hv3-guide-target {
+.home-v3-page .hv3-guide-target,
+.home-v3-page .hv2-search__button.hv3-guide-target {
   position: relative;
   z-index: 85;
   outline: 2px solid rgba(11, 128, 115, 0.5);
   outline-offset: 4px;
   box-shadow:
     0 0 0 7px rgba(11, 128, 115, 0.14),
-    0 18px 38px rgba(11, 128, 115, 0.28) !important;
+    0 18px 38px rgba(11, 128, 115, 0.28);
+  filter: drop-shadow(0 0 0 rgba(19, 182, 162, 0));
   animation: hv3-guide-target-throb 0.95s cubic-bezier(0.2, 0.85, 0.25, 1) 5 both;
 }
 
@@ -195,17 +197,21 @@
   0%,
   100% {
     outline-color: rgba(11, 128, 115, 0.34);
+    outline-offset: 4px;
     box-shadow:
       0 0 0 5px rgba(11, 128, 115, 0.1),
-      0 14px 30px rgba(11, 128, 115, 0.2) !important;
+      0 14px 30px rgba(11, 128, 115, 0.2);
+    filter: drop-shadow(0 0 0 rgba(19, 182, 162, 0));
   }
 
   50% {
     outline-color: rgba(19, 182, 162, 0.86);
+    outline-offset: 7px;
     box-shadow:
       0 0 0 3px rgba(255, 255, 255, 0.76),
       0 0 0 16px rgba(19, 182, 162, 0.24),
-      0 22px 46px rgba(11, 128, 115, 0.36) !important;
+      0 22px 46px rgba(11, 128, 115, 0.36);
+    filter: drop-shadow(0 0 16px rgba(19, 182, 162, 0.22));
   }
 }
 
