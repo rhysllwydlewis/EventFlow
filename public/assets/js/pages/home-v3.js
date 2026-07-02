@@ -105,8 +105,10 @@
     const prefersReducedMotion =
       typeof window.matchMedia === 'function' &&
       window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const compactViewport =
+      typeof window.matchMedia === 'function' && window.matchMedia('(max-width: 960px)').matches;
 
-    if (!hero || prefersReducedMotion) {
+    if (!hero || prefersReducedMotion || compactViewport) {
       return;
     }
 
@@ -114,6 +116,7 @@
     let activeGuide = null;
     let userStartedSearch = false;
     const GUIDE_FADE_MS = 860;
+    const GUIDE_PADDING = 18;
 
     function queue(callback, delay) {
       const timer = window.setTimeout(() => {
@@ -155,6 +158,78 @@
       return guide;
     }
 
+    function isVisibleElement(element) {
+      if (!element) {
+        return false;
+      }
+
+      const rect = element.getBoundingClientRect();
+      return rect.width > 0 && rect.height > 0;
+    }
+
+    function findByText(selector, pattern) {
+      return Array.from(document.querySelectorAll(selector)).find(element => {
+        return isVisibleElement(element) && pattern.test((element.textContent || '').trim());
+      });
+    }
+
+    function findGuideTarget(variant) {
+      if (variant === 'search') {
+        return document.querySelector('.hv2-search__button');
+      }
+
+      return (
+        document.querySelector('a[href="/login"], a[href="/login.html"], a[href*="/login"]') ||
+        findByText('a, button', /^(log in|login|sign in)$/i)
+      );
+    }
+
+    function clamp(value, min, max) {
+      return Math.min(Math.max(value, min), max);
+    }
+
+    function placeGuide(guide, target, variant) {
+      if (!guide || !target || !isVisibleElement(target)) {
+        return;
+      }
+
+      const guideRect = guide.getBoundingClientRect();
+      const targetRect = target.getBoundingClientRect();
+      const guideWidth = guideRect.width || 320;
+      const guideHeight = guideRect.height || 150;
+      const targetCenterX = targetRect.left + targetRect.width / 2;
+      const maxLeft = window.innerWidth - guideWidth - GUIDE_PADDING;
+      const left = clamp(
+        targetCenterX - guideWidth / 2,
+        GUIDE_PADDING,
+        Math.max(GUIDE_PADDING, maxLeft)
+      );
+      let top;
+
+      if (variant === 'signup') {
+        top = targetRect.bottom + 30;
+      } else {
+        top = targetRect.top - guideHeight - 42;
+        if (top < GUIDE_PADDING) {
+          top = targetRect.bottom + 30;
+        }
+      }
+
+      const maxTop = window.innerHeight - guideHeight - GUIDE_PADDING;
+      top = clamp(top, GUIDE_PADDING, Math.max(GUIDE_PADDING, maxTop));
+
+      const pointerLeft = clamp(targetCenterX - left, 28, guideWidth - 28);
+      const pointerLength =
+        variant === 'signup'
+          ? clamp(top - targetRect.bottom - 11, 24, 72)
+          : clamp(targetRect.top - (top + guideHeight) - 11, 24, 72);
+
+      guide.style.left = `${left}px`;
+      guide.style.top = `${top}px`;
+      guide.style.setProperty('--hv3-pointer-left', `${pointerLeft}px`);
+      guide.style.setProperty('--hv3-pointer-length', `${pointerLength}px`);
+    }
+
     function hideGuide(guide, onRemoved) {
       if (!guide || guide.dataset.dismissed === 'true') {
         return;
@@ -163,6 +238,15 @@
       guide.dataset.dismissed = 'true';
       guide.classList.remove('is-visible');
       guide.classList.add('is-hiding');
+
+      if (guide._target) {
+        guide._target.classList.remove('hv3-guide-target');
+      }
+
+      if (guide._placeGuide) {
+        window.removeEventListener('resize', guide._placeGuide);
+        window.removeEventListener('scroll', guide._placeGuide, true);
+      }
 
       queue(() => {
         guide.remove();
@@ -176,12 +260,30 @@
     }
 
     function showGuide(config, duration, onRemoved) {
+      const target = findGuideTarget(config.variant);
+
+      if (!target || !isVisibleElement(target)) {
+        if (typeof onRemoved === 'function') {
+          onRemoved();
+        }
+        return null;
+      }
+
       const guide = buildGuide(config);
       activeGuide = guide;
-      hero.appendChild(guide);
+      guide._target = target;
+      document.body.appendChild(guide);
+
+      const updatePosition = () => placeGuide(guide, target, config.variant);
+      guide._placeGuide = updatePosition;
+      target.classList.add('hv3-guide-target');
+      updatePosition();
+      window.addEventListener('resize', updatePosition);
+      window.addEventListener('scroll', updatePosition, true);
 
       nextFrame(() => {
         if (document.body.contains(guide)) {
+          updatePosition();
           guide.classList.add('is-visible');
         }
       });
@@ -231,6 +333,12 @@
       searchForm.addEventListener('focusin', dismissForSearch, { once: true });
       searchForm.addEventListener('submit', dismissForSearch, { once: true });
     }
+
+    document.addEventListener('click', event => {
+      if (event.target.closest('.hv2-search__button, a[href*="/login"]')) {
+        hideGuide(activeGuide);
+      }
+    });
 
     window.addEventListener(
       'pagehide',
