@@ -57,9 +57,13 @@
   opacity: 0;
   pointer-events: none;
   transform: translate3d(18px, 10px, 0) scale(0.98);
+  transform-origin: 58% 50%;
   transition:
-    opacity 0.55s ease,
-    transform 0.55s cubic-bezier(0.2, 0.8, 0.2, 1);
+    opacity 0.72s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.72s cubic-bezier(0.22, 1, 0.36, 1),
+    visibility 0s linear 0.72s;
+  visibility: hidden;
+  will-change: opacity, transform;
 }
 
 .home-v3-page .hv3-hero-guide--search {
@@ -78,11 +82,15 @@
 .home-v3-page .hv3-hero-guide.is-visible {
   opacity: 1;
   transform: translate3d(0, 0, 0) scale(1);
+  transition-delay: 0s;
+  visibility: visible;
 }
 
 .home-v3-page .hv3-hero-guide.is-hiding {
   opacity: 0;
-  transform: translate3d(10px, 4px, 0) scale(0.985);
+  transform: translate3d(8px, 4px, 0) scale(0.985);
+  transition-duration: 0.66s;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .home-v3-page .hv3-hero-guide--signup.is-hiding {
@@ -102,8 +110,26 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.95);
   color: #24333f;
   padding: 14px 16px 15px;
+  opacity: 0;
+  transform: translate3d(10px, 6px, 0) scale(0.985);
+  transition:
+    opacity 0.62s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.62s cubic-bezier(0.22, 1, 0.36, 1);
   -webkit-backdrop-filter: blur(18px) saturate(170%);
   backdrop-filter: blur(18px) saturate(170%);
+}
+
+.home-v3-page .hv3-hero-guide.is-visible .hv3-hero-guide__note {
+  opacity: 1;
+  transform: translate3d(0, 0, 0) scale(1);
+  transition-delay: 0.08s;
+}
+
+.home-v3-page .hv3-hero-guide.is-hiding .hv3-hero-guide__note {
+  opacity: 0;
+  transform: translate3d(6px, 3px, 0) scale(0.99);
+  transition-delay: 0s;
+  transition-duration: 0.48s;
 }
 
 .home-v3-page .hv3-hero-guide--signup .hv3-hero-guide__note {
@@ -158,6 +184,17 @@
 .home-v3-page .hv3-hero-guide__pointer {
   position: absolute;
   filter: drop-shadow(0 8px 12px rgba(11, 128, 115, 0.16));
+  opacity: 0;
+  transition: opacity 0.5s ease 0.16s;
+}
+
+.home-v3-page .hv3-hero-guide.is-visible .hv3-hero-guide__pointer {
+  opacity: 1;
+}
+
+.home-v3-page .hv3-hero-guide.is-hiding .hv3-hero-guide__pointer {
+  opacity: 0;
+  transition-delay: 0s;
 }
 
 .home-v3-page .hv3-hero-guide--search .hv3-hero-guide__pointer {
