@@ -113,6 +113,7 @@
     const timers = new Set();
     let activeGuide = null;
     let userStartedSearch = false;
+    const GUIDE_FADE_MS = 860;
 
     function queue(callback, delay) {
       const timer = window.setTimeout(() => {
@@ -174,7 +175,7 @@
         if (typeof onRemoved === 'function') {
           onRemoved();
         }
-      }, 700);
+      }, GUIDE_FADE_MS);
     }
 
     function showGuide(config, duration, onRemoved) {
@@ -219,7 +220,7 @@
         6400,
         () => queue(showSignUpGuide, 850)
       );
-    }, 5000);
+    }, 1000);
 
     const searchForm = document.querySelector('.hv2-search');
 
