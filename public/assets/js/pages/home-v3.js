@@ -200,7 +200,11 @@
       const guideHeight = guideRect.height || 150;
       const targetCenterX = targetRect.left + targetRect.width / 2;
       const maxLeft = window.innerWidth - guideWidth - GUIDE_PADDING;
-      const left = clamp(targetCenterX - guideWidth / 2, GUIDE_PADDING, Math.max(GUIDE_PADDING, maxLeft));
+      const left = clamp(
+        targetCenterX - guideWidth / 2,
+        GUIDE_PADDING,
+        Math.max(GUIDE_PADDING, maxLeft)
+      );
       let top;
 
       if (variant === 'signup') {
