@@ -269,10 +269,6 @@
   animation: hv3-signup-pointer-glide 1.75s cubic-bezier(0.45, 0, 0.2, 1) infinite;
 }
 
-.home-v3-page .hv3-hero-guide__arrow {
-  display: none;
-}
-
 @keyframes hv3-search-pointer-glide {
   0%,
   100% {
@@ -654,10 +650,6 @@
     filter:
       drop-shadow(0 12px 20px rgba(7, 95, 86, 0.24))
       drop-shadow(0 0 12px rgba(255, 255, 255, 0.86));
-  }
-
-  .home-v3-page .hv3-hero-guide__arrow {
-    display: none;
   }
 
   .home-v3-page .hv3-hero-guide--search .hv3-hero-guide__pointer {
