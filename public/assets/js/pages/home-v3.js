@@ -118,6 +118,7 @@
     let guideSequenceStopped = false;
     const GUIDE_FADE_MS = 860;
     const GUIDE_PADDING = 18;
+    const GUIDE_SEARCH_GAP = 22;
     const SCROLL_DISMISS_THRESHOLD = 14;
     const startScrollY = getScrollY();
 
@@ -194,13 +195,28 @@
       return Math.min(Math.max(value, min), max);
     }
 
+    function findGuideAvoidRect(target, variant) {
+      if (variant !== 'search') {
+        return target.getBoundingClientRect();
+      }
+
+      const searchPanel = target.closest('.hv2-search');
+      if (!searchPanel || !isVisibleElement(searchPanel)) {
+        return target.getBoundingClientRect();
+      }
+
+      return searchPanel.getBoundingClientRect();
+    }
+
     function placeGuide(guide, target, variant, measuredTargetRect) {
       if (!guide || !target || !isVisibleElement(target)) {
         return;
       }
 
       const guideRect = guide.getBoundingClientRect();
-      const targetRect = measuredTargetRect || target.getBoundingClientRect();
+      const targetRect = target.getBoundingClientRect();
+      const avoidRect =
+        variant === 'search' && measuredTargetRect ? measuredTargetRect : findGuideAvoidRect(target, variant);
       const guideWidth = guideRect.width || 320;
       const guideHeight = guideRect.height || 150;
       const targetCenterX = targetRect.left + targetRect.width / 2;
@@ -214,6 +230,11 @@
 
       if (variant === 'signup') {
         top = targetRect.bottom + 20;
+      } else if (variant === 'search') {
+        top = avoidRect.top - guideHeight - GUIDE_SEARCH_GAP;
+        if (top < GUIDE_PADDING) {
+          top = avoidRect.bottom + GUIDE_SEARCH_GAP;
+        }
       } else {
         top = targetRect.top - guideHeight - 20;
         if (top < GUIDE_PADDING) {
@@ -291,8 +312,9 @@
 
       const updatePosition = () => placeGuide(guide, target, config.variant);
       guide._placeGuide = updatePosition;
-      const initialTargetRect = target.getBoundingClientRect();
-      placeGuide(guide, target, config.variant, initialTargetRect);
+      const initialRect =
+        config.variant === 'search' ? findGuideAvoidRect(target, config.variant) : target.getBoundingClientRect();
+      placeGuide(guide, target, config.variant, initialRect);
       window.addEventListener('resize', updatePosition);
 
       nextFrame(() => {
