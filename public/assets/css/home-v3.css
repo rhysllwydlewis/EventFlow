@@ -58,12 +58,12 @@
   width: min(320px, calc(100vw - 32px));
   opacity: 0;
   pointer-events: none;
-  transform: translate3d(0, 10px, 0) scale(0.98);
+  transform: translate3d(0, 8px, 0);
   transform-origin: 50% 50%;
   transition:
-    opacity 0.72s cubic-bezier(0.22, 1, 0.36, 1),
-    transform 0.72s cubic-bezier(0.22, 1, 0.36, 1),
-    visibility 0s linear 0.72s;
+    opacity 0.64s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.64s cubic-bezier(0.22, 1, 0.36, 1),
+    visibility 0s linear 0.64s;
   backface-visibility: hidden;
   visibility: hidden;
   will-change: opacity, transform;
@@ -71,25 +71,25 @@
 
 .home-v3-page .hv3-hero-guide--signup {
   width: min(310px, calc(100vw - 32px));
-  transform: translate3d(0, -8px, 0) scale(0.98);
+  transform: translate3d(0, -6px, 0);
 }
 
 .home-v3-page .hv3-hero-guide.is-visible {
   opacity: 1;
-  transform: translate3d(0, 0, 0) scale(1);
+  transform: translate3d(0, 0, 0);
   transition-delay: 0s;
   visibility: visible;
 }
 
 .home-v3-page .hv3-hero-guide.is-hiding {
   opacity: 0;
-  transform: translate3d(8px, 4px, 0) scale(0.985);
-  transition-duration: 0.66s;
+  transform: translate3d(8px, 4px, 0);
+  transition-duration: 0.5s;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .home-v3-page .hv3-hero-guide--signup.is-hiding {
-  transform: translate3d(8px, -4px, 0) scale(0.985);
+  transform: translate3d(8px, -4px, 0);
 }
 
 .home-v3-page .hv3-hero-guide__note {
@@ -106,11 +106,9 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.95);
   color: #24333f;
   padding: 15px 17px 16px;
-  opacity: 0;
-  transform: translate3d(10px, 6px, 0) scale(0.985);
-  transition:
-    opacity 0.62s cubic-bezier(0.22, 1, 0.36, 1),
-    transform 0.62s cubic-bezier(0.22, 1, 0.36, 1);
+  opacity: 1;
+  transform: none;
+  transition: none;
   -webkit-backdrop-filter: blur(18px) saturate(170%);
   backdrop-filter: blur(18px) saturate(170%);
 }
@@ -127,17 +125,11 @@
   pointer-events: none;
 }
 
-.home-v3-page .hv3-hero-guide.is-visible .hv3-hero-guide__note {
-  opacity: 1;
-  transform: translate3d(0, 0, 0) scale(1);
-  transition-delay: 0.08s;
-}
-
+.home-v3-page .hv3-hero-guide.is-visible .hv3-hero-guide__note,
 .home-v3-page .hv3-hero-guide.is-hiding .hv3-hero-guide__note {
-  opacity: 0;
-  transform: translate3d(6px, 3px, 0) scale(0.99);
-  transition-delay: 0s;
-  transition-duration: 0.48s;
+  opacity: 1;
+  transform: none;
+  transition: none;
 }
 
 .home-v3-page .hv3-hero-guide--signup .hv3-hero-guide__note {
@@ -188,31 +180,38 @@
   line-height: 1.42;
 }
 
-.home-v3-page .hv3-guide-target {
+.home-v3-page .hv3-guide-target,
+.home-v3-page .hv2-search__button.hv3-guide-target {
   position: relative;
   z-index: 85;
-  outline: 2px solid rgba(11, 128, 115, 0.4);
+  outline: 2px solid rgba(11, 128, 115, 0.5);
   outline-offset: 4px;
   box-shadow:
-    0 0 0 7px rgba(11, 128, 115, 0.12),
-    0 18px 38px rgba(11, 128, 115, 0.28) !important;
-  animation: hv3-guide-target-throb 1.15s cubic-bezier(0.2, 0.85, 0.25, 1) 3 both;
+    0 0 0 7px rgba(11, 128, 115, 0.14),
+    0 18px 38px rgba(11, 128, 115, 0.28);
+  filter: drop-shadow(0 0 0 rgba(19, 182, 162, 0));
+  animation: hv3-guide-target-throb 0.95s cubic-bezier(0.2, 0.85, 0.25, 1) 5 both;
 }
 
 @keyframes hv3-guide-target-throb {
   0%,
   100% {
-    outline-color: rgba(11, 128, 115, 0.28);
+    outline-color: rgba(11, 128, 115, 0.34);
+    outline-offset: 4px;
     box-shadow:
-      0 0 0 5px rgba(11, 128, 115, 0.08),
-      0 14px 30px rgba(11, 128, 115, 0.18) !important;
+      0 0 0 5px rgba(11, 128, 115, 0.1),
+      0 14px 30px rgba(11, 128, 115, 0.2);
+    filter: drop-shadow(0 0 0 rgba(19, 182, 162, 0));
   }
 
   50% {
-    outline-color: rgba(19, 182, 162, 0.72);
+    outline-color: rgba(19, 182, 162, 0.86);
+    outline-offset: 7px;
     box-shadow:
-      0 0 0 13px rgba(19, 182, 162, 0.18),
-      0 22px 46px rgba(11, 128, 115, 0.34) !important;
+      0 0 0 3px rgba(255, 255, 255, 0.76),
+      0 0 0 16px rgba(19, 182, 162, 0.24),
+      0 22px 46px rgba(11, 128, 115, 0.36);
+    filter: drop-shadow(0 0 16px rgba(19, 182, 162, 0.22));
   }
 }
 

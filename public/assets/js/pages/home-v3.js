@@ -115,8 +115,16 @@
     const timers = new Set();
     let activeGuide = null;
     let userStartedSearch = false;
+    let guideSequenceStopped = false;
     const GUIDE_FADE_MS = 860;
     const GUIDE_PADDING = 18;
+    const GUIDE_SEARCH_GAP = 22;
+    const SCROLL_DISMISS_THRESHOLD = 14;
+    const startScrollY = getScrollY();
+
+    function getScrollY() {
+      return window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0;
+    }
 
     function queue(callback, delay) {
       const timer = window.setTimeout(() => {
@@ -187,13 +195,28 @@
       return Math.min(Math.max(value, min), max);
     }
 
+    function findGuideAvoidRect(target, variant) {
+      if (variant !== 'search') {
+        return target.getBoundingClientRect();
+      }
+
+      const searchPanel = target.closest('.hv2-search');
+      if (!searchPanel || !isVisibleElement(searchPanel)) {
+        return target.getBoundingClientRect();
+      }
+
+      return searchPanel.getBoundingClientRect();
+    }
+
     function placeGuide(guide, target, variant, measuredTargetRect) {
       if (!guide || !target || !isVisibleElement(target)) {
         return;
       }
 
       const guideRect = guide.getBoundingClientRect();
-      const targetRect = measuredTargetRect || target.getBoundingClientRect();
+      const targetRect = target.getBoundingClientRect();
+      const avoidRect =
+        variant === 'search' && measuredTargetRect ? measuredTargetRect : findGuideAvoidRect(target, variant);
       const guideWidth = guideRect.width || 320;
       const guideHeight = guideRect.height || 150;
       const targetCenterX = targetRect.left + targetRect.width / 2;
@@ -207,6 +230,11 @@
 
       if (variant === 'signup') {
         top = targetRect.bottom + 20;
+      } else if (variant === 'search') {
+        top = avoidRect.top - guideHeight - GUIDE_SEARCH_GAP;
+        if (top < GUIDE_PADDING) {
+          top = avoidRect.bottom + GUIDE_SEARCH_GAP;
+        }
       } else {
         top = targetRect.top - guideHeight - 20;
         if (top < GUIDE_PADDING) {
@@ -236,7 +264,6 @@
 
       if (guide._placeGuide) {
         window.removeEventListener('resize', guide._placeGuide);
-        window.removeEventListener('scroll', guide._placeGuide, true);
       }
 
       queue(() => {
@@ -250,7 +277,25 @@
       }, GUIDE_FADE_MS);
     }
 
+    function stopGuideSequence() {
+      guideSequenceStopped = true;
+      userStartedSearch = true;
+      clearQueued(showTimer);
+      window.removeEventListener('scroll', dismissForScroll);
+      hideGuide(activeGuide);
+    }
+
+    function dismissForScroll() {
+      if (getScrollY() > startScrollY + SCROLL_DISMISS_THRESHOLD) {
+        stopGuideSequence();
+      }
+    }
+
     function showGuide(config, duration, onRemoved) {
+      if (guideSequenceStopped) {
+        return null;
+      }
+
       const target = findGuideTarget(config.variant);
 
       if (!target || !isVisibleElement(target)) {
@@ -267,10 +312,10 @@
 
       const updatePosition = () => placeGuide(guide, target, config.variant);
       guide._placeGuide = updatePosition;
-      const initialTargetRect = target.getBoundingClientRect();
-      placeGuide(guide, target, config.variant, initialTargetRect);
+      const initialRect =
+        config.variant === 'search' ? findGuideAvoidRect(target, config.variant) : target.getBoundingClientRect();
+      placeGuide(guide, target, config.variant, initialRect);
       window.addEventListener('resize', updatePosition);
-      window.addEventListener('scroll', updatePosition, true);
 
       nextFrame(() => {
         if (document.body.contains(guide)) {
@@ -284,7 +329,7 @@
     }
 
     function showSignUpGuide() {
-      if (userStartedSearch) {
+      if (userStartedSearch || guideSequenceStopped) {
         return;
       }
 
@@ -315,27 +360,24 @@
     const searchForm = document.querySelector('.hv2-search');
 
     if (searchForm) {
-      const dismissForSearch = () => {
-        userStartedSearch = true;
-        clearQueued(showTimer);
-        hideGuide(activeGuide);
-      };
-
-      searchForm.addEventListener('focusin', dismissForSearch, { once: true });
-      searchForm.addEventListener('submit', dismissForSearch, { once: true });
+      searchForm.addEventListener('focusin', stopGuideSequence, { once: true });
+      searchForm.addEventListener('submit', stopGuideSequence, { once: true });
     }
 
     document.addEventListener('click', event => {
       if (event.target.closest('.hv2-search__button, a[href*="/login"]')) {
-        hideGuide(activeGuide);
+        stopGuideSequence();
       }
     });
+
+    window.addEventListener('scroll', dismissForScroll, { passive: true });
 
     window.addEventListener(
       'pagehide',
       () => {
         timers.forEach(timer => window.clearTimeout(timer));
         timers.clear();
+        window.removeEventListener('scroll', dismissForScroll);
       },
       { once: true }
     );
