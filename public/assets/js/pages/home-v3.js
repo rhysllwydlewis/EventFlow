@@ -152,7 +152,6 @@
           <strong>${title}</strong>
           <p>${body}</p>
         </div>
-        <span class="hv3-hero-guide__pointer" aria-hidden="true"></span>
       `;
 
       return guide;
@@ -207,27 +206,19 @@
       let top;
 
       if (variant === 'signup') {
-        top = targetRect.bottom + 30;
+        top = targetRect.bottom + 20;
       } else {
-        top = targetRect.top - guideHeight - 42;
+        top = targetRect.top - guideHeight - 20;
         if (top < GUIDE_PADDING) {
-          top = targetRect.bottom + 30;
+          top = targetRect.bottom + 20;
         }
       }
 
       const maxTop = window.innerHeight - guideHeight - GUIDE_PADDING;
       top = clamp(top, GUIDE_PADDING, Math.max(GUIDE_PADDING, maxTop));
 
-      const pointerLeft = clamp(targetCenterX - left, 28, guideWidth - 28);
-      const pointerLength =
-        variant === 'signup'
-          ? clamp(top - targetRect.bottom - 11, 24, 72)
-          : clamp(targetRect.top - (top + guideHeight) - 11, 24, 72);
-
       guide.style.left = `${left}px`;
       guide.style.top = `${top}px`;
-      guide.style.setProperty('--hv3-pointer-left', `${pointerLeft}px`);
-      guide.style.setProperty('--hv3-pointer-length', `${pointerLength}px`);
     }
 
     function hideGuide(guide, onRemoved) {
