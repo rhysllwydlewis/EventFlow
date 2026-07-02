@@ -100,6 +100,83 @@
     });
   }
 
+  function initialiseMobileNavigationSwap() {
+    const body = document.body;
+    const header = document.querySelector('.ef-header');
+    const bottomNav = document.querySelector('.ef-bottom-nav');
+
+    if (!body || !body.classList.contains('home-v3-page') || !header || !bottomNav) {
+      return;
+    }
+
+    if (typeof window.matchMedia !== 'function') {
+      return;
+    }
+
+    const mobileQuery = window.matchMedia('(max-width: 960px)');
+    const SCROLL_THRESHOLD = 92;
+    let ticking = false;
+
+    function getScrollY() {
+      return window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0;
+    }
+
+    function syncNavigationState() {
+      ticking = false;
+
+      if (!mobileQuery.matches) {
+        body.classList.remove('hv3-mobile-nav-active');
+        return;
+      }
+
+      body.classList.toggle('hv3-mobile-nav-active', getScrollY() > SCROLL_THRESHOLD);
+    }
+
+    function requestSync() {
+      if (ticking) {
+        return;
+      }
+
+      ticking = true;
+
+      if (typeof window.requestAnimationFrame === 'function') {
+        window.requestAnimationFrame(syncNavigationState);
+        return;
+      }
+
+      window.setTimeout(syncNavigationState, 16);
+    }
+
+    function handleQueryChange() {
+      syncNavigationState();
+    }
+
+    syncNavigationState();
+    window.addEventListener('scroll', requestSync, { passive: true });
+    window.addEventListener('resize', requestSync, { passive: true });
+
+    if (typeof mobileQuery.addEventListener === 'function') {
+      mobileQuery.addEventListener('change', handleQueryChange);
+    } else if (typeof mobileQuery.addListener === 'function') {
+      mobileQuery.addListener(handleQueryChange);
+    }
+
+    window.addEventListener(
+      'pagehide',
+      () => {
+        window.removeEventListener('scroll', requestSync);
+        window.removeEventListener('resize', requestSync);
+
+        if (typeof mobileQuery.removeEventListener === 'function') {
+          mobileQuery.removeEventListener('change', handleQueryChange);
+        } else if (typeof mobileQuery.removeListener === 'function') {
+          mobileQuery.removeListener(handleQueryChange);
+        }
+      },
+      { once: true }
+    );
+  }
+
   function initialiseHeroGuide() {
     const hero = document.querySelector('.hv2-hero');
     const prefersReducedMotion =
@@ -385,6 +462,7 @@
 
   function initialiseHomeV3() {
     initialiseEventTypeSelect();
+    initialiseMobileNavigationSwap();
     initialiseHeroGuide();
   }
 
