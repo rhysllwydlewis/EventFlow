@@ -30,9 +30,11 @@ const HOMEPAGE_V3_HERO_STYLES = [
   '    <link rel="preload" href="/assets/css/home-v3.css?v=13" as="style" />',
   '    <link rel="stylesheet" href="/assets/css/home-v2.css?v=11" />',
   '    <link rel="stylesheet" href="/assets/css/home-v3.css?v=13" />',
+  '    <link rel="preload" href="/assets/css/home-v3-mobile.css?v=1" as="style" media="(max-width: 960px)" />',
+  '    <link rel="stylesheet" href="/assets/css/home-v3-mobile.css?v=1" media="(max-width: 960px)" />',
   '    <script src="/assets/js/pages/home-v3.js?v=11"></script>',
 ].join('\n');
-const HOMEPAGE_V3_HERO_SCRIPT = '    <script src="/assets/js/pages/home-v2.js?v=11" defer></script>';
+const HOMEPAGE_V3_HERO_SCRIPT = '    <script src="/assets/js/pages/home-v2.js?v=12" defer></script>';
 const HOMEPAGE_V3_HERO = `      <section class="hv2-hero" aria-labelledby="hv3-title">
         <div class="hv2-hero__image" aria-hidden="true"></div>
         <div class="hv2-hero__shade" aria-hidden="true"></div>
@@ -207,7 +209,7 @@ function injectBeforeHeadClose(content, snippet) {
 }
 
 function injectBeforeBodyClose(content, snippet) {
-  if (!/<\/body>/i.test(content) || content.includes('/assets/js/pages/home-v2.js?v=11')) {
+  if (!/<\/body>/i.test(content) || content.includes('/assets/js/pages/home-v2.js')) {
     return content;
   }
 
