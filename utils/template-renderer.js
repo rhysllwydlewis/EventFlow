@@ -27,10 +27,10 @@ const HOMEPAGE_V3_PREVIEW_PATHS = new Set([
 ]);
 const HOMEPAGE_V3_HERO_STYLES = [
   '    <link rel="preload" href="/assets/css/home-v2.css?v=11" as="style" />',
-  '    <link rel="preload" href="/assets/css/home-v3.css?v=9" as="style" />',
+  '    <link rel="preload" href="/assets/css/home-v3.css?v=10" as="style" />',
   '    <link rel="stylesheet" href="/assets/css/home-v2.css?v=11" />',
-  '    <link rel="stylesheet" href="/assets/css/home-v3.css?v=9" />',
-  '    <script src="/assets/js/pages/home-v3.js?v=8"></script>',
+  '    <link rel="stylesheet" href="/assets/css/home-v3.css?v=10" />',
+  '    <script src="/assets/js/pages/home-v3.js?v=9"></script>',
 ].join('\n');
 const HOMEPAGE_V3_HERO_SCRIPT = '    <script src="/assets/js/pages/home-v2.js?v=11" defer></script>';
 const HOMEPAGE_V3_HERO = `      <section class="hv2-hero" aria-labelledby="hv3-title">
@@ -143,7 +143,7 @@ function replacePlaceholders(content) {
   let result = content;
 
   for (const [key, value] of Object.entries(placeholders)) {
-    const pattern = new RegExp(`\\{\\{${key}\\}\\}`, 'g');
+    const pattern = new RegExp(`\{\{${key}\}\}`, 'g');
     result = result.replace(pattern, value);
   }
 
@@ -297,7 +297,7 @@ function sanitisePublicCalendar(content) {
     )
     .replace(
       /<!-- Add \/ Edit Event Modal -->[\s\S]*?<footer class="footer"/i,
-      '<!-- Role-gated event modal shell: populated only for authenticated calendar publishers. -->\n    <div id="pc-modal-overlay" class="pc-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="pc-modal-title">\n      <div class="pc-modal">\n        <div class="pc-modal__header">\n          <h2 class="pc-modal__title" id="pc-modal-title"></h2>\n          <button class="ef-cta pc-modal__close" id="pc-modal-close-btn" aria-label="Close modal" type="button">×</button>\n        </div>\n        <form id="pc-event-form" novalidate>\n          <input type="hidden" id="pc-form-id" />\n          <div id="pc-form-error" class="pc-form__error" role="alert"></div>\n          <button type="button" id="pc-modal-cancel" class="ef-cta pc-btn pc-btn-ghost" hidden></button>\n          <button type="submit" id="pc-modal-submit" class="ef-cta pc-btn pc-btn-primary" hidden></button>\n        </form>\n      </div>\n    </div>\n\n    <footer class="footer"'
+      '<!-- Role-gated event modal shell: populated only for authenticated calendar publishers. -->\n    <div id="pc-modal-overlay" class="pc-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="pc-modal-title">\n      <div class="pc-modal">\n        <div class="pc-modal__header">\n          <h2 class="pc-modal__title" id="pc-modal-title"></h2>\n          <button type="button" class="ef-cta pc-modal__close" id="pc-modal-close-btn" aria-label="Close modal">×</button>\n        </div>\n        <form id="pc-event-form" novalidate>\n          <input type="hidden" id="pc-form-id" />\n          <div id="pc-form-error" class="pc-form__error" role="alert"></div>\n          <button type="button" id="pc-modal-cancel" class="ef-cta pc-btn pc-btn-ghost" hidden></button>\n          <button type="submit" id="pc-modal-submit" class="ef-cta pc-btn pc-btn-primary" hidden></button>\n        </form>\n      </div>\n    </div>\n\n    <footer class="footer"'
     );
 }
 
