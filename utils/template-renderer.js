@@ -27,9 +27,9 @@ const HOMEPAGE_V3_PREVIEW_PATHS = new Set([
 ]);
 const HOMEPAGE_V3_HERO_STYLES = [
   '    <link rel="preload" href="/assets/css/home-v2.css?v=11" as="style" />',
-  '    <link rel="preload" href="/assets/css/home-v3.css?v=12" as="style" />',
+  '    <link rel="preload" href="/assets/css/home-v3.css?v=13" as="style" />',
   '    <link rel="stylesheet" href="/assets/css/home-v2.css?v=11" />',
-  '    <link rel="stylesheet" href="/assets/css/home-v3.css?v=12" />',
+  '    <link rel="stylesheet" href="/assets/css/home-v3.css?v=13" />',
   '    <script src="/assets/js/pages/home-v3.js?v=11"></script>',
 ].join('\n');
 const HOMEPAGE_V3_HERO_SCRIPT = '    <script src="/assets/js/pages/home-v2.js?v=11" defer></script>';
@@ -39,7 +39,6 @@ const HOMEPAGE_V3_HERO = `      <section class="hv2-hero" aria-labelledby="hv3-t
 
         <div class="hv2-shell hv2-hero__content">
           <div class="hv2-hero__copy">
-            <p class="hv2-eyebrow">UK event planning marketplace</p>
             <h1 id="hv3-title">Plan your event in one place</h1>
             <p class="hv2-hero__lead">
               Find venues, suppliers and packages, then keep your budget, messages and checklist
@@ -226,8 +225,16 @@ function replaceHomepageHeroWithV3(content) {
   return content.replace(heroPattern, `\n${HOMEPAGE_V3_HERO}\n\n`);
 }
 
+function stripHomepageV3InheritedScripts(content) {
+  return content.replace(
+    /\s*<script src="\/assets\/js\/utils\/pexels-client\.js" defer><\/script>/i,
+    ''
+  );
+}
+
 function buildHomepageV3Preview(content) {
   let result = addBodyClass(content, 'home-v3-page');
+  result = stripHomepageV3InheritedScripts(result);
   result = injectBeforeHeadClose(result, HOMEPAGE_V3_HERO_STYLES);
   result = replaceHomepageHeroWithV3(result);
   result = injectBeforeBodyClose(result, HOMEPAGE_V3_HERO_SCRIPT);
