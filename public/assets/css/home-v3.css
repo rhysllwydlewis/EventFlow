@@ -65,7 +65,6 @@
     transform 0.72s cubic-bezier(0.22, 1, 0.36, 1),
     visibility 0s linear 0.72s;
   backface-visibility: hidden;
-  contain: layout paint style;
   visibility: hidden;
   will-change: opacity, transform;
 }
