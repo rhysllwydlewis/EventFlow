@@ -102,8 +102,11 @@
 
   function initialiseHeroGuide() {
     const hero = document.querySelector('.hv2-hero');
+    const prefersReducedMotion =
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    if (!hero || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    if (!hero || prefersReducedMotion) {
       return;
     }
 
@@ -121,18 +124,26 @@
 
     hero.appendChild(nudge);
 
+    let showTimer;
     let hideTimer;
     let removeTimer;
+    let isDismissed = false;
 
     function dismissGuide() {
+      if (isDismissed) {
+        return;
+      }
+
+      isDismissed = true;
+      window.clearTimeout(showTimer);
       window.clearTimeout(hideTimer);
       nudge.classList.remove('is-visible');
       nudge.classList.add('is-hiding');
       removeTimer = window.setTimeout(() => nudge.remove(), 700);
     }
 
-    const showTimer = window.setTimeout(() => {
-      if (!document.body.contains(nudge)) {
+    showTimer = window.setTimeout(() => {
+      if (isDismissed || !document.body.contains(nudge)) {
         return;
       }
 
