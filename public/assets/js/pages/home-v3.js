@@ -115,8 +115,15 @@
     const timers = new Set();
     let activeGuide = null;
     let userStartedSearch = false;
+    let guideSequenceStopped = false;
     const GUIDE_FADE_MS = 860;
     const GUIDE_PADDING = 18;
+    const SCROLL_DISMISS_THRESHOLD = 14;
+    const startScrollY = getScrollY();
+
+    function getScrollY() {
+      return window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0;
+    }
 
     function queue(callback, delay) {
       const timer = window.setTimeout(() => {
@@ -236,7 +243,6 @@
 
       if (guide._placeGuide) {
         window.removeEventListener('resize', guide._placeGuide);
-        window.removeEventListener('scroll', guide._placeGuide, true);
       }
 
       queue(() => {
@@ -250,7 +256,25 @@
       }, GUIDE_FADE_MS);
     }
 
+    function stopGuideSequence() {
+      guideSequenceStopped = true;
+      userStartedSearch = true;
+      clearQueued(showTimer);
+      window.removeEventListener('scroll', dismissForScroll);
+      hideGuide(activeGuide);
+    }
+
+    function dismissForScroll() {
+      if (getScrollY() > startScrollY + SCROLL_DISMISS_THRESHOLD) {
+        stopGuideSequence();
+      }
+    }
+
     function showGuide(config, duration, onRemoved) {
+      if (guideSequenceStopped) {
+        return null;
+      }
+
       const target = findGuideTarget(config.variant);
 
       if (!target || !isVisibleElement(target)) {
@@ -270,7 +294,6 @@
       const initialTargetRect = target.getBoundingClientRect();
       placeGuide(guide, target, config.variant, initialTargetRect);
       window.addEventListener('resize', updatePosition);
-      window.addEventListener('scroll', updatePosition, true);
 
       nextFrame(() => {
         if (document.body.contains(guide)) {
@@ -284,7 +307,7 @@
     }
 
     function showSignUpGuide() {
-      if (userStartedSearch) {
+      if (userStartedSearch || guideSequenceStopped) {
         return;
       }
 
@@ -315,27 +338,24 @@
     const searchForm = document.querySelector('.hv2-search');
 
     if (searchForm) {
-      const dismissForSearch = () => {
-        userStartedSearch = true;
-        clearQueued(showTimer);
-        hideGuide(activeGuide);
-      };
-
-      searchForm.addEventListener('focusin', dismissForSearch, { once: true });
-      searchForm.addEventListener('submit', dismissForSearch, { once: true });
+      searchForm.addEventListener('focusin', stopGuideSequence, { once: true });
+      searchForm.addEventListener('submit', stopGuideSequence, { once: true });
     }
 
     document.addEventListener('click', event => {
       if (event.target.closest('.hv2-search__button, a[href*="/login"]')) {
-        hideGuide(activeGuide);
+        stopGuideSequence();
       }
     });
+
+    window.addEventListener('scroll', dismissForScroll, { passive: true });
 
     window.addEventListener(
       'pagehide',
       () => {
         timers.forEach(timer => window.clearTimeout(timer));
         timers.clear();
+        window.removeEventListener('scroll', dismissForScroll);
       },
       { once: true }
     );
