@@ -187,13 +187,13 @@
       return Math.min(Math.max(value, min), max);
     }
 
-    function placeGuide(guide, target, variant) {
+    function placeGuide(guide, target, variant, measuredTargetRect) {
       if (!guide || !target || !isVisibleElement(target)) {
         return;
       }
 
       const guideRect = guide.getBoundingClientRect();
-      const targetRect = target.getBoundingClientRect();
+      const targetRect = measuredTargetRect || target.getBoundingClientRect();
       const guideWidth = guideRect.width || 320;
       const guideHeight = guideRect.height || 150;
       const targetCenterX = targetRect.left + targetRect.width / 2;
@@ -267,14 +267,14 @@
 
       const updatePosition = () => placeGuide(guide, target, config.variant);
       guide._placeGuide = updatePosition;
-      target.classList.add('hv3-guide-target');
-      updatePosition();
+      const initialTargetRect = target.getBoundingClientRect();
+      placeGuide(guide, target, config.variant, initialTargetRect);
       window.addEventListener('resize', updatePosition);
       window.addEventListener('scroll', updatePosition, true);
 
       nextFrame(() => {
         if (document.body.contains(guide)) {
-          updatePosition();
+          target.classList.add('hv3-guide-target');
           guide.classList.add('is-visible');
         }
       });
