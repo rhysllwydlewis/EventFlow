@@ -147,7 +147,7 @@
     position: relative;
     z-index: 1;
     max-width: 100%;
-    padding-top: 26px;
+    padding-top: 10px;
     text-align: center;
   }
 
@@ -300,7 +300,7 @@
   }
 
   .home-v3-page .hv2-hero__copy {
-    padding-top: 22px;
+    padding-top: 6px;
   }
 
   .home-v3-page .hv2-hero h1 {
