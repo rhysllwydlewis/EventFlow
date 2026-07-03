@@ -43,8 +43,8 @@
       position: 'center center',
     },
     {
-      url: `https://images.pexels.com/photos/13024233/pexels-photo-13024233.jpeg?${pexelsImageParams}`,
-      position: 'center 45%',
+      url: `https://images.pexels.com/photos/28834570/pexels-photo-28834570.jpeg?${pexelsImageParams}`,
+      position: 'center center',
     },
     {
       url: `https://images.pexels.com/photos/30739915/pexels-photo-30739915.jpeg?${pexelsImageParams}`,
