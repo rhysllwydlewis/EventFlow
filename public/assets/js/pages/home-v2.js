@@ -15,7 +15,7 @@
   const isHomeV3Preview = window.__EF_HOME_V3_PREVIEW__ === true;
 
   const pexelsImageParams = 'auto=compress&cs=tinysrgb&w=2600&h=1600&fit=crop';
-  const heroFallbackImages = [
+  const eventDecorHeroFallbackImages = [
     {
       url: `https://images.pexels.com/photos/265947/pexels-photo-265947.jpeg?${pexelsImageParams}`,
       position: 'center right',
@@ -33,6 +33,27 @@
       position: 'center right',
     },
   ];
+  const weddingCoupleHeroFallbackImages = [
+    {
+      url: `https://images.pexels.com/photos/15536198/pexels-photo-15536198.jpeg?${pexelsImageParams}`,
+      position: 'center center',
+    },
+    {
+      url: `https://images.pexels.com/photos/5037207/pexels-photo-5037207.jpeg?${pexelsImageParams}`,
+      position: 'center center',
+    },
+    {
+      url: `https://images.pexels.com/photos/28834570/pexels-photo-28834570.jpeg?${pexelsImageParams}`,
+      position: 'center center',
+    },
+    {
+      url: `https://images.pexels.com/photos/30739915/pexels-photo-30739915.jpeg?${pexelsImageParams}`,
+      position: 'center center',
+    },
+  ];
+  const heroFallbackImages = isHomeV3Preview
+    ? weddingCoupleHeroFallbackImages
+    : eventDecorHeroFallbackImages;
 
   const pexelsHeroQueries = [
     'luxury wedding reception table flowers warm lights',

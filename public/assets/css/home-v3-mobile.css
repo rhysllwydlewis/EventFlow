@@ -91,7 +91,7 @@
     overflow: hidden;
     border: 0;
     background-image: var(--hv2-hero-bg);
-    background-position: center center;
+    background-position: var(--hv2-hero-position, center center);
     background-size: cover;
     filter: saturate(1.07) contrast(1.03) brightness(1.03);
     opacity: 1;
@@ -147,7 +147,8 @@
     position: relative;
     z-index: 1;
     max-width: 100%;
-    padding-top: 10px;
+    margin-top: -18px;
+    padding-top: 0;
     text-align: center;
   }
 
@@ -300,7 +301,8 @@
   }
 
   .home-v3-page .hv2-hero__copy {
-    padding-top: 6px;
+    margin-top: -24px;
+    padding-top: 0;
   }
 
   .home-v3-page .hv2-hero h1 {
