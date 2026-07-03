@@ -30,8 +30,8 @@ const HOMEPAGE_V3_HERO_STYLES = [
   '    <link rel="preload" href="/assets/css/home-v3.css?v=13" as="style" />',
   '    <link rel="stylesheet" href="/assets/css/home-v2.css?v=11" />',
   '    <link rel="stylesheet" href="/assets/css/home-v3.css?v=13" />',
-  '    <link rel="preload" href="/assets/css/home-v3-mobile.css?v=4" as="style" media="(max-width: 960px)" />',
-  '    <link rel="stylesheet" href="/assets/css/home-v3-mobile.css?v=4" media="(max-width: 960px)" />',
+  '    <link rel="preload" href="/assets/css/home-v3-mobile.css?v=5" as="style" media="(max-width: 960px)" />',
+  '    <link rel="stylesheet" href="/assets/css/home-v3-mobile.css?v=5" media="(max-width: 960px)" />',
   '    <script src="/assets/js/pages/home-v3.js?v=12"></script>',
 ].join('\n');
 const HOMEPAGE_V3_HERO_SCRIPT = '    <script src="/assets/js/pages/home-v2.js?v=12" defer></script>';
