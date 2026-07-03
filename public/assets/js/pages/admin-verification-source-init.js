@@ -1,6 +1,6 @@
 (function () {
   const recentUsersByEmail = new Map();
-  const originalFetch = window.fetch;
+  let requestedRecentUsers = false;
 
   function escapeHtml(value) {
     const div = document.createElement('div');
@@ -152,33 +152,31 @@
     });
   }
 
-  if (typeof originalFetch === 'function') {
-    window.fetch = function patchedFetch(input) {
-      return originalFetch.apply(this, arguments).then(response => {
-        try {
-          const url = typeof input === 'string' ? input : input && input.url;
-          if (url && url.includes('/api/admin/users/list')) {
-            response
-              .clone()
-              .json()
-              .then(data => {
-                recentUsersByEmail.clear();
-                (data.items || []).forEach(user => {
-                  const email = normaliseEmail(user.email);
-                  if (email) {
-                    recentUsersByEmail.set(email, user);
-                  }
-                });
-                enhanceRows();
-              })
-              .catch(() => {});
-          }
-        } catch (_) {
-          // Leave the dashboard table in its original form if enhancement data is unavailable.
-        }
-        return response;
+  async function fetchRecentUsers() {
+    if (requestedRecentUsers) {
+      return;
+    }
+    requestedRecentUsers = true;
+
+    try {
+      const response = await fetch('/api/admin/users/list?limit=20&page=1', {
+        credentials: 'include',
       });
-    };
+      if (!response.ok) {
+        return;
+      }
+      const data = await response.json();
+      recentUsersByEmail.clear();
+      (data.items || []).forEach(user => {
+        const email = normaliseEmail(user.email);
+        if (email) {
+          recentUsersByEmail.set(email, user);
+        }
+      });
+      enhanceRows();
+    } catch (_) {
+      // Leave the dashboard table in its original form if enhancement data is unavailable.
+    }
   }
 
   document.addEventListener('DOMContentLoaded', () => {
@@ -188,6 +186,6 @@
     }
     const observer = new MutationObserver(enhanceRows);
     observer.observe(table, { childList: true, subtree: true });
-    enhanceRows();
+    fetchRecentUsers();
   });
 })();
