@@ -91,7 +91,7 @@
     overflow: hidden;
     border: 0;
     background-image: var(--hv2-hero-bg);
-    background-position: center center;
+    background-position: var(--hv2-hero-position, center center);
     background-size: cover;
     filter: saturate(1.07) contrast(1.03) brightness(1.03);
     opacity: 1;
