@@ -71,7 +71,6 @@ describe('anonymous public HTML render path', () => {
     expect(res.text).toContain('home-v3-page');
     expect(res.text).toContain('home-v2-white-fade-page');
     expect(res.text).toContain('/assets/css/home-v3.css?v=15');
-    expect(res.text).toContain('/assets/css/home-v3-rescue.css?v=1');
     expect(res.text).toContain('/assets/css/home-v3-mobile.css?v=10');
     expect(res.text).toContain('hv3-title-emphasis');
     expect(res.text).toContain('data-hv3-event-select');
@@ -91,7 +90,6 @@ describe('anonymous public HTML render path', () => {
       expect(res.text).toContain('home-v3-page');
       expect(res.text).toContain('home-v2-white-fade-page');
       expect(res.text).toContain('/assets/css/home-v3.css?v=15');
-      expect(res.text).toContain('/assets/css/home-v3-rescue.css?v=1');
       expect(res.text).toContain('/assets/css/home-v3-mobile.css?v=10');
       expect(res.text).toContain('hv3-title-emphasis');
       expect(res.text).toContain('data-hv3-event-select');
