@@ -257,6 +257,18 @@ function buildHomepageV3Preview(content) {
   return result;
 }
 
+function injectHomepageManagerAdminScript(content) {
+  const scriptPath = '/assets/js/pages/admin-homepage-manager.js?v=1';
+  if (content.includes(scriptPath) || !/<\/body>/i.test(content)) {
+    return content;
+  }
+
+  return content.replace(
+    /\s*<\/body>/i,
+    `\n<script src="${scriptPath}" defer></script>\n</body>`
+  );
+}
+
 function stripAnonymousAuthText(content) {
   return content
     .replace(
@@ -407,6 +419,10 @@ function addPreviewRobotsMeta(content) {
 }
 
 function sanitizeAnonymousPublicHtml(content, requestPath, req) {
+  if (requestPath === '/admin-homepage.html') {
+    return injectHomepageManagerAdminScript(content);
+  }
+
   if (!isAnonymousRequest(req)) {
     return content;
   }
@@ -438,6 +454,7 @@ function shouldProcessFile(filePath) {
     'privacy.html',
     'data-rights.html',
     'admin-settings.html',
+    'admin-homepage.html',
   ];
 
   if (processFiles.includes(fileName)) {
@@ -571,4 +588,5 @@ module.exports = {
   resolvePublicTemplatePath,
   addPreviewRobotsMeta,
   buildHomepageV3Preview,
+  injectHomepageManagerAdminScript,
 };
