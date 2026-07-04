@@ -39,14 +39,14 @@ const DEFAULT_PEXELS_VIDEO_QUERIES = {
 
 const DEFAULT_HERO_VIDEO_SETTINGS = {
   enabled: true,
-  autoplay: true,
+  autoplay: false,
   muted: true,
   loop: true,
-  quality: 'auto',
+  quality: 'hd',
 };
 
 const DEFAULT_VIDEO_QUALITY_SETTINGS = {
-  preference: 'auto',
+  preference: 'hd',
   adaptive: true,
   mobileOptimized: true,
 };
