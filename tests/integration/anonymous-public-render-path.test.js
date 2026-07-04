@@ -71,9 +71,17 @@ describe('anonymous public HTML render path', () => {
     expect(res.text).toContain('home-v3-page');
     expect(res.text).toContain('home-v2-white-fade-page');
     expect(res.text).toContain('/assets/css/home-v3.css?v=15');
+    expect(res.text).toContain('/assets/css/home-v3-video.css?v=1');
     expect(res.text).toContain('/assets/css/home-v3-mobile.css?v=10');
+    expect(res.text).toContain('https://videos.pexels.com');
+    expect(res.text).toContain('data-hv3-pexels-video');
+    expect(res.text).toContain('data-hv3-video-source');
+    expect(res.text).toContain('/assets/js/pages/home-v3.js?v=13');
+    expect(res.text).toContain('/assets/js/pages/home-v3-video.js?v=1');
     expect(res.text).toContain('hv3-title-emphasis');
     expect(res.text).toContain('data-hv3-event-select');
+    expect(res.text).not.toContain('/assets/js/pages/home-v2.js');
+    expect(res.text).not.toContain('/assets/js/utils/pexels-client.js');
     expect(res.text).not.toContain('/assets/css/home-v2-parity.css');
   });
 
@@ -90,9 +98,16 @@ describe('anonymous public HTML render path', () => {
       expect(res.text).toContain('home-v3-page');
       expect(res.text).toContain('home-v2-white-fade-page');
       expect(res.text).toContain('/assets/css/home-v3.css?v=15');
+      expect(res.text).toContain('/assets/css/home-v3-video.css?v=1');
       expect(res.text).toContain('/assets/css/home-v3-mobile.css?v=10');
+      expect(res.text).toContain('https://videos.pexels.com');
+      expect(res.text).toContain('data-hv3-pexels-video');
+      expect(res.text).toContain('/assets/js/pages/home-v3.js?v=13');
+      expect(res.text).toContain('/assets/js/pages/home-v3-video.js?v=1');
       expect(res.text).toContain('hv3-title-emphasis');
       expect(res.text).toContain('data-hv3-event-select');
+      expect(res.text).not.toContain('/assets/js/pages/home-v2.js');
+      expect(res.text).not.toContain('/assets/js/utils/pexels-client.js');
       expect(res.text).not.toContain('/assets/css/home-v2-parity.css');
     } finally {
       if (previousVariant === undefined) {

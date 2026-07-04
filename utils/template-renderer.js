@@ -27,17 +27,39 @@ const HOMEPAGE_V3_PREVIEW_PATHS = new Set([
   '/home-v3-preview.html',
 ]);
 const HOMEPAGE_V3_HERO_STYLES = [
+  '    <link rel="preconnect" href="https://videos.pexels.com" crossorigin />',
   '    <link rel="preload" href="/assets/css/home-v2.css?v=11" as="style" />',
   '    <link rel="preload" href="/assets/css/home-v3.css?v=15" as="style" />',
+  '    <link rel="preload" href="/assets/css/home-v3-video.css?v=1" as="style" />',
   '    <link rel="stylesheet" href="/assets/css/home-v2.css?v=11" />',
   '    <link rel="stylesheet" href="/assets/css/home-v3.css?v=15" />',
+  '    <link rel="stylesheet" href="/assets/css/home-v3-video.css?v=1" />',
   '    <link rel="preload" href="/assets/css/home-v3-mobile.css?v=10" as="style" media="(max-width: 960px)" />',
   '    <link rel="stylesheet" href="/assets/css/home-v3-mobile.css?v=10" media="(max-width: 960px)" />',
-  '    <script src="/assets/js/pages/home-v3.js?v=12"></script>',
+  '    <script src="/assets/js/pages/home-v3.js?v=13"></script>',
 ].join('\n');
-const HOMEPAGE_V3_HERO_SCRIPT = '    <script src="/assets/js/pages/home-v2.js?v=14" defer></script>';
+const HOMEPAGE_V3_HERO_SCRIPT =
+  '    <script src="/assets/js/pages/home-v3-video.js?v=1" defer></script>';
 const HOMEPAGE_V3_HERO = `      <section class="hv2-hero" aria-labelledby="hv3-title">
-        <div class="hv2-hero__image" aria-hidden="true"></div>
+        <div class="hv2-hero__image hv3-hero-video" aria-hidden="true" data-hv3-pexels-video>
+          <video
+            class="hv3-hero-video__media"
+            autoplay
+            muted
+            loop
+            playsinline
+            preload="metadata"
+            poster="https://images.pexels.com/videos/4586391/free-video-4586391.jpg"
+            data-hv3-video-media
+          >
+            <source
+              src="https://videos.pexels.com/video-files/4586391/4586391-hd_1920_1080_24fps.mp4"
+              type="video/mp4"
+              data-hv3-video-source
+              data-fallback-src="https://videos.pexels.com/video-files/4586391/4586391-hd_1920_1080_24fps.mp4"
+            />
+          </video>
+        </div>
         <div class="hv2-hero__shade" aria-hidden="true"></div>
 
         <div class="hv2-shell hv2-hero__content">
@@ -214,7 +236,7 @@ function injectBeforeHeadClose(content, snippet) {
 }
 
 function injectBeforeBodyClose(content, snippet) {
-  if (!/<\/body>/i.test(content) || content.includes('/assets/js/pages/home-v2.js')) {
+  if (!/<\/body>/i.test(content) || content.includes('/assets/js/pages/home-v3-video.js')) {
     return content;
   }
 
