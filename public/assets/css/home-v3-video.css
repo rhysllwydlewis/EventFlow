@@ -13,10 +13,12 @@
   display: block;
   object-fit: cover;
   object-position: center right;
+  opacity: 0.92;
+  transition: opacity var(--hv3-video-transition-duration, 1000ms) ease;
 }
 
 .home-v3-page .hv3-hero-video.is-loading .hv3-hero-video__media {
-  opacity: 0.82;
+  opacity: 0.72;
 }
 
 .home-v3-page .hv3-hero-video.is-ready .hv3-hero-video__media {
