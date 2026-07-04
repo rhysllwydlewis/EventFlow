@@ -8,6 +8,69 @@
   let selectedVersion = DEFAULT_VERSION;
   let collageMedia = [];
 
+  function ensureManagerSection() {
+    if (document.getElementById('homepageManager')) {
+      return;
+    }
+
+    const controls = document.querySelector('.controls');
+    const section = document.createElement('section');
+    section.className = 'card';
+    section.id = 'homepageManager';
+    section.style.cssText = 'padding: 24px; margin-bottom: 32px;';
+    section.innerHTML = `
+      <div style="display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; margin-bottom: 20px; flex-wrap: wrap;">
+        <div>
+          <h2 style="margin: 0 0 6px; font-size: 1.5rem; font-weight: 700;">Homepage Version Manager</h2>
+          <p class="small" style="margin: 0; color: #4b5563;">Manage V1, V2 and V3 as separate homepage slots. Double-click a tab name to rename it.</p>
+        </div>
+        <div class="badge" id="homepageActiveBadge" style="background: #dcfce7; color: #166534; padding: 6px 12px; border-radius: 999px; font-size: 0.8rem; font-weight: 700;">
+          Active: loading
+        </div>
+      </div>
+
+      <div id="homepageVersionTabs" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 20px;">
+        <div class="card" style="padding: 16px;"><p class="small">Loading homepage slots...</p></div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(260px, 360px); gap: 20px;">
+        <div style="padding: 16px; border: 1px solid #e5e7eb; border-radius: 8px; background: #f9fafb;">
+          <h3 id="homepageSelectedTitle" style="margin: 0 0 8px; font-size: 1.1rem;">Selected homepage slot</h3>
+          <p id="homepageSelectedDescription" class="small" style="margin: 0 0 14px; color: #4b5563;">Choose a homepage slot to manage its settings.</p>
+          <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <a id="homepagePreviewLink" class="ef-cta btn btn-secondary" href="/" target="_blank" rel="noopener noreferrer">Preview slot</a>
+            <button id="publishHomepageVersion" class="ef-cta btn btn-primary" type="button">Set as live homepage</button>
+            <button id="duplicateHomepageVersion" class="ef-cta btn btn-secondary" type="button">Duplicate live settings into this slot</button>
+          </div>
+        </div>
+
+        <div style="padding: 16px; border: 1px solid #dbeafe; border-radius: 8px; background: #eff6ff;">
+          <h3 style="margin: 0 0 8px; font-size: 1rem;">Slot Status</h3>
+          <dl style="margin: 0; display: grid; gap: 8px; font-size: 0.9rem;">
+            <div style="display: flex; justify-content: space-between; gap: 12px;">
+              <dt style="color: #4b5563;">Selected</dt>
+              <dd id="homepageSelectedVersion" style="margin: 0; font-weight: 700;">-</dd>
+            </div>
+            <div style="display: flex; justify-content: space-between; gap: 12px;">
+              <dt style="color: #4b5563;">Status</dt>
+              <dd id="homepageSelectedStatus" style="margin: 0; font-weight: 700;">-</dd>
+            </div>
+            <div style="display: flex; justify-content: space-between; gap: 12px;">
+              <dt style="color: #4b5563;">Updated</dt>
+              <dd id="homepageSelectedUpdated" style="margin: 0; font-weight: 700;">-</dd>
+            </div>
+          </dl>
+        </div>
+      </div>
+    `;
+
+    if (controls) {
+      controls.insertAdjacentElement('afterend', section);
+    } else {
+      document.querySelector('main')?.prepend(section);
+    }
+  }
+
   function escapeHtml(value) {
     return String(value || '')
       .replace(/&/g, '&amp;')
@@ -442,6 +505,7 @@
 
   async function init() {
     try {
+      ensureManagerSection();
       await loadCollageMediaUrls();
       await loadManager();
 
