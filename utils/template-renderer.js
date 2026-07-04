@@ -44,19 +44,18 @@ const HOMEPAGE_V3_HERO = `      <section class="hv2-hero" aria-labelledby="hv3-t
         <div class="hv2-hero__image hv3-hero-video" aria-hidden="true" data-hv3-pexels-video>
           <video
             class="hv3-hero-video__media"
-            autoplay
             muted
             loop
             playsinline
-            preload="metadata"
+            preload="none"
             poster="https://images.pexels.com/videos/4586391/free-video-4586391.jpg"
             data-hv3-video-media
           >
             <source
-              src="https://videos.pexels.com/video-files/4586391/4586391-hd_1920_1080_24fps.mp4"
+              src="https://videos.pexels.com/video-files/4586391/4586391-sd_640_360_25fps.mp4"
               type="video/mp4"
               data-hv3-video-source
-              data-fallback-src="https://videos.pexels.com/video-files/4586391/4586391-hd_1920_1080_24fps.mp4"
+              data-fallback-src="https://videos.pexels.com/video-files/4586391/4586391-sd_640_360_25fps.mp4"
             />
           </video>
         </div>
