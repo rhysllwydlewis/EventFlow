@@ -66,11 +66,28 @@ describe('Homepage Settings Video Support Integration', () => {
           adaptive: true,
           mobileOptimized: true,
         },
+        transition: {
+          effect: 'crossfade',
+          duration: 1200,
+        },
+        preloading: {
+          enabled: false,
+          count: 1,
+        },
         mobileOptimizations: {
+          slowerTransitions: false,
           disableVideos: true,
+          touchControls: false,
+        },
+        contentFiltering: {
+          aspectRatio: '16:9',
+          orientation: 'landscape',
+          minResolution: 'HD',
         },
         playbackControls: {
           showControls: false,
+          pauseOnHover: false,
+          fullscreen: true,
         },
       },
     };
@@ -113,11 +130,28 @@ describe('Homepage Settings Video Support Integration', () => {
         adaptive: true,
         mobileOptimized: true,
       });
+      expect(response.body.collageWidget.transition).toMatchObject({
+        effect: 'crossfade',
+        duration: 1200,
+      });
+      expect(response.body.collageWidget.preloading).toMatchObject({
+        enabled: false,
+        count: 1,
+      });
       expect(response.body.collageWidget.mobileOptimizations).toMatchObject({
+        slowerTransitions: false,
         disableVideos: true,
+        touchControls: false,
+      });
+      expect(response.body.collageWidget.contentFiltering).toMatchObject({
+        aspectRatio: '16:9',
+        orientation: 'landscape',
+        minResolution: 'HD',
       });
       expect(response.body.collageWidget.playbackControls).toMatchObject({
         showControls: false,
+        pauseOnHover: false,
+        fullscreen: true,
       });
     });
 
@@ -127,7 +161,10 @@ describe('Homepage Settings Video Support Integration', () => {
       delete settings.collageWidget.pexelsVideoQueries;
       delete settings.collageWidget.heroVideo;
       delete settings.collageWidget.videoQuality;
+      delete settings.collageWidget.transition;
+      delete settings.collageWidget.preloading;
       delete settings.collageWidget.mobileOptimizations;
+      delete settings.collageWidget.contentFiltering;
       delete settings.collageWidget.playbackControls;
       await dbUnified.write('settings', settings);
 
@@ -151,6 +188,47 @@ describe('Homepage Settings Video Support Integration', () => {
         adaptive: true,
         mobileOptimized: true,
       });
+      expect(response.body.collageWidget.transition).toMatchObject({
+        effect: 'fade',
+        duration: 1000,
+      });
+      expect(response.body.collageWidget.preloading).toMatchObject({
+        enabled: true,
+        count: 3,
+      });
+      expect(response.body.collageWidget.contentFiltering).toMatchObject({
+        aspectRatio: 'any',
+        orientation: 'any',
+        minResolution: 'SD',
+      });
+    });
+
+    it('should expose a public homepage video playlist for upload fallback mode', async () => {
+      const settings = await dbUnified.read('settings');
+      settings.collageWidget.source = 'uploads';
+      settings.collageWidget.uploadGallery = [];
+      settings.collageWidget.fallbackToPexels = true;
+      await dbUnified.write('settings', settings);
+
+      const response = await request(app).get('/api/public/homepage-video?query=wedding');
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(Array.isArray(response.body.videos)).toBe(true);
+      expect(response.body.videos.length).toBeGreaterThan(1);
+    });
+
+    it('should reject public homepage video fallback when uploads disable Pexels fallback', async () => {
+      const settings = await dbUnified.read('settings');
+      settings.collageWidget.source = 'uploads';
+      settings.collageWidget.uploadGallery = [];
+      settings.collageWidget.fallbackToPexels = false;
+      await dbUnified.write('settings', settings);
+
+      const response = await request(app).get('/api/public/homepage-video?query=wedding');
+
+      expect(response.status).toBe(400);
+      expect(response.body.errorType).toBe('pexels_fallback_disabled');
     });
   });
 });
