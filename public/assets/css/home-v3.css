@@ -44,6 +44,12 @@
     linear-gradient(180deg, rgba(255, 254, 251, 0.24) 0%, rgba(255, 254, 251, 0.02) 16%, rgba(255, 254, 251, 0.03) 80%, rgba(255, 254, 251, 0.62) 100%);
 }
 
+.home-v3-page.home-v2-white-fade-page .hv2-hero__shade {
+  background:
+    linear-gradient(90deg, #fff 0%, rgba(255, 255, 255, 0.99) 34%, rgba(255, 255, 255, 0.62) 53%, rgba(255, 255, 255, 0.08) 69%, rgba(255, 255, 255, 0.86) 100%),
+    linear-gradient(180deg, #fff 0%, rgba(255, 255, 255, 0.74) 13%, rgba(255, 255, 255, 0.08) 34%);
+}
+
 .home-v3-page .hv2-hero__content {
   position: relative;
   z-index: 2;

@@ -12,6 +12,7 @@ const { getPlaceholders } = require('../config/content-config');
 
 const templateCache = new Map();
 const ANONYMOUS_SANITIZER_COMMENT = '<!-- eventflow-anonymous-sanitizer: active -->';
+const HOMEPAGE_INDEX_FILE = '/index.html';
 const HOMEPAGE_V2_FILE = '/home-v2.html';
 const HOMEPAGE_V2_PREVIEW_PATHS = new Set([
   '/home-v2',
@@ -27,11 +28,11 @@ const HOMEPAGE_V3_PREVIEW_PATHS = new Set([
 ]);
 const HOMEPAGE_V3_HERO_STYLES = [
   '    <link rel="preload" href="/assets/css/home-v2.css?v=11" as="style" />',
-  '    <link rel="preload" href="/assets/css/home-v3.css?v=14" as="style" />',
+  '    <link rel="preload" href="/assets/css/home-v3.css?v=15" as="style" />',
   '    <link rel="stylesheet" href="/assets/css/home-v2.css?v=11" />',
-  '    <link rel="stylesheet" href="/assets/css/home-v3.css?v=14" />',
-  '    <link rel="preload" href="/assets/css/home-v3-mobile.css?v=9" as="style" media="(max-width: 960px)" />',
-  '    <link rel="stylesheet" href="/assets/css/home-v3-mobile.css?v=9" media="(max-width: 960px)" />',
+  '    <link rel="stylesheet" href="/assets/css/home-v3.css?v=15" />',
+  '    <link rel="preload" href="/assets/css/home-v3-mobile.css?v=10" as="style" media="(max-width: 960px)" />',
+  '    <link rel="stylesheet" href="/assets/css/home-v3-mobile.css?v=10" media="(max-width: 960px)" />',
   '    <script src="/assets/js/pages/home-v3.js?v=12"></script>',
 ].join('\n');
 const HOMEPAGE_V3_HERO_SCRIPT = '    <script src="/assets/js/pages/home-v2.js?v=14" defer></script>';
@@ -247,6 +248,12 @@ function buildHomepageV3Preview(content) {
   return result;
 }
 
+function buildHomepageV2Preview(content) {
+  let result = buildHomepageV3Preview(content);
+  result = addBodyClass(result, 'home-v2-white-fade-page');
+  return result;
+}
+
 function stripAnonymousAuthText(content) {
   return content
     .replace(
@@ -348,15 +355,15 @@ function isHomepageV3PreviewPath(requestPath) {
 
 function resolvePublicTemplatePath(requestPath) {
   if (requestPath === '/') {
-    return useHomepageV2() ? HOMEPAGE_V2_FILE : '/index.html';
+    return HOMEPAGE_INDEX_FILE;
   }
 
   if (isHomepageV2PreviewPath(requestPath)) {
-    return HOMEPAGE_V2_FILE;
+    return HOMEPAGE_INDEX_FILE;
   }
 
   if (isHomepageV3PreviewPath(requestPath)) {
-    return '/index.html';
+    return HOMEPAGE_INDEX_FILE;
   }
 
   if (!path.extname(requestPath)) {
@@ -484,6 +491,8 @@ function templateMiddleware() {
     const requestPath = resolvePublicTemplatePath(originalRequestPath);
     const isHomepageV2Preview = isHomepageV2PreviewPath(originalRequestPath);
     const isHomepageV3Preview = isHomepageV3PreviewPath(originalRequestPath);
+    const isHomepageV2VariantRoot = originalRequestPath === '/' && useHomepageV2();
+    const shouldBuildHomepageV2 = isHomepageV2Preview || isHomepageV2VariantRoot;
     const isHomepagePreview = isHomepageV2Preview || isHomepageV3Preview;
 
     if (!shouldProcessFile(requestPath)) {
@@ -495,7 +504,12 @@ function templateMiddleware() {
 
     try {
       const { content } = await getFile(filePath, requestPath, req);
-      let responseContent = isHomepageV3Preview ? buildHomepageV3Preview(content) : content;
+      let responseContent = content;
+      if (shouldBuildHomepageV2) {
+        responseContent = buildHomepageV2Preview(content);
+      } else if (isHomepageV3Preview) {
+        responseContent = buildHomepageV3Preview(content);
+      }
       responseContent = isHomepagePreview ? addPreviewRobotsMeta(responseContent) : responseContent;
 
       setHtmlNoStoreHeaders(res);
@@ -534,5 +548,6 @@ module.exports = {
   isHomepageV3PreviewPath,
   resolvePublicTemplatePath,
   addPreviewRobotsMeta,
+  buildHomepageV2Preview,
   buildHomepageV3Preview,
 };
