@@ -2,7 +2,8 @@
   'use strict';
 
   const DEFAULT_VIDEO_QUERY = 'wedding celebration cinematic venue';
-  const MIN_ROTATION_SECONDS = 8;
+  const DEFAULT_ROTATION_SECONDS = 8;
+  const MIN_ROTATION_SECONDS = 1;
   const VIDEO_UPLOAD_PATTERN = /\.(mp4|webm|mov)(?:$|[?#])/i;
 
   function getHeroVideoFiles(video) {
@@ -135,7 +136,9 @@
 
   function getRotationDelay(settings = {}) {
     const intervalSeconds = Number(settings.intervalSeconds);
-    const safeSeconds = Number.isFinite(intervalSeconds) ? intervalSeconds : MIN_ROTATION_SECONDS;
+    const safeSeconds = Number.isFinite(intervalSeconds)
+      ? intervalSeconds
+      : DEFAULT_ROTATION_SECONDS;
     return Math.max(safeSeconds, MIN_ROTATION_SECONDS) * 1000;
   }
 
@@ -151,6 +154,15 @@
     );
   }
 
+  function applyTransitionSettings(container, settings = {}) {
+    const duration = Number(settings.transition?.duration);
+
+    if (Number.isFinite(duration)) {
+      const clampedDuration = Math.max(300, Math.min(duration, 3000));
+      container.style.setProperty('--hv3-video-transition-duration', `${clampedDuration}ms`);
+    }
+  }
+
   function applyPlaybackSettings(video, settings = {}) {
     const heroVideo = settings.heroVideo || {};
     const playbackControls = settings.playbackControls || {};
@@ -158,7 +170,7 @@
     video.muted = heroVideo.muted !== false;
     video.loop = heroVideo.loop !== false;
     video.controls = playbackControls.showControls === true;
-    video.preload = 'metadata';
+    video.preload = settings.preloading?.enabled === false ? 'none' : 'metadata';
 
     if (heroVideo.autoplay === false) {
       video.removeAttribute('autoplay');
@@ -169,6 +181,20 @@
     video.autoplay = true;
     video.setAttribute('autoplay', '');
     return true;
+  }
+
+  function applyHoverPause(container, video, settings = {}, shouldPlay) {
+    if (!shouldPlay || settings.playbackControls?.pauseOnHover !== true) {
+      return;
+    }
+
+    container.addEventListener('mouseenter', () => {
+      video.pause();
+    });
+
+    container.addEventListener('mouseleave', () => {
+      playHeroVideo(video);
+    });
   }
 
   function playHeroVideo(video) {
@@ -189,9 +215,10 @@
     }
 
     container.classList.add('is-loading');
+    container.classList.remove('is-ready');
     source.src = item.file.link;
     source.type = item.file.file_type || item.file.fileType || getVideoTypeFromUrl(item.file.link);
-    video.preload = 'metadata';
+    video.preload = video.preload === 'none' ? 'none' : 'metadata';
     video.load();
 
     if (shouldPlay) {
@@ -209,32 +236,64 @@
     let currentIndex = 0;
     let rotationTimer = null;
     const delay = getRotationDelay(settings);
+    const shouldLoopPlaylist = settings.heroVideo?.loop !== false;
+
+    video.loop = false;
+
+    const advanceVideo = () => {
+      if (document.hidden) {
+        return true;
+      }
+
+      const nextIndex = currentIndex + 1;
+
+      if (nextIndex >= playlist.length && !shouldLoopPlaylist) {
+        return false;
+      }
+
+      currentIndex = nextIndex % playlist.length;
+      return setHeroVideoSource({
+        container,
+        item: playlist[currentIndex],
+        shouldPlay,
+        source,
+        video,
+      });
+    };
 
     const queueNextVideo = () => {
       window.clearTimeout(rotationTimer);
       rotationTimer = window.setTimeout(() => {
-        if (document.hidden) {
+        if (advanceVideo()) {
           queueNextVideo();
-          return;
         }
-
-        currentIndex = (currentIndex + 1) % playlist.length;
-        setHeroVideoSource({
-          container,
-          item: playlist[currentIndex],
-          shouldPlay,
-          source,
-          video,
-        });
-        queueNextVideo();
       }, delay);
     };
 
+    const handleVideoEnded = () => {
+      window.clearTimeout(rotationTimer);
+      if (advanceVideo()) {
+        queueNextVideo();
+      }
+    };
+
+    const handleVideoError = () => {
+      container.classList.remove('is-loading');
+      if (advanceVideo()) {
+        queueNextVideo();
+      }
+    };
+
+    video.addEventListener('ended', handleVideoEnded);
+    video.addEventListener('error', handleVideoError);
     queueNextVideo();
+
     window.addEventListener(
       'pagehide',
       () => {
         window.clearTimeout(rotationTimer);
+        video.removeEventListener('ended', handleVideoEnded);
+        video.removeEventListener('error', handleVideoError);
       },
       { once: true }
     );
@@ -245,7 +304,7 @@
       enabled: true,
       source: 'pexels',
       mediaTypes: { videos: true },
-      intervalSeconds: MIN_ROTATION_SECONDS,
+      intervalSeconds: DEFAULT_ROTATION_SECONDS,
       pexelsVideoQueries: { venues: DEFAULT_VIDEO_QUERY },
       uploadGallery: [],
       fallbackToPexels: true,
@@ -261,8 +320,25 @@
         adaptive: true,
         mobileOptimized: true,
       },
+      transition: {
+        effect: 'fade',
+        duration: 1000,
+      },
+      preloading: {
+        enabled: true,
+        count: 3,
+      },
       mobileOptimizations: { disableVideos: false },
-      playbackControls: { showControls: false },
+      contentFiltering: {
+        aspectRatio: 'any',
+        orientation: 'any',
+        minResolution: 'SD',
+      },
+      playbackControls: {
+        showControls: false,
+        pauseOnHover: true,
+        fullscreen: false,
+      },
     };
 
     try {
@@ -284,9 +360,15 @@
         mediaTypes: { ...defaults.mediaTypes, ...(collageWidget.mediaTypes || {}) },
         heroVideo: { ...defaults.heroVideo, ...(collageWidget.heroVideo || {}) },
         videoQuality: { ...defaults.videoQuality, ...(collageWidget.videoQuality || {}) },
+        transition: { ...defaults.transition, ...(collageWidget.transition || {}) },
+        preloading: { ...defaults.preloading, ...(collageWidget.preloading || {}) },
         mobileOptimizations: {
           ...defaults.mobileOptimizations,
           ...(collageWidget.mobileOptimizations || {}),
+        },
+        contentFiltering: {
+          ...defaults.contentFiltering,
+          ...(collageWidget.contentFiltering || {}),
         },
         playbackControls: {
           ...defaults.playbackControls,
@@ -301,7 +383,7 @@
   async function fetchPexelsPlaylist(settings) {
     const query = getPreferredVideoQuery(settings);
     const response = await fetch(
-      `/api/admin/public/pexels-video?query=${encodeURIComponent(query)}`,
+      `/api/v1/public/homepage-video?query=${encodeURIComponent(query)}`,
       {
         credentials: 'same-origin',
         headers: {
@@ -334,32 +416,20 @@
     const saveData = window.navigator?.connection?.saveData === true;
     const settings = await loadHomepageVideoSettings();
 
+    applyTransitionSettings(container, settings);
+
     video.addEventListener('loadeddata', () => {
       container.classList.remove('is-loading');
       container.classList.add('is-ready');
     });
 
-    video.addEventListener('error', () => {
-      const fallbackSrc = source.dataset.fallbackSrc;
-
-      container.classList.remove('is-loading');
-
-      if (fallbackSrc && source.src !== fallbackSrc) {
-        source.src = fallbackSrc;
-        source.type = getVideoTypeFromUrl(fallbackSrc);
-        video.preload = 'metadata';
-        video.load();
-
-        if (video.autoplay) {
-          playHeroVideo(video);
-        }
-      }
-    });
-
     if (reduceMotion || saveData || shouldDisableHeroVideo(settings)) {
+      source.removeAttribute('src');
       video.removeAttribute('autoplay');
       video.autoplay = false;
       video.pause();
+      video.load();
+      container.classList.remove('is-loading');
       return;
     }
 
@@ -383,12 +453,18 @@
     }
 
     if (playlist.length === 0) {
-      if (shouldPlay) {
-        playHeroVideo(video);
-      }
+      source.removeAttribute('src');
+      video.removeAttribute('autoplay');
+      video.autoplay = false;
+      video.pause();
+      video.load();
+      container.classList.remove('is-loading');
+      container.classList.add('is-ready');
       return;
     }
 
+    video.loop = playlist.length <= 1 && settings.heroVideo?.loop !== false;
+    applyHoverPause(container, video, settings, shouldPlay);
     setHeroVideoSource({
       container,
       item: playlist[0],
