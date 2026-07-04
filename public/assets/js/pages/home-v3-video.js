@@ -227,7 +227,13 @@
     };
 
     queueNextVideo();
-    window.addEventListener('pagehide', () => window.clearTimeout(rotationTimer), { once: true });
+    window.addEventListener(
+      'pagehide',
+      () => {
+        window.clearTimeout(rotationTimer);
+      },
+      { once: true }
+    );
   }
 
   async function loadHomepageVideoSettings() {
@@ -239,8 +245,18 @@
       pexelsVideoQueries: { venues: DEFAULT_VIDEO_QUERY },
       uploadGallery: [],
       fallbackToPexels: true,
-      heroVideo: { enabled: true, autoplay: true, muted: true, loop: true, quality: 'auto' },
-      videoQuality: { preference: 'auto', adaptive: true, mobileOptimized: true },
+      heroVideo: {
+        enabled: true,
+        autoplay: true,
+        muted: true,
+        loop: true,
+        quality: 'auto',
+      },
+      videoQuality: {
+        preference: 'auto',
+        adaptive: true,
+        mobileOptimized: true,
+      },
       mobileOptimizations: { disableVideos: false },
       playbackControls: { showControls: false },
     };
@@ -268,7 +284,10 @@
           ...defaults.mobileOptimizations,
           ...(collageWidget.mobileOptimizations || {}),
         },
-        playbackControls: { ...defaults.playbackControls, ...(collageWidget.playbackControls || {}) },
+        playbackControls: {
+          ...defaults.playbackControls,
+          ...(collageWidget.playbackControls || {}),
+        },
       };
     } catch {
       return defaults;
@@ -277,12 +296,15 @@
 
   async function fetchPexelsPlaylist(settings) {
     const query = getPreferredVideoQuery(settings);
-    const response = await fetch(`/api/admin/public/pexels-video?query=${encodeURIComponent(query)}`, {
-      credentials: 'same-origin',
-      headers: {
-        Accept: 'application/json',
-      },
-    });
+    const response = await fetch(
+      `/api/admin/public/pexels-video?query=${encodeURIComponent(query)}`,
+      {
+        credentials: 'same-origin',
+        headers: {
+          Accept: 'application/json',
+        },
+      }
+    );
 
     if (!response.ok) {
       return [];
@@ -323,6 +345,10 @@
         source.type = getVideoTypeFromUrl(fallbackSrc);
         video.preload = 'metadata';
         video.load();
+
+        if (video.autoplay) {
+          playHeroVideo(video);
+        }
       }
     });
 
@@ -362,7 +388,14 @@
       source,
       video,
     });
-    startHeroVideoRotation({ container, playlist, settings, shouldPlay, source, video });
+    startHeroVideoRotation({
+      container,
+      playlist,
+      settings,
+      shouldPlay,
+      source,
+      video,
+    });
   }
 
   function initialisePopularSearches() {
