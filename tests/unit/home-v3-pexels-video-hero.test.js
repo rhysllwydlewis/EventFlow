@@ -11,21 +11,22 @@ describe('homepage V3 Pexels video hero', () => {
     expect(html).toContain('data-hv3-pexels-video');
     expect(html).toContain('data-hv3-video-media');
     expect(html).toContain('data-hv3-video-source');
-    expect(html).toContain('https://videos.pexels.com');
-    expect(html).toContain('/assets/css/home-v3-video.css?v=1');
+    expect(html).toContain('https://images.pexels.com/videos/4586391/free-video-4586391.jpg');
+    expect(html).toContain('/assets/css/home-v3-video.css?v=2');
     expect(html).toContain('/assets/js/pages/home-v3.js?v=13');
-    expect(html).toContain('/assets/js/pages/home-v3-video.js?v=1');
+    expect(html).toContain('/assets/js/pages/home-v3-video.js?v=2');
     expect(html).not.toContain('/assets/js/pages/home-v2.js');
     expect(html).not.toContain('/assets/js/utils/pexels-client.js');
   });
 
-  test('does not eagerly autoplay or preload the fallback video before preference checks run', () => {
+  test('does not eagerly request a fallback video before preference checks run', () => {
     const html = buildHomepageV3Preview(
       fs.readFileSync(path.join(__dirname, '../../public/index.html'), 'utf8')
     );
 
     expect(html).toContain('preload="none"');
-    expect(html).toContain('4586391-sd_640_360_25fps.mp4');
+    expect(html).toContain('<source type="video/mp4" data-hv3-video-source />');
+    expect(html).not.toContain('4586391-sd_640_360_25fps.mp4');
     expect(html).not.toMatch(/<video[\s\S]*?\sautoplay\b/i);
   });
 
@@ -38,9 +39,12 @@ describe('homepage V3 Pexels video hero', () => {
     expect(script).toContain('prefers-reduced-motion: reduce');
     expect(script).toContain('saveData');
     expect(script).toContain('/api/v1/public/homepage-settings');
+    expect(script).toContain('/api/v1/public/homepage-video');
     expect(script).toContain('pexelsVideoQueries');
     expect(script).toContain('buildUploadPlaylist');
     expect(script).toContain('settings.fallbackToPexels !== false');
+    expect(script).toContain('video.loop = false');
+    expect(script).toContain('video.addEventListener(\'error\', handleVideoError)');
     expect(script).toContain('startHeroVideoRotation');
     expect(script).toContain('chooseHeroVideoFile');
   });
