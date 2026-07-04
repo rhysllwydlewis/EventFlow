@@ -18,4 +18,26 @@ describe('homepage V3 Pexels video hero', () => {
     expect(html).not.toContain('/assets/js/pages/home-v2.js');
     expect(html).not.toContain('/assets/js/utils/pexels-client.js');
   });
+
+  test('does not eagerly autoplay or preload the fallback video before preference checks run', () => {
+    const html = buildHomepageV3Preview(
+      fs.readFileSync(path.join(__dirname, '../../public/index.html'), 'utf8')
+    );
+
+    expect(html).toContain('preload="none"');
+    expect(html).toContain('4586391-sd_640_360_25fps.mp4');
+    expect(html).not.toMatch(/<video[\s\S]*?\sautoplay\b/i);
+  });
+
+  test('keeps playback gated by reduced-motion and save-data checks', () => {
+    const script = fs.readFileSync(
+      path.join(__dirname, '../../public/assets/js/pages/home-v3-video.js'),
+      'utf8'
+    );
+
+    expect(script).toContain('prefers-reduced-motion: reduce');
+    expect(script).toContain('saveData');
+    expect(script).toContain("setAttribute('autoplay'");
+    expect(script).toContain('chooseHeroVideoFile');
+  });
 });
