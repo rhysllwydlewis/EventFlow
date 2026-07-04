@@ -231,7 +231,7 @@ function injectBeforeHeadClose(content, snippet) {
 }
 
 function injectBeforeBodyClose(content, snippet) {
-  if (!/<\/body>/i.test(content) || content.includes('/assets/js/pages/home-v2.js?v=11')) {
+  if (!/<\/body>/i.test(content) || content.includes('/assets/js/pages/home-v3-video.js')) {
     return content;
   }
 
@@ -249,11 +249,25 @@ function replaceHomepageHeroWithV3(content) {
   return content.replace(heroPattern, `\n${HOMEPAGE_V3_HERO}\n\n`);
 }
 
+function stripHomepageV3InheritedScripts(content) {
+  return content.replace(
+    /\s*<script src="\/assets\/js\/utils\/pexels-client\.js" defer><\/script>/i,
+    ''
+  );
+}
+
 function buildHomepageV3Preview(content) {
   let result = addBodyClass(content, 'home-v3-page');
+  result = stripHomepageV3InheritedScripts(result);
   result = injectBeforeHeadClose(result, HOMEPAGE_V3_HERO_STYLES);
   result = replaceHomepageHeroWithV3(result);
   result = injectBeforeBodyClose(result, HOMEPAGE_V3_HERO_SCRIPT);
+  return result;
+}
+
+function buildHomepageV2Preview(content) {
+  let result = buildHomepageV3Preview(content);
+  result = addBodyClass(result, 'home-v2-white-fade-page');
   return result;
 }
 
@@ -587,6 +601,7 @@ module.exports = {
   isHomepageV3PreviewPath,
   resolvePublicTemplatePath,
   addPreviewRobotsMeta,
+  buildHomepageV2Preview,
   buildHomepageV3Preview,
   injectHomepageManagerAdminScript,
 };
