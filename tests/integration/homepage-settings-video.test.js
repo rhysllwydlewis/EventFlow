@@ -141,13 +141,13 @@ describe('Homepage Settings Video Support Integration', () => {
       expect(Object.keys(videoQueries).length).toBeGreaterThan(0);
       expect(response.body.collageWidget.heroVideo).toMatchObject({
         enabled: true,
-        autoplay: true,
+        autoplay: false,
         muted: true,
         loop: true,
-        quality: 'auto',
+        quality: 'hd',
       });
       expect(response.body.collageWidget.videoQuality).toMatchObject({
-        preference: 'auto',
+        preference: 'hd',
         adaptive: true,
         mobileOptimized: true,
       });
