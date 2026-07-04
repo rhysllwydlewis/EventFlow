@@ -62,6 +62,47 @@ describe('anonymous public HTML render path', () => {
     expect(res.text).toContain('/articles/event-planning-checklist-guide');
   });
 
+  test('GET /home-v2 renders as V3 with only the V2 white-edge hero fade class', async () => {
+    const res = await request(app).get('/home-v2').expect(200);
+
+    expect(res.headers['x-eventflow-template-renderer']).toBe('active');
+    expect(res.headers['x-eventflow-public-sanitizer']).toBe('anonymous-v2');
+    expect(res.headers['x-robots-tag']).toBe('noindex, nofollow');
+    expect(res.text).toContain('home-v3-page');
+    expect(res.text).toContain('home-v2-white-fade-page');
+    expect(res.text).toContain('/assets/css/home-v3.css?v=15');
+    expect(res.text).toContain('/assets/css/home-v3-mobile.css?v=10');
+    expect(res.text).toContain('hv3-title-emphasis');
+    expect(res.text).toContain('data-hv3-event-select');
+    expect(res.text).not.toContain('/assets/css/home-v2-parity.css');
+  });
+
+  test('GET / uses the V3 composition with V2 white fade when HOMEPAGE_VARIANT is v2', async () => {
+    const previousVariant = process.env.HOMEPAGE_VARIANT;
+    process.env.HOMEPAGE_VARIANT = 'v2';
+
+    try {
+      const res = await request(app).get('/').expect(200);
+
+      expect(res.headers['x-eventflow-template-renderer']).toBe('active');
+      expect(res.headers['x-eventflow-public-sanitizer']).toBe('anonymous-v2');
+      expect(res.headers['x-robots-tag']).toBeUndefined();
+      expect(res.text).toContain('home-v3-page');
+      expect(res.text).toContain('home-v2-white-fade-page');
+      expect(res.text).toContain('/assets/css/home-v3.css?v=15');
+      expect(res.text).toContain('/assets/css/home-v3-mobile.css?v=10');
+      expect(res.text).toContain('hv3-title-emphasis');
+      expect(res.text).toContain('data-hv3-event-select');
+      expect(res.text).not.toContain('/assets/css/home-v2-parity.css');
+    } finally {
+      if (previousVariant === undefined) {
+        delete process.env.HOMEPAGE_VARIANT;
+      } else {
+        process.env.HOMEPAGE_VARIANT = previousVariant;
+      }
+    }
+  });
+
   test('production public routes are rendered by the actual server.js app before raw static HTML', async () => {
     const routes = [
       '/',
