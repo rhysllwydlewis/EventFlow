@@ -9,6 +9,7 @@ const path = require('path');
 const logger = require('./logger');
 const fs = require('fs').promises;
 const { getPlaceholders } = require('../config/content-config');
+const { getActiveHomepageVersion, normaliseHomepageVersion } = require('./homepage-manager');
 
 const templateCache = new Map();
 const ANONYMOUS_SANITIZER_COMMENT = '<!-- eventflow-anonymous-sanitizer: active -->';
@@ -230,7 +231,7 @@ function injectBeforeHeadClose(content, snippet) {
 }
 
 function injectBeforeBodyClose(content, snippet) {
-  if (!/<\/body>/i.test(content) || content.includes('/assets/js/pages/home-v3-video.js')) {
+  if (!/<\/body>/i.test(content) || content.includes('/assets/js/pages/home-v2.js?v=11')) {
     return content;
   }
 
@@ -248,25 +249,11 @@ function replaceHomepageHeroWithV3(content) {
   return content.replace(heroPattern, `\n${HOMEPAGE_V3_HERO}\n\n`);
 }
 
-function stripHomepageV3InheritedScripts(content) {
-  return content.replace(
-    /\s*<script src="\/assets\/js\/utils\/pexels-client\.js" defer><\/script>/i,
-    ''
-  );
-}
-
 function buildHomepageV3Preview(content) {
   let result = addBodyClass(content, 'home-v3-page');
-  result = stripHomepageV3InheritedScripts(result);
   result = injectBeforeHeadClose(result, HOMEPAGE_V3_HERO_STYLES);
   result = replaceHomepageHeroWithV3(result);
   result = injectBeforeBodyClose(result, HOMEPAGE_V3_HERO_SCRIPT);
-  return result;
-}
-
-function buildHomepageV2Preview(content) {
-  let result = buildHomepageV3Preview(content);
-  result = addBodyClass(result, 'home-v2-white-fade-page');
   return result;
 }
 
@@ -361,6 +348,22 @@ function useHomepageV2() {
   );
 }
 
+async function getHomepageVersionForRequest(requestPath) {
+  if (requestPath !== '/') {
+    return null;
+  }
+
+  try {
+    return normaliseHomepageVersion(await getActiveHomepageVersion()) || 'v1';
+  } catch (error) {
+    logger.warn('Failed to read active homepage version, using HOMEPAGE_VARIANT fallback:', error);
+    if (useHomepageV2()) {
+      return 'v2';
+    }
+    return normaliseHomepageVersion(process.env.HOMEPAGE_VARIANT) || 'v1';
+  }
+}
+
 function isHomepageV2PreviewPath(requestPath) {
   return HOMEPAGE_V2_PREVIEW_PATHS.has(requestPath);
 }
@@ -369,7 +372,7 @@ function isHomepageV3PreviewPath(requestPath) {
   return HOMEPAGE_V3_PREVIEW_PATHS.has(requestPath);
 }
 
-function resolvePublicTemplatePath(requestPath) {
+function resolvePublicTemplatePath(requestPath, activeHomepageVersion) {
   if (requestPath === '/') {
     return HOMEPAGE_INDEX_FILE;
   }
@@ -379,7 +382,7 @@ function resolvePublicTemplatePath(requestPath) {
   }
 
   if (isHomepageV3PreviewPath(requestPath)) {
-    return HOMEPAGE_INDEX_FILE;
+    return '/index.html';
   }
 
   if (!path.extname(requestPath)) {
@@ -504,10 +507,12 @@ function templateMiddleware() {
     }
 
     const originalRequestPath = req.path;
-    const requestPath = resolvePublicTemplatePath(originalRequestPath);
+    const activeHomepageVersion = await getHomepageVersionForRequest(originalRequestPath);
+    const requestPath = resolvePublicTemplatePath(originalRequestPath, activeHomepageVersion);
     const isHomepageV2Preview = isHomepageV2PreviewPath(originalRequestPath);
     const isHomepageV3Preview = isHomepageV3PreviewPath(originalRequestPath);
-    const isHomepageV2VariantRoot = originalRequestPath === '/' && useHomepageV2();
+    const isHomepageV2VariantRoot = originalRequestPath === '/' && activeHomepageVersion === 'v2';
+    const isHomepageV3VariantRoot = originalRequestPath === '/' && activeHomepageVersion === 'v3';
     const shouldBuildHomepageV2 = isHomepageV2Preview || isHomepageV2VariantRoot;
     const isHomepagePreview = isHomepageV2Preview || isHomepageV3Preview;
 
@@ -523,7 +528,7 @@ function templateMiddleware() {
       let responseContent = content;
       if (shouldBuildHomepageV2) {
         responseContent = buildHomepageV2Preview(content);
-      } else if (isHomepageV3Preview) {
+      } else if (isHomepageV3Preview || isHomepageV3VariantRoot) {
         responseContent = buildHomepageV3Preview(content);
       }
       responseContent = isHomepagePreview ? addPreviewRobotsMeta(responseContent) : responseContent;
@@ -560,10 +565,10 @@ module.exports = {
   getFile,
   getPlaceholders,
   useHomepageV2,
+  getHomepageVersionForRequest,
   isHomepageV2PreviewPath,
   isHomepageV3PreviewPath,
   resolvePublicTemplatePath,
   addPreviewRobotsMeta,
-  buildHomepageV2Preview,
   buildHomepageV3Preview,
 };
