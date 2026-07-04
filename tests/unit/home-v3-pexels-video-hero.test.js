@@ -40,6 +40,7 @@ describe('homepage V3 Pexels video hero', () => {
     expect(script).toContain('/api/v1/public/homepage-settings');
     expect(script).toContain('pexelsVideoQueries');
     expect(script).toContain('buildUploadPlaylist');
+    expect(script).toContain('settings.fallbackToPexels !== false');
     expect(script).toContain('startHeroVideoRotation');
     expect(script).toContain('chooseHeroVideoFile');
   });
