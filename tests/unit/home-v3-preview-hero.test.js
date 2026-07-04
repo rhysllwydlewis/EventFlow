@@ -23,6 +23,7 @@ describe('homepage V3 preview hero', () => {
 
     expect(html).toMatch(/<body[^>]*class="[^"]*home-v3-page/i);
     expect(html).toContain('/assets/css/home-v3.css?v=15');
+    expect(html).toContain('/assets/css/home-v3-rescue.css?v=1');
     expect(html).toContain('/assets/js/pages/home-v3.js?v=12');
     expect(html).toContain('hv3-hero__stage');
     expect(html).toContain('hv3-search__header');
