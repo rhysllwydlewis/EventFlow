@@ -13,7 +13,6 @@ const { getPlaceholders } = require('../config/content-config');
 const templateCache = new Map();
 const ANONYMOUS_SANITIZER_COMMENT = '<!-- eventflow-anonymous-sanitizer: active -->';
 const HOMEPAGE_INDEX_FILE = '/index.html';
-const HOMEPAGE_V2_FILE = '/home-v2.html';
 const HOMEPAGE_V2_PREVIEW_PATHS = new Set([
   '/home-v2',
   '/home-v2.html',
@@ -39,9 +38,15 @@ const HOMEPAGE_V3_HERO_SCRIPT = '    <script src="/assets/js/pages/home-v2.js?v=
 const HOMEPAGE_V3_HERO = `      <section class="hv2-hero" aria-labelledby="hv3-title">
         <div class="hv2-hero__image" aria-hidden="true"></div>
         <div class="hv2-hero__shade" aria-hidden="true"></div>
+        <div class="hv3-hero__mesh" aria-hidden="true">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
 
         <div class="hv2-shell hv2-hero__content">
           <div class="hv2-hero__copy">
+            <p class="hv2-eyebrow"><span>UK event planning marketplace</span></p>
             <h1 id="hv3-title">
               <span class="hv3-title-line">Plan your event</span>
               <br class="hv3-title-break" />
@@ -52,8 +57,18 @@ const HOMEPAGE_V3_HERO = `      <section class="hv2-hero" aria-labelledby="hv3-t
               together.
             </p>
 
+            <div class="hv3-hero__proof" aria-label="EventFlow planning benefits">
+              <span><strong>3 min</strong> to start a plan</span>
+              <span><strong>0%</strong> commission on enquiries</span>
+              <span><strong>UK</strong> venues and suppliers</span>
+            </div>
+
             <form class="hv2-search" action="/suppliers" method="GET" aria-label="Search suppliers">
               <input type="hidden" name="category" id="hv2-category" />
+              <div class="hv3-search__header">
+                <span>Build your shortlist</span>
+                <em>Search, compare and save in one flow</em>
+              </div>
 
               <div class="hv2-search__field hv2-search__field--select" role="group" aria-labelledby="hv3-event-type-label">
                 <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -120,7 +135,13 @@ const HOMEPAGE_V3_HERO = `      <section class="hv2-hero" aria-labelledby="hv3-t
                 </span>
               </label>
 
-              <button class="hv2-search__button" type="submit">Search suppliers</button>
+              <button class="hv2-search__button" type="submit">
+                <span>Search suppliers</span>
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M5 12h14"></path>
+                  <path d="m13 6 6 6-6 6"></path>
+                </svg>
+              </button>
 
               <div class="hv2-popular" aria-label="Popular searches">
                 <span>Popular searches:</span>
@@ -131,6 +152,58 @@ const HOMEPAGE_V3_HERO = `      <section class="hv2-hero" aria-labelledby="hv3-t
               </div>
             </form>
           </div>
+
+          <aside class="hv3-hero__stage" aria-label="Event planning preview">
+            <div class="hv3-stage__photo" aria-hidden="true">
+              <div class="hv3-stage__beam"></div>
+              <div class="hv3-stage__pin hv3-stage__pin--venue">
+                <span>Venue held</span>
+                <strong>Cardiff Bay</strong>
+              </div>
+              <div class="hv3-stage__pin hv3-stage__pin--photo">
+                <span>Top match</span>
+                <strong>Photo + video</strong>
+              </div>
+            </div>
+
+            <div class="hv3-stage__console">
+              <div class="hv3-console__top">
+                <span>Live event plan</span>
+                <strong data-hv3-live-date>Today</strong>
+              </div>
+              <div class="hv3-console__meter" aria-hidden="true"><span></span></div>
+              <div class="hv3-console__grid">
+                <article>
+                  <span>Budget</span>
+                  <strong>&pound;8.4k</strong>
+                </article>
+                <article>
+                  <span>Shortlist</span>
+                  <strong>12</strong>
+                </article>
+                <article>
+                  <span>Messages</span>
+                  <strong>5</strong>
+                </article>
+              </div>
+              <ol class="hv3-console__steps">
+                <li><span></span>Venue enquiry sent</li>
+                <li><span></span>Photographer saved</li>
+                <li><span></span>Catering quotes next</li>
+              </ol>
+            </div>
+
+            <div class="hv3-stage__supplier hv3-stage__supplier--one">
+              <span>Venues</span>
+              <strong>Garden rooms</strong>
+              <em>From &pound;1,250</em>
+            </div>
+            <div class="hv3-stage__supplier hv3-stage__supplier--two">
+              <span>Music</span>
+              <strong>Evening DJ</strong>
+              <em>Available</em>
+            </div>
+          </aside>
         </div>
       </section>`;
 const HOMEPAGE_DIRTY_COPY = {

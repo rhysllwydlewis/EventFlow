@@ -460,9 +460,57 @@
     );
   }
 
+  function initialiseHeroConsole() {
+    const hero = document.querySelector('.hv2-hero');
+    const searchForm = document.querySelector('.hv2-search');
+    const liveDate = document.querySelector('[data-hv3-live-date]');
+    const eventInput = document.getElementById('hv2-event-type');
+    const locationInput = document.getElementById('hv2-location');
+    const keywordInput = document.getElementById('hv2-keyword');
+    const consoleSteps = Array.from(document.querySelectorAll('.hv3-console__steps li'));
+
+    if (liveDate) {
+      try {
+        liveDate.textContent = new Intl.DateTimeFormat('en-GB', {
+          day: 'numeric',
+          month: 'short',
+        }).format(new Date());
+      } catch {
+        liveDate.textContent = 'Today';
+      }
+    }
+
+    if (!hero || !searchForm) {
+      return;
+    }
+
+    const syncConsole = () => {
+      const hasEvent = eventInput && eventInput.value.trim();
+      const hasLocation = locationInput && locationInput.value.trim();
+      const hasKeyword = keywordInput && keywordInput.value.trim();
+      const filledCount = [hasEvent, hasLocation, hasKeyword].filter(Boolean).length;
+
+      hero.classList.toggle('hv3-hero--engaged', filledCount > 0);
+      hero.style.setProperty('--hv3-plan-progress', `${68 + filledCount * 8}%`);
+
+      consoleSteps.forEach((step, index) => {
+        step.classList.toggle('is-active', index < Math.max(1, filledCount));
+      });
+    };
+
+    searchForm.addEventListener('focusin', () => hero.classList.add('hv3-hero--focused'));
+    searchForm.addEventListener('focusout', () => hero.classList.remove('hv3-hero--focused'));
+    searchForm.addEventListener('input', syncConsole);
+    searchForm.addEventListener('change', syncConsole);
+    searchForm.addEventListener('submit', () => hero.classList.add('hv3-hero--engaged'));
+
+    syncConsole();
+  }
+
   function initialiseHomeV3() {
     initialiseEventTypeSelect();
     initialiseMobileNavigationSwap();
+    initialiseHeroConsole();
     initialiseHeroGuide();
   }
 
