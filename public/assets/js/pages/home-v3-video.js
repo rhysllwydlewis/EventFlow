@@ -79,7 +79,9 @@
   }
 
   function getVideoTypeFromUrl(url) {
-    const cleanUrl = String(url || '').split('?')[0].toLowerCase();
+    const cleanUrl = String(url || '')
+      .split('?')[0]
+      .toLowerCase();
 
     if (cleanUrl.endsWith('.webm')) {
       return 'video/webm';
@@ -126,7 +128,9 @@
       queries.entertainment,
       queries.catering,
     ];
-    return orderedQueries.find(query => typeof query === 'string' && query.trim()) || DEFAULT_VIDEO_QUERY;
+    return (
+      orderedQueries.find(query => typeof query === 'string' && query.trim()) || DEFAULT_VIDEO_QUERY
+    );
   }
 
   function getRotationDelay(settings = {}) {
@@ -247,13 +251,13 @@
       fallbackToPexels: true,
       heroVideo: {
         enabled: true,
-        autoplay: true,
+        autoplay: false,
         muted: true,
         loop: true,
-        quality: 'auto',
+        quality: 'hd',
       },
       videoQuality: {
-        preference: 'auto',
+        preference: 'hd',
         adaptive: true,
         mobileOptimized: true,
       },
@@ -366,7 +370,11 @@
       playlist = buildUploadPlaylist(settings);
     }
 
-    if (playlist.length === 0 && settings.source === 'pexels') {
+    const canFetchPexels =
+      settings.source === 'pexels' ||
+      (settings.source === 'uploads' && settings.fallbackToPexels !== false);
+
+    if (playlist.length === 0 && canFetchPexels) {
       try {
         playlist = await fetchPexelsPlaylist(settings);
       } catch {
