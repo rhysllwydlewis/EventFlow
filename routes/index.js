@@ -16,6 +16,7 @@ const publicRoutes = require('./public');
 const authRoutes = require('./auth');
 const googleRedirectAuthRoutes = require('./google-redirect-auth');
 const adminRoutes = require('./admin');
+const adminHomepageManagerRoutes = require('./admin-homepage-manager');
 const systemChecksAdminRoutes = require('./system-checks-admin');
 const newsletterRoutes = require('./newsletter');
 const paymentsRoutes = require('./payments');
@@ -137,6 +138,8 @@ function mountRoutes(app, deps) {
   app.use('/api/me/phone', phoneVerificationRoutes); // Backward compatibility
 
   // Admin routes
+  app.use('/api/v1/admin/homepage/manager', adminHomepageManagerRoutes);
+  app.use('/api/admin/homepage/manager', adminHomepageManagerRoutes); // Backward compatibility
   app.use('/api/v1/admin', adminRoutes);
   app.use('/api/admin', adminRoutes); // Backward compatibility
 
