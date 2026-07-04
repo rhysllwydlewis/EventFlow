@@ -4,7 +4,13 @@
   const DEFAULT_VIDEO_QUERY = 'wedding celebration cinematic venue';
   const DEFAULT_ROTATION_SECONDS = 8;
   const MIN_ROTATION_SECONDS = 1;
+  const MOBILE_TRANSITION_MULTIPLIER = 1.5;
   const VIDEO_UPLOAD_PATTERN = /\.(mp4|webm|mov)(?:$|[?#])/i;
+  const TRANSITION_EFFECTS = new Set(['fade', 'slide', 'zoom', 'crossfade']);
+
+  function isMobileViewport() {
+    return window.matchMedia?.('(max-width: 720px)').matches === true;
+  }
 
   function getHeroVideoFiles(video) {
     const files = video?.video_files || video?.videoFiles || [];
@@ -18,6 +24,18 @@
       const type = file?.file_type || file?.fileType || 'video/mp4';
       return link && type.includes('video/');
     });
+  }
+
+  function getVideoDimensions(video) {
+    const files = getHeroVideoFiles(video);
+    const fileWithDimensions = [...files]
+      .filter(file => Number(file.width) > 0 && Number(file.height) > 0)
+      .sort((a, b) => Number(b.width || 0) - Number(a.width || 0))[0];
+
+    return {
+      width: Number(video?.width || fileWithDimensions?.width || 0),
+      height: Number(video?.height || fileWithDimensions?.height || 0),
+    };
   }
 
   function getHeroVideoTargetWidth(settings = {}) {
@@ -47,6 +65,54 @@
     }
 
     return Math.min(Math.ceil(viewportWidth * pixelRatio), 1920);
+  }
+
+  function videoPassesContentFilters(video, settings = {}) {
+    const filtering = settings.contentFiltering || {};
+    const { width, height } = getVideoDimensions(video);
+
+    if (!width || !height) {
+      return true;
+    }
+
+    if (filtering.orientation === 'landscape' && width <= height) {
+      return false;
+    }
+
+    if (filtering.orientation === 'portrait' && height <= width) {
+      return false;
+    }
+
+    if (filtering.orientation === 'square') {
+      const squareTolerance = Math.abs(width - height) / Math.max(width, height);
+      if (squareTolerance > 0.1) {
+        return false;
+      }
+    }
+
+    if (filtering.aspectRatio && filtering.aspectRatio !== 'any') {
+      const ratio = width / height;
+      const targetRatios = {
+        '16:9': 16 / 9,
+        '4:3': 4 / 3,
+        '1:1': 1,
+        '9:16': 9 / 16,
+      };
+      const targetRatio = targetRatios[filtering.aspectRatio];
+
+      if (targetRatio && Math.abs(ratio - targetRatio) > 0.18) {
+        return false;
+      }
+    }
+
+    const minWidths = {
+      SD: 640,
+      HD: 1280,
+      '4K': 3840,
+    };
+    const minWidth = minWidths[filtering.minResolution];
+
+    return !minWidth || width >= minWidth;
   }
 
   function chooseHeroVideoFile(video, settings = {}) {
@@ -112,7 +178,10 @@
   }
 
   function buildPexelsPlaylist(videos, settings = {}) {
-    return videos
+    const filteredVideos = videos.filter(video => videoPassesContentFilters(video, settings));
+    const sourceVideos = filteredVideos.length > 0 ? filteredVideos : videos;
+
+    return sourceVideos
       .map(video => ({
         id: video.id,
         image: video.image,
@@ -139,26 +208,39 @@
     const safeSeconds = Number.isFinite(intervalSeconds)
       ? intervalSeconds
       : DEFAULT_ROTATION_SECONDS;
-    return Math.max(safeSeconds, MIN_ROTATION_SECONDS) * 1000;
+    const multiplier =
+      isMobileViewport() && settings.mobileOptimizations?.slowerTransitions === true
+        ? MOBILE_TRANSITION_MULTIPLIER
+        : 1;
+
+    return Math.max(safeSeconds, MIN_ROTATION_SECONDS) * 1000 * multiplier;
   }
 
   function shouldDisableHeroVideo(settings = {}) {
     const mobileOptimizations = settings.mobileOptimizations || {};
-    const isMobile = window.matchMedia?.('(max-width: 720px)').matches === true;
 
     return (
       settings.enabled === false ||
       settings.heroVideo?.enabled === false ||
       settings.mediaTypes?.videos === false ||
-      (isMobile && mobileOptimizations.disableVideos === true)
+      (isMobileViewport() && mobileOptimizations.disableVideos === true)
     );
   }
 
   function applyTransitionSettings(container, settings = {}) {
     const duration = Number(settings.transition?.duration);
+    const mobileDurationMultiplier =
+      isMobileViewport() && settings.mobileOptimizations?.slowerTransitions === true
+        ? MOBILE_TRANSITION_MULTIPLIER
+        : 1;
+    const effect = TRANSITION_EFFECTS.has(settings.transition?.effect)
+      ? settings.transition.effect
+      : 'fade';
+
+    container.dataset.transitionEffect = effect;
 
     if (Number.isFinite(duration)) {
-      const clampedDuration = Math.max(300, Math.min(duration, 3000));
+      const clampedDuration = Math.max(300, Math.min(duration * mobileDurationMultiplier, 4500));
       container.style.setProperty('--hv3-video-transition-duration', `${clampedDuration}ms`);
     }
   }
@@ -171,6 +253,13 @@
     video.loop = heroVideo.loop !== false;
     video.controls = playbackControls.showControls === true;
     video.preload = settings.preloading?.enabled === false ? 'none' : 'metadata';
+    video.disableRemotePlayback = true;
+
+    if (playbackControls.fullscreen === true) {
+      video.setAttribute('controlsList', 'nodownload noremoteplayback');
+    } else {
+      video.setAttribute('controlsList', 'nofullscreen nodownload noremoteplayback');
+    }
 
     if (heroVideo.autoplay === false) {
       video.removeAttribute('autoplay');
@@ -235,23 +324,31 @@
 
     let currentIndex = 0;
     let rotationTimer = null;
+    let touchStartX = 0;
     const failedIndexes = new Set();
     const delay = getRotationDelay(settings);
     const shouldLoopPlaylist = settings.heroVideo?.loop !== false;
 
     video.loop = false;
 
-    const getNextIndex = () => {
+    const getAdjacentIndex = (direction = 1) => {
       let nextIndex = currentIndex;
 
       for (let attempts = 0; attempts < playlist.length; attempts++) {
-        nextIndex += 1;
+        nextIndex += direction;
 
         if (nextIndex >= playlist.length) {
           if (!shouldLoopPlaylist) {
             return null;
           }
           nextIndex = 0;
+        }
+
+        if (nextIndex < 0) {
+          if (!shouldLoopPlaylist) {
+            return null;
+          }
+          nextIndex = playlist.length - 1;
         }
 
         if (!failedIndexes.has(nextIndex)) {
@@ -262,12 +359,12 @@
       return null;
     };
 
-    const advanceVideo = ({ respectVisibility = true } = {}) => {
+    const advanceVideo = ({ respectVisibility = true, direction = 1 } = {}) => {
       if (respectVisibility && document.hidden) {
         return true;
       }
 
-      const nextIndex = getNextIndex();
+      const nextIndex = getAdjacentIndex(direction);
 
       if (nextIndex === null) {
         source.removeAttribute('src');
@@ -313,8 +410,34 @@
       }
     };
 
+    const handleTouchStart = event => {
+      touchStartX = event.touches?.[0]?.clientX || 0;
+    };
+
+    const handleTouchEnd = event => {
+      if (settings.mobileOptimizations?.touchControls === false || !touchStartX) {
+        return;
+      }
+
+      const touchEndX = event.changedTouches?.[0]?.clientX || touchStartX;
+      const deltaX = touchEndX - touchStartX;
+
+      touchStartX = 0;
+
+      if (Math.abs(deltaX) < 48) {
+        return;
+      }
+
+      window.clearTimeout(rotationTimer);
+      if (advanceVideo({ respectVisibility: false, direction: deltaX < 0 ? 1 : -1 })) {
+        queueNextVideo();
+      }
+    };
+
     video.addEventListener('ended', handleVideoEnded);
     video.addEventListener('error', handleVideoError);
+    container.addEventListener('touchstart', handleTouchStart, { passive: true });
+    container.addEventListener('touchend', handleTouchEnd, { passive: true });
     queueNextVideo();
 
     window.addEventListener(
@@ -323,6 +446,8 @@
         window.clearTimeout(rotationTimer);
         video.removeEventListener('ended', handleVideoEnded);
         video.removeEventListener('error', handleVideoError);
+        container.removeEventListener('touchstart', handleTouchStart);
+        container.removeEventListener('touchend', handleTouchEnd);
       },
       { once: true }
     );
@@ -357,7 +482,11 @@
         enabled: true,
         count: 3,
       },
-      mobileOptimizations: { disableVideos: false },
+      mobileOptimizations: {
+        slowerTransitions: true,
+        disableVideos: false,
+        touchControls: true,
+      },
       contentFiltering: {
         aspectRatio: 'any',
         orientation: 'any',
