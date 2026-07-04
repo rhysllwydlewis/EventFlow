@@ -27,9 +27,9 @@ const HOMEPAGE_V3_PREVIEW_PATHS = new Set([
 ]);
 const HOMEPAGE_V3_HERO_STYLES = [
   '    <link rel="preload" href="/assets/css/home-v2.css?v=11" as="style" />',
-  '    <link rel="preload" href="/assets/css/home-v3.css?v=13" as="style" />',
+  '    <link rel="preload" href="/assets/css/home-v3.css?v=14" as="style" />',
   '    <link rel="stylesheet" href="/assets/css/home-v2.css?v=11" />',
-  '    <link rel="stylesheet" href="/assets/css/home-v3.css?v=13" />',
+  '    <link rel="stylesheet" href="/assets/css/home-v3.css?v=14" />',
   '    <link rel="preload" href="/assets/css/home-v3-mobile.css?v=9" as="style" media="(max-width: 960px)" />',
   '    <link rel="stylesheet" href="/assets/css/home-v3-mobile.css?v=9" media="(max-width: 960px)" />',
   '    <script src="/assets/js/pages/home-v3.js?v=12"></script>',
