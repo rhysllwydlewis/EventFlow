@@ -1,0 +1,237 @@
+/* V3 rescue pass: make the special hero a contained premium composition. */
+@media (min-width: 981px) {
+  .home-v3-page .hv2-hero {
+    min-height: clamp(610px, 74vh, 760px);
+    padding: clamp(44px, 5vw, 64px) 0 clamp(56px, 5vw, 76px);
+    background:
+      radial-gradient(circle at 18% 18%, rgba(19, 182, 162, 0.12), transparent 20rem),
+      radial-gradient(circle at 76% 12%, rgba(195, 145, 62, 0.13), transparent 22rem),
+      linear-gradient(108deg, #fffefa 0%, #f8fcfb 48%, #eaf7f4 100%);
+  }
+
+  .home-v3-page .hv2-hero__image {
+    inset: 0 0 0 auto;
+    width: min(59vw, 1060px);
+    height: 100%;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    filter: saturate(1.04) contrast(0.98) brightness(1.05);
+    opacity: 0.84;
+    transform: none;
+    -webkit-mask-image:
+      linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.16) 15%, #000 42%),
+      linear-gradient(180deg, transparent 0%, #000 13%, #000 86%, transparent 100%);
+    mask-image:
+      linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.16) 15%, #000 42%),
+      linear-gradient(180deg, transparent 0%, #000 13%, #000 86%, transparent 100%);
+  }
+
+  .home-v3-page .hv2-hero__image::after {
+    border-radius: 0;
+    background:
+      linear-gradient(90deg, rgba(255, 254, 250, 0.98) 0%, rgba(255, 254, 250, 0.72) 30%, rgba(255, 254, 250, 0.1) 58%),
+      linear-gradient(180deg, rgba(255, 254, 250, 0.76) 0%, transparent 24%, transparent 68%, rgba(255, 254, 250, 0.86) 100%);
+  }
+
+  .home-v3-page .hv2-hero__shade {
+    z-index: 2;
+    background:
+      linear-gradient(90deg, #fffefa 0%, rgba(255, 254, 250, 0.98) 28%, rgba(255, 254, 250, 0.68) 47%, rgba(255, 254, 250, 0.18) 72%, rgba(255, 254, 250, 0.5) 100%),
+      radial-gradient(circle at 44% 82%, rgba(11, 128, 115, 0.16), transparent 22rem);
+  }
+
+  .home-v3-page .hv2-hero__content {
+    grid-template-columns: minmax(560px, 0.98fr) minmax(390px, 0.72fr);
+    gap: clamp(34px, 4.6vw, 72px);
+  }
+
+  .home-v3-page .hv2-hero__copy {
+    max-width: 810px;
+    padding-top: clamp(8px, 2vw, 20px);
+  }
+
+  .home-v3-page .hv2-eyebrow {
+    background: rgba(255, 255, 255, 0.74);
+    color: #075f56;
+  }
+
+  .home-v3-page .hv2-hero h1 {
+    max-width: 700px;
+    margin-top: 16px;
+    font-size: clamp(4rem, 5.65vw, 6.25rem);
+    line-height: 0.9;
+  }
+
+  .home-v3-page .hv2-hero__lead {
+    max-width: 620px;
+    margin-top: 16px;
+    font-size: clamp(1.02rem, 1.2vw, 1.16rem);
+    line-height: 1.48;
+  }
+
+  .home-v3-page .hv3-hero__proof {
+    display: flex;
+    margin-top: 18px;
+  }
+
+  .home-v3-page .hv3-hero__proof span {
+    position: relative;
+    min-height: 36px;
+    padding: 8px 12px 8px 28px;
+    background: rgba(255, 255, 255, 0.72);
+    color: #44535f;
+  }
+
+  .home-v3-page .hv3-hero__proof span::before {
+    position: absolute;
+    top: 50%;
+    left: 12px;
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+    background: #13b6a2;
+    box-shadow: 0 0 0 5px rgba(19, 182, 162, 0.11);
+    content: '';
+    transform: translateY(-50%);
+  }
+
+  .home-v3-page .hv2-search {
+    display: grid;
+    grid-template-columns: minmax(150px, 0.85fr) minmax(150px, 0.85fr) minmax(220px, 1.2fr) minmax(158px, 176px);
+    width: min(100%, 945px);
+    margin-top: 22px;
+    overflow: visible;
+    border-radius: 14px;
+  }
+
+  .home-v3-page .hv3-search__header {
+    min-height: 34px;
+    padding: 13px 17px 2px;
+  }
+
+  .home-v3-page .hv3-search__header span {
+    font-size: 0.88rem;
+  }
+
+  .home-v3-page .hv3-search__header em {
+    color: #66727c;
+  }
+
+  .home-v3-page .hv2-search__field {
+    min-height: 76px;
+    padding: 12px 16px;
+  }
+
+  .home-v3-page .hv2-search__button {
+    min-height: 50px;
+    height: 52px;
+    margin: 10px;
+    white-space: normal;
+  }
+
+  .home-v3-page .hv2-popular {
+    padding: 0 16px 14px;
+  }
+
+  .home-v3-page .hv3-hero__stage {
+    position: relative;
+    display: block;
+    min-height: 520px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.66);
+    border-radius: 28px;
+    background:
+      linear-gradient(155deg, rgba(255, 255, 255, 0.72), rgba(239, 251, 248, 0.42)),
+      rgba(255, 255, 255, 0.32);
+    box-shadow:
+      0 32px 90px rgba(7, 95, 86, 0.18),
+      0 12px 30px rgba(15, 23, 32, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.84);
+    -webkit-backdrop-filter: blur(18px) saturate(155%);
+    backdrop-filter: blur(18px) saturate(155%);
+  }
+
+  .home-v3-page .hv3-hero__stage::before {
+    position: absolute;
+    inset: 16px;
+    border: 1px solid rgba(11, 128, 115, 0.1);
+    border-radius: 22px;
+    background:
+      linear-gradient(rgba(11, 128, 115, 0.055) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(11, 128, 115, 0.045) 1px, transparent 1px);
+    background-size: 34px 34px;
+    content: '';
+    pointer-events: none;
+  }
+
+  .home-v3-page .hv3-stage__photo {
+    position: absolute;
+    inset: 22px 22px auto auto;
+    width: min(78%, 410px);
+    height: 270px;
+    border: 1px solid rgba(255, 255, 255, 0.62);
+    border-radius: 24px;
+    background:
+      linear-gradient(145deg, rgba(11, 128, 115, 0.08), rgba(195, 145, 62, 0.12)),
+      rgba(255, 255, 255, 0.38);
+    box-shadow: 0 22px 50px rgba(7, 95, 86, 0.14);
+    transform: rotate(-2deg);
+  }
+
+  .home-v3-page .hv3-stage__photo::before {
+    inset: 18px;
+    border-radius: 18px;
+    background:
+      radial-gradient(circle at 24% 32%, rgba(19, 182, 162, 0.34), transparent 4rem),
+      radial-gradient(circle at 74% 46%, rgba(195, 145, 62, 0.26), transparent 5rem),
+      linear-gradient(135deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.16));
+  }
+
+  .home-v3-page .hv3-stage__beam {
+    top: 44px;
+    right: 36px;
+    width: 56%;
+    background: linear-gradient(90deg, transparent, rgba(11, 128, 115, 0.42), transparent);
+  }
+
+  .home-v3-page .hv3-stage__pin,
+  .home-v3-page .hv3-stage__supplier,
+  .home-v3-page .hv3-stage__console {
+    position: absolute;
+    z-index: 2;
+    box-sizing: border-box;
+    margin: 0;
+  }
+
+  .home-v3-page .hv3-stage__pin--venue {
+    top: 92px;
+    left: 20px;
+    right: auto;
+  }
+
+  .home-v3-page .hv3-stage__pin--photo {
+    top: 178px;
+    right: 14px;
+    bottom: auto;
+  }
+
+  .home-v3-page .hv3-stage__console {
+    right: 26px;
+    bottom: 28px;
+    width: min(86%, 390px);
+    padding: 18px;
+  }
+
+  .home-v3-page .hv3-stage__supplier--one {
+    top: 282px;
+    left: 34px;
+    right: auto;
+  }
+
+  .home-v3-page .hv3-stage__supplier--two {
+    right: auto;
+    bottom: 46px;
+    left: 24px;
+  }
+}
