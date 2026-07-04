@@ -128,7 +128,7 @@ describe('Pexels Supplier Access', () => {
 
     it('should initialize PexelsSelector in JavaScript', () => {
       expect(profileCustomizationJsContent).toContain('new window.PexelsSelector()');
-      expect(profileCustomizationJsContent).toContain('pexelsSelector.open');
+      expect(profileCustomizationJsContent).toContain('selector.open');
     });
 
     it('should validate selected image URLs', () => {

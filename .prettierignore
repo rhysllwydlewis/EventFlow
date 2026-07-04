@@ -15,3 +15,9 @@ public/uploads
 .env
 .env.*
 utils/template-renderer.js
+public/assets/js/admin-navbar.js
+public/assets/js/notifications.js
+public/assets/js/pages/admin-messages-init.js
+public/assets/js/pages/home-v3.js
+tests/unit/admin-notif-panel-viewport.test.js
+tests/unit/admin-notifications-empty-convos.test.js
