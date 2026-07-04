@@ -29,7 +29,7 @@ describe('homepage V3 Pexels video hero', () => {
     expect(html).not.toMatch(/<video[\s\S]*?\sautoplay\b/i);
   });
 
-  test('keeps playback gated by reduced-motion and save-data checks', () => {
+  test('keeps playback gated by reduced-motion, save-data and admin settings checks', () => {
     const script = fs.readFileSync(
       path.join(__dirname, '../../public/assets/js/pages/home-v3-video.js'),
       'utf8'
@@ -37,7 +37,10 @@ describe('homepage V3 Pexels video hero', () => {
 
     expect(script).toContain('prefers-reduced-motion: reduce');
     expect(script).toContain('saveData');
-    expect(script).toContain("setAttribute('autoplay'");
+    expect(script).toContain('/api/v1/public/homepage-settings');
+    expect(script).toContain('pexelsVideoQueries');
+    expect(script).toContain('buildUploadPlaylist');
+    expect(script).toContain('startHeroVideoRotation');
     expect(script).toContain('chooseHeroVideoFile');
   });
 });
