@@ -35,7 +35,7 @@
   ];
   const weddingCoupleHeroFallbackImages = [
     {
-      url: `https://images.pexels.com/photos/15536198/pexels-photo-15536198.jpeg?${pexelsImageParams}`,
+      url: `https://images.pexels.com/photos/28834570/pexels-photo-28834570.jpeg?${pexelsImageParams}`,
       position: 'center center',
     },
     {
@@ -43,11 +43,15 @@
       position: 'center center',
     },
     {
-      url: `https://images.pexels.com/photos/28834570/pexels-photo-28834570.jpeg?${pexelsImageParams}`,
+      url: `https://images.pexels.com/photos/15536198/pexels-photo-15536198.jpeg?${pexelsImageParams}`,
       position: 'center center',
     },
     {
-      url: `https://images.pexels.com/photos/30739915/pexels-photo-30739915.jpeg?${pexelsImageParams}`,
+      url: `https://images.pexels.com/photos/6609900/pexels-photo-6609900.jpeg?${pexelsImageParams}`,
+      position: 'center center',
+    },
+    {
+      url: `https://images.pexels.com/photos/13110256/pexels-photo-13110256.jpeg?${pexelsImageParams}`,
       position: 'center center',
     },
   ];
