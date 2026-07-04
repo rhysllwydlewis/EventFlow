@@ -51,12 +51,32 @@ const DEFAULT_VIDEO_QUALITY_SETTINGS = {
   mobileOptimized: true,
 };
 
+const DEFAULT_TRANSITION_SETTINGS = {
+  effect: 'fade',
+  duration: 1000,
+};
+
+const DEFAULT_PRELOADING_SETTINGS = {
+  enabled: true,
+  count: 3,
+};
+
 const DEFAULT_MOBILE_VIDEO_SETTINGS = {
+  slowerTransitions: true,
   disableVideos: false,
+  touchControls: true,
+};
+
+const DEFAULT_CONTENT_FILTERING_SETTINGS = {
+  aspectRatio: 'any',
+  orientation: 'any',
+  minResolution: 'SD',
 };
 
 const DEFAULT_PLAYBACK_SETTINGS = {
   showControls: false,
+  pauseOnHover: true,
+  fullscreen: false,
 };
 
 function sanitizePexelsSettings(settings) {
@@ -91,17 +111,16 @@ function sanitizePexelsSettings(settings) {
   return sanitized;
 }
 
-router.get('/homepage-settings', async (req, res) => {
-  try {
-    res.set('Cache-Control', 'no-store, private');
-    const settings = (await dbUnified.read('settings')) || {};
-    const features = settings.features || {};
-    const collageWidget = settings.collageWidget || {};
-    const legacyPexelsEnabled = features.pexelsCollage === true;
-    const collageEnabled =
-      collageWidget.enabled !== undefined ? collageWidget.enabled : legacyPexelsEnabled;
-    const pexelsCollageSettings = sanitizePexelsSettings(settings.pexelsCollageSettings);
-    const collageWidgetResponse = {
+function buildPublicCollageWidget(settings = {}) {
+  const features = settings.features || {};
+  const collageWidget = settings.collageWidget || {};
+  const legacyPexelsEnabled = features.pexelsCollage === true;
+  const collageEnabled =
+    collageWidget.enabled !== undefined ? collageWidget.enabled : legacyPexelsEnabled;
+  const pexelsCollageSettings = sanitizePexelsSettings(settings.pexelsCollageSettings);
+
+  return {
+    collageWidget: {
       enabled: collageEnabled,
       source: collageWidget.source || 'pexels',
       mediaTypes: collageWidget.mediaTypes || { photos: true, videos: true },
@@ -119,35 +138,175 @@ router.get('/homepage-settings', async (req, res) => {
         ...DEFAULT_VIDEO_QUALITY_SETTINGS,
         ...(collageWidget.videoQuality || {}),
       },
+      transition: {
+        ...DEFAULT_TRANSITION_SETTINGS,
+        ...(collageWidget.transition || {}),
+      },
+      preloading: {
+        ...DEFAULT_PRELOADING_SETTINGS,
+        ...(collageWidget.preloading || {}),
+      },
       mobileOptimizations: {
         ...DEFAULT_MOBILE_VIDEO_SETTINGS,
         ...(collageWidget.mobileOptimizations || {}),
+      },
+      contentFiltering: {
+        ...DEFAULT_CONTENT_FILTERING_SETTINGS,
+        ...(collageWidget.contentFiltering || {}),
       },
       playbackControls: {
         ...DEFAULT_PLAYBACK_SETTINGS,
         ...(collageWidget.playbackControls || {}),
       },
-    };
+    },
+    pexelsCollageEnabled: legacyPexelsEnabled,
+    pexelsCollageSettings,
+  };
+}
+
+function transformPexelsVideo(video) {
+  const videoFiles = video.videoFiles || video.video_files || [];
+
+  return {
+    id: video.id,
+    url: video.url,
+    image: video.image,
+    duration: video.duration,
+    user: {
+      name: video.user?.name || video.videographer || 'Pexels',
+      url: video.user?.url || video.videographer_url || 'https://www.pexels.com',
+    },
+    video_files: videoFiles
+      .filter(file => file?.link)
+      .map(file => ({
+        id: file.id,
+        quality: file.quality,
+        file_type: file.fileType || file.file_type || 'video/mp4',
+        width: file.width,
+        height: file.height,
+        link: file.link,
+      })),
+  };
+}
+
+function getFallbackHomepageVideos(count = 8) {
+  const { getRandomFallbackVideos } = require('../config/pexels-fallback');
+  return getRandomFallbackVideos(count)
+    .map(transformPexelsVideo)
+    .filter(video => video.video_files.length > 0);
+}
+
+router.get('/homepage-settings', async (req, res) => {
+  try {
+    res.set('Cache-Control', 'no-store, private');
+    const settings = (await dbUnified.read('settings')) || {};
+    const publicSettings = buildPublicCollageWidget(settings);
+    const collageWidgetResponse = publicSettings.collageWidget;
+
     if (isCollageDebugEnabled()) {
       logger.info('[Homepage Settings] Returning collage config:', {
-        collageEnabled,
-        collageWidgetEnabled: collageWidget.enabled,
-        legacyPexelsEnabled,
+        collageEnabled: collageWidgetResponse.enabled,
         source: collageWidgetResponse.source,
         hasQueries: !!collageWidgetResponse.pexelsQueries,
+        hasVideoQueries: !!collageWidgetResponse.pexelsVideoQueries,
         uploadGalleryCount: collageWidgetResponse.uploadGallery.length,
       });
     }
-    res.json({
-      collageWidget: collageWidgetResponse,
-      pexelsCollageEnabled: legacyPexelsEnabled,
-      pexelsCollageSettings,
-    });
+
+    res.json(publicSettings);
   } catch (error) {
     if (!res.headersSent) {
       logger.error('[ERROR] Failed to read homepage settings:', error.message);
       res.status(500).json({ error: 'Failed to read homepage settings' });
     }
+  }
+});
+
+router.get('/homepage-video', apiLimiter, async (req, res) => {
+  try {
+    res.set('Cache-Control', 'no-store, private');
+    const query = String(req.query.query || '').trim();
+
+    if (!query) {
+      return res.status(400).json({
+        error: 'Query parameter required',
+        errorType: 'validation',
+      });
+    }
+
+    const settings = (await dbUnified.read('settings')) || {};
+    const { collageWidget } = buildPublicCollageWidget(settings);
+    const source = collageWidget.source || 'pexels';
+    const videosEnabled = collageWidget.mediaTypes?.videos !== false;
+    const canUsePexels =
+      source === 'pexels' || (source === 'uploads' && collageWidget.fallbackToPexels !== false);
+
+    if (!collageWidget.enabled) {
+      return res.status(404).json({
+        error: 'Homepage collage widget is not enabled',
+        errorType: 'feature_disabled',
+      });
+    }
+
+    if (!videosEnabled) {
+      return res.status(400).json({
+        error: 'Videos are not enabled in homepage settings',
+        errorType: 'videos_disabled',
+      });
+    }
+
+    if (!canUsePexels) {
+      return res.status(400).json({
+        error: 'Pexels fallback is disabled for uploaded homepage media',
+        errorType: 'pexels_fallback_disabled',
+      });
+    }
+
+    const { getPexelsService } = require('../utils/pexels-service');
+    const pexels = getPexelsService();
+
+    if (pexels.isConfigured()) {
+      try {
+        const results = await pexels.searchVideos(query, 8, 1);
+        const videos = (results.videos || [])
+          .map(transformPexelsVideo)
+          .filter(video => video.video_files.length > 0);
+
+        if (videos.length > 0) {
+          return res.json({
+            success: true,
+            videos,
+            query,
+            usingFallback: false,
+            source: 'pexels-api',
+          });
+        }
+
+        logger.warn(`[Homepage Video] No Pexels videos found for query "${query}", using fallback`);
+      } catch (apiError) {
+        logger.warn(
+          `[Homepage Video] Pexels API failed for query "${query}" (${apiError.type || 'unknown'}): ${apiError.message}`
+        );
+      }
+    }
+
+    const fallbackVideos = getFallbackHomepageVideos(8);
+
+    res.json({
+      success: true,
+      videos: fallbackVideos,
+      query,
+      usingFallback: true,
+      source: 'fallback',
+      message: 'Using curated fallback videos from Pexels collection',
+    });
+  } catch (error) {
+    logger.error('[ERROR] Failed to fetch homepage video playlist:', error);
+    res.status(500).json({
+      error: 'Failed to fetch homepage video playlist',
+      message: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      errorType: error.type || 'unknown',
+    });
   }
 });
 
@@ -347,7 +506,7 @@ router.get('/recommendations', async (req, res) => {
         score += 10;
       }
 
-      // Boost score for location proximity
+      // Boost for location proximity
       if (location && (s.location || '').toLowerCase().includes(location.toLowerCase())) {
         score += 5;
       }
