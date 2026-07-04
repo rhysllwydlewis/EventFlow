@@ -3,6 +3,7 @@
   overflow: hidden;
   background-color: #e9f5f1;
   background-image: none;
+  touch-action: pan-y;
 }
 
 .home-v3-page .hv3-hero-video__media {
@@ -13,14 +14,32 @@
   display: block;
   object-fit: cover;
   object-position: center right;
+  opacity: 0.92;
+  transform: translate3d(0, 0, 0) scale(1.01);
+  transition:
+    opacity var(--hv3-video-transition-duration, 1000ms) ease,
+    transform var(--hv3-video-transition-duration, 1000ms) ease;
 }
 
 .home-v3-page .hv3-hero-video.is-loading .hv3-hero-video__media {
-  opacity: 0.82;
+  opacity: 0.72;
 }
 
 .home-v3-page .hv3-hero-video.is-ready .hv3-hero-video__media {
   opacity: 1;
+  transform: translate3d(0, 0, 0) scale(1.01);
+}
+
+.home-v3-page .hv3-hero-video[data-transition-effect='slide'].is-loading .hv3-hero-video__media {
+  transform: translate3d(18px, 0, 0) scale(1.01);
+}
+
+.home-v3-page .hv3-hero-video[data-transition-effect='zoom'].is-loading .hv3-hero-video__media {
+  transform: translate3d(0, 0, 0) scale(1.07);
+}
+
+.home-v3-page .hv3-hero-video[data-transition-effect='crossfade'] .hv3-hero-video__media {
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 @media (max-width: 960px) {

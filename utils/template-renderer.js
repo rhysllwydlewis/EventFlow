@@ -30,16 +30,16 @@ const HOMEPAGE_V3_HERO_STYLES = [
   '    <link rel="preconnect" href="https://videos.pexels.com" crossorigin />',
   '    <link rel="preload" href="/assets/css/home-v2.css?v=11" as="style" />',
   '    <link rel="preload" href="/assets/css/home-v3.css?v=15" as="style" />',
-  '    <link rel="preload" href="/assets/css/home-v3-video.css?v=1" as="style" />',
+  '    <link rel="preload" href="/assets/css/home-v3-video.css?v=2" as="style" />',
   '    <link rel="stylesheet" href="/assets/css/home-v2.css?v=11" />',
   '    <link rel="stylesheet" href="/assets/css/home-v3.css?v=15" />',
-  '    <link rel="stylesheet" href="/assets/css/home-v3-video.css?v=1" />',
+  '    <link rel="stylesheet" href="/assets/css/home-v3-video.css?v=2" />',
   '    <link rel="preload" href="/assets/css/home-v3-mobile.css?v=10" as="style" media="(max-width: 960px)" />',
   '    <link rel="stylesheet" href="/assets/css/home-v3-mobile.css?v=10" media="(max-width: 960px)" />',
   '    <script src="/assets/js/pages/home-v3.js?v=13"></script>',
 ].join('\n');
 const HOMEPAGE_V3_HERO_SCRIPT =
-  '    <script src="/assets/js/pages/home-v3-video.js?v=1" defer></script>';
+  '    <script src="/assets/js/pages/home-v3-video.js?v=2" defer></script>';
 const HOMEPAGE_V3_HERO = `      <section class="hv2-hero" aria-labelledby="hv3-title">
         <div class="hv2-hero__image hv3-hero-video" aria-hidden="true" data-hv3-pexels-video>
           <video
@@ -51,12 +51,7 @@ const HOMEPAGE_V3_HERO = `      <section class="hv2-hero" aria-labelledby="hv3-t
             poster="https://images.pexels.com/videos/4586391/free-video-4586391.jpg"
             data-hv3-video-media
           >
-            <source
-              src="https://videos.pexels.com/video-files/4586391/4586391-sd_640_360_25fps.mp4"
-              type="video/mp4"
-              data-hv3-video-source
-              data-fallback-src="https://videos.pexels.com/video-files/4586391/4586391-sd_640_360_25fps.mp4"
-            />
+            <source type="video/mp4" data-hv3-video-source />
           </video>
         </div>
         <div class="hv2-hero__shade" aria-hidden="true"></div>
@@ -170,7 +165,7 @@ function replacePlaceholders(content) {
   let result = content;
 
   for (const [key, value] of Object.entries(placeholders)) {
-    const pattern = new RegExp(`\\{\\{${key}\\}\\}`, 'g');
+    const pattern = new RegExp(`\\{\\{${key}\\}}`, 'g');
     result = result.replace(pattern, value);
   }
 
