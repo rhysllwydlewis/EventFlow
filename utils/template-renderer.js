@@ -9,6 +9,7 @@ const path = require('path');
 const logger = require('./logger');
 const fs = require('fs').promises;
 const { getPlaceholders } = require('../config/content-config');
+const { getActiveHomepageVersion, normaliseHomepageVersion } = require('./homepage-manager');
 
 const templateCache = new Map();
 const ANONYMOUS_SANITIZER_COMMENT = '<!-- eventflow-anonymous-sanitizer: active -->';
@@ -270,6 +271,18 @@ function buildHomepageV2Preview(content) {
   return result;
 }
 
+function injectHomepageManagerAdminScript(content) {
+  const scriptPath = '/assets/js/pages/admin-homepage-manager.js?v=1';
+  if (content.includes(scriptPath) || !/<\/body>/i.test(content)) {
+    return content;
+  }
+
+  return content.replace(
+    /\s*<\/body>/i,
+    `\n<script src="${scriptPath}" defer></script>\n</body>`
+  );
+}
+
 function stripAnonymousAuthText(content) {
   return content
     .replace(
@@ -361,6 +374,22 @@ function useHomepageV2() {
   );
 }
 
+async function getHomepageVersionForRequest(requestPath) {
+  if (requestPath !== '/') {
+    return null;
+  }
+
+  try {
+    return normaliseHomepageVersion(await getActiveHomepageVersion()) || 'v1';
+  } catch (error) {
+    logger.warn('Failed to read active homepage version, using HOMEPAGE_VARIANT fallback:', error);
+    if (useHomepageV2()) {
+      return 'v2';
+    }
+    return normaliseHomepageVersion(process.env.HOMEPAGE_VARIANT) || 'v1';
+  }
+}
+
 function isHomepageV2PreviewPath(requestPath) {
   return HOMEPAGE_V2_PREVIEW_PATHS.has(requestPath);
 }
@@ -369,7 +398,7 @@ function isHomepageV3PreviewPath(requestPath) {
   return HOMEPAGE_V3_PREVIEW_PATHS.has(requestPath);
 }
 
-function resolvePublicTemplatePath(requestPath) {
+function resolvePublicTemplatePath(requestPath, activeHomepageVersion) {
   if (requestPath === '/') {
     return HOMEPAGE_INDEX_FILE;
   }
@@ -379,7 +408,7 @@ function resolvePublicTemplatePath(requestPath) {
   }
 
   if (isHomepageV3PreviewPath(requestPath)) {
-    return HOMEPAGE_INDEX_FILE;
+    return '/index.html';
   }
 
   if (!path.extname(requestPath)) {
@@ -404,6 +433,10 @@ function addPreviewRobotsMeta(content) {
 }
 
 function sanitizeAnonymousPublicHtml(content, requestPath, req) {
+  if (requestPath === '/admin-homepage.html') {
+    return injectHomepageManagerAdminScript(content);
+  }
+
   if (!isAnonymousRequest(req)) {
     return content;
   }
@@ -435,6 +468,7 @@ function shouldProcessFile(filePath) {
     'privacy.html',
     'data-rights.html',
     'admin-settings.html',
+    'admin-homepage.html',
   ];
 
   if (processFiles.includes(fileName)) {
@@ -504,10 +538,12 @@ function templateMiddleware() {
     }
 
     const originalRequestPath = req.path;
-    const requestPath = resolvePublicTemplatePath(originalRequestPath);
+    const activeHomepageVersion = await getHomepageVersionForRequest(originalRequestPath);
+    const requestPath = resolvePublicTemplatePath(originalRequestPath, activeHomepageVersion);
     const isHomepageV2Preview = isHomepageV2PreviewPath(originalRequestPath);
     const isHomepageV3Preview = isHomepageV3PreviewPath(originalRequestPath);
-    const isHomepageV2VariantRoot = originalRequestPath === '/' && useHomepageV2();
+    const isHomepageV2VariantRoot = originalRequestPath === '/' && activeHomepageVersion === 'v2';
+    const isHomepageV3VariantRoot = originalRequestPath === '/' && activeHomepageVersion === 'v3';
     const shouldBuildHomepageV2 = isHomepageV2Preview || isHomepageV2VariantRoot;
     const isHomepagePreview = isHomepageV2Preview || isHomepageV3Preview;
 
@@ -523,7 +559,7 @@ function templateMiddleware() {
       let responseContent = content;
       if (shouldBuildHomepageV2) {
         responseContent = buildHomepageV2Preview(content);
-      } else if (isHomepageV3Preview) {
+      } else if (isHomepageV3Preview || isHomepageV3VariantRoot) {
         responseContent = buildHomepageV3Preview(content);
       }
       responseContent = isHomepagePreview ? addPreviewRobotsMeta(responseContent) : responseContent;
@@ -560,10 +596,12 @@ module.exports = {
   getFile,
   getPlaceholders,
   useHomepageV2,
+  getHomepageVersionForRequest,
   isHomepageV2PreviewPath,
   isHomepageV3PreviewPath,
   resolvePublicTemplatePath,
   addPreviewRobotsMeta,
   buildHomepageV2Preview,
   buildHomepageV3Preview,
+  injectHomepageManagerAdminScript,
 };

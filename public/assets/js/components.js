@@ -423,6 +423,21 @@ function initBackToTop() {
   });
 }
 
+function loadHomepageManagerAdminScript() {
+  if (!/^\/admin-homepage\/?$/.test(window.location.pathname)) {
+    return;
+  }
+
+  if (document.querySelector('script[src^="/assets/js/pages/admin-homepage-manager.js"]')) {
+    return;
+  }
+
+  const script = document.createElement('script');
+  script.src = '/assets/js/pages/admin-homepage-manager.js?v=1';
+  script.defer = true;
+  document.head.appendChild(script);
+}
+
 // Initialize components on DOM load
 if (typeof document !== 'undefined') {
   document.addEventListener('DOMContentLoaded', () => {
@@ -442,6 +457,8 @@ if (typeof document !== 'undefined') {
     document.querySelectorAll('.cta').forEach(button => {
       button.addEventListener('click', createRipple);
     });
+
+    loadHomepageManagerAdminScript();
   });
 }
 
