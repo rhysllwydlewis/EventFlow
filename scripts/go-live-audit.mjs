@@ -23,6 +23,7 @@ import { setTimeout as sleep } from 'timers/promises';
 
 const AUDIT_TARGET = process.env.AUDIT_TARGET; // If set, skip local server spin-up
 const LOCAL_PORT = Number(process.env.AUDIT_PORT || 3600);
+const IS_LOCAL_AUDIT = !AUDIT_TARGET;
 const STARTUP_TIMEOUT = 30_000;
 const RETRY_INTERVAL = 500;
 const JWT_SECRET_FOR_TEST =
@@ -99,8 +100,13 @@ function checkEnvVars() {
   // MONGODB_URI
   const mongoUri = process.env.MONGODB_URI || '';
   if (!mongoUri) {
-    fail('MONGODB_URI', 'not set');
-    results.push(false);
+    if (IS_LOCAL_AUDIT && nodeEnv !== 'production') {
+      warn('MONGODB_URI', 'not set (local audit will use file-backed development storage)');
+      results.push(null);
+    } else {
+      fail('MONGODB_URI', 'not set');
+      results.push(false);
+    }
   } else if (!mongoUri.startsWith('mongodb://') && !mongoUri.startsWith('mongodb+srv://')) {
     fail('MONGODB_URI', 'invalid scheme');
     results.push(false);
