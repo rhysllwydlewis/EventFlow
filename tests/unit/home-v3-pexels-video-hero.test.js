@@ -48,4 +48,23 @@ describe('homepage V3 Pexels video hero', () => {
     expect(script).toContain('startHeroVideoRotation');
     expect(script).toContain('chooseHeroVideoFile');
   });
+
+  test('honours admin customisation controls used by the V3 video player', () => {
+    const script = fs.readFileSync(
+      path.join(__dirname, '../../public/assets/js/pages/home-v3-video.js'),
+      'utf8'
+    );
+    const styles = fs.readFileSync(
+      path.join(__dirname, '../../public/assets/css/home-v3-video.css'),
+      'utf8'
+    );
+
+    expect(script).toContain('videoPassesContentFilters');
+    expect(script).toContain('MOBILE_TRANSITION_MULTIPLIER');
+    expect(script).toContain('container.dataset.transitionEffect');
+    expect(script).toContain('settings.mobileOptimizations?.touchControls === false');
+    expect(script).toContain('controlsList');
+    expect(styles).toContain("data-transition-effect='slide'");
+    expect(styles).toContain("data-transition-effect='zoom'");
+  });
 });
