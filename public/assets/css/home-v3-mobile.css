@@ -86,7 +86,7 @@
     inset: auto;
     display: block;
     width: 100%;
-    height: clamp(270px, 68vw, 410px);
+    height: clamp(300px, 74vw, 430px);
     flex: 0 0 auto;
     overflow: hidden;
     border: 0;
@@ -284,7 +284,7 @@
   }
 
   .home-v3-page .hv2-hero__image {
-    height: clamp(304px, 82vw, 380px);
+    height: clamp(332px, 90vw, 420px);
   }
 
   .home-v3-page .hv2-hero__content {
