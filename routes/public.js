@@ -30,6 +30,35 @@ const DEFAULT_PEXELS_SETTINGS = {
   },
 };
 
+const DEFAULT_PEXELS_VIDEO_QUERIES = {
+  venues: 'wedding venue video aerial',
+  catering: 'catering food preparation video',
+  entertainment: 'live band music performance video',
+  photography: 'wedding videography cinematic',
+};
+
+const DEFAULT_HERO_VIDEO_SETTINGS = {
+  enabled: true,
+  autoplay: true,
+  muted: true,
+  loop: true,
+  quality: 'auto',
+};
+
+const DEFAULT_VIDEO_QUALITY_SETTINGS = {
+  preference: 'auto',
+  adaptive: true,
+  mobileOptimized: true,
+};
+
+const DEFAULT_MOBILE_VIDEO_SETTINGS = {
+  disableVideos: false,
+};
+
+const DEFAULT_PLAYBACK_SETTINGS = {
+  showControls: false,
+};
+
 function sanitizePexelsSettings(settings) {
   if (!settings || typeof settings !== 'object') {
     return DEFAULT_PEXELS_SETTINGS;
@@ -78,15 +107,26 @@ router.get('/homepage-settings', async (req, res) => {
       mediaTypes: collageWidget.mediaTypes || { photos: true, videos: true },
       intervalSeconds: collageWidget.intervalSeconds || pexelsCollageSettings.intervalSeconds,
       pexelsQueries: collageWidget.pexelsQueries || pexelsCollageSettings.queries,
-      pexelsVideoQueries: collageWidget.pexelsVideoQueries || {
-        venues: 'wedding venue video aerial',
-        catering: 'catering food preparation video',
-        entertainment: 'live band music performance video',
-        photography: 'wedding videography cinematic',
-      },
+      pexelsVideoQueries: collageWidget.pexelsVideoQueries || DEFAULT_PEXELS_VIDEO_QUERIES,
       uploadGallery: collageWidget.uploadGallery || [],
       fallbackToPexels:
         collageWidget.fallbackToPexels !== undefined ? collageWidget.fallbackToPexels : true,
+      heroVideo: {
+        ...DEFAULT_HERO_VIDEO_SETTINGS,
+        ...(collageWidget.heroVideo || {}),
+      },
+      videoQuality: {
+        ...DEFAULT_VIDEO_QUALITY_SETTINGS,
+        ...(collageWidget.videoQuality || {}),
+      },
+      mobileOptimizations: {
+        ...DEFAULT_MOBILE_VIDEO_SETTINGS,
+        ...(collageWidget.mobileOptimizations || {}),
+      },
+      playbackControls: {
+        ...DEFAULT_PLAYBACK_SETTINGS,
+        ...(collageWidget.playbackControls || {}),
+      },
     };
     if (isCollageDebugEnabled()) {
       logger.info('[Homepage Settings] Returning collage config:', {
