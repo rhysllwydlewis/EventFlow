@@ -20,7 +20,7 @@ describe('Messenger selection and supplier profile hardening', () => {
 
   it('uses public supplier profile search for the generic new-message picker', () => {
     const js = read('public/messenger/js/ContactPickerV4Safeguards.js');
-    expect(js).toContain('fetch(`/api/suppliers');
+    expect(js).toMatch(/fetch\(\s*`\/api\/suppliers/);
     expect(js).toContain('normalizeSupplierProfile');
     expect(js).toContain('supplierProfileId');
     expect(js).toContain("type: 'supplier_profile'");

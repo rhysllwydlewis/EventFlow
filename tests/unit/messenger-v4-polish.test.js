@@ -119,12 +119,14 @@ describe('routes/messenger-v4.js — createConversation participant validation',
   });
 
   test('self-only check filters out current user from participantIds', () => {
-    // The check: filter(id => id !== currentUserId) then check length === 0
-    expect(routeSrc).toContain('participantIds.filter(id => id !== currentUserId)');
+    // The check normalises participant IDs before removing the current user.
+    expect(routeSrc).toContain('normalisedParticipantIds.filter(id => id !== currentUserId)');
   });
 
   test('duplicate check uses Set comparison', () => {
-    expect(routeSrc).toContain('new Set(participantIds).size !== participantIds.length');
+    expect(routeSrc).toContain(
+      'new Set(normalisedParticipantIds).size !== normalisedParticipantIds.length'
+    );
   });
 });
 
@@ -213,17 +215,20 @@ describe('messenger-v4.service.js — checkRateLimit coverage', () => {
 
 // ─── 6. Thread rate limit wired into createConversation route ────────────
 
-describe('routes/messenger-v4.js — thread rate limit in createConversation', () => {
-  const routeSrc = fs.readFileSync(path.join(__dirname, '../../routes/messenger-v4.js'), 'utf8');
+describe('messenger-v4.service.js — thread rate limit in createConversation', () => {
+  const svcSrc = fs.readFileSync(
+    path.join(__dirname, '../../services/messenger-v4.service.js'),
+    'utf8'
+  );
 
   test('createConversation calls checkThreadRateLimit before creating', () => {
-    expect(routeSrc).toContain('checkThreadRateLimit(currentUserId)');
+    expect(svcSrc).toContain('checkThreadRateLimit(creatorUserId)');
   });
 
   test('returns 429 when thread limit is hit', () => {
     // The rejection block includes status 429
-    const idx = routeSrc.indexOf('checkThreadRateLimit');
-    const nearby = routeSrc.slice(idx, idx + 400);
+    const idx = svcSrc.indexOf('checkThreadRateLimit(creatorUserId)');
+    const nearby = svcSrc.slice(idx, idx + 600);
     expect(nearby).toContain('429');
   });
 });

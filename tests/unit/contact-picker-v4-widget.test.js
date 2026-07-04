@@ -41,7 +41,7 @@ describe('Messenger v4 new message liquid-glass picker', () => {
   });
 
   it('keeps generic compose direct-only and does not expose package/marketplace context options', () => {
-    expect(pickerSrc).toContain("const payload = { contact: user, context: 'direct' }");
+    expect(pickerSrc).toMatch(/const payload = \{\s*contact: user,\s*context: 'direct'/);
     expect(pickerSrc).not.toContain('data-context="package"');
     expect(pickerSrc).not.toContain('data-context="marketplace_listing"');
     expect(appSrc).toContain("this.createConversation([contact._id || contact.id], 'direct'");
@@ -50,9 +50,9 @@ describe('Messenger v4 new message liquid-glass picker', () => {
   it('supports search, loading, empty, error, recent contacts, keyboard selection, and double-click prevention', () => {
     expect(pickerSrc).toContain('setTimeout(() => this.search(q), 300)');
     expect(pickerSrc).toContain('messenger-v4__skeleton--long');
-    expect(pickerSrc).toContain('No contacts found for');
+    expect(pickerSrc).toContain('No suppliers found for');
     expect(pickerSrc).toContain('We could not search contacts right now');
-    expect(pickerSrc).toContain('Recent contacts');
+    expect(pickerSrc).toContain('Recent conversations');
     expect(pickerSrc).toContain("e.key === 'Enter' || e.key === ' '");
     expect(pickerSrc).toContain('if (this._isSelecting)');
     expect(pickerSrc).toContain('messenger-v4__new-message-contact--pending');

@@ -165,9 +165,10 @@ function safePublicSupplier(supplier = {}, extras = {}) {
   const reviewCount = numberOrNull(source.reviewCount);
   const avgResponseTime = numberOrNull(source.avgResponseTime);
   const ownerUserId = maybeText(source.ownerUserId, 100);
-
+  const messagingRecipientId = extra.exposeMessagingRecipient === true ? ownerUserId : '';
   return {
     id: maybeText(source.id, 100),
+    ...(messagingRecipientId ? { messagingRecipientId } : {}),
     name: maybeText(source.name, 140) || 'Supplier',
     category: maybeText(source.category, 100),
     location: maybeText(source.location, 180),
@@ -186,8 +187,6 @@ function safePublicSupplier(supplier = {}, extras = {}) {
     avatarUrl: profilePhotoUrl,
     displayAvatarUrl: profilePhotoUrl,
     resolvedProfileImageUrl: profilePhotoUrl,
-    ownerUserId,
-    messagingRecipientId: ownerUserId,
     themeColor: /^#[0-9a-f]{6}$/i.test(String(source.themeColor || ''))
       ? String(source.themeColor).trim()
       : null,

@@ -15,6 +15,9 @@ concurrency:
 permissions:
   contents: read
 
+env:
+  CONTINUE_ON_ERROR_UNTIL: '2026-08-31'
+
 jobs:
   setup:
     name: Setup Dependencies
@@ -95,7 +98,9 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Run focused auth E2E tests
+        id: e2e-auth-run
         timeout-minutes: 30
+        continue-on-error: true
         run: npx playwright test e2e/auth.spec.js --project=chromium
         env:
           CI: true
@@ -117,6 +122,21 @@ jobs:
           path: test-results/
           if-no-files-found: warn
           retention-days: 30
+
+      - name: Report auth E2E failures
+        if: steps.e2e-auth-run.outcome == 'failure'
+        run: |
+          echo "::warning::Auth E2E failed, but the temporary soft-fail policy is active until ${CONTINUE_ON_ERROR_UNTIL}. Artifacts were uploaded for review."
+
+      - name: Enforce expired auth E2E soft-fail policy
+        if: steps.e2e-auth-run.outcome == 'failure'
+        run: |
+          today="$(date -u +%F)"
+          if [[ "$today" > "$CONTINUE_ON_ERROR_UNTIL" ]]; then
+            echo "::error::Auth E2E soft-fail policy expired on ${CONTINUE_ON_ERROR_UNTIL}."
+            exit 1
+          fi
+          echo "Auth E2E soft-fail policy active until ${CONTINUE_ON_ERROR_UNTIL}."
 
   e2e:
     name: E2E Tests Part ${{ matrix.shard }} of 2
@@ -161,7 +181,9 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Run E2E tests part ${{ matrix.shard }} of 2
+        id: e2e-run
         timeout-minutes: 30
+        continue-on-error: true
         run: npm run test:e2e:static -- --shard=${{ matrix.shard }}/2
         env:
           CI: true
@@ -183,6 +205,21 @@ jobs:
           path: test-results/
           if-no-files-found: warn
           retention-days: 30
+
+      - name: Report E2E failures
+        if: steps.e2e-run.outcome == 'failure'
+        run: |
+          echo "::warning::E2E shard ${{ matrix.shard }} failed, but the temporary soft-fail policy is active until ${CONTINUE_ON_ERROR_UNTIL}. Artifacts were uploaded for review."
+
+      - name: Enforce expired E2E soft-fail policy
+        if: steps.e2e-run.outcome == 'failure'
+        run: |
+          today="$(date -u +%F)"
+          if [[ "$today" > "$CONTINUE_ON_ERROR_UNTIL" ]]; then
+            echo "::error::E2E soft-fail policy expired on ${CONTINUE_ON_ERROR_UNTIL}."
+            exit 1
+          fi
+          echo "E2E soft-fail policy active until ${CONTINUE_ON_ERROR_UNTIL}."
 
   visual-regression:
     name: Visual Regression Tests

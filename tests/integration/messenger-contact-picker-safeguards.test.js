@@ -21,7 +21,7 @@ describe('Messenger contact picker supplier safeguards', () => {
 
   it('uses public supplier profiles for generic contact picker searches', () => {
     const js = read('public/messenger/js/ContactPickerV4Safeguards.js');
-    expect(js).toContain('fetch(`/api/suppliers');
+    expect(js).toMatch(/fetch\(\s*`\/api\/suppliers/);
     expect(js).toContain('normalizeSupplierProfile');
     expect(js).toContain('roleOf(contact) === SUPPLIER_ROLE');
     expect(js).toContain('supplierProfileId');
