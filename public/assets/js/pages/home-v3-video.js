@@ -235,23 +235,51 @@
 
     let currentIndex = 0;
     let rotationTimer = null;
+    const failedIndexes = new Set();
     const delay = getRotationDelay(settings);
     const shouldLoopPlaylist = settings.heroVideo?.loop !== false;
 
     video.loop = false;
 
-    const advanceVideo = () => {
-      if (document.hidden) {
+    const getNextIndex = () => {
+      let nextIndex = currentIndex;
+
+      for (let attempts = 0; attempts < playlist.length; attempts++) {
+        nextIndex += 1;
+
+        if (nextIndex >= playlist.length) {
+          if (!shouldLoopPlaylist) {
+            return null;
+          }
+          nextIndex = 0;
+        }
+
+        if (!failedIndexes.has(nextIndex)) {
+          return nextIndex;
+        }
+      }
+
+      return null;
+    };
+
+    const advanceVideo = ({ respectVisibility = true } = {}) => {
+      if (respectVisibility && document.hidden) {
         return true;
       }
 
-      const nextIndex = currentIndex + 1;
+      const nextIndex = getNextIndex();
 
-      if (nextIndex >= playlist.length && !shouldLoopPlaylist) {
+      if (nextIndex === null) {
+        source.removeAttribute('src');
+        video.removeAttribute('autoplay');
+        video.autoplay = false;
+        video.pause();
+        video.load();
+        container.classList.remove('is-loading');
         return false;
       }
 
-      currentIndex = nextIndex % playlist.length;
+      currentIndex = nextIndex;
       return setHeroVideoSource({
         container,
         item: playlist[currentIndex],
@@ -278,8 +306,9 @@
     };
 
     const handleVideoError = () => {
+      failedIndexes.add(currentIndex);
       container.classList.remove('is-loading');
-      if (advanceVideo()) {
+      if (advanceVideo({ respectVisibility: false })) {
         queueNextVideo();
       }
     };
