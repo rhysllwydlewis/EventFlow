@@ -20,6 +20,7 @@
   <link rel="stylesheet" href="/assets/css/ui-ux-fixes.css?v=18.3.0">
   <link rel="stylesheet" href="/assets/css/admin-ui-improvements.css?v=18.3.0">
   <link rel="stylesheet" href="/assets/css/admin-media.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/admin-management-overhaul.css?v=18.3.0">
     <link rel="icon" href="/favicon.ico" sizes="any">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png">
@@ -47,12 +48,24 @@
   </div>
 
   <div class="container">
+    <section id="adminManagementOverview" data-management-surface="media"></section>
+
     <div class="card">
       <!-- Search Bar -->
-      <div class="search-bar">
+      <div class="search-bar media-control-grid">
         <input type="text" id="searchInput" placeholder="Search for photos (e.g., 'wedding', 'catering', 'venue')...">
+        <select id="mediaTypeSelect" aria-label="Media type">
+          <option value="photos">Photos</option>
+          <option value="videos">Videos</option>
+        </select>
         <button class="ef-cta" id="searchBtn">Search</button>
         <button id="curatedBtn" class="ef-cta pexels-btn-secondary">Curated</button>
+        <button id="popularVideosBtn" class="ef-cta pexels-btn-secondary">Popular Videos</button>
+      </div>
+
+      <div class="media-collection-row">
+        <input type="text" id="collectionIdInput" placeholder="Open a Pexels collection by ID...">
+        <button id="collectionBtn" class="ef-cta pexels-btn-secondary">Open Collection</button>
       </div>
 
       <!-- Category Quick Search -->
@@ -62,10 +75,10 @@
       <div id="resultsInfo" style="margin-bottom:1rem;color:#666;font-size:0.875rem;"></div>
 
       <!-- Loading/Error States -->
-      <div id="loadingState" class="loading" style="display:none;"><p>Loading photos...</p></div>
+      <div id="loadingState" class="loading" style="display:none;"><p>Loading media...</p></div>
       <div id="errorState" class="error" style="display:none;"></div>
 
-      <!-- Photo Grid -->
+      <!-- Media Grid -->
       <div class="pexels-grid" id="photoGrid"></div>
 
       <!-- Pagination -->
@@ -78,16 +91,18 @@
   </div>
 </main>
 
-<!-- Photo Detail Modal -->
+<!-- Media Detail Modal -->
 <div class="modal" id="photoModal">
   <div class="modal-content">
     <button class="ef-cta modal-close" id="modalClose">×</button>
-    <img class="modal-image" id="modalImage" src="" alt="">
+    <div id="modalMediaMount">
+      <img class="modal-image" id="modalImage" src="" alt="">
+    </div>
     <div class="modal-info">
       <p id="modalPhotographer"></p>
       <p id="modalDimensions"></p>
       <div style="display:flex;gap:0.5rem;margin-top:1rem;">
-        <button class="ef-cta pexels-btn pexels-btn-primary" id="modalCopyUrl">Copy Image URL</button>
+        <button class="ef-cta pexels-btn pexels-btn-primary" id="modalCopyUrl">Copy Media URL</button>
         <button class="ef-cta pexels-btn pexels-btn-secondary" id="modalViewPexels">View on Pexels</button>
       </div>
     </div>
@@ -103,6 +118,7 @@
 </footer>
 
 <script src="/assets/js/admin-shared.js?v=18.3.0"></script>
+<script src="/assets/js/pages/admin-management-overhaul.js?v=18.3.0" defer></script>
 <script src="/assets/js/pages/admin-media-init.js?v=18.3.0" defer></script>
 <script src="/assets/js/cookie-consent.js?v=2.0.0" defer></script>
 </body>
