@@ -38,6 +38,36 @@ describe('homepage manager helper', () => {
     expect(disabledManager.versions.v1.settings.collageWidget.enabled).toBe(false);
   });
 
+  test('migrates old stored homepage slot defaults to collage on', () => {
+    const migratedManager = buildHomepageManager({
+      homepageManager: {
+        activeVersion: 'v3',
+        versions: {
+          v3: {
+            settings: {
+              collageWidget: { enabled: false, source: 'pexels' },
+            },
+          },
+        },
+      },
+    });
+
+    expect(migratedManager.versions.v3.settings.collageWidget.enabled).toBe(true);
+
+    const settings = {};
+    updateHomepageVersion(
+      settings,
+      'v3',
+      { settings: { collageWidget: { enabled: false } } },
+      { email: 'admin@example.com' }
+    );
+
+    expect(buildHomepageManager(settings).versions.v3.settings.collageWidget.enabled).toBe(false);
+    expect(buildHomepageManager(settings).versions.v3.settings.collageWidget.enabledExplicit).toBe(
+      true
+    );
+  });
+
   test('updates editable tab name and only changes the selected homepage slot', () => {
     const settings = {};
 
