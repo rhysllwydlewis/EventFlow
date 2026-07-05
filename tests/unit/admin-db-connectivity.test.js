@@ -21,6 +21,22 @@ describe('Admin Route Database Connectivity', () => {
     reportsContent = fs.readFileSync(path.join(__dirname, '../../routes/reports.js'), 'utf8');
   });
 
+  describe('Singleton admin content storage', () => {
+    it('treats content as a singleton MongoDB collection alongside settings', () => {
+      const dbUnifiedContent = fs.readFileSync(path.join(__dirname, '../../db-unified.js'), 'utf8');
+
+      expect(dbUnifiedContent).toContain("new Set(['settings', 'content'])");
+      expect(dbUnifiedContent).toContain('SINGLETON_COLLECTIONS.has(collectionName)');
+    });
+
+    it('initialises content as an object in the local fallback store', () => {
+      const storeContent = fs.readFileSync(path.join(__dirname, '../../store.js'), 'utf8');
+
+      expect(storeContent).toContain("new Set(['settings', 'content'])");
+      expect(storeContent).toContain('objectCollections.has(name)');
+    });
+  });
+
   describe('Admin packages endpoint', () => {
     it('should use dbUnified.read for packages (not legacy read())', () => {
       // The packages GET endpoint should use dbUnified
