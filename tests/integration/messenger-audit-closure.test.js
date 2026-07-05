@@ -205,6 +205,14 @@ describe('Messenger v4 post-PR950 audit fixes', () => {
       expect(src).toContain('scripts/worker.js');
     });
 
+    it('queue worker uses the real MongoDB module for its database handle', () => {
+      const src = read('scripts/worker.js');
+      expect(src).toContain("const mongoDb = require('../db')");
+      expect(src).toContain('await dbUnified.initializeDatabase()');
+      expect(src).toContain('await mongoDb.getDb()');
+      expect(src).not.toContain("const { getDb } = require('../db-unified')");
+    });
+
     it('Procfile declares both web and worker processes', () => {
       const src = read('Procfile');
       expect(src).toMatch(/^web:/m);
