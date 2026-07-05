@@ -17,7 +17,8 @@ This guide explains exactly what you need to configure in Railway for your Event
 | Variable      | Current (WRONG)                | Should Be                       |
 | ------------- | ------------------------------ | ------------------------------- |
 | `BASE_URL`    | `https://your-app.railway.app` | `https://event-flow.co.uk`      |
-| `MONGODB_URI` | (if localhost)                 | MongoDB Atlas connection string |
+| `MONGODB_URI` | (blank, localhost, or old URL) | Railway MongoDB `MONGO_URL` reference |
+| `MONGODB_DB_NAME` | (blank or wrong database) | `eventflow` |
 
 ### 3. Variables to DELETE/IGNORE
 
@@ -52,23 +53,24 @@ TRUST_PROXY=true
 
 **Note about TRUST_PROXY:** This setting is **automatically enabled** when Railway is detected (via `RAILWAY_ENVIRONMENT`), but you can set it explicitly to `true` for clarity. This is required for proper rate limiting and IP detection when running behind Railway's reverse proxy. It fixes `ERR_ERL_UNEXPECTED_X_FORWARDED_FOR` errors from `express-rate-limit`.
 
-### 🔌 Database - Choose ONE Option (RECOMMENDED but Optional)
+### 🔌 Database - Required for Production
 
-**⚠️ IMPORTANT:** While the app can run without a cloud database, it will use local JSON storage which is **non-persistent**. Data will be **lost on server restart or redeployment**. A cloud database is **strongly recommended** for production use with real user data.
+**⚠️ IMPORTANT:** Production must use MongoDB. Local JSON storage is development-only and the server will fail startup in production if MongoDB is missing or misconfigured.
 
-**Option A: MongoDB Atlas (Recommended for Production)**
+**Option A: Railway MongoDB (Recommended on Railway)**
+
+```bash
+MONGODB_URI=<reference the MongoDB service MONGO_URL; it usually contains railway.internal>
+MONGODB_DB_NAME=eventflow
+```
+
+In Railway, open the EventFlow service variables, click **Add Reference**, choose the MongoDB service, and select `MONGO_URL`.
+
+**Option B: External MongoDB / Atlas**
 
 ```bash
 MONGODB_URI=mongodb+srv://<USERNAME>:<PASSWORD>@<CLUSTER>.mongodb.net/eventflow?retryWrites=true&w=majority
 MONGODB_DB_NAME=eventflow
-```
-
-**Option B: No Database (Local Storage Mode)**
-
-```bash
-# Do not set MONGODB_URI
-# App will run with local JSON storage (non-persistent)
-# A warning will be displayed at startup
 ```
 
 ### 📧 Email Service - Choose ONE Option (OPTIONAL but Recommended)
@@ -156,11 +158,13 @@ OPENAI_MODEL=gpt-4-turbo-mini
 - Change to: `https://event-flow.co.uk`
 - Click "Update" or "Save"
 
-**MONGODB_URI** (if using MongoDB)
+**MONGODB_URI**
 
 - Find: `MONGODB_URI`
-- If it contains `localhost` → Replace with MongoDB Atlas connection string
-- Example: `mongodb+srv://<USERNAME>:<PASSWORD>@<CLUSTER>.mongodb.net/eventflow`
+- If it contains `localhost`, an old Atlas URL, or the wrong database → replace it
+- Recommended on Railway: use **Add Reference** → MongoDB service → `MONGO_URL`
+- Expected Railway private URL usually contains `railway.internal`
+- Set `MONGODB_DB_NAME` to `eventflow`
 - Click "Update" or "Save"
 
 ### Step 4: Verify Email Configuration
@@ -209,7 +213,7 @@ EventFlow v17.0.0 - Starting Server
 
 ```
 ❌ Production error: No cloud database configured!
-   Set FIREBASE_PROJECT_ID or MONGODB_URI for production deployment
+   Set MONGODB_URI for production deployment
 ```
 
 OR
@@ -257,11 +261,11 @@ After deployment:
 
 ### Issue: "No cloud database configured"
 
-**Solution:** Add `MONGODB_URI` (pointing to MongoDB Atlas) OR `FIREBASE_PROJECT_ID`
+**Solution:** Add `MONGODB_URI` from the Railway MongoDB service's `MONGO_URL`, then set `MONGODB_DB_NAME=eventflow`.
 
 ### Issue: "MONGODB_URI cannot point to localhost"
 
-**Solution:** Replace `MONGODB_URI` value with MongoDB Atlas connection string
+**Solution:** Replace `MONGODB_URI` with the Railway MongoDB `MONGO_URL` reference or another real MongoDB connection string.
 
 ### Issue: Email warnings in logs
 
@@ -281,7 +285,7 @@ Or to disable email warnings, set `EMAIL_ENABLED=false`
 2. `/api/health` endpoint response
 3. All required variables are set (JWT_SECRET, BASE_URL, database config, WEBSOCKET_MODE)
 4. No duplicate variables
-5. MongoDB Atlas allows Railway IP addresses (set to allow all: `0.0.0.0/0`)
+5. MongoDB is reachable from Railway. For Railway MongoDB, prefer the private `railway.internal` URL
 6. **WebSocket configuration**: Ensure `WEBSOCKET_MODE=v2` is set (or not set, defaults to v2)
    - Do NOT use `v1` and `v2` together - only one can run at a time
    - If seeing "server.handleUpgrade() was called more than once" errors, this means both WebSocket servers tried to attach to the same HTTP server
@@ -294,7 +298,8 @@ Or to disable email warnings, set `EMAIL_ENABLED=false`
 - `NODE_ENV=production` ✓ (REQUIRED)
 - `BASE_URL=https://event-flow.co.uk` ✓ (REQUIRED)
 - `WEBSOCKET_MODE=v2` ✓ (REQUIRED - prevents WebSocket crashes)
-- `MONGODB_URI` (cloud) OR `FIREBASE_PROJECT_ID` ✓ (REQUIRED)
+- `MONGODB_URI` ✓ (REQUIRED)
+- `MONGODB_DB_NAME=eventflow` ✓ (REQUIRED)
 
 **WebSocket Modes:**
 
@@ -318,4 +323,5 @@ Or to disable email warnings, set `EMAIL_ENABLED=false`
 **Variables to UPDATE:**
 
 - `BASE_URL` from placeholder to `https://event-flow.co.uk` ↻
-- `MONGODB_URI` from localhost to cloud ↻
+- `MONGODB_URI` from localhost/old URL to Railway MongoDB `MONGO_URL` reference ↻
+- `MONGODB_DB_NAME` to `eventflow` ↻
