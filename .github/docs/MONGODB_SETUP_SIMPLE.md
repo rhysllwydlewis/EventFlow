@@ -181,8 +181,6 @@ Look for "Environment Variables" or "Config Vars" in your platform's settings an
 
 ---
 
----
-
 ### Step 8: Verify It's Working
 
 Wait 1-2 minutes for your app to restart, then:
