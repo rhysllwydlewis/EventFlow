@@ -19,7 +19,10 @@ async function start() {
   assertWorkerEnv();
   await dbUnified.initializeDatabase();
   const status = await dbUnified.getStatus();
-  if (process.env.NODE_ENV === 'production' && (status.backend !== 'mongodb' || !status.connected)) {
+  if (
+    process.env.NODE_ENV === 'production' &&
+    (status.backend !== 'mongodb' || !status.connected)
+  ) {
     throw new Error('[queue] MongoDB is required for production workers');
   }
   const db = await mongoDb.getDb();
