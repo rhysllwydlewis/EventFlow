@@ -31,60 +31,72 @@ router.get('/', authRequired, roleRequired('admin'), async (req, res) => {
   }
 });
 
-router.put('/version/:version', authRequired, roleRequired('admin'), csrfProtection, async (req, res) => {
-  try {
-    const validationError = validateHomepageVersionPayload(req.body);
-    if (validationError) {
-      return res.status(400).json({ error: validationError });
+router.put(
+  '/version/:version',
+  authRequired,
+  roleRequired('admin'),
+  csrfProtection,
+  async (req, res) => {
+    try {
+      const validationError = validateHomepageVersionPayload(req.body);
+      if (validationError) {
+        return res.status(400).json({ error: validationError });
+      }
+
+      const settings = (await dbUnified.read('settings')) || {};
+      const nextSettings = updateHomepageVersion(settings, req.params.version, req.body, req.user);
+      const result = await dbUnified.writeAndVerify('settings', nextSettings);
+      const manager = buildHomepageManager(result.data);
+
+      auditLog({
+        adminId: req.user.id,
+        adminEmail: req.user.email,
+        action: 'HOMEPAGE_VERSION_UPDATED',
+        targetType: 'homepage',
+        targetId: req.params.version,
+        details: {
+          version: req.params.version,
+          tabName: req.body.tabName,
+          status: req.body.status,
+        },
+      });
+
+      res.json({ success: true, manager, version: manager.versions[req.params.version] });
+    } catch (error) {
+      logger.error('Error updating homepage version:', error);
+      res.status(400).json({ error: error.message || 'Failed to update homepage version' });
     }
-
-    const settings = (await dbUnified.read('settings')) || {};
-    const nextSettings = updateHomepageVersion(settings, req.params.version, req.body, req.user);
-    const result = await dbUnified.writeAndVerify('settings', nextSettings);
-    const manager = buildHomepageManager(result.data);
-
-    auditLog({
-      adminId: req.user.id,
-      adminEmail: req.user.email,
-      action: 'HOMEPAGE_VERSION_UPDATED',
-      targetType: 'homepage',
-      targetId: req.params.version,
-      details: {
-        version: req.params.version,
-        tabName: req.body.tabName,
-        status: req.body.status,
-      },
-    });
-
-    res.json({ success: true, manager, version: manager.versions[req.params.version] });
-  } catch (error) {
-    logger.error('Error updating homepage version:', error);
-    res.status(400).json({ error: error.message || 'Failed to update homepage version' });
   }
-});
+);
 
-router.post('/publish/:version', authRequired, roleRequired('admin'), csrfProtection, async (req, res) => {
-  try {
-    const settings = (await dbUnified.read('settings')) || {};
-    const nextSettings = publishHomepageVersion(settings, req.params.version, req.user);
-    const result = await dbUnified.writeAndVerify('settings', nextSettings);
-    const manager = buildHomepageManager(result.data);
+router.post(
+  '/publish/:version',
+  authRequired,
+  roleRequired('admin'),
+  csrfProtection,
+  async (req, res) => {
+    try {
+      const settings = (await dbUnified.read('settings')) || {};
+      const nextSettings = publishHomepageVersion(settings, req.params.version, req.user);
+      const result = await dbUnified.writeAndVerify('settings', nextSettings);
+      const manager = buildHomepageManager(result.data);
 
-    auditLog({
-      adminId: req.user.id,
-      adminEmail: req.user.email,
-      action: 'HOMEPAGE_VERSION_PUBLISHED',
-      targetType: 'homepage',
-      targetId: req.params.version,
-      details: { activeVersion: manager.activeVersion },
-    });
+      auditLog({
+        adminId: req.user.id,
+        adminEmail: req.user.email,
+        action: 'HOMEPAGE_VERSION_PUBLISHED',
+        targetType: 'homepage',
+        targetId: req.params.version,
+        details: { activeVersion: manager.activeVersion },
+      });
 
-    res.json({ success: true, manager });
-  } catch (error) {
-    logger.error('Error publishing homepage version:', error);
-    res.status(400).json({ error: error.message || 'Failed to publish homepage version' });
+      res.json({ success: true, manager });
+    } catch (error) {
+      logger.error('Error publishing homepage version:', error);
+      res.status(400).json({ error: error.message || 'Failed to publish homepage version' });
+    }
   }
-});
+);
 
 router.post('/duplicate', authRequired, roleRequired('admin'), csrfProtection, async (req, res) => {
   try {

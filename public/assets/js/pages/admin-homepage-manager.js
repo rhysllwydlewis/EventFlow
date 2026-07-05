@@ -93,9 +93,12 @@
     const target = type === 'error' ? errorEl : successEl;
     target.textContent = `${type === 'error' ? 'X' : 'OK'} ${message}`;
     target.style.display = 'block';
-    window.setTimeout(() => {
-      target.style.display = 'none';
-    }, type === 'error' ? 5000 : 3000);
+    window.setTimeout(
+      () => {
+        target.style.display = 'none';
+      },
+      type === 'error' ? 5000 : 3000
+    );
   }
 
   async function getCsrfToken() {
@@ -200,7 +203,9 @@
     document.getElementById('homepageSelectedVersion').textContent = selectedVersion.toUpperCase();
     document.getElementById('homepageSelectedStatus').textContent =
       selectedVersion === manager.activeVersion ? 'Published' : slot.status || 'Draft';
-    document.getElementById('homepageSelectedUpdated').textContent = formatUpdatedAt(slot.updatedAt);
+    document.getElementById('homepageSelectedUpdated').textContent = formatUpdatedAt(
+      slot.updatedAt
+    );
     document.getElementById('homepagePreviewLink').href = slot.previewPath || '/';
     document.getElementById('publishHomepageVersion').disabled =
       selectedVersion === manager.activeVersion;
@@ -346,7 +351,11 @@
       return;
     }
 
-    if (!Number.isFinite(widget.intervalSeconds) || widget.intervalSeconds < 1 || widget.intervalSeconds > 60) {
+    if (
+      !Number.isFinite(widget.intervalSeconds) ||
+      widget.intervalSeconds < 1 ||
+      widget.intervalSeconds > 60
+    ) {
       showMessage('Interval must be between 1 and 60 seconds', 'error');
       return;
     }

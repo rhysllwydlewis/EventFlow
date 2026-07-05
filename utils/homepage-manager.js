@@ -25,7 +25,7 @@ const DEFAULT_PEXELS_VIDEO_QUERIES = {
 };
 
 const DEFAULT_COLLAGE_WIDGET = {
-  enabled: false,
+  enabled: true,
   source: 'pexels',
   mediaTypes: { photos: true, videos: true },
   intervalSeconds: 2.5,
@@ -151,10 +151,36 @@ function mergeCollageWidget(collageWidget = {}) {
   };
 }
 
+function getFallbackCollageWidget(settings = {}) {
+  const fallback = { ...(settings.collageWidget || {}) };
+  if (fallback.enabled === undefined && settings.features?.pexelsCollage === true) {
+    fallback.enabled = true;
+  }
+  return fallback;
+}
+
+function shouldTreatDisabledAsLegacyDefault(existingWidget = {}, fallbackCollageWidget = {}) {
+  if (existingWidget.enabled !== false) {
+    return false;
+  }
+  if (fallbackCollageWidget.enabled === false) {
+    return false;
+  }
+  if (
+    existingWidget.enabledExplicit === true ||
+    existingWidget.updatedAt ||
+    existingWidget.updatedBy
+  ) {
+    return false;
+  }
+  return true;
+}
+
 function buildDefaultVersion(version, existingCollageWidget = {}) {
   const baseCollageWidget = mergeCollageWidget(existingCollageWidget);
   const isV1 = version === 'v1';
   const isV3 = version === 'v3';
+  const hasExplicitVideoSetting = existingCollageWidget.mediaTypes?.videos !== undefined;
 
   return {
     id: version,
@@ -174,10 +200,13 @@ function buildDefaultVersion(version, existingCollageWidget = {}) {
       layout: {},
       collageWidget: {
         ...baseCollageWidget,
-        enabled: isV1 ? false : baseCollageWidget.enabled,
+        enabled: baseCollageWidget.enabled !== false,
         mediaTypes: {
           ...baseCollageWidget.mediaTypes,
-          videos: isV1 ? false : baseCollageWidget.mediaTypes.videos !== false,
+          videos:
+            isV1 && !hasExplicitVideoSetting
+              ? false
+              : baseCollageWidget.mediaTypes.videos !== false,
         },
       },
     },
@@ -189,22 +218,27 @@ function buildDefaultVersion(version, existingCollageWidget = {}) {
 function normaliseVersion(version, existingVersion = {}, fallbackCollageWidget = {}) {
   const defaults = buildDefaultVersion(version, fallbackCollageWidget);
   const existingSettings = existingVersion.settings || {};
+  const existingWidget = existingSettings.collageWidget;
+  const collageWidget = mergeCollageWidget(existingWidget || defaults.settings.collageWidget);
+
+  if (shouldTreatDisabledAsLegacyDefault(existingWidget, fallbackCollageWidget)) {
+    collageWidget.enabled = true;
+  }
 
   return {
     ...defaults,
     ...clone(existingVersion),
     id: version,
     tabName: normaliseTabName(version, existingVersion.tabName || defaults.tabName),
-    enabled: existingVersion.enabled !== undefined ? existingVersion.enabled === true : defaults.enabled,
+    enabled:
+      existingVersion.enabled !== undefined ? existingVersion.enabled === true : defaults.enabled,
     status: ['draft', 'preview', 'published'].includes(existingVersion.status)
       ? existingVersion.status
       : defaults.status,
     settings: {
       ...defaults.settings,
       ...clone(existingSettings),
-      collageWidget: mergeCollageWidget(
-        existingSettings.collageWidget || defaults.settings.collageWidget
-      ),
+      collageWidget,
     },
   };
 }
@@ -225,7 +259,7 @@ function resolveInitialActiveVersion(settings = {}) {
 
 function buildHomepageManager(settings = {}) {
   const existingManager = settings.homepageManager || {};
-  const fallbackCollageWidget = settings.collageWidget || {};
+  const fallbackCollageWidget = getFallbackCollageWidget(settings);
   const activeVersion = resolveInitialActiveVersion(settings);
   const versions = {};
 
@@ -286,6 +320,14 @@ function updateHomepageVersion(settings = {}, version, payload = {}, user = {}) 
 
   const manager = buildHomepageManager(settings);
   const currentVersion = manager.versions[targetVersion];
+  const nextCollageWidget = mergeCollageWidget(
+    payload.settings?.collageWidget || currentVersion.settings.collageWidget
+  );
+
+  if (payload.settings?.collageWidget?.enabled !== undefined) {
+    nextCollageWidget.enabledExplicit = true;
+  }
+
   const nextVersion = {
     ...currentVersion,
     ...clone(payload),
@@ -294,9 +336,7 @@ function updateHomepageVersion(settings = {}, version, payload = {}, user = {}) 
     settings: {
       ...currentVersion.settings,
       ...(payload.settings || {}),
-      collageWidget: mergeCollageWidget(
-        payload.settings?.collageWidget || currentVersion.settings.collageWidget
-      ),
+      collageWidget: nextCollageWidget,
     },
     updatedAt: new Date().toISOString(),
     updatedBy: user.email || currentVersion.updatedBy || null,

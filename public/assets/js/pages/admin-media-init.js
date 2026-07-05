@@ -65,7 +65,11 @@
       height: photo.height,
       thumbnailUrl: photo.src?.medium || photo.src?.large || photo.url,
       mediaUrl:
-        photo.src?.large2x || photo.src?.large || photo.src?.original || photo.src?.medium || photo.url,
+        photo.src?.large2x ||
+        photo.src?.large ||
+        photo.src?.original ||
+        photo.src?.medium ||
+        photo.url,
       pexelsUrl: photo.url,
       raw: photo,
     };

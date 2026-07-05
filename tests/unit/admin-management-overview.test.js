@@ -99,15 +99,47 @@ describe('admin management overview helper', () => {
       pexelsMetrics: { successRate: 98, cacheHitRate: 44, totalRequests: 20 },
     });
 
-    expect(summary.supplierPhotos).toEqual({ total: 4, pending: 2, approved: 1, rejected: 1 });
+    expect(summary.supplierPhotos).toEqual({
+      total: 4,
+      pending: 0,
+      storedPending: 2,
+      approved: 1,
+      rejected: 1,
+      autoApprove: true,
+    });
     expect(summary.homepageCollage).toEqual({ total: 2, photos: 1, videos: 1 });
     expect(summary.pexels).toMatchObject({ configured: true, successRate: 98, cacheHitRate: 44 });
+  });
+
+  test('keeps manual photo review counts when photo auto-approve is disabled', () => {
+    const overview = buildAdminManagementOverview({
+      settings: { features: { photoAutoApprove: false } },
+      photos: [{ status: 'pending' }, { approved: false, rejected: false }],
+    });
+
+    expect(overview.media.supplierPhotos.pending).toBe(2);
+    expect(overview.recommendations.map(item => item.id)).toContain('media-pending-photos');
+  });
+
+  test('uses legacy pexels feature flag when migrating homepage collage state', () => {
+    const overview = buildAdminManagementOverview({
+      settings: {
+        features: { pexelsCollage: true },
+      },
+      pexelsStatus: { configured: true },
+    });
+
+    expect(overview.homepage.collageEnabled).toBe(true);
+    expect(overview.recommendations.map(item => item.id)).not.toContain(
+      'homepage-collage-disabled'
+    );
   });
 
   test('builds operational recommendations for incomplete admin surfaces', () => {
     const overview = buildAdminManagementOverview({
       now: new Date('2026-07-05T12:00:00.000Z'),
       settings: {
+        features: { photoAutoApprove: false },
         homepageManager: {
           activeVersion: 'v2',
           versions: {
@@ -115,6 +147,7 @@ describe('admin management overview helper', () => {
               settings: {
                 collageWidget: {
                   enabled: false,
+                  enabledExplicit: true,
                   source: 'uploads',
                   uploadGallery: [],
                 },
@@ -138,12 +171,16 @@ describe('admin management overview helper', () => {
     expect(overview.recommendations.map(item => item.id)).toEqual(
       expect.arrayContaining([
         'homepage-collage-disabled',
-        'homepage-upload-gallery-empty',
         'content-hero-incomplete',
         'content-no-featured-packages',
         'media-pending-photos',
-        'media-pexels-not-configured',
       ])
+    );
+    expect(overview.recommendations.map(item => item.id)).not.toContain(
+      'homepage-upload-gallery-empty'
+    );
+    expect(overview.recommendations.map(item => item.id)).not.toContain(
+      'media-pexels-not-configured'
     );
   });
 });

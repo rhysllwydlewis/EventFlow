@@ -12,7 +12,9 @@ function asObjectRecord(value) {
   }
 
   return (
-    value.find(item => item && (item.homepage || item.announcements || item.faqs || item.homepageManager)) ||
+    value.find(
+      item => item && (item.homepage || item.announcements || item.faqs || item.homepageManager)
+    ) ||
     value.find(item => item && typeof item === 'object') ||
     {}
   );
@@ -83,6 +85,7 @@ function buildHomepageSummary(settings = {}) {
       videos: activeCollage.mediaTypes?.videos === true,
     },
     uploadGalleryCount: asArray(activeCollage.uploadGallery).length,
+    fallbackToPexels: activeCollage.fallbackToPexels !== false,
     categories,
     updatedAt: manager.updatedAt || activeVersion.updatedAt || null,
   };
@@ -96,7 +99,8 @@ function buildContentSummary(content = {}, packages = []) {
   const featuredPackages = getFeaturedPackages(packages);
 
   return {
-    heroComplete: isFilled(homepage.title) && isFilled(homepage.subtitle) && isFilled(homepage.ctaText),
+    heroComplete:
+      isFilled(homepage.title) && isFilled(homepage.subtitle) && isFilled(homepage.ctaText),
     heroHasImage: isFilled(homepage.heroImage),
     heroUpdatedAt: homepage.updatedAt || homepage.heroImageUpdatedAt || null,
     announcements: {
@@ -115,18 +119,27 @@ function buildContentSummary(content = {}, packages = []) {
   };
 }
 
-function buildMediaSummary({ photos = [], collageMedia = [], pexelsStatus = {}, pexelsMetrics = {} }) {
+function buildMediaSummary({
+  photos = [],
+  collageMedia = [],
+  pexelsStatus = {},
+  pexelsMetrics = {},
+  photoAutoApprove = true,
+}) {
   const approved = countWhere(photos, isApprovedPhoto);
   const rejected = countWhere(photos, isRejectedPhoto);
-  const pending = countWhere(photos, isPendingPhoto);
+  const storedPending = countWhere(photos, isPendingPhoto);
+  const pending = photoAutoApprove ? 0 : storedPending;
   const metrics = pexelsMetrics || {};
 
   return {
     supplierPhotos: {
       total: asArray(photos).length,
       pending,
+      storedPending,
       approved,
       rejected,
+      autoApprove: photoAutoApprove,
     },
     homepageCollage: {
       total: asArray(collageMedia).length,
@@ -172,14 +185,19 @@ function buildRecommendations({ homepage, content, media, dbStatus }) {
     );
   }
 
-  if (homepage.collageSource === 'uploads' && homepage.uploadGalleryCount === 0) {
+  if (
+    homepage.collageEnabled &&
+    homepage.collageSource === 'uploads' &&
+    homepage.uploadGalleryCount === 0 &&
+    !homepage.fallbackToPexels
+  ) {
     recommendations.push(
       buildRecommendation(
         'homepage-upload-gallery-empty',
         'warning',
         'homepage',
         'Upload gallery is empty',
-        'The active homepage version uses uploaded media but has no gallery URLs attached.',
+        'The active homepage version uses uploaded media, has no gallery URLs attached, and Pexels fallback is off.',
         '/admin-homepage'
       )
     );
@@ -237,7 +255,12 @@ function buildRecommendations({ homepage, content, media, dbStatus }) {
     );
   }
 
-  if (!media.pexels.configured) {
+  const homepageNeedsPexels =
+    homepage.collageEnabled &&
+    (homepage.collageSource === 'pexels' ||
+      (homepage.collageSource === 'uploads' && homepage.fallbackToPexels));
+
+  if (homepageNeedsPexels && !media.pexels.configured) {
     recommendations.push(
       buildRecommendation(
         'media-pexels-not-configured',
@@ -261,6 +284,7 @@ function buildAdminManagementOverview(input = {}) {
     collageMedia: input.collageMedia || [],
     pexelsStatus: input.pexelsStatus || {},
     pexelsMetrics: input.pexelsMetrics || {},
+    photoAutoApprove: (input.settings?.features || {}).photoAutoApprove !== false,
   });
   const recommendations = buildRecommendations({
     homepage,
