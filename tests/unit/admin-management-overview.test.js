@@ -147,6 +147,7 @@ describe('admin management overview helper', () => {
               settings: {
                 collageWidget: {
                   enabled: false,
+                  enabledExplicit: true,
                   source: 'uploads',
                   uploadGallery: [],
                 },
