@@ -4,6 +4,7 @@ const path = require('path');
 const crypto = require('crypto');
 
 const DATA_DIR = path.join(__dirname, 'data');
+const objectCollections = new Set(['settings', 'content']);
 
 const files = {
   users: path.join(DATA_DIR, 'users.json'),
@@ -73,8 +74,8 @@ function ensure() {
   }
   for (const k of Object.keys(files)) {
     if (!fs.existsSync(files[k])) {
-      // Settings should be initialized as an object, not an array
-      const initialValue = k === 'settings' ? '{}' : '[]';
+      // Singleton collections should be initialized as objects, not arrays.
+      const initialValue = objectCollections.has(k) ? '{}' : '[]';
       fs.writeFileSync(files[k], initialValue, 'utf8');
     }
   }
@@ -95,22 +96,30 @@ function read(name) {
   }
 
   try {
-    const raw = fs.readFileSync(files[name], 'utf8') || '[]';
-    // Settings should be an object, not an array
-    const defaultValue = name === 'settings' ? '{}' : '[]';
-    return JSON.parse(raw || defaultValue);
+    // Singleton collections should be objects, not arrays.
+    const defaultValue = objectCollections.has(name) ? '{}' : '[]';
+    const raw = fs.readFileSync(files[name], 'utf8') || defaultValue;
+    const parsed = JSON.parse(raw || defaultValue);
+    if (objectCollections.has(name)) {
+      return Array.isArray(parsed) ? parsed[0] || {} : parsed;
+    }
+    return parsed;
   } catch (_err) {
     // If a file is corrupt, fall back to backup if available; otherwise empty array/object.
     const backup = `${files[name]}.bak`;
     if (fs.existsSync(backup)) {
       try {
-        const defaultValue = name === 'settings' ? '{}' : '[]';
-        return JSON.parse(fs.readFileSync(backup, 'utf8') || defaultValue);
+        const defaultValue = objectCollections.has(name) ? '{}' : '[]';
+        const parsed = JSON.parse(fs.readFileSync(backup, 'utf8') || defaultValue);
+        if (objectCollections.has(name)) {
+          return Array.isArray(parsed) ? parsed[0] || {} : parsed;
+        }
+        return parsed;
       } catch (_err2) {
-        return name === 'settings' ? {} : [];
+        return objectCollections.has(name) ? {} : [];
       }
     }
-    return name === 'settings' ? {} : [];
+    return objectCollections.has(name) ? {} : [];
   }
 }
 
