@@ -448,6 +448,7 @@ railway up
 ```bash
 heroku create your-app
 heroku config:set MONGODB_URI="mongodb+srv://..."
+heroku config:set MONGODB_DB_NAME="eventflow"
 heroku config:set JWT_SECRET="..."
 git push heroku main
 ```
@@ -458,6 +459,7 @@ git push heroku main
 docker build -t eventflow .
 docker run -p 3000:3000 \
   -e MONGODB_URI="mongodb+srv://..." \
+  -e MONGODB_DB_NAME="eventflow" \
   -e JWT_SECRET="..." \
   eventflow
 ```
@@ -536,16 +538,16 @@ MONGODB_URI=mongodb+srv://<USERNAME>:<PASSWORD>@...
 }
 ```
 
-### Connection Encryption
+### Connection Transport
 
-**Always use TLS/SSL:**
+Use the secure connection mode recommended by your MongoDB provider:
 
 ```env
-# ✅ Good - uses SSL by default
+# Atlas/external providers commonly use TLS by default
 MONGODB_URI=mongodb+srv://...
 
-# ❌ Bad - unencrypted
-MONGODB_URI=mongodb://...
+# Railway private URLs may use mongodb:// inside Railway's private network
+MONGODB_URI=mongodb://<USERNAME>:<PASSWORD>@<PRIVATE-HOST>:<PORT>/eventflow
 ```
 
 ## Troubleshooting

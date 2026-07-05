@@ -188,7 +188,7 @@ Wait 1-2 minutes for your app to restart, then:
 1. Visit your app's URL (e.g., `https://your-app.railway.app`)
 2. You should see your app load without errors!
 3. To double-check, visit: `https://your-app.railway.app/api/health`
-   - You should see `"databaseStatus": "connected"`
+   - You should see MongoDB reported as connected and `activeBackend` set to `mongodb`
 
 **🎉 Congratulations!** Your app is now connected to MongoDB and running properly!
 
@@ -242,7 +242,7 @@ Wait 1-2 minutes for your app to restart, then:
 **Solution - Check these:**
 
 1. Visit `https://your-app.railway.app/api/health`
-   - Look at what the `databaseStatus` says
+   - Check that MongoDB is connected and `activeBackend` is `mongodb`
 2. Check your deployment logs:
    - Railway: Click your service → "Deployments" tab → Click latest deployment → "View Logs"
    - Heroku: Click your app → "More" → "View logs"
