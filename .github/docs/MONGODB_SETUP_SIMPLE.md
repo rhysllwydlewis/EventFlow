@@ -1,6 +1,8 @@
 # MongoDB Setup Guide for Non-Technical Users
 
-**Having 502 errors or "connection refused" errors?** This guide will help you set up MongoDB Atlas (the cloud database) correctly. No technical experience required!
+**Having 502 errors or "connection refused" errors?** This guide helps you set up MongoDB Atlas when you want an external MongoDB provider. No technical experience required.
+
+> **Using Railway MongoDB?** Prefer the Railway-native setup in [Railway Setup Guide](../../docs/guides/RAILWAY_SETUP_GUIDE.md): add a Railway MongoDB service, set `MONGODB_URI` from the service `MONGO_URL` reference, and set `MONGODB_DB_NAME=eventflow`.
 
 ## What is MongoDB and Why Do I Need It?
 
@@ -139,7 +141,9 @@ The connection string has a placeholder `<password>` that you need to replace:
 
 Now add this to your deployment platform:
 
-#### For Railway:
+#### For Railway with Atlas:
+
+If you are using Railway's own MongoDB service, use the [Railway Setup Guide](../../docs/guides/RAILWAY_SETUP_GUIDE.md) instead. If you are intentionally using Atlas from Railway:
 
 1. Go to your Railway project dashboard: **https://railway.app/**
 2. Click on your EventFlow service/app
@@ -148,8 +152,11 @@ Now add this to your deployment platform:
 5. Enter:
    - **Variable name:** `MONGODB_URI`
    - **Value:** Paste your complete connection string (the one with your actual password)
-6. Click **"Add"** or press Enter
-7. Your app will automatically redeploy with the new configuration
+6. Add another variable:
+   - **Variable name:** `MONGODB_DB_NAME`
+   - **Value:** `eventflow`
+7. Click **"Add"** or press Enter
+8. Your app will automatically redeploy with the new configuration
 
 #### For Heroku:
 
@@ -181,7 +188,7 @@ Wait 1-2 minutes for your app to restart, then:
 1. Visit your app's URL (e.g., `https://your-app.railway.app`)
 2. You should see your app load without errors!
 3. To double-check, visit: `https://your-app.railway.app/api/health`
-   - You should see `"databaseStatus": "connected"`
+   - You should see MongoDB reported as connected and `activeBackend` set to `mongodb`
 
 **🎉 Congratulations!** Your app is now connected to MongoDB and running properly!
 
@@ -235,7 +242,7 @@ Wait 1-2 minutes for your app to restart, then:
 **Solution - Check these:**
 
 1. Visit `https://your-app.railway.app/api/health`
-   - Look at what the `databaseStatus` says
+   - Check that MongoDB is connected and `activeBackend` is `mongodb`
 2. Check your deployment logs:
    - Railway: Click your service → "Deployments" tab → Click latest deployment → "View Logs"
    - Heroku: Click your app → "More" → "View logs"

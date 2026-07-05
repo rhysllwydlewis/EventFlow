@@ -14,11 +14,11 @@ This guide explains exactly what you need to configure in Railway for your Event
 
 **Change these from placeholder values to real ones:**
 
-| Variable      | Current (WRONG)                | Should Be                       |
-| ------------- | ------------------------------ | ------------------------------- |
-| `BASE_URL`    | `https://your-app.railway.app` | `https://event-flow.co.uk`      |
-| `MONGODB_URI` | (blank, localhost, or old URL) | Railway MongoDB `MONGO_URL` reference |
-| `MONGODB_DB_NAME` | (blank or wrong database) | `eventflow` |
+| Variable          | Current (WRONG)                | Should Be                             |
+| ----------------- | ------------------------------ | ------------------------------------- |
+| `BASE_URL`        | `https://your-app.railway.app` | `https://event-flow.co.uk`            |
+| `MONGODB_URI`     | (blank, localhost, or old URL) | Railway MongoDB `MONGO_URL` reference |
+| `MONGODB_DB_NAME` | (blank or wrong database)      | `eventflow`                           |
 
 ### 3. Variables to DELETE/IGNORE
 
@@ -73,37 +73,16 @@ MONGODB_URI=mongodb+srv://<USERNAME>:<PASSWORD>@<CLUSTER>.mongodb.net/eventflow?
 MONGODB_DB_NAME=eventflow
 ```
 
-### 📧 Email Service - Choose ONE Option (OPTIONAL but Recommended)
+### 📧 Email Service - Postmark (Optional but Recommended)
 
-**Note:** Email service is optional. If not configured, emails will be saved to /outbox folder and warnings will be logged, but the application will start successfully.
+**Note:** Email service is optional. If not configured, emails will be saved to `/outbox` and warnings will be logged, but the application will start successfully.
 
-**Option A: AWS SES (Recommended for production)**
-
-```bash
-EMAIL_ENABLED=true
-FROM_EMAIL=no-reply@event-flow.co.uk
-AWS_SES_REGION=eu-west-2
-AWS_SES_ACCESS_KEY_ID=<your-key>
-AWS_SECRET_ACCESS_KEY=<your-secret>
-```
-
-**Option B: SendGrid**
+For production transactional email, use Postmark:
 
 ```bash
 EMAIL_ENABLED=true
-FROM_EMAIL=no-reply@event-flow.co.uk
-SENDGRID_API_KEY=SG.your-api-key-here
-```
-
-**Option C: Custom SMTP (Gmail, etc.)**
-
-```bash
-EMAIL_ENABLED=true
-FROM_EMAIL=no-reply@event-flow.co.uk
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=your-email@gmail.com
-SMTP_PASS=<app-password>
+POSTMARK_API_KEY=<your-postmark-server-token>
+POSTMARK_FROM=admin@event-flow.co.uk
 ```
 
 ### 🎨 Optional Variables (Not required, but recommended)
@@ -169,13 +148,13 @@ OPENAI_MODEL=gpt-4-turbo-mini
 
 ### Step 4: Verify Email Configuration
 
-Check that you have **at least one** of these:
+Check that you have these if production email is enabled:
 
-- [ ] `AWS_SES_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`
-- [ ] `SENDGRID_API_KEY`
-- [ ] `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`
+- [ ] `EMAIL_ENABLED=true`
+- [ ] `POSTMARK_API_KEY`
+- [ ] `POSTMARK_FROM`
 
-If **none** are set, add your email service credentials now.
+If Postmark is not ready yet, set `EMAIL_ENABLED=false` so emails are written to `/outbox`.
 
 ### Step 5: Redeploy
 
@@ -201,8 +180,7 @@ EventFlow v17.0.0 - Starting Server
    ✅ Using MongoDB for data storage
 
 📧 Checking email configuration...
-   ✅ Email: AWS SES configured
-   ✅ AWS SES connection verified
+   ✅ Email: Postmark configured
 
 ============================================================
 ✅ Server is ready!
@@ -222,12 +200,6 @@ OR
 ❌ Production error: MONGODB_URI cannot point to localhost
 ```
 
-OR
-
-```
-❌ Production deployment requires email service
-```
-
 ## 🔍 Verification
 
 After deployment:
@@ -238,12 +210,12 @@ After deployment:
 
    ```json
    {
-     "ok": true,
-     "server": "online",
+     "status": "ok",
      "version": "v17.0.0",
-     "database": "mongodb",
-     "databaseStatus": "connected",
-     "emailStatus": "connected"
+     "services": {
+       "mongodb": "connected",
+       "activeBackend": "mongodb"
+     }
    }
    ```
 
@@ -272,8 +244,8 @@ After deployment:
 **Note:** Email service is optional. The application will start successfully with warnings if email is not configured. To enable email:
 
 1. Set `EMAIL_ENABLED=true`
-2. Add AWS SES, SendGrid, or SMTP credentials
-3. Set `FROM_EMAIL` to your sender address
+2. Add `POSTMARK_API_KEY`
+3. Set `POSTMARK_FROM` to your verified sender address
 
 Or to disable email warnings, set `EMAIL_ENABLED=false`
 
@@ -312,8 +284,8 @@ Or to disable email warnings, set `EMAIL_ENABLED=false`
 **Optional (recommended for full functionality):**
 
 - `EMAIL_ENABLED=true` (optional, defaults to false)
-- `FROM_EMAIL=no-reply@event-flow.co.uk` (optional if EMAIL_ENABLED=false)
-- Email service credentials (SES/SendGrid/SMTP) (optional, warnings logged if missing)
+- `POSTMARK_API_KEY` (optional if EMAIL_ENABLED=false)
+- `POSTMARK_FROM=admin@event-flow.co.uk` (optional if EMAIL_ENABLED=false)
 
 **Variables to DELETE:**
 

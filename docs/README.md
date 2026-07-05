@@ -3,9 +3,21 @@
 ## Quick Links
 
 - **[MongoDB Verification Guide](./MONGODB_VERIFICATION.md)** - Verify your deployment is properly using MongoDB
-- **[MongoDB Setup (Simple)](./.github/docs/MONGODB_SETUP_SIMPLE.md)** - Step-by-step MongoDB Atlas setup
-- **[MongoDB Setup (Technical)](./.github/docs/MONGODB_SETUP.md)** - Detailed MongoDB configuration
-- **[Deployment Guide](./.github/docs/DEPLOYMENT_GUIDE.md)** - Deploy to production
+- **[Railway Setup Guide](./guides/RAILWAY_SETUP_GUIDE.md)** - Current Railway production variables and MongoDB setup
+- **[Production Deployment Checklist](./PRODUCTION_DEPLOYMENT_CHECKLIST.md)** - Pre-go-live checks
+- **[MongoDB Setup (External/Atlas)](../.github/docs/MONGODB_SETUP_SIMPLE.md)** - External MongoDB setup for non-Railway databases
+- **[Deployment Guide](../.github/docs/DEPLOYMENT_GUIDE.md)** - General deployment notes
+
+## Current Production Shape
+
+EventFlow production currently expects:
+
+- `NODE_ENV=production`
+- `MONGODB_URI` pointing at Railway MongoDB or another production MongoDB host
+- `MONGODB_DB_NAME=eventflow`
+- `REDIS_URL` for the BullMQ messenger/email worker queue
+- a separate worker process running `node scripts/worker.js`
+- Postmark variables for production email delivery
 
 ## Health Monitoring
 
@@ -39,6 +51,10 @@ EventFlow stores ALL data in MongoDB when properly configured:
 
 **Check your deployment:** `/api/health` should show `"activeBackend": "mongodb"`
 
-If it shows `"activeBackend": "local"`, your data is NOT PERSISTENT and will be lost on restart!
+If it shows `"activeBackend": "local"` in production, treat it as a deployment blocker. Production must use MongoDB; local JSON storage is development-only.
 
 See [MongoDB Verification Guide](./MONGODB_VERIFICATION.md) for troubleshooting.
+
+## Historical Docs
+
+`docs/history/` and `docs/archive/` contain old implementation notes and PR-era reports. They are useful context, but they are not the source of truth for current deployment setup.

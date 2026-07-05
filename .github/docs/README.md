@@ -4,10 +4,9 @@ This directory contains detailed technical guides that are primarily used by AI 
 
 ## Contents
 
-- **DEPLOYMENT_GUIDE.md** - Comprehensive deployment instructions for various platforms
-- **MONGODB_SETUP.md** - Detailed MongoDB Atlas setup and configuration
-- **MONGODB_SETUP_SIMPLE.md** - Simplified MongoDB setup guide
-- **DOCKER_GUIDE.md** - Docker deployment instructions
+- **DEPLOYMENT_GUIDE.md** - Current production deployment runbook
+- **MONGODB_SETUP.md** - Detailed external MongoDB/Atlas setup and configuration
+- **MONGODB_SETUP_SIMPLE.md** - Simplified external MongoDB/Atlas setup guide
 - **FRONTEND_COMPONENTS.md** - Frontend UI component reference
 
 ## Purpose
@@ -22,4 +21,4 @@ These guides provide technical context for AI coding assistants to:
 
 ## For Users
 
-If you need help with deployment, refer to the simpler **RAILWAY_SETUP_GUIDE.md** in the root directory instead.
+If you need help with Railway deployment, start with [`docs/guides/RAILWAY_SETUP_GUIDE.md`](../../docs/guides/RAILWAY_SETUP_GUIDE.md).
