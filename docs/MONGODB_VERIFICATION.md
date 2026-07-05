@@ -52,4 +52,4 @@ When `activeBackend: "mongodb"`, ALL data is stored in MongoDB:
 - [ ] `MONGODB_URI` points to Railway MongoDB or another production MongoDB host (not localhost)
 - [ ] `MONGODB_DB_NAME` is set to `eventflow`
 
-See [MongoDB Setup Guide](./.github/docs/MONGODB_SETUP_SIMPLE.md) for configuration help.
+See [MongoDB Setup Guide](../.github/docs/MONGODB_SETUP_SIMPLE.md) for configuration help.
