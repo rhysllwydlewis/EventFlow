@@ -12,7 +12,7 @@
         },
         {
           value: overview.homepage.collageEnabled ? 'On' : 'Off',
-          label: `${overview.homepage.collageSource} collage source`,
+          label: `${overview.homepage.collageSource} dynamic collage source`,
         },
         {
           value: overview.homepage.uploadGalleryCount,
@@ -70,7 +70,9 @@
       stats: overview => [
         {
           value: overview.media.supplierPhotos.pending,
-          label: 'Supplier photos pending review',
+          label: overview.media.supplierPhotos.autoApprove
+            ? 'Supplier photos needing manual review'
+            : `${overview.media.supplierPhotos.storedPending} supplier photos stored as pending`,
         },
         {
           value: overview.media.homepageCollage.total,
@@ -130,7 +132,7 @@
     const scoped = overview.recommendations
       .filter(item => item.surface === surface || item.surface === 'all')
       .sort((a, b) => recommendationPriority(a) - recommendationPriority(b));
-    const tasks = scoped.length > 0 ? scoped : overview.recommendations.slice(0, 3);
+    const tasks = scoped;
 
     if (tasks.length === 0) {
       return '<div class="admin-ops-empty">Everything looks tidy for this area right now.</div>';
@@ -180,7 +182,10 @@
 
   function renderOverview(mount, surface, overview) {
     const config = surfaceConfig[surface] || surfaceConfig.content;
-    const hasWarnings = overview.recommendations.some(item =>
+    const surfaceRecommendations = overview.recommendations.filter(
+      item => item.surface === surface || item.surface === 'all'
+    );
+    const hasWarnings = surfaceRecommendations.some(item =>
       ['critical', 'warning', 'action'].includes(item.severity)
     );
 

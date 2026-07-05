@@ -28,6 +28,16 @@ describe('homepage manager helper', () => {
     expect(manager.versions.v3.settings.collageWidget.heroVideo.autoplay).toBe(true);
   });
 
+  test('defaults homepage collage on unless it has been explicitly disabled', () => {
+    expect(buildHomepageManager({}).versions.v1.settings.collageWidget.enabled).toBe(true);
+
+    const disabledManager = buildHomepageManager({
+      collageWidget: { enabled: false },
+    });
+
+    expect(disabledManager.versions.v1.settings.collageWidget.enabled).toBe(false);
+  });
+
   test('updates editable tab name and only changes the selected homepage slot', () => {
     const settings = {};
 

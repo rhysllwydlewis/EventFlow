@@ -25,7 +25,7 @@ const DEFAULT_PEXELS_VIDEO_QUERIES = {
 };
 
 const DEFAULT_COLLAGE_WIDGET = {
-  enabled: false,
+  enabled: true,
   source: 'pexels',
   mediaTypes: { photos: true, videos: true },
   intervalSeconds: 2.5,
@@ -151,6 +151,14 @@ function mergeCollageWidget(collageWidget = {}) {
   };
 }
 
+function getFallbackCollageWidget(settings = {}) {
+  const fallback = { ...(settings.collageWidget || {}) };
+  if (fallback.enabled === undefined && settings.features?.pexelsCollage === true) {
+    fallback.enabled = true;
+  }
+  return fallback;
+}
+
 function buildDefaultVersion(version, existingCollageWidget = {}) {
   const baseCollageWidget = mergeCollageWidget(existingCollageWidget);
   const isV1 = version === 'v1';
@@ -174,7 +182,7 @@ function buildDefaultVersion(version, existingCollageWidget = {}) {
       layout: {},
       collageWidget: {
         ...baseCollageWidget,
-        enabled: isV1 ? false : baseCollageWidget.enabled,
+        enabled: baseCollageWidget.enabled !== false,
         mediaTypes: {
           ...baseCollageWidget.mediaTypes,
           videos: isV1 ? false : baseCollageWidget.mediaTypes.videos !== false,
@@ -195,7 +203,8 @@ function normaliseVersion(version, existingVersion = {}, fallbackCollageWidget =
     ...clone(existingVersion),
     id: version,
     tabName: normaliseTabName(version, existingVersion.tabName || defaults.tabName),
-    enabled: existingVersion.enabled !== undefined ? existingVersion.enabled === true : defaults.enabled,
+    enabled:
+      existingVersion.enabled !== undefined ? existingVersion.enabled === true : defaults.enabled,
     status: ['draft', 'preview', 'published'].includes(existingVersion.status)
       ? existingVersion.status
       : defaults.status,
@@ -225,7 +234,7 @@ function resolveInitialActiveVersion(settings = {}) {
 
 function buildHomepageManager(settings = {}) {
   const existingManager = settings.homepageManager || {};
-  const fallbackCollageWidget = settings.collageWidget || {};
+  const fallbackCollageWidget = getFallbackCollageWidget(settings);
   const activeVersion = resolveInitialActiveVersion(settings);
   const versions = {};
 

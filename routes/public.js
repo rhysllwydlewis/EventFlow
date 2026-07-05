@@ -13,6 +13,7 @@ const crypto = require('crypto');
 const dbUnified = require('../db-unified');
 const { csrfProtection } = require('../middleware/csrf');
 const { writeLimiter, apiLimiter } = require('../middleware/rateLimits');
+const { getHomepageCollageWidget } = require('../utils/homepage-manager');
 
 function isCollageDebugEnabled() {
   return process.env.NODE_ENV === 'development' || process.env.DEBUG_COLLAGE === 'true';
@@ -113,7 +114,7 @@ function sanitizePexelsSettings(settings) {
 
 function buildPublicCollageWidget(settings = {}) {
   const features = settings.features || {};
-  const collageWidget = settings.collageWidget || {};
+  const collageWidget = getHomepageCollageWidget(settings);
   const legacyPexelsEnabled = features.pexelsCollage === true;
   const collageEnabled =
     collageWidget.enabled !== undefined ? collageWidget.enabled : legacyPexelsEnabled;
