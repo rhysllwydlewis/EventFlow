@@ -221,10 +221,11 @@ npm run test:integration
 
 ### Resources
 
-- 📚 [README.md](./README.md) - Full documentation
-- 📚 [API Documentation](./API_DOCUMENTATION.md) - Complete API reference
+- 📚 [README.md](../../README.md) - Full documentation
+- 📚 [API Documentation](../api/API_DOCUMENTATION.md) - Complete API reference
 - 📚 [Admin Guide](./ADMIN_GUIDE.md) - Admin dashboard user guide
-- 📚 [MongoDB Setup](./.github/docs/MONGODB_SETUP_SIMPLE.md) - Database configuration
+- 📚 [Railway Setup](./RAILWAY_SETUP_GUIDE.md) - Railway production configuration
+- 📚 [MongoDB Setup](../../.github/docs/MONGODB_SETUP_SIMPLE.md) - External MongoDB/Atlas configuration
 - 📚 [Postmark Setup](./POSTMARK_SETUP.md) - Email configuration
 - 📚 [Stripe Integration](./STRIPE_INTEGRATION_GUIDE.md) - Payment setup
 
@@ -232,7 +233,7 @@ npm run test:integration
 
 1. Check server logs: `npm run dev` output
 2. Review documentation in this repo
-3. Check MongoDB Atlas for connection issues
+3. Check Railway MongoDB or your external MongoDB provider for connection issues
 4. Review Express route handlers in `routes/`
 5. Contact the development team
 

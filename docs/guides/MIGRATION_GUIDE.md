@@ -169,5 +169,5 @@ For issues with migration:
 
 1. Check the logs for specific error messages
 2. Verify MongoDB connection with `/api/health` endpoint
-3. See [MONGODB_SETUP_SIMPLE.md](/.github/docs/MONGODB_SETUP_SIMPLE.md) for MongoDB configuration
+3. See [Railway Setup Guide](./RAILWAY_SETUP_GUIDE.md) or [MongoDB Setup Simple](../../.github/docs/MONGODB_SETUP_SIMPLE.md) for MongoDB configuration
 4. Open an issue on GitHub with error details

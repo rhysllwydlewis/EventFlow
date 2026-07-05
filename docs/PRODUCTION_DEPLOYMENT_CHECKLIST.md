@@ -57,6 +57,7 @@ npm run test:headers
   - [ ] `NODE_ENV=production`
   - [ ] `JWT_SECRET` (minimum 32 characters, cryptographically secure)
   - [ ] `MONGODB_URI` (production database connection string)
+  - [ ] `MONGODB_DB_NAME=eventflow`
   - [ ] `BASE_URL` (production domain, e.g. `https://event-flow.co.uk`)
   - [ ] `REDIS_URL` (required for BullMQ messenger queue + worker in production)
   - [ ] `POSTMARK_API_KEY` (for email delivery)
@@ -79,6 +80,8 @@ npm run test:headers
 
 - [ ] **MongoDB Setup**
   - [ ] Production database created
+  - [ ] `MONGODB_URI` points to Railway MongoDB `MONGO_URL` or another production MongoDB host
+  - [ ] `MONGODB_DB_NAME` matches the URI database path (`eventflow`)
   - [ ] Database user with appropriate permissions
   - [ ] Connection string tested
   - [ ] Indexes created for optimal performance
@@ -87,12 +90,14 @@ npm run test:headers
   - [ ] Data migration completed (if upgrading)
   - [ ] Connection pooling configured
 
-- [ ] **Redis Setup** (Optional, for clustering)
+- [ ] **Redis Setup** (Required for production queue workers)
   - [ ] Redis instance provisioned
   - [ ] Connection string configured
   - [ ] Persistence configured
   - [ ] Memory limits set
   - [ ] Eviction policy defined
+  - [ ] Worker service deployed with `node scripts/worker.js`
+  - [ ] Worker logs show queue workers started
 
 ### Security Configuration
 
