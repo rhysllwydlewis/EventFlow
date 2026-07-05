@@ -44,7 +44,7 @@ describe('homepage V3 Pexels video hero', () => {
     expect(script).toContain('buildUploadPlaylist');
     expect(script).toContain('settings.fallbackToPexels !== false');
     expect(script).toContain('video.loop = false');
-    expect(script).toContain('video.addEventListener(\'error\', handleVideoError)');
+    expect(script).toContain("video.addEventListener('error', handleVideoError)");
     expect(script).toContain('startHeroVideoRotation');
     expect(script).toContain('chooseHeroVideoFile');
   });
