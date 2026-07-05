@@ -166,7 +166,11 @@ function shouldTreatDisabledAsLegacyDefault(existingWidget = {}, fallbackCollage
   if (fallbackCollageWidget.enabled === false) {
     return false;
   }
-  if (existingWidget.enabledExplicit === true || existingWidget.updatedAt || existingWidget.updatedBy) {
+  if (
+    existingWidget.enabledExplicit === true ||
+    existingWidget.updatedAt ||
+    existingWidget.updatedBy
+  ) {
     return false;
   }
   return true;
@@ -176,6 +180,7 @@ function buildDefaultVersion(version, existingCollageWidget = {}) {
   const baseCollageWidget = mergeCollageWidget(existingCollageWidget);
   const isV1 = version === 'v1';
   const isV3 = version === 'v3';
+  const hasExplicitVideoSetting = existingCollageWidget.mediaTypes?.videos !== undefined;
 
   return {
     id: version,
@@ -198,7 +203,10 @@ function buildDefaultVersion(version, existingCollageWidget = {}) {
         enabled: baseCollageWidget.enabled !== false,
         mediaTypes: {
           ...baseCollageWidget.mediaTypes,
-          videos: isV1 ? false : baseCollageWidget.mediaTypes.videos !== false,
+          videos:
+            isV1 && !hasExplicitVideoSetting
+              ? false
+              : baseCollageWidget.mediaTypes.videos !== false,
         },
       },
     },
