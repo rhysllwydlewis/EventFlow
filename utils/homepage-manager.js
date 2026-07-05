@@ -166,7 +166,10 @@ function shouldTreatDisabledAsLegacyDefault(existingWidget = {}, fallbackCollage
   if (fallbackCollageWidget.enabled === false) {
     return false;
   }
-  return existingWidget.enabledExplicit !== true;
+  if (existingWidget.enabledExplicit === true || existingWidget.updatedAt || existingWidget.updatedBy) {
+    return false;
+  }
+  return true;
 }
 
 function buildDefaultVersion(version, existingCollageWidget = {}) {
