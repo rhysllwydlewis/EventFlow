@@ -159,6 +159,16 @@ function getFallbackCollageWidget(settings = {}) {
   return fallback;
 }
 
+function shouldTreatDisabledAsLegacyDefault(existingWidget = {}, fallbackCollageWidget = {}) {
+  if (existingWidget.enabled !== false) {
+    return false;
+  }
+  if (fallbackCollageWidget.enabled === false) {
+    return false;
+  }
+  return existingWidget.enabledExplicit !== true;
+}
+
 function buildDefaultVersion(version, existingCollageWidget = {}) {
   const baseCollageWidget = mergeCollageWidget(existingCollageWidget);
   const isV1 = version === 'v1';
@@ -197,6 +207,12 @@ function buildDefaultVersion(version, existingCollageWidget = {}) {
 function normaliseVersion(version, existingVersion = {}, fallbackCollageWidget = {}) {
   const defaults = buildDefaultVersion(version, fallbackCollageWidget);
   const existingSettings = existingVersion.settings || {};
+  const existingWidget = existingSettings.collageWidget;
+  const collageWidget = mergeCollageWidget(existingWidget || defaults.settings.collageWidget);
+
+  if (shouldTreatDisabledAsLegacyDefault(existingWidget, fallbackCollageWidget)) {
+    collageWidget.enabled = true;
+  }
 
   return {
     ...defaults,
@@ -211,9 +227,7 @@ function normaliseVersion(version, existingVersion = {}, fallbackCollageWidget =
     settings: {
       ...defaults.settings,
       ...clone(existingSettings),
-      collageWidget: mergeCollageWidget(
-        existingSettings.collageWidget || defaults.settings.collageWidget
-      ),
+      collageWidget,
     },
   };
 }
@@ -295,6 +309,14 @@ function updateHomepageVersion(settings = {}, version, payload = {}, user = {}) 
 
   const manager = buildHomepageManager(settings);
   const currentVersion = manager.versions[targetVersion];
+  const nextCollageWidget = mergeCollageWidget(
+    payload.settings?.collageWidget || currentVersion.settings.collageWidget
+  );
+
+  if (payload.settings?.collageWidget?.enabled !== undefined) {
+    nextCollageWidget.enabledExplicit = true;
+  }
+
   const nextVersion = {
     ...currentVersion,
     ...clone(payload),
@@ -303,9 +325,7 @@ function updateHomepageVersion(settings = {}, version, payload = {}, user = {}) 
     settings: {
       ...currentVersion.settings,
       ...(payload.settings || {}),
-      collageWidget: mergeCollageWidget(
-        payload.settings?.collageWidget || currentVersion.settings.collageWidget
-      ),
+      collageWidget: nextCollageWidget,
     },
     updatedAt: new Date().toISOString(),
     updatedBy: user.email || currentVersion.updatedBy || null,
