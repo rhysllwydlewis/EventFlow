@@ -49,6 +49,7 @@ When `activeBackend: "mongodb"`, ALL data is stored in MongoDB:
 - [ ] `/api/health` shows `"activeBackend": "mongodb"`
 - [ ] `/api/ready` returns HTTP 200
 - [ ] No `"degraded"` status
-- [ ] `MONGODB_URI` points to MongoDB Atlas (not localhost)
+- [ ] `MONGODB_URI` points to Railway MongoDB or another production MongoDB host (not localhost)
+- [ ] `MONGODB_DB_NAME` is set to `eventflow`
 
-See [MongoDB Setup Guide](./.github/docs/MONGODB_SETUP_SIMPLE.md) for configuration help.
+See [MongoDB Setup Guide](../.github/docs/MONGODB_SETUP_SIMPLE.md) for configuration help.
