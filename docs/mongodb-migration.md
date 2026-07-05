@@ -10,8 +10,8 @@ EventFlow has **already completed its MongoDB migration** and is production-read
 
 EventFlow implements a **unified data access layer** (`db-unified.js`) that provides:
 
-1. **Primary Backend: MongoDB** (production-recommended)
-   - Cloud-hosted via MongoDB Atlas
+1. **Primary Backend: MongoDB** (required in production)
+   - Railway MongoDB in the current Railway deployment, or another production MongoDB provider
    - Full schema validation and indexing
    - Connection pooling and automatic failover
    - Supports all production workloads
@@ -19,7 +19,7 @@ EventFlow implements a **unified data access layer** (`db-unified.js`) that prov
 2. **Fallback Backend: Local JSON files** (development only)
    - Zero-configuration setup for local development
    - Automatic fallback when MongoDB is unavailable
-   - Not recommended for production use
+   - Not permitted for production use
 
 3. **Transparent Switching**
    - Application code is backend-agnostic
@@ -32,7 +32,8 @@ The system uses **environment-based configuration** rather than runtime feature 
 
 ```env
 # Production Configuration (MongoDB enabled)
-MONGODB_URI=mongodb+srv://<USERNAME>:<PASSWORD>@<CLUSTER>.mongodb.net/eventflow
+MONGODB_URI=mongodb://<USERNAME>:<PASSWORD>@<HOST>:<PORT>/eventflow
+MONGODB_DB_NAME=eventflow
 
 # Development Configuration (local fallback)
 # MONGODB_URI not set = uses local JSON files
@@ -402,13 +403,15 @@ Tests are backend-agnostic and validate:
 **Required for Production:**
 
 ```env
-# MongoDB Atlas connection string
-MONGODB_URI=mongodb+srv://<USERNAME>:<PASSWORD>@<CLUSTER>.mongodb.net/eventflow
+# MongoDB connection string
+MONGODB_URI=<Railway MongoDB MONGO_URL reference or external MongoDB URI>
+MONGODB_DB_NAME=eventflow
 
 # Application configuration
 NODE_ENV=production
 BASE_URL=https://yourdomain.com
 JWT_SECRET=your-strong-secret-min-32-chars
+REDIS_URL=redis://default:password@redis-host:6379
 
 # Email service (Postmark)
 POSTMARK_API_KEY=your-postmark-api-key
@@ -419,9 +422,6 @@ EMAIL_ENABLED=true
 **Optional:**
 
 ```env
-# Custom database name (defaults to 'eventflow')
-MONGODB_DB_NAME=eventflow
-
 # Storage for photos (local or s3)
 STORAGE_TYPE=s3
 AWS_S3_BUCKET=your-bucket
@@ -436,8 +436,10 @@ AWS_SECRET_ACCESS_KEY=your-secret
 ```bash
 railway login
 railway init
-railway variables set MONGODB_URI="mongodb+srv://..."
 railway variables set JWT_SECRET="..."
+railway variables set MONGODB_DB_NAME="eventflow"
+# Add MONGODB_URI as a Railway variable reference to the MongoDB service MONGO_URL.
+railway variables set REDIS_URL="redis://..."
 railway up
 ```
 
@@ -496,7 +498,7 @@ docker run -p 3000:3000 \
 - [ ] `/api/ready` returns HTTP 200
 - [ ] No slow queries logged
 - [ ] Average query time < 100ms
-- [ ] MongoDB Atlas monitoring shows healthy metrics
+- [ ] Railway MongoDB backups/metrics look healthy, or external MongoDB monitoring shows healthy metrics
 
 ## Security Considerations
 
@@ -514,19 +516,18 @@ MONGODB_URI=mongodb+srv://<USERNAME>:<PASSWORD>@...
 
 ### Network Access
 
-**MongoDB Atlas Configuration:**
+**MongoDB network configuration:**
 
-1. Go to Network Access
-2. For production: Add your hosting platform's IPs
-3. For development: Add your IP or 0.0.0.0/0
-4. Never use 0.0.0.0/0 in production
+1. On Railway, prefer the MongoDB service's private URL containing `railway.internal`.
+2. If using Atlas or another external provider, allow your hosting platform to connect.
+3. For development, use local MongoDB only outside production.
 
 ### Database Users
 
 **Create least-privilege users:**
 
 ```javascript
-// MongoDB Atlas → Database Access
+// MongoDB user settings
 {
   username: "eventflow-app",
   password: "strong-random-password",
@@ -555,11 +556,12 @@ MONGODB_URI=mongodb://...
 
 **Cause:** Using placeholder from `.env.example`
 
-**Solution:** Replace with actual MongoDB Atlas connection string
+**Solution:** Replace with the Railway MongoDB `MONGO_URL` reference or another real MongoDB connection string.
 
 ```env
-# Get from MongoDB Atlas → Connect → Connect Your Application
-MONGODB_URI=mongodb+srv://<USERNAME>:<PASSWORD>@<CLUSTER>.mongodb.net/
+# Railway MongoDB usually appears as a private railway.internal URL.
+MONGODB_URI=mongodb://<USERNAME>:<PASSWORD>@<HOST>:<PORT>/eventflow
+MONGODB_DB_NAME=eventflow
 ```
 
 #### 2. "Authentication failed"
@@ -568,19 +570,18 @@ MONGODB_URI=mongodb+srv://<USERNAME>:<PASSWORD>@<CLUSTER>.mongodb.net/
 
 **Solution:**
 
-1. Go to MongoDB Atlas → Database Access
-2. Edit user and reset password
-3. Update `MONGODB_URI` with new password
+1. Regenerate or re-add the Railway MongoDB `MONGO_URL` variable reference.
+2. If using Atlas/external MongoDB, edit the database user and reset the password.
+3. Update `MONGODB_URI` with the new value.
 
 #### 3. "Connection timeout" / "ENOTFOUND"
 
-**Cause:** IP not whitelisted in MongoDB Atlas
+**Cause:** Database host is not reachable from the app
 
 **Solution:**
 
-1. Go to MongoDB Atlas → Network Access
-2. Add IP Address → Allow Access from Anywhere (0.0.0.0/0) for testing
-3. For production, add your hosting platform's IPs
+1. On Railway, use the MongoDB service's private `railway.internal` URL.
+2. If using Atlas/external MongoDB, allow Railway or your hosting provider to connect.
 
 #### 4. "Using local file storage" in production
 
@@ -605,7 +606,7 @@ Check logs for:
 
 ```
 ✅ Using MongoDB for data storage (PRIMARY)
-✅ Connected to MongoDB Atlas
+✅ Connected to MongoDB database: eventflow
 ✅ Database initialized: mongodb
 ```
 
@@ -693,10 +694,10 @@ curl -H "Cookie: auth_token=..." \
 
 ### References
 
-- [MongoDB Atlas Setup Guide](./.github/docs/MONGODB_SETUP_SIMPLE.md)
+- [MongoDB Atlas Setup Guide](../.github/docs/MONGODB_SETUP_SIMPLE.md)
 - [MongoDB Verification Guide](./MONGODB_VERIFICATION.md)
-- [API Documentation](../API_DOCUMENTATION.md)
-- [Deployment Guide](../DEPLOYMENT_GUIDE.md)
+- [API Documentation](./api/API_DOCUMENTATION.md)
+- [Deployment Guide](../.github/docs/DEPLOYMENT_GUIDE.md)
 - [MongoDB Documentation](https://docs.mongodb.com/)
 
 ---
