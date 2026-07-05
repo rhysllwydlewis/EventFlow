@@ -24,6 +24,47 @@ const options = {
   retryReads: true,
 };
 
+function getExpectedDatabaseName() {
+  return (process.env.MONGODB_DB_NAME || 'eventflow').trim() || 'eventflow';
+}
+
+function getConnectionDetails(uri) {
+  const expectedDbName = getExpectedDatabaseName();
+  const details = {
+    host: 'unknown',
+    dbName: expectedDbName,
+    uriDbName: null,
+    expectedDbName,
+  };
+
+  const sanitizedUri = uri.replace(/\/\/([^:]+):([^@]+)@/, '//<credentials>@');
+
+  try {
+    const url = new URL(uri);
+    details.host = url.hostname || url.host;
+
+    if (url.pathname && url.pathname.length > 1) {
+      const pathDb = decodeURIComponent(url.pathname.substring(1).split('?')[0]).trim();
+      if (pathDb) {
+        details.uriDbName = pathDb;
+      }
+    }
+  } catch (parseError) {
+    details.host = sanitizedUri.split('@')[1]?.split('/')[0] || 'unknown';
+  }
+
+  if (details.uriDbName) {
+    if (process.env.MONGODB_DB_NAME && details.uriDbName !== expectedDbName) {
+      throw new Error(
+        `MONGODB_URI database "${details.uriDbName}" conflicts with MONGODB_DB_NAME "${expectedDbName}"`
+      );
+    }
+    details.dbName = details.uriDbName;
+  }
+
+  return details;
+}
+
 /**
  * Validate MongoDB URI format
  * @param {string} uri - MongoDB connection string to validate
@@ -211,26 +252,8 @@ async function connect(maxRetries = 3, retryDelay = 2000) {
       const uri = getConnectionUri();
       const isProduction = process.env.NODE_ENV === 'production';
 
-      // Log connection attempt (without exposing credentials)
-      const sanitizedUri = uri.replace(/\/\/([^:]+):([^@]+)@/, '//<credentials>@');
-
       // Extract and log host and database name safely
-      let host = 'unknown';
-      let dbName = process.env.MONGODB_DB_NAME || 'eventflow';
-      try {
-        const url = new URL(uri);
-        host = url.hostname || url.host;
-        // Extract database name from path if present
-        if (url.pathname && url.pathname.length > 1) {
-          const pathDb = url.pathname.substring(1).split('?')[0];
-          if (pathDb) {
-            dbName = pathDb;
-          }
-        }
-      } catch (parseError) {
-        // If URL parsing fails, use sanitized URI
-        host = sanitizedUri.split('@')[1]?.split('/')[0] || 'unknown';
-      }
+      const { host, dbName } = getConnectionDetails(uri);
 
       logger.info(`Connecting to MongoDB... (attempt ${attempt}/${maxRetries})`);
       logger.info(`Environment: ${isProduction ? 'production' : 'development'}`);
@@ -499,4 +522,5 @@ module.exports = {
   getConnectionState,
   getConnectionError,
   isMongoAvailable,
+  getConnectionDetails,
 };

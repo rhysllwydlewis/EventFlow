@@ -116,6 +116,34 @@ describe('MongoDB Validation and Availability', () => {
   });
 
   describe('URI Validation', () => {
+    it('should resolve the database name from a matching URI path', () => {
+      process.env.NODE_ENV = 'production';
+      process.env.MONGODB_DB_NAME = 'eventflow';
+
+      db = require('../../db');
+
+      const details = db.getConnectionDetails(
+        'mongodb://TESTUSER:TESTPASS@mongodb.railway.internal:27017/eventflow?authSource=admin'
+      );
+
+      expect(details.host).toBe('mongodb.railway.internal');
+      expect(details.dbName).toBe('eventflow');
+      expect(details.uriDbName).toBe('eventflow');
+    });
+
+    it('should reject a URI database path that conflicts with MONGODB_DB_NAME', () => {
+      process.env.NODE_ENV = 'production';
+      process.env.MONGODB_DB_NAME = 'eventflow';
+
+      db = require('../../db');
+
+      expect(() =>
+        db.getConnectionDetails(
+          'mongodb://TESTUSER:TESTPASS@mongodb.railway.internal:27017/admin?authSource=admin'
+        )
+      ).toThrow(/conflicts with MONGODB_DB_NAME/);
+    });
+
     it('should reject placeholder URIs in production', () => {
       process.env.NODE_ENV = 'production';
       process.env.MONGODB_URI = 'mongodb+srv://<username>:<password>@your-cluster.mongodb.net/';

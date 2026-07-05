@@ -1,6 +1,7 @@
 'use strict';
 
-const { getDb } = require('../db-unified');
+const dbUnified = require('../db-unified');
+const mongoDb = require('../db');
 const postmark = require('../utils/postmark');
 const { setQueueContext, shutdownQueues } = require('../services/queue');
 const { startNotificationWorker } = require('../services/queue/workers/notification.worker');
@@ -16,7 +17,12 @@ function assertWorkerEnv() {
 
 async function start() {
   assertWorkerEnv();
-  const db = await getDb();
+  await dbUnified.initializeDatabase();
+  const status = await dbUnified.getStatus();
+  if (process.env.NODE_ENV === 'production' && (status.backend !== 'mongodb' || !status.connected)) {
+    throw new Error('[queue] MongoDB is required for production workers');
+  }
+  const db = await mongoDb.getDb();
   setQueueContext({ db, postmark, logger: console });
   startNotificationWorker();
   startEmailWorker();
