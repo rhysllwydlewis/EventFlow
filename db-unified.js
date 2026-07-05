@@ -38,6 +38,7 @@ let queryMetrics = {
 };
 
 const SLOW_QUERY_THRESHOLD = 1000;
+const SINGLETON_COLLECTIONS = new Set(['settings', 'content']);
 
 function withTimeout(promise, timeoutMs, operationName) {
   return Promise.race([
@@ -352,13 +353,13 @@ async function read(collectionName) {
   try {
     if (dbType === 'mongodb') {
       const collection = mongodb.collection(collectionName);
-      if (collectionName === 'settings') {
-        const doc = await collection.findOne({ id: 'system' });
+      if (SINGLETON_COLLECTIONS.has(collectionName)) {
+        const doc = (await collection.findOne({ id: 'system' })) || (await collection.findOne({}));
         if (doc) {
-          // Destructure to remove MongoDB _id and custom id, keeping only settings
+          // Destructure to remove MongoDB _id and custom id, keeping only singleton data.
           // eslint-disable-next-line no-unused-vars
-          const { _id, id, ...settings } = doc;
-          return settings;
+          const { _id, id, ...record } = doc;
+          return record;
         }
         return {};
       }
@@ -372,7 +373,7 @@ async function read(collectionName) {
       logger.info(`Falling back to local storage for ${collectionName}`);
       return store.read(collectionName);
     }
-    return collectionName === 'settings' ? {} : [];
+    return SINGLETON_COLLECTIONS.has(collectionName) ? {} : [];
   }
 }
 
@@ -381,9 +382,9 @@ async function write(collectionName, data) {
   try {
     if (dbType === 'mongodb') {
       const collection = mongodb.collection(collectionName);
-      if (collectionName === 'settings') {
+      if (SINGLETON_COLLECTIONS.has(collectionName)) {
         if (!data || typeof data !== 'object' || Array.isArray(data)) {
-          throw new Error('Settings data must be a non-null object');
+          throw new Error(`${collectionName} data must be a non-null object`);
         }
         await collection.deleteMany({});
         await collection.insertOne({ id: 'system', ...data });
@@ -855,8 +856,8 @@ async function writeAndVerify(collectionName, data) {
       throw new Error('write() returned falsy');
     }
     // Read the document back to confirm persistence and return the live value.
-    // writeAndVerify is only used with the settings collection, where read() is
-    // a single-document findOne on MongoDB (not a full collection scan).
+    // Singleton collections use a single-document findOne on MongoDB; array
+    // collections still verify by reading their collection back.
     const verified = await read(collectionName);
     return { success: true, verified: true, data: verified };
   } catch (error) {
