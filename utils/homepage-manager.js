@@ -276,7 +276,11 @@ function buildHomepageManager(settings = {}) {
       existingManager.versions?.[version],
       fallbackCollageWidget
     );
-    versions[version].status = version === activeVersion ? 'published' : versions[version].status;
+    if (version === activeVersion) {
+      versions[version].status = 'published';
+    } else if (versions[version].status === 'published') {
+      versions[version].status = 'preview';
+    }
   });
 
   return {
@@ -315,12 +319,32 @@ async function getActiveHomepageVersion() {
 }
 
 function validateHomepageVersionPayload(payload = {}) {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    return 'Invalid homepage version payload';
+  }
+
   if (payload.tabName !== undefined && String(payload.tabName).trim().length > 40) {
     return 'Tab name must be 40 characters or fewer';
   }
 
   if (payload.status !== undefined && !['draft', 'preview', 'published'].includes(payload.status)) {
     return 'Invalid homepage status';
+  }
+
+  if (
+    payload.settings !== undefined &&
+    (!payload.settings || typeof payload.settings !== 'object' || Array.isArray(payload.settings))
+  ) {
+    return 'Homepage settings must be an object';
+  }
+
+  if (
+    payload.settings?.collageWidget !== undefined &&
+    (!payload.settings.collageWidget ||
+      typeof payload.settings.collageWidget !== 'object' ||
+      Array.isArray(payload.settings.collageWidget))
+  ) {
+    return 'Homepage collage widget settings must be an object';
   }
 
   return null;
@@ -355,6 +379,12 @@ function updateHomepageVersion(settings = {}, version, payload = {}, user = {}) 
     updatedAt: new Date().toISOString(),
     updatedBy: user.email || currentVersion.updatedBy || null,
   };
+
+  if (targetVersion === manager.activeVersion) {
+    nextVersion.status = 'published';
+  } else if (nextVersion.status === 'published') {
+    nextVersion.status = 'preview';
+  }
 
   manager.versions[targetVersion] = nextVersion;
   manager.updatedAt = nextVersion.updatedAt;

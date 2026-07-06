@@ -5,7 +5,7 @@
   const DEFAULT_VERSION = 'v3';
 
   let manager = null;
-  let selectedVersion = DEFAULT_VERSION;
+  let selectedVersion = null;
   let collageMedia = [];
 
   function ensureManagerSection() {
