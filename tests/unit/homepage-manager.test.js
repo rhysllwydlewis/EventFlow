@@ -4,6 +4,7 @@ const {
   getHomepageCollageWidget,
   publishHomepageVersion,
   updateHomepageVersion,
+  validateHomepageVersionPayload,
 } = require('../../utils/homepage-manager');
 
 describe('homepage manager helper', () => {
@@ -133,6 +134,59 @@ describe('homepage manager helper', () => {
     expect(manager.versions.v3.status).toBe('published');
     expect(settings.collageWidget.uploadGallery).toEqual(['/uploads/collage/v3.mp4']);
     expect(getHomepageCollageWidget(settings).source).toBe('uploads');
+  });
+
+  test('only the active homepage version can be marked as published by direct updates', () => {
+    const settings = {};
+
+    updateHomepageVersion(
+      settings,
+      'v3',
+      {
+        status: 'published',
+        settings: {
+          collageWidget: {
+            enabled: true,
+          },
+        },
+      },
+      { email: 'admin@example.com' }
+    );
+
+    const manager = buildHomepageManager(settings);
+
+    expect(manager.activeVersion).toBe('v1');
+    expect(manager.versions.v1.status).toBe('published');
+    expect(manager.versions.v3.status).toBe('preview');
+  });
+
+  test('normalises contradictory stored published statuses to the active version only', () => {
+    const settings = {
+      homepageManager: {
+        activeVersion: 'v2',
+        versions: {
+          v1: { status: 'published' },
+          v2: { status: 'draft' },
+          v3: { status: 'published' },
+        },
+      },
+    };
+
+    const manager = buildHomepageManager(settings);
+
+    expect(manager.versions.v1.status).toBe('preview');
+    expect(manager.versions.v2.status).toBe('published');
+    expect(manager.versions.v3.status).toBe('preview');
+  });
+
+  test('rejects malformed homepage manager update payloads', () => {
+    expect(validateHomepageVersionPayload(null)).toBe('Invalid homepage version payload');
+    expect(validateHomepageVersionPayload({ settings: [] })).toBe(
+      'Homepage settings must be an object'
+    );
+    expect(validateHomepageVersionPayload({ settings: { collageWidget: [] } })).toBe(
+      'Homepage collage widget settings must be an object'
+    );
   });
 
   test('duplicates live settings into another slot but preserves the target tab name', () => {
