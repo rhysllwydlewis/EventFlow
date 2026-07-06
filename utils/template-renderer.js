@@ -240,7 +240,7 @@ function injectBeforeBodyClose(content, snippet) {
 
 function replaceHomepageHeroWithV3(content) {
   const heroPattern =
-    /\s*<section class="hero hero-modern">[\s\S]*?<\/section>\s*(?=<!-- Noscript fallback for hero CTAs -->|<noscript>)/i;
+    /\s*<section\s+class=["']hero hero-modern["'][^>]*>[\s\S]*?<\/section>\s*(?=<!-- Noscript fallback for hero CTAs -->|<noscript>)/i;
 
   if (!heroPattern.test(content)) {
     return content;
@@ -266,9 +266,7 @@ function buildHomepageV3Preview(content) {
 }
 
 function buildHomepageV2Preview(content) {
-  let result = buildHomepageV3Preview(content);
-  result = addBodyClass(result, 'home-v2-white-fade-page');
-  return result;
+  return addBodyClass(content, 'home-v2-white-fade-page');
 }
 
 function injectHomepageManagerAdminScript(content) {
@@ -400,15 +398,15 @@ function isHomepageV3PreviewPath(requestPath) {
 
 function resolvePublicTemplatePath(requestPath, activeHomepageVersion) {
   if (requestPath === '/') {
-    return HOMEPAGE_INDEX_FILE;
+    return activeHomepageVersion === 'v2' ? HOMEPAGE_V2_FILE : HOMEPAGE_INDEX_FILE;
   }
 
   if (isHomepageV2PreviewPath(requestPath)) {
-    return HOMEPAGE_INDEX_FILE;
+    return HOMEPAGE_V2_FILE;
   }
 
   if (isHomepageV3PreviewPath(requestPath)) {
-    return '/index.html';
+    return HOMEPAGE_INDEX_FILE;
   }
 
   if (!path.extname(requestPath)) {
@@ -542,9 +540,7 @@ function templateMiddleware() {
     const requestPath = resolvePublicTemplatePath(originalRequestPath, activeHomepageVersion);
     const isHomepageV2Preview = isHomepageV2PreviewPath(originalRequestPath);
     const isHomepageV3Preview = isHomepageV3PreviewPath(originalRequestPath);
-    const isHomepageV2VariantRoot = originalRequestPath === '/' && activeHomepageVersion === 'v2';
     const isHomepageV3VariantRoot = originalRequestPath === '/' && activeHomepageVersion === 'v3';
-    const shouldBuildHomepageV2 = isHomepageV2Preview || isHomepageV2VariantRoot;
     const isHomepagePreview = isHomepageV2Preview || isHomepageV3Preview;
 
     if (!shouldProcessFile(requestPath)) {
@@ -557,9 +553,7 @@ function templateMiddleware() {
     try {
       const { content } = await getFile(filePath, requestPath, req);
       let responseContent = content;
-      if (shouldBuildHomepageV2) {
-        responseContent = buildHomepageV2Preview(content);
-      } else if (isHomepageV3Preview || isHomepageV3VariantRoot) {
+      if (isHomepageV3Preview || isHomepageV3VariantRoot) {
         responseContent = buildHomepageV3Preview(content);
       }
       responseContent = isHomepagePreview ? addPreviewRobotsMeta(responseContent) : responseContent;
