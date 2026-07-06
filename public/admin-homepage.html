@@ -72,6 +72,34 @@
 
   <section id="adminManagementOverview" data-management-surface="homepage"></section>
 
+  <!-- Homepage Media Library Section -->
+  <section class="card homepage-media-card" id="homepageMediaPanel" style="padding: 24px; margin-bottom: 32px;">
+    <div class="homepage-media-header">
+      <div>
+        <h2>Homepage media</h2>
+        <p class="small">Assign Pexels photos and videos from Media Centre, choose a source mode and review what will be used first.</p>
+      </div>
+      <a class="ef-cta btn btn-secondary" href="/admin-media">Open Media Centre</a>
+    </div>
+    <div class="homepage-media-controls">
+      <label for="homepageMediaVersion">Homepage version</label>
+      <select id="homepageMediaVersion"><option value="v1">V1 Classic</option><option value="v2">V2 Modern</option><option value="v3">V3 Premium Video</option></select>
+      <label for="homepageMediaMode">Media source</label>
+      <select id="homepageMediaMode">
+        <option value="auto_pexels_photos">Automatic Pexels photos</option>
+        <option value="auto_pexels_videos">Automatic Pexels videos</option>
+        <option value="auto_pexels_mixed">Automatic Pexels photos and videos</option>
+        <option value="uploads">Uploaded media only</option>
+        <option value="selected_pexels">Selected Pexels only</option>
+        <option value="selected_with_fallback">Selected media with automatic fallback</option>
+      </select>
+      <button class="ef-cta" id="saveHomepageMediaMode">Save media source</button>
+    </div>
+    <div class="homepage-media-summary" id="homepageMediaSummary"></div>
+    <div id="homepageSelectedMediaList" class="homepage-selected-media-list"></div>
+    <div id="homepageMediaMessage" class="small" style="margin-top: 12px;"></div>
+  </section>
+
   <!-- Collage Widget Configuration Section -->
   <div style="margin-bottom: 48px;">
     <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">

@@ -11,7 +11,7 @@
 }
 
 .admin-page-header {
-  background: linear-gradient(135deg, #0B8073 0%, #13B6A2 100%);
+  background: linear-gradient(135deg, #0b8073 0%, #13b6a2 100%);
   border-radius: 16px;
   padding: 32px;
   margin-bottom: 32px;
@@ -83,7 +83,7 @@
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #0B8073 0%, #13B6A2 100%);
+  background: linear-gradient(135deg, #0b8073 0%, #13b6a2 100%);
   color: white;
   border: none;
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
@@ -198,7 +198,7 @@
 }
 
 .upload-area:hover {
-  border-color: #0B8073;
+  border-color: #0b8073;
   transform: scale(1.02);
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
 }
@@ -208,7 +208,7 @@
 }
 
 .upload-area.drag-over {
-  border-color: #0B8073;
+  border-color: #0b8073;
   background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
   transform: scale(1.02);
 }
@@ -230,7 +230,7 @@
 }
 
 /* Hidden File Input */
-input[type="file"] {
+input[type='file'] {
   display: none;
 }
 
@@ -315,7 +315,7 @@ input[type="file"] {
   height: 32px;
   margin: -16px 0 0 -16px;
   border: 3px solid #f3f4f6;
-  border-top-color: #0B8073;
+  border-top-color: #0b8073;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -332,11 +332,11 @@ input[type="file"] {
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 20px;
   }
-  
+
   .admin-page-header {
     padding: 24px;
   }
-  
+
   .admin-page-header h1 {
     font-size: 1.75rem;
   }
@@ -347,37 +347,37 @@ input[type="file"] {
     grid-template-columns: 1fr;
     gap: 16px;
   }
-  
+
   .admin-main-content {
     padding: 20px 16px;
   }
-  
+
   .admin-page-header {
     padding: 20px;
     margin-bottom: 24px;
   }
-  
+
   .admin-page-header h1 {
     font-size: 1.5rem;
   }
-  
+
   .controls {
     flex-direction: column;
     align-items: stretch;
   }
-  
+
   .btn {
     justify-content: center;
   }
-  
+
   .category-card-header {
     padding: 16px;
   }
-  
+
   .category-card-body {
     padding: 16px;
   }
-  
+
   .upload-area {
     padding: 24px 16px;
   }
@@ -390,7 +390,7 @@ input[type="file"] {
   .remove-btn {
     display: none;
   }
-  
+
   .category-card {
     break-inside: avoid;
   }
@@ -417,18 +417,20 @@ input[type="file"] {
 }
 
 .source-option:hover {
-  border-color: #0B8073 !important;
+  border-color: #0b8073 !important;
   background: #f0fdfa;
 }
 
 .source-option:has(input:checked) {
-  border-color: #0B8073 !important;
+  border-color: #0b8073 !important;
   background: #e0f2fe;
   box-shadow: 0 4px 12px rgba(11, 128, 115, 0.2);
 }
 
 #collageWidgetSettings {
-  transition: opacity 0.3s, height 0.3s;
+  transition:
+    opacity 0.3s,
+    height 0.3s;
 }
 
 #collageWidgetSettings.disabled {
@@ -544,12 +546,13 @@ input[type="file"] {
 
 .upload-progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #0B8073, #13B6A2);
+  background: linear-gradient(90deg, #0b8073, #13b6a2);
   transition: width 0.3s ease;
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {
@@ -725,7 +728,7 @@ input[type="file"] {
 
 .admin-category-card-visibility-slider:before {
   position: absolute;
-  content: "";
+  content: '';
   height: 18px;
   width: 18px;
   left: 3px;
@@ -753,7 +756,7 @@ input:checked + .admin-category-card-visibility-slider:before {
   width: 100%;
   height: 100%;
   overflow: auto;
-  background-color: rgba(0,0,0,0.5);
+  background-color: rgba(0, 0, 0, 0.5);
   animation: fadeIn 0.3s;
 }
 
@@ -888,7 +891,7 @@ input:checked + .admin-category-card-visibility-slider:before {
   .admin-category-cards-grid {
     grid-template-columns: 1fr;
   }
-  
+
   #pexelsResultsGrid {
     grid-template-columns: repeat(2, 1fr) !important;
   }
@@ -1100,18 +1103,23 @@ input:checked + .admin-category-card-visibility-slider:before {
 .admin-homepage-ux-overhaul .homepage-version-tab {
   position: relative;
   min-height: 132px;
-  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    border-color 0.18s ease;
 }
 
 .admin-homepage-ux-overhaul .homepage-version-tab:hover,
 .admin-homepage-ux-overhaul .homepage-version-tab:focus-visible {
   transform: translateY(-2px);
-  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.10);
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.1);
   outline: 3px solid rgba(20, 184, 166, 0.22);
 }
 
 .admin-homepage-ux-overhaul .homepage-version-tab.is-selected {
-  box-shadow: inset 0 0 0 1px #0b8073, 0 12px 28px rgba(11, 128, 115, 0.12);
+  box-shadow:
+    inset 0 0 0 1px #0b8073,
+    0 12px 28px rgba(11, 128, 115, 0.12);
 }
 
 .admin-homepage-ux-overhaul .badge,
@@ -1184,5 +1192,101 @@ input:checked + .admin-category-card-visibility-slider:before {
 
   .admin-homepage-ux-overhaul .admin-page-header {
     border-radius: 14px;
+  }
+}
+
+.homepage-media-card h2 {
+  margin: 0 0 6px;
+}
+
+.homepage-media-header,
+.homepage-media-controls,
+.homepage-media-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: center;
+}
+
+.homepage-media-header {
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.homepage-media-controls {
+  padding: 14px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+}
+
+.homepage-media-controls label {
+  font-weight: 700;
+}
+
+.homepage-media-controls select {
+  min-width: 220px;
+  padding: 10px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+}
+
+.homepage-media-summary {
+  margin: 18px 0;
+}
+
+.homepage-media-summary span {
+  background: #eef2ff;
+  color: #3730a3;
+  border-radius: 999px;
+  padding: 7px 10px;
+  font-size: 0.85rem;
+}
+
+.homepage-selected-media-list {
+  display: grid;
+  gap: 12px;
+}
+
+.homepage-selected-media {
+  display: grid;
+  grid-template-columns: 120px 1fr auto;
+  gap: 14px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+}
+
+.homepage-selected-media img,
+.homepage-selected-media video {
+  width: 120px;
+  height: 82px;
+  object-fit: cover;
+  border-radius: 10px;
+  background: #0f172a;
+}
+
+.homepage-selected-media p {
+  margin: 3px 0;
+  color: #64748b;
+}
+
+.homepage-media-empty {
+  padding: 18px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 12px;
+  background: #f8fafc;
+  color: #475569;
+}
+
+@media (max-width: 700px) {
+  .homepage-selected-media {
+    grid-template-columns: 1fr;
+  }
+  .homepage-selected-media img,
+  .homepage-selected-media video {
+    width: 100%;
+    height: 180px;
   }
 }

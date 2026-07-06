@@ -23,6 +23,8 @@
   let categories = [];
   let collageWidget = null;
   let collageMedia = [];
+  let homepageMediaLibraries = {};
+  let homepageMediaActiveVersion = 'v1';
 
   const categoryListElement = document.getElementById('categoryList');
 
@@ -37,6 +39,127 @@
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#039;');
+  }
+
+  async function fetchCsrfToken() {
+    const csrfResponse = await fetch('/api/v1/csrf-token', { credentials: 'include' });
+    return csrfResponse.json();
+  }
+
+  async function loadHomepageMediaLibrary() {
+    try {
+      const response = await fetch('/api/v1/admin/homepage/manager/media-library', {
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        throw new Error('Unable to load homepage media library.');
+      }
+      const data = await response.json();
+      homepageMediaLibraries = data.versions || {};
+      homepageMediaActiveVersion = data.activeVersion || 'v1';
+      const select = document.getElementById('homepageMediaVersion');
+      if (select && !select.dataset.initialised) {
+        select.value = homepageMediaActiveVersion;
+        select.dataset.initialised = 'true';
+      }
+      renderHomepageMediaPanel();
+    } catch (error) {
+      document.getElementById('homepageMediaMessage').textContent = error.message;
+    }
+  }
+
+  function mediaModeLabel(mode) {
+    return (
+      {
+        auto_pexels_photos: 'Automatic Pexels photos',
+        auto_pexels_videos: 'Automatic Pexels videos',
+        auto_pexels_mixed: 'Automatic Pexels photos and videos',
+        uploads: 'Uploaded media only',
+        selected_pexels: 'Selected Pexels only',
+        selected_with_fallback: 'Selected media with automatic fallback',
+      }[mode] || 'Automatic Pexels photos and videos'
+    );
+  }
+
+  function renderHomepageMediaPanel() {
+    const version =
+      document.getElementById('homepageMediaVersion')?.value || homepageMediaActiveVersion;
+    const library = homepageMediaLibraries[version] || {};
+    const selected = library.selectedPexels || [];
+    document.getElementById('homepageMediaMode').value = library.mode || 'auto_pexels_mixed';
+    document.getElementById('homepageMediaSummary').innerHTML = `
+      <span><strong>Version:</strong> ${escapeHtml(version.toUpperCase())}${version === homepageMediaActiveVersion ? ' · currently live' : ''}</span>
+      <span><strong>Source:</strong> ${escapeHtml(mediaModeLabel(library.mode))}</span>
+      <span><strong>Selected Pexels:</strong> ${selected.length}</span>
+      <span><strong>Uploads:</strong> ${(library.selectedUploads || []).length}</span>
+      <span><strong>Fallback:</strong> ${library.fallback?.enabled === false ? 'Off' : 'On'}</span>
+      <span><strong>Hero:</strong> ${library.hero?.selectedMediaId ? 'Selected media' : 'Automatic'}</span>`;
+    const list = document.getElementById('homepageSelectedMediaList');
+    if (!selected.length) {
+      list.innerHTML = `<div class="homepage-media-empty">${library.mode === 'selected_pexels' ? 'No selected Pexels media has been assigned to this homepage version yet.' : 'No selected media yet. The homepage can use automatic Pexels fallback until you assign media.'} <a href="/admin-media">Open Media Centre</a>.</div>`;
+      return;
+    }
+    list.innerHTML = selected
+      .map(
+        item => `
+      <article class="homepage-selected-media" data-media-id="${escapeHtml(item.id)}">
+        ${item.type === 'video' ? `<video muted playsinline poster="${escapeHtml(item.thumbnailUrl || '')}"><source src="${escapeHtml(item.url)}" type="video/mp4"></video>` : `<img src="${escapeHtml(item.thumbnailUrl || item.url)}" alt="${escapeHtml(item.alt || '')}">`}
+        <div><strong>${escapeHtml(item.alt || item.type)}</strong><p>${escapeHtml(item.photographer || 'Pexels')}</p><p><span>${escapeHtml(item.type)}</span> · <span>${escapeHtml((item.assignedTargets || ['collage']).join(', '))}</span></p></div>
+        <button class="ef-cta pexels-btn pexels-btn-secondary" data-remove-media="${escapeHtml(item.id)}">Remove</button>
+      </article>`
+      )
+      .join('');
+    list
+      .querySelectorAll('[data-remove-media]')
+      .forEach(button =>
+        button.addEventListener('click', () =>
+          removeHomepageMedia(version, button.dataset.removeMedia)
+        )
+      );
+  }
+
+  async function saveHomepageMediaMode() {
+    const version = document.getElementById('homepageMediaVersion').value;
+    const mode = document.getElementById('homepageMediaMode').value;
+    try {
+      const csrfData = await fetchCsrfToken();
+      const response = await fetch(`/api/v1/admin/homepage/manager/media-library/${version}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfData.csrfToken },
+        credentials: 'include',
+        body: JSON.stringify({ mode }),
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || 'Could not update homepage media settings.');
+      }
+      showCollageWidgetSuccess(`Changes saved for ${version.toUpperCase()}.`);
+      await loadHomepageMediaLibrary();
+    } catch (error) {
+      showCollageWidgetError(error.message);
+    }
+  }
+
+  async function removeHomepageMedia(version, mediaId) {
+    try {
+      const csrfData = await fetchCsrfToken();
+      const response = await fetch(
+        `/api/v1/admin/homepage/manager/media-library/${version}/pexels/${encodeURIComponent(mediaId)}`,
+        {
+          method: 'DELETE',
+          headers: { 'X-CSRF-Token': csrfData.csrfToken },
+          credentials: 'include',
+        }
+      );
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || 'Could not remove selected media.');
+      }
+      showCollageWidgetSuccess('Selected media removed.');
+      await loadHomepageMediaLibrary();
+    } catch (error) {
+      showCollageWidgetError(error.message);
+    }
   }
 
   // ============================================
@@ -199,10 +322,7 @@
     // Serializes settings: heroVideo:, videoQuality:, transition:, preloading:, mobileOptimizations:, contentFiltering:, playbackControls:
     try {
       // Get CSRF token
-      const csrfResponse = await fetch('/api/v1/csrf-token', {
-        credentials: 'include',
-      });
-      const csrfData = await csrfResponse.json();
+      const csrfData = await fetchCsrfToken();
 
       // Collect form data
       const enabled = document.getElementById('collageWidgetEnabled').checked;
@@ -345,6 +465,7 @@
           console.log('[Admin] Configuration saved successfully:', result.collageWidget);
         }
         showCollageWidgetSuccess('Collage settings saved successfully.');
+        await loadHomepageMediaLibrary();
         await loadCollageWidget(); // Reload to get updated data
       } else {
         const error = await response.json();
@@ -478,10 +599,7 @@
 
     try {
       // Get CSRF token
-      const csrfResponse = await fetch('/api/v1/csrf-token', {
-        credentials: 'include',
-      });
-      const csrfData = await csrfResponse.json();
+      const csrfData = await fetchCsrfToken();
 
       // Create form data
       const formData = new FormData();
@@ -524,10 +642,7 @@
   async function deleteCollageMedia(filename) {
     try {
       // Get CSRF token
-      const csrfResponse = await fetch('/api/v1/csrf-token', {
-        credentials: 'include',
-      });
-      const csrfData = await csrfResponse.json();
+      const csrfData = await fetchCsrfToken();
 
       const response = await fetch(
         `/api/admin/homepage/collage-media/${encodeURIComponent(filename)}`,
@@ -747,10 +862,7 @@
 
     try {
       // Get CSRF token
-      const csrfResponse = await fetch('/api/v1/csrf-token', {
-        credentials: 'include',
-      });
-      const csrfData = await csrfResponse.json();
+      const csrfData = await fetchCsrfToken();
       const csrfToken = csrfData.csrfToken;
 
       const response = await fetch(`/api/v1/admin/categories/${categoryId}/hero-image`, {
@@ -788,10 +900,7 @@
 
     try {
       // Get CSRF token
-      const csrfResponse = await fetch('/api/v1/csrf-token', {
-        credentials: 'include',
-      });
-      const csrfData = await csrfResponse.json();
+      const csrfData = await fetchCsrfToken();
       const csrfToken = csrfData.csrfToken;
 
       const response = await fetch(`/api/v1/admin/categories/${categoryId}/hero-image`, {
@@ -1023,10 +1132,7 @@
     };
 
     try {
-      const csrfResponse = await fetch('/api/v1/csrf-token', {
-        credentials: 'include',
-      });
-      const csrfData = await csrfResponse.json();
+      const csrfData = await fetchCsrfToken();
       const csrfToken = csrfData.csrfToken;
 
       let response;
@@ -1115,10 +1221,7 @@
     }
 
     try {
-      const csrfResponse = await fetch('/api/v1/csrf-token', {
-        credentials: 'include',
-      });
-      const csrfData = await csrfResponse.json();
+      const csrfData = await fetchCsrfToken();
       const csrfToken = csrfData.csrfToken;
 
       const response = await fetch(`/api/v1/admin/categories/${categoryId}`, {
@@ -1154,10 +1257,7 @@
    */
   async function toggleCategoryVisibility(categoryId, visible, toggleSelector) {
     try {
-      const csrfResponse = await fetch('/api/v1/csrf-token', {
-        credentials: 'include',
-      });
-      const csrfData = await csrfResponse.json();
+      const csrfData = await fetchCsrfToken();
       const csrfToken = csrfData.csrfToken;
 
       const response = await fetch(`/api/v1/admin/categories/${categoryId}/visibility`, {
@@ -1406,7 +1506,19 @@
   });
 
   // Load all sections on page load
-  await Promise.all([loadCollageWidget(), loadCategories(), loadAllCategories()]);
+  document
+    .getElementById('homepageMediaVersion')
+    ?.addEventListener('change', renderHomepageMediaPanel);
+  document
+    .getElementById('saveHomepageMediaMode')
+    ?.addEventListener('click', saveHomepageMediaMode);
+
+  await Promise.all([
+    loadHomepageMediaLibrary(),
+    loadCollageWidget(),
+    loadCategories(),
+    loadAllCategories(),
+  ]);
 
   // ============================================
   // COLLAGE WIDGET EVENT LISTENERS
@@ -1464,7 +1576,12 @@
 
   // Event listeners
   document.getElementById('refreshBtn').addEventListener('click', async () => {
-    await Promise.all([loadCollageWidget(), loadCategories(), loadAllCategories()]);
+    await Promise.all([
+      loadHomepageMediaLibrary(),
+      loadCollageWidget(),
+      loadCategories(),
+      loadAllCategories(),
+    ]);
   });
 
   document.getElementById('backToDashboard').addEventListener('click', () => {

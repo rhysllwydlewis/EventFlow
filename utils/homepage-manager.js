@@ -9,6 +9,15 @@
 
 const HOMEPAGE_VERSION_KEYS = ['v1', 'v2', 'v3'];
 const HOMEPAGE_VERSION_SET = new Set(HOMEPAGE_VERSION_KEYS);
+const HOMEPAGE_MEDIA_MODES = [
+  'auto_pexels_photos',
+  'auto_pexels_videos',
+  'auto_pexels_mixed',
+  'uploads',
+  'selected_pexels',
+  'selected_with_fallback',
+];
+const HOMEPAGE_MEDIA_TARGETS = ['hero', 'collage', 'general'];
 
 const DEFAULT_PEXELS_QUERIES = {
   venues: 'wedding venue elegant ballroom',
@@ -151,6 +160,317 @@ function mergeCollageWidget(collageWidget = {}) {
   };
 }
 
+function deriveMediaModeFromCollageWidget(collageWidget = {}) {
+  if (collageWidget.source === 'uploads') {
+    return 'uploads';
+  }
+  const mediaTypes = collageWidget.mediaTypes || {};
+  const photos = mediaTypes.photos !== false;
+  const videos = mediaTypes.videos === true;
+  if (videos && !photos) {
+    return 'auto_pexels_videos';
+  }
+  if (photos && !videos) {
+    return 'auto_pexels_photos';
+  }
+  return 'auto_pexels_mixed';
+}
+
+function normaliseAssignedTargets(targets) {
+  const list = Array.isArray(targets) ? targets : targets ? [targets] : ['collage'];
+  const clean = list.filter(target => HOMEPAGE_MEDIA_TARGETS.includes(target));
+  return clean.length ? Array.from(new Set(clean)) : ['collage'];
+}
+
+function normaliseSelectedMediaItem(item = {}) {
+  const type = item.type === 'video' ? 'video' : 'photo';
+  const providerId = item.providerId || item.provider_id || item.id;
+  const id = String(item.id || `pexels-${type}-${providerId}`);
+  return {
+    id,
+    provider: item.provider || 'pexels',
+    providerId: providerId !== undefined ? String(providerId) : null,
+    type,
+    url: item.url || item.mediaUrl || '',
+    thumbnailUrl: item.thumbnailUrl || item.image || item.url || item.mediaUrl || '',
+    alt: String(
+      item.alt || item.title || (type === 'video' ? 'Pexels video' : 'Pexels photo')
+    ).slice(0, 180),
+    photographer: item.photographer || item.creator || item.user?.name || 'Pexels',
+    photographerUrl: item.photographerUrl || item.user?.url || null,
+    pexelsUrl: item.pexelsUrl || item.urlPage || item.sourceUrl || null,
+    width: item.width || null,
+    height: item.height || null,
+    duration: item.duration || null,
+    quality: item.quality || null,
+    assignedTargets: normaliseAssignedTargets(item.assignedTargets || item.target),
+    categoryKey: item.categoryKey || null,
+    addedAt: item.addedAt || new Date().toISOString(),
+    addedBy: item.addedBy || null,
+  };
+}
+
+function normaliseMediaLibrary(mediaLibrary = {}, collageWidget = {}) {
+  const mode = HOMEPAGE_MEDIA_MODES.includes(mediaLibrary.mode)
+    ? mediaLibrary.mode
+    : deriveMediaModeFromCollageWidget(collageWidget);
+  const mediaTypes = {
+    photos:
+      mediaLibrary.mediaTypes?.photos !== undefined
+        ? mediaLibrary.mediaTypes.photos !== false
+        : collageWidget.mediaTypes?.photos !== false,
+    videos:
+      mediaLibrary.mediaTypes?.videos !== undefined
+        ? mediaLibrary.mediaTypes.videos !== false
+        : collageWidget.mediaTypes?.videos !== false,
+  };
+  return {
+    mode,
+    mediaTypes,
+    fallback: {
+      enabled:
+        mediaLibrary.fallback?.enabled !== undefined
+          ? mediaLibrary.fallback.enabled !== false
+          : collageWidget.fallbackToPexels !== false,
+      source: 'pexels',
+      minimumItems: Number(mediaLibrary.fallback?.minimumItems || 6),
+    },
+    selectedPexels: Array.isArray(mediaLibrary.selectedPexels)
+      ? mediaLibrary.selectedPexels
+          .map(normaliseSelectedMediaItem)
+          .filter(item => item.provider === 'pexels' && item.providerId && item.url)
+      : [],
+    selectedUploads: Array.isArray(mediaLibrary.selectedUploads)
+      ? mediaLibrary.selectedUploads
+      : [],
+    hero: {
+      mode: mediaLibrary.hero?.mode || 'auto',
+      selectedMediaId: mediaLibrary.hero?.selectedMediaId || null,
+      autoplay:
+        mediaLibrary.hero?.autoplay !== undefined
+          ? mediaLibrary.hero.autoplay === true
+          : collageWidget.heroVideo?.autoplay === true,
+      muted:
+        mediaLibrary.hero?.muted !== undefined
+          ? mediaLibrary.hero.muted !== false
+          : collageWidget.heroVideo?.muted !== false,
+      loop:
+        mediaLibrary.hero?.loop !== undefined
+          ? mediaLibrary.hero.loop !== false
+          : collageWidget.heroVideo?.loop !== false,
+      quality: mediaLibrary.hero?.quality || collageWidget.heroVideo?.quality || 'hd',
+    },
+    pexelsQueries: {
+      ...DEFAULT_PEXELS_QUERIES,
+      ...(collageWidget.pexelsQueries || {}),
+      ...(mediaLibrary.pexelsQueries || {}),
+    },
+    pexelsVideoQueries: {
+      ...DEFAULT_PEXELS_VIDEO_QUERIES,
+      ...(collageWidget.pexelsVideoQueries || {}),
+      ...(mediaLibrary.pexelsVideoQueries || {}),
+    },
+  };
+}
+
+function resolveHomepageMedia(versionSettings = {}) {
+  const collageWidget = mergeCollageWidget(versionSettings.collageWidget || {});
+  const mediaLibrary = normaliseMediaLibrary(versionSettings.mediaLibrary || {}, collageWidget);
+  const selectedPexels = mediaLibrary.selectedPexels;
+  const selectedUploads = mediaLibrary.selectedUploads || [];
+  const selectedAll = [...selectedPexels, ...selectedUploads];
+  const heroMedia = mediaLibrary.hero.selectedMediaId
+    ? selectedAll.find(item => item.id === mediaLibrary.hero.selectedMediaId) || null
+    : selectedAll.find(item => item.assignedTargets?.includes('hero')) || null;
+
+  switch (mediaLibrary.mode) {
+    case 'auto_pexels_photos':
+      return {
+        source: 'pexels',
+        mediaTypes: { photos: true, videos: false },
+        selected: [],
+        heroMedia: null,
+        fallback: { ...mediaLibrary.fallback, enabled: true },
+        mediaLibrary,
+      };
+    case 'auto_pexels_videos':
+      return {
+        source: 'pexels',
+        mediaTypes: { photos: false, videos: true },
+        selected: [],
+        heroMedia: null,
+        fallback: { ...mediaLibrary.fallback, enabled: true },
+        mediaLibrary,
+      };
+    case 'uploads':
+      return {
+        source: 'uploads',
+        mediaTypes: mediaLibrary.mediaTypes,
+        selected: selectedUploads,
+        heroMedia,
+        fallback: mediaLibrary.fallback.enabled ? mediaLibrary.fallback : null,
+        mediaLibrary,
+      };
+    case 'selected_pexels':
+      return {
+        source: 'selected',
+        mediaTypes: mediaLibrary.mediaTypes,
+        selected: selectedPexels,
+        heroMedia,
+        fallback: null,
+        mediaLibrary,
+      };
+    case 'selected_with_fallback':
+      return {
+        source: 'selected_with_fallback',
+        mediaTypes: mediaLibrary.mediaTypes,
+        selected: selectedAll,
+        heroMedia,
+        fallback: mediaLibrary.fallback,
+        mediaLibrary,
+      };
+    case 'auto_pexels_mixed':
+    default:
+      return {
+        source: 'pexels',
+        mediaTypes: { photos: true, videos: true },
+        selected: [],
+        heroMedia: null,
+        fallback: { ...mediaLibrary.fallback, enabled: true },
+        mediaLibrary,
+      };
+  }
+}
+
+function safeHttpUrl(value) {
+  try {
+    const url = new URL(String(value || ''));
+    return ['http:', 'https:'].includes(url.protocol);
+  } catch (_) {
+    return false;
+  }
+}
+
+function validatePexelsAssignmentPayload(payload = {}) {
+  const media = payload.media || {};
+  const target = payload.target || 'collage';
+  if (!HOMEPAGE_MEDIA_TARGETS.includes(target)) {
+    return 'Choose a valid homepage placement.';
+  }
+  if (media.provider && media.provider !== 'pexels') {
+    return 'Only Pexels media can be assigned here.';
+  }
+  if (!['photo', 'video'].includes(media.type)) {
+    return 'Media type must be photo or video.';
+  }
+  if (!media.providerId && !media.id) {
+    return 'Pexels media ID is required.';
+  }
+  if (!safeHttpUrl(media.url || media.mediaUrl)) {
+    return 'Media URL must be a valid HTTP or HTTPS URL.';
+  }
+  if ((media.thumbnailUrl || media.image) && !safeHttpUrl(media.thumbnailUrl || media.image)) {
+    return 'Thumbnail URL must be a valid HTTP or HTTPS URL.';
+  }
+  return null;
+}
+
+function assignPexelsMediaToVersion(settings = {}, version, payload = {}, user = {}) {
+  const targetVersion = normaliseHomepageVersion(version);
+  if (!targetVersion) {
+    throw new Error('Invalid homepage version');
+  }
+  const validation = validatePexelsAssignmentPayload(payload);
+  if (validation) {
+    throw new Error(validation);
+  }
+  const manager = buildHomepageManager(settings);
+  const versionConfig = manager.versions[targetVersion];
+  const library = normaliseMediaLibrary(
+    versionConfig.settings.mediaLibrary || {},
+    versionConfig.settings.collageWidget
+  );
+  const item = normaliseSelectedMediaItem({
+    ...payload.media,
+    target: payload.target || 'collage',
+    addedBy: user.email || null,
+  });
+  const existing = library.selectedPexels.find(
+    media =>
+      media.id === item.id ||
+      (media.providerId && media.providerId === item.providerId && media.type === item.type)
+  );
+  if (existing) {
+    existing.assignedTargets = normaliseAssignedTargets([
+      ...(existing.assignedTargets || []),
+      ...(item.assignedTargets || []),
+    ]);
+    if ((payload.target || 'collage') === 'hero') {
+      library.hero = { ...library.hero, mode: 'selected_pexels', selectedMediaId: existing.id };
+    }
+  } else {
+    library.selectedPexels.push(item);
+    if ((payload.target || 'collage') === 'hero') {
+      library.hero = { ...library.hero, mode: 'selected_pexels', selectedMediaId: item.id };
+    }
+  }
+  versionConfig.settings.mediaLibrary = library;
+  return updateHomepageVersion(settings, targetVersion, { settings: versionConfig.settings }, user);
+}
+
+function removePexelsMediaFromVersion(settings = {}, version, mediaId, user = {}) {
+  const targetVersion = normaliseHomepageVersion(version);
+  if (!targetVersion) {
+    throw new Error('Invalid homepage version');
+  }
+  const manager = buildHomepageManager(settings);
+  const versionConfig = manager.versions[targetVersion];
+  const library = normaliseMediaLibrary(
+    versionConfig.settings.mediaLibrary || {},
+    versionConfig.settings.collageWidget
+  );
+  library.selectedPexels = library.selectedPexels.filter(item => item.id !== mediaId);
+  if (library.hero.selectedMediaId === mediaId) {
+    library.hero = { ...library.hero, mode: 'auto', selectedMediaId: null };
+  }
+  versionConfig.settings.mediaLibrary = library;
+  return updateHomepageVersion(settings, targetVersion, { settings: versionConfig.settings }, user);
+}
+
+function updateMediaLibraryForVersion(settings = {}, version, patch = {}, user = {}) {
+  const targetVersion = normaliseHomepageVersion(version);
+  if (!targetVersion) {
+    throw new Error('Invalid homepage version');
+  }
+  const manager = buildHomepageManager(settings);
+  const versionConfig = manager.versions[targetVersion];
+  const library = normaliseMediaLibrary(
+    versionConfig.settings.mediaLibrary || {},
+    versionConfig.settings.collageWidget
+  );
+  if (patch.mode !== undefined) {
+    if (!HOMEPAGE_MEDIA_MODES.includes(patch.mode)) {
+      throw new Error('Choose a valid media source.');
+    }
+    library.mode = patch.mode;
+    versionConfig.settings.collageWidget.source = patch.mode === 'uploads' ? 'uploads' : 'pexels';
+    versionConfig.settings.collageWidget.mediaTypes =
+      patch.mode === 'auto_pexels_photos'
+        ? { photos: true, videos: false }
+        : patch.mode === 'auto_pexels_videos'
+          ? { photos: false, videos: true }
+          : { ...versionConfig.settings.collageWidget.mediaTypes, ...library.mediaTypes };
+  }
+  if (patch.fallback) {
+    library.fallback = { ...library.fallback, ...patch.fallback, source: 'pexels' };
+  }
+  if (patch.hero) {
+    library.hero = { ...library.hero, ...patch.hero };
+  }
+  versionConfig.settings.mediaLibrary = library;
+  return updateHomepageVersion(settings, targetVersion, { settings: versionConfig.settings }, user);
+}
+
 function hasExplicitCollageDisable(widget = {}) {
   return (
     widget.enabled === false &&
@@ -205,6 +525,10 @@ function buildDefaultVersion(version, existingCollageWidget = {}) {
       hero: {},
       search: {},
       layout: {},
+      mediaLibrary: normaliseMediaLibrary(
+        existingCollageWidget.mediaLibrary || {},
+        baseCollageWidget
+      ),
       collageWidget: {
         ...baseCollageWidget,
         enabled: baseCollageWidget.enabled !== false,
@@ -246,6 +570,10 @@ function normaliseVersion(version, existingVersion = {}, fallbackCollageWidget =
       ...defaults.settings,
       ...clone(existingSettings),
       collageWidget,
+      mediaLibrary: normaliseMediaLibrary(
+        existingSettings.mediaLibrary || defaults.settings.mediaLibrary,
+        collageWidget
+      ),
     },
   };
 }
@@ -394,6 +722,7 @@ function updateHomepageVersion(settings = {}, version, payload = {}, user = {}) 
 
   if (targetVersion === manager.activeVersion) {
     settings.collageWidget = clone(nextVersion.settings.collageWidget);
+    settings.mediaLibrary = clone(nextVersion.settings.mediaLibrary);
   }
 
   return settings;
@@ -421,6 +750,7 @@ function publishHomepageVersion(settings = {}, version, user = {}) {
 
   settings.homepageManager = manager;
   settings.collageWidget = clone(manager.versions[targetVersion].settings.collageWidget);
+  settings.mediaLibrary = clone(manager.versions[targetVersion].settings.mediaLibrary);
 
   return settings;
 }
@@ -452,6 +782,7 @@ function duplicateHomepageVersion(settings = {}, sourceVersion, targetVersion, u
 
   if (target === manager.activeVersion) {
     settings.collageWidget = clone(manager.versions[target].settings.collageWidget);
+    settings.mediaLibrary = clone(manager.versions[target].settings.mediaLibrary);
   }
 
   return settings;
@@ -459,17 +790,25 @@ function duplicateHomepageVersion(settings = {}, sourceVersion, targetVersion, u
 
 module.exports = {
   HOMEPAGE_VERSION_KEYS,
+  HOMEPAGE_MEDIA_MODES,
+  HOMEPAGE_MEDIA_TARGETS,
   DEFAULT_COLLAGE_WIDGET,
+  assignPexelsMediaToVersion,
   buildHomepageManager,
   duplicateHomepageVersion,
   getActiveHomepageVersion,
   getHomepageCollageWidget,
   getHomepageVersion,
+  normaliseMediaLibrary,
   isHomepageVersion,
   hasExplicitCollageDisable,
   mergeCollageWidget,
   normaliseHomepageVersion,
+  removePexelsMediaFromVersion,
+  resolveHomepageMedia,
   publishHomepageVersion,
   updateHomepageVersion,
+  updateMediaLibraryForVersion,
+  validatePexelsAssignmentPayload,
   validateHomepageVersionPayload,
 };

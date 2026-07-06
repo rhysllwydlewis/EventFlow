@@ -5,6 +5,7 @@
   let currentMediaType = 'photos';
   let currentCollectionId = '';
   let selectedMedia = null;
+  let assignedMediaMap = new Map();
 
   function escapeHtml(value) {
     return AdminShared.escapeHtml(String(value ?? ''));
@@ -182,6 +183,7 @@
 
     try {
       const response = await AdminShared.api(endpoint);
+      await loadAssignments();
       displayMedia(response);
     } catch (error) {
       showError(`${failureMessage}: ${error.message}`);
@@ -230,6 +232,14 @@
       });
     });
 
+    grid.querySelectorAll('[data-action="assign"]').forEach(btn => {
+      btn.addEventListener('click', event => {
+        event.stopPropagation();
+        const media = items.find(item => String(item.id) === btn.dataset.mediaId);
+        showAssignmentModal(media);
+      });
+    });
+
     grid.querySelectorAll('[data-action="copy"]').forEach(btn => {
       btn.addEventListener('click', event => {
         event.stopPropagation();
@@ -261,12 +271,14 @@
           </video>`
         : `<img src="${escapeHtml(thumbnailUrl || mediaUrl)}" alt="${escapeHtml(media.title)}" loading="lazy">`;
 
+    const assignmentBadges = getAssignmentBadges(media);
     return `
       <div class="pexels-card" data-media-id="${escapeHtml(media.id)}">
         <div class="pexels-card-media">
           ${preview}
           <span class="pexels-media-type">${escapeHtml(media.type)}</span>
         </div>
+        ${assignmentBadges}
         <div class="pexels-card-info">
           <p class="pexels-photographer">${escapeHtml(media.creator)}</p>
           <p class="pexels-photographer">${escapeHtml(dimensions)}${
@@ -274,11 +286,112 @@
           }</p>
           <div class="pexels-actions">
             <button class="ef-cta pexels-btn pexels-btn-primary" data-action="view" data-media-id="${escapeHtml(media.id)}">View</button>
+            <button class="ef-cta pexels-btn pexels-btn-primary" data-action="assign" data-media-id="${escapeHtml(media.id)}">Use on homepage</button>
             <button class="ef-cta pexels-btn pexels-btn-secondary" data-action="copy" data-url="${escapeHtml(mediaUrl)}">Copy URL</button>
           </div>
         </div>
       </div>
     `;
+  }
+
+  async function loadAssignments() {
+    try {
+      const data = await AdminShared.api('/api/v1/admin/homepage/manager/media-library');
+      assignedMediaMap = new Map();
+      Object.entries(data.versions || {}).forEach(([version, library]) => {
+        (library.selectedPexels || []).forEach(item => {
+          const key = `${item.type}:${item.providerId}`;
+          const existing = assignedMediaMap.get(key) || [];
+          existing.push({ version, targets: item.assignedTargets || [] });
+          assignedMediaMap.set(key, existing);
+        });
+      });
+    } catch (error) {
+      console.warn('Unable to load homepage assignments', error);
+    }
+  }
+
+  function getAssignmentBadges(media) {
+    const assignments = assignedMediaMap.get(`${media.type}:${media.id}`) || [];
+    if (!assignments.length) {
+      return '';
+    }
+    return `<div class="pexels-assignment-badges">${assignments
+      .map(
+        item =>
+          `<span>Selected for ${escapeHtml(item.version.toUpperCase())}${item.targets?.includes('hero') ? ' hero' : ''}</span>`
+      )
+      .join('')}</div>`;
+  }
+
+  function toPexelsPayload(media) {
+    return {
+      provider: 'pexels',
+      providerId: media.id,
+      type: media.type,
+      url: media.mediaUrl,
+      thumbnailUrl: media.thumbnailUrl || media.mediaUrl,
+      alt: media.title,
+      photographer: media.creator,
+      pexelsUrl: media.pexelsUrl,
+      width: media.width,
+      height: media.height,
+      duration: media.duration,
+    };
+  }
+
+  function showAssignmentModal(media) {
+    if (!media) {
+      return;
+    }
+    selectedMedia = media;
+    const modal = document.getElementById('assignmentModal');
+    const preview = document.getElementById('assignmentPreview');
+    preview.innerHTML =
+      media.type === 'video'
+        ? `<video muted playsinline preload="metadata" poster="${escapeHtml(media.thumbnailUrl || '')}"><source src="${escapeHtml(media.mediaUrl || '')}" type="video/mp4"></video><div><strong>${escapeHtml(media.title)}</strong><p>Video by ${escapeHtml(media.creator)}</p></div>`
+        : `<img src="${escapeHtml(media.thumbnailUrl || media.mediaUrl)}" alt="${escapeHtml(media.title)}"><div><strong>${escapeHtml(media.title)}</strong><p>Photo by ${escapeHtml(media.creator)}</p></div>`;
+    modal.classList.add('active');
+    modal.setAttribute('aria-hidden', 'false');
+    document.getElementById('assignmentSave').focus();
+  }
+
+  function closeAssignmentModal() {
+    const modal = document.getElementById('assignmentModal');
+    modal.classList.remove('active');
+    modal.setAttribute('aria-hidden', 'true');
+  }
+
+  async function saveHomepageAssignment() {
+    if (!selectedMedia) {
+      return;
+    }
+    try {
+      const csrfData = await AdminShared.api('/api/v1/csrf-token');
+      const version = document.getElementById('assignmentVersion').value;
+      const target = document.getElementById('assignmentTarget').value;
+      const response = await fetch(
+        `/api/v1/admin/homepage/manager/media-library/${version}/pexels`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfData.csrfToken },
+          credentials: 'include',
+          body: JSON.stringify({ target, media: toPexelsPayload(selectedMedia) }),
+        }
+      );
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || 'Could not assign media.');
+      }
+      AdminShared.showToast(result.message || 'Media assigned successfully', 'success');
+      closeAssignmentModal();
+      await loadAssignments();
+      if (currentMode) {
+        goToPage(currentPage);
+      }
+    } catch (error) {
+      AdminShared.showToast(error.message || 'Could not assign media. Please try again.', 'error');
+    }
   }
 
   function showMediaModal(media) {
@@ -402,6 +515,17 @@
       copyToClipboard(selectedMedia.mediaUrl);
     }
   });
+
+  document.getElementById('modalUseHomepage').addEventListener('click', () => {
+    if (selectedMedia) {
+      document.getElementById('photoModal').classList.remove('active');
+      showAssignmentModal(selectedMedia);
+    }
+  });
+
+  document.getElementById('assignmentClose').addEventListener('click', closeAssignmentModal);
+  document.getElementById('assignmentCancel').addEventListener('click', closeAssignmentModal);
+  document.getElementById('assignmentSave').addEventListener('click', saveHomepageAssignment);
 
   document.getElementById('modalViewPexels').addEventListener('click', () => {
     if (selectedMedia) {

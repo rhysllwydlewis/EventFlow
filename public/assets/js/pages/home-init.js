@@ -501,13 +501,6 @@ async function loadPackagesCarousel({ endpoint, containerId, emptyMessage }) {
  * @param {Array} items - Package items to render
  */
 function renderPackageFallback(container, items) {
-  // Helper to safely escape HTML
-  const escape = text => {
-    const div = document.createElement('div');
-    div.textContent = text || '';
-    return div.innerHTML;
-  };
-
   // Validate and sanitize URLs to prevent XSS
   const sanitizeUrl = url => {
     if (!url) {
@@ -1557,7 +1550,13 @@ async function loadHeroVideoWithRetry(videoUrl, maxRetries = 3) {
  * @param {Object} mediaTypes - Media types configuration with {photos: boolean, videos: boolean}
  * @param {Array} uploadGallery - Array of uploaded media URLs
  */
-async function initHeroVideo(source, mediaTypes, uploadGallery = [], heroVideoConfig = {}) {
+async function initHeroVideo(
+  source,
+  mediaTypes,
+  uploadGallery = [],
+  heroVideoConfig = {},
+  selectedHeroMedia = null
+) {
   const videoElement = document.getElementById('hero-pexels-video');
   const videoSource = document.getElementById('hero-video-source');
   const videoCredit = document.getElementById('hero-video-credit');
@@ -1592,6 +1591,29 @@ async function initHeroVideo(source, mediaTypes, uploadGallery = [], heroVideoCo
   }
 
   try {
+    if (selectedHeroMedia?.type === 'video' && selectedHeroMedia.url) {
+      videoSource.src = selectedHeroMedia.url;
+      if (selectedHeroMedia.thumbnailUrl) {
+        videoElement.poster = selectedHeroMedia.thumbnailUrl;
+      }
+      videoElement.load();
+      if (videoCredit) {
+        videoCredit.textContent = selectedHeroMedia.photographer
+          ? `Video by ${selectedHeroMedia.photographer}`
+          : '';
+        videoCredit.style.display = selectedHeroMedia.photographer ? 'block' : 'none';
+      }
+      videoElement.play().catch(() => {
+        if (isDebugEnabled()) {
+          console.log('[Hero Video] Autoplay prevented for selected media');
+        }
+      });
+      if (videoCard) {
+        videoCard.classList.remove('loading-video');
+      }
+      return;
+    }
+
     // Check if we should use videos - default to true if not explicitly set to false
     const useVideos = mediaTypes?.videos !== false;
 
@@ -2017,7 +2039,13 @@ async function initCollageWidget(widgetConfig) {
 
   // Skip video initialization if user prefers reduced data
   if (!prefersReducedData) {
-    await initHeroVideo(source, effectiveMediaTypes, uploadGallery, heroVideo || {});
+    await initHeroVideo(
+      source,
+      effectiveMediaTypes,
+      uploadGallery,
+      heroVideo || {},
+      widgetConfig.heroSelectedMedia || null
+    );
   } else if (isDevelopmentEnvironment()) {
     console.log('[Hero Video] Skipped due to prefers-reduced-data');
   }
@@ -2026,7 +2054,37 @@ async function initCollageWidget(widgetConfig) {
     const mediaCache = {};
     const currentMediaIndex = {};
 
-    // Load media based on source
+    const selectedMedia = Array.isArray(widgetConfig.selectedMedia)
+      ? widgetConfig.selectedMedia
+      : [];
+    const selectedMediaSource = source === 'selected' || source === 'selected_with_fallback';
+
+    // Load selected media first when configured. Fallback-capable modes can append Pexels below.
+    if (selectedMediaSource && selectedMedia.length > 0) {
+      const categories = Object.keys(categoryMapping);
+      categories.forEach((category, index) => {
+        mediaCache[category] = selectedMedia
+          .filter(
+            item =>
+              (item.assignedTargets || ['collage']).includes('collage') ||
+              (item.assignedTargets || []).includes('general')
+          )
+          .filter((_, i) => i % categories.length === index)
+          .map(item => ({
+            url: item.url,
+            type: item.type || 'photo',
+            thumbnail: item.thumbnailUrl,
+            photographer: item.photographer || 'Pexels',
+            photographerUrl: item.pexelsUrl,
+            category,
+            width: item.width,
+            height: item.height,
+            duration: item.duration,
+          }));
+        currentMediaIndex[category] = 0;
+      });
+    }
+
     if (source === 'uploads' && uploadGallery && uploadGallery.length > 0) {
       // Use uploaded media
       if (isDebugEnabled()) {
@@ -2061,10 +2119,16 @@ async function initCollageWidget(widgetConfig) {
           );
         }
       });
-    } else if (
-      (source === 'pexels' || (fallbackToPexels && source === 'uploads')) &&
-      !prefersReducedData
-    ) {
+    }
+
+    const shouldFetchPexelsMedia =
+      source === 'pexels' ||
+      (fallbackToPexels &&
+        source === 'uploads' &&
+        (!uploadGallery || uploadGallery.length === 0)) ||
+      (fallbackToPexels && source === 'selected_with_fallback');
+
+    if (shouldFetchPexelsMedia && !prefersReducedData) {
       // Use Pexels API (fallback or primary) - but skip if user prefers reduced data
       if (source === 'uploads' && fallbackToPexels) {
         if (isDebugEnabled()) {
@@ -2162,7 +2226,12 @@ async function initCollageWidget(widgetConfig) {
           }
 
           if (allMedia.length > 0) {
-            mediaCache[category] = allMedia;
+            const existingMedia = mediaCache[category] || [];
+            const existingUrls = new Set(existingMedia.map(item => item.url));
+            mediaCache[category] = [
+              ...existingMedia,
+              ...allMedia.filter(item => !existingUrls.has(item.url)),
+            ];
 
             if (mediaCache[category].length === 0) {
               if (isDebugEnabled()) {
@@ -2187,7 +2256,9 @@ async function initCollageWidget(widgetConfig) {
           restoreFrameDefault(collageFrames, categoryMapping, category, uploadGallery);
         }
       }
-    } else {
+    }
+
+    if (Object.keys(mediaCache).length === 0) {
       // No valid source, restore defaults
       if (isDebugEnabled()) {
         console.warn('[Collage Widget] No valid media source configured');

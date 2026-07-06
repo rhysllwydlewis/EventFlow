@@ -16,6 +16,9 @@ const {
   duplicateHomepageVersion,
   publishHomepageVersion,
   updateHomepageVersion,
+  assignPexelsMediaToVersion,
+  removePexelsMediaFromVersion,
+  updateMediaLibraryForVersion,
   validateHomepageVersionPayload,
 } = require('../utils/homepage-manager');
 
@@ -30,6 +33,137 @@ router.get('/', authRequired, roleRequired('admin'), async (req, res) => {
     res.status(500).json({ error: 'Failed to read homepage manager' });
   }
 });
+
+router.get('/media-library', authRequired, roleRequired('admin'), async (req, res) => {
+  try {
+    const settings = (await dbUnified.read('settings')) || {};
+    const manager = buildHomepageManager(settings);
+    const versions = Object.fromEntries(
+      Object.entries(manager.versions).map(([key, version]) => [key, version.settings.mediaLibrary])
+    );
+    res.json({ success: true, activeVersion: manager.activeVersion, versions });
+  } catch (error) {
+    logger.error('Error reading homepage media library:', error);
+    res.status(500).json({ error: 'Unable to load homepage media library.' });
+  }
+});
+
+router.get('/media-library/:version', authRequired, roleRequired('admin'), async (req, res) => {
+  try {
+    const settings = (await dbUnified.read('settings')) || {};
+    const manager = buildHomepageManager(settings);
+    const version = manager.versions[req.params.version];
+    if (!version) {
+      return res.status(400).json({ error: 'Choose a valid homepage version.' });
+    }
+    res.json({
+      success: true,
+      version: req.params.version,
+      mediaLibrary: version.settings.mediaLibrary,
+    });
+  } catch (error) {
+    logger.error('Error reading homepage media library version:', error);
+    res.status(500).json({ error: 'Unable to load homepage media library.' });
+  }
+});
+
+router.post(
+  '/media-library/:version/pexels',
+  authRequired,
+  roleRequired('admin'),
+  csrfProtection,
+  async (req, res) => {
+    try {
+      const settings = (await dbUnified.read('settings')) || {};
+      const nextSettings = assignPexelsMediaToVersion(
+        settings,
+        req.params.version,
+        req.body,
+        req.user
+      );
+      const result = await dbUnified.writeAndVerify('settings', nextSettings);
+      const manager = buildHomepageManager(result.data);
+      const mediaLibrary = manager.versions[req.params.version]?.settings.mediaLibrary;
+      auditLog({
+        adminId: req.user.id,
+        adminEmail: req.user.email,
+        action: 'HOMEPAGE_MEDIA_ASSIGNED',
+        targetType: 'homepage-media',
+        targetId: req.params.version,
+        details: {
+          version: req.params.version,
+          target: req.body?.target,
+          providerId: req.body?.media?.providerId,
+        },
+      });
+      res.json({
+        success: true,
+        version: req.params.version,
+        mediaLibrary,
+        message: `Media assigned to ${String(req.params.version).toUpperCase()}.`,
+      });
+    } catch (error) {
+      logger.error('Error assigning homepage media:', error);
+      res.status(400).json({ error: error.message || 'Could not assign media. Please try again.' });
+    }
+  }
+);
+
+router.delete(
+  '/media-library/:version/pexels/:mediaId',
+  authRequired,
+  roleRequired('admin'),
+  csrfProtection,
+  async (req, res) => {
+    try {
+      const settings = (await dbUnified.read('settings')) || {};
+      const nextSettings = removePexelsMediaFromVersion(
+        settings,
+        req.params.version,
+        req.params.mediaId,
+        req.user
+      );
+      const result = await dbUnified.writeAndVerify('settings', nextSettings);
+      const manager = buildHomepageManager(result.data);
+      res.json({
+        success: true,
+        version: req.params.version,
+        mediaLibrary: manager.versions[req.params.version].settings.mediaLibrary,
+      });
+    } catch (error) {
+      logger.error('Error removing homepage media:', error);
+      res.status(400).json({ error: error.message || 'Could not remove selected media.' });
+    }
+  }
+);
+
+router.patch(
+  '/media-library/:version',
+  authRequired,
+  roleRequired('admin'),
+  csrfProtection,
+  async (req, res) => {
+    try {
+      const settings = (await dbUnified.read('settings')) || {};
+      const nextSettings = updateMediaLibraryForVersion(
+        settings,
+        req.params.version,
+        req.body || {},
+        req.user
+      );
+      const result = await dbUnified.writeAndVerify('settings', nextSettings);
+      const manager = buildHomepageManager(result.data);
+      res.json({
+        success: true,
+        version: req.params.version,
+        mediaLibrary: manager.versions[req.params.version].settings.mediaLibrary,
+      });
+    } catch (error) {
+      logger.error('Error updating homepage media library:', error);
+      res.status(400).json({ error: error.message || 'Could not update homepage media settings.' });
+    }
+  }
+);
 
 router.put(
   '/version/:version',
