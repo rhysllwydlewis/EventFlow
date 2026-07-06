@@ -1,0 +1,245 @@
+/* Quality fixes for the admin homepage after shared admin styles load. */
+
+.admin-main-content,
+.admin-main-content * {
+  box-sizing: border-box;
+}
+
+.admin-main-content .homepage-version-tab {
+  min-width: 0;
+  overflow: visible;
+  color: #0f172a !important;
+  white-space: normal;
+}
+
+.admin-main-content .homepage-version-tab.is-selected {
+  background: #f8fffd !important;
+  border-color: #0b8073 !important;
+  box-shadow: inset 0 0 0 1px #0b8073, 0 12px 26px rgba(15, 23, 42, 0.1) !important;
+}
+
+.admin-main-content .homepage-version-tab > span:first-child {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start !important;
+  gap: 12px !important;
+}
+
+.admin-main-content .homepage-version-name {
+  min-width: 0;
+  color: #0f172a !important;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.admin-main-content .homepage-version-tab .badge {
+  align-self: start;
+  max-width: 100%;
+  line-height: 1.2;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.admin-main-content .homepage-version-tab.is-selected .badge {
+  background: #e0f2fe !important;
+  color: #0f172a !important;
+}
+
+.admin-main-content .homepage-version-tab .small {
+  display: block !important;
+  margin-top: 8px !important;
+  color: #475569 !important;
+  line-height: 1.45;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+}
+
+.admin-main-content .admin-category-cards-grid {
+  grid-template-columns: repeat(auto-fit, minmax(286px, 1fr));
+  gap: 18px;
+  align-items: start;
+}
+
+.admin-main-content .admin-category-card {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid #dbe3ed;
+  border-radius: 14px;
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.06);
+  cursor: default;
+}
+
+.admin-main-content .admin-category-card-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  min-height: 74px;
+  padding: 14px;
+}
+
+.admin-main-content .admin-category-card-title {
+  min-width: 0;
+  gap: 10px;
+  color: #111827;
+  font-size: 1rem;
+  line-height: 1.3;
+}
+
+.admin-main-content .admin-category-card-title span:last-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.admin-main-content .admin-category-card-icon {
+  flex: 0 0 auto;
+  font-size: 1.55rem;
+  line-height: 1;
+}
+
+.admin-main-content .admin-category-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  justify-self: end;
+  gap: 6px;
+  max-width: 130px;
+  min-width: 0;
+}
+
+.admin-main-content .admin-category-card-actions .admin-category-card-btn {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  width: auto !important;
+  min-width: 50px !important;
+  min-height: 32px !important;
+  padding: 0 10px !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 10px !important;
+  appearance: none;
+  background: #ffffff !important;
+  color: #334155 !important;
+  box-shadow: 0 3px 9px rgba(15, 23, 42, 0.12) !important;
+  font-size: 0.75rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0;
+  line-height: 1;
+  overflow: visible;
+  text-transform: none;
+  white-space: nowrap;
+}
+
+.admin-main-content .admin-category-card-actions .admin-category-card-btn.danger {
+  color: #b91c1c !important;
+}
+
+.admin-main-content .admin-category-card-actions .admin-category-card-btn:hover,
+.admin-main-content .admin-category-card-actions .admin-category-card-btn:focus-visible {
+  border-color: #0b8073 !important;
+  box-shadow: 0 0 0 3px rgba(11, 128, 115, 0.16) !important;
+  outline: none;
+}
+
+.admin-main-content .admin-category-card-actions .admin-category-card-btn.danger:hover,
+.admin-main-content .admin-category-card-actions .admin-category-card-btn.danger:focus-visible {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.16) !important;
+}
+
+.admin-main-content .admin-category-card-body {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  padding: 14px;
+}
+
+.admin-main-content .admin-category-card-image-preview {
+  aspect-ratio: 16 / 10;
+  height: auto;
+  min-height: 150px;
+}
+
+.admin-main-content .admin-category-card-description {
+  min-height: 64px;
+  color: #475569;
+  line-height: 1.45;
+}
+
+.admin-main-content .admin-category-card-meta {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  color: #64748b;
+}
+
+.admin-main-content .admin-category-card-slug {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-main-content .admin-category-card-visibility {
+  justify-content: flex-end;
+  min-width: 118px;
+  gap: 8px;
+}
+
+.admin-main-content .admin-category-card-visibility > span {
+  max-width: 72px;
+  color: #64748b !important;
+  font-size: 0.68rem !important;
+  font-weight: 700 !important;
+  line-height: 1.15;
+  text-align: right;
+  white-space: normal;
+}
+
+.admin-main-content .admin-category-card-visibility-toggle {
+  flex: 0 0 auto;
+}
+
+@media (min-width: 1180px) {
+  .admin-main-content .admin-category-card-actions {
+    flex-wrap: nowrap;
+    max-width: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .admin-main-content .homepage-version-tab > span:first-child,
+  .admin-main-content .admin-category-card-header,
+  .admin-main-content .admin-category-card-meta {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-main-content .homepage-version-tab .badge,
+  .admin-main-content .admin-category-card-actions {
+    justify-self: start;
+  }
+
+  .admin-main-content .admin-category-card-actions {
+    justify-content: flex-start;
+    max-width: none;
+  }
+
+  .admin-main-content .admin-category-card-visibility {
+    justify-content: space-between;
+    min-width: 0;
+  }
+
+  .admin-main-content .admin-category-card-visibility > span {
+    max-width: none;
+    text-align: left;
+  }
+}
+
+@media (max-width: 520px) {
+  .admin-main-content .admin-category-cards-grid {
+    grid-template-columns: 1fr;
+  }
+}
