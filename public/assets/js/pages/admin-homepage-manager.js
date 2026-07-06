@@ -21,11 +21,11 @@
     section.innerHTML = `
       <div style="display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; margin-bottom: 20px; flex-wrap: wrap;">
         <div>
-          <h2 style="margin: 0 0 6px; font-size: 1.5rem; font-weight: 700;">Homepage Version Manager</h2>
-          <p class="small" style="margin: 0; color: #4b5563;">Manage V1, V2 and V3 as separate homepage slots. Double-click a tab name to rename it.</p>
+          <h2 style="margin: 0 0 6px; font-size: 1.5rem; font-weight: 700;">Homepage versions</h2>
+          <p class="small" style="margin: 0; color: #4b5563;">Select the version to edit, preview drafts and publish a version when it is ready for the live site.</p>
         </div>
         <div class="badge" id="homepageActiveBadge" style="background: #dcfce7; color: #166534; padding: 6px 12px; border-radius: 999px; font-size: 0.8rem; font-weight: 700;">
-          Active: loading
+          Live version: loading
         </div>
       </div>
 
@@ -35,17 +35,17 @@
 
       <div style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(260px, 360px); gap: 20px;">
         <div style="padding: 16px; border: 1px solid #e5e7eb; border-radius: 8px; background: #f9fafb;">
-          <h3 id="homepageSelectedTitle" style="margin: 0 0 8px; font-size: 1.1rem;">Selected homepage slot</h3>
-          <p id="homepageSelectedDescription" class="small" style="margin: 0 0 14px; color: #4b5563;">Choose a homepage slot to manage its settings.</p>
+          <h3 id="homepageSelectedTitle" style="margin: 0 0 8px; font-size: 1.1rem;">Selected homepage version</h3>
+          <p id="homepageSelectedDescription" class="small" style="margin: 0 0 14px; color: #4b5563;">Choose a homepage version to manage its settings.</p>
           <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-            <a id="homepagePreviewLink" class="ef-cta btn btn-secondary" href="/" target="_blank" rel="noopener noreferrer">Preview slot</a>
-            <button id="publishHomepageVersion" class="ef-cta btn btn-primary" type="button">Set as live homepage</button>
-            <button id="duplicateHomepageVersion" class="ef-cta btn btn-secondary" type="button">Duplicate live settings into this slot</button>
+            <a id="homepagePreviewLink" class="ef-cta btn btn-secondary" href="/" target="_blank" rel="noopener noreferrer">Preview version</a>
+            <button id="publishHomepageVersion" class="ef-cta btn btn-primary" type="button">Set live</button>
+            <button id="duplicateHomepageVersion" class="ef-cta btn btn-secondary" type="button">Copy live settings into this version</button>
           </div>
         </div>
 
         <div style="padding: 16px; border: 1px solid #dbeafe; border-radius: 8px; background: #eff6ff;">
-          <h3 style="margin: 0 0 8px; font-size: 1rem;">Slot Status</h3>
+          <h3 style="margin: 0 0 8px; font-size: 1rem;">Version status</h3>
           <dl style="margin: 0; display: grid; gap: 8px; font-size: 0.9rem;">
             <div style="display: flex; justify-content: space-between; gap: 12px;">
               <dt style="color: #4b5563;">Selected</dt>
@@ -91,7 +91,7 @@
     errorEl.style.display = 'none';
 
     const target = type === 'error' ? errorEl : successEl;
-    target.textContent = `${type === 'error' ? 'X' : 'OK'} ${message}`;
+    target.textContent = `${type === 'error' ? 'Unable to complete action:' : 'Success:'} ${message}`;
     target.style.display = 'block';
     window.setTimeout(
       () => {
@@ -154,7 +154,7 @@
 
     const activeBadge = document.getElementById('homepageActiveBadge');
     if (activeBadge) {
-      activeBadge.textContent = `Active: ${(manager.activeVersion || 'v1').toUpperCase()}`;
+      activeBadge.textContent = `Live version: ${(manager.activeVersion || 'v1').toUpperCase()}`;
     }
 
     tabsContainer.innerHTML = VERSION_KEYS.map(version => {
@@ -171,7 +171,7 @@
         >
           <span style="display: flex; justify-content: space-between; gap: 8px; align-items: center;">
             <strong class="homepage-version-name" data-version="${version}" title="Double-click to rename">${escapeHtml(slot.tabName)}</strong>
-            <span class="badge" style="background: ${isActive ? '#dcfce7' : '#f3f4f6'}; color: ${isActive ? '#166534' : '#374151'}; padding: 3px 8px; border-radius: 999px; font-size: 0.7rem;">${isActive ? 'Live' : escapeHtml(slot.status || 'draft')}</span>
+            <span class="badge" style="background: ${isActive ? '#dcfce7' : '#f3f4f6'}; color: ${isActive ? '#166534' : '#374151'}; padding: 3px 8px; border-radius: 999px; font-size: 0.7rem;">${isActive ? 'Live on site' : isSelected ? 'Editing this version' : escapeHtml(slot.status || 'Draft')}</span>
           </span>
           <span class="small" style="display: block; color: #6b7280; margin-top: 8px;">${escapeHtml(slot.description || '')}</span>
         </button>
@@ -202,7 +202,7 @@
     document.getElementById('homepageSelectedDescription').textContent = slot.description || '';
     document.getElementById('homepageSelectedVersion').textContent = selectedVersion.toUpperCase();
     document.getElementById('homepageSelectedStatus').textContent =
-      selectedVersion === manager.activeVersion ? 'Published' : slot.status || 'Draft';
+      selectedVersion === manager.activeVersion ? 'Live on site' : slot.status || 'Draft';
     document.getElementById('homepageSelectedUpdated').textContent = formatUpdatedAt(
       slot.updatedAt
     );
@@ -347,7 +347,7 @@
     const widget = collectWidgetFromForm();
 
     if (!widget.mediaTypes.photos && !widget.mediaTypes.videos) {
-      showMessage('Please select at least one media type', 'error');
+      showMessage('Select at least one media type before saving.', 'error');
       return;
     }
 
@@ -356,7 +356,7 @@
       widget.intervalSeconds < 1 ||
       widget.intervalSeconds > 60
     ) {
-      showMessage('Interval must be between 1 and 60 seconds', 'error');
+      showMessage('Enter a transition interval between 1 and 60 seconds.', 'error');
       return;
     }
 
@@ -376,7 +376,7 @@
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
-      showMessage(error.error || 'Failed to save homepage slot', 'error');
+      showMessage(error.error || 'Unable to save the selected homepage version.', 'error');
       return;
     }
 
@@ -384,7 +384,7 @@
     manager = data.manager;
     renderManager();
     applySelectedSlotToForm();
-    showMessage('Homepage slot saved successfully');
+    showMessage('Changes saved to the selected homepage version.');
   }
 
   function startRename(nameEl) {
@@ -424,9 +424,9 @@
       if (response.ok) {
         const data = await response.json();
         manager = data.manager;
-        showMessage('Homepage tab renamed');
+        showMessage('Homepage version name updated.');
       } else {
-        showMessage('Failed to rename homepage tab', 'error');
+        showMessage('Unable to rename the homepage version.', 'error');
       }
       renderManager();
     };
@@ -456,7 +456,7 @@
     });
 
     if (!response.ok) {
-      showMessage('Failed to publish homepage version', 'error');
+      showMessage('Unable to publish this homepage version.', 'error');
       return;
     }
 
@@ -464,7 +464,7 @@
     manager = data.manager;
     renderManager();
     applySelectedSlotToForm();
-    showMessage('Homepage version published');
+    showMessage('This version is now live on the site.');
   }
 
   async function duplicateLiveIntoSelected() {
@@ -487,7 +487,7 @@
     });
 
     if (!response.ok) {
-      showMessage('Failed to duplicate homepage settings', 'error');
+      showMessage('Unable to copy the live homepage settings.', 'error');
       return;
     }
 
@@ -495,7 +495,7 @@
     manager = data.manager;
     renderManager();
     applySelectedSlotToForm();
-    showMessage('Homepage settings duplicated');
+    showMessage('Live homepage settings copied into the selected version.');
   }
 
   async function loadCollageMediaUrls() {
@@ -529,7 +529,7 @@
       });
     } catch (error) {
       console.error('Homepage manager failed to initialise:', error);
-      showMessage('Failed to initialise homepage manager', 'error');
+      showMessage('Unable to initialise homepage version management.', 'error');
     }
   }
 

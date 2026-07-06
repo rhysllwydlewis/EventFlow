@@ -52,11 +52,15 @@
         collageWidget = await response.json();
         renderCollageWidget();
       } else {
-        showCollageWidgetError('Failed to load collage widget configuration');
+        showCollageWidgetError(
+          'Unable to load collage configuration. Refresh the page and try again.'
+        );
       }
     } catch (err) {
       console.error('Error loading collage widget:', err);
-      showCollageWidgetError('Failed to load collage widget configuration');
+      showCollageWidgetError(
+        'Unable to load collage configuration. Refresh the page and try again.'
+      );
     }
   }
 
@@ -340,17 +344,17 @@
         if (isDevelopment) {
           console.log('[Admin] Configuration saved successfully:', result.collageWidget);
         }
-        showCollageWidgetSuccess('Configuration saved successfully!');
+        showCollageWidgetSuccess('Collage settings saved successfully.');
         await loadCollageWidget(); // Reload to get updated data
       } else {
         const error = await response.json();
         // Always log errors for admin troubleshooting
         console.error('[Admin] Failed to save configuration:', error);
-        showCollageWidgetError(error.error || 'Failed to save configuration');
+        showCollageWidgetError(error.error || 'Unable to save collage settings.');
       }
     } catch (err) {
       console.error('Error saving collage widget:', err);
-      showCollageWidgetError('Failed to save configuration');
+      showCollageWidgetError('Unable to save collage settings.');
     }
   }
 
@@ -358,7 +362,7 @@
     const successEl = document.getElementById('collageWidgetSuccess');
     const errorEl = document.getElementById('collageWidgetError');
     errorEl.style.display = 'none';
-    successEl.textContent = `✅ ${message}`;
+    successEl.textContent = `Success: ${message}`;
     successEl.style.display = 'block';
     setTimeout(() => {
       successEl.style.display = 'none';
@@ -369,7 +373,7 @@
     const successEl = document.getElementById('collageWidgetSuccess');
     const errorEl = document.getElementById('collageWidgetError');
     successEl.style.display = 'none';
-    errorEl.textContent = `❌ ${message}`;
+    errorEl.textContent = `Unable to complete action: ${message}`;
     errorEl.style.display = 'block';
     setTimeout(() => {
       errorEl.style.display = 'none';
@@ -399,7 +403,7 @@
     if (!collageMedia || collageMedia.length === 0) {
       container.innerHTML = `
         <div class="card" style="padding: 20px; text-align: center; color: #9ca3af;">
-          <p>No media uploaded yet</p>
+          <p>No uploaded media yet.</p>
         </div>
       `;
       return;
@@ -418,7 +422,7 @@
             <span class="gallery-item-type ${escapeHtml(item.type)}">${escapeHtml(item.type)}</span>
             <p class="small" style="margin: 0; color: #6b7280;">${formatFileSize(item.size)}</p>
           </div>
-          <button class="ef-cta gallery-item-delete" data-filename="${escapeHtml(item.filename)}">🗑️ Delete</button>
+          <button class="ef-cta gallery-item-delete" data-filename="${escapeHtml(item.filename)}" aria-label="Delete uploaded media ${escapeHtml(item.filename)}">Delete media</button>
         </div>
       `
       )
@@ -429,8 +433,8 @@
       btn.addEventListener('click', async () => {
         const filename = btn.dataset.filename;
         const confirmed = await AdminShared.showConfirmModal({
-          title: 'Delete Media File',
-          message: 'Delete this media file?',
+          title: 'Delete media file',
+          message: 'Delete this uploaded media file? This action cannot be undone.',
           confirmText: 'Delete',
         });
         if (confirmed) {
@@ -500,11 +504,13 @@
       hideUploadProgress();
 
       if (response.ok) {
-        showCollageWidgetSuccess(`✅ Uploaded ${files.length} file(s) successfully!`);
+        showCollageWidgetSuccess(`${files.length} file(s) uploaded successfully.`);
         await loadCollageMedia();
       } else {
         const error = await response.json();
-        showCollageWidgetError(error.error || 'Upload failed. Please check file types and sizes.');
+        showCollageWidgetError(
+          error.error || 'Unable to upload media. Check file types and sizes, then try again.'
+        );
       }
     } catch (err) {
       hideUploadProgress();
@@ -536,15 +542,15 @@
       );
 
       if (response.ok) {
-        showCollageWidgetSuccess('Media deleted successfully!');
+        showCollageWidgetSuccess('Media file deleted successfully.');
         await loadCollageMedia();
       } else {
         const error = await response.json();
-        showCollageWidgetError(error.error || 'Failed to delete media');
+        showCollageWidgetError(error.error || 'Unable to delete media file.');
       }
     } catch (err) {
       console.error('Error deleting collage media:', err);
-      showCollageWidgetError('Failed to delete media');
+      showCollageWidgetError('Unable to delete media file.');
     }
   }
 
@@ -602,12 +608,12 @@
         renderCategories();
       } else {
         categoryListElement.innerHTML =
-          '<div class="card"><p class="small">Failed to load categories. Please try again.</p></div>';
+          '<div class="card"><p class="small">Unable to load categories. Refresh the page and try again.</p></div>';
       }
     } catch (err) {
       console.error('Error loading categories:', err);
       categoryListElement.innerHTML =
-        '<div class="card"><p class="small">Failed to load categories. Please try again.</p></div>';
+        '<div class="card"><p class="small">Unable to load categories. Refresh the page and try again.</p></div>';
     }
   }
 
@@ -633,19 +639,19 @@
             ${
               hasImage
                 ? `<img src="${escapeHtml(category.heroImage)}" alt="${escapeHtml(category.name)}" class="category-preview" id="preview-${escapeHtml(category.id)}" data-fallback-hide data-fallback-show-next>
-                   <div class="category-placeholder" id="placeholder-${escapeHtml(category.id)}" style="display: none;">${escapeHtml(category.icon || '📷')} ${escapeHtml(category.name)}<br><span class="small">Image failed to load</span></div>`
-                : `<div class="category-placeholder" id="preview-${escapeHtml(category.id)}">${escapeHtml(category.icon || '📷')} ${escapeHtml(category.name)}<br><span class="small">No image set</span></div>`
+                   <div class="category-placeholder" id="placeholder-${escapeHtml(category.id)}" style="display: none;">${escapeHtml(category.icon || '📷')} ${escapeHtml(category.name)}<br><span class="small">Unable to display image</span></div>`
+                : `<div class="category-placeholder" id="preview-${escapeHtml(category.id)}">${escapeHtml(category.icon || '📷')} ${escapeHtml(category.name)}<br><span class="small">No image selected</span></div>`
             }
             <div class="upload-area" id="drop-${escapeHtml(category.id)}">
-              <div>📤 Click to upload or drag & drop</div>
+              <div>Upload image or drag and drop</div>
               <div class="small">PNG, JPG, WebP (max 5MB)</div>
             </div>
             <input type="file" id="file-${escapeHtml(category.id)}" accept="image/*" data-category-id="${escapeHtml(category.id)}">
-            ${hasImage ? `<button class="ef-cta remove-btn" data-category-id="${escapeHtml(category.id)}">Remove Image</button>` : ''}
-            <div class="success-message" id="success-${escapeHtml(category.id)}" style="display: none;">Image updated successfully!</div>
-            <div class="error-message" id="error-${escapeHtml(category.id)}" style="display: none;">Failed to update image.</div>
+            ${hasImage ? `<button class="ef-cta remove-btn" data-category-id="${escapeHtml(category.id)}">Remove image</button>` : ''}
+            <div class="success-message" id="success-${escapeHtml(category.id)}" style="display: none;">Image updated successfully.</div>
+            <div class="error-message" id="error-${escapeHtml(category.id)}" style="display: none;">Unable to update image.</div>
             <div class="category-card-visibility" style="display:flex;align-items:center;gap:8px;margin-top:8px;">
-              <span style="font-size:11px;font-weight:600;">Visible on homepage:</span>
+              <span style="font-size:11px;font-weight:600;">Homepage visibility:</span>
               <label class="admin-category-card-visibility-toggle">
                 <input type="checkbox" class="hero-visibility-toggle" data-id="${escapeHtml(category.id)}" ${category.visible !== false ? 'checked' : ''}>
                 <span class="admin-category-card-visibility-slider"></span>
@@ -761,18 +767,19 @@
         await loadCategories();
       } else {
         const errorData = await response.json();
-        showError(categoryId, errorData.error || 'Failed to upload image.');
+        showError(categoryId, errorData.error || 'Unable to upload image.');
       }
     } catch (err) {
       console.error('Error uploading image:', err);
-      showError(categoryId, 'Failed to upload image.');
+      showError(categoryId, 'Unable to upload image.');
     }
   }
 
   async function removeImage(categoryId) {
     const confirmed = await AdminShared.showConfirmModal({
-      title: 'Remove Image',
-      message: 'Are you sure you want to remove this image?',
+      title: 'Remove image',
+      message:
+        'Remove this category hero image? The category will show a missing-image state until a replacement is added.',
       confirmText: 'Remove',
     });
     if (!confirmed) {
@@ -801,11 +808,11 @@
         await loadCategories();
       } else {
         const errorData = await response.json();
-        showError(categoryId, errorData.error || 'Failed to remove image.');
+        showError(categoryId, errorData.error || 'Unable to remove image.');
       }
     } catch (err) {
       console.error('Error removing image:', err);
-      showError(categoryId, 'Failed to remove image.');
+      showError(categoryId, 'Unable to remove image.');
     }
   }
 
@@ -862,18 +869,20 @@
         allCategories = data.items || [];
         renderCategoryCards();
       } else {
-        categoryCardsGrid.innerHTML = '<div class="card"><p>Failed to load categories</p></div>';
+        categoryCardsGrid.innerHTML =
+          '<div class="card"><p>Unable to load categories. Refresh the page and try again.</p></div>';
       }
     } catch (error) {
       console.error('Error loading categories:', error);
-      categoryCardsGrid.innerHTML = '<div class="card"><p>Error loading categories</p></div>';
+      categoryCardsGrid.innerHTML =
+        '<div class="card"><p>Unable to load categories. Refresh the page and try again.</p></div>';
     }
   }
 
   function renderCategoryCards() {
     if (allCategories.length === 0) {
       categoryCardsGrid.innerHTML =
-        '<div class="card"><p>No categories yet. Click "Add Category" to create one.</p></div>';
+        '<div class="card"><p>No categories yet. Select “Add category” to create one.</p></div>';
       return;
     }
 
@@ -887,7 +896,7 @@
       const hasImage = category.heroImage && category.heroImage.trim() !== '';
       const imagePreviewHtml = hasImage
         ? `<img src="${escapeHtml(category.heroImage)}" alt="${escapeHtml(category.name)}" />`
-        : '<span>No image</span>';
+        : '<span>No image selected</span>';
 
       card.innerHTML = `
         <div class="admin-category-card-header">
@@ -896,19 +905,19 @@
             <span>${escapeHtml(category.name)}</span>
           </div>
           <div class="admin-category-card-actions">
-            <button class="ef-cta admin-category-card-btn edit-category-btn" data-id="${category.id}">✏️ Edit</button>
-            <button class="ef-cta admin-category-card-btn danger delete-category-btn" data-id="${category.id}">🗑️ Delete</button>
+            <button class="ef-cta admin-category-card-btn edit-category-btn" data-id="${category.id}">Edit</button>
+            <button class="ef-cta admin-category-card-btn danger delete-category-btn" data-id="${category.id}">Delete</button>
           </div>
         </div>
         <div class="admin-category-card-body">
           <div class="admin-category-card-image-preview ${hasImage ? '' : 'no-image'}">
             ${imagePreviewHtml}
           </div>
-          <p class="admin-category-card-description">${escapeHtml(category.description || 'No description')}</p>
+          <p class="admin-category-card-description">${escapeHtml(category.description || 'No description provided.')}</p>
           <div class="admin-category-card-meta">
             <span class="admin-category-card-slug">/${escapeHtml(category.slug)}</span>
             <div class="admin-category-card-visibility">
-              <span style="font-size: 11px; font-weight: 600;">Visible:</span>
+              <span style="font-size: 11px; font-weight: 600;">Visible on homepage:</span>
               <label class="admin-category-card-visibility-toggle">
                 <input type="checkbox" class="visibility-toggle" data-id="${category.id}" ${category.visible !== false ? 'checked' : ''}>
                 <span class="admin-category-card-visibility-slider"></span>
@@ -939,7 +948,7 @@
 
   function openAddCategoryModal() {
     editingCategoryId = null;
-    document.getElementById('categoryModalTitle').textContent = 'Add Category';
+    document.getElementById('categoryModalTitle').textContent = 'Add category';
     document.getElementById('categoryForm').reset();
     document.getElementById('categoryId').value = '';
     document.getElementById('categoryVisible').checked = true;
@@ -956,7 +965,7 @@
       return;
     }
 
-    document.getElementById('categoryModalTitle').textContent = 'Edit Category';
+    document.getElementById('categoryModalTitle').textContent = 'Edit category';
     document.getElementById('categoryId').value = category.id;
     document.getElementById('categoryName').value = category.name;
     document.getElementById('categorySlug').value = category.slug;
@@ -999,7 +1008,7 @@
     const visible = document.getElementById('categoryVisible').checked;
 
     if (!name || !slug) {
-      AdminShared.showToast('Name and slug are required', 'error');
+      AdminShared.showToast('Enter a category name and URL slug before saving.', 'error');
       return;
     }
 
@@ -1066,24 +1075,27 @@
               });
             } catch (uploadErr) {
               console.error('Custom image upload failed:', uploadErr);
-              AdminShared.showToast('Category saved but image upload failed', 'warning');
+              AdminShared.showToast(
+                'Category saved, but the image could not be uploaded.',
+                'warning'
+              );
             }
           }
         }
 
         closeCategoryModalFunc();
         await loadAllCategories();
-        AdminShared.showToast('Category saved successfully!', 'success');
+        AdminShared.showToast('Category saved successfully.', 'success');
       } else {
         const errorData = await response.json();
         AdminShared.showToast(
-          `Failed to save category: ${errorData.error || 'Unknown error'}`,
+          `Unable to save category: ${errorData.error || 'Unknown error'}`,
           'error'
         );
       }
     } catch (error) {
       console.error('Error saving category:', error);
-      AdminShared.showToast('Failed to save category', 'error');
+      AdminShared.showToast('Unable to save category.', 'error');
     }
   }
 
@@ -1094,8 +1106,8 @@
     }
 
     const confirmed = await AdminShared.showConfirmModal({
-      title: 'Delete Category',
-      message: `Are you sure you want to delete "${category.name}"?`,
+      title: 'Delete category',
+      message: `Delete "${category.name}"? This removes the category card and associated hero-image configuration.`,
       confirmText: 'Delete',
     });
     if (!confirmed) {
@@ -1119,17 +1131,17 @@
 
       if (response.ok) {
         await loadAllCategories();
-        AdminShared.showToast('Category deleted successfully!', 'success');
+        AdminShared.showToast('Category deleted successfully.', 'success');
       } else {
         const errorData = await response.json();
         AdminShared.showToast(
-          `Failed to delete category: ${errorData.error || 'Unknown error'}`,
+          `Unable to delete category: ${errorData.error || 'Unknown error'}`,
           'error'
         );
       }
     } catch (error) {
       console.error('Error deleting category:', error);
-      AdminShared.showToast('Failed to delete category', 'error');
+      AdminShared.showToast('Unable to delete category.', 'error');
     }
   }
 
@@ -1171,7 +1183,7 @@
       } else {
         const errorData = await response.json();
         AdminShared.showToast(
-          `Failed to toggle visibility: ${errorData.error || 'Unknown error'}`,
+          `Unable to update category visibility: ${errorData.error || 'Unknown error'}`,
           'error'
         );
         // Revert toggle — check the specific selector first, then fall back to .visibility-toggle
@@ -1183,19 +1195,19 @@
       }
     } catch (error) {
       console.error('Error toggling visibility:', error);
-      AdminShared.showToast('Failed to toggle visibility', 'error');
+      AdminShared.showToast('Unable to update category visibility.', 'error');
     }
   }
 
   async function searchPexels() {
     const query = document.getElementById('pexelsSearchQuery').value.trim();
     if (!query) {
-      AdminShared.showToast('Please enter a search query', 'error');
+      AdminShared.showToast('Enter a search query before searching Pexels.', 'error');
       return;
     }
 
     searchPexelsBtn.disabled = true;
-    searchPexelsBtn.textContent = 'Searching...';
+    searchPexelsBtn.textContent = 'Searching…';
 
     try {
       const response = await fetch(
@@ -1206,7 +1218,7 @@
       );
 
       if (!response.ok) {
-        throw new Error('Failed to search Pexels');
+        throw new Error('Pexels search request was unsuccessful');
       }
 
       const data = await response.json();
@@ -1214,7 +1226,7 @@
     } catch (error) {
       console.error('Error searching Pexels:', error);
       AdminShared.showToast(
-        'Failed to search Pexels. Please check your API key configuration.',
+        'Unable to search Pexels. Check the API configuration and try again.',
         'error'
       );
     } finally {
@@ -1230,7 +1242,7 @@
     if (photos.length === 0) {
       resultsContainer.style.display = 'block';
       resultsGrid.innerHTML =
-        '<p style="grid-column: 1 / -1; text-align: center; color: #6b7280;">No images found</p>';
+        '<p style="grid-column: 1 / -1; text-align: center; color: #6b7280;">No images found for this search</p>';
       return;
     }
 

@@ -47,8 +47,8 @@
 
 <main id="main-content" class="section admin-main-content">
   <div class="admin-page-header">
-    <h1>🎨 Homepage Management</h1>
-    <p class="small">Manage the dynamic collage widget and category hero images. Upload high-quality images to create an engaging first impression.</p>
+    <h1>Homepage Management</h1>
+    <p class="small">Control the live homepage, media sources, category cards and hero imagery from one clear admin workspace.</p>
   </div>
   
   <div class="controls">
@@ -59,7 +59,7 @@
         </svg>
         Back to Dashboard
       </button>
-      <button id="refreshBtn" class="ef-cta btn btn-secondary" title="Refresh data">
+      <button id="refreshBtn" class="ef-cta btn btn-secondary" title="Refresh homepage management data" aria-label="Refresh homepage management data">
         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M23 4v6h-6"></path>
           <path d="M1 20v-6h6"></path>
@@ -75,15 +75,15 @@
   <!-- Collage Widget Configuration Section -->
   <div style="margin-bottom: 48px;">
     <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
-      <h2 style="margin: 0; font-size: 1.5rem; font-weight: 600;">🎬 Collage Widget</h2>
-      <span class="badge" style="background: #dbeafe; color: #1e40af; padding: 4px 12px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">Dynamic Homepage Collage</span>
+      <h2 style="margin: 0; font-size: 1.5rem; font-weight: 600;">Collage & media</h2>
+      <span class="badge" style="background: #dbeafe; color: #1e40af; padding: 4px 12px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">Live homepage media</span>
     </div>
-    <p class="small" style="margin-bottom: 16px; color: #4b5563;">Configure the dynamic collage widget with Pexels photos/videos or upload your own media. Choose your source, media types, and display settings.</p>
+    <p class="small" style="margin-bottom: 16px; color: #4b5563;">Manage the homepage collage, media source, playback behaviour and fallback options. Changes are saved to the selected homepage version.</p>
     
     <!-- Info banner about legacy flag -->
     <div style="margin-bottom: 16px; padding: 12px 16px; background: #eff6ff; border-left: 4px solid #3b82f6; border-radius: 6px;">
       <p style="margin: 0; color: #1e40af; font-size: 0.9rem;">
-        ℹ️ <strong>Note:</strong> This collage widget replaces the legacy "Pexels Dynamic Collage" feature flag in <a href="/admin-settings" style="color: #2563eb; text-decoration: underline;">Settings</a>. Use this interface for full control over sources, media types, and intervals.
+        <strong>Management note:</strong> Use this workspace for homepage collage source, media type and timing controls. The legacy Pexels feature flag in <a href="/admin-settings" style="color: #2563eb; text-decoration: underline;">Settings</a> is retained for compatibility only.
       </p>
     </div>
     
@@ -93,14 +93,14 @@
       <div style="margin-bottom: 24px; padding-bottom: 24px; border-bottom: 1px solid #e5e7eb;">
         <label style="display: flex; align-items: center; gap: 12px; cursor: pointer;">
           <input type="checkbox" id="collageWidgetEnabled" style="width: 20px; height: 20px; cursor: pointer;">
-          <span style="font-weight: 600; font-size: 1.1rem;">Enable Collage Widget</span>
+          <span style="font-weight: 600; font-size: 1.1rem;">Collage enabled</span>
         </label>
-        <p class="small" style="margin: 8px 0 0 32px; color: #6b7280;">When enabled, the homepage will display a dynamic collage instead of static images.</p>
+        <p class="small" style="margin: 8px 0 0 32px; color: #6b7280;">When enabled, the selected homepage version displays the dynamic media collage.</p>
         
         <!-- Status Banner -->
         <div id="widgetStatusBanner" style="display: none; margin-top: 12px; padding: 12px 16px; background: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 6px;">
           <p style="margin: 0; color: #92400e; font-size: 0.9rem; font-weight: 500;">
-            ⚠️ Widget is currently disabled. Homepage shows static images only.
+            Collage is currently off for this selected version. Static homepage imagery will be used until it is enabled and saved.
           </p>
         </div>
       </div>
@@ -108,44 +108,44 @@
       <div id="collageWidgetSettings">
         <!-- Source Selection -->
         <div style="margin-bottom: 24px;">
-          <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 12px;">📁 Media Source</h3>
-          <p class="small" style="margin-bottom: 12px; color: #6b7280;">Choose where to load collage media from (mutually exclusive):</p>
+          <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 12px;">Media source</h3>
+          <p class="small" style="margin-bottom: 12px; color: #6b7280;">Choose one source for the collage media.</p>
           
           <div style="display: flex; gap: 12px; flex-wrap: wrap;">
             <label style="flex: 1; min-width: 200px; padding: 16px; border: 2px solid #e5e7eb; border-radius: 8px; cursor: pointer; transition: all 0.2s;" class="source-option" data-source="pexels">
               <input type="radio" name="collageSource" value="pexels" id="sourcePexels" style="margin-right: 8px;">
-              <span style="font-weight: 600;">🌐 Pexels API</span>
-              <p class="small" style="margin: 4px 0 0 24px; color: #6b7280;">Load photos/videos from Pexels</p>
+              <span style="font-weight: 600;">Pexels library</span>
+              <p class="small" style="margin: 4px 0 0 24px; color: #6b7280;">Use curated Pexels photos and videos</p>
             </label>
             
             <label style="flex: 1; min-width: 200px; padding: 16px; border: 2px solid #e5e7eb; border-radius: 8px; cursor: pointer; transition: all 0.2s;" class="source-option" data-source="uploads">
               <input type="radio" name="collageSource" value="uploads" id="sourceUploads" style="margin-right: 8px;">
-              <span style="font-weight: 600;">📤 Uploaded Media</span>
-              <p class="small" style="margin: 4px 0 0 24px; color: #6b7280;">Use your own photos/videos</p>
+              <span style="font-weight: 600;">Uploaded media</span>
+              <p class="small" style="margin: 4px 0 0 24px; color: #6b7280;">Use uploaded EventFlow media</p>
             </label>
           </div>
         </div>
 
         <!-- Media Types -->
         <div style="margin-bottom: 24px;">
-          <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 12px;">🎭 Media Types</h3>
-          <p class="small" style="margin-bottom: 12px; color: #6b7280;">Select which media types to include:</p>
+          <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 12px;">Media types</h3>
+          <p class="small" style="margin-bottom: 12px; color: #6b7280;">Select the media types shown in the collage.</p>
           
           <div style="display: flex; gap: 16px;">
             <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
               <input type="checkbox" id="mediaTypePhotos" style="width: 18px; height: 18px; cursor: pointer;">
-              <span>📷 Photos</span>
+              <span>Photos</span>
             </label>
             <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
               <input type="checkbox" id="mediaTypeVideos" style="width: 18px; height: 18px; cursor: pointer;">
-              <span>🎥 Videos</span>
+              <span>Videos</span>
             </label>
           </div>
         </div>
 
         <!-- Interval Setting -->
         <div style="margin-bottom: 24px;">
-          <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 12px;">⏱️ Transition Interval</h3>
+          <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 12px;">Transition interval</h3>
           <div style="display: flex; align-items: center; gap: 12px;">
             <input type="number" id="intervalSeconds" min="1" max="60" step="0.5" style="width: 100px; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px;">
             <span style="color: #6b7280;">seconds between transitions</span>
@@ -155,7 +155,7 @@
 
         <!-- Hero Video Controls -->
         <div style="margin-bottom: 24px; padding: 20px; background: #fef3c7; border-radius: 8px; border: 1px solid #fbbf24;">
-          <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 16px;">🎬 Hero Video Controls</h3>
+          <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 16px;">Hero video playback</h3>
           <div style="display: grid; gap: 12px;">
             <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
               <input type="checkbox" id="heroVideoEnabled" style="width: 18px; height: 18px; cursor: pointer;">
@@ -186,7 +186,7 @@
 
         <!-- Video Quality Settings -->
         <div style="margin-bottom: 24px; padding: 20px; background: #e0f2fe; border-radius: 8px; border: 1px solid #38bdf8;">
-          <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 16px;">📹 Video Quality Settings</h3>
+          <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 16px;">Video quality</h3>
           <div style="display: grid; gap: 12px;">
             <div>
               <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 0.9rem;">Default Quality</label>
@@ -209,7 +209,7 @@
 
         <!-- Transition Effects -->
         <div style="margin-bottom: 24px; padding: 20px; background: #f3e8ff; border-radius: 8px; border: 1px solid #c084fc;">
-          <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 16px;">✨ Transition Effects</h3>
+          <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 16px;">Transition effects</h3>
           <div style="display: grid; gap: 12px;">
             <div>
               <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 0.9rem;">Effect Type</label>
@@ -229,7 +229,7 @@
 
         <!-- Preloading & Caching -->
         <div style="margin-bottom: 24px; padding: 20px; background: #ecfccb; border-radius: 8px; border: 1px solid #a3e635;">
-          <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 16px;">⚡ Preloading & Caching</h3>
+          <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 16px;">Preloading and caching</h3>
           <div style="display: grid; gap: 12px;">
             <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
               <input type="checkbox" id="preloadingEnabled" style="width: 18px; height: 18px; cursor: pointer;">
@@ -238,33 +238,33 @@
             <div>
               <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 0.9rem;">Items to Preload</label>
               <input type="number" id="preloadingCount" min="0" max="5" step="1" value="3" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px;">
-              <p class="small" style="margin-top: 4px; color: #6b7280;">0-5 items (0 = disabled)</p>
+              <p class="small" style="margin-top: 4px; color: #6b7280;">Choose 0–5 items. Use 0 when preloading is not required.</p>
             </div>
           </div>
         </div>
 
         <!-- Mobile Optimizations -->
         <div style="margin-bottom: 24px; padding: 20px; background: #ffe4e6; border-radius: 8px; border: 1px solid #fb7185;">
-          <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 16px;">📱 Mobile Optimizations</h3>
+          <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 16px;">Mobile optimisation</h3>
           <div style="display: grid; gap: 12px;">
             <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
               <input type="checkbox" id="mobileSlowerTransitions" style="width: 18px; height: 18px; cursor: pointer;">
-              <span>Slower Transitions on Mobile</span>
+              <span>Use slower transitions on mobile</span>
             </label>
             <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
               <input type="checkbox" id="mobileDisableVideos" style="width: 18px; height: 18px; cursor: pointer;">
-              <span>Disable Videos on Mobile</span>
+              <span>Disable videos on mobile</span>
             </label>
             <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
               <input type="checkbox" id="mobileTouchControls" style="width: 18px; height: 18px; cursor: pointer;">
-              <span>Touch Controls (swipe to change)</span>
+              <span>Enable touch controls</span>
             </label>
           </div>
         </div>
 
         <!-- Content Filtering -->
         <div style="margin-bottom: 24px; padding: 20px; background: #dbeafe; border-radius: 8px; border: 1px solid #60a5fa;">
-          <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 16px;">🎯 Content Filtering</h3>
+          <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 16px;">Content filtering</h3>
           <div style="display: grid; gap: 12px;">
             <div>
               <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 0.9rem;">Aspect Ratio</label>
@@ -297,7 +297,7 @@
 
         <!-- Playback Controls -->
         <div style="margin-bottom: 24px; padding: 20px; background: #fce7f3; border-radius: 8px; border: 1px solid #f9a8d4;">
-          <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 16px;">🎮 Playback Controls</h3>
+          <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 16px;">Playback controls</h3>
           <div style="display: grid; gap: 12px;">
             <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
               <input type="checkbox" id="playbackShowControls" style="width: 18px; height: 18px; cursor: pointer;">
@@ -316,7 +316,7 @@
 
         <!-- Video Analytics Dashboard -->
         <div style="margin-bottom: 24px; padding: 20px; background: #f0fdf4; border-radius: 8px; border: 1px solid #4ade80;">
-          <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 16px;">📊 Video Analytics Dashboard</h3>
+          <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 16px;">Video diagnostics</h3>
           <div id="videoAnalytics" style="display: grid; gap: 12px;">
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
               <div style="padding: 12px; background: white; border-radius: 6px; border: 1px solid #e5e7eb;">
@@ -333,15 +333,15 @@
               </div>
             </div>
             <p class="small" style="color: #6b7280; margin: 0;">
-              ℹ️ Analytics are tracked per browser session. Visit <a href="/" target="_blank" style="color: #2563eb;">homepage</a> to generate metrics.
+              Diagnostics are tracked per browser session. Open the <a href="/" target="_blank" style="color: #2563eb;">homepage</a> to generate fresh playback metrics.
             </p>
           </div>
         </div>
 
         <!-- Pexels Settings Panel -->
         <div id="pexelsSettingsPanel" style="display: none; margin-bottom: 24px; padding: 20px; background: #f9fafb; border-radius: 8px;">
-          <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 16px;">🔍 Pexels Search Queries</h3>
-          <p class="small" style="margin-bottom: 16px; color: #6b7280;">Customize search queries for each collage category:</p>
+          <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 16px;">Pexels photo search queries</h3>
+          <p class="small" style="margin-bottom: 16px; color: #6b7280;">Set the photo search terms used for each collage category.</p>
           
           <div style="display: grid; gap: 16px;">
             <div>
@@ -365,8 +365,8 @@
 
         <!-- Pexels Video Search Queries Panel -->
         <div id="pexelsVideoQueriesPanel" style="display: none; margin-bottom: 24px; padding: 20px; background: #f0f9ff; border-radius: 8px; border: 1px solid #bfdbfe;">
-          <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 16px;">🎥 Pexels Video Search Queries</h3>
-          <p class="small" style="margin-bottom: 16px; color: #6b7280;">Customize search queries for video content in each collage category:</p>
+          <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 16px;">Pexels video search queries</h3>
+          <p class="small" style="margin-bottom: 16px; color: #6b7280;">Set the video search terms used for each collage category.</p>
           
           <div style="display: grid; gap: 16px;">
             <div>
@@ -391,9 +391,9 @@
         <!-- Uploads Gallery Manager -->
         <div id="uploadsGalleryPanel" style="display: none; margin-bottom: 24px; padding: 20px; background: #f9fafb; border-radius: 8px;">
           <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
-            <h3 style="font-size: 1rem; font-weight: 600; margin: 0;">📤 Upload Gallery</h3>
+            <h3 style="font-size: 1rem; font-weight: 600; margin: 0;">Uploaded media gallery</h3>
             <button id="uploadMediaBtn" class="btn btn-primary" style="padding: 8px 16px; font-size: 0.9rem;">
-              <span style="font-size: 1.2rem;">➕</span> Upload Media
+              <span style="font-size: 1.2rem;"></span> Upload media
             </button>
           </div>
           <input type="file" id="mediaFileInput" accept="image/*,video/*" multiple style="display: none;" title="Upload photos (JPG, PNG, WebP) or videos (MP4, WebM). Max 10MB per file, up to 10 files at once.">
@@ -406,7 +406,7 @@
           
           <div id="uploadGalleryList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px;">
             <div class="card" style="padding: 20px; text-align: center; color: #9ca3af;">
-              <p>No media uploaded yet</p>
+              <p>No uploaded media yet</p>
             </div>
           </div>
         </div>
@@ -415,29 +415,29 @@
         <div style="margin-bottom: 24px;">
           <label style="display: flex; align-items: center; gap: 12px; cursor: pointer;">
             <input type="checkbox" id="fallbackToPexels" style="width: 18px; height: 18px; cursor: pointer;">
-            <span style="font-weight: 600;">🔄 Fallback to Pexels if uploads unavailable</span>
+            <span style="font-weight: 600;">Use Pexels fallback when uploads are unavailable</span>
           </label>
           <p class="small" style="margin: 4px 0 0 30px; color: #6b7280;">
-            Recommended for reliability. If upload gallery is empty or files fail to load, the widget automatically switches to Pexels photos.
+            Recommended for reliability. If the upload gallery is empty or a file cannot load, the homepage can use Pexels media instead.
           </p>
         </div>
 
         <!-- Save Button -->
         <div style="display: flex; gap: 12px; padding-top: 16px; border-top: 1px solid #e5e7eb;">
           <button id="saveCollageWidget" class="ef-cta btn btn-primary">
-            💾 Save Configuration
+            Save changes
           </button>
           <button id="resetCollageWidget" class="ef-cta btn btn-secondary">
-            🔄 Reset to Defaults
+            Reset form
           </button>
         </div>
 
         <!-- Status Messages -->
         <div id="collageWidgetSuccess" class="success-message" style="display: none; margin-top: 16px;">
-          ✅ Configuration saved successfully!
+          Changes saved successfully.
         </div>
         <div id="collageWidgetError" class="error-message" style="display: none; margin-top: 16px;">
-          ❌ Failed to save configuration.
+          Unable to save changes.
         </div>
       </div>
     </div>
@@ -447,35 +447,35 @@
   <div style="margin-bottom: 48px;">
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
       <div style="display: flex; align-items: center; gap: 12px;">
-        <h2 style="margin: 0; font-size: 1.5rem; font-weight: 600;">🎯 Category Cards Management</h2>
-        <span class="badge" style="background: #dbeafe; color: #1e40af; padding: 4px 12px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">Homepage 2x3 Grid</span>
+        <h2 style="margin: 0; font-size: 1.5rem; font-weight: 600;">Category cards</h2>
+        <span class="badge" style="background: #dbeafe; color: #1e40af; padding: 4px 12px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">Homepage grid</span>
       </div>
       <button id="addCategoryBtn" class="ef-cta btn btn-primary">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 8px;">
           <line x1="12" y1="5" x2="12" y2="19"></line>
           <line x1="5" y1="12" x2="19" y2="12"></line>
         </svg>
-        Add Category
+        Add category
       </button>
     </div>
-    <p class="small" style="margin-bottom: 16px; color: #4b5563;">Manage category cards displayed on the homepage. Add, edit, reorder, and toggle visibility. Cards are 20% larger than standard size.</p>
+    <p class="small" style="margin-bottom: 16px; color: #4b5563;">Manage the category cards shown on the homepage. Keep labels, descriptions, visibility and imagery consistent.</p>
     
     <!-- Category Cards Grid -->
     <div id="categoryCardsGrid" class="admin-category-cards-grid">
-      <div class="card"><p>Loading categories...</p></div>
+      <div class="card"><p>Loading categories…</p></div>
     </div>
   </div>
 
   <!-- Category Hero Images Section -->
   <div>
     <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
-      <h2 style="margin: 0; font-size: 1.5rem; font-weight: 600;">📂 Category Hero Images</h2>
-      <span class="badge" style="background: #fef3c7; color: #92400e; padding: 4px 12px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">Category Detail Pages</span>
+      <h2 style="margin: 0; font-size: 1.5rem; font-weight: 600;">Hero images</h2>
+      <span class="badge" style="background: #fef3c7; color: #92400e; padding: 4px 12px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">Category pages</span>
     </div>
-    <p class="small" style="margin-bottom: 16px; color: #4b5563;">Manage hero images for individual category pages (e.g., Venues, Catering). These appear when viewing specific category detail pages.</p>
+    <p class="small" style="margin-bottom: 16px; color: #4b5563;">Manage the hero image used on each category detail page. Replace missing or outdated images from one place.</p>
     
     <div id="categoryList" class="category-list">
-      <div class="card"><p>Loading categories...</p></div>
+      <div class="card"><p>Loading categories…</p></div>
     </div>
   </div>
 </main>
@@ -484,7 +484,7 @@
 <div id="categoryModal" class="modal" style="display: none;">
   <div class="modal-content" style="max-width: 800px;">
     <div class="modal-header">
-      <h3 id="categoryModalTitle">Add Category</h3>
+      <h3 id="categoryModalTitle">Add category</h3>
       <button class="ef-cta modal-close" id="closeCategoryModal">&times;</button>
     </div>
     <div class="modal-body">
@@ -576,7 +576,7 @@
     </div>
     <div class="modal-footer">
       <button type="button" class="ef-cta btn btn-secondary" id="cancelCategoryBtn">Cancel</button>
-      <button type="button" class="ef-cta btn btn-primary" id="saveCategoryBtn">Save Category</button>
+      <button type="button" class="ef-cta btn btn-primary" id="saveCategoryBtn">Save category</button>
     </div>
   </div>
 </div>

@@ -18,7 +18,7 @@
     nav.className = 'homepage-workspace-nav';
     nav.setAttribute('aria-label', 'Homepage management sections');
     nav.innerHTML = `
-      <a href="#homepageManager">Versions</a>
+      <a href="#adminManagementOverview">Overview</a><a href="#homepageManager">Homepage versions</a>
       ${sections
         .map(section => `<a href="#${section.id}">${section.dataset.navLabel}</a>`)
         .join('')}
@@ -32,13 +32,13 @@
 
   function labelWorkspaceSections() {
     const sections = [
-      { key: 'collage widget', id: 'homepageCollageWorkspace', label: 'Collage & media' },
+      { key: 'collage & media', id: 'homepageCollageWorkspace', label: 'Collage & media' },
       {
-        key: 'category cards management',
+        key: 'category cards',
         id: 'homepageCategoryCardsWorkspace',
         label: 'Category cards',
       },
-      { key: 'category hero images', id: 'homepageHeroImagesWorkspace', label: 'Hero images' },
+      { key: 'hero images', id: 'homepageHeroImagesWorkspace', label: 'Hero images' },
     ];
 
     const labelled = [];
@@ -89,13 +89,18 @@
     const children = Array.from(settings.children);
     const advancedTitles = [
       'hero video controls',
+      'hero video playback',
       'video quality settings',
+      'video quality',
       'transition effects',
       'preloading & caching',
+      'preloading and caching',
       'mobile optimizations',
+      'mobile optimisation',
       'content filtering',
       'playback controls',
       'video analytics dashboard',
+      'video diagnostics',
     ];
     const pexelsIds = new Set(['pexelsSettingsPanel', 'pexelsVideoQueriesPanel']);
     const uploadIds = new Set(['uploadsGalleryPanel']);
@@ -130,17 +135,17 @@
     const scopeNote = document.createElement('div');
     scopeNote.className = 'homepage-save-scope-note';
     scopeNote.innerHTML =
-      '<strong>Editing scope:</strong> these controls update the selected homepage slot. Use “Set as live homepage” in the version manager when you are ready to publish a draft.';
+      '<strong>Editing scope:</strong> changes are saved to the selected homepage version. If this version is live, saved changes affect the live homepage. Draft versions remain private until you choose “Set live”.';
     settings.appendChild(scopeNote);
     settings.appendChild(
-      makeDetails('Essential collage settings', quickNodes, {
+      makeDetails('Essential settings', quickNodes, {
         open: true,
-        help: 'Enable/disable, source, media types and timing.',
+        help: 'Collage state, source, media types and timing.',
       })
     );
     settings.appendChild(
-      makeDetails('Advanced playback and performance', advancedNodes, {
-        help: 'Video behaviour, transitions, mobile and analytics.',
+      makeDetails('Advanced playback and performance settings', advancedNodes, {
+        help: 'Video behaviour, transitions, mobile optimisation and diagnostics.',
       })
     );
     settings.appendChild(
@@ -185,16 +190,31 @@
   function improveSaveLabels() {
     const saveButton = document.getElementById('saveCollageWidget');
     if (saveButton) {
-      saveButton.textContent = '💾 Save selected slot';
+      saveButton.textContent = 'Save changes';
     }
     const resetButton = document.getElementById('resetCollageWidget');
     if (resetButton) {
-      resetButton.textContent = '↩ Reset form from saved values';
+      resetButton.textContent = 'Reset form from saved values';
     }
+  }
+
+  function removeUnclearFloatingControls() {
+    document
+      .querySelectorAll('.floating-action, .admin-fab, [data-floating-action]')
+      .forEach(control => {
+        const label =
+          control.getAttribute('aria-label') ||
+          control.getAttribute('title') ||
+          control.textContent.trim();
+        if (!label || label.length < 2) {
+          control.remove();
+        }
+      });
   }
 
   function init() {
     document.body.classList.add('admin-homepage-ux-overhaul');
+    removeUnclearFloatingControls();
     labelWorkspaceSections();
     groupCollageControls();
     improveSaveLabels();

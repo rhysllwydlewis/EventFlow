@@ -2,13 +2,13 @@
   const surfaceConfig = {
     homepage: {
       kicker: 'Homepage operations',
-      title: 'Homepage command centre',
+      title: 'Homepage operations overview',
       subtitle:
-        'A fast read on the active homepage version, collage readiness, content dependencies and media health.',
+        'Review the live homepage version, media source, moderation state and any actions that need attention.',
       stats: overview => [
         {
           value: overview.homepage.activeVersionLabel,
-          label: 'Published homepage version',
+          label: 'Live homepage version',
         },
         {
           value: overview.homepage.collageEnabled ? 'Enabled' : 'Disabled',
@@ -18,11 +18,11 @@
           value:
             overview.homepage.collageSource === 'uploads'
               ? overview.homepage.uploadGalleryCount
-              : 'Not required',
+              : 'Optional',
           label:
             overview.homepage.collageSource === 'uploads'
-              ? 'Uploaded gallery assets'
-              : 'Pexels is the live media source',
+              ? 'Uploaded media available'
+              : 'Uploaded media is optional because Pexels is selected',
         },
         {
           value: `${overview.homepage.categories.visible}/${overview.homepage.categories.total}`,
@@ -143,7 +143,7 @@
     const tasks = scoped;
 
     if (tasks.length === 0) {
-      return '<div class="admin-ops-empty">Everything looks tidy for this area right now.</div>';
+      return '<div class="admin-ops-empty">No action required for this area at this time.</div>';
     }
 
     return tasks
@@ -169,20 +169,22 @@
     const health = (overview.recommendations || []).some(item =>
       ['critical', 'warning', 'action'].includes(item.severity)
     )
-      ? 'Needs action'
-      : 'Healthy';
+      ? 'Action needed'
+      : 'No action required';
     const lastSaved = homepage.updatedAt
       ? new Date(homepage.updatedAt).toLocaleString()
       : 'Unable to verify';
     const source = homepage.collageEnabled ? homepage.collageSource || 'pexels' : 'Static/fallback';
-    const autoApprove = photos.autoApprove ? 'Enabled' : 'Manual review';
+    const autoApprove = photos.autoApprove ? 'Auto-approved' : 'Manual review required';
+    const manualActions = photos.autoApprove ? 'None' : `${photos.pending || 0} pending`;
     return `
       <div class="admin-live-summary" aria-label="Live homepage summary">
         <div><span>Live version</span><strong>${escapeHtml(homepage.activeVersionLabel || homepage.activeVersion || 'Unable to verify')}</strong></div>
         <div><span>Collage</span><strong>${homepage.collageEnabled ? 'Enabled' : 'Disabled'}</strong></div>
         <div><span>Media source</span><strong>${escapeHtml(source)}</strong></div>
         <div><span>Supplier photos</span><strong>${escapeHtml(autoApprove)}</strong></div>
-        <div><span>Last saved/published</span><strong>${escapeHtml(lastSaved)}</strong></div>
+        <div><span>Manual actions</span><strong>${escapeHtml(manualActions)}</strong></div>
+        <div><span>Last updated</span><strong>${escapeHtml(lastSaved)}</strong></div>
         <div><span>Overall health</span><strong>${escapeHtml(health)}</strong></div>
       </div>`;
   }
@@ -231,7 +233,7 @@
             <p class="admin-ops-subtitle">${escapeHtml(config.subtitle)}</p>
           </div>
           <div class="admin-ops-health ${hasWarnings ? 'is-warning' : ''}">
-            ${hasWarnings ? 'Needs review' : 'Looks good'}
+            ${hasWarnings ? 'Action needed' : 'No action required'}
           </div>
         </div>
         ${surface === 'homepage' ? renderHomepageSummaryBar(overview) : ''}
@@ -258,7 +260,7 @@
 
     const surface = mount.dataset.managementSurface || 'content';
     mount.classList.add('admin-ops-shell');
-    mount.innerHTML = '<div class="admin-ops-empty">Loading management overview...</div>';
+    mount.innerHTML = '<div class="admin-ops-empty">Loading management overview…</div>';
 
     try {
       const response = await getOverview();
@@ -266,7 +268,7 @@
     } catch (error) {
       console.warn('Failed to load admin management overview:', error);
       mount.innerHTML =
-        '<div class="admin-ops-error">Management overview could not be loaded. The page tools below are still available.</div>';
+        '<div class="admin-ops-error">Unable to verify the management overview. Refresh the page or continue using the tools below.</div>';
     }
   }
 
