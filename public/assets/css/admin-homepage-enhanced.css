@@ -893,3 +893,157 @@ input:checked + .admin-category-card-visibility-slider:before {
     grid-template-columns: repeat(2, 1fr) !important;
   }
 }
+
+/* Homepage admin UX grouping */
+.admin-homepage-ux-overhaul .homepage-workspace-nav {
+  position: sticky;
+  top: 72px;
+  z-index: 20;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin: 18px 0 28px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
+  backdrop-filter: blur(12px);
+}
+
+.admin-homepage-ux-overhaul .homepage-workspace-nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 8px 14px;
+  color: #0f172a;
+  font-size: 0.88rem;
+  font-weight: 700;
+  text-decoration: none;
+  border-radius: 999px;
+}
+
+.admin-homepage-ux-overhaul .homepage-workspace-nav a:hover,
+.admin-homepage-ux-overhaul .homepage-workspace-nav a:focus-visible {
+  background: #ecfeff;
+  color: #0b8073;
+  outline: 2px solid transparent;
+}
+
+.admin-homepage-ux-overhaul .homepage-workspace-section {
+  scroll-margin-top: 150px;
+}
+
+.admin-homepage-ux-overhaul .homepage-save-scope-note {
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-left: 4px solid #0b8073;
+  border-radius: 12px;
+  color: #334155;
+  font-size: 0.92rem;
+}
+
+.admin-homepage-ux-overhaul .homepage-control-accordion {
+  margin-bottom: 14px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
+}
+
+.admin-homepage-ux-overhaul .homepage-control-accordion summary {
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 18px;
+  color: #0f172a;
+  cursor: pointer;
+  list-style: none;
+}
+
+.admin-homepage-ux-overhaul .homepage-control-accordion summary::-webkit-details-marker {
+  display: none;
+}
+
+.admin-homepage-ux-overhaul .homepage-control-accordion summary::after {
+  content: '⌄';
+  color: #64748b;
+  font-size: 1.2rem;
+  transition: transform 0.2s ease;
+}
+
+.admin-homepage-ux-overhaul .homepage-control-accordion[open] summary::after {
+  transform: rotate(180deg);
+}
+
+.admin-homepage-ux-overhaul .homepage-control-accordion summary span {
+  font-weight: 800;
+}
+
+.admin-homepage-ux-overhaul .homepage-control-accordion summary small {
+  flex: 1;
+  color: #64748b;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.admin-homepage-ux-overhaul .homepage-control-accordion__body {
+  display: grid;
+  gap: 14px;
+  padding: 0 18px 18px;
+}
+
+.admin-homepage-ux-overhaul .homepage-control-card {
+  margin-bottom: 0 !important;
+  padding: 16px !important;
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 14px !important;
+}
+
+.admin-homepage-ux-overhaul .homepage-fallback-card {
+  margin: 16px 0 !important;
+  padding: 16px !important;
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 14px !important;
+}
+
+.admin-homepage-ux-overhaul .homepage-sticky-actions {
+  position: sticky;
+  bottom: 12px;
+  z-index: 10;
+  margin-top: 18px;
+  padding: 14px !important;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid #dbeafe !important;
+  border-radius: 16px;
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.14);
+  backdrop-filter: blur(10px);
+}
+
+@media (max-width: 720px) {
+  .admin-homepage-ux-overhaul .homepage-workspace-nav {
+    position: static;
+    border-radius: 18px;
+  }
+
+  .admin-homepage-ux-overhaul .homepage-workspace-nav a {
+    flex: 1 1 calc(50% - 8px);
+    justify-content: center;
+  }
+
+  .admin-homepage-ux-overhaul .homepage-control-accordion summary {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .admin-homepage-ux-overhaul .homepage-sticky-actions {
+    position: static;
+  }
+}

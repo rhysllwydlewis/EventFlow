@@ -11,12 +11,18 @@
           label: 'Published homepage version',
         },
         {
-          value: overview.homepage.collageEnabled ? 'On' : 'Off',
-          label: `${overview.homepage.collageSource} dynamic collage source`,
+          value: overview.homepage.collageEnabled ? 'Enabled' : 'Disabled',
+          label: `Live collage · ${overview.homepage.collageSource} source`,
         },
         {
-          value: overview.homepage.uploadGalleryCount,
-          label: 'Uploaded gallery assets',
+          value:
+            overview.homepage.collageSource === 'uploads'
+              ? overview.homepage.uploadGalleryCount
+              : 'Not required',
+          label:
+            overview.homepage.collageSource === 'uploads'
+              ? 'Uploaded gallery assets'
+              : 'Pexels is the live media source',
         },
         {
           value: `${overview.homepage.categories.visible}/${overview.homepage.categories.total}`,
@@ -69,10 +75,12 @@
         'Check supplier photo moderation, uploaded homepage collage files and Pexels service health.',
       stats: overview => [
         {
-          value: overview.media.supplierPhotos.pending,
+          value: overview.media.supplierPhotos.autoApprove
+            ? 'Auto approve on'
+            : overview.media.supplierPhotos.pending,
           label: overview.media.supplierPhotos.autoApprove
-            ? 'Supplier photos needing manual review'
-            : `${overview.media.supplierPhotos.storedPending} supplier photos stored as pending`,
+            ? `${overview.media.supplierPhotos.storedPending} stored pending legacy record(s), no manual queue`
+            : 'Supplier photos needing manual review',
         },
         {
           value: overview.media.homepageCollage.total,
@@ -154,6 +162,31 @@
       .join('');
   }
 
+  function renderHomepageSummaryBar(overview) {
+    const homepage = overview.homepage || {};
+    const media = overview.media || {};
+    const photos = media.supplierPhotos || {};
+    const health = (overview.recommendations || []).some(item =>
+      ['critical', 'warning', 'action'].includes(item.severity)
+    )
+      ? 'Needs action'
+      : 'Healthy';
+    const lastSaved = homepage.updatedAt
+      ? new Date(homepage.updatedAt).toLocaleString()
+      : 'Unable to verify';
+    const source = homepage.collageEnabled ? homepage.collageSource || 'pexels' : 'Static/fallback';
+    const autoApprove = photos.autoApprove ? 'Enabled' : 'Manual review';
+    return `
+      <div class="admin-live-summary" aria-label="Live homepage summary">
+        <div><span>Live version</span><strong>${escapeHtml(homepage.activeVersionLabel || homepage.activeVersion || 'Unable to verify')}</strong></div>
+        <div><span>Collage</span><strong>${homepage.collageEnabled ? 'Enabled' : 'Disabled'}</strong></div>
+        <div><span>Media source</span><strong>${escapeHtml(source)}</strong></div>
+        <div><span>Supplier photos</span><strong>${escapeHtml(autoApprove)}</strong></div>
+        <div><span>Last saved/published</span><strong>${escapeHtml(lastSaved)}</strong></div>
+        <div><span>Overall health</span><strong>${escapeHtml(health)}</strong></div>
+      </div>`;
+  }
+
   function renderStats(stats) {
     return stats
       .map(
@@ -201,6 +234,7 @@
             ${hasWarnings ? 'Needs review' : 'Looks good'}
           </div>
         </div>
+        ${surface === 'homepage' ? renderHomepageSummaryBar(overview) : ''}
         <div class="admin-ops-grid">${renderStats(config.stats(overview))}</div>
         <div class="admin-ops-body">
           <div>

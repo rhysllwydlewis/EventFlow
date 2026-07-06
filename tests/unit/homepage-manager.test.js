@@ -28,14 +28,28 @@ describe('homepage manager helper', () => {
     expect(manager.versions.v3.settings.collageWidget.heroVideo.autoplay).toBe(true);
   });
 
-  test('defaults homepage collage on unless it has been explicitly disabled', () => {
+  test('defaults homepage collage on and resolves legacy unmarked false to enabled', () => {
     expect(buildHomepageManager({}).versions.v1.settings.collageWidget.enabled).toBe(true);
 
-    const disabledManager = buildHomepageManager({
+    const legacyManager = buildHomepageManager({
       collageWidget: { enabled: false },
     });
 
-    expect(disabledManager.versions.v1.settings.collageWidget.enabled).toBe(false);
+    expect(legacyManager.versions.v1.settings.collageWidget.enabled).toBe(true);
+    expect(getHomepageCollageWidget({ collageWidget: { enabled: false } }).enabled).toBe(true);
+  });
+
+  test('preserves explicit homepage collage disable intent', () => {
+    const explicitManager = buildHomepageManager({
+      collageWidget: { enabled: false, enabledExplicit: true, updatedBy: 'admin@example.com' },
+    });
+
+    expect(explicitManager.versions.v1.settings.collageWidget.enabled).toBe(false);
+    expect(
+      getHomepageCollageWidget({
+        collageWidget: { enabled: false, updatedAt: '2026-07-05T12:00:00.000Z' },
+      }).enabled
+    ).toBe(false);
   });
 
   test('migrates old stored homepage slot defaults to collage on', () => {

@@ -37,6 +37,7 @@ describe('Homepage Settings Video Support Integration', () => {
     const settings = await dbUnified.read('settings');
     const updatedSettings = {
       ...(settings || {}),
+      homepageManager: null,
       collageWidget: {
         enabled: true,
         source: 'pexels',
@@ -201,6 +202,67 @@ describe('Homepage Settings Video Support Integration', () => {
         orientation: 'any',
         minResolution: 'SD',
       });
+    });
+
+    it('should resolve public collage settings from the active homepage manager version', async () => {
+      const settings = await dbUnified.read('settings');
+      settings.collageWidget = { enabled: false };
+      settings.homepageManager = {
+        activeVersion: 'v3',
+        versions: {
+          v3: {
+            tabName: 'Video Launch',
+            status: 'published',
+            settings: {
+              collageWidget: {
+                enabled: true,
+                source: 'uploads',
+                mediaTypes: { photos: true, videos: true },
+                uploadGallery: ['/uploads/homepage-collage/live.mp4'],
+                fallbackToPexels: false,
+              },
+            },
+          },
+        },
+      };
+      await dbUnified.write('settings', settings);
+
+      const response = await request(app).get('/api/public/homepage-settings');
+
+      expect(response.status).toBe(200);
+      expect(response.body.collageWidget.enabled).toBe(true);
+      expect(response.body.collageWidget.source).toBe('uploads');
+      expect(response.body.collageWidget.uploadGallery).toEqual([
+        '/uploads/homepage-collage/live.mp4',
+      ]);
+      expect(response.body.collageWidget.fallbackToPexels).toBe(false);
+    });
+
+    it('should preserve explicit active-version collage disable on the public endpoint', async () => {
+      const settings = await dbUnified.read('settings');
+      settings.homepageManager = {
+        activeVersion: 'v2',
+        versions: {
+          v2: {
+            tabName: 'Paused Homepage',
+            status: 'published',
+            settings: {
+              collageWidget: {
+                enabled: false,
+                enabledExplicit: true,
+                updatedAt: '2026-07-05T12:00:00.000Z',
+                source: 'pexels',
+              },
+            },
+          },
+        },
+      };
+      await dbUnified.write('settings', settings);
+
+      const response = await request(app).get('/api/public/homepage-settings');
+
+      expect(response.status).toBe(200);
+      expect(response.body.collageWidget.enabled).toBe(false);
     });
 
     it('should expose a public homepage video playlist for upload fallback mode', async () => {
