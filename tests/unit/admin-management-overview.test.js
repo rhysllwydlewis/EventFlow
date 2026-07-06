@@ -86,6 +86,18 @@ describe('admin management overview helper', () => {
     expect(isPendingPhoto({ rejected: true })).toBe(false);
   });
 
+  test('auto approve enabled keeps stored pending records out of manual review recommendations', () => {
+    const overview = buildAdminManagementOverview({
+      settings: { features: { photoAutoApprove: true } },
+      photos: [{ status: 'pending' }, { approved: false, rejected: false }],
+      pexelsStatus: { configured: true },
+    });
+
+    expect(overview.media.supplierPhotos.pending).toBe(0);
+    expect(overview.media.supplierPhotos.storedPending).toBe(2);
+    expect(overview.recommendations.map(item => item.id)).not.toContain('media-pending-photos');
+  });
+
   test('summarises media review state and Pexels metrics', () => {
     const summary = buildMediaSummary({
       photos: [

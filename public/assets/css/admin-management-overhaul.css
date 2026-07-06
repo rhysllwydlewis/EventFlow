@@ -3,9 +3,7 @@
 }
 
 .admin-ops-panel {
-  background:
-    linear-gradient(135deg, rgba(11, 128, 115, 0.08), rgba(37, 99, 235, 0.06)),
-    #ffffff;
+  background: linear-gradient(135deg, rgba(11, 128, 115, 0.08), rgba(37, 99, 235, 0.06)), #ffffff;
   border: 1px solid rgba(15, 23, 42, 0.08);
   border-radius: 8px;
   box-shadow: 0 14px 40px rgba(15, 23, 42, 0.08);
@@ -289,4 +287,34 @@
   .admin-ops-task-arrow {
     display: none;
   }
+}
+
+.admin-live-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));
+  gap: 12px;
+  margin: 18px 0;
+}
+
+.admin-live-summary div {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 12px 14px;
+}
+
+.admin-live-summary span {
+  display: block;
+  color: #64748b;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.admin-live-summary strong {
+  display: block;
+  color: #0f172a;
+  font-size: 0.95rem;
+  margin-top: 4px;
 }

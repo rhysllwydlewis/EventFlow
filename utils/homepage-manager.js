@@ -151,10 +151,21 @@ function mergeCollageWidget(collageWidget = {}) {
   };
 }
 
+function hasExplicitCollageDisable(widget = {}) {
+  return (
+    widget.enabled === false &&
+    (widget.enabledExplicit === true || Boolean(widget.updatedAt) || Boolean(widget.updatedBy))
+  );
+}
+
 function getFallbackCollageWidget(settings = {}) {
   const fallback = { ...(settings.collageWidget || {}) };
   if (fallback.enabled === undefined && settings.features?.pexelsCollage === true) {
     fallback.enabled = true;
+  }
+  if (fallback.enabled === false && !hasExplicitCollageDisable(fallback)) {
+    fallback.enabled = true;
+    fallback.legacyDefaultResolved = true;
   }
   return fallback;
 }
@@ -166,11 +177,7 @@ function shouldTreatDisabledAsLegacyDefault(existingWidget = {}, fallbackCollage
   if (fallbackCollageWidget.enabled === false) {
     return false;
   }
-  if (
-    existingWidget.enabledExplicit === true ||
-    existingWidget.updatedAt ||
-    existingWidget.updatedBy
-  ) {
+  if (hasExplicitCollageDisable(existingWidget)) {
     return false;
   }
   return true;
@@ -291,7 +298,14 @@ function getHomepageVersion(managerOrSettings, version) {
 function getHomepageCollageWidget(settings = {}, version) {
   const manager = buildHomepageManager(settings);
   const versionConfig = getHomepageVersion(manager, version);
-  return mergeCollageWidget(versionConfig?.settings?.collageWidget || settings.collageWidget || {});
+  const widget = mergeCollageWidget(
+    versionConfig?.settings?.collageWidget || settings.collageWidget || {}
+  );
+  if (widget.enabled === false && !hasExplicitCollageDisable(widget)) {
+    widget.enabled = true;
+    widget.legacyDefaultResolved = true;
+  }
+  return widget;
 }
 
 async function getActiveHomepageVersion() {
@@ -422,6 +436,7 @@ module.exports = {
   getHomepageCollageWidget,
   getHomepageVersion,
   isHomepageVersion,
+  hasExplicitCollageDisable,
   mergeCollageWidget,
   normaliseHomepageVersion,
   publishHomepageVersion,

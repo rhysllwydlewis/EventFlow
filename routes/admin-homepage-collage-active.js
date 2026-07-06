@@ -29,6 +29,7 @@ function syncActiveHomepageWidget(settings, widget, user = {}) {
     ...widget,
     updatedAt,
     updatedBy: user.email || null,
+    enabledExplicit: widget.enabled !== undefined ? true : settings.collageWidget?.enabledExplicit,
   };
 
   activeSlot.settings.collageWidget = {
