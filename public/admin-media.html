@@ -104,7 +104,34 @@
       <div style="display:flex;gap:0.5rem;margin-top:1rem;">
         <button class="ef-cta pexels-btn pexels-btn-primary" id="modalCopyUrl">Copy Media URL</button>
         <button class="ef-cta pexels-btn pexels-btn-secondary" id="modalViewPexels">View on Pexels</button>
+        <button class="ef-cta pexels-btn pexels-btn-primary" id="modalUseHomepage">Use on homepage</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Homepage Assignment Modal -->
+<div class="modal" id="assignmentModal" aria-hidden="true">
+  <div class="modal-content media-assignment-modal" role="dialog" aria-modal="true" aria-labelledby="assignmentTitle">
+    <button class="ef-cta modal-close" id="assignmentClose" aria-label="Close assignment dialog">×</button>
+    <h2 id="assignmentTitle">Use on homepage</h2>
+    <p class="small">Choose where this Pexels media should appear. Selected media is stored per homepage version.</p>
+    <div id="assignmentPreview" class="assignment-preview"></div>
+    <label for="assignmentVersion">Homepage version</label>
+    <select id="assignmentVersion">
+      <option value="v1">V1 Classic</option>
+      <option value="v2">V2 Modern</option>
+      <option value="v3">V3 Premium Video</option>
+    </select>
+    <label for="assignmentTarget">Placement</label>
+    <select id="assignmentTarget">
+      <option value="collage">Collage / grid</option>
+      <option value="hero">Hero media</option>
+      <option value="general">General homepage media</option>
+    </select>
+    <div class="assignment-actions">
+      <button class="ef-cta pexels-btn pexels-btn-secondary" id="assignmentCancel">Cancel</button>
+      <button class="ef-cta pexels-btn pexels-btn-primary" id="assignmentSave">Save assignment</button>
     </div>
   </div>
 </div>

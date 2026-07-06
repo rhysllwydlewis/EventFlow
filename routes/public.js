@@ -13,7 +13,7 @@ const crypto = require('crypto');
 const dbUnified = require('../db-unified');
 const { csrfProtection } = require('../middleware/csrf');
 const { writeLimiter, apiLimiter } = require('../middleware/rateLimits');
-const { getHomepageCollageWidget } = require('../utils/homepage-manager');
+const { getHomepageCollageWidget, resolveHomepageMedia } = require('../utils/homepage-manager');
 
 function isCollageDebugEnabled() {
   return process.env.NODE_ENV === 'development' || process.env.DEBUG_COLLAGE === 'true';
@@ -115,6 +115,12 @@ function sanitizePexelsSettings(settings) {
 function buildPublicCollageWidget(settings = {}) {
   const features = settings.features || {};
   const collageWidget = getHomepageCollageWidget(settings);
+  const homepageMedia = resolveHomepageMedia({
+    collageWidget,
+    mediaLibrary:
+      settings.homepageManager?.versions?.[settings.homepageManager?.activeVersion]?.settings
+        ?.mediaLibrary || settings.mediaLibrary,
+  });
   const legacyPexelsEnabled = features.pexelsCollage === true;
   const collageEnabled =
     collageWidget.enabled !== undefined ? collageWidget.enabled : legacyPexelsEnabled;
@@ -123,8 +129,9 @@ function buildPublicCollageWidget(settings = {}) {
   return {
     collageWidget: {
       enabled: collageEnabled,
-      source: collageWidget.source || 'pexels',
-      mediaTypes: collageWidget.mediaTypes || { photos: true, videos: true },
+      source: homepageMedia.source || collageWidget.source || 'pexels',
+      mediaTypes: homepageMedia.mediaTypes ||
+        collageWidget.mediaTypes || { photos: true, videos: true },
       intervalSeconds: collageWidget.intervalSeconds || pexelsCollageSettings.intervalSeconds,
       pexelsQueries: collageWidget.pexelsQueries || pexelsCollageSettings.queries,
       pexelsVideoQueries: collageWidget.pexelsVideoQueries || DEFAULT_PEXELS_VIDEO_QUERIES,
@@ -159,6 +166,10 @@ function buildPublicCollageWidget(settings = {}) {
         ...DEFAULT_PLAYBACK_SETTINGS,
         ...(collageWidget.playbackControls || {}),
       },
+      mediaLibrary: homepageMedia.mediaLibrary,
+      selectedMedia: homepageMedia.selected,
+      heroSelectedMedia: homepageMedia.heroMedia,
+      effectiveMediaSource: homepageMedia.source,
     },
     pexelsCollageEnabled: legacyPexelsEnabled,
     pexelsCollageSettings,

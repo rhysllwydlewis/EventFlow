@@ -141,7 +141,9 @@ function mountRoutes(app, deps) {
 
   // Admin routes
   app.use('/api/v1/admin/homepage/manager', adminHomepageManagerRoutes);
+  app.use('/api/v1/admin/homepage', adminHomepageManagerRoutes);
   app.use('/api/admin/homepage/manager', adminHomepageManagerRoutes); // Backward compatibility
+  app.use('/api/admin/homepage', adminHomepageManagerRoutes); // Backward compatibility
   app.use('/api/v1/admin/management', adminManagementRoutes);
   app.use('/api/admin/management', adminManagementRoutes); // Backward compatibility
   app.use('/api/v1/admin', adminHomepageCollageActiveRoutes);
