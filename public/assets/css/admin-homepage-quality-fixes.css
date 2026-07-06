@@ -35,7 +35,6 @@
 .admin-main-content .homepage-version-tab .badge {
   align-self: start;
   max-width: 100%;
-  color: #334155 !important;
   line-height: 1.2;
   text-align: center;
   white-space: nowrap;
@@ -105,7 +104,7 @@
   justify-content: flex-end;
   justify-self: end;
   gap: 6px;
-  max-width: 120px;
+  max-width: 130px;
   min-width: 0;
 }
 
@@ -113,12 +112,13 @@
   display: inline-flex !important;
   align-items: center;
   justify-content: center;
+  width: auto !important;
   min-width: 50px !important;
-  max-width: 58px;
   min-height: 32px !important;
-  padding: 0 9px !important;
+  padding: 0 10px !important;
   border: 1px solid #cbd5e1 !important;
   border-radius: 10px !important;
+  appearance: none;
   background: #ffffff !important;
   color: #334155 !important;
   box-shadow: 0 3px 9px rgba(15, 23, 42, 0.12) !important;
@@ -140,6 +140,12 @@
   border-color: #0b8073 !important;
   box-shadow: 0 0 0 3px rgba(11, 128, 115, 0.16) !important;
   outline: none;
+}
+
+.admin-main-content .admin-category-card-actions .admin-category-card-btn.danger:hover,
+.admin-main-content .admin-category-card-actions .admin-category-card-btn.danger:focus-visible {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.16) !important;
 }
 
 .admin-main-content .admin-category-card-body {
