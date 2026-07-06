@@ -212,7 +212,20 @@
       });
   }
 
+  function loadQualityFixes() {
+    const href = '/assets/css/admin-homepage-quality-fixes.css?v=18.3.1';
+    if (document.querySelector(`link[href="${href}"]`)) {
+      return;
+    }
+
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = href;
+    document.head.appendChild(link);
+  }
+
   function init() {
+    loadQualityFixes();
     document.body.classList.add('admin-homepage-ux-overhaul');
     removeUnclearFloatingControls();
     labelWorkspaceSections();
