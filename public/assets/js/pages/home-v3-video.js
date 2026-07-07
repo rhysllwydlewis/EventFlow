@@ -5,6 +5,9 @@
   const DEFAULT_ROTATION_SECONDS = 8;
   const MIN_ROTATION_SECONDS = 1;
   const MOBILE_TRANSITION_MULTIPLIER = 1.5;
+  const DEFAULT_SOURCE_SWAP_FADE_MS = 520;
+  const MAX_SOURCE_SWAP_FADE_MS = 900;
+  const SOURCE_SWAP_FADE_RATIO = 0.65;
   const VIDEO_UPLOAD_PATTERN = /\.(mp4|webm|mov)(?:$|[?#])/i;
   const TRANSITION_EFFECTS = new Set(['fade', 'slide', 'zoom', 'crossfade']);
 
@@ -340,31 +343,88 @@
     }
   }
 
+  function getSourceSwapFadeDelay(container) {
+    const rawDuration = getComputedStyle(container).getPropertyValue(
+      '--hv3-video-transition-duration'
+    );
+    const duration = Number.parseFloat(rawDuration);
+
+    if (!Number.isFinite(duration)) {
+      return DEFAULT_SOURCE_SWAP_FADE_MS;
+    }
+
+    return Math.max(
+      DEFAULT_SOURCE_SWAP_FADE_MS,
+      Math.min(duration * SOURCE_SWAP_FADE_RATIO, MAX_SOURCE_SWAP_FADE_MS)
+    );
+  }
+
+  function shouldFadeSourceSwap(container, source) {
+    const hasCurrentSource = Boolean(source?.getAttribute?.('src'));
+    const reduceMotion =
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    return hasCurrentSource && container.classList.contains('is-ready') && !reduceMotion;
+  }
+
   function setHeroVideoSource({ container, video, source, item, shouldPlay }) {
     if (!item?.file?.link) {
       return false;
     }
 
-    if (item.image) {
-      video.setAttribute('poster', item.image);
-    } else {
-      video.removeAttribute('poster');
-    }
+    const swapId = String((Number(container.dataset.videoSwapId) || 0) + 1);
+    const fadeSwap = shouldFadeSourceSwap(container, source);
+    container.dataset.videoSwapId = swapId;
+
+    const applySource = () => {
+      if (container.dataset.videoSwapId !== swapId) {
+        return;
+      }
+
+      if (item.image) {
+        video.setAttribute('poster', item.image);
+      } else {
+        video.removeAttribute('poster');
+      }
+
+      source.src = item.file.link;
+      source.type = item.file.file_type || item.file.fileType || getVideoTypeFromUrl(item.file.link);
+      video.preload = video.preload === 'none' ? 'none' : 'metadata';
+
+      video.addEventListener(
+        'loadeddata',
+        () => {
+          if (container.dataset.videoSwapId !== swapId) {
+            return;
+          }
+
+          container.classList.remove('is-loading', 'is-switching');
+          container.classList.add('is-ready');
+
+          if (shouldPlay) {
+            playHeroVideo(video);
+          }
+        },
+        { once: true }
+      );
+
+      video.load();
+
+      if (shouldPlay) {
+        playHeroVideo(video);
+      }
+    };
 
     container.classList.add('is-loading');
     container.classList.remove('is-ready');
-    source.src = item.file.link;
-    source.type = item.file.file_type || item.file.fileType || getVideoTypeFromUrl(item.file.link);
-    video.preload = video.preload === 'none' ? 'none' : 'metadata';
 
-    if (shouldPlay) {
-      video.addEventListener('loadeddata', () => playHeroVideo(video), { once: true });
-    }
-
-    video.load();
-
-    if (shouldPlay) {
-      playHeroVideo(video);
+    if (fadeSwap) {
+      container.classList.add('is-switching');
+      window.setTimeout(applySource, getSourceSwapFadeDelay(container));
+    } else {
+      container.classList.remove('is-switching');
+      applySource();
     }
 
     return true;
@@ -425,7 +485,7 @@
         video.autoplay = false;
         video.pause();
         video.load();
-        container.classList.remove('is-loading');
+        container.classList.remove('is-loading', 'is-switching');
         return false;
       }
 
@@ -461,7 +521,7 @@
 
     const handleVideoError = () => {
       failedIndexes.add(currentIndex);
-      container.classList.remove('is-loading');
+      container.classList.remove('is-loading', 'is-switching');
       if (advanceVideo({ respectVisibility: false })) {
         queueNextVideo();
       }
@@ -638,7 +698,7 @@
     applyTransitionSettings(container, settings);
 
     video.addEventListener('loadeddata', () => {
-      container.classList.remove('is-loading');
+      container.classList.remove('is-loading', 'is-switching');
       container.classList.add('is-ready');
     });
 
@@ -648,7 +708,7 @@
       video.autoplay = false;
       video.pause();
       video.load();
-      container.classList.remove('is-loading');
+      container.classList.remove('is-loading', 'is-switching');
       return;
     }
 
@@ -674,7 +734,7 @@
       try {
         playlist = await fetchPexelsPlaylist(settings);
       } catch {
-        container.classList.remove('is-loading');
+        container.classList.remove('is-loading', 'is-switching');
       }
     }
 
@@ -684,7 +744,7 @@
       video.autoplay = false;
       video.pause();
       video.load();
-      container.classList.remove('is-loading');
+      container.classList.remove('is-loading', 'is-switching');
       container.classList.add('is-ready');
       return;
     }
