@@ -8,11 +8,43 @@
   const DEFAULT_SOURCE_SWAP_FADE_MS = 520;
   const MAX_SOURCE_SWAP_FADE_MS = 900;
   const SOURCE_SWAP_FADE_RATIO = 0.65;
+  const HERO_CROP_PORTRAIT_RATIO = 1.05;
+  const HERO_CROP_PROTECT_TOP_RATIO = 1.35;
+  const HERO_CROP_PROTECT_TOP_CROP = 0.07;
+  const HERO_CROP_SAFE_VERTICAL_CROP = 0.36;
+  const HERO_CROP_AUTO_SAFE_SCORE = 0.42;
   const VIDEO_UPLOAD_PATTERN = /\.(mp4|webm|mov)(?:$|[?#])/i;
   const TRANSITION_EFFECTS = new Set(['fade', 'slide', 'zoom', 'crossfade']);
+  const CROP_MODES = new Set(['balanced', 'protect-top', 'safe', 'center']);
+  const FOCAL_POSITIONS = {
+    center: '50% 45%',
+    top: '50% 25%',
+    bottom: '50% 72%',
+    left: '30% 45%',
+    right: '70% 45%',
+    'top-left': '30% 25%',
+    'top-right': '70% 25%',
+    'bottom-left': '30% 72%',
+    'bottom-right': '70% 72%',
+  };
 
   function isMobileViewport() {
     return window.matchMedia?.('(max-width: 720px)').matches === true;
+  }
+
+  function normaliseDimension(value) {
+    const number = Number(value);
+    return Number.isFinite(number) && number > 0 ? number : null;
+  }
+
+  function normalisePercentValue(value) {
+    const number = Number(value);
+    if (!Number.isFinite(number)) {
+      return null;
+    }
+
+    const percent = number > 0 && number <= 1 ? number * 100 : number;
+    return Math.max(0, Math.min(percent, 100));
   }
 
   function getHeroVideoFiles(video) {
@@ -39,6 +71,162 @@
       width: Number(video?.width || fileWithDimensions?.width || 0),
       height: Number(video?.height || fileWithDimensions?.height || 0),
     };
+  }
+
+  function getPlaylistItemDimensions(item, video) {
+    return {
+      width:
+        normaliseDimension(item?.width) ||
+        normaliseDimension(item?.file?.width) ||
+        normaliseDimension(video?.videoWidth),
+      height:
+        normaliseDimension(item?.height) ||
+        normaliseDimension(item?.file?.height) ||
+        normaliseDimension(video?.videoHeight),
+    };
+  }
+
+  function getHeroFrameRatio(container) {
+    const width = normaliseDimension(container?.clientWidth) || window.innerWidth || 0;
+    const height = normaliseDimension(container?.clientHeight) || 540;
+    return width && height ? width / height : 16 / 9;
+  }
+
+  function getCropMetrics(container, item, video) {
+    const { width, height } = getPlaylistItemDimensions(item, video);
+
+    if (!width || !height) {
+      return {
+        ratio: null,
+        frameRatio: getHeroFrameRatio(container),
+        verticalCrop: 0,
+        horizontalCrop: 0,
+        score: 0.18,
+      };
+    }
+
+    const ratio = width / height;
+    const frameRatio = getHeroFrameRatio(container);
+    const verticalCrop = ratio < frameRatio ? 1 - ratio / frameRatio : 0;
+    const horizontalCrop = ratio > frameRatio ? 1 - frameRatio / ratio : 0;
+    const portraitPenalty = ratio < HERO_CROP_PORTRAIT_RATIO ? 0.36 : 0;
+
+    return {
+      ratio,
+      frameRatio,
+      verticalCrop,
+      horizontalCrop,
+      score: verticalCrop * 1.65 + horizontalCrop * 0.65 + portraitPenalty,
+    };
+  }
+
+  function normaliseObjectPosition(value) {
+    if (!value) {
+      return null;
+    }
+
+    if (typeof value === 'string') {
+      const key = value.trim().toLowerCase();
+      if (FOCAL_POSITIONS[key]) {
+        return FOCAL_POSITIONS[key];
+      }
+      if (/^(left|center|right|\d{1,3}%)(\s+)(top|center|bottom|\d{1,3}%)$/i.test(value)) {
+        return value;
+      }
+      return null;
+    }
+
+    const x = normalisePercentValue(value.x ?? value.left);
+    const y = normalisePercentValue(value.y ?? value.top);
+    if (x !== null && y !== null) {
+      return `${x}% ${y}%`;
+    }
+
+    return null;
+  }
+
+  function getAutoObjectPosition(metrics) {
+    if (!metrics.ratio) {
+      return '50% 42%';
+    }
+
+    if (metrics.ratio < HERO_CROP_PORTRAIT_RATIO || metrics.verticalCrop > HERO_CROP_SAFE_VERTICAL_CROP) {
+      return '50% 25%';
+    }
+
+    if (
+      metrics.ratio < HERO_CROP_PROTECT_TOP_RATIO ||
+      metrics.verticalCrop > HERO_CROP_PROTECT_TOP_CROP
+    ) {
+      return '50% 32%';
+    }
+
+    if (metrics.horizontalCrop > 0.28) {
+      return '50% 44%';
+    }
+
+    return '54% 42%';
+  }
+
+  function getCropMode(item, metrics) {
+    const configuredMode = String(item?.cropMode || item?.heroCropMode || item?.crop?.mode || '')
+      .trim()
+      .toLowerCase();
+    if (CROP_MODES.has(configuredMode)) {
+      return configuredMode;
+    }
+
+    if (!metrics.ratio) {
+      return 'balanced';
+    }
+
+    if (metrics.ratio < HERO_CROP_PORTRAIT_RATIO || metrics.verticalCrop > HERO_CROP_SAFE_VERTICAL_CROP) {
+      return 'safe';
+    }
+
+    if (
+      metrics.ratio < HERO_CROP_PROTECT_TOP_RATIO ||
+      metrics.verticalCrop > HERO_CROP_PROTECT_TOP_CROP
+    ) {
+      return 'protect-top';
+    }
+
+    if (metrics.horizontalCrop > 0.28) {
+      return 'center';
+    }
+
+    return 'balanced';
+  }
+
+  function applyHeroVideoCrop(container, video, item) {
+    const metrics = getCropMetrics(container, item, video);
+    const focalPosition =
+      normaliseObjectPosition(item?.objectPosition || item?.heroObjectPosition || item?.crop?.objectPosition) ||
+      normaliseObjectPosition(item?.focalPoint || item?.heroFocalPoint || item?.crop?.focalPoint) ||
+      getAutoObjectPosition(metrics);
+    const cropMode = getCropMode(item, metrics);
+
+    container.dataset.cropMode = cropMode;
+    container.style.setProperty('--hv3-video-object-position', focalPosition);
+    container.style.setProperty('--hv3-video-object-fit', cropMode === 'safe' ? 'contain' : 'cover');
+  }
+
+  function orderHeroPlaylistForCrop(playlist, container) {
+    if (playlist.length <= 1) {
+      return playlist;
+    }
+
+    const scored = playlist.map((item, index) => ({
+      index,
+      item,
+      metrics: getCropMetrics(container, item),
+    }));
+    const safeItems = scored.filter(entry => entry.metrics.score <= HERO_CROP_AUTO_SAFE_SCORE);
+    const pool = safeItems.length >= Math.min(2, playlist.length) ? safeItems : scored;
+
+    return [...pool]
+      .sort((a, b) => a.metrics.score - b.metrics.score || a.index - b.index)
+      .map(entry => entry.item);
   }
 
   function getHeroVideoTargetWidth(settings = {}) {
@@ -188,6 +376,11 @@
     return {
       id: item.id || `selected-${item.providerId || fallbackId}`,
       image: item.thumbnailUrl || item.image || '',
+      width: normaliseDimension(item.width),
+      height: normaliseDimension(item.height),
+      focalPoint: item.focalPoint || item.heroFocalPoint || item.crop?.focalPoint || null,
+      objectPosition: item.objectPosition || item.heroObjectPosition || item.crop?.objectPosition || null,
+      cropMode: item.cropMode || item.heroCropMode || item.crop?.mode || null,
       file: {
         file_type: item.fileType || item.file_type || getVideoTypeFromUrl(item.url),
         link: item.url,
@@ -228,11 +421,16 @@
     const sourceVideos = filteredVideos.length > 0 ? filteredVideos : videos;
 
     return sourceVideos
-      .map(video => ({
-        id: video.id,
-        image: video.image,
-        file: chooseHeroVideoFile(video, settings),
-      }))
+      .map(video => {
+        const { width, height } = getVideoDimensions(video);
+        return {
+          id: video.id,
+          image: video.image,
+          width,
+          height,
+          file: chooseHeroVideoFile(video, settings),
+        };
+      })
       .filter(item => item.file?.link);
   }
 
@@ -382,6 +580,8 @@
         return;
       }
 
+      applyHeroVideoCrop(container, video, item);
+
       if (item.image) {
         video.setAttribute('poster', item.image);
       } else {
@@ -391,6 +591,16 @@
       source.src = item.file.link;
       source.type = item.file.file_type || item.file.fileType || getVideoTypeFromUrl(item.file.link);
       video.preload = video.preload === 'none' ? 'none' : 'metadata';
+
+      video.addEventListener(
+        'loadedmetadata',
+        () => {
+          if (container.dataset.videoSwapId === swapId) {
+            applyHeroVideoCrop(container, video, item);
+          }
+        },
+        { once: true }
+      );
 
       video.addEventListener(
         'loadeddata',
@@ -732,7 +942,7 @@
 
     if (playlist.length === 0 && canFetchPexels) {
       try {
-        playlist = await fetchPexelsPlaylist(settings);
+        playlist = orderHeroPlaylistForCrop(await fetchPexelsPlaylist(settings), container);
       } catch {
         container.classList.remove('is-loading', 'is-switching');
       }
