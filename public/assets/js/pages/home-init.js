@@ -1585,16 +1585,53 @@ async function initHeroVideo(
     videoElement.loop = heroVideoConfig.loop;
   }
 
-  // Add loading state
+  // Add loading state and keep autoplay browser-safe.
+  const shouldAutoplay = heroVideoConfig.autoplay !== false;
+  if (shouldAutoplay) {
+    videoElement.muted = true;
+    videoElement.setAttribute('muted', '');
+  }
+  videoElement.setAttribute('playsinline', '');
   if (videoCard) {
     videoCard.classList.add('loading-video');
   }
 
   try {
     if (selectedHeroMedia?.type === 'video' && selectedHeroMedia.url) {
+      const fallbackEnabled =
+        source === 'selected_with_fallback' || heroVideoConfig.fallbackToPexels === true;
+      const fallbackToAutomaticHero = () => {
+        videoElement.removeEventListener('error', fallbackToAutomaticHero);
+        videoSource.src = '';
+        videoElement.removeAttribute('poster');
+        videoElement.load();
+        if (fallbackEnabled) {
+          if (isDebugEnabled()) {
+            console.warn(
+              '[Hero Video] Selected hero video failed; falling back to automatic Pexels video'
+            );
+          }
+          initHeroVideo('pexels', mediaTypes, uploadGallery, heroVideoConfig, null);
+        } else if (videoCard) {
+          videoCard.classList.remove('loading-video');
+        }
+      };
+      videoElement.addEventListener(
+        'loadeddata',
+        () => {
+          if (videoCard) {
+            videoCard.classList.remove('loading-video');
+          }
+          videoElement.classList.add('video-loaded');
+        },
+        { once: true }
+      );
+      videoElement.addEventListener('error', fallbackToAutomaticHero, { once: true });
       videoSource.src = selectedHeroMedia.url;
       if (selectedHeroMedia.thumbnailUrl) {
         videoElement.poster = selectedHeroMedia.thumbnailUrl;
+      } else {
+        videoElement.removeAttribute('poster');
       }
       videoElement.load();
       if (videoCredit) {
@@ -1603,13 +1640,12 @@ async function initHeroVideo(
           : '';
         videoCredit.style.display = selectedHeroMedia.photographer ? 'block' : 'none';
       }
-      videoElement.play().catch(() => {
-        if (isDebugEnabled()) {
-          console.log('[Hero Video] Autoplay prevented for selected media');
-        }
-      });
-      if (videoCard) {
-        videoCard.classList.remove('loading-video');
+      if (shouldAutoplay) {
+        videoElement.play().catch(() => {
+          if (isDebugEnabled()) {
+            console.log('[Hero Video] Autoplay prevented for selected media');
+          }
+        });
       }
       return;
     }
@@ -1653,17 +1689,22 @@ async function initHeroVideo(
           { once: true }
         );
 
-        videoElement.play().catch(() => {
-          if (isDebugEnabled()) {
-            console.log('[Hero Video] Autoplay prevented, video will play on user interaction');
-          }
-        });
+        if (shouldAutoplay) {
+          videoElement.play().catch(() => {
+            if (isDebugEnabled()) {
+              console.log('[Hero Video] Autoplay prevented, video will play on user interaction');
+            }
+          });
+        }
         videoCredit.style.display = 'none'; // No credit for uploaded videos
         return;
       }
     }
 
-    if ((source === 'pexels' || source === 'uploads') && useVideos) {
+    if (
+      (source === 'pexels' || source === 'uploads' || source === 'selected_with_fallback') &&
+      useVideos
+    ) {
       // Fetch Pexels video with retry logic
       const eventQueries = ['wedding', 'party', 'corporate event', 'celebration', 'event venue'];
       const randomQuery = eventQueries[Math.floor(Math.random() * eventQueries.length)];
@@ -1821,13 +1862,15 @@ async function initHeroVideo(
             }
 
             if (isDebugEnabled()) {
-              console.log('[Hero Video] Video loaded successfully, attempting to play');
+              console.log('[Hero Video] Video loaded successfully');
             }
-            videoElement.play().catch(err => {
-              if (isDebugEnabled()) {
-                console.log('[Hero Video] Autoplay prevented:', err.message);
-              }
-            });
+            if (shouldAutoplay) {
+              videoElement.play().catch(err => {
+                if (isDebugEnabled()) {
+                  console.log('[Hero Video] Autoplay prevented:', err.message);
+                }
+              });
+            }
           };
 
           const handleVideoError = () => {
@@ -2043,7 +2086,7 @@ async function initCollageWidget(widgetConfig) {
       source,
       effectiveMediaTypes,
       uploadGallery,
-      heroVideo || {},
+      { ...(heroVideo || {}), fallbackToPexels },
       widgetConfig.heroSelectedMedia || null
     );
   } else if (isDevelopmentEnvironment()) {

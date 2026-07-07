@@ -115,7 +115,7 @@
   <div class="modal-content media-assignment-modal" role="dialog" aria-modal="true" aria-labelledby="assignmentTitle">
     <button class="ef-cta modal-close" id="assignmentClose" aria-label="Close assignment dialog">×</button>
     <h2 id="assignmentTitle">Use on homepage</h2>
-    <p class="small">Choose where this Pexels media should appear. Selected media is stored per homepage version.</p>
+    <p class="small">Choose where this Pexels media should appear. Selected media is stored per homepage version, and you can choose whether this save should make the version use selected media immediately.</p>
     <div id="assignmentPreview" class="assignment-preview"></div>
     <label for="assignmentVersion">Homepage version</label>
     <select id="assignmentVersion">
@@ -129,6 +129,13 @@
       <option value="hero">Hero media</option>
       <option value="general">General homepage media</option>
     </select>
+    <label for="assignmentModeAfterAssign">After saving</label>
+    <select id="assignmentModeAfterAssign">
+      <option value="selected_with_fallback">Use selected media with automatic fallback</option>
+      <option value="unchanged">Save selection only</option>
+      <option value="selected_pexels">Selected Pexels only</option>
+    </select>
+    <p class="small">Fallback will fill missing media from Pexels. Save selection only keeps the current homepage media source unchanged.</p>
     <div class="assignment-actions">
       <button class="ef-cta pexels-btn pexels-btn-secondary" id="assignmentCancel">Cancel</button>
       <button class="ef-cta pexels-btn pexels-btn-primary" id="assignmentSave">Save assignment</button>
@@ -146,7 +153,7 @@
 
 <script src="/assets/js/admin-shared.js?v=18.3.0"></script>
 <script src="/assets/js/pages/admin-management-overhaul.js?v=18.3.0" defer></script>
-<script src="/assets/js/pages/admin-media-init.js?v=18.3.0" defer></script>
+<script src="/assets/js/pages/admin-media-init.js?v=18.3.1" defer></script>
 <script src="/assets/js/cookie-consent.js?v=2.0.0" defer></script>
 </body>
 </html>

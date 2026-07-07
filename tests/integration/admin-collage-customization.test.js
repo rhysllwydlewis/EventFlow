@@ -153,13 +153,12 @@ describe('Collage Widget Customization Tests', () => {
     it('should pass heroVideo config to initHeroVideo', () => {
       const jsContent = fs.readFileSync('public/assets/js/pages/home-init.js', 'utf8');
 
-      expect(jsContent).toContain(
-        'async function initHeroVideo(source, mediaTypes, uploadGallery = [], heroVideoConfig = {})'
-      );
+      expect(jsContent).toContain('async function initHeroVideo(');
       expect(jsContent).toContain('heroVideoConfig.enabled');
       expect(jsContent).toContain('heroVideoConfig.autoplay');
       expect(jsContent).toContain('heroVideoConfig.muted');
       expect(jsContent).toContain('heroVideoConfig.loop');
+      expect(jsContent).toContain('selectedHeroMedia = null');
     });
 
     it('should implement mobile optimizations', () => {

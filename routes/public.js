@@ -137,7 +137,10 @@ function buildPublicCollageWidget(settings = {}) {
       pexelsVideoQueries: collageWidget.pexelsVideoQueries || DEFAULT_PEXELS_VIDEO_QUERIES,
       uploadGallery: collageWidget.uploadGallery || [],
       fallbackToPexels:
-        collageWidget.fallbackToPexels !== undefined ? collageWidget.fallbackToPexels : true,
+        homepageMedia.fallback?.enabled === true ||
+        (homepageMedia.fallback === null || homepageMedia.fallback === undefined
+          ? false
+          : homepageMedia.fallback.enabled !== false),
       heroVideo: {
         ...DEFAULT_HERO_VIDEO_SETTINGS,
         ...(collageWidget.heroVideo || {}),

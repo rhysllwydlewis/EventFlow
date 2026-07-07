@@ -109,4 +109,65 @@ describe('homepage media library normalisation and assignment', () => {
     expect(resolved.heroMedia.id).toBe('pexels-video-456');
     expect(resolved.fallback.enabled).toBe(true);
   });
+  it('assigns a Pexels video to V3 hero and can switch V3 to selected media with fallback', () => {
+    const settings = assignPexelsMediaToVersion(
+      {},
+      'v3',
+      { target: 'hero', modeAfterAssign: 'selected_with_fallback', media: video },
+      { email: 'admin@example.com' }
+    );
+    const library = buildHomepageManager(settings).versions.v3.settings.mediaLibrary;
+    expect(library.mode).toBe('selected_with_fallback');
+    expect(library.selectedPexels).toHaveLength(1);
+    expect(library.hero.mode).toBe('selected_pexels');
+    expect(library.hero.selectedMediaId).toBe('pexels-video-456');
+  });
+
+  it('resolves selected Pexels only without enabling fallback unexpectedly', () => {
+    const settings = assignPexelsMediaToVersion(
+      {},
+      'v3',
+      { target: 'hero', modeAfterAssign: 'selected_pexels', media: video },
+      {}
+    );
+    const resolved = resolveHomepageMedia(buildHomepageManager(settings).versions.v3.settings);
+    expect(resolved.source).toBe('selected');
+    expect(resolved.selected).toHaveLength(1);
+    expect(resolved.heroMedia.id).toBe('pexels-video-456');
+    expect(resolved.fallback).toBeNull();
+  });
+
+  it('derives selected uploads from legacy upload gallery and keeps uploads mode usable', () => {
+    const manager = buildHomepageManager({
+      collageWidget: {
+        source: 'uploads',
+        uploadGallery: [
+          '/uploads/homepage-collage/hero.mp4',
+          '/uploads/homepage-collage/photo.jpg',
+        ],
+      },
+    });
+    const library = manager.versions.v1.settings.mediaLibrary;
+    const resolved = resolveHomepageMedia(manager.versions.v1.settings);
+    expect(library.mode).toBe('uploads');
+    expect(library.selectedUploads).toHaveLength(2);
+    expect(library.selectedUploads[0].type).toBe('video');
+    expect(resolved.source).toBe('uploads');
+    expect(resolved.selected).toHaveLength(2);
+  });
+
+  it('keeps legacy upload gallery visible even when selectedUploads already exists empty', () => {
+    const manager = buildHomepageManager({
+      collageWidget: {
+        source: 'uploads',
+        uploadGallery: ['/uploads/homepage-collage/existing.mp4'],
+      },
+      mediaLibrary: {
+        mode: 'uploads',
+        selectedUploads: [],
+      },
+    });
+    expect(manager.versions.v1.settings.mediaLibrary.selectedUploads).toHaveLength(1);
+    expect(resolveHomepageMedia(manager.versions.v1.settings).selected).toHaveLength(1);
+  });
 });

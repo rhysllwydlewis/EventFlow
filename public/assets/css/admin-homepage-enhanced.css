@@ -1290,3 +1290,15 @@ input:checked + .admin-category-card-visibility-slider:before {
     height: 180px;
   }
 }
+
+.homepage-media-notice {
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  border-radius: 10px;
+  color: #9a3412;
+  display: block;
+  font-size: 0.9rem;
+  margin-top: 10px;
+  padding: 10px 12px;
+  width: 100%;
+}
