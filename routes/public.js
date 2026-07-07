@@ -13,7 +13,12 @@ const crypto = require('crypto');
 const dbUnified = require('../db-unified');
 const { csrfProtection } = require('../middleware/csrf');
 const { writeLimiter, apiLimiter } = require('../middleware/rateLimits');
-const { getHomepageCollageWidget, resolveHomepageMedia } = require('../utils/homepage-manager');
+const {
+  buildHomepageManager,
+  getHomepageCollageWidget,
+  normaliseHomepageVersion,
+  resolveHomepageMedia,
+} = require('../utils/homepage-manager');
 
 function isCollageDebugEnabled() {
   return process.env.NODE_ENV === 'development' || process.env.DEBUG_COLLAGE === 'true';
@@ -112,14 +117,40 @@ function sanitizePexelsSettings(settings) {
   return sanitized;
 }
 
-function buildPublicCollageWidget(settings = {}) {
+function inferHomepageVersionFromReferer(req) {
+  const referer = req.get('referer') || req.get('referrer') || '';
+  try {
+    const pathname = new URL(referer).pathname.toLowerCase();
+    if (pathname.includes('home-v3')) {
+      return 'v3';
+    }
+    if (pathname.includes('home-v2')) {
+      return 'v2';
+    }
+  } catch (_) {
+    if (/home-v3/i.test(referer)) {
+      return 'v3';
+    }
+    if (/home-v2/i.test(referer)) {
+      return 'v2';
+    }
+  }
+  return null;
+}
+
+function getRequestedHomepageVersion(req) {
+  return normaliseHomepageVersion(req.query.version) || inferHomepageVersionFromReferer(req);
+}
+
+function buildPublicCollageWidget(settings = {}, requestedVersion) {
   const features = settings.features || {};
-  const collageWidget = getHomepageCollageWidget(settings);
+  const manager = buildHomepageManager(settings);
+  const homepageVersion = normaliseHomepageVersion(requestedVersion) || manager.activeVersion;
+  const versionSettings = manager.versions?.[homepageVersion]?.settings || {};
+  const collageWidget = getHomepageCollageWidget(settings, homepageVersion);
   const homepageMedia = resolveHomepageMedia({
     collageWidget,
-    mediaLibrary:
-      settings.homepageManager?.versions?.[settings.homepageManager?.activeVersion]?.settings
-        ?.mediaLibrary || settings.mediaLibrary,
+    mediaLibrary: versionSettings.mediaLibrary || settings.mediaLibrary,
   });
   const legacyPexelsEnabled = features.pexelsCollage === true;
   const collageEnabled =
@@ -127,6 +158,8 @@ function buildPublicCollageWidget(settings = {}) {
   const pexelsCollageSettings = sanitizePexelsSettings(settings.pexelsCollageSettings);
 
   return {
+    homepageVersion,
+    activeHomepageVersion: manager.activeVersion,
     collageWidget: {
       enabled: collageEnabled,
       source: homepageMedia.source || collageWidget.source || 'pexels',
@@ -215,13 +248,15 @@ router.get('/homepage-settings', async (req, res) => {
   try {
     res.set('Cache-Control', 'no-store, private');
     const settings = (await dbUnified.read('settings')) || {};
-    const publicSettings = buildPublicCollageWidget(settings);
+    const publicSettings = buildPublicCollageWidget(settings, getRequestedHomepageVersion(req));
     const collageWidgetResponse = publicSettings.collageWidget;
 
     if (isCollageDebugEnabled()) {
       logger.info('[Homepage Settings] Returning collage config:', {
         collageEnabled: collageWidgetResponse.enabled,
         source: collageWidgetResponse.source,
+        homepageVersion: publicSettings.homepageVersion,
+        activeHomepageVersion: publicSettings.activeHomepageVersion,
         hasQueries: !!collageWidgetResponse.pexelsQueries,
         hasVideoQueries: !!collageWidgetResponse.pexelsVideoQueries,
         uploadGalleryCount: collageWidgetResponse.uploadGallery.length,
@@ -250,11 +285,13 @@ router.get('/homepage-video', apiLimiter, async (req, res) => {
     }
 
     const settings = (await dbUnified.read('settings')) || {};
-    const { collageWidget } = buildPublicCollageWidget(settings);
+    const { collageWidget } = buildPublicCollageWidget(settings, getRequestedHomepageVersion(req));
     const source = collageWidget.source || 'pexels';
     const videosEnabled = collageWidget.mediaTypes?.videos !== false;
     const canUsePexels =
-      source === 'pexels' || (source === 'uploads' && collageWidget.fallbackToPexels !== false);
+      source === 'pexels' ||
+      (source === 'uploads' && collageWidget.fallbackToPexels !== false) ||
+      (source === 'selected_with_fallback' && collageWidget.fallbackToPexels !== false);
 
     if (!collageWidget.enabled) {
       return res.status(404).json({
@@ -272,7 +309,7 @@ router.get('/homepage-video', apiLimiter, async (req, res) => {
 
     if (!canUsePexels) {
       return res.status(400).json({
-        error: 'Pexels fallback is disabled for uploaded homepage media',
+        error: 'Pexels fallback is disabled for this homepage media mode',
         errorType: 'pexels_fallback_disabled',
       });
     }

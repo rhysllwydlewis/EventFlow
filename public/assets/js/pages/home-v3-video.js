@@ -547,7 +547,7 @@
     };
 
     try {
-      const response = await fetch('/api/v1/public/homepage-settings', {
+      const response = await fetch('/api/v1/public/homepage-settings?version=v3', {
         credentials: 'same-origin',
         headers: { Accept: 'application/json' },
       });
@@ -588,7 +588,7 @@
   async function fetchPexelsPlaylist(settings) {
     const query = getPreferredVideoQuery(settings);
     const response = await fetch(
-      `/api/v1/public/homepage-video?query=${encodeURIComponent(query)}`,
+      `/api/v1/public/homepage-video?version=v3&query=${encodeURIComponent(query)}`,
       {
         credentials: 'same-origin',
         headers: {
