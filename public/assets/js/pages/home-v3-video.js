@@ -177,6 +177,46 @@
       }));
   }
 
+  function normaliseSelectedVideoItem(item, fallbackId = 'selected-video') {
+    if (!item || item.type !== 'video' || !item.url) {
+      return null;
+    }
+
+    return {
+      id: item.id || `selected-${item.providerId || fallbackId}`,
+      image: item.thumbnailUrl || item.image || '',
+      file: {
+        file_type: item.fileType || item.file_type || getVideoTypeFromUrl(item.url),
+        link: item.url,
+        quality: item.quality || 'selected',
+      },
+    };
+  }
+
+  function buildSelectedPlaylist(settings = {}) {
+    const playlist = [];
+    const heroItem = normaliseSelectedVideoItem(settings.heroSelectedMedia, 'hero');
+
+    if (heroItem) {
+      playlist.push(heroItem);
+    }
+
+    const selectedMedia = Array.isArray(settings.selectedMedia) ? settings.selectedMedia : [];
+    selectedMedia.forEach((item, index) => {
+      const targets = Array.isArray(item?.assignedTargets) ? item.assignedTargets : [];
+      const isHeroCandidate = targets.includes('hero') || targets.includes('general');
+      const selectedItem = isHeroCandidate
+        ? normaliseSelectedVideoItem(item, `media-${index}`)
+        : null;
+
+      if (selectedItem && !playlist.some(existing => existing.file.link === selectedItem.file.link)) {
+        playlist.push(selectedItem);
+      }
+    });
+
+    return playlist;
+  }
+
   function buildPexelsPlaylist(videos, settings = {}) {
     const filteredVideos = videos.filter(video => videoPassesContentFilters(video, settings));
     const sourceVideos = filteredVideos.length > 0 ? filteredVideos : videos;
@@ -301,6 +341,8 @@
 
     if (item.image) {
       video.setAttribute('poster', item.image);
+    } else {
+      video.removeAttribute('poster');
     }
 
     container.classList.add('is-loading');
@@ -461,6 +503,8 @@
       intervalSeconds: DEFAULT_ROTATION_SECONDS,
       pexelsVideoQueries: { venues: DEFAULT_VIDEO_QUERY },
       uploadGallery: [],
+      selectedMedia: [],
+      heroSelectedMedia: null,
       fallbackToPexels: true,
       heroVideo: {
         enabled: true,
@@ -593,14 +637,21 @@
 
     const shouldPlay = applyPlaybackSettings(video, settings);
     let playlist = [];
+    const selectedMediaSource =
+      settings.source === 'selected' || settings.source === 'selected_with_fallback';
 
-    if (settings.source === 'uploads') {
+    if (selectedMediaSource) {
+      playlist = buildSelectedPlaylist(settings);
+    }
+
+    if (playlist.length === 0 && settings.source === 'uploads') {
       playlist = buildUploadPlaylist(settings);
     }
 
     const canFetchPexels =
       settings.source === 'pexels' ||
-      (settings.source === 'uploads' && settings.fallbackToPexels !== false);
+      (settings.source === 'uploads' && settings.fallbackToPexels !== false) ||
+      (settings.source === 'selected_with_fallback' && settings.fallbackToPexels !== false);
 
     if (playlist.length === 0 && canFetchPexels) {
       try {
