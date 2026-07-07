@@ -1,11 +1,11 @@
 /**
- * Integration tests for collage widget customization features
- * Tests the new customization endpoints and configuration options
+ * Integration tests for homepage hero customization features
+ * Tests the shared backend configuration and rebuilt homepage manager UI.
  */
 
 const fs = require('fs');
 
-describe('Collage Widget Customization Tests', () => {
+describe('Homepage Hero Customization Tests', () => {
   describe('Backend API Structure', () => {
     it('should have collage-widget GET endpoint', () => {
       const adminRoutesContent = fs.readFileSync('routes/admin.js', 'utf8');
@@ -34,86 +34,97 @@ describe('Collage Widget Customization Tests', () => {
     it('should have sensible default values', () => {
       const adminRoutesContent = fs.readFileSync('routes/admin.js', 'utf8');
 
-      // Check hero video defaults
       expect(adminRoutesContent).toContain('enabled: true');
       expect(adminRoutesContent).toContain('autoplay: false');
       expect(adminRoutesContent).toContain('muted: true');
       expect(adminRoutesContent).toContain('loop: true');
-
-      // Check transition defaults
       expect(adminRoutesContent).toContain("effect: 'fade'");
       expect(adminRoutesContent).toContain('duration: 1000');
     });
   });
 
-  describe('Admin UI Elements', () => {
-    it('should have hero video control inputs', () => {
+  describe('Rebuilt Admin Homepage UI', () => {
+    it('should load the rebuilt homepage manager assets only', () => {
       const htmlContent = fs.readFileSync('public/admin-homepage.html', 'utf8');
 
-      expect(htmlContent).toContain('id="heroVideoEnabled"');
-      expect(htmlContent).toContain('id="heroVideoAutoplay"');
-      expect(htmlContent).toContain('id="heroVideoMuted"');
-      expect(htmlContent).toContain('id="heroVideoLoop"');
-      expect(htmlContent).toContain('id="heroVideoQuality"');
+      expect(htmlContent).toContain('admin-homepage-manager');
+      expect(htmlContent).toContain('/assets/css/admin-homepage-rebuild.css');
+      expect(htmlContent).toContain('/assets/js/pages/admin-homepage-rebuild.js');
+      expect(htmlContent).not.toContain('/assets/js/pages/admin-homepage-init.js');
+      expect(htmlContent).not.toContain('Video Analytics Dashboard');
     });
 
-    it('should have video quality settings inputs', () => {
+    it('should provide live homepage selection and preview controls', () => {
       const htmlContent = fs.readFileSync('public/admin-homepage.html', 'utf8');
 
-      expect(htmlContent).toContain('id="videoQualityPreference"');
-      expect(htmlContent).toContain('id="videoQualityAdaptive"');
-      expect(htmlContent).toContain('id="videoQualityMobileOptimized"');
+      expect(htmlContent).toContain('Homepage Manager');
+      expect(htmlContent).toContain('Manage Homepage 1, 2 and 3');
+      expect(htmlContent).toContain('Choose the live homepage');
+      expect(htmlContent).toContain('id="homepageVersionCards"');
+      expect(htmlContent).toContain('id="heroVersionTabs"');
+      expect(htmlContent).toContain('id="selectedHomepagePreview"');
+      expect(htmlContent).toContain('id="publishSelectedHomepage"');
     });
 
-    it('should have transition effect controls', () => {
+    it('should expose hero source, media type and playback controls', () => {
       const htmlContent = fs.readFileSync('public/admin-homepage.html', 'utf8');
 
-      expect(htmlContent).toContain('id="transitionEffect"');
-      expect(htmlContent).toContain('id="transitionDuration"');
-      expect(htmlContent).toContain('value="fade"');
-      expect(htmlContent).toContain('value="slide"');
-      expect(htmlContent).toContain('value="zoom"');
-      expect(htmlContent).toContain('value="crossfade"');
+      expect(htmlContent).toContain('Hero source and queue');
+      expect(htmlContent).toContain('id="heroSettingsForm"');
+      expect(htmlContent).toContain('id="heroSourceMode"');
+      expect(htmlContent).toContain('value="auto_pexels_photos"');
+      expect(htmlContent).toContain('value="auto_pexels_videos"');
+      expect(htmlContent).toContain('value="auto_pexels_mixed"');
+      expect(htmlContent).toContain('value="selected_pexels"');
+      expect(htmlContent).toContain('value="selected_with_fallback"');
+      expect(htmlContent).toContain('value="uploads"');
+      expect(htmlContent).toContain('id="heroMediaPhotos"');
+      expect(htmlContent).toContain('id="heroMediaVideos"');
+      expect(htmlContent).toContain('id="heroFallbackEnabled"');
+      expect(htmlContent).toContain('id="heroFallbackMinimum"');
+      expect(htmlContent).toContain('id="heroEnabled"');
+      expect(htmlContent).toContain('id="heroIntervalSeconds"');
+      expect(htmlContent).toContain('id="heroTransitionEffect"');
+      expect(htmlContent).toContain('id="heroTransitionDuration"');
+      expect(htmlContent).toContain('id="heroAutoplay"');
+      expect(htmlContent).toContain('id="heroMuted"');
+      expect(htmlContent).toContain('id="heroLoop"');
+      expect(htmlContent).toContain('id="heroQuality"');
     });
 
-    it('should have preloading controls', () => {
+    it('should expose per-category Pexels search terms', () => {
       const htmlContent = fs.readFileSync('public/admin-homepage.html', 'utf8');
 
-      expect(htmlContent).toContain('id="preloadingEnabled"');
-      expect(htmlContent).toContain('id="preloadingCount"');
+      expect(htmlContent).toContain('id="queryPhotoVenues"');
+      expect(htmlContent).toContain('id="queryPhotoCatering"');
+      expect(htmlContent).toContain('id="queryPhotoEntertainment"');
+      expect(htmlContent).toContain('id="queryPhotoPhotography"');
+      expect(htmlContent).toContain('id="queryVideoVenues"');
+      expect(htmlContent).toContain('id="queryVideoCatering"');
+      expect(htmlContent).toContain('id="queryVideoEntertainment"');
+      expect(htmlContent).toContain('id="queryVideoPhotography"');
     });
 
-    it('should have mobile optimization controls', () => {
+    it('should expose selected hero media queue management', () => {
       const htmlContent = fs.readFileSync('public/admin-homepage.html', 'utf8');
 
-      expect(htmlContent).toContain('id="mobileSlowerTransitions"');
-      expect(htmlContent).toContain('id="mobileDisableVideos"');
-      expect(htmlContent).toContain('id="mobileTouchControls"');
+      expect(htmlContent).toContain('Selected hero media queue');
+      expect(htmlContent).toContain('Media added from Admin Media appears here');
+      expect(htmlContent).toContain('id="heroMediaQueue"');
+      expect(htmlContent).toContain('href="/admin-media"');
     });
 
-    it('should have content filtering controls', () => {
+    it('should keep shared body and category image management on the page', () => {
       const htmlContent = fs.readFileSync('public/admin-homepage.html', 'utf8');
 
-      expect(htmlContent).toContain('id="filterAspectRatio"');
-      expect(htmlContent).toContain('id="filterOrientation"');
-      expect(htmlContent).toContain('id="filterMinResolution"');
-    });
-
-    it('should have playback controls', () => {
-      const htmlContent = fs.readFileSync('public/admin-homepage.html', 'utf8');
-
-      expect(htmlContent).toContain('id="playbackShowControls"');
-      expect(htmlContent).toContain('id="playbackPauseOnHover"');
-      expect(htmlContent).toContain('id="playbackFullscreen"');
-    });
-
-    it('should have video analytics dashboard', () => {
-      const htmlContent = fs.readFileSync('public/admin-homepage.html', 'utf8');
-
-      expect(htmlContent).toContain('Video Analytics Dashboard');
-      expect(htmlContent).toContain('id="heroVideoSuccessRate"');
-      expect(htmlContent).toContain('id="collageVideoSuccessRate"');
-      expect(htmlContent).toContain('id="totalVideoAttempts"');
+      expect(htmlContent).toContain('Shared body content');
+      expect(htmlContent).toContain('id="categoryCardsGrid"');
+      expect(htmlContent).toContain('id="categoryList"');
+      expect(htmlContent).toContain('id="categoryModal"');
+      expect(htmlContent).toContain('id="categoryForm"');
+      expect(htmlContent).toContain('id="pexelsSearchQuery"');
+      expect(htmlContent).toContain('id="categoryCustomImage"');
+      expect(htmlContent).toContain('id="saveCategoryBtn"');
     });
   });
 
@@ -213,12 +224,10 @@ describe('Collage Widget Customization Tests', () => {
     it('should have no duplicate filtering logic', () => {
       const jsContent = fs.readFileSync('public/assets/js/pages/home-init.js', 'utf8');
 
-      // Check that filtering is done once, not duplicated
       const filterMatches = jsContent.match(
         /\.filter\(f => f\.quality === 'hd' \|\| f\.quality === 'sd'\)/g
       );
       expect(filterMatches).toBeTruthy();
-      // Should appear only once in video quality section
       expect(filterMatches.length).toBeLessThanOrEqual(2);
     });
 

@@ -232,9 +232,7 @@ describe('Homepage Settings Video Support Integration', () => {
       expect(response.status).toBe(200);
       expect(response.body.collageWidget.enabled).toBe(true);
       expect(response.body.collageWidget.source).toBe('uploads');
-      expect(response.body.collageWidget.uploadGallery).toEqual([
-        '/uploads/homepage-collage/live.mp4',
-      ]);
+      expect(response.body.collageWidget.uploadGallery).toEqual(['/uploads/homepage-collage/live.mp4']);
       expect(response.body.collageWidget.fallbackToPexels).toBe(false);
     });
 
@@ -341,9 +339,7 @@ describe('Homepage Settings Video Support Integration', () => {
       expect(response.body.activeHomepageVersion).toBe('v1');
       expect(response.body.collageWidget.source).toBe('uploads');
       expect(response.body.collageWidget.mediaTypes.videos).toBe(true);
-      expect(response.body.collageWidget.uploadGallery).toEqual([
-        '/uploads/homepage-collage/v3-preview.mp4',
-      ]);
+      expect(response.body.collageWidget.uploadGallery).toEqual(['/uploads/homepage-collage/v3-preview.mp4']);
     });
 
     it('should preserve explicit active-version collage disable on the public endpoint', async () => {

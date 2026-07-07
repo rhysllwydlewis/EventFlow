@@ -19,5 +19,8 @@ public/assets/js/admin-navbar.js
 public/assets/js/notifications.js
 public/assets/js/pages/admin-messages-init.js
 public/assets/js/pages/home-v3.js
+public/assets/js/pages/home-v3-video.js
+public/assets/js/pages/admin-homepage-rebuild.js
+tests/integration/homepage-settings-video.test.js
 tests/unit/admin-notif-panel-viewport.test.js
 tests/unit/admin-notifications-empty-convos.test.js

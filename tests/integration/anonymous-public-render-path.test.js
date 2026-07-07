@@ -62,30 +62,23 @@ describe('anonymous public HTML render path', () => {
     expect(res.text).toContain('/articles/event-planning-checklist-guide');
   });
 
-  test('GET /home-v2 renders as V3 with only the V2 white-edge hero fade class', async () => {
+  test('GET /home-v2 renders the real V2 homepage preview', async () => {
     const res = await request(app).get('/home-v2').expect(200);
 
     expect(res.headers['x-eventflow-template-renderer']).toBe('active');
     expect(res.headers['x-eventflow-public-sanitizer']).toBe('anonymous-v2');
     expect(res.headers['x-robots-tag']).toBe('noindex, nofollow');
-    expect(res.text).toContain('home-v3-page');
-    expect(res.text).toContain('home-v2-white-fade-page');
-    expect(res.text).toContain('/assets/css/home-v3.css?v=15');
-    expect(res.text).toContain('/assets/css/home-v3-video.css?v=2');
-    expect(res.text).toContain('/assets/css/home-v3-mobile.css?v=10');
-    expect(res.text).toContain('https://videos.pexels.com');
-    expect(res.text).toContain('data-hv3-pexels-video');
-    expect(res.text).toContain('data-hv3-video-source');
-    expect(res.text).toContain('/assets/js/pages/home-v3.js?v=13');
-    expect(res.text).toContain('/assets/js/pages/home-v3-video.js?v=2');
-    expect(res.text).toContain('hv3-title-emphasis');
-    expect(res.text).toContain('data-hv3-event-select');
-    expect(res.text).not.toContain('/assets/js/pages/home-v2.js');
-    expect(res.text).not.toContain('/assets/js/utils/pexels-client.js');
-    expect(res.text).not.toContain('/assets/css/home-v2-parity.css');
+    expect(res.text).toContain('home-v2-page');
+    expect(res.text).toContain('/assets/css/home-v2.css?v=11');
+    expect(res.text).toContain('/assets/js/pages/home-v2.js?v=11');
+    expect(res.text).toContain('/assets/js/utils/pexels-client.js?v=5');
+    expect(res.text).not.toContain('home-v3-page');
+    expect(res.text).not.toContain('/assets/css/home-v3-video.css');
+    expect(res.text).not.toContain('/assets/js/pages/home-v3-video.js');
+    expect(res.text).not.toContain('data-hv3-pexels-video');
   });
 
-  test('GET / uses the V3 composition with V2 white fade when HOMEPAGE_VARIANT is v2', async () => {
+  test('GET / uses the real V2 homepage when HOMEPAGE_VARIANT is v2', async () => {
     const previousVariant = process.env.HOMEPAGE_VARIANT;
     process.env.HOMEPAGE_VARIANT = 'v2';
 
@@ -95,20 +88,14 @@ describe('anonymous public HTML render path', () => {
       expect(res.headers['x-eventflow-template-renderer']).toBe('active');
       expect(res.headers['x-eventflow-public-sanitizer']).toBe('anonymous-v2');
       expect(res.headers['x-robots-tag']).toBeUndefined();
-      expect(res.text).toContain('home-v3-page');
-      expect(res.text).toContain('home-v2-white-fade-page');
-      expect(res.text).toContain('/assets/css/home-v3.css?v=15');
-      expect(res.text).toContain('/assets/css/home-v3-video.css?v=2');
-      expect(res.text).toContain('/assets/css/home-v3-mobile.css?v=10');
-      expect(res.text).toContain('https://videos.pexels.com');
-      expect(res.text).toContain('data-hv3-pexels-video');
-      expect(res.text).toContain('/assets/js/pages/home-v3.js?v=13');
-      expect(res.text).toContain('/assets/js/pages/home-v3-video.js?v=2');
-      expect(res.text).toContain('hv3-title-emphasis');
-      expect(res.text).toContain('data-hv3-event-select');
-      expect(res.text).not.toContain('/assets/js/pages/home-v2.js');
-      expect(res.text).not.toContain('/assets/js/utils/pexels-client.js');
-      expect(res.text).not.toContain('/assets/css/home-v2-parity.css');
+      expect(res.text).toContain('home-v2-page');
+      expect(res.text).toContain('/assets/css/home-v2.css?v=11');
+      expect(res.text).toContain('/assets/js/pages/home-v2.js?v=11');
+      expect(res.text).toContain('/assets/js/utils/pexels-client.js?v=5');
+      expect(res.text).not.toContain('home-v3-page');
+      expect(res.text).not.toContain('/assets/css/home-v3-video.css');
+      expect(res.text).not.toContain('/assets/js/pages/home-v3-video.js');
+      expect(res.text).not.toContain('data-hv3-pexels-video');
     } finally {
       if (previousVariant === undefined) {
         delete process.env.HOMEPAGE_VARIANT;

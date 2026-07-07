@@ -232,11 +232,7 @@
   function getHeroVideoTargetWidth(settings = {}) {
     const preference = settings.videoQuality?.preference || settings.heroVideo?.quality || 'auto';
     const mobileOptimized = settings.videoQuality?.mobileOptimized !== false;
-    const viewportWidth = Math.max(
-      window.innerWidth || 0,
-      document.documentElement?.clientWidth || 0,
-      0
-    );
+    const viewportWidth = Math.max(window.innerWidth || 0, document.documentElement?.clientWidth || 0, 0);
     const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
 
     if (preference === 'sd') {
@@ -401,14 +397,9 @@
     selectedMedia.forEach((item, index) => {
       const targets = Array.isArray(item?.assignedTargets) ? item.assignedTargets : [];
       const isHeroCandidate = targets.includes('hero') || targets.includes('general');
-      const selectedItem = isHeroCandidate
-        ? normaliseSelectedVideoItem(item, `media-${index}`)
-        : null;
+      const selectedItem = isHeroCandidate ? normaliseSelectedVideoItem(item, `media-${index}`) : null;
 
-      if (
-        selectedItem &&
-        !playlist.some(existing => existing.file.link === selectedItem.file.link)
-      ) {
+      if (selectedItem && !playlist.some(existing => existing.file.link === selectedItem.file.link)) {
         playlist.push(selectedItem);
       }
     });
@@ -442,16 +433,12 @@
       queries.entertainment,
       queries.catering,
     ];
-    return (
-      orderedQueries.find(query => typeof query === 'string' && query.trim()) || DEFAULT_VIDEO_QUERY
-    );
+    return orderedQueries.find(query => typeof query === 'string' && query.trim()) || DEFAULT_VIDEO_QUERY;
   }
 
   function getRotationDelay(settings = {}) {
     const intervalSeconds = Number(settings.intervalSeconds);
-    const safeSeconds = Number.isFinite(intervalSeconds)
-      ? intervalSeconds
-      : DEFAULT_ROTATION_SECONDS;
+    const safeSeconds = Number.isFinite(intervalSeconds) ? intervalSeconds : DEFAULT_ROTATION_SECONDS;
     const multiplier =
       isMobileViewport() && settings.mobileOptimizations?.slowerTransitions === true
         ? MOBILE_TRANSITION_MULTIPLIER
@@ -542,9 +529,7 @@
   }
 
   function getSourceSwapFadeDelay(container) {
-    const rawDuration = getComputedStyle(container).getPropertyValue(
-      '--hv3-video-transition-duration'
-    );
+    const rawDuration = getComputedStyle(container).getPropertyValue('--hv3-video-transition-duration');
     const duration = Number.parseFloat(rawDuration);
 
     if (!Number.isFinite(duration)) {
@@ -924,8 +909,7 @@
 
     const shouldPlay = applyPlaybackSettings(video, settings);
     let playlist = [];
-    const selectedMediaSource =
-      settings.source === 'selected' || settings.source === 'selected_with_fallback';
+    const selectedMediaSource = settings.source === 'selected' || settings.source === 'selected_with_fallback';
 
     if (selectedMediaSource) {
       playlist = buildSelectedPlaylist(settings);

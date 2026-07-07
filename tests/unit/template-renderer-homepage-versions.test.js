@@ -44,7 +44,7 @@ describe('homepage version template routing', () => {
     const rendered = buildHomepageV3Preview(source);
 
     expect(rendered).toContain('/assets/css/home-v3-video.css');
-    expect(rendered).toContain('/assets/js/pages/home-v3-video.js?v=3');
+    expect(rendered).toContain('/assets/js/pages/home-v3-video.js?v=5');
     expect(rendered).toContain('data-hv3-pexels-video');
     expect(rendered).not.toContain('images.pexels.com/videos/4586391/free-video-4586391.jpg');
   });

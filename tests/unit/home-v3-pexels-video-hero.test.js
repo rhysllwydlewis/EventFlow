@@ -14,7 +14,7 @@ describe('homepage V3 Pexels video hero', () => {
     expect(html).not.toContain('https://images.pexels.com/videos/4586391/free-video-4586391.jpg');
     expect(html).toContain('/assets/css/home-v3-video.css?v=2');
     expect(html).toContain('/assets/js/pages/home-v3.js?v=13');
-    expect(html).toContain('/assets/js/pages/home-v3-video.js?v=3');
+    expect(html).toContain('/assets/js/pages/home-v3-video.js?v=5');
     expect(html).not.toContain('/assets/js/pages/home-v2.js');
     expect(html).not.toContain('/assets/js/utils/pexels-client.js');
   });
