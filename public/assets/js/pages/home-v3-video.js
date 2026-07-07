@@ -209,7 +209,10 @@
         ? normaliseSelectedVideoItem(item, `media-${index}`)
         : null;
 
-      if (selectedItem && !playlist.some(existing => existing.file.link === selectedItem.file.link)) {
+      if (
+        selectedItem &&
+        !playlist.some(existing => existing.file.link === selectedItem.file.link)
+      ) {
         playlist.push(selectedItem);
       }
     });
