@@ -424,11 +424,14 @@ function initBackToTop() {
 }
 
 function loadHomepageManagerAdminScript() {
-  if (!/^\/admin-homepage\/?$/.test(window.location.pathname)) {
+  if (!/^\/admin-homepage(?:\.html)?\/?$/.test(window.location.pathname)) {
     return;
   }
 
-  if (document.querySelector('script[src^="/assets/js/pages/admin-homepage-manager.js"]')) {
+  if (
+    document.querySelector('script[src^="/assets/js/pages/admin-homepage-rebuild.js"]') ||
+    document.querySelector('script[src^="/assets/js/pages/admin-homepage-manager.js"]')
+  ) {
     return;
   }
 

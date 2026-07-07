@@ -270,7 +270,12 @@ function buildHomepageV2Preview(content) {
 
 function injectHomepageManagerAdminScript(content) {
   const scriptPath = '/assets/js/pages/admin-homepage-manager.js?v=1';
-  if (content.includes(scriptPath) || !/<\/body>/i.test(content)) {
+  const rebuiltScriptPath = '/assets/js/pages/admin-homepage-rebuild.js';
+  if (
+    content.includes(rebuiltScriptPath) ||
+    content.includes(scriptPath) ||
+    !/<\/body>/i.test(content)
+  ) {
     return content;
   }
 

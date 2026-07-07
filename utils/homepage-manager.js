@@ -315,6 +315,9 @@ function normaliseMediaLibrary(mediaLibrary = {}, collageWidget = {}) {
           ? mediaLibrary.hero.loop !== false
           : collageWidget.heroVideo?.loop !== false,
       quality: mediaLibrary.hero?.quality || collageWidget.heroVideo?.quality || 'hd',
+      order: Array.isArray(mediaLibrary.hero?.order)
+        ? mediaLibrary.hero.order.map(id => String(id).slice(0, 160)).filter(Boolean)
+        : [],
     },
     pexelsQueries: {
       ...DEFAULT_PEXELS_QUERIES,
@@ -329,12 +332,37 @@ function normaliseMediaLibrary(mediaLibrary = {}, collageWidget = {}) {
   };
 }
 
+function orderHomepageMediaItems(items = [], order = []) {
+  if (!Array.isArray(order) || !order.length) {
+    return items;
+  }
+  const orderIndex = new Map(order.map((id, index) => [String(id), index]));
+  return [...items].sort((a, b) => {
+    const aIndex = orderIndex.has(String(a.id))
+      ? orderIndex.get(String(a.id))
+      : Number.MAX_SAFE_INTEGER;
+    const bIndex = orderIndex.has(String(b.id))
+      ? orderIndex.get(String(b.id))
+      : Number.MAX_SAFE_INTEGER;
+    return aIndex - bIndex;
+  });
+}
+
 function resolveHomepageMedia(versionSettings = {}) {
   const collageWidget = mergeCollageWidget(versionSettings.collageWidget || {});
   const mediaLibrary = normaliseMediaLibrary(versionSettings.mediaLibrary || {}, collageWidget);
-  const selectedPexels = mediaLibrary.selectedPexels;
-  const selectedUploads = mediaLibrary.selectedUploads || [];
-  const selectedAll = [...selectedPexels, ...selectedUploads];
+  const selectedPexels = orderHomepageMediaItems(
+    mediaLibrary.selectedPexels,
+    mediaLibrary.hero.order
+  );
+  const selectedUploads = orderHomepageMediaItems(
+    mediaLibrary.selectedUploads || [],
+    mediaLibrary.hero.order
+  );
+  const selectedAll = orderHomepageMediaItems(
+    [...selectedPexels, ...selectedUploads],
+    mediaLibrary.hero.order
+  );
   const heroMedia = mediaLibrary.hero.selectedMediaId
     ? selectedAll.find(item => item.id === mediaLibrary.hero.selectedMediaId) || null
     : selectedAll.find(item => item.assignedTargets?.includes('hero')) || null;
@@ -514,6 +542,10 @@ function removePexelsMediaFromVersion(settings = {}, version, mediaId, user = {}
     versionConfig.settings.collageWidget
   );
   library.selectedPexels = library.selectedPexels.filter(item => item.id !== mediaId);
+  library.hero = {
+    ...library.hero,
+    order: (library.hero.order || []).filter(id => String(id) !== String(mediaId)),
+  };
   if (library.hero.selectedMediaId === mediaId) {
     library.hero = { ...library.hero, mode: 'auto', selectedMediaId: null };
   }
@@ -522,6 +554,10 @@ function removePexelsMediaFromVersion(settings = {}, version, mediaId, user = {}
 }
 
 function updateMediaLibraryForVersion(settings = {}, version, patch = {}, user = {}) {
+  const validation = validateMediaLibraryPatch(patch);
+  if (validation) {
+    throw new Error(validation);
+  }
   const targetVersion = normaliseHomepageVersion(version);
   if (!targetVersion) {
     throw new Error('Invalid homepage version');
@@ -727,6 +763,95 @@ async function getActiveHomepageVersion() {
   return buildHomepageManager(settings).activeVersion;
 }
 
+function isSafeHomepageMediaUrl(value, { allowUploadPath = true } = {}) {
+  if (safeHttpUrl(value)) {
+    return true;
+  }
+  return allowUploadPath && String(value || '').startsWith('/uploads/');
+}
+
+function validateMediaLibraryPatch(mediaLibrary = {}) {
+  if (!mediaLibrary || typeof mediaLibrary !== 'object' || Array.isArray(mediaLibrary)) {
+    return 'Homepage media library settings must be an object';
+  }
+  if (mediaLibrary.mode !== undefined && !HOMEPAGE_MEDIA_MODES.includes(mediaLibrary.mode)) {
+    return 'Choose a valid media source.';
+  }
+
+  const configuredMediaIds = new Set();
+  const selectedLists = [
+    { key: 'selectedPexels', allowUploadPath: false, requiresProviderId: true },
+    { key: 'selectedUploads', allowUploadPath: true, requiresProviderId: false },
+  ];
+  for (const { key: listName, allowUploadPath, requiresProviderId } of selectedLists) {
+    if (mediaLibrary[listName] === undefined) {
+      continue;
+    }
+    if (!Array.isArray(mediaLibrary[listName])) {
+      return `${listName} must be a list`;
+    }
+    for (const item of mediaLibrary[listName]) {
+      if (!item || typeof item !== 'object' || Array.isArray(item)) {
+        return `${listName} contains an invalid media item`;
+      }
+      if (item.id !== undefined && String(item.id).trim().length > 160) {
+        return 'Homepage media IDs must be 160 characters or fewer';
+      }
+      if (requiresProviderId && !item.providerId && !item.id) {
+        return 'Pexels media ID is required.';
+      }
+      if (item.id) {
+        configuredMediaIds.add(String(item.id));
+      }
+      if (item.url !== undefined && !isSafeHomepageMediaUrl(item.url, { allowUploadPath })) {
+        return allowUploadPath
+          ? 'Homepage media URLs must be HTTP(S) URLs or uploaded media paths.'
+          : 'Pexels media URLs must be valid HTTP(S) URLs.';
+      }
+      if (
+        item.thumbnailUrl !== undefined &&
+        item.thumbnailUrl !== null &&
+        item.thumbnailUrl !== '' &&
+        !isSafeHomepageMediaUrl(item.thumbnailUrl, { allowUploadPath })
+      ) {
+        return allowUploadPath
+          ? 'Homepage thumbnail URLs must be HTTP(S) URLs or uploaded media paths.'
+          : 'Pexels thumbnail URLs must be valid HTTP(S) URLs.';
+      }
+      if (item.assignedTargets !== undefined) {
+        const targets = Array.isArray(item.assignedTargets)
+          ? item.assignedTargets
+          : [item.assignedTargets];
+        if (targets.some(target => !HOMEPAGE_MEDIA_TARGETS.includes(target))) {
+          return 'Choose a valid homepage placement.';
+        }
+      }
+    }
+  }
+  if (mediaLibrary.hero?.order !== undefined) {
+    if (!Array.isArray(mediaLibrary.hero.order)) {
+      return 'Homepage hero order must be a list';
+    }
+    if (mediaLibrary.hero.order.some(id => String(id).trim().length > 160)) {
+      return 'Homepage hero order contains an invalid media ID';
+    }
+  }
+  if (mediaLibrary.hero?.selectedMediaId !== undefined) {
+    const id = mediaLibrary.hero.selectedMediaId;
+    if (id !== null && String(id).trim().length > 160) {
+      return 'Homepage hero media ID is invalid';
+    }
+    if (
+      id &&
+      (mediaLibrary.selectedPexels !== undefined || mediaLibrary.selectedUploads !== undefined) &&
+      !configuredMediaIds.has(String(id))
+    ) {
+      return 'Homepage hero media ID must reference selected homepage media.';
+    }
+  }
+  return null;
+}
+
 function validateHomepageVersionPayload(payload = {}) {
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
     return 'Invalid homepage version payload';
@@ -754,6 +879,13 @@ function validateHomepageVersionPayload(payload = {}) {
       Array.isArray(payload.settings.collageWidget))
   ) {
     return 'Homepage collage widget settings must be an object';
+  }
+
+  if (payload.settings?.mediaLibrary !== undefined) {
+    const mediaLibraryError = validateMediaLibraryPatch(payload.settings.mediaLibrary);
+    if (mediaLibraryError) {
+      return mediaLibraryError;
+    }
   }
 
   return null;

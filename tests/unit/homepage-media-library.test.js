@@ -7,6 +7,7 @@ const {
   resolveHomepageMedia,
   updateMediaLibraryForVersion,
   validatePexelsAssignmentPayload,
+  validateHomepageVersionPayload,
 } = require('../../utils/homepage-manager');
 
 const photo = {
@@ -81,6 +82,82 @@ describe('homepage media library normalisation and assignment', () => {
         media: { ...photo, url: 'javascript:alert(1)' },
       })
     ).toMatch(/valid HTTP/);
+  });
+
+  it('rejects unsafe media library patches before saving a homepage version', () => {
+    expect(
+      validateHomepageVersionPayload({
+        settings: {
+          mediaLibrary: {
+            selectedUploads: [{ id: 'bad', url: 'javascript:alert(1)' }],
+          },
+        },
+      })
+    ).toMatch(/media URLs/);
+
+    expect(
+      validateHomepageVersionPayload({
+        settings: {
+          mediaLibrary: {
+            selectedUploads: [{ id: 'upload-1', url: '/uploads/homepage-collage/photo.jpg' }],
+          },
+        },
+      })
+    ).toBeNull();
+
+    expect(
+      validateHomepageVersionPayload({
+        settings: {
+          mediaLibrary: {
+            selectedPexels: [
+              { id: 'pexels-photo-1', providerId: '1', url: '/uploads/not-pexels.jpg' },
+            ],
+          },
+        },
+      })
+    ).toMatch(/Pexels media URLs/);
+
+    expect(
+      validateHomepageVersionPayload({
+        settings: {
+          mediaLibrary: {
+            selectedUploads: [{ id: 'upload-1', url: '/uploads/homepage-collage/photo.jpg' }],
+            hero: { selectedMediaId: 'missing-upload' },
+          },
+        },
+      })
+    ).toMatch(/must reference selected/);
+  });
+
+  it('preserves explicit selected hero media ordering across Pexels and uploaded media', () => {
+    const settings = {
+      homepageManager: {
+        versions: {
+          v2: {
+            settings: {
+              collageWidget: {},
+              mediaLibrary: {
+                mode: 'selected_with_fallback',
+                selectedPexels: [photo],
+                selectedUploads: [
+                  {
+                    id: 'upload-hero-1',
+                    url: '/uploads/homepage-collage/uploaded.jpg',
+                    assignedTargets: ['hero'],
+                  },
+                ],
+                hero: { order: ['upload-hero-1', 'pexels-photo-123'] },
+              },
+            },
+          },
+        },
+      },
+    };
+
+    const resolved = resolveHomepageMedia(buildHomepageManager(settings).versions.v2.settings);
+
+    expect(resolved.mediaLibrary.hero.order).toEqual(['upload-hero-1', 'pexels-photo-123']);
+    expect(resolved.selected.map(item => item.id)).toEqual(['upload-hero-1', 'pexels-photo-123']);
   });
 
   it('updates duplicate selected media rather than adding another item', () => {
