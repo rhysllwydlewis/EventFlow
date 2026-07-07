@@ -223,9 +223,40 @@ function normaliseUploadGalleryItem(url, index = 0) {
   };
 }
 
+function normaliseSelectedUploadItem(item = {}, index = 0) {
+  const upload = typeof item === 'string' ? { url: item } : item;
+  const url = upload.url || upload.mediaUrl || upload.providerId || '';
+  const type = upload.type === 'video' || /\.(mp4|webm|mov)(\?|$)/i.test(url) ? 'video' : 'photo';
+  return {
+    id: String(upload.id || `upload-${index}-${String(url).split('/').pop() || 'media'}`),
+    provider: 'upload',
+    providerId: String(upload.providerId || url),
+    type,
+    url,
+    thumbnailUrl: upload.thumbnailUrl || upload.image || upload.posterUrl || null,
+    alt: String(upload.alt || upload.title || 'Uploaded homepage media').slice(0, 180),
+    photographer: upload.photographer || upload.creator || upload.user?.name || 'Uploaded media',
+    photographerUrl: upload.photographerUrl || null,
+    pexelsUrl: upload.pexelsUrl || null,
+    width: upload.width || null,
+    height: upload.height || null,
+    duration: upload.duration || null,
+    quality: upload.quality || null,
+    assignedTargets: normaliseAssignedTargets(upload.assignedTargets || upload.target),
+    categoryKey: upload.categoryKey || null,
+    addedAt: upload.addedAt || new Date().toISOString(),
+    addedBy: upload.addedBy || null,
+  };
+}
+
 function normaliseSelectedUploads(selectedUploads, uploadGallery) {
-  const selected = Array.isArray(selectedUploads) ? selectedUploads.filter(Boolean) : [];
-  const existingUrls = new Set(selected.map(item => item.url || item.providerId || item));
+  const selected = Array.isArray(selectedUploads)
+    ? selectedUploads
+        .filter(Boolean)
+        .map((item, index) => normaliseSelectedUploadItem(item, index))
+        .filter(item => item.url)
+    : [];
+  const existingUrls = new Set(selected.map(item => item.url || item.providerId));
   const legacy = Array.isArray(uploadGallery)
     ? uploadGallery
         .filter(url => typeof url === 'string' && url.trim() && !existingUrls.has(url))
