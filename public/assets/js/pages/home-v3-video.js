@@ -293,6 +293,9 @@
     const playbackControls = settings.playbackControls || {};
 
     video.muted = heroVideo.muted !== false;
+    video.defaultMuted = video.muted;
+    video.playsInline = true;
+    video.setAttribute('playsinline', '');
     video.loop = heroVideo.loop !== false;
     video.controls = playbackControls.showControls === true;
     video.preload = settings.preloading?.enabled === false ? 'none' : 'metadata';
@@ -353,6 +356,11 @@
     source.src = item.file.link;
     source.type = item.file.file_type || item.file.fileType || getVideoTypeFromUrl(item.file.link);
     video.preload = video.preload === 'none' ? 'none' : 'metadata';
+
+    if (shouldPlay) {
+      video.addEventListener('loadeddata', () => playHeroVideo(video), { once: true });
+    }
+
     video.load();
 
     if (shouldPlay) {
@@ -432,6 +440,10 @@
     };
 
     const queueNextVideo = () => {
+      if (shouldPlay) {
+        return;
+      }
+
       window.clearTimeout(rotationTimer);
       rotationTimer = window.setTimeout(() => {
         if (advanceVideo()) {
@@ -511,7 +523,7 @@
       fallbackToPexels: true,
       heroVideo: {
         enabled: true,
-        autoplay: false,
+        autoplay: true,
         muted: true,
         loop: true,
         quality: 'hd',
@@ -558,12 +570,14 @@
 
       const data = await response.json();
       const collageWidget = data.collageWidget || {};
+      const heroVideo = { ...defaults.heroVideo, ...(collageWidget.heroVideo || {}) };
+      heroVideo.autoplay = true;
 
       return {
         ...defaults,
         ...collageWidget,
         mediaTypes: { ...defaults.mediaTypes, ...(collageWidget.mediaTypes || {}) },
-        heroVideo: { ...defaults.heroVideo, ...(collageWidget.heroVideo || {}) },
+        heroVideo,
         videoQuality: { ...defaults.videoQuality, ...(collageWidget.videoQuality || {}) },
         transition: { ...defaults.transition, ...(collageWidget.transition || {}) },
         preloading: { ...defaults.preloading, ...(collageWidget.preloading || {}) },

@@ -40,7 +40,7 @@ const HOMEPAGE_V3_HERO_STYLES = [
   '    <script src="/assets/js/pages/home-v3.js?v=13"></script>',
 ].join('\n');
 const HOMEPAGE_V3_HERO_SCRIPT =
-  '    <script src="/assets/js/pages/home-v3-video.js?v=4" defer></script>';
+  '    <script src="/assets/js/pages/home-v3-video.js?v=5" defer></script>';
 const HOMEPAGE_V3_HERO = `      <section class="hv2-hero" aria-labelledby="hv3-title">
         <div class="hv2-hero__image hv3-hero-video" aria-hidden="true" data-hv3-pexels-video>
           <video
