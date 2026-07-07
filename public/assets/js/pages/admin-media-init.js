@@ -370,13 +370,14 @@
       const csrfData = await AdminShared.api('/api/v1/csrf-token');
       const version = document.getElementById('assignmentVersion').value;
       const target = document.getElementById('assignmentTarget').value;
+      const modeAfterAssign = document.getElementById('assignmentModeAfterAssign').value;
       const response = await fetch(
         `/api/v1/admin/homepage/manager/media-library/${version}/pexels`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfData.csrfToken },
           credentials: 'include',
-          body: JSON.stringify({ target, media: toPexelsPayload(selectedMedia) }),
+          body: JSON.stringify({ target, modeAfterAssign, media: toPexelsPayload(selectedMedia) }),
         }
       );
       const result = await response.json();

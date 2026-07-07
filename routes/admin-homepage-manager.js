@@ -96,11 +96,33 @@ router.post(
           providerId: req.body?.media?.providerId,
         },
       });
+      const versionLabel = String(req.params.version).toUpperCase();
+      const mediaType = req.body?.media?.type === 'video' ? 'Video' : 'Photo';
+      const targetLabel =
+        req.body?.target === 'hero'
+          ? 'hero'
+          : req.body?.target === 'general'
+            ? 'general homepage media'
+            : 'collage';
+      const modeAfterAssign = req.body?.modeAfterAssign || 'unchanged';
+      const modeMessage =
+        modeAfterAssign === 'selected_with_fallback'
+          ? `${versionLabel} is now set to use selected media with automatic fallback.`
+          : modeAfterAssign === 'selected_pexels'
+            ? `${versionLabel} is now set to use selected Pexels media only.`
+            : `${versionLabel} media source was not changed.`;
+      const liveMessage =
+        manager.activeVersion === req.params.version
+          ? `${versionLabel} is currently live.`
+          : `${versionLabel} is not currently live. Preview ${versionLabel} or publish it to use this on the live homepage.`;
       res.json({
         success: true,
         version: req.params.version,
+        activeVersion: manager.activeVersion,
         mediaLibrary,
-        message: `Media assigned to ${String(req.params.version).toUpperCase()}.`,
+        modeAfterAssign,
+        modeChanged: modeAfterAssign !== 'unchanged',
+        message: `${mediaType} assigned to ${versionLabel} ${targetLabel}. ${modeMessage} ${liveMessage}`,
       });
     } catch (error) {
       logger.error('Error assigning homepage media:', error);

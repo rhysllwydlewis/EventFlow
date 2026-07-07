@@ -87,13 +87,33 @@
     const library = homepageMediaLibraries[version] || {};
     const selected = library.selectedPexels || [];
     document.getElementById('homepageMediaMode').value = library.mode || 'auto_pexels_mixed';
+    const selectedUploads = library.selectedUploads || [];
+    const modeUsesSelected = ['selected_pexels', 'selected_with_fallback', 'uploads'].includes(
+      library.mode
+    );
+    const hasSelectedHero = selected.some(
+      item =>
+        item.id === library.hero?.selectedMediaId || (item.assignedTargets || []).includes('hero')
+    );
+    const notices = [];
+    if (selected.length && !modeUsesSelected) {
+      notices.push(
+        'Selected media is saved for this version, but the current source mode is automatic Pexels. Switch to Selected media with automatic fallback to use it.'
+      );
+    }
+    if (hasSelectedHero && version !== homepageMediaActiveVersion) {
+      notices.push(
+        `${escapeHtml(version.toUpperCase())} is not currently live. Preview ${escapeHtml(version.toUpperCase())} or publish it to see this on the live homepage.`
+      );
+    }
     document.getElementById('homepageMediaSummary').innerHTML = `
-      <span><strong>Version:</strong> ${escapeHtml(version.toUpperCase())}${version === homepageMediaActiveVersion ? ' · currently live' : ''}</span>
+      <span><strong>Version:</strong> ${escapeHtml(version.toUpperCase())}${version === homepageMediaActiveVersion ? ' · currently live' : ' · preview only'}</span>
       <span><strong>Source:</strong> ${escapeHtml(mediaModeLabel(library.mode))}</span>
       <span><strong>Selected Pexels:</strong> ${selected.length}</span>
-      <span><strong>Uploads:</strong> ${(library.selectedUploads || []).length}</span>
-      <span><strong>Fallback:</strong> ${library.fallback?.enabled === false ? 'Off' : 'On'}</span>
-      <span><strong>Hero:</strong> ${library.hero?.selectedMediaId ? 'Selected media' : 'Automatic'}</span>`;
+      <span><strong>Uploads:</strong> ${selectedUploads.length}</span>
+      <span><strong>Fallback:</strong> ${library.fallback?.enabled === false || library.mode === 'selected_pexels' ? 'Off' : 'On'}</span>
+      <span><strong>Hero:</strong> ${hasSelectedHero ? 'Selected hero media' : 'Automatic'}</span>
+      ${notices.map(notice => `<div class="homepage-media-notice">${notice}</div>`).join('')}`;
     const list = document.getElementById('homepageSelectedMediaList');
     if (!selected.length) {
       list.innerHTML = `<div class="homepage-media-empty">${library.mode === 'selected_pexels' ? 'No selected Pexels media has been assigned to this homepage version yet.' : 'No selected media yet. The homepage can use automatic Pexels fallback until you assign media.'} <a href="/admin-media">Open Media Centre</a>.</div>`;

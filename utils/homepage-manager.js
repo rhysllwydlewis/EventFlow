@@ -210,6 +210,30 @@ function normaliseSelectedMediaItem(item = {}) {
   };
 }
 
+function normaliseUploadGalleryItem(url, index = 0) {
+  return {
+    id: `upload-${index}-${String(url).split('/').pop() || 'media'}`,
+    provider: 'upload',
+    providerId: url,
+    type: /\.(mp4|webm|mov)(\?|$)/i.test(url) ? 'video' : 'photo',
+    url,
+    thumbnailUrl: null,
+    alt: 'Uploaded homepage media',
+    assignedTargets: ['collage'],
+  };
+}
+
+function normaliseSelectedUploads(selectedUploads, uploadGallery) {
+  const selected = Array.isArray(selectedUploads) ? selectedUploads.filter(Boolean) : [];
+  const existingUrls = new Set(selected.map(item => item.url || item.providerId || item));
+  const legacy = Array.isArray(uploadGallery)
+    ? uploadGallery
+        .filter(url => typeof url === 'string' && url.trim() && !existingUrls.has(url))
+        .map((url, index) => normaliseUploadGalleryItem(url, index))
+    : [];
+  return [...selected, ...legacy];
+}
+
 function normaliseMediaLibrary(mediaLibrary = {}, collageWidget = {}) {
   const mode = HOMEPAGE_MEDIA_MODES.includes(mediaLibrary.mode)
     ? mediaLibrary.mode
@@ -240,9 +264,10 @@ function normaliseMediaLibrary(mediaLibrary = {}, collageWidget = {}) {
           .map(normaliseSelectedMediaItem)
           .filter(item => item.provider === 'pexels' && item.providerId && item.url)
       : [],
-    selectedUploads: Array.isArray(mediaLibrary.selectedUploads)
-      ? mediaLibrary.selectedUploads
-      : [],
+    selectedUploads: normaliseSelectedUploads(
+      mediaLibrary.selectedUploads,
+      collageWidget.uploadGallery
+    ),
     hero: {
       mode: mediaLibrary.hero?.mode || 'auto',
       selectedMediaId: mediaLibrary.hero?.selectedMediaId || null,
@@ -354,8 +379,12 @@ function safeHttpUrl(value) {
 function validatePexelsAssignmentPayload(payload = {}) {
   const media = payload.media || {};
   const target = payload.target || 'collage';
+  const modeAfterAssign = payload.modeAfterAssign || 'unchanged';
   if (!HOMEPAGE_MEDIA_TARGETS.includes(target)) {
     return 'Choose a valid homepage placement.';
+  }
+  if (!['unchanged', 'selected_pexels', 'selected_with_fallback'].includes(modeAfterAssign)) {
+    return 'Choose a valid after-save media behaviour.';
   }
   if (media.provider && media.provider !== 'pexels') {
     return 'Only Pexels media can be assigned here.';
@@ -395,6 +424,7 @@ function assignPexelsMediaToVersion(settings = {}, version, payload = {}, user =
     target: payload.target || 'collage',
     addedBy: user.email || null,
   });
+  const modeAfterAssign = payload.modeAfterAssign || 'unchanged';
   const existing = library.selectedPexels.find(
     media =>
       media.id === item.id ||
@@ -413,6 +443,15 @@ function assignPexelsMediaToVersion(settings = {}, version, payload = {}, user =
     if ((payload.target || 'collage') === 'hero') {
       library.hero = { ...library.hero, mode: 'selected_pexels', selectedMediaId: item.id };
     }
+  }
+  if (modeAfterAssign === 'selected_pexels' || modeAfterAssign === 'selected_with_fallback') {
+    library.mode = modeAfterAssign;
+    versionConfig.settings.collageWidget = {
+      ...versionConfig.settings.collageWidget,
+      source: 'pexels',
+      fallbackToPexels:
+        modeAfterAssign === 'selected_with_fallback' ? library.fallback.enabled !== false : false,
+    };
   }
   versionConfig.settings.mediaLibrary = library;
   return updateHomepageVersion(settings, targetVersion, { settings: versionConfig.settings }, user);
