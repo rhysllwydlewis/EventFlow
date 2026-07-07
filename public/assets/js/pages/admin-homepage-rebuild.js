@@ -3,11 +3,25 @@
 
   const VERSION_ORDER = ['v1', 'v2', 'v3'];
   const VERSION_FALLBACKS = {
-    v1: { name: 'Homepage 1', kind: 'Original collage homepage', description: 'The original homepage. Best for collage-style photo and video layouts.', previewPath: '/' },
-    v2: { name: 'Homepage 2', kind: 'Photo-led homepage', description: 'A cleaner homepage hero that can rotate photos, videos or selected media.', previewPath: '/home-v2-preview' },
-    v3: { name: 'Homepage 3', kind: 'Video-led homepage', description: 'The premium hero with a video-first playlist and smart crop handling.', previewPath: '/home-v3-preview' },
+    v1: {
+      name: 'Homepage 1',
+      kind: 'Original collage homepage',
+      description: 'The original homepage. Best for collage-style photo and video layouts.',
+      previewPath: '/',
+    },
+    v2: {
+      name: 'Homepage 2',
+      kind: 'Photo-led homepage',
+      description: 'A cleaner homepage hero that can rotate photos, videos or selected media.',
+      previewPath: '/home-v2-preview',
+    },
+    v3: {
+      name: 'Homepage 3',
+      kind: 'Video-led homepage',
+      description: 'The premium hero with a video-first playlist and smart crop handling.',
+      previewPath: '/home-v3-preview',
+    },
   };
-  const LEGACY_NAMES = ['V1 Classic', 'V2 Modern', 'V3 Premium Video'];
   const MODE_LABELS = {
     auto_pexels_photos: 'Automatic Pexels photos',
     auto_pexels_videos: 'Automatic Pexels videos',
@@ -16,6 +30,7 @@
     selected_with_fallback: 'Selected media with fallback',
     uploads: 'Uploaded media only',
   };
+  const QUERY_KEYS = ['venues', 'catering', 'entertainment', 'photography'];
 
   let manager = null;
   let mediaLibraries = {};
@@ -27,28 +42,24 @@
   const $$ = selector => Array.from(document.querySelectorAll(selector));
 
   function escapeHtml(value) {
-    return String(value || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+    return String(value || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
   }
 
   function clone(value) {
     return JSON.parse(JSON.stringify(value || {}));
   }
 
-  function showStatus(message, isError = false) {
-    const status = $('#homepageStatus');
-    status.textContent = message;
-    status.hidden = false;
-    status.classList.toggle('is-error', isError);
-    window.clearTimeout(showStatus.timer);
-    showStatus.timer = window.setTimeout(() => { status.hidden = true; }, isError ? 7000 : 4200);
-  }
-
   function toast(message, type = 'success') {
     if (window.AdminShared?.showToast) {
       window.AdminShared.showToast(message, type);
-    } else {
-      showStatus(message, type === 'error');
+      return;
     }
+    showStatus(message, type === 'error');
   }
 
   async function confirmAction(options) {
@@ -58,11 +69,24 @@
     return window.confirm(options.message || options.title || 'Are you sure?');
   }
 
+  function showStatus(message, isError = false) {
+    const status = $('#homepageStatus');
+    status.textContent = message;
+    status.hidden = false;
+    status.classList.toggle('is-error', isError);
+    window.clearTimeout(showStatus.timer);
+    showStatus.timer = window.setTimeout(() => {
+      status.hidden = true;
+    }, isError ? 7000 : 4200);
+  }
+
   async function fetchJson(url, options = {}) {
     const response = await fetch(url, {
       credentials: 'include',
       ...options,
-      headers: { ...(options.headers || {}) },
+      headers: {
+        ...(options.headers || {}),
+      },
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) {
@@ -82,7 +106,7 @@
       if (!data.user || data.user.role !== 'admin') {
         window.location.href = '/auth';
       }
-    } catch (_) {
+    } catch (error) {
       window.location.href = '/auth';
     }
   }
@@ -93,15 +117,18 @@
 
   function versionName(version) {
     const savedName = versionConfig(version).tabName;
-    return savedName && !LEGACY_NAMES.includes(savedName) ? savedName : VERSION_FALLBACKS[version].name;
+    const legacyNames = ['V1 Classic', 'V2 Modern', 'V3 Premium Video'];
+    return savedName && !legacyNames.includes(savedName)
+      ? savedName
+      : VERSION_FALLBACKS[version]?.name || version.toUpperCase();
   }
 
   function versionDescription(version) {
-    return versionConfig(version).description || VERSION_FALLBACKS[version].description;
+    return versionConfig(version).description || VERSION_FALLBACKS[version]?.description || '';
   }
 
   function versionPreviewPath(version) {
-    return versionConfig(version).previewPath || VERSION_FALLBACKS[version].previewPath;
+    return versionConfig(version).previewPath || VERSION_FALLBACKS[version]?.previewPath || '/';
   }
 
   function selectedLibrary(version = selectedVersion) {
@@ -119,17 +146,24 @@
   function mediaSummary(version) {
     const library = selectedLibrary(version);
     const items = selectedItems(library);
+    const heroCount = items.filter(item => (item.assignedTargets || []).includes('hero')).length;
+    const videoCount = items.filter(item => item.type === 'video').length;
     return {
       total: items.length,
-      heroCount: items.filter(item => (item.assignedTargets || []).includes('hero')).length,
-      videoCount: items.filter(item => item.type === 'video').length,
+      heroCount,
+      videoCount,
       mode: library.mode || 'auto_pexels_mixed',
       hasPrimary: Boolean(library.hero?.selectedMediaId),
     };
   }
 
+  function homepageStatusText(version) {
+    return version === manager?.activeVersion ? 'Live' : 'Preview';
+  }
+
   function renderVersionCards() {
-    $('#homepageVersionCards').innerHTML = VERSION_ORDER.map(version => {
+    const container = $('#homepageVersionCards');
+    container.innerHTML = VERSION_ORDER.map(version => {
       const summary = mediaSummary(version);
       const isLive = version === manager.activeVersion;
       return `
@@ -137,7 +171,7 @@
           <h3>${escapeHtml(versionName(version))}</h3>
           <p>${escapeHtml(VERSION_FALLBACKS[version].kind)}</p>
           <div class="homepage-card-meta">
-            <span class="homepage-pill ${isLive ? 'is-live' : ''}">${isLive ? 'Live' : 'Preview'}</span>
+            <span class="homepage-pill ${isLive ? 'is-live' : ''}">${homepageStatusText(version)}</span>
             <span class="homepage-pill">${escapeHtml(MODE_LABELS[summary.mode] || summary.mode)}</span>
             <span class="homepage-pill">${summary.total} selected</span>
             <span class="homepage-pill ${summary.videoCount ? 'is-video' : ''}">${summary.videoCount} videos</span>
@@ -149,31 +183,38 @@
             <a class="ef-cta btn btn-secondary" href="${escapeHtml(isLive ? '/' : versionPreviewPath(version))}" target="_blank" rel="noopener">${isLive ? 'Open live' : 'Preview'}</a>
             <button class="ef-cta btn btn-primary" type="button" data-publish-version="${version}" ${isLive ? 'disabled' : ''}>Set live</button>
           </div>
-        </article>`;
+        </article>
+      `;
     }).join('');
   }
 
   function renderVersionTabs() {
-    $('#heroVersionTabs').innerHTML = VERSION_ORDER.map(version => {
+    const tabs = $('#heroVersionTabs');
+    tabs.innerHTML = VERSION_ORDER.map(version => {
+      const summary = mediaSummary(version);
       const isActive = version === selectedVersion;
       const isLive = version === manager.activeVersion;
-      const summary = mediaSummary(version);
       return `
         <button class="homepage-version-tab ${isActive ? 'is-active' : ''}" type="button" data-select-version="${version}">
           <strong>${escapeHtml(versionName(version))}</strong>
           <span>${isLive ? 'Live homepage' : 'Preview only'} · ${summary.total} selected media</span>
-        </button>`;
+        </button>
+      `;
     }).join('');
   }
 
   function setFormValue(id, value) {
     const element = document.getElementById(id);
-    if (element) element.value = value ?? '';
+    if (element) {
+      element.value = value ?? '';
+    }
   }
 
   function setChecked(id, value) {
     const element = document.getElementById(id);
-    if (element) element.checked = Boolean(value);
+    if (element) {
+      element.checked = Boolean(value);
+    }
   }
 
   function fillHeroForm() {
@@ -188,7 +229,8 @@
 
     $('#selectedHomepageTitle').textContent = versionName(selectedVersion);
     $('#selectedHomepageDescription').textContent = versionDescription(selectedVersion);
-    $('#selectedHomepagePreview').href = selectedVersion === manager.activeVersion ? '/' : versionPreviewPath(selectedVersion);
+    $('#selectedHomepagePreview').href =
+      selectedVersion === manager.activeVersion ? '/' : versionPreviewPath(selectedVersion);
     $('#publishSelectedHomepage').disabled = selectedVersion === manager.activeVersion;
     $('#heroManagerContext').textContent = isHomepageOne
       ? 'Homepage 1 is the original homepage, so its hero can use collage behaviour as well as selected media.'
@@ -219,6 +261,7 @@
     setFormValue('queryVideoCatering', videoQueries.catering || '');
     setFormValue('queryVideoEntertainment', videoQueries.entertainment || '');
     setFormValue('queryVideoPhotography', videoQueries.photography || '');
+
     renderHeroQueue();
   }
 
@@ -227,10 +270,17 @@
     const library = selectedLibrary();
     const items = selectedItems(library);
     const primaryId = library.hero?.selectedMediaId;
+
     if (!items.length) {
-      container.innerHTML = `<div class="homepage-empty-state">No media has been assigned to ${escapeHtml(versionName(selectedVersion))} yet. Use Admin Media to add Pexels photos or videos, then manage them here.</div>`;
+      container.innerHTML = `
+        <div class="homepage-empty-state">
+          No media has been assigned to ${escapeHtml(versionName(selectedVersion))} yet.
+          Use Admin Media to add Pexels photos or videos, then manage them here.
+        </div>
+      `;
       return;
     }
+
     container.innerHTML = items.map(item => {
       const targets = item.assignedTargets || [];
       const isHero = targets.includes('hero') || item.id === primaryId;
@@ -240,7 +290,9 @@
       return `
         <article class="homepage-media-item">
           <div class="homepage-media-thumb">
-            ${item.type === 'video' ? `<video src="${escapeHtml(item.url)}" poster="${escapeHtml(thumb)}" muted playsinline preload="metadata"></video>` : `<img src="${escapeHtml(thumb)}" alt="${escapeHtml(item.alt || '')}">`}
+            ${item.type === 'video'
+              ? `<video src="${escapeHtml(item.url)}" poster="${escapeHtml(thumb)}" muted playsinline preload="metadata"></video>`
+              : `<img src="${escapeHtml(thumb)}" alt="${escapeHtml(item.alt || '')}">`}
           </div>
           <div class="homepage-media-copy">
             <strong>${escapeHtml(item.alt || item.type || 'Homepage media')}</strong>
@@ -259,7 +311,8 @@
             <button class="ef-cta btn btn-secondary" type="button" data-hero-remove-target="${escapeHtml(item.id)}" ${isHero ? '' : 'disabled'}>Remove from hero</button>
             <button class="ef-cta btn danger" type="button" data-hero-delete="${escapeHtml(item.id)}" ${canDelete ? '' : 'disabled'}>Remove</button>
           </div>
-        </article>`;
+        </article>
+      `;
     }).join('');
   }
 
@@ -271,16 +324,16 @@
 
   function readHeroSettingsPatch() {
     const settings = selectedSettings();
-    const mediaTypes = { photos: $('#heroMediaPhotos').checked, videos: $('#heroMediaVideos').checked };
-    if (!mediaTypes.photos && !mediaTypes.videos) throw new Error('Choose at least one media type.');
+    const mediaTypes = {
+      photos: $('#heroMediaPhotos').checked,
+      videos: $('#heroMediaVideos').checked,
+    };
     const mode = $('#heroSourceMode').value;
     const fallbackEnabled = $('#heroFallbackEnabled').checked;
     const fallbackMinimum = Math.max(1, Math.min(24, Number($('#heroFallbackMinimum').value || 6)));
     const intervalSeconds = Number($('#heroIntervalSeconds').value || 2.5);
     const transitionDuration = Number($('#heroTransitionDuration').value || 1000);
-    if (intervalSeconds < 1 || intervalSeconds > 60) throw new Error('Seconds between items must be between 1 and 60.');
-    if (transitionDuration < 300 || transitionDuration > 3000) throw new Error('Transition duration must be between 300 and 3000ms.');
-
+    const quality = $('#heroQuality').value;
     const photoQueries = {
       venues: $('#queryPhotoVenues').value.trim(),
       catering: $('#queryPhotoCatering').value.trim(),
@@ -293,40 +346,84 @@
       entertainment: $('#queryVideoEntertainment').value.trim(),
       photography: $('#queryVideoPhotography').value.trim(),
     };
+
+    if (!mediaTypes.photos && !mediaTypes.videos) {
+      throw new Error('Choose at least one media type.');
+    }
+    if (intervalSeconds < 1 || intervalSeconds > 60) {
+      throw new Error('Seconds between items must be between 1 and 60.');
+    }
+    if (transitionDuration < 300 || transitionDuration > 3000) {
+      throw new Error('Transition duration must be between 300 and 3000ms.');
+    }
+
     const currentLibrary = settings.mediaLibrary || {};
     const currentCollage = settings.collageWidget || {};
-    settings.mediaLibrary = {
+    const nextLibrary = {
       ...currentLibrary,
       mode,
       mediaTypes,
-      fallback: { ...(currentLibrary.fallback || {}), enabled: fallbackEnabled, source: 'pexels', minimumItems: fallbackMinimum },
-      hero: { ...(currentLibrary.hero || {}), autoplay: $('#heroAutoplay').checked, muted: $('#heroMuted').checked, loop: $('#heroLoop').checked, quality: $('#heroQuality').value },
+      fallback: {
+        ...(currentLibrary.fallback || {}),
+        enabled: fallbackEnabled,
+        source: 'pexels',
+        minimumItems: fallbackMinimum,
+      },
+      hero: {
+        ...(currentLibrary.hero || {}),
+        autoplay: $('#heroAutoplay').checked,
+        muted: $('#heroMuted').checked,
+        loop: $('#heroLoop').checked,
+        quality,
+      },
       pexelsQueries: photoQueries,
       pexelsVideoQueries: videoQueries,
     };
-    settings.collageWidget = {
+    const nextCollage = {
       ...currentCollage,
       enabled: $('#heroEnabled').checked,
       source: mode === 'uploads' ? 'uploads' : 'pexels',
       mediaTypes,
       intervalSeconds,
       fallbackToPexels: fallbackEnabled,
-      heroVideo: { ...(currentCollage.heroVideo || {}), enabled: $('#heroEnabled').checked, autoplay: $('#heroAutoplay').checked, muted: $('#heroMuted').checked, loop: $('#heroLoop').checked, quality: $('#heroQuality').value },
-      transition: { ...(currentCollage.transition || {}), effect: $('#heroTransitionEffect').value, duration: transitionDuration },
+      heroVideo: {
+        ...(currentCollage.heroVideo || {}),
+        enabled: $('#heroEnabled').checked,
+        autoplay: $('#heroAutoplay').checked,
+        muted: $('#heroMuted').checked,
+        loop: $('#heroLoop').checked,
+        quality,
+      },
+      transition: {
+        ...(currentCollage.transition || {}),
+        effect: $('#heroTransitionEffect').value,
+        duration: transitionDuration,
+      },
       pexelsQueries: photoQueries,
       pexelsVideoQueries: videoQueries,
     };
-    return { settings };
+
+    return {
+      settings: {
+        ...settings,
+        mediaLibrary: nextLibrary,
+        collageWidget: nextCollage,
+      },
+    };
   }
 
   async function saveHeroSettings(event) {
     event.preventDefault();
     try {
+      const payload = readHeroSettingsPatch();
       const csrfToken = await fetchCsrfToken();
       const data = await fetchJson(`/api/v1/admin/homepage/manager/version/${selectedVersion}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
-        body: JSON.stringify(readHeroSettingsPatch()),
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': csrfToken,
+        },
+        body: JSON.stringify(payload),
       });
       manager = data.manager;
       mediaLibraries[selectedVersion] = data.version.settings.mediaLibrary;
@@ -338,12 +435,23 @@
   }
 
   async function publishVersion(version) {
-    if (version === manager.activeVersion) return;
-    const confirmed = await confirmAction({ title: 'Set live homepage', message: `Make ${versionName(version)} the live homepage?`, confirmText: 'Set live' });
-    if (!confirmed) return;
+    if (version === manager.activeVersion) {
+      return;
+    }
+    const confirmed = await confirmAction({
+      title: 'Set live homepage',
+      message: `Make ${versionName(version)} the live homepage?`,
+      confirmText: 'Set live',
+    });
+    if (!confirmed) {
+      return;
+    }
     try {
       const csrfToken = await fetchCsrfToken();
-      const data = await fetchJson(`/api/v1/admin/homepage/manager/publish/${version}`, { method: 'POST', headers: { 'X-CSRF-Token': csrfToken } });
+      const data = await fetchJson(`/api/v1/admin/homepage/manager/publish/${version}`, {
+        method: 'POST',
+        headers: { 'X-CSRF-Token': csrfToken },
+      });
       manager = data.manager;
       await loadMediaLibraries();
       selectedVersion = version;
@@ -357,7 +465,9 @@
   function updateMediaItem(itemId, updater) {
     const settings = selectedSettings();
     const library = settings.mediaLibrary || {};
-    const updateList = list => (list || []).map(item => item.id === itemId ? updater({ ...item }) : item);
+    const updateList = list => (list || []).map(item =>
+      item.id === itemId ? updater({ ...item }) : item
+    );
     library.selectedPexels = updateList(library.selectedPexels);
     library.selectedUploads = updateList(library.selectedUploads);
     settings.mediaLibrary = library;
@@ -368,7 +478,10 @@
     const csrfToken = await fetchCsrfToken();
     const data = await fetchJson(`/api/v1/admin/homepage/manager/version/${selectedVersion}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': csrfToken,
+      },
       body: JSON.stringify({ settings }),
     });
     manager = data.manager;
@@ -383,7 +496,11 @@
         item.assignedTargets = Array.from(new Set([...(item.assignedTargets || []), 'hero']));
         return item;
       });
-      settings.mediaLibrary.hero = { ...(settings.mediaLibrary.hero || {}), mode: 'selected_pexels', selectedMediaId: setPrimary ? itemId : settings.mediaLibrary.hero?.selectedMediaId || itemId };
+      settings.mediaLibrary.hero = {
+        ...(settings.mediaLibrary.hero || {}),
+        mode: 'selected_pexels',
+        selectedMediaId: setPrimary ? itemId : settings.mediaLibrary.hero?.selectedMediaId || itemId,
+      };
       if (['auto_pexels_photos', 'auto_pexels_videos', 'auto_pexels_mixed'].includes(settings.mediaLibrary.mode)) {
         settings.mediaLibrary.mode = 'selected_with_fallback';
       }
@@ -397,11 +514,17 @@
     try {
       const settings = updateMediaItem(itemId, item => {
         item.assignedTargets = (item.assignedTargets || []).filter(target => target !== 'hero');
-        if (!item.assignedTargets.length) item.assignedTargets = ['general'];
+        if (!item.assignedTargets.length) {
+          item.assignedTargets = ['general'];
+        }
         return item;
       });
       if (settings.mediaLibrary.hero?.selectedMediaId === itemId) {
-        settings.mediaLibrary.hero = { ...(settings.mediaLibrary.hero || {}), mode: 'auto', selectedMediaId: null };
+        settings.mediaLibrary.hero = {
+          ...(settings.mediaLibrary.hero || {}),
+          mode: 'auto',
+          selectedMediaId: null,
+        };
       }
       await saveVersionSettings(settings, 'Media removed from the hero queue.');
     } catch (error) {
@@ -410,11 +533,23 @@
   }
 
   async function deletePexelsMedia(itemId) {
-    const confirmed = await confirmAction({ title: 'Remove homepage media', message: 'Remove this media from the selected homepage? It can be added again from Admin Media.', confirmText: 'Remove' });
-    if (!confirmed) return;
+    const confirmed = await confirmAction({
+      title: 'Remove homepage media',
+      message: 'Remove this media from the selected homepage? It can be added again from Admin Media.',
+      confirmText: 'Remove',
+    });
+    if (!confirmed) {
+      return;
+    }
     try {
       const csrfToken = await fetchCsrfToken();
-      const data = await fetchJson(`/api/v1/admin/homepage/manager/media-library/${selectedVersion}/pexels/${encodeURIComponent(itemId)}`, { method: 'DELETE', headers: { 'X-CSRF-Token': csrfToken } });
+      const data = await fetchJson(
+        `/api/v1/admin/homepage/manager/media-library/${selectedVersion}/pexels/${encodeURIComponent(itemId)}`,
+        {
+          method: 'DELETE',
+          headers: { 'X-CSRF-Token': csrfToken },
+        }
+      );
       mediaLibraries[selectedVersion] = data.mediaLibrary;
       await loadManager();
       renderSelectedHomepage();
@@ -427,7 +562,9 @@
   async function loadManager() {
     const data = await fetchJson('/api/v1/admin/homepage/manager');
     manager = data.manager;
-    selectedVersion = VERSION_ORDER.includes(selectedVersion) ? selectedVersion : manager.activeVersion || 'v1';
+    selectedVersion = VERSION_ORDER.includes(selectedVersion)
+      ? selectedVersion
+      : manager.activeVersion || 'v1';
   }
 
   async function loadMediaLibraries() {
@@ -441,7 +578,10 @@
   }
 
   function categoryImageHtml(category) {
-    return category.heroImage ? `<img src="${escapeHtml(category.heroImage)}" alt="${escapeHtml(category.name)}">` : '<div class="homepage-empty-state">No image selected</div>';
+    if (category.heroImage) {
+      return `<img src="${escapeHtml(category.heroImage)}" alt="${escapeHtml(category.name)}">`;
+    }
+    return '<div class="homepage-empty-state">No image selected</div>';
   }
 
   function renderCategoryCards() {
@@ -457,10 +597,17 @@
           <h4>${escapeHtml(category.name)}</h4>
           <p>${escapeHtml(category.description || 'No description set.')}</p>
           <span class="homepage-pill">/${escapeHtml(category.slug || '')}</span>
-          <div class="homepage-visibility-row"><span>Visible on homepage</span><input type="checkbox" data-category-visible="${escapeHtml(category.id)}" ${category.visible !== false ? 'checked' : ''}></div>
-          <div class="homepage-category-card__actions"><button class="ef-cta btn btn-secondary" type="button" data-edit-category="${escapeHtml(category.id)}">Edit</button><button class="ef-cta btn danger" type="button" data-delete-category="${escapeHtml(category.id)}">Delete</button></div>
+          <div class="homepage-visibility-row">
+            <span>Visible on homepage</span>
+            <input type="checkbox" data-category-visible="${escapeHtml(category.id)}" ${category.visible !== false ? 'checked' : ''}>
+          </div>
+          <div class="homepage-category-card__actions">
+            <button class="ef-cta btn btn-secondary" type="button" data-edit-category="${escapeHtml(category.id)}">Edit</button>
+            <button class="ef-cta btn danger" type="button" data-delete-category="${escapeHtml(category.id)}">Delete</button>
+          </div>
         </div>
-      </article>`).join('');
+      </article>
+    `).join('');
   }
 
   function renderHeroImageCards() {
@@ -475,9 +622,13 @@
         <div class="homepage-hero-image-card__body">
           <h4>${escapeHtml(category.name)}</h4>
           <p>${category.heroImage ? 'Hero image set.' : 'No hero image set.'}</p>
-          <div class="homepage-hero-upload"><input type="file" accept="image/*" data-hero-upload="${escapeHtml(category.id)}">${category.heroImage ? `<button class="ef-cta btn btn-secondary" type="button" data-remove-hero-image="${escapeHtml(category.id)}">Remove image</button>` : ''}</div>
+          <div class="homepage-hero-upload">
+            <input type="file" accept="image/*" data-hero-upload="${escapeHtml(category.id)}">
+            ${category.heroImage ? `<button class="ef-cta btn btn-secondary" type="button" data-remove-hero-image="${escapeHtml(category.id)}">Remove image</button>` : ''}
+          </div>
         </div>
-      </article>`).join('');
+      </article>
+    `).join('');
   }
 
   function renderCategories() {
@@ -524,7 +675,10 @@
   }
 
   function slugFromName(value) {
-    return String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    return String(value || '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '');
   }
 
   function savedCategoryId(data) {
@@ -538,6 +692,7 @@
       toast('Enter a category name and slug.', 'error');
       return;
     }
+
     const payload = {
       name,
       slug,
@@ -547,14 +702,26 @@
       pexelsAttribution: $('#categoryPexelsAttribution').value.trim(),
       visible: $('#categoryVisible').checked,
     };
+
     try {
       const csrfToken = await fetchCsrfToken();
-      const url = editingCategoryId ? `/api/v1/admin/categories/${editingCategoryId}` : '/api/v1/admin/categories';
+      const url = editingCategoryId
+        ? `/api/v1/admin/categories/${editingCategoryId}`
+        : '/api/v1/admin/categories';
       const method = editingCategoryId ? 'PUT' : 'POST';
-      const data = await fetchJson(url, { method, headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken }, body: JSON.stringify(payload) });
+      const data = await fetchJson(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': csrfToken,
+        },
+        body: JSON.stringify(payload),
+      });
       const customFile = $('#categoryCustomImage').files[0];
       const targetId = savedCategoryId(data);
-      if (customFile && targetId) await uploadHeroImage(targetId, customFile, false);
+      if (customFile && targetId) {
+        await uploadHeroImage(targetId, customFile, false);
+      }
       closeCategoryModal();
       await loadCategories();
       renderCategories();
@@ -566,11 +733,20 @@
 
   async function deleteCategory(categoryId) {
     const category = categories.find(item => item.id === categoryId);
-    const confirmed = await confirmAction({ title: 'Delete category', message: `Delete ${category?.name || 'this category'}?`, confirmText: 'Delete' });
-    if (!confirmed) return;
+    const confirmed = await confirmAction({
+      title: 'Delete category',
+      message: `Delete ${category?.name || 'this category'}?`,
+      confirmText: 'Delete',
+    });
+    if (!confirmed) {
+      return;
+    }
     try {
       const csrfToken = await fetchCsrfToken();
-      await fetchJson(`/api/v1/admin/categories/${categoryId}`, { method: 'DELETE', headers: { 'X-CSRF-Token': csrfToken } });
+      await fetchJson(`/api/v1/admin/categories/${categoryId}`, {
+        method: 'DELETE',
+        headers: { 'X-CSRF-Token': csrfToken },
+      });
       await loadCategories();
       renderCategories();
       toast('Category deleted.', 'success');
@@ -582,9 +758,18 @@
   async function toggleCategoryVisibility(categoryId, visible) {
     try {
       const csrfToken = await fetchCsrfToken();
-      await fetchJson(`/api/v1/admin/categories/${categoryId}/visibility`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken }, body: JSON.stringify({ visible }) });
+      await fetchJson(`/api/v1/admin/categories/${categoryId}/visibility`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': csrfToken,
+        },
+        body: JSON.stringify({ visible }),
+      });
       const category = categories.find(item => item.id === categoryId);
-      if (category) category.visible = visible;
+      if (category) {
+        category.visible = visible;
+      }
       renderCategories();
     } catch (error) {
       toast(error.message, 'error');
@@ -593,12 +778,22 @@
   }
 
   async function uploadHeroImage(categoryId, file, rerender = true) {
-    if (!file.type.startsWith('image/')) throw new Error('Choose an image file.');
-    if (file.size > 5 * 1024 * 1024) throw new Error('Image must be less than 5MB.');
+    if (!file.type.startsWith('image/')) {
+      toast('Choose an image file.', 'error');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast('Image must be less than 5MB.', 'error');
+      return;
+    }
     const csrfToken = await fetchCsrfToken();
     const formData = new FormData();
     formData.append('image', file);
-    await fetchJson(`/api/v1/admin/categories/${categoryId}/hero-image`, { method: 'POST', headers: { 'X-CSRF-Token': csrfToken }, body: formData });
+    await fetchJson(`/api/v1/admin/categories/${categoryId}/hero-image`, {
+      method: 'POST',
+      headers: { 'X-CSRF-Token': csrfToken },
+      body: formData,
+    });
     if (rerender) {
       await loadCategories();
       renderCategories();
@@ -607,11 +802,20 @@
   }
 
   async function removeHeroImage(categoryId) {
-    const confirmed = await confirmAction({ title: 'Remove image', message: 'Remove this category hero image?', confirmText: 'Remove' });
-    if (!confirmed) return;
+    const confirmed = await confirmAction({
+      title: 'Remove image',
+      message: 'Remove this category hero image?',
+      confirmText: 'Remove',
+    });
+    if (!confirmed) {
+      return;
+    }
     try {
       const csrfToken = await fetchCsrfToken();
-      await fetchJson(`/api/v1/admin/categories/${categoryId}/hero-image`, { method: 'DELETE', headers: { 'X-CSRF-Token': csrfToken } });
+      await fetchJson(`/api/v1/admin/categories/${categoryId}/hero-image`, {
+        method: 'DELETE',
+        headers: { 'X-CSRF-Token': csrfToken },
+      });
       await loadCategories();
       renderCategories();
       toast('Hero image removed.', 'success');
@@ -633,10 +837,14 @@
       const data = await fetchJson(`/api/v1/pexels/search?q=${encodeURIComponent(query)}&perPage=12`);
       const photos = data.photos || [];
       $('#pexelsResults').hidden = false;
-      $('#pexelsResultsGrid').innerHTML = photos.length ? photos.map(photo => `
-        <button class="homepage-pexels-option" type="button" data-pexels-photo="${escapeHtml(photo.id)}">
-          <img src="${escapeHtml(photo.src?.medium || photo.src?.small || '')}" alt="${escapeHtml(photo.alt || '')}"><span>${escapeHtml(photo.photographer || 'Pexels')}</span>
-        </button>`).join('') : '<div class="homepage-empty-state">No photos found.</div>';
+      $('#pexelsResultsGrid').innerHTML = photos.length
+        ? photos.map(photo => `
+          <button class="homepage-pexels-option" type="button" data-pexels-photo="${escapeHtml(photo.id)}">
+            <img src="${escapeHtml(photo.src?.medium || photo.src?.small || '')}" alt="${escapeHtml(photo.alt || '')}">
+            <span>${escapeHtml(photo.photographer || 'Pexels')}</span>
+          </button>
+        `).join('')
+        : '<div class="homepage-empty-state">No photos found.</div>';
       $('#pexelsResultsGrid').dataset.photos = JSON.stringify(photos);
     } catch (error) {
       toast(error.message, 'error');
@@ -649,9 +857,12 @@
   function selectPexelsPhoto(photoId) {
     const photos = JSON.parse($('#pexelsResultsGrid').dataset.photos || '[]');
     const photo = photos.find(item => String(item.id) === String(photoId));
-    if (!photo) return;
+    if (!photo) {
+      return;
+    }
     $$('.homepage-pexels-option').forEach(option => option.classList.remove('is-selected'));
-    const selectedOption = $$('.homepage-pexels-option').find(option => option.dataset.pexelsPhoto === String(photoId));
+    const selectedOption = $$('.homepage-pexels-option')
+      .find(option => option.dataset.pexelsPhoto === String(photoId));
     selectedOption?.classList.add('is-selected');
     $('#categoryHeroImage').value = photo.src?.large || photo.src?.original || photo.src?.medium || '';
     $('#categoryPexelsAttribution').value = `Photo by ${escapeHtml(photo.photographer || 'Pexels')} on Pexels`;
@@ -666,7 +877,9 @@
   function bindEvents() {
     document.addEventListener('click', event => {
       const target = event.target instanceof Element ? event.target : event.target?.parentElement;
-      if (!target) return;
+      if (!target) {
+        return;
+      }
 
       const editVersion = target.closest('[data-edit-version]')?.dataset.editVersion;
       const selectVersion = target.closest('[data-select-version]')?.dataset.selectVersion;
@@ -679,23 +892,37 @@
       const deleteCategoryId = target.closest('[data-delete-category]')?.dataset.deleteCategory;
       const removeHero = target.closest('[data-remove-hero-image]')?.dataset.removeHeroImage;
       const pexelsPhoto = target.closest('[data-pexels-photo]')?.dataset.pexelsPhoto;
-      if (editVersion || selectVersion) { selectedVersion = editVersion || selectVersion; renderSelectedHomepage(); }
-      else if (publish) publishVersion(publish);
-      else if (heroUse) useInHero(heroUse, false);
-      else if (heroPrimary) useInHero(heroPrimary, true);
-      else if (heroRemoveTarget) removeFromHero(heroRemoveTarget);
-      else if (heroDelete) deletePexelsMedia(heroDelete);
-      else if (editCategory) openCategoryModal(editCategory);
-      else if (deleteCategoryId) deleteCategory(deleteCategoryId);
-      else if (removeHero) removeHeroImage(removeHero);
-      else if (pexelsPhoto) selectPexelsPhoto(pexelsPhoto);
+
+      if (editVersion || selectVersion) {
+        selectedVersion = editVersion || selectVersion;
+        renderSelectedHomepage();
+      } else if (publish) {
+        publishVersion(publish);
+      } else if (heroUse) {
+        useInHero(heroUse, false);
+      } else if (heroPrimary) {
+        useInHero(heroPrimary, true);
+      } else if (heroRemoveTarget) {
+        removeFromHero(heroRemoveTarget);
+      } else if (heroDelete) {
+        deletePexelsMedia(heroDelete);
+      } else if (editCategory) {
+        openCategoryModal(editCategory);
+      } else if (deleteCategoryId) {
+        deleteCategory(deleteCategoryId);
+      } else if (removeHero) {
+        removeHeroImage(removeHero);
+      } else if (pexelsPhoto) {
+        selectPexelsPhoto(pexelsPhoto);
+      }
     });
 
     document.addEventListener('change', event => {
       const visibilityId = event.target.dataset.categoryVisible;
       const uploadId = event.target.dataset.heroUpload;
-      if (visibilityId) toggleCategoryVisibility(visibilityId, event.target.checked);
-      else if (uploadId && event.target.files[0]) {
+      if (visibilityId) {
+        toggleCategoryVisibility(visibilityId, event.target.checked);
+      } else if (uploadId && event.target.files[0]) {
         uploadHeroImage(uploadId, event.target.files[0]).catch(error => toast(error.message, 'error'));
         event.target.value = '';
       }
@@ -705,7 +932,9 @@
     $('#resetHeroSettings').addEventListener('click', fillHeroForm);
     $('#publishSelectedHomepage').addEventListener('click', () => publishVersion(selectedVersion));
     $('#refreshBtn').addEventListener('click', initialise);
-    $('#backToDashboard').addEventListener('click', () => { window.location.href = '/admin'; });
+    $('#backToDashboard').addEventListener('click', () => {
+      window.location.href = '/admin';
+    });
     $('#addCategoryBtn').addEventListener('click', () => openCategoryModal());
     $('#closeCategoryModal').addEventListener('click', closeCategoryModal);
     $('#cancelCategoryBtn').addEventListener('click', closeCategoryModal);
@@ -722,11 +951,15 @@
     });
     $('#categoryName').addEventListener('input', event => {
       const slugInput = $('#categorySlug');
-      if (!editingCategoryId || !slugInput.value) slugInput.value = slugFromName(event.target.value);
+      if (!editingCategoryId || !slugInput.value) {
+        slugInput.value = slugFromName(event.target.value);
+      }
     });
     $('#categoryCustomImage').addEventListener('change', event => {
       const file = event.target.files[0];
-      if (!file) return;
+      if (!file) {
+        return;
+      }
       const reader = new FileReader();
       reader.onload = readerEvent => {
         $('#customImagePreview').src = readerEvent.target.result;
@@ -738,14 +971,18 @@
       reader.readAsDataURL(file);
     });
     $('#categoryModal').addEventListener('click', event => {
-      if (event.target.id === 'categoryModal') closeCategoryModal();
+      if (event.target.id === 'categoryModal') {
+        closeCategoryModal();
+      }
     });
   }
 
   async function initialise() {
     try {
       await Promise.all([loadManager(), loadMediaLibraries(), loadCategories()]);
-      if (!VERSION_ORDER.includes(selectedVersion)) selectedVersion = manager.activeVersion || 'v1';
+      if (!VERSION_ORDER.includes(selectedVersion)) {
+        selectedVersion = manager.activeVersion || 'v1';
+      }
       renderSelectedHomepage();
       renderCategories();
     } catch (error) {
