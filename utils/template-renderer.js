@@ -40,7 +40,7 @@ const HOMEPAGE_V3_HERO_STYLES = [
   '    <script src="/assets/js/pages/home-v3.js?v=13"></script>',
 ].join('\n');
 const HOMEPAGE_V3_HERO_SCRIPT =
-  '    <script src="/assets/js/pages/home-v3-video.js?v=2" defer></script>';
+  '    <script src="/assets/js/pages/home-v3-video.js?v=3" defer></script>';
 const HOMEPAGE_V3_HERO = `      <section class="hv2-hero" aria-labelledby="hv3-title">
         <div class="hv2-hero__image hv3-hero-video" aria-hidden="true" data-hv3-pexels-video>
           <video
@@ -49,7 +49,6 @@ const HOMEPAGE_V3_HERO = `      <section class="hv2-hero" aria-labelledby="hv3-t
             loop
             playsinline
             preload="none"
-            poster="https://images.pexels.com/videos/4586391/free-video-4586391.jpg"
             data-hv3-video-media
           >
             <source type="video/mp4" data-hv3-video-source />
