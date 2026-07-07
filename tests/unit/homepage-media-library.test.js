@@ -109,15 +109,30 @@ describe('homepage media library normalisation and assignment', () => {
     expect(resolved.heroMedia.id).toBe('pexels-video-456');
     expect(resolved.fallback.enabled).toBe(true);
   });
+
   it('assigns a Pexels video to V3 hero and can switch V3 to selected media with fallback', () => {
     const settings = assignPexelsMediaToVersion(
-      {},
+      {
+        homepageManager: {
+          versions: {
+            v3: {
+              settings: {
+                collageWidget: { source: 'pexels', mediaTypes: { photos: true, videos: false } },
+                mediaLibrary: { mediaTypes: { photos: true, videos: false } },
+              },
+            },
+          },
+        },
+      },
       'v3',
       { target: 'hero', modeAfterAssign: 'selected_with_fallback', media: video },
       { email: 'admin@example.com' }
     );
-    const library = buildHomepageManager(settings).versions.v3.settings.mediaLibrary;
+    const version = buildHomepageManager(settings).versions.v3;
+    const library = version.settings.mediaLibrary;
     expect(library.mode).toBe('selected_with_fallback');
+    expect(library.mediaTypes.videos).toBe(true);
+    expect(version.settings.collageWidget.mediaTypes.videos).toBe(true);
     expect(library.selectedPexels).toHaveLength(1);
     expect(library.hero.mode).toBe('selected_pexels');
     expect(library.hero.selectedMediaId).toBe('pexels-video-456');
