@@ -189,10 +189,10 @@ describe('MongoDB Integration — Graceful Fallback to Local Storage', () => {
     expect(writeBlock).toContain('falling back to local storage');
   });
 
-  it('db-unified.js handles settings collection as single document (not array)', () => {
+  it('db-unified.js handles singleton collections as single documents (not arrays)', () => {
     const src = readSrc('db-unified.js');
-    // Settings uses findOne({id:'system'}) instead of find().toArray()
-    expect(src).toContain("collectionName === 'settings'");
+    // Singleton collections use findOne({id:'system'}) instead of find().toArray()
+    expect(src).toContain('SINGLETON_COLLECTIONS.has(collectionName)');
     expect(src).toContain("findOne({ id: 'system' }");
   });
 });
