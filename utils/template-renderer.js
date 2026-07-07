@@ -40,7 +40,7 @@ const HOMEPAGE_V3_HERO_STYLES = [
   '    <script src="/assets/js/pages/home-v3.js?v=13"></script>',
 ].join('\n');
 const HOMEPAGE_V3_HERO_SCRIPT =
-  '    <script src="/assets/js/pages/home-v3-video.js?v=3" defer></script>';
+  '    <script src="/assets/js/pages/home-v3-video.js?v=4" defer></script>';
 const HOMEPAGE_V3_HERO = `      <section class="hv2-hero" aria-labelledby="hv3-title">
         <div class="hv2-hero__image hv3-hero-video" aria-hidden="true" data-hv3-pexels-video>
           <video
@@ -343,7 +343,7 @@ function sanitisePublicCalendar(content) {
     )
     .replace(
       /<!-- Add \/ Edit Event Modal -->[\s\S]*?<footer class="footer"/i,
-      '<!-- Role-gated event modal shell: populated only for authenticated calendar publishers. -->\n    <div id="pc-modal-overlay" class="pc-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="pc-modal-title">\n      <div class="pc-modal">\n        <div class="pc-modal__header">\n          <h2 class="pc-modal__title" id="pc-modal-title"></h2>\n          <button class="ef-cta pc-modal__close" id="pc-modal-close-btn" aria-label="Close modal" type="button">×</button>\n        </div>\n        <form id="pc-event-form" novalidate>\n          <input type="hidden" id="pc-form-id" />\n          <div id="pc-form-error" class="pc-form__error" role="alert"></div>\n          <button type="button" id="pc-modal-cancel" class="ef-cta pc-btn pc-btn-ghost" hidden></button>\n          <button type="submit" id="pc-modal-submit" class="ef-cta pc-btn pc-btn-primary" hidden></button>\n        </form>\n      </div>\n    </div>\n\n    <footer class="footer"'
+      '<!-- Role-gated event modal shell: populated only for authenticated calendar publishers. -->\n    <div id="pc-modal-overlay" class="pc-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="pc-modal-title">\n      <div class="pc-modal">\n        <div class="pc-modal__header">\n          <h2 class="pc-modal__title" id="pc-modal-title"></h2>\n          <button type="button" class="pc-modal__close" id="pc-modal-close-btn" aria-label="Close modal">×</button>\n        </div>\n        <form id="pc-event-form" class="pc-form" novalidate>\n          <input type="hidden" id="pc-form-id" />\n          <div id="pc-form-error" class="pc-form__error" role="alert"></div>\n          <div id="pc-admin-fields" hidden aria-hidden="true"></div>\n          <div class="pc-modal__actions">\n            <button type="button" id="pc-modal-cancel" class="btn btn-outline">Cancel</button>\n            <button type="submit" id="pc-modal-submit" class="btn btn-primary">Save event</button>\n          </div>\n        </form>\n      </div>\n    </div>\n\n    <footer class="footer"'
     );
 }
 
