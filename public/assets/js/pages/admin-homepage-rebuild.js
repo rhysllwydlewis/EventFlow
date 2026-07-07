@@ -357,7 +357,9 @@
   function updateMediaItem(itemId, updater) {
     const settings = selectedSettings();
     const library = settings.mediaLibrary || {};
-    library.selectedPexels = (library.selectedPexels || []).map(item => item.id === itemId ? updater({ ...item }) : item);
+    const updateList = list => (list || []).map(item => item.id === itemId ? updater({ ...item }) : item);
+    library.selectedPexels = updateList(library.selectedPexels);
+    library.selectedUploads = updateList(library.selectedUploads);
     settings.mediaLibrary = library;
     return settings;
   }
@@ -525,6 +527,10 @@
     return String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
   }
 
+  function savedCategoryId(data) {
+    return data.category?.id || data.item?.id || data.id || data.categoryId || editingCategoryId;
+  }
+
   async function saveCategory() {
     const name = $('#categoryName').value.trim();
     const slug = $('#categorySlug').value.trim();
@@ -547,7 +553,7 @@
       const method = editingCategoryId ? 'PUT' : 'POST';
       const data = await fetchJson(url, { method, headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken }, body: JSON.stringify(payload) });
       const customFile = $('#categoryCustomImage').files[0];
-      const targetId = data.category?.id || editingCategoryId;
+      const targetId = savedCategoryId(data);
       if (customFile && targetId) await uploadHeroImage(targetId, customFile, false);
       closeCategoryModal();
       await loadCategories();
@@ -645,7 +651,8 @@
     const photo = photos.find(item => String(item.id) === String(photoId));
     if (!photo) return;
     $$('.homepage-pexels-option').forEach(option => option.classList.remove('is-selected'));
-    $(`[data-pexels-photo="${CSS.escape(String(photoId))}"]`)?.classList.add('is-selected');
+    const selectedOption = $$('.homepage-pexels-option').find(option => option.dataset.pexelsPhoto === String(photoId));
+    selectedOption?.classList.add('is-selected');
     $('#categoryHeroImage').value = photo.src?.large || photo.src?.original || photo.src?.medium || '';
     $('#categoryPexelsAttribution').value = `Photo by ${escapeHtml(photo.photographer || 'Pexels')} on Pexels`;
     $('#selectedImageThumbnail').src = photo.src?.medium || '';
@@ -658,17 +665,20 @@
 
   function bindEvents() {
     document.addEventListener('click', event => {
-      const editVersion = event.target.closest('[data-edit-version]')?.dataset.editVersion;
-      const selectVersion = event.target.closest('[data-select-version]')?.dataset.selectVersion;
-      const publish = event.target.closest('[data-publish-version]')?.dataset.publishVersion;
-      const heroUse = event.target.closest('[data-hero-use]')?.dataset.heroUse;
-      const heroPrimary = event.target.closest('[data-hero-primary]')?.dataset.heroPrimary;
-      const heroRemoveTarget = event.target.closest('[data-hero-remove-target]')?.dataset.heroRemoveTarget;
-      const heroDelete = event.target.closest('[data-hero-delete]')?.dataset.heroDelete;
-      const editCategory = event.target.closest('[data-edit-category]')?.dataset.editCategory;
-      const deleteCategoryId = event.target.closest('[data-delete-category]')?.dataset.deleteCategory;
-      const removeHero = event.target.closest('[data-remove-hero-image]')?.dataset.removeHeroImage;
-      const pexelsPhoto = event.target.closest('[data-pexels-photo]')?.dataset.pexelsPhoto;
+      const target = event.target instanceof Element ? event.target : event.target?.parentElement;
+      if (!target) return;
+
+      const editVersion = target.closest('[data-edit-version]')?.dataset.editVersion;
+      const selectVersion = target.closest('[data-select-version]')?.dataset.selectVersion;
+      const publish = target.closest('[data-publish-version]')?.dataset.publishVersion;
+      const heroUse = target.closest('[data-hero-use]')?.dataset.heroUse;
+      const heroPrimary = target.closest('[data-hero-primary]')?.dataset.heroPrimary;
+      const heroRemoveTarget = target.closest('[data-hero-remove-target]')?.dataset.heroRemoveTarget;
+      const heroDelete = target.closest('[data-hero-delete]')?.dataset.heroDelete;
+      const editCategory = target.closest('[data-edit-category]')?.dataset.editCategory;
+      const deleteCategoryId = target.closest('[data-delete-category]')?.dataset.deleteCategory;
+      const removeHero = target.closest('[data-remove-hero-image]')?.dataset.removeHeroImage;
+      const pexelsPhoto = target.closest('[data-pexels-photo]')?.dataset.pexelsPhoto;
       if (editVersion || selectVersion) { selectedVersion = editVersion || selectVersion; renderSelectedHomepage(); }
       else if (publish) publishVersion(publish);
       else if (heroUse) useInHero(heroUse, false);
