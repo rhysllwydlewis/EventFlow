@@ -3,6 +3,7 @@
 const {
   buildHomepageV2Preview,
   buildHomepageV3Preview,
+  injectHomepageManagerAdminScript,
   resolvePublicTemplatePath,
 } = require('../../utils/template-renderer');
 
@@ -17,6 +18,25 @@ describe('homepage version template routing', () => {
     expect(resolvePublicTemplatePath('/', 'v1')).toBe('/index.html');
     expect(resolvePublicTemplatePath('/', 'v3')).toBe('/index.html');
     expect(resolvePublicTemplatePath('/home-v3-preview', null)).toBe('/index.html');
+  });
+
+  test('rebuilt admin homepage does not receive the legacy injected manager', () => {
+    const source = [
+      '<html><body>',
+      '<script src="/assets/js/pages/admin-homepage-rebuild.js?v=18.4.0" defer></script>',
+      '</body></html>',
+    ].join('');
+    const rendered = injectHomepageManagerAdminScript(source);
+
+    expect(rendered).toContain('/assets/js/pages/admin-homepage-rebuild.js');
+    expect(rendered).not.toContain('/assets/js/pages/admin-homepage-manager.js');
+  });
+
+  test('legacy admin homepage content still receives the compatibility manager', () => {
+    const source = '<html><body><main id="main-content"></main></body></html>';
+    const rendered = injectHomepageManagerAdminScript(source);
+
+    expect(rendered).toContain('/assets/js/pages/admin-homepage-manager.js?v=1');
   });
 
   test('V2 preview does not receive V3 video assets', () => {

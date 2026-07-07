@@ -30,8 +30,6 @@
     selected_with_fallback: 'Selected media with fallback',
     uploads: 'Uploaded media only',
   };
-  const QUERY_KEYS = ['venues', 'catering', 'entertainment', 'photography'];
-
   let manager = null;
   let mediaLibraries = {};
   let categories = [];
@@ -141,7 +139,17 @@
   }
 
   function selectedItems(library = selectedLibrary()) {
-    return [...(library.selectedPexels || []), ...(library.selectedUploads || [])];
+    const items = [...(library.selectedPexels || []), ...(library.selectedUploads || [])];
+    const order = Array.isArray(library.hero?.order) ? library.hero.order.map(String) : [];
+    if (!order.length) {
+      return items;
+    }
+    const orderIndex = new Map(order.map((id, index) => [id, index]));
+    return items.sort((a, b) => {
+      const aIndex = orderIndex.has(String(a.id)) ? orderIndex.get(String(a.id)) : Number.MAX_SAFE_INTEGER;
+      const bIndex = orderIndex.has(String(b.id)) ? orderIndex.get(String(b.id)) : Number.MAX_SAFE_INTEGER;
+      return aIndex - bIndex;
+    });
   }
 
   function mediaSummary(version) {
@@ -274,20 +282,21 @@
 
     if (!items.length) {
       container.innerHTML = `
-        <div class="homepage-empty-state">
-          No media has been assigned to ${escapeHtml(versionName(selectedVersion))} yet.
-          Use Admin Media to add Pexels photos or videos, then manage them here.
+        <div class="homepage-empty-state homepage-empty-state--action">
+          <strong>No hero media assigned to ${escapeHtml(versionName(selectedVersion))} yet.</strong>
+          <span>Use Admin Media to add Pexels photos, videos or uploaded media, then arrange the queue here.</span>
+          <a class="ef-cta btn btn-secondary" href="/admin-media">Open Admin Media</a>
         </div>
       `;
       return;
     }
 
-    container.innerHTML = items.map(item => {
+    container.innerHTML = items.map((item, index) => {
       const targets = item.assignedTargets || [];
       const isHero = targets.includes('hero') || item.id === primaryId;
       const isPrimary = item.id === primaryId;
       const thumb = item.thumbnailUrl || item.url || '';
-      const canDelete = item.provider === 'pexels';
+      const providerLabel = item.provider === 'upload' ? 'uploaded media' : 'Pexels media';
       return `
         <article class="homepage-media-item">
           <div class="homepage-media-thumb">
@@ -297,7 +306,7 @@
           </div>
           <div class="homepage-media-copy">
             <strong>${escapeHtml(item.alt || item.type || 'Homepage media')}</strong>
-            <p>${escapeHtml(item.photographer || item.provider || 'Selected media')}</p>
+            <p>${escapeHtml(item.photographer || providerLabel)}</p>
             <div class="homepage-card-meta">
               <span class="homepage-pill ${item.type === 'video' ? 'is-video' : ''}">${escapeHtml(item.type || 'media')}</span>
               <span class="homepage-pill ${isHero ? 'is-hero' : ''}">${isHero ? 'In hero queue' : 'Saved, not in hero'}</span>
@@ -309,8 +318,10 @@
           <div class="homepage-media-actions">
             <button class="ef-cta btn btn-secondary" type="button" data-hero-use="${escapeHtml(item.id)}">${isHero ? 'Keep in hero' : 'Use in hero'}</button>
             <button class="ef-cta btn btn-secondary" type="button" data-hero-primary="${escapeHtml(item.id)}" ${isPrimary ? 'disabled' : ''}>Set primary</button>
+            <button class="ef-cta btn btn-secondary" type="button" data-hero-move="${escapeHtml(item.id)}" data-hero-direction="up" ${index === 0 ? 'disabled' : ''}>Move up</button>
+            <button class="ef-cta btn btn-secondary" type="button" data-hero-move="${escapeHtml(item.id)}" data-hero-direction="down" ${index === items.length - 1 ? 'disabled' : ''}>Move down</button>
             <button class="ef-cta btn btn-secondary" type="button" data-hero-remove-target="${escapeHtml(item.id)}" ${isHero ? '' : 'disabled'}>Remove from hero</button>
-            <button class="ef-cta btn danger" type="button" data-hero-delete="${escapeHtml(item.id)}" ${canDelete ? '' : 'disabled'}>Remove</button>
+            <button class="ef-cta btn danger" type="button" data-hero-delete="${escapeHtml(item.id)}">Remove from homepage</button>
           </div>
         </article>
       `;
@@ -511,6 +522,29 @@
     }
   }
 
+  async function moveHeroMedia(itemId, direction) {
+    try {
+      const settings = selectedSettings();
+      const library = settings.mediaLibrary || {};
+      const orderedItems = selectedItems(library);
+      const currentIndex = orderedItems.findIndex(item => item.id === itemId);
+      const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+      if (currentIndex === -1 || targetIndex < 0 || targetIndex >= orderedItems.length) {
+        return;
+      }
+      const [item] = orderedItems.splice(currentIndex, 1);
+      orderedItems.splice(targetIndex, 0, item);
+      library.hero = {
+        ...(library.hero || {}),
+        order: orderedItems.map(item => item.id),
+      };
+      settings.mediaLibrary = library;
+      await saveVersionSettings(settings, 'Hero media order updated.');
+    } catch (error) {
+      toast(error.message, 'error');
+    }
+  }
+
   async function removeFromHero(itemId) {
     try {
       const settings = updateMediaItem(itemId, item => {
@@ -533,7 +567,9 @@
     }
   }
 
-  async function deletePexelsMedia(itemId) {
+  async function deleteSelectedMedia(itemId) {
+    const library = selectedLibrary();
+    const uploadItem = (library.selectedUploads || []).find(item => item.id === itemId);
     const confirmed = await confirmAction({
       title: 'Remove homepage media',
       message: 'Remove this media from the selected homepage? It can be added again from Admin Media.',
@@ -543,6 +579,24 @@
       return;
     }
     try {
+      if (uploadItem) {
+        const settings = selectedSettings();
+        settings.mediaLibrary = {
+          ...(settings.mediaLibrary || {}),
+          selectedUploads: (settings.mediaLibrary?.selectedUploads || []).filter(item => item.id !== itemId),
+          hero: {
+            ...(settings.mediaLibrary?.hero || {}),
+            selectedMediaId:
+              settings.mediaLibrary?.hero?.selectedMediaId === itemId
+                ? null
+                : settings.mediaLibrary?.hero?.selectedMediaId || null,
+            order: (settings.mediaLibrary?.hero?.order || []).filter(id => String(id) !== String(itemId)),
+          },
+        };
+        await saveVersionSettings(settings, 'Uploaded media removed from this homepage.');
+        return;
+      }
+
       const csrfToken = await fetchCsrfToken();
       const data = await fetchJson(
         `/api/v1/admin/homepage/manager/media-library/${selectedVersion}/pexels/${encodeURIComponent(itemId)}`,
@@ -657,7 +711,7 @@
     $('#selectedImagePreview').hidden = !category.heroImage;
     $('#selectedImageThumbnail').src = category.heroImage || '';
     $('#selectedImageThumbnail').alt = category.name || '';
-    $('#selectedImageCredit').innerHTML = category.pexelsAttribution || '';
+    $('#selectedImageCredit').textContent = category.pexelsAttribution || '';
     setImageTab('pexels');
     $('#categoryModal').hidden = false;
   }
@@ -866,7 +920,7 @@
       .find(option => option.dataset.pexelsPhoto === String(photoId));
     selectedOption?.classList.add('is-selected');
     $('#categoryHeroImage').value = photo.src?.large || photo.src?.original || photo.src?.medium || '';
-    $('#categoryPexelsAttribution').value = `Photo by ${escapeHtml(photo.photographer || 'Pexels')} on Pexels`;
+    $('#categoryPexelsAttribution').value = `Photo by ${photo.photographer || 'Pexels'} on Pexels`;
     $('#selectedImageThumbnail').src = photo.src?.medium || '';
     $('#selectedImageThumbnail').alt = photo.alt || '';
     $('#selectedImageCredit').textContent = `Photo by ${photo.photographer || 'Pexels'} on Pexels`;
@@ -887,6 +941,7 @@
       const publish = target.closest('[data-publish-version]')?.dataset.publishVersion;
       const heroUse = target.closest('[data-hero-use]')?.dataset.heroUse;
       const heroPrimary = target.closest('[data-hero-primary]')?.dataset.heroPrimary;
+      const heroMove = target.closest('[data-hero-move]');
       const heroRemoveTarget = target.closest('[data-hero-remove-target]')?.dataset.heroRemoveTarget;
       const heroDelete = target.closest('[data-hero-delete]')?.dataset.heroDelete;
       const editCategory = target.closest('[data-edit-category]')?.dataset.editCategory;
@@ -903,10 +958,12 @@
         useInHero(heroUse, false);
       } else if (heroPrimary) {
         useInHero(heroPrimary, true);
+      } else if (heroMove) {
+        moveHeroMedia(heroMove.dataset.heroMove, heroMove.dataset.heroDirection);
       } else if (heroRemoveTarget) {
         removeFromHero(heroRemoveTarget);
       } else if (heroDelete) {
-        deletePexelsMedia(heroDelete);
+        deleteSelectedMedia(heroDelete);
       } else if (editCategory) {
         openCategoryModal(editCategory);
       } else if (deleteCategoryId) {
