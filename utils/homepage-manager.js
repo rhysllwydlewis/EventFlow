@@ -424,6 +424,16 @@ function assignPexelsMediaToVersion(settings = {}, version, payload = {}, user =
     target: payload.target || 'collage',
     addedBy: user.email || null,
   });
+  const assignedMediaTypes = {
+    ...versionConfig.settings.collageWidget.mediaTypes,
+    ...library.mediaTypes,
+  };
+  if (item.type === 'video') {
+    assignedMediaTypes.videos = true;
+  } else {
+    assignedMediaTypes.photos = true;
+  }
+  library.mediaTypes = { ...library.mediaTypes, ...assignedMediaTypes };
   const modeAfterAssign = payload.modeAfterAssign || 'unchanged';
   const existing = library.selectedPexels.find(
     media =>
@@ -444,6 +454,10 @@ function assignPexelsMediaToVersion(settings = {}, version, payload = {}, user =
       library.hero = { ...library.hero, mode: 'selected_pexels', selectedMediaId: item.id };
     }
   }
+  versionConfig.settings.collageWidget = {
+    ...versionConfig.settings.collageWidget,
+    mediaTypes: assignedMediaTypes,
+  };
   if (modeAfterAssign === 'selected_pexels' || modeAfterAssign === 'selected_with_fallback') {
     library.mode = modeAfterAssign;
     versionConfig.settings.collageWidget = {
