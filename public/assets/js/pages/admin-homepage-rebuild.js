@@ -62,11 +62,12 @@
     showStatus(message, type === 'error');
   }
 
-  async function confirmAction(options) {
+  async function confirmAction(options = {}) {
     if (window.AdminShared?.showConfirmModal) {
       return window.AdminShared.showConfirmModal(options);
     }
-    return window.confirm(options.message || options.title || 'Are you sure?');
+    showStatus(options.message || options.title || 'Confirmation is unavailable.', true);
+    return false;
   }
 
   function showStatus(message, isError = false) {
