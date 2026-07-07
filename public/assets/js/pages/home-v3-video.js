@@ -8,9 +8,10 @@
   const DEFAULT_SOURCE_SWAP_FADE_MS = 520;
   const MAX_SOURCE_SWAP_FADE_MS = 900;
   const SOURCE_SWAP_FADE_RATIO = 0.65;
-  const HERO_CROP_PORTRAIT_RATIO = 1.2;
+  const HERO_CROP_PORTRAIT_RATIO = 1.05;
+  const HERO_CROP_PROTECT_TOP_RATIO = 1.35;
   const HERO_CROP_PROTECT_TOP_CROP = 0.07;
-  const HERO_CROP_SAFE_VERTICAL_CROP = 0.22;
+  const HERO_CROP_SAFE_VERTICAL_CROP = 0.36;
   const HERO_CROP_AUTO_SAFE_SCORE = 0.42;
   const VIDEO_UPLOAD_PATTERN = /\.(mp4|webm|mov)(?:$|[?#])/i;
   const TRANSITION_EFFECTS = new Set(['fade', 'slide', 'zoom', 'crossfade']);
@@ -34,6 +35,16 @@
   function normaliseDimension(value) {
     const number = Number(value);
     return Number.isFinite(number) && number > 0 ? number : null;
+  }
+
+  function normalisePercentValue(value) {
+    const number = Number(value);
+    if (!Number.isFinite(number)) {
+      return null;
+    }
+
+    const percent = number > 0 && number <= 1 ? number * 100 : number;
+    return Math.max(0, Math.min(percent, 100));
   }
 
   function getHeroVideoFiles(video) {
@@ -125,10 +136,10 @@
       return null;
     }
 
-    const x = normaliseDimension(value.x ?? value.left);
-    const y = normaliseDimension(value.y ?? value.top);
+    const x = normalisePercentValue(value.x ?? value.left);
+    const y = normalisePercentValue(value.y ?? value.top);
     if (x !== null && y !== null) {
-      return `${Math.max(0, Math.min(x, 100))}% ${Math.max(0, Math.min(y, 100))}%`;
+      return `${x}% ${y}%`;
     }
 
     return null;
@@ -143,7 +154,10 @@
       return '50% 25%';
     }
 
-    if (metrics.verticalCrop > HERO_CROP_PROTECT_TOP_CROP) {
+    if (
+      metrics.ratio < HERO_CROP_PROTECT_TOP_RATIO ||
+      metrics.verticalCrop > HERO_CROP_PROTECT_TOP_CROP
+    ) {
       return '50% 32%';
     }
 
@@ -170,7 +184,10 @@
       return 'safe';
     }
 
-    if (metrics.verticalCrop > HERO_CROP_PROTECT_TOP_CROP) {
+    if (
+      metrics.ratio < HERO_CROP_PROTECT_TOP_RATIO ||
+      metrics.verticalCrop > HERO_CROP_PROTECT_TOP_CROP
+    ) {
       return 'protect-top';
     }
 
