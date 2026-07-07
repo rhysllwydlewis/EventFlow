@@ -623,10 +623,7 @@ function normaliseVersion(version, existingVersion = {}, fallbackCollageWidget =
       ...defaults.settings,
       ...clone(existingSettings),
       collageWidget,
-      mediaLibrary: normaliseMediaLibrary(
-        existingSettings.mediaLibrary || defaults.settings.mediaLibrary,
-        collageWidget
-      ),
+      mediaLibrary: normaliseMediaLibrary(existingSettings.mediaLibrary || {}, collageWidget),
     },
   };
 }
