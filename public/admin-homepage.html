@@ -4,607 +4,250 @@
   <script src="/assets/js/dashboard-guard.js?v=17.0.2"></script>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Homepage Management — EventFlow Admin</title>
-<meta name="robots" content="noindex,nofollow">
-  
-  <!-- Preload critical CSS -->
+  <title>Homepage Manager - EventFlow Admin</title>
+  <meta name="robots" content="noindex,nofollow">
+
   <link rel="preload" href="/assets/css/styles.css?v=18.3.0" as="style">
   <link rel="preload" href="/assets/css/admin.css?v=18.3.0" as="style">
-  <link rel="preload" href="/assets/css/admin-homepage-enhanced.css?v=18.3.0" as="style">
-  
-  <!-- Core styles -->
   <link rel="stylesheet" href="/assets/css/tokens.css?v=18.3.0">
-<link rel="stylesheet" href="/assets/css/styles.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/styles.css?v=18.3.0">
   <link rel="stylesheet" href="/assets/css/eventflow-17.0.0.css?v=18.3.0">
   <link rel="stylesheet" href="/assets/css/admin.css?v=18.3.0">
   <link rel="stylesheet" href="/assets/css/admin-enhanced.css?v=18.3.0">
   <link rel="stylesheet" href="/assets/css/admin-navbar.css?v=18.3.0">
   <link rel="stylesheet" href="/assets/css/admin-cards.css?v=18.3.0">
-  <link rel="stylesheet" href="/assets/css/admin-homepage-enhanced.css?v=18.3.0">
-  <link rel="stylesheet" href="/assets/css/admin-management-overhaul.css?v=18.3.0">
-  
-  <!-- Utility & component styles -->
   <link rel="stylesheet" href="/assets/css/utilities.css?v=18.3.0">
   <link rel="stylesheet" href="/assets/css/components.css?v=18.3.0">
-  <link rel="stylesheet" href="/assets/css/mobile-optimizations.css?v=18.3.0">
-  <link rel="stylesheet" href="/assets/css/ui-ux-fixes.css?v=18.3.0">
-  <link rel="stylesheet" href="/assets/css/admin-ui-improvements.css?v=18.3.0">
-    <link rel="icon" href="/favicon.ico" sizes="any">
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png">
-    <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-    <link rel="manifest" href="/site.webmanifest">
-  
-  <!-- Preload critical JS -->
-  <link rel="preload" href="/assets/js/admin-navbar.js?v=18.3.0" as="script">
+  <link rel="stylesheet" href="/assets/css/admin-homepage-rebuild.css?v=18.4.0">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
+
   <script src="/assets/js/components.js?v=18.3.0" defer></script>
   <script src="/assets/js/admin-navbar.js?v=18.3.0" defer></script>
 </head>
-<body class="has-admin-navbar admin">
-<!-- Modern Top Navbar -->
+<body class="has-admin-navbar admin admin-homepage-manager">
 <div id="adminNavbarMount"></div>
 
-<main id="main-content" class="section admin-main-content">
-  <div class="admin-page-header">
-    <h1>Homepage Management</h1>
-    <p class="small">Control the live homepage, media sources, category cards and hero imagery from one clear admin workspace.</p>
-  </div>
-  
-  <div class="controls">
-    <div class="controls-left">
-      <button id="backToDashboard" class="ef-cta btn btn-secondary">
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M19 12H5M12 19l-7-7 7-7"/>
-        </svg>
-        Back to Dashboard
-      </button>
-      <button id="refreshBtn" class="ef-cta btn btn-secondary" title="Refresh homepage management data" aria-label="Refresh homepage management data">
-        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M23 4v6h-6"></path>
-          <path d="M1 20v-6h6"></path>
-          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-        </svg>
-        Refresh
-      </button>
+<main id="main-content" class="admin-homepage-shell">
+  <header class="homepage-admin-hero">
+    <div>
+      <p class="homepage-admin-eyebrow">Homepage Manager</p>
+      <h1>Manage Homepage 1, 2 and 3</h1>
+      <p>Choose which homepage is live, preview the others, and control the hero media queue without digging through the old collage controls.</p>
     </div>
-  </div>
+    <div class="homepage-admin-actions">
+      <button id="backToDashboard" class="ef-cta btn btn-secondary" type="button">Back to dashboard</button>
+      <button id="refreshBtn" class="ef-cta btn btn-secondary" type="button">Refresh</button>
+      <a class="ef-cta btn btn-primary" href="/admin-media">Open Media Centre</a>
+    </div>
+  </header>
 
-  <section id="adminManagementOverview" data-management-surface="homepage"></section>
+  <div id="homepageStatus" class="homepage-status" role="status" aria-live="polite" hidden></div>
 
-  <!-- Homepage Media Library Section -->
-  <section class="card homepage-media-card" id="homepageMediaPanel" style="padding: 24px; margin-bottom: 32px;">
-    <div class="homepage-media-header">
+  <section class="homepage-manager-section" aria-labelledby="liveHomepageHeading">
+    <div class="homepage-section-heading">
       <div>
-        <h2>Homepage media</h2>
-        <p class="small">Assign Pexels photos and videos from Media Centre, choose a source mode and review what will be used first.</p>
+        <p class="homepage-admin-eyebrow">Live selection</p>
+        <h2 id="liveHomepageHeading">Choose the live homepage</h2>
       </div>
-      <a class="ef-cta btn btn-secondary" href="/admin-media">Open Media Centre</a>
+      <p>Homepage 1 is the original site. Homepage 2 and 3 can be edited and previewed before you make either one live.</p>
     </div>
-    <div class="homepage-media-controls">
-      <label for="homepageMediaVersion">Homepage version</label>
-      <select id="homepageMediaVersion"><option value="v1">V1 Classic</option><option value="v2">V2 Modern</option><option value="v3">V3 Premium Video</option></select>
-      <label for="homepageMediaMode">Media source</label>
-      <select id="homepageMediaMode">
-        <option value="auto_pexels_photos">Automatic Pexels photos</option>
-        <option value="auto_pexels_videos">Automatic Pexels videos</option>
-        <option value="auto_pexels_mixed">Automatic Pexels photos and videos</option>
-        <option value="uploads">Uploaded media only</option>
-        <option value="selected_pexels">Selected Pexels only</option>
-        <option value="selected_with_fallback">Selected media with automatic fallback</option>
-      </select>
-      <button class="ef-cta" id="saveHomepageMediaMode">Save media source</button>
-    </div>
-    <div class="homepage-media-summary" id="homepageMediaSummary"></div>
-    <div id="homepageSelectedMediaList" class="homepage-selected-media-list"></div>
-    <div id="homepageMediaMessage" class="small" style="margin-top: 12px;"></div>
+    <div id="homepageVersionCards" class="homepage-version-grid" aria-live="polite"></div>
   </section>
 
-  <!-- Collage Widget Configuration Section -->
-  <div style="margin-bottom: 48px;">
-    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
-      <h2 style="margin: 0; font-size: 1.5rem; font-weight: 600;">Collage & media</h2>
-      <span class="badge" style="background: #dbeafe; color: #1e40af; padding: 4px 12px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">Live homepage media</span>
-    </div>
-    <p class="small" style="margin-bottom: 16px; color: #4b5563;">Manage the homepage collage, media source, playback behaviour and fallback options. Changes are saved to the selected homepage version.</p>
-    
-    <!-- Info banner about legacy flag -->
-    <div style="margin-bottom: 16px; padding: 12px 16px; background: #eff6ff; border-left: 4px solid #3b82f6; border-radius: 6px;">
-      <p style="margin: 0; color: #1e40af; font-size: 0.9rem;">
-        <strong>Management note:</strong> Use this workspace for homepage collage source, media type and timing controls. The legacy Pexels feature flag in <a href="/admin-settings" style="color: #2563eb; text-decoration: underline;">Settings</a> is retained for compatibility only.
-      </p>
-    </div>
-    
-    <!-- Collage Widget Controls -->
-    <div class="card" style="padding: 24px;">
-      <!-- Enable/Disable Toggle -->
-      <div style="margin-bottom: 24px; padding-bottom: 24px; border-bottom: 1px solid #e5e7eb;">
-        <label style="display: flex; align-items: center; gap: 12px; cursor: pointer;">
-          <input type="checkbox" id="collageWidgetEnabled" style="width: 20px; height: 20px; cursor: pointer;">
-          <span style="font-weight: 600; font-size: 1.1rem;">Collage enabled</span>
-        </label>
-        <p class="small" style="margin: 8px 0 0 32px; color: #6b7280;">When enabled, the selected homepage version displays the dynamic media collage.</p>
-        
-        <!-- Status Banner -->
-        <div id="widgetStatusBanner" style="display: none; margin-top: 12px; padding: 12px 16px; background: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 6px;">
-          <p style="margin: 0; color: #92400e; font-size: 0.9rem; font-weight: 500;">
-            Collage is currently off for this selected version. Static homepage imagery will be used until it is enabled and saved.
-          </p>
+  <section class="homepage-manager-layout" aria-label="Homepage editing workspace">
+    <aside class="homepage-version-sidebar">
+      <h2>Edit homepage</h2>
+      <div id="heroVersionTabs" class="homepage-version-tabs"></div>
+      <div class="homepage-preview-panel">
+        <p class="homepage-admin-eyebrow">Selected homepage</p>
+        <h3 id="selectedHomepageTitle">Homepage 1</h3>
+        <p id="selectedHomepageDescription">Loading homepage settings...</p>
+        <div class="homepage-preview-actions">
+          <a id="selectedHomepagePreview" class="ef-cta btn btn-secondary" href="/" target="_blank" rel="noopener">Preview</a>
+          <button id="publishSelectedHomepage" class="ef-cta btn btn-primary" type="button">Set live</button>
         </div>
       </div>
+    </aside>
 
-      <div id="collageWidgetSettings">
-        <!-- Source Selection -->
-        <div style="margin-bottom: 24px;">
-          <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 12px;">Media source</h3>
-          <p class="small" style="margin-bottom: 12px; color: #6b7280;">Choose one source for the collage media.</p>
-          
-          <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-            <label style="flex: 1; min-width: 200px; padding: 16px; border: 2px solid #e5e7eb; border-radius: 8px; cursor: pointer; transition: all 0.2s;" class="source-option" data-source="pexels">
-              <input type="radio" name="collageSource" value="pexels" id="sourcePexels" style="margin-right: 8px;">
-              <span style="font-weight: 600;">Pexels library</span>
-              <p class="small" style="margin: 4px 0 0 24px; color: #6b7280;">Use curated Pexels photos and videos</p>
-            </label>
-            
-            <label style="flex: 1; min-width: 200px; padding: 16px; border: 2px solid #e5e7eb; border-radius: 8px; cursor: pointer; transition: all 0.2s;" class="source-option" data-source="uploads">
-              <input type="radio" name="collageSource" value="uploads" id="sourceUploads" style="margin-right: 8px;">
-              <span style="font-weight: 600;">Uploaded media</span>
-              <p class="small" style="margin: 4px 0 0 24px; color: #6b7280;">Use uploaded EventFlow media</p>
-            </label>
+    <div class="homepage-editor-stack">
+      <section class="homepage-manager-section" aria-labelledby="heroManagerHeading">
+        <div class="homepage-section-heading">
+          <div>
+            <p class="homepage-admin-eyebrow">Hero Manager</p>
+            <h2 id="heroManagerHeading">Hero source and queue</h2>
           </div>
+          <p id="heroManagerContext">Homepage 1 can use a collage. Homepage 2 and 3 use a single rotating hero playlist.</p>
         </div>
 
-        <!-- Media Types -->
-        <div style="margin-bottom: 24px;">
-          <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 12px;">Media types</h3>
-          <p class="small" style="margin-bottom: 12px; color: #6b7280;">Select the media types shown in the collage.</p>
-          
-          <div style="display: flex; gap: 16px;">
-            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-              <input type="checkbox" id="mediaTypePhotos" style="width: 18px; height: 18px; cursor: pointer;">
-              <span>Photos</span>
+        <form id="heroSettingsForm" class="homepage-form-grid">
+          <fieldset>
+            <legend>Hero source</legend>
+            <label for="heroSourceMode">Media source</label>
+            <select id="heroSourceMode">
+              <option value="auto_pexels_photos">Automatic Pexels photos</option>
+              <option value="auto_pexels_videos">Automatic Pexels videos</option>
+              <option value="auto_pexels_mixed">Automatic Pexels photos and videos</option>
+              <option value="selected_pexels">Selected Pexels only</option>
+              <option value="selected_with_fallback">Selected media with automatic fallback</option>
+              <option value="uploads">Uploaded media only</option>
+            </select>
+
+            <div class="homepage-check-row">
+              <label><input id="heroMediaPhotos" type="checkbox"> Photos</label>
+              <label><input id="heroMediaVideos" type="checkbox"> Videos</label>
+            </div>
+
+            <label class="homepage-check-control">
+              <input id="heroFallbackEnabled" type="checkbox">
+              <span>Use automatic Pexels fallback when selected media is short</span>
             </label>
-            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-              <input type="checkbox" id="mediaTypeVideos" style="width: 18px; height: 18px; cursor: pointer;">
-              <span>Videos</span>
+
+            <label for="heroFallbackMinimum">Minimum selected items before fallback</label>
+            <input id="heroFallbackMinimum" type="number" min="1" max="24" step="1">
+          </fieldset>
+
+          <fieldset>
+            <legend>Display behaviour</legend>
+            <label class="homepage-check-control">
+              <input id="heroEnabled" type="checkbox">
+              <span id="heroEnabledLabel">Enable hero media</span>
             </label>
+
+            <label for="heroIntervalSeconds">Seconds between items</label>
+            <input id="heroIntervalSeconds" type="number" min="1" max="60" step="0.5">
+
+            <label for="heroTransitionEffect">Transition effect</label>
+            <select id="heroTransitionEffect">
+              <option value="fade">Fade</option>
+              <option value="crossfade">Crossfade</option>
+              <option value="slide">Slide</option>
+              <option value="zoom">Zoom</option>
+            </select>
+
+            <label for="heroTransitionDuration">Transition duration, ms</label>
+            <input id="heroTransitionDuration" type="number" min="300" max="3000" step="100">
+          </fieldset>
+
+          <fieldset>
+            <legend>Video playback</legend>
+            <label class="homepage-check-control"><input id="heroAutoplay" type="checkbox"><span>Autoplay videos</span></label>
+            <label class="homepage-check-control"><input id="heroMuted" type="checkbox"><span>Mute videos</span></label>
+            <label class="homepage-check-control"><input id="heroLoop" type="checkbox"><span>Loop videos</span></label>
+            <label for="heroQuality">Quality preference</label>
+            <select id="heroQuality">
+              <option value="hd">HD</option>
+              <option value="sd">SD</option>
+              <option value="auto">Auto</option>
+            </select>
+          </fieldset>
+
+          <fieldset>
+            <legend>Pexels search terms</legend>
+            <div class="homepage-query-grid">
+              <label>Photo venues<input id="queryPhotoVenues" type="text"></label>
+              <label>Photo catering<input id="queryPhotoCatering" type="text"></label>
+              <label>Photo entertainment<input id="queryPhotoEntertainment" type="text"></label>
+              <label>Photo photography<input id="queryPhotoPhotography" type="text"></label>
+              <label>Video venues<input id="queryVideoVenues" type="text"></label>
+              <label>Video catering<input id="queryVideoCatering" type="text"></label>
+              <label>Video entertainment<input id="queryVideoEntertainment" type="text"></label>
+              <label>Video photography<input id="queryVideoPhotography" type="text"></label>
+            </div>
+          </fieldset>
+
+          <div class="homepage-form-actions">
+            <button id="saveHeroSettings" class="ef-cta btn btn-primary" type="submit">Save homepage hero</button>
+            <button id="resetHeroSettings" class="ef-cta btn btn-secondary" type="button">Reset from saved</button>
           </div>
-        </div>
+        </form>
 
-        <!-- Interval Setting -->
-        <div style="margin-bottom: 24px;">
-          <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 12px;">Transition interval</h3>
-          <div style="display: flex; align-items: center; gap: 12px;">
-            <input type="number" id="intervalSeconds" min="1" max="60" step="0.5" style="width: 100px; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px;">
-            <span style="color: #6b7280;">seconds between transitions</span>
+        <div class="homepage-queue-header">
+          <div>
+            <h3>Selected hero media queue</h3>
+            <p>Media added from Admin Media appears here so you can promote, demote or remove it.</p>
           </div>
-          <p class="small" style="margin-top: 4px; color: #6b7280;">Range: 1-60 seconds</p>
+          <a class="ef-cta btn btn-secondary" href="/admin-media">Add media</a>
         </div>
+        <div id="heroMediaQueue" class="homepage-media-queue" aria-live="polite"></div>
+      </section>
 
-        <!-- Hero Video Controls -->
-        <div style="margin-bottom: 24px; padding: 20px; background: #fef3c7; border-radius: 8px; border: 1px solid #fbbf24;">
-          <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 16px;">Hero video playback</h3>
-          <div style="display: grid; gap: 12px;">
-            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-              <input type="checkbox" id="heroVideoEnabled" style="width: 18px; height: 18px; cursor: pointer;">
-              <span>Enable Hero Video</span>
-            </label>
-            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-              <input type="checkbox" id="heroVideoAutoplay" style="width: 18px; height: 18px; cursor: pointer;">
-              <span>Autoplay</span>
-            </label>
-            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-              <input type="checkbox" id="heroVideoMuted" style="width: 18px; height: 18px; cursor: pointer;">
-              <span>Muted</span>
-            </label>
-            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-              <input type="checkbox" id="heroVideoLoop" style="width: 18px; height: 18px; cursor: pointer;">
-              <span>Loop</span>
-            </label>
-            <div>
-              <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 0.9rem;">Quality Preference</label>
-              <select id="heroVideoQuality" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px;">
-                <option value="hd">HD (1080p)</option>
-                <option value="sd">SD (720p)</option>
-                <option value="auto">Auto</option>
-              </select>
-            </div>
+      <section class="homepage-manager-section" aria-labelledby="bodyManagerHeading">
+        <div class="homepage-section-heading">
+          <div>
+            <p class="homepage-admin-eyebrow">Rest of homepage</p>
+            <h2 id="bodyManagerHeading">Shared body content</h2>
           </div>
+          <p>These category cards and category hero images are shared by Homepage 1, 2 and 3.</p>
         </div>
 
-        <!-- Video Quality Settings -->
-        <div style="margin-bottom: 24px; padding: 20px; background: #e0f2fe; border-radius: 8px; border: 1px solid #38bdf8;">
-          <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 16px;">Video quality</h3>
-          <div style="display: grid; gap: 12px;">
-            <div>
-              <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 0.9rem;">Default Quality</label>
-              <select id="videoQualityPreference" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px;">
-                <option value="hd">HD (1080p)</option>
-                <option value="sd">SD (720p)</option>
-                <option value="auto">Auto (adaptive)</option>
-              </select>
-            </div>
-            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-              <input type="checkbox" id="videoQualityAdaptive" style="width: 18px; height: 18px; cursor: pointer;">
-              <span>Adaptive Quality (adjust based on connection)</span>
-            </label>
-            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-              <input type="checkbox" id="videoQualityMobileOptimized" style="width: 18px; height: 18px; cursor: pointer;">
-              <span>Mobile Optimized (reduce quality on mobile)</span>
-            </label>
-          </div>
+        <div class="homepage-body-toolbar">
+          <button id="addCategoryBtn" class="ef-cta btn btn-primary" type="button">Add category</button>
         </div>
 
-        <!-- Transition Effects -->
-        <div style="margin-bottom: 24px; padding: 20px; background: #f3e8ff; border-radius: 8px; border: 1px solid #c084fc;">
-          <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 16px;">Transition effects</h3>
-          <div style="display: grid; gap: 12px;">
-            <div>
-              <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 0.9rem;">Effect Type</label>
-              <select id="transitionEffect" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px;">
-                <option value="fade">Fade</option>
-                <option value="slide">Slide</option>
-                <option value="zoom">Zoom</option>
-                <option value="crossfade">Crossfade</option>
-              </select>
-            </div>
-            <div>
-              <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 0.9rem;">Duration (ms)</label>
-              <input type="number" id="transitionDuration" min="300" max="3000" step="100" value="1000" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px;">
-            </div>
-          </div>
+        <h3>Homepage category cards</h3>
+        <div id="categoryCardsGrid" class="admin-category-cards-grid homepage-category-grid">
+          <div class="homepage-empty-state">Loading categories...</div>
         </div>
 
-        <!-- Preloading & Caching -->
-        <div style="margin-bottom: 24px; padding: 20px; background: #ecfccb; border-radius: 8px; border: 1px solid #a3e635;">
-          <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 16px;">Preloading and caching</h3>
-          <div style="display: grid; gap: 12px;">
-            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-              <input type="checkbox" id="preloadingEnabled" style="width: 18px; height: 18px; cursor: pointer;">
-              <span>Enable Preloading</span>
-            </label>
-            <div>
-              <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 0.9rem;">Items to Preload</label>
-              <input type="number" id="preloadingCount" min="0" max="5" step="1" value="3" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px;">
-              <p class="small" style="margin-top: 4px; color: #6b7280;">Choose 0–5 items. Use 0 when preloading is not required.</p>
-            </div>
-          </div>
+        <h3>Category page hero images</h3>
+        <div id="categoryList" class="category-list homepage-hero-image-grid">
+          <div class="homepage-empty-state">Loading category images...</div>
         </div>
-
-        <!-- Mobile Optimizations -->
-        <div style="margin-bottom: 24px; padding: 20px; background: #ffe4e6; border-radius: 8px; border: 1px solid #fb7185;">
-          <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 16px;">Mobile optimisation</h3>
-          <div style="display: grid; gap: 12px;">
-            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-              <input type="checkbox" id="mobileSlowerTransitions" style="width: 18px; height: 18px; cursor: pointer;">
-              <span>Use slower transitions on mobile</span>
-            </label>
-            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-              <input type="checkbox" id="mobileDisableVideos" style="width: 18px; height: 18px; cursor: pointer;">
-              <span>Disable videos on mobile</span>
-            </label>
-            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-              <input type="checkbox" id="mobileTouchControls" style="width: 18px; height: 18px; cursor: pointer;">
-              <span>Enable touch controls</span>
-            </label>
-          </div>
-        </div>
-
-        <!-- Content Filtering -->
-        <div style="margin-bottom: 24px; padding: 20px; background: #dbeafe; border-radius: 8px; border: 1px solid #60a5fa;">
-          <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 16px;">Content filtering</h3>
-          <div style="display: grid; gap: 12px;">
-            <div>
-              <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 0.9rem;">Aspect Ratio</label>
-              <select id="filterAspectRatio" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px;">
-                <option value="any">Any</option>
-                <option value="16:9">16:9 (Widescreen)</option>
-                <option value="4:3">4:3 (Standard)</option>
-                <option value="1:1">1:1 (Square)</option>
-              </select>
-            </div>
-            <div>
-              <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 0.9rem;">Orientation</label>
-              <select id="filterOrientation" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px;">
-                <option value="any">Any</option>
-                <option value="landscape">Landscape</option>
-                <option value="portrait">Portrait</option>
-                <option value="square">Square</option>
-              </select>
-            </div>
-            <div>
-              <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 0.9rem;">Minimum Resolution</label>
-              <select id="filterMinResolution" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px;">
-                <option value="SD">SD (720p)</option>
-                <option value="HD">HD (1080p)</option>
-                <option value="FHD">Full HD (1920x1080)</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        <!-- Playback Controls -->
-        <div style="margin-bottom: 24px; padding: 20px; background: #fce7f3; border-radius: 8px; border: 1px solid #f9a8d4;">
-          <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 16px;">Playback controls</h3>
-          <div style="display: grid; gap: 12px;">
-            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-              <input type="checkbox" id="playbackShowControls" style="width: 18px; height: 18px; cursor: pointer;">
-              <span>Show Next/Previous Buttons</span>
-            </label>
-            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-              <input type="checkbox" id="playbackPauseOnHover" style="width: 18px; height: 18px; cursor: pointer;">
-              <span>Pause on Hover</span>
-            </label>
-            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-              <input type="checkbox" id="playbackFullscreen" style="width: 18px; height: 18px; cursor: pointer;">
-              <span>Enable Fullscreen Mode</span>
-            </label>
-          </div>
-        </div>
-
-        <!-- Video Analytics Dashboard -->
-        <div style="margin-bottom: 24px; padding: 20px; background: #f0fdf4; border-radius: 8px; border: 1px solid #4ade80;">
-          <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 16px;">Video diagnostics</h3>
-          <div id="videoAnalytics" style="display: grid; gap: 12px;">
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
-              <div style="padding: 12px; background: white; border-radius: 6px; border: 1px solid #e5e7eb;">
-                <div style="font-size: 0.75rem; color: #6b7280; margin-bottom: 4px;">Hero Video Success</div>
-                <div style="font-size: 1.5rem; font-weight: 700; color: #22c55e;" id="heroVideoSuccessRate">-</div>
-              </div>
-              <div style="padding: 12px; background: white; border-radius: 6px; border: 1px solid #e5e7eb;">
-                <div style="font-size: 0.75rem; color: #6b7280; margin-bottom: 4px;">Collage Video Success</div>
-                <div style="font-size: 1.5rem; font-weight: 700; color: #22c55e;" id="collageVideoSuccessRate">-</div>
-              </div>
-              <div style="padding: 12px; background: white; border-radius: 6px; border: 1px solid #e5e7eb;">
-                <div style="font-size: 0.75rem; color: #6b7280; margin-bottom: 4px;">Total Attempts</div>
-                <div style="font-size: 1.5rem; font-weight: 700; color: #3b82f6;" id="totalVideoAttempts">-</div>
-              </div>
-            </div>
-            <p class="small" style="color: #6b7280; margin: 0;">
-              Diagnostics are tracked per browser session. Open the <a href="/" target="_blank" style="color: #2563eb;">homepage</a> to generate fresh playback metrics.
-            </p>
-          </div>
-        </div>
-
-        <!-- Pexels Settings Panel -->
-        <div id="pexelsSettingsPanel" style="display: none; margin-bottom: 24px; padding: 20px; background: #f9fafb; border-radius: 8px;">
-          <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 16px;">Pexels photo search queries</h3>
-          <p class="small" style="margin-bottom: 16px; color: #6b7280;">Set the photo search terms used for each collage category.</p>
-          
-          <div style="display: grid; gap: 16px;">
-            <div>
-              <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 0.9rem;">🏛️ Venues</label>
-              <input type="text" id="pexelsQueryVenues" placeholder="e.g., wedding venue elegant ballroom" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px;">
-            </div>
-            <div>
-              <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 0.9rem;">🍽️ Catering</label>
-              <input type="text" id="pexelsQueryCatering" placeholder="e.g., wedding catering food elegant" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px;">
-            </div>
-            <div>
-              <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 0.9rem;">🎵 Entertainment</label>
-              <input type="text" id="pexelsQueryEntertainment" placeholder="e.g., live band wedding party" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px;">
-            </div>
-            <div>
-              <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 0.9rem;">📸 Photography</label>
-              <input type="text" id="pexelsQueryPhotography" placeholder="e.g., wedding photography professional" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px;">
-            </div>
-          </div>
-        </div>
-
-        <!-- Pexels Video Search Queries Panel -->
-        <div id="pexelsVideoQueriesPanel" style="display: none; margin-bottom: 24px; padding: 20px; background: #f0f9ff; border-radius: 8px; border: 1px solid #bfdbfe;">
-          <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 16px;">Pexels video search queries</h3>
-          <p class="small" style="margin-bottom: 16px; color: #6b7280;">Set the video search terms used for each collage category.</p>
-          
-          <div style="display: grid; gap: 16px;">
-            <div>
-              <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 0.9rem;">🏛️ Venues</label>
-              <input type="text" id="pexelsVideoQueryVenues" placeholder="e.g., wedding venue video aerial" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px;">
-            </div>
-            <div>
-              <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 0.9rem;">🍽️ Catering</label>
-              <input type="text" id="pexelsVideoQueryCatering" placeholder="e.g., catering food preparation video" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px;">
-            </div>
-            <div>
-              <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 0.9rem;">🎵 Entertainment</label>
-              <input type="text" id="pexelsVideoQueryEntertainment" placeholder="e.g., live band music performance video" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px;">
-            </div>
-            <div>
-              <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 0.9rem;">📸 Photography</label>
-              <input type="text" id="pexelsVideoQueryPhotography" placeholder="e.g., wedding videography cinematic" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px;">
-            </div>
-          </div>
-        </div>
-
-        <!-- Uploads Gallery Manager -->
-        <div id="uploadsGalleryPanel" style="display: none; margin-bottom: 24px; padding: 20px; background: #f9fafb; border-radius: 8px;">
-          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
-            <h3 style="font-size: 1rem; font-weight: 600; margin: 0;">Uploaded media gallery</h3>
-            <button id="uploadMediaBtn" class="btn btn-primary" style="padding: 8px 16px; font-size: 0.9rem;">
-              <span style="font-size: 1.2rem;"></span> Upload media
-            </button>
-          </div>
-          <input type="file" id="mediaFileInput" accept="image/*,video/*" multiple style="display: none;" title="Upload photos (JPG, PNG, WebP) or videos (MP4, WebM). Max 10MB per file, up to 10 files at once.">
-          
-          <p class="small" style="margin-bottom: 16px; color: #6b7280;">
-            Upload photos or videos for the collage. 
-            <strong>Photos:</strong> JPG, PNG, WebP (recommended 800x600px or larger). 
-            <strong>Videos:</strong> MP4 (H.264), WebM (max 10MB, up to 10 files at once).
-          </p>
-          
-          <div id="uploadGalleryList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px;">
-            <div class="card" style="padding: 20px; text-align: center; color: #9ca3af;">
-              <p>No uploaded media yet</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Fallback Option -->
-        <div style="margin-bottom: 24px;">
-          <label style="display: flex; align-items: center; gap: 12px; cursor: pointer;">
-            <input type="checkbox" id="fallbackToPexels" style="width: 18px; height: 18px; cursor: pointer;">
-            <span style="font-weight: 600;">Use Pexels fallback when uploads are unavailable</span>
-          </label>
-          <p class="small" style="margin: 4px 0 0 30px; color: #6b7280;">
-            Recommended for reliability. If the upload gallery is empty or a file cannot load, the homepage can use Pexels media instead.
-          </p>
-        </div>
-
-        <!-- Save Button -->
-        <div style="display: flex; gap: 12px; padding-top: 16px; border-top: 1px solid #e5e7eb;">
-          <button id="saveCollageWidget" class="ef-cta btn btn-primary">
-            Save changes
-          </button>
-          <button id="resetCollageWidget" class="ef-cta btn btn-secondary">
-            Reset form
-          </button>
-        </div>
-
-        <!-- Status Messages -->
-        <div id="collageWidgetSuccess" class="success-message" style="display: none; margin-top: 16px;">
-          Changes saved successfully.
-        </div>
-        <div id="collageWidgetError" class="error-message" style="display: none; margin-top: 16px;">
-          Unable to save changes.
-        </div>
-      </div>
+      </section>
     </div>
-  </div>
-
-  <!-- Category Cards Management Section -->
-  <div style="margin-bottom: 48px;">
-    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
-      <div style="display: flex; align-items: center; gap: 12px;">
-        <h2 style="margin: 0; font-size: 1.5rem; font-weight: 600;">Category cards</h2>
-        <span class="badge" style="background: #dbeafe; color: #1e40af; padding: 4px 12px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">Homepage grid</span>
-      </div>
-      <button id="addCategoryBtn" class="ef-cta btn btn-primary">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 8px;">
-          <line x1="12" y1="5" x2="12" y2="19"></line>
-          <line x1="5" y1="12" x2="19" y2="12"></line>
-        </svg>
-        Add category
-      </button>
-    </div>
-    <p class="small" style="margin-bottom: 16px; color: #4b5563;">Manage the category cards shown on the homepage. Keep labels, descriptions, visibility and imagery consistent.</p>
-    
-    <!-- Category Cards Grid -->
-    <div id="categoryCardsGrid" class="admin-category-cards-grid">
-      <div class="card"><p>Loading categories…</p></div>
-    </div>
-  </div>
-
-  <!-- Category Hero Images Section -->
-  <div>
-    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
-      <h2 style="margin: 0; font-size: 1.5rem; font-weight: 600;">Hero images</h2>
-      <span class="badge" style="background: #fef3c7; color: #92400e; padding: 4px 12px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">Category pages</span>
-    </div>
-    <p class="small" style="margin-bottom: 16px; color: #4b5563;">Manage the hero image used on each category detail page. Replace missing or outdated images from one place.</p>
-    
-    <div id="categoryList" class="category-list">
-      <div class="card"><p>Loading categories…</p></div>
-    </div>
-  </div>
+  </section>
 </main>
 
-<!-- Category Edit/Add Modal -->
-<div id="categoryModal" class="modal" style="display: none;">
-  <div class="modal-content" style="max-width: 800px;">
+<div id="categoryModal" class="modal homepage-modal" hidden>
+  <div class="modal-content">
     <div class="modal-header">
       <h3 id="categoryModalTitle">Add category</h3>
-      <button class="ef-cta modal-close" id="closeCategoryModal">&times;</button>
+      <button id="closeCategoryModal" class="ef-cta modal-close" type="button" aria-label="Close category editor">&times;</button>
     </div>
     <div class="modal-body">
       <form id="categoryForm">
-        <input type="hidden" id="categoryId" />
-        
-        <div style="margin-bottom: 20px;">
-          <label for="categoryName" style="display: block; font-weight: 600; margin-bottom: 8px;">Category Name *</label>
-          <input type="text" id="categoryName" required style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px;" placeholder="e.g., Venues, Catering">
+        <input id="categoryId" type="hidden">
+        <input id="categoryHeroImage" type="hidden">
+        <input id="categoryPexelsAttribution" type="hidden">
+        <label for="categoryName">Category name</label>
+        <input id="categoryName" type="text" required placeholder="Venues">
+        <label for="categorySlug">URL slug</label>
+        <input id="categorySlug" type="text" required placeholder="venues">
+        <label for="categoryDescription">Description</label>
+        <textarea id="categoryDescription" rows="3" placeholder="Short homepage card description"></textarea>
+        <label for="categoryIcon">Short icon or initials</label>
+        <input id="categoryIcon" type="text" maxlength="4" placeholder="VEN">
+        <label class="homepage-check-control"><input id="categoryVisible" type="checkbox" checked><span>Visible on homepage</span></label>
+        <div class="homepage-image-tabs">
+          <button id="imgTabPexels" class="ef-cta btn btn-primary" type="button">Pexels search</button>
+          <button id="imgTabUpload" class="ef-cta btn btn-secondary" type="button">Upload image</button>
         </div>
-        
-        <div style="margin-bottom: 20px;">
-          <label for="categorySlug" style="display: block; font-weight: 600; margin-bottom: 8px;">Slug (URL) *</label>
-          <input type="text" id="categorySlug" required style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px;" placeholder="e.g., venues, catering">
-          <p class="small" style="margin-top: 4px; color: #6b7280;">Used in URLs, lowercase letters and hyphens only</p>
-        </div>
-        
-        <div style="margin-bottom: 20px;">
-          <label for="categoryDescription" style="display: block; font-weight: 600; margin-bottom: 8px;">Description</label>
-          <textarea id="categoryDescription" rows="3" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px;" placeholder="Brief description of this category"></textarea>
-        </div>
-        
-        <div style="margin-bottom: 20px;">
-          <label for="categoryIcon" style="display: block; font-weight: 600; margin-bottom: 8px;">Icon (Emoji)</label>
-          <input type="text" id="categoryIcon" maxlength="2" style="width: 100px; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 24px; text-align: center;" placeholder="🎨">
-        </div>
-        
-        <!-- Pexels Image Search -->
-        <div style="margin-bottom: 20px; padding: 20px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
-          <h4 style="font-size: 1rem; font-weight: 600; margin-bottom: 12px;">🖼️ Category Image</h4>
-
-          <!-- Tab switcher -->
-          <div style="display: flex; gap: 8px; margin-bottom: 16px;">
-            <button type="button" id="imgTabPexels" class="ef-cta btn btn-primary" style="flex: 1; font-size: 0.875rem;">🔍 Pexels Search</button>
-            <button type="button" id="imgTabUpload" class="ef-cta btn btn-secondary" style="flex: 1; font-size: 0.875rem;">📤 Upload Custom</button>
+        <div id="pexelsPanel">
+          <label for="pexelsSearchQuery">Search Pexels</label>
+          <div class="homepage-inline-control">
+            <input id="pexelsSearchQuery" type="text" placeholder="wedding venue">
+            <button id="searchPexelsBtn" class="ef-cta btn btn-secondary" type="button">Search</button>
           </div>
-
-          <!-- Pexels panel -->
-          <div id="pexelsPanel">
-            <div style="margin-bottom: 12px;">
-              <label for="pexelsSearchQuery" style="display: block; font-weight: 600; margin-bottom: 8px;">Search Pexels</label>
-              <div style="display: flex; gap: 8px;">
-                <input type="text" id="pexelsSearchQuery" style="flex: 1; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px;" placeholder="e.g., wedding venue, catering food">
-                <button type="button" id="searchPexelsBtn" class="ef-cta btn btn-secondary">Search</button>
-              </div>
-            </div>
-          
-            <!-- Pexels Results -->
-            <div id="pexelsResults" style="display: none; margin-top: 16px;">
-              <p style="font-weight: 600; margin-bottom: 12px;">Select an image:</p>
-              <div id="pexelsResultsGrid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; max-height: 400px; overflow-y: auto;">
-                <!-- Results will be inserted here -->
-              </div>
-            </div>
-          </div>
-
-          <!-- Custom Upload panel -->
-          <div id="uploadPanel" style="display: none;">
-            <label for="categoryCustomImage" style="display: block; font-weight: 600; margin-bottom: 8px;">Choose an image file</label>
-            <input type="file" id="categoryCustomImage" accept="image/*" style="display: block; width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.875rem; cursor: pointer;">
-            <p class="small" style="margin-top: 4px; color: #6b7280;">PNG, JPG, WebP — max 5 MB. Replaces any Pexels image.</p>
-            <div id="customImagePreviewWrap" style="display: none; margin-top: 12px;">
-              <img id="customImagePreview" alt="Custom image preview" style="max-width: 100%; max-height: 200px; border-radius: 6px; border: 2px solid #10b981;">
-            </div>
-          </div>
-          
-          <!-- Selected Image Preview -->
-          <div id="selectedImagePreview" style="display: none; margin-top: 16px;">
-            <p style="font-weight: 600; margin-bottom: 8px;">Selected Image:</p>
-            <div style="position: relative; display: inline-block;">
-              <img id="selectedImageThumbnail" alt="" style="max-width: 100%; height: auto; border-radius: 6px; border: 2px solid #10b981;" />
-              <button type="button" id="clearSelectedImage" style="position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.7); color: white; border: none; border-radius: 50%; width: 32px; height: 32px; cursor: pointer; font-size: 20px; line-height: 1;">&times;</button>
-            </div>
-            <p class="small" style="margin-top: 8px; color: #6b7280;" id="selectedImageCredit"></p>
-          </div>
-          
-          <input type="hidden" id="categoryHeroImage" />
-          <input type="hidden" id="categoryPexelsAttribution" />
+          <div id="pexelsResults" class="homepage-pexels-results" hidden><div id="pexelsResultsGrid" class="homepage-pexels-grid"></div></div>
         </div>
-        
-        <div style="margin-bottom: 20px;">
-          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-            <input type="checkbox" id="categoryVisible" checked style="width: 18px; height: 18px; cursor: pointer;">
-            <span style="font-weight: 600;">Visible on homepage</span>
-          </label>
-          <p class="small" style="margin-top: 4px; margin-left: 26px; color: #6b7280;">Uncheck to hide this category from the homepage grid</p>
+        <div id="uploadPanel" hidden>
+          <label for="categoryCustomImage">Upload custom image</label>
+          <input id="categoryCustomImage" type="file" accept="image/*">
+          <div id="customImagePreviewWrap" class="homepage-image-preview" hidden><img id="customImagePreview" alt="Custom image preview"></div>
+        </div>
+        <div id="selectedImagePreview" class="homepage-image-preview" hidden>
+          <img id="selectedImageThumbnail" alt="">
+          <p id="selectedImageCredit"></p>
+          <button id="clearSelectedImage" class="ef-cta btn btn-secondary" type="button">Clear image</button>
         </div>
       </form>
     </div>
     <div class="modal-footer">
-      <button type="button" class="ef-cta btn btn-secondary" id="cancelCategoryBtn">Cancel</button>
-      <button type="button" class="ef-cta btn btn-primary" id="saveCategoryBtn">Save category</button>
+      <button id="cancelCategoryBtn" class="ef-cta btn btn-secondary" type="button">Cancel</button>
+      <button id="saveCategoryBtn" class="ef-cta btn btn-primary" type="button">Save category</button>
     </div>
   </div>
 </div>
@@ -612,20 +255,16 @@
 <footer class="footer" role="contentinfo">
   <div class="container flex-between">
     <div><strong>EventFlow</strong><br><span class="small">Event planning made simple.</span></div>
-    <div class="version">Version: <span id="ef-version-label">loading…</span></div>
-    <div class="small">
-      <a href="/contact">Contact</a> · 
-      <a href="/legal">Legal Hub</a> · <button type="button" data-cookie-prefs>Cookie preferences</button>
-    </div>
-    <div class="small" style="width: 100%; margin-top: 8px; text-align: center;">Operated by <a href="https://vexi.co.uk" target="_blank" rel="noopener noreferrer">VEXI</a></div>
+    <div class="version">Version: <span id="ef-version-label">loading...</span></div>
+    <div class="small"><a href="/contact">Contact</a> · <a href="/legal">Legal Hub</a> · <button type="button" data-cookie-prefs>Cookie preferences</button></div>
+    <div class="small homepage-footer-credit">Operated by <a href="https://vexi.co.uk" target="_blank" rel="noopener noreferrer">VEXI</a></div>
   </div>
-  </footer>
+</footer>
 
 <script src="/assets/js/app.js?v=18.3.0"></script>
 <script src="/assets/js/admin-shared.js?v=18.3.0"></script>
 <script src="/assets/js/pages/admin-management-overhaul.js?v=18.3.0" defer></script>
-<script src="/assets/js/pages/admin-homepage-ux.js?v=18.3.1" defer></script>
-<script src="/assets/js/pages/admin-homepage-init.js?v=18.3.1" defer></script>
+<script src="/assets/js/pages/admin-homepage-rebuild.js?v=18.4.0" defer></script>
 <script src="/assets/js/cookie-consent.js?v=2.0.0" defer></script>
 </body>
 </html>
