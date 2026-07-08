@@ -3898,6 +3898,10 @@ async function initDashSupplier() {
           const pausedBadge = paused
             ? '<span class="badge badge-paused" title="This package is paused and not visible publicly">Paused</span>'
             : '';
+          // Package price chip — only rendered when a price exists, so no empty pill appears
+          const priceBadgeHtml = priceDisplay
+            ? `<span class="badge pkg-price-badge">${escapeHtml(priceDisplay)}</span>`
+            : '';
           const viewBtn =
             approved && slug
               ? `<a href="/package?slug=${slug}" target="_blank" class="card-action-btn view-btn">View</a>`
@@ -3908,7 +3912,7 @@ async function initDashSupplier() {
       <img src="${image}" alt="${title} image" data-fallback-src="/assets/images/package-placeholder.svg">
       <div class="package-card-content">
         <h3>${title}</h3>
-        <div class="small"><span class="badge">${priceDisplay}</span> ${featured ? '<span class="badge">Featured</span>' : ''} ${approvalBadge} ${pausedBadge}</div>
+        <div class="small">${priceBadgeHtml} ${featured ? '<span class="badge">Featured</span>' : ''} ${approvalBadge} ${pausedBadge}</div>
         <p class="small">${description}</p>
         <div class="card-actions">
           <button type="button" class="ef-cta card-action-btn edit-btn" data-action="edit-package" data-package-id="${packageId}">Edit</button>
