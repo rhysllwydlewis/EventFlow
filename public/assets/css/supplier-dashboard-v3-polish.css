@@ -1,0 +1,297 @@
+/* ============================================================
+   SUPPLIER DASHBOARD — V3 POLISH LAYER
+   Loaded last on dashboard-supplier.html.
+   Scope: body.supplier-dashboard-page (specificity, not !important).
+   Brand: teal #0B8073 → #13B6A2. No dark mode.
+   Multicoloured sd-card headers are intentional — untouched here.
+   ============================================================ */
+
+/* ------------------------------------------------------------
+   1. PACKAGE CARDS — image treatment, price, actions
+   ------------------------------------------------------------ */
+
+body.supplier-dashboard-page .package-card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* clip the image to the card radius */
+  padding: 0;
+}
+
+body.supplier-dashboard-page .package-card > img {
+  width: 100%;
+  aspect-ratio: 8 / 5;
+  height: auto;
+  object-fit: cover;
+  display: block;
+  border-bottom: 1px solid rgba(11, 128, 115, 0.1);
+  background: linear-gradient(135deg, #0b8073 0%, #13b6a2 100%);
+}
+
+body.supplier-dashboard-page .package-card .package-card-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  padding: 14px 16px 16px;
+  gap: 6px;
+}
+
+body.supplier-dashboard-page .package-card .package-card-content h3 {
+  margin: 0;
+  font-size: 1.02rem;
+  line-height: 1.35;
+}
+
+/* Prominent price chip (added via pkg-price-badge class in app.js) */
+body.supplier-dashboard-page .package-card .badge.pkg-price-badge {
+  background: linear-gradient(135deg, #0b8073 0%, #13b6a2 100%);
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 0.85rem;
+  padding: 4px 10px;
+  border-radius: 999px;
+  letter-spacing: 0.01em;
+}
+
+/* Description gets room; actions pin to the bottom for equal-height cards */
+body.supplier-dashboard-page .package-card .package-card-content > p.small {
+  flex: 1 1 auto;
+  margin: 2px 0 0;
+  color: var(--ef-text-muted, #6b7280);
+}
+
+/* Neutral "View" + amber pause/unpause variants to match Edit/Delete */
+body.supplier-dashboard-page .card-action-btn.view-btn {
+  background: rgba(59, 130, 246, 0.08);
+  border-color: rgba(59, 130, 246, 0.3);
+  color: #2563eb;
+}
+
+body.supplier-dashboard-page .card-action-btn.view-btn:hover {
+  background: rgba(59, 130, 246, 0.16);
+  border-color: rgba(59, 130, 246, 0.5);
+  transform: translateY(-1px);
+}
+
+body.supplier-dashboard-page .card-action-btn.pause-btn,
+body.supplier-dashboard-page .card-action-btn.unpause-btn {
+  background: rgba(217, 119, 6, 0.08);
+  border-color: rgba(217, 119, 6, 0.3);
+  color: #b45309;
+  flex: 0 0 auto;
+  min-width: 40px;
+}
+
+body.supplier-dashboard-page .card-action-btn.pause-btn:hover,
+body.supplier-dashboard-page .card-action-btn.unpause-btn:hover {
+  background: rgba(217, 119, 6, 0.16);
+  border-color: rgba(217, 119, 6, 0.5);
+  transform: translateY(-1px);
+}
+
+/* Paused package: quiet the card so state is obvious at a glance */
+body.supplier-dashboard-page .package-card.package-card--paused > img {
+  filter: grayscale(0.7);
+  opacity: 0.75;
+}
+
+/* ------------------------------------------------------------
+   2. COLLAPSED FORM SECTIONS — remove padding leak
+   The later `.sd-card > .form-section-collapsible` padding rule
+   applies even when collapsed (max-height: 0 hides content but
+   the vertical padding still renders as a visible dead strip).
+   ------------------------------------------------------------ */
+
+body.supplier-dashboard-page .sd-card > .form-section-collapsible:not(.expanded),
+#profile-form-section:not(.expanded),
+#package-form-section:not(.expanded) {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+/* ------------------------------------------------------------
+   3. MESSAGES TOOLBAR — stop placeholder truncation
+   ------------------------------------------------------------ */
+
+body.supplier-dashboard-page .sd-messages-toolbar__search {
+  min-width: 200px;
+  flex: 1 1 200px;
+}
+
+body.supplier-dashboard-page .sd-messages-toolbar__search:focus,
+body.supplier-dashboard-page .sd-messages-toolbar__select:focus {
+  border-color: rgba(11, 128, 115, 0.55);
+  box-shadow: 0 0 0 3px rgba(19, 182, 162, 0.18);
+  outline: none;
+}
+
+/* Loading skeletons in the threads area: keep the shimmer compact and
+   intentional rather than a tall grey slab while the widget mounts */
+body.supplier-dashboard-page #threads-sup > .skeleton {
+  border-radius: 10px;
+  max-height: 18px;
+  margin-bottom: 10px;
+}
+
+/* ------------------------------------------------------------
+   4. EMPTY STATES — tinted icon disc for a finished look
+   ------------------------------------------------------------ */
+
+body.supplier-dashboard-page .sd-empty-state__icon {
+  width: 58px;
+  height: 58px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(11, 128, 115, 0.1) 0%, rgba(19, 182, 162, 0.16) 100%);
+  font-size: 1.65rem;
+  opacity: 1;
+  margin-bottom: 0.4rem;
+}
+
+/* ------------------------------------------------------------
+   5. FULLCALENDAR THEMING — scoped to the events calendar card
+   FullCalendar 6 injects default styles; these override with
+   higher specificity via the section id. Brand teal buttons,
+   soft grid, tinted "today".
+   ------------------------------------------------------------ */
+
+#availability-calendar .fc .fc-button {
+  background: #ffffff;
+  border: 1px solid rgba(11, 128, 115, 0.35);
+  color: #0b8073;
+  font-weight: 600;
+  font-size: 0.82rem;
+  border-radius: 8px;
+  padding: 6px 12px;
+  box-shadow: none;
+  text-transform: capitalize;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+#availability-calendar .fc .fc-button:hover {
+  background: rgba(11, 128, 115, 0.08);
+  border-color: rgba(11, 128, 115, 0.55);
+  color: #0a6b5f;
+}
+
+#availability-calendar .fc .fc-button:focus,
+#availability-calendar .fc .fc-button:focus-visible {
+  box-shadow: 0 0 0 3px rgba(19, 182, 162, 0.25);
+  outline: none;
+}
+
+#availability-calendar .fc .fc-button-primary:not(:disabled).fc-button-active,
+#availability-calendar .fc .fc-button-primary:not(:disabled):active {
+  background: linear-gradient(135deg, #0b8073 0%, #13b6a2 100%);
+  border-color: #0b8073;
+  color: #ffffff;
+}
+
+#availability-calendar .fc .fc-button:disabled {
+  background: #f3f4f6;
+  border-color: rgba(0, 0, 0, 0.08);
+  color: #9ca3af;
+  opacity: 1;
+}
+
+#availability-calendar .fc .fc-toolbar-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--ef-text, #0b1220);
+}
+
+#availability-calendar .fc-theme-standard td,
+#availability-calendar .fc-theme-standard th,
+#availability-calendar .fc-theme-standard .fc-scrollgrid {
+  border-color: rgba(11, 128, 115, 0.12);
+}
+
+#availability-calendar .fc .fc-col-header-cell-cushion {
+  font-size: 0.74rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #6b7280;
+  padding: 8px 4px;
+  text-decoration: none;
+}
+
+#availability-calendar .fc .fc-daygrid-day-number {
+  font-size: 0.82rem;
+  color: var(--ef-text, #0b1220);
+  text-decoration: none;
+  padding: 6px 8px;
+}
+
+#availability-calendar .fc .fc-day-today {
+  background: rgba(19, 182, 162, 0.09);
+}
+
+#availability-calendar .fc .fc-day-today .fc-daygrid-day-number {
+  background: linear-gradient(135deg, #0b8073 0%, #13b6a2 100%);
+  color: #ffffff;
+  border-radius: 999px;
+  min-width: 26px;
+  text-align: center;
+  margin: 3px;
+  padding: 4px 7px;
+  font-weight: 700;
+}
+
+#availability-calendar .fc .fc-daygrid-event {
+  border-radius: 6px;
+  font-size: 0.75rem;
+  padding: 1px 5px;
+}
+
+#availability-calendar .fc .fc-daygrid-day:hover {
+  background: rgba(11, 128, 115, 0.04);
+}
+
+/* ------------------------------------------------------------
+   6. MICRO POLISH — hero action chips, dividers, motion guard
+   ------------------------------------------------------------ */
+
+body.supplier-dashboard-page .dashboard-action-chip {
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+body.supplier-dashboard-page .dashboard-action-chip:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(11, 128, 115, 0.16);
+}
+
+body.supplier-dashboard-page .sd-section-divider__label {
+  letter-spacing: 0.08em;
+}
+
+/* Respect users who prefer reduced motion: neutralise the lifts
+   and transitions introduced by this layer */
+@media (prefers-reduced-motion: reduce) {
+  body.supplier-dashboard-page .dashboard-action-chip,
+  body.supplier-dashboard-page .card-action-btn,
+  #availability-calendar .fc .fc-button {
+    transition: none;
+  }
+
+  body.supplier-dashboard-page .dashboard-action-chip:hover,
+  body.supplier-dashboard-page .card-action-btn:hover {
+    transform: none;
+  }
+}
+
+/* ------------------------------------------------------------
+   7. MOBILE — package cards and toolbar behave on small screens
+   ------------------------------------------------------------ */
+
+@media (max-width: 768px) {
+  body.supplier-dashboard-page .package-card > img {
+    aspect-ratio: 16 / 9;
+  }
+
+  body.supplier-dashboard-page .sd-messages-toolbar__search {
+    min-width: 0;
+    flex: 1 1 100%;
+  }
+}
