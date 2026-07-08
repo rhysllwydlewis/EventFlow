@@ -250,7 +250,46 @@ body.supplier-dashboard-page .sd-empty-state__icon {
 }
 
 /* ------------------------------------------------------------
-   6. MICRO POLISH — hero action chips, dividers, motion guard
+   6. CHART PERIOD BUTTONS — class-mismatch bug fix
+   supplier-analytics-chart.js emits `.chart-period-btn`, but the
+   design was written against `.sd-chart-period-btn` (orphaned in
+   supplier-dashboard-improvements.css), so the 7/30/90-day range
+   buttons rendered as unstyled browser defaults. Styled here to
+   the intended design, upgraded to brand pills.
+   ------------------------------------------------------------ */
+
+body.supplier-dashboard-page .chart-period-btn {
+  padding: 0.45rem 1rem;
+  border: 1px solid rgba(11, 128, 115, 0.28);
+  background: #ffffff;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 0.84rem;
+  font-weight: 600;
+  font-family: inherit;
+  color: #374151;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+body.supplier-dashboard-page .chart-period-btn:hover {
+  border-color: #0b8073;
+  color: #0b8073;
+  background: rgba(11, 128, 115, 0.06);
+}
+
+body.supplier-dashboard-page .chart-period-btn.active {
+  border-color: #0b8073;
+  background: linear-gradient(135deg, #0b8073 0%, #13b6a2 100%);
+  color: #ffffff;
+}
+
+body.supplier-dashboard-page .chart-period-btn:focus-visible {
+  outline: 2px solid #13b6a2;
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------
+   7. MICRO POLISH — hero action chips, dividers, motion guard
    ------------------------------------------------------------ */
 
 body.supplier-dashboard-page .dashboard-action-chip {
@@ -282,7 +321,7 @@ body.supplier-dashboard-page .sd-section-divider__label {
 }
 
 /* ------------------------------------------------------------
-   7. MOBILE — package cards and toolbar behave on small screens
+   8. MOBILE — package cards and toolbar behave on small screens
    ------------------------------------------------------------ */
 
 @media (max-width: 768px) {
