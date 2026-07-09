@@ -891,6 +891,7 @@ button:disabled,
 
 .homepage-admin-hero h1 {
   font-size: clamp(1.5rem, 2.4vw, 1.9rem);
+  line-height: 1.2;
 }
 
 .homepage-admin-hero > div > p:last-child {
