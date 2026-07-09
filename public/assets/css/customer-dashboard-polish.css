@@ -176,3 +176,60 @@
   .customer-dashboard-page .customer-welcome-action-card:hover,
   .customer-dashboard-page .cd-quick-action:hover{transform:none}
 }
+
+/* ═══ 15. FULLCALENDAR BRAND THEMING ═════════════════════════════════
+   The customer dashboard loads FullCalendar 6 from CDN but, unlike the
+   standalone /calendar page (calendar.css) and the supplier dashboard
+   (supplier-dashboard-v3-polish.css), had no theming — so the events
+   calendar rendered stock FullCalendar chrome. Mirrors the supplier
+   treatment for cross-dashboard visual parity. Scoped to the customer
+   calendar card only. */
+
+.customer-dashboard-page .customer-calendar-card .fc .fc-button{
+  background:#fff;border:1px solid rgba(11,128,115,.35);color:#0b8073;
+  font-weight:600;font-size:.82rem;border-radius:8px;padding:6px 12px;
+  box-shadow:none;text-transform:capitalize;
+  transition:background .15s ease,color .15s ease,border-color .15s ease}
+.customer-dashboard-page .customer-calendar-card .fc .fc-button:hover{
+  background:rgba(11,128,115,.08);border-color:rgba(11,128,115,.55);color:#0a6b5f}
+.customer-dashboard-page .customer-calendar-card .fc .fc-button:focus,
+.customer-dashboard-page .customer-calendar-card .fc .fc-button:focus-visible{
+  box-shadow:0 0 0 3px rgba(19,182,162,.25);outline:none}
+.customer-dashboard-page .customer-calendar-card .fc .fc-button-primary:not(:disabled).fc-button-active,
+.customer-dashboard-page .customer-calendar-card .fc .fc-button-primary:not(:disabled):active{
+  background:linear-gradient(135deg,#0b8073 0%,#13b6a2 100%);border-color:#0b8073;color:#fff}
+.customer-dashboard-page .customer-calendar-card .fc .fc-button:disabled{
+  background:#f3f4f6;border-color:rgba(0,0,0,.08);color:#9ca3af;opacity:1}
+.customer-dashboard-page .customer-calendar-card .fc .fc-toolbar-title{
+  font-size:1.05rem;font-weight:700}
+.customer-dashboard-page .customer-calendar-card .fc-theme-standard td,
+.customer-dashboard-page .customer-calendar-card .fc-theme-standard th,
+.customer-dashboard-page .customer-calendar-card .fc-theme-standard .fc-scrollgrid{
+  border-color:rgba(11,128,115,.12)}
+.customer-dashboard-page .customer-calendar-card .fc .fc-col-header-cell-cushion{
+  font-size:.74rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;
+  color:#6b7280;padding:8px 4px;text-decoration:none}
+.customer-dashboard-page .customer-calendar-card .fc .fc-daygrid-day-number{
+  font-size:.82rem;text-decoration:none;padding:6px 8px}
+.customer-dashboard-page .customer-calendar-card .fc .fc-day-today{
+  background:rgba(19,182,162,.09)}
+.customer-dashboard-page .customer-calendar-card .fc .fc-day-today .fc-daygrid-day-number{
+  background:linear-gradient(135deg,#0b8073 0%,#13b6a2 100%);color:#fff;border-radius:999px;
+  min-width:26px;text-align:center;margin:3px;padding:4px 7px;font-weight:700}
+.customer-dashboard-page .customer-calendar-card .fc .fc-daygrid-event{
+  border-radius:6px;font-size:.75rem;padding:1px 5px}
+.customer-dashboard-page .customer-calendar-card .fc .fc-daygrid-day:hover{
+  background:rgba(11,128,115,.04)}
+
+/* ═══ 16. CONVERSATIONS TOOLBAR FOCUS PARITY ═════════════════════════
+   Branded focus rings on the widget search/filter, matching the
+   supplier dashboard messages toolbar. */
+
+.customer-dashboard-page #widget-search-input:focus,
+.customer-dashboard-page #widget-filter-select:focus{
+  border-color:rgba(11,128,115,.55);
+  box-shadow:0 0 0 3px rgba(19,182,162,.18);outline:none}
+
+@media(prefers-reduced-motion:reduce){
+  .customer-dashboard-page .customer-calendar-card .fc .fc-button{transition:none}
+}
