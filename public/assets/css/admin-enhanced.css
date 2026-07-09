@@ -4552,3 +4552,99 @@ tbody tr.selected td {
     box-sizing: border-box;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   COMPACT DASHBOARD PASS (July 2026)
+   Denser admin.html dashboard — same content and functionality,
+   tighter card internals and section rhythm. Also retires two
+   Bootstrap-indigo leftovers (purple hover border and purple stat
+   values) in favour of brand teal.
+   ══════════════════════════════════════════════════════════════ */
+
+.stat-card {
+  padding: 1.1rem 1.25rem;
+}
+
+.stat-icon {
+  width: 48px;
+  height: 48px;
+  font-size: 24px;
+}
+
+.section-spacer {
+  margin-top: 1.75rem;
+}
+
+/* moderation queue */
+.mod-card {
+  padding: 1.1rem 1.25rem;
+}
+
+.mod-header {
+  margin-bottom: 0.6rem;
+}
+
+.mod-icon {
+  font-size: 26px;
+}
+
+.mod-description {
+  margin-bottom: 0.8rem;
+}
+
+/* management cards — the bulkiest block on the page */
+.management-card {
+  padding: 20px 22px;
+}
+
+.management-header {
+  margin-bottom: 10px;
+}
+
+.management-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 13px;
+  font-size: 26px;
+  box-shadow: 0 5px 14px rgba(11, 128, 115, 0.24);
+}
+
+.management-badge {
+  padding: 6px 13px;
+  font-size: 14px;
+}
+
+.management-title {
+  font-size: 19px;
+  margin: 10px 0 5px 0;
+}
+
+.management-description {
+  margin-bottom: 14px;
+  line-height: 1.5;
+}
+
+.management-stats {
+  gap: 10px;
+  margin-bottom: 14px;
+  padding: 12px;
+}
+
+.stat-item .stat-value {
+  font-size: 22px;
+  color: #0b8073; /* was Bootstrap-indigo violet #8b5cf6 */
+}
+
+.btn-manage {
+  padding: 11px 20px;
+  font-size: 15px;
+  border-radius: 10px;
+}
+
+/* single, on-brand hover (a duplicate rule above turned the border
+   violet #8b5cf6 — leftover from the indigo era) */
+.management-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(11, 128, 115, 0.12);
+  border-color: rgba(11, 128, 115, 0.3);
+}
