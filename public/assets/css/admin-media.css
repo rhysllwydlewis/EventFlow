@@ -292,3 +292,48 @@
 .pexels-actions {
   flex-wrap: wrap;
 }
+
+/* ══════════════════════════════════════════════════════════════
+   TOOLBAR TIDY (July 2026)
+   The search row mixed three control heights (input 53px,
+   select 45px, buttons 37px). Normalised to a single 44px rhythm
+   and merged the visual weight of the two control rows.
+   ══════════════════════════════════════════════════════════════ */
+
+.media-control-grid input[type='text'],
+.media-control-grid input[type='search'],
+.media-control-grid select,
+.media-collection-row input {
+  min-height: 44px;
+  height: 44px;
+  padding: 0 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  box-sizing: border-box;
+  font-size: 0.95rem;
+}
+
+.media-control-grid .ef-cta,
+.media-collection-row .ef-cta {
+  min-height: 44px;
+  height: 44px;
+  padding: 0 1rem;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
+.media-control-grid input:focus,
+.media-control-grid select:focus,
+.media-collection-row input:focus {
+  border-color: rgba(11, 128, 115, 0.55);
+  box-shadow: 0 0 0 3px rgba(19, 182, 162, 0.18);
+  outline: none;
+}
+
+.media-collection-row {
+  margin: 0.75rem 0 0;
+}

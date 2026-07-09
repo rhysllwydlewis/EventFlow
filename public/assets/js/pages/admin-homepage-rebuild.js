@@ -617,6 +617,12 @@
   async function loadManager() {
     const data = await fetchJson('/api/v1/admin/homepage/manager');
     manager = data.manager;
+    if (!manager || typeof manager !== 'object') {
+      manager = null;
+      throw new Error(
+        'The homepage manager returned no data. Please refresh the page or check the homepage API.'
+      );
+    }
     selectedVersion = VERSION_ORDER.includes(selectedVersion)
       ? selectedVersion
       : manager.activeVersion || 'v1';

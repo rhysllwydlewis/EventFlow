@@ -1,5 +1,7 @@
 function escapeHtml(s) {
-  if (s === null || s === undefined) return '';
+  if (s === null || s === undefined) {
+    return '';
+  }
   const d = document.createElement('div');
   d.textContent = String(s);
   return d.innerHTML;
@@ -16,9 +18,15 @@ async function getDashboardUrl() {
     if (r.ok) {
       const d = await r.json();
       const role = d.user && d.user.role;
-      if (role === 'customer') return '/dashboard/customer';
-      if (role === 'supplier') return '/dashboard/supplier';
-      if (role === 'admin') return '/admin';
+      if (role === 'customer') {
+        return '/dashboard/customer';
+      }
+      if (role === 'supplier') {
+        return '/dashboard/supplier';
+      }
+      if (role === 'admin') {
+        return '/admin';
+      }
     }
   } catch (_) {
     /* ignore */
@@ -29,7 +37,9 @@ async function getDashboardUrl() {
 // Display success message
 async function showSuccess() {
   const content = document.getElementById('content');
-  if (!content) return;
+  if (!content) {
+    return;
+  }
   content.className = '';
 
   const dashboardUrl = await getDashboardUrl();
@@ -45,7 +55,7 @@ async function showSuccess() {
         </div>
         <div class="info-row">
           <span class="label">Status:</span>
-          <span class="value" class="status-completed">Completed</span>
+          <span class="value status-completed">Completed</span>
         </div>
         <div class="info-row">
           <span class="label">Date:</span>
@@ -61,7 +71,9 @@ async function showSuccess() {
   const redirectTimer = setInterval(() => {
     autoRedirectCountdown--;
     const countdownEl = document.getElementById('redirect-countdown');
-    if (countdownEl) countdownEl.textContent = autoRedirectCountdown;
+    if (countdownEl) {
+      countdownEl.textContent = autoRedirectCountdown;
+    }
     if (autoRedirectCountdown <= 0) {
       clearInterval(redirectTimer);
       window.location.href = dashboardUrl;
@@ -84,7 +96,9 @@ async function showSuccess() {
 // Display error message
 function showError(message) {
   const content = document.getElementById('content');
-  if (!content) return;
+  if (!content) {
+    return;
+  }
   content.className = '';
   content.innerHTML =
     `<div class="success-icon success-icon--error">✗</div>` +

@@ -635,3 +635,74 @@ tbody tr:hover .checkbox-cell .user-checkbox {
 
 /* Utility — hides element replacing inline display:none */
 .is-hidden { display: none !important; }
+
+/* ===========================================
+   ORPHANED-CLASS FIXES (audit, July 2026)
+   These classes are emitted by admin page JS but were never
+   defined in any stylesheet or inline <style> block, so the
+   elements rendered with browser defaults.
+   =========================================== */
+
+/* admin dashboard (admin-init.js) — health panel error rows
+   previously looked identical to healthy rows */
+.dash-health-row--error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin: 4px 0;
+  gap: 10px;
+}
+.dash-health-row--error .dash-health-row__label { color: #b91c1c; font-weight: 600; }
+
+/* admin-users / admin-external-contacts — empty states and
+   inline errors rendered as bare text */
+.admin-empty-state {
+  text-align: center;
+  color: #6b7280;
+  padding: 2.25rem 1rem;
+}
+.admin-inline-error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  color: #b91c1c;
+  font-size: 0.875rem;
+  padding: 0.6rem 0.85rem;
+  margin: 0.5rem 0;
+}
+
+/* admin-reviews — error copy rendered black; stars rendered
+   at default text colour and size */
+.text-danger { color: #b91c1c; }
+.rating-stars { color: #f59e0b; font-size: 1.05rem; letter-spacing: 1px; }
+
+/* admin-packages: <table class="table"> is covered by the element-level
+   table/thead/th rules in admin-enhanced.css — no class rules needed
+   (class rules here would override the established table design on the
+   users and suppliers tables, which share the class). */
+
+/* admin-user-detail — intended two-column info grid rendered
+   as a stacked block list */
+.user-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 10px 18px;
+  margin: 0.5rem 0 1rem;
+}
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  background: #f9fafb;
+  border-radius: 8px;
+}
+
+/* admin-public-calendar — management panel header and empty state were
+   unstyled (the table itself is covered by admin-enhanced.css element rules) */
+.calendar-admin-panel__header { margin-bottom: 0.75rem; }
+.calendar-admin-panel__title { font-size: 1.05rem; font-weight: 700; margin: 0 0 2px; }
+.calendar-admin-panel__subtitle { font-size: 0.85rem; color: #6b7280; margin: 0; }
+.calendar-admin-empty { text-align: center; color: #6b7280; padding: 2rem 1rem; }
+.calendar-admin-actions-inline { display: flex; gap: 6px; flex-wrap: wrap; }

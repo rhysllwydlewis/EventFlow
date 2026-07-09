@@ -654,8 +654,8 @@
     listingsSection?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
 
-  // Sign out
-  document.getElementById('signoutBtn').addEventListener('click', async () => {
+  // Sign out (button not present on all layouts — never let this block init)
+  document.getElementById('signoutBtn')?.addEventListener('click', async () => {
     await fetch('/api/auth/signout', { method: 'POST', credentials: 'include' });
     window.location.href = '/auth';
   });

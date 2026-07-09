@@ -12,7 +12,7 @@ import { initCountUp } from './count-up-animation.js';
 
 function _enquiryTrendIconHeader() {
   return `<div class="sd-card-header">
-    <div class="sd-card-header__title-row" class="sd-chart-metric-header">
+    <div class="sd-card-header__title-row sd-chart-metric-header">
       <div class="sd-card-header__icon sd-card-header__icon--teal" aria-hidden="true">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
           <rect x="2" y="3" width="20" height="15.5" rx="1.5" fill="currentColor" fill-opacity="0.06"/>
@@ -31,7 +31,7 @@ function _enquiryTrendIconHeader() {
 }
 function _funnelIconHeader() {
   return `<div class="sd-card-header">
-    <div class="sd-card-header__title-row" class="sd-chart-metric-header">
+    <div class="sd-card-header__title-row sd-chart-metric-header">
       <div class="sd-card-header__icon sd-card-header__icon--indigo" aria-hidden="true">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
           <path d="M2 5h20"/>
@@ -53,7 +53,7 @@ function _funnelIconHeader() {
 
 function _stopwatchIconHeader() {
   return `<div class="sd-card-header">
-    <div class="sd-card-header__title-row" class="sd-chart-metric-header">
+    <div class="sd-card-header__title-row sd-chart-metric-header">
       <div class="sd-card-header__icon sd-card-header__icon--blue" aria-hidden="true">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="14" r="7.5" fill="currentColor" fill-opacity="0.09"/>
