@@ -123,6 +123,36 @@ const apiLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+const PHOTO_ASSET_LIMIT_WINDOW_MS = 15 * 60 * 1000;
+const parsedPhotoAssetLimit = Number.parseInt(process.env.PHOTO_ASSET_RATE_LIMIT_MAX || '3000', 10);
+const PHOTO_ASSET_RATE_LIMIT_MAX = Number.isFinite(parsedPhotoAssetLimit)
+  ? parsedPhotoAssetLimit
+  : 3000;
+
+/**
+ * Rate limit for public photo asset delivery.
+ *
+ * Browser image loads must not share the strict general API limiter: one homepage
+ * refresh can legitimately request many package, marketplace, and collage images.
+ * This limiter keeps abuse protection while preventing normal browsing from
+ * exhausting the JSON API request bucket and causing intermittent placeholders.
+ */
+const photoAssetLimiter = rateLimit({
+  windowMs: PHOTO_ASSET_LIMIT_WINDOW_MS,
+  max: PHOTO_ASSET_RATE_LIMIT_MAX,
+  message: {
+    error: 'Too many photo asset requests, please try again shortly.',
+    errorType: 'PhotoAssetRateLimit',
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res, _next, options) => {
+    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('Retry-After', String(Math.ceil(PHOTO_ASSET_LIMIT_WINDOW_MS / 1000)));
+    return res.status(options.statusCode).json(options.message);
+  },
+});
+
 /**
  * Rate limiter for write operations
  * Applies to POST/PUT/PATCH/DELETE operations
@@ -173,6 +203,7 @@ module.exports = {
   searchLimiter,
   notificationLimiter,
   apiLimiter,
+  photoAssetLimiter,
   writeLimiter,
   resendEmailLimiter,
   registrationLimiter,
