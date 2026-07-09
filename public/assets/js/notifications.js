@@ -288,16 +288,20 @@
   });
 
   function showWebSocketError(message) {
-    // Show a non-intrusive error message
+    // Real-time updates are a progressive enhancement — notifications still
+    // work without the socket — so surface this as a quiet, self-dismissing
+    // notice rather than a permanent red error banner.
     const errorDiv = document.getElementById('ws-error-message') || document.createElement('div');
     errorDiv.id = 'ws-error-message';
     errorDiv.className = 'ws-error-message';
+    errorDiv.setAttribute('role', 'status');
     errorDiv.textContent = message;
+    errorDiv.title = 'Dismiss';
     errorDiv.style.cssText = `
       position: fixed;
       bottom: 20px;
       right: 20px;
-      background: rgba(239, 68, 68, 0.95);
+      background: rgba(180, 83, 9, 0.95);
       color: white;
       padding: 12px 16px;
       border-radius: 8px;
@@ -305,7 +309,11 @@
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
       z-index: 10000;
       max-width: 300px;
+      cursor: pointer;
     `;
+    errorDiv.onclick = hideWebSocketError;
+    window.clearTimeout(showWebSocketError.timer);
+    showWebSocketError.timer = window.setTimeout(hideWebSocketError, 8000);
 
     if (!document.getElementById('ws-error-message')) {
       document.body.appendChild(errorDiv);
