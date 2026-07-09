@@ -119,6 +119,12 @@
 
     const data = await response.json();
     manager = data.manager;
+    if (!manager || typeof manager !== 'object' || !manager.versions) {
+      manager = null;
+      throw new Error(
+        'The homepage manager returned no data. Please refresh the page or check the homepage API.'
+      );
+    }
     if (!manager.versions[selectedVersion]) {
       selectedVersion = manager.activeVersion || DEFAULT_VERSION;
     }

@@ -677,31 +677,10 @@ tbody tr:hover .checkbox-cell .user-checkbox {
 .text-danger { color: #b91c1c; }
 .rating-stars { color: #f59e0b; font-size: 1.05rem; letter-spacing: 1px; }
 
-/* admin-packages (and any admin list view emitting <table class="table">) —
-   the class had no definition anywhere, so tables rendered on
-   raw browser defaults */
-.table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.9rem;
-}
-.table th {
-  text-align: left;
-  font-size: 0.74rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: #6b7280;
-  padding: 10px 12px;
-  border-bottom: 2px solid #e5e7eb;
-  background: #f9fafb;
-}
-.table td {
-  padding: 10px 12px;
-  border-bottom: 1px solid #f3f4f6;
-  vertical-align: middle;
-}
-.table tbody tr:hover { background: #f9fafb; }
+/* admin-packages: <table class="table"> is covered by the element-level
+   table/thead/th rules in admin-enhanced.css — no class rules needed
+   (class rules here would override the established table design on the
+   users and suppliers tables, which share the class). */
 
 /* admin-user-detail — intended two-column info grid rendered
    as a stacked block list */
@@ -720,26 +699,10 @@ tbody tr:hover .checkbox-cell .user-checkbox {
   border-radius: 8px;
 }
 
-/* admin-public-calendar — management panel header, table and
-   empty state were unstyled */
+/* admin-public-calendar — management panel header and empty state were
+   unstyled (the table itself is covered by admin-enhanced.css element rules) */
 .calendar-admin-panel__header { margin-bottom: 0.75rem; }
 .calendar-admin-panel__title { font-size: 1.05rem; font-weight: 700; margin: 0 0 2px; }
 .calendar-admin-panel__subtitle { font-size: 0.85rem; color: #6b7280; margin: 0; }
-.calendar-admin-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.9rem;
-}
-.calendar-admin-table th {
-  text-align: left;
-  font-size: 0.74rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: #6b7280;
-  padding: 9px 10px;
-  border-bottom: 2px solid #e5e7eb;
-}
-.calendar-admin-table td { padding: 9px 10px; border-bottom: 1px solid #f3f4f6; }
 .calendar-admin-empty { text-align: center; color: #6b7280; padding: 2rem 1rem; }
 .calendar-admin-actions-inline { display: flex; gap: 6px; flex-wrap: wrap; }
