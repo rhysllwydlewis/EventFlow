@@ -8,10 +8,14 @@
   const mobileLoginLinks = document.querySelectorAll('.hv2-mobile-login');
   const dashboardLinks = document.querySelectorAll('[data-hv2-dashboard-link]');
   const logoutLinks = document.querySelectorAll('[data-hv2-logout]');
-  const navLinks = document.querySelectorAll('.hv2-nav a, .hv2-mobile-nav a, .hv2-bottom-link');
+  const navLinks = document.querySelectorAll(
+    '.hv2-nav a, .hv2-mobile-nav a, .hv2-bottom-link'
+  );
 
   function normalisePath(value) {
-    return (value || '/').replace(/index\.html?$/i, '').replace(/\/$/, '') || '/';
+    return (
+      (value || '/').replace(/index\.html?$/i, '').replace(/\/$/, '') || '/'
+    );
   }
 
   function setCurrentPage() {
@@ -23,8 +27,13 @@
         return;
       }
 
-      const linkPath = normalisePath(new URL(link.href, window.location.origin).pathname);
-      if (linkPath === currentPath || (linkPath !== '/' && currentPath.startsWith(`${linkPath}/`))) {
+      const linkPath = normalisePath(
+        new URL(link.href, window.location.origin).pathname
+      );
+      if (
+        linkPath === currentPath ||
+        (linkPath !== '/' && currentPath.startsWith(`${linkPath}/`))
+      ) {
         link.setAttribute('aria-current', 'page');
       } else {
         link.removeAttribute('aria-current');
@@ -58,7 +67,9 @@
     }
 
     try {
-      const response = await fetch('/api/v1/csrf-token', { credentials: 'include' });
+      const response = await fetch('/api/v1/csrf-token', {
+        credentials: 'include',
+      });
       if (!response.ok) {
         return '';
       }
@@ -129,7 +140,10 @@
   function initialiseAuth() {
     applyAuthState(null);
 
-    if (!window.AuthStateManager || typeof window.AuthStateManager.init !== 'function') {
+    if (
+      !window.AuthStateManager ||
+      typeof window.AuthStateManager.init !== 'function'
+    ) {
       return;
     }
 
