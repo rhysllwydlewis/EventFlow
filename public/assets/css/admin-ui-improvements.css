@@ -706,3 +706,16 @@ tbody tr:hover .checkbox-cell .user-checkbox {
 .calendar-admin-panel__subtitle { font-size: 0.85rem; color: #6b7280; margin: 0; }
 .calendar-admin-empty { text-align: center; color: #6b7280; padding: 2rem 1rem; }
 .calendar-admin-actions-inline { display: flex; gap: 6px; flex-wrap: wrap; }
+
+/* admin-messenger-view — conversation/message IDs render via
+   .ef-msg-code (class enabled by the duplicate-attribute fix but
+   never defined anywhere) */
+.ef-msg-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.82em;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 1px 6px;
+  word-break: break-all;
+}
