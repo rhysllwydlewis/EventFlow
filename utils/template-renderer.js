@@ -27,6 +27,12 @@ const HOMEPAGE_V3_PREVIEW_PATHS = new Set([
   '/home-v3-preview',
   '/home-v3-preview.html',
 ]);
+const HOMEPAGE_V2_NAVBAR_PARITY_STYLES = [
+  '    <link rel="preload" href="/assets/css/home-v2-navbar-parity.css?v=1" as="style" />',
+  '    <link rel="stylesheet" href="/assets/css/home-v2-navbar-parity.css?v=1" />',
+].join('\n');
+const HOMEPAGE_V2_NAVBAR_PARITY_SCRIPT =
+  '    <script src="/assets/js/pages/home-v2-navbar-parity.js?v=1" defer></script>';
 const HOMEPAGE_V3_HERO_STYLES = [
   '    <link rel="preconnect" href="https://videos.pexels.com" crossorigin />',
   '    <link rel="preload" href="/assets/css/home-v2.css?v=11" as="style" />',
@@ -165,7 +171,7 @@ function replacePlaceholders(content) {
   let result = content;
 
   for (const [key, value] of Object.entries(placeholders)) {
-    const pattern = new RegExp(`\\{\\{${key}\\}}`, 'g');
+    const pattern = new RegExp(`\\{\\{${key}\\}`, 'g');
     result = result.replace(pattern, value);
   }
 
@@ -221,6 +227,20 @@ function addBodyClass(content, className) {
   return content.replace(/<body\b/i, `<body class="${className}"`);
 }
 
+function injectHeadSnippet(content, snippet, marker) {
+  if (!/<\/head>/i.test(content) || (marker && content.includes(marker))) {
+    return content;
+  }
+  return content.replace(/\s*<\/head>/i, `\n${snippet}\n</head>`);
+}
+
+function injectBodySnippet(content, snippet, marker) {
+  if (!/<\/body>/i.test(content) || (marker && content.includes(marker))) {
+    return content;
+  }
+  return content.replace(/\s*<\/body>/i, `\n${snippet}\n</body>`);
+}
+
 function injectBeforeHeadClose(content, snippet) {
   if (!/<\/head>/i.test(content) || content.includes('/assets/css/home-v3.css')) {
     return content;
@@ -265,7 +285,18 @@ function buildHomepageV3Preview(content) {
 }
 
 function buildHomepageV2Preview(content) {
-  return addBodyClass(content, 'home-v2-white-fade-page');
+  let result = addBodyClass(content, 'home-v2-white-fade-page');
+  result = injectHeadSnippet(
+    result,
+    HOMEPAGE_V2_NAVBAR_PARITY_STYLES,
+    '/assets/css/home-v2-navbar-parity.css'
+  );
+  result = injectBodySnippet(
+    result,
+    HOMEPAGE_V2_NAVBAR_PARITY_SCRIPT,
+    '/assets/js/pages/home-v2-navbar-parity.js'
+  );
+  return result;
 }
 
 function injectHomepageManagerAdminScript(content) {
@@ -544,6 +575,7 @@ function templateMiddleware() {
     const requestPath = resolvePublicTemplatePath(originalRequestPath, activeHomepageVersion);
     const isHomepageV2Preview = isHomepageV2PreviewPath(originalRequestPath);
     const isHomepageV3Preview = isHomepageV3PreviewPath(originalRequestPath);
+    const isHomepageV2VariantRoot = originalRequestPath === '/' && activeHomepageVersion === 'v2';
     const isHomepageV3VariantRoot = originalRequestPath === '/' && activeHomepageVersion === 'v3';
     const isHomepagePreview = isHomepageV2Preview || isHomepageV3Preview;
 
@@ -557,8 +589,11 @@ function templateMiddleware() {
     try {
       const { content } = await getFile(filePath, requestPath, req);
       let responseContent = content;
+      if (isHomepageV2Preview || isHomepageV2VariantRoot) {
+        responseContent = buildHomepageV2Preview(responseContent);
+      }
       if (isHomepageV3Preview || isHomepageV3VariantRoot) {
-        responseContent = buildHomepageV3Preview(content);
+        responseContent = buildHomepageV3Preview(responseContent);
       }
       responseContent = isHomepagePreview ? addPreviewRobotsMeta(responseContent) : responseContent;
 
