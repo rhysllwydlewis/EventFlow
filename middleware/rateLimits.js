@@ -8,6 +8,25 @@
 
 const rateLimit = require('express-rate-limit');
 
+const PHOTO_ASSET_LIMIT_WINDOW_MS = 15 * 60 * 1000;
+const PHOTO_ASSET_PATH_PATTERN = /^\/api\/(?:v1\/)?photos\/[^/?#]+$/;
+const parsedPhotoAssetLimit = Number.parseInt(process.env.PHOTO_ASSET_RATE_LIMIT_MAX || '3000', 10);
+const PHOTO_ASSET_RATE_LIMIT_MAX = Number.isFinite(parsedPhotoAssetLimit)
+  ? parsedPhotoAssetLimit
+  : 3000;
+
+function getRequestPath(req) {
+  try {
+    return new URL(req.originalUrl || req.url || '', 'https://event-flow.local').pathname;
+  } catch (_error) {
+    return String(req.originalUrl || req.url || '').split('?')[0];
+  }
+}
+
+function isPhotoAssetRequest(req) {
+  return req.method === 'GET' && PHOTO_ASSET_PATH_PATTERN.test(getRequestPath(req));
+}
+
 /**
  * Strict rate limit for authentication endpoints
  * Protects against brute force attacks and credential stuffing
@@ -121,21 +140,15 @@ const apiLimiter = rateLimit({
   message: 'Too many requests, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
+  skip: isPhotoAssetRequest,
 });
-
-const PHOTO_ASSET_LIMIT_WINDOW_MS = 15 * 60 * 1000;
-const parsedPhotoAssetLimit = Number.parseInt(process.env.PHOTO_ASSET_RATE_LIMIT_MAX || '3000', 10);
-const PHOTO_ASSET_RATE_LIMIT_MAX = Number.isFinite(parsedPhotoAssetLimit)
-  ? parsedPhotoAssetLimit
-  : 3000;
 
 /**
  * Rate limit for public photo asset delivery.
  *
- * Browser image loads must not share the strict general API limiter: one homepage
- * refresh can legitimately request many package, marketplace, and collage images.
- * This limiter keeps abuse protection while preventing normal browsing from
- * exhausting the JSON API request bucket and causing intermittent placeholders.
+ * This remains available for dedicated image routes. The general API limiter also
+ * skips public photo GETs so the legacy /api/photos/:id route cannot exhaust the
+ * JSON API bucket during normal homepage image loading.
  */
 const photoAssetLimiter = rateLimit({
   windowMs: PHOTO_ASSET_LIMIT_WINDOW_MS,
@@ -208,4 +221,8 @@ module.exports = {
   resendEmailLimiter,
   registrationLimiter,
   apiDocsLimiter,
+  _private: {
+    getRequestPath,
+    isPhotoAssetRequest,
+  },
 };
