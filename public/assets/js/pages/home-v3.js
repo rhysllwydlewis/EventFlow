@@ -1,6 +1,63 @@
 (() => {
   'use strict';
 
+  /**
+   * The public settings endpoint exposes selected uploads in
+   * collageWidget.mediaLibrary.selectedUploads. The V3 player historically
+   * consumed only the legacy uploadGallery array when source === "uploads".
+   * Normalise the response at the page boundary so newly assigned uploads are
+   * playable immediately without requiring a legacy duplicate record.
+   */
+  function installHomepageUploadBridge() {
+    if (window.__efHomepageUploadBridgeInstalled || typeof window.fetch !== 'function') {
+      return;
+    }
+
+    const nativeFetch = window.fetch.bind(window);
+    window.__efHomepageUploadBridgeInstalled = true;
+
+    window.fetch = async (input, init) => {
+      const response = await nativeFetch(input, init);
+      const requestUrl = typeof input === 'string' ? input : input?.url || '';
+
+      if (!requestUrl.includes('/api/v1/public/homepage-settings')) {
+        return response;
+      }
+
+      window.fetch = nativeFetch;
+      try {
+        const data = await response.clone().json();
+        const widget = data?.collageWidget;
+        const selectedUploads = Array.isArray(widget?.selectedMedia)
+          ? widget.selectedMedia
+          : Array.isArray(widget?.mediaLibrary?.selectedUploads)
+            ? widget.mediaLibrary.selectedUploads
+            : [];
+
+        if (widget?.source === 'uploads' && selectedUploads.length) {
+          const selectedVideoUrls = selectedUploads
+            .filter(item => item?.type === 'video' && typeof item.url === 'string' && item.url)
+            .map(item => item.url);
+          const legacyUrls = Array.isArray(widget.uploadGallery) ? widget.uploadGallery : [];
+          widget.uploadGallery = Array.from(new Set([...selectedVideoUrls, ...legacyUrls]));
+        }
+
+        const headers = new Headers(response.headers);
+        headers.delete('content-length');
+        headers.delete('content-encoding');
+        return new Response(JSON.stringify(data), {
+          status: response.status,
+          statusText: response.statusText,
+          headers,
+        });
+      } catch (_) {
+        return response;
+      }
+    };
+  }
+
+  installHomepageUploadBridge();
+
   window.__EF_HOME_V3_PREVIEW__ = true;
   window.__collageWidgetInitialized = true;
 
