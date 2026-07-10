@@ -33,174 +33,92 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
+          import re
 
-          def replace(path, old, new):
+          def replace_once(path, old, new):
               file = Path(path)
               text = file.read_text()
               if old not in text:
-                  raise SystemExit(f"Expected block not found in {path}: {old[:80]!r}")
+                  raise SystemExit(f"Expected text not found in {path}: {old[:100]!r}")
               file.write_text(text.replace(old, new, 1))
 
-          replace(
-              'public/assets/js/pages/admin-homepage-hardening.js',
-              """      const guardedControl = target.closest(
-                '[data-select-version], [data-edit-version], #backToDashboard, #refreshBtn, a[href]'
-              );""",
-              """      const guardedControl = target.closest(
-                '[data-select-version], [data-edit-version], [data-hero-use], [data-hero-primary], [data-hero-move], [data-hero-remove-target], [data-hero-delete], #backToDashboard, #refreshBtn, a[href]'
-              );""",
+          hardening = 'public/assets/js/pages/admin-homepage-hardening.js'
+          replace_once(
+              hardening,
+              "'[data-select-version], [data-edit-version], #backToDashboard, #refreshBtn, a[href]'",
+              "'[data-select-version], [data-edit-version], [data-hero-use], [data-hero-primary], [data-hero-move], [data-hero-remove-target], [data-hero-delete], #backToDashboard, #refreshBtn, a[href]'",
           )
-          replace(
-              'public/assets/js/pages/admin-homepage-hardening.js',
-              """      guardedControl.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));""",
-              """      guardedControl.click();""",
+          replace_once(
+              hardening,
+              "guardedControl.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));",
+              'guardedControl.click();',
           )
-          replace(
-              'public/assets/js/pages/admin-homepage-hardening.js',
-              """    button.addEventListener('click', async () => {
-                const name = input.value.trim().replace(/\s+/g, ' ');""",
-              """    button.addEventListener('click', async () => {
-                if (dirty) {
-                  showMessage('Save or reset the current hero changes before renaming this homepage.', 'warning');
-                  saveButton?.focus();
-                  return;
-                }
-
-                const name = input.value.trim().replace(/\s+/g, ' ');""",
+          replace_once(
+              hardening,
+              "button.addEventListener('click', async () => {\n      const name = input.value.trim().replace(/\\s+/g, ' ');",
+              "button.addEventListener('click', async () => {\n      if (dirty) {\n        showMessage(\n          'Save or reset the current hero changes before renaming this homepage.',\n          'warning'\n        );\n        saveButton?.focus();\n        return;\n      }\n\n      const name = input.value.trim().replace(/\\s+/g, ' ');",
           )
 
-          replace(
-              'public/assets/js/pages/admin-media-upload-library.js',
-              """    settings.collageWidget = {
-                ...(settings.collageWidget || {}),
-                source: mode === 'uploads' ? 'uploads' : 'pexels',
-                fallbackToPexels: mode === 'selected_with_fallback',
-                uploadGallery: Array.from(
-                  new Set([
-                    ...(settings.collageWidget?.uploadGallery || []).filter(Boolean),
-                    ...library.selectedUploads.map(upload => upload.url).filter(Boolean),
-                  ])
-                ),
-                mediaTypes: library.mediaTypes,
-              };
-
-              setBusy(true);""",
-              """    settings.collageWidget = {
-                ...(settings.collageWidget || {}),
-                source: mode === 'uploads' ? 'uploads' : 'pexels',
-                fallbackToPexels: mode === 'selected_with_fallback',
-                uploadGallery: Array.from(
-                  new Set([
-                    ...(settings.collageWidget?.uploadGallery || []).filter(Boolean),
-                    ...library.selectedUploads.map(upload => upload.url).filter(Boolean),
-                  ])
-                ),
-                mediaTypes: library.mediaTypes,
-              };
-              const assignedFilename = state.selected.filename;
-
-              setBusy(true);""",
+          media_path = Path('public/assets/js/pages/admin-media-upload-library.js')
+          media = media_path.read_text()
+          anchor = "\n\n    setBusy(true);\n    try {\n      const data = await api(`/api/v1/admin/homepage/manager/version/${version}`"
+          if anchor not in media:
+              raise SystemExit('Assignment request anchor not found')
+          media = media.replace(
+              anchor,
+              "\n    const assignedFilename = state.selected.filename;\n\n    setBusy(true);\n    try {\n      const data = await api(`/api/v1/admin/homepage/manager/version/${version}`",
+              1,
           )
-          replace(
-              'public/assets/js/pages/admin-media-upload-library.js',
-              """      setStatus(
-                `${state.selected?.filename || 'Uploaded media'} assigned to ${versionName(version)}.`,
-                'success'
-              );""",
-              """      setStatus(`${assignedFilename} assigned to ${versionName(version)}.`, 'success');""",
+          media = media.replace(
+              "`${state.selected?.filename || 'Uploaded media'} assigned to ${versionName(version)}.`",
+              "`${assignedFilename} assigned to ${versionName(version)}.`",
+              1,
           )
-          replace(
-              'public/assets/js/pages/admin-media-upload-library.js',
-              """  async function deleteFile(item) {
-                const assignments = assignmentBadges(item);
-                const message = assignments.length
-                  ? `This file is assigned to ${assignments.join(', ')}. Delete the physical file anyway?`
-                  : 'Delete this uploaded media file?';""",
-              """  async function deleteFile(item) {
-                const assignments = assignmentBadges(item);
-                if (assignments.length) {
-                  setStatus(
-                    `Remove this file from ${assignments.join(', ')} before deleting the physical upload.`,
-                    'error'
-                  );
-                  return;
-                }
-                const message = 'Delete this uploaded media file?';""",
+          delete_pattern = re.compile(
+              r"  async function deleteFile\(item\) \{\n"
+              r"    const assignments = assignmentBadges\(item\);\n"
+              r"    const message = assignments\.length\n"
+              r"      \? `This file is assigned to \$\{assignments\.join\(', '\)\}\. Delete the physical file anyway\?`\n"
+              r"      : 'Delete this uploaded media file\?';"
           )
+          replacement = """  async function deleteFile(item) {
+            const assignments = assignmentBadges(item);
+            if (assignments.length) {
+              setStatus(
+                `Remove this file from ${assignments.join(', ')} before deleting the physical upload.`,
+                'error'
+              );
+              return;
+            }
+            const message = 'Delete this uploaded media file?';"""
+          media, count = delete_pattern.subn(replacement, media, count=1)
+          if count != 1:
+              raise SystemExit('Assigned-upload delete block not found')
+          media_path.write_text(media)
 
-          replace(
-              'public/assets/js/pages/home-v3.js',
-              """    window.fetch = async (input, init) => {
-                const response = await nativeFetch(input, init);
-                const requestUrl = typeof input === 'string' ? input : input?.url || '';
-
-                if (!requestUrl.includes('/api/v1/public/homepage-settings')) {
-                  return response;
-                }
-
-                try {
-                  const data = await response.clone().json();
-                  const widget = data?.collageWidget;
-                  const selectedUploads = Array.isArray(widget?.mediaLibrary?.selectedUploads)
-                    ? widget.mediaLibrary.selectedUploads
-                    : [];
-
-                  if (widget?.source === 'uploads' && selectedUploads.length) {
-                    const selectedVideoUrls = selectedUploads
-                      .filter(item => item?.type === 'video' && typeof item.url === 'string' && item.url)
-                      .map(item => item.url);
-                    const legacyUrls = Array.isArray(widget.uploadGallery) ? widget.uploadGallery : [];
-                    widget.uploadGallery = Array.from(new Set([...selectedVideoUrls, ...legacyUrls]));
-                  }
-
-                  return new Response(JSON.stringify(data), {
-                    status: response.status,
-                    statusText: response.statusText,
-                    headers: response.headers,
-                  });
-                } catch (_) {
-                  return response;
-                }
-              };""",
-              """    window.fetch = async (input, init) => {
-                const response = await nativeFetch(input, init);
-                const requestUrl = typeof input === 'string' ? input : input?.url || '';
-
-                if (!requestUrl.includes('/api/v1/public/homepage-settings')) {
-                  return response;
-                }
-
-                window.fetch = nativeFetch;
-                try {
-                  const data = await response.clone().json();
-                  const widget = data?.collageWidget;
-                  const selectedUploads = Array.isArray(widget?.selectedMedia)
-                    ? widget.selectedMedia
-                    : Array.isArray(widget?.mediaLibrary?.selectedUploads)
-                      ? widget.mediaLibrary.selectedUploads
-                      : [];
-
-                  if (widget?.source === 'uploads' && selectedUploads.length) {
-                    const selectedVideoUrls = selectedUploads
-                      .filter(item => item?.type === 'video' && typeof item.url === 'string' && item.url)
-                      .map(item => item.url);
-                    const legacyUrls = Array.isArray(widget.uploadGallery) ? widget.uploadGallery : [];
-                    widget.uploadGallery = Array.from(new Set([...selectedVideoUrls, ...legacyUrls]));
-                  }
-
-                  const headers = new Headers(response.headers);
-                  headers.delete('content-length');
-                  headers.delete('content-encoding');
-                  return new Response(JSON.stringify(data), {
-                    status: response.status,
-                    statusText: response.statusText,
-                    headers,
-                  });
-                } catch (_) {
-                  return response;
-                }
-              };""",
+          v3_path = Path('public/assets/js/pages/home-v3.js')
+          v3 = v3_path.read_text()
+          bridge_start = v3.index('  function installHomepageUploadBridge()')
+          bridge_end = v3.index('\n  installHomepageUploadBridge();', bridge_start)
+          bridge = v3[bridge_start:bridge_end]
+          bridge = bridge.replace(
+              "\n\n      try {",
+              "\n\n      window.fetch = nativeFetch;\n      try {",
+              1,
           )
+          bridge = bridge.replace(
+              "const selectedUploads = Array.isArray(widget?.mediaLibrary?.selectedUploads)\n          ? widget.mediaLibrary.selectedUploads\n          : [];",
+              "const selectedUploads = Array.isArray(widget?.selectedMedia)\n          ? widget.selectedMedia\n          : Array.isArray(widget?.mediaLibrary?.selectedUploads)\n            ? widget.mediaLibrary.selectedUploads\n            : [];",
+              1,
+          )
+          bridge = bridge.replace(
+              "        return new Response(JSON.stringify(data), {\n          status: response.status,\n          statusText: response.statusText,\n          headers: response.headers,\n        });",
+              "        const headers = new Headers(response.headers);\n        headers.delete('content-length');\n        headers.delete('content-encoding');\n        return new Response(JSON.stringify(data), {\n          status: response.status,\n          statusText: response.statusText,\n          headers,\n        });",
+              1,
+          )
+          if bridge == v3[bridge_start:bridge_end]:
+              raise SystemExit('V3 bridge was not changed')
+          v3_path.write_text(v3[:bridge_start] + bridge + v3[bridge_end:])
           PY
 
       - name: Format corrected files
