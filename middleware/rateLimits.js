@@ -130,25 +130,10 @@ const notificationLimiter = rateLimit({
 });
 
 /**
- * General API rate limit
- * Default rate limiting for all API endpoints
- * 100 requests per 15 minutes
- */
-const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // 100 requests per window
-  message: 'Too many requests, please try again later.',
-  standardHeaders: true,
-  legacyHeaders: false,
-  skip: isPhotoAssetRequest,
-});
-
-/**
  * Rate limit for public photo asset delivery.
  *
- * This remains available for dedicated image routes. The general API limiter also
- * skips public photo GETs so the legacy /api/photos/:id route cannot exhaust the
- * JSON API bucket during normal homepage image loading.
+ * Browser image loads must not share the strict general API limiter: one homepage
+ * refresh can legitimately request many package, marketplace, and collage images.
  */
 const photoAssetLimiter = rateLimit({
   windowMs: PHOTO_ASSET_LIMIT_WINDOW_MS,
@@ -165,6 +150,29 @@ const photoAssetLimiter = rateLimit({
     return res.status(options.statusCode).json(options.message);
   },
 });
+
+const baseApiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // 100 requests per window
+  message: 'Too many requests, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+/**
+ * General API rate limit.
+ *
+ * Public photo binaries are routed through photoAssetLimiter instead of the
+ * strict JSON API bucket so image-heavy pages do not intermittently exhaust the
+ * allowance and render placeholders across browsers on the same IP.
+ */
+function apiLimiter(req, res, next) {
+  if (isPhotoAssetRequest(req)) {
+    return photoAssetLimiter(req, res, next);
+  }
+
+  return baseApiLimiter(req, res, next);
+}
 
 /**
  * Rate limiter for write operations
