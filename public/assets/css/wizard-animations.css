@@ -436,6 +436,9 @@
 
 @media (prefers-reduced-motion: reduce) {
   .wizard-shake {
-    animation: wizardShakeCalm 0.4s ease both;
+    animation-name: wizardShakeCalm;
+    animation-duration: 160ms !important;
+    animation-timing-function: ease;
+    animation-fill-mode: both;
   }
 }
