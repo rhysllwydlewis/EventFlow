@@ -4,7 +4,7 @@
   <script src="/assets/js/dashboard-guard.js?v=17.0.2"></script>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Media Center — EventFlow Admin</title>
+  <title>Media Centre — EventFlow Admin</title>
   <meta name="robots" content="noindex,nofollow">
   <link rel="stylesheet" href="/assets/css/tokens.css?v=18.3.0">
   <link rel="stylesheet" href="/assets/css/styles.css?v=18.3.0">
@@ -21,12 +21,12 @@
   <link rel="stylesheet" href="/assets/css/admin-ui-improvements.css?v=18.3.2">
   <link rel="stylesheet" href="/assets/css/admin-media.css?v=18.3.1">
   <link rel="stylesheet" href="/assets/css/admin-management-overhaul.css?v=18.3.0">
-    <link rel="icon" href="/favicon.ico" sizes="any">
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png">
-    <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-    <link rel="manifest" href="/site.webmanifest">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png">
+  <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
   <script src="/assets/js/components.js?v=18.3.0" defer></script>
   <script src="/assets/js/admin-navbar.js?v=18.3.0" defer></script>
 </head>
@@ -34,12 +34,11 @@
 <div id="adminNavbarMount"></div>
 
 <main id="main-content" class="section">
-  <!-- Dashboard Header -->
   <div class="dashboard-header">
     <div class="header-content">
       <div>
-        <h1 class="dashboard-title">🎨 Media Center</h1>
-        <p class="dashboard-subtitle">Browse and select professional stock photos from Pexels for category images and site content</p>
+        <h1 class="dashboard-title">🎨 Media Centre</h1>
+        <p class="dashboard-subtitle">Manage uploaded photos and videos, browse Pexels, and assign media directly to Homepage 1, 2 or 3</p>
       </div>
       <div class="header-actions">
         <button class="ef-cta btn-secondary" id="backToDashboard" style="background:rgba(255,255,255,0.15);border-color:rgba(255,255,255,0.3);color:white;">← Back to Dashboard</button>
@@ -51,9 +50,8 @@
     <section id="adminManagementOverview" data-management-surface="media"></section>
 
     <div class="card">
-      <!-- Search Bar -->
       <div class="search-bar media-control-grid">
-        <input type="text" id="searchInput" placeholder="Search for photos (e.g., 'wedding', 'catering', 'venue')...">
+        <input type="text" id="searchInput" placeholder="Search Pexels media (e.g. wedding, catering or venue)...">
         <select id="mediaTypeSelect" aria-label="Media type">
           <option value="photos">Photos</option>
           <option value="videos">Videos</option>
@@ -68,20 +66,12 @@
         <button id="collectionBtn" class="ef-cta pexels-btn-secondary">Open Collection</button>
       </div>
 
-      <!-- Category Quick Search -->
       <div class="category-chips" id="categoryChips"></div>
-
-      <!-- Results Info -->
       <div id="resultsInfo" style="margin-bottom:1rem;color:#666;font-size:0.875rem;"></div>
-
-      <!-- Loading/Error States -->
       <div id="loadingState" class="loading" style="display:none;"><p>Loading media...</p></div>
       <div id="errorState" class="error" style="display:none;"></div>
-
-      <!-- Media Grid -->
       <div class="pexels-grid" id="photoGrid"></div>
 
-      <!-- Pagination -->
       <div class="pagination" id="pagination" style="display:none;">
         <button class="ef-cta" id="prevBtn">← Previous</button>
         <span class="pagination-info" id="pageInfo"></span>
@@ -91,7 +81,6 @@
   </div>
 </main>
 
-<!-- Media Detail Modal -->
 <div class="modal" id="photoModal">
   <div class="modal-content">
     <button class="ef-cta modal-close" id="modalClose">×</button>
@@ -110,18 +99,17 @@
   </div>
 </div>
 
-<!-- Homepage Assignment Modal -->
 <div class="modal" id="assignmentModal" aria-hidden="true">
   <div class="modal-content media-assignment-modal" role="dialog" aria-modal="true" aria-labelledby="assignmentTitle">
     <button class="ef-cta modal-close" id="assignmentClose" aria-label="Close assignment dialog">×</button>
     <h2 id="assignmentTitle">Use on homepage</h2>
     <p class="small">Choose where this Pexels media should appear. Selected media is stored per homepage version, and you can choose whether this save should make the version use selected media immediately.</p>
     <div id="assignmentPreview" class="assignment-preview"></div>
-    <label for="assignmentVersion">Homepage version</label>
+    <label for="assignmentVersion">Homepage</label>
     <select id="assignmentVersion">
-      <option value="v1">V1 Classic</option>
-      <option value="v2">V2 Modern</option>
-      <option value="v3">V3 Premium Video</option>
+      <option value="v1">Homepage 1</option>
+      <option value="v2">Homepage 2</option>
+      <option value="v3">Homepage 3</option>
     </select>
     <label for="assignmentTarget">Placement</label>
     <select id="assignmentTarget">
@@ -154,6 +142,7 @@
 <script src="/assets/js/admin-shared.js?v=18.3.0"></script>
 <script src="/assets/js/pages/admin-management-overhaul.js?v=18.3.0" defer></script>
 <script src="/assets/js/pages/admin-media-init.js?v=18.3.1" defer></script>
+<script src="/assets/js/pages/admin-media-upload-library.js?v=1.0.0" defer></script>
 <script src="/assets/js/cookie-consent.js?v=2.0.0" defer></script>
 </body>
 </html>
