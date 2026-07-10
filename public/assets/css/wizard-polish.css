@@ -1,0 +1,155 @@
+/*
+ * Planning wizard final visual polish
+ * Focused overrides for spacing, feedback, stable selection states and mobile resilience.
+ */
+
+/* Make validation feedback read as an error, not ordinary helper copy. */
+.form-row.error input,
+.form-row.error select,
+.form-row.error textarea {
+  background: #fffafa;
+}
+
+.form-row.error .helper-text {
+  color: #b42318;
+  font-weight: 600;
+}
+
+/* Keep selection feedback visually strong without changing card dimensions. */
+.wizard-option.selected,
+.wizard-package-card.selected {
+  border-width: 2px;
+}
+
+/* Keep the already-covered state compact and aligned. */
+.wz-already-have-notice p {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  line-height: 1.45;
+}
+
+.wz-undo-already-have {
+  flex-shrink: 0;
+  padding: 0.375rem 0.5rem;
+  border-radius: 6px;
+}
+
+.wz-undo-already-have:hover {
+  color: #0b8073;
+  background: rgba(11, 128, 115, 0.08);
+}
+
+.wz-undo-already-have:focus-visible {
+  outline: 3px solid #0b8073;
+  outline-offset: 2px;
+}
+
+/* Remove the double indentation created by card and body child margins. */
+.wizard-package-card .wz-pkg-body {
+  padding: 1rem;
+}
+
+.wizard-package-card .wz-pkg-body h4 {
+  margin: 0 0 0.5rem;
+}
+
+.wizard-package-card .wz-pkg-body .small {
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.wizard-package-card .wz-pkg-body .wizard-package-distance {
+  margin-top: 0;
+  margin-bottom: 0.375rem;
+}
+
+.wizard-package-card .wz-pkg-body .wz-pkg-price {
+  margin-top: 0.25rem;
+  margin-bottom: 0;
+}
+
+/* Image and no-image cards now reserve the same visual height. */
+.wz-pkg-img-placeholder {
+  height: 180px;
+  background:
+    linear-gradient(135deg, rgba(11, 128, 115, 0.08), rgba(19, 182, 162, 0.03)),
+    #f3f4f6;
+}
+
+/* Make review edit actions look intentional and keep adjacent links separated. */
+.wizard-review-edit {
+  margin-right: 0.5rem;
+  margin-bottom: 0.25rem;
+  background: #fff;
+  border: 1px solid rgba(11, 128, 115, 0.18);
+}
+
+.wizard-review-edit:hover {
+  border-color: rgba(11, 128, 115, 0.35);
+  box-shadow: 0 2px 8px rgba(11, 128, 115, 0.08);
+}
+
+.wizard-review-edit:focus-visible {
+  outline: 3px solid #0b8073;
+  outline-offset: 2px;
+}
+
+.wizard-review-section,
+.wz-save-notice,
+.wz-resume-banner {
+  overflow-wrap: anywhere;
+}
+
+/* Long event names and locations must not break either plan summary. */
+.plan-summary-item,
+.plan-summary-item > * {
+  min-width: 0;
+}
+
+.plan-summary-item span:last-child {
+  max-width: 62%;
+  overflow-wrap: anywhere;
+}
+
+.wizard-mobile-summary-compact {
+  min-width: 0;
+  padding-right: 0.75rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wz-readiness-label {
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+  .wz-pkg-img-placeholder {
+    height: 160px;
+  }
+
+  .wizard-package-card .wz-pkg-body {
+    padding: 0.875rem;
+  }
+
+  .wizard-review-edit {
+    margin-right: 0.375rem;
+  }
+}
+
+@media (max-width: 420px) {
+  .wz-already-have-notice {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .wz-undo-already-have {
+    align-self: flex-start;
+  }
+
+  .plan-summary-item span:last-child {
+    max-width: 58%;
+  }
+}
