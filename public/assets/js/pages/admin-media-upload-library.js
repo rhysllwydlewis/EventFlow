@@ -207,7 +207,9 @@
 
   function formatBytes(bytes) {
     const value = Number(bytes || 0);
-    if (!value) return '0 B';
+    if (!value) {
+      return '0 B';
+    }
     const units = ['B', 'KB', 'MB', 'GB'];
     const index = Math.min(Math.floor(Math.log(value) / Math.log(1024)), units.length - 1);
     return `${(value / 1024 ** index).toFixed(index ? 1 : 0)} ${units[index]}`;
@@ -248,7 +250,9 @@
   }
 
   function assignmentBadges(item) {
-    if (!state.manager) return [];
+    if (!state.manager) {
+      return [];
+    }
     return Object.keys(state.manager.versions || {}).flatMap(version =>
       selectedUploadsFor(version)
         .filter(upload => upload.url === item.url || upload.providerId === item.url)
@@ -261,16 +265,18 @@
 
   function render() {
     if (!state.media.length) {
-      grid.innerHTML = '<div class="admin-upload-empty">No uploaded media yet. Choose files above to create your reusable homepage library.</div>';
+      grid.innerHTML =
+        '<div class="admin-upload-empty">No uploaded media yet. Choose files above to create your reusable homepage library.</div>';
       return;
     }
 
     grid.innerHTML = state.media
       .map(item => {
         const badges = assignmentBadges(item);
-        const preview = item.type === 'video'
-          ? `<video src="${escapeHtml(item.url)}" muted playsinline preload="metadata"></video>`
-          : `<img src="${escapeHtml(item.url)}" alt="${escapeHtml(item.filename)}" loading="lazy">`;
+        const preview =
+          item.type === 'video'
+            ? `<video src="${escapeHtml(item.url)}" muted playsinline preload="metadata"></video>`
+            : `<img src="${escapeHtml(item.url)}" alt="${escapeHtml(item.filename)}" loading="lazy">`;
         return `
           <article class="admin-upload-card" data-upload-filename="${escapeHtml(item.filename)}">
             <div class="admin-upload-card__media">${preview}</div>
@@ -298,7 +304,9 @@
     versionSelect.innerHTML = ['v1', 'v2', 'v3']
       .map(version => `<option value="${version}">${escapeHtml(versionName(version))}</option>`)
       .join('');
-    if (versions[current]) versionSelect.value = current;
+    if (versions[current]) {
+      versionSelect.value = current;
+    }
 
     const pexelsVersionSelect = document.getElementById('assignmentVersion');
     if (pexelsVersionSelect) {
@@ -320,7 +328,9 @@
       state.manager = managerData.manager;
       syncVersionOptions();
       render();
-      setStatus(`${state.media.length} uploaded media file${state.media.length === 1 ? '' : 's'} available.`);
+      setStatus(
+        `${state.media.length} uploaded media file${state.media.length === 1 ? '' : 's'} available.`
+      );
     } catch (error) {
       setStatus(error.message, 'error');
       grid.innerHTML = '<div class="admin-upload-empty">Unable to load uploaded media.</div>';
@@ -379,7 +389,9 @@
   }
 
   async function saveAssignment() {
-    if (!state.selected || !state.manager) return;
+    if (!state.selected || !state.manager) {
+      return;
+    }
     const version = versionSelect.value;
     const target = document.getElementById('uploadedAssignmentTarget').value;
     const mode = document.getElementById('uploadedAssignmentMode').value;
@@ -409,7 +421,10 @@
     library.selectedUploads = previous
       ? existing.map(upload =>
           upload === previous
-            ? { ...upload, assignedTargets: Array.from(new Set([...(upload.assignedTargets || []), target])) }
+            ? {
+                ...upload,
+                assignedTargets: Array.from(new Set([...(upload.assignedTargets || []), target])),
+              }
             : upload
         )
       : [...existing, item];
@@ -436,7 +451,7 @@
       fallbackToPexels: mode === 'selected_with_fallback',
       uploadGallery: Array.from(
         new Set([
-          ...((settings.collageWidget?.uploadGallery || []).filter(Boolean)),
+          ...(settings.collageWidget?.uploadGallery || []).filter(Boolean),
           ...library.selectedUploads.map(upload => upload.url).filter(Boolean),
         ])
       ),
@@ -457,7 +472,10 @@
       closeAssignment();
       syncVersionOptions();
       render();
-      setStatus(`${state.selected?.filename || 'Uploaded media'} assigned to ${versionName(version)}.`, 'success');
+      setStatus(
+        `${state.selected?.filename || 'Uploaded media'} assigned to ${versionName(version)}.`,
+        'success'
+      );
     } catch (error) {
       setStatus(error.message, 'error');
     } finally {
@@ -471,9 +489,15 @@
       ? `This file is assigned to ${assignments.join(', ')}. Delete the physical file anyway?`
       : 'Delete this uploaded media file?';
     const confirmed = window.AdminShared?.showConfirmModal
-      ? await window.AdminShared.showConfirmModal({ title: 'Delete uploaded media', message, confirmText: 'Delete' })
+      ? await window.AdminShared.showConfirmModal({
+          title: 'Delete uploaded media',
+          message,
+          confirmText: 'Delete',
+        })
       : window.confirm(message);
-    if (!confirmed) return;
+    if (!confirmed) {
+      return;
+    }
 
     setBusy(true);
     try {
@@ -492,28 +516,39 @@
 
   section.addEventListener('click', event => {
     const target = event.target instanceof Element ? event.target : null;
-    if (!target || state.busy) return;
+    if (!target || state.busy) {
+      return;
+    }
     const assign = target.closest('[data-assign-upload]')?.dataset.assignUpload;
     const copy = target.closest('[data-copy-upload]')?.dataset.copyUpload;
     const remove = target.closest('[data-delete-upload]')?.dataset.deleteUpload;
     if (assign) {
       const item = state.media.find(media => media.filename === assign);
-      if (item) openAssignment(item);
+      if (item) {
+        openAssignment(item);
+      }
     } else if (copy) {
-      navigator.clipboard.writeText(copy)
+      navigator.clipboard
+        .writeText(copy)
         .then(() => setStatus('Media URL copied.', 'success'))
         .catch(() => setStatus('Unable to copy the media URL.', 'error'));
     } else if (remove) {
       const item = state.media.find(media => media.filename === remove);
-      if (item) deleteFile(item);
+      if (item) {
+        deleteFile(item);
+      }
     }
   });
 
   modal.addEventListener('click', event => {
-    if (event.target === modal) closeAssignment();
+    if (event.target === modal) {
+      closeAssignment();
+    }
   });
   modal.addEventListener('keydown', event => {
-    if (event.key === 'Escape') closeAssignment();
+    if (event.key === 'Escape') {
+      closeAssignment();
+    }
   });
   document.getElementById('uploadedAssignmentCancel').addEventListener('click', closeAssignment);
   document.getElementById('uploadedAssignmentSave').addEventListener('click', saveAssignment);

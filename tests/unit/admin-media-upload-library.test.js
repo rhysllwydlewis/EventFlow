@@ -19,15 +19,17 @@ describe('admin Media Centre uploaded media library', () => {
     expect(script).toContain("api('/api/v1/admin/homepage/collage-media')");
     expect(script).toContain("formData.append('media', file)");
     expect(script).toContain("'X-CSRF-Token': await csrfToken()");
-    expect(script).toContain('/api/v1/admin/homepage/collage-media/${encodeURIComponent(item.filename)}');
+    expect(script).toContain(
+      '/api/v1/admin/homepage/collage-media/${encodeURIComponent(item.filename)}'
+    );
   });
 
   test('assigns uploads to an explicit homepage version and placement', () => {
     expect(script).toContain('/api/v1/admin/homepage/manager/version/${version}');
     expect(script).toContain('library.selectedUploads');
-    expect(script).toContain("assignedTargets: [target]");
+    expect(script).toContain('assignedTargets: [target]');
     expect(script).toContain("selectedMediaId: target === 'hero' ? id");
-    expect(script).toContain("library.mode = mode");
+    expect(script).toContain('library.mode = mode');
   });
 
   test('keeps the legacy uploadGallery contract in sync for existing homepage clients', () => {

@@ -134,20 +134,22 @@
 
   function syncDirtyUi() {
     document.body.classList.toggle('is-dirty', dirty);
-    document.querySelectorAll('[data-publish-version], #publishSelectedHomepage').forEach(button => {
-      if (!(button instanceof HTMLButtonElement)) {
-        return;
-      }
-      if (dirty) {
-        button.dataset.hardeningDisabled = button.disabled ? 'already' : 'added';
-        button.disabled = true;
-        button.title = 'Save or reset the current homepage changes before publishing.';
-      } else if (button.dataset.hardeningDisabled === 'added') {
-        button.disabled = false;
-        button.removeAttribute('title');
-        delete button.dataset.hardeningDisabled;
-      }
-    });
+    document
+      .querySelectorAll('[data-publish-version], #publishSelectedHomepage')
+      .forEach(button => {
+        if (!(button instanceof HTMLButtonElement)) {
+          return;
+        }
+        if (dirty) {
+          button.dataset.hardeningDisabled = button.disabled ? 'already' : 'added';
+          button.disabled = true;
+          button.title = 'Save or reset the current homepage changes before publishing.';
+        } else if (button.dataset.hardeningDisabled === 'added') {
+          button.disabled = false;
+          button.removeAttribute('title');
+          delete button.dataset.hardeningDisabled;
+        }
+      });
   }
 
   function markDirty() {
@@ -252,9 +254,10 @@
   const nativeFetch = window.fetch.bind(window);
   window.fetch = async (input, init = {}) => {
     const url = typeof input === 'string' ? input : input?.url || '';
-    const method = String(init.method || (typeof input !== 'string' && input?.method) || 'GET').toUpperCase();
-    const isManagerMutation =
-      method !== 'GET' && /\/api\/v1\/admin\/homepage\/manager\//.test(url);
+    const method = String(
+      init.method || (typeof input !== 'string' && input?.method) || 'GET'
+    ).toUpperCase();
+    const isManagerMutation = method !== 'GET' && /\/api\/v1\/admin\/homepage\/manager\//.test(url);
     let busyElements = [];
 
     if (isManagerMutation) {

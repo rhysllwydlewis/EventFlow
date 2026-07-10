@@ -74,7 +74,11 @@ async function mockHomepageManager(page) {
   );
 
   await page.route('**/api/v1/categories', route =>
-    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ items: [] }) })
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ items: [] }),
+    })
   );
 
   await page.route('**/api/v1/admin/homepage/manager**', async route => {
@@ -144,9 +148,11 @@ test.describe('admin homepage manager hardening', () => {
     await page.goto('/admin-homepage.html');
     await expect(page.locator('#selectedHomepageTitle')).toHaveText('Homepage 1');
 
-    const tracks = await page.locator('.homepage-manager-layout').evaluate(element =>
-      getComputedStyle(element).gridTemplateColumns.trim().split(/\s+/).length
-    );
+    const tracks = await page
+      .locator('.homepage-manager-layout')
+      .evaluate(
+        element => getComputedStyle(element).gridTemplateColumns.trim().split(/\s+/).length
+      );
     expect(tracks).toBe(1);
   });
 
