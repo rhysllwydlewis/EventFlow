@@ -7,8 +7,8 @@ This document records the behaviour introduced by PR #1321 and the minimum regre
 - The editor uses one column at viewport widths of 1180px and below.
 - Hero-form edits produce an explicit unsaved state.
 - A homepage cannot be published while the selected form contains unsaved changes.
-- Switching homepage versions, refreshing or leaving the page warns before discarding edits.
-- Homepage tab names can be changed independently using the existing version API.
+- Switching homepage versions, refreshing, changing hero media or leaving the page warns before discarding edits.
+- Homepage tab names can be changed independently using the existing version API, after current hero edits are saved or reset.
 - Save, publish and media mutations expose a busy state and suppress duplicate submissions.
 - The category editor behaves as a modal dialog, traps keyboard focus, closes with Escape and restores focus.
 
@@ -20,10 +20,11 @@ This document records the behaviour introduced by PR #1321 and the minimum regre
 - Uploaded media can be assigned to Homepage 1, 2 or 3 as hero, collage or general media.
 - Assignment records keep `selectedUploads`, the hero order and the legacy `uploadGallery` contract aligned.
 - Homepage assignment badges show where an uploaded file is currently used.
+- A physical upload cannot be deleted while it remains assigned to a homepage, preventing broken media references.
 
 ## V3 playback compatibility
 
-The V3 player historically consumed uploaded videos from `collageWidget.uploadGallery`, while newer admin data stores uploaded assignments in `mediaLibrary.selectedUploads`. The V3 page now normalises selected uploaded videos into the existing playlist contract before the player reads the settings response.
+The V3 player historically consumed uploaded videos from `collageWidget.uploadGallery`, while newer admin data stores uploaded assignments in `mediaLibrary.selectedUploads`. The V3 page now normalises the backend-resolved selected media into the existing playlist contract before the player reads the settings response, preserving the saved hero order.
 
 ## Manual QA checklist
 
@@ -37,3 +38,4 @@ The V3 player historically consumed uploaded videos from `collageWidget.uploadGa
 8. Confirm a Homepage 3 uploaded-video queue plays every configured video and loops in the saved order.
 9. Test category-editor keyboard focus, Escape closing and focus restoration.
 10. Confirm failed uploads and API requests display an error without leaving controls permanently disabled.
+11. Attempt to delete an assigned upload and confirm the interface requires its homepage assignments to be removed first.
