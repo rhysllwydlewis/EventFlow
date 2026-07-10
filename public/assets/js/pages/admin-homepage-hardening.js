@@ -198,7 +198,7 @@
       }
 
       const guardedControl = target.closest(
-        '[data-select-version], [data-edit-version], #backToDashboard, #refreshBtn, a[href]'
+        '[data-select-version], [data-edit-version], [data-hero-use], [data-hero-primary], [data-hero-move], [data-hero-remove-target], [data-hero-delete], #backToDashboard, #refreshBtn, a[href]'
       );
       if (!guardedControl || !dirty || bypassDiscardGuard) {
         return;
@@ -217,7 +217,7 @@
 
       clearDirty();
       bypassDiscardGuard = true;
-      guardedControl.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+      guardedControl.click();
       bypassDiscardGuard = false;
     },
     true
@@ -319,6 +319,15 @@
     };
 
     button.addEventListener('click', async () => {
+      if (dirty) {
+        showMessage(
+          'Save or reset the current hero changes before renaming this homepage.',
+          'warning'
+        );
+        saveButton?.focus();
+        return;
+      }
+
       const name = input.value.trim().replace(/\s+/g, ' ');
       if (!name || name.length > 40) {
         showMessage('Enter a homepage name between 1 and 40 characters.', 'warning');

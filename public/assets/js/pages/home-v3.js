@@ -24,12 +24,15 @@
         return response;
       }
 
+      window.fetch = nativeFetch;
       try {
         const data = await response.clone().json();
         const widget = data?.collageWidget;
-        const selectedUploads = Array.isArray(widget?.mediaLibrary?.selectedUploads)
-          ? widget.mediaLibrary.selectedUploads
-          : [];
+        const selectedUploads = Array.isArray(widget?.selectedMedia)
+          ? widget.selectedMedia
+          : Array.isArray(widget?.mediaLibrary?.selectedUploads)
+            ? widget.mediaLibrary.selectedUploads
+            : [];
 
         if (widget?.source === 'uploads' && selectedUploads.length) {
           const selectedVideoUrls = selectedUploads
@@ -39,10 +42,13 @@
           widget.uploadGallery = Array.from(new Set([...selectedVideoUrls, ...legacyUrls]));
         }
 
+        const headers = new Headers(response.headers);
+        headers.delete('content-length');
+        headers.delete('content-encoding');
         return new Response(JSON.stringify(data), {
           status: response.status,
           statusText: response.statusText,
-          headers: response.headers,
+          headers,
         });
       } catch (_) {
         return response;

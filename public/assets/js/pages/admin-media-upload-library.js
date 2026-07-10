@@ -457,6 +457,7 @@
       ),
       mediaTypes: library.mediaTypes,
     };
+    const assignedFilename = state.selected.filename;
 
     setBusy(true);
     try {
@@ -472,10 +473,7 @@
       closeAssignment();
       syncVersionOptions();
       render();
-      setStatus(
-        `${state.selected?.filename || 'Uploaded media'} assigned to ${versionName(version)}.`,
-        'success'
-      );
+      setStatus(`${assignedFilename} assigned to ${versionName(version)}.`, 'success');
     } catch (error) {
       setStatus(error.message, 'error');
     } finally {
@@ -485,9 +483,14 @@
 
   async function deleteFile(item) {
     const assignments = assignmentBadges(item);
-    const message = assignments.length
-      ? `This file is assigned to ${assignments.join(', ')}. Delete the physical file anyway?`
-      : 'Delete this uploaded media file?';
+    if (assignments.length) {
+      setStatus(
+        `Remove this file from ${assignments.join(', ')} before deleting the physical upload.`,
+        'error'
+      );
+      return;
+    }
+    const message = 'Delete this uploaded media file?';
     const confirmed = window.AdminShared?.showConfirmModal
       ? await window.AdminShared.showConfirmModal({
           title: 'Delete uploaded media',
