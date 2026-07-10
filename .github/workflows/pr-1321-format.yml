@@ -1,0 +1,49 @@
+name: Format PR 1321
+
+on:
+  push:
+    branches:
+      - feat/dashboard-foundation-and-homepage-manager-hardening
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: feat/dashboard-foundation-and-homepage-manager-hardening
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Format changed JavaScript
+        run: >-
+          npx prettier --write
+          e2e/admin-homepage-hardening.spec.js
+          e2e/admin-media-upload-library.spec.js
+          public/assets/js/pages/admin-homepage-hardening.js
+          public/assets/js/pages/admin-media-upload-library.js
+          tests/unit/admin-homepage-hardening.test.js
+          tests/unit/admin-media-upload-library.test.js
+          tests/unit/home-v3-selected-upload-bridge.test.js
+
+      - name: Commit formatted files and remove temporary workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/pr-1321-format.yml
+          git add e2e public/assets/js/pages tests/unit
+          git commit -m "Format dashboard hardening changes"
+          git push origin HEAD:feat/dashboard-foundation-and-homepage-manager-hardening
