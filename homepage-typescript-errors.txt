@@ -1,0 +1,81 @@
+src/homepages/home-v2.ts(147,17): error TS2339: Property 'style' does not exist on type 'Element'.
+src/homepages/home-v2.ts(148,17): error TS2339: Property 'style' does not exist on type 'Element'.
+src/homepages/home-v2.ts(318,52): error TS2740: Type 'EventTarget' is missing the following properties from type 'Node': baseURI, childNodes, firstChild, isConnected, and 43 more.
+src/homepages/home-v2.ts(328,25): error TS2339: Property 'value' does not exist on type 'HTMLElement'.
+src/homepages/home-v2.ts(328,40): error TS2339: Property 'dataset' does not exist on type 'Element'.
+src/homepages/home-v2.ts(332,24): error TS2339: Property 'value' does not exist on type 'HTMLElement'.
+src/homepages/home-v2.ts(335,37): error TS2339: Property 'dataset' does not exist on type 'Element'.
+src/homepages/home-v2.ts(336,25): error TS2339: Property 'value' does not exist on type 'HTMLElement'.
+src/homepages/home-v2.ts(336,40): error TS2339: Property 'dataset' does not exist on type 'Element'.
+src/homepages/home-v2.ts(340,22): error TS2339: Property 'requestSubmit' does not exist on type 'Element'.
+src/homepages/home-v2.ts(355,22): error TS2339: Property 'disabled' does not exist on type 'Element'.
+src/homepages/home-v3-video.ts(222,16): error TS2554: Expected 3 arguments, but got 2.
+src/homepages/home-v3-video.ts(233,33): error TS2339: Property 'videoQuality' does not exist on type '{}'.
+src/homepages/home-v3-video.ts(233,70): error TS2339: Property 'heroVideo' does not exist on type '{}'.
+src/homepages/home-v3-video.ts(234,38): error TS2339: Property 'videoQuality' does not exist on type '{}'.
+src/homepages/home-v3-video.ts(242,41): error TS2339: Property 'videoQuality' does not exist on type '{}'.
+src/homepages/home-v3-video.ts(258,32): error TS2339: Property 'contentFiltering' does not exist on type '{}'.
+src/homepages/home-v3-video.ts(312,33): error TS2339: Property 'videoQuality' does not exist on type '{}'.
+src/homepages/home-v3-video.ts(312,70): error TS2339: Property 'heroVideo' does not exist on type '{}'.
+src/homepages/home-v3-video.ts(352,50): error TS2339: Property 'uploadGallery' does not exist on type '{}'.
+src/homepages/home-v3-video.ts(352,76): error TS2339: Property 'uploadGallery' does not exist on type '{}'.
+src/homepages/home-v3-video.ts(390,58): error TS2339: Property 'heroSelectedMedia' does not exist on type '{}'.
+src/homepages/home-v3-video.ts(396,50): error TS2339: Property 'selectedMedia' does not exist on type '{}'.
+src/homepages/home-v3-video.ts(396,76): error TS2339: Property 'selectedMedia' does not exist on type '{}'.
+src/homepages/home-v3-video.ts(429,30): error TS2339: Property 'pexelsVideoQueries' does not exist on type '{}'.
+src/homepages/home-v3-video.ts(440,45): error TS2339: Property 'intervalSeconds' does not exist on type '{}'.
+src/homepages/home-v3-video.ts(443,38): error TS2339: Property 'mobileOptimizations' does not exist on type '{}'.
+src/homepages/home-v3-video.ts(451,42): error TS2339: Property 'mobileOptimizations' does not exist on type '{}'.
+src/homepages/home-v3-video.ts(454,16): error TS2339: Property 'enabled' does not exist on type '{}'.
+src/homepages/home-v3-video.ts(455,16): error TS2339: Property 'heroVideo' does not exist on type '{}'.
+src/homepages/home-v3-video.ts(456,16): error TS2339: Property 'mediaTypes' does not exist on type '{}'.
+src/homepages/home-v3-video.ts(462,38): error TS2339: Property 'transition' does not exist on type '{}'.
+src/homepages/home-v3-video.ts(464,38): error TS2339: Property 'mobileOptimizations' does not exist on type '{}'.
+src/homepages/home-v3-video.ts(467,52): error TS2339: Property 'transition' does not exist on type '{}'.
+src/homepages/home-v3-video.ts(468,18): error TS2339: Property 'transition' does not exist on type '{}'.
+src/homepages/home-v3-video.ts(480,32): error TS2339: Property 'heroVideo' does not exist on type '{}'.
+src/homepages/home-v3-video.ts(481,39): error TS2339: Property 'playbackControls' does not exist on type '{}'.
+src/homepages/home-v3-video.ts(489,30): error TS2339: Property 'preloading' does not exist on type '{}'.
+src/homepages/home-v3-video.ts(510,33): error TS2339: Property 'playbackControls' does not exist on type '{}'.
+src/homepages/home-v3-video.ts(903,13): error TS2339: Property 'autoplay' does not exist on type 'Element'.
+src/homepages/home-v3-video.ts(904,13): error TS2339: Property 'pause' does not exist on type 'Element'.
+src/homepages/home-v3-video.ts(905,13): error TS2339: Property 'load' does not exist on type 'Element'.
+src/homepages/home-v3-video.ts(938,13): error TS2339: Property 'autoplay' does not exist on type 'Element'.
+src/homepages/home-v3-video.ts(939,13): error TS2339: Property 'pause' does not exist on type 'Element'.
+src/homepages/home-v3-video.ts(940,13): error TS2339: Property 'load' does not exist on type 'Element'.
+src/homepages/home-v3-video.ts(946,11): error TS2339: Property 'loop' does not exist on type 'Element'.
+src/homepages/home-v3-video.ts(975,25): error TS2339: Property 'value' does not exist on type 'HTMLElement'.
+src/homepages/home-v3-video.ts(975,40): error TS2339: Property 'dataset' does not exist on type 'Element'.
+src/homepages/home-v3-video.ts(979,24): error TS2339: Property 'value' does not exist on type 'HTMLElement'.
+src/homepages/home-v3-video.ts(982,37): error TS2339: Property 'dataset' does not exist on type 'Element'.
+src/homepages/home-v3-video.ts(983,25): error TS2339: Property 'value' does not exist on type 'HTMLElement'.
+src/homepages/home-v3-video.ts(983,40): error TS2339: Property 'dataset' does not exist on type 'Element'.
+src/homepages/home-v3-video.ts(987,22): error TS2339: Property 'requestSubmit' does not exist on type 'Element'.
+src/homepages/home-v3-video.ts(1004,22): error TS2339: Property 'disabled' does not exist on type 'Element'.
+src/homepages/home-v3.ts(21,69): error TS2339: Property 'url' does not exist on type 'Request | URL'.
+  Property 'url' does not exist on type 'URL'.
+src/homepages/home-v3.ts(82,12): error TS2339: Property 'hidden' does not exist on type 'Element'.
+src/homepages/home-v3.ts(88,12): error TS2339: Property 'hidden' does not exist on type 'Element'.
+src/homepages/home-v3.ts(97,13): error TS2339: Property 'value' does not exist on type 'HTMLElement'.
+src/homepages/home-v3.ts(107,15): error TS2339: Property 'focus' does not exist on type 'Element'.
+src/homepages/home-v3.ts(111,16): error TS2339: Property 'hidden' does not exist on type 'Element'.
+src/homepages/home-v3.ts(124,17): error TS2339: Property 'key' does not exist on type 'Event'.
+src/homepages/home-v3.ts(126,17): error TS2339: Property 'focus' does not exist on type 'Element'.
+src/homepages/home-v3.ts(130,17): error TS2339: Property 'key' does not exist on type 'Event'.
+src/homepages/home-v3.ts(130,46): error TS2339: Property 'key' does not exist on type 'Event'.
+src/homepages/home-v3.ts(130,71): error TS2339: Property 'key' does not exist on type 'Event'.
+src/homepages/home-v3.ts(131,18): error TS2339: Property 'hidden' does not exist on type 'Element'.
+src/homepages/home-v3.ts(134,22): error TS2339: Property 'focus' does not exist on type 'Element'.
+src/homepages/home-v3.ts(139,17): error TS2339: Property 'key' does not exist on type 'Event'.
+src/homepages/home-v3.ts(139,46): error TS2339: Property 'hidden' does not exist on type 'Element'.
+src/homepages/home-v3.ts(142,54): error TS2339: Property 'focus' does not exist on type 'Element'.
+src/homepages/home-v3.ts(145,17): error TS2339: Property 'key' does not exist on type 'Event'.
+src/homepages/home-v3.ts(145,44): error TS2339: Property 'hidden' does not exist on type 'Element'.
+src/homepages/home-v3.ts(149,28): error TS2339: Property 'focus' does not exist on type 'Element'.
+src/homepages/home-v3.ts(154,28): error TS2740: Type 'EventTarget' is missing the following properties from type 'Node': baseURI, childNodes, firstChild, isConnected, and 43 more.
+src/homepages/home-v3.ts(419,7): error TS2554: Expected 2 arguments, but got 1.
+src/homepages/home-v3.ts(447,36): error TS2554: Expected 4 arguments, but got 3.
+src/homepages/home-v3.ts(470,7): error TS2554: Expected 3 arguments, but got 2.
+src/homepages/home-v3.ts(502,24): error TS2339: Property 'closest' does not exist on type 'EventTarget'.
+src/homepages/home-v3.ts(512,53): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'number'.
+tsconfig.homepages.json(4,15): error TS6046: Argument for '--module' option must be: 'commonjs', 'es6', 'es2015', 'es2020', 'es2022', 'esnext', 'node16', 'node18', 'node20', 'nodenext', 'preserve'.

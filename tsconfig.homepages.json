@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "none",
+    "lib": ["DOM", "DOM.Iterable", "ES2020"],
+    "rootDir": "src/homepages",
+    "outDir": "public/assets/js/pages",
+    "strict": false,
+    "noImplicitAny": false,
+    "skipLibCheck": true,
+    "noEmitOnError": true,
+    "removeComments": false,
+    "sourceMap": false,
+    "newLine": "lf"
+  },
+  "include": ["src/homepages/**/*.ts", "src/homepages/**/*.d.ts"]
+}
