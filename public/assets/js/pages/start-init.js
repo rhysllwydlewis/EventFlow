@@ -8,7 +8,6 @@
 (function (window, document) {
   'use strict';
 
-  const STORAGE_KEY = 'eventflow_plan_builder_v1';
   const LEGACY_KEY = 'eventflow_start';
   const PENDING_KEYS = ['eventflow_wizard_pending', 'eventflow_wizard_timestamp'];
   const DEFAULT_CATEGORY_KEYS = ['venues', 'photography', 'catering', 'flowers'];
@@ -149,8 +148,9 @@
     window.fetch = async function fetchWithPlanRecovery(input, init) {
       const requestInit = init || {};
       const url = typeof input === 'string' ? input : input?.url || '';
-      const method = String(requestInit.method || (typeof input !== 'string' ? input?.method : '') || 'GET')
-        .toUpperCase();
+      const method = String(
+        requestInit.method || (typeof input !== 'string' ? input?.method : '') || 'GET'
+      ).toUpperCase();
       const isPlanCreate = method === 'POST' && /\/api\/v1\/me\/plans(?:\?.*)?$/.test(url);
       const response = await originalFetch(input, init);
 
@@ -202,9 +202,7 @@
 
   function handleBubbleClick(event) {
     const packageCard = event.target.closest?.('.wizard-package-card');
-    const coverageAction = event.target.closest?.(
-      '.wz-already-have-btn, .wz-undo-already-have'
-    );
+    const coverageAction = event.target.closest?.('.wz-already-have-btn, .wz-undo-already-have');
 
     if (packageCard) {
       const categoryKey = packageCard.getAttribute('data-category');
