@@ -19,6 +19,29 @@
     return error?.name === 'AbortError' || message.includes('aborted');
   }
 
+  function getRequestUrl(input) {
+    if (typeof input === 'string') {
+      return input;
+    }
+    if (input instanceof URL) {
+      return input.href;
+    }
+    return (input && input.url) || '';
+  }
+
+  function getRequestPath(input) {
+    const requestUrl = getRequestUrl(input);
+    try {
+      return new URL(requestUrl, window.location.origin).pathname;
+    } catch (_error) {
+      return String(requestUrl).split('?')[0];
+    }
+  }
+
+  function isPhotoAssetRequest(input) {
+    return /^\/api\/(?:v1\/)?photos\/[^/]+$/i.test(getRequestPath(input));
+  }
+
   const NAVIGATION_FLAG_KEY = '__EF_NAVIGATING_AWAY__';
   const NAVIGATION_SUPPRESSION_WINDOW_MS = 3000;
   let navigationSuppressionUntil = 0;
@@ -158,12 +181,20 @@
    * Parse error message from API response
    */
   async function parseErrorMessage(response, defaultMessage) {
+    const contentType = response.headers && response.headers.get('content-type');
+    if (!contentType || !contentType.toLowerCase().includes('application/json')) {
+      try {
+        const text = await response.text();
+        return text ? text.slice(0, 180) : defaultMessage;
+      } catch (_error) {
+        return defaultMessage;
+      }
+    }
+
     try {
       const data = await response.json();
       return data.error || data.message || defaultMessage;
-    } catch (parseError) {
-      // If JSON parsing fails, use default error message
-      console.debug('Could not parse error response as JSON:', parseError);
+    } catch (_parseError) {
       return defaultMessage;
     }
   }
@@ -195,26 +226,29 @@
           return response;
         }
 
+        const requestUrl = getRequestUrl(args[0]);
+        const isPhotoAssetFailure = isPhotoAssetRequest(args[0]);
+        const defaultMessage = `Request failed with status ${response.status}`;
+
+        // Image asset failures are handled visually by <img> fallback logic. Do not
+        // turn one broken image into a global application error toast.
+        if (isPhotoAssetFailure) {
+          return response;
+        }
+
         // Handle API errors (4xx, 5xx)
         // Clone response to allow error parsing without consuming the original
         const clonedResponse = response.clone();
-        const defaultMessage = `Request failed with status ${response.status}`;
         const errorMessage = await parseErrorMessage(clonedResponse, defaultMessage);
 
         // Log the error
         logError(new Error(errorMessage), {
           type: 'api_error',
           status: response.status,
-          url: args[0],
+          url: requestUrl,
         });
 
         // Suppress user notification for benign 404s (uploads, images, analytics)
-        const requestUrl =
-          typeof args[0] === 'string'
-            ? args[0]
-            : args[0] instanceof URL
-              ? args[0].href
-              : (args[0] && args[0].url) || '';
         const isBenign404 =
           response.status === 404 &&
           (requestUrl.indexOf('/uploads/') !== -1 ||

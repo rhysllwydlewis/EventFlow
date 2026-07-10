@@ -8,6 +8,25 @@
 
 const rateLimit = require('express-rate-limit');
 
+const PHOTO_ASSET_LIMIT_WINDOW_MS = 15 * 60 * 1000;
+const PHOTO_ASSET_PATH_PATTERN = /^\/api\/(?:v1\/)?photos\/[^/?#]+$/;
+const parsedPhotoAssetLimit = Number.parseInt(process.env.PHOTO_ASSET_RATE_LIMIT_MAX || '3000', 10);
+const PHOTO_ASSET_RATE_LIMIT_MAX = Number.isFinite(parsedPhotoAssetLimit)
+  ? parsedPhotoAssetLimit
+  : 3000;
+
+function getRequestPath(req) {
+  try {
+    return new URL(req.originalUrl || req.url || '', 'https://event-flow.local').pathname;
+  } catch (_error) {
+    return String(req.originalUrl || req.url || '').split('?')[0];
+  }
+}
+
+function isPhotoAssetRequest(req) {
+  return req.method === 'GET' && PHOTO_ASSET_PATH_PATTERN.test(getRequestPath(req));
+}
+
 /**
  * Strict rate limit for authentication endpoints
  * Protects against brute force attacks and credential stuffing
@@ -111,17 +130,49 @@ const notificationLimiter = rateLimit({
 });
 
 /**
- * General API rate limit
- * Default rate limiting for all API endpoints
- * 100 requests per 15 minutes
+ * Rate limit for public photo asset delivery.
+ *
+ * Browser image loads must not share the strict general API limiter: one homepage
+ * refresh can legitimately request many package, marketplace, and collage images.
  */
-const apiLimiter = rateLimit({
+const photoAssetLimiter = rateLimit({
+  windowMs: PHOTO_ASSET_LIMIT_WINDOW_MS,
+  max: PHOTO_ASSET_RATE_LIMIT_MAX,
+  message: {
+    error: 'Too many photo asset requests, please try again shortly.',
+    errorType: 'PhotoAssetRateLimit',
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res, _next, options) => {
+    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('Retry-After', String(Math.ceil(PHOTO_ASSET_LIMIT_WINDOW_MS / 1000)));
+    return res.status(options.statusCode).json(options.message);
+  },
+});
+
+const baseApiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // 100 requests per window
   message: 'Too many requests, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
 });
+
+/**
+ * General API rate limit.
+ *
+ * Public photo binaries are routed through photoAssetLimiter instead of the
+ * strict JSON API bucket so image-heavy pages do not intermittently exhaust the
+ * allowance and render placeholders across browsers on the same IP.
+ */
+function apiLimiter(req, res, next) {
+  if (isPhotoAssetRequest(req)) {
+    return photoAssetLimiter(req, res, next);
+  }
+
+  return baseApiLimiter(req, res, next);
+}
 
 /**
  * Rate limiter for write operations
@@ -173,8 +224,13 @@ module.exports = {
   searchLimiter,
   notificationLimiter,
   apiLimiter,
+  photoAssetLimiter,
   writeLimiter,
   resendEmailLimiter,
   registrationLimiter,
   apiDocsLimiter,
+  _private: {
+    getRequestPath,
+    isPhotoAssetRequest,
+  },
 };
