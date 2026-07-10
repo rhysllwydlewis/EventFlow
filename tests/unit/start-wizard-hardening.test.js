@@ -25,6 +25,8 @@ describe('Planning wizard hardening', () => {
         );
         const { window } = dom;
         const { document } = window;
+        const assertJson = (actual, expected) =>
+          assert.strictEqual(JSON.stringify(actual), JSON.stringify(expected));
         let state = {
           currentStep: 2,
           eventType: 'Wedding',
@@ -65,8 +67,8 @@ describe('Planning wizard hardening', () => {
         document.dispatchEvent(new window.Event('DOMContentLoaded', { bubbles: true }));
         window.StartWizardHardening.install();
 
-        assert.deepStrictEqual(state.selectedPackages, { venues: 'venue-a' });
-        assert.deepStrictEqual(state.alreadyHave, {});
+        assertJson(state.selectedPackages, { venues: 'venue-a' });
+        assertJson(state.alreadyHave, {});
 
         state.alreadyHave = { venues: true };
         window.WizardState.selectPackage('venues', 'venue-b');
@@ -76,8 +78,8 @@ describe('Planning wizard hardening', () => {
         state.selectedPackages = { venues: 'venue-b' };
         state.alreadyHave = { catering: true };
         window.WizardState.saveStep(0, { eventType: 'Corporate' });
-        assert.deepStrictEqual(state.selectedPackages, {});
-        assert.deepStrictEqual(state.alreadyHave, {});
+        assertJson(state.selectedPackages, {});
+        assertJson(state.alreadyHave, {});
 
         window.localStorage.setItem('eventflow_start', '{}');
         window.localStorage.setItem('eventflow_wizard_pending', '{}');
@@ -161,17 +163,16 @@ describe('Planning wizard hardening', () => {
         document.querySelector('.wizard-next').dispatchEvent(
           new window.MouseEvent('click', { bubbles: true, cancelable: true })
         );
-        assert.deepStrictEqual(state.selectedPackages, { venues: 'venue-b' });
-        assert.deepStrictEqual(state.alreadyHave, {});
+        assertJson(state.selectedPackages, { venues: 'venue-b' });
+        assertJson(state.alreadyHave, {});
 
         await window.fetch('/api/v1/me/plans', {
           method: 'POST',
           body: JSON.stringify({ eventType: 'Wedding' }),
         });
-        assert.deepStrictEqual(
-          JSON.parse(window.localStorage.getItem('eventflow_wizard_pending')),
-          { eventType: 'Wedding' }
-        );
+        assertJson(JSON.parse(window.localStorage.getItem('eventflow_wizard_pending')), {
+          eventType: 'Wedding',
+        });
         assert(Number(window.localStorage.getItem('eventflow_wizard_timestamp')) > 0);
 
         window.StartWizardHardening.destroy();
