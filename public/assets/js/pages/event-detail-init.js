@@ -3,7 +3,9 @@
 
   // Safe HTML escaping
   function escapeHtml(str) {
-    if (str === null || str === undefined) return '';
+    if (str === null || str === undefined) {
+      return '';
+    }
     const d = document.createElement('div');
     d.textContent = String(str);
     return d.innerHTML;
@@ -315,6 +317,11 @@
       });
       renderEvent(data.event);
     } catch (_) {
+      document.title = 'Event not found | EventFlow';
+      const heroTitle = document.getElementById('event-title');
+      if (heroTitle) {
+        heroTitle.textContent = 'Event not found';
+      }
       panel.innerHTML =
         '<div class="event-body"><h2>Event not found</h2><p>This event is unavailable or no longer public.</p><p><a href="/public-calendar">Back to public calendar</a></p></div>';
     }

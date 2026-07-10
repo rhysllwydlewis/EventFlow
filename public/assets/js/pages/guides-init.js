@@ -52,9 +52,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const resultsCount = document.getElementById('guides-results-count');
 
   function formatGuideDate(value) {
-    if (!value) return 'Updated recently';
+    if (!value) {
+      return 'Updated recently';
+    }
     const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return 'Updated recently';
+    if (Number.isNaN(date.getTime())) {
+      return 'Updated recently';
+    }
     return `Updated ${date.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })}`;
   }
 
@@ -94,7 +98,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function buildDots(count, activeIdx, dotsEl) {
-    if (!dotsEl) return;
+    if (!dotsEl) {
+      return;
+    }
     dotsEl.innerHTML = '';
     for (let i = 0; i < count; i += 1) {
       const dot = document.createElement('span');
@@ -108,12 +114,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const rightWrap = document.getElementById('hero-card-right');
     const dotsLeft = document.getElementById('hero-dots-left');
     const dotsRight = document.getElementById('hero-dots-right');
-    if (!leftWrap || !rightWrap) return;
+    if (!leftWrap || !rightWrap) {
+      return;
+    }
 
     const featured = articles
       .filter(a => a.featured)
       .sort((a, b) => a.featuredOrder - b.featuredOrder);
-    if (featured.length < 2) return;
+    if (featured.length < 2) {
+      return;
+    }
 
     let idx = 0;
     let carouselInterval = null;
@@ -147,8 +157,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function startInterval() {
-      if (carouselInterval) clearInterval(carouselInterval);
-      if (!motionQuery.matches) carouselInterval = setInterval(() => showPair(false), 5000);
+      if (carouselInterval) {
+        clearInterval(carouselInterval);
+      }
+      if (!motionQuery.matches) {
+        carouselInterval = setInterval(() => showPair(false), 5000);
+      }
     }
 
     showPair(true);
@@ -164,7 +178,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function buildChips() {
-    if (!chipsWrap) return;
+    if (!chipsWrap) {
+      return;
+    }
     const categories = [...new Set(articles.map(a => a.category).filter(Boolean))].sort();
     let html =
       '<button class="guides-chip active" data-filter="" role="radio" aria-checked="true">All guides</button>';
@@ -190,7 +206,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function handleSearch() {
     searchQuery = searchInput ? searchInput.value.trim().toLowerCase() : '';
-    if (searchClear) searchClear.classList.toggle('visible', searchQuery.length > 0);
+    if (searchClear) {
+      searchClear.classList.toggle('visible', searchQuery.length > 0);
+    }
     updateClearBtn();
     showAllGuides = false;
     renderGrid();
@@ -198,13 +216,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function scrollToGuides() {
     const section = document.getElementById('all-guides');
-    if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (section) {
+      section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
   }
 
   function clearSearch() {
-    if (searchInput) searchInput.value = '';
+    if (searchInput) {
+      searchInput.value = '';
+    }
     searchQuery = '';
-    if (searchClear) searchClear.classList.remove('visible');
+    if (searchClear) {
+      searchClear.classList.remove('visible');
+    }
     updateClearBtn();
     showAllGuides = false;
     renderGrid();
@@ -215,9 +239,15 @@ document.addEventListener('DOMContentLoaded', () => {
     searchQuery = '';
     sortOrder = 'newest';
     showAllGuides = false;
-    if (searchInput) searchInput.value = '';
-    if (sortSelect) sortSelect.value = 'newest';
-    if (searchClear) searchClear.classList.remove('visible');
+    if (searchInput) {
+      searchInput.value = '';
+    }
+    if (sortSelect) {
+      sortSelect.value = 'newest';
+    }
+    if (searchClear) {
+      searchClear.classList.remove('visible');
+    }
     if (chipsWrap) {
       chipsWrap.querySelectorAll('.guides-chip').forEach(b => {
         const isAll = b.dataset.filter === '';
@@ -230,7 +260,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function updateClearBtn() {
-    if (!clearAllBtn) return;
+    if (!clearAllBtn) {
+      return;
+    }
     clearAllBtn.classList.toggle('visible', activeFilter !== '' || searchQuery !== '');
   }
 
@@ -261,13 +293,19 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function renderGrid() {
-    if (!guidesGrid) return;
+    if (!guidesGrid) {
+      return;
+    }
     const list = getFiltered();
     guidesGrid.querySelectorAll('.guide-card').forEach(c => c.remove());
-    if (guidesLoading) guidesLoading.style.display = 'none';
+    if (guidesLoading) {
+      guidesLoading.style.display = 'none';
+    }
 
     if (!list.length) {
-      if (guidesEmpty) guidesEmpty.classList.add('visible');
+      if (guidesEmpty) {
+        guidesEmpty.classList.add('visible');
+      }
       if (emptyMsg) {
         if (searchQuery && activeFilter) {
           emptyMsg.textContent = `No guides match "${searchInput ? searchInput.value : ''}" in ${activeFilter}. Try clearing a filter.`;
@@ -277,19 +315,24 @@ document.addEventListener('DOMContentLoaded', () => {
           emptyMsg.textContent = 'No guides in this category yet. More coming soon!';
         }
       }
-      if (resultsCount) resultsCount.innerHTML = '';
+      if (resultsCount) {
+        resultsCount.innerHTML = '';
+      }
       return;
     }
 
-    if (guidesEmpty) guidesEmpty.classList.remove('visible');
+    if (guidesEmpty) {
+      guidesEmpty.classList.remove('visible');
+    }
     const totalLabel = list.length === 1 ? '1 guide' : `${list.length} guides`;
     const filterLabel = activeFilter ? ` in <strong>${escHtml(activeFilter)}</strong>` : '';
     const searchLabel =
       searchQuery && searchInput
         ? ` matching "<strong>${escHtml(searchInput.value)}</strong>"`
         : '';
-    if (resultsCount)
+    if (resultsCount) {
       resultsCount.innerHTML = `Showing <strong>${escHtml(totalLabel)}</strong>${filterLabel}${searchLabel}`;
+    }
 
     const shouldCollapse = list.length > INITIAL_GUIDE_LIMIT && !showAllGuides;
     const visibleList = shouldCollapse ? list.slice(0, INITIAL_GUIDE_LIMIT) : list;
@@ -342,8 +385,9 @@ document.addEventListener('DOMContentLoaded', () => {
         renderGrid();
         requestAnimationFrame(() => {
           const firstRevealedCard = guidesGrid.children[INITIAL_GUIDE_LIMIT];
-          if (firstRevealedCard)
+          if (firstRevealedCard) {
             firstRevealedCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
         });
       });
       guidesGrid.appendChild(moreCard);
@@ -353,11 +397,15 @@ document.addEventListener('DOMContentLoaded', () => {
   async function fetchJson(url, required) {
     try {
       const response = await fetch(url);
-      if (!response.ok) throw new Error(`Failed to load ${url}`);
+      if (!response.ok) {
+        throw new Error(`Failed to load ${url}`);
+      }
       const data = await response.json();
       return Array.isArray(data) ? data : [];
     } catch (error) {
-      if (required) throw error;
+      if (required) {
+        throw error;
+      }
       return [];
     }
   }
@@ -393,20 +441,27 @@ document.addEventListener('DOMContentLoaded', () => {
       ]);
       const byHref = new Map();
       [...baseGuides, ...eventflowPack].forEach(guide => {
-        if (guide && (guide.href || guide.link)) byHref.set(guide.href || guide.link, guide);
+        if (guide && (guide.href || guide.link)) {
+          byHref.set(guide.href || guide.link, guide);
+        }
       });
       articles = Array.from(byHref.values()).map(normaliseGuide);
       initHeroCarousel();
       buildChips();
       renderGrid();
-      if (guidesNoJsList) guidesNoJsList.hidden = true;
+      if (guidesNoJsList) {
+        guidesNoJsList.hidden = true;
+      }
     } catch (_) {
-      if (guidesLoading) guidesLoading.style.display = 'none';
+      if (guidesLoading) {
+        guidesLoading.style.display = 'none';
+      }
       if (guidesEmpty) {
         guidesEmpty.classList.add('visible');
-        if (emptyMsg)
+        if (emptyMsg) {
           emptyMsg.textContent =
             'Unable to load guides. Please check your connection or try refreshing the page.';
+        }
       }
     }
   }
@@ -414,7 +469,9 @@ document.addEventListener('DOMContentLoaded', () => {
   if (searchInput) {
     searchInput.addEventListener('input', handleSearch);
     searchInput.addEventListener('keydown', e => {
-      if (e.key === 'Escape') clearSearch();
+      if (e.key === 'Escape') {
+        clearSearch();
+      }
       if (e.key === 'Enter') {
         handleSearch();
         scrollToGuides();
@@ -422,25 +479,35 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  if (searchClear) searchClear.addEventListener('click', clearSearch);
+  if (searchClear) {
+    searchClear.addEventListener('click', clearSearch);
+  }
   const searchBtn = document.getElementById('guides-search-btn');
-  if (searchBtn)
+  if (searchBtn) {
     searchBtn.addEventListener('click', () => {
       handleSearch();
       scrollToGuides();
     });
-  if (sortSelect)
+  }
+  if (sortSelect) {
     sortSelect.addEventListener('change', () => {
       sortOrder = sortSelect.value;
       showAllGuides = false;
       renderGrid();
     });
-  if (clearAllBtn) clearAllBtn.addEventListener('click', resetAll);
-  if (resetBtn) resetBtn.addEventListener('click', resetAll);
+  }
+  if (clearAllBtn) {
+    clearAllBtn.addEventListener('click', resetAll);
+  }
+  if (resetBtn) {
+    resetBtn.addEventListener('click', resetAll);
+  }
 
   document.addEventListener('click', event => {
     const target = event.target.closest('[data-analytics-event="guide_card_click"]');
-    if (!target) return;
+    if (!target) {
+      return;
+    }
     trackGuideEvent('guide_card_click', {
       guide_slug: target.dataset.guideSlug || '',
       guide_title: target.dataset.guideTitle || target.textContent.trim(),
@@ -455,15 +522,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const authModalSkip = document.getElementById('guides-auth-modal-skip');
     const authModalLogin = document.getElementById('guides-auth-modal-login');
     const authModalReg = document.getElementById('guides-auth-modal-register');
-    if (!authModal) return;
+    if (!authModal) {
+      return;
+    }
 
     function openAuthModal(targetHref) {
       const redirect = encodeURIComponent(targetHref);
-      if (authModalLogin) authModalLogin.href = `/auth?redirect=${redirect}`;
-      if (authModalReg) authModalReg.href = `/auth?action=register&redirect=${redirect}`;
+      if (authModalLogin) {
+        authModalLogin.href = `/auth?redirect=${redirect}`;
+      }
+      if (authModalReg) {
+        authModalReg.href = `/auth?action=register&redirect=${redirect}`;
+      }
       authModal.hidden = false;
       document.body.style.overflow = 'hidden';
-      if (authModalClose) authModalClose.focus();
+      if (authModalClose) {
+        authModalClose.focus();
+      }
     }
 
     function closeAuthModal() {
@@ -471,11 +546,19 @@ document.addEventListener('DOMContentLoaded', () => {
       document.body.style.overflow = '';
     }
 
-    if (authModalClose) authModalClose.addEventListener('click', closeAuthModal);
-    if (authModalBg) authModalBg.addEventListener('click', closeAuthModal);
-    if (authModalSkip) authModalSkip.addEventListener('click', closeAuthModal);
+    if (authModalClose) {
+      authModalClose.addEventListener('click', closeAuthModal);
+    }
+    if (authModalBg) {
+      authModalBg.addEventListener('click', closeAuthModal);
+    }
+    if (authModalSkip) {
+      authModalSkip.addEventListener('click', closeAuthModal);
+    }
     document.addEventListener('keydown', e => {
-      if (e.key === 'Escape' && !authModal.hidden) closeAuthModal();
+      if (e.key === 'Escape' && !authModal.hidden) {
+        closeAuthModal();
+      }
     });
 
     document.querySelectorAll('.guides-tool-card, .guides-tools__cta-btn').forEach(el => {
@@ -497,6 +580,44 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
   })();
+
+  // Guide card images are hotlinked from Pexels; if one fails (rate limit,
+  // network, removed photo) swap to a local placeholder instead of showing
+  // a broken-image glyph. Two layers: a capture-phase error listener for
+  // late failures, plus periodic sweeps that catch images which rendered
+  // (or re-rendered) into a broken state regardless of event ordering.
+  const GUIDE_IMG_SELECTOR = '.guide-card__image, .hero-side-card__image';
+  const GUIDE_IMG_FALLBACK = '/assets/images/placeholders/package-event.svg';
+
+  function applyGuideImageFallback(img) {
+    if (!img || img.dataset.fallbackApplied === 'done') {
+      return;
+    }
+    img.dataset.fallbackApplied = 'done';
+    img.setAttribute('src', GUIDE_IMG_FALLBACK);
+  }
+
+  document.addEventListener(
+    'error',
+    e => {
+      const img = e.target;
+      if (img?.tagName === 'IMG' && img.matches?.(GUIDE_IMG_SELECTOR)) {
+        applyGuideImageFallback(img);
+      }
+    },
+    true
+  );
+
+  function sweepBrokenGuideImages() {
+    document.querySelectorAll(GUIDE_IMG_SELECTOR).forEach(img => {
+      if (img.complete && img.naturalWidth === 0 && img.getAttribute('src')) {
+        applyGuideImageFallback(img);
+      }
+    });
+  }
+
+  window.addEventListener('load', sweepBrokenGuideImages);
+  [1500, 4000].forEach(ms => setTimeout(sweepBrokenGuideImages, ms));
 
   loadGuides();
 });
