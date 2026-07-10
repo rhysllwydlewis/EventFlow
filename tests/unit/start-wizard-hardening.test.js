@@ -40,7 +40,7 @@ describe('Planning wizard hardening', () => {
           return true;
         }
 
-        window.WizardState = {
+        const wizardState = {
           getState: () => ({ ...state }),
           saveState,
           saveStep: (stepIndex, data) =>
@@ -64,8 +64,8 @@ describe('Planning wizard hardening', () => {
         window.fetch = async () => ({ status: 401 });
 
         window.eval(fs.readFileSync('public/assets/js/pages/start-init.js', 'utf8'));
-        document.dispatchEvent(new window.Event('DOMContentLoaded', { bubbles: true }));
-        window.StartWizardHardening.install();
+        assert.strictEqual(window.WizardState, undefined);
+        window.WizardState = wizardState;
 
         assertJson(state.selectedPackages, { venues: 'venue-a' });
         assertJson(state.alreadyHave, {});
