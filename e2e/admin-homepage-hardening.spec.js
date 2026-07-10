@@ -55,16 +55,15 @@ function managerFixture() {
 async function mockHomepageManager(page) {
   let manager = managerFixture();
   const renamePayloads = [];
+  const authBody = JSON.stringify({
+    user: { id: 'admin-1', role: 'admin', name: 'Admin', email: 'admin@example.com' },
+  });
 
-  await page.route('**/api/v1/auth/me', route =>
-    route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        user: { id: 'admin-1', role: 'admin', name: 'Admin', email: 'admin@example.com' },
-      }),
-    })
-  );
+  for (const pattern of ['**/api/auth/me', '**/api/v1/auth/me']) {
+    await page.route(pattern, route =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: authBody })
+    );
+  }
 
   await page.route('**/api/v1/csrf-token', route =>
     route.fulfill({
@@ -123,10 +122,7 @@ async function mockHomepageManager(page) {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({
-          manager,
-          version: manager.versions[version],
-        }),
+        body: JSON.stringify({ manager, version: manager.versions[version] }),
       });
       return;
     }
@@ -137,10 +133,6 @@ async function mockHomepageManager(page) {
       body: JSON.stringify({ manager }),
     });
   });
-
-  await page.route('**/api/v1/admin/**', route =>
-    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({}) })
-  );
 
   return { renamePayloads };
 }
