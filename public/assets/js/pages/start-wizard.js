@@ -13,7 +13,9 @@
   /* ─── Utilities ──────────────────────────────────────────────────────────── */
 
   function escapeHtml(unsafe) {
-    if (unsafe === null || unsafe === undefined) return '';
+    if (unsafe === null || unsafe === undefined) {
+      return '';
+    }
     const div = document.createElement('div');
     div.textContent = String(unsafe);
     return div.innerHTML;
@@ -154,11 +156,19 @@
         window.WizardState.saveStep(STEP.EVENT_TYPE, { eventType: et });
       }
       const pre = {};
-      if (urlParams.get('location')) pre.location = urlParams.get('location');
+      if (urlParams.get('location')) {
+        pre.location = urlParams.get('location');
+      }
       const g = urlParams.get('guests');
-      if (g && !isNaN(parseInt(g, 10))) pre.guests = parseInt(g, 10);
-      if (urlParams.get('budget')) pre.budget = urlParams.get('budget');
-      if (Object.keys(pre).length) window.WizardState.saveStep(STEP.EVENT_BASICS, pre);
+      if (g && !isNaN(parseInt(g, 10))) {
+        pre.guests = parseInt(g, 10);
+      }
+      if (urlParams.get('budget')) {
+        pre.budget = urlParams.get('budget');
+      }
+      if (Object.keys(pre).length) {
+        window.WizardState.saveStep(STEP.EVENT_BASICS, pre);
+      }
     }
 
     renderStep(currentStep);
@@ -168,18 +178,24 @@
     // Integrate template selector: if the container exists, render into it
     // but keep it hidden — the wizard welcome screen is the primary entry point
     const tplContainer = document.getElementById('template-selector-container');
-    if (tplContainer) tplContainer.style.display = 'none';
+    if (tplContainer) {
+      tplContainer.style.display = 'none';
+    }
   }
 
   /* ─── Step rendering ─────────────────────────────────────────────────────── */
 
   function renderStep(stepIndex) {
     const container = document.getElementById('wizard-container');
-    if (!container) return;
+    if (!container) {
+      return;
+    }
 
     // Remove pre-hydration fallback on first real render
     const preload = document.getElementById('wizard-preload');
-    if (preload) preload.remove();
+    if (preload) {
+      preload.remove();
+    }
 
     let html = '';
 
@@ -205,22 +221,36 @@
         'Review your plan',
       ];
       const title = titles[stepIndex] || '';
-      if (title) liveRegion.textContent = `Step ${stepIndex + 1} of ${getTotalVisible()}: ${title}`;
+      if (title) {
+        liveRegion.textContent = `Step ${stepIndex + 1} of ${getTotalVisible()}: ${title}`;
+      }
     }
 
     attachStepListeners(stepIndex);
   }
 
   function renderStepContent(stepIndex) {
-    if (stepIndex === STEP.EVENT_TYPE) return renderEventTypeStep();
-    if (stepIndex === STEP.EVENT_BASICS) return renderEventBasicsStep();
-    if (stepIndex === STEP.PRIORITIES) return renderPrioritiesStep();
-    if (stepIndex === STEP.STYLE) return renderStyleStep();
-    if (stepIndex === getReviewStep()) return renderReviewStep();
+    if (stepIndex === STEP.EVENT_TYPE) {
+      return renderEventTypeStep();
+    }
+    if (stepIndex === STEP.EVENT_BASICS) {
+      return renderEventBasicsStep();
+    }
+    if (stepIndex === STEP.PRIORITIES) {
+      return renderPrioritiesStep();
+    }
+    if (stepIndex === STEP.STYLE) {
+      return renderStyleStep();
+    }
+    if (stepIndex === getReviewStep()) {
+      return renderReviewStep();
+    }
     // Category step
     const catIndex = stepIndex - FIXED_STEPS_BEFORE_CATS;
     const cats = getActiveCategories();
-    if (catIndex >= 0 && catIndex < cats.length) return renderCategoryStep(cats[catIndex]);
+    if (catIndex >= 0 && catIndex < cats.length) {
+      return renderCategoryStep(cats[catIndex]);
+    }
     return '';
   }
 
@@ -632,7 +662,9 @@
           : 'wz-readiness--low';
 
     const formatDate = d => {
-      if (!d) return null;
+      if (!d) {
+        return null;
+      }
       const dt = new Date(d);
       return isNaN(dt)
         ? null
@@ -656,12 +688,21 @@
       .join('');
 
     const missingItems = [];
-    if (!state.eventName) missingItems.push('Event name');
-    if (!state.date) missingItems.push('Event date');
-    if (!state.location) missingItems.push('Location');
-    if (!state.budget) missingItems.push('Budget');
-    if (selectedPkgs.length === 0 && alreadyHave.length === 0)
+    if (!state.eventName) {
+      missingItems.push('Event name');
+    }
+    if (!state.date) {
+      missingItems.push('Event date');
+    }
+    if (!state.location) {
+      missingItems.push('Location');
+    }
+    if (!state.budget) {
+      missingItems.push('Budget');
+    }
+    if (selectedPkgs.length === 0 && alreadyHave.length === 0) {
       missingItems.push('Supplier selections');
+    }
 
     return `
       <div class="wizard-card">
@@ -773,7 +814,9 @@
 
   function renderPlanSummary() {
     const container = document.getElementById('plan-summary');
-    if (container) renderDesktopSummary(container);
+    if (container) {
+      renderDesktopSummary(container);
+    }
     renderMobileSummary();
   }
 
@@ -801,12 +844,24 @@
       score >= 80 ? 'wz-score--high' : score >= 50 ? 'wz-score--mid' : 'wz-score--low';
 
     let rows = '';
-    if (state.eventType) rows += sumRow('Type', state.eventType);
-    if (state.eventName) rows += sumRow('Name', state.eventName);
-    if (state.location) rows += sumRow('Location', state.location);
-    if (state.date) rows += sumRow('Date', fmtDate(state.date));
-    if (state.guests) rows += sumRow('Guests', state.guests);
-    if (state.budget) rows += sumRow('Budget', state.budget);
+    if (state.eventType) {
+      rows += sumRow('Type', state.eventType);
+    }
+    if (state.eventName) {
+      rows += sumRow('Name', state.eventName);
+    }
+    if (state.location) {
+      rows += sumRow('Location', state.location);
+    }
+    if (state.date) {
+      rows += sumRow('Date', fmtDate(state.date));
+    }
+    if (state.guests) {
+      rows += sumRow('Guests', state.guests);
+    }
+    if (state.budget) {
+      rows += sumRow('Budget', state.budget);
+    }
     if ((state.styles || []).length) {
       const labels = state.styles
         .map(k => STYLE_OPTIONS.find(s => s.key === k)?.label || k)
@@ -833,7 +888,9 @@
   }
 
   function fmtDate(d) {
-    if (!d) return '';
+    if (!d) {
+      return '';
+    }
     const dt = new Date(d);
     return isNaN(dt)
       ? ''
@@ -847,23 +904,43 @@
 
   function renderMobileSummary() {
     const el = document.getElementById('mobile-plan-summary');
-    if (!el) return;
+    if (!el) {
+      return;
+    }
     const state = window.WizardState.getState();
     const selectedPkgs = Object.keys(state.selectedPackages || {}).length;
     const parts = [];
-    if (state.eventType) parts.push(state.eventType);
-    if (state.location) parts.push(state.location);
-    if (selectedPkgs) parts.push(`${selectedPkgs} supplier${selectedPkgs !== 1 ? 's' : ''}`);
+    if (state.eventType) {
+      parts.push(state.eventType);
+    }
+    if (state.location) {
+      parts.push(state.location);
+    }
+    if (selectedPkgs) {
+      parts.push(`${selectedPkgs} supplier${selectedPkgs !== 1 ? 's' : ''}`);
+    }
     const compact = parts.length ? parts.join(' · ') : 'Your plan';
 
     const wasExpanded = _mobileSummaryExpanded;
     let detailHtml = '';
-    if (state.eventType) detailHtml += sumRow('Type', state.eventType);
-    if (state.eventName) detailHtml += sumRow('Name', state.eventName);
-    if (state.date) detailHtml += sumRow('Date', fmtDate(state.date));
-    if (state.location) detailHtml += sumRow('Location', state.location);
-    if (state.guests) detailHtml += sumRow('Guests', state.guests);
-    if (state.budget) detailHtml += sumRow('Budget', state.budget);
+    if (state.eventType) {
+      detailHtml += sumRow('Type', state.eventType);
+    }
+    if (state.eventName) {
+      detailHtml += sumRow('Name', state.eventName);
+    }
+    if (state.date) {
+      detailHtml += sumRow('Date', fmtDate(state.date));
+    }
+    if (state.location) {
+      detailHtml += sumRow('Location', state.location);
+    }
+    if (state.guests) {
+      detailHtml += sumRow('Guests', state.guests);
+    }
+    if (state.budget) {
+      detailHtml += sumRow('Budget', state.budget);
+    }
     detailHtml += sumRow('Suppliers', `${selectedPkgs} selected`);
 
     el.innerHTML = `
@@ -878,7 +955,7 @@
     `;
 
     const btn = el.querySelector('.wizard-mobile-summary-bar');
-    if (btn)
+    if (btn) {
       btn.addEventListener('click', () => {
         _mobileSummaryExpanded = !_mobileSummaryExpanded;
         btn.setAttribute('aria-expanded', String(_mobileSummaryExpanded));
@@ -887,10 +964,14 @@
           ?.classList.toggle('is-open', _mobileSummaryExpanded);
         const d = document.getElementById('mobile-summary-details');
         if (d) {
-          if (_mobileSummaryExpanded) d.removeAttribute('hidden');
-          else d.setAttribute('hidden', '');
+          if (_mobileSummaryExpanded) {
+            d.removeAttribute('hidden');
+          } else {
+            d.setAttribute('hidden', '');
+          }
         }
       });
+    }
   }
 
   /* ─── Package loading ────────────────────────────────────────────────────── */
@@ -902,7 +983,9 @@
         if (state.location) {
           const params = new URLSearchParams({ location: state.location, radiusMiles: '10' });
           const r = await fetch(`/api/v1/venues/near?${params}`);
-          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          if (!r.ok) {
+            throw new Error(`HTTP ${r.status}`);
+          }
           const data = await r.json();
           const venues = (data.venues || []).map(v => ({
             id: v.id,
@@ -926,7 +1009,9 @@
         approved: 'true',
       });
       const r = await fetch(`/api/v1/packages/search?${params}`);
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      if (!r.ok) {
+        throw new Error(`HTTP ${r.status}`);
+      }
       const data = await r.json();
       availablePackages[categoryKey] = data.items || [];
       return data.items || [];
@@ -938,7 +1023,9 @@
 
   function renderPackageList(categoryKey, packages) {
     const container = document.getElementById(`wizard-packages-${categoryKey}`);
-    if (!container) return;
+    if (!container) {
+      return;
+    }
     container.setAttribute('aria-busy', 'false');
 
     if (!packages || packages.length === 0) {
@@ -1048,7 +1135,9 @@
       document.querySelectorAll('.wz-tpl-card').forEach(card => {
         card.addEventListener('click', () => {
           const tpl = window.EventTemplates?.getTemplate(card.dataset.templateId);
-          if (!tpl) return;
+          if (!tpl) {
+            return;
+          }
           applyTemplate(tpl);
         });
         card.addEventListener('keydown', e => {
@@ -1077,7 +1166,10 @@
           window.WizardState.saveStep(STEP.EVENT_TYPE, {
             eventType: this.getAttribute('data-value'),
           });
-          if (nextBtn) nextBtn.disabled = false;
+          if (nextBtn) {
+            nextBtn.disabled = false;
+            nextBtn.removeAttribute('aria-disabled');
+          }
           renderPlanSummary();
         });
       });
@@ -1091,18 +1183,22 @@
           const state = window.WizardState.getState();
           const prios = [...(state.priorities || [])];
           const idx = prios.indexOf(key);
-          if (idx >= 0) prios.splice(idx, 1);
-          else prios.push(key);
+          if (idx >= 0) {
+            prios.splice(idx, 1);
+          } else {
+            prios.push(key);
+          }
           this.classList.toggle('wz-chip--selected', idx < 0);
           this.setAttribute('aria-pressed', String(idx < 0));
           window.WizardState.saveStep(STEP.PRIORITIES, { priorities: prios });
           // Update hint text
           const hint = document.querySelector('.wz-chip-hint');
-          if (hint)
+          if (hint) {
             hint.innerHTML =
               prios.length > 0
                 ? `<strong>${prios.length} area${prios.length !== 1 ? 's' : ''} selected</strong> — we'll tailor your next steps`
                 : 'Select at least one area, or continue to use our defaults';
+          }
         });
       });
     }
@@ -1115,8 +1211,11 @@
           const state = window.WizardState.getState();
           const styles = [...(state.styles || [])];
           const idx = styles.indexOf(key);
-          if (idx >= 0) styles.splice(idx, 1);
-          else styles.push(key);
+          if (idx >= 0) {
+            styles.splice(idx, 1);
+          } else {
+            styles.push(key);
+          }
           this.classList.toggle('wz-chip--selected', idx < 0);
           this.setAttribute('aria-pressed', String(idx < 0));
           window.WizardState.saveStep(STEP.STYLE, { styles });
@@ -1172,10 +1271,9 @@
               </div>`;
             document.getElementById(`retry-pkg-${category.key}`)?.addEventListener('click', () => {
               pkgContainer.setAttribute('aria-busy', 'true');
-              pkgContainer.innerHTML =
-                '<div class="wizard-package-grid">' +
-                [1, 2, 3].map(() => '<div class="wizard-skeleton-card"></div>').join('') +
-                '</div>';
+              pkgContainer.innerHTML = `<div class="wizard-package-grid">${[1, 2, 3]
+                .map(() => '<div class="wizard-skeleton-card"></div>')
+                .join('')}</div>`;
               loadPackagesForCategory(category.key, state.eventType).then(r =>
                 r
                   ? renderPackageList(category.key, r)
@@ -1266,13 +1364,25 @@
   }
 
   function mapBudget(amount) {
-    if (!amount) return '';
+    if (!amount) {
+      return '';
+    }
     const n = Number(amount);
-    if (n <= 1000) return 'Up to £1,000';
-    if (n <= 3000) return '£1,000–£3,000';
-    if (n <= 5000) return '£3,000–£5,000';
-    if (n <= 10000) return '£5,000–£10,000';
-    if (n <= 20000) return '£10,000–£20,000';
+    if (n <= 1000) {
+      return 'Up to £1,000';
+    }
+    if (n <= 3000) {
+      return '£1,000–£3,000';
+    }
+    if (n <= 5000) {
+      return '£3,000–£5,000';
+    }
+    if (n <= 10000) {
+      return '£5,000–£10,000';
+    }
+    if (n <= 20000) {
+      return '£10,000–£20,000';
+    }
     return '£20,000+';
   }
 
@@ -1307,7 +1417,9 @@
         if (guestsField) {
           guestsField.closest('.form-row')?.classList.add('error');
           const hint = guestsField.closest('.form-row')?.querySelector('.helper-text');
-          if (hint) hint.textContent = 'Please enter a whole number greater than 0';
+          if (hint) {
+            hint.textContent = 'Please enter a whole number greater than 0';
+          }
           guestsField.classList.add('wizard-shake');
           guestsField.addEventListener(
             'animationend',
@@ -1319,7 +1431,9 @@
         return;
       }
       // Remove error state if value is now valid
-      if (guestsField) guestsField.closest('.form-row')?.classList.remove('error');
+      if (guestsField) {
+        guestsField.closest('.form-row')?.classList.remove('error');
+      }
 
       window.WizardState.saveStep(currentStep, {
         eventName: name,
@@ -1353,7 +1467,9 @@
         if (guestsField) {
           guestsField.closest('.form-row')?.classList.add('error');
           const hint = guestsField.closest('.form-row')?.querySelector('.helper-text');
-          if (hint) hint.textContent = 'Please enter a whole number greater than 0';
+          if (hint) {
+            hint.textContent = 'Please enter a whole number greater than 0';
+          }
           guestsField.classList.add('wizard-shake');
           guestsField.addEventListener(
             'animationend',
@@ -1365,7 +1481,9 @@
         return;
       }
       // Remove error state if value is now valid
-      if (guestsField) guestsField.closest('.form-row')?.classList.remove('error');
+      if (guestsField) {
+        guestsField.closest('.form-row')?.classList.remove('error');
+      }
 
       window.WizardState.saveStep(currentStep, {
         eventName: name,
@@ -1385,7 +1503,9 @@
   function handleBack() {
     if (currentStep === STEP.EVENT_TYPE) {
       if (hasFormData()) {
-        if (!confirm('Leave wizard? Your progress is saved — come back any time.')) return;
+        if (!confirm('Leave wizard? Your progress is saved — come back any time.')) {
+          return;
+        }
       }
       if (hasShownWelcome) {
         currentStep = STEP.WELCOME;
@@ -1406,7 +1526,9 @@
 
   async function handleCreatePlan() {
     const btn = document.querySelector('.wizard-create-plan');
-    if (!btn) return;
+    if (!btn) {
+      return;
+    }
     btn.disabled = true;
     btn.innerHTML = '<span class="wizard-loading"></span> Saving…';
 
@@ -1477,9 +1599,11 @@
       }, 3000);
     } catch (err) {
       console.error('Error saving plan:', err);
-      if (window.showNotification)
+      if (window.showNotification) {
         window.showNotification(err.message || 'Failed to save plan. Please try again.', 'error');
-      else alert('There was an error saving your plan. Please try again.');
+      } else {
+        alert('There was an error saving your plan. Please try again.');
+      }
       btn.disabled = false;
       btn.textContent = 'Save my plan';
     }
@@ -1493,7 +1617,9 @@
       credentials: 'include',
       body: JSON.stringify(planData),
     });
-    if (r.status === 401) return { status: 401 };
+    if (r.status === 401) {
+      return { status: 401 };
+    }
     if (!r.ok) {
       const e = await r.json().catch(() => ({}));
       throw new Error(e.message || e.error || 'Failed to save plan');
@@ -1503,9 +1629,13 @@
 
   async function getCsrfToken() {
     const meta = document.querySelector('meta[name="csrf-token"]');
-    if (meta) return meta.getAttribute('content');
+    if (meta) {
+      return meta.getAttribute('content');
+    }
     const cookie = document.cookie.match(/csrfToken=([^;]+)/);
-    if (cookie) return cookie[1];
+    if (cookie) {
+      return cookie[1];
+    }
     try {
       const r = await fetch('/api/v1/csrf-token', { credentials: 'include' });
       if (r.ok) {
@@ -1522,11 +1652,15 @@
 
   function restoreWizardState() {
     const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('restore') !== 'true') return;
+    if (urlParams.get('restore') !== 'true') {
+      return;
+    }
     try {
       const pending = localStorage.getItem('eventflow_wizard_pending');
       const ts = localStorage.getItem('eventflow_wizard_timestamp');
-      if (!pending || !ts) return;
+      if (!pending || !ts) {
+        return;
+      }
       if (Date.now() - parseInt(ts, 10) > WIZARD_DATA_EXPIRY_MS) {
         ['eventflow_wizard_pending', 'eventflow_wizard_timestamp'].forEach(k =>
           localStorage.removeItem(k)
@@ -1600,7 +1734,9 @@
 
   function showAutosaveIndicator() {
     const s = document.getElementById('plan-summary');
-    if (!s) return;
+    if (!s) {
+      return;
+    }
     let ind = s.querySelector('.wizard-autosave');
     if (!ind) {
       ind = document.createElement('div');
@@ -1633,7 +1769,9 @@
   }
 
   function triggerCelebration() {
-    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+      return;
+    }
     const colors = ['#0B8073', '#13B6A2', '#10b981', '#34d399'];
     let cc = document.getElementById('wizard-confetti-container');
     if (!cc) {
@@ -1664,6 +1802,9 @@
 
   /* ─── Boot ───────────────────────────────────────────────────────────────── */
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
-  else init();
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
 })();

@@ -410,3 +410,32 @@
   transform: translateZ(0);
   will-change: transform;
 }
+
+/* Validation shake — start-wizard.js adds .wizard-shake on invalid
+   Next attempts and removes it on animationend, but the class was
+   never defined, so failed validation gave no visual feedback (and
+   the class stuck because animationend never fired). Reduced-motion
+   users get a brief outline flash instead, which still fires
+   animationend so the cleanup runs. */
+@keyframes wizardShake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-8px); }
+  40% { transform: translateX(8px); }
+  60% { transform: translateX(-5px); }
+  80% { transform: translateX(5px); }
+}
+
+.wizard-shake {
+  animation: wizardShake 0.4s ease both;
+}
+
+@keyframes wizardShakeCalm {
+  0% { box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.35); }
+  100% { box-shadow: 0 0 0 3px rgba(220, 38, 38, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wizard-shake {
+    animation: wizardShakeCalm 0.4s ease both;
+  }
+}
