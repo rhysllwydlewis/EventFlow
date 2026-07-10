@@ -144,7 +144,7 @@
       return;
     }
 
-    originalFetch = window.fetch.bind(window);
+    originalFetch = window.fetch;
     window.fetch = async function fetchWithPlanRecovery(input, init) {
       const requestInit = init || {};
       const url = typeof input === 'string' ? input : input?.url || '';
@@ -152,7 +152,7 @@
         requestInit.method || (typeof input !== 'string' ? input?.method : '') || 'GET'
       ).toUpperCase();
       const isPlanCreate = method === 'POST' && /\/api\/v1\/me\/plans(?:\?.*)?$/.test(url);
-      const response = await originalFetch(input, init);
+      const response = await originalFetch.call(window, input, init);
 
       if (isPlanCreate && response.status === 401 && requestInit.body) {
         try {
@@ -420,7 +420,6 @@
       return true;
     }
     if (!window.WizardState) {
-      window.setTimeout(install, 0);
       return false;
     }
 
@@ -465,9 +464,38 @@
     validateBasicsStep,
   };
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', install, { once: true });
-  } else {
-    install();
+  function bootstrap() {
+    if (window.WizardState) {
+      install();
+      return;
+    }
+
+    const descriptor = Object.getOwnPropertyDescriptor(window, 'WizardState');
+    if (!descriptor || descriptor.configurable) {
+      Object.defineProperty(window, 'WizardState', {
+        configurable: true,
+        enumerable: true,
+        get() {
+          return undefined;
+        },
+        set(api) {
+          Object.defineProperty(window, 'WizardState', {
+            configurable: true,
+            enumerable: true,
+            writable: true,
+            value: api,
+          });
+          install();
+        },
+      });
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', install, { once: true });
+    } else {
+      window.setTimeout(install, 0);
+    }
   }
+
+  bootstrap();
 })(window, document);
