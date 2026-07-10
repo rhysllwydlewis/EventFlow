@@ -1,0 +1,226 @@
+name: PR 1321 hardening correction
+
+on:
+  push:
+    branches:
+      - feat/dashboard-foundation-and-homepage-manager-hardening
+
+permissions:
+  contents: write
+
+jobs:
+  correct:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: feat/dashboard-foundation-and-homepage-manager-hardening
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Apply hardening corrections
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace(path, old, new):
+              file = Path(path)
+              text = file.read_text()
+              if old not in text:
+                  raise SystemExit(f"Expected block not found in {path}: {old[:80]!r}")
+              file.write_text(text.replace(old, new, 1))
+
+          replace(
+              'public/assets/js/pages/admin-homepage-hardening.js',
+              """      const guardedControl = target.closest(
+                '[data-select-version], [data-edit-version], #backToDashboard, #refreshBtn, a[href]'
+              );""",
+              """      const guardedControl = target.closest(
+                '[data-select-version], [data-edit-version], [data-hero-use], [data-hero-primary], [data-hero-move], [data-hero-remove-target], [data-hero-delete], #backToDashboard, #refreshBtn, a[href]'
+              );""",
+          )
+          replace(
+              'public/assets/js/pages/admin-homepage-hardening.js',
+              """      guardedControl.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));""",
+              """      guardedControl.click();""",
+          )
+          replace(
+              'public/assets/js/pages/admin-homepage-hardening.js',
+              """    button.addEventListener('click', async () => {
+                const name = input.value.trim().replace(/\s+/g, ' ');""",
+              """    button.addEventListener('click', async () => {
+                if (dirty) {
+                  showMessage('Save or reset the current hero changes before renaming this homepage.', 'warning');
+                  saveButton?.focus();
+                  return;
+                }
+
+                const name = input.value.trim().replace(/\s+/g, ' ');""",
+          )
+
+          replace(
+              'public/assets/js/pages/admin-media-upload-library.js',
+              """    settings.collageWidget = {
+                ...(settings.collageWidget || {}),
+                source: mode === 'uploads' ? 'uploads' : 'pexels',
+                fallbackToPexels: mode === 'selected_with_fallback',
+                uploadGallery: Array.from(
+                  new Set([
+                    ...(settings.collageWidget?.uploadGallery || []).filter(Boolean),
+                    ...library.selectedUploads.map(upload => upload.url).filter(Boolean),
+                  ])
+                ),
+                mediaTypes: library.mediaTypes,
+              };
+
+              setBusy(true);""",
+              """    settings.collageWidget = {
+                ...(settings.collageWidget || {}),
+                source: mode === 'uploads' ? 'uploads' : 'pexels',
+                fallbackToPexels: mode === 'selected_with_fallback',
+                uploadGallery: Array.from(
+                  new Set([
+                    ...(settings.collageWidget?.uploadGallery || []).filter(Boolean),
+                    ...library.selectedUploads.map(upload => upload.url).filter(Boolean),
+                  ])
+                ),
+                mediaTypes: library.mediaTypes,
+              };
+              const assignedFilename = state.selected.filename;
+
+              setBusy(true);""",
+          )
+          replace(
+              'public/assets/js/pages/admin-media-upload-library.js',
+              """      setStatus(
+                `${state.selected?.filename || 'Uploaded media'} assigned to ${versionName(version)}.`,
+                'success'
+              );""",
+              """      setStatus(`${assignedFilename} assigned to ${versionName(version)}.`, 'success');""",
+          )
+          replace(
+              'public/assets/js/pages/admin-media-upload-library.js',
+              """  async function deleteFile(item) {
+                const assignments = assignmentBadges(item);
+                const message = assignments.length
+                  ? `This file is assigned to ${assignments.join(', ')}. Delete the physical file anyway?`
+                  : 'Delete this uploaded media file?';""",
+              """  async function deleteFile(item) {
+                const assignments = assignmentBadges(item);
+                if (assignments.length) {
+                  setStatus(
+                    `Remove this file from ${assignments.join(', ')} before deleting the physical upload.`,
+                    'error'
+                  );
+                  return;
+                }
+                const message = 'Delete this uploaded media file?';""",
+          )
+
+          replace(
+              'public/assets/js/pages/home-v3.js',
+              """    window.fetch = async (input, init) => {
+                const response = await nativeFetch(input, init);
+                const requestUrl = typeof input === 'string' ? input : input?.url || '';
+
+                if (!requestUrl.includes('/api/v1/public/homepage-settings')) {
+                  return response;
+                }
+
+                try {
+                  const data = await response.clone().json();
+                  const widget = data?.collageWidget;
+                  const selectedUploads = Array.isArray(widget?.mediaLibrary?.selectedUploads)
+                    ? widget.mediaLibrary.selectedUploads
+                    : [];
+
+                  if (widget?.source === 'uploads' && selectedUploads.length) {
+                    const selectedVideoUrls = selectedUploads
+                      .filter(item => item?.type === 'video' && typeof item.url === 'string' && item.url)
+                      .map(item => item.url);
+                    const legacyUrls = Array.isArray(widget.uploadGallery) ? widget.uploadGallery : [];
+                    widget.uploadGallery = Array.from(new Set([...selectedVideoUrls, ...legacyUrls]));
+                  }
+
+                  return new Response(JSON.stringify(data), {
+                    status: response.status,
+                    statusText: response.statusText,
+                    headers: response.headers,
+                  });
+                } catch (_) {
+                  return response;
+                }
+              };""",
+              """    window.fetch = async (input, init) => {
+                const response = await nativeFetch(input, init);
+                const requestUrl = typeof input === 'string' ? input : input?.url || '';
+
+                if (!requestUrl.includes('/api/v1/public/homepage-settings')) {
+                  return response;
+                }
+
+                window.fetch = nativeFetch;
+                try {
+                  const data = await response.clone().json();
+                  const widget = data?.collageWidget;
+                  const selectedUploads = Array.isArray(widget?.selectedMedia)
+                    ? widget.selectedMedia
+                    : Array.isArray(widget?.mediaLibrary?.selectedUploads)
+                      ? widget.mediaLibrary.selectedUploads
+                      : [];
+
+                  if (widget?.source === 'uploads' && selectedUploads.length) {
+                    const selectedVideoUrls = selectedUploads
+                      .filter(item => item?.type === 'video' && typeof item.url === 'string' && item.url)
+                      .map(item => item.url);
+                    const legacyUrls = Array.isArray(widget.uploadGallery) ? widget.uploadGallery : [];
+                    widget.uploadGallery = Array.from(new Set([...selectedVideoUrls, ...legacyUrls]));
+                  }
+
+                  const headers = new Headers(response.headers);
+                  headers.delete('content-length');
+                  headers.delete('content-encoding');
+                  return new Response(JSON.stringify(data), {
+                    status: response.status,
+                    statusText: response.statusText,
+                    headers,
+                  });
+                } catch (_) {
+                  return response;
+                }
+              };""",
+          )
+          PY
+
+      - name: Format corrected files
+        run: >-
+          npx prettier --write
+          public/assets/js/pages/admin-homepage-hardening.js
+          public/assets/js/pages/admin-media-upload-library.js
+
+      - name: Run focused regression tests
+        run: >-
+          npx jest --runInBand --coverage=false
+          tests/unit/admin-homepage-hardening.test.js
+          tests/unit/admin-media-upload-library.test.js
+          tests/unit/home-v3-selected-upload-bridge.test.js
+
+      - name: Commit corrections and remove temporary workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/pr-1321-hardening-fix.yml
+          git add public/assets/js/pages
+          git commit -m "Tighten dashboard hardening edge cases"
+          git push origin HEAD:feat/dashboard-foundation-and-homepage-manager-hardening
