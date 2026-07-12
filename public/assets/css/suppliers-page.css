@@ -2223,6 +2223,10 @@
   flex-direction: column;
   gap: 6px;
   margin-top: auto;
+  /* Desktop: the actions now sit outside .sp-pkg-mini-body, so they
+     carry the body's horizontal/bottom padding themselves to keep the
+     previous desktop presentation. */
+  padding: 0 12px 10px;
 }
 
 /* Detailed View replaces the old whole-card link (the mini card is no
@@ -2334,12 +2338,16 @@
     display: none !important;
   }
 
-  /* Row 4: main actions — even 3-up grid, 44px targets */
+  /* Row 4: main actions — full-width row, 44px targets. Grid rather
+     than flex: styles.css forces width:100% !important on buttons at
+     mobile widths, and a grid track caps that at the track size (flex
+     does not). Track weights mirror the approved mock, where the three
+     buttons are intentionally unequal ("View Profile" widest label). */
   .sp-card-actions {
     grid-column: 1 / -1 !important;
     grid-row: 4 !important;
     display: grid !important;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.25fr) minmax(0, 0.95fr);
     gap: 8px;
     padding: 10px 14px 12px;
     border-left: none;
@@ -2348,11 +2356,16 @@
   }
 
   .sp-card-actions .sp-btn {
+    min-width: 0;
     min-height: 44px !important;
-    padding: 8px 6px !important;
-    font-size: 12.5px !important;
+    padding: 8px 4px !important;
+    font-size: 12px !important;
+    letter-spacing: 0 !important;
     border-radius: 10px !important;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: center;
   }
 
   /* Save + View Profile share consistent secondary styling;
@@ -2406,7 +2419,10 @@
     width: 100%;
     display: grid;
     grid-template-columns: clamp(104px, 32vw, 150px) 1fr;
-    gap: 12px;
+    grid-template-areas:
+      'media body'
+      'actions actions';
+    gap: 10px 12px;
     background: none;
     border: none;
     border-radius: 0;
@@ -2415,6 +2431,7 @@
 
   /* Square, stable package media — no stretch, no layout shift */
   .sp-pkg-mini-thumb {
+    grid-area: media;
     width: 100%;
     height: auto;
     aspect-ratio: 1 / 1;
@@ -2431,6 +2448,7 @@
   }
 
   .sp-pkg-mini-body {
+    grid-area: body;
     padding: 0;
     min-width: 0;
     display: flex;
@@ -2468,29 +2486,38 @@
     margin: 0;
   }
 
-  /* Add to plan + Detailed View: side by side, equal height, 44px targets */
+  /* Add to plan + Detailed View: full card width beneath the media+text
+     row (grid-area: actions), side by side with equal tracks per the
+     approved mock. Grid (not flex) so the global mobile
+     width:100% !important button rule is capped at track size. */
   .sp-pkg-mini-actions {
-    flex-direction: row;
+    grid-area: actions;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
-    margin-top: 6px;
+    margin-top: 0;
+    padding: 0;
   }
 
   .sp-pkg-mini-actions .sp-btn--pkg {
-    flex: 1 1 0;
+    min-width: 0;
     min-height: 44px !important;
     padding: 8px 6px !important;
     font-size: 12.5px !important;
     border-radius: 10px !important;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: center;
+    background: #fff !important;
+    border: 1px solid rgba(11, 128, 115, 0.35) !important;
+    color: #0b8073 !important;
   }
 
   .sp-pkg-mini-actions .btn-pkg-detail {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    background: #fff !important;
-    border: 1px solid rgba(11, 128, 115, 0.35) !important;
-    color: #0b8073 !important;
   }
 
   /* Position indicator */
@@ -2561,8 +2588,7 @@
   }
 }
 
-/* Very narrow phones (~320px): keep both package actions side by side
-   by tightening, not stacking */
+/* Very narrow phones (~320px): tighten, never overlap */
 @media (max-width: 360px) {
   .sp-pkg-mini {
     grid-template-columns: 96px 1fr;
@@ -2572,7 +2598,7 @@
   .sp-pkg-mini-actions .sp-btn--pkg,
   .sp-card-actions .sp-btn {
     font-size: 11.5px !important;
-    padding: 8px 4px !important;
+    padding: 8px 3px !important;
   }
 
   .sp-pkg-arrow {

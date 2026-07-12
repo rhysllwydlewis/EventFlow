@@ -153,6 +153,21 @@ describe('Carousel markup and behaviour', () => {
     expect(JS_SRC).toMatch(/\/package\/\$\{encodeURIComponent\(String\(packageIdentifier\)\)\}/);
     expect(JS_SRC).toContain('btn-pkg-detail');
   });
+
+  test('REGRESSION: package actions are a direct child of .sp-pkg-mini, not nested in the body', () => {
+    // grid-template-areas can only place direct grid children. When the
+    // actions row was nested inside .sp-pkg-mini-body it was confined to
+    // the narrow text column and the two buttons overlapped (reported on
+    // device at ~375px). This pins the flattened structure.
+    const mini = JS_SRC.slice(
+      JS_SRC.indexOf('<div class="sp-pkg-mini">'),
+      JS_SRC.indexOf('</div>`;', JS_SRC.indexOf('<div class="sp-pkg-mini">'))
+    );
+    const bodyStart = mini.indexOf('sp-pkg-mini-body');
+    const bodyEnd = mini.indexOf('</div>', bodyStart);
+    const actionsStart = mini.indexOf('sp-pkg-mini-actions');
+    expect(actionsStart).toBeGreaterThan(bodyEnd);
+  });
 });
 
 describe('Description "Show more" control', () => {
@@ -191,6 +206,16 @@ describe('Mobile card CSS', () => {
 
   test('carousel transition respects prefers-reduced-motion', () => {
     expect(redesign).toMatch(/@media \(prefers-reduced-motion: reduce\)/);
+  });
+
+  test('REGRESSION: action rows use grid so the global mobile width:100% !important button rule is capped at track size', () => {
+    // styles.css forces width:100% !important on buttons at mobile
+    // widths; in a flex row that blows every button out to container
+    // width (overflowing invisibly under the card's overflow:hidden).
+    // Grid tracks cap it. Pin both action rows to grid.
+    const actions = redesign.slice(redesign.indexOf('Row 4: main actions'));
+    expect(actions).toMatch(/\.sp-card-actions\s*\{[^}]*display:\s*grid !important/);
+    expect(redesign).toMatch(/\.sp-pkg-mini-actions\s*\{[^}]*display:\s*grid/);
   });
 
   test('position indicator and arrow labels are hidden outside mobile widths', () => {

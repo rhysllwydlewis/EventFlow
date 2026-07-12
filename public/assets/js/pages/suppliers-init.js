@@ -262,17 +262,17 @@ function createSupplierCard(supplier, position) {
             <p class="sp-pkg-mini-title">${escapeHtml(pkg.title)}</p>
             <p class="sp-pkg-mini-price">${escapeHtml(displayPrice)}</p>
             ${descHtml}
-            <div class="sp-pkg-mini-actions">
-              <button class="ef-cta sp-btn sp-btn--plan sp-btn--pkg btn-add-to-plan"
-                      data-package-id="${escapeHtml(pkg.id || '')}"
-                      data-package-title="${escapeHtml(pkg.title)}"
-                      data-package-price="${escapeHtml(displayPrice)}"
-                      data-supplier-id="${escapeHtml(supplier.id)}"
-                      aria-label="Add ${escapeHtml(pkg.title)} to your plan">
-                Add to plan
-              </button>
-              ${detailBtn}
-            </div>
+          </div>
+          <div class="sp-pkg-mini-actions">
+            <button class="ef-cta sp-btn sp-btn--plan sp-btn--pkg btn-add-to-plan"
+                    data-package-id="${escapeHtml(pkg.id || '')}"
+                    data-package-title="${escapeHtml(pkg.title)}"
+                    data-package-price="${escapeHtml(displayPrice)}"
+                    data-supplier-id="${escapeHtml(supplier.id)}"
+                    aria-label="Add ${escapeHtml(pkg.title)} to your plan">
+              Add to plan
+            </button>
+            ${detailBtn}
           </div>
         </div>`;
       })
