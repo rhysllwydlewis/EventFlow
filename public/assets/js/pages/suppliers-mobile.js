@@ -5,6 +5,9 @@
  *  1. Advanced filter toggle (aria-expanded, aria-controls, active-filter badge,
  *     sessionStorage state persistence, smooth CSS max-height animation)
  *  2. Package carousel touch-swipe (delegates to existing arrow-button click handlers)
+ *  3. Focused suppliers-page polish: stylesheet loading, GBP price formatting,
+ *     compact package fallbacks, responsive carousel alignment, and accessible
+ *     description expansion.
  *
  * This script is intentionally kept free of ES module syntax so it can be loaded
  * with a plain `<script defer>` tag alongside the module-based suppliers-init.js.
@@ -27,6 +30,10 @@
    *  AND the MOBILE_BP constant in public/assets/js/pages/suppliers-init.js.
    *  ⚠ If this value changes, update all three locations. */
   const MOBILE_BP = 640;
+
+  /** Focused polish layer, isolated from the shared/global stylesheet stack. */
+  const POLISH_STYLESHEET_ID = 'suppliers-mobile-polish-styles';
+  const POLISH_STYLESHEET_HREF = '/assets/css/suppliers-mobile-polish.css?v=19.3.0';
 
   /** IDs of the inputs that live inside the advanced panel (used for badge count) */
   const ADVANCED_FILTER_IDS = [
@@ -60,6 +67,291 @@
     } catch (_) {
       /* ignore — storage unavailable (private mode etc.) */
     }
+  }
+
+  function loadPolishStylesheet(onReady) {
+    const runReady = () => {
+      if (typeof onReady === 'function') {
+        requestAnimationFrame(onReady);
+      }
+    };
+
+    const existing = document.getElementById(POLISH_STYLESHEET_ID);
+    if (existing) {
+      if (existing.sheet) {
+        runReady();
+      } else {
+        existing.addEventListener('load', runReady, { once: true });
+        existing.addEventListener('error', runReady, { once: true });
+      }
+      return;
+    }
+
+    const link = document.createElement('link');
+    link.id = POLISH_STYLESHEET_ID;
+    link.rel = 'stylesheet';
+    link.href = POLISH_STYLESHEET_HREF;
+    link.addEventListener('load', runReady, { once: true });
+    link.addEventListener('error', runReady, { once: true });
+    document.head.appendChild(link);
+  }
+
+  function formatPriceAsGBP(value) {
+    const raw = String(value || '').trim();
+    if (!raw || raw.includes('£')) {
+      return raw;
+    }
+
+    const numericMatch = raw.replace(/,/g, '').match(/^\d+(?:\.\d{1,2})?$/);
+    if (!numericMatch) {
+      return raw;
+    }
+
+    const amount = Number(numericMatch[0]);
+    if (!Number.isFinite(amount)) {
+      return raw;
+    }
+
+    return new Intl.NumberFormat('en-GB', {
+      style: 'currency',
+      currency: 'GBP',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    }).format(amount);
+  }
+
+  function enhancePackagePrice(priceEl) {
+    if (!priceEl || priceEl.dataset.spCurrencyFormatted === 'true') {
+      return;
+    }
+
+    const formatted = formatPriceAsGBP(priceEl.textContent);
+    if (formatted) {
+      priceEl.textContent = formatted;
+    }
+    priceEl.dataset.spCurrencyFormatted = 'true';
+  }
+
+  function getVisibleCarouselIndex(track, items) {
+    if (!track || items.length === 0) {
+      return 0;
+    }
+
+    const transformMatch = String(track.style.transform || '').match(
+      /translateX\(\s*(-?\d+(?:\.\d+)?)px\s*\)/
+    );
+    if (!transformMatch) {
+      return 0;
+    }
+
+    const firstItem = items[0];
+    const gap = Number.parseFloat(window.getComputedStyle(track).columnGap) || 0;
+    const step = firstItem.getBoundingClientRect().width + gap;
+    if (!step) {
+      return 0;
+    }
+
+    const offset = Math.abs(Number.parseFloat(transformMatch[1]) || 0);
+    return Math.min(items.length - 1, Math.max(0, Math.round(offset / step)));
+  }
+
+  function syncCarouselMediaHeight(carousel) {
+    if (!carousel) {
+      return;
+    }
+
+    const track = carousel.querySelector('.sp-pkg-carousel-track');
+    const items = track ? [...track.querySelectorAll('.sp-pkg-mini')] : [];
+    if (!track || items.length === 0) {
+      return;
+    }
+
+    const visibleIndex = getVisibleCarouselIndex(track, items);
+    const thumb = items[visibleIndex]?.querySelector('.sp-pkg-mini-thumb');
+    const mediaHeight = thumb?.getBoundingClientRect().height || 0;
+    if (!mediaHeight) {
+      return;
+    }
+
+    const cssValue = `${Math.round(mediaHeight)}px`;
+    if (carousel.style.getPropertyValue('--sp-active-media-height') !== cssValue) {
+      carousel.style.setProperty('--sp-active-media-height', cssValue);
+    }
+  }
+
+  function syncPackageFallback(thumb) {
+    if (!thumb) {
+      return;
+    }
+
+    const image = thumb.querySelector('.sp-pkg-mini-img');
+    const fallback = thumb.querySelector('.sp-pkg-mini-img-fallback');
+    const imageVisible =
+      image &&
+      !image.hidden &&
+      window.getComputedStyle(image).display !== 'none' &&
+      window.getComputedStyle(image).visibility !== 'hidden';
+    const fallbackVisible =
+      fallback &&
+      !fallback.hidden &&
+      window.getComputedStyle(fallback).display !== 'none' &&
+      window.getComputedStyle(fallback).visibility !== 'hidden';
+
+    thumb.classList.toggle(
+      'sp-pkg-mini-thumb--fallback',
+      Boolean(fallbackVisible || !imageVisible)
+    );
+
+    requestAnimationFrame(() => syncCarouselMediaHeight(thumb.closest('.sp-pkg-carousel')));
+  }
+
+  function getDescriptionToggle(description) {
+    const sibling = description?.nextElementSibling;
+    return sibling?.classList.contains('sp-description-toggle') ? sibling : null;
+  }
+
+  function syncDescriptionToggle(description) {
+    if (!description || !description.parentElement) {
+      return;
+    }
+
+    requestAnimationFrame(() => {
+      if (!description.isConnected) {
+        return;
+      }
+
+      let toggle = getDescriptionToggle(description);
+      const expanded = description.classList.contains('is-expanded');
+      const isClipped = description.scrollHeight > description.clientHeight + 2;
+
+      if (!expanded && !isClipped) {
+        if (toggle) {
+          toggle.remove();
+        }
+        return;
+      }
+
+      if (!description.id) {
+        const supplierId = description.closest('.sp-card')?.dataset.supplierId || 'supplier';
+        description.id = `sp-description-${supplierId}-${Math.random().toString(36).slice(2, 8)}`;
+      }
+
+      if (!toggle) {
+        toggle = document.createElement('button');
+        toggle.type = 'button';
+        toggle.className = 'sp-description-toggle';
+        description.insertAdjacentElement('afterend', toggle);
+      }
+
+      toggle.textContent = expanded ? 'Show less' : 'Show more';
+      toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+      toggle.setAttribute('aria-controls', description.id);
+    });
+  }
+
+  function enhanceRenderedCards(root) {
+    const scope = root && root.querySelectorAll ? root : document;
+
+    if (scope.matches?.('.sp-pkg-mini-price')) {
+      enhancePackagePrice(scope);
+    }
+    scope.querySelectorAll?.('.sp-pkg-mini-price').forEach(enhancePackagePrice);
+
+    if (scope.matches?.('.sp-pkg-mini-thumb')) {
+      syncPackageFallback(scope);
+    }
+    scope.querySelectorAll?.('.sp-pkg-mini-thumb').forEach(syncPackageFallback);
+
+    if (scope.matches?.('.sp-card-description')) {
+      syncDescriptionToggle(scope);
+    }
+    scope.querySelectorAll?.('.sp-card-description').forEach(syncDescriptionToggle);
+
+    if (scope.matches?.('.sp-pkg-carousel')) {
+      syncCarouselMediaHeight(scope);
+    }
+    scope.querySelectorAll?.('.sp-pkg-carousel').forEach(syncCarouselMediaHeight);
+  }
+
+  function initRenderedCardPolish() {
+    const results = document.getElementById('results');
+    if (!results) {
+      return;
+    }
+
+    if (results.dataset.spPolishInitialised === 'true') {
+      enhanceRenderedCards(results);
+      return;
+    }
+    results.dataset.spPolishInitialised = 'true';
+
+    enhanceRenderedCards(results);
+
+    const observer = new MutationObserver(mutations => {
+      mutations.forEach(mutation => {
+        if (mutation.type === 'childList') {
+          mutation.addedNodes.forEach(node => {
+            if (node.nodeType === Node.ELEMENT_NODE) {
+              enhanceRenderedCards(node);
+            }
+          });
+        }
+
+        if (mutation.type === 'attributes') {
+          const target = mutation.target;
+          if (target.closest) {
+            const thumb = target.closest('.sp-pkg-mini-thumb');
+            if (thumb) {
+              syncPackageFallback(thumb);
+            }
+            syncCarouselMediaHeight(target.closest('.sp-pkg-carousel'));
+          }
+        }
+      });
+    });
+
+    observer.observe(results, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      attributeFilter: ['style', 'hidden'],
+    });
+
+    document.addEventListener('click', event => {
+      const toggle = event.target.closest('.sp-description-toggle');
+      if (!toggle) {
+        return;
+      }
+
+      const descriptionId = toggle.getAttribute('aria-controls');
+      const description = descriptionId ? document.getElementById(descriptionId) : null;
+      if (!description) {
+        return;
+      }
+
+      const expanded = toggle.getAttribute('aria-expanded') === 'true';
+      description.classList.toggle('is-expanded', !expanded);
+      toggle.setAttribute('aria-expanded', expanded ? 'false' : 'true');
+      toggle.textContent = expanded ? 'Show more' : 'Show less';
+
+      if (expanded) {
+        syncDescriptionToggle(description);
+      }
+    });
+
+    let resizeTimer;
+    window.addEventListener(
+      'resize',
+      () => {
+        window.clearTimeout(resizeTimer);
+        resizeTimer = window.setTimeout(() => {
+          results.querySelectorAll('.sp-pkg-mini-thumb').forEach(syncPackageFallback);
+          results.querySelectorAll('.sp-card-description').forEach(syncDescriptionToggle);
+          results.querySelectorAll('.sp-pkg-carousel').forEach(syncCarouselMediaHeight);
+        }, 120);
+      },
+      { passive: true }
+    );
   }
 
   /* ────────────────────────────────────────────────────────
@@ -308,6 +600,13 @@
   function init() {
     initAdvancedFilterToggle();
     initCarouselSwipe();
+    initRenderedCardPolish();
+    loadPolishStylesheet(() => {
+      const results = document.getElementById('results');
+      if (results) {
+        enhanceRenderedCards(results);
+      }
+    });
   }
 
   if (document.readyState === 'loading') {
