@@ -90,7 +90,9 @@ test.describe('Suppliers page mobile polish', () => {
     await expect(page.locator('#suppliers-mobile-polish-styles')).toHaveCount(1);
   });
 
-  test('uses the polished hero, native select shell and correct stacking order', async ({ page }) => {
+  test('uses the polished hero, native select shell and correct stacking order', async ({
+    page,
+  }) => {
     const heroStyles = await page.locator('.suppliers-hero').evaluate(element => {
       const styles = window.getComputedStyle(element);
       return {
@@ -122,7 +124,10 @@ test.describe('Suppliers page mobile polish', () => {
     expect(parseFloat(selectStyles.paddingRight)).toBeGreaterThanOrEqual(30);
 
     const layers = await page.evaluate(() => ({
-      filters: Number.parseInt(getComputedStyle(document.querySelector('.sp-filter-panel')).zIndex, 10),
+      filters: Number.parseInt(
+        getComputedStyle(document.querySelector('.sp-filter-panel')).zIndex,
+        10
+      ),
       results: Number.parseInt(getComputedStyle(document.querySelector('#results')).zIndex, 10),
     }));
     expect(layers.filters).toBeGreaterThan(layers.results);
@@ -136,7 +141,12 @@ test.describe('Suppliers page mobile polish', () => {
     const actionBoxes = await card.locator('.sp-card-actions .sp-btn').evaluateAll(elements =>
       elements.map(element => {
         const rect = element.getBoundingClientRect();
-        return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+        return {
+          x: rect.x,
+          y: rect.y,
+          width: rect.width,
+          height: rect.height,
+        };
       })
     );
 
@@ -146,7 +156,9 @@ test.describe('Suppliers page mobile polish', () => {
     expect(profileBox.width).toBeGreaterThan(cardBox.width * 0.94);
     expect(actionsBox.width).toBeGreaterThan(cardBox.width * 0.94);
     expect(actionBoxes).toHaveLength(3);
-    expect(Math.max(...actionBoxes.map(box => box.y)) - Math.min(...actionBoxes.map(box => box.y))).toBeLessThan(3);
+    expect(
+      Math.max(...actionBoxes.map(box => box.y)) - Math.min(...actionBoxes.map(box => box.y))
+    ).toBeLessThan(3);
     expect(actionBoxes.every(box => box.width > 80 && box.height >= 34)).toBe(true);
   });
 
@@ -158,19 +170,24 @@ test.describe('Suppliers page mobile polish', () => {
 
     const fallbackThumb = page.locator('.sp-pkg-mini-thumb--fallback').first();
     await expect(fallbackThumb).toBeVisible();
-    const fallbackHeight = await fallbackThumb.evaluate(element => element.getBoundingClientRect().height);
+    const fallbackHeight = await fallbackThumb.evaluate(
+      element => element.getBoundingClientRect().height
+    );
     expect(fallbackHeight).toBeLessThanOrEqual(66);
 
-    const arrowAlignment = await page.locator('.sp-pkg-carousel').first().evaluate(carousel => {
-      const thumb = carousel.querySelector('.sp-pkg-mini-thumb');
-      const arrow = carousel.querySelector('.sp-pkg-arrow');
-      const thumbRect = thumb.getBoundingClientRect();
-      const arrowRect = arrow.getBoundingClientRect();
-      return {
-        thumbCentre: thumbRect.top + thumbRect.height / 2,
-        arrowCentre: arrowRect.top + arrowRect.height / 2,
-      };
-    });
+    const arrowAlignment = await page
+      .locator('.sp-pkg-carousel')
+      .first()
+      .evaluate(carousel => {
+        const thumb = carousel.querySelector('.sp-pkg-mini-thumb');
+        const arrow = carousel.querySelector('.sp-pkg-arrow');
+        const thumbRect = thumb.getBoundingClientRect();
+        const arrowRect = arrow.getBoundingClientRect();
+        return {
+          thumbCentre: thumbRect.top + thumbRect.height / 2,
+          arrowCentre: arrowRect.top + arrowRect.height / 2,
+        };
+      });
     expect(Math.abs(arrowAlignment.thumbCentre - arrowAlignment.arrowCentre)).toBeLessThan(5);
   });
 
@@ -188,7 +205,9 @@ test.describe('Suppliers page mobile polish', () => {
     await expect(description).toHaveClass(/is-expanded/);
   });
 
-  test('keeps quick filters swipeable, Clear pinned and FAB clearance available', async ({ page }, testInfo) => {
+  test('keeps quick filters swipeable, Clear pinned and FAB clearance available', async ({
+    page,
+  }, testInfo) => {
     const footerMetrics = await page.locator('.sp-filter-footer').evaluate(footer => {
       const shortcuts = footer.querySelector('.sp-quick-shortcuts');
       const clear = footer.querySelector('.sp-clear-btn');
@@ -208,7 +227,9 @@ test.describe('Suppliers page mobile polish', () => {
     const layoutMetrics = await page.evaluate(() => ({
       viewportWidth: window.innerWidth,
       documentWidth: document.documentElement.scrollWidth,
-      resultsPaddingBottom: Number.parseFloat(getComputedStyle(document.querySelector('#results')).paddingBottom),
+      resultsPaddingBottom: Number.parseFloat(
+        getComputedStyle(document.querySelector('#results')).paddingBottom
+      ),
     }));
     expect(layoutMetrics.documentWidth).toBeLessThanOrEqual(layoutMetrics.viewportWidth + 1);
     expect(layoutMetrics.resultsPaddingBottom).toBeGreaterThanOrEqual(96);
