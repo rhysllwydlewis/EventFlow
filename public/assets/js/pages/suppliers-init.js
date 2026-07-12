@@ -22,6 +22,24 @@ function escapeHtml(unsafe) {
   return div.innerHTML;
 }
 
+/**
+ * Format a supplier-entered package price for display.
+ * Prices arrive as free text ('£1,200', '£45 pp', 'From £150', '300', '650+').
+ * Bare numeric values (optionally with commas, decimals, or a trailing '+')
+ * are missing their currency symbol — prefix '£'. Anything already carrying
+ * a '£' (or other non-numeric wording) is left exactly as entered.
+ */
+function formatPackagePrice(raw) {
+  if (raw === null || raw === undefined) {
+    return '';
+  }
+  const str = String(raw).trim();
+  if (str === '' || str.includes('£')) {
+    return str;
+  }
+  return /^\d{1,3}(?:,\d{3})*(?:\.\d+)?\+?$/.test(str) ? `£${str}` : str;
+}
+
 // Minimal toast helper — shown when a logged-out user tries to save a supplier
 function showToast(message, type = 'info') {
   const toast = document.createElement('div');
@@ -176,15 +194,20 @@ function createSupplierCard(supplier, position) {
   const packages = Array.isArray(supplier.topPackages) ? supplier.topPackages : [];
   let packagesHtml;
 
+  // Approved universal placeholder for packages without a usable image.
+  // Served as WebP (9 KB); the PNG master lives alongside it.
+  const PKG_GENERIC_PLACEHOLDER = '/assets/images/package-placeholder.webp';
+
   if (packages.length === 0) {
     packagesHtml = `
       <div class="sp-pkg-empty">
-        <span class="sp-pkg-empty-icon" aria-hidden="true">📦</span>
+        <svg class="sp-pkg-empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="M21 15l-5-5L5 21"/></svg>
         <p class="sp-pkg-empty-text">No packages listed yet</p>
         <a href="/supplier?id=${encodeURIComponent(supplier.id)}" class="sp-pkg-empty-link">View profile</a>
       </div>`;
   } else {
-    // Show up to 4 packages — 2 visible at a time; arrows slide through the rest
+    // Show up to 4 packages — 1 visible at a time on mobile, 2 on desktop;
+    // the labelled controls / arrows slide through the rest.
     const PKG_PLACEHOLDER = '/assets/images/placeholders/package-event.svg';
     const miniCards = packages
       .slice(0, 4)
@@ -211,47 +234,68 @@ function createSupplierCard(supplier, position) {
                 }
                 return PKG_PLACEHOLDER;
               })();
-        const imgHtml =
-          resolvedImg && resolvedImg !== PKG_PLACEHOLDER
-            ? `<img src="${escapeHtml(resolvedImg)}" alt="${escapeHtml(pkg.title)}" class="sp-pkg-mini-img" loading="lazy" data-fallback-hide data-fallback-show-next>
-               <div class="sp-pkg-mini-img-fallback" style="display:none;" aria-hidden="true">📦</div>`
-            : `<div class="sp-pkg-mini-img-fallback" aria-hidden="true">📦</div>`;
+        const hasRealImg = Boolean(resolvedImg && resolvedImg !== PKG_PLACEHOLDER);
+        // Real photo: package title as alt. Generic placeholder: decorative
+        // (title is visible beside it) — empty alt keeps it out of the a11y tree.
+        const imgHtml = hasRealImg
+          ? `<img src="${escapeHtml(resolvedImg)}" alt="${escapeHtml(pkg.title)}" class="sp-pkg-mini-img" loading="lazy" decoding="async">`
+          : `<img src="${PKG_GENERIC_PLACEHOLDER}" alt="" class="sp-pkg-mini-img sp-pkg-mini-img--placeholder" loading="lazy" decoding="async">`;
         const packageIdentifier = pkg.slug || pkg.id || pkg.packageId || '';
         const pkgHref = packageIdentifier
           ? `/package/${encodeURIComponent(String(packageIdentifier))}`
           : null;
-        const cardTag = pkgHref ? 'a' : 'div';
-        const cardHrefAttr = pkgHref ? ` href="${escapeHtml(pkgHref)}"` : '';
+        const detailBtn = pkgHref
+          ? `<a href="${escapeHtml(pkgHref)}"
+                class="sp-btn sp-btn--secondary sp-btn--pkg btn-pkg-detail"
+                aria-label="View details for ${escapeHtml(pkg.title)}">
+               Detailed View
+             </a>`
+          : '';
+        const descHtml = pkg.description
+          ? `<p class="sp-pkg-mini-desc">${escapeHtml(pkg.description)}</p>`
+          : '';
+        const displayPrice = formatPackagePrice(pkg.price);
         return `
-        <${cardTag} class="sp-pkg-mini"${cardHrefAttr} aria-label="View ${escapeHtml(pkg.title)} package details">
+        <div class="sp-pkg-mini">
           <div class="sp-pkg-mini-thumb">${imgHtml}</div>
           <div class="sp-pkg-mini-body">
             <p class="sp-pkg-mini-title">${escapeHtml(pkg.title)}</p>
-            <p class="sp-pkg-mini-price">${escapeHtml(pkg.price)}</p>
-            <button class="ef-cta sp-btn sp-btn--plan btn-add-to-plan"
+            <p class="sp-pkg-mini-price">${escapeHtml(displayPrice)}</p>
+            ${descHtml}
+          </div>
+          <div class="sp-pkg-mini-actions">
+            <button class="ef-cta sp-btn sp-btn--plan sp-btn--pkg btn-add-to-plan"
                     data-package-id="${escapeHtml(pkg.id || '')}"
                     data-package-title="${escapeHtml(pkg.title)}"
-                    data-package-price="${escapeHtml(pkg.price)}"
+                    data-package-price="${escapeHtml(displayPrice)}"
                     data-supplier-id="${escapeHtml(supplier.id)}"
                     aria-label="Add ${escapeHtml(pkg.title)} to your plan">
               Add to plan
             </button>
+            ${detailBtn}
           </div>
-        </${cardTag}>`;
+        </div>`;
       })
       .join('');
 
     const total = Math.min(packages.length, 4);
     const nextDisabled = total <= 2 ? ' disabled' : '';
+    // Position indicator + labelled controls only make sense with 2+ packages;
+    // single-package suppliers get the bare package with no carousel chrome.
+    const controlsHtml =
+      total > 1
+        ? `<button class="ef-cta sp-pkg-arrow sp-pkg-arrow--prev" aria-label="View previous package for ${escapeHtml(supplier.name)}" disabled><span class="sp-pkg-arrow-glyph" aria-hidden="true">&#8249;</span><span class="sp-pkg-arrow-label">Previous</span></button>
+           <span class="sp-pkg-position" data-pkg-position aria-live="polite">1 of ${total}</span>
+           <button class="ef-cta sp-pkg-arrow sp-pkg-arrow--next" aria-label="View next package for ${escapeHtml(supplier.name)}"${nextDisabled}><span class="sp-pkg-arrow-label">Next package</span><span class="sp-pkg-arrow-glyph" aria-hidden="true">&#8250;</span></button>`
+        : '';
     packagesHtml = `
-      <div class="sp-pkg-carousel">
-        <button class="ef-cta sp-pkg-arrow sp-pkg-arrow--prev" aria-label="Show previous packages" disabled>&#8249;</button>
+      <div class="sp-pkg-carousel${total > 1 ? '' : ' sp-pkg-carousel--single'}" data-pkg-total="${total}">
         <div class="sp-pkg-carousel-viewport">
           <div class="sp-pkg-carousel-track">
             ${miniCards}
           </div>
         </div>
-        <button class="ef-cta sp-pkg-arrow sp-pkg-arrow--next" aria-label="Show next packages"${nextDisabled}>&#8250;</button>
+        ${controlsHtml}
       </div>`;
   }
 
@@ -275,7 +319,7 @@ function createSupplierCard(supplier, position) {
         ${ratingWidget}
         ${badges.length || distanceBadge ? `<div class="sp-card-badges">${badges.slice(0, 3).join('')}${distanceBadge}</div>` : ''}
       </div>
-      ${supplier.description_short ? `<p class="sp-card-description">${escapeHtml(supplier.description_short)}</p>` : ''}
+      ${supplier.description_short ? `<p class="sp-card-description">${escapeHtml(supplier.description_short)}</p><button type="button" class="sp-desc-toggle" aria-expanded="false" hidden>Show more</button>` : ''}
 
       <!-- MIDDLE: Package mini-cards -->
       <div class="sp-card-packages">
@@ -983,7 +1027,7 @@ async function initSuppliersPage() {
     resultsContainer.querySelectorAll('.btn-add-to-plan').forEach(btn => {
       btn.addEventListener('click', e => {
         e.preventDefault();
-        e.stopPropagation(); // prevent click from bubbling to parent anchor (.sp-pkg-mini)
+        e.stopPropagation(); // keep the click within the button (carousel/card handlers sit above)
         if (!shortlistManager.isAuthenticated) {
           const returnTo = window.location.pathname + window.location.search;
           showToast('Please log in to add packages to your plan.');
@@ -1013,7 +1057,70 @@ async function initSuppliersPage() {
 
     // Wire up horizontal package carousels
     attachCarousels();
+
+    // Wire up description "Show more" toggles (mobile clamp)
+    initDescriptionToggles();
   }
+
+  /*
+   * Supplier description clamp — the CSS clamps to 2 lines on mobile; the
+   * "Show more" button is revealed only when the text actually overflows,
+   * and toggles an accessible expanded state. rAF defers measurement until
+   * after layout so scrollHeight/clientHeight are accurate.
+   */
+  function initDescriptionToggles() {
+    requestAnimationFrame(() => {
+      resultsContainer.querySelectorAll('.sp-card-description').forEach(desc => {
+        const toggle = desc.nextElementSibling;
+        if (!toggle || !toggle.classList.contains('sp-desc-toggle')) {
+          return;
+        }
+        const overflowing = desc.scrollHeight > desc.clientHeight + 1;
+        toggle.hidden = !overflowing;
+      });
+    });
+  }
+
+  // Delegated toggle handler — attached once, survives every rerender.
+  resultsContainer.addEventListener('click', e => {
+    const toggle = e.target.closest('.sp-desc-toggle');
+    if (!toggle) {
+      return;
+    }
+    const desc = toggle.previousElementSibling;
+    if (!desc || !desc.classList.contains('sp-card-description')) {
+      return;
+    }
+    const expanded = desc.classList.toggle('is-expanded');
+    toggle.setAttribute('aria-expanded', String(expanded));
+    toggle.textContent = expanded ? 'Show less' : 'Show more';
+  });
+
+  /*
+   * Package image fallback — if a package image fails to load, swap in the
+   * approved generic placeholder exactly once (the data-pf guard prevents a
+   * retry loop if the placeholder itself ever failed). Delegated in the
+   * capture phase (error events don't bubble) and attached once.
+   */
+  resultsContainer.addEventListener(
+    'error',
+    e => {
+      const img = e.target;
+      if (
+        img &&
+        img.matches &&
+        img.matches('.sp-pkg-mini-img') &&
+        !img.dataset.pf
+      ) {
+        img.dataset.pf = '1';
+        img.src = '/assets/images/package-placeholder.webp';
+        img.alt = '';
+        img.classList.add('sp-pkg-mini-img--placeholder');
+      }
+    },
+    true
+  );
+
 
   // Activate left/right navigation on every .sp-pkg-carousel in resultsContainer
   function attachCarousels() {
@@ -1033,7 +1140,9 @@ async function initSuppliersPage() {
       const track = carousel.querySelector('.sp-pkg-carousel-track');
       const prevBtn = carousel.querySelector('.sp-pkg-arrow--prev');
       const nextBtn = carousel.querySelector('.sp-pkg-arrow--next');
+      const positionEl = carousel.querySelector('[data-pkg-position]');
 
+      // Single-package carousels render no controls at all — nothing to wire up.
       if (!track || !prevBtn || !nextBtn) {
         return;
       }
@@ -1066,6 +1175,11 @@ async function initSuppliersPage() {
         track.style.transform = `translateX(${-idx * getStepPx()}px)`;
         prevBtn.disabled = idx === 0;
         nextBtn.disabled = idx >= maxIdx;
+        if (positionEl) {
+          // With one visible card this reads "2 of 4"; the indicator is
+          // hidden by CSS on desktop where two cards are visible at once.
+          positionEl.textContent = `${idx + 1} of ${total}`;
+        }
       }
 
       prevBtn.addEventListener('click', e => {
