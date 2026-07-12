@@ -240,7 +240,9 @@ test.describe('Suppliers page mobile polish', () => {
     await expect(description).not.toHaveClass(/is-expanded/);
   });
 
-  test('keeps desktop quick filters wrapping instead of forcing a mobile scroller', async ({ page }) => {
+  test('keeps desktop quick filters wrapping instead of forcing a mobile scroller', async ({
+    page,
+  }) => {
     await page.setViewportSize({ width: 1024, height: 900 });
 
     const desktopShortcuts = await page.locator('.sp-quick-shortcuts').evaluate(element => {
