@@ -406,6 +406,87 @@
     padding-top: 20px;
     padding-bottom: 20px;
   }
+
+  /* ============================================================
+     9. LEGAL HUB (legal.html) — tallest public page by far
+     (~38,900px at 390px before this pass). Content length is
+     inherent; reclaim the chrome: card padding, heading rhythm,
+     list/paragraph spacing.
+     ============================================================ */
+
+  .legal-section {
+    padding: 16px 14px;
+    margin-bottom: 12px;
+  }
+
+  .legal-section h2 {
+    font-size: 1.15rem;
+    margin: 0 0 10px;
+  }
+
+  .legal-section h3 {
+    font-size: 1rem;
+    margin: 14px 0 6px;
+  }
+
+  .legal-section p,
+  .legal-section li {
+    font-size: 0.9rem;
+    line-height: 1.55;
+    margin-bottom: 10px;
+  }
+
+  .legal-section ul,
+  .legal-section ol {
+    padding-left: 18px;
+    margin: 8px 0;
+  }
+
+  .legal-toc {
+    padding: 14px;
+  }
+
+  .legal-toc li {
+    margin: 4px 0;
+  }
+
+  /* ============================================================
+     10. ARTICLES (articles/*.html) — long-form by nature; trim
+     header/hero chrome and related-card sprawl, keep body
+     typography readable.
+     ============================================================ */
+
+  .article-header {
+    padding: 20px 0 16px;
+    margin-bottom: 18px;
+  }
+
+  .article-hero-image {
+    height: 180px;
+    margin-bottom: 1.1rem;
+  }
+
+  .article-content {
+    font-size: 0.98rem;
+    line-height: 1.7;
+  }
+
+  .article-content h2 {
+    margin-top: 24px;
+  }
+
+  .article-content h3 {
+    margin-top: 18px;
+  }
+
+  .article-related {
+    padding-top: 22px;
+    margin-top: 26px;
+  }
+
+  .article-end-cta {
+    margin-top: 20px;
+  }
 }
 
 /* Extra-small phones: shave a little more */
