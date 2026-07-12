@@ -134,7 +134,10 @@
       window.getComputedStyle(fallback).display !== 'none' &&
       window.getComputedStyle(fallback).visibility !== 'hidden';
 
-    thumb.classList.toggle('sp-pkg-mini-thumb--fallback', Boolean(fallbackVisible || !imageVisible));
+    thumb.classList.toggle(
+      'sp-pkg-mini-thumb--fallback',
+      Boolean(fallbackVisible || !imageVisible)
+    );
   }
 
   function ensureDescriptionToggle(description) {
