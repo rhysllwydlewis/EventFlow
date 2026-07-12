@@ -215,7 +215,7 @@
   /* Keep the fixed shortlist action accessible without covering result cards. */
   body > #shortlist-float-btn {
     top: calc(env(safe-area-inset-top, 0px) + 4px) !important;
-    right: 58px !important;
+    right: 116px !important;
     bottom: auto !important;
     width: 40px !important;
     height: 40px !important;
@@ -224,7 +224,7 @@
     padding: 0 !important;
     margin: 0 !important;
     border-radius: 50% !important;
-    z-index: 1101 !important;
+    z-index: 2002 !important;
     box-shadow: 0 3px 12px rgba(15, 23, 42, 0.16) !important;
   }
 
