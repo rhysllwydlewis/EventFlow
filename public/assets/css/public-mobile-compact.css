@@ -1,0 +1,505 @@
+/**
+ * Public Mobile Compact — EventFlow
+ * ---------------------------------
+ * Tightens vertical rhythm on logged-out/public pages at phone widths.
+ * Goal: reclaim wasted vertical space while keeping the premium feel.
+ * Scope: home, guides, pricing, suppliers/category, marketplace, FAQ,
+ *        for-suppliers, contact, start, public-calendar, auth + shared footer.
+ *
+ * Load order: linked LAST in <head> so equal-specificity overrides win
+ * by source order. !important is used only where existing files already
+ * use it or where styles are JS-injected after page load.
+ */
+
+@media (max-width: 767px) {
+  /* ============================================================
+     1. SHARED — heroes, sections, newsletter, footer
+     ============================================================ */
+
+  /* Generic page heroes: desktop-scale padding steps down */
+  .hero.hero-modern,
+  .hero.hero--subpage {
+    padding-top: 20px;
+    padding-bottom: 18px;
+  }
+
+  .hero.hero-modern h1,
+  .hero.hero--subpage h1 {
+    font-size: clamp(1.55rem, 6.5vw, 1.9rem);
+    line-height: 1.2;
+    margin-bottom: 8px;
+  }
+
+  .hero.hero-modern p,
+  .hero.hero--subpage p {
+    font-size: 0.92rem;
+    line-height: 1.5;
+  }
+
+  /* Newsletter band: card padding + section spacing */
+  .ef-section--newsletter {
+    padding: 20px 0 !important; /* matches existing !important in mobile-optimizations.css */
+  }
+
+  .ef-nl-left,
+  .ef-nl-right {
+    padding: 1rem 1.1rem;
+  }
+
+  .ef-nl-icon {
+    width: 44px;
+    height: 44px;
+  }
+
+  /* ------------------------------------------------------------
+     Footer (both variants: .ef-footer-modern grid on home,
+     legacy .footer stack elsewhere)
+     ------------------------------------------------------------ */
+  .footer {
+    padding: 22px 0 14px;
+    margin-top: 16px;
+  }
+
+  /* Home variant static markup (no-JS fallback only — eventflow-footer.js
+     replaces this at runtime): brand full width, link columns 2-up */
+  .ef-footer-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px 18px;
+  }
+
+  .ef-footer-grid .ef-footer-brand {
+    grid-column: 1 / -1;
+    margin-bottom: 2px;
+  }
+
+  /* ------------------------------------------------------------
+     Premium JS-rendered footer (eventflow-footer.js →
+     .ef-footer-inner / .ef-footer-nav / .ef-nav-list). This is the
+     footer users actually see on index, guides, pricing, suppliers,
+     for-suppliers, marketplace and contact. Previous overrides
+     targeted the static ef-footer-grid classes, which the JS
+     replaces — hence they never took effect.
+     ------------------------------------------------------------ */
+  .ef-footer-inner {
+    grid-template-columns: 1fr 1fr !important; /* beats the 1fr rule in eventflow-footer.css @680 */
+    gap: 0.9rem 1.25rem;
+    padding: 1.6rem 1.25rem 0;
+  }
+
+  .ef-footer-inner .ef-footer-brand {
+    grid-column: 1 / -1;
+  }
+
+  .ef-nav-head {
+    margin-bottom: 2px;
+  }
+
+  .ef-nav-head-label {
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+  }
+
+  .ef-nav-list a,
+  .ef-cookie-link {
+    padding: 0.42rem 0;
+    font-size: 0.84rem;
+  }
+
+  .ef-brand-tagline,
+  .ef-brand-operated {
+    margin: 3px 0;
+    font-size: 0.86rem;
+  }
+
+  .ef-footer-bar {
+    margin-top: 1.25rem;
+  }
+
+  .ef-footer-heading {
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    margin-bottom: 6px;
+  }
+
+  .ef-footer-links {
+    margin: 0;
+  }
+
+  .ef-footer-links li {
+    margin: 0;
+  }
+
+  .ef-footer-links li a {
+    display: block;
+    padding: 5px 0;
+    font-size: 0.84rem;
+    line-height: 1.35;
+    border-bottom: none;
+  }
+
+  .ef-footer-tagline {
+    margin: 4px 0;
+    font-size: 0.86rem;
+  }
+
+  .ef-footer-socials {
+    margin: 8px 0 6px;
+  }
+
+  .ef-footer-copyright {
+    font-size: 0.74rem;
+    margin: 6px 0 0;
+  }
+
+  .ef-footer-bar-inner {
+    padding: 0.8rem 1.25rem;
+  }
+
+  /* ============================================================
+     2. HOME (index.html)
+     ============================================================ */
+
+  /* Category grid is JS-injected (category-grid.js) with 1-col /
+     200px images on mobile — eight full-width cards is most of the
+     page height. Compact 2-up tiles instead. Specificity
+     (.home-category-section .x) beats the injected single-class
+     rules; !important guards against the injected sheet being
+     appended after load. */
+  .home-category-section .category-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px !important;
+    margin-top: 14px !important;
+  }
+
+  .home-category-section .category-card-image {
+    height: 96px !important;
+  }
+
+  .home-category-section .category-card-content {
+    padding: 10px 12px 12px !important;
+  }
+
+  .home-category-section .category-card-header {
+    gap: 8px !important;
+    margin-bottom: 4px !important;
+  }
+
+  .home-category-section .category-card-icon {
+    font-size: 20px !important;
+  }
+
+  .home-category-section .category-card-name {
+    font-size: 0.95rem !important;
+  }
+
+  .home-category-section .category-card-description {
+    font-size: 0.78rem !important;
+    line-height: 1.4 !important;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .home-category-section .category-card-credit {
+    display: none; /* photo credit remains in DOM/alt flow on desktop; too noisy at tile size */
+  }
+
+  /* Skeletons should mirror the compact grid to avoid layout shift */
+  .home-category-section .category-grid-skeleton {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  .home-category-section .category-skeleton-card {
+    height: 170px;
+  }
+
+  /* ============================================================
+     3. GUIDES (guides.html)
+     ============================================================ */
+
+  .guides-hero {
+    padding: 24px 0 20px;
+  }
+
+  .guides-section,
+  .guides-tools {
+    padding-top: 20px;
+    padding-bottom: 20px;
+  }
+
+  .guides-grid {
+    gap: 14px;
+  }
+
+  /* Slimmer cards: shorter media, tighter body, clamped excerpt */
+  .guide-card__image-wrap {
+    aspect-ratio: 21/9;
+  }
+
+  .guide-card__body {
+    padding: 12px 14px 14px;
+  }
+
+  .guide-card__title {
+    font-size: 1rem;
+    line-height: 1.3;
+    margin-bottom: 6px;
+  }
+
+  .guide-card__summary,
+  .guide-card__excerpt {
+    font-size: 0.84rem;
+    line-height: 1.45;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .guide-card__meta {
+    margin-top: 8px;
+    font-size: 0.76rem;
+  }
+
+  .guide-card__cta-row {
+    margin-top: 8px;
+  }
+
+  /* Cards show both a TL;DR summary box and a plain excerpt — redundant
+     at phone widths. Keep the TL;DR (higher information density). */
+  .guide-card__summary + .guide-card__excerpt,
+  .guide-card__summary ~ .guide-card__excerpt {
+    display: none;
+  }
+
+  .guide-card__badges {
+    margin-bottom: 6px;
+  }
+
+  .guide-card__summary {
+    margin: 6px 0;
+    padding: 8px 10px;
+    font-size: 0.82rem;
+  }
+
+  /* ============================================================
+     4. PRICING (pricing.html)
+     ============================================================ */
+
+  .pricing-hero {
+    padding-top: 24px;
+    padding-bottom: 20px;
+  }
+
+  .pricing-card {
+    padding: 1.25rem 1.15rem;
+  }
+
+  .pricing-grid {
+    gap: 14px;
+  }
+
+  .pricing-features li {
+    padding: 4px 0;
+    font-size: 0.88rem;
+    line-height: 1.4;
+  }
+
+  .pricing-price {
+    font-size: 2.2rem;
+  }
+
+  /* Comparison table: denser cells so rows don't sprawl */
+  .pricing-comparison {
+    padding-top: 20px;
+    padding-bottom: 20px;
+  }
+
+  .pricing-comparison table th,
+  .pricing-comparison table td {
+    padding: 8px 10px;
+    font-size: 0.8rem;
+  }
+
+  .testimonials {
+    padding-top: 20px;
+    padding-bottom: 20px;
+  }
+
+  /* Pricing-page FAQ (inline-styled at 1.5rem pad / 1rem gaps) */
+  .faq-section {
+    padding-top: 20px;
+    padding-bottom: 20px;
+  }
+
+  .faq-section .faq-item {
+    padding: 0.9rem 1rem;
+    margin-bottom: 0.6rem;
+  }
+
+  /* ============================================================
+     5. SUPPLIERS + CATEGORY (suppliers.html / category.html)
+     ============================================================ */
+
+  .sp-filter-group {
+    margin-bottom: 8px;
+  }
+
+  .sp-filter-label {
+    font-size: 0.72rem;
+    margin-bottom: 3px;
+  }
+
+  .sp-filter-control {
+    padding: 8px 10px;
+    font-size: 0.88rem;
+  }
+
+  /* ============================================================
+     6. MARKETPLACE (marketplace.html)
+     ============================================================ */
+
+  .mkt-hero__inner {
+    padding-top: 20px;
+    padding-bottom: 18px;
+  }
+
+  .mkt-hero__content h1 {
+    font-size: clamp(1.5rem, 6.5vw, 1.85rem);
+  }
+
+  /* ============================================================
+     7. FAQ PAGE (faq.html)
+     ============================================================ */
+
+  .faq-hero-img {
+    max-height: 140px;
+    object-fit: cover;
+  }
+
+  /* NOTE: faq.html's own .faq-item collapsed state is already compact
+     (~26px) — do not add padding here. Pricing's FAQ is handled above
+     via the scoped .faq-section .faq-item rule. */
+
+  .faq-filter-btn {
+    padding: 5px 12px;
+    font-size: 0.8rem;
+  }
+
+  .faq-group-heading {
+    margin: 16px 0 8px;
+  }
+
+  /* ============================================================
+     8. FOR-SUPPLIERS (for-suppliers.html)
+     ============================================================ */
+
+  .suppliers-hero {
+    padding: 26px 0 22px;
+  }
+
+  .suppliers-body {
+    padding-top: 20px;
+    padding-bottom: 20px;
+  }
+
+  /* ============================================================
+     9. LEGAL HUB (legal.html) — tallest public page by far
+     (~38,900px at 390px before this pass). Content length is
+     inherent; reclaim the chrome: card padding, heading rhythm,
+     list/paragraph spacing.
+     ============================================================ */
+
+  .legal-section {
+    padding: 16px 14px;
+    margin-bottom: 12px;
+  }
+
+  .legal-section h2 {
+    font-size: 1.15rem;
+    margin: 0 0 10px;
+  }
+
+  .legal-section h3 {
+    font-size: 1rem;
+    margin: 14px 0 6px;
+  }
+
+  .legal-section p,
+  .legal-section li {
+    font-size: 0.9rem;
+    line-height: 1.55;
+    margin-bottom: 10px;
+  }
+
+  .legal-section ul,
+  .legal-section ol {
+    padding-left: 18px;
+    margin: 8px 0;
+  }
+
+  .legal-toc {
+    padding: 14px;
+  }
+
+  .legal-toc li {
+    margin: 4px 0;
+  }
+
+  /* ============================================================
+     10. ARTICLES (articles/*.html) — long-form by nature; trim
+     header/hero chrome and related-card sprawl, keep body
+     typography readable.
+     ============================================================ */
+
+  .article-header {
+    padding: 20px 0 16px;
+    margin-bottom: 18px;
+  }
+
+  .article-hero-image {
+    height: 180px;
+    margin-bottom: 1.1rem;
+  }
+
+  .article-content {
+    font-size: 0.98rem;
+    line-height: 1.7;
+  }
+
+  .article-content h2 {
+    margin-top: 24px;
+  }
+
+  .article-content h3 {
+    margin-top: 18px;
+  }
+
+  .article-related {
+    padding-top: 22px;
+    margin-top: 26px;
+  }
+
+  .article-end-cta {
+    margin-top: 20px;
+  }
+}
+
+/* Extra-small phones: shave a little more */
+@media (max-width: 480px) {
+  .home-category-section .category-card-image {
+    height: 84px !important;
+  }
+
+  .guide-card__image-wrap {
+    aspect-ratio: 2.6/1;
+  }
+
+  .ef-footer-links li a {
+    font-size: 0.82rem;
+  }
+}
