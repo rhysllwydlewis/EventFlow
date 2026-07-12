@@ -99,6 +99,18 @@ async function getFirstCarouselAlignment(page) {
     });
 }
 
+async function dismissCookieConsent(page) {
+  const rejectButton = page.locator('#cookie-consent-reject');
+  const isVisible = await rejectButton.isVisible({ timeout: 3000 }).catch(() => false);
+
+  if (!isVisible) {
+    return;
+  }
+
+  await rejectButton.click();
+  await expect(page.locator('#cookie-consent-banner')).toHaveCount(0, { timeout: 3000 });
+}
+
 test.describe('Suppliers page mobile polish', () => {
   test.beforeEach(async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
@@ -111,6 +123,7 @@ test.describe('Suppliers page mobile polish', () => {
     );
 
     await page.goto('/suppliers', { waitUntil: 'domcontentloaded' });
+    await dismissCookieConsent(page);
     await expect(page.locator('.sp-card')).toHaveCount(2, { timeout: 15000 });
     await expect(page.locator('#suppliers-mobile-polish-styles')).toHaveCount(1);
   });
