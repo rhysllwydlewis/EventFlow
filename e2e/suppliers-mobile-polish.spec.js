@@ -199,10 +199,29 @@ test.describe('Suppliers page mobile polish', () => {
     await expect(toggle).toHaveText('Show more');
     await expect(toggle).toHaveAttribute('aria-expanded', 'false');
 
+    const toggleBox = await toggle.boundingBox();
+    expect(toggleBox).not.toBeNull();
+    expect(toggleBox.height).toBeGreaterThanOrEqual(36);
+
     await toggle.click();
     await expect(toggle).toHaveText('Show less');
     await expect(toggle).toHaveAttribute('aria-expanded', 'true');
     await expect(description).toHaveClass(/is-expanded/);
+  });
+
+  test('keeps desktop quick filters wrapping instead of forcing a mobile scroller', async ({ page }) => {
+    await page.setViewportSize({ width: 1024, height: 900 });
+
+    const desktopShortcuts = await page.locator('.sp-quick-shortcuts').evaluate(element => {
+      const styles = window.getComputedStyle(element);
+      return {
+        flexWrap: styles.flexWrap,
+        overflowX: styles.overflowX,
+      };
+    });
+
+    expect(desktopShortcuts.flexWrap).toBe('wrap');
+    expect(desktopShortcuts.overflowX).toBe('visible');
   });
 
   test('keeps quick filters swipeable, Clear pinned and FAB clearance available', async ({
