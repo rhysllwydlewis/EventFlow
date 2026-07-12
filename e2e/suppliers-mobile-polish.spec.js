@@ -29,7 +29,7 @@ const MOCK_SUPPLIERS = {
             id: 'package-mobile-polish-2',
             title: 'Ceremony and portraits',
             price: '495.00',
-            image: '/assets/images/placeholders/package-event.svg',
+            image: '/assets/images/eventflow-og-image.png',
             gallery: [],
           },
           {
@@ -73,6 +73,31 @@ const MOCK_SUPPLIERS = {
     appliedSort: 'relevance',
   },
 };
+
+async function getFirstCarouselAlignment(page) {
+  return page
+    .locator('.sp-pkg-carousel')
+    .first()
+    .evaluate(carousel => {
+      const track = carousel.querySelector('.sp-pkg-carousel-track');
+      const items = [...track.querySelectorAll('.sp-pkg-mini')];
+      const transformMatch = String(track.style.transform || '').match(
+        /translateX\(\s*(-?\d+(?:\.\d+)?)px\s*\)/
+      );
+      const gap = Number.parseFloat(getComputedStyle(track).columnGap) || 0;
+      const step = items[0].getBoundingClientRect().width + gap;
+      const offset = Math.abs(Number.parseFloat(transformMatch?.[1] || '0'));
+      const index = Math.min(items.length - 1, Math.max(0, Math.round(offset / step)));
+      const thumb = items[index].querySelector('.sp-pkg-mini-thumb');
+      const arrow = carousel.querySelector('.sp-pkg-arrow');
+      const thumbRect = thumb.getBoundingClientRect();
+      const arrowRect = arrow.getBoundingClientRect();
+      return {
+        thumbCentre: thumbRect.top + thumbRect.height / 2,
+        arrowCentre: arrowRect.top + arrowRect.height / 2,
+      };
+    });
+}
 
 test.describe('Suppliers page mobile polish', () => {
   test.beforeEach(async ({ page }) => {
@@ -162,7 +187,7 @@ test.describe('Suppliers page mobile polish', () => {
     expect(actionBoxes.every(box => box.width > 80 && box.height >= 34)).toBe(true);
   });
 
-  test('formats GBP prices and collapses missing package media', async ({ page }) => {
+  test('formats GBP prices and keeps arrows aligned as package media changes', async ({ page }) => {
     const firstPrice = page.locator('.sp-pkg-mini-price').first();
     await expect(firstPrice).toHaveText('£300');
     await expect(page.locator('.sp-pkg-mini-price').nth(1)).toHaveText('£495');
@@ -175,20 +200,22 @@ test.describe('Suppliers page mobile polish', () => {
     );
     expect(fallbackHeight).toBeLessThanOrEqual(66);
 
-    const arrowAlignment = await page
-      .locator('.sp-pkg-carousel')
-      .first()
-      .evaluate(carousel => {
-        const thumb = carousel.querySelector('.sp-pkg-mini-thumb');
-        const arrow = carousel.querySelector('.sp-pkg-arrow');
-        const thumbRect = thumb.getBoundingClientRect();
-        const arrowRect = arrow.getBoundingClientRect();
-        return {
-          thumbCentre: thumbRect.top + thumbRect.height / 2,
-          arrowCentre: arrowRect.top + arrowRect.height / 2,
-        };
-      });
-    expect(Math.abs(arrowAlignment.thumbCentre - arrowAlignment.arrowCentre)).toBeLessThan(5);
+    const realImage = page.locator('.sp-pkg-mini-img').first();
+    await expect(realImage).toBeVisible();
+    await expect
+      .poll(() => realImage.evaluate(image => image.complete && image.naturalWidth > 0))
+      .toBe(true);
+
+    const initialAlignment = await getFirstCarouselAlignment(page);
+    expect(Math.abs(initialAlignment.thumbCentre - initialAlignment.arrowCentre)).toBeLessThan(5);
+
+    const nextButton = page.locator('.sp-pkg-carousel .sp-pkg-arrow--next').first();
+    await expect(nextButton).toBeEnabled();
+    await nextButton.click();
+    await page.waitForTimeout(350);
+
+    const nextAlignment = await getFirstCarouselAlignment(page);
+    expect(Math.abs(nextAlignment.thumbCentre - nextAlignment.arrowCentre)).toBeLessThan(5);
   });
 
   test('offers a touch-friendly description expansion control', async ({ page }) => {
@@ -207,6 +234,10 @@ test.describe('Suppliers page mobile polish', () => {
     await expect(toggle).toHaveText('Show less');
     await expect(toggle).toHaveAttribute('aria-expanded', 'true');
     await expect(description).toHaveClass(/is-expanded/);
+
+    await toggle.click();
+    await expect(toggle).toHaveText('Show more');
+    await expect(description).not.toHaveClass(/is-expanded/);
   });
 
   test('keeps desktop quick filters wrapping instead of forcing a mobile scroller', async ({ page }) => {
