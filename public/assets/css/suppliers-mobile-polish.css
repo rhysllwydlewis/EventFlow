@@ -143,14 +143,9 @@
 
 .suppliers-page-wrap .sp-pkg-arrow {
   align-self: flex-start;
-  margin-top: calc((var(--sp-polish-thumb-height) - 22px) / 2) !important;
-}
-
-/* Keep navigation centred when the leading package uses the 64px fallback strip. */
-.suppliers-page-wrap
-  .sp-pkg-carousel:has(.sp-pkg-carousel-track > .sp-pkg-mini:first-child .sp-pkg-mini-thumb--fallback)
-  .sp-pkg-arrow {
-  margin-top: 21px !important;
+  margin-top: calc(
+    (var(--sp-active-media-height, var(--sp-polish-thumb-height)) - 22px) / 2
+  ) !important;
 }
 
 /* ── Mobile card reflow and quick-filter containment ───────────────────── */
@@ -300,10 +295,6 @@
   .suppliers-page-wrap .sp-pkg-mini-thumb--fallback {
     height: 64px !important;
     min-height: 64px !important;
-  }
-
-  .suppliers-page-wrap .sp-pkg-arrow {
-    margin-top: calc((var(--sp-polish-thumb-height) - 22px) / 2) !important;
   }
 
   .suppliers-page-wrap #results {
