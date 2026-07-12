@@ -1027,7 +1027,7 @@ async function initSuppliersPage() {
     resultsContainer.querySelectorAll('.btn-add-to-plan').forEach(btn => {
       btn.addEventListener('click', e => {
         e.preventDefault();
-        e.stopPropagation(); // prevent click from bubbling to parent anchor (.sp-pkg-mini)
+        e.stopPropagation(); // keep the click within the button (carousel/card handlers sit above)
         if (!shortlistManager.isAuthenticated) {
           const returnTo = window.location.pathname + window.location.search;
           showToast('Please log in to add packages to your plan.');
