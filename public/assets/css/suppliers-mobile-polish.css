@@ -1,8 +1,8 @@
 /*
  * EventFlow suppliers/search page — focused mobile polish layer.
  *
- * Loaded by suppliers-mobile.js so this work remains isolated from shared global
- * components and can be removed or iterated without destabilising other pages.
+ * Loaded by suppliers-mobile.js so these overrides remain isolated from shared
+ * global components and can be iterated without destabilising unrelated pages.
  */
 
 /* ── Hero and surface hierarchy ─────────────────────────────────────────── */
@@ -78,7 +78,7 @@
   -webkit-box-orient: vertical !important;
   -webkit-line-clamp: 2 !important;
   overflow: hidden !important;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 .suppliers-page-wrap .sp-card-description.is-expanded {
@@ -97,9 +97,10 @@
   font-size: 11px;
   font-weight: 700;
   line-height: 1.2;
-  padding: 5px 2px;
-  min-height: 28px;
+  padding: 9px 4px;
+  min-height: 36px;
   cursor: pointer;
+  touch-action: manipulation;
   justify-self: start;
   text-decoration: underline;
   text-underline-offset: 2px;
@@ -145,58 +146,14 @@
   margin-top: calc((var(--sp-polish-thumb-height) - 22px) / 2) !important;
 }
 
-/* Keep navigation centred when the first visible package uses the 64px fallback strip. */
+/* Keep navigation centred when the leading package uses the 64px fallback strip. */
 .suppliers-page-wrap
   .sp-pkg-carousel:has(.sp-pkg-carousel-track > .sp-pkg-mini:first-child .sp-pkg-mini-thumb--fallback)
   .sp-pkg-arrow {
   margin-top: 21px !important;
 }
 
-/* ── Quick filters: scrollable chips with a pinned clear action ─────────── */
-.suppliers-page-wrap .sp-filter-footer {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  flex-wrap: nowrap;
-  overflow: hidden;
-}
-
-.suppliers-page-wrap .sp-quick-shortcuts {
-  min-width: 0;
-  width: 100%;
-  flex-wrap: nowrap !important;
-  overflow-x: auto;
-  overflow-y: hidden;
-  overscroll-behavior-inline: contain;
-  scrollbar-width: none;
-  -webkit-overflow-scrolling: touch;
-  padding: 2px 18px 3px 0;
-}
-
-.suppliers-page-wrap .sp-quick-shortcuts::-webkit-scrollbar {
-  display: none;
-}
-
-.suppliers-page-wrap .sp-clear-btn {
-  position: relative;
-  z-index: 2;
-  align-self: stretch;
-  background: rgba(255, 255, 255, 0.96) !important;
-  margin-left: 2px !important;
-}
-
-.suppliers-page-wrap .sp-clear-btn::before {
-  content: '';
-  position: absolute;
-  top: -2px;
-  bottom: -2px;
-  right: 100%;
-  width: 24px;
-  pointer-events: none;
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.96));
-}
-
-/* ── Mobile card reflow ─────────────────────────────────────────────────── */
+/* ── Mobile card reflow and quick-filter containment ───────────────────── */
 @media (max-width: 767px) {
   .suppliers-page-wrap {
     --sp-polish-thumb-height: 112px;
@@ -212,15 +169,52 @@
   }
 
   .suppliers-page-wrap .sp-filter-footer {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
     gap: 6px;
+    flex-wrap: nowrap;
+    overflow: hidden;
   }
 
-  .suppliers-page-wrap .sp-quick-label {
-    flex: 0 0 auto;
+  .suppliers-page-wrap .sp-quick-shortcuts {
+    min-width: 0;
+    width: 100%;
+    flex-wrap: nowrap !important;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    padding: 2px 18px 3px 0;
   }
 
+  .suppliers-page-wrap .sp-quick-shortcuts::-webkit-scrollbar {
+    display: none;
+  }
+
+  .suppliers-page-wrap .sp-quick-label,
   .suppliers-page-wrap .sp-shortcut-btn {
     flex: 0 0 auto;
+  }
+
+  .suppliers-page-wrap .sp-clear-btn {
+    position: relative;
+    z-index: 2;
+    align-self: stretch;
+    background: rgba(255, 255, 255, 0.96) !important;
+    margin-left: 2px !important;
+  }
+
+  .suppliers-page-wrap .sp-clear-btn::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    bottom: -2px;
+    right: 100%;
+    width: 24px;
+    pointer-events: none;
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.96));
   }
 
   .suppliers-page-wrap .sp-card {
@@ -255,7 +249,7 @@
     grid-column: 1 !important;
     grid-row: 3 !important;
     align-self: start;
-    margin: -4px 12px 7px;
+    margin: -6px 10px 5px;
     z-index: 1;
   }
 
