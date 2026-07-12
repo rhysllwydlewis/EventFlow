@@ -6,7 +6,8 @@
  *     sessionStorage state persistence, smooth CSS max-height animation)
  *  2. Package carousel touch-swipe (delegates to existing arrow-button click handlers)
  *  3. Focused suppliers-page polish: stylesheet loading, GBP price formatting,
- *     compact package fallbacks, and accessible description expansion.
+ *     compact package fallbacks, responsive carousel alignment, and accessible
+ *     description expansion.
  *
  * This script is intentionally kept free of ES module syntax so it can be loaded
  * with a plain `<script defer>` tag alongside the module-based suppliers-init.js.
@@ -68,8 +69,21 @@
     }
   }
 
-  function loadPolishStylesheet() {
-    if (document.getElementById(POLISH_STYLESHEET_ID)) {
+  function loadPolishStylesheet(onReady) {
+    const runReady = () => {
+      if (typeof onReady === 'function') {
+        requestAnimationFrame(onReady);
+      }
+    };
+
+    const existing = document.getElementById(POLISH_STYLESHEET_ID);
+    if (existing) {
+      if (existing.sheet) {
+        runReady();
+      } else {
+        existing.addEventListener('load', runReady, { once: true });
+        existing.addEventListener('error', runReady, { once: true });
+      }
       return;
     }
 
@@ -77,6 +91,8 @@
     link.id = POLISH_STYLESHEET_ID;
     link.rel = 'stylesheet';
     link.href = POLISH_STYLESHEET_HREF;
+    link.addEventListener('load', runReady, { once: true });
+    link.addEventListener('error', runReady, { once: true });
     document.head.appendChild(link);
   }
 
@@ -116,6 +132,53 @@
     priceEl.dataset.spCurrencyFormatted = 'true';
   }
 
+  function getVisibleCarouselIndex(track, items) {
+    if (!track || items.length === 0) {
+      return 0;
+    }
+
+    const transformMatch = String(track.style.transform || '').match(
+      /translateX\(\s*(-?\d+(?:\.\d+)?)px\s*\)/
+    );
+    if (!transformMatch) {
+      return 0;
+    }
+
+    const firstItem = items[0];
+    const gap = Number.parseFloat(window.getComputedStyle(track).columnGap) || 0;
+    const step = firstItem.getBoundingClientRect().width + gap;
+    if (!step) {
+      return 0;
+    }
+
+    const offset = Math.abs(Number.parseFloat(transformMatch[1]) || 0);
+    return Math.min(items.length - 1, Math.max(0, Math.round(offset / step)));
+  }
+
+  function syncCarouselMediaHeight(carousel) {
+    if (!carousel) {
+      return;
+    }
+
+    const track = carousel.querySelector('.sp-pkg-carousel-track');
+    const items = track ? [...track.querySelectorAll('.sp-pkg-mini')] : [];
+    if (!track || items.length === 0) {
+      return;
+    }
+
+    const visibleIndex = getVisibleCarouselIndex(track, items);
+    const thumb = items[visibleIndex]?.querySelector('.sp-pkg-mini-thumb');
+    const mediaHeight = thumb?.getBoundingClientRect().height || 0;
+    if (!mediaHeight) {
+      return;
+    }
+
+    const cssValue = `${Math.round(mediaHeight)}px`;
+    if (carousel.style.getPropertyValue('--sp-active-media-height') !== cssValue) {
+      carousel.style.setProperty('--sp-active-media-height', cssValue);
+    }
+  }
+
   function syncPackageFallback(thumb) {
     if (!thumb) {
       return;
@@ -138,18 +201,33 @@
       'sp-pkg-mini-thumb--fallback',
       Boolean(fallbackVisible || !imageVisible)
     );
+
+    requestAnimationFrame(() => syncCarouselMediaHeight(thumb.closest('.sp-pkg-carousel')));
   }
 
-  function ensureDescriptionToggle(description) {
-    if (!description || description.dataset.spDescriptionEnhanced === 'true') {
+  function getDescriptionToggle(description) {
+    const sibling = description?.nextElementSibling;
+    return sibling?.classList.contains('sp-description-toggle') ? sibling : null;
+  }
+
+  function syncDescriptionToggle(description) {
+    if (!description || !description.parentElement) {
       return;
     }
 
-    description.dataset.spDescriptionEnhanced = 'true';
-
     requestAnimationFrame(() => {
+      if (!description.isConnected) {
+        return;
+      }
+
+      let toggle = getDescriptionToggle(description);
+      const expanded = description.classList.contains('is-expanded');
       const isClipped = description.scrollHeight > description.clientHeight + 2;
-      if (!isClipped || !description.parentElement) {
+
+      if (!expanded && !isClipped) {
+        if (toggle) {
+          toggle.remove();
+        }
         return;
       }
 
@@ -158,13 +236,16 @@
         description.id = `sp-description-${supplierId}-${Math.random().toString(36).slice(2, 8)}`;
       }
 
-      const toggle = document.createElement('button');
-      toggle.type = 'button';
-      toggle.className = 'sp-description-toggle';
-      toggle.textContent = 'Show more';
-      toggle.setAttribute('aria-expanded', 'false');
+      if (!toggle) {
+        toggle = document.createElement('button');
+        toggle.type = 'button';
+        toggle.className = 'sp-description-toggle';
+        description.insertAdjacentElement('afterend', toggle);
+      }
+
+      toggle.textContent = expanded ? 'Show less' : 'Show more';
+      toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
       toggle.setAttribute('aria-controls', description.id);
-      description.insertAdjacentElement('afterend', toggle);
     });
   }
 
@@ -182,9 +263,14 @@
     scope.querySelectorAll?.('.sp-pkg-mini-thumb').forEach(syncPackageFallback);
 
     if (scope.matches?.('.sp-card-description')) {
-      ensureDescriptionToggle(scope);
+      syncDescriptionToggle(scope);
     }
-    scope.querySelectorAll?.('.sp-card-description').forEach(ensureDescriptionToggle);
+    scope.querySelectorAll?.('.sp-card-description').forEach(syncDescriptionToggle);
+
+    if (scope.matches?.('.sp-pkg-carousel')) {
+      syncCarouselMediaHeight(scope);
+    }
+    scope.querySelectorAll?.('.sp-pkg-carousel').forEach(syncCarouselMediaHeight);
   }
 
   function initRenderedCardPolish() {
@@ -192,6 +278,12 @@
     if (!results) {
       return;
     }
+
+    if (results.dataset.spPolishInitialised === 'true') {
+      enhanceRenderedCards(results);
+      return;
+    }
+    results.dataset.spPolishInitialised = 'true';
 
     enhanceRenderedCards(results);
 
@@ -208,7 +300,11 @@
         if (mutation.type === 'attributes') {
           const target = mutation.target;
           if (target.closest) {
-            syncPackageFallback(target.closest('.sp-pkg-mini-thumb'));
+            const thumb = target.closest('.sp-pkg-mini-thumb');
+            if (thumb) {
+              syncPackageFallback(thumb);
+            }
+            syncCarouselMediaHeight(target.closest('.sp-pkg-carousel'));
           }
         }
       });
@@ -237,6 +333,10 @@
       description.classList.toggle('is-expanded', !expanded);
       toggle.setAttribute('aria-expanded', expanded ? 'false' : 'true');
       toggle.textContent = expanded ? 'Show more' : 'Show less';
+
+      if (expanded) {
+        syncDescriptionToggle(description);
+      }
     });
 
     let resizeTimer;
@@ -246,6 +346,8 @@
         window.clearTimeout(resizeTimer);
         resizeTimer = window.setTimeout(() => {
           results.querySelectorAll('.sp-pkg-mini-thumb').forEach(syncPackageFallback);
+          results.querySelectorAll('.sp-card-description').forEach(syncDescriptionToggle);
+          results.querySelectorAll('.sp-pkg-carousel').forEach(syncCarouselMediaHeight);
         }, 120);
       },
       { passive: true }
@@ -496,10 +598,15 @@
   ──────────────────────────────────────────────────────── */
 
   function init() {
-    loadPolishStylesheet();
     initAdvancedFilterToggle();
     initCarouselSwipe();
     initRenderedCardPolish();
+    loadPolishStylesheet(() => {
+      const results = document.getElementById('results');
+      if (results) {
+        enhanceRenderedCards(results);
+      }
+    });
   }
 
   if (document.readyState === 'loading') {
