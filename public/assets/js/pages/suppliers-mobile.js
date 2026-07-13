@@ -33,7 +33,7 @@
 
   /** Focused polish layer, isolated from the shared/global stylesheet stack. */
   const POLISH_STYLESHEET_ID = 'suppliers-mobile-polish-styles';
-  const POLISH_STYLESHEET_HREF = '/assets/css/suppliers-mobile-polish.css?v=19.3.0';
+  const POLISH_STYLESHEET_HREF = '/assets/css/suppliers-mobile-polish.css?v=19.3.1';
 
   /** IDs of the inputs that live inside the advanced panel (used for badge count) */
   const ADVANCED_FILTER_IDS = [

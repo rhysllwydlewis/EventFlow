@@ -170,15 +170,63 @@ describe('Carousel markup and behaviour', () => {
   });
 });
 
-describe('Description "Show more" control', () => {
-  test('toggle is rendered hidden and revealed only on overflow', () => {
-    expect(JS_SRC).toMatch(/sp-desc-toggle" aria-expanded="false" hidden/);
-    expect(JS_SRC).toMatch(/desc\.scrollHeight > desc\.clientHeight \+ 1/);
+describe('Description "Show more" control — single ownership', () => {
+  const POLISH_CSS = fs.readFileSync(
+    path.join(__dirname, '../../public/assets/css/suppliers-mobile-polish.css'),
+    'utf8'
+  );
+  const MOBILE_JS = fs.readFileSync(
+    path.join(__dirname, '../../public/assets/js/pages/suppliers-mobile.js'),
+    'utf8'
+  );
+
+  test('REGRESSION: the card template renders NO toggle of its own', () => {
+    // suppliers-mobile.js injects sp-description-toggle for every card; a
+    // second template-rendered toggle shipped once and produced duplicate
+    // "Show more" links in production. Single ownership is pinned here.
+    expect(JS_SRC).not.toContain('sp-desc-toggle');
+    expect(JS_SRC).not.toContain('initDescriptionToggles');
   });
 
-  test('toggle flips accessible state and label', () => {
-    expect(JS_SRC).toMatch(/toggle\.setAttribute\('aria-expanded', String\(expanded\)\)/);
-    expect(JS_SRC).toMatch(/'Show less' : 'Show more'/);
+  test('the polish layer owns clamp + toggle', () => {
+    expect(MOBILE_JS).toContain('sp-description-toggle');
+    expect(POLISH_CSS).toMatch(/\.sp-description-toggle/);
+    expect(POLISH_CSS).toMatch(/-webkit-line-clamp:\s*2/);
+  });
+});
+
+describe('Polish-layer reconciliation (parallel-merge conflicts)', () => {
+  const POLISH_CSS = fs.readFileSync(
+    path.join(__dirname, '../../public/assets/css/suppliers-mobile-polish.css'),
+    'utf8'
+  );
+
+  test('REGRESSION: mobile package media is square (approved mock), not the pre-redesign fixed banner', () => {
+    const mobile = POLISH_CSS.slice(POLISH_CSS.indexOf('@media (max-width: 767px)'));
+    expect(mobile).toMatch(/\.sp-pkg-mini-thumb\s*\{[^}]*aspect-ratio:\s*1\s*\/\s*1/);
+    expect(mobile).toMatch(/\.sp-pkg-mini-thumb\s*\{[^}]*height:\s*auto !important/);
+  });
+
+  test('REGRESSION: the desktop glyph-arrow offset is scoped to >=768px', () => {
+    // Unscoped, this margin-top calc pushed the 44px labelled mobile
+    // controls ~45px below the position pill (reported in production).
+    const idx = POLISH_CSS.indexOf(
+      '--sp-active-media-height, var(--sp-polish-thumb-height)) - 22px'
+    );
+    const before = POLISH_CSS.slice(0, idx);
+    const lastMedia = before.lastIndexOf('@media');
+    expect(POLISH_CSS.slice(lastMedia, idx)).toContain('min-width: 768px');
+  });
+
+  test('mobile carousel controls share one centred row', () => {
+    const mobile = POLISH_CSS.slice(POLISH_CSS.indexOf('@media (max-width: 767px)'));
+    expect(mobile).toMatch(/\.sp-pkg-arrow\s*\{[^}]*align-self:\s*center !important/);
+    expect(mobile).toMatch(/\.sp-pkg-arrow\s*\{[^}]*margin-top:\s*0 !important/);
+  });
+
+  test('main action buttons meet the 44px spec (not the pre-redesign 36px)', () => {
+    expect(POLISH_CSS).toMatch(/\.sp-card-actions \.sp-btn\s*\{[^}]*min-height:\s*44px !important/);
+    expect(POLISH_CSS).not.toMatch(/min-height:\s*36px !important/);
   });
 });
 

@@ -2246,11 +2246,6 @@
   object-fit: cover;
 }
 
-/* Show-more toggle: mobile-only control */
-.sp-desc-toggle {
-  display: none;
-}
-
 /* Restrained slide transition; disabled for reduced-motion users */
 .sp-pkg-carousel-track {
   transition: transform 0.25s ease;
@@ -2289,54 +2284,9 @@
     padding: 12px 14px 6px;
   }
 
-  /* Row 2: description — clamped to 2 lines, whole-word wrap */
-  .sp-card > .sp-card-description {
-    grid-column: 1 / -1;
-    grid-row: 2;
-    display: -webkit-box !important; /* restore clamp: a global rule computes this to flow-root, which slices lines instead of ellipsising */
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical !important;
-    overflow: hidden;
-    overflow-wrap: break-word;
-    border-top: none;
-    background: none;
-    padding: 2px 14px 0;
-    font-size: 12.5px;
-    line-height: 1.55;
-  }
-
-  .sp-card > .sp-card-description.is-expanded {
-    display: block !important;
-    -webkit-line-clamp: unset;
-  }
-
-  /* Row 3: Show more / Show less */
-  .sp-desc-toggle {
-    display: inline-block;
-    grid-column: 1 / -1;
-    grid-row: 3;
-    justify-self: start;
-    margin: 0 14px;
-    padding: 6px 0;
-    background: none;
-    border: none;
-    color: #0b8073;
-    font-size: 12.5px;
-    font-weight: 600;
-    text-decoration: underline;
-    text-underline-offset: 2px;
-    cursor: pointer;
-  }
-
-  .sp-desc-toggle:focus-visible {
-    outline: 2px solid #0b8073;
-    outline-offset: 2px;
-    border-radius: 4px;
-  }
-
-  .sp-desc-toggle[hidden] {
-    display: none !important;
-  }
+  /* Rows 2-3 (description + Show more): owned by the mobile polish layer
+     (suppliers-mobile-polish.css / suppliers-mobile.js), which clamps the
+     description and injects the sp-description-toggle control. */
 
   /* Row 4: main actions — full-width row, 44px targets. Grid rather
      than flex: styles.css forces width:100% !important on buttons at
