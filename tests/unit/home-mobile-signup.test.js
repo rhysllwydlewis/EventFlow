@@ -167,9 +167,9 @@ describe('homepage mobile sign-up CTA', () => {
     page.queuedTimers.shift()();
 
     expect(headerCta.classList.contains('is-nudging')).toBe(true);
-    expect(
-      page.window.sessionStorage.getItem('eventflow_home_mobile_signup_nudge_seen_v1')
-    ).toBe('1');
+    expect(page.window.sessionStorage.getItem('eventflow_home_mobile_signup_nudge_seen_v1')).toBe(
+      '1'
+    );
 
     page.dom.window.close();
   });
