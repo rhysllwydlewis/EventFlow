@@ -1,0 +1,336 @@
+.behaviour-analytics-section {
+  margin-bottom: 2rem;
+}
+
+.behaviour-analytics-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.behaviour-analytics-toolbar__controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.behaviour-analytics-toolbar label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-secondary, #475569);
+}
+
+.behaviour-analytics-toolbar select {
+  min-height: 40px;
+  padding: 0.45rem 2rem 0.45rem 0.75rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #fff;
+  color: #0f172a;
+  font: inherit;
+}
+
+.analytics-provider-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 32px;
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.analytics-provider-status[data-state='active'] {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.analytics-provider-status[data-state='warning'] {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.behaviour-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0.85rem;
+  margin-bottom: 1.25rem;
+}
+
+.behaviour-kpi {
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 3px 14px rgba(15, 23, 42, 0.05);
+}
+
+.behaviour-kpi__label {
+  display: block;
+  margin-bottom: 0.45rem;
+  color: #64748b;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.035em;
+  text-transform: uppercase;
+}
+
+.behaviour-kpi__value {
+  display: block;
+  color: #0f172a;
+  font-size: clamp(1.35rem, 2.3vw, 2rem);
+  font-weight: 800;
+  line-height: 1.05;
+}
+
+.behaviour-kpi__note {
+  display: block;
+  margin-top: 0.4rem;
+  color: #64748b;
+  font-size: 0.75rem;
+}
+
+.behaviour-analytics-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.65fr) minmax(280px, 0.8fr);
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.behaviour-analytics-card {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 3px 14px rgba(15, 23, 42, 0.05);
+}
+
+.behaviour-analytics-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.1rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.behaviour-analytics-card__header h3 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 1rem;
+}
+
+.behaviour-analytics-card__header p {
+  margin: 0.25rem 0 0;
+  color: #64748b;
+  font-size: 0.8rem;
+}
+
+.behaviour-table-wrap {
+  max-height: 520px;
+  overflow: auto;
+}
+
+.behaviour-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+.behaviour-table th,
+.behaviour-table td {
+  padding: 0.7rem 0.8rem;
+  border-bottom: 1px solid #eef2f7;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.behaviour-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.behaviour-table th:first-child,
+.behaviour-table td:first-child {
+  max-width: 360px;
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.behaviour-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+.behaviour-funnel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  padding: 1rem 1.1rem;
+}
+
+.behaviour-funnel__row {
+  display: grid;
+  grid-template-columns: minmax(110px, 1fr) 2.2fr auto;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.behaviour-funnel__label {
+  color: #334155;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.behaviour-funnel__bar {
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e2e8f0;
+}
+
+.behaviour-funnel__fill {
+  display: block;
+  height: 100%;
+  min-width: 2px;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #0b8073, #13b6a2);
+}
+
+.behaviour-funnel__value {
+  min-width: 58px;
+  color: #475569;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.behaviour-breakdown-list,
+.behaviour-recommendations {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 1rem 1.1rem;
+}
+
+.behaviour-breakdown-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  color: #475569;
+  font-size: 0.82rem;
+}
+
+.behaviour-breakdown-row strong {
+  color: #0f172a;
+}
+
+.behaviour-recommendation {
+  padding: 0.8rem 0.9rem;
+  border: 1px solid #e2e8f0;
+  border-left-width: 4px;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.behaviour-recommendation[data-severity='high'] {
+  border-left-color: #dc2626;
+}
+
+.behaviour-recommendation[data-severity='medium'] {
+  border-left-color: #d97706;
+}
+
+.behaviour-recommendation[data-severity='info'] {
+  border-left-color: #0284c7;
+}
+
+.behaviour-recommendation strong {
+  display: block;
+  margin-bottom: 0.2rem;
+  color: #0f172a;
+  font-size: 0.82rem;
+}
+
+.behaviour-recommendation p {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.behaviour-privacy-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin: 1rem 0 1.5rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid #bfdbfe;
+  border-radius: 12px;
+  background: #eff6ff;
+  color: #1e3a8a;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.behaviour-empty {
+  padding: 1.5rem;
+  color: #64748b;
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+@media (max-width: 1200px) {
+  .behaviour-kpi-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .behaviour-analytics-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .behaviour-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .behaviour-analytics-toolbar__controls,
+  .behaviour-analytics-toolbar label {
+    width: 100%;
+  }
+
+  .behaviour-analytics-toolbar select {
+    flex: 1;
+  }
+
+  .behaviour-funnel__row {
+    grid-template-columns: 1fr auto;
+  }
+
+  .behaviour-funnel__bar {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+}
