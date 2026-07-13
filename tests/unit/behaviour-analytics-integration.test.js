@@ -54,6 +54,19 @@ describe('analytics consent and privacy wiring', () => {
     expect(source).not.toContain('options.body');
   });
 
+  test('bridges consented public page views to PostHog Web Analytics once', () => {
+    const source = read('public/assets/js/analytics-consent-upgrade.js');
+    expect(source).toContain("window.posthog.capture('$pageview'");
+    expect(source).toContain('$current_url: currentUrl');
+    expect(source).toContain("$pathname: window.location.pathname || '/'");
+    expect(source).toContain('capturedPostHogPage === currentUrl');
+    expect(source).toContain('POSTHOG_PAGEVIEW_TIMEOUT_MS');
+    expect(source).toContain("window.addEventListener('cookieConsentChanged'");
+    expect(source).toContain("'/auth'");
+    expect(source).toContain("return `${window.location.origin}${window.location.pathname || '/'}`;");
+    expect(source).not.toContain('phc_');
+  });
+
   test('measures active time only while the page is visible and focused', () => {
     const source = read('public/assets/js/behaviour-analytics.js');
     expect(source).toContain("document.visibilityState === 'visible' && document.hasFocus()");
