@@ -90,6 +90,10 @@ function configureHelmet(isProduction = false) {
           'https://*.googletagmanager.com',
           'https://js.stripe.com',
           'https://static.cloudflareinsights.com',
+          // PostHog's official browser snippet converts the ingestion host to
+          // its region-specific assets host when analytics consent is granted.
+          'https://eu-assets.i.posthog.com',
+          'https://us-assets.i.posthog.com',
         ],
         scriptSrcAttr: ["'none'"], // Inline event handlers disallowed; use addEventListener in external JS
         styleSrc: [

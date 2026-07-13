@@ -71,5 +71,13 @@ module.exports = {
         'no-direct-notifications': 'error',
       },
     },
+    {
+      files: ['utils/behaviourAnalytics.js'],
+      rules: {
+        // The privacy sanitiser intentionally matches ASCII control characters
+        // so they can be removed before analytics values are stored.
+        'no-control-regex': 'off',
+      },
+    },
   ],
 };

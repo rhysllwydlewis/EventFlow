@@ -1,0 +1,145 @@
+'use strict';
+
+const fs = require('fs');
+const path = require('path');
+const { injectGlobalAnalyticsScripts } = require('../../utils/template-renderer');
+const behaviourAnalyticsRoutes = require('../../routes/behaviour-analytics');
+
+const ROOT = path.join(__dirname, '../..');
+
+function read(relativePath) {
+  return fs.readFileSync(path.join(ROOT, relativePath), 'utf8');
+}
+
+describe('global behaviour analytics injection', () => {
+  test('injects consent and analytics scripts once on public HTML', () => {
+    const html = '<!doctype html><html><head></head><body><main>Page</main></body></html>';
+    const first = injectGlobalAnalyticsScripts(html, '/suppliers.html');
+    const second = injectGlobalAnalyticsScripts(first, '/suppliers.html');
+
+    expect(first).toContain('/assets/js/cookie-consent.js');
+    expect(first).toContain('/assets/js/analytics-consent-upgrade.js');
+    expect(first).toContain('/assets/js/behaviour-analytics.js');
+    expect((second.match(/behaviour-analytics\.js/g) || []).length).toBe(1);
+  });
+
+  test('keeps public tracking off admin pages and links the admin analytics extension', () => {
+    const html = '<html><head></head><body></body></html>';
+    const adminAnalytics = injectGlobalAnalyticsScripts(html, '/admin-analytics.html');
+    const otherAdmin = injectGlobalAnalyticsScripts(html, '/admin-users.html');
+
+    expect(adminAnalytics).toContain('/assets/js/pages/admin-behaviour-analytics.js');
+    expect(adminAnalytics).not.toContain('/assets/js/behaviour-analytics.js');
+    expect(otherAdmin).not.toContain('/assets/js/behaviour-analytics.js');
+    expect(otherAdmin).not.toContain('/assets/js/pages/admin-behaviour-analytics.js');
+  });
+});
+
+describe('analytics consent and privacy wiring', () => {
+  test('corrects both Accept All actions to include analytics consent', () => {
+    const source = read('public/assets/js/analytics-consent-upgrade.js');
+    expect(source).toContain('analytics: true');
+    expect(source).toContain('#cookie-consent-accept, #cookie-prefs-accept-all');
+    expect(source).toContain("new CustomEvent('cookieConsentChanged'");
+  });
+
+  test('tracks real key conversions only after a successful application response', () => {
+    const source = read('public/assets/js/analytics-consent-upgrade.js');
+    expect(source).toContain('response.ok ? successfulEventFor(request) : null');
+    expect(source).toContain("event: 'registration_completed'");
+    expect(source).toContain("event: 'quote_request_submitted'");
+    expect(source).toContain("event: 'package_created'");
+    expect(source).toContain('me\\/packages');
+    expect(source).not.toContain("event: 'package_published'");
+    expect(source).not.toContain('options.body');
+  });
+
+  test('measures active time only while the page is visible and focused', () => {
+    const source = read('public/assets/js/behaviour-analytics.js');
+    expect(source).toContain("document.visibilityState === 'visible' && document.hasFocus()");
+    expect(source).toContain("window.addEventListener('blur'");
+    expect(source).toContain("window.addEventListener('pagehide'");
+    expect(source).toContain('navigator.sendBeacon');
+  });
+
+  test('uses secure browser randomness and never falls back to Math.random', () => {
+    const source = read('public/assets/js/behaviour-analytics.js');
+    expect(source).toContain('window.crypto.getRandomValues(bytes)');
+    expect(source).not.toContain('Math.random');
+  });
+
+  test('masks replay inputs and strips query strings before optional PostHog capture', () => {
+    const source = read('public/assets/js/behaviour-analytics.js');
+    expect(source).toContain('maskAllInputs: true');
+    expect(source).toContain("request.name = request.name.split('?')[0]");
+    expect(source).toContain('opt_out_capturing_by_default: true');
+    expect(source).toContain("person_profiles: 'never'");
+    expect(source).not.toContain('posthog.identify');
+    expect(source).toContain('/supplier/profile-customization');
+    expect(source).toContain('if (isSensitiveInteractionPage()) return;');
+    expect(source).toContain("defaults: '2026-05-30'");
+  });
+});
+
+describe('behaviour analytics server protections', () => {
+  const { hasAnalyticsConsentCookie, safeHttpsUrl, getConfig } = behaviourAnalyticsRoutes._private;
+
+  test('requires an analytics-enabled consent cookie', () => {
+    const enabled = encodeURIComponent(
+      JSON.stringify({
+        v: 1,
+        essential: true,
+        functional: true,
+        analytics: true,
+      })
+    );
+    const disabled = encodeURIComponent(
+      JSON.stringify({
+        v: 1,
+        essential: true,
+        functional: true,
+        analytics: false,
+      })
+    );
+
+    const request = value => ({
+      cookies: { eventflow_cookie_consent: value },
+      get: () => '',
+    });
+
+    expect(hasAnalyticsConsentCookie(request(enabled))).toBe(true);
+    expect(hasAnalyticsConsentCookie(request(disabled))).toBe(false);
+    expect(hasAnalyticsConsentCookie(request('invalid'))).toBe(false);
+  });
+
+  test('preserves a configured PostHog project path while rejecting non-HTTPS URLs', () => {
+    expect(safeHttpsUrl('https://eu.posthog.com/project/12345/dashboard/7')).toBe(
+      'https://eu.posthog.com/project/12345/dashboard/7'
+    );
+    expect(safeHttpsUrl('http://eu.posthog.com/project/12345', '')).toBe('');
+  });
+
+  test('keeps the full configured PostHog dashboard URL in admin status configuration', () => {
+    const previous = process.env.POSTHOG_DASHBOARD_URL;
+    const previousKey = process.env.POSTHOG_PROJECT_KEY;
+    process.env.POSTHOG_PROJECT_KEY = 'phc_test';
+    process.env.POSTHOG_DASHBOARD_URL = 'https://eu.posthog.com/project/12345/dashboard/7';
+
+    try {
+      expect(getConfig().posthog.dashboardUrl).toBe(
+        'https://eu.posthog.com/project/12345/dashboard/7'
+      );
+    } finally {
+      if (previous === undefined) {
+        delete process.env.POSTHOG_DASHBOARD_URL;
+      } else {
+        process.env.POSTHOG_DASHBOARD_URL = previous;
+      }
+      if (previousKey === undefined) {
+        delete process.env.POSTHOG_PROJECT_KEY;
+      } else {
+        process.env.POSTHOG_PROJECT_KEY = previousKey;
+      }
+    }
+  });
+});
