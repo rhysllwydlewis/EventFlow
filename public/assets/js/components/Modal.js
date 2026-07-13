@@ -76,6 +76,8 @@ class Modal {
       }
 
       .modal-close:hover {
+        background-color: rgba(0, 0, 0, 0.05);
+      }
 
       .modal-body {
         padding: 24px;

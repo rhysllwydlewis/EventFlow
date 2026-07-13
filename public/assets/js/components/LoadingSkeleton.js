@@ -17,6 +17,11 @@ class LoadingSkeleton {
     style.id = 'skeleton-styles';
     style.textContent = `
       .skeleton {
+        background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+        background-size: 200% 100%;
+        animation: skeleton-loading 1.5s infinite;
+        border-radius: 4px;
+      }
 
       @keyframes skeleton-loading {
         0% { background-position: 200% 0; }
@@ -41,6 +46,11 @@ class LoadingSkeleton {
       }
 
       .skeleton-card {
+        padding: 20px;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        margin-bottom: 16px;
+      }
 
       .skeleton-image {
         width: 100%;

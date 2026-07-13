@@ -1,0 +1,210 @@
+/**
+ * Signed-in pages — mobile quality fixes
+ * --------------------------------------
+ * Fixes defects found by measurement across the logged-in surfaces
+ * (budget, guests, timeline, compare, plan, settings, messages,
+ * dashboards). Loaded last in <head> so equal-specificity overrides win
+ * by source order.
+ *
+ * Each block records the measured defect it resolves so the intent
+ * survives future edits.
+ */
+
+/* =========================================================
+   1. BREADCRUMBS — misaligned crumb text
+   Measured: "Home" rendered in a 44px-tall box while the separator and
+   current page were 22px, with the anchor in normal block flow, so its
+   text sat at the TOP of its box — 11px of baseline drift.
+   Cause: the global mobile touch-target rule
+     (mobile-optimizations.css) applies min-height:44px to `main a`.
+   Fix: keep the 44px target (accessibility) but centre the text inside
+   it, so every crumb shares one baseline.
+   ========================================================= */
+.breadcrumbs {
+  align-items: center;
+  row-gap: 0;
+}
+
+.breadcrumbs .breadcrumb-item,
+.breadcrumbs .breadcrumb-separator {
+  display: inline-flex;
+  align-items: center;
+  line-height: 1.4;
+}
+
+/* The separator is decorative punctuation — it must not claim a 44px
+   target and must never be the thing that grows the row. */
+.breadcrumbs .breadcrumb-separator {
+  min-height: 0;
+  min-width: 0;
+  align-self: center;
+}
+
+/* =========================================================
+   2. ACTION BUTTON ROWS — mismatched button widths
+   Measured: budget  "Export Budget" 165px vs "Add Expense" 326px (2.0x)
+             guests  "Import CSV" 143 / "Export List" 140 / "Add Guest" 348 (2.5x)
+   Cause: `.cta` buttons in a `.flex.gap-2` row take intrinsic width,
+   while the primary `.cta` is caught by a global mobile full-width rule.
+   Fix: at phone widths give every button in the row an equal share, so
+   the row reads as one deliberate control group rather than a small
+   outline button next to a full-width slab.
+   ========================================================= */
+@media (max-width: 640px) {
+  .dash-flex-wrap > .flex.gap-2 {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+    gap: 8px;
+    width: 100%;
+  }
+
+  .dash-flex-wrap > .flex.gap-2 > .cta {
+    width: 100% !important;
+    min-width: 0;
+    min-height: 44px;
+    padding: 10px 8px;
+    font-size: 13px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: center;
+  }
+
+  /* Three buttons will not fit legibly on one phone row — wrap to a
+     2-up grid with the primary action spanning the full width beneath. */
+  .dash-flex-wrap > .flex.gap-2:has(> .cta:nth-child(3)) {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .dash-flex-wrap > .flex.gap-2:has(> .cta:nth-child(3)) > .cta:not(.secondary) {
+    grid-column: 1 / -1;
+  }
+}
+
+/* The header wrapper itself (title block + action row) must stack. */
+@media (max-width: 640px) {
+  .dash-flex-wrap {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 10px;
+  }
+
+  .dash-flex-wrap > div > h1 {
+    margin-bottom: 4px;
+  }
+}
+
+/* =========================================================
+   3. COMPONENT HEADERS — heading colliding with its action button
+   Measured: compare  "Compare Suppliers" wrapped to 2 lines, gap 0px to
+                      "+ Add Supplier (0/3)"
+             timeline "Event Timeline" wrapped to 2 lines, gap 0px to
+                      "+ Add Event"
+   Cause: .page-header lays the h1 and the button side by side with no
+   wrapping, so at 390px the heading is squeezed until it overlaps.
+   Fix: stack them at phone widths.
+   ========================================================= */
+@media (max-width: 640px) {
+  /* .comparison-header is rendered by supplier-comparison.js as a
+     space-between flex row; at 390px "Compare Suppliers" was squeezed to
+     two lines and collided with "+ Add Supplier (0/3)" (gap: 0px).
+     (The timeline equivalent is fixed inside timeline-builder.js.) */
+  .comparison-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+
+  .comparison-header h2 {
+    margin: 0;
+    min-width: 0;
+    font-size: 1.25rem;
+    line-height: 1.25;
+  }
+
+  .comparison-header > .ef-cta,
+  .comparison-header > button {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  /* Page headings themselves should not shrink below readable size */
+  .page-header > h1 {
+    font-size: clamp(1.35rem, 6vw, 1.75rem);
+    line-height: 1.2;
+  }
+}
+
+/* =========================================================
+   4. CIRCULAR PROGRESS RING — text spilling out of the circle
+   Measured: plan  "0% complete" laid out 140px wide inside a 140px ring
+             (a 140px circle only has ~99px of inscribed width), so the
+             text visibly crossed the ring stroke.
+   Fix: constrain the label to the inscribed square (d / sqrt2) and let
+   the type scale down rather than burst the circle.
+   ========================================================= */
+.plan-ring-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  /* inscribed square of the ring: 140 * 0.707 ≈ 99px. Use a slightly
+     tighter bound so descenders/bold glyphs stay clear of the stroke. */
+  max-width: 66%;
+  margin: 0 auto;
+  left: 0;
+  right: 0;
+  padding: 0 2px;
+  box-sizing: border-box;
+  overflow-wrap: break-word;
+}
+
+.plan-ring-label .small {
+  font-size: 11px;
+  line-height: 1.25;
+  margin-bottom: 2px;
+}
+
+.plan-ring-label #plan-progress-percent {
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.15;
+  max-width: 100%;
+  overflow-wrap: break-word;
+}
+
+/* The ring renders "0%" and the word "complete" on separate lines; both
+   must stay inside the inscribed circle (~99px for a 140px ring). */
+.plan-ring-label > * {
+  max-width: 100%;
+}
+
+/* NOTE: the settings avatar was flagged by the automated sweep as "text
+   spilling out of a ring" (initials 82px inside an 88px circle). On
+   inspection that is a FALSE POSITIVE — the 82px element is the circular
+   .avatar-initials container itself (width:100% of the ring), not the
+   glyphs, which are centred by flexbox and fit comfortably. Deliberately
+   NOT changed. */
+
+/* =========================================================
+   6. TOUCH TARGETS — controls below the 44px minimum
+   Measured: messages filter chips (All / Pinned / Unread / Archived) and
+   "New conversation" at 36px; dashboard "Update Budget" 36px,
+   "Create New Plan" 40px, "Open app" 39px.
+   ========================================================= */
+@media (max-width: 767px) {
+  /* NOTE: the messenger filter tabs (36px) are NOT raised to 44px here.
+     messenger-v4-polish.css sets that height deliberately ("reduce
+     disproportionate height on mobile"), and messages.html is only a
+     redirect stub to /messenger/, so this sheet never applies there.
+     Left to the messenger's own polish layer by design. */
+
+  .cd-card .cta,
+  .cd-card .ef-cta,
+  .sd-card-header__actions .ef-cta,
+  .sd-card-header__actions .cta {
+    min-height: 44px;
+  }
+}
