@@ -445,9 +445,13 @@ function buildSummary(rawEvents, days = 30, now = new Date()) {
 
   const searchSet = funnelSessions.get('search');
   const searchCount = searchSet.size;
+  let journeyCohort = new Set(searchSet);
   const funnel = FUNNEL_STAGES.map(stage => {
-    const stageSet = funnelSessions.get(stage.key);
-    const count = stage.key === 'search' ? searchCount : intersectionCount(searchSet, stageSet);
+    if (stage.key !== 'search') {
+      const stageSet = funnelSessions.get(stage.key);
+      journeyCohort = new Set(Array.from(journeyCohort).filter(key => stageSet.has(key)));
+    }
+    const count = journeyCohort.size;
     return {
       key: stage.key,
       label: stage.label,
