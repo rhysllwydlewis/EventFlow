@@ -153,7 +153,10 @@
     }
     container.innerHTML = rows
       .slice(0, 10)
-      .map(row => `<div class="behaviour-breakdown-row"><span>${escapeHtml(row.key)}</span><strong>${formatNumber(row.count)}</strong></div>`)
+      .map(
+        row =>
+          `<div class="behaviour-breakdown-row"><span>${escapeHtml(row.key)}</span><strong>${formatNumber(row.count)}</strong></div>`
+      )
       .join('');
   }
 
@@ -278,7 +281,8 @@
     insertSection();
     const subtitle = document.querySelector('.dashboard-subtitle');
     if (subtitle) {
-      subtitle.textContent = 'Visitor behaviour, conversions, revenue, user growth and platform performance.';
+      subtitle.textContent =
+        'Visitor behaviour, conversions, revenue, user growth and platform performance.';
     }
     document.getElementById('behaviourAnalyticsRange')?.addEventListener('change', load);
     document.getElementById('analyticsRefreshBtn')?.addEventListener('click', load);
