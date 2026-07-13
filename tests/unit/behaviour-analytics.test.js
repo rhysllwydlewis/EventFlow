@@ -75,7 +75,9 @@ describe('behaviour analytics privacy controls', () => {
     expect(event({ sessionId: '' })).toBeNull();
 
     const future = event({ timestamp: '2030-01-01T00:00:00.000Z' });
-    expect(new Date(future.timestamp).getTime()).toBeLessThanOrEqual(NOW.getTime() + 5 * 60 * 1000);
+    expect(new Date(future.timestamp).getTime()).toBeLessThanOrEqual(
+      NOW.getTime() + 5 * 60 * 1000
+    );
   });
 
   test('normalises malformed paths without retaining fragments', () => {
