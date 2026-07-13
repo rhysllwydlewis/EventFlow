@@ -1,10 +1,10 @@
 # EventFlow Behaviour Analytics
 
-EventFlow now includes a privacy-first, first-party behaviour analytics layer and an optional PostHog integration. The first-party dashboard is available at **Admin → Analytics** and works without a paid analytics provider.
+EventFlow includes a privacy-first, first-party behaviour analytics layer and an optional PostHog integration. The first-party dashboard is available at **Admin → Analytics** and works without a paid analytics provider.
 
 ## What is measured
 
-Only visitors who actively consent to **Analytics Cookies** are included.
+Only visitors who actively consent to **Analytics Cookies** are included. The collector validates consent in the browser and again on the server before accepting events.
 
 The browser records:
 
@@ -13,10 +13,10 @@ The browser records:
 - scroll-depth milestones
 - broad device category and referring domain
 - supplier and package journey events
-- add-to-plan, shortlist, enquiry and conversion signals
+- add-to-plan, shortlist, enquiry and successful conversion signals
 - browser errors and supported performance metrics
 
-The system deliberately does **not** store raw IP addresses, raw user-agent strings, form values, message content, email addresses or URL query strings. Session and signed-in user identifiers are one-way hashed before storage.
+The system deliberately does **not** store raw IP addresses, raw user-agent strings, form values, message content, email addresses or URL query strings. Browser session IDs and signed-in user IDs are one-way hashed before first-party storage. Admin browsing and private account-management pages are excluded from public behaviour collection.
 
 ## Admin dashboard
 
@@ -29,9 +29,9 @@ The dashboard provides:
 - engaged-session rate
 - conversions and browser errors
 - page-level active time, exits and bounces
-- the marketplace journey from search through enquiry/conversion
+- the marketplace journey from search through enquiry or conversion
 - referrer and device breakdowns
-- automated improvement signals
+- automated improvement signals, including journey drop-offs
 
 Choose 7, 30 or 90 days from the period selector. Revenue and user-growth analytics remain on the same page below the behaviour section.
 
@@ -65,6 +65,8 @@ POSTHOG_SESSION_RECORDING_ENABLED=false
 
 The project key is intended for browser use and is not a secret. Do not add a PostHog personal API key to client configuration.
 
+PostHog capture remains anonymous: EventFlow does not send its internal user IDs to PostHog, person profiles are disabled, autocapture is disabled and only explicitly generated analytics events are sent.
+
 After deployment, accept Analytics Cookies on EventFlow, browse several public pages, and confirm events appear in PostHog. The Admin Analytics page shows an **Open PostHog** button once configuration is detected.
 
 ## Session recordings
@@ -76,7 +78,7 @@ When enabled:
 - all input fields are masked
 - designated sensitive text is masked
 - URL query strings are removed before capture
-- the PostHog SDK is not loaded on admin, authentication, payment, message, dashboard, settings, plan or guest-management pages
+- the PostHog SDK is not loaded on admin, authentication, payment, messaging, dashboard, settings, plan, guest-management or private supplier-management pages
 - elements marked `.ph-no-capture` or `[data-analytics-sensitive]` are excluded from interaction tracking
 
 ## Understanding active time
