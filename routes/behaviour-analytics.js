@@ -3,8 +3,10 @@
 const express = require('express');
 const rateLimit = require('express-rate-limit');
 const logger = require('../utils/logger');
+const db = require('../db');
 const dbUnified = require('../db-unified');
 const { authRequired, roleRequired, getUserFromCookie } = require('../middleware/auth');
+const { csrfProtection } = require('../middleware/csrf');
 const {
   COLLECTION_NAME,
   DEFAULT_RETENTION_DAYS,
@@ -13,18 +15,12 @@ const {
 } = require('../utils/behaviourAnalytics');
 
 const router = express.Router();
+const CONSENT_COOKIE_NAME = 'eventflow_cookie_consent';
 const MAX_BATCH_SIZE = 20;
 const MAX_BODY_BYTES = 64 * 1024;
 const RETENTION_CHECK_INTERVAL_MS = 60 * 60 * 1000;
 let lastRetentionCleanupAt = 0;
-
-const collectLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: Number.parseInt(process.env.ANALYTICS_RATE_LIMIT_MAX || '600', 10),
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { success: false, error: 'Analytics request limit reached' },
-});
+let analyticsIndexPromise = null;
 
 function envFlag(name, fallback = false) {
   const raw = process.env[name];
@@ -42,6 +38,14 @@ function clampInteger(value, fallback, minimum, maximum) {
   return Math.min(Math.max(parsed, minimum), maximum);
 }
 
+const collectLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: clampInteger(process.env.ANALYTICS_RATE_LIMIT_MAX, 600, 50, 5000),
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Analytics request limit reached' },
+});
+
 function safeHttpsOrigin(value, fallback = '') {
   const raw = String(value || '').trim();
   if (!raw) {
@@ -55,11 +59,28 @@ function safeHttpsOrigin(value, fallback = '') {
   }
 }
 
+function safeHttpsUrl(value, fallback = '') {
+  const raw = String(value || '').trim();
+  if (!raw) {
+    return fallback;
+  }
+  try {
+    const parsed = new URL(raw);
+    if (parsed.protocol !== 'https:') {
+      return fallback;
+    }
+    parsed.hash = '';
+    return parsed.toString();
+  } catch (_error) {
+    return fallback;
+  }
+}
+
 function getConfig() {
   const projectKey = String(process.env.POSTHOG_PROJECT_KEY || '').trim();
   const apiHost = safeHttpsOrigin(process.env.POSTHOG_API_HOST, 'https://eu.i.posthog.com');
   const uiHost = safeHttpsOrigin(process.env.POSTHOG_UI_HOST, 'https://eu.posthog.com');
-  const configuredDashboard = safeHttpsOrigin(process.env.POSTHOG_DASHBOARD_URL, '');
+  const configuredDashboard = safeHttpsUrl(process.env.POSTHOG_DASHBOARD_URL, '');
   const enabled = envFlag('BEHAVIOUR_ANALYTICS_ENABLED', true);
 
   return {
@@ -101,9 +122,52 @@ function isSameSiteRequest(req) {
   }
 }
 
+function readConsentCookie(req) {
+  const parsedCookie =
+    req.cookies && typeof req.cookies[CONSENT_COOKIE_NAME] === 'string'
+      ? req.cookies[CONSENT_COOKIE_NAME]
+      : '';
+  if (parsedCookie) {
+    return parsedCookie;
+  }
+
+  const cookieHeader = String(req.get('cookie') || '');
+  const match = cookieHeader
+    .split(';')
+    .map(part => part.trim())
+    .find(part => part.startsWith(`${CONSENT_COOKIE_NAME}=`));
+  return match ? match.slice(CONSENT_COOKIE_NAME.length + 1) : '';
+}
+
+function hasAnalyticsConsentCookie(req) {
+  const raw = readConsentCookie(req);
+  if (!raw) {
+    return false;
+  }
+
+  const candidates = [raw];
+  try {
+    const decoded = decodeURIComponent(raw);
+    if (decoded !== raw) {
+      candidates.push(decoded);
+    }
+  } catch (_error) {
+    // Invalid percent encoding is treated as no consent.
+  }
+
+  return candidates.some(candidate => {
+    try {
+      const consent = JSON.parse(candidate);
+      return Boolean(consent && consent.analytics === true);
+    } catch (_error) {
+      return false;
+    }
+  });
+}
+
 function getRawBodySize(req) {
   const headerLength = Number.parseInt(req.get('content-length') || '0', 10);
-  if (Number.isFinite(headerLength) && headerLength > 0) {
+  if (Number.isFinite(headerLength) && headerLength > MAX_BODY_BYTES) {
     return headerLength;
   }
   try {
@@ -111,6 +175,24 @@ function getRawBodySize(req) {
   } catch (_error) {
     return MAX_BODY_BYTES + 1;
   }
+}
+
+async function ensureAnalyticsIndexes() {
+  if (!db.isMongoAvailable()) {
+    return;
+  }
+  if (!analyticsIndexPromise) {
+    analyticsIndexPromise = db
+      .getCollection(COLLECTION_NAME)
+      .then(collection =>
+        collection.createIndex({ timestamp: -1 }, { name: 'behaviour_analytics_timestamp_desc' })
+      )
+      .catch(error => {
+        analyticsIndexPromise = null;
+        logger.warn('[behaviour-analytics] index creation failed:', error.message);
+      });
+  }
+  await analyticsIndexPromise;
 }
 
 async function removeExpiredEvents(retentionDays) {
@@ -159,7 +241,7 @@ router.post('/collect', collectLimiter, async (req, res) => {
   if (getRawBodySize(req) > MAX_BODY_BYTES) {
     return res.status(413).json({ success: false, error: 'Analytics payload too large' });
   }
-  if (!req.body || req.body.consent !== true) {
+  if (!req.body || req.body.consent !== true || !hasAnalyticsConsentCookie(req)) {
     return res.status(400).json({ success: false, error: 'Analytics consent is required' });
   }
 
@@ -181,6 +263,10 @@ router.post('/collect', collectLimiter, async (req, res) => {
       user = null;
     }
 
+    if (user && user.role === 'admin') {
+      return res.status(202).json({ success: true, accepted: 0, excluded: 'admin' });
+    }
+
     const context = {
       userId: user && user.id,
       userRole: user && user.role,
@@ -188,12 +274,20 @@ router.post('/collect', collectLimiter, async (req, res) => {
     };
     const sanitized = incoming.map(item => sanitizeEvent(item, context)).filter(Boolean);
 
+    let accepted = 0;
     for (const event of sanitized) {
-      await dbUnified.insertOne(COLLECTION_NAME, event);
+      const inserted = await dbUnified.insertOne(COLLECTION_NAME, event);
+      if (inserted) {
+        accepted += 1;
+      }
     }
-    scheduleRetentionCleanup(config.retentionDays);
 
-    return res.status(202).json({ success: true, accepted: sanitized.length });
+    if (accepted > 0) {
+      ensureAnalyticsIndexes().catch(() => {});
+      scheduleRetentionCleanup(config.retentionDays);
+    }
+
+    return res.status(202).json({ success: true, accepted });
   } catch (error) {
     // Analytics must never interfere with the public website experience.
     logger.debug('[behaviour-analytics] collect failed:', error.message);
@@ -204,6 +298,7 @@ router.post('/collect', collectLimiter, async (req, res) => {
 router.get('/admin/status', authRequired, roleRequired('admin'), async (_req, res) => {
   try {
     const config = getConfig();
+    await ensureAnalyticsIndexes();
     const [eventCount, latest] = await Promise.all([
       dbUnified.count(COLLECTION_NAME),
       dbUnified.findWithOptions(COLLECTION_NAME, {}, { limit: 1, sort: { timestamp: -1 } }),
@@ -223,6 +318,7 @@ router.get('/admin/status', authRequired, roleRequired('admin'), async (_req, re
         posthogDashboardUrl: config.posthog.enabled ? config.posthog.dashboardUrl : null,
         privacy: {
           consentRequired: true,
+          adminTrafficExcluded: true,
           rawIpStored: false,
           rawUserAgentStored: false,
           queryStringsStored: false,
@@ -239,7 +335,10 @@ router.get('/admin/summary', authRequired, roleRequired('admin'), async (req, re
   try {
     const days = [7, 30, 90].includes(Number(req.query.days)) ? Number(req.query.days) : 30;
     const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
-    const events = await dbUnified.find(COLLECTION_NAME, { timestamp: { $gte: cutoff } });
+    await ensureAnalyticsIndexes();
+    const events = await dbUnified.find(COLLECTION_NAME, {
+      timestamp: { $gte: cutoff },
+    });
     const summary = buildSummary(events, days);
 
     res.setHeader('Cache-Control', 'no-store, private');
@@ -250,21 +349,31 @@ router.get('/admin/summary', authRequired, roleRequired('admin'), async (req, re
   }
 });
 
-router.post('/admin/cleanup', authRequired, roleRequired('admin'), async (_req, res) => {
-  try {
-    const removed = await removeExpiredEvents(getConfig().retentionDays);
-    return res.json({ success: true, removed });
-  } catch (error) {
-    logger.error('[behaviour-analytics] cleanup failed:', error.message);
-    return res.status(500).json({ success: false, error: 'Failed to clean analytics events' });
+router.post(
+  '/admin/cleanup',
+  authRequired,
+  roleRequired('admin'),
+  csrfProtection,
+  async (_req, res) => {
+    try {
+      const removed = await removeExpiredEvents(getConfig().retentionDays);
+      return res.json({ success: true, removed });
+    } catch (error) {
+      logger.error('[behaviour-analytics] cleanup failed:', error.message);
+      return res.status(500).json({ success: false, error: 'Failed to clean analytics events' });
+    }
   }
-});
+);
 
 module.exports = router;
 module.exports._private = {
   getConfig,
   isSameSiteRequest,
+  hasAnalyticsConsentCookie,
   getRawBodySize,
+  safeHttpsOrigin,
+  safeHttpsUrl,
+  ensureAnalyticsIndexes,
   removeExpiredEvents,
   scheduleRetentionCleanup,
 };
