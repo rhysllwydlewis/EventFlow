@@ -73,6 +73,10 @@ describe('analytics consent and privacy wiring', () => {
     expect(source).toContain('maskAllInputs: true');
     expect(source).toContain("request.name = request.name.split('?')[0]");
     expect(source).toContain('opt_out_capturing_by_default: true');
+    expect(source).toContain("person_profiles: 'never'");
+    expect(source).not.toContain('posthog.identify');
+    expect(source).toContain('/supplier/profile-customization');
+    expect(source).toContain('if (isSensitiveInteractionPage()) return;');
     expect(source).toContain("defaults: '2026-05-30'");
   });
 });
