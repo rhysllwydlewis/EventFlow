@@ -68,31 +68,28 @@
     if (request.method === 'POST' && /^\/api\/(?:v1\/)?auth\/register\/?$/.test(request.url)) {
       return {
         event: 'registration_completed',
-        properties: { conversionType: 'registration', source: 'server_response' },
+        properties: {
+          conversionType: 'registration',
+          source: 'server_response',
+        },
       };
     }
     if (request.method === 'POST' && /^\/api\/(?:v1\/)?quote-requests\/?$/.test(request.url)) {
       return {
         event: 'quote_request_submitted',
-        properties: { conversionType: 'quote_request', source: 'server_response' },
+        properties: {
+          conversionType: 'quote_request',
+          source: 'server_response',
+        },
       };
     }
-    if (
-      request.method === 'POST' &&
-      /^\/api\/(?:v1\/)?(?:supplier\/)?packages\/?$/.test(request.url)
-    ) {
+    if (request.method === 'POST' && /^\/api\/(?:v1\/)?me\/packages\/?$/.test(request.url)) {
       return {
         event: 'package_created',
-        properties: { conversionType: 'package_created', source: 'server_response' },
-      };
-    }
-    if (
-      ['POST', 'PUT', 'PATCH'].includes(request.method) &&
-      /\/api\/(?:v1\/)?(?:supplier\/)?packages\/[^/]+\/publish\/?$/.test(request.url)
-    ) {
-      return {
-        event: 'package_published',
-        properties: { conversionType: 'package_published', source: 'server_response' },
+        properties: {
+          conversionType: 'package_created',
+          source: 'server_response',
+        },
       };
     }
     return null;
@@ -108,11 +105,7 @@
       const request = normalizedRequest(input, options);
       return originalFetch(input, options).then(response => {
         const conversion = response.ok ? successfulEventFor(request) : null;
-        if (
-          conversion &&
-          window.EFAnalytics &&
-          typeof window.EFAnalytics.track === 'function'
-        ) {
+        if (conversion && window.EFAnalytics && typeof window.EFAnalytics.track === 'function') {
           window.EFAnalytics.track(conversion.event, conversion.properties);
         }
         return response;
