@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Homepage mobile sign-up CTA
  *
  * Adds a visible, auth-aware sign-up action to the mobile header while
@@ -14,9 +14,11 @@
   window.__efHomeMobileSignupInitialised = true;
 
   const SIGNUP_URL = '/auth?tab=create';
-  const NUDGE_STORAGE_KEY = 'eventflow_home_mobile_signup_nudge_seen_v1';
+  const NUDGE_STORAGE_KEY = 'eventflow_home_mobile_signup_nudge_seen_v2';
   const NUDGE_DELAY_MS = 650;
   const NUDGE_FALLBACK_MS = 4300;
+  const STYLESHEET_ID = 'ef-home-mobile-signup-css';
+  const STYLESHEET_URL = '/assets/css/home-mobile-signup.css?v=1.1.0';
 
   const sharedHeader = document.querySelector('.ef-header');
   const v2Header = document.querySelector('.hv2-header');
@@ -27,15 +29,24 @@
   }
 
   function ensureStylesheet() {
-    if (document.getElementById('ef-home-mobile-signup-css')) {
-      return;
+    let link = document.getElementById(STYLESHEET_ID);
+
+    if (!link) {
+      link = document.createElement('link');
+      link.id = STYLESHEET_ID;
+      link.rel = 'stylesheet';
+      link.href = STYLESHEET_URL;
+      document.head.appendChild(link);
     }
 
-    const link = document.createElement('link');
-    link.id = 'ef-home-mobile-signup-css';
-    link.rel = 'stylesheet';
-    link.href = '/assets/css/home-mobile-signup.css?v=1.0.0';
-    document.head.appendChild(link);
+    if (link.sheet) {
+      return Promise.resolve(true);
+    }
+
+    return new Promise(resolve => {
+      link.addEventListener('load', () => resolve(true), { once: true });
+      link.addEventListener('error', () => resolve(false), { once: true });
+    });
   }
 
   function createLink({ id, className, label, source }) {
@@ -47,6 +58,7 @@
     link.dataset.mobileSignupSource = source;
     link.setAttribute('aria-label', 'Create a free EventFlow account');
     link.hidden = true;
+    link.setAttribute('aria-hidden', 'true');
     return link;
   }
 
@@ -125,50 +137,48 @@
     return { headerCta, menuCta, mediaQuery: '(max-width: 960px)' };
   }
 
-  function canUseStorage() {
-    try {
-      const probe = '__ef_signup_probe__';
-      sessionStorage.setItem(probe, '1');
-      sessionStorage.removeItem(probe);
-      return true;
-    } catch (_) {
-      return false;
-    }
-  }
-
-  function hasSeenNudge(storageAvailable) {
-    if (!storageAvailable) {
-      return false;
-    }
-    try {
-      return sessionStorage.getItem(NUDGE_STORAGE_KEY) === '1';
-    } catch (_) {
-      return false;
-    }
-  }
-
-  function markNudgeSeen(storageAvailable) {
-    if (!storageAvailable) {
-      return;
-    }
-    try {
-      sessionStorage.setItem(NUDGE_STORAGE_KEY, '1');
-    } catch (_) {
-      // Ignore storage failures in private or restricted browsing modes.
-    }
-  }
-
-  ensureStylesheet();
   const elements = mode === 'shared' ? ensureSharedElements() : ensureV2Elements();
   if (!elements) {
     return;
   }
 
   const { headerCta, menuCta, mediaQuery } = elements;
-  const storageAvailable = canUseStorage();
+  let authResolved = false;
+  let stylesheetReady = false;
+  let currentUser = null;
   let nudgeTimer = null;
   let fallbackTimer = null;
   let nudgeStarted = false;
+
+  function getStorage() {
+    try {
+      const storage = window.localStorage;
+      const probe = '__ef_signup_probe__';
+      storage.setItem(probe, '1');
+      storage.removeItem(probe);
+      return storage;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  const storage = getStorage();
+
+  function hasSeenNudge() {
+    try {
+      return storage ? storage.getItem(NUDGE_STORAGE_KEY) === '1' : false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function markNudgeSeen() {
+    try {
+      storage?.setItem(NUDGE_STORAGE_KEY, '1');
+    } catch (_) {
+      // Ignore storage failures in private or restricted browsing modes.
+    }
+  }
 
   function stopNudge() {
     if (nudgeTimer) {
@@ -183,11 +193,7 @@
   }
 
   function shouldNudge() {
-    if (nudgeStarted || hasSeenNudge(storageAvailable)) {
-      return false;
-    }
-
-    if (typeof window.matchMedia !== 'function') {
+    if (nudgeStarted || hasSeenNudge() || typeof window.matchMedia !== 'function') {
       return false;
     }
 
@@ -202,22 +208,35 @@
     }
 
     nudgeStarted = true;
-    markNudgeSeen(storageAvailable);
     nudgeTimer = window.setTimeout(() => {
       nudgeTimer = null;
       if (headerCta.hidden || !document.body.contains(headerCta)) {
         return;
       }
+
+      markNudgeSeen();
       headerCta.classList.add('is-nudging');
       fallbackTimer = window.setTimeout(stopNudge, NUDGE_FALLBACK_MS);
     }, NUDGE_DELAY_MS);
   }
 
-  function setLoggedOutVisibility(isLoggedOut) {
-    headerCta.hidden = !isLoggedOut;
-    menuCta.hidden = !isLoggedOut;
-    headerCta.setAttribute('aria-hidden', String(!isLoggedOut));
-    menuCta.setAttribute('aria-hidden', String(!isLoggedOut));
+  function setVisible(element, visible) {
+    element.hidden = !visible;
+    if (visible) {
+      element.removeAttribute('aria-hidden');
+    } else {
+      element.setAttribute('aria-hidden', 'true');
+    }
+  }
+
+  function applyVisibility() {
+    if (!authResolved || !stylesheetReady) {
+      return;
+    }
+
+    const isLoggedOut = !currentUser;
+    setVisible(headerCta, isLoggedOut);
+    setVisible(menuCta, isLoggedOut);
 
     if (isLoggedOut) {
       startNudge();
@@ -226,30 +245,44 @@
     }
   }
 
-  ['click', 'focus', 'pointerdown'].forEach(eventName => {
-    headerCta.addEventListener(eventName, stopNudge, { once: true });
-  });
-  headerCta.addEventListener('animationend', stopNudge);
-
   function syncUser(user) {
-    setLoggedOutVisibility(!user);
+    currentUser = user || null;
+    authResolved = true;
+    applyVisibility();
   }
+
+  ['click', 'focus', 'pointerdown'].forEach(eventName => {
+    headerCta.addEventListener(eventName, stopNudge);
+  });
+  headerCta.addEventListener('animationend', event => {
+    if (event.animationName === 'ef-home-mobile-signup-glow') {
+      stopNudge();
+    }
+  });
+
+  ensureStylesheet().then(loaded => {
+    if (!loaded) {
+      return;
+    }
+    stylesheetReady = true;
+    applyVisibility();
+  });
 
   const authManager = window.AuthStateManager || window.__authState;
   if (authManager && typeof authManager.subscribe === 'function') {
-    authManager.subscribe(({ user }) => syncUser(user || null));
+    authManager.subscribe(state => syncUser(state?.user || null));
   }
 
   if (authManager && typeof authManager.init === 'function') {
     authManager
       .init()
-      .then(result => syncUser(result && result.user ? result.user : null))
+      .then(result => syncUser(result?.user || null))
       .catch(() => syncUser(null));
   } else {
     syncUser(null);
   }
 
   window.addEventListener('__auth-state-updated', event => {
-    syncUser(event.detail && event.detail.user ? event.detail.user : null);
+    syncUser(event.detail?.user || null);
   });
 })();
