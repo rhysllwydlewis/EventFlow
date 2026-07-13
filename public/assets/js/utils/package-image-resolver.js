@@ -14,7 +14,7 @@
  */
 
 /** Canonical placeholder shown when a package has no uploaded photo. */
-const PLACEHOLDER_PACKAGE_IMAGE = '/assets/images/placeholders/package-event.svg';
+const PLACEHOLDER_PACKAGE_IMAGE = '/assets/images/package-placeholder.webp';
 
 /**
  * All known placeholder image paths.
@@ -22,6 +22,7 @@ const PLACEHOLDER_PACKAGE_IMAGE = '/assets/images/placeholders/package-event.svg
  * @type {Set<string>}
  */
 const KNOWN_PLACEHOLDERS = new Set([
+  '/assets/images/package-placeholder.webp',
   '/assets/images/placeholders/package-event.svg',
   '/assets/images/placeholder-package.jpg',
 ]);
