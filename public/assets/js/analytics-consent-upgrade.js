@@ -4,6 +4,31 @@
   const COOKIE_NAME = 'eventflow_cookie_consent';
   const EXPIRY_DAYS = 365;
   const FETCH_WRAPPED_FLAG = '__efAnalyticsSuccessObserver';
+  // PostHog Web Analytics requires its standard $pageview event. EventFlow's main
+  // collector loads PostHog only after consent, so this bridge waits for that instance.
+  const POSTHOG_PAGEVIEW_POLL_MS = 200;
+  const POSTHOG_PAGEVIEW_TIMEOUT_MS = 15 * 1000;
+  const POSTHOG_EXCLUDED_PAGE_PREFIXES = [
+    '/admin',
+    '/auth',
+    '/reset-password',
+    '/checkout',
+    '/payment',
+    '/messages',
+    '/messenger',
+    '/chat',
+    '/dashboard',
+    '/settings',
+    '/plan',
+    '/guests',
+    '/supplier/profile-customization',
+    '/supplier/subscription',
+    '/supplier/marketplace-new-listing',
+  ];
+
+  let capturedPostHogPage = '';
+  let posthogPageviewStartedAt = 0;
+  let posthogPageviewTimer = null;
 
   function writeFullConsent() {
     const value = encodeURIComponent(
@@ -27,6 +52,88 @@
         },
       })
     );
+  }
+
+  function hasAnalyticsConsent() {
+    if (!window.CookieConsent || typeof window.CookieConsent.getConsent !== 'function') {
+      return false;
+    }
+    try {
+      const consent = window.CookieConsent.getConsent();
+      return Boolean(consent && consent.analytics === true);
+    } catch (_error) {
+      return false;
+    }
+  }
+
+  function isPostHogPageviewExcluded() {
+    const pagePath = window.location.pathname || '/';
+    return POSTHOG_EXCLUDED_PAGE_PREFIXES.some(
+      prefix =>
+        pagePath === prefix ||
+        pagePath.startsWith(`${prefix}/`) ||
+        pagePath.startsWith(`${prefix}-`) ||
+        pagePath.startsWith(`${prefix}.`)
+    );
+  }
+
+  function queryFreePageUrl() {
+    return `${window.location.origin}${window.location.pathname || '/'}`;
+  }
+
+  function clearPostHogPageviewTimer() {
+    if (posthogPageviewTimer) {
+      window.clearTimeout(posthogPageviewTimer);
+      posthogPageviewTimer = null;
+    }
+  }
+
+  function tryCapturePostHogPageview() {
+    if (!hasAnalyticsConsent() || isPostHogPageviewExcluded()) {
+      clearPostHogPageviewTimer();
+      return;
+    }
+
+    const currentUrl = queryFreePageUrl();
+    if (capturedPostHogPage === currentUrl) {
+      clearPostHogPageviewTimer();
+      return;
+    }
+
+    if (window.posthog && typeof window.posthog.capture === 'function') {
+      window.posthog.capture('$pageview', {
+        $current_url: currentUrl,
+        $pathname: window.location.pathname || '/',
+      });
+      capturedPostHogPage = currentUrl;
+      clearPostHogPageviewTimer();
+      return;
+    }
+
+    if (Date.now() - posthogPageviewStartedAt >= POSTHOG_PAGEVIEW_TIMEOUT_MS) {
+      clearPostHogPageviewTimer();
+      return;
+    }
+
+    posthogPageviewTimer = window.setTimeout(tryCapturePostHogPageview, POSTHOG_PAGEVIEW_POLL_MS);
+  }
+
+  function queuePostHogPageview() {
+    clearPostHogPageviewTimer();
+    if (!hasAnalyticsConsent() || isPostHogPageviewExcluded()) {
+      return;
+    }
+    posthogPageviewStartedAt = Date.now();
+    tryCapturePostHogPageview();
+  }
+
+  function handleAnalyticsConsentChange(event) {
+    if (event && event.detail && event.detail.analytics === true) {
+      queuePostHogPageview();
+      return;
+    }
+    capturedPostHogPage = '';
+    clearPostHogPageviewTimer();
   }
 
   function upgradeConsentCopy(root) {
@@ -132,9 +239,12 @@
     true
   );
 
+  window.addEventListener('cookieConsentChanged', handleAnalyticsConsentChange);
+
   function init() {
     upgradeConsentCopy(document);
     installSuccessfulConversionObserver();
+    queuePostHogPageview();
     if (typeof MutationObserver !== 'function' || !document.body) {
       return;
     }

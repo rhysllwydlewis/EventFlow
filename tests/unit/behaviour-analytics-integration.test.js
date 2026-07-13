@@ -54,6 +54,22 @@ describe('analytics consent and privacy wiring', () => {
     expect(source).not.toContain('options.body');
   });
 
+  test('bridges consented public page views to PostHog Web Analytics once', () => {
+    const source = read('public/assets/js/analytics-consent-upgrade.js');
+    expect(source).toContain("window.posthog.capture('$pageview'");
+    expect(source).toContain('$current_url: currentUrl');
+    expect(source).toContain("$pathname: window.location.pathname || '/'");
+    expect(source).toContain('capturedPostHogPage === currentUrl');
+    expect(source).toContain('POSTHOG_PAGEVIEW_TIMEOUT_MS');
+    expect(source).toContain("window.addEventListener('cookieConsentChanged'");
+    expect(source).toContain("'/auth'");
+    expect(source).toContain("'/payment'");
+    expect(source).toContain(
+      "return `${window.location.origin}${window.location.pathname || '/'}`;"
+    );
+    expect(source).not.toContain('phc_');
+  });
+
   test('measures active time only while the page is visible and focused', () => {
     const source = read('public/assets/js/behaviour-analytics.js');
     expect(source).toContain("document.visibilityState === 'visible' && document.hasFocus()");
@@ -85,7 +101,9 @@ describe('admin analytics live refresh and PostHog guidance', () => {
   test('refreshes the analytics page every 15 seconds only while visible', () => {
     const source = read('public/assets/js/pages/admin-analytics-init.js');
     expect(source).toContain('const AUTO_REFRESH_INTERVAL_MS = 15 * 1000');
-    expect(source).toContain("document.addEventListener('visibilitychange', handleVisibilityChange)");
+    expect(source).toContain(
+      "document.addEventListener('visibilitychange', handleVisibilityChange)"
+    );
     expect(source).toContain("document.visibilityState !== 'visible'");
     expect(source).toContain('refreshButton.click()');
     expect(source).toContain('Paused while this tab is hidden');
