@@ -3,6 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const { injectGlobalAnalyticsScripts } = require('../../utils/template-renderer');
+const behaviourAnalyticsRoutes = require('../../routes/behaviour-analytics');
 
 const ROOT = path.join(__dirname, '../..');
 
@@ -42,13 +43,14 @@ describe('analytics consent and privacy wiring', () => {
     expect(source).toContain("new CustomEvent('cookieConsentChanged'");
   });
 
-  test('tracks key conversions only after a successful application response', () => {
+  test('tracks real key conversions only after a successful application response', () => {
     const source = read('public/assets/js/analytics-consent-upgrade.js');
     expect(source).toContain('response.ok ? successfulEventFor(request) : null');
     expect(source).toContain("event: 'registration_completed'");
     expect(source).toContain("event: 'quote_request_submitted'");
     expect(source).toContain("event: 'package_created'");
-    expect(source).toContain("event: 'package_published'");
+    expect(source).toContain('me\\/packages');
+    expect(source).not.toContain("event: 'package_published'");
     expect(source).not.toContain('options.body');
   });
 
@@ -72,5 +74,68 @@ describe('analytics consent and privacy wiring', () => {
     expect(source).toContain("request.name = request.name.split('?')[0]");
     expect(source).toContain('opt_out_capturing_by_default: true');
     expect(source).toContain("defaults: '2026-05-30'");
+  });
+});
+
+describe('behaviour analytics server protections', () => {
+  const { hasAnalyticsConsentCookie, safeHttpsUrl, getConfig } = behaviourAnalyticsRoutes._private;
+
+  test('requires an analytics-enabled consent cookie', () => {
+    const enabled = encodeURIComponent(
+      JSON.stringify({
+        v: 1,
+        essential: true,
+        functional: true,
+        analytics: true,
+      })
+    );
+    const disabled = encodeURIComponent(
+      JSON.stringify({
+        v: 1,
+        essential: true,
+        functional: true,
+        analytics: false,
+      })
+    );
+
+    const request = value => ({
+      cookies: { eventflow_cookie_consent: value },
+      get: () => '',
+    });
+
+    expect(hasAnalyticsConsentCookie(request(enabled))).toBe(true);
+    expect(hasAnalyticsConsentCookie(request(disabled))).toBe(false);
+    expect(hasAnalyticsConsentCookie(request('invalid'))).toBe(false);
+  });
+
+  test('preserves a configured PostHog project path while rejecting non-HTTPS URLs', () => {
+    expect(safeHttpsUrl('https://eu.posthog.com/project/12345/dashboard/7')).toBe(
+      'https://eu.posthog.com/project/12345/dashboard/7'
+    );
+    expect(safeHttpsUrl('http://eu.posthog.com/project/12345', '')).toBe('');
+  });
+
+  test('keeps the full configured PostHog dashboard URL in admin status configuration', () => {
+    const previous = process.env.POSTHOG_DASHBOARD_URL;
+    const previousKey = process.env.POSTHOG_PROJECT_KEY;
+    process.env.POSTHOG_PROJECT_KEY = 'phc_test';
+    process.env.POSTHOG_DASHBOARD_URL = 'https://eu.posthog.com/project/12345/dashboard/7';
+
+    try {
+      expect(getConfig().posthog.dashboardUrl).toBe(
+        'https://eu.posthog.com/project/12345/dashboard/7'
+      );
+    } finally {
+      if (previous === undefined) {
+        delete process.env.POSTHOG_DASHBOARD_URL;
+      } else {
+        process.env.POSTHOG_DASHBOARD_URL = previous;
+      }
+      if (previousKey === undefined) {
+        delete process.env.POSTHOG_PROJECT_KEY;
+      } else {
+        process.env.POSTHOG_PROJECT_KEY = previousKey;
+      }
+    }
   });
 });
