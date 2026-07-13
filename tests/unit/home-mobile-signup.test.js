@@ -2,56 +2,253 @@
 
 const fs = require('fs');
 const path = require('path');
-const { JSDOM } = require('jsdom');
+const vm = require('vm');
 
 const ROOT = path.join(__dirname, '../..');
 const SCRIPT_PATH = path.join(ROOT, 'public/assets/js/components/home-mobile-signup.js');
 const CSS_PATH = path.join(ROOT, 'public/assets/css/home-mobile-signup.css');
 const scriptSource = fs.readFileSync(SCRIPT_PATH, 'utf8');
 
+class FakeClassList {
+  constructor(initial = '') {
+    this.values = new Set(String(initial).split(/\s+/).filter(Boolean));
+  }
+
+  add(...tokens) {
+    tokens.forEach(token => this.values.add(token));
+  }
+
+  remove(...tokens) {
+    tokens.forEach(token => this.values.delete(token));
+  }
+
+  contains(token) {
+    return this.values.has(token);
+  }
+
+  toString() {
+    return Array.from(this.values).join(' ');
+  }
+}
+
+function matchesSelector(element, selector) {
+  if (!element || !selector) {
+    return false;
+  }
+  if (selector.startsWith('#')) {
+    return element.id === selector.slice(1);
+  }
+  if (selector.startsWith('.')) {
+    return element.classList.contains(selector.slice(1));
+  }
+  return element.tagName.toLowerCase() === selector.toLowerCase();
+}
+
+class FakeElement {
+  constructor(tagName) {
+    this.tagName = String(tagName || 'div').toUpperCase();
+    this.id = '';
+    this.hidden = false;
+    this.textContent = '';
+    this.dataset = {};
+    this.attributes = new Map();
+    this.children = [];
+    this.parentElement = null;
+    this.listeners = new Map();
+    this.classList = new FakeClassList();
+    this._href = '';
+  }
+
+  set className(value) {
+    this.classList = new FakeClassList(value);
+  }
+
+  get className() {
+    return this.classList.toString();
+  }
+
+  set href(value) {
+    this._href = String(value);
+    this.attributes.set('href', this._href);
+  }
+
+  get href() {
+    return this._href;
+  }
+
+  appendChild(child) {
+    child.parentElement = this;
+    this.children.push(child);
+    return child;
+  }
+
+  insertBefore(child, reference) {
+    const index = this.children.indexOf(reference);
+    child.parentElement = this;
+    if (index === -1) {
+      this.children.push(child);
+    } else {
+      this.children.splice(index, 0, child);
+    }
+    return child;
+  }
+
+  setAttribute(name, value) {
+    const normalisedValue = String(value);
+    this.attributes.set(name, normalisedValue);
+    if (name === 'id') {
+      this.id = normalisedValue;
+    }
+    if (name === 'class') {
+      this.className = normalisedValue;
+    }
+    if (name === 'href') {
+      this._href = normalisedValue;
+    }
+  }
+
+  getAttribute(name) {
+    return this.attributes.has(name) ? this.attributes.get(name) : null;
+  }
+
+  addEventListener(name, callback) {
+    const callbacks = this.listeners.get(name) || [];
+    callbacks.push(callback);
+    this.listeners.set(name, callbacks);
+  }
+
+  querySelector(selector) {
+    for (const child of this.children) {
+      if (matchesSelector(child, selector)) {
+        return child;
+      }
+      const nested = child.querySelector(selector);
+      if (nested) {
+        return nested;
+      }
+    }
+    return null;
+  }
+
+  contains(target) {
+    if (this === target) {
+      return true;
+    }
+    return this.children.some(child => child.contains(target));
+  }
+
+  get nextElementSibling() {
+    if (!this.parentElement) {
+      return null;
+    }
+    const index = this.parentElement.children.indexOf(this);
+    return index >= 0 ? this.parentElement.children[index + 1] || null : null;
+  }
+}
+
+class FakeDocument {
+  constructor() {
+    this.head = new FakeElement('head');
+    this.body = new FakeElement('body');
+  }
+
+  createElement(tagName) {
+    return new FakeElement(tagName);
+  }
+
+  querySelector(selector) {
+    if (matchesSelector(this.head, selector)) {
+      return this.head;
+    }
+    if (matchesSelector(this.body, selector)) {
+      return this.body;
+    }
+    return this.head.querySelector(selector) || this.body.querySelector(selector);
+  }
+
+  getElementById(id) {
+    return this.querySelector(`#${id}`);
+  }
+}
+
+function element(tagName, { id = '', className = '', text = '', href = '' } = {}) {
+  const node = new FakeElement(tagName);
+  node.id = id;
+  node.className = className;
+  node.textContent = text;
+  if (href) {
+    node.href = href;
+  }
+  return node;
+}
+
+function buildSharedDocument() {
+  const document = new FakeDocument();
+  const header = element('header', { className: 'ef-header' });
+  const actions = element('div', { className: 'ef-header-actions' });
+  const auth = element('a', { id: 'ef-auth-link', text: 'Log in', href: '/auth' });
+  const toggle = element('button', { id: 'ef-mobile-toggle', text: 'Menu' });
+  const mobileMenu = element('div', { id: 'ef-mobile-menu' });
+  const mobileNav = element('nav', { className: 'ef-mobile-nav' });
+  const mobileAuth = element('a', {
+    id: 'ef-mobile-auth',
+    className: 'ef-mobile-link ef-mobile-primary',
+    text: 'Log in',
+    href: '/auth',
+  });
+
+  actions.appendChild(auth);
+  actions.appendChild(toggle);
+  mobileNav.appendChild(mobileAuth);
+  mobileMenu.appendChild(mobileNav);
+  header.appendChild(actions);
+  header.appendChild(mobileMenu);
+  document.body.appendChild(header);
+  return document;
+}
+
+function buildV2Document() {
+  const document = new FakeDocument();
+  document.body.className = 'home-v2-page';
+  const header = element('header', { className: 'hv2-header' });
+  const actions = element('div', { className: 'hv2-actions' });
+  const auth = element('a', { id: 'hv2-auth-link', text: 'Log in', href: '/auth' });
+  const toggle = element('button', { className: 'hv2-menu', text: 'Menu' });
+  const mobileNav = element('nav', { id: 'hv2-mobile-nav', className: 'hv2-mobile-nav' });
+  const mobileLogin = element('a', {
+    className: 'hv2-mobile-login',
+    text: 'Log in',
+    href: '/auth',
+  });
+
+  actions.appendChild(auth);
+  actions.appendChild(toggle);
+  header.appendChild(actions);
+  mobileNav.appendChild(mobileLogin);
+  document.body.appendChild(header);
+  document.body.appendChild(mobileNav);
+  return document;
+}
+
+function createStorage() {
+  const values = new Map();
+  return {
+    getItem(key) {
+      return values.has(key) ? values.get(key) : null;
+    },
+    setItem(key, value) {
+      values.set(key, String(value));
+    },
+    removeItem(key) {
+      values.delete(key);
+    },
+  };
+}
+
 function createMatchMedia({ mobile = true, reducedMotion = true } = {}) {
   return query => ({
     matches: query.includes('prefers-reduced-motion') ? reducedMotion : mobile,
-    media: query,
-    onchange: null,
-    addListener() {},
-    removeListener() {},
-    addEventListener() {},
-    removeEventListener() {},
-    dispatchEvent() {
-      return true;
-    },
   });
-}
-
-function sharedMarkup() {
-  return `<!doctype html><html><head></head><body>
-    <header class="ef-header">
-      <div class="ef-header-actions">
-        <a id="ef-auth-link" href="/auth">Log in</a>
-        <button id="ef-mobile-toggle" type="button">Menu</button>
-      </div>
-      <div id="ef-mobile-menu">
-        <nav class="ef-mobile-nav">
-          <a id="ef-mobile-auth" class="ef-mobile-link ef-mobile-primary" href="/auth">Log in</a>
-        </nav>
-      </div>
-    </header>
-  </body></html>`;
-}
-
-function v2Markup() {
-  return `<!doctype html><html><head></head><body class="home-v2-page">
-    <header class="hv2-header">
-      <div class="hv2-actions">
-        <a id="hv2-auth-link" href="/auth">Log in</a>
-        <button class="hv2-menu" type="button">Menu</button>
-      </div>
-    </header>
-    <nav id="hv2-mobile-nav" class="hv2-mobile-nav">
-      <a class="hv2-mobile-login" href="/auth">Log in</a>
-    </nav>
-  </body></html>`;
 }
 
 async function flushPromises() {
@@ -59,23 +256,29 @@ async function flushPromises() {
   await Promise.resolve();
 }
 
-function boot(html, { user = null, reducedMotion = true, fakeTimers = false } = {}) {
-  const dom = new JSDOM(html, {
-    url: 'https://event-flow.co.uk/',
-    runScripts: 'outside-only',
-  });
-  const { window } = dom;
-  let subscriber = null;
+function boot(mode, { user = null, reducedMotion = true, fakeTimers = false } = {}) {
+  const document = mode === 'v2' ? buildV2Document() : buildSharedDocument();
+  const sessionStorage = createStorage();
   const queuedTimers = [];
+  const windowListeners = new Map();
+  let subscriber = null;
 
-  window.matchMedia = createMatchMedia({ mobile: true, reducedMotion });
-  if (fakeTimers) {
-    window.setTimeout = callback => {
-      queuedTimers.push(callback);
-      return queuedTimers.length;
-    };
-    window.clearTimeout = () => {};
-  }
+  const window = {
+    document,
+    sessionStorage,
+    matchMedia: createMatchMedia({ mobile: true, reducedMotion }),
+    setTimeout(callback) {
+      if (fakeTimers) {
+        queuedTimers.push(callback);
+        return queuedTimers.length;
+      }
+      return 1;
+    },
+    clearTimeout() {},
+    addEventListener(name, callback) {
+      windowListeners.set(name, callback);
+    },
+  };
 
   const manager = {
     subscribe(callback) {
@@ -88,12 +291,19 @@ function boot(html, { user = null, reducedMotion = true, fakeTimers = false } = 
   };
   window.AuthStateManager = manager;
   window.__authState = manager;
-  window.eval(scriptSource);
+  window.window = window;
+
+  vm.runInNewContext(scriptSource, {
+    window,
+    document,
+    sessionStorage,
+    Promise,
+    console,
+  });
 
   return {
-    dom,
-    window,
-    document: window.document,
+    document,
+    sessionStorage,
     queuedTimers,
     notifyAuth(nextUser) {
       if (subscriber) {
@@ -105,7 +315,7 @@ function boot(html, { user = null, reducedMotion = true, fakeTimers = false } = 
 
 describe('homepage mobile sign-up CTA', () => {
   it('adds a visible sign-up action to the shared V1/V3 header and keeps Log in in the burger menu', async () => {
-    const page = boot(sharedMarkup());
+    const page = boot('shared');
     await flushPromises();
 
     const headerCta = page.document.getElementById('ef-mobile-signup-cta');
@@ -129,12 +339,10 @@ describe('homepage mobile sign-up CTA', () => {
     page.notifyAuth({ id: 'usr_1', role: 'customer' });
     expect(headerCta.hidden).toBe(true);
     expect(menuCta.hidden).toBe(true);
-
-    page.dom.window.close();
   });
 
   it('adds the same account discovery pattern to the V2 mobile header and menu', async () => {
-    const page = boot(v2Markup());
+    const page = boot('v2');
     await flushPromises();
 
     const headerCta = page.document.getElementById('hv2-mobile-signup-cta');
@@ -149,12 +357,10 @@ describe('homepage mobile sign-up CTA', () => {
     expect(menuCta.hidden).toBe(false);
     expect(login.textContent).toBe('Log in');
     expect(menuCta.nextElementSibling).toBe(login);
-
-    page.dom.window.close();
   });
 
   it('runs a finite first-visit nudge and records it for the current session', async () => {
-    const page = boot(sharedMarkup(), {
+    const page = boot('shared', {
       reducedMotion: false,
       fakeTimers: true,
     });
@@ -167,15 +373,11 @@ describe('homepage mobile sign-up CTA', () => {
     page.queuedTimers.shift()();
 
     expect(headerCta.classList.contains('is-nudging')).toBe(true);
-    expect(page.window.sessionStorage.getItem('eventflow_home_mobile_signup_nudge_seen_v1')).toBe(
-      '1'
-    );
-
-    page.dom.window.close();
+    expect(page.sessionStorage.getItem('eventflow_home_mobile_signup_nudge_seen_v1')).toBe('1');
   });
 
   it('does not schedule the animated nudge when reduced motion is requested', async () => {
-    const page = boot(sharedMarkup(), {
+    const page = boot('shared', {
       reducedMotion: true,
       fakeTimers: true,
     });
@@ -185,8 +387,6 @@ describe('homepage mobile sign-up CTA', () => {
     expect(
       page.document.getElementById('ef-mobile-signup-cta').classList.contains('is-nudging')
     ).toBe(false);
-
-    page.dom.window.close();
   });
 
   it('keeps the glow finite and includes reduced-motion safeguards', () => {
