@@ -69,7 +69,7 @@ const ALLOWED_PROPERTY_KEYS = new Set([
   'tocTarget',
 ]);
 
-const SENSITIVE_KEY_PATTERN = /(email|name|phone|address|password|token|secret|message|query|searchTerm|body|content)/i;
+const SENSITIVE_PROPERTY_KEY = /^(email|fullName|firstName|lastName|phone|address|password|token|secret|message|query|searchTerm|body|content)$/i;
 const EMAIL_PATTERN = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi;
 const PHONE_PATTERN = /(?:\+?\d[\d\s().-]{7,}\d)/g;
 
@@ -115,15 +115,15 @@ const FUNNEL_STAGES = [
   },
 ];
 
-function clampNumber(value, min, max) {
+function clampNumber(value, minimum, maximum) {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) {
     return null;
   }
-  return Math.min(Math.max(parsed, min), max);
+  return Math.min(Math.max(parsed, minimum), maximum);
 }
 
-function cleanString(value, maxLength = 120) {
+function cleanString(value, maximumLength = 120) {
   if (typeof value !== 'string') {
     return null;
   }
@@ -133,7 +133,7 @@ function cleanString(value, maxLength = 120) {
     .replace(PHONE_PATTERN, '[redacted-phone]')
     .replace(/[\u0000-\u001f\u007f]/g, ' ')
     .trim()
-    .slice(0, maxLength);
+    .slice(0, maximumLength);
 
   return cleaned || null;
 }
@@ -190,9 +190,6 @@ function sanitizePropertyValue(key, value) {
     if (key === 'scrollDepth' || key === 'metricRating') {
       return clampNumber(value, 0, 100);
     }
-    if (key === 'metricValue') {
-      return clampNumber(value, -1000000, 1000000);
-    }
     return clampNumber(value, -1000000, 1000000);
   }
 
@@ -200,10 +197,8 @@ function sanitizePropertyValue(key, value) {
     return null;
   }
 
-  const maxLength = ['itemId', 'resultId', 'supplierId', 'packageId', 'planId'].includes(key)
-    ? 120
-    : 160;
-  return cleanString(value, maxLength);
+  const identifierKeys = ['itemId', 'resultId', 'supplierId', 'packageId', 'planId'];
+  return cleanString(value, identifierKeys.includes(key) ? 120 : 160);
 }
 
 function sanitizeProperties(properties) {
@@ -213,7 +208,7 @@ function sanitizeProperties(properties) {
 
   const sanitized = {};
   for (const [key, value] of Object.entries(properties)) {
-    if (!ALLOWED_PROPERTY_KEYS.has(key) || SENSITIVE_KEY_PATTERN.test(key)) {
+    if (!ALLOWED_PROPERTY_KEYS.has(key) || SENSITIVE_PROPERTY_KEY.test(key)) {
       continue;
     }
     const cleanValue = sanitizePropertyValue(key, value);
@@ -233,20 +228,21 @@ function hashIdentifier(value, salt) {
   return crypto.createHmac('sha256', safeSalt).update(raw).digest('hex');
 }
 
+function boundedTimestamp(value, now) {
+  const requested = new Date(value || now);
+  const timestamp = Number.isNaN(requested.getTime()) ? now : requested;
+  const earliest = now.getTime() - 24 * 60 * 60 * 1000;
+  const latest = now.getTime() + 5 * 60 * 1000;
+  return new Date(Math.min(Math.max(timestamp.getTime(), earliest), latest)).toISOString();
+}
+
 function sanitizeEvent(input, context = {}) {
   if (!input || typeof input !== 'object' || !ALLOWED_EVENTS.has(input.event)) {
     return null;
   }
 
-  const salt = context.hashSalt || process.env.ANALYTICS_HASH_SALT || process.env.JWT_SECRET;
   const now = context.now instanceof Date ? context.now : new Date();
-  const requestedTimestamp = new Date(input.timestamp || now);
-  const timestamp = Number.isNaN(requestedTimestamp.getTime()) ? now : requestedTimestamp;
-  const maxFuture = now.getTime() + 5 * 60 * 1000;
-  const minPast = now.getTime() - 24 * 60 * 60 * 1000;
-  const boundedTimestamp = new Date(
-    Math.min(Math.max(timestamp.getTime(), minPast), maxFuture)
-  ).toISOString();
+  const salt = context.hashSalt || process.env.ANALYTICS_HASH_SALT || process.env.JWT_SECRET;
 
   return {
     event: input.event,
@@ -260,40 +256,48 @@ function sanitizeEvent(input, context = {}) {
     referrerDomain: normalizeDomain(input.referrerDomain),
     deviceType: normalizeDeviceType(input.deviceType),
     properties: sanitizeProperties(input.properties),
-    timestamp: boundedTimestamp,
+    timestamp: boundedTimestamp(input.timestamp, now),
     createdAt: now,
     schemaVersion: 1,
   };
 }
 
-function round(value, decimals = 1) {
-  const multiplier = 10 ** decimals;
+function round(value, decimalPlaces = 1) {
+  const multiplier = 10 ** decimalPlaces;
   return Math.round((Number(value) || 0) * multiplier) / multiplier;
 }
 
 function eventTime(event) {
-  const time = Date.parse(event && event.timestamp);
-  return Number.isNaN(time) ? 0 : time;
+  const timestamp = Date.parse(event && event.timestamp);
+  return Number.isNaN(timestamp) ? 0 : timestamp;
 }
 
-function getSessionKey(event, index) {
-  return event.sessionIdHash || `unknown-${index}`;
+function newPageStats(event) {
+  return {
+    pagePath: event.pagePath,
+    pageType: event.pageType || 'other',
+    views: 0,
+    activeSeconds: 0,
+    sessions: new Set(),
+    exits: 0,
+    bounces: 0,
+  };
 }
 
 function buildSummary(rawEvents, days = 30, now = new Date()) {
-  const safeDays = [7, 30, 90].includes(Number(days)) ? Number(days) : 30;
-  const cutoff = now.getTime() - safeDays * 24 * 60 * 60 * 1000;
+  const periodDays = [7, 30, 90].includes(Number(days)) ? Number(days) : 30;
+  const cutoff = now.getTime() - periodDays * 24 * 60 * 60 * 1000;
   const events = (Array.isArray(rawEvents) ? rawEvents : [])
     .filter(event => event && ALLOWED_EVENTS.has(event.event) && eventTime(event) >= cutoff)
-    .sort((a, b) => eventTime(a) - eventTime(b));
+    .sort((left, right) => eventTime(left) - eventTime(right));
 
-  const sessionStats = new Map();
-  const pageStats = new Map();
+  const sessions = new Map();
+  const pages = new Map();
   const daily = new Map();
   const eventCounts = new Map();
   const deviceCounts = new Map();
   const referrerCounts = new Map();
-  const funnelSets = new Map(FUNNEL_STAGES.map(stage => [stage.key, new Set()]));
+  const funnelSessions = new Map(FUNNEL_STAGES.map(stage => [stage.key, new Set()]));
 
   let pageViews = 0;
   let activeSeconds = 0;
@@ -301,28 +305,22 @@ function buildSummary(rawEvents, days = 30, now = new Date()) {
   let clientErrors = 0;
 
   events.forEach((event, index) => {
-    const sessionKey = getSessionKey(event, index);
-    if (!sessionStats.has(sessionKey)) {
-      sessionStats.set(sessionKey, {
-        activeSeconds: 0,
-        pageViews: 0,
-        pages: [],
-      });
+    const sessionKey = event.sessionIdHash || `unknown-${index}`;
+    if (!sessions.has(sessionKey)) {
+      sessions.set(sessionKey, { activeSeconds: 0, pageViews: 0, pages: [] });
     }
-    const session = sessionStats.get(sessionKey);
-    const props = event.properties || {};
-    const dayKey = new Date(event.timestamp).toISOString().slice(0, 10);
-    if (!daily.has(dayKey)) {
-      daily.set(dayKey, { date: dayKey, pageViews: 0, sessions: new Set(), activeSeconds: 0 });
+    const session = sessions.get(sessionKey);
+    const date = new Date(event.timestamp).toISOString().slice(0, 10);
+    if (!daily.has(date)) {
+      daily.set(date, { date, pageViews: 0, sessions: new Set(), activeSeconds: 0 });
     }
-    const dailyRow = daily.get(dayKey);
+    const dailyRow = daily.get(date);
     dailyRow.sessions.add(sessionKey);
-
     eventCounts.set(event.event, (eventCounts.get(event.event) || 0) + 1);
 
     for (const stage of FUNNEL_STAGES) {
       if (stage.events.has(event.event)) {
-        funnelSets.get(stage.key).add(sessionKey);
+        funnelSessions.get(stage.key).add(sessionKey);
       }
     }
 
@@ -333,44 +331,27 @@ function buildSummary(rawEvents, days = 30, now = new Date()) {
       dailyRow.pageViews += 1;
 
       deviceCounts.set(event.deviceType, (deviceCounts.get(event.deviceType) || 0) + 1);
-      referrerCounts.set(
-        event.referrerDomain || 'direct',
-        (referrerCounts.get(event.referrerDomain || 'direct') || 0) + 1
-      );
+      const referrer = event.referrerDomain || 'direct';
+      referrerCounts.set(referrer, (referrerCounts.get(referrer) || 0) + 1);
 
-      if (!pageStats.has(event.pagePath)) {
-        pageStats.set(event.pagePath, {
-          pagePath: event.pagePath,
-          pageType: event.pageType || 'other',
-          views: 0,
-          activeSeconds: 0,
-          sessions: new Set(),
-          exits: 0,
-          bounces: 0,
-        });
+      if (!pages.has(event.pagePath)) {
+        pages.set(event.pagePath, newPageStats(event));
       }
-      const page = pageStats.get(event.pagePath);
+      const page = pages.get(event.pagePath);
       page.views += 1;
       page.sessions.add(sessionKey);
     }
 
     if (event.event === 'page_engagement') {
-      const seconds = clampNumber(props.activeSeconds, 0, 3600) || 0;
+      const seconds = clampNumber(event.properties && event.properties.activeSeconds, 0, 3600) || 0;
       activeSeconds += seconds;
       session.activeSeconds += seconds;
       dailyRow.activeSeconds += seconds;
-      if (!pageStats.has(event.pagePath)) {
-        pageStats.set(event.pagePath, {
-          pagePath: event.pagePath,
-          pageType: event.pageType || 'other',
-          views: 0,
-          activeSeconds: 0,
-          sessions: new Set([sessionKey]),
-          exits: 0,
-          bounces: 0,
-        });
+
+      if (!pages.has(event.pagePath)) {
+        pages.set(event.pagePath, newPageStats(event));
       }
-      const page = pageStats.get(event.pagePath);
+      const page = pages.get(event.pagePath);
       page.activeSeconds += seconds;
       page.sessions.add(sessionKey);
     }
@@ -383,70 +364,65 @@ function buildSummary(rawEvents, days = 30, now = new Date()) {
     }
   });
 
-  for (const [sessionKey, session] of sessionStats.entries()) {
+  for (const [sessionKey, session] of sessions.entries()) {
     if (session.pages.length === 0) {
       continue;
     }
-    const lastPath = session.pages[session.pages.length - 1];
-    const lastPage = pageStats.get(lastPath);
-    if (lastPage) {
-      lastPage.exits += 1;
-      if (session.pageViews === 1 && session.activeSeconds < 10) {
-        lastPage.bounces += 1;
-      }
-    }
-    if (!lastPage || !lastPage.sessions.has(sessionKey)) {
+    const lastPage = pages.get(session.pages[session.pages.length - 1]);
+    if (!lastPage) {
       continue;
     }
+    lastPage.exits += 1;
+    if (session.pageViews === 1 && session.activeSeconds < 10) {
+      lastPage.bounces += 1;
+    }
+    lastPage.sessions.add(sessionKey);
   }
 
-  const sessions = sessionStats.size;
-  const engagedSessions = Array.from(sessionStats.values()).filter(
+  const engagedSessionCount = Array.from(sessions.values()).filter(
     session => session.activeSeconds >= 10 || session.pageViews >= 2
   ).length;
 
-  const pages = Array.from(pageStats.values())
-    .map(page => ({
-      pagePath: page.pagePath,
-      pageType: page.pageType,
-      views: page.views,
-      sessions: page.sessions.size,
-      totalActiveSeconds: round(page.activeSeconds, 0),
-      avgActiveSeconds: round(page.activeSeconds / Math.max(page.sessions.size, 1), 1),
-      engagedRate: round(
-        (Array.from(page.sessions).filter(key => {
-          const session = sessionStats.get(key);
-          return session && (session.activeSeconds >= 10 || session.pageViews >= 2);
-        }).length /
-          Math.max(page.sessions.size, 1)) *
-          100,
-        1
-      ),
-      exitRate: round((page.exits / Math.max(page.views, 1)) * 100, 1),
-      bounceRate: round((page.bounces / Math.max(page.sessions.size, 1)) * 100, 1),
-    }))
-    .sort((a, b) => b.views - a.views || b.totalActiveSeconds - a.totalActiveSeconds)
+  const pageRows = Array.from(pages.values())
+    .map(page => {
+      const engagedOnPage = Array.from(page.sessions).filter(sessionKey => {
+        const session = sessions.get(sessionKey);
+        return session && (session.activeSeconds >= 10 || session.pageViews >= 2);
+      }).length;
+      return {
+        pagePath: page.pagePath,
+        pageType: page.pageType,
+        views: page.views,
+        sessions: page.sessions.size,
+        totalActiveSeconds: round(page.activeSeconds, 0),
+        avgActiveSeconds: round(page.activeSeconds / Math.max(page.sessions.size, 1), 1),
+        engagedRate: round((engagedOnPage / Math.max(page.sessions.size, 1)) * 100, 1),
+        exitRate: round((page.exits / Math.max(page.views, 1)) * 100, 1),
+        bounceRate: round((page.bounces / Math.max(page.sessions.size, 1)) * 100, 1),
+      };
+    })
+    .sort((left, right) => right.views - left.views || right.totalActiveSeconds - left.totalActiveSeconds)
     .slice(0, 50);
 
-  const funnelBase = Math.max(funnelSets.get(FUNNEL_STAGES[0].key).size, 1);
+  const searchSessions = Math.max(funnelSessions.get('search').size, 1);
   const funnel = FUNNEL_STAGES.map(stage => {
-    const count = funnelSets.get(stage.key).size;
+    const count = funnelSessions.get(stage.key).size;
     return {
       key: stage.key,
       label: stage.label,
       sessions: count,
-      rateFromSearch: round((count / funnelBase) * 100, 1),
+      rateFromSearch: round((count / searchSessions) * 100, 1),
     };
   });
 
-  const mapCounts = map =>
+  const topCounts = map =>
     Array.from(map.entries())
       .map(([key, count]) => ({ key, count }))
-      .sort((a, b) => b.count - a.count)
+      .sort((left, right) => right.count - left.count)
       .slice(0, 20);
 
   const recommendations = [];
-  for (const page of pages) {
+  for (const page of pageRows) {
     if (page.views >= 5 && page.avgActiveSeconds < 12 && page.exitRate >= 50) {
       recommendations.push({
         severity: 'high',
@@ -480,24 +456,25 @@ function buildSummary(rawEvents, days = 30, now = new Date()) {
     });
   }
 
+  const sessionCount = sessions.size;
   return {
-    periodDays: safeDays,
+    periodDays,
     generatedAt: now.toISOString(),
     totals: {
       pageViews,
-      sessions,
+      sessions: sessionCount,
       activeSeconds: round(activeSeconds, 0),
-      avgActiveSecondsPerSession: round(activeSeconds / Math.max(sessions, 1), 1),
-      engagedSessions,
-      engagedSessionRate: round((engagedSessions / Math.max(sessions, 1)) * 100, 1),
+      avgActiveSecondsPerSession: round(activeSeconds / Math.max(sessionCount, 1), 1),
+      engagedSessions: engagedSessionCount,
+      engagedSessionRate: round((engagedSessionCount / Math.max(sessionCount, 1)) * 100, 1),
       conversions,
       clientErrors,
     },
-    pages,
+    pages: pageRows,
     funnel,
-    devices: mapCounts(deviceCounts),
-    referrers: mapCounts(referrerCounts),
-    events: mapCounts(eventCounts),
+    devices: topCounts(deviceCounts),
+    referrers: topCounts(referrerCounts),
+    events: topCounts(eventCounts),
     daily: Array.from(daily.values())
       .map(row => ({
         date: row.date,
@@ -505,7 +482,7 @@ function buildSummary(rawEvents, days = 30, now = new Date()) {
         sessions: row.sessions.size,
         activeSeconds: round(row.activeSeconds, 0),
       }))
-      .sort((a, b) => a.date.localeCompare(b.date)),
+      .sort((left, right) => left.date.localeCompare(right.date)),
     recommendations: recommendations.slice(0, 8),
   };
 }
