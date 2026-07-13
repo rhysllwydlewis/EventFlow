@@ -41,6 +41,9 @@ class Toast {
       }
 
       .toast {
+          min-width: auto;
+          max-width: none;
+      }
 
       .toast.removing {
         animation: slideOut 0.3s ease-in forwards;
@@ -63,6 +66,9 @@ class Toast {
       }
 
       .toast-message {
+        font-size: 13px;
+        color: #6c757d;
+      }
 
       .toast-close {
         background: none;
@@ -82,6 +88,8 @@ class Toast {
       }
 
       .toast-close:hover {
+        background-color: rgba(0, 0, 0, 0.05);
+      }
 
       .toast-success {
         border-left: 4px solid #28a745;

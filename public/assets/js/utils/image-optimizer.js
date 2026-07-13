@@ -36,6 +36,11 @@ class ImageOptimizer {
     style.id = 'image-optimizer-styles';
     style.textContent = `
       .img-placeholder {
+        background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+        background-size: 200% 100%;
+        animation: img-shimmer 1.5s infinite;
+        min-height: 200px;
+      }
 
       @keyframes img-shimmer {
         0% { background-position: 200% 0; }
@@ -54,6 +59,13 @@ class ImageOptimizer {
       }
 
       .img-error {
+        position: relative;
+        background: #f3f4f6;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 200px;
+      }
 
       .img-error::after {
         content: '🖼️ Image failed to load';

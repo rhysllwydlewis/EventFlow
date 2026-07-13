@@ -428,6 +428,13 @@ class GlobalSearch {
       }
 
       .global-search-modal {
+        width: 100%;
+        max-width: 700px;
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 25px 50px rgba(15, 23, 42, 0.25);
+        animation: slideInDown 0.3s ease-out;
+      }
 
       @keyframes fadeIn {
         from { opacity: 0; }
@@ -446,6 +453,9 @@ class GlobalSearch {
       }
 
       .global-search-header {
+        padding: 24px;
+        border-bottom: 1px solid #E2E8F0;
+      }
 
       .search-input-container {
         display: flex;
@@ -459,6 +469,13 @@ class GlobalSearch {
       }
 
       .global-search-input {
+        flex: 1;
+        border: none;
+        outline: none;
+        font-size: 1.125rem;
+        color: var(--ink-dark, #0F172A);
+        background: transparent;
+      }
 
       .global-search-input::placeholder {
         color: #94A3B8;
@@ -481,8 +498,23 @@ class GlobalSearch {
       }
 
       .global-search-categories {
+        display: flex;
+        gap: 8px;
+        padding: 16px 24px;
+        border-bottom: 1px solid #E2E8F0;
+        overflow-x: auto;
+      }
 
       .category-btn {
+        padding: 6px 16px;
+        border: 1px solid #E2E8F0;
+        background: white;
+        border-radius: 20px;
+        cursor: pointer;
+        font-size: 0.875rem;
+        white-space: nowrap;
+        transition: all 0.2s;
+      }
 
       .category-btn:hover {
         border-color: var(--ink, #0B8073);
@@ -516,6 +548,8 @@ class GlobalSearch {
 
       .search-result-item:hover,
       .search-result-item.selected {
+        background: #f8fafc;
+      }
 
       .result-thumbnail {
         width: 48px;
@@ -542,6 +576,10 @@ class GlobalSearch {
       }
 
       .result-content h4 {
+        margin: 0 0 4px 0;
+        font-size: 1rem;
+        color: var(--ink-dark, #0F172A);
+      }
 
       .result-content mark {
         background: #FEF3C7;
@@ -616,6 +654,11 @@ class GlobalSearch {
       }
 
       .global-search-footer {
+        padding: 16px 24px;
+        border-top: 1px solid #E2E8F0;
+        background: #F8FAFC;
+        border-radius: 0 0 16px 16px;
+      }
 
       .keyboard-shortcuts {
         display: flex;
@@ -626,6 +669,13 @@ class GlobalSearch {
       }
 
       kbd {
+        padding: 2px 6px;
+        background: white;
+        border: 1px solid #CBD5E1;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-family: monospace;
+      }
 
       @media (max-width: 768px) {
         .global-search-overlay {
