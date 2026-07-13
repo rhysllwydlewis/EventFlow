@@ -15,6 +15,8 @@ const {
 const router = express.Router();
 const MAX_BATCH_SIZE = 20;
 const MAX_BODY_BYTES = 64 * 1024;
+const RETENTION_CHECK_INTERVAL_MS = 60 * 60 * 1000;
+let lastRetentionCleanupAt = 0;
 
 const collectLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -32,12 +34,12 @@ function envFlag(name, fallback = false) {
   return ['1', 'true', 'yes', 'on'].includes(String(raw).trim().toLowerCase());
 }
 
-function clampInteger(value, fallback, min, max) {
+function clampInteger(value, fallback, minimum, maximum) {
   const parsed = Number.parseInt(value, 10);
   if (!Number.isFinite(parsed)) {
     return fallback;
   }
-  return Math.min(Math.max(parsed, min), max);
+  return Math.min(Math.max(parsed, minimum), maximum);
 }
 
 function safeHttpsOrigin(value, fallback = '') {
@@ -93,8 +95,7 @@ function isSameSiteRequest(req) {
   }
 
   try {
-    const parsed = new URL(origin);
-    return parsed.host === req.get('host');
+    return new URL(origin).host === req.get('host');
   } catch (_error) {
     return false;
   }
@@ -115,6 +116,17 @@ function getRawBodySize(req) {
 async function removeExpiredEvents(retentionDays) {
   const cutoff = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000).toISOString();
   return dbUnified.deleteMany(COLLECTION_NAME, { timestamp: { $lt: cutoff } });
+}
+
+function scheduleRetentionCleanup(retentionDays) {
+  const now = Date.now();
+  if (now - lastRetentionCleanupAt < RETENTION_CHECK_INTERVAL_MS) {
+    return;
+  }
+  lastRetentionCleanupAt = now;
+  removeExpiredEvents(retentionDays).catch(error =>
+    logger.debug('[behaviour-analytics] retention cleanup failed:', error.message)
+  );
 }
 
 router.get('/config', (_req, res) => {
@@ -139,7 +151,10 @@ router.post('/collect', collectLimiter, async (req, res) => {
     return res.status(202).json({ success: true, accepted: 0, disabled: true });
   }
   if (!isSameSiteRequest(req)) {
-    return res.status(403).json({ success: false, error: 'Cross-site analytics requests are blocked' });
+    return res.status(403).json({
+      success: false,
+      error: 'Cross-site analytics requests are blocked',
+    });
   }
   if (getRawBodySize(req) > MAX_BODY_BYTES) {
     return res.status(413).json({ success: false, error: 'Analytics payload too large' });
@@ -148,12 +163,12 @@ router.post('/collect', collectLimiter, async (req, res) => {
     return res.status(400).json({ success: false, error: 'Analytics consent is required' });
   }
 
-  const incoming = Array.isArray(req.body.events)
-    ? req.body.events.slice(0, MAX_BATCH_SIZE)
-    : req.body.event
-      ? [req.body]
-      : [];
-
+  let incoming = [];
+  if (Array.isArray(req.body.events)) {
+    incoming = req.body.events.slice(0, MAX_BATCH_SIZE);
+  } else if (req.body.event) {
+    incoming = [req.body];
+  }
   if (incoming.length === 0) {
     return res.status(400).json({ success: false, error: 'No analytics events supplied' });
   }
@@ -171,18 +186,12 @@ router.post('/collect', collectLimiter, async (req, res) => {
       userRole: user && user.role,
       hashSalt: process.env.ANALYTICS_HASH_SALT || process.env.JWT_SECRET,
     };
-
     const sanitized = incoming.map(item => sanitizeEvent(item, context)).filter(Boolean);
+
     for (const event of sanitized) {
       await dbUnified.insertOne(COLLECTION_NAME, event);
     }
-
-    // Keep retention bounded without adding work to every beacon request.
-    if (Math.random() < 0.02) {
-      removeExpiredEvents(config.retentionDays).catch(error =>
-        logger.debug('[behaviour-analytics] retention cleanup failed:', error.message)
-      );
-    }
+    scheduleRetentionCleanup(config.retentionDays);
 
     return res.status(202).json({ success: true, accepted: sanitized.length });
   } catch (error) {
@@ -257,4 +266,5 @@ module.exports._private = {
   isSameSiteRequest,
   getRawBodySize,
   removeExpiredEvents,
+  scheduleRetentionCleanup,
 };
