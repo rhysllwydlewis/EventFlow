@@ -94,10 +94,12 @@
       mobileNav.insertBefore(menuCta, mobileAuth);
     }
 
-    mobileAuth.classList.remove('ef-mobile-primary');
-    mobileAuth.classList.add('ef-home-mobile-login');
-
-    return { headerCta, menuCta, mediaQuery: '(max-width: 767px)' };
+    return {
+      headerCta,
+      menuCta,
+      loginLink: mobileAuth,
+      mediaQuery: '(max-width: 767px)',
+    };
   }
 
   function ensureV2Elements() {
@@ -132,9 +134,12 @@
       mobileNav.insertBefore(menuCta, mobileLogin);
     }
 
-    mobileLogin.classList.add('hv2-home-mobile-login');
-
-    return { headerCta, menuCta, mediaQuery: '(max-width: 960px)' };
+    return {
+      headerCta,
+      menuCta,
+      loginLink: mobileLogin,
+      mediaQuery: '(max-width: 960px)',
+    };
   }
 
   const elements = mode === 'shared' ? ensureSharedElements() : ensureV2Elements();
@@ -142,7 +147,7 @@
     return;
   }
 
-  const { headerCta, menuCta, mediaQuery } = elements;
+  const { headerCta, menuCta, loginLink, mediaQuery } = elements;
   let authResolved = false;
   let stylesheetReady = false;
   let currentUser = null;
@@ -229,6 +234,16 @@
     }
   }
 
+  function applyLoginStyling() {
+    if (mode === 'shared') {
+      loginLink.classList.remove('ef-mobile-primary');
+      loginLink.classList.add('ef-home-mobile-login');
+      return;
+    }
+
+    loginLink.classList.add('hv2-home-mobile-login');
+  }
+
   function applyVisibility() {
     if (!authResolved || !stylesheetReady) {
       return;
@@ -262,8 +277,12 @@
 
   ensureStylesheet().then(loaded => {
     if (!loaded) {
+      headerCta.remove();
+      menuCta.remove();
       return;
     }
+
+    applyLoginStyling();
     stylesheetReady = true;
     applyVisibility();
   });
