@@ -3,6 +3,7 @@
 
   const COOKIE_NAME = 'eventflow_cookie_consent';
   const EXPIRY_DAYS = 365;
+  const FETCH_WRAPPED_FLAG = '__efAnalyticsSuccessObserver';
 
   function writeFullConsent() {
     const value = encodeURIComponent(
@@ -44,12 +45,90 @@
     });
   }
 
+  function normalizedRequest(input, options) {
+    let url = '';
+    let method = 'GET';
+    try {
+      if (typeof input === 'string' || input instanceof URL) {
+        url = new URL(input, window.location.href).pathname;
+      } else if (input && input.url) {
+        url = new URL(input.url, window.location.href).pathname;
+        method = input.method || method;
+      }
+    } catch (_error) {
+      url = '';
+    }
+    if (options && options.method) {
+      method = options.method;
+    }
+    return { url, method: String(method || 'GET').toUpperCase() };
+  }
+
+  function successfulEventFor(request) {
+    if (request.method === 'POST' && /^\/api\/(?:v1\/)?auth\/register\/?$/.test(request.url)) {
+      return {
+        event: 'registration_completed',
+        properties: { conversionType: 'registration', source: 'server_response' },
+      };
+    }
+    if (request.method === 'POST' && /^\/api\/(?:v1\/)?quote-requests\/?$/.test(request.url)) {
+      return {
+        event: 'quote_request_submitted',
+        properties: { conversionType: 'quote_request', source: 'server_response' },
+      };
+    }
+    if (
+      request.method === 'POST' &&
+      /^\/api\/(?:v1\/)?(?:supplier\/)?packages\/?$/.test(request.url)
+    ) {
+      return {
+        event: 'package_created',
+        properties: { conversionType: 'package_created', source: 'server_response' },
+      };
+    }
+    if (
+      ['POST', 'PUT', 'PATCH'].includes(request.method) &&
+      /\/api\/(?:v1\/)?(?:supplier\/)?packages\/[^/]+\/publish\/?$/.test(request.url)
+    ) {
+      return {
+        event: 'package_published',
+        properties: { conversionType: 'package_published', source: 'server_response' },
+      };
+    }
+    return null;
+  }
+
+  function installSuccessfulConversionObserver() {
+    if (typeof window.fetch !== 'function' || window.fetch[FETCH_WRAPPED_FLAG]) {
+      return;
+    }
+
+    const originalFetch = window.fetch.bind(window);
+    const wrappedFetch = function (input, options) {
+      const request = normalizedRequest(input, options);
+      return originalFetch(input, options).then(response => {
+        const conversion = response.ok ? successfulEventFor(request) : null;
+        if (
+          conversion &&
+          window.EFAnalytics &&
+          typeof window.EFAnalytics.track === 'function'
+        ) {
+          window.EFAnalytics.track(conversion.event, conversion.properties);
+        }
+        return response;
+      });
+    };
+    wrappedFetch[FETCH_WRAPPED_FLAG] = true;
+    window.fetch = wrappedFetch;
+  }
+
   document.addEventListener(
     'click',
     event => {
-      const target = event.target && event.target.closest
-        ? event.target.closest('#cookie-consent-accept, #cookie-prefs-accept-all')
-        : null;
+      const target =
+        event.target && event.target.closest
+          ? event.target.closest('#cookie-consent-accept, #cookie-prefs-accept-all')
+          : null;
       if (!target) {
         return;
       }
@@ -62,6 +141,7 @@
 
   function init() {
     upgradeConsentCopy(document);
+    installSuccessfulConversionObserver();
     if (typeof MutationObserver !== 'function' || !document.body) {
       return;
     }
