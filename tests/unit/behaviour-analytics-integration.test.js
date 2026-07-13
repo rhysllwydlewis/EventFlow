@@ -37,9 +37,19 @@ describe('global behaviour analytics injection', () => {
 describe('analytics consent and privacy wiring', () => {
   test('corrects both Accept All actions to include analytics consent', () => {
     const source = read('public/assets/js/analytics-consent-upgrade.js');
-    expect(source).toContain("analytics: true");
+    expect(source).toContain('analytics: true');
     expect(source).toContain('#cookie-consent-accept, #cookie-prefs-accept-all');
     expect(source).toContain("new CustomEvent('cookieConsentChanged'");
+  });
+
+  test('tracks key conversions only after a successful application response', () => {
+    const source = read('public/assets/js/analytics-consent-upgrade.js');
+    expect(source).toContain('response.ok ? successfulEventFor(request) : null');
+    expect(source).toContain("event: 'registration_completed'");
+    expect(source).toContain("event: 'quote_request_submitted'");
+    expect(source).toContain("event: 'package_created'");
+    expect(source).toContain("event: 'package_published'");
+    expect(source).not.toContain('options.body');
   });
 
   test('measures active time only while the page is visible and focused', () => {
@@ -48,6 +58,12 @@ describe('analytics consent and privacy wiring', () => {
     expect(source).toContain("window.addEventListener('blur'");
     expect(source).toContain("window.addEventListener('pagehide'");
     expect(source).toContain('navigator.sendBeacon');
+  });
+
+  test('uses secure browser randomness and never falls back to Math.random', () => {
+    const source = read('public/assets/js/behaviour-analytics.js');
+    expect(source).toContain('window.crypto.getRandomValues(bytes)');
+    expect(source).not.toContain('Math.random');
   });
 
   test('masks replay inputs and strips query strings before optional PostHog capture', () => {
