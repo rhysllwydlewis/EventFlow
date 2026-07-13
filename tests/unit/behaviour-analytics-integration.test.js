@@ -63,7 +63,9 @@ describe('analytics consent and privacy wiring', () => {
     expect(source).toContain('POSTHOG_PAGEVIEW_TIMEOUT_MS');
     expect(source).toContain("window.addEventListener('cookieConsentChanged'");
     expect(source).toContain("'/auth'");
-    expect(source).toContain("return `${window.location.origin}${window.location.pathname || '/'}`;");
+    expect(source).toContain(
+      "return `${window.location.origin}${window.location.pathname || '/'}`;"
+    );
     expect(source).not.toContain('phc_');
   });
 
@@ -98,7 +100,9 @@ describe('admin analytics live refresh and PostHog guidance', () => {
   test('refreshes the analytics page every 15 seconds only while visible', () => {
     const source = read('public/assets/js/pages/admin-analytics-init.js');
     expect(source).toContain('const AUTO_REFRESH_INTERVAL_MS = 15 * 1000');
-    expect(source).toContain("document.addEventListener('visibilitychange', handleVisibilityChange)");
+    expect(source).toContain(
+      "document.addEventListener('visibilitychange', handleVisibilityChange)"
+    );
     expect(source).toContain("document.visibilityState !== 'visible'");
     expect(source).toContain('refreshButton.click()');
     expect(source).toContain('Paused while this tab is hidden');
