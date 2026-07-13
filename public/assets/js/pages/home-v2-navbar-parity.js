@@ -10,6 +10,26 @@
   const logoutLinks = document.querySelectorAll('[data-hv2-logout]');
   const navLinks = document.querySelectorAll('.hv2-nav a, .hv2-mobile-nav a, .hv2-bottom-link');
 
+  function loadMobileSignupCta() {
+    if (!document.getElementById('ef-home-mobile-signup-css')) {
+      const stylesheet = document.createElement('link');
+      stylesheet.id = 'ef-home-mobile-signup-css';
+      stylesheet.rel = 'stylesheet';
+      stylesheet.href = '/assets/css/home-mobile-signup.css?v=1.2.0';
+      document.head.appendChild(stylesheet);
+    }
+
+    if (document.querySelector('script[data-ef-home-mobile-signup]')) {
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = '/assets/js/components/home-mobile-signup.js?v=1.2.0';
+    script.async = true;
+    script.dataset.efHomeMobileSignup = 'true';
+    document.head.appendChild(script);
+  }
+
   function normalisePath(value) {
     return (value || '/').replace(/index\.html?$/i, '').replace(/\/$/, '') || '/';
   }
@@ -146,6 +166,7 @@
       .catch(() => applyAuthState(null));
   }
 
+  loadMobileSignupCta();
   setCurrentPage();
   setScrolledState();
   window.addEventListener('scroll', setScrolledState, { passive: true });
