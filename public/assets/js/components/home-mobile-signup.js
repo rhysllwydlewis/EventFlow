@@ -18,7 +18,8 @@
   const NUDGE_DELAY_MS = 650;
   const NUDGE_FALLBACK_MS = 4300;
   const STYLESHEET_ID = 'ef-home-mobile-signup-css';
-  const STYLESHEET_URL = '/assets/css/home-mobile-signup.css?v=1.1.0';
+  const STYLESHEET_URL = '/assets/css/home-mobile-signup.css?v=1.2.0';
+  const SHARED_HEADER_ACTIVE_CLASS = 'ef-home-mobile-signup-active';
 
   const sharedHeader = document.querySelector('.ef-header');
   const v2Header = document.querySelector('.hv2-header');
@@ -244,6 +245,12 @@
     loginLink.classList.add('hv2-home-mobile-login');
   }
 
+  function setSharedHeaderSignupActive(active) {
+    if (mode === 'shared') {
+      sharedHeader.classList.toggle(SHARED_HEADER_ACTIVE_CLASS, active);
+    }
+  }
+
   function applyVisibility() {
     if (!authResolved || !stylesheetReady) {
       return;
@@ -252,6 +259,7 @@
     const isLoggedOut = !currentUser;
     setVisible(headerCta, isLoggedOut);
     setVisible(menuCta, isLoggedOut);
+    setSharedHeaderSignupActive(isLoggedOut);
 
     if (isLoggedOut) {
       startNudge();
@@ -277,6 +285,7 @@
 
   ensureStylesheet().then(loaded => {
     if (!loaded) {
+      setSharedHeaderSignupActive(false);
       headerCta.remove();
       menuCta.remove();
       return;
