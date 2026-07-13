@@ -194,6 +194,16 @@ describe('behaviour analytics admin summary', () => {
         pagePath: '/supplier/one',
       }),
       event({
+        event: 'search_performed',
+        sessionId: 'skipped-supplier-session',
+        pagePath: '/suppliers',
+      }),
+      event({
+        event: 'package_view',
+        sessionId: 'skipped-supplier-session',
+        pagePath: '/package/skipped',
+      }),
+      event({
         event: 'supplier_profile_view',
         sessionId: 'direct-session',
         pagePath: '/supplier/two',
@@ -206,7 +216,7 @@ describe('behaviour analytics admin summary', () => {
     ];
 
     const summary = buildSummary(rows, 30, NOW);
-    expect(summary.funnel.map(stage => stage.sessions)).toEqual([1, 1, 0, 0, 0]);
+    expect(summary.funnel.map(stage => stage.sessions)).toEqual([2, 1, 0, 0, 0]);
     expect(summary.funnel.every(stage => stage.rateFromSearch <= 100)).toBe(true);
   });
 
