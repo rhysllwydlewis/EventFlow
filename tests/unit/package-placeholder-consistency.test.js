@@ -15,6 +15,10 @@ const clientPackageImages = require('../../public/assets/js/utils/package-image-
 
 const ROOT = path.join(__dirname, '../..');
 const APPROVED_PLACEHOLDER = '/assets/images/package-placeholder.webp';
+const APPROVED_PLACEHOLDER_FILE = path.join(
+  ROOT,
+  'public/assets/images/package-placeholder.webp'
+);
 const LEGACY_PLACEHOLDER = '/assets/images/placeholders/package-event.svg';
 
 describe('package placeholder consistency', () => {
@@ -25,11 +29,32 @@ describe('package placeholder consistency', () => {
     expect(clientPackageImages.resolvePackageImage({})).toBe(APPROVED_PLACEHOLDER);
   });
 
+  it('points the canonical fallback at a valid WebP asset', () => {
+    const placeholderFile = fs.readFileSync(APPROVED_PLACEHOLDER_FILE);
+
+    expect(placeholderFile.length).toBeGreaterThan(12);
+    expect(placeholderFile.subarray(0, 4).toString('ascii')).toBe('RIFF');
+    expect(placeholderFile.subarray(8, 12).toString('ascii')).toBe('WEBP');
+  });
+
   it('continues to recognise old placeholder values as non-photo data', () => {
     expect(serverPackageImages.isPlaceholderImage(LEGACY_PLACEHOLDER)).toBe(true);
     expect(clientPackageImages.isPlaceholderImage(LEGACY_PLACEHOLDER)).toBe(true);
     expect(serverPackageImages.isPlaceholderImage(APPROVED_PLACEHOLDER)).toBe(true);
     expect(clientPackageImages.isPlaceholderImage(APPROVED_PLACEHOLDER)).toBe(true);
+  });
+
+  it('still prefers a genuine package photo over either placeholder path', () => {
+    const realPhoto = '/uploads/packages/real-package-photo.jpg';
+    const packages = [
+      { image: APPROVED_PLACEHOLDER, gallery: [{ url: realPhoto }] },
+      { image: LEGACY_PLACEHOLDER, gallery: [{ url: realPhoto }] },
+    ];
+
+    for (const pkg of packages) {
+      expect(serverPackageImages.resolvePackageImage(pkg)).toBe(realPhoto);
+      expect(clientPackageImages.resolvePackageImage(pkg)).toBe(realPhoto);
+    }
   });
 
   it('allows the approved fallback through the package detail legacy-path filter', () => {
