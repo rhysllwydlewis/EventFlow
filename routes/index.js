@@ -32,6 +32,7 @@ const searchV2Routes = require('./search-v2');
 const shortlistRoutes = require('./shortlist');
 const quoteRequestsRoutes = require('./quote-requests');
 const analyticsRoutes = require('./analytics');
+const behaviourAnalyticsRoutes = require('./behaviour-analytics');
 const plansRoutes = require('./plans');
 const guestsRoutes = require('./guests');
 const weddingWebsiteRoutes = require('./wedding-websites');
@@ -284,6 +285,8 @@ function mountRoutes(app, deps) {
   app.use('/api/shortlist', shortlistRoutes);
   app.use('/api/v1/quote-requests', quoteRequestsRoutes);
   app.use('/api/quote-requests', quoteRequestsRoutes);
+  app.use('/api/v1/analytics/behaviour', behaviourAnalyticsRoutes);
+  app.use('/api/analytics/behaviour', behaviourAnalyticsRoutes);
   app.use('/api/v1/analytics', analyticsRoutes);
   app.use('/api/analytics', analyticsRoutes);
   app.use('/api/v1/me/plans', plansRoutes);
