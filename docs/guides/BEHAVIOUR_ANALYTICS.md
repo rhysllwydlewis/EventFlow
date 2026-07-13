@@ -35,6 +35,8 @@ The dashboard provides:
 
 Choose 7, 30 or 90 days from the period selector. Revenue and user-growth analytics remain on the same page below the behaviour section.
 
+The Admin Analytics page refreshes automatically every 15 seconds while its browser tab is visible. It pauses when the tab is hidden and refreshes immediately when the administrator returns. The manual refresh button remains available.
+
 ## Railway environment variables
 
 The first-party collector is enabled by default. These variables can be added in Railway when different behaviour is required:
@@ -51,9 +53,12 @@ ANALYTICS_HASH_SALT=replace-with-a-long-random-value
 
 ## Optional PostHog setup
 
-1. Create a PostHog project. The EU region is recommended for EventFlow.
-2. Copy the public project key from PostHog project settings.
-3. Add these Railway variables:
+PostHog is optional. EventFlow's first-party Admin Analytics dashboard continues to work without it.
+
+1. Create or open a PostHog project.
+2. Copy the public project key from the project's settings.
+3. While inside that PostHog project, copy the project or dashboard URL from the browser address bar. It must contain `/project/`, not merely `https://eu.posthog.com` or `https://us.posthog.com`.
+4. Add the matching variables in Railway:
 
 ```env
 POSTHOG_PROJECT_KEY=phc_your_public_project_key
@@ -63,11 +68,15 @@ POSTHOG_DASHBOARD_URL=https://eu.posthog.com/project/YOUR_PROJECT_ID
 POSTHOG_SESSION_RECORDING_ENABLED=false
 ```
 
+For a US PostHog project, use the equivalent US hosts and the exact US project URL.
+
 The project key is intended for browser use and is not a secret. Do not add a PostHog personal API key to client configuration.
+
+`POSTHOG_DASHBOARD_URL` controls the **Open PostHog** button in Admin Analytics. If it is missing or contains only the general PostHog homepage, EventFlow hides the misleading button and shows a configuration message instead. After changing Railway variables, redeploy the application.
 
 PostHog capture remains anonymous: EventFlow does not send its internal user IDs to PostHog, person profiles are disabled, autocapture is disabled and only explicitly generated analytics events are sent.
 
-After deployment, accept Analytics Cookies on EventFlow, browse several public pages, and confirm events appear in PostHog. The Admin Analytics page shows an **Open PostHog** button once configuration is detected.
+After deployment, accept Analytics Cookies on EventFlow, browse several public pages, and confirm events appear in the selected PostHog project. The Admin Analytics page shows **Open PostHog** only when it has a specific project destination.
 
 ## Session recordings
 

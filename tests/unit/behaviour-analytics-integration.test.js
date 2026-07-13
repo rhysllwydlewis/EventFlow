@@ -81,6 +81,25 @@ describe('analytics consent and privacy wiring', () => {
   });
 });
 
+describe('admin analytics live refresh and PostHog guidance', () => {
+  test('refreshes the analytics page every 15 seconds only while visible', () => {
+    const source = read('public/assets/js/pages/admin-analytics-init.js');
+    expect(source).toContain('const AUTO_REFRESH_INTERVAL_MS = 15 * 1000');
+    expect(source).toContain("document.addEventListener('visibilitychange', handleVisibilityChange)");
+    expect(source).toContain("document.visibilityState !== 'visible'");
+    expect(source).toContain('refreshButton.click()');
+    expect(source).toContain('Paused while this tab is hidden');
+  });
+
+  test('does not present the general PostHog homepage as a project dashboard', () => {
+    const source = read('public/assets/js/pages/admin-analytics-init.js');
+    expect(source).toContain('function isSpecificPostHogDestination');
+    expect(source).toContain('/^\\/project\\/[^/]+(?:\\/|$)/');
+    expect(source).toContain('POSTHOG_DASHBOARD_URL in Railway');
+    expect(source).toContain('link.hidden = true');
+  });
+});
+
 describe('behaviour analytics server protections', () => {
   const { hasAnalyticsConsentCookie, safeHttpsUrl, getConfig } = behaviourAnalyticsRoutes._private;
 
