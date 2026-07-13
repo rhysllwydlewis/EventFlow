@@ -304,16 +304,6 @@ function pageSession(page, sessionKey) {
   return page.sessions.get(sessionKey);
 }
 
-function intersectionCount(left, right) {
-  let count = 0;
-  for (const value of left) {
-    if (right.has(value)) {
-      count += 1;
-    }
-  }
-  return count;
-}
-
 function buildSummary(rawEvents, days = 30, now = new Date()) {
   const periodDays = [7, 30, 90].includes(Number(days)) ? Number(days) : 30;
   const cutoff = now.getTime() - periodDays * 24 * 60 * 60 * 1000;
