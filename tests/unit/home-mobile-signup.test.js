@@ -46,7 +46,10 @@ async function flushPromises() {
   await Promise.resolve();
 }
 
-function boot(html, { user = null, reducedMotion = true, seen = false } = {}) {
+function boot(
+  html,
+  { user = null, reducedMotion = true, seen = false, stylesheetOutcome = 'load' } = {}
+) {
   const dom = new JSDOM(html, {
     url: 'https://event-flow.co.uk/',
     runScripts: 'outside-only',
@@ -86,7 +89,7 @@ function boot(html, { user = null, reducedMotion = true, seen = false } = {}) {
   window.eval(scriptSource);
 
   const stylesheet = window.document.getElementById('ef-home-mobile-signup-css');
-  stylesheet.dispatchEvent(new window.Event('load'));
+  stylesheet.dispatchEvent(new window.Event(stylesheetOutcome));
 
   return {
     dom,
@@ -146,6 +149,19 @@ describe('homepage mobile sign-up CTA', () => {
     expect(menuCta.nextElementSibling).toBe(login);
     expect(headerCta.hidden).toBe(true);
     expect(menuCta.hidden).toBe(true);
+
+    close(page);
+  });
+
+  it('keeps the original burger-menu login treatment if the CTA stylesheet fails', async () => {
+    const page = boot(sharedMarkup(), { stylesheetOutcome: 'error' });
+    await page.ready();
+
+    const login = page.document.getElementById('ef-mobile-auth');
+    expect(page.document.getElementById('ef-mobile-signup-cta')).toBeNull();
+    expect(page.document.getElementById('ef-mobile-signup-menu')).toBeNull();
+    expect(login.classList.contains('ef-mobile-primary')).toBe(true);
+    expect(login.classList.contains('ef-home-mobile-login')).toBe(false);
 
     close(page);
   });
