@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Homepage mobile sign-up CTA
  *
  * Adds a visible, auth-aware sign-up action to the mobile header while
