@@ -13,6 +13,13 @@ const { getActiveHomepageVersion, normaliseHomepageVersion } = require('./homepa
 
 const templateCache = new Map();
 const ANONYMOUS_SANITIZER_COMMENT = '<!-- eventflow-anonymous-sanitizer: active -->';
+const GLOBAL_ANALYTICS_SCRIPTS = [
+  '    <script src="/assets/js/cookie-consent.js?v=2.1.0" defer></script>',
+  '    <script src="/assets/js/analytics-consent-upgrade.js?v=1" defer></script>',
+  '    <script src="/assets/js/behaviour-analytics.js?v=1" defer></script>',
+];
+const ADMIN_BEHAVIOUR_ANALYTICS_SCRIPT =
+  '    <script src="/assets/js/pages/admin-behaviour-analytics.js?v=1" defer></script>';
 const HOMEPAGE_INDEX_FILE = '/index.html';
 const HOMEPAGE_V2_FILE = '/home-v2.html';
 const HOMEPAGE_V2_PREVIEW_PATHS = new Set([
@@ -171,7 +178,7 @@ function replacePlaceholders(content) {
   let result = content;
 
   for (const [key, value] of Object.entries(placeholders)) {
-    const pattern = new RegExp(`\\{\\{${key}\\}}`, 'g');
+    const pattern = new RegExp(`\\{\\{${key}\\}\\}`, 'g');
     result = result.replace(pattern, value);
   }
 
@@ -239,6 +246,40 @@ function injectBodySnippet(content, snippet, marker) {
     return content;
   }
   return content.replace(/\s*<\/body>/i, `\n${snippet}\n</body>`);
+}
+
+function injectGlobalAnalyticsScripts(content, requestPath) {
+  const pathName = String(requestPath || '');
+  const isAdmin = pathName === '/admin.html' || pathName.startsWith('/admin-');
+  let result = content;
+
+  if (!isAdmin) {
+    result = injectBodySnippet(
+      result,
+      GLOBAL_ANALYTICS_SCRIPTS[0],
+      '/assets/js/cookie-consent.js'
+    );
+    result = injectBodySnippet(
+      result,
+      GLOBAL_ANALYTICS_SCRIPTS[1],
+      '/assets/js/analytics-consent-upgrade.js'
+    );
+    result = injectBodySnippet(
+      result,
+      GLOBAL_ANALYTICS_SCRIPTS[2],
+      '/assets/js/behaviour-analytics.js'
+    );
+  }
+
+  if (pathName === '/admin-analytics.html') {
+    result = injectBodySnippet(
+      result,
+      ADMIN_BEHAVIOUR_ANALYTICS_SCRIPT,
+      '/assets/js/pages/admin-behaviour-analytics.js'
+    );
+  }
+
+  return result;
 }
 
 function injectBeforeHeadClose(content, snippet) {
@@ -544,10 +585,9 @@ async function getFile(filePath, requestPath, req) {
   }
 
   const content = await fs.readFile(filePath, 'utf8');
-  const processedContent = sanitizeAnonymousPublicHtml(
-    replacePlaceholders(content),
-    requestPath,
-    req
+  const processedContent = injectGlobalAnalyticsScripts(
+    sanitizeAnonymousPublicHtml(replacePlaceholders(content), requestPath, req),
+    requestPath
   );
 
   if (cachingEnabled) {
@@ -623,6 +663,7 @@ module.exports = {
   templateMiddleware,
   replacePlaceholders,
   sanitizeAnonymousPublicHtml,
+  injectGlobalAnalyticsScripts,
   clearCache,
   setHtmlNoStoreHeaders,
   appendVaryHeader,
