@@ -319,7 +319,7 @@ function createSupplierCard(supplier, position) {
         ${ratingWidget}
         ${badges.length || distanceBadge ? `<div class="sp-card-badges">${badges.slice(0, 3).join('')}${distanceBadge}</div>` : ''}
       </div>
-      ${supplier.description_short ? `<p class="sp-card-description">${escapeHtml(supplier.description_short)}</p><button type="button" class="sp-desc-toggle" aria-expanded="false" hidden>Show more</button>` : ''}
+      ${supplier.description_short ? `<p class="sp-card-description">${escapeHtml(supplier.description_short)}</p>` : ''}
 
       <!-- MIDDLE: Package mini-cards -->
       <div class="sp-card-packages">
@@ -1057,44 +1057,12 @@ async function initSuppliersPage() {
 
     // Wire up horizontal package carousels
     attachCarousels();
-
-    // Wire up description "Show more" toggles (mobile clamp)
-    initDescriptionToggles();
   }
 
-  /*
-   * Supplier description clamp — the CSS clamps to 2 lines on mobile; the
-   * "Show more" button is revealed only when the text actually overflows,
-   * and toggles an accessible expanded state. rAF defers measurement until
-   * after layout so scrollHeight/clientHeight are accurate.
-   */
-  function initDescriptionToggles() {
-    requestAnimationFrame(() => {
-      resultsContainer.querySelectorAll('.sp-card-description').forEach(desc => {
-        const toggle = desc.nextElementSibling;
-        if (!toggle || !toggle.classList.contains('sp-desc-toggle')) {
-          return;
-        }
-        const overflowing = desc.scrollHeight > desc.clientHeight + 1;
-        toggle.hidden = !overflowing;
-      });
-    });
-  }
-
-  // Delegated toggle handler — attached once, survives every rerender.
-  resultsContainer.addEventListener('click', e => {
-    const toggle = e.target.closest('.sp-desc-toggle');
-    if (!toggle) {
-      return;
-    }
-    const desc = toggle.previousElementSibling;
-    if (!desc || !desc.classList.contains('sp-card-description')) {
-      return;
-    }
-    const expanded = desc.classList.toggle('is-expanded');
-    toggle.setAttribute('aria-expanded', String(expanded));
-    toggle.textContent = expanded ? 'Show less' : 'Show more';
-  });
+  /* NOTE: the description "Show more" clamp/toggle is owned by
+     suppliers-mobile.js (sp-description-toggle), which injects and syncs
+     the control for every rendered card. Do not add a second mechanism
+     here — duplicated toggles shipped once and were removed. */
 
   /*
    * Package image fallback — if a package image fails to load, swap in the

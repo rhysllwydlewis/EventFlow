@@ -141,11 +141,16 @@
   font-size: 17px !important;
 }
 
-.suppliers-page-wrap .sp-pkg-arrow {
-  align-self: flex-start;
-  margin-top: calc(
-    (var(--sp-active-media-height, var(--sp-polish-thumb-height)) - 22px) / 2
-  ) !important;
+/* Desktop only: centre the 22px glyph arrows against the media strip.
+   On mobile the redesigned card uses full-height labelled controls that sit
+   on one compact row with the position pill — the offset must not apply. */
+@media (min-width: 768px) {
+  .suppliers-page-wrap .sp-pkg-arrow {
+    align-self: flex-start;
+    margin-top: calc(
+      (var(--sp-active-media-height, var(--sp-polish-thumb-height)) - 22px) / 2
+    ) !important;
+  }
 }
 
 /* ── Mobile card reflow and quick-filter containment ───────────────────── */
@@ -273,7 +278,7 @@
     grid-column: 1 !important;
     grid-row: 4 !important;
     display: grid !important;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.25fr) minmax(0, 0.95fr);
     align-items: stretch !important;
     gap: 6px !important;
     width: 100%;
@@ -287,7 +292,7 @@
     width: 100% !important;
     min-width: 0 !important;
     max-width: none !important;
-    min-height: 36px !important;
+    min-height: 44px !important; /* spec: 44px touch targets */
     padding: 8px 6px !important;
     border-radius: 9px !important;
     font-size: 11.5px !important;
@@ -308,9 +313,23 @@
     align-items: flex-start !important;
   }
 
+  /* Approved card mock: square package media. aspect-ratio needs height
+     auto, so the pre-redesign fixed banner height must not apply here. */
   .suppliers-page-wrap .sp-pkg-mini-thumb {
-    height: var(--sp-polish-thumb-height) !important;
-    max-height: 118px !important;
+    height: auto !important;
+    max-height: none !important;
+    aspect-ratio: 1 / 1;
+  }
+
+  /* Keep the mobile carousel controls on one compact row: pill and
+     labelled Previous/Next share the grid row, vertically centred. */
+  .suppliers-page-wrap .sp-pkg-arrow {
+    align-self: center !important;
+    margin-top: 0 !important;
+  }
+
+  .suppliers-page-wrap .sp-pkg-position {
+    align-self: center;
   }
 
   .suppliers-page-wrap .sp-pkg-mini-thumb--fallback {
