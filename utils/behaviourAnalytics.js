@@ -69,13 +69,15 @@ const ALLOWED_PROPERTY_KEYS = new Set([
   'tocTarget',
 ]);
 
-const SENSITIVE_PROPERTY_KEY = /^(email|fullName|firstName|lastName|phone|address|password|token|secret|message|query|searchTerm|body|content)$/i;
+const SENSITIVE_PROPERTY_KEY =
+  /^(email|fullName|firstName|lastName|phone|address|password|token|secret|message|query|searchTerm|body|content)$/i;
 const EMAIL_PATTERN = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi;
 const PHONE_PATTERN = /(?:\+?\d[\d\s().-]{7,}\d)/g;
 
 const CONVERSION_EVENTS = new Set([
   'registration_completed',
   'supplier_profile_completed',
+  'package_created',
   'package_published',
   'quote_request_submitted',
   'enquiry_submitted',
@@ -160,10 +162,19 @@ function normalizeDomain(value) {
     return 'direct';
   }
 
+  const sentinel = raw.toLowerCase();
+  if (sentinel === 'direct' || sentinel === 'internal') {
+    return sentinel;
+  }
+
   try {
-    const parsed = new URL(raw, 'https://event-flow.local');
+    const candidate = /^[a-z][a-z0-9+.-]*:\/\//i.test(raw) ? raw : `https://${raw}`;
+    const parsed = new URL(candidate);
     const host = parsed.hostname.toLowerCase().replace(/^www\./, '');
-    return host === 'event-flow.local' ? 'direct' : host.slice(0, 120);
+    if (!host || host === 'event-flow.local') {
+      return 'direct';
+    }
+    return host.slice(0, 120);
   } catch (_error) {
     return 'direct';
   }
@@ -243,12 +254,16 @@ function sanitizeEvent(input, context = {}) {
 
   const now = context.now instanceof Date ? context.now : new Date();
   const salt = context.hashSalt || process.env.ANALYTICS_HASH_SALT || process.env.JWT_SECRET;
+  const sessionIdHash = hashIdentifier(input.sessionId, salt);
+  if (!sessionIdHash) {
+    return null;
+  }
 
   return {
     event: input.event,
-    sessionIdHash: hashIdentifier(input.sessionId, salt),
+    sessionIdHash,
     userIdHash: hashIdentifier(context.userId, salt),
-    userRole: ['customer', 'supplier', 'admin'].includes(context.userRole)
+    userRole: ['customer', 'supplier'].includes(context.userRole)
       ? context.userRole
       : 'anonymous',
     pagePath: normalizePagePath(input.pagePath),
@@ -278,10 +293,27 @@ function newPageStats(event) {
     pageType: event.pageType || 'other',
     views: 0,
     activeSeconds: 0,
-    sessions: new Set(),
+    sessions: new Map(),
     exits: 0,
     bounces: 0,
   };
+}
+
+function pageSession(page, sessionKey) {
+  if (!page.sessions.has(sessionKey)) {
+    page.sessions.set(sessionKey, { views: 0, activeSeconds: 0 });
+  }
+  return page.sessions.get(sessionKey);
+}
+
+function intersectionCount(left, right) {
+  let count = 0;
+  for (const value of left) {
+    if (right.has(value)) {
+      count += 1;
+    }
+  }
+  return count;
 }
 
 function buildSummary(rawEvents, days = 30, now = new Date()) {
@@ -304,8 +336,11 @@ function buildSummary(rawEvents, days = 30, now = new Date()) {
   let conversions = 0;
   let clientErrors = 0;
 
-  events.forEach((event, index) => {
-    const sessionKey = event.sessionIdHash || `unknown-${index}`;
+  events.forEach(event => {
+    const sessionKey = event.sessionIdHash;
+    if (!sessionKey) {
+      return;
+    }
     if (!sessions.has(sessionKey)) {
       sessions.set(sessionKey, { activeSeconds: 0, pageViews: 0, pages: [] });
     }
@@ -339,7 +374,7 @@ function buildSummary(rawEvents, days = 30, now = new Date()) {
       }
       const page = pages.get(event.pagePath);
       page.views += 1;
-      page.sessions.add(sessionKey);
+      pageSession(page, sessionKey).views += 1;
     }
 
     if (event.event === 'page_engagement') {
@@ -353,7 +388,7 @@ function buildSummary(rawEvents, days = 30, now = new Date()) {
       }
       const page = pages.get(event.pagePath);
       page.activeSeconds += seconds;
-      page.sessions.add(sessionKey);
+      pageSession(page, sessionKey).activeSeconds += seconds;
     }
 
     if (CONVERSION_EVENTS.has(event.event)) {
@@ -364,7 +399,7 @@ function buildSummary(rawEvents, days = 30, now = new Date()) {
     }
   });
 
-  for (const [sessionKey, session] of sessions.entries()) {
+  for (const session of sessions.values()) {
     if (session.pages.length === 0) {
       continue;
     }
@@ -376,7 +411,6 @@ function buildSummary(rawEvents, days = 30, now = new Date()) {
     if (session.pageViews === 1 && session.activeSeconds < 10) {
       lastPage.bounces += 1;
     }
-    lastPage.sessions.add(sessionKey);
   }
 
   const engagedSessionCount = Array.from(sessions.values()).filter(
@@ -385,10 +419,9 @@ function buildSummary(rawEvents, days = 30, now = new Date()) {
 
   const pageRows = Array.from(pages.values())
     .map(page => {
-      const engagedOnPage = Array.from(page.sessions).filter(sessionKey => {
-        const session = sessions.get(sessionKey);
-        return session && (session.activeSeconds >= 10 || session.pageViews >= 2);
-      }).length;
+      const engagedOnPage = Array.from(page.sessions.values()).filter(
+        session => session.activeSeconds >= 10 || session.views >= 2
+      ).length;
       return {
         pagePath: page.pagePath,
         pageType: page.pageType,
@@ -404,14 +437,16 @@ function buildSummary(rawEvents, days = 30, now = new Date()) {
     .sort((left, right) => right.views - left.views || right.totalActiveSeconds - left.totalActiveSeconds)
     .slice(0, 50);
 
-  const searchSessions = Math.max(funnelSessions.get('search').size, 1);
+  const searchSet = funnelSessions.get('search');
+  const searchCount = searchSet.size;
   const funnel = FUNNEL_STAGES.map(stage => {
-    const count = funnelSessions.get(stage.key).size;
+    const stageSet = funnelSessions.get(stage.key);
+    const count = stage.key === 'search' ? searchCount : intersectionCount(searchSet, stageSet);
     return {
       key: stage.key,
       label: stage.label,
       sessions: count,
-      rateFromSearch: round((count / searchSessions) * 100, 1),
+      rateFromSearch: searchCount > 0 ? round((count / searchCount) * 100, 1) : 0,
     };
   });
 
@@ -438,6 +473,21 @@ function buildSummary(rawEvents, days = 30, now = new Date()) {
     }
     if (recommendations.length >= 6) {
       break;
+    }
+  }
+
+  if (searchCount >= 5) {
+    for (let index = 1; index < funnel.length; index += 1) {
+      const previous = funnel[index - 1];
+      const current = funnel[index];
+      if (previous.sessions > 0 && current.sessions / previous.sessions < 0.4) {
+        recommendations.push({
+          severity: 'medium',
+          title: `Journey drop before ${current.label.toLowerCase()}`,
+          detail: `${current.sessions} of ${previous.sessions} measured sessions progressed from ${previous.label.toLowerCase()} to ${current.label.toLowerCase()}. Review the next-step wording, relevance and mobile experience.`,
+        });
+        break;
+      }
     }
   }
 
