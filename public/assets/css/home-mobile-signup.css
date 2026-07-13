@@ -101,6 +101,10 @@
 }
 
 @media (max-width: 767px) {
+  .ef-header.ef-home-mobile-signup-active .ef-header-actions > #ef-auth-link {
+    display: none !important;
+  }
+
   .ef-home-mobile-signup:not([hidden]) {
     display: inline-flex;
   }
