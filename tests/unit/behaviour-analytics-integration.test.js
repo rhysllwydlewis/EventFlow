@@ -63,6 +63,7 @@ describe('analytics consent and privacy wiring', () => {
     expect(source).toContain('POSTHOG_PAGEVIEW_TIMEOUT_MS');
     expect(source).toContain("window.addEventListener('cookieConsentChanged'");
     expect(source).toContain("'/auth'");
+    expect(source).toContain("'/payment'");
     expect(source).toContain(
       "return `${window.location.origin}${window.location.pathname || '/'}`;"
     );
