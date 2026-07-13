@@ -7,10 +7,9 @@
   const MAX_QUEUE_SIZE = 20;
   const FLUSH_DELAY_MS = 5000;
   const SCROLL_MILESTONES = [25, 50, 75, 100];
-  const SENSITIVE_PATH_PREFIXES = [
+
+  const EXCLUDED_PAGE_PREFIXES = [
     '/admin',
-    '/auth',
-    '/reset-password',
     '/checkout',
     '/payment',
     '/messages',
@@ -20,7 +19,12 @@
     '/settings',
     '/plan',
     '/guests',
+    '/supplier/profile-customization',
+    '/supplier/subscription',
+    '/supplier/marketplace-new-listing',
   ];
+
+  const SENSITIVE_INTERACTION_PREFIXES = ['/auth', '/reset-password', ...EXCLUDED_PAGE_PREFIXES];
 
   const state = {
     activeStartedAt: null,
@@ -42,9 +46,9 @@
     return window.location.pathname.replace(/\/{2,}/g, '/') || '/';
   }
 
-  function matchesSensitivePath() {
+  function pathMatches(prefixes) {
     const pagePath = currentPath();
-    return SENSITIVE_PATH_PREFIXES.some(
+    return prefixes.some(
       prefix =>
         pagePath === prefix ||
         pagePath.startsWith(`${prefix}/`) ||
@@ -53,9 +57,12 @@
     );
   }
 
-  function isAdminPath() {
-    const pagePath = currentPath();
-    return pagePath === '/admin' || pagePath.startsWith('/admin-');
+  function isExcludedPage() {
+    return pathMatches(EXCLUDED_PAGE_PREFIXES);
+  }
+
+  function isSensitiveInteractionPage() {
+    return pathMatches(SENSITIVE_INTERACTION_PREFIXES);
   }
 
   function hasAnalyticsConsent() {
@@ -64,7 +71,7 @@
     }
     try {
       const consent = window.CookieConsent.getConsent();
-      return Boolean(consent && consent.analytics);
+      return Boolean(consent && consent.analytics === true);
     } catch (_error) {
       return false;
     }
@@ -79,7 +86,7 @@
       window.crypto.getRandomValues(bytes);
       return Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
     }
-    // The identifier is analytics-only, never an authentication or authorisation token.
+    // Analytics-only fallback for browsers without Web Crypto; never used for authentication.
     return `limited-${Date.now().toString(36)}-${performance.timeOrigin.toString(36)}`;
   }
 
@@ -121,8 +128,6 @@
     if (pagePath.startsWith('/articles/')) return 'article';
     if (pagePath.startsWith('/pricing')) return 'pricing';
     if (pagePath.startsWith('/auth')) return 'auth';
-    if (pagePath.startsWith('/dashboard')) return 'dashboard';
-    if (pagePath.startsWith('/plan')) return 'plan';
     return 'other';
   }
 
@@ -174,6 +179,10 @@
   }
 
   function sendBatch(batch, useBeacon) {
+    if (!hasAnalyticsConsent() || batch.length === 0) {
+      return;
+    }
+
     const body = JSON.stringify({ consent: true, events: batch });
     if (useBeacon && typeof navigator.sendBeacon === 'function') {
       try {
@@ -198,7 +207,7 @@
   }
 
   function flush(useBeacon) {
-    if (!state.consented || state.queue.length === 0) {
+    if (!state.consented || !hasAnalyticsConsent() || state.queue.length === 0) {
       return;
     }
     if (state.flushTimer) {
@@ -230,20 +239,21 @@
   }
 
   function track(eventName, properties, options) {
-    if (!state.started || !state.consented || isAdminPath()) {
+    if (!state.started || !state.consented || !hasAnalyticsConsent() || isExcludedPage()) {
       return false;
     }
+
     const cleanName = cleanIdentifier(eventName);
     if (!cleanName) {
       return false;
     }
 
-    const event = buildEvent(cleanName, properties);
-    state.queue.push(event);
+    const analyticsEvent = buildEvent(cleanName, properties);
+    state.queue.push(analyticsEvent);
     if (state.queue.length > MAX_QUEUE_SIZE) {
       state.queue.splice(0, state.queue.length - MAX_QUEUE_SIZE);
     }
-    capturePostHog(cleanName, event);
+    capturePostHog(cleanName, analyticsEvent);
 
     if (options && options.immediate) {
       flush(false);
@@ -324,7 +334,7 @@
     window.addEventListener(
       'scroll',
       function () {
-        if (scheduled) return;
+        if (scheduled || isExcludedPage()) return;
         scheduled = true;
         window.requestAnimationFrame(function () {
           scheduled = false;
@@ -351,14 +361,14 @@
 
   function bindInteractionTracking() {
     document.addEventListener('click', function (event) {
-      if (matchesSensitivePath()) return;
+      if (isSensitiveInteractionPage()) return;
       const element = actionElement(event.target);
       if (!element || element.closest('.ph-no-capture, [data-analytics-sensitive]')) return;
 
       const explicitEvent = cleanIdentifier(element.dataset && element.dataset.analyticsEvent);
       if (explicitEvent) {
         track(explicitEvent, {
-          eventLabel: cleanIdentifier(element.dataset.analyticsLabel || element.textContent || ''),
+          eventLabel: cleanIdentifier(element.dataset.analyticsLabel || ''),
           itemType: cleanIdentifier(element.dataset.analyticsItemType || ''),
           itemId: cleanIdentifier(element.dataset.analyticsItemId || ''),
           supplierId: cleanIdentifier(element.dataset.supplierId || ''),
@@ -367,7 +377,9 @@
         });
       }
 
-      const text = String(element.textContent || element.value || '').trim().toLowerCase();
+      const text = String(element.textContent || element.value || '')
+        .trim()
+        .toLowerCase();
       if (/add to (my )?plan/.test(text)) {
         track('package_add_to_plan', {
           packageId: cleanIdentifier(element.dataset.packageId || ''),
@@ -389,10 +401,7 @@
       try {
         const url = new URL(element.href, window.location.href);
         if (url.origin !== window.location.origin) {
-          track('outbound_click', {
-            source: url.hostname.replace(/^www\./, ''),
-            eventLabel: cleanIdentifier(element.textContent || ''),
-          });
+          track('outbound_click', { source: url.hostname.replace(/^www\./, '') });
         } else if (url.pathname.startsWith('/supplier')) {
           track('result_clicked', { resultType: 'supplier', source: pageType() });
         } else if (url.pathname.startsWith('/package')) {
@@ -404,14 +413,17 @@
     });
 
     document.addEventListener('submit', function (event) {
+      if (isSensitiveInteractionPage()) return;
       const form = event.target;
       if (!form || form.closest('.ph-no-capture, [data-analytics-sensitive]')) return;
+
       let action = currentPath();
       try {
         action = new URL(form.action || window.location.href, window.location.href).pathname;
       } catch (_error) {
         // Keep the current path.
       }
+
       track('form_submit', {
         formId: cleanIdentifier(form.id || form.getAttribute('name') || ''),
         formAction: action,
@@ -419,9 +431,6 @@
       });
       if (/search|supplier/.test(action) && ['home', 'suppliers'].includes(pageType())) {
         track('search_performed', { source: pageType() });
-      }
-      if (pageType() === 'auth') {
-        track('registration_started', { source: 'auth_form' });
       }
     });
   }
@@ -487,13 +496,18 @@
             target.push([method].concat(Array.prototype.slice.call(arguments, 0)));
           };
         }
+
         const script = documentObject.createElement('script');
         script.type = 'text/javascript';
         script.crossOrigin = 'anonymous';
         script.async = true;
-        script.src = `${config.api_host.replace('.i.posthog.com', '-assets.i.posthog.com')}/static/array.js`;
+        script.src = `${config.api_host.replace(
+          '.i.posthog.com',
+          '-assets.i.posthog.com'
+        )}/static/array.js`;
         const firstScript = documentObject.getElementsByTagName('script')[0];
         firstScript.parentNode.insertBefore(script, firstScript);
+
         let instance = posthog;
         let instanceName = name;
         if (instanceName !== undefined) {
@@ -502,7 +516,8 @@
           instanceName = 'posthog';
         }
         instance.people = instance.people || [];
-        const methods = 'init capture identify reset opt_in_capturing opt_out_capturing stopSessionRecording'.split(' ');
+        const methods =
+          'init capture reset opt_in_capturing opt_out_capturing stopSessionRecording'.split(' ');
         methods.forEach(function (method) {
           addMethod(instance, method);
         });
@@ -513,11 +528,18 @@
   }
 
   function startPostHog(config) {
-    if (state.posthogStarted || !config || !config.enabled || !config.projectKey) return;
-    if (config.sessionRecordingEnabled && matchesSensitivePath()) return;
+    if (
+      state.posthogStarted ||
+      !config ||
+      !config.enabled ||
+      !config.projectKey ||
+      isSensitiveInteractionPage()
+    ) {
+      return;
+    }
 
     installPostHogStub();
-    const replayAllowed = config.sessionRecordingEnabled && !matchesSensitivePath();
+    const replayAllowed = config.sessionRecordingEnabled && !isSensitiveInteractionPage();
     window.posthog.init(config.projectKey, {
       api_host: config.apiHost,
       ui_host: config.uiHost,
@@ -526,7 +548,7 @@
       capture_pageview: false,
       capture_pageleave: false,
       capture_performance: false,
-      person_profiles: 'identified_only',
+      person_profiles: 'never',
       opt_out_capturing_by_default: true,
       disable_session_recording: !replayAllowed,
       session_recording: {
@@ -543,18 +565,6 @@
     });
     state.posthogStarted = true;
     window.posthog.opt_in_capturing();
-
-    fetch('/api/v1/auth/me', { credentials: 'same-origin' })
-      .then(response => (response.ok ? response.json() : null))
-      .then(payload => {
-        const user = payload && payload.user;
-        if (user && user.id && window.posthog && typeof window.posthog.identify === 'function') {
-          window.posthog.identify(String(user.id), { role: user.role || 'customer' });
-        }
-      })
-      .catch(function () {
-        // Anonymous analytics remains available.
-      });
   }
 
   function stopPostHog() {
@@ -605,7 +615,11 @@
         return response.json();
       })
       .catch(function () {
-        return { enabled: true, heartbeatSeconds: 15, posthog: { enabled: false } };
+        return {
+          enabled: true,
+          heartbeatSeconds: 15,
+          posthog: { enabled: false },
+        };
       })
       .then(config => {
         state.config = config;
@@ -614,18 +628,20 @@
   }
 
   function start() {
-    if (state.started || state.starting || isAdminPath() || !hasAnalyticsConsent()) {
+    if (state.started || state.starting || isExcludedPage() || !hasAnalyticsConsent()) {
       return Promise.resolve();
     }
+
     state.starting = true;
     state.consented = true;
 
     return loadConfig()
       .then(config => {
-        if (!config.enabled || !hasAnalyticsConsent()) {
+        if (!config.enabled || !hasAnalyticsConsent() || isExcludedPage()) {
           state.consented = false;
           return;
         }
+
         state.started = true;
         getSessionId();
         installBindings();
@@ -673,7 +689,7 @@
   };
 
   window.addEventListener('cookieConsentChanged', function (event) {
-    if (event && event.detail && event.detail.analytics) {
+    if (event && event.detail && event.detail.analytics === true) {
       start();
     } else {
       stop();
@@ -681,7 +697,9 @@
   });
 
   function init() {
-    if (hasAnalyticsConsent()) start();
+    if (hasAnalyticsConsent()) {
+      start();
+    }
   }
 
   if (document.readyState === 'loading') {
