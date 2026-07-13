@@ -6,6 +6,20 @@
 (function () {
   'use strict';
 
+  function loadMobileSignupCta() {
+    if (document.querySelector('script[data-ef-home-mobile-signup]')) {
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = '/assets/js/components/home-mobile-signup.js?v=1.0.0';
+    script.defer = true;
+    script.dataset.efHomeMobileSignup = 'true';
+    document.head.appendChild(script);
+  }
+
+  loadMobileSignupCta();
+
   // ========================================
   // HERO VIDEO FALLBACK
   // Hide video container if no source is provided
