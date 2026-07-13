@@ -1,13 +1,53 @@
-<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Package image placeholder">
   <defs>
-    <linearGradient id="grad3" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#0B8073;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#065F54;stop-opacity:1" />
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F9FDFD"/>
+      <stop offset="1" stop-color="#F1F9F8"/>
     </linearGradient>
+    <linearGradient id="waveLeft" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#E2F3F1"/>
+      <stop offset="1" stop-color="#F0F9F8"/>
+    </linearGradient>
+    <linearGradient id="waveRight" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#E5F4F2"/>
+      <stop offset="1" stop-color="#F7FCFB"/>
+    </linearGradient>
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="14" flood-color="#5C9992" flood-opacity="0.12"/>
+    </filter>
   </defs>
-  <rect width="800" height="600" fill="url(#grad3)"/>
-  <rect x="250" y="180" width="300" height="240" rx="10" fill="none" stroke="#FFFFFF" stroke-width="4" opacity="0.9"/>
-  <path d="M 400 180 L 400 140 M 350 180 L 350 160 M 450 180 L 450 160" stroke="#FFFFFF" stroke-width="4" opacity="0.9" stroke-linecap="round"/>
-  <text x="400" y="480" font-family="Arial, sans-serif" font-size="32" fill="#FFFFFF" text-anchor="middle" opacity="0.9">Event Package</text>
-  <text x="400" y="520" font-family="Arial, sans-serif" font-size="18" fill="#FFFFFF" text-anchor="middle" opacity="0.7">Complete event planning package</text>
+
+  <rect width="1024" height="1024" fill="url(#background)"/>
+  <path d="M0 0H314C286 104 230 171 155 229C86 283 41 351 0 449Z" fill="url(#waveLeft)"/>
+  <path d="M1024 1024H648C676 925 730 846 817 786C902 728 966 654 1024 553Z" fill="url(#waveRight)"/>
+  <path d="M0 772C112 722 194 702 300 712C226 774 164 868 126 1024H0Z" fill="#F3FAF9"/>
+  <path d="M1024 242C928 290 848 303 752 294C819 237 878 143 916 0H1024Z" fill="#F5FBFA"/>
+
+  <circle cx="512" cy="512" r="224" fill="#EEF7F6"/>
+  <circle cx="512" cy="512" r="223" fill="none" stroke="#E2F1EF" stroke-width="2"/>
+
+  <g filter="url(#softShadow)">
+    <rect x="398" y="410" width="228" height="192" rx="24" fill="#F8FCFC" stroke="#A9D8D3" stroke-width="5"/>
+    <circle cx="463" cy="466" r="19" fill="#BDE2DE"/>
+    <path d="M420 565L474 509L520 551L552 521L604 575V578H420Z" fill="#B7DEDA"/>
+    <path d="M420 565L474 509L520 551" fill="none" stroke="#9FD2CD" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M520 551L552 521L604 575" fill="none" stroke="#9FD2CD" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <g fill="none" stroke="#91CCC6" stroke-width="4" stroke-linecap="round">
+    <path d="M322 365V387M311 376H333"/>
+    <path d="M710 344V364M700 354H720"/>
+    <path d="M302 650V670M292 660H312"/>
+    <path d="M728 651V675M716 663H740"/>
+  </g>
+  <g fill="#A8D8D3">
+    <circle cx="365" cy="306" r="6"/>
+    <circle cx="672" cy="299" r="5"/>
+    <circle cx="742" cy="451" r="6"/>
+    <circle cx="284" cy="503" r="5"/>
+    <circle cx="650" cy="712" r="5"/>
+  </g>
+
+  <!-- Prefer the approved WebP master when external SVG image resources are supported. -->
+  <image href="../package-placeholder.webp" x="0" y="0" width="1024" height="1024" preserveAspectRatio="xMidYMid slice"/>
 </svg>

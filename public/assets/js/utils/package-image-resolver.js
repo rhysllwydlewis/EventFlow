@@ -14,7 +14,7 @@
  */
 
 /** Canonical placeholder shown when a package has no uploaded photo. */
-const PLACEHOLDER_PACKAGE_IMAGE = '/assets/images/placeholders/package-event.svg';
+const PLACEHOLDER_PACKAGE_IMAGE = '/assets/images/package-placeholder.webp';
 
 /**
  * All known placeholder image paths.
@@ -22,6 +22,7 @@ const PLACEHOLDER_PACKAGE_IMAGE = '/assets/images/placeholders/package-event.svg
  * @type {Set<string>}
  */
 const KNOWN_PLACEHOLDERS = new Set([
+  '/assets/images/package-placeholder.webp',
   '/assets/images/placeholders/package-event.svg',
   '/assets/images/placeholder-package.jpg',
 ]);
@@ -51,15 +52,22 @@ function hasHtmlOrScriptPayload(value) {
   return /<\s*\/?\s*(script|img|svg|iframe|object|embed|html|body|video|source|a)\b/i.test(value);
 }
 
+function isPackagePlaceholderPath(pathname) {
+  return /^\/assets\/images\/placeholders\/.*package.*\.(svg|png|jpe?g|webp)$/i.test(
+    String(pathname || '')
+  );
+}
+
 function isKnownPlaceholderPath(value) {
   if (!value) {
     return false;
   }
   try {
     const parsed = new URL(value, 'https://event-flow.local');
-    return KNOWN_PLACEHOLDERS.has(parsed.pathname);
+    return KNOWN_PLACEHOLDERS.has(parsed.pathname) || isPackagePlaceholderPath(parsed.pathname);
   } catch (_err) {
-    return KNOWN_PLACEHOLDERS.has(value.split(/[?#]/)[0]);
+    const pathname = value.split(/[?#]/)[0];
+    return KNOWN_PLACEHOLDERS.has(pathname) || isPackagePlaceholderPath(pathname);
   }
 }
 

@@ -9,7 +9,7 @@
  * Canonical placeholder image shown when a package has no uploaded photo.
  * All server-side resolvers and client-side fallbacks should reference this path.
  */
-const PLACEHOLDER_PACKAGE_IMAGE = '/assets/images/placeholders/package-event.svg';
+const PLACEHOLDER_PACKAGE_IMAGE = '/assets/images/package-placeholder.webp';
 
 module.exports = {
   PLACEHOLDER_PACKAGE_IMAGE,
