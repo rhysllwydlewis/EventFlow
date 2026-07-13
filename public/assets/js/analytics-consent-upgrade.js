@@ -4,6 +4,8 @@
   const COOKIE_NAME = 'eventflow_cookie_consent';
   const EXPIRY_DAYS = 365;
   const FETCH_WRAPPED_FLAG = '__efAnalyticsSuccessObserver';
+  // PostHog Web Analytics requires its standard $pageview event. EventFlow's main
+  // collector loads PostHog only after consent, so this bridge waits for that instance.
   const POSTHOG_PAGEVIEW_POLL_MS = 200;
   const POSTHOG_PAGEVIEW_TIMEOUT_MS = 15 * 1000;
   const POSTHOG_EXCLUDED_PAGE_PREFIXES = [
@@ -113,10 +115,7 @@
       return;
     }
 
-    posthogPageviewTimer = window.setTimeout(
-      tryCapturePostHogPageview,
-      POSTHOG_PAGEVIEW_POLL_MS
-    );
+    posthogPageviewTimer = window.setTimeout(tryCapturePostHogPageview, POSTHOG_PAGEVIEW_POLL_MS);
   }
 
   function queuePostHogPageview() {
