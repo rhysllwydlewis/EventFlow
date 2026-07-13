@@ -8,6 +8,7 @@ const ROOT = path.join(__dirname, '../..');
 const SCRIPT_PATH = path.join(ROOT, 'public/assets/js/components/home-mobile-signup.js');
 const CSS_PATH = path.join(ROOT, 'public/assets/css/home-mobile-signup.css');
 const NUDGE_KEY = 'eventflow_home_mobile_signup_nudge_seen_v2';
+const ACTIVE_CLASS = 'ef-home-mobile-signup-active';
 const scriptSource = fs.readFileSync(SCRIPT_PATH, 'utf8');
 
 function sharedMarkup() {
@@ -110,14 +111,16 @@ function close(page) {
 }
 
 describe('homepage mobile sign-up CTA', () => {
-  it('adds Sign up to the shared V1/V3 header and keeps both account actions in the burger menu', async () => {
+  it('replaces the redundant shared-header login with Sign up and keeps both account actions in the burger menu', async () => {
     const page = boot(sharedMarkup());
     await page.ready();
 
+    const header = page.document.querySelector('.ef-header');
     const headerCta = page.document.getElementById('ef-mobile-signup-cta');
     const menuCta = page.document.getElementById('ef-mobile-signup-menu');
     const login = page.document.getElementById('ef-mobile-auth');
 
+    expect(header.classList.contains(ACTIVE_CLASS)).toBe(true);
     expect(headerCta.textContent).toBe('Sign up');
     expect(headerCta.getAttribute('href')).toBe('/auth?tab=create');
     expect(headerCta.hidden).toBe(false);
@@ -128,6 +131,7 @@ describe('homepage mobile sign-up CTA', () => {
     expect(login.classList.contains('ef-mobile-primary')).toBe(false);
 
     page.notifyAuth({ id: 'usr_1', role: 'customer' });
+    expect(header.classList.contains(ACTIVE_CLASS)).toBe(false);
     expect(headerCta.hidden).toBe(true);
     expect(menuCta.hidden).toBe(true);
 
@@ -153,13 +157,15 @@ describe('homepage mobile sign-up CTA', () => {
     close(page);
   });
 
-  it('keeps the original burger-menu login treatment if the CTA stylesheet fails', async () => {
+  it('keeps the original header and burger-menu login treatment if the CTA stylesheet fails', async () => {
     const page = boot(sharedMarkup(), { stylesheetOutcome: 'error' });
     await page.ready();
 
+    const header = page.document.querySelector('.ef-header');
     const login = page.document.getElementById('ef-mobile-auth');
     expect(page.document.getElementById('ef-mobile-signup-cta')).toBeNull();
     expect(page.document.getElementById('ef-mobile-signup-menu')).toBeNull();
+    expect(header.classList.contains(ACTIVE_CLASS)).toBe(false);
     expect(login.classList.contains('ef-mobile-primary')).toBe(true);
     expect(login.classList.contains('ef-home-mobile-login')).toBe(false);
 
@@ -195,7 +201,7 @@ describe('homepage mobile sign-up CTA', () => {
     close(reducedMotion);
   });
 
-  it('keeps assets versioned, touch targets accessible and V2 hover contrast intact', () => {
+  it('keeps assets versioned, touch targets accessible and mobile contrast intact', () => {
     const css = fs.readFileSync(CSS_PATH, 'utf8');
     const homeLoader = fs.readFileSync(path.join(ROOT, 'public/assets/js/home.js'), 'utf8');
     const v2Loader = fs.readFileSync(
@@ -207,10 +213,11 @@ describe('homepage mobile sign-up CTA', () => {
     expect(css).toContain('@keyframes ef-home-mobile-signup-glow');
     expect(css).toMatch(/ef-home-mobile-signup-glow[^;]+\s3\sboth/);
     expect(css).toContain('@media (prefers-reduced-motion: reduce)');
+    expect(css).toContain(`.ef-header.${ACTIVE_CLASS} .ef-header-actions > #ef-auth-link`);
     expect(css).toContain('.home-v2-page .hv2-mobile-nav .hv2-mobile-signup-menu:hover');
-    expect(homeLoader).toContain('/assets/css/home-mobile-signup.css?v=1.1.0');
-    expect(homeLoader).toContain('/assets/js/components/home-mobile-signup.js?v=1.1.0');
-    expect(v2Loader).toContain('/assets/css/home-mobile-signup.css?v=1.1.0');
-    expect(v2Loader).toContain('/assets/js/components/home-mobile-signup.js?v=1.1.0');
+    expect(homeLoader).toContain('/assets/css/home-mobile-signup.css?v=1.2.0');
+    expect(homeLoader).toContain('/assets/js/components/home-mobile-signup.js?v=1.2.0');
+    expect(v2Loader).toContain('/assets/css/home-mobile-signup.css?v=1.2.0');
+    expect(v2Loader).toContain('/assets/js/components/home-mobile-signup.js?v=1.2.0');
   });
 });
