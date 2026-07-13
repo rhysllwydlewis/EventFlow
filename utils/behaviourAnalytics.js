@@ -263,9 +263,7 @@ function sanitizeEvent(input, context = {}) {
     event: input.event,
     sessionIdHash,
     userIdHash: hashIdentifier(context.userId, salt),
-    userRole: ['customer', 'supplier'].includes(context.userRole)
-      ? context.userRole
-      : 'anonymous',
+    userRole: ['customer', 'supplier'].includes(context.userRole) ? context.userRole : 'anonymous',
     pagePath: normalizePagePath(input.pagePath),
     pageType: normalizePageType(input.pageType),
     referrerDomain: normalizeDomain(input.referrerDomain),
@@ -347,7 +345,12 @@ function buildSummary(rawEvents, days = 30, now = new Date()) {
     const session = sessions.get(sessionKey);
     const date = new Date(event.timestamp).toISOString().slice(0, 10);
     if (!daily.has(date)) {
-      daily.set(date, { date, pageViews: 0, sessions: new Set(), activeSeconds: 0 });
+      daily.set(date, {
+        date,
+        pageViews: 0,
+        sessions: new Set(),
+        activeSeconds: 0,
+      });
     }
     const dailyRow = daily.get(date);
     dailyRow.sessions.add(sessionKey);
@@ -434,7 +437,10 @@ function buildSummary(rawEvents, days = 30, now = new Date()) {
         bounceRate: round((page.bounces / Math.max(page.sessions.size, 1)) * 100, 1),
       };
     })
-    .sort((left, right) => right.views - left.views || right.totalActiveSeconds - left.totalActiveSeconds)
+    .sort(
+      (left, right) =>
+        right.views - left.views || right.totalActiveSeconds - left.totalActiveSeconds
+    )
     .slice(0, 50);
 
   const searchSet = funnelSessions.get('search');
