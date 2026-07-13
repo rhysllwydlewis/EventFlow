@@ -4,6 +4,7 @@ const {
   sanitizeEvent,
   sanitizeProperties,
   normalizePagePath,
+  normalizeDomain,
   hashIdentifier,
   buildSummary,
 } = require('../../utils/behaviourAnalytics');
@@ -42,6 +43,13 @@ describe('behaviour analytics privacy controls', () => {
     expect(result).not.toHaveProperty('userAgent');
   });
 
+  test('normalises the bare domains sent by the browser collector', () => {
+    expect(normalizeDomain('www.google.com')).toBe('google.com');
+    expect(normalizeDomain('internal')).toBe('internal');
+    expect(normalizeDomain('direct')).toBe('direct');
+    expect(normalizeDomain('not a valid domain')).toBe('direct');
+  });
+
   test('drops unapproved and sensitive properties while preserving safe metrics', () => {
     const result = sanitizeProperties({
       email: 'person@example.com',
@@ -62,13 +70,12 @@ describe('behaviour analytics privacy controls', () => {
     });
   });
 
-  test('rejects unknown events and bounds untrusted timestamps', () => {
+  test('rejects unknown events, missing sessions and bounds untrusted timestamps', () => {
     expect(event({ event: 'capture_everything' })).toBeNull();
+    expect(event({ sessionId: '' })).toBeNull();
 
     const future = event({ timestamp: '2030-01-01T00:00:00.000Z' });
-    expect(new Date(future.timestamp).getTime()).toBeLessThanOrEqual(
-      NOW.getTime() + 5 * 60 * 1000
-    );
+    expect(new Date(future.timestamp).getTime()).toBeLessThanOrEqual(NOW.getTime() + 5 * 60 * 1000);
   });
 
   test('normalises malformed paths without retaining fragments', () => {
@@ -82,7 +89,12 @@ describe('behaviour analytics privacy controls', () => {
 describe('behaviour analytics admin summary', () => {
   test('calculates active engagement, page metrics and marketplace funnel', () => {
     const rows = [
-      event({ event: 'page_view', sessionId: 's1', pagePath: '/', pageType: 'home' }),
+      event({
+        event: 'page_view',
+        sessionId: 's1',
+        pagePath: '/',
+        pageType: 'home',
+      }),
       event({
         event: 'page_engagement',
         sessionId: 's1',
@@ -90,12 +102,37 @@ describe('behaviour analytics admin summary', () => {
         pageType: 'home',
         properties: { activeSeconds: 18 },
       }),
-      event({ event: 'search_performed', sessionId: 's1', pagePath: '/suppliers' }),
-      event({ event: 'supplier_profile_view', sessionId: 's1', pagePath: '/supplier/demo' }),
-      event({ event: 'package_view', sessionId: 's1', pagePath: '/package/demo' }),
-      event({ event: 'package_add_to_plan', sessionId: 's1', pagePath: '/package/demo' }),
-      event({ event: 'enquiry_submitted', sessionId: 's1', pagePath: '/supplier/demo' }),
-      event({ event: 'page_view', sessionId: 's2', pagePath: '/pricing', pageType: 'pricing' }),
+      event({
+        event: 'search_performed',
+        sessionId: 's1',
+        pagePath: '/suppliers',
+      }),
+      event({
+        event: 'supplier_profile_view',
+        sessionId: 's1',
+        pagePath: '/supplier/demo',
+      }),
+      event({
+        event: 'package_view',
+        sessionId: 's1',
+        pagePath: '/package/demo',
+      }),
+      event({
+        event: 'package_add_to_plan',
+        sessionId: 's1',
+        pagePath: '/package/demo',
+      }),
+      event({
+        event: 'enquiry_submitted',
+        sessionId: 's1',
+        pagePath: '/supplier/demo',
+      }),
+      event({
+        event: 'page_view',
+        sessionId: 's2',
+        pagePath: '/pricing',
+        pageType: 'pricing',
+      }),
       event({
         event: 'page_engagement',
         sessionId: 's2',
@@ -114,6 +151,72 @@ describe('behaviour analytics admin summary', () => {
     expect(summary.totals.conversions).toBe(1);
     expect(summary.pages.find(page => page.pagePath === '/').avgActiveSeconds).toBe(18);
     expect(summary.funnel.map(stage => stage.sessions)).toEqual([1, 1, 1, 1, 1]);
+  });
+
+  test('calculates engagement independently for each page', () => {
+    const rows = [
+      event({
+        event: 'page_view',
+        sessionId: 's1',
+        pagePath: '/home',
+        pageType: 'home',
+      }),
+      event({
+        event: 'page_view',
+        sessionId: 's1',
+        pagePath: '/pricing',
+        pageType: 'pricing',
+      }),
+      event({
+        event: 'page_engagement',
+        sessionId: 's1',
+        pagePath: '/pricing',
+        pageType: 'pricing',
+        properties: { activeSeconds: 20 },
+      }),
+    ];
+
+    const summary = buildSummary(rows, 30, NOW);
+    expect(summary.pages.find(page => page.pagePath === '/home').engagedRate).toBe(0);
+    expect(summary.pages.find(page => page.pagePath === '/pricing').engagedRate).toBe(100);
+  });
+
+  test('keeps search-funnel rates bounded and excludes unrelated direct journeys', () => {
+    const rows = [
+      event({
+        event: 'search_performed',
+        sessionId: 'search-session',
+        pagePath: '/suppliers',
+      }),
+      event({
+        event: 'supplier_profile_view',
+        sessionId: 'search-session',
+        pagePath: '/supplier/one',
+      }),
+      event({
+        event: 'supplier_profile_view',
+        sessionId: 'direct-session',
+        pagePath: '/supplier/two',
+      }),
+      event({
+        event: 'package_view',
+        sessionId: 'direct-session',
+        pagePath: '/package/two',
+      }),
+    ];
+
+    const summary = buildSummary(rows, 30, NOW);
+    expect(summary.funnel.map(stage => stage.sessions)).toEqual([1, 1, 0, 0, 0]);
+    expect(summary.funnel.every(stage => stage.rateFromSearch <= 100)).toBe(true);
+  });
+
+  test('counts successful package creation as a completed key action', () => {
+    const summary = buildSummary(
+      [event({ event: 'package_created', sessionId: 'supplier-session' })],
+      30,
+      NOW
+    );
+    expect(summary.totals.conversions).toBe(1);
   });
 
   test('produces improvement signals for low-engagement exit pages', () => {
