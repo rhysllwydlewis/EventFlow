@@ -70,6 +70,29 @@ describe('analytics consent and privacy wiring', () => {
     expect(source).not.toContain('phc_');
   });
 
+  test('pairs each consented PostHog pageview with a reliable privacy-safe pageleave', () => {
+    const bridgeSource = read('public/assets/js/analytics-consent-upgrade.js');
+    const collectorSource = read('public/assets/js/behaviour-analytics.js');
+    const pageShowStart = bridgeSource.indexOf('function handlePostHogPageShow(event)');
+    const pageShowEnd = bridgeSource.indexOf('\n  function upgradeConsentCopy', pageShowStart);
+    const pageShowHandler = bridgeSource.slice(pageShowStart, pageShowEnd);
+
+    expect(bridgeSource).toMatch(/window\.posthog\.capture\(\s*'\$pageleave'/);
+    expect(bridgeSource).toContain("window.addEventListener('pagehide', capturePostHogPageleave)");
+    expect(bridgeSource).toContain("window.addEventListener('pageshow', handlePostHogPageShow)");
+    expect(bridgeSource).toContain("transport: 'sendBeacon'");
+    expect(bridgeSource).toContain('event.persisted !== true');
+    expect(bridgeSource).toContain('capturedPostHogPageleave');
+    expect(bridgeSource).toContain('capturedPostHogPage !== currentUrl');
+    expect(bridgeSource).toContain('!hasAnalyticsConsent()');
+    expect(bridgeSource).not.toContain('$pageview_duration');
+    expect(collectorSource).toContain('capture_pageleave: false');
+    expect(pageShowStart).toBeGreaterThan(-1);
+    expect(pageShowEnd).toBeGreaterThan(pageShowStart);
+    expect(pageShowHandler).toContain('capturedPostHogPageleave = false');
+    expect(pageShowHandler).not.toContain('queuePostHogPageview');
+  });
+
   test('measures active time only while the page is visible and focused', () => {
     const source = read('public/assets/js/behaviour-analytics.js');
     expect(source).toContain("document.visibilityState === 'visible' && document.hasFocus()");
