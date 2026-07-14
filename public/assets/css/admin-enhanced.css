@@ -1669,6 +1669,10 @@ tbody tr.selected td {
 }
 
 /* Modal Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
   to {
     opacity: 1;
   }

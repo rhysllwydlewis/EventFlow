@@ -73,3 +73,40 @@ describe('Type scale', () => {
     expect(all.size).toBeLessThanOrEqual(SCALE.length);
   });
 });
+
+/**
+ * Static stylesheets must PARSE.
+ *
+ * The injected-stylesheet test added earlier only checked CSS built inside
+ * JavaScript. It never looked at the .css files themselves — and three of
+ * them (animations.css, eventflow-17.0.0.css, admin-enhanced.css) had
+ * unclosed rules from the same dark-mode-removal commit. A CSS parser
+ * discards everything after an unclosed block, so those files were
+ * silently dropping rules in production.
+ *
+ * Brace-counting is not enough to catch this (braces can balance while the
+ * structure is still wrong), so this parses each file for real.
+ */
+describe('Every static stylesheet parses', () => {
+  const postcss = require('postcss');
+  const dirs = [
+    path.join(__dirname, '../../public/assets/css'),
+    path.join(__dirname, '../../public/messenger/css'),
+  ];
+
+  const sheets = dirs.flatMap(dir =>
+    fs
+      .readdirSync(dir)
+      .filter(f => f.endsWith('.css'))
+      .map(f => [path.basename(dir) + '/' + f, path.join(dir, f)])
+  );
+
+  test('stylesheets are found', () => {
+    expect(sheets.length).toBeGreaterThan(50);
+  });
+
+  test.each(sheets)('%s parses without unclosed blocks', (_label, file) => {
+    const css = fs.readFileSync(file, 'utf8');
+    expect(() => postcss.parse(css, { from: file })).not.toThrow();
+  });
+});

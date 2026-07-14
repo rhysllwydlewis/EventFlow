@@ -1426,7 +1426,9 @@
   }
 
   .suppliers-hero-text h1 {
-    font-size: 14px;
+    /* 16px floor: the type snap took this to 14px, which is too small for a
+       page <h1> even in a compact hero strip. */
+    font-size: 16px;
   }
 
   .btn-glass {
