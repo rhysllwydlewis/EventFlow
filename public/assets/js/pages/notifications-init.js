@@ -145,7 +145,7 @@
 
       overlay.innerHTML = `
         <div style="background:#fff;border-radius:10px;max-width:400px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,0.2);padding:1.5rem;font-family:inherit;">
-          <p style="margin:0 0 1.25rem;font-size:0.95rem;color:#111827;">${escapeHtml(message)}</p>
+          <p style="margin:0 0 1.25rem;font-size: 0.875rem;color:#111827;">${escapeHtml(message)}</p>
           <div style="display:flex;justify-content:flex-end;gap:0.75rem;">
             <button type="button" id="_ef_confirm_cancel" style="padding:0.5rem 1.25rem;border-radius:6px;border:1px solid #e5e7eb;background:#fff;color:#374151;cursor:pointer;font-size:0.875rem;">Cancel</button>
             <button type="button" id="_ef_confirm_ok" style="padding:0.5rem 1.25rem;border-radius:6px;border:none;background:#0B8073;color:#fff;cursor:pointer;font-size:0.875rem;font-weight:600;">Confirm</button>

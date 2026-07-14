@@ -495,7 +495,7 @@
   gap: 10px;
   width: 100%;
   padding: 9px 16px;
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 450;
   color: #374151;
   background: none;
@@ -680,7 +680,7 @@
 
 .messenger-emoji-picker__label {
   margin: 0 0 6px;
-  font-size: 0.72rem;
+  font-size: 0.6875rem;
   font-weight: 600;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -699,7 +699,7 @@
   justify-content: center;
   min-height: 34px;
   padding: 2px;
-  font-size: 1.15rem;
+  font-size: 1.125rem;
   background: transparent;
   border: 1px solid transparent;
   box-shadow: none;
@@ -1635,7 +1635,7 @@
 
 /* Remove the default 100% height approach – flex handles it */
 .messenger-v4__messages > .messenger-v4__empty-state p {
-  font-size: 15px;
+  font-size: 14px;
   color: #6b7280;
   margin: 0;
 }
@@ -1876,7 +1876,7 @@
 }
 
 .messenger-v4__context-banner-icon {
-  font-size: 22px;
+  font-size: 20px;
   line-height: 1;
   flex-shrink: 0;
 }
@@ -2374,7 +2374,7 @@ body:has(.messenger-v4) {
   gap: 10px;
   width: 100%;
   padding: 9px 16px;
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 450;
   color: #374151;
   background: none;
@@ -2515,7 +2515,7 @@ body:has(.messenger-v4) {
 /* ============================================================
    28. ICON-BUTTON OVERRIDE — neutralize global .ef-cta padding
    The global `.cta, .ef-cta` rule in styles.css applies
-   `padding: 10px 18px !important; font-size: 15px !important;
+   `padding: 10px 18px !important; font-size: 14px !important;
    border-radius: 12px !important; width: 100% on mobile;` which
    crushes the icon inside our 36–44px round icon buttons and
    stretches them across the header on narrow viewports. These
@@ -2593,7 +2593,7 @@ body:has(.messenger-v4) {
   width: 36px;
   height: 36px;
   min-width: 36px;
-  font-size: 22px;
+  font-size: 20px;
   line-height: 1;
   display: inline-flex;
   align-items: center;
@@ -2650,7 +2650,7 @@ body:has(.messenger-v4) {
    30. FILTER TAB — neutralise global .ef-cta padding
    The global `.cta, .ef-cta` rule in styles.css applies
    `padding: 10px 18px !important; border-radius: 12px !important;
-   font-size: 15px !important;` which makes the four filter tabs
+   font-size: 14px !important;` which makes the four filter tabs
    (All / Pinned / Unread / Archived) too wide to fit the sidebar,
    causing the right-most "Archived" tab to be visually clipped.
    Restore the designed filter-tab geometry from messenger-v4.css
@@ -2889,7 +2889,7 @@ body:has(.messenger-v4) {
 .messenger-v4__new-message-title {
   margin: 0;
   color: #102a2d;
-  font-size: 22px;
+  font-size: 20px;
   line-height: 1.15;
 }
 

@@ -16,7 +16,7 @@
         <div class="ef-chat-header">
           <div>
             <h4>Support Chat</h4>
-            <div style="font-size: 10px; opacity: 0.8; margin-top: 2px;">Automated replies • Team responds within 24h</div>
+            <div style="font-size: 11px; opacity: 0.8; margin-top: 2px;">Automated replies • Team responds within 24h</div>
           </div>
           <button id="ef-chat-minimize" class="ef-cta ef-chat-close" aria-label="Minimize chat">−</button>
         </div>

@@ -94,7 +94,7 @@ class SupplierCard {
       }
 
       .supplier-card-description {
-        font-size: 0.95rem !important;
+        font-size: 0.875rem !important;
         color: var(--color-text-primary, #212529) !important;
         line-height: 1.7 !important;
         margin-bottom: 20px !important;
@@ -117,14 +117,14 @@ class SupplierCard {
         display: flex !important;
         align-items: center !important;
         gap: 10px !important;
-        font-size: 0.95rem !important;
+        font-size: 0.875rem !important;
         color: var(--color-text-secondary, #6c757d) !important;
         word-wrap: break-word !important;
         overflow-wrap: break-word !important;
       }
 
       .supplier-card-meta-icon {
-        font-size: 1.3rem !important;
+        font-size: 1.25rem !important;
         flex-shrink: 0 !important;
       }
 

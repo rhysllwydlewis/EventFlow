@@ -122,7 +122,7 @@ class PhotoGallery {
         background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
         color: white;
         padding: 2rem 1rem 1rem;
-        font-size: 0.9rem;
+        font-size: 0.875rem;
         opacity: 0;
         transition: opacity 0.3s ease;
       }
@@ -152,7 +152,7 @@ class PhotoGallery {
         width: 32px;
         height: 32px;
         cursor: pointer;
-        font-size: 1.2rem;
+        font-size: 1.125rem;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -293,7 +293,7 @@ class PhotoGallery {
         color: white;
         padding: 0.5rem 1rem;
         border-radius: 20px;
-        font-size: 0.9rem;
+        font-size: 0.875rem;
       }
       
       .photo-gallery__empty {

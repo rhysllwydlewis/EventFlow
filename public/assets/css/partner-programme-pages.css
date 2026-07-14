@@ -47,7 +47,7 @@
   border-radius: 999px;
   background: rgba(16, 185, 129, 0.1);
   color: rgba(167, 243, 208, 0.95);
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -66,7 +66,7 @@
   margin: 1rem 0 0;
   max-width: 760px;
   color: rgba(255, 255, 255, 0.68);
-  font-size: clamp(0.98rem, 1.6vw, 1.12rem);
+  font-size: clamp(1rem, 1.6vw, 1.125rem);
   line-height: 1.72;
 }
 
@@ -90,7 +90,7 @@
   padding: 0.62rem 0.95rem;
   background: rgba(255, 255, 255, 0.08);
   color: rgba(255, 255, 255, 0.84);
-  font-size: 0.86rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   text-decoration: none;
   transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease;
@@ -136,7 +136,7 @@
   border-radius: 999px;
   color: rgba(255, 255, 255, 0.62);
   text-decoration: none;
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   font-weight: 700;
 }
 
@@ -171,7 +171,7 @@
 .partner-card-title {
   margin: 0 0 0.65rem;
   color: #fff;
-  font-size: clamp(1.08rem, 2vw, 1.35rem);
+  font-size: clamp(1rem, 2vw, 1.25rem);
   letter-spacing: -0.02em;
 }
 
@@ -242,14 +242,14 @@
 .partner-reward-card strong {
   display: block;
   color: #fff;
-  font-size: 1.16rem;
+  font-size: 1.125rem;
   margin-bottom: 0.16rem;
 }
 
 .partner-reward-card span:last-child {
   display: block;
   color: rgba(255, 255, 255, 0.58);
-  font-size: 0.84rem;
+  font-size: 0.8125rem;
   line-height: 1.5;
 }
 
@@ -284,7 +284,7 @@
   border-radius: 999px;
   background: rgba(16, 185, 129, 0.18);
   color: #6ee7b7;
-  font-size: 0.72rem;
+  font-size: 0.6875rem;
   font-weight: 900;
 }
 
@@ -318,7 +318,7 @@
 .partner-copy-btn {
   cursor: pointer;
   padding: 0.42rem 0.72rem;
-  font-size: 0.76rem;
+  font-size: 0.75rem;
   white-space: nowrap;
 }
 
@@ -334,7 +334,7 @@
   color: rgba(255, 255, 255, 0.76);
   white-space: pre-wrap;
   font-family: inherit;
-  font-size: 0.86rem;
+  font-size: 0.8125rem;
   line-height: 1.62;
 }
 
@@ -355,7 +355,7 @@
   padding: 0.42rem 0.72rem;
   background: rgba(16, 185, 129, 0.085);
   color: rgba(255, 255, 255, 0.72);
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 650;
 }
 
@@ -368,7 +368,7 @@
 .partner-resource-footer-note {
   margin-top: 1.2rem;
   color: rgba(255, 255, 255, 0.42);
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   text-align: center;
 }
 

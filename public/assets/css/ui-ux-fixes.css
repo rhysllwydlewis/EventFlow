@@ -39,7 +39,7 @@ html {
 
 @media (min-width: 1440px) {
   html {
-    font-size: 17px;
+    font-size: 16px;
   }
 }
 
@@ -115,7 +115,7 @@ a.btn {
   .btn {
     min-width: 120px;
     padding: 12px 16px;
-    font-size: 0.95rem;
+    font-size: 0.875rem;
   }
   
   .form-actions,
@@ -216,7 +216,7 @@ a.btn {
 
 .pack-info h3 {
   margin: 0 0 8px 0;
-  font-size: clamp(1.1rem, 4vw, 1.25rem);
+  font-size: clamp(1.125rem, 4vw, 1.25rem);
   word-wrap: break-word;
   overflow-wrap: break-word;
 }
@@ -258,7 +258,7 @@ label {
   margin: 12px 0 6px;
   font-weight: 600;
   color: #1F2937;
-  font-size: 0.95rem;
+  font-size: 0.875rem;
 }
 
 /* Form row layout */
@@ -357,7 +357,7 @@ th {
 @media (max-width: 768px) {
   table {
     min-width: 100%;
-    font-size: 0.9rem;
+    font-size: 0.875rem;
   }
   
   th,
@@ -510,11 +510,11 @@ th {
   }
   
   h2 {
-    font-size: 1.3rem;
+    font-size: 1.25rem;
   }
   
   h3 {
-    font-size: 1.1rem;
+    font-size: 1.125rem;
   }
 }
 
@@ -693,7 +693,7 @@ textarea:focus-visible {
 
 .footer .small,
 .footer .version {
-  font-size: 0.85rem;
+  font-size: 0.8125rem;
 }
 
 /* Compact footer grid for pages like pricing */
@@ -978,7 +978,7 @@ body.admin {
 .footer-nav-link {
   padding: 10px 12px;
   border-radius: 10px;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 500;
   color: #475569;
   text-decoration: none;
@@ -1184,7 +1184,7 @@ body.has-footer-nav {
   }
   
   .footer-nav-icon-button {
-    font-size: 17px;
+    font-size: 16px;
     padding: 6px;
   }
   
@@ -1309,7 +1309,7 @@ body.has-footer-nav {
 
 @media (max-width: 375px) {
   .footer-nav-link {
-    font-size: 10px; /* Increased from 9px for better accessibility */
+    font-size: 11px; /* Increased from 9px for better accessibility */
     padding: 5px 4px;
     min-width: 44px;
     max-width: 44px; /* Keep consistent with min-width for predictable sizing */
@@ -1337,7 +1337,7 @@ body.has-footer-nav {
 
 @media (max-width: 320px) {
   .footer-nav-link {
-    font-size: 9px; /* Increased from 8px for better accessibility */
+    font-size: 11px; /* Increased from 8px for better accessibility */
     padding: 4px 3px;
     min-width: 44px;
     max-width: 44px; /* Keep consistent with min-width for predictable sizing */

@@ -24,7 +24,7 @@
         padding: 0.5rem 0.75rem;
         border: 1.5px solid #d1d5db;
         border-radius: 8px;
-        font-size: 0.9rem;
+        font-size: 0.875rem;
         outline: none;
         transition: border-color 0.15s, box-shadow 0.15s;
         font-family: inherit;
@@ -40,7 +40,7 @@
         padding: 0.65rem 1rem;
         background: #6366f1;
         color: #fff;
-        font-size: 0.9rem;
+        font-size: 0.875rem;
         font-weight: 600;
         border: none;
         border-radius: 8px;
@@ -96,7 +96,7 @@
         <h2 id="sv-modal-title" style="margin:0 0 0.25rem;font-size:1.25rem;font-weight:700;color:#111827;">Submit for Supplier Verification</h2>
         <p id="sv-modal-subtitle" style="margin:0 0 1.5rem;font-size:0.875rem;color:#6b7280;line-height:1.5;">Confirm your details below and submit your profile for admin review.</p>
         <div id="sv-modal-error" role="alert" aria-live="assertive" style="display:none;background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1rem;font-size:0.875rem;color:#991b1b;"></div>
-        <div id="sv-modal-success" role="status" aria-live="polite" style="display:none;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:1rem;margin-bottom:1rem;font-size:0.9rem;color:#166534;line-height:1.5;"></div>
+        <div id="sv-modal-success" role="status" aria-live="polite" style="display:none;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:1rem;margin-bottom:1rem;font-size: 0.875rem;color:#166534;line-height:1.5;"></div>
         <div id="sv-rejection-notes-block" style="display:none;margin-bottom:1.25rem;padding:0.75rem 1rem;background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;">
           <p style="margin:0 0 0.375rem;font-size:0.8125rem;font-weight:600;color:#991b1b;">Admin rejection notes:</p>
           <p id="sv-rejection-notes-text" style="margin:0;font-size:0.8125rem;color:#7f1d1d;white-space:pre-wrap;"></p>
@@ -442,7 +442,7 @@
           <div style="display:flex;align-items:center;gap:0.875rem;flex-wrap:wrap;">
             <span style="font-size:1.5rem;flex-shrink:0;line-height:1;" aria-hidden="true">⏳</span>
             <div style="flex:1;min-width:180px;">
-              <strong style="display:block;font-size:0.9375rem;color:#92400e;margin-bottom:0.2rem;">Verification under review</strong>
+              <strong style="display:block;font-size: 0.875rem;color:#92400e;margin-bottom:0.2rem;">Verification under review</strong>
               <span style="font-size:0.8125rem;color:#78350f;line-height:1.45;">
                 Your profile has been submitted and is awaiting admin review. You'll be notified once a decision is made.
               </span>
@@ -458,7 +458,7 @@
           <div style="display:flex;align-items:flex-start;gap:0.875rem;flex-wrap:wrap;">
             <span style="font-size:1.5rem;flex-shrink:0;line-height:1;" aria-hidden="true">🚫</span>
             <div style="flex:1;min-width:180px;">
-              <strong style="display:block;font-size:0.9375rem;color:#991b1b;margin-bottom:0.2rem;">Verification blocked</strong>
+              <strong style="display:block;font-size: 0.875rem;color:#991b1b;margin-bottom:0.2rem;">Verification blocked</strong>
               <span style="font-size:0.8125rem;color:#7f1d1d;line-height:1.45;">
                 Your profile has been rejected 5 times and can no longer be resubmitted. Please contact support for assistance.
               </span>
@@ -481,7 +481,7 @@
           <div style="display:flex;align-items:flex-start;gap:0.875rem;flex-wrap:wrap;">
             <span style="font-size:1.5rem;flex-shrink:0;line-height:1;" aria-hidden="true">❌</span>
             <div style="flex:1;min-width:180px;">
-              <strong style="display:block;font-size:0.9375rem;color:#991b1b;margin-bottom:0.2rem;">${labelText}</strong>
+              <strong style="display:block;font-size: 0.875rem;color:#991b1b;margin-bottom:0.2rem;">${labelText}</strong>
               <span style="font-size:0.8125rem;color:#7f1d1d;line-height:1.45;">${bodyText}</span>
               ${notesHtml}
             </div>
@@ -501,7 +501,7 @@
           <div style="display:flex;align-items:center;gap:0.875rem;flex-wrap:wrap;">
             <span style="font-size:1.5rem;flex-shrink:0;line-height:1;" aria-hidden="true">⚠️</span>
             <div style="flex:1;min-width:180px;">
-              <strong style="display:block;font-size:0.9375rem;color:#92400e;margin-bottom:0.2rem;">Supplier profile pending approval</strong>
+              <strong style="display:block;font-size: 0.875rem;color:#92400e;margin-bottom:0.2rem;">Supplier profile pending approval</strong>
               <span style="font-size:0.8125rem;color:#78350f;line-height:1.45;">
                 You won't appear in search results or be able to create packages, send messages, or publish calendar events until an admin approves your profile.
               </span>

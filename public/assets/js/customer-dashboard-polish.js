@@ -56,7 +56,7 @@
       }
       .customer-dashboard-page #welcome-section .customer-welcome-intro {
         max-width: 760px;
-        font-size: 1.02rem;
+        font-size: 1rem;
         line-height: 1.75;
       }
       .customer-dashboard-page #welcome-section .customer-welcome-actions__grid { gap: .85rem !important; }
@@ -83,7 +83,7 @@
       .customer-dashboard-page .ef-dashboard-card--collapsible { overflow: hidden; transition: box-shadow .18s ease, border-color .18s ease, transform .18s ease; }
       .customer-dashboard-page .ef-dashboard-card--collapsible > .sd-card-header { cursor: pointer; }
       .customer-dashboard-page .ef-dashboard-card--collapsed > .cd-card-body { display: none !important; }
-      .customer-dashboard-page .ef-dashboard-collapse-toggle { display:inline-flex;align-items:center;justify-content:center;gap:.42rem;min-height:2.25rem;padding:.48rem .75rem;border-radius:999px;border:1px solid rgba(11,128,115,.18);background:linear-gradient(135deg,rgba(255,255,255,.96),rgba(240,253,250,.9));color:#0b8073;cursor:pointer;font-family:inherit;font-size:.8rem;font-weight:850;line-height:1;box-shadow:0 8px 18px rgba(15,23,42,.06),inset 0 1px 0 rgba(255,255,255,.86);transition:transform .16s ease,background .16s ease,border-color .16s ease,box-shadow .16s ease; }
+      .customer-dashboard-page .ef-dashboard-collapse-toggle { display:inline-flex;align-items:center;justify-content:center;gap:.42rem;min-height:2.25rem;padding:.48rem .75rem;border-radius:999px;border:1px solid rgba(11,128,115,.18);background:linear-gradient(135deg,rgba(255,255,255,.96),rgba(240,253,250,.9));color:#0b8073;cursor:pointer;font-family:inherit;font-size: 0.75rem;font-weight:850;line-height:1;box-shadow:0 8px 18px rgba(15,23,42,.06),inset 0 1px 0 rgba(255,255,255,.86);transition:transform .16s ease,background .16s ease,border-color .16s ease,box-shadow .16s ease; }
       .customer-dashboard-page .ef-dashboard-collapse-toggle:hover,
       .customer-dashboard-page .ef-dashboard-collapse-toggle:focus-visible { background:linear-gradient(135deg,#fff,#ecfdf5);border-color:rgba(11,128,115,.36);box-shadow:0 12px 24px rgba(13,148,136,.13),inset 0 1px 0 rgba(255,255,255,.92);outline:2px solid rgba(11,128,115,.24);outline-offset:2px;transform:translateY(-1px); }
       .customer-dashboard-page .ef-dashboard-collapse-toggle svg { width:16px;height:16px;transition:transform .16s ease; }

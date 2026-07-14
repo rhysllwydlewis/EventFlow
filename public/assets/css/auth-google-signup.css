@@ -99,13 +99,13 @@ body.auth-page .auth-role-copy {
 }
 
 body.auth-page .auth-role-title {
-  font-size: 0.94rem;
+  font-size: 0.875rem;
   font-weight: 800;
 }
 
 body.auth-page .auth-role-description {
   color: #667085;
-  font-size: 0.74rem;
+  font-size: 0.6875rem;
   font-weight: 600;
   line-height: 1.25;
 }

@@ -81,7 +81,7 @@ class PackageList {
         color: white;
         padding: clamp(6px, 1.5vw, 8px) clamp(10px, 2vw, 12px);
         border-radius: 20px;
-        font-size: clamp(0.7rem, 2vw, 0.75rem);
+        font-size: clamp(0.6875rem, 2vw, 0.75rem);
         font-weight: 600;
         z-index: 2;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
@@ -121,12 +121,12 @@ class PackageList {
         color: var(--color-text-secondary, #6c757d);
         padding: 4px 10px;
         border-radius: 12px;
-        font-size: clamp(0.7rem, 1.8vw, 0.75rem);
+        font-size: clamp(0.6875rem, 1.8vw, 0.75rem);
         font-weight: 500;
       }
 
       .package-card-title {
-        font-size: clamp(1.1rem, 4vw, 1.25rem);
+        font-size: clamp(1.125rem, 4vw, 1.25rem);
         font-weight: 600;
         margin: 0 0 clamp(6px, 1.5vw, 8px) 0;
         color: var(--color-text-primary, #212529);
@@ -138,7 +138,7 @@ class PackageList {
       }
 
       .package-card-description {
-        font-size: clamp(0.875rem, 2.2vw, 0.9rem);
+        font-size: clamp(0.875rem, 2.2vw, 0.875rem);
         color: var(--color-text-secondary, #6c757d);
         margin: 0 0 clamp(10px, 2vw, 12px) 0;
         line-height: 1.6;
@@ -191,7 +191,7 @@ class PackageList {
       }
 
       .package-card-supplier-name {
-        font-size: clamp(0.8rem, 2vw, 0.85rem);
+        font-size: clamp(0.75rem, 2vw, 0.8125rem);
         font-weight: 500;
         color: var(--color-text-primary, #212529);
       }
@@ -208,7 +208,7 @@ class PackageList {
       }
 
       .package-card-price {
-        font-size: clamp(1rem, 2.5vw, 1.1rem);
+        font-size: clamp(1rem, 2.5vw, 1.125rem);
         font-weight: 600;
         color: var(--accent, #13B6A2);
         white-space: nowrap;
@@ -221,7 +221,7 @@ class PackageList {
       }
 
       .package-card-location {
-        font-size: clamp(0.8rem, 2vw, 0.85rem);
+        font-size: clamp(0.75rem, 2vw, 0.8125rem);
         color: var(--color-text-secondary, #6c757d);
         display: flex;
         align-items: center;
@@ -479,14 +479,14 @@ class PackageList {
       // Test data badge
       if (supplier.isTest) {
         supplierBadges.push(
-          '<span class="badge badge-test-data" style="font-size: 0.65rem; padding: 2px 6px;">Test data</span>'
+          '<span class="badge badge-test-data" style="font-size: 0.6875rem; padding: 2px 6px;">Test data</span>'
         );
       }
 
       // Founding supplier badge
       if (supplier.isFounding) {
         supplierBadges.push(
-          '<span class="badge badge-founding" style="font-size: 0.65rem; padding: 2px 6px;">Founding</span>'
+          '<span class="badge badge-founding" style="font-size: 0.6875rem; padding: 2px 6px;">Founding</span>'
         );
       }
 
@@ -496,36 +496,36 @@ class PackageList {
 
       if (tier === 'featured') {
         supplierBadges.push(
-          '<span class="badge badge-featured" style="font-size: 0.65rem; padding: 2px 6px;">Featured</span>'
+          '<span class="badge badge-featured" style="font-size: 0.6875rem; padding: 2px 6px;">Featured</span>'
         );
       } else if (tier === 'pro_plus') {
         supplierBadges.push(
-          '<span class="badge badge-pro-plus" style="font-size: 0.65rem; padding: 2px 6px;">Pro Plus</span>'
+          '<span class="badge badge-pro-plus" style="font-size: 0.6875rem; padding: 2px 6px;">Pro Plus</span>'
         );
       } else if (tier === 'pro') {
         supplierBadges.push(
-          '<span class="badge badge-pro" style="font-size: 0.65rem; padding: 2px 6px;">Pro</span>'
+          '<span class="badge badge-pro" style="font-size: 0.6875rem; padding: 2px 6px;">Pro</span>'
         );
       } else {
         supplierBadges.push(
-          '<span class="badge badge-starter" style="font-size: 0.65rem; padding: 2px 6px;">Starter</span>'
+          '<span class="badge badge-starter" style="font-size: 0.6875rem; padding: 2px 6px;">Starter</span>'
         );
       }
 
       // Verification badges
       if (supplier.verifications?.email?.verified) {
         supplierBadges.push(
-          '<span class="badge badge-email-verified" style="font-size: 0.65rem; padding: 2px 6px;">Email</span>'
+          '<span class="badge badge-email-verified" style="font-size: 0.6875rem; padding: 2px 6px;">Email</span>'
         );
       }
       if (supplier.verifications?.phone?.verified) {
         supplierBadges.push(
-          '<span class="badge badge-phone-verified" style="font-size: 0.65rem; padding: 2px 6px;">Phone</span>'
+          '<span class="badge badge-phone-verified" style="font-size: 0.6875rem; padding: 2px 6px;">Phone</span>'
         );
       }
       if (supplier.verifications?.business?.verified) {
         supplierBadges.push(
-          '<span class="badge badge-business-verified" style="font-size: 0.65rem; padding: 2px 6px;">Business</span>'
+          '<span class="badge badge-business-verified" style="font-size: 0.6875rem; padding: 2px 6px;">Business</span>'
         );
       }
 

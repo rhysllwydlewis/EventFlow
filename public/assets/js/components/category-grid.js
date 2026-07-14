@@ -83,7 +83,7 @@ class CategoryGrid {
       }
 
       .category-card-description {
-        font-size: 1.08rem;
+        font-size: 1rem;
         color: var(--color-text-secondary, #6c757d);
         margin: 0;
         line-height: 1.5;
@@ -103,7 +103,7 @@ class CategoryGrid {
         right: 8px;
         background: rgba(0, 0, 0, 0.7);
         color: white;
-        font-size: 10px;
+        font-size: 11px;
         padding: 4px 8px;
         border-radius: 4px;
         z-index: 1;
@@ -142,7 +142,7 @@ class CategoryGrid {
         }
         
         .category-card-description {
-          font-size: 0.9rem;
+          font-size: 0.875rem;
         }
       }
     `;

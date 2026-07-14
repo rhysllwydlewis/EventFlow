@@ -134,7 +134,7 @@ body.ww-app-open {
 .ww-kicker {
   margin: 0 0 0.18rem;
   color: var(--ww-teal);
-  font-size: 0.74rem;
+  font-size: 0.6875rem;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -159,7 +159,7 @@ body.ww-app-open {
   max-width: 100%;
   margin-top: 0.35rem;
   color: var(--ww-teal);
-  font-size: 0.85rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -272,7 +272,7 @@ body.ww-app-open {
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.72);
   color: var(--ww-navy);
-  font-size: 1.45rem;
+  font-size: 1.5rem;
   line-height: 1;
   cursor: pointer;
   transition:
@@ -390,7 +390,7 @@ body.ww-app-open {
 
 .ww-builder label small {
   color: var(--ww-muted);
-  font-size: 0.76rem;
+  font-size: 0.75rem;
   font-weight: 600;
 }
 
@@ -467,13 +467,13 @@ body.ww-app-open {
 
 .ww-overview-grid span {
   color: var(--ww-muted);
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
   font-weight: 700;
 }
 
 .ww-overview-grid strong {
   color: var(--ww-navy);
-  font-size: 1.15rem;
+  font-size: 1.125rem;
 }
 
 .ww-table-wrap {
@@ -487,7 +487,7 @@ body.ww-app-open {
   width: 100%;
   min-width: 760px;
   border-collapse: collapse;
-  font-size: 0.84rem;
+  font-size: 0.8125rem;
 }
 
 .ww-table th,
@@ -500,7 +500,7 @@ body.ww-app-open {
 
 .ww-table th {
   color: var(--ww-navy);
-  font-size: 0.76rem;
+  font-size: 0.75rem;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -807,7 +807,7 @@ body.ww-app-open {
 .ww-progress-strip span {
   display: block;
   color: var(--ww-navy);
-  font-size: 1.35rem;
+  font-size: 1.25rem;
   font-weight: 900;
 }
 
@@ -864,7 +864,7 @@ body.ww-app-open {
 .ww-save-state {
   margin-right: auto;
   color: var(--ww-muted);
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
   font-weight: 800;
 }
 

@@ -207,7 +207,7 @@
   -webkit-backdrop-filter: blur(8px);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
   transition: transform 0.18s, box-shadow 0.18s;
-  font-size: 0.7125rem;
+  font-size: 0.6875rem;
   padding: 0.28rem 0.65rem;
 }
 
@@ -267,7 +267,7 @@
 }
 
 .hero-content h1 {
-  font-size: 1.875rem;
+  font-size: 1.75rem;
   font-weight: 700;
   color: var(--sp-text);
   margin: 0 0 0.375rem 0;
@@ -276,7 +276,7 @@
 }
 
 .supplier-tagline {
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
   color: var(--sp-text-muted);
   margin: 0 0 0.875rem 0;
   line-height: 1.55;
@@ -512,7 +512,7 @@
 .sp-about__description {
   line-height: 1.7;
   color: var(--sp-text-muted);
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
   margin: 0;
 }
 
@@ -572,7 +572,7 @@
   color: #10b981;
   font-weight: 700;
   flex-shrink: 0;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
 }
 
 /* ============================================
@@ -686,7 +686,7 @@
 }
 
 .sp-stat__value {
-  font-size: 1.375rem;
+  font-size: 1.25rem;
   font-weight: 700;
   line-height: 1.1;
   background: linear-gradient(135deg, #0b8073, #059669);
@@ -814,7 +814,7 @@
 }
 
 .sp-gallery-empty__title {
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
   font-weight: 600;
   color: var(--sp-text-muted);
   margin: 0;
@@ -893,7 +893,7 @@
 }
 
 .sp-pkg-card__title {
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
   font-weight: 700;
   color: var(--sp-text);
   margin: 0 0 0.375rem 0;
@@ -922,7 +922,7 @@
 }
 
 .sp-pkg-card__price {
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
   font-weight: 700;
   color: var(--sp-primary);
 }
@@ -1037,13 +1037,13 @@
 
 .sp-star-full {
   color: #fbbf24;
-  font-size: 1.0625rem;
+  font-size: 1rem;
   line-height: 1;
 }
 
 .sp-star-empty {
   color: #d1d5db;
-  font-size: 1.0625rem;
+  font-size: 1rem;
   line-height: 1;
 }
 
@@ -1077,7 +1077,7 @@
 }
 
 .sp-reviews-empty p {
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
   margin: 0;
 }
 
@@ -1125,7 +1125,7 @@
 }
 
 .sp-cta-card__title {
-  font-size: 1.0625rem;
+  font-size: 1rem;
   font-weight: 700;
   margin: 0 0 0.875rem 0;
 }
@@ -1408,7 +1408,7 @@
   margin-top: 0.75rem;
   line-height: 1.65;
   color: var(--sp-text-muted);
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
 }
 
 .spc-section {
@@ -1510,7 +1510,7 @@
   }
 
   .supplier-tagline {
-    font-size: 0.9rem;
+    font-size: 0.875rem;
     margin-bottom: 0.625rem;
   }
 
@@ -1809,14 +1809,14 @@
 }
 
 .verification-description {
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   color: #6b7280;
   margin-top: 0.1rem;
 }
 
 .verification-status {
   color: #16a34a;
-  font-size: 1.1rem;
+  font-size: 1.125rem;
   flex-shrink: 0;
 }
 

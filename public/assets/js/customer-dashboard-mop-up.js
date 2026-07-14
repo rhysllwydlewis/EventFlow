@@ -49,7 +49,7 @@
         padding: .42rem .78rem;
         border: 1px solid transparent;
         border-radius: 999px;
-        font-size: .82rem;
+        font-size: 0.8125rem;
         font-weight: 850;
         line-height: 1;
         white-space: nowrap;

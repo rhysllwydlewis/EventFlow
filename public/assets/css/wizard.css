@@ -234,7 +234,7 @@
 }
 
 .wizard-benefit-text {
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
   color: #374151;
   font-weight: 500;
 }
@@ -375,7 +375,7 @@
 
 .form-row label {
   display: block;
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
   font-weight: 600;
   color: #374151;
   margin-bottom: 0.5rem;
@@ -790,7 +790,7 @@
   text-decoration: none;
   cursor: pointer;
   padding: 0.75rem 1rem;
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
   font-weight: 500;
   transition: all 0.2s ease;
   border-radius: 6px;
@@ -809,7 +809,7 @@
   border: 2px solid rgba(11, 128, 115, 0.2);
   color: #0B8073;
   padding: 0.75rem 1.5rem;
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
   font-weight: 600;
   border-radius: 10px;
   cursor: pointer;
@@ -875,7 +875,7 @@
   font-weight: 600;
   color: #0b1220;
   text-align: right;
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
 }
 
 /* Auto-save indicator */
@@ -1082,7 +1082,7 @@ textarea:focus-visible {
 }
 
 .wz-welcome-sub {
-  font-size: 1.0625rem;
+  font-size: 1rem;
   color: #667085;
   line-height: 1.65;
   max-width: 500px;
@@ -1102,7 +1102,7 @@ textarea:focus-visible {
   display: flex;
   align-items: center;
   gap: 0.625rem;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   color: #374151;
   padding: 0.375rem 0;
 }
@@ -1121,7 +1121,7 @@ textarea:focus-visible {
   border: 1px solid rgba(11, 128, 115, 0.2);
   border-radius: 10px;
   padding: 0.875rem 1rem;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   color: #374151;
   margin: 0 0 1.5rem;
 }
@@ -1199,7 +1199,7 @@ textarea:focus-visible {
 
 .wz-tpl-name {
   display: block;
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
   font-weight: 700;
   color: #0b1220;
   margin-bottom: 0.2rem;
@@ -1248,7 +1248,7 @@ textarea:focus-visible {
   background: none;
   border: none;
   color: #667085;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   cursor: pointer;
   padding: 0.5rem 1rem;
   border-radius: 8px;
@@ -1447,7 +1447,7 @@ textarea:focus-visible {
 
 .wz-missing-list {
   margin: 0.5rem 0 0.75rem 1.25rem;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   color: #374151;
   line-height: 1.8;
 }

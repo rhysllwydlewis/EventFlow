@@ -18,7 +18,7 @@
   background: linear-gradient(135deg, #0b8073 0%, #13b6a2 100%);
   box-shadow: 0 4px 12px rgba(11, 128, 115, 0.28);
   color: #ffffff;
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   line-height: 1;
   text-decoration: none;
@@ -128,7 +128,7 @@
   .ef-home-mobile-signup,
   .hv2-home-mobile-signup {
     padding: 8px 11px;
-    font-size: 0.78rem;
+    font-size: 0.75rem;
   }
 }
 

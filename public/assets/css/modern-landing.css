@@ -719,7 +719,7 @@ html {
   
   /* Improve readability on smaller screens */
   .hero-modern-subcopy {
-    font-size: clamp(0.9rem, 1.5vw, 1.1rem) !important;
+    font-size: clamp(0.875rem, 1.5vw, 1.125rem) !important;
   }
 }
 

@@ -27,14 +27,14 @@
 .ww-render-polish .ww-app-header h2 {
   max-width: 760px !important;
   margin-top: 0.16rem !important;
-  font-size: clamp(2.05rem, 3.35vw, 3.05rem) !important;
+  font-size: clamp(2rem, 3.35vw, 3.05rem) !important;
   line-height: 1.01 !important;
 }
 
 .ww-render-polish .ww-app-header p:not(.ww-kicker) {
   max-width: 620px !important;
   margin-top: 0.45rem !important;
-  font-size: clamp(0.94rem, 1.12vw, 1.04rem) !important;
+  font-size: clamp(0.875rem, 1.12vw, 1rem) !important;
   line-height: 1.42 !important;
 }
 
@@ -138,7 +138,7 @@
   }
 
   .ww-render-polish .ww-app-header h2 {
-    font-size: clamp(1.58rem, 7.2vw, 2rem) !important;
+    font-size: clamp(1.5rem, 7.2vw, 2rem) !important;
   }
 
   .ww-render-polish .ww-app-header p:not(.ww-kicker) {

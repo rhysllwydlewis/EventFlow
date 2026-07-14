@@ -2027,7 +2027,7 @@
             border-radius: 10px;
             margin-bottom: 0.5rem;
             box-shadow: 0 6px 20px rgba(0,0,0,0.18);
-            font-size: 0.92rem;
+            font-size: 0.875rem;
             font-weight: 500;
             line-height: 1.4;
             animation: reviewToastIn 0.3s cubic-bezier(0.34,1.56,0.64,1) both;
@@ -2037,7 +2037,7 @@
           .review-toast--success { background: #10b981; color: #fff; }
           .review-toast--error   { background: #ef4444; color: #fff; }
           .review-toast--info    { background: #3b82f6; color: #fff; }
-          .review-toast__icon    { font-size: 1.1rem; flex-shrink: 0; }
+          .review-toast__icon    { font-size: 1.125rem; flex-shrink: 0; }
         `;
         document.head.appendChild(style);
       }

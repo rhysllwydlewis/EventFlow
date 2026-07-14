@@ -114,7 +114,7 @@
         border-radius: 0.75rem;
         box-shadow: 0 4px 20px rgba(0,0,0,0.25);
         font-family: inherit;
-        font-size: 0.9rem;
+        font-size: 0.875rem;
         max-width: calc(100vw - 2rem);
         width: max-content;
         animation: ef-pwa-slide-up 0.3s ease;
@@ -124,7 +124,7 @@
         to   { opacity: 1; transform: translateX(-50%) translateY(0); }
       }
       #ef-pwa-install-banner .ef-pwa-icon {
-        font-size: 1.4rem;
+        font-size: 1.5rem;
         flex-shrink: 0;
       }
       #ef-pwa-install-banner .ef-pwa-text {
@@ -142,7 +142,7 @@
         padding: 0.4rem 0.9rem;
         font-weight: 600;
         cursor: pointer;
-        font-size: 0.85rem;
+        font-size: 0.8125rem;
         white-space: nowrap;
         flex-shrink: 0;
         transition: background 0.15s ease;
@@ -155,7 +155,7 @@
         color: rgba(255,255,255,0.8);
         border: none;
         cursor: pointer;
-        font-size: 1.1rem;
+        font-size: 1.125rem;
         padding: 0 0.25rem;
         flex-shrink: 0;
         line-height: 1;

@@ -72,14 +72,14 @@ body {
 }
 
 .upload-text {
-  font-size: 1.2rem;
+  font-size: 1.125rem;
   color: #0B8073;
   margin-bottom: 0.5rem;
 }
 
 .upload-hint {
   color: #666;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
 }
 
 .file-input {
@@ -228,7 +228,7 @@ body {
   right: 10px;
   padding: 0.3rem 0.8rem;
   border-radius: 20px;
-  font-size: 0.85rem;
+  font-size: 0.8125rem;
   font-weight: 600;
   color: white;
   text-shadow: 0 1px 2px rgba(0,0,0,0.2);
@@ -255,7 +255,7 @@ body {
 
 .btn-small {
   padding: 0.4rem 0.8rem;
-  font-size: 0.85rem;
+  font-size: 0.8125rem;
   flex: 1;
 }
 

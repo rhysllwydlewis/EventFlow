@@ -62,7 +62,7 @@
       .ww-product-tip h4 {
         margin: 0.1rem 0 0.3rem;
         color: var(--ww-ink, #172033);
-        font-size: 1.05rem;
+        font-size: 1rem;
       }
 
       .ww-product-next p,
@@ -105,7 +105,7 @@
         border-radius: 999px;
         background: rgba(255, 255, 255, 0.66);
         color: var(--ww-navy, #24436f);
-        font-size: 0.76rem;
+        font-size: 0.75rem;
         font-weight: 800;
         padding: 0.25rem 0.5rem;
       }
@@ -117,7 +117,7 @@
 
       .ww-product-kicker {
         color: var(--ww-muted, #63708a);
-        font-size: 0.72rem;
+        font-size: 0.6875rem;
         font-weight: 900;
         letter-spacing: 0.08em;
         text-transform: uppercase;
@@ -154,7 +154,7 @@
         border-radius: 999px;
         background: rgba(254, 243, 199, 0.78);
         color: #92400e;
-        font-size: 0.72rem;
+        font-size: 0.6875rem;
         font-weight: 800;
         padding: 0.18rem 0.45rem;
       }
@@ -167,7 +167,7 @@
         border-radius: 999px;
         background: rgba(255, 255, 255, 0.72);
         color: var(--ww-navy, #24436f);
-        font-size: 0.78rem;
+        font-size: 0.75rem;
         font-weight: 800;
         padding: 0.42rem 0.6rem;
       }
@@ -217,7 +217,7 @@
         background: rgba(80, 192, 176, 0.1);
         color: var(--ww-navy, #24436f);
         font-weight: 800;
-        font-size: 0.72rem;
+        font-size: 0.6875rem;
         padding: 0.22rem 0.42rem;
       }
 

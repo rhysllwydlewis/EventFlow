@@ -105,7 +105,7 @@
 
     /* Package title */
     #package-title {
-      font-size: clamp(1.4rem, 4vw, 2rem);
+      font-size: clamp(1.5rem, 4vw, 2rem);
       font-weight: 800;
       margin: 0 0 10px;
       line-height: 1.2;
@@ -113,7 +113,7 @@
 
     /* Price display */
     #package-price {
-      font-size: clamp(1.4rem, 3vw, 1.8rem);
+      font-size: clamp(1.5rem, 3vw, 1.75rem);
       font-weight: 700;
       line-height: 1.1;
     }
@@ -154,7 +154,7 @@
       border: 1px solid #a7f3e4;
       padding: 4px 12px;
       border-radius: 20px;
-      font-size: 0.8rem;
+      font-size: 0.75rem;
       font-weight: 500;
       transition: background 0.15s, border-color 0.15s, transform 0.15s;
       display: inline-block;
@@ -171,7 +171,7 @@
       border: 1px solid #a7f3e4;
       padding: 5px 12px;
       border-radius: 16px;
-      font-size: 0.82rem;
+      font-size: 0.8125rem;
       font-weight: 500;
       text-decoration: none;
       display: inline-block;
@@ -195,7 +195,7 @@
       flex-wrap: wrap;
       gap: 4px;
       margin-bottom: 20px;
-      font-size: 0.85rem;
+      font-size: 0.8125rem;
       color: var(--color-text-secondary, #6c757d);
     }
     #package-breadcrumb .pkg-bc-sep { color: #d1d5db; }
@@ -210,7 +210,7 @@
       color: #0b8073;
       padding: 6px 14px;
       border-radius: 20px;
-      font-size: 0.85rem;
+      font-size: 0.8125rem;
       font-weight: 500;
     }
 
@@ -242,7 +242,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1.35rem;
+      font-size: 1.25rem;
       font-weight: 700;
       color: white;
       overflow: hidden;
@@ -264,7 +264,7 @@
       word-break: break-word;
     }
     .pkg-sup-blurb {
-      font-size: 0.82rem;
+      font-size: 0.8125rem;
       color: #6c757d;
       margin: 0 0 7px;
       line-height: 1.5;
@@ -279,7 +279,7 @@
       display: flex;
       flex-direction: column;
       gap: 6px;
-      font-size: 0.85rem;
+      font-size: 0.8125rem;
       color: #6c757d;
       border-bottom: 1px solid rgba(0,0,0,0.06);
     }
@@ -311,7 +311,7 @@
       gap: 6px;
       padding: 12px 16px;
       border-radius: 10px;
-      font-size: 0.9rem;
+      font-size: 0.875rem;
       font-weight: 700;
       font-family: inherit;
       border: 1px solid transparent;
@@ -386,7 +386,7 @@
 
     /* Section label above package actions */
     .pkg-action-label {
-      font-size: 0.7rem;
+      font-size: 0.6875rem;
       font-weight: 700;
       letter-spacing: 0.08em;
       text-transform: uppercase;
@@ -413,7 +413,7 @@
       gap: 6px;
       padding: 10px 12px;
       border-radius: 10px;
-      font-size: 0.85rem;
+      font-size: 0.8125rem;
       font-weight: 700;
       font-family: inherit;
       border: 1px solid transparent;
@@ -469,7 +469,7 @@
 
     /* ── Supplier section label ───────────────────────────── */
     .pkg-sup-section-label {
-      font-size: 0.7rem;
+      font-size: 0.6875rem;
       font-weight: 700;
       letter-spacing: 0.08em;
       text-transform: uppercase;
@@ -482,7 +482,7 @@
 
     /* ── Small-mobile tweaks (≤480px) ───────────────────────── */
     @media (max-width: 480px) {
-      #package-breadcrumb { font-size: 0.8rem; }
+      #package-breadcrumb { font-size: 0.75rem; }
       .pkg-layout { gap: 14px; }
       #package-header-card,
       #package-desc-card,
@@ -662,14 +662,14 @@
                   <div id="package-categories" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
                   <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:baseline;">
                     <div id="package-price" style="color:var(--accent,#13B6A2);"></div>
-                    <div id="package-location" style="font-size:0.95rem;color:var(--color-text-secondary,#6c757d);"></div>
+                    <div id="package-location" style="font-size: 0.875rem;color:var(--color-text-secondary,#6c757d);"></div>
                   </div>
                 </div>
                 <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
-                  <div id="package-featured-badge" style="display:none;background-color:var(--accent,#13B6A2);color:#fff;padding:6px 14px;border-radius:20px;font-weight:600;font-size:0.85rem;" aria-label="Featured package">
+                  <div id="package-featured-badge" style="display:none;background-color:var(--accent,#13B6A2);color:#fff;padding:6px 14px;border-radius:20px;font-weight:600;font-size: 0.8125rem;" aria-label="Featured package">
                     <span aria-hidden="true">⭐</span> Featured
                   </div>
-                  <div id="package-test-badge" style="display:none;background:#fef3c7;color:#92400e;border:1px solid #f59e0b;padding:6px 14px;border-radius:20px;font-weight:600;font-size:0.85rem;">
+                  <div id="package-test-badge" style="display:none;background:#fef3c7;color:#92400e;border:1px solid #f59e0b;padding:6px 14px;border-radius:20px;font-weight:600;font-size: 0.8125rem;">
                     🧪 Test data
                   </div>
                 </div>
@@ -689,14 +689,14 @@
 
             <!-- Package Description -->
             <div class="card" id="package-desc-card">
-              <h2 style="margin-top:0;font-size:clamp(1.1rem,3vw,1.4rem);">About this package</h2>
+              <h2 style="margin-top:0;font-size: clamp(1.125rem, 3vw, 1.5rem);">About this package</h2>
               <p id="package-description" style="color:var(--color-text-primary,#212529);margin-bottom:0;"></p>
               <div id="package-tags" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;"></div>
             </div>
 
             <!-- What's Included (event types) -->
             <div class="card" id="package-event-types-section" style="display:none;">
-              <h2 style="margin-top:0;font-size:clamp(1.1rem,3vw,1.4rem);">Suitable for</h2>
+              <h2 style="margin-top:0;font-size: clamp(1.125rem, 3vw, 1.5rem);">Suitable for</h2>
               <div id="package-event-types" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
             </div>
           </div>

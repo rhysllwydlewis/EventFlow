@@ -27,7 +27,7 @@
 
       .ww-stat-card strong {
         color: var(--ww-navy, #24436f);
-        font-size: 1.15rem;
+        font-size: 1.125rem;
       }
 
       .ww-section-nav {
@@ -49,7 +49,7 @@
         border: 1px solid rgba(80, 192, 176, 0.18);
         border-radius: 999px;
         color: var(--ww-navy, #24436f);
-        font-size: 0.8rem;
+        font-size: 0.75rem;
         font-weight: 800;
         padding: 0.38rem 0.65rem;
         text-decoration: none;

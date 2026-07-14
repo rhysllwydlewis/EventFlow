@@ -27,7 +27,7 @@
       flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem;
     }
     .support-header-text h1 { margin: 0 0 0.35rem; font-size: 1.75rem; color: var(--ef-text-dark); font-weight: 700; }
-    .support-subtitle { color: var(--ef-text-gray); font-size: 0.95rem; margin: 0; }
+    .support-subtitle { color: var(--ef-text-gray); font-size: 0.875rem; margin: 0; }
     .support-toolbar {
       display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center;
       justify-content: space-between;
@@ -38,7 +38,7 @@
       margin-bottom: 1.5rem;
     }
     .filter-status-btn {
-      font-size: 0.82rem !important;
+      font-size: 0.8125rem !important;
       padding: 0.35rem 0.875rem !important;
       border-radius: 99px !important;
       transition: background 0.15s, color 0.15s, border-color 0.15s;
@@ -60,9 +60,9 @@
     }
     .ticket-card:focus { outline: 2px solid #0B8073; outline-offset: 2px; }
     .ticket-card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
-    .ticket-subject { font-weight: 600; font-size: 0.975rem; color: #111827; flex: 1; line-height: 1.4; }
+    .ticket-subject { font-weight: 600; font-size: 1rem; color: #111827; flex: 1; line-height: 1.4; }
     .ticket-badge {
-      font-size: 0.72rem; font-weight: 700; padding: 0.2rem 0.65rem;
+      font-size: 0.6875rem; font-weight: 700; padding: 0.2rem 0.65rem;
       border-radius: 99px; white-space: nowrap; flex-shrink: 0;
       text-transform: uppercase; letter-spacing: 0.03em;
     }
@@ -70,7 +70,7 @@
     .badge-pending { background: #FEF3C7; color: #92400E; }
     .badge-resolved { background: #E0F2FE; color: #0C4A6E; }
     .badge-closed  { background: #F3F4F6; color: #6B7280; }
-    .ticket-meta { font-size: 0.8rem; color: #9ca3af; margin-top: 0.4rem; }
+    .ticket-meta { font-size: 0.75rem; color: #9ca3af; margin-top: 0.4rem; }
     .ticket-preview {
       font-size: 0.875rem; color: #6B7280; margin-top: 0.625rem;
       display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
@@ -105,10 +105,10 @@
       padding: 1.25rem 1.5rem; border-bottom: 1px solid #f3f4f6;
       display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; background: #fff; z-index: 1;
     }
-    .modal-header h3 { margin: 0; font-size: 1.05rem; font-weight: 700; }
+    .modal-header h3 { margin: 0; font-size: 1rem; font-weight: 700; }
     .modal-close {
       background: none; border: none; cursor: pointer; color: #9ca3af;
-      font-size: 1.4rem; line-height: 1; padding: 0.25rem; border-radius: 4px;
+      font-size: 1.5rem; line-height: 1; padding: 0.25rem; border-radius: 4px;
       transition: color 0.15s;
     }
     .modal-close:hover { color: #374151; }
@@ -120,7 +120,7 @@
     .form-row select,
     .form-row textarea {
       width: 100%; box-sizing: border-box; padding: 0.625rem 0.75rem;
-      border: 1.5px solid #e5e7eb; border-radius: 6px; font-size: 0.9rem;
+      border: 1.5px solid #e5e7eb; border-radius: 6px; font-size: 0.875rem;
       font-family: inherit; outline: none; transition: border-color 0.15s, box-shadow 0.15s;
       background: #fff;
     }
@@ -133,11 +133,11 @@
     }
     .reply-thread { margin-top: 1rem; }
     .reply-item {
-      padding: 0.875rem 1rem; border-radius: 8px; margin-bottom: 0.75rem; font-size: 0.9rem; line-height: 1.55;
+      padding: 0.875rem 1rem; border-radius: 8px; margin-bottom: 0.75rem; font-size: 0.875rem; line-height: 1.55;
     }
     .reply-user  { background: #f0fdf4; border: 1px solid #bbf7d0; }
     .reply-staff { background: #eff6ff; border: 1px solid #bfdbfe; }
-    .reply-meta  { font-size: 0.78rem; color: #9ca3af; margin-bottom: 0.35rem; font-weight: 500; }
+    .reply-meta  { font-size: 0.75rem; color: #9ca3af; margin-bottom: 0.35rem; font-weight: 500; }
     .reply-form  { margin-top: 1.25rem; border-top: 1px solid #f3f4f6; padding-top: 1.25rem; }
   </style>
     <link rel="stylesheet" href="/assets/css/signed-in-mobile-fixes.css" />
@@ -198,7 +198,7 @@
         <h1>Support</h1>
         <p class="support-subtitle">Track and manage your support requests. Our team typically responds within 24 hours.</p>
       </div>
-      <a href="/settings" class="cta secondary" style="font-size:0.85rem;padding:0.45rem 1rem;flex-shrink:0;align-self:flex-start;">← Account Settings</a>
+      <a href="/settings" class="cta secondary" style="font-size: 0.8125rem;padding:0.45rem 1rem;flex-shrink:0;align-self:flex-start;">← Account Settings</a>
     </div>
 
     <div class="support-toolbar">
@@ -223,7 +223,7 @@
 
     <div id="tickets-empty" class="support-empty" style="display:none">
       <div class="support-empty-icon">🎟️</div>
-      <h3 style="margin:0 0 0.5rem;color:#374151;font-size:1.1rem;">No tickets yet</h3>
+      <h3 style="margin:0 0 0.5rem;color:#374151;font-size: 1.125rem;">No tickets yet</h3>
       <p style="margin:0 0 1.5rem;color:#9ca3af;max-width:360px;margin-left:auto;margin-right:auto;">Haven't raised an issue yet? We're here to help. Click <strong>New Ticket</strong> to get started.</p>
       <button class="cta" id="create-first-ticket-btn">Create your first ticket</button>
     </div>
@@ -248,7 +248,7 @@
         <div class="form-row">
           <label for="ticket-subject">Subject *</label>
           <input type="text" id="ticket-subject" maxlength="200" placeholder="Brief description of your issue" required>
-          <p id="ticket-subject-error" style="color:#ef4444;font-size:0.82rem;margin:0.25rem 0 0;display:none">Subject is required.</p>
+          <p id="ticket-subject-error" style="color:#ef4444;font-size: 0.8125rem;margin:0.25rem 0 0;display:none">Subject is required.</p>
         </div>
         <div class="form-row">
           <label for="ticket-category">Category</label>
@@ -272,12 +272,12 @@
         <div class="form-row">
           <label for="ticket-message">Message *</label>
           <textarea id="ticket-message" rows="5" maxlength="5000" placeholder="Describe your issue in detail…" required></textarea>
-          <p id="ticket-message-error" style="color:#ef4444;font-size:0.82rem;margin:0.25rem 0 0;display:none">Message is required.</p>
+          <p id="ticket-message-error" style="color:#ef4444;font-size: 0.8125rem;margin:0.25rem 0 0;display:none">Message is required.</p>
         </div>
       </form>
     </div>
     <div class="modal-footer" style="flex-wrap:wrap;gap:0.5rem;">
-      <p id="_ticket_submit_status" style="color:#ef4444;font-size:0.85rem;flex:1 0 100%;display:none;" role="alert"></p>
+      <p id="_ticket_submit_status" style="color:#ef4444;font-size: 0.8125rem;flex:1 0 100%;display:none;" role="alert"></p>
       <button type="button" class="cta secondary" id="create-ticket-cancel">Cancel</button>
       <button type="button" class="cta" id="create-ticket-submit">Submit Ticket</button>
     </div>

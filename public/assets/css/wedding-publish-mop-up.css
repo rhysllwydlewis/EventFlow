@@ -25,7 +25,7 @@
 .ww-readiness-kicker {
   margin: 0 0 0.18rem;
   color: #0f766e;
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   font-weight: 850;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -34,7 +34,7 @@
 .ww-readiness-card h4 {
   margin: 0;
   color: #0f172a;
-  font-size: clamp(1.05rem, 2.2vw, 1.28rem);
+  font-size: clamp(1rem, 2.2vw, 1.25rem);
 }
 
 .ww-readiness-score {

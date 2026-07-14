@@ -67,7 +67,7 @@
 
       overlay.innerHTML = `
         <div style="background:rgba(15,28,35,0.97);border:1px solid rgba(255,255,255,0.14);border-radius:16px;max-width:400px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,0.5);padding:1.5rem;">
-          <p style="margin:0 0 1.25rem;font-size:0.92rem;color:rgba(255,255,255,0.85);line-height:1.55;white-space:pre-line;">${escHtml(message)}</p>
+          <p style="margin:0 0 1.25rem;font-size: 0.875rem;color:rgba(255,255,255,0.85);line-height:1.55;white-space:pre-line;">${escHtml(message)}</p>
           <div style="display:flex;justify-content:flex-end;gap:0.75rem;">
             <button type="button" id="_partner_confirm_cancel" class="ef-cta partner-confirm-cancel">Cancel</button>
             <button type="button" id="_partner_confirm_ok" class="ef-cta partner-confirm-ok">Confirm</button>
@@ -285,7 +285,7 @@
         <td style="${amtClass};font-weight:700;">${amtStr} points</td>
         <td style="color:rgba(255,255,255,0.45)">${toPounds(Math.abs(t.amount), pointsPerGbp)}</td>
         <td>${fmtDate(t.createdAt)}</td>
-        <td style="color:rgba(255,255,255,0.4);font-size:0.78rem;">${esc(t.notes || '')}</td>
+        <td style="color:rgba(255,255,255,0.4);font-size: 0.75rem;">${esc(t.notes || '')}</td>
       </tr>`;
     });
 
@@ -767,7 +767,7 @@ Best wishes`
 
     if (!historyItems || historyItems.length === 0) {
       container.innerHTML =
-        '<p class="partner-empty-text" style="color:rgba(255,255,255,0.35);font-size:0.82rem;">' +
+        '<p class="partner-empty-text" style="color:rgba(255,255,255,0.35);font-size: 0.8125rem;">' +
         'No previous codes — your current code has never been regenerated.</p>';
       return;
     }
@@ -777,7 +777,7 @@ Best wishes`
       h => `<tr>
       <td><code style="font-family:monospace;color:#a5b4fc;">${esc(h.refCode)}</code></td>
       <td style="color:rgba(255,255,255,0.5);">${fmtDate(h.archivedAt)}</td>
-      <td><span class="p-badge p-badge--inactive" style="font-size:0.72rem;">Archived (still valid)</span></td>
+      <td><span class="p-badge p-badge--inactive" style="font-size: 0.6875rem;">Archived (still valid)</span></td>
     </tr>`
     );
 
@@ -1000,7 +1000,7 @@ Best wishes`
             <button
               type="button"
               id="partner-empty-ticket-btn"
-              style="margin-top:0.75rem;padding:0.45rem 1.1rem;background:linear-gradient(135deg,rgba(11,128,115,0.3),rgba(16,185,129,0.2));border:1px solid rgba(16,185,129,0.35);border-radius:8px;color:#6ee7b7;cursor:pointer;font-size:0.85rem;font-weight:600;"
+              style="margin-top:0.75rem;padding:0.45rem 1.1rem;background:linear-gradient(135deg,rgba(11,128,115,0.3),rgba(16,185,129,0.2));border:1px solid rgba(16,185,129,0.35);border-radius:8px;color:#6ee7b7;cursor:pointer;font-size: 0.8125rem;font-weight:600;"
               aria-label="Raise a support ticket"
             >✉️ Raise a support ticket</button>
           </div>`;
@@ -1019,8 +1019,8 @@ Best wishes`
           t => `
         <div class="partner-ticket-row" tabindex="0" role="button" data-ticket-id="${escHtml(String(t._id || t.id || ''))}" aria-label="View ticket: ${escHtml(t.subject)}">
           <div style="flex:1;min-width:0;">
-            <div style="font-size:0.9rem;font-weight:600;color:#fff;margin-bottom:0.2rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(t.subject)}</div>
-            <div style="font-size:0.78rem;color:rgba(255,255,255,0.38);">Opened ${fmtDate(t.createdAt)}${t.responseCount ? ` · ${t.responseCount} response${t.responseCount !== 1 ? 's' : ''}` : ''}</div>
+            <div style="font-size: 0.875rem;font-weight:600;color:#fff;margin-bottom:0.2rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(t.subject)}</div>
+            <div style="font-size: 0.75rem;color:rgba(255,255,255,0.38);">Opened ${fmtDate(t.createdAt)}${t.responseCount ? ` · ${t.responseCount} response${t.responseCount !== 1 ? 's' : ''}` : ''}</div>
           </div>
           <div style="flex-shrink:0;">${getTicketStatusBadge(t.status)}</div>
         </div>`
@@ -1123,12 +1123,12 @@ Best wishes`
             id="partner-reply-submit"
             data-ticket-id="${escHtml(String(ticket._id || ticket.id))}"
           >Send Reply</button>
-          <span id="partner-reply-status" role="status" aria-live="polite" style="font-size:0.8rem;margin-top:0.25rem;"></span>
+          <span id="partner-reply-status" role="status" aria-live="polite" style="font-size: 0.75rem;margin-top:0.25rem;"></span>
         </div>`
           : '<p style="color:rgba(255,255,255,0.35);font-size:0.875rem;margin-top:1rem;">This ticket is closed.</p>';
 
       body.innerHTML = `
-        <div style="font-size:0.78rem;color:rgba(255,255,255,0.4);margin-bottom:0.75rem;">
+        <div style="font-size: 0.75rem;color:rgba(255,255,255,0.4);margin-bottom:0.75rem;">
           Status: <strong style="color:#fff;">${escHtml(ticket.status || 'open')}</strong>
           &nbsp;·&nbsp; Opened ${fmtDate(ticket.createdAt)}
         </div>
@@ -1212,7 +1212,7 @@ Best wishes`
       color: 'rgba(255,255,255,0.4)',
       bg: 'rgba(255,255,255,0.06)',
     };
-    return `<span style="display:inline-block;padding:0.18rem 0.55rem;border-radius:100px;font-size:0.72rem;font-weight:600;color:${s.color};background:${s.bg};">${escHtml(s.label)}</span>`;
+    return `<span style="display:inline-block;padding:0.18rem 0.55rem;border-radius:100px;font-size: 0.6875rem;font-weight:600;color:${s.color};background:${s.bg};">${escHtml(s.label)}</span>`;
   }
 
   async function loadCashoutHistory() {
@@ -1650,7 +1650,7 @@ Best wishes`
             <div class="partner-empty">
               <div class="partner-empty-icon" aria-hidden="true">⚠️</div>
               <p class="partner-empty-text">Failed to load data.</p>
-              <button type="button" class="partner-retry-btn" onclick="window.location.reload()" style="margin-top:0.75rem;padding:0.45rem 1rem;background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.3);border-radius:8px;color:#6ee7b7;cursor:pointer;font-size:0.85rem;">
+              <button type="button" class="partner-retry-btn" onclick="window.location.reload()" style="margin-top:0.75rem;padding:0.45rem 1rem;background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.3);border-radius:8px;color:#6ee7b7;cursor:pointer;font-size: 0.8125rem;">
                 Retry
               </button>
             </div>`;

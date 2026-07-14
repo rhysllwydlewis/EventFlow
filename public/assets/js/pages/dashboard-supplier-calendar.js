@@ -468,7 +468,7 @@
     popover.setAttribute('aria-label', `Delete "${entryTitle}"?`);
     popover.innerHTML = `
       <p style="margin:0 0 0.75rem;font-size:0.875rem;font-weight:500;color:#111827;">Delete this entry?</p>
-      <p style="margin:0 0 0.875rem;font-size:0.8rem;color:#6b7280;">${escapeHtml(entryTitle)}</p>
+      <p style="margin:0 0 0.875rem;font-size: 0.75rem;color:#6b7280;">${escapeHtml(entryTitle)}</p>
       <div style="display:flex;gap:0.5rem;justify-content:flex-end;">
         <button type="button" class="ef-cta cal-delete-popover__btn cal-delete-popover__btn--cancel">Cancel</button>
         <button type="button" class="ef-cta cal-delete-popover__btn cal-delete-popover__btn--confirm">Delete</button>
@@ -576,7 +576,7 @@
 
     popover.innerHTML = `
       <p style="margin:0 0 0.25rem;font-size:0.875rem;font-weight:600;color:#111827;">${escapeHtml(ev.title)}</p>
-      ${startLabel ? `<p style="margin:0 0 0.75rem;font-size:0.8rem;color:#6b7280;">📅 ${escapeHtml(startLabel)}</p>` : '<p style="margin:0 0 0.75rem;"></p>'}
+      ${startLabel ? `<p style="margin:0 0 0.75rem;font-size: 0.75rem;color:#6b7280;">📅 ${escapeHtml(startLabel)}</p>` : '<p style="margin:0 0 0.75rem;"></p>'}
       ${actionsHtml}
     `;
 

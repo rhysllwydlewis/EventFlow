@@ -135,7 +135,7 @@ class PackageGallery {
         color: white;
         padding: 4px 12px;
         border-radius: 20px;
-        font-size: 0.8rem;
+        font-size: 0.75rem;
         font-weight: 600;
         z-index: 2;
         pointer-events: none;

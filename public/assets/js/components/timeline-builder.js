@@ -548,7 +548,7 @@ class TimelineBuilder {
       }
 
       .timeline-event-description {
-        font-size: 0.9375rem;
+        font-size: 0.875rem;
         color: #475569;
         margin: 8px 0;
         line-height: 1.6;

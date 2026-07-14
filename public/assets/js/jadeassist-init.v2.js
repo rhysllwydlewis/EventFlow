@@ -311,7 +311,7 @@
 
       .jade-teaser-text {
         flex: 1;
-        font-size: 13.5px;
+        font-size: 13px;
         line-height: 1.45;
         color: #1a2332;
         font-weight: 500;
@@ -398,7 +398,7 @@
           height: 14px;
           min-width: 14px;
           max-width: 14px;
-          font-size: 8px;
+          font-size: 11px;
           padding: 0;
           border-radius: 50%;
           align-self: flex-start;
@@ -826,7 +826,7 @@
         'color:#fff',
         'border:none',
         'cursor:pointer',
-        'font-size:15px',
+        'font-size: 14px',
         'line-height:22px',
         'text-align:center',
         'display:block',

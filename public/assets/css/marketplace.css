@@ -334,7 +334,7 @@
   border: none;
   border-radius: 24px !important; /* override global button rule (12px !important) */
   padding: 12px 36px !important;  /* override global button rule (10px 18px !important) */
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.2s ease, transform 0.15s ease;
@@ -410,7 +410,7 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  font-size: 19px !important;
+  font-size: 18px !important;
   padding: 0 !important;
   box-shadow: none !important;
   transition: all 0.2s ease;
@@ -826,7 +826,7 @@
   box-shadow: inset 0 1px 2px rgba(11, 18, 32, 0.05);
   resize: vertical;
   font-family: inherit;
-  font-size: 15px;
+  font-size: 14px;
 }
 
 .listing-inline-composer-status {
@@ -1511,7 +1511,7 @@
   }
 
   .marketplace-tag {
-    font-size: 10px;
+    font-size: 11px;
     padding: 3px 8px;
   }
 }
@@ -1554,13 +1554,13 @@
   margin-bottom: 1rem;
 }
 .mp-error-title {
-  font-size: 1.05rem;
+  font-size: 1rem;
   font-weight: 700;
   color: #111827;
   margin: 0 0 0.5rem;
 }
 .mp-error-body {
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   color: #6b7280;
   max-width: 360px;
   line-height: 1.6;

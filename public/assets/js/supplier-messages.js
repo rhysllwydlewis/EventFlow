@@ -113,7 +113,7 @@ function renderLeadQualityBadge(conv) {
   const color = escapeHtml(meta.color);
   const scoreHtml =
     typeof conv.leadScoreRaw === 'number'
-      ? ` <span style="opacity:0.8;font-size:0.7rem;">(${conv.leadScoreRaw})</span>`
+      ? ` <span style="opacity:0.8;font-size: 0.6875rem;">(${conv.leadScoreRaw})</span>`
       : '';
   return `<span class="lead-badge" role="status" aria-label="Lead quality: ${label}" style="background:${color};color:white;padding:0.2rem 0.5rem;border-radius:4px;font-size:0.75rem;font-weight:600;display:inline-flex;align-items:center;gap:0.25rem;">${emoji} ${label}${scoreHtml}</span>`;
 }
@@ -225,7 +225,7 @@ function renderConversations(conversations, supplierProfile, user) {
             <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
               <span style="font-weight:${unread > 0 ? '700' : '500'};color:#0b1220;">${name}</span>
               ${badgeHtml}
-              ${unread > 0 ? `<span class="lead-badge" style="background:#3b82f6;color:white;padding:0.15rem 0.4rem;border-radius:4px;font-size:0.7rem;">${unread} new</span>` : ''}
+              ${unread > 0 ? `<span class="lead-badge" style="background:#3b82f6;color:white;padding:0.15rem 0.4rem;border-radius:4px;font-size: 0.6875rem;">${unread} new</span>` : ''}
             </div>
             <div style="color:#6b7280;font-size:0.875rem;overflow:hidden;text-overflow:ellipsis;">${preview}</div>
             ${attachmentHtml ? `<div style="margin-top:0.25rem;">${attachmentHtml}</div>` : ''}

@@ -63,7 +63,7 @@
   border-radius: 999px;
   background: rgba(240, 253, 250, 0.85);
   color: #0f766e;
-  font-size: 0.76rem;
+  font-size: 0.75rem;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -138,7 +138,7 @@
 .customer-welcome-actions__title {
   margin: 0 0 0.75rem;
   color: #102a43;
-  font-size: 1.05rem;
+  font-size: 1rem;
   font-weight: 800;
 }
 
@@ -191,12 +191,12 @@
 
 .customer-welcome-action-card strong {
   margin-bottom: 0.18rem;
-  font-size: 0.92rem;
+  font-size: 0.875rem;
 }
 
 .customer-welcome-action-card small {
   color: #64748b;
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   line-height: 1.35;
 }
 
@@ -216,7 +216,7 @@
   margin: 0;
   padding-left: 1.25rem;
   color: #4b5563;
-  font-size: 0.95rem;
+  font-size: 0.875rem;
 }
 
 .customer-welcome-actions__list li {
@@ -226,14 +226,14 @@
 .customer-welcome-actions h3 {
   margin: 0 0 0.5rem;
   color: #1f2937;
-  font-size: 1.1rem;
+  font-size: 1.125rem;
 }
 
 .customer-welcome-actions ul {
   margin: 0;
   padding-left: 1.25rem;
   color: #4b5563;
-  font-size: 0.95rem;
+  font-size: 0.875rem;
 }
 
 .customer-welcome-actions li {
@@ -259,7 +259,7 @@
 .customer-welcome-footer p {
   margin: 0;
   color: #166534;
-  font-size: 0.92rem;
+  font-size: 0.875rem;
   font-weight: 600;
 }
 
@@ -283,7 +283,7 @@
   border: 1px solid #bbf7d0;
   border-radius: var(--ef-radius-md);
   padding: 0.55rem 0.85rem;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   color: #166534;
 }
 
@@ -417,7 +417,7 @@
 
 .customer-ticket-item__meta {
   color: #9ca3af;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
 }
 
 /* View all tickets link */
@@ -460,7 +460,7 @@
 .customer-budget-form__label {
   display: block;
   margin-bottom: 0.25rem;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   color: #344054;
   font-weight: 500;
 }
@@ -495,7 +495,7 @@
   text-align: center;
   color: var(--ef-text-muted);
   padding: 2rem 0;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
 }
 
 .customer-calendar-empty a {
@@ -543,7 +543,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.4rem;
+  font-size: 1.5rem;
   flex-shrink: 0;
 }
 
@@ -559,7 +559,7 @@
 }
 
 .customer-stat-card__label {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   color: var(--ef-text-muted);
   margin-top: var(--ef-space-1);
   text-transform: uppercase;
@@ -661,7 +661,7 @@
   text-align: center;
   color: var(--ef-text-muted);
   padding: var(--ef-space-5) 0;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
 }
 
 /* ===========================================
@@ -752,7 +752,7 @@
 
 .customer-calendar-next-up__eyebrow {
   color: var(--ef-primary, #0b8073);
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -760,7 +760,7 @@
 
 .customer-calendar-next-up__body {
   color: #334155;
-  font-size: 0.95rem;
+  font-size: 0.875rem;
 }
 
 .customer-calendar-next-up__title {
@@ -815,7 +815,7 @@
 /* Create Ticket button sizing */
 .customer-tickets-create-btn {
   padding: 0.5rem 1rem;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   min-width: auto;
   white-space: nowrap;
 }
@@ -878,7 +878,7 @@
   flex-wrap: wrap;
   gap: 0.5rem 1rem;
   margin-bottom: 0.75rem;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   color: var(--ef-text-muted);
 }
 
@@ -921,7 +921,7 @@
 
 .cal-fallback-month__eyebrow {
   color: #0f766e;
-  font-size: 0.76rem;
+  font-size: 0.75rem;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -930,14 +930,14 @@
 .cal-fallback-month__title {
   margin: 0.1rem 0 0;
   color: #102a43;
-  font-size: 1.05rem;
+  font-size: 1rem;
   font-weight: 800;
 }
 
 .cal-fallback-month__hint {
   margin: 0;
   color: #64748b;
-  font-size: 0.86rem;
+  font-size: 0.8125rem;
   text-align: right;
 }
 
@@ -951,13 +951,16 @@
   padding: 0.55rem 0.35rem;
   background: rgba(15, 118, 110, 0.07);
   color: #0f766e;
-  font-size: 0.74rem;
+  font-size: 0.6875rem;
   font-weight: 800;
   text-align: center;
   text-transform: uppercase;
 }
 
 .cal-fallback-day {
+  /* see guides.css: <button> without a font-size falls back to the UA
+     default of 13.3333px */
+  font-size: 13px;
   min-height: 76px;
   padding: 0.45rem;
   border: 0;
@@ -1016,7 +1019,7 @@
   background: rgba(11, 128, 115, 0.08);
   padding: 0.13rem 0.25rem;
   color: #134e4a;
-  font-size: 0.72rem;
+  font-size: 0.6875rem;
   font-weight: 700;
 }
 
@@ -1159,7 +1162,7 @@
 
 .cal-fallback-empty__text {
   color: var(--ef-text-muted);
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   margin: 0;
 }
 
@@ -1170,7 +1173,7 @@
   right: 1.5rem;
   padding: 0.75rem 1.25rem;
   border-radius: var(--ef-radius-sm);
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   font-weight: 500;
   color: #fff;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
@@ -1222,7 +1225,7 @@
 
 .cal-delete-popover__btn {
   padding: 0.375rem 0.875rem;
-  font-size: 0.85rem;
+  font-size: 0.8125rem;
   font-weight: 500;
   border-radius: var(--ef-radius-sm);
   cursor: pointer;
@@ -1281,7 +1284,7 @@
 /* Unread badge — hidden by default; shown by UnreadBadgeManager */
 .customer-unread-badge {
   display: none;
-  font-size: 0.85rem;
+  font-size: 0.8125rem;
   background: #dbeafe;
   color: #1e40af;
   padding: 6px 12px;
@@ -1291,7 +1294,7 @@
 /* View Inbox CTA in conversations header */
 .customer-inbox-btn {
   padding: 0.5rem 1rem;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   min-width: auto;
   white-space: nowrap;
   text-decoration: none;
@@ -1349,7 +1352,7 @@ body.customer-dashboard-page .card .empty-state-icon {
 }
 
 body.customer-dashboard-page .card .empty-state-title {
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
   font-weight: 600;
   margin: 0 0 0.375rem;
   color: var(--ef-text);
@@ -1397,7 +1400,7 @@ body.customer-dashboard-page .card .error-state-icon {
 }
 
 body.customer-dashboard-page .card .error-state-title {
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
   margin-bottom: 0.375rem;
   /* color: #991b1b inherited — keep red for error semantics */
 }
@@ -1615,7 +1618,7 @@ body.customer-dashboard-page .ef-bottom-nav.logged-in #ef-bottom-menu {
 .cal-entry-modal__optional {
   font-weight: 400;
   color: var(--ef-text-muted);
-  font-size: 0.8rem;
+  font-size: 0.75rem;
 }
 
 .cal-entry-modal__input,
@@ -1624,7 +1627,7 @@ body.customer-dashboard-page .ef-bottom-nav.logged-in #ef-bottom-menu {
   padding: 0.625rem 0.75rem;
   border: 1px solid #d0d5dd;
   border-radius: var(--ef-radius-sm);
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
   color: var(--ef-text);
   background: #fff;
   transition:
@@ -1668,7 +1671,7 @@ body.customer-dashboard-page .ef-bottom-nav.logged-in #ef-bottom-menu {
   gap: var(--ef-space-2);
   padding: 0.5rem 1.25rem;
   border-radius: var(--ef-radius-sm);
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
   border: 1px solid transparent;
@@ -1906,7 +1909,7 @@ body.customer-dashboard-page .sd-card-header__icon--indigo {
 /* Heading */
 body.customer-dashboard-page .sd-card-header__heading {
   margin: 0;
-  font-size: 1.0625rem;
+  font-size: 1rem;
   font-weight: 600;
   color: var(--ef-text, #0b1220);
   line-height: 1.3;
@@ -2058,7 +2061,7 @@ body.customer-dashboard-page .customer-card-action--full {
   border: 1px solid var(--ef-primary);
   border-radius: var(--ef-radius-sm);
   padding: 0.65rem 1rem;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
   transition:
@@ -2470,7 +2473,7 @@ body.customer-dashboard-page .customer-calendar-next-up__title {
   padding: 0.25rem 0.75rem;
   cursor: pointer;
   color: #92400e;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-family: inherit;
   white-space: nowrap;
   transition: background 0.15s ease, color 0.15s ease;
@@ -2594,7 +2597,7 @@ body.customer-dashboard-page .customer-calendar-next-up__title {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
   z-index: 9999;
   max-width: 260px;
-  font-size: 0.85rem;
+  font-size: 0.8125rem;
   pointer-events: none;
   color: var(--ef-text, #0b1220);
 }

@@ -37,7 +37,7 @@ body.supplier-dashboard-page .package-card .package-card-content {
 
 body.supplier-dashboard-page .package-card .package-card-content h3 {
   margin: 0;
-  font-size: 1.02rem;
+  font-size: 1rem;
   line-height: 1.35;
 }
 
@@ -46,7 +46,7 @@ body.supplier-dashboard-page .package-card .badge.pkg-price-badge {
   background: linear-gradient(135deg, #0b8073 0%, #13b6a2 100%);
   color: #ffffff;
   font-weight: 700;
-  font-size: 0.85rem;
+  font-size: 0.8125rem;
   padding: 4px 10px;
   border-radius: 999px;
   letter-spacing: 0.01em;
@@ -144,7 +144,7 @@ body.supplier-dashboard-page .sd-empty-state__icon {
   justify-content: center;
   border-radius: 50%;
   background: linear-gradient(135deg, rgba(11, 128, 115, 0.1) 0%, rgba(19, 182, 162, 0.16) 100%);
-  font-size: 1.65rem;
+  font-size: 1.75rem;
   opacity: 1;
   margin-bottom: 0.4rem;
 }
@@ -161,7 +161,7 @@ body.supplier-dashboard-page .sd-empty-state__icon {
   border: 1px solid rgba(11, 128, 115, 0.35);
   color: #0b8073;
   font-weight: 600;
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
   border-radius: 8px;
   padding: 6px 12px;
   box-shadow: none;
@@ -196,7 +196,7 @@ body.supplier-dashboard-page .sd-empty-state__icon {
 }
 
 #availability-calendar .fc .fc-toolbar-title {
-  font-size: 1.05rem;
+  font-size: 1rem;
   font-weight: 700;
   color: var(--ef-text, #0b1220);
 }
@@ -208,7 +208,7 @@ body.supplier-dashboard-page .sd-empty-state__icon {
 }
 
 #availability-calendar .fc .fc-col-header-cell-cushion {
-  font-size: 0.74rem;
+  font-size: 0.6875rem;
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -218,7 +218,7 @@ body.supplier-dashboard-page .sd-empty-state__icon {
 }
 
 #availability-calendar .fc .fc-daygrid-day-number {
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
   color: var(--ef-text, #0b1220);
   text-decoration: none;
   padding: 6px 8px;
@@ -264,7 +264,7 @@ body.supplier-dashboard-page .chart-period-btn {
   background: #ffffff;
   border-radius: 999px;
   cursor: pointer;
-  font-size: 0.84rem;
+  font-size: 0.8125rem;
   font-weight: 600;
   font-family: inherit;
   color: #374151;

@@ -81,7 +81,7 @@
         ' style="width:48px;height:48px;border-radius:999px;' +
         'background:linear-gradient(135deg,#13b6a2,#0b8073);' +
         'display:flex;align-items:center;justify-content:center;' +
-        'color:white;font-weight:800;font-size:1.08rem;' +
+        'color:white;font-weight:800;font-size: 1rem;' +
         'box-shadow:0 8px 18px rgba(19,182,162,.18);">' +
         initial +
         '</div>';
@@ -100,7 +100,7 @@
       ' style="width:48px;height:48px;border-radius:999px;' +
       'background:linear-gradient(135deg,#13b6a2,#0b8073);' +
       'display:flex;align-items:center;justify-content:center;' +
-      'color:white;font-weight:800;font-size:1.08rem;' +
+      'color:white;font-weight:800;font-size: 1rem;' +
       'box-shadow:0 8px 18px rgba(19,182,162,.18);">' +
       initial +
       '</div>';
@@ -242,13 +242,13 @@
             <div class="recommendation-card__top" style="display:flex;align-items:center;gap:.78rem;margin-bottom:.82rem;min-width:0;">
               ${recommendationAvatar(rawName, logoSrc)}
               <div class="recommendation-card__identity" style="min-width:0;flex:1;">
-                <h4 style="margin:0 0 .25rem;font-size:.98rem;font-weight:800;color:#1f2937;line-height:1.35;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${name}</h4>
-                <p style="margin:0;font-size:.86rem;color:#6b7280;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${category}</p>
+                <h4 style="margin:0 0 .25rem;font-size: 1rem;font-weight:800;color:#1f2937;line-height:1.35;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${name}</h4>
+                <p style="margin:0;font-size: 0.8125rem;color:#6b7280;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${category}</p>
               </div>
             </div>
-            ${location ? `<p class="recommendation-card__meta" style="margin:0 0 .55rem;font-size:.84rem;color:#667085;line-height:1.45;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">📍 ${location}</p>` : ''}
-            ${ratingText ? `<p class="recommendation-card__meta" style="margin:0 0 .42rem;font-size:.84rem;color:#667085;line-height:1.35;">${ratingText}</p>` : ''}
-            ${rankingReason ? `<p class="recommendation-card__reason" style="margin:0;font-size:.76rem;color:#8a94a6;font-style:italic;line-height:1.35;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${rankingReason}</p>` : ''}
+            ${location ? `<p class="recommendation-card__meta" style="margin:0 0 .55rem;font-size: 0.8125rem;color:#667085;line-height:1.45;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">📍 ${location}</p>` : ''}
+            ${ratingText ? `<p class="recommendation-card__meta" style="margin:0 0 .42rem;font-size: 0.8125rem;color:#667085;line-height:1.35;">${ratingText}</p>` : ''}
+            ${rankingReason ? `<p class="recommendation-card__reason" style="margin:0;font-size: 0.75rem;color:#8a94a6;font-style:italic;line-height:1.35;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${rankingReason}</p>` : ''}
           </a>
         `;
           })

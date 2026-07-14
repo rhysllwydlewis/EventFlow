@@ -42,7 +42,7 @@
 
 .suppliers-hero__eyebrow {
   display: inline-block;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -59,7 +59,7 @@
 }
 
 .suppliers-hero__lead {
-  font-size: clamp(1rem, 1.5vw, 1.15rem);
+  font-size: clamp(1rem, 1.5vw, 1.125rem);
   line-height: 1.7;
   color: rgba(255, 255, 255, 0.85);
   margin: 0 0 1.75rem;
@@ -115,7 +115,7 @@
    ========================================================================== */
 
 .suppliers-section-title {
-  font-size: clamp(1.25rem, 2.5vw, 1.6rem);
+  font-size: clamp(1.25rem, 2.5vw, 1.5rem);
   font-weight: 700;
   color: #0f172a;
   margin: 0 0 0.4rem;
@@ -174,11 +174,11 @@
   border-radius: 12px;
   background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
   color: #059669;
-  font-size: 1.2rem;
+  font-size: 1.125rem;
 }
 
 .suppliers-benefit-card__text {
-  font-size: 0.95rem;
+  font-size: 0.875rem;
   line-height: 1.6;
   color: #334155;
   margin: 0;
@@ -249,14 +249,14 @@
   border-radius: 50%;
   background: linear-gradient(135deg, #0B8073 0%, #059669 100%);
   color: #fff;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   font-weight: 700;
   flex-shrink: 0;
   box-shadow: 0 4px 12px rgba(11, 128, 115, 0.3);
 }
 
 .suppliers-step__text {
-  font-size: 0.95rem;
+  font-size: 0.875rem;
   line-height: 1.6;
   color: #334155;
   margin: 0;
@@ -285,7 +285,7 @@
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  font-size: 0.95rem;
+  font-size: 0.875rem;
   color: #334155;
   padding: 0.65rem 0.75rem;
   border-radius: 10px;
@@ -304,7 +304,7 @@
   border-radius: 50%;
   background: #059669;
   color: #fff;
-  font-size: 0.7rem;
+  font-size: 0.6875rem;
   font-weight: 700;
   flex-shrink: 0;
 }
@@ -339,7 +339,7 @@
 }
 
 .suppliers-cta-section__title {
-  font-size: clamp(1.3rem, 3vw, 1.9rem);
+  font-size: clamp(1.25rem, 3vw, 2rem);
   font-weight: 700;
   margin: 0 0 0.75rem;
 }
@@ -352,7 +352,7 @@
 }
 
 .suppliers-cta-section .suppliers-hero__cta {
-  font-size: 1.05rem;
+  font-size: 1rem;
 }
 
 /* ==========================================================================

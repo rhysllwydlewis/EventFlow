@@ -82,7 +82,7 @@
 }
 
 .pc-hero__subtitle {
-  font-size: 1.0625rem;
+  font-size: 1rem;
   opacity: 0.88;
   margin: 0;
   line-height: 1.6;
@@ -102,7 +102,7 @@
 }
 
 .pc-filters__intro {
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   color: #64748b;
   margin: 0 0 1.25rem;
   line-height: 1.5;
@@ -122,7 +122,7 @@
 }
 
 .pc-filters__field label {
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   font-weight: 600;
   color: #475569;
   text-transform: uppercase;
@@ -154,7 +154,7 @@
   display: flex;
   align-items: center;
   gap: 0.45rem;
-  font-size: 0.85rem;
+  font-size: 0.8125rem;
   color: #475569;
   margin-top: 1.6rem;
   cursor: pointer;
@@ -258,7 +258,7 @@
 }
 
 .pc-publisher-banner__text {
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   line-height: 1.5;
 }
 
@@ -340,7 +340,7 @@
   align-items: center;
   padding: 0.18rem 0.6rem;
   border-radius: 999px;
-  font-size: 0.72rem;
+  font-size: 0.6875rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -354,7 +354,7 @@
   align-items: center;
   padding: 0.18rem 0.6rem;
   border-radius: 999px;
-  font-size: 0.72rem;
+  font-size: 0.6875rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -367,7 +367,7 @@
 .pc-event-card__status-badge--rejected  { background:var(--cal-red-bg); color:var(--cal-red-text); }
 
 .pc-event-card__title {
-  font-size: 1.0625rem;
+  font-size: 1rem;
   font-weight: 700;
   color: #0f172a;
   margin: 0 0 0.5rem;
@@ -517,7 +517,7 @@
 }
 
 .pc-empty-state__text {
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   line-height: 1.6;
   max-width: 400px;
   margin: 0 auto 1.5rem;
@@ -530,7 +530,7 @@
   padding: 1.25rem;
   color: var(--cal-red-text);
   margin-bottom: 1.25rem;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
 }
 
 /* ── Pagination ────────────────────────────── */
@@ -755,7 +755,7 @@
 
 .calendar-admin-hero h1 {
   margin: 0 0 0.5rem;
-  font-size: clamp(1.6rem, 4vw, 2.4rem);
+  font-size: clamp(1.5rem, 4vw, 2.4rem);
   font-weight: 800;
   letter-spacing: -0.02em;
 }
@@ -764,7 +764,7 @@
   margin: 0;
   opacity: 0.9;
   max-width: 680px;
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
   line-height: 1.6;
 }
 
@@ -801,7 +801,7 @@
 }
 
 .calendar-admin-stat__value {
-  font-size: 1.875rem;
+  font-size: 1.75rem;
   font-weight: 800;
   color: var(--cal-teal);
   line-height: 1;
@@ -834,7 +834,7 @@
 }
 
 .calendar-admin-requests__title {
-  font-size: 1.0625rem;
+  font-size: 1rem;
   font-weight: 700;
   color: #0f172a;
   margin: 0;
@@ -865,11 +865,11 @@
 .cal-request-card__name {
   font-weight: 700;
   color: #0f172a;
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
 }
 
 .cal-request-card__category {
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   color: #64748b;
 }
 
@@ -910,7 +910,7 @@
 }
 
 .cal-access-panel__text {
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   color: #64748b;
   line-height: 1.6;
   margin-bottom: 1.25rem;
@@ -1172,7 +1172,7 @@
 .fc .fc-event {
   border: none;
   border-radius: 6px;
-  font-size: 0.72rem;
+  font-size: 0.6875rem;
   font-weight: 600;
   padding: 0.15rem 0.45rem;
   cursor: pointer;
@@ -1199,7 +1199,7 @@
 
 /* "+2 more" link */
 .fc .fc-daygrid-more-link {
-  font-size: 0.72rem;
+  font-size: 0.6875rem;
   font-weight: 600;
   color: #0B8073;
   background: rgba(11, 128, 115, 0.08);
@@ -1220,7 +1220,7 @@
 }
 
 .fc .fc-timegrid-slot-label-cushion {
-  font-size: 0.7rem;
+  font-size: 0.6875rem;
   color: #94a3b8;
   font-weight: 500;
 }
@@ -1294,7 +1294,7 @@
 }
 
 .fc .fc-list-empty-cushion {
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   color: #94a3b8;
   padding: 2.5rem;
   text-align: center;
@@ -1364,11 +1364,11 @@
     padding: 0.35rem 0.7rem;
   }
   .fc .fc-col-header-cell-cushion {
-    font-size: 0.65rem;
+    font-size: 0.6875rem;
     letter-spacing: 0.03em;
   }
   .fc .fc-daygrid-day-number {
-    font-size: 0.72rem;
+    font-size: 0.6875rem;
     padding: 0.25rem;
   }
 }

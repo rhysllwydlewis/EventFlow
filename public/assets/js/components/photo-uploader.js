@@ -128,7 +128,7 @@ class PhotoUploader {
       }
       
       .photo-uploader__text {
-        font-size: 1.2rem;
+        font-size: 1.125rem;
         color: #667eea;
         margin-bottom: 0.5rem;
         font-weight: 600;
@@ -136,7 +136,7 @@ class PhotoUploader {
       
       .photo-uploader__hint {
         color: #666;
-        font-size: 0.9rem;
+        font-size: 0.875rem;
       }
       
       .photo-uploader__input {
@@ -176,7 +176,7 @@ class PhotoUploader {
         width: 14px;
         height: 14px;
         cursor: pointer;
-        font-size: 0.6rem;
+        font-size: 0.6875rem;
         line-height: 1;
         display: flex;
         align-items: center;
