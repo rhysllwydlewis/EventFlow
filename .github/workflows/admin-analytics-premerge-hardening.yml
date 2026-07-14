@@ -82,7 +82,20 @@ jobs:
         run: npx eslint --rulesdir eslint-rules public/assets/js/pages/admin-analytics-decision.js
 
       - name: Lint analytics tests
-        run: npx eslint --rulesdir eslint-rules tests/unit/behaviour-analytics-decision.test.js
+        run: |
+          set +e
+          npx eslint --rulesdir eslint-rules tests/unit/behaviour-analytics-decision.test.js > /tmp/admin-analytics-test-lint.txt 2>&1
+          status=$?
+          set -e
+          if [ "$status" -ne 0 ]; then
+            cp /tmp/admin-analytics-test-lint.txt docs/analytics/admin-analytics-premerge-lint.txt
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add docs/analytics/admin-analytics-premerge-lint.txt
+            git commit -m "Capture admin analytics lint diagnostic"
+            git push origin HEAD:${{ github.event.pull_request.head.ref }}
+            exit "$status"
+          fi
 
       - name: Run corrected analytics tests
         run: npx jest tests/unit/behaviour-analytics-decision.test.js --runInBand --coverage=false
