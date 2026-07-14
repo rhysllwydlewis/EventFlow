@@ -169,3 +169,41 @@ describe('Signed-in mobile fixes stylesheet', () => {
     expect(CSS).not.toMatch(/\.avatar-initials\s*\{/);
   });
 });
+
+describe('Polish pass — compactness and duplicate headings', () => {
+  const CSS = fs.readFileSync(
+    path.join(__dirname, '../../public/assets/css/signed-in-mobile-fixes.css'),
+    'utf8'
+  );
+  const TL = fs.readFileSync(path.join(JS_ROOT, 'components/timeline-builder.js'), 'utf8');
+  const SC = fs.readFileSync(path.join(JS_ROOT, 'components/supplier-comparison.js'), 'utf8');
+  const TL_INIT = fs.readFileSync(path.join(JS_ROOT, 'pages/timeline-init.js'), 'utf8');
+  const SC_INIT = fs.readFileSync(path.join(JS_ROOT, 'pages/compare-init.js'), 'utf8');
+  const ED = fs.readFileSync(path.join(JS_ROOT, 'pages/event-detail-init.js'), 'utf8');
+
+  test('components can suppress their title so they do not repeat the page <h1>', () => {
+    expect(TL).toMatch(/showTitle:\s*options\.showTitle !== false/);
+    expect(SC).toMatch(/showTitle:\s*options\.showTitle !== false/);
+    // default stays true: any other call site is unaffected
+    expect(TL).toMatch(/this\.options\.showTitle \?/);
+    expect(SC).toMatch(/this\.options\.showTitle \?/);
+  });
+
+  test('the pages that already own an <h1> opt out of the component title', () => {
+    expect(TL_INIT).toMatch(/showTitle:\s*false/);
+    expect(SC_INIT).toMatch(/showTitle:\s*false/);
+  });
+
+  test('event-detail no longer repeats the hero title inside the panel', () => {
+    expect(ED).not.toMatch(/<h2>\$\{esc\(event\.title\)\}<\/h2>/);
+  });
+
+  test('REGRESSION: compaction only ever reduces — no blanket empty-state padding', () => {
+    // An earlier draft applied `padding: 26px !important` to [class*=empty],
+    // which INFLATED .empty-state (already 24px) and made two pages longer.
+    // Only the measured offender (.comparison-empty at 80px) is touched.
+    expect(CSS).toMatch(/\.comparison-empty\s*\{[^}]*padding:\s*26px/);
+    expect(CSS).not.toMatch(/\[class\*='empty/);
+    expect(CSS).not.toMatch(/\[class\*='-empty'\]/);
+  });
+});

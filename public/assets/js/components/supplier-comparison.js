@@ -9,6 +9,9 @@ class SupplierComparison {
       container: options.container || '#supplier-comparison',
       suppliers: options.suppliers || [],
       maxSuppliers: options.maxSuppliers || 3,
+      // See TimelineBuilder: pages with their own <h1> pass showTitle:false so
+      // the component does not repeat the page title.
+      showTitle: options.showTitle !== false,
       onSupplierAdd: options.onSupplierAdd || null,
       onSupplierRemove: options.onSupplierRemove || null,
       onCompare: options.onCompare || null,
@@ -40,7 +43,7 @@ class SupplierComparison {
     this.container.innerHTML = `
       <div class="supplier-comparison">
         <div class="comparison-header">
-          <h2>Compare Suppliers</h2>
+          ${this.options.showTitle ? '<h2>Compare Suppliers</h2>' : ''}
           <button class="ef-cta btn btn-secondary" id="add-supplier-btn" ${this.suppliers.length >= this.options.maxSuppliers ? 'disabled' : ''}>
             + Add Supplier (${this.suppliers.length}/${this.options.maxSuppliers})
           </button>

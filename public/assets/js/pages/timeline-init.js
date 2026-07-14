@@ -73,6 +73,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Initialize timeline builder
   const timeline = new TimelineBuilder({
+    // the page already renders <h1>Event Timeline</h1>
+    showTitle: false,
     container: '#timeline-builder',
     events: events,
     editable: true,

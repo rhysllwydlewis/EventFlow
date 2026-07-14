@@ -9,6 +9,10 @@ class TimelineBuilder {
       container: options.container || '#timeline-builder',
       events: options.events || [],
       editable: options.editable !== false,
+      // Pages that already render their own <h1> should pass showTitle:false —
+      // otherwise the component's <h2> repeats it verbatim (the timeline page
+      // showed "Event Timeline" twice, one directly under the other).
+      showTitle: options.showTitle !== false,
       onEventAdd: options.onEventAdd || null,
       onEventUpdate: options.onEventUpdate || null,
       onEventDelete: options.onEventDelete || null,
@@ -44,7 +48,7 @@ class TimelineBuilder {
     this.container.innerHTML = `
       <div class="timeline-builder">
         <div class="timeline-header">
-          <h2>Event Timeline</h2>
+          ${this.options.showTitle ? '<h2>Event Timeline</h2>' : ''}
           ${
             this.options.editable
               ? `
