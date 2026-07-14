@@ -64,7 +64,26 @@ jobs:
           docs/analytics/posthog-independent-post-deploy-review.md
 
       - name: Run analytics hardening regression
-        run: npx jest tests/unit/analytics-independent-hardening.test.js --runInBand
+        id: privacy-tests
+        continue-on-error: true
+        run: >-
+          npx jest tests/unit/analytics-independent-hardening.test.js
+          --runInBand --json --outputFile=analytics-test-results.json
         env:
           NODE_ENV: test
           JWT_SECRET: test-secret-key-for-ci-testing-only-min-32-chars
+
+      - name: Upload analytics test diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: analytics-privacy-test-results
+          path: analytics-test-results.json
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Enforce analytics regression result
+        if: steps.privacy-tests.outcome == 'failure'
+        run: |
+          cat analytics-test-results.json || true
+          exit 1
