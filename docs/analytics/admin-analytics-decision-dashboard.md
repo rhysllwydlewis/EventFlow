@@ -36,6 +36,8 @@ The Admin Analytics page compares:
 - unique converting sessions; and
 - browser errors.
 
+A previous-period comparison is shown only when the configured retention period contains the full current and preceding windows. For example, comparing the latest 90 days with the preceding 90 days requires at least 180 days of retained analytics. Current-period figures remain available when the comparison window is incomplete.
+
 ### Conversion definitions
 
 The existing conversion KPI counts completed analytics actions. It does not represent unique customers or unique purchases.
@@ -46,6 +48,8 @@ The new decision dashboard separates:
 - unique browser sessions that completed at least one conversion action;
 - conversion-session rate; and
 - action counts by conversion type.
+
+Registrations are labelled generically because the privacy-safe response observer does not inspect submitted registration form values to infer whether the new account is a customer or supplier.
 
 ### Homepage performance
 
@@ -65,10 +69,10 @@ Where existing sanitised events contain a supplier or package ID, the dashboard 
 - views;
 - measured sessions;
 - saves or add-to-plan actions;
-- enquiries; and
-- enquiry rate.
+- completed enquiries or quote requests; and
+- the percentage of measured entity sessions that submitted at least one enquiry or quote request.
 
-Rows are omitted rather than inferred when an event did not contain an entity ID.
+Opening an enquiry form does not count as a completed lead. Repeated page views and repeated submissions within the same session do not inflate the session-rate numerator. Rows are omitted rather than inferred when an event did not contain an entity ID.
 
 ### Export
 
@@ -102,9 +106,11 @@ The following ideas were not implemented because the present data cannot support
 
 1. Open `/admin-analytics` and confirm the existing behaviour section still loads.
 2. Confirm the Decision Dashboard appears immediately below it.
-3. Change the range between 7, 30 and 90 days and confirm both current and previous figures update.
-4. Confirm the Stripe revenue card no longer says all-time.
-5. Confirm conversion action totals and converting sessions are shown separately.
-6. Confirm the active homepage version is shown, while live root traffic remains labelled honestly.
-7. Export CSV and verify that the file contains totals, conversions, homepage rows and any available entity rows.
-8. Confirm Analytics Cookies withdrawal still stops collection and no new identity mechanism is created.
+3. Change the range between 7, 30 and 90 days and confirm current and complete previous-period figures update.
+4. Confirm an unavailable comparison is clearly labelled when retention does not contain both full windows.
+5. Confirm the Stripe revenue card no longer says all-time.
+6. Confirm conversion action totals and converting sessions are shown separately.
+7. Confirm the active homepage version is shown, while live root traffic remains labelled honestly.
+8. Confirm marketplace starts do not count as completed enquiries and rates remain bounded by measured sessions.
+9. Export CSV and verify that the file contains totals, conversions, homepage rows and any available entity rows.
+10. Confirm Analytics Cookies withdrawal still stops collection and no new identity mechanism is created.
