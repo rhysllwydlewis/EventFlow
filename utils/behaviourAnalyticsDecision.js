@@ -1,7 +1,7 @@
 'use strict';
 
 const CONVERSION_DEFINITIONS = [
-  ['registration_completed', 'Customer registrations'],
+  ['registration_completed', 'Registrations completed'],
   ['supplier_profile_completed', 'Supplier profiles completed'],
   ['package_created', 'Packages created'],
   ['package_published', 'Packages published'],
@@ -11,6 +11,7 @@ const CONVERSION_DEFINITIONS = [
 ];
 
 const CONVERSION_EVENTS = new Set(CONVERSION_DEFINITIONS.map(([eventName]) => eventName));
+const LEAD_EVENTS = new Set(['quote_request_submitted', 'enquiry_submitted']);
 
 function round(value, decimalPlaces = 1) {
   const multiplier = 10 ** decimalPlaces;
@@ -108,9 +109,10 @@ function ensureEntity(map, id, type) {
       views: 0,
       resultClicks: 0,
       saves: 0,
-      enquiries: 0,
+      leads: 0,
       conversions: 0,
       sessions: new Set(),
+      leadSessions: new Set(),
     });
   }
   return map.get(key);
@@ -151,7 +153,10 @@ function updateEntity(entity, event) {
     entity.sessions.add(key);
   }
 
-  if (event.event === 'supplier_profile_view' || event.event === 'package_view') {
+  const isEntityView =
+    (entity.type === 'supplier' && event.event === 'supplier_profile_view') ||
+    (entity.type === 'package' && event.event === 'package_view');
+  if (isEntityView) {
     entity.views += 1;
   }
   if (event.event === 'result_clicked') {
@@ -160,8 +165,11 @@ function updateEntity(entity, event) {
   if (event.event === 'shortlist_add' || event.event === 'package_add_to_plan') {
     entity.saves += 1;
   }
-  if (event.event === 'enquiry_started' || event.event === 'enquiry_submitted') {
-    entity.enquiries += 1;
+  if (LEAD_EVENTS.has(event.event)) {
+    entity.leads += 1;
+    if (key) {
+      entity.leadSessions.add(key);
+    }
   }
   if (CONVERSION_EVENTS.has(event.event)) {
     entity.conversions += 1;
@@ -176,14 +184,18 @@ function finaliseEntities(map) {
       views: entity.views,
       resultClicks: entity.resultClicks,
       saves: entity.saves,
-      enquiries: entity.enquiries,
+      leads: entity.leads,
       conversions: entity.conversions,
       sessions: entity.sessions.size,
-      enquiryRate: round((entity.enquiries / Math.max(entity.views, 1)) * 100, 1),
+      leadSessions: entity.leadSessions.size,
+      leadSessionRate: round(
+        (entity.leadSessions.size / Math.max(entity.sessions.size, 1)) * 100,
+        1
+      ),
     }))
     .sort(
       (left, right) =>
-        right.enquiries - left.enquiries || right.saves - left.saves || right.views - left.views
+        right.leads - left.leads || right.saves - left.saves || right.views - left.views
     )
     .slice(0, 12);
 }
@@ -263,6 +275,8 @@ function buildDecisionSummary(events, baseSummary) {
         'Preview paths can be attributed to a version. Historical traffic to the live root path cannot be reassigned after the active homepage changes.',
       consent:
         'First-party behaviour analytics contains only traffic where Analytics Cookies consent was active.',
+      marketplace:
+        'Marketplace lead rate is the share of measured entity sessions that sent an enquiry or quote request. Starts and repeated page views do not inflate the rate.',
     },
     conversions: buildConversionBreakdown(sourceEvents, baseSummary || {}),
     homepagePerformance: buildHomepagePerformance(baseSummary || {}),
