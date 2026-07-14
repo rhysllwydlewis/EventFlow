@@ -64,9 +64,7 @@ describe('analytics consent and privacy wiring', () => {
     expect(source).toContain("window.addEventListener('cookieConsentChanged'");
     expect(source).toContain("'/auth'");
     expect(source).toContain("'/payment'");
-    expect(source).toContain(
-      "return `${window.location.origin}${window.location.pathname || '/'}`;"
-    );
+    expect(source).toContain("return `${window.location.origin}${currentPath()}`;");
     expect(source).not.toContain('phc_');
   });
 
