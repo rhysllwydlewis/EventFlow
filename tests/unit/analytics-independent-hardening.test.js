@@ -1,0 +1,184 @@
+'use strict';
+
+const fs = require('fs');
+const path = require('path');
+const vm = require('vm');
+const { injectGlobalAnalyticsScripts } = require('../../utils/template-renderer');
+
+const ROOT = path.join(__dirname, '../..');
+const SOURCE = fs.readFileSync(
+  path.join(ROOT, 'public/assets/js/analytics-consent-upgrade.js'),
+  'utf8'
+);
+
+function executeBridge(pathname = '/suppliers') {
+  const listeners = {};
+  const insertedScripts = [];
+  const classList = { remove: jest.fn() };
+  const cookieConsent = {
+    getConsent: jest.fn(() => ({ essential: true, functional: true, analytics: true })),
+  };
+
+  const documentObject = {
+    readyState: 'loading',
+    cookie: '',
+    body: {
+      classList,
+      querySelectorAll: () => [],
+    },
+    addEventListener: jest.fn((name, handler) => {
+      listeners[`document:${name}`] = handler;
+    }),
+    querySelectorAll: () => [],
+    createElement: () => ({}),
+    getElementsByTagName: () => [
+      {
+        parentNode: {
+          insertBefore: script => insertedScripts.push(script),
+        },
+      },
+    ],
+  };
+
+  const windowObject = {
+    location: {
+      pathname,
+      origin: 'https://event-flow.co.uk',
+      protocol: 'https:',
+      hostname: 'event-flow.co.uk',
+      href: `https://event-flow.co.uk${pathname}`,
+    },
+    CookieConsent: cookieConsent,
+    addEventListener: jest.fn((name, handler) => {
+      listeners[`window:${name}`] = handler;
+    }),
+    dispatchEvent: jest.fn(),
+    setTimeout: jest.fn(() => 1),
+    clearTimeout: jest.fn(),
+    fetch: jest.fn(),
+  };
+  windowObject.window = windowObject;
+
+  function CustomEvent(type, options) {
+    this.type = type;
+    this.detail = options && options.detail;
+  }
+
+  const context = {
+    window: windowObject,
+    document: documentObject,
+    CustomEvent,
+    MutationObserver: undefined,
+    URL,
+    Date,
+    Set,
+    Array,
+    Object,
+    String,
+    Blob,
+    console,
+  };
+
+  vm.runInNewContext(SOURCE, context, { filename: 'analytics-consent-upgrade.js' });
+
+  return {
+    classList,
+    cookieConsent,
+    documentObject,
+    insertedScripts,
+    listeners,
+    windowObject,
+  };
+}
+
+describe('independent analytics privacy hardening', () => {
+  test('sanitises inherited PostHog URL properties after any existing before_send hook', () => {
+    const runtime = executeBridge('/suppliers');
+    const existingHook = jest.fn(event => {
+      event.properties.$referrer = 'https://event-flow.co.uk/verify?token=added-by-hook';
+      return event;
+    });
+
+    runtime.windowObject.posthog.init('phc_test', {
+      api_host: 'https://eu.i.posthog.com',
+      before_send: existingHook,
+    });
+
+    expect(runtime.insertedScripts).toHaveLength(1);
+    expect(runtime.windowObject.posthog._i).toHaveLength(1);
+    const config = runtime.windowObject.posthog._i[0][1];
+    expect(config.mask_personal_data_properties).toBe(true);
+    expect(config.disable_capture_url_hashes).toBe(true);
+
+    const event = config.before_send({
+      event: 'page_view',
+      properties: {
+        $current_url: 'https://event-flow.co.uk/verify?token=secret#section',
+        $session_entry_url: 'https://event-flow.co.uk/suppliers?q=photographer',
+      },
+      $set_once: {
+        $initial_referrer: 'https://example.com/referral?email=person@example.com',
+      },
+    });
+
+    expect(existingHook).toHaveBeenCalledTimes(1);
+    expect(event.properties.$current_url).toBe('https://event-flow.co.uk/verify');
+    expect(event.properties.$session_entry_url).toBe('https://event-flow.co.uk/suppliers');
+    expect(event.properties.$referrer).toBe('https://event-flow.co.uk/verify');
+    expect(event.$set_once.$initial_referrer).toBe('https://example.com/referral');
+    expect(JSON.stringify(event)).not.toContain('secret');
+    expect(JSON.stringify(event)).not.toContain('person@example.com');
+  });
+
+  test('forces analytics off and prevents PostHog loading on token-bearing verification pages', () => {
+    const runtime = executeBridge('/verify');
+
+    expect(runtime.cookieConsent.getConsent).toHaveBeenCalledTimes(0);
+    expect(runtime.windowObject.CookieConsent.getConsent().analytics).toBe(false);
+
+    runtime.windowObject.posthog.init('phc_test', {
+      api_host: 'https://eu.i.posthog.com',
+    });
+
+    expect(runtime.insertedScripts).toHaveLength(0);
+    expect(runtime.windowObject.posthog._i).toHaveLength(0);
+  });
+
+  test('turns Accept All into one full-consent decision instead of false then true events', () => {
+    const runtime = executeBridge('/suppliers');
+    const banner = { parentNode: { removeChild: jest.fn() } };
+    const target = {
+      closest: jest.fn(selector => {
+        if (selector.includes('#cookie-consent-accept')) return target;
+        if (selector === '#cookie-consent-banner') return banner;
+        return null;
+      }),
+    };
+    const event = {
+      target,
+      preventDefault: jest.fn(),
+      stopImmediatePropagation: jest.fn(),
+    };
+
+    runtime.listeners['document:click'](event);
+
+    expect(event.preventDefault).toHaveBeenCalledTimes(1);
+    expect(event.stopImmediatePropagation).toHaveBeenCalledTimes(1);
+    expect(banner.parentNode.removeChild).toHaveBeenCalledWith(banner);
+    expect(runtime.windowObject.dispatchEvent).toHaveBeenCalledTimes(1);
+    expect(runtime.windowObject.dispatchEvent.mock.calls[0][0].detail.analytics).toBe(true);
+
+    const encoded = runtime.documentObject.cookie.match(/eventflow_cookie_consent=([^;]+)/)[1];
+    expect(JSON.parse(decodeURIComponent(encoded)).analytics).toBe(true);
+  });
+
+  test('uses a new asset URL so browsers do not retain the pre-hardening bridge for a week', () => {
+    const html = injectGlobalAnalyticsScripts(
+      '<!doctype html><html><head></head><body></body></html>',
+      '/suppliers.html'
+    );
+
+    expect(html).toContain('/assets/js/analytics-consent-upgrade.js?v=2');
+    expect(html).not.toContain('/assets/js/analytics-consent-upgrade.js?v=1');
+  });
+});
