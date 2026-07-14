@@ -68,7 +68,7 @@ jobs:
         continue-on-error: true
         run: >-
           npx jest tests/unit/analytics-independent-hardening.test.js
-          --runInBand --json --outputFile=analytics-test-results.json
+          --runInBand --coverage=false --json --outputFile=analytics-test-results.json
         env:
           NODE_ENV: test
           JWT_SECRET: test-secret-key-for-ci-testing-only-min-32-chars
