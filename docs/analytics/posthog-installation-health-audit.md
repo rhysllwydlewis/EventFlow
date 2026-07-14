@@ -25,11 +25,11 @@ The public analytics bridge now emits one `$pageleave` on `pagehide`, but only w
 - the same public URL previously emitted a `$pageview`;
 - the page is not in EventFlow's sensitive/private route exclusions;
 - PostHog is available; and
-- a pageleave has not already been emitted.
+- a pageleave has not already been emitted for the current visible lifecycle.
 
 The event overrides the current URL with EventFlow's query-free URL and uses PostHog's `sendBeacon` transport so delivery does not depend on a normal request completing during page shutdown. PostHog's own page-view manager then attaches its standard `$prev_pageview_id`, `$prev_pageview_pathname` and `$prev_pageview_duration` properties. EventFlow does not create a competing custom duration property.
 
-Back/forward-cache restores are handled through `pageshow`: a restored public page starts a new consented `$pageview` lifecycle, allowing its next `$pageleave` to be paired correctly. PostHog's separate automatic pageleave option remains disabled so only one controlled, query-safe lifecycle event is emitted.
+Back/forward-cache restores are handled through `pageshow`: the restored document retains PostHog's existing pageview state and simply re-arms pageleave for the next navigation. It does not create a duplicate `$pageview` for the same restored document. PostHog's separate automatic pageleave option remains disabled so only the controlled, query-safe bridge owns this lifecycle event.
 
 Regression coverage verifies the pageview/pageleave pairing, beacon transport, back/forward-cache handling, duplicate prevention and privacy gates.
 
@@ -62,7 +62,7 @@ A future reverse-proxy change should include:
 2. Open a public page in a clean browser session and grant analytics consent.
 3. Navigate to another public page or close the tab.
 4. In PostHog Live Events, confirm a `$pageview` followed by `$pageleave` for the same query-free URL.
-5. Open a public page, navigate away and return with the browser Back button; confirm the restored page produces a fresh lifecycle pair rather than suppressing the later `$pageleave`.
+5. Open a public page, navigate away and return with the browser Back button; confirm the restored page does not create an immediate duplicate `$pageview`, but does emit a later `$pageleave` when you navigate away again.
 6. Confirm the `$pageleave` contains PostHog's standard `$prev_pageview_*` fields and does not contain a custom `$pageview_duration` field.
 7. Confirm no events are emitted from `/admin`, authentication, payment, messaging or other excluded routes.
 8. Allow PostHog Installation Health time to re-evaluate, then refresh the check.
