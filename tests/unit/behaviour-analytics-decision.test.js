@@ -103,8 +103,16 @@ describe('behaviour analytics decision summary', () => {
     const rows = buildHomepagePerformance(baseSummary);
     expect(rows).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ key: 'live', label: 'Live homepage', sessions: 10 }),
-        expect.objectContaining({ key: 'v2-preview', label: 'Homepage 2 preview', sessions: 5 }),
+        expect.objectContaining({
+          key: 'live',
+          label: 'Live homepage',
+          sessions: 10,
+        }),
+        expect.objectContaining({
+          key: 'v2-preview',
+          label: 'Homepage 2 preview',
+          sessions: 5,
+        }),
       ])
     );
     expect(rows.find(row => row.key === 'live').isHistoricalVersionExact).toBe(false);
@@ -142,7 +150,9 @@ describe('behaviour analytics decision summary', () => {
     expect(result.definitions.conversions).toMatch(/not unique people/i);
     expect(result.definitions.sessions).toMatch(/browser-tab session/i);
     expect(result.definitions.consent).toMatch(/consent/i);
-    expect(result.definitions.marketplace).toMatch(/starts and repeated page views do not inflate/i);
+    expect(result.definitions.marketplace).toMatch(
+      /starts and repeated page views do not inflate/i
+    );
   });
 
   test('creates adjacent, non-overlapping current and previous reporting windows', () => {
