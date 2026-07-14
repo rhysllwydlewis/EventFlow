@@ -178,21 +178,26 @@ function updateEntity(entity, event) {
 
 function finaliseEntities(map) {
   return Array.from(map.values())
-    .map(entity => ({
-      id: entity.id,
-      type: entity.type,
-      views: entity.views,
-      resultClicks: entity.resultClicks,
-      saves: entity.saves,
-      leads: entity.leads,
-      conversions: entity.conversions,
-      sessions: entity.sessions.size,
-      leadSessions: entity.leadSessions.size,
-      leadSessionRate: round(
+    .map(entity => {
+      const leadSessionRate = round(
         (entity.leadSessions.size / Math.max(entity.sessions.size, 1)) * 100,
         1
-      ),
-    }))
+      );
+      return {
+        id: entity.id,
+        type: entity.type,
+        views: entity.views,
+        resultClicks: entity.resultClicks,
+        saves: entity.saves,
+        leads: entity.leads,
+        enquiries: entity.leads,
+        conversions: entity.conversions,
+        sessions: entity.sessions.size,
+        leadSessions: entity.leadSessions.size,
+        leadSessionRate,
+        enquiryRate: leadSessionRate,
+      };
+    })
     .sort(
       (left, right) =>
         right.leads - left.leads || right.saves - left.saves || right.views - left.views
@@ -276,7 +281,7 @@ function buildDecisionSummary(events, baseSummary) {
       consent:
         'First-party behaviour analytics contains only traffic where Analytics Cookies consent was active.',
       marketplace:
-        'Marketplace lead rate is the share of measured entity sessions that sent an enquiry or quote request. Starts and repeated page views do not inflate the rate.',
+        'Marketplace rate is the share of measured entity sessions that sent an enquiry or quote request. Starts and repeated page views do not inflate the rate.',
     },
     conversions: buildConversionBreakdown(sourceEvents, baseSummary || {}),
     homepagePerformance: buildHomepagePerformance(baseSummary || {}),
