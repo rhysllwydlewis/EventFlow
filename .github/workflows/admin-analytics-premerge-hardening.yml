@@ -1,0 +1,78 @@
+name: Admin Analytics Pre-Merge Hardening
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/admin-analytics-premerge-hardening.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  harden:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout pull request branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Apply pre-merge corrections
+        run: |
+          python scripts/admin-analytics-premerge-part1.py
+          python scripts/admin-analytics-premerge-part2.py
+          python scripts/admin-analytics-premerge-part3.py
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Format and validate
+        run: |
+          npx prettier --write \
+            routes/behaviour-analytics.js \
+            utils/behaviourAnalyticsDecision.js \
+            public/assets/js/behaviour-analytics.js \
+            public/assets/js/pages/admin-analytics-decision.js \
+            public/assets/css/admin-analytics-decision.css \
+            tests/unit/behaviour-analytics-decision.test.js \
+            docs/analytics/admin-analytics-decision-dashboard.md \
+            .github/workflows/admin-analytics-decision-validation.yml
+          node --check routes/behaviour-analytics.js
+          node --check utils/behaviourAnalyticsDecision.js
+          node --check public/assets/js/behaviour-analytics.js
+          node --check public/assets/js/pages/admin-analytics-decision.js
+          npx eslint --rulesdir eslint-rules \
+            routes/behaviour-analytics.js \
+            utils/behaviourAnalyticsDecision.js \
+            public/assets/js/behaviour-analytics.js \
+            public/assets/js/pages/admin-analytics-decision.js \
+            tests/unit/behaviour-analytics-decision.test.js
+          npx jest tests/unit/behaviour-analytics-decision.test.js --runInBand --coverage=false
+
+      - name: Commit corrected branch
+        run: |
+          git rm \
+            .github/workflows/admin-analytics-premerge-hardening.yml \
+            scripts/admin-analytics-premerge-part1.py \
+            scripts/admin-analytics-premerge-part2.py \
+            scripts/admin-analytics-premerge-part3.py
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            routes/behaviour-analytics.js \
+            utils/behaviourAnalyticsDecision.js \
+            public/assets/js/behaviour-analytics.js \
+            public/assets/js/pages/admin-analytics-decision.js \
+            public/assets/css/admin-analytics-decision.css \
+            tests/unit/behaviour-analytics-decision.test.js \
+            docs/analytics/admin-analytics-decision-dashboard.md \
+            .github/workflows/admin-analytics-decision-validation.yml
+          git commit -m "Harden final admin analytics implementation"
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
