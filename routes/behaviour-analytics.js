@@ -190,10 +190,7 @@ async function ensureAnalyticsIndexes() {
       .getCollection(COLLECTION_NAME)
       .then(collection =>
         Promise.all([
-          collection.createIndex(
-            { timestamp: -1 },
-            { name: 'behaviour_analytics_timestamp_desc' }
-          ),
+          collection.createIndex({ timestamp: -1 }, { name: 'behaviour_analytics_timestamp_desc' }),
           collection.createIndex(
             { timestamp: 1, event: 1 },
             { name: 'behaviour_analytics_window_event' }

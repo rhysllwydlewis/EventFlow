@@ -26,9 +26,7 @@ function sessionKey(event) {
 }
 
 function eventProperties(event) {
-  return event && event.properties && typeof event.properties === 'object'
-    ? event.properties
-    : {};
+  return event && event.properties && typeof event.properties === 'object' ? event.properties : {};
 }
 
 function homepageGroup(pagePath) {
@@ -185,9 +183,7 @@ function finaliseEntities(map) {
     }))
     .sort(
       (left, right) =>
-        right.enquiries - left.enquiries ||
-        right.saves - left.saves ||
-        right.views - left.views
+        right.enquiries - left.enquiries || right.saves - left.saves || right.views - left.views
     )
     .slice(0, 12);
 }
@@ -223,7 +219,8 @@ function buildConversionBreakdown(events, baseSummary) {
     }
   }
 
-  const totalSessions = Number(baseSummary && baseSummary.totals && baseSummary.totals.sessions) || 0;
+  const totalSessions =
+    Number(baseSummary && baseSummary.totals && baseSummary.totals.sessions) || 0;
   return {
     actionCount: Array.from(counts.values()).reduce((sum, count) => sum + count, 0),
     uniqueSessions: conversionSessions.size,

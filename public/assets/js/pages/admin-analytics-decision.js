@@ -133,32 +133,87 @@
     const warning = comparisonAvailable
       ? ''
       : `<div class="analytics-decision-empty" style="grid-column:1/-1;border:1px solid #fde68a;border-radius:12px;background:#fffbeb;color:#92400e;text-align:left"><strong>Previous ${days}-day comparison unavailable.</strong> Analytics retention is ${retentionDays} days, but this comparison requires ${days * 2} days. Current figures remain valid.</div>`;
-    grid.innerHTML = warning + [
-      comparisonCard('Sessions', currentTotals.sessions, previousTotals.sessions, formatNumber, false, comparisonAvailable),
-      comparisonCard('Page views', currentTotals.pageViews, previousTotals.pageViews, formatNumber, false, comparisonAvailable),
-      comparisonCard('Average active time', currentTotals.avgActiveSecondsPerSession, previousTotals.avgActiveSecondsPerSession, formatDuration, false, comparisonAvailable),
-      comparisonCard('Engaged sessions', currentTotals.engagedSessionRate, previousTotals.engagedSessionRate, formatPercent, false, comparisonAvailable),
-      comparisonCard('Converting sessions', currentConversions.uniqueSessions, previousConversions.uniqueSessions, formatNumber, false, comparisonAvailable),
-      comparisonCard('Browser errors', currentTotals.clientErrors, previousTotals.clientErrors, formatNumber, true, comparisonAvailable),
-    ].join('');
+    grid.innerHTML =
+      warning +
+      [
+        comparisonCard(
+          'Sessions',
+          currentTotals.sessions,
+          previousTotals.sessions,
+          formatNumber,
+          false,
+          comparisonAvailable
+        ),
+        comparisonCard(
+          'Page views',
+          currentTotals.pageViews,
+          previousTotals.pageViews,
+          formatNumber,
+          false,
+          comparisonAvailable
+        ),
+        comparisonCard(
+          'Average active time',
+          currentTotals.avgActiveSecondsPerSession,
+          previousTotals.avgActiveSecondsPerSession,
+          formatDuration,
+          false,
+          comparisonAvailable
+        ),
+        comparisonCard(
+          'Engaged sessions',
+          currentTotals.engagedSessionRate,
+          previousTotals.engagedSessionRate,
+          formatPercent,
+          false,
+          comparisonAvailable
+        ),
+        comparisonCard(
+          'Converting sessions',
+          currentConversions.uniqueSessions,
+          previousConversions.uniqueSessions,
+          formatNumber,
+          false,
+          comparisonAvailable
+        ),
+        comparisonCard(
+          'Browser errors',
+          currentTotals.clientErrors,
+          previousTotals.clientErrors,
+          formatNumber,
+          true,
+          comparisonAvailable
+        ),
+      ].join('');
   }
 
   function renderConversions(decision) {
     const conversions = decision?.conversions || {};
     const rate = document.getElementById('analyticsConversionRate');
-    if (rate) rate.textContent = `${formatNumber(conversions.uniqueSessions)} sessions · ${formatPercent(conversions.sessionRate)}`;
+    if (rate)
+      rate.textContent = `${formatNumber(conversions.uniqueSessions)} sessions · ${formatPercent(conversions.sessionRate)}`;
     const container = document.getElementById('analyticsConversionBreakdown');
     if (!container) return;
     const rows = Array.isArray(conversions.byType) ? conversions.byType : [];
     container.innerHTML = rows.length
-      ? rows.map(row => `<div class="analytics-decision-list__row"><span>${escapeHtml(row.label)}</span><strong>${formatNumber(row.count)}</strong></div>`).join('')
+      ? rows
+          .map(
+            row =>
+              `<div class="analytics-decision-list__row"><span>${escapeHtml(row.label)}</span><strong>${formatNumber(row.count)}</strong></div>`
+          )
+          .join('')
       : '<div class="analytics-decision-empty">No completed conversion actions in this period.</div>';
   }
 
   function renderHomepage(decision) {
-    const active = state.manager?.manager?.activeVersion || state.manager?.activeVersion || 'unknown';
+    const active =
+      state.manager?.manager?.activeVersion || state.manager?.activeVersion || 'unknown';
     const badge = document.getElementById('analyticsActiveHomepage');
-    if (badge) badge.textContent = active === 'unknown' ? 'Active version unavailable' : `${String(active).toUpperCase()} currently live`;
+    if (badge)
+      badge.textContent =
+        active === 'unknown'
+          ? 'Active version unavailable'
+          : `${String(active).toUpperCase()} currently live`;
     const container = document.getElementById('analyticsHomepageTable');
     if (!container) return;
     const rows = Array.isArray(decision?.homepagePerformance) ? decision.homepagePerformance : [];
@@ -168,7 +223,9 @@
   }
 
   function entityLink(type, id) {
-    return type === 'supplier' ? `/supplier/${encodeURIComponent(id)}` : `/package/${encodeURIComponent(id)}`;
+    return type === 'supplier'
+      ? `/supplier/${encodeURIComponent(id)}`
+      : `/package/${encodeURIComponent(id)}`;
   }
 
   function renderEntities(elementId, rows, type) {
@@ -183,9 +240,17 @@
   function renderDefinitions(decision) {
     const container = document.getElementById('analyticsDefinitions');
     if (!container) return;
-    const labels = { conversions: 'Conversions', sessions: 'Sessions', homepage: 'Homepage versions', consent: 'Traffic coverage' };
+    const labels = {
+      conversions: 'Conversions',
+      sessions: 'Sessions',
+      homepage: 'Homepage versions',
+      consent: 'Traffic coverage',
+    };
     container.innerHTML = Object.entries(decision?.definitions || {})
-      .map(([key, value]) => `<div><strong>${escapeHtml(labels[key] || key)}</strong><p>${escapeHtml(value)}</p></div>`)
+      .map(
+        ([key, value]) =>
+          `<div><strong>${escapeHtml(labels[key] || key)}</strong><p>${escapeHtml(value)}</p></div>`
+      )
       .join('');
   }
 
@@ -196,12 +261,24 @@
   function exportCsv() {
     if (!state.current) return;
     const rows = [['section', 'label', 'value', 'secondary_value']];
-    Object.entries(state.current.totals || {}).forEach(([key, value]) => rows.push(['totals', key, value, '']));
-    (state.current.decision?.conversions?.byType || []).forEach(row => rows.push(['conversion', row.label, row.count, row.event]));
-    (state.current.decision?.homepagePerformance || []).forEach(row => rows.push(['homepage', row.label, row.sessions, row.views]));
-    (state.current.decision?.entities?.suppliers || []).forEach(row => rows.push(['supplier', row.id, row.enquiries, row.views]));
-    (state.current.decision?.entities?.packages || []).forEach(row => rows.push(['package', row.id, row.enquiries, row.views]));
-    const blob = new Blob([rows.map(row => row.map(csvCell).join(',')).join('\n')], { type: 'text/csv;charset=utf-8' });
+    Object.entries(state.current.totals || {}).forEach(([key, value]) =>
+      rows.push(['totals', key, value, ''])
+    );
+    (state.current.decision?.conversions?.byType || []).forEach(row =>
+      rows.push(['conversion', row.label, row.count, row.event])
+    );
+    (state.current.decision?.homepagePerformance || []).forEach(row =>
+      rows.push(['homepage', row.label, row.sessions, row.views])
+    );
+    (state.current.decision?.entities?.suppliers || []).forEach(row =>
+      rows.push(['supplier', row.id, row.enquiries, row.views])
+    );
+    (state.current.decision?.entities?.packages || []).forEach(row =>
+      rows.push(['package', row.id, row.enquiries, row.views])
+    );
+    const blob = new Blob([rows.map(row => row.map(csvCell).join(',')).join('\n')], {
+      type: 'text/csv;charset=utf-8',
+    });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
@@ -217,8 +294,16 @@
     renderComparisons(state.current, state.previous);
     renderConversions(state.current.decision);
     renderHomepage(state.current.decision);
-    renderEntities('analyticsSupplierPerformance', state.current.decision?.entities?.suppliers, 'supplier');
-    renderEntities('analyticsPackagePerformance', state.current.decision?.entities?.packages, 'package');
+    renderEntities(
+      'analyticsSupplierPerformance',
+      state.current.decision?.entities?.suppliers,
+      'supplier'
+    );
+    renderEntities(
+      'analyticsPackagePerformance',
+      state.current.decision?.entities?.packages,
+      'package'
+    );
     renderDefinitions(state.current.decision);
   }
 
@@ -230,7 +315,9 @@
     try {
       const [currentPayload, previousPayload, statusPayload, managerPayload] = await Promise.all([
         fetchJson(`${SUMMARY_ENDPOINT}?days=${encodeURIComponent(days)}`),
-        fetchJson(`${SUMMARY_ENDPOINT}?days=${encodeURIComponent(days)}&offsetDays=${encodeURIComponent(days)}`),
+        fetchJson(
+          `${SUMMARY_ENDPOINT}?days=${encodeURIComponent(days)}&offsetDays=${encodeURIComponent(days)}`
+        ),
         fetchJson(STATUS_ENDPOINT),
         fetchJson(HOMEPAGE_MANAGER_ENDPOINT).catch(() => null),
       ]);
@@ -241,7 +328,8 @@
       render();
     } catch (error) {
       const grid = document.getElementById('analyticsComparisonGrid');
-      if (grid) grid.innerHTML = `<div class="analytics-decision-empty analytics-decision-error">${escapeHtml(error.message || 'Decision analytics could not be loaded.')}</div>`;
+      if (grid)
+        grid.innerHTML = `<div class="analytics-decision-empty analytics-decision-error">${escapeHtml(error.message || 'Decision analytics could not be loaded.')}</div>`;
     } finally {
       state.loading = false;
       document.getElementById('analyticsDecisionSection')?.classList.remove('is-loading');
