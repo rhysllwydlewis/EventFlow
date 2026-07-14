@@ -27,13 +27,17 @@ The public analytics bridge now emits one `$pageleave` on `pagehide`, but only w
 - PostHog is available; and
 - a pageleave has not already been emitted.
 
-The event includes the query-free current URL, pathname and elapsed pageview duration. Regression coverage verifies the lifecycle pairing and privacy gates.
+The event overrides the current URL with EventFlow's query-free URL and uses PostHog's `sendBeacon` transport so delivery does not depend on a normal request completing during page shutdown. PostHog's own page-view manager then attaches its standard `$prev_pageview_id`, `$prev_pageview_pathname` and `$prev_pageview_duration` properties. EventFlow does not create a competing custom duration property.
+
+Back/forward-cache restores are handled through `pageshow`: a restored public page starts a new consented `$pageview` lifecycle, allowing its next `$pageleave` to be paired correctly. PostHog's separate automatic pageleave option remains disabled so only one controlled, query-safe lifecycle event is emitted.
+
+Regression coverage verifies the pageview/pageleave pairing, beacon transport, back/forward-cache handling, duplicate prevention and privacy gates.
 
 ### Existing controls confirmed
 
 - Browser analytics remains opt-in and consent-gated.
 - PostHog is anonymous (`person_profiles: 'never'`) and does not identify users.
-- Query strings are removed from captured URLs.
+- Query strings are removed from captured lifecycle URLs.
 - Admin, authentication, checkout/payment, messages and other sensitive areas remain excluded.
 - Replay inputs are masked.
 - EventFlow's first-party collector measures active time separately and uses `sendBeacon` during page lifecycle shutdown.
@@ -58,10 +62,12 @@ A future reverse-proxy change should include:
 2. Open a public page in a clean browser session and grant analytics consent.
 3. Navigate to another public page or close the tab.
 4. In PostHog Live Events, confirm a `$pageview` followed by `$pageleave` for the same query-free URL.
-5. Confirm no events are emitted from `/admin`, authentication, payment, messaging or other excluded routes.
-6. Allow PostHog Installation Health time to re-evaluate, then refresh the check.
-7. Confirm Admin Analytics continues to refresh every 15 seconds only while its tab is visible.
+5. Open a public page, navigate away and return with the browser Back button; confirm the restored page produces a fresh lifecycle pair rather than suppressing the later `$pageleave`.
+6. Confirm the `$pageleave` contains PostHog's standard `$prev_pageview_*` fields and does not contain a custom `$pageview_duration` field.
+7. Confirm no events are emitted from `/admin`, authentication, payment, messaging or other excluded routes.
+8. Allow PostHog Installation Health time to re-evaluate, then refresh the check.
+9. Confirm Admin Analytics continues to refresh every 15 seconds only while its tab is visible.
 
 ## Expected outcome
 
-The `$pageleave` Installation Health warning should clear after PostHog observes production traffic containing the new lifecycle event. Bounce-rate and session-duration calculations should then have the event pairing PostHog expects.
+The `$pageleave` Installation Health warning should clear after PostHog observes production traffic containing the new lifecycle event. Bounce-rate and session-duration calculations should then have the standard event pairing PostHog expects.
