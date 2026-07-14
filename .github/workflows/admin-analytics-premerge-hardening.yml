@@ -41,17 +41,24 @@ jobs:
           python scripts/admin-analytics-premerge-part2.py
           python scripts/admin-analytics-premerge-part3.py
 
-      - name: Format corrected files
+      - name: Format analytics route and aggregator
         run: |
-          npx prettier --write \
-            routes/behaviour-analytics.js \
-            utils/behaviourAnalyticsDecision.js \
-            public/assets/js/behaviour-analytics.js \
-            public/assets/js/pages/admin-analytics-decision.js \
-            public/assets/css/admin-analytics-decision.css \
-            tests/unit/behaviour-analytics-decision.test.js \
-            docs/analytics/admin-analytics-decision-dashboard.md \
-            .github/workflows/admin-analytics-decision-validation.yml
+          npx prettier --write routes/behaviour-analytics.js
+          npx prettier --write utils/behaviourAnalyticsDecision.js
+
+      - name: Format public collector
+        run: npx prettier --write public/assets/js/behaviour-analytics.js
+
+      - name: Format admin decision UI
+        run: |
+          npx prettier --write public/assets/js/pages/admin-analytics-decision.js
+          npx prettier --write public/assets/css/admin-analytics-decision.css
+
+      - name: Format tests, docs and validation workflow
+        run: |
+          npx prettier --write tests/unit/behaviour-analytics-decision.test.js
+          npx prettier --write docs/analytics/admin-analytics-decision-dashboard.md
+          npx prettier --write .github/workflows/admin-analytics-decision-validation.yml
 
       - name: Check corrected JavaScript syntax
         run: |
