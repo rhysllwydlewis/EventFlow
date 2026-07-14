@@ -1,0 +1,233 @@
+.analytics-decision-section {
+  margin-top: 2rem;
+  margin-bottom: 2rem;
+}
+
+.analytics-decision-header,
+.analytics-decision-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.analytics-decision-header {
+  margin-bottom: 1.25rem;
+}
+
+.analytics-decision-header h2,
+.analytics-decision-card h3 {
+  margin: 0.25rem 0 0;
+  color: #102a2a;
+}
+
+.analytics-decision-header p,
+.analytics-decision-card__intro,
+.analytics-definition-grid p {
+  color: #64748b;
+}
+
+.analytics-decision-eyebrow,
+.analytics-decision-card__header span {
+  color: #0b8073;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.analytics-comparison-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.analytics-comparison-card,
+.analytics-decision-card {
+  border: 1px solid #dfe8e7;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(15, 42, 42, 0.06);
+}
+
+.analytics-comparison-card {
+  padding: 1rem;
+  border-top: 4px solid #94a3b8;
+}
+
+.analytics-comparison-card[data-tone='positive'] {
+  border-top-color: #16a34a;
+}
+
+.analytics-comparison-card[data-tone='warning'] {
+  border-top-color: #d97706;
+}
+
+.analytics-comparison-card > span,
+.analytics-comparison-card small {
+  display: block;
+  color: #64748b;
+}
+
+.analytics-comparison-card strong {
+  display: block;
+  margin: 0.35rem 0;
+  color: #102a2a;
+  font-size: 1.65rem;
+}
+
+.analytics-comparison-card small b {
+  color: #0b8073;
+}
+
+.analytics-comparison-card[data-tone='warning'] small b {
+  color: #b45309;
+}
+
+.analytics-decision-grid {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.analytics-decision-grid--two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.analytics-decision-card {
+  padding: 1.25rem;
+  min-width: 0;
+}
+
+.analytics-decision-card__header strong {
+  color: #0b8073;
+  white-space: nowrap;
+}
+
+.analytics-decision-list {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.analytics-decision-list__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.65rem 0;
+  border-bottom: 1px solid #edf2f2;
+}
+
+.analytics-decision-list__row:last-child {
+  border-bottom: 0;
+}
+
+.analytics-decision-table-wrap {
+  overflow-x: auto;
+}
+
+.analytics-decision-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.analytics-decision-table th,
+.analytics-decision-table td {
+  padding: 0.7rem 0.65rem;
+  border-bottom: 1px solid #edf2f2;
+  text-align: left;
+  vertical-align: top;
+}
+
+.analytics-decision-table th {
+  color: #64748b;
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.analytics-decision-table td:not(:first-child),
+.analytics-decision-table th:not(:first-child) {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.analytics-decision-table td small {
+  display: block;
+  margin-top: 0.2rem;
+  color: #94a3b8;
+}
+
+.analytics-decision-table a {
+  color: #0b8073;
+  font-weight: 700;
+}
+
+.analytics-definition-card {
+  margin-top: 1rem;
+}
+
+.analytics-definition-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.analytics-definition-grid > div {
+  padding: 0.9rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+.analytics-definition-grid p {
+  margin: 0.35rem 0 0;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.analytics-decision-empty {
+  padding: 1rem;
+  color: #94a3b8;
+  text-align: center;
+}
+
+.analytics-decision-error {
+  color: #b91c1c;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 12px;
+}
+
+.analytics-decision-section.is-loading {
+  opacity: 0.72;
+}
+
+@media (max-width: 980px) {
+  .analytics-comparison-grid,
+  .analytics-decision-grid--two {
+    grid-template-columns: 1fr;
+  }
+
+  .analytics-comparison-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .analytics-decision-header,
+  .analytics-decision-card__header {
+    flex-direction: column;
+  }
+
+  .analytics-comparison-grid,
+  .analytics-definition-grid {
+    grid-template-columns: 1fr;
+  }
+
+  #analyticsExportCsv {
+    width: 100%;
+  }
+}
