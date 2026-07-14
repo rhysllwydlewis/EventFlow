@@ -13,14 +13,18 @@ const {
   sanitizeEvent,
   buildSummary,
 } = require('../utils/behaviourAnalytics');
+const { buildDecisionSummary } = require('../utils/behaviourAnalyticsDecision');
 
 const router = express.Router();
 const CONSENT_COOKIE_NAME = 'eventflow_cookie_consent';
 const MAX_BATCH_SIZE = 20;
 const MAX_BODY_BYTES = 64 * 1024;
 const RETENTION_CHECK_INTERVAL_MS = 60 * 60 * 1000;
+const SUMMARY_CACHE_TTL_MS = 15 * 1000;
+const DAY_MS = 24 * 60 * 60 * 1000;
 let lastRetentionCleanupAt = 0;
 let analyticsIndexPromise = null;
+const summaryCache = new Map();
 
 function envFlag(name, fallback = false) {
   const raw = process.env[name];
@@ -185,7 +189,16 @@ async function ensureAnalyticsIndexes() {
     analyticsIndexPromise = db
       .getCollection(COLLECTION_NAME)
       .then(collection =>
-        collection.createIndex({ timestamp: -1 }, { name: 'behaviour_analytics_timestamp_desc' })
+        Promise.all([
+          collection.createIndex(
+            { timestamp: -1 },
+            { name: 'behaviour_analytics_timestamp_desc' }
+          ),
+          collection.createIndex(
+            { timestamp: 1, event: 1 },
+            { name: 'behaviour_analytics_window_event' }
+          ),
+        ])
       )
       .catch(error => {
         analyticsIndexPromise = null;
@@ -195,9 +208,17 @@ async function ensureAnalyticsIndexes() {
   await analyticsIndexPromise;
 }
 
+function clearSummaryCache() {
+  summaryCache.clear();
+}
+
 async function removeExpiredEvents(retentionDays) {
-  const cutoff = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000).toISOString();
-  return dbUnified.deleteMany(COLLECTION_NAME, { timestamp: { $lt: cutoff } });
+  const cutoff = new Date(Date.now() - retentionDays * DAY_MS).toISOString();
+  const removed = await dbUnified.deleteMany(COLLECTION_NAME, { timestamp: { $lt: cutoff } });
+  if (removed) {
+    clearSummaryCache();
+  }
+  return removed;
 }
 
 function scheduleRetentionCleanup(retentionDays) {
@@ -209,6 +230,43 @@ function scheduleRetentionCleanup(retentionDays) {
   removeExpiredEvents(retentionDays).catch(error =>
     logger.debug('[behaviour-analytics] retention cleanup failed:', error.message)
   );
+}
+
+function reportingWindow(days, offsetDays, now = new Date()) {
+  const periodDays = [7, 30, 90].includes(Number(days)) ? Number(days) : 30;
+  const offset = clampInteger(offsetDays, 0, 0, 365);
+  const end = new Date(now.getTime() - offset * DAY_MS);
+  const start = new Date(end.getTime() - periodDays * DAY_MS);
+  return { periodDays, offsetDays: offset, start, end };
+}
+
+async function loadAdminSummary(days, offsetDays) {
+  const window = reportingWindow(days, offsetDays);
+  const cacheKey = `${window.periodDays}:${window.offsetDays}`;
+  const cached = summaryCache.get(cacheKey);
+  if (cached && Date.now() - cached.createdAt < SUMMARY_CACHE_TTL_MS) {
+    return cached.payload;
+  }
+
+  await ensureAnalyticsIndexes();
+  const events = await dbUnified.find(COLLECTION_NAME, {
+    timestamp: {
+      $gte: window.start.toISOString(),
+      $lt: window.end.toISOString(),
+    },
+  });
+  const summary = buildSummary(events, window.periodDays, window.end);
+  summary.decision = buildDecisionSummary(events, summary);
+  summary.window = {
+    start: window.start.toISOString(),
+    end: window.end.toISOString(),
+    offsetDays: window.offsetDays,
+    comparison: window.offsetDays > 0,
+  };
+
+  const payload = { success: true, summary };
+  summaryCache.set(cacheKey, { createdAt: Date.now(), payload });
+  return payload;
 }
 
 router.get('/config', (_req, res) => {
@@ -283,13 +341,13 @@ router.post('/collect', collectLimiter, async (req, res) => {
     }
 
     if (accepted > 0) {
+      clearSummaryCache();
       ensureAnalyticsIndexes().catch(() => {});
       scheduleRetentionCleanup(config.retentionDays);
     }
 
     return res.status(202).json({ success: true, accepted });
   } catch (error) {
-    // Analytics must never interfere with the public website experience.
     logger.debug('[behaviour-analytics] collect failed:', error.message);
     return res.status(202).json({ success: true, accepted: 0 });
   }
@@ -333,16 +391,9 @@ router.get('/admin/status', authRequired, roleRequired('admin'), async (_req, re
 
 router.get('/admin/summary', authRequired, roleRequired('admin'), async (req, res) => {
   try {
-    const days = [7, 30, 90].includes(Number(req.query.days)) ? Number(req.query.days) : 30;
-    const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
-    await ensureAnalyticsIndexes();
-    const events = await dbUnified.find(COLLECTION_NAME, {
-      timestamp: { $gte: cutoff },
-    });
-    const summary = buildSummary(events, days);
-
+    const payload = await loadAdminSummary(req.query.days, req.query.offsetDays);
     res.setHeader('Cache-Control', 'no-store, private');
-    return res.json({ success: true, summary });
+    return res.json(payload);
   } catch (error) {
     logger.error('[behaviour-analytics] summary failed:', error.message);
     return res.status(500).json({ success: false, error: 'Failed to load behaviour analytics' });
@@ -376,4 +427,7 @@ module.exports._private = {
   ensureAnalyticsIndexes,
   removeExpiredEvents,
   scheduleRetentionCleanup,
+  reportingWindow,
+  loadAdminSummary,
+  clearSummaryCache,
 };
