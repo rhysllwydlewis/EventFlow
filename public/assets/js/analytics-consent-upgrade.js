@@ -176,9 +176,9 @@
     if (!event || event.persisted !== true) {
       return;
     }
-    capturedPostHogPage = '';
+    // A bfcache-restored document retains PostHog's current pageview state. Re-arm
+    // pageleave without creating a second pageview for the same restored document.
     capturedPostHogPageleave = false;
-    queuePostHogPageview();
   }
 
   function upgradeConsentCopy(root) {
