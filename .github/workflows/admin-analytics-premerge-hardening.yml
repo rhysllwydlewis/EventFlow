@@ -51,22 +51,13 @@ jobs:
           python scripts/admin-analytics-premerge-part2.py
           python scripts/admin-analytics-premerge-part3.py
 
-      - name: Format analytics route and aggregator
+      - name: Format corrected files
         run: |
           npx prettier --write routes/behaviour-analytics.js
           npx prettier --write utils/behaviourAnalyticsDecision.js
-
-      - name: Format public collector
-        run: npx prettier --write public/assets/js/behaviour-analytics.js
-
-      - name: Format admin decision JavaScript
-        run: npx prettier --write public/assets/js/pages/admin-analytics-decision.js
-
-      - name: Format admin decision CSS
-        run: npx prettier --write public/assets/css/admin-analytics-decision.css
-
-      - name: Format tests, docs and validation workflow
-        run: |
+          npx prettier --write public/assets/js/behaviour-analytics.js
+          npx prettier --write public/assets/js/pages/admin-analytics-decision.js
+          npx prettier --write public/assets/css/admin-analytics-decision.css
           npx prettier --write tests/unit/behaviour-analytics-decision.test.js
           npx prettier --write docs/analytics/admin-analytics-decision-dashboard.md
           npx prettier --write .github/workflows/admin-analytics-decision-validation.yml
@@ -79,14 +70,19 @@ jobs:
           node --check public/assets/js/pages/admin-analytics-decision.js
           node --check tests/unit/behaviour-analytics-decision.test.js
 
-      - name: Lint corrected JavaScript
+      - name: Lint analytics route and aggregator
         run: |
-          npx eslint --rulesdir eslint-rules \
-            routes/behaviour-analytics.js \
-            utils/behaviourAnalyticsDecision.js \
-            public/assets/js/behaviour-analytics.js \
-            public/assets/js/pages/admin-analytics-decision.js \
-            tests/unit/behaviour-analytics-decision.test.js
+          npx eslint --rulesdir eslint-rules routes/behaviour-analytics.js
+          npx eslint --rulesdir eslint-rules utils/behaviourAnalyticsDecision.js
+
+      - name: Lint public collector
+        run: npx eslint --rulesdir eslint-rules public/assets/js/behaviour-analytics.js
+
+      - name: Lint admin decision UI
+        run: npx eslint --rulesdir eslint-rules public/assets/js/pages/admin-analytics-decision.js
+
+      - name: Lint analytics tests
+        run: npx eslint --rulesdir eslint-rules tests/unit/behaviour-analytics-decision.test.js
 
       - name: Run corrected analytics tests
         run: npx jest tests/unit/behaviour-analytics-decision.test.js --runInBand --coverage=false
