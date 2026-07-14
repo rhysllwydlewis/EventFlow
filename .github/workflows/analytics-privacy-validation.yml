@@ -1,0 +1,89 @@
+name: Analytics Privacy Validation
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'public/assets/js/analytics-consent-upgrade.js'
+      - 'utils/template-renderer.js'
+      - 'tests/unit/analytics-independent-hardening.test.js'
+      - '.github/workflows/analytics-privacy-validation.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analytics-privacy:
+    name: Focused analytics privacy checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Restore node_modules cache
+        id: restore-cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: node-modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Install dependencies on cache miss
+        if: steps.restore-cache.outputs.cache-hit != 'true'
+        run: npm ci
+
+      - name: Check JavaScript syntax
+        run: |
+          node --check public/assets/js/analytics-consent-upgrade.js
+          node --check utils/template-renderer.js
+          node --check tests/unit/analytics-independent-hardening.test.js
+
+      - name: Lint changed JavaScript
+        run: >-
+          npx eslint --rulesdir eslint-rules
+          public/assets/js/analytics-consent-upgrade.js
+          utils/template-renderer.js
+          tests/unit/analytics-independent-hardening.test.js
+
+      - name: Check changed-file formatting
+        run: >-
+          npx prettier --check
+          public/assets/js/analytics-consent-upgrade.js
+          utils/template-renderer.js
+          tests/unit/analytics-independent-hardening.test.js
+          docs/analytics/posthog-independent-post-deploy-review.md
+
+      - name: Run analytics hardening regression
+        id: privacy-tests
+        continue-on-error: true
+        run: >-
+          npx jest tests/unit/analytics-independent-hardening.test.js
+          --runInBand --coverage=false --json --outputFile=analytics-test-results.json
+        env:
+          NODE_ENV: test
+          JWT_SECRET: test-secret-key-for-ci-testing-only-min-32-chars
+
+      - name: Upload analytics test diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: analytics-privacy-test-results
+          path: analytics-test-results.json
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Enforce analytics regression result
+        if: steps.privacy-tests.outcome == 'failure'
+        run: |
+          cat analytics-test-results.json || true
+          exit 1

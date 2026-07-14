@@ -4,14 +4,12 @@
   const COOKIE_NAME = 'eventflow_cookie_consent';
   const EXPIRY_DAYS = 365;
   const FETCH_WRAPPED_FLAG = '__efAnalyticsSuccessObserver';
-  // PostHog Web Analytics requires its standard $pageview and $pageleave events.
-  // EventFlow's main collector loads PostHog only after consent, so this bridge waits
-  // for that instance and emits lifecycle events only for consented public pages.
   const POSTHOG_PAGEVIEW_POLL_MS = 200;
   const POSTHOG_PAGEVIEW_TIMEOUT_MS = 15 * 1000;
   const POSTHOG_EXCLUDED_PAGE_PREFIXES = [
     '/admin',
     '/auth',
+    '/verify',
     '/reset-password',
     '/checkout',
     '/payment',
@@ -26,11 +24,39 @@
     '/supplier/subscription',
     '/supplier/marketplace-new-listing',
   ];
+  const POSTHOG_URL_PROPERTY_KEYS = new Set([
+    '$current_url',
+    '$referrer',
+    '$initial_current_url',
+    '$initial_referrer',
+    '$session_entry_url',
+    '$session_entry_current_url',
+    '$session_entry_referrer',
+  ]);
 
   let capturedPostHogPage = '';
   let capturedPostHogPageleave = false;
   let posthogPageviewStartedAt = 0;
   let posthogPageviewTimer = null;
+
+  function currentPath() {
+    return window.location.pathname || '/';
+  }
+
+  function pathMatches(prefixes) {
+    const pagePath = currentPath();
+    return prefixes.some(
+      prefix =>
+        pagePath === prefix ||
+        pagePath.startsWith(`${prefix}/`) ||
+        pagePath.startsWith(`${prefix}-`) ||
+        pagePath.startsWith(`${prefix}.`)
+    );
+  }
+
+  function isSensitiveAnalyticsPage() {
+    return pathMatches(POSTHOG_EXCLUDED_PAGE_PREFIXES);
+  }
 
   function writeFullConsent() {
     const value = encodeURIComponent(
@@ -56,6 +82,21 @@
     );
   }
 
+  function closeConsentUi(target) {
+    const banner = target && target.closest ? target.closest('#cookie-consent-banner') : null;
+    if (banner && banner.parentNode) {
+      banner.parentNode.removeChild(banner);
+    }
+
+    const dialog = target && target.closest ? target.closest('#cookie-prefs-dialog') : null;
+    if (dialog && dialog.parentNode) {
+      dialog.parentNode.removeChild(dialog);
+    }
+    if (dialog && document.body) {
+      document.body.classList.remove('cookie-prefs-open');
+    }
+  }
+
   function hasAnalyticsConsent() {
     if (!window.CookieConsent || typeof window.CookieConsent.getConsent !== 'function') {
       return false;
@@ -68,19 +109,143 @@
     }
   }
 
-  function isPostHogPageviewExcluded() {
-    const pagePath = window.location.pathname || '/';
-    return POSTHOG_EXCLUDED_PAGE_PREFIXES.some(
-      prefix =>
-        pagePath === prefix ||
-        pagePath.startsWith(`${prefix}/`) ||
-        pagePath.startsWith(`${prefix}-`) ||
-        pagePath.startsWith(`${prefix}.`)
-    );
+  function queryFreePageUrl() {
+    return `${window.location.origin}${currentPath()}`;
   }
 
-  function queryFreePageUrl() {
-    return `${window.location.origin}${window.location.pathname || '/'}`;
+  function stripQueryAndHash(value) {
+    if (typeof value !== 'string') {
+      return value;
+    }
+    return value.split(/[?#]/, 1)[0];
+  }
+
+  function sanitizeUrlProperties(properties) {
+    if (!properties || typeof properties !== 'object' || Array.isArray(properties)) {
+      return properties;
+    }
+
+    Object.keys(properties).forEach(key => {
+      if (POSTHOG_URL_PROPERTY_KEYS.has(key)) {
+        properties[key] = stripQueryAndHash(properties[key]);
+      }
+    });
+    return properties;
+  }
+
+  function sanitizePostHogEvent(event) {
+    if (!event || typeof event !== 'object') {
+      return event;
+    }
+    sanitizeUrlProperties(event.properties);
+    sanitizeUrlProperties(event.$set);
+    sanitizeUrlProperties(event.$set_once);
+    return event;
+  }
+
+  function runBeforeSendHooks(hooks, event) {
+    const handlers = Array.isArray(hooks) ? hooks : typeof hooks === 'function' ? [hooks] : [];
+    let result = event;
+    handlers.forEach(handler => {
+      if (result) {
+        result = handler(result);
+      }
+    });
+    return result;
+  }
+
+  function withPostHogPrivacy(config) {
+    const source = config && typeof config === 'object' ? config : {};
+    const existingBeforeSend = source.before_send;
+    return {
+      ...source,
+      mask_personal_data_properties: true,
+      disable_capture_url_hashes: true,
+      before_send: function (event) {
+        let result = event;
+        try {
+          result = runBeforeSendHooks(existingBeforeSend, result);
+        } catch (_error) {
+          // A third-party hook must not bypass EventFlow's final privacy sanitiser.
+        }
+        return result ? sanitizePostHogEvent(result) : result;
+      },
+    };
+  }
+
+  function installSensitivePageConsentGuard() {
+    if (
+      !isSensitiveAnalyticsPage() ||
+      !window.CookieConsent ||
+      typeof window.CookieConsent.getConsent !== 'function' ||
+      window.CookieConsent.getConsent.__efSensitiveGuard
+    ) {
+      return;
+    }
+
+    const originalGetConsent = window.CookieConsent.getConsent.bind(window.CookieConsent);
+    const guardedGetConsent = function () {
+      const consent = originalGetConsent() || {};
+      return { ...consent, essential: true, analytics: false };
+    };
+    guardedGetConsent.__efSensitiveGuard = true;
+    window.CookieConsent.getConsent = guardedGetConsent;
+  }
+
+  function installPrivacyAwarePostHogStub() {
+    if (window.posthog && window.posthog.__SV) {
+      return;
+    }
+
+    (function (documentObject, posthog) {
+      if (posthog.__SV) return;
+      window.posthog = posthog;
+      posthog._i = [];
+      posthog.init = function (token, config, name) {
+        if (isSensitiveAnalyticsPage()) {
+          return;
+        }
+
+        function addMethod(target, method) {
+          const parts = method.split('.');
+          if (parts.length === 2) {
+            target = target[parts[0]];
+            method = parts[1];
+          }
+          target[method] = function () {
+            target.push([method].concat(Array.prototype.slice.call(arguments, 0)));
+          };
+        }
+
+        const privacyConfig = withPostHogPrivacy(config);
+        const script = documentObject.createElement('script');
+        script.type = 'text/javascript';
+        script.crossOrigin = 'anonymous';
+        script.async = true;
+        script.src = `${privacyConfig.api_host.replace(
+          '.i.posthog.com',
+          '-assets.i.posthog.com'
+        )}/static/array.js`;
+        const firstScript = documentObject.getElementsByTagName('script')[0];
+        firstScript.parentNode.insertBefore(script, firstScript);
+
+        let instance = posthog;
+        let instanceName = name;
+        if (instanceName !== undefined) {
+          instance = posthog[instanceName] = [];
+        } else {
+          instanceName = 'posthog';
+        }
+        instance.people = instance.people || [];
+        const methods =
+          'init capture reset opt_in_capturing opt_out_capturing stopSessionRecording'.split(' ');
+        methods.forEach(function (method) {
+          addMethod(instance, method);
+        });
+        posthog._i.push([token, privacyConfig, instanceName]);
+      };
+      posthog.__SV = 1;
+    })(document, window.posthog || []);
   }
 
   function clearPostHogPageviewTimer() {
@@ -90,14 +255,23 @@
     }
   }
 
+  function postHogIsInitialised() {
+    if (!window.posthog || typeof window.posthog.capture !== 'function') {
+      return false;
+    }
+    if (window.posthog.__loaded) {
+      return true;
+    }
+    return Array.isArray(window.posthog._i) && window.posthog._i.length > 0;
+  }
+
   function capturePostHogPageleave() {
     if (
       capturedPostHogPageleave ||
       !capturedPostHogPage ||
       !hasAnalyticsConsent() ||
-      isPostHogPageviewExcluded() ||
-      !window.posthog ||
-      typeof window.posthog.capture !== 'function'
+      isSensitiveAnalyticsPage() ||
+      !postHogIsInitialised()
     ) {
       return;
     }
@@ -112,7 +286,7 @@
         '$pageleave',
         {
           $current_url: currentUrl,
-          $pathname: window.location.pathname || '/',
+          $pathname: currentPath(),
         },
         { transport: 'sendBeacon' }
       );
@@ -123,7 +297,7 @@
   }
 
   function tryCapturePostHogPageview() {
-    if (!hasAnalyticsConsent() || isPostHogPageviewExcluded()) {
+    if (!hasAnalyticsConsent() || isSensitiveAnalyticsPage()) {
       clearPostHogPageviewTimer();
       return;
     }
@@ -134,13 +308,17 @@
       return;
     }
 
-    if (window.posthog && typeof window.posthog.capture === 'function') {
-      window.posthog.capture('$pageview', {
-        $current_url: currentUrl,
-        $pathname: window.location.pathname || '/',
-      });
-      capturedPostHogPage = currentUrl;
-      capturedPostHogPageleave = false;
+    if (postHogIsInitialised()) {
+      try {
+        window.posthog.capture('$pageview', {
+          $current_url: currentUrl,
+          $pathname: currentPath(),
+        });
+        capturedPostHogPage = currentUrl;
+        capturedPostHogPageleave = false;
+      } catch (_error) {
+        // The polling timeout below permits a later retry.
+      }
       clearPostHogPageviewTimer();
       return;
     }
@@ -155,7 +333,7 @@
 
   function queuePostHogPageview() {
     clearPostHogPageviewTimer();
-    if (!hasAnalyticsConsent() || isPostHogPageviewExcluded()) {
+    if (!hasAnalyticsConsent() || isSensitiveAnalyticsPage()) {
       return;
     }
     posthogPageviewStartedAt = Date.now();
@@ -163,7 +341,7 @@
   }
 
   function handleAnalyticsConsentChange(event) {
-    if (event && event.detail && event.detail.analytics === true) {
+    if (event && event.detail && event.detail.analytics === true && !isSensitiveAnalyticsPage()) {
       queuePostHogPageview();
       return;
     }
@@ -176,8 +354,6 @@
     if (!event || event.persisted !== true) {
       return;
     }
-    // A bfcache-restored document retains PostHog's current pageview state. Re-arm
-    // pageleave without creating a second pageview for the same restored document.
     capturedPostHogPageleave = false;
   }
 
@@ -220,28 +396,19 @@
     if (request.method === 'POST' && /^\/api\/(?:v1\/)?auth\/register\/?$/.test(request.url)) {
       return {
         event: 'registration_completed',
-        properties: {
-          conversionType: 'registration',
-          source: 'server_response',
-        },
+        properties: { conversionType: 'registration', source: 'server_response' },
       };
     }
     if (request.method === 'POST' && /^\/api\/(?:v1\/)?quote-requests\/?$/.test(request.url)) {
       return {
         event: 'quote_request_submitted',
-        properties: {
-          conversionType: 'quote_request',
-          source: 'server_response',
-        },
+        properties: { conversionType: 'quote_request', source: 'server_response' },
       };
     }
     if (request.method === 'POST' && /^\/api\/(?:v1\/)?me\/packages\/?$/.test(request.url)) {
       return {
         event: 'package_created',
-        properties: {
-          conversionType: 'package_created',
-          source: 'server_response',
-        },
+        properties: { conversionType: 'package_created', source: 'server_response' },
       };
     }
     return null;
@@ -267,6 +434,9 @@
     window.fetch = wrappedFetch;
   }
 
+  installSensitivePageConsentGuard();
+  installPrivacyAwarePostHogStub();
+
   document.addEventListener(
     'click',
     event => {
@@ -277,9 +447,13 @@
       if (!target) {
         return;
       }
-      // The legacy handler runs during the same click and writes analytics:false.
-      // Apply the corrected full-consent value immediately afterwards.
-      window.setTimeout(writeFullConsent, 0);
+
+      // The legacy consent component still writes analytics:false for Accept All.
+      // Stop that target listener and apply one canonical full-consent decision instead.
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      writeFullConsent();
+      closeConsentUi(target);
     },
     true
   );
