@@ -7,6 +7,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Initialize comparison tool
   const comparison = new SupplierComparison({
+    // the page already renders <h1>Compare Suppliers</h1>
+    showTitle: false,
     container: '#supplier-comparison',
     suppliers: suppliers,
     maxSuppliers: 3,

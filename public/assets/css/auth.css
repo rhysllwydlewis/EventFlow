@@ -2180,6 +2180,22 @@ body.auth-page .auth-card .checkbox-label-right {
 .auth-breadcrumbs a {
   color: #0b8073;
   text-decoration: none;
+  /* The global mobile touch-target rule gives `main a` a 44px min-height.
+     In normal block flow the link's text then sits at the TOP of that box
+     while the sibling spans stay centred, so "Home" floated ~12px above
+     "/ Account". Centre the text inside the 44px target instead of
+     removing it. (Same root cause as the .breadcrumbs fix in
+     signed-in-mobile-fixes.css.) */
+  display: inline-flex;
+  align-items: center;
+  line-height: 1.4;
+}
+
+.auth-breadcrumbs span {
+  display: inline-flex;
+  align-items: center;
+  line-height: 1.4;
+  min-height: 0;
 }
 
 .auth-breadcrumbs a:hover,

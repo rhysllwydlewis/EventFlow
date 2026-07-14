@@ -166,7 +166,8 @@
         </div>
         <div class="event-grid">
           <div>
-            <h2>${esc(event.title)}</h2>
+            <!-- title intentionally omitted: the hero <h1> above already
+                 shows event.title, and repeating it read as a duplicate -->
             <p><strong>When:</strong> ${esc(formatDate(event.startDate))}${event.endDate ? ` – ${esc(formatDate(event.endDate))}` : ''}</p>
             <p><strong>Where:</strong> ${esc(locationSummary(event))}</p>
             ${event.description ? `<p>${esc(event.description)}</p>` : ''}

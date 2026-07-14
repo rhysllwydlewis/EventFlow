@@ -9,6 +9,10 @@ class TimelineBuilder {
       container: options.container || '#timeline-builder',
       events: options.events || [],
       editable: options.editable !== false,
+      // Pages that already render their own <h1> should pass showTitle:false —
+      // otherwise the component's <h2> repeats it verbatim (the timeline page
+      // showed "Event Timeline" twice, one directly under the other).
+      showTitle: options.showTitle !== false,
       onEventAdd: options.onEventAdd || null,
       onEventUpdate: options.onEventUpdate || null,
       onEventDelete: options.onEventDelete || null,
@@ -44,7 +48,7 @@ class TimelineBuilder {
     this.container.innerHTML = `
       <div class="timeline-builder">
         <div class="timeline-header">
-          <h2>Event Timeline</h2>
+          ${this.options.showTitle ? '<h2>Event Timeline</h2>' : ''}
           ${
             this.options.editable
               ? `
@@ -125,10 +129,10 @@ class TimelineBuilder {
           this.options.editable
             ? `
           <div class="timeline-event-actions">
-            <button class="ef-cta btn-icon" data-action="edit" data-id="${event.id || index}" title="Edit">
+            <button class="btn-icon" data-action="edit" data-id="${event.id || index}" title="Edit" aria-label="Edit ${this.escapeHtml(event.title || 'event')}">
               ✏️
             </button>
-            <button class="ef-cta btn-icon" data-action="delete" data-id="${event.id || index}" title="Delete">
+            <button class="btn-icon" data-action="delete" data-id="${event.id || index}" title="Delete" aria-label="Delete ${this.escapeHtml(event.title || 'event')}">
               🗑️
             </button>
           </div>
@@ -374,8 +378,17 @@ class TimelineBuilder {
   }
 
   formatTime(dateStr) {
+    // Legacy/partial timeline items may carry no time at all. Without a
+    // guard, new Date(undefined).toLocaleTimeString() renders the literal
+    // string "Invalid Date" straight into the UI.
+    if (!dateStr) {
+      return '';
+    }
     const date = new Date(dateStr);
-    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    if (Number.isNaN(date.getTime())) {
+      return '';
+    }
+    return date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
   }
 
   formatDateTimeLocal(dateStr) {
@@ -425,7 +438,26 @@ class TimelineBuilder {
         display: flex;
         justify-content: space-between;
         align-items: center;
+        flex-wrap: wrap;
+        gap: 12px;
         margin-bottom: 30px;
+      }
+
+      /* At phone widths "Event Timeline" + "+ Add Event" cannot share a
+         row: the heading was shrinking to two lines and colliding with the
+         button (gap: 0). Stack them instead. */
+      @media (max-width: 640px) {
+        .timeline-header {
+          flex-direction: column;
+          align-items: stretch;
+          gap: 10px;
+          margin-bottom: 18px;
+        }
+
+        .timeline-header h2 {
+          margin: 0;
+          font-size: 1.25rem;
+        }
       }
 
       .timeline-header h2 {
@@ -453,8 +485,26 @@ class TimelineBuilder {
       }
 
       .timeline-event {
+        position: relative;
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        border-left: 4px solid var(--ink, #0b8073);
+        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+        transition: all 0.3s ease;
+      }
 
       .timeline-event::before {
+        content: '';
+        position: absolute;
+        left: -44px;
+        top: 24px;
+        width: 12px;
+        height: 12px;
+        background: currentColor;
+        border-radius: 50%;
+        border: 2px solid white;
+      }
 
       .timeline-event.draggable {
         cursor: move;
@@ -485,6 +535,11 @@ class TimelineBuilder {
       }
 
       .timeline-event-title {
+        font-size: 1.125rem;
+        font-weight: 600;
+        margin: 0;
+        color: var(--ink-dark, #0f172a);
+      }
 
       .timeline-event-duration {
         font-size: 0.875rem;
@@ -493,6 +548,11 @@ class TimelineBuilder {
       }
 
       .timeline-event-description {
+        font-size: 0.9375rem;
+        color: #475569;
+        margin: 8px 0;
+        line-height: 1.6;
+      }
 
       .timeline-event-supplier {
         margin-top: 12px;
@@ -517,13 +577,26 @@ class TimelineBuilder {
       }
 
       .btn-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 44px;
+        height: 44px;
+        min-width: 44px;
+        flex: 0 0 auto;
         background: none;
         border: none;
         padding: 6px;
         cursor: pointer;
-        border-radius: 6px;
+        border-radius: 8px;
         transition: background 0.2s;
         font-size: 1rem;
+        line-height: 1;
+      }
+
+      .btn-icon:focus-visible {
+        outline: 2px solid var(--ink, #0b8073);
+        outline-offset: 2px;
       }
 
       .btn-icon:hover {

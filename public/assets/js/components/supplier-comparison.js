@@ -9,6 +9,9 @@ class SupplierComparison {
       container: options.container || '#supplier-comparison',
       suppliers: options.suppliers || [],
       maxSuppliers: options.maxSuppliers || 3,
+      // See TimelineBuilder: pages with their own <h1> pass showTitle:false so
+      // the component does not repeat the page title.
+      showTitle: options.showTitle !== false,
       onSupplierAdd: options.onSupplierAdd || null,
       onSupplierRemove: options.onSupplierRemove || null,
       onCompare: options.onCompare || null,
@@ -40,7 +43,7 @@ class SupplierComparison {
     this.container.innerHTML = `
       <div class="supplier-comparison">
         <div class="comparison-header">
-          <h2>Compare Suppliers</h2>
+          ${this.options.showTitle ? '<h2>Compare Suppliers</h2>' : ''}
           <button class="ef-cta btn btn-secondary" id="add-supplier-btn" ${this.suppliers.length >= this.options.maxSuppliers ? 'disabled' : ''}>
             + Add Supplier (${this.suppliers.length}/${this.options.maxSuppliers})
           </button>
@@ -523,12 +526,32 @@ class SupplierComparison {
       }
 
       .comparison-grid {
+          overflow-x: auto;
+          display: block;
+      }
 
       .comparison-cell {
+        background: white;
+        padding: 16px;
+        min-height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
 
       .comparison-header-cell {
+        background: #F8FAFC;
+      }
 
       .comparison-label-cell {
+        background: #F8FAFC;
+        justify-content: flex-start;
+        font-weight: 500;
+        color: #475569;
+        position: sticky;
+        left: 0;
+        z-index: 10;
+      }
 
       .comparison-supplier-header {
         background: var(--ink, #0B8073);
@@ -628,6 +651,13 @@ class SupplierComparison {
       }
 
       .amenity-tag {
+        display: inline-block;
+        padding: 2px 8px;
+        background: #F1F5F9;
+        border-radius: 8px;
+        font-size: 0.75rem;
+        margin: 2px;
+      }
 
       .text-success {
         color: #10B981;

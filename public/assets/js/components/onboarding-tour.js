@@ -396,6 +396,14 @@
       }
 
       .onboarding-tooltip {
+          max-width: none;
+          width: calc(100% - 40px);
+          left: 20px !important;
+          right: 20px !important;
+          bottom: 20px !important;
+          top: auto !important;
+          transform: none !important;
+      }
 
       @keyframes slideInUp {
         from {
@@ -409,6 +417,12 @@
       }
 
       .onboarding-tooltip-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 16px;
+        border-bottom: 1px solid #E5E7EB;
+      }
 
       .onboarding-step-indicator {
         font-size: 0.875rem;
@@ -442,10 +456,25 @@
       }
 
       .onboarding-title {
+        margin: 0 0 8px 0;
+        font-size: 1.125rem;
+        color: var(--ink-dark, #0F172A);
+      }
 
       .onboarding-description {
+        margin: 0;
+        font-size: 0.875rem;
+        color: #4B5563;
+        line-height: 1.5;
+      }
 
       .onboarding-tooltip-footer {
+        padding: 12px 16px;
+        border-top: 1px solid #E5E7EB;
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+      }
 
       @media (max-width: 640px) {
         .onboarding-tooltip {
