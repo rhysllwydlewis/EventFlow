@@ -15,9 +15,12 @@ function executeBridge(pathname = '/suppliers') {
   const listeners = {};
   const insertedScripts = [];
   const classList = { remove: jest.fn() };
-  const cookieConsent = {
-    getConsent: jest.fn(() => ({ essential: true, functional: true, analytics: true })),
-  };
+  const originalGetConsent = jest.fn(() => ({
+    essential: true,
+    functional: true,
+    analytics: true,
+  }));
+  const cookieConsent = { getConsent: originalGetConsent };
 
   const documentObject = {
     readyState: 'loading',
@@ -86,6 +89,7 @@ function executeBridge(pathname = '/suppliers') {
     documentObject,
     insertedScripts,
     listeners,
+    originalGetConsent,
     windowObject,
   };
 }
@@ -132,8 +136,9 @@ describe('independent analytics privacy hardening', () => {
   test('forces analytics off and prevents PostHog loading on token-bearing verification pages', () => {
     const runtime = executeBridge('/verify');
 
-    expect(runtime.cookieConsent.getConsent).toHaveBeenCalledTimes(0);
+    expect(runtime.originalGetConsent).toHaveBeenCalledTimes(0);
     expect(runtime.windowObject.CookieConsent.getConsent().analytics).toBe(false);
+    expect(runtime.originalGetConsent).toHaveBeenCalledTimes(1);
 
     runtime.windowObject.posthog.init('phc_test', {
       api_host: 'https://eu.i.posthog.com',
