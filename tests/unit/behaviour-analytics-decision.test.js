@@ -2,6 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const behaviourAnalyticsRoutes = require('../../routes/behaviour-analytics');
 const {
   buildDecisionSummary,
   buildHomepagePerformance,
@@ -56,6 +57,12 @@ describe('behaviour analytics decision summary', () => {
       properties: { supplierId: 'supplier-1' },
     },
     {
+      event: 'enquiry_started',
+      sessionIdHash: 'session-c',
+      userRole: 'anonymous',
+      properties: { supplierId: 'supplier-1' },
+    },
+    {
       event: 'supplier_profile_view',
       sessionIdHash: 'session-a',
       userRole: 'customer',
@@ -87,6 +94,9 @@ describe('behaviour analytics decision summary', () => {
     expect(result.uniqueSessions).toBe(2);
     expect(result.sessionRate).toBe(20);
     expect(result.byType.find(row => row.event === 'enquiry_submitted').count).toBe(2);
+    expect(result.byType.find(row => row.event === 'registration_completed').label).toBe(
+      'Registrations completed'
+    );
   });
 
   test('groups the live homepage separately from version preview paths', () => {
@@ -101,13 +111,29 @@ describe('behaviour analytics decision summary', () => {
     expect(rows.find(row => row.key === 'v2-preview').isHistoricalVersionExact).toBe(true);
   });
 
-  test('aggregates supplier and package performance only when IDs are present', () => {
+  test('uses completed lead sessions rather than starts to produce bounded marketplace rates', () => {
     const result = buildEntityPerformance(events);
     expect(result.suppliers[0]).toEqual(
-      expect.objectContaining({ id: 'supplier-1', views: 2, enquiries: 2, sessions: 2 })
+      expect.objectContaining({
+        id: 'supplier-1',
+        views: 2,
+        leads: 2,
+        enquiries: 2,
+        sessions: 3,
+        leadSessions: 2,
+        leadSessionRate: 66.7,
+        enquiryRate: 66.7,
+      })
     );
     expect(result.packages[0]).toEqual(
-      expect.objectContaining({ id: 'package-1', views: 1, saves: 1, enquiries: 1 })
+      expect.objectContaining({
+        id: 'package-1',
+        views: 1,
+        saves: 1,
+        leads: 1,
+        sessions: 1,
+        leadSessionRate: 100,
+      })
     );
   });
 
@@ -116,6 +142,18 @@ describe('behaviour analytics decision summary', () => {
     expect(result.definitions.conversions).toMatch(/not unique people/i);
     expect(result.definitions.sessions).toMatch(/browser-tab session/i);
     expect(result.definitions.consent).toMatch(/consent/i);
+    expect(result.definitions.marketplace).toMatch(/starts and repeated page views do not inflate/i);
+  });
+
+  test('creates adjacent, non-overlapping current and previous reporting windows', () => {
+    const { reportingWindow } = behaviourAnalyticsRoutes._private;
+    const now = new Date('2026-07-14T12:00:00.000Z');
+    const current = reportingWindow(30, 0, now);
+    const previous = reportingWindow(30, 30, now);
+
+    expect(current.end.toISOString()).toBe('2026-07-14T12:00:00.000Z');
+    expect(previous.end.toISOString()).toBe(current.start.toISOString());
+    expect(previous.start.toISOString()).toBe('2026-05-15T12:00:00.000Z');
   });
 
   test('admin assets request a real previous-period window and correct the revenue label', () => {
@@ -129,6 +167,7 @@ describe('behaviour analytics decision summary', () => {
       'utf8'
     );
     expect(decisionScript).toContain('offsetDays=${encodeURIComponent(days)}');
+    expect(decisionScript).toContain('retentionDays >= days * 2');
     expect(initScript).toContain('Stripe Revenue (Latest Charges)');
     expect(initScript).toContain('latest 100 charges');
   });
