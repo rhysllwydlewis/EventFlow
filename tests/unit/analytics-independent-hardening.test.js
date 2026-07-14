@@ -75,7 +75,6 @@ function executeBridge(pathname = '/suppliers') {
     Array,
     Object,
     String,
-    Blob,
     console,
   };
 
