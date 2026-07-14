@@ -10,10 +10,12 @@ on:
       - 'public/assets/js/pages/admin-analytics-decision.js'
       - 'public/assets/css/admin-analytics-decision.css'
       - 'tests/unit/behaviour-analytics-decision.test.js'
+      - 'tests/unit/behaviour-analytics-integration.test.js'
+      - 'docs/analytics/admin-analytics-decision-dashboard.md'
       - '.github/workflows/admin-analytics-decision-validation.yml'
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -21,15 +23,13 @@ concurrency:
 
 jobs:
   validate:
-    name: Format and validate analytics changes
+    name: Focused analytics checks
     runs-on: ubuntu-latest
     timeout-minutes: 12
 
     steps:
-      - name: Checkout pull request branch
+      - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.ref }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -47,36 +47,6 @@ jobs:
         if: steps.restore-cache.outputs.cache-hit != 'true'
         run: npm ci
 
-      - name: Apply repository formatting
-        run: >-
-          npx prettier --write
-          routes/behaviour-analytics.js
-          utils/behaviourAnalyticsDecision.js
-          public/assets/js/pages/admin-analytics-init.js
-          public/assets/js/pages/admin-analytics-decision.js
-          public/assets/css/admin-analytics-decision.css
-          tests/unit/behaviour-analytics-decision.test.js
-          docs/analytics/admin-analytics-decision-dashboard.md
-
-      - name: Commit formatting when needed
-        run: |
-          if git diff --quiet; then
-            echo "No formatting changes required"
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add \
-            routes/behaviour-analytics.js \
-            utils/behaviourAnalyticsDecision.js \
-            public/assets/js/pages/admin-analytics-init.js \
-            public/assets/js/pages/admin-analytics-decision.js \
-            public/assets/css/admin-analytics-decision.css \
-            tests/unit/behaviour-analytics-decision.test.js \
-            docs/analytics/admin-analytics-decision-dashboard.md
-          git commit -m "Format admin analytics decision dashboard"
-          git push origin HEAD:${{ github.event.pull_request.head.ref }}
-
       - name: Check JavaScript syntax
         run: |
           node --check routes/behaviour-analytics.js
@@ -84,6 +54,7 @@ jobs:
           node --check public/assets/js/pages/admin-analytics-init.js
           node --check public/assets/js/pages/admin-analytics-decision.js
           node --check tests/unit/behaviour-analytics-decision.test.js
+          node --check tests/unit/behaviour-analytics-integration.test.js
 
       - name: Lint changed JavaScript
         run: >-
@@ -93,6 +64,19 @@ jobs:
           public/assets/js/pages/admin-analytics-init.js
           public/assets/js/pages/admin-analytics-decision.js
           tests/unit/behaviour-analytics-decision.test.js
+          tests/unit/behaviour-analytics-integration.test.js
+
+      - name: Check formatting
+        run: >-
+          npx prettier --check
+          routes/behaviour-analytics.js
+          utils/behaviourAnalyticsDecision.js
+          public/assets/js/pages/admin-analytics-init.js
+          public/assets/js/pages/admin-analytics-decision.js
+          public/assets/css/admin-analytics-decision.css
+          tests/unit/behaviour-analytics-decision.test.js
+          tests/unit/behaviour-analytics-integration.test.js
+          docs/analytics/admin-analytics-decision-dashboard.md
 
       - name: Run focused unit tests
         run: >-
