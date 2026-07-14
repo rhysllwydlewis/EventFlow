@@ -4,8 +4,9 @@
   const COOKIE_NAME = 'eventflow_cookie_consent';
   const EXPIRY_DAYS = 365;
   const FETCH_WRAPPED_FLAG = '__efAnalyticsSuccessObserver';
-  // PostHog Web Analytics requires its standard $pageview event. EventFlow's main
-  // collector loads PostHog only after consent, so this bridge waits for that instance.
+  // PostHog Web Analytics requires its standard $pageview and $pageleave events.
+  // EventFlow's main collector loads PostHog only after consent, so this bridge waits
+  // for that instance and only emits lifecycle events for consented public pages.
   const POSTHOG_PAGEVIEW_POLL_MS = 200;
   const POSTHOG_PAGEVIEW_TIMEOUT_MS = 15 * 1000;
   const POSTHOG_EXCLUDED_PAGE_PREFIXES = [
@@ -27,6 +28,8 @@
   ];
 
   let capturedPostHogPage = '';
+  let capturedPostHogPageleave = false;
+  let posthogPageEnteredAt = 0;
   let posthogPageviewStartedAt = 0;
   let posthogPageviewTimer = null;
 
@@ -88,6 +91,31 @@
     }
   }
 
+  function capturePostHogPageleave() {
+    if (
+      capturedPostHogPageleave ||
+      !capturedPostHogPage ||
+      !hasAnalyticsConsent() ||
+      isPostHogPageviewExcluded() ||
+      !window.posthog ||
+      typeof window.posthog.capture !== 'function'
+    ) {
+      return;
+    }
+
+    const currentUrl = queryFreePageUrl();
+    if (capturedPostHogPage !== currentUrl) {
+      return;
+    }
+
+    capturedPostHogPageleave = true;
+    window.posthog.capture('$pageleave', {
+      $current_url: currentUrl,
+      $pathname: window.location.pathname || '/',
+      $pageview_duration: Math.max(0, (Date.now() - posthogPageEnteredAt) / 1000),
+    });
+  }
+
   function tryCapturePostHogPageview() {
     if (!hasAnalyticsConsent() || isPostHogPageviewExcluded()) {
       clearPostHogPageviewTimer();
@@ -106,6 +134,8 @@
         $pathname: window.location.pathname || '/',
       });
       capturedPostHogPage = currentUrl;
+      capturedPostHogPageleave = false;
+      posthogPageEnteredAt = Date.now();
       clearPostHogPageviewTimer();
       return;
     }
@@ -133,6 +163,8 @@
       return;
     }
     capturedPostHogPage = '';
+    capturedPostHogPageleave = false;
+    posthogPageEnteredAt = 0;
     clearPostHogPageviewTimer();
   }
 
@@ -240,6 +272,7 @@
   );
 
   window.addEventListener('cookieConsentChanged', handleAnalyticsConsentChange);
+  window.addEventListener('pagehide', capturePostHogPageleave);
 
   function init() {
     upgradeConsentCopy(document);
