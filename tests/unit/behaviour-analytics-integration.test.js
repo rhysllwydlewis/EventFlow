@@ -70,6 +70,16 @@ describe('analytics consent and privacy wiring', () => {
     expect(source).not.toContain('phc_');
   });
 
+  test('pairs each consented PostHog pageview with one privacy-safe pageleave', () => {
+    const source = read('public/assets/js/analytics-consent-upgrade.js');
+    expect(source).toContain("window.posthog.capture('$pageleave'");
+    expect(source).toContain("window.addEventListener('pagehide', capturePostHogPageleave)");
+    expect(source).toContain('capturedPostHogPageleave');
+    expect(source).toContain('$pageview_duration: Math.max(0');
+    expect(source).toContain('capturedPostHogPage !== currentUrl');
+    expect(source).toContain('!hasAnalyticsConsent()');
+  });
+
   test('measures active time only while the page is visible and focused', () => {
     const source = read('public/assets/js/behaviour-analytics.js');
     expect(source).toContain("document.visibilityState === 'visible' && document.hasFocus()");
