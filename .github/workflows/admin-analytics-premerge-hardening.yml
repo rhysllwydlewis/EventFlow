@@ -38,6 +38,16 @@ jobs:
       - name: Apply pre-merge corrections
         run: |
           python scripts/admin-analytics-premerge-part1.py
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('scripts/admin-analytics-premerge-part2.py')
+          source = path.read_text()
+          old = r"    if (/^\s*[=+\-@]/.test(text) || /^[\t\r\n]/.test(text)) {"
+          new = r"    if (/^\\s*[=+\\-@]/.test(text) || /^[\\t\\r\\n]/.test(text)) {"
+          if old not in source:
+              raise SystemExit('CSV regex generator source was not found')
+          path.write_text(source.replace(old, new, 1))
+          PY
           python scripts/admin-analytics-premerge-part2.py
           python scripts/admin-analytics-premerge-part3.py
 
