@@ -49,10 +49,11 @@ jobs:
       - name: Format public collector
         run: npx prettier --write public/assets/js/behaviour-analytics.js
 
-      - name: Format admin decision UI
-        run: |
-          npx prettier --write public/assets/js/pages/admin-analytics-decision.js
-          npx prettier --write public/assets/css/admin-analytics-decision.css
+      - name: Format admin decision JavaScript
+        run: npx prettier --write public/assets/js/pages/admin-analytics-decision.js
+
+      - name: Format admin decision CSS
+        run: npx prettier --write public/assets/css/admin-analytics-decision.css
 
       - name: Format tests, docs and validation workflow
         run: |
