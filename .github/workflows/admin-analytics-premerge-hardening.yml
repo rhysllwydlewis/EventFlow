@@ -41,7 +41,7 @@ jobs:
           python scripts/admin-analytics-premerge-part2.py
           python scripts/admin-analytics-premerge-part3.py
 
-      - name: Format and validate
+      - name: Format corrected files
         run: |
           npx prettier --write \
             routes/behaviour-analytics.js \
@@ -52,17 +52,29 @@ jobs:
             tests/unit/behaviour-analytics-decision.test.js \
             docs/analytics/admin-analytics-decision-dashboard.md \
             .github/workflows/admin-analytics-decision-validation.yml
+
+      - name: Check corrected JavaScript syntax
+        run: |
           node --check routes/behaviour-analytics.js
           node --check utils/behaviourAnalyticsDecision.js
           node --check public/assets/js/behaviour-analytics.js
           node --check public/assets/js/pages/admin-analytics-decision.js
+          node --check tests/unit/behaviour-analytics-decision.test.js
+
+      - name: Lint corrected JavaScript
+        run: |
           npx eslint --rulesdir eslint-rules \
             routes/behaviour-analytics.js \
             utils/behaviourAnalyticsDecision.js \
             public/assets/js/behaviour-analytics.js \
             public/assets/js/pages/admin-analytics-decision.js \
             tests/unit/behaviour-analytics-decision.test.js
-          npx jest tests/unit/behaviour-analytics-decision.test.js --runInBand --coverage=false
+
+      - name: Run corrected analytics tests
+        run: npx jest tests/unit/behaviour-analytics-decision.test.js --runInBand --coverage=false
+        env:
+          NODE_ENV: test
+          JWT_SECRET: test-secret-key-for-ci-testing-only-min-32-chars
 
       - name: Commit corrected branch
         run: |
