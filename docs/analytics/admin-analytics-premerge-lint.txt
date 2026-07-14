@@ -1,0 +1,7 @@
+
+/home/runner/work/EventFlow/EventFlow/tests/unit/behaviour-analytics-decision.test.js
+  228:41  error  Unnecessary escape character: \s  no-useless-escape
+  228:47  error  Unnecessary escape character: \-  no-useless-escape
+
+✖ 2 problems (2 errors, 0 warnings)
+
