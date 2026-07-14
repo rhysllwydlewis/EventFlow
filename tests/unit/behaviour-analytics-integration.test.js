@@ -78,12 +78,8 @@ describe('analytics consent and privacy wiring', () => {
     const pageShowHandler = bridgeSource.slice(pageShowStart, pageShowEnd);
 
     expect(bridgeSource).toMatch(/window\.posthog\.capture\(\s*'\$pageleave'/);
-    expect(bridgeSource).toContain(
-      "window.addEventListener('pagehide', capturePostHogPageleave)"
-    );
-    expect(bridgeSource).toContain(
-      "window.addEventListener('pageshow', handlePostHogPageShow)"
-    );
+    expect(bridgeSource).toContain("window.addEventListener('pagehide', capturePostHogPageleave)");
+    expect(bridgeSource).toContain("window.addEventListener('pageshow', handlePostHogPageShow)");
     expect(bridgeSource).toContain("transport: 'sendBeacon'");
     expect(bridgeSource).toContain('event.persisted !== true');
     expect(bridgeSource).toContain('capturedPostHogPageleave');
