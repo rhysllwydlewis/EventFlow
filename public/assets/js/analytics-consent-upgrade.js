@@ -6,7 +6,7 @@
   const FETCH_WRAPPED_FLAG = '__efAnalyticsSuccessObserver';
   // PostHog Web Analytics requires its standard $pageview and $pageleave events.
   // EventFlow's main collector loads PostHog only after consent, so this bridge waits
-  // for that instance and only emits lifecycle events for consented public pages.
+  // for that instance and emits lifecycle events only for consented public pages.
   const POSTHOG_PAGEVIEW_POLL_MS = 200;
   const POSTHOG_PAGEVIEW_TIMEOUT_MS = 15 * 1000;
   const POSTHOG_EXCLUDED_PAGE_PREFIXES = [
@@ -29,7 +29,6 @@
 
   let capturedPostHogPage = '';
   let capturedPostHogPageleave = false;
-  let posthogPageEnteredAt = 0;
   let posthogPageviewStartedAt = 0;
   let posthogPageviewTimer = null;
 
@@ -108,12 +107,19 @@
       return;
     }
 
-    capturedPostHogPageleave = true;
-    window.posthog.capture('$pageleave', {
-      $current_url: currentUrl,
-      $pathname: window.location.pathname || '/',
-      $pageview_duration: Math.max(0, (Date.now() - posthogPageEnteredAt) / 1000),
-    });
+    try {
+      window.posthog.capture(
+        '$pageleave',
+        {
+          $current_url: currentUrl,
+          $pathname: window.location.pathname || '/',
+        },
+        { transport: 'sendBeacon' }
+      );
+      capturedPostHogPageleave = true;
+    } catch (_error) {
+      // Analytics delivery must never interfere with navigation or page shutdown.
+    }
   }
 
   function tryCapturePostHogPageview() {
@@ -135,7 +141,6 @@
       });
       capturedPostHogPage = currentUrl;
       capturedPostHogPageleave = false;
-      posthogPageEnteredAt = Date.now();
       clearPostHogPageviewTimer();
       return;
     }
@@ -164,8 +169,16 @@
     }
     capturedPostHogPage = '';
     capturedPostHogPageleave = false;
-    posthogPageEnteredAt = 0;
     clearPostHogPageviewTimer();
+  }
+
+  function handlePostHogPageShow(event) {
+    if (!event || event.persisted !== true) {
+      return;
+    }
+    capturedPostHogPage = '';
+    capturedPostHogPageleave = false;
+    queuePostHogPageview();
   }
 
   function upgradeConsentCopy(root) {
@@ -273,6 +286,7 @@
 
   window.addEventListener('cookieConsentChanged', handleAnalyticsConsentChange);
   window.addEventListener('pagehide', capturePostHogPageleave);
+  window.addEventListener('pageshow', handlePostHogPageShow);
 
   function init() {
     upgradeConsentCopy(document);
