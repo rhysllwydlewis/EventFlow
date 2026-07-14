@@ -24,14 +24,22 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Restore node_modules cache
+        id: restore-cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: node-modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Install dependencies on cache miss
+        if: steps.restore-cache.outputs.cache-hit != 'true'
+        run: npm ci
+
       - name: Apply pre-merge corrections
         run: |
           python scripts/admin-analytics-premerge-part1.py
           python scripts/admin-analytics-premerge-part2.py
           python scripts/admin-analytics-premerge-part3.py
-
-      - name: Install dependencies
-        run: npm ci
 
       - name: Format and validate
         run: |
