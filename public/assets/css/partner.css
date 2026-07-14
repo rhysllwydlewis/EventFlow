@@ -137,7 +137,7 @@
   align-items: center;
   justify-content: center;
   font-weight: 800;
-  font-size: 1.1rem;
+  font-size: 1.125rem;
   color: #fff;
   box-shadow: 0 4px 20px rgba(11, 128, 115, 0.4);
 }
@@ -195,7 +195,7 @@
 }
 
 .partner-hero-desc {
-  font-size: 1.05rem;
+  font-size: 1rem;
   color: rgba(255,255,255,0.72);
   line-height: 1.65;
   margin-bottom: 2rem;
@@ -216,7 +216,7 @@
   border: 1px solid rgba(255,255,255,0.14);
   border-radius: 100px;
   padding: 0.4rem 0.9rem;
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
   color: rgba(255,255,255,0.85);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
@@ -256,7 +256,7 @@
   border: none;
   border-radius: 9px;
   color: rgba(255,255,255,0.55);
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -289,7 +289,7 @@
 
 .partner-field label {
   display: block;
-  font-size: 0.83rem;
+  font-size: 0.8125rem;
   font-weight: 600;
   color: rgba(255,255,255,0.7);
   margin-bottom: 0.4rem;
@@ -310,7 +310,7 @@
   border: 1px solid rgba(255,255,255,0.15);
   border-radius: 10px;
   color: #fff;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   transition: all 0.2s ease;
   outline: none;
   box-sizing: border-box;
@@ -334,7 +334,7 @@
   border: none;
   border-radius: 12px;
   color: #fff;
-  font-size: 0.95rem;
+  font-size: 0.875rem;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -363,7 +363,7 @@
   display: block;
   text-align: center;
   margin-top: 0.85rem;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   color: rgba(255,255,255,0.4);
 }
 
@@ -405,7 +405,7 @@
 /* status message */
 .partner-status {
   margin-top: 0.85rem;
-  font-size: 0.85rem;
+  font-size: 0.8125rem;
   text-align: center;
   min-height: 1.2em;
   padding: 0.5rem 0.75rem;
@@ -480,7 +480,7 @@
 
 .partner-sub-heading {
   color: rgba(255,255,255,0.55);
-  font-size: 0.95rem;
+  font-size: 0.875rem;
 }
 
 /* stats grid */
@@ -510,7 +510,7 @@
 }
 
 .partner-stat-label {
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   color: rgba(255,255,255,0.5);
   font-weight: 600;
   text-transform: uppercase;
@@ -519,7 +519,7 @@
 }
 
 .partner-stat-value {
-  font-size: 1.6rem;
+  font-size: 1.5rem;
   font-weight: 800;
   background: linear-gradient(135deg, #0b8073, #10b981);
   -webkit-background-clip: text;
@@ -530,7 +530,7 @@
 }
 
 .partner-stat-sub {
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   color: rgba(255,255,255,0.45);
 }
 
@@ -559,14 +559,14 @@
 }
 
 .partner-section-title {
-  font-size: 1.05rem;
+  font-size: 1rem;
   font-weight: 700;
   color: #fff;
   letter-spacing: -0.01em;
 }
 
 .partner-section-subtitle {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   color: rgba(255,255,255,0.45);
   margin-top: 0.2rem;
 }
@@ -585,7 +585,7 @@
 
 .partner-ref-link-text {
   flex: 1;
-  font-size: 0.85rem;
+  font-size: 0.8125rem;
   color: rgba(255,255,255,0.7);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -602,7 +602,7 @@
   border: 1px solid rgba(11, 128, 115, 0.5);
   border-radius: 8px;
   color: #34d399;
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.18s ease;
@@ -636,7 +636,7 @@
   text-align: left;
   padding: 0.6rem 0.75rem;
   color: rgba(255,255,255,0.4);
-  font-size: 0.72rem;
+  font-size: 0.6875rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -665,7 +665,7 @@
   gap: 0.3rem;
   padding: 0.25rem 0.65rem;
   border-radius: 100px;
-  font-size: 0.72rem;
+  font-size: 0.6875rem;
   font-weight: 600;
 }
 
@@ -697,7 +697,7 @@
 .partner-value-key {
   display: flex;
   gap: 1.5rem;
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
   color: rgba(255,255,255,0.5);
   flex-wrap: wrap;
 }
@@ -719,7 +719,7 @@
 }
 
 .partner-empty-text {
-  font-size: 0.9rem;
+  font-size: 0.875rem;
 }
 
 /* loading skeleton */
@@ -781,7 +781,7 @@
   gap: 0.35rem;
   padding: 0.45rem 0.9rem;
   border-radius: 8px;
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
   font-weight: 600;
   border: none;
   cursor: pointer;
@@ -855,14 +855,14 @@
 }
 
 .partner-modal-title {
-  font-size: 1.1rem;
+  font-size: 1.125rem;
   font-weight: 700;
   color: #fff;
   margin-bottom: 0.35rem;
 }
 
 .partner-modal-sub {
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
   color: rgba(255,255,255,0.45);
   margin-bottom: 1.25rem;
 }
@@ -873,7 +873,7 @@
 
 .partner-modal-field label {
   display: block;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 600;
   color: rgba(255,255,255,0.6);
   margin-bottom: 0.35rem;
@@ -887,7 +887,7 @@
   border: 1px solid rgba(255,255,255,0.13);
   border-radius: 9px;
   color: #fff;
-  font-size: 0.88rem;
+  font-size: 0.875rem;
   outline: none;
   box-sizing: border-box;
   transition: border-color 0.18s;
@@ -1009,7 +1009,7 @@
 }
 
 .partner-detail-section-title {
-  font-size: 0.72rem;
+  font-size: 0.6875rem;
   font-weight: 700;
   color: #6b7280;
   text-transform: uppercase;
@@ -1095,7 +1095,7 @@
   }
 
   .partner-table-wrap {
-    font-size: 0.78rem;
+    font-size: 0.75rem;
   }
 
   .partner-detail-panel {
@@ -1139,7 +1139,7 @@
 }
 
 .partner-code-label {
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   color: rgba(255,255,255,0.45);
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -1164,7 +1164,7 @@
   border: 1px solid rgba(139, 92, 246, 0.3);
   border-radius: 9px;
   color: #a5b4fc;
-  font-size: 0.83rem;
+  font-size: 0.8125rem;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.2s, border-color 0.2s;
@@ -1182,7 +1182,7 @@
 }
 
 .partner-code-note {
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   color: rgba(255,255,255,0.38);
   margin: 0 0 0.5rem;
   line-height: 1.5;
@@ -1209,7 +1209,7 @@
 }
 
 .cashout-form-grid .partner-modal-field label {
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
   color: rgba(255, 255, 255, 0.6);
   font-weight: 500;
 }
@@ -1246,7 +1246,7 @@ select.partner-modal-input option {
   border: 1px solid rgba(255, 255, 255, 0.13);
   border-radius: 9px;
   color: #fff;
-  font-size: 0.88rem;
+  font-size: 0.875rem;
   outline: none;
   box-sizing: border-box;
   transition: border-color 0.18s;
@@ -1292,14 +1292,14 @@ select.partner-modal-input option {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 0.95rem;
+  font-size: 0.875rem;
   font-weight: 700;
   color: #6ee7b7;
   margin: 0 0 0.4rem;
 }
 
 .cashout-confirmation-meta {
-  font-size: 0.83rem;
+  font-size: 0.8125rem;
   color: rgba(255, 255, 255, 0.5);
   margin: 0 0 1rem;
   line-height: 1.5;
@@ -1314,7 +1314,7 @@ select.partner-modal-input option {
 .cashout-action-btn {
   padding: 0.5rem 1.1rem;
   border-radius: 9px;
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
   font-weight: 600;
   border: 1px solid rgba(255, 255, 255, 0.13);
   cursor: pointer;
@@ -1355,7 +1355,7 @@ select.partner-modal-input option {
   background: rgba(251, 191, 36, 0.07);
   border: 1px solid rgba(251, 191, 36, 0.2);
   border-radius: 10px;
-  font-size: 0.85rem;
+  font-size: 0.8125rem;
   color: rgba(255, 255, 255, 0.55);
   line-height: 1.6;
 }
@@ -1367,7 +1367,7 @@ select.partner-modal-input option {
 }
 
 .cashout-not-configured-icon {
-  font-size: 1.1rem;
+  font-size: 1.125rem;
   flex-shrink: 0;
   margin-top: 0.1rem;
 }
@@ -1383,7 +1383,7 @@ select.partner-modal-input option {
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 6px;
   color: rgba(255, 255, 255, 0.65);
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s;
 }
@@ -1421,7 +1421,7 @@ select.partner-modal-input option {
 }
 
 .cashout-history-recipient {
-  font-size: 0.88rem;
+  font-size: 0.875rem;
   font-weight: 600;
   color: rgba(255, 255, 255, 0.9);
   white-space: nowrap;
@@ -1431,7 +1431,7 @@ select.partner-modal-input option {
 }
 
 .cashout-history-meta {
-  font-size: 0.76rem;
+  font-size: 0.75rem;
   color: rgba(255, 255, 255, 0.38);
   display: flex;
   align-items: center;
@@ -1441,7 +1441,7 @@ select.partner-modal-input option {
 
 .cashout-history-ref {
   font-family: monospace;
-  font-size: 0.72rem;
+  font-size: 0.6875rem;
   color: rgba(255, 255, 255, 0.28);
 }
 
@@ -1498,7 +1498,7 @@ select.partner-modal-input option {
 
 .cashout-history-admin-msg {
   margin-top: 0.35rem;
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   color: rgba(110, 231, 183, 0.75);
   font-style: italic;
 }
@@ -1586,7 +1586,7 @@ select.partner-modal-input option {
   border-radius: 0 10px 10px 0;
   padding: 0.85rem 1rem;
   margin-bottom: 1.5rem;
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
   color: rgba(255, 255, 255, 0.65);
   line-height: 1.55;
 }
@@ -1623,7 +1623,7 @@ select.partner-modal-input option {
 
 .partner-how-points-summary {
   padding: 0.75rem 1.1rem;
-  font-size: 0.85rem;
+  font-size: 0.8125rem;
   font-weight: 600;
   color: rgba(255, 255, 255, 0.65);
   cursor: pointer;
@@ -1680,14 +1680,14 @@ select.partner-modal-input option {
 }
 
 .partner-how-points-list dt {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 700;
   color: rgba(255, 255, 255, 0.75);
   white-space: nowrap;
 }
 
 .partner-how-points-list dd {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   color: rgba(255, 255, 255, 0.5);
   margin: 0;
 }
@@ -1740,13 +1740,13 @@ select.partner-modal-input option {
 }
 
 .partner-disabled-msg {
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   color: rgba(255, 255, 255, 0.6);
   margin-bottom: 0.75rem;
 }
 
 .partner-disabled-next {
-  font-size: 0.85rem;
+  font-size: 0.8125rem;
   color: rgba(255, 255, 255, 0.5);
   line-height: 1.6;
 }
@@ -1907,7 +1907,7 @@ select.partner-modal-input option {
 }
 
 .partner-ticket-detail-body {
-  font-size: 0.88rem;
+  font-size: 0.875rem;
   color: rgba(255, 255, 255, 0.7);
 }
 
@@ -1934,7 +1934,7 @@ select.partner-modal-input option {
 .partner-reply-item {
   padding: 0.75rem 1rem;
   border-radius: 10px;
-  font-size: 0.85rem;
+  font-size: 0.8125rem;
 }
 
 .partner-reply-item--staff {
@@ -1968,7 +1968,7 @@ select.partner-modal-input option {
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 10px;
   color: #fff;
-  font-size: 0.88rem;
+  font-size: 0.875rem;
   padding: 0.65rem 0.85rem;
   box-sizing: border-box;
   font-family: inherit;
@@ -2035,7 +2035,7 @@ select.partner-modal-input option {
 /* ─── Reply form label ───────────────────────────────────────────────────── */
 
 .partner-reply-label {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 600;
   color: rgba(255, 255, 255, 0.55);
   text-transform: uppercase;
@@ -2118,13 +2118,13 @@ select.partner-modal-input option {
 .partner-logo-icon {
   width: 34px;
   height: 34px;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
 }
 
 .partner-brand-text {
   color: #fff;
   font-weight: 700;
-  font-size: 0.95rem;
+  font-size: 0.875rem;
   letter-spacing: -0.01em;
 }
 
@@ -2141,7 +2141,7 @@ select.partner-modal-input option {
 
 .partner-role-label {
   color: rgba(255, 255, 255, 0.55);
-  font-size: 0.85rem;
+  font-size: 0.8125rem;
 }
 
 .partner-stat-badge {
@@ -2149,13 +2149,13 @@ select.partner-modal-input option {
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 8px;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   color: rgba(255, 255, 255, 0.75);
 }
 
 .partner-mono {
   font-family: monospace;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
 }
 
 .partner-sep {
@@ -2164,7 +2164,7 @@ select.partner-modal-input option {
 
 .partner-muted-sm {
   color: rgba(255, 255, 255, 0.35);
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
 }
 
 .partner-section-title {
@@ -2174,7 +2174,7 @@ select.partner-modal-input option {
 
 .partner-section-subtitle {
   margin: 0.25rem 0 0;
-  font-size: 0.85rem;
+  font-size: 0.8125rem;
   opacity: 0.8;
 }
 
@@ -2190,7 +2190,7 @@ select.partner-modal-input option {
 }
 
 .partner-body-copy {
-  font-size: 0.88rem;
+  font-size: 0.875rem;
   color: rgba(255, 255, 255, 0.65);
   line-height: 1.6;
   margin: 0 0 1rem;
@@ -2255,7 +2255,7 @@ select.partner-modal-input option {
   gap: 0.5rem;
   padding: 0.5rem 1rem;
   border-radius: 8px;
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
   font-weight: 600;
   cursor: pointer;
   border: none;
@@ -2304,13 +2304,13 @@ select.partner-modal-input option {
 }
 
 .partner-milestone-label {
-  font-size: 0.88rem;
+  font-size: 0.875rem;
   font-weight: 600;
   color: rgba(255,255,255,0.75);
 }
 
 .partner-milestone-value {
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
   color: rgba(255,255,255,0.45);
   white-space: nowrap;
 }
@@ -2336,7 +2336,7 @@ select.partner-modal-input option {
 
 .partner-milestone-hint {
   margin-top: 0.5rem;
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   color: rgba(255,255,255,0.4);
 }
 
@@ -2366,13 +2366,13 @@ select.partner-modal-input option {
 }
 
 .partner-breakdown-label {
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   color: rgba(255,255,255,0.5);
   margin-bottom: 0.25rem;
 }
 
 .partner-breakdown-pts {
-  font-size: 1.2rem;
+  font-size: 1.125rem;
   font-weight: 800;
   color: #fff;
   line-height: 1;
@@ -2385,7 +2385,7 @@ select.partner-modal-input option {
 }
 
 .partner-breakdown-gbp {
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   color: #6ee7b7;
   margin-top: 0.2rem;
 }
@@ -2430,13 +2430,13 @@ select.partner-modal-input option {
 }
 
 .partner-referral-card__name {
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   font-weight: 600;
   color: rgba(255,255,255,0.85);
 }
 
 .partner-referral-card__date {
-  font-size: 0.76rem;
+  font-size: 0.75rem;
   color: rgba(255,255,255,0.4);
 }
 
@@ -2452,7 +2452,7 @@ select.partner-modal-input option {
   gap: 0.3rem;
   padding: 0.28rem 0.65rem;
   border-radius: 100px;
-  font-size: 0.74rem;
+  font-size: 0.6875rem;
   font-weight: 600;
   white-space: nowrap;
 }
@@ -2505,7 +2505,7 @@ select.partner-modal-input option {
 }
 
 .partner-settings-group-title {
-  font-size: 0.88rem;
+  font-size: 0.875rem;
   font-weight: 700;
   color: rgba(255,255,255,0.7);
   margin-bottom: 1rem;
@@ -2521,7 +2521,7 @@ select.partner-modal-input option {
 }
 
 .partner-settings-status {
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
 }
 
 .partner-settings-btn {
@@ -2556,14 +2556,14 @@ select.partner-modal-input option {
 
 .partner-share-tip__title {
   margin: 0 0 0.3rem;
-  font-size: 0.92rem;
+  font-size: 0.875rem;
   font-weight: 700;
   color: #a7f3d0;
 }
 
 .partner-share-tip__text {
   margin: 0;
-  font-size: 0.83rem;
+  font-size: 0.8125rem;
   color: rgba(255,255,255,0.6);
   line-height: 1.5;
 }
@@ -2579,7 +2579,7 @@ select.partner-modal-input option {
 .partner-section-tab {
   padding: 0.35rem 0.875rem;
   border-radius: 8px;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 600;
   cursor: pointer;
   border: 1px solid rgba(255,255,255,0.12);

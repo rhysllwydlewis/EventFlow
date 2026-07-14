@@ -169,7 +169,7 @@ document.addEventListener('DOMContentLoaded', () => {
     metricsPanel.innerHTML = `
       <div style="font-weight: bold; margin-bottom: 8px; color: #10b981;">📊 Video Metrics</div>
       <div id="metrics-content">Loading...</div>
-      <div style="margin-top: 8px; font-size: 10px; opacity: 0.7;">
+      <div style="margin-top: 8px; font-size: 11px; opacity: 0.7;">
         Updates every 2s • <a href="#" id="metrics-log-link" style="color: #10b981;">Log to Console</a>
       </div>
     `;
@@ -199,7 +199,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div style="margin-bottom: 5px;">
             <strong>Collage:</strong> ${m.collageVideoSuccesses}/${m.collageVideoAttempts} (${collageRate}%)
           </div>
-          ${m.lastError ? `<div style="color: #ef4444; margin-top: 5px; font-size: 10px;">⚠️ ${m.lastError}</div>` : ''}
+          ${m.lastError ? `<div style="color: #ef4444; margin-top: 5px; font-size: 11px;">⚠️ ${m.lastError}</div>` : ''}
         `;
       }
     };
@@ -3438,7 +3438,7 @@ async function fetchMarketplacePreview() {
             <img src="${escape(listingImage)}" alt="${escape(listing.title)}" style="width: 100%; height: 180px; object-fit: cover; border-radius: 8px 8px 0 0;" loading="lazy" data-fallback-src="/assets/images/collage-venue.jpg" />
             <div style="padding: 1rem;">
               <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 0.5rem;">
-                <h3 style="margin: 0; font-size: 1.1rem;">${escape(listing.title || 'Marketplace listing')}</h3>
+                <h3 style="margin: 0; font-size: 1.125rem;">${escape(listing.title || 'Marketplace listing')}</h3>
                 ${isFeatured ? '<span class="badge badge-info" style="white-space: nowrap;">Featured</span>' : isNew ? '<span class="badge badge-secondary" style="white-space: nowrap;">New</span>' : ''}
               </div>
               <p class="small" style="margin: 0 0 0.5rem 0; font-weight: 600; color: var(--ink, #0b8073);">${escape(formatPrice(listing.price))}</p>
@@ -3521,7 +3521,7 @@ async function fetchGuides() {
       .map(
         guide => `
         <div class="card card-hover">
-          <h3 style="margin: 0 0 0.5rem 0; font-size: 1.1rem;">
+          <h3 style="margin: 0 0 0.5rem 0; font-size: 1.125rem;">
             <a href="${escape(guide.href)}" style="text-decoration: none; color: inherit;">${escape(guide.title)}</a>
           </h3>
           <p class="small" style="margin: 0 0 0.5rem 0; color: var(--color-text-secondary, #6c757d);">

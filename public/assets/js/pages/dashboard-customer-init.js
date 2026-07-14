@@ -84,8 +84,8 @@ async function loadCustomerPlans(preloadedPlans) {
           ${plan.location ? `<p class="small customer-plan-item__detail">📍 ${escapeHtml(plan.location)}</p>` : ''}
           ${eventDate ? `<p class="small customer-plan-item__detail">📅 ${escapeHtml(formatPlanDate(eventDate) || eventDate)}</p>` : ''}
           <div class="customer-plan-item__actions" style="margin-top:0.75rem;display:flex;gap:0.5rem;padding-top:0.625rem;border-top:1px solid #f3f4f6;">
-            <button class="cta secondary plan-edit-btn" data-plan-id="${escapeHtml(plan.id)}" style="padding:0.3rem 0.875rem;font-size:0.8rem;border-radius:6px;" aria-label="Edit ${escapeHtml(displayName)}">✏️ Edit</button>
-            <button class="plan-delete-btn" data-plan-id="${escapeHtml(plan.id)}" style="padding:0.3rem 0.875rem;font-size:0.8rem;border-radius:6px;background:none;border:1px solid #fecaca;color:#dc2626;cursor:pointer;font-family:inherit;font-weight:600;font-size:0.8rem;transition:background 0.15s,border-color 0.15s;" aria-label="Delete ${escapeHtml(displayName)}">🗑 Delete</button>
+            <button class="cta secondary plan-edit-btn" data-plan-id="${escapeHtml(plan.id)}" style="padding:0.3rem 0.875rem;font-size: 0.75rem;border-radius:6px;" aria-label="Edit ${escapeHtml(displayName)}">✏️ Edit</button>
+            <button class="plan-delete-btn" data-plan-id="${escapeHtml(plan.id)}" style="padding:0.3rem 0.875rem;font-size: 0.75rem;border-radius:6px;background:none;border:1px solid #fecaca;color:#dc2626;cursor:pointer;font-family:inherit;font-weight:600;font-size: 0.75rem;transition:background 0.15s,border-color 0.15s;" aria-label="Delete ${escapeHtml(displayName)}">🗑 Delete</button>
           </div>
         </div>
       `;
@@ -146,25 +146,25 @@ function showEditPlanModal(plan, onSaved) {
   overlay.innerHTML = `
     <div style="background:#fff;border-radius:12px;max-width:480px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,0.2);max-height:90vh;overflow-y:auto;animation:ef-modal-in 0.2s ease both;">
       <div style="padding:1.25rem 1.5rem;border-bottom:1px solid #f3f4f6;display:flex;align-items:center;justify-content:space-between;">
-        <h3 id="${titleId}" style="margin:0;font-size:1.1rem;font-weight:700;">Edit Plan</h3>
-        <button id="_dash_plan_edit_close" type="button" aria-label="Close" style="background:none;border:none;cursor:pointer;color:#9ca3af;font-size:1.4rem;line-height:1;padding:0.25rem;">&times;</button>
+        <h3 id="${titleId}" style="margin:0;font-size: 1.125rem;font-weight:700;">Edit Plan</h3>
+        <button id="_dash_plan_edit_close" type="button" aria-label="Close" style="background:none;border:none;cursor:pointer;color:#9ca3af;font-size: 1.5rem;line-height:1;padding:0.25rem;">&times;</button>
       </div>
       <div style="padding:1.5rem;">
         <div style="margin-bottom:1rem;">
           <label style="display:block;font-size:0.875rem;font-weight:600;margin-bottom:0.35rem;">Plan Name</label>
-          <input type="text" id="_pf_name" value="${escapeHtml(plan.name || plan.eventType || '')}" style="width:100%;box-sizing:border-box;padding:0.625rem 0.75rem;border:1.5px solid #e5e7eb;border-radius:6px;font-size:0.9rem;font-family:inherit;" maxlength="200" placeholder="e.g. Our Wedding 2025">
+          <input type="text" id="_pf_name" value="${escapeHtml(plan.name || plan.eventType || '')}" style="width:100%;box-sizing:border-box;padding:0.625rem 0.75rem;border:1.5px solid #e5e7eb;border-radius:6px;font-size: 0.875rem;font-family:inherit;" maxlength="200" placeholder="e.g. Our Wedding 2025">
         </div>
         <div style="margin-bottom:1rem;">
           <label style="display:block;font-size:0.875rem;font-weight:600;margin-bottom:0.35rem;">Event Date</label>
-          <input type="date" id="_pf_date" value="${escapeHtml((plan.eventDate || plan.date || '').split('T')[0])}" style="width:100%;box-sizing:border-box;padding:0.625rem 0.75rem;border:1.5px solid #e5e7eb;border-radius:6px;font-size:0.9rem;font-family:inherit;">
+          <input type="date" id="_pf_date" value="${escapeHtml((plan.eventDate || plan.date || '').split('T')[0])}" style="width:100%;box-sizing:border-box;padding:0.625rem 0.75rem;border:1.5px solid #e5e7eb;border-radius:6px;font-size: 0.875rem;font-family:inherit;">
         </div>
         <div style="margin-bottom:1rem;">
           <label style="display:block;font-size:0.875rem;font-weight:600;margin-bottom:0.35rem;">Location</label>
-          <input type="text" id="_pf_location" value="${escapeHtml(plan.location || '')}" style="width:100%;box-sizing:border-box;padding:0.625rem 0.75rem;border:1.5px solid #e5e7eb;border-radius:6px;font-size:0.9rem;font-family:inherit;" maxlength="200" placeholder="e.g. London">
+          <input type="text" id="_pf_location" value="${escapeHtml(plan.location || '')}" style="width:100%;box-sizing:border-box;padding:0.625rem 0.75rem;border:1.5px solid #e5e7eb;border-radius:6px;font-size: 0.875rem;font-family:inherit;" maxlength="200" placeholder="e.g. London">
         </div>
         <div>
           <label style="display:block;font-size:0.875rem;font-weight:600;margin-bottom:0.35rem;">Notes</label>
-          <textarea id="_pf_notes" rows="3" style="width:100%;box-sizing:border-box;padding:0.625rem 0.75rem;border:1.5px solid #e5e7eb;border-radius:6px;font-size:0.9rem;font-family:inherit;" maxlength="2000" placeholder="Any additional notes…">${escapeHtml(plan.notes || '')}</textarea>
+          <textarea id="_pf_notes" rows="3" style="width:100%;box-sizing:border-box;padding:0.625rem 0.75rem;border:1.5px solid #e5e7eb;border-radius:6px;font-size: 0.875rem;font-family:inherit;" maxlength="2000" placeholder="Any additional notes…">${escapeHtml(plan.notes || '')}</textarea>
         </div>
         <p id="_pf_status" style="font-size:0.875rem;margin:0.75rem 0 0;" role="status" aria-live="polite"></p>
       </div>
@@ -255,8 +255,8 @@ function confirmDeletePlan(plan, onDeleted) {
     'position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center;padding:1rem;';
   overlay.innerHTML = `
     <div style="background:#fff;border-radius:12px;max-width:400px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,0.2);padding:1.5rem;animation:ef-modal-in 0.2s ease both;">
-      <h3 style="margin:0 0 0.75rem;font-size:1.1rem;font-weight:700;">Delete Plan</h3>
-      <p style="margin:0 0 1.5rem;font-size:0.9rem;color:#374151;">Are you sure you want to delete <strong>${displayName}</strong>? This cannot be undone.</p>
+      <h3 style="margin:0 0 0.75rem;font-size: 1.125rem;font-weight:700;">Delete Plan</h3>
+      <p style="margin:0 0 1.5rem;font-size: 0.875rem;color:#374151;">Are you sure you want to delete <strong>${displayName}</strong>? This cannot be undone.</p>
       <p id="_del_status" style="font-size:0.875rem;margin:0 0 0.75rem;color:#ef4444;" role="status" aria-live="polite"></p>
       <div style="display:flex;justify-content:flex-end;gap:0.75rem;">
         <button id="_del_cancel" type="button" class="cta secondary">Cancel</button>
@@ -694,7 +694,7 @@ function setupEventHandlers(latestPlans) {
           <span style="font-size:1.5rem;">ℹ️</span>
           <div>
             <strong style="display:block;color:#991B1B;margin-bottom:0.25rem;">No Saved Suppliers</strong>
-            <p style="margin:0;color:#7F1D1D;font-size:0.9rem;">You haven't saved any suppliers yet. Browse suppliers to get started!</p>
+            <p style="margin:0;color:#7F1D1D;font-size: 0.875rem;">You haven't saved any suppliers yet. Browse suppliers to get started!</p>
           </div>
         </div>
       `;
@@ -990,7 +990,7 @@ async function showCustomerEmailVerificationBanner(email) {
   resendBtn.textContent = 'Resend email';
   resendBtn.style.cssText =
     'background:none;border:1px solid #d97706;border-radius:6px;padding:0.25rem 0.75rem;' +
-    'cursor:pointer;color:#92400e;font-size:0.8rem;white-space:nowrap;';
+    'cursor:pointer;color:#92400e;font-size: 0.75rem;white-space:nowrap;';
 
   resendBtn.addEventListener('click', async () => {
     resendBtn.disabled = true;

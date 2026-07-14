@@ -100,13 +100,13 @@
 
     const scoreHtml =
       typeof conv.leadScoreRaw === 'number'
-        ? ` <span style="opacity:0.8;font-size:0.7rem;" aria-hidden="true">(${conv.leadScoreRaw})</span>`
+        ? ` <span style="opacity:0.8;font-size: 0.6875rem;" aria-hidden="true">(${conv.leadScoreRaw})</span>`
         : '';
     const label = escapeHtml(meta.label);
     const emoji = escapeHtml(meta.emoji);
     const color = escapeHtml(meta.color);
 
-    return `<span class="mwv4__lead-badge lead-badge" role="status" aria-label="Lead quality: ${label}" style="background:${color};color:white;padding:0.15rem 0.4rem;border-radius:4px;font-size:0.7rem;font-weight:600;display:inline-flex;align-items:center;gap:0.2rem;">${emoji} ${label}${scoreHtml}</span>`;
+    return `<span class="mwv4__lead-badge lead-badge" role="status" aria-label="Lead quality: ${label}" style="background:${color};color:white;padding:0.15rem 0.4rem;border-radius:4px;font-size: 0.6875rem;font-weight:600;display:inline-flex;align-items:center;gap:0.2rem;">${emoji} ${label}${scoreHtml}</span>`;
   }
 
   // Returns the first safe (non-email) display name from the arguments, or fallback

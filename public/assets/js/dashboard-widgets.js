@@ -119,7 +119,7 @@ export function createBudgetTracker(budgetData, containerId) {
         return `
           <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid #E7EAF0;">
             <div style="display: flex; align-items: center; gap: 0.5rem;">
-              <span style="font-size: 1.2rem;">${categoryIcons[category] || '📦'}</span>
+              <span style="font-size: 1.125rem;">${categoryIcons[category] || '📦'}</span>
               <span style="font-size: 0.875rem; color: #667085;">${categoryLabels[category] || category}</span>
             </div>
             <div style="text-align: right;">
@@ -172,11 +172,11 @@ export function createBudgetTracker(budgetData, containerId) {
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.875rem;">
           <div style="padding: 0.875rem 1rem; background: rgba(255,255,255,0.65); border-radius: 10px; text-align: center; border: 1px solid rgba(255,255,255,0.5);">
             <div style="font-size: 0.8125rem; color: #667085; margin-bottom: 0.35rem;">Spent</div>
-            <div class="stat-number" data-target="${spent}" data-format="currency" data-start="0" style="font-size: 1.375rem; font-weight: 700; color: ${spent > 0 ? '#DC2626' : '#667085'};">£0</div>
+            <div class="stat-number" data-target="${spent}" data-format="currency" data-start="0" style="font-size: 1.25rem; font-weight: 700; color: ${spent > 0 ? '#DC2626' : '#667085'};">£0</div>
           </div>
           <div style="padding: 0.875rem 1rem; background: rgba(255,255,255,0.65); border-radius: 10px; text-align: center; border: 1px solid rgba(255,255,255,0.5);">
             <div style="font-size: 0.8125rem; color: #667085; margin-bottom: 0.35rem;">Remaining</div>
-            <div class="stat-number" data-target="${actualRemaining}" data-format="currency" data-start="0" style="font-size: 1.375rem; font-weight: 700; color: #059669;">£0</div>
+            <div class="stat-number" data-target="${actualRemaining}" data-format="currency" data-start="0" style="font-size: 1.25rem; font-weight: 700; color: #059669;">£0</div>
           </div>
         </div>
 

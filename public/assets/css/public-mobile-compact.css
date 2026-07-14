@@ -25,14 +25,14 @@
 
   .hero.hero-modern h1,
   .hero.hero--subpage h1 {
-    font-size: clamp(1.55rem, 6.5vw, 1.9rem);
+    font-size: clamp(1.5rem, 6.5vw, 2rem);
     line-height: 1.2;
     margin-bottom: 8px;
   }
 
   .hero.hero-modern p,
   .hero.hero--subpage p {
-    font-size: 0.92rem;
+    font-size: 0.875rem;
     line-height: 1.5;
   }
 
@@ -96,20 +96,20 @@
   }
 
   .ef-nav-head-label {
-    font-size: 0.7rem;
+    font-size: 0.6875rem;
     letter-spacing: 0.08em;
   }
 
   .ef-nav-list a,
   .ef-cookie-link {
     padding: 0.42rem 0;
-    font-size: 0.84rem;
+    font-size: 0.8125rem;
   }
 
   .ef-brand-tagline,
   .ef-brand-operated {
     margin: 3px 0;
-    font-size: 0.86rem;
+    font-size: 0.8125rem;
   }
 
   .ef-footer-bar {
@@ -117,7 +117,7 @@
   }
 
   .ef-footer-heading {
-    font-size: 0.72rem;
+    font-size: 0.6875rem;
     letter-spacing: 0.08em;
     margin-bottom: 6px;
   }
@@ -133,14 +133,14 @@
   .ef-footer-links li a {
     display: block;
     padding: 5px 0;
-    font-size: 0.84rem;
+    font-size: 0.8125rem;
     line-height: 1.35;
     border-bottom: none;
   }
 
   .ef-footer-tagline {
     margin: 4px 0;
-    font-size: 0.86rem;
+    font-size: 0.8125rem;
   }
 
   .ef-footer-socials {
@@ -148,7 +148,7 @@
   }
 
   .ef-footer-copyright {
-    font-size: 0.74rem;
+    font-size: 0.6875rem;
     margin: 6px 0 0;
   }
 
@@ -190,11 +190,11 @@
   }
 
   .home-category-section .category-card-name {
-    font-size: 0.95rem !important;
+    font-size: 0.875rem !important;
   }
 
   .home-category-section .category-card-description {
-    font-size: 0.78rem !important;
+    font-size: 0.75rem !important;
     line-height: 1.4 !important;
     display: -webkit-box;
     -webkit-line-clamp: 2;
@@ -252,7 +252,7 @@
 
   .guide-card__summary,
   .guide-card__excerpt {
-    font-size: 0.84rem;
+    font-size: 0.8125rem;
     line-height: 1.45;
     display: -webkit-box;
     -webkit-line-clamp: 3;
@@ -262,7 +262,7 @@
 
   .guide-card__meta {
     margin-top: 8px;
-    font-size: 0.76rem;
+    font-size: 0.75rem;
   }
 
   .guide-card__cta-row {
@@ -283,7 +283,7 @@
   .guide-card__summary {
     margin: 6px 0;
     padding: 8px 10px;
-    font-size: 0.82rem;
+    font-size: 0.8125rem;
   }
 
   /* ============================================================
@@ -305,12 +305,12 @@
 
   .pricing-features li {
     padding: 4px 0;
-    font-size: 0.88rem;
+    font-size: 0.875rem;
     line-height: 1.4;
   }
 
   .pricing-price {
-    font-size: 2.2rem;
+    font-size: 2rem;
   }
 
   /* Comparison table: denser cells so rows don't sprawl */
@@ -322,7 +322,7 @@
   .pricing-comparison table th,
   .pricing-comparison table td {
     padding: 8px 10px;
-    font-size: 0.8rem;
+    font-size: 0.75rem;
   }
 
   .testimonials {
@@ -350,13 +350,13 @@
   }
 
   .sp-filter-label {
-    font-size: 0.72rem;
+    font-size: 0.6875rem;
     margin-bottom: 3px;
   }
 
   .sp-filter-control {
     padding: 8px 10px;
-    font-size: 0.88rem;
+    font-size: 0.875rem;
   }
 
   /* ============================================================
@@ -369,7 +369,7 @@
   }
 
   .mkt-hero__content h1 {
-    font-size: clamp(1.5rem, 6.5vw, 1.85rem);
+    font-size: clamp(1.5rem, 6.5vw, 1.75rem);
   }
 
   /* ============================================================
@@ -387,7 +387,7 @@
 
   .faq-filter-btn {
     padding: 5px 12px;
-    font-size: 0.8rem;
+    font-size: 0.75rem;
   }
 
   .faq-group-heading {
@@ -420,7 +420,7 @@
   }
 
   .legal-section h2 {
-    font-size: 1.15rem;
+    font-size: 1.125rem;
     margin: 0 0 10px;
   }
 
@@ -431,7 +431,7 @@
 
   .legal-section p,
   .legal-section li {
-    font-size: 0.9rem;
+    font-size: 0.875rem;
     line-height: 1.55;
     margin-bottom: 10px;
   }
@@ -467,7 +467,7 @@
   }
 
   .article-content {
-    font-size: 0.98rem;
+    font-size: 1rem;
     line-height: 1.7;
   }
 
@@ -500,6 +500,6 @@
   }
 
   .ef-footer-links li a {
-    font-size: 0.82rem;
+    font-size: 0.8125rem;
   }
 }

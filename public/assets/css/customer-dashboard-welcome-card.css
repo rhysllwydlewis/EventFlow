@@ -93,7 +93,7 @@ body.customer-dashboard-page #welcome-section .customer-welcome-kicker {
   border-radius: 10px !important;
   background: rgba(236, 253, 245, 0.72) !important;
   color: var(--welcome-green-dark) !important;
-  font-size: clamp(0.72rem, 0.78vw, 0.84rem) !important;
+  font-size: clamp(0.6875rem, 0.78vw, 0.8125rem) !important;
   font-weight: 900 !important;
   letter-spacing: 0.04em !important;
   line-height: 1 !important;
@@ -103,7 +103,7 @@ body.customer-dashboard-page #welcome-section .customer-welcome-kicker {
 body.customer-dashboard-page #welcome-section .customer-welcome-kicker::before {
   content: '✦✦' !important;
   color: var(--welcome-green) !important;
-  font-size: clamp(0.88rem, 0.92vw, 1rem) !important;
+  font-size: clamp(0.875rem, 0.92vw, 1rem) !important;
   letter-spacing: -0.24em !important;
   line-height: 0.75 !important;
 }
@@ -112,7 +112,7 @@ body.customer-dashboard-page #welcome-section .customer-welcome-heading {
   max-width: 600px !important;
   margin: 0 0 clamp(0.45rem, 0.7vw, 0.75rem) !important;
   color: var(--welcome-ink) !important;
-  font-size: clamp(1.6rem, 2.1vw, 2.35rem) !important;
+  font-size: clamp(1.5rem, 2.1vw, 2.35rem) !important;
   line-height: 1.08 !important;
   letter-spacing: -0.055em !important;
   font-weight: 850 !important;
@@ -126,7 +126,7 @@ body.customer-dashboard-page #welcome-section .customer-welcome-intro {
   max-width: 540px !important;
   margin: 0 !important;
   color: var(--welcome-muted) !important;
-  font-size: clamp(0.88rem, 1vw, 1.02rem) !important;
+  font-size: clamp(0.875rem, 1vw, 1rem) !important;
   line-height: 1.45 !important;
 }
 
@@ -201,7 +201,7 @@ body.customer-dashboard-page #welcome-section .customer-welcome-action-card::aft
   content: '›' !important;
   justify-self: end !important;
   color: #0f1f33 !important;
-  font-size: clamp(1.55rem, 1.7vw, 1.9rem) !important;
+  font-size: clamp(1.5rem, 1.7vw, 2rem) !important;
   line-height: 0.8 !important;
   font-weight: 500 !important;
 }
@@ -263,7 +263,7 @@ body.customer-dashboard-page #welcome-section .customer-welcome-action-card stro
   display: block !important;
   margin: 0 0 0.25rem !important;
   color: #101828 !important;
-  font-size: clamp(0.84rem, 0.92vw, 1rem) !important;
+  font-size: clamp(0.8125rem, 0.92vw, 1rem) !important;
   line-height: 1.12 !important;
   font-weight: 850 !important;
 }
@@ -271,7 +271,7 @@ body.customer-dashboard-page #welcome-section .customer-welcome-action-card stro
 body.customer-dashboard-page #welcome-section .customer-welcome-action-card small {
   display: block !important;
   color: #526071 !important;
-  font-size: clamp(0.78rem, 0.86vw, 0.9rem) !important;
+  font-size: clamp(0.75rem, 0.86vw, 0.875rem) !important;
   line-height: 1.22 !important;
 }
 
@@ -295,14 +295,14 @@ body.customer-dashboard-page #welcome-section .customer-welcome-prompt {
     rgba(255, 248, 226, 0.76)
   ) !important;
   color: #99450f !important;
-  font-size: clamp(0.82rem, 0.9vw, 0.93rem) !important;
+  font-size: clamp(0.8125rem, 0.9vw, 0.875rem) !important;
   line-height: 1.4 !important;
 }
 
 body.customer-dashboard-page #welcome-section .customer-welcome-prompt > span:first-child {
   width: clamp(22px, 1.5vw, 26px) !important;
   text-align: center !important;
-  font-size: clamp(1rem, 1.1vw, 1.18rem) !important;
+  font-size: clamp(1rem, 1.1vw, 1.125rem) !important;
   line-height: 1 !important;
 }
 
@@ -340,7 +340,7 @@ body.customer-dashboard-page #welcome-section .customer-welcome-prompt--budget::
   top: 50% !important;
   transform: translateY(-50%) !important;
   color: #c85c13 !important;
-  font-size: clamp(0.78rem, 0.85vw, 0.88rem) !important;
+  font-size: clamp(0.75rem, 0.85vw, 0.875rem) !important;
   font-weight: 850 !important;
   white-space: pre !important;
 }
@@ -367,7 +367,7 @@ body.customer-dashboard-page #welcome-section .customer-welcome-footer p {
   margin: 0 !important;
   padding-left: clamp(2rem, 2.15vw, 2.35rem) !important;
   color: #164e3f !important;
-  font-size: clamp(0.82rem, 0.9vw, 0.93rem) !important;
+  font-size: clamp(0.8125rem, 0.9vw, 0.875rem) !important;
   font-weight: 500 !important;
   line-height: 1.42 !important;
 }
@@ -400,7 +400,7 @@ body.customer-dashboard-page #welcome-section .customer-welcome-footer .customer
   background: linear-gradient(135deg, #22c55e, #16a34a) !important;
   color: #fff !important;
   box-shadow: 0 7px 16px rgba(22, 163, 74, 0.22) !important;
-  font-size: clamp(0.78rem, 0.84vw, 0.9rem) !important;
+  font-size: clamp(0.75rem, 0.84vw, 0.875rem) !important;
   font-weight: 850 !important;
   line-height: 1 !important;
 }
@@ -459,18 +459,18 @@ body.customer-dashboard-page #welcome-section .customer-welcome-footer .customer
 
   body.customer-dashboard-page #welcome-section .customer-welcome-kicker {
     min-height: 32px !important;
-    font-size: 0.74rem !important;
+    font-size: 0.6875rem !important;
   }
 
   body.customer-dashboard-page #welcome-section .customer-welcome-heading {
-    font-size: 1.55rem !important;
+    font-size: 1.5rem !important;
   }
 
   body.customer-dashboard-page #welcome-section .customer-welcome-intro,
   body.customer-dashboard-page #welcome-section .customer-welcome-action-card small,
   body.customer-dashboard-page #welcome-section .customer-welcome-prompt,
   body.customer-dashboard-page #welcome-section .customer-welcome-footer p {
-    font-size: 0.84rem !important;
+    font-size: 0.8125rem !important;
   }
 
   body.customer-dashboard-page #welcome-section .customer-welcome-actions__grid {

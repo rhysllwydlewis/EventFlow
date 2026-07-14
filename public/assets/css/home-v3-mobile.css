@@ -162,7 +162,7 @@
   .home-v3-page .hv2-hero h1 {
     max-width: 14.65ch;
     margin: 0 auto;
-    font-size: clamp(1.96rem, 7.9vw, 2.44rem);
+    font-size: clamp(2rem, 7.9vw, 2.44rem);
     letter-spacing: -0.018em;
     line-height: 0.94;
     text-wrap: balance;
@@ -206,7 +206,7 @@
     max-width: 31ch;
     margin: 6px auto 0;
     color: #526170;
-    font-size: clamp(0.76rem, 2.72vw, 0.86rem);
+    font-size: clamp(0.75rem, 2.72vw, 0.8125rem);
     font-weight: 500;
     line-height: 1.22;
     text-wrap: balance;
@@ -264,7 +264,7 @@
 
   .home-v3-page .hv2-search__field strong {
     color: #111827;
-    font-size: 0.5rem;
+    font-size: 0.6875rem;
     font-weight: 800;
   }
 
@@ -272,7 +272,7 @@
   .home-v3-page .hv3-select__button {
     min-height: 16px;
     color: #68737d;
-    font-size: 0.68rem;
+    font-size: 0.6875rem;
     font-weight: 650;
     line-height: 1.12;
   }
@@ -300,7 +300,7 @@
   .home-v3-page .hv3-select__option {
     background: #ffffff;
     color: #1f2937;
-    font-size: 0.74rem;
+    font-size: 0.6875rem;
     font-weight: 760;
   }
 
@@ -326,7 +326,7 @@
     box-shadow:
       0 8px 20px rgba(11, 128, 115, 0.19),
       inset 0 1px 0 rgba(255, 255, 255, 0.24);
-    font-size: 0.72rem;
+    font-size: 0.6875rem;
     font-weight: 800;
     line-height: 1;
     overflow: hidden;
@@ -383,13 +383,13 @@
 
   .home-v3-page .hv2-hero h1 {
     max-width: 15.6ch;
-    font-size: clamp(1.72rem, 7.08vw, 2rem);
+    font-size: clamp(1.75rem, 7.08vw, 2rem);
   }
 
   .home-v3-page .hv2-hero__lead {
     max-width: 30ch;
     margin-top: 5px;
-    font-size: 0.7rem;
+    font-size: 0.6875rem;
     line-height: 1.18;
   }
 
@@ -407,7 +407,7 @@
 
   .home-v3-page .hv2-search__field input,
   .home-v3-page .hv3-select__button {
-    font-size: 0.66rem;
+    font-size: 0.6875rem;
   }
 
   .home-v3-page .hv2-search__button {

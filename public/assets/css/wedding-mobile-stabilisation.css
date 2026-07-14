@@ -163,7 +163,7 @@
 @media (max-width: 420px) {
   .ww-theme-preview__gallery,
   .wed-gallery-grid { grid-template-columns: 1fr !important; }
-  .ww-table { font-size: 0.8rem; }
+  .ww-table { font-size: 0.75rem; }
   .wed-hero h1 { font-size: clamp(2rem, 13vw, 3.2rem); }
 }
 

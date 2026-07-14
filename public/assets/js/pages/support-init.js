@@ -159,10 +159,10 @@ window.__EF_PAGE__ = 'support';
       body.innerHTML = `
         <div style="margin-bottom:1rem;">
           <h4 style="margin:0 0 0.35rem;">${escHtml(ticket.subject)}</h4>
-          <div style="font-size:0.82rem;color:#9ca3af;margin-bottom:0.75rem;">
+          <div style="font-size: 0.8125rem;color:#9ca3af;margin-bottom:0.75rem;">
             Status: <strong>${escHtml(ticket.status || 'open')}</strong> &nbsp;·&nbsp; Priority: <strong>${escHtml(ticket.priority || 'medium')}</strong> &nbsp;·&nbsp; ${fmtDate(ticket.createdAt)}
           </div>
-          <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:1rem;font-size:0.9rem;color:#374151;white-space:pre-wrap;">${escHtml(ticket.message)}</div>
+          <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:1rem;font-size: 0.875rem;color:#374151;white-space:pre-wrap;">${escHtml(ticket.message)}</div>
         </div>
         <div class="reply-thread">
           ${replies

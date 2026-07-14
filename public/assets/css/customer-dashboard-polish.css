@@ -67,12 +67,12 @@
 .customer-dashboard-page .customer-conversations-filter:focus{outline:none;border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.1)}
 
 /* ═══ 9. TYPOGRAPHY ══════════════════════════════════════════════════ */
-.customer-dashboard-page .sd-card-header__heading{font-size:15px;font-weight:750;letter-spacing:-.2px}
-.customer-dashboard-page .sd-card-header__subtitle{font-size:12.5px;color:#6b7280;line-height:1.45;margin-top:3px}
+.customer-dashboard-page .sd-card-header__heading{font-size: 14px;font-weight:750;letter-spacing:-.2px}
+.customer-dashboard-page .sd-card-header__subtitle{font-size: 12px;color:#6b7280;line-height:1.45;margin-top:3px}
 .customer-dashboard-page .customer-budget-form{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap}
 .customer-dashboard-page .customer-budget-form__field{flex:1;min-width:160px}
 .customer-dashboard-page .customer-budget-form__label{font-size:13px;font-weight:650;color:#374151;display:block;margin-bottom:6px}
-.customer-dashboard-page .customer-budget-form__input{width:100%;padding:10px 14px;border:1px solid #d1d5db;border-radius:10px;font-size:15px;font-family:inherit;transition:border-color .18s,box-shadow .18s;box-sizing:border-box}
+.customer-dashboard-page .customer-budget-form__input{width:100%;padding:10px 14px;border:1px solid #d1d5db;border-radius:10px;font-size: 14px;font-family:inherit;transition:border-color .18s,box-shadow .18s;box-sizing:border-box}
 .customer-dashboard-page .customer-budget-form__input:focus{outline:none;border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.1)}
 .customer-dashboard-page .customer-budget-form__submit{flex-shrink:0;white-space:nowrap}
 
@@ -187,7 +187,7 @@
 
 .customer-dashboard-page .customer-calendar-card .fc .fc-button{
   background:#fff;border:1px solid rgba(11,128,115,.35);color:#0b8073;
-  font-weight:600;font-size:.82rem;border-radius:8px;padding:6px 12px;
+  font-weight:600;font-size: 0.8125rem;border-radius:8px;padding:6px 12px;
   box-shadow:none;text-transform:capitalize;
   transition:background .15s ease,color .15s ease,border-color .15s ease}
 .customer-dashboard-page .customer-calendar-card .fc .fc-button:hover{
@@ -201,16 +201,16 @@
 .customer-dashboard-page .customer-calendar-card .fc .fc-button:disabled{
   background:#f3f4f6;border-color:rgba(0,0,0,.08);color:#9ca3af;opacity:1}
 .customer-dashboard-page .customer-calendar-card .fc .fc-toolbar-title{
-  font-size:1.05rem;font-weight:700}
+  font-size: 1rem;font-weight:700}
 .customer-dashboard-page .customer-calendar-card .fc-theme-standard td,
 .customer-dashboard-page .customer-calendar-card .fc-theme-standard th,
 .customer-dashboard-page .customer-calendar-card .fc-theme-standard .fc-scrollgrid{
   border-color:rgba(11,128,115,.12)}
 .customer-dashboard-page .customer-calendar-card .fc .fc-col-header-cell-cushion{
-  font-size:.74rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;
+  font-size: 0.6875rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;
   color:#6b7280;padding:8px 4px;text-decoration:none}
 .customer-dashboard-page .customer-calendar-card .fc .fc-daygrid-day-number{
-  font-size:.82rem;text-decoration:none;padding:6px 8px}
+  font-size: 0.8125rem;text-decoration:none;padding:6px 8px}
 .customer-dashboard-page .customer-calendar-card .fc .fc-day-today{
   background:rgba(19,182,162,.09)}
 .customer-dashboard-page .customer-calendar-card .fc .fc-day-today .fc-daygrid-day-number{

@@ -350,12 +350,12 @@
       <div style="display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;">
         <div>
           <strong>${esc(req.supplierName || req.supplierId || 'Supplier')}</strong>
-          <div style="color:#64748b;font-size:0.85rem;">${esc(req.supplierCategory || 'Unknown category')} · ${esc(req.expectedFrequency || 'frequency not set')}</div>
+          <div style="color:#64748b;font-size: 0.8125rem;">${esc(req.supplierCategory || 'Unknown category')} · ${esc(req.expectedFrequency || 'frequency not set')}</div>
         </div>
         <span class="pc-event-card__badge pc-event-card__badge--book">${esc(req.status || 'pending')}</span>
       </div>
       <p style="margin:0.65rem 0;color:#334155;">${esc(req.reason)}</p>
-      <p style="margin:0 0 0.75rem;color:#64748b;font-size:0.9rem;"><strong>Types:</strong> ${esc(req.eventTypes || 'Not specified')} · <strong>Example:</strong> ${esc(req.exampleEventTitle || 'Not specified')}</p>
+      <p style="margin:0 0 0.75rem;color:#64748b;font-size: 0.875rem;"><strong>Types:</strong> ${esc(req.eventTypes || 'Not specified')} · <strong>Example:</strong> ${esc(req.exampleEventTitle || 'Not specified')}</p>
       <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
         <button class="ef-cta pc-btn pc-btn-sm pc-btn-primary" data-admin-request-action="approve" data-request-id="${esc(req.id)}">Approve</button>
         <button class="ef-cta pc-btn pc-btn-sm pc-btn-danger" data-admin-request-action="reject" data-request-id="${esc(req.id)}">Reject</button>
@@ -563,7 +563,7 @@
     if (currentPage > 0) {
       html += `<button class="ef-cta pc-btn pc-btn-ghost" id="pc-prev-btn">← Previous</button>`;
     }
-    html += `<span style="align-self:center;font-size:0.9rem;color:#6b7280;">Page ${currentPage + 1} of ${pages}</span>`;
+    html += `<span style="align-self:center;font-size: 0.875rem;color:#6b7280;">Page ${currentPage + 1} of ${pages}</span>`;
     if (currentPage < pages - 1) {
       html += `<button class="ef-cta pc-btn pc-btn-ghost" id="pc-next-btn">Next →</button>`;
     }
@@ -682,7 +682,7 @@
 
     const originalHTML = actionsEl.innerHTML;
     actionsEl.innerHTML = `
-      <span style="font-size:0.82rem;color:#374151;align-self:center;white-space:nowrap;">Delete this event?</span>
+      <span style="font-size: 0.8125rem;color:#374151;align-self:center;white-space:nowrap;">Delete this event?</span>
       <button class="ef-cta pc-btn pc-btn-sm pc-btn-danger" id="_pc-del-confirm">Confirm</button>
       <button class="ef-cta pc-btn pc-btn-sm pc-btn-ghost" id="_pc-del-cancel">Cancel</button>
     `;
@@ -892,7 +892,7 @@
         <div class="pc-modal__header">
           <div>
             <h2 class="pc-modal__title" id="pc-calendar-widget-title">Public events calendar</h2>
-            <p style="margin:.35rem 0 0;color:#64748b;font-size:.92rem;">All public events in a simple month view.</p>
+            <p style="margin:.35rem 0 0;color:#64748b;font-size: 0.875rem;">All public events in a simple month view.</p>
           </div>
           <button class="ef-cta pc-modal__close" id="pc-calendar-widget-close" aria-label="Close public calendar" type="button">×</button>
         </div>

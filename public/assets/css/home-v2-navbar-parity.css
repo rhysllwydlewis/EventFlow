@@ -116,7 +116,7 @@ body.home-v2-page {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  font-size: clamp(0.82rem, 0.22vw + 0.76rem, 0.92rem);
+  font-size: clamp(0.8125rem, 0.22vw + 0.76rem, 0.875rem);
   font-weight: 500;
 }
 
@@ -175,7 +175,7 @@ body.home-v2-page {
 .home-v2-page .hv2-header .hv2-menu {
   min-height: 44px;
   border-radius: var(--ef-radius);
-  font-size: clamp(0.82rem, 0.16vw + 0.78rem, 0.9rem);
+  font-size: clamp(0.8125rem, 0.16vw + 0.78rem, 0.875rem);
   font-weight: 600;
 }
 
@@ -302,7 +302,7 @@ body.home-v2-page {
   .home-v2-page .hv2-mobile-nav a {
     border-radius: var(--ef-radius);
     color: var(--ef-text-dark);
-    font-size: 0.85rem;
+    font-size: 0.8125rem;
     font-weight: 500;
     padding: 13px 14px;
   }

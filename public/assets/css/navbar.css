@@ -377,7 +377,7 @@
   border-radius: var(--ef-radius);
   color: var(--ef-text-gray);
   text-decoration: none;
-  font-size: clamp(0.82rem, 0.22vw + 0.76rem, 0.92rem);
+  font-size: clamp(0.8125rem, 0.22vw + 0.76rem, 0.875rem);
   font-weight: 500;
   letter-spacing: 0.01em;
   transition: var(--ef-transition);
@@ -585,7 +585,7 @@
   justify-content: center;
   padding: 9px 18px;
   border-radius: var(--ef-radius);
-  font-size: clamp(0.82rem, 0.16vw + 0.78rem, 0.9rem);
+  font-size: clamp(0.8125rem, 0.16vw + 0.78rem, 0.875rem);
   font-weight: 600;
   text-decoration: none;
   transition: var(--ef-transition);
@@ -829,7 +829,7 @@
   border-radius: var(--ef-radius);
   color: var(--ef-text-dark);
   text-decoration: none;
-  font-size: 0.85rem;
+  font-size: 0.8125rem;
   font-weight: 500;
   transition: var(--ef-transition);
   -webkit-tap-highlight-color: transparent;
@@ -1087,7 +1087,7 @@ body.ef-menu-open {
 }
 
 .ef-bottom-nav.logged-in .ef-bottom-label {
-  font-size: 10px;
+  font-size: 11px;
 }
 
 /* Body padding for bottom nav */
@@ -1198,12 +1198,12 @@ body {
 
   .ef-nav-link {
     padding: 8px 10px;
-    font-size: 0.8rem;
+    font-size: 0.75rem;
   }
 
   .ef-btn {
     padding: 8px 14px;
-    font-size: 0.8rem;
+    font-size: 0.75rem;
   }
 }
 
@@ -1245,7 +1245,7 @@ body {
   }
 
   .ef-bottom-label {
-    font-size: 10px;
+    font-size: 11px;
   }
 
   /* Adjust menu button for smaller screens */
@@ -1295,7 +1295,7 @@ body {
   }
 
   .ef-bottom-label {
-    font-size: 9px;
+    font-size: 11px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1324,7 +1324,7 @@ body {
   #ef-auth-link {
     min-width: auto;
     padding: 7px 10px;
-    font-size: 0.78rem;
+    font-size: 0.75rem;
     flex-shrink: 0;
   }
 
@@ -1347,7 +1347,7 @@ body {
   }
 
   .ef-bottom-label {
-    font-size: 8.5px;
+    font-size: 11px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;

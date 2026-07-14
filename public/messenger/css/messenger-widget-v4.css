@@ -27,7 +27,7 @@
 
 .mwv4__title {
   font-weight: 700;
-  font-size: 0.95rem;
+  font-size: 0.875rem;
   color: #0b8073;
   display: flex;
   align-items: center;
@@ -35,7 +35,7 @@
 }
 
 .mwv4__view-all {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   color: #0b8073;
   text-decoration: none;
   font-weight: 600;
@@ -59,7 +59,7 @@
   border-radius: 10px;
   background: linear-gradient(135deg, #0b8073, #0d9488);
   color: #fff;
-  font-size: 0.7rem;
+  font-size: 0.6875rem;
   font-weight: 700;
   line-height: 1;
 }
@@ -169,7 +169,7 @@
 }
 
 .mwv4__preview {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   color: #6b7280;
   white-space: nowrap;
   overflow: hidden;
@@ -187,7 +187,7 @@
 }
 
 .mwv4__time {
-  font-size: 0.72rem;
+  font-size: 0.6875rem;
   color: #9ca3af;
   white-space: nowrap;
 }
@@ -202,7 +202,7 @@
   border-radius: 9px;
   background: #0b8073;
   color: #fff;
-  font-size: 0.68rem;
+  font-size: 0.6875rem;
   font-weight: 700;
 }
 
@@ -221,7 +221,7 @@
   border: 1px solid rgba(11, 128, 115, 0.25);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.9);
-  font-size: 0.85rem;
+  font-size: 0.8125rem;
   font-family: inherit;
   resize: none;
   box-sizing: border-box;
@@ -248,7 +248,7 @@
   color: #fff;
   border: none;
   border-radius: 6px;
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
   font-weight: 600;
   cursor: pointer;
   transition: opacity 0.15s, transform 0.1s;
@@ -270,7 +270,7 @@
   color: #6b7280;
   border: 1px solid rgba(107, 114, 128, 0.3);
   border-radius: 6px;
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
   cursor: pointer;
   transition: background 0.15s;
 }
@@ -280,7 +280,7 @@
 }
 
 .mwv4__reply-error {
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   color: #dc2626;
   margin: 4px 0 0;
 }
@@ -300,7 +300,7 @@
 }
 
 .mwv4__empty-text {
-  font-size: 0.85rem;
+  font-size: 0.8125rem;
   margin: 0;
   text-align: center;
 }
@@ -431,7 +431,7 @@
   }
 
   .mwv4__name {
-    font-size: 0.825rem;
+    font-size: 0.8125rem;
   }
 
   .mwv4__preview {
@@ -456,11 +456,11 @@
   }
 
   .mwv4__avatar-initial {
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     line-height: 30px;
   }
 
   .mwv4__time {
-    font-size: 0.65rem;
+    font-size: 0.6875rem;
   }
 }

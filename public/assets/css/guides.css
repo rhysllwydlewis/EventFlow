@@ -116,7 +116,7 @@
   -webkit-backdrop-filter: blur(8px);
   border: 1px solid rgba(255,255,255,0.30);
   color: #fff;
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -124,7 +124,7 @@
 }
 
 .guides-hero__title {
-  font-size: clamp(1.6rem, 3.5vw, 2.4rem);
+  font-size: clamp(1.5rem, 3.5vw, 2.4rem);
   font-weight: 900;
   letter-spacing: -0.03em;
   color: #fff;
@@ -133,7 +133,7 @@
 }
 
 .guides-hero__sub {
-  font-size: clamp(0.9rem, 1.8vw, 1.05rem);
+  font-size: clamp(0.875rem, 1.8vw, 1rem);
   color: rgba(255,255,255,0.88);
   max-width: 62ch;
   margin: 0 auto 24px;
@@ -185,7 +185,7 @@
   border-radius: 999px;
   padding: 10px 22px;
   font-weight: 700;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   cursor: pointer;
   /* Override any global min-height/width from mobile-optimizations */
   min-height: 0;
@@ -267,7 +267,7 @@
   padding: 12px 24px;
   border-radius: 999px;
   font-weight: 700;
-  font-size: 0.95rem;
+  font-size: 0.875rem;
   text-decoration: none;
   transition: all var(--guides-transition);
 }
@@ -375,7 +375,7 @@
 
 .hero-side-card__category {
   display: inline-block;
-  font-size: 0.66rem;
+  font-size: 0.6875rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -387,7 +387,7 @@
 }
 
 .hero-side-card__title {
-  font-size: 0.86rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   line-height: 1.35;
   color: #fff;
@@ -409,7 +409,7 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 0.71rem;
+  font-size: 0.6875rem;
   color: rgba(255, 255, 255, 0.55);
 }
 
@@ -417,7 +417,7 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 0.71rem;
+  font-size: 0.6875rem;
   font-weight: 700;
   color: rgba(255, 255, 255, 0.80);
   transition: gap var(--guides-transition), color var(--guides-transition);
@@ -472,7 +472,7 @@
 }
 
 .guides-section__title {
-  font-size: 1.6rem;
+  font-size: 1.5rem;
   font-weight: 800;
   letter-spacing: -0.02em;
   color: var(--text, #0b1220);
@@ -480,7 +480,7 @@
 }
 
 .guides-section__link {
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   font-weight: 600;
   color: var(--guides-teal);
   text-decoration: none;
@@ -576,7 +576,7 @@
   border-radius: 999px;
   background: var(--guide-card-template-pill-bg);
   color: var(--guides-teal);
-  font-size: 0.72rem;
+  font-size: 0.6875rem;
   font-weight: 900;
   letter-spacing: 0.04em;
   line-height: 1;
@@ -586,11 +586,11 @@
 }
 
 .featured-card--hero .featured-card__title {
-  font-size: 1.3rem;
+  font-size: 1.25rem;
 }
 
 .featured-card__title {
-  font-size: 1.05rem;
+  font-size: 1rem;
   font-weight: 700;
   line-height: 1.35;
   color: var(--guide-card-template-title);
@@ -599,7 +599,7 @@
 }
 
 .featured-card__excerpt {
-  font-size: 0.88rem;
+  font-size: 0.875rem;
   color: var(--guide-card-template-copy);
   line-height: 1.6;
   margin: 0 0 14px;
@@ -610,7 +610,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   color: var(--muted, #667085);
   flex-wrap: wrap;
 }
@@ -627,7 +627,7 @@
   gap: 6px;
   color: var(--guide-card-template-accent);
   font-weight: 850;
-  font-size: 0.88rem;
+  font-size: 0.875rem;
   margin-top: 14px;
   text-decoration: none;
   transition: gap var(--guides-transition);
@@ -687,7 +687,7 @@
   border: 1.5px solid rgba(11,128,115,0.20);
   background: #fff;
   color: var(--text, #0b1220);
-  font-size: 0.83rem;
+  font-size: 0.8125rem;
   font-weight: 600;
   cursor: pointer;
   transition: all var(--guides-transition);
@@ -717,7 +717,7 @@
 }
 
 .guides-chip__icon {
-  font-size: 0.85rem;
+  font-size: 0.8125rem;
   line-height: 1;
 }
 
@@ -734,7 +734,7 @@
   border-radius: 10px;
   background: #fff;
   color: var(--text, #0b1220);
-  font-size: 0.83rem;
+  font-size: 0.8125rem;
   font-weight: 600;
   cursor: pointer;
   outline: none;
@@ -761,7 +761,7 @@
   border-radius: 999px;
   background: #fff;
   color: #ef4444;
-  font-size: 0.83rem;
+  font-size: 0.8125rem;
   font-weight: 600;
   cursor: pointer;
   transition: all var(--guides-transition);
@@ -789,7 +789,7 @@
 }
 
 .guides-results-count {
-  font-size: 0.88rem;
+  font-size: 0.875rem;
   color: var(--muted, #667085);
   font-weight: 500;
 }
@@ -814,7 +814,7 @@
   border-radius: 999px;
   background: var(--guides-teal-pale);
   color: var(--guides-teal);
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   font-weight: 600;
 }
 
@@ -902,7 +902,7 @@
   border-radius: 999px;
   background: var(--guide-card-template-pill-bg);
   color: var(--guides-teal);
-  font-size: 0.70rem;
+  font-size: 0.6875rem;
   font-weight: 900;
   letter-spacing: 0.04em;
   line-height: 1;
@@ -911,7 +911,7 @@
 }
 
 .guide-card__title {
-  font-size: 1.05rem;
+  font-size: 1rem;
   font-weight: 800;
   line-height: 1.35;
   color: var(--guide-card-template-title);
@@ -959,7 +959,7 @@
   gap: 6px;
   color: var(--guide-card-template-accent);
   font-weight: 850;
-  font-size: 0.87rem;
+  font-size: 0.8125rem;
   text-decoration: none;
   white-space: nowrap;
   transition: gap var(--guides-transition);
@@ -1004,7 +1004,7 @@
 
 /* Tool link in guide cards — compact version of article-end-cta__tool */
 .guide-card__tool-link {
-  font-size: 0.78rem !important;
+  font-size: 0.75rem !important;
   padding: 6px 14px !important;
 }
 
@@ -1015,7 +1015,7 @@
   border-radius: 999px;
   background: #FFF4E5;
   color: #92400E;
-  font-size: 0.68rem;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -1045,14 +1045,14 @@
 }
 
 .guides-empty__title {
-  font-size: 1.3rem;
+  font-size: 1.25rem;
   font-weight: 700;
   color: var(--text, #0b1220);
   margin: 0 0 10px;
 }
 
 .guides-empty__text {
-  font-size: 0.95rem;
+  font-size: 0.875rem;
   color: var(--muted, #667085);
   max-width: 38ch;
   line-height: 1.6;
@@ -1068,7 +1068,7 @@
   background: var(--guides-teal);
   color: #fff;
   font-weight: 700;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   border: none;
   cursor: pointer;
   transition: background var(--guides-transition), transform var(--guides-transition);
@@ -1124,7 +1124,7 @@
 }
 
 .guides-tools__title {
-  font-size: clamp(1.5rem, 3vw, 2.2rem);
+  font-size: clamp(1.5rem, 3vw, 2rem);
   font-weight: 800;
   color: #fff;
   letter-spacing: -0.02em;
@@ -1189,7 +1189,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.3rem;
+  font-size: 1.25rem;
   flex-shrink: 0;
 }
 
@@ -1200,7 +1200,7 @@
 }
 
 .guides-tool-card__desc {
-  font-size: 0.83rem;
+  font-size: 0.8125rem;
   color: rgba(255,255,255,0.65);
   line-height: 1.5;
   margin: 0;
@@ -1208,7 +1208,7 @@
 }
 
 .guides-tool-card__arrow {
-  font-size: 0.85rem;
+  font-size: 0.8125rem;
   color: var(--guides-teal-light);
   font-weight: 700;
   display: flex;
@@ -1236,7 +1236,7 @@
   background: var(--guides-hero-grad);
   color: #fff;
   font-weight: 700;
-  font-size: 0.95rem;
+  font-size: 0.875rem;
   text-decoration: none;
   box-shadow: 0 6px 24px rgba(11,128,115,0.4);
   transition: transform var(--guides-transition), box-shadow var(--guides-transition);
@@ -1330,10 +1330,10 @@
     padding: 28px 0 22px;
   }
   .guides-hero__title {
-    font-size: clamp(1.4rem, 5.5vw, 1.9rem);
+    font-size: clamp(1.5rem, 5.5vw, 2rem);
   }
   .guides-hero__sub {
-    font-size: 0.9rem;
+    font-size: 0.875rem;
     margin-bottom: 18px;
   }
   .guides-filter-bar {
@@ -1384,7 +1384,7 @@
     gap: 3px;
   }
   .guides-chip__icon {
-    font-size: 0.72rem;
+    font-size: 0.6875rem;
   }
   .guides-filter-bar {
     padding: 5px 0;
@@ -1401,7 +1401,7 @@
   }
   .guides-hero__search-btn {
     padding: 9px 14px;
-    font-size: 0.82rem;
+    font-size: 0.8125rem;
     min-width: 0;
     min-height: 0;
   }
@@ -1427,7 +1427,7 @@
     min-width: 120px;
     justify-content: center;
     padding: 10px 12px;
-    font-size: 0.85rem;
+    font-size: 0.8125rem;
   }
   .guides-tools__grid {
     grid-template-columns: 1fr;
@@ -1470,7 +1470,7 @@
     padding: 9px 16px;
     min-height: 0;
     min-width: 0;
-    font-size: 0.83rem;
+    font-size: 0.8125rem;
     box-shadow: none;
     align-self: center;
   }
@@ -1486,7 +1486,7 @@
     background: rgba(255,255,255,0.18);
     border: 1px solid rgba(255,255,255,0.30);
     color: #fff;
-    font-size: 0.83rem;
+    font-size: 0.8125rem;
     font-weight: 700;
     text-decoration: none;
     backdrop-filter: blur(8px);
@@ -1585,7 +1585,7 @@ article header .small:not(:first-child) {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
   color: var(--muted, #667085);
   margin-bottom: 18px;
   flex-wrap: wrap;
@@ -1633,7 +1633,7 @@ article header .small:not(:first-child) {
 }
 
 .article-header__title {
-  font-size: clamp(1.6rem, 4vw, 2.4rem);
+  font-size: clamp(1.5rem, 4vw, 2.4rem);
   font-weight: 900;
   letter-spacing: -0.025em;
   color: var(--text, #0b1220);
@@ -1647,7 +1647,7 @@ article header .small:not(:first-child) {
   gap: 16px;
   flex-wrap: wrap;
   color: var(--muted, #667085);
-  font-size: 0.85rem;
+  font-size: 0.8125rem;
 }
 
 .article-header__meta-item {
@@ -1676,7 +1676,7 @@ article header .small:not(:first-child) {
 }
 
 .article-toc__title {
-  font-size: 0.85rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -1694,7 +1694,7 @@ article header .small:not(:first-child) {
 }
 
 .article-toc__item a {
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   color: var(--text, #0b1220);
   text-decoration: none;
   font-weight: 500;
@@ -1710,7 +1710,7 @@ article header .small:not(:first-child) {
 }
 
 .article-toc__item--sub a {
-  font-size: 0.85rem;
+  font-size: 0.8125rem;
   color: var(--muted, #667085);
 }
 
@@ -1786,7 +1786,7 @@ article header .small:not(:first-child) {
 }
 
 .article-related-card__category {
-  font-size: 0.72rem;
+  font-size: 0.6875rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -1794,7 +1794,7 @@ article header .small:not(:first-child) {
 }
 
 .article-related-card__title {
-  font-size: 0.95rem;
+  font-size: 0.875rem;
   font-weight: 700;
   line-height: 1.35;
   color: var(--text, #0b1220);
@@ -1802,7 +1802,7 @@ article header .small:not(:first-child) {
 }
 
 .article-related-card__cta {
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
   font-weight: 600;
   color: var(--guides-teal);
   margin-top: auto;
@@ -1828,7 +1828,7 @@ article header .small:not(:first-child) {
   background: var(--guides-teal-pale);
   color: var(--guides-teal);
   font-weight: 700;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   text-decoration: none;
   transition: all var(--guides-transition);
 }
@@ -1847,7 +1847,7 @@ article header .small:not(:first-child) {
   background: var(--guides-teal);
   color: #fff;
   font-weight: 700;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   text-decoration: none;
   transition: all var(--guides-transition);
   box-shadow: 0 4px 16px rgba(11,128,115,0.25);
@@ -1943,13 +1943,13 @@ article.container {
 
 /* Article content typography */
 .article-content {
-  font-size: 1.05rem;
+  font-size: 1rem;
   line-height: 1.85;
   color: #374151;
 }
 
 .article-content > p:first-child {
-  font-size: 1.15rem;
+  font-size: 1.125rem;
   font-weight: 500;
   color: var(--guides-teal);
   line-height: 1.7;
@@ -1957,7 +1957,7 @@ article.container {
 }
 
 .article-content h2 {
-  font-size: 1.6rem;
+  font-size: 1.5rem;
   font-weight: 800;
   color: #0b1220;
   margin: 2.5rem 0 1rem;
@@ -1968,7 +1968,7 @@ article.container {
 }
 
 .article-content h3 {
-  font-size: 1.2rem;
+  font-size: 1.125rem;
   font-weight: 700;
   color: #1f2937;
   margin: 2rem 0 0.75rem;
@@ -1982,7 +1982,7 @@ article.container {
   margin: 1.5rem 0 0.5rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  font-size: 0.85rem;
+  font-size: 0.8125rem;
 }
 
 .article-content p { margin: 0 0 1.2rem; }
@@ -2044,7 +2044,7 @@ article.container {
 .article-content [style*="f7fafc"] h4,
 .article-content [style*="#F9FAFB"] h4,
 .article-content [style*="F9FAFB"] h4 {
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -2208,7 +2208,7 @@ article .article-cta-card a {
   align-items: center;
   gap: 6px;
   flex-wrap: wrap;
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
   color: #6b7280;
   margin-bottom: 24px;
   padding-bottom: 16px;
@@ -2221,13 +2221,13 @@ article .article-cta-card a {
   font-weight: 500;
 }
 .article-breadcrumb a:hover { text-decoration: underline; }
-.article-breadcrumb__sep { color: #d1d5db; font-size: 0.9rem; }
+.article-breadcrumb__sep { color: #d1d5db; font-size: 0.875rem; }
 .article-breadcrumb [aria-current="page"] { color: #374151; font-weight: 600; }
 
 /* Article header */
 .article-header { margin-bottom: 28px; }
 .article-header__title {
-  font-size: clamp(1.65rem, 4vw, 2.3rem);
+  font-size: clamp(1.75rem, 4vw, 2.3rem);
   font-weight: 900;
   letter-spacing: -0.025em;
   color: #0b1220;
@@ -2240,7 +2240,7 @@ article .article-cta-card a {
   align-items: center;
   gap: 16px;
   flex-wrap: wrap;
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
   color: #6b7280;
 }
 
@@ -2277,9 +2277,9 @@ article .article-cta-card a {
    16. ARTICLE PAGE — RESPONSIVE
    ============================================================ */
 @media (max-width: 768px) {
-  .article-header__title { font-size: 1.6rem; }
-  .article-content h2 { font-size: 1.35rem; }
-  .article-content h3 { font-size: 1.1rem; }
+  .article-header__title { font-size: 1.5rem; }
+  .article-content h2 { font-size: 1.25rem; }
+  .article-content h3 { font-size: 1.125rem; }
   article.container { padding: 0 16px; }
 
   .article-hero-image { height: 220px; border-radius: 10px; }
@@ -2374,7 +2374,7 @@ article .article-cta-card a {
 }
 
 .guides-auth-modal__sub {
-  font-size: 0.88rem;
+  font-size: 0.875rem;
   color: #667085;
   line-height: 1.6;
   margin: 0 0 24px;
@@ -2398,7 +2398,7 @@ article .article-cta-card a {
   padding: 11px 24px;
   border-radius: 999px;
   font-weight: 700;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   text-decoration: none;
   transition: all var(--guides-transition);
 }
@@ -2433,7 +2433,7 @@ article .article-cta-card a {
   background: none;
   border: none;
   color: #9ca3af;
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
   cursor: pointer;
   padding: 4px 8px;
   text-decoration: underline;
@@ -2495,7 +2495,7 @@ article .article-cta-card a {
 }
 
 .guides-nojs-list__cat {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   color: #6b7280;
   margin-left: 6px;
 }
@@ -2543,7 +2543,7 @@ article > header .small:first-child {
 }
 
 article > header h1 {
-  font-size: clamp(1.65rem, 4vw, 2.3rem);
+  font-size: clamp(1.75rem, 4vw, 2.3rem);
   font-weight: 900;
   letter-spacing: -0.025em;
   color: #0b1220;
@@ -2552,14 +2552,14 @@ article > header h1 {
 }
 
 article > header .lead {
-  font-size: 1.1rem;
+  font-size: 1.125rem;
   line-height: 1.7;
   color: #374151;
   margin-bottom: 14px;
 }
 
 article > header .small:not(:first-child) {
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
   color: #6b7280;
   display: flex;
   align-items: center;
@@ -2582,7 +2582,7 @@ article .card + .card {
 
 article .card h2.h3,
 article .card h2 {
-  font-size: 1.45rem;
+  font-size: 1.5rem;
   font-weight: 800;
   color: #0b1220;
   margin: 0 0 16px;
@@ -2594,7 +2594,7 @@ article .card h2 {
 
 article .card h3.h4,
 article .card h3 {
-  font-size: 1.05rem;
+  font-size: 1rem;
   font-weight: 700;
   color: #1f2937;
   margin: 20px 0 8px;
@@ -2602,7 +2602,7 @@ article .card h3 {
 }
 
 article .card p {
-  font-size: 1.02rem;
+  font-size: 1rem;
   line-height: 1.85;
   color: #374151;
   margin: 0 0 1rem;
@@ -2619,7 +2619,7 @@ article .card ol {
 }
 
 article .card li {
-  font-size: 1.02rem;
+  font-size: 1rem;
   color: #374151;
   margin-bottom: 0.5rem;
 }
@@ -2651,7 +2651,7 @@ article > nav + header + div + .card {
 
 /* Lead paragraph (first p in first card) */
 article .card:first-of-type > p:first-child {
-  font-size: 1.1rem;
+  font-size: 1.125rem;
   font-weight: 500;
   color: var(--guides-teal);
   line-height: 1.7;
@@ -2672,7 +2672,7 @@ article .card table {
   width: 100%;
   border-collapse: collapse;
   margin: 1rem 0;
-  font-size: 0.95rem;
+  font-size: 0.875rem;
 }
 
 article .card table th {
@@ -2709,7 +2709,7 @@ article .card table tr:last-child td {
 }
 
 .article-toc summary {
-  font-size: 0.85rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -2750,7 +2750,7 @@ article .card table tr:last-child td {
 }
 
 .article-toc__item a {
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   color: #0b1220;
   text-decoration: none;
   font-weight: 500;
@@ -2777,7 +2777,7 @@ article .card table tr:last-child td {
 }
 
 .article-toc__item--sub a {
-  font-size: 0.85rem;
+  font-size: 0.8125rem;
   color: #667085;
   font-weight: 400;
 }
@@ -2801,7 +2801,7 @@ article .card table tr:last-child td {
 }
 
 .article-key-takeaways__title {
-  font-size: 0.85rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -2819,7 +2819,7 @@ article .card table tr:last-child td {
 }
 
 .article-key-takeaways li {
-  font-size: 0.95rem;
+  font-size: 0.875rem;
   color: #374151;
   display: flex;
   align-items: flex-start;
@@ -2844,7 +2844,7 @@ article .card table tr:last-child td {
   }
 
   article > header h1 {
-    font-size: 1.6rem;
+    font-size: 1.5rem;
   }
 
   article .card h2.h3,
@@ -2906,7 +2906,7 @@ article .card table tr:last-child td {
   border-radius: 999px;
   color: var(--guide-card-template-accent);
   display: inline-flex;
-  font-size: 0.76rem;
+  font-size: 0.75rem;
   font-weight: 850;
   line-height: 1;
   padding: 7px 10px;
@@ -2918,7 +2918,7 @@ article .card table tr:last-child td {
   border-left: 3px solid #13b6a2;
   border-radius: 10px;
   color: #24413e;
-  font-size: 0.92rem;
+  font-size: 0.875rem;
   line-height: 1.5;
   margin: 0 0 12px;
   padding: 10px 12px;
@@ -2956,7 +2956,7 @@ article .card table tr:last-child td {
 
 .guide-feedback__title {
   color: #123835;
-  font-size: 1.15rem;
+  font-size: 1.125rem;
   font-weight: 850;
   margin: 0 0 8px;
 }
@@ -3003,7 +3003,7 @@ article .card table tr:last-child td {
 
 .guide-feedback__status {
   color: #48625f;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   margin: 14px 0 0;
   min-height: 1.3em;
 }
@@ -3068,7 +3068,7 @@ article .card table tr:last-child td {
   border: 1px solid rgba(255, 255, 255, 0.28);
   border-radius: 999px;
   color: #dffcf8;
-  font-size: 0.72rem;
+  font-size: 0.6875rem;
   font-weight: 900;
   letter-spacing: 0.08em;
   margin-bottom: 16px;
@@ -3078,7 +3078,7 @@ article .card table tr:last-child td {
 
 .guide-card--more__title {
   color: #fff;
-  font-size: clamp(1.2rem, 2vw, 1.55rem);
+  font-size: clamp(1.125rem, 2vw, 1.5rem);
   letter-spacing: -0.03em;
   line-height: 1.15;
   margin: 0 0 12px;
@@ -3091,6 +3091,9 @@ article .card table tr:last-child td {
 }
 
 .guide-card--more__button {
+  /* Without an explicit size a <button> inherits Chrome's UA default of
+     13.3333px — an off-scale value that appeared 43 times site-wide. */
+  font-size: 13px;
   align-self: flex-start;
   background: #fff;
   border: 0;
@@ -3138,7 +3141,7 @@ article .article-header__title {
 
 article .article-header .lead {
   color: #365c58;
-  font-size: clamp(1.05rem, 2vw, 1.22rem);
+  font-size: clamp(1rem, 2vw, 1.25rem);
   line-height: 1.68;
   max-width: 72ch;
 }
@@ -3265,7 +3268,7 @@ article .article-related__title {
   gap: 12px;
   margin-bottom: 22px;
   color: #082f2c;
-  font-size: clamp(1.3rem, 2.4vw, 1.65rem);
+  font-size: clamp(1.25rem, 2.4vw, 1.75rem);
   font-weight: 900;
   letter-spacing: -0.035em;
 }
@@ -3331,7 +3334,7 @@ article .article-related-card__category {
   border-radius: 999px;
   background: var(--guide-card-template-pill-bg);
   color: var(--guide-card-template-accent);
-  font-size: 0.68rem;
+  font-size: 0.6875rem;
   font-weight: 900;
   white-space: nowrap;
 }
@@ -3438,7 +3441,7 @@ article .guide-feedback__icon {
 
 article .guide-feedback__title {
   color: #082f2c;
-  font-size: clamp(1.15rem, 2vw, 1.4rem);
+  font-size: clamp(1.125rem, 2vw, 1.5rem);
   letter-spacing: -0.03em;
 }
 

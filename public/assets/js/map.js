@@ -26,7 +26,7 @@
       'background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;">' +
       '<div style="font-size:2rem;margin-bottom:0.75rem;">🗺️</div>' +
       '<p style="font-weight:600;margin:0 0 0.5rem;color:#374151;">Map unavailable — showing list view</p>' +
-      '<p style="font-size:0.9rem;color:#6b7280;margin:0 0 1rem;">Google Maps could not be loaded.</p>' +
+      '<p style="font-size: 0.875rem;color:#6b7280;margin:0 0 1rem;">Google Maps could not be loaded.</p>' +
       '<button id="map-retry-btn" class="cta secondary" type="button">Retry</button>' +
       '</div>';
 

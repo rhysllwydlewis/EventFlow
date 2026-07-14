@@ -832,12 +832,12 @@ footer.ef-footer-modern {
   
   /* Reduce brand element sizes */
   .ef-footer-logo {
-    font-size: 1.2rem !important;
+    font-size: 1.125rem !important;
     margin-bottom: 4px !important;
   }
   
   .ef-footer-tagline {
-    font-size: 0.8rem !important;
+    font-size: 0.75rem !important;
     margin-bottom: 4px !important;
   }
   
@@ -847,7 +847,7 @@ footer.ef-footer-modern {
   
   /* Reduce heading sizes */
   .ef-footer-heading {
-    font-size: 0.8rem !important;
+    font-size: 0.75rem !important;
     margin-bottom: 6px !important;
     text-transform: uppercase;
     letter-spacing: 0.05em;
@@ -860,7 +860,7 @@ footer.ef-footer-modern {
   }
   
   .ef-footer-links li a {
-    font-size: 0.8rem !important;
+    font-size: 0.75rem !important;
     padding: 2px 0 !important;
   }
   
@@ -870,7 +870,7 @@ footer.ef-footer-modern {
   }
   
   .ef-footer-bottom .version {
-    font-size: 0.7rem !important;
+    font-size: 0.6875rem !important;
   }
 }
 
@@ -908,11 +908,11 @@ footer.ef-footer-modern {
 .ef-footer-tagline {
   color: rgba(255, 255, 255, 0.85);
   margin-bottom: var(--ef-space-4, 16px);
-  font-size: 0.95rem;
+  font-size: 0.875rem;
 }
 
 .ef-footer-tagline--sm {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
 }
 
 .ef-footer-modern .vexi-link {
@@ -1014,7 +1014,7 @@ footer.ef-footer-modern {
 .ef-footer-links a {
   color: rgba(255, 255, 255, 0.8);
   text-decoration: none;
-  font-size: 0.95rem;
+  font-size: 0.875rem;
   transition: var(--ef-transition-fast, 0.2s);
   display: inline-block;
 }
@@ -1121,7 +1121,7 @@ footer.ef-footer-modern {
 
 .ef-section--newsletter .ef-section__header--center { text-align:left; max-width: 560px; }
 .ef-section--newsletter .ef-section__title { color:#0b4b53; font-size: clamp(2rem, 3vw, 3rem); margin-bottom: 10px; }
-.ef-section--newsletter .ef-section__subtitle { color: rgba(12,74,82,.9); font-size: 1.05rem; }
+.ef-section--newsletter .ef-section__subtitle { color: rgba(12,74,82,.9); font-size: 1rem; }
 
 .ef-newsletter-form { max-width:none; justify-content:flex-start; gap:14px; }
 .ef-newsletter-form__input { min-height:66px; border-radius:16px; border:1px solid rgba(140,155,170,.24); box-shadow: 0 8px 20px rgba(16,33,58,.08); }

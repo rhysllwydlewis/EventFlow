@@ -1131,7 +1131,7 @@
   right: -4px;
   background: #ef4444;
   color: white;
-  font-size: 0.625rem;
+  font-size: 0.6875rem;
   font-weight: 600;
   padding: 2px 6px;
   border-radius: 10px;
@@ -1626,7 +1626,7 @@
 .cookie-consent-message p {
   margin: 0 0 0.5rem 0;
   color: var(--text, #0b1220);
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   line-height: 1.5;
 }
 
@@ -1638,7 +1638,7 @@
 
 .cookie-consent-links {
   margin-top: 0.75rem;
-  font-size: 0.85rem;
+  font-size: 0.8125rem;
 }
 
 .cookie-consent-links a {
@@ -1661,7 +1661,7 @@
 .cookie-consent-btn {
   padding: 0.6rem 1rem;
   border-radius: 8px;
-  font-size: 0.85rem;
+  font-size: 0.8125rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease-out;
@@ -1726,7 +1726,7 @@
   }
 
   .cookie-consent-message p {
-    font-size: 0.85rem;
+    font-size: 0.8125rem;
   }
 
   /* Force buttons into a single row on mobile */
@@ -1760,11 +1760,11 @@
 
 @media (max-width: 360px) {
   .cookie-consent-btn {
-    font-size: 0.7rem;
+    font-size: 0.6875rem;
     padding: 0.45rem 0.3rem;
   }
   .cookie-consent-manage {
-    font-size: 0.7rem;
+    font-size: 0.6875rem;
   }
 }
 
@@ -1912,7 +1912,7 @@
   padding: 0.75rem;
   border: 1px solid #d1d5db;
   border-radius: 6px;
-  font-size: 0.95rem;
+  font-size: 0.875rem;
   transition: border-color 0.2s;
 }
 
@@ -2446,7 +2446,7 @@
 
 @media (max-width: 480px) {
   .shortlist-item-name {
-    font-size: 15px;
+    font-size: 14px;
   }
 
   .shortlist-item-meta {
@@ -3959,7 +3959,7 @@ body > .ef-loading-overlay {
   background: transparent;
   color: var(--text, #0b1220);
   border-color: var(--border, #e7eaf0);
-  font-size: 0.85rem;
+  font-size: 0.8125rem;
   padding: 0.65rem 1rem;
   min-width: auto;
 }
@@ -3984,7 +3984,7 @@ body > .ef-loading-overlay {
 
 @media (max-width: 360px) {
   .cookie-consent-manage {
-    font-size: 0.7rem;
+    font-size: 0.6875rem;
     padding: 0.45rem 0.3rem;
   }
 }
@@ -4037,7 +4037,7 @@ body > .ef-loading-overlay {
 
 .cookie-prefs-title {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: 1.125rem;
   font-weight: 700;
   color: var(--text, #0b1220);
 }
@@ -4046,7 +4046,7 @@ body > .ef-loading-overlay {
   background: none;
   border: none;
   cursor: pointer;
-  font-size: 1.4rem;
+  font-size: 1.5rem;
   color: var(--muted, #667085);
   line-height: 1;
   padding: 0.25rem 0.5rem;
@@ -4072,7 +4072,7 @@ body > .ef-loading-overlay {
 }
 
 .cookie-prefs-intro {
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   color: var(--muted, #667085);
   margin: 0 0 1rem;
   line-height: 1.5;
@@ -4096,21 +4096,21 @@ body > .ef-loading-overlay {
 }
 
 .cookie-prefs-category-name {
-  font-size: 0.95rem;
+  font-size: 0.875rem;
   color: var(--text, #0b1220);
   display: block;
   margin-bottom: 0.25rem;
 }
 
 .cookie-prefs-category-desc {
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
   color: var(--muted, #667085);
   margin: 0;
   line-height: 1.4;
 }
 
 .cookie-prefs-always-on {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   color: var(--accent, #13b6a2);
   font-weight: 600;
   white-space: nowrap;

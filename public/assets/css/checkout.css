@@ -56,7 +56,7 @@
 
 .checkout-header p {
   color: #6b7280;
-  font-size: 1.1rem;
+  font-size: 1.125rem;
 }
 
 .pricing-cards {
@@ -215,7 +215,7 @@
 }
 
 .plan-early-was {
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
   font-weight: 600;
   color: #6b7280;
   text-decoration: line-through;
@@ -326,7 +326,7 @@
 
 .success-content p {
   color: #6b7280;
-  font-size: 1.1rem;
+  font-size: 1.125rem;
   line-height: 1.6;
   margin-bottom: 1.5rem;
 }
@@ -372,7 +372,7 @@
 }
 
 .payment-note {
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   color: #9ca3af;
 }
 
@@ -408,7 +408,7 @@
 
 .cancel-content p {
   color: #6b7280;
-  font-size: 1.1rem;
+  font-size: 1.125rem;
   line-height: 1.6;
   margin-bottom: 1.5rem;
 }
@@ -423,7 +423,7 @@
 }
 
 .info-box h3 {
-  font-size: 1.1rem;
+  font-size: 1.125rem;
   color: #92400e;
   margin-bottom: 0.5rem;
 }
@@ -452,7 +452,7 @@
 }
 
 .help-section p {
-  font-size: 0.95rem;
+  font-size: 0.875rem;
   color: #6b7280;
   margin-bottom: 1rem;
 }

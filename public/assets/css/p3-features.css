@@ -465,7 +465,7 @@
   background: rgba(0, 0, 0, 0.7);
   color: white;
   border-radius: 6px;
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
   max-width: 600px;
   text-align: center;
 }
@@ -894,7 +894,7 @@
 }
 
 .shortcut-description {
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
   color: #374151;
 }
 

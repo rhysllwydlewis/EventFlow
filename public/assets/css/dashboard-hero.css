@@ -187,7 +187,7 @@
 
 .dashboard-hero__subtitle {
   margin: 0;
-  font-size: clamp(15px, 2vw, 17px);
+  font-size: clamp(14px, 2vw, 16px);
   line-height: 1.6;
   color: var(--dashboard-text-muted);
   max-width: 540px;
@@ -427,7 +427,7 @@
   border: 1.5px solid rgba(245, 158, 11, 0.42);
   border-radius: 10px;
   color: #92400e;
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 600;
   /* Full-width own row, content centered — works in both flex (desktop) and grid (mobile) */
   flex-basis: 100%;

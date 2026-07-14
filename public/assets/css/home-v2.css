@@ -120,7 +120,7 @@ body.home-v2-page {
   gap: 11px;
   color: var(--hv2-forest);
   font-family: var(--hv2-serif);
-  font-size: clamp(1.36rem, 1.6vw, 1.82rem);
+  font-size: clamp(1.25rem, 1.6vw, 1.75rem);
   font-weight: 700;
   line-height: 1;
   text-decoration: none;
@@ -159,7 +159,7 @@ body.home-v2-page {
   align-items: center;
   justify-content: center;
   gap: clamp(24px, 3vw, 42px);
-  font-size: 0.92rem;
+  font-size: 0.875rem;
   font-weight: 650;
 }
 
@@ -210,7 +210,7 @@ body.home-v2-page {
   justify-content: center;
   border: 1px solid var(--hv2-line);
   border-radius: 5px;
-  font-size: 0.92rem;
+  font-size: 0.875rem;
   font-weight: 760;
   padding: 0 22px;
   transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
@@ -335,7 +335,7 @@ body.home-v2-page {
   align-items: center;
   gap: 8px;
   color: var(--hv2-green);
-  font-size: 0.72rem;
+  font-size: 0.6875rem;
   font-weight: 900;
   letter-spacing: 0.13em;
   text-transform: uppercase;
@@ -370,7 +370,7 @@ body.home-v2-page {
   max-width: 560px;
   margin-top: 16px;
   color: rgba(255, 255, 255, 0.93);
-  font-size: clamp(1.02rem, 1.22vw, 1.22rem);
+  font-size: clamp(1rem, 1.22vw, 1.25rem);
   line-height: 1.45;
   text-shadow: 0 6px 24px rgba(0, 0, 0, 0.32);
 }
@@ -421,7 +421,7 @@ body.home-v2-page {
 
 .hv2-search__field strong {
   color: var(--hv2-ink);
-  font-size: 0.76rem;
+  font-size: 0.75rem;
   font-weight: 820;
 }
 
@@ -474,7 +474,7 @@ body.home-v2-page {
   gap: 10px;
   border-top: 1px solid rgba(7, 61, 50, 0.09);
   color: #39423f;
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
   padding: 13px 22px;
 }
 
@@ -484,7 +484,7 @@ body.home-v2-page {
   background: white;
   color: #1e2824;
   cursor: pointer;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 650;
   padding: 7px 14px;
   transition: border-color 160ms ease, transform 160ms ease;
@@ -539,14 +539,14 @@ body.home-v2-page {
 
 .hv2-trust-strip h2 {
   color: var(--hv2-ink);
-  font-size: 0.92rem;
+  font-size: 0.875rem;
   font-weight: 840;
 }
 
 .hv2-trust-strip p {
   margin-top: 2px;
   color: var(--hv2-muted);
-  font-size: 0.78rem;
+  font-size: 0.75rem;
 }
 
 .hv2-section {
@@ -569,7 +569,7 @@ body.home-v2-page {
 .hv2-overview h2 {
   color: var(--hv2-ink);
   font-family: var(--hv2-serif);
-  font-size: clamp(1.85rem, 2.6vw, 2.55rem);
+  font-size: clamp(1.75rem, 2.6vw, 2.55rem);
   font-weight: 520;
   line-height: 1.04;
 }
@@ -578,7 +578,7 @@ body.home-v2-page {
   max-width: 430px;
   margin-top: 8px;
   color: var(--hv2-muted);
-  font-size: 0.96rem;
+  font-size: 0.875rem;
   line-height: 1.48;
 }
 
@@ -655,7 +655,7 @@ body.home-v2-page {
   display: block;
   min-height: 36px;
   color: var(--hv2-ink);
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   padding: 10px 10px 9px 52px;
 }
 
@@ -665,7 +665,7 @@ body.home-v2-page {
   gap: 8px;
   margin-top: 18px;
   color: var(--hv2-green);
-  font-size: 0.88rem;
+  font-size: 0.875rem;
   font-weight: 820;
 }
 
@@ -694,7 +694,7 @@ body.home-v2-page {
 .hv2-rail-title {
   margin-bottom: 14px;
   color: var(--hv2-ink);
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   font-weight: 820;
 }
 
@@ -702,7 +702,7 @@ body.home-v2-page {
   display: block;
   border-radius: 5px;
   color: #5c6863;
-  font-size: 0.76rem;
+  font-size: 0.75rem;
   padding: 8px 10px;
 }
 
@@ -725,12 +725,12 @@ body.home-v2-page {
 }
 
 .hv2-dashboard__top strong {
-  font-size: 0.94rem;
+  font-size: 0.875rem;
 }
 
 .hv2-dashboard__top a {
   color: var(--hv2-green);
-  font-size: 0.72rem;
+  font-size: 0.6875rem;
   font-weight: 820;
   text-decoration: none;
 }
@@ -756,20 +756,20 @@ body.home-v2-page {
 
 .hv2-mini-card h3 {
   color: var(--hv2-ink);
-  font-size: 0.88rem;
+  font-size: 0.875rem;
 }
 
 .hv2-mini-card p {
   margin-top: 3px;
   color: var(--hv2-muted);
-  font-size: 0.72rem;
+  font-size: 0.6875rem;
 }
 
 .hv2-mini-card a {
   display: inline-flex;
   margin-top: 12px;
   color: var(--hv2-green);
-  font-size: 0.72rem;
+  font-size: 0.6875rem;
   font-weight: 820;
 }
 
@@ -797,7 +797,7 @@ body.home-v2-page {
 .hv2-checklist li {
   position: relative;
   color: #3d4743;
-  font-size: 0.72rem;
+  font-size: 0.6875rem;
   padding-left: 18px;
 }
 
@@ -829,7 +829,7 @@ body.home-v2-page {
   justify-content: space-between;
   gap: 12px;
   color: #3d4743;
-  font-size: 0.72rem;
+  font-size: 0.6875rem;
 }
 
 .hv2-budget dd {
@@ -882,7 +882,7 @@ body.home-v2-page {
 .hv2-avatars em {
   background: white;
   color: var(--hv2-green);
-  font-size: 0.72rem;
+  font-size: 0.6875rem;
   font-style: normal;
   font-weight: 820;
 }
@@ -917,7 +917,7 @@ body.home-v2-page {
 .hv2-supplier-band h2 {
   color: var(--hv2-forest-deep);
   font-family: var(--hv2-serif);
-  font-size: clamp(1.55rem, 2.2vw, 2.1rem);
+  font-size: clamp(1.5rem, 2.2vw, 2rem);
   font-weight: 520;
   line-height: 1.06;
 }
@@ -925,7 +925,7 @@ body.home-v2-page {
 .hv2-supplier-band__copy p:not(.hv2-kicker) {
   margin-top: 7px;
   color: #4f5c57;
-  font-size: 0.88rem;
+  font-size: 0.875rem;
 }
 
 .hv2-supplier-band__copy .hv2-button {
@@ -970,12 +970,12 @@ body.home-v2-page {
 
 .hv2-supplier-benefits h3 {
   color: var(--hv2-ink);
-  font-size: 0.9rem;
+  font-size: 0.875rem;
 }
 
 .hv2-supplier-benefits p {
   color: #56625d;
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   line-height: 1.36;
 }
 
@@ -993,7 +993,7 @@ body.home-v2-page {
 
 .hv2-brand--footer {
   color: white;
-  font-size: 1.26rem;
+  font-size: 1.25rem;
 }
 
 .hv2-brand--footer .hv2-brand__mark span {
@@ -1014,7 +1014,7 @@ body.home-v2-page {
 .hv2-footer h2 {
   color: white;
   font-family: var(--hv2-sans);
-  font-size: 0.76rem;
+  font-size: 0.75rem;
   font-weight: 900;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -1034,7 +1034,7 @@ body.home-v2-page {
   margin-top: 52px;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   padding-top: 20px;
-  font-size: 0.88rem;
+  font-size: 0.875rem;
 }
 
 .home-v2-page :focus-visible {
@@ -1199,7 +1199,7 @@ body.home-v2-page {
   }
 
   .hv2-brand {
-    font-size: 1.28rem;
+    font-size: 1.25rem;
   }
 
   .hv2-hero h1 {

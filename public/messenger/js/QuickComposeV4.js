@@ -261,27 +261,27 @@
           width: 44px; height: 44px; border-radius: 8px;
           background: linear-gradient(135deg,#0b8073,#0d9488);
           display: flex; align-items: center; justify-content: center;
-          font-size: 1.3rem; flex-shrink: 0;
+          font-size: 1.25rem; flex-shrink: 0;
         }
         .qcv4-context-info { flex: 1; min-width: 0; }
         .qcv4-context-label {
-          font-size: 0.72rem; color: #0b8073; font-weight: 600;
+          font-size: 0.6875rem; color: #0b8073; font-weight: 600;
           text-transform: uppercase; letter-spacing: 0.04em;
         }
         .qcv4-context-title {
-          font-size: 0.88rem; font-weight: 600; color: #1f2937;
+          font-size: 0.875rem; font-weight: 600; color: #1f2937;
           white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
 
         .qcv4-field { margin-bottom: 14px; }
         .qcv4-label {
-          display: block; font-size: 0.82rem; font-weight: 600;
+          display: block; font-size: 0.8125rem; font-weight: 600;
           color: #374151; margin-bottom: 5px;
         }
         .qcv4-recipient {
           width: 100%; padding: 9px 12px;
           border: 1px solid rgba(11,128,115,0.25); border-radius: 8px;
-          font-size: 0.88rem; font-family: inherit;
+          font-size: 0.875rem; font-family: inherit;
           background: rgba(255,255,255,0.9);
           box-sizing: border-box;
         }
@@ -290,7 +290,7 @@
         .qcv4-recipient-summary {
           width: 100%; padding: 9px 12px;
           border: 1px solid rgba(11,128,115,0.14); border-radius: 8px;
-          font-size: 0.88rem; font-weight: 600; color: #1f2937;
+          font-size: 0.875rem; font-weight: 600; color: #1f2937;
           background: rgba(240,253,250,0.72); box-sizing: border-box;
         }
         .qcv4-recipient-summary span { color: #0b8073; }
@@ -299,7 +299,7 @@
           width: 100%; min-height: 90px; max-height: 220px;
           padding: 10px 12px;
           border: 1px solid rgba(11,128,115,0.25); border-radius: 8px;
-          font-size: 0.88rem; font-family: inherit;
+          font-size: 0.875rem; font-family: inherit;
           resize: vertical;
           box-sizing: border-box;
           background: rgba(255,255,255,0.9);
@@ -320,7 +320,7 @@
           flex: 1; padding: 11px 20px;
           background: linear-gradient(135deg,#0b8073,#0d9488);
           color: #fff; border: none; border-radius: 10px;
-          font-size: 0.92rem; font-weight: 700; cursor: pointer;
+          font-size: 0.875rem; font-weight: 700; cursor: pointer;
           transition: opacity 0.15s, transform 0.1s;
         }
         .qcv4-submit:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -331,13 +331,13 @@
           background: transparent;
           color: #6b7280;
           border: 1px solid rgba(107,114,128,0.3);
-          border-radius: 10px; font-size: 0.88rem; cursor: pointer;
+          border-radius: 10px; font-size: 0.875rem; cursor: pointer;
           transition: background 0.15s;
         }
         .qcv4-cancel-btn:hover { background: rgba(107,114,128,0.08); }
 
         .qcv4-error {
-          font-size: 0.82rem; color: #dc2626;
+          font-size: 0.8125rem; color: #dc2626;
           margin-top: 8px; padding: 8px 12px;
           background: rgba(220,38,38,0.06); border-radius: 6px;
           display: none;

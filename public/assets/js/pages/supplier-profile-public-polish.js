@@ -27,7 +27,7 @@
         border-radius: 999px;
         background: rgba(124, 58, 237, 0.08);
         color: #5b21b6;
-        font-size: 0.76rem;
+        font-size: 0.75rem;
         font-weight: 800;
         vertical-align: middle;
       }
@@ -39,7 +39,7 @@
         border-radius: 14px;
         background: linear-gradient(135deg, rgba(124, 58, 237, 0.08), rgba(80, 192, 176, 0.08));
         color: #3b3161;
-        font-size: 0.86rem;
+        font-size: 0.8125rem;
         font-weight: 650;
       }
 

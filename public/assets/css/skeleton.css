@@ -221,7 +221,7 @@
 
 .loading-text {
   color: #6b7280;
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
 }
 
 /* Empty state fallback */
@@ -245,7 +245,7 @@
 }
 
 .empty-state-description {
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
   color: #6b7280;
   max-width: 400px;
   margin: 0 auto 1.5rem;
@@ -289,7 +289,7 @@
 }
 
 .error-state-description {
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
   color: #b91c1c;
   margin-bottom: 1.5rem;
 }

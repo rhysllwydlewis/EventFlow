@@ -73,7 +73,7 @@
 
 .ww-palette strong {
   grid-column: 1 / -1;
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
 }
 
 .ww-colour-grid { grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); }
@@ -102,7 +102,7 @@
 .ww-layout-row label,
 .ww-theme-tools .small {
   color: #64748b;
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
 }
 
 .ww-layout-row { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
@@ -216,7 +216,7 @@
 
 .ww-theme-preview__hero h3 {
   margin: 0;
-  font-size: clamp(1.8rem, 4vw, 3rem);
+  font-size: clamp(1.75rem, 4vw, 3rem);
 }
 
 .ww-theme-preview__hero p,

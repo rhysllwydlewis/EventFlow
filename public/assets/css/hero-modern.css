@@ -114,7 +114,7 @@
 /* Modern headline styles */
 .hero-modern h1 {
   margin: 0 0 0 0;
-  font-size: clamp(30px, 4.6vw, 48px);
+  font-size: clamp(28px, 4.6vw, 48px);
   font-weight: 600;
   line-height: 1.15;
   letter-spacing: -0.02em;
@@ -898,7 +898,7 @@
   background: rgba(15, 23, 42, 0.85);
   backdrop-filter: blur(8px);
   color: white;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 500;
   padding: 4px 8px;
   border-radius: 4px;
@@ -1010,7 +1010,7 @@
   }
 
   .hero-collage-label {
-    font-size: 8px; /* Smaller text */
+    font-size: 11px; /* Smaller text */
     padding: 2px 5px; /* Compact padding */
     top: auto; /* Keep position consistent with desktop */
     left: 6px;
@@ -1267,7 +1267,7 @@
   }
 
   .hero-modern h1 {
-    font-size: 22px;
+    font-size: 20px;
   }
 
   .hero-modern-subcopy {

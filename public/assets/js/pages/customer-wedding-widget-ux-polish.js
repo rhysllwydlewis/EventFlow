@@ -68,7 +68,7 @@
         padding: 0.9rem 1rem;
         color: var(--ww-navy, #24436f);
         cursor: pointer;
-        font-size: 0.94rem;
+        font-size: 0.875rem;
         font-weight: 820;
         letter-spacing: -0.018em;
         list-style: none;
@@ -234,7 +234,7 @@
         background: rgba(255, 247, 247, 0.92);
         color: #a3362b;
         cursor: pointer;
-        font-size: 0.78rem;
+        font-size: 0.75rem;
         font-weight: 820;
         padding: 0.42rem 0.7rem;
         transition: background 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;

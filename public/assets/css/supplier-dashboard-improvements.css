@@ -455,7 +455,7 @@
   }
 
   .supplier-action-btn--large .action-icon {
-    font-size: 30px;
+    font-size: 28px;
   }
 }
 
@@ -481,7 +481,7 @@
   }
 
   .supplier-action-btn--large .action-icon {
-    font-size: 26px;
+    font-size: 24px;
   }
 
   .supplier-action-btn--large .action-label {
@@ -536,7 +536,7 @@
   }
 
   .supplier-action-btn--large .action-icon {
-    font-size: 22px;
+    font-size: 20px;
   }
 
   .supplier-action-btn--large .action-label {
@@ -544,7 +544,7 @@
   }
 
   .supplier-action-btn--large .action-desc {
-    font-size: 10px;
+    font-size: 11px;
     opacity: 0.85;
     line-height: 1.1;
   }
@@ -572,7 +572,7 @@
   }
 
   .supplier-action-btn .action-icon {
-    font-size: 22px;
+    font-size: 20px;
   }
 
   .supplier-action-btn .action-text {
@@ -1077,7 +1077,7 @@ body.supplier-dashboard-page .supplier-cta-section {
     position: absolute;
     top: 2px;
     right: 2px;
-    font-size: 10px;
+    font-size: 11px;
     min-width: 16px;
     height: 16px;
     padding: 2px 4px;
@@ -1969,7 +1969,7 @@ details[open] .faq-question::after {
 
 .supplier-cta-banner-title {
   margin: 0 0 var(--ef-space-2, 8px) 0;
-  font-size: 1.35rem;
+  font-size: 1.25rem;
   font-weight: 700;
 }
 
@@ -2533,7 +2533,7 @@ textarea:focus {
   border: 1px solid rgba(11, 128, 115, 0.24);
   background: rgba(11, 128, 115, 0.06);
   color: #3f4f63;
-  font-size: 0.95rem;
+  font-size: 0.875rem;
   line-height: 1.4;
 }
 
@@ -3359,7 +3359,7 @@ textarea:focus-visible {
 }
 
 .stat-trend-arrow {
-  font-size: 10px;
+  font-size: 11px;
 }
 
 /* ===========================================
@@ -3718,7 +3718,7 @@ textarea:focus-visible {
   }
 
   .radio-card-icon {
-    font-size: 22px;
+    font-size: 20px;
   }
 
   .radio-card-label {
@@ -4039,7 +4039,7 @@ textarea:focus-visible {
   min-width: 0;
   padding: 6px 8px;
   font-family: inherit;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: var(--ef-font-medium, 500);
   border-radius: var(--ef-radius-md, 8px);
   border: 1px solid;
@@ -4340,7 +4340,7 @@ h2 {
 
 h3 {
   color: var(--ef-text, #0b1220);
-  font-size: clamp(18px, 2.5vw, 22px);
+  font-size: clamp(18px, 2.5vw, 20px);
 }
 
 /* Smooth scroll behavior */
@@ -4704,7 +4704,7 @@ html {
 
 .search-suggestion-item {
   padding: 0.55rem 1rem;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   color: #374151;
   cursor: pointer;
   transition: background 0.1s;
@@ -5022,7 +5022,7 @@ html {
 
 .sd-roi-heading {
   margin: 0;
-  font-size: 1.0625rem;
+  font-size: 1rem;
   font-weight: var(--ef-font-semibold, 600);
   color: var(--ef-text, #0b1220);
 }
@@ -5206,7 +5206,7 @@ html {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.875rem;
+  font-size: 1.75rem;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   flex-shrink: 0;
 }
@@ -5586,7 +5586,7 @@ body.supplier-dashboard-page .sd-two-col > .card {
   font-weight: 600;
   color: var(--ef-text, #0b1220);
   margin-bottom: 0.375rem;
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
 }
 
 .sd-reviews-tip__list {
@@ -5621,7 +5621,7 @@ body.supplier-dashboard-page .sd-two-col > .card {
 
 .sd-empty-state__title {
   margin: 0;
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
   font-weight: 600;
   color: var(--ef-text, #0b1220);
 }
@@ -5685,7 +5685,7 @@ body.supplier-dashboard-page .sd-two-col > .card {
 }
 
 .sd-empty-state--inline .sd-empty-state__icon {
-  font-size: 1.375rem;
+  font-size: 1.25rem;
   margin-bottom: 0;
   opacity: 0.6;
   flex-shrink: 0;
@@ -5749,7 +5749,7 @@ body.supplier-dashboard-page .sd-two-col > .card {
 
 .sd-card .section .empty-state-title,
 .sd-card > .section .empty-state-title {
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
   font-weight: 600;
   margin: 0 0 0.375rem;
 }
@@ -5822,7 +5822,7 @@ body.supplier-dashboard-page .sd-two-col > .card {
 
 .supplier-ticket-item__meta {
   color: #9ca3af;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
 }
 
 /* ============================================
@@ -5987,7 +5987,7 @@ body.supplier-dashboard-page .sd-two-col > .card {
 
 /* ── Section divider inside form ── */
 .pc-section-heading {
-  font-size: 0.95rem;
+  font-size: 0.875rem;
   font-weight: var(--ef-font-semibold, 600);
   color: #0b8073;
   letter-spacing: 0.02em;
@@ -6098,7 +6098,7 @@ body:not(.supplier-dashboard-page) .section > .container {
   -webkit-backdrop-filter: blur(8px);
   border: 1.5px solid rgba(11, 128, 115, 0.2);
   border-radius: 8px;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   font-family: monospace;
   transition:
     border-color 0.2s ease,
@@ -6120,7 +6120,7 @@ body:not(.supplier-dashboard-page) .section > .container {
 
 .social-label {
   display: block;
-  font-size: 0.85rem;
+  font-size: 0.8125rem;
   font-weight: 600;
   color: #374151;
   margin-bottom: 0.375rem;
@@ -6134,7 +6134,7 @@ body:not(.supplier-dashboard-page) .section > .container {
   -webkit-backdrop-filter: blur(8px);
   border: 1.5px solid rgba(209, 213, 219, 0.6);
   border-radius: 8px;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   font-family: inherit;
   transition:
     border-color 0.2s ease,
@@ -6164,7 +6164,7 @@ body:not(.supplier-dashboard-page) .section > .container {
   -webkit-backdrop-filter: blur(8px);
   border: 1.5px solid rgba(209, 213, 219, 0.6);
   border-radius: 8px;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   font-family: inherit;
   transition:
     border-color 0.2s ease,
@@ -6241,7 +6241,7 @@ body:not(.supplier-dashboard-page) .section > .container {
   }
 
   .supplier-breadcrumb-link {
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     padding: 0.375rem 0.875rem;
   }
 
@@ -6358,7 +6358,7 @@ body:not(.supplier-dashboard-page) .section > .container {
   border-radius: 50%;
   background: rgba(220, 38, 38, 0.88);
   color: #fff;
-  font-size: 9px;
+  font-size: 11px;
   line-height: 1;
   cursor: pointer;
   display: flex;
@@ -6391,7 +6391,7 @@ body:not(.supplier-dashboard-page) .section > .container {
 }
 
 .pkg-gallery-hint {
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   color: #6b7280;
 }
 
@@ -6477,7 +6477,7 @@ body:not(.supplier-dashboard-page) .section > .container {
   bottom: 3px;
   left: 3px;
   padding: 1px 5px;
-  font-size: 0.65rem;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.03em;
   text-transform: uppercase;
@@ -6510,12 +6510,12 @@ body:not(.supplier-dashboard-page) .section > .container {
 
 .cta-sm {
   padding: 5px 14px;
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
   border-radius: 6px;
 }
 
 .pkg-gallery-order-status {
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
   color: #16a34a;
   font-weight: 500;
 }
@@ -6531,7 +6531,7 @@ body:not(.supplier-dashboard-page) .section > .container {
   border: 1px solid #fecaca;
   border-radius: 8px;
   color: #dc2626;
-  font-size: 0.85rem;
+  font-size: 0.8125rem;
   line-height: 1.45;
   animation: photoDropErrIn 0.18s ease;
 }
@@ -6566,7 +6566,7 @@ body:not(.supplier-dashboard-page) .section > .container {
   right: 0;
   background: rgba(185, 28, 28, 0.9);
   color: #fff;
-  font-size: 0.58rem;
+  font-size: 0.6875rem;
   font-weight: 700;
   padding: 3px 5px;
   text-align: center;
@@ -6593,7 +6593,7 @@ body:not(.supplier-dashboard-page) .section > .container {
   border: 1px solid rgba(255, 255, 255, 0.8);
   border-radius: 50%;
   cursor: pointer;
-  font-size: 8px;
+  font-size: 11px;
   font-weight: 800;
   line-height: 1;
   color: #374151;
@@ -6669,7 +6669,7 @@ body:not(.supplier-dashboard-page) .section > .container {
   padding: 0.875rem 1.25rem;
   border-radius: 12px;
   margin: 0.75rem 0 0;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   font-weight: 500;
   line-height: 1.4;
   backdrop-filter: blur(12px);
@@ -6698,7 +6698,7 @@ body:not(.supplier-dashboard-page) .section > .container {
   color: #1e40af;
 }
 .sd-urgent-alert__icon {
-  font-size: 1.1rem;
+  font-size: 1.125rem;
   flex-shrink: 0;
   margin-top: 0.05rem;
 }
@@ -6803,7 +6803,7 @@ body:not(.supplier-dashboard-page) .section > .container {
   padding: 0.2em 0.75em;
   background: rgba(107, 114, 128, 0.12);
   color: #374151;
-  font-size: 0.7rem;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.07em;
   border-radius: 999px;
@@ -6840,7 +6840,7 @@ body:not(.supplier-dashboard-page) .section > .container {
   padding: 0.625rem 1.5rem;
   background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
   color: #fff;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   font-weight: 700;
   border-radius: 10px;
   text-decoration: none;
@@ -6880,7 +6880,7 @@ body:not(.supplier-dashboard-page) .section > .container {
   display: inline-flex;
   align-items: center;
   padding: 0.2em 0.75em;
-  font-size: 0.7rem;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.07em;
   border-radius: 999px;
@@ -6962,13 +6962,13 @@ body:not(.supplier-dashboard-page) .section > .container {
   margin-bottom: 0.05rem;
 }
 .sd-subscription-active__detail-label {
-  font-size: 0.775rem;
+  font-size: 0.75rem;
   color: var(--ef-text-muted, #6b7280);
   flex-shrink: 0;
   padding-top: 0.05rem;
 }
 .sd-subscription-active__detail-value {
-  font-size: 0.775rem;
+  font-size: 0.75rem;
   color: var(--ef-text, #0b1220);
   font-weight: 600;
   text-align: right;
@@ -6976,7 +6976,7 @@ body:not(.supplier-dashboard-page) .section > .container {
   min-width: 0;
 }
 .sd-subscription-active__renewal-notice {
-  font-size: 0.775rem;
+  font-size: 0.75rem;
   font-weight: 600;
   margin: 0;
   padding: 0.35rem 0.625rem;
@@ -6994,7 +6994,7 @@ body:not(.supplier-dashboard-page) .section > .container {
 }
 .sd-subscription-active__interval {
   margin-left: auto;
-  font-size: 0.72rem;
+  font-size: 0.6875rem;
   font-weight: 600;
   color: var(--ef-text-muted, #6b7280);
   background: rgba(11, 128, 115, 0.07);
@@ -7005,7 +7005,7 @@ body:not(.supplier-dashboard-page) .section > .container {
   letter-spacing: 0.02em;
 }
 .sd-subscription-active__trial-notice {
-  font-size: 0.775rem;
+  font-size: 0.75rem;
   font-weight: 600;
   margin: 0;
   padding: 0.35rem 0.625rem;
@@ -7031,7 +7031,7 @@ body:not(.supplier-dashboard-page) .section > .container {
   align-items: center;
   gap: 0.3rem;
   padding: 0.2em 0.65em;
-  font-size: 0.7rem;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.05em;
   border-radius: 999px;
@@ -7093,7 +7093,7 @@ body:not(.supplier-dashboard-page) .section > .container {
 
 /* ── Messages section unread badge ── */
 .supplier-unread-badge {
-  font-size: 0.7rem;
+  font-size: 0.6875rem;
   font-weight: 700;
   padding: 0.2em 0.65em;
   border-radius: 999px;
@@ -7119,7 +7119,7 @@ body:not(.supplier-dashboard-page) .section > .container {
 /* ── Stats grid microcopy ── */
 .stat-microcopy {
   display: block;
-  font-size: 0.7rem;
+  font-size: 0.6875rem;
   color: var(--ef-text-muted, #9ca3af);
   margin-top: 0.2rem;
   font-weight: 400;
@@ -7331,7 +7331,7 @@ label .required {
 .supplier-calendar-cta-link {
   display: inline-flex;
   align-items: center;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 500;
   color: var(--ef-primary, #0b8073);
   text-decoration: none;
@@ -7377,7 +7377,7 @@ label .required {
   flex-wrap: wrap;
   gap: 0.5rem 1rem;
   margin-bottom: 0.75rem;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   color: var(--ef-text-muted, #667085);
 }
 
@@ -7395,7 +7395,7 @@ label .required {
 
   .supplier-calendar-add-btn {
     padding: 0.35rem 0.65rem;
-    font-size: 0.8rem;
+    font-size: 0.75rem;
   }
 
   .supplier-calendar-cta-link {
@@ -7435,7 +7435,7 @@ label .required {
   right: 1.5rem;
   padding: 0.75rem 1.25rem;
   border-radius: var(--ef-radius-sm, 6px);
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   font-weight: 500;
   color: #fff;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
@@ -7474,7 +7474,7 @@ label .required {
 
 .cal-fallback-empty__text {
   color: var(--ef-text-muted, #667085);
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   margin: 0;
 }
 
@@ -7498,7 +7498,7 @@ label .required {
 
 .cal-delete-popover__btn {
   padding: 0.375rem 0.875rem;
-  font-size: 0.85rem;
+  font-size: 0.8125rem;
   font-weight: 500;
   border-radius: var(--ef-radius-sm, 6px);
   cursor: pointer;
@@ -7694,7 +7694,7 @@ label .required {
 .cal-entry-modal__optional {
   font-weight: 400;
   color: var(--ef-text-muted, #667085);
-  font-size: 0.8rem;
+  font-size: 0.75rem;
 }
 
 .cal-entry-modal__input,
@@ -7703,7 +7703,7 @@ label .required {
   padding: 0.625rem 0.75rem;
   border: 1px solid #d0d5dd;
   border-radius: var(--ef-radius-sm, 6px);
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
   color: var(--ef-text, #0b1220);
   background: #fff;
   transition:
@@ -7747,7 +7747,7 @@ label .required {
   gap: 0.5rem;
   padding: 0.5rem 1.25rem;
   border-radius: var(--ef-radius-sm, 6px);
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
   border: 1px solid transparent;
@@ -7939,7 +7939,7 @@ label .required {
   bottom: 4px;
   left: 4px;
   padding: 2px 6px;
-  font-size: 0.55rem;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -8052,7 +8052,7 @@ label .required {
   bottom: 4px;
   left: 4px;
   padding: 1px 5px;
-  font-size: 0.6rem;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -8068,7 +8068,7 @@ label .required {
 .photo-preview-empty-hint {
   width: 100%;
   padding: 10px 0 2px;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   color: #9ca3af;
   text-align: center;
   pointer-events: none;
@@ -8274,7 +8274,7 @@ label .required {
 
 .spc-name {
   margin: 0;
-  font-size: 1.3rem;
+  font-size: 1.25rem;
   font-weight: 700;
   color: #101828;
   line-height: 1.2;
@@ -8294,7 +8294,7 @@ label .required {
   border-radius: 999px;
   border: 1px solid transparent;
   padding: 4px 11px;
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   font-weight: 600;
   line-height: 1.2;
   letter-spacing: 0.01em;
@@ -8330,7 +8330,7 @@ label .required {
   flex-wrap: wrap;
   gap: 5px;
   color: #555f6d;
-  font-size: 0.85rem;
+  font-size: 0.8125rem;
 }
 
 .spc-meta-icon {
@@ -8349,7 +8349,7 @@ label .required {
 .spc-desc {
   margin: 0;
   color: #667085;
-  font-size: 0.84rem;
+  font-size: 0.8125rem;
   line-height: 1.4;
   white-space: nowrap;
   overflow: hidden;
@@ -8458,7 +8458,7 @@ label .required {
 }
 
 .spc-ring-score {
-  font-size: 1.9rem;
+  font-size: 2rem;
   font-weight: 800;
   color: #101828;
   line-height: 1;
@@ -8466,7 +8466,7 @@ label .required {
 
 /* "Health Score" label — below the ring circle */
 .spc-ring-label {
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   font-weight: 600;
   color: #667085;
   line-height: 1.3;
@@ -8474,7 +8474,7 @@ label .required {
 
 /* "Good / Fair / Poor" grade — below the label */
 .spc-ring-grade {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 700;
   color: #0b8073;
   line-height: 1.2;
@@ -8598,10 +8598,10 @@ label .required {
   .spc-avatar-col {
     width: 76px !important;
     height: 76px !important;
-    font-size: 1.8rem !important;
+    font-size: 1.75rem !important;
   }
   .spc-name {
-    font-size: 1.1rem;
+    font-size: 1.125rem;
   }
   /* 3-button bar: single column on very small screens for readability */
   .spc-actions {
@@ -8637,7 +8637,7 @@ label .required {
   border: 1px solid rgba(11, 128, 115, 0.2);
   border-radius: 999px;
   padding: 3px 10px 3px 7px;
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
   font-weight: 600;
   line-height: 1.3;
 }
@@ -8696,7 +8696,7 @@ label .required {
 }
 
 .spc-checklist-title {
-  font-size: 0.95rem;
+  font-size: 0.875rem;
   font-weight: 700;
   color: #101828;
   line-height: 1.2;
@@ -8710,14 +8710,14 @@ label .required {
   border: 1px solid rgba(11, 128, 115, 0.2);
   border-radius: 999px;
   padding: 2px 10px;
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   font-weight: 700;
   line-height: 1.5;
 }
 
 .spc-checklist-subtitle {
   margin: 0;
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
   color: #667085;
   line-height: 1.4;
 }
@@ -8767,7 +8767,7 @@ label .required {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.85rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   background: rgba(148, 163, 184, 0.12);
   color: #98a2b3;
@@ -8782,7 +8782,7 @@ label .required {
 }
 
 .spc-checklist-step-label {
-  font-size: 0.72rem;
+  font-size: 0.6875rem;
   font-weight: 500;
   color: #98a2b3;
   text-align: center;
@@ -8797,7 +8797,7 @@ label .required {
 }
 
 .spc-checklist-step-detail {
-  font-size: 0.68rem;
+  font-size: 0.6875rem;
   color: #94a3b8;
   text-align: center;
   line-height: 1.25;
@@ -8880,7 +8880,7 @@ label .required {
   padding: 0.25rem 0.75rem;
   cursor: pointer;
   color: #92400e;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-family: inherit;
   white-space: nowrap;
   transition: background 0.15s ease, color 0.15s ease;
@@ -8939,7 +8939,7 @@ label .required {
   display: inline-block;
   padding: 0.15rem 0.5rem;
   border-radius: 9999px;
-  font-size: 0.7rem;
+  font-size: 0.6875rem;
   font-weight: 700;
   color: #fff;
 }
@@ -8970,7 +8970,7 @@ label .required {
 }
 
 .sd-next-steps__desc {
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
   opacity: 0.9;
 }
 
@@ -8981,7 +8981,7 @@ label .required {
   background: #0b8073;
   color: #fff;
   border-radius: 6px;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 600;
   text-decoration: none;
   transition: background 0.15s ease, transform 0.15s ease;
@@ -9001,7 +9001,7 @@ label .required {
   background: none;
   border: none;
   color: #94a3b8;
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   cursor: pointer;
   padding: 0.25rem 0;
   font-family: inherit;
@@ -9367,7 +9367,7 @@ label .required {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
   z-index: 9999;
   max-width: 260px;
-  font-size: 0.85rem;
+  font-size: 0.8125rem;
   pointer-events: none;
   color: #0b1220;
 }
@@ -9542,13 +9542,13 @@ label .required {
   margin-bottom: 0.75rem;
 }
 #supplier-reviews-section .sr-empty-title {
-  font-size: 1.1rem;
+  font-size: 1.125rem;
   font-weight: 700;
   margin: 0 0 0.5rem;
   color: #111827;
 }
 #supplier-reviews-section .sr-empty-desc {
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   color: #6b7280;
   max-width: 420px;
   margin: 0 auto 1.25rem;
@@ -9581,7 +9581,7 @@ label .required {
   line-height: 1;
 }
 #supplier-reviews-section .sr-total-count {
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   color: #92400e;
   margin-top: 0.2rem;
 }
@@ -9600,7 +9600,7 @@ label .required {
   gap: 0.5rem;
 }
 #supplier-reviews-section .sr-dist-label {
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   color: #92400e;
   width: 2rem;
   text-align: right;
@@ -9642,19 +9642,19 @@ label .required {
   text-align: center;
 }
 #supplier-reviews-section .sr-stat-label {
-  font-size: 0.72rem;
+  font-size: 0.6875rem;
   color: #92400e;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin-bottom: 0.2rem;
 }
 #supplier-reviews-section .sr-stat-value {
-  font-size: 1.4rem;
+  font-size: 1.5rem;
   font-weight: 800;
   color: #b45309;
 }
 #supplier-reviews-section .sr-stat-sub {
-  font-size: 0.72rem;
+  font-size: 0.6875rem;
   color: #92400e;
 }
 
@@ -9667,7 +9667,7 @@ label .required {
   flex-wrap: wrap;
 }
 #supplier-reviews-section .sr-sort-label {
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
   color: #6b7280;
   white-space: nowrap;
 }
@@ -9685,7 +9685,7 @@ label .required {
   outline-offset: 1px;
 }
 #supplier-reviews-section .sr-page-info {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   color: #9ca3af;
   margin-left: auto;
 }
@@ -9722,13 +9722,13 @@ label .required {
 #supplier-reviews-section .sr-review-rating-num {
   font-weight: 700;
   color: #92400e;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
 }
 #supplier-reviews-section .sr-badge {
   display: inline-block;
   padding: 0.15rem 0.5rem;
   border-radius: 100px;
-  font-size: 0.7rem;
+  font-size: 0.6875rem;
   font-weight: 600;
 }
 #supplier-reviews-section .sr-badge--verified {
@@ -9736,21 +9736,21 @@ label .required {
   color: #065f46;
 }
 #supplier-reviews-section .sr-review-date {
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   color: #9ca3af;
 }
 #supplier-reviews-section .sr-review-author {
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
   color: #6b7280;
   margin: 0 0 0.4rem;
 }
 #supplier-reviews-section .sr-review-title {
   font-weight: 700;
   margin: 0 0 0.35rem;
-  font-size: 0.95rem;
+  font-size: 0.875rem;
 }
 #supplier-reviews-section .sr-review-text {
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   color: #374151;
   line-height: 1.6;
   margin: 0 0 1rem;
@@ -9773,12 +9773,12 @@ label .required {
   margin-bottom: 0.4rem;
 }
 #supplier-reviews-section .sr-response-label {
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   font-weight: 700;
   color: #15803d;
 }
 #supplier-reviews-section .sr-response-date {
-  font-size: 0.72rem;
+  font-size: 0.6875rem;
   color: #6b7280;
 }
 #supplier-reviews-section .sr-response-text {
@@ -9792,7 +9792,7 @@ label .required {
   background: none;
   border: none;
   padding: 0;
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   color: #0b8073;
   cursor: pointer;
   text-decoration: underline;
@@ -9805,7 +9805,7 @@ label .required {
   margin-top: 0.25rem;
 }
 #supplier-reviews-section .sr-reply-btn {
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
   padding: 0.4rem 0.875rem;
   border-radius: 6px;
   border: 1px solid var(--ef-brand, #0b8073);
@@ -9830,7 +9830,7 @@ label .required {
 }
 #supplier-reviews-section .sr-reply-label {
   display: block;
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
   font-weight: 600;
   color: #374151;
   margin-bottom: 0.5rem;
@@ -9894,13 +9894,13 @@ label .required {
 }
 #supplier-reviews-section .sr-reply-cancel:hover { color: #111827; }
 #supplier-reviews-section .sr-reply-status {
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
 }
 
 /* ── Confirmation flash ──────────────────────────────────────────────────── */
 #supplier-reviews-section .sr-reply-confirm {
   display: inline-block;
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   color: #15803d;
   background: #d1fae5;
   padding: 0.2rem 0.6rem;
