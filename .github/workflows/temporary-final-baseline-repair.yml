@@ -1,0 +1,85 @@
+name: Temporary Final Baseline Repair
+
+on:
+  push:
+    branches: [agent/clean-install-ci-baseline]
+    paths:
+      - '.github/workflows/temporary-final-baseline-repair.yml'
+      - 'scripts/trigger-final-baseline-repair.txt'
+
+permissions:
+  contents: write
+
+env:
+  HUSKY: '0'
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repair branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/clean-install-ci-baseline
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.node-version'
+          cache: 'npm'
+
+      - name: Clean install dependencies
+        run: npm ci --prefer-offline --no-audit
+
+      - name: Apply final TypeScript casts
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('src/homepages/home-v3.ts')
+          source = path.read_text()
+          before = 'options.indexOf(document.activeElement)'
+          count = source.count(before)
+          if count != 2:
+              raise SystemExit(f'Expected 2 activeElement index lookups, found {count}')
+          path.write_text(source.replace(before, 'options.indexOf(document.activeElement as HTMLButtonElement)'))
+          PY
+
+      - name: Verify and build homepage TypeScript
+        run: |
+          npm run typecheck:homepages
+          npm run build:homepages
+
+      - name: Format the five reported baseline files
+        run: >-
+          npx prettier --write
+          public/assets/js/pages/admin-behaviour-analytics.js
+          public/assets/js/pages/suppliers-init.js
+          tests/unit/behaviour-analytics.test.js
+          tests/unit/package-placeholder-consistency.test.js
+          utils/behaviourAnalytics.js
+
+      - name: Commit final baseline repairs
+        run: |
+          if git diff --quiet; then
+            echo "Final baseline files already repaired."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            src/homepages/home-v3.ts \
+            public/assets/js/pages/home-v2.js \
+            public/assets/js/pages/home-v3.js \
+            public/assets/js/pages/home-v3-video.js \
+            public/assets/js/pages/admin-behaviour-analytics.js \
+            public/assets/js/pages/suppliers-init.js \
+            tests/unit/behaviour-analytics.test.js \
+            tests/unit/package-placeholder-consistency.test.js \
+            utils/behaviourAnalytics.js
+          git commit -m "Complete TypeScript and formatting baseline repairs"
+          git push origin HEAD:agent/clean-install-ci-baseline
