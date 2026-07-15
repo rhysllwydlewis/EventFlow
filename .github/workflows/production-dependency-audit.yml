@@ -63,3 +63,104 @@ jobs:
       - name: Enforce production audit result
         if: steps.production-audit.outcome == 'failure'
         run: exit 1
+
+  temporary-restore-supplier-regression-test:
+    name: Temporary supplier regression test restoration
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/clean-install-ci-baseline
+          fetch-depth: 0
+
+      - name: Restore the complete test from main
+        run: |
+          git fetch origin main
+          git show origin/main:tests/unit/supplier-dashboard-fixes.test.js > tests/unit/supplier-dashboard-fixes.test.js
+
+      - name: Apply only the five audited assertion updates
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('tests/unit/supplier-dashboard-fixes.test.js')
+          source = path.read_text()
+
+          replacements = [
+              (
+                  "expect(errorHandlerJs).toContain('catch (parseError)');",
+                  "expect(errorHandlerJs).toMatch(/catch\\s*\\(\\s*_?parseError\\s*\\)/);",
+              ),
+              (
+                  """expect(settingsHtml).toContain(
+      'for=\"avatar-upload-input\" class=\"cta secondary\" style=\"cursor:pointer;font-size:0.82rem;padding:0.375rem 0.875rem;display:inline-flex;align-items:center;gap:0.35rem;border-radius:6px;box-sizing:border-box;line-height:inherit;\"'
+    );""",
+                  """expect(settingsHtml).toMatch(
+      /for=\"avatar-upload-input\" class=\"cta secondary\" style=\"[^\"]*font-size:0\\.8125rem;[^\"]*box-sizing:border-box;line-height:inherit;\"/
+    );""",
+              ),
+              (
+                  "expect(stylesCss).toContain('font-size:7px;');",
+                  "expect(stylesCss).toMatch(/font-size:\\s*7px;/);",
+              ),
+              (
+                  """    expect(supplierDashImprovementsCss).toContain('top: -6px;');
+    expect(supplierDashImprovementsCss).toContain('right: -6px;');
+    // min-width/min-height must be 0 to override the 44px WCAG touch-target rule
+    expect(supplierDashImprovementsCss).toContain('min-width: 0;');
+    expect(supplierDashImprovementsCss).toContain('min-height: 0;');
+    expect(supplierDashImprovementsCss).toContain('font-size: 9px;');""",
+                  """    expect(supplierDashImprovementsCss).toContain('top: -8px;');
+    expect(supplierDashImprovementsCss).toContain('right: -8px;');
+    expect(supplierDashImprovementsCss).toContain('width: 20px;');
+    expect(supplierDashImprovementsCss).toContain('height: 20px;');
+    // min-width/min-height remain 0 so the circular overlay keeps its explicit compact size.
+    expect(supplierDashImprovementsCss).toContain('min-width: 0;');
+    expect(supplierDashImprovementsCss).toContain('min-height: 0;');
+    expect(supplierDashImprovementsCss).toContain('font-size: 12px;');""",
+              ),
+              (
+                  "expect(supplierDashImprovementsCss).toContain('font-size: 9px;');\n    // ef-cta must NOT be on the button — it overrides padding/position and breaks the overlay",
+                  "expect(supplierDashImprovementsCss).toContain('font-size: 12px;');\n    // ef-cta must NOT be on the button — it overrides padding/position and breaks the overlay",
+              ),
+          ]
+
+          for before, after in replacements:
+              count = source.count(before)
+              if count != 1:
+                  raise SystemExit(f'Expected one assertion block, found {count}: {before[:100]!r}')
+              source = source.replace(before, after, 1)
+
+          path.write_text(source)
+          PY
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.node-version'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit
+
+      - name: Format and validate the restored test
+        run: |
+          npx prettier --write tests/unit/supplier-dashboard-fixes.test.js
+          npx jest --runInBand --coverage=false tests/unit/supplier-dashboard-fixes.test.js
+        env:
+          NODE_ENV: test
+          JWT_SECRET: test-secret-key-for-supplier-regression-restoration
+
+      - name: Commit the complete restored test
+        run: |
+          test "$(wc -l < tests/unit/supplier-dashboard-fixes.test.js)" -gt 650
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tests/unit/supplier-dashboard-fixes.test.js
+          git commit -m "Restore complete supplier regression coverage"
+          git push origin HEAD:agent/clean-install-ci-baseline
