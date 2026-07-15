@@ -1,0 +1,72 @@
+name: Run PostHog health recovery
+
+on:
+  pull_request:
+    branches:
+      - main
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: write
+
+jobs:
+  apply-and-verify:
+    if: github.head_ref == 'agent/posthog-health-recovery'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout recovery branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Extract and run focused recovery script
+        shell: bash
+        run: |
+          awk '
+            /- name: Apply focused PostHog changes/ { found=1; next }
+            found && /run: \|/ { capture=1; next }
+            capture && /^      - name:/ { exit }
+            capture { sub(/^          /, ""); print }
+          ' .github/workflows/posthog-health-recovery.yml > /tmp/apply-posthog-health.sh
+          test -s /tmp/apply-posthog-health.sh
+          bash /tmp/apply-posthog-health.sh
+
+      - name: Validate JavaScript syntax
+        run: |
+          node --check public/assets/js/behaviour-analytics.js
+          node --check utils/template-renderer.js
+          node --check tests/unit/posthog-web-vitals-health.test.js
+
+      - name: Install test dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Run focused analytics tests
+        run: >-
+          npx jest --runInBand --coverage=false
+          tests/unit/behaviour-analytics-integration.test.js
+          tests/unit/analytics-independent-hardening.test.js
+          tests/unit/posthog-web-vitals-health.test.js
+
+      - name: Commit verified recovery and remove temporary runners
+        shell: bash
+        run: |
+          rm .github/workflows/posthog-health-recovery.yml
+          rm .github/workflows/posthog-health-pr-runner.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/assets/js/behaviour-analytics.js utils/template-renderer.js \
+            tests/unit/posthog-web-vitals-health.test.js \
+            docs/analytics/posthog-web-analytics-recovery.md \
+            .github/workflows/posthog-health-recovery.yml \
+            .github/workflows/posthog-health-pr-runner.yml
+          git commit -m "fix: recover PostHog Web Analytics health"
+          git push origin HEAD:agent/posthog-health-recovery
