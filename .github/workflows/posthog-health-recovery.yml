@@ -1,0 +1,239 @@
+name: Apply PostHog health recovery
+
+on:
+  push:
+    branches:
+      - agent/posthog-health-recovery
+
+permissions:
+  contents: write
+
+jobs:
+  apply-fix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout recovery branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/posthog-health-recovery
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Apply focused PostHog changes
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          analytics_path = Path('public/assets/js/behaviour-analytics.js')
+          source = analytics_path.read_text(encoding='utf-8')
+
+          helper = """  function sanitizePostHogProviderEvent(event) {
+            if (!event || typeof event !== 'object') {
+              return event;
+            }
+
+            const properties = event.properties;
+            if (!properties || typeof properties !== 'object' || Array.isArray(properties)) {
+              return event;
+            }
+
+            // This integration is deliberately personless, so the provider flag must remain boolean false.
+            properties.$process_person_profile = false;
+
+            Object.keys(properties).forEach(function (key) {
+              if (!key.startsWith('$web_vitals_') || !key.endsWith('_event')) {
+                return;
+              }
+              const metric = properties[key];
+              if (!metric || typeof metric !== 'object' || Array.isArray(metric)) {
+                return;
+              }
+              if (typeof metric.$current_url === 'string') {
+                metric.$current_url = metric.$current_url.split(/[?#]/, 1)[0];
+              }
+            });
+
+            return event;
+          }
+
+          """
+          helper_anchor = "  function startPostHog(config) {\n"
+          if 'function sanitizePostHogProviderEvent(event)' not in source:
+              if source.count(helper_anchor) != 1:
+                  raise SystemExit('Expected one startPostHog anchor')
+              source = source.replace(helper_anchor, helper + helper_anchor)
+
+          old_config = """      capture_pageleave: false,
+                capture_performance: false,
+                person_profiles: 'never',
+          """
+          new_config = """      capture_pageleave: false,
+                capture_performance: {
+                  web_vitals: true,
+                  web_vitals_attribution: false,
+                },
+                person_profiles: 'never',
+                before_send: sanitizePostHogProviderEvent,
+          """
+          if old_config not in source:
+              raise SystemExit('Expected PostHog performance config was not found')
+          source = source.replace(old_config, new_config, 1)
+          analytics_path.write_text(source, encoding='utf-8')
+
+          renderer_path = Path('utils/template-renderer.js')
+          renderer = renderer_path.read_text(encoding='utf-8')
+          old_asset = '    <script src="/assets/js/behaviour-analytics.js?v=1" defer></script>'
+          new_asset = '    <script src="/assets/js/behaviour-analytics.js?v=2" defer></script>'
+          if renderer.count(old_asset) != 1:
+              raise SystemExit('Expected behaviour analytics cache key was not found')
+          renderer_path.write_text(renderer.replace(old_asset, new_asset, 1), encoding='utf-8')
+
+          test_path = Path('tests/unit/posthog-web-vitals-health.test.js')
+          test_path.write_text("""'use strict';
+
+          const fs = require('fs');
+          const path = require('path');
+          const vm = require('vm');
+
+          const ROOT = path.join(__dirname, '../..');
+
+          function read(relativePath) {
+            return fs.readFileSync(path.join(ROOT, relativePath), 'utf8');
+          }
+
+          function loadProviderSanitizer(source) {
+            const start = source.indexOf('  function sanitizePostHogProviderEvent(event)');
+            const end = source.indexOf('\n  function startPostHog(config)', start);
+            if (start < 0 || end <= start) {
+              throw new Error('Unable to locate sanitizePostHogProviderEvent');
+            }
+
+            const context = {};
+            vm.createContext(context);
+            vm.runInContext(
+              `${source.slice(start, end)}\nthis.sanitizePostHogProviderEvent = sanitizePostHogProviderEvent;`,
+              context
+            );
+            return context.sanitizePostHogProviderEvent;
+          }
+
+          describe('PostHog Web Analytics health hardening', () => {
+            test('enables standard consent-gated Web Vitals without network timing attribution', () => {
+              const source = read('public/assets/js/behaviour-analytics.js');
+
+              expect(source).toContain('capture_performance: {');
+              expect(source).toContain('web_vitals: true');
+              expect(source).toContain('web_vitals_attribution: false');
+              expect(source).toContain('before_send: sanitizePostHogProviderEvent');
+              expect(source).not.toContain('capture_performance: false');
+            });
+
+            test('keeps person processing boolean and strips query data from nested Web Vitals URLs', () => {
+              const source = read('public/assets/js/behaviour-analytics.js');
+              const sanitize = loadProviderSanitizer(source);
+              const event = {
+                event: '$web_vitals',
+                properties: {
+                  $process_person_profile: '019f6251-06a8-76c3-abe6-59e81e75cf04',
+                  $web_vitals_LCP_event: {
+                    $current_url: 'https://event-flow.co.uk/suppliers?token=secret#results',
+                  },
+                  $web_vitals_LCP_value: 1725,
+                },
+              };
+
+              expect(sanitize(event)).toBe(event);
+              expect(event.properties.$process_person_profile).toBe(false);
+              expect(event.properties.$web_vitals_LCP_event.$current_url).toBe(
+                'https://event-flow.co.uk/suppliers'
+              );
+              expect(event.properties.$web_vitals_LCP_value).toBe(1725);
+            });
+
+            test('bumps the public analytics asset cache key', () => {
+              const renderer = read('utils/template-renderer.js');
+              expect(renderer).toContain('/assets/js/behaviour-analytics.js?v=2');
+              expect(renderer).not.toContain('/assets/js/behaviour-analytics.js?v=1');
+            });
+          });
+          """, encoding='utf-8')
+
+          docs_path = Path('docs/analytics/posthog-web-analytics-recovery.md')
+          docs_path.write_text("""# PostHog Web Analytics recovery
+
+          ## Findings
+
+          The Web Analytics error shown in PostHog is not generated by EventFlow's normal event payloads. PostHog's browser SDK owns `$process_person_profile` and emits it as a boolean. The failing query is trying to compare that boolean field with the UUID `019f6251-06a8-76c3-abe6-59e81e75cf04` while **Filter test accounts** is enabled. This points to a malformed PostHog project-level test-account filter, or historical malformed data, rather than the EventFlow page-view implementation.
+
+          The Installation Health recommendations are separate:
+
+          - **Web Vitals** was genuinely disabled in the EventFlow PostHog initialisation (`capture_performance: false`).
+          - **Reverse proxy** remains an optional infrastructure hardening measure. Direct EU ingestion is valid, and adding a proxy should be treated as a separate Railway/Cloudflare change with monitoring and rollback.
+
+          ## Code changes
+
+          - Enable PostHog's standard `$web_vitals` capture after analytics consent.
+          - Keep Web Vitals attribution disabled to minimise payload size and data collection.
+          - Force `$process_person_profile` to boolean `false`, consistent with `person_profiles: 'never'`.
+          - Strip query strings and fragments from nested Web Vitals URLs before PostHog receives them.
+          - Bump the public analytics asset cache key so browsers receive the corrected integration.
+
+          ## Required PostHog project cleanup
+
+          This repository change cannot edit PostHog project settings or rewrite historical events. In PostHog:
+
+          1. Turn **Filter test accounts** off temporarily and retry Web Analytics. If the dashboard loads, the project filter is confirmed as the immediate cause.
+          2. Open **Settings → Project → Internal and test users** (wording may vary).
+          3. Remove any rule using `$process_person_profile` with the UUID above, or any non-boolean value.
+          4. Recreate the filter using a genuine identifying property such as an internal email domain, a dedicated `is_internal` person property, or an internal hostname.
+          5. Turn **Filter test accounts** back on and retry the dashboard.
+
+          If the error remains with test-account filtering disabled, inspect historical events where `$process_person_profile` is not `true` or `false` and contact PostHog support with the failing query ID.
+
+          ## Post-deploy checks
+
+          1. Accept analytics cookies on a non-sensitive public page.
+          2. Confirm a `$web_vitals` event appears with LCP, CLS, FCP or INP properties.
+          3. Confirm nested `$current_url` values contain no query string or fragment.
+          4. Confirm `$process_person_profile` is boolean `false`.
+          5. Refresh Installation Health after sufficient live traffic.
+          6. Verify sensitive routes such as `/auth`, `/verify`, `/checkout` and messaging pages remain excluded.
+          """, encoding='utf-8')
+          PY
+
+      - name: Validate JavaScript syntax
+        run: |
+          node --check public/assets/js/behaviour-analytics.js
+          node --check utils/template-renderer.js
+          node --check tests/unit/posthog-web-vitals-health.test.js
+
+      - name: Install test dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Run focused analytics tests
+        run: >-
+          npx jest --runInBand --coverage=false
+          tests/unit/behaviour-analytics-integration.test.js
+          tests/unit/analytics-independent-hardening.test.js
+          tests/unit/posthog-web-vitals-health.test.js
+
+      - name: Commit recovery changes and remove temporary workflow
+        shell: bash
+        run: |
+          rm .github/workflows/posthog-health-recovery.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/assets/js/behaviour-analytics.js utils/template-renderer.js \
+            tests/unit/posthog-web-vitals-health.test.js \
+            docs/analytics/posthog-web-analytics-recovery.md \
+            .github/workflows/posthog-health-recovery.yml
+          git commit -m "fix: recover PostHog Web Analytics health"
+          git push origin HEAD:agent/posthog-health-recovery
