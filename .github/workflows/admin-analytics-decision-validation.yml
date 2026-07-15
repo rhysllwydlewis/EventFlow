@@ -6,6 +6,7 @@ on:
     paths:
       - 'routes/behaviour-analytics.js'
       - 'utils/behaviourAnalyticsDecision.js'
+      - 'public/assets/js/behaviour-analytics.js'
       - 'public/assets/js/pages/admin-analytics-init.js'
       - 'public/assets/js/pages/admin-analytics-decision.js'
       - 'public/assets/css/admin-analytics-decision.css'
@@ -51,6 +52,7 @@ jobs:
         run: |
           node --check routes/behaviour-analytics.js
           node --check utils/behaviourAnalyticsDecision.js
+          node --check public/assets/js/behaviour-analytics.js
           node --check public/assets/js/pages/admin-analytics-init.js
           node --check public/assets/js/pages/admin-analytics-decision.js
           node --check tests/unit/behaviour-analytics-decision.test.js
@@ -61,6 +63,7 @@ jobs:
           npx eslint --rulesdir eslint-rules
           routes/behaviour-analytics.js
           utils/behaviourAnalyticsDecision.js
+          public/assets/js/behaviour-analytics.js
           public/assets/js/pages/admin-analytics-init.js
           public/assets/js/pages/admin-analytics-decision.js
           tests/unit/behaviour-analytics-decision.test.js
@@ -71,6 +74,7 @@ jobs:
           npx prettier --check
           routes/behaviour-analytics.js
           utils/behaviourAnalyticsDecision.js
+          public/assets/js/behaviour-analytics.js
           public/assets/js/pages/admin-analytics-init.js
           public/assets/js/pages/admin-analytics-decision.js
           public/assets/css/admin-analytics-decision.css
