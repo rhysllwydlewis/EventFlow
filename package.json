@@ -144,6 +144,9 @@
     ]
   },
   "overrides": {
-    "filelist": ">=1.0.5"
+    "filelist": ">=1.0.5",
+    "engine.io": "6.6.9",
+    "socket.io-adapter": "2.5.8",
+    "ws": "8.21.0"
   }
 }
