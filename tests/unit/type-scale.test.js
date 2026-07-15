@@ -19,6 +19,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { JSDOM, VirtualConsole } = require('jsdom');
 
 const CSS_DIR = path.join(__dirname, '../../public/assets/css');
 
@@ -84,11 +85,38 @@ describe('Type scale', () => {
  * discards everything after an unclosed block, so those files were
  * silently dropping rules in production.
  *
- * Brace-counting is not enough to catch this (braces can balance while the
- * structure is still wrong), so this parses each file for real.
+ * This uses JSDOM's CSSOM parser, which is already a direct project
+ * dependency, rather than adding a second parser only for this guard.
  */
+function parseStylesheet(css, file) {
+  const virtualConsole = new VirtualConsole();
+  const parsingErrors = [];
+
+  virtualConsole.on('jsdomError', error => {
+    if (error.type === 'css-parsing') {
+      parsingErrors.push(error);
+    }
+  });
+
+  const dom = new JSDOM('<!doctype html><html><head></head><body></body></html>', {
+    virtualConsole,
+  });
+  const style = dom.window.document.createElement('style');
+  style.textContent = css;
+  dom.window.document.head.appendChild(style);
+  const sheet = style.sheet;
+  const parsedRuleCount = sheet ? sheet.cssRules.length : null;
+  dom.window.close();
+
+  if (parsedRuleCount === null || parsingErrors.length > 0) {
+    const details = parsingErrors.map(error => error.message).join('; ');
+    throw new Error(`Unable to parse ${file}${details ? `: ${details}` : ''}`);
+  }
+
+  return parsedRuleCount;
+}
+
 describe('Every static stylesheet parses', () => {
-  const postcss = require('postcss');
   const dirs = [
     path.join(__dirname, '../../public/assets/css'),
     path.join(__dirname, '../../public/messenger/css'),
@@ -105,8 +133,12 @@ describe('Every static stylesheet parses', () => {
     expect(sheets.length).toBeGreaterThan(50);
   });
 
+  test('the parser rejects an unclosed rule', () => {
+    expect(() => parseStylesheet('.broken { color: red;', 'fixture.css')).toThrow();
+  });
+
   test.each(sheets)('%s parses without unclosed blocks', (_label, file) => {
     const css = fs.readFileSync(file, 'utf8');
-    expect(() => postcss.parse(css, { from: file })).not.toThrow();
+    expect(() => parseStylesheet(css, file)).not.toThrow();
   });
 });
