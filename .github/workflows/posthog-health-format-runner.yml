@@ -139,3 +139,5 @@ jobs:
             .github/workflows/posthog-health-format-runner.yml
           git commit -m "style: tidy PostHog event sanitiser"
           git push origin HEAD:agent/posthog-health-recovery
+
+# This comment intentionally triggers the workflow after it exists on the PR branch.
