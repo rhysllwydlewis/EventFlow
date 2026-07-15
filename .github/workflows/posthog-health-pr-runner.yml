@@ -31,6 +31,8 @@ jobs:
       - name: Extract and run focused recovery script
         shell: bash
         run: |
+          sed -i 's/test_path.write_text("""/test_path.write_text(r"""/' \
+            .github/workflows/posthog-health-recovery.yml
           awk '
             /- name: Apply focused PostHog changes/ { found=1; next }
             found && /run: \|/ { capture=1; next }
