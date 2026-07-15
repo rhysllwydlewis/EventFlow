@@ -225,7 +225,7 @@ describe('behaviour analytics decision summary', () => {
     expect(decisionScript).toContain('retentionDays < days * 2');
     expect(decisionScript).toContain('earliestEventAt');
     expect(decisionScript).toContain('/supplier?id=${encodeURIComponent(id)}');
-    expect(decisionScript).toContain('/^\s*[=+\-@]/');
+    expect(decisionScript).toContain('/^\\s*[=+\\-@]/');
     expect(collectorScript).toContain('function currentEntityContext()');
     expect(collectorScript).toContain('supplierId: linkContext.supplierId');
     expect(collectorScript).toContain('packageId: linkContext.packageId');
