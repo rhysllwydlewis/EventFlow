@@ -128,6 +128,7 @@
     "lint-staged": "^15.5.2",
     "mongodb-memory-server": "^11.0.1",
     "playwright": "^1.59.1",
+    "postcss": "^8.5.19",
     "prettier": "^3.7.4",
     "supertest": "^6.3.4",
     "typescript": "^7.0.2",
