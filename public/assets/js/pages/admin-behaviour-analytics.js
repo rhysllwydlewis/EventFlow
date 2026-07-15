@@ -1,53 +1,53 @@
 (function () {
-  "use strict";
+  'use strict';
 
-  const SUMMARY_ENDPOINT = "/api/v1/analytics/behaviour/admin/summary";
-  const STATUS_ENDPOINT = "/api/v1/analytics/behaviour/admin/status";
-  const STYLE_PATH = "/assets/css/admin-behaviour-analytics.css?v=2";
+  const SUMMARY_ENDPOINT = '/api/v1/analytics/behaviour/admin/summary';
+  const STATUS_ENDPOINT = '/api/v1/analytics/behaviour/admin/status';
+  const STYLE_PATH = '/assets/css/admin-behaviour-analytics.css?v=2';
 
   const EVENT_LABELS = {
-    page_view: "Page views",
-    page_engagement: "Engagement updates",
-    scroll_depth: "Scroll milestones",
-    outbound_click: "Outbound clicks",
-    form_submit: "Form submissions",
-    web_vital: "Performance readings",
-    client_error: "Browser errors",
-    search_performed: "Searches",
-    filter_changed: "Filter changes",
-    result_clicked: "Search result clicks",
-    shortlist_add: "Items shortlisted",
-    shortlist_remove: "Items removed",
-    quote_request_started: "Quote requests started",
-    quote_request_submitted: "Quote requests sent",
-    supplier_profile_view: "Supplier profile views",
-    package_view: "Package views",
-    package_add_to_plan: "Packages added to plan",
-    enquiry_started: "Enquiries started",
-    enquiry_submitted: "Enquiries sent",
-    registration_started: "Registrations started",
-    registration_completed: "Registrations completed",
-    supplier_registration_started: "Supplier registrations started",
-    supplier_profile_completed: "Supplier profiles completed",
-    package_created: "Packages created",
-    package_published: "Packages published",
-    checkout_started: "Checkout starts",
-    conversion_completed: "Completed conversions",
-    toc_click: "Guide section clicks",
-    share_click: "Share clicks",
+    page_view: 'Page views',
+    page_engagement: 'Engagement updates',
+    scroll_depth: 'Scroll milestones',
+    outbound_click: 'Outbound clicks',
+    form_submit: 'Form submissions',
+    web_vital: 'Performance readings',
+    client_error: 'Browser errors',
+    search_performed: 'Searches',
+    filter_changed: 'Filter changes',
+    result_clicked: 'Search result clicks',
+    shortlist_add: 'Items shortlisted',
+    shortlist_remove: 'Items removed',
+    quote_request_started: 'Quote requests started',
+    quote_request_submitted: 'Quote requests sent',
+    supplier_profile_view: 'Supplier profile views',
+    package_view: 'Package views',
+    package_add_to_plan: 'Packages added to plan',
+    enquiry_started: 'Enquiries started',
+    enquiry_submitted: 'Enquiries sent',
+    registration_started: 'Registrations started',
+    registration_completed: 'Registrations completed',
+    supplier_registration_started: 'Supplier registrations started',
+    supplier_profile_completed: 'Supplier profiles completed',
+    package_created: 'Packages created',
+    package_published: 'Packages published',
+    checkout_started: 'Checkout starts',
+    conversion_completed: 'Completed conversions',
+    toc_click: 'Guide section clicks',
+    share_click: 'Share clicks',
   };
 
   function escapeHtml(value) {
-    return String(value === undefined || value === null ? "" : value)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#039;");
+    return String(value === undefined || value === null ? '' : value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
   }
 
   function formatNumber(value) {
-    return new Intl.NumberFormat("en-GB").format(Number(value) || 0);
+    return new Intl.NumberFormat('en-GB').format(Number(value) || 0);
   }
 
   function formatDuration(seconds) {
@@ -55,45 +55,41 @@
     if (total < 60) return `${total}s`;
     const minutes = Math.floor(total / 60);
     const remainder = total % 60;
-    if (minutes < 60)
-      return remainder ? `${minutes}m ${remainder}s` : `${minutes}m`;
+    if (minutes < 60) return remainder ? `${minutes}m ${remainder}s` : `${minutes}m`;
     const hours = Math.floor(minutes / 60);
     const minuteRemainder = minutes % 60;
     return minuteRemainder ? `${hours}h ${minuteRemainder}m` : `${hours}h`;
   }
 
   function formatDateTime(value) {
-    if (!value) return "No events yet";
+    if (!value) return 'No events yet';
     const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return "Unknown";
-    return new Intl.DateTimeFormat("en-GB", {
-      dateStyle: "medium",
-      timeStyle: "short",
+    if (Number.isNaN(date.getTime())) return 'Unknown';
+    return new Intl.DateTimeFormat('en-GB', {
+      dateStyle: 'medium',
+      timeStyle: 'short',
     }).format(date);
   }
 
   function formatShortDate(value) {
     const date = new Date(`${value}T12:00:00Z`);
     if (Number.isNaN(date.getTime())) return value;
-    return new Intl.DateTimeFormat("en-GB", {
-      day: "numeric",
-      month: "short",
+    return new Intl.DateTimeFormat('en-GB', {
+      day: 'numeric',
+      month: 'short',
     }).format(date);
   }
 
   function friendlyKey(value) {
-    const raw = String(value || "other");
-    return (
-      EVENT_LABELS[raw] ||
-      raw.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase())
-    );
+    const raw = String(value || 'other');
+    return EVENT_LABELS[raw] || raw.replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase());
   }
 
   async function fetchJson(url) {
     const response = await fetch(url, {
-      credentials: "same-origin",
-      cache: "no-store",
-      headers: { Accept: "application/json" },
+      credentials: 'same-origin',
+      cache: 'no-store',
+      headers: { Accept: 'application/json' },
     });
     if (!response.ok) {
       const payload = await response.json().catch(() => ({}));
@@ -103,10 +99,9 @@
   }
 
   function ensureStyles() {
-    if (document.querySelector(`link[href^="${STYLE_PATH.split("?")[0]}"]`))
-      return;
-    const link = document.createElement("link");
-    link.rel = "stylesheet";
+    if (document.querySelector(`link[href^="${STYLE_PATH.split('?')[0]}"]`)) return;
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
     link.href = STYLE_PATH;
     document.head.appendChild(link);
   }
@@ -124,10 +119,10 @@
   }
 
   function buildSection() {
-    const section = document.createElement("section");
-    section.id = "behaviourAnalyticsSection";
-    section.className = "container behaviour-analytics-section";
-    section.setAttribute("aria-labelledby", "behaviourAnalyticsTitle");
+    const section = document.createElement('section');
+    section.id = 'behaviourAnalyticsSection';
+    section.className = 'container behaviour-analytics-section';
+    section.setAttribute('aria-labelledby', 'behaviourAnalyticsTitle');
     section.innerHTML = `
       <div class="behaviour-overview">
         <div class="behaviour-overview__main">
@@ -166,12 +161,12 @@
       </div>
 
       <div class="behaviour-kpi-grid" aria-label="Behaviour analytics headline metrics">
-        ${buildKpi("↗", "teal", "Page views", "baPageViews", "Consented page views")}
-        ${buildKpi("◎", "blue", "Sessions", "baSessions", "Unique browser sessions")}
-        ${buildKpi("◷", "purple", "Average active time", "baActiveTime", "Visible and focused time")}
-        ${buildKpi("✓", "green", "Engaged sessions", "baEngaged", "10 seconds or 2+ pages")}
-        ${buildKpi("★", "amber", "Conversions", "baConversions", "Completed key actions")}
-        ${buildKpi("!", "red", "Browser errors", "baErrors", "Client-side error signals")}
+        ${buildKpi('↗', 'teal', 'Page views', 'baPageViews', 'Consented page views')}
+        ${buildKpi('◎', 'blue', 'Sessions', 'baSessions', 'Unique browser sessions')}
+        ${buildKpi('◷', 'purple', 'Average active time', 'baActiveTime', 'Visible and focused time')}
+        ${buildKpi('✓', 'green', 'Engaged sessions', 'baEngaged', '10 seconds or 2+ pages')}
+        ${buildKpi('★', 'amber', 'Conversions', 'baConversions', 'Completed key actions')}
+        ${buildKpi('!', 'red', 'Browser errors', 'baErrors', 'Client-side error signals')}
       </div>
 
       <div class="behaviour-analytics-grid behaviour-analytics-grid--lead">
@@ -263,9 +258,9 @@
   }
 
   function insertSection() {
-    if (document.getElementById("behaviourAnalyticsSection")) return;
-    const main = document.getElementById("main-content");
-    const header = main && main.querySelector(".dashboard-header");
+    if (document.getElementById('behaviourAnalyticsSection')) return;
+    const main = document.getElementById('main-content');
+    const header = main && main.querySelector('.dashboard-header');
     if (!main) return;
     const section = buildSection();
     if (header && header.nextSibling) {
@@ -281,27 +276,27 @@
   }
 
   function pageHealth(page) {
-    if (Number(page.views) < 5) return { label: "Low data", tone: "neutral" };
+    if (Number(page.views) < 5) return { label: 'Low data', tone: 'neutral' };
     if (Number(page.avgActiveSeconds) < 12 && Number(page.exitRate) >= 50) {
-      return { label: "Review", tone: "danger" };
+      return { label: 'Review', tone: 'danger' };
     }
     if (Number(page.bounceRate) >= 60 || Number(page.exitRate) >= 60) {
-      return { label: "Watch", tone: "warning" };
+      return { label: 'Watch', tone: 'warning' };
     }
     if (Number(page.engagedRate) >= 60 && Number(page.exitRate) < 45) {
-      return { label: "Healthy", tone: "success" };
+      return { label: 'Healthy', tone: 'success' };
     }
-    return { label: "Monitor", tone: "info" };
+    return { label: 'Monitor', tone: 'info' };
   }
 
   function renderPages(pages) {
-    const pagesBody = document.getElementById("baPagesBody");
+    const pagesBody = document.getElementById('baPagesBody');
     if (!pagesBody) return;
     const rows = Array.isArray(pages) ? pages : [];
     pagesBody.innerHTML = rows.length
       ? rows
           .slice(0, 50)
-          .map((page) => {
+          .map(page => {
             const health = pageHealth(page);
             return `<tr>
               <td><strong>${escapeHtml(page.pagePath)}</strong><br><small>${escapeHtml(page.pageType)}</small></td>
@@ -314,33 +309,29 @@
               <td>${Number(page.bounceRate || 0).toFixed(1)}%</td>
             </tr>`;
           })
-          .join("")
+          .join('')
       : '<tr><td colspan="8" class="behaviour-empty">No consented page data for this period.</td></tr>';
   }
 
   function renderTrend(rows) {
-    const container = document.getElementById("baTrend");
+    const container = document.getElementById('baTrend');
     if (!container) return;
     const data = (Array.isArray(rows) ? rows : []).slice(-14);
     if (data.length === 0) {
       container.innerHTML =
         '<div class="behaviour-empty">No daily engagement data for this period.</div>';
-      setText("baTrendSummary", "No data yet");
+      setText('baTrendSummary', 'No data yet');
       return;
     }
 
-    const enriched = data.map((row) => ({
+    const enriched = data.map(row => ({
       ...row,
-      average:
-        Number(row.sessions) > 0
-          ? Number(row.activeSeconds || 0) / Number(row.sessions)
-          : 0,
+      average: Number(row.sessions) > 0 ? Number(row.activeSeconds || 0) / Number(row.sessions) : 0,
     }));
-    const maximum = Math.max(...enriched.map((row) => row.average), 1);
+    const maximum = Math.max(...enriched.map(row => row.average), 1);
     const periodAverage =
-      enriched.reduce((sum, row) => sum + row.average, 0) /
-      Math.max(enriched.length, 1);
-    setText("baTrendSummary", `${formatDuration(periodAverage)} daily average`);
+      enriched.reduce((sum, row) => sum + row.average, 0) / Math.max(enriched.length, 1);
+    setText('baTrendSummary', `${formatDuration(periodAverage)} daily average`);
 
     container.innerHTML = `
       <div class="behaviour-trend__plot">
@@ -348,55 +339,43 @@
           .map((row, index) => {
             const height = Math.max(4, (row.average / maximum) * 100);
             const showLabel =
-              enriched.length <= 7 ||
-              index % 2 === 0 ||
-              index === enriched.length - 1;
+              enriched.length <= 7 || index % 2 === 0 || index === enriched.length - 1;
             return `<div class="behaviour-trend__column" title="${escapeHtml(formatShortDate(row.date))}: ${escapeHtml(formatDuration(row.average))} average active time">
               <span class="behaviour-trend__value">${escapeHtml(formatDuration(row.average))}</span>
               <span class="behaviour-trend__track"><span class="behaviour-trend__bar" style="height:${height.toFixed(1)}%"></span></span>
-              <span class="behaviour-trend__label">${showLabel ? escapeHtml(formatShortDate(row.date)) : ""}</span>
+              <span class="behaviour-trend__label">${showLabel ? escapeHtml(formatShortDate(row.date)) : ''}</span>
             </div>`;
           })
-          .join("")}
+          .join('')}
       </div>`;
   }
 
   function renderFunnel(rows) {
-    const container = document.getElementById("baFunnel");
+    const container = document.getElementById('baFunnel');
     if (!container) return;
     const funnelRows = Array.isArray(rows) ? rows : [];
-    const maximum = Math.max(
-      ...funnelRows.map((row) => Number(row.sessions) || 0),
-      1,
-    );
+    const maximum = Math.max(...funnelRows.map(row => Number(row.sessions) || 0), 1);
     container.innerHTML = funnelRows.length
       ? funnelRows
           .map((row, index) => {
-            const previous =
-              index > 0 ? Number(funnelRows[index - 1].sessions) || 0 : 0;
+            const previous = index > 0 ? Number(funnelRows[index - 1].sessions) || 0 : 0;
             const current = Number(row.sessions) || 0;
-            const drop =
-              previous > 0 ? Math.max(0, 100 - (current / previous) * 100) : 0;
+            const drop = previous > 0 ? Math.max(0, 100 - (current / previous) * 100) : 0;
             const width = Math.max(2, (current / maximum) * 100);
             return `<div class="behaviour-funnel__row">
               <span class="behaviour-funnel__step">${index + 1}</span>
               <span class="behaviour-funnel__content">
                 <span class="behaviour-funnel__heading"><strong>${escapeHtml(row.label)}</strong><span>${formatNumber(current)} sessions</span></span>
                 <span class="behaviour-funnel__bar"><span class="behaviour-funnel__fill" style="width:${width.toFixed(1)}%"></span></span>
-                <span class="behaviour-funnel__meta">${Number(row.rateFromSearch || 0).toFixed(1)}% of search sessions${index > 0 ? ` · ${drop.toFixed(1)}% drop from prior step` : ""}</span>
+                <span class="behaviour-funnel__meta">${Number(row.rateFromSearch || 0).toFixed(1)}% of search sessions${index > 0 ? ` · ${drop.toFixed(1)}% drop from prior step` : ''}</span>
               </span>
             </div>`;
           })
-          .join("")
+          .join('')
       : '<div class="behaviour-empty">No funnel data for this period.</div>';
   }
 
-  function renderBreakdown(
-    id,
-    rows,
-    emptyText,
-    labelFormatter = (value) => value,
-  ) {
+  function renderBreakdown(id, rows, emptyText, labelFormatter = value => value) {
     const container = document.getElementById(id);
     if (!container) return;
     const data = Array.isArray(rows) ? rows.slice(0, 8) : [];
@@ -404,162 +383,129 @@
       container.innerHTML = `<div class="behaviour-empty">${escapeHtml(emptyText)}</div>`;
       return;
     }
-    const maximum = Math.max(
-      ...data.map((row) => Number(row.count) || 0),
-      1,
-    );
+    const maximum = Math.max(...data.map(row => Number(row.count) || 0), 1);
     container.innerHTML = data
-      .map((row) => {
-        const width = Math.max(
-          2,
-          ((Number(row.count) || 0) / maximum) * 100,
-        );
+      .map(row => {
+        const width = Math.max(2, ((Number(row.count) || 0) / maximum) * 100);
         return `<div class="behaviour-breakdown-row">
           <div class="behaviour-breakdown-row__heading"><span>${escapeHtml(labelFormatter(row.key))}</span><strong>${formatNumber(row.count)}</strong></div>
           <span class="behaviour-breakdown-row__track"><span style="width:${width.toFixed(1)}%"></span></span>
         </div>`;
       })
-      .join("");
+      .join('');
   }
 
   function renderRecommendations(rows) {
-    const container = document.getElementById("baRecommendations");
+    const container = document.getElementById('baRecommendations');
     if (!container) return;
     const recommendations = Array.isArray(rows) ? rows : [];
     const severityLabels = {
-      high: "Priority",
-      medium: "Review",
-      info: "Information",
+      high: 'Priority',
+      medium: 'Review',
+      info: 'Information',
     };
     container.innerHTML = recommendations.length
       ? recommendations
           .map(
-            (item) => `<article class="behaviour-recommendation" data-severity="${escapeHtml(item.severity || "info")}">
+            item => `<article class="behaviour-recommendation" data-severity="${escapeHtml(item.severity || 'info')}">
               <div class="behaviour-recommendation__heading">
-                <span>${escapeHtml(severityLabels[item.severity] || "Information")}</span>
+                <span>${escapeHtml(severityLabels[item.severity] || 'Information')}</span>
                 <strong>${escapeHtml(item.title)}</strong>
               </div>
               <p>${escapeHtml(item.detail)}</p>
-            </article>`,
+            </article>`
           )
-          .join("")
+          .join('')
       : '<div class="behaviour-empty">No improvement signals were triggered for this period.</div>';
   }
 
   function renderSummary(summary) {
     const totals = summary.totals || {};
-    setText("baPageViews", formatNumber(totals.pageViews));
-    setText("baSessions", formatNumber(totals.sessions));
-    setText(
-      "baActiveTime",
-      formatDuration(totals.avgActiveSecondsPerSession),
-    );
-    setText(
-      "baEngaged",
-      `${Number(totals.engagedSessionRate || 0).toFixed(1)}%`,
-    );
-    setText("baConversions", formatNumber(totals.conversions));
-    setText("baErrors", formatNumber(totals.clientErrors));
+    setText('baPageViews', formatNumber(totals.pageViews));
+    setText('baSessions', formatNumber(totals.sessions));
+    setText('baActiveTime', formatDuration(totals.avgActiveSecondsPerSession));
+    setText('baEngaged', `${Number(totals.engagedSessionRate || 0).toFixed(1)}%`);
+    setText('baConversions', formatNumber(totals.conversions));
+    setText('baErrors', formatNumber(totals.clientErrors));
 
     renderTrend(summary.daily);
     renderPages(summary.pages);
     renderFunnel(summary.funnel);
     renderBreakdown(
-      "baReferrers",
+      'baReferrers',
       summary.referrers,
-      "No traffic-source data for this period.",
-      (key) =>
-        key === "direct"
-          ? "Direct / unknown"
-          : key === "internal"
-            ? "Internal navigation"
-            : key,
+      'No traffic-source data for this period.',
+      key =>
+        key === 'direct' ? 'Direct / unknown' : key === 'internal' ? 'Internal navigation' : key
+    );
+    renderBreakdown('baDevices', summary.devices, 'No device data for this period.', key =>
+      String(key || 'other').replace(/\b\w/g, char => char.toUpperCase())
     );
     renderBreakdown(
-      "baDevices",
-      summary.devices,
-      "No device data for this period.",
-      (key) =>
-        String(key || "other").replace(/\b\w/g, (char) => char.toUpperCase()),
-    );
-    renderBreakdown(
-      "baEvents",
+      'baEvents',
       summary.events,
-      "No interaction data for this period.",
-      friendlyKey,
+      'No interaction data for this period.',
+      friendlyKey
     );
     renderRecommendations(summary.recommendations);
   }
 
   function renderStatus(status) {
-    const badge = document.getElementById("behaviourAnalyticsStatus");
-    const posthogLink = document.getElementById("behaviourPosthogLink");
+    const badge = document.getElementById('behaviourAnalyticsStatus');
+    const posthogLink = document.getElementById('behaviourPosthogLink');
     if (badge) {
       if (!status.enabled) {
-        badge.dataset.state = "warning";
-        badge.lastElementChild.textContent = "First-party analytics disabled";
+        badge.dataset.state = 'warning';
+        badge.lastElementChild.textContent = 'First-party analytics disabled';
       } else if (status.eventCount > 0) {
-        badge.dataset.state = "active";
+        badge.dataset.state = 'active';
         badge.lastElementChild.textContent = `${formatNumber(status.eventCount)} events collected`;
       } else {
-        badge.dataset.state = "ready";
-        badge.lastElementChild.textContent =
-          "Ready · awaiting consented traffic";
+        badge.dataset.state = 'ready';
+        badge.lastElementChild.textContent = 'Ready · awaiting consented traffic';
       }
     }
 
-    setText("baLatestEvent", formatDateTime(status.latestEventAt));
-    setText("baRetention", `${formatNumber(status.retentionDays)} days`);
-    setText(
-      "baHeartbeat",
-      `Every ${formatNumber(status.heartbeatSeconds)} seconds while active`,
-    );
+    setText('baLatestEvent', formatDateTime(status.latestEventAt));
+    setText('baRetention', `${formatNumber(status.retentionDays)} days`);
+    setText('baHeartbeat', `Every ${formatNumber(status.heartbeatSeconds)} seconds while active`);
 
-    if (
-      posthogLink &&
-      status.posthogConfigured &&
-      status.posthogDashboardUrl
-    ) {
+    if (posthogLink && status.posthogConfigured && status.posthogDashboardUrl) {
       posthogLink.href = status.posthogDashboardUrl;
       posthogLink.hidden = false;
       posthogLink.textContent = status.sessionRecordingEnabled
-        ? "Open PostHog recordings ↗"
-        : "Open PostHog ↗";
+        ? 'Open PostHog recordings ↗'
+        : 'Open PostHog ↗';
     } else if (posthogLink) {
       posthogLink.hidden = true;
     }
   }
 
   function renderError(message) {
-    const badge = document.getElementById("behaviourAnalyticsStatus");
+    const badge = document.getElementById('behaviourAnalyticsStatus');
     if (badge) {
-      badge.dataset.state = "warning";
-      badge.lastElementChild.textContent = "Analytics unavailable";
+      badge.dataset.state = 'warning';
+      badge.lastElementChild.textContent = 'Analytics unavailable';
       badge.title = message;
     }
-    const pages = document.getElementById("baPagesBody");
+    const pages = document.getElementById('baPagesBody');
     if (pages) {
       pages.innerHTML = `<tr><td colspan="8" class="behaviour-empty">${escapeHtml(message)}</td></tr>`;
     }
-    [
-      "baTrend",
-      "baFunnel",
-      "baReferrers",
-      "baDevices",
-      "baEvents",
-      "baRecommendations",
-    ].forEach((id) => {
-      const element = document.getElementById(id);
-      if (element)
-        element.innerHTML = `<div class="behaviour-empty">${escapeHtml(message)}</div>`;
-    });
+    ['baTrend', 'baFunnel', 'baReferrers', 'baDevices', 'baEvents', 'baRecommendations'].forEach(
+      id => {
+        const element = document.getElementById(id);
+        if (element)
+          element.innerHTML = `<div class="behaviour-empty">${escapeHtml(message)}</div>`;
+      }
+    );
   }
 
   async function load() {
-    const section = document.getElementById("behaviourAnalyticsSection");
-    const range = document.getElementById("behaviourAnalyticsRange");
+    const section = document.getElementById('behaviourAnalyticsSection');
+    const range = document.getElementById('behaviourAnalyticsRange');
     const days = range ? Number(range.value) || 30 : 30;
-    section?.classList.add("is-loading");
+    section?.classList.add('is-loading');
     try {
       const [statusPayload, summaryPayload] = await Promise.all([
         fetchJson(STATUS_ENDPOINT),
@@ -567,35 +513,29 @@
       ]);
       renderStatus(statusPayload.status || {});
       renderSummary(summaryPayload.summary || {});
-      setText("baLastRefreshed", formatDateTime(new Date().toISOString()));
+      setText('baLastRefreshed', formatDateTime(new Date().toISOString()));
     } catch (error) {
-      renderError(
-        error.message || "Failed to load behaviour analytics.",
-      );
+      renderError(error.message || 'Failed to load behaviour analytics.');
     } finally {
-      section?.classList.remove("is-loading");
+      section?.classList.remove('is-loading');
     }
   }
 
   function init() {
     ensureStyles();
     insertSection();
-    const subtitle = document.querySelector(".dashboard-subtitle");
+    const subtitle = document.querySelector('.dashboard-subtitle');
     if (subtitle) {
       subtitle.textContent =
-        "Visitor behaviour, conversions, revenue, user growth and platform performance.";
+        'Visitor behaviour, conversions, revenue, user growth and platform performance.';
     }
-    document
-      .getElementById("behaviourAnalyticsRange")
-      ?.addEventListener("change", load);
-    document
-      .getElementById("analyticsRefreshBtn")
-      ?.addEventListener("click", load);
+    document.getElementById('behaviourAnalyticsRange')?.addEventListener('change', load);
+    document.getElementById('analyticsRefreshBtn')?.addEventListener('click', load);
     load();
   }
 
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", init);
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
   } else {
     init();
   }

@@ -145,13 +145,13 @@
 
       if (event.key === 'ArrowDown' && !menu.hidden) {
         event.preventDefault();
-        const currentIndex = options.indexOf(document.activeElement);
+        const currentIndex = options.indexOf(document.activeElement as HTMLButtonElement);
         options[(currentIndex + 1) % options.length].focus();
       }
 
       if (event.key === 'ArrowUp' && !menu.hidden) {
         event.preventDefault();
-        const currentIndex = options.indexOf(document.activeElement);
+        const currentIndex = options.indexOf(document.activeElement as HTMLButtonElement);
         const nextIndex = currentIndex <= 0 ? options.length - 1 : currentIndex - 1;
         options[nextIndex].focus();
       }
