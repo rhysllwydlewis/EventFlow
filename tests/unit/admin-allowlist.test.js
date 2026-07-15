@@ -4,7 +4,8 @@
  * Ensures that:
  * 1. Every admin HTML file in public/ has a matching entry in the ADMIN_PAGES allowlist.
  * 2. Every entry in the ADMIN_PAGES allowlist has a corresponding HTML file on disk.
- * 3. Admin page JS files contain no native browser dialogs (alert/confirm/prompt).
+ * 3. Admin page JS files contain no native browser dialogs (alert/confirm/prompt), except
+ *    for narrowly documented defensive fallbacks.
  * 4. scripts/serve-static.js adminPages array includes all admin HTML files (E2E compat).
  *
  * ADMIN_PAGES is now derived from config/adminRegistry.js — see admin-registry.test.js
@@ -91,7 +92,7 @@ describe('serve-static.js Admin Pages Sync', () => {
       .map(line =>
         line
           .trim()
-          .replace(/^['"]|['"],?$/g, '')
+          .replace(/^[\'"]|[\'"],?$/g, '')
           .trim()
       )
       .filter(line => line.length > 0 && !line.startsWith('/'));
@@ -122,6 +123,19 @@ describe('Admin Page JS - No Native Dialogs', () => {
   // Lines are pre-filtered to skip comments before this pattern is applied.
   const NATIVE_DIALOG_PATTERN = /\b(window\.)?(alert|confirm|prompt)\s*\(/;
 
+  // Defensive exceptions must be exact and carry a reviewable reason. The
+  // media-library fallback preserves a confirmation step if AdminShared fails
+  // to load; without it, a partially loaded admin page could delete immediately
+  // or make the destructive action unusable.
+  const NATIVE_DIALOG_EXCEPTIONS = {
+    'admin-media-upload-library.js': [
+      {
+        fragment: 'window.confirm(message)',
+        reason: 'destructive delete fallback when the shared admin modal is unavailable',
+      },
+    ],
+  };
+
   let adminJsFiles = [];
   try {
     adminJsFiles = fs
@@ -136,6 +150,8 @@ describe('Admin Page JS - No Native Dialogs', () => {
     it(`${path.basename(filePath)} should not contain native dialog calls`, () => {
       const content = fs.readFileSync(filePath, 'utf8');
       const lines = content.split('\n');
+      const filename = path.basename(filePath);
+      const exceptions = NATIVE_DIALOG_EXCEPTIONS[filename] || [];
 
       const violations = [];
       lines.forEach((line, idx) => {
@@ -146,6 +162,10 @@ describe('Admin Page JS - No Native Dialogs', () => {
         }
         // Skip lines that are part of admin helper definitions/calls
         if (/_adminConfirm|_adminToast|AdminShared\.show|AdminShared\.confirm/.test(line)) {
+          return;
+        }
+        // Skip only explicitly documented native-dialog fallbacks.
+        if (exceptions.some(exception => line.includes(exception.fragment) && exception.reason)) {
           return;
         }
         // Check for native dialog patterns
@@ -159,6 +179,19 @@ describe('Admin Page JS - No Native Dialogs', () => {
           `Native dialog calls found in ${path.basename(filePath)}:\n${violations.join('\n')}`
         );
       }
+    });
+  });
+
+  it('documents every native-dialog exception with a reason', () => {
+    Object.entries(NATIVE_DIALOG_EXCEPTIONS).forEach(([filename, exceptions]) => {
+      expect(filename).toMatch(/^admin.*\.js$/);
+      expect(exceptions.length).toBeGreaterThan(0);
+      exceptions.forEach(exception => {
+        expect(exception.fragment).toEqual(expect.any(String));
+        expect(exception.fragment.length).toBeGreaterThan(0);
+        expect(exception.reason).toEqual(expect.any(String));
+        expect(exception.reason.length).toBeGreaterThan(12);
+      });
     });
   });
 
