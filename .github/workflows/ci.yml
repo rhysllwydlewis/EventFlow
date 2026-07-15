@@ -109,22 +109,6 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-      - name: Generate formatted homepage assets for repair
-        if: steps.formatting.outcome == 'failure'
-        run: npm run build:homepages
-
-      - name: Upload formatted homepage assets
-        if: steps.formatting.outcome == 'failure'
-        uses: actions/upload-artifact@v4
-        with:
-          name: formatted-homepage-assets
-          path: |
-            public/assets/js/pages/home-v2.js
-            public/assets/js/pages/home-v3.js
-            public/assets/js/pages/home-v3-video.js
-          if-no-files-found: error
-          retention-days: 7
-
       - name: Enforce formatting result
         if: steps.formatting.outcome == 'failure'
         run: exit 1
@@ -218,14 +202,31 @@ jobs:
         run: npm ci --prefer-offline --no-audit
 
       - name: Run full test suite
-        run: npm run test:full
+        id: full-regression
+        run: npm run test:full -- --runInBand --json --outputFile=full-regression-results.json
         env:
           NODE_ENV: test
           JWT_SECRET: test-secret-key-for-ci-testing-only-min-32-chars
 
+      - name: Upload full regression diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: full-regression-results-ci
+          path: |
+            full-regression-results.json
+            coverage/lcov.info
+            coverage/coverage-summary.json
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Report non-blocking regression failure
+        if: steps.full-regression.outcome == 'failure'
+        run: echo "::warning::The full regression suite failed. Download full-regression-results-ci for the exact failing suites and assertions."
+
       - name: Upload coverage reports
         uses: codecov/codecov-action@v4
-        if: success()
+        if: always()
         with:
           files: ./coverage/lcov.info
           fail_ci_if_error: false
@@ -251,7 +252,6 @@ jobs:
 
       - name: Run production dependency audit
         run: npm run audit
-        continue-on-error: true
 
   build:
     name: Build Verification
