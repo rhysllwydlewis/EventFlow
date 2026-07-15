@@ -76,16 +76,23 @@ jobs:
           npx eslint --rulesdir eslint-rules public/assets/js/behaviour-analytics.js
           npx eslint --rulesdir eslint-rules public/assets/js/pages/admin-analytics-decision.js
 
-      - name: Commit corrected branch
+      - name: Clean temporary hardening files
         run: |
           rm -f docs/analytics/admin-analytics-premerge-lint.txt
-          git rm \
-            .github/workflows/admin-analytics-premerge-hardening.yml \
-            scripts/admin-analytics-premerge-part1.py \
-            scripts/admin-analytics-premerge-part2.py \
-            scripts/admin-analytics-premerge-part3.py
+          git rm -f .github/workflows/admin-analytics-premerge-hardening.yml
+          git rm -f scripts/admin-analytics-premerge-part1.py
+          git rm -f scripts/admin-analytics-premerge-part2.py
+          git rm -f scripts/admin-analytics-premerge-part3.py
+          git status --short
+
+      - name: Stage corrected files
+        run: git add -A
+
+      - name: Commit corrected files
+        run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
           git commit --no-verify -m "Harden final admin analytics implementation"
-          git push origin HEAD:${{ github.event.pull_request.head.ref }}
+
+      - name: Push corrected branch
+        run: git push origin HEAD:${{ github.event.pull_request.head.ref }}
