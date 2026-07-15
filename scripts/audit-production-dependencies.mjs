@@ -1,9 +1,14 @@
 import { spawnSync } from 'node:child_process';
 
-const result = spawnSync('npm', ['audit', '--omit=dev', '--json'], {
-  encoding: 'utf8',
-  shell: process.platform === 'win32',
-});
+const blockingLevel = process.env.NPM_AUDIT_LEVEL || 'high';
+const result = spawnSync(
+  'npm',
+  ['audit', '--omit=dev', `--audit-level=${blockingLevel}`, '--json'],
+  {
+    encoding: 'utf8',
+    shell: process.platform === 'win32',
+  }
+);
 
 let report;
 try {
@@ -31,6 +36,7 @@ console.log(
     `(${metadata.critical || 0} critical, ${metadata.high || 0} high, ` +
     `${metadata.moderate || 0} moderate, ${metadata.low || 0} low).`
 );
+console.log(`Blocking threshold: ${blockingLevel} and above.`);
 
 for (const vulnerability of vulnerabilities) {
   console.log(`\n${vulnerability.name} — ${vulnerability.severity}`);
