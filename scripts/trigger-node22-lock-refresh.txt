@@ -1,1 +1,2 @@
 Trigger the one-time Node 22 package-lock refresh.
+Retry after workflow registration.
