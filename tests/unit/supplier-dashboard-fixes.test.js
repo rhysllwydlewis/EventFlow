@@ -13,7 +13,7 @@
 const fs = require('fs');
 const path = require('path');
 
-// â”€â”€â”€ file content fixtures â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â”€â”€â”€ file content fixtures â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const pagesDir = path.join(process.cwd(), 'public/assets/js/pages');
 const dashboardHtml = `${fs.readFileSync(
@@ -151,7 +151,7 @@ describe('global-error-handler.js â€“ robustness improvements', () => {
 describe('global-error-handler.js â€“ fetch interceptor null-safety', () => {
   it('parseErrorMessage handles JSON parse failures gracefully', () => {
     expect(errorHandlerJs).toContain('async function parseErrorMessage(response, defaultMessage)');
-    expect(errorHandlerJs).toContain('catch (parseError)');
+    expect(errorHandlerJs).toMatch(/catch\s*\(\s*_?parseError\s*\)/);
     expect(errorHandlerJs).toContain('return defaultMessage');
   });
 
@@ -159,532 +159,4 @@ describe('global-error-handler.js â€“ fetch interceptor null-safety', () => {
     expect(errorHandlerJs).toContain('response.clone()');
   });
 
-  it('fetch interceptor re-throws network errors so callers can handle them', () => {
-    expect(errorHandlerJs).toContain('throw error');
-  });
-});
-
-// â”€â”€â”€ Fix: supplier profile save / form interaction regressions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-const galleryJs = fs.readFileSync(
-  path.join(process.cwd(), 'public/assets/js/supplier-gallery.js'),
-  'utf8'
-);
-
-const appJs = fs.readFileSync(path.join(process.cwd(), 'public/assets/js/app.js'), 'utf8');
-const settingsHtml = fs.readFileSync(path.join(process.cwd(), 'public/settings.html'), 'utf8');
-const messengerWidgetJs = fs.readFileSync(
-  path.join(process.cwd(), 'public/messenger/js/MessengerWidgetV4.js'),
-  'utf8'
-);
-const stylesCss = fs.readFileSync(path.join(process.cwd(), 'public/assets/css/styles.css'), 'utf8');
-const photoUploaderJs = fs.readFileSync(
-  path.join(process.cwd(), 'public/assets/js/components/photo-uploader.js'),
-  'utf8'
-);
-const supplierMessagesJs = fs.readFileSync(
-  path.join(process.cwd(), 'public/assets/js/supplier-messages.js'),
-  'utf8'
-);
-
-const dashboardAnimationsCss = fs.readFileSync(
-  path.join(process.cwd(), 'public/assets/css/dashboard-animations.css'),
-  'utf8'
-);
-
-const supplierDashImprovementsCss = fs.readFileSync(
-  path.join(process.cwd(), 'public/assets/css/supplier-dashboard-improvements.css'),
-  'utf8'
-);
-
-describe('Supplier profile save â€“ no duplicate form submit handler', () => {
-  it('supplier-gallery.js setupFormIntercept is a no-op (does not add a submit listener)', () => {
-    // The old implementation added its own submit listener that raced with app.js.
-    // Confirm setupFormIntercept no longer registers addEventListener('submit', ...).
-    // We find the method body and verify it contains no 'submit' event binding.
-    const methodStart = galleryJs.indexOf('setupFormIntercept(');
-    expect(methodStart).toBeGreaterThan(-1);
-    // Extract up to the next method definition
-    const methodBody = galleryJs.slice(methodStart, galleryJs.indexOf('\n  }', methodStart) + 4);
-    expect(methodBody).not.toContain("addEventListener('submit'");
-    expect(methodBody).not.toContain('addEventListener("submit"');
-  });
-
-  it('supplier-gallery.js exposes uploadPendingGalleryPhotos on window', () => {
-    expect(galleryJs).toContain('window.uploadPendingGalleryPhotos');
-  });
-
-  it('app.js calls window.uploadPendingGalleryPhotos after saving the supplier', () => {
-    expect(appJs).toContain('uploadPendingGalleryPhotos');
-  });
-
-  it('app.js updates the sup-id hidden field for newly created suppliers', () => {
-    expect(appJs).toContain('supIdField.value = savedId');
-  });
-});
-
-describe('Supplier profile form â€“ website field browser validation disabled', () => {
-  it('supplier-form has novalidate attribute to prevent browser URL validation blocking save', () => {
-    expect(dashboardHtml).toContain('id="supplier-form"');
-    expect(dashboardHtml).toMatch(
-      /id="supplier-form"[^>]*novalidate|novalidate[^>]*id="supplier-form"/
-    );
-  });
-
-  it('sup-website input is type="text" not type="url" to avoid browser scroll-to-field validation', () => {
-    expect(dashboardHtml).not.toMatch(/id="sup-website"[^>]*type="url"/);
-    expect(dashboardHtml).toMatch(/id="sup-website"/);
-  });
-
-  it('supplier-form includes inline error regions for name/category/website validation', () => {
-    expect(dashboardHtml).toContain('id="sup-name-error"');
-    expect(dashboardHtml).toContain('id="sup-category-error"');
-    expect(dashboardHtml).toContain('id="sup-website-error"');
-  });
-
-  it('website input includes helper text for https:// auto-normalization', () => {
-    expect(dashboardHtml).toContain('id="sup-website-help"');
-    expect(dashboardHtml).toContain(
-      'If no protocol is provided, https:// will be added when you save'
-    );
-    expect(dashboardHtml).toContain('www.event-flow.co.uk');
-  });
-});
-
-describe('Supplier dashboard/profile UI polish', () => {
-  it('dashboard-supplier toggle profile button uses a pencil edit icon (not plus)', () => {
-    const start = dashboardHtml.indexOf('id="toggle-profile-form"');
-    expect(start).toBeGreaterThan(-1);
-    const section = dashboardHtml.slice(start, start + 1000);
-    expect(section).toContain(
-      '<path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>'
-    );
-    expect(section).not.toContain('<path d="M5 12h14"/>');
-    expect(section).not.toContain('<path d="M12 5v14"/>');
-  });
-
-  it('supplier profile Remove button is absent â€” no remove profile ability', () => {
-    // The Remove button was intentionally removed from the card UI.
-    // There should be no supplier-profile-photo-remove button in the card template.
-    expect(appJs).not.toContain(
-      'class="supplier-profile-photo-remove spc-action-btn spc-action-btn--danger"'
-    );
-    expect(appJs).not.toContain('spc-action-btn--danger');
-    // The photo-remove event binding loop should also be gone
-    expect(appJs).not.toContain("querySelectorAll('.supplier-profile-photo-remove')");
-  });
-
-  it('settings Remove photo button matches outlined upload-button chrome', () => {
-    expect(settingsHtml).toContain('id="avatar-delete-btn"');
-    expect(settingsHtml).toContain('border:1px solid #CFEDEA;background:#F6FAF9;color:#dc2626');
-    expect(settingsHtml).toContain('box-sizing:border-box;line-height:inherit;');
-    expect(settingsHtml).toContain(
-      'for="avatar-upload-input" class="cta secondary" style="cursor:pointer;font-size:0.82rem;padding:0.375rem 0.875rem;display:inline-flex;align-items:center;gap:0.35rem;border-radius:6px;box-sizing:border-box;line-height:inherit;"'
-    );
-    expect(settingsHtml).not.toContain('border:1px solid #fca5a5;background:#fff5f5;color:#dc2626');
-    expect(settingsHtml).not.toContain('border:1px solid #d1d5db;background:#fff;color:#dc2626');
-  });
-
-  it('dashboard and messenger avatar URLs allow safe https CDN and rooted relative forms', () => {
-    expect(messengerWidgetJs).toContain('/^(https?:\\/\\/|\\/[^:])/i.test(avatarUrl)');
-    expect(appJs).toContain('/^(https?:\\/\\/|\\/[^:])/i.test(otherParticipant.avatar)');
-    expect(supplierMessagesJs).toContain('/^(https?:\\/\\/|\\/[^:])/i.test(avatarUrl.trim())');
-    expect(supplierMessagesJs).toContain(
-      "const initial = escapeHtml((name || 'U').charAt(0).toUpperCase())"
-    );
-  });
-
-  it('gallery remove buttons use reduced dimensions with hue-only hover (no scale)', () => {
-    expect(stylesCss).toContain('.photo-remove-btn{');
-    expect(stylesCss).toContain('width:10px;');
-    expect(stylesCss).toContain('height:10px;');
-    expect(stylesCss).toContain('font-size:7px;');
-    expect(stylesCss).toContain('.photo-remove-btn:hover{');
-    expect(stylesCss).toContain('background:#dc2626;');
-    // .photo-remove-btn:hover must NOT use a scale transform â€” hue change only
-    const hoverStart = stylesCss.indexOf('.photo-remove-btn:hover{');
-    const hoverBlock = stylesCss.slice(hoverStart, stylesCss.indexOf('}', hoverStart) + 1);
-    expect(hoverBlock).not.toContain('transform:scale');
-
-    expect(photoUploaderJs).toContain('.photo-uploader__preview-remove {');
-    expect(photoUploaderJs).toContain('width: 14px;');
-    expect(photoUploaderJs).toContain('height: 14px;');
-    expect(photoUploaderJs).toContain('font-size: 0.6rem;');
-    expect(photoUploaderJs).toContain('background: rgba(220,38,38,1);');
-
-    expect(supplierDashImprovementsCss).toContain('.photo-preview-remove {');
-    expect(supplierDashImprovementsCss).toContain('width: 14px;');
-    expect(supplierDashImprovementsCss).toContain('height: 14px;');
-    // No scale on .photo-preview-remove:hover either
-    const previewHoverStart = supplierDashImprovementsCss.indexOf('.photo-preview-remove:hover {');
-    const previewHoverBlock = supplierDashImprovementsCss.slice(
-      previewHoverStart,
-      supplierDashImprovementsCss.indexOf('}', previewHoverStart) + 1
-    );
-    expect(previewHoverBlock).not.toContain('transform: scale');
-  });
-
-  it('supplier gallery tile remove buttons are reduced and anchored at the corner edge', () => {
-    expect(supplierDashImprovementsCss).toContain(
-      '.photo-preview-item--existing .photo-delete-btn,'
-    );
-    expect(supplierDashImprovementsCss).toContain(
-      '.photo-preview-item--pending .photo-remove-btn {'
-    );
-    expect(supplierDashImprovementsCss).toContain('top: -6px;');
-    expect(supplierDashImprovementsCss).toContain('right: -6px;');
-    // min-width/min-height must be 0 to override the 44px WCAG touch-target rule
-    expect(supplierDashImprovementsCss).toContain('min-width: 0;');
-    expect(supplierDashImprovementsCss).toContain('min-height: 0;');
-    expect(supplierDashImprovementsCss).toContain('font-size: 9px;');
-  });
-
-  it('supplier profile summary card uses structured spc-* layout classes', () => {
-    expect(appJs).toContain('class="supplier-card card glass-card spc-root"');
-    expect(appJs).toContain('class="spc-summary"');
-    expect(appJs).toContain('class="spc-name-row"');
-    // Inline checklist link removed â€” View Checklist button in action bar is sufficient
-    expect(appJs).not.toContain('class="spc-checklist-link"');
-    // Description and health bar removed from card body (ring + checklist card handle these)
-    expect(appJs).not.toContain('class="spc-desc"');
-    expect(appJs).not.toContain('class="listing-health spc-health"');
-    // Category chip
-    expect(appJs).toContain('class="spc-category-chip"');
-    // 3-button action bar
-    expect(appJs).toContain('data-action="upload-photo"');
-    expect(appJs).toContain('spc-action-btn--edit');
-    expect(appJs).toContain('spc-action-btn--checklist');
-    expect(appJs).not.toContain('class="card-actions spc-edit-row"');
-    // Checklist card defaults visible and toggle starts in "Hide" state
-    expect(appJs).toContain('class="spc-checklist-card"');
-    expect(appJs).toContain('class="spc-checklist-steps"');
-    expect(appJs).toContain('Profile Setup Checklist');
-    expect(appJs).toContain('class="spc-checklist-btn-label">Hide Checklist</span>');
-    expect(appJs).toContain("actionEl.setAttribute('aria-expanded', 'false')");
-    expect(appJs).toContain("checklistCard.setAttribute('hidden', '')");
-    // Checklist items match reference labels
-    expect(appJs).toContain("'Business Details'");
-    expect(appJs).toContain("'Categories & Services'");
-    expect(appJs).toContain("'Photos'");
-    expect(appJs).toContain("'Contact Information'");
-    expect(appJs).toContain("'Business Description'");
-    expect(supplierDashImprovementsCss).toContain('.spc-root {');
-    expect(supplierDashImprovementsCss).toContain('.spc-summary {');
-    expect(supplierDashImprovementsCss).toContain('.spc-health .listing-health-bar {');
-    // 3-col action bar
-    expect(supplierDashImprovementsCss).toContain('grid-template-columns: repeat(3, 1fr)');
-    // New components
-    expect(supplierDashImprovementsCss).toContain('.spc-category-chip {');
-    expect(supplierDashImprovementsCss).toContain('.spc-checklist-card {');
-    expect(supplierDashImprovementsCss).toContain('.spc-checklist-step {');
-    expect(supplierDashImprovementsCss).toContain('.spc-checklist-step-circle {');
-  });
-
-  it('removes profile-level price display from summary meta row (no POA/profile price badge)', () => {
-    expect(appJs).not.toContain('${priceDisplay ?');
-    expect(appJs).not.toContain('spc-meta-pipe');
-  });
-
-  it('adds 12 oâ€™clock profile avatar delete button and delete action wiring', () => {
-    expect(appJs).toContain('class="spc-avatar-delete-btn"');
-    expect(appJs).toContain('data-action="delete-profile-photo"');
-    expect(appJs).toContain("fetch('/api/profile/avatar'");
-    expect(appJs).toContain("method: 'DELETE'");
-    expect(supplierDashImprovementsCss).toContain('.spc-avatar-delete-btn {');
-    expect(supplierDashImprovementsCss).toContain('.spc-avatar-delete-btn:active {');
-    expect(supplierDashImprovementsCss).toContain('transform: translateX(-50%);');
-  });
-
-  it('upload-photo action targets gallery upload row and opens a single picker path', () => {
-    expect(appJs).toContain('data-action="upload-photo"');
-    expect(appJs).toContain("const uploader = document.getElementById('sup-photo-drop')");
-    expect(appJs).toContain('await editProfile(profileId, { skipFormScroll: true })');
-    expect(appJs).toContain("const galleryRow = uploader.closest('.form-row') || uploader");
-    expect(appJs).toContain("galleryRow.scrollIntoView({ behavior: 'smooth', block: 'start' })");
-    expect(appJs).toContain('uploader.focus({ preventScroll: true })');
-    expect(appJs).toContain('uploader.click()');
-    expect(appJs).not.toContain("efSetupPhotoDropZone(\n    'sup-photo-drop'");
-  });
-
-  it('profile initials fallback uses multi-letter initials (e.g. RT)', () => {
-    expect(appJs).toContain('.split(/\\s+/)');
-    expect(appJs).toContain('.slice(0, 2)');
-    expect(appJs).toContain('.map(part => part.charAt(0).toUpperCase())');
-  });
-
-  it('package gallery circular delete buttons are reduced to half-size chrome', () => {
-    expect(supplierDashImprovementsCss).toContain('.pkg-gallery-delete {');
-    expect(supplierDashImprovementsCss).toContain('top: -6px;');
-    expect(supplierDashImprovementsCss).toContain('right: -6px;');
-    expect(supplierDashImprovementsCss).toContain('width: 16px;');
-    expect(supplierDashImprovementsCss).toContain('height: 16px;');
-    expect(supplierDashImprovementsCss).toContain('font-size: 9px;');
-    // ef-cta must NOT be on the button â€” it overrides padding/position and breaks the overlay
-    expect(appJs).not.toContain('ef-cta pkg-gallery-delete');
-    expect(appJs).toContain('class="pkg-gallery-delete"');
-  });
-});
-
-describe('Gallery photo 404 error handling', () => {
-  it('renderExistingPhotos attaches an onerror handler on gallery <img> elements', () => {
-    // Prettier may split addEventListener args across lines; match flexibly
-    expect(galleryJs).toMatch(/addEventListener\s*\(\s*['"]error['"]/);
-    expect(galleryJs).toContain('photo-preview-item__image-wrap--error');
-  });
-
-  it('showPreview also attaches an onerror handler for pending preview images', () => {
-    const idx = galleryJs.indexOf('showPreview(file, previewContainer)');
-    expect(idx).toBeGreaterThan(-1);
-    const previewBlock = galleryJs.slice(idx, idx + 2600);
-    expect(previewBlock).toMatch(/addEventListener\s*\(\s*['"]error['"]/);
-    expect(previewBlock).toContain('photo-preview-item__image-wrap--error');
-  });
-
-  it('banner preview in app.js attaches an onerror handler', () => {
-    // Find the banner preview block and confirm error handling is present
-    const idx = appJs.indexOf('sup-banner-preview');
-    expect(idx).toBeGreaterThan(-1);
-    const bannerBlock = appJs.slice(idx, idx + 1000);
-    expect(bannerBlock).toMatch(/addEventListener\s*\(\s*['"]error['"]/);
-  });
-});
-
-describe('Card hover animation â€“ no layout shift on form cards', () => {
-  it('dashboard-animations.css cancels translateY for sd-card on hover', () => {
-    expect(dashboardAnimationsCss).toContain('.sd-card:hover');
-    expect(dashboardAnimationsCss).toContain('transform: none');
-  });
-
-  it('dashboard-animations.css includes prefers-reduced-motion rule', () => {
-    expect(dashboardAnimationsCss).toContain('prefers-reduced-motion');
-    expect(dashboardAnimationsCss).toContain('transform: none');
-  });
-
-  it('supplier-dashboard-improvements.css cancels translateY for sd-card on hover', () => {
-    expect(supplierDashImprovementsCss).toContain('.sd-card:hover');
-    expect(supplierDashImprovementsCss).toContain('transform: none');
-  });
-
-  it('supplier-dashboard-improvements.css includes prefers-reduced-motion rule', () => {
-    expect(supplierDashImprovementsCss).toContain('prefers-reduced-motion');
-  });
-
-  it('supplier-dashboard-improvements.css includes error state CSS for image wrap', () => {
-    expect(supplierDashImprovementsCss).toContain('photo-preview-item__image-wrap--error');
-  });
-});
-
-// â”€â”€â”€ Audit remediation â€“ behavioral / sequencing checks â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-describe('Supplier form submit â€“ double-submit prevention (sequencing)', () => {
-  it('app.js disables the submit button before any await in the save handler', () => {
-    // Verify saveBtn.disabled = true appears BEFORE the first await in the submit block
-    const submitIdx = appJs.indexOf("supForm.addEventListener('submit'");
-    expect(submitIdx).toBeGreaterThan(-1);
-    const handlerBlock = appJs.slice(submitIdx, submitIdx + 5000);
-    const disabledIdx = handlerBlock.indexOf('saveBtn.disabled = true');
-    const awaitIdx = handlerBlock.indexOf('await ensureCsrfToken');
-    expect(disabledIdx).toBeGreaterThan(-1);
-    expect(awaitIdx).toBeGreaterThan(-1);
-    expect(disabledIdx).toBeLessThan(awaitIdx);
-  });
-
-  it('app.js re-enables the submit button inside a finally block', () => {
-    const submitIdx = appJs.indexOf("supForm.addEventListener('submit'");
-    // The submit handler is large (validation + API call); use a generous slice
-    const handlerBlock = appJs.slice(submitIdx, submitIdx + 8000);
-    const finallyIdx = handlerBlock.indexOf('} finally {');
-    const reEnableIdx = handlerBlock.indexOf('saveBtn.disabled = false');
-    expect(finallyIdx).toBeGreaterThan(-1);
-    expect(reEnableIdx).toBeGreaterThan(-1);
-    // re-enable must come after the finally keyword
-    expect(reEnableIdx).toBeGreaterThan(finallyIdx);
-  });
-
-  it('app.js early-returns if the save button is already disabled (re-entry guard)', () => {
-    const submitIdx = appJs.indexOf("supForm.addEventListener('submit'");
-    const handlerBlock = appJs.slice(submitIdx, submitIdx + 500);
-    expect(handlerBlock).toContain('saveBtn.disabled');
-    expect(handlerBlock).toContain('return');
-  });
-
-  it('app.js applies and removes save-button loading state', () => {
-    const submitIdx = appJs.indexOf("supForm.addEventListener('submit'");
-    const handlerBlock = appJs.slice(submitIdx, submitIdx + 8000);
-    expect(handlerBlock).toContain("saveBtn.classList.add('is-loading')");
-    expect(handlerBlock).toContain("saveBtn.classList.remove('is-loading')");
-    expect(handlerBlock).toContain("saveBtn.textContent = 'Savingâ€¦'");
-  });
-});
-
-describe('Supplier form submit â€“ savedId empty guard', () => {
-  it('app.js checks for empty savedId and aborts with an error message', () => {
-    expect(appJs).toContain('if (!savedId)');
-  });
-
-  it('app.js shows an error status message when savedId is empty after save', () => {
-    const guardIdx = appJs.indexOf('if (!savedId)');
-    const guardBlock = appJs.slice(guardIdx, guardIdx + 400);
-    expect(guardBlock).toContain('error');
-    expect(guardBlock).toContain('return');
-  });
-});
-
-describe('Supplier form submit â€“ required field JS validation', () => {
-  it('app.js validates the name field before invoking buildSupplierPayload', () => {
-    const submitIdx = appJs.indexOf("supForm.addEventListener('submit'");
-    const handlerBlock = appJs.slice(submitIdx, submitIdx + 5000);
-    const nameCheckIdx = handlerBlock.indexOf('sup-name');
-    const buildPayloadIdx = handlerBlock.indexOf('buildSupplierPayload');
-    expect(nameCheckIdx).toBeGreaterThan(-1);
-    expect(buildPayloadIdx).toBeGreaterThan(-1);
-    // name check must occur before buildSupplierPayload is called
-    expect(nameCheckIdx).toBeLessThan(buildPayloadIdx);
-  });
-
-  it('app.js validates the category field before invoking buildSupplierPayload', () => {
-    const submitIdx = appJs.indexOf("supForm.addEventListener('submit'");
-    const handlerBlock = appJs.slice(submitIdx, submitIdx + 5000);
-    const catCheckIdx = handlerBlock.indexOf('sup-category');
-    const buildPayloadIdx = handlerBlock.indexOf('buildSupplierPayload');
-    expect(catCheckIdx).toBeGreaterThan(-1);
-    expect(buildPayloadIdx).toBeGreaterThan(-1);
-    expect(catCheckIdx).toBeLessThan(buildPayloadIdx);
-  });
-
-  it('app.js shows an inline error and focuses the name field when name is empty', () => {
-    // Search within the submit handler block to avoid matching populateSupplierForm
-    const submitIdx = appJs.indexOf("supForm.addEventListener('submit'");
-    const handlerBlock = appJs.slice(submitIdx, submitIdx + 6000);
-    expect(handlerBlock).toContain('nameEl.focus');
-    expect(handlerBlock).toContain('Business name is required');
-  });
-
-  it('app.js toggles inline validation helpers/classes for supplier fields', () => {
-    expect(appJs).toContain('setSupplierFieldError');
-    expect(appJs).toContain('clearSupplierFieldError');
-    expect(appJs).toContain('supplier-field-invalid');
-  });
-});
-
-describe('Supplier form â€“ website URL normalization', () => {
-  it('app.js normalizes website URLs by prepending https:// when no scheme is present', () => {
-    const buildStart = appJs.indexOf('function buildSupplierPayload(form)');
-    const buildBlock = appJs.slice(buildStart, buildStart + 2000);
-    // Accept both template-literal and concatenation forms of https:// prepending
-    expect(buildBlock).toMatch(/https:\/\//);
-    expect(buildBlock).toContain('payload.website');
-  });
-
-  it('app.js URL normalization runs inside buildSupplierPayload', () => {
-    const buildStart = appJs.indexOf('function buildSupplierPayload(form)');
-    expect(buildStart).toBeGreaterThan(-1);
-    const buildBlock = appJs.slice(buildStart, buildStart + 2000);
-    expect(buildBlock).toContain('https://');
-    expect(buildBlock).toContain('payload.website');
-  });
-
-  it('app.js does not prepend https:// when the scheme is already present', () => {
-    // The normalization guard uses a regex test for ^https?:// before prepending
-    // Source contains the regex literal so we check for the key guard pattern
-    expect(appJs).toContain('https?:');
-    // Ensure the normalization logic is inside buildSupplierPayload
-    const buildStart = appJs.indexOf('function buildSupplierPayload(form)');
-    const buildBlock = appJs.slice(buildStart, buildStart + 2000);
-    expect(buildBlock).toContain('https?:');
-  });
-
-  it('app.js validates website URL format before submit', () => {
-    const submitIdx = appJs.indexOf("supForm.addEventListener('submit'");
-    const handlerBlock = appJs.slice(submitIdx, submitIdx + 8000);
-    expect(handlerBlock).toContain('normalizeAndValidateWebsiteInput');
-    expect(handlerBlock).toContain('Please fix the website URL and try again.');
-    expect(handlerBlock).toContain('www.example.com');
-  });
-});
-
-describe('Banner error state â€“ âš  warning indicator consistency', () => {
-  it('app.js adds photo-preview-item__image-wrap--error class on banner image load failure', () => {
-    // The banner error handler must apply the same error class used by gallery errors
-    const bannerIdx = appJs.indexOf('Could not load banner');
-    expect(bannerIdx).toBeGreaterThan(-1);
-    const bannerBlock = appJs.slice(bannerIdx, bannerIdx + 300);
-    expect(bannerBlock).toContain('photo-preview-item__image-wrap--error');
-  });
-
-  it('gallery and banner error states share the same CSS error class', () => {
-    // Verify gallery.js also uses the same class (not a one-off)
-    expect(galleryJs).toContain('photo-preview-item__image-wrap--error');
-  });
-});
-
-describe('supplier-gallery.js â€“ dead setupFormIntercept call removed', () => {
-  it('setup() no longer contains a live call to setupFormIntercept', () => {
-    const setupIdx = galleryJs.indexOf('setup() {');
-    expect(setupIdx).toBeGreaterThan(-1);
-    const loadExistingIdx = galleryJs.indexOf('this.loadExistingPhotos();', setupIdx);
-    expect(loadExistingIdx).toBeGreaterThan(setupIdx);
-    const setupBody = galleryJs.slice(setupIdx, loadExistingIdx + 100);
-    expect(setupBody).not.toContain('this.setupFormIntercept(');
-  });
-});
-
-describe('CSS â€“ :has() selectors wrapped in @supports for older Firefox compatibility', () => {
-  it('dashboard-animations.css wraps :has() hover rules in @supports selector(:has(*))', () => {
-    expect(dashboardAnimationsCss).toContain('@supports selector(:has(*))');
-    // The :has() selectors must appear inside the @supports block
-    const supportsIdx = dashboardAnimationsCss.indexOf('@supports selector(:has(*))');
-    const supportsBlock = dashboardAnimationsCss.slice(supportsIdx, supportsIdx + 500);
-    expect(supportsBlock).toContain(':has(form):hover');
-  });
-
-  it('supplier-dashboard-improvements.css wraps :has() hover rules in @supports selector(:has(*))', () => {
-    expect(supplierDashImprovementsCss).toContain('@supports selector(:has(*))');
-    const supportsIdx = supplierDashImprovementsCss.indexOf('@supports selector(:has(*))');
-    const supportsBlock = supplierDashImprovementsCss.slice(supportsIdx, supportsIdx + 500);
-    expect(supportsBlock).toContain(':has(');
-  });
-});
-
-describe('CSS â€“ prefers-reduced-motion uses !important to prevent cascade override', () => {
-  it('dashboard-animations.css prefers-reduced-motion transition rule uses !important', () => {
-    const prmIdx = dashboardAnimationsCss.indexOf('@media (prefers-reduced-motion: reduce)');
-    expect(prmIdx).toBeGreaterThan(-1);
-    const prmBlock = dashboardAnimationsCss.slice(prmIdx, prmIdx + 400);
-    expect(prmBlock).toMatch(/transition[^;]+!important/);
-  });
-
-  it('supplier-dashboard-improvements.css prefers-reduced-motion transform rule uses !important', () => {
-    // Find the card-specific prefers-reduced-motion block (there may be multiple)
-    const prmIdx = supplierDashImprovementsCss.indexOf(
-      '/* Respect prefers-reduced-motion â€” use !important'
-    );
-    expect(prmIdx).toBeGreaterThan(-1);
-    const prmBlock = supplierDashImprovementsCss.slice(prmIdx, prmIdx + 500);
-    expect(prmBlock).toMatch(/transform[^;]+!important/);
-  });
-
-  it('supplier-dashboard-improvements.css includes loading/error field polish styles', () => {
-    expect(supplierDashImprovementsCss).toContain('.supplier-field-invalid');
-    expect(supplierDashImprovementsCss).toContain('#sup-create.is-loading::after');
-    expect(supplierDashImprovementsCss).toContain('@keyframes supplier-save-spin');
-  });
-
-  it('supplier-dashboard-improvements.css includes responsive supplier form spacing guards', () => {
-    expect(supplierDashImprovementsCss).toContain('#supplier-form .supplier-form-grid > div');
-    expect(supplierDashImprovementsCss).toContain('box-sizing: border-box');
-    expect(supplierDashImprovementsCss).toContain('@media (max-width: 680px)');
-  });
-
-  it('supplier-dashboard-improvements.css keeps profile-form helper/error text compact and scoped', () => {
-    expect(supplierDashImprovementsCss).toContain(
-      '#profile-form-section #supplier-form .small.form-error-text'
-    );
-    expect(supplierDashImprovementsCss).toContain(
-      '#profile-form-section #supplier-form .form-help-text'
-    );
-    expect(supplierDashImprovementsCss).toContain(
-      '#profile-form-section #supplier-form .supplier-form-actions'
-    );
-  });
-});
+  it('fetch interceptor re-throws network errors so callers can handle them',²È="25ÌÑ¡”…Ñ•½Éä™¥•±‰•™½É”¥¹Ù½­¥¹œ‰Õ¥±‘MÕÁÁ±¥•ÉA…å±½…œ°€ ¤€ôøì(€€€½¹ÍÐÍÕ‰µ¥Ñ%‘à€ô…ÁÁ)Ì¹¥¹‘•á=˜ ‰ÍÕÁ½É´¹…‘‘Ù•¹Ñ1¥ÍÑ•¹•È ÍÕ‰µ¥Ðœˆ¤ì(€€€½¹ÍÐ¡…¹‘±•É	±½¬€ô…ÁÁ)Ì¹Í±¥”¡ÍÕ‰µ¥Ñ%‘à°ÍÕ‰µ¥Ñ%‘à€¬€ÔÀÀÀ¤ì(€€€½¹ÍÐ…Ñ¡•­%‘à€ô¡…¹‘±•É	±½¬¹¥¹‘•á=˜ ÍÕÀµ…Ñ•½Éäœ¤ì(€€€½¹ÍÐ‰Õ¥±‘A…å±½…‘%‘à€ô¡…¹‘±•É	±½¬¹¥¹‘•á=˜ ‰Õ¥±‘MÕÁÁ±¥•ÉA…å±½…œ¤ì(€€€•áÁ•Ð¡…Ñ¡•­%‘à¤¹Ñ½	•É•…Ñ•ÉQ¡…¸ ´Ä¤ì(€€€•áÁ•Ð¡‰Õ¥±‘A…å±½…‘%‘à¤¹Ñ½	•É•…Ñ•ÉQ¡…¸ ´Ä¤ì(€€€•áÁ•Ð¡…Ñ¡•­%‘à¤¹Ñ½	•1•ÍÍQ¡…¸¡‰Õ¥±‘A…å±½…‘%‘à¤ì(€ô¤ì((€¥Ð …ÁÀ¹©ÌÍ¡½ÝÌ…¸¥¹±¥¹”•ÉÉ½È…¹™½ÕÍ•ÌÑ¡”¹…µ”™¥•±Ý¡•¸¹…µ”¥Ì•µÁÑäœ°€ ¤€ôøì(€€€€¼¼M•…É Ý¥Ñ¡¥¸Ñ¡”ÍÕ‰µ¥Ð¡…¹‘±•È‰±½¬Ñ¼…Ù½¥µ…Ñ¡¥¹œÁ½ÁÕ±…Ñ•MÕÁÁ±¥•É½É´(€€€½¹ÍÐÍÕ‰µ¥Ñ%‘à€ô…ÁÁ)Ì¹¥¹‘•á=˜ ‰ÍÕÁ½É´¹…‘‘Ù•¹Ñ1¥ÍÑ•¹•È ÍÕ‰µ¥Ðœˆ¤ì(€€€½¹ÍÐ¡…¹‘±•É	±½¬€ô…ÁÁ)Ì¹Í±¥”¡ÍÕ‰µ¥Ñ%‘à°ÍÕ‰µ¥Ñ%‘à€¬€ØÀÀÀ¤ì(€€€•áÁ•Ð¡¡…¹‘±•É	±½¬¤¹Ñ½½¹Ñ…¥¸ ¹…µ•°¹™½ÕÍœ¤ì(€€€•áÁ•Ð¡¡…¹‘±•É	±½¬¤¹Ñ½½¹Ñ…¥¸ 	ÕÍ¥¹•ÍÌ¹…µ”¥ÌÉ•ÅÕ¥É•œ¤ì(€ô¤ì((€¥Ð …ÁÀ¹©ÌÑ½±•Ì¥¹±¥¹”Ù…±¥‘…Ñ¥½¸¡•±Á•ÉÌ½±…ÍÍ•Ì™½ÈÍÕÁÁ±¥•È™¥•±‘Ìœ°€ ¤€ôøì(€€€•áÁ•Ð¡…ÁÁ)Ì¤¹Ñ½½¹Ñ…¥¸ Í•ÑMÕÁÁ±¥•É¥•±‘ÉÉ½Èœ¤ì(€€€•áÁ•Ð¡…ÁÁ)Ì¤¹Ñ½½¹Ñ…¥¸ ±•…ÉMÕÁÁ±¥•É¥•±‘ÉÉ½Èœ¤ì(€€€•áÁ•Ð¡…ÁÁ)Ì¤¹Ñ½½¹Ñ…¥¸ ÍÕÁÁ±¥•Èµ™¥•±µ¥¹Ù…±¥œ¤ì(€ô¤ì)ô¤ì()‘•ÍÉ¥‰” MÕÁÁ±¥•È™½É´ƒŠLÝ•‰Í¥Ñ”UI0¹½Éµ…±¥é…Ñ¥½¸œ°€ ¤€ôøì(€¥Ð …ÁÀ¹©Ì¹½Éµ…±¥é•ÌÝ•‰Í¥Ñ”UI1Ì‰äÁÉ•Á•¹‘¥¹œ¡ÑÑÁÌè¼¼Ý¡•¸¹¼Í¡•µ”¥ÌÁÉ•Í•¹Ðœ°€ ¤€ôøì(€€€½¹ÍÐ‰Õ¥±‘MÑ…ÉÐ€ô…ÁÁ)Ì¹¥¹‘•á=˜ ™Õ¹Ñ¥½¸‰Õ¥±‘MÕÁÁ±¥•ÉA…å±½…¡™½É´¤œ¤ì(€€€½¹ÍÐ‰Õ¥±‘	±½¬€ô…ÁÁ)Ì¹Í±¥”¡‰Õ¥±‘MÑ…ÉÐ°‰Õ¥±‘MÑ…ÉÐ€¬€ÈÀÀÀ¤ì(€€€€¼¼•ÁÐ‰½Ñ Ñ•µÁ±…Ñ”µ±¥Ñ•É…°…¹½¹…Ñ•¹…Ñ¥½¸™½ÉµÌ½˜¡ÑÑÁÌè¼¼ÁÉ•Á•¹‘¥¹œ(€€€•áÁ•Ð¡‰Õ¥±‘	±½¬¤¹Ñ½5…Ñ  ½¡ÑÑÁÌép½p¼¼¤ì(€€€•áÁ•Ð¡‰Õ¥±‘	±½¬¤¹Ñ½½¹Ñ…¥¸ Á…å±½…¹Ý•‰Í¥Ñ”œ¤ì(€ô¤ì((€¥Ð …ÁÀ¹©ÌUI0¹½Éµ…±¥é…Ñ¥½¸ÉÕ¹Ì¥¹Í¥‘”‰Õ¥±‘MÕÁÁ±¥•ÉA…å±½…œ°€ ¤€ôøì(€€€½¹ÍÐ‰Õ¥±‘MÑ…ÉÐ€ô…ÁÁ)Ì¹¥¹‘•á=˜ ™Õ¹Ñ¥½¸‰Õ¥±‘MÕÁÁ±¥•ÉA…å±½…¡™½É´¤œ¤ì(€€€•áÁ•Ð¡‰Õ¥±‘MÑ…ÉÐ¤¹Ñ½	•É•…Ñ•ÉQ¡…¸ ´Ä¤ì(€€€½¹ÍÐ‰Õ¥±‘	±½¬€ô…ÁÁ)Ì¹Í±¥”¡‰Õ¥±‘MÑ…ÉÐ°‰Õ¥±‘MÑ…ÉÐ€¬€ÈÀÀÀ¤ì(€€€•áÁ•Ð¡‰Õ¥±‘	±½¬¤¹Ñ½½¹Ñ…¥¸ ¡ÑÑÁÌè¼¼œ¤ì(€€€•áÁ•Ð¡‰Õ¥±‘	±½¬¤¹Ñ½½¹Ñ…¥¸ Á…å±½…¹Ý•‰Í¥Ñ”œ¤ì(€ô¤ì((€¥Ð …ÁÀ¹©Ì‘½•Ì¹½ÐÁÉ•Á•¹¡ÑÑÁÌè¼¼Ý¡•¸Ñ¡”Í¡•µ”¥Ì…±É•…‘äÁÉ•Í•¹Ðœ°€ ¤€ôøì(€€€€¼¼Q¡”¹½Éµ…±¥é…Ñ¥½¸Õ…ÉÕÍ•Ì„É••àÑ•ÍÐ™½Èy¡ÑÑÁÌüè¼¼‰•™½É”ÁÉ•Á•¹‘¥¹œ(€€€€¼¼M½ÕÉ”½¹Ñ…¥¹ÌÑ¡”É••à±¥Ñ•É…°Í¼Ý”¡•¬™½ÈÑ¡”­•äÕ…ÉÁ…ÑÑ•É¸(€€€•áÁ•Ð¡…ÁÁ)Ì¤¹Ñ½½¹Ñ…¥¸ ¡ÑÑÁÌüèœ¤ì(€€€€¼¼¹ÍÕÉ”Ñ¡”¹½Éµ…±¥é…Ñ¥½¸±½¥Œ¥Ì¥¹Í¥‘”‰Õ¥±‘MÕÁÁ±¥•ÉA…å±½…(€€€½¹ÍÐ‰Õ¥±‘MÑ…ÉÐ€ô…ÁÁ)Ì¹¥¹‘•á=˜ ™Õ¹Ñ¥½¸‰Õ¥±‘MÕÁÁ±¥•ÉA…å±½…¡™½É´¤œ¤ì(€€€½¹ÍÐ‰Õ¥±‘	±½¬€ô…ÁÁ)Ì¹Í±¥”¡‰Õ¥±‘MÑ…ÉÐ°‰Õ¥±‘MÑ…ÉÐ€¬€ÈÀÀÀ¤ì(€€€•áÁ•Ð¡‰Õ¥±‘	±½¬¤¹Ñ½½¹Ñ…¥¸ ¡ÑÑÁÌüèœ¤ì(€ô¤ì((€¥Ð …ÁÀ¹©ÌÙ…±¥‘…Ñ•ÌÝ•‰Í¥Ñ”UI0™½Éµ…Ð‰•™½É”ÍÕ‰µ¥Ðœ°€ ¤€ôøì(€€€½¹ÍÐÍÕ‰µ¥Ñ%‘à€ô…ÁÁ)Ì¹¥¹‘•á=˜ ‰ÍÕÁ½É´¹…‘‘Ù•¹Ñ1¥ÍÑ•¹•È ÍÕ‰µ¥Ðœˆ¤ì(€€€½¹ÍÐ¡…¹‘±•É	±½¬€ô…ÁÁ)Ì¹Í±¥”¡ÍÕ‰µ¥Ñ%‘à°ÍÕ‰µ¥Ñ%‘à€¬€àÀÀÀ¤ì(€€€•áÁ•Ð¡¡…¹‘±•É	±½¬¤¹Ñ½½¹Ñ…¥¸ ¹½Éµ…±¥é•¹‘Y…±¥‘…Ñ•]•‰Í¥Ñ•%¹ÁÕÐœ¤ì(€€€•áÁ•Ð¡¡…¹‘±•É	±½¬¤¹Ñ½½¹Ñ…¥¸ A±•…Í”™¥àÑ¡”Ý•‰Í¥Ñ”UI0…¹ÑÉä……¥¸¸œ¤ì(€€€•áÁ•Ð¡¡…¹‘±•É	±½¬¤¹Ñ½½¹Ñ…¥¸ ÝÝÜ¹•á…µÁ±”¹½´œ¤ì(€ô¤ì)ô¤ì()‘•ÍÉ¥‰” 	…¹¹•È•ÉÉ½ÈÍÑ…Ñ”ƒŠLƒŠj€Ý…É¹¥¹œ¥¹‘¥…Ñ½È½¹Í¥ÍÑ•¹äœ°€ ¤€ôøì(€¥Ð …ÁÀ¹©Ì…‘‘ÌÁ¡½Ñ¼µÁÉ•Ù¥•Üµ¥Ñ•µ}}¥µ…”µÝÉ…À´µ•ÉÉ½È±…ÍÌ½¸‰…¹¹•È¥µ…”±½…™…¥±ÕÉ”œ°€ ¤€ôøì(€€€€¼¼Q¡”‰…¹¹•È•ÉÉ½È¡…¹‘±•ÈµÕÍÐ…ÁÁ±äÑ¡”Í…µ”•ÉÉ½È±…ÍÌÕÍ•‰ä…±±•Éä•ÉÉ½ÉÌ(€€€½¹ÍÐ‰…¹¹•É%‘à€ô…ÁÁ)Ì¹¥¹‘•á=˜ ½Õ±¹½Ð±½…‰…¹¹•Èœ¤ì(€€€•áÁ•Ð¡‰…¹¹•É%‘à¤¹Ñ½	•É•…Ñ•ÉQ¡…¸ ´Ä¤ì(€€€½¹ÍÐ‰…¹¹•É	±½¬€ô…ÁÁ)Ì¹Í±¥”¡‰…¹¹•É%‘à°‰…¹¹•É%‘à€¬€ÌÀÀ¤ì(€€€•áÁ•Ð¡‰…¹¹•É	±½¬¤¹Ñ½½¹Ñ…¥¸ Á¡½Ñ¼µÁÉ•Ù¥•Üµ¥Ñ•µ}}¥µ…”µÝÉ…À´µ•ÉÉ½Èœ¤ì(€ô¤ì((€¥Ð …±±•Éä…¹‰…¹¹•È•ÉÉ½ÈÍÑ…Ñ•ÌÍ¡…É”Ñ¡”Í…µ”ML•ÉÉ½È±…ÍÌœ°€ ¤€ôøì(€€€€¼¼Y•É¥™ä…±±•Éä¹©Ì…±Í¼ÕÍ•ÌÑ¡”Í…µ”±…ÍÌ€¡¹½Ð„½¹”µ½™˜¤(€€€•áÁ•Ð¡…±±•Éå)Ì¤¹Ñ½½¹Ñ…¥¸ Á¡½Ñ¼µÁÉ•Ù¥•Üµ¥Ñ•µ}}¥µ…”µÝÉ…À´µ•ÉÉ½Èœ¤ì(€ô¤ì)ô¤ì()‘•ÍÉ¥‰” ÍÕÁÁ±¥•Èµ…±±•Éä¹©ÌƒŠL‘•…Í•ÑÕÁ½Éµ%¹Ñ•É•ÁÐ…±°É•µ½Ù•œ°€ ¤€ôøì(€¥Ð Í•ÑÕÀ ¤¹¼±½¹•È½¹Ñ…¥¹Ì„±¥Ù”…±°Ñ¼Í•ÑÕÁ½Éµ%¹Ñ•É•ÁÐœ°€ ¤€ôøì(€€€½¹ÍÐÍ•ÑÕÁ%‘à€ô…±±•Éå)Ì¹¥¹‘•á=˜ Í•ÑÕÀ ¤ìœ¤ì(€€€•áÁ•Ð¡Í•ÑÕÁ%‘à¤¹Ñ½	•É•…Ñ•ÉQ¡…¸ ´Ä¤ì(€€€½¹ÍÐ±½…‘á¥ÍÑ¥¹%‘à€ô…±±•Éå)Ì¹¥¹‘•á=˜ Ñ¡¥Ì¹±½…‘á¥ÍÑ¥¹A¡½Ñ½Ì ¤ìœ°Í•ÑÕÁ%‘à¤ì(€€€•áÁ•Ð¡±½…‘á¥ÍÑ¥¹%‘à¤¹Ñ½	•É•…Ñ•ÉQ¡…¸¡Í•ÑÕÁ%‘à¤ì(€€€½¹ÍÐÍ•ÑÕÁ	½‘ä€ô…±±•Éå)Ì¹Í±¥”¡Í•ÑÕÁ%‘à°±½…‘á¥ÍÑ¥¹%‘à€¬€ÄÀÀ¤ì(€€€•áÁ•Ð¡Í•ÑÕÁ	½‘ä¤¹¹½Ð¹Ñ½½¹Ñ…¥¸ Ñ¡¥Ì¹Í•ÑÕÁ½Éµ%¹Ñ•É•ÁÐ œ¤ì(€ô¤ì)ô¤ì()‘•ÍÉ¥‰” MLƒŠL€é¡…Ì ¤Í•±•Ñ½ÉÌÝÉ…ÁÁ•¥¸ÍÕÁÁ½ÉÑÌ™½È½±‘•È¥É•™½à½µÁ…Ñ¥‰¥±¥Ñäœ°€ ¤€ôøì(€¥Ð ‘…Í¡‰½…Éµ…¹¥µ…Ñ¥½¹Ì¹ÍÌÝÉ…ÁÌ€é¡…Ì ¤¡½Ù•ÈÉÕ±•Ì¥¸ÍÕÁÁ½ÉÑÌÍ•±•Ñ½È é¡…Ì ¨¤¤œ°€ ¤€ôøì(€€€•áÁ•Ð¡‘…Í¡‰½…É‘¹¥µ…Ñ¥½¹ÍÍÌ¤¹Ñ½½¹Ñ…¥¸ ÍÕÁÁ½ÉÑÌÍ•±•Ñ½È é¡…Ì ¨¤¤œ¤ì(€€€€¼¼Q¡”€é¡…Ì ¤Í•±•Ñ½ÉÌµÕÍÐ…ÁÁ•…È¥¹Í¥‘”Ñ¡”ÍÕÁÁ½ÉÑÌ‰±½¬(€€€½¹ÍÐÍÕÁÁ½ÉÑÍ%‘à€ô‘…Í¡‰½…É‘¹¥µ…Ñ¥½¹ÍÍÌ¹¥¹‘•á=˜ ÍÕÁÁ½ÉÑÌÍ•±•Ñ½È é¡…Ì ¨¤¤œ¤ì(€€€½¹ÍÐÍÕÁÁ½ÉÑÍ	±½¬€ô‘…Í¡‰½…É‘¹¥µ…Ñ¥½¹ÍÍÌ¹Í±¥”¡ÍÕÁÁ½ÉÑÍ%‘à°ÍÕÁÁ½ÉÑÍ%‘à€¬€ÔÀÀ¤ì(€€€•áÁ•Ð¡ÍÕÁÁ½ÉÑÍ	±½¬¤¹Ñ½½¹Ñ…¥¸ œé¡…Ì¡™½É´¤é¡½Ù•Èœ¤ì(€ô¤ì((€¥Ð ÍÕÁÁ±¥•Èµ‘…Í¡‰½…Éµ¥µÁÉ½Ù•µ•¹ÑÌ¹ÍÌÝÉ…ÁÌ€é¡…Ì ¤¡½Ù•ÈÉÕ±•Ì¥¸ÍÕÁÁ½ÉÑÌÍ•±•Ñ½È é¡…Ì ¨¤¤œ°€ ¤€ôøì(€€€•áÁ•Ð¡ÍÕÁÁ±¥•É…Í¡%µÁÉ½Ù•µ•¹ÑÍÍÌ¤¹Ñ½½¹Ñ…¥¸ ÍÕÁÁ½ÉÑÌÍ•±•Ñ½È é¡…Ì ¨¤¤œ¤ì(€€€½¹ÍÐÍÕÁÁ½ÉÑÍ%‘à€ôÍÕÁÁ±¥•É…Í¡%µÁÉ½Ù•µ•¹ÑÍÍÌ¹¥¹‘•á=˜ ÍÕÁÁ½ÉÑÌÍ•±•Ñ½È é¡…Ì ¨¤¤œ¤ì(€€€½¹ÍÐÍÕÁÁ½ÉÑÍ	±½¬€ôÍÕÁÁ±¥•É…Í¡%µÁÉ½Ù•µ•¹ÑÍÍÌ¹Í±¥”¡ÍÕÁÁ½ÉÑÍ%‘à°ÍÕÁÁ½ÉÑÍ%‘à€¬€ÔÀÀ¤ì(€€€•áÁ•Ð¡ÍÕÁÁ½ÉÑÍ	±½¬¤¹Ñ½½¹Ñ…¥¸ œé¡…Ì œ¤ì(€ô¤ì)ô¤ì()‘•ÍÉ¥‰” MLƒŠLÁÉ•™•ÉÌµÉ•‘Õ•µµ½Ñ¥½¸ÕÍ•Ì€…¥µÁ½ÉÑ…¹ÐÑ¼ÁÉ•Ù•¹Ð…Í…‘”½Ù•ÉÉ¥‘”œ°€ ¤€ôøì(€¥Ð ‘…Í¡‰½…Éµ…¹¥µ…Ñ¥½¹Ì¹ÍÌÁÉ•™•ÉÌµÉ•‘Õ•µµ½Ñ¥½¸ÑÉ…¹Í¥Ñ¥½¸ÉÕ±”ÕÍ•Ì€…¥µÁ½ÉÑ…¹Ðœ°€ ¤€ôøì(€€€½¹ÍÐÁÉµ%‘à€ô‘…Í¡‰½…É‘¹¥µ…Ñ¥½¹ÍÍÌ¹¥¹‘•á=˜ µ•‘¥„€¡ÁÉ•™•ÉÌµÉ•‘Õ•µµ½Ñ¥½¸èÉ•‘Õ”¤œ¤ì(€€€•áÁ•Ð¡ÁÉµ%‘à¤¹Ñ½	•É•…Ñ•ÉQ¡…¸ ´Ä¤ì(€€€½¹ÍÐÁÉµ	±½¬€ô‘…Í¡‰½…É‘¹¥µ…Ñ¥½¹ÍÍÌ¹Í±¥”¡ÁÉµ%‘à°ÁÉµ%‘à€¬€ÐÀÀ¤ì(€€€•áÁ•Ð¡ÁÉµ	±½¬¤¹Ñ½5…Ñ  ½ÑÉ…¹Í¥Ñ¥½¹mxít¬…¥µÁ½ÉÑ…¹Ð¼¤ì(€ô¤ì((€¥Ð ÍÕÁÁ±¥•Èµ‘…Í¡‰½…Éµ¥µÁÉ½Ù•µ•¹ÑÌ¹ÍÌÁÉ•™•ÉÌµÉ•‘Õ•µµ½Ñ¥½¸ÑÉ…¹Í™½É´ÉÕ±”ÕÍ•Ì€…¥µÁ½ÉÑ…¹Ðœ°€ ¤€ôøì(€€€€¼¼¥¹Ñ¡”…ÉµÍÁ•¥™¥ŒÁÉ•™•ÉÌµÉ•‘Õ•µµ½Ñ¥½¸‰±½¬€¡Ñ¡•É”µ…ä‰”µÕ±Ñ¥Á±”¤(€€€½¹ÍÐÁÉµ%‘à€ôÍÕÁÁ±¥•É…Í¡%µÁÉ½Ù•µ•¹ÑÍÍÌ¹¥¹‘•á=˜ (€€€€€€œ¼¨I•ÍÁ•ÐÁÉ•™•ÉÌµÉ•‘Õ•µµ½Ñ¥½¸ƒŠPÕÍ”€…¥µÁ½ÉÑ…¹Ðœ(€€€€¤ì(€€€•áÁ•Ð¡ÁÉµ%‘à¤¹Ñ½	•É•…Ñ•ÉQ¡…¸ ´Ä¤ì(€€€½¹ÍÐÁÉµ	±½¬€ôÍÕÁÁ±¥•É…Í¡%µÁÉ½Ù•µ•¹ÑÍÍÌ¹Í±¥”¡ÁÉµ%‘à°ÁÉµ%‘à€¬€ÔÀÀ¤ì(€€€•áÁ•Ð¡ÁÉµ	±½¬¤¹Ñ½5…Ñ  ½ÑÉ…¹Í™½Éµmxít¬…¥µÁ½ÉÑ…¹Ð¼¤ì(€ô¤ì((€¥Ð ÍÕÁÁ±¥•Èµ‘…Í¡‰½…Éµ¥µÁÉ½Ù•µ•¹ÑÌ¹ÍÌ¥¹±Õ‘•Ì±½…‘¥¹œ½•ÉÉ½È™¥•±Á½±¥Í ÍÑå±•Ìœ°€ ¤€ôøì(€€€•áÁ•Ð¡ÍÕÁÁ±¥•É…Í¡%µÁÉ½Ù•µ•¹ÑÍÍÌ¤¹Ñ½½¹Ñ…¥¸ œ¹ÍÕÁÁ±¥•Èµ™¥•±µ¥¹Ù…±¥œ¤ì(€€€•áÁ•Ð¡ÍÕÁÁ±¥•É…Í¡%µÁÉ½Ù•µ•¹ÑÍÍÌ¤¹Ñ½½¹Ñ…¥¸ œÍÕÀµÉ•…Ñ”¹¥Ìµ±½…‘¥¹œèé…™Ñ•Èœ¤ì(€€€•áÁ•Ð¡ÍÕÁÁ±¥•É…Í¡%µÁÉ½Ù•µ•¹ÑÍÍÌ¤¹Ñ½½¹Ñ…¥¸ ­•å™É…µ•ÌÍÕÁÁ±¥•ÈµÍ…Ù”µÍÁ¥¸œ¤ì(€ô¤ì((€¥Ð ÍÕÁÁ±¥•Èµ‘…Í¡‰½…Éµ¥µÁÉ½Ù•µ•¹ÑÌ¹ÍÌ¥¹±Õ‘•ÌÉ•ÍÁ½¹Í¥Ù”ÍÕÁÁ±¥•È™½É´ÍÁ…¥¹œÕ…É‘Ìœ°€ ¤€ôøì(€€€•áÁ•Ð¡ÍÕÁÁ±¥•É…Í¡%µÁÉ½Ù•µ•¹ÑÍÍÌ¤¹Ñ½½¹Ñ…¥¸ œÍÕÁÁ±¥•Èµ™½É´€¹ÍÕÁÁ±¥•Èµ™½É´µÉ¥€ø‘¥Øœ¤ì(€€€•áÁ•Ð¡ÍÕÁÁ±¥•É…Í¡%µÁÉ½Ù•µ•¹ÑÍÍÌ¤¹Ñ½½¹Ñ…¥¸ ‰½àµÍ¥é¥¹œè‰½É‘•Èµ‰½àœ¤ì(€€€•áÁ•Ð¡ÍÕÁÁ±¥•É…Í¡%µÁÉ½Ù•µ•¹ÑÍÍÌ¤¹Ñ½½¹Ñ…¥¸ µ•‘¥„€¡µ…àµÝ¥‘Ñ è€ØàÁÁà¤œ¤ì(€ô¤ì((€¥Ð ÍÕÁÁ±¥•Èµ‘…Í¡‰½…Éµ¥µÁÉ½Ù•µ•¹ÑÌ¹ÍÌ­••ÁÌÁÉ½™¥±”µ™½É´¡•±Á•È½•ÉÉ½ÈÑ•áÐ½µÁ…Ð…¹Í½Á•œ°€ ¤€ôøì(€€€•áÁ•Ð¡ÍÕÁÁ±¥•É…Í¡%µÁÉ½Ù•µ•¹ÑÍÍÌ¤¹Ñ½½¹Ñ…¥¸ (€€€€€€œÁÉ½™¥±”µ™½É´µÍ•Ñ¥½¸€ÍÕÁÁ±¥•Èµ™½É´€¹Íµ…±°¹™½É´µ•ÉÉ½ÈµÑ•áÐœ(€€€€¤ì(€€€•áÁ•Ð¡ÍÕÁÁ±¥•É…Í¡%µÁÉ½Ù•µ•¹ÑÍÍÌ¤¹Ñ½½¹Ñ…¥¸ (€€€€€€œÁÉ½™¥±”µ™½É´µÍ•Ñ¥½¸€ÍÕÁÁ±¥•Èµ™½É´€¹™½É´µ¡•±ÀµÑ•áÐœ(€€€€¤ì(€€€•áÁ•Ð¡ÍÕÁÁ±¥•É…Í¡%µÁÉ½Ù•µ•¹ÑÍÍÌ¤¹Ñ½½¹Ñ…¥¸ (€€€€€€œÁÉ½™¥±”µ™½É´µÍ•Ñ¥½¸€ÍÕÁÁ±¥•Èµ™½É´€¹ÍÕÁÁ±¥•Èµ™½É´µ…Ñ¥½¹Ìœ(€€€€¤ì(€ô¤ì)ô¤ì(
