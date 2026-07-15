@@ -1,0 +1,47 @@
+name: Temporary Homepage Type Repair
+
+on:
+  push:
+    branches: [agent/clean-install-ci-baseline]
+    paths:
+      - 'scripts/apply-homepage-type-fixes.mjs'
+      - '.github/workflows/temporary-homepage-type-repair.yml'
+
+permissions:
+  contents: write
+
+env:
+  HUSKY: '0'
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repair branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/clean-install-ci-baseline
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.node-version'
+
+      - name: Apply deterministic source edits
+        run: node scripts/apply-homepage-type-fixes.mjs
+
+      - name: Commit repaired TypeScript sources
+        run: |
+          if git diff --quiet -- src/homepages; then
+            echo "Homepage TypeScript sources already repaired."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/homepages
+          git commit -m "Fix homepage TypeScript DOM and settings types"
+          git push origin HEAD:agent/clean-install-ci-baseline
