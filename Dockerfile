@@ -1,5 +1,5 @@
-# Use the supported Node 22 LTS line used by local development and CI.
-FROM node:22-alpine
+# Use the exact supported Node 22 release used by local development and CI.
+FROM node:22.23.1-alpine
 
 # Install curl for healthcheck
 RUN apk add --no-cache curl
