@@ -296,6 +296,32 @@ jobs:
       - name: Build the Railway production image
         run: docker build --tag eventflow-ci:${{ github.sha }} .
 
+      - name: Verify the Railway image starts with production dependencies
+        run: |
+          docker run --detach --name eventflow-ci-runtime --publish 3010:3000 \
+            --env NODE_ENV=test \
+            --env PORT=3000 \
+            --env JWT_SECRET=test-secret-key-for-container-verification-only \
+            eventflow-ci:${{ github.sha }}
+          trap 'docker logs eventflow-ci-runtime || true; docker rm --force eventflow-ci-runtime >/dev/null 2>&1 || true' EXIT
+
+          for i in $(seq 1 20); do
+            if curl -sf http://localhost:3010/api/health > /dev/null 2>&1; then
+              echo "Railway image health check passed after ${i}s"
+              exit 0
+            fi
+            if ! docker inspect --format='{{.State.Running}}' eventflow-ci-runtime 2>/dev/null | grep -q true; then
+              echo "Railway image exited before becoming healthy"
+              docker logs eventflow-ci-runtime
+              exit 1
+            fi
+            sleep 1
+          done
+
+          echo "Railway image did not become healthy within 20 seconds"
+          docker logs eventflow-ci-runtime
+          exit 1
+
       - name: Verify server starts and health check passes
         run: |
           node server.js > /tmp/eventflow-server.log 2>&1 &
