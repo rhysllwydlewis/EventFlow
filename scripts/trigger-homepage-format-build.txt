@@ -1,2 +1,0 @@
-Trigger the one-time formatted homepage build.
-Retry after workflow registration.
