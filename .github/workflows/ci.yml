@@ -109,6 +109,22 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+      - name: Generate formatted homepage assets for repair
+        if: steps.formatting.outcome == 'failure'
+        run: npm run build:homepages
+
+      - name: Upload formatted homepage assets
+        if: steps.formatting.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: formatted-homepage-assets
+          path: |
+            public/assets/js/pages/home-v2.js
+            public/assets/js/pages/home-v3.js
+            public/assets/js/pages/home-v3-video.js
+          if-no-files-found: error
+          retention-days: 7
+
       - name: Enforce formatting result
         if: steps.formatting.outcome == 'failure'
         run: exit 1
