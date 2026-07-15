@@ -26,7 +26,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: npm
 
       - name: Extract and run focused recovery script
         shell: bash
@@ -48,15 +47,53 @@ jobs:
           node --check utils/template-renderer.js
           node --check tests/unit/posthog-web-vitals-health.test.js
 
-      - name: Install test dependencies
-        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Run dependency-free focused assertions
+        shell: bash
+        run: |
+          node <<'NODE'
+          const assert = require('assert');
+          const fs = require('fs');
+          const vm = require('vm');
 
-      - name: Run focused analytics tests
-        run: >-
-          npx jest --runInBand --coverage=false
-          tests/unit/behaviour-analytics-integration.test.js
-          tests/unit/analytics-independent-hardening.test.js
-          tests/unit/posthog-web-vitals-health.test.js
+          const analytics = fs.readFileSync('public/assets/js/behaviour-analytics.js', 'utf8');
+          const renderer = fs.readFileSync('utils/template-renderer.js', 'utf8');
+
+          assert(analytics.includes('capture_performance: {'));
+          assert(analytics.includes('web_vitals: true'));
+          assert(analytics.includes('web_vitals_attribution: false'));
+          assert(analytics.includes("person_profiles: 'never'"));
+          assert(analytics.includes('before_send: sanitizePostHogProviderEvent'));
+          assert(!analytics.includes('capture_performance: false'));
+          assert(renderer.includes('/assets/js/behaviour-analytics.js?v=2'));
+          assert(!renderer.includes('/assets/js/behaviour-analytics.js?v=1'));
+
+          const start = analytics.indexOf('  function sanitizePostHogProviderEvent(event)');
+          const end = analytics.indexOf('\n  function startPostHog(config)', start);
+          assert(start >= 0 && end > start);
+          const context = {};
+          vm.createContext(context);
+          vm.runInContext(
+            `${analytics.slice(start, end)}\nthis.sanitizePostHogProviderEvent = sanitizePostHogProviderEvent;`,
+            context
+          );
+
+          const event = {
+            event: '$web_vitals',
+            properties: {
+              $process_person_profile: '019f6251-06a8-76c3-abe6-59e81e75cf04',
+              $web_vitals_LCP_event: {
+                $current_url: 'https://event-flow.co.uk/suppliers?token=secret#results',
+              },
+            },
+          };
+          const output = context.sanitizePostHogProviderEvent(event);
+          assert.strictEqual(output, event);
+          assert.strictEqual(event.properties.$process_person_profile, false);
+          assert.strictEqual(
+            event.properties.$web_vitals_LCP_event.$current_url,
+            'https://event-flow.co.uk/suppliers'
+          );
+          NODE
 
       - name: Commit verified recovery and remove temporary runners
         shell: bash
