@@ -46,7 +46,10 @@ jobs:
       - name: Audit production dependencies
         id: production-audit
         continue-on-error: true
-        run: npm run audit 2>&1 | tee production-audit-report.txt
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run audit 2>&1 | tee production-audit-report.txt
 
       - name: Upload production audit report
         if: always()
@@ -60,3 +63,48 @@ jobs:
       - name: Enforce production audit result
         if: steps.production-audit.outcome == 'failure'
         run: exit 1
+
+  temporary-socketio-lock-refresh:
+    name: Temporary Socket.IO security refresh
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/clean-install-ci-baseline
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.node-version'
+          cache: npm
+
+      - name: Refresh Socket.IO transitive dependencies within the current major
+        run: npm update socket.io --package-lock-only --ignore-scripts --no-audit
+
+      - name: Verify package metadata and clean installation
+        run: |
+          npm run check:lockfile
+          npm ci --prefer-offline --no-audit
+
+      - name: Require zero high or critical production advisories
+        env:
+          NPM_AUDIT_LEVEL: high
+        run: npm run audit
+
+      - name: Commit refreshed lockfile
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package-lock.json
+          if git diff --cached --quiet; then
+            echo "Socket.IO dependency tree is already current."
+            exit 0
+          fi
+          git commit -m "Refresh Socket.IO security dependencies"
+          git push origin HEAD:agent/clean-install-ci-baseline
