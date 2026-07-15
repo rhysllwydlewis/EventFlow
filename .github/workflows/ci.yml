@@ -59,7 +59,22 @@ jobs:
         run: npm ci --prefer-offline --no-audit
 
       - name: Run ESLint
-        run: npm run lint
+        id: eslint
+        continue-on-error: true
+        run: npm run lint -- --format json --output-file eslint-report.json
+
+      - name: Upload ESLint diagnostics
+        if: steps.eslint.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: eslint-report
+          path: eslint-report.json
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Enforce ESLint result
+        if: steps.eslint.outcome == 'failure'
+        run: exit 1
 
   formatting:
     name: Formatting
@@ -128,9 +143,25 @@ jobs:
         run: npm ci --prefer-offline --no-audit
 
       - name: Type-check homepage sources
-        run: npm run typecheck:homepages
+        id: typecheck
+        continue-on-error: true
+        run: npm run typecheck:homepages -- --pretty false > homepage-typecheck.log 2>&1
+
+      - name: Upload homepage type-check diagnostics
+        if: steps.typecheck.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: homepage-typecheck-report
+          path: homepage-typecheck.log
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Enforce homepage type-check result
+        if: steps.typecheck.outcome == 'failure'
+        run: exit 1
 
       - name: Verify generated homepage assets are current
+        if: steps.typecheck.outcome == 'success'
         run: |
           npm run build:homepages
           git diff --exit-code -- public/assets/js/pages/home-v2.js public/assets/js/pages/home-v3.js public/assets/js/pages/home-v3-video.js
