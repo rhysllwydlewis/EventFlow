@@ -1,3 +1,4 @@
 Trigger the one-time homepage bundle refresh.
 Retry after workflow registration.
 Retry after runtime and deploy alignment.
+Final retry after CI diagnostics were added.
