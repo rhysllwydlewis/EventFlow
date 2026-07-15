@@ -13,6 +13,9 @@ on:
       - 'tests/unit/behaviour-analytics-decision.test.js'
       - 'tests/unit/behaviour-analytics-integration.test.js'
       - 'docs/analytics/admin-analytics-decision-dashboard.md'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'scripts/check-lockfile-consistency.mjs'
       - '.github/workflows/admin-analytics-decision-validation.yml'
 
 permissions:
@@ -22,11 +25,14 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  HUSKY: '0'
+
 jobs:
   validate:
     name: Focused analytics checks
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 15
 
     steps:
       - name: Checkout code
@@ -35,18 +41,14 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version-file: '.node-version'
+          cache: 'npm'
 
-      - name: Restore node_modules cache
-        id: restore-cache
-        uses: actions/cache@v4
-        with:
-          path: node_modules
-          key: node-modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+      - name: Verify package-lock metadata
+        run: npm run check:lockfile
 
-      - name: Install dependencies on cache miss
-        if: steps.restore-cache.outputs.cache-hit != 'true'
-        run: npm ci
+      - name: Clean install dependencies
+        run: npm ci --prefer-offline --no-audit
 
       - name: Check JavaScript syntax
         run: |
@@ -94,7 +96,7 @@ jobs:
   integration-groups:
     name: Integration · ${{ matrix.label }}
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
@@ -115,18 +117,14 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version-file: '.node-version'
+          cache: 'npm'
 
-      - name: Restore node_modules cache
-        id: restore-cache
-        uses: actions/cache@v4
-        with:
-          path: node_modules
-          key: node-modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+      - name: Verify package-lock metadata
+        run: npm run check:lockfile
 
-      - name: Install dependencies on cache miss
-        if: steps.restore-cache.outputs.cache-hit != 'true'
-        run: npm ci
+      - name: Clean install dependencies
+        run: npm ci --prefer-offline --no-audit
 
       - name: Run integration behaviour group
         run: >-
