@@ -45,13 +45,19 @@ jobs:
                   raise SystemExit(f'{path}: expected one occurrence, found {count}: {before[:80]!r}')
               file.write_text(source.replace(before, after, 1))
 
-          def replace_regex(path, pattern, replacement, flags=0):
+          def update_css_block(path, selector_pattern, declarations):
               file = Path(path)
               source = file.read_text()
-              updated, count = re.subn(pattern, replacement, source, count=1, flags=flags)
-              if count != 1:
-                  raise SystemExit(f'{path}: expected one regex match, found {count}: {pattern}')
-              file.write_text(updated)
+              match = re.search(selector_pattern + r'(.*?)(\n\})', source, re.S)
+              if not match:
+                  raise SystemExit(f'{path}: selector block not found: {selector_pattern}')
+              body = match.group(1)
+              for name, value in declarations.items():
+                  pattern = rf'(?m)^(\s*){re.escape(name)}:\s*[^;]+;'
+                  body, count = re.subn(pattern, rf'\1{name}: {value};', body, count=1)
+                  if count != 1:
+                      raise SystemExit(f'{path}: declaration not found in block: {name}')
+              file.write_text(source[:match.start(1)] + body + source[match.end(1):])
 
           test_path = 'tests/unit/supplier-dashboard-fixes.test.js'
           replace_once(
@@ -75,37 +81,15 @@ jobs:
           )
 
           css_path = 'public/assets/css/supplier-dashboard-improvements.css'
-          replace_regex(
+          update_css_block(
               css_path,
-              r"(\.photo-preview-item--existing \.photo-delete-btn,\n\.photo-preview-item--pending \.photo-remove-btn \{)(.*?)(\n\})",
-              lambda match: match.group(1) + re.sub(
-                  r'(top|right):\s*-?\d+px;|width:\s*\d+px;|height:\s*\d+px;|font-size:\s*[\d.]+(?:px|rem);',
-                  lambda prop: {
-                      'top': 'top: -6px;',
-                      'right': 'right: -6px;',
-                      'width': 'width: 16px;',
-                      'height': 'height: 16px;',
-                      'font-size': 'font-size: 9px;',
-                  }[prop.group(0).split(':', 1)[0]] if prop.group(0).split(':', 1)[0] in {'top', 'right', 'width', 'height', 'font-size'} else prop.group(0),
-                  match.group(2),
-              ) + match.group(3),
-              flags=re.S,
+              r'\.photo-preview-item--existing \.photo-delete-btn,\n\.photo-preview-item--pending \.photo-remove-btn \{',
+              {'top': '-6px', 'right': '-6px', 'width': '16px', 'height': '16px', 'font-size': '9px'},
           )
-          replace_regex(
+          update_css_block(
               css_path,
-              r"(\.pkg-gallery-delete \{)(.*?)(\n\})",
-              lambda match: match.group(1) + re.sub(
-                  r'(top|right):\s*-?\d+px;|width:\s*\d+px;|height:\s*\d+px;|font-size:\s*[\d.]+(?:px|rem);',
-                  lambda prop: {
-                      'top': 'top: -6px;',
-                      'right': 'right: -6px;',
-                      'width': 'width: 16px;',
-                      'height': 'height: 16px;',
-                      'font-size': 'font-size: 9px;',
-                  }[prop.group(0).split(':', 1)[0]] if prop.group(0).split(':', 1)[0] in {'top', 'right', 'width', 'height', 'font-size'} else prop.group(0),
-                  match.group(2),
-              ) + match.group(3),
-              flags=re.S,
+              r'\.pkg-gallery-delete \{',
+              {'top': '-6px', 'right': '-6px', 'width': '16px', 'height': '16px', 'font-size': '9px'},
           )
 
           homepage_path = 'public/assets/js/pages/admin-homepage-hardening.js'
@@ -193,10 +177,20 @@ jobs:
           tests/unit/supplier-dashboard-fixes.test.js
           tests/unit/home-mobile-signup.test.js
           tests/unit/admin-allowlist.test.js
-          tests/unit/content-sanitizer.test.js
         env:
           NODE_ENV: test
           JWT_SECRET: test-secret-key-for-regression-repair-only
+
+      - name: Verify production content sanitisation
+        run: |
+          node - <<'NODE'
+          const assert = require('node:assert/strict');
+          const { sanitizeContent } = require('./services/contentSanitizer');
+          const safe = sanitizeContent('<p>Hello</p><script>alert(1)</script><a href="javascript:alert(1)">bad</a>');
+          assert.match(safe, /<p>Hello<\/p>/);
+          assert.doesNotMatch(safe, /script|javascript:/i);
+          console.log('Content sanitisation verified with the pinned jsdom runtime.');
+          NODE
 
       - name: Run production dependency audit
         run: npm run audit
