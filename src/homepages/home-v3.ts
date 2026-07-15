@@ -18,7 +18,12 @@
 
     window.fetch = async (input, init) => {
       const response = await nativeFetch(input, init);
-      const requestUrl = typeof input === 'string' ? input : input?.url || '';
+      const requestUrl =
+        typeof input === 'string'
+          ? input
+          : input instanceof URL
+            ? input.href
+            : input.url;
 
       if (!requestUrl.includes('/api/v1/public/homepage-settings')) {
         return response;
@@ -62,17 +67,19 @@
   window.__collageWidgetInitialized = true;
 
   function initialiseEventTypeSelect() {
-    const select = document.querySelector('[data-hv3-event-select]');
-    const input = document.getElementById('hv2-event-type');
+    const select = document.querySelector<HTMLElement>('[data-hv3-event-select]');
+    const input = document.getElementById('hv2-event-type') as HTMLInputElement | null;
 
     if (!select || !input) {
       return;
     }
 
-    const trigger = select.querySelector('[data-hv3-select-button]');
-    const label = select.querySelector('[data-hv3-event-label]');
-    const menu = select.querySelector('[data-hv3-select-menu]');
-    const options = Array.from(select.querySelectorAll('[data-hv3-event-option]'));
+    const trigger = select.querySelector<HTMLButtonElement>('[data-hv3-select-button]');
+    const label = select.querySelector<HTMLElement>('[data-hv3-event-label]');
+    const menu = select.querySelector<HTMLElement>('[data-hv3-select-menu]');
+    const options = Array.from(
+      select.querySelectorAll<HTMLButtonElement>('[data-hv3-event-option]')
+    );
 
     if (!trigger || !label || !menu || options.length === 0) {
       return;
@@ -120,7 +127,7 @@
       option.addEventListener('click', () => chooseOption(option));
     });
 
-    select.addEventListener('keydown', event => {
+    select.addEventListener('keydown', (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         closeMenu();
         trigger.focus();
@@ -151,7 +158,8 @@
     });
 
     document.addEventListener('click', event => {
-      if (!select.contains(event.target)) {
+      const target = event.target;
+      if (target instanceof Node && !select.contains(target)) {
         closeMenu();
       }
     });
@@ -246,8 +254,8 @@
       return;
     }
 
-    const timers = new Set();
-    let activeGuide = null;
+    const timers = new Set<number>();
+    let activeGuide: HTMLElement | null = null;
     let userStartedSearch = false;
     let guideSequenceStopped = false;
     const GUIDE_FADE_MS = 860;
@@ -260,7 +268,7 @@
       return window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0;
     }
 
-    function queue(callback, delay) {
+    function queue(callback: () => void, delay: number) {
       const timer = window.setTimeout(() => {
         timers.delete(timer);
         callback();
@@ -270,12 +278,12 @@
       return timer;
     }
 
-    function clearQueued(timer) {
+    function clearQueued(timer: number) {
       window.clearTimeout(timer);
       timers.delete(timer);
     }
 
-    function nextFrame(callback) {
+    function nextFrame(callback: () => void) {
       if (typeof window.requestAnimationFrame === 'function') {
         window.requestAnimationFrame(callback);
         return;
@@ -299,8 +307,8 @@
       return guide;
     }
 
-    function isVisibleElement(element) {
-      if (!element) {
+    function isVisibleElement(element: Element | null): element is HTMLElement {
+      if (!(element instanceof HTMLElement)) {
         return false;
       }
 
@@ -308,19 +316,21 @@
       return rect.width > 0 && rect.height > 0;
     }
 
-    function findByText(selector, pattern) {
-      return Array.from(document.querySelectorAll(selector)).find(element => {
+    function findByText(selector: string, pattern: RegExp): HTMLElement | undefined {
+      return Array.from(document.querySelectorAll<HTMLElement>(selector)).find(element => {
         return isVisibleElement(element) && pattern.test((element.textContent || '').trim());
       });
     }
 
-    function findGuideTarget(variant) {
+    function findGuideTarget(variant: string): HTMLElement | null | undefined {
       if (variant === 'search') {
-        return document.querySelector('.hv2-search__button');
+        return document.querySelector<HTMLButtonElement>('.hv2-search__button');
       }
 
       return (
-        document.querySelector('a[href="/login"], a[href="/login.html"], a[href*="/login"]') ||
+        document.querySelector<HTMLAnchorElement>(
+          'a[href="/login"], a[href="/login.html"], a[href*="/login"]'
+        ) ||
         findByText('a, button', /^(log in|login|sign in)$/i)
       );
     }
@@ -329,7 +339,7 @@
       return Math.min(Math.max(value, min), max);
     }
 
-    function findGuideAvoidRect(target, variant) {
+    function findGuideAvoidRect(target: HTMLElement, variant: string) {
       if (variant !== 'search') {
         return target.getBoundingClientRect();
       }
@@ -342,7 +352,12 @@
       return searchPanel.getBoundingClientRect();
     }
 
-    function placeGuide(guide, target, variant, measuredTargetRect) {
+    function placeGuide(
+      guide: HTMLElement,
+      target: HTMLElement,
+      variant: string,
+      measuredTargetRect?: DOMRect
+    ) {
       if (!guide || !target || !isVisibleElement(target)) {
         return;
       }
@@ -383,7 +398,7 @@
       guide.style.top = `${top}px`;
     }
 
-    function hideGuide(guide, onRemoved) {
+    function hideGuide(guide: HTMLElement | null, onRemoved?: () => void) {
       if (!guide || guide.dataset.dismissed === 'true') {
         return;
       }
@@ -425,7 +440,7 @@
       }
     }
 
-    function showGuide(config, duration, onRemoved) {
+    function showGuide(config, duration: number, onRemoved?: () => void) {
       if (guideSequenceStopped) {
         return null;
       }
@@ -491,7 +506,7 @@
       );
     }, 1000);
 
-    const searchForm = document.querySelector('.hv2-search');
+    const searchForm = document.querySelector<HTMLFormElement>('.hv2-search');
 
     if (searchForm) {
       searchForm.addEventListener('focusin', stopGuideSequence, { once: true });
@@ -499,7 +514,10 @@
     }
 
     document.addEventListener('click', event => {
-      if (event.target.closest('.hv2-search__button, a[href*="/login"]')) {
+      if (
+        event.target instanceof Element &&
+        event.target.closest('.hv2-search__button, a[href*="/login"]')
+      ) {
         stopGuideSequence();
       }
     });
