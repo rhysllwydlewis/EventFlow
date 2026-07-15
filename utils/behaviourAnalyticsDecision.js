@@ -30,6 +30,11 @@ function eventProperties(event) {
   return event && event.properties && typeof event.properties === 'object' ? event.properties : {};
 }
 
+function eventTimestamp(event) {
+  const timestamp = Date.parse(event && event.timestamp);
+  return Number.isNaN(timestamp) ? 0 : timestamp;
+}
+
 function homepageGroup(pagePath) {
   const path = String(pagePath || '/').toLowerCase();
   if (path === '/' || path === '/index.html') {
@@ -47,20 +52,31 @@ function homepageGroup(pagePath) {
   return null;
 }
 
-function buildHomepagePerformance(baseSummary) {
+function homepageDescriptor(pagePath, pageType) {
+  const group = homepageGroup(pagePath);
+  if (group) {
+    return group;
+  }
+  if (pageType === 'home') {
+    const path = String(pagePath || '/');
+    return { key: path, label: path };
+  }
+  return null;
+}
+
+function buildHomepagePerformanceFromSummary(baseSummary) {
   const groups = new Map();
 
   for (const page of safeArray(baseSummary && baseSummary.pages)) {
-    const group = homepageGroup(page.pagePath);
-    if (!group && page.pageType !== 'home') {
+    const resolved = homepageDescriptor(page.pagePath, page.pageType);
+    if (!resolved) {
       continue;
     }
-    const resolved = group || { key: page.pagePath, label: page.pagePath };
     if (!groups.has(resolved.key)) {
       groups.set(resolved.key, {
         key: resolved.key,
         label: resolved.label,
-        paths: [],
+        paths: new Set(),
         views: 0,
         sessions: 0,
         activeSeconds: 0,
@@ -71,7 +87,7 @@ function buildHomepagePerformance(baseSummary) {
     }
 
     const row = groups.get(resolved.key);
-    row.paths.push(page.pagePath);
+    row.paths.add(page.pagePath);
     row.views += Number(page.views) || 0;
     row.sessions += Number(page.sessions) || 0;
     row.activeSeconds += Number(page.totalActiveSeconds) || 0;
@@ -85,7 +101,7 @@ function buildHomepagePerformance(baseSummary) {
     .map(row => ({
       key: row.key,
       label: row.label,
-      paths: row.paths,
+      paths: Array.from(row.paths),
       views: row.views,
       sessions: row.sessions,
       avgActiveSeconds: round(row.activeSeconds / Math.max(row.sessions, 1), 1),
@@ -95,6 +111,119 @@ function buildHomepagePerformance(baseSummary) {
       isHistoricalVersionExact: row.key !== 'live',
     }))
     .sort((left, right) => right.views - left.views || right.sessions - left.sessions);
+}
+
+function ensureHomepageEventGroup(groups, descriptor) {
+  if (!groups.has(descriptor.key)) {
+    groups.set(descriptor.key, {
+      key: descriptor.key,
+      label: descriptor.label,
+      paths: new Set(),
+      views: 0,
+      activeSeconds: 0,
+      sessions: new Map(),
+      exits: 0,
+      bounces: 0,
+    });
+  }
+  return groups.get(descriptor.key);
+}
+
+function homepageSession(group, key) {
+  if (!group.sessions.has(key)) {
+    group.sessions.set(key, { views: 0, activeSeconds: 0 });
+  }
+  return group.sessions.get(key);
+}
+
+function buildHomepagePerformanceFromEvents(events) {
+  const groups = new Map();
+  const sessions = new Map();
+  const orderedEvents = safeArray(events)
+    .filter(event => event && sessionKey(event))
+    .slice()
+    .sort((left, right) => eventTimestamp(left) - eventTimestamp(right));
+
+  for (const event of orderedEvents) {
+    const key = sessionKey(event);
+    if (!sessions.has(key)) {
+      sessions.set(key, {
+        pageViews: 0,
+        activeSeconds: 0,
+        lastPageGroup: null,
+        lastPageAt: -1,
+      });
+    }
+    const session = sessions.get(key);
+    const descriptor = homepageDescriptor(event.pagePath, event.pageType);
+    const timestamp = eventTimestamp(event);
+
+    if (event.event === 'page_view') {
+      session.pageViews += 1;
+      if (timestamp >= session.lastPageAt) {
+        session.lastPageAt = timestamp;
+        session.lastPageGroup = descriptor ? descriptor.key : null;
+      }
+      if (descriptor) {
+        const group = ensureHomepageEventGroup(groups, descriptor);
+        group.paths.add(String(event.pagePath || '/'));
+        group.views += 1;
+        homepageSession(group, key).views += 1;
+      }
+    }
+
+    if (event.event === 'page_engagement') {
+      const seconds = Math.min(
+        Math.max(Number(eventProperties(event).activeSeconds) || 0, 0),
+        3600
+      );
+      session.activeSeconds += seconds;
+      if (descriptor) {
+        const group = ensureHomepageEventGroup(groups, descriptor);
+        group.paths.add(String(event.pagePath || '/'));
+        group.activeSeconds += seconds;
+        homepageSession(group, key).activeSeconds += seconds;
+      }
+    }
+  }
+
+  for (const session of sessions.values()) {
+    if (!session.lastPageGroup || !groups.has(session.lastPageGroup)) {
+      continue;
+    }
+    const group = groups.get(session.lastPageGroup);
+    group.exits += 1;
+    if (session.pageViews === 1 && session.activeSeconds < 10) {
+      group.bounces += 1;
+    }
+  }
+
+  return Array.from(groups.values())
+    .map(group => {
+      const sessionCount = group.sessions.size;
+      const engagedSessions = Array.from(group.sessions.values()).filter(
+        session => session.activeSeconds >= 10 || session.views >= 2
+      ).length;
+      return {
+        key: group.key,
+        label: group.label,
+        paths: Array.from(group.paths),
+        views: group.views,
+        sessions: sessionCount,
+        avgActiveSeconds: round(group.activeSeconds / Math.max(sessionCount, 1), 1),
+        engagedRate: round((engagedSessions / Math.max(sessionCount, 1)) * 100, 1),
+        exitRate: round((group.exits / Math.max(group.views, 1)) * 100, 1),
+        bounceRate: round((group.bounces / Math.max(sessionCount, 1)) * 100, 1),
+        isHistoricalVersionExact: group.key !== 'live',
+      };
+    })
+    .sort((left, right) => right.views - left.views || right.sessions - left.sessions);
+}
+
+function buildHomepagePerformance(baseSummary, events) {
+  return Array.isArray(events)
+    ? buildHomepagePerformanceFromEvents(events)
+    : buildHomepagePerformanceFromSummary(baseSummary);
 }
 
 function ensureEntity(map, id, type) {
@@ -284,7 +413,7 @@ function buildDecisionSummary(events, baseSummary) {
         'Marketplace rate is the share of measured entity sessions that sent an enquiry or quote request. Starts and repeated page views do not inflate the rate.',
     },
     conversions: buildConversionBreakdown(sourceEvents, baseSummary || {}),
-    homepagePerformance: buildHomepagePerformance(baseSummary || {}),
+    homepagePerformance: buildHomepagePerformance(baseSummary || {}, sourceEvents),
     entities: buildEntityPerformance(sourceEvents),
     sessionsByRole: buildRoleCoverage(sourceEvents),
   };

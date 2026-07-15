@@ -36,7 +36,7 @@ The Admin Analytics page compares:
 - unique converting sessions; and
 - browser errors.
 
-A previous-period comparison is shown only when the configured retention period contains the full current and preceding windows. For example, comparing the latest 90 days with the preceding 90 days requires at least 180 days of retained analytics. Current-period figures remain available when the comparison window is incomplete.
+A previous-period comparison is shown only when both the configured retention period and the earliest stored event demonstrate that the full current and preceding windows are available. For example, comparing the latest 90 days with the preceding 90 days requires at least 180 days of retention and stored history reaching the beginning of the preceding window. Current-period figures remain available when the comparison window is incomplete.
 
 ### Conversion definitions
 
@@ -72,11 +72,11 @@ Where existing sanitised events contain a supplier or package ID, the dashboard 
 - completed enquiries or quote requests; and
 - the percentage of measured entity sessions that submitted at least one enquiry or quote request.
 
-Opening an enquiry form does not count as a completed lead. Repeated page views and repeated submissions within the same session do not inflate the session-rate numerator. Rows are omitted rather than inferred when an event did not contain an entity ID.
+Opening an enquiry form does not count as a completed lead. Repeated page views and repeated submissions within the same session do not inflate the session-rate numerator. Public supplier and package pages now attach only their known public entity identifier to the existing sanitised view event. Result clicks, saves and enquiry starts also carry the nearest known public entity identifier. Query strings themselves remain excluded. Rows are omitted rather than inferred when an event did not contain an entity ID.
 
 ### Export
 
-The selected current period can be exported as CSV. The export includes headline totals, conversion types, homepage-path performance and available supplier/package signals.
+The selected current period can be exported as CSV. The export includes headline totals, conversion types, homepage-path performance and available supplier/package signals. Cells beginning with spreadsheet formula characters are prefixed safely before download to prevent formula execution when an administrator opens the file.
 
 ## Performance and storage
 

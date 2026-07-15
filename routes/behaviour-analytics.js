@@ -354,8 +354,9 @@ router.get('/admin/status', authRequired, roleRequired('admin'), async (_req, re
   try {
     const config = getConfig();
     await ensureAnalyticsIndexes();
-    const [eventCount, latest] = await Promise.all([
+    const [eventCount, earliest, latest] = await Promise.all([
       dbUnified.count(COLLECTION_NAME),
+      dbUnified.findWithOptions(COLLECTION_NAME, {}, { limit: 1, sort: { timestamp: 1 } }),
       dbUnified.findWithOptions(COLLECTION_NAME, {}, { limit: 1, sort: { timestamp: -1 } }),
     ]);
 
@@ -365,6 +366,7 @@ router.get('/admin/status', authRequired, roleRequired('admin'), async (_req, re
       status: {
         enabled: config.enabled,
         eventCount,
+        earliestEventAt: earliest[0] ? earliest[0].timestamp : null,
         latestEventAt: latest[0] ? latest[0].timestamp : null,
         retentionDays: config.retentionDays,
         heartbeatSeconds: config.heartbeatSeconds,

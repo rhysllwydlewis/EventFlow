@@ -119,6 +119,46 @@ describe('behaviour analytics decision summary', () => {
     expect(rows.find(row => row.key === 'v2-preview').isHistoricalVersionExact).toBe(true);
   });
 
+  test('deduplicates homepage sessions across grouped live aliases', () => {
+    const homepageEvents = [
+      {
+        event: 'page_view',
+        sessionIdHash: 'homepage-session',
+        pagePath: '/',
+        pageType: 'home',
+        timestamp: '2026-07-14T10:00:00.000Z',
+        properties: {},
+      },
+      {
+        event: 'page_engagement',
+        sessionIdHash: 'homepage-session',
+        pagePath: '/',
+        pageType: 'home',
+        timestamp: '2026-07-14T10:00:10.000Z',
+        properties: { activeSeconds: 12 },
+      },
+      {
+        event: 'page_view',
+        sessionIdHash: 'homepage-session',
+        pagePath: '/index.html',
+        pageType: 'home',
+        timestamp: '2026-07-14T10:00:20.000Z',
+        properties: {},
+      },
+    ];
+
+    const live = buildHomepagePerformance({}, homepageEvents).find(row => row.key === 'live');
+    expect(live).toEqual(
+      expect.objectContaining({
+        views: 2,
+        sessions: 1,
+        avgActiveSeconds: 12,
+        engagedRate: 100,
+      })
+    );
+    expect(live.paths).toEqual(expect.arrayContaining(['/', '/index.html']));
+  });
+
   test('uses completed lead sessions rather than starts to produce bounded marketplace rates', () => {
     const result = buildEntityPerformance(events);
     expect(result.suppliers[0]).toEqual(
@@ -176,8 +216,20 @@ describe('behaviour analytics decision summary', () => {
       path.join(root, 'public/assets/js/pages/admin-analytics-init.js'),
       'utf8'
     );
+    const collectorScript = fs.readFileSync(
+      path.join(root, 'public/assets/js/behaviour-analytics.js'),
+      'utf8'
+    );
+    const routeSource = fs.readFileSync(path.join(root, 'routes/behaviour-analytics.js'), 'utf8');
     expect(decisionScript).toContain('offsetDays=${encodeURIComponent(days)}');
-    expect(decisionScript).toContain('retentionDays >= days * 2');
+    expect(decisionScript).toContain('retentionDays < days * 2');
+    expect(decisionScript).toContain('earliestEventAt');
+    expect(decisionScript).toContain('/supplier?id=${encodeURIComponent(id)}');
+    expect(decisionScript).toContain('/^\s*[=+\-@]/');
+    expect(collectorScript).toContain('function currentEntityContext()');
+    expect(collectorScript).toContain('supplierId: linkContext.supplierId');
+    expect(collectorScript).toContain('packageId: linkContext.packageId');
+    expect(routeSource).toContain('earliestEventAt');
     expect(initScript).toContain('Stripe Revenue (Latest Charges)');
     expect(initScript).toContain('latest 100 charges');
   });

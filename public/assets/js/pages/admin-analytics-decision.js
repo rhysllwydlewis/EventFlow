@@ -52,6 +52,54 @@
     return Number(document.getElementById('behaviourAnalyticsRange')?.value) || 30;
   }
 
+  function formatDate(value) {
+    const timestamp = Date.parse(value);
+    return Number.isFinite(timestamp)
+      ? new Date(timestamp).toLocaleDateString('en-GB', {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+        })
+      : 'an unknown date';
+  }
+
+  function comparisonCoverage(previous, days) {
+    const retentionDays = numeric(state.status?.status?.retentionDays);
+    const earliestEventAt = state.status?.status?.earliestEventAt;
+    const previousStart = previous?.window?.start;
+
+    if (retentionDays > 0 && retentionDays < days * 2) {
+      return {
+        available: false,
+        reason: `Analytics retention is ${retentionDays} days, but two complete ${days}-day windows require ${days * 2} days.`,
+      };
+    }
+
+    const earliestTimestamp = Date.parse(earliestEventAt);
+    const previousStartTimestamp = Date.parse(previousStart);
+    if (!Number.isFinite(previousStartTimestamp)) {
+      return {
+        available: false,
+        reason: 'The previous reporting window could not be verified.',
+      };
+    }
+    if (!Number.isFinite(earliestTimestamp)) {
+      return {
+        available: false,
+        reason:
+          'No retained analytics history is available for a complete previous-period comparison.',
+      };
+    }
+    if (earliestTimestamp > previousStartTimestamp) {
+      return {
+        available: false,
+        reason: `Stored analytics begins ${formatDate(earliestEventAt)}. A complete comparison requires history from ${formatDate(previousStart)}.`,
+      };
+    }
+
+    return { available: true, reason: '' };
+  }
+
   function buildSection() {
     const section = document.createElement('section');
     section.id = 'analyticsDecisionSection';
@@ -124,15 +172,15 @@
     const grid = document.getElementById('analyticsComparisonGrid');
     if (!grid) return;
     const days = reportingDays();
-    const retentionDays = numeric(state.status?.status?.retentionDays);
-    const comparisonAvailable = retentionDays === 0 || retentionDays >= days * 2;
+    const coverage = comparisonCoverage(previous, days);
+    const comparisonAvailable = coverage.available;
     const currentTotals = current.totals || {};
     const previousTotals = previous.totals || {};
     const currentConversions = current.decision?.conversions || {};
     const previousConversions = previous.decision?.conversions || {};
     const warning = comparisonAvailable
       ? ''
-      : `<div class="analytics-decision-empty" style="grid-column:1/-1;border:1px solid #fde68a;border-radius:12px;background:#fffbeb;color:#92400e;text-align:left"><strong>Previous ${days}-day comparison unavailable.</strong> Analytics retention is ${retentionDays} days, but this comparison requires ${days * 2} days. Current figures remain valid.</div>`;
+      : `<div class="analytics-decision-empty analytics-comparison-warning"><strong>Previous ${days}-day comparison unavailable.</strong> ${escapeHtml(coverage.reason)} Current figures remain valid.</div>`;
     grid.innerHTML =
       warning +
       [
@@ -224,7 +272,7 @@
 
   function entityLink(type, id) {
     return type === 'supplier'
-      ? `/supplier/${encodeURIComponent(id)}`
+      ? `/supplier?id=${encodeURIComponent(id)}`
       : `/package/${encodeURIComponent(id)}`;
   }
 
@@ -245,6 +293,7 @@
       sessions: 'Sessions',
       homepage: 'Homepage versions',
       consent: 'Traffic coverage',
+      marketplace: 'Marketplace rates',
     };
     container.innerHTML = Object.entries(decision?.definitions || {})
       .map(
@@ -255,7 +304,11 @@
   }
 
   function csvCell(value) {
-    return `"${String(value === undefined || value === null ? '' : value).replace(/"/g, '""')}"`;
+    let text = String(value === undefined || value === null ? '' : value);
+    if (/^\s*[=+\-@]/.test(text) || /^[\t\r\n]/.test(text)) {
+      text = `'${text}`;
+    }
+    return `"${text.replace(/"/g, '""')}"`;
   }
 
   function exportCsv() {
