@@ -1,0 +1,32 @@
+# Dependency trees must be installed inside the image from package-lock.json.
+node_modules
+
+# Source-control and CI metadata are not runtime inputs.
+.git
+.github
+.gitignore
+
+# Local and CI test output.
+coverage
+playwright-report
+test-results
+artillery-report*
+report.json
+*.log
+npm-debug.log*
+
+# Local environment files and credentials must never enter the image.
+.env
+.env.*
+!.env.example
+
+# Runtime/user-generated data is mounted or created separately.
+uploads
+
+# Local database exports and temporary files.
+dump
+*.archive
+*.bak
+*.tmp
+.DS_Store
+Thumbs.db
