@@ -613,33 +613,33 @@
   }
 
   function sanitizePostHogProviderEvent(event) {
-  if (!event || typeof event !== 'object') {
+    if (!event || typeof event !== 'object') {
+      return event;
+    }
+
+    const properties = event.properties;
+    if (!properties || typeof properties !== 'object' || Array.isArray(properties)) {
+      return event;
+    }
+
+    // This integration is deliberately personless, so the provider flag must remain boolean false.
+    properties.$process_person_profile = false;
+
+    Object.keys(properties).forEach(function (key) {
+      if (!key.startsWith('$web_vitals_') || !key.endsWith('_event')) {
+        return;
+      }
+      const metric = properties[key];
+      if (!metric || typeof metric !== 'object' || Array.isArray(metric)) {
+        return;
+      }
+      if (typeof metric.$current_url === 'string') {
+        metric.$current_url = metric.$current_url.split(/[?#]/, 1)[0];
+      }
+    });
+
     return event;
   }
-
-  const properties = event.properties;
-  if (!properties || typeof properties !== 'object' || Array.isArray(properties)) {
-    return event;
-  }
-
-  // This integration is deliberately personless, so the provider flag must remain boolean false.
-  properties.$process_person_profile = false;
-
-  Object.keys(properties).forEach(function (key) {
-    if (!key.startsWith('$web_vitals_') || !key.endsWith('_event')) {
-      return;
-    }
-    const metric = properties[key];
-    if (!metric || typeof metric !== 'object' || Array.isArray(metric)) {
-      return;
-    }
-    if (typeof metric.$current_url === 'string') {
-      metric.$current_url = metric.$current_url.split(/[?#]/, 1)[0];
-    }
-  });
-
-  return event;
-}
 
   function startPostHog(config) {
     if (
