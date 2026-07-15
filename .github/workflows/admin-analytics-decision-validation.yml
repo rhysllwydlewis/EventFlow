@@ -1,0 +1,139 @@
+name: Admin Analytics Decision Validation
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'routes/behaviour-analytics.js'
+      - 'utils/behaviourAnalyticsDecision.js'
+      - 'public/assets/js/behaviour-analytics.js'
+      - 'public/assets/js/pages/admin-analytics-init.js'
+      - 'public/assets/js/pages/admin-analytics-decision.js'
+      - 'public/assets/css/admin-analytics-decision.css'
+      - 'tests/unit/behaviour-analytics-decision.test.js'
+      - 'tests/unit/behaviour-analytics-integration.test.js'
+      - 'docs/analytics/admin-analytics-decision-dashboard.md'
+      - '.github/workflows/admin-analytics-decision-validation.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Focused analytics checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Restore node_modules cache
+        id: restore-cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: node-modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Install dependencies on cache miss
+        if: steps.restore-cache.outputs.cache-hit != 'true'
+        run: npm ci
+
+      - name: Check JavaScript syntax
+        run: |
+          node --check routes/behaviour-analytics.js
+          node --check utils/behaviourAnalyticsDecision.js
+          node --check public/assets/js/behaviour-analytics.js
+          node --check public/assets/js/pages/admin-analytics-init.js
+          node --check public/assets/js/pages/admin-analytics-decision.js
+          node --check tests/unit/behaviour-analytics-decision.test.js
+          node --check tests/unit/behaviour-analytics-integration.test.js
+
+      - name: Lint changed JavaScript
+        run: >-
+          npx eslint --rulesdir eslint-rules
+          routes/behaviour-analytics.js
+          utils/behaviourAnalyticsDecision.js
+          public/assets/js/behaviour-analytics.js
+          public/assets/js/pages/admin-analytics-init.js
+          public/assets/js/pages/admin-analytics-decision.js
+          tests/unit/behaviour-analytics-decision.test.js
+          tests/unit/behaviour-analytics-integration.test.js
+
+      - name: Check formatting
+        run: >-
+          npx prettier --check
+          routes/behaviour-analytics.js
+          utils/behaviourAnalyticsDecision.js
+          public/assets/js/behaviour-analytics.js
+          public/assets/js/pages/admin-analytics-init.js
+          public/assets/js/pages/admin-analytics-decision.js
+          public/assets/css/admin-analytics-decision.css
+          tests/unit/behaviour-analytics-decision.test.js
+          tests/unit/behaviour-analytics-integration.test.js
+          docs/analytics/admin-analytics-decision-dashboard.md
+
+      - name: Run decision analytics unit tests
+        run: >-
+          npx jest
+          tests/unit/behaviour-analytics-decision.test.js
+          --runInBand --coverage=false
+        env:
+          NODE_ENV: test
+          JWT_SECRET: test-secret-key-for-ci-testing-only-min-32-chars
+
+  integration-groups:
+    name: Integration · ${{ matrix.label }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: script injection
+            pattern: global behaviour analytics injection
+          - label: consent and privacy
+            pattern: analytics consent and privacy wiring
+          - label: admin refresh
+            pattern: admin analytics live refresh and PostHog guidance
+          - label: server protections
+            pattern: behaviour analytics server protections
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Restore node_modules cache
+        id: restore-cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: node-modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Install dependencies on cache miss
+        if: steps.restore-cache.outputs.cache-hit != 'true'
+        run: npm ci
+
+      - name: Run integration behaviour group
+        run: >-
+          npx jest
+          tests/unit/behaviour-analytics-integration.test.js
+          --testNamePattern="${{ matrix.pattern }}"
+          --runInBand --coverage=false
+        env:
+          NODE_ENV: test
+          JWT_SECRET: test-secret-key-for-ci-testing-only-min-32-chars

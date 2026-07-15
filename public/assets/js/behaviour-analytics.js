@@ -155,6 +155,70 @@
     return typeof value === 'string' ? value.trim().slice(0, 120) : '';
   }
 
+  function decodeIdentifier(value) {
+    try {
+      return decodeURIComponent(value || '');
+    } catch (_error) {
+      return value || '';
+    }
+  }
+
+  function currentEntityContext() {
+    const type = pageType();
+    const params = new URLSearchParams(window.location.search || '');
+    if (type === 'supplier') {
+      return { supplierId: cleanIdentifier(params.get('id') || '') };
+    }
+    if (type === 'package') {
+      let packageId = params.get('id') || params.get('packageId') || params.get('slug') || '';
+      if (!packageId && currentPath().startsWith('/package/')) {
+        packageId = decodeIdentifier(currentPath().slice('/package/'.length).split('/')[0]);
+      }
+      return { packageId: cleanIdentifier(packageId) };
+    }
+    return {};
+  }
+
+  function elementEntityContext(element) {
+    const current = currentEntityContext();
+    const supplierNode =
+      element && typeof element.closest === 'function'
+        ? element.closest('[data-supplier-id]')
+        : null;
+    const packageNode =
+      element && typeof element.closest === 'function'
+        ? element.closest('[data-package-id]')
+        : null;
+    return {
+      supplierId: cleanIdentifier(
+        element?.dataset?.supplierId ||
+          supplierNode?.dataset?.supplierId ||
+          current.supplierId ||
+          ''
+      ),
+      packageId: cleanIdentifier(
+        element?.dataset?.packageId || packageNode?.dataset?.packageId || current.packageId || ''
+      ),
+    };
+  }
+
+  function linkEntityContext(url, type) {
+    if (type === 'supplier') {
+      return {
+        supplierId: cleanIdentifier(url.searchParams.get('id') || ''),
+      };
+    }
+    let packageId =
+      url.searchParams.get('id') ||
+      url.searchParams.get('packageId') ||
+      url.searchParams.get('slug') ||
+      '';
+    if (!packageId && url.pathname.startsWith('/package/')) {
+      packageId = decodeIdentifier(url.pathname.slice('/package/'.length).split('/')[0]);
+    }
+    return { packageId: cleanIdentifier(packageId) };
+  }
+
   function buildEvent(eventName, properties) {
     return {
       event: eventName,
@@ -365,14 +429,15 @@
       const element = actionElement(event.target);
       if (!element || element.closest('.ph-no-capture, [data-analytics-sensitive]')) return;
 
+      const entityContext = elementEntityContext(element);
       const explicitEvent = cleanIdentifier(element.dataset && element.dataset.analyticsEvent);
       if (explicitEvent) {
         track(explicitEvent, {
           eventLabel: cleanIdentifier(element.dataset.analyticsLabel || ''),
           itemType: cleanIdentifier(element.dataset.analyticsItemType || ''),
           itemId: cleanIdentifier(element.dataset.analyticsItemId || ''),
-          supplierId: cleanIdentifier(element.dataset.supplierId || ''),
-          packageId: cleanIdentifier(element.dataset.packageId || ''),
+          supplierId: entityContext.supplierId,
+          packageId: entityContext.packageId,
           source: 'delegated_click',
         });
       }
@@ -382,17 +447,25 @@
         .toLowerCase();
       if (/add to (my )?plan/.test(text)) {
         track('package_add_to_plan', {
-          packageId: cleanIdentifier(element.dataset.packageId || ''),
+          packageId: entityContext.packageId,
+          supplierId: entityContext.supplierId,
           source: pageType(),
         });
       } else if (/shortlist|save supplier|save package/.test(text)) {
+        const itemType = pageType() === 'package' ? 'package' : 'supplier';
         track('shortlist_add', {
-          itemType: pageType() === 'package' ? 'package' : 'supplier',
-          itemId: cleanIdentifier(element.dataset.itemId || element.dataset.supplierId || ''),
+          itemType,
+          itemId: cleanIdentifier(
+            element.dataset.itemId ||
+              (itemType === 'package' ? entityContext.packageId : entityContext.supplierId) ||
+              ''
+          ),
+          supplierId: entityContext.supplierId,
+          packageId: entityContext.packageId,
           source: pageType(),
         });
       } else if (/request quote|send enquiry|contact supplier/.test(text)) {
-        track('enquiry_started', { source: pageType() });
+        track('enquiry_started', { ...entityContext, source: pageType() });
       } else if (/checkout|upgrade|subscribe/.test(text)) {
         track('checkout_started', { source: pageType() });
       }
@@ -403,9 +476,21 @@
         if (url.origin !== window.location.origin) {
           track('outbound_click', { source: url.hostname.replace(/^www\./, '') });
         } else if (url.pathname.startsWith('/supplier')) {
-          track('result_clicked', { resultType: 'supplier', source: pageType() });
+          const linkContext = linkEntityContext(url, 'supplier');
+          track('result_clicked', {
+            resultType: 'supplier',
+            resultId: linkContext.supplierId,
+            supplierId: linkContext.supplierId,
+            source: pageType(),
+          });
         } else if (url.pathname.startsWith('/package')) {
-          track('result_clicked', { resultType: 'package', source: pageType() });
+          const linkContext = linkEntityContext(url, 'package');
+          track('result_clicked', {
+            resultType: 'package',
+            resultId: linkContext.packageId,
+            packageId: linkContext.packageId,
+            source: pageType(),
+          });
         }
       } catch (_error) {
         // Ignore malformed links.
@@ -599,11 +684,12 @@
   }
 
   function trackInitialPageEvents() {
+    const entityContext = currentEntityContext();
     track('page_view', {});
     if (pageType() === 'supplier') {
-      track('supplier_profile_view', { source: referrerDomain() });
+      track('supplier_profile_view', { ...entityContext, source: referrerDomain() });
     } else if (pageType() === 'package') {
-      track('package_view', { source: referrerDomain() });
+      track('package_view', { ...entityContext, source: referrerDomain() });
     }
   }
 

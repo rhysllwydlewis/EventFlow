@@ -58,15 +58,13 @@ describe('analytics consent and privacy wiring', () => {
     const source = read('public/assets/js/analytics-consent-upgrade.js');
     expect(source).toContain("window.posthog.capture('$pageview'");
     expect(source).toContain('$current_url: currentUrl');
-    expect(source).toContain("$pathname: window.location.pathname || '/'");
+    expect(source).toContain('$pathname: currentPath()');
     expect(source).toContain('capturedPostHogPage === currentUrl');
     expect(source).toContain('POSTHOG_PAGEVIEW_TIMEOUT_MS');
     expect(source).toContain("window.addEventListener('cookieConsentChanged'");
     expect(source).toContain("'/auth'");
     expect(source).toContain("'/payment'");
-    expect(source).toContain(
-      "return `${window.location.origin}${window.location.pathname || '/'}`;"
-    );
+    expect(source).toContain('return `${window.location.origin}${currentPath()}`;');
     expect(source).not.toContain('phc_');
   });
 
