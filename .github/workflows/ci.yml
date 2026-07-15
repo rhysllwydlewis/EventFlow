@@ -96,7 +96,22 @@ jobs:
         run: npm ci --prefer-offline --no-audit
 
       - name: Check formatting
-        run: npm run format:check
+        id: formatting
+        continue-on-error: true
+        run: npx prettier --list-different "**/*.{js,json,md}" > prettier-report.txt
+
+      - name: Upload formatting diagnostics
+        if: steps.formatting.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: prettier-report
+          path: prettier-report.txt
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Enforce formatting result
+        if: steps.formatting.outcome == 'failure'
+        run: exit 1
 
   smoke:
     name: Smoke Tests (blocking)
