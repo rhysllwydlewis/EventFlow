@@ -1,2 +1,3 @@
 Trigger the visible one-time final fixes workflow.
 Retry after workflow registration.
+Run after the audited Socket.IO lock refresh.
