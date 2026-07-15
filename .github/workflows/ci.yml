@@ -221,7 +221,7 @@ jobs:
           retention-days: 7
 
       - name: Report non-blocking regression failure
-        if: steps.full-regression.outcome == 'failure'
+        if: always() && steps.full-regression.outcome == 'failure'
         run: echo "::warning::The full regression suite failed. Download full-regression-results-ci for the exact failing suites and assertions."
 
       - name: Upload coverage reports
