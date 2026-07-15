@@ -1,0 +1,82 @@
+name: Apply PostHog lint correction
+
+on:
+  push:
+    branches:
+      - agent/posthog-health-recovery
+
+permissions:
+  contents: write
+
+jobs:
+  tidy-and-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout recovery branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/posthog-health-recovery
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Correct PostHog sanitiser indentation
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('public/assets/js/behaviour-analytics.js')
+          source = path.read_text(encoding='utf-8')
+          start = source.index('  function sanitizePostHogProviderEvent(event) {')
+          end = source.index('\n  function startPostHog(config)', start)
+          replacement = """  function sanitizePostHogProviderEvent(event) {
+            if (!event || typeof event !== 'object') {
+              return event;
+            }
+
+            const properties = event.properties;
+            if (!properties || typeof properties !== 'object' || Array.isArray(properties)) {
+              return event;
+            }
+
+            // This integration is deliberately personless, so the provider flag must remain boolean false.
+            properties.$process_person_profile = false;
+
+            Object.keys(properties).forEach(function (key) {
+              if (!key.startsWith('$web_vitals_') || !key.endsWith('_event')) {
+                return;
+              }
+              const metric = properties[key];
+              if (!metric || typeof metric !== 'object' || Array.isArray(metric)) {
+                return;
+              }
+              if (typeof metric.$current_url === 'string') {
+                metric.$current_url = metric.$current_url.split(/[?#]/, 1)[0];
+              }
+            });
+
+            return event;
+          }
+          """
+          path.write_text(source[:start] + replacement + source[end:], encoding='utf-8')
+          PY
+
+      - name: Validate syntax and whitespace
+        run: |
+          node --check public/assets/js/behaviour-analytics.js
+          node --check tests/unit/posthog-web-vitals-health.test.js
+          git diff --check
+
+      - name: Commit correction and remove temporary workflows
+        shell: bash
+        run: |
+          rm -f .github/workflows/posthog-health-format-push.yml
+          rm -f .github/workflows/posthog-health-pr-runner.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/assets/js/behaviour-analytics.js \
+            .github/workflows/posthog-health-format-push.yml \
+            .github/workflows/posthog-health-pr-runner.yml
+          git commit -m "style: tidy PostHog event sanitiser"
+          git push origin HEAD:agent/posthog-health-recovery
