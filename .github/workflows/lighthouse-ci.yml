@@ -9,6 +9,13 @@ on:
       - '.lighthouserc.json'
       - '.github/workflows/lighthouse-ci.yml'
       - 'package*.json'
+      - '.node-version'
+
+permissions:
+  contents: read
+
+env:
+  HUSKY: '0'
 
 jobs:
   lighthouse:
@@ -21,11 +28,14 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version-file: '.node-version'
           cache: npm
 
+      - name: Verify package-lock metadata
+        run: npm run check:lockfile
+
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --prefer-offline --no-audit
 
       - name: Run Lighthouse CI
         env:
