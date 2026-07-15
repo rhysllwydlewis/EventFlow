@@ -176,10 +176,28 @@ jobs:
         run: exit 1
 
       - name: Verify generated homepage assets are current
+        id: homepage-assets
         if: steps.typecheck.outcome == 'success'
+        continue-on-error: true
         run: |
           npm run build:homepages
           git diff --exit-code -- public/assets/js/pages/home-v2.js public/assets/js/pages/home-v3.js public/assets/js/pages/home-v3-video.js
+
+      - name: Upload regenerated homepage assets
+        if: always() && steps.homepage-assets.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: regenerated-homepage-assets
+          path: |
+            public/assets/js/pages/home-v2.js
+            public/assets/js/pages/home-v3.js
+            public/assets/js/pages/home-v3-video.js
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Enforce generated homepage asset parity
+        if: always() && steps.homepage-assets.outcome == 'failure'
+        run: exit 1
 
   full-regression:
     name: Full Regression (non-blocking)
