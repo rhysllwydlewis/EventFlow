@@ -612,6 +612,35 @@
     })(document, window.posthog || []);
   }
 
+  function sanitizePostHogProviderEvent(event) {
+  if (!event || typeof event !== 'object') {
+    return event;
+  }
+
+  const properties = event.properties;
+  if (!properties || typeof properties !== 'object' || Array.isArray(properties)) {
+    return event;
+  }
+
+  // This integration is deliberately personless, so the provider flag must remain boolean false.
+  properties.$process_person_profile = false;
+
+  Object.keys(properties).forEach(function (key) {
+    if (!key.startsWith('$web_vitals_') || !key.endsWith('_event')) {
+      return;
+    }
+    const metric = properties[key];
+    if (!metric || typeof metric !== 'object' || Array.isArray(metric)) {
+      return;
+    }
+    if (typeof metric.$current_url === 'string') {
+      metric.$current_url = metric.$current_url.split(/[?#]/, 1)[0];
+    }
+  });
+
+  return event;
+}
+
   function startPostHog(config) {
     if (
       state.posthogStarted ||
@@ -632,8 +661,12 @@
       autocapture: false,
       capture_pageview: false,
       capture_pageleave: false,
-      capture_performance: false,
+      capture_performance: {
+        web_vitals: true,
+        web_vitals_attribution: false,
+      },
       person_profiles: 'never',
+      before_send: sanitizePostHogProviderEvent,
       opt_out_capturing_by_default: true,
       disable_session_recording: !replayAllowed,
       session_recording: {
