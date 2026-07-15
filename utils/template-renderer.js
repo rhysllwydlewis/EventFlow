@@ -16,7 +16,7 @@ const ANONYMOUS_SANITIZER_COMMENT = '<!-- eventflow-anonymous-sanitizer: active 
 const GLOBAL_ANALYTICS_SCRIPTS = [
   '    <script src="/assets/js/cookie-consent.js?v=2.1.0" defer></script>',
   '    <script src="/assets/js/analytics-consent-upgrade.js?v=2" defer></script>',
-  '    <script src="/assets/js/behaviour-analytics.js?v=1" defer></script>',
+  '    <script src="/assets/js/behaviour-analytics.js?v=2" defer></script>',
 ];
 const ADMIN_BEHAVIOUR_ANALYTICS_SCRIPT =
   '    <script src="/assets/js/pages/admin-behaviour-analytics.js?v=1" defer></script>';
