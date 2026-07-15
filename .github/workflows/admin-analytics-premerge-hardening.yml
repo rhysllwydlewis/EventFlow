@@ -7,7 +7,7 @@ on:
       - '.github/workflows/admin-analytics-premerge-hardening.yml'
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   harden:
@@ -76,23 +76,22 @@ jobs:
           npx eslint --rulesdir eslint-rules public/assets/js/behaviour-analytics.js
           npx eslint --rulesdir eslint-rules public/assets/js/pages/admin-analytics-decision.js
 
-      - name: Clean temporary hardening files
+      - name: Prepare corrected files artifact
         run: |
-          rm -f docs/analytics/admin-analytics-premerge-lint.txt
-          git rm -f .github/workflows/admin-analytics-premerge-hardening.yml
-          git rm -f scripts/admin-analytics-premerge-part1.py
-          git rm -f scripts/admin-analytics-premerge-part2.py
-          git rm -f scripts/admin-analytics-premerge-part3.py
-          git status --short
+          mkdir -p corrected-files/routes corrected-files/utils corrected-files/public/assets/js/pages corrected-files/public/assets/js corrected-files/public/assets/css corrected-files/tests/unit corrected-files/docs/analytics corrected-files/.github/workflows
+          cp routes/behaviour-analytics.js corrected-files/routes/
+          cp utils/behaviourAnalyticsDecision.js corrected-files/utils/
+          cp public/assets/js/behaviour-analytics.js corrected-files/public/assets/js/
+          cp public/assets/js/pages/admin-analytics-decision.js corrected-files/public/assets/js/pages/
+          cp public/assets/css/admin-analytics-decision.css corrected-files/public/assets/css/
+          cp tests/unit/behaviour-analytics-decision.test.js corrected-files/tests/unit/
+          cp docs/analytics/admin-analytics-decision-dashboard.md corrected-files/docs/analytics/
+          cp .github/workflows/admin-analytics-decision-validation.yml corrected-files/.github/workflows/
 
-      - name: Stage corrected files
-        run: git add -A
-
-      - name: Commit corrected files
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit --no-verify -m "Harden final admin analytics implementation"
-
-      - name: Push corrected branch
-        run: git push origin HEAD:${{ github.event.pull_request.head.ref }}
+      - name: Upload corrected files
+        uses: actions/upload-artifact@v4
+        with:
+          name: admin-analytics-corrected-files
+          path: corrected-files
+          retention-days: 1
+          if-no-files-found: error
