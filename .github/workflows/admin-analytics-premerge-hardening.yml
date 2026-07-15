@@ -7,7 +7,7 @@ on:
       - '.github/workflows/admin-analytics-premerge-hardening.yml'
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   harden:
@@ -51,7 +51,7 @@ jobs:
           python scripts/admin-analytics-premerge-part2.py
           python scripts/admin-analytics-premerge-part3.py
 
-      - name: Format corrected files
+      - name: Format corrected application files
         run: |
           npx prettier --write routes/behaviour-analytics.js
           npx prettier --write utils/behaviourAnalyticsDecision.js
@@ -60,7 +60,6 @@ jobs:
           npx prettier --write public/assets/css/admin-analytics-decision.css
           npx prettier --write tests/unit/behaviour-analytics-decision.test.js
           npx prettier --write docs/analytics/admin-analytics-decision-dashboard.md
-          npx prettier --write .github/workflows/admin-analytics-decision-validation.yml
 
       - name: Check corrected JavaScript syntax
         run: |
@@ -76,22 +75,17 @@ jobs:
           npx eslint --rulesdir eslint-rules public/assets/js/behaviour-analytics.js
           npx eslint --rulesdir eslint-rules public/assets/js/pages/admin-analytics-decision.js
 
-      - name: Prepare corrected files artifact
+      - name: Commit validated application files only
         run: |
-          mkdir -p corrected-files/routes corrected-files/utils corrected-files/public/assets/js/pages corrected-files/public/assets/js corrected-files/public/assets/css corrected-files/tests/unit corrected-files/docs/analytics corrected-files/.github/workflows
-          cp routes/behaviour-analytics.js corrected-files/routes/
-          cp utils/behaviourAnalyticsDecision.js corrected-files/utils/
-          cp public/assets/js/behaviour-analytics.js corrected-files/public/assets/js/
-          cp public/assets/js/pages/admin-analytics-decision.js corrected-files/public/assets/js/pages/
-          cp public/assets/css/admin-analytics-decision.css corrected-files/public/assets/css/
-          cp tests/unit/behaviour-analytics-decision.test.js corrected-files/tests/unit/
-          cp docs/analytics/admin-analytics-decision-dashboard.md corrected-files/docs/analytics/
-          cp .github/workflows/admin-analytics-decision-validation.yml corrected-files/.github/workflows/
-
-      - name: Upload corrected files
-        uses: actions/upload-artifact@v4
-        with:
-          name: admin-analytics-corrected-files
-          path: corrected-files
-          retention-days: 1
-          if-no-files-found: error
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            routes/behaviour-analytics.js \
+            utils/behaviourAnalyticsDecision.js \
+            public/assets/js/behaviour-analytics.js \
+            public/assets/js/pages/admin-analytics-decision.js \
+            public/assets/css/admin-analytics-decision.css \
+            tests/unit/behaviour-analytics-decision.test.js \
+            docs/analytics/admin-analytics-decision-dashboard.md
+          git commit --no-verify -m "Harden final admin analytics implementation"
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
