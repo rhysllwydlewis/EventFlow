@@ -17,6 +17,13 @@ if (removedLegacyPostmarkRoutes > 0) {
 
 const router = express.Router();
 const DELIVERY_FAILURE_STATUSES = new Set(['bounced', 'complained', 'suppressed', 'failed']);
+const POSTMARK_RECORD_TYPE_ALIASES = {
+  Delivery: 'Delivered',
+  Bounce: 'Bounced',
+  Open: 'Opened',
+  Click: 'LinkClicked',
+  SubscriptionChange: 'SubscriptionChanged',
+};
 
 function hasWebhookCredentials() {
   return !!(process.env.POSTMARK_WEBHOOK_USER && process.env.POSTMARK_WEBHOOK_PASS);
@@ -40,6 +47,15 @@ function basicAuthValid(req) {
   const user = decoded.slice(0, separator);
   const pass = decoded.slice(separator + 1);
   return user === process.env.POSTMARK_WEBHOOK_USER && pass === process.env.POSTMARK_WEBHOOK_PASS;
+}
+
+function normalizePostmarkPayload(payload = {}) {
+  const recordType = payload.RecordType || payload.Type;
+  const normalizedRecordType = POSTMARK_RECORD_TYPE_ALIASES[recordType] || recordType;
+  return {
+    ...payload,
+    RecordType: normalizedRecordType,
+  };
 }
 
 async function syncReviewRequestDelivery(result, payload = {}) {
@@ -118,10 +134,12 @@ router.post('/postmark', express.json({ limit: '128kb' }), async (req, res) => {
     return res.status(400).json({ ok: false, error: 'Invalid Postmark webhook payload.' });
   }
 
+  const normalizedPayload = normalizePostmarkPayload(payload);
+
   try {
-    const result = await emailLogService.appendWebhookEvent(payload);
+    const result = await emailLogService.appendWebhookEvent(normalizedPayload);
     try {
-      result.reviewRequestUpdated = await syncReviewRequestDelivery(result, payload);
+      result.reviewRequestUpdated = await syncReviewRequestDelivery(result, normalizedPayload);
     } catch (syncError) {
       logger.warn(
         '[postmark-webhook] Email log updated but review-request delivery sync failed:',
@@ -137,4 +155,5 @@ router.post('/postmark', express.json({ limit: '128kb' }), async (req, res) => {
 });
 
 module.exports = router;
+module.exports.normalizePostmarkPayload = normalizePostmarkPayload;
 module.exports.syncReviewRequestDelivery = syncReviewRequestDelivery;
