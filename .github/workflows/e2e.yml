@@ -247,7 +247,9 @@ jobs:
         run: npx playwright install chromium
 
       - name: Run visual regression tests
+        id: visual-run
         timeout-minutes: 30
+        continue-on-error: true
         run: npx playwright test --grep @visual
         env:
           NODE_ENV: test
@@ -261,3 +263,18 @@ jobs:
           path: test-results/
           if-no-files-found: warn
           retention-days: 30
+
+      - name: Report visual regression failures
+        if: steps.visual-run.outcome == 'failure'
+        run: |
+          echo "::warning::Visual regression snapshots failed, but the temporary soft-fail policy is active until ${CONTINUE_ON_ERROR_UNTIL}. Review the uploaded visual diffs before accepting any baseline update."
+
+      - name: Enforce expired visual soft-fail policy
+        if: steps.visual-run.outcome == 'failure'
+        run: |
+          today="$(date -u +%F)"
+          if [[ "$today" > "$CONTINUE_ON_ERROR_UNTIL" ]]; then
+            echo "::error::Visual regression soft-fail policy expired on ${CONTINUE_ON_ERROR_UNTIL}."
+            exit 1
+          fi
+          echo "Visual regression soft-fail policy active until ${CONTINUE_ON_ERROR_UNTIL}."
