@@ -204,7 +204,11 @@ describe('supplier review-request delivery', () => {
     const response = await request(app).get(`/review-request?token=${rawToken}`);
 
     expect(response.status).toBe(302);
-    expect(response.headers.location).toBe('/supplier?id=supplier-1&reviewRequest=ready#reviews');
+    expect(response.headers.location).toBe(
+      '/supplier?id=supplier-1&reviewRequest=ready#sp-section-reviews'
+    );
+    expect(response.headers['cache-control']).toBe('no-store, private');
+    expect(response.headers['referrer-policy']).toBe('no-referrer');
     expect(response.headers['set-cookie'][0]).toContain(`ef_review_request=${rawToken}`);
     expect(response.headers['set-cookie'][0]).toContain('HttpOnly');
     expect(db.collections.reviewRequests[0].status).toBe('opened');
