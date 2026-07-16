@@ -6,6 +6,7 @@ const request = require('supertest');
 const {
   createReviewRequestRouter,
   hashToken,
+  normalizeDisplayName,
 } = require('../../routes/review-requests');
 
 function createMemoryDb(seed = {}) {
@@ -76,6 +77,12 @@ function buildApp({ db, sendMail, user, now, createToken }) {
 describe('supplier review-request delivery', () => {
   const fixedNow = new Date('2026-07-16T09:00:00.000Z');
   const rawToken = 'a'.repeat(64);
+
+  test('sanitizes supplier names before using them in email headers', () => {
+    expect(normalizeDisplayName('  Moor Audio\r\nBcc: attacker@example.com  ')).toBe(
+      'Moor Audio Bcc: attacker@example.com'
+    );
+  });
 
   test('sends a real templated email and stores only the token hash', async () => {
     const db = createMemoryDb({
