@@ -3,13 +3,15 @@ name: Apply CI Gate Hardening
 on:
   push:
     branches: [agent/block-full-regression-ci]
+  pull_request:
+    branches: [main]
 
 permissions:
   contents: write
 
 jobs:
   apply:
-    if: ${{ !contains(github.event.head_commit.message, '[ci-hardening-applied]') }}
+    if: ${{ github.event_name == 'pull_request' || !contains(github.event.head_commit.message, '[ci-hardening-applied]') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
