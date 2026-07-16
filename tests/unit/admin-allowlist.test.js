@@ -128,6 +128,12 @@ describe('Admin Page JS - No Native Dialogs', () => {
   // to load; without it, a partially loaded admin page could delete immediately
   // or make the destructive action unusable.
   const NATIVE_DIALOG_EXCEPTIONS = {
+    'admin-homepage-hardening.js': [
+      {
+        fragment: "window.confirm('You have unsaved homepage changes. Discard them and continue?')",
+        reason: 'synchronous guard before replaying an intercepted unsaved-change navigation',
+      },
+    ],
     'admin-media-upload-library.js': [
       {
         fragment: 'window.confirm(message)',
