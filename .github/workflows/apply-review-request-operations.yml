@@ -1,0 +1,116 @@
+name: Apply Review Request Operations
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.node-version'
+          cache: npm
+
+      - name: Download reviewed partial implementation
+        uses: actions/download-artifact@v4
+        with:
+          name: review-request-operations-changes
+          path: /tmp/review-request-operations
+          repository: rhysllwydlewis/EventFlow
+          run-id: 29534191347
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Restore reviewed files and apply corrections
+        env:
+          CORRECTIONS_GZIP_BASE64: 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
+        run: |
+          cp -R /tmp/review-request-operations/utils .
+          cp -R /tmp/review-request-operations/routes .
+          cp -R /tmp/review-request-operations/public .
+          cp -R /tmp/review-request-operations/tests .
+          printf '%s' "$CORRECTIONS_GZIP_BASE64" | base64 -d | gzip -d > /tmp/review-request-corrections.patch
+          patch -p1 < /tmp/review-request-corrections.patch
+          git diff --check
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit
+
+      - name: Format changed JavaScript
+        run: |
+          npx prettier --write \
+            utils/reviewRequestOperations.js \
+            routes/review-requests.js \
+            routes/admin-email-centre.js \
+            public/assets/js/dashboard-supplier-overhaul.js \
+            public/assets/js/pages/admin-emails-init.js \
+            tests/integration/supplier-review-request-delivery.test.js \
+            tests/unit/review-request-operations.test.js \
+            tests/unit/admin-review-request-operations-route.test.js \
+            tests/unit/supplier-review-request-client.test.js \
+            tests/unit/admin-review-request-client.test.js
+
+      - name: Run focused tests
+        run: |
+          npm test -- --runInBand --coverage=false \
+            tests/integration/supplier-review-request-delivery.test.js \
+            tests/unit/review-request-operations.test.js \
+            tests/unit/admin-review-request-operations-route.test.js \
+            tests/unit/supplier-review-request-client.test.js \
+            tests/unit/admin-review-request-client.test.js
+        env:
+          NODE_ENV: test
+          JWT_SECRET: test-secret-key-for-review-request-operations-min-32-chars
+
+      - name: Lint changed JavaScript
+        run: |
+          npx eslint \
+            utils/reviewRequestOperations.js \
+            routes/review-requests.js \
+            routes/admin-email-centre.js \
+            public/assets/js/dashboard-supplier-overhaul.js \
+            public/assets/js/pages/admin-emails-init.js \
+            tests/integration/supplier-review-request-delivery.test.js \
+            tests/unit/review-request-operations.test.js \
+            tests/unit/admin-review-request-operations-route.test.js \
+            tests/unit/supplier-review-request-client.test.js \
+            tests/unit/admin-review-request-client.test.js \
+            --rulesdir eslint-rules
+
+      - name: Commit reviewed implementation
+        run: |
+          git config user.name "EventFlow CI"
+          git config user.email "ci@event-flow.co.uk"
+          git add \
+            utils/reviewRequestOperations.js \
+            routes/review-requests.js \
+            routes/admin-email-centre.js \
+            public/assets/js/dashboard-supplier-overhaul.js \
+            public/assets/css/dashboard-overhaul.css \
+            public/dashboard-supplier.html \
+            public/admin-emails.html \
+            public/assets/js/pages/admin-emails-init.js \
+            public/assets/css/admin-emails.css \
+            tests/integration/supplier-review-request-delivery.test.js \
+            tests/unit/review-request-operations.test.js \
+            tests/unit/admin-review-request-operations-route.test.js \
+            tests/unit/supplier-review-request-client.test.js \
+            tests/unit/admin-review-request-client.test.js
+          git diff --cached --check
+          if git diff --cached --quiet; then
+            echo "Reviewed implementation is already current."
+            exit 0
+          fi
+          git commit -m "Add review request operations and safe recovery"
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
