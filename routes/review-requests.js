@@ -26,6 +26,18 @@ function normalizeEmail(value) {
   return typeof value === 'string' ? value.trim().toLowerCase() : '';
 }
 
+function normalizeDisplayName(value) {
+  const normalized =
+    typeof value === 'string'
+      ? value
+          .replace(/[\r\n]+/g, ' ')
+          .trim()
+          .replace(/\s+/g, ' ')
+          .slice(0, 120)
+      : '';
+  return normalized || 'Your supplier';
+}
+
 function hashToken(token) {
   return crypto.createHash('sha256').update(token).digest('hex');
 }
@@ -51,7 +63,10 @@ function safeSupplierRedirect(supplierId, state) {
 }
 
 async function findLatestRequest(db, supplierId, customerEmail) {
-  const requests = await db.find('reviewRequests', { supplierId, customerEmail });
+  const requests = await db.find('reviewRequests', {
+    supplierId,
+    customerEmail,
+  });
   return (requests || [])
     .slice()
     .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))[0];
@@ -66,7 +81,8 @@ function createReviewRequestRouter(overrides = {}) {
   const protectCsrf = overrides.csrfProtection || csrfProtection;
   const limitWrites = overrides.writeLimiter || writeLimiter;
   const now = overrides.now || (() => new Date());
-  const createToken = overrides.createToken || (() => crypto.randomBytes(TOKEN_BYTES).toString('hex'));
+  const createToken =
+    overrides.createToken || (() => crypto.randomBytes(TOKEN_BYTES).toString('hex'));
   const baseUrlFor = overrides.getBaseUrl || getRequestBaseUrl;
 
   const postPaths = ['/api/v1/supplier/request-review', '/api/supplier/request-review'];
@@ -92,7 +108,9 @@ function createReviewRequestRouter(overrides = {}) {
         return res.status(400).json({ error: 'A valid customer email is required' });
       }
 
-      const supplier = await db.findOne('suppliers', { ownerUserId: req.user.id });
+      const supplier = await db.findOne('suppliers', {
+        ownerUserId: req.user.id,
+      });
       if (!supplier) {
         return res.status(404).json({ error: 'Supplier profile not found' });
       }
@@ -135,11 +153,12 @@ function createReviewRequestRouter(overrides = {}) {
         currentTime.getTime() + REVIEW_REQUEST_TTL_DAYS * 24 * 60 * 60 * 1000
       );
       const reviewLink = `${baseUrlFor(req)}/review-request?token=${encodeURIComponent(rawToken)}`;
+      const supplierName = normalizeDisplayName(supplier.name);
       const requestDocument = {
         id: requestId,
         supplierId: supplier.id,
         supplierOwnerUserId: req.user.id,
-        supplierName: supplier.name || 'Your supplier',
+        supplierName,
         customerEmail,
         customerName,
         threadId,
@@ -228,7 +247,9 @@ function createReviewRequestRouter(overrides = {}) {
     }
 
     try {
-      const request = await db.findOne('reviewRequests', { tokenHash: hashToken(rawToken) });
+      const request = await db.findOne('reviewRequests', {
+        tokenHash: hashToken(rawToken),
+      });
       if (!request) {
         return res.redirect(302, safeSupplierRedirect(null, 'invalid'));
       }
@@ -300,7 +321,9 @@ function createReviewRequestRouter(overrides = {}) {
     }
 
     try {
-      const request = await db.findOne('reviewRequests', { tokenHash: hashToken(rawToken) });
+      const request = await db.findOne('reviewRequests', {
+        tokenHash: hashToken(rawToken),
+      });
       const currentTime = now();
       if (
         !request ||
@@ -376,4 +399,5 @@ module.exports.constants = {
   REVIEW_REQUEST_TTL_DAYS,
 };
 module.exports.hashToken = hashToken;
+module.exports.normalizeDisplayName = normalizeDisplayName;
 module.exports.normalizeEmail = normalizeEmail;
