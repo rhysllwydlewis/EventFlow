@@ -27,6 +27,7 @@ if (removedLegacySupplierRoutes > 0) {
 }
 
 const REVIEW_REQUEST_TTL_DAYS = 14;
+const REVIEW_REQUEST_COOLDOWN_DAYS = 30;
 const TOKEN_BYTES = 32;
 const TOKEN_PATTERN = /^[a-f0-9]{64}$/i;
 const COOKIE_NAME = 'ef_review_request';
@@ -57,6 +58,17 @@ function isExpired(request, now) {
   return !expiry || Number.isNaN(expiry.getTime()) || expiry <= now;
 }
 
+function getCompletedCooldownEnd(request) {
+  const completedAt = request && (request.completedAt || request.createdAt);
+  const completedDate = completedAt ? new Date(completedAt) : null;
+  if (!completedDate || Number.isNaN(completedDate.getTime())) {
+    return null;
+  }
+  return new Date(
+    completedDate.getTime() + REVIEW_REQUEST_COOLDOWN_DAYS * 24 * 60 * 60 * 1000
+  );
+}
+
 function getRequestBaseUrl(req) {
   const configured = process.env.APP_BASE_URL || process.env.BASE_URL;
   if (configured) {
@@ -82,14 +94,26 @@ function secureRedirect(res, location) {
   return res.redirect(302, location);
 }
 
-async function findLatestRequest(db, supplierId, customerEmail) {
+async function getRecipientRequestState(db, supplierId, customerEmail, now) {
   const requests = await db.find('reviewRequests', {
     supplierId,
     customerEmail,
   });
-  return (requests || [])
+  const sorted = (requests || [])
     .slice()
-    .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))[0];
+    .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+  const recentCompleted = sorted.find(request => {
+    if (request.status !== 'completed') {
+      return false;
+    }
+    const cooldownEnd = getCompletedCooldownEnd(request);
+    return !cooldownEnd || cooldownEnd > now;
+  });
+
+  return {
+    latest: sorted[0],
+    recentCompleted,
+  };
 }
 
 function createReviewRequestRouter(overrides = {}) {
@@ -135,11 +159,18 @@ function createReviewRequestRouter(overrides = {}) {
         return res.status(404).json({ error: 'Supplier profile not found' });
       }
 
-      const latest = await findLatestRequest(db, supplier.id, customerEmail);
-      if (latest && latest.status === 'completed') {
+      const { latest, recentCompleted } = await getRecipientRequestState(
+        db,
+        supplier.id,
+        customerEmail,
+        currentTime
+      );
+      if (recentCompleted) {
+        const retryAt = getCompletedCooldownEnd(recentCompleted);
         return res.status(409).json({
-          error: 'This customer has already completed a review request for your business',
-          status: latest.status,
+          error: `This customer has reviewed your business within the last ${REVIEW_REQUEST_COOLDOWN_DAYS} days`,
+          status: recentCompleted.status,
+          retryAt: retryAt ? retryAt.toISOString() : undefined,
         });
       }
       if (latest && ACTIVE_STATUSES.has(latest.status) && !isExpired(latest, currentTime)) {
@@ -452,6 +483,7 @@ module.exports.createReviewRequestRouter = createReviewRequestRouter;
 module.exports.constants = {
   ACTIVE_STATUSES,
   COOKIE_NAME,
+  REVIEW_REQUEST_COOLDOWN_DAYS,
   REVIEW_REQUEST_TTL_DAYS,
 };
 module.exports.hashToken = hashToken;
