@@ -4,6 +4,7 @@ const crypto = require('crypto');
 const schedule = require('node-schedule');
 const dbUnified = require('../db-unified');
 const logger = require('../utils/logger');
+const backgroundJobs = require('./backgroundJobTelemetry.service');
 
 const COLLECTION = 'reviewRequests';
 const DEFAULT_CRON = '15 * * * *';
@@ -84,10 +85,31 @@ function scheduleMaintenance({ db = dbUnified, log = logger, scheduleModule = sc
 
   const cronExpr = process.env.REVIEW_REQUEST_MAINTENANCE_CRON || DEFAULT_CRON;
   const job = scheduleModule.scheduleJob(cronExpr, async () => {
+    const startedAt = new Date();
     try {
-      await expireStaleRequests({ db, log });
+      const result = await expireStaleRequests({ db, log });
+      await backgroundJobs.recordRun(
+        {
+          jobKey: backgroundJobs.JOB_KEYS.REVIEW_REQUEST_MAINTENANCE,
+          status: result.skipped ? 'skipped' : 'success',
+          startedAt,
+          finishedAt: new Date(),
+          metrics: result,
+        },
+        { db, log }
+      );
     } catch (error) {
       log.error('[review-request-maintenance] Scheduled expiry failed:', error.message);
+      await backgroundJobs.recordRun(
+        {
+          jobKey: backgroundJobs.JOB_KEYS.REVIEW_REQUEST_MAINTENANCE,
+          status: 'failed',
+          startedAt,
+          finishedAt: new Date(),
+          error: error.message,
+        },
+        { db, log }
+      );
     }
   });
 
