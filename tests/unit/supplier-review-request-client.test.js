@@ -17,7 +17,7 @@ describe('supplier review-request dashboard client', () => {
 
   test('refreshes and retries after an explicit CSRF rejection', () => {
     expect(source).toContain('response.status !== 403 && response.status !== 419');
-    expect(source).toContain('response.clone().json()');
+    expect(source).toMatch(/response\s*\.clone\(\)\s*\.json\(\)/);
     expect(source).toContain('response = await execute(true)');
   });
 
