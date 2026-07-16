@@ -316,7 +316,7 @@ describe('Supplier dashboard/profile UI polish', () => {
     expect(photoUploaderJs).toContain('.photo-uploader__preview-remove {');
     expect(photoUploaderJs).toContain('width: 14px;');
     expect(photoUploaderJs).toContain('height: 14px;');
-    expect(photoUploaderJs).toContain('font-size: 0.6rem;');
+    expect(photoUploaderJs).toContain('font-size: 0.6875rem;');
     expect(photoUploaderJs).toContain('background: rgba(220,38,38,1);');
 
     expect(supplierDashImprovementsCss).toContain('.photo-preview-remove {');
