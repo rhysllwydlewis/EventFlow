@@ -4,6 +4,16 @@ const express = require('express');
 const logger = require('../utils/logger');
 const dbUnified = require('../db-unified');
 const emailLogService = require('../services/emailLog.service');
+const { removeLoadedRouterRoute } = require('../utils/legacyRouterRoute');
+
+const removedLegacyPostmarkRoutes = removeLoadedRouterRoute(
+  require.resolve('./webhooks'),
+  '/postmark',
+  'post'
+);
+if (removedLegacyPostmarkRoutes > 0) {
+  logger.info('[postmark-webhook] Disabled obsolete legacy /postmark handler');
+}
 
 const router = express.Router();
 const DELIVERY_FAILURE_STATUSES = new Set(['bounced', 'complained', 'suppressed', 'failed']);
