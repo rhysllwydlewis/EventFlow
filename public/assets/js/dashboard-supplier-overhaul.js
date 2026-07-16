@@ -28,6 +28,66 @@
     setTimeout(() => el.remove(), 5000);
   }
 
+  function readCsrfCookie() {
+    const cookie = document.cookie
+      .split('; ')
+      .find(item => item.startsWith('csrf=') || item.startsWith('csrfToken='));
+    return cookie ? decodeURIComponent(cookie.split('=').slice(1).join('=')) : '';
+  }
+
+  async function ensureCsrfToken(forceRefresh = false) {
+    if (!forceRefresh) {
+      const existing = readCsrfCookie();
+      if (existing) {
+        return existing;
+      }
+    }
+
+    if (typeof window.ensureCsrfToken === 'function') {
+      return window.ensureCsrfToken(forceRefresh);
+    }
+
+    const response = await fetch('/api/v1/csrf-token', { credentials: 'include' });
+    if (!response.ok) {
+      throw new Error('Unable to initialise request security');
+    }
+    const data = await response.json();
+    if (!data.csrfToken) {
+      throw new Error('Request security token missing');
+    }
+    return data.csrfToken;
+  }
+
+  async function fetchWithCsrfRetry(url, options) {
+    const execute = async forceRefresh => {
+      const token = await ensureCsrfToken(forceRefresh);
+      return fetch(url, {
+        ...options,
+        credentials: 'include',
+        headers: {
+          ...(options.headers || {}),
+          'X-CSRF-Token': token,
+        },
+      });
+    };
+
+    let response = await execute(false);
+    if (response.status !== 403 && response.status !== 419) {
+      return response;
+    }
+
+    const body = await response
+      .clone()
+      .json()
+      .catch(() => ({}));
+    if (!/csrf/i.test(body.error || body.errorType || '')) {
+      return response;
+    }
+
+    response = await execute(true);
+    return response;
+  }
+
   function animateCounter(el, target, duration = 1200) {
     if (!el || isNaN(target)) {
       return;
@@ -175,27 +235,24 @@
       btn.disabled = true;
       btn.textContent = 'Saving…';
       try {
-        const res = await fetch('/api/v1/supplier/availability', {
+        const res = await fetchWithCsrfRetry('/api/v1/supplier/availability', {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
           body: JSON.stringify({ status: currentStatus, notes }),
         });
         if (res.ok) {
-          btn.textContent = 'Save Status';
-          btn.disabled = false;
           statusEl.style.display = 'inline';
           setTimeout(() => {
             statusEl.style.display = 'none';
           }, 3000);
           toast('Availability updated', 'success');
         } else {
-          toast('Failed to save availability', 'error');
-          btn.textContent = 'Save Status';
-          btn.disabled = false;
+          const data = await res.json().catch(() => ({}));
+          toast(data.error || 'Failed to save availability', 'error');
         }
       } catch {
         toast('Network error — please try again', 'error');
+      } finally {
         btn.textContent = 'Save Status';
         btn.disabled = false;
       }
@@ -292,34 +349,28 @@
       btn.textContent = 'Sending…';
 
       try {
-        const res = await fetch('/api/v1/supplier/request-review', {
+        const res = await fetchWithCsrfRetry('/api/v1/supplier/request-review', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
           body: JSON.stringify({ customerEmail: email, customerName: name }),
         });
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
         if (res.ok) {
           toast('Review request sent!', 'success');
           status.style.display = 'inline';
           document.getElementById('rreq-email').value = '';
           document.getElementById('rreq-name').value = '';
-          btn.textContent = 'Send Request';
-          btn.disabled = false;
           setTimeout(() => {
             status.style.display = 'none';
           }, 4000);
         } else if (res.status === 409) {
-          toast('A review request was already sent to this customer.', 'info');
-          btn.textContent = 'Send Request';
-          btn.disabled = false;
+          toast(data.error || 'A review request was already sent to this customer.', 'info');
         } else {
           toast(data.error || 'Failed to send request', 'error');
-          btn.textContent = 'Send Request';
-          btn.disabled = false;
         }
       } catch {
         toast('Network error — please try again', 'error');
+      } finally {
         btn.textContent = 'Send Request';
         btn.disabled = false;
       }
