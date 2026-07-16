@@ -1,11 +1,10 @@
 'use strict';
 
-const fs = require('fs');
-const path = require('path');
 const {
   expireStaleRequests,
   scheduleMaintenance,
 } = require('../../services/reviewRequestMaintenance.service');
+const { initialiseReviewRequestMaintenance } = require('../../config/database');
 
 function createDb(rows) {
   const reviewRequests = rows.map(row => ({ ...row }));
@@ -148,12 +147,39 @@ describe('review request maintenance', () => {
     expect(scheduleModule.scheduleJob).not.toHaveBeenCalled();
   });
 
-  test('server startup and database indexes include maintenance wiring', () => {
-    const server = fs.readFileSync(path.join(__dirname, '../../server.js'), 'utf8');
-    const database = fs.readFileSync(path.join(__dirname, '../../db-unified.js'), 'utf8');
+  test('database initialisation isolates scheduler startup failures', () => {
+    process.env.NODE_ENV = 'production';
+    delete process.env.REVIEW_REQUEST_MAINTENANCE_ENABLED;
+    const log = { warn: jest.fn() };
+    const service = {
+      scheduleMaintenance: jest.fn(() => {
+        throw new Error('invalid cron');
+      }),
+    };
 
-    expect(server).toContain("require('./services/reviewRequestMaintenance.service')");
-    expect(server).toContain('scheduleMaintenance()');
-    expect(database).toContain("createIndex({ status: 1, expiresAt: 1 })");
+    expect(initialiseReviewRequestMaintenance({ service, log })).toBeNull();
+    expect(log.warn).toHaveBeenCalledWith(
+      '[review-request-maintenance] Scheduler failed to initialise:',
+      'invalid cron'
+    );
+  });
+
+  test('database initialisation starts maintenance once in production', () => {
+    process.env.NODE_ENV = 'production';
+    delete process.env.REVIEW_REQUEST_MAINTENANCE_ENABLED;
+    const scheduled = {
+      scheduled: true,
+      cronExpr: '15 * * * *',
+      nextRun: new Date('2026-07-16T13:15:00.000Z'),
+    };
+    const service = { scheduleMaintenance: jest.fn().mockReturnValue(scheduled) };
+    const log = { warn: jest.fn() };
+
+    expect(initialiseReviewRequestMaintenance({ service, log })).toBe(scheduled);
+    expect(service.scheduleMaintenance).toHaveBeenCalledWith(
+      expect.objectContaining({ log })
+    );
+    expect(initialiseReviewRequestMaintenance({ service, log })).toBeNull();
+    expect(service.scheduleMaintenance).toHaveBeenCalledTimes(1);
   });
 });
