@@ -1,0 +1,56 @@
+name: Apply PR Final Pass
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apply-pr1344-final-pass
+  cancel-in-progress: true
+
+jobs:
+  apply:
+    if: github.head_ref == 'agent/supplier-review-request-delivery'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.node-version'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit
+
+      - name: Apply reviewed patch
+        run: git apply --whitespace=fix .github/pr1344-final-pass.patch
+
+      - name: Format changed files
+        run: |
+          npx prettier --write \
+            routes/review-requests.js \
+            routes/postmark-webhook.js \
+            tests/integration/supplier-review-request-delivery.test.js \
+            tests/unit/postmark-webhook-route.test.js \
+            tests/unit/supplier-dashboard-fixes.test.js
+
+      - name: Commit final-pass changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add routes/review-requests.js routes/postmark-webhook.js \
+            tests/integration/supplier-review-request-delivery.test.js \
+            tests/unit/postmark-webhook-route.test.js \
+            tests/unit/supplier-dashboard-fixes.test.js
+          git commit -m "Make review request reservations atomic"
+          git push origin HEAD:${{ github.head_ref }}
