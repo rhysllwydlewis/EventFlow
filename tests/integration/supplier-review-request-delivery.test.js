@@ -4,6 +4,7 @@ const express = require('express');
 const cookieParser = require('cookie-parser');
 const request = require('supertest');
 const {
+  createActiveRequestId,
   createReviewRequestRouter,
   hashToken,
   normalizeDisplayName,
@@ -34,6 +35,9 @@ function createMemoryDb(seed = {}) {
       return rows(name).find(row => matches(row, query)) || null;
     },
     async insertOne(name, document) {
+      if (document.id && rows(name).some(row => row.id === document.id)) {
+        return null;
+      }
       rows(name).push({ ...document });
       return document;
     },
@@ -127,6 +131,7 @@ describe('supplier review-request delivery', () => {
     expect(stored.tokenHash).toBe(hashToken(rawToken));
     expect(JSON.stringify(stored)).not.toContain(rawToken);
     expect(stored.status).toBe('sent');
+    expect(stored.id).toBe(createActiveRequestId('supplier-1', 'customer@example.com'));
     expect(stored.providerMessageId).toBe('pm-123');
   });
 
@@ -150,6 +155,7 @@ describe('supplier review-request delivery', () => {
     expect(response.status).toBe(502);
     expect(response.body.error).toMatch(/could not be delivered/i);
     expect(db.collections.reviewRequests[0].status).toBe('failed');
+    expect(db.collections.reviewRequests[0].id).not.toMatch(/^rreq_active_/);
     expect(db.collections.reviewRequests[0].lastError).toContain('Postmark unavailable');
   });
 
@@ -183,6 +189,56 @@ describe('supplier review-request delivery', () => {
     expect(response.status).toBe(409);
     expect(response.body.status).toBe('sent');
     expect(sendMail).not.toHaveBeenCalled();
+  });
+
+  test('atomically reserves concurrent invitations so only one email is sent', async () => {
+    const db = createMemoryDb({
+      suppliers: [{ id: 'supplier-1', ownerUserId: 'supplier-user', name: 'Moor Audio' }],
+      reviewRequests: [],
+    });
+    const originalFind = db.find.bind(db);
+    let lookupCount = 0;
+    let releaseLookups;
+    const bothLookupsStarted = new Promise(resolve => {
+      releaseLookups = resolve;
+    });
+    db.find = async (name, query) => {
+      if (name === 'reviewRequests' && query.customerEmail === 'customer@example.com') {
+        lookupCount += 1;
+        if (lookupCount === 2) {
+          releaseLookups();
+        }
+        await bothLookupsStarted;
+      }
+      return originalFind(name, query);
+    };
+
+    const sendMail = jest.fn().mockResolvedValue({
+      provider: 'postmark',
+      PostmarkMessageID: 'pm-concurrent',
+      sentAt: fixedNow.toISOString(),
+    });
+    const app = buildApp({
+      db,
+      sendMail,
+      user: { id: 'supplier-user', role: 'supplier' },
+      now: () => fixedNow,
+      createToken: () => rawToken,
+    });
+
+    const responses = await Promise.all([
+      request(app)
+        .post('/api/v1/supplier/request-review')
+        .send({ customerEmail: 'customer@example.com' }),
+      request(app)
+        .post('/api/v1/supplier/request-review')
+        .send({ customerEmail: 'customer@example.com' }),
+    ]);
+
+    expect(responses.map(response => response.status).sort()).toEqual([200, 409]);
+    expect(sendMail).toHaveBeenCalledTimes(1);
+    expect(db.collections.reviewRequests).toHaveLength(1);
+    expect(db.collections.reviewRequests[0].status).toBe('sent');
   });
 
   test('blocks another invitation during the existing 30-day review cooldown', async () => {
@@ -259,7 +315,7 @@ describe('supplier review-request delivery', () => {
     const db = createMemoryDb({
       reviewRequests: [
         {
-          id: 'request-1',
+          id: createActiveRequestId('supplier-1', 'customer@example.com'),
           supplierId: 'supplier-1',
           customerEmail: 'customer@example.com',
           tokenHash: hashToken(rawToken),
@@ -282,6 +338,7 @@ describe('supplier review-request delivery', () => {
     expect(response.headers['set-cookie'][0]).toContain(`ef_review_request=${rawToken}`);
     expect(response.headers['set-cookie'][0]).toContain('HttpOnly');
     expect(db.collections.reviewRequests[0].status).toBe('opened');
+    expect(db.collections.reviewRequests[0].id).toMatch(/^rreq_active_/);
   });
 
   test('binds completion to the invited email and records the created review', async () => {
@@ -289,7 +346,7 @@ describe('supplier review-request delivery', () => {
       users: [{ id: 'customer-user', email: 'customer@example.com' }],
       reviewRequests: [
         {
-          id: 'request-1',
+          id: createActiveRequestId('supplier-1', 'customer@example.com'),
           supplierId: 'supplier-1',
           customerEmail: 'customer@example.com',
           tokenHash: hashToken(rawToken),
@@ -321,6 +378,7 @@ describe('supplier review-request delivery', () => {
         status: 'completed',
         completedByUserId: 'customer-user',
         reviewId: 'review-123',
+        id: expect.not.stringMatching(/^rreq_active_/),
       })
     );
     expect(response.headers['set-cookie'][0]).toContain('ef_review_request=;');

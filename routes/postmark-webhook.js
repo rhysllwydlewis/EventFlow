@@ -1,5 +1,6 @@
 'use strict';
 
+const crypto = require('crypto');
 const express = require('express');
 const logger = require('../utils/logger');
 const dbUnified = require('../db-unified');
@@ -99,6 +100,7 @@ async function syncReviewRequestDelivery(result, payload = {}) {
     updates.lastError = `Postmark delivery status: ${status}`;
     updates.retryable = status === 'bounced' ? payload.Inactive !== true : false;
     if (reviewRequest.status === 'pending' || reviewRequest.status === 'sent') {
+      updates.id = `rreq_${crypto.randomUUID()}`;
       updates.status = 'failed';
       updates.failedAt = eventAt;
     }

@@ -53,6 +53,18 @@ function hashToken(token) {
   return crypto.createHash('sha256').update(token).digest('hex');
 }
 
+function createActiveRequestId(supplierId, customerEmail) {
+  const reservationHash = crypto
+    .createHash('sha256')
+    .update(`${supplierId}\0${customerEmail}`)
+    .digest('hex');
+  return `rreq_active_${reservationHash}`;
+}
+
+function createHistoricalRequestId() {
+  return `rreq_${crypto.randomUUID()}`;
+}
+
 function isExpired(request, now) {
   const expiry = request && request.expiresAt ? new Date(request.expiresAt) : null;
   return !expiry || Number.isNaN(expiry.getTime()) || expiry <= now;
@@ -132,6 +144,7 @@ function createReviewRequestRouter(overrides = {}) {
   router.post(postPaths, authenticate, protectCsrf, limitWrites, async (req, res) => {
     const currentTime = now();
     let requestId = null;
+    let reservationAcquired = false;
 
     try {
       if (req.user.role !== 'supplier') {
@@ -184,6 +197,7 @@ function createReviewRequestRouter(overrides = {}) {
           { id: latest.id },
           {
             $set: {
+              id: createHistoricalRequestId(),
               status: 'expired',
               expiredAt: currentTime.toISOString(),
               updatedAt: currentTime.toISOString(),
@@ -197,7 +211,7 @@ function createReviewRequestRouter(overrides = {}) {
         throw new Error('Review request token generator returned an invalid token');
       }
 
-      requestId = `rreq_${crypto.randomUUID()}`;
+      requestId = createActiveRequestId(supplier.id, customerEmail);
       const expiresAt = new Date(
         currentTime.getTime() + REVIEW_REQUEST_TTL_DAYS * 24 * 60 * 60 * 1000
       );
@@ -220,8 +234,21 @@ function createReviewRequestRouter(overrides = {}) {
 
       const inserted = await db.insertOne('reviewRequests', requestDocument);
       if (!inserted) {
-        throw new Error('Failed to create review request');
+        const competingRequest = await db.findOne('reviewRequests', { id: requestId });
+        if (
+          competingRequest &&
+          ACTIVE_STATUSES.has(competingRequest.status) &&
+          !isExpired(competingRequest, currentTime)
+        ) {
+          return res.status(409).json({
+            error: 'An active review request has already been sent to this customer',
+            status: competingRequest.status,
+            expiresAt: competingRequest.expiresAt,
+          });
+        }
+        throw new Error('Failed to reserve review request');
       }
+      reservationAcquired = true;
 
       const delivery = await send({
         to: customerEmail,
@@ -274,13 +301,14 @@ function createReviewRequestRouter(overrides = {}) {
       });
     } catch (error) {
       logger.error('POST /supplier/request-review error:', error.message);
-      if (requestId) {
+      if (requestId && reservationAcquired) {
         try {
           await db.updateOne(
             'reviewRequests',
             { id: requestId },
             {
               $set: {
+                id: createHistoricalRequestId(),
                 status: 'failed',
                 deliveryStatus: 'failed',
                 failedAt: currentTime.toISOString(),
@@ -327,6 +355,7 @@ function createReviewRequestRouter(overrides = {}) {
             { id: request.id },
             {
               $set: {
+                id: createHistoricalRequestId(),
                 status: 'expired',
                 expiredAt: currentTime.toISOString(),
                 updatedAt: currentTime.toISOString(),
@@ -433,6 +462,7 @@ function createReviewRequestRouter(overrides = {}) {
                 { id: request.id },
                 {
                   $set: {
+                    id: createHistoricalRequestId(),
                     status: 'completed',
                     completedAt,
                     completedByUserId: req.user.id,
@@ -484,6 +514,7 @@ module.exports.constants = {
   REVIEW_REQUEST_COOLDOWN_DAYS,
   REVIEW_REQUEST_TTL_DAYS,
 };
+module.exports.createActiveRequestId = createActiveRequestId;
 module.exports.hashToken = hashToken;
 module.exports.normalizeDisplayName = normalizeDisplayName;
 module.exports.normalizeEmail = normalizeEmail;

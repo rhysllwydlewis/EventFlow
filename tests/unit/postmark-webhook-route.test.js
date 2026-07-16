@@ -159,6 +159,7 @@ describe('postmark webhook route', () => {
       { id: 'request-1' },
       {
         $set: expect.objectContaining({
+          id: expect.stringMatching(/^rreq_(?!active_)/),
           status: 'failed',
           deliveryStatus: 'bounced',
           retryable: true,
@@ -193,6 +194,7 @@ describe('postmark webhook route', () => {
       .expect(200);
 
     const update = dbUnified.updateOne.mock.calls[0][2].$set;
+    expect(update.id).toBeUndefined();
     expect(update.status).toBeUndefined();
     expect(update.deliveryStatus).toBe('bounced');
     expect(update.retryable).toBe(false);

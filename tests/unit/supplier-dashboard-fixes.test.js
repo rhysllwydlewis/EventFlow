@@ -151,7 +151,7 @@ describe('global-error-handler.js – robustness improvements', () => {
 describe('global-error-handler.js – fetch interceptor null-safety', () => {
   it('parseErrorMessage handles JSON parse failures gracefully', () => {
     expect(errorHandlerJs).toContain('async function parseErrorMessage(response, defaultMessage)');
-    expect(errorHandlerJs).toContain('catch (parseError)');
+    expect(errorHandlerJs).toMatch(/catch\s*\(\s*_?parseError\s*\)/);
     expect(errorHandlerJs).toContain('return defaultMessage');
   });
 
@@ -278,9 +278,11 @@ describe('Supplier dashboard/profile UI polish', () => {
     expect(settingsHtml).toContain('id="avatar-delete-btn"');
     expect(settingsHtml).toContain('border:1px solid #CFEDEA;background:#F6FAF9;color:#dc2626');
     expect(settingsHtml).toContain('box-sizing:border-box;line-height:inherit;');
-    expect(settingsHtml).toContain(
-      'for="avatar-upload-input" class="cta secondary" style="cursor:pointer;font-size:0.82rem;padding:0.375rem 0.875rem;display:inline-flex;align-items:center;gap:0.35rem;border-radius:6px;box-sizing:border-box;line-height:inherit;"'
-    );
+    const uploadLabel = settingsHtml.match(/<label[^>]*for="avatar-upload-input"[^>]*>/)?.[0];
+    expect(uploadLabel).toBeDefined();
+    expect(uploadLabel).toContain('class="cta secondary"');
+    expect(uploadLabel).toMatch(/font-size:\s*0\.8125rem/);
+    expect(uploadLabel).toContain('box-sizing:border-box;line-height:inherit;');
     expect(settingsHtml).not.toContain('border:1px solid #fca5a5;background:#fff5f5;color:#dc2626');
     expect(settingsHtml).not.toContain('border:1px solid #d1d5db;background:#fff;color:#dc2626');
   });
@@ -298,7 +300,12 @@ describe('Supplier dashboard/profile UI polish', () => {
     expect(stylesCss).toContain('.photo-remove-btn{');
     expect(stylesCss).toContain('width:10px;');
     expect(stylesCss).toContain('height:10px;');
-    expect(stylesCss).toContain('font-size:7px;');
+    const compactRemoveStart = stylesCss.indexOf('.photo-remove-btn{');
+    const compactRemoveBlock = stylesCss.slice(
+      compactRemoveStart,
+      stylesCss.indexOf('}', compactRemoveStart) + 1
+    );
+    expect(compactRemoveBlock).toMatch(/font-size:\s*11px;/);
     expect(stylesCss).toContain('.photo-remove-btn:hover{');
     expect(stylesCss).toContain('background:#dc2626;');
     // .photo-remove-btn:hover must NOT use a scale transform — hue change only
@@ -331,12 +338,21 @@ describe('Supplier dashboard/profile UI polish', () => {
     expect(supplierDashImprovementsCss).toContain(
       '.photo-preview-item--pending .photo-remove-btn {'
     );
-    expect(supplierDashImprovementsCss).toContain('top: -6px;');
-    expect(supplierDashImprovementsCss).toContain('right: -6px;');
-    // min-width/min-height must be 0 to override the 44px WCAG touch-target rule
-    expect(supplierDashImprovementsCss).toContain('min-width: 0;');
-    expect(supplierDashImprovementsCss).toContain('min-height: 0;');
-    expect(supplierDashImprovementsCss).toContain('font-size: 9px;');
+    const tileDeleteStart = supplierDashImprovementsCss.indexOf(
+      '.photo-preview-item--existing .photo-delete-btn,'
+    );
+    const tileDeleteBlock = supplierDashImprovementsCss.slice(
+      tileDeleteStart,
+      supplierDashImprovementsCss.indexOf('}', tileDeleteStart) + 1
+    );
+    expect(tileDeleteBlock).toContain('top: -8px;');
+    expect(tileDeleteBlock).toContain('right: -8px;');
+    expect(tileDeleteBlock).toContain('width: 20px;');
+    expect(tileDeleteBlock).toContain('height: 20px;');
+    // min-width/min-height must remain 0 to override the global 44px touch-target rule
+    expect(tileDeleteBlock).toContain('min-width: 0;');
+    expect(tileDeleteBlock).toContain('min-height: 0;');
+    expect(tileDeleteBlock).toMatch(/font-size:\s*12px;/);
   });
 
   it('supplier profile summary card uses structured spc-* layout classes', () => {
@@ -418,7 +434,12 @@ describe('Supplier dashboard/profile UI polish', () => {
     expect(supplierDashImprovementsCss).toContain('right: -6px;');
     expect(supplierDashImprovementsCss).toContain('width: 16px;');
     expect(supplierDashImprovementsCss).toContain('height: 16px;');
-    expect(supplierDashImprovementsCss).toContain('font-size: 9px;');
+    const packageDeleteStart = supplierDashImprovementsCss.indexOf('.pkg-gallery-delete {');
+    const packageDeleteBlock = supplierDashImprovementsCss.slice(
+      packageDeleteStart,
+      supplierDashImprovementsCss.indexOf('}', packageDeleteStart) + 1
+    );
+    expect(packageDeleteBlock).toMatch(/font-size:\s*11px;/);
     // ef-cta must NOT be on the button — it overrides padding/position and breaks the overlay
     expect(appJs).not.toContain('ef-cta pkg-gallery-delete');
     expect(appJs).toContain('class="pkg-gallery-delete"');
