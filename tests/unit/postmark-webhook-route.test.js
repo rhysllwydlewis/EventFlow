@@ -47,7 +47,7 @@ function loadApp(env = {}, options = {}) {
   const route = require('../../routes/postmark-webhook');
   const app = express();
   app.use('/api/webhooks', route);
-  return { app, dbUnified, emailLogService };
+  return { app, dbUnified, emailLogService, route };
 }
 
 function auth(user, pass) {
@@ -63,6 +63,21 @@ describe('postmark webhook route', () => {
     jest.clearAllMocks();
   });
 
+  test('normalizes Postmark provider RecordType values to EventFlow statuses', () => {
+    const { route } = loadApp();
+
+    expect(route.normalizePostmarkPayload({ RecordType: 'Delivery' }).RecordType).toBe('Delivered');
+    expect(route.normalizePostmarkPayload({ RecordType: 'Bounce' }).RecordType).toBe('Bounced');
+    expect(route.normalizePostmarkPayload({ RecordType: 'Open' }).RecordType).toBe('Opened');
+    expect(route.normalizePostmarkPayload({ RecordType: 'Click' }).RecordType).toBe('LinkClicked');
+    expect(
+      route.normalizePostmarkPayload({ RecordType: 'SubscriptionChange' }).RecordType
+    ).toBe('SubscriptionChanged');
+    expect(route.normalizePostmarkPayload({ RecordType: 'SpamComplaint' }).RecordType).toBe(
+      'SpamComplaint'
+    );
+  });
+
   test('rejects invalid auth when credentials are configured', async () => {
     const { app } = loadApp({
       POSTMARK_WEBHOOK_USER: 'postmark',
@@ -72,12 +87,12 @@ describe('postmark webhook route', () => {
     await request(app)
       .post('/api/webhooks/postmark')
       .set('Authorization', auth('postmark', 'wrong'))
-      .send({ RecordType: 'Delivered', MessageID: 'known-message' })
+      .send({ RecordType: 'Delivery', MessageID: 'known-message' })
       .expect(401);
   });
 
-  test('accepts Delivered events and updates the matching review request', async () => {
-    const { app, dbUnified } = loadApp({
+  test('accepts Delivery events and updates the matching review request', async () => {
+    const { app, dbUnified, emailLogService } = loadApp({
       POSTMARK_WEBHOOK_USER: 'postmark',
       POSTMARK_WEBHOOK_PASS: 'secret',
     });
@@ -85,7 +100,7 @@ describe('postmark webhook route', () => {
     await request(app)
       .post('/api/webhooks/postmark')
       .set('Authorization', auth('postmark', 'secret'))
-      .send({ RecordType: 'Delivered', MessageID: 'known-message' })
+      .send({ RecordType: 'Delivery', MessageID: 'known-message' })
       .expect(200)
       .expect(res => {
         expect(res.body.ok).toBe(true);
@@ -93,6 +108,9 @@ describe('postmark webhook route', () => {
         expect(res.body.reviewRequestUpdated).toBe(true);
       });
 
+    expect(emailLogService.appendWebhookEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ RecordType: 'Delivered', MessageID: 'known-message' })
+    );
     expect(dbUnified.updateOne).toHaveBeenCalledWith(
       'reviewRequests',
       { id: 'request-1' },
@@ -107,7 +125,7 @@ describe('postmark webhook route', () => {
   });
 
   test('marks a bounced request failed and retryable when Postmark has not deactivated it', async () => {
-    const { app, dbUnified } = loadApp(
+    const { app, dbUnified, emailLogService } = loadApp(
       {
         POSTMARK_WEBHOOK_USER: 'postmark',
         POSTMARK_WEBHOOK_PASS: 'secret',
@@ -127,12 +145,15 @@ describe('postmark webhook route', () => {
       .post('/api/webhooks/postmark')
       .set('Authorization', auth('postmark', 'secret'))
       .send({
-        RecordType: 'Bounced',
+        RecordType: 'Bounce',
         MessageID: 'known-message',
         Inactive: false,
       })
       .expect(200);
 
+    expect(emailLogService.appendWebhookEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ RecordType: 'Bounced', Inactive: false })
+    );
     expect(dbUnified.updateOne).toHaveBeenCalledWith(
       'reviewRequests',
       { id: 'request-1' },
@@ -168,7 +189,7 @@ describe('postmark webhook route', () => {
     await request(app)
       .post('/api/webhooks/postmark')
       .set('Authorization', auth('postmark', 'secret'))
-      .send({ RecordType: 'Bounced', MessageID: 'known-message', Inactive: true })
+      .send({ RecordType: 'Bounce', MessageID: 'known-message', Inactive: true })
       .expect(200);
 
     const update = dbUnified.updateOne.mock.calls[0][2].$set;
@@ -186,7 +207,7 @@ describe('postmark webhook route', () => {
     await request(app)
       .post('/api/webhooks/postmark')
       .set('Authorization', auth('postmark', 'secret'))
-      .send({ RecordType: 'Opened', MessageID: 'missing' })
+      .send({ RecordType: 'Open', MessageID: 'missing' })
       .expect(200)
       .expect(res => {
         expect(res.body.ok).toBe(true);
@@ -194,6 +215,9 @@ describe('postmark webhook route', () => {
         expect(res.body.reviewRequestUpdated).toBe(false);
       });
 
+    expect(emailLogService.appendWebhookEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ RecordType: 'Opened', MessageID: 'missing' })
+    );
     expect(emailLogService.getLog).not.toHaveBeenCalled();
     expect(dbUnified.updateOne).not.toHaveBeenCalled();
   });
@@ -218,7 +242,7 @@ describe('postmark webhook route', () => {
     await request(app)
       .post('/api/webhooks/postmark')
       .set('Authorization', auth('postmark', 'secret'))
-      .send({ RecordType: 'Delivered', MessageID: 'known-message' })
+      .send({ RecordType: 'Delivery', MessageID: 'known-message' })
       .expect(200)
       .expect(res => {
         expect(res.body.reviewRequestUpdated).toBe(false);
@@ -232,7 +256,7 @@ describe('postmark webhook route', () => {
 
     await request(app)
       .post('/api/webhooks/postmark')
-      .send({ RecordType: 'Delivered', MessageID: 'known-message' })
+      .send({ RecordType: 'Delivery', MessageID: 'known-message' })
       .expect(503);
   });
 });
