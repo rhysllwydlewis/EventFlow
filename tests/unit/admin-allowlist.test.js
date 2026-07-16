@@ -92,7 +92,7 @@ describe('serve-static.js Admin Pages Sync', () => {
       .map(line =>
         line
           .trim()
-          .replace(/^[\'"]|[\'"],?$/g, '')
+          .replace(/^['"]|['"],?$/g, '')
           .trim()
       )
       .filter(line => line.length > 0 && !line.startsWith('/'));
@@ -157,7 +157,11 @@ describe('Admin Page JS - No Native Dialogs', () => {
       lines.forEach((line, idx) => {
         // Skip comment lines and blank lines
         const trimmed = line.trimStart();
-        if (trimmed.startsWith('//') || trimmed.startsWith('*') || trimmed === '') {
+        if (
+          trimmed.startsWith('//') ||
+          trimmed.startsWith('*') ||
+          trimmed === ''
+        ) {
           return;
         }
         // Skip lines that are part of admin helper definitions/calls
@@ -165,7 +169,11 @@ describe('Admin Page JS - No Native Dialogs', () => {
           return;
         }
         // Skip only explicitly documented native-dialog fallbacks.
-        if (exceptions.some(exception => line.includes(exception.fragment) && exception.reason)) {
+        if (
+          exceptions.some(
+            exception => line.includes(exception.fragment) && exception.reason
+          )
+        ) {
           return;
         }
         // Check for native dialog patterns
