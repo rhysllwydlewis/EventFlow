@@ -76,7 +76,10 @@
       return response;
     }
 
-    const body = await response.clone().json().catch(() => ({}));
+    const body = await response
+      .clone()
+      .json()
+      .catch(() => ({}));
     if (!/csrf/i.test(body.error || body.errorType || '')) {
       return response;
     }
