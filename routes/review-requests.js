@@ -71,7 +71,7 @@ function safeSupplierRedirect(supplierId, state) {
   }
   return `/supplier?id=${encodeURIComponent(supplierId)}&reviewRequest=${encodeURIComponent(
     state
-  )}#reviews`;
+  )}#sp-section-reviews`;
 }
 
 function secureRedirect(res, location) {
