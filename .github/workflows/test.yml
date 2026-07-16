@@ -45,57 +45,7 @@ jobs:
           NODE_ENV: test
           JWT_SECRET: test-secret-for-jest-min-32-characters-long
 
-  full-regression:
-    name: Full Regression (non-blocking)
-    runs-on: ubuntu-latest
-    timeout-minutes: 25
-    continue-on-error: true
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version-file: '.node-version'
-          cache: 'npm'
-
-      - name: Verify package-lock metadata
-        run: npm run check:lockfile
-
-      - name: Clean install dependencies
-        run: npm ci --prefer-offline --no-audit
-
-      - name: Run full tests
-        id: full-regression
-        run: npm run test:full -- --runInBand --json --outputFile=full-regression-results.json
-        env:
-          NODE_ENV: test
-          JWT_SECRET: test-secret-for-jest-min-32-characters-long
-
-      - name: Upload full regression diagnostics
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: full-regression-results-test
-          path: |
-            full-regression-results.json
-            coverage/lcov.info
-            coverage/coverage-summary.json
-          if-no-files-found: warn
-          retention-days: 7
-
-      - name: Report non-blocking regression failure
-        if: always() && steps.full-regression.outcome == 'failure'
-        run: echo "::warning::The full regression suite failed. Download full-regression-results-test for the exact failing suites and assertions."
-
-      - name: Upload coverage reports
-        uses: codecov/codecov-action@v4
-        if: always()
-        with:
-          files: ./coverage/lcov.info
-          fail_ci_if_error: false
+  # The full regression suite runs once in ci.yml and gates Build Verification.
 
   mongo-replica-set-transactions:
     name: Mongo Replica Set Transactions
