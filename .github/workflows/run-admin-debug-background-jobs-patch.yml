@@ -1,0 +1,80 @@
+name: Run Admin Debug Background Jobs Patch
+
+on:
+  push:
+    branches:
+      - agent/admin-debug-background-jobs
+    paths:
+      - .github/workflows/run-admin-debug-background-jobs-patch.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Apply patch
+        run: python3 scripts/apply-background-jobs-integration.py
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+      - name: Format and validate
+        run: |
+          npx prettier --write \
+            services/backgroundJobTelemetry.service.js \
+            services/reviewRequestMaintenance.service.js \
+            services/systemCheckService.js \
+            services/actionPromptScheduler.js \
+            services/dateManagementService.js \
+            routes/system-checks-admin.js \
+            utils/database.js \
+            server.js \
+            public/admin-debug.html \
+            public/assets/js/pages/admin-debug-background-jobs.js \
+            public/assets/css/admin-debug-background-jobs.css \
+            tests/unit/background-job-telemetry.test.js \
+            tests/unit/admin-debug-background-jobs.test.js
+          npx eslint \
+            services/backgroundJobTelemetry.service.js \
+            services/reviewRequestMaintenance.service.js \
+            services/systemCheckService.js \
+            services/actionPromptScheduler.js \
+            services/dateManagementService.js \
+            routes/system-checks-admin.js \
+            utils/database.js \
+            public/assets/js/pages/admin-debug-background-jobs.js \
+            tests/unit/background-job-telemetry.test.js \
+            tests/unit/admin-debug-background-jobs.test.js
+          npx jest --runInBand \
+            tests/unit/background-job-telemetry.test.js \
+            tests/unit/admin-debug-background-jobs.test.js \
+            tests/unit/review-request-maintenance.test.js \
+            tests/unit/system-check-service.test.js
+          git diff --check
+      - name: Commit integration
+        run: |
+          git config user.name "EventFlow Agent"
+          git config user.email "actions@users.noreply.github.com"
+          git add \
+            services/backgroundJobTelemetry.service.js \
+            services/reviewRequestMaintenance.service.js \
+            services/systemCheckService.js \
+            services/actionPromptScheduler.js \
+            services/dateManagementService.js \
+            routes/system-checks-admin.js \
+            utils/database.js \
+            server.js \
+            public/admin-debug.html \
+            public/assets/js/pages/admin-debug-background-jobs.js \
+            public/assets/css/admin-debug-background-jobs.css \
+            tests/unit/background-job-telemetry.test.js \
+            tests/unit/admin-debug-background-jobs.test.js
+          git commit -m "Add background jobs visibility to admin debug"
+          git push origin HEAD:agent/admin-debug-background-jobs
