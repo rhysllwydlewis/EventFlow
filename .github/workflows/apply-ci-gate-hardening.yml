@@ -1,23 +1,19 @@
 name: Apply CI Gate Hardening
 
 on:
-  push:
-    branches: [agent/block-full-regression-ci]
   pull_request:
     branches: [main]
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   apply:
-    if: ${{ github.event_name == 'pull_request' || !contains(github.event.head_commit.message, '[ci-hardening-applied]') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           ref: agent/block-full-regression-ci
-          fetch-depth: 0
 
       - name: Harden regression gates
         run: |
@@ -61,10 +57,12 @@ jobs:
           git diff --check
           git diff -- .github/workflows/ci.yml .github/workflows/test.yml
 
-      - name: Commit hardened workflows
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add .github/workflows/ci.yml .github/workflows/test.yml
-          git commit -m "[ci-hardening-applied] Make full regression blocking"
-          git push origin HEAD:agent/block-full-regression-ci
+      - name: Upload reviewed workflow files
+        uses: actions/upload-artifact@v4
+        with:
+          name: hardened-ci-workflows
+          path: |
+            .github/workflows/ci.yml
+            .github/workflows/test.yml
+          if-no-files-found: error
+          retention-days: 1
