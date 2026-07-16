@@ -27,7 +27,10 @@ function initialiseReviewRequestMaintenance({ service, log = logger } = {}) {
 
   try {
     const maintenanceService = service || require('../services/reviewRequestMaintenance.service');
-    const result = maintenanceService.scheduleMaintenance({ db: dbUnified, log });
+    const result = maintenanceService.scheduleMaintenance({
+      db: dbUnified,
+      log,
+    });
     reviewRequestMaintenanceInitialised = Boolean(result && result.scheduled);
     return result;
   } catch (error) {
