@@ -1,0 +1,353 @@
+--- a/routes/review-requests.js
++++ b/routes/review-requests.js
+@@ -53,6 +53,18 @@
+   return crypto.createHash('sha256').update(token).digest('hex');
+ }
+ 
++function createActiveRequestId(supplierId, customerEmail) {
++  const reservationHash = crypto
++    .createHash('sha256')
++    .update(`${supplierId}\0${customerEmail}`)
++    .digest('hex');
++  return `rreq_active_${reservationHash}`;
++}
++
++function createHistoricalRequestId() {
++  return `rreq_${crypto.randomUUID()}`;
++}
++
+ function isExpired(request, now) {
+   const expiry = request && request.expiresAt ? new Date(request.expiresAt) : null;
+   return !expiry || Number.isNaN(expiry.getTime()) || expiry <= now;
+@@ -132,6 +144,7 @@
+   router.post(postPaths, authenticate, protectCsrf, limitWrites, async (req, res) => {
+     const currentTime = now();
+     let requestId = null;
++    let reservationAcquired = false;
+ 
+     try {
+       if (req.user.role !== 'supplier') {
+@@ -184,6 +197,7 @@
+           { id: latest.id },
+           {
+             $set: {
++              id: createHistoricalRequestId(),
+               status: 'expired',
+               expiredAt: currentTime.toISOString(),
+               updatedAt: currentTime.toISOString(),
+@@ -197,7 +211,7 @@
+         throw new Error('Review request token generator returned an invalid token');
+       }
+ 
+-      requestId = `rreq_${crypto.randomUUID()}`;
++      requestId = createActiveRequestId(supplier.id, customerEmail);
+       const expiresAt = new Date(
+         currentTime.getTime() + REVIEW_REQUEST_TTL_DAYS * 24 * 60 * 60 * 1000
+       );
+@@ -220,8 +234,21 @@
+ 
+       const inserted = await db.insertOne('reviewRequests', requestDocument);
+       if (!inserted) {
+-        throw new Error('Failed to create review request');
++        const competingRequest = await db.findOne('reviewRequests', { id: requestId });
++        if (
++          competingRequest &&
++          ACTIVE_STATUSES.has(competingRequest.status) &&
++          !isExpired(competingRequest, currentTime)
++        ) {
++          return res.status(409).json({
++            error: 'An active review request has already been sent to this customer',
++            status: competingRequest.status,
++            expiresAt: competingRequest.expiresAt,
++          });
++        }
++        throw new Error('Failed to reserve review request');
+       }
++      reservationAcquired = true;
+ 
+       const delivery = await send({
+         to: customerEmail,
+@@ -274,13 +301,14 @@
+       });
+     } catch (error) {
+       logger.error('POST /supplier/request-review error:', error.message);
+-      if (requestId) {
++      if (requestId && reservationAcquired) {
+         try {
+           await db.updateOne(
+             'reviewRequests',
+             { id: requestId },
+             {
+               $set: {
++                id: createHistoricalRequestId(),
+                 status: 'failed',
+                 deliveryStatus: 'failed',
+                 failedAt: currentTime.toISOString(),
+@@ -327,6 +355,7 @@
+             { id: request.id },
+             {
+               $set: {
++                id: createHistoricalRequestId(),
+                 status: 'expired',
+                 expiredAt: currentTime.toISOString(),
+                 updatedAt: currentTime.toISOString(),
+@@ -433,6 +462,7 @@
+                 { id: request.id },
+                 {
+                   $set: {
++                    id: createHistoricalRequestId(),
+                     status: 'completed',
+                     completedAt,
+                     completedByUserId: req.user.id,
+@@ -484,6 +514,7 @@
+   REVIEW_REQUEST_COOLDOWN_DAYS,
+   REVIEW_REQUEST_TTL_DAYS,
+ };
++module.exports.createActiveRequestId = createActiveRequestId;
+ module.exports.hashToken = hashToken;
+ module.exports.normalizeDisplayName = normalizeDisplayName;
+ module.exports.normalizeEmail = normalizeEmail;
+--- a/routes/postmark-webhook.js
++++ b/routes/postmark-webhook.js
+@@ -1,5 +1,6 @@
+ 'use strict';
+ 
++const crypto = require('crypto');
+ const express = require('express');
+ const logger = require('../utils/logger');
+ const dbUnified = require('../db-unified');
+@@ -99,6 +100,7 @@
+     updates.lastError = `Postmark delivery status: ${status}`;
+     updates.retryable = status === 'bounced' ? payload.Inactive !== true : false;
+     if (reviewRequest.status === 'pending' || reviewRequest.status === 'sent') {
++      updates.id = `rreq_${crypto.randomUUID()}`;
+       updates.status = 'failed';
+       updates.failedAt = eventAt;
+     }
+--- a/tests/integration/supplier-review-request-delivery.test.js
++++ b/tests/integration/supplier-review-request-delivery.test.js
+@@ -4,6 +4,7 @@
+ const cookieParser = require('cookie-parser');
+ const request = require('supertest');
+ const {
++  createActiveRequestId,
+   createReviewRequestRouter,
+   hashToken,
+   normalizeDisplayName,
+@@ -34,6 +35,9 @@
+       return rows(name).find(row => matches(row, query)) || null;
+     },
+     async insertOne(name, document) {
++      if (document.id && rows(name).some(row => row.id === document.id)) {
++        return null;
++      }
+       rows(name).push({ ...document });
+       return document;
+     },
+@@ -127,6 +131,7 @@
+     expect(stored.tokenHash).toBe(hashToken(rawToken));
+     expect(JSON.stringify(stored)).not.toContain(rawToken);
+     expect(stored.status).toBe('sent');
++    expect(stored.id).toBe(createActiveRequestId('supplier-1', 'customer@example.com'));
+     expect(stored.providerMessageId).toBe('pm-123');
+   });
+ 
+@@ -150,6 +155,7 @@
+     expect(response.status).toBe(502);
+     expect(response.body.error).toMatch(/could not be delivered/i);
+     expect(db.collections.reviewRequests[0].status).toBe('failed');
++    expect(db.collections.reviewRequests[0].id).not.toMatch(/^rreq_active_/);
+     expect(db.collections.reviewRequests[0].lastError).toContain('Postmark unavailable');
+   });
+ 
+@@ -185,6 +191,56 @@
+     expect(sendMail).not.toHaveBeenCalled();
+   });
+ 
++  test('atomically reserves concurrent invitations so only one email is sent', async () => {
++    const db = createMemoryDb({
++      suppliers: [{ id: 'supplier-1', ownerUserId: 'supplier-user', name: 'Moor Audio' }],
++      reviewRequests: [],
++    });
++    const originalFind = db.find.bind(db);
++    let lookupCount = 0;
++    let releaseLookups;
++    const bothLookupsStarted = new Promise(resolve => {
++      releaseLookups = resolve;
++    });
++    db.find = async (name, query) => {
++      if (name === 'reviewRequests' && query.customerEmail === 'customer@example.com') {
++        lookupCount += 1;
++        if (lookupCount === 2) {
++          releaseLookups();
++        }
++        await bothLookupsStarted;
++      }
++      return originalFind(name, query);
++    };
++
++    const sendMail = jest.fn().mockResolvedValue({
++      provider: 'postmark',
++      PostmarkMessageID: 'pm-concurrent',
++      sentAt: fixedNow.toISOString(),
++    });
++    const app = buildApp({
++      db,
++      sendMail,
++      user: { id: 'supplier-user', role: 'supplier' },
++      now: () => fixedNow,
++      createToken: () => rawToken,
++    });
++
++    const responses = await Promise.all([
++      request(app)
++        .post('/api/v1/supplier/request-review')
++        .send({ customerEmail: 'customer@example.com' }),
++      request(app)
++        .post('/api/v1/supplier/request-review')
++        .send({ customerEmail: 'customer@example.com' }),
++    ]);
++
++    expect(responses.map(response => response.status).sort()).toEqual([200, 409]);
++    expect(sendMail).toHaveBeenCalledTimes(1);
++    expect(db.collections.reviewRequests).toHaveLength(1);
++    expect(db.collections.reviewRequests[0].status).toBe('sent');
++  });
++
+   test('blocks another invitation during the existing 30-day review cooldown', async () => {
+     const db = createMemoryDb({
+       suppliers: [{ id: 'supplier-1', ownerUserId: 'supplier-user', name: 'Moor Audio' }],
+@@ -259,7 +315,7 @@
+     const db = createMemoryDb({
+       reviewRequests: [
+         {
+-          id: 'request-1',
++          id: createActiveRequestId('supplier-1', 'customer@example.com'),
+           supplierId: 'supplier-1',
+           customerEmail: 'customer@example.com',
+           tokenHash: hashToken(rawToken),
+@@ -282,6 +338,7 @@
+     expect(response.headers['set-cookie'][0]).toContain(`ef_review_request=${rawToken}`);
+     expect(response.headers['set-cookie'][0]).toContain('HttpOnly');
+     expect(db.collections.reviewRequests[0].status).toBe('opened');
++    expect(db.collections.reviewRequests[0].id).toMatch(/^rreq_active_/);
+   });
+ 
+   test('binds completion to the invited email and records the created review', async () => {
+@@ -289,7 +346,7 @@
+       users: [{ id: 'customer-user', email: 'customer@example.com' }],
+       reviewRequests: [
+         {
+-          id: 'request-1',
++          id: createActiveRequestId('supplier-1', 'customer@example.com'),
+           supplierId: 'supplier-1',
+           customerEmail: 'customer@example.com',
+           tokenHash: hashToken(rawToken),
+@@ -321,6 +378,7 @@
+         status: 'completed',
+         completedByUserId: 'customer-user',
+         reviewId: 'review-123',
++        id: expect.not.stringMatching(/^rreq_active_/),
+       })
+     );
+     expect(response.headers['set-cookie'][0]).toContain('ef_review_request=;');
+--- a/tests/unit/postmark-webhook-route.test.js
++++ b/tests/unit/postmark-webhook-route.test.js
+@@ -159,6 +159,7 @@
+       { id: 'request-1' },
+       {
+         $set: expect.objectContaining({
++          id: expect.stringMatching(/^rreq_(?!active_)/),
+           status: 'failed',
+           deliveryStatus: 'bounced',
+           retryable: true,
+@@ -193,6 +194,7 @@
+       .expect(200);
+ 
+     const update = dbUnified.updateOne.mock.calls[0][2].$set;
++    expect(update.id).toBeUndefined();
+     expect(update.status).toBeUndefined();
+     expect(update.deliveryStatus).toBe('bounced');
+     expect(update.retryable).toBe(false);
+--- a/tests/unit/supplier-dashboard-fixes.test.js
++++ b/tests/unit/supplier-dashboard-fixes.test.js
+@@ -151,7 +151,7 @@
+ describe('global-error-handler.js – fetch interceptor null-safety', () => {
+   it('parseErrorMessage handles JSON parse failures gracefully', () => {
+     expect(errorHandlerJs).toContain('async function parseErrorMessage(response, defaultMessage)');
+-    expect(errorHandlerJs).toContain('catch (parseError)');
++    expect(errorHandlerJs).toMatch(/catch\s*\(\s*_?parseError\s*\)/);
+     expect(errorHandlerJs).toContain('return defaultMessage');
+   });
+ 
+@@ -278,9 +278,11 @@
+     expect(settingsHtml).toContain('id="avatar-delete-btn"');
+     expect(settingsHtml).toContain('border:1px solid #CFEDEA;background:#F6FAF9;color:#dc2626');
+     expect(settingsHtml).toContain('box-sizing:border-box;line-height:inherit;');
+-    expect(settingsHtml).toContain(
+-      'for="avatar-upload-input" class="cta secondary" style="cursor:pointer;font-size:0.82rem;padding:0.375rem 0.875rem;display:inline-flex;align-items:center;gap:0.35rem;border-radius:6px;box-sizing:border-box;line-height:inherit;"'
+-    );
++    const uploadLabel = settingsHtml.match(/<label[^>]*for="avatar-upload-input"[^>]*>/)?.[0];
++    expect(uploadLabel).toBeDefined();
++    expect(uploadLabel).toContain('class="cta secondary"');
++    expect(uploadLabel).toMatch(/font-size:\s*0\.8125rem/);
++    expect(uploadLabel).toContain('box-sizing:border-box;line-height:inherit;');
+     expect(settingsHtml).not.toContain('border:1px solid #fca5a5;background:#fff5f5;color:#dc2626');
+     expect(settingsHtml).not.toContain('border:1px solid #d1d5db;background:#fff;color:#dc2626');
+   });
+@@ -298,7 +300,12 @@
+     expect(stylesCss).toContain('.photo-remove-btn{');
+     expect(stylesCss).toContain('width:10px;');
+     expect(stylesCss).toContain('height:10px;');
+-    expect(stylesCss).toContain('font-size:7px;');
++    const compactRemoveStart = stylesCss.indexOf('.photo-remove-btn{');
++    const compactRemoveBlock = stylesCss.slice(
++      compactRemoveStart,
++      stylesCss.indexOf('}', compactRemoveStart) + 1
++    );
++    expect(compactRemoveBlock).toMatch(/font-size:\s*11px;/);
+     expect(stylesCss).toContain('.photo-remove-btn:hover{');
+     expect(stylesCss).toContain('background:#dc2626;');
+     // .photo-remove-btn:hover must NOT use a scale transform — hue change only
+@@ -331,12 +338,21 @@
+     expect(supplierDashImprovementsCss).toContain(
+       '.photo-preview-item--pending .photo-remove-btn {'
+     );
+-    expect(supplierDashImprovementsCss).toContain('top: -6px;');
+-    expect(supplierDashImprovementsCss).toContain('right: -6px;');
+-    // min-width/min-height must be 0 to override the 44px WCAG touch-target rule
+-    expect(supplierDashImprovementsCss).toContain('min-width: 0;');
+-    expect(supplierDashImprovementsCss).toContain('min-height: 0;');
+-    expect(supplierDashImprovementsCss).toContain('font-size: 9px;');
++    const tileDeleteStart = supplierDashImprovementsCss.indexOf(
++      '.photo-preview-item--existing .photo-delete-btn,'
++    );
++    const tileDeleteBlock = supplierDashImprovementsCss.slice(
++      tileDeleteStart,
++      supplierDashImprovementsCss.indexOf('}', tileDeleteStart) + 1
++    );
++    expect(tileDeleteBlock).toContain('top: -8px;');
++    expect(tileDeleteBlock).toContain('right: -8px;');
++    expect(tileDeleteBlock).toContain('width: 20px;');
++    expect(tileDeleteBlock).toContain('height: 20px;');
++    // min-width/min-height must remain 0 to override the global 44px touch-target rule
++    expect(tileDeleteBlock).toContain('min-width: 0;');
++    expect(tileDeleteBlock).toContain('min-height: 0;');
++    expect(tileDeleteBlock).toMatch(/font-size:\s*12px;/);
+   });
+ 
+   it('supplier profile summary card uses structured spc-* layout classes', () => {
+@@ -418,7 +434,12 @@
+     expect(supplierDashImprovementsCss).toContain('right: -6px;');
+     expect(supplierDashImprovementsCss).toContain('width: 16px;');
+     expect(supplierDashImprovementsCss).toContain('height: 16px;');
+-    expect(supplierDashImprovementsCss).toContain('font-size: 9px;');
++    const packageDeleteStart = supplierDashImprovementsCss.indexOf('.pkg-gallery-delete {');
++    const packageDeleteBlock = supplierDashImprovementsCss.slice(
++      packageDeleteStart,
++      supplierDashImprovementsCss.indexOf('}', packageDeleteStart) + 1
++    );
++    expect(packageDeleteBlock).toMatch(/font-size:\s*11px;/);
+     // ef-cta must NOT be on the button — it overrides padding/position and breaks the overlay
+     expect(appJs).not.toContain('ef-cta pkg-gallery-delete');
+     expect(appJs).toContain('class="pkg-gallery-delete"');
