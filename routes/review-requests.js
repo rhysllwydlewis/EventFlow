@@ -423,10 +423,7 @@ function createReviewRequestRouter(overrides = {}) {
                 return originalJson(body);
               })
               .catch(updateError => {
-                logger.error(
-                  'Failed to complete review request attribution:',
-                  updateError.message
-                );
+                logger.error('Failed to complete review request attribution:', updateError.message);
                 res.clearCookie(COOKIE_NAME, { path: '/' });
                 return originalJson(body);
               });
