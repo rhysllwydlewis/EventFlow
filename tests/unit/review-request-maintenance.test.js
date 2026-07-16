@@ -95,6 +95,39 @@ describe('review request maintenance', () => {
     expect(db.reviewRequests[2].status).toBe('completed');
   });
 
+  test('skips an overlapping maintenance run', async () => {
+    let releaseFind;
+    const db = {
+      find: jest.fn(
+        () =>
+          new Promise(resolve => {
+            releaseFind = () => resolve([]);
+          })
+      ),
+      updateOne: jest.fn(),
+    };
+    const log = { info: jest.fn(), error: jest.fn() };
+
+    const firstRun = expireStaleRequests({
+      db,
+      now: new Date('2026-07-16T12:00:00.000Z'),
+      log,
+    });
+    await Promise.resolve();
+
+    await expect(
+      expireStaleRequests({
+        db,
+        now: new Date('2026-07-16T12:00:01.000Z'),
+        log,
+      })
+    ).resolves.toEqual({ checked: 0, expired: 0, skipped: true });
+
+    releaseFind();
+    await expect(firstRun).resolves.toEqual({ checked: 0, expired: 0, skipped: false });
+    expect(db.find).toHaveBeenCalledTimes(1);
+  });
+
   test('does not count a request changed by another process', async () => {
     const db = createDb([
       {
