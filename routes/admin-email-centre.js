@@ -8,6 +8,7 @@ const emailLogService = require('../services/emailLog.service');
 const verificationProvenance = require('../services/verificationProvenance.service');
 const postmark = require('../utils/postmark');
 const { EMAIL_ENABLED } = require('../config/email');
+const reviewRequestOperations = require('../utils/reviewRequestOperations');
 
 const router = express.Router();
 
@@ -42,6 +43,27 @@ router.get(
         verificationProvenance: provenance.summary,
       },
     });
+  }
+);
+
+router.get(
+  '/review-requests',
+  limits.apiLimiter,
+  auth.authRequired,
+  auth.roleRequired('admin'),
+  async (req, res) => {
+    try {
+      const requests = await dbUnified.read('reviewRequests');
+      return res.json({
+        ok: true,
+        ...reviewRequestOperations.listAdminRequests(requests || [], req.query, new Date()),
+      });
+    } catch {
+      return res.status(500).json({
+        ok: false,
+        error: 'Unable to load review request operations',
+      });
+    }
   }
 );
 

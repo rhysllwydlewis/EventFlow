@@ -418,4 +418,100 @@ describe('supplier review-request delivery', () => {
     expect(response.body.error).toMatch(/email address that received/i);
     expect(db.collections.reviewRequests[0].status).toBe('opened');
   });
+
+  test('returns supplier-safe review request history with effective expiry and retry state', async () => {
+    const db = createMemoryDb({
+      suppliers: [{ id: 'supplier-1', ownerUserId: 'supplier-user', name: 'Moor Audio' }],
+      reviewRequests: [
+        {
+          id: 'active-request',
+          supplierId: 'supplier-1',
+          customerEmail: 'active@example.com',
+          customerName: 'Active Customer',
+          tokenHash: 'secret-token-hash',
+          providerMessageId: 'provider-secret',
+          emailLogId: 'email-log-secret',
+          status: 'sent',
+          deliveryStatus: 'delivered',
+          createdAt: '2026-07-15T09:00:00.000Z',
+          expiresAt: '2026-07-20T09:00:00.000Z',
+        },
+        {
+          id: 'expired-request',
+          supplierId: 'supplier-1',
+          customerEmail: 'expired@example.com',
+          status: 'sent',
+          createdAt: '2026-06-01T09:00:00.000Z',
+          expiresAt: '2026-06-15T09:00:00.000Z',
+        },
+        {
+          id: 'other-supplier-request',
+          supplierId: 'supplier-2',
+          customerEmail: 'other@example.com',
+          status: 'failed',
+          createdAt: '2026-07-16T08:00:00.000Z',
+        },
+      ],
+    });
+    const app = buildApp({
+      db,
+      sendMail: jest.fn(),
+      user: { id: 'supplier-user', role: 'supplier' },
+      now: () => fixedNow,
+    });
+
+    const response = await request(app).get('/api/v1/supplier/review-requests?limit=50');
+
+    expect(response.status).toBe(200);
+    expect(response.body.summary).toEqual(
+      expect.objectContaining({ total: 2, active: 1, expired: 1, deliveryIssues: 1 })
+    );
+    expect(response.body.items).toHaveLength(2);
+    expect(response.body.items[0]).toEqual(
+      expect.objectContaining({
+        customerEmail: 'active@example.com',
+        status: 'sent',
+        retryable: false,
+      })
+    );
+    expect(response.body.items[1]).toEqual(
+      expect.objectContaining({
+        customerEmail: 'expired@example.com',
+        status: 'expired',
+        retryable: true,
+      })
+    );
+    expect(JSON.stringify(response.body)).not.toContain('secret-token-hash');
+    expect(JSON.stringify(response.body)).not.toContain('provider-secret');
+    expect(JSON.stringify(response.body)).not.toContain('email-log-secret');
+    expect(JSON.stringify(response.body)).not.toContain('other@example.com');
+  });
+
+  test('redacts provider delivery errors from supplier history', async () => {
+    const db = createMemoryDb({
+      suppliers: [{ id: 'supplier-1', ownerUserId: 'supplier-user', name: 'Moor Audio' }],
+      reviewRequests: [
+        {
+          id: 'failed-request',
+          supplierId: 'supplier-1',
+          customerEmail: 'customer@example.com',
+          status: 'failed',
+          lastError: 'Postmark server token rejected: internal diagnostic',
+          createdAt: fixedNow.toISOString(),
+        },
+      ],
+    });
+    const app = buildApp({
+      db,
+      sendMail: jest.fn(),
+      user: { id: 'supplier-user', role: 'supplier' },
+      now: () => fixedNow,
+    });
+
+    const response = await request(app).get('/api/v1/supplier/review-requests');
+
+    expect(response.status).toBe(200);
+    expect(response.body.items[0].lastError).toMatch(/safely retry/i);
+    expect(JSON.stringify(response.body)).not.toContain('internal diagnostic');
+  });
 });

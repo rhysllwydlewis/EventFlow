@@ -24,4 +24,17 @@ describe('supplier review-request dashboard client', () => {
   test('also protects the existing availability write', () => {
     expect(source).toContain("fetchWithCsrfRetry('/api/v1/supplier/availability'");
   });
+
+  test('loads supplier review request history and keeps retries on the canonical secure send route', () => {
+    expect(source).toContain("fetch('/api/v1/supplier/review-requests?limit=50'");
+    expect(source).toContain('renderReviewRequestHistory');
+    expect(source).toContain('data-rreq-retry');
+    expect(source).toContain("fetchWithCsrfRetry('/api/v1/supplier/request-review'");
+  });
+
+  test('does not reference raw invitation or provider tracking fields in the supplier client', () => {
+    expect(source).not.toContain('tokenHash');
+    expect(source).not.toContain('providerMessageId');
+    expect(source).not.toContain('emailLogId');
+  });
 });

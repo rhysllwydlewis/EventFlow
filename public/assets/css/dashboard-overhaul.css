@@ -107,6 +107,42 @@
 .review-request-send-btn{padding:9px 18px;background:#d97706;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:background var(--dash-transition),transform var(--dash-transition);align-self:flex-start}
 .review-request-send-btn:hover{background:#b45309;transform:translateY(-1px)}
 
+
+.review-request-operations{background:#fff;border:var(--dash-border);border-radius:var(--dash-card-radius);padding:20px;box-shadow:var(--dash-card-shadow);margin-top:12px}
+.review-request-operations__header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:16px}
+.review-request-operations__header h3{margin:2px 0 4px;font-size:18px;color:#111827}
+.review-request-operations__header p{margin:0;color:#6b7280;font-size:13px;line-height:1.5}
+.review-request-operations__eyebrow{color:var(--dash-teal)!important;font-size:11px!important;font-weight:800;text-transform:uppercase;letter-spacing:.08em}
+.review-request-open-btn,.review-request-retry-btn{border:0;border-radius:10px;padding:9px 14px;background:var(--dash-teal);color:#fff;font:inherit;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap}
+.review-request-open-btn:hover,.review-request-retry-btn:hover{background:#096b62}
+.review-request-open-btn:disabled,.review-request-retry-btn:disabled{opacity:.6;cursor:wait}
+.review-request-form[hidden]{display:none}
+.review-request-form__actions{display:flex;align-items:center;gap:10px}
+.review-request-sent-status{font-size:12px;color:var(--dash-green);font-weight:800}
+.review-request-history-toolbar{display:flex;align-items:end;justify-content:space-between;gap:16px;margin-top:18px}
+.review-request-summary{display:grid;grid-template-columns:repeat(4,minmax(90px,1fr));gap:8px;flex:1}
+.review-request-summary-card{padding:10px 12px;border-radius:10px;background:#f8fafc;border:1px solid #e5e7eb}
+.review-request-summary-card span{display:block;color:#6b7280;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.04em}
+.review-request-summary-card strong{display:block;margin-top:3px;color:#111827;font-size:18px}
+.review-request-filter{display:flex;flex-direction:column;gap:4px;min-width:150px;color:#6b7280;font-size:11px;font-weight:800}
+.review-request-filter select{min-height:38px;border:1px solid #d1d5db;border-radius:9px;padding:7px 10px;background:#fff}
+.review-request-history{display:flex;flex-direction:column;margin-top:12px;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden}
+.review-request-history-item{display:grid;grid-template-columns:minmax(180px,1.4fr) minmax(150px,1fr) minmax(130px,.8fr);gap:14px;align-items:center;padding:14px 16px;border-bottom:1px solid #eef2f4;background:#fff}
+.review-request-history-item:last-child{border-bottom:0}
+.review-request-history-customer,.review-request-history-state,.review-request-history-action{display:flex;flex-direction:column;gap:4px;min-width:0}
+.review-request-history-customer strong{overflow:hidden;text-overflow:ellipsis;color:#111827;font-size:13px}
+.review-request-history-customer span,.review-request-history-state>span:last-child,.review-request-history-action>span{overflow-wrap:anywhere;color:#6b7280;font-size:11px}
+.review-request-status{display:inline-flex;width:fit-content;border-radius:999px;padding:4px 8px;background:#eff6ff;color:#1d4ed8;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.04em}
+.review-request-status--opened{background:#ede9fe;color:#6d28d9}
+.review-request-status--completed{background:#d1fae5;color:#047857}
+.review-request-status--failed{background:#fee2e2;color:#b91c1c}
+.review-request-status--expired{background:#f3f4f6;color:#4b5563}
+.review-request-history-error{grid-column:1/-1;margin:0;padding:8px 10px;border-radius:8px;background:#fff1f2;color:#be123c;font-size:11px}
+.review-request-history-empty{display:flex;flex-direction:column;gap:4px;align-items:center;padding:26px 18px;color:#6b7280;text-align:center;font-size:12px}
+.review-request-history-empty strong{color:#374151;font-size:13px}
+@media(max-width:760px){.review-request-operations__header,.review-request-history-toolbar{align-items:stretch;flex-direction:column}.review-request-summary{grid-template-columns:repeat(2,1fr)}.review-request-filter{min-width:0}.review-request-history-item{grid-template-columns:1fr}.review-request-history-action{align-items:flex-start}}
+@media(max-width:520px){.review-request-inputs{grid-template-columns:1fr}}
+
 /* 9. FORM FOCUS STATES */
 .supplier-dashboard-page input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="range"]),
 .supplier-dashboard-page select,.supplier-dashboard-page textarea,

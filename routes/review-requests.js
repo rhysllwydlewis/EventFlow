@@ -16,6 +16,7 @@ const { csrfProtection } = require('../middleware/csrf');
 const { writeLimiter } = require('../middleware/rateLimits');
 const { sendMail, FROM_HELLO } = require('../utils/postmark');
 const { removeLoadedRouterRoute } = require('../utils/legacyRouterRoute');
+const reviewRequestOperations = require('../utils/reviewRequestOperations');
 
 const removedLegacySupplierRoutes = removeLoadedRouterRoute(
   require.resolve('./supplier'),
@@ -138,6 +139,33 @@ function createReviewRequestRouter(overrides = {}) {
   const createToken =
     overrides.createToken || (() => crypto.randomBytes(TOKEN_BYTES).toString('hex'));
   const baseUrlFor = overrides.getBaseUrl || getRequestBaseUrl;
+
+  const historyPaths = ['/api/v1/supplier/review-requests', '/api/supplier/review-requests'];
+  router.get(historyPaths, authenticate, async (req, res) => {
+    try {
+      if (!req.user || req.user.role !== 'supplier') {
+        return res.status(403).json({ error: 'Suppliers only' });
+      }
+
+      const supplier = await db.findOne('suppliers', {
+        ownerUserId: req.user.id,
+      });
+      if (!supplier) {
+        return res.status(404).json({ error: 'Supplier profile not found' });
+      }
+
+      const requests = await db.find('reviewRequests', {
+        supplierId: supplier.id,
+      });
+      return res.json({
+        ok: true,
+        ...reviewRequestOperations.listSupplierRequests(requests || [], req.query, now()),
+      });
+    } catch (error) {
+      logger.error('GET /supplier/review-requests error:', error.message);
+      return res.status(500).json({ error: 'Unable to load review request activity' });
+    }
+  });
 
   const postPaths = ['/api/v1/supplier/request-review', '/api/supplier/request-review'];
 

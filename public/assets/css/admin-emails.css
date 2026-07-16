@@ -242,3 +242,16 @@
     width: 100%;
   }
 }
+
+
+.review-request-admin-table{min-width:1100px}
+.review-request-admin-table td strong{display:block;color:#102a43}
+.email-table-subtext{display:block;margin-top:.2rem;color:#64748b;font-size:.78rem;overflow-wrap:anywhere}
+.review-request-admin-error{display:block;max-width:260px;margin-top:.35rem;padding:.35rem .45rem;border-radius:8px;background:#fff1f2;color:#be123c;font-size:.76rem;overflow-wrap:anywhere}
+.review-request-status--pending{background:#fff7ed;color:#c2410c}
+.review-request-status--sent{background:#eff6ff;color:#1d4ed8}
+.review-request-status--opened{background:#f3e8ff;color:#7e22ce}
+.review-request-status--completed{background:#ecfdf5;color:#047857}
+.review-request-status--failed{background:#fff1f2;color:#be123c}
+.review-request-status--expired{background:#f1f5f9;color:#475569}
+#reviewRequestCentreStatus{margin-bottom:1rem}
