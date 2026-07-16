@@ -64,9 +64,7 @@ function getCompletedCooldownEnd(request) {
   if (!completedDate || Number.isNaN(completedDate.getTime())) {
     return null;
   }
-  return new Date(
-    completedDate.getTime() + REVIEW_REQUEST_COOLDOWN_DAYS * 24 * 60 * 60 * 1000
-  );
+  return new Date(completedDate.getTime() + REVIEW_REQUEST_COOLDOWN_DAYS * 24 * 60 * 60 * 1000);
 }
 
 function getRequestBaseUrl(req) {
