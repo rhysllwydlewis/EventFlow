@@ -70,9 +70,9 @@ describe('postmark webhook route', () => {
     expect(route.normalizePostmarkPayload({ RecordType: 'Bounce' }).RecordType).toBe('Bounced');
     expect(route.normalizePostmarkPayload({ RecordType: 'Open' }).RecordType).toBe('Opened');
     expect(route.normalizePostmarkPayload({ RecordType: 'Click' }).RecordType).toBe('LinkClicked');
-    expect(
-      route.normalizePostmarkPayload({ RecordType: 'SubscriptionChange' }).RecordType
-    ).toBe('SubscriptionChanged');
+    expect(route.normalizePostmarkPayload({ RecordType: 'SubscriptionChange' }).RecordType).toBe(
+      'SubscriptionChanged'
+    );
     expect(route.normalizePostmarkPayload({ RecordType: 'SpamComplaint' }).RecordType).toBe(
       'SpamComplaint'
     );
