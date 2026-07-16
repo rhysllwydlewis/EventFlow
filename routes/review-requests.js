@@ -15,6 +15,16 @@ const { authRequired } = require('../middleware/auth');
 const { csrfProtection } = require('../middleware/csrf');
 const { writeLimiter } = require('../middleware/rateLimits');
 const { sendMail, FROM_HELLO } = require('../utils/postmark');
+const { removeLoadedRouterRoute } = require('../utils/legacyRouterRoute');
+
+const removedLegacySupplierRoutes = removeLoadedRouterRoute(
+  require.resolve('./supplier'),
+  '/request-review',
+  'post'
+);
+if (removedLegacySupplierRoutes > 0) {
+  logger.info('[review-requests] Disabled obsolete false-success /request-review handler');
+}
 
 const REVIEW_REQUEST_TTL_DAYS = 14;
 const TOKEN_BYTES = 32;
@@ -59,7 +69,17 @@ function safeSupplierRedirect(supplierId, state) {
   if (!supplierId) {
     return `/suppliers?reviewRequest=${encodeURIComponent(state)}`;
   }
-  return `/supplier?id=${encodeURIComponent(supplierId)}&reviewRequest=${encodeURIComponent(state)}#reviews`;
+  return `/supplier?id=${encodeURIComponent(supplierId)}&reviewRequest=${encodeURIComponent(
+    state
+  )}#reviews`;
+}
+
+function secureRedirect(res, location) {
+  res.set({
+    'Cache-Control': 'no-store, private',
+    'Referrer-Policy': 'no-referrer',
+  });
+  return res.redirect(302, location);
 }
 
 async function findLatestRequest(db, supplierId, customerEmail) {
@@ -169,7 +189,10 @@ function createReviewRequestRouter(overrides = {}) {
         expiresAt: expiresAt.toISOString(),
       };
 
-      await db.insertOne('reviewRequests', requestDocument);
+      const inserted = await db.insertOne('reviewRequests', requestDocument);
+      if (!inserted) {
+        throw new Error('Failed to create review request');
+      }
 
       const delivery = await send({
         to: customerEmail,
@@ -189,12 +212,13 @@ function createReviewRequestRouter(overrides = {}) {
       });
 
       const sentAt = delivery.sentAt || currentTime.toISOString();
-      await db.updateOne(
+      const tracked = await db.updateOne(
         'reviewRequests',
         { id: requestId },
         {
           $set: {
             status: 'sent',
+            deliveryStatus: 'sent',
             sentAt,
             updatedAt: sentAt,
             deliveryProvider: delivery.provider || 'postmark',
@@ -203,6 +227,11 @@ function createReviewRequestRouter(overrides = {}) {
           },
         }
       );
+      if (!tracked) {
+        logger.error('Review request email sent but tracking state could not be updated', {
+          requestId,
+        });
+      }
 
       return res.json({
         ok: true,
@@ -224,6 +253,7 @@ function createReviewRequestRouter(overrides = {}) {
             {
               $set: {
                 status: 'failed',
+                deliveryStatus: 'failed',
                 failedAt: currentTime.toISOString(),
                 updatedAt: currentTime.toISOString(),
                 lastError: String(error.message || 'Email delivery failed').slice(0, 500),
@@ -243,7 +273,7 @@ function createReviewRequestRouter(overrides = {}) {
   router.get('/review-request', async (req, res) => {
     const rawToken = typeof req.query.token === 'string' ? req.query.token.trim() : '';
     if (!TOKEN_PATTERN.test(rawToken)) {
-      return res.redirect(302, safeSupplierRedirect(null, 'invalid'));
+      return secureRedirect(res, safeSupplierRedirect(null, 'invalid'));
     }
 
     try {
@@ -251,32 +281,37 @@ function createReviewRequestRouter(overrides = {}) {
         tokenHash: hashToken(rawToken),
       });
       if (!request) {
-        return res.redirect(302, safeSupplierRedirect(null, 'invalid'));
+        return secureRedirect(res, safeSupplierRedirect(null, 'invalid'));
       }
 
       const currentTime = now();
       if (request.status === 'completed') {
-        return res.redirect(302, safeSupplierRedirect(request.supplierId, 'completed'));
+        return secureRedirect(res, safeSupplierRedirect(request.supplierId, 'completed'));
       }
       if (request.status === 'failed') {
-        return res.redirect(302, safeSupplierRedirect(request.supplierId, 'unavailable'));
+        return secureRedirect(res, safeSupplierRedirect(request.supplierId, 'unavailable'));
       }
-      if (isExpired(request, currentTime)) {
-        await db.updateOne(
-          'reviewRequests',
-          { id: request.id },
-          {
-            $set: {
-              status: 'expired',
-              expiredAt: currentTime.toISOString(),
-              updatedAt: currentTime.toISOString(),
-            },
-          }
-        );
-        return res.redirect(302, safeSupplierRedirect(request.supplierId, 'expired'));
+      if (request.status === 'expired' || isExpired(request, currentTime)) {
+        if (request.status !== 'expired') {
+          await db.updateOne(
+            'reviewRequests',
+            { id: request.id },
+            {
+              $set: {
+                status: 'expired',
+                expiredAt: currentTime.toISOString(),
+                updatedAt: currentTime.toISOString(),
+              },
+            }
+          );
+        }
+        return secureRedirect(res, safeSupplierRedirect(request.supplierId, 'expired'));
+      }
+      if (!ACTIVE_STATUSES.has(request.status)) {
+        return secureRedirect(res, safeSupplierRedirect(request.supplierId, 'unavailable'));
       }
 
-      if (request.status === 'sent') {
+      if (request.status === 'sent' || request.status === 'pending') {
         await db.updateOne(
           'reviewRequests',
           { id: request.id },
@@ -302,10 +337,10 @@ function createReviewRequestRouter(overrides = {}) {
         path: '/',
       });
 
-      return res.redirect(302, safeSupplierRedirect(request.supplierId, 'ready'));
+      return secureRedirect(res, safeSupplierRedirect(request.supplierId, 'ready'));
     } catch (error) {
       logger.error('GET /review-request error:', error.message);
-      return res.redirect(302, safeSupplierRedirect(null, 'error'));
+      return secureRedirect(res, safeSupplierRedirect(null, 'error'));
     }
   });
 
@@ -350,10 +385,20 @@ function createReviewRequestRouter(overrides = {}) {
           }
 
           const originalJson = res.json.bind(res);
+          let completionHandled = false;
           res.json = body => {
-            if (res.statusCode < 400 && body && body.success) {
-              const completedAt = now().toISOString();
-              res.clearCookie(COOKIE_NAME, { path: '/' });
+            if (completionHandled || res.statusCode >= 400 || !body || !body.success) {
+              return originalJson(body);
+            }
+
+            completionHandled = true;
+            const completedAt = now().toISOString();
+            const reviewId =
+              (body.review && (body.review.id || body.review._id || body.review.reviewId)) ||
+              body.reviewId ||
+              null;
+
+            return Promise.resolve(
               db.updateOne(
                 'reviewRequests',
                 { id: request.id },
@@ -363,14 +408,28 @@ function createReviewRequestRouter(overrides = {}) {
                     completedAt,
                     completedByUserId: req.user.id,
                     updatedAt: completedAt,
-                    reviewId: body.review && (body.review.id || body.review._id),
+                    reviewId,
                   },
                 }
-              ).catch(updateError => {
-                logger.error('Failed to complete review request attribution:', updateError.message);
+              )
+            )
+              .then(updated => {
+                if (!updated) {
+                  logger.error('Review submitted but request completion was not persisted', {
+                    requestId: request.id,
+                  });
+                }
+                res.clearCookie(COOKIE_NAME, { path: '/' });
+                return originalJson(body);
+              })
+              .catch(updateError => {
+                logger.error(
+                  'Failed to complete review request attribution:',
+                  updateError.message
+                );
+                res.clearCookie(COOKIE_NAME, { path: '/' });
+                return originalJson(body);
               });
-            }
-            return originalJson(body);
           };
 
           return next();
