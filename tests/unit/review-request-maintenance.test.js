@@ -21,9 +21,7 @@ function createDb(rows) {
     updateOne: jest.fn(async (_collection, query, update) => {
       const row = reviewRequests.find(
         item =>
-          item.id === query.id &&
-          item.status === query.status &&
-          item.expiresAt === query.expiresAt
+          item.id === query.id && item.status === query.status && item.expiresAt === query.expiresAt
       );
       if (!row) {
         return false;
@@ -129,7 +127,11 @@ describe('review request maintenance', () => {
     });
 
     expect(scheduleModule.scheduleJob).toHaveBeenCalledWith('15 * * * *', expect.any(Function));
-    expect(result).toEqual({ scheduled: true, cronExpr: '15 * * * *', nextRun });
+    expect(result).toEqual({
+      scheduled: true,
+      cronExpr: '15 * * * *',
+      nextRun,
+    });
   });
 
   test('is disabled by default outside production', () => {
@@ -172,13 +174,13 @@ describe('review request maintenance', () => {
       cronExpr: '15 * * * *',
       nextRun: new Date('2026-07-16T13:15:00.000Z'),
     };
-    const service = { scheduleMaintenance: jest.fn().mockReturnValue(scheduled) };
+    const service = {
+      scheduleMaintenance: jest.fn().mockReturnValue(scheduled),
+    };
     const log = { warn: jest.fn() };
 
     expect(initialiseReviewRequestMaintenance({ service, log })).toBe(scheduled);
-    expect(service.scheduleMaintenance).toHaveBeenCalledWith(
-      expect.objectContaining({ log })
-    );
+    expect(service.scheduleMaintenance).toHaveBeenCalledWith(expect.objectContaining({ log }));
     expect(initialiseReviewRequestMaintenance({ service, log })).toBeNull();
     expect(service.scheduleMaintenance).toHaveBeenCalledTimes(1);
   });
