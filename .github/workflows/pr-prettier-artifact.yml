@@ -1,0 +1,51 @@
+name: PR Prettier Artifact
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: prettier-artifact-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  format-artifact:
+    name: Generate exact Prettier output
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.node-version'
+          cache: 'npm'
+
+      - name: Clean install dependencies
+        run: npm ci --prefer-offline --no-audit
+
+      - name: Format confirmed files
+        run: |
+          npx prettier --write \
+            public/assets/js/dashboard-supplier-overhaul.js \
+            routes/review-requests.js \
+            tests/unit/legacy-router-route.test.js \
+            tests/unit/postmark-webhook-route.test.js
+
+      - name: Upload exact formatted files
+        uses: actions/upload-artifact@v4
+        with:
+          name: exact-prettier-output
+          path: |
+            public/assets/js/dashboard-supplier-overhaul.js
+            routes/review-requests.js
+            tests/unit/legacy-router-route.test.js
+            tests/unit/postmark-webhook-route.test.js
+          if-no-files-found: error
+          retention-days: 1
