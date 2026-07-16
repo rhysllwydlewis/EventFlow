@@ -1,10 +1,34 @@
 'use strict';
 
+const logger = require('./logger');
+
 const ACTIVE_STATUSES = new Set(['pending', 'sent', 'opened']);
 const KNOWN_STATUSES = new Set(['pending', 'sent', 'opened', 'completed', 'failed', 'expired']);
 const REVIEW_REQUEST_COOLDOWN_DAYS = 30;
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
+
+function maintenanceIsEnabled() {
+  const configured = process.env.REVIEW_REQUEST_MAINTENANCE_ENABLED;
+  if (configured !== undefined) {
+    return configured !== 'false' && configured !== '0';
+  }
+  return process.env.NODE_ENV === 'production';
+}
+
+function initialiseReviewRequestMaintenance({ service, log = logger } = {}) {
+  if (!maintenanceIsEnabled()) {
+    return null;
+  }
+
+  try {
+    const maintenanceService = service || require('../services/reviewRequestMaintenance.service');
+    return maintenanceService.scheduleMaintenance({ log });
+  } catch (error) {
+    log.warn('[review-request-maintenance] Scheduler failed to initialise:', error.message);
+    return null;
+  }
+}
 
 function parseDate(value) {
   if (!value) {
@@ -230,6 +254,8 @@ function listAdminRequests(records, query = {}, now = new Date()) {
   };
 }
 
+const maintenanceSchedule = initialiseReviewRequestMaintenance();
+
 module.exports = {
   ACTIVE_STATUSES,
   KNOWN_STATUSES,
@@ -237,8 +263,11 @@ module.exports = {
   getCooldownEnd,
   getEffectiveStatus,
   getRetryState,
+  initialiseReviewRequestMaintenance,
   listAdminRequests,
   listSupplierRequests,
+  maintenanceIsEnabled,
+  maintenanceSchedule,
   summarise,
   toAdminItem,
   toSupplierItem,
