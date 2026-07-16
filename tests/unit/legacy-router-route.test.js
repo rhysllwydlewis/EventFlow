@@ -4,10 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const express = require('express');
 const request = require('supertest');
-const {
-  removeLoadedRouterRoute,
-  removeRouterRoute,
-} = require('../../utils/legacyRouterRoute');
+const { removeLoadedRouterRoute, removeRouterRoute } = require('../../utils/legacyRouterRoute');
 
 describe('legacy router route removal', () => {
   test('removes only the exact obsolete method and path', async () => {
@@ -52,26 +49,12 @@ describe('legacy router route removal', () => {
       .expect(200, { handler: 'canonical' });
   });
 
-  test('patches an already-loaded CommonJS router without loading a missing module', () => {
-    const fakeModulePath = path.join(__dirname, '__legacy-router-fixture.js');
-    const router = express.Router();
-    router.post('/postmark', (_req, res) => res.json({ ok: true }));
+  test('does not load a missing module merely to patch it', () => {
+    const missingModulePath = path.join(__dirname, '__missing-legacy-router.js');
 
-    require.cache[fakeModulePath] = {
-      id: fakeModulePath,
-      filename: fakeModulePath,
-      loaded: true,
-      exports: router,
-      children: [],
-      paths: [],
-    };
-
-    try {
-      expect(removeLoadedRouterRoute(fakeModulePath, '/postmark', 'post')).toBe(1);
-      expect(removeLoadedRouterRoute(`${fakeModulePath}.missing`, '/postmark', 'post')).toBe(0);
-    } finally {
-      delete require.cache[fakeModulePath];
-    }
+    expect(require.cache[missingModulePath]).toBeUndefined();
+    expect(removeLoadedRouterRoute(missingModulePath, '/postmark', 'post')).toBe(0);
+    expect(require.cache[missingModulePath]).toBeUndefined();
   });
 
   test('canonical review and Postmark modules disable their obsolete predecessors', () => {
