@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="/assets/css/admin-enhanced.css?v=18.3.1">
   <link rel="stylesheet" href="/assets/css/admin-navbar.css?v=18.3.0">
   <link rel="stylesheet" href="/assets/css/admin-cards.css?v=18.3.0">
-  <link rel="stylesheet" href="/assets/css/admin-emails.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/admin-emails.css?v=18.3.2">
     <link rel="icon" href="/favicon.ico" sizes="any">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png">
@@ -44,6 +44,7 @@
     <button class="email-centre-tab is-active" type="button" data-tab="activity">Activity</button>
     <button class="email-centre-tab" type="button" data-tab="campaigns">Campaigns</button>
     <button class="email-centre-tab" type="button" data-tab="templates">Templates</button>
+    <button class="email-centre-tab" type="button" data-tab="reviewRequests">Review requests</button>
     <button class="email-centre-tab" type="button" data-tab="health">Health</button>
   </nav>
 
@@ -102,6 +103,37 @@
     </article>
   </section>
 
+  <section id="emailTabReviewRequests" class="email-centre-panel" hidden>
+    <div id="reviewRequestSummaryCards" class="email-centre-stats" aria-live="polite"></div>
+
+    <section class="admin-card email-centre-filters" aria-label="Review request filters">
+      <label><span>Supplier</span><input id="reviewRequestFilterSupplier" type="search" placeholder="Supplier name or ID"></label>
+      <label><span>Recipient</span><input id="reviewRequestFilterRecipient" type="search" placeholder="name@example.com"></label>
+      <label><span>Status</span><select id="reviewRequestFilterStatus"><option value="">All statuses</option><option>pending</option><option>sent</option><option>opened</option><option>completed</option><option>failed</option><option>expired</option></select></label>
+      <div class="email-centre-filter-actions">
+        <button id="reviewRequestFiltersClear" class="btn btn-secondary" type="button">Clear filters</button>
+        <button id="reviewRequestsRefresh" class="btn btn-primary" type="button">Refresh</button>
+      </div>
+    </section>
+
+    <div id="reviewRequestCentreStatus" class="campaigns-status" role="status" aria-live="polite"></div>
+    <section class="admin-card email-log-card" aria-labelledby="reviewRequestLogTitle">
+      <div class="email-log-card-head">
+        <div>
+          <h2 id="reviewRequestLogTitle">Review request operations</h2>
+          <p>Invitation delivery, customer engagement, completion and retry eligibility.</p>
+        </div>
+        <p id="reviewRequestPagination">Newest requests first.</p>
+      </div>
+      <div class="email-log-table-wrap">
+        <table class="email-log-table review-request-admin-table">
+          <thead><tr><th>Created</th><th>Supplier</th><th>Recipient</th><th>Request</th><th>Delivery</th><th>Outcome</th><th>Email</th></tr></thead>
+          <tbody id="reviewRequestRows"></tbody>
+        </table>
+      </div>
+    </section>
+  </section>
+
   <section id="emailTabHealth" class="email-centre-panel" hidden>
     <section class="admin-card email-centre-health" aria-labelledby="emailHealthTitle">
       <h2 id="emailHealthTitle">Email/Postmark health</h2>
@@ -121,6 +153,6 @@
   <div id="emailLogDetailBody" class="email-log-detail-body"></div>
 </dialog>
 
-<script src="/assets/js/pages/admin-emails-init.js?v=18.3.0" defer></script>
+<script src="/assets/js/pages/admin-emails-init.js?v=18.3.2" defer></script>
 </body>
 </html>

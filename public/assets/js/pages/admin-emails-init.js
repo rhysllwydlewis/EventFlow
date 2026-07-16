@@ -2,9 +2,10 @@
   'use strict';
 
   let currentPage = 1;
+  let currentReviewRequestPage = 1;
 
   function escapeHtml(value) {
-    return String(value || '').replace(
+    return String(value ?? '').replace(
       /[&<>"']/g,
       ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[ch]
     );
@@ -137,6 +138,117 @@
       `Page ${pagination.page || 1} of ${pagination.totalPages || 1} · ${pagination.total || 0} total logs`;
   }
 
+  function reviewRequestStatusLabel(status) {
+    return (
+      {
+        pending: 'Preparing',
+        sent: 'Sent',
+        opened: 'Opened',
+        completed: 'Completed',
+        failed: 'Failed',
+        expired: 'Expired',
+      }[status] || 'Unknown'
+    );
+  }
+
+  function buildReviewRequestQuery() {
+    const params = new URLSearchParams({
+      page: String(currentReviewRequestPage),
+      limit: '50',
+    });
+    [
+      ['supplier', 'reviewRequestFilterSupplier'],
+      ['recipient', 'reviewRequestFilterRecipient'],
+      ['status', 'reviewRequestFilterStatus'],
+    ].forEach(([key, id]) => {
+      const value = filterValue(id);
+      if (value) {
+        params.set(key, value);
+      }
+    });
+    return params;
+  }
+
+  function renderReviewRequestSummary(summary) {
+    const cards = [
+      ['Total', summary.total],
+      ['Active', summary.active],
+      ['Opened', summary.opened],
+      ['Completed', summary.completed],
+      ['Failed', summary.failed],
+      ['Expired', summary.expired],
+      ['Needs attention', summary.deliveryIssues],
+      ['Conversion', `${Number(summary.conversionRate || 0).toFixed(1)}%`],
+    ];
+    document.getElementById('reviewRequestSummaryCards').innerHTML = cards
+      .map(
+        ([label, value]) =>
+          `<article class="email-stat-card"><span>${escapeHtml(label)}</span><strong>${escapeHtml(
+            value ?? 0
+          )}</strong></article>`
+      )
+      .join('');
+  }
+
+  function renderReviewRequests(data) {
+    renderReviewRequestSummary(data.summary || {});
+    const rows = document.getElementById('reviewRequestRows');
+    const items = data.items || [];
+    if (!items.length) {
+      rows.innerHTML =
+        '<tr><td colspan="7" class="email-log-empty">No review requests match these filters.</td></tr>';
+    } else {
+      rows.innerHTML = items
+        .map(item => {
+          const outcome = item.completedAt
+            ? `Completed ${formatDate(item.completedAt)}`
+            : item.failedAt
+              ? `Failed ${formatDate(item.failedAt)}`
+              : item.expiredAt || item.status === 'expired'
+                ? `Expired ${formatDate(item.expiredAt || item.expiresAt)}`
+                : item.retryAt
+                  ? `Retry ${formatDate(item.retryAt)}`
+                  : 'In progress';
+          const linkedEmail = item.emailLogId
+            ? `<button class="btn btn-secondary btn-sm" type="button" data-log-id="${escapeHtml(
+                item.emailLogId
+              )}">Open email log</button>`
+            : '—';
+          const error = item.lastError
+            ? `<span class="review-request-admin-error">${escapeHtml(item.lastError)}</span>`
+            : '';
+          return `<tr>
+            <td>${escapeHtml(formatDate(item.createdAt))}</td>
+            <td><strong>${escapeHtml(item.supplierName || 'Unknown supplier')}</strong><span class="email-table-subtext">${escapeHtml(item.supplierId || '—')}</span></td>
+            <td><strong>${escapeHtml(item.customerName || item.customerEmail)}</strong>${item.customerName ? `<span class="email-table-subtext">${escapeHtml(item.customerEmail)}</span>` : ''}</td>
+            <td><span class="email-status review-request-status--${escapeHtml(item.status)}">${escapeHtml(
+              reviewRequestStatusLabel(item.status)
+            )}</span><span class="email-table-subtext">Expires ${escapeHtml(
+              formatDate(item.expiresAt)
+            )}</span></td>
+            <td><strong>${escapeHtml(item.deliveryStatus || item.status)}</strong><span class="email-table-subtext">${escapeHtml(item.deliveryProvider || '—')}</span>${error}</td>
+            <td>${escapeHtml(outcome)}</td>
+            <td>${linkedEmail}</td>
+          </tr>`;
+        })
+        .join('');
+    }
+    const pagination = data.pagination || {};
+    document.getElementById('reviewRequestPagination').textContent =
+      `Page ${pagination.page || 1} of ${pagination.totalPages || 1} · ${pagination.total || 0} total requests`;
+  }
+
+  async function loadReviewRequests() {
+    const status = document.getElementById('reviewRequestCentreStatus');
+    status.textContent = 'Loading review request operations…';
+    const data = await AdminShared.api(
+      `/api/admin/email-centre/review-requests?${buildReviewRequestQuery().toString()}`,
+      'GET'
+    );
+    renderReviewRequests(data);
+    status.textContent = '';
+  }
+
   async function loadSummary() {
     const data = await AdminShared.api('/api/admin/email-centre/summary', 'GET');
     renderSummary(data.summary || {});
@@ -187,7 +299,7 @@
     document.querySelectorAll('.email-centre-tab').forEach(tab => {
       tab.classList.toggle('is-active', tab.getAttribute('data-tab') === tabName);
     });
-    ['activity', 'campaigns', 'templates', 'health'].forEach(name => {
+    ['activity', 'campaigns', 'templates', 'reviewRequests', 'health'].forEach(name => {
       const panel = document.getElementById(
         `emailTab${name.charAt(0).toUpperCase()}${name.slice(1)}`
       );
@@ -197,7 +309,15 @@
 
   function bindEvents() {
     document.querySelectorAll('.email-centre-tab').forEach(tab => {
-      tab.addEventListener('click', () => activateTab(tab.getAttribute('data-tab')));
+      tab.addEventListener('click', () => {
+        const tabName = tab.getAttribute('data-tab');
+        activateTab(tabName);
+        if (tabName === 'reviewRequests') {
+          loadReviewRequests().catch(err => {
+            document.getElementById('reviewRequestCentreStatus').textContent = err.message;
+          });
+        }
+      });
     });
     document.getElementById('emailLogsRefresh').addEventListener('click', () => {
       currentPage = 1;
@@ -213,6 +333,31 @@
       loadLogs().catch(err => setStatus(err.message, 'error'));
     });
     document.getElementById('emailLogRows').addEventListener('click', event => {
+      const button = event.target.closest('[data-log-id]');
+      if (button) {
+        openDetail(button.getAttribute('data-log-id')).catch(err =>
+          setStatus(err.message, 'error')
+        );
+      }
+    });
+    document.getElementById('reviewRequestsRefresh').addEventListener('click', () => {
+      currentReviewRequestPage = 1;
+      loadReviewRequests().catch(err => {
+        document.getElementById('reviewRequestCentreStatus').textContent = err.message;
+      });
+    });
+    document.getElementById('reviewRequestFiltersClear').addEventListener('click', () => {
+      document
+        .querySelectorAll('#emailTabReviewRequests input, #emailTabReviewRequests select')
+        .forEach(element => {
+          element.value = '';
+        });
+      currentReviewRequestPage = 1;
+      loadReviewRequests().catch(err => {
+        document.getElementById('reviewRequestCentreStatus').textContent = err.message;
+      });
+    });
+    document.getElementById('reviewRequestRows').addEventListener('click', event => {
       const button = event.target.closest('[data-log-id]');
       if (button) {
         openDetail(button.getAttribute('data-log-id')).catch(err =>
