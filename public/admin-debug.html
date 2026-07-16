@@ -30,6 +30,7 @@
   <link rel="stylesheet" href="/assets/css/mobile-optimizations.css?v=18.3.0">
   <link rel="stylesheet" href="/assets/css/ui-ux-fixes.css?v=18.3.0">
   <link rel="stylesheet" href="/assets/css/admin-ui-improvements.css?v=18.3.2">
+  <link rel="stylesheet" href="/assets/css/admin-debug-background-jobs.css?v=18.5.0">
   <script src="/assets/js/components.js?v=18.3.0" defer></script>
   <script src="/assets/js/admin-shared.js?v=18.3.0"></script>
   <script src="/assets/js/admin-navbar.js?v=18.3.0" defer></script>
@@ -38,13 +39,11 @@
 <div id="adminNavbarMount"></div>
 
 <main id="main-content" class="admin-main-content">
-
-  <!-- Page Header -->
   <div class="dashboard-header">
     <div class="header-content">
       <div>
         <h1 class="dashboard-title">🩺 Debug &amp; System Checks</h1>
-        <p class="dashboard-subtitle">Comprehensive site health monitor — all pages and APIs in one view.</p>
+        <p class="dashboard-subtitle">Comprehensive site health monitor — all pages, APIs and scheduled jobs in one view.</p>
       </div>
       <div class="header-actions">
         <span id="sc-run-status" aria-live="polite" aria-atomic="true"></span>
@@ -65,23 +64,17 @@
   </div>
 
   <div class="container">
-
-    <!-- Tab Navigation -->
     <nav class="sc-tabs" role="tablist" aria-label="Debug sections">
-      <button class="ef-cta sc-tab-btn" role="tab" aria-selected="true"  aria-controls="tab-overview"  id="tab-btn-overview"  type="button">Overview</button>
-      <button class="ef-cta sc-tab-btn" role="tab" aria-selected="false" aria-controls="tab-coverage"  id="tab-btn-coverage"  type="button">Coverage</button>
-      <button class="ef-cta sc-tab-btn" role="tab" aria-selected="false" aria-controls="tab-history"   id="tab-btn-history"   type="button">History</button>
-      <button class="ef-cta sc-tab-btn" role="tab" aria-selected="false" aria-controls="tab-webhooks"  id="tab-btn-webhooks"  type="button">Webhooks</button>
+      <button class="ef-cta sc-tab-btn" role="tab" aria-selected="true" aria-controls="tab-overview" id="tab-btn-overview" type="button">Overview</button>
+      <button class="ef-cta sc-tab-btn" role="tab" aria-selected="false" aria-controls="tab-coverage" id="tab-btn-coverage" type="button">Coverage</button>
+      <button class="ef-cta sc-tab-btn" role="tab" aria-selected="false" aria-controls="tab-history" id="tab-btn-history" type="button">History</button>
+      <button class="ef-cta sc-tab-btn" role="tab" aria-selected="false" aria-controls="tab-background-jobs" id="tab-btn-background-jobs" type="button">Background Jobs</button>
+      <button class="ef-cta sc-tab-btn" role="tab" aria-selected="false" aria-controls="tab-webhooks" id="tab-btn-webhooks" type="button">Webhooks</button>
       <button class="ef-cta sc-tab-btn" role="tab" aria-selected="false" aria-controls="tab-acct-tools" id="tab-btn-acct-tools" type="button">Account Tools</button>
     </nav>
 
-    <!-- ── Tab: Overview ──────────────────────────────────────────── -->
     <div id="tab-overview" class="sc-tab-panel active" role="tabpanel" aria-labelledby="tab-btn-overview">
-
-      <!-- Stats bar -->
       <div id="sc-stats-bar" class="sc-stats-bar" aria-live="polite"></div>
-
-      <!-- Latest Run Summary -->
       <section aria-labelledby="sc-latest-heading">
         <h2 id="sc-latest-heading" class="section-heading">Latest Run</h2>
         <div id="sc-summary" aria-live="polite">
@@ -94,174 +87,120 @@
           </div>
         </div>
       </section>
-
-      <!-- Check details for latest run -->
       <section aria-labelledby="sc-failures-heading" style="margin-top:2rem;">
         <h2 id="sc-failures-heading" class="section-heading">Check Details (Latest Run)</h2>
         <div class="card" id="sc-checks-list">
-          <div class="sc-empty">
-            <div class="sc-empty-icon" aria-hidden="true">📋</div>
-            <p>No run data yet</p>
-          </div>
+          <div class="sc-empty"><div class="sc-empty-icon" aria-hidden="true">📋</div><p>No run data yet</p></div>
         </div>
       </section>
+    </div>
 
-    </div><!-- /#tab-overview -->
-
-    <!-- ── Tab: Coverage ──────────────────────────────────────────── -->
     <div id="tab-coverage" class="sc-tab-panel" role="tabpanel" aria-labelledby="tab-btn-coverage">
-
       <p class="small" style="margin-bottom:1rem;color:var(--color-text-muted,#6b7280);">
         All pages and API endpoints monitored by the system-check runner. Status reflects the most recent run.
         <span id="sc-coverage-run-time"></span>
       </p>
-
-      <!-- Filter bar -->
       <div class="sc-filter-bar" role="group" aria-label="Filter checks">
-        <button class="ef-cta sc-filter-btn" type="button" data-filter="all"           aria-pressed="true">All</button>
-        <button class="ef-cta sc-filter-btn" type="button" data-filter="page"          aria-pressed="false">Pages</button>
-        <button class="ef-cta sc-filter-btn" type="button" data-filter="api"           aria-pressed="false">APIs</button>
-        <button class="ef-cta sc-filter-btn" type="button" data-filter="fail"          aria-pressed="false">Failures only</button>
-        <button class="ef-cta sc-filter-btn" type="button" data-filter="warn"          aria-pressed="false">Warnings</button>
-        <button class="ef-cta sc-filter-btn" type="button" data-filter="untested"      aria-pressed="false">Untested</button>
+        <button class="ef-cta sc-filter-btn" type="button" data-filter="all" aria-pressed="true">All</button>
+        <button class="ef-cta sc-filter-btn" type="button" data-filter="page" aria-pressed="false">Pages</button>
+        <button class="ef-cta sc-filter-btn" type="button" data-filter="api" aria-pressed="false">APIs</button>
+        <button class="ef-cta sc-filter-btn" type="button" data-filter="fail" aria-pressed="false">Failures only</button>
+        <button class="ef-cta sc-filter-btn" type="button" data-filter="warn" aria-pressed="false">Warnings</button>
+        <button class="ef-cta sc-filter-btn" type="button" data-filter="untested" aria-pressed="false">Untested</button>
       </div>
-
       <div class="card" id="sc-coverage-list" aria-live="polite">
-        <div class="sc-empty">
-          <div class="sc-empty-icon" aria-hidden="true">📡</div>
-          <p>Loading coverage…</p>
-        </div>
+        <div class="sc-empty"><div class="sc-empty-icon" aria-hidden="true">📡</div><p>Loading coverage…</p></div>
       </div>
+    </div>
 
-    </div><!-- /#tab-coverage -->
-
-    <!-- ── Tab: History ───────────────────────────────────────────── -->
     <div id="tab-history" class="sc-tab-panel" role="tabpanel" aria-labelledby="tab-btn-history" style="margin-bottom:3rem;">
       <div class="card" style="overflow-x:auto;">
         <table class="sc-history-table" aria-label="System check run history">
-          <thead>
-            <tr>
-              <th scope="col">Status</th>
-              <th scope="col">Started</th>
-              <th scope="col">Duration</th>
-              <th scope="col">Environment</th>
-              <th scope="col">Passed / Total</th>
-              <th scope="col">Triggered By</th>
-              <th scope="col"></th>
-            </tr>
-          </thead>
-          <tbody id="sc-history-body">
-            <tr><td colspan="7" class="sc-empty"><div class="sc-empty-icon" aria-hidden="true">⏳</div><p>Loading history…</p></td></tr>
-          </tbody>
+          <thead><tr><th scope="col">Status</th><th scope="col">Started</th><th scope="col">Duration</th><th scope="col">Environment</th><th scope="col">Passed / Total</th><th scope="col">Triggered By</th><th scope="col"></th></tr></thead>
+          <tbody id="sc-history-body"><tr><td colspan="7" class="sc-empty"><div class="sc-empty-icon" aria-hidden="true">⏳</div><p>Loading history…</p></td></tr></tbody>
         </table>
       </div>
-    </div><!-- /#tab-history -->
+    </div>
 
-    <!-- ── Tab: Webhooks ─────────────────────────────────────────────── -->
+    <div id="tab-background-jobs" class="sc-tab-panel" role="tabpanel" aria-labelledby="tab-btn-background-jobs" style="margin-bottom:3rem;">
+      <div class="sc-info-banner sc-info-banner--disabled" role="note">
+        Read-only operational view. Jobs with partial or configuration-only telemetry are labelled clearly; no task can be executed from this tab.
+      </div>
+      <div id="bj-stats-bar" class="bj-stats" aria-live="polite"></div>
+      <div class="bj-toolbar">
+        <div class="bj-filters" role="group" aria-label="Filter background jobs">
+          <button class="ef-cta bj-filter-btn" type="button" data-filter="all" aria-pressed="true">All</button>
+          <button class="ef-cta bj-filter-btn" type="button" data-filter="healthy" aria-pressed="false">Healthy</button>
+          <button class="ef-cta bj-filter-btn" type="button" data-filter="attention" aria-pressed="false">Needs attention</button>
+          <button class="ef-cta bj-filter-btn" type="button" data-filter="disabled" aria-pressed="false">Disabled</button>
+        </div>
+        <div>
+          <span id="bj-generated-at" class="bj-muted" aria-live="polite"></span>
+          <button id="bj-refresh-btn" class="ef-cta btn btn-secondary btn-sm" type="button">Refresh</button>
+        </div>
+      </div>
+      <div id="bj-jobs-list" class="bj-jobs" aria-live="polite">
+        <div class="sc-empty"><div class="sc-empty-icon" aria-hidden="true">⏳</div><p>Open this tab to load background jobs.</p></div>
+      </div>
+    </div>
+
     <div id="tab-webhooks" class="sc-tab-panel" role="tabpanel" aria-labelledby="tab-btn-webhooks" style="margin-bottom:3rem;">
-
       <p class="small" style="margin-bottom:1rem;color:var(--color-text-muted,#6b7280);">
-        Test all configured webhook integrations from one place. Sends a synthetic probe
-        request to each enabled endpoint and reports the result.
+        Test all configured webhook integrations from one place. Sends a synthetic probe request to each enabled endpoint and reports the result.
       </p>
-
       <div class="sc-warning-banner" role="note">
-        ℹ️ Only webhooks whose secrets are configured will perform a signed probe. Unconfigured
-        webhooks are flagged as <strong>not configured</strong> — no request is sent.
+        ℹ️ Only webhooks whose secrets are configured will perform a signed probe. Unconfigured webhooks are flagged as <strong>not configured</strong> — no request is sent.
       </div>
-
       <div class="sc-warning-banner" role="note" style="margin-top:.75rem;">
-        🔑 <strong>Stripe key mode is shown in the Details column</strong> for each Stripe result
-        (<code>test</code> or <code>live</code>). If you see repeated
-        <code>GET /v1/customers/cus_…</code> 400 errors in
-        <a href="https://dashboard.stripe.com/workbench/logs" target="_blank" rel="noopener" aria-label="Stripe Workbench logs (opens in new tab)">Stripe Workbench</a>,
-        the most likely cause is a <strong>test-vs-live key mismatch</strong> — your database
-        contains customer IDs created with a <em>different</em> Stripe mode than the key currently
-        set in <code>STRIPE_SECRET_KEY</code>. Check the key mode here, compare it to the mode
-        used when the stored <code>cus_…</code> IDs were created, and update the env var or
-        clear the stale IDs. See <code>docs/STRIPE_SUBSCRIPTION_GUIDE.md</code> → Troubleshooting
-        for details.
+        🔑 <strong>Stripe key mode is shown in the Details column</strong> for each Stripe result (<code>test</code> or <code>live</code>). If you see repeated <code>GET /v1/customers/cus_…</code> 400 errors in <a href="https://dashboard.stripe.com/workbench/logs" target="_blank" rel="noopener" aria-label="Stripe Workbench logs (opens in new tab)">Stripe Workbench</a>, the most likely cause is a <strong>test-vs-live key mismatch</strong> — your database contains customer IDs created with a <em>different</em> Stripe mode than the key currently set in <code>STRIPE_SECRET_KEY</code>. Check the key mode here, compare it to the mode used when the stored <code>cus_…</code> IDs were created, and update the env var or clear the stale IDs. See <code>docs/STRIPE_SUBSCRIPTION_GUIDE.md</code> → Troubleshooting for details.
       </div>
-
       <div style="margin:1.25rem 0;">
         <button id="sc-test-webhooks-btn" type="button" class="ef-cta sc-run-btn" aria-label="Test all webhooks">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
           Test All Webhooks
         </button>
       </div>
-
       <div id="sc-webhooks-result" aria-live="polite" aria-atomic="true"></div>
+    </div>
 
-    </div><!-- /#tab-webhooks -->
-
-    <!-- ── Tab: Account Tools ────────────────────────────────────────── -->
     <div id="tab-acct-tools" class="sc-tab-panel" role="tabpanel" aria-labelledby="tab-btn-acct-tools" style="margin-bottom:3rem;">
-
-      <!-- Status banner (filled by JS on load) -->
       <div id="sc-acct-status" aria-live="polite" aria-atomic="true" style="margin-bottom:1.5rem;"></div>
-
-      <!-- Tools section — shown only when debug routes are enabled -->
       <div id="sc-acct-body" hidden>
-
-        <div class="sc-warning-banner" role="alert">
-          ⚠️ <strong>Emergency tools only.</strong> These actions directly modify user records and cannot be undone automatically. All actions are audit-logged.
-        </div>
-
-        <!-- Lookup User -->
+        <div class="sc-warning-banner" role="alert">⚠️ <strong>Emergency tools only.</strong> These actions directly modify user records and cannot be undone automatically. All actions are audit-logged.</div>
         <section class="sc-acct-section" aria-labelledby="sc-acct-lookup-heading">
           <h2 id="sc-acct-lookup-heading" class="section-heading" style="margin-top:1.5rem;">🔍 Lookup User</h2>
           <form id="sc-form-lookup" class="sc-acct-form" novalidate>
             <label for="sc-lookup-email" class="sc-acct-label">Email address</label>
-            <div class="sc-acct-row">
-              <input id="sc-lookup-email" name="email" type="email" class="sc-acct-input" placeholder="user@example.com" required autocomplete="off">
-              <button type="submit" class="ef-cta btn btn-primary btn-sm">Look up</button>
-            </div>
+            <div class="sc-acct-row"><input id="sc-lookup-email" name="email" type="email" class="sc-acct-input" placeholder="user@example.com" required autocomplete="off"><button type="submit" class="ef-cta btn btn-primary btn-sm">Look up</button></div>
           </form>
           <div id="sc-lookup-result" aria-live="polite" class="sc-acct-result"></div>
         </section>
-
-        <!-- Verify User -->
         <section class="sc-acct-section" aria-labelledby="sc-acct-verify-heading">
           <h2 id="sc-acct-verify-heading" class="section-heading" style="margin-top:1.5rem;">✅ Verify User Email</h2>
           <form id="sc-form-verify" class="sc-acct-form" novalidate>
             <label for="sc-verify-email" class="sc-acct-label">Email address to force-verify</label>
-            <div class="sc-acct-row">
-              <input id="sc-verify-email" name="email" type="email" class="sc-acct-input" placeholder="user@example.com" required autocomplete="off">
-              <button type="submit" class="ef-cta btn btn-warning btn-sm">Verify user</button>
-            </div>
+            <div class="sc-acct-row"><input id="sc-verify-email" name="email" type="email" class="sc-acct-input" placeholder="user@example.com" required autocomplete="off"><button type="submit" class="ef-cta btn btn-warning btn-sm">Verify user</button></div>
           </form>
           <div id="sc-verify-result" aria-live="polite" class="sc-acct-result"></div>
         </section>
-
-        <!-- Fix Password -->
         <section class="sc-acct-section" aria-labelledby="sc-acct-fixpw-heading">
           <h2 id="sc-acct-fixpw-heading" class="section-heading" style="margin-top:1.5rem;">🔑 Fix Password</h2>
           <form id="sc-form-fixpw" class="sc-acct-form" novalidate>
             <label for="sc-fixpw-email" class="sc-acct-label">Email address</label>
             <input id="sc-fixpw-email" name="email" type="email" class="sc-acct-input" placeholder="user@example.com" required autocomplete="off" style="margin-bottom:.5rem;">
             <label for="sc-fixpw-password" class="sc-acct-label">New password (min 8 chars)</label>
-            <div class="sc-acct-row">
-              <input id="sc-fixpw-password" name="newPassword" type="password" class="sc-acct-input" placeholder="New password" minlength="8" required autocomplete="new-password">
-              <button type="submit" class="ef-cta btn btn-danger btn-sm">Set password</button>
-            </div>
+            <div class="sc-acct-row"><input id="sc-fixpw-password" name="newPassword" type="password" class="sc-acct-input" placeholder="New password" minlength="8" required autocomplete="new-password"><button type="submit" class="ef-cta btn btn-danger btn-sm">Set password</button></div>
           </form>
           <div id="sc-fixpw-result" aria-live="polite" class="sc-acct-result"></div>
         </section>
-
-        <!-- Test Email -->
         <section class="sc-acct-section" aria-labelledby="sc-acct-email-heading">
           <h2 id="sc-acct-email-heading" class="section-heading" style="margin-top:1.5rem;">📧 Test Email</h2>
           <form id="sc-form-email" class="sc-acct-form" novalidate>
             <label for="sc-email-to" class="sc-acct-label">Send a test verification email to</label>
-            <div class="sc-acct-row">
-              <input id="sc-email-to" name="email" type="email" class="sc-acct-input" placeholder="user@example.com" required autocomplete="off">
-              <button type="submit" class="ef-cta btn btn-secondary btn-sm">Send test</button>
-            </div>
+            <div class="sc-acct-row"><input id="sc-email-to" name="email" type="email" class="sc-acct-input" placeholder="user@example.com" required autocomplete="off"><button type="submit" class="ef-cta btn btn-secondary btn-sm">Send test</button></div>
           </form>
           <div id="sc-email-result" aria-live="polite" class="sc-acct-result"></div>
         </section>
-
-        <!-- Login Test -->
         <section class="sc-acct-section" aria-labelledby="sc-acct-login-heading">
           <h2 id="sc-acct-login-heading" class="section-heading" style="margin-top:1.5rem;">🧪 Login Test (Diagnostics Only)</h2>
           <p class="small" style="color:var(--color-text-muted,#6b7280);margin-bottom:.75rem;">Tests credentials without actually logging in. Returns diagnostics.</p>
@@ -269,28 +208,22 @@
             <label for="sc-login-email" class="sc-acct-label">Email address</label>
             <input id="sc-login-email" name="email" type="email" class="sc-acct-input" placeholder="user@example.com" required autocomplete="off" style="margin-bottom:.5rem;">
             <label for="sc-login-password" class="sc-acct-label">Password to test</label>
-            <div class="sc-acct-row">
-              <input id="sc-login-password" name="password" type="password" class="sc-acct-input" placeholder="Password" required autocomplete="current-password">
-              <button type="submit" class="ef-cta btn btn-secondary btn-sm">Test login</button>
-            </div>
+            <div class="sc-acct-row"><input id="sc-login-password" name="password" type="password" class="sc-acct-input" placeholder="Password" required autocomplete="current-password"><button type="submit" class="ef-cta btn btn-secondary btn-sm">Test login</button></div>
           </form>
           <div id="sc-login-result" aria-live="polite" class="sc-acct-result"></div>
         </section>
-
-        <!-- Audit Users -->
         <section class="sc-acct-section" aria-labelledby="sc-acct-audit-heading">
           <h2 id="sc-acct-audit-heading" class="section-heading" style="margin-top:1.5rem;">📋 Audit All Users</h2>
           <p class="small" style="color:var(--color-text-muted,#6b7280);margin-bottom:.75rem;">Scans all user records for issues (no password hash, invalid hash, unverified). This action is audit-logged.</p>
           <button id="sc-audit-users-btn" type="button" class="ef-cta btn btn-secondary btn-sm">Run User Audit</button>
           <div id="sc-audit-result" aria-live="polite" class="sc-acct-result"></div>
         </section>
-
-      </div><!-- /#sc-acct-body -->
-    </div><!-- /#tab-acct-tools -->
-
-  </div><!-- /.container -->
+      </div>
+    </div>
+  </div>
 </main>
 
 <script src="/assets/js/pages/admin-debug.js?v=18.4.0" defer></script>
+<script src="/assets/js/pages/admin-debug-background-jobs.js?v=18.5.0" defer></script>
 </body>
 </html>
