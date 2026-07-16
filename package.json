@@ -3,7 +3,7 @@
   "version": "18.1.0",
   "private": true,
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=22.0.0 <23"
   },
   "main": "server.js",
   "scripts": {
@@ -11,6 +11,7 @@
     "start": "node server.js",
     "migrate": "node migrate-to-mongodb.js",
     "migrate:messenger-v4": "node scripts/migrate-to-messenger-v4.js",
+    "check:lockfile": "node scripts/check-lockfile-consistency.mjs",
     "lint": "eslint . --ext .js --rulesdir eslint-rules",
     "lint:fix": "eslint . --ext .js --rulesdir eslint-rules --fix",
     "format": "prettier --write \"**/*.{js,json,md}\"",
@@ -30,7 +31,7 @@
     "test:e2e:full": "E2E_MODE=full playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:headers": "node scripts/verify-security-headers.mjs",
-    "audit": "npm audit --production",
+    "audit": "node scripts/audit-production-dependencies.mjs",
     "audit:golive": "node scripts/go-live-audit.mjs",
     "audit:golive:live": "AUDIT_TARGET=https://event-flow.co.uk node scripts/go-live-audit.mjs",
     "prepare": "husky install",
@@ -53,7 +54,7 @@
     "test:audit:quick": "node scripts/test-audit.mjs --quick",
     "test:audit:full": "node scripts/test-audit.mjs --full",
     "test:audit:ci": "node scripts/test-audit.mjs --ci",
-    "build:homepages": "tsc -p tsconfig.homepages.json",
+    "build:homepages": "tsc -p tsconfig.homepages.json && prettier --write public/assets/js/pages/home-v2.js public/assets/js/pages/home-v3.js public/assets/js/pages/home-v3-video.js",
     "typecheck:homepages": "tsc -p tsconfig.homepages.json --noEmit"
   },
   "dependencies": {
@@ -143,6 +144,9 @@
     ]
   },
   "overrides": {
-    "filelist": ">=1.0.5"
+    "filelist": ">=1.0.5",
+    "engine.io": "6.6.9",
+    "socket.io-adapter": "2.5.8",
+    "ws": "8.21.0"
   }
 }

@@ -15,10 +15,7 @@ const clientPackageImages = require('../../public/assets/js/utils/package-image-
 
 const ROOT = path.join(__dirname, '../..');
 const APPROVED_PLACEHOLDER = '/assets/images/package-placeholder.webp';
-const APPROVED_PLACEHOLDER_FILE = path.join(
-  ROOT,
-  'public/assets/images/package-placeholder.webp'
-);
+const APPROVED_PLACEHOLDER_FILE = path.join(ROOT, 'public/assets/images/package-placeholder.webp');
 const LEGACY_PLACEHOLDER = '/assets/images/placeholders/package-event.svg';
 const CATEGORY_PLACEHOLDER = '/assets/images/placeholders/venue-package.svg';
 
@@ -39,11 +36,7 @@ describe('package placeholder consistency', () => {
   });
 
   it('recognises old and category-specific placeholder values as non-photo data', () => {
-    for (const placeholder of [
-      APPROVED_PLACEHOLDER,
-      LEGACY_PLACEHOLDER,
-      CATEGORY_PLACEHOLDER,
-    ]) {
+    for (const placeholder of [APPROVED_PLACEHOLDER, LEGACY_PLACEHOLDER, CATEGORY_PLACEHOLDER]) {
       expect(serverPackageImages.isPlaceholderImage(placeholder)).toBe(true);
       expect(clientPackageImages.isPlaceholderImage(placeholder)).toBe(true);
     }

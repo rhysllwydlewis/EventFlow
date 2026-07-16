@@ -6,16 +6,22 @@ on:
   pull_request:
     branches: [main, develop]
 
-# Cancel in-progress runs when a new commit is pushed to the same branch/PR
+permissions:
+  contents: read
+
+# Cancel in-progress runs when a new commit is pushed to the same branch/PR.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  HUSKY: '0'
+
 jobs:
-  setup:
-    name: Setup Dependencies
+  dependency-integrity:
+    name: Clean Install & Lockfile
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     steps:
       - name: Checkout code
@@ -24,26 +30,20 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version-file: '.node-version'
+          cache: 'npm'
 
-      - name: Cache node_modules
-        id: cache-node-modules
-        uses: actions/cache@v4
-        with:
-          path: node_modules
-          key: node-modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-          restore-keys: |
-            node-modules-${{ runner.os }}-
+      - name: Verify package-lock metadata
+        run: npm run check:lockfile
 
-      - name: Install dependencies
-        if: steps.cache-node-modules.outputs.cache-hit != 'true'
-        run: npm ci
+      - name: Clean install dependencies
+        run: npm ci --prefer-offline --no-audit
 
   lint:
-    name: Lint
+    name: ESLint
     runs-on: ubuntu-latest
-    needs: setup
-    timeout-minutes: 10
+    needs: dependency-integrity
+    timeout-minutes: 15
 
     steps:
       - name: Checkout code
@@ -52,29 +52,71 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version-file: '.node-version'
+          cache: 'npm'
 
-      - name: Restore node_modules cache
-        id: restore-cache
-        uses: actions/cache@v4
-        with:
-          path: node_modules
-          key: node-modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-
-      - name: Install dependencies (cache miss fallback)
-        if: steps.restore-cache.outputs.cache-hit != 'true'
-        run: npm ci
+      - name: Clean install dependencies
+        run: npm ci --prefer-offline --no-audit
 
       - name: Run ESLint
-        run: npm run lint
+        id: eslint
+        continue-on-error: true
+        run: npm run lint -- --format json --output-file eslint-report.json
+
+      - name: Upload ESLint diagnostics
+        if: steps.eslint.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: eslint-report
+          path: eslint-report.json
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Enforce ESLint result
+        if: steps.eslint.outcome == 'failure'
+        run: exit 1
+
+  formatting:
+    name: Formatting
+    runs-on: ubuntu-latest
+    needs: dependency-integrity
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.node-version'
+          cache: 'npm'
+
+      - name: Clean install dependencies
+        run: npm ci --prefer-offline --no-audit
 
       - name: Check formatting
-        run: npm run format:check
+        id: formatting
+        continue-on-error: true
+        run: npx prettier --list-different "**/*.{js,json,md}" > prettier-report.txt
+
+      - name: Upload formatting diagnostics
+        if: steps.formatting.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: prettier-report
+          path: prettier-report.txt
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Enforce formatting result
+        if: steps.formatting.outcome == 'failure'
+        run: exit 1
 
   smoke:
     name: Smoke Tests (blocking)
     runs-on: ubuntu-latest
-    needs: setup
+    needs: dependency-integrity
     timeout-minutes: 20
 
     steps:
@@ -84,18 +126,11 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version-file: '.node-version'
+          cache: 'npm'
 
-      - name: Restore node_modules cache
-        id: restore-cache
-        uses: actions/cache@v4
-        with:
-          path: node_modules
-          key: node-modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-
-      - name: Install dependencies (cache miss fallback)
-        if: steps.restore-cache.outputs.cache-hit != 'true'
-        run: npm ci
+      - name: Clean install dependencies
+        run: npm ci --prefer-offline --no-audit
 
       - name: Run smoke suites
         run: npm run test:smoke
@@ -103,10 +138,71 @@ jobs:
           NODE_ENV: test
           JWT_SECRET: test-secret-key-for-ci-testing-only-min-32-chars
 
+  homepage-typecheck:
+    name: Homepage TypeScript
+    runs-on: ubuntu-latest
+    needs: dependency-integrity
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.node-version'
+          cache: 'npm'
+
+      - name: Clean install dependencies
+        run: npm ci --prefer-offline --no-audit
+
+      - name: Type-check homepage sources
+        id: typecheck
+        continue-on-error: true
+        run: npm run typecheck:homepages -- --pretty false > homepage-typecheck.log 2>&1
+
+      - name: Upload homepage type-check diagnostics
+        if: steps.typecheck.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: homepage-typecheck-report
+          path: homepage-typecheck.log
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Enforce homepage type-check result
+        if: steps.typecheck.outcome == 'failure'
+        run: exit 1
+
+      - name: Verify generated homepage assets are current
+        id: homepage-assets
+        if: steps.typecheck.outcome == 'success'
+        continue-on-error: true
+        run: |
+          npm run build:homepages
+          git diff --exit-code -- public/assets/js/pages/home-v2.js public/assets/js/pages/home-v3.js public/assets/js/pages/home-v3-video.js
+
+      - name: Upload regenerated homepage assets
+        if: always() && steps.homepage-assets.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: regenerated-homepage-assets
+          path: |
+            public/assets/js/pages/home-v2.js
+            public/assets/js/pages/home-v3.js
+            public/assets/js/pages/home-v3-video.js
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Enforce generated homepage asset parity
+        if: always() && steps.homepage-assets.outcome == 'failure'
+        run: exit 1
+
   full-regression:
     name: Full Regression (non-blocking)
     runs-on: ubuntu-latest
-    needs: setup
+    needs: dependency-integrity
     timeout-minutes: 25
     continue-on-error: true
 
@@ -117,28 +213,38 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version-file: '.node-version'
+          cache: 'npm'
 
-      - name: Restore node_modules cache
-        id: restore-cache
-        uses: actions/cache@v4
-        with:
-          path: node_modules
-          key: node-modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-
-      - name: Install dependencies (cache miss fallback)
-        if: steps.restore-cache.outputs.cache-hit != 'true'
-        run: npm ci
+      - name: Clean install dependencies
+        run: npm ci --prefer-offline --no-audit
 
       - name: Run full test suite
-        run: npm run test:full
+        id: full-regression
+        run: npm run test:full -- --runInBand --json --outputFile=full-regression-results.json
         env:
           NODE_ENV: test
           JWT_SECRET: test-secret-key-for-ci-testing-only-min-32-chars
 
+      - name: Upload full regression diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: full-regression-results-ci
+          path: |
+            full-regression-results.json
+            coverage/lcov.info
+            coverage/coverage-summary.json
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Report non-blocking regression failure
+        if: always() && steps.full-regression.outcome == 'failure'
+        run: echo "::warning::The full regression suite failed. Download full-regression-results-ci for the exact failing suites and assertions."
+
       - name: Upload coverage reports
         uses: codecov/codecov-action@v4
-        if: success()
+        if: always()
         with:
           files: ./coverage/lcov.info
           fail_ci_if_error: false
@@ -146,7 +252,7 @@ jobs:
   security:
     name: Security Audit
     runs-on: ubuntu-latest
-    needs: setup
+    needs: dependency-integrity
     timeout-minutes: 10
 
     steps:
@@ -156,28 +262,20 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version-file: '.node-version'
+          cache: 'npm'
 
-      - name: Restore node_modules cache
-        id: restore-cache
-        uses: actions/cache@v4
-        with:
-          path: node_modules
-          key: node-modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+      - name: Clean install dependencies
+        run: npm ci --prefer-offline --no-audit
 
-      - name: Install dependencies (cache miss fallback)
-        if: steps.restore-cache.outputs.cache-hit != 'true'
-        run: npm ci
-
-      - name: Run npm audit
-        run: npm audit --production
-        continue-on-error: true
+      - name: Run production dependency audit
+        run: npm run audit
 
   build:
     name: Build Verification
     runs-on: ubuntu-latest
-    needs: [lint, smoke, security]
-    timeout-minutes: 10
+    needs: [lint, formatting, smoke, homepage-typecheck, security]
+    timeout-minutes: 30
 
     steps:
       - name: Checkout code
@@ -186,38 +284,61 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version-file: '.node-version'
+          cache: 'npm'
 
-      - name: Restore node_modules cache
-        id: restore-cache
-        uses: actions/cache@v4
-        with:
-          path: node_modules
-          key: node-modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+      - name: Clean install dependencies
+        run: npm ci --prefer-offline --no-audit
 
-      - name: Install dependencies (cache miss fallback)
-        if: steps.restore-cache.outputs.cache-hit != 'true'
-        run: npm ci
+      - name: Run build command
+        run: npm run build
 
-      - name: Verify server starts and health check passes
+      - name: Build the Railway production image
+        run: docker build --tag eventflow-ci:${{ github.sha }} .
+
+      - name: Verify the Railway image starts with production dependencies
         run: |
-          node server.js &
-          SERVER_PID=$!
-          # Wait up to 10 seconds for the server to become ready
-          for i in $(seq 1 10); do
-            if curl -sf http://localhost:3000/api/health > /dev/null 2>&1; then
-              echo "✅ Server health check passed after ${i}s"
-              break
+          docker run --detach --name eventflow-ci-runtime --publish 3010:3000 \
+            --env NODE_ENV=test \
+            --env PORT=3000 \
+            --env JWT_SECRET=test-secret-key-for-container-verification-only \
+            eventflow-ci:${{ github.sha }}
+          trap 'docker logs eventflow-ci-runtime || true; docker rm --force eventflow-ci-runtime >/dev/null 2>&1 || true' EXIT
+
+          for i in $(seq 1 20); do
+            if curl -sf http://localhost:3010/api/health > /dev/null 2>&1; then
+              echo "Railway image health check passed after ${i}s"
+              exit 0
             fi
-            if [ $i -eq 10 ]; then
-              echo "❌ Server did not become ready in 10 seconds"
-              kill $SERVER_PID 2>/dev/null || true
+            if ! docker inspect --format='{{.State.Running}}' eventflow-ci-runtime 2>/dev/null | grep -q true; then
+              echo "Railway image exited before becoming healthy"
+              docker logs eventflow-ci-runtime
               exit 1
             fi
             sleep 1
           done
-          kill $SERVER_PID || true
-          wait $SERVER_PID 2>/dev/null || true
+
+          echo "Railway image did not become healthy within 20 seconds"
+          docker logs eventflow-ci-runtime
+          exit 1
+
+      - name: Verify server starts and health check passes
+        run: |
+          node server.js > /tmp/eventflow-server.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
+
+          for i in $(seq 1 15); do
+            if curl -sf http://localhost:3000/api/health > /dev/null 2>&1; then
+              echo "Server health check passed after ${i}s"
+              exit 0
+            fi
+            sleep 1
+          done
+
+          echo "Server did not become ready within 15 seconds"
+          cat /tmp/eventflow-server.log
+          exit 1
         env:
           NODE_ENV: test
           JWT_SECRET: test-secret-key-for-ci-testing-only-min-32-chars
@@ -225,8 +346,8 @@ jobs:
   go-live-audit:
     name: Go-Live Audit (security headers + health endpoints)
     runs-on: ubuntu-latest
-    needs: [lint, smoke]
-    timeout-minutes: 10
+    needs: [lint, formatting, smoke, homepage-typecheck]
+    timeout-minutes: 15
 
     steps:
       - name: Checkout code
@@ -235,21 +356,14 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version-file: '.node-version'
+          cache: 'npm'
 
-      - name: Restore node_modules cache
-        id: restore-cache
-        uses: actions/cache@v4
-        with:
-          path: node_modules
-          key: node-modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-
-      - name: Install dependencies (cache miss fallback)
-        if: steps.restore-cache.outputs.cache-hit != 'true'
-        run: npm ci
+      - name: Clean install dependencies
+        run: npm ci --prefer-offline --no-audit
 
       - name: Run go-live audit (local server)
-        run: node scripts/go-live-audit.mjs
+        run: npm run audit:golive
         env:
           NODE_ENV: development
           JWT_SECRET: ci-golive-audit-test-secret-padding-abcdefghijklm

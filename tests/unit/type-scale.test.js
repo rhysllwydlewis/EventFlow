@@ -105,6 +105,10 @@ describe('Every static stylesheet parses', () => {
     expect(sheets.length).toBeGreaterThan(50);
   });
 
+  test('the parser rejects an unclosed rule', () => {
+    expect(() => postcss.parse('.broken { color: red;', { from: 'fixture.css' })).toThrow();
+  });
+
   test.each(sheets)('%s parses without unclosed blocks', (_label, file) => {
     const css = fs.readFileSync(file, 'utf8');
     expect(() => postcss.parse(css, { from: file })).not.toThrow();

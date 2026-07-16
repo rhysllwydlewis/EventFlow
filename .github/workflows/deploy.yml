@@ -20,7 +20,7 @@ permissions:
   contents: read
 
 env:
-  NODE_VERSION: '20'
+  HUSKY: '0'
 
 concurrency:
   group: deploy-${{ github.ref_name || github.run_id }}
@@ -134,11 +134,14 @@ jobs:
           ref: ${{ needs.precheck.outputs.target_ref }}
       - uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version-file: '.node-version'
           cache: npm
-      - run: npm ci
-      - run: npm audit --production
-        continue-on-error: true
+      - name: Verify package-lock metadata
+        run: npm run check:lockfile
+      - name: Clean install dependencies
+        run: npm ci --prefer-offline --no-audit
+      - name: Audit production dependencies
+        run: npm audit --omit=dev
 
   deploy:
     name: Deploy to ${{ github.event.inputs.environment || 'production' }}
@@ -156,7 +159,7 @@ jobs:
           ref: ${{ needs.precheck.outputs.target_ref }}
       - uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version-file: '.node-version'
           cache: npm
       - name: Validate required deployment secrets
         shell: bash
@@ -173,7 +176,10 @@ jobs:
           if [[ "$missing" -ne 0 ]]; then
             exit 1
           fi
-      - run: npm ci
+      - name: Verify package-lock metadata
+        run: npm run check:lockfile
+      - name: Clean install dependencies
+        run: npm ci --prefer-offline --no-audit
       - name: Run production preflight
         run: npm run preflight
         env:

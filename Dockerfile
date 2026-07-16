@@ -1,5 +1,5 @@
-# Use official Node LTS image
-FROM node:20-alpine
+# Use the exact supported Node 22 release used by local development and CI.
+FROM node:22.23.1-alpine
 
 # Install curl for healthcheck
 RUN apk add --no-cache curl
@@ -7,10 +7,10 @@ RUN apk add --no-cache curl
 # Create app directory
 WORKDIR /app
 
-# Install dependencies first (better layer caching)
+# Install production dependencies from the committed lockfile.
 COPY package*.json ./
-# Skip lifecycle scripts (like husky prepare) during production install
-RUN npm install --omit=dev --ignore-scripts
+# Skip lifecycle scripts (like husky prepare) during production install.
+RUN npm ci --omit=dev --ignore-scripts --no-audit
 
 # Bundle app source
 COPY . .

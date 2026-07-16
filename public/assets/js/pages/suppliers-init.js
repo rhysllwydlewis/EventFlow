@@ -1074,12 +1074,7 @@ async function initSuppliersPage() {
     'error',
     e => {
       const img = e.target;
-      if (
-        img &&
-        img.matches &&
-        img.matches('.sp-pkg-mini-img') &&
-        !img.dataset.pf
-      ) {
+      if (img && img.matches && img.matches('.sp-pkg-mini-img') && !img.dataset.pf) {
         img.dataset.pf = '1';
         img.src = '/assets/images/package-placeholder.webp';
         img.alt = '';
@@ -1088,7 +1083,6 @@ async function initSuppliersPage() {
     },
     true
   );
-
 
   // Activate left/right navigation on every .sp-pkg-carousel in resultsContainer
   function attachCarousels() {

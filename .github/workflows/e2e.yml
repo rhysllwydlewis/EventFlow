@@ -7,7 +7,7 @@ on:
     branches: [main, develop]
   workflow_dispatch:
 
-# Cancel in-progress runs when a new commit is pushed to the same branch/PR
+# Cancel in-progress runs when a new commit is pushed to the same branch/PR.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -17,12 +17,13 @@ permissions:
 
 env:
   CONTINUE_ON_ERROR_UNTIL: '2026-08-31'
+  HUSKY: '0'
 
 jobs:
   setup:
-    name: Setup Dependencies
+    name: Verify Dependencies & Browsers
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     steps:
       - name: Checkout code
@@ -31,20 +32,14 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version-file: '.node-version'
+          cache: 'npm'
 
-      - name: Cache node_modules
-        id: cache-node-modules
-        uses: actions/cache@v4
-        with:
-          path: node_modules
-          key: node-modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-          restore-keys: |
-            node-modules-${{ runner.os }}-
+      - name: Verify package-lock metadata
+        run: npm run check:lockfile
 
-      - name: Install dependencies
-        if: steps.cache-node-modules.outputs.cache-hit != 'true'
-        run: npm ci
+      - name: Clean install dependencies
+        run: npm ci --prefer-offline --no-audit
 
       - name: Cache Playwright browsers
         id: cache-playwright
@@ -55,9 +50,12 @@ jobs:
           restore-keys: |
             playwright-${{ runner.os }}-
 
-      - name: Install Playwright Browsers
+      - name: Install Playwright system dependencies
+        run: npx playwright install-deps chromium
+
+      - name: Install Playwright browser
         if: steps.cache-playwright.outputs.cache-hit != 'true'
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install chromium
 
   e2e-auth:
     name: E2E Auth Focus
@@ -73,18 +71,11 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version-file: '.node-version'
+          cache: 'npm'
 
-      - name: Restore node_modules cache
-        id: restore-npm-cache
-        uses: actions/cache@v4
-        with:
-          path: node_modules
-          key: node-modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-
-      - name: Install dependencies (cache miss fallback)
-        if: steps.restore-npm-cache.outputs.cache-hit != 'true'
-        run: npm ci
+      - name: Clean install dependencies
+        run: npm ci --prefer-offline --no-audit
 
       - name: Restore Playwright browsers cache
         id: restore-pw-cache
@@ -93,9 +84,12 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
 
-      - name: Install Playwright browsers (cache miss fallback)
+      - name: Install Playwright system dependencies
+        run: npx playwright install-deps chromium
+
+      - name: Install Playwright browser on cache miss
         if: steps.restore-pw-cache.outputs.cache-hit != 'true'
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install chromium
 
       - name: Run focused auth E2E tests
         id: e2e-auth-run
@@ -156,18 +150,11 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version-file: '.node-version'
+          cache: 'npm'
 
-      - name: Restore node_modules cache
-        id: restore-npm-cache
-        uses: actions/cache@v4
-        with:
-          path: node_modules
-          key: node-modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-
-      - name: Install dependencies (cache miss fallback)
-        if: steps.restore-npm-cache.outputs.cache-hit != 'true'
-        run: npm ci
+      - name: Clean install dependencies
+        run: npm ci --prefer-offline --no-audit
 
       - name: Restore Playwright browsers cache
         id: restore-pw-cache
@@ -176,9 +163,12 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
 
-      - name: Install Playwright browsers (cache miss fallback)
+      - name: Install Playwright system dependencies
+        run: npx playwright install-deps chromium
+
+      - name: Install Playwright browser on cache miss
         if: steps.restore-pw-cache.outputs.cache-hit != 'true'
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install chromium
 
       - name: Run E2E tests part ${{ matrix.shard }} of 2
         id: e2e-run
@@ -236,22 +226,30 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version-file: '.node-version'
+          cache: 'npm'
 
-      - name: Restore node_modules cache
-        uses: actions/cache@v4
-        with:
-          path: node_modules
-          key: node-modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+      - name: Clean install dependencies
+        run: npm ci --prefer-offline --no-audit
 
       - name: Restore Playwright browsers cache
+        id: restore-pw-cache
         uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
 
+      - name: Install Playwright system dependencies
+        run: npx playwright install-deps chromium
+
+      - name: Install Playwright browser on cache miss
+        if: steps.restore-pw-cache.outputs.cache-hit != 'true'
+        run: npx playwright install chromium
+
       - name: Run visual regression tests
+        id: visual-run
         timeout-minutes: 30
+        continue-on-error: true
         run: npx playwright test --grep @visual
         env:
           NODE_ENV: test
@@ -265,3 +263,18 @@ jobs:
           path: test-results/
           if-no-files-found: warn
           retention-days: 30
+
+      - name: Report visual regression failures
+        if: steps.visual-run.outcome == 'failure'
+        run: |
+          echo "::warning::Visual regression snapshots failed, but the temporary soft-fail policy is active until ${CONTINUE_ON_ERROR_UNTIL}. Review the uploaded visual diffs before accepting any baseline update."
+
+      - name: Enforce expired visual soft-fail policy
+        if: steps.visual-run.outcome == 'failure'
+        run: |
+          today="$(date -u +%F)"
+          if [[ "$today" > "$CONTINUE_ON_ERROR_UNTIL" ]]; then
+            echo "::error::Visual regression soft-fail policy expired on ${CONTINUE_ON_ERROR_UNTIL}."
+            exit 1
+          fi
+          echo "Visual regression soft-fail policy active until ${CONTINUE_ON_ERROR_UNTIL}."

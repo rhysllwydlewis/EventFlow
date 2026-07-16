@@ -1,15 +1,17 @@
 (() => {
   'use strict';
 
-  const menuButton = document.querySelector('.hv2-menu');
+  const menuButton = document.querySelector<HTMLButtonElement>('.hv2-menu');
   const mobileNav = document.getElementById('hv2-mobile-nav');
-  const categoryField = document.getElementById('hv2-category');
-  const keywordField = document.getElementById('hv2-keyword');
-  const locationField = document.getElementById('hv2-location');
-  const searchForm = document.querySelector('.hv2-search');
-  const heroImage = document.querySelector('.hv2-hero__image');
-  const popularButtons = document.querySelectorAll('.hv2-popular button[data-category]');
-  const revealTargets = document.querySelectorAll(
+  const categoryField = document.getElementById('hv2-category') as HTMLSelectElement | null;
+  const keywordField = document.getElementById('hv2-keyword') as HTMLInputElement | null;
+  const locationField = document.getElementById('hv2-location') as HTMLInputElement | null;
+  const searchForm = document.querySelector<HTMLFormElement>('.hv2-search');
+  const heroImage = document.querySelector<HTMLElement>('.hv2-hero__image');
+  const popularButtons = document.querySelectorAll<HTMLButtonElement>(
+    '.hv2-popular button[data-category]'
+  );
+  const revealTargets = document.querySelectorAll<HTMLElement>(
     ['.hv2-category', '.hv2-dashboard', '.hv2-supplier-band__grid'].join(', ')
   );
   const isHomeV3Preview = window.__EF_HOME_V3_PREVIEW__ === true;
@@ -315,7 +317,13 @@
     });
 
     document.addEventListener('focusin', event => {
-      if (!mobileNav.hidden && !mobileNav.contains(event.target) && event.target !== menuButton) {
+      const target = event.target;
+      if (
+        target instanceof Node &&
+        !mobileNav.hidden &&
+        !mobileNav.contains(target) &&
+        target !== menuButton
+      ) {
         closeMenu();
       }
     });
@@ -349,7 +357,7 @@
     }
 
     searchForm.addEventListener('submit', () => {
-      const submitButton = searchForm.querySelector('.hv2-search__button');
+      const submitButton = searchForm.querySelector<HTMLButtonElement>('.hv2-search__button');
 
       if (submitButton) {
         submitButton.disabled = true;

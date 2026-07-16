@@ -1,0 +1,65 @@
+name: Production Dependency Audit
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'package.json'
+      - 'package-lock.json'
+      - '.node-version'
+      - 'scripts/audit-production-dependencies.mjs'
+      - 'scripts/check-lockfile-consistency.mjs'
+      - '.github/workflows/production-dependency-audit.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  HUSKY: '0'
+
+jobs:
+  audit:
+    name: Production dependencies
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.node-version'
+          cache: npm
+
+      - name: Verify package-lock metadata
+        run: npm run check:lockfile
+
+      - name: Clean install dependencies
+        run: npm ci --prefer-offline --no-audit
+
+      - name: Audit production dependencies
+        id: production-audit
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run audit 2>&1 | tee production-audit-report.txt
+
+      - name: Upload production audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-dependency-audit-report
+          path: production-audit-report.txt
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Enforce production audit result
+        if: steps.production-audit.outcome == 'failure'
+        run: exit 1

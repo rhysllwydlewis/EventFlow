@@ -92,7 +92,7 @@
     return width && height ? width / height : 16 / 9;
   }
 
-  function getCropMetrics(container, item, video) {
+  function getCropMetrics(container, item, video = null) {
     const { width, height } = getPlaylistItemDimensions(item, video);
 
     if (!width || !height) {
@@ -229,7 +229,7 @@
       .map(entry => entry.item);
   }
 
-  function getHeroVideoTargetWidth(settings = {}) {
+  function getHeroVideoTargetWidth(settings: HomepageVideoSettings = {}) {
     const preference = settings.videoQuality?.preference || settings.heroVideo?.quality || 'auto';
     const mobileOptimized = settings.videoQuality?.mobileOptimized !== false;
     const viewportWidth = Math.max(window.innerWidth || 0, document.documentElement?.clientWidth || 0, 0);
@@ -254,7 +254,7 @@
     return Math.min(Math.ceil(viewportWidth * pixelRatio), 1920);
   }
 
-  function videoPassesContentFilters(video, settings = {}) {
+  function videoPassesContentFilters(video, settings: HomepageVideoSettings = {}) {
     const filtering = settings.contentFiltering || {};
     const { width, height } = getVideoDimensions(video);
 
@@ -302,7 +302,7 @@
     return !minWidth || width >= minWidth;
   }
 
-  function chooseHeroVideoFile(video, settings = {}) {
+  function chooseHeroVideoFile(video, settings: HomepageVideoSettings = {}) {
     const files = getHeroVideoFiles(video);
 
     if (files.length === 0) {
@@ -348,7 +348,7 @@
     return 'video/mp4';
   }
 
-  function buildUploadPlaylist(settings = {}) {
+  function buildUploadPlaylist(settings: HomepageVideoSettings = {}) {
     const uploadGallery = Array.isArray(settings.uploadGallery) ? settings.uploadGallery : [];
 
     return uploadGallery
@@ -385,7 +385,7 @@
     };
   }
 
-  function buildSelectedPlaylist(settings = {}) {
+  function buildSelectedPlaylist(settings: HomepageVideoSettings = {}) {
     const playlist = [];
     const heroItem = normaliseSelectedVideoItem(settings.heroSelectedMedia, 'hero');
 
@@ -407,7 +407,7 @@
     return playlist;
   }
 
-  function buildPexelsPlaylist(videos, settings = {}) {
+  function buildPexelsPlaylist(videos, settings: HomepageVideoSettings = {}) {
     const filteredVideos = videos.filter(video => videoPassesContentFilters(video, settings));
     const sourceVideos = filteredVideos.length > 0 ? filteredVideos : videos;
 
@@ -425,7 +425,7 @@
       .filter(item => item.file?.link);
   }
 
-  function getPreferredVideoQuery(settings = {}) {
+  function getPreferredVideoQuery(settings: HomepageVideoSettings = {}) {
     const queries = settings.pexelsVideoQueries || {};
     const orderedQueries = [
       queries.venues,
@@ -436,7 +436,7 @@
     return orderedQueries.find(query => typeof query === 'string' && query.trim()) || DEFAULT_VIDEO_QUERY;
   }
 
-  function getRotationDelay(settings = {}) {
+  function getRotationDelay(settings: HomepageVideoSettings = {}) {
     const intervalSeconds = Number(settings.intervalSeconds);
     const safeSeconds = Number.isFinite(intervalSeconds) ? intervalSeconds : DEFAULT_ROTATION_SECONDS;
     const multiplier =
@@ -447,7 +447,7 @@
     return Math.max(safeSeconds, MIN_ROTATION_SECONDS) * 1000 * multiplier;
   }
 
-  function shouldDisableHeroVideo(settings = {}) {
+  function shouldDisableHeroVideo(settings: HomepageVideoSettings = {}) {
     const mobileOptimizations = settings.mobileOptimizations || {};
 
     return (
@@ -458,7 +458,7 @@
     );
   }
 
-  function applyTransitionSettings(container, settings = {}) {
+  function applyTransitionSettings(container, settings: HomepageVideoSettings = {}) {
     const duration = Number(settings.transition?.duration);
     const mobileDurationMultiplier =
       isMobileViewport() && settings.mobileOptimizations?.slowerTransitions === true
@@ -476,7 +476,7 @@
     }
   }
 
-  function applyPlaybackSettings(video, settings = {}) {
+  function applyPlaybackSettings(video, settings: HomepageVideoSettings = {}) {
     const heroVideo = settings.heroVideo || {};
     const playbackControls = settings.playbackControls || {};
 
@@ -506,7 +506,12 @@
     return true;
   }
 
-  function applyHoverPause(container, video, settings = {}, shouldPlay) {
+  function applyHoverPause(
+    container,
+    video,
+    settings: HomepageVideoSettings = {},
+    shouldPlay
+  ) {
     if (!shouldPlay || settings.playbackControls?.pauseOnHover !== true) {
       return;
     }
@@ -765,8 +770,8 @@
     );
   }
 
-  async function loadHomepageVideoSettings() {
-    const defaults = {
+  async function loadHomepageVideoSettings(): Promise<HomepageVideoSettings> {
+    const defaults: HomepageVideoSettings = {
       enabled: true,
       source: 'pexels',
       mediaTypes: { videos: true },
@@ -854,7 +859,7 @@
     }
   }
 
-  async function fetchPexelsPlaylist(settings) {
+  async function fetchPexelsPlaylist(settings: HomepageVideoSettings) {
     const query = getPreferredVideoQuery(settings);
     const response = await fetch(
       `/api/v1/public/homepage-video?version=v3&query=${encodeURIComponent(query)}`,
@@ -876,9 +881,9 @@
   }
 
   async function initialisePexelsHeroVideo() {
-    const container = document.querySelector('[data-hv3-pexels-video]');
-    const video = container?.querySelector('[data-hv3-video-media]');
-    const source = container?.querySelector('[data-hv3-video-source]');
+    const container = document.querySelector<HTMLElement>('[data-hv3-pexels-video]');
+    const video = container?.querySelector<HTMLVideoElement>('[data-hv3-video-media]');
+    const source = container?.querySelector<HTMLSourceElement>('[data-hv3-video-source]');
 
     if (!container || !video || !source || typeof fetch !== 'function') {
       return;
@@ -963,11 +968,13 @@
   }
 
   function initialisePopularSearches() {
-    const categoryField = document.getElementById('hv2-category');
-    const keywordField = document.getElementById('hv2-keyword');
-    const locationField = document.getElementById('hv2-location');
-    const searchForm = document.querySelector('.hv2-search');
-    const popularButtons = document.querySelectorAll('.hv2-popular button[data-category]');
+    const categoryField = document.getElementById('hv2-category') as HTMLSelectElement | null;
+    const keywordField = document.getElementById('hv2-keyword') as HTMLInputElement | null;
+    const locationField = document.getElementById('hv2-location') as HTMLInputElement | null;
+    const searchForm = document.querySelector<HTMLFormElement>('.hv2-search');
+    const popularButtons = document.querySelectorAll<HTMLButtonElement>(
+      '.hv2-popular button[data-category]'
+    );
 
     popularButtons.forEach(button => {
       button.addEventListener('click', () => {
@@ -991,14 +998,14 @@
   }
 
   function initialiseSearchState() {
-    const searchForm = document.querySelector('.hv2-search');
+    const searchForm = document.querySelector<HTMLFormElement>('.hv2-search');
 
     if (!searchForm) {
       return;
     }
 
     searchForm.addEventListener('submit', () => {
-      const submitButton = searchForm.querySelector('.hv2-search__button');
+      const submitButton = searchForm.querySelector<HTMLButtonElement>('.hv2-search__button');
 
       if (submitButton) {
         submitButton.disabled = true;
