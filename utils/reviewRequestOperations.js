@@ -201,7 +201,7 @@ function paginate(items, query) {
 function sortNewestFirst(items) {
   return items.sort((a, b) => {
     const aTime = parseDate(a.createdAt || a.updatedAt);
-    const bTime = parseDate(b.updatedAt || b.createdAt);
+    const bTime = parseDate(b.createdAt || b.updatedAt);
     return (bTime ? bTime.getTime() : 0) - (aTime ? aTime.getTime() : 0);
   });
 }
