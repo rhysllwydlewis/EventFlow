@@ -26,6 +26,7 @@ const pexelsRoutes = require('./pexels');
 const profileRoutes = require('./profile');
 const reportsRoutes = require('./reports');
 const reviewsV2Routes = require('./reviews-v2');
+const reviewRequestRoutes = require('./review-requests');
 const ticketsRoutes = require('./tickets');
 const webhooksRoutes = require('./webhooks');
 const searchV2Routes = require('./search-v2');
@@ -256,6 +257,11 @@ function mountRoutes(app, deps) {
       res.status(500).json({ error: 'Failed to create checkout session' });
     }
   });
+
+  // Secure supplier review-request delivery must run before the legacy supplier
+  // endpoint and review submission route so it can replace false-success responses
+  // and attribute completed reviews to the invited recipient.
+  app.use(reviewRequestRoutes);
 
   app.use('/api/v1/pexels', pexelsRoutes);
   app.use('/api/pexels', pexelsRoutes);
