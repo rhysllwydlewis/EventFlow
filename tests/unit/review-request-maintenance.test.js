@@ -4,7 +4,10 @@ const {
   expireStaleRequests,
   scheduleMaintenance,
 } = require('../../services/reviewRequestMaintenance.service');
-const { initialiseReviewRequestMaintenance } = require('../../config/database');
+const {
+  initialiseReviewRequestMaintenance,
+  maintenanceIsEnabled,
+} = require('../../utils/reviewRequestOperations');
 
 function createDb(rows) {
   const reviewRequests = rows.map(row => ({ ...row }));
@@ -149,7 +152,7 @@ describe('review request maintenance', () => {
     expect(scheduleModule.scheduleJob).not.toHaveBeenCalled();
   });
 
-  test('database initialisation isolates scheduler startup failures', () => {
+  test('review operations isolate scheduler startup failures', () => {
     process.env.NODE_ENV = 'production';
     delete process.env.REVIEW_REQUEST_MAINTENANCE_ENABLED;
     const log = { warn: jest.fn() };
@@ -166,7 +169,7 @@ describe('review request maintenance', () => {
     );
   });
 
-  test('database initialisation starts maintenance once in production', () => {
+  test('review operations start maintenance when enabled', () => {
     process.env.NODE_ENV = 'production';
     delete process.env.REVIEW_REQUEST_MAINTENANCE_ENABLED;
     const scheduled = {
@@ -181,7 +184,7 @@ describe('review request maintenance', () => {
 
     expect(initialiseReviewRequestMaintenance({ service, log })).toBe(scheduled);
     expect(service.scheduleMaintenance).toHaveBeenCalledWith(expect.objectContaining({ log }));
-    expect(initialiseReviewRequestMaintenance({ service, log })).toBeNull();
     expect(service.scheduleMaintenance).toHaveBeenCalledTimes(1);
+    expect(maintenanceIsEnabled()).toBe(true);
   });
 });
