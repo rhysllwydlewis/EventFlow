@@ -1,0 +1,73 @@
+name: Apply Review Request Maintenance
+
+on:
+  push:
+    branches: [agent/review-request-operations-v2]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apply-review-request-maintenance
+  cancel-in-progress: true
+
+jobs:
+  apply:
+    if: ${{ !contains(github.event.head_commit.message, '[review-maintenance-applied]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/review-request-operations-v2
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.node-version'
+          cache: npm
+
+      - name: Apply exact startup and index wiring
+        run: python .github/scripts/apply-review-request-maintenance.py
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit
+
+      - name: Format maintenance sources
+        run: npx prettier --write services/reviewRequestMaintenance.service.js tests/unit/review-request-maintenance.test.js server.js db-unified.js
+
+      - name: Run focused maintenance and review request tests
+        run: >-
+          npx jest --runInBand
+          tests/unit/review-request-maintenance.test.js
+          tests/unit/review-request-operations.test.js
+          tests/integration/supplier-review-request-delivery.test.js
+          tests/unit/postmark-webhook-route.test.js
+        env:
+          NODE_ENV: test
+          JWT_SECRET: test-secret-for-review-request-maintenance-min-32-chars
+
+      - name: Lint maintenance changes
+        run: >-
+          npx eslint
+          services/reviewRequestMaintenance.service.js
+          tests/unit/review-request-maintenance.test.js
+          server.js
+          db-unified.js
+          --rulesdir eslint-rules
+
+      - name: Verify final diff and remove applicator
+        run: |
+          git diff --check
+          git rm .github/workflows/apply-review-request-maintenance.yml
+          git rm .github/scripts/apply-review-request-maintenance.py
+          git diff --check
+
+      - name: Commit final maintenance implementation
+        run: |
+          git config user.name "EventFlow CI"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A
+          git commit -m "Add scheduled review request expiry maintenance [review-maintenance-applied]"
+          git push origin HEAD:agent/review-request-operations-v2
