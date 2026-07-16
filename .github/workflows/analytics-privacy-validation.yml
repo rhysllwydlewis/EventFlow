@@ -1,6 +1,8 @@
 name: Analytics Privacy Validation
 
 on:
+  push:
+    branches: [agent/clean-install-ci-baseline]
   pull_request:
     branches: [main]
     paths:
