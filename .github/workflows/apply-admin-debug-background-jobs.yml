@@ -1,0 +1,380 @@
+name: Apply Admin Debug Background Jobs
+
+on:
+  push:
+    branches:
+      - agent/admin-debug-background-jobs
+    paths:
+      - .github/workflows/apply-admin-debug-background-jobs.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Apply focused integration patch
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path, old, new):
+              file = Path(path)
+              text = file.read_text()
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{path}: expected exactly one match, found {count}')
+              file.write_text(text.replace(old, new, 1))
+
+          replace_once(
+              'public/admin-debug.html',
+              '  <link rel="stylesheet" href="/assets/css/admin-ui-improvements.css?v=18.3.2">',
+              '  <link rel="stylesheet" href="/assets/css/admin-ui-improvements.css?v=18.3.2">\n  <link rel="stylesheet" href="/assets/css/admin-debug-background-jobs.css?v=18.5.0">'
+          )
+          replace_once(
+              'public/admin-debug.html',
+              '      <button class="ef-cta sc-tab-btn" role="tab" aria-selected="false" aria-controls="tab-history"   id="tab-btn-history"   type="button">History</button>',
+              '      <button class="ef-cta sc-tab-btn" role="tab" aria-selected="false" aria-controls="tab-history"   id="tab-btn-history"   type="button">History</button>\n      <button class="ef-cta sc-tab-btn" role="tab" aria-selected="false" aria-controls="tab-background-jobs" id="tab-btn-background-jobs" type="button">Background Jobs</button>'
+          )
+          panel = '''    <!-- ── Tab: Background Jobs ─────────────────────────────────────── -->
+              <div id="tab-background-jobs" class="sc-tab-panel" role="tabpanel" aria-labelledby="tab-btn-background-jobs" style="margin-bottom:3rem;">
+                <div class="sc-info-banner sc-info-banner--disabled" role="note">
+                  Read-only operational view. Jobs with partial or configuration-only telemetry are labelled clearly; no task can be executed from this tab.
+                </div>
+                <div id="bj-stats-bar" class="bj-stats" aria-live="polite"></div>
+                <div class="bj-toolbar">
+                  <div class="bj-filters" role="group" aria-label="Filter background jobs">
+                    <button class="ef-cta bj-filter-btn" type="button" data-filter="all" aria-pressed="true">All</button>
+                    <button class="ef-cta bj-filter-btn" type="button" data-filter="healthy" aria-pressed="false">Healthy</button>
+                    <button class="ef-cta bj-filter-btn" type="button" data-filter="attention" aria-pressed="false">Needs attention</button>
+                    <button class="ef-cta bj-filter-btn" type="button" data-filter="disabled" aria-pressed="false">Disabled</button>
+                  </div>
+                  <div>
+                    <span id="bj-generated-at" class="bj-muted" aria-live="polite"></span>
+                    <button id="bj-refresh-btn" class="ef-cta btn btn-secondary btn-sm" type="button">Refresh</button>
+                  </div>
+                </div>
+                <div id="bj-jobs-list" class="bj-jobs" aria-live="polite">
+                  <div class="sc-empty"><div class="sc-empty-icon" aria-hidden="true">⏳</div><p>Open this tab to load background jobs.</p></div>
+                </div>
+              </div><!-- /#tab-background-jobs -->
+
+          '''
+          replace_once(
+              'public/admin-debug.html',
+              '    <!-- ── Tab: Webhooks ─────────────────────────────────────────────── -->',
+              panel + '    <!-- ── Tab: Webhooks ─────────────────────────────────────────────── -->'
+          )
+          replace_once(
+              'public/admin-debug.html',
+              '<script src="/assets/js/pages/admin-debug.js?v=18.4.0" defer></script>',
+              '<script src="/assets/js/pages/admin-debug.js?v=18.4.0" defer></script>\n<script src="/assets/js/pages/admin-debug-background-jobs.js?v=18.5.0" defer></script>'
+          )
+
+          replace_once(
+              'routes/system-checks-admin.js',
+              "const logger = require('../utils/logger');",
+              "const logger = require('../utils/logger');\nconst { getDashboardData } = require('../services/backgroundJobTelemetry.service');"
+          )
+          routes = '''
+          /**
+           * GET /api/admin/background-jobs
+           * Unified read-only status and recent execution evidence for scheduled jobs.
+           */
+          router.get('/background-jobs', apiLimiter, authRequired, roleRequired('admin'), async (req, res) => {
+            try {
+              const rawLimit = parseInt(req.query.limit, 10);
+              const historyLimit = Number.isFinite(rawLimit) ? Math.min(Math.max(rawLimit, 1), 20) : 6;
+              const data = await getDashboardData({
+                dateService: req.app.locals.dateService || null,
+                historyLimit,
+              });
+              res.setHeader('Cache-Control', 'no-store');
+              return res.json(data);
+            } catch (err) {
+              logger.error('GET /api/admin/background-jobs error:', err.message);
+              return res.status(500).json({ error: 'Failed to fetch background job status' });
+            }
+          });
+
+          /**
+           * GET /api/admin/background-jobs/health
+           * Compact protected summary for operational monitoring.
+           */
+          router.get('/background-jobs/health', apiLimiter, authRequired, roleRequired('admin'), async (req, res) => {
+            try {
+              const data = await getDashboardData({
+                dateService: req.app.locals.dateService || null,
+                historyLimit: 1,
+              });
+              const attention = data.jobs
+                .filter(job => ['failed', 'overdue', 'warning', 'unknown'].includes(job.health))
+                .map(job => ({ key: job.key, name: job.name, health: job.health, lastAttempt: job.lastAttempt }));
+              res.setHeader('Cache-Control', 'no-store');
+              return res.json({ generatedAt: data.generatedAt, summary: data.summary, attention });
+            } catch (err) {
+              logger.error('GET /api/admin/background-jobs/health error:', err.message);
+              return res.status(500).json({ error: 'Failed to fetch background job health' });
+            }
+          });
+
+          '''
+          replace_once('routes/system-checks-admin.js', '\nmodule.exports = router;', '\n' + routes + 'module.exports = router;')
+
+          indexes = '''
+              // Background job telemetry indexes
+              try {
+                await db.collection('background_job_runs').createIndex({ jobKey: 1, startedAt: -1 });
+                await db.collection('background_job_runs').createIndex({ status: 1, startedAt: -1 });
+                logger.debug('Background job telemetry indexes created');
+              } catch (error) {
+                logger.debug('Background job telemetry indexes may already exist:', error.message);
+              }
+
+          '''
+          replace_once(
+              'utils/database.js',
+              "    logger.info('Database indexes created successfully');",
+              indexes + "    logger.info('Database indexes created successfully');"
+          )
+
+          # Review-request expiry: full shared telemetry from the first deployment.
+          replace_once(
+              'services/reviewRequestMaintenance.service.js',
+              "const logger = require('../utils/logger');",
+              "const logger = require('../utils/logger');\nconst backgroundJobs = require('./backgroundJobTelemetry.service');"
+          )
+          replace_once(
+              'services/reviewRequestMaintenance.service.js',
+              '''  const job = scheduleModule.scheduleJob(cronExpr, async () => {
+              try {
+                await expireStaleRequests({ db, log });
+              } catch (error) {
+                log.error('[review-request-maintenance] Scheduled expiry failed:', error.message);
+              }
+            });''',
+              '''  const job = scheduleModule.scheduleJob(cronExpr, async () => {
+              const startedAt = new Date();
+              try {
+                const result = await expireStaleRequests({ db, log });
+                await backgroundJobs.recordRun(
+                  {
+                    jobKey: backgroundJobs.JOB_KEYS.REVIEW_REQUEST_MAINTENANCE,
+                    status: result.skipped ? 'skipped' : 'success',
+                    startedAt,
+                    finishedAt: new Date(),
+                    metrics: result,
+                  },
+                  { db, log }
+                );
+              } catch (error) {
+                log.error('[review-request-maintenance] Scheduled expiry failed:', error.message);
+                await backgroundJobs.recordRun(
+                  {
+                    jobKey: backgroundJobs.JOB_KEYS.REVIEW_REQUEST_MAINTENANCE,
+                    status: 'failed',
+                    startedAt,
+                    finishedAt: new Date(),
+                    error: error.message,
+                  },
+                  { db, log }
+                );
+              }
+            });'''
+          )
+
+          # System checks and action prompts keep their existing histories and also feed the shared collection.
+          replace_once(
+              'services/systemCheckService.js',
+              "const logger = require('../utils/logger');",
+              "const logger = require('../utils/logger');\nconst backgroundJobs = require('./backgroundJobTelemetry.service');"
+          )
+          sys_record = '''
+            await backgroundJobs.recordRun({
+              jobKey: backgroundJobs.JOB_KEYS.SYSTEM_CHECKS,
+              status: status === 'pass' ? (checks.some(check => check.warning) ? 'warning' : 'success') : 'failed',
+              trigger: triggeredBy ? 'manual' : 'scheduler',
+              startedAt,
+              finishedAt,
+              metrics: {
+                total: checks.length,
+                passed: checks.length - failedCount,
+                failed: failedCount,
+                warnings: checks.filter(check => check.ok && check.warning).length,
+              },
+              error: failedCount > 0 ? `${failedCount} system check${failedCount === 1 ? '' : 's'} failed` : null,
+            });
+
+          '''
+          replace_once('services/systemCheckService.js', '  _running = false;\n  return runDoc;', sys_record + '  _running = false;\n  return runDoc;')
+
+          replace_once(
+              'services/actionPromptScheduler.js',
+              "const dbUnified = require('../db-unified');",
+              "const dbUnified = require('../db-unified');\nconst backgroundJobs = require('./backgroundJobTelemetry.service');"
+          )
+          action_record = '''
+            await backgroundJobs.recordRun({
+              jobKey: backgroundJobs.JOB_KEYS.ACTION_PROMPTS,
+              status: errors > 0 || cappedByLimit ? 'warning' : 'success',
+              trigger: dryRun ? 'dry-run' : 'scheduler',
+              startedAt,
+              finishedAt,
+              metrics: { scanned, sent, skippedCadence, cappedByLimit, errors },
+              error: errors > 0 ? `${errors} supplier record${errors === 1 ? '' : 's'} failed` : null,
+            });
+
+          '''
+          replace_once('services/actionPromptScheduler.js', '  return summary;\n}', action_record + '  return summary;\n}')
+
+          # Date-management telemetry is captured around the scheduled callback without changing manual behaviour.
+          replace_once(
+              'services/dateManagementService.js',
+              "const crypto = require('crypto');",
+              "const crypto = require('crypto');\nconst backgroundJobs = require('./backgroundJobTelemetry.service');"
+          )
+          replace_once(
+              'services/dateManagementService.js',
+              '''      this.scheduledJob = schedule.scheduleJob('0 2 1 * *', async () => {
+                this.logger.info('Scheduled date check triggered');
+                await this.performMonthlyCheck();
+              });''',
+              '''      this.scheduledJob = schedule.scheduleJob('0 2 1 * *', async () => {
+                const startedAt = new Date();
+                this.logger.info('Scheduled date check triggered');
+                try {
+                  const result = await this.performMonthlyCheck();
+                  await backgroundJobs.recordRun({
+                    jobKey: backgroundJobs.JOB_KEYS.DATE_MANAGEMENT,
+                    status: result.error ? 'failed' : 'success',
+                    startedAt,
+                    finishedAt: new Date(),
+                    metrics: {
+                      performed: Boolean(result.performed),
+                      reason: result.reason || null,
+                    },
+                    error: result.error || null,
+                  });
+                } catch (error) {
+                  await backgroundJobs.recordRun({
+                    jobKey: backgroundJobs.JOB_KEYS.DATE_MANAGEMENT,
+                    status: 'failed',
+                    startedAt,
+                    finishedAt: new Date(),
+                    error: error.message,
+                  });
+                  throw error;
+                }
+              });'''
+          )
+
+          # Badge evaluation is embedded in server startup, so instrument its existing callback in place.
+          replace_once(
+              'server.js',
+              '''          setInterval(async () => {
+                try {
+                  const bm = require('./utils/badgeManagement');
+                  const results = await bm.evaluateAllSupplierBadges();
+                  logger.info('Scheduled badge evaluation complete:', results);
+                } catch (evalErr) {
+                  logger.error('Scheduled badge evaluation failed:', evalErr);
+                }
+              }, BADGE_EVAL_INTERVAL);''',
+              '''          setInterval(async () => {
+                const startedAt = new Date();
+                const backgroundJobs = require('./services/backgroundJobTelemetry.service');
+                try {
+                  const bm = require('./utils/badgeManagement');
+                  const results = await bm.evaluateAllSupplierBadges();
+                  logger.info('Scheduled badge evaluation complete:', results);
+                  await backgroundJobs.recordRun({
+                    jobKey: backgroundJobs.JOB_KEYS.BADGE_EVALUATION,
+                    status: 'success',
+                    startedAt,
+                    finishedAt: new Date(),
+                    metrics: results,
+                  });
+                } catch (evalErr) {
+                  logger.error('Scheduled badge evaluation failed:', evalErr);
+                  await backgroundJobs.recordRun({
+                    jobKey: backgroundJobs.JOB_KEYS.BADGE_EVALUATION,
+                    status: 'failed',
+                    startedAt,
+                    finishedAt: new Date(),
+                    error: evalErr.message,
+                  });
+                }
+              }, BADGE_EVAL_INTERVAL);'''
+          )
+          PY
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Format changed files
+        run: |
+          npx prettier --write \
+            services/backgroundJobTelemetry.service.js \
+            services/reviewRequestMaintenance.service.js \
+            services/systemCheckService.js \
+            services/actionPromptScheduler.js \
+            services/dateManagementService.js \
+            routes/system-checks-admin.js \
+            utils/database.js \
+            server.js \
+            public/admin-debug.html \
+            public/assets/js/pages/admin-debug-background-jobs.js \
+            public/assets/css/admin-debug-background-jobs.css \
+            tests/unit/background-job-telemetry.test.js \
+            tests/unit/admin-debug-background-jobs.test.js
+
+      - name: Validate focused implementation
+        run: |
+          npx eslint \
+            services/backgroundJobTelemetry.service.js \
+            services/reviewRequestMaintenance.service.js \
+            services/systemCheckService.js \
+            services/actionPromptScheduler.js \
+            services/dateManagementService.js \
+            routes/system-checks-admin.js \
+            utils/database.js \
+            public/assets/js/pages/admin-debug-background-jobs.js \
+            tests/unit/background-job-telemetry.test.js \
+            tests/unit/admin-debug-background-jobs.test.js
+          npx jest --runInBand \
+            tests/unit/background-job-telemetry.test.js \
+            tests/unit/admin-debug-background-jobs.test.js \
+            tests/unit/review-request-maintenance.test.js \
+            tests/unit/system-check-service.test.js
+          git diff --check
+
+      - name: Commit integration
+        run: |
+          git config user.name "EventFlow Agent"
+          git config user.email "actions@users.noreply.github.com"
+          git add \
+            services/backgroundJobTelemetry.service.js \
+            services/reviewRequestMaintenance.service.js \
+            services/systemCheckService.js \
+            services/actionPromptScheduler.js \
+            services/dateManagementService.js \
+            routes/system-checks-admin.js \
+            utils/database.js \
+            server.js \
+            public/admin-debug.html \
+            public/assets/js/pages/admin-debug-background-jobs.js \
+            public/assets/css/admin-debug-background-jobs.css \
+            tests/unit/background-job-telemetry.test.js \
+            tests/unit/admin-debug-background-jobs.test.js
+          git commit -m "Add background jobs visibility to admin debug"
+          git push origin HEAD:agent/admin-debug-background-jobs
