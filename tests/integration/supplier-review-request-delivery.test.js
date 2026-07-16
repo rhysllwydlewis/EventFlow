@@ -185,6 +185,76 @@ describe('supplier review-request delivery', () => {
     expect(sendMail).not.toHaveBeenCalled();
   });
 
+  test('blocks another invitation during the existing 30-day review cooldown', async () => {
+    const db = createMemoryDb({
+      suppliers: [{ id: 'supplier-1', ownerUserId: 'supplier-user', name: 'Moor Audio' }],
+      reviewRequests: [
+        {
+          id: 'completed-recently',
+          supplierId: 'supplier-1',
+          customerEmail: 'customer@example.com',
+          status: 'completed',
+          createdAt: '2026-07-01T09:00:00.000Z',
+          completedAt: '2026-07-01T09:30:00.000Z',
+        },
+      ],
+    });
+    const sendMail = jest.fn();
+    const app = buildApp({
+      db,
+      sendMail,
+      user: { id: 'supplier-user', role: 'supplier' },
+      now: () => fixedNow,
+      createToken: () => rawToken,
+    });
+
+    const response = await request(app)
+      .post('/api/v1/supplier/request-review')
+      .send({ customerEmail: 'customer@example.com' });
+
+    expect(response.status).toBe(409);
+    expect(response.body.error).toMatch(/last 30 days/i);
+    expect(response.body.retryAt).toBe('2026-07-31T09:30:00.000Z');
+    expect(sendMail).not.toHaveBeenCalled();
+  });
+
+  test('allows a new invitation after the 30-day review cooldown', async () => {
+    const db = createMemoryDb({
+      suppliers: [{ id: 'supplier-1', ownerUserId: 'supplier-user', name: 'Moor Audio' }],
+      reviewRequests: [
+        {
+          id: 'completed-long-ago',
+          supplierId: 'supplier-1',
+          customerEmail: 'customer@example.com',
+          status: 'completed',
+          createdAt: '2026-05-01T09:00:00.000Z',
+          completedAt: '2026-05-01T09:30:00.000Z',
+        },
+      ],
+    });
+    const sendMail = jest.fn().mockResolvedValue({
+      provider: 'postmark',
+      PostmarkMessageID: 'pm-older-customer',
+      sentAt: fixedNow.toISOString(),
+    });
+    const app = buildApp({
+      db,
+      sendMail,
+      user: { id: 'supplier-user', role: 'supplier' },
+      now: () => fixedNow,
+      createToken: () => rawToken,
+    });
+
+    const response = await request(app)
+      .post('/api/v1/supplier/request-review')
+      .send({ customerEmail: 'customer@example.com' });
+
+    expect(response.status).toBe(200);
+    expect(sendMail).toHaveBeenCalledTimes(1);
+    expect(db.collections.reviewRequests).toHaveLength(2);
+    expect(db.collections.reviewRequests[1].status).toBe('sent');
+  });
+
   test('accepts a secure link, records the open and sets an HttpOnly attribution cookie', async () => {
     const db = createMemoryDb({
       reviewRequests: [
