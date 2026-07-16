@@ -1,3 +1,4 @@
+# Temporary branch applicator; it removes itself after validation.
 name: Apply Review Request Maintenance
 
 on:
