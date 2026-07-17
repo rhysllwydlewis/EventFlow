@@ -1,4 +1,44 @@
 version = 1
 
+exclude_patterns = [
+  "node_modules/**",
+  "coverage/**",
+  "test-audit/**",
+  "playwright-report/**",
+  "test-results/**",
+  "public/assets/vendor/**",
+  "public/assets/js/pages/home-v2.js",
+  "public/assets/js/pages/home-v3.js",
+  "public/assets/js/pages/home-v3-video.js"
+]
+
+test_patterns = [
+  "tests/**",
+  "e2e/**",
+  "**/*.test.js",
+  "**/*.spec.js"
+]
+
 [[analyzers]]
-name = "ansible"
+name = "javascript"
+enabled = true
+
+  [analyzers.meta]
+  environment = ["nodejs", "browser", "jest", "mongo"]
+  module_system = "commonjs"
+  dialect = "typescript"
+  cyclomatic_complexity_threshold = "high"
+
+[[analyzers]]
+name = "docker"
+enabled = true
+
+  [analyzers.meta]
+  dockerfile_paths = ["Dockerfile"]
+
+[[analyzers]]
+name = "shell"
+enabled = true
+
+  [analyzers.meta]
+  dialect = "bash"
