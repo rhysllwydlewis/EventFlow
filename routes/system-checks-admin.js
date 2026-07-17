@@ -81,21 +81,27 @@ router.get(
  * GET /api/admin/background-jobs
  * Unified read-only status and recent execution evidence for scheduled jobs.
  */
-router.get('/background-jobs', apiLimiter, authRequired, roleRequired('admin'), async (req, res) => {
-  try {
-    const rawLimit = parseInt(req.query.limit, 10);
-    const historyLimit = Number.isFinite(rawLimit) ? Math.min(Math.max(rawLimit, 1), 20) : 6;
-    const data = await getDashboardData({
-      dateService: req.app.locals.dateService || null,
-      historyLimit,
-    });
-    res.setHeader('Cache-Control', 'no-store');
-    return res.json(data);
-  } catch (err) {
-    logger.error('GET /api/admin/background-jobs error:', err.message);
-    return res.status(500).json({ error: 'Failed to fetch background job status' });
+router.get(
+  '/background-jobs',
+  apiLimiter,
+  authRequired,
+  roleRequired('admin'),
+  async (req, res) => {
+    try {
+      const rawLimit = parseInt(req.query.limit, 10);
+      const historyLimit = Number.isFinite(rawLimit) ? Math.min(Math.max(rawLimit, 1), 20) : 6;
+      const data = await getDashboardData({
+        dateService: req.app.locals.dateService || null,
+        historyLimit,
+      });
+      res.setHeader('Cache-Control', 'no-store');
+      return res.json(data);
+    } catch (err) {
+      logger.error('GET /api/admin/background-jobs error:', err.message);
+      return res.status(500).json({ error: 'Failed to fetch background job status' });
+    }
   }
-});
+);
 
 /**
  * GET /api/admin/background-jobs/health
