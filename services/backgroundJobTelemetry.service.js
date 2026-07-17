@@ -8,6 +8,7 @@ const COLLECTION = 'background_job_runs';
 const DEFAULT_HISTORY_LIMIT = 6;
 const MAX_HISTORY_LIMIT = 20;
 const MAX_ERROR_LENGTH = 500;
+const SENSITIVE_KEY_PATTERN = /(?:token|secret|password|key)/i;
 
 const JOB_KEYS = Object.freeze({
   SYSTEM_CHECKS: 'system-checks',
@@ -60,10 +61,13 @@ function sanitizeMetrics(metrics) {
         ([, value]) => ['string', 'number', 'boolean'].includes(typeof value) || value === null
       )
       .slice(0, 30)
-      .map(([key, value]) => [
-        String(key).slice(0, 80),
-        typeof value === 'string' ? sanitizeError(value.slice(0, 200)) : value,
-      ])
+      .map(([key, value]) => {
+        const safeKey = String(key).slice(0, 80);
+        if (SENSITIVE_KEY_PATTERN.test(safeKey)) {
+          return [safeKey, '[redacted]'];
+        }
+        return [safeKey, typeof value === 'string' ? sanitizeError(value.slice(0, 200)) : value];
+      })
   );
 }
 
