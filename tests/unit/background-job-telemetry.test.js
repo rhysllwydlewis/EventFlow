@@ -31,7 +31,12 @@ describe('background job telemetry', () => {
         status: 'success',
         startedAt,
         finishedAt,
-        metrics: { checked: 3, expired: 2, nested: { hidden: true } },
+        metrics: {
+          checked: 3,
+          expired: 2,
+          apiKey: 'secret-metric-value',
+          nested: { hidden: true },
+        },
         error: 'token=secret-value https://example.com/private',
       },
       { db, log: { warn: jest.fn() } }
@@ -41,12 +46,13 @@ describe('background job telemetry', () => {
       expect.objectContaining({
         jobKey: JOB_KEYS.REVIEW_REQUEST_MAINTENANCE,
         durationMs: 2500,
-        metrics: { checked: 3, expired: 2 },
+        metrics: { checked: 3, expired: 2, apiKey: '[redacted]' },
       })
     );
     expect(run.error).toContain('[redacted]');
     expect(run.error).toContain('[url removed]');
     expect(run.error).not.toContain('secret-value');
+    expect(JSON.stringify(run.metrics)).not.toContain('secret-metric-value');
     expect(db.insertOne).toHaveBeenCalledWith(COLLECTION, run);
   });
 
