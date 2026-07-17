@@ -78,8 +78,15 @@
   padding: 0.75rem 0.875rem;
   color: var(--color-text, #1f2937);
   font-weight: 700;
-  cursor: pointer;
   list-style: none;
+}
+
+.sc-check-groups .sc-check-group > summary {
+  cursor: pointer;
+}
+
+.sc-check-groups .sc-check-group-heading {
+  cursor: default;
 }
 
 .sc-check-groups .sc-check-group > summary::-webkit-details-marker {
@@ -104,6 +111,17 @@
 .sc-check-groups .sc-check-group--attention .sc-check-group-heading {
   background: #fffbeb;
   color: #92400e;
+}
+
+.sc-check-groups .sc-check-group--attention.sc-check-group--empty {
+  border-color: #10b981;
+}
+
+.sc-check-groups
+  .sc-check-group--attention.sc-check-group--empty
+  .sc-check-group-heading {
+  background: #ecfdf5;
+  color: #065f46;
 }
 
 .sc-check-groups .sc-check-group--protected > summary {
@@ -199,10 +217,19 @@
   background: #fef2f2;
 }
 
-.sc-check-list-empty-attention {
+.sc-check-list-empty {
   padding: 0.875rem;
+}
+
+.sc-check-list-empty--attention,
+.sc-check-list-empty--passed {
   color: #065f46;
   background: #ecfdf5;
+}
+
+.sc-check-list-empty--protected {
+  color: #1e40af;
+  background: #eff6ff;
 }
 
 .sc-stats-bar.sc-stats-bar--exclusive .sc-stat {
@@ -243,6 +270,14 @@
     min-width: 0;
   }
 
+  .admin-main-content .dashboard-header #sc-run-status {
+    grid-column: 1 / -1;
+  }
+
+  .admin-main-content .dashboard-header #sc-run-status:empty {
+    display: none;
+  }
+
   .admin-main-content .dashboard-header .header-actions button {
     justify-content: center;
     width: 100%;
@@ -254,6 +289,7 @@
     z-index: 20;
     margin-inline: -0.25rem;
     padding: 0.4rem 0.25rem;
+    background: var(--color-background, #f8fafc);
     background: color-mix(in srgb, var(--color-background, #f8fafc) 94%, transparent);
     backdrop-filter: blur(10px);
   }
