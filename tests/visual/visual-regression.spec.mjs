@@ -86,9 +86,9 @@ async function settlePage(pw) {
 }
 
 /**
- * Stop the homepage package carousels and return both to their first item.
- * Their five-second auto-scroll otherwise races the bounded network settle,
- * producing different cards and full-page heights across identical runs.
+ * Freeze the homepage package carousels at their first item. Cloning the
+ * rendered roots preserves their approved markup while detaching the visible
+ * elements from Carousel's live five-second timer and smooth-scroll listeners.
  *
  * @param {import('@playwright/test').Page} pw
  * @param {string} pageName
@@ -102,28 +102,31 @@ async function stabiliseDynamicUi(pw, pageName) {
     for (const carouselRoot of document.querySelectorAll(
       '#featured-packages, #spotlight-packages'
     )) {
-      const nextButton = carouselRoot.querySelector('.carousel-next');
-      const previousButton = carouselRoot.querySelector('.carousel-prev');
-      const track = carouselRoot.querySelector('.carousel-container');
+      const frozenRoot = carouselRoot.cloneNode(true);
+      if (!(frozenRoot instanceof HTMLElement)) {
+        continue;
+      }
 
-      // A navigation click invokes Carousel._stopAutoScroll(). Moving forward
-      // and immediately back also guarantees a deterministic currentIndex of 0.
-      if (nextButton instanceof HTMLButtonElement && !nextButton.disabled) {
-        nextButton.click();
-      }
-      if (previousButton instanceof HTMLButtonElement) {
-        for (let attempts = 0; attempts < 10 && !previousButton.disabled; attempts += 1) {
-          previousButton.click();
-        }
-      }
+      const track = frozenRoot.querySelector('.carousel-container');
+      const previousButton = frozenRoot.querySelector('.carousel-prev');
+      const nextButton = frozenRoot.querySelector('.carousel-next');
+
       if (track instanceof HTMLElement) {
         track.style.scrollBehavior = 'auto';
         track.scrollLeft = 0;
       }
+      if (previousButton instanceof HTMLButtonElement) {
+        previousButton.disabled = true;
+      }
+      if (nextButton instanceof HTMLButtonElement) {
+        nextButton.disabled = frozenRoot.querySelectorAll('.carousel-item').length <= 1;
+      }
+
+      carouselRoot.replaceWith(frozenRoot);
     }
   });
 
-  await pw.waitForTimeout(250);
+  await pw.waitForTimeout(100);
 }
 
 for (const page of BASELINE_PAGES) {
