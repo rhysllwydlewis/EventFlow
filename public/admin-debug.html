@@ -30,6 +30,7 @@
   <link rel="stylesheet" href="/assets/css/mobile-optimizations.css?v=18.3.0">
   <link rel="stylesheet" href="/assets/css/ui-ux-fixes.css?v=18.3.0">
   <link rel="stylesheet" href="/assets/css/admin-ui-improvements.css?v=18.3.2">
+  <link rel="stylesheet" href="/assets/css/admin-debug-background-jobs.css?v=18.5.0">
   <script src="/assets/js/components.js?v=18.3.0" defer></script>
   <script src="/assets/js/admin-shared.js?v=18.3.0"></script>
   <script src="/assets/js/admin-navbar.js?v=18.3.0" defer></script>
@@ -71,6 +72,7 @@
       <button class="ef-cta sc-tab-btn" role="tab" aria-selected="true"  aria-controls="tab-overview"  id="tab-btn-overview"  type="button">Overview</button>
       <button class="ef-cta sc-tab-btn" role="tab" aria-selected="false" aria-controls="tab-coverage"  id="tab-btn-coverage"  type="button">Coverage</button>
       <button class="ef-cta sc-tab-btn" role="tab" aria-selected="false" aria-controls="tab-history"   id="tab-btn-history"   type="button">History</button>
+      <button class="ef-cta sc-tab-btn" role="tab" aria-selected="false" aria-controls="tab-background-jobs" id="tab-btn-background-jobs" type="button">Background Jobs</button>
       <button class="ef-cta sc-tab-btn" role="tab" aria-selected="false" aria-controls="tab-webhooks"  id="tab-btn-webhooks"  type="button">Webhooks</button>
       <button class="ef-cta sc-tab-btn" role="tab" aria-selected="false" aria-controls="tab-acct-tools" id="tab-btn-acct-tools" type="button">Account Tools</button>
     </nav>
@@ -156,6 +158,29 @@
         </table>
       </div>
     </div><!-- /#tab-history -->
+
+    <!-- ── Tab: Background Jobs ───────────────────────────────────── -->
+    <div id="tab-background-jobs" class="sc-tab-panel" role="tabpanel" aria-labelledby="tab-btn-background-jobs" style="margin-bottom:3rem;">
+      <div class="sc-info-banner sc-info-banner--disabled" role="note">
+        Read-only operational view. Jobs with partial or configuration-only telemetry are labelled clearly; no task can be executed from this tab.
+      </div>
+      <div id="bj-stats-bar" class="bj-stats" aria-live="polite"></div>
+      <div class="bj-toolbar">
+        <div class="bj-filters" role="group" aria-label="Filter background jobs">
+          <button class="ef-cta bj-filter-btn" type="button" data-filter="all" aria-pressed="true">All</button>
+          <button class="ef-cta bj-filter-btn" type="button" data-filter="healthy" aria-pressed="false">Healthy</button>
+          <button class="ef-cta bj-filter-btn" type="button" data-filter="attention" aria-pressed="false">Needs attention</button>
+          <button class="ef-cta bj-filter-btn" type="button" data-filter="disabled" aria-pressed="false">Disabled</button>
+        </div>
+        <div>
+          <span id="bj-generated-at" class="bj-muted" aria-live="polite"></span>
+          <button id="bj-refresh-btn" class="ef-cta btn btn-secondary btn-sm" type="button">Refresh</button>
+        </div>
+      </div>
+      <div id="bj-jobs-list" class="bj-jobs" aria-live="polite">
+        <div class="sc-empty"><div class="sc-empty-icon" aria-hidden="true">⏳</div><p>Open this tab to load background jobs.</p></div>
+      </div>
+    </div><!-- /#tab-background-jobs -->
 
     <!-- ── Tab: Webhooks ─────────────────────────────────────────────── -->
     <div id="tab-webhooks" class="sc-tab-panel" role="tabpanel" aria-labelledby="tab-btn-webhooks" style="margin-bottom:3rem;">
@@ -292,5 +317,6 @@
 </main>
 
 <script src="/assets/js/pages/admin-debug.js?v=18.4.0" defer></script>
+<script src="/assets/js/pages/admin-debug-background-jobs.js?v=18.5.0" defer></script>
 </body>
 </html>

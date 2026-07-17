@@ -109,6 +109,15 @@ async function addDatabaseIndexes() {
       logger.debug('Notification indexes may already exist:', error.message);
     }
 
+    // Background job telemetry indexes
+    try {
+      await db.collection('background_job_runs').createIndex({ jobKey: 1, startedAt: -1 });
+      await db.collection('background_job_runs').createIndex({ status: 1, startedAt: -1 });
+      logger.debug('Background job telemetry indexes created');
+    } catch (error) {
+      logger.debug('Background job telemetry indexes may already exist:', error.message);
+    }
+
     logger.info('Database indexes created successfully');
   } catch (error) {
     logger.error('Error creating database indexes:', error);
