@@ -1,0 +1,36 @@
+name: Export PR Source
+
+on:
+  push:
+    branches:
+      - codex/build-availability-aware-marketplace-and-quote-system
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Create source archive
+        run: |
+          tar \
+            --exclude='.git' \
+            --exclude='node_modules' \
+            --exclude='playwright-report' \
+            --exclude='test-results' \
+            -czf /tmp/eventflow-pr-source.tar.gz .
+
+      - name: Upload source archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: eventflow-pr-source
+          path: /tmp/eventflow-pr-source.tar.gz
+          if-no-files-found: error
+          retention-days: 1
