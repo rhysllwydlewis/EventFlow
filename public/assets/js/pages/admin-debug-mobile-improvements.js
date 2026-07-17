@@ -6,6 +6,12 @@
   'use strict';
 
   const AUTH_REDIRECT_PATTERN = /(?:\/login|\/sign-?in|\/auth(?:\/|\?|$)|login\?|signin\?)/i;
+  const TAB_STORAGE_KEY = 'eventflow-admin-debug-tab';
+  const EMPTY_GROUP_MESSAGES = Object.freeze({
+    attention: 'No failed checks or unexpected warnings.',
+    protected: 'No protected-route redirects.',
+    passed: 'No clean passes in this run.',
+  });
   const checksList = document.getElementById('sc-checks-list');
   const statsBar = document.getElementById('sc-stats-bar');
   const summary = document.getElementById('sc-summary');
@@ -26,6 +32,28 @@
     return (
       /^Auth redirect\b/i.test(warningEvidence) && AUTH_REDIRECT_PATTERN.test(redirectEvidence)
     );
+  }
+
+  function readStoredTab() {
+    try {
+      return window.sessionStorage.getItem(TAB_STORAGE_KEY);
+    } catch {
+      return null;
+    }
+  }
+
+  function persistSelectedTab(target) {
+    try {
+      window.sessionStorage.setItem(TAB_STORAGE_KEY, target);
+    } catch {
+      // Storage can be unavailable in privacy-restricted browser contexts.
+    }
+
+    try {
+      window.history.replaceState(null, '', `#${target.replace(/^tab-/, '')}`);
+    } catch {
+      // Hash persistence is a progressive enhancement; tab switching still works without it.
+    }
   }
 
   function classifyRow(row) {
@@ -95,6 +123,9 @@
     const group = document.createElement(fixed ? 'section' : 'details');
     group.className = `sc-check-group sc-check-group--${key}`;
     group.dataset.group = key;
+    if (!rows.length) {
+      group.classList.add('sc-check-group--empty');
+    }
     if (!fixed && open) {
       group.open = true;
     }
@@ -109,8 +140,8 @@
       rows.forEach(row => body.appendChild(row));
     } else {
       const empty = document.createElement('div');
-      empty.className = 'sc-check-list-empty-attention';
-      empty.textContent = 'No failed checks or unexpected warnings.';
+      empty.className = `sc-check-list-empty sc-check-list-empty--${key}`;
+      empty.textContent = EMPTY_GROUP_MESSAGES[key] || 'No checks in this group.';
       body.appendChild(empty);
     }
 
@@ -278,8 +309,7 @@
         button.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
         const target = button.getAttribute('aria-controls');
         if (target) {
-          sessionStorage.setItem('eventflow-admin-debug-tab', target);
-          history.replaceState(null, '', `#${target.replace(/^tab-/, '')}`);
+          persistSelectedTab(target);
         }
       });
       button.addEventListener('keydown', event => {
@@ -298,7 +328,7 @@
     });
 
     const hashTarget = window.location.hash ? `tab-${window.location.hash.slice(1)}` : null;
-    const storedTarget = sessionStorage.getItem('eventflow-admin-debug-tab');
+    const storedTarget = readStoredTab();
     const targetId = hashTarget && document.getElementById(hashTarget) ? hashTarget : storedTarget;
     const selected = targetId
       ? buttons.find(button => button.getAttribute('aria-controls') === targetId)
