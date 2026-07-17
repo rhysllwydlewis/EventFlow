@@ -11,7 +11,7 @@ describe('browser workflow gates', () => {
     expect(workflow).not.toMatch(/continue-on-error:\s*true/);
     expect(workflow).not.toMatch(/soft-fail|CONTINUE_ON_ERROR_UNTIL/i);
     expect(workflow).toMatch(/name:\s*E2E Auth Focus/);
-    expect(workflow).toMatch(/name:\s*E2E Tests Part \$\{\{ matrix\.shard \}\} of 2/);
+    expect(workflow).toMatch(/name:\s*E2E Tests Part \$\{\{ matrix\.shard \}\} of 4/);
     expect(workflow).toMatch(/name:\s*Visual Regression Tests/);
     expect(workflow).toMatch(/name:\s*Browser Verification/);
     expect(workflow).toMatch(
