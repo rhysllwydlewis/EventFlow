@@ -34,7 +34,7 @@ describe('admin debug mobile improvements', () => {
     expect(script).toContain("label: 'Successful checks'");
   });
 
-  test('groups rendered checks and filters them without treating login redirects as failures', () => {
+  test('groups rendered checks and filters them without treating followed login redirects as failures', () => {
     runNodeSmoke(String.raw`
       const assert = require('assert');
       const fs = require('fs');
@@ -50,7 +50,7 @@ describe('admin debug mobile improvements', () => {
         '<div id="sc-summary"><div class="sc-summary-card"><div class="sc-summary-meta"><p class="sc-summary-title">PASS</p><p class="sc-summary-subtitle">All 3 checks passed (1 with warnings) · 17 Jul 2026, 08:00 · 1.2s</p></div><div class="sc-summary-env">production</div></div></div>',
         '<div id="sc-checks-list">',
         '<div class="sc-check-row"><span class="sc-check-status" aria-label="Pass">✅</span><span class="sc-check-name">Homepage</span><span class="sc-check-type">page</span><span class="sc-check-code">200</span><span class="sc-check-dur">100ms</span><span class="sc-check-ok">OK</span></div>',
-        '<div class="sc-check-row sc-check-row--warn"><span class="sc-check-status" aria-label="Pass">⚠️</span><span class="sc-check-name">Admin dashboard</span><span class="sc-check-type">page</span><span class="sc-check-code">302</span><span class="sc-check-dur">80ms</span><span class="sc-check-warn" title="Expected authentication redirect">WARN</span><span class="sc-check-redirect" title="Redirected to: https://event-flow.co.uk/login">redirect</span></div>',
+        '<div class="sc-check-row sc-check-row--warn"><span class="sc-check-status" aria-label="Pass">⚠️</span><span class="sc-check-name">Admin dashboard</span><span class="sc-check-type">page</span><span class="sc-check-code">200</span><span class="sc-check-dur">80ms</span><span class="sc-check-warn" title="Auth redirect (unauthenticated — use admin-health-api for confirmed admin health)">WARN</span><span class="sc-check-redirect" title="Redirected to: https://event-flow.co.uk/login">redirect</span></div>',
         '<div class="sc-check-row"><span class="sc-check-status" aria-label="Fail">❌</span><span class="sc-check-name">Health API</span><span class="sc-check-type">api</span><span class="sc-check-code">500</span><span class="sc-check-dur">20ms</span><span class="sc-check-err">Server error</span></div>',
         '</div>',
         '</body>',
@@ -85,10 +85,10 @@ describe('admin debug mobile improvements', () => {
     `);
   });
 
-  test('only reclassifies redirects that point to authentication routes', () => {
+  test('only reclassifies EventFlow auth warnings that point to authentication routes', () => {
     const script = read('public/assets/js/pages/admin-debug-mobile-improvements.js');
     expect(script).toContain('AUTH_REDIRECT_PATTERN');
-    expect(script).toContain('REDIRECT_CODES');
+    expect(script).toContain('/^Auth redirect\\b/i');
     expect(script).toContain("result.textContent = 'PROTECTED'");
     expect(script).toContain("status.setAttribute('aria-label', 'Protected route')");
   });
