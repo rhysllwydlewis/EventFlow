@@ -1,5 +1,10 @@
 import { test, expect } from '@playwright/test';
 
+async function waitForAuthReady(page) {
+  await page.waitForLoadState('domcontentloaded');
+  await page.locator('#login-form').waitFor({ state: 'visible' });
+}
+
 test.describe('Authentication Flow', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
@@ -13,7 +18,7 @@ test.describe('Authentication Flow', () => {
 
   test('should have correct ARIA roles on tab interface', async ({ page }) => {
     await page.goto('/auth.html');
-    await page.waitForLoadState('networkidle');
+    await waitForAuthReady(page);
 
     // Tab list role
     await expect(page.locator('[role="tablist"]')).toBeVisible();
@@ -37,7 +42,7 @@ test.describe('Authentication Flow', () => {
 
   test('should switch tabs on click and update aria-selected', async ({ page }) => {
     await page.goto('/auth.html');
-    await page.waitForLoadState('networkidle');
+    await waitForAuthReady(page);
 
     // Initially login panel is visible, create panel is hidden
     await expect(page.locator('#panel-signin')).toBeVisible();
@@ -62,7 +67,7 @@ test.describe('Authentication Flow', () => {
 
   test('should support keyboard navigation between tabs', async ({ page }) => {
     await page.goto('/auth.html');
-    await page.waitForLoadState('networkidle');
+    await waitForAuthReady(page);
 
     // Focus login tab and press ArrowRight to switch to create tab
     await page.focus('#tab-signin');
@@ -82,7 +87,7 @@ test.describe('Authentication Flow', () => {
     await page.goto('/auth.html');
 
     // Wait for page to be fully loaded
-    await page.waitForLoadState('networkidle');
+    await waitForAuthReady(page);
     // Webkit needs more time to fully render and initialize validators
     const initialWait = browserName === 'webkit' ? 2000 : 1000;
     await page.waitForTimeout(initialWait);
@@ -114,7 +119,7 @@ test.describe('Authentication Flow', () => {
 
   test('should show password visibility toggle', async ({ page }) => {
     await page.goto('/auth.html');
-    await page.waitForLoadState('networkidle');
+    await waitForAuthReady(page);
     await page.waitForTimeout(500);
 
     const passwordInput = page.locator('input[type="password"]').first();
@@ -138,7 +143,7 @@ test.describe('Authentication Flow', () => {
     await page.goto('/auth.html');
 
     // Wait for page to be fully loaded
-    await page.waitForLoadState('networkidle');
+    await waitForAuthReady(page);
     // Webkit needs more time to initialize
     const initialWait = browserName === 'webkit' ? 2000 : 1000;
     await page.waitForTimeout(initialWait);
@@ -176,7 +181,7 @@ test.describe('Authentication Flow', () => {
       await page.goto('/auth.html');
 
       // Wait for page to be fully loaded
-      await page.waitForLoadState('networkidle');
+      await waitForAuthReady(page);
 
       // Check viewport
       const viewport = page.viewportSize();
@@ -195,7 +200,7 @@ test.describe('Authentication Flow', () => {
 
   test('should have remember-me checkbox in login form', async ({ page }) => {
     await page.goto('/auth.html');
-    await page.waitForLoadState('networkidle');
+    await waitForAuthReady(page);
 
     const rememberCheckbox = page.locator('#login-remember');
     await expect(rememberCheckbox).toBeVisible();
@@ -205,7 +210,7 @@ test.describe('Authentication Flow', () => {
 
   test('should show supplier fields only when supplier role selected', async ({ page }) => {
     await page.goto('/auth.html');
-    await page.waitForLoadState('networkidle');
+    await waitForAuthReady(page);
 
     // Switch to create tab
     await page.click('#tab-create');
@@ -227,7 +232,7 @@ test.describe('Authentication Flow', () => {
 
   test('login error element should have role="alert"', async ({ page }) => {
     await page.goto('/auth.html');
-    await page.waitForLoadState('networkidle');
+    await waitForAuthReady(page);
 
     const loginError = page.locator('#login-error');
     await expect(loginError).toHaveAttribute('role', 'alert');
@@ -238,7 +243,7 @@ test.describe('Authentication Flow', () => {
     page.on('pageerror', err => errors.push(err.message));
 
     await page.goto('/auth.html');
-    await page.waitForLoadState('networkidle');
+    await waitForAuthReady(page);
 
     const indexOfErrors = errors.filter(
       msg => msg.includes('indexOf') && msg.includes('undefined')
@@ -251,7 +256,7 @@ test.describe('Authentication Flow', () => {
   }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/auth.html');
-    await page.waitForLoadState('networkidle');
+    await waitForAuthReady(page);
     await page.waitForTimeout(500);
 
     const passwordInput = page.locator('#login-password');
@@ -290,7 +295,7 @@ test.describe('Authentication Flow', () => {
   test('"Forgot password?" link is below password input on mobile', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/auth.html');
-    await page.waitForLoadState('networkidle');
+    await waitForAuthReady(page);
 
     const passwordInput = page.locator('#login-password');
     const forgotLink = page.locator('.auth-forgot-link--below');
@@ -427,7 +432,7 @@ test.describe('ALTCHA Registration Payload', () => {
     });
 
     await page.goto('/auth.html');
-    await page.waitForLoadState('networkidle');
+    await waitForAuthReady(page);
 
     // Switch to the registration tab.
     await page.click('#tab-create');
@@ -480,7 +485,7 @@ test.describe('ALTCHA Registration Payload', () => {
     });
 
     await page.goto('/auth.html');
-    await page.waitForLoadState('networkidle');
+    await waitForAuthReady(page);
 
     await page.click('#tab-create');
     await page.waitForSelector('#panel-create', { state: 'visible' });
@@ -512,7 +517,7 @@ test.describe('ALTCHA Registration Payload', () => {
     });
 
     await page.goto('/auth.html');
-    await page.waitForLoadState('networkidle');
+    await waitForAuthReady(page);
 
     await page.click('#tab-create');
     await page.waitForSelector('#panel-create', { state: 'visible' });
