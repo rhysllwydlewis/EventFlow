@@ -1,0 +1,53 @@
+name: Temporary PR 1350 date authority fix
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/complete-background-job-telemetry
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.node-version'
+          cache: 'npm'
+
+      - name: Apply reviewed fixes
+        run: python scripts/temp-pr1350-date-authority.py
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit
+
+      - name: Format focused changes
+        run: npx prettier --write routes/admin.js services/dateManagementService.js services/backgroundJobTelemetry.service.js tests/unit/background-job-trigger-attribution.test.js
+
+      - name: Lint focused changes
+        run: npx eslint routes/admin.js services/dateManagementService.js services/backgroundJobTelemetry.service.js tests/unit/background-job-trigger-attribution.test.js --rulesdir eslint-rules
+
+      - name: Run focused telemetry tests
+        run: npx jest --runInBand --coverage=false tests/unit/background-job-telemetry-bridge.test.js tests/unit/background-job-trigger-attribution.test.js tests/unit/background-job-telemetry.test.js
+        env:
+          NODE_ENV: test
+
+      - name: Remove temporary audit files
+        run: rm -f .github/workflows/temp-pr1350-date-authority.yml scripts/temp-pr1350-date-authority.py
+
+      - name: Commit reviewed fixes
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          git commit -m "Keep manual date runs out of scheduler health"
+          git push origin HEAD:agent/complete-background-job-telemetry
