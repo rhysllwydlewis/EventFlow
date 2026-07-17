@@ -87,6 +87,58 @@ describe('admin debug mobile improvements', () => {
     `);
   });
 
+  test('survives unavailable browser storage and labels empty groups accurately', () => {
+    runNodeSmoke(String.raw`
+      const assert = require('assert');
+      const fs = require('fs');
+      const { JSDOM } = require('jsdom');
+      const html = [
+        '<!doctype html><body>',
+        '<nav class="sc-tabs">',
+        '<button class="sc-tab-btn" aria-selected="true" aria-controls="tab-overview">Overview</button>',
+        '<button class="sc-tab-btn" aria-selected="false" aria-controls="tab-history">History</button>',
+        '</nav>',
+        '<div id="tab-overview"></div><div id="tab-history"></div>',
+        '<div id="sc-stats-bar"></div>',
+        '<div id="sc-summary"><div class="sc-summary-card"><div class="sc-summary-meta"><p class="sc-summary-title">PASS</p><p class="sc-summary-subtitle">All 1 checks passed · 17 Jul 2026, 08:00 · 0.2s</p></div><div class="sc-summary-env">production</div></div></div>',
+        '<div id="sc-checks-list">',
+        '<div class="sc-check-row"><span class="sc-check-status" aria-label="Pass">✅</span><span class="sc-check-name">Homepage</span><span class="sc-check-type">page</span><span class="sc-check-code">200</span><span class="sc-check-dur">100ms</span><span class="sc-check-ok">OK</span></div>',
+        '</div>',
+        '</body>',
+      ].join('');
+      const dom = new JSDOM(html, {
+        url: 'https://event-flow.co.uk/admin-debug',
+        runScripts: 'outside-only',
+        pretendToBeVisual: true,
+      });
+      Object.defineProperty(dom.window, 'sessionStorage', {
+        configurable: true,
+        get() {
+          throw new Error('Storage blocked');
+        },
+      });
+      dom.window.HTMLElement.prototype.scrollIntoView = function () {};
+      dom.window.requestAnimationFrame = callback => callback();
+
+      assert.doesNotThrow(() => {
+        dom.window.eval(fs.readFileSync('public/assets/js/pages/admin-debug-mobile-improvements.js', 'utf8'));
+      });
+
+      const document = dom.window.document;
+      assert.strictEqual(
+        document.querySelector('.sc-check-group--attention .sc-check-list-empty').textContent,
+        'No failed checks or unexpected warnings.'
+      );
+      assert.strictEqual(
+        document.querySelector('.sc-check-group--protected .sc-check-list-empty').textContent,
+        'No protected-route redirects.'
+      );
+      assert(document.querySelector('.sc-check-group--attention').classList.contains('sc-check-group--empty'));
+      assert(document.querySelector('.sc-check-group--protected').classList.contains('sc-check-group--empty'));
+      assert.doesNotThrow(() => document.querySelector('[aria-controls="tab-history"]').click());
+    `);
+  });
+
   test('only reclassifies EventFlow auth warnings that point to authentication routes', () => {
     const script = read('public/assets/js/pages/admin-debug-mobile-improvements.js');
     expect(script).toContain('AUTH_REDIRECT_PATTERN');
@@ -101,9 +153,13 @@ describe('admin debug mobile improvements', () => {
     expect(styles).toContain('overflow-x: auto');
     expect(styles).toContain('.sc-check-groups .sc-check-group {');
     expect(styles).not.toMatch(/^\s*\.sc-check-group(?!s)/m);
+    expect(styles).toContain('.sc-check-groups .sc-check-group-heading {');
+    expect(styles).toContain('cursor: default');
     expect(styles).toContain('position: sticky');
     expect(styles).toContain('grid-template-columns: auto minmax(0, 1fr)');
     expect(styles).toContain('.sc-summary-card.sc-summary-card--mobile-enhanced');
+    expect(styles).toContain('#sc-run-status:empty');
+    expect(styles).toContain('background: var(--color-background, #f8fafc)');
     expect(styles).toContain("[class*='floating'][style*='position: fixed']");
   });
 });
