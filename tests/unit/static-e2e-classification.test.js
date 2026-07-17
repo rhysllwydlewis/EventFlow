@@ -33,21 +33,18 @@ describe('static E2E classification', () => {
     }
   });
 
-  test('retains a meaningful blocking core and validates it before each run', () => {
+  test('retains a meaningful blocking core and routes CI through the classified runner', () => {
     for (const file of stableCoreSpecs) {
       expect(fs.existsSync(path.join(root, 'e2e', file))).toBe(true);
       expect(classification.quarantined[file]).toBeUndefined();
     }
 
-    expect(packageJson.scripts['test:e2e:static']).toContain(
-      'validate-static-e2e-classification.mjs'
-    );
-    expect(packageJson.scripts['test:e2e:static']).toContain(
-      '--config=playwright-static.config.js'
-    );
+    expect(packageJson.scripts['test:e2e:static']).toBe('node scripts/run-static-e2e.mjs');
 
-    const config = fs.readFileSync(path.join(root, 'playwright-static.config.js'), 'utf8');
-    expect(config).toMatch(/testIgnore:/);
-    expect(config).toMatch(/grepInvert:\s*\/@backend\|@visual\//);
+    const runner = fs.readFileSync(path.join(root, 'scripts/run-static-e2e.mjs'), 'utf8');
+    expect(runner).toMatch(/readdirSync\(e2eDir/);
+    expect(runner).toMatch(/blockingSpecs\.length < 10/);
+    expect(runner).toMatch(/'--grep-invert'/);
+    expect(runner).toMatch(/\.\.\.process\.argv\.slice\(2\)/);
   });
 });
