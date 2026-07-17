@@ -140,7 +140,7 @@ describe('background job telemetry', () => {
       expect.objectContaining({ health: 'healthy', telemetry: 'full' })
     );
     expect(data.jobs.find(job => job.key === JOB_KEYS.SYSTEM_CHECKS)).toEqual(
-      expect.objectContaining({ health: 'warning', telemetry: 'partial' })
+      expect.objectContaining({ health: 'healthy', telemetry: 'partial' })
     );
     expect(data.jobs.find(job => job.key === JOB_KEYS.ACTION_PROMPTS)).toEqual(
       expect.objectContaining({
@@ -152,11 +152,33 @@ describe('background job telemetry', () => {
     expect(data.jobs.find(job => job.key === JOB_KEYS.DATE_MANAGEMENT).nextRun).toBe(
       '2026-08-01T02:00:00.000Z'
     );
-    expect(data.summary).toEqual(expect.objectContaining({ total: 5, attention: 1, unknown: 2 }));
+    expect(data.summary).toEqual(expect.objectContaining({ total: 5, attention: 0, unknown: 2 }));
+  });
+
+  test('does not mark update-only legacy evidence overdue', () => {
+    const definition = {
+      enabled: true,
+      staleAfterMs: 60 * 60 * 1000,
+      legacyFreshnessReliable: false,
+    };
+    const history = [
+      {
+        status: 'success',
+        source: 'audit_logs',
+        finishedAt: '2026-01-01T00:00:00.000Z',
+      },
+    ];
+    expect(classifyHealth(definition, history, new Date('2026-07-17T10:00:00.000Z'))).toBe(
+      'unknown'
+    );
   });
 
   test('marks successful jobs overdue after their stale threshold', () => {
-    const definition = { enabled: true, staleAfterMs: 60 * 60 * 1000 };
+    const definition = {
+      enabled: true,
+      staleAfterMs: 60 * 60 * 1000,
+      legacyFreshnessReliable: true,
+    };
     const history = [
       {
         status: 'success',
