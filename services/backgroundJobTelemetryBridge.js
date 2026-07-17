@@ -146,9 +146,11 @@ async function persistTelemetry(recordRun, payload, log = logger) {
   }
 }
 
-function installDatabaseHooks(
-  { db = dbUnified, recordRun = telemetry.recordRun, log = logger } = {}
-) {
+function installDatabaseHooks({
+  db = dbUnified,
+  recordRun = telemetry.recordRun,
+  log = logger,
+} = {}) {
   if (db.insertOne && !db.insertOne[INSERT_MARK]) {
     const originalInsertOne = db.insertOne.bind(db);
     const wrappedInsertOne = async function wrappedInsertOne(collection, document, ...rest) {
