@@ -1,0 +1,71 @@
+name: Changed-code Coverage
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '*.js'
+      - 'routes/**/*.js'
+      - 'services/**/*.js'
+      - 'middleware/**/*.js'
+      - 'config/**/*.js'
+      - 'models/**/*.js'
+      - 'utils/**/*.js'
+      - 'tests/**/*.js'
+      - 'jest.config.js'
+      - 'scripts/check-changed-coverage.mjs'
+      - 'package*.json'
+      - '.github/workflows/coverage-gate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: changed-coverage-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  HUSKY: '0'
+  NODE_ENV: test
+  JWT_SECRET: changed-coverage-secret-for-ci-minimum-32-characters
+  PATCH_COVERAGE_MIN: '80'
+
+jobs:
+  changed-coverage:
+    name: Changed executable lines (80%)
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    steps:
+      - name: Checkout repository history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.node-version'
+          cache: npm
+
+      - name: Verify package-lock metadata
+        run: npm run check:lockfile
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit
+
+      - name: Generate coverage
+        run: npm run test:full -- --runInBand
+
+      - name: Enforce changed-code coverage
+        run: node scripts/check-changed-coverage.mjs
+
+      - name: Upload coverage evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: changed-code-coverage
+          path: coverage
+          if-no-files-found: warn
+          retention-days: 14
