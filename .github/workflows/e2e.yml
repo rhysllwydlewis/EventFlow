@@ -234,7 +234,7 @@ jobs:
     name: Browser Verification
     runs-on: ubuntu-latest
     needs: [setup, e2e-auth, e2e, visual-regression]
-    if: ${{ always() }}
+    if: ${{ always() && github.event_name == 'pull_request' }}
     timeout-minutes: 5
 
     steps:
