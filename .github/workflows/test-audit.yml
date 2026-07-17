@@ -100,7 +100,6 @@ jobs:
               owner,
               repo,
               state: 'open',
-              labels: 'automated-regression',
               per_page: 100,
             });
             const existing = issues.find(issue => issue.title === title);
@@ -109,13 +108,7 @@ jobs:
             if (existing) {
               await github.rest.issues.createComment({ owner, repo, issue_number: existing.number, body });
             } else {
-              await github.rest.issues.create({
-                owner,
-                repo,
-                title,
-                body,
-                labels: ['automated-regression'],
-              });
+              await github.rest.issues.create({ owner, repo, title, body });
             }
 
       - name: Close recovered regression issue
@@ -129,7 +122,6 @@ jobs:
               owner,
               repo,
               state: 'open',
-              labels: 'automated-regression',
               per_page: 100,
             });
             const existing = issues.find(issue => issue.title === title);
