@@ -10,6 +10,16 @@ const {
 } = require('../../services/backgroundJobTelemetry.service');
 
 describe('background job telemetry', () => {
+  const originalNodeEnv = process.env.NODE_ENV;
+
+  afterEach(() => {
+    if (originalNodeEnv === undefined) {
+      delete process.env.NODE_ENV;
+    } else {
+      process.env.NODE_ENV = originalNodeEnv;
+    }
+  });
+
   test('persists sanitised run telemetry without throwing when storage succeeds', async () => {
     const db = { insertOne: jest.fn().mockResolvedValue(true) };
     const startedAt = new Date('2026-07-17T09:00:00.000Z');
@@ -36,6 +46,7 @@ describe('background job telemetry', () => {
     );
     expect(run.error).toContain('[redacted]');
     expect(run.error).toContain('[url removed]');
+    expect(run.error).not.toContain('secret-value');
     expect(db.insertOne).toHaveBeenCalledWith(COLLECTION, run);
   });
 
@@ -43,8 +54,15 @@ describe('background job telemetry', () => {
     const log = { warn: jest.fn() };
     await expect(
       recordRun(
-        { jobKey: JOB_KEYS.SYSTEM_CHECKS, status: 'failed', error: 'database unavailable' },
-        { db: { insertOne: jest.fn().mockRejectedValue(new Error('offline')) }, log }
+        {
+          jobKey: JOB_KEYS.SYSTEM_CHECKS,
+          status: 'failed',
+          error: 'database unavailable',
+        },
+        {
+          db: { insertOne: jest.fn().mockRejectedValue(new Error('offline')) },
+          log,
+        }
       )
     ).resolves.toEqual(expect.objectContaining({ jobKey: JOB_KEYS.SYSTEM_CHECKS }));
     expect(log.warn).toHaveBeenCalledWith(
@@ -54,6 +72,7 @@ describe('background job telemetry', () => {
   });
 
   test('aggregates shared telemetry with existing scheduler histories', async () => {
+    process.env.NODE_ENV = 'production';
     const now = new Date('2026-07-17T10:00:00.000Z');
     const db = {
       insertOne: jest.fn(),
@@ -128,7 +147,9 @@ describe('background job telemetry', () => {
     expect(data.jobs.find(job => job.key === JOB_KEYS.DATE_MANAGEMENT).nextRun).toBe(
       '2026-08-01T02:00:00.000Z'
     );
-    expect(data.summary.total).toBe(5);
+    expect(data.summary).toEqual(
+      expect.objectContaining({ total: 5, attention: 1, unknown: 2 })
+    );
   });
 
   test('marks successful jobs overdue after their stale threshold', () => {
