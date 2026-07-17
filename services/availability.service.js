@@ -1,6 +1,7 @@
 'use strict';
 
-const UK_POSTCODE_RE = /^(GIR 0AA|(?:[A-PR-UWYZ][0-9][0-9]?|[A-PR-UWYZ][A-HK-Y][0-9][0-9]?|[A-PR-UWYZ][0-9][A-HJKSTUW]|[A-PR-UWYZ][A-HK-Y][0-9][ABEHMNPRV-Y]) [0-9][ABD-HJLNP-UW-Z]{2})$/;
+const UK_POSTCODE_RE =
+  /^(GIR 0AA|(?:[A-PR-UWYZ][0-9][0-9]?|[A-PR-UWYZ][A-HK-Y][0-9][0-9]?|[A-PR-UWYZ][0-9][A-HJKSTUW]|[A-PR-UWYZ][A-HK-Y][0-9][ABEHMNPRV-Y]) [0-9][ABD-HJLNP-UW-Z]{2})$/;
 const STATUSES = Object.freeze({
   AVAILABLE: 'available',
   PROVISIONAL: 'provisional',
@@ -169,7 +170,10 @@ function publicStatusForDate(calendar, date, packageId) {
     }
   }
 
-  return { status: weeklyDefaultStatus(calendar, date), reason: 'weekly_pattern' };
+  return {
+    status: weeklyDefaultStatus(calendar, date),
+    reason: 'weekly_pattern',
+  };
 }
 
 function publicAvailabilityForRange(calendar, startDate, endDate = startDate, packageId = null) {
