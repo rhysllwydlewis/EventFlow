@@ -36,213 +36,10 @@ jobs:
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
 
-      - name: Apply source and workflow repairs
+      - name: Apply validated repair patch
         run: |
-          python <<'PY'
-          from pathlib import Path
-
-          replacements = {
-              'public/index.html': (
-                  '<div class="ef-quick-tags" role="list" aria-label="Popular searches">',
-                  '<div class="ef-quick-tags" role="group" aria-label="Popular searches">',
-              ),
-              'public/auth.html': (
-                  '''                  <div
-                    id="google-signin-button"
-                    class="auth-google-button"
-                    aria-label="Sign in with Google"
-                  ></div>''',
-                  '''                  <div
-                    id="google-signin-button"
-                    class="auth-google-button"
-                  ></div>''',
-              ),
-              'public/pricing.html': (
-                  '<div class="comparison-table-wrapper">',
-                  '<div class="comparison-table-wrapper" tabindex="0" aria-label="Pricing plan feature comparison">',
-              ),
-              'public/marketplace.html': (
-                  '<select id="marketplace-sort" class="sort-select">',
-                  '<select id="marketplace-sort" class="sort-select" aria-label="Sort marketplace listings">',
-              ),
-          }
-
-          for file_name, (old, new) in replacements.items():
-              path = Path(file_name)
-              content = path.read_text()
-              if old not in content:
-                  raise SystemExit(f'Expected source fragment not found in {file_name}')
-              path.write_text(content.replace(old, new, 1))
-
-          path = Path('tests/visual/email-previews-smoke.spec.mjs')
-          content = path.read_text()
-          needle = "  await page.route('**/api/admin/email-previews', route => {\n"
-          auth_mock = """  await page.route('**/api/v1/auth/me*', route => {
-            route.fulfill({
-              status: 200,
-              contentType: 'application/json',
-              body: JSON.stringify({
-                user: { id: 'visual-admin', role: 'admin', email: 'admin@example.com' },
-              }),
-            });
-          });
-          """
-          if needle not in content:
-              raise SystemExit('Email preview test insertion point not found')
-          path.write_text(content.replace(needle, auth_mock + needle, 1))
-
-          path = Path('playwright.config.js')
-          content = path.read_text()
-          old_json = "['json', { outputFile: 'test-results/results.json' }],"
-          new_json = """[
-                'json',
-                { outputFile: process.env.PLAYWRIGHT_JSON_OUTPUT_NAME || 'test-results/results.json' },
-              ],"""
-          old_junit = "['junit', { outputFile: 'test-results/junit.xml' }],"
-          new_junit = """[
-                'junit',
-                { outputFile: process.env.PLAYWRIGHT_JUNIT_OUTPUT_NAME || 'test-results/junit.xml' },
-              ],"""
-          if old_json not in content or old_junit not in content:
-              raise SystemExit('Playwright reporter insertion point not found')
-          content = content.replace(old_json, new_json, 1).replace(old_junit, new_junit, 1)
-          path.write_text(content)
-
-          matrix = '$' + '{{ matrix.shard }}'
-          path = Path('.github/workflows/e2e.yml')
-          content = path.read_text()
-          old_auth = '''        env:
-                    CI: true
-
-                - name: Upload auth Playwright report'''
-          new_auth = '''        env:
-                    CI: true
-                    PLAYWRIGHT_JSON_OUTPUT_NAME: test-results/auth-results.json
-                    PLAYWRIGHT_JUNIT_OUTPUT_NAME: test-results/auth-junit.xml
-
-                - name: Create concise auth failure summary
-                  if: always()
-                  run: node scripts/summarize-playwright-results.mjs test-results/auth-results.json test-results/auth-summary.txt
-
-                - name: Upload concise auth results
-                  if: always()
-                  uses: actions/upload-artifact@v4
-                  with:
-                    name: e2e-machine-results-auth
-                    path: |
-                      test-results/auth-results.json
-                      test-results/auth-junit.xml
-                      test-results/auth-summary.txt
-                    if-no-files-found: warn
-                    retention-days: 14
-
-                - name: Upload auth Playwright report'''
-          old_shard = '''        env:
-                    CI: true
-
-                - name: Upload Playwright report part ''' + matrix
-          new_shard = '''        env:
-                    CI: true
-                    PLAYWRIGHT_JSON_OUTPUT_NAME: test-results/part-''' + matrix + '''-results.json
-                    PLAYWRIGHT_JUNIT_OUTPUT_NAME: test-results/part-''' + matrix + '''-junit.xml
-
-                - name: Create concise E2E failure summary part ''' + matrix + '''
-                  if: always()
-                  run: >-
-                    node scripts/summarize-playwright-results.mjs
-                    test-results/part-''' + matrix + '''-results.json
-                    test-results/part-''' + matrix + '''-summary.txt
-
-                - name: Upload concise E2E results part ''' + matrix + '''
-                  if: always()
-                  uses: actions/upload-artifact@v4
-                  with:
-                    name: e2e-machine-results-part-''' + matrix + '''
-                    path: |
-                      test-results/part-''' + matrix + '''-results.json
-                      test-results/part-''' + matrix + '''-junit.xml
-                      test-results/part-''' + matrix + '''-summary.txt
-                    if-no-files-found: warn
-                    retention-days: 14
-
-                - name: Upload Playwright report part ''' + matrix
-          if old_auth not in content or old_shard not in content:
-              raise SystemExit('E2E workflow insertion point not found')
-          path.write_text(content.replace(old_auth, new_auth, 1).replace(old_shard, new_shard, 1))
-          PY
-
-          cat > scripts/summarize-playwright-results.mjs <<'EOF'
-          #!/usr/bin/env node
-
-          import fs from 'node:fs';
-          import path from 'node:path';
-          import { stripVTControlCharacters } from 'node:util';
-
-          const [, , input = 'test-results/results.json', output = 'test-results/summary.txt'] = process.argv;
-          const lines = [];
-
-          function stripAnsi(value) {
-            return stripVTControlCharacters(String(value || ''));
-          }
-
-          function addFailure(spec, test, ancestors) {
-            const failedResults = (test.results || []).filter(result =>
-              ['failed', 'timedOut', 'interrupted'].includes(result.status)
-            );
-            if (!failedResults.length && test.status !== 'unexpected') {
-              return;
-            }
-
-            lines.push('');
-            lines.push(
-              `FAIL: ${[...ancestors, spec.title].filter(Boolean).join(' > ')} ` +
-                `[${test.projectName || 'unknown project'}]`
-            );
-
-            for (const result of failedResults) {
-              for (const error of result.errors || []) {
-                const message = stripAnsi(error.message || error.value || error.stack || error).slice(0, 6000);
-                if (message) {
-                  lines.push(message);
-                }
-              }
-            }
-          }
-
-          function walk(suite, ancestors = []) {
-            const nextAncestors = suite.title ? [...ancestors, suite.title] : ancestors;
-            for (const spec of suite.specs || []) {
-              for (const test of spec.tests || []) {
-                addFailure(spec, test, nextAncestors);
-              }
-            }
-            for (const child of suite.suites || []) {
-              walk(child, nextAncestors);
-            }
-          }
-
-          try {
-            if (!fs.existsSync(input)) {
-              lines.push(`Playwright JSON results were not produced at ${input}.`);
-            } else {
-              const report = JSON.parse(fs.readFileSync(input, 'utf8'));
-              const stats = report.stats || {};
-              lines.push(
-                `expected=${stats.expected ?? 0} unexpected=${stats.unexpected ?? 0} ` +
-                  `flaky=${stats.flaky ?? 0} skipped=${stats.skipped ?? 0}`
-              );
-              for (const suite of report.suites || []) {
-                walk(suite);
-              }
-            }
-          } catch (error) {
-            lines.push(`Unable to parse ${input}: ${stripAnsi(error?.stack || error)}`);
-          }
-
-          fs.mkdirSync(path.dirname(output), { recursive: true });
-          fs.writeFileSync(output, `${lines.join('\n').slice(0, 100000)}\n`);
-          console.log(fs.readFileSync(output, 'utf8'));
-          EOF
+          git apply --check .github/pr1351-repair.patch
+          git apply .github/pr1351-repair.patch
 
       - name: Format and lint changed source
         run: |
@@ -269,8 +66,17 @@ jobs:
           --update-snapshots
           --reporter=list
 
+      - name: Verify generated baseline inventory
+        run: |
+          count="$(find tests/visual/__screenshots__/visual-regression.spec.mjs -maxdepth 1 -type f -name '*.png' | wc -l | tr -d ' ')"
+          if [ "$count" -ne 10 ]; then
+            echo "::error::Expected 10 visual baselines, found $count"
+            exit 1
+          fi
+
       - name: Commit repaired branch
         run: |
+          rm -f .github/pr1351-repair.patch
           rm -f .github/workflows/export-pr-source.yml
           rm -f .github/workflows/apply-pr1351-repair.yml
           git config user.name "github-actions[bot]"
