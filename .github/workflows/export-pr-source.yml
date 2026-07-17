@@ -1,6 +1,9 @@
 name: Export PR Source
 
 on:
+  pull_request:
+    branches:
+      - main
   push:
     branches:
       - codex/build-availability-aware-marketplace-and-quote-system
