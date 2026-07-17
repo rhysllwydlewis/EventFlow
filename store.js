@@ -46,6 +46,8 @@ const files = {
   reviewVotes: path.join(DATA_DIR, 'reviewVotes.json'),
   reviewModerations: path.join(DATA_DIR, 'reviewModerations.json'),
   popularSearches: path.join(DATA_DIR, 'popularSearches.json'),
+  system_checks: path.join(DATA_DIR, 'system_checks.json'),
+  background_job_runs: path.join(DATA_DIR, 'background_job_runs.json'),
   ab_views: path.join(DATA_DIR, 'ab_views.json'),
   ab_conversions: path.join(DATA_DIR, 'ab_conversions.json'),
   public_calendar_events: path.join(DATA_DIR, 'public_calendar_events.json'),
@@ -55,7 +57,10 @@ const files = {
   partner_referrals: path.join(DATA_DIR, 'partner_referrals.json'),
   partner_credit_transactions: path.join(DATA_DIR, 'partner_credit_transactions.json'),
   // Calendar and event collections (customer_calendar_entries already registered above)
-  public_calendar_event_reports: path.join(DATA_DIR, 'public_calendar_event_reports.json'),
+  public_calendar_event_reports: path.join(
+    DATA_DIR,
+    'public_calendar_event_reports.json'
+  ),
   public_calendar_publisher_requests: path.join(
     DATA_DIR,
     'public_calendar_publisher_requests.json'
