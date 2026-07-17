@@ -22,7 +22,7 @@ jobs:
   container-evidence:
     name: Container scan, SBOM and provenance
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 45
 
     steps:
       - name: Checkout repository
@@ -41,9 +41,13 @@ jobs:
         run: npm ci --prefer-offline --no-audit
 
       - name: Build production image
-        run: docker build --tag eventflow:${{ github.sha }} .
+        run: |
+          docker build --tag eventflow:${{ github.sha }} .
+          docker save eventflow:${{ github.sha }} | gzip -1 > eventflow-image-${{ github.sha }}.tar.gz
 
       - name: Scan production image
+        id: trivy
+        continue-on-error: true
         uses: aquasecurity/trivy-action@0.28.0
         with:
           image-ref: eventflow:${{ github.sha }}
@@ -60,16 +64,16 @@ jobs:
           format: spdx-json
           output-file: eventflow-${{ github.sha }}.spdx.json
 
-      - name: Attest SBOM
+      - name: Attest container SBOM
         uses: actions/attest-sbom@v2
         with:
-          subject-path: eventflow-${{ github.sha }}.spdx.json
+          subject-path: eventflow-image-${{ github.sha }}.tar.gz
           sbom-path: eventflow-${{ github.sha }}.spdx.json
 
-      - name: Attest build evidence
+      - name: Attest container build provenance
         uses: actions/attest-build-provenance@v2
         with:
-          subject-path: eventflow-${{ github.sha }}.spdx.json
+          subject-path: eventflow-image-${{ github.sha }}.tar.gz
 
       - name: Upload supply-chain evidence
         if: always()
@@ -77,7 +81,15 @@ jobs:
         with:
           name: supply-chain-evidence-${{ github.sha }}
           path: |
+            eventflow-image-${{ github.sha }}.tar.gz
             eventflow-${{ github.sha }}.spdx.json
             trivy-results.sarif
           if-no-files-found: warn
-          retention-days: 30
+          retention-days: 14
+          compression-level: 0
+
+      - name: Enforce container vulnerability result
+        if: always() && steps.trivy.outcome == 'failure'
+        run: |
+          echo "::error::Trivy found an unfixed high or critical vulnerability in the production image."
+          exit 1
