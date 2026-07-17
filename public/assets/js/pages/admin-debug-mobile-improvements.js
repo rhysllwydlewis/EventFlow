@@ -23,7 +23,9 @@
 
     const warningEvidence = [warning.title, warning.textContent].filter(Boolean).join(' ').trim();
     const redirectEvidence = [redirect.title, redirect.textContent].filter(Boolean).join(' ');
-    return /^Auth redirect\b/i.test(warningEvidence) && AUTH_REDIRECT_PATTERN.test(redirectEvidence);
+    return (
+      /^Auth redirect\b/i.test(warningEvidence) && AUTH_REDIRECT_PATTERN.test(redirectEvidence)
+    );
   }
 
   function classifyRow(row) {
