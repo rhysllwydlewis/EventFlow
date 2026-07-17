@@ -202,7 +202,7 @@
 (function loadAdminDebugMobileImprovements() {
   'use strict';
 
-  const version = '18.6.0';
+  const version = '18.6.1';
   const stylesheetPath = `/assets/css/admin-debug-mobile-improvements.css?v=${version}`;
   const scriptPath = `/assets/js/pages/admin-debug-mobile-improvements.js?v=${version}`;
 
