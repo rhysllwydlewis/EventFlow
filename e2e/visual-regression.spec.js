@@ -80,7 +80,9 @@ test.describe('Visual Regression - Mobile Layout Contracts @visual', () => {
     await attachViewport(page, testInfo, 'mobile-menu-closed');
   });
 
-  test('index.html - open navigation exposes an accessible, in-bounds menu', async ({ page }, testInfo) => {
+  test('index.html - open navigation exposes an accessible, in-bounds menu', async ({
+    page,
+  }, testInfo) => {
     const toggle = page.locator('#ef-mobile-toggle');
     const menu = page.locator('#ef-mobile-menu');
 
@@ -105,7 +107,9 @@ test.describe('Visual Regression - Mobile Layout Contracts @visual', () => {
     await attachViewport(page, testInfo, 'mobile-menu-open');
   });
 
-  test('index.html - hero search controls remain usable and do not overlap', async ({ page }, testInfo) => {
+  test('index.html - hero search controls remain usable and do not overlap', async ({
+    page,
+  }, testInfo) => {
     const menu = page.locator('#ef-mobile-menu');
     const form = page.locator('.ef-search-bar__form');
     const input = page.locator('.ef-search-bar__input');
@@ -149,9 +153,9 @@ test.describe('Visual Regression - Mobile Layout Contracts @visual', () => {
     const after = await captureClosedLayout(page);
     for (const selector of Object.keys(before)) {
       for (const property of ['x', 'y', 'width', 'height']) {
-        expect(Math.abs(after[selector][property] - before[selector][property])).toBeLessThanOrEqual(
-          1
-        );
+        expect(
+          Math.abs(after[selector][property] - before[selector][property])
+        ).toBeLessThanOrEqual(1);
       }
     }
 
