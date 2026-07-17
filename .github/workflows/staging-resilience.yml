@@ -1,0 +1,112 @@
+name: Staging Resilience
+
+on:
+  schedule:
+    - cron: '29 5 * * 0'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: staging-resilience
+  cancel-in-progress: false
+
+env:
+  HUSKY: '0'
+  STAGING_URL: ${{ secrets.STAGING_URL }}
+
+jobs:
+  read-only-load:
+    name: Read-only staging load thresholds
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.node-version'
+          cache: npm
+      - run: npm run check:lockfile
+      - run: npm ci --prefer-offline --no-audit
+
+      - name: Check staging target configuration
+        id: target
+        shell: bash
+        run: |
+          if [[ -z "${STAGING_URL:-}" ]]; then
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "STAGING_URL is not configured; the non-destructive resilience run was skipped." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "available=true" >> "$GITHUB_OUTPUT"
+            echo "Running against configured staging environment." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Run read-only resilience profile
+        if: steps.target.outputs.available == 'true'
+        run: |
+          mkdir -p reports/load
+          npx artillery run tests/load/read-only-smoke.yml --output reports/load/read-only.json
+          npx artillery report reports/load/read-only.json --output reports/load/read-only.html
+
+      - name: Upload resilience evidence
+        if: always() && steps.target.outputs.available == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: staging-resilience-report
+          path: reports/load
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Create or update staging regression issue
+        if: failure() && steps.target.outputs.available == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = '[automation] Staging resilience thresholds failing';
+            const { owner, repo } = context.repo;
+            const issues = await github.paginate(github.rest.issues.listForRepo, {
+              owner,
+              repo,
+              state: 'open',
+              per_page: 100,
+            });
+            const existing = issues.find(issue => issue.title === title);
+            const runUrl = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
+            const body = `The read-only staging resilience profile failed on commit \`${context.sha}\`.\n\n[Open the workflow run](${runUrl}) and inspect the Artillery report. No registration, payment, messaging or other mutating scenarios are included.`;
+            if (existing) {
+              await github.rest.issues.createComment({ owner, repo, issue_number: existing.number, body });
+            } else {
+              await github.rest.issues.create({ owner, repo, title, body });
+            }
+
+      - name: Close recovered staging regression issue
+        if: success() && steps.target.outputs.available == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = '[automation] Staging resilience thresholds failing';
+            const { owner, repo } = context.repo;
+            const issues = await github.paginate(github.rest.issues.listForRepo, {
+              owner,
+              repo,
+              state: 'open',
+              per_page: 100,
+            });
+            const existing = issues.find(issue => issue.title === title);
+            if (existing) {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: existing.number,
+                body: `Staging resilience recovered on commit \`${context.sha}\`. Closing automatically.`,
+              });
+              await github.rest.issues.update({
+                owner,
+                repo,
+                issue_number: existing.number,
+                state: 'closed',
+                state_reason: 'completed',
+              });
+            }
