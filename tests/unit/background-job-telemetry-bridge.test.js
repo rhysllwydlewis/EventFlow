@@ -392,6 +392,7 @@ describe('background job telemetry bridge', () => {
       fs.readFileSync(path.join(repositoryRoot, 'package.json'), 'utf8')
     );
     const dockerfile = fs.readFileSync(path.join(repositoryRoot, 'Dockerfile'), 'utf8');
+    const storeSource = fs.readFileSync(path.join(repositoryRoot, 'store.js'), 'utf8');
 
     expect(packageJson.scripts.dev).toContain('-r ./services/backgroundJobTelemetryBridge.js');
     expect(packageJson.scripts.start).toContain('-r ./services/backgroundJobTelemetryBridge.js');
@@ -400,6 +401,10 @@ describe('background job telemetry bridge', () => {
     );
     expect(dockerfile).toContain('-r');
     expect(dockerfile).toContain('./services/backgroundJobTelemetryBridge.js');
+    expect(storeSource).toContain("system_checks: path.join(DATA_DIR, 'system_checks.json')");
+    expect(storeSource).toContain(
+      "background_job_runs: path.join(DATA_DIR, 'background_job_runs.json')"
+    );
   });
 
   test('wraps date and badge execution while preserving results and failures', async () => {
