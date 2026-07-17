@@ -132,7 +132,7 @@
     "prettier": "^3.7.4",
     "supertest": "^6.3.4",
     "typescript": "^7.0.2",
-    "xlsx": "0.18.5"
+    "xlsx": "^0.18.5"
   },
   "lint-staged": {
     "*.js": [
@@ -146,7 +146,7 @@
   "overrides": {
     "filelist": ">=1.0.5",
     "engine.io": "6.6.9",
-    "socket.io-adapter": "^2.5.8",
+    "socket.io-adapter": "2.5.8",
     "ws": "8.21.0"
   }
 }
