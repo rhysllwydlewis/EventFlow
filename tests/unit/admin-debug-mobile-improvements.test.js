@@ -22,7 +22,7 @@ describe('admin debug mobile improvements', () => {
     expect(loader).toContain('/assets/js/pages/admin-debug-mobile-improvements.js');
     expect(loader).toContain('data-admin-debug-mobile-improvements');
     const html = read('public/admin-debug.html');
-    expect(html).toContain('/assets/js/pages/admin-debug-background-jobs.js?v=18.6.0');
+    expect(html).toContain('/assets/js/pages/admin-debug-background-jobs.js?v=18.6.1');
   });
 
   test('adds scrollable tabs, mutually exclusive summary figures and grouped results', () => {
@@ -157,6 +157,9 @@ describe('admin debug mobile improvements', () => {
     expect(styles).toContain('cursor: default');
     expect(styles).toContain('position: sticky');
     expect(styles).toContain('grid-template-columns: auto minmax(0, 1fr)');
+    expect(styles).toContain(
+      'text-align: left;\n    white-space: normal;\n    overflow-wrap: anywhere;'
+    );
     expect(styles).toContain('.sc-summary-card.sc-summary-card--mobile-enhanced');
     expect(styles).toContain('#sc-run-status:empty');
     expect(styles).toContain('background: var(--color-background, #f8fafc)');

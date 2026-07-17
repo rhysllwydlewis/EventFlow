@@ -329,6 +329,8 @@
     grid-row: auto;
     justify-self: start;
     text-align: left;
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
 
   .sc-check-meta {
