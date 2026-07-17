@@ -79,6 +79,7 @@ describe('background job telemetry', () => {
       read: jest.fn().mockResolvedValue({
         emailAutomation: {
           actionPrompts: {
+            cron: '30 8 * * *',
             runHistory: [
               {
                 startedAt: '2026-07-17T09:00:00.000Z',
@@ -141,8 +142,12 @@ describe('background job telemetry', () => {
     expect(data.jobs.find(job => job.key === JOB_KEYS.SYSTEM_CHECKS)).toEqual(
       expect.objectContaining({ health: 'warning', telemetry: 'partial' })
     );
-    expect(data.jobs.find(job => job.key === JOB_KEYS.ACTION_PROMPTS).latestMetrics).toEqual(
-      expect.objectContaining({ scanned: 20, sent: 4 })
+    expect(data.jobs.find(job => job.key === JOB_KEYS.ACTION_PROMPTS)).toEqual(
+      expect.objectContaining({
+        schedule: '30 8 * * *',
+        scheduleSource: 'settings',
+        latestMetrics: expect.objectContaining({ scanned: 20, sent: 4 }),
+      })
     );
     expect(data.jobs.find(job => job.key === JOB_KEYS.DATE_MANAGEMENT).nextRun).toBe(
       '2026-08-01T02:00:00.000Z'
