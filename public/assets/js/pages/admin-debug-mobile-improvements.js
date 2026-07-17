@@ -318,10 +318,18 @@
         }
         event.preventDefault();
         let nextIndex = index;
-        if (event.key === 'ArrowLeft') nextIndex = Math.max(0, index - 1);
-        if (event.key === 'ArrowRight') nextIndex = Math.min(buttons.length - 1, index + 1);
-        if (event.key === 'Home') nextIndex = 0;
-        if (event.key === 'End') nextIndex = buttons.length - 1;
+        if (event.key === 'ArrowLeft') {
+          nextIndex = Math.max(0, index - 1);
+        }
+        if (event.key === 'ArrowRight') {
+          nextIndex = Math.min(buttons.length - 1, index + 1);
+        }
+        if (event.key === 'Home') {
+          nextIndex = 0;
+        }
+        if (event.key === 'End') {
+          nextIndex = buttons.length - 1;
+        }
         buttons[nextIndex].focus();
         buttons[nextIndex].click();
       });

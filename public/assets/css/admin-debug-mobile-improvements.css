@@ -117,9 +117,7 @@
   border-color: #10b981;
 }
 
-.sc-check-groups
-  .sc-check-group--attention.sc-check-group--empty
-  .sc-check-group-heading {
+.sc-check-groups .sc-check-group--attention.sc-check-group--empty .sc-check-group-heading {
   background: #ecfdf5;
   color: #065f46;
 }
