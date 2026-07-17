@@ -113,7 +113,7 @@ router.get(
         historyLimit: 1,
       });
       const attention = data.jobs
-        .filter(job => ['failed', 'overdue', 'warning', 'unknown'].includes(job.health))
+        .filter(job => ['failed', 'overdue', 'warning'].includes(job.health))
         .map(job => ({
           key: job.key,
           name: job.name,
