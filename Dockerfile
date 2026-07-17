@@ -38,5 +38,5 @@ EXPOSE 3000
 HEALTHCHECK --interval=10s --timeout=5s --start-period=10s --retries=3 \
   CMD sh -c 'curl -f http://localhost:${PORT:-3000}/api/health || exit 1'
 
-# Start the server
-CMD ["node", "server.js"]
+# Start the server with background-job telemetry instrumentation preloaded.
+CMD ["node", "-r", "./services/backgroundJobTelemetryBridge.js", "server.js"]
