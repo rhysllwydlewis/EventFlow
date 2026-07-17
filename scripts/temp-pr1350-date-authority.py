@@ -114,6 +114,13 @@ replace(
 )
 replace(
     "tests/unit/background-job-trigger-attribution.test.js",
+    "    expect(job.history[0].trigger).toBe('manual');",
+    "    expect(job.history).toEqual(\n"
+    "      expect.arrayContaining([expect.objectContaining({ trigger: 'manual' })])\n"
+    "    );",
+)
+replace(
+    "tests/unit/background-job-trigger-attribution.test.js",
     "    const scheduler = fs.readFileSync(path.join(root, 'services/actionPromptScheduler.js'), 'utf8');",
     "    const scheduler = fs.readFileSync(path.join(root, 'services/actionPromptScheduler.js'), 'utf8');\n"
     "    const dateService = fs.readFileSync(path.join(root, 'services/dateManagementService.js'), 'utf8');",
