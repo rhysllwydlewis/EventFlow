@@ -1,0 +1,89 @@
+name: Apply final Admin Debug review fixes
+
+on:
+  push:
+    branches:
+      - agent/admin-debug-mobile-mop-up
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/admin-debug-mobile-mop-up
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Apply review fixes
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          css_path = Path('public/assets/css/admin-debug-mobile-improvements.css')
+          css = css_path.read_text()
+          old_css = """  .sc-check-outcome {
+              grid-column: 2;
+              grid-row: auto;
+              justify-self: start;
+              text-align: left;
+            }
+          """
+          new_css = """  .sc-check-outcome {
+              grid-column: 2;
+              grid-row: auto;
+              justify-self: start;
+              text-align: left;
+              white-space: normal;
+              overflow-wrap: anywhere;
+            }
+          """
+          if css.count(old_css) != 1:
+              raise SystemExit('Expected one mobile check-outcome rule')
+          css_path.write_text(css.replace(old_css, new_css))
+
+          test_path = Path('tests/unit/admin-debug-mobile-improvements.test.js')
+          test = test_path.read_text()
+          old_version = '/assets/js/pages/admin-debug-background-jobs.js?v=18.6.0'
+          new_version = '/assets/js/pages/admin-debug-background-jobs.js?v=18.6.1'
+          if test.count(old_version) != 1:
+              raise SystemExit('Expected one parent bundle version assertion')
+          test = test.replace(old_version, new_version)
+          old_assertion = "    expect(styles).toContain('grid-template-columns: auto minmax(0, 1fr)');\n"
+          new_assertion = old_assertion + (
+              "    expect(styles).toContain(\n"
+              "      'text-align: left;\\n    white-space: normal;\\n    overflow-wrap: anywhere;'\n"
+              "    );\n"
+          )
+          if test.count(old_assertion) != 1:
+              raise SystemExit('Expected one mobile grid assertion')
+          test_path.write_text(test.replace(old_assertion, new_assertion))
+          PY
+
+          npx prettier --write \
+            public/assets/css/admin-debug-mobile-improvements.css \
+            tests/unit/admin-debug-mobile-improvements.test.js
+          rm .github/workflows/temp-fix-admin-debug-mobile-review.yml
+          git diff --check
+
+      - name: Commit fixes and remove helper
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add \
+            public/assets/css/admin-debug-mobile-improvements.css \
+            tests/unit/admin-debug-mobile-improvements.test.js \
+            .github/workflows/temp-fix-admin-debug-mobile-review.yml
+          git commit -m 'Address final Admin Debug review findings'
+          git push origin HEAD:agent/admin-debug-mobile-mop-up
