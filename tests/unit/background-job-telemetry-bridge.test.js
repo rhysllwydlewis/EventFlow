@@ -1,7 +1,6 @@
 'use strict';
 
-const originalBridgeAutoinstall =
-  process.env.BACKGROUND_JOB_TELEMETRY_BRIDGE_AUTOINSTALL;
+const originalBridgeAutoinstall = process.env.BACKGROUND_JOB_TELEMETRY_BRIDGE_AUTOINSTALL;
 process.env.BACKGROUND_JOB_TELEMETRY_BRIDGE_AUTOINSTALL = 'false';
 
 const fs = require('fs');
