@@ -53,5 +53,7 @@ test('admin email previews gallery renders cards and preview frames with mocked 
   await expect(page.getByRole('heading', { name: 'Email template previews' })).toBeVisible();
   await expect(page.locator('.email-preview-card')).toHaveCount(2);
   await expect(page.locator('iframe.email-preview-frame')).toHaveCount(2);
-  await expect(page.getByText('subscription-payment-failed')).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'subscription-payment-failed', exact: true })
+  ).toBeVisible();
 });
