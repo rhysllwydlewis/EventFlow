@@ -56,19 +56,19 @@
   gap: 0.75rem;
 }
 
-.sc-check-group {
+.sc-check-groups .sc-check-group {
   overflow: hidden;
   border: 1px solid var(--color-border, #e5e7eb);
   border-radius: 12px;
   background: var(--color-surface, #fff);
 }
 
-.sc-check-group[hidden] {
+.sc-check-groups .sc-check-group[hidden] {
   display: none;
 }
 
-.sc-check-group > summary,
-.sc-check-group-heading {
+.sc-check-groups .sc-check-group > summary,
+.sc-check-groups .sc-check-group-heading {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -82,41 +82,41 @@
   list-style: none;
 }
 
-.sc-check-group > summary::-webkit-details-marker {
+.sc-check-groups .sc-check-group > summary::-webkit-details-marker {
   display: none;
 }
 
-.sc-check-group > summary::after {
+.sc-check-groups .sc-check-group > summary::after {
   content: '›';
   flex: 0 0 auto;
   transform: rotate(90deg);
   transition: transform 0.15s ease;
 }
 
-.sc-check-group[open] > summary::after {
+.sc-check-groups .sc-check-group[open] > summary::after {
   transform: rotate(-90deg);
 }
 
-.sc-check-group--attention {
+.sc-check-groups .sc-check-group--attention {
   border-color: #f59e0b;
 }
 
-.sc-check-group--attention .sc-check-group-heading {
+.sc-check-groups .sc-check-group--attention .sc-check-group-heading {
   background: #fffbeb;
   color: #92400e;
 }
 
-.sc-check-group--protected > summary {
+.sc-check-groups .sc-check-group--protected > summary {
   background: #eff6ff;
   color: #1e40af;
 }
 
-.sc-check-group--passed > summary {
+.sc-check-groups .sc-check-group--passed > summary {
   background: #ecfdf5;
   color: #065f46;
 }
 
-.sc-check-group-count {
+.sc-check-groups .sc-check-group-count {
   flex: 0 0 auto;
   min-width: 1.75rem;
   padding: 0.1rem 0.45rem;
@@ -125,7 +125,7 @@
   text-align: center;
 }
 
-.sc-check-group-body {
+.sc-check-groups .sc-check-group-body {
   display: grid;
 }
 
@@ -315,7 +315,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .sc-check-group > summary::after {
+  .sc-check-groups .sc-check-group > summary::after {
     transition: none;
   }
 }
