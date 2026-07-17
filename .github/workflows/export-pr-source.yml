@@ -16,10 +16,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Checkout branch
+      - name: Checkout branch head
         uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 1
+
+      - name: Report head tree
+        run: echo "HEAD_TREE_SHA=$(git rev-parse HEAD^{tree})"
 
       - name: Create source archive
         run: |
