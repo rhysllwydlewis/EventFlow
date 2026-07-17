@@ -58,7 +58,6 @@ jobs:
 
   e2e-auth:
     name: E2E Auth Focus
-    # The test step gets 30 minutes, with extra job time reserved for artifact upload.
     timeout-minutes: 35
     runs-on: ubuntu-latest
     needs: setup
@@ -134,15 +133,14 @@ jobs:
           retention-days: 30
 
   e2e:
-    name: E2E Tests Part ${{ matrix.shard }} of 4
-    # The test step gets 30 minutes, with extra job time reserved for artifact upload.
+    name: E2E Tests Part ${{ matrix.shard }} of 2
     timeout-minutes: 35
     runs-on: ubuntu-latest
     needs: setup
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4]
+        shard: [1, 2]
 
     steps:
       - name: Checkout code
@@ -171,10 +169,10 @@ jobs:
         if: steps.restore-pw-cache.outputs.cache-hit != 'true'
         run: npx playwright install chromium
 
-      - name: Run E2E tests part ${{ matrix.shard }} of 4
+      - name: Run E2E tests part ${{ matrix.shard }} of 2
         id: e2e-run
         timeout-minutes: 30
-        run: npm run test:e2e:static -- --shard=${{ matrix.shard }}/4
+        run: npm run test:e2e:static -- --shard=${{ matrix.shard }}/2
         env:
           CI: true
           PLAYWRIGHT_JSON_OUTPUT_NAME: test-results/part-${{ matrix.shard }}-results.json
@@ -219,7 +217,6 @@ jobs:
 
   visual-regression:
     name: Visual Regression Tests
-    # The test step gets 30 minutes, with extra job time reserved for artifact upload.
     timeout-minutes: 35
     runs-on: ubuntu-latest
     needs: [setup, e2e]
