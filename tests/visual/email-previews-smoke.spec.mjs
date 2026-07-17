@@ -22,7 +22,18 @@ const sampleTemplates = [
   },
 ];
 
-test('admin email previews gallery renders cards and preview frames with mocked admin API', async ({ page }) => {
+test('admin email previews gallery renders cards and preview frames with mocked admin API', async ({
+  page,
+}) => {
+  await page.route('**/api/v1/auth/me*', route => {
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        user: { id: 'visual-admin', role: 'admin', email: 'admin@example.com' },
+      }),
+    });
+  });
   await page.route('**/api/admin/email-previews', route => {
     route.fulfill({
       status: 200,
@@ -31,12 +42,18 @@ test('admin email previews gallery renders cards and preview frames with mocked 
     });
   });
   await page.route('**/api/csrf-token', route => {
-    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ csrfToken: 'visual-token' }) });
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ csrfToken: 'visual-token' }),
+    });
   });
 
-  await page.goto('/admin-email-previews.html', { waitUntil: 'domcontentloaded' });
+  await page.goto('/admin-email-previews', { waitUntil: 'domcontentloaded' });
   await expect(page.getByRole('heading', { name: 'Email template previews' })).toBeVisible();
   await expect(page.locator('.email-preview-card')).toHaveCount(2);
   await expect(page.locator('iframe.email-preview-frame')).toHaveCount(2);
-  await expect(page.getByText('subscription-payment-failed')).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'subscription-payment-failed', exact: true })
+  ).toBeVisible();
 });

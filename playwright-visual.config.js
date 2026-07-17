@@ -2,13 +2,12 @@
 import { defineConfig, devices } from '@playwright/test';
 
 /**
- * Visual regression + accessibility Playwright config (B4 + B6).
+ * Visual regression + accessibility Playwright config.
  *
- * This is a *separate* config from `playwright.config.js` because:
- *   - Visual snapshots should only run against the static-mode server to
- *     keep baselines deterministic (no database / timestamps / random IDs).
- *   - The main e2e suite runs every PR; the visual suite is soft-fail for
- *     the first 2 weeks (see `.github/workflows/visual-regression.yml`).
+ * This is a separate config from `playwright.config.js` because:
+ *   - visual snapshots run against the deterministic static-mode server;
+ *   - the dedicated workflow keeps screenshot and axe failures independently blocking;
+ *   - CI receives a larger, bounded per-test timeout for full-page screenshots and axe scans.
  */
 export default defineConfig({
   testDir: './tests/visual',
@@ -16,6 +15,7 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   workers: process.env.CI ? 2 : undefined,
+  timeout: process.env.CI ? 90 * 1000 : 45 * 1000,
   reporter: [
     ['html', { outputFolder: 'visual-report' }],
     [
@@ -31,8 +31,9 @@ export default defineConfig({
     screenshot: 'only-on-failure',
   },
   expect: {
+    timeout: 20 * 1000,
     // Small per-pixel tolerance to survive harmless AA-font shifts between
-    // Chromium patch releases. Raise only if baselines stabilise.
+    // Chromium patch releases. Raise only after reviewing stable baselines.
     toHaveScreenshot: { maxDiffPixelRatio: 0.02 },
   },
   snapshotPathTemplate: '{testDir}/__screenshots__/{testFilePath}/{arg}-{projectName}{ext}',

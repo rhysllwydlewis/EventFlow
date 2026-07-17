@@ -36,7 +36,10 @@ async function sendRenderedHtml(req, res, fileName) {
 // (server only listens on 127.0.0.1 so this is defence-in-depth)
 const staticLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
-  max: 3000, // generous limit — E2E test suites issue many requests per page load
+  // This server is loopback-only and browser suites run many workers in parallel.
+  // Keep a defensive ceiling without allowing the test harness to throttle its
+  // own assets, service worker and API fixtures into cascading HTTP 429 failures.
+  max: 100000,
   standardHeaders: true,
   legacyHeaders: false,
 });

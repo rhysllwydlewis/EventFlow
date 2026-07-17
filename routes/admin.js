@@ -3319,6 +3319,9 @@ router.get('/settings/features', authRequired, roleRequired('admin'), async (req
       photoAutoApprove: features.photoAutoApprove !== false,
       autoApproveReviews: features.autoApproveReviews !== false,
       autoApproveSupplierVerification: features.autoApproveSupplierVerification === true,
+      marketplaceAvailability: features.marketplaceAvailability === true,
+      quoteBooking: features.quoteBooking === true,
+      bookingPayments: features.bookingPayments === true,
       updatedAt: features.updatedAt,
       updatedBy: features.updatedBy,
     };
@@ -3358,6 +3361,9 @@ router.put(
         photoAutoApprove,
         autoApproveReviews,
         autoApproveSupplierVerification,
+        marketplaceAvailability,
+        quoteBooking,
+        bookingPayments,
       } = req.body;
 
       logger.info(`[${requestId}] Request body validated, reading current settings...`);
@@ -3390,6 +3396,9 @@ router.put(
         'photoAutoApprove',
         'autoApproveReviews',
         'autoApproveSupplierVerification',
+        'marketplaceAvailability',
+        'quoteBooking',
+        'bookingPayments',
       ];
 
       for (const flag of featureFlags) {
@@ -3415,6 +3424,9 @@ router.put(
         photoAutoApprove: photoAutoApprove !== false,
         autoApproveReviews: autoApproveReviews !== false,
         autoApproveSupplierVerification: autoApproveSupplierVerification === true,
+        marketplaceAvailability: marketplaceAvailability === true,
+        quoteBooking: quoteBooking === true,
+        bookingPayments: bookingPayments === true,
         updatedAt: new Date().toISOString(),
         updatedBy: req.user.email,
       };
@@ -4156,6 +4168,9 @@ router.get('/public/features', async (req, res) => {
       photoUploads: features.photoUploads !== false,
       supportTickets: features.supportTickets !== false,
       pexelsCollage: features.pexelsCollage === true,
+      marketplaceAvailability: features.marketplaceAvailability === true,
+      quoteBooking: features.quoteBooking === true,
+      bookingPayments: features.bookingPayments === true,
     });
   } catch (error) {
     logger.error('Error reading feature flags:', error);
@@ -4167,6 +4182,9 @@ router.get('/public/features', async (req, res) => {
       photoUploads: true,
       supportTickets: true,
       pexelsCollage: false,
+      marketplaceAvailability: false,
+      quoteBooking: false,
+      bookingPayments: false,
     });
   }
 });

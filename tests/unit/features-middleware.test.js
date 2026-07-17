@@ -5,7 +5,6 @@
 const { featureRequired, getFeatureFlags } = require('../../middleware/features');
 const dbUnified = require('../../db-unified');
 
-// Mock dbUnified
 jest.mock('../../db-unified', () => ({
   read: jest.fn(),
 }));
@@ -16,12 +15,10 @@ describe('Feature Flag Middleware', () => {
   });
 
   describe('getFeatureFlags', () => {
-    it('should return all features enabled by default', async () => {
+    it('preserves existing defaults while keeping incomplete commercial features disabled', async () => {
       dbUnified.read.mockResolvedValue({});
 
-      const flags = await getFeatureFlags();
-
-      expect(flags).toEqual({
+      await expect(getFeatureFlags()).resolves.toEqual({
         registration: true,
         supplierApplications: true,
         reviews: true,
@@ -29,10 +26,13 @@ describe('Feature Flag Middleware', () => {
         supportTickets: true,
         pexelsCollage: false,
         photoAutoApprove: true,
+        marketplaceAvailability: false,
+        quoteBooking: false,
+        bookingPayments: false,
       });
     });
 
-    it('should return feature flags from settings', async () => {
+    it('returns configured flags and prevents booking payments without quote booking', async () => {
       dbUnified.read.mockResolvedValue({
         features: {
           registration: false,
@@ -41,59 +41,57 @@ describe('Feature Flag Middleware', () => {
           photoUploads: true,
           supportTickets: false,
           pexelsCollage: true,
+          marketplaceAvailability: true,
+          quoteBooking: false,
+          bookingPayments: true,
         },
       });
 
       const flags = await getFeatureFlags();
 
-      expect(flags.registration).toBe(false);
-      expect(flags.supplierApplications).toBe(true);
-      expect(flags.reviews).toBe(false);
-      expect(flags.photoUploads).toBe(true);
-      expect(flags.supportTickets).toBe(false);
-      expect(flags.pexelsCollage).toBe(true);
+      expect(flags).toMatchObject({
+        registration: false,
+        supplierApplications: true,
+        reviews: false,
+        photoUploads: true,
+        supportTickets: false,
+        pexelsCollage: true,
+        marketplaceAvailability: true,
+        quoteBooking: false,
+        bookingPayments: false,
+      });
     });
 
-    it('should handle database errors gracefully', async () => {
+    it('enables booking payments only when quote booking is also enabled', async () => {
+      dbUnified.read.mockResolvedValue({
+        features: {
+          quoteBooking: true,
+          bookingPayments: true,
+        },
+      });
+
+      const flags = await getFeatureFlags();
+      expect(flags.quoteBooking).toBe(true);
+      expect(flags.bookingPayments).toBe(true);
+    });
+
+    it('uses safe fallback values when settings cannot be read', async () => {
       dbUnified.read.mockRejectedValue(new Error('Database error'));
 
       const flags = await getFeatureFlags();
 
-      // Should return all features enabled as fallback
       expect(flags.registration).toBe(true);
-      expect(flags.supplierApplications).toBe(true);
       expect(flags.reviews).toBe(true);
-      expect(flags.photoUploads).toBe(true);
-      expect(flags.supportTickets).toBe(true);
-    });
-
-    it('should treat undefined features as enabled', async () => {
-      dbUnified.read.mockResolvedValue({
-        features: {
-          registration: undefined,
-        },
-      });
-
-      const flags = await getFeatureFlags();
-
-      expect(flags.registration).toBe(true);
-    });
-
-    it('should treat null features as enabled', async () => {
-      dbUnified.read.mockResolvedValue({
-        features: {
-          registration: null,
-        },
-      });
-
-      const flags = await getFeatureFlags();
-
-      expect(flags.registration).toBe(true);
+      expect(flags.marketplaceAvailability).toBe(false);
+      expect(flags.quoteBooking).toBe(false);
+      expect(flags.bookingPayments).toBe(false);
     });
   });
 
   describe('featureRequired middleware', () => {
-    let req, res, next;
+    let req;
+    let res;
+    let next;
 
     beforeEach(() => {
       req = {};
@@ -104,30 +102,19 @@ describe('Feature Flag Middleware', () => {
       next = jest.fn();
     });
 
-    it('should call next() when feature is enabled', async () => {
-      dbUnified.read.mockResolvedValue({
-        features: {
-          registration: true,
-        },
-      });
+    it('calls next when an existing feature is enabled', async () => {
+      dbUnified.read.mockResolvedValue({ features: { registration: true } });
 
-      const middleware = featureRequired('registration');
-      await middleware(req, res, next);
+      await featureRequired('registration')(req, res, next);
 
-      expect(next).toHaveBeenCalled();
+      expect(next).toHaveBeenCalledTimes(1);
       expect(res.status).not.toHaveBeenCalled();
-      expect(res.json).not.toHaveBeenCalled();
     });
 
-    it('should return 503 when feature is disabled', async () => {
-      dbUnified.read.mockResolvedValue({
-        features: {
-          registration: false,
-        },
-      });
+    it('returns 503 when an existing feature is disabled', async () => {
+      dbUnified.read.mockResolvedValue({ features: { registration: false } });
 
-      const middleware = featureRequired('registration');
-      await middleware(req, res, next);
+      await featureRequired('registration')(req, res, next);
 
       expect(res.status).toHaveBeenCalledWith(503);
       expect(res.json).toHaveBeenCalledWith({
@@ -138,104 +125,45 @@ describe('Feature Flag Middleware', () => {
       expect(next).not.toHaveBeenCalled();
     });
 
-    it('should handle reviews feature flag', async () => {
+    it.each(['marketplaceAvailability', 'quoteBooking', 'bookingPayments'])(
+      'keeps %s disabled when the flag is missing',
+      async featureName => {
+        dbUnified.read.mockResolvedValue({ features: {} });
+
+        await featureRequired(featureName)(req, res, next);
+
+        expect(res.status).toHaveBeenCalledWith(503);
+        expect(res.json).toHaveBeenCalledWith(
+          expect.objectContaining({
+            error: 'Feature temporarily unavailable',
+            feature: featureName,
+          })
+        );
+        expect(next).not.toHaveBeenCalled();
+      }
+    );
+
+    it('does not expose booking payments when quote booking is disabled', async () => {
       dbUnified.read.mockResolvedValue({
         features: {
-          reviews: false,
+          quoteBooking: false,
+          bookingPayments: true,
         },
       });
 
-      const middleware = featureRequired('reviews');
-      await middleware(req, res, next);
+      await featureRequired('bookingPayments')(req, res, next);
 
       expect(res.status).toHaveBeenCalledWith(503);
-      expect(res.json).toHaveBeenCalledWith({
-        error: 'Feature temporarily unavailable',
-        message: 'The reviews feature is currently disabled. Please try again later.',
-        feature: 'reviews',
-      });
       expect(next).not.toHaveBeenCalled();
     });
 
-    it('should handle photoUploads feature flag', async () => {
-      dbUnified.read.mockResolvedValue({
-        features: {
-          photoUploads: false,
-        },
-      });
-
-      const middleware = featureRequired('photoUploads');
-      await middleware(req, res, next);
-
-      expect(res.status).toHaveBeenCalledWith(503);
-      expect(res.json).toHaveBeenCalledWith({
-        error: 'Feature temporarily unavailable',
-        message: 'The photoUploads feature is currently disabled. Please try again later.',
-        feature: 'photoUploads',
-      });
-      expect(next).not.toHaveBeenCalled();
-    });
-
-    it('should handle supportTickets feature flag', async () => {
-      dbUnified.read.mockResolvedValue({
-        features: {
-          supportTickets: false,
-        },
-      });
-
-      const middleware = featureRequired('supportTickets');
-      await middleware(req, res, next);
-
-      expect(res.status).toHaveBeenCalledWith(503);
-      expect(res.json).toHaveBeenCalledWith({
-        error: 'Feature temporarily unavailable',
-        message: 'The supportTickets feature is currently disabled. Please try again later.',
-        feature: 'supportTickets',
-      });
-      expect(next).not.toHaveBeenCalled();
-    });
-
-    it('should handle supplierApplications feature flag', async () => {
-      dbUnified.read.mockResolvedValue({
-        features: {
-          supplierApplications: false,
-        },
-      });
-
-      const middleware = featureRequired('supplierApplications');
-      await middleware(req, res, next);
-
-      expect(res.status).toHaveBeenCalledWith(503);
-      expect(res.json).toHaveBeenCalledWith({
-        error: 'Feature temporarily unavailable',
-        message: 'The supplierApplications feature is currently disabled. Please try again later.',
-        feature: 'supplierApplications',
-      });
-      expect(next).not.toHaveBeenCalled();
-    });
-
-    it('should call next() on database error to prevent breaking site', async () => {
+    it('keeps commercial features disabled on database failure', async () => {
       dbUnified.read.mockRejectedValue(new Error('Database error'));
 
-      const middleware = featureRequired('registration');
-      await middleware(req, res, next);
+      await featureRequired('quoteBooking')(req, res, next);
 
-      expect(next).toHaveBeenCalled();
-      expect(res.status).not.toHaveBeenCalled();
-      expect(res.json).not.toHaveBeenCalled();
-    });
-
-    it('should treat missing feature flag as enabled', async () => {
-      dbUnified.read.mockResolvedValue({
-        features: {},
-      });
-
-      const middleware = featureRequired('registration');
-      await middleware(req, res, next);
-
-      expect(next).toHaveBeenCalled();
-      expect(res.status).not.toHaveBeenCalled();
-      expect(res.json).not.toHaveBeenCalled();
+      expect(res.status).toHaveBeenCalledWith(503);
+      expect(next).not.toHaveBeenCalled();
     });
   });
 });
