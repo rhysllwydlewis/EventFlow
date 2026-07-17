@@ -1,0 +1,52 @@
+config:
+  target: "{{ $processEnvironment.STAGING_URL }}"
+  phases:
+    - duration: 30
+      arrivalRate: 2
+      name: Warm up
+    - duration: 60
+      arrivalRate: 5
+      name: Sustained read-only traffic
+    - duration: 20
+      arrivalRate: 10
+      name: Read-only spike
+  defaults:
+    headers:
+      Accept: application/json,text/html;q=0.9,*/*;q=0.8
+      User-Agent: EventFlow-Autonomous-Resilience-Test/1.0
+  ensure:
+    p95: 1500
+    p99: 3000
+    maxErrorRate: 1
+
+scenarios:
+  - name: Public API health journey
+    weight: 4
+    flow:
+      - get:
+          url: /api/health
+      - get:
+          url: /api/ready
+      - get:
+          url: /api/config
+
+  - name: Public discovery journey
+    weight: 4
+    flow:
+      - get:
+          url: /
+      - think: 1
+      - get:
+          url: /marketplace
+      - think: 1
+      - get:
+          url: /pricing
+
+  - name: Public content journey
+    weight: 2
+    flow:
+      - get:
+          url: /guides
+      - think: 1
+      - get:
+          url: /suppliers
