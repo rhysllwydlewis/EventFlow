@@ -11,6 +11,7 @@ const BADGE_MARK = Symbol.for('eventflow.backgroundJobTelemetryBridge.badge');
 const INSERT_MARK = Symbol.for('eventflow.backgroundJobTelemetryBridge.insertOne');
 const WRITE_MARK = Symbol.for('eventflow.backgroundJobTelemetryBridge.writeAndVerify');
 const MAX_SEEN_RUNS = 200;
+const ACTION_PROMPT_WRITE_WINDOW_MS = 10 * 60 * 1000;
 const seenRuns = new Map();
 
 function rememberRun(key) {
@@ -32,6 +33,12 @@ function getFinishedAt(value) {
   return value && (value.finishedAt || value.createdAt || value.startedAt)
     ? value.finishedAt || value.createdAt || value.startedAt
     : new Date();
+}
+
+function isRecentRun(value, now = Date.now(), maxAgeMs = ACTION_PROMPT_WRITE_WINDOW_MS) {
+  const finishedAt = getFinishedAt(value);
+  const date = finishedAt instanceof Date ? finishedAt : new Date(finishedAt);
+  return !Number.isNaN(date.getTime()) && Math.abs(now - date.getTime()) <= maxAgeMs;
 }
 
 function buildRunIdentity(jobKey, value) {
@@ -171,6 +178,7 @@ function installDatabaseHooks({ db = dbUnified, recordRun = telemetry.recordRun,
           key === 'settings' &&
           summary &&
           !summary.dryRun &&
+          isRecentRun(summary) &&
           rememberRun(buildRunIdentity(telemetry.JOB_KEYS.ACTION_PROMPTS, summary))
         ) {
           await persistTelemetry(recordRun, buildActionPromptTelemetry(summary), log);
@@ -275,5 +283,6 @@ module.exports = {
   installServiceHooks,
   instrumentBadgeManagement,
   instrumentDateManagementService,
+  isRecentRun,
   resetSeenRunsForTests,
 };
