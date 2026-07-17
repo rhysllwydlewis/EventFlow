@@ -96,6 +96,24 @@ jobs:
         run: npx playwright test e2e/auth.spec.js --project=chromium
         env:
           CI: true
+          PLAYWRIGHT_JSON_OUTPUT_NAME: test-results/auth-results.json
+          PLAYWRIGHT_JUNIT_OUTPUT_NAME: test-results/auth-junit.xml
+
+      - name: Create concise auth failure summary
+        if: always()
+        run: node scripts/summarize-playwright-results.mjs test-results/auth-results.json test-results/auth-summary.txt
+
+      - name: Upload concise auth results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-machine-results-auth
+          path: |
+            test-results/auth-results.json
+            test-results/auth-junit.xml
+            test-results/auth-summary.txt
+          if-no-files-found: warn
+          retention-days: 14
 
       - name: Upload auth Playwright report
         uses: actions/upload-artifact@v4
@@ -159,6 +177,27 @@ jobs:
         run: npm run test:e2e:static -- --shard=${{ matrix.shard }}/2
         env:
           CI: true
+          PLAYWRIGHT_JSON_OUTPUT_NAME: test-results/part-${{ matrix.shard }}-results.json
+          PLAYWRIGHT_JUNIT_OUTPUT_NAME: test-results/part-${{ matrix.shard }}-junit.xml
+
+      - name: Create concise E2E failure summary part ${{ matrix.shard }}
+        if: always()
+        run: >-
+          node scripts/summarize-playwright-results.mjs
+          test-results/part-${{ matrix.shard }}-results.json
+          test-results/part-${{ matrix.shard }}-summary.txt
+
+      - name: Upload concise E2E results part ${{ matrix.shard }}
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-machine-results-part-${{ matrix.shard }}
+          path: |
+            test-results/part-${{ matrix.shard }}-results.json
+            test-results/part-${{ matrix.shard }}-junit.xml
+            test-results/part-${{ matrix.shard }}-summary.txt
+          if-no-files-found: warn
+          retention-days: 14
 
       - name: Upload Playwright report part ${{ matrix.shard }}
         uses: actions/upload-artifact@v4
