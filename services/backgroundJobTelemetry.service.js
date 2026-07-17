@@ -62,7 +62,7 @@ function sanitizeMetrics(metrics) {
       .slice(0, 30)
       .map(([key, value]) => [
         String(key).slice(0, 80),
-        typeof value === 'string' ? value.slice(0, 200) : value,
+        typeof value === 'string' ? sanitizeError(value.slice(0, 200)) : value,
       ])
   );
 }
@@ -462,10 +462,25 @@ async function getDashboardData({
     telemetryByJob.set(run.jobKey, current);
   }
 
-  const actionHistory =
+  const actionPromptSettings =
     settings && settings.emailAutomation && settings.emailAutomation.actionPrompts
-      ? settings.emailAutomation.actionPrompts.runHistory || []
-      : [];
+      ? settings.emailAutomation.actionPrompts
+      : {};
+  const actionHistory = actionPromptSettings.runHistory || [];
+  const effectiveDefinitions = definitions.map(definition => {
+    if (
+      definition.key !== JOB_KEYS.ACTION_PROMPTS ||
+      process.env.ACTION_PROMPTS_CRON ||
+      !actionPromptSettings.cron
+    ) {
+      return definition;
+    }
+    return {
+      ...definition,
+      schedule: actionPromptSettings.cron,
+      scheduleSource: 'settings',
+    };
+  });
 
   const legacyByJob = new Map([
     [JOB_KEYS.SYSTEM_CHECKS, (systemRuns || []).map(normaliseSystemCheckRun)],
@@ -484,7 +499,7 @@ async function getDashboardData({
     }
   }
 
-  const jobs = definitions.map(definition => {
+  const jobs = effectiveDefinitions.map(definition => {
     const persisted = telemetryByJob.get(definition.key) || [];
     const legacy = legacyByJob.get(definition.key) || [];
     const combined = [...persisted, ...legacy]
