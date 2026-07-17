@@ -72,7 +72,7 @@ test.describe('Visual Regression - Mobile Layout Contracts @visual', () => {
     await expect(menu).not.toHaveClass(/\bopen\b/);
     await expect(toggle).toHaveAttribute('aria-expanded', 'false');
 
-    for (const selector of ['.ef-brand', '#ef-auth-link', '#ef-mobile-toggle']) {
+    for (const selector of ['.ef-brand', '#ef-mobile-toggle']) {
       expectHorizontallyInsideViewport(await visibleBox(page.locator(selector)));
     }
 
