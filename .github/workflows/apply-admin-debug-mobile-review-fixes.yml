@@ -1,4 +1,4 @@
-name: Apply Admin Debug mobile review fixes
+name: Apply Admin Debug mobile HTML cleanup
 
 on:
   push:
@@ -18,62 +18,23 @@ jobs:
           ref: agent/admin-debug-mobile-mop-up
           fetch-depth: 0
 
-      - name: Apply scoped styles and cache bump
+      - name: Restore original HTML formatting and bump bundle version
         run: |
+          git show origin/main:public/admin-debug.html > public/admin-debug.html
           python - <<'PY'
-          import re
           from pathlib import Path
 
-          css_path = Path('public/assets/css/admin-debug-mobile-improvements.css')
-          css = css_path.read_text()
-          scoped = re.sub(
-              r'(?m)^(\s*)\.sc-check-group(?!s)',
-              r'\1.sc-check-groups .sc-check-group',
-              css,
-          )
-          if scoped == css:
-              raise SystemExit('Expected check-group selectors were not found')
-          if re.search(r'(?m)^\s*\.sc-check-group(?!s)', scoped):
-              raise SystemExit('An unscoped check-group selector remains')
-          css_path.write_text(scoped)
-
-          html_path = Path('public/admin-debug.html')
-          html = html_path.read_text()
+          path = Path('public/admin-debug.html')
+          content = path.read_text()
           old_bundle = '/assets/js/pages/admin-debug-background-jobs.js?v=18.5.0'
           new_bundle = '/assets/js/pages/admin-debug-background-jobs.js?v=18.6.0'
-          if html.count(old_bundle) != 1:
-              raise SystemExit('Expected one parent bundle reference')
-          html_path.write_text(html.replace(old_bundle, new_bundle))
-
-          test_path = Path('tests/unit/admin-debug-mobile-improvements.test.js')
-          test = test_path.read_text()
-          loader_assertion = "    expect(loader).toContain('data-admin-debug-mobile-improvements');\n"
-          replacement = loader_assertion + (
-              "    const html = read('public/admin-debug.html');\n"
-              "    expect(html).toContain(\n"
-              "      '/assets/js/pages/admin-debug-background-jobs.js?v=18.6.0'\n"
-              "    );\n"
-          )
-          if test.count(loader_assertion) != 1:
-              raise SystemExit('Expected loader assertion once')
-          test = test.replace(loader_assertion, replacement)
-          style_assertion = "    expect(styles).toContain('overflow-x: auto');\n"
-          style_replacement = style_assertion + (
-              "    expect(styles).toContain('.sc-check-groups .sc-check-group {');\n"
-              "    expect(styles).not.toMatch(/^\\s*\\.sc-check-group(?!s)/m);\n"
-          )
-          if test.count(style_assertion) != 1:
-              raise SystemExit('Expected style assertion once')
-          test_path.write_text(test.replace(style_assertion, style_replacement))
+          if content.count(old_bundle) != 1:
+              raise SystemExit('Expected one parent bundle reference on main')
+          path.write_text(content.replace(old_bundle, new_bundle))
           PY
-
-          npx prettier --write \
-            public/assets/css/admin-debug-mobile-improvements.css \
-            public/admin-debug.html \
-            tests/unit/admin-debug-mobile-improvements.test.js
           git diff --check
 
-      - name: Commit review fixes
+      - name: Commit minimal HTML change
         run: |
           if git diff --quiet; then
             echo 'No changes required.'
@@ -81,9 +42,6 @@ jobs:
           fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add \
-            public/assets/css/admin-debug-mobile-improvements.css \
-            public/admin-debug.html \
-            tests/unit/admin-debug-mobile-improvements.test.js
-          git commit -m 'Address Admin Debug mobile review findings'
+          git add public/admin-debug.html
+          git commit -m 'Keep Admin Debug cache bump focused'
           git push origin HEAD:agent/admin-debug-mobile-mop-up
