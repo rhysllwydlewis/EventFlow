@@ -1,6 +1,7 @@
 'use strict';
 
 const originalAutoinstall = process.env.BACKGROUND_JOB_TELEMETRY_BRIDGE_AUTOINSTALL;
+const originalNodeEnv = process.env.NODE_ENV;
 process.env.BACKGROUND_JOB_TELEMETRY_BRIDGE_AUTOINSTALL = 'false';
 
 const fs = require('fs');
@@ -21,6 +22,14 @@ const {
 } = require('../../services/backgroundJobTelemetry.service');
 
 describe('background job trigger attribution', () => {
+  afterEach(() => {
+    if (originalNodeEnv === undefined) {
+      delete process.env.NODE_ENV;
+    } else {
+      process.env.NODE_ENV = originalNodeEnv;
+    }
+  });
+
   afterAll(() => {
     if (originalAutoinstall === undefined) {
       delete process.env.BACKGROUND_JOB_TELEMETRY_BRIDGE_AUTOINSTALL;
