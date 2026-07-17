@@ -212,7 +212,10 @@ async function getPreviousActionRunIdentity(db, key, log) {
     const previousSummary = previousSettings?.emailAutomation?.actionPrompts?.lastRun;
     return buildRunIdentity(telemetry.JOB_KEYS.ACTION_PROMPTS, previousSummary);
   } catch (error) {
-    log.warn('[background-jobs] Could not compare existing action-prompt telemetry:', error.message);
+    log.warn(
+      '[background-jobs] Could not compare existing action-prompt telemetry:',
+      error.message
+    );
     return null;
   }
 }
@@ -291,7 +294,9 @@ function instrumentActionPromptService(
   }
 
   const original = actionPromptService.getSupplierActionItems;
-  actionPromptService.getSupplierActionItems = async function instrumentedActionPromptItems(...args) {
+  actionPromptService.getSupplierActionItems = async function instrumentedActionPromptItems(
+    ...args
+  ) {
     const startedAt = new Date();
     try {
       return await original.apply(this, args);
