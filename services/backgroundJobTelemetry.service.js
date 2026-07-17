@@ -44,7 +44,7 @@ function sanitizeError(value) {
   }
   return String(value)
     .replace(/https?:\/\/[^\s]+/gi, '[url removed]')
-    .replace(/(?:token|secret|password|key)=([^\s&]+)/gi, '$1=[redacted]')
+    .replace(/((?:token|secret|password|key))=([^\s&]+)/gi, '$1=[redacted]')
     .trim()
     .slice(0, MAX_ERROR_LENGTH);
 }
@@ -56,7 +56,9 @@ function sanitizeMetrics(metrics) {
 
   return Object.fromEntries(
     Object.entries(metrics)
-      .filter(([, value]) => ['string', 'number', 'boolean'].includes(typeof value) || value === null)
+      .filter(
+        ([, value]) => ['string', 'number', 'boolean'].includes(typeof value) || value === null
+      )
       .slice(0, 30)
       .map(([key, value]) => [
         String(key).slice(0, 80),
@@ -247,7 +249,12 @@ function normaliseSystemCheckRun(run) {
       ...run,
       status: run.status === 'pass' ? (warnings > 0 ? 'warning' : 'success') : 'failed',
       trigger: run.triggeredBy ? 'manual' : 'scheduler',
-      metrics: { total: checks.length, passed: checks.length - failed, failed, warnings },
+      metrics: {
+        total: checks.length,
+        passed: checks.length - failed,
+        failed,
+        warnings,
+      },
       error: failed > 0 ? `${failed} system check${failed === 1 ? '' : 's'} failed` : null,
     },
     'system_checks'
@@ -389,15 +396,13 @@ function buildJob(definition, history, now, runtime = null) {
   };
 }
 
-async function getDashboardData(
-  {
-    db = dbUnified,
-    dateService = null,
-    now = new Date(),
-    historyLimit = DEFAULT_HISTORY_LIMIT,
-    log = logger,
-  } = {}
-) {
+async function getDashboardData({
+  db = dbUnified,
+  dateService = null,
+  now = new Date(),
+  historyLimit = DEFAULT_HISTORY_LIMIT,
+  log = logger,
+} = {}) {
   const safeLimit = Math.min(
     MAX_HISTORY_LIMIT,
     Math.max(1, Number.parseInt(historyLimit, 10) || DEFAULT_HISTORY_LIMIT)
@@ -467,10 +472,7 @@ async function getDashboardData(
     [JOB_KEYS.ACTION_PROMPTS, actionHistory.map(normaliseActionPromptRun)],
     [JOB_KEYS.DATE_MANAGEMENT, (dateAudits || []).map(normaliseDateAuditRun)],
     [JOB_KEYS.BADGE_EVALUATION, []],
-    [
-      JOB_KEYS.REVIEW_REQUEST_MAINTENANCE,
-      (reviewActivity || []).map(normaliseReviewActivity),
-    ],
+    [JOB_KEYS.REVIEW_REQUEST_MAINTENANCE, (reviewActivity || []).map(normaliseReviewActivity)],
   ]);
 
   let dateRuntime = null;
@@ -488,8 +490,7 @@ async function getDashboardData(
     const combined = [...persisted, ...legacy]
       .sort(
         (a, b) =>
-          new Date(b.finishedAt || b.startedAt || 0) -
-          new Date(a.finishedAt || a.startedAt || 0)
+          new Date(b.finishedAt || b.startedAt || 0) - new Date(a.finishedAt || a.startedAt || 0)
       )
       .slice(0, safeLimit);
     return buildJob(
@@ -500,7 +501,7 @@ async function getDashboardData(
     );
   });
 
-  const attentionStates = new Set(['failed', 'overdue', 'warning', 'unknown']);
+  const attentionStates = new Set(['failed', 'overdue', 'warning']);
   const summary = {
     total: jobs.length,
     healthy: jobs.filter(job => job.health === 'healthy').length,
@@ -508,6 +509,7 @@ async function getDashboardData(
     failed: jobs.filter(job => job.health === 'failed').length,
     overdue: jobs.filter(job => job.health === 'overdue').length,
     disabled: jobs.filter(job => job.health === 'disabled').length,
+    unknown: jobs.filter(job => job.health === 'unknown').length,
     limitedTelemetry: jobs.filter(job => job.telemetry !== 'full').length,
   };
 
