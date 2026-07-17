@@ -1,0 +1,225 @@
+diff --git a/.github/workflows/e2e.yml b/.github/workflows/e2e.yml
+index 6ed8970..8265dc8 100644
+--- a/.github/workflows/e2e.yml
++++ b/.github/workflows/e2e.yml
+@@ -96,6 +96,24 @@ jobs:
+         run: npx playwright test e2e/auth.spec.js --project=chromium
+         env:
+           CI: true
++          PLAYWRIGHT_JSON_OUTPUT_NAME: test-results/auth-results.json
++          PLAYWRIGHT_JUNIT_OUTPUT_NAME: test-results/auth-junit.xml
++
++      - name: Create concise auth failure summary
++        if: always()
++        run: node scripts/summarize-playwright-results.mjs test-results/auth-results.json test-results/auth-summary.txt
++
++      - name: Upload concise auth results
++        if: always()
++        uses: actions/upload-artifact@v4
++        with:
++          name: e2e-machine-results-auth
++          path: |
++            test-results/auth-results.json
++            test-results/auth-junit.xml
++            test-results/auth-summary.txt
++          if-no-files-found: warn
++          retention-days: 14
+ 
+       - name: Upload auth Playwright report
+         uses: actions/upload-artifact@v4
+@@ -159,6 +177,27 @@ jobs:
+         run: npm run test:e2e:static -- --shard=${{ matrix.shard }}/2
+         env:
+           CI: true
++          PLAYWRIGHT_JSON_OUTPUT_NAME: test-results/part-${{ matrix.shard }}-results.json
++          PLAYWRIGHT_JUNIT_OUTPUT_NAME: test-results/part-${{ matrix.shard }}-junit.xml
++
++      - name: Create concise E2E failure summary part ${{ matrix.shard }}
++        if: always()
++        run: >-
++          node scripts/summarize-playwright-results.mjs
++          test-results/part-${{ matrix.shard }}-results.json
++          test-results/part-${{ matrix.shard }}-summary.txt
++
++      - name: Upload concise E2E results part ${{ matrix.shard }}
++        if: always()
++        uses: actions/upload-artifact@v4
++        with:
++          name: e2e-machine-results-part-${{ matrix.shard }}
++          path: |
++            test-results/part-${{ matrix.shard }}-results.json
++            test-results/part-${{ matrix.shard }}-junit.xml
++            test-results/part-${{ matrix.shard }}-summary.txt
++          if-no-files-found: warn
++          retention-days: 14
+ 
+       - name: Upload Playwright report part ${{ matrix.shard }}
+         uses: actions/upload-artifact@v4
+diff --git a/playwright.config.js b/playwright.config.js
+index 7603420..6c27e5c 100644
+--- a/playwright.config.js
++++ b/playwright.config.js
+@@ -22,8 +22,11 @@ export default defineConfig({
+   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
+   reporter: [
+     ['html', { outputFolder: 'playwright-report' }],
+-    ['json', { outputFile: 'test-results/results.json' }],
+-    ['junit', { outputFile: 'test-results/junit.xml' }],
++    [
++      'json',
++      { outputFile: process.env.PLAYWRIGHT_JSON_OUTPUT_NAME || 'test-results/results.json' },
++    ],
++    ['junit', { outputFile: process.env.PLAYWRIGHT_JUNIT_OUTPUT_NAME || 'test-results/junit.xml' }],
+     ['list'],
+   ],
+   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
+diff --git a/public/auth.html b/public/auth.html
+index 4d5334a..c465fd5 100644
+--- a/public/auth.html
++++ b/public/auth.html
+@@ -306,7 +306,6 @@
+                   <div
+                     id="google-signin-button"
+                     class="auth-google-button"
+-                    aria-label="Sign in with Google"
+                   ></div>
+                   <div class="auth-divider"><span>or use email</span></div>
+                 </div>
+diff --git a/public/index.html b/public/index.html
+index e115f27..ac370a7 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -506,7 +506,7 @@
+             </div>
+ 
+             <!-- Quick Search Tags -->
+-            <div class="ef-quick-tags" role="list" aria-label="Popular searches">
++            <div class="ef-quick-tags" role="group" aria-label="Popular searches">
+               <button type="button" class="ef-cta ef-quick-tags__tag" data-search="london venues">
+                 London venues
+               </button>
+diff --git a/public/marketplace.html b/public/marketplace.html
+index 1eceecd..a041dad 100644
+--- a/public/marketplace.html
++++ b/public/marketplace.html
+@@ -506,7 +506,7 @@
+               </div>
+               <div class="marketplace-actions">
+                 <a href="/supplier/marketplace-new-listing" class="cta" id="marketplace-list-btn" style="display: none;">+ Create listing</a>
+-                <select id="marketplace-sort" class="sort-select">
++                <select id="marketplace-sort" class="sort-select" aria-label="Sort marketplace listings">
+                   <option value="newest">Newest</option>
+                   <option value="price-low">Price: Low to High</option>
+                   <option value="price-high">Price: High to Low</option>
+diff --git a/public/pricing.html b/public/pricing.html
+index 81291cf..85ddc11 100644
+--- a/public/pricing.html
++++ b/public/pricing.html
+@@ -942,7 +942,7 @@
+     <!-- Feature Comparison Table -->
+     <section class="pricing-comparison">
+       <h2>Compare All Features</h2>
+-      <div class="comparison-table-wrapper">
++      <div class="comparison-table-wrapper" tabindex="0" aria-label="Pricing plan feature comparison">
+         <table class="comparison-table">
+           <thead>
+             <tr>
+diff --git a/scripts/summarize-playwright-results.mjs b/scripts/summarize-playwright-results.mjs
+new file mode 100644
+index 0000000..76dba93
+--- /dev/null
++++ b/scripts/summarize-playwright-results.mjs
+@@ -0,0 +1,73 @@
++#!/usr/bin/env node
++
++import fs from 'node:fs';
++import path from 'node:path';
++import { stripVTControlCharacters } from 'node:util';
++
++const [, , input = 'test-results/results.json', output = 'test-results/summary.txt'] = process.argv;
++const lines = [];
++
++function stripAnsi(value) {
++  return stripVTControlCharacters(String(value || ''));
++}
++
++function addFailure(spec, test, ancestors) {
++  const failedResults = (test.results || []).filter(result =>
++    ['failed', 'timedOut', 'interrupted'].includes(result.status)
++  );
++  if (!failedResults.length && test.status !== 'unexpected') {
++    return;
++  }
++
++  lines.push('');
++  lines.push(
++    `FAIL: ${[...ancestors, spec.title].filter(Boolean).join(' > ')} ` +
++      `[${test.projectName || 'unknown project'}]`
++  );
++
++  for (const result of failedResults) {
++    for (const error of result.errors || []) {
++      const message = stripAnsi(error.message || error.value || error.stack || error).slice(
++        0,
++        6000
++      );
++      if (message) {
++        lines.push(message);
++      }
++    }
++  }
++}
++
++function walk(suite, ancestors = []) {
++  const nextAncestors = suite.title ? [...ancestors, suite.title] : ancestors;
++  for (const spec of suite.specs || []) {
++    for (const test of spec.tests || []) {
++      addFailure(spec, test, nextAncestors);
++    }
++  }
++  for (const child of suite.suites || []) {
++    walk(child, nextAncestors);
++  }
++}
++
++try {
++  if (!fs.existsSync(input)) {
++    lines.push(`Playwright JSON results were not produced at ${input}.`);
++  } else {
++    const report = JSON.parse(fs.readFileSync(input, 'utf8'));
++    const stats = report.stats || {};
++    lines.push(
++      `expected=${stats.expected ?? 0} unexpected=${stats.unexpected ?? 0} ` +
++        `flaky=${stats.flaky ?? 0} skipped=${stats.skipped ?? 0}`
++    );
++    for (const suite of report.suites || []) {
++      walk(suite);
++    }
++  }
++} catch (error) {
++  lines.push(`Unable to parse ${input}: ${stripAnsi(error?.stack || error)}`);
++}
++
++fs.mkdirSync(path.dirname(output), { recursive: true });
++fs.writeFileSync(output, `${lines.join('\n').slice(0, 100000)}\n`);
++console.log(fs.readFileSync(output, 'utf8'));
+diff --git a/tests/visual/email-previews-smoke.spec.mjs b/tests/visual/email-previews-smoke.spec.mjs
+index a6441d1..e0ad56b 100644
+--- a/tests/visual/email-previews-smoke.spec.mjs
++++ b/tests/visual/email-previews-smoke.spec.mjs
+@@ -25,6 +25,15 @@ const sampleTemplates = [
+ test('admin email previews gallery renders cards and preview frames with mocked admin API', async ({
+   page,
+ }) => {
++  await page.route('**/api/v1/auth/me*', route => {
++    route.fulfill({
++      status: 200,
++      contentType: 'application/json',
++      body: JSON.stringify({
++        user: { id: 'visual-admin', role: 'admin', email: 'admin@example.com' },
++      }),
++    });
++  });
+   await page.route('**/api/admin/email-previews', route => {
+     route.fulfill({
+       status: 200,
