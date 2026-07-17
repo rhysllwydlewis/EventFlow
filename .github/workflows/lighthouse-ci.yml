@@ -6,21 +6,38 @@ on:
       - 'public/**'
       - 'routes/**'
       - 'server.js'
-      - '.lighthouserc.json'
+      - '.lighthouserc*.json'
       - '.github/workflows/lighthouse-ci.yml'
       - 'package*.json'
       - '.node-version'
+  schedule:
+    - cron: '41 3 * * 2,5'
+  workflow_dispatch:
 
 permissions:
   contents: read
+
+concurrency:
+  group: lighthouse-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   HUSKY: '0'
 
 jobs:
   lighthouse:
+    name: Lighthouse ${{ matrix.profile }}
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - profile: desktop
+            config: .lighthouserc.json
+          - profile: mobile
+            config: .lighthouserc.mobile.json
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -42,4 +59,13 @@ jobs:
           NODE_ENV: test
           PORT: 3000
           BASE_URL: http://localhost:3000
-        run: npx --yes @lhci/cli@0.14.x autorun
+        run: npx --yes @lhci/cli@0.14.x autorun --config=${{ matrix.config }}
+
+      - name: Upload Lighthouse evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-${{ matrix.profile }}
+          path: .lighthouseci
+          if-no-files-found: warn
+          retention-days: 14
