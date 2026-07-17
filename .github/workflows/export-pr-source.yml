@@ -9,6 +9,7 @@ on:
       - codex/build-availability-aware-marketplace-and-quote-system
 
 permissions:
+  actions: read
   contents: read
 
 jobs:
@@ -25,11 +26,24 @@ jobs:
       - name: Record head tree
         run: git rev-parse HEAD^{tree} > /tmp/head-tree.txt
 
-      - name: Upload head tree
+      - name: Capture repair commit run list
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          curl --fail --silent --show-error \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/actions/runs?head_sha=5579b7e5dda1cbaddf496d90d4f8cf64d5a67b75&per_page=100" \
+            > /tmp/repair-runs.json
+
+      - name: Upload diagnostic metadata
         uses: actions/upload-artifact@v4
         with:
-          name: eventflow-head-tree
-          path: /tmp/head-tree.txt
+          name: eventflow-repair-diagnostics
+          path: |
+            /tmp/head-tree.txt
+            /tmp/repair-runs.json
           if-no-files-found: error
           retention-days: 1
 
