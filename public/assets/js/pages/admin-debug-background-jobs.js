@@ -198,3 +198,27 @@
   if (tabButton) tabButton.addEventListener('click', () => loadBackgroundJobs(false));
   if (refreshBtn) refreshBtn.addEventListener('click', () => loadBackgroundJobs(true));
 })();
+
+(function loadAdminDebugMobileImprovements() {
+  'use strict';
+
+  const version = '18.6.0';
+  const stylesheetPath = `/assets/css/admin-debug-mobile-improvements.css?v=${version}`;
+  const scriptPath = `/assets/js/pages/admin-debug-mobile-improvements.js?v=${version}`;
+
+  if (!document.querySelector('link[data-admin-debug-mobile-improvements]')) {
+    const stylesheet = document.createElement('link');
+    stylesheet.rel = 'stylesheet';
+    stylesheet.href = stylesheetPath;
+    stylesheet.dataset.adminDebugMobileImprovements = 'true';
+    document.head.appendChild(stylesheet);
+  }
+
+  if (!document.querySelector('script[data-admin-debug-mobile-improvements]')) {
+    const script = document.createElement('script');
+    script.src = scriptPath;
+    script.defer = true;
+    script.dataset.adminDebugMobileImprovements = 'true';
+    document.head.appendChild(script);
+  }
+})();
