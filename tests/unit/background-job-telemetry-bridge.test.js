@@ -12,6 +12,7 @@ const {
   installDatabaseHooks,
   instrumentBadgeManagement,
   instrumentDateManagementService,
+  isRecentRun,
   resetSeenRunsForTests,
 } = require('../../services/backgroundJobTelemetryBridge');
 const {
@@ -132,12 +133,13 @@ describe('background job telemetry bridge', () => {
     await db.insertOne('system_checks', systemRun);
     await db.insertOne('system_checks', systemRun);
 
+    const actionFinishedAt = new Date(Date.now() - 1000).toISOString();
     const settings = {
       emailAutomation: {
         actionPrompts: {
           lastRun: {
-            startedAt: '2026-07-17T09:00:00.000Z',
-            finishedAt: '2026-07-17T09:00:03.000Z',
+            startedAt: new Date(Date.now() - 4000).toISOString(),
+            finishedAt: actionFinishedAt,
             scanned: 5,
             sent: 1,
             errors: 0,
@@ -147,7 +149,19 @@ describe('background job telemetry bridge', () => {
     };
     await db.writeAndVerify('settings', settings);
     await db.writeAndVerify('settings', settings);
+    await db.writeAndVerify('settings', {
+      emailAutomation: {
+        actionPrompts: {
+          lastRun: {
+            finishedAt: '2026-01-01T00:00:00.000Z',
+            scanned: 999,
+          },
+        },
+      },
+    });
 
+    expect(isRecentRun({ finishedAt: actionFinishedAt })).toBe(true);
+    expect(isRecentRun({ finishedAt: '2026-01-01T00:00:00.000Z' })).toBe(false);
     expect(recordRun).toHaveBeenCalledTimes(2);
     expect(recordRun).toHaveBeenNthCalledWith(
       1,
@@ -195,7 +209,9 @@ describe('background job telemetry bridge', () => {
 
   test('loads the telemetry bridge in local and production startup commands', () => {
     const repositoryRoot = path.resolve(__dirname, '../..');
-    const packageJson = JSON.parse(fs.readFileSync(path.join(repositoryRoot, 'package.json'), 'utf8'));
+    const packageJson = JSON.parse(
+      fs.readFileSync(path.join(repositoryRoot, 'package.json'), 'utf8')
+    );
     const dockerfile = fs.readFileSync(path.join(repositoryRoot, 'Dockerfile'), 'utf8');
 
     expect(packageJson.scripts.dev).toContain('-r ./services/backgroundJobTelemetryBridge.js');
