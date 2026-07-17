@@ -74,16 +74,22 @@ jobs:
             exit 1
           fi
 
-      - name: Commit repaired branch
+      - name: Commit source fixes and generated baselines
         run: |
-          rm -f .github/pr1351-repair.patch
-          rm -f .github/workflows/export-pr-source.yml
-          rm -f .github/workflows/apply-pr1351-repair.yml
+          git checkout -- .github/workflows/e2e.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
+          git add \
+            playwright.config.js \
+            public/auth.html \
+            public/index.html \
+            public/marketplace.html \
+            public/pricing.html \
+            scripts/summarize-playwright-results.mjs \
+            tests/visual/email-previews-smoke.spec.mjs \
+            tests/visual/__screenshots__/visual-regression.spec.mjs
           git diff --cached --stat
-          git commit -m "fix: repair blocking browser and accessibility checks"
+          git commit -m "fix: repair accessibility and visual baselines"
           git push origin HEAD:codex/build-availability-aware-marketplace-and-quote-system
 
-# Second run: branch held stable after full validation passed.
+# Third run: workflow-file cleanup is handled separately through the GitHub API.
