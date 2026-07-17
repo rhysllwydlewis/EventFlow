@@ -118,6 +118,14 @@ describe('background job trigger attribution', () => {
             },
           ];
         }
+        if (collection === 'audit_logs') {
+          return [
+            {
+              action: 'AUTO_DATE_UPDATE',
+              timestamp: '2026-07-17T11:59:30.000Z',
+            },
+          ];
+        }
         return [];
       }),
     };
@@ -127,7 +135,9 @@ describe('background job trigger attribution', () => {
     expect(job.telemetry).toBe('full');
     expect(job.health).toBe('unknown');
     expect(job.lastAttempt).toBeNull();
-    expect(job.history[0].trigger).toBe('manual');
+    expect(job.history).toEqual(
+      expect.arrayContaining([expect.objectContaining({ trigger: 'manual' })])
+    );
   });
 
   test('production and manual call sites preload and propagate trigger context', () => {
@@ -136,11 +146,18 @@ describe('background job trigger attribution', () => {
     const admin = fs.readFileSync(path.join(root, 'routes/admin.js'), 'utf8');
     const supplierAdmin = fs.readFileSync(path.join(root, 'routes/supplier-admin.js'), 'utf8');
     const scheduler = fs.readFileSync(path.join(root, 'services/actionPromptScheduler.js'), 'utf8');
+    const dateService = fs.readFileSync(
+      path.join(root, 'services/dateManagementService.js'),
+      'utf8'
+    );
 
     expect(railway).toContain('node -r ./services/backgroundJobTelemetryBridge.js server.js');
     expect(admin).toContain("trigger: 'manual'");
-    expect(admin).toContain("performMonthlyCheck({ trigger: 'manual' })");
+    expect(admin).toContain("trigger: 'manual'");
+    expect(admin).toContain('userId: req.user.id || req.user.email');
     expect(supplierAdmin).toContain("evaluateAllSupplierBadges({ trigger: 'manual' })");
     expect(scheduler).toContain('getSupplierActionItems({ telemetryTrigger: trigger })');
+    expect(dateService).toContain("const manual = trigger === 'manual'");
+    expect(dateService).toContain("type: manual ? 'MANUAL_UPDATE' : 'AUTO_UPDATE'");
   });
 });

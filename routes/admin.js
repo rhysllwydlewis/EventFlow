@@ -6870,7 +6870,10 @@ router.post(
         });
       }
 
-      const result = await dateService.performMonthlyCheck({ trigger: 'manual' });
+      const result = await dateService.performMonthlyCheck({
+        trigger: 'manual',
+        userId: req.user.id || req.user.email,
+      });
 
       // Create audit log
       auditLog({

@@ -370,10 +370,14 @@ function buildJob(definition, history, now, runtime = null) {
     const bDate = safeDate(b.finishedAt || b.startedAt);
     return (bDate ? bDate.getTime() : 0) - (aDate ? aDate.getTime() : 0);
   });
-  const schedulerHistory = ordered.filter(
+  const hasSharedTelemetry = ordered.some(run => run.source === COLLECTION);
+  const authoritativeHistory = hasSharedTelemetry
+    ? ordered.filter(run => run.source === COLLECTION)
+    : ordered;
+  const schedulerHistory = authoritativeHistory.filter(
     run => run.trigger !== 'manual' && run.trigger !== 'dry-run'
   );
-  const latest = ordered[0] || null;
+  const latest = authoritativeHistory[0] || null;
   const latestScheduled = schedulerHistory[0] || null;
   const latestSuccess =
     schedulerHistory.find(run => run.status === 'success' || run.status === 'warning') || null;

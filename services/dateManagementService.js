@@ -375,9 +375,12 @@ class DateManagementService {
 
   /**
    * Perform monthly automated check and update if needed
+   * @param {Object} [options] - Execution context
+   * @param {'scheduler'|'manual'} [options.trigger='scheduler'] - Execution source
+   * @param {string} [options.userId='system'] - Actor for manual audit attribution
    * @returns {Promise<Object>} Check result
    */
-  async performMonthlyCheck() {
+  async performMonthlyCheck({ trigger = 'scheduler', userId = 'system' } = {}) {
     try {
       this.logger.info('Starting monthly date check');
 
@@ -407,17 +410,18 @@ class DateManagementService {
       }
 
       // Update dates
+      const manual = trigger === 'manual';
       const updateResult = await this.updateLegalDates({
         lastUpdated: changeCheck.gitDate,
         effectiveDate: changeCheck.gitDate,
-        manual: false,
-        userId: 'system',
+        manual,
+        userId: manual ? userId : 'system',
       });
 
       if (updateResult.success) {
         // Notify admins
         await this.notifyAdmins({
-          type: 'AUTO_UPDATE',
+          type: manual ? 'MANUAL_UPDATE' : 'AUTO_UPDATE',
           previousDate: changeCheck.configDate,
           newDate: changeCheck.gitDate,
           timestamp: new Date().toISOString(),
