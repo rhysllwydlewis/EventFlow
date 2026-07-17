@@ -1,0 +1,94 @@
+name: Production Synthetics
+
+on:
+  schedule:
+    - cron: '23 */2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: production-synthetics
+  cancel-in-progress: true
+
+env:
+  SYNTHETIC_BASE_URL: https://event-flow.co.uk
+  SYNTHETIC_TIMEOUT_MS: '10000'
+
+jobs:
+  synthetics:
+    name: Read-only production journeys
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.node-version'
+
+      - name: Run low-impact production checks
+        run: node scripts/production-synthetic-check.mjs
+
+      - name: Upload synthetic evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-synthetics
+          path: reports/synthetics
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Create or update production incident issue
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = '[automation] Production synthetic checks failing';
+            const { owner, repo } = context.repo;
+            const issues = await github.paginate(github.rest.issues.listForRepo, {
+              owner,
+              repo,
+              state: 'open',
+              per_page: 100,
+            });
+            const existing = issues.find(issue => issue.title === title);
+            const runUrl = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
+            const body = `One or more read-only production checks failed at ${new Date().toISOString()}.\n\n[Open the failed workflow run](${runUrl}) and download the \`production-synthetics\` report. The checks cover deployment identity, health, readiness, config, core public pages, robots.txt and sitemap.xml.`;
+            if (existing) {
+              await github.rest.issues.createComment({ owner, repo, issue_number: existing.number, body });
+            } else {
+              await github.rest.issues.create({ owner, repo, title, body });
+            }
+
+      - name: Close recovered production incident issue
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = '[automation] Production synthetic checks failing';
+            const { owner, repo } = context.repo;
+            const issues = await github.paginate(github.rest.issues.listForRepo, {
+              owner,
+              repo,
+              state: 'open',
+              per_page: 100,
+            });
+            const existing = issues.find(issue => issue.title === title);
+            if (existing) {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: existing.number,
+                body: `All production synthetic checks recovered at ${new Date().toISOString()}. Closing automatically.`,
+              });
+              await github.rest.issues.update({
+                owner,
+                repo,
+                issue_number: existing.number,
+                state: 'closed',
+                state_reason: 'completed',
+              });
+            }
