@@ -85,3 +85,5 @@ jobs:
           git diff --cached --stat
           git commit -m "fix: repair blocking browser and accessibility checks"
           git push origin HEAD:codex/build-availability-aware-marketplace-and-quote-system
+
+# Second run: branch held stable after full validation passed.
