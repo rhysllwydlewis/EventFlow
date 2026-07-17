@@ -1,9 +1,19 @@
 'use strict';
 
+const { execFileSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-const read = relativePath => fs.readFileSync(path.join(__dirname, '../..', relativePath), 'utf8');
+const root = path.join(__dirname, '../..');
+const read = relativePath => fs.readFileSync(path.join(root, relativePath), 'utf8');
+
+function runNodeSmoke(source) {
+  return execFileSync(process.execPath, ['-e', source], {
+    cwd: root,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+}
 
 describe('admin debug mobile improvements', () => {
   test('loads the isolated mobile enhancement assets from the existing debug bundle', () => {
@@ -22,6 +32,53 @@ describe('admin debug mobile improvements', () => {
     expect(script).toContain("['Needs attention'");
     expect(script).toContain("label: 'Expected authentication redirects'");
     expect(script).toContain("label: 'Successful checks'");
+  });
+
+  test('groups rendered checks and filters them without treating login redirects as failures', () => {
+    runNodeSmoke(String.raw`
+      const assert = require('assert');
+      const fs = require('fs');
+      const { JSDOM } = require('jsdom');
+      const dom = new JSDOM(
+        \`<!doctype html><body>
+          <nav class="sc-tabs">
+            <button class="sc-tab-btn" aria-selected="true" aria-controls="tab-overview">Overview</button>
+            <button class="sc-tab-btn" aria-selected="false" aria-controls="tab-background-jobs">Background Jobs</button>
+          </nav>
+          <div id="tab-overview"></div><div id="tab-background-jobs"></div>
+          <div id="sc-stats-bar"></div>
+          <div id="sc-summary"><div class="sc-summary-card"><div class="sc-summary-meta"><p class="sc-summary-title">PASS</p><p class="sc-summary-subtitle">All 3 checks passed (1 with warnings) · 17 Jul 2026, 08:00 · 1.2s</p></div><div class="sc-summary-env">production</div></div></div>
+          <div id="sc-checks-list">
+            <div class="sc-check-row"><span class="sc-check-status" aria-label="Pass">✅</span><span class="sc-check-name">Homepage</span><span class="sc-check-type">page</span><span class="sc-check-code">200</span><span class="sc-check-dur">100ms</span><span class="sc-check-ok">OK</span></div>
+            <div class="sc-check-row sc-check-row--warn"><span class="sc-check-status" aria-label="Pass">⚠️</span><span class="sc-check-name">Admin dashboard</span><span class="sc-check-type">page</span><span class="sc-check-code">302</span><span class="sc-check-dur">80ms</span><span class="sc-check-warn" title="Expected authentication redirect">WARN</span><span class="sc-check-redirect" title="Redirected to: https://event-flow.co.uk/login">redirect</span></div>
+            <div class="sc-check-row"><span class="sc-check-status" aria-label="Fail">❌</span><span class="sc-check-name">Health API</span><span class="sc-check-type">api</span><span class="sc-check-code">500</span><span class="sc-check-dur">20ms</span><span class="sc-check-err">Server error</span></div>
+          </div>
+        </body>\`,
+        { url: 'https://event-flow.co.uk/admin-debug', runScripts: 'outside-only', pretendToBeVisual: true }
+      );
+      dom.window.HTMLElement.prototype.scrollIntoView = function () {};
+      dom.window.requestAnimationFrame = callback => callback();
+      dom.window.eval(fs.readFileSync('public/assets/js/pages/admin-debug-mobile-improvements.js', 'utf8'));
+
+      const document = dom.window.document;
+      const labels = [...document.querySelectorAll('#sc-stats-bar .sc-stat-label')].map(node => node.textContent);
+      const values = [...document.querySelectorAll('#sc-stats-bar .sc-stat-value')].map(node => node.textContent);
+      assert.deepStrictEqual(labels, ['Total', 'Clean passes', 'Protected', 'Needs attention']);
+      assert.deepStrictEqual(values, ['3', '1', '1', '1']);
+      assert.strictEqual(document.querySelectorAll('.sc-check-group--attention .sc-check-row').length, 1);
+      assert.strictEqual(document.querySelectorAll('.sc-check-group--protected .sc-check-row').length, 1);
+      assert.strictEqual(document.querySelectorAll('.sc-check-group--passed .sc-check-row').length, 1);
+      assert.strictEqual(document.querySelector('.sc-check-row--protected .sc-check-info').textContent, 'PROTECTED');
+      assert.strictEqual(document.querySelector('.sc-check-group--protected').open, false);
+      assert.strictEqual(document.querySelector('.sc-check-group--passed').open, false);
+      assert(document.querySelector('.sc-summary-subtitle').textContent.includes('1 protected'));
+
+      document.querySelector('[data-filter="protected"]').click();
+      assert.strictEqual(document.querySelector('.sc-check-group--protected').hidden, false);
+      assert.strictEqual(document.querySelector('.sc-check-group--protected').open, true);
+      assert.strictEqual(document.querySelector('.sc-check-group--attention').hidden, true);
+      assert.strictEqual(document.querySelector('.sc-check-group--passed').hidden, true);
+    `);
   });
 
   test('only reclassifies redirects that point to authentication routes', () => {
