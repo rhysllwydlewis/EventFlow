@@ -1,0 +1,107 @@
+name: Apply PR 1351 E2E Stability Repair
+
+on:
+  push:
+    branches:
+      - codex/build-availability-aware-marketplace-and-quote-system
+    paths:
+      - .github/workflows/apply-pr1351-e2e-stability.yml
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: codex/build-availability-aware-marketplace-and-quote-system
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: npm
+
+      - name: Install dependencies
+        env:
+          HUSKY: '0'
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+        run: npm ci --prefer-offline --no-audit
+
+      - name: Apply shared E2E stability fixes
+        run: |
+          python <<'PY'
+          from pathlib import Path
+
+          auth = Path('e2e/auth.spec.js')
+          content = auth.read_text()
+          import_line = "import { test, expect } from '@playwright/test';\n"
+          helper = """import { test, expect } from '@playwright/test';
+
+          async function waitForAuthReady(page) {
+            await page.waitForLoadState('domcontentloaded');
+            await page.locator('#login-form').waitFor({ state: 'visible' });
+          }
+          """
+          if 'async function waitForAuthReady(page)' not in content:
+              if import_line not in content:
+                  raise SystemExit('Auth import insertion point not found')
+              content = content.replace(import_line, helper, 1)
+          networkidle = "await page.waitForLoadState('networkidle');"
+          replacement_count = content.count(networkidle)
+          if replacement_count != 16:
+              raise SystemExit(f'Expected 16 auth networkidle waits, found {replacement_count}')
+          auth.write_text(content.replace(networkidle, 'await waitForAuthReady(page);'))
+
+          server = Path('scripts/serve-static.js')
+          content = server.read_text()
+          old = """const staticLimiter = rateLimit({
+            windowMs: 60 * 1000, // 1 minute
+            max: 3000, // generous limit — E2E test suites issue many requests per page load
+            standardHeaders: true,
+            legacyHeaders: false,
+          });
+          """
+          new = """const staticLimiter = rateLimit({
+            windowMs: 60 * 1000, // 1 minute
+            // This server is loopback-only and browser suites run many workers in parallel.
+            // Keep a defensive ceiling without allowing the test harness to throttle its
+            // own assets, service worker and API fixtures into cascading HTTP 429 failures.
+            max: 100000,
+            standardHeaders: true,
+            legacyHeaders: false,
+          });
+          """
+          if old not in content:
+              raise SystemExit('Static server rate-limit insertion point not found')
+          server.write_text(content.replace(old, new, 1))
+          PY
+
+      - name: Format and validate source
+        run: |
+          npx prettier --write e2e/auth.spec.js scripts/serve-static.js
+          npx prettier --check e2e/auth.spec.js scripts/serve-static.js
+          node --check e2e/auth.spec.js
+          node --check scripts/serve-static.js
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Validate focused auth E2E suite
+        env:
+          CI: 'true'
+        run: npx playwright test e2e/auth.spec.js --project=chromium --reporter=list
+
+      - name: Commit E2E stability repair
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add e2e/auth.spec.js scripts/serve-static.js
+          git diff --cached --stat
+          git commit -m "test: stabilise auth readiness and static E2E traffic"
+          git push origin HEAD:codex/build-availability-aware-marketplace-and-quote-system
