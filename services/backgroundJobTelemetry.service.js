@@ -133,6 +133,7 @@ function getDefinitions(now = new Date()) {
       expectedIntervalMs: 24 * 60 * 60 * 1000,
       staleAfterMs: 36 * 60 * 60 * 1000,
       legacyTelemetry: 'system_checks',
+      legacyFreshnessReliable: true,
     },
     {
       key: JOB_KEYS.ACTION_PROMPTS,
@@ -146,6 +147,7 @@ function getDefinitions(now = new Date()) {
       expectedIntervalMs: 24 * 60 * 60 * 1000,
       staleAfterMs: 36 * 60 * 60 * 1000,
       legacyTelemetry: 'settings.emailAutomation.actionPrompts.runHistory',
+      legacyFreshnessReliable: true,
     },
     {
       key: JOB_KEYS.DATE_MANAGEMENT,
@@ -159,6 +161,7 @@ function getDefinitions(now = new Date()) {
       expectedIntervalMs: 31 * 24 * 60 * 60 * 1000,
       staleAfterMs: 40 * 24 * 60 * 60 * 1000,
       legacyTelemetry: 'audit_logs (updates only)',
+      legacyFreshnessReliable: false,
     },
     {
       key: JOB_KEYS.BADGE_EVALUATION,
@@ -171,6 +174,7 @@ function getDefinitions(now = new Date()) {
       expectedIntervalMs: badgeHours * 60 * 60 * 1000,
       staleAfterMs: Math.max(2, Math.ceil(badgeHours * 1.5)) * 60 * 60 * 1000,
       legacyTelemetry: null,
+      legacyFreshnessReliable: false,
     },
     {
       key: JOB_KEYS.REVIEW_REQUEST_MAINTENANCE,
@@ -183,6 +187,7 @@ function getDefinitions(now = new Date()) {
       expectedIntervalMs: 60 * 60 * 1000,
       staleAfterMs: 3 * 60 * 60 * 1000,
       legacyTelemetry: 'reviewRequests.expiredAt (activity only)',
+      legacyFreshnessReliable: false,
     },
   ].map(definition => ({ ...definition, registeredAt: toIso(now) }));
 }
@@ -247,7 +252,7 @@ function normaliseSystemCheckRun(run) {
   return normaliseTelemetryRun(
     {
       ...run,
-      status: run.status === 'pass' ? (warnings > 0 ? 'warning' : 'success') : 'failed',
+      status: run.status === 'pass' ? 'success' : 'failed',
       trigger: run.triggeredBy ? 'manual' : 'scheduler',
       metrics: {
         total: checks.length,
@@ -330,7 +335,12 @@ function classifyHealth(definition, history, now = new Date()) {
     return 'failed';
   }
   const latestSuccess = history.find(run => run.status === 'success' || run.status === 'warning');
+  const hasReliableFreshness =
+    Boolean(definition.legacyFreshnessReliable) || history.some(run => run.source === COLLECTION);
   const successAt = safeDate(latestSuccess && latestSuccess.finishedAt);
+  if (!hasReliableFreshness) {
+    return latest.status === 'warning' || latest.status === 'skipped' ? 'warning' : 'unknown';
+  }
   if (successAt && now.getTime() - successAt.getTime() > definition.staleAfterMs) {
     return 'overdue';
   }
