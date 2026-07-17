@@ -1,0 +1,59 @@
+name: Update PR 1351 Homepage Baselines
+
+on:
+  push:
+    branches:
+      - codex/build-availability-aware-marketplace-and-quote-system
+    paths:
+      - .github/workflows/update-pr1351-homepage-baselines.yml
+
+permissions:
+  contents: write
+
+jobs:
+  update-baselines:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: codex/build-availability-aware-marketplace-and-quote-system
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: npm
+
+      - name: Install dependencies
+        env:
+          HUSKY: '0'
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+        run: npm ci --prefer-offline --no-audit
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Regenerate deterministic homepage baselines
+        env:
+          CI: 'true'
+        run: >-
+          npx playwright test tests/visual/visual-regression.spec.mjs
+          --config=playwright-visual.config.js
+          --grep "baseline: homepage.*visual snapshot matches baseline"
+          --update-snapshots
+          --reporter=list
+
+      - name: Commit only the reviewed homepage baselines
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            tests/visual/__screenshots__/visual-regression.spec.mjs/homepage-desktop-chromium.png \
+            tests/visual/__screenshots__/visual-regression.spec.mjs/homepage-mobile-chromium.png
+          git diff --cached --stat
+          git diff --cached --quiet && { echo "No baseline change produced"; exit 1; }
+          git commit -m "test: refresh deterministic homepage baselines"
+          git push origin HEAD:codex/build-availability-aware-marketplace-and-quote-system
