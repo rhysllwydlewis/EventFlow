@@ -16,7 +16,6 @@ permissions:
   contents: read
 
 env:
-  CONTINUE_ON_ERROR_UNTIL: '2026-08-31'
   HUSKY: '0'
 
 jobs:
@@ -94,7 +93,6 @@ jobs:
       - name: Run focused auth E2E tests
         id: e2e-auth-run
         timeout-minutes: 30
-        continue-on-error: true
         run: npx playwright test e2e/auth.spec.js --project=chromium
         env:
           CI: true
@@ -116,21 +114,6 @@ jobs:
           path: test-results/
           if-no-files-found: warn
           retention-days: 30
-
-      - name: Report auth E2E failures
-        if: steps.e2e-auth-run.outcome == 'failure'
-        run: |
-          echo "::warning::Auth E2E failed, but the temporary soft-fail policy is active until ${CONTINUE_ON_ERROR_UNTIL}. Artifacts were uploaded for review."
-
-      - name: Enforce expired auth E2E soft-fail policy
-        if: steps.e2e-auth-run.outcome == 'failure'
-        run: |
-          today="$(date -u +%F)"
-          if [[ "$today" > "$CONTINUE_ON_ERROR_UNTIL" ]]; then
-            echo "::error::Auth E2E soft-fail policy expired on ${CONTINUE_ON_ERROR_UNTIL}."
-            exit 1
-          fi
-          echo "Auth E2E soft-fail policy active until ${CONTINUE_ON_ERROR_UNTIL}."
 
   e2e:
     name: E2E Tests Part ${{ matrix.shard }} of 2
@@ -173,7 +156,6 @@ jobs:
       - name: Run E2E tests part ${{ matrix.shard }} of 2
         id: e2e-run
         timeout-minutes: 30
-        continue-on-error: true
         run: npm run test:e2e:static -- --shard=${{ matrix.shard }}/2
         env:
           CI: true
@@ -195,21 +177,6 @@ jobs:
           path: test-results/
           if-no-files-found: warn
           retention-days: 30
-
-      - name: Report E2E failures
-        if: steps.e2e-run.outcome == 'failure'
-        run: |
-          echo "::warning::E2E shard ${{ matrix.shard }} failed, but the temporary soft-fail policy is active until ${CONTINUE_ON_ERROR_UNTIL}. Artifacts were uploaded for review."
-
-      - name: Enforce expired E2E soft-fail policy
-        if: steps.e2e-run.outcome == 'failure'
-        run: |
-          today="$(date -u +%F)"
-          if [[ "$today" > "$CONTINUE_ON_ERROR_UNTIL" ]]; then
-            echo "::error::E2E soft-fail policy expired on ${CONTINUE_ON_ERROR_UNTIL}."
-            exit 1
-          fi
-          echo "E2E soft-fail policy active until ${CONTINUE_ON_ERROR_UNTIL}."
 
   visual-regression:
     name: Visual Regression Tests
@@ -249,7 +216,6 @@ jobs:
       - name: Run visual regression tests
         id: visual-run
         timeout-minutes: 30
-        continue-on-error: true
         run: npx playwright test --grep @visual
         env:
           NODE_ENV: test
@@ -264,17 +230,34 @@ jobs:
           if-no-files-found: warn
           retention-days: 30
 
-      - name: Report visual regression failures
-        if: steps.visual-run.outcome == 'failure'
-        run: |
-          echo "::warning::Visual regression snapshots failed, but the temporary soft-fail policy is active until ${CONTINUE_ON_ERROR_UNTIL}. Review the uploaded visual diffs before accepting any baseline update."
+  browser-verification:
+    name: Browser Verification
+    runs-on: ubuntu-latest
+    needs: [setup, e2e-auth, e2e, visual-regression]
+    if: ${{ always() }}
+    timeout-minutes: 5
 
-      - name: Enforce expired visual soft-fail policy
-        if: steps.visual-run.outcome == 'failure'
+    steps:
+      - name: Enforce required browser prerequisites
+        env:
+          SETUP_RESULT: ${{ needs.setup.result }}
+          AUTH_RESULT: ${{ needs.e2e-auth.result }}
+          E2E_RESULT: ${{ needs.e2e.result }}
+          VISUAL_RESULT: ${{ needs.visual-regression.result }}
         run: |
-          today="$(date -u +%F)"
-          if [[ "$today" > "$CONTINUE_ON_ERROR_UNTIL" ]]; then
-            echo "::error::Visual regression soft-fail policy expired on ${CONTINUE_ON_ERROR_UNTIL}."
+          failed=()
+          for result in \
+            "Setup=${SETUP_RESULT}" \
+            "E2EAuthFocus=${AUTH_RESULT}" \
+            "E2EShards=${E2E_RESULT}" \
+            "E2EVisualRegression=${VISUAL_RESULT}"
+          do
+            if [[ "$result" != *=success ]]; then
+              failed+=("$result")
+            fi
+          done
+
+          if ((${#failed[@]} > 0)); then
+            printf '::error::Required browser prerequisites did not succeed: %s\n' "${failed[*]}"
             exit 1
           fi
-          echo "Visual regression soft-fail policy active until ${CONTINUE_ON_ERROR_UNTIL}."

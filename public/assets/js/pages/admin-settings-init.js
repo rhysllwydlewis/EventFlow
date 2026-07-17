@@ -89,6 +89,9 @@
       'featurePexelsCollage',
       'featureRequirePackageApproval',
       'featureRequirePublicCalendarApproval',
+      'featureMarketplaceAvailability',
+      'featureQuoteBooking',
+      'featureBookingPayments',
     ];
 
     checkboxes.forEach(id => {
@@ -120,6 +123,9 @@
       pexelsCollage: getCheckboxValue('featurePexelsCollage'),
       requirePackageApproval: getCheckboxValue('featureRequirePackageApproval'),
       requirePublicCalendarApproval: getCheckboxValue('featureRequirePublicCalendarApproval'),
+      marketplaceAvailability: getCheckboxValue('featureMarketplaceAvailability'),
+      quoteBooking: getCheckboxValue('featureQuoteBooking'),
+      bookingPayments: getCheckboxValue('featureBookingPayments'),
     };
 
     return JSON.stringify(current) !== JSON.stringify(originalFeatureFlags);
@@ -167,6 +173,9 @@
         pexelsCollage: flags.pexelsCollage === true,
         requirePackageApproval: flags.requirePackageApproval === true,
         requirePublicCalendarApproval: flags.requirePublicCalendarApproval === true,
+        marketplaceAvailability: flags.marketplaceAvailability === true,
+        quoteBooking: flags.quoteBooking === true,
+        bookingPayments: flags.bookingPayments === true,
       };
 
       // Set checkbox values with null checks
@@ -191,6 +200,12 @@
         'featureRequirePublicCalendarApproval',
         originalFeatureFlags.requirePublicCalendarApproval
       );
+      setCheckboxValue(
+        'featureMarketplaceAvailability',
+        originalFeatureFlags.marketplaceAvailability
+      );
+      setCheckboxValue('featureQuoteBooking', originalFeatureFlags.quoteBooking);
+      setCheckboxValue('featureBookingPayments', originalFeatureFlags.bookingPayments);
 
       // Display last updated info
       const updatedTimeEl = document.getElementById('featureUpdatedTime');
@@ -238,6 +253,9 @@
       'featurePexelsCollage',
       'featureRequirePackageApproval',
       'featureRequirePublicCalendarApproval',
+      'featureMarketplaceAvailability',
+      'featureQuoteBooking',
+      'featureBookingPayments',
     ];
 
     checkboxIds.forEach(id => {
@@ -304,6 +322,9 @@
       pexelsCollage: getCheckboxValue('featurePexelsCollage'),
       requirePackageApproval: getCheckboxValue('featureRequirePackageApproval'),
       requirePublicCalendarApproval: getCheckboxValue('featureRequirePublicCalendarApproval'),
+      marketplaceAvailability: getCheckboxValue('featureMarketplaceAvailability'),
+      quoteBooking: getCheckboxValue('featureQuoteBooking'),
+      bookingPayments: getCheckboxValue('featureBookingPayments'),
     };
 
     // Set saving state

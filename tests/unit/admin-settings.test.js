@@ -223,3 +223,40 @@ describe('Supplier Packages — Auto-Approval Behaviour', () => {
     expect(block).toContain('pkg.approved = false');
   });
 });
+
+describe('Admin Settings — Availability and Booking Feature Flags', () => {
+  it('GET /settings/features includes marketplace and booking flags in response', () => {
+    expect(adminContent).toContain(
+      'marketplaceAvailability: features.marketplaceAvailability === true'
+    );
+    expect(adminContent).toContain('quoteBooking: features.quoteBooking === true');
+    expect(adminContent).toContain('bookingPayments: features.bookingPayments === true');
+  });
+
+  it('PUT /settings/features validates and persists marketplace and booking flags', () => {
+    expect(adminContent).toContain("'marketplaceAvailability'");
+    expect(adminContent).toContain("'quoteBooking'");
+    expect(adminContent).toContain("'bookingPayments'");
+    expect(adminContent).toContain('marketplaceAvailability: marketplaceAvailability === true');
+    expect(adminContent).toContain('quoteBooking: quoteBooking === true');
+    expect(adminContent).toContain('bookingPayments: bookingPayments === true');
+  });
+
+  it('admin-settings.html exposes rollout toggles without enabling them by default', () => {
+    expect(fs.readFileSync(SETTINGS_HTML, 'utf8')).toContain('id="featureMarketplaceAvailability"');
+    expect(fs.readFileSync(SETTINGS_HTML, 'utf8')).toContain('id="featureQuoteBooking"');
+    expect(fs.readFileSync(SETTINGS_HTML, 'utf8')).toContain('id="featureBookingPayments"');
+  });
+
+  it('admin-settings-init.js loads and saves rollout toggles', () => {
+    expect(settingsInitContent).toContain('featureMarketplaceAvailability');
+    expect(settingsInitContent).toContain('featureQuoteBooking');
+    expect(settingsInitContent).toContain('featureBookingPayments');
+    expect(settingsInitContent).toContain(
+      'marketplaceAvailability: flags.marketplaceAvailability === true'
+    );
+    expect(settingsInitContent).toContain(
+      "bookingPayments: getCheckboxValue('featureBookingPayments')"
+    );
+  });
+});

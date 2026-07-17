@@ -25,6 +25,9 @@ async function getFeatureFlags() {
       supportTickets: features.supportTickets !== false,
       pexelsCollage: features.pexelsCollage === true,
       photoAutoApprove: features.photoAutoApprove !== false,
+      marketplaceAvailability: features.marketplaceAvailability === true,
+      quoteBooking: features.quoteBooking === true,
+      bookingPayments: features.bookingPayments === true,
     };
   } catch (error) {
     logger.error('Error reading feature flags:', error);
@@ -37,6 +40,9 @@ async function getFeatureFlags() {
       supportTickets: true,
       pexelsCollage: false,
       photoAutoApprove: true,
+      marketplaceAvailability: false,
+      quoteBooking: false,
+      bookingPayments: false,
     };
   }
 }
