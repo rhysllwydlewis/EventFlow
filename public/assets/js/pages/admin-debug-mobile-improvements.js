@@ -6,7 +6,6 @@
   'use strict';
 
   const AUTH_REDIRECT_PATTERN = /(?:\/login|\/sign-?in|\/auth(?:\/|\?|$)|login\?|signin\?)/i;
-  const REDIRECT_CODES = new Set(['301', '302', '303', '307', '308']);
   const checksList = document.getElementById('sc-checks-list');
   const statsBar = document.getElementById('sc-stats-bar');
   const summary = document.getElementById('sc-summary');
@@ -15,22 +14,16 @@
 
   document.body.classList.add('admin-debug-mobile-enhanced');
 
-  function text(element) {
-    return element ? element.textContent.trim() : '';
-  }
-
   function isExpectedAuthRedirect(row) {
     const redirect = row.querySelector('.sc-check-redirect');
     const warning = row.querySelector('.sc-check-warn');
-    const statusCode = text(row.querySelector('.sc-check-code'));
-    if (!redirect || !warning || !REDIRECT_CODES.has(statusCode)) {
+    if (!redirect || !warning) {
       return false;
     }
 
-    const evidence = [redirect.title, redirect.textContent, warning.title, warning.textContent]
-      .filter(Boolean)
-      .join(' ');
-    return AUTH_REDIRECT_PATTERN.test(evidence);
+    const warningEvidence = [warning.title, warning.textContent].filter(Boolean).join(' ').trim();
+    const redirectEvidence = [redirect.title, redirect.textContent].filter(Boolean).join(' ');
+    return /^Auth redirect\b/i.test(warningEvidence) && AUTH_REDIRECT_PATTERN.test(redirectEvidence);
   }
 
   function classifyRow(row) {
