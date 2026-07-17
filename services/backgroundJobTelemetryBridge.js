@@ -99,7 +99,7 @@ function buildActionPromptTelemetry(summary) {
   return {
     jobKey: telemetry.JOB_KEYS.ACTION_PROMPTS,
     status: errors > 0 || cappedByLimit ? 'warning' : 'success',
-    trigger: summary && summary.dryRun ? 'dry-run' : 'scheduler',
+    trigger: summary && summary.dryRun ? 'dry-run' : summary?.trigger || 'scheduler',
     startedAt: summary && summary.startedAt,
     finishedAt: getFinishedAt(summary),
     metrics: {
@@ -114,11 +114,16 @@ function buildActionPromptTelemetry(summary) {
   };
 }
 
-function buildActionPromptFailureTelemetry(error, startedAt, finishedAt = new Date()) {
+function buildActionPromptFailureTelemetry(
+  error,
+  startedAt,
+  finishedAt = new Date(),
+  trigger = 'scheduler'
+) {
   return {
     jobKey: telemetry.JOB_KEYS.ACTION_PROMPTS,
     status: 'failed',
-    trigger: 'scheduler',
+    trigger,
     startedAt,
     finishedAt,
     metrics: {
@@ -133,7 +138,12 @@ function buildActionPromptFailureTelemetry(error, startedAt, finishedAt = new Da
   };
 }
 
-function buildDateManagementTelemetry(result, startedAt, finishedAt = new Date()) {
+function buildDateManagementTelemetry(
+  result,
+  startedAt,
+  finishedAt = new Date(),
+  trigger = 'scheduler'
+) {
   const validResult = Boolean(result && typeof result === 'object' && !Array.isArray(result));
   const failed = !validResult || Boolean(result && (result.error || result.success === false));
   const disabled = validResult && result.reason === 'Auto-update disabled';
@@ -145,7 +155,7 @@ function buildDateManagementTelemetry(result, startedAt, finishedAt = new Date()
   return {
     jobKey: telemetry.JOB_KEYS.DATE_MANAGEMENT,
     status: failed ? 'failed' : disabled ? 'skipped' : limited ? 'warning' : 'success',
-    trigger: 'scheduler',
+    trigger,
     startedAt,
     finishedAt,
     metrics: {
@@ -163,7 +173,13 @@ function buildDateManagementTelemetry(result, startedAt, finishedAt = new Date()
   };
 }
 
-function buildBadgeTelemetry(result, startedAt, finishedAt = new Date(), error = null) {
+function buildBadgeTelemetry(
+  result,
+  startedAt,
+  finishedAt = new Date(),
+  error = null,
+  trigger = 'scheduler'
+) {
   const validResult = Boolean(result && typeof result === 'object' && !Array.isArray(result));
   const errors = Number((validResult && result.errors) || 0);
   const failed = Boolean(error) || !validResult;
@@ -171,7 +187,7 @@ function buildBadgeTelemetry(result, startedAt, finishedAt = new Date(), error =
   return {
     jobKey: telemetry.JOB_KEYS.BADGE_EVALUATION,
     status: failed ? 'failed' : errors > 0 ? 'warning' : 'success',
-    trigger: 'scheduler',
+    trigger,
     startedAt,
     finishedAt,
     metrics: {
@@ -298,12 +314,13 @@ function instrumentActionPromptService(
     ...args
   ) {
     const startedAt = new Date();
+    const trigger = args[0]?.telemetryTrigger || 'scheduler';
     try {
       return await original.apply(this, args);
     } catch (error) {
       await persistTelemetry(
         recordRun,
-        buildActionPromptFailureTelemetry(error, startedAt, new Date()),
+        buildActionPromptFailureTelemetry(error, startedAt, new Date(), trigger),
         log
       );
       throw error;
@@ -325,18 +342,19 @@ function instrumentDateManagementService(
   const original = prototype.performMonthlyCheck;
   prototype.performMonthlyCheck = async function instrumentedMonthlyCheck(...args) {
     const startedAt = new Date();
+    const trigger = args[0]?.trigger || 'scheduler';
     try {
       const result = await original.apply(this, args);
       await persistTelemetry(
         recordRun,
-        buildDateManagementTelemetry(result, startedAt, new Date()),
+        buildDateManagementTelemetry(result, startedAt, new Date(), trigger),
         log
       );
       return result;
     } catch (error) {
       await persistTelemetry(
         recordRun,
-        buildDateManagementTelemetry({ error: error.message }, startedAt, new Date()),
+        buildDateManagementTelemetry({ error: error.message }, startedAt, new Date(), trigger),
         log
       );
       throw error;
@@ -361,14 +379,19 @@ function instrumentBadgeManagement(
   const original = badgeManagement.evaluateAllSupplierBadges;
   badgeManagement.evaluateAllSupplierBadges = async function instrumentedBadgeEvaluation(...args) {
     const startedAt = new Date();
+    const trigger = args[0]?.trigger || 'scheduler';
     try {
       const result = await original.apply(this, args);
-      await persistTelemetry(recordRun, buildBadgeTelemetry(result, startedAt, new Date()), log);
+      await persistTelemetry(
+        recordRun,
+        buildBadgeTelemetry(result, startedAt, new Date(), null, trigger),
+        log
+      );
       return result;
     } catch (error) {
       await persistTelemetry(
         recordRun,
-        buildBadgeTelemetry(null, startedAt, new Date(), error),
+        buildBadgeTelemetry(null, startedAt, new Date(), error, trigger),
         log
       );
       throw error;

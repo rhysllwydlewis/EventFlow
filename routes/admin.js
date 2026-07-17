@@ -3695,7 +3695,11 @@ router.post(
         `[Admin] Manual action-prompt run triggered by ${req.user.email} (dryRun=${dryRun}, limit=${limit ?? 'default'})`
       );
 
-      const summary = await runActionPrompts({ dryRun, ...(limit !== undefined ? { limit } : {}) });
+      const summary = await runActionPrompts({
+        dryRun,
+        trigger: 'manual',
+        ...(limit !== undefined ? { limit } : {}),
+      });
 
       auditLog({
         adminEmail: req.user.email,
@@ -6866,7 +6870,7 @@ router.post(
         });
       }
 
-      const result = await dateService.performMonthlyCheck();
+      const result = await dateService.performMonthlyCheck({ trigger: 'manual' });
 
       // Create audit log
       auditLog({
