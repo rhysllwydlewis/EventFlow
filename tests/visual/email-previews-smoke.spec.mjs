@@ -25,6 +25,15 @@ const sampleTemplates = [
 test('admin email previews gallery renders cards and preview frames with mocked admin API', async ({
   page,
 }) => {
+  await page.route('**/api/v1/auth/me*', route => {
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        user: { id: 'visual-admin', role: 'admin', email: 'admin@example.com' },
+      }),
+    });
+  });
   await page.route('**/api/admin/email-previews', route => {
     route.fulfill({
       status: 200,
