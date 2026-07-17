@@ -24,8 +24,8 @@ describe('admin debug background jobs integration', () => {
 
   test('exposes authenticated read-only endpoints from the existing system-check routes', () => {
     const routes = read('routes/system-checks-admin.js');
-    expect(routes).toContain("router.get('/background-jobs'");
-    expect(routes).toContain("router.get('/background-jobs/health'");
+    expect(routes).toMatch(/router\.get\(\s*['"]\/background-jobs['"]/);
+    expect(routes).toMatch(/router\.get\(\s*['"]\/background-jobs\/health['"]/);
     expect(routes).toContain("roleRequired('admin')");
   });
 });
