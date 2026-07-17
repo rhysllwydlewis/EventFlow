@@ -146,13 +146,16 @@ async function persistTelemetry(recordRun, payload, log = logger) {
   }
 }
 
-function installDatabaseHooks({ db = dbUnified, recordRun = telemetry.recordRun, log = logger } = {}) {
+function installDatabaseHooks(
+  { db = dbUnified, recordRun = telemetry.recordRun, log = logger } = {}
+) {
   if (db.insertOne && !db.insertOne[INSERT_MARK]) {
     const originalInsertOne = db.insertOne.bind(db);
     const wrappedInsertOne = async function wrappedInsertOne(collection, document, ...rest) {
       const result = await originalInsertOne(collection, document, ...rest);
       try {
         if (
+          result !== false &&
           collection === 'system_checks' &&
           document &&
           rememberRun(buildRunIdentity(telemetry.JOB_KEYS.SYSTEM_CHECKS, document))
@@ -175,6 +178,7 @@ function installDatabaseHooks({ db = dbUnified, recordRun = telemetry.recordRun,
       try {
         const summary = value?.emailAutomation?.actionPrompts?.lastRun;
         if (
+          result !== false &&
           key === 'settings' &&
           summary &&
           !summary.dryRun &&
@@ -248,7 +252,11 @@ function instrumentBadgeManagement(
       await persistTelemetry(recordRun, buildBadgeTelemetry(result, startedAt, new Date()), log);
       return result;
     } catch (error) {
-      await persistTelemetry(recordRun, buildBadgeTelemetry(null, startedAt, new Date(), error), log);
+      await persistTelemetry(
+        recordRun,
+        buildBadgeTelemetry(null, startedAt, new Date(), error),
+        log
+      );
       throw error;
     }
   };
