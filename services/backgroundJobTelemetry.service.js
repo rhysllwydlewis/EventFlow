@@ -276,7 +276,7 @@ function normaliseActionPromptRun(run) {
     {
       ...run,
       status: errors > 0 || run.cappedByLimit ? 'warning' : 'success',
-      trigger: run.dryRun ? 'dry-run' : 'scheduler',
+      trigger: run.dryRun ? 'dry-run' : run.trigger || 'scheduler',
       metrics: {
         scanned: Number(run.scanned || 0),
         sent: Number(run.sent || 0),
@@ -370,10 +370,18 @@ function buildJob(definition, history, now, runtime = null) {
     const bDate = safeDate(b.finishedAt || b.startedAt);
     return (bDate ? bDate.getTime() : 0) - (aDate ? aDate.getTime() : 0);
   });
-  const latest = ordered[0] || null;
+  const hasSharedTelemetry = ordered.some(run => run.source === COLLECTION);
+  const authoritativeHistory = hasSharedTelemetry
+    ? ordered.filter(run => run.source === COLLECTION)
+    : ordered;
+  const schedulerHistory = authoritativeHistory.filter(
+    run => run.trigger !== 'manual' && run.trigger !== 'dry-run'
+  );
+  const latest = authoritativeHistory[0] || null;
+  const latestScheduled = schedulerHistory[0] || null;
   const latestSuccess =
-    ordered.find(run => run.status === 'success' || run.status === 'warning') || null;
-  const latestFailure = ordered.find(run => run.status === 'failed') || null;
+    schedulerHistory.find(run => run.status === 'success' || run.status === 'warning') || null;
+  const latestFailure = schedulerHistory.find(run => run.status === 'failed') || null;
   const nextRun =
     (runtime && toIso(runtime.nextRun)) || estimateNextRun(definition, latestSuccess, now);
 
@@ -395,12 +403,12 @@ function buildJob(definition, history, now, runtime = null) {
             ? runtime.scheduled
             : definition.enabled,
       },
-      ordered,
+      schedulerHistory,
       now
     ),
     telemetry: getVisibility(definition, ordered),
     legacyTelemetry: definition.legacyTelemetry,
-    lastAttempt: latest ? latest.finishedAt || latest.startedAt : null,
+    lastAttempt: latestScheduled ? latestScheduled.finishedAt || latestScheduled.startedAt : null,
     lastSuccess: latestSuccess ? latestSuccess.finishedAt || latestSuccess.startedAt : null,
     lastFailure: latestFailure ? latestFailure.finishedAt || latestFailure.startedAt : null,
     latestDurationMs: latest ? latest.durationMs : null,

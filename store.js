@@ -46,6 +46,8 @@ const files = {
   reviewVotes: path.join(DATA_DIR, 'reviewVotes.json'),
   reviewModerations: path.join(DATA_DIR, 'reviewModerations.json'),
   popularSearches: path.join(DATA_DIR, 'popularSearches.json'),
+  system_checks: path.join(DATA_DIR, 'system_checks.json'),
+  background_job_runs: path.join(DATA_DIR, 'background_job_runs.json'),
   ab_views: path.join(DATA_DIR, 'ab_views.json'),
   ab_conversions: path.join(DATA_DIR, 'ab_conversions.json'),
   public_calendar_events: path.join(DATA_DIR, 'public_calendar_events.json'),

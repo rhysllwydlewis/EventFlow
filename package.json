@@ -7,8 +7,8 @@
   },
   "main": "server.js",
   "scripts": {
-    "dev": "node server.js",
-    "start": "node server.js",
+    "dev": "node -r ./services/backgroundJobTelemetryBridge.js server.js",
+    "start": "node -r ./services/backgroundJobTelemetryBridge.js server.js",
     "migrate": "node migrate-to-mongodb.js",
     "migrate:messenger-v4": "node scripts/migrate-to-messenger-v4.js",
     "check:lockfile": "node scripts/check-lockfile-consistency.mjs",

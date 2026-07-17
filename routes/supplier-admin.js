@@ -938,7 +938,7 @@ router.post(
   async (req, res) => {
     try {
       const badgeManagement = require('../utils/badgeManagement');
-      const results = await badgeManagement.evaluateAllSupplierBadges();
+      const results = await badgeManagement.evaluateAllSupplierBadges({ trigger: 'manual' });
       res.json({
         success: true,
         message: 'Badge evaluation completed',

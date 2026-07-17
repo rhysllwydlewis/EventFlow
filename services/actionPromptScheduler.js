@@ -382,9 +382,10 @@ async function sendActionPromptEmail(user, report, baseUrl, dryRun) {
  * @param {Object} [opts]
  * @param {boolean} [opts.dryRun=false] - Log actions without sending
  * @param {number}  [opts.limit]        - Override max send cap for this run
+ * @param {'scheduler'|'manual'} [opts.trigger='scheduler'] - Execution source
  * @returns {Promise<Object>} Summary stats
  */
-async function runActionPrompts({ dryRun = false, limit } = {}) {
+async function runActionPrompts({ dryRun = false, limit, trigger = 'scheduler' } = {}) {
   if (_running) {
     logger.warn('[ActionPrompts] Previous run still in progress — skipping');
     return { skipped: true, reason: 'already-running' };
@@ -409,7 +410,7 @@ async function runActionPrompts({ dryRun = false, limit } = {}) {
   const sampleRecipients = [];
 
   try {
-    const items = await getSupplierActionItems();
+    const items = await getSupplierActionItems({ telemetryTrigger: trigger });
     scanned = items.length;
 
     const now = new Date();
@@ -466,6 +467,7 @@ async function runActionPrompts({ dryRun = false, limit } = {}) {
     finishedAt: finishedAt.toISOString(),
     durationMs: finishedAt - startedAt,
     dryRun,
+    trigger,
     scanned,
     sent,
     skippedCadence,
@@ -493,6 +495,7 @@ async function runActionPrompts({ dryRun = false, limit } = {}) {
         startedAt: summary.startedAt,
         durationMs: summary.durationMs,
         dryRun: summary.dryRun,
+        trigger: summary.trigger,
         scanned: summary.scanned,
         sent: summary.sent,
         skippedCadence: summary.skippedCadence,
