@@ -43,6 +43,72 @@ jobs:
           PLAYWRIGHT_JSON_OUTPUT_NAME: test-results/visual-results.json
         run: npm run test:visual
 
+      - name: Create concise visual failure summary
+        if: always()
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const input = 'test-results/visual-results.json';
+          const output = 'test-results/visual-summary.txt';
+          const lines = [];
+
+          if (!fs.existsSync(input)) {
+            lines.push('Playwright JSON results were not produced.');
+          } else {
+            const report = JSON.parse(fs.readFileSync(input, 'utf8'));
+            const stats = report.stats || {};
+            lines.push(
+              `expected=${stats.expected ?? 0} unexpected=${stats.unexpected ?? 0} ` +
+                `flaky=${stats.flaky ?? 0} skipped=${stats.skipped ?? 0}`
+            );
+
+            function walk(suite, ancestors = []) {
+              const nextAncestors = suite.title ? [...ancestors, suite.title] : ancestors;
+              for (const spec of suite.specs || []) {
+                for (const test of spec.tests || []) {
+                  const failedResults = (test.results || []).filter(result =>
+                    ['failed', 'timedOut', 'interrupted'].includes(result.status)
+                  );
+                  if (!failedResults.length && test.status !== 'unexpected') continue;
+
+                  lines.push('');
+                  lines.push(
+                    `FAIL: ${[...nextAncestors, spec.title].filter(Boolean).join(' > ')} ` +
+                      `[${test.projectName || 'unknown project'}]`
+                  );
+                  for (const result of failedResults) {
+                    for (const error of result.errors || []) {
+                      const message = String(error.message || error.value || error.stack || error)
+                        .replace(/\u001b\[[0-9;]*m/g, '')
+                        .slice(0, 6000);
+                      lines.push(message);
+                    }
+                  }
+                }
+              }
+              for (const child of suite.suites || []) walk(child, nextAncestors);
+            }
+
+            for (const suite of report.suites || []) walk(suite);
+          }
+
+          fs.mkdirSync('test-results', { recursive: true });
+          fs.writeFileSync(output, `${lines.join('\n').slice(0, 50000)}\n`);
+          console.log(fs.readFileSync(output, 'utf8'));
+          NODE
+
+      - name: Upload concise machine-readable results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-machine-results
+          path: |
+            test-results/visual-results.json
+            test-results/visual-junit.xml
+            test-results/visual-summary.txt
+          if-no-files-found: warn
+          retention-days: 14
+
       - name: Upload Playwright report
         if: always()
         uses: actions/upload-artifact@v4
