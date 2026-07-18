@@ -51,16 +51,12 @@ export default defineConfig({
       'json',
       { outputFile: process.env.PLAYWRIGHT_JSON_OUTPUT_NAME || 'test-results/results.json' },
     ],
-    [
-      'junit',
-      { outputFile: process.env.PLAYWRIGHT_JUNIT_OUTPUT_NAME || 'test-results/junit.xml' },
-    ],
+    ['junit', { outputFile: process.env.PLAYWRIGHT_JUNIT_OUTPUT_NAME || 'test-results/junit.xml' }],
     ['list'],
   ],
   use: {
     baseURL:
-      process.env.BASE_URL ||
-      (useStaticMode ? 'http://127.0.0.1:4173' : 'http://localhost:3000'),
+      process.env.BASE_URL || (useStaticMode ? 'http://127.0.0.1:4173' : 'http://localhost:3000'),
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
@@ -81,11 +77,9 @@ export default defineConfig({
         env: {
           ...process.env,
           NODE_ENV: 'test',
-          JWT_SECRET:
-            process.env.JWT_SECRET || 'test-secret-key-for-e2e-testing-only-min-32-chars',
+          JWT_SECRET: process.env.JWT_SECRET || 'test-secret-key-for-e2e-testing-only-min-32-chars',
           MONGODB_URI:
-            process.env.MONGODB_URI ||
-            'mongodb://127.0.0.1:27017/eventflow_e2e?replicaSet=rs0',
+            process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/eventflow_e2e?replicaSet=rs0',
         },
       },
 });
