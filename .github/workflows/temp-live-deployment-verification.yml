@@ -1,0 +1,37 @@
+name: Temporary Live Deployment Verification
+
+on:
+  push:
+    branches: [ops/verify-production-deployment]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Wait for Railway rollout
+        run: sleep 30
+      - name: Verify live health and deployed SHA
+        env:
+          EXPECTED_SHA: e7c7cfa53fb20700325084d0c78957c8c701b117
+          BASE_URL: https://www.event-flow.co.uk
+        run: |
+          set -euo pipefail
+          for attempt in {1..12}; do
+            echo "Attempt $attempt"
+            health="$(curl --fail --silent --show-error --max-time 15 "$BASE_URL/api/health" || true)"
+            deployment="$(curl --fail --silent --show-error --max-time 15 "$BASE_URL/deployment.json" || true)"
+            echo "health=$health"
+            echo "deployment=$deployment"
+            reported="$(printf '%s' "$deployment" | node -e "let input='';process.stdin.on('data',c=>input+=c);process.stdin.on('end',()=>{try{console.log(JSON.parse(input).commit||'')}catch{console.log('')}})")"
+            if [[ -n "$health" && "$reported" == "$EXPECTED_SHA" ]]; then
+              echo "Live deployment verified at $EXPECTED_SHA"
+              exit 0
+            fi
+            sleep 15
+          done
+          echo "::error::Production did not report the expected commit within the verification window."
+          exit 1
