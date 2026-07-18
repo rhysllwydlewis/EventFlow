@@ -17,7 +17,14 @@ jest.mock('../../utils/logger', () => ({
 }));
 
 const guides = require('../../public/assets/data/guides.json');
+const { buildPublicSupplierSlug } = require('../../services/publicSupplierSeo.service');
 const { generateSitemap, loadGuideEntries, xmlEscape } = require('../../sitemap');
+
+const sitemapSupplier = {
+  id: 'supplier&one',
+  approved: true,
+  updatedAt: '2026-04-10T00:00:00.000Z',
+};
 
 describe('dynamic sitemap guide mop-up', () => {
   test('loadGuideEntries mirrors guide lastUpdated metadata', () => {
@@ -35,7 +42,9 @@ describe('dynamic sitemap guide mop-up', () => {
       '<loc>https://event-flow.co.uk/articles/wedding-venue-selection-guide</loc>'
     );
     expect(xml).toContain(`<lastmod>${guides[0].lastUpdated}</lastmod>`);
-    expect(xml).toContain('<loc>https://event-flow.co.uk/supplier.html?id=supplier&amp;one</loc>');
+    expect(xml).toContain(
+      `<loc>https://event-flow.co.uk/supplier/${buildPublicSupplierSlug(sitemapSupplier)}</loc>`
+    );
     expect(xml).toContain('<loc>https://event-flow.co.uk/package.html?slug=photo&amp;video</loc>');
   });
 
