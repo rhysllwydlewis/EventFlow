@@ -6,6 +6,12 @@ const path = require('path');
 const root = path.resolve(__dirname, '../..');
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
 
+function allAssertionOptions(config) {
+  return config.ci.assert.assertMatrix.flatMap(entry =>
+    Object.values(entry.assertions).map(value => value[1])
+  );
+}
+
 describe('autonomous quality workflow contracts', () => {
   test('explicit backend Playwright mode wins inside CI', () => {
     const config = read('playwright.config.js');
@@ -21,7 +27,20 @@ describe('autonomous quality workflow contracts', () => {
     expect(workflow).toMatch(/mongodb-replica-set: rs0/);
     expect(workflow).toMatch(/E2E_MODE: full/);
     expect(workflow).toMatch(/Mongo-backed browser journeys/);
+    expect(workflow).toMatch(/PLAYWRIGHT_VIDEO: 'off'/);
     expect(workflow).not.toMatch(/continue-on-error:\s*true/);
+  });
+
+  test('new third-party workflow actions are pinned to reviewed immutable commits', () => {
+    const backend = read('.github/workflows/backend-e2e.yml');
+    const audit = read('.github/workflows/test-audit.yml');
+    const supplyChain = read('.github/workflows/supply-chain.yml');
+
+    const mongoPin = /supercharge\/mongodb-github-action@[0-9a-f]{40}/i;
+    expect(backend).toMatch(mongoPin);
+    expect(audit).toMatch(mongoPin);
+    expect(supplyChain).toMatch(/aquasecurity\/trivy-action@[0-9a-f]{40}/i);
+    expect(supplyChain).toMatch(/anchore\/sbom-action@[0-9a-f]{40}/i);
   });
 
   test('deployment validation waits for the exact intended commit and readiness', () => {
@@ -33,6 +52,16 @@ describe('autonomous quality workflow contracts', () => {
     expect(workflow).toMatch(/reported.*EXPECTED_SHA/s);
     expect(workflow).toMatch(/\/api\/ready/);
     expect(metadata).toMatch(/RAILWAY_GIT_COMMIT_SHA/);
+  });
+
+  test('production synthetics require a real commit SHA and persist controlled outcomes only', () => {
+    const synthetic = read('scripts/production-synthetic-check.mjs');
+
+    expect(synthetic).toMatch(/commitShaPattern = \/\^\[0-9a-f\]\{40\}\$\/i/);
+    expect(synthetic).toMatch(/'network_error'/);
+    expect(synthetic).toMatch(/'invalid_response'/);
+    expect(synthetic).not.toMatch(/error\.message/);
+    expect(synthetic).not.toMatch(/status:\s*response\.status/);
   });
 
   test('scheduled monitors own issue creation and recovery closure', () => {
@@ -49,6 +78,20 @@ describe('autonomous quality workflow contracts', () => {
     }
   });
 
+  test('Lighthouse uses page-specific pessimistic regression baselines', () => {
+    const desktop = JSON.parse(read('.lighthouserc.json'));
+    const mobile = JSON.parse(read('.lighthouserc.mobile.json'));
+
+    expect(desktop.ci.assert.assertMatrix).toHaveLength(3);
+    expect(mobile.ci.assert.assertMatrix).toHaveLength(3);
+    expect(JSON.stringify(desktop)).toContain('guides');
+    expect(JSON.stringify(mobile)).toContain('suppliers$');
+
+    for (const options of [...allAssertionOptions(desktop), ...allAssertionOptions(mobile)]) {
+      expect(options.aggregationMethod).toBe('pessimistic');
+    }
+  });
+
   test('new executable lines and dependency deltas are blocking PR gates', () => {
     const coverage = read('.github/workflows/coverage-gate.yml');
     const dependencyReview = read('.github/workflows/dependency-review.yml');
@@ -57,6 +100,16 @@ describe('autonomous quality workflow contracts', () => {
     expect(coverage).toMatch(/check-changed-coverage\.mjs/);
     expect(dependencyReview).toMatch(/fail-on-severity: high/);
     expect(dependencyReview).toMatch(/warn-only: false/);
+  });
+
+  test('mutation testing exercises both property and provider-failure contracts', () => {
+    const mutation = read('stryker.config.mjs');
+    const workflow = read('.github/workflows/weekly-deep-quality.yml');
+
+    expect(mutation).toMatch(/property-fuzz\.test\.js/);
+    expect(mutation).toMatch(/external-service-failure-contracts\.test\.js/);
+    expect(workflow).toMatch(/pull_request:/);
+    expect(workflow).toMatch(/Focused mutation score/);
   });
 
   test('high-risk paths retain human ownership and action pin migration remains visible', () => {
