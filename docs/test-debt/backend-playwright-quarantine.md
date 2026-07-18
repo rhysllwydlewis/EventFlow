@@ -2,21 +2,24 @@
 
 PR #1354 introduced a real-server, MongoDB-backed browser gate and exposed historical backend test debt that the previous static harness did not execute truthfully.
 
-The initial broad run contained 210 tests and completed with 164 expected results, 43 unexpected attempts and 3 flaky attempts. The current blocking set and every quarantined file are declared in `e2e/backend-suite-classification.json`; the runner refuses to start when any `@backend` spec is unclassified.
+This pull request increases the blocking set from 10 to 12 spec files:
 
-## Repair checklist
+- `start-wizard-journey.spec.js` now establishes a same-origin document before localStorage access and tests the current wizard journey.
+- `suppliers.spec.js` now tests current supplier-directory, API and logged-out intent contracts without `networkidle` races.
+- superseded `websocket.spec.js` has been removed; `websocket-v2.spec.js` remains the current blocking socket contract.
+
+Every remaining quarantined file is declared in `e2e/backend-suite-classification.json`; the runner refuses to start when any `@backend` spec is unclassified.
+
+## Remaining repair checklist
 
 - [ ] `admin-feature-flags.spec.js` — authenticate properly, change and restore flags, and assert the current registration validation/rate-limit contract.
 - [ ] `customer-enquiry-flow.spec.js` — rebuild fixtures and selectors around the current enquiry journey and remove live-page `networkidle` waits.
 - [ ] `packages.spec.js` — replace legacy price controls and persistent-service `networkidle` assumptions with current deterministic contracts.
 - [ ] `public-discovery-funnel.spec.js` — align the marketplace new-listing logged-out flow with the current redirect and intent contract.
-- [ ] `start-wizard-journey.spec.js` — establish a same-origin page before localStorage access and repair the failure-state helper.
 - [ ] `supplier-dashboard-improvements.spec.js` — replace removed onboarding cards and legacy dashboard selectors with current UI contracts.
 - [ ] `supplier-onboarding.spec.js` — test the current account-first supplier onboarding rather than a retired full-profile registration form.
 - [ ] `supplier-reviews.spec.js` — create current supplier/review fixtures and remove obsolete profile resources and `networkidle` waits.
 - [ ] `supplier-verification-flow.spec.js` — replace source-literal checks with current verification API behaviour.
-- [ ] `suppliers.spec.js` — update navigation/filter scenarios to current controls and deterministic page readiness.
-- [ ] `websocket.spec.js` — retire or rebuild legacy messenger accessibility checks; preserve `websocket-v2.spec.js` as the current socket baseline.
 
 ## Removal criteria
 
