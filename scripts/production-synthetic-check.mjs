@@ -117,8 +117,11 @@ async function runCheck(check) {
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    const separator = check.url.includes('?') ? '&' : '?';
-    const response = await fetch(`${check.url}${separator}synthetic=${Date.now()}`, {
+    const requestUrl =
+      check.type === 'redirect'
+        ? check.url
+        : `${check.url}${check.url.includes('?') ? '&' : '?'}synthetic=${Date.now()}`;
+    const response = await fetch(requestUrl, {
       signal: controller.signal,
       redirect: check.redirect || 'follow',
       headers: {
