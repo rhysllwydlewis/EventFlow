@@ -51,16 +51,6 @@ jobs:
             tests/helpers/homepage-stabilisation-scenario.js \
             tests/unit/current-state-hardening.test.js
 
-      - name: Validate syntax and focused contracts
-        run: |
-          node --check middleware/security.js
-          node --check scripts/production-synthetic-check.mjs
-          node --check scripts/apply-current-state-hardening.mjs
-          npx jest --runInBand --coverage=false \
-            tests/unit/current-state-hardening.test.js \
-            tests/unit/backend-suite-classification.test.js \
-            tests/unit/production-startup-contract.test.js
-
       - name: Commit generated hardening changes
         shell: bash
         run: |
@@ -73,3 +63,26 @@ jobs:
           git add middleware/security.js public/assets/js/app.js public/index.html public/marketplace.html tests/helpers/homepage-stabilisation-scenario.js tests/unit/current-state-hardening.test.js
           git commit -m "Enforce canonical host and truthful public content"
           git push origin HEAD:agent/current-state-security-monitoring-hardening
+
+      - name: Validate syntax and focused contracts
+        shell: bash
+        run: |
+          set -o pipefail
+          {
+            node --check middleware/security.js
+            node --check scripts/production-synthetic-check.mjs
+            node --check scripts/apply-current-state-hardening.mjs
+            npx jest --runInBand --coverage=false \
+              tests/unit/current-state-hardening.test.js \
+              tests/unit/backend-suite-classification.test.js \
+              tests/unit/production-startup-contract.test.js
+          } 2>&1 | tee current-state-hardening-validation.txt
+
+      - name: Upload focused validation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: current-state-hardening-validation
+          path: current-state-hardening-validation.txt
+          if-no-files-found: warn
+          retention-days: 2
