@@ -46,3 +46,4 @@ Disallow: /test-notifications
 
 # Sitemap
 Sitemap: https://event-flow.co.uk/sitemap.xml
+Sitemap: https://event-flow.co.uk/sitemap-suppliers.xml

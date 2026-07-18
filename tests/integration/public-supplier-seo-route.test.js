@@ -45,7 +45,9 @@ describe('public supplier SEO routes', () => {
 
     expect(response.headers['content-type']).toMatch(/text\/html/);
     expect(response.headers['x-robots-tag']).toContain('index');
-    expect(response.text).toContain(`<link rel="canonical" href="https://event-flow.co.uk/supplier/${slug}">`);
+    expect(response.text).toContain(
+      `<link rel="canonical" href="https://event-flow.co.uk/supplier/${slug}">`
+    );
     expect(response.text).toContain('id="supplier-structured-data"');
     expect(response.text).toContain('id="supplier-hero"');
   });
@@ -73,7 +75,9 @@ describe('public supplier SEO routes', () => {
       users: [{ id: 'user-1' }],
     });
 
-    const response = await request(app).get(`/supplier/${buildPublicSupplierSlug(orphan)}`).expect(404);
+    const response = await request(app)
+      .get(`/supplier/${buildPublicSupplierSlug(orphan)}`)
+      .expect(404);
 
     expect(response.headers['x-robots-tag']).toBe('noindex, nofollow');
   });

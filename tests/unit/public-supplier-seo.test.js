@@ -37,7 +37,9 @@ describe('public supplier SEO service', () => {
     const canonical = buildPublicSupplierSlug(supplier);
     const token = canonical.split('--')[1];
 
-    expect(resolvePublicSupplierBySlug([supplier], `old-business-name--${token}`)).toEqual(supplier);
+    expect(resolvePublicSupplierBySlug([supplier], `old-business-name--${token}`)).toEqual(
+      supplier
+    );
     expect(resolvePublicSupplierBySlug([supplier], 'not-a-public-slug')).toBeNull();
   });
 
@@ -63,7 +65,9 @@ describe('public supplier SEO service', () => {
     const renderedBody = rendered.match(/<body>[\s\S]*<\/body>/i)[0];
 
     expect(renderedBody).toBe(originalBody);
-    expect(rendered).toContain('<meta name="robots" content="index,follow,max-image-preview:large">');
+    expect(rendered).toContain(
+      '<meta name="robots" content="index,follow,max-image-preview:large">'
+    );
     expect(rendered).toContain('<link rel="canonical" href="https://event-flow.co.uk/supplier/');
     expect(rendered).toContain('Cŵm Valley Photography | Photography | EventFlow');
     expect(rendered).toContain('id="supplier-structured-data"');

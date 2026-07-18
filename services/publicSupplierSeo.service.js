@@ -63,7 +63,9 @@ function resolvePublicSupplierBySlug(suppliers, slug) {
   if (!token) {
     return null;
   }
-  return (suppliers || []).find(supplier => supplierSlugToken(supplier && supplier.id) === token) || null;
+  return (
+    (suppliers || []).find(supplier => supplierSlugToken(supplier && supplier.id) === token) || null
+  );
 }
 
 function escapeHtml(value) {
@@ -200,13 +202,25 @@ function buildSupplierSeoModel(supplier, options = {}) {
 
 function removeExistingSupplierSeoTags(html) {
   return String(html || '')
-    .replace(new RegExp(`\\s*<!-- ${SEO_BLOCK_MARKER}:start -->[\\s\\S]*?<!-- ${SEO_BLOCK_MARKER}:end -->`, 'i'), '')
+    .replace(
+      new RegExp(
+        `\\s*<!-- ${SEO_BLOCK_MARKER}:start -->[\\s\\S]*?<!-- ${SEO_BLOCK_MARKER}:end -->`,
+        'i'
+      ),
+      ''
+    )
     .replace(/<title\b[^>]*>[\s\S]*?<\/title>/i, '')
     .replace(/<meta\b[^>]*(?:name=["']description["']|id=["']meta-description["'])[^>]*>\s*/gi, '')
     .replace(/<meta\b[^>]*(?:name=["']robots["'])[^>]*>\s*/gi, '')
     .replace(/<link\b[^>]*rel=["']canonical["'][^>]*>\s*/gi, '')
-    .replace(/<meta\b[^>]*(?:property=["']og:(?:title|description|image|url|type)["'])[^>]*>\s*/gi, '')
-    .replace(/<meta\b[^>]*(?:name=["']twitter:(?:card|url|title|description|image)["'])[^>]*>\s*/gi, '')
+    .replace(
+      /<meta\b[^>]*(?:property=["']og:(?:title|description|image|url|type)["'])[^>]*>\s*/gi,
+      ''
+    )
+    .replace(
+      /<meta\b[^>]*(?:name=["']twitter:(?:card|url|title|description|image)["'])[^>]*>\s*/gi,
+      ''
+    )
     .replace(/<script\b[^>]*id=["']supplier-structured-data["'][^>]*>[\s\S]*?<\/script>\s*/gi, '');
 }
 
