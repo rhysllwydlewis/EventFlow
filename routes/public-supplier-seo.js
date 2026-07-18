@@ -92,12 +92,17 @@ function createPublicSupplierSeoRouter(options = {}) {
       }
 
       const canonicalSlug = buildPublicSupplierSlug(supplier);
-      if (req.params.slug !== canonicalSlug) {
-        const campaignQuery = buildCampaignQuery(req.query);
-        return res.redirect(
-          301,
-          `/supplier/${canonicalSlug}${campaignQuery ? `?${campaignQuery}` : ''}`
-        );
+      const campaignQuery = buildCampaignQuery(req.query);
+      const canonicalSearch = campaignQuery ? `?${campaignQuery}` : '';
+      const queryStart = req.originalUrl.indexOf('?');
+      const incomingSearch = queryStart === -1 ? '' : req.originalUrl.slice(queryStart);
+
+      // The slug and server-rendered supplier ID are authoritative. Remove legacy
+      // `id`, `preview` and arbitrary query values so metadata and visible profile
+      // content can never describe different suppliers. Recognised campaign values
+      // remain available for acquisition attribution.
+      if (req.params.slug !== canonicalSlug || incomingSearch !== canonicalSearch) {
+        return res.redirect(301, `/supplier/${canonicalSlug}${canonicalSearch}`);
       }
 
       const template = await readTemplate();
