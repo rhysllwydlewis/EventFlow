@@ -87,9 +87,27 @@ describe('guides SEO and UX assets', () => {
     expect(analytics).toContain("throw new Error('Clipboard API unavailable')");
   });
 
-  test('Lighthouse CI uses the static server so CI does not require app secrets', () => {
-    const config = JSON.parse(fs.readFileSync(path.join(repoRoot, '.lighthouserc.json'), 'utf8'));
-    expect(config.ci.collect.startServerCommand).toBe('node scripts/serve-static.js');
-    expect(config.ci.collect.url).toContain('http://localhost:3000/guides');
+  test('Lighthouse CI warms audited routes through the static server without app secrets', () => {
+    const desktop = JSON.parse(
+      fs.readFileSync(path.join(repoRoot, '.lighthouserc.json'), 'utf8')
+    );
+    const mobile = JSON.parse(
+      fs.readFileSync(path.join(repoRoot, '.lighthouserc.mobile.json'), 'utf8')
+    );
+    const launcher = fs.readFileSync(
+      path.join(repoRoot, 'scripts/start-lighthouse-server.sh'),
+      'utf8'
+    );
+
+    for (const config of [desktop, mobile]) {
+      expect(config.ci.collect.startServerCommand).toBe(
+        'bash scripts/start-lighthouse-server.sh'
+      );
+      expect(config.ci.collect.startServerReadyPattern).toBe('Lighthouse server warmed');
+    }
+    expect(desktop.ci.collect.url).toContain('http://localhost:3000/guides');
+    expect(launcher).toContain('node scripts/serve-static.js &');
+    expect(launcher).not.toContain('node server.js');
+    expect(launcher).toContain('/articles/wedding-venue-selection-guide');
   });
 });
