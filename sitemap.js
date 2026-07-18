@@ -9,6 +9,10 @@ const fs = require('fs');
 const path = require('path');
 const dbUnified = require('./db-unified');
 const logger = require('./utils/logger');
+const {
+  buildPublicSupplierSlug,
+  isPublicSupplier,
+} = require('./services/publicSupplierSeo.service');
 
 /**
  * Load guide slugs from the static guides.json data file.
@@ -44,6 +48,14 @@ function xmlEscape(value) {
     .replace(/'/g, '&apos;');
 }
 
+function validLastModified(value, fallback) {
+  const parsed = value ? new Date(value) : null;
+  if (!parsed || Number.isNaN(parsed.getTime())) {
+    return fallback;
+  }
+  return parsed.toISOString();
+}
+
 async function generateSitemap(baseUrl) {
   const now = new Date().toISOString();
   const normalizedBaseUrl = String(baseUrl || '').replace(/\/$/, '');
@@ -77,17 +89,28 @@ async function generateSitemap(baseUrl) {
   });
 
   try {
-    // Dynamic pages - Suppliers (use canonical /supplier.html?id= route)
-    const suppliers = await dbUnified.read('suppliers');
+    // Dynamic pages - approved public suppliers at their clean canonical URLs.
+    const [suppliers, users] = await Promise.all([
+      dbUnified.read('suppliers'),
+      dbUnified.read('users'),
+    ]);
+    const validOwnerIds = new Set((users || []).map(user => user && user.id).filter(Boolean));
     if (Array.isArray(suppliers)) {
       suppliers
-        .filter(s => s.approved)
+        .filter(supplier => isPublicSupplier(supplier, validOwnerIds))
         .forEach(supplier => {
+          const slug = buildPublicSupplierSlug(supplier);
+          if (!slug) {
+            return;
+          }
           xml += '  <url>\n';
-          xml += `    <loc>${xmlEscape(`${normalizedBaseUrl}/supplier.html?id=${supplier.id}`)}</loc>\n`;
-          xml += `    <lastmod>${supplier.updatedAt || now}</lastmod>\n`;
-          xml += `    <changefreq>weekly</changefreq>\n`;
-          xml += `    <priority>0.8</priority>\n`;
+          xml += `    <loc>${xmlEscape(`${normalizedBaseUrl}/supplier/${slug}`)}</loc>\n`;
+          xml += `    <lastmod>${validLastModified(
+            supplier.updatedAt || supplier.modifiedAt || supplier.createdAt,
+            now
+          )}</lastmod>\n`;
+          xml += '    <changefreq>weekly</changefreq>\n';
+          xml += '    <priority>0.8</priority>\n';
           xml += '  </url>\n';
         });
     }
@@ -101,8 +124,8 @@ async function generateSitemap(baseUrl) {
         xml += '  <url>\n';
         xml += `    <loc>${xmlEscape(`${normalizedBaseUrl}/package.html?${identifier}`)}</loc>\n`;
         xml += `    <lastmod>${pkg.updatedAt || now}</lastmod>\n`;
-        xml += `    <changefreq>weekly</changefreq>\n`;
-        xml += `    <priority>0.7</priority>\n`;
+        xml += '    <changefreq>weekly</changefreq>\n';
+        xml += '    <priority>0.7</priority>\n';
         xml += '  </url>\n';
       });
     }
@@ -116,8 +139,8 @@ async function generateSitemap(baseUrl) {
       xml += '  <url>\n';
       xml += `    <loc>${xmlEscape(`${normalizedBaseUrl}/articles/${slug}`)}</loc>\n`;
       xml += `    <lastmod>${lastmod || now}</lastmod>\n`;
-      xml += `    <changefreq>monthly</changefreq>\n`;
-      xml += `    <priority>0.7</priority>\n`;
+      xml += '    <changefreq>monthly</changefreq>\n';
+      xml += '    <priority>0.7</priority>\n';
       xml += '  </url>\n';
     });
   } catch (error) {
@@ -163,5 +186,6 @@ module.exports = {
   generateSitemap,
   generateRobotsTxt,
   loadGuideEntries,
+  validLastModified,
   xmlEscape,
 };
