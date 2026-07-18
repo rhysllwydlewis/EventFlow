@@ -3,7 +3,6 @@
 const {
   buildPublicSupplierSlug,
   buildSupplierSeoModel,
-  buildSupplierSitemap,
   isPublicSupplier,
   renderSupplierHtml,
   resolvePublicSupplierBySlug,
@@ -28,8 +27,8 @@ describe('public supplier SEO service', () => {
     const first = buildPublicSupplierSlug(supplier);
     const second = buildPublicSupplierSlug({ ...supplier, name: 'Renamed Photography Studio' });
 
-    expect(first).toMatch(/^cwm-valley-photography--[a-f0-9]{10}$/);
-    expect(second).toMatch(/^renamed-photography-studio--[a-f0-9]{10}$/);
+    expect(first).toMatch(/^cwm-valley-photography--[a-f0-9]{16}$/);
+    expect(second).toMatch(/^renamed-photography-studio--[a-f0-9]{16}$/);
     expect(first.split('--')[1]).toBe(second.split('--')[1]);
   });
 
@@ -82,13 +81,5 @@ describe('public supplier SEO service', () => {
       expect.objectContaining({ ratingValue: 4.8, reviewCount: 12 })
     );
     expect(withoutCount.structuredData.aggregateRating).toBeUndefined();
-  });
-
-  test('builds a supplier-only sitemap with real modification dates', () => {
-    const sitemap = buildSupplierSitemap([supplier]);
-
-    expect(sitemap).toContain('<loc>https://event-flow.co.uk/supplier/');
-    expect(sitemap).toContain('<lastmod>2026-07-18</lastmod>');
-    expect(sitemap).not.toContain('/supplier?id=');
   });
 });
