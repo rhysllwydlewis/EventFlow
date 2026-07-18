@@ -35,5 +35,5 @@ EXPOSE 3000
 HEALTHCHECK --interval=10s --timeout=5s --start-period=10s --retries=3 \
   CMD sh -c 'curl -f http://localhost:${PORT:-3000}/api/health || exit 1'
 
-# Publish Railway's runtime commit SHA before starting the instrumented server.
-CMD ["sh", "-c", "node scripts/write-deployment-metadata.mjs && exec node -r ./services/backgroundJobTelemetryBridge.js server.js"]
+# Generate deployment metadata on a best-effort basis, then always start the server.
+CMD ["node", "scripts/start-production.mjs"]
