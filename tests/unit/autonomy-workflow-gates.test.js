@@ -99,9 +99,10 @@ describe('autonomous quality workflow contracts', () => {
     const mobile = JSON.parse(read('.lighthouserc.mobile.json'));
 
     expect(desktop.ci.assert.assertMatrix).toHaveLength(3);
-    expect(mobile.ci.assert.assertMatrix).toHaveLength(3);
+    expect(mobile.ci.assert.assertMatrix).toHaveLength(4);
     expect(JSON.stringify(desktop)).toContain('guides');
     expect(JSON.stringify(mobile)).toContain('suppliers$');
+    expect(JSON.stringify(mobile)).toContain('http://localhost:3000/$');
 
     for (const options of [...allAssertionOptions(desktop), ...allAssertionOptions(mobile)]) {
       expect(options.aggregationMethod).toBe('pessimistic');
