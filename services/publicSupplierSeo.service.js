@@ -108,12 +108,7 @@ function buildCampaignQuery(input = {}) {
 }
 
 function isPublicSupplier(supplier, validOwnerIds) {
-  if (
-    !supplier ||
-    supplier.approved !== true ||
-    !supplier.id ||
-    !supplierDisplayName(supplier)
-  ) {
+  if (!supplier || supplier.approved !== true || !supplier.id || !supplierDisplayName(supplier)) {
     return false;
   }
   if (!supplier.ownerUserId) {

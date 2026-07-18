@@ -52,9 +52,7 @@ describe('public supplier SEO service', () => {
       descriptionShort: 'Legacy supplier description.',
     };
 
-    expect(buildPublicSupplierSlug(legacySupplier)).toMatch(
-      /^dragon-events-wales--[a-f0-9]{16}$/
-    );
+    expect(buildPublicSupplierSlug(legacySupplier)).toMatch(/^dragon-events-wales--[a-f0-9]{16}$/);
     expect(buildSupplierSeoModel(legacySupplier)).toEqual(
       expect.objectContaining({
         title: 'Dragon Events Wales | Photography | EventFlow',
