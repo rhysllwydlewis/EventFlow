@@ -1,0 +1,66 @@
+name: Temporary PR1354 Audit
+
+on:
+  push:
+    branches: [agent/pr1354-final-audit]
+
+permissions:
+  contents: read
+
+env:
+  HUSKY: '0'
+  NODE_ENV: test
+  JWT_SECRET: temporary-pr1354-audit-secret-minimum-32-characters
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.node-version'
+          cache: npm
+      - run: npm run check:lockfile
+      - run: npm ci --prefer-offline --no-audit
+      - name: Validate backend classification
+        run: node scripts/run-backend-e2e.mjs --validate-only
+      - name: Check new script syntax
+        run: |
+          node --check scripts/run-backend-e2e.mjs
+          node --check scripts/summarize-lighthouse-results.mjs
+          node --check scripts/production-synthetic-check.mjs
+      - name: Run focused regression contracts
+        run: >-
+          npx jest --runInBand --coverage=false
+          tests/unit/autonomy-workflow-gates.test.js
+          tests/unit/property-fuzz.test.js
+          tests/unit/external-service-failure-contracts.test.js
+          tests/unit/migration-idempotency.test.js
+      - name: Generate exact Prettier patch
+        run: |
+          npx prettier --write \
+            docs/github-autonomy-hardening.md \
+            playwright.config.js \
+            scripts/summarize-lighthouse-results.mjs \
+            scripts/production-synthetic-check.mjs \
+            scripts/run-backend-e2e.mjs \
+            stryker.config.mjs \
+            tests/unit/autonomy-workflow-gates.test.js \
+            e2e/admin-consolidation.spec.js \
+            e2e/auth-navbar-logout.spec.js \
+            e2e/backend-suite-classification.json \
+            package.json
+          git diff --binary > pr1354-format.patch
+      - name: Upload exact formatting patch
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr1354-format-patch
+          path: pr1354-format.patch
+          if-no-files-found: error
+          retention-days: 1
+      - name: Enforce formatting parity
+        run: git diff --exit-code
+      - name: Run ESLint
+        run: npm run lint
