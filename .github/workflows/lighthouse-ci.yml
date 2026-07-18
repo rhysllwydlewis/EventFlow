@@ -8,6 +8,7 @@ on:
       - 'server.js'
       - '.lighthouserc*.json'
       - '.github/workflows/lighthouse-ci.yml'
+      - 'scripts/summarize-lighthouse-results.mjs'
       - 'package*.json'
       - '.node-version'
   schedule:
@@ -54,18 +55,36 @@ jobs:
       - name: Install dependencies
         run: npm ci --prefer-offline --no-audit
 
-      - name: Run Lighthouse CI
+      - name: Collect Lighthouse runs
         env:
           NODE_ENV: test
           PORT: 3000
           BASE_URL: http://localhost:3000
-        run: npx --yes @lhci/cli@0.14.x autorun --config=${{ matrix.config }}
+        run: npx --yes @lhci/cli@0.14.x collect --config=${{ matrix.config }}
+
+      - name: Summarize Lighthouse scores
+        if: always()
+        run: >-
+          node scripts/summarize-lighthouse-results.mjs
+          .lighthouseci
+          lighthouse-${{ matrix.profile }}-summary.txt
+
+      - name: Enforce Lighthouse budgets
+        if: success()
+        run: |
+          set -o pipefail
+          npx --yes @lhci/cli@0.14.x assert --config=${{ matrix.config }} \
+            2>&1 | tee lighthouse-${{ matrix.profile }}-assertions.txt
 
       - name: Upload Lighthouse evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: lighthouse-${{ matrix.profile }}
-          path: .lighthouseci
+          path: |
+            .lighthouseci
+            lighthouse-${{ matrix.profile }}-summary.txt
+            lighthouse-${{ matrix.profile }}-assertions.txt
+          include-hidden-files: true
           if-no-files-found: warn
           retention-days: 14
