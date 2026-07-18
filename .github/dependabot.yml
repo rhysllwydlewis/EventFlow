@@ -28,6 +28,19 @@ updates:
         update-types: [version-update:semver-minor]
       - dependency-name: sharp
         update-types: [version-update:semver-minor]
+      # Formatter and browser-harness minor releases can rewrite broad portions
+      # of the repository, alter snapshots or change test semantics. Keep patch
+      # fixes automated, but handle minor upgrades in dedicated reviewable PRs.
+      - dependency-name: prettier
+        update-types: [version-update:semver-minor]
+      - dependency-name: '@playwright/test'
+        update-types: [version-update:semver-minor]
+      - dependency-name: playwright
+        update-types: [version-update:semver-minor]
+      - dependency-name: '@axe-core/playwright'
+        update-types: [version-update:semver-minor]
+      - dependency-name: mongodb-memory-server
+        update-types: [version-update:semver-minor]
     commit-message:
       prefix: deps
     labels: [dependencies]
