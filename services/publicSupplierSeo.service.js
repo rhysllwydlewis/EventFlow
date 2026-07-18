@@ -19,10 +19,27 @@ const CAMPAIGN_QUERY_KEYS = [
 ];
 
 function stripMarkup(value) {
-  return String(value || '')
-    .replace(/<[^>]*>/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
+  const input = String(value || '');
+  let output = '';
+  let insideTag = false;
+
+  for (const character of input) {
+    if (character === '<') {
+      insideTag = true;
+      output += ' ';
+      continue;
+    }
+    if (character === '>') {
+      insideTag = false;
+      output += ' ';
+      continue;
+    }
+    if (!insideTag) {
+      output += character;
+    }
+  }
+
+  return output.replace(/\s+/g, ' ').trim();
 }
 
 function slugify(value) {
@@ -112,6 +129,29 @@ function escapeHtml(value) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
+}
+
+function serializeJsonLd(value) {
+  const json = JSON.stringify(value);
+  let output = '';
+
+  for (const character of json) {
+    if (character === '<') {
+      output += '\\u003c';
+    } else if (character === '>') {
+      output += '\\u003e';
+    } else if (character === '&') {
+      output += '\\u0026';
+    } else if (character === '\u2028') {
+      output += '\\u2028';
+    } else if (character === '\u2029') {
+      output += '\\u2029';
+    } else {
+      output += character;
+    }
+  }
+
+  return output;
 }
 
 function safeBaseUrl(value) {
@@ -269,7 +309,7 @@ function removeExistingSupplierSeoTags(html) {
 function renderSupplierHtml(templateHtml, supplier, options = {}) {
   const seo = buildSupplierSeoModel(supplier, options);
   const cleanTemplate = removeExistingSupplierSeoTags(templateHtml);
-  const jsonLd = JSON.stringify(seo.structuredData).replace(/</g, '\\u003c');
+  const jsonLd = serializeJsonLd(seo.structuredData);
   const block = [
     `  <!-- ${SEO_BLOCK_MARKER}:start -->`,
     `  <title>${escapeHtml(seo.title)}</title>`,
@@ -307,6 +347,7 @@ module.exports = {
   isPublicSupplier,
   renderSupplierHtml,
   resolvePublicSupplierBySlug,
+  serializeJsonLd,
   slugify,
   supplierSlugToken,
 };
