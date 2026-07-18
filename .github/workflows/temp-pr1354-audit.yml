@@ -54,6 +54,8 @@ jobs:
             tests/unit/backend-suite-classification.test.js \
             e2e/admin-consolidation.spec.js \
             e2e/auth-navbar-logout.spec.js \
+            e2e/security-headers.spec.js \
+            e2e/websocket-v2.spec.js \
             e2e/backend-suite-classification.json \
             package.json
           git diff --binary > pr1354-format.patch
