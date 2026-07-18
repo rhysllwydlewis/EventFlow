@@ -65,12 +65,15 @@ describe('production startup contract', () => {
     expect(child.unref).toHaveBeenCalledTimes(1);
   });
 
-  test('Dependabot does not automatically open major-upgrade PRs', () => {
+  test('Dependabot suppresses majors but proposes disruptive minors independently', () => {
     const dependabot = read('.github/dependabot.yml');
 
     expect(dependabot).toMatch(/dependency-name: ['"]\*['"]/);
     expect(dependabot).toMatch(/version-update:semver-major/);
-    expect(dependabot).toMatch(/dependency-name: pdfkit/);
-    expect(dependabot).toMatch(/dependency-name: sharp/);
+    expect(dependabot).toMatch(/production-patches:[\s\S]*exclude-patterns: \[pdfkit, sharp\]/);
+    expect(dependabot).toMatch(/development-tooling:[\s\S]*exclude-patterns:[\s\S]*prettier/);
+
+    const ignoreSection = dependabot.split(/\n\s*ignore:\s*\n/)[1].split(/\n\s*commit-message:/)[0];
+    expect(ignoreSection).not.toMatch(/pdfkit|sharp|prettier|playwright|mongodb-memory-server/);
   });
 });
