@@ -37,7 +37,9 @@ function launchDeploymentMetadata({
   }
 }
 
-launchDeploymentMetadata();
-require('./backgroundJobTelemetryBridge');
+if (process.env.DEPLOYMENT_METADATA_PRELOAD_AUTOINSTALL !== 'false') {
+  launchDeploymentMetadata();
+  require('./backgroundJobTelemetryBridge');
+}
 
 module.exports = { launchDeploymentMetadata };
