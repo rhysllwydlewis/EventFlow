@@ -6,31 +6,31 @@ This document separates controls implemented in the repository from controls tha
 
 ### Pull requests
 
-| Check | Purpose |
-| --- | --- |
-| Build Verification | Existing aggregate lint, formatting, smoke, full regression, security and production-image gate. |
-| Browser Verification | Existing blocking Chromium auth, static E2E and visual prerequisite gate. |
-| Dedicated Visual Verification | Existing blocking visual regression and axe accessibility gate. |
-| Backend E2E | Runs tagged backend browser journeys against a real MongoDB replica set. |
-| Changed executable lines (80%) | Requires newly changed instrumented JavaScript lines to be covered. |
-| Dependency delta security | Blocks new high/critical dependency vulnerabilities introduced by a PR. |
-| CodeQL Advanced | Runs Actions and JavaScript/TypeScript security-extended queries. |
-| Lighthouse desktop/mobile | Runs three samples per URL with blocking performance, accessibility, best-practice and SEO budgets. |
+| Check                          | Purpose                                                                                             |
+| ------------------------------ | --------------------------------------------------------------------------------------------------- |
+| Build Verification             | Existing aggregate lint, formatting, smoke, full regression, security and production-image gate.    |
+| Browser Verification           | Existing blocking Chromium auth, static E2E and visual prerequisite gate.                           |
+| Dedicated Visual Verification  | Existing blocking visual regression and axe accessibility gate.                                     |
+| Backend E2E                    | Runs tagged backend browser journeys against a real MongoDB replica set.                            |
+| Changed executable lines (80%) | Requires newly changed instrumented JavaScript lines to be covered.                                 |
+| Dependency delta security      | Blocks new high/critical dependency vulnerabilities introduced by a PR.                             |
+| CodeQL Advanced                | Runs Actions and JavaScript/TypeScript security-extended queries.                                   |
+| Lighthouse desktop/mobile      | Runs three samples per URL with blocking performance, accessibility, best-practice and SEO budgets. |
 
 ### Scheduled checks
 
-| Cadence | Check |
-| --- | --- |
-| Every two hours | Read-only production deployment identity, health, readiness, config, public pages, robots and sitemap synthetics. |
-| Nightly Monday-Saturday | CI-depth classified test audit with automatic issue creation and recovery closure. |
-| Sunday | Full test audit including backend, visual, accessibility and dependency checks. |
-| Sunday | Open-handle detection without Jest `forceExit`, deterministic fuzzing and migration idempotency. |
-| Sunday | Focused mutation testing for geocoding contracts. |
-| Sunday | Firefox, WebKit, desktop and mobile Playwright matrix. |
-| Sunday | Read-only Artillery load thresholds against the configured staging URL. |
-| Tuesday and Friday | Three-run desktop and mobile Lighthouse budgets. |
-| Friday | CodeQL scheduled deep scan. |
-| Weekly | Dependabot grouped npm and GitHub Actions update PRs. |
+| Cadence                 | Check                                                                                                             |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Every two hours         | Read-only production deployment identity, health, readiness, config, public pages, robots and sitemap synthetics. |
+| Nightly Monday-Saturday | CI-depth classified test audit with automatic issue creation and recovery closure.                                |
+| Sunday                  | Full test audit including backend, visual, accessibility and dependency checks.                                   |
+| Sunday                  | Open-handle detection without Jest `forceExit`, deterministic fuzzing and migration idempotency.                  |
+| Sunday                  | Focused mutation testing for geocoding contracts.                                                                 |
+| Sunday                  | Firefox, WebKit, desktop and mobile Playwright matrix.                                                            |
+| Sunday                  | Read-only Artillery load thresholds against the configured staging URL.                                           |
+| Tuesday and Friday      | Three-run desktop and mobile Lighthouse budgets.                                                                  |
+| Friday                  | CodeQL scheduled deep scan.                                                                                       |
+| Weekly                  | Dependabot grouped npm and GitHub Actions update PRs.                                                             |
 
 ## Required repository settings
 
