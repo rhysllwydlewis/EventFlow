@@ -5,6 +5,18 @@ const crypto = require('crypto');
 const DEFAULT_BASE_URL = 'https://event-flow.co.uk';
 const SLUG_TOKEN_LENGTH = 16;
 const SEO_BLOCK_MARKER = 'eventflow-supplier-seo';
+const CAMPAIGN_QUERY_KEYS = [
+  'utm_source',
+  'utm_medium',
+  'utm_campaign',
+  'utm_term',
+  'utm_content',
+  'gclid',
+  'gbraid',
+  'wbraid',
+  'fbclid',
+  'msclkid',
+];
 
 function stripMarkup(value) {
   return String(value || '')
@@ -46,6 +58,27 @@ function extractSlugToken(slug) {
     .toLowerCase()
     .match(/--([a-f0-9]{16})$/);
   return match ? match[1] : '';
+}
+
+function cleanCampaignValue(value) {
+  const clean = String(value || '')
+    .replace(/[\u0000-\u001f\u007f]/g, '')
+    .trim();
+  return clean.slice(0, 200);
+}
+
+function buildCampaignQuery(input = {}) {
+  const output = new URLSearchParams();
+  for (const key of CAMPAIGN_QUERY_KEYS) {
+    const rawValues = Array.isArray(input[key]) ? input[key] : [input[key]];
+    for (const rawValue of rawValues) {
+      const value = cleanCampaignValue(rawValue);
+      if (value) {
+        output.append(key, value);
+      }
+    }
+  }
+  return output.toString();
 }
 
 function isPublicSupplier(supplier, validOwnerIds) {
@@ -260,6 +293,7 @@ function renderSupplierHtml(templateHtml, supplier, options = {}) {
 }
 
 module.exports = {
+  buildCampaignQuery,
   buildPublicSupplierSlug,
   buildSupplierSeoModel,
   extractSlugToken,
