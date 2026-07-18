@@ -188,9 +188,9 @@ function buildSupplierSeoModel(supplier, options = {}) {
   );
 
   const ratingValue = numericValue(
-    supplier.rating,
     supplier.averageRating,
-    supplier.reviewSummary && supplier.reviewSummary.averageRating
+    supplier.reviewSummary && supplier.reviewSummary.averageRating,
+    supplier.rating
   );
   const reviewCount = numericValue(
     supplier.reviewCount,
