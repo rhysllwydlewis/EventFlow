@@ -9,6 +9,8 @@
     "pexels-test-endpoint.spec.js",
     "real-time-messaging.spec.js",
     "security-headers.spec.js",
+    "start-wizard-journey.spec.js",
+    "suppliers.spec.js",
     "websocket-v2.spec.js"
   ],
   "quarantined": {
@@ -16,12 +18,9 @@
     "customer-enquiry-flow.spec.js": "The supplier-listing navigation and lead-quality selectors no longer represent the current enquiry journey and include network-idle waits on a live page.",
     "packages.spec.js": "The package page scenarios rely on network-idle and legacy price-filter controls that are not deterministic against the current live application shell.",
     "public-discovery-funnel.spec.js": "The marketplace new-listing scenario expects an obsolete logged-out redirect path while the rest of this mixed public funnel is covered by the static blocking suite.",
-    "start-wizard-journey.spec.js": "The tagged failure scenario accesses localStorage before a same-origin document exists and needs the wizard fixture helper repaired independently.",
     "supplier-dashboard-improvements.spec.js": "The suite asserts removed onboarding cards, legacy section classes and dashboard selectors rather than the current supplier dashboard contract.",
     "supplier-onboarding.spec.js": "The suite follows generic supplier links to browse pages and expects a retired full-profile registration form instead of the current account-first onboarding flow.",
     "supplier-reviews.spec.js": "The review-widget scenarios depend on stale supplier profile fixtures, network-idle and resources that are no longer loaded by the current profile page.",
-    "supplier-verification-flow.spec.js": "The source-regression assertions look for retired literal status and audit constant names rather than testing the current verification API behaviour.",
-    "suppliers.spec.js": "Two legacy navigation/filter scenarios wait for network-idle on a page with persistent services; current public discovery is covered by the static funnel suite.",
-    "websocket.spec.js": "This legacy suite has stale messenger accessibility assumptions and network-idle waits; websocket-v2.spec.js is the current blocking socket contract."
+    "supplier-verification-flow.spec.js": "The source-regression assertions look for retired literal status and audit constant names rather than testing the current verification API behaviour."
   }
 }
