@@ -1,0 +1,273 @@
+name: Security Alert Inventory
+
+on:
+  schedule:
+    - cron: '20 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: security-alert-inventory
+  cancel-in-progress: true
+
+jobs:
+  inventory:
+    name: Sanitised GitHub security alert register
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build sanitised alert inventory
+        env:
+          SECURITY_ALERTS_TOKEN: ${{ secrets.SECURITY_ALERTS_TOKEN }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            const { owner, repo } = context.repo;
+            const outputDir = path.join(process.cwd(), 'reports', 'security');
+            fs.mkdirSync(outputDir, { recursive: true });
+
+            const alertToken = String(process.env.SECURITY_ALERTS_TOKEN || '').trim();
+            if (alertToken) core.setSecret(alertToken);
+
+            async function list(source, endpoint) {
+              if (!alertToken) {
+                return {
+                  source,
+                  alerts: [],
+                  error: {
+                    status: null,
+                    code: 'token_missing',
+                    message: 'SECURITY_ALERTS_TOKEN is not configured.',
+                  },
+                };
+              }
+
+              try {
+                const alerts = [];
+                const perPage = 100;
+
+                for (let page = 1; page <= 100; page += 1) {
+                  const url = new URL(
+                    `${context.apiUrl}/repos/${owner}/${repo}/${endpoint}`
+                  );
+                  url.searchParams.set('state', 'open');
+                  url.searchParams.set('per_page', String(perPage));
+                  url.searchParams.set('page', String(page));
+
+                  const response = await fetch(url, {
+                    headers: {
+                      Accept: 'application/vnd.github+json',
+                      Authorization: `Bearer ${alertToken}`,
+                      'X-GitHub-Api-Version': '2022-11-28',
+                    },
+                  });
+
+                  if (!response.ok) {
+                    const requestError = new Error('Dedicated alert request failed.');
+                    requestError.status = response.status;
+                    throw requestError;
+                  }
+
+                  const pageAlerts = await response.json();
+                  if (!Array.isArray(pageAlerts)) {
+                    throw new Error('GitHub alert API returned a non-array response.');
+                  }
+
+                  alerts.push(...pageAlerts);
+                  if (pageAlerts.length < perPage) {
+                    return { source, alerts, error: null };
+                  }
+                }
+
+                return {
+                  source,
+                  alerts: [],
+                  error: {
+                    status: null,
+                    code: 'pagination_limit',
+                    message: 'The alert inventory exceeded its bounded pagination limit.',
+                  },
+                };
+              } catch (error) {
+                const status = Number(error.status || 0) || null;
+                return {
+                  source,
+                  alerts: [],
+                  error: {
+                    status,
+                    code: status ? `http_${status}` : 'request_failed',
+                    message: 'The dedicated alert credential could not read this source.',
+                  },
+                };
+              }
+            }
+
+            const results = await Promise.all([
+              list('codeScanning', 'code-scanning/alerts'),
+              list('secretScanning', 'secret-scanning/alerts'),
+              list('dependabot', 'dependabot/alerts'),
+            ]);
+            const bySource = Object.fromEntries(results.map(result => [result.source, result]));
+            const codeAlerts = bySource.codeScanning.alerts;
+            const secretAlerts = bySource.secretScanning.alerts;
+            const dependabotAlerts = bySource.dependabot.alerts;
+            const sourceErrors = results.filter(result => result.error).map(result => ({
+              source: result.source,
+              ...result.error,
+            }));
+
+            const sanitised = {
+              generatedAt: new Date().toISOString(),
+              repository: `${owner}/${repo}`,
+              tokenConfigured: Boolean(alertToken),
+              complete: sourceErrors.length === 0,
+              sourceErrors,
+              totals: {
+                codeScanning: codeAlerts.length,
+                secretScanning: secretAlerts.length,
+                dependabot: dependabotAlerts.length,
+                all: codeAlerts.length + secretAlerts.length + dependabotAlerts.length,
+              },
+              codeScanning: codeAlerts.map(alert => ({
+                number: alert.number,
+                state: alert.state,
+                tool: alert.tool?.name || 'unknown',
+                rule: alert.rule?.id || 'unknown',
+                severity: alert.rule?.security_severity_level || alert.rule?.severity || 'unknown',
+                classification: alert.most_recent_instance?.classifications || [],
+                path: alert.most_recent_instance?.location?.path || null,
+                htmlUrl: alert.html_url,
+              })),
+              secretScanning: secretAlerts.map(alert => ({
+                number: alert.number,
+                state: alert.state,
+                type: alert.secret_type_display_name || alert.secret_type || 'unknown',
+                validity: alert.validity || 'unknown',
+                publiclyLeaked: Boolean(alert.publicly_leaked),
+                pushProtectionBypassed: Boolean(alert.push_protection_bypassed),
+                htmlUrl: alert.html_url,
+              })),
+              dependabot: dependabotAlerts.map(alert => ({
+                number: alert.number,
+                state: alert.state,
+                dependency: alert.dependency?.package?.name || 'unknown',
+                ecosystem: alert.dependency?.package?.ecosystem || 'unknown',
+                scope: alert.dependency?.scope || 'unknown',
+                severity: alert.security_advisory?.severity || 'unknown',
+                fixedVersion: alert.security_vulnerability?.first_patched_version?.identifier || null,
+                htmlUrl: alert.html_url,
+              })),
+            };
+
+            const severityCounts = sanitised.codeScanning.reduce((acc, alert) => {
+              acc[alert.severity] = (acc[alert.severity] || 0) + 1;
+              return acc;
+            }, {});
+            const dependencySeverityCounts = sanitised.dependabot.reduce((acc, alert) => {
+              acc[alert.severity] = (acc[alert.severity] || 0) + 1;
+              return acc;
+            }, {});
+            const validSecrets = sanitised.secretScanning.filter(alert =>
+              ['active', 'valid'].includes(String(alert.validity).toLowerCase())
+            ).length;
+
+            const markdown = [
+              '# GitHub security alert inventory',
+              '',
+              `Generated: ${sanitised.generatedAt}`,
+              `Complete: ${sanitised.complete ? 'yes' : 'no'}`,
+              `Dedicated alert credential configured: ${sanitised.tokenConfigured ? 'yes' : 'no'}`,
+              '',
+              '> This report never includes a secret value. It contains alert metadata only.',
+              '',
+              '| Alert source | Open | Priority signal |',
+              '| --- | ---: | --- |',
+              `| Secret scanning | ${sanitised.totals.secretScanning} | ${validSecrets} marked active/valid |`,
+              `| Code scanning | ${sanitised.totals.codeScanning} | ${JSON.stringify(severityCounts)} |`,
+              `| Dependabot | ${sanitised.totals.dependabot} | ${JSON.stringify(dependencySeverityCounts)} |`,
+              '',
+              ...(sanitised.complete
+                ? []
+                : [
+                    '## Inventory access errors',
+                    '',
+                    ...sourceErrors.map(
+                      error => `- ${error.source}: ${error.code || `HTTP ${error.status || 'unknown'}`}`
+                    ),
+                    '',
+                    'The issue remains open until every source can be read. Configure SECURITY_ALERTS_TOKEN with read access to Code scanning alerts, Secret scanning alerts and Dependabot alerts. A missing credential or permission is never interpreted as zero alerts.',
+                    '',
+                  ]),
+              '## Required response',
+              '',
+              '1. Rotate and revoke every genuine secret before resolving its alert.',
+              '2. Prioritise critical/high application-code findings.',
+              '3. Apply safe dependency fixes; document accepted risk where no fix exists.',
+              '4. Record the evidence and rationale for every dismissal.',
+              '',
+              `- [Secret scanning](${context.serverUrl}/${owner}/${repo}/security/secret-scanning)`,
+              `- [Code scanning](${context.serverUrl}/${owner}/${repo}/security/code-scanning)`,
+              `- [Dependabot](${context.serverUrl}/${owner}/${repo}/security/dependabot)`,
+              '',
+            ].join('\n');
+
+            fs.writeFileSync(
+              path.join(outputDir, 'security-alert-inventory.json'),
+              `${JSON.stringify(sanitised, null, 2)}\n`
+            );
+            fs.writeFileSync(path.join(outputDir, 'security-alert-inventory.md'), markdown);
+            await core.summary.addRaw(markdown).write();
+
+            const title = '[security] Active GitHub alert inventory';
+            const marker = '<!-- eventflow-security-alert-inventory -->';
+            const issues = await github.paginate(github.rest.issues.listForRepo, {
+              owner,
+              repo,
+              state: 'open',
+              per_page: 100,
+            });
+            const existing = issues.find(
+              issue => issue.title === title || String(issue.body || '').includes(marker)
+            );
+            const runUrl = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
+            const body = `${marker}\n${markdown}\n[Download the sanitised inventory artefact](${runUrl}).`;
+
+            if (sanitised.totals.all > 0 || !sanitised.complete) {
+              if (existing) {
+                await github.rest.issues.createComment({ owner, repo, issue_number: existing.number, body });
+              } else {
+                await github.rest.issues.create({ owner, repo, title, body });
+              }
+            } else if (existing) {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: existing.number,
+                body: `${marker}\nEvery alert source was read and no open GitHub security alerts remain. Closing automatically.`,
+              });
+              await github.rest.issues.update({
+                owner,
+                repo,
+                issue_number: existing.number,
+                state: 'closed',
+                state_reason: 'completed',
+              });
+            }
+
+      - name: Upload sanitised inventory
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-alert-inventory
+          path: reports/security
+          if-no-files-found: error
+          retention-days: 30

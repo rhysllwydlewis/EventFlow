@@ -8,39 +8,32 @@ updates:
       day: monday
       time: '05:20'
       timezone: Europe/London
-    open-pull-requests-limit: 4
+    open-pull-requests-limit: 6
     versioning-strategy: increase-if-necessary
     groups:
       production-patches:
         dependency-type: production
         update-types: [patch, minor]
+        # Native-heavy or pre-1.0 packages need a standalone review, but must not
+        # disappear from Dependabot entirely.
+        exclude-patterns: [pdfkit, sharp]
       development-tooling:
         dependency-type: development
         update-types: [patch, minor]
+        # Formatter, browser and in-memory database updates can alter broad
+        # formatting, snapshots, binaries or test semantics. Excluding them from
+        # this group makes Dependabot open individual PRs instead of suppressing
+        # the updates.
+        exclude-patterns:
+          - prettier
+          - '@playwright/test'
+          - playwright
+          - '@axe-core/playwright'
+          - mongodb-memory-server
     ignore:
-      # Major framework, database and browser-library upgrades require a planned
-      # migration PR rather than an automatically mergeable dependency bump.
+      # Major upgrades require planned migration PRs rather than automatic bumps.
       - dependency-name: '*'
         update-types: [version-update:semver-major]
-      # These packages are pre-1.0 or native-heavy; their minor releases can be
-      # materially breaking and should be reviewed independently.
-      - dependency-name: pdfkit
-        update-types: [version-update:semver-minor]
-      - dependency-name: sharp
-        update-types: [version-update:semver-minor]
-      # Formatter and browser-harness minor releases can rewrite broad portions
-      # of the repository, alter snapshots or change test semantics. Keep patch
-      # fixes automated, but handle minor upgrades in dedicated reviewable PRs.
-      - dependency-name: prettier
-        update-types: [version-update:semver-minor]
-      - dependency-name: '@playwright/test'
-        update-types: [version-update:semver-minor]
-      - dependency-name: playwright
-        update-types: [version-update:semver-minor]
-      - dependency-name: '@axe-core/playwright'
-        update-types: [version-update:semver-minor]
-      - dependency-name: mongodb-memory-server
-        update-types: [version-update:semver-minor]
     commit-message:
       prefix: deps
     labels: [dependencies]

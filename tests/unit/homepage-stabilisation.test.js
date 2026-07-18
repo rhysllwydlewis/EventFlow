@@ -59,6 +59,6 @@ describe('homepage stabilisation layer', () => {
   it('replaces the inflated supplier CTA claim with an honest growth message', () => {
     const result = runHomepageScenario();
 
-    expect(result.supplierCta).toBe('Join EventFlow as we grow our verified supplier network');
+    expect(result.supplierCta).toBe('Early supplier access is open now');
   });
 });
