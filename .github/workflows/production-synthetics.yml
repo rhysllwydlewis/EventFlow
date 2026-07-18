@@ -65,7 +65,7 @@ jobs:
             if (existing) {
               await github.rest.issues.createComment({ owner, repo, issue_number: existing.number, body });
             } else {
-              await github.rest.issues.create({ owner, repo, title, body, labels: ['production'] });
+              await github.rest.issues.create({ owner, repo, title, body });
             }
 
       - name: Close recovered production incident issue
