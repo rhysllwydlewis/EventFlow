@@ -7,8 +7,14 @@
 
 const express = require('express');
 const path = require('path');
+const dbUnified = require('../db-unified');
 const { generateSitemap, generateRobotsTxt } = require('../sitemap');
 const { authLimiter, apiLimiter } = require('../middleware/rateLimits');
+const {
+  buildCampaignQuery,
+  buildPublicSupplierSlug,
+  isPublicSupplier,
+} = require('../services/publicSupplierSeo.service');
 const logger = require('../utils/logger');
 const sentry = require('../utils/sentry');
 
@@ -25,6 +31,42 @@ router.get('/verify', authLimiter, (req, res, next) => {
   // anonymous public HTML before express.static. Do not send raw verify.html
   // here or it bypasses the production public sanitizer.
   next();
+});
+
+/**
+ * Redirect existing public supplier query URLs to their clean canonical URL.
+ * Preview and non-public profiles continue through the existing legacy route.
+ */
+router.get(['/supplier', '/supplier.html'], apiLimiter, async (req, res, next) => {
+  const supplierId = String(req.query.id || '').trim();
+  if (!/^[a-zA-Z0-9_-]{1,128}$/.test(supplierId) || req.query.preview === 'true') {
+    return next();
+  }
+
+  try {
+    const [suppliers, users] = await Promise.all([
+      dbUnified.read('suppliers'),
+      dbUnified.read('users'),
+    ]);
+    const validOwnerIds = new Set((users || []).map(user => user && user.id).filter(Boolean));
+    const supplier = (suppliers || []).find(
+      item => String(item && item.id) === supplierId && isPublicSupplier(item, validOwnerIds)
+    );
+
+    if (!supplier) {
+      return next();
+    }
+
+    const campaignQuery = buildCampaignQuery(req.query);
+    const canonicalPath = `/supplier/${buildPublicSupplierSlug(supplier)}`;
+    return res.redirect(301, `${canonicalPath}${campaignQuery ? `?${campaignQuery}` : ''}`);
+  } catch (error) {
+    logger.warn('Could not resolve legacy supplier URL to its canonical profile', {
+      supplierId,
+      error: error.message,
+    });
+    return next();
+  }
 });
 
 /**
