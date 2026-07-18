@@ -57,9 +57,9 @@ export default defineConfig({
   use: {
     baseURL:
       process.env.BASE_URL || (useStaticMode ? 'http://127.0.0.1:4173' : 'http://localhost:3000'),
-    trace: 'on-first-retry',
-    screenshot: 'only-on-failure',
-    video: 'retain-on-failure',
+    trace: process.env.PLAYWRIGHT_TRACE || 'on-first-retry',
+    screenshot: process.env.PLAYWRIGHT_SCREENSHOT || 'only-on-failure',
+    video: process.env.PLAYWRIGHT_VIDEO || 'retain-on-failure',
   },
   projects: isCI && !runAllBrowsers ? [chromiumProject] : allProjects,
   webServer: useStaticMode
