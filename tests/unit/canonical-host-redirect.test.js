@@ -142,6 +142,19 @@ describe('canonical production host redirect', () => {
     expect(res.redirect).not.toHaveBeenCalled();
   });
 
+  test('fails open when canonical configuration points outside approved production hosts', () => {
+    process.env.CANONICAL_BASE_URL = 'https://attacker.example/redirect';
+    process.env.BASE_URL = '';
+    const req = requestDouble({ host: 'www.event-flow.co.uk', secure: true });
+    const res = responseDouble();
+    const next = jest.fn();
+
+    configureHTTPSRedirect(true)(req, res, next);
+
+    expect(next).toHaveBeenCalledTimes(1);
+    expect(res.redirect).not.toHaveBeenCalled();
+  });
+
   test('honours an explicitly configured www canonical origin', () => {
     process.env.CANONICAL_BASE_URL = 'https://www.event-flow.co.uk/path-is-ignored';
     const req = requestDouble({
