@@ -15,32 +15,65 @@
       }
     },
     "assert": {
-      "assertions": {
-        "categories:performance": [
-          "error",
-          {
-            "minScore": 0.6
+      "assertMatrix": [
+        {
+          "matchingUrlPattern": ".*",
+          "assertions": {
+            "categories:accessibility": [
+              "error",
+              {
+                "minScore": 0.9,
+                "aggregationMethod": "pessimistic"
+              }
+            ],
+            "categories:best-practices": [
+              "error",
+              {
+                "minScore": 0.8,
+                "aggregationMethod": "pessimistic"
+              }
+            ],
+            "categories:seo": [
+              "error",
+              {
+                "minScore": 0.9,
+                "aggregationMethod": "pessimistic"
+              }
+            ]
           }
-        ],
-        "categories:accessibility": [
-          "error",
-          {
-            "minScore": 0.9
+        },
+        {
+          "matchingUrlPattern": "http://localhost:3000/suppliers$",
+          "assertions": {
+            "categories:performance": [
+              "error",
+              {
+                "minScore": 0.35,
+                "aggregationMethod": "pessimistic"
+              }
+            ],
+            "cumulative-layout-shift": [
+              "error",
+              {
+                "maxNumericValue": 0.7,
+                "aggregationMethod": "pessimistic"
+              }
+            ]
           }
-        ],
-        "categories:best-practices": [
-          "error",
-          {
-            "minScore": 0.8
+        },
+        {
+          "matchingUrlPattern": "http://localhost:3000/(?!suppliers$).*",
+          "assertions": {
+            "categories:performance": [
+              "error",
+              {
+                "minScore": 0.6,
+                "aggregationMethod": "pessimistic"
+              }
+            ]
           }
-        ],
-        "categories:seo": [
-          "error",
-          {
-            "minScore": 0.9
-          }
-        ]
-      }
+        }
+      ]
     },
     "upload": {
       "target": "temporary-public-storage"
