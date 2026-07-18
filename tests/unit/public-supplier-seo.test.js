@@ -67,6 +67,10 @@ describe('public supplier SEO service', () => {
     expect(rendered).toContain(
       '<meta name="robots" content="index,follow,max-image-preview:large">'
     );
+    expect(rendered).toContain(
+      '<meta name="ef-public-supplier-id" content="supplier-123">'
+    );
+    expect(rendered).toContain('<script src="/assets/js/supplier-route-context.js"></script>');
     expect(rendered).toContain('<link rel="canonical" href="https://event-flow.co.uk/supplier/');
     expect(rendered).toContain('Cŵm Valley Photography | Photography | EventFlow');
     expect(rendered).toContain('id="supplier-structured-data"');
