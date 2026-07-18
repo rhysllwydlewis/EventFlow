@@ -7,9 +7,14 @@ const baseUrl = String(process.env.SYNTHETIC_BASE_URL || 'https://event-flow.co.
 const timeoutMs = Number(process.env.SYNTHETIC_TIMEOUT_MS || 10000);
 const outputDirectory = path.join(process.cwd(), 'reports', 'synthetics');
 const outputPath = path.join(outputDirectory, 'production-synthetics.json');
+const commitShaPattern = /^[0-9a-f]{40}$/i;
 
 const checks = [
-  { path: '/deployment.json', type: 'json', validate: body => typeof body.commit === 'string' },
+  {
+    path: '/deployment.json',
+    type: 'json',
+    validate: body => commitShaPattern.test(String(body.commit || '')),
+  },
   {
     path: '/api/health',
     type: 'json',
@@ -24,6 +29,15 @@ const checks = [
   { path: '/robots.txt', type: 'text', validate: body => /user-agent/i.test(body) },
   { path: '/sitemap.xml', type: 'text', validate: body => /<urlset|<sitemapindex/i.test(body) },
 ];
+
+function result(pathname, started, outcome) {
+  return {
+    path: pathname,
+    ok: outcome === 'pass',
+    durationMs: Math.round(performance.now() - started),
+    outcome,
+  };
+}
 
 async function runCheck(check) {
   const started = performance.now();
@@ -41,28 +55,20 @@ async function runCheck(check) {
         'User-Agent': 'EventFlow-Production-Synthetic/1.0',
       },
     });
-    const durationMs = Math.round(performance.now() - started);
-    const body = check.type === 'json' ? await response.json() : await response.text();
-    const contentValid = check.validate(body);
-    const ok = response.status === 200 && contentValid && durationMs <= timeoutMs;
 
-    return {
-      path: check.path,
-      ok,
-      status: response.status,
-      durationMs,
-      contentValid,
-      error: ok ? null : `status=${response.status} contentValid=${contentValid}`,
-    };
+    let body;
+    try {
+      body = check.type === 'json' ? await response.json() : await response.text();
+    } catch (_error) {
+      return result(check.path, started, 'invalid_response');
+    }
+
+    if (response.status !== 200) return result(check.path, started, 'http_error');
+    if (!check.validate(body)) return result(check.path, started, 'content_invalid');
+    if (performance.now() - started > timeoutMs) return result(check.path, started, 'slow_response');
+    return result(check.path, started, 'pass');
   } catch (error) {
-    return {
-      path: check.path,
-      ok: false,
-      status: null,
-      durationMs: Math.round(performance.now() - started),
-      contentValid: false,
-      error: error.name === 'AbortError' ? `timed out after ${timeoutMs}ms` : error.message,
-    };
+    return result(check.path, started, error.name === 'AbortError' ? 'timeout' : 'network_error');
   } finally {
     clearTimeout(timeout);
   }
@@ -78,8 +84,8 @@ const report = {
   target: baseUrl,
   checkedAt: new Date().toISOString(),
   total: results.length,
-  passed: results.filter(result => result.ok).length,
-  failed: results.filter(result => !result.ok).length,
+  passed: results.filter(item => item.ok).length,
+  failed: results.filter(item => !item.ok).length,
   results,
 };
 
@@ -91,11 +97,10 @@ const markdown = [
   '',
   `Target: \`${baseUrl}\``,
   '',
-  '| Path | Result | Status | Duration |',
-  '| --- | --- | ---: | ---: |',
+  '| Path | Result | Duration |',
+  '| --- | --- | ---: |',
   ...results.map(
-    result =>
-      `| \`${result.path}\` | ${result.ok ? 'pass' : `fail: ${result.error}`} | ${result.status ?? 'n/a'} | ${result.durationMs}ms |`
+    item => `| \`${item.path}\` | ${item.ok ? 'pass' : `fail: ${item.outcome}`} | ${item.durationMs}ms |`
   ),
   '',
   `**${report.passed}/${report.total} passed.**`,
