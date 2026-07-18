@@ -212,6 +212,7 @@ function removeExistingSupplierSeoTags(html) {
     .replace(/<title\b[^>]*>[\s\S]*?<\/title>/i, '')
     .replace(/<meta\b[^>]*(?:name=["']description["']|id=["']meta-description["'])[^>]*>\s*/gi, '')
     .replace(/<meta\b[^>]*(?:name=["']robots["'])[^>]*>\s*/gi, '')
+    .replace(/<meta\b[^>]*name=["']ef-public-supplier-id["'][^>]*>\s*/gi, '')
     .replace(/<link\b[^>]*rel=["']canonical["'][^>]*>\s*/gi, '')
     .replace(
       /<meta\b[^>]*(?:property=["']og:(?:title|description|image|url|type)["'])[^>]*>\s*/gi,
@@ -221,6 +222,7 @@ function removeExistingSupplierSeoTags(html) {
       /<meta\b[^>]*(?:name=["']twitter:(?:card|url|title|description|image)["'])[^>]*>\s*/gi,
       ''
     )
+    .replace(/<script\b[^>]*src=["']\/assets\/js\/supplier-route-context\.js["'][^>]*><\/script>\s*/gi, '')
     .replace(/<script\b[^>]*id=["']supplier-structured-data["'][^>]*>[\s\S]*?<\/script>\s*/gi, '');
 }
 
@@ -233,6 +235,7 @@ function renderSupplierHtml(templateHtml, supplier, options = {}) {
     `  <title>${escapeHtml(seo.title)}</title>`,
     `  <meta name="description" content="${escapeHtml(seo.description)}">`,
     '  <meta name="robots" content="index,follow,max-image-preview:large">',
+    `  <meta name="ef-public-supplier-id" content="${escapeHtml(supplier.id)}">`,
     `  <link rel="canonical" href="${escapeHtml(seo.canonicalUrl)}">`,
     `  <meta property="og:title" content="${escapeHtml(seo.title)}">`,
     `  <meta property="og:description" content="${escapeHtml(seo.description)}">`,
@@ -245,6 +248,7 @@ function renderSupplierHtml(templateHtml, supplier, options = {}) {
     `  <meta name="twitter:description" content="${escapeHtml(seo.description)}">`,
     `  <meta name="twitter:image" content="${escapeHtml(seo.image)}">`,
     `  <script type="application/ld+json" id="supplier-structured-data">${jsonLd}</script>`,
+    '  <script src="/assets/js/supplier-route-context.js"></script>',
     `  <!-- ${SEO_BLOCK_MARKER}:end -->`,
   ].join('\n');
 
