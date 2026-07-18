@@ -2,7 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { JSDOM } = require('jsdom');
+const vm = require('vm');
 
 const source = fs.readFileSync(
   path.join(__dirname, '../../public/assets/js/supplier-route-context.js'),
@@ -13,13 +13,27 @@ function createWindow(
   metaContent,
   url = 'https://event-flow.co.uk/supplier/example--0123456789abcdef'
 ) {
-  const meta = metaContent ? `<meta name="ef-public-supplier-id" content="${metaContent}">` : '';
-  const dom = new JSDOM(`<!doctype html><html><head>${meta}</head><body></body></html>`, {
-    url,
-    runScripts: 'outside-only',
-  });
-  dom.window.eval(source);
-  return dom.window;
+  const parsedUrl = new URL(url);
+  const meta =
+    metaContent === '' || metaContent === null || metaContent === undefined
+      ? null
+      : {
+          getAttribute(name) {
+            return name === 'content' ? metaContent : null;
+          },
+        };
+  const window = {
+    location: { search: parsedUrl.search },
+    URLSearchParams,
+  };
+  const document = {
+    querySelector(selector) {
+      return selector === 'meta[name="ef-public-supplier-id"]' ? meta : null;
+    },
+  };
+
+  vm.runInNewContext(source, { document, URLSearchParams, window });
+  return window;
 }
 
 describe('supplier clean URL context', () => {
