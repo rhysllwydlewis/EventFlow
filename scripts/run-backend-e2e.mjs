@@ -49,7 +49,8 @@ for (const file of classification.blocking) {
 }
 
 for (const [file, reason] of quarantined) {
-  if (!backendSpecSet.has(file)) fail(`quarantined spec is missing or has no @backend coverage: ${file}`);
+  if (!backendSpecSet.has(file))
+    fail(`quarantined spec is missing or has no @backend coverage: ${file}`);
   if (typeof reason !== 'string' || reason.trim().length < 40) {
     fail(`quarantined spec needs a specific repair reason: ${file}`);
   }
