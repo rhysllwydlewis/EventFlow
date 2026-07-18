@@ -5,6 +5,7 @@ const fs = require('fs').promises;
 const path = require('path');
 const { apiLimiter } = require('../middleware/rateLimits');
 const {
+  buildCampaignQuery,
   buildPublicSupplierSlug,
   isPublicSupplier,
   renderSupplierHtml,
@@ -55,10 +56,11 @@ function createPublicSupplierSeoRouter(options = {}) {
 
       const canonicalSlug = buildPublicSupplierSlug(supplier);
       if (req.params.slug !== canonicalSlug) {
-        const query = new URLSearchParams(req.query || {});
-        query.delete('preview');
-        const suffix = query.toString();
-        return res.redirect(301, `/supplier/${canonicalSlug}${suffix ? `?${suffix}` : ''}`);
+        const campaignQuery = buildCampaignQuery(req.query);
+        return res.redirect(
+          301,
+          `/supplier/${canonicalSlug}${campaignQuery ? `?${campaignQuery}` : ''}`
+        );
       }
 
       const template = await readTemplate();
