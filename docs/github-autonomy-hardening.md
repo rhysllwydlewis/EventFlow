@@ -11,11 +11,12 @@ This document separates controls implemented in the repository from controls tha
 | Build Verification             | Existing aggregate lint, formatting, smoke, full regression, security and production-image gate.    |
 | Browser Verification           | Existing blocking Chromium auth, static E2E and visual prerequisite gate.                           |
 | Dedicated Visual Verification  | Existing blocking visual regression and axe accessibility gate.                                     |
-| Backend E2E                    | Runs tagged backend browser journeys against a real MongoDB replica set.                            |
+| Backend E2E                    | Runs backend browser journeys against a real MongoDB replica set.                                   |
 | Changed executable lines (80%) | Requires newly changed instrumented JavaScript lines to be covered.                                 |
 | Dependency delta security      | Blocks new high/critical dependency vulnerabilities introduced by a PR.                             |
 | CodeQL Advanced                | Runs Actions and JavaScript/TypeScript security-extended queries.                                   |
 | Lighthouse desktop/mobile      | Runs three samples per URL with blocking performance, accessibility, best-practice and SEO budgets. |
+| Resource leaks and mutation    | Runs focused open-handle, fuzz, migration and mutation checks when their foundations change.         |
 
 ### Scheduled checks
 
@@ -24,13 +25,23 @@ This document separates controls implemented in the repository from controls tha
 | Every two hours         | Read-only production deployment identity, health, readiness, config, public pages, robots and sitemap synthetics. |
 | Nightly Monday-Saturday | CI-depth classified test audit with automatic issue creation and recovery closure.                                |
 | Sunday                  | Full test audit including backend, visual, accessibility and dependency checks.                                   |
-| Sunday                  | Open-handle detection without Jest `forceExit`, deterministic fuzzing and migration idempotency.                  |
-| Sunday                  | Focused mutation testing for geocoding contracts.                                                                 |
+| Sunday                  | Full open-handle detection without Jest `forceExit`, deterministic fuzzing and migration idempotency.             |
+| Sunday                  | Focused mutation testing for geocoding and provider-failure contracts.                                             |
 | Sunday                  | Firefox, WebKit, desktop and mobile Playwright matrix.                                                            |
 | Sunday                  | Read-only Artillery load thresholds against the configured staging URL.                                           |
 | Tuesday and Friday      | Three-run desktop and mobile Lighthouse budgets.                                                                  |
 | Friday                  | CodeQL scheduled deep scan.                                                                                       |
 | Weekly                  | Dependabot grouped npm and GitHub Actions update PRs.                                                             |
+
+## Lighthouse regression baselines
+
+Lighthouse uses the pessimistic result from three runs so one poor sample cannot be hidden by two stronger samples. These are regression floors based on the measured pre-existing pages, not claims that the current experience is ideal.
+
+- Desktop pages require performance 70, accessibility 90 and SEO 90. Most pages require best practices 85. Guides and article pages currently use a best-practices floor of 70 because third-party cookie diagnostics and the expected logged-out auth response reduce the measured score.
+- Mobile pages require accessibility 90, best practices 80 and SEO 90. Homepage, marketplace and pricing require performance 60.
+- The existing suppliers mobile page has a performance floor of 35 and a cumulative-layout-shift ceiling of 0.70. The initial three-run baseline was 37 with substantial unused public assets and layout movement. This explicit exception prevents further regression while leaving a measurable optimisation target instead of making every pull request permanently red.
+
+Raise the exceptional floors after the underlying public-page work lands. Do not lower them merely to clear a failing pull request.
 
 ## Required repository settings
 
@@ -53,6 +64,8 @@ Apply a ruleset to `main` with these controls:
    - CodeQL JavaScript/TypeScript and Actions analysis
    - `Lighthouse desktop`
    - `Lighthouse mobile`
+   - `Resource leaks, fuzzing and migrations`
+   - `Focused mutation score`
 8. Allow auto-merge only for reviewed, low-risk dependency patch updates after every required check succeeds. Authentication, payments, database migrations, deployment, permissions and workflow changes must remain human-approved.
 
 ## Required security settings
@@ -70,7 +83,7 @@ In **Settings → Actions → General**:
 - allow write permissions only in explicitly scoped jobs;
 - require actions to be pinned to a full commit SHA after the current migration inventory is cleared.
 
-The scheduled `Immutable GitHub Action reference inventory` deliberately begins in warning mode because existing workflows use version tags. Dependabot maintains those references while each action is migrated to a reviewed 40-character SHA. Change `ACTION_PIN_ENFORCEMENT` to `error` once the inventory reaches zero.
+New third-party Actions introduced by this change are pinned to reviewed 40-character commits. The scheduled `Immutable GitHub Action reference inventory` deliberately begins in warning mode because older workflows still use version tags. Dependabot maintains those references while each existing action is migrated. Change `ACTION_PIN_ENFORCEMENT` to `error` once the inventory reaches zero.
 
 ## Required environments and secrets
 
@@ -80,7 +93,9 @@ The scheduled `Immutable GitHub Action reference inventory` deliberately begins 
 - Railway must expose `RAILWAY_GIT_COMMIT_SHA` to the runtime. The startup script writes it to `public/deployment.json`.
 - Use environment protection and required reviewers for manual production deployments.
 
-The deployment workflow waits for `deployment.json` to report the exact target commit before running health/readiness checks. A healthy previous release can no longer make a new deployment appear successful.
+The deployment workflow waits for `deployment.json` to report the exact target commit before running health/readiness checks. Production synthetics also require a real 40-character deployment SHA. A healthy previous release or an `unknown` placeholder can no longer make a new deployment appear successful.
+
+Synthetic reports persist only fixed check paths, local durations and controlled outcome labels. Raw remote error messages, response bodies and status values are not written to artefacts or issue summaries.
 
 ### Staging environment
 
