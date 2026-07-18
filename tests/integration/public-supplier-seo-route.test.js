@@ -58,6 +58,35 @@ describe('public supplier SEO routes', () => {
     expect(response.text).toContain('id="supplier-hero"');
   });
 
+  test('uses approved supplier analytics rather than legacy supplier rating fields', async () => {
+    const supplierWithConflictingLegacyRatings = {
+      ...approvedSupplier,
+      rating: 5,
+      averageRating: 1,
+      reviewCount: 999,
+      reviewsCount: 999,
+      reviewSummary: { averageRating: 5, reviewCount: 999 },
+    };
+    const { app } = createApp({
+      suppliers: [supplierWithConflictingLegacyRatings],
+      users: [{ id: 'user-1' }],
+      supplierAnalytics: [
+        { supplierId: 'supplier-123', averageRating: 4.7, totalReviews: 9 },
+      ],
+    });
+    const slug = buildPublicSupplierSlug(supplierWithConflictingLegacyRatings);
+
+    const response = await request(app).get(`/supplier/${slug}`).expect(200);
+    const jsonLdText = response.text.match(
+      /<script type="application\/ld\+json" id="supplier-structured-data">([\s\S]*?)<\/script>/
+    )[1];
+    const structuredData = JSON.parse(jsonLdText);
+
+    expect(structuredData.aggregateRating).toEqual(
+      expect.objectContaining({ ratingValue: 4.7, reviewCount: 9 })
+    );
+  });
+
   test('serves legacy businessName suppliers with supplier-specific metadata', async () => {
     const legacySupplier = {
       ...approvedSupplier,
@@ -90,7 +119,7 @@ describe('public supplier SEO routes', () => {
       await request(app).get(`/supplier/${slug}`).expect(200);
     }
 
-    expect(dbUnified.read).toHaveBeenCalledTimes(2);
+    expect(dbUnified.read).toHaveBeenCalledTimes(3);
   });
 
   test('rejects malformed public slugs before reading supplier data', async () => {
