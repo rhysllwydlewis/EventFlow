@@ -27,8 +27,24 @@ describe('autonomous quality workflow contracts', () => {
     expect(workflow).toMatch(/mongodb-replica-set: rs0/);
     expect(workflow).toMatch(/E2E_MODE: full/);
     expect(workflow).toMatch(/Mongo-backed browser journeys/);
+    expect(workflow).toMatch(/test:e2e:backend/);
     expect(workflow).toMatch(/PLAYWRIGHT_VIDEO: 'off'/);
     expect(workflow).not.toMatch(/continue-on-error:\s*true/);
+  });
+
+  test('backend suite quarantine is explicit, validated and preserves a substantial blocking suite', () => {
+    const classification = JSON.parse(read('e2e/backend-suite-classification.json'));
+    const runner = read('scripts/run-backend-e2e.mjs');
+
+    expect(classification.blocking.length).toBeGreaterThanOrEqual(8);
+    expect(Object.keys(classification.quarantined).length).toBeGreaterThan(0);
+    expect(new Set(classification.blocking).size).toBe(classification.blocking.length);
+    for (const [file, reason] of Object.entries(classification.quarantined)) {
+      expect(classification.blocking).not.toContain(file);
+      expect(reason.length).toBeGreaterThanOrEqual(40);
+    }
+    expect(runner).toMatch(/unclassified backend specs/);
+    expect(runner).toMatch(/--include-quarantined/);
   });
 
   test('new third-party workflow actions are pinned to reviewed immutable commits', () => {
