@@ -36,8 +36,10 @@ router.get('/verify', authLimiter, (req, res, next) => {
 /**
  * Redirect existing public supplier query URLs to their clean canonical URL.
  * Preview and non-public profiles continue through the existing legacy route.
+ * This redirect is deliberately outside the JSON API request bucket so historical
+ * links and crawler recrawls cannot be interrupted after 100 shared-IP requests.
  */
-router.get(['/supplier', '/supplier.html'], apiLimiter, async (req, res, next) => {
+router.get(['/supplier', '/supplier.html'], async (req, res, next) => {
   const supplierId = String(req.query.id || '').trim();
   if (!/^[a-zA-Z0-9_-]{1,128}$/.test(supplierId) || req.query.preview === 'true') {
     return next();
