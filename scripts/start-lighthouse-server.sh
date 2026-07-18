@@ -30,7 +30,13 @@ fi
 
 # Warm each audited route once so Lighthouse measures page performance rather
 # than the one-off cost of the static test server's first request.
-for route in / /marketplace /pricing /suppliers; do
+for route in \
+  / \
+  /marketplace \
+  /pricing \
+  /suppliers \
+  /guides \
+  /articles/wedding-venue-selection-guide; do
   curl --fail --silent --show-error --output /dev/null "${BASE_URL}${route}"
 done
 
