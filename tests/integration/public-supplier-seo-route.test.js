@@ -48,9 +48,7 @@ describe('public supplier SEO routes', () => {
     expect(response.text).toContain(
       `<link rel="canonical" href="https://event-flow.co.uk/supplier/${slug}">`
     );
-    expect(response.text).toContain(
-      '<meta name="ef-public-supplier-id" content="supplier-123">'
-    );
+    expect(response.text).toContain('<meta name="ef-public-supplier-id" content="supplier-123">');
     expect(response.text).toContain('<script src="/assets/js/supplier-route-context.js"></script>');
     expect(response.text).toContain('id="supplier-structured-data"');
     expect(response.text).toContain('id="supplier-hero"');

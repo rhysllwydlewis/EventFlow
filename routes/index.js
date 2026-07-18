@@ -85,7 +85,7 @@ const telemetryRoutes = require('./telemetry');
  * @param {Object} deps - Dependencies to inject into routes
  */
 function mountRoutes(app, deps) {
-  // Public, crawlable supplier profiles and supplier-only sitemap.
+  // Public, crawlable supplier profiles with server-rendered metadata.
   // Mounted through the backend router so the existing supplier page body and CSS stay unchanged.
   if (deps && deps.dbUnified) {
     app.use(

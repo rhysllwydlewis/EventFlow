@@ -61,8 +61,12 @@ function extractSlugToken(slug) {
 }
 
 function cleanCampaignValue(value) {
-  const clean = String(value || '')
-    .replace(/[\u0000-\u001f\u007f]/g, '')
+  const clean = Array.from(String(value || ''))
+    .filter(character => {
+      const codePoint = character.codePointAt(0);
+      return codePoint >= 32 && codePoint !== 127;
+    })
+    .join('')
     .trim();
   return clean.slice(0, 200);
 }
@@ -255,7 +259,10 @@ function removeExistingSupplierSeoTags(html) {
       /<meta\b[^>]*(?:name=["']twitter:(?:card|url|title|description|image)["'])[^>]*>\s*/gi,
       ''
     )
-    .replace(/<script\b[^>]*src=["']\/assets\/js\/supplier-route-context\.js["'][^>]*><\/script>\s*/gi, '')
+    .replace(
+      /<script\b[^>]*src=["']\/assets\/js\/supplier-route-context\.js["'][^>]*><\/script>\s*/gi,
+      ''
+    )
     .replace(/<script\b[^>]*id=["']supplier-structured-data["'][^>]*>[\s\S]*?<\/script>\s*/gi, '');
 }
 

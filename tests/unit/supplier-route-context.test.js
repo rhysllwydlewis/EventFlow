@@ -9,10 +9,11 @@ const source = fs.readFileSync(
   'utf8'
 );
 
-function createWindow(metaContent, url = 'https://event-flow.co.uk/supplier/example--0123456789abcdef') {
-  const meta = metaContent
-    ? `<meta name="ef-public-supplier-id" content="${metaContent}">`
-    : '';
+function createWindow(
+  metaContent,
+  url = 'https://event-flow.co.uk/supplier/example--0123456789abcdef'
+) {
+  const meta = metaContent ? `<meta name="ef-public-supplier-id" content="${metaContent}">` : '';
   const dom = new JSDOM(`<!doctype html><html><head>${meta}</head><body></body></html>`, {
     url,
     runScripts: 'outside-only',
