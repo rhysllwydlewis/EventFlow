@@ -121,213 +121,57 @@
     <!-- Critical CSS Inline - Above the fold styles for LCP optimization -->
     <style>
       /* CSS Variables */
-      :root {
-        --bg: #fff;
-        --text: #0b1220;
-        --muted: #667085;
-        --ink: #0b8073;
-        --accent: #13b6a2;
-        --border: #e7eaf0;
-        --shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
-        --radius: 14px;
-        --max: 1480px;
-        --ef-header-height: 64px;
-        --ef-primary: #0b8073;
-        --ef-border: #e5e7eb;
-        --ef-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-        --ef-text-dark: #1f2937;
-        --ef-transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      :root{
+        --bg:#fff;
+        --text:#0B1220;
+        --muted:#667085;
+        --ink:#0B8073;
+        --accent:#13B6A2;
+        --border:#E7EAF0;
+        --shadow:0 10px 30px rgba(15,23,42,.06);
+        --radius:14px;
+        --max:1480px;
+        --ef-header-height:64px;
+        --ef-primary:#0B8073;
+        --ef-border:#e5e7eb;
+        --ef-shadow-sm:0 1px 2px 0 rgba(0,0,0,0.05);
+        --ef-text-dark:#1f2937;
+        --ef-transition:all 0.2s cubic-bezier(0.4,0,0.2,1);
       }
       /* Reset & Base */
-      * {
-        box-sizing: border-box;
-        margin: 0;
-        padding: 0;
-      }
-      html,
-      body {
-        margin: 0;
-        padding: 0;
-        background: var(--bg);
-        color: var(--text);
-        font-family:
-          Inter,
-          system-ui,
-          -apple-system,
-          Segoe UI,
-          Roboto,
-          Helvetica,
-          Arial,
-          sans-serif;
-        line-height: 1.6;
-        -webkit-font-smoothing: antialiased;
-        -moz-osx-font-smoothing: grayscale;
-      }
+      *{box-sizing:border-box;margin:0;padding:0}
+      html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;line-height:1.6;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
       /* Container - Critical for layout */
-      .container,
-      .ef-container {
-        max-width: min(var(--max), 94%);
-        margin: 0 auto;
-        padding: 0 20px;
-      }
-      .ef-container {
-        max-width: 1280px;
-      }
+      .container,.ef-container{max-width:min(var(--max),94%);margin:0 auto;padding:0 20px}
+      .ef-container{max-width:1280px}
       /* Header - Critical for above-the-fold */
-      .ef-header {
-        position: sticky;
-        top: 0;
-        left: 0;
-        right: 0;
-        z-index: 1000;
-        background: rgba(255, 255, 255, 0.95);
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-        border-bottom: 1px solid var(--ef-border);
-        box-shadow: var(--ef-shadow-sm);
-        transition: var(--ef-transition);
-      }
-      .ef-header-content {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        height: var(--ef-header-height);
-        gap: 16px;
-      }
-      .ef-brand {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        text-decoration: none;
-        font-weight: 800;
-        font-size: 1.125rem;
-        color: var(--ef-text-dark);
-        border-radius: 8px;
-        padding: 4px 8px;
-        margin-left: -8px;
-      }
-      .ef-logo {
-        width: 40px;
-        height: 40px;
-        flex-shrink: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-      .ef-logo-inner {
-        width: 100%;
-        height: 100%;
-        border-radius: 14px;
-        background: linear-gradient(130deg, #0b8073 0%, #10b981 46%, #34d399 100%);
-        box-shadow:
-          0 6px 18px rgba(11, 128, 115, 0.36),
-          inset 0 1px 1px rgba(255, 255, 255, 0.45),
-          inset 0 -2px 3px rgba(11, 18, 32, 0.2);
-      }
+      .ef-header{position:sticky;top:0;left:0;right:0;z-index:1000;background:rgba(255,255,255,0.95);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--ef-border);box-shadow:var(--ef-shadow-sm);transition:var(--ef-transition)}
+      .ef-header-content{display:flex;align-items:center;justify-content:space-between;height:var(--ef-header-height);gap:16px}
+      .ef-brand{display:flex;align-items:center;gap:12px;text-decoration:none;font-weight:800;font-size:1.125rem;color:var(--ef-text-dark);border-radius:8px;padding:4px 8px;margin-left:-8px}
+      .ef-logo{width:40px;height:40px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+      .ef-logo-inner{width:100%;height:100%;border-radius:14px;background:linear-gradient(130deg,#0b8073 0%,#10b981 46%,#34d399 100%);box-shadow:0 6px 18px rgba(11,128,115,0.36),inset 0 1px 1px rgba(255,255,255,0.45),inset 0 -2px 3px rgba(11,18,32,0.2)}
       /* Hero Skeleton - Prevent CLS */
-      .hero {
-        padding: clamp(40px, 8vw, 72px) 0 clamp(24px, 5vw, 48px);
-        min-height: 400px;
-        position: relative;
-      }
-      .hero-modern {
-        background: linear-gradient(to bottom, #f8fafc 0%, #f8fafc 50%, #f1f5f9 100%);
-        overflow: hidden;
-      }
-      .hero-grid {
-        display: block;
-      }
-      @media (min-width: 1024px) {
-        .hero-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 48px;
-          align-items: center;
-        }
-      }
-      @media (min-width: 768px) and (max-width: 1023px) {
-        .hero-grid {
-          display: grid;
-          grid-template-columns: 1.25fr 0.75fr;
-          gap: 28px;
-          align-items: start;
-        }
-      }
-      h1 {
-        margin: 0 0 6px;
-        font-weight: 700;
-        letter-spacing: -0.025em;
-        font-size: clamp(24px, 4vw + 1rem, 52px);
-        line-height: 1.12;
-      }
+      .hero{padding:clamp(40px,8vw,72px) 0 clamp(24px,5vw,48px);min-height:400px;position:relative}
+      .hero-modern{background:linear-gradient(to bottom,#f8fafc 0%,#f8fafc 50%,#f1f5f9 100%);overflow:hidden}
+      .hero-grid{display:block}
+      @media(min-width:1024px){.hero-grid{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center}}
+      @media(min-width:768px) and (max-width:1023px){.hero-grid{display:grid;grid-template-columns:1.25fr .75fr;gap:28px;align-items:start}}
+      h1{margin:0 0 6px;font-weight:700;letter-spacing:-0.025em;font-size: clamp(24px, 4vw + 1rem, 52px);line-height:1.12}
       /* Responsive */
-      @media (max-width: 767px) {
-        .container {
-          width: 100%;
-          padding: 0 16px;
-        }
-      }
-      @media (max-width: 639px) {
-        .hero {
-          padding: 32px 0 20px;
-        }
-      }
+      @media (max-width:767px){.container{width:100%;padding:0 16px}}
+      @media (max-width:639px){.hero{padding:32px 0 20px}}
       /* Critical component fallbacks - Prevent FOUC */
-      .ef-card {
-        background: #fff;
-        border: 1px solid #e7eaf0;
-        border-radius: 14px;
-        padding: 24px;
-        box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-        transition:
-          transform 200ms,
-          box-shadow 200ms,
-          border-color 200ms;
-      }
-      .ef-card--center {
-        text-align: center;
-      }
-      .ef-card--hover:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.1);
-        border-color: rgba(11, 128, 115, 0.2);
-      }
-      .ef-card__icon {
-        font-size: 48px;
-        margin-bottom: 12px;
-        line-height: 1;
-      }
-      .ef-card__title {
-        font-size: 18px;
-        font-weight: 600;
-        color: #0b8073;
-        margin: 0 0 8px 0;
-      }
-      .ef-card__text {
-        font-size: 14px;
-        color: #667085;
-        margin: 0;
-        line-height: 1.5;
-      }
-      .ef-section {
-        padding: 48px 0;
-      }
-      .ef-section--gradient {
-        background: linear-gradient(135deg, #0b8073 0%, #13b6a2 100%);
-        color: #fff;
-      }
-      .ef-section--subtle-gradient {
-        background: linear-gradient(135deg, #f7fafc 0%, #e7f3f1 100%);
-        border-top: 1px solid #e7eaf0;
-        border-bottom: 1px solid #e7eaf0;
-      }
-      .ef-grid {
-        display: grid;
-        gap: 24px;
-      }
-      .ef-grid--auto-sm {
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      }
+      .ef-card{background:#fff;border:1px solid #E7EAF0;border-radius:14px;padding:24px;box-shadow:0 1px 2px 0 rgba(0,0,0,0.05);transition:transform 200ms,box-shadow 200ms,border-color 200ms}
+      .ef-card--center{text-align:center}
+      .ef-card--hover:hover{transform:translateY(-4px);box-shadow:0 10px 30px rgba(15,23,42,0.1);border-color:rgba(11,128,115,0.2)}
+      .ef-card__icon{font-size:48px;margin-bottom:12px;line-height:1}
+      .ef-card__title{font-size:18px;font-weight:600;color:#0B8073;margin:0 0 8px 0}
+      .ef-card__text{font-size:14px;color:#667085;margin:0;line-height:1.5}
+      .ef-section{padding:48px 0}
+      .ef-section--gradient{background:linear-gradient(135deg,#0B8073 0%,#13B6A2 100%);color:#fff}
+      .ef-section--subtle-gradient{background:linear-gradient(135deg,#f7fafc 0%,#e7f3f1 100%);border-top:1px solid #E7EAF0;border-bottom:1px solid #E7EAF0}
+      .ef-grid{display:grid;gap:24px}
+      .ef-grid--auto-sm{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
     </style>
 
     <!-- Preload critical CSS with versioning -->
@@ -348,15 +192,15 @@
     <link rel="stylesheet" href="/assets/css/components.css?v=18.3.0" />
     <link rel="stylesheet" href="/assets/css/homepage-enhancements.css?v=18.3.0" />
     <link rel="stylesheet" href="/assets/css/hero-modern.css?v=18.3.0" />
-    <link rel="stylesheet" href="/assets/css/ef-search-bar.css?v=18.3.0" />
-
+    <link rel="stylesheet" href="/assets/css/ef-search-bar.css?v=18.3.0">
+    
     <!-- Issue Fix CSS - Error boundaries, loading states, marketplace skeleton -->
     <link rel="stylesheet" href="/assets/css/error-boundary.css?v=18.3.0" />
     <link rel="stylesheet" href="/assets/css/loading-skeleton.css?v=18.3.0" />
-
+    
     <!-- Modern 2026 Aesthetic CSS -->
     <link rel="stylesheet" href="/assets/css/modern-landing.css?v=18.3.0" />
-
+    
     <!-- Non-critical CSS - Defer via preload -->
     <link rel="stylesheet" href="/assets/css/navbar.css?v=18.3.0" />
     <link rel="stylesheet" href="/assets/css/eventflow-17.0.0.css?v=18.3.0" />
@@ -365,21 +209,21 @@
     <link rel="stylesheet" href="/assets/css/mobile-optimizations.css?v=18.3.0" />
     <link rel="stylesheet" href="/assets/css/ui-ux-fixes.css?v=18.3.0" />
     <link rel="stylesheet" href="/assets/css/navigation-enhancements.css?v=18.3.0" />
-
-    <link rel="icon" href="/favicon.ico" sizes="any" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png" />
-    <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-    <link rel="manifest" href="/site.webmanifest" />
-
+    
+    <link rel="icon" href="/favicon.ico" sizes="any">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png">
+    <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="manifest" href="/site.webmanifest">
+    
     <!-- Collage Widget Animations and Styles - Optimized for CLS & Reduced Motion -->
     <style>
       /* CSS Variables for configurable values */
       :root {
         --collage-aspect-ratio: 16/9;
       }
-
+      
       .collage .frame {
         position: relative;
         /* Reserve space to prevent CLS */
@@ -417,9 +261,7 @@
         z-index: 15;
       }
       @keyframes pexels-spin {
-        to {
-          transform: translate(-50%, -50%) rotate(360deg);
-        }
+        to { transform: translate(-50%, -50%) rotate(360deg); }
       }
       /* Media credit (for Pexels attribution) */
       .pexels-credit {
@@ -451,11 +293,11 @@
         }
       }
     </style>
-    <link rel="stylesheet" href="/assets/css/eventflow-footer.css" />
+    <link rel="stylesheet" href="/assets/css/eventflow-footer.css">
     <link rel="stylesheet" href="/assets/css/public-mobile-compact.css" />
-  </head>
+</head>
   <body>
-    <!-- TOP NAVBAR - GOLD STANDARD REBUILD -->
+<!-- TOP NAVBAR - GOLD STANDARD REBUILD -->
     <header class="ef-header" role="banner">
       <div class="ef-container">
         <div class="ef-header-content">
@@ -472,7 +314,7 @@
             <a href="/start" class="ef-nav-link">Plan</a>
             <a href="/suppliers" class="ef-nav-link">Suppliers</a>
             <a href="/public-calendar" class="ef-nav-link">Events</a>
-            <a href="/marketplace" class="ef-nav-link">Marketplace</a>
+        <a href="/marketplace" class="ef-nav-link">Marketplace</a>
             <a href="/guides" class="ef-nav-link">Guides</a>
             <a href="/pricing" class="ef-nav-link">Pricing</a>
           </nav>
@@ -480,41 +322,34 @@
           <!-- Actions -->
           <div class="ef-header-actions">
             <!-- Notification Bell (hidden by default, shown when logged in) -->
-            <button
-              id="ef-notification-btn"
-              class="ef-icon-btn"
-              type="button"
+            <button 
+              id="ef-notification-btn" 
+              class="ef-icon-btn" 
+              type="button" 
               aria-label="View notifications"
-              style="display: none"
+              style="display: none;"
             >
-              <svg
-                class="ef-icon"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-                <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+              <svg class="ef-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
               </svg>
-              <span id="ef-notification-badge" class="ef-badge" style="display: none"></span>
+              <span id="ef-notification-badge" class="ef-badge" style="display: none;"></span>
             </button>
 
             <!-- Auth Button (Desktop) -->
-            <a href="/auth" id="ef-auth-link" class="ef-btn ef-btn-primary"> Log in </a>
+            <a href="/auth" id="ef-auth-link" class="ef-btn ef-btn-primary">
+              Log in
+            </a>
 
             <!-- Dashboard Link (Desktop, hidden by default) -->
-            <a href="#" id="ef-dashboard-link" class="ef-nav-link" style="display: none">
+            <a href="#" id="ef-dashboard-link" class="ef-nav-link" style="display: none;">
               Dashboard
             </a>
 
             <!-- Mobile Menu Toggle -->
-            <button
-              id="ef-mobile-toggle"
-              class="ef-mobile-toggle"
+            <button 
+              id="ef-mobile-toggle" 
+              class="ef-mobile-toggle" 
               type="button"
               aria-label="Toggle menu"
               aria-expanded="false"
@@ -529,13 +364,7 @@
       </div>
 
       <!-- Mobile Menu -->
-      <div
-        id="ef-mobile-menu"
-        class="ef-mobile-menu"
-        role="dialog"
-        aria-modal="true"
-        aria-label="Mobile navigation"
-      >
+      <div id="ef-mobile-menu" class="ef-mobile-menu" role="dialog" aria-modal="true" aria-label="Mobile navigation">
         <nav class="ef-mobile-nav" aria-label="Primary navigation">
           <a href="/start" class="ef-mobile-link">Plan an Event</a>
           <a href="/suppliers" class="ef-mobile-link">Browse Suppliers</a>
@@ -547,22 +376,14 @@
           <a href="/faq" class="ef-mobile-link">FAQ</a>
           <div class="ef-mobile-divider"></div>
           <a href="/auth" id="ef-mobile-auth" class="ef-mobile-link ef-mobile-primary">Log in</a>
-          <a href="#" id="ef-mobile-dashboard" class="ef-mobile-link" style="display: none"
-            >Dashboard</a
-          >
-          <a href="#" id="ef-mobile-logout" class="ef-mobile-link" style="display: none">Log out</a>
+          <a href="#" id="ef-mobile-dashboard" class="ef-mobile-link" style="display: none;">Dashboard</a>
+          <a href="#" id="ef-mobile-logout" class="ef-mobile-link" style="display: none;">Log out</a>
         </nav>
       </div>
     </header>
 
     <!-- Notification Dropdown (Pre-rendered, shown/hidden by JS) -->
-    <div
-      id="notification-dropdown"
-      class="notification-dropdown"
-      hidden
-      aria-hidden="true"
-      style="display: none"
-    >
+    <div id="notification-dropdown" class="notification-dropdown" hidden aria-hidden="true" style="display: none;">
       <div class="notification-header">
         <h3>Notifications</h3>
         <button class="notification-mark-all" id="notification-mark-all-read" type="button">
@@ -575,6 +396,7 @@
       </div>
     </div>
 
+    
     <!-- Load auth state manager first -->
     <script src="/assets/js/utils/auth-state.js" defer></script>
     <!-- Global error handler - catches all unhandled errors and API failures -->
@@ -618,6 +440,7 @@
             <!-- New Unified Search Component -->
             <div class="ef-search-bar" role="search">
               <form class="ef-search-bar__form" action="/suppliers" method="GET">
+                
                 <!-- Category Selector -->
                 <div class="ef-search-bar__segment ef-search-bar__segment--category">
                   <label for="ef-search-category" class="sr-only">Category</label>
@@ -644,19 +467,8 @@
                     <option value="Planning">Planning</option>
                     <option value="Other">Other</option>
                   </select>
-                  <svg
-                    class="ef-search-bar__select-icon"
-                    aria-hidden="true"
-                    width="16"
-                    height="16"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path
-                      fill-rule="evenodd"
-                      d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
-                      clip-rule="evenodd"
-                    />
+                  <svg class="ef-search-bar__select-icon" aria-hidden="true" width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd"/>
                   </svg>
                 </div>
 
@@ -665,24 +477,15 @@
 
                 <!-- Search Input -->
                 <div class="ef-search-bar__segment ef-search-bar__segment--input">
-                  <svg
-                    class="ef-search-bar__input-icon"
-                    aria-hidden="true"
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                  >
-                    <circle cx="11" cy="11" r="8" />
-                    <path d="m21 21-4.35-4.35" />
+                  <svg class="ef-search-bar__input-icon" aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"/>
+                    <path d="m21 21-4.35-4.35"/>
                   </svg>
                   <label for="ef-search-input" class="sr-only">Search</label>
-                  <input
-                    type="search"
-                    id="ef-search-input"
-                    name="q"
+                  <input 
+                    type="search" 
+                    id="ef-search-input" 
+                    name="q" 
                     class="ef-search-bar__input"
                     placeholder="Search suppliers, packages..."
                     autocomplete="off"
@@ -693,19 +496,12 @@
 
                 <!-- Submit Button -->
                 <button type="submit" class="ef-search-bar__button" aria-label="Search">
-                  <svg
-                    aria-hidden="true"
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2.5"
-                  >
-                    <circle cx="11" cy="11" r="8" />
-                    <path d="m21 21-4.35-4.35" />
+                  <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <circle cx="11" cy="11" r="8"/>
+                    <path d="m21 21-4.35-4.35"/>
                   </svg>
                 </button>
+
               </form>
             </div>
 
@@ -727,21 +523,21 @@
 
             <!-- CTAs -->
             <div class="hero-modern-ctas">
-              <a href="/start" class="hero-cta-base hero-cta-primary">
-                <svg
-                  aria-hidden="true"
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <path d="M5 12h14m-7-7 7 7-7 7" />
+              <a
+                href="/start"
+                class="hero-cta-base hero-cta-primary"
+              >
+                <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M5 12h14m-7-7 7 7-7 7"/>
                 </svg>
                 Start planning
               </a>
-              <a href="/suppliers" class="hero-cta-base hero-cta-secondary"> Browse suppliers </a>
+              <a
+                href="/suppliers"
+                class="hero-cta-base hero-cta-secondary"
+              >
+                Browse suppliers
+              </a>
             </div>
           </div>
           <div>
@@ -749,101 +545,54 @@
               <!-- Row 1: Video (no label, spans 2 columns) -->
               <div class="hero-video-card">
                 <!-- Video autoplay is controlled by JavaScript based on prefers-reduced-motion -->
-                <video
-                  id="hero-pexels-video"
-                  muted
-                  loop
-                  playsinline
-                  preload="metadata"
-                  poster="/assets/images/hero-video-poster.jpg"
-                  width="800"
-                  height="450"
-                >
-                  <source src="" type="video/mp4" id="hero-video-source" />
+                <video id="hero-pexels-video" muted loop playsinline preload="metadata"
+                       poster="/assets/images/hero-video-poster.jpg"
+                       width="800" height="450">
+                  <source src="" type="video/mp4" id="hero-video-source">
                   Your browser does not support the video tag.
                 </video>
                 <span class="hero-video-credit" id="hero-video-credit">Video by Pexels</span>
               </div>
-
+              
               <!-- Row 2: Venues + Catering -->
               <a href="/category?slug=venues" class="hero-collage-card" data-category="venues">
-                <img
-                  src="/assets/images/collage-venue.jpg"
-                  alt="Venues"
-                  id="collage-venues"
-                  width="400"
-                  height="300"
-                  loading="eager"
-                  fetchpriority="high"
-                  decoding="async"
-                  sizes="(max-width: 768px) 48vw, 25vw"
-                />
+                <img src="/assets/images/collage-venue.jpg" alt="Venues" id="collage-venues" 
+                     width="400" height="300" loading="eager" fetchpriority="high" decoding="async"
+                     sizes="(max-width: 768px) 48vw, 25vw">
                 <span class="hero-collage-label">
                   <span class="hero-collage-icon">🏛️</span>
                   Venues
                 </span>
                 <span class="hero-collage-credit" id="credit-venues"></span>
               </a>
-
+              
               <a href="/category?slug=catering" class="hero-collage-card" data-category="catering">
-                <img
-                  src="/assets/images/collage-catering.jpg"
-                  alt="Catering"
-                  id="collage-catering"
-                  width="400"
-                  height="300"
-                  loading="eager"
-                  fetchpriority="auto"
-                  decoding="async"
-                  sizes="(max-width: 768px) 48vw, 25vw"
-                />
+                <img src="/assets/images/collage-catering.jpg" alt="Catering" id="collage-catering"
+                     width="400" height="300" loading="eager" fetchpriority="auto" decoding="async"
+                     sizes="(max-width: 768px) 48vw, 25vw">
                 <span class="hero-collage-label">
                   <span class="hero-collage-icon">🍽️</span>
                   Catering
                 </span>
                 <span class="hero-collage-credit" id="credit-catering"></span>
               </a>
-
+              
               <!-- Row 3: Entertainment + Photography -->
-              <a
-                href="/category?slug=entertainment"
-                class="hero-collage-card"
-                data-category="entertainment"
-              >
-                <img
-                  src="/assets/images/collage-entertainment.jpg"
-                  alt="Entertainment"
-                  id="collage-entertainment"
-                  width="400"
-                  height="300"
-                  loading="eager"
-                  fetchpriority="auto"
-                  decoding="async"
-                  sizes="(max-width: 768px) 48vw, 25vw"
-                />
+              <a href="/category?slug=entertainment" class="hero-collage-card" data-category="entertainment">
+                <img src="/assets/images/collage-entertainment.jpg" alt="Entertainment" id="collage-entertainment"
+                     width="400" height="300" loading="eager" fetchpriority="auto" decoding="async"
+                     sizes="(max-width: 768px) 48vw, 25vw">
                 <span class="hero-collage-label">
                   <span class="hero-collage-icon">🎤</span>
                   Entertainment
                 </span>
                 <span class="hero-collage-credit" id="credit-entertainment"></span>
               </a>
-
-              <a
-                href="/category?slug=photography"
-                class="hero-collage-card"
-                data-category="photography"
-              >
-                <img
-                  src="/assets/images/collage-photography.jpg"
-                  alt="Photography"
-                  id="collage-photography"
-                  width="400"
-                  height="300"
-                  loading="eager"
-                  fetchpriority="auto"
-                  decoding="async"
-                  sizes="(max-width: 768px) 48vw, 25vw"
-                />
+              
+              <a href="/category?slug=photography" class="hero-collage-card" data-category="photography">
+                <img src="/assets/images/collage-photography.jpg" alt="Photography" id="collage-photography"
+                     width="400" height="300" loading="eager" fetchpriority="auto" decoding="async"
+                     sizes="(max-width: 768px) 48vw, 25vw">
                 <span class="hero-collage-label">
                   <span class="hero-collage-icon">📸</span>
                   Photography
@@ -857,92 +606,28 @@
 
       <!-- Noscript fallback for hero CTAs -->
       <noscript>
-        <section
-          class="section"
-          style="
-            background: #f9fafb;
-            border: 2px solid #e7eaf0;
-            border-radius: 12px;
-            padding: 24px;
-            margin: 24px auto;
-            max-width: 600px;
-          "
-        >
-          <div class="container" style="text-align: center">
-            <h2 style="margin-bottom: 16px; font-size: 1.5rem">
-              JavaScript Required for Full Experience
-            </h2>
-            <p style="margin-bottom: 20px; color: #667085">
-              For the best experience, please enable JavaScript. You can still browse our platform:
-            </p>
-            <div
-              style="
-                display: flex;
-                flex-direction: column;
-                gap: 12px;
-                max-width: 400px;
-                margin: 0 auto;
-              "
-            >
-              <a href="/start" class="cta" style="display: block; text-decoration: none"
-                >Plan an Event</a
-              >
-              <a
-                href="/suppliers"
-                class="cta secondary"
-                style="display: block; text-decoration: none"
-                >Browse Suppliers</a
-              >
-              <a
-                href="/marketplace"
-                class="cta secondary"
-                style="display: block; text-decoration: none"
-                >View Marketplace</a
-              >
+        <section class="section" style="background: #f9fafb; border: 2px solid #e7eaf0; border-radius: 12px; padding: 24px; margin: 24px auto; max-width: 600px;">
+          <div class="container" style="text-align: center;">
+            <h2 style="margin-bottom: 16px; font-size: 1.5rem;">JavaScript Required for Full Experience</h2>
+            <p style="margin-bottom: 20px; color: #667085;">For the best experience, please enable JavaScript. You can still browse our platform:</p>
+            <div style="display: flex; flex-direction: column; gap: 12px; max-width: 400px; margin: 0 auto;">
+              <a href="/start" class="cta" style="display: block; text-decoration: none;">Plan an Event</a>
+              <a href="/suppliers" class="cta secondary" style="display: block; text-decoration: none;">Browse Suppliers</a>
+              <a href="/marketplace" class="cta secondary" style="display: block; text-decoration: none;">View Marketplace</a>
             </div>
           </div>
         </section>
       </noscript>
 
-      <section
-        class="ef-section ef-section--bordered home-featured-section"
-        aria-label="Featured packages"
-      >
+      <section class="ef-section ef-section--bordered home-featured-section" aria-label="Featured packages">
         <div class="container">
           <div class="ef-section__header">
             <span class="ef-section__kicker">Featured packages</span>
           </div>
           <div id="featured-packages" class="featured-carousel">
-            <div class="skeleton-supplier-card-full skeleton-card" aria-hidden="true">
-              <div class="skeleton-supplier-header">
-                <div class="skeleton skeleton-avatar-large"></div>
-                <div style="flex: 1">
-                  <div class="skeleton skeleton-title"></div>
-                  <div class="skeleton skeleton-text skeleton-text-medium"></div>
-                </div>
-              </div>
-              <div class="skeleton skeleton-text skeleton-text-long"></div>
-            </div>
-            <div class="skeleton-supplier-card-full skeleton-card" aria-hidden="true">
-              <div class="skeleton-supplier-header">
-                <div class="skeleton skeleton-avatar-large"></div>
-                <div style="flex: 1">
-                  <div class="skeleton skeleton-title"></div>
-                  <div class="skeleton skeleton-text skeleton-text-medium"></div>
-                </div>
-              </div>
-              <div class="skeleton skeleton-text skeleton-text-long"></div>
-            </div>
-            <div class="skeleton-supplier-card-full skeleton-card" aria-hidden="true">
-              <div class="skeleton-supplier-header">
-                <div class="skeleton skeleton-avatar-large"></div>
-                <div style="flex: 1">
-                  <div class="skeleton skeleton-title"></div>
-                  <div class="skeleton skeleton-text skeleton-text-medium"></div>
-                </div>
-              </div>
-              <div class="skeleton skeleton-text skeleton-text-long"></div>
-            </div>
+            <div class="skeleton-supplier-card-full skeleton-card" aria-hidden="true"><div class="skeleton-supplier-header"><div class="skeleton skeleton-avatar-large"></div><div style="flex:1"><div class="skeleton skeleton-title"></div><div class="skeleton skeleton-text skeleton-text-medium"></div></div></div><div class="skeleton skeleton-text skeleton-text-long"></div></div>
+            <div class="skeleton-supplier-card-full skeleton-card" aria-hidden="true"><div class="skeleton-supplier-header"><div class="skeleton skeleton-avatar-large"></div><div style="flex:1"><div class="skeleton skeleton-title"></div><div class="skeleton skeleton-text skeleton-text-medium"></div></div></div><div class="skeleton skeleton-text skeleton-text-long"></div></div>
+            <div class="skeleton-supplier-card-full skeleton-card" aria-hidden="true"><div class="skeleton-supplier-header"><div class="skeleton skeleton-avatar-large"></div><div style="flex:1"><div class="skeleton skeleton-title"></div><div class="skeleton skeleton-text skeleton-text-medium"></div></div></div><div class="skeleton skeleton-text skeleton-text-long"></div></div>
           </div>
         </div>
       </section>
@@ -956,44 +641,14 @@
             </p>
           </div>
           <div id="spotlight-packages" class="featured-carousel">
-            <div class="skeleton-supplier-card-full skeleton-card" aria-hidden="true">
-              <div class="skeleton-supplier-header">
-                <div class="skeleton skeleton-avatar-large"></div>
-                <div style="flex: 1">
-                  <div class="skeleton skeleton-title"></div>
-                  <div class="skeleton skeleton-text skeleton-text-medium"></div>
-                </div>
-              </div>
-              <div class="skeleton skeleton-text skeleton-text-long"></div>
-            </div>
-            <div class="skeleton-supplier-card-full skeleton-card" aria-hidden="true">
-              <div class="skeleton-supplier-header">
-                <div class="skeleton skeleton-avatar-large"></div>
-                <div style="flex: 1">
-                  <div class="skeleton skeleton-title"></div>
-                  <div class="skeleton skeleton-text skeleton-text-medium"></div>
-                </div>
-              </div>
-              <div class="skeleton skeleton-text skeleton-text-long"></div>
-            </div>
-            <div class="skeleton-supplier-card-full skeleton-card" aria-hidden="true">
-              <div class="skeleton-supplier-header">
-                <div class="skeleton skeleton-avatar-large"></div>
-                <div style="flex: 1">
-                  <div class="skeleton skeleton-title"></div>
-                  <div class="skeleton skeleton-text skeleton-text-medium"></div>
-                </div>
-              </div>
-              <div class="skeleton skeleton-text skeleton-text-long"></div>
-            </div>
+            <div class="skeleton-supplier-card-full skeleton-card" aria-hidden="true"><div class="skeleton-supplier-header"><div class="skeleton skeleton-avatar-large"></div><div style="flex:1"><div class="skeleton skeleton-title"></div><div class="skeleton skeleton-text skeleton-text-medium"></div></div></div><div class="skeleton skeleton-text skeleton-text-long"></div></div>
+            <div class="skeleton-supplier-card-full skeleton-card" aria-hidden="true"><div class="skeleton-supplier-header"><div class="skeleton skeleton-avatar-large"></div><div style="flex:1"><div class="skeleton skeleton-title"></div><div class="skeleton skeleton-text skeleton-text-medium"></div></div></div><div class="skeleton skeleton-text skeleton-text-long"></div></div>
+            <div class="skeleton-supplier-card-full skeleton-card" aria-hidden="true"><div class="skeleton-supplier-header"><div class="skeleton skeleton-avatar-large"></div><div style="flex:1"><div class="skeleton skeleton-title"></div><div class="skeleton skeleton-text skeleton-text-medium"></div></div></div><div class="skeleton skeleton-text skeleton-text-long"></div></div>
           </div>
         </div>
       </section>
 
-      <section
-        class="ef-section ef-section--bordered home-category-section"
-        aria-label="Browse suppliers by category"
-      >
+      <section class="ef-section ef-section--bordered home-category-section" aria-label="Browse suppliers by category">
         <div class="container">
           <div class="ef-section__header">
             <span class="ef-section__kicker">Browse suppliers by category</span>
@@ -1015,40 +670,20 @@
       <!-- Trust Badges Section -->
       <section class="ef-section home-trust-section" aria-label="Trust indicators">
         <div class="container">
-          <div class="ef-grid ef-grid--auto-sm" style="max-width: 900px; margin: 0 auto">
+          <div class="ef-grid ef-grid--auto-sm" style="max-width: 900px; margin: 0 auto;">
             <div class="ef-card ef-card--center ef-card--hover">
               <div class="ef-card__icon">
-                <svg
-                  class="ef-icon"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  aria-hidden="true"
-                >
+                <svg class="ef-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
                   <polyline points="22 4 12 14.01 9 11.01"></polyline>
                 </svg>
               </div>
               <h3 class="ef-card__title">Suppliers opening in stages</h3>
-              <p class="ef-card__text">
-                New supplier profiles are being added as EventFlow opens across the UK
-              </p>
+              <p class="ef-card__text">New supplier profiles are being added as EventFlow opens across the UK</p>
             </div>
             <div class="ef-card ef-card--center ef-card--hover">
               <div class="ef-card__icon">
-                <svg
-                  class="ef-icon"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  aria-hidden="true"
-                >
+                <svg class="ef-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
                   <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
                 </svg>
@@ -1058,16 +693,7 @@
             </div>
             <div class="ef-card ef-card--center ef-card--hover">
               <div class="ef-card__icon">
-                <svg
-                  class="ef-icon"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  aria-hidden="true"
-                >
+                <svg class="ef-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <line x1="12" y1="1" x2="12" y2="23"></line>
                   <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
                 </svg>
@@ -1077,16 +703,7 @@
             </div>
             <div class="ef-card ef-card--center ef-card--hover">
               <div class="ef-card__icon">
-                <svg
-                  class="ef-icon"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  aria-hidden="true"
-                >
+                <svg class="ef-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
                   <circle cx="12" cy="10" r="3"></circle>
                 </svg>
@@ -1099,70 +716,40 @@
       </section>
 
       <!-- Launch status section — honest controlled-launch copy -->
-      <section
-        class="ef-section ef-section--bordered"
-        aria-label="About EventFlow"
-        id="launch-section"
-      >
+      <section class="ef-section ef-section--bordered" aria-label="About EventFlow" id="launch-section">
         <div class="container">
           <div class="ef-section__header">
             <span class="ef-section__kicker">Early access</span>
             <h2 class="ef-section__title">EventFlow is opening across the UK</h2>
-            <p class="ef-section__subtitle" style="max-width: 640px; margin: 0 auto">
-              Start planning now. Browse available suppliers, keep your ideas in one place, and
-              manage enquiries and next steps — all free.
+            <p class="ef-section__subtitle" style="max-width:640px;margin:0 auto;">
+              Start planning now. Browse available suppliers, keep your ideas in one place, and manage enquiries and next steps — all free.
             </p>
           </div>
-          <div class="ef-grid ef-grid--3" style="margin-top: var(--ef-space-6, 32px)">
-            <div class="ef-card" style="text-align: center; padding: 28px 24px">
-              <div style="font-size: 1.75rem; margin-bottom: 12px" aria-hidden="true">📋</div>
+          <div class="ef-grid ef-grid--3" style="margin-top:var(--ef-space-6,32px);">
+            <div class="ef-card" style="text-align:center;padding:28px 24px;">
+              <div style="font-size:1.75rem;margin-bottom:12px;" aria-hidden="true">📋</div>
               <h3 class="ef-card__title">Build your plan</h3>
-              <p class="ef-card__text">
-                Answer a few questions, choose your priorities and get a clear checklist shaped
-                around your event.
-              </p>
+              <p class="ef-card__text">Answer a few questions, choose your priorities and get a clear checklist shaped around your event.</p>
             </div>
-            <div class="ef-card" style="text-align: center; padding: 28px 24px">
-              <div style="font-size: 1.75rem; margin-bottom: 12px" aria-hidden="true">🔍</div>
+            <div class="ef-card" style="text-align:center;padding:28px 24px;">
+              <div style="font-size:1.75rem;margin-bottom:12px;" aria-hidden="true">🔍</div>
               <h3 class="ef-card__title">Find the right suppliers</h3>
-              <p class="ef-card__text">
-                Browse UK event suppliers by category and location. Message them directly — no
-                commission charged.
-              </p>
+              <p class="ef-card__text">Browse UK event suppliers by category and location. Message them directly — no commission charged.</p>
             </div>
-            <div class="ef-card" style="text-align: center; padding: 28px 24px">
-              <div style="font-size: 1.75rem; margin-bottom: 12px" aria-hidden="true">✅</div>
+            <div class="ef-card" style="text-align:center;padding:28px 24px;">
+              <div style="font-size:1.75rem;margin-bottom:12px;" aria-hidden="true">✅</div>
               <h3 class="ef-card__title">Keep everything in one place</h3>
-              <p class="ef-card__text">
-                Track your budget, manage enquiries and stay on top of your planning checklist — all
-                in one free account.
-              </p>
+              <p class="ef-card__text">Track your budget, manage enquiries and stay on top of your planning checklist — all in one free account.</p>
             </div>
           </div>
-          <p
-            style="
-              text-align: center;
-              margin-top: var(--ef-space-6, 32px);
-              color: var(--muted, #667085);
-              font-size: 0.875rem;
-            "
-          >
-            New suppliers, tools and marketplace listings are being added regularly.
-            <a
-              href="/start"
-              style="color: var(--ef-primary, #0b8073); font-weight: 600; text-decoration: none"
-              >Start planning now →</a
-            >
+          <p style="text-align:center;margin-top:var(--ef-space-6,32px);color:var(--muted,#667085);font-size: 0.875rem;">
+            New suppliers, tools and marketplace listings are being added regularly. <a href="/start" style="color:var(--ef-primary,#0B8073);font-weight:600;text-decoration:none;">Start planning now →</a>
           </p>
         </div>
       </section>
 
       <!-- Marketplace Preview Section -->
-      <section
-        class="ef-section ef-section--bordered"
-        aria-label="Marketplace preview"
-        id="marketplace-preview-section"
-      >
+      <section class="ef-section ef-section--bordered" aria-label="Marketplace preview" id="marketplace-preview-section">
         <div class="container">
           <div class="ef-section__header">
             <span class="ef-section__kicker">Marketplace</span>
@@ -1200,7 +787,7 @@
               </div>
             </div>
           </div>
-          <div style="text-align: center; margin-top: var(--ef-space-5, 24px)">
+          <div style="text-align: center; margin-top: var(--ef-space-5, 24px);">
             <a href="/marketplace" class="ef-btn ef-btn--primary">View All Marketplace Items</a>
           </div>
         </div>
@@ -1223,26 +810,12 @@
               <div class="ef-card__content">
                 <h3 class="ef-card__title">Event Budget Management</h3>
                 <p class="ef-card__text">
-                  Learn how to create a realistic event budget and allocate funds across suppliers
-                  and services.
+                  Learn how to create a realistic event budget and allocate funds across suppliers and services.
                 </p>
               </div>
-              <a
-                href="/articles/event-budget-management-guide"
-                class="ef-card__link"
-                aria-label="Read event budget management guide"
-              >
+              <a href="/articles/event-budget-management-guide" class="ef-card__link" aria-label="Read event budget management guide">
                 <span>Read Guide</span>
-                <svg
-                  class="ef-icon"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  aria-hidden="true"
-                >
+                <svg class="ef-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <line x1="5" y1="12" x2="19" y2="12"></line>
                   <polyline points="12 5 19 12 12 19"></polyline>
                 </svg>
@@ -1252,26 +825,12 @@
               <div class="ef-card__content">
                 <h3 class="ef-card__title">Choosing Your Venue</h3>
                 <p class="ef-card__text">
-                  Essential tips for selecting the perfect venue that fits your style, budget, and
-                  guest count.
+                  Essential tips for selecting the perfect venue that fits your style, budget, and guest count.
                 </p>
               </div>
-              <a
-                href="/articles/wedding-venue-selection-guide"
-                class="ef-card__link"
-                aria-label="Read venue selection guide"
-              >
+              <a href="/articles/wedding-venue-selection-guide" class="ef-card__link" aria-label="Read venue selection guide">
                 <span>Read Guide</span>
-                <svg
-                  class="ef-icon"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  aria-hidden="true"
-                >
+                <svg class="ef-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <line x1="5" y1="12" x2="19" y2="12"></line>
                   <polyline points="12 5 19 12 12 19"></polyline>
                 </svg>
@@ -1281,26 +840,12 @@
               <div class="ef-card__content">
                 <h3 class="ef-card__title">Marketplace Guide</h3>
                 <p class="ef-card__text">
-                  Buy and sell event items safely on the EventFlow Marketplace — a step-by-step
-                  guide for buyers and sellers.
+                  Buy and sell event items safely on the EventFlow Marketplace — a step-by-step guide for buyers and sellers.
                 </p>
               </div>
-              <a
-                href="/articles/marketplace-guide"
-                class="ef-card__link"
-                aria-label="Read marketplace guide"
-              >
+              <a href="/articles/marketplace-guide" class="ef-card__link" aria-label="Read marketplace guide">
                 <span>Read Guide</span>
-                <svg
-                  class="ef-icon"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  aria-hidden="true"
-                >
+                <svg class="ef-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <line x1="5" y1="12" x2="19" y2="12"></line>
                   <polyline points="12 5 19 12 12 19"></polyline>
                 </svg>
@@ -1316,16 +861,13 @@
             <span class="ef-section__kicker">Simple Process</span>
             <h2 id="how-it-works" class="ef-section__title">How It Works</h2>
           </div>
-          <div
-            class="ef-grid ef-grid--auto"
-            style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr))"
+          <div class="ef-grid ef-grid--auto"
+               style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));"
           >
             <div class="ef-card ef-card--center ef-card--hover" data-reveal>
               <div class="ef-step-indicator">1</div>
               <h3 class="ef-card__title">Tell us about your event</h3>
-              <p class="ef-card__text">
-                Type, location and date help us surface relevant suppliers.
-              </p>
+              <p class="ef-card__text">Type, location and date help us surface relevant suppliers.</p>
             </div>
             <div class="ef-card ef-card--center ef-card--hover" data-reveal>
               <div class="ef-step-indicator">2</div>
@@ -1347,21 +889,19 @@
 
       <!-- Supplier CTA Section -->
       <section class="ef-section ef-section--bordered ef-section--supplier-cta">
-        <div class="container" style="max-width: 900px; text-align: center">
+        <div class="container" style="max-width: 900px; text-align: center;">
           <div class="ef-section__header ef-section__header--center">
-            <span class="ef-badge ef-badge--primary" style="margin-bottom: var(--ef-space-4, 16px)"
-              >FOR SUPPLIERS</span
-            >
-            <h2 class="ef-section__title" style="color: var(--ef-primary, #0b8073)">
+            <span class="ef-badge ef-badge--primary" style="margin-bottom: var(--ef-space-4, 16px);">FOR SUPPLIERS</span>
+            <h2 class="ef-section__title" style="color: var(--ef-primary, #0B8073);">
               Are you an event supplier?
             </h2>
-            <p class="ef-section__subtitle" style="max-width: 700px; margin: 0 auto">
+            <p class="ef-section__subtitle" style="max-width: 700px; margin: 0 auto;">
               Join EventFlow and connect with customers planning their next event. Get discovered by
               people actively looking for services like yours, with no commission on bookings.
             </p>
           </div>
 
-          <div class="ef-features" style="max-width: 700px; margin: var(--ef-space-6, 32px) auto">
+          <div class="ef-features" style="max-width: 700px; margin: var(--ef-space-6, 32px) auto;">
             <div class="ef-feature">
               <div class="ef-feature__icon">✓</div>
               <div class="ef-feature__content">
@@ -1385,64 +925,43 @@
             </div>
           </div>
 
-          <div
-            style="
-              display: flex;
-              gap: 1rem;
-              justify-content: center;
-              flex-wrap: wrap;
-              margin-top: var(--ef-space-6, 32px);
-            "
-          >
+          <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; margin-top: var(--ef-space-6, 32px);">
             <a href="/pricing" class="ef-btn ef-btn--primary">View Pricing & Plans</a>
             <a href="/for-suppliers" class="ef-btn ef-btn--secondary">Learn More</a>
           </div>
 
-          <p
-            class="ef-section__subtitle"
-            style="margin-top: var(--ef-space-6, 32px); font-size: var(--ef-text-sm, 14px)"
-          >
+          <p class="ef-section__subtitle" style="margin-top: var(--ef-space-6, 32px); font-size: var(--ef-text-sm, 14px);">
             Early supplier access is open now
           </p>
         </div>
       </section>
 
       <!-- Newsletter Signup Section -->
-      <section
-        class="ef-section ef-section--gradient ef-section--newsletter"
-        aria-label="Newsletter signup"
-      >
-        <div class="container" style="max-width: 700px">
+      <section class="ef-section ef-section--gradient ef-section--newsletter" aria-label="Newsletter signup">
+        <div class="container" style="max-width: 700px;">
           <div class="ef-newsletter-panel">
             <div class="ef-newsletter-panel__left">
               <div class="ef-newsletter-panel__icon" aria-hidden="true">✉</div>
               <div class="ef-section__header ef-section__header--center">
                 <h2 class="ef-section__title">Stay Updated</h2>
-                <p class="ef-section__subtitle">
-                  Get the latest event planning tips, supplier spotlights, and special offers
-                  delivered to your inbox.
-                </p>
+                <p class="ef-section__subtitle">Get the latest event planning tips, supplier spotlights, and special offers delivered to your inbox.</p>
               </div>
             </div>
             <div class="ef-newsletter-panel__right">
               <form id="newsletter-form" class="ef-newsletter-form">
-                <input
-                  type="email"
-                  id="newsletter-email"
-                  name="email"
+                <input 
+                  type="email" 
+                  id="newsletter-email" 
+                  name="email" 
                   class="ef-input ef-newsletter-form__input"
-                  placeholder="Enter your email address"
+                  placeholder="Enter your email address" 
                   required
                   aria-label="Email address"
-                />
-                <button type="submit" class="ef-cta ef-btn ef-newsletter-form__btn">
-                  Subscribe
-                </button>
+                >
+                <button type="submit" class="ef-cta ef-btn ef-newsletter-form__btn">Subscribe</button>
               </form>
               <div id="newsletter-feedback" class="ef-form-feedback" aria-live="polite"></div>
-              <p class="ef-newsletter-form__note">
-                We respect your privacy. Unsubscribe at any time.
-              </p>
+              <p class="ef-newsletter-form__note">We respect your privacy. Unsubscribe at any time.</p>
             </div>
           </div>
         </div>
@@ -1461,91 +980,26 @@
               <strong>EventFlow</strong>
             </div>
             <p class="ef-footer-tagline">Event planning made simple.</p>
-            <p class="ef-footer-tagline ef-footer-tagline--sm">
-              Operated by
-              <a
-                href="https://vexi.co.uk"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="vexi-link"
-                >VEXI</a
-              >
-            </p>
+            <p class="ef-footer-tagline ef-footer-tagline--sm">Operated by <a href="https://vexi.co.uk" target="_blank" rel="noopener noreferrer" class="vexi-link">VEXI</a></p>
             <!-- Social links -->
             <div class="ef-footer-socials" aria-label="EventFlow on social media">
-              <a
-                href="https://www.instagram.com/eventflowuk"
-                class="ef-footer-social-link"
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="EventFlow on Instagram"
-              >
-                <svg
-                  aria-hidden="true"
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
-                  <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
-                  <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+              <a href="https://www.instagram.com/eventflowuk" class="ef-footer-social-link" target="_blank" rel="noopener noreferrer" aria-label="EventFlow on Instagram">
+                <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
                 </svg>
               </a>
-              <a
-                href="https://www.facebook.com/eventflowuk"
-                class="ef-footer-social-link"
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="EventFlow on Facebook"
-              >
-                <svg
-                  aria-hidden="true"
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
+              <a href="https://www.facebook.com/eventflowuk" class="ef-footer-social-link" target="_blank" rel="noopener noreferrer" aria-label="EventFlow on Facebook">
+                <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>
                 </svg>
               </a>
-              <a
-                href="https://www.linkedin.com/company/eventflowuk"
-                class="ef-footer-social-link"
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="EventFlow on LinkedIn"
-              >
-                <svg
-                  aria-hidden="true"
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <path
-                    d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"
-                  />
-                  <rect x="2" y="9" width="4" height="12" />
-                  <circle cx="4" cy="4" r="2" />
+              <a href="https://www.linkedin.com/company/eventflowuk" class="ef-footer-social-link" target="_blank" rel="noopener noreferrer" aria-label="EventFlow on LinkedIn">
+                <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/>
                 </svg>
               </a>
             </div>
-            <p class="ef-footer-copyright">
-              &copy; 2025&ndash;2026 EventFlow. All rights reserved.
-            </p>
+            <p class="ef-footer-copyright">&copy; 2025&ndash;2026 EventFlow. All rights reserved.</p>
           </div>
 
           <!-- Column 2: Platform -->
@@ -1577,20 +1031,14 @@
               <li><a href="/privacy">Privacy Policy</a></li>
               <li><a href="/terms">Terms of Service</a></li>
               <li><a href="/contact">Contact</a></li>
-              <li>
-                <button type="button" id="ef-cookie-prefs-btn" data-cookie-prefs>
-                  Cookie preferences
-                </button>
-              </li>
+              <li><button type="button" id="ef-cookie-prefs-btn" data-cookie-prefs>Cookie preferences</button></li>
             </ul>
           </div>
         </div>
 
         <!-- Version -->
         <div class="ef-footer-bottom">
-          <span class="version" id="ef-version-wrap" hidden aria-hidden="true"
-            >v<span id="ef-version-label"></span
-          ></span>
+          <span class="version" id="ef-version-wrap" hidden aria-hidden="true">v<span id="ef-version-label"></span></span>
         </div>
       </div>
     </footer>
@@ -1598,127 +1046,62 @@
     <!-- BOTTOM NAVBAR - GOLD STANDARD REBUILD (Mobile Only) -->
     <nav class="ef-bottom-nav" role="navigation" aria-label="Mobile bottom navigation">
       <a href="/start" class="ef-bottom-link" aria-label="Plan your event">
-        <svg
-          class="ef-bottom-icon"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          aria-hidden="true"
-        >
-          <path d="M12 20h9" />
-          <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+        <svg class="ef-bottom-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 20h9"/>
+          <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
         </svg>
         <span class="ef-bottom-label">Plan</span>
       </a>
-
+      
       <a href="/suppliers" class="ef-bottom-link" aria-label="Browse suppliers">
-        <svg
-          class="ef-bottom-icon"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          aria-hidden="true"
-        >
-          <circle cx="11" cy="11" r="8" />
-          <path d="m21 21-4.35-4.35" />
+        <svg class="ef-bottom-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="11" cy="11" r="8"/>
+          <path d="m21 21-4.35-4.35"/>
         </svg>
         <span class="ef-bottom-label">Suppliers</span>
       </a>
-
+      
       <a href="/guides" class="ef-bottom-link" aria-label="View guides">
-        <svg
-          class="ef-bottom-icon"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          aria-hidden="true"
-        >
-          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+        <svg class="ef-bottom-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
         </svg>
         <span class="ef-bottom-label">Guides</span>
       </a>
-
+      
       <!-- Dashboard with notification badge (shown when logged in, replaces Alerts) -->
-      <a
-        href="#"
-        id="ef-bottom-dashboard"
-        class="ef-bottom-link"
-        style="display: none"
-        aria-label="Go to dashboard"
-      >
-        <svg
-          class="ef-bottom-icon"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          aria-hidden="true"
-        >
-          <rect x="3" y="3" width="7" height="7" rx="1" />
-          <rect x="14" y="3" width="7" height="7" rx="1" />
-          <rect x="14" y="14" width="7" height="7" rx="1" />
-          <rect x="3" y="14" width="7" height="7" rx="1" />
+      <a href="#" id="ef-bottom-dashboard" class="ef-bottom-link" style="display: none;" aria-label="Go to dashboard">
+        <svg class="ef-bottom-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="3" y="3" width="7" height="7" rx="1"/>
+          <rect x="14" y="3" width="7" height="7" rx="1"/>
+          <rect x="14" y="14" width="7" height="7" rx="1"/>
+          <rect x="3" y="14" width="7" height="7" rx="1"/>
         </svg>
         <span class="ef-bottom-label">Dashboard</span>
-        <span id="ef-bottom-dashboard-badge" class="ef-badge" style="display: none"></span>
+        <span id="ef-bottom-dashboard-badge" class="ef-badge" style="display: none;"></span>
       </a>
-
+      
       <!-- Alerts button (shown when logged out) -->
-      <a
-        href="/guides"
-        id="ef-bottom-alerts"
-        class="ef-bottom-link"
-        aria-label="View guides and alerts"
-      >
-        <svg
-          class="ef-bottom-icon"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          aria-hidden="true"
-        >
-          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-          <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+      <a href="/guides" id="ef-bottom-alerts" class="ef-bottom-link" aria-label="View guides and alerts">
+        <svg class="ef-bottom-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+          <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
         </svg>
         <span class="ef-bottom-label">Alerts</span>
       </a>
-
-      <button
-        id="ef-bottom-menu"
-        class="ef-cta ef-bottom-link"
+      
+      <button 
+        id="ef-bottom-menu" 
+        class="ef-cta ef-bottom-link" 
         type="button"
         aria-label="Open menu"
         aria-expanded="false"
         aria-controls="ef-mobile-menu"
       >
-        <svg
-          class="ef-bottom-icon"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          aria-hidden="true"
-        >
-          <line x1="3" y1="12" x2="21" y2="12" />
-          <line x1="3" y1="6" x2="21" y2="6" />
-          <line x1="3" y1="18" x2="21" y2="18" />
+        <svg class="ef-bottom-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="3" y1="12" x2="21" y2="12"/>
+          <line x1="3" y1="6" x2="21" y2="6"/>
+          <line x1="3" y1="18" x2="21" y2="18"/>
         </svg>
       </button>
     </nav>
@@ -1740,23 +1123,26 @@
     <script src="/assets/js/components/package-list.js" defer></script>
     <!-- Carousel must load before home-init.js -->
     <script src="/assets/js/components/carousel.js" defer></script>
-
+    
     <!-- Issue Fix Components - Must load before home-init.js -->
     <script src="/assets/js/utils/fetch-with-retry.js" defer></script>
     <script src="/assets/js/components/error-boundary.js" defer></script>
     <script src="/assets/js/components/loading-state.js" defer></script>
     <script src="/assets/js/cookie-consent.js?v=2.0.0" defer></script>
-
+    
     <script src="/assets/js/pages/home-init.js?v=18.3.1" defer></script>
     <script src="/assets/js/home.js" defer></script>
     <script src="/assets/js/pages/index-init.js" defer></script>
 
     <!-- JadeAssist Chat Widget - Using local build with positioning API -->
-    <script src="/assets/js/vendor/jade-widget.js" defer></script>
+    <script
+      src="/assets/js/vendor/jade-widget.js"
+      defer
+    ></script>
     <script src="/assets/js/jadeassist-init.v2.js" defer></script>
 
     <script src="/assets/js/ef-search-bar.js" defer></script>
     <script src="/assets/js/pwa-install.js" defer></script>
-    <script src="/assets/js/components/eventflow-footer.js" defer></script>
-  </body>
+<script src="/assets/js/components/eventflow-footer.js" defer></script>
+</body>
 </html>
