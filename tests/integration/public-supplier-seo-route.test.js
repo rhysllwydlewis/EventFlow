@@ -120,6 +120,21 @@ describe('public supplier SEO routes', () => {
     expect(response.headers.location).toBe(`/supplier/${canonical}?utm_source=google`);
   });
 
+  test('removes conflicting supplier IDs and preview flags from a canonical profile URL', async () => {
+    const { app } = createApp({
+      suppliers: [approvedSupplier],
+      users: [{ id: 'user-1' }],
+    });
+    const canonical = buildPublicSupplierSlug(approvedSupplier);
+
+    const redirect = await request(app)
+      .get(`/supplier/${canonical}?id=another-supplier&preview=true&utm_source=google`)
+      .expect(301);
+    expect(redirect.headers.location).toBe(`/supplier/${canonical}?utm_source=google`);
+
+    await request(app).get(`/supplier/${canonical}?utm_source=google`).expect(200);
+  });
+
   test('does not index missing, unapproved, unnamed or orphaned suppliers', async () => {
     const orphan = { ...approvedSupplier, id: 'orphan', ownerUserId: 'missing-user' };
     const unapproved = { ...approvedSupplier, id: 'pending', approved: false };
