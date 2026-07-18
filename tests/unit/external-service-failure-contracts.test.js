@@ -31,10 +31,7 @@ describe('external geocoding failure contracts', () => {
     global.fetch = jest.fn().mockRejectedValue(new Error('socket reset by peer'));
 
     await expect(geocodePostcode('CF10 1AA')).resolves.toBeNull();
-    expect(mockLogger.error).toHaveBeenCalledWith(
-      'Postcode lookup error:',
-      'socket reset by peer'
-    );
+    expect(mockLogger.error).toHaveBeenCalledWith('Postcode lookup error:', 'socket reset by peer');
     expect(mockCache.set).not.toHaveBeenCalled();
   });
 
@@ -48,14 +45,15 @@ describe('external geocoding failure contracts', () => {
 
   test('aborts a stalled provider request at the five-second boundary', async () => {
     jest.useFakeTimers();
-    global.fetch = jest.fn((_url, { signal }) =>
-      new Promise((_resolve, reject) => {
-        signal.addEventListener('abort', () => {
-          const error = new Error('aborted');
-          error.name = 'AbortError';
-          reject(error);
-        });
-      })
+    global.fetch = jest.fn(
+      (_url, { signal }) =>
+        new Promise((_resolve, reject) => {
+          signal.addEventListener('abort', () => {
+            const error = new Error('aborted');
+            error.name = 'AbortError';
+            reject(error);
+          });
+        })
     );
 
     const pending = geocodePostcode('CF10 1AA');
