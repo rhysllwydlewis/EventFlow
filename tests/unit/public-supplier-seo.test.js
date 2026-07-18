@@ -42,6 +42,27 @@ describe('public supplier SEO service', () => {
     expect(first.split('--')[1]).toBe(second.split('--')[1]);
   });
 
+  test('uses the legacy businessName field for readable slugs and metadata', () => {
+    const legacySupplier = {
+      ...supplier,
+      name: undefined,
+      company: undefined,
+      businessName: 'Dragon Events Wales',
+      description_short: undefined,
+      descriptionShort: 'Legacy supplier description.',
+    };
+
+    expect(buildPublicSupplierSlug(legacySupplier)).toMatch(
+      /^dragon-events-wales--[a-f0-9]{16}$/
+    );
+    expect(buildSupplierSeoModel(legacySupplier)).toEqual(
+      expect.objectContaining({
+        title: 'Dragon Events Wales | Photography | EventFlow',
+        description: 'Legacy supplier description.',
+      })
+    );
+  });
+
   test('resolves an old name slug by its stable supplier token', () => {
     const canonical = buildPublicSupplierSlug(supplier);
     const token = canonical.split('--')[1];
@@ -52,13 +73,19 @@ describe('public supplier SEO service', () => {
     expect(resolvePublicSupplierBySlug([supplier], 'not-a-public-slug')).toBeNull();
   });
 
-  test('only considers approved suppliers with a valid owner public', () => {
+  test('only considers approved, named suppliers with a valid owner public', () => {
     const owners = new Set(['user-1']);
 
     expect(isPublicSupplier(supplier, owners)).toBe(true);
     expect(isPublicSupplier({ ...supplier, approved: false }, owners)).toBe(false);
     expect(isPublicSupplier({ ...supplier, ownerUserId: 'missing-user' }, owners)).toBe(false);
     expect(isPublicSupplier({ ...supplier, ownerUserId: null }, owners)).toBe(true);
+    expect(
+      isPublicSupplier(
+        { ...supplier, name: undefined, businessName: undefined, company: undefined },
+        owners
+      )
+    ).toBe(false);
   });
 
   test('preserves only recognised campaign attribution on canonical redirects', () => {
