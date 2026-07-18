@@ -54,9 +54,7 @@ test.describe('Logout storage contract (simulated) @backend', () => {
       sessionStorage.clear();
     });
 
-    await expect
-      .poll(() => page.evaluate(() => localStorage.getItem('user')))
-      .toBeNull();
+    await expect.poll(() => page.evaluate(() => localStorage.getItem('user'))).toBeNull();
     await expect
       .poll(() => page.evaluate(() => localStorage.getItem('eventflow_onboarding_new')))
       .toBeNull();
