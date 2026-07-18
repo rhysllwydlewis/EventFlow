@@ -70,9 +70,7 @@ describe('public supplier SEO routes', () => {
     const { app } = createApp({
       suppliers: [supplierWithConflictingLegacyRatings],
       users: [{ id: 'user-1' }],
-      supplierAnalytics: [
-        { supplierId: 'supplier-123', averageRating: 4.7, totalReviews: 9 },
-      ],
+      supplierAnalytics: [{ supplierId: 'supplier-123', averageRating: 4.7, totalReviews: 9 }],
     });
     const slug = buildPublicSupplierSlug(supplierWithConflictingLegacyRatings);
 
