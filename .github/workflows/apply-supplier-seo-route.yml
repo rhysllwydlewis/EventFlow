@@ -1,0 +1,85 @@
+name: Apply supplier SEO route wiring
+
+on:
+  push:
+    branches:
+      - feature/server-rendered-supplier-seo
+    paths:
+      - .github/workflows/apply-supplier-seo-route.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/server-rendered-supplier-seo
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Apply deterministic source changes
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          routes = Path('routes/index.js')
+          text = routes.read_text()
+          import_line = "const createPublicSupplierSeoRouter = require('./public-supplier-seo');\n"
+          anchor = "const publicSupplierAvatarRoutes = require('./public-supplier-avatar');\n"
+          if import_line not in text:
+              if anchor not in text:
+                  raise SystemExit('routes/index.js import anchor not found')
+              text = text.replace(anchor, anchor + import_line, 1)
+
+          mount_block = """  // Public, crawlable supplier profiles and supplier-only sitemap.\n  // Mounted through the backend router so the existing supplier page body and CSS stay unchanged.\n  if (deps && deps.dbUnified) {\n    app.use(\n      createPublicSupplierSeoRouter({\n        dbUnified: deps.dbUnified,\n        logger: deps.logger || logger,\n        baseUrl: process.env.BASE_URL || 'https://event-flow.co.uk',\n      })\n    );\n  }\n\n"""
+          mount_anchor = "function mountRoutes(app, deps) {\n"
+          if mount_block not in text:
+              if mount_anchor not in text:
+                  raise SystemExit('routes/index.js mount anchor not found')
+              text = text.replace(mount_anchor, mount_anchor + mount_block, 1)
+          routes.write_text(text)
+
+          supplier = Path('public/supplier.html')
+          text = supplier.read_text()
+          robots = '  <meta name="robots" content="noindex,follow">\n'
+          anchor = '  <meta name="description" id="meta-description" content="View supplier profile, packages, reviews and ratings on EventFlow - the UK\'s leading event planning platform.">\n'
+          if robots not in text:
+              if anchor not in text:
+                  raise SystemExit('public/supplier.html metadata anchor not found')
+              text = text.replace(anchor, anchor + robots, 1)
+          supplier.write_text(text)
+
+          robots_file = Path('public/robots.txt')
+          text = robots_file.read_text().rstrip() + '\n'
+          supplier_sitemap = 'Sitemap: https://event-flow.co.uk/sitemap-suppliers.xml\n'
+          if supplier_sitemap not in text:
+              text += supplier_sitemap
+          robots_file.write_text(text)
+          PY
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Format changed JavaScript
+        run: npx prettier --write routes/index.js routes/public-supplier-seo.js services/publicSupplierSeo.service.js tests/unit/public-supplier-seo.test.js tests/integration/public-supplier-seo-route.test.js
+
+      - name: Run focused tests
+        run: npx jest --runInBand --coverage=false tests/unit/public-supplier-seo.test.js tests/integration/public-supplier-seo-route.test.js
+
+      - name: Remove one-shot workflow
+        run: rm .github/workflows/apply-supplier-seo-route.yml
+
+      - name: Commit permanent implementation
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add routes/index.js public/supplier.html public/robots.txt routes/public-supplier-seo.js services/publicSupplierSeo.service.js tests/unit/public-supplier-seo.test.js tests/integration/public-supplier-seo-route.test.js .github/workflows/apply-supplier-seo-route.yml
+          git commit -m "Wire server-rendered supplier SEO routes"
+          git push origin HEAD:feature/server-rendered-supplier-seo
