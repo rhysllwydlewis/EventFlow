@@ -38,7 +38,7 @@ jobs:
             const alertToken = String(process.env.SECURITY_ALERTS_TOKEN || '').trim();
             if (alertToken) core.setSecret(alertToken);
 
-            async function list(source, route) {
+            async function list(source, endpoint) {
               if (!alertToken) {
                 return {
                   source,
@@ -52,18 +52,51 @@ jobs:
               }
 
               try {
-                const alerts = await github.paginate(`GET ${route}`, {
-                  owner,
-                  repo,
-                  state: 'open',
-                  per_page: 100,
-                  headers: {
-                    accept: 'application/vnd.github+json',
-                    authorization: `Bearer ${alertToken}`,
-                    'X-GitHub-Api-Version': '2022-11-28',
+                const alerts = [];
+                const perPage = 100;
+
+                for (let page = 1; page <= 100; page += 1) {
+                  const url = new URL(
+                    `${context.apiUrl}/repos/${owner}/${repo}/${endpoint}`
+                  );
+                  url.searchParams.set('state', 'open');
+                  url.searchParams.set('per_page', String(perPage));
+                  url.searchParams.set('page', String(page));
+
+                  const response = await fetch(url, {
+                    headers: {
+                      Accept: 'application/vnd.github+json',
+                      Authorization: `Bearer ${alertToken}`,
+                      'X-GitHub-Api-Version': '2022-11-28',
+                    },
+                  });
+
+                  if (!response.ok) {
+                    const requestError = new Error('Dedicated alert request failed.');
+                    requestError.status = response.status;
+                    throw requestError;
+                  }
+
+                  const pageAlerts = await response.json();
+                  if (!Array.isArray(pageAlerts)) {
+                    throw new Error('GitHub alert API returned a non-array response.');
+                  }
+
+                  alerts.push(...pageAlerts);
+                  if (pageAlerts.length < perPage) {
+                    return { source, alerts, error: null };
+                  }
+                }
+
+                return {
+                  source,
+                  alerts: [],
+                  error: {
+                    status: null,
+                    code: 'pagination_limit',
+                    message: 'The alert inventory exceeded its bounded pagination limit.',
                   },
-                });
-                return { source, alerts, error: null };
+                };
               } catch (error) {
                 const status = Number(error.status || 0) || null;
                 return {
@@ -79,9 +112,9 @@ jobs:
             }
 
             const results = await Promise.all([
-              list('codeScanning', '/repos/{owner}/{repo}/code-scanning/alerts'),
-              list('secretScanning', '/repos/{owner}/{repo}/secret-scanning/alerts'),
-              list('dependabot', '/repos/{owner}/{repo}/dependabot/alerts'),
+              list('codeScanning', 'code-scanning/alerts'),
+              list('secretScanning', 'secret-scanning/alerts'),
+              list('dependabot', 'dependabot/alerts'),
             ]);
             const bySource = Object.fromEntries(results.map(result => [result.source, result]));
             const codeAlerts = bySource.codeScanning.alerts;
