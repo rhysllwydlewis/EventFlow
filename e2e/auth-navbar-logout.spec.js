@@ -1,16 +1,18 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Authentication Navbar and Logout Flow @backend', () => {
-  test('should redirect to login with redirect parameter from protected page', async ({ page }) => {
+  test('protected legacy dashboard route redirects with the current next parameter', async ({ page }) => {
     await page.goto('/dashboard-customer.html', { waitUntil: 'domcontentloaded' });
 
-    await expect(page).toHaveURL(/\/auth(?:\.html)?\?.*redirect=/, { timeout: 10000 });
+    await expect(page).toHaveURL(/\/auth(?:\.html)?\?.*next=/, { timeout: 10000 });
     const url = new URL(page.url());
-    expect(url.searchParams.get('redirect')).toContain('dashboard-customer.html');
+    expect(url.searchParams.get('reason')).toBe('unauthenticated');
+    expect(url.searchParams.get('next')).toBe('/dashboard/customer');
+    expect(url.searchParams.has('redirect')).toBe(false);
     expect(url.searchParams.has('return')).toBe(false);
   });
 
-  test('should use redirect parameter rather than return in auth links', async ({ page }) => {
+  test('auth page preserves an explicit redirect parameter when supplied directly', async ({ page }) => {
     await page.goto('/auth.html?redirect=/dashboard-customer.html', {
       waitUntil: 'domcontentloaded',
     });
