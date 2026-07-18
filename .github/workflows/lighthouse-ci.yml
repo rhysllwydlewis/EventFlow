@@ -56,11 +56,12 @@ jobs:
         run: npm ci --prefer-offline --no-audit
 
       - name: Collect Lighthouse runs
+        id: collect
         env:
           NODE_ENV: test
           PORT: 3000
           BASE_URL: http://localhost:3000
-        run: npx --yes @lhci/cli@0.14.x collect --config=${{ matrix.config }}
+        run: npx --yes @lhci/cli@0.14.0 collect --config=${{ matrix.config }}
 
       - name: Summarize Lighthouse scores
         if: always()
@@ -70,10 +71,10 @@ jobs:
           lighthouse-${{ matrix.profile }}-summary.txt
 
       - name: Enforce Lighthouse budgets
-        if: success()
+        if: steps.collect.outcome == 'success'
         run: |
           set -o pipefail
-          npx --yes @lhci/cli@0.14.x assert --config=${{ matrix.config }} \
+          npx --yes @lhci/cli@0.14.0 assert --config=${{ matrix.config }} \
             2>&1 | tee lighthouse-${{ matrix.profile }}-assertions.txt
 
       - name: Upload Lighthouse evidence
