@@ -44,13 +44,13 @@ describe('supplier clean URL context', () => {
     expect(window.__EF_PUBLIC_SUPPLIER_ID__).toBe('supplier-123');
   });
 
-  test('does not overwrite an explicit legacy query-string ID', () => {
+  test('keeps the server-rendered supplier ID authoritative over a conflicting query ID', () => {
     const window = createWindow(
       'supplier-123',
-      'https://event-flow.co.uk/supplier/example--0123456789abcdef?id=legacy-id'
+      'https://event-flow.co.uk/supplier/example--0123456789abcdef?id=other-supplier'
     );
 
-    expect(new window.URLSearchParams(window.location.search).get('id')).toBe('legacy-id');
+    expect(new window.URLSearchParams(window.location.search).get('id')).toBe('supplier-123');
   });
 
   test('does not inject the supplier ID into unrelated parameter collections', () => {
