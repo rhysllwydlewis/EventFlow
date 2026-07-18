@@ -48,7 +48,8 @@ jobs:
       - name: Scan production image
         id: trivy
         continue-on-error: true
-        uses: aquasecurity/trivy-action@0.28.0
+        # aquasecurity/trivy-action v0.28.0
+        uses: aquasecurity/trivy-action@915b19bbe73b92a6cf82a1bc12b087c9a19a5fe2
         with:
           image-ref: eventflow:${{ github.sha }}
           format: sarif
@@ -58,11 +59,13 @@ jobs:
           exit-code: '1'
 
       - name: Generate SPDX SBOM
-        uses: anchore/sbom-action@v0
+        # anchore/sbom-action v0.24.0
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610
         with:
           image: eventflow:${{ github.sha }}
           format: spdx-json
           output-file: eventflow-${{ github.sha }}.spdx.json
+          upload-artifact: false
 
       - name: Attest container SBOM
         uses: actions/attest-sbom@v2
@@ -91,5 +94,5 @@ jobs:
       - name: Enforce container vulnerability result
         if: always() && steps.trivy.outcome == 'failure'
         run: |
-          echo "::error::Trivy found an unfixed high or critical vulnerability in the production image."
+          echo "::error::Trivy found a fixable high or critical vulnerability in the production image."
           exit 1
