@@ -1,45 +1,49 @@
 'use strict';
 
-const cache = {
+const originalFetch = global.fetch;
+const mockCache = {
   get: jest.fn(),
   set: jest.fn(),
 };
-const logger = {
+const mockLogger = {
   warn: jest.fn(),
   error: jest.fn(),
 };
 
-jest.mock('../../cache', () => cache);
-jest.mock('../../utils/logger', () => logger);
+jest.mock('../../cache', () => mockCache);
+jest.mock('../../utils/logger', () => mockLogger);
 
 const { geocodePostcode } = require('../../utils/geocoding');
 
 describe('external geocoding failure contracts', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    cache.get.mockResolvedValue(null);
-    cache.set.mockResolvedValue(true);
+    mockCache.get.mockResolvedValue(null);
+    mockCache.set.mockResolvedValue(true);
   });
 
   afterEach(() => {
     jest.useRealTimers();
-    delete global.fetch;
+    global.fetch = originalFetch;
   });
 
   test('returns null rather than leaking a network exception', async () => {
     global.fetch = jest.fn().mockRejectedValue(new Error('socket reset by peer'));
 
     await expect(geocodePostcode('CF10 1AA')).resolves.toBeNull();
-    expect(logger.error).toHaveBeenCalledWith('Postcode lookup error:', 'socket reset by peer');
-    expect(cache.set).not.toHaveBeenCalled();
+    expect(mockLogger.error).toHaveBeenCalledWith(
+      'Postcode lookup error:',
+      'socket reset by peer'
+    );
+    expect(mockCache.set).not.toHaveBeenCalled();
   });
 
   test('treats provider error responses as a safe unavailable result', async () => {
     global.fetch = jest.fn().mockResolvedValue({ ok: false, status: 429 });
 
     await expect(geocodePostcode('CF10 1AA')).resolves.toBeNull();
-    expect(logger.warn).toHaveBeenCalledWith('Postcode lookup failed for CF101AA: 429');
-    expect(cache.set).not.toHaveBeenCalled();
+    expect(mockLogger.warn).toHaveBeenCalledWith('Postcode lookup failed for CF101AA: 429');
+    expect(mockCache.set).not.toHaveBeenCalled();
   });
 
   test('aborts a stalled provider request at the five-second boundary', async () => {
@@ -58,7 +62,7 @@ describe('external geocoding failure contracts', () => {
     await jest.advanceTimersByTimeAsync(5000);
 
     await expect(pending).resolves.toBeNull();
-    expect(logger.error).toHaveBeenCalledWith('Postcode lookup timeout:', 'CF101AA');
+    expect(mockLogger.error).toHaveBeenCalledWith('Postcode lookup timeout:', 'CF101AA');
   });
 
   test('caches a valid provider response using the normalised postcode key', async () => {
@@ -79,8 +83,8 @@ describe('external geocoding failure contracts', () => {
       longitude: -3.1791,
       postcode: 'CF10 1AA',
     });
-    expect(cache.get).toHaveBeenCalledWith('geocode:CF101AA');
-    expect(cache.set).toHaveBeenCalledWith(
+    expect(mockCache.get).toHaveBeenCalledWith('geocode:CF101AA');
+    expect(mockCache.set).toHaveBeenCalledWith(
       'geocode:CF101AA',
       JSON.stringify({ latitude: 51.4816, longitude: -3.1791, postcode: 'CF10 1AA' }),
       86400
