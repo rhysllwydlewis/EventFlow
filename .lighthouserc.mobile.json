@@ -62,7 +62,19 @@
           }
         },
         {
-          "matchingUrlPattern": "http://localhost:3000/(?!suppliers$).*",
+          "matchingUrlPattern": "http://localhost:3000/$",
+          "assertions": {
+            "categories:performance": [
+              "error",
+              {
+                "minScore": 0.5,
+                "aggregationMethod": "pessimistic"
+              }
+            ]
+          }
+        },
+        {
+          "matchingUrlPattern": "http://localhost:3000/(marketplace|pricing)$",
           "assertions": {
             "categories:performance": [
               "error",
