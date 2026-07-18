@@ -62,8 +62,17 @@ const stale = [...classified].filter(file => !backendSpecSet.has(file));
 if (stale.length > 0) fail(`classification contains stale specs: ${stale.join(', ')}`);
 
 const includeQuarantined = process.argv.includes('--include-quarantined');
-const forwardedArgs = process.argv.slice(2).filter(arg => arg !== '--include-quarantined');
+const validateOnly = process.argv.includes('--validate-only');
+const forwardedArgs = process.argv
+  .slice(2)
+  .filter(arg => arg !== '--include-quarantined' && arg !== '--validate-only');
 const selectedSpecs = includeQuarantined ? backendSpecs : classification.blocking;
+
+console.log(
+  `Validated ${classification.blocking.length} blocking and ${quarantined.length} quarantined backend spec files; all ${backendSpecs.length} @backend files are classified.`
+);
+if (validateOnly) process.exit(0);
+
 const npx = process.platform === 'win32' ? 'npx.cmd' : 'npx';
 const args = [
   'playwright',
