@@ -1,0 +1,178 @@
+name: Security Alert Inventory
+
+on:
+  schedule:
+    - cron: '20 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: read
+  issues: write
+
+concurrency:
+  group: security-alert-inventory
+  cancel-in-progress: true
+
+jobs:
+  inventory:
+    name: Sanitised GitHub security alert register
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build sanitised alert inventory
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            const { owner, repo } = context.repo;
+            const outputDir = path.join(process.cwd(), 'reports', 'security');
+            fs.mkdirSync(outputDir, { recursive: true });
+
+            async function list(endpoint) {
+              return github.paginate(github.request, `GET ${endpoint}`, {
+                owner,
+                repo,
+                state: 'open',
+                per_page: 100,
+              });
+            }
+
+            const [codeAlerts, secretAlerts, dependabotAlerts] = await Promise.all([
+              list('/repos/{owner}/{repo}/code-scanning/alerts'),
+              list('/repos/{owner}/{repo}/secret-scanning/alerts'),
+              list('/repos/{owner}/{repo}/dependabot/alerts'),
+            ]);
+
+            const sanitised = {
+              generatedAt: new Date().toISOString(),
+              repository: `${owner}/${repo}`,
+              totals: {
+                codeScanning: codeAlerts.length,
+                secretScanning: secretAlerts.length,
+                dependabot: dependabotAlerts.length,
+                all: codeAlerts.length + secretAlerts.length + dependabotAlerts.length,
+              },
+              codeScanning: codeAlerts.map(alert => ({
+                number: alert.number,
+                state: alert.state,
+                tool: alert.tool?.name || 'unknown',
+                rule: alert.rule?.id || 'unknown',
+                severity: alert.rule?.security_severity_level || alert.rule?.severity || 'unknown',
+                classification: alert.most_recent_instance?.classifications || [],
+                path: alert.most_recent_instance?.location?.path || null,
+                htmlUrl: alert.html_url,
+              })),
+              secretScanning: secretAlerts.map(alert => ({
+                number: alert.number,
+                state: alert.state,
+                type: alert.secret_type_display_name || alert.secret_type || 'unknown',
+                validity: alert.validity || 'unknown',
+                publiclyLeaked: Boolean(alert.publicly_leaked),
+                pushProtectionBypassed: Boolean(alert.push_protection_bypassed),
+                htmlUrl: alert.html_url,
+              })),
+              dependabot: dependabotAlerts.map(alert => ({
+                number: alert.number,
+                state: alert.state,
+                dependency: alert.dependency?.package?.name || 'unknown',
+                ecosystem: alert.dependency?.package?.ecosystem || 'unknown',
+                scope: alert.dependency?.scope || 'unknown',
+                severity: alert.security_advisory?.severity || 'unknown',
+                fixedVersion: alert.security_vulnerability?.first_patched_version?.identifier || null,
+                htmlUrl: alert.html_url,
+              })),
+            };
+
+            const severityCounts = sanitised.codeScanning.reduce((acc, alert) => {
+              acc[alert.severity] = (acc[alert.severity] || 0) + 1;
+              return acc;
+            }, {});
+            const dependencySeverityCounts = sanitised.dependabot.reduce((acc, alert) => {
+              acc[alert.severity] = (acc[alert.severity] || 0) + 1;
+              return acc;
+            }, {});
+            const validSecrets = sanitised.secretScanning.filter(alert =>
+              ['active', 'valid'].includes(String(alert.validity).toLowerCase())
+            ).length;
+
+            const markdown = [
+              '# GitHub security alert inventory',
+              '',
+              `Generated: ${sanitised.generatedAt}`,
+              '',
+              '> This report never includes a secret value. It contains alert metadata only.',
+              '',
+              '| Alert source | Open | Priority signal |',
+              '| --- | ---: | --- |',
+              `| Secret scanning | ${sanitised.totals.secretScanning} | ${validSecrets} marked active/valid |`,
+              `| Code scanning | ${sanitised.totals.codeScanning} | ${JSON.stringify(severityCounts)} |`,
+              `| Dependabot | ${sanitised.totals.dependabot} | ${JSON.stringify(dependencySeverityCounts)} |`,
+              '',
+              '## Required response',
+              '',
+              '1. Rotate and revoke every genuine secret before resolving its alert.',
+              '2. Prioritise critical/high application-code findings.',
+              '3. Apply safe dependency fixes; document accepted risk where no fix exists.',
+              '4. Record the evidence and rationale for every dismissal.',
+              '',
+              `- [Secret scanning](${context.serverUrl}/${owner}/${repo}/security/secret-scanning)`,
+              `- [Code scanning](${context.serverUrl}/${owner}/${repo}/security/code-scanning)`,
+              `- [Dependabot](${context.serverUrl}/${owner}/${repo}/security/dependabot)`,
+              '',
+            ].join('\n');
+
+            fs.writeFileSync(
+              path.join(outputDir, 'security-alert-inventory.json'),
+              `${JSON.stringify(sanitised, null, 2)}\n`
+            );
+            fs.writeFileSync(path.join(outputDir, 'security-alert-inventory.md'), markdown);
+            core.summary.addRaw(markdown).write();
+
+            const title = '[security] Active GitHub alert inventory';
+            const marker = '<!-- eventflow-security-alert-inventory -->';
+            const issues = await github.paginate(github.rest.issues.listForRepo, {
+              owner,
+              repo,
+              state: 'open',
+              per_page: 100,
+            });
+            const existing = issues.find(issue => issue.title === title);
+            const runUrl = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
+            const body = `${marker}\n${markdown}\n[Download the sanitised inventory artefact](${runUrl}).`;
+
+            if (sanitised.totals.all > 0) {
+              if (existing) {
+                await github.rest.issues.createComment({ owner, repo, issue_number: existing.number, body });
+              } else {
+                await github.rest.issues.create({ owner, repo, title, body, labels: ['security'] });
+              }
+            } else if (existing) {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: existing.number,
+                body: `${marker}\nNo open GitHub security alerts remain. Closing automatically.`,
+              });
+              await github.rest.issues.update({
+                owner,
+                repo,
+                issue_number: existing.number,
+                state: 'closed',
+                state_reason: 'completed',
+              });
+            }
+
+      - name: Upload sanitised inventory
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-alert-inventory
+          path: reports/security
+          if-no-files-found: error
+          retention-days: 30
