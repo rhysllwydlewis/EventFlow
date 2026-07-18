@@ -33,6 +33,20 @@ This document separates controls implemented in the repository from controls tha
 | Friday                  | CodeQL scheduled deep scan.                                                                                       |
 | Weekly                  | Dependabot grouped npm and GitHub Actions update PRs.                                                             |
 
+## Backend suite classification
+
+The first broad real-server run discovered 210 historical `@backend` tests. It completed with 164 expected results, 43 unexpected attempts and 3 flaky attempts. The failures were concentrated in mixed-purpose historical specs that still expected removed admin or supplier interfaces, used `networkidle` on pages with persistent sockets, or asserted retired validation behaviour.
+
+The pull-request gate now runs ten current blocking spec files against the real application and a MongoDB replica set. Eleven historical files are listed in `e2e/backend-suite-classification.json` with specific repair reasons. `scripts/run-backend-e2e.mjs` fails before launching Playwright when any `@backend` file is missing, stale, duplicated, both blocking and quarantined, or left unclassified. New backend tests therefore cannot silently escape either the blocking set or visible repair debt.
+
+The quarantine is not treated as a pass. The full diagnostic set remains runnable with:
+
+```bash
+npm run test:e2e:backend -- --include-quarantined --project=chromium
+```
+
+A quarantined file should return to the blocking set only after its fixtures and assertions represent the current product and it passes repeatedly against the real server. The dedicated GitHub issue linked from PR #1354 tracks that work.
+
 ## Lighthouse regression baselines
 
 Lighthouse uses the pessimistic result from three runs so one poor sample cannot be hidden by two stronger samples. These are regression floors based on the measured pre-existing pages, not claims that the current experience is ideal.
