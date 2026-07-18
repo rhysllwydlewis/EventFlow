@@ -68,3 +68,52 @@ jobs:
         run: git diff --exit-code
       - name: Run ESLint
         run: npm run lint
+
+  backend:
+    name: Real Mongo-backed blocking suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      CI: 'true'
+      E2E_MODE: full
+      MONGODB_URI: mongodb://127.0.0.1:27017/eventflow_pr1354_audit?replicaSet=rs0
+      PLAYWRIGHT_VIDEO: 'off'
+      PLAYWRIGHT_TRACE: 'off'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.node-version'
+          cache: npm
+      - name: Start MongoDB replica set
+        uses: supercharge/mongodb-github-action@90004df786821b6308fb02299e5835d0dae05d0d
+        with:
+          mongodb-version: '7.0'
+          mongodb-replica-set: rs0
+      - run: npm run check:lockfile
+      - run: npm ci --prefer-offline --no-audit
+      - run: npx playwright install --with-deps chromium
+      - name: Run blocking backend journeys
+        timeout-minutes: 35
+        run: npm run test:e2e:backend -- --project=chromium
+        env:
+          PLAYWRIGHT_JSON_OUTPUT_NAME: test-results/pr1354-backend-results.json
+          PLAYWRIGHT_JUNIT_OUTPUT_NAME: test-results/pr1354-backend-junit.xml
+      - name: Summarise backend results
+        if: always()
+        run: >-
+          node scripts/summarize-playwright-results.mjs
+          test-results/pr1354-backend-results.json
+          test-results/pr1354-backend-summary.txt
+      - name: Upload bounded backend evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr1354-backend-evidence
+          path: |
+            test-results/pr1354-backend-results.json
+            test-results/pr1354-backend-junit.xml
+            test-results/pr1354-backend-summary.txt
+            test-results/**/*.png
+          if-no-files-found: warn
+          retention-days: 2
