@@ -145,13 +145,22 @@ describe('public supplier SEO service', () => {
     expect(JSON.parse(serialized)).toEqual({ value: '</script>&\u2028' });
   });
 
-  test('uses approved review analytics before the legacy rating field', () => {
+  test('uses only approved-review summary fields for aggregate rating schema', () => {
     const withRating = buildSupplierSeoModel(supplier);
     const withoutCount = buildSupplierSeoModel({ ...supplier, reviewCount: 0 });
+    const legacyOnly = buildSupplierSeoModel({
+      ...supplier,
+      averageRating: undefined,
+      reviewCount: undefined,
+      rating: 5,
+      reviewsCount: 100,
+      reviewSummary: { averageRating: 5, reviewCount: 100 },
+    });
 
     expect(withRating.structuredData.aggregateRating).toEqual(
       expect.objectContaining({ ratingValue: 4.8, reviewCount: 12 })
     );
     expect(withoutCount.structuredData.aggregateRating).toBeUndefined();
+    expect(legacyOnly.structuredData.aggregateRating).toBeUndefined();
   });
 });
