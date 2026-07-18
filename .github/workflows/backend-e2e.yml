@@ -15,6 +15,7 @@ on:
       - 'db*.js'
       - 'package*.json'
       - 'playwright.config.js'
+      - 'scripts/run-backend-e2e.mjs'
       - '.github/workflows/backend-e2e.yml'
   schedule:
     - cron: '17 2 * * *'
@@ -35,7 +36,7 @@ env:
   JWT_SECRET: backend-e2e-secret-for-github-actions-minimum-32-chars
   MONGODB_URI: mongodb://127.0.0.1:27017/eventflow_e2e?replicaSet=rs0
   PLAYWRIGHT_VIDEO: 'off'
-  PLAYWRIGHT_TRACE: retain-on-failure
+  PLAYWRIGHT_TRACE: 'off'
 
 jobs:
   backend-e2e:
@@ -54,7 +55,8 @@ jobs:
           cache: npm
 
       - name: Start MongoDB replica set
-        uses: supercharge/mongodb-github-action@1.12.0
+        # supercharge/mongodb-github-action v1.12.0
+        uses: supercharge/mongodb-github-action@90004df786821b6308fb02299e5835d0dae05d0d
         with:
           mongodb-version: '7.0'
           mongodb-replica-set: rs0
@@ -68,16 +70,10 @@ jobs:
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
 
-      - name: Run backend journeys
+      - name: Run classified backend journeys
         id: backend-tests
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            npm run test:e2e:full -- --project=chromium --grep @backend
-          else
-            npm run test:e2e:full -- --project=chromium
-          fi
+        timeout-minutes: 35
+        run: npm run test:e2e:backend -- --project=chromium
         env:
           PLAYWRIGHT_JSON_OUTPUT_NAME: test-results/backend-results.json
           PLAYWRIGHT_JUNIT_OUTPUT_NAME: test-results/backend-junit.xml
@@ -106,6 +102,5 @@ jobs:
           path: |
             playwright-report
             test-results/**/*.png
-            test-results/**/*.zip
           if-no-files-found: warn
           retention-days: 14
