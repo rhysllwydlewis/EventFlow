@@ -3,7 +3,14 @@
 jest.mock('../../db-unified', () => ({
   read: jest.fn(async collection => {
     if (collection === 'suppliers') {
-      return [{ id: 'supplier&one', approved: true, updatedAt: '2026-04-10T00:00:00.000Z' }];
+      return [
+        {
+          id: 'supplier&one',
+          approved: true,
+          name: 'Supplier & One',
+          updatedAt: '2026-04-10T00:00:00.000Z',
+        },
+      ];
     }
     if (collection === 'packages') {
       return [{ slug: 'photo&video', updatedAt: '2026-04-11T00:00:00.000Z' }];
@@ -23,6 +30,7 @@ const { generateSitemap, loadGuideEntries, xmlEscape } = require('../../sitemap'
 const sitemapSupplier = {
   id: 'supplier&one',
   approved: true,
+  name: 'Supplier & One',
   updatedAt: '2026-04-10T00:00:00.000Z',
 };
 
