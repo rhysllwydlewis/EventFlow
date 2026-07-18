@@ -34,6 +34,7 @@
     "test:visual:update": "playwright test --config=playwright-visual.config.js --update-snapshots",
     "test:a11y": "playwright test --config=playwright-visual.config.js --grep \"axe-core\"",
     "test:e2e:static": "node scripts/run-static-e2e.mjs",
+    "test:e2e:backend": "E2E_MODE=full node scripts/run-backend-e2e.mjs",
     "test:e2e:full": "E2E_MODE=full playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:headers": "node scripts/verify-security-headers.mjs",
