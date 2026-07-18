@@ -42,6 +42,11 @@ function stripMarkup(value) {
   return output.replace(/\s+/g, ' ').trim();
 }
 
+function supplierDisplayName(supplier) {
+  const source = supplier && typeof supplier === 'object' ? supplier : {};
+  return stripMarkup(source.name || source.businessName || source.company || '');
+}
+
 function slugify(value) {
   return stripMarkup(value)
     .normalize('NFKD')
@@ -66,7 +71,7 @@ function buildPublicSupplierSlug(supplier) {
   if (!token) {
     return '';
   }
-  const namePart = slugify(supplier.name || supplier.company || 'supplier') || 'supplier';
+  const namePart = slugify(supplierDisplayName(supplier) || 'supplier') || 'supplier';
   return `${namePart}--${token}`;
 }
 
@@ -103,7 +108,12 @@ function buildCampaignQuery(input = {}) {
 }
 
 function isPublicSupplier(supplier, validOwnerIds) {
-  if (!supplier || supplier.approved !== true || !supplier.id) {
+  if (
+    !supplier ||
+    supplier.approved !== true ||
+    !supplier.id ||
+    !supplierDisplayName(supplier)
+  ) {
     return false;
   }
   if (!supplier.ownerUserId) {
@@ -204,7 +214,7 @@ function buildSupplierSeoModel(supplier, options = {}) {
   const baseUrl = safeBaseUrl(options.baseUrl);
   const slug = buildPublicSupplierSlug(supplier);
   const canonicalUrl = `${baseUrl}/supplier/${slug}`;
-  const name = stripMarkup(supplier.name || supplier.company || 'Event supplier');
+  const name = supplierDisplayName(supplier) || 'Event supplier';
   const category = stripMarkup(supplier.category || supplier.primaryCategory || '');
   const location = stripMarkup(
     supplier.location || supplier.city || supplier.town || supplier.addressLocality || ''
@@ -213,6 +223,7 @@ function buildSupplierSeoModel(supplier, options = {}) {
   const description = truncate(
     supplier.metaDescription ||
       supplier.description_short ||
+      supplier.descriptionShort ||
       supplier.tagline ||
       supplier.description ||
       `${name}${location ? ` in ${location}` : ''} on EventFlow.`,
@@ -349,5 +360,6 @@ module.exports = {
   resolvePublicSupplierBySlug,
   serializeJsonLd,
   slugify,
+  supplierDisplayName,
   supplierSlugToken,
 };
