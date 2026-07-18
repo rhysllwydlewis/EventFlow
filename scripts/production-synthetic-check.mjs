@@ -3,7 +3,10 @@
 import { mkdir, writeFile, appendFile } from 'node:fs/promises';
 import path from 'node:path';
 
-const baseUrl = String(process.env.SYNTHETIC_BASE_URL || 'https://event-flow.co.uk').replace(/\/$/, '');
+const baseUrl = String(process.env.SYNTHETIC_BASE_URL || 'https://event-flow.co.uk').replace(
+  /\/$/,
+  ''
+);
 const timeoutMs = Number(process.env.SYNTHETIC_TIMEOUT_MS || 10000);
 const outputDirectory = path.join(process.cwd(), 'reports', 'synthetics');
 const outputPath = path.join(outputDirectory, 'production-synthetics.json');
@@ -65,7 +68,8 @@ async function runCheck(check) {
 
     if (response.status !== 200) return result(check.path, started, 'http_error');
     if (!check.validate(body)) return result(check.path, started, 'content_invalid');
-    if (performance.now() - started > timeoutMs) return result(check.path, started, 'slow_response');
+    if (performance.now() - started > timeoutMs)
+      return result(check.path, started, 'slow_response');
     return result(check.path, started, 'pass');
   } catch (error) {
     return result(check.path, started, error.name === 'AbortError' ? 'timeout' : 'network_error');
@@ -100,7 +104,8 @@ const markdown = [
   '| Path | Result | Duration |',
   '| --- | --- | ---: |',
   ...results.map(
-    item => `| \`${item.path}\` | ${item.ok ? 'pass' : `fail: ${item.outcome}`} | ${item.durationMs}ms |`
+    item =>
+      `| \`${item.path}\` | ${item.ok ? 'pass' : `fail: ${item.outcome}`} | ${item.durationMs}ms |`
   ),
   '',
   `**${report.passed}/${report.total} passed.**`,
