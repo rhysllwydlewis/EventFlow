@@ -233,10 +233,12 @@ function buildSupplierSeoModel(supplier, options = {}) {
     baseUrl
   );
 
-  // These fields are maintained from approved reviews. Do not fall back to
-  // supplier-entered or legacy rating values in search-engine markup.
-  const ratingValue = numericValue(supplier.averageRating);
-  const reviewCount = numericValue(supplier.reviewCount);
+  const approvedReviewSummary =
+    supplier.approvedReviewSummary && typeof supplier.approvedReviewSummary === 'object'
+      ? supplier.approvedReviewSummary
+      : {};
+  const ratingValue = numericValue(approvedReviewSummary.averageRating);
+  const reviewCount = numericValue(approvedReviewSummary.reviewCount);
 
   const structuredData = {
     '@context': 'https://schema.org',
