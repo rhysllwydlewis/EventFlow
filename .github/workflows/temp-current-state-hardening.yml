@@ -3,6 +3,8 @@ name: Temporary Current-State Hardening
 on:
   push:
     branches: [agent/current-state-security-monitoring-hardening]
+  pull_request:
+    branches: [main]
 
 permissions:
   contents: write
