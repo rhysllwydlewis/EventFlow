@@ -88,9 +88,7 @@ describe('guides SEO and UX assets', () => {
   });
 
   test('Lighthouse CI warms audited routes through the static server without app secrets', () => {
-    const desktop = JSON.parse(
-      fs.readFileSync(path.join(repoRoot, '.lighthouserc.json'), 'utf8')
-    );
+    const desktop = JSON.parse(fs.readFileSync(path.join(repoRoot, '.lighthouserc.json'), 'utf8'));
     const mobile = JSON.parse(
       fs.readFileSync(path.join(repoRoot, '.lighthouserc.mobile.json'), 'utf8')
     );
@@ -100,9 +98,7 @@ describe('guides SEO and UX assets', () => {
     );
 
     for (const config of [desktop, mobile]) {
-      expect(config.ci.collect.startServerCommand).toBe(
-        'bash scripts/start-lighthouse-server.sh'
-      );
+      expect(config.ci.collect.startServerCommand).toBe('bash scripts/start-lighthouse-server.sh');
       expect(config.ci.collect.startServerReadyPattern).toBe('Lighthouse server warmed');
     }
     expect(desktop.ci.collect.url).toContain('http://localhost:3000/guides');
