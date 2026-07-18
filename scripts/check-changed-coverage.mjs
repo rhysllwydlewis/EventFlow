@@ -38,6 +38,7 @@ function normaliseFile(value) {
 function eligible(file) {
   if (!file.endsWith('.js')) return false;
   if (
+    file.endsWith('.config.js') ||
     file.startsWith('tests/') ||
     file.startsWith('e2e/') ||
     file.startsWith('public/') ||
@@ -143,7 +144,7 @@ for (const [file, lines] of changes) {
 }
 
 if (measured === 0) {
-  const message = 'No instrumented executable JavaScript lines changed; patch coverage gate passed.';
+  const message = 'No instrumented application JavaScript lines changed; patch coverage gate passed.';
   console.log(message);
   writeSummary(`## Changed-code coverage\n\n${message}`);
   process.exit(0);
