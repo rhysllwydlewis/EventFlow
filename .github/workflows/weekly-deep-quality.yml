@@ -1,0 +1,154 @@
+name: Weekly Deep Quality
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'utils/geocoding.js'
+      - 'db-utils.js'
+      - 'tests/unit/property-fuzz.test.js'
+      - 'tests/unit/external-service-failure-contracts.test.js'
+      - 'tests/unit/migration-idempotency.test.js'
+      - 'jest.open-handles.config.js'
+      - 'stryker.config.mjs'
+      - 'package*.json'
+      - '.github/workflows/weekly-deep-quality.yml'
+  schedule:
+    - cron: '13 4 * * 0'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: weekly-deep-quality-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  HUSKY: '0'
+  NODE_ENV: test
+  JWT_SECRET: weekly-deep-quality-secret-minimum-32-characters
+
+jobs:
+  open-handles-and-contracts:
+    name: Resource leaks, fuzzing and migrations
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.node-version'
+          cache: npm
+      - run: npm run check:lockfile
+      - run: npm ci --prefer-offline --no-audit
+      - name: Run deterministic fuzz contracts
+        run: npm run test:fuzz
+      - name: Run external provider failure contracts
+        run: >-
+          npx jest --runInBand --coverage=false
+          tests/unit/external-service-failure-contracts.test.js
+      - name: Run migration safety contracts
+        run: npm run test:migrations
+      - name: Detect leaked handles without forced exit
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            npx jest --config=jest.open-handles.config.js --runInBand --detectOpenHandles \
+              tests/unit/property-fuzz.test.js \
+              tests/unit/external-service-failure-contracts.test.js \
+              tests/unit/migration-idempotency.test.js
+          else
+            npm run test:open-handles
+          fi
+
+  mutation:
+    name: Focused mutation score
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.node-version'
+          cache: npm
+      - run: npm run check:lockfile
+      - run: npm ci --prefer-offline --no-audit
+      - name: Run mutation testing
+        run: npm run test:mutation
+      - name: Upload mutation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mutation-report
+          path: reports/mutation
+          if-no-files-found: warn
+          retention-days: 30
+
+  cross-browser:
+    name: Firefox, WebKit and mobile browser matrix
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.node-version'
+          cache: npm
+      - run: npm run check:lockfile
+      - run: npm ci --prefer-offline --no-audit
+      - name: Install all supported Playwright browsers
+        run: npx playwright install --with-deps chromium firefox webkit
+      - name: Run static journeys across desktop and mobile projects
+        run: npm run test:e2e:static
+        env:
+          CI: 'true'
+          PLAYWRIGHT_ALL_BROWSERS: 'true'
+          PLAYWRIGHT_VIDEO: 'off'
+          PLAYWRIGHT_TRACE: retain-on-failure
+          PLAYWRIGHT_JSON_OUTPUT_NAME: test-results/cross-browser-results.json
+          PLAYWRIGHT_JUNIT_OUTPUT_NAME: test-results/cross-browser-junit.xml
+      - name: Upload cross-browser machine results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cross-browser-machine-results
+          path: |
+            test-results/cross-browser-results.json
+            test-results/cross-browser-junit.xml
+          if-no-files-found: warn
+          retention-days: 30
+      - name: Upload bounded cross-browser diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cross-browser-diagnostics
+          path: |
+            playwright-report
+            test-results/**/*.png
+            test-results/**/*.zip
+          if-no-files-found: warn
+          retention-days: 14
+
+  action-policy:
+    name: Immutable GitHub Action reference inventory
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.node-version'
+      - name: Audit Action references
+        run: npm run audit:action-pins
+        env:
+          ACTION_PIN_ENFORCEMENT: warn
+      - name: Upload pin migration inventory
+        uses: actions/upload-artifact@v4
+        with:
+          name: github-action-pin-inventory
+          path: reports/github-action-pins.md
+          if-no-files-found: error
+          retention-days: 30

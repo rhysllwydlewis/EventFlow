@@ -31,16 +31,14 @@ async function geocodePostcode(postcode) {
     return JSON.parse(cached);
   }
 
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
 
+  try {
     const response = await fetch(
       `${POSTCODES_IO_BASE}/postcodes/${encodeURIComponent(normalized)}`,
       { signal: controller.signal }
     );
-
-    clearTimeout(timeoutId);
 
     if (!response.ok) {
       logger.warn(`Postcode lookup failed for ${normalized}: ${response.status}`);
@@ -70,6 +68,10 @@ async function geocodePostcode(postcode) {
       logger.error('Postcode lookup error:', error.message);
     }
     return null;
+  } finally {
+    // A rejected provider request used to leave this timer alive until the full
+    // five-second deadline, concealing leaked handles behind Jest forceExit.
+    clearTimeout(timeoutId);
   }
 }
 

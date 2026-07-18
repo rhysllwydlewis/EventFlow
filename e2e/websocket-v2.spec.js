@@ -10,7 +10,7 @@ const { test, expect } = require('@playwright/test');
 test.describe('WebSocket v2 E2E Tests @backend', () => {
   test.describe('Connection', () => {
     test('should load Socket.IO client library', async ({ page }) => {
-      await page.goto('/');
+      await page.goto('/', { waitUntil: 'domcontentloaded' });
 
       const hasSocketIO = await page.evaluate(() => {
         return (
@@ -19,40 +19,45 @@ test.describe('WebSocket v2 E2E Tests @backend', () => {
         );
       });
 
-      // Socket.IO may be loaded conditionally, so we check if the page loads without errors
-      expect(page.url()).toContain('/');
+      // Socket.IO may be loaded conditionally; the public page must remain usable either way.
+      expect(typeof hasSocketIO).toBe('boolean');
+      await expect(page.locator('body')).toBeVisible();
     });
 
     test('should have WebSocket endpoint available', async ({ request }) => {
       // Check that the socket.io endpoint responds
       const response = await request.get('/socket.io/?EIO=4&transport=polling');
-      // Socket.IO returns 200 or specific status codes
-      expect([200, 400].includes(response.status())).toBe(true);
+      // Socket.IO returns 200 or a protocol-specific 400 response.
+      expect([200, 400]).toContain(response.status());
     });
   });
 
   test.describe('Messaging UI', () => {
-    test('messenger page should load', async ({ page }) => {
-      await page.goto('/messenger/');
-      // Page should load without JavaScript errors
+    test('messenger page should load or redirect safely when logged out', async ({ page }) => {
       const errors = [];
       page.on('pageerror', error => errors.push(error.message));
-      await page.waitForLoadState('networkidle');
 
-      // Filter out expected errors (like auth redirects for unauthenticated users)
+      const response = await page.goto('/messenger/', { waitUntil: 'domcontentloaded' });
+      expect(response?.status()).toBeLessThan(500);
+      await expect(page.locator('body')).toBeVisible();
+
+      const currentUrl = new URL(page.url());
+      expect(['/messenger/', '/auth']).toContain(currentUrl.pathname);
+
       const unexpectedErrors = errors.filter(
-        e => !e.includes('Unauthenticated') && !e.includes('401') && !e.includes('redirect')
+        error =>
+          !error.includes('Unauthenticated') &&
+          !error.includes('401') &&
+          !error.includes('redirect')
       );
-
-      expect(unexpectedErrors.length).toBe(0);
+      expect(unexpectedErrors).toEqual([]);
     });
   });
 
   test.describe('Real-time Features Documentation', () => {
     test('REALTIME_MESSAGING.md should document v2 features', async ({ request }) => {
-      // This test verifies documentation exists
-      // In a real scenario, we'd check the file content
-      expect(true).toBe(true);
+      // This placeholder keeps the current documentation contract visible until a served docs endpoint exists.
+      expect(request).toBeTruthy();
     });
   });
 });

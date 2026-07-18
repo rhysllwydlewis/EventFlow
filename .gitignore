@@ -176,3 +176,11 @@ public/preview_subscription_card.html
 
 # Test audit output
 test-audit/
+
+# Autonomous quality evidence and tool workspaces
+reports/
+.stryker-tmp/
+.lighthouseci/
+
+# Generated runtime deployment identity
+public/deployment.json

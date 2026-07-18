@@ -73,12 +73,14 @@ jobs:
           echo "should_deploy=true" >> "$GITHUB_OUTPUT"
           echo "reason=ci_green" >> "$GITHUB_OUTPUT"
           echo "target_ref=$WORKFLOW_SHA" >> "$GITHUB_OUTPUT"
+
       - name: Checkout target commit
         if: steps.evaluate.outputs.should_deploy == 'true'
         uses: actions/checkout@v4
         with:
           ref: ${{ steps.evaluate.outputs.target_ref }}
           fetch-depth: 2
+
       - name: Skip docs-only workflow_run changes
         if: github.event_name == 'workflow_run' && steps.evaluate.outputs.should_deploy == 'true'
         id: docs_only
@@ -108,6 +110,7 @@ jobs:
             esac
           done < <(git diff --name-only "$base" HEAD)
           echo "docs_only=true" >> "$GITHUB_OUTPUT"
+
       - name: Finalize precheck result
         id: result
         shell: bash
@@ -146,6 +149,7 @@ jobs:
   deploy:
     name: Deploy to ${{ github.event.inputs.environment || 'production' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     needs: [precheck, security]
     if: needs.precheck.outputs.should_deploy == 'true'
     environment:
@@ -153,6 +157,7 @@ jobs:
     env:
       APP_URL: ${{ secrets.APP_URL }}
       RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      EXPECTED_SHA: ${{ needs.precheck.outputs.target_ref }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -161,6 +166,7 @@ jobs:
         with:
           node-version-file: '.node-version'
           cache: npm
+
       - name: Validate required deployment secrets
         shell: bash
         run: |
@@ -171,43 +177,72 @@ jobs:
             missing=1
           fi
           if [[ -z "${RAILWAY_TOKEN:-}" ]]; then
-            echo "::warning::RAILWAY_TOKEN is unset (GitHub->Railway auto-deploy mode only)"
+            echo "::warning::RAILWAY_TOKEN is unset; this workflow will verify Railway's GitHub auto-deployment rather than trigger one directly."
           fi
           if [[ "$missing" -ne 0 ]]; then
             exit 1
           fi
+
       - name: Verify package-lock metadata
         run: npm run check:lockfile
+
       - name: Clean install dependencies
         run: npm ci --prefer-offline --no-audit
+
       - name: Run production preflight
         run: npm run preflight
         env:
           NODE_ENV: production
+
+      - name: Wait for the intended commit to reach Railway
+        shell: bash
+        run: |
+          set -euo pipefail
+          deployment_url="${APP_URL%/}/deployment.json?expected=${EXPECTED_SHA}&run=${GITHUB_RUN_ID}"
+          for attempt in {1..50}; do
+            body="$(curl -fsS -H 'Cache-Control: no-cache' "$deployment_url" || true)"
+            reported="$(printf '%s' "$body" | node -e "const fs=require('fs');try{const value=JSON.parse(fs.readFileSync(0,'utf8'));process.stdout.write(String(value.commit||''));}catch{}")"
+            if [[ "$reported" == "$EXPECTED_SHA" ]]; then
+              echo "Railway is serving the intended commit: $reported"
+              break
+            fi
+            if [[ "$attempt" == "50" ]]; then
+              echo "::error::Railway did not report expected commit $EXPECTED_SHA. Last reported commit: ${reported:-unavailable}"
+              echo "Last deployment metadata response: ${body:-unavailable}"
+              exit 1
+            fi
+            echo "Waiting for Railway deployment ($attempt/50). Reported: ${reported:-unavailable}"
+            sleep 6
+          done
+
       - name: Smoke test deployed service
         shell: bash
         run: |
           set -euo pipefail
           health_url="${APP_URL%/}/api/health"
+          ready_url="${APP_URL%/}/api/ready"
           config_url="${APP_URL%/}/api/config"
           root_url="${APP_URL%/}/"
-          for attempt in {1..10}; do
-            code="$(curl -sS -o /dev/null -w "%{http_code}" "$health_url" || true)"
-            if [[ "$code" == "200" ]]; then
-              break
-            fi
-            if [[ "$attempt" == "10" ]]; then
-              echo "::error::Health check failed after retries (status=$code, url=$health_url)"
-              exit 1
-            fi
-            sleep 6
-          done
-          config_code="$(curl -sS -o /dev/null -w "%{http_code}" "$config_url" || true)"
+
+          health_code="$(curl -sS -o /dev/null -w '%{http_code}' "$health_url" || true)"
+          if [[ "$health_code" != "200" ]]; then
+            echo "::error::Health endpoint failed (status=$health_code, url=$health_url)"
+            exit 1
+          fi
+
+          ready_code="$(curl -sS -o /dev/null -w '%{http_code}' "$ready_url" || true)"
+          if [[ "$ready_code" != "200" ]]; then
+            echo "::error::Readiness endpoint failed (status=$ready_code, url=$ready_url)"
+            exit 1
+          fi
+
+          config_code="$(curl -sS -o /dev/null -w '%{http_code}' "$config_url" || true)"
           if [[ "$config_code" != "200" ]]; then
             echo "::error::Config endpoint failed (status=$config_code, url=$config_url)"
             exit 1
           fi
-          response_time="$(curl -sS -o /dev/null -w "%{time_total}" "$root_url" || true)"
+
+          response_time="$(curl -sS -o /dev/null -w '%{time_total}' "$root_url" || true)"
           echo "Homepage response time: ${response_time}s"
 
   skipped:

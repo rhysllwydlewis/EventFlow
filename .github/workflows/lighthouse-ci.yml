@@ -6,21 +6,39 @@ on:
       - 'public/**'
       - 'routes/**'
       - 'server.js'
-      - '.lighthouserc.json'
+      - '.lighthouserc*.json'
       - '.github/workflows/lighthouse-ci.yml'
+      - 'scripts/summarize-lighthouse-results.mjs'
       - 'package*.json'
       - '.node-version'
+  schedule:
+    - cron: '41 3 * * 2,5'
+  workflow_dispatch:
 
 permissions:
   contents: read
+
+concurrency:
+  group: lighthouse-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   HUSKY: '0'
 
 jobs:
   lighthouse:
+    name: Lighthouse ${{ matrix.profile }}
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - profile: desktop
+            config: .lighthouserc.json
+          - profile: mobile
+            config: .lighthouserc.mobile.json
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -37,9 +55,37 @@ jobs:
       - name: Install dependencies
         run: npm ci --prefer-offline --no-audit
 
-      - name: Run Lighthouse CI
+      - name: Collect Lighthouse runs
+        id: collect
         env:
           NODE_ENV: test
           PORT: 3000
           BASE_URL: http://localhost:3000
-        run: npx --yes @lhci/cli@0.14.x autorun
+        run: npx --yes @lhci/cli@0.14.0 collect --config=${{ matrix.config }}
+
+      - name: Summarize Lighthouse scores
+        if: always()
+        run: >-
+          node scripts/summarize-lighthouse-results.mjs
+          .lighthouseci
+          lighthouse-${{ matrix.profile }}-summary.txt
+
+      - name: Enforce Lighthouse budgets
+        if: steps.collect.outcome == 'success'
+        run: |
+          set -o pipefail
+          npx --yes @lhci/cli@0.14.0 assert --config=${{ matrix.config }} \
+            2>&1 | tee lighthouse-${{ matrix.profile }}-assertions.txt
+
+      - name: Upload Lighthouse evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-${{ matrix.profile }}
+          path: |
+            .lighthouseci
+            lighthouse-${{ matrix.profile }}-summary.txt
+            lighthouse-${{ matrix.profile }}-assertions.txt
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 14

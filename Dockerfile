@@ -32,11 +32,8 @@ ENV NODE_ENV=production
 EXPOSE 3000
 
 # Add health check - Railway will use this to determine if the app is ready
-# Check every 10 seconds, start after 10 seconds, timeout after 5 seconds
-# If 3 consecutive checks fail, mark as unhealthy
-# Note: Using shell form to support PORT variable substitution
 HEALTHCHECK --interval=10s --timeout=5s --start-period=10s --retries=3 \
   CMD sh -c 'curl -f http://localhost:${PORT:-3000}/api/health || exit 1'
 
-# Start the server with background-job telemetry instrumentation preloaded.
-CMD ["node", "-r", "./services/backgroundJobTelemetryBridge.js", "server.js"]
+# Publish Railway's runtime commit SHA before starting the instrumented server.
+CMD ["sh", "-c", "node scripts/write-deployment-metadata.mjs && exec node -r ./services/backgroundJobTelemetryBridge.js server.js"]

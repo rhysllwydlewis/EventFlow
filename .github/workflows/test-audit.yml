@@ -1,22 +1,45 @@
 name: EventFlow Test Audit
 
 on:
+  schedule:
+    - cron: '47 1 * * 1-6'
+    - cron: '47 3 * * 0'
   workflow_dispatch:
+    inputs:
+      mode:
+        description: Audit depth
+        required: true
+        default: full
+        type: choice
+        options: [ci, full]
 
 permissions:
   contents: read
+  issues: write
 
 env:
   HUSKY: '0'
+  NODE_ENV: test
+  JWT_SECRET: scheduled-test-audit-secret-minimum-32-characters
+  MONGODB_URI: mongodb://127.0.0.1:27017/eventflow_test_audit?replicaSet=rs0
+  PLAYWRIGHT_VIDEO: 'off'
+  PLAYWRIGHT_TRACE: retain-on-failure
+
+concurrency:
+  group: test-audit-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   test-audit:
-    name: Generate test audit report
+    name: Generate autonomous test audit
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 90
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -24,22 +47,99 @@ jobs:
           node-version-file: '.node-version'
           cache: npm
 
+      - name: Start MongoDB replica set
+        # supercharge/mongodb-github-action v1.12.0
+        uses: supercharge/mongodb-github-action@90004df786821b6308fb02299e5835d0dae05d0d
+        with:
+          mongodb-version: '7.0'
+          mongodb-replica-set: rs0
+
       - name: Verify package-lock metadata
         run: npm run check:lockfile
 
       - name: Install dependencies
         run: npm ci --prefer-offline --no-audit
 
-      - name: Install Playwright Chromium
+      - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
-      - name: Run full test audit
-        run: npm run test:audit:full
+      - name: Select audit mode
+        id: mode
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "value=${{ inputs.mode }}" >> "$GITHUB_OUTPUT"
+          elif [[ "${{ github.event.schedule }}" == "47 3 * * 0" ]]; then
+            echo "value=full" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=ci" >> "$GITHUB_OUTPUT"
+          fi
 
-      - name: Upload test audit artifact
+      - name: Run test audit
+        id: audit
+        run: npm run test:audit:${{ steps.mode.outputs.value }}
+        env:
+          CI: 'true'
+          E2E_MODE: full
+
+      - name: Upload test audit evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: eventflow-test-audit
+          name: eventflow-test-audit-${{ steps.mode.outputs.value }}
           path: test-audit
-          retention-days: 14
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Create or update regression issue
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = '[automation] Scheduled test audit failing';
+            const marker = '<!-- eventflow-test-audit -->';
+            const { owner, repo } = context.repo;
+            const issues = await github.paginate(github.rest.issues.listForRepo, {
+              owner,
+              repo,
+              state: 'open',
+              per_page: 100,
+            });
+            const existing = issues.find(issue => issue.title === title);
+            const runUrl = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
+            const body = `${marker}\nThe scheduled **${{ steps.mode.outputs.value }}** test audit failed on commit \`${context.sha}\`.\n\n[Open the failed workflow run](${runUrl}) and download the \`eventflow-test-audit-${{ steps.mode.outputs.value }}\` artefact for the classified failures, logs, traces and screenshots.\n\nThis issue is maintained automatically and will close after a successful scheduled audit.`;
+            if (existing) {
+              await github.rest.issues.createComment({ owner, repo, issue_number: existing.number, body });
+            } else {
+              await github.rest.issues.create({ owner, repo, title, body });
+            }
+
+      - name: Close recovered regression issue
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = '[automation] Scheduled test audit failing';
+            const { owner, repo } = context.repo;
+            const issues = await github.paginate(github.rest.issues.listForRepo, {
+              owner,
+              repo,
+              state: 'open',
+              per_page: 100,
+            });
+            const existing = issues.find(issue => issue.title === title);
+            if (existing) {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: existing.number,
+                body: `Recovered on commit \`${context.sha}\` in workflow run ${context.runId}. Closing automatically.`,
+              });
+              await github.rest.issues.update({
+                owner,
+                repo,
+                issue_number: existing.number,
+                state: 'closed',
+                state_reason: 'completed',
+              });
+            }

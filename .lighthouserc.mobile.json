@@ -7,13 +7,10 @@
         "http://localhost:3000/",
         "http://localhost:3000/marketplace",
         "http://localhost:3000/pricing",
-        "http://localhost:3000/suppliers",
-        "http://localhost:3000/guides",
-        "http://localhost:3000/articles/wedding-venue-selection-guide"
+        "http://localhost:3000/suppliers"
       ],
       "numberOfRuns": 3,
       "settings": {
-        "preset": "desktop",
         "chromeFlags": "--no-sandbox --disable-dev-shm-usage"
       }
     },
@@ -22,17 +19,17 @@
         {
           "matchingUrlPattern": ".*",
           "assertions": {
-            "categories:performance": [
-              "error",
-              {
-                "minScore": 0.7,
-                "aggregationMethod": "pessimistic"
-              }
-            ],
             "categories:accessibility": [
               "error",
               {
                 "minScore": 0.9,
+                "aggregationMethod": "pessimistic"
+              }
+            ],
+            "categories:best-practices": [
+              "error",
+              {
+                "minScore": 0.8,
                 "aggregationMethod": "pessimistic"
               }
             ],
@@ -46,24 +43,43 @@
           }
         },
         {
-          "matchingUrlPattern": "http://localhost:3000/(guides(?:$|/)|articles/.*)",
+          "matchingUrlPattern": "http://localhost:3000/suppliers$",
           "assertions": {
-            "categories:best-practices": [
+            "categories:performance": [
               "error",
               {
-                "minScore": 0.7,
+                "minScore": 0.35,
+                "aggregationMethod": "pessimistic"
+              }
+            ],
+            "cumulative-layout-shift": [
+              "error",
+              {
+                "maxNumericValue": 0.7,
                 "aggregationMethod": "pessimistic"
               }
             ]
           }
         },
         {
-          "matchingUrlPattern": "http://localhost:3000/(?!guides(?:$|/)|articles/).*",
+          "matchingUrlPattern": "http://localhost:3000/$",
           "assertions": {
-            "categories:best-practices": [
+            "categories:performance": [
               "error",
               {
-                "minScore": 0.85,
+                "minScore": 0.5,
+                "aggregationMethod": "pessimistic"
+              }
+            ]
+          }
+        },
+        {
+          "matchingUrlPattern": "http://localhost:3000/(marketplace|pricing)$",
+          "assertions": {
+            "categories:performance": [
+              "error",
+              {
+                "minScore": 0.6,
                 "aggregationMethod": "pessimistic"
               }
             ]

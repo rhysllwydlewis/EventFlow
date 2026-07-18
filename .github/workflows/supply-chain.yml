@@ -1,0 +1,98 @@
+name: Supply Chain Evidence
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+  attestations: write
+
+concurrency:
+  group: supply-chain-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  HUSKY: '0'
+
+jobs:
+  container-evidence:
+    name: Container scan, SBOM and provenance
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.node-version'
+          cache: npm
+
+      - name: Verify package-lock metadata
+        run: npm run check:lockfile
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit
+
+      - name: Build production image
+        run: |
+          docker build --tag eventflow:${{ github.sha }} .
+          docker save eventflow:${{ github.sha }} | gzip -1 > eventflow-image-${{ github.sha }}.tar.gz
+
+      - name: Scan production image
+        id: trivy
+        continue-on-error: true
+        # aquasecurity/trivy-action v0.28.0
+        uses: aquasecurity/trivy-action@915b19bbe73b92a6cf82a1bc12b087c9a19a5fe2
+        with:
+          image-ref: eventflow:${{ github.sha }}
+          format: sarif
+          output: trivy-results.sarif
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: '1'
+
+      - name: Generate SPDX SBOM
+        # anchore/sbom-action v0.24.0
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610
+        with:
+          image: eventflow:${{ github.sha }}
+          format: spdx-json
+          output-file: eventflow-${{ github.sha }}.spdx.json
+          upload-artifact: false
+
+      - name: Attest container SBOM
+        uses: actions/attest-sbom@v2
+        with:
+          subject-path: eventflow-image-${{ github.sha }}.tar.gz
+          sbom-path: eventflow-${{ github.sha }}.spdx.json
+
+      - name: Attest container build provenance
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: eventflow-image-${{ github.sha }}.tar.gz
+
+      - name: Upload supply-chain evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: supply-chain-evidence-${{ github.sha }}
+          path: |
+            eventflow-image-${{ github.sha }}.tar.gz
+            eventflow-${{ github.sha }}.spdx.json
+            trivy-results.sarif
+          if-no-files-found: warn
+          retention-days: 14
+          compression-level: 0
+
+      - name: Enforce container vulnerability result
+        if: always() && steps.trivy.outcome == 'failure'
+        run: |
+          echo "::error::Trivy found a fixable high or critical vulnerability in the production image."
+          exit 1

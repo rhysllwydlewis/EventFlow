@@ -1,0 +1,27 @@
+# Default owner
+* @rhysllwydlewis
+
+# CI, deployment and repository security
+/.github/workflows/ @rhysllwydlewis
+/.github/dependabot.yml @rhysllwydlewis
+/.github/CODEOWNERS @rhysllwydlewis
+/Dockerfile @rhysllwydlewis
+/railway.json @rhysllwydlewis
+/package.json @rhysllwydlewis
+/package-lock.json @rhysllwydlewis
+
+# Authentication, authorisation, admin and payments
+/middleware/auth* @rhysllwydlewis
+/middleware/features* @rhysllwydlewis
+/routes/auth* @rhysllwydlewis
+/routes/admin* @rhysllwydlewis
+/services/*payment* @rhysllwydlewis
+/services/*subscription* @rhysllwydlewis
+/config/stripe* @rhysllwydlewis
+
+# Data migrations and persistence
+/migrate-to-mongodb.js @rhysllwydlewis
+/scripts/migrate* @rhysllwydlewis
+/db*.js @rhysllwydlewis
+/store.js @rhysllwydlewis
+/models/ @rhysllwydlewis

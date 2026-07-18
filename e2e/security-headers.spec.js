@@ -125,11 +125,7 @@ test.describe('Security Headers @backend', () => {
     expect(headers['x-powered-by']).toBeUndefined();
   });
 
-  test('CSP should not break service worker or asset delivery', async ({ page }) => {
-    // Navigate to homepage
-    await page.goto('/');
-
-    // Check for CSP violations in console
+  test('CSP should not break service worker or asset delivery', async ({ page, request }) => {
     const cspViolations = [];
     page.on('console', msg => {
       const text = msg.text();
@@ -138,17 +134,21 @@ test.describe('Security Headers @backend', () => {
       }
     });
 
-    // Wait for page to fully load
-    await page.waitForLoadState('networkidle');
+    const navigation = await page.goto('/', { waitUntil: 'domcontentloaded' });
+    expect(navigation?.ok()).toBe(true);
+    await expect(page.locator('body')).toBeVisible();
+    await expect.poll(() => page.title()).not.toBe('');
 
-    // Check that no CSP violations occurred
+    const stylesheet = await request.get('/assets/css/styles.css');
+    expect(stylesheet.ok()).toBe(true);
+    expect(stylesheet.headers()['content-type']).toContain('text/css');
+
+    const loadedStylesheets = await page.evaluate(() => document.styleSheets.length);
+    expect(loadedStylesheets).toBeGreaterThan(0);
+
     if (cspViolations.length > 0) {
-      console.warn('CSP violations detected:', cspViolations);
+      console.warn('CSP diagnostics detected without blocking delivery:', cspViolations);
     }
-
-    // Page should load successfully despite security headers
-    const title = await page.title();
-    expect(title).toBeTruthy();
   });
 });
 
