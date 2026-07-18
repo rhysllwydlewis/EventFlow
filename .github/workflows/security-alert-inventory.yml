@@ -19,6 +19,8 @@ jobs:
     name: Sanitised GitHub security alert register
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      SECURITY_ALERTS_TOKEN: ${{ secrets.SECURITY_ALERTS_TOKEN }}
 
     steps:
       - name: Checkout repository
@@ -34,22 +36,44 @@ jobs:
             const outputDir = path.join(process.cwd(), 'reports', 'security');
             fs.mkdirSync(outputDir, { recursive: true });
 
+            const alertToken = String(process.env.SECURITY_ALERTS_TOKEN || '').trim();
+            if (alertToken) core.setSecret(alertToken);
+
             async function list(source, route) {
+              if (!alertToken) {
+                return {
+                  source,
+                  alerts: [],
+                  error: {
+                    status: null,
+                    code: 'token_missing',
+                    message: 'SECURITY_ALERTS_TOKEN is not configured.',
+                  },
+                };
+              }
+
               try {
                 const alerts = await github.paginate(`GET ${route}`, {
                   owner,
                   repo,
                   state: 'open',
                   per_page: 100,
+                  headers: {
+                    accept: 'application/vnd.github+json',
+                    authorization: `Bearer ${alertToken}`,
+                    'X-GitHub-Api-Version': '2022-11-28',
+                  },
                 });
                 return { source, alerts, error: null };
               } catch (error) {
+                const status = Number(error.status || 0) || null;
                 return {
                   source,
                   alerts: [],
                   error: {
-                    status: Number(error.status || 0) || null,
-                    message: 'GitHub did not permit this alert source to be read by the workflow token.',
+                    status,
+                    code: status ? `http_${status}` : 'request_failed',
+                    message: 'The dedicated alert credential could not read this source.',
                   },
                 };
               }
@@ -72,6 +96,7 @@ jobs:
             const sanitised = {
               generatedAt: new Date().toISOString(),
               repository: `${owner}/${repo}`,
+              tokenConfigured: Boolean(alertToken),
               complete: sourceErrors.length === 0,
               sourceErrors,
               totals: {
@@ -128,6 +153,7 @@ jobs:
               '',
               `Generated: ${sanitised.generatedAt}`,
               `Complete: ${sanitised.complete ? 'yes' : 'no'}`,
+              `Dedicated alert credential configured: ${sanitised.tokenConfigured ? 'yes' : 'no'}`,
               '',
               '> This report never includes a secret value. It contains alert metadata only.',
               '',
@@ -142,9 +168,11 @@ jobs:
                 : [
                     '## Inventory access errors',
                     '',
-                    ...sourceErrors.map(error => `- ${error.source}: HTTP ${error.status || 'unknown'}`),
+                    ...sourceErrors.map(
+                      error => `- ${error.source}: ${error.code || `HTTP ${error.status || 'unknown'}`}`
+                    ),
                     '',
-                    'The issue remains open until every source can be read. A missing permission is never interpreted as zero alerts.',
+                    'The issue remains open until every source can be read. Configure SECURITY_ALERTS_TOKEN with read access to Code scanning alerts, Secret scanning alerts and Dependabot alerts. A missing credential or permission is never interpreted as zero alerts.',
                     '',
                   ]),
               '## Required response',
@@ -165,7 +193,7 @@ jobs:
               `${JSON.stringify(sanitised, null, 2)}\n`
             );
             fs.writeFileSync(path.join(outputDir, 'security-alert-inventory.md'), markdown);
-            core.summary.addRaw(markdown).write();
+            await core.summary.addRaw(markdown).write();
 
             const title = '[security] Active GitHub alert inventory';
             const marker = '<!-- eventflow-security-alert-inventory -->';
