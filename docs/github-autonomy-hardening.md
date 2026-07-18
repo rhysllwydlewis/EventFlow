@@ -16,7 +16,7 @@ This document separates controls implemented in the repository from controls tha
 | Dependency delta security      | Blocks new high/critical dependency vulnerabilities introduced by a PR.                             |
 | CodeQL Advanced                | Runs Actions and JavaScript/TypeScript security-extended queries.                                   |
 | Lighthouse desktop/mobile      | Runs three samples per URL with blocking performance, accessibility, best-practice and SEO budgets. |
-| Resource leaks and mutation    | Runs focused open-handle, fuzz, migration and mutation checks when their foundations change.         |
+| Resource leaks and mutation    | Runs focused open-handle, fuzz, migration and mutation checks when their foundations change.        |
 
 ### Scheduled checks
 
@@ -26,7 +26,7 @@ This document separates controls implemented in the repository from controls tha
 | Nightly Monday-Saturday | CI-depth classified test audit with automatic issue creation and recovery closure.                                |
 | Sunday                  | Full test audit including backend, visual, accessibility and dependency checks.                                   |
 | Sunday                  | Full open-handle detection without Jest `forceExit`, deterministic fuzzing and migration idempotency.             |
-| Sunday                  | Focused mutation testing for geocoding and provider-failure contracts.                                             |
+| Sunday                  | Focused mutation testing for geocoding and provider-failure contracts.                                            |
 | Sunday                  | Firefox, WebKit, desktop and mobile Playwright matrix.                                                            |
 | Sunday                  | Read-only Artillery load thresholds against the configured staging URL.                                           |
 | Tuesday and Friday      | Three-run desktop and mobile Lighthouse budgets.                                                                  |
