@@ -7,6 +7,7 @@ const {
   isPublicSupplier,
   renderSupplierHtml,
   resolvePublicSupplierBySlug,
+  serializeJsonLd,
 } = require('../../services/publicSupplierSeo.service');
 
 const supplier = {
@@ -23,6 +24,13 @@ const supplier = {
   reviewCount: 12,
   updatedAt: '2026-07-18T10:00:00.000Z',
 };
+
+const template = `<!doctype html><html><head>
+  <title>Supplier Profile — EventFlow</title>
+  <meta name="description" content="Generic supplier profile">
+  <meta property="og:title" content="Supplier Profile — EventFlow">
+  <meta name="twitter:title" content="Supplier Profile — EventFlow">
+</head><body><main><h1 id="supplier-name">Loading supplier</h1></main></body></html>`;
 
 describe('public supplier SEO service', () => {
   test('builds a deterministic, unique and readable supplier slug', () => {
@@ -72,13 +80,6 @@ describe('public supplier SEO service', () => {
   });
 
   test('renders supplier-specific head metadata without changing visible body markup', () => {
-    const template = `<!doctype html><html><head>
-      <title>Supplier Profile — EventFlow</title>
-      <meta name="description" content="Generic supplier profile">
-      <meta property="og:title" content="Supplier Profile — EventFlow">
-      <meta name="twitter:title" content="Supplier Profile — EventFlow">
-    </head><body><main><h1 id="supplier-name">Loading supplier</h1></main></body></html>`;
-
     const rendered = renderSupplierHtml(template, supplier);
     const originalBody = template.match(/<body>[\s\S]*<\/body>/i)[0];
     const renderedBody = rendered.match(/<body>[\s\S]*<\/body>/i)[0];
@@ -93,6 +94,30 @@ describe('public supplier SEO service', () => {
     expect(rendered).toContain('Cŵm Valley Photography | Photography | EventFlow');
     expect(rendered).toContain('id="supplier-structured-data"');
     expect(rendered).not.toContain('Generic supplier profile');
+  });
+
+  test('encodes JSON-LD and malformed supplier markup without executable script text', () => {
+    const maliciousSupplier = {
+      ...supplier,
+      name: '<script>alert(1)</script>Studio',
+      metaDescription: '</script><img src=x onerror=alert(1)> Safe description',
+      priceRange: '&<script>££</script>',
+    };
+    const rendered = renderSupplierHtml(template, maliciousSupplier);
+    const jsonLdText = rendered.match(
+      /<script type="application\/ld\+json" id="supplier-structured-data">([\s\S]*?)<\/script>/
+    )[1];
+
+    expect(rendered).not.toContain('<script>alert(1)');
+    expect(rendered).not.toContain('</script><img');
+    expect(jsonLdText).not.toContain('<');
+    expect(jsonLdText).not.toContain('>');
+    expect(jsonLdText).not.toContain('&');
+    expect(() => JSON.parse(jsonLdText)).not.toThrow();
+
+    const serialized = serializeJsonLd({ value: '</script>&\u2028' });
+    expect(serialized).toContain('\\u003c/script\\u003e\\u0026\\u2028');
+    expect(JSON.parse(serialized)).toEqual({ value: '</script>&\u2028' });
   });
 
   test('uses approved review analytics before the legacy rating field', () => {
