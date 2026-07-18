@@ -15,7 +15,8 @@
     "production": {
       "variables": {
         "NODE_ENV": "production",
-        "RAILWAY_STATIC_URL": "https://www.event-flow.co.uk"
+        "RAILWAY_STATIC_URL": "https://www.event-flow.co.uk",
+        "RAILWAY_TELEMETRY_BOOTSTRAP_CONTRACT": "node -r ./services/backgroundJobTelemetryBridge.js server.js"
       }
     }
   }
