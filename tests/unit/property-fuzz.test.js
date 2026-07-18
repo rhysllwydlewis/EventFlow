@@ -40,7 +40,10 @@ describe('geocoding property and fuzz contracts', () => {
     for (let index = 0; index < 500; index += 1) {
       const latitude = randomBetween(random, -90, 90);
       const longitude = randomBetween(random, -180, 180);
-      expect(calculateDistance(latitude, longitude, latitude, longitude)).toBeCloseTo(0, 12);
+      expect(calculateDistance(latitude, longitude, latitude, longitude)).toBeCloseTo(
+        0,
+        12
+      );
     }
   });
 
