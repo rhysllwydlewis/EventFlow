@@ -18,7 +18,8 @@ const supplier = {
   location: 'Cardiff',
   description_short: 'Natural wedding and event photography across South Wales.',
   bannerUrl: '/uploads/banner.webp',
-  rating: 4.8,
+  rating: 0,
+  averageRating: 4.8,
   reviewCount: 12,
   updatedAt: '2026-07-18T10:00:00.000Z',
 };
@@ -94,7 +95,7 @@ describe('public supplier SEO service', () => {
     expect(rendered).not.toContain('Generic supplier profile');
   });
 
-  test('uses only genuine rating evidence in structured data', () => {
+  test('uses approved review analytics before the legacy rating field', () => {
     const withRating = buildSupplierSeoModel(supplier);
     const withoutCount = buildSupplierSeoModel({ ...supplier, reviewCount: 0 });
 
