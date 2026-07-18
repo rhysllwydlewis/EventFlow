@@ -5,11 +5,11 @@
     "dockerfilePath": "Dockerfile"
   },
   "deploy": {
-    "startCommand": "node scripts/write-deployment-metadata.mjs && node -r ./services/backgroundJobTelemetryBridge.js server.js",
+    "startCommand": "node scripts/start-production.mjs",
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 3,
     "healthcheckPath": "/api/health",
-    "healthcheckTimeout": 60
+    "healthcheckTimeout": 120
   },
   "environments": {
     "production": {
