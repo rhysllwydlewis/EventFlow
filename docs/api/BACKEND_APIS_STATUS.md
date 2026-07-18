@@ -1,201 +1,82 @@
-# Backend APIs Status
+# Backend API status
 
-This document tracks frontend features and their backend API implementation status.
+**Last verified:** 18 July 2026  
+**Verification base:** `main` at `5fe6c87e8329740f2eccca6398f2a7d65b885278`, plus this pull request.
 
-**Last Updated:** February 2026 (Phase 3–4 additions documented)
+This document is a navigation summary. Route files and automated tests are authoritative for endpoint behaviour. Do not add a TODO here unless it links to an open GitHub issue.
 
----
+## Supplier analytics
 
-## ✅ IMPLEMENTED: Supplier Analytics API
+**Implemented**
 
-**Frontend Location:** `public/assets/js/supplier-analytics-chart.js` (line 260)
+- Supplier profile-view and enquiry tracking service: `services/analyticsService.js`
+- Supplier analytics retrieval routes
+- 7, 30 and 90-day aggregation
+- Supplier dashboard consumption and integration tests
 
-**Status:** ✅ Now fully implemented with real backend API
+Any claim that analytics tracking is wholly missing is outdated. Improvements to analytics quality or attribution should be filed as specific issues with evidence.
 
-**Backend Endpoint:** `GET /api/me/suppliers/:id/analytics?period=7|30|90`
+## Lead quality
 
-**Response Format:**
+**Implemented**
 
-```json
-{
-  "period": 7,
-  "labels": ["1 Jan", "2 Jan", "3 Jan", ...],
-  "views": [45, 52, 38, ...],
-  "enquiries": [3, 5, 2, ...],
-  "totalViews": 280,
-  "totalEnquiries": 24,
-  "responseRate": 85,
-  "avgResponseTime": 4.5
-}
-```
+- Lead scoring in `utils/leadScoring.js`
+- Scores and quality classifications stored for supplier-facing lead journeys
+- Supplier dashboard presentation and tests
 
-**Implementation Details:**
+## Marketplace
 
-- ✅ Reads from `analytics` collection in database
-- ✅ Calculates response metrics from `messages` collection
-- ✅ Supports 7/30/90 day periods
-- ✅ Fallback to mock data if supplier ID not available or API fails
-- ⚠️ Requires analytics tracking to be implemented (views/enquiries not yet captured)
+**Implemented**
 
-### Analytics Tracking TODO
+- Listing search and filtering
+- Listing create, update, delete and detail routes
+- Postcode geocoding and radius filtering
+- Logged-in seller journeys and seller messaging
 
-To populate real analytics data, implement tracking for:
+The public page must not describe the whole marketplace as "Coming Soon" while these live journeys are exposed.
 
-1. **Profile Views** - Track when users view supplier profiles
-2. **Enquiries** - Track when users send enquiries/messages to suppliers
+## Supplier search
 
-Example analytics record format:
+**Implemented**
 
-```json
-{
-  "supplierId": "sup_123",
-  "date": "2026-01-15",
-  "views": 45,
-  "enquiries": 3
-}
-```
+- Supplier search API and public supplier directory
+- Category, location and other supported filters
+- Search caching and analytics hooks
 
----
+Any unsupported or fallback sort mode should be documented at the exact route or filed as an issue rather than recorded as a broad product TODO here.
 
-## ✅ IMPLEMENTED: Lead Quality API (Phase 3)
+## Supplier photos
 
-**Frontend Location:** `public/assets/js/supplier-messages.js`, `public/assets/js/lead-quality-helper.js`
+**Implemented in `routes/suppliers-v2.js`**
 
-**Status:** ✅ Implemented
+- `GET /api/me/suppliers/:id/photos`
+- `POST /api/me/suppliers/:id/photos`
+- `DELETE /api/me/suppliers/:id/photos/:photoId`
+- `PATCH /api/me/suppliers/:id/photos/order`
 
-**Backend Endpoints:**
+The previous statement that photo list and delete endpoints were missing was stale.
 
-- `GET /api/me/leads` — List leads with quality scores
-- Lead scores stored in thread documents (`leadScore`, `leadQuality` fields)
+## Production system endpoints
 
-**Implementation Details:**
+**Implemented and monitored**
 
-- ✅ Lead scoring algorithm in `utils/leadScoring.js`
-- ✅ Scores calculated on thread creation
-- ✅ Quality badge (High/Medium/Low) displayed on supplier dashboard
+- `/api/health`
+- `/api/ready`
+- `/api/config`
+- `/deployment.json`
+- `/robots.txt`
+- `/sitemap.xml`
 
----
+The scheduled Production Synthetics workflow also checks canonical-host redirects and unsupported public launch claims.
 
-## ✅ IMPLEMENTED: Marketplace Listings API (Phase 4 + Phase 5)
+## Messaging and attachments
 
-**Frontend Location:** `public/assets/js/marketplace.js`
+Messaging routes and real-time transport are implemented. Storage architecture and retention must be verified from current storage configuration before making claims about deployment persistence. Create a targeted issue when a concrete attachment-loss reproduction exists.
 
-**Status:** ✅ Fully implemented including location/distance filter
+## How to update this document
 
-**Backend Endpoints:**
-
-- `GET /api/v1/marketplace/geocode-postcode` — Server-side postcode geocoding (proxies postcodes.io)
-- `GET /api/v1/marketplace/listings` — List/search listings (category, condition, price, keyword, sort, lat/lng/radius)
-- `POST /api/v1/marketplace/listings` — Create listing (auth required; auto-geocodes location)
-- `PUT /api/v1/marketplace/listings/:id` — Update listing (auth required)
-- `DELETE /api/v1/marketplace/listings/:id` — Delete listing (auth required)
-- `GET /api/v1/marketplace/listings/:id` — Get single listing
-
-**Notes:**
-
-- ✅ Location/distance filter fully implemented — see `docs/marketplace/ARCHITECTURE.md`
-- Backward-compatible alias at `/api/marketplace/...` also available
-
----
-
-## ✅ IMPLEMENTED: Supplier Search V2 API (Phase 4)
-
-**Frontend Location:** Supplier listing pages, search bar
-
-**Status:** ✅ Implemented with caching and analytics
-
-**Backend Endpoint:** `GET /api/v2/search/suppliers`
-
-**Supported filters:** category, location, price range, rating, amenities, guest count, pro/featured/verified flags, and multiple sort options
-
-**Notes:**
-
-- ⚠️ Distance sort (`sortBy=distance`) falls back to relevance — see `docs/MARKETPLACE_FILTER_STATUS.md`
-
----
-
-## ✅ IMPLEMENTED: PWA Manifest & Service Worker (Phase 3/4)
-
-**Frontend Location:** All HTML pages
-
-**Status:** ✅ Implemented
-
-**Endpoints:**
-
-- `GET /manifest.json` — PWA web app manifest
-- Service worker registered for offline support
-
----
-
-## 🟡 Enhancement: Photo Management APIs
-
-**Frontend Location:** `public/assets/js/supplier-photo-upload.js`
-
-**Status:** Partially implemented
-
-### Currently Available:
-
-- ✅ POST `/api/me/suppliers/:id/photos` - Upload photo (uses base64 encoding, stores locally in /uploads)
-
-### Missing:
-
-- ❌ GET `/api/me/suppliers/:id/photos` - List photos
-- ❌ DELETE `/api/me/suppliers/:id/photos/:photoId` - Delete specific photo
-
-**Current Storage Architecture:**
-
-- Photo files: Stored locally in `/uploads/{ownerType}/{ownerId}/` directory
-- Photo metadata: Stored in MongoDB in supplier document's `photosGallery` array
-- Format: `{ url: string, approved: boolean, uploadedAt: timestamp }`
-
-**Current Workaround:** Photos are stored in supplier's `photosGallery` array and accessed via supplier GET endpoint.
-
-**Recommendation:** Add dedicated endpoints for better photo management and separation of concerns.
-
----
-
-## 📊 Data Storage Architecture
-
-### Database (MongoDB/dbUnified)
-
-- ✅ **Suppliers**: Full supplier profiles
-- ✅ **Tickets**: Support tickets with responses
-- ✅ **Messages**: Customer-supplier messages with response tracking
-- ✅ **Users**: User accounts and authentication
-- ✅ **Reviews**: Supplier reviews and ratings
-- ✅ **Packages**: Supplier service packages
-- ✅ **Marketplace Listings**: Buy/sell/hire items
-- ⚠️ **Analytics**: Analytics data (structure exists, tracking needs implementation)
-
-### File Storage
-
-- ✅ **Photos**: Local filesystem at `/uploads/{ownerType}/{ownerId}/`
-- ✅ **Hero Images**: Cloudinary (admin only, via routes/admin.js)
-- ⚠️ **Message Attachments**: Local filesystem at `/uploads/attachments/` — lost on redeployment; cloud storage (S3/Cloudinary) integration pending
-- 📝 Note: Supplier photos use local storage with base64 transfer, NOT Cloudinary
-
-### CSRF Protection
-
-- ✅ All POST/PATCH/DELETE endpoints protected with `csrfProtection` middleware
-- ✅ Includes photo uploads, ticket creation, supplier updates
-
----
-
-## Summary
-
-| Feature                  | Status             | Priority | Frontend File               | Backend Status             |
-| ------------------------ | ------------------ | -------- | --------------------------- | -------------------------- |
-| Supplier Analytics API   | ✅ Implemented     | High     | supplier-analytics-chart.js | Live, needs tracking       |
-| Analytics Tracking       | ⚠️ TODO            | High     | N/A                         | Needs implementation       |
-| Lead Quality API         | ✅ Implemented     | High     | supplier-messages.js        | Fully functional           |
-| Marketplace Listings API | ✅ Implemented     | High     | marketplace.js              | Fully functional           |
-| Supplier Search V2       | ✅ Implemented     | High     | Search pages                | Functional (distance stub) |
-| PWA Manifest             | ✅ Implemented     | Medium   | All pages                   | Fully functional           |
-| Supplier CRUD            | ✅ Complete        | High     | supplier-gallery.js         | Fully functional           |
-| Photo Upload             | ✅ Complete        | High     | supplier-photo-upload.js    | Fully functional           |
-| Photo Gallery GET        | ⚠️ Workaround      | Medium   | supplier-photo-upload.js    | Via supplier endpoint      |
-| Photo DELETE             | ❌ Missing         | Medium   | supplier-photo-upload.js    | Not implemented            |
-| Message Attachments      | ⚠️ Local only      | Medium   | messaging UI                | Local filesystem only      |
-| Ticketing                | ✅ Complete        | High     | ticketing.js                | Fully functional           |
-| Distance Sort            | ⚠️ Stub            | Medium   | Search pages                | Falls back to relevance    |
-| Availability Filter      | ❌ Not implemented | Medium   | N/A                         | Not implemented            |
+1. Verify the current route and mounted path.
+2. Verify at least one relevant automated test.
+3. Record the commit or pull request used for verification.
+4. Link unfinished work to an open issue.
+5. Remove or archive superseded status text instead of leaving contradictory sections in place.
