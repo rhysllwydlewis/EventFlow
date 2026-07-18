@@ -30,6 +30,7 @@ describe('current-state hardening contracts', () => {
     expect(script).toMatch(/alternate marketplace host redirect/);
     expect(script).toMatch(/Join over 500\\\+ verified suppliers/);
     expect(script).toMatch(/currently building the marketplace platform/);
+    expect(script).toMatch(/check\.type === 'redirect'[\s\S]*\? check\.url/);
   });
 
   test('public source no longer publishes unsupported launch claims', () => {
