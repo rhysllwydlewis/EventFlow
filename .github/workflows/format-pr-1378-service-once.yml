@@ -1,0 +1,34 @@
+name: Format PR 1378 service once
+
+on:
+  push:
+    branches:
+      - feature/server-rendered-supplier-seo
+    paths:
+      - .github/workflows/format-pr-1378-service-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/server-rendered-supplier-seo
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm ci --prefer-offline --no-audit
+      - run: npx prettier --write services/publicSupplierSeo.service.js
+      - name: Remove one-shot workflow and commit
+        run: |
+          git rm .github/workflows/format-pr-1378-service-once.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add services/publicSupplierSeo.service.js
+          git commit -m "Format approved review SEO source"
+          git push origin HEAD:feature/server-rendered-supplier-seo
