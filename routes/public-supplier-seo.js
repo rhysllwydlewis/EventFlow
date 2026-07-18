@@ -45,12 +45,32 @@ function createPublicSupplierSeoRouter(options = {}) {
   }
 
   async function loadPublicSuppliers() {
-    const [suppliers, users] = await Promise.all([
+    const [suppliers, users, supplierAnalytics] = await Promise.all([
       dbUnified.read('suppliers'),
       dbUnified.read('users'),
+      dbUnified.read('supplierAnalytics'),
     ]);
     const validOwnerIds = new Set((users || []).map(user => user && user.id).filter(Boolean));
-    return (suppliers || []).filter(supplier => isPublicSupplier(supplier, validOwnerIds));
+    const reviewSummaryBySupplierId = new Map(
+      (supplierAnalytics || [])
+        .filter(summary => summary && summary.supplierId)
+        .map(summary => [String(summary.supplierId), summary])
+    );
+
+    return (suppliers || [])
+      .filter(supplier => isPublicSupplier(supplier, validOwnerIds))
+      .map(supplier => {
+        const summary = reviewSummaryBySupplierId.get(String(supplier.id));
+        return {
+          ...supplier,
+          approvedReviewSummary: summary
+            ? {
+                averageRating: summary.averageRating,
+                reviewCount: summary.totalReviews,
+              }
+            : null,
+        };
+      });
   }
 
   function readPublicSuppliers() {
