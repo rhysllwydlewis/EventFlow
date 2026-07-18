@@ -1,6 +1,7 @@
 'use strict';
 
 const {
+  buildCampaignQuery,
   buildPublicSupplierSlug,
   buildSupplierSeoModel,
   isPublicSupplier,
@@ -49,6 +50,24 @@ describe('public supplier SEO service', () => {
     expect(isPublicSupplier({ ...supplier, approved: false }, owners)).toBe(false);
     expect(isPublicSupplier({ ...supplier, ownerUserId: 'missing-user' }, owners)).toBe(false);
     expect(isPublicSupplier({ ...supplier, ownerUserId: null }, owners)).toBe(true);
+  });
+
+  test('preserves only recognised campaign attribution on canonical redirects', () => {
+    const query = buildCampaignQuery({
+      utm_source: ' google ',
+      utm_campaign: ['launch', 'retargeting'],
+      gclid: 'abc123',
+      preview: 'true',
+      id: 'supplier-123',
+      next: 'https://example.test',
+    });
+
+    expect(query).toBe(
+      'utm_source=google&utm_campaign=launch&utm_campaign=retargeting&gclid=abc123'
+    );
+    expect(query).not.toContain('preview');
+    expect(query).not.toContain('supplier-123');
+    expect(query).not.toContain('example.test');
   });
 
   test('renders supplier-specific head metadata without changing visible body markup', () => {
