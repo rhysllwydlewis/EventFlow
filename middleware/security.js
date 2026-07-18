@@ -393,8 +393,11 @@ function resolveCanonicalProductionOrigin() {
 
   try {
     const parsed = new URL(configured);
-    if (parsed.protocol !== 'https:') return null;
-    return parsed.origin;
+    const parsedOrigin = parsed.origin;
+    if (parsed.protocol !== 'https:' || !PRODUCTION_APP_ORIGINS.includes(parsedOrigin)) {
+      return null;
+    }
+    return parsedOrigin;
   } catch (_) {
     return null;
   }
