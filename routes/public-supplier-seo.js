@@ -6,7 +6,6 @@ const path = require('path');
 const { apiLimiter } = require('../middleware/rateLimits');
 const {
   buildPublicSupplierSlug,
-  buildSupplierSitemap,
   isPublicSupplier,
   renderSupplierHtml,
   resolvePublicSupplierBySlug,
@@ -72,19 +71,6 @@ function createPublicSupplierSeoRouter(options = {}) {
         slug: req.params.slug,
         error: error.message,
       });
-      return next(error);
-    }
-  });
-
-  router.get('/sitemap-suppliers.xml', apiLimiter, async (_req, res, next) => {
-    try {
-      const suppliers = await readPublicSuppliers();
-      const sitemap = buildSupplierSitemap(suppliers, { baseUrl });
-      res.setHeader('Cache-Control', CACHE_CONTROL);
-      res.setHeader('X-Robots-Tag', 'noindex');
-      return res.status(200).type('application/xml').send(sitemap);
-    } catch (error) {
-      logger.error('Failed to generate supplier sitemap', { error: error.message });
       return next(error);
     }
   });
