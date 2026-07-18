@@ -34,24 +34,46 @@ jobs:
             const outputDir = path.join(process.cwd(), 'reports', 'security');
             fs.mkdirSync(outputDir, { recursive: true });
 
-            async function list(endpoint) {
-              return github.paginate(github.request, `GET ${endpoint}`, {
-                owner,
-                repo,
-                state: 'open',
-                per_page: 100,
-              });
+            async function list(source, route) {
+              try {
+                const alerts = await github.paginate(`GET ${route}`, {
+                  owner,
+                  repo,
+                  state: 'open',
+                  per_page: 100,
+                });
+                return { source, alerts, error: null };
+              } catch (error) {
+                return {
+                  source,
+                  alerts: [],
+                  error: {
+                    status: Number(error.status || 0) || null,
+                    message: 'GitHub did not permit this alert source to be read by the workflow token.',
+                  },
+                };
+              }
             }
 
-            const [codeAlerts, secretAlerts, dependabotAlerts] = await Promise.all([
-              list('/repos/{owner}/{repo}/code-scanning/alerts'),
-              list('/repos/{owner}/{repo}/secret-scanning/alerts'),
-              list('/repos/{owner}/{repo}/dependabot/alerts'),
+            const results = await Promise.all([
+              list('codeScanning', '/repos/{owner}/{repo}/code-scanning/alerts'),
+              list('secretScanning', '/repos/{owner}/{repo}/secret-scanning/alerts'),
+              list('dependabot', '/repos/{owner}/{repo}/dependabot/alerts'),
             ]);
+            const bySource = Object.fromEntries(results.map(result => [result.source, result]));
+            const codeAlerts = bySource.codeScanning.alerts;
+            const secretAlerts = bySource.secretScanning.alerts;
+            const dependabotAlerts = bySource.dependabot.alerts;
+            const sourceErrors = results.filter(result => result.error).map(result => ({
+              source: result.source,
+              ...result.error,
+            }));
 
             const sanitised = {
               generatedAt: new Date().toISOString(),
               repository: `${owner}/${repo}`,
+              complete: sourceErrors.length === 0,
+              sourceErrors,
               totals: {
                 codeScanning: codeAlerts.length,
                 secretScanning: secretAlerts.length,
@@ -105,6 +127,7 @@ jobs:
               '# GitHub security alert inventory',
               '',
               `Generated: ${sanitised.generatedAt}`,
+              `Complete: ${sanitised.complete ? 'yes' : 'no'}`,
               '',
               '> This report never includes a secret value. It contains alert metadata only.',
               '',
@@ -114,6 +137,16 @@ jobs:
               `| Code scanning | ${sanitised.totals.codeScanning} | ${JSON.stringify(severityCounts)} |`,
               `| Dependabot | ${sanitised.totals.dependabot} | ${JSON.stringify(dependencySeverityCounts)} |`,
               '',
+              ...(sanitised.complete
+                ? []
+                : [
+                    '## Inventory access errors',
+                    '',
+                    ...sourceErrors.map(error => `- ${error.source}: HTTP ${error.status || 'unknown'}`),
+                    '',
+                    'The issue remains open until every source can be read. A missing permission is never interpreted as zero alerts.',
+                    '',
+                  ]),
               '## Required response',
               '',
               '1. Rotate and revoke every genuine secret before resolving its alert.',
@@ -142,11 +175,13 @@ jobs:
               state: 'open',
               per_page: 100,
             });
-            const existing = issues.find(issue => issue.title === title);
+            const existing = issues.find(
+              issue => issue.title === title || String(issue.body || '').includes(marker)
+            );
             const runUrl = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
             const body = `${marker}\n${markdown}\n[Download the sanitised inventory artefact](${runUrl}).`;
 
-            if (sanitised.totals.all > 0) {
+            if (sanitised.totals.all > 0 || !sanitised.complete) {
               if (existing) {
                 await github.rest.issues.createComment({ owner, repo, issue_number: existing.number, body });
               } else {
@@ -157,7 +192,7 @@ jobs:
                 owner,
                 repo,
                 issue_number: existing.number,
-                body: `${marker}\nNo open GitHub security alerts remain. Closing automatically.`,
+                body: `${marker}\nEvery alert source was read and no open GitHub security alerts remain. Closing automatically.`,
               });
               await github.rest.issues.update({
                 owner,
