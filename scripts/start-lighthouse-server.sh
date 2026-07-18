@@ -2,6 +2,7 @@
 
 set -euo pipefail
 
+# CI-only helper; this does not change production rendering or public page layout.
 PORT="${PORT:-3000}"
 BASE_URL="http://127.0.0.1:${PORT}"
 
