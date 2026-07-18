@@ -15,6 +15,7 @@ concurrency:
 
 env:
   SYNTHETIC_BASE_URL: https://event-flow.co.uk
+  SYNTHETIC_ALTERNATE_URL: https://www.event-flow.co.uk
   SYNTHETIC_TIMEOUT_MS: '10000'
 
 jobs:
@@ -22,6 +23,7 @@ jobs:
     name: Read-only production journeys
     runs-on: ubuntu-latest
     timeout-minutes: 10
+
     steps:
       - uses: actions/checkout@v4
 
@@ -47,6 +49,7 @@ jobs:
         with:
           script: |
             const title = '[automation] Production synthetic checks failing';
+            const marker = '<!-- eventflow-production-synthetics -->';
             const { owner, repo } = context.repo;
             const issues = await github.paginate(github.rest.issues.listForRepo, {
               owner,
@@ -54,13 +57,15 @@ jobs:
               state: 'open',
               per_page: 100,
             });
-            const existing = issues.find(issue => issue.title === title);
+            const existing = issues.find(
+              issue => issue.title === title || String(issue.body || '').includes(marker)
+            );
             const runUrl = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
-            const body = `One or more read-only production checks failed at ${new Date().toISOString()}.\n\n[Open the failed workflow run](${runUrl}) and download the \`production-synthetics\` report. The checks cover deployment identity, health, readiness, config, core public pages, robots.txt and sitemap.xml.`;
+            const body = `${marker}\nOne or more read-only production checks failed at ${new Date().toISOString()}.\n\n[Open the failed workflow run](${runUrl}) and download the \`production-synthetics\` report. The checks cover deployment identity, health, readiness, public pages, unsupported launch claims, robots, sitemap and canonical-host redirects.`;
             if (existing) {
               await github.rest.issues.createComment({ owner, repo, issue_number: existing.number, body });
             } else {
-              await github.rest.issues.create({ owner, repo, title, body });
+              await github.rest.issues.create({ owner, repo, title, body, labels: ['production'] });
             }
 
       - name: Close recovered production incident issue
@@ -69,6 +74,7 @@ jobs:
         with:
           script: |
             const title = '[automation] Production synthetic checks failing';
+            const marker = '<!-- eventflow-production-synthetics -->';
             const { owner, repo } = context.repo;
             const issues = await github.paginate(github.rest.issues.listForRepo, {
               owner,
@@ -76,13 +82,15 @@ jobs:
               state: 'open',
               per_page: 100,
             });
-            const existing = issues.find(issue => issue.title === title);
+            const existing = issues.find(
+              issue => issue.title === title || String(issue.body || '').includes(marker)
+            );
             if (existing) {
               await github.rest.issues.createComment({
                 owner,
                 repo,
                 issue_number: existing.number,
-                body: `All production synthetic checks recovered at ${new Date().toISOString()}. Closing automatically.`,
+                body: `${marker}\nAll production synthetic checks recovered at ${new Date().toISOString()}. Closing automatically.`,
               });
               await github.rest.issues.update({
                 owner,
