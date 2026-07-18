@@ -27,11 +27,10 @@
     }
 
     get(name) {
-      const value = super.get(name);
-      if (value === null && name === 'id' && this.__efUsesSupplierLocationSearch) {
+      if (name === 'id' && this.__efUsesSupplierLocationSearch) {
         return supplierId;
       }
-      return value;
+      return super.get(name);
     }
   }
 
