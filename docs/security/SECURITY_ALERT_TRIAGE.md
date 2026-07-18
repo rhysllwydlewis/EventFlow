@@ -8,6 +8,12 @@ The GitHub **Security** tab is authoritative. Repository documentation must not 
 
 The scheduled `Security Alert Inventory` workflow produces a sanitised metadata report and maintains one issue named `[security] Active GitHub alert inventory`. It never records a secret value.
 
+## Inventory credential
+
+Create the repository Actions secret `SECURITY_ALERTS_TOKEN` before enabling the scheduled inventory. Prefer a fine-grained personal access token or GitHub App token limited to this repository with **read** access to Code scanning alerts, Secret scanning alerts and Dependabot alerts. The workflow keeps issue creation and closure on the separate default `GITHUB_TOKEN`, so the dedicated alert credential does not need repository contents or issues write access.
+
+If the credential is missing, expired or under-scoped, the inventory is marked incomplete and its tracking issue remains open. An unreadable source is never treated as zero alerts.
+
 ## Secret-scanning response
 
 Treat a genuine credential committed to this public repository as compromised.
