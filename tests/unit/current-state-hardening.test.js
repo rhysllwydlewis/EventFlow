@@ -84,11 +84,13 @@ describe('current-state hardening contracts', () => {
     expect([...blocking, ...quarantined].sort()).toEqual(backendSpecs);
   });
 
-  test('security inventory uses a dedicated read credential without writing secret values', () => {
+  test('security inventory uses a step-scoped read credential without writing secret values', () => {
     const workflow = read('.github/workflows/security-alert-inventory.yml');
 
-    expect(workflow).toMatch(/security-events: read/);
-    expect(workflow).toContain('SECURITY_ALERTS_TOKEN: ${{ secrets.SECURITY_ALERTS_TOKEN }}');
+    expect(workflow).not.toMatch(/^\s+security-events:/m);
+    expect(workflow).toMatch(
+      /- name: Build sanitised alert inventory\n\s+env:\n\s+SECURITY_ALERTS_TOKEN: \$\{\{ secrets\.SECURITY_ALERTS_TOKEN \}\}/
+    );
     expect(workflow).toContain('authorization: `Bearer ${alertToken}`');
     expect(workflow).toMatch(/core\.setSecret\(alertToken\)/);
     expect(workflow).toMatch(/secret_type_display_name/);
