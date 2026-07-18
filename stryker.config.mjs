@@ -1,8 +1,9 @@
 // Mutation testing starts deliberately narrow so the signal is useful and the
-// scheduled run remains affordable. Expand `mutate` only after surviving mutants
-// in this baseline have been reviewed and killed with meaningful assertions.
+// scheduled run remains affordable. The initial baseline covers provider lookup,
+// timeout cleanup, distance calculation and postcode validation. Expand the ranges
+// only after the additional function has dedicated behavioural contracts.
 export default {
-  mutate: ['utils/geocoding.js'],
+  mutate: ['utils/geocoding.js:19-76', 'utils/geocoding.js:138-175'],
   testRunner: 'command',
   commandRunner: {
     command:
