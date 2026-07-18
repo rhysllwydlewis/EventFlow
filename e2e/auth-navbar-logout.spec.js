@@ -1,7 +1,9 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Authentication Navbar and Logout Flow @backend', () => {
-  test('protected legacy dashboard route redirects with the current next parameter', async ({ page }) => {
+  test('protected legacy dashboard route redirects with the current next parameter', async ({
+    page,
+  }) => {
     await page.goto('/dashboard-customer.html', { waitUntil: 'domcontentloaded' });
 
     await expect(page).toHaveURL(/\/auth(?:\.html)?\?.*next=/, { timeout: 10000 });
@@ -12,7 +14,9 @@ test.describe('Authentication Navbar and Logout Flow @backend', () => {
     expect(url.searchParams.has('return')).toBe(false);
   });
 
-  test('auth page preserves an explicit redirect parameter when supplied directly', async ({ page }) => {
+  test('auth page preserves an explicit redirect parameter when supplied directly', async ({
+    page,
+  }) => {
     await page.goto('/auth.html?redirect=/dashboard-customer.html', {
       waitUntil: 'domcontentloaded',
     });
