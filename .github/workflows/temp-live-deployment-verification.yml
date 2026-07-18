@@ -3,6 +3,7 @@ name: Temporary Live Deployment Verification
 on:
   push:
     branches: [ops/verify-production-deployment]
+  pull_request:
 
 permissions:
   contents: read
