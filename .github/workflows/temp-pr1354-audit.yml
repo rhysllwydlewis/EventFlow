@@ -3,6 +3,7 @@ name: Temporary PR1354 Audit
 on:
   push:
     branches: [agent/pr1354-final-audit]
+  pull_request:
 
 permissions:
   contents: read
@@ -35,6 +36,7 @@ jobs:
         run: >-
           npx jest --runInBand --coverage=false
           tests/unit/autonomy-workflow-gates.test.js
+          tests/unit/backend-suite-classification.test.js
           tests/unit/property-fuzz.test.js
           tests/unit/external-service-failure-contracts.test.js
           tests/unit/migration-idempotency.test.js
@@ -42,12 +44,14 @@ jobs:
         run: |
           npx prettier --write \
             docs/github-autonomy-hardening.md \
+            docs/test-debt/backend-playwright-quarantine.md \
             playwright.config.js \
             scripts/summarize-lighthouse-results.mjs \
             scripts/production-synthetic-check.mjs \
             scripts/run-backend-e2e.mjs \
             stryker.config.mjs \
             tests/unit/autonomy-workflow-gates.test.js \
+            tests/unit/backend-suite-classification.test.js \
             e2e/admin-consolidation.spec.js \
             e2e/auth-navbar-logout.spec.js \
             e2e/backend-suite-classification.json \
