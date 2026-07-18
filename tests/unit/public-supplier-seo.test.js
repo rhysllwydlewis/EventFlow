@@ -19,9 +19,10 @@ const supplier = {
   location: 'Cardiff',
   description_short: 'Natural wedding and event photography across South Wales.',
   bannerUrl: '/uploads/banner.webp',
-  rating: 0,
-  averageRating: 4.8,
-  reviewCount: 12,
+  rating: 5,
+  averageRating: 1,
+  reviewCount: 999,
+  approvedReviewSummary: { averageRating: 4.8, reviewCount: 12 },
   updatedAt: '2026-07-18T10:00:00.000Z',
 };
 
@@ -145,13 +146,17 @@ describe('public supplier SEO service', () => {
     expect(JSON.parse(serialized)).toEqual({ value: '</script>&\u2028' });
   });
 
-  test('uses only approved-review summary fields for aggregate rating schema', () => {
+  test('uses only the approved-review analytics summary for aggregate rating schema', () => {
     const withRating = buildSupplierSeoModel(supplier);
-    const withoutCount = buildSupplierSeoModel({ ...supplier, reviewCount: 0 });
+    const withoutCount = buildSupplierSeoModel({
+      ...supplier,
+      approvedReviewSummary: { averageRating: 4.8, reviewCount: 0 },
+    });
     const legacyOnly = buildSupplierSeoModel({
       ...supplier,
-      averageRating: undefined,
-      reviewCount: undefined,
+      approvedReviewSummary: undefined,
+      averageRating: 5,
+      reviewCount: 100,
       rating: 5,
       reviewsCount: 100,
       reviewSummary: { averageRating: 5, reviewCount: 100 },
