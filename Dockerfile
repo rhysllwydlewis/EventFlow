@@ -35,7 +35,7 @@ EXPOSE 3000
 HEALTHCHECK --interval=10s --timeout=5s --start-period=10s --retries=3 \
   CMD sh -c 'curl -f http://localhost:${PORT:-3000}/api/health || exit 1'
 
-# start-production.mjs preserves the established telemetry preload contract:
+# deploymentMetadataPreload preserves the established telemetry preload contract:
 # node -r ./services/backgroundJobTelemetryBridge.js server.js
-# It adds best-effort deployment metadata without making metadata a startup dependency.
-CMD ["node", "scripts/start-production.mjs"]
+# Metadata is launched in a detached child and cannot block the server process.
+CMD ["node", "-r", "./services/deploymentMetadataPreload.js", "server.js"]
