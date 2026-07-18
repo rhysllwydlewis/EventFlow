@@ -8,7 +8,7 @@ updates:
       day: monday
       time: '05:20'
       timezone: Europe/London
-    open-pull-requests-limit: 6
+    open-pull-requests-limit: 4
     versioning-strategy: increase-if-necessary
     groups:
       production-patches:
@@ -17,6 +17,17 @@ updates:
       development-tooling:
         dependency-type: development
         update-types: [patch, minor]
+    ignore:
+      # Major framework, database and browser-library upgrades require a planned
+      # migration PR rather than an automatically mergeable dependency bump.
+      - dependency-name: '*'
+        update-types: [version-update:semver-major]
+      # These packages are pre-1.0 or native-heavy; their minor releases can be
+      # materially breaking and should be reviewed independently.
+      - dependency-name: pdfkit
+        update-types: [version-update:semver-minor]
+      - dependency-name: sharp
+        update-types: [version-update:semver-minor]
     commit-message:
       prefix: deps
     labels: [dependencies]
