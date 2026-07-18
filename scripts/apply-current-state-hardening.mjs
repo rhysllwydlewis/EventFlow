@@ -69,11 +69,11 @@ function configureHTTPSRedirect(isProduction = false) {
         canonicalOrigin && productionHosts.has(requestHost)
           ? canonicalOrigin
           : requestHost
-            ? \\`https://\\${requestHost}\\`
+            ? 'https://' + requestHost
             : canonicalOrigin;
       if (!targetOrigin) return next();
       res.setHeader('Cache-Control', 'no-store');
-      return res.redirect(308, \\`\\${targetOrigin}\\${requestUrl}\\`);
+      return res.redirect(308, targetOrigin + requestUrl);
     }
 
     if (
@@ -82,7 +82,7 @@ function configureHTTPSRedirect(isProduction = false) {
       requestHost !== canonicalHost
     ) {
       res.setHeader('Cache-Control', 'no-store');
-      return res.redirect(308, \\`\\${canonicalOrigin}\\${requestUrl}\\`);
+      return res.redirect(308, canonicalOrigin + requestUrl);
     }
 
     return next();
