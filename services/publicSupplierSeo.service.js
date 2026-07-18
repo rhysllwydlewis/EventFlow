@@ -233,6 +233,7 @@ function buildSupplierSeoModel(supplier, options = {}) {
     baseUrl
   );
 
+  // The route injects this summary from supplierAnalytics, which is derived from approved reviews.
   const approvedReviewSummary =
     supplier.approvedReviewSummary && typeof supplier.approvedReviewSummary === 'object'
       ? supplier.approvedReviewSummary
