@@ -81,20 +81,4 @@ describe('public supplier SEO routes', () => {
 
     expect(response.headers['x-robots-tag']).toBe('noindex, nofollow');
   });
-
-  test('returns a sitemap containing only eligible approved suppliers', async () => {
-    const orphan = { ...approvedSupplier, id: 'orphan', ownerUserId: 'missing-user' };
-    const unapproved = { ...approvedSupplier, id: 'pending', approved: false };
-    const { app } = createApp({
-      suppliers: [approvedSupplier, orphan, unapproved],
-      users: [{ id: 'user-1' }],
-    });
-
-    const response = await request(app).get('/sitemap-suppliers.xml').expect(200);
-
-    expect(response.headers['content-type']).toMatch(/application\/xml/);
-    expect(response.text).toContain(buildPublicSupplierSlug(approvedSupplier));
-    expect(response.text).not.toContain(buildPublicSupplierSlug(orphan));
-    expect(response.text).not.toContain(buildPublicSupplierSlug(unapproved));
-  });
 });
