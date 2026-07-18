@@ -16,6 +16,7 @@ describe('current-state hardening contracts', () => {
       'https://event-flow.co.uk'
     );
     expect(security).toMatch(/function resolveCanonicalProductionOrigin/);
+    expect(security).toMatch(/PRODUCTION_APP_ORIGINS\.includes\(parsedOrigin\)/);
     expect(security).toMatch(/PRODUCTION_APP_ORIGINS\.map/);
     expect(security).toMatch(/res\.redirect\(308, canonicalOrigin \+ requestUrl\)/);
     expect(security).not.toMatch(/res\.redirect\([^\n]*req\.headers\.host/);
@@ -83,10 +84,13 @@ describe('current-state hardening contracts', () => {
     expect([...blocking, ...quarantined].sort()).toEqual(backendSpecs);
   });
 
-  test('security inventory never writes secret values', () => {
+  test('security inventory uses a dedicated read credential without writing secret values', () => {
     const workflow = read('.github/workflows/security-alert-inventory.yml');
 
     expect(workflow).toMatch(/security-events: read/);
+    expect(workflow).toContain('SECURITY_ALERTS_TOKEN: ${{ secrets.SECURITY_ALERTS_TOKEN }}');
+    expect(workflow).toContain('authorization: `Bearer ${alertToken}`');
+    expect(workflow).toMatch(/core\.setSecret\(alertToken\)/);
     expect(workflow).toMatch(/secret_type_display_name/);
     expect(workflow).not.toMatch(/alert\.secret\b/);
     expect(workflow).toMatch(/never includes a secret value/);
