@@ -33,7 +33,11 @@ describe('current-state hardening contracts', () => {
   });
 
   test('public source no longer publishes unsupported launch claims', () => {
-    const sources = [read('public/assets/js/app.js'), read('public/index.html'), read('public/marketplace.html')];
+    const sources = [
+      read('public/assets/js/app.js'),
+      read('public/index.html'),
+      read('public/marketplace.html'),
+    ];
     const combined = sources.join('\n');
 
     expect(combined).not.toMatch(/Join over 500\+ verified suppliers already on EventFlow/i);

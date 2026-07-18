@@ -387,44 +387,55 @@ function createRateLimiters() {
  * @param {boolean} isProduction - Whether running in production
  * @returns {Function} Express middleware
  */
+function resolveCanonicalProductionOrigin() {
+  const configured =
+    process.env.CANONICAL_BASE_URL || process.env.BASE_URL || 'https://event-flow.co.uk';
+
+  try {
+    const parsed = new URL(configured);
+    if (parsed.protocol !== 'https:') return null;
+    return parsed.origin;
+  } catch (_) {
+    return null;
+  }
+}
+
+/**
+ * Configure HTTPS and canonical-host redirects for production.
+ * Only known public hosts may be redirected; unknown Host values are never reflected.
+ *
+ * @param {boolean} isProduction - Whether running in production
+ * @returns {Function} Express middleware
+ */
 function configureHTTPSRedirect(isProduction = false) {
   return (req, res, next) => {
-    if (!isProduction) {
-      return next();
-    }
+    if (!isProduction) return next();
 
-    // Skip HTTPS redirect for health check and readiness endpoints
-    if (req.path === '/api/health' || req.path === '/api/ready') {
-      return next();
-    }
+    // Railway probes these endpoints directly; do not redirect health traffic.
+    if (req.path === '/api/health' || req.path === '/api/ready') return next();
 
-    // Check if request is not secure (HTTP)
+    const canonicalOrigin = resolveCanonicalProductionOrigin();
+    const canonicalHost = canonicalOrigin ? new URL(canonicalOrigin).host.toLowerCase() : '';
+    const requestHost = String(req.headers.host || '').toLowerCase();
+    const requestUrl = req.originalUrl || req.url || '/';
+    const productionHosts = new Set(
+      PRODUCTION_APP_ORIGINS.map(origin => new URL(origin).host.toLowerCase())
+    );
+    const isKnownPublicHost = productionHosts.has(requestHost);
     const isSecure = req.secure || req.headers['x-forwarded-proto'] === 'https';
 
     if (!isSecure) {
-      // Redirect to HTTPS
-      const httpsUrl = process.env.BASE_URL || `https://${req.headers.host}`;
-      const redirectUrl = `${httpsUrl}${req.url}`;
-      return res.redirect(301, redirectUrl);
+      if (!canonicalOrigin || !isKnownPublicHost) return next();
+      res.setHeader('Cache-Control', 'no-store');
+      return res.redirect(308, canonicalOrigin + requestUrl);
     }
 
-    // Check for non-www to www redirect (only if BASE_URL contains www)
-    // Use the canonical host from BASE_URL instead of req.headers.host to
-    // prevent Host header injection (open redirect).
-    const configuredBaseUrl = process.env.BASE_URL || '';
-    if (configuredBaseUrl.includes('www.')) {
-      try {
-        const canonicalHost = new URL(configuredBaseUrl).host; // e.g. "www.eventflow.app"
-        const nonWwwHost = canonicalHost.replace(/^www\./, ''); // e.g. "eventflow.app"
-        if (req.headers.host === nonWwwHost) {
-          return res.redirect(301, `https://${canonicalHost}${req.url}`);
-        }
-      } catch {
-        // Malformed BASE_URL — skip redirect rather than use raw host header
-      }
+    if (canonicalOrigin && isKnownPublicHost && requestHost !== canonicalHost) {
+      res.setHeader('Cache-Control', 'no-store');
+      return res.redirect(308, canonicalOrigin + requestUrl);
     }
 
-    next();
+    return next();
   };
 }
 

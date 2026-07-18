@@ -10,8 +10,10 @@
 
     <!-- Canonical Base URL for SEO helper (ensures correct URLs in all environments) -->
     <script src="/assets/js/config/canonical-base.js"></script>
-    
-    <title>UK Event Marketplace — Buy &amp; Sell Pre-Loved Wedding &amp; Event Items | EventFlow</title>
+
+    <title>
+      UK Event Marketplace — Buy &amp; Sell Pre-Loved Wedding &amp; Event Items | EventFlow
+    </title>
     <meta
       name="description"
       content="Shop the UK's event marketplace to buy and sell pre-loved wedding dresses, décor, AV equipment, party supplies and more. Free to list, no platform fees. Buyers and sellers across the UK."
@@ -21,7 +23,10 @@
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://event-flow.co.uk/marketplace" />
-    <meta property="og:title" content="UK Event Marketplace — Buy &amp; Sell Pre-Loved Wedding &amp; Event Items | EventFlow" />
+    <meta
+      property="og:title"
+      content="UK Event Marketplace — Buy &amp; Sell Pre-Loved Wedding &amp; Event Items | EventFlow"
+    />
     <meta
       property="og:description"
       content="Buy and sell pre-loved wedding dresses, décor, AV equipment and more. UK-focused, free to list, no platform fees."
@@ -35,7 +40,10 @@
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:url" content="https://event-flow.co.uk/marketplace" />
-    <meta name="twitter:title" content="UK Event Marketplace — Buy &amp; Sell Pre-Loved Wedding &amp; Event Items | EventFlow" />
+    <meta
+      name="twitter:title"
+      content="UK Event Marketplace — Buy &amp; Sell Pre-Loved Wedding &amp; Event Items | EventFlow"
+    />
     <meta
       name="twitter:description"
       content="Buy and sell pre-loved wedding dresses, décor, AV equipment and more. UK-focused, free to list, no platform fees."
@@ -72,12 +80,12 @@
     <!-- Issue 2 Fix: Marketplace skeleton loading CSS -->
     <link rel="stylesheet" href="/assets/css/marketplace-skeleton.css?v=18.3.0" />
     <link rel="stylesheet" href="/assets/css/p3-features.css?v=18.3.0" />
-    <link rel="icon" href="/favicon.ico" sizes="any">
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png">
-    <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-    <link rel="manifest" href="/site.webmanifest">
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png" />
+    <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
 
     <!-- Schema.org structured data -->
     <script type="application/ld+json">
@@ -94,97 +102,118 @@
         }
       }
     </script>
-    <link rel="stylesheet" href="/assets/css/eventflow-footer.css">
+    <link rel="stylesheet" href="/assets/css/eventflow-footer.css" />
     <link rel="stylesheet" href="/assets/css/public-mobile-compact.css" />
-</head>
+  </head>
   <body>
-<!-- TOP NAVBAR - GOLD STANDARD REBUILD -->
-<header class="ef-header" role="banner">
-  <div class="ef-container">
-    <div class="ef-header-content">
-      <!-- Brand Logo - Enhanced Animated -->
-      <a href="/" class="ef-brand" aria-label="EventFlow - Return to homepage">
-        <div class="ef-logo" aria-hidden="true">
-          <div class="ef-logo-inner"></div>
+    <!-- TOP NAVBAR - GOLD STANDARD REBUILD -->
+    <header class="ef-header" role="banner">
+      <div class="ef-container">
+        <div class="ef-header-content">
+          <!-- Brand Logo - Enhanced Animated -->
+          <a href="/" class="ef-brand" aria-label="EventFlow - Return to homepage">
+            <div class="ef-logo" aria-hidden="true">
+              <div class="ef-logo-inner"></div>
+            </div>
+            <span class="ef-brand-text">EventFlow</span>
+          </a>
+
+          <!-- Desktop Navigation -->
+          <nav class="ef-nav-desktop" aria-label="Main navigation">
+            <a href="/start" class="ef-nav-link">Plan</a>
+            <a href="/suppliers" class="ef-nav-link">Suppliers</a>
+            <a href="/public-calendar" class="ef-nav-link">Events</a>
+            <a href="/marketplace" class="ef-nav-link">Marketplace</a>
+            <a href="/guides" class="ef-nav-link">Guides</a>
+            <a href="/pricing" class="ef-nav-link">Pricing</a>
+          </nav>
+
+          <!-- Actions -->
+          <div class="ef-header-actions">
+            <!-- Notification Bell (hidden by default, shown when logged in) -->
+            <button
+              id="ef-notification-btn"
+              class="ef-icon-btn"
+              type="button"
+              aria-label="View notifications"
+              style="display: none"
+            >
+              <svg
+                class="ef-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+              </svg>
+              <span id="ef-notification-badge" class="ef-badge" style="display: none"></span>
+            </button>
+
+            <!-- Auth Button (Desktop) -->
+            <a href="/auth" id="ef-auth-link" class="ef-btn ef-btn-primary"> Log in </a>
+
+            <!-- Dashboard Link (Desktop, hidden by default) -->
+            <a href="#" id="ef-dashboard-link" class="ef-nav-link" style="display: none">
+              Dashboard
+            </a>
+
+            <!-- Mobile Menu Toggle -->
+            <button
+              id="ef-mobile-toggle"
+              class="ef-mobile-toggle"
+              type="button"
+              aria-label="Toggle menu"
+              aria-expanded="false"
+              aria-controls="ef-mobile-menu"
+            >
+              <span class="ef-toggle-line"></span>
+              <span class="ef-toggle-line"></span>
+              <span class="ef-toggle-line"></span>
+            </button>
+          </div>
         </div>
-        <span class="ef-brand-text">EventFlow</span>
-      </a>
-
-      <!-- Desktop Navigation -->
-      <nav class="ef-nav-desktop" aria-label="Main navigation">
-        <a href="/start" class="ef-nav-link">Plan</a>
-        <a href="/suppliers" class="ef-nav-link">Suppliers</a>
-        <a href="/public-calendar" class="ef-nav-link">Events</a>
-        <a href="/marketplace" class="ef-nav-link">Marketplace</a>
-        <a href="/guides" class="ef-nav-link">Guides</a>
-        <a href="/pricing" class="ef-nav-link">Pricing</a>
-      </nav>
-
-      <!-- Actions -->
-      <div class="ef-header-actions">
-        <!-- Notification Bell (hidden by default, shown when logged in) -->
-        <button 
-          id="ef-notification-btn" 
-          class="ef-icon-btn" 
-          type="button" 
-          aria-label="View notifications"
-          style="display: none;"
-        >
-          <svg class="ef-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-          </svg>
-          <span id="ef-notification-badge" class="ef-badge" style="display: none;"></span>
-        </button>
-
-        <!-- Auth Button (Desktop) -->
-        <a href="/auth" id="ef-auth-link" class="ef-btn ef-btn-primary">
-          Log in
-        </a>
-
-        <!-- Dashboard Link (Desktop, hidden by default) -->
-        <a href="#" id="ef-dashboard-link" class="ef-nav-link" style="display: none;">
-          Dashboard
-        </a>
-
-        <!-- Mobile Menu Toggle -->
-        <button 
-          id="ef-mobile-toggle" 
-          class="ef-mobile-toggle" 
-          type="button"
-          aria-label="Toggle menu"
-          aria-expanded="false"
-          aria-controls="ef-mobile-menu"
-        >
-          <span class="ef-toggle-line"></span>
-          <span class="ef-toggle-line"></span>
-          <span class="ef-toggle-line"></span>
-        </button>
       </div>
-    </div>
-  </div>
 
-  <!-- Mobile Menu -->
-  <div id="ef-mobile-menu" class="ef-mobile-menu" role="dialog" aria-modal="true" aria-label="Mobile navigation">
-    <nav class="ef-mobile-nav" aria-label="Primary navigation">
-      <a href="/start" class="ef-mobile-link">Plan an Event</a>
-      <a href="/suppliers" class="ef-mobile-link">Browse Suppliers</a>
-      <a href="/public-calendar" class="ef-mobile-link">Events Calendar</a>
-      <a href="/marketplace" class="ef-mobile-link">Marketplace</a>
-      <a href="/guides" class="ef-mobile-link">Guides</a>
-      <a href="/pricing" class="ef-mobile-link">Pricing</a>
-      <a href="/for-suppliers" class="ef-mobile-link">For Suppliers</a>
-      <a href="/faq" class="ef-mobile-link">FAQ</a>
-      <div class="ef-mobile-divider"></div>
-      <a href="/auth" id="ef-mobile-auth" class="ef-mobile-link ef-mobile-primary">Log in</a>
-      <a href="#" id="ef-mobile-dashboard" class="ef-mobile-link" style="display: none;">Dashboard</a>
-      <a href="#" id="ef-mobile-logout" class="ef-mobile-link" style="display: none;">Log out</a>
-    </nav>
-  </div>
-</header>
+      <!-- Mobile Menu -->
+      <div
+        id="ef-mobile-menu"
+        class="ef-mobile-menu"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Mobile navigation"
+      >
+        <nav class="ef-mobile-nav" aria-label="Primary navigation">
+          <a href="/start" class="ef-mobile-link">Plan an Event</a>
+          <a href="/suppliers" class="ef-mobile-link">Browse Suppliers</a>
+          <a href="/public-calendar" class="ef-mobile-link">Events Calendar</a>
+          <a href="/marketplace" class="ef-mobile-link">Marketplace</a>
+          <a href="/guides" class="ef-mobile-link">Guides</a>
+          <a href="/pricing" class="ef-mobile-link">Pricing</a>
+          <a href="/for-suppliers" class="ef-mobile-link">For Suppliers</a>
+          <a href="/faq" class="ef-mobile-link">FAQ</a>
+          <div class="ef-mobile-divider"></div>
+          <a href="/auth" id="ef-mobile-auth" class="ef-mobile-link ef-mobile-primary">Log in</a>
+          <a href="#" id="ef-mobile-dashboard" class="ef-mobile-link" style="display: none"
+            >Dashboard</a
+          >
+          <a href="#" id="ef-mobile-logout" class="ef-mobile-link" style="display: none">Log out</a>
+        </nav>
+      </div>
+    </header>
 
     <!-- Notification Dropdown (Pre-rendered, shown/hidden by JS) -->
-    <div id="notification-dropdown" class="notification-dropdown" hidden aria-hidden="true" style="display: none;">
+    <div
+      id="notification-dropdown"
+      class="notification-dropdown"
+      hidden
+      aria-hidden="true"
+      style="display: none"
+    >
       <div class="notification-header">
         <h3>Notifications</h3>
         <button class="notification-mark-all" id="notification-mark-all-read" type="button">
@@ -200,10 +229,10 @@
     <!-- PHASE 2: Error boundary (must load before other components) -->
     <script src="/assets/js/utils/global-error-handler.js" defer></script>
     <script src="/assets/js/utils/sentry-browser-init.js" defer></script>
-    
+
     <!-- PHASE 3: Core components -->
     <script src="/assets/js/components/LoadingSpinner.js" defer></script>
-    
+
     <!-- PHASE 4: Feature-specific -->
     <script src="/assets/js/utils/auth-state.js" defer></script>
     <script src="/assets/js/burger-menu.js" defer></script>
@@ -219,14 +248,24 @@
            ============================================= -->
       <!-- BreadcrumbList structured data — production URLs are intentional for SEO canonical signals -->
       <script type="application/ld+json">
-      {
-        "@context": "https://schema.org",
-        "@type": "BreadcrumbList",
-        "itemListElement": [
-          { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://event-flow.co.uk/" },
-          { "@type": "ListItem", "position": 2, "name": "Marketplace", "item": "https://event-flow.co.uk/marketplace" }
-        ]
-      }
+        {
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "position": 1,
+              "name": "Home",
+              "item": "https://event-flow.co.uk/"
+            },
+            {
+              "@type": "ListItem",
+              "position": 2,
+              "name": "Marketplace",
+              "item": "https://event-flow.co.uk/marketplace"
+            }
+          ]
+        }
       </script>
       <section class="mkt-hero" aria-label="Event Marketplace">
         <!-- Decorative background orbs -->
@@ -236,7 +275,6 @@
 
         <!-- Main two-column grid -->
         <div class="mkt-hero__inner">
-
           <!-- Left: Content -->
           <div class="mkt-hero__content">
             <nav class="mkt-hero__breadcrumb" aria-label="Breadcrumb">
@@ -245,7 +283,17 @@
                   <a href="/">Home</a>
                 </li>
                 <li aria-hidden="true" class="mkt-hero__breadcrumb-sep">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M9 18l6-6-6-6" />
+                  </svg>
                 </li>
                 <li>
                   <span aria-current="page">Marketplace</span>
@@ -259,22 +307,51 @@
             </h1>
 
             <p class="mkt-hero__sub mkt-hero__animate mkt-hero__animate--3">
-              Zero fees. Direct sales. A trusted community of UK buyers and sellers — no middleman, no commission.
+              Zero fees. Direct sales. A trusted community of UK buyers and sellers — no middleman,
+              no commission.
             </p>
 
             <div class="mkt-hero__actions mkt-hero__animate mkt-hero__animate--4">
               <a href="#marketplace-results" class="mkt-hero__btn mkt-hero__btn--primary">
                 <span class="mkt-hero__btn-shimmer" aria-hidden="true"></span>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="m21 21-4.35-4.35" />
+                </svg>
                 Browse listings
               </a>
-              <a href="/auth?redirect=%2Fsupplier%2Fmarketplace-new-listing" id="hero-create-listing-btn" class="mkt-hero__btn mkt-hero__btn--secondary">
+              <a
+                href="/auth?redirect=%2Fsupplier%2Fmarketplace-new-listing"
+                id="hero-create-listing-btn"
+                class="mkt-hero__btn mkt-hero__btn--secondary"
+              >
                 Create new listing
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M12 5v14M5 12h14" />
+                </svg>
               </a>
             </div>
 
-            <div class="mkt-hero__stats mkt-hero__animate mkt-hero__animate--5" aria-label="Marketplace highlights">
+            <div
+              class="mkt-hero__stats mkt-hero__animate mkt-hero__animate--5"
+              aria-label="Marketplace highlights"
+            >
               <div class="mkt-hero__stat">
                 <strong>£0</strong>
                 <span>Listing fees</span>
@@ -290,7 +367,16 @@
                 <span class="mkt-hero__stat-label-row">
                   No middleman
                   <span class="mkt-hero__arrow-cue" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 10l5 5 5-5"/></svg>
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <path d="M7 10l5 5 5-5" />
+                    </svg>
                   </span>
                 </span>
               </div>
@@ -304,13 +390,15 @@
                 <!-- aria-hidden on parent container means alt="" is correct here -->
                 <img
                   src="https://images.unsplash.com/photo-1519741497674-611481863552?w=432&h=168&q=80&auto=format&fit=crop&crop=top"
-                  srcset="https://images.unsplash.com/photo-1519741497674-611481863552?w=216&h=84&q=80&auto=format&fit=crop&crop=top 1x,
-                          https://images.unsplash.com/photo-1519741497674-611481863552?w=432&h=168&q=80&auto=format&fit=crop&crop=top 2x"
+                  srcset="
+                    https://images.unsplash.com/photo-1519741497674-611481863552?w=216&h=84&q=80&auto=format&fit=crop&crop=top  1x,
+                    https://images.unsplash.com/photo-1519741497674-611481863552?w=432&h=168&q=80&auto=format&fit=crop&crop=top 2x
+                  "
                   alt=""
                   loading="lazy"
                   width="216"
                   height="84"
-                >
+                />
               </div>
               <div class="mkt-hero__card-body">
                 <span class="mkt-hero__card-cat">👗 Attire</span>
@@ -327,13 +415,15 @@
                 <!-- aria-hidden on parent container means alt="" is correct here -->
                 <img
                   src="https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?w=432&h=168&q=80&auto=format&fit=crop"
-                  srcset="https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?w=216&h=84&q=80&auto=format&fit=crop 1x,
-                          https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?w=432&h=168&q=80&auto=format&fit=crop 2x"
+                  srcset="
+                    https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?w=216&h=84&q=80&auto=format&fit=crop  1x,
+                    https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?w=432&h=168&q=80&auto=format&fit=crop 2x
+                  "
                   alt=""
                   loading="lazy"
                   width="216"
                   height="84"
-                >
+                />
               </div>
               <div class="mkt-hero__card-body">
                 <span class="mkt-hero__card-cat">🎨 Décor</span>
@@ -352,13 +442,15 @@
                 <!-- aria-hidden on parent container means alt="" is correct here -->
                 <img
                   src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=432&h=168&q=80&auto=format&fit=crop"
-                  srcset="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=216&h=84&q=80&auto=format&fit=crop 1x,
-                          https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=432&h=168&q=80&auto=format&fit=crop 2x"
+                  srcset="
+                    https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=216&h=84&q=80&auto=format&fit=crop  1x,
+                    https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=432&h=168&q=80&auto=format&fit=crop 2x
+                  "
                   alt=""
                   loading="lazy"
                   width="216"
                   height="84"
-                >
+                />
               </div>
               <div class="mkt-hero__card-body">
                 <span class="mkt-hero__card-cat">🔊 AV Equipment</span>
@@ -422,21 +514,32 @@
           <!-- Left Sidebar: Filters -->
           <aside class="marketplace-sidebar" role="search" aria-label="Search and filter suppliers">
             <div class="card">
-              <h2 style="margin-top: 0;">Filters</h2>
-              
+              <h2 style="margin-top: 0">Filters</h2>
+
               <!-- Location Summary -->
               <div class="filter-group">
                 <label class="filter-label">Location</label>
                 <div class="location-summary" id="location-summary">
                   <span class="location-text">📍 All UK</span>
-                  <button type="button" class="ef-cta btn-change-location" id="btn-change-location" aria-label="Change location">Change</button>
+                  <button
+                    type="button"
+                    class="ef-cta btn-change-location"
+                    id="btn-change-location"
+                    aria-label="Change location"
+                  >
+                    Change
+                  </button>
                 </div>
               </div>
 
               <!-- Search -->
               <div class="filter-group">
                 <label for="marketplace-filter-query">Search</label>
-                <input id="marketplace-filter-query" type="text" placeholder="e.g. wedding dress, speakers">
+                <input
+                  id="marketplace-filter-query"
+                  type="text"
+                  placeholder="e.g. wedding dress, speakers"
+                />
               </div>
 
               <!-- Category -->
@@ -479,8 +582,20 @@
               </div>
 
               <!-- My Listings Link -->
-              <div class="filter-group" style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border, #E7EAF0);">
-                <a href="/my-marketplace-listings" class="btn-my-listings" id="my-listings-link" style="display: none;">
+              <div
+                class="filter-group"
+                style="
+                  margin-top: 1.5rem;
+                  padding-top: 1.5rem;
+                  border-top: 1px solid var(--border, #e7eaf0);
+                "
+              >
+                <a
+                  href="/my-marketplace-listings"
+                  class="btn-my-listings"
+                  id="my-listings-link"
+                  style="display: none"
+                >
                   📋 My Listings
                 </a>
               </div>
@@ -490,9 +605,27 @@
             <div class="card" id="marketplace-quick-tips">
               <p class="small marketplace-list-title">Popular searches:</p>
               <div class="marketplace-list-links">
-                <button type="button" class="ef-cta btn-quick-search" data-marketplace-search="wedding dress">Wedding Dress</button>
-                <button type="button" class="ef-cta btn-quick-search" data-marketplace-search="table decorations">Table Décor</button>
-                <button type="button" class="ef-cta btn-quick-search" data-marketplace-search="sound system">Sound System</button>
+                <button
+                  type="button"
+                  class="ef-cta btn-quick-search"
+                  data-marketplace-search="wedding dress"
+                >
+                  Wedding Dress
+                </button>
+                <button
+                  type="button"
+                  class="ef-cta btn-quick-search"
+                  data-marketplace-search="table decorations"
+                >
+                  Table Décor
+                </button>
+                <button
+                  type="button"
+                  class="ef-cta btn-quick-search"
+                  data-marketplace-search="sound system"
+                >
+                  Sound System
+                </button>
               </div>
             </div>
           </aside>
@@ -501,12 +634,22 @@
           <main class="marketplace-main">
             <div class="marketplace-header">
               <div>
-                <h2 style="margin: 0 0 0.5rem 0;">Browse marketplace listings</h2>
+                <h2 style="margin: 0 0 0.5rem 0">Browse marketplace listings</h2>
                 <div id="marketplace-result-count" class="small"></div>
               </div>
               <div class="marketplace-actions">
-                <a href="/supplier/marketplace-new-listing" class="cta" id="marketplace-list-btn" style="display: none;">+ Create listing</a>
-                <select id="marketplace-sort" class="sort-select" aria-label="Sort marketplace listings">
+                <a
+                  href="/supplier/marketplace-new-listing"
+                  class="cta"
+                  id="marketplace-list-btn"
+                  style="display: none"
+                  >+ Create listing</a
+                >
+                <select
+                  id="marketplace-sort"
+                  class="sort-select"
+                  aria-label="Sort marketplace listings"
+                >
                   <option value="newest">Newest</option>
                   <option value="price-low">Price: Low to High</option>
                   <option value="price-high">Price: High to Low</option>
@@ -524,31 +667,44 @@
 
             <!-- Load More -->
             <div id="marketplace-load-more-container">
-              <button class="ef-cta" type="button" id="marketplace-load-more-btn" aria-label="Load more listings">Load More</button>
+              <button
+                class="ef-cta"
+                type="button"
+                id="marketplace-load-more-btn"
+                aria-label="Load more listings"
+              >
+                Load More
+              </button>
             </div>
           </main>
-    <script src="/assets/js/pages/marketplace-hero-init.js" defer></script>
+          <script src="/assets/js/pages/marketplace-hero-init.js" defer></script>
         </div>
       </section>
 
       <!-- Mobile Filter Toggle Button -->
-      <button class="ef-cta mobile-filter-toggle" id="mobile-filter-toggle" aria-label="Toggle filters">
+      <button
+        class="ef-cta mobile-filter-toggle"
+        id="mobile-filter-toggle"
+        aria-label="Toggle filters"
+      >
         <span>Filters</span>
       </button>
 
       <section class="section section--muted">
         <div class="container">
-          <div class="card" id="marketplace-results-tips" style="text-align: center;">
+          <div class="card" id="marketplace-results-tips" style="text-align: center">
             <h3 class="h4">Browse local listings</h3>
             <p class="small">
-              Filter by category, price, or condition to narrow your search. Save items to your favourites by creating a free account.
+              Filter by category, price, or condition to narrow your search. Save items to your
+              favourites by creating a free account.
             </p>
           </div>
 
           <div class="card" id="marketplace-cta-section">
-            <h3 style="text-align: center;">Ready to buy or sell?</h3>
+            <h3 style="text-align: center">Ready to buy or sell?</h3>
             <p class="small marketplace-text-center">
-              Create a free account to list items for sale or message sellers about listings you're interested in.
+              Create a free account to list items for sale or message sellers about listings you're
+              interested in.
             </p>
             <div class="marketplace-cta-row">
               <a href="/auth" class="cta" id="auth-cta">Create Free Account</a>
@@ -565,19 +721,25 @@
             <div class="card">
               <h3>Physical Items Only</h3>
               <p class="small">
-                Our marketplace is for physical event items — wedding dresses, bridesmaid outfits, decorations, centrepieces, sound equipment, lighting rigs, and more. Services (catering, DJs, etc.) are listed separately in our Suppliers directory.
+                Our marketplace is for physical event items — wedding dresses, bridesmaid outfits,
+                decorations, centrepieces, sound equipment, lighting rigs, and more. Services
+                (catering, DJs, etc.) are listed separately in our Suppliers directory.
               </p>
             </div>
             <div class="card">
               <h3>Free to Use</h3>
               <p class="small">
-                EventFlow charges no listing fees and no commission. List your items for free, and keep 100% of what you sell. Buyers pay no extra fees either — just the price you agree.
+                EventFlow charges no listing fees and no commission. List your items for free, and
+                keep 100% of what you sell. Buyers pay no extra fees either — just the price you
+                agree.
               </p>
             </div>
             <div class="card">
               <h3>Direct Payment & Collection</h3>
               <p class="small">
-                Payments and collection are arranged directly between buyer and seller. We recommend meeting in a safe public place or using secure payment methods like PayPal Goods & Services for buyer protection.
+                Payments and collection are arranged directly between buyer and seller. We recommend
+                meeting in a safe public place or using secure payment methods like PayPal Goods &
+                Services for buyer protection.
               </p>
             </div>
           </div>
@@ -608,15 +770,11 @@
             </div>
             <div class="card">
               <h3>📸 Photography</h3>
-              <p class="small">
-                Cameras, lenses, tripods, backdrops, and lighting equipment
-              </p>
+              <p class="small">Cameras, lenses, tripods, backdrops, and lighting equipment</p>
             </div>
             <div class="card">
               <h3>🎉 Party Supplies</h3>
-              <p class="small">
-                Props, games, sweet carts, chocolate fountains, and party favours
-              </p>
+              <p class="small">Props, games, sweet carts, chocolate fountains, and party favours</p>
             </div>
             <div class="card">
               <h3>🌸 Florals</h3>
@@ -634,79 +792,149 @@
         <div>
           <strong>EventFlow</strong><br /><span class="small">Event planning made simple.</span>
         </div>
-        <div class="version" id="ef-version-wrap" hidden aria-hidden="true">v<span id="ef-version-label"></span></div>
-        <div class="small">
-          <a href="/guides">Guides</a> · <a href="/marketplace">Marketplace</a> · <a href="/credits">Credits</a> ·
-          <a href="/contact">Contact</a> ·
-          <a href="/legal">Legal Hub</a> ·
-      <button type="button" data-cookie-prefs>Cookie preferences</button>
+        <div class="version" id="ef-version-wrap" hidden aria-hidden="true">
+          v<span id="ef-version-label"></span>
         </div>
-        <div class="footer-credit small">Operated by <a href="https://vexi.co.uk" target="_blank" rel="noopener noreferrer">VEXI</a></div>
+        <div class="small">
+          <a href="/guides">Guides</a> · <a href="/marketplace">Marketplace</a> ·
+          <a href="/credits">Credits</a> · <a href="/contact">Contact</a> ·
+          <a href="/legal">Legal Hub</a> ·
+          <button type="button" data-cookie-prefs>Cookie preferences</button>
+        </div>
+        <div class="footer-credit small">
+          Operated by
+          <a href="https://vexi.co.uk" target="_blank" rel="noopener noreferrer">VEXI</a>
+        </div>
       </div>
-  </footer>
+    </footer>
 
-<!-- BOTTOM NAVBAR - GOLD STANDARD REBUILD (Mobile Only) -->
-<nav class="ef-bottom-nav" role="navigation" aria-label="Mobile bottom navigation">
-  <a href="/start" class="ef-bottom-link" aria-label="Plan your event">
-    <svg class="ef-bottom-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-      <path d="M12 20h9"/>
-      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
-    </svg>
-    <span class="ef-bottom-label">Plan</span>
-  </a>
-  
-  <a href="/suppliers" class="ef-bottom-link" aria-label="Browse suppliers">
-    <svg class="ef-bottom-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-      <circle cx="11" cy="11" r="8"/>
-      <path d="m21 21-4.35-4.35"/>
-    </svg>
-    <span class="ef-bottom-label">Suppliers</span>
-  </a>
-  
-  <a href="/guides" class="ef-bottom-link" aria-label="View guides">
-    <svg class="ef-bottom-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-    </svg>
-    <span class="ef-bottom-label">Guides</span>
-  </a>
-  
-  <!-- Dashboard with notification badge (shown when logged in, replaces Alerts) -->
-  <a href="#" id="ef-bottom-dashboard" class="ef-bottom-link" style="display: none;" aria-label="Go to dashboard">
-    <svg class="ef-bottom-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-      <rect x="3" y="3" width="7" height="7" rx="1"/>
-      <rect x="14" y="3" width="7" height="7" rx="1"/>
-      <rect x="14" y="14" width="7" height="7" rx="1"/>
-      <rect x="3" y="14" width="7" height="7" rx="1"/>
-    </svg>
-    <span class="ef-bottom-label">Dashboard</span>
-    <span id="ef-bottom-dashboard-badge" class="ef-badge" style="display: none;"></span>
-  </a>
-  
-  <!-- Alerts button (shown when logged out) -->
-  <a href="/guides" id="ef-bottom-alerts" class="ef-bottom-link" aria-label="View guides and alerts">
-    <svg class="ef-bottom-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-      <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-    </svg>
-    <span class="ef-bottom-label">Alerts</span>
-  </a>
-  
-  <button 
-    id="ef-bottom-menu" 
-    class="ef-cta ef-bottom-link" 
-    type="button"
-    aria-label="Open menu"
-    aria-expanded="false"
-    aria-controls="ef-mobile-menu"
-  >
-    <svg class="ef-bottom-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-      <line x1="3" y1="12" x2="21" y2="12"/>
-      <line x1="3" y1="6" x2="21" y2="6"/>
-      <line x1="3" y1="18" x2="21" y2="18"/>
-    </svg>
-  </button>
-</nav>
+    <!-- BOTTOM NAVBAR - GOLD STANDARD REBUILD (Mobile Only) -->
+    <nav class="ef-bottom-nav" role="navigation" aria-label="Mobile bottom navigation">
+      <a href="/start" class="ef-bottom-link" aria-label="Plan your event">
+        <svg
+          class="ef-bottom-icon"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M12 20h9" />
+          <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+        </svg>
+        <span class="ef-bottom-label">Plan</span>
+      </a>
+
+      <a href="/suppliers" class="ef-bottom-link" aria-label="Browse suppliers">
+        <svg
+          class="ef-bottom-icon"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <circle cx="11" cy="11" r="8" />
+          <path d="m21 21-4.35-4.35" />
+        </svg>
+        <span class="ef-bottom-label">Suppliers</span>
+      </a>
+
+      <a href="/guides" class="ef-bottom-link" aria-label="View guides">
+        <svg
+          class="ef-bottom-icon"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+        </svg>
+        <span class="ef-bottom-label">Guides</span>
+      </a>
+
+      <!-- Dashboard with notification badge (shown when logged in, replaces Alerts) -->
+      <a
+        href="#"
+        id="ef-bottom-dashboard"
+        class="ef-bottom-link"
+        style="display: none"
+        aria-label="Go to dashboard"
+      >
+        <svg
+          class="ef-bottom-icon"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <rect x="3" y="3" width="7" height="7" rx="1" />
+          <rect x="14" y="3" width="7" height="7" rx="1" />
+          <rect x="14" y="14" width="7" height="7" rx="1" />
+          <rect x="3" y="14" width="7" height="7" rx="1" />
+        </svg>
+        <span class="ef-bottom-label">Dashboard</span>
+        <span id="ef-bottom-dashboard-badge" class="ef-badge" style="display: none"></span>
+      </a>
+
+      <!-- Alerts button (shown when logged out) -->
+      <a
+        href="/guides"
+        id="ef-bottom-alerts"
+        class="ef-bottom-link"
+        aria-label="View guides and alerts"
+      >
+        <svg
+          class="ef-bottom-icon"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+          <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+        </svg>
+        <span class="ef-bottom-label">Alerts</span>
+      </a>
+
+      <button
+        id="ef-bottom-menu"
+        class="ef-cta ef-bottom-link"
+        type="button"
+        aria-label="Open menu"
+        aria-expanded="false"
+        aria-controls="ef-mobile-menu"
+      >
+        <svg
+          class="ef-bottom-icon"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <line x1="3" y1="12" x2="21" y2="12" />
+          <line x1="3" y1="6" x2="21" y2="6" />
+          <line x1="3" y1="18" x2="21" y2="18" />
+        </svg>
+      </button>
+    </nav>
 
     <!-- Load core utilities -->
     <!-- Shortlist and Quote Request Components -->
@@ -726,7 +954,7 @@
     <script src="/assets/js/cookie-consent.js?v=2.0.0" defer></script>
     <script src="/assets/js/marketplace.js" defer></script>
     <script src="/messenger/js/QuickComposeV4.js" defer></script>
-    
+
     <script src="/assets/js/pages/marketplace-dom-init.js" defer></script>
     <script src="/assets/js/utils/p3-features.js" defer></script>
     <script src="/assets/js/keyboard-shortcuts.js" defer></script>
@@ -734,7 +962,7 @@
     <!-- JadeAssist Chat Widget - Using local build with positioning API -->
     <script src="/assets/js/vendor/jade-widget.js" defer></script>
     <script src="/assets/js/jadeassist-init.v2.js" defer></script>
-  <script src="/assets/js/pwa-install.js" defer></script>
-<script src="/assets/js/components/eventflow-footer.js" defer></script>
-</body>
+    <script src="/assets/js/pwa-install.js" defer></script>
+    <script src="/assets/js/components/eventflow-footer.js" defer></script>
+  </body>
 </html>

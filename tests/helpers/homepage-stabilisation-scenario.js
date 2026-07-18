@@ -29,7 +29,7 @@ function createDom(scenario) {
       '</section>' +
       '<section id="marketplace-preview-section"><h2 class="ef-section__title">Latest Items for Sale</h2><p class="ef-section__subtitle">Buy and sell pre-loved event items</p><div id="marketplace-preview"></div><a href="/marketplace" class="ef-btn">View All Marketplace Items</a></section>' +
       '<section id="testimonials-section"><p class="ef-section__subtitle">Real experiences from real event planners</p><div id="ef-testimonials-carousel"><div class="ef-testimonial active">Static testimonial</div></div><div class="ef-testimonials-dots"></div></section>' +
-      '<section class="ef-section--supplier-cta"><p>Join over 500+ verified suppliers already on EventFlow</p></section>' +
+      '<section class="ef-section--supplier-cta"><p>Early supplier access is open now</p></section>' +
       '<footer><span class="version">Version: <span id="ef-version-label">loading…</span></span></footer>' +
       '</body></html>',
     { url: 'https://event-flow.co.uk/', runScripts: 'outside-only' }
