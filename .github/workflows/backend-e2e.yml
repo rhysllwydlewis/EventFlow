@@ -34,6 +34,8 @@ env:
   NODE_ENV: test
   JWT_SECRET: backend-e2e-secret-for-github-actions-minimum-32-chars
   MONGODB_URI: mongodb://127.0.0.1:27017/eventflow_e2e?replicaSet=rs0
+  PLAYWRIGHT_VIDEO: 'off'
+  PLAYWRIGHT_TRACE: retain-on-failure
 
 jobs:
   backend-e2e:
@@ -84,13 +86,26 @@ jobs:
         if: always()
         run: node scripts/summarize-playwright-results.mjs test-results/backend-results.json test-results/backend-summary.txt
 
-      - name: Upload backend E2E evidence
+      - name: Upload backend machine results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: backend-e2e-evidence
+          name: backend-e2e-machine-results
           path: |
-            playwright-report
-            test-results
+            test-results/backend-summary.txt
+            test-results/backend-results.json
+            test-results/backend-junit.xml
           if-no-files-found: warn
           retention-days: 30
+
+      - name: Upload bounded backend diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-e2e-diagnostics
+          path: |
+            playwright-report
+            test-results/**/*.png
+            test-results/**/*.zip
+          if-no-files-found: warn
+          retention-days: 14
