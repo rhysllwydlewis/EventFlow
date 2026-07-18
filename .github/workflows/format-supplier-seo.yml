@@ -1,0 +1,103 @@
+name: Format supplier SEO implementation
+
+on:
+  push:
+    branches:
+      - feature/server-rendered-supplier-seo
+    paths:
+      - .github/workflows/format-supplier-seo.yml
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/server-rendered-supplier-seo
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Replace control-character regex with explicit code-point filtering
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('services/publicSupplierSeo.service.js')
+          text = path.read_text()
+          old = """function cleanCampaignValue(value) {\n  const clean = String(value || '')\n    .replace(/[\\u0000-\\u001f\\u007f]/g, '')\n    .trim();\n  return clean.slice(0, 200);\n}\n"""
+          new = """function cleanCampaignValue(value) {\n  const clean = Array.from(String(value || ''))\n    .filter(character => {\n      const codePoint = character.codePointAt(0);\n      return codePoint >= 32 && codePoint !== 127;\n    })\n    .join('')\n    .trim();\n  return clean.slice(0, 200);\n}\n"""
+          if old not in text:
+              raise SystemExit('Expected campaign sanitiser not found')
+          path.write_text(text.replace(old, new, 1))
+          PY
+
+      - name: Correct route comment
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('routes/index.js')
+          text = path.read_text()
+          text = text.replace(
+            '// Public, crawlable supplier profiles and supplier-only sitemap.',
+            '// Public, crawlable supplier profiles with server-rendered metadata.',
+            1,
+          )
+          path.write_text(text)
+          PY
+
+      - name: Apply repository formatting and lint fixes
+        run: |
+          npx prettier --write \
+            public/assets/js/supplier-route-context.js \
+            routes/index.js \
+            routes/public-supplier-seo.js \
+            routes/static.js \
+            services/publicSupplierSeo.service.js \
+            sitemap.js \
+            tests/integration/legacy-supplier-canonical-redirect.test.js \
+            tests/integration/public-supplier-seo-route.test.js \
+            tests/unit/public-supplier-seo.test.js \
+            tests/unit/sitemap.test.js \
+            tests/unit/supplier-route-context.test.js
+          npx eslint \
+            public/assets/js/supplier-route-context.js \
+            routes/public-supplier-seo.js \
+            routes/static.js \
+            services/publicSupplierSeo.service.js \
+            sitemap.js \
+            tests/integration/legacy-supplier-canonical-redirect.test.js \
+            tests/integration/public-supplier-seo-route.test.js \
+            tests/unit/public-supplier-seo.test.js \
+            tests/unit/sitemap.test.js \
+            tests/unit/supplier-route-context.test.js \
+            --rulesdir eslint-rules --fix
+
+      - name: Run focused regression tests
+        run: |
+          npx jest --runInBand --coverage=false \
+            tests/integration/legacy-supplier-canonical-redirect.test.js \
+            tests/integration/public-supplier-seo-route.test.js \
+            tests/unit/public-supplier-seo.test.js \
+            tests/unit/sitemap.test.js \
+            tests/unit/sitemap-guides.test.js \
+            tests/unit/supplier-route-context.test.js
+
+      - name: Remove one-shot workflow
+        run: rm .github/workflows/format-supplier-seo.yml
+
+      - name: Commit permanent changes
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          git commit -m "Format and validate supplier SEO acquisition routes"
+          git push origin HEAD:feature/server-rendered-supplier-seo
