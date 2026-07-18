@@ -26,10 +26,7 @@ function readReports() {
         url: report.finalDisplayedUrl || report.finalUrl || report.requestedUrl || 'unknown',
         fetchTime: report.fetchTime || '',
         categories: Object.fromEntries(
-          Object.entries(report.categories || {}).map(([name, category]) => [
-            name,
-            category?.score,
-          ])
+          Object.entries(report.categories || {}).map(([name, category]) => [name, category?.score])
         ),
       };
     })
