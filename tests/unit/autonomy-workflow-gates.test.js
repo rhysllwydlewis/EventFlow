@@ -119,12 +119,15 @@ describe('autonomous quality workflow contracts', () => {
     expect(dependencyReview).toMatch(/warn-only: false/);
   });
 
-  test('mutation testing exercises both property and provider-failure contracts', () => {
+  test('mutation testing covers the explicitly tested geocoding baseline without lowering its threshold', () => {
     const mutation = read('stryker.config.mjs');
     const workflow = read('.github/workflows/weekly-deep-quality.yml');
 
+    expect(mutation).toMatch(/utils\/geocoding\.js:19-76/);
+    expect(mutation).toMatch(/utils\/geocoding\.js:138-175/);
     expect(mutation).toMatch(/property-fuzz\.test\.js/);
     expect(mutation).toMatch(/external-service-failure-contracts\.test\.js/);
+    expect(mutation).toMatch(/break:\s*60/);
     expect(workflow).toMatch(/pull_request:/);
     expect(workflow).toMatch(/Focused mutation score/);
   });
