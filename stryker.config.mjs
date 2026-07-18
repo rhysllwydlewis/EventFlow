@@ -5,7 +5,8 @@ export default {
   mutate: ['utils/geocoding.js'],
   testRunner: 'command',
   commandRunner: {
-    command: 'npx jest --runInBand --coverage=false tests/unit/property-fuzz.test.js',
+    command:
+      'npx jest --runInBand --coverage=false tests/unit/property-fuzz.test.js tests/unit/external-service-failure-contracts.test.js',
   },
   coverageAnalysis: 'off',
   reporters: ['clear-text', 'progress', 'html', 'json'],
