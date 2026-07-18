@@ -3,7 +3,7 @@
 const crypto = require('crypto');
 
 const DEFAULT_BASE_URL = 'https://event-flow.co.uk';
-const SLUG_TOKEN_LENGTH = 10;
+const SLUG_TOKEN_LENGTH = 16;
 const SEO_BLOCK_MARKER = 'eventflow-supplier-seo';
 
 function stripMarkup(value) {
@@ -44,7 +44,7 @@ function buildPublicSupplierSlug(supplier) {
 function extractSlugToken(slug) {
   const match = String(slug || '')
     .toLowerCase()
-    .match(/--([a-f0-9]{10})$/);
+    .match(/--([a-f0-9]{16})$/);
   return match ? match[1] : '';
 }
 
@@ -255,55 +255,9 @@ function renderSupplierHtml(templateHtml, supplier, options = {}) {
   return cleanTemplate.replace(/<\/head>/i, `${block}\n</head>`);
 }
 
-function formatLastModified(value) {
-  const parsed = value ? new Date(value) : null;
-  if (!parsed || Number.isNaN(parsed.getTime())) {
-    return null;
-  }
-  return parsed.toISOString().split('T')[0];
-}
-
-function xmlEscape(value) {
-  return String(value || '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;');
-}
-
-function buildSupplierSitemap(suppliers, options = {}) {
-  const baseUrl = safeBaseUrl(options.baseUrl);
-  const entries = (suppliers || [])
-    .map(supplier => {
-      const slug = buildPublicSupplierSlug(supplier);
-      if (!slug) {
-        return '';
-      }
-      const lastmod = formatLastModified(
-        supplier.updatedAt || supplier.modifiedAt || supplier.createdAt
-      );
-      return [
-        '  <url>',
-        `    <loc>${xmlEscape(`${baseUrl}/supplier/${slug}`)}</loc>`,
-        lastmod ? `    <lastmod>${lastmod}</lastmod>` : '',
-        '    <changefreq>weekly</changefreq>',
-        '    <priority>0.7</priority>',
-        '  </url>',
-      ]
-        .filter(Boolean)
-        .join('\n');
-    })
-    .filter(Boolean)
-    .join('\n');
-
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${entries}${entries ? '\n' : ''}</urlset>\n`;
-}
-
 module.exports = {
   buildPublicSupplierSlug,
   buildSupplierSeoModel,
-  buildSupplierSitemap,
   extractSlugToken,
   isPublicSupplier,
   renderSupplierHtml,
