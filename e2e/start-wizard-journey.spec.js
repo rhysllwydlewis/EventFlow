@@ -30,8 +30,7 @@ test.describe('Planning wizard current journey @backend', () => {
     await expect(page.locator('#start-scratch-btn')).toBeVisible();
 
     const unexpected = errors.filter(
-      error =>
-        !/Unauthenticated|401|websocket|pexels|AbortError/i.test(error)
+      error => !/Unauthenticated|401|websocket|pexels|AbortError/i.test(error)
     );
     expect(unexpected).toEqual([]);
   });
@@ -66,8 +65,8 @@ test.describe('Planning wizard current journey @backend', () => {
 
     await expect
       .poll(() =>
-        page.evaluate(() =>
-          JSON.parse(localStorage.getItem('eventflow_plan_builder_v1') || '{}').eventType
+        page.evaluate(
+          () => JSON.parse(localStorage.getItem('eventflow_plan_builder_v1') || '{}').eventType
         )
       )
       .toBeTruthy();

@@ -45,15 +45,15 @@ A dismissal must record why the data flow is unreachable, why the result is a du
 
 For each genuine alert, record:
 
-| Field | Required value |
-| --- | --- |
-| Alert number | GitHub alert number |
-| Source | Secret scanning, CodeQL/other scanner, or Dependabot |
-| Severity/validity | GitHub-reported value |
-| Affected component | File, workflow or package |
-| Decision | Fix, rotate, revoke, dismiss, accept temporarily |
-| Evidence | PR, provider rotation confirmation or technical rationale |
-| Owner | Person responsible |
-| Review date | Required for accepted risk |
+| Field              | Required value                                            |
+| ------------------ | --------------------------------------------------------- |
+| Alert number       | GitHub alert number                                       |
+| Source             | Secret scanning, CodeQL/other scanner, or Dependabot      |
+| Severity/validity  | GitHub-reported value                                     |
+| Affected component | File, workflow or package                                 |
+| Decision           | Fix, rotate, revoke, dismiss, accept temporarily          |
+| Evidence           | PR, provider rotation confirmation or technical rationale |
+| Owner              | Person responsible                                        |
+| Review date        | Required for accepted risk                                |
 
 The generated workflow artefact supplies metadata for this register. Provider-side rotation and access-log checks cannot be performed by a repository pull request and require an authorised account owner.
