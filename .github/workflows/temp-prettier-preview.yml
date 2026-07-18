@@ -1,8 +1,8 @@
 name: Temporary Prettier Preview
 
 on:
-  push:
-    branches: [agent/comprehensive-test-autonomy-hardening]
+  pull_request:
+    branches: [main]
 
 permissions:
   contents: read
