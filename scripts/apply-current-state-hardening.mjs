@@ -43,7 +43,7 @@ function patchCanonicalRedirect() {
 
 /**
  * Configure HTTPS and canonical-host redirects for production.
- * Unknown preview/internal hosts are never reflected into redirect targets.
+ * Only known public hosts may be redirected; unknown Host values are never reflected.
  *
  * @param {boolean} isProduction - Whether running in production
  * @returns {Function} Express middleware
@@ -62,25 +62,16 @@ function configureHTTPSRedirect(isProduction = false) {
     const productionHosts = new Set(
       PRODUCTION_APP_ORIGINS.map(origin => new URL(origin).host.toLowerCase())
     );
+    const isKnownPublicHost = productionHosts.has(requestHost);
     const isSecure = req.secure || req.headers['x-forwarded-proto'] === 'https';
 
     if (!isSecure) {
-      const targetOrigin =
-        canonicalOrigin && productionHosts.has(requestHost)
-          ? canonicalOrigin
-          : requestHost
-            ? 'https://' + requestHost
-            : canonicalOrigin;
-      if (!targetOrigin) return next();
+      if (!canonicalOrigin || !isKnownPublicHost) return next();
       res.setHeader('Cache-Control', 'no-store');
-      return res.redirect(308, targetOrigin + requestUrl);
+      return res.redirect(308, canonicalOrigin + requestUrl);
     }
 
-    if (
-      canonicalOrigin &&
-      productionHosts.has(requestHost) &&
-      requestHost !== canonicalHost
-    ) {
+    if (canonicalOrigin && isKnownPublicHost && requestHost !== canonicalHost) {
       res.setHeader('Cache-Control', 'no-store');
       return res.redirect(308, canonicalOrigin + requestUrl);
     }
