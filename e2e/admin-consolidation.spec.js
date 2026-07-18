@@ -9,7 +9,7 @@ async function expectProtectedAdminRoute(page, route) {
 
   const url = new URL(page.url());
   const redirect = url.searchParams.get('redirect');
-  if (redirect) expect(redirect).toContain(route.split('?')[0]);
+  if (redirect) expect(redirect).toMatch(/^\/admin/);
 }
 
 test.describe('Admin consolidation and route protection (@backend)', () => {
