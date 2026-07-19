@@ -56,7 +56,9 @@ router.use((req, res, next) => {
 router.post('/seed', async (req, res, next) => {
   const runId = normaliseRunId(req.body && req.body.runId);
   if (!runId) {
-    return res.status(400).json({ error: 'runId must contain 3-64 lowercase letters, numbers or hyphens' });
+    return res
+      .status(400)
+      .json({ error: 'runId must contain 3-64 lowercase letters, numbers or hyphens' });
   }
 
   try {
@@ -222,15 +224,31 @@ router.post('/seed', async (req, res, next) => {
     await insert('packages', pausedPackage);
     await insert('packages', unapprovedPackage);
 
+    // These records deliberately satisfy both the current v2 review service and
+    // the public supplier page's established review contract. That makes the
+    // browser suite capable of detecting drift between the two public readers.
     const approvedReview = {
       _id: `${prefix}-approved-review`,
       id: `${prefix}-approved-review`,
       supplierId: approvedSupplier.id,
       authorId: users.customer.id,
       authorName: users.customer.name,
+      userId: users.customer.id,
+      userName: users.customer.name,
       rating: 5,
       title: 'Excellent and reliable',
       text: `A genuinely excellent service for ${runId}.`,
+      comment: `A genuinely excellent service for ${runId}.`,
+      recommend: true,
+      verified: true,
+      emailVerified: true,
+      approved: true,
+      approvedAt: now,
+      approvedBy: users.admin.id,
+      flagged: false,
+      flagReason: [],
+      helpfulCount: 2,
+      unhelpfulCount: 0,
       createdAt: now,
       updatedAt: now,
       verification: { status: 'verified_booking', verifiedAt: now },
@@ -244,9 +262,22 @@ router.post('/seed', async (req, res, next) => {
       supplierId: approvedSupplier.id,
       authorId: users.pendingSupplier.id,
       authorName: users.pendingSupplier.name,
+      userId: users.pendingSupplier.id,
+      userName: users.pendingSupplier.name,
       rating: 1,
       title: 'Pending moderation fixture',
       text: `This review must remain hidden for ${runId}.`,
+      comment: `This review must remain hidden for ${runId}.`,
+      recommend: false,
+      verified: false,
+      emailVerified: true,
+      approved: false,
+      approvedAt: null,
+      approvedBy: null,
+      flagged: true,
+      flagReason: ['E2E pending moderation fixture'],
+      helpfulCount: 0,
+      unhelpfulCount: 0,
       createdAt: now,
       updatedAt: now,
       verification: { status: 'unverified', verifiedAt: null },
