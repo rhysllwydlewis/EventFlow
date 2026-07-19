@@ -26,9 +26,9 @@ let sitemapCacheBaseUrl = '';
 let sitemapCacheExpiresAt = 0;
 
 // Deterministic Mongo-backed fixtures for the real-server Playwright suite.
-// The module is not even loaded outside NODE_ENV=test, and the router itself
-// additionally requires a private fixed test header on every request.
-if (process.env.NODE_ENV === 'test') {
+// The module is loaded only for the explicit full backend browser mode, and the
+// router itself additionally requires a private fixed test header per request.
+if (process.env.NODE_ENV === 'test' && process.env.E2E_MODE === 'full') {
   router.use('/__e2e', require('./e2e-test-support'));
 }
 
