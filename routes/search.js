@@ -8,6 +8,7 @@
 const express = require('express');
 const logger = require('../utils/logger');
 const { searchLimiter } = require('../middleware/rateLimits');
+const { buildPublicSupplierSlug } = require('../services/publicSupplierSeo.service');
 const router = express.Router();
 
 // These will be injected by server.js during route mounting
@@ -48,11 +49,45 @@ function applyAuthRequired(req, res, next) {
   return authRequired(req, res, next);
 }
 
+function addPublicProfilePath(supplier) {
+  if (!supplier || typeof supplier !== 'object') {
+    return supplier;
+  }
+
+  const slug = buildPublicSupplierSlug(supplier);
+  if (!slug) {
+    return supplier;
+  }
+
+  return {
+    ...supplier,
+    publicProfilePath: `/supplier/${slug}`,
+  };
+}
+
+function addPublicProfilePaths(searchResults) {
+  const output = { ...(searchResults || {}) };
+
+  if (Array.isArray(output.results)) {
+    output.results = output.results.map(addPublicProfilePath);
+  }
+
+  if (output.fallback && Array.isArray(output.fallback.suggestions)) {
+    output.fallback = {
+      ...output.fallback,
+      suggestions: output.fallback.suggestions.map(addPublicProfilePath),
+    };
+  }
+
+  return output;
+}
+
 // ---------- Search Routes ----------
 
 router.get('/suppliers', searchLimiter, async (req, res) => {
   try {
-    const results = await searchSystem.searchSuppliers(req.query);
+    const rawResults = await searchSystem.searchSuppliers(req.query);
+    const results = addPublicProfilePaths(rawResults);
 
     // Save to search history if user is authenticated
     if (req.user && req.query.q) {
@@ -141,3 +176,5 @@ router.get('/amenities', async (req, res) => {
 
 module.exports = router;
 module.exports.initializeDependencies = initializeDependencies;
+module.exports.addPublicProfilePath = addPublicProfilePath;
+module.exports.addPublicProfilePaths = addPublicProfilePaths;
