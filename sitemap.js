@@ -62,6 +62,16 @@ function appendUrl(xmlParts, location, lastmod = '') {
   xmlParts.push('  </url>');
 }
 
+async function readCollection(collection) {
+  try {
+    const records = await dbUnified.read(collection);
+    return Array.isArray(records) ? records : [];
+  } catch (error) {
+    logger.error(`sitemap: could not load ${collection}:`, error);
+    return [];
+  }
+}
+
 /**
  * Generate sitemap XML.
  * Dates are emitted only when EventFlow has a genuine source timestamp. Static
@@ -78,13 +88,13 @@ async function generateSitemap(baseUrl) {
     '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
   ];
 
+  // Include only real, canonical and indexable static routes.
   const staticPages = [
     '/',
     '/suppliers',
     '/marketplace',
     '/public-calendar',
     '/guides',
-    '/blog',
     '/start',
     '/pricing',
     '/for-suppliers',
@@ -95,71 +105,69 @@ async function generateSitemap(baseUrl) {
   ];
   staticPages.forEach(page => appendUrl(xmlParts, normalizedBaseUrl + page));
 
-  try {
-    const [suppliers, users, packages, events] = await Promise.all([
-      dbUnified.read('suppliers'),
-      dbUnified.read('users'),
-      dbUnified.read('packages'),
-      dbUnified.read('public_calendar_events'),
-    ]);
-    const validOwnerIds = new Set((users || []).map(user => user?.id).filter(Boolean));
-    const supplierIds = publicSupplierIds(suppliers, users);
+  // Guides are repository-backed content and must remain available even when a
+  // dynamic collection is temporarily unavailable.
+  loadGuideEntries().forEach(({ slug, lastmod }) => {
+    if (!slug) return;
+    appendUrl(
+      xmlParts,
+      `${normalizedBaseUrl}/articles/${slug}`,
+      validLastModifiedOrFallback(lastmod)
+    );
+  });
 
-    (suppliers || [])
-      .filter(supplier => isPublicSupplier(supplier, validOwnerIds))
-      .sort((a, b) => String(a.id).localeCompare(String(b.id)))
-      .forEach(supplier => {
-        const slug = buildPublicSupplierSlug(supplier);
-        if (!slug) return;
-        appendUrl(
-          xmlParts,
-          `${normalizedBaseUrl}/supplier/${slug}`,
-          validLastModifiedOrFallback(
-            supplier.updatedAt || supplier.modifiedAt || supplier.createdAt
-          )
-        );
-      });
+  const [suppliers, users, packages, events] = await Promise.all([
+    readCollection('suppliers'),
+    readCollection('users'),
+    readCollection('packages'),
+    readCollection('public_calendar_events'),
+  ]);
+  const validOwnerIds = new Set((users || []).map(user => user?.id).filter(Boolean));
+  const supplierIds = publicSupplierIds(suppliers, users);
 
-    (packages || [])
-      .filter(pkg => isPublicPackage(pkg, supplierIds))
-      .sort((a, b) => String(a.id).localeCompare(String(b.id)))
-      .forEach(pkg => {
-        const slug = buildPublicPackageSlug(pkg);
-        if (!slug) return;
-        appendUrl(
-          xmlParts,
-          `${normalizedBaseUrl}/package/${slug}`,
-          validLastModifiedOrFallback(pkg.updatedAt || pkg.modifiedAt || pkg.createdAt)
-        );
-      });
-
-    const now = new Date();
-    (events || [])
-      .filter(event => isIndexablePublicEvent(event, now))
-      .sort((a, b) => String(a.startDate).localeCompare(String(b.startDate)))
-      .forEach(event => {
-        const slug = buildPublicEventSlug(event);
-        if (!slug) return;
-        appendUrl(
-          xmlParts,
-          `${normalizedBaseUrl}/events/${slug}`,
-          validLastModifiedOrFallback(
-            event.updatedAt || event.publishedAt || event.modifiedAt || event.createdAt
-          )
-        );
-      });
-
-    loadGuideEntries().forEach(({ slug, lastmod }) => {
+  suppliers
+    .filter(supplier => isPublicSupplier(supplier, validOwnerIds))
+    .sort((a, b) => String(a.id).localeCompare(String(b.id)))
+    .forEach(supplier => {
+      const slug = buildPublicSupplierSlug(supplier);
       if (!slug) return;
       appendUrl(
         xmlParts,
-        `${normalizedBaseUrl}/articles/${slug}`,
-        validLastModifiedOrFallback(lastmod)
+        `${normalizedBaseUrl}/supplier/${slug}`,
+        validLastModifiedOrFallback(
+          supplier.updatedAt || supplier.modifiedAt || supplier.createdAt
+        )
       );
     });
-  } catch (error) {
-    logger.error('Error generating dynamic sitemap entries:', error);
-  }
+
+  packages
+    .filter(pkg => isPublicPackage(pkg, supplierIds))
+    .sort((a, b) => String(a.id).localeCompare(String(b.id)))
+    .forEach(pkg => {
+      const slug = buildPublicPackageSlug(pkg);
+      if (!slug) return;
+      appendUrl(
+        xmlParts,
+        `${normalizedBaseUrl}/package/${slug}`,
+        validLastModifiedOrFallback(pkg.updatedAt || pkg.modifiedAt || pkg.createdAt)
+      );
+    });
+
+  const now = new Date();
+  events
+    .filter(event => isIndexablePublicEvent(event, now))
+    .sort((a, b) => String(a.startDate).localeCompare(String(b.startDate)))
+    .forEach(event => {
+      const slug = buildPublicEventSlug(event);
+      if (!slug) return;
+      appendUrl(
+        xmlParts,
+        `${normalizedBaseUrl}/events/${slug}`,
+        validLastModifiedOrFallback(
+          event.updatedAt || event.publishedAt || event.modifiedAt || event.createdAt
+        )
+      );
+    });
 
   xmlParts.push('</urlset>');
   return xmlParts.join('\n');
@@ -201,6 +209,7 @@ module.exports = {
   generateSitemap,
   generateRobotsTxt,
   loadGuideEntries,
+  readCollection,
   validLastModified: validLastModifiedOrFallback,
   xmlEscape,
 };
