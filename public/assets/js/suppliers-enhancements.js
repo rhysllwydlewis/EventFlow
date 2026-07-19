@@ -34,9 +34,13 @@
   }
 
   function supplierNameFromCard(card) {
-    const nameLink = card.querySelector('.sp-card-name a, .supplier-card__name a, [data-supplier-name]');
+    const nameLink = card.querySelector(
+      '.sp-card-name a, .supplier-card__name a, [data-supplier-name]'
+    );
     const explicit = card.dataset.supplierName || nameLink?.dataset?.supplierName;
-    return String(explicit || nameLink?.textContent || card.getAttribute('aria-label') || '').trim();
+    return String(
+      explicit || nameLink?.textContent || card.getAttribute('aria-label') || ''
+    ).trim();
   }
 
   async function upgradeSupplierProfileLinks(card) {
