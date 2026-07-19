@@ -99,7 +99,7 @@
   function enhanceSupplierCards() {
     const enhanceVisibleCards = () => {
       document
-        .querySelectorAll('.supplier-card, [data-supplier-id]')
+        .querySelectorAll('.sp-card[data-supplier-id], .supplier-card[data-supplier-id]')
         .forEach(card => enhanceCard(card));
     };
 
