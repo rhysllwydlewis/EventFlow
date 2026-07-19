@@ -17,17 +17,21 @@ updates:
         # Native-heavy or pre-1.0 packages need a standalone review, but must not
         # disappear from Dependabot entirely.
         exclude-patterns: [pdfkit, sharp]
+      browser-testing:
+        dependency-type: development
+        update-types: [patch, minor]
+        patterns:
+          - '@playwright/test'
+          - playwright
       development-tooling:
         dependency-type: development
         update-types: [patch, minor]
-        # Formatter, browser and in-memory database updates can alter broad
+        # Formatter, accessibility tooling and the in-memory database can alter broad
         # formatting, snapshots, binaries or test semantics. Excluding them from
         # this group makes Dependabot open individual PRs instead of suppressing
         # the updates.
         exclude-patterns:
           - prettier
-          - '@playwright/test'
-          - playwright
           - '@axe-core/playwright'
           - mongodb-memory-server
     ignore:

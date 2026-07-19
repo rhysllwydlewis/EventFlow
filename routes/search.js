@@ -8,8 +8,11 @@
 const express = require('express');
 const logger = require('../utils/logger');
 const { searchLimiter } = require('../middleware/rateLimits');
+const {
+  addPublicProfilePath,
+  addPublicProfilePaths,
+} = require('../utils/publicSupplierProfilePath');
 const router = express.Router();
-
 // These will be injected by server.js during route mounting
 let authRequired;
 let searchSystem;
@@ -52,7 +55,8 @@ function applyAuthRequired(req, res, next) {
 
 router.get('/suppliers', searchLimiter, async (req, res) => {
   try {
-    const results = await searchSystem.searchSuppliers(req.query);
+    const rawResults = await searchSystem.searchSuppliers(req.query);
+    const results = addPublicProfilePaths(rawResults);
 
     // Save to search history if user is authenticated
     if (req.user && req.query.q) {
@@ -141,3 +145,5 @@ router.get('/amenities', async (req, res) => {
 
 module.exports = router;
 module.exports.initializeDependencies = initializeDependencies;
+module.exports.addPublicProfilePath = addPublicProfilePath;
+module.exports.addPublicProfilePaths = addPublicProfilePaths;
