@@ -1,13 +1,13 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from "@playwright/test";
 import {
   cleanupBackendFixtures,
   createRunId,
   loginAs,
   seedBackendFixtures,
-} from './helpers/backend-fixtures.js';
+} from "./helpers/backend-fixtures.js";
 
-test.describe('Current supplier dashboard contracts @backend', () => {
-  const runId = createRunId('supplier-dashboard');
+test.describe("Current supplier dashboard contracts @backend", () => {
+  const runId = createRunId("supplier-dashboard");
   let fixtures;
 
   test.beforeAll(async ({ request }) => {
@@ -18,53 +18,66 @@ test.describe('Current supplier dashboard contracts @backend', () => {
     await cleanupBackendFixtures(request, runId);
   });
 
-  test('protects the supplier dashboard at the server', async ({ request }) => {
-    const response = await request.get('/dashboard/supplier', { maxRedirects: 0 });
+  test("protects the supplier dashboard at the server", async ({ request }) => {
+    const response = await request.get("/dashboard/supplier", {
+      maxRedirects: 0,
+    });
     expect(response.status()).toBe(401);
   });
 
-  test('loads the current dashboard shell for an authenticated supplier', async ({ page }) => {
-    await loginAs(page, fixtures.users.supplier);
-    const response = await page.goto('/dashboard/supplier');
-    expect(response?.status()).toBe(200);
-
-    await expect(page.locator('[data-test="supplier-mobile-nav"]')).toBeAttached();
-    await expect(page.locator('[data-test="mobile-nav-pills"]')).toBeVisible();
-    await expect(page.locator('[data-test="welcome-card"]')).toBeVisible();
-    await expect(page.locator('#welcome-heading')).toContainText(/welcome/i);
-    await expect(page.locator('#verification-status-banner')).toBeAttached();
-  });
-
-  test('exposes the current navigation destinations instead of retired onboarding cards', async ({
+  test("loads the current dashboard shell for an authenticated supplier", async ({
     page,
   }) => {
     await loginAs(page, fixtures.users.supplier);
-    await page.goto('/dashboard/supplier');
+    const response = await page.goto("/dashboard/supplier");
+    expect(response?.status()).toBe(200);
+
+    await expect(
+      page.locator('[data-test="supplier-mobile-nav"]'),
+    ).toBeAttached();
+    await expect(page.locator('[data-test="mobile-nav-pills"]')).toBeVisible();
+    await expect(page.locator('[data-test="welcome-card"]')).toBeVisible();
+    await expect(page.locator("#welcome-heading")).toContainText(/welcome/i);
+    await expect(page.locator("#verification-status-banner")).toBeAttached();
+  });
+
+  test("exposes the current navigation destinations instead of retired onboarding cards", async ({
+    page,
+  }) => {
+    await loginAs(page, fixtures.users.supplier);
+    await page.goto("/dashboard/supplier");
 
     const navContracts = [
-      ['nav-overview', 'overview'],
-      ['nav-profiles', 'profiles'],
-      ['nav-packages', 'packages'],
-      ['nav-messages', 'messages'],
-      ['nav-stats', 'stats'],
-      ['nav-tickets', 'tickets'],
-      ['nav-settings', 'settings'],
+      ["nav-overview", "overview"],
+      ["nav-profiles", "profiles"],
+      ["nav-packages", "packages"],
+      ["nav-messages", "messages"],
+      ["nav-stats", "stats"],
+      ["nav-tickets", "tickets"],
+      ["nav-settings", "settings"],
     ];
 
     for (const [testId, section] of navContracts) {
       const nav = page.locator(`[data-test="${testId}"]`);
       await expect(nav).toBeVisible();
-      const target = (await nav.getAttribute('data-section')) || (await nav.getAttribute('href')) || '';
+      const target =
+        (await nav.getAttribute("data-section")) ||
+        (await nav.getAttribute("href")) ||
+        "";
       expect(target).toContain(section);
     }
 
-    await expect(page.locator('.onboarding-card, #onboarding-card')).toHaveCount(0);
+    await expect(
+      page.locator(".onboarding-card, #onboarding-card"),
+    ).toHaveCount(0);
   });
 
-  test('renders without horizontal page overflow on a mobile viewport', async ({ page }) => {
+  test("renders without horizontal page overflow on a mobile viewport", async ({
+    page,
+  }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await loginAs(page, fixtures.users.supplier);
-    await page.goto('/dashboard/supplier');
+    await page.goto("/dashboard/supplier");
     await expect(page.locator('[data-test="mobile-nav-pills"]')).toBeVisible();
 
     const dimensions = await page.evaluate(() => ({
