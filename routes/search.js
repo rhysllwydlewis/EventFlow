@@ -54,7 +54,12 @@ function addPublicProfilePath(supplier) {
     return supplier;
   }
 
-  const slug = buildPublicSupplierSlug(supplier);
+  const supplierName = supplier.name || supplier.businessName || supplier.company;
+  if (!supplier.id || !supplierName) {
+    return supplier;
+  }
+
+  const slug = buildPublicSupplierSlug({ ...supplier, name: supplierName });
   if (!slug) {
     return supplier;
   }
