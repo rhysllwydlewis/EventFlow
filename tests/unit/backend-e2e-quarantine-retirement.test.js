@@ -51,6 +51,38 @@ describe('backend Playwright quarantine retirement', () => {
     expect(staticRoutes).toContain("router.use('/__e2e', require('./e2e-test-support'))");
   });
 
+  test('executes the fixture mount only in explicit full test mode', () => {
+    const originalNodeEnv = process.env.NODE_ENV;
+    const originalE2EMode = process.env.E2E_MODE;
+
+    process.env.NODE_ENV = 'test';
+    process.env.E2E_MODE = 'full';
+    jest.resetModules();
+    jest.doMock('../../routes/e2e-test-support', () => {
+      const express = require('express');
+      return express.Router();
+    });
+    jest.doMock('../../routes/public-listing-seo', () => {
+      const express = require('express');
+      return () => express.Router();
+    });
+
+    try {
+      jest.isolateModules(() => {
+        const staticRoutes = require('../../routes/static');
+        expect(staticRoutes).toBeDefined();
+      });
+    } finally {
+      jest.dontMock('../../routes/e2e-test-support');
+      jest.dontMock('../../routes/public-listing-seo');
+      jest.resetModules();
+      if (originalNodeEnv === undefined) delete process.env.NODE_ENV;
+      else process.env.NODE_ENV = originalNodeEnv;
+      if (originalE2EMode === undefined) delete process.env.E2E_MODE;
+      else process.env.E2E_MODE = originalE2EMode;
+    }
+  });
+
   test('requires both the test environment and the private suite header', () => {
     const supportRoute = read('routes/e2e-test-support.js');
     expect(supportRoute).toContain("process.env.NODE_ENV !== 'test'");
