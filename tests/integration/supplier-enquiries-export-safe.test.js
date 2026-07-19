@@ -104,4 +104,22 @@ describe('safe supplier enquiry CSV export', () => {
 
     expect(response.body.error).toBe('Failed to export enquiries');
   });
+
+  test('installs the hardened route first and only once', () => {
+    const target = express.Router();
+    target.get('/enquiries/export', (_req, res) => res.status(418).send('legacy'));
+    const originalLength = target.stack.length;
+
+    safeExportRoutes.installInto(target);
+    safeExportRoutes.installInto(target);
+
+    expect(target.stack).toHaveLength(originalLength + safeExportRoutes.stack.length);
+    expect(target.stack[0]).toBe(safeExportRoutes.stack[0]);
+    expect(target.__safeSupplierExportInstalled).toBe(true);
+  });
+
+  test('ignores invalid router installation targets', () => {
+    expect(() => safeExportRoutes.installInto(null)).not.toThrow();
+    expect(() => safeExportRoutes.installInto({})).not.toThrow();
+  });
 });
