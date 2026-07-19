@@ -5,8 +5,7 @@ const isCI = process.env.CI === 'true';
 const runAllBrowsers = process.env.PLAYWRIGHT_ALL_BROWSERS === 'true';
 // Explicit full mode must always win, including inside GitHub Actions.
 const useStaticMode = e2eMode !== 'full' && (isCI || e2eMode === 'static');
-const fullBackendHeaders =
-  e2eMode === 'full' ? { 'x-eventflow-e2e': 'backend-suite' } : undefined;
+const fullBackendHeaders = e2eMode === 'full' ? { 'x-eventflow-e2e': 'backend-suite' } : undefined;
 
 const chromiumProject = {
   name: 'chromium',
