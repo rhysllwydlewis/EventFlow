@@ -74,6 +74,13 @@ function createPublicSupplierSeoRouter(options = {}) {
   }
 
   function readPublicSuppliers() {
+    // Backend browser fixtures are seeded while files run in parallel. Always
+    // read the current MongoDB state in test mode so one spec cannot reuse a
+    // stale or in-flight supplier snapshot created by another spec.
+    if (process.env.NODE_ENV === 'test') {
+      return loadPublicSuppliers();
+    }
+
     const now = Date.now();
     if (supplierCache && now < supplierCacheExpiresAt) {
       return Promise.resolve(supplierCache);
