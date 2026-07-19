@@ -1,79 +1,95 @@
 import { test, expect } from '@playwright/test';
+import {
+  cleanupBackendFixtures,
+  createRunId,
+  seedBackendFixtures,
+} from './helpers/backend-fixtures.js';
 
-// Browser-specific timeout constants for webkit compatibility
-const WEBKIT_INITIAL_WAIT = 5000;
-const WEBKIT_WAIT_TIMEOUT = 20000;
-const DEFAULT_INITIAL_WAIT = 2000;
-const DEFAULT_WAIT_TIMEOUT = 10000;
+test.describe('Supplier reviews against the real backend @backend', () => {
+  const runId = createRunId('supplier-reviews');
+  let fixtures;
 
-test.describe('Supplier Reviews Widget Integration @backend', () => {
-  test('should display review widget on supplier profile page', async ({ page }) => {
-    await page.goto('/suppliers');
-    await page.waitForLoadState('networkidle');
-    const supplierLink = page.locator('a[href*="/supplier.html?id="]').first();
-    if ((await supplierLink.count()) > 0) {
-      await supplierLink.click();
-      await page.waitForLoadState('networkidle');
-      const reviewWidget = page.locator('#reviews-widget');
-      await expect(reviewWidget).toBeVisible();
-      const writeReviewBtn = page.locator('#btn-write-review');
-      await expect(writeReviewBtn).toBeVisible();
-    }
+  test.beforeAll(async ({ request }) => {
+    fixtures = await seedBackendFixtures(request, runId);
   });
 
-  test('should load reviews resources', async ({ page, browserName }) => {
-    await page.goto('/supplier.html?id=test');
-    await page.waitForLoadState('networkidle');
-    // Webkit needs significantly more time to load and execute JavaScript
-    const initialWait = browserName === 'webkit' ? WEBKIT_INITIAL_WAIT : DEFAULT_INITIAL_WAIT;
-    await page.waitForTimeout(initialWait);
+  test.afterAll(async ({ request }) => {
+    await cleanupBackendFixtures(request, runId);
+  });
 
-    const reviewsCssLoaded = await page.evaluate(() => {
-      const links = Array.from(document.querySelectorAll('link[rel="stylesheet"]'));
-      return links.some(link => link.href.includes('reviews.css'));
-    });
-    expect(reviewsCssLoaded).toBe(true);
-
-    // Webkit needs more time for JavaScript initialization
-    const waitTimeout = browserName === 'webkit' ? WEBKIT_WAIT_TIMEOUT : DEFAULT_WAIT_TIMEOUT;
-    const reviewsManagerExists = await page.waitForFunction(
-      () => typeof window.reviewsManager !== 'undefined',
-      { timeout: waitTimeout }
+  test('returns approved reviews only from the public supplier review endpoint', async ({
+    request,
+  }) => {
+    const response = await request.get(
+      `/api/suppliers/${encodeURIComponent(fixtures.supplier.id)}/reviews?sortBy=date`
     );
-    expect(reviewsManagerExists).toBeTruthy();
+    expect(response.ok()).toBe(true);
+    const body = await response.json();
+
+    expect(body.pagination).toMatchObject({ total: 1, page: 1 });
+    expect(body.reviews).toHaveLength(1);
+    expect(body.reviews[0]).toMatchObject({
+      id: fixtures.reviews.approvedId,
+      title: 'Excellent and reliable',
+      rating: 5,
+      approved: true,
+      verified: true,
+    });
+    expect(JSON.stringify(body)).not.toContain('Pending moderation fixture');
   });
 
-  test('should have proper accessibility attributes', async ({ page }) => {
-    await page.goto('/suppliers');
-    await page.waitForLoadState('networkidle');
-    const supplierLink = page.locator('a[href*="/supplier.html?id="]').first();
-    if ((await supplierLink.count()) > 0) {
-      await supplierLink.click();
-      await page.waitForLoadState('networkidle');
-      const reviewWidget = page.locator('#reviews-widget');
-      const ariaLabel = await reviewWidget.getAttribute('aria-label');
-      expect(ariaLabel).toBe('Customer reviews and ratings');
-    }
+  test('keeps the enhanced review API consistent with the public approval boundary', async ({
+    request,
+  }) => {
+    const response = await request.get(
+      `/api/reviews/supplier/${encodeURIComponent(fixtures.supplier.id)}`
+    );
+    expect(response.ok()).toBe(true);
+    const body = await response.json();
+
+    expect(body.success).toBe(true);
+    expect(body.data.pagination.total).toBe(1);
+    expect(body.data.analytics).toMatchObject({
+      avgRating: 5,
+      totalReviews: 1,
+      ratingDistribution: [0, 0, 0, 0, 1],
+    });
+    expect(body.data.reviews[0]).toMatchObject({
+      _id: fixtures.reviews.approvedId,
+      title: 'Excellent and reliable',
+      moderation: expect.objectContaining({ state: 'approved' }),
+    });
+    expect(JSON.stringify(body)).not.toContain(fixtures.reviews.pendingId);
   });
 
-  test('should handle missing supplier ID gracefully', async ({ page, browserName }) => {
-    await page.goto('/supplier.html');
-    await page.waitForLoadState('networkidle');
-    // Wait for page to render - webkit needs more time
-    const renderWait = browserName === 'webkit' ? 3000 : 2000;
-    await page.waitForTimeout(renderWait);
+  test('renders the approved review on the clean supplier profile and hides pending content', async ({
+    page,
+  }) => {
+    await page.goto(fixtures.supplier.path);
+    await expect(page.locator('#hero-title')).toHaveText(fixtures.supplier.name);
+    await expect(page.locator('#reviews-widget')).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator('#btn-write-review')).toBeVisible();
+    await expect(page.locator('#reviews-list')).toContainText('Excellent and reliable', {
+      timeout: 15_000,
+    });
+    await expect(page.locator('#reviews-list')).toContainText(
+      `A genuinely excellent service for ${runId}.`
+    );
+    await expect(page.locator('#reviews-list')).not.toContainText('Pending moderation fixture');
+    await expect(page.locator('.review-average-rating')).toHaveText('5.0');
+  });
 
-    const container = page.locator('#supplier-container');
-    // Wait for the container to finish loading - it might show "Loading supplier…" initially
-    const contentWait = browserName === 'webkit' ? 5000 : 3000;
-    await page.waitForTimeout(contentWait);
+  test('supports deterministic rating and helpful sorting without network-idle waits', async ({
+    page,
+  }) => {
+    await page.goto(fixtures.supplier.path);
+    await expect(page.locator('#reviews-list')).toContainText('Excellent and reliable', {
+      timeout: 15_000,
+    });
 
-    const content = await container.textContent();
-    // Be more flexible - accept either the error message or a loading state
-    const isErrorShown =
-      content.includes('No supplier ID provided') ||
-      content.includes('Supplier not found') ||
-      content.includes('Error loading supplier');
-    expect(isErrorShown).toBe(true);
+    await page.locator('#filter-sort-by').selectOption('rating');
+    await expect(page.locator('#reviews-list')).toContainText('Excellent and reliable');
+    await page.locator('#filter-sort-by').selectOption('helpful');
+    await expect(page.locator('#reviews-list')).toContainText('Excellent and reliable');
   });
 });
