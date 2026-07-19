@@ -54,19 +54,29 @@
     }
     window.__EF_SUPPLIER_URL_SEARCH_PARAMS_PATCHED__ = false;
   };
+  const scheduleRestore =
+    typeof window.setTimeout === 'function'
+      ? window.setTimeout.bind(window)
+      : typeof setTimeout === 'function'
+        ? setTimeout
+        : null;
 
   window.URLSearchParams = SupplierAwareURLSearchParams;
   window.__EF_SUPPLIER_URL_SEARCH_PARAMS_PATCHED__ = true;
 
-  if (document.readyState === 'loading') {
+  if (!scheduleRestore) {
+    return;
+  }
+
+  if (document.readyState === 'loading' && typeof document.addEventListener === 'function') {
     document.addEventListener(
       'DOMContentLoaded',
       () => {
-        setTimeout(restoreNativeSearchParams, 0);
+        scheduleRestore(restoreNativeSearchParams, 0);
       },
       { once: true }
     );
   } else {
-    setTimeout(restoreNativeSearchParams, 0);
+    scheduleRestore(restoreNativeSearchParams, 0);
   }
 })();
