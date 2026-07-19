@@ -22,6 +22,13 @@ const INDEXABLE_CACHE_CONTROL = 'public, max-age=60, s-maxage=300, stale-while-r
 const NON_INDEXABLE_CACHE_CONTROL = 'public, max-age=30, s-maxage=60, stale-while-revalidate=30';
 const DEFAULT_CACHE_TTL_MS = 60 * 1000;
 
+function removeLegacyEventJsonLd(template) {
+  return String(template || '').replace(
+    /\s*<script\b[^>]*id=["']event-jsonld["'][^>]*>[\s\S]*?<\/script>\s*/gi,
+    '\n'
+  );
+}
+
 function createPublicListingSeoRouter(options = {}) {
   const dbUnified = options.dbUnified;
   const logger = options.logger || require('../utils/logger');
@@ -45,10 +52,12 @@ function createPublicListingSeoRouter(options = {}) {
       const templatePath = kind === 'package' ? PACKAGE_TEMPLATE_PATH : EVENT_TEMPLATE_PATH;
       templatePromises.set(
         kind,
-        fs.readFile(templatePath, 'utf8').catch(error => {
-          templatePromises.delete(kind);
-          throw error;
-        })
+        fs.readFile(templatePath, 'utf8')
+          .then(template => (kind === 'event' ? removeLegacyEventJsonLd(template) : template))
+          .catch(error => {
+            templatePromises.delete(kind);
+            throw error;
+          })
       );
     }
     return templatePromises.get(kind);
@@ -99,7 +108,10 @@ function createPublicListingSeoRouter(options = {}) {
   router.get(['/package', '/package.html'], async (req, res, next) => {
     const lookup = String(req.query.slug || req.query.id || req.query.packageId || '').trim();
     if (!lookup) return next();
-    if (req.query.preview === 'true') return next();
+    if (req.query.preview === 'true') {
+      noindex(res);
+      return next();
+    }
 
     try {
       const listings = await readListings();
@@ -199,3 +211,4 @@ function createPublicListingSeoRouter(options = {}) {
 }
 
 module.exports = createPublicListingSeoRouter;
+module.exports.removeLegacyEventJsonLd = removeLegacyEventJsonLd;
