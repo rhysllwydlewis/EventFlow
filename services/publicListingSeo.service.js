@@ -188,14 +188,14 @@ function packageLookupValues(pkg) {
 function isPublicPackage(pkg, publicSupplierIds) {
   return Boolean(
     pkg &&
-      pkg.approved === true &&
-      pkg.paused !== true &&
-      !pkg.deleted &&
-      !pkg.deletedAt &&
-      pkg.id &&
-      packageTitle(pkg) &&
-      publicSupplierIds instanceof Set &&
-      publicSupplierIds.has(pkg.supplierId)
+    pkg.approved === true &&
+    pkg.paused !== true &&
+    !pkg.deleted &&
+    !pkg.deletedAt &&
+    pkg.id &&
+    packageTitle(pkg) &&
+    publicSupplierIds instanceof Set &&
+    publicSupplierIds.has(pkg.supplierId)
   );
 }
 
@@ -213,22 +213,24 @@ function resolvePublicPackage(packages, value, publicSupplierIds) {
 }
 
 function eventStatus(event) {
-  return String(event?.status || 'published').trim().toLowerCase();
+  return String(event?.status || 'published')
+    .trim()
+    .toLowerCase();
 }
 
 function isPublicEventVisible(event) {
   const visibility = String(event?.visibility || '').toLowerCase();
   return Boolean(
     event &&
-      !event.deleted &&
-      !event.isDeleted &&
-      !event.deletedAt &&
-      event.id &&
-      stripMarkup(event.title) &&
-      validDate(event.startDate) &&
-      INDEXABLE_EVENT_STATUSES.has(eventStatus(event)) &&
-      event.isPrivate !== true &&
-      visibility !== 'private'
+    !event.deleted &&
+    !event.isDeleted &&
+    !event.deletedAt &&
+    event.id &&
+    stripMarkup(event.title) &&
+    validDate(event.startDate) &&
+    INDEXABLE_EVENT_STATUSES.has(eventStatus(event)) &&
+    event.isPrivate !== true &&
+    visibility !== 'private'
   );
 }
 
@@ -292,8 +294,7 @@ function packageImage(pkg, baseUrl) {
       ? pkg.gallery
       : [];
   const item = gallery.find(Boolean);
-  const galleryUrl =
-    typeof item === 'string' ? item : item?.url || item?.src || item?.path || '';
+  const galleryUrl = typeof item === 'string' ? item : item?.url || item?.src || item?.path || '';
   return safeImageUrl(
     pkg?.openGraphImage || pkg?.image || pkg?.imageUrl || pkg?.coverImage || galleryUrl,
     baseUrl

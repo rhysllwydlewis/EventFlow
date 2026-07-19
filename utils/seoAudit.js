@@ -195,7 +195,9 @@ function selectAuditEntries(entries, limit = 60) {
     else if (pathname.startsWith('/package/')) groups.package.push(entry);
     else if (pathname.startsWith('/events/')) groups.event.push(entry);
     else if (pathname.startsWith('/articles/')) groups.article.push(entry);
-    else if (['/', '/suppliers', '/marketplace', '/public-calendar', '/guides'].includes(pathname)) {
+    else if (
+      ['/', '/suppliers', '/marketplace', '/public-calendar', '/guides'].includes(pathname)
+    ) {
       groups.core.push(entry);
     } else groups.other.push(entry);
   }

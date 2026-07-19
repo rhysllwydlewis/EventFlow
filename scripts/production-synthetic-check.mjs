@@ -341,9 +341,7 @@ async function runTechnicalSeoAudit() {
           failures.push(`${entry.url}: ${contract.issues.join(', ')}`);
         }
       } catch (error) {
-        failures.push(
-          `${entry.url}: ${error.name === 'AbortError' ? 'timeout' : 'network error'}`
-        );
+        failures.push(`${entry.url}: ${error.name === 'AbortError' ? 'timeout' : 'network error'}`);
       }
     }
 

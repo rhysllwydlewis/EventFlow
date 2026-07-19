@@ -134,9 +134,7 @@ async function generateSitemap(baseUrl) {
       appendUrl(
         xmlParts,
         `${normalizedBaseUrl}/supplier/${slug}`,
-        validLastModifiedOrFallback(
-          supplier.updatedAt || supplier.modifiedAt || supplier.createdAt
-        )
+        validLastModifiedOrFallback(supplier.updatedAt || supplier.modifiedAt || supplier.createdAt)
       );
     });
 
