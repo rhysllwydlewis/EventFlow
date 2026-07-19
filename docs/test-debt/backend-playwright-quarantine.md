@@ -2,31 +2,31 @@
 
 PR #1354 introduced a real-server, MongoDB-backed browser gate and exposed historical backend test debt that the previous static harness did not execute truthfully.
 
-This pull request increases the blocking set from 10 to 12 spec files:
+## Current status
 
-- `start-wizard-journey.spec.js` now establishes a same-origin document before localStorage access and tests the current wizard journey.
-- `suppliers.spec.js` now tests current supplier-directory, API and logged-out intent contracts without `networkidle` races.
-- superseded `websocket.spec.js` has been removed; `websocket-v2.spec.js` remains the current blocking socket contract.
+The quarantine has been retired. All 20 current `@backend` Playwright specifications are now in the blocking MongoDB-backed suite, and `e2e/backend-suite-classification.json` contains no quarantined entries.
 
-Every remaining quarantined file is declared in `e2e/backend-suite-classification.json`; the runner refuses to start when any `@backend` spec is unclassified.
+The final repair batch replaced historical page assumptions with deterministic current-product contracts for:
 
-## Remaining repair checklist
+- administrator feature flags, including authenticated mutation, live feature enforcement and state restoration;
+- customer enquiries from clean public supplier profiles;
+- clean package URLs, legacy redirects and public package eligibility;
+- supplier and marketplace discovery funnels;
+- the current supplier dashboard shell and mobile layout;
+- account-first supplier onboarding;
+- approved-only review visibility across both public review readers;
+- the complete supplier verification lifecycle.
 
-- [ ] `admin-feature-flags.spec.js` — authenticate properly, change and restore flags, and assert the current registration validation/rate-limit contract.
-- [ ] `customer-enquiry-flow.spec.js` — rebuild fixtures and selectors around the current enquiry journey and remove live-page `networkidle` waits.
-- [ ] `packages.spec.js` — replace legacy price controls and persistent-service `networkidle` assumptions with current deterministic contracts.
-- [ ] `public-discovery-funnel.spec.js` — align the marketplace new-listing logged-out flow with the current redirect and intent contract.
-- [ ] `supplier-dashboard-improvements.spec.js` — replace removed onboarding cards and legacy dashboard selectors with current UI contracts.
-- [ ] `supplier-onboarding.spec.js` — test the current account-first supplier onboarding rather than a retired full-profile registration form.
-- [ ] `supplier-reviews.spec.js` — create current supplier/review fixtures and remove obsolete profile resources and `networkidle` waits.
-- [ ] `supplier-verification-flow.spec.js` — replace source-literal checks with current verification API behaviour.
+The suite uses test-only, header-protected fixture endpoints that are mounted only when `NODE_ENV=test`. Each specification receives isolated MongoDB records identified by a unique run ID and removes its fixtures after execution. No fixture route is loaded in production.
 
-## Removal criteria
+## Classification invariant
 
-A file may leave quarantine only when its assertions represent the current product, it passes repeatedly against the real server and MongoDB replica set, and it is moved into the `blocking` array in the same change.
+Every `@backend` file must appear exactly once in the `blocking` array. The runner refuses to start when a file is missing, duplicated, stale or reintroduced into quarantine without an explicit repository change.
 
-Run the complete diagnostic set with:
+Run the complete blocking suite with:
 
 ```bash
-npm run test:e2e:backend -- --include-quarantined --project=chromium
+npm run test:e2e:backend -- --project=chromium
 ```
+
+A future test may be quarantined only when a tracked issue documents the current failure, the classification includes a specific reason and the blocking suite retains truthful coverage for the affected product area.
