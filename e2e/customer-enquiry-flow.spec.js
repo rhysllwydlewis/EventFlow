@@ -6,15 +6,16 @@ import {
   seedBackendFixtures,
 } from './helpers/backend-fixtures.js';
 
-async function enquirySurface(page) {
-  const dialog = page
-    .locator('[role="dialog"]:visible')
-    .filter({ hasText: /log in|message|enquir/i });
-  return {
-    authRedirect: new URL(page.url()).pathname === '/auth',
-    messengerRedirect: new URL(page.url()).pathname.startsWith('/messenger'),
-    dialogVisible: (await dialog.count()) > 0,
-  };
+async function waitForEnquiryWiring(page) {
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          typeof window.QuickComposeV4?.open === 'function' &&
+          typeof document.getElementById('btn-enquiry')?.onclick === 'function'
+      )
+    )
+    .toBe(true);
 }
 
 test.describe('Customer enquiry journey against the real backend @backend', () => {
@@ -36,6 +37,7 @@ test.describe('Customer enquiry journey against the real backend @backend', () =
     await expect(page.locator('#btn-call')).toHaveAttribute('href', /^tel:/);
     await expect(page.locator('#sp-section-packages')).toBeAttached();
     await expect(page.locator('#sp-section-reviews')).toBeAttached();
+    await waitForEnquiryWiring(page);
   });
 
   test('redirects the historical supplier query URL to the clean profile in one hop', async ({
@@ -48,51 +50,36 @@ test.describe('Customer enquiry journey against the real backend @backend', () =
     expect(response.headers().location).toBe(fixtures.supplier.path);
   });
 
-  test('gates a logged-out enquiry with a login-aware message surface', async ({
+  test('gates a logged-out enquiry through the current Quick Compose auth handoff', async ({
     page,
     context,
   }) => {
     await context.clearCookies();
     await page.goto(fixtures.supplier.path);
     await expect(page.locator('#hero-title')).toHaveText(fixtures.supplier.name);
-    await page.locator('#btn-enquiry').click();
+    await waitForEnquiryWiring(page);
 
-    await expect
-      .poll(async () => {
-        const state = await enquirySurface(page);
-        return state.authRedirect || state.messengerRedirect || state.dialogVisible;
-      })
-      .toBe(true);
+    await Promise.all([
+      page.waitForURL(/\/auth\?redirect=/, { timeout: 15_000 }),
+      page.locator('#btn-enquiry').click(),
+    ]);
 
-    if (new URL(page.url()).pathname === '/auth') {
-      const url = new URL(page.url());
-      expect(url.searchParams.get('intent')).toBe('message');
-      expect(url.searchParams.get('redirect')).toContain('/supplier/');
-    } else {
-      await expect(page.locator('[role="dialog"]:visible')).toContainText(/log in|message|enquir/i);
-    }
+    const url = new URL(page.url());
+    expect(url.searchParams.get('redirect')).toContain(fixtures.supplier.path);
   });
 
-  test('opens the real compose journey for an authenticated customer', async ({ page }) => {
+  test('opens the real compose panel for an authenticated customer', async ({ page }) => {
     await loginAs(page, fixtures.users.customer);
     await page.goto(fixtures.supplier.path);
     await expect(page.locator('#hero-title')).toHaveText(fixtures.supplier.name);
+    await waitForEnquiryWiring(page);
     await page.locator('#btn-enquiry').click();
 
-    await expect
-      .poll(async () => {
-        const state = await enquirySurface(page);
-        return state.messengerRedirect || state.dialogVisible;
-      })
-      .toBe(true);
-
-    if (new URL(page.url()).pathname.startsWith('/messenger')) {
-      const url = new URL(page.url());
-      expect(url.searchParams.get('recipientId')).toBe(fixtures.users.supplier.id);
-      expect(url.searchParams.get('contextId')).toBe(fixtures.supplier.id);
-    } else {
-      const dialog = page.locator('[role="dialog"]:visible');
-      await expect(dialog).toContainText(/message|enquir/i);
-    }
+    const dialog = page.locator('.qcv4-panel.qcv4-panel--visible[role="dialog"]');
+    await expect(dialog).toBeVisible({ timeout: 15_000 });
+    await expect(dialog.locator('#qcv4-title')).toHaveText('New Message');
+    await expect(dialog.locator('#qcv4-recipient')).toHaveValue(fixtures.users.supplier.id);
+    await expect(dialog.locator('#qcv4-message')).toContainText(/enquire about your services/i);
+    await expect(dialog).toContainText(fixtures.supplier.name);
   });
 });
