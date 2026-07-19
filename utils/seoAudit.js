@@ -1,12 +1,15 @@
 'use strict';
 
+const XML_ENTITY_MAP = {
+  '&lt;': '<',
+  '&gt;': '>',
+  '&quot;': '"',
+  '&apos;': "'",
+  '&amp;': '&',
+};
+
 function decodeXml(value) {
-  return String(value || '')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&apos;/g, "'");
+  return String(value || '').replace(/&(lt|gt|quot|apos|amp);/g, entity => XML_ENTITY_MAP[entity]);
 }
 
 function parseSitemapEntries(xml) {
