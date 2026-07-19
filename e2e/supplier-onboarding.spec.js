@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 import {
   cleanupBackendFixtures,
   createRunId,
+  E2E_HEADERS,
   loginAs,
   seedBackendFixtures,
 } from './helpers/backend-fixtures.js';
@@ -50,6 +51,7 @@ test.describe('Current account-first supplier onboarding @backend', () => {
 
   test('blocks login until account email verification is complete', async ({ request }) => {
     const response = await request.post('/api/auth/login', {
+      headers: E2E_HEADERS,
       data: {
         email: fixtures.users.unverifiedEmail.email,
         password: fixtures.users.unverifiedEmail.password,
