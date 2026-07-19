@@ -1,9 +1,6 @@
 'use strict';
 
-const {
-  addPublicProfilePath,
-  addPublicProfilePaths,
-} = require('../../routes/search');
+const { addPublicProfilePath, addPublicProfilePaths } = require('../../routes/search');
 const { buildPublicSupplierSlug } = require('../../services/publicSupplierSeo.service');
 
 describe('supplier search canonical profile paths', () => {
