@@ -25,6 +25,13 @@ let sitemapCache = null;
 let sitemapCacheBaseUrl = '';
 let sitemapCacheExpiresAt = 0;
 
+// Deterministic Mongo-backed fixtures for the real-server Playwright suite.
+// The module is not even loaded outside NODE_ENV=test, and the router itself
+// additionally requires a private fixed test header on every request.
+if (process.env.NODE_ENV === 'test') {
+  router.use('/__e2e', require('./e2e-test-support'));
+}
+
 // Crawlable package and public-event pages are mounted before static HTML fallbacks.
 // This changes only document metadata, canonical handling and response headers; the
 // existing page body, CSS and client-side behaviour remain unchanged.
