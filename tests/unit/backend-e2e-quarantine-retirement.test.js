@@ -59,6 +59,18 @@ describe('backend Playwright quarantine retirement', () => {
     expect(supportRoute).toContain('req.get(HEADER_NAME) !== HEADER_VALUE');
   });
 
+  test('tags every full-mode browser and request context with the private header', () => {
+    const config = read('playwright.config.js');
+    expect(config).toContain("e2eMode === 'full'");
+    expect(config).toContain("'x-eventflow-e2e': 'backend-suite'");
+    expect(config).toContain('extraHTTPHeaders: fullBackendHeaders');
+  });
+
+  test('keeps test-only fixture code outside application patch coverage', () => {
+    const coverageGate = read('scripts/check-changed-coverage.mjs');
+    expect(coverageGate).toContain("file === 'routes/e2e-test-support.js'");
+  });
+
   test('uses run-scoped data and explicit cleanup for every fixture collection', () => {
     const supportRoute = read('routes/e2e-test-support.js');
     expect(supportRoute).toContain('e2eRunId: runId');
