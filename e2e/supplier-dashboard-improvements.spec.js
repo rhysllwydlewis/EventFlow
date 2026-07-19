@@ -44,21 +44,19 @@ test.describe('Current supplier dashboard contracts @backend', () => {
     await page.goto('/dashboard/supplier');
 
     const navContracts = [
-      ['nav-overview', 'overview'],
-      ['nav-profiles', 'profiles'],
-      ['nav-packages', 'packages'],
-      ['nav-messages', 'messages'],
-      ['nav-stats', 'stats'],
-      ['nav-tickets', 'tickets'],
-      ['nav-settings', 'settings'],
+      ['nav-overview', 'data-section', 'welcome-section'],
+      ['nav-profiles', 'data-section', 'my-suppliers'],
+      ['nav-packages', 'data-section', 'my-packages'],
+      ['nav-messages', 'data-section', 'threads-sup'],
+      ['nav-stats', 'data-section', 'supplier-stats-grid'],
+      ['nav-tickets', 'data-section', 'tickets-sup'],
+      ['nav-settings', 'data-href', '/settings'],
     ];
 
-    for (const [testId, section] of navContracts) {
+    for (const [testId, attribute, target] of navContracts) {
       const nav = page.locator(`[data-test="${testId}"]`);
       await expect(nav).toBeVisible();
-      const target =
-        (await nav.getAttribute('data-section')) || (await nav.getAttribute('href')) || '';
-      expect(target).toContain(section);
+      await expect(nav).toHaveAttribute(attribute, target);
     }
 
     await expect(page.locator('.onboarding-card, #onboarding-card')).toHaveCount(0);
