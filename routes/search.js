@@ -8,8 +8,10 @@
 const express = require('express');
 const logger = require('../utils/logger');
 const { searchLimiter } = require('../middleware/rateLimits');
-const { buildPublicSupplierSlug } = require('../services/publicSupplierSeo.service');
-const searchServiceV2 = require('../services/searchService');
+const {
+  addPublicProfilePath,
+  addPublicProfilePaths,
+} = require('../utils/publicSupplierProfilePath');
 const router = express.Router();
 // These will be injected by server.js during route mounting
 let authRequired;
@@ -47,62 +49,6 @@ function applyAuthRequired(req, res, next) {
     return res.status(503).json({ error: 'Auth service not initialized' });
   }
   return authRequired(req, res, next);
-}
-
-function addPublicProfilePath(supplier) {
-  if (!supplier || typeof supplier !== 'object') {
-    return supplier;
-  }
-
-  const supplierName = supplier.name || supplier.businessName || supplier.company;
-  if (!supplier.id || !supplierName) {
-    return supplier;
-  }
-
-  const slug = buildPublicSupplierSlug({ ...supplier, name: supplierName });
-  if (!slug) {
-    return supplier;
-  }
-
-  return {
-    ...supplier,
-    publicProfilePath: `/supplier/${slug}`,
-  };
-}
-
-function addPublicProfilePaths(searchResults) {
-  const output = { ...(searchResults || {}) };
-
-  if (Array.isArray(output.results)) {
-    output.results = output.results.map(addPublicProfilePath);
-  }
-
-  if (output.fallback && Array.isArray(output.fallback.suggestions)) {
-    output.fallback = {
-      ...output.fallback,
-      suggestions: output.fallback.suggestions.map(addPublicProfilePath),
-    };
-  }
-
-  return output;
-}
-
-// search-v2 is loaded earlier by routes/index.js, but it holds this same mutable
-// searchService export object. Enriching the service method here keeps both the
-// current v2 directory endpoint and the legacy endpoint on one URL contract.
-if (
-  typeof searchServiceV2.searchSuppliers === 'function' &&
-  searchServiceV2.__publicProfilePathsEnabled !== true
-) {
-  const searchSuppliersV2 = searchServiceV2.searchSuppliers.bind(searchServiceV2);
-  searchServiceV2.searchSuppliers = async query =>
-    addPublicProfilePaths(await searchSuppliersV2(query));
-  Object.defineProperty(searchServiceV2, '__publicProfilePathsEnabled', {
-    value: true,
-    configurable: false,
-    enumerable: false,
-    writable: false,
-  });
 }
 
 // ---------- Search Routes ----------

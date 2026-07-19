@@ -18,6 +18,7 @@ const {
   getCacheStats,
 } = require('../middleware/searchCache');
 const searchService = require('../services/searchService');
+const { addPublicProfilePaths } = require('../utils/publicSupplierProfilePath');
 const searchAnalytics = require('../utils/searchAnalytics');
 const validator = require('validator');
 
@@ -43,7 +44,8 @@ function getSessionId(req) {
 router.get('/suppliers', searchCacheMiddleware({ fixedTtl: null }), async (req, res) => {
   try {
     // Pass raw query params — the service normalizes and validates them
-    const results = await searchService.searchSuppliers(req.query);
+    const rawResults = await searchService.searchSuppliers(req.query);
+    const results = addPublicProfilePaths(rawResults);
 
     // Track search for analytics (use normalized values from results)
     const user = await getUserFromCookie(req);

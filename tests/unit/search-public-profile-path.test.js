@@ -1,6 +1,11 @@
 'use strict';
 
-const { addPublicProfilePath, addPublicProfilePaths } = require('../../routes/search');
+const fs = require('fs');
+const path = require('path');
+const {
+  addPublicProfilePath,
+  addPublicProfilePaths,
+} = require('../../utils/publicSupplierProfilePath');
 const { buildPublicSupplierSlug } = require('../../services/publicSupplierSeo.service');
 
 describe('supplier search canonical profile paths', () => {
@@ -38,5 +43,13 @@ describe('supplier search canonical profile paths', () => {
   test('leaves incomplete suppliers unchanged', () => {
     expect(addPublicProfilePath(null)).toBeNull();
     expect(addPublicProfilePath({ id: 'supplier-123' })).toEqual({ id: 'supplier-123' });
+  });
+
+  test('enriches v2 results directly without depending on module load order', () => {
+    const legacyRoute = fs.readFileSync(path.join(__dirname, '../../routes/search.js'), 'utf8');
+    const v2Route = fs.readFileSync(path.join(__dirname, '../../routes/search-v2.js'), 'utf8');
+
+    expect(legacyRoute).not.toContain('__publicProfilePathsEnabled');
+    expect(v2Route).toContain('const results = addPublicProfilePaths(rawResults);');
   });
 });
