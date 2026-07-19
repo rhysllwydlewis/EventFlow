@@ -12,6 +12,8 @@ const PHOTO_ASSET_LIMIT_WINDOW_MS = 15 * 60 * 1000;
 const PHOTO_ASSET_PATH_PATTERN = /^\/api\/(?:v1\/)?photos\/[^/?#]+$/;
 const PUBLIC_CALENDAR_EVENTS_PATH_PATTERN =
   /^\/api\/(?:v1\/)?public-calendar\/events(?:\/[^/?#]+(?:\/ics)?)?\/?$/;
+const E2E_HEADER_NAME = 'x-eventflow-e2e';
+const E2E_HEADER_VALUE = 'backend-suite';
 const parsedPhotoAssetLimit = Number.parseInt(process.env.PHOTO_ASSET_RATE_LIMIT_MAX || '3000', 10);
 const PHOTO_ASSET_RATE_LIMIT_MAX = Number.isFinite(parsedPhotoAssetLimit)
   ? parsedPhotoAssetLimit
@@ -40,6 +42,14 @@ function isPublicCalendarReadRequest(req) {
   return !/\/events\/saved\/?$/.test(requestPath);
 }
 
+function isBackendE2ERequest(req) {
+  return (
+    process.env.NODE_ENV === 'test' &&
+    process.env.E2E_MODE === 'full' &&
+    req.get(E2E_HEADER_NAME) === E2E_HEADER_VALUE
+  );
+}
+
 /**
  * Strict rate limit for authentication endpoints
  * Protects against brute force attacks and credential stuffing
@@ -51,6 +61,7 @@ const authLimiter = rateLimit({
   message: 'Too many authentication attempts, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
+  skip: isBackendE2ERequest,
 });
 
 /**
@@ -63,6 +74,7 @@ const strictAuthLimiter = rateLimit({
   message: 'Too many login attempts, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
+  skip: isBackendE2ERequest,
 });
 
 /**
@@ -76,6 +88,7 @@ const registrationLimiter = rateLimit({
   message: 'Too many registration attempts. Please try again in an hour.',
   standardHeaders: true,
   legacyHeaders: false,
+  skip: isBackendE2ERequest,
 });
 
 /**
@@ -96,8 +109,8 @@ const passwordResetLimiter = rateLimit({
  * 50 requests per hour
  */
 const aiLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  max: 50, // 50 requests per hour
+  windowMs: 60 * 60 * 1000,
+  max: 50,
   message: 'Too many AI requests, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
@@ -109,8 +122,8 @@ const aiLimiter = rateLimit({
  * 20 uploads per 15 minutes
  */
 const uploadLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 20, // 20 uploads per window
+  windowMs: 15 * 60 * 1000,
+  max: 20,
   message: 'Too many upload requests, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
@@ -122,8 +135,8 @@ const uploadLimiter = rateLimit({
  * 30 searches per minute
  */
 const searchLimiter = rateLimit({
-  windowMs: 1 * 60 * 1000, // 1 minute
-  max: 30, // 30 searches per minute
+  windowMs: 60 * 1000,
+  max: 30,
   message: 'Too many search requests, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
@@ -135,8 +148,8 @@ const searchLimiter = rateLimit({
  * 50 requests per 5 minutes
  */
 const notificationLimiter = rateLimit({
-  windowMs: 5 * 60 * 1000, // 5 minutes
-  max: 50, // 50 requests per window
+  windowMs: 5 * 60 * 1000,
+  max: 50,
   message: 'Too many notification requests, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
@@ -178,8 +191,8 @@ const publicReadLimiter = rateLimit({
 });
 
 const baseApiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // 100 requests per window
+  windowMs: 15 * 60 * 1000,
+  max: 100,
   message: 'Too many requests, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
@@ -225,10 +238,7 @@ const resendEmailLimiter = rateLimit({
   message: 'Too many resend requests. Please try again in 15 minutes.',
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: req => {
-    // Rate limit by email address to prevent abuse of a single account
-    return req.body.email || req.ip;
-  },
+  keyGenerator: req => req.body.email || req.ip,
 });
 
 /**
@@ -237,8 +247,8 @@ const resendEmailLimiter = rateLimit({
  * 20 requests per 15 minutes per IP
  */
 const apiDocsLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 20, // 20 requests per window
+  windowMs: 15 * 60 * 1000,
+  max: 20,
   message: 'Too many requests to this endpoint, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
@@ -263,5 +273,6 @@ module.exports = {
     getRequestPath,
     isPhotoAssetRequest,
     isPublicCalendarReadRequest,
+    isBackendE2ERequest,
   },
 };
