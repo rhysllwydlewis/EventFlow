@@ -6,9 +6,12 @@ const path = require('path');
 const root = path.resolve(__dirname, '../..');
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
 
-function allAssertionOptions(config) {
+function namedAssertionOptions(config) {
   return config.ci.assert.assertMatrix.flatMap(entry =>
-    Object.values(entry.assertions).map(value => value[1])
+    Object.entries(entry.assertions).map(([name, value]) => ({
+      name,
+      options: value[1],
+    }))
   );
 }
 
@@ -94,7 +97,7 @@ describe('autonomous quality workflow contracts', () => {
     }
   });
 
-  test('Lighthouse uses page-specific pessimistic regression baselines', () => {
+  test('Lighthouse uses median performance and pessimistic deterministic regressions', () => {
     const desktop = JSON.parse(read('.lighthouserc.json'));
     const mobile = JSON.parse(read('.lighthouserc.mobile.json'));
 
@@ -103,9 +106,22 @@ describe('autonomous quality workflow contracts', () => {
     expect(JSON.stringify(desktop)).toContain('guides');
     expect(JSON.stringify(mobile)).toContain('suppliers$');
     expect(JSON.stringify(mobile)).toContain('http://localhost:3000/$');
+    expect(desktop.ci.collect.numberOfRuns).toBe(3);
+    expect(mobile.ci.collect.numberOfRuns).toBe(3);
 
-    for (const options of [...allAssertionOptions(desktop), ...allAssertionOptions(mobile)]) {
-      expect(options.aggregationMethod).toBe('pessimistic');
+    const assertions = [...namedAssertionOptions(desktop), ...namedAssertionOptions(mobile)];
+    const performance = assertions.filter(assertion => assertion.name === 'categories:performance');
+    const deterministic = assertions.filter(
+      assertion => assertion.name !== 'categories:performance'
+    );
+
+    expect(performance.length).toBeGreaterThan(0);
+    expect(deterministic.length).toBeGreaterThan(0);
+    for (const assertion of performance) {
+      expect(assertion.options.aggregationMethod).toBe('median');
+    }
+    for (const assertion of deterministic) {
+      expect(assertion.options.aggregationMethod).toBe('pessimistic');
     }
   });
 

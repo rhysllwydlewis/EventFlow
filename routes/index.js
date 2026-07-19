@@ -46,6 +46,7 @@ const suppliersV2Routes = require('./suppliers-v2');
 const supplierProfileSafeRoutes = require('./supplier-profile-safe');
 const supplierProfilePackageCardRoutes = require('./supplier-profile-package-cards');
 const publicSupplierAvatarRoutes = require('./public-supplier-avatar');
+const createPublicSupplierSeoRouter = require('./public-supplier-seo');
 const partnerReferralCampaignCapture = require('../middleware/partnerReferralCampaignCapture');
 
 // New extracted route modules
@@ -84,6 +85,18 @@ const telemetryRoutes = require('./telemetry');
  * @param {Object} deps - Dependencies to inject into routes
  */
 function mountRoutes(app, deps) {
+  // Public, crawlable supplier profiles with server-rendered metadata.
+  // Mounted through the backend router so the existing supplier page body and CSS stay unchanged.
+  if (deps && deps.dbUnified) {
+    app.use(
+      createPublicSupplierSeoRouter({
+        dbUnified: deps.dbUnified,
+        logger: deps.logger || logger,
+        baseUrl: process.env.BASE_URL || 'https://event-flow.co.uk',
+      })
+    );
+  }
+
   // System routes (health, config, meta) - must be first for health checks
   if (deps) {
     systemRoutes.initializeDependencies(deps);
