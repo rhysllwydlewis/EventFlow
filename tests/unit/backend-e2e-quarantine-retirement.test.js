@@ -44,9 +44,10 @@ describe('backend Playwright quarantine retirement', () => {
     );
   });
 
-  test('mounts fixture routes only in test mode', () => {
+  test('mounts fixture routes only for full backend browser mode', () => {
     const staticRoutes = read('routes/static.js');
     expect(staticRoutes).toContain("process.env.NODE_ENV === 'test'");
+    expect(staticRoutes).toContain("process.env.E2E_MODE === 'full'");
     expect(staticRoutes).toContain("router.use('/__e2e', require('./e2e-test-support'))");
   });
 
