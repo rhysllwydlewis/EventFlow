@@ -1,0 +1,42 @@
+name: PR 1382 format repair
+
+on:
+  pull_request:
+    paths:
+      - 'e2e/admin-feature-flags.spec.js'
+      - 'e2e/customer-enquiry-flow.spec.js'
+      - 'e2e/packages.spec.js'
+      - 'e2e/supplier-dashboard-improvements.spec.js'
+      - 'e2e/supplier-onboarding.spec.js'
+      - '.github/workflows/pr1382-format-repair.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.node-version'
+          cache: npm
+      - run: npm ci --prefer-offline --no-audit
+      - run: >-
+          npx prettier --write
+          e2e/admin-feature-flags.spec.js
+          e2e/customer-enquiry-flow.spec.js
+          e2e/packages.spec.js
+          e2e/supplier-dashboard-improvements.spec.js
+          e2e/supplier-onboarding.spec.js
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pr1382-formatted-source
+          path: |
+            e2e/admin-feature-flags.spec.js
+            e2e/customer-enquiry-flow.spec.js
+            e2e/packages.spec.js
+            e2e/supplier-dashboard-improvements.spec.js
+            e2e/supplier-onboarding.spec.js
+          retention-days: 1
