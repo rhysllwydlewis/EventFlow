@@ -15,6 +15,7 @@ const supplier = {
   name: 'Cwm Valley Events',
 };
 
+// These cases preserve existing public URL contracts while hardening their SEO output.
 describe('public listing SEO compatibility edge cases', () => {
   test('matches the public-calendar fallback slug exactly for legacy events', () => {
     const legacyEvent = {
