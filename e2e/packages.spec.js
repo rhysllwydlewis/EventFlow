@@ -41,7 +41,9 @@ test.describe("Packages against the real backend @backend", () => {
     const canonical = await page
       .locator('link[rel="canonical"]')
       .getAttribute("href");
-    expect(canonical).toBe(`http://localhost:3000${fixtures.package.path}`);
+    expect(canonical).toBe(
+      `https://event-flow.co.uk${fixtures.package.path}`,
+    );
   });
 
   test("redirects legacy query URLs to the clean package path in one hop", async ({
@@ -82,11 +84,32 @@ test.describe("Packages against the real backend @backend", () => {
     expect(Array.isArray(body.categories)).toBe(true);
   });
 
-  test("keeps paused, unapproved and missing packages out of the public surface", async ({
+  test("keeps paused packages out of indexable HTML while preserving the current API contract", async ({
+    request,
+  }) => {
+    const htmlResponse = await request.get(
+      `/package/${encodeURIComponent(fixtures.pausedPackage.slug)}`,
+    );
+    expect(htmlResponse.status()).toBe(404);
+    expect(htmlResponse.headers()["x-robots-tag"]).toMatch(/noindex/);
+
+    const apiResponse = await request.get(
+      `/api/packages/${encodeURIComponent(fixtures.pausedPackage.slug)}`,
+    );
+    expect(apiResponse.ok()).toBe(true);
+    await expect(apiResponse.json()).resolves.toMatchObject({
+      package: expect.objectContaining({
+        id: fixtures.pausedPackage.id,
+        approved: true,
+        paused: true,
+      }),
+    });
+  });
+
+  test("keeps unapproved and missing packages out of both public surfaces", async ({
     request,
   }) => {
     for (const slug of [
-      fixtures.pausedPackage.slug,
       fixtures.unapprovedPackage.slug,
       `missing-${runId}`,
     ]) {
