@@ -46,6 +46,7 @@ function isBackendE2ERequest(req) {
   return (
     process.env.NODE_ENV === 'test' &&
     process.env.E2E_MODE === 'full' &&
+    typeof req.get === 'function' &&
     req.get(E2E_HEADER_NAME) === E2E_HEADER_VALUE
   );
 }
@@ -56,8 +57,8 @@ function isBackendE2ERequest(req) {
  * 10 requests per 15 minutes - balances security with user experience
  */
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10, // 10 requests per window
+  windowMs: 15 * 60 * 1000,
+  max: 10,
   message: 'Too many authentication attempts, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
@@ -69,8 +70,8 @@ const authLimiter = rateLimit({
  * 5 requests per 15 minutes to limit brute-force on credentials
  */
 const strictAuthLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // 5 requests per window
+  windowMs: 15 * 60 * 1000,
+  max: 5,
   message: 'Too many login attempts, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
@@ -83,7 +84,7 @@ const strictAuthLimiter = rateLimit({
  * 5 registrations per hour per IP is generous for real users, too slow for abuse.
  */
 const registrationLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
+  windowMs: 60 * 60 * 1000,
   max: 5,
   message: 'Too many registration attempts. Please try again in an hour.',
   standardHeaders: true,
@@ -96,11 +97,12 @@ const registrationLimiter = rateLimit({
  * 5 requests per 15 minutes to prevent reset-link spam and enumeration attempts
  */
 const passwordResetLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // 5 requests per window
+  windowMs: 15 * 60 * 1000,
+  max: 5,
   message: 'Too many password reset requests, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
+  skip: isBackendE2ERequest,
 });
 
 /**
@@ -114,6 +116,7 @@ const aiLimiter = rateLimit({
   message: 'Too many AI requests, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
+  skip: isBackendE2ERequest,
 });
 
 /**
@@ -127,6 +130,7 @@ const uploadLimiter = rateLimit({
   message: 'Too many upload requests, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
+  skip: isBackendE2ERequest,
 });
 
 /**
@@ -140,6 +144,7 @@ const searchLimiter = rateLimit({
   message: 'Too many search requests, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
+  skip: isBackendE2ERequest,
 });
 
 /**
@@ -153,6 +158,7 @@ const notificationLimiter = rateLimit({
   message: 'Too many notification requests, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
+  skip: isBackendE2ERequest,
 });
 
 /**
@@ -170,6 +176,7 @@ const photoAssetLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: isBackendE2ERequest,
   handler: (req, res, _next, options) => {
     res.setHeader('Cache-Control', 'no-store');
     res.setHeader('Retry-After', String(Math.ceil(PHOTO_ASSET_LIMIT_WINDOW_MS / 1000)));
@@ -188,6 +195,7 @@ const publicReadLimiter = rateLimit({
   message: 'Too many public catalogue requests, please try again shortly.',
   standardHeaders: true,
   legacyHeaders: false,
+  skip: isBackendE2ERequest,
 });
 
 const baseApiLimiter = rateLimit({
@@ -196,6 +204,7 @@ const baseApiLimiter = rateLimit({
   message: 'Too many requests, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
+  skip: isBackendE2ERequest,
 });
 
 /**
@@ -226,6 +235,7 @@ const writeLimiter = rateLimit({
   max: 80,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: isBackendE2ERequest,
 });
 
 /**
@@ -238,6 +248,7 @@ const resendEmailLimiter = rateLimit({
   message: 'Too many resend requests. Please try again in 15 minutes.',
   standardHeaders: true,
   legacyHeaders: false,
+  skip: isBackendE2ERequest,
   keyGenerator: req => req.body.email || req.ip,
 });
 
@@ -252,6 +263,7 @@ const apiDocsLimiter = rateLimit({
   message: 'Too many requests to this endpoint, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
+  skip: isBackendE2ERequest,
 });
 
 module.exports = {
