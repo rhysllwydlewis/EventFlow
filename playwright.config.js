@@ -5,6 +5,8 @@ const isCI = process.env.CI === 'true';
 const runAllBrowsers = process.env.PLAYWRIGHT_ALL_BROWSERS === 'true';
 // Explicit full mode must always win, including inside GitHub Actions.
 const useStaticMode = e2eMode !== 'full' && (isCI || e2eMode === 'static');
+const fullBackendHeaders =
+  e2eMode === 'full' ? { 'x-eventflow-e2e': 'backend-suite' } : undefined;
 
 const chromiumProject = {
   name: 'chromium',
@@ -57,6 +59,7 @@ export default defineConfig({
   use: {
     baseURL:
       process.env.BASE_URL || (useStaticMode ? 'http://127.0.0.1:4173' : 'http://localhost:3000'),
+    extraHTTPHeaders: fullBackendHeaders,
     trace: process.env.PLAYWRIGHT_TRACE || 'on-first-retry',
     screenshot: process.env.PLAYWRIGHT_SCREENSHOT || 'only-on-failure',
     video: process.env.PLAYWRIGHT_VIDEO || 'retain-on-failure',
