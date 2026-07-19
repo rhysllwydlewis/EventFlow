@@ -9,6 +9,7 @@ const express = require('express');
 const logger = require('../utils/logger');
 const { searchLimiter } = require('../middleware/rateLimits');
 const { buildPublicSupplierSlug } = require('../services/publicSupplierSeo.service');
+const searchServiceV2 = require('../services/searchService');
 const router = express.Router();
 
 // These will be injected by server.js during route mounting
@@ -85,6 +86,24 @@ function addPublicProfilePaths(searchResults) {
   }
 
   return output;
+}
+
+// search-v2 is loaded earlier by routes/index.js, but it holds this same mutable
+// searchService export object. Enriching the service method here keeps both the
+// current v2 directory endpoint and the legacy endpoint on one URL contract.
+if (
+  typeof searchServiceV2.searchSuppliers === 'function' &&
+  searchServiceV2.__publicProfilePathsEnabled !== true
+) {
+  const searchSuppliersV2 = searchServiceV2.searchSuppliers.bind(searchServiceV2);
+  searchServiceV2.searchSuppliers = async query =>
+    addPublicProfilePaths(await searchSuppliersV2(query));
+  Object.defineProperty(searchServiceV2, '__publicProfilePathsEnabled', {
+    value: true,
+    configurable: false,
+    enumerable: false,
+    writable: false,
+  });
 }
 
 // ---------- Search Routes ----------
