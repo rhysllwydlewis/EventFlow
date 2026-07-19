@@ -40,6 +40,7 @@ router.use(
     dbUnified,
     logger,
     baseUrl: process.env.BASE_URL || 'https://event-flow.co.uk',
+    cacheTtlMs: process.env.E2E_MODE === 'full' ? 0 : undefined,
   })
 );
 
