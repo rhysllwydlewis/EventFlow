@@ -2,6 +2,8 @@
  * Integration tests for the retired first-party AI plan route.
  */
 
+const fs = require('fs');
+const path = require('path');
 const request = require('supertest');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
@@ -68,5 +70,14 @@ describe('Retired AI Plan Route', () => {
 
   test('preserves authentication on the retired endpoint', async () => {
     await request(app).post('/api/v1/ai/plan').send({}).expect(401);
+  });
+
+  test('replaces the retired planner controls with a JadeAssist handoff', () => {
+    const planHtml = fs.readFileSync(path.join(__dirname, '../../public/plan.html'), 'utf8');
+
+    expect(planHtml).toContain('JadeAssist is now the supported EventFlow assistant.');
+    expect(planHtml).not.toContain('id="ai-plan-run"');
+    expect(planHtml).not.toContain('id="ai-plan-input"');
+    expect(planHtml).not.toContain('Generate suggestions');
   });
 });

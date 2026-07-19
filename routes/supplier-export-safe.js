@@ -76,23 +76,4 @@ router.get('/enquiries/export', authRequired, async (req, res) => {
   }
 });
 
-function installInto(targetRouter) {
-  if (
-    !targetRouter ||
-    !Array.isArray(targetRouter.stack) ||
-    targetRouter.__safeSupplierExportInstalled === true
-  ) {
-    return;
-  }
-
-  targetRouter.stack.unshift(...router.stack);
-  Object.defineProperty(targetRouter, '__safeSupplierExportInstalled', {
-    value: true,
-    configurable: false,
-    enumerable: false,
-    writable: false,
-  });
-}
-
 module.exports = router;
-module.exports.installInto = installInto;

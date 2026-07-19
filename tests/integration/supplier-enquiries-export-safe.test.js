@@ -1,5 +1,7 @@
 'use strict';
 
+const fs = require('fs');
+const path = require('path');
 const express = require('express');
 const request = require('supertest');
 
@@ -105,21 +107,19 @@ describe('safe supplier enquiry CSV export', () => {
     expect(response.body.error).toBe('Failed to export enquiries');
   });
 
-  test('installs the hardened route first and only once', () => {
-    const target = express.Router();
-    target.get('/enquiries/export', (_req, res) => res.status(418).send('legacy'));
-    const originalLength = target.stack.length;
+  test('mounts the hardened export before the legacy supplier router', () => {
+    const routesIndex = fs.readFileSync(path.join(__dirname, '../../routes/index.js'), 'utf8');
 
-    safeExportRoutes.installInto(target);
-    safeExportRoutes.installInto(target);
+    expect(routesIndex).toContain(
+      "const supplierExportSafeRoutes = require('./supplier-export-safe');"
+    );
 
-    expect(target.stack).toHaveLength(originalLength + safeExportRoutes.stack.length);
-    expect(target.stack[0]).toBe(safeExportRoutes.stack[0]);
-    expect(target.__safeSupplierExportInstalled).toBe(true);
-  });
+    for (const prefix of ['/api/v1/supplier', '/api/supplier']) {
+      const hardenedMount = routesIndex.indexOf(`app.use('${prefix}', supplierExportSafeRoutes);`);
+      const legacyMount = routesIndex.indexOf(`app.use('${prefix}', supplierRoutes);`);
 
-  test('ignores invalid router installation targets', () => {
-    expect(() => safeExportRoutes.installInto(null)).not.toThrow();
-    expect(() => safeExportRoutes.installInto({})).not.toThrow();
+      expect(hardenedMount).toBeGreaterThan(-1);
+      expect(legacyMount).toBeGreaterThan(hardenedMount);
+    }
   });
 });

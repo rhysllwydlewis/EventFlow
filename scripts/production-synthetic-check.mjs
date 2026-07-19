@@ -44,8 +44,7 @@ const checks = [
     url: `${canonicalBaseUrl}/`,
     type: 'text',
     validate: ({ body }) =>
-      /<html/i.test(body) &&
-      !/Join over 500\+ verified suppliers already on EventFlow/i.test(body),
+      /<html/i.test(body) && !/Join over 500\+ verified suppliers already on EventFlow/i.test(body),
   },
   {
     name: 'marketplace content contract',
@@ -111,26 +110,37 @@ function result(check, started, outcome) {
   };
 }
 
-async function runCheck(check) {
-  const started = performance.now();
+async function fetchWithTimeout(url, options = {}) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(url, {
+      ...options,
+      signal: controller.signal,
+      headers: {
+        'Cache-Control': 'no-cache',
+        'User-Agent': 'EventFlow-Production-Synthetic/2.1',
+        ...(options.headers || {}),
+      },
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function runCheck(check) {
+  const started = performance.now();
 
   try {
     const requestUrl =
       check.type === 'redirect'
         ? check.url
         : `${check.url}${check.url.includes('?') ? '&' : '?'}synthetic=${Date.now()}`;
-    const response = await fetch(requestUrl, {
-      signal: controller.signal,
+    const response = await fetchWithTimeout(requestUrl, {
       redirect: check.redirect || 'follow',
       headers: {
-        Accept:
-          check.type === 'json'
-            ? 'application/json'
-            : 'text/html,text/plain,application/xml',
-        'Cache-Control': 'no-cache',
-        'User-Agent': 'EventFlow-Production-Synthetic/2.0',
+        Accept: check.type === 'json' ? 'application/json' : 'text/html,text/plain,application/xml',
       },
     });
 
@@ -147,13 +157,115 @@ async function runCheck(check) {
 
     if (response.status !== 200) return result(check, started, 'http_error');
     if (!check.validate({ response, body })) return result(check, started, 'content_invalid');
-    if (performance.now() - started > timeoutMs)
-      return result(check, started, 'slow_response');
+    if (performance.now() - started > timeoutMs) return result(check, started, 'slow_response');
     return result(check, started, 'pass');
   } catch (error) {
     return result(check, started, error.name === 'AbortError' ? 'timeout' : 'network_error');
-  } finally {
-    clearTimeout(timeout);
+  }
+}
+
+function firstSupplierProfileUrl(sitemapXml) {
+  const matches = sitemapXml.matchAll(/<loc>([^<]*\/supplier\/[^<]+)<\/loc>/gi);
+  for (const match of matches) {
+    try {
+      const candidate = new URL(match[1].replace(/&amp;/g, '&'));
+      if (candidate.origin === canonicalBaseUrl && /^\/supplier\/[^/]+/.test(candidate.pathname)) {
+        return candidate.href;
+      }
+    } catch (_error) {
+      // Ignore malformed sitemap entries and continue looking for a valid supplier URL.
+    }
+  }
+  return '';
+}
+
+function supplierProfileContract(html, expectedUrl) {
+  const canonicalMatch = html.match(/<link\b[^>]*rel=["']canonical["'][^>]*href=["']([^"']+)["']/i);
+  const supplierIdMatch = html.match(
+    /<meta\b[^>]*name=["']ef-public-supplier-id["'][^>]*content=["']([^"']+)["']/i
+  );
+  const robotsIndexable = /<meta\b[^>]*name=["']robots["'][^>]*content=["'][^"']*index/i.test(html);
+  const hasJsonLd = /<script\b[^>]*type=["']application\/ld\+json["'][^>]*>/i.test(html);
+
+  return {
+    valid:
+      canonicalMatch?.[1] === expectedUrl &&
+      Boolean(supplierIdMatch?.[1]) &&
+      robotsIndexable &&
+      hasJsonLd,
+    supplierId: supplierIdMatch?.[1] || '',
+  };
+}
+
+async function runSupplierProfileChecks() {
+  const profileCheck = {
+    name: 'canonical supplier profile contract',
+    url: `${canonicalBaseUrl}/supplier/discovery`,
+  };
+  const profileStarted = performance.now();
+
+  try {
+    const sitemapResponse = await fetchWithTimeout(`${canonicalBaseUrl}/sitemap.xml`, {
+      headers: { Accept: 'application/xml,text/xml,text/plain' },
+    });
+    if (!sitemapResponse.ok) {
+      return [result(profileCheck, profileStarted, 'sitemap_http_error')];
+    }
+
+    const sitemapXml = await sitemapResponse.text();
+    const profileUrl = firstSupplierProfileUrl(sitemapXml);
+    if (!profileUrl) {
+      return [result(profileCheck, profileStarted, 'supplier_not_discovered')];
+    }
+
+    profileCheck.url = profileUrl;
+    const profileResponse = await fetchWithTimeout(profileUrl, {
+      redirect: 'follow',
+      headers: { Accept: 'text/html' },
+    });
+    if (profileResponse.status !== 200 || profileResponse.url !== profileUrl) {
+      return [result(profileCheck, profileStarted, 'profile_http_error')];
+    }
+
+    const profileHtml = await profileResponse.text();
+    const contract = supplierProfileContract(profileHtml, profileUrl);
+    const profileResult = result(
+      profileCheck,
+      profileStarted,
+      contract.valid ? 'pass' : 'profile_contract_invalid'
+    );
+
+    const legacyCheck = {
+      name: 'legacy supplier profile redirect',
+      url: `${canonicalBaseUrl}/supplier?id=${encodeURIComponent(contract.supplierId || 'missing')}`,
+    };
+    const legacyStarted = performance.now();
+
+    if (!contract.supplierId) {
+      return [profileResult, result(legacyCheck, legacyStarted, 'supplier_id_missing')];
+    }
+
+    const legacyResponse = await fetchWithTimeout(legacyCheck.url, {
+      redirect: 'manual',
+      headers: { Accept: 'text/html' },
+    });
+    const location = legacyResponse.headers.get('location');
+    const expectedPath = new URL(profileUrl).pathname;
+    const actualPath = location ? new URL(location, canonicalBaseUrl).pathname : '';
+    const redirectValid = [301, 308].includes(legacyResponse.status) && actualPath === expectedPath;
+
+    return [
+      profileResult,
+      result(legacyCheck, legacyStarted, redirectValid ? 'pass' : 'redirect_invalid'),
+    ];
+  } catch (error) {
+    return [
+      result(
+        profileCheck,
+        profileStarted,
+        error.name === 'AbortError' ? 'timeout' : 'network_error'
+      ),
+    ];
   }
 }
 
@@ -162,6 +274,7 @@ for (const check of checks) {
   // Sequential execution keeps the monitor deliberately low-impact and diagnosable.
   results.push(await runCheck(check));
 }
+results.push(...(await runSupplierProfileChecks()));
 
 const report = {
   canonicalTarget: canonicalBaseUrl,

@@ -40,6 +40,7 @@ const weddingWebsiteRoutes = require('./wedding-websites');
 const weddingThemeMediaRoutes = require('./wedding-theme-media');
 const savedRoutes = require('./saved');
 const supplierRoutes = require('./supplier');
+const supplierExportSafeRoutes = require('./supplier-export-safe');
 const supplierAdminRoutes = require('./supplier-admin');
 const supplierManagementRoutes = require('./supplier-management');
 const suppliersV2Routes = require('./suppliers-v2');
@@ -320,6 +321,10 @@ function mountRoutes(app, deps) {
   app.use('/api/me/plans', guestsRoutes);
   app.use('/api/v1/me/saved', savedRoutes);
   app.use('/api/me/saved', savedRoutes);
+  // The hardened CSV export must run before the legacy supplier router,
+  // which retains the historical endpoint for backwards compatibility.
+  app.use('/api/v1/supplier', supplierExportSafeRoutes);
+  app.use('/api/supplier', supplierExportSafeRoutes);
   app.use('/api/v1/supplier', supplierRoutes);
   app.use('/api/supplier', supplierRoutes);
 

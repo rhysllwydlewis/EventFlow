@@ -10,15 +10,7 @@ const logger = require('../utils/logger');
 const { searchLimiter } = require('../middleware/rateLimits');
 const { buildPublicSupplierSlug } = require('../services/publicSupplierSeo.service');
 const searchServiceV2 = require('../services/searchService');
-const supplierRoutes = require('./supplier');
-const safeSupplierExportRoutes = require('./supplier-export-safe');
 const router = express.Router();
-
-// routes/index.js loads this module after the canonical supplier router. Install
-// the hardened CSV endpoint at the front of that shared router so both existing
-// mount points use it without moving the established supplier route source.
-safeSupplierExportRoutes.installInto(supplierRoutes);
-
 // These will be injected by server.js during route mounting
 let authRequired;
 let searchSystem;
