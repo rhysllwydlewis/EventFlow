@@ -26,6 +26,7 @@ describe('backend E2E rate-limit isolation', () => {
     process.env.E2E_MODE = 'full';
     expect(_private.isBackendE2ERequest(request('backend-suite'))).toBe(true);
     expect(_private.isBackendE2ERequest(request('wrong-value'))).toBe(false);
+    expect(_private.isBackendE2ERequest({})).toBe(false);
   });
 
   test('does not weaken ordinary tests, development or production', () => {
