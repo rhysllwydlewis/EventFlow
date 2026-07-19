@@ -1,6 +1,6 @@
 'use strict';
 
-const FORMULA_PREFIX = /^[\s\u0000-\u001f]*[=+\-@]/;
+const FORMULA_CHARACTERS = new Set(['=', '+', '-', '@']);
 
 function csvText(value) {
   if (value === null || value === undefined) {
@@ -19,6 +19,17 @@ function csvText(value) {
   return String(value);
 }
 
+function startsWithSpreadsheetFormula(value) {
+  for (const character of value) {
+    const codePoint = character.codePointAt(0);
+    if (codePoint <= 32 || codePoint === 127) {
+      continue;
+    }
+    return FORMULA_CHARACTERS.has(character);
+  }
+  return false;
+}
+
 /**
  * Serialise one spreadsheet-safe CSV cell.
  *
@@ -27,7 +38,7 @@ function csvText(value) {
  */
 function escapeCsvCell(value) {
   let text = csvText(value).replace(/\r\n?/g, '\n');
-  if (FORMULA_PREFIX.test(text)) {
+  if (startsWithSpreadsheetFormula(text)) {
     text = `'${text}`;
   }
   return `"${text.replace(/"/g, '""')}"`;
