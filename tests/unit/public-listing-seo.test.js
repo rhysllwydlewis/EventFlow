@@ -58,7 +58,7 @@ describe('public listing SEO service', () => {
 
   test('creates a deterministic unique package fallback slug', () => {
     const legacyPackage = { ...pkg, slug: '', title: 'Evening Package' };
-    expect(buildPublicPackageSlug(legacyPackage)).toMatch(/^evening-package-[a-f0-9]{8}$/);
+    expect(buildPublicPackageSlug(legacyPackage)).toBe('pkg-1');
   });
 
   test('builds Service and Offer structured data for public packages', () => {

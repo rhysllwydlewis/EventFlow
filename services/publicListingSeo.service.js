@@ -123,6 +123,14 @@ function cleanCampaignValue(value) {
     .slice(0, 200);
 }
 
+function safeDecodeURIComponent(value) {
+  try {
+    return decodeURIComponent(String(value || ''));
+  } catch (_error) {
+    return '';
+  }
+}
+
 function buildCampaignQuery(input = {}) {
   const output = new URLSearchParams();
   for (const key of CAMPAIGN_QUERY_KEYS) {
@@ -143,9 +151,7 @@ function buildPublicPackageSlug(pkg) {
   const storedSlug = slugify(pkg?.slug);
   if (storedSlug) return storedSlug;
   const id = String(pkg?.id || pkg?.packageId || '').trim();
-  if (!id) return '';
-  const title = slugify(packageTitle(pkg));
-  return title ? `${title}-${stableToken(id)}` : id;
+  return slugify(id);
 }
 
 function getPackageLookupValues(pkg) {
@@ -163,18 +169,18 @@ function getPackageLookupValues(pkg) {
 function isPublicPackage(pkg, publicSupplierIds) {
   return Boolean(
     pkg &&
-      pkg.approved === true &&
-      !pkg.deleted &&
-      !pkg.deletedAt &&
-      pkg.id &&
-      packageTitle(pkg) &&
-      publicSupplierIds instanceof Set &&
-      publicSupplierIds.has(pkg.supplierId)
+    pkg.approved === true &&
+    !pkg.deleted &&
+    !pkg.deletedAt &&
+    pkg.id &&
+    packageTitle(pkg) &&
+    publicSupplierIds instanceof Set &&
+    publicSupplierIds.has(pkg.supplierId)
   );
 }
 
 function resolvePublicPackage(packages, value, publicSupplierIds) {
-  const raw = decodeURIComponent(String(value || '')).trim();
+  const raw = safeDecodeURIComponent(value).trim();
   const normalized = slugify(raw);
   return (
     (packages || []).find(pkg => {
@@ -187,22 +193,24 @@ function resolvePublicPackage(packages, value, publicSupplierIds) {
 }
 
 function eventStatus(event) {
-  return String(event?.status || 'published').trim().toLowerCase();
+  return String(event?.status || 'published')
+    .trim()
+    .toLowerCase();
 }
 
 function isPublicEventVisible(event) {
   const visibility = String(event?.visibility || '').toLowerCase();
   return Boolean(
     event &&
-      !event.deleted &&
-      !event.isDeleted &&
-      !event.deletedAt &&
-      event.id &&
-      stripMarkup(event.title) &&
-      validDate(event.startDate) &&
-      INDEXABLE_EVENT_STATUSES.has(eventStatus(event)) &&
-      event.isPrivate !== true &&
-      visibility !== 'private'
+    !event.deleted &&
+    !event.isDeleted &&
+    !event.deletedAt &&
+    event.id &&
+    stripMarkup(event.title) &&
+    validDate(event.startDate) &&
+    INDEXABLE_EVENT_STATUSES.has(eventStatus(event)) &&
+    event.isPrivate !== true &&
+    visibility !== 'private'
   );
 }
 
@@ -226,7 +234,7 @@ function buildPublicEventSlug(event) {
 }
 
 function resolvePublicEvent(events, value) {
-  const raw = decodeURIComponent(String(value || '')).trim();
+  const raw = safeDecodeURIComponent(value).trim();
   const normalized = slugify(raw);
   return (
     (events || []).find(event => {
@@ -434,15 +442,9 @@ function buildEventSeoModel(event, options = {}) {
 
 function removeSeoTags(html, marker) {
   return String(html || '')
-    .replace(
-      new RegExp(`\\s*<!-- ${marker}:start -->[\\s\\S]*?<!-- ${marker}:end -->`, 'i'),
-      ''
-    )
+    .replace(new RegExp(`\\s*<!-- ${marker}:start -->[\\s\\S]*?<!-- ${marker}:end -->`, 'i'), '')
     .replace(/<title\b[^>]*>[\s\S]*?<\/title>\s*/i, '')
-    .replace(
-      /<meta\b[^>]*(?:name=["']description["']|id=["']meta-description["'])[^>]*>\s*/gi,
-      ''
-    )
+    .replace(/<meta\b[^>]*(?:name=["']description["']|id=["']meta-description["'])[^>]*>\s*/gi, '')
     .replace(/<meta\b[^>]*name=["']robots["'][^>]*>\s*/gi, '')
     .replace(
       /<meta\b[^>]*name=["']ef-(?:server-seo|canonical-url|public-package-id|public-event-id)["'][^>]*>\s*/gi,
@@ -484,7 +486,7 @@ function buildHeadBlock(kind, id, seo, indexable = true) {
     `  <meta property="og:description" content="${escapeHtml(seo.description)}">`,
     `  <meta property="og:image" content="${escapeHtml(seo.image)}">`,
     `  <meta property="og:url" content="${escapeHtml(seo.canonicalUrl)}">`,
-    `  <meta property="og:type" content="${kind === 'event' ? 'website' : 'product'}">`,
+    '  <meta property="og:type" content="website">',
     '  <meta name="twitter:card" content="summary_large_image">',
     `  <meta name="twitter:url" content="${escapeHtml(seo.canonicalUrl)}">`,
     `  <meta name="twitter:title" content="${escapeHtml(seo.title)}">`,
@@ -502,10 +504,7 @@ function renderSeoHtml(templateHtml, kind, id, seo, indexable = true) {
   if (!/<\/head>/i.test(cleanTemplate)) {
     throw new Error(`${kind} template is missing a closing head tag`);
   }
-  return cleanTemplate.replace(
-    /<\/head>/i,
-    `${buildHeadBlock(kind, id, seo, indexable)}\n</head>`
-  );
+  return cleanTemplate.replace(/<\/head>/i, `${buildHeadBlock(kind, id, seo, indexable)}\n</head>`);
 }
 
 module.exports = {

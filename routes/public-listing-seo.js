@@ -19,8 +19,7 @@ const {
 const PACKAGE_TEMPLATE_PATH = path.join(__dirname, '..', 'public', 'package.html');
 const EVENT_TEMPLATE_PATH = path.join(__dirname, '..', 'public', 'event-detail.html');
 const INDEXABLE_CACHE_CONTROL = 'public, max-age=60, s-maxage=300, stale-while-revalidate=60';
-const NON_INDEXABLE_CACHE_CONTROL =
-  'public, max-age=30, s-maxage=60, stale-while-revalidate=30';
+const NON_INDEXABLE_CACHE_CONTROL = 'public, max-age=30, s-maxage=60, stale-while-revalidate=30';
 const DEFAULT_CACHE_TTL_MS = 60 * 1000;
 
 function createPublicListingSeoRouter(options = {}) {
@@ -124,12 +123,12 @@ function createPublicListingSeoRouter(options = {}) {
       const pkg = resolvePublicPackage(listings.packages, req.params.slug, listings.supplierIds);
       if (!pkg) {
         noindex(res);
-        return next();
+        return res.status(404).send('Package not found');
       }
       const supplier = listings.supplierById.get(pkg.supplierId);
       if (!supplier) {
         noindex(res);
-        return next();
+        return res.status(404).send('Package not found');
       }
 
       const canonicalSlug = buildPublicPackageSlug(pkg);
@@ -162,7 +161,7 @@ function createPublicListingSeoRouter(options = {}) {
       const event = resolvePublicEvent(listings.events, req.params.slug);
       if (!event) {
         noindex(res);
-        return next();
+        return res.status(404).send('Event not found');
       }
 
       const canonicalSlug = buildPublicEventSlug(event);

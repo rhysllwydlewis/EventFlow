@@ -106,6 +106,9 @@
   function updateSeo(event, image) {
     document.title = `${event.title} | EventFlow`;
     document.getElementById('event-title').textContent = event.title;
+    if (document.querySelector('meta[name="ef-server-seo"][content="event"]')) {
+      return;
+    }
     setMeta('description', (event.description || `Public event: ${event.title}`).slice(0, 160));
     setProperty('og:title', event.title);
     setProperty(
@@ -156,7 +159,7 @@
 
     updateSeo(event, image);
     panel.innerHTML = `
-      ${image ? `<img class="event-image" src="${esc(image)}" alt="">` : '<div class="event-image">📅</div>'}
+      ${image ? `<img class="event-image" src="${esc(image)}" alt="${esc(event.title + ' event image')}" loading="eager" decoding="async">` : '<div class="event-image">📅</div>'}
       <div class="event-body">
         ${cancelled ? `<div class="event-cancelled">This event has been cancelled${event.cancelledReason ? `: ${esc(event.cancelledReason)}` : ''}.</div>` : ''}
         <div class="event-badges">
