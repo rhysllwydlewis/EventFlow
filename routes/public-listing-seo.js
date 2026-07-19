@@ -77,9 +77,9 @@ function createPublicListingSeoRouter(options = {}) {
 
   function readListings() {
     // Backend browser fixtures are written while specs run in parallel. Reading
-    // directly in test mode prevents one spec from sharing another spec's
-    // in-flight or TTL-cached listing snapshot.
-    if (process.env.NODE_ENV === 'test') {
+    // directly only in full browser mode prevents one spec from sharing another
+    // spec's in-flight or TTL-cached snapshot without changing unit-test semantics.
+    if (process.env.E2E_MODE === 'full') {
       return loadListings();
     }
 
