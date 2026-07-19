@@ -3,6 +3,8 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const dbUnified = require('../db-unified');
+const catalogCache = require('../services/catalogCache');
+const { clearSearchCache } = require('../middleware/searchCache');
 const { buildPublicSupplierSlug } = require('../services/publicSupplierSeo.service');
 const { buildPublicPackageSlug } = require('../services/publicListingSeo.service');
 
@@ -19,6 +21,8 @@ const COLLECTIONS = [
   'marketplace_listings',
   'audit_logs',
   'analyticsEvents',
+  'events',
+  'supplierAnalytics',
 ];
 
 function normaliseRunId(value) {
@@ -31,8 +35,40 @@ function normaliseRunId(value) {
   return runId;
 }
 
+async function invalidateFixtureCaches() {
+  await Promise.all([clearSearchCache(), catalogCache.invalidate()]);
+}
+
 async function removeRun(runId) {
-  await Promise.all(COLLECTIONS.map(name => dbUnified.deleteMany(name, { e2eRunId: runId })));
+  const prefix = `e2e-${runId}`;
+  const supplierIds = [`${prefix}-supplier`, `${prefix}-pending-supplier`];
+  const userIds = [
+    `${prefix}-admin-user`,
+    `${prefix}-customer-user`,
+    `${prefix}-supplier-user`,
+    `${prefix}-pending-supplier-user`,
+    `${prefix}-unverified-user`,
+  ];
+  const packageIds = [
+    `${prefix}-package`,
+    `${prefix}-paused-package`,
+    `${prefix}-unapproved-package`,
+  ];
+  const fixtureIds = [...supplierIds, ...userIds, ...packageIds];
+
+  await Promise.all([
+    ...COLLECTIONS.map(name => dbUnified.deleteMany(name, { e2eRunId: runId })),
+    dbUnified.deleteMany('audit_logs', { targetId: { $in: fixtureIds } }),
+    dbUnified.deleteMany('supplierAnalytics', { supplierId: { $in: supplierIds } }),
+    dbUnified.deleteMany('events', {
+      $or: [
+        { supplierId: { $in: supplierIds } },
+        { userId: { $in: userIds } },
+        { targetId: { $in: fixtureIds } },
+      ],
+    }),
+  ]);
+  await invalidateFixtureCaches();
 }
 
 async function insert(collection, document) {
@@ -318,6 +354,7 @@ router.post('/seed', async (req, res, next) => {
       e2eRunId: runId,
     };
     await insert('marketplace_listings', marketplaceListing);
+    await invalidateFixtureCaches();
 
     const supplierPath = `/supplier/${buildPublicSupplierSlug(approvedSupplier)}`;
     const packagePath = `/package/${buildPublicPackageSlug(approvedPackage)}`;
@@ -385,4 +422,11 @@ router.get('/inspect', async (req, res, next) => {
 });
 
 module.exports = router;
-module.exports._private = { normaliseRunId, removeRun, HEADER_NAME, HEADER_VALUE, TEST_PASSWORD };
+module.exports._private = {
+  normaliseRunId,
+  removeRun,
+  invalidateFixtureCaches,
+  HEADER_NAME,
+  HEADER_VALUE,
+  TEST_PASSWORD,
+};
