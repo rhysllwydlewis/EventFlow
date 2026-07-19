@@ -47,7 +47,7 @@ describe('Retired AI Plan Route', () => {
     );
   });
 
-  test.each(['/api/ai/plan', '/api/v1/ai/plan', '/api/ai/suggestions']) (
+  test.each(['/api/ai/plan', '/api/v1/ai/plan', '/api/ai/suggestions'])(
     'returns an explicit retirement response for %s',
     async endpoint => {
       const response = await request(app)
