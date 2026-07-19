@@ -10,9 +10,15 @@ const rateLimit = require('express-rate-limit');
 
 const PHOTO_ASSET_LIMIT_WINDOW_MS = 15 * 60 * 1000;
 const PHOTO_ASSET_PATH_PATTERN = /^\/api\/(?:v1\/)?photos\/[^/?#]+$/;
+const PUBLIC_CALENDAR_EVENTS_PATH_PATTERN =
+  /^\/api\/(?:v1\/)?public-calendar\/events(?:\/[^/?#]+(?:\/ics)?)?\/?$/;
 const parsedPhotoAssetLimit = Number.parseInt(process.env.PHOTO_ASSET_RATE_LIMIT_MAX || '3000', 10);
 const PHOTO_ASSET_RATE_LIMIT_MAX = Number.isFinite(parsedPhotoAssetLimit)
   ? parsedPhotoAssetLimit
+  : 3000;
+const parsedPublicReadLimit = Number.parseInt(process.env.PUBLIC_READ_RATE_LIMIT_MAX || '3000', 10);
+const PUBLIC_READ_RATE_LIMIT_MAX = Number.isFinite(parsedPublicReadLimit)
+  ? Math.max(100, parsedPublicReadLimit)
   : 3000;
 
 function getRequestPath(req) {
@@ -25,6 +31,13 @@ function getRequestPath(req) {
 
 function isPhotoAssetRequest(req) {
   return req.method === 'GET' && PHOTO_ASSET_PATH_PATTERN.test(getRequestPath(req));
+}
+
+function isPublicCalendarReadRequest(req) {
+  if (req.method !== 'GET') return false;
+  const requestPath = getRequestPath(req);
+  if (!PUBLIC_CALENDAR_EVENTS_PATH_PATTERN.test(requestPath)) return false;
+  return !/\/events\/saved\/?$/.test(requestPath);
 }
 
 /**
@@ -151,6 +164,19 @@ const photoAssetLimiter = rateLimit({
   },
 });
 
+/**
+ * Higher-volume limiter for anonymous, read-only public catalogue data.
+ * Search crawlers and shared networks must not exhaust the strict JSON API bucket
+ * while rendering indexable event pages, but the endpoint remains abuse-limited.
+ */
+const publicReadLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: PUBLIC_READ_RATE_LIMIT_MAX,
+  message: 'Too many public catalogue requests, please try again shortly.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 const baseApiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // 100 requests per window
@@ -162,13 +188,16 @@ const baseApiLimiter = rateLimit({
 /**
  * General API rate limit.
  *
- * Public photo binaries are routed through photoAssetLimiter instead of the
- * strict JSON API bucket so image-heavy pages do not intermittently exhaust the
- * allowance and render placeholders across browsers on the same IP.
+ * Public photo binaries and public calendar reads are routed through purpose-built
+ * buckets instead of the strict JSON API allowance. This prevents image-heavy pages
+ * and legitimate crawler rendering from intermittently receiving HTTP 429 responses.
  */
 function apiLimiter(req, res, next) {
   if (isPhotoAssetRequest(req)) {
     return photoAssetLimiter(req, res, next);
+  }
+  if (isPublicCalendarReadRequest(req)) {
+    return publicReadLimiter(req, res, next);
   }
 
   return baseApiLimiter(req, res, next);
@@ -224,6 +253,7 @@ module.exports = {
   searchLimiter,
   notificationLimiter,
   apiLimiter,
+  publicReadLimiter,
   photoAssetLimiter,
   writeLimiter,
   resendEmailLimiter,
@@ -232,5 +262,6 @@ module.exports = {
   _private: {
     getRequestPath,
     isPhotoAssetRequest,
+    isPublicCalendarReadRequest,
   },
 };
