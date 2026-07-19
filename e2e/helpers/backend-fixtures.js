@@ -46,6 +46,7 @@ export async function inspectBackendFixtures(request, runId) {
 
 export async function loginAs(page, user) {
   const response = await page.request.post('/api/auth/login', {
+    headers: E2E_HEADERS,
     data: {
       email: user.email,
       password: user.password,
@@ -57,7 +58,7 @@ export async function loginAs(page, user) {
 }
 
 export async function getCsrfToken(page) {
-  const response = await page.request.get('/api/csrf-token');
+  const response = await page.request.get('/api/csrf-token', { headers: E2E_HEADERS });
   await requireOk(response, 'CSRF token request');
   const body = await response.json();
   const token = body.csrfToken || body.token;
@@ -68,7 +69,7 @@ export async function getCsrfToken(page) {
 export async function putWithCsrf(page, url, data) {
   const csrfToken = await getCsrfToken(page);
   return page.request.put(url, {
-    headers: { 'x-csrf-token': csrfToken },
+    headers: { ...E2E_HEADERS, 'x-csrf-token': csrfToken },
     data,
   });
 }
@@ -76,7 +77,7 @@ export async function putWithCsrf(page, url, data) {
 export async function postWithCsrf(page, url, data = {}) {
   const csrfToken = await getCsrfToken(page);
   return page.request.post(url, {
-    headers: { 'x-csrf-token': csrfToken },
+    headers: { ...E2E_HEADERS, 'x-csrf-token': csrfToken },
     data,
   });
 }
