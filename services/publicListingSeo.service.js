@@ -1,7 +1,5 @@
 'use strict';
 
-const crypto = require('crypto');
-
 const DEFAULT_BASE_URL = 'https://event-flow.co.uk';
 const SEO_BLOCK_MARKERS = {
   package: 'eventflow-package-seo',
@@ -23,10 +21,21 @@ const INDEXABLE_EVENT_STATUSES = new Set(['published', 'cancelled']);
 const PAST_EVENT_GRACE_MS = 24 * 60 * 60 * 1000;
 
 function stripMarkup(value) {
-  return String(value || '')
-    .replace(/<[^>]*>/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
+  const input = String(value || '');
+  let output = '';
+  let insideTag = false;
+  for (const character of input) {
+    if (character === '<') {
+      insideTag = true;
+      output += ' ';
+    } else if (character === '>') {
+      insideTag = false;
+      output += ' ';
+    } else if (!insideTag) {
+      output += character;
+    }
+  }
+  return output.replace(/\s+/g, ' ').trim();
 }
 
 function escapeHtml(value) {
@@ -39,12 +48,17 @@ function escapeHtml(value) {
 }
 
 function serializeJsonLd(value) {
-  return JSON.stringify(value)
-    .replace(/</g, '\\u003c')
-    .replace(/>/g, '\\u003e')
-    .replace(/&/g, '\\u0026')
-    .replace(/\u2028/g, '\\u2028')
-    .replace(/\u2029/g, '\\u2029');
+  const json = JSON.stringify(value);
+  let output = '';
+  for (const character of json) {
+    if (character === '<') output += '\\u003c';
+    else if (character === '>') output += '\\u003e';
+    else if (character === '&') output += '\\u0026';
+    else if (character === '\u2028') output += '\\u2028';
+    else if (character === '\u2029') output += '\\u2029';
+    else output += character;
+  }
+  return output;
 }
 
 function slugify(value) {
@@ -58,9 +72,23 @@ function slugify(value) {
     .slice(0, 100);
 }
 
-function stableToken(value, length = 8) {
-  const input = String(value || '').trim();
-  return input ? crypto.createHash('sha256').update(input).digest('hex').slice(0, length) : '';
+// Keep legacy event fallback slugs exactly aligned with routes/public-calendar.js.
+function eventTitleSlug(value) {
+  return (
+    stripMarkup(value)
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 80) || 'event'
+  );
+}
+
+function safeDecodeURIComponent(value) {
+  try {
+    return decodeURIComponent(String(value || ''));
+  } catch (_error) {
+    return '';
+  }
 }
 
 function safeBaseUrl(value) {
@@ -123,14 +151,6 @@ function cleanCampaignValue(value) {
     .slice(0, 200);
 }
 
-function safeDecodeURIComponent(value) {
-  try {
-    return decodeURIComponent(String(value || ''));
-  } catch (_error) {
-    return '';
-  }
-}
-
 function buildCampaignQuery(input = {}) {
   const output = new URLSearchParams();
   for (const key of CAMPAIGN_QUERY_KEYS) {
@@ -150,11 +170,10 @@ function packageTitle(pkg) {
 function buildPublicPackageSlug(pkg) {
   const storedSlug = slugify(pkg?.slug);
   if (storedSlug) return storedSlug;
-  const id = String(pkg?.id || pkg?.packageId || '').trim();
-  return slugify(id);
+  return slugify(pkg?.id || pkg?.packageId || '');
 }
 
-function getPackageLookupValues(pkg) {
+function packageLookupValues(pkg) {
   return [
     pkg?.id,
     pkg?.packageId,
@@ -163,19 +182,20 @@ function getPackageLookupValues(pkg) {
     packageTitle(pkg) && slugify(packageTitle(pkg)),
   ]
     .filter(Boolean)
-    .map(value => String(value));
+    .map(String);
 }
 
 function isPublicPackage(pkg, publicSupplierIds) {
   return Boolean(
     pkg &&
-    pkg.approved === true &&
-    !pkg.deleted &&
-    !pkg.deletedAt &&
-    pkg.id &&
-    packageTitle(pkg) &&
-    publicSupplierIds instanceof Set &&
-    publicSupplierIds.has(pkg.supplierId)
+      pkg.approved === true &&
+      pkg.paused !== true &&
+      !pkg.deleted &&
+      !pkg.deletedAt &&
+      pkg.id &&
+      packageTitle(pkg) &&
+      publicSupplierIds instanceof Set &&
+      publicSupplierIds.has(pkg.supplierId)
   );
 }
 
@@ -185,7 +205,7 @@ function resolvePublicPackage(packages, value, publicSupplierIds) {
   return (
     (packages || []).find(pkg => {
       if (!isPublicPackage(pkg, publicSupplierIds)) return false;
-      return getPackageLookupValues(pkg).some(
+      return packageLookupValues(pkg).some(
         candidate => candidate === raw || slugify(candidate) === normalized
       );
     }) || null
@@ -193,24 +213,22 @@ function resolvePublicPackage(packages, value, publicSupplierIds) {
 }
 
 function eventStatus(event) {
-  return String(event?.status || 'published')
-    .trim()
-    .toLowerCase();
+  return String(event?.status || 'published').trim().toLowerCase();
 }
 
 function isPublicEventVisible(event) {
   const visibility = String(event?.visibility || '').toLowerCase();
   return Boolean(
     event &&
-    !event.deleted &&
-    !event.isDeleted &&
-    !event.deletedAt &&
-    event.id &&
-    stripMarkup(event.title) &&
-    validDate(event.startDate) &&
-    INDEXABLE_EVENT_STATUSES.has(eventStatus(event)) &&
-    event.isPrivate !== true &&
-    visibility !== 'private'
+      !event.deleted &&
+      !event.isDeleted &&
+      !event.deletedAt &&
+      event.id &&
+      stripMarkup(event.title) &&
+      validDate(event.startDate) &&
+      INDEXABLE_EVENT_STATUSES.has(eventStatus(event)) &&
+      event.isPrivate !== true &&
+      visibility !== 'private'
   );
 }
 
@@ -225,23 +243,21 @@ function isIndexablePublicEvent(event, now = new Date()) {
 }
 
 function buildPublicEventSlug(event) {
-  const storedSlug = slugify(event?.slug);
-  if (storedSlug) return storedSlug;
+  const storedSlug = String(event?.slug || '').trim();
+  if (/^[a-zA-Z0-9_-]+$/.test(storedSlug)) return storedSlug;
   const id = String(event?.id || '').trim();
   if (!id) return '';
-  const title = slugify(event?.title || 'event') || 'event';
-  return `${title}-${String(id).replace(/^pce_/, '').slice(-8) || stableToken(id)}`;
+  return `${eventTitleSlug(event?.title)}-${id.replace(/^pce_/, '').slice(-8)}`;
 }
 
 function resolvePublicEvent(events, value) {
   const raw = safeDecodeURIComponent(value).trim();
-  const normalized = slugify(raw);
   return (
     (events || []).find(event => {
       if (!isPublicEventVisible(event)) return false;
       return [event.id, event.slug, buildPublicEventSlug(event)]
         .filter(Boolean)
-        .some(candidate => String(candidate) === raw || slugify(candidate) === normalized);
+        .some(candidate => String(candidate) === raw);
     }) || null
   );
 }
@@ -275,11 +291,9 @@ function packageImage(pkg, baseUrl) {
     : Array.isArray(pkg?.gallery)
       ? pkg.gallery
       : [];
-  const galleryImage = gallery.find(Boolean);
+  const item = gallery.find(Boolean);
   const galleryUrl =
-    typeof galleryImage === 'string'
-      ? galleryImage
-      : galleryImage?.url || galleryImage?.src || galleryImage?.path || '';
+    typeof item === 'string' ? item : item?.url || item?.src || item?.path || '';
   return safeImageUrl(
     pkg?.openGraphImage || pkg?.image || pkg?.imageUrl || pkg?.coverImage || galleryUrl,
     baseUrl
@@ -288,11 +302,10 @@ function packageImage(pkg, baseUrl) {
 
 function numericPrice(value) {
   if (typeof value === 'number' && Number.isFinite(value)) return value;
-  const normalized = String(value || '')
+  const match = String(value || '')
     .replace(/,/g, '')
     .match(/\d+(?:\.\d{1,2})?/);
-  if (!normalized) return null;
-  const number = Number(normalized[0]);
+  const number = match ? Number(match[0]) : NaN;
   return Number.isFinite(number) ? number : null;
 }
 
@@ -317,7 +330,6 @@ function buildPackageSeoModel(pkg, supplier, options = {}) {
   const image = packageImage(pkg, baseUrl);
   const price = numericPrice(pkg?.price ?? pkg?.price_display ?? pkg?.priceFrom);
   const title = truncate([name, supplierName, 'EventFlow'].filter(Boolean).join(' | '), 70);
-
   const structuredData = {
     '@context': 'https://schema.org',
     '@type': 'Service',
@@ -326,10 +338,7 @@ function buildPackageSeoModel(pkg, supplier, options = {}) {
     description,
     url: canonicalUrl,
     image,
-    provider: {
-      '@type': 'ProfessionalService',
-      name: supplierName,
-    },
+    provider: { '@type': 'ProfessionalService', name: supplierName },
   };
   if (category) structuredData.serviceType = category;
   if (location) structuredData.areaServed = { '@type': 'Place', name: location };
@@ -342,7 +351,6 @@ function buildPackageSeoModel(pkg, supplier, options = {}) {
       availability: 'https://schema.org/InStock',
     };
   }
-
   return { slug, canonicalUrl, title, description, image, structuredData };
 }
 
@@ -374,7 +382,6 @@ function buildEventSeoModel(event, options = {}) {
   const status = eventStatus(event);
   const title = truncate(`${name} | EventFlow`, 70);
   const ticketPrice = numericPrice(event?.ticketPrice);
-
   const structuredData = {
     '@context': 'https://schema.org',
     '@type': 'Event',
@@ -390,10 +397,7 @@ function buildEventSeoModel(event, options = {}) {
     eventAttendanceMode: event?.isOnline
       ? 'https://schema.org/OnlineEventAttendanceMode'
       : 'https://schema.org/OfflineEventAttendanceMode',
-    organizer: {
-      '@type': 'Organization',
-      name: organizerName,
-    },
+    organizer: { '@type': 'Organization', name: organizerName },
   };
   if (endDate) structuredData.endDate = endDate;
   if (event?.featuredImageUrl || event?.imageUrl) structuredData.image = [image];
@@ -418,51 +422,136 @@ function buildEventSeoModel(event, options = {}) {
       },
     };
   }
-  if (event?.priceType === 'free') {
+  if (event?.priceType === 'free' || ticketPrice !== null) {
     structuredData.offers = {
       '@type': 'Offer',
       url: safeHttpUrl(event?.externalBookingUrl, baseUrl) || canonicalUrl,
-      price: 0,
-      priceCurrency: 'GBP',
-      availability: 'https://schema.org/InStock',
-    };
-  } else if (ticketPrice !== null) {
-    structuredData.offers = {
-      '@type': 'Offer',
-      url: safeHttpUrl(event?.externalBookingUrl, baseUrl) || canonicalUrl,
-      price: ticketPrice,
+      price: event?.priceType === 'free' ? 0 : ticketPrice,
       priceCurrency: 'GBP',
       availability:
         status === 'cancelled' ? 'https://schema.org/SoldOut' : 'https://schema.org/InStock',
     };
   }
-
   return { slug, canonicalUrl, title, description, image, structuredData };
 }
 
+function parseTagAttributes(openingTag) {
+  const attributes = new Map();
+  let index = openingTag.indexOf(' ');
+  if (index < 0) return attributes;
+  while (index < openingTag.length) {
+    while (/\s/.test(openingTag[index] || '')) index += 1;
+    if (openingTag[index] === '>' || openingTag[index] === '/') break;
+    const nameStart = index;
+    while (/[^\s=/>]/.test(openingTag[index] || '')) index += 1;
+    const name = openingTag.slice(nameStart, index).toLowerCase();
+    while (/\s/.test(openingTag[index] || '')) index += 1;
+    if (openingTag[index] !== '=') {
+      if (name) attributes.set(name, '');
+      continue;
+    }
+    index += 1;
+    while (/\s/.test(openingTag[index] || '')) index += 1;
+    const quote = openingTag[index];
+    let value = '';
+    if (quote === '"' || quote === "'") {
+      index += 1;
+      const valueStart = index;
+      while (index < openingTag.length && openingTag[index] !== quote) index += 1;
+      value = openingTag.slice(valueStart, index);
+      index += 1;
+    } else {
+      const valueStart = index;
+      while (/[^\s>]/.test(openingTag[index] || '')) index += 1;
+      value = openingTag.slice(valueStart, index);
+    }
+    if (name) attributes.set(name, value);
+  }
+  return attributes;
+}
+
+function removeElements(html, tagName, shouldRemove, paired = false) {
+  const source = String(html || '');
+  const lower = source.toLowerCase();
+  const openToken = `<${tagName.toLowerCase()}`;
+  const closeToken = `</${tagName.toLowerCase()}>`;
+  let cursor = 0;
+  let output = '';
+  while (cursor < source.length) {
+    const start = lower.indexOf(openToken, cursor);
+    if (start < 0) {
+      output += source.slice(cursor);
+      break;
+    }
+    const boundary = lower[start + openToken.length];
+    if (boundary && !/[\s/>]/.test(boundary)) {
+      output += source.slice(cursor, start + openToken.length);
+      cursor = start + openToken.length;
+      continue;
+    }
+    const openEnd = source.indexOf('>', start);
+    if (openEnd < 0) {
+      output += source.slice(cursor);
+      break;
+    }
+    const openingTag = source.slice(start, openEnd + 1);
+    if (!shouldRemove(parseTagAttributes(openingTag))) {
+      output += source.slice(cursor, openEnd + 1);
+      cursor = openEnd + 1;
+      continue;
+    }
+    let removeEnd = openEnd + 1;
+    if (paired) {
+      const closeStart = lower.indexOf(closeToken, removeEnd);
+      if (closeStart >= 0) removeEnd = closeStart + closeToken.length;
+    }
+    output += source.slice(cursor, start);
+    cursor = removeEnd;
+  }
+  return output;
+}
+
+function removeMarkedBlock(html, marker) {
+  const startToken = `<!-- ${marker}:start -->`;
+  const endToken = `<!-- ${marker}:end -->`;
+  const source = String(html || '');
+  const start = source.indexOf(startToken);
+  if (start < 0) return source;
+  const end = source.indexOf(endToken, start + startToken.length);
+  return end < 0 ? source : source.slice(0, start) + source.slice(end + endToken.length);
+}
+
 function removeSeoTags(html, marker) {
-  return String(html || '')
-    .replace(new RegExp(`\\s*<!-- ${marker}:start -->[\\s\\S]*?<!-- ${marker}:end -->`, 'i'), '')
-    .replace(/<title\b[^>]*>[\s\S]*?<\/title>\s*/i, '')
-    .replace(/<meta\b[^>]*(?:name=["']description["']|id=["']meta-description["'])[^>]*>\s*/gi, '')
-    .replace(/<meta\b[^>]*name=["']robots["'][^>]*>\s*/gi, '')
-    .replace(
-      /<meta\b[^>]*name=["']ef-(?:server-seo|canonical-url|public-package-id|public-event-id)["'][^>]*>\s*/gi,
-      ''
-    )
-    .replace(/<link\b[^>]*rel=["']canonical["'][^>]*>\s*/gi, '')
-    .replace(
-      /<meta\b[^>]*(?:property=["']og:(?:title|description|image|url|type)["'])[^>]*>\s*/gi,
-      ''
-    )
-    .replace(
-      /<meta\b[^>]*(?:name=["']twitter:(?:card|url|title|description|image)["'])[^>]*>\s*/gi,
-      ''
-    )
-    .replace(
-      /<script\b[^>]*id=["'](?:package|event)-structured-data["'][^>]*>[\s\S]*?<\/script>\s*/gi,
-      ''
+  let output = removeMarkedBlock(html, marker);
+  output = removeElements(output, 'title', () => true, true);
+  output = removeElements(output, 'meta', attributes => {
+    const name = String(attributes.get('name') || '').toLowerCase();
+    const id = String(attributes.get('id') || '').toLowerCase();
+    const property = String(attributes.get('property') || '').toLowerCase();
+    return (
+      name === 'description' ||
+      name === 'robots' ||
+      name.startsWith('ef-') ||
+      name.startsWith('twitter:') ||
+      id === 'meta-description' ||
+      property.startsWith('og:')
     );
+  });
+  output = removeElements(
+    output,
+    'link',
+    attributes => String(attributes.get('rel') || '').toLowerCase() === 'canonical'
+  );
+  output = removeElements(
+    output,
+    'script',
+    attributes =>
+      ['package-structured-data', 'event-structured-data', 'event-jsonld'].includes(
+        String(attributes.get('id') || '').toLowerCase()
+      ),
+    true
+  );
+  return output;
 }
 
 function buildHeadBlock(kind, id, seo, indexable = true) {
@@ -501,10 +590,13 @@ function buildHeadBlock(kind, id, seo, indexable = true) {
 
 function renderSeoHtml(templateHtml, kind, id, seo, indexable = true) {
   const cleanTemplate = removeSeoTags(templateHtml, SEO_BLOCK_MARKERS[kind]);
-  if (!/<\/head>/i.test(cleanTemplate)) {
-    throw new Error(`${kind} template is missing a closing head tag`);
-  }
-  return cleanTemplate.replace(/<\/head>/i, `${buildHeadBlock(kind, id, seo, indexable)}\n</head>`);
+  const closingHead = cleanTemplate.toLowerCase().indexOf('</head>');
+  if (closingHead < 0) throw new Error(`${kind} template is missing a closing head tag`);
+  return (
+    cleanTemplate.slice(0, closingHead) +
+    `${buildHeadBlock(kind, id, seo, indexable)}\n` +
+    cleanTemplate.slice(closingHead)
+  );
 }
 
 module.exports = {
@@ -515,6 +607,7 @@ module.exports = {
   buildPublicPackageSlug,
   buildHeadBlock,
   eventEndDate,
+  eventTitleSlug,
   isIndexablePublicEvent,
   isPublicEventVisible,
   isPublicPackage,
