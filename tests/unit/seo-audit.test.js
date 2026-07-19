@@ -48,14 +48,15 @@ describe('technical SEO audit utilities', () => {
     expect(result.issues.join(' ')).toMatch(/future lastmod/i);
   });
 
-  test('validates canonical, title, description, robots and JSON-LD', () => {
+  test('validates canonical, title, description, robots and listing-specific JSON-LD', () => {
     const url = `${base}/package/photo`;
     const html = `<!doctype html><html><head>
       <title>Photo Package | Cwm Events | EventFlow</title>
       <meta name="description" content="A full day photography service.">
       <meta name="robots" content="index,follow">
+      <meta name="ef-server-seo" content="package">
       <link href="${url}" rel="canonical">
-      <script type="application/ld+json">{"@type":"Service"}</script>
+      <script type="application/ld+json" id="package-structured-data">{"@type":"Service"}</script>
     </head><body></body></html>`;
     expect(
       validateIndexableHtml({
@@ -85,6 +86,7 @@ describe('technical SEO audit utilities', () => {
     expect(result.issues.join(' ')).toMatch(/noindex/i);
     expect(result.issues.join(' ')).toMatch(/placeholder title/i);
     expect(result.issues.join(' ')).toMatch(/structured data/i);
+    expect(result.issues.join(' ')).toMatch(/server-rendered listing marker/i);
   });
 
   test('selects a balanced, bounded crawl sample', () => {
