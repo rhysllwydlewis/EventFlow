@@ -3,7 +3,7 @@
 const { escapeCsvCell, serializeCsv } = require('../../utils/csv');
 
 describe('CSV serialization', () => {
-  test.each(['=2+2', '+SUM(A1:A2)', '-10+20', '@command']) (
+  test.each(['=2+2', '+SUM(A1:A2)', '-10+20', '@command'])(
     'neutralises spreadsheet formula value %s',
     value => {
       expect(escapeCsvCell(value)).toBe(`"'${value}"`);
