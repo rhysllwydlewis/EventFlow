@@ -90,9 +90,9 @@ describe('safe supplier enquiry CSV export', () => {
     expect(response.headers['content-type']).toMatch(/^text\/csv; charset=utf-8/);
     expect(response.headers['content-disposition']).toMatch(/^attachment; filename="enquiries-/);
     expect(response.text.startsWith('\uFEFF')).toBe(true);
-    expect(response.text).toContain('"\'+SUM(A1:A2)"');
-    expect(response.text).toContain('"\'=HYPERLINK(""https://example.test"")"');
-    expect(response.text).toContain('"First line\nSecond ""quoted"" line"');
+    expect(response.text).toContain(`"'+SUM(A1:A2)"`);
+    expect(response.text).toContain(`"'=HYPERLINK(""https://example.test"")"`);
+    expect(response.text).toContain(`"First line\nSecond ""quoted"" line"`);
   });
 
   test('returns a controlled 500 response when export data cannot be loaded', async () => {
