@@ -37,11 +37,18 @@ function createWindow(
 }
 
 describe('supplier clean URL context', () => {
-  test('supplies the server-rendered supplier ID to existing URLSearchParams consumers', () => {
+  test('exposes the authoritative server-rendered supplier ID', () => {
+    const window = createWindow('supplier-123');
+
+    expect(window.__EF_PUBLIC_SUPPLIER_ID__).toBe('supplier-123');
+    expect(window.EventFlowSupplierRoute.getSupplierId()).toBe('supplier-123');
+    expect(window.EventFlowSupplierRoute.isCanonicalProfile).toBe(true);
+  });
+
+  test('supplies the server-rendered supplier ID to boot-time legacy consumers', () => {
     const window = createWindow('supplier-123');
 
     expect(new window.URLSearchParams(window.location.search).get('id')).toBe('supplier-123');
-    expect(window.__EF_PUBLIC_SUPPLIER_ID__).toBe('supplier-123');
   });
 
   test('keeps the server-rendered supplier ID authoritative over a conflicting query ID', () => {
@@ -50,7 +57,8 @@ describe('supplier clean URL context', () => {
       'https://event-flow.co.uk/supplier/example--0123456789abcdef?id=other-supplier'
     );
 
-    expect(new window.URLSearchParams(window.location.search).get('id')).toBe('supplier-123');
+    expect(window.EventFlowSupplierRoute.getSupplierId()).toBe('supplier-123');
+    expect(new window.URLSearchParams(window.location.search).get('id')).toBe('other-supplier');
   });
 
   test('does not inject the supplier ID into unrelated parameter collections', () => {
@@ -68,5 +76,7 @@ describe('supplier clean URL context', () => {
     expect(new invalid.URLSearchParams(invalid.location.search).get('id')).toBeNull();
     expect(missing.__EF_PUBLIC_SUPPLIER_ID__).toBeUndefined();
     expect(invalid.__EF_PUBLIC_SUPPLIER_ID__).toBeUndefined();
+    expect(missing.EventFlowSupplierRoute).toBeUndefined();
+    expect(invalid.EventFlowSupplierRoute).toBeUndefined();
   });
 });
