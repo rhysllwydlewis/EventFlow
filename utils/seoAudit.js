@@ -110,6 +110,24 @@ function extractMetaContent(html, attribute, value) {
   return reversed?.[1] !== undefined ? decodeXml(reversed[1]) : '';
 }
 
+function listingContract(expectedUrl) {
+  try {
+    const pathname = new URL(expectedUrl).pathname;
+    if (pathname.startsWith('/supplier/')) {
+      return { structuredDataId: 'supplier-structured-data', serverMarker: '' };
+    }
+    if (pathname.startsWith('/package/')) {
+      return { structuredDataId: 'package-structured-data', serverMarker: 'package' };
+    }
+    if (pathname.startsWith('/events/')) {
+      return { structuredDataId: 'event-structured-data', serverMarker: 'event' };
+    }
+  } catch (_error) {
+    // The caller reports the canonical mismatch; no listing-specific contract is possible.
+  }
+  return { structuredDataId: '', serverMarker: '' };
+}
+
 function validateIndexableHtml({ html, expectedUrl, headers = {}, requireStructuredData = false }) {
   const issues = [];
   const source = String(html || '');
@@ -117,7 +135,9 @@ function validateIndexableHtml({ html, expectedUrl, headers = {}, requireStructu
   const title = source.match(/<title\b[^>]*>\s*([\s\S]*?)\s*<\/title>/i)?.[1]?.trim() || '';
   const description = extractMetaContent(source, 'name', 'description').trim();
   const metaRobots = extractMetaContent(source, 'name', 'robots').toLowerCase();
-  const headerRobots = String(headers['x-robots-tag'] || headers.get?.('x-robots-tag') || '').toLowerCase();
+  const headerRobots = String(
+    headers['x-robots-tag'] || headers.get?.('x-robots-tag') || ''
+  ).toLowerCase();
 
   if (!canonical) issues.push('canonical is missing');
   else if (canonical !== expectedUrl) issues.push(`canonical mismatch: ${canonical}`);
@@ -129,8 +149,24 @@ function validateIndexableHtml({ html, expectedUrl, headers = {}, requireStructu
   if (/^(?:Package Details|Event details)(?:\s*[—|].*)?$/i.test(title)) {
     issues.push('page has generic placeholder title');
   }
-  if (requireStructuredData && !/<script\b[^>]*type=["']application\/ld\+json["'][^>]*>/i.test(source)) {
-    issues.push('structured data is missing');
+
+  if (requireStructuredData) {
+    const contract = listingContract(expectedUrl);
+    const structuredDataPattern = contract.structuredDataId
+      ? new RegExp(
+          `<script\\b(?=[^>]*\\btype=["']application/ld\\+json["'])(?=[^>]*\\bid=["']${contract.structuredDataId}["'])[^>]*>`,
+          'i'
+        )
+      : /<script\b[^>]*type=["']application\/ld\+json["'][^>]*>/i;
+    if (!structuredDataPattern.test(source)) {
+      issues.push('listing structured data is missing');
+    }
+    if (
+      contract.serverMarker &&
+      extractMetaContent(source, 'name', 'ef-server-seo') !== contract.serverMarker
+    ) {
+      issues.push('server-rendered listing marker is missing');
+    }
   }
 
   return { valid: issues.length === 0, issues, canonical, title, description };
@@ -180,6 +216,7 @@ module.exports = {
   extractCanonical,
   extractMetaContent,
   isListingPath,
+  listingContract,
   parseSitemapEntries,
   selectAuditEntries,
   validateIndexableHtml,
