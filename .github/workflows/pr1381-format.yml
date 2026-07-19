@@ -1,0 +1,55 @@
+name: PR 1381 format helper
+
+on:
+  push:
+    branches:
+      - feature/invisible-technical-seo-hardening
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/invisible-technical-seo-hardening
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci --ignore-scripts
+
+      - name: Format the final SEO diff
+        run: |
+          npx prettier --write \
+            middleware/rateLimits.js \
+            public/assets/js/pages/event-detail-init.js \
+            routes/public-listing-seo.js \
+            routes/static.js \
+            scripts/production-synthetic-check.mjs \
+            services/publicListingSeo.service.js \
+            sitemap.js \
+            tests/integration/public-listing-seo-route.test.js \
+            tests/unit/public-listing-seo.test.js \
+            tests/unit/public-listing-seo-edge-cases.test.js \
+            tests/unit/public-listing-template-cleanup.test.js \
+            tests/unit/public-read-rate-limit.test.js \
+            tests/unit/seo-audit.test.js \
+            tests/unit/sitemap-guides.test.js \
+            tests/unit/sitemap-listings.test.js \
+            utils/seoAudit.js
+          rm .github/workflows/pr1381-format.yml
+
+      - name: Commit formatting
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Format invisible technical SEO hardening"
+          git push origin HEAD:feature/invisible-technical-seo-hardening
