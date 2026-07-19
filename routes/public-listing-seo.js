@@ -76,13 +76,6 @@ function createPublicListingSeoRouter(options = {}) {
   }
 
   function readListings() {
-    // Backend browser fixtures are written while specs run in parallel. Reading
-    // directly only in full browser mode prevents one spec from sharing another
-    // spec's in-flight or TTL-cached snapshot without changing unit-test semantics.
-    if (process.env.E2E_MODE === 'full') {
-      return loadListings();
-    }
-
     const now = Date.now();
     if (listingCache && now < listingCacheExpiresAt) return Promise.resolve(listingCache);
     if (listingLoadPromise) return listingLoadPromise;
