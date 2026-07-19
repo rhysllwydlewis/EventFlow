@@ -13,6 +13,14 @@ const {
   buildPublicSupplierSlug,
   isPublicSupplier,
 } = require('./services/publicSupplierSeo.service');
+const {
+  buildPublicEventSlug,
+  buildPublicPackageSlug,
+  isIndexablePublicEvent,
+  isPublicPackage,
+  publicSupplierIds,
+  validLastModified,
+} = require('./services/publicListingSeo.service');
 
 /**
  * Load guide slugs from the static guides.json data file.
@@ -34,11 +42,6 @@ function loadGuideEntries() {
   }
 }
 
-/**
- * Generate sitemap XML
- * @param {string} baseUrl - Base URL of the site
- * @returns {Promise<string>} Sitemap XML
- */
 function xmlEscape(value) {
   return String(value)
     .replace(/&/g, '&amp;')
@@ -48,107 +51,118 @@ function xmlEscape(value) {
     .replace(/'/g, '&apos;');
 }
 
-function validLastModified(value, fallback) {
-  const parsed = value ? new Date(value) : null;
-  if (!parsed || Number.isNaN(parsed.getTime())) {
-    return fallback;
-  }
-  return parsed.toISOString();
+function validLastModifiedOrFallback(value, fallback = '') {
+  return validLastModified(value) || validLastModified(fallback);
 }
 
+function appendUrl(xmlParts, location, lastmod = '') {
+  xmlParts.push('  <url>');
+  xmlParts.push(`    <loc>${xmlEscape(location)}</loc>`);
+  if (lastmod) xmlParts.push(`    <lastmod>${xmlEscape(lastmod)}</lastmod>`);
+  xmlParts.push('  </url>');
+}
+
+/**
+ * Generate sitemap XML.
+ * Dates are emitted only when EventFlow has a genuine source timestamp. Static
+ * pages intentionally omit lastmod rather than claiming that every request was
+ * a content update.
+ *
+ * @param {string} baseUrl - Base URL of the site
+ * @returns {Promise<string>} Sitemap XML
+ */
 async function generateSitemap(baseUrl) {
-  const now = new Date().toISOString();
   const normalizedBaseUrl = String(baseUrl || '').replace(/\/$/, '');
-
-  let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
-  xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
-
-  // Static pages - only canonical, indexable URLs
-  const staticPages = [
-    { url: '/', priority: '1.0', changefreq: 'daily' },
-    { url: '/suppliers', priority: '0.9', changefreq: 'daily' },
-    { url: '/marketplace', priority: '0.9', changefreq: 'daily' },
-    { url: '/guides', priority: '0.8', changefreq: 'weekly' },
-    { url: '/blog', priority: '0.7', changefreq: 'weekly' },
-    { url: '/start', priority: '0.8', changefreq: 'weekly' },
-    { url: '/pricing', priority: '0.7', changefreq: 'monthly' },
-    { url: '/for-suppliers', priority: '0.7', changefreq: 'monthly' },
-    { url: '/contact', priority: '0.6', changefreq: 'monthly' },
-    { url: '/faq', priority: '0.6', changefreq: 'monthly' },
-    { url: '/privacy', priority: '0.5', changefreq: 'monthly' },
-    { url: '/terms', priority: '0.5', changefreq: 'monthly' },
+  const xmlParts = [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
   ];
 
-  staticPages.forEach(page => {
-    xml += '  <url>\n';
-    xml += `    <loc>${xmlEscape(normalizedBaseUrl + page.url)}</loc>\n`;
-    xml += `    <lastmod>${now}</lastmod>\n`;
-    xml += `    <changefreq>${page.changefreq}</changefreq>\n`;
-    xml += `    <priority>${page.priority}</priority>\n`;
-    xml += '  </url>\n';
-  });
+  const staticPages = [
+    '/',
+    '/suppliers',
+    '/marketplace',
+    '/public-calendar',
+    '/guides',
+    '/blog',
+    '/start',
+    '/pricing',
+    '/for-suppliers',
+    '/contact',
+    '/faq',
+    '/privacy',
+    '/terms',
+  ];
+  staticPages.forEach(page => appendUrl(xmlParts, normalizedBaseUrl + page));
 
   try {
-    // Dynamic pages - approved public suppliers at their clean canonical URLs.
-    const [suppliers, users] = await Promise.all([
+    const [suppliers, users, packages, events] = await Promise.all([
       dbUnified.read('suppliers'),
       dbUnified.read('users'),
+      dbUnified.read('packages'),
+      dbUnified.read('public_calendar_events'),
     ]);
-    const validOwnerIds = new Set((users || []).map(user => user && user.id).filter(Boolean));
-    if (Array.isArray(suppliers)) {
-      suppliers
-        .filter(supplier => isPublicSupplier(supplier, validOwnerIds))
-        .forEach(supplier => {
-          const slug = buildPublicSupplierSlug(supplier);
-          if (!slug) {
-            return;
-          }
-          xml += '  <url>\n';
-          xml += `    <loc>${xmlEscape(`${normalizedBaseUrl}/supplier/${slug}`)}</loc>\n`;
-          xml += `    <lastmod>${validLastModified(
-            supplier.updatedAt || supplier.modifiedAt || supplier.createdAt,
-            now
-          )}</lastmod>\n`;
-          xml += '    <changefreq>weekly</changefreq>\n';
-          xml += '    <priority>0.8</priority>\n';
-          xml += '  </url>\n';
-        });
-    }
+    const validOwnerIds = new Set((users || []).map(user => user?.id).filter(Boolean));
+    const supplierIds = publicSupplierIds(suppliers, users);
 
-    // Dynamic pages - Packages (use canonical /package.html?slug= route)
-    const packages = await dbUnified.read('packages');
-    if (Array.isArray(packages)) {
-      packages.forEach(pkg => {
-        // Use slug if available, fallback to id
-        const identifier = pkg.slug ? `slug=${pkg.slug}` : `id=${pkg.id}`;
-        xml += '  <url>\n';
-        xml += `    <loc>${xmlEscape(`${normalizedBaseUrl}/package.html?${identifier}`)}</loc>\n`;
-        xml += `    <lastmod>${pkg.updatedAt || now}</lastmod>\n`;
-        xml += '    <changefreq>weekly</changefreq>\n';
-        xml += '    <priority>0.7</priority>\n';
-        xml += '  </url>\n';
+    (suppliers || [])
+      .filter(supplier => isPublicSupplier(supplier, validOwnerIds))
+      .sort((a, b) => String(a.id).localeCompare(String(b.id)))
+      .forEach(supplier => {
+        const slug = buildPublicSupplierSlug(supplier);
+        if (!slug) return;
+        appendUrl(
+          xmlParts,
+          `${normalizedBaseUrl}/supplier/${slug}`,
+          validLastModifiedOrFallback(
+            supplier.updatedAt || supplier.modifiedAt || supplier.createdAt
+          )
+        );
       });
-    }
 
-    // Individual article pages — derived from guides.json
-    const guideEntries = loadGuideEntries();
-    guideEntries.forEach(({ slug, lastmod }) => {
-      if (!slug) {
-        return;
-      }
-      xml += '  <url>\n';
-      xml += `    <loc>${xmlEscape(`${normalizedBaseUrl}/articles/${slug}`)}</loc>\n`;
-      xml += `    <lastmod>${lastmod || now}</lastmod>\n`;
-      xml += '    <changefreq>monthly</changefreq>\n';
-      xml += '    <priority>0.7</priority>\n';
-      xml += '  </url>\n';
+    (packages || [])
+      .filter(pkg => isPublicPackage(pkg, supplierIds))
+      .sort((a, b) => String(a.id).localeCompare(String(b.id)))
+      .forEach(pkg => {
+        const slug = buildPublicPackageSlug(pkg);
+        if (!slug) return;
+        appendUrl(
+          xmlParts,
+          `${normalizedBaseUrl}/package/${slug}`,
+          validLastModifiedOrFallback(pkg.updatedAt || pkg.modifiedAt || pkg.createdAt)
+        );
+      });
+
+    const now = new Date();
+    (events || [])
+      .filter(event => isIndexablePublicEvent(event, now))
+      .sort((a, b) => String(a.startDate).localeCompare(String(b.startDate)))
+      .forEach(event => {
+        const slug = buildPublicEventSlug(event);
+        if (!slug) return;
+        appendUrl(
+          xmlParts,
+          `${normalizedBaseUrl}/events/${slug}`,
+          validLastModifiedOrFallback(
+            event.updatedAt || event.publishedAt || event.modifiedAt || event.createdAt
+          )
+        );
+      });
+
+    loadGuideEntries().forEach(({ slug, lastmod }) => {
+      if (!slug) return;
+      appendUrl(
+        xmlParts,
+        `${normalizedBaseUrl}/articles/${slug}`,
+        validLastModifiedOrFallback(lastmod)
+      );
     });
   } catch (error) {
     logger.error('Error generating dynamic sitemap entries:', error);
   }
 
-  xml += '</urlset>';
-  return xml;
+  xmlParts.push('</urlset>');
+  return xmlParts.join('\n');
 }
 
 /**
@@ -183,9 +197,10 @@ Crawl-delay: 1
 }
 
 module.exports = {
+  appendUrl,
   generateSitemap,
   generateRobotsTxt,
   loadGuideEntries,
-  validLastModified,
+  validLastModified: validLastModifiedOrFallback,
   xmlEscape,
 };
