@@ -49,6 +49,7 @@ describe('listing sitemap eligibility and canonical URLs', () => {
         pkg,
         { ...pkg, id: 'pkg-pending', slug: 'pending-package', approved: false },
         { ...pkg, id: 'pkg-orphan', slug: 'orphan-package', supplierId: 'missing' },
+        { ...pkg, id: 'pkg-paused', slug: 'paused-package', paused: true },
       ],
       public_calendar_events: [
         futureEvent,
@@ -78,6 +79,7 @@ describe('listing sitemap eligibility and canonical URLs', () => {
     expect(xml).not.toContain('/package.html?');
     expect(xml).not.toContain('pending-package');
     expect(xml).not.toContain('orphan-package');
+    expect(xml).not.toContain('paused-package');
     expect(xml).not.toContain('past-event-past0001');
     expect(xml).not.toContain('draft-event');
     expect(xml).not.toContain('private-event');
@@ -87,10 +89,11 @@ describe('listing sitemap eligibility and canonical URLs', () => {
 
   test('does not fabricate lastmod dates for static pages', async () => {
     const xml = await generateSitemap(BASE_URL);
-    const homepageBlock = xml.match(
-      new RegExp(`<url>\\s*<loc>${BASE_URL.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\$&')}/</loc>([\\s\\S]*?)</url>`)
-    );
-    expect(homepageBlock).not.toBeNull();
-    expect(homepageBlock[1]).not.toContain('<lastmod>');
+    const location = `<loc>${BASE_URL}/</loc>`;
+    const locationIndex = xml.indexOf(location);
+    const blockEnd = xml.indexOf('</url>', locationIndex);
+    expect(locationIndex).toBeGreaterThanOrEqual(0);
+    expect(blockEnd).toBeGreaterThan(locationIndex);
+    expect(xml.slice(locationIndex, blockEnd)).not.toContain('<lastmod>');
   });
 });
