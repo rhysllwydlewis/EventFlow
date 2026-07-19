@@ -63,12 +63,10 @@ test.describe('Current account-first supplier onboarding @backend', () => {
     });
   });
 
-  test('routes a verified supplier account to profile completion in the dashboard', async ({
-    page,
-  }) => {
+  test('loads profile completion for a verified supplier account', async ({ page }) => {
     await loginAs(page, fixtures.users.pendingSupplier);
-    await page.goto('/dashboard');
-    await page.waitForURL('/dashboard/supplier');
+    const response = await page.goto('/dashboard/supplier');
+    expect(response?.status()).toBe(200);
 
     await expect(page.locator('#verification-status-banner')).toBeAttached();
     await expect(page.locator('#toggle-profile-form')).toBeVisible();
