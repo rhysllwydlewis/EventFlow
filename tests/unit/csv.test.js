@@ -11,18 +11,13 @@ describe('CSV serialization', () => {
   );
 
   test('escapes quotes, commas and line breaks without changing the cell structure', () => {
-    expect(escapeCsvCell('Hello, "Rhys"\r\nSecond line')).toBe(
-      '"Hello, ""Rhys""\nSecond line"'
-    );
+    expect(escapeCsvCell('Hello, "Rhys"\r\nSecond line')).toBe('"Hello, ""Rhys""\nSecond line"');
   });
 
   test('serialises a fixed-width UTF-8 CSV with a BOM by default', () => {
     const csv = serializeCsv(
       ['Name', 'Message'],
-      [
-        ['Cŵm Events', '=HYPERLINK("https://example.test")'],
-        ['Second supplier'],
-      ]
+      [['Cŵm Events', '=HYPERLINK("https://example.test")'], ['Second supplier']]
     );
 
     expect(csv.startsWith('\uFEFF')).toBe(true);
