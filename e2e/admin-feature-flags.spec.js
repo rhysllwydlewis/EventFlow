@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 import {
   cleanupBackendFixtures,
   createRunId,
+  E2E_HEADERS,
   getCsrfToken,
   loginAs,
   putWithCsrf,
@@ -29,7 +30,7 @@ function writableFlags(flags) {
 async function blockedRegistration(page, role) {
   const csrfToken = await getCsrfToken(page);
   return page.request.post('/api/auth/register', {
-    headers: { 'x-csrf-token': csrfToken },
+    headers: { ...E2E_HEADERS, 'x-csrf-token': csrfToken },
     data: {
       firstName: 'Blocked',
       lastName: 'Registration',
