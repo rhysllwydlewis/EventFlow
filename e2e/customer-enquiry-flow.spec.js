@@ -79,7 +79,7 @@ test.describe('Customer enquiry journey against the real backend @backend', () =
     await expect(dialog).toBeVisible({ timeout: 15_000 });
     await expect(dialog.locator('#qcv4-title')).toHaveText('New Message');
     await expect(dialog.locator('#qcv4-recipient')).toHaveValue(fixtures.users.supplier.id);
-    await expect(dialog.locator('#qcv4-message')).toContainText(/enquire about your services/i);
+    await expect(dialog.locator('#qcv4-message')).toHaveValue(/enquire about your services/i);
     await expect(dialog).toContainText(fixtures.supplier.name);
   });
 });
