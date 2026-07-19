@@ -62,8 +62,8 @@ test.describe("Current account-first supplier onboarding @backend", () => {
       },
     });
     expect(response.status()).toBe(403);
-    await expect(response.json()).resolves.toMatchObject({
-      requiresVerification: true,
+    await expect(response.json()).resolves.toEqual({
+      error: "Please verify your email address before signing in.",
     });
   });
 
