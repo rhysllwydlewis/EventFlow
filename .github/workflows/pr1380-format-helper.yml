@@ -1,0 +1,31 @@
+name: PR 1380 Format Helper
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  format-csv-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.node-version'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit
+      - name: Format CSV test
+        run: npx prettier --write tests/unit/csv.test.js
+      - name: Upload formatted file
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr1380-formatted-csv-test
+          path: tests/unit/csv.test.js
+          retention-days: 1
