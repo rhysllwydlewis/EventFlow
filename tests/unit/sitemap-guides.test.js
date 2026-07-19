@@ -58,7 +58,7 @@ describe('dynamic sitemap guide mop-up', () => {
     expect(xml).toContain(
       '<loc>https://event-flow.co.uk/articles/wedding-venue-selection-guide</loc>'
     );
-    expect(xml).toContain(`<lastmod>${guides[0].lastUpdated}</lastmod>`);
+    expect(xml).toContain(`<lastmod>${new Date(guides[0].lastUpdated).toISOString()}</lastmod>`);
     expect(xml).toContain(
       `<loc>https://event-flow.co.uk/supplier/${buildPublicSupplierSlug(sitemapSupplier)}</loc>`
     );
