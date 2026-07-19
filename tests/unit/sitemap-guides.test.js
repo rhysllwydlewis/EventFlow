@@ -13,7 +13,16 @@ jest.mock('../../db-unified', () => ({
       ];
     }
     if (collection === 'packages') {
-      return [{ slug: 'photo&video', updatedAt: '2026-04-11T00:00:00.000Z' }];
+      return [
+        {
+          id: 'pkg&one',
+          supplierId: 'supplier&one',
+          approved: true,
+          title: 'Photo & Video',
+          slug: 'photo-and-video',
+          updatedAt: '2026-04-11T00:00:00.000Z',
+        },
+      ];
     }
     return [];
   }),
@@ -44,16 +53,19 @@ describe('dynamic sitemap guide mop-up', () => {
     });
   });
 
-  test('generateSitemap escapes dynamic URL values and uses guide lastmod dates', async () => {
+  test('generateSitemap escapes dynamic URL values and uses genuine lastmod dates', async () => {
     const xml = await generateSitemap('https://event-flow.co.uk/');
     expect(xml).toContain(
       '<loc>https://event-flow.co.uk/articles/wedding-venue-selection-guide</loc>'
     );
-    expect(xml).toContain(`<lastmod>${guides[0].lastUpdated}</lastmod>`);
+    expect(xml).toContain(`<lastmod>${new Date(guides[0].lastUpdated).toISOString()}</lastmod>`);
     expect(xml).toContain(
       `<loc>https://event-flow.co.uk/supplier/${buildPublicSupplierSlug(sitemapSupplier)}</loc>`
     );
-    expect(xml).toContain('<loc>https://event-flow.co.uk/package.html?slug=photo&amp;video</loc>');
+    expect(xml).toContain('<loc>https://event-flow.co.uk/package/photo-and-video</loc>');
+    expect(xml).not.toContain('/package.html?');
+    expect(xml).not.toContain('<priority>');
+    expect(xml).not.toContain('<changefreq>');
   });
 
   test('xmlEscape protects sitemap XML text nodes', () => {

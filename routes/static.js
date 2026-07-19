@@ -15,10 +15,26 @@ const {
   buildPublicSupplierSlug,
   isPublicSupplier,
 } = require('../services/publicSupplierSeo.service');
+const createPublicListingSeoRouter = require('./public-listing-seo');
 const logger = require('../utils/logger');
 const sentry = require('../utils/sentry');
 
 const router = express.Router();
+const SITEMAP_CACHE_CONTROL = 'public, max-age=300, s-maxage=900, stale-while-revalidate=300';
+let sitemapCache = null;
+let sitemapCacheBaseUrl = '';
+let sitemapCacheExpiresAt = 0;
+
+// Crawlable package and public-event pages are mounted before static HTML fallbacks.
+// This changes only document metadata, canonical handling and response headers; the
+// existing page body, CSS and client-side behaviour remain unchanged.
+router.use(
+  createPublicListingSeoRouter({
+    dbUnified,
+    logger,
+    baseUrl: process.env.BASE_URL || 'https://event-flow.co.uk',
+  })
+);
 
 /**
  * GET /verify
@@ -78,9 +94,15 @@ router.get(['/supplier', '/supplier.html'], async (req, res, next) => {
 router.get('/sitemap.xml', async (req, res) => {
   try {
     const baseUrl = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
-    const sitemap = await generateSitemap(baseUrl);
+    const now = Date.now();
+    if (!sitemapCache || sitemapCacheBaseUrl !== baseUrl || now >= sitemapCacheExpiresAt) {
+      sitemapCache = await generateSitemap(baseUrl);
+      sitemapCacheBaseUrl = baseUrl;
+      sitemapCacheExpiresAt = now + 5 * 60 * 1000;
+    }
     res.header('Content-Type', 'application/xml');
-    res.send(sitemap);
+    res.header('Cache-Control', SITEMAP_CACHE_CONTROL);
+    res.send(sitemapCache);
   } catch (error) {
     logger.error('Error generating sitemap:', error);
     sentry.captureException(error);

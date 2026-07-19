@@ -2,7 +2,9 @@
 
 import { mkdir, writeFile, appendFile } from 'node:fs/promises';
 import path from 'node:path';
+import seoAudit from '../utils/seoAudit.js';
 
+const { selectAuditEntries, validateIndexableHtml, validateSitemapXml } = seoAudit;
 const canonicalBaseUrl = String(
   process.env.SYNTHETIC_BASE_URL || 'https://event-flow.co.uk'
 ).replace(/\/$/, '');
@@ -13,6 +15,7 @@ const timeoutMs = Number(process.env.SYNTHETIC_TIMEOUT_MS || 10000);
 const outputDirectory = path.join(process.cwd(), 'reports', 'synthetics');
 const outputPath = path.join(outputDirectory, 'production-synthetics.json');
 const commitShaPattern = /^[0-9a-f]{40}$/i;
+const technicalSeoAuditLimit = Math.max(1, Number(process.env.SYNTHETIC_SEO_URL_LIMIT || 60));
 
 const checks = [
   {
@@ -120,7 +123,7 @@ async function fetchWithTimeout(url, options = {}) {
       signal: controller.signal,
       headers: {
         'Cache-Control': 'no-cache',
-        'User-Agent': 'EventFlow-Production-Synthetic/2.1',
+        'User-Agent': 'EventFlow-Production-Synthetic/2.2',
         ...(options.headers || {}),
       },
     });
@@ -269,12 +272,105 @@ async function runSupplierProfileChecks() {
   }
 }
 
+function requiresListingStructuredData(url) {
+  try {
+    return /^\/(?:supplier|package|events)\//.test(new URL(url).pathname);
+  } catch (_error) {
+    return false;
+  }
+}
+
+async function runTechnicalSeoAudit() {
+  const sitemapCheck = {
+    name: 'sitemap technical SEO contract',
+    url: `${canonicalBaseUrl}/sitemap.xml`,
+  };
+  const sitemapStarted = performance.now();
+
+  try {
+    const sitemapResponse = await fetchWithTimeout(sitemapCheck.url, {
+      headers: { Accept: 'application/xml,text/xml,text/plain' },
+    });
+    if (sitemapResponse.status !== 200) {
+      return [result(sitemapCheck, sitemapStarted, 'sitemap_http_error')];
+    }
+
+    const sitemapXml = await sitemapResponse.text();
+    const sitemapContract = validateSitemapXml(sitemapXml, canonicalBaseUrl);
+    const sitemapResult = result(
+      sitemapCheck,
+      sitemapStarted,
+      sitemapContract.valid ? 'pass' : 'sitemap_contract_invalid'
+    );
+    if (!sitemapContract.valid) {
+      sitemapResult.details = sitemapContract.issues.slice(0, 20);
+      return [sitemapResult];
+    }
+
+    const crawlCheck = {
+      name: 'sitemap URL indexability crawl',
+      url: `${canonicalBaseUrl}/sitemap.xml`,
+    };
+    const crawlStarted = performance.now();
+    const failures = [];
+    const entries = selectAuditEntries(sitemapContract.entries, technicalSeoAuditLimit);
+
+    for (const entry of entries) {
+      try {
+        const response = await fetchWithTimeout(entry.url, {
+          redirect: 'follow',
+          headers: { Accept: 'text/html,application/xhtml+xml' },
+        });
+        if (response.status !== 200) {
+          failures.push(`${entry.url}: HTTP ${response.status}`);
+          continue;
+        }
+        if (response.url !== entry.url) {
+          failures.push(`${entry.url}: redirected to ${response.url}`);
+          continue;
+        }
+
+        const html = await response.text();
+        const contract = validateIndexableHtml({
+          html,
+          expectedUrl: entry.url,
+          headers: response.headers,
+          requireStructuredData: requiresListingStructuredData(entry.url),
+        });
+        if (!contract.valid) {
+          failures.push(`${entry.url}: ${contract.issues.join(', ')}`);
+        }
+      } catch (error) {
+        failures.push(`${entry.url}: ${error.name === 'AbortError' ? 'timeout' : 'network error'}`);
+      }
+    }
+
+    const crawlResult = result(
+      crawlCheck,
+      crawlStarted,
+      failures.length === 0 ? 'pass' : 'indexability_contract_invalid'
+    );
+    crawlResult.details = failures.slice(0, 20);
+    crawlResult.auditedUrls = entries.length;
+    return [sitemapResult, crawlResult];
+  } catch (error) {
+    return [
+      result(
+        sitemapCheck,
+        sitemapStarted,
+        error.name === 'AbortError' ? 'timeout' : 'network_error'
+      ),
+    ];
+  }
+}
+
 const results = [];
 for (const check of checks) {
   // Sequential execution keeps the monitor deliberately low-impact and diagnosable.
   results.push(await runCheck(check));
 }
 results.push(...(await runSupplierProfileChecks()));
+results.push(...(await runTechnicalSeoAudit()));
 
 const report = {
   canonicalTarget: canonicalBaseUrl,
