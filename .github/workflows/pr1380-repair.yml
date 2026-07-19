@@ -1,0 +1,249 @@
+name: PR 1380 Repair Pass
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    if: github.head_ref == 'feature/next-five-priorities'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.node-version'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit
+
+      - name: Apply audit fixes
+        shell: python
+        run: |
+          from pathlib import Path
+
+          def replace_once(path, old, new):
+              file_path = Path(path)
+              content = file_path.read_text(encoding='utf-8')
+              if old not in content:
+                  raise SystemExit(f'Expected text not found in {path}: {old[:100]!r}')
+              file_path.write_text(content.replace(old, new, 1), encoding='utf-8')
+
+          replace_once(
+              'routes/index.js',
+              "const supplierRoutes = require('./supplier');\n",
+              "const supplierRoutes = require('./supplier');\nconst supplierExportSafeRoutes = require('./supplier-export-safe');\n",
+          )
+          replace_once(
+              'routes/index.js',
+              "  app.use('/api/v1/supplier', supplierRoutes);\n  app.use('/api/supplier', supplierRoutes);",
+              "  // The hardened CSV export must run before the legacy supplier router,\n"
+              "  // which retains the historical endpoint for backwards compatibility.\n"
+              "  app.use('/api/v1/supplier', supplierExportSafeRoutes);\n"
+              "  app.use('/api/supplier', supplierExportSafeRoutes);\n"
+              "  app.use('/api/v1/supplier', supplierRoutes);\n"
+              "  app.use('/api/supplier', supplierRoutes);",
+          )
+
+          replace_once(
+              'public/plan.html',
+              '''    <section class="section">
+                <div class="card">
+                  <h3>AI event planning assistant <span class="badge subtle">Beta</span></h3>
+                  <p class="small">Describe your event and we’ll suggest a checklist, rough timeline and supplier tips. Works even better if you’ve already started filling in your plan below.</p>
+                  <div class="form-row">
+                    <textarea id="ai-plan-input" rows="3" placeholder="e.g. Summer wedding near Cardiff for 80–100 guests, relaxed vibe, live band, budget around £18k"></textarea>
+                  </div>
+                  <div class="form-row plan-inline-fields">
+                    <label class="small">
+                      <input type="checkbox" id="ai-plan-use-current"> Include my current plan details
+                    </label>
+                    <button class="cta" id="ai-plan-run" type="button">Generate suggestions</button>
+                  </div>
+                  <div id="ai-plan-output" class="plan-ai-output small">
+                    <p class="plan-list-empty">No AI suggestions yet. Describe your event and click “Generate suggestions”.</p>
+                  </div>
+                </div>
+              </section>''',
+              '''    <section class="section">
+                <div class="card">
+                  <h3>Planning assistant</h3>
+                  <p class="small"><strong>JadeAssist is now the supported EventFlow assistant.</strong> Use the JadeAssist button in the bottom-left corner to ask for a checklist, timeline, supplier ideas or budget guidance for your event.</p>
+                </div>
+              </section>''',
+          )
+
+          plural_script = Path('scripts/production-synthetics.mjs')
+          singular_script = Path('scripts/production-synthetic-check.mjs')
+          if not plural_script.exists():
+              raise SystemExit('Expected scripts/production-synthetics.mjs to exist')
+          singular_script.write_text(plural_script.read_text(encoding='utf-8'), encoding='utf-8')
+          plural_script.unlink()
+
+          replace_once(
+              '.github/workflows/production-synthetics.yml',
+              'The checks cover deployment identity, health, readiness, public pages, unsupported launch claims, robots, sitemap and canonical-host redirects.',
+              'The checks cover deployment identity, health, readiness, public pages, unsupported launch claims, robots, sitemap, supplier-profile metadata, legacy supplier redirects and canonical-host redirects.',
+          )
+
+          export_route = Path('routes/supplier-export-safe.js')
+          export_content = export_route.read_text(encoding='utf-8')
+          install_start = export_content.find('\nfunction installInto(targetRouter) {')
+          if install_start == -1:
+              raise SystemExit('Expected installInto helper in routes/supplier-export-safe.js')
+          export_route.write_text(
+              export_content[:install_start] + "\n\nmodule.exports = router;\n",
+              encoding='utf-8',
+          )
+
+          export_test = Path('tests/integration/supplier-enquiries-export-safe.test.js')
+          export_test_content = export_test.read_text(encoding='utf-8')
+          export_test_content = export_test_content.replace(
+              "'use strict';\n\nconst express = require('express');",
+              "'use strict';\n\nconst fs = require('fs');\nconst path = require('path');\nconst express = require('express');",
+              1,
+          )
+          obsolete_tests = '''
+            test('installs the hardened route first and only once', () => {
+              const target = express.Router();
+              target.get('/enquiries/export', (_req, res) => res.status(418).send('legacy'));
+              const originalLength = target.stack.length;
+
+              safeExportRoutes.installInto(target);
+              safeExportRoutes.installInto(target);
+
+              expect(target.stack).toHaveLength(originalLength + safeExportRoutes.stack.length);
+              expect(target.stack[0]).toBe(safeExportRoutes.stack[0]);
+              expect(target.__safeSupplierExportInstalled).toBe(true);
+            });
+
+            test('ignores invalid router installation targets', () => {
+              expect(() => safeExportRoutes.installInto(null)).not.toThrow();
+              expect(() => safeExportRoutes.installInto({})).not.toThrow();
+            });
+          '''
+          if obsolete_tests not in export_test_content:
+              raise SystemExit('Expected obsolete supplier export installation tests')
+          replacement_test = '''
+            test('mounts the hardened export before the legacy supplier router', () => {
+              const routesIndex = fs.readFileSync(
+                path.join(__dirname, '../../routes/index.js'),
+                'utf8'
+              );
+
+              expect(routesIndex).toContain(
+                "const supplierExportSafeRoutes = require('./supplier-export-safe');"
+              );
+
+              for (const prefix of ['/api/v1/supplier', '/api/supplier']) {
+                const hardenedMount = routesIndex.indexOf(
+                  `app.use('${prefix}', supplierExportSafeRoutes);`
+                );
+                const legacyMount = routesIndex.indexOf(`app.use('${prefix}', supplierRoutes);`);
+
+                expect(hardenedMount).toBeGreaterThan(-1);
+                expect(legacyMount).toBeGreaterThan(hardenedMount);
+              }
+            });
+          '''
+          export_test.write_text(
+              export_test_content.replace(obsolete_tests, replacement_test, 1),
+              encoding='utf-8',
+          )
+
+          ai_test = Path('tests/integration/ai-plan-route.test.js')
+          ai_test_content = ai_test.read_text(encoding='utf-8')
+          ai_test_content = ai_test_content.replace(
+              "const request = require('supertest');",
+              "const fs = require('fs');\nconst path = require('path');\nconst request = require('supertest');",
+              1,
+          )
+          final_marker = "  test('preserves authentication on the retired endpoint', async () => {\n    await request(app).post('/api/v1/ai/plan').send({}).expect(401);\n  });\n"
+          if final_marker not in ai_test_content:
+              raise SystemExit('Expected authentication test in AI route test')
+          ai_ui_test = final_marker + '''
+
+            test('replaces the retired planner controls with a JadeAssist handoff', () => {
+              const planHtml = fs.readFileSync(path.join(__dirname, '../../public/plan.html'), 'utf8');
+
+              expect(planHtml).toContain('JadeAssist is now the supported EventFlow assistant.');
+              expect(planHtml).not.toContain('id="ai-plan-run"');
+              expect(planHtml).not.toContain('id="ai-plan-input"');
+              expect(planHtml).not.toContain('Generate suggestions');
+            });
+          '''
+          ai_test.write_text(ai_test_content.replace(final_marker, ai_ui_test, 1), encoding='utf-8')
+
+          Path('tests/unit/production-synthetic-supplier-profile.test.js').write_text(
+              ''''use strict';
+
+          const fs = require('fs');
+          const path = require('path');
+
+          describe('production supplier-profile synthetics', () => {
+            const workflowPath = path.join(
+              __dirname,
+              '../../.github/workflows/production-synthetics.yml'
+            );
+            const scriptPath = path.join(__dirname, '../../scripts/production-synthetic-check.mjs');
+            const obsoleteScriptPath = path.join(__dirname, '../../scripts/production-synthetics.mjs');
+
+            test('the scheduled workflow runs the script containing supplier-profile checks', () => {
+              const workflow = fs.readFileSync(workflowPath, 'utf8');
+              const script = fs.readFileSync(scriptPath, 'utf8');
+
+              expect(workflow).toContain('node scripts/production-synthetic-check.mjs');
+              expect(script).toContain('runSupplierProfileChecks');
+              expect(script).toContain('canonical supplier profile contract');
+              expect(script).toContain('legacy supplier profile redirect');
+              expect(script).toContain('application/ld\\+json');
+            });
+
+            test('does not leave a duplicate, unwired production script behind', () => {
+              expect(fs.existsSync(obsoleteScriptPath)).toBe(false);
+            });
+          });
+          ''',
+              encoding='utf-8',
+          )
+
+      - name: Format changed source and tests
+        run: |
+          npx prettier --write \
+            routes/index.js \
+            routes/supplier-export-safe.js \
+            public/plan.html \
+            scripts/production-synthetic-check.mjs \
+            .github/workflows/production-synthetics.yml \
+            tests/integration/ai-plan-route.test.js \
+            tests/integration/supplier-enquiries-export-safe.test.js \
+            tests/unit/production-synthetic-supplier-profile.test.js
+
+      - name: Run focused regression tests
+        run: |
+          npx jest --runInBand \
+            tests/integration/ai-plan-route.test.js \
+            tests/integration/supplier-enquiries-export-safe.test.js \
+            tests/unit/production-synthetic-supplier-profile.test.js
+
+      - name: Remove one-time repair workflow
+        run: rm .github/workflows/pr1380-repair.yml
+
+      - name: Commit audited fixes
+        run: |
+          git config user.name 'eventflow-pr-audit[bot]'
+          git config user.email 'eventflow-pr-audit[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'fix: complete PR 1380 integration and review findings'
+          git push origin HEAD:${{ github.head_ref }}
