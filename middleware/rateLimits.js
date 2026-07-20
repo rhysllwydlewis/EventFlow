@@ -12,8 +12,6 @@ const PHOTO_ASSET_LIMIT_WINDOW_MS = 15 * 60 * 1000;
 const PHOTO_ASSET_PATH_PATTERN = /^\/api\/(?:v1\/)?photos\/[^/?#]+$/;
 const PUBLIC_CALENDAR_EVENTS_PATH_PATTERN =
   /^\/api\/(?:v1\/)?public-calendar\/events(?:\/[^/?#]+(?:\/ics)?)?\/?$/;
-const E2E_HEADER_NAME = 'x-eventflow-e2e';
-const E2E_HEADER_VALUE = 'backend-suite';
 const parsedPhotoAssetLimit = Number.parseInt(process.env.PHOTO_ASSET_RATE_LIMIT_MAX || '3000', 10);
 const PHOTO_ASSET_RATE_LIMIT_MAX = Number.isFinite(parsedPhotoAssetLimit)
   ? parsedPhotoAssetLimit
@@ -42,13 +40,12 @@ function isPublicCalendarReadRequest(req) {
   return !/\/events\/saved\/?$/.test(requestPath);
 }
 
-function isBackendE2ERequest(req) {
-  return (
-    process.env.NODE_ENV === 'test' &&
-    process.env.E2E_MODE === 'full' &&
-    typeof req.get === 'function' &&
-    req.get(E2E_HEADER_NAME) === E2E_HEADER_VALUE
-  );
+function isBackendE2ERequest() {
+  // The full backend browser server is a single isolated CI process that executes
+  // many independent specs through one loopback address. Keeping normal per-IP
+  // buckets enabled there makes unrelated tests exhaust each other's allowance.
+  // Production, development and the ordinary Jest environment remain rate-limited.
+  return process.env.NODE_ENV === 'test' && process.env.E2E_MODE === 'full';
 }
 
 /**
