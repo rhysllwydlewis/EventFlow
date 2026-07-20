@@ -13,20 +13,10 @@ describe('backend E2E rate-limit isolation', () => {
     else process.env.E2E_MODE = originalE2EMode;
   });
 
-  function request(headerValue) {
-    return {
-      get(name) {
-        return name === 'x-eventflow-e2e' ? headerValue : undefined;
-      },
-    };
-  }
-
-  test('recognises only private full-mode requests in the test environment', () => {
+  test('isolates the explicit full backend browser server', () => {
     process.env.NODE_ENV = 'test';
     process.env.E2E_MODE = 'full';
-    expect(_private.isBackendE2ERequest(request('backend-suite'))).toBe(true);
-    expect(_private.isBackendE2ERequest(request('wrong-value'))).toBe(false);
-    expect(_private.isBackendE2ERequest({})).toBe(false);
+    expect(_private.isBackendE2ERequest()).toBe(true);
   });
 
   test('does not weaken ordinary tests, development or production', () => {
@@ -37,7 +27,7 @@ describe('backend E2E rate-limit isolation', () => {
     ]) {
       process.env.NODE_ENV = nodeEnv;
       process.env.E2E_MODE = e2eMode;
-      expect(_private.isBackendE2ERequest(request('backend-suite'))).toBe(false);
+      expect(_private.isBackendE2ERequest()).toBe(false);
     }
   });
 });
