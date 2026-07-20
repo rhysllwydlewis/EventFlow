@@ -1,4 +1,5 @@
 const E2E_HEADERS = Object.freeze({ 'x-eventflow-e2e': 'backend-suite' });
+const E2E_CSRF_TOKEN = 'backend-e2e-csrf-token';
 
 export function createRunId(label) {
   const safeLabel = String(label || 'suite')
@@ -57,17 +58,14 @@ export async function loginAs(page, user) {
   return response.json();
 }
 
-export async function getCsrfToken(page) {
-  const response = await page.request.get('/api/csrf-token', { headers: E2E_HEADERS });
-  await requireOk(response, 'CSRF token request');
-  const body = await response.json();
-  const token = body.csrfToken || body.token;
-  if (!token) throw new Error('CSRF response did not include a token');
-  return token;
+export async function getCsrfToken() {
+  // middleware/csrf.js intentionally bypasses validation when NODE_ENV=test.
+  // Do not consume the shared /api/csrf-token auth bucket in the isolated browser suite.
+  return E2E_CSRF_TOKEN;
 }
 
 export async function putWithCsrf(page, url, data) {
-  const csrfToken = await getCsrfToken(page);
+  const csrfToken = await getCsrfToken();
   return page.request.put(url, {
     headers: { ...E2E_HEADERS, 'x-csrf-token': csrfToken },
     data,
@@ -75,7 +73,7 @@ export async function putWithCsrf(page, url, data) {
 }
 
 export async function postWithCsrf(page, url, data = {}) {
-  const csrfToken = await getCsrfToken(page);
+  const csrfToken = await getCsrfToken();
   return page.request.post(url, {
     headers: { ...E2E_HEADERS, 'x-csrf-token': csrfToken },
     data,
