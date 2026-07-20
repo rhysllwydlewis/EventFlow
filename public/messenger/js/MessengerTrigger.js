@@ -136,6 +136,58 @@
     });
   }
 
+  function resolveSupplierRecipientId(supplier) {
+    if (!supplier || typeof supplier !== 'object') {
+      return '';
+    }
+    return String(
+      supplier.messagingRecipientId ||
+        supplier.ownerUserId ||
+        supplier.userId ||
+        supplier.ownerId ||
+        supplier.accountId ||
+        ''
+    ).trim();
+  }
+
+  /**
+   * The safe public supplier API deliberately projects the account identifier as
+   * `messagingRecipientId`, not `ownerUserId`. The profile renderer predates that
+   * privacy boundary, so replace its legacy click handler once supplier data exists.
+   * @param {Object} supplier
+   * @returns {boolean}
+   */
+  function wireSupplierProfileQuickCompose(supplier) {
+    const button = document.getElementById('btn-enquiry');
+    const recipientId = resolveSupplierRecipientId(supplier);
+    if (!button || !recipientId || typeof window.QuickComposeV4?.open !== 'function') {
+      return false;
+    }
+
+    const supplierName = String(supplier.name || 'Supplier').trim() || 'Supplier';
+    const safeName = supplierName.replace(/[<>'"&]/g, '').trim() || 'Supplier';
+    const options = {
+      recipientId,
+      recipientName: supplierName,
+      contextType: 'supplier_profile',
+      contextId: String(supplier.id || ''),
+      contextTitle: supplierName,
+      prefill: `Hi ${safeName}! I'd like to enquire about your services.`,
+    };
+
+    button.dataset.recipientId = recipientId;
+    button.dataset.contextType = options.contextType;
+    button.dataset.contextId = options.contextId;
+    button.dataset.contextTitle = options.contextTitle;
+    button.dataset.prefill = options.prefill;
+    button.onclick = event => {
+      event?.preventDefault();
+      window.QuickComposeV4.open(options);
+    };
+    button.setAttribute('data-supplier-compose-ready', 'true');
+    return true;
+  }
+
   /**
    * Initialize all messenger trigger buttons on the page
    */
@@ -150,14 +202,11 @@
   function setupMutationObserver() {
     const observer = new MutationObserver(mutations => {
       mutations.forEach(mutation => {
-        // Check added nodes
         mutation.addedNodes.forEach(node => {
           if (node.nodeType === Node.ELEMENT_NODE) {
-            // Check if the node itself is a messenger action button
             if (node.hasAttribute && node.hasAttribute('data-messenger-action')) {
               attachHandler(node);
             }
-            // Check if the node contains messenger action buttons
             if (node.querySelectorAll) {
               const buttons = node.querySelectorAll('[data-messenger-action]');
               buttons.forEach(attachHandler);
@@ -167,7 +216,6 @@
       });
     });
 
-    // Observe the entire document body for changes
     observer.observe(document.body, {
       childList: true,
       subtree: true,
@@ -184,6 +232,7 @@
    */
   function init() {
     initializeButtons();
+    wireSupplierProfileQuickCompose(window.__supplierData);
     mutationObserver = setupMutationObserver();
   }
 
@@ -197,11 +246,14 @@
     }
   }
 
+  window.addEventListener('sp:dataReady', event => {
+    wireSupplierProfileQuickCompose(event.detail?.supplier);
+  });
+
   // Auto-initialize when DOM is ready
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {
-    // DOM already loaded
     init();
   }
 
@@ -211,5 +263,7 @@
     initializeButtons,
     attachHandler,
     destroy,
+    resolveSupplierRecipientId,
+    wireSupplierProfileQuickCompose,
   };
 })();
