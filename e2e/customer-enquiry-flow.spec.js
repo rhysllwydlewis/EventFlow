@@ -6,14 +6,25 @@ import {
   seedBackendFixtures,
 } from './helpers/backend-fixtures.js';
 
+async function dismissCookieConsent(page) {
+  const reject = page.getByRole('button', { name: 'Reject non-essential cookies' });
+  if (await reject.isVisible().catch(() => false)) {
+    await reject.click();
+  }
+}
+
 async function waitForEnquiryWiring(page) {
   await expect
     .poll(() =>
-      page.evaluate(
-        () =>
-          typeof window.QuickComposeV4?.open === 'function' &&
-          typeof document.getElementById('btn-enquiry')?.onclick === 'function'
-      )
+      page.evaluate(() => {
+        const button = document.getElementById('btn-enquiry');
+        return Boolean(
+          window.__supplierData?.messagingRecipientId &&
+            typeof window.QuickComposeV4?.open === 'function' &&
+            typeof button?.onclick === 'function' &&
+            button?.dataset.supplierComposeReady === 'true'
+        );
+      })
     )
     .toBe(true);
 }
@@ -57,6 +68,7 @@ test.describe('Customer enquiry journey against the real backend @backend', () =
     await context.clearCookies();
     await page.goto(fixtures.supplier.path);
     await expect(page.locator('#hero-title')).toHaveText(fixtures.supplier.name);
+    await dismissCookieConsent(page);
     await waitForEnquiryWiring(page);
 
     await Promise.all([
@@ -72,6 +84,7 @@ test.describe('Customer enquiry journey against the real backend @backend', () =
     await loginAs(page, fixtures.users.customer);
     await page.goto(fixtures.supplier.path);
     await expect(page.locator('#hero-title')).toHaveText(fixtures.supplier.name);
+    await dismissCookieConsent(page);
     await waitForEnquiryWiring(page);
     await page.locator('#btn-enquiry').click();
 
