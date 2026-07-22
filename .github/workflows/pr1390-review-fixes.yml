@@ -1,0 +1,162 @@
+name: PR 1390 Review Fixes
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pr1390-review-fixes-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  apply-review-fixes:
+    name: Apply reviewed supplier fixes
+    if: >-
+      github.event.pull_request.number == 1390 &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout pull request branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.node-version'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit
+
+      - name: Apply review fixes
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path, old, new):
+              file = Path(path)
+              content = file.read_text()
+              count = content.count(old)
+              if count != 1:
+                  raise SystemExit(f'{path}: expected one match, found {count}')
+              file.write_text(content.replace(old, new, 1))
+
+          css_path = 'public/assets/css/suppliers-mobile-polish.css'
+          replace_once(css_path, '@media (min-width: 901px) {', '@media (min-width: 1025px) {')
+
+          js_path = 'public/assets/js/supplier-profile-packages-v2.js'
+          old_auth = '''function isAuthenticated() {
+            const authState = window.EFAuth || window.__authState__;
+            if (authState) {
+              return Boolean(authState.isAuthenticated || authState.loggedIn || authState.user);
+            }
+            return document.cookie.split(';').some(cookie => cookie.trim().startsWith('ef_session='));
+          }
+
+          function addPackageToPlan(item, supplierId) {
+            if (!isAuthenticated()) {'''
+          new_auth = '''async function isAuthenticated() {
+            const authManager = window.__authState || window.AuthStateManager;
+            if (authManager) {
+              try {
+                if (typeof authManager.init === 'function') {
+                  await authManager.init();
+                }
+                if (typeof authManager.isAuthenticated === 'function') {
+                  return authManager.isAuthenticated();
+                }
+                const user =
+                  (typeof authManager.getUser === 'function' && authManager.getUser()) ||
+                  authManager.user;
+                return Boolean(user);
+              } catch (_) {
+                return false;
+              }
+            }
+
+            const authState = window.EFAuth;
+            if (authState) {
+              const authenticated =
+                typeof authState.isAuthenticated === 'function'
+                  ? authState.isAuthenticated()
+                  : authState.isAuthenticated;
+              return Boolean(authenticated || authState.loggedIn || authState.user);
+            }
+
+            try {
+              const response = await fetch('/api/v1/auth/me', { credentials: 'include' });
+              if (!response.ok) {
+                return false;
+              }
+              const data = await response.json();
+              return Boolean(data?.user);
+            } catch (_) {
+              return false;
+            }
+          }
+
+          async function addPackageToPlan(item, supplierId) {
+            if (!(await isAuthenticated())) {'''
+          replace_once(js_path, old_auth, new_auth)
+
+          html_path = 'public/supplier.html'
+          replace_once(
+              html_path,
+              'supplier-profile-packages-v2.js?v=19.4.2',
+              'supplier-profile-packages-v2.js?v=19.4.3',
+          )
+
+          test_path = 'tests/unit/supplier-profile-polish.test.js'
+          test = Path(test_path)
+          content = test.read_text().replace('@media (min-width: 901px)', '@media (min-width: 1025px)')
+          content = content.replace(
+              "expect(supplierHtml).toContain('supplier-profile-packages-v2.js?v=19.4.2');",
+              "expect(supplierHtml).toContain('supplier-profile-packages-v2.js?v=19.4.3');",
+          )
+          anchor = '''  test('loads the profile polish layer from the existing package module entry point', () => {'''
+          auth_test = '''  test('uses the central auth manager before gating add-to-plan actions', () => {
+            expect(packagesJs).toContain('window.__authState || window.AuthStateManager');
+            expect(packagesJs).toContain('await authManager.init()');
+            expect(packagesJs).toContain('if (!(await isAuthenticated()))');
+            expect(packagesJs).toContain("fetch('/api/v1/auth/me', { credentials: 'include' })");
+            expect(packagesJs).not.toContain('window.__authState__');
+            expect(packagesJs).not.toContain('ef_session=');
+          });
+
+          '''
+          if content.count(anchor) != 1:
+              raise SystemExit(f'{test_path}: review-test anchor not found exactly once')
+          content = content.replace(anchor, auth_test + anchor, 1)
+          test.write_text(content)
+          PY
+
+      - name: Format changed JavaScript and tests
+        run: npx prettier --write public/assets/js/supplier-profile-packages-v2.js tests/unit/supplier-profile-polish.test.js
+
+      - name: Run focused supplier tests
+        run: >-
+          npx jest --runInBand --coverage=false
+          tests/unit/supplier-profile-polish.test.js
+          tests/unit/supplier-profile-packages-v2-renderer.test.js
+          tests/unit/suppliers-mobile-card.test.js
+
+      - name: Commit review fixes
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            public/assets/css/suppliers-mobile-polish.css \
+            public/assets/js/supplier-profile-packages-v2.js \
+            public/supplier.html \
+            tests/unit/supplier-profile-polish.test.js
+          git commit -m "fix: address supplier profile review findings"
+          git push origin "HEAD:${{ github.event.pull_request.head.ref }}"
