@@ -13,7 +13,7 @@ concurrency:
 
 jobs:
   capture-audit:
-    name: Capture production audit report
+    name: Regenerate and audit production lockfile
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -27,6 +27,9 @@ jobs:
           node-version-file: '.node-version'
           cache: npm
 
+      - name: Regenerate package lock
+        run: npm install --package-lock-only --ignore-scripts --no-audit
+
       - name: Capture npm audit JSON
         shell: bash
         run: |
@@ -36,11 +39,12 @@ jobs:
           echo "audit_exit_code=${status}" > production-audit-status.txt
           exit 0
 
-      - name: Upload production audit diagnostics
+      - name: Upload lockfile and audit diagnostics
         uses: actions/upload-artifact@v4
         with:
           name: pr1390-production-audit
           path: |
+            package-lock.json
             production-audit-report.json
             production-audit-status.txt
           if-no-files-found: error
