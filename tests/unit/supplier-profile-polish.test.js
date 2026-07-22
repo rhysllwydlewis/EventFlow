@@ -40,6 +40,13 @@ describe('supplier profile information polish', () => {
     expect(profileJs).toContain("link.textContent = 'Visit website'");
   });
 
+  test('applies decorative cover polish only when an uploaded cover is missing', () => {
+    expect(profileJs).toContain(
+      "heroMedia.classList.toggle('sp-hero-media--fallback', !hasCover)"
+    );
+    expect(profileCss).toContain('.hero-media.sp-hero-media--fallback::before');
+  });
+
   test('replaces emoji socials with consistent labelled SVG controls', () => {
     expect(profileJs).toContain("label: 'LinkedIn'");
     expect(profileJs).toContain("label: 'YouTube'");
