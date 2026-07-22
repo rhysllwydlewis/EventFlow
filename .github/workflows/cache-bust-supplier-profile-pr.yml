@@ -1,0 +1,36 @@
+name: Cache-bust supplier profile PR
+
+on:
+  push:
+    branches:
+      - feat/supplier-profile-polish
+
+permissions:
+  contents: write
+
+jobs:
+  cache-bust:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: feat/supplier-profile-polish
+          fetch-depth: 0
+
+      - name: Update supplier profile module version
+        run: >-
+          sed -i
+          's#supplier-profile-packages-v2.js?v=19.0.0#supplier-profile-packages-v2.js?v=19.4.2#'
+          public/supplier.html
+
+      - name: Remove one-time workflow and commit
+        run: |
+          git rm .github/workflows/cache-bust-supplier-profile-pr.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/supplier.html
+          git commit -m "chore: cache-bust supplier profile polish"
+          git push origin HEAD:feat/supplier-profile-polish
