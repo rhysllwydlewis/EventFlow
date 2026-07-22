@@ -5,6 +5,7 @@ const path = require('path');
 
 const read = relative => fs.readFileSync(path.join(__dirname, '../..', relative), 'utf8');
 
+const supplierHtml = read('public/supplier.html');
 const listingCss = read('public/assets/css/suppliers-mobile-polish.css');
 const profileCss = read('public/assets/css/supplier-profile-polish.css');
 const profileJs = read('public/assets/js/supplier-profile-polish.js');
@@ -73,6 +74,7 @@ describe('supplier profile packages and reviews', () => {
 
   test('loads the profile polish layer from the existing package module entry point', () => {
     expect(packagesJs).toContain("import './supplier-profile-polish.js'");
+    expect(supplierHtml).toContain('supplier-profile-packages-v2.js?v=19.4.2');
   });
 
   test('collapses zero-review scaffolding into one EventFlow-specific empty state', () => {
