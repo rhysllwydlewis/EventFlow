@@ -75,16 +75,47 @@ function createImage(item, debugImages) {
   return img;
 }
 
-function isAuthenticated() {
-  const authState = window.EFAuth || window.__authState__;
-  if (authState) {
-    return Boolean(authState.isAuthenticated || authState.loggedIn || authState.user);
+async function isAuthenticated() {
+  const authManager = window.__authState || window.AuthStateManager;
+  if (authManager) {
+    try {
+      if (typeof authManager.init === 'function') {
+        await authManager.init();
+      }
+      if (typeof authManager.isAuthenticated === 'function') {
+        return authManager.isAuthenticated();
+      }
+      const user =
+        (typeof authManager.getUser === 'function' && authManager.getUser()) || authManager.user;
+      return Boolean(user);
+    } catch (_) {
+      return false;
+    }
   }
-  return document.cookie.split(';').some(cookie => cookie.trim().startsWith('ef_session='));
+
+  const authState = window.EFAuth;
+  if (authState) {
+    const authenticated =
+      typeof authState.isAuthenticated === 'function'
+        ? authState.isAuthenticated()
+        : authState.isAuthenticated;
+    return Boolean(authenticated || authState.loggedIn || authState.user);
+  }
+
+  try {
+    const response = await fetch('/api/v1/auth/me', { credentials: 'include' });
+    if (!response.ok) {
+      return false;
+    }
+    const data = await response.json();
+    return Boolean(data?.user);
+  } catch (_) {
+    return false;
+  }
 }
 
-function addPackageToPlan(item, supplierId) {
-  if (!isAuthenticated()) {
+async function addPackageToPlan(item, supplierId) {
+  if (!(await isAuthenticated())) {
     const returnTo = window.location.pathname + window.location.search;
     window.NotificationDispatcher?.info('Please log in to add packages to your plan.');
     window.setTimeout(() => {

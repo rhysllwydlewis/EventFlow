@@ -140,7 +140,7 @@
 }
 
 /* ── Desktop listing card: keep summary directly below profile details ──── */
-@media (min-width: 901px) {
+@media (min-width: 1025px) {
   .suppliers-page-wrap .sp-card {
     grid-template-rows: auto auto minmax(0, 1fr) !important;
   }

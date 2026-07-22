@@ -13,14 +13,14 @@ const packagesJs = read('public/assets/js/supplier-profile-packages-v2.js');
 
 describe('supplier listing desktop summary placement', () => {
   test('creates a dedicated flexible remainder row below profile and description', () => {
-    const desktop = listingCss.slice(listingCss.indexOf('@media (min-width: 901px)'));
+    const desktop = listingCss.slice(listingCss.indexOf('@media (min-width: 1025px)'));
     expect(desktop).toMatch(/grid-template-rows:\s*auto auto minmax\(0, 1fr\)/);
     expect(desktop).toMatch(/\.sp-card-profile\s*\{[^}]*grid-row:\s*1/);
     expect(desktop).toMatch(/\.sp-card > \.sp-card-description\s*\{[^}]*grid-row:\s*2/);
   });
 
   test('keeps packages and actions spanning the complete listing card', () => {
-    const desktop = listingCss.slice(listingCss.indexOf('@media (min-width: 901px)'));
+    const desktop = listingCss.slice(listingCss.indexOf('@media (min-width: 1025px)'));
     expect(desktop).toMatch(
       /\.sp-card-packages,[\s\S]*\.sp-card-actions\s*\{[^}]*grid-row:\s*1 \/ -1/
     );
@@ -72,9 +72,18 @@ describe('supplier profile packages and reviews', () => {
     expect(packagesJs).toContain("query.set('supplierId', supplierId)");
   });
 
+  test('uses the central auth manager before gating add-to-plan actions', () => {
+    expect(packagesJs).toContain('window.__authState || window.AuthStateManager');
+    expect(packagesJs).toContain('await authManager.init()');
+    expect(packagesJs).toContain('if (!(await isAuthenticated()))');
+    expect(packagesJs).toContain("fetch('/api/v1/auth/me', { credentials: 'include' })");
+    expect(packagesJs).not.toContain('window.__authState__');
+    expect(packagesJs).not.toContain('ef_session=');
+  });
+
   test('loads the profile polish layer from the existing package module entry point', () => {
     expect(packagesJs).toContain("import './supplier-profile-polish.js'");
-    expect(supplierHtml).toContain('supplier-profile-packages-v2.js?v=19.4.2');
+    expect(supplierHtml).toContain('supplier-profile-packages-v2.js?v=19.4.3');
   });
 
   test('collapses zero-review scaffolding into one EventFlow-specific empty state', () => {
