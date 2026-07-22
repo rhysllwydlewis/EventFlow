@@ -5,7 +5,7 @@ on:
     branches: [main]
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: pr1390-security-diagnostic-${{ github.ref }}
@@ -14,12 +14,17 @@ concurrency:
 jobs:
   capture-audit:
     name: Regenerate and audit production lockfile
+    if: >-
+      github.event.pull_request.number == 1390 &&
+      github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
     steps:
-      - name: Checkout code
+      - name: Checkout pull request branch
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -30,16 +35,32 @@ jobs:
       - name: Regenerate package lock
         run: npm install --package-lock-only --ignore-scripts --no-audit
 
-      - name: Capture npm audit JSON
+      - name: Verify production dependency audit
         shell: bash
         run: |
           set +e
           npm audit --omit=dev --audit-level=high --json > production-audit-report.json
           status=$?
           echo "audit_exit_code=${status}" > production-audit-status.txt
-          exit 0
+          if [[ "$status" -ne 0 ]]; then
+            exit "$status"
+          fi
+
+      - name: Commit regenerated lockfile
+        shell: bash
+        run: |
+          if git diff --quiet -- package-lock.json; then
+            echo "package-lock.json is already current"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package-lock.json
+          git commit -m "security: regenerate audited dependency lockfile"
+          git push origin "HEAD:${{ github.event.pull_request.head.ref }}"
 
       - name: Upload lockfile and audit diagnostics
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: pr1390-production-audit
