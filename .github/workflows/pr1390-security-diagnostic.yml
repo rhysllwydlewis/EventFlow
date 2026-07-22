@@ -1,0 +1,47 @@
+name: PR 1390 Security Diagnostic
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr1390-security-diagnostic-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  capture-audit:
+    name: Capture production audit report
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.node-version'
+          cache: npm
+
+      - name: Capture npm audit JSON
+        shell: bash
+        run: |
+          set +e
+          npm audit --omit=dev --audit-level=high --json > production-audit-report.json
+          status=$?
+          echo "audit_exit_code=${status}" > production-audit-status.txt
+          exit 0
+
+      - name: Upload production audit diagnostics
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr1390-production-audit
+          path: |
+            production-audit-report.json
+            production-audit-status.txt
+          if-no-files-found: error
+          retention-days: 2
