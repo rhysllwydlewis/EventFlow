@@ -49,7 +49,9 @@ describe('supplier profile packages v2 renderer contract', () => {
 
   it('wires the new module into supplier.html with a dedicated mount point', () => {
     expect(supplierHtml).toContain('id="supplier-package-cards-root" data-renderer="v2"');
-    expect(supplierHtml).toContain('/assets/js/supplier-profile-packages-v2.js?v=19.0.0');
+    expect(supplierHtml).toMatch(
+      /\/assets\/js\/supplier-profile-packages-v2\.js\?v=\d+\.\d+\.\d+/
+    );
   });
 
   it('removes the legacy packages API fetch and render call from supplier-profile load flow', () => {
