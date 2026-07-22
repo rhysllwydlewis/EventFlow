@@ -41,9 +41,7 @@ describe('supplier profile information polish', () => {
   });
 
   test('applies decorative cover polish only when an uploaded cover is missing', () => {
-    expect(profileJs).toContain(
-      "heroMedia.classList.toggle('sp-hero-media--fallback', !hasCover)"
-    );
+    expect(profileJs).toContain("heroMedia.classList.toggle('sp-hero-media--fallback', !hasCover)");
     expect(profileCss).toContain('.hero-media.sp-hero-media--fallback::before');
   });
 
