@@ -50,9 +50,7 @@ function normaliseExternalUrl(value) {
   if (!/^[a-z][a-z\d+.-]*:/i.test(candidate)) {
     if (candidate.startsWith('//')) {
       candidate = `https:${candidate}`;
-    } else if (
-      /^(?:www\.)?[a-z\d](?:[a-z\d.-]*[a-z\d])?\.[a-z]{2,}(?:[/:?#]|$)/i.test(candidate)
-    ) {
+    } else if (/^(?:www\.)?[a-z\d](?:[a-z\d.-]*[a-z\d])?\.[a-z]{2,}(?:[/:?#]|$)/i.test(candidate)) {
       candidate = `https://${candidate}`;
     } else {
       return null;
@@ -135,9 +133,7 @@ function enhanceAboutDescription() {
 }
 
 function enhanceWebsiteLink() {
-  const links = document.querySelectorAll(
-    '#sp-section-about .sp-about__meta a[target="_blank"]'
-  );
+  const links = document.querySelectorAll('#sp-section-about .sp-about__meta a[target="_blank"]');
 
   links.forEach(link => {
     if (link.dataset.spWebsiteEnhanced === 'true' || link.closest('.sp-social-links')) {
@@ -201,7 +197,9 @@ function enhanceSocialLinks() {
 
 function removeGenericBadgeGroups(container) {
   container.querySelectorAll('.sp-badges-group-label').forEach(label => {
-    const name = String(label.textContent || '').trim().toLowerCase();
+    const name = String(label.textContent || '')
+      .trim()
+      .toLowerCase();
     if (!['subscription', 'verification'].includes(name)) {
       return;
     }
@@ -235,10 +233,7 @@ function getDistributionTotal(widget) {
     return null;
   }
 
-  return counts.reduce(
-    (total, item) => total + (Number.parseInt(item.textContent, 10) || 0),
-    0
-  );
+  return counts.reduce((total, item) => total + (Number.parseInt(item.textContent, 10) || 0), 0);
 }
 
 function enhanceReviewsState() {
@@ -269,8 +264,7 @@ function enhanceReviewsState() {
     title.textContent = 'No EventFlow reviews yet';
   }
   if (message) {
-    message.textContent =
-      'Be the first to share your experience with this supplier on EventFlow.';
+    message.textContent = 'Be the first to share your experience with this supplier on EventFlow.';
   }
   if (action?.classList.contains('btn-write-review')) {
     action.textContent = 'Write a review';

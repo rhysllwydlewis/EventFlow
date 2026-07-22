@@ -20,7 +20,9 @@ describe('supplier listing desktop summary placement', () => {
 
   test('keeps packages and actions spanning the complete listing card', () => {
     const desktop = listingCss.slice(listingCss.indexOf('@media (min-width: 901px)'));
-    expect(desktop).toMatch(/\.sp-card-packages,[\s\S]*\.sp-card-actions\s*\{[^}]*grid-row:\s*1 \/ -1/);
+    expect(desktop).toMatch(
+      /\.sp-card-packages,[\s\S]*\.sp-card-actions\s*\{[^}]*grid-row:\s*1 \/ -1/
+    );
   });
 });
 
