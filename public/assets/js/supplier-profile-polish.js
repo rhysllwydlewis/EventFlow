@@ -1,5 +1,5 @@
 const PROFILE_POLISH_STYLESHEET_ID = 'supplier-profile-polish-styles';
-const PROFILE_POLISH_STYLESHEET_HREF = '/assets/css/supplier-profile-polish.css?v=19.4.0';
+const PROFILE_POLISH_STYLESHEET_HREF = '/assets/css/supplier-profile-polish.css?v=19.4.1';
 
 const SOCIAL_PLATFORMS = {
   facebook: {
@@ -32,6 +32,7 @@ function loadProfilePolishStylesheet() {
   if (document.getElementById(PROFILE_POLISH_STYLESHEET_ID)) {
     return;
   }
+
   const link = document.createElement('link');
   link.id = PROFILE_POLISH_STYLESHEET_ID;
   link.rel = 'stylesheet';
@@ -49,7 +50,9 @@ function normaliseExternalUrl(value) {
   if (!/^[a-z][a-z\d+.-]*:/i.test(candidate)) {
     if (candidate.startsWith('//')) {
       candidate = `https:${candidate}`;
-    } else if (/^(?:www\.)?[a-z\d](?:[a-z\d.-]*[a-z\d])?\.[a-z]{2,}(?:[/:?#]|$)/i.test(candidate)) {
+    } else if (
+      /^(?:www\.)?[a-z\d](?:[a-z\d.-]*[a-z\d])?\.[a-z]{2,}(?:[/:?#]|$)/i.test(candidate)
+    ) {
       candidate = `https://${candidate}`;
     } else {
       return null;
@@ -67,6 +70,16 @@ function normaliseExternalUrl(value) {
   }
 }
 
+function enhanceCoverFallback(supplier = window.__supplierData) {
+  const heroMedia = document.querySelector('#supplier-hero .hero-media');
+  if (!heroMedia || !supplier) {
+    return;
+  }
+
+  const hasCover = Boolean(supplier.bannerUrl || supplier.coverImage);
+  heroMedia.classList.toggle('sp-hero-media--fallback', !hasCover);
+}
+
 function setSupplierAccent(supplier = window.__supplierData) {
   const accent = supplier?.themeColor;
   if (!accent || !/^#[0-9a-f]{6}$/i.test(accent)) {
@@ -80,13 +93,13 @@ function enhanceAboutDescription() {
   if (!description || description.dataset.spReadMoreReady === 'true') {
     return;
   }
-  description.dataset.spReadMoreReady = 'true';
 
   const text = String(description.textContent || '').trim();
   if (text.length < 420 && text.split(/\n/).length < 6) {
     return;
   }
 
+  description.dataset.spReadMoreReady = 'true';
   description.id = description.id || 'sp-about-description';
   description.classList.add('is-collapsible');
 
@@ -94,6 +107,7 @@ function enhanceAboutDescription() {
     if (!description.isConnected) {
       return;
     }
+
     const clipped = description.scrollHeight > description.clientHeight + 2;
     if (!clipped) {
       description.classList.remove('is-collapsible');
@@ -121,17 +135,23 @@ function enhanceAboutDescription() {
 }
 
 function enhanceWebsiteLink() {
-  const links = document.querySelectorAll('#sp-section-about .sp-about__meta a[target="_blank"]');
+  const links = document.querySelectorAll(
+    '#sp-section-about .sp-about__meta a[target="_blank"]'
+  );
+
   links.forEach(link => {
-    if (link.closest('.sp-social-links')) {
+    if (link.dataset.spWebsiteEnhanced === 'true' || link.closest('.sp-social-links')) {
       return;
     }
+
     const safeUrl = normaliseExternalUrl(link.getAttribute('href'));
     if (!safeUrl) {
       link.remove();
       return;
     }
+
     const host = new URL(safeUrl).hostname.replace(/^www\./, '');
+    link.dataset.spWebsiteEnhanced = 'true';
     link.href = safeUrl;
     link.rel = 'noopener noreferrer external';
     link.classList.add('sp-about__website');
@@ -142,11 +162,17 @@ function enhanceWebsiteLink() {
 }
 
 function platformFromLink(link) {
-  return Object.keys(SOCIAL_PLATFORMS).find(key => link.classList.contains(`sp-social-link--${key}`));
+  return Object.keys(SOCIAL_PLATFORMS).find(key =>
+    link.classList.contains(`sp-social-link--${key}`)
+  );
 }
 
 function enhanceSocialLinks() {
   document.querySelectorAll('#sp-section-about .sp-social-link').forEach(link => {
+    if (link.dataset.spSocialEnhanced === 'true') {
+      return;
+    }
+
     const platform = platformFromLink(link);
     const definition = platform ? SOCIAL_PLATFORMS[platform] : null;
     const safeUrl = normaliseExternalUrl(link.getAttribute('href'));
@@ -155,12 +181,15 @@ function enhanceSocialLinks() {
       return;
     }
 
+    link.dataset.spSocialEnhanced = 'true';
     link.href = safeUrl;
     link.target = '_blank';
     link.rel = 'noopener noreferrer external';
     link.referrerPolicy = 'no-referrer';
     link.setAttribute('aria-label', `Open ${definition.label} in a new tab`);
-    link.innerHTML = `<span class="sp-social-link__icon">${definition.icon}</span><span>${definition.label}</span>`;
+    link.innerHTML =
+      `<span class="sp-social-link__icon">${definition.icon}</span>` +
+      `<span>${definition.label}</span>`;
   });
 
   document.querySelectorAll('#sp-section-about .sp-social-links').forEach(group => {
@@ -176,6 +205,7 @@ function removeGenericBadgeGroups(container) {
     if (!['subscription', 'verification'].includes(name)) {
       return;
     }
+
     const row = label.nextElementSibling;
     if (row?.classList.contains('sp-badges-row')) {
       row.remove();
@@ -204,7 +234,11 @@ function getDistributionTotal(widget) {
   if (counts.length < 5) {
     return null;
   }
-  return counts.reduce((total, item) => total + (Number.parseInt(item.textContent, 10) || 0), 0);
+
+  return counts.reduce(
+    (total, item) => total + (Number.parseInt(item.textContent, 10) || 0),
+    0
+  );
 }
 
 function enhanceReviewsState() {
@@ -219,8 +253,14 @@ function enhanceReviewsState() {
   widget.classList.toggle('sp-reviews-widget--empty', isGenuinelyEmpty);
 
   if (!isGenuinelyEmpty) {
+    delete widget.dataset.spEmptyReady;
     return;
   }
+
+  if (widget.dataset.spEmptyReady === 'true') {
+    return;
+  }
+  widget.dataset.spEmptyReady = 'true';
 
   const title = emptyState.querySelector('.empty-title');
   const message = emptyState.querySelector('.empty-message');
@@ -229,7 +269,8 @@ function enhanceReviewsState() {
     title.textContent = 'No EventFlow reviews yet';
   }
   if (message) {
-    message.textContent = 'Be the first to share your experience with this supplier on EventFlow.';
+    message.textContent =
+      'Be the first to share your experience with this supplier on EventFlow.';
   }
   if (action?.classList.contains('btn-write-review')) {
     action.textContent = 'Write a review';
@@ -241,6 +282,7 @@ function queueReviewSync() {
   if (reviewSyncQueued) {
     return;
   }
+
   reviewSyncQueued = true;
   requestAnimationFrame(() => {
     reviewSyncQueued = false;
@@ -253,12 +295,14 @@ function observeProfileMount(id, callback) {
   if (!mount || mount.dataset.spPolishObserved === 'true') {
     return;
   }
+
   mount.dataset.spPolishObserved = 'true';
   new MutationObserver(callback).observe(mount, { childList: true, subtree: true });
 }
 
-function enhanceProfile() {
-  setSupplierAccent();
+function enhanceProfile(supplier = window.__supplierData) {
+  enhanceCoverFallback(supplier);
+  setSupplierAccent(supplier);
   enhanceAboutDescription();
   enhanceWebsiteLink();
   enhanceSocialLinks();
@@ -279,8 +323,7 @@ function initSupplierProfilePolish() {
   observeProfileMount('sp-section-reviews', queueReviewSync);
 
   window.addEventListener('sp:dataReady', event => {
-    setSupplierAccent(event.detail?.supplier);
-    enhanceProfile();
+    enhanceProfile(event.detail?.supplier);
   });
 }
 
@@ -298,6 +341,7 @@ if (document.readyState === 'loading') {
 
 export {
   enhanceBadgesSection,
+  enhanceCoverFallback,
   enhanceProfile,
   enhanceReviewsState,
   normaliseExternalUrl,
