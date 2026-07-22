@@ -1,3 +1,5 @@
+import './supplier-profile-polish.js';
+
 const PACKAGE_PLACEHOLDER_URL = '/assets/images/placeholders/package-event.svg';
 const ROOT_ID = 'supplier-package-cards-root';
 
@@ -73,51 +75,138 @@ function createImage(item, debugImages) {
   return img;
 }
 
-function createPackageCard(item, debugImages) {
+async function isAuthenticated() {
+  const authManager = window.__authState || window.AuthStateManager;
+  if (authManager) {
+    try {
+      if (typeof authManager.init === 'function') {
+        await authManager.init();
+      }
+      if (typeof authManager.isAuthenticated === 'function') {
+        return authManager.isAuthenticated();
+      }
+      const user =
+        (typeof authManager.getUser === 'function' && authManager.getUser()) || authManager.user;
+      return Boolean(user);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  const authState = window.EFAuth;
+  if (authState) {
+    const authenticated =
+      typeof authState.isAuthenticated === 'function'
+        ? authState.isAuthenticated()
+        : authState.isAuthenticated;
+    return Boolean(authenticated || authState.loggedIn || authState.user);
+  }
+
+  try {
+    const response = await fetch('/api/v1/auth/me', { credentials: 'include' });
+    if (!response.ok) {
+      return false;
+    }
+    const data = await response.json();
+    return Boolean(data?.user);
+  } catch (_) {
+    return false;
+  }
+}
+
+async function addPackageToPlan(item, supplierId) {
+  if (!(await isAuthenticated())) {
+    const returnTo = window.location.pathname + window.location.search;
+    window.NotificationDispatcher?.info('Please log in to add packages to your plan.');
+    window.setTimeout(() => {
+      window.location.href = `/auth?redirect=${encodeURIComponent(returnTo)}&intent=plan`;
+    }, 500);
+    return;
+  }
+
+  const query = new URLSearchParams();
+  if (item.id) {
+    query.set('packageId', item.id);
+  }
+  if (supplierId) {
+    query.set('supplierId', supplierId);
+  }
+  window.location.href = `/start?${query.toString()}`;
+}
+
+function createPackageCard(item, debugImages, fallbackSupplierId) {
   const article = document.createElement('article');
   article.className = 'supplier-package-card-v2 sp-package-card';
   article.dataset.packageId = item.id || '';
   article.dataset.packageSlug = item.slug || '';
 
-  const link = document.createElement('a');
-  link.className = 'supplier-package-card-v2__link';
-  link.href =
+  const detailUrl =
     item.detailUrl ||
     (item.slug
       ? `/package/${encodeURIComponent(item.slug)}`
       : `/package?id=${encodeURIComponent(item.id || '')}`);
-  link.setAttribute('aria-label', `View ${item.title || 'package'}`);
+  const titleText = escapeText(item.title || 'Untitled package');
+  const supplierId = escapeText(item.supplierId || fallbackSupplierId || '');
+
+  const mediaLink = document.createElement('a');
+  mediaLink.className = 'supplier-package-card-v2__media-link';
+  mediaLink.href = detailUrl;
+  mediaLink.setAttribute('aria-label', `View details for ${titleText}`);
 
   const media = document.createElement('div');
   media.className = 'supplier-package-card-v2__media sp-package-card__image';
   media.append(createImage(item, debugImages));
+  mediaLink.append(media);
 
   const body = document.createElement('div');
   body.className = 'supplier-package-card-v2__body sp-package-card__body';
 
   const title = document.createElement('h3');
   title.className = 'supplier-package-card-v2__title sp-package-card__title';
-  title.textContent = escapeText(item.title || 'Untitled package');
+  const titleLink = document.createElement('a');
+  titleLink.className = 'supplier-package-card-v2__link';
+  titleLink.href = detailUrl;
+  titleLink.textContent = titleText;
+  title.append(titleLink);
 
   const description = document.createElement('p');
   description.className = 'supplier-package-card-v2__description sp-package-card__description';
   description.textContent = escapeText(item.description || '');
+  if (!description.textContent) {
+    description.hidden = true;
+  }
 
   const footer = document.createElement('div');
   footer.className = 'supplier-package-card-v2__footer sp-package-card__footer';
 
   const price = document.createElement('span');
   price.className = 'supplier-package-card-v2__price sp-package-card__price';
-  price.textContent = escapeText(item.priceDisplay || 'View details');
+  price.textContent = escapeText(item.priceDisplay || 'Price on request');
 
-  const cta = document.createElement('span');
-  cta.className = 'supplier-package-card-v2__button btn btn-sm';
-  cta.textContent = 'View';
+  const actions = document.createElement('div');
+  actions.className = 'supplier-package-card-v2__actions';
 
-  footer.append(price, cta);
+  const planButton = document.createElement('button');
+  planButton.type = 'button';
+  planButton.className =
+    'ef-cta supplier-package-card-v2__action supplier-package-card-v2__action--plan btn-add-to-plan';
+  planButton.textContent = 'Add to plan';
+  planButton.dataset.packageId = escapeText(item.id || '');
+  planButton.dataset.supplierId = supplierId;
+  planButton.setAttribute('aria-label', `Add ${titleText} to your plan`);
+  planButton.addEventListener('click', () => addPackageToPlan(item, supplierId));
+
+  const detailsLink = document.createElement('a');
+  detailsLink.className =
+    'supplier-package-card-v2__action supplier-package-card-v2__action--details';
+  detailsLink.href = detailUrl;
+  detailsLink.textContent = 'View details';
+  detailsLink.setAttribute('aria-label', `View details for ${titleText}`);
+
+  actions.append(planButton, detailsLink);
+  footer.append(price, actions);
   body.append(title, description, footer);
-  link.append(media, body);
-  article.append(link);
+  article.append(mediaLink, body);
   return article;
 }
 
@@ -136,11 +225,7 @@ function logDebug(items) {
   );
   console.debug(
     '[supplier-packages-v2] image decisions',
-    items.map(item => ({
-      title: item.title,
-      imageUrl: item.imageUrl,
-      debug: item.debug,
-    }))
+    items.map(item => ({ title: item.title, imageUrl: item.imageUrl, debug: item.debug }))
   );
 }
 
@@ -151,6 +236,7 @@ function renderPackages(root, items, options = {}) {
     return;
   }
 
+  const supplierId = options.supplierId || getSupplierId(options.search);
   const card = document.createElement('div');
   card.className = 'sp-card sp-fade-in supplier-packages-v2';
 
@@ -161,7 +247,10 @@ function renderPackages(root, items, options = {}) {
 
   const grid = document.createElement('div');
   grid.className = 'supplier-packages-v2__grid sp-packages-grid';
-  items.forEach(item => grid.append(createPackageCard(item, Boolean(options.debugImages))));
+  grid.dataset.packageCount = String(items.length);
+  items.forEach(item =>
+    grid.append(createPackageCard(item, Boolean(options.debugImages), supplierId))
+  );
 
   card.append(title, grid);
   root.append(card);
@@ -198,7 +287,7 @@ async function loadSupplierPackagesV2(options = {}) {
     }
     const payload = await response.json();
     const items = Array.isArray(payload.items) ? payload.items : [];
-    renderPackages(root, items, { debugImages });
+    renderPackages(root, items, { debugImages, supplierId });
     return payload;
   } catch (error) {
     if (debugImages) {
