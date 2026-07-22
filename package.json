@@ -96,7 +96,7 @@
     "pdfkit": "^0.15.0",
     "postmark": "^4.0.7",
     "qrcode": "^1.5.4",
-    "sharp": "^0.33.5",
+    "sharp": "^0.35.3",
     "socket.io": "^4.8.1",
     "speakeasy": "^2.0.0",
     "stripe": "^20.1.0",
@@ -152,7 +152,13 @@
     ]
   },
   "overrides": {
-    "filelist": ">=1.0.5",
+    "axios": "^1.18.0",
+    "brace-expansion": "1.1.16",
+    "fast-uri": "^3.1.4",
+    "filelist": {
+      ".": ">=1.0.5",
+      "brace-expansion": "5.0.7"
+    },
     "engine.io": "6.6.9",
     "socket.io-adapter": "2.5.8",
     "ws": "8.21.0"
