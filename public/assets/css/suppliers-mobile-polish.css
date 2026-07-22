@@ -1,8 +1,6 @@
 /*
- * EventFlow suppliers/search page — focused mobile polish layer.
- *
- * Loaded by suppliers-mobile.js so these overrides remain isolated from shared
- * global components and can be iterated without destabilising unrelated pages.
+ * EventFlow suppliers/search page — focused responsive polish layer.
+ * Loaded by suppliers-mobile.js after suppliers-page.css.
  */
 
 /* ── Hero and surface hierarchy ─────────────────────────────────────────── */
@@ -98,7 +96,7 @@
   font-weight: 700;
   line-height: 1.2;
   padding: 9px 4px;
-  min-height: 36px;
+  min-height: 44px;
   cursor: pointer;
   touch-action: manipulation;
   justify-self: start;
@@ -141,9 +139,35 @@
   font-size: 16px !important;
 }
 
-/* Desktop only: centre the 22px glyph arrows against the media strip.
-   On mobile the redesigned card uses full-height labelled controls that sit
-   on one compact row with the position pill — the offset must not apply. */
+/* ── Desktop listing card: keep summary directly below profile details ──── */
+@media (min-width: 901px) {
+  .suppliers-page-wrap .sp-card {
+    grid-template-rows: auto auto minmax(0, 1fr) !important;
+  }
+
+  .suppliers-page-wrap .sp-card-profile {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    align-self: start !important;
+    padding-bottom: 7px !important;
+  }
+
+  .suppliers-page-wrap .sp-card > .sp-card-description {
+    grid-column: 1 !important;
+    grid-row: 2 !important;
+    align-self: start !important;
+    padding-top: 3px !important;
+    padding-bottom: 14px !important;
+    -webkit-line-clamp: 4 !important;
+  }
+
+  .suppliers-page-wrap .sp-card-packages,
+  .suppliers-page-wrap .sp-card-actions {
+    grid-row: 1 / -1 !important;
+  }
+}
+
+/* Desktop only: centre glyph arrows against the media strip. */
 @media (min-width: 768px) {
   .suppliers-page-wrap .sp-pkg-arrow {
     align-self: flex-start;
@@ -217,7 +241,6 @@
     background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.96));
   }
 
-  /* Keep the fixed shortlist action accessible without covering result cards. */
   body > #shortlist-float-btn {
     top: calc(env(safe-area-inset-top, 0px) + 4px) !important;
     right: 116px !important;
@@ -292,7 +315,7 @@
     width: 100% !important;
     min-width: 0 !important;
     max-width: none !important;
-    min-height: 44px !important; /* spec: 44px touch targets */
+    min-height: 44px !important;
     padding: 8px 6px !important;
     border-radius: 9px !important;
     font-size: 11px !important;
@@ -313,16 +336,12 @@
     align-items: flex-start !important;
   }
 
-  /* Approved card mock: square package media. aspect-ratio needs height
-     auto, so the pre-redesign fixed banner height must not apply here. */
   .suppliers-page-wrap .sp-pkg-mini-thumb {
     height: auto !important;
     max-height: none !important;
     aspect-ratio: 1 / 1;
   }
 
-  /* Keep the mobile carousel controls on one compact row: pill and
-     labelled Previous/Next share the grid row, vertically centred. */
   .suppliers-page-wrap .sp-pkg-arrow {
     align-self: center !important;
     margin-top: 0 !important;
