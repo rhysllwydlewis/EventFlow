@@ -167,8 +167,24 @@ function mountRoutes(app, deps) {
   if (deps && supplierAdminRoutes.initializeDependencies) {
     supplierAdminRoutes.initializeDependencies(deps);
   }
+  // server.js mounts the legacy admin router before calling mountRoutes(). Prioritise
+  // the authoritative verification-state routes inside that already-mounted router so
+  // approve/reject transitions cannot be intercepted by the older handlers.
+  if (!adminRoutes.__supplierVerificationRoutesPrioritised) {
+    const verificationPaths = new Set([
+      '/suppliers/:id/approve',
+      '/suppliers/:id/reject',
+      '/suppliers/:id/request-changes',
+      '/suppliers/:id/suspend',
+    ]);
+    const verificationLayers = supplierAdminRoutes.stack.filter(
+      layer => layer.route && verificationPaths.has(layer.route.path)
+    );
+    adminRoutes.stack.unshift(...verificationLayers);
+    adminRoutes.__supplierVerificationRoutesPrioritised = true;
+  }
   // Mount the state-machine-backed supplier admin routes before the legacy admin router
-  // so overlapping approval and rejection endpoints cannot be shadowed.
+  // for applications that consume routes/index.js without server.js's compatibility mounts.
   app.use('/api/v1/admin', supplierAdminRoutes);
   app.use('/api/admin', supplierAdminRoutes);
   app.use('/api/v1/admin', adminRoutes);
