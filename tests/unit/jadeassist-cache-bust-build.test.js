@@ -5,9 +5,26 @@ const { execFileSync } = require('child_process');
 
 const repoRoot = path.join(__dirname, '..', '..');
 const scriptPath = path.join(repoRoot, 'scripts', 'version-jadeassist-assets.mjs');
-const expectedVersion = '20260723-1';
+const polishScriptPath = path.join(
+  repoRoot,
+  'public',
+  'assets',
+  'js',
+  'jadeassist-launcher-polish.js'
+);
+const expectedVersion = '20260723-2';
 
-describe('JadeAssist production asset cache busting', () => {
+function expectOrderedScripts(html) {
+  const vendorIndex = html.indexOf('/assets/js/vendor/jade-widget.js');
+  const polishIndex = html.indexOf('/assets/js/jadeassist-launcher-polish.js');
+  const initializerIndex = html.indexOf('/assets/js/jadeassist-init.v2.js');
+
+  expect(vendorIndex).toBeGreaterThanOrEqual(0);
+  expect(polishIndex).toBeGreaterThan(vendorIndex);
+  expect(initializerIndex).toBeGreaterThan(polishIndex);
+}
+
+describe('JadeAssist production asset delivery', () => {
   let tempRoot;
 
   beforeEach(() => {
@@ -19,7 +36,7 @@ describe('JadeAssist production asset cache busting', () => {
     fs.rmSync(tempRoot, { recursive: true, force: true });
   });
 
-  test('versions both widget scripts across the public HTML tree and remains idempotent', () => {
+  test('injects the polish layer, versions all scripts and remains idempotent', () => {
     const indexPath = path.join(tempRoot, 'public', 'index.html');
     const nestedPath = path.join(tempRoot, 'public', 'nested', 'page.html');
 
@@ -31,6 +48,7 @@ describe('JadeAssist production asset cache busting', () => {
     fs.writeFileSync(
       nestedPath,
       '<script src="/assets/js/vendor/jade-widget.js?v=old" defer></script>\n' +
+        '<script src="/assets/js/jadeassist-launcher-polish.js?cache=old" defer></script>\n' +
         '<script src="/assets/js/jadeassist-init.v2.js?cache=old" defer></script>\n'
     );
 
@@ -43,9 +61,12 @@ describe('JadeAssist production asset cache busting', () => {
     for (const filePath of [indexPath, nestedPath]) {
       const html = fs.readFileSync(filePath, 'utf8');
       expect(html).toContain(`/assets/js/vendor/jade-widget.js?v=${expectedVersion}`);
+      expect(html).toContain(`/assets/js/jadeassist-launcher-polish.js?v=${expectedVersion}`);
       expect(html).toContain(`/assets/js/jadeassist-init.v2.js?v=${expectedVersion}`);
+      expect(html.match(/jadeassist-launcher-polish\.js/g)).toHaveLength(1);
       expect(html).not.toContain('v=old');
       expect(html).not.toContain('cache=old');
+      expectOrderedScripts(html);
     }
 
     const secondRun = execFileSync(process.execPath, [scriptPath], {
@@ -55,15 +76,33 @@ describe('JadeAssist production asset cache busting', () => {
     expect(secondRun).toContain('0/2 HTML files');
   });
 
-  test('runs during the production image build and is exposed for manual verification', () => {
+  test('does not inject the polish layer into pages without JadeAssist', () => {
+    const plainPath = path.join(tempRoot, 'public', 'plain.html');
+    fs.writeFileSync(plainPath, '<main>No assistant on this page</main>\n');
+
+    execFileSync(process.execPath, [scriptPath], {
+      cwd: tempRoot,
+      encoding: 'utf8',
+    });
+
+    expect(fs.readFileSync(plainPath, 'utf8')).toBe('<main>No assistant on this page</main>\n');
+  });
+
+  test('runs during the production image build and exposes the reviewed polish asset', () => {
     const dockerfile = fs.readFileSync(path.join(repoRoot, 'Dockerfile'), 'utf8');
     const packageJson = JSON.parse(fs.readFileSync(path.join(repoRoot, 'package.json'), 'utf8'));
     const script = fs.readFileSync(scriptPath, 'utf8');
+    const polishScript = fs.readFileSync(polishScriptPath, 'utf8');
 
     expect(dockerfile).toContain('RUN node scripts/version-jadeassist-assets.mjs');
     expect(packageJson.scripts['version:jadeassist-assets']).toBe(
       'node scripts/version-jadeassist-assets.mjs'
     );
     expect(script).toContain(`JADEASSIST_ASSET_VERSION = '${expectedVersion}'`);
+    expect(script).toContain('/assets/js/jadeassist-launcher-polish.js');
+    expect(polishScript).toContain('width: 52px !important');
+    expect(polishScript).toContain('eventflow-jade-launcher-float');
+    expect(polishScript).toContain('DEFAULT_DISMISS_DURATION_MS = 24 * 60 * 60 * 1000');
+    expect(polishScript).toContain("aria-label', 'Close JadeAssist assistant'");
   });
 });
