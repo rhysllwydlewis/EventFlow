@@ -156,6 +156,10 @@ async function run() {
       'The chat popup should close.'
     );
     assert.equal(dom.window.JadeWidget.isOpen(), false);
+    await waitFor(
+      () => root.shadowRoot.querySelectorAll('.jade-launcher-dismiss').length === 1,
+      'The launcher should restore exactly one close control after chat re-rendering.'
+    );
     assert.equal(root.shadowRoot.querySelectorAll('.jade-launcher-dismiss').length, 1);
     dom.window.close();
   }
