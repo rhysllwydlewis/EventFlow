@@ -92,7 +92,9 @@ function ensureCurrentProfileStylesheets() {
 }
 
 function normaliseHex(value) {
-  const candidate = String(value || '').trim().toLowerCase();
+  const candidate = String(value || '')
+    .trim()
+    .toLowerCase();
   return /^#[0-9a-f]{6}$/.test(candidate) ? candidate : null;
 }
 
@@ -107,7 +109,11 @@ function hexToRgb(hex) {
 
 function rgbToHex({ r, g, b }) {
   return `#${[r, g, b]
-    .map(channel => Math.max(0, Math.min(255, Math.round(channel))).toString(16).padStart(2, '0'))
+    .map(channel =>
+      Math.max(0, Math.min(255, Math.round(channel)))
+        .toString(16)
+        .padStart(2, '0')
+    )
     .join('')}`;
 }
 
@@ -128,7 +134,13 @@ function rgba(hex, alpha) {
 }
 
 function resolveCategoryKey(category) {
-  return CATEGORY_PRESETS[String(category || '').trim().toLowerCase()] || null;
+  return (
+    CATEGORY_PRESETS[
+      String(category || '')
+        .trim()
+        .toLowerCase()
+    ] || null
+  );
 }
 
 function resolveSupplierTheme(supplier = {}) {
@@ -137,7 +149,9 @@ function resolveSupplierTheme(supplier = {}) {
     return { accent: chosen, source: 'themeColor' };
   }
 
-  const preset = String(supplier.heroPreset || '').trim().toLowerCase();
+  const preset = String(supplier.heroPreset || '')
+    .trim()
+    .toLowerCase();
   if (PRESET_ACCENTS[preset]) {
     return { accent: PRESET_ACCENTS[preset], source: 'heroPreset' };
   }
@@ -183,7 +197,13 @@ function resolveHeroMode(supplier = {}) {
   if (supplier.bannerUrl || supplier.coverImage) {
     return 'image';
   }
-  if (PRESET_ACCENTS[String(supplier.heroPreset || '').trim().toLowerCase()]) {
+  if (
+    PRESET_ACCENTS[
+      String(supplier.heroPreset || '')
+        .trim()
+        .toLowerCase()
+    ]
+  ) {
     return 'preset';
   }
   if (normaliseHex(supplier.themeColor)) {
