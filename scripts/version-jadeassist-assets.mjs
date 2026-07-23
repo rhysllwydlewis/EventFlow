@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-export const JADEASSIST_ASSET_VERSION = '20260723-2';
+export const JADEASSIST_ASSET_VERSION = '20260723-3';
 export const JADEASSIST_POLISH_SCRIPT_PATH = '/assets/js/jadeassist-launcher-polish.js';
 
 const JADEASSIST_SCRIPT_PATHS = [
