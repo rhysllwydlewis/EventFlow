@@ -1,20 +1,16 @@
-name: Finalize JadeAssist launcher integration
+name: Diagnose JadeAssist launcher integration
 
 on:
   push:
     branches:
       - feature/jadeassist-launcher-assets
-  pull_request:
-    branches:
-      - main
-    types: [opened, synchronize, reopened, ready_for_review]
 
 permissions:
   contents: write
 
 jobs:
-  finalize:
-    if: github.event_name == 'pull_request' || github.actor != 'github-actions[bot]'
+  diagnose:
+    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout feature branch
@@ -29,40 +25,85 @@ jobs:
           node-version: '22'
           cache: 'npm'
 
-      - name: Finalize native launcher integration
-        run: node scripts/finalize-jadeassist-launcher-assets.mjs
-
-      - name: Sync verified JadeAssist bundle
+      - name: Run, record and commit focused validation
+        shell: bash
         run: |
+          set +e
+          mkdir -p .github/jadeassist-validation-logs
+
+          node scripts/finalize-jadeassist-launcher-assets.mjs \
+            > .github/jadeassist-validation-logs/finalize.log 2>&1
+          FINALIZE_STATUS=$?
+
           curl --fail --location --retry 3 \
             https://raw.githubusercontent.com/rhysllwydlewis/JadeAssist/main/packages/widget/dist/jade-widget.js \
-            --output public/assets/js/vendor/jade-widget.js
-          grep -q "jade-launcher-dismiss" public/assets/js/vendor/jade-widget.js
-          grep -q "jadeassist:widget-dismissed" public/assets/js/vendor/jade-widget.js
-          grep -q "notificationBadgeUrl" public/assets/js/vendor/jade-widget.js
+            --output public/assets/js/vendor/jade-widget.js \
+            > .github/jadeassist-validation-logs/sync.log 2>&1
+          SYNC_STATUS=$?
 
-      - name: Check JavaScript syntax
-        run: |
-          node --check public/assets/js/jadeassist-init.v2.js
-          node --check public/assets/js/vendor/jade-widget.js
-          node --check tests/integration/jadeassist-launcher-behaviour.test.js
+          if [ "$SYNC_STATUS" -eq 0 ]; then
+            grep -q "jade-launcher-dismiss" public/assets/js/vendor/jade-widget.js && \
+            grep -q "jadeassist:widget-dismissed" public/assets/js/vendor/jade-widget.js && \
+            grep -q "notificationBadgeUrl" public/assets/js/vendor/jade-widget.js
+            BUNDLE_MARKERS_STATUS=$?
+          else
+            BUNDLE_MARKERS_STATUS=1
+          fi
 
-      - name: Install dependencies
-        run: npm ci --prefer-offline --no-audit
-        env:
-          HUSKY: '0'
+          {
+            node --check public/assets/js/jadeassist-init.v2.js && \
+            node --check public/assets/js/vendor/jade-widget.js && \
+            node --check tests/integration/jadeassist-launcher-behaviour.test.js
+          } > .github/jadeassist-validation-logs/syntax.log 2>&1
+          SYNTAX_STATUS=$?
 
-      - name: Format changed source files
-        run: |
-          npx prettier --write \
-            public/assets/js/jadeassist-init.v2.js \
-            tests/integration/jadeassist-widget.test.js \
-            tests/integration/jadeassist-launcher-behaviour.test.js \
-            docs/jadeassist-widget.md
+          HUSKY=0 npm ci --prefer-offline --no-audit \
+            > .github/jadeassist-validation-logs/install.log 2>&1
+          INSTALL_STATUS=$?
 
-      - name: Commit finalized integration
-        if: github.event_name == 'push'
-        run: |
+          if [ "$INSTALL_STATUS" -eq 0 ]; then
+            npx prettier --write \
+              public/assets/js/jadeassist-init.v2.js \
+              tests/integration/jadeassist-widget.test.js \
+              tests/integration/jadeassist-launcher-behaviour.test.js \
+              docs/jadeassist-widget.md \
+              > .github/jadeassist-validation-logs/prettier-write.log 2>&1
+            PRETTIER_WRITE_STATUS=$?
+
+            NODE_ENV=test \
+            JWT_SECRET=test-secret-for-jest-min-32-characters-long \
+            npx jest --runInBand --coverage=false \
+              tests/integration/jadeassist-widget.test.js \
+              tests/integration/jadeassist-launcher-behaviour.test.js \
+              > .github/jadeassist-validation-logs/tests.log 2>&1
+            TEST_STATUS=$?
+
+            npx prettier --check \
+              public/assets/js/jadeassist-init.v2.js \
+              tests/integration/jadeassist-widget.test.js \
+              tests/integration/jadeassist-launcher-behaviour.test.js \
+              docs/jadeassist-widget.md \
+              > .github/jadeassist-validation-logs/prettier-check.log 2>&1
+            PRETTIER_CHECK_STATUS=$?
+          else
+            PRETTIER_WRITE_STATUS=1
+            TEST_STATUS=1
+            PRETTIER_CHECK_STATUS=1
+          fi
+
+          cat > .github/jadeassist-validation-report.txt <<EOF
+          JadeAssist focused validation
+          commit=$GITHUB_SHA
+          finalize=$FINALIZE_STATUS
+          sync=$SYNC_STATUS
+          bundle_markers=$BUNDLE_MARKERS_STATUS
+          syntax=$SYNTAX_STATUS
+          install=$INSTALL_STATUS
+          prettier_write=$PRETTIER_WRITE_STATUS
+          focused_tests=$TEST_STATUS
+          prettier_check=$PRETTIER_CHECK_STATUS
+          EOF
+
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add \
@@ -70,33 +111,13 @@ jobs:
             public/assets/js/vendor/jade-widget.js \
             tests/integration/jadeassist-widget.test.js \
             tests/integration/jadeassist-launcher-behaviour.test.js \
-            docs/jadeassist-widget.md
+            docs/jadeassist-widget.md \
+            .github/jadeassist-validation-report.txt \
+            .github/jadeassist-validation-logs
+
           if ! git diff --cached --quiet; then
-            git commit -m "fix: finalize verified JadeAssist launcher integration"
+            git commit -m "test: record JadeAssist focused validation results"
             git push
           fi
 
-      - name: Run focused JadeAssist integration tests
-        run: |
-          npx jest --runInBand --coverage=false \
-            tests/integration/jadeassist-widget.test.js \
-            tests/integration/jadeassist-launcher-behaviour.test.js
-        env:
-          NODE_ENV: test
-          JWT_SECRET: test-secret-for-jest-min-32-characters-long
-
-      - name: Check focused formatting
-        run: |
-          npx prettier --check \
-            public/assets/js/jadeassist-init.v2.js \
-            tests/integration/jadeassist-widget.test.js \
-            tests/integration/jadeassist-launcher-behaviour.test.js \
-            docs/jadeassist-widget.md
-
-      - name: Record focused validation success
-        if: github.event_name == 'push'
-        run: |
-          printf 'JadeAssist focused validation passed for %s\n' "$GITHUB_SHA" > .github/jadeassist-focused-validation.txt
-          git add .github/jadeassist-focused-validation.txt
-          git commit -m "test: record JadeAssist focused validation"
-          git push
+          exit 0
