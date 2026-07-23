@@ -12,15 +12,23 @@ describe('supplier profile visual overhaul contracts', () => {
   test('resolves the profile accent from colour, preset, category, then EventFlow default', () => {
     expect(themeJs).toContain("return { accent: chosen, source: 'themeColor' }");
     expect(themeJs).toContain("return { accent: PRESET_ACCENTS[preset], source: 'heroPreset' }");
-    expect(themeJs).toContain("return { accent: CATEGORY_ACCENTS[categoryKey], source: 'category' }");
+    expect(themeJs).toContain(
+      "return { accent: CATEGORY_ACCENTS[categoryKey], source: 'category' }"
+    );
     expect(themeJs).toContain("return { accent: DEFAULT_ACCENT, source: 'default' }");
   });
 
   test('preserves explicit hero presets and themes only the colour fallback', () => {
     expect(themeJs).toContain("return 'preset'");
-    expect(themeJs).toContain("heroMedia?.classList.toggle('sp-hero-use-accent', heroMode === 'theme')");
-    expect(themeCss).toContain("html[data-sp-hero-mode='theme'] .hero-media.sp-hero-media--fallback.sp-hero-use-accent");
-    expect(themeCss).not.toMatch(/\.hero-media\.sp-hero-media--fallback\s*\{[\s\S]*?background-image/);
+    expect(themeJs).toContain(
+      "heroMedia?.classList.toggle('sp-hero-use-accent', heroMode === 'theme')"
+    );
+    expect(themeCss).toContain(
+      "html[data-sp-hero-mode='theme'] .hero-media.sp-hero-media--fallback.sp-hero-use-accent"
+    );
+    expect(themeCss).not.toMatch(
+      /\.hero-media\.sp-hero-media--fallback\s*\{[\s\S]*?background-image/
+    );
   });
 
   test('derives contrast-safe tokens in JavaScript rather than relying on color-mix support', () => {
@@ -50,7 +58,7 @@ describe('supplier profile visual overhaul contracts', () => {
   test('replaces generic response claims and emoji detail icons with data-aware polish', () => {
     expect(themeJs).toContain('Send a message and the supplier will reply through EventFlow.');
     expect(themeJs).toContain('Typically responds in around');
-    expect(themeJs).toContain("icon.innerHTML = DETAIL_ICONS[label]");
+    expect(themeJs).toContain('icon.innerHTML = DETAIL_ICONS[label]');
     expect(themeCss).toMatch(/\.sp-detail-row__icon svg/);
   });
 
