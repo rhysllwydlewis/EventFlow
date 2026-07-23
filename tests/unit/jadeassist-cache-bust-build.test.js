@@ -104,7 +104,9 @@ describe('JadeAssist production asset delivery', () => {
     expect(polishScript).toContain('eventflow-jade-launcher-float');
     expect(polishScript).toContain('DEFAULT_DISMISS_DURATION_MS = 24 * 60 * 60 * 1000');
     expect(polishScript).toContain("aria-label', 'Close JadeAssist assistant'");
-    expect(polishScript).toContain("DOCUMENT_STYLE_ID = 'eventflow-jadeassist-launcher-host-state'");
+    expect(polishScript).toContain(
+      "DOCUMENT_STYLE_ID = 'eventflow-jadeassist-launcher-host-state'"
+    );
     expect(polishScript).toContain('${ROOT_SELECTOR}[hidden]');
     expect(polishScript).toContain('display: none !important');
   });
