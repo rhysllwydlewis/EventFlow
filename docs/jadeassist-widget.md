@@ -710,3 +710,8 @@ Use this checklist after any widget deploy to verify mobile behaviour before sig
 | Set teaser variant   | `localStorage.setItem('jadeassist-teaser-variant', 'B'); location.reload();` |
 | Inspect widget state | `window.JadeWidget.instance.state` in console                                |
 | Check open state     | `window.JadeWidget.isOpen()`                                                 |
+
+
+## Branded launcher assets
+
+EventFlow self-hosts the approved JadeAssist agent, notification badge and grey close-button PNGs under `public/assets/images`. The v2 initializer passes all three assets into JadeAssist, enhances the currently pinned copied bundle when required, and persists launcher dismissal for 30 days. The close control has a 44 px interaction target and the teaser is suppressed whenever the launcher is hidden.

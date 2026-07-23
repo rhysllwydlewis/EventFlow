@@ -116,21 +116,20 @@
 
   // ─── Avatar ───────────────────────────────────────────────────────────────
 
-  /**
-   * Resolves the avatar URL relative to the page's <base> tag.
-   * Supports both root deployments (/assets/…) and subpath deployments
-   * (/app/assets/…).
-   */
-  function getAvatarUrl() {
+  /** Resolves a self-hosted widget asset for root and subpath deployments. */
+  function getAssetUrl(assetPath) {
     const baseElement = document.querySelector('base');
     const basePath = baseElement ? baseElement.getAttribute('href') : '/';
-    const avatarPath = 'assets/images/jade-avatar.png';
 
     if (!basePath || basePath === '/') {
-      return `/${avatarPath}`;
+      return `/${assetPath}`;
     }
     const cleanBasePath = basePath.endsWith('/') ? basePath.slice(0, -1) : basePath;
-    return `${cleanBasePath}/${avatarPath}`;
+    return `${cleanBasePath}/${assetPath}`;
+  }
+
+  function getAvatarUrl() {
+    return getAssetUrl('assets/images/jadeassist-agent.png');
   }
 
   /**
@@ -455,7 +454,12 @@
    * Auto-dismisses after TEASER_AUTO_DISMISS_MS (10 s).
    */
   function showTeaser() {
-    if (isTeaserDismissed()) {
+    if (
+      isTeaserDismissed() ||
+      (window.JadeWidget &&
+        typeof window.JadeWidget.isVisible === 'function' &&
+        !window.JadeWidget.isVisible())
+    ) {
       return;
     }
 
@@ -664,6 +668,10 @@
 
     try {
       const avatarUrl = getAvatarUrl();
+      const notificationBadgeUrl = getAssetUrl(
+        'assets/images/jadeassist-notification-badge.png'
+      );
+      const closeButtonUrl = getAssetUrl('assets/images/jadeassist-close-button.png');
       widgetAvatarUrl = avatarUrl; // Make available to showTeaser() for avatar display
 
       if (debug) {
@@ -674,6 +682,8 @@
           primaryColor: '#00B2A9',
           assistantName: 'Jade',
           avatarUrl,
+          notificationBadgeUrl,
+          closeButtonUrl,
           offsetBottom: DESKTOP_OFFSET_BOTTOM,
           offsetLeft: DESKTOP_OFFSET_LEFT,
           offsetBottomMobile: MOBILE_OFFSET_BOTTOM,
@@ -703,8 +713,15 @@
         // Native tooltip disabled — custom teaser bubble is used instead
         greetingTooltipText: '',
 
-        // Avatar
+        // Approved self-hosted launcher assets
         avatarUrl,
+        notificationBadgeUrl,
+        closeButtonUrl,
+        launcherDismissible: true,
+        launcherDismissStorageKey: DISMISS_STORAGE_KEY,
+        launcherDismissDurationMs: DISMISS_DURATION_MS,
+        // EventFlow already delays the outer initialization by INIT_DELAY.
+        showDelayMs: 0,
 
         // Desktop positioning
         offsetBottom: DESKTOP_OFFSET_BOTTOM,
@@ -726,8 +743,8 @@
         console.log('[JadeAssist] Widget initialized successfully ✅');
       }
 
-      // Inject a × dismiss button on the launcher so users can close the widget for 24 h
-      injectDismissButton(debug);
+      // Enhance the copied widget bundle and gracefully defer to native controls when present.
+      enhanceLauncherAssets(debug, { notificationBadgeUrl, closeButtonUrl });
 
       // Ensure chat is closed on page load (defensive guard against auto-open)
       setTimeout(() => {
@@ -772,147 +789,181 @@
   }
 
   /**
-   * Injects a small × dismiss button on the top-right of the JadeAssist launcher.
-   * Clicking it hides the widget for 24 hours (stored in localStorage).
-   *
-   * The widget renders its DOM asynchronously after JadeWidget.init() returns, so
-   * this function waits for the launcher element to appear in the DOM using a
-   * MutationObserver before inserting the button (with a 5 s timeout fallback).
+   * Applies the approved notification and close assets to the self-hosted widget.
+   * The current copied bundle is enhanced in place; newer JadeAssist bundles expose
+   * the same behaviour natively, so duplicate controls are deliberately avoided.
    */
-  function injectDismissButton(debug) {
-    // Ordered by likelihood — .jade-widget-root is the confirmed root element class
-    const LAUNCHER_SELECTORS = [
-      '.jade-widget-root',
-      '#jade-widget-root',
-      '#jade-widget-launcher',
-      '.jade-widget-launcher',
-      '#jade-launcher',
-      '.jade-launcher',
-      '#jade-widget-container',
-    ];
+  function enhanceLauncherAssets(debug, assetUrls) {
+    let shadowObserver = null;
 
-    function findLauncher() {
-      for (const sel of LAUNCHER_SELECTORS) {
-        const el = document.querySelector(sel);
-        if (el) return el;
-      }
-      return null;
-    }
-
-    function insertButton(launcher) {
-      // Guard against double-insertion
-      if (launcher.querySelector('[data-jade-dismiss]')) return;
-
-      // Ensure the launcher has position:relative so the button positions correctly
-      if (window.getComputedStyle(launcher).position === 'static') {
-        launcher.style.position = 'relative';
-      }
-      // Ensure the button is not clipped by any overflow:hidden on the launcher
-      launcher.style.overflow = 'visible';
-
-      const btn = document.createElement('button');
-      btn.setAttribute('aria-label', 'Close JadeAssist chat widget');
-      btn.setAttribute('type', 'button');
-      btn.setAttribute('data-jade-dismiss', '1');
-      btn.textContent = '×';
-      btn.style.cssText = [
-        'position:absolute',
-        'top:-6px',
-        'right:-6px',
-        'width:22px',
-        'height:22px',
-        'border-radius:50%',
-        'background:#1f2937',
-        'color:#fff',
-        'border:none',
-        'cursor:pointer',
-        'font-size: 14px',
-        'line-height:22px',
-        'text-align:center',
-        'display:block',
-        'z-index:' + (Z_INDEX.WIDGET + 1),
-        'box-shadow:0 1px 5px rgba(0,0,0,0.4)',
-        'padding:0',
-        'transition:background 0.15s ease',
-      ].join(';');
-
-      btn.addEventListener('mouseenter', function () {
-        btn.style.background = '#374151';
-      });
-      btn.addEventListener('mouseleave', function () {
-        btn.style.background = '#1f2937';
-      });
-
-      btn.addEventListener('click', function (e) {
-        e.stopPropagation();
-        e.preventDefault();
-
-        // Record dismissal timestamp
-        try {
-          localStorage.setItem(DISMISS_STORAGE_KEY, String(Date.now()));
-        } catch (_) {
-          // ignore storage errors
-        }
-
-        // Close the chat panel cleanly via the API first (triggers close animation)
-        if (window.JadeWidget && typeof window.JadeWidget.close === 'function') {
-          try {
-            window.JadeWidget.close();
-          } catch (_) {
-            /* ignore */
-          }
-        }
-
-        // Hide the entire widget root and the launcher element
-        const root = findLauncher();
-        if (root) root.style.display = 'none';
-
-        // Hide the teaser bubble if it is still visible
-        if (teaserElement) {
-          teaserElement.style.display = 'none';
-        }
-
-        if (debug) {
-          console.log('[JadeAssist] Widget dismissed for 24 h');
-        }
-      });
-
-      launcher.appendChild(btn);
-
-      if (debug) {
-        console.log('[JadeAssist] Dismiss button injected on', launcher.id || launcher.className);
+    function hasActiveDismissal() {
+      try {
+        const raw = localStorage.getItem(DISMISS_STORAGE_KEY);
+        if (!raw) return false;
+        const dismissedAt = Number(raw);
+        const active = Number.isFinite(dismissedAt) && Date.now() - dismissedAt < DISMISS_DURATION_MS;
+        if (!active) localStorage.removeItem(DISMISS_STORAGE_KEY);
+        return active;
+      } catch (_) {
+        return false;
       }
     }
 
-    // Try immediately — widget may already be in the DOM
-    const existing = findLauncher();
-    if (existing) {
-      insertButton(existing);
-      return;
+    function persistDismissal() {
+      try {
+        localStorage.setItem(DISMISS_STORAGE_KEY, String(Date.now()));
+      } catch (_) {
+        // The widget remains hidden for this page when storage is unavailable.
+      }
     }
 
-    // Widget DOM renders asynchronously: watch for it with a MutationObserver
-    let timeoutId;
-    const observer = new MutationObserver(function (mutations, obs) {
-      const launcher = findLauncher();
-      if (launcher) {
-        obs.disconnect();
-        clearTimeout(timeoutId);
-        insertButton(launcher);
+    function hideRoot(root, source) {
+      dismissTeaser();
+      persistDismissal();
+
+      if (window.JadeWidget && typeof window.JadeWidget.hide === 'function') {
+        window.JadeWidget.hide();
+      } else if (window.JadeWidget && typeof window.JadeWidget.close === 'function') {
+        window.JadeWidget.close();
+      }
+
+      root.hidden = true;
+      root.setAttribute('aria-hidden', 'true');
+      window.dispatchEvent(
+        new CustomEvent('jadeassist:launcher-dismissed', {
+          detail: { source, timestamp: Date.now() },
+        })
+      );
+
+      if (debug) console.log('[JadeAssist] Widget dismissed for 30 days');
+    }
+
+    function decorate(root) {
+      const shadowRoot = root.shadowRoot;
+      if (!shadowRoot) return false;
+
+      if (hasActiveDismissal()) {
+        root.hidden = true;
+        root.setAttribute('aria-hidden', 'true');
+        return true;
+      }
+
+      root.hidden = false;
+      root.removeAttribute('aria-hidden');
+
+      const avatar = shadowRoot.querySelector('.jade-avatar-img');
+      if (avatar) {
+        avatar.src = widgetAvatarUrl;
+        avatar.alt = 'Jade chat assistant';
+        avatar.style.objectFit = 'contain';
+      }
+
+      const badge = shadowRoot.querySelector('.jade-avatar-badge');
+      if (badge && !badge.querySelector('[data-jade-notification-asset]')) {
+        badge.textContent = '';
+        badge.style.background = 'transparent';
+        badge.style.border = '0';
+        badge.style.boxShadow = 'none';
+        badge.style.padding = '0';
+        badge.style.overflow = 'visible';
+
+        const notificationImage = document.createElement('img');
+        notificationImage.src = assetUrls.notificationBadgeUrl;
+        notificationImage.alt = '';
+        notificationImage.setAttribute('aria-hidden', 'true');
+        notificationImage.setAttribute('data-jade-notification-asset', '1');
+        notificationImage.style.cssText =
+          'display:block;width:100%;height:100%;object-fit:contain;pointer-events:none';
+        notificationImage.addEventListener('error', () => {
+          notificationImage.remove();
+          badge.textContent = '1';
+        });
+        badge.appendChild(notificationImage);
+      }
+
+      const container = shadowRoot.querySelector('.jade-widget-container');
+      const nativeButton = shadowRoot.querySelector('.jade-launcher-dismiss');
+      if (container && !nativeButton && !container.querySelector('[data-jade-dismiss]')) {
+        container.style.overflow = 'visible';
+
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.setAttribute('data-jade-dismiss', '1');
+        button.setAttribute('aria-label', 'Hide Jade chat assistant');
+        button.title = 'Hide Jade';
+        button.style.cssText = [
+          'position:absolute',
+          'top:-10px',
+          'left:-10px',
+          'width:30px',
+          'height:30px',
+          'padding:0',
+          'border:0',
+          'border-radius:50%',
+          'background:transparent',
+          'cursor:pointer',
+          'z-index:' + (Z_INDEX.WIDGET + 1),
+          'display:flex',
+          'align-items:center',
+          'justify-content:center',
+          'overflow:visible',
+        ].join(';');
+
+        const closeImage = document.createElement('img');
+        closeImage.src = assetUrls.closeButtonUrl;
+        closeImage.alt = '';
+        closeImage.setAttribute('aria-hidden', 'true');
+        closeImage.style.cssText =
+          'display:block;width:100%;height:100%;object-fit:contain;pointer-events:none';
+        closeImage.addEventListener('error', () => {
+          closeImage.remove();
+          button.textContent = '×';
+          button.style.background = '#9ca3af';
+          button.style.color = '#fff';
+          button.style.fontSize = '18px';
+        });
+
+        const touchTarget = document.createElement('span');
+        touchTarget.setAttribute('aria-hidden', 'true');
+        touchTarget.style.cssText =
+          'position:absolute;width:44px;height:44px;border-radius:50%;pointer-events:none';
+
+        button.append(touchTarget, closeImage);
+        button.addEventListener('click', event => {
+          event.preventDefault();
+          event.stopPropagation();
+          hideRoot(root, 'launcher-close-button');
+        });
+        container.appendChild(button);
+      }
+
+      shadowObserver?.disconnect();
+      shadowObserver = new MutationObserver(() => decorate(root));
+      shadowObserver.observe(shadowRoot, { childList: true, subtree: true });
+      return true;
+    }
+
+    function findAndDecorate() {
+      const root = document.querySelector('.jade-widget-root');
+      return root ? decorate(root) : false;
+    }
+
+    if (!findAndDecorate()) {
+      const observer = new MutationObserver((_, mutationObserver) => {
+        if (findAndDecorate()) mutationObserver.disconnect();
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
+      setTimeout(() => observer.disconnect(), 5000);
+    }
+
+    window.addEventListener('jadeassist:widget-restored', () => {
+      const root = document.querySelector('.jade-widget-root');
+      if (root) {
+        root.hidden = false;
+        root.removeAttribute('aria-hidden');
+        decorate(root);
       }
     });
-    observer.observe(document.body, { childList: true, subtree: true });
-
-    // Safety fallback — stop watching after 5 s whether or not we found the element
-    timeoutId = setTimeout(function () {
-      observer.disconnect();
-      const launcher = findLauncher();
-      if (launcher) {
-        insertButton(launcher);
-      } else if (debug) {
-        console.warn('[JadeAssist] Dismiss button: launcher element not found after 5 s');
-      }
-    }, 5000);
   }
 
   /**
@@ -940,19 +991,6 @@
 
   /** Delays first init attempt to avoid competing with critical page resources. */
   function startInitialization() {
-    // Skip if the user dismissed the widget within the last 30 days
-    try {
-      const dismissedAt = localStorage.getItem(DISMISS_STORAGE_KEY);
-      if (dismissedAt && Date.now() - Number(dismissedAt) < DISMISS_DURATION_MS) {
-        if (shouldEnableDebug()) {
-          console.log('[JadeAssist] Skipping init — widget dismissed within last 30 days');
-        }
-        return;
-      }
-    } catch (_) {
-      // ignore storage errors
-    }
-
     // Don't show until the user has given cookie consent
     if (window.CookieConsent && !window.CookieConsent.hasConsent()) {
       window.addEventListener(
