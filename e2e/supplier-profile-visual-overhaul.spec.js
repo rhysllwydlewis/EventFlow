@@ -196,7 +196,9 @@ test.describe('Supplier profile visual overhaul', () => {
     expect(state.heroBackground).toContain('rgb(15, 52, 96)');
   });
 
-  test('keeps the portrait beside the name and avoids horizontal overflow on mobile', async ({ page }) => {
+  test('keeps the portrait beside the name and avoids horizontal overflow on mobile', async ({
+    page,
+  }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await openProfile(page, makeSupplier());
 
