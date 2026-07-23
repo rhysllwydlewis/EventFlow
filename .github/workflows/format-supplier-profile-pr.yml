@@ -1,0 +1,46 @@
+name: Format supplier profile PR
+
+on:
+  pull_request:
+    paths:
+      - 'e2e/supplier-profile-visual-overhaul.spec.js'
+      - 'public/assets/js/supplier-profile-polish.js'
+      - 'tests/unit/supplier-profile-visual-overhaul.test.js'
+      - '.github/workflows/format-supplier-profile-pr.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.node-version'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit
+
+      - name: Format changed files
+        run: >-
+          npx prettier --write
+          e2e/supplier-profile-visual-overhaul.spec.js
+          public/assets/js/supplier-profile-polish.js
+          tests/unit/supplier-profile-visual-overhaul.test.js
+
+      - name: Upload canonical files
+        uses: actions/upload-artifact@v4
+        with:
+          name: supplier-profile-prettier-output
+          path: |
+            e2e/supplier-profile-visual-overhaul.spec.js
+            public/assets/js/supplier-profile-polish.js
+            tests/unit/supplier-profile-visual-overhaul.test.js
+          retention-days: 1
