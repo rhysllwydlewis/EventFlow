@@ -174,7 +174,9 @@ test.describe('Supplier profile visual overhaul', () => {
     expect(identity).not.toBeNull();
     expect(avatar.width).toBeGreaterThanOrEqual(108);
     expect(avatar.x + avatar.width).toBeLessThan(identity.x + 8);
-    expect(Math.abs(avatar.y + avatar.height / 2 - (identity.y + identity.height / 2))).toBeLessThan(70);
+    expect(
+      Math.abs(avatar.y + avatar.height / 2 - (identity.y + identity.height / 2))
+    ).toBeLessThan(70);
 
     await expect(page.locator('.sp-cta-card__note')).toHaveText(
       'Typically responds in around 6 hours.'
