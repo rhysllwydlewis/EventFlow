@@ -714,4 +714,4 @@ Use this checklist after any widget deploy to verify mobile behaviour before sig
 
 ## Branded launcher assets
 
-EventFlow self-hosts the approved JadeAssist agent, notification badge and grey close-button PNGs under `public/assets/images`. The v2 initializer passes all three assets into JadeAssist, enhances the currently pinned copied bundle when required, and persists launcher dismissal for 30 days. The close control has a 44 px interaction target and the teaser is suppressed whenever the launcher is hidden.
+EventFlow self-hosts the approved JadeAssist agent, notification badge and grey close-button PNGs under `public/assets/images`. The v2 initializer passes all three assets into the verified self-hosted JadeAssist bundle and persists launcher dismissal for 30 days. The native close control has a 44 px interaction target, and EventFlow listens for the widget dismissal event so the custom teaser is removed at the same time.

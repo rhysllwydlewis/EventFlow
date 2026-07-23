@@ -266,14 +266,24 @@ describe('JadeAssist Widget Pinning', () => {
       expect(content).toContain('showDelayMs: 0');
     });
 
-    it('should enhance the copied bundle without rendering duplicate close controls', () => {
+    it('should use the verified native launcher controls and sync teaser dismissal', () => {
       const content = fs.readFileSync(initPath, 'utf8');
-      expect(content).toContain('enhanceLauncherAssets');
-      expect(content).toContain("shadowRoot.querySelector('.jade-launcher-dismiss')");
-      expect(content).toContain('data-jade-notification-asset');
-      expect(content).toContain('data-jade-dismiss');
+      const bundle = fs.readFileSync(
+        path.join(publicDir, 'assets/js/vendor/jade-widget.js'),
+        'utf8'
+      );
+
+      expect(content).toContain('bindWidgetLifecycleEvents');
+      expect(content).toContain("window.addEventListener('jadeassist:widget-dismissed'");
+      expect(content).not.toContain('function enhanceLauncherAssets');
       expect(content).not.toContain('function injectDismissButton');
-      expect(content).not.toContain("btn.textContent = '×'");
+
+      expect(bundle).toContain('jade-launcher-dismiss');
+      expect(bundle).toContain('jade-avatar-badge-asset');
+      expect(bundle).toContain('jadeassist:widget-dismissed');
+      expect(bundle).toContain('notificationBadgeUrl');
+      expect(bundle).toContain('closeButtonUrl');
+      expect(bundle).toContain('isVisible');
     });
 
     it('should keep dismissal duration and messaging aligned at 30 days', () => {
