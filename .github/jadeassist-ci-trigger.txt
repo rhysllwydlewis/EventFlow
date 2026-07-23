@@ -1,1 +1,0 @@
-Trigger EventFlow pull-request validation for the JadeAssist integration.
