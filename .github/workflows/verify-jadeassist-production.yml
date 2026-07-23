@@ -146,8 +146,9 @@ jobs:
               assert.equal(diagnostics.shadowFound, true);
               assert.equal(diagnostics.buttonFound, true, 'close button must render in shadow DOM');
               assert.match(diagnostics.ariaLabel, /^Hide Jade/);
-              assert.equal(diagnostics.buttonWidth, 30);
-              assert.equal(diagnostics.buttonHeight, 30);
+              // EventFlow scales the entire widget to 85%, so the 30px control measures 25.5px.
+              assert.ok(Math.abs(diagnostics.buttonWidth - 25.5) < 0.25);
+              assert.ok(Math.abs(diagnostics.buttonHeight - 25.5) < 0.25);
               assert.match(diagnostics.imageSrc, /jadeassist-close-button\.png/);
               assert.equal(diagnostics.imageComplete, true);
               assert.ok(diagnostics.imageNaturalWidth > 0, 'close-button image should be decoded');
