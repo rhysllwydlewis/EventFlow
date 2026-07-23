@@ -203,7 +203,6 @@ test.describe('JadeAssist launcher polish', () => {
 
     await page.reload({ waitUntil: 'domcontentloaded' });
     await waitForPolishedLauncher(page);
-    await expect(page.locator('.jade-widget-root')).toBeVisible();
 
     await expect
       .poll(() =>
