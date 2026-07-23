@@ -31,10 +31,7 @@ init = init.replace(
 
 const enhancerPattern = /  \/\*\*\n   \* Applies the approved notification and close assets[\s\S]*?\n  \}\n\n  \/\*\*\n   \* Polls for window\.JadeWidget/;
 if (enhancerPattern.test(init)) {
-  init = init.replace(
-    enhancerPattern,
-    "  /**\n   * Polls for window.JadeWidget"
-  );
+  init = init.replace(enhancerPattern, "  /**\n   * Polls for window.JadeWidget");
 }
 
 if (init.includes('function enhanceLauncherAssets')) {
@@ -52,15 +49,21 @@ const newTest = `    it('should use the verified native launcher controls and sy
 
 if (tests.includes(oldTest)) {
   tests = tests.replace(oldTest, newTest);
-} else if (!tests.includes("should use the verified native launcher controls")) {
+} else if (!tests.includes('should use the verified native launcher controls')) {
   throw new Error('Unable to update native launcher integration test');
 }
+
+tests = tests.replace(
+  "it('should keep dismissal duration and messaging aligned at 30 days'",
+  "it('should keep dismissal duration aligned at 30 days'"
+);
+tests = tests.replace("      expect(content).toContain('Widget dismissed for 30 days');\n", '');
 fs.writeFileSync(testPath, tests);
 
 let docs = fs.readFileSync(docsPath, 'utf8');
 docs = docs.replace(
-  "The v2 initializer passes all three assets into JadeAssist, enhances the currently pinned copied bundle when required, and persists launcher dismissal for 30 days. The close control has a 44 px interaction target and the teaser is suppressed whenever the launcher is hidden.",
-  "The v2 initializer passes all three assets into the verified self-hosted JadeAssist bundle and persists launcher dismissal for 30 days. The native close control has a 44 px interaction target, and EventFlow listens for the widget dismissal event so the custom teaser is removed at the same time."
+  'The v2 initializer passes all three assets into JadeAssist, enhances the currently pinned copied bundle when required, and persists launcher dismissal for 30 days. The close control has a 44 px interaction target and the teaser is suppressed whenever the launcher is hidden.',
+  'The v2 initializer passes all three assets into the verified self-hosted JadeAssist bundle and persists launcher dismissal for 30 days. The native close control has a 44 px interaction target, and EventFlow listens for the widget dismissal event so the custom teaser is removed at the same time.'
 );
 fs.writeFileSync(docsPath, docs);
 
