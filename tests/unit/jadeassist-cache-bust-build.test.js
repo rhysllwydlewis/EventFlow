@@ -12,7 +12,7 @@ const polishScriptPath = path.join(
   'js',
   'jadeassist-launcher-polish.js'
 );
-const expectedVersion = '20260723-3';
+const expectedVersion = '20260723-4';
 
 function expectOrderedScripts(html) {
   const vendorIndex = html.indexOf('/assets/js/vendor/jade-widget.js');
@@ -102,7 +102,9 @@ describe('JadeAssist production asset delivery', () => {
     expect(script).toContain('/assets/js/jadeassist-launcher-polish.js');
     expect(polishScript).toContain('width: 52px !important');
     expect(polishScript).toContain('eventflow-jade-launcher-float');
-    expect(polishScript).toContain('DEFAULT_DISMISS_DURATION_MS = 24 * 60 * 60 * 1000');
+    expect(polishScript).toContain('DEFAULT_DISMISS_DURATION_MS = 0');
+    expect(polishScript).toContain("'jadeassist_dismissed_at'");
+    expect(polishScript).toContain('clearPersistedDismissals(config)');
     expect(polishScript).toContain("aria-label', 'Close JadeAssist assistant'");
     expect(polishScript).toContain(
       "DOCUMENT_STYLE_ID = 'eventflow-jadeassist-launcher-host-state'"
