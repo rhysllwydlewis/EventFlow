@@ -1,4 +1,4 @@
-name: Apply JadeAssist launcher assets
+name: Sync verified JadeAssist bundle
 
 on:
   push:
@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 jobs:
-  apply:
+  sync:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
@@ -24,9 +24,6 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Apply launcher integration
-        run: node scripts/apply-jadeassist-launcher-assets.mjs
-
       - name: Sync verified JadeAssist bundle
         run: |
           curl --fail --location --retry 3 \
@@ -36,21 +33,17 @@ jobs:
           grep -q "jadeassist:widget-dismissed" public/assets/js/vendor/jade-widget.js
           grep -q "notificationBadgeUrl" public/assets/js/vendor/jade-widget.js
 
-      - name: Check generated JavaScript syntax
+      - name: Check JavaScript syntax
         run: |
           node --check public/assets/js/jadeassist-init.v2.js
           node --check public/assets/js/vendor/jade-widget.js
 
-      - name: Commit generated integration
+      - name: Commit verified bundle
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add \
-            public/assets/js/jadeassist-init.v2.js \
-            public/assets/js/vendor/jade-widget.js \
-            tests/integration/jadeassist-widget.test.js \
-            docs/jadeassist-widget.md
+          git add public/assets/js/vendor/jade-widget.js
           if ! git diff --cached --quiet; then
-            git commit -m "feat: integrate verified JadeAssist launcher bundle"
+            git commit -m "chore: sync verified JadeAssist widget bundle"
             git push
           fi
