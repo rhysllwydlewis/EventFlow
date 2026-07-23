@@ -1,0 +1,37 @@
+name: Format supplier profile E2E
+
+on:
+  pull_request:
+    paths:
+      - 'e2e/supplier-profile-visual-overhaul.spec.js'
+      - '.github/workflows/format-supplier-profile-e2e.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.node-version'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit
+
+      - name: Format browser acceptance test
+        run: npx prettier --write e2e/supplier-profile-visual-overhaul.spec.js
+
+      - name: Upload canonical file
+        uses: actions/upload-artifact@v4
+        with:
+          name: supplier-profile-e2e-prettier-output
+          path: e2e/supplier-profile-visual-overhaul.spec.js
+          retention-days: 1
