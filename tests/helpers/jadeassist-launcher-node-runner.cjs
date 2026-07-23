@@ -12,9 +12,22 @@ const widgetBundle = fs.readFileSync(
 );
 const wait = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
 
+async function waitFor(getValue, message, timeoutMs = 1500) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const value = getValue();
+    if (value) {
+      return value;
+    }
+    await wait(10);
+  }
+  assert.fail(message);
+}
+
 function createWidget() {
   const dom = new JSDOM('<!doctype html><html><body></body></html>', {
-    url: 'https://event-flow.co.uk/',
+    // Localhost keeps the bundle out of its intentional production degraded-mode warning path.
+    url: 'http://localhost/',
     runScripts: 'outside-only',
     pretendToBeVisual: true,
   });
@@ -47,44 +60,55 @@ function createWidget() {
   return { dom, assets, dismissalKey };
 }
 
+async function getMountedLauncher(dom) {
+  const root = await waitFor(
+    () => dom.window.document.querySelector('.jade-widget-root'),
+    'The widget root should mount.'
+  );
+  assert.ok(root.shadowRoot, 'The widget should use an open shadow root.');
+  const closeButton = await waitFor(
+    () => root.shadowRoot.querySelector('.jade-launcher-dismiss'),
+    'The native launcher close control should render.'
+  );
+  return { root, closeButton };
+}
+
 async function run() {
   {
     const { dom, assets } = createWidget();
-    await wait(50);
+    const { root, closeButton } = await getMountedLauncher(dom);
 
-    const root = dom.window.document.querySelector('.jade-widget-root');
-    assert.ok(root, 'The widget root should mount.');
-    assert.ok(root.shadowRoot, 'The widget should use an open shadow root.');
-
-    const avatar = root.shadowRoot.querySelector('.jade-avatar-img');
-    assert.ok(avatar, 'The Jade avatar should render.');
+    const avatar = await waitFor(
+      () => root.shadowRoot.querySelector('.jade-avatar-img'),
+      'The Jade avatar should render.'
+    );
     assert.equal(avatar.src, assets.avatarUrl);
     assert.equal(avatar.alt, 'Jade chat assistant');
 
-    const notificationBadge = root.shadowRoot.querySelector('.jade-avatar-badge');
-    assert.ok(notificationBadge, 'The greeting notification should render.');
+    const notificationBadge = await waitFor(
+      () => root.shadowRoot.querySelector('.jade-avatar-badge'),
+      'The greeting notification should render.'
+    );
     assert.equal(notificationBadge.getAttribute('aria-label'), '1 new notification');
 
-    const notificationAsset = notificationBadge.querySelector('.jade-avatar-badge-asset');
-    assert.ok(notificationAsset, 'The approved notification asset should render.');
+    const notificationAsset = await waitFor(
+      () => notificationBadge.querySelector('.jade-avatar-badge-asset'),
+      'The approved notification asset should render.'
+    );
     assert.equal(notificationAsset.src, assets.notificationBadgeUrl);
 
-    const closeButton = root.shadowRoot.querySelector('.jade-launcher-dismiss');
-    assert.ok(closeButton, 'The native launcher close control should render.');
     assert.equal(closeButton.getAttribute('aria-label'), 'Hide Jade chat assistant');
-
-    const closeAsset = closeButton.querySelector('.jade-launcher-dismiss-asset');
-    assert.ok(closeAsset, 'The approved close-button asset should render.');
+    const closeAsset = await waitFor(
+      () => closeButton.querySelector('.jade-launcher-dismiss-asset'),
+      'The approved close-button asset should render.'
+    );
     assert.equal(closeAsset.src, assets.closeButtonUrl);
     dom.window.close();
   }
 
   {
     const { dom, dismissalKey } = createWidget();
-    await wait(50);
-
-    const root = dom.window.document.querySelector('.jade-widget-root');
-    const closeButton = root.shadowRoot.querySelector('.jade-launcher-dismiss');
+    const { root, closeButton } = await getMountedLauncher(dom);
     let dismissalEvent;
     dom.window.addEventListener('jadeassist:widget-dismissed', event => {
       dismissalEvent = event.detail;
@@ -98,8 +122,7 @@ async function run() {
     assert.equal(dismissalEvent.source, 'launcher-close-button');
 
     dom.window.JadeWidget.show();
-    await wait(20);
-    assert.equal(root.hidden, false);
+    await waitFor(() => !root.hidden, 'The launcher should be restored by JadeWidget.show().');
     assert.equal(root.hasAttribute('aria-hidden'), false);
     assert.equal(dom.window.JadeWidget.isVisible(), true);
     assert.equal(dom.window.localStorage.getItem(dismissalKey), null);
@@ -108,21 +131,30 @@ async function run() {
 
   {
     const { dom } = createWidget();
-    await wait(50);
-
-    const root = dom.window.document.querySelector('.jade-widget-root');
-    const notificationBadge = root.shadowRoot.querySelector('.jade-avatar-badge');
-    const notificationAsset = notificationBadge.querySelector('.jade-avatar-badge-asset');
+    const { root } = await getMountedLauncher(dom);
+    const notificationBadge = await waitFor(
+      () => root.shadowRoot.querySelector('.jade-avatar-badge'),
+      'The greeting notification should render for fallback coverage.'
+    );
+    const notificationAsset = await waitFor(
+      () => notificationBadge.querySelector('.jade-avatar-badge-asset'),
+      'The notification image should render for fallback coverage.'
+    );
     notificationAsset.dispatchEvent(new dom.window.Event('error'));
     assert.equal(notificationBadge.textContent, '1');
 
     dom.window.JadeWidget.open();
-    await wait(20);
-    assert.ok(root.shadowRoot.querySelector('.jade-chat-popup'));
+    await waitFor(
+      () => root.shadowRoot.querySelector('.jade-chat-popup'),
+      'The chat popup should open.'
+    );
     assert.equal(dom.window.JadeWidget.isOpen(), true);
 
     dom.window.JadeWidget.close();
-    await wait(20);
+    await waitFor(
+      () => !root.shadowRoot.querySelector('.jade-chat-popup'),
+      'The chat popup should close.'
+    );
     assert.equal(dom.window.JadeWidget.isOpen(), false);
     assert.equal(root.shadowRoot.querySelectorAll('.jade-launcher-dismiss').length, 1);
     dom.window.close();
