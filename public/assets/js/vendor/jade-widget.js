@@ -1,4 +1,62 @@
-(function(w){"use strict";const y="jade-launcher-assets-style",S="jadeassist:widget-dismissed",T="jadeassist:widget-restored";class E{constructor(e,a,s){this.decorating=!1,this.root=e,this.widget=a,this.config=s}start(){this.hasActiveDismissal()?this.setVisible(!1):(this.setVisible(!0),this.decorate());const e=this.root.shadowRoot;e&&(this.observer=new MutationObserver(()=>this.decorate()),this.observer.observe(e,{childList:!0,subtree:!0}))}destroy(){var e;(e=this.observer)==null||e.disconnect(),this.observer=void 0}hide(e="api"){this.widget.close(),this.persistDismissal(),this.setVisible(!1),window.dispatchEvent(new CustomEvent(S,{detail:{source:e,timestamp:Date.now()}}))}show(e="api"){this.clearDismissal(),this.setVisible(!0),this.decorate(),window.dispatchEvent(new CustomEvent(T,{detail:{source:e,timestamp:Date.now()}}))}isVisible(){return this.root.isConnected&&!this.root.hidden}isOpen(){var e;return!!((e=this.root.shadowRoot)!=null&&e.querySelector(".jade-chat-popup"))}decorate(){if(this.decorating||!this.isVisible())return;const e=this.root.shadowRoot;if(e){this.decorating=!0;try{this.ensureStyles(e),this.decorateAvatar(e),this.decorateNotificationBadge(e),this.ensureDismissButton(e)}finally{this.decorating=!1}}}ensureStyles(e){if(e.getElementById(y))return;const a=document.createElement("style");a.id=y,a.textContent=`
+(function (w) {
+  'use strict';
+  const y = 'jade-launcher-assets-style',
+    S = 'jadeassist:widget-dismissed',
+    T = 'jadeassist:widget-restored';
+  class E {
+    constructor(e, a, s) {
+      ((this.decorating = !1), (this.root = e), (this.widget = a), (this.config = s));
+    }
+    start() {
+      this.hasActiveDismissal() ? this.setVisible(!1) : (this.setVisible(!0), this.decorate());
+      const e = this.root.shadowRoot;
+      e &&
+        ((this.observer = new MutationObserver(() => this.decorate())),
+        this.observer.observe(e, { childList: !0, subtree: !0 }));
+    }
+    destroy() {
+      var e;
+      ((e = this.observer) == null || e.disconnect(), (this.observer = void 0));
+    }
+    hide(e = 'api') {
+      (this.widget.close(),
+        this.persistDismissal(),
+        this.setVisible(!1),
+        window.dispatchEvent(new CustomEvent(S, { detail: { source: e, timestamp: Date.now() } })));
+    }
+    show(e = 'api') {
+      (this.clearDismissal(),
+        this.setVisible(!0),
+        this.decorate(),
+        window.dispatchEvent(new CustomEvent(T, { detail: { source: e, timestamp: Date.now() } })));
+    }
+    isVisible() {
+      return this.root.isConnected && !this.root.hidden;
+    }
+    isOpen() {
+      var e;
+      return !!((e = this.root.shadowRoot) != null && e.querySelector('.jade-chat-popup'));
+    }
+    decorate() {
+      if (this.decorating || !this.isVisible()) return;
+      const e = this.root.shadowRoot;
+      if (e) {
+        this.decorating = !0;
+        try {
+          (this.ensureStyles(e),
+            this.decorateAvatar(e),
+            this.decorateNotificationBadge(e),
+            this.ensureDismissButton(e));
+        } finally {
+          this.decorating = !1;
+        }
+      }
+    }
+    ensureStyles(e) {
+      if (e.getElementById(y)) return;
+      const a = document.createElement('style');
+      ((a.id = y),
+        (a.textContent = `
       .jade-widget-container {
         overflow: visible !important;
       }
@@ -114,14 +172,465 @@
           height: 28px !important;
         }
       }
-    `,e.appendChild(a)}decorateAvatar(e){const a=e.querySelector(".jade-avatar-img");a&&(a.alt=`${this.config.assistantName} chat assistant`,a.decoding="async")}decorateNotificationBadge(e){const a=e.querySelector(".jade-avatar-badge");if(!a||a.dataset.assetEnhanced==="true")return;a.dataset.assetEnhanced="true",a.textContent="";const s=document.createElement("img");s.className="jade-avatar-badge-asset",s.src=this.config.notificationBadgeUrl,s.alt="",s.setAttribute("aria-hidden","true"),s.decoding="async",s.addEventListener("error",()=>{s.remove(),a.textContent="1"}),a.appendChild(s)}ensureDismissButton(e){var i;if(!this.config.launcherDismissible){(i=e.querySelector(".jade-launcher-dismiss"))==null||i.remove();return}const a=e.querySelector(".jade-widget-container");if(!a||a.querySelector(".jade-launcher-dismiss"))return;const s=document.createElement("button");s.type="button",s.className="jade-launcher-dismiss",s.setAttribute("aria-label",`Hide ${this.config.assistantName} chat assistant`),s.title=`Hide ${this.config.assistantName}`;const o=document.createElement("img");o.className="jade-launcher-dismiss-asset",o.src=this.config.closeButtonUrl,o.alt="",o.setAttribute("aria-hidden","true"),o.decoding="async";const t=document.createElement("span");t.className="jade-launcher-dismiss-fallback",t.textContent="×",t.setAttribute("aria-hidden","true"),o.addEventListener("error",()=>{o.style.display="none",t.style.display="flex"}),s.append(o,t),s.addEventListener("click",n=>{n.preventDefault(),n.stopPropagation(),this.hide("launcher-close-button")}),a.appendChild(s)}hasActiveDismissal(){if(this.config.launcherDismissDurationMs<=0)return!1;try{const e=localStorage.getItem(this.config.launcherDismissStorageKey);if(!e)return!1;const a=Number(e),s=Number.isFinite(a)&&Date.now()-a<this.config.launcherDismissDurationMs;return s||localStorage.removeItem(this.config.launcherDismissStorageKey),s}catch{return!1}}persistDismissal(){if(!(this.config.launcherDismissDurationMs<=0))try{localStorage.setItem(this.config.launcherDismissStorageKey,String(Date.now()))}catch{}}clearDismissal(){try{localStorage.removeItem(this.config.launcherDismissStorageKey)}catch{}}setVisible(e){this.root.hidden=!e,e?this.root.removeAttribute("aria-hidden"):this.root.setAttribute("aria-hidden","true")}}const b=1e3,x="https://cdn.jsdelivr.net/gh/rhysllwydlewis/JadeAssist@main/packages/widget/assets",M=`${x}/jadeassist-agent.png`,$=`${x}/jadeassist-notification-badge.png`,C=`${x}/jadeassist-close-button.png`,j={apiBaseUrl:"",authToken:"",assistantName:"Jade",greetingText:"Hi! 👋 I'm Jade, your event planning assistant. Can I help you plan your special day?",greetingTooltipText:"👋 Hi! Need help planning your event?",avatarUrl:M,notificationBadgeUrl:$,closeButtonUrl:C,launcherDismissible:!0,launcherDismissStorageKey:"jade-widget-launcher-dismissed-at",launcherDismissDurationMs:30*24*60*60*1e3,primaryColor:"#0B8073",accentColor:"#13B6A2",fontFamily:'-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',showDelayMs:1e3,offsetBottom:"80px",offsetRight:"24px",offsetLeft:"",offsetBottomMobile:"",offsetRightMobile:"",offsetLeftMobile:"",scale:1,debug:!1,enableSpeechInput:!1,enableSpeechOutput:!1,speechLanguage:"en-GB"},c={STATE:"jade-widget-state",MESSAGES:"jade-widget-messages",CONVERSATION_ID:"jade-widget-conversation-id",GREETING_DISMISSED:"jade-widget-greeting-dismissed",SOUND_ENABLED:"jade-widget-sound-enabled",SOUND_VOLUME:"jade-widget-sound-volume"};class l{static saveState(e){try{const s={...this.loadState(),...e};localStorage.setItem(c.STATE,JSON.stringify(s))}catch(a){console.warn("Failed to save widget state:",a)}}static loadState(){try{const e=localStorage.getItem(c.STATE);return e?JSON.parse(e):{}}catch(e){return console.warn("Failed to load widget state:",e),{}}}static saveMessages(e){try{localStorage.setItem(c.MESSAGES,JSON.stringify(e))}catch(a){console.warn("Failed to save messages:",a)}}static loadMessages(){try{const e=localStorage.getItem(c.MESSAGES);return e?JSON.parse(e):[]}catch(e){return console.warn("Failed to load messages:",e),[]}}static saveConversationId(e){try{localStorage.setItem(c.CONVERSATION_ID,e)}catch(a){console.warn("Failed to save conversation ID:",a)}}static loadConversationId(){try{return localStorage.getItem(c.CONVERSATION_ID)}catch(e){return console.warn("Failed to load conversation ID:",e),null}}static clearAll(){try{localStorage.removeItem(c.STATE),localStorage.removeItem(c.MESSAGES),localStorage.removeItem(c.CONVERSATION_ID),localStorage.removeItem(c.GREETING_DISMISSED)}catch(e){console.warn("Failed to clear storage:",e)}}static isGreetingDismissed(){try{return localStorage.getItem(c.GREETING_DISMISSED)==="true"}catch(e){return console.warn("Failed to check greeting dismissed state:",e),!1}}static setGreetingDismissed(){try{localStorage.setItem(c.GREETING_DISMISSED,"true")}catch(e){console.warn("Failed to save greeting dismissed state:",e)}}static loadSoundEnabled(){try{const e=localStorage.getItem(c.SOUND_ENABLED);return e===null?!1:e==="true"}catch(e){return console.warn("Failed to load sound enabled state:",e),!1}}static saveSoundEnabled(e){try{localStorage.setItem(c.SOUND_ENABLED,String(e))}catch(a){console.warn("Failed to save sound enabled state:",a)}}static loadSoundVolume(){try{const e=localStorage.getItem(c.SOUND_VOLUME);if(e===null)return .5;const a=parseFloat(e);return isNaN(a)?.5:Math.min(1,Math.max(0,a))}catch(e){return console.warn("Failed to load sound volume:",e),.5}}static saveSoundVolume(e){try{localStorage.setItem(c.SOUND_VOLUME,String(e))}catch(a){console.warn("Failed to save sound volume:",a)}}}function k(){if(typeof window>"u")return!1;const r=window.location.hostname.toLowerCase();return!["localhost","127.0.0.1","0.0.0.0"].includes(r)&&!r.endsWith(".local")}function I(r,e=.75){return{mode:r,confidence:e,uiActions:r==="degraded"?[{type:"show_degraded_mode_banner"}]:[]}}class A{constructor(e,a){this.demoState={},this.baseUrl=e||"",this.authToken=a||"",this.demoMode=!e,this.demoMode&&k()&&console.warn("[JadeAssist] apiBaseUrl is not configured on a production-like host. The widget will show explicit degraded guidance rather than silent demo-mode intelligence.")}async sendMessage(e,a){var n,u,p,m,f;if(this.demoMode)return this.mockResponse(e);const s={"Content-Type":"application/json"};this.authToken&&(s.Authorization=`Bearer ${this.authToken}`);const o=await fetch(`${this.baseUrl}/api/widget/chat`,{method:"POST",headers:s,body:JSON.stringify({message:e,conversationId:a,userId:"anonymous"})}),t=await this.parseJsonResponse(o);if(o.status===421&&((n=t==null?void 0:t.error)==null?void 0:n.code)==="WRONG_SERVICE")throw new Error("The JadeAssist widget is pointed at the widget/static Railway service instead of the backend API service. Update apiBaseUrl to the backend service domain.");if(o.status===429)throw new Error(((u=t==null?void 0:t.error)==null?void 0:u.message)||"429: Rate limit exceeded. Please wait and try again.");if(o.status===401||o.status===403)throw new Error(((p=t==null?void 0:t.error)==null?void 0:p.message)||`${o.status}: Authentication failed.`);if(!o.ok)throw new Error(((m=t==null?void 0:t.error)==null?void 0:m.message)||`API error: ${o.status}`);if(!(t!=null&&t.success)||!t.data)throw new Error(((f=t==null?void 0:t.error)==null?void 0:f.message)||"API request failed");const i=t.data.assistantResponse?{mode:t.data.assistantResponse.mode,confidence:t.data.assistantResponse.confidence,nextQuestion:t.data.assistantResponse.nextQuestion,uiActions:t.data.assistantResponse.uiActions,statePatch:t.data.assistantResponse.statePatch}:void 0;return{conversationId:t.data.conversationId,conversation:t.data.conversation,searchResults:t.data.searchResults,message:{id:t.data.message.id,role:"assistant",content:t.data.message.content,timestamp:Date.now(),quickReplies:t.data.suggestions,assistantMeta:i}}}async parseJsonResponse(e){if(!(e.headers.get("content-type")||"").includes("application/json"))return null;try{return await e.json()}catch(s){return console.warn("Failed to parse JadeAssist API response:",s),null}}async mockResponse(e){await new Promise(n=>setTimeout(n,700+Math.random()*400));const a="demo-"+Date.now(),s=e.toLowerCase();this.updateDemoState(s);const{content:o,quickReplies:t}=this.buildDemoResponse(s),i=k()?"Jade is not connected to the live planning service on this page. ":"";return{conversationId:a,conversation:{eventType:this.demoState.eventType,guestCount:this.demoState.guestCount?Number(this.demoState.guestCount):void 0,budget:this.demoState.budget&&Number(this.demoState.budget.replace(/[^0-9]/g,""))||void 0,location:this.demoState.location,planningStage:this.demoState.eventType?"brief-building":"discovery",contextCompleteness:Object.values(this.demoState).filter(Boolean).length*20},message:{id:"msg-"+Date.now(),role:"assistant",content:`${i}${o}`,timestamp:Date.now(),quickReplies:t,assistantMeta:I("degraded",.45)}}}updateDemoState(e){e.includes("wedding")||e.includes("civil partnership")?this.demoState.eventType="wedding":e.includes("birthday")?this.demoState.eventType="birthday":e.includes("corporate")||e.includes("away day")||e.includes("away-day")||e.includes("work event")?this.demoState.eventType="corporate":e.includes("conference")||e.includes("seminar")?this.demoState.eventType="conference":e.includes("anniversary")?this.demoState.eventType="anniversary":(e.includes("party")||e.includes("celebration"))&&(this.demoState.eventType="party"),/under\s*[£$]?5k\b/i.test(e)||/under\s*£?5,000\b/.test(e)?this.demoState.budget="under £5,000":/\b[£$]?50k\b|\b50,000\b/.test(e)?this.demoState.budget="£50,000+":/\b[£$]?20k\b|\b20,000\b/.test(e)?this.demoState.budget="£20,000–£50,000":/\b[£$]?10k\b|\b10,000\b/.test(e)?this.demoState.budget="£10,000–£20,000":/\b[£$]?5k\b|\b5,000\b/.test(e)&&(this.demoState.budget="£5,000–£10,000");const a=/\b(\d{1,3}(?:,\d{3})*|\d+)\s*(guests?|people|attendees?|pax)\b/.exec(e);a?this.demoState.guestCount=a[1].replace(/,/g,""):e.includes("under 30")||e.includes("intimate")?this.demoState.guestCount="20–30":(e.includes("150+")||e.includes("large"))&&(this.demoState.guestCount="150+"),e.includes("london")?this.demoState.location="London":e.includes("scotland")||e.includes("edinburgh")||e.includes("glasgow")?this.demoState.location="Scotland":e.includes("south wales")?this.demoState.location="South Wales":e.includes("north wales")?this.demoState.location="North Wales":e.includes("wales")||e.includes("cardiff")?this.demoState.location="Wales":e.includes("north west")||e.includes("manchester")||e.includes("liverpool")?this.demoState.location="North West":e.includes("yorkshire")||e.includes("leeds")||e.includes("sheffield")?this.demoState.location="Yorkshire":e.includes("south east")||e.includes("surrey")||e.includes("kent")||e.includes("sussex")?this.demoState.location="South East":e.includes("midlands")||e.includes("birmingham")?this.demoState.location="Midlands":(e.includes("south west")||e.includes("bristol")||e.includes("cornwall")||e.includes("devon"))&&(this.demoState.location="South West"),e.includes("this year")?this.demoState.eventDate="this year":e.includes("next year")&&(this.demoState.eventDate="next year")}buildDemoResponse(e){const a=this.demoState;return(e.includes("yes")&&e.includes("please")||e==="help"||e==="start"||e==="hi"||e==="hello"||e==="hey")&&!a.eventType?{content:"I'm in degraded demo mode, but I can still help you capture the brief manually. What type of event are you organising? 🎉",quickReplies:["Wedding","Birthday Party","Corporate Event","Anniversary","Other"]}:e.includes("no")&&e.includes("thanks")?{content:"No problem — I'm here whenever you're ready. Feel free to come back any time! 😊"}:this.buildDetailedDemoResponse(e,a)}buildDetailedDemoResponse(e,a){const s=a.eventType||"event",o=a.location||"your area";return e.includes("venue")||e.includes("supplier")||e.includes("search")||e.includes("recommend")?{content:`I'm in degraded demo mode. In live mode I can search EventFlow suppliers and website sections. For now, here is the supplier approach I would use for a ${s} in ${o}:
+    `),
+        e.appendChild(a));
+    }
+    decorateAvatar(e) {
+      const a = e.querySelector('.jade-avatar-img');
+      a && ((a.alt = `${this.config.assistantName} chat assistant`), (a.decoding = 'async'));
+    }
+    decorateNotificationBadge(e) {
+      const a = e.querySelector('.jade-avatar-badge');
+      if (!a || a.dataset.assetEnhanced === 'true') return;
+      ((a.dataset.assetEnhanced = 'true'), (a.textContent = ''));
+      const s = document.createElement('img');
+      ((s.className = 'jade-avatar-badge-asset'),
+        (s.src = this.config.notificationBadgeUrl),
+        (s.alt = ''),
+        s.setAttribute('aria-hidden', 'true'),
+        (s.decoding = 'async'),
+        s.addEventListener('error', () => {
+          (s.remove(), (a.textContent = '1'));
+        }),
+        a.appendChild(s));
+    }
+    ensureDismissButton(e) {
+      var i;
+      if (!this.config.launcherDismissible) {
+        (i = e.querySelector('.jade-launcher-dismiss')) == null || i.remove();
+        return;
+      }
+      const a = e.querySelector('.jade-widget-container');
+      if (!a || a.querySelector('.jade-launcher-dismiss')) return;
+      const s = document.createElement('button');
+      ((s.type = 'button'),
+        (s.className = 'jade-launcher-dismiss'),
+        s.setAttribute('aria-label', `Hide ${this.config.assistantName} chat assistant`),
+        (s.title = `Hide ${this.config.assistantName}`));
+      const o = document.createElement('img');
+      ((o.className = 'jade-launcher-dismiss-asset'),
+        (o.src = this.config.closeButtonUrl),
+        (o.alt = ''),
+        o.setAttribute('aria-hidden', 'true'),
+        (o.decoding = 'async'));
+      const t = document.createElement('span');
+      ((t.className = 'jade-launcher-dismiss-fallback'),
+        (t.textContent = '×'),
+        t.setAttribute('aria-hidden', 'true'),
+        o.addEventListener('error', () => {
+          ((o.style.display = 'none'), (t.style.display = 'flex'));
+        }),
+        s.append(o, t),
+        s.addEventListener('click', n => {
+          (n.preventDefault(), n.stopPropagation(), this.hide('launcher-close-button'));
+        }),
+        a.appendChild(s));
+    }
+    hasActiveDismissal() {
+      if (this.config.launcherDismissDurationMs <= 0) return !1;
+      try {
+        const e = localStorage.getItem(this.config.launcherDismissStorageKey);
+        if (!e) return !1;
+        const a = Number(e),
+          s = Number.isFinite(a) && Date.now() - a < this.config.launcherDismissDurationMs;
+        return (s || localStorage.removeItem(this.config.launcherDismissStorageKey), s);
+      } catch {
+        return !1;
+      }
+    }
+    persistDismissal() {
+      if (!(this.config.launcherDismissDurationMs <= 0))
+        try {
+          localStorage.setItem(this.config.launcherDismissStorageKey, String(Date.now()));
+        } catch {}
+    }
+    clearDismissal() {
+      try {
+        localStorage.removeItem(this.config.launcherDismissStorageKey);
+      } catch {}
+    }
+    setVisible(e) {
+      ((this.root.hidden = !e),
+        e
+          ? this.root.removeAttribute('aria-hidden')
+          : this.root.setAttribute('aria-hidden', 'true'));
+    }
+  }
+  const b = 1e3,
+    x = 'https://cdn.jsdelivr.net/gh/rhysllwydlewis/JadeAssist@main/packages/widget/assets',
+    M = `${x}/jadeassist-agent.png`,
+    $ = `${x}/jadeassist-notification-badge.png`,
+    C = `${x}/jadeassist-close-button.png`,
+    j = {
+      apiBaseUrl: '',
+      authToken: '',
+      assistantName: 'Jade',
+      greetingText:
+        "Hi! 👋 I'm Jade, your event planning assistant. Can I help you plan your special day?",
+      greetingTooltipText: '👋 Hi! Need help planning your event?',
+      avatarUrl: M,
+      notificationBadgeUrl: $,
+      closeButtonUrl: C,
+      launcherDismissible: !0,
+      launcherDismissStorageKey: 'jade-widget-launcher-dismissed-at',
+      launcherDismissDurationMs: 30 * 24 * 60 * 60 * 1e3,
+      primaryColor: '#0B8073',
+      accentColor: '#13B6A2',
+      fontFamily:
+        '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+      showDelayMs: 1e3,
+      offsetBottom: '80px',
+      offsetRight: '24px',
+      offsetLeft: '',
+      offsetBottomMobile: '',
+      offsetRightMobile: '',
+      offsetLeftMobile: '',
+      scale: 1,
+      debug: !1,
+      enableSpeechInput: !1,
+      enableSpeechOutput: !1,
+      speechLanguage: 'en-GB',
+    },
+    c = {
+      STATE: 'jade-widget-state',
+      MESSAGES: 'jade-widget-messages',
+      CONVERSATION_ID: 'jade-widget-conversation-id',
+      GREETING_DISMISSED: 'jade-widget-greeting-dismissed',
+      SOUND_ENABLED: 'jade-widget-sound-enabled',
+      SOUND_VOLUME: 'jade-widget-sound-volume',
+    };
+  class l {
+    static saveState(e) {
+      try {
+        const s = { ...this.loadState(), ...e };
+        localStorage.setItem(c.STATE, JSON.stringify(s));
+      } catch (a) {
+        console.warn('Failed to save widget state:', a);
+      }
+    }
+    static loadState() {
+      try {
+        const e = localStorage.getItem(c.STATE);
+        return e ? JSON.parse(e) : {};
+      } catch (e) {
+        return (console.warn('Failed to load widget state:', e), {});
+      }
+    }
+    static saveMessages(e) {
+      try {
+        localStorage.setItem(c.MESSAGES, JSON.stringify(e));
+      } catch (a) {
+        console.warn('Failed to save messages:', a);
+      }
+    }
+    static loadMessages() {
+      try {
+        const e = localStorage.getItem(c.MESSAGES);
+        return e ? JSON.parse(e) : [];
+      } catch (e) {
+        return (console.warn('Failed to load messages:', e), []);
+      }
+    }
+    static saveConversationId(e) {
+      try {
+        localStorage.setItem(c.CONVERSATION_ID, e);
+      } catch (a) {
+        console.warn('Failed to save conversation ID:', a);
+      }
+    }
+    static loadConversationId() {
+      try {
+        return localStorage.getItem(c.CONVERSATION_ID);
+      } catch (e) {
+        return (console.warn('Failed to load conversation ID:', e), null);
+      }
+    }
+    static clearAll() {
+      try {
+        (localStorage.removeItem(c.STATE),
+          localStorage.removeItem(c.MESSAGES),
+          localStorage.removeItem(c.CONVERSATION_ID),
+          localStorage.removeItem(c.GREETING_DISMISSED));
+      } catch (e) {
+        console.warn('Failed to clear storage:', e);
+      }
+    }
+    static isGreetingDismissed() {
+      try {
+        return localStorage.getItem(c.GREETING_DISMISSED) === 'true';
+      } catch (e) {
+        return (console.warn('Failed to check greeting dismissed state:', e), !1);
+      }
+    }
+    static setGreetingDismissed() {
+      try {
+        localStorage.setItem(c.GREETING_DISMISSED, 'true');
+      } catch (e) {
+        console.warn('Failed to save greeting dismissed state:', e);
+      }
+    }
+    static loadSoundEnabled() {
+      try {
+        const e = localStorage.getItem(c.SOUND_ENABLED);
+        return e === null ? !1 : e === 'true';
+      } catch (e) {
+        return (console.warn('Failed to load sound enabled state:', e), !1);
+      }
+    }
+    static saveSoundEnabled(e) {
+      try {
+        localStorage.setItem(c.SOUND_ENABLED, String(e));
+      } catch (a) {
+        console.warn('Failed to save sound enabled state:', a);
+      }
+    }
+    static loadSoundVolume() {
+      try {
+        const e = localStorage.getItem(c.SOUND_VOLUME);
+        if (e === null) return 0.5;
+        const a = parseFloat(e);
+        return isNaN(a) ? 0.5 : Math.min(1, Math.max(0, a));
+      } catch (e) {
+        return (console.warn('Failed to load sound volume:', e), 0.5);
+      }
+    }
+    static saveSoundVolume(e) {
+      try {
+        localStorage.setItem(c.SOUND_VOLUME, String(e));
+      } catch (a) {
+        console.warn('Failed to save sound volume:', a);
+      }
+    }
+  }
+  function k() {
+    if (typeof window > 'u') return !1;
+    const r = window.location.hostname.toLowerCase();
+    return !['localhost', '127.0.0.1', '0.0.0.0'].includes(r) && !r.endsWith('.local');
+  }
+  function I(r, e = 0.75) {
+    return {
+      mode: r,
+      confidence: e,
+      uiActions: r === 'degraded' ? [{ type: 'show_degraded_mode_banner' }] : [],
+    };
+  }
+  class A {
+    constructor(e, a) {
+      ((this.demoState = {}),
+        (this.baseUrl = e || ''),
+        (this.authToken = a || ''),
+        (this.demoMode = !e),
+        this.demoMode &&
+          k() &&
+          console.warn(
+            '[JadeAssist] apiBaseUrl is not configured on a production-like host. The widget will show explicit degraded guidance rather than silent demo-mode intelligence.'
+          ));
+    }
+    async sendMessage(e, a) {
+      var n, u, p, m, f;
+      if (this.demoMode) return this.mockResponse(e);
+      const s = { 'Content-Type': 'application/json' };
+      this.authToken && (s.Authorization = `Bearer ${this.authToken}`);
+      const o = await fetch(`${this.baseUrl}/api/widget/chat`, {
+          method: 'POST',
+          headers: s,
+          body: JSON.stringify({ message: e, conversationId: a, userId: 'anonymous' }),
+        }),
+        t = await this.parseJsonResponse(o);
+      if (
+        o.status === 421 &&
+        ((n = t == null ? void 0 : t.error) == null ? void 0 : n.code) === 'WRONG_SERVICE'
+      )
+        throw new Error(
+          'The JadeAssist widget is pointed at the widget/static Railway service instead of the backend API service. Update apiBaseUrl to the backend service domain.'
+        );
+      if (o.status === 429)
+        throw new Error(
+          ((u = t == null ? void 0 : t.error) == null ? void 0 : u.message) ||
+            '429: Rate limit exceeded. Please wait and try again.'
+        );
+      if (o.status === 401 || o.status === 403)
+        throw new Error(
+          ((p = t == null ? void 0 : t.error) == null ? void 0 : p.message) ||
+            `${o.status}: Authentication failed.`
+        );
+      if (!o.ok)
+        throw new Error(
+          ((m = t == null ? void 0 : t.error) == null ? void 0 : m.message) ||
+            `API error: ${o.status}`
+        );
+      if (!(t != null && t.success) || !t.data)
+        throw new Error(
+          ((f = t == null ? void 0 : t.error) == null ? void 0 : f.message) || 'API request failed'
+        );
+      const i = t.data.assistantResponse
+        ? {
+            mode: t.data.assistantResponse.mode,
+            confidence: t.data.assistantResponse.confidence,
+            nextQuestion: t.data.assistantResponse.nextQuestion,
+            uiActions: t.data.assistantResponse.uiActions,
+            statePatch: t.data.assistantResponse.statePatch,
+          }
+        : void 0;
+      return {
+        conversationId: t.data.conversationId,
+        conversation: t.data.conversation,
+        searchResults: t.data.searchResults,
+        message: {
+          id: t.data.message.id,
+          role: 'assistant',
+          content: t.data.message.content,
+          timestamp: Date.now(),
+          quickReplies: t.data.suggestions,
+          assistantMeta: i,
+        },
+      };
+    }
+    async parseJsonResponse(e) {
+      if (!(e.headers.get('content-type') || '').includes('application/json')) return null;
+      try {
+        return await e.json();
+      } catch (s) {
+        return (console.warn('Failed to parse JadeAssist API response:', s), null);
+      }
+    }
+    async mockResponse(e) {
+      await new Promise(n => setTimeout(n, 700 + Math.random() * 400));
+      const a = 'demo-' + Date.now(),
+        s = e.toLowerCase();
+      this.updateDemoState(s);
+      const { content: o, quickReplies: t } = this.buildDemoResponse(s),
+        i = k() ? 'Jade is not connected to the live planning service on this page. ' : '';
+      return {
+        conversationId: a,
+        conversation: {
+          eventType: this.demoState.eventType,
+          guestCount: this.demoState.guestCount ? Number(this.demoState.guestCount) : void 0,
+          budget:
+            (this.demoState.budget && Number(this.demoState.budget.replace(/[^0-9]/g, ''))) ||
+            void 0,
+          location: this.demoState.location,
+          planningStage: this.demoState.eventType ? 'brief-building' : 'discovery',
+          contextCompleteness: Object.values(this.demoState).filter(Boolean).length * 20,
+        },
+        message: {
+          id: 'msg-' + Date.now(),
+          role: 'assistant',
+          content: `${i}${o}`,
+          timestamp: Date.now(),
+          quickReplies: t,
+          assistantMeta: I('degraded', 0.45),
+        },
+      };
+    }
+    updateDemoState(e) {
+      (e.includes('wedding') || e.includes('civil partnership')
+        ? (this.demoState.eventType = 'wedding')
+        : e.includes('birthday')
+          ? (this.demoState.eventType = 'birthday')
+          : e.includes('corporate') ||
+              e.includes('away day') ||
+              e.includes('away-day') ||
+              e.includes('work event')
+            ? (this.demoState.eventType = 'corporate')
+            : e.includes('conference') || e.includes('seminar')
+              ? (this.demoState.eventType = 'conference')
+              : e.includes('anniversary')
+                ? (this.demoState.eventType = 'anniversary')
+                : (e.includes('party') || e.includes('celebration')) &&
+                  (this.demoState.eventType = 'party'),
+        /under\s*[£$]?5k\b/i.test(e) || /under\s*£?5,000\b/.test(e)
+          ? (this.demoState.budget = 'under £5,000')
+          : /\b[£$]?50k\b|\b50,000\b/.test(e)
+            ? (this.demoState.budget = '£50,000+')
+            : /\b[£$]?20k\b|\b20,000\b/.test(e)
+              ? (this.demoState.budget = '£20,000–£50,000')
+              : /\b[£$]?10k\b|\b10,000\b/.test(e)
+                ? (this.demoState.budget = '£10,000–£20,000')
+                : /\b[£$]?5k\b|\b5,000\b/.test(e) && (this.demoState.budget = '£5,000–£10,000'));
+      const a = /\b(\d{1,3}(?:,\d{3})*|\d+)\s*(guests?|people|attendees?|pax)\b/.exec(e);
+      (a
+        ? (this.demoState.guestCount = a[1].replace(/,/g, ''))
+        : e.includes('under 30') || e.includes('intimate')
+          ? (this.demoState.guestCount = '20–30')
+          : (e.includes('150+') || e.includes('large')) && (this.demoState.guestCount = '150+'),
+        e.includes('london')
+          ? (this.demoState.location = 'London')
+          : e.includes('scotland') || e.includes('edinburgh') || e.includes('glasgow')
+            ? (this.demoState.location = 'Scotland')
+            : e.includes('south wales')
+              ? (this.demoState.location = 'South Wales')
+              : e.includes('north wales')
+                ? (this.demoState.location = 'North Wales')
+                : e.includes('wales') || e.includes('cardiff')
+                  ? (this.demoState.location = 'Wales')
+                  : e.includes('north west') || e.includes('manchester') || e.includes('liverpool')
+                    ? (this.demoState.location = 'North West')
+                    : e.includes('yorkshire') || e.includes('leeds') || e.includes('sheffield')
+                      ? (this.demoState.location = 'Yorkshire')
+                      : e.includes('south east') ||
+                          e.includes('surrey') ||
+                          e.includes('kent') ||
+                          e.includes('sussex')
+                        ? (this.demoState.location = 'South East')
+                        : e.includes('midlands') || e.includes('birmingham')
+                          ? (this.demoState.location = 'Midlands')
+                          : (e.includes('south west') ||
+                              e.includes('bristol') ||
+                              e.includes('cornwall') ||
+                              e.includes('devon')) &&
+                            (this.demoState.location = 'South West'),
+        e.includes('this year')
+          ? (this.demoState.eventDate = 'this year')
+          : e.includes('next year') && (this.demoState.eventDate = 'next year'));
+    }
+    buildDemoResponse(e) {
+      const a = this.demoState;
+      return ((e.includes('yes') && e.includes('please')) ||
+        e === 'help' ||
+        e === 'start' ||
+        e === 'hi' ||
+        e === 'hello' ||
+        e === 'hey') &&
+        !a.eventType
+        ? {
+            content:
+              "I'm in degraded demo mode, but I can still help you capture the brief manually. What type of event are you organising? 🎉",
+            quickReplies: ['Wedding', 'Birthday Party', 'Corporate Event', 'Anniversary', 'Other'],
+          }
+        : e.includes('no') && e.includes('thanks')
+          ? {
+              content:
+                "No problem — I'm here whenever you're ready. Feel free to come back any time! 😊",
+            }
+          : this.buildDetailedDemoResponse(e, a);
+    }
+    buildDetailedDemoResponse(e, a) {
+      const s = a.eventType || 'event',
+        o = a.location || 'your area';
+      return e.includes('venue') ||
+        e.includes('supplier') ||
+        e.includes('search') ||
+        e.includes('recommend')
+        ? {
+            content: `I'm in degraded demo mode. In live mode I can search EventFlow suppliers and website sections. For now, here is the supplier approach I would use for a ${s} in ${o}:
 
 - Shortlist 3 options so you can compare like-for-like.
 - Ask for full written quotes, not headline prices.
 - Check insurance, cancellation terms, setup times and what is included.
 - For venues, confirm capacity, access, curfew and wet-weather options.
 
-In live mode, I would return actual supplier or website results from EventFlow where available.`,quickReplies:["Budget breakdown","Venue checklist","Planning timeline","Supplier questions"]}:e.includes("budget")||e.includes("cost")||e.includes("price")?{content:`I'm in degraded demo mode. For a ${s} in ${o}, start with this practical budget split:
+In live mode, I would return actual supplier or website results from EventFlow where available.`,
+            quickReplies: [
+              'Budget breakdown',
+              'Venue checklist',
+              'Planning timeline',
+              'Supplier questions',
+            ],
+          }
+        : e.includes('budget') || e.includes('cost') || e.includes('price')
+          ? {
+              content: `I'm in degraded demo mode. For a ${s} in ${o}, start with this practical budget split:
 
 - Venue: 25–35%
 - Food and drink: 30–40%
@@ -129,13 +638,38 @@ In live mode, I would return actual supplier or website results from EventFlow w
 - Styling, stationery and extras: 10–15%
 - Contingency: keep 10% back
 
-If you give me your guest count and rough budget, I can make the numbers more specific.`,quickReplies:["Venue checklist","Planning timeline","Supplier questions"]}:e.includes("timeline")||e.includes("schedule")||e.includes("when")||e.includes("plan")?{content:`I'm in degraded demo mode. A sensible ${s} planning order is:
+If you give me your guest count and rough budget, I can make the numbers more specific.`,
+              quickReplies: ['Venue checklist', 'Planning timeline', 'Supplier questions'],
+            }
+          : e.includes('timeline') ||
+              e.includes('schedule') ||
+              e.includes('when') ||
+              e.includes('plan')
+            ? {
+                content: `I'm in degraded demo mode. A sensible ${s} planning order is:
 
 - Confirm budget, guest count and location.
 - Shortlist and secure the venue/date.
 - Book key suppliers that affect availability.
 - Confirm guest communication, timings and layout.
-- In the final month, lock final numbers, balances and the day schedule.`,quickReplies:["Find suppliers","Budget breakdown","Venue checklist"]}:{content:"I'm in degraded demo mode. To give you useful advice, what type of event are you planning?",quickReplies:["Wedding","Birthday Party","Corporate Event","Anniversary","Other"]}}}function D(r,e,a,s,o,t,i,n,u,p){return`
+- In the final month, lock final numbers, balances and the day schedule.`,
+                quickReplies: ['Find suppliers', 'Budget breakdown', 'Venue checklist'],
+              }
+            : {
+                content:
+                  "I'm in degraded demo mode. To give you useful advice, what type of event are you planning?",
+                quickReplies: [
+                  'Wedding',
+                  'Birthday Party',
+                  'Corporate Event',
+                  'Anniversary',
+                  'Other',
+                ],
+              };
+    }
+  }
+  function D(r, e, a, s, o, t, i, n, u, p) {
+    return `
     * {
       box-sizing: border-box;
       margin: 0;
@@ -164,11 +698,11 @@ If you give me your guest count and rough budget, I can make the numbers more sp
     .jade-widget-container {
       position: fixed;
       bottom: var(--jade-offset-bottom, ${s});
-      ${t?`left: var(--jade-offset-left, ${t});`:`right: var(--jade-offset-right, ${o});`}
-      ${t?"right: auto;":""}
+      ${t ? `left: var(--jade-offset-left, ${t});` : `right: var(--jade-offset-right, ${o});`}
+      ${t ? 'right: auto;' : ''}
       z-index: 999999;
       transform: scale(var(--jade-scale, ${p}));
-      transform-origin: ${t?"left":"right"} bottom;
+      transform-origin: ${t ? 'left' : 'right'} bottom;
     }
 
     /* Avatar Button */
@@ -269,7 +803,7 @@ If you give me your guest count and rough budget, I can make the numbers more sp
     .jade-greeting-tooltip {
       position: absolute;
       bottom: 84px;
-      ${t?"left: 0;":"right: 0;"}
+      ${t ? 'left: 0;' : 'right: 0;'}
       background: white;
       padding: 18px 42px 18px 22px;
       border-radius: 16px;
@@ -299,7 +833,7 @@ If you give me your guest count and rough budget, I can make the numbers more sp
       content: '';
       position: absolute;
       bottom: -8px;
-      ${t?"left: 24px;":"right: 24px;"}
+      ${t ? 'left: 24px;' : 'right: 24px;'}
       width: 16px;
       height: 16px;
       background: white;
@@ -349,7 +883,7 @@ If you give me your guest count and rough budget, I can make the numbers more sp
     .jade-chat-popup {
       position: absolute;
       bottom: 84px;
-      ${t?"left: 0;":"right: 0;"}
+      ${t ? 'left: 0;' : 'right: 0;'}
       width: 400px;
       height: 600px;
       border-radius: 22px;
@@ -1176,15 +1710,15 @@ If you give me your guest count and rough budget, I can make the numbers more sp
     @media (max-width: 480px) {
       :host {
         /* Mobile-specific CSS custom properties */
-        --jade-offset-bottom: ${i||s};
-        --jade-offset-right: ${n||(o==="24px"?"16px":o)};
-        --jade-offset-left: ${u||(t&&t==="24px"?"16px":t)};
+        --jade-offset-bottom: ${i || s};
+        --jade-offset-right: ${n || (o === '24px' ? '16px' : o)};
+        --jade-offset-left: ${u || (t && t === '24px' ? '16px' : t)};
       }
       
       .jade-widget-container {
         bottom: var(--jade-offset-bottom);
-        ${t?"left: var(--jade-offset-left);":"right: var(--jade-offset-right);"}
-        ${t?"right: auto;":""}
+        ${t ? 'left: var(--jade-offset-left);' : 'right: var(--jade-offset-right);'}
+        ${t ? 'right: auto;' : ''}
       }
 
       .jade-chat-popup {
@@ -1210,40 +1744,133 @@ If you give me your guest count and rough budget, I can make the numbers more sp
     .jade-hidden {
       display: none !important;
     }
-  `}const O='<svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><line x1="1" y1="1" x2="9" y2="9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="9" y1="1" x2="1" y2="9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';class R{constructor(e={}){this.isMenuOpen=!1,this.showClearConfirm=!1,this.showExportToast=!1,this.config={...j,...e},this.apiClient=new A(this.config.apiBaseUrl,this.config.authToken),this.config.debug&&(console.log("[JadeWidget] Initializing with config:",this.config),console.log("[JadeWidget] Avatar URL:",this.config.avatarUrl));try{localStorage.setItem("__jade_test__","1"),localStorage.removeItem("__jade_test__")}catch{console.warn("[JadeWidget] localStorage is unavailable – chat history, sound settings and session state will not be persisted across page loads.")}this.escapeKeyHandler=t=>{t.key==="Escape"&&(this.showClearConfirm?(this.showClearConfirm=!1,this.render()):this.isMenuOpen?(this.isMenuOpen=!1,this.render()):this.state.isOpen&&this.closeChat())},this.soundEnabled=l.loadSoundEnabled(),this.soundVolume=l.loadSoundVolume();const a=l.loadState(),s=l.loadMessages(),o=l.loadConversationId();this.state={isOpen:a.isOpen||!1,isMinimized:a.isMinimized||!1,showGreeting:!1,conversationId:o||void 0,messages:s.length>0?s:this.getInitialMessages()},this.container=document.createElement("div"),this.container.className="jade-widget-root",this.shadowRoot=this.container.attachShadow({mode:"open"}),this.render(),this.attachEventListeners()}getInitialMessages(){return[{id:"initial",role:"assistant",content:this.config.greetingText,timestamp:Date.now(),quickReplies:["Yes, please","No, thanks"]}]}render(){const e=D(this.config.primaryColor,this.config.accentColor,this.config.fontFamily,this.config.offsetBottom,this.config.offsetRight,this.config.offsetLeft,this.config.offsetBottomMobile,this.config.offsetRightMobile,this.config.offsetLeftMobile,this.config.scale);this.shadowRoot.innerHTML=`
+  `;
+  }
+  const O =
+    '<svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><line x1="1" y1="1" x2="9" y2="9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="9" y1="1" x2="1" y2="9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
+  class R {
+    constructor(e = {}) {
+      ((this.isMenuOpen = !1),
+        (this.showClearConfirm = !1),
+        (this.showExportToast = !1),
+        (this.config = { ...j, ...e }),
+        (this.apiClient = new A(this.config.apiBaseUrl, this.config.authToken)),
+        this.config.debug &&
+          (console.log('[JadeWidget] Initializing with config:', this.config),
+          console.log('[JadeWidget] Avatar URL:', this.config.avatarUrl)));
+      try {
+        (localStorage.setItem('__jade_test__', '1'), localStorage.removeItem('__jade_test__'));
+      } catch {
+        console.warn(
+          '[JadeWidget] localStorage is unavailable – chat history, sound settings and session state will not be persisted across page loads.'
+        );
+      }
+      ((this.escapeKeyHandler = t => {
+        t.key === 'Escape' &&
+          (this.showClearConfirm
+            ? ((this.showClearConfirm = !1), this.render())
+            : this.isMenuOpen
+              ? ((this.isMenuOpen = !1), this.render())
+              : this.state.isOpen && this.closeChat());
+      }),
+        (this.soundEnabled = l.loadSoundEnabled()),
+        (this.soundVolume = l.loadSoundVolume()));
+      const a = l.loadState(),
+        s = l.loadMessages(),
+        o = l.loadConversationId();
+      ((this.state = {
+        isOpen: a.isOpen || !1,
+        isMinimized: a.isMinimized || !1,
+        showGreeting: !1,
+        conversationId: o || void 0,
+        messages: s.length > 0 ? s : this.getInitialMessages(),
+      }),
+        (this.container = document.createElement('div')),
+        (this.container.className = 'jade-widget-root'),
+        (this.shadowRoot = this.container.attachShadow({ mode: 'open' })),
+        this.render(),
+        this.attachEventListeners());
+    }
+    getInitialMessages() {
+      return [
+        {
+          id: 'initial',
+          role: 'assistant',
+          content: this.config.greetingText,
+          timestamp: Date.now(),
+          quickReplies: ['Yes, please', 'No, thanks'],
+        },
+      ];
+    }
+    render() {
+      const e = D(
+        this.config.primaryColor,
+        this.config.accentColor,
+        this.config.fontFamily,
+        this.config.offsetBottom,
+        this.config.offsetRight,
+        this.config.offsetLeft,
+        this.config.offsetBottomMobile,
+        this.config.offsetRightMobile,
+        this.config.offsetLeftMobile,
+        this.config.scale
+      );
+      this.shadowRoot.innerHTML = `
       <style>${e}</style>
       <div class="jade-widget-container">
         ${this.renderAvatar()}
-        ${this.state.showGreeting&&!this.state.isOpen?this.renderGreeting():""}
-        ${this.state.isOpen?this.renderChatPopup():""}
+        ${this.state.showGreeting && !this.state.isOpen ? this.renderGreeting() : ''}
+        ${this.state.isOpen ? this.renderChatPopup() : ''}
       </div>
-    `}renderAvatar(){const e=this.config.avatarUrl?`<img src="${this.escapeHtml(this.config.avatarUrl)}" alt="Chat Assistant" class="jade-avatar-icon jade-avatar-img" />
-         <span class="jade-avatar-icon jade-avatar-fallback" style="display:none;">💬</span>`:'<span class="jade-avatar-icon">💬</span>',a=this.state.showGreeting&&!this.state.isOpen?'<span class="jade-avatar-badge" aria-label="1 new notification">1</span>':"";return`
+    `;
+    }
+    renderAvatar() {
+      const e = this.config.avatarUrl
+          ? `<img src="${this.escapeHtml(this.config.avatarUrl)}" alt="Chat Assistant" class="jade-avatar-icon jade-avatar-img" />
+         <span class="jade-avatar-icon jade-avatar-fallback" style="display:none;">💬</span>`
+          : '<span class="jade-avatar-icon">💬</span>',
+        a =
+          this.state.showGreeting && !this.state.isOpen
+            ? '<span class="jade-avatar-badge" aria-label="1 new notification">1</span>'
+            : '';
+      return `
       <button class="jade-avatar-button" aria-label="Toggle chat" data-action="toggle-chat">
         ${e}
         ${a}
       </button>
-    `}renderGreeting(){return this.config.greetingTooltipText?`
+    `;
+    }
+    renderGreeting() {
+      return this.config.greetingTooltipText
+        ? `
       <div class="jade-greeting-tooltip" data-action="open-chat" role="tooltip" aria-live="polite">
         <button class="jade-greeting-close" aria-label="Dismiss greeting" data-action="close-greeting">${O}</button>
         <div class="jade-greeting-text">${this.escapeHtml(this.config.greetingTooltipText)}</div>
       </div>
-    `:""}renderChatPopup(){return`
+    `
+        : '';
+    }
+    renderChatPopup() {
+      return `
       <div class="jade-chat-popup" role="dialog" aria-label="Chat">
         <div class="jade-chat-content">
           ${this.renderHeader()}
           ${this.renderMessages()}
           ${this.renderInputArea()}
-          ${this.showClearConfirm?this.renderClearConfirmModal():""}
-          ${this.showExportToast?this.renderExportToast():""}
+          ${this.showClearConfirm ? this.renderClearConfirmModal() : ''}
+          ${this.showExportToast ? this.renderExportToast() : ''}
         </div>
-        ${this.isMenuOpen?this.renderMenu():""}
+        ${this.isMenuOpen ? this.renderMenu() : ''}
       </div>
-    `}renderHeader(){const e=`jade-menu-btn${this.isMenuOpen?" jade-menu-btn--open":""}`;return`
+    `;
+    }
+    renderHeader() {
+      const e = `jade-menu-btn${this.isMenuOpen ? ' jade-menu-btn--open' : ''}`;
+      return `
       <div class="jade-chat-header">
         <div class="jade-chat-header-left">
           <div class="jade-chat-avatar">
-            ${this.config.avatarUrl?`<img src="${this.escapeHtml(this.config.avatarUrl)}" alt="${this.escapeHtml(this.config.assistantName)}" class="jade-header-avatar-img" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" />`:"💬"}
+            ${this.config.avatarUrl ? `<img src="${this.escapeHtml(this.config.avatarUrl)}" alt="${this.escapeHtml(this.config.assistantName)}" class="jade-header-avatar-img" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" />` : '💬'}
           </div>
           <div>
             <div class="jade-chat-title">${this.escapeHtml(this.config.assistantName)}</div>
@@ -1251,7 +1878,7 @@ If you give me your guest count and rough budget, I can make the numbers more sp
           </div>
         </div>
         <div class="jade-chat-controls">
-          <button class="${e}" aria-label="${this.isMenuOpen?"Close menu":"Open menu"}" aria-haspopup="true" aria-expanded="${this.isMenuOpen}" data-action="toggle-menu" title="Menu">
+          <button class="${e}" aria-label="${this.isMenuOpen ? 'Close menu' : 'Open menu'}" aria-haspopup="true" aria-expanded="${this.isMenuOpen}" data-action="toggle-menu" title="Menu">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
               <circle cx="8" cy="3" r="1.5" fill="currentColor"/>
               <circle cx="8" cy="8" r="1.5" fill="currentColor"/>
@@ -1262,7 +1889,11 @@ If you give me your guest count and rough budget, I can make the numbers more sp
           <button class="jade-chat-close" aria-label="Close chat" data-action="close-chat" title="Close">×</button>
         </div>
       </div>
-    `}renderMenu(){const e=Math.round(this.soundVolume*100);return`
+    `;
+    }
+    renderMenu() {
+      const e = Math.round(this.soundVolume * 100);
+      return `
       <div class="jade-menu-panel" role="menu" aria-label="Chat options">
         <button class="jade-menu-item" data-action="export-chat" role="menuitem">
           <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -1280,16 +1911,16 @@ If you give me your guest count and rough budget, I can make the numbers more sp
             Sounds
           </span>
           <button
-            class="jade-sound-toggle ${this.soundEnabled?"jade-sound-toggle--on":""}"
+            class="jade-sound-toggle ${this.soundEnabled ? 'jade-sound-toggle--on' : ''}"
             data-action="toggle-sound"
-            aria-label="${this.soundEnabled?"Disable sounds":"Enable sounds"}"
+            aria-label="${this.soundEnabled ? 'Disable sounds' : 'Enable sounds'}"
             aria-pressed="${this.soundEnabled}"
-            title="${this.soundEnabled?"Sounds on":"Sounds off"}"
+            title="${this.soundEnabled ? 'Sounds on' : 'Sounds off'}"
           >
             <span class="jade-sound-toggle-knob"></span>
           </button>
         </div>
-        <div class="jade-menu-item jade-menu-volume-row ${this.soundEnabled?"":"jade-menu-item--disabled"}">
+        <div class="jade-menu-item jade-menu-volume-row ${this.soundEnabled ? '' : 'jade-menu-item--disabled'}">
           <label class="jade-volume-label" for="jade-volume-slider">Volume</label>
           <input
             type="range"
@@ -1300,7 +1931,7 @@ If you give me your guest count and rough budget, I can make the numbers more sp
             value="${e}"
             aria-label="Notification volume"
             data-action="volume-change"
-            ${this.soundEnabled?"":"disabled"}
+            ${this.soundEnabled ? '' : 'disabled'}
           />
           <span class="jade-volume-value">${e}%</span>
         </div>
@@ -1312,7 +1943,10 @@ If you give me your guest count and rough budget, I can make the numbers more sp
           Clear chat
         </button>
       </div>
-    `}renderClearConfirmModal(){return`
+    `;
+    }
+    renderClearConfirmModal() {
+      return `
       <div class="jade-modal-overlay" data-action="cancel-clear-chat" role="presentation">
         <div class="jade-modal" data-action="modal-stop" role="alertdialog" aria-modal="true" aria-labelledby="jade-modal-title" aria-describedby="jade-modal-desc">
           <p class="jade-modal-title" id="jade-modal-title">Clear conversation?</p>
@@ -1323,22 +1957,47 @@ If you give me your guest count and rough budget, I can make the numbers more sp
           </div>
         </div>
       </div>
-    `}renderExportToast(){return`
+    `;
+    }
+    renderExportToast() {
+      return `
       <div class="jade-toast" role="status" aria-live="polite">
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
           <path d="M2 7.5l3 3 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
         Chat exported successfully
       </div>
-    `}renderMessages(){return`
+    `;
+    }
+    renderMessages() {
+      return `
       <div class="jade-chat-messages" data-messages-container>
-        ${this.state.messages.map(a=>this.renderMessage(a)).join("")}
+        ${this.state.messages.map(a => this.renderMessage(a)).join('')}
       </div>
-    `}renderMessage(e){const a=e.role==="user",s=new Date(e.timestamp).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}),o=!a&&e.quickReplies?`
+    `;
+    }
+    renderMessage(e) {
+      const a = e.role === 'user',
+        s = new Date(e.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        o =
+          !a && e.quickReplies
+            ? `
       <div class="jade-quick-replies">
-        ${e.quickReplies.map(u=>`<button class="jade-quick-reply-btn" data-action="quick-reply" data-reply="${this.escapeHtml(u)}">${this.escapeHtml(u)}</button>`).join("")}
+        ${e.quickReplies.map(u => `<button class="jade-quick-reply-btn" data-action="quick-reply" data-reply="${this.escapeHtml(u)}">${this.escapeHtml(u)}</button>`).join('')}
       </div>
-    `:"",t=!a&&e.searchResults&&e.searchResults.length>0?this.renderSearchResultCards(e.searchResults):"",i=a?this.escapeHtml(e.content):this.renderMarkdown(e.content),n=a?"👤":this.config.avatarUrl?`<img src="${this.escapeHtml(this.config.avatarUrl)}" alt="${this.escapeHtml(this.config.assistantName)}" class="jade-msg-avatar-img" />`:"💬";return`
+    `
+            : '',
+        t =
+          !a && e.searchResults && e.searchResults.length > 0
+            ? this.renderSearchResultCards(e.searchResults)
+            : '',
+        i = a ? this.escapeHtml(e.content) : this.renderMarkdown(e.content),
+        n = a
+          ? '👤'
+          : this.config.avatarUrl
+            ? `<img src="${this.escapeHtml(this.config.avatarUrl)}" alt="${this.escapeHtml(this.config.assistantName)}" class="jade-msg-avatar-img" />`
+            : '💬';
+      return `
       <div class="jade-message jade-message-${e.role}" data-message-id="${e.id}">
         <div class="jade-message-avatar ${e.role}">
           ${n}
@@ -1350,16 +2009,83 @@ If you give me your guest count and rough budget, I can make the numbers more sp
           ${o}
         </div>
       </div>
-    `}renderSearchResultCards(e){const a=e.filter(s=>s.url).slice(0,4).map(s=>{const o=this.searchSourceLabel(s.source),t=[s.location,s.category,o].filter(Boolean).join(" • ");return`
-          <a class="jade-search-card" href="${this.escapeHtml(s.url??"#")}" target="_blank" rel="noopener noreferrer">
+    `;
+    }
+    renderSearchResultCards(e) {
+      const a = e
+        .filter(s => s.url)
+        .slice(0, 4)
+        .map(s => {
+          const o = this.searchSourceLabel(s.source),
+            t = [s.location, s.category, o].filter(Boolean).join(' • ');
+          return `
+          <a class="jade-search-card" href="${this.escapeHtml(s.url ?? '#')}" target="_blank" rel="noopener noreferrer">
             <span class="jade-search-card-title">${this.escapeHtml(s.title)}</span>
-            ${t?`<span class="jade-search-card-meta">${this.escapeHtml(t)}</span>`:""}
+            ${t ? `<span class="jade-search-card-meta">${this.escapeHtml(t)}</span>` : ''}
             <span class="jade-search-card-description">${this.escapeHtml(s.description)}</span>
-            <span class="jade-search-card-cta">${["online-search","google-places","serpapi-maps","brave-search"].includes(s.source)?"Open result":"View profile"}</span>
+            <span class="jade-search-card-cta">${['online-search', 'google-places', 'serpapi-maps', 'brave-search'].includes(s.source) ? 'Open result' : 'View profile'}</span>
           </a>
-        `}).join("");return a?`<div class="jade-search-cards">${a}</div>`:""}searchSourceLabel(e){switch(e){case"local-db":return"EventFlow profile";case"eventflow-catalog":return"EventFlow catalog";case"google-places":return"Google Places";case"serpapi-maps":return"Google Maps";case"brave-search":return"Web search";case"online-search":return"Online fallback";default:return"EventFlow"}}renderMarkdown(e){const o=this.escapeHtml(e).replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>").replace(/\*([^*\n]+?)\*/g,(u,p)=>`<em>${p}</em>`).replace(/`([^`\n]+?)`/g,'<code class="jade-inline-code">$1</code>').split(`
-`),t=[];let i=!1,n=null;for(let u=0;u<o.length;u++){const p=o[u],m=/^[-*•]\s+(.*)/.exec(p),f=/^\d+\.\s+(.*)/.exec(p);m?((!i||n!=="ul")&&(i&&t.push(n==="ol"?"</ol>":"</ul>"),t.push('<ul class="jade-md-list">'),i=!0,n="ul"),t.push(`<li>${m[1]}</li>`)):f?((!i||n!=="ol")&&(i&&t.push(n==="ul"?"</ul>":"</ol>"),t.push('<ol class="jade-md-list">'),i=!0,n="ol"),t.push(`<li>${f[1]}</li>`)):(i&&(t.push(n==="ol"?"</ol>":"</ul>"),i=!1,n=null),p.trim()===""?t.push("<br>"):t.push(p))}return i&&t.push(n==="ol"?"</ol>":"</ul>"),t.join(`
-`)}renderInputArea(){return`
+        `;
+        })
+        .join('');
+      return a ? `<div class="jade-search-cards">${a}</div>` : '';
+    }
+    searchSourceLabel(e) {
+      switch (e) {
+        case 'local-db':
+          return 'EventFlow profile';
+        case 'eventflow-catalog':
+          return 'EventFlow catalog';
+        case 'google-places':
+          return 'Google Places';
+        case 'serpapi-maps':
+          return 'Google Maps';
+        case 'brave-search':
+          return 'Web search';
+        case 'online-search':
+          return 'Online fallback';
+        default:
+          return 'EventFlow';
+      }
+    }
+    renderMarkdown(e) {
+      const o = this.escapeHtml(e)
+          .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+          .replace(/\*([^*\n]+?)\*/g, (u, p) => `<em>${p}</em>`)
+          .replace(/`([^`\n]+?)`/g, '<code class="jade-inline-code">$1</code>').split(`
+`),
+        t = [];
+      let i = !1,
+        n = null;
+      for (let u = 0; u < o.length; u++) {
+        const p = o[u],
+          m = /^[-*•]\s+(.*)/.exec(p),
+          f = /^\d+\.\s+(.*)/.exec(p);
+        m
+          ? ((!i || n !== 'ul') &&
+              (i && t.push(n === 'ol' ? '</ol>' : '</ul>'),
+              t.push('<ul class="jade-md-list">'),
+              (i = !0),
+              (n = 'ul')),
+            t.push(`<li>${m[1]}</li>`))
+          : f
+            ? ((!i || n !== 'ol') &&
+                (i && t.push(n === 'ul' ? '</ul>' : '</ol>'),
+                t.push('<ol class="jade-md-list">'),
+                (i = !0),
+                (n = 'ol')),
+              t.push(`<li>${f[1]}</li>`))
+            : (i && (t.push(n === 'ol' ? '</ol>' : '</ul>'), (i = !1), (n = null)),
+              p.trim() === '' ? t.push('<br>') : t.push(p));
+      }
+      return (
+        i && t.push(n === 'ol' ? '</ol>' : '</ul>'),
+        t.join(`
+`)
+      );
+    }
+    renderInputArea() {
+      return `
       <div class="jade-chat-input-area">
         <div class="jade-chat-input-wrapper">
           <textarea 
@@ -1378,7 +2104,223 @@ If you give me your guest count and rough budget, I can make the numbers more sp
         </div>
         <div class="jade-char-count" aria-live="polite" aria-atomic="true"></div>
       </div>
-    `}attachEventListeners(){this.shadowRoot.addEventListener("click",s=>{const t=s.target.closest("[data-action]"),i=t==null?void 0:t.getAttribute("data-action");if(this.config.debug&&i&&console.log("[JadeWidget] Menu action dispatched:",i),i==="toggle-chat")this.toggleChat();else if(i==="open-chat")this.openChat();else if(i==="close-chat")this.closeChat();else if(i==="minimize-chat")this.minimizeChat();else if(i==="close-greeting")s.stopPropagation(),this.closeGreeting();else if(i==="send")this.handleSend();else if(i==="quick-reply"){const n=t==null?void 0:t.getAttribute("data-reply");n&&this.handleQuickReply(n)}else if(i==="toggle-menu")s.stopPropagation(),this.isMenuOpen=!this.isMenuOpen,this.render(),this.isMenuOpen&&setTimeout(()=>{const n=this.shadowRoot.querySelector('.jade-menu-panel [role="menuitem"]');n==null||n.focus()},50);else if(i==="export-chat")this.isMenuOpen=!1,this.render(),this.exportChat();else if(i==="toggle-sound")s.stopPropagation(),this.soundEnabled=!this.soundEnabled,l.saveSoundEnabled(this.soundEnabled),this.soundEnabled&&this.unlockAudioContext(),this.render();else if(i==="show-clear-confirm")this.isMenuOpen=!1,this.showClearConfirm=!0,this.render(),setTimeout(()=>{const n=this.shadowRoot.querySelector(".jade-modal-btn--cancel");n==null||n.focus()},50);else if(i==="cancel-clear-chat")this.showClearConfirm=!1,this.render();else if(i==="confirm-clear-chat")this.showClearConfirm=!1,this.performClearChat();else if(i==="modal-stop"){s.stopPropagation();return}this.isMenuOpen&&i!=="toggle-menu"&&!(t!=null&&t.closest(".jade-menu-panel"))&&(this.isMenuOpen=!1,this.render())}),this.shadowRoot.addEventListener("keydown",s=>{const o=s,t=s.target;t.hasAttribute("data-input")&&o.key==="Enter"&&!o.shiftKey&&(s.preventDefault(),this.handleSend()),t.classList.contains("jade-menu-btn")&&(o.key==="Enter"||o.key===" ")&&(s.preventDefault(),this.isMenuOpen=!this.isMenuOpen,this.render(),this.isMenuOpen&&setTimeout(()=>{const i=this.shadowRoot.querySelector('.jade-menu-panel [role="menuitem"]');i==null||i.focus()},50))}),this.shadowRoot.addEventListener("input",s=>{const o=s.target;if(o.hasAttribute("data-input")){const t=o;t.style.height="auto",t.style.height=Math.min(t.scrollHeight,100)+"px";const i=this.shadowRoot.querySelector(".jade-char-count");if(i){const n=t.value.length;n>b*.8?(i.textContent=`${n}/${b}`,i.classList.add("jade-char-count-visible")):(i.textContent="",i.classList.remove("jade-char-count-visible"))}}else if(o.getAttribute("data-action")==="volume-change"){const i=parseInt(o.value,10)/100;this.soundVolume=i,l.saveSoundVolume(i);const n=this.shadowRoot.querySelector(".jade-volume-value");n&&(n.textContent=`${Math.round(i*100)}%`)}}),document.addEventListener("keydown",this.escapeKeyHandler);const e=this.shadowRoot.querySelector(".jade-avatar-img");e&&(e.addEventListener("error",()=>{this.config.debug&&console.error("[JadeWidget] Failed to load avatar image:",this.config.avatarUrl),e.setAttribute("style","display:none;");const s=this.shadowRoot.querySelector(".jade-avatar-fallback");s&&s.setAttribute("style","display:flex;")}),e.addEventListener("load",()=>{this.config.debug&&console.log("[JadeWidget] Avatar image loaded successfully:",this.config.avatarUrl)}));const a=this.shadowRoot.querySelector(".jade-header-avatar-img");a&&(a.addEventListener("error",()=>{this.config.debug&&console.error("[JadeWidget] Failed to load header avatar image:",this.config.avatarUrl);const s=a.parentElement;s&&(s.innerHTML="💬")}),a.addEventListener("load",()=>{this.config.debug&&console.log("[JadeWidget] Header avatar image loaded successfully:",this.config.avatarUrl)}))}toggleChat(){this.state.isOpen?this.closeChat():this.openChat()}openChat(){this.state.isOpen=!0,this.state.showGreeting=!1,this.greetingTimeout&&clearTimeout(this.greetingTimeout),l.setGreetingDismissed(),l.saveState({isOpen:!0,showGreeting:!1}),this.render(),this.scrollToBottom(),this.focusInput()}closeChat(){this.state.isOpen=!1,this.isMenuOpen=!1,this.showClearConfirm=!1,l.saveState({isOpen:!1}),this.render()}minimizeChat(){this.state.isMinimized=!0,this.state.isOpen=!1,this.isMenuOpen=!1,this.showClearConfirm=!1,l.saveState({isOpen:!1,isMinimized:!0}),this.render()}closeGreeting(){this.state.showGreeting=!1,l.setGreetingDismissed(),this.render()}async handleSend(){const e=this.shadowRoot.querySelector("[data-input]");if(!e)return;const a=e.value.trim();if(!a)return;const s={id:"user-"+Date.now(),role:"user",content:a,timestamp:Date.now()};this.state.messages.push(s),l.saveMessages(this.state.messages),e.value="",e.style.height="auto",this.render(),this.scrollToBottom(),this.soundEnabled&&this.unlockAudioContext(),this.showTypingIndicator();try{const o=await this.apiClient.sendMessage(a,this.state.conversationId);this.state.conversationId||(this.state.conversationId=o.conversationId,l.saveConversationId(o.conversationId)),this.state.messages.push({...o.message,searchResults:o.searchResults}),l.saveMessages(this.state.messages),this.playNotificationSound(),this.removeTypingIndicator(),this.render(),this.scrollToBottom(),this.focusInput()}catch(o){console.error("Failed to send message:",o),this.removeTypingIndicator();const t=o instanceof Error?o.message:"";let i;t.includes("429")||t.toLowerCase().includes("rate limit")?i="I'm getting a lot of requests right now — please wait a moment and try again. ⏳":t.includes("401")||t.includes("403")?i="I couldn't authenticate your request. Please refresh the page and try again.":t.includes("503")||t.includes("Failed to fetch")?i="I'm having trouble connecting right now. Please check your connection and try again.":i="I'm sorry, something went wrong. Please try again.";const n={id:"error-"+Date.now(),role:"assistant",content:i,timestamp:Date.now()};this.state.messages.push(n),l.saveMessages(this.state.messages),this.render(),this.scrollToBottom()}}handleQuickReply(e){const a=this.shadowRoot.querySelector("[data-input]");a&&(a.value=e,this.handleSend())}showTypingIndicator(){this.removeTypingIndicator();const e=this.shadowRoot.querySelector("[data-messages-container]");if(e){const a=document.createElement("div");a.className="jade-message jade-message-assistant",a.setAttribute("data-typing-indicator",""),a.innerHTML=`
+    `;
+    }
+    attachEventListeners() {
+      (this.shadowRoot.addEventListener('click', s => {
+        const t = s.target.closest('[data-action]'),
+          i = t == null ? void 0 : t.getAttribute('data-action');
+        if (
+          (this.config.debug && i && console.log('[JadeWidget] Menu action dispatched:', i),
+          i === 'toggle-chat')
+        )
+          this.toggleChat();
+        else if (i === 'open-chat') this.openChat();
+        else if (i === 'close-chat') this.closeChat();
+        else if (i === 'minimize-chat') this.minimizeChat();
+        else if (i === 'close-greeting') (s.stopPropagation(), this.closeGreeting());
+        else if (i === 'send') this.handleSend();
+        else if (i === 'quick-reply') {
+          const n = t == null ? void 0 : t.getAttribute('data-reply');
+          n && this.handleQuickReply(n);
+        } else if (i === 'toggle-menu')
+          (s.stopPropagation(),
+            (this.isMenuOpen = !this.isMenuOpen),
+            this.render(),
+            this.isMenuOpen &&
+              setTimeout(() => {
+                const n = this.shadowRoot.querySelector('.jade-menu-panel [role="menuitem"]');
+                n == null || n.focus();
+              }, 50));
+        else if (i === 'export-chat') ((this.isMenuOpen = !1), this.render(), this.exportChat());
+        else if (i === 'toggle-sound')
+          (s.stopPropagation(),
+            (this.soundEnabled = !this.soundEnabled),
+            l.saveSoundEnabled(this.soundEnabled),
+            this.soundEnabled && this.unlockAudioContext(),
+            this.render());
+        else if (i === 'show-clear-confirm')
+          ((this.isMenuOpen = !1),
+            (this.showClearConfirm = !0),
+            this.render(),
+            setTimeout(() => {
+              const n = this.shadowRoot.querySelector('.jade-modal-btn--cancel');
+              n == null || n.focus();
+            }, 50));
+        else if (i === 'cancel-clear-chat') ((this.showClearConfirm = !1), this.render());
+        else if (i === 'confirm-clear-chat')
+          ((this.showClearConfirm = !1), this.performClearChat());
+        else if (i === 'modal-stop') {
+          s.stopPropagation();
+          return;
+        }
+        this.isMenuOpen &&
+          i !== 'toggle-menu' &&
+          !(t != null && t.closest('.jade-menu-panel')) &&
+          ((this.isMenuOpen = !1), this.render());
+      }),
+        this.shadowRoot.addEventListener('keydown', s => {
+          const o = s,
+            t = s.target;
+          (t.hasAttribute('data-input') &&
+            o.key === 'Enter' &&
+            !o.shiftKey &&
+            (s.preventDefault(), this.handleSend()),
+            t.classList.contains('jade-menu-btn') &&
+              (o.key === 'Enter' || o.key === ' ') &&
+              (s.preventDefault(),
+              (this.isMenuOpen = !this.isMenuOpen),
+              this.render(),
+              this.isMenuOpen &&
+                setTimeout(() => {
+                  const i = this.shadowRoot.querySelector('.jade-menu-panel [role="menuitem"]');
+                  i == null || i.focus();
+                }, 50)));
+        }),
+        this.shadowRoot.addEventListener('input', s => {
+          const o = s.target;
+          if (o.hasAttribute('data-input')) {
+            const t = o;
+            ((t.style.height = 'auto'), (t.style.height = Math.min(t.scrollHeight, 100) + 'px'));
+            const i = this.shadowRoot.querySelector('.jade-char-count');
+            if (i) {
+              const n = t.value.length;
+              n > b * 0.8
+                ? ((i.textContent = `${n}/${b}`), i.classList.add('jade-char-count-visible'))
+                : ((i.textContent = ''), i.classList.remove('jade-char-count-visible'));
+            }
+          } else if (o.getAttribute('data-action') === 'volume-change') {
+            const i = parseInt(o.value, 10) / 100;
+            ((this.soundVolume = i), l.saveSoundVolume(i));
+            const n = this.shadowRoot.querySelector('.jade-volume-value');
+            n && (n.textContent = `${Math.round(i * 100)}%`);
+          }
+        }),
+        document.addEventListener('keydown', this.escapeKeyHandler));
+      const e = this.shadowRoot.querySelector('.jade-avatar-img');
+      e &&
+        (e.addEventListener('error', () => {
+          (this.config.debug &&
+            console.error('[JadeWidget] Failed to load avatar image:', this.config.avatarUrl),
+            e.setAttribute('style', 'display:none;'));
+          const s = this.shadowRoot.querySelector('.jade-avatar-fallback');
+          s && s.setAttribute('style', 'display:flex;');
+        }),
+        e.addEventListener('load', () => {
+          this.config.debug &&
+            console.log('[JadeWidget] Avatar image loaded successfully:', this.config.avatarUrl);
+        }));
+      const a = this.shadowRoot.querySelector('.jade-header-avatar-img');
+      a &&
+        (a.addEventListener('error', () => {
+          this.config.debug &&
+            console.error(
+              '[JadeWidget] Failed to load header avatar image:',
+              this.config.avatarUrl
+            );
+          const s = a.parentElement;
+          s && (s.innerHTML = '💬');
+        }),
+        a.addEventListener('load', () => {
+          this.config.debug &&
+            console.log(
+              '[JadeWidget] Header avatar image loaded successfully:',
+              this.config.avatarUrl
+            );
+        }));
+    }
+    toggleChat() {
+      this.state.isOpen ? this.closeChat() : this.openChat();
+    }
+    openChat() {
+      ((this.state.isOpen = !0),
+        (this.state.showGreeting = !1),
+        this.greetingTimeout && clearTimeout(this.greetingTimeout),
+        l.setGreetingDismissed(),
+        l.saveState({ isOpen: !0, showGreeting: !1 }),
+        this.render(),
+        this.scrollToBottom(),
+        this.focusInput());
+    }
+    closeChat() {
+      ((this.state.isOpen = !1),
+        (this.isMenuOpen = !1),
+        (this.showClearConfirm = !1),
+        l.saveState({ isOpen: !1 }),
+        this.render());
+    }
+    minimizeChat() {
+      ((this.state.isMinimized = !0),
+        (this.state.isOpen = !1),
+        (this.isMenuOpen = !1),
+        (this.showClearConfirm = !1),
+        l.saveState({ isOpen: !1, isMinimized: !0 }),
+        this.render());
+    }
+    closeGreeting() {
+      ((this.state.showGreeting = !1), l.setGreetingDismissed(), this.render());
+    }
+    async handleSend() {
+      const e = this.shadowRoot.querySelector('[data-input]');
+      if (!e) return;
+      const a = e.value.trim();
+      if (!a) return;
+      const s = { id: 'user-' + Date.now(), role: 'user', content: a, timestamp: Date.now() };
+      (this.state.messages.push(s),
+        l.saveMessages(this.state.messages),
+        (e.value = ''),
+        (e.style.height = 'auto'),
+        this.render(),
+        this.scrollToBottom(),
+        this.soundEnabled && this.unlockAudioContext(),
+        this.showTypingIndicator());
+      try {
+        const o = await this.apiClient.sendMessage(a, this.state.conversationId);
+        (this.state.conversationId ||
+          ((this.state.conversationId = o.conversationId), l.saveConversationId(o.conversationId)),
+          this.state.messages.push({ ...o.message, searchResults: o.searchResults }),
+          l.saveMessages(this.state.messages),
+          this.playNotificationSound(),
+          this.removeTypingIndicator(),
+          this.render(),
+          this.scrollToBottom(),
+          this.focusInput());
+      } catch (o) {
+        (console.error('Failed to send message:', o), this.removeTypingIndicator());
+        const t = o instanceof Error ? o.message : '';
+        let i;
+        t.includes('429') || t.toLowerCase().includes('rate limit')
+          ? (i = "I'm getting a lot of requests right now — please wait a moment and try again. ⏳")
+          : t.includes('401') || t.includes('403')
+            ? (i = "I couldn't authenticate your request. Please refresh the page and try again.")
+            : t.includes('503') || t.includes('Failed to fetch')
+              ? (i =
+                  "I'm having trouble connecting right now. Please check your connection and try again.")
+              : (i = "I'm sorry, something went wrong. Please try again.");
+        const n = {
+          id: 'error-' + Date.now(),
+          role: 'assistant',
+          content: i,
+          timestamp: Date.now(),
+        };
+        (this.state.messages.push(n),
+          l.saveMessages(this.state.messages),
+          this.render(),
+          this.scrollToBottom());
+      }
+    }
+    handleQuickReply(e) {
+      const a = this.shadowRoot.querySelector('[data-input]');
+      a && ((a.value = e), this.handleSend());
+    }
+    showTypingIndicator() {
+      this.removeTypingIndicator();
+      const e = this.shadowRoot.querySelector('[data-messages-container]');
+      if (e) {
+        const a = document.createElement('div');
+        ((a.className = 'jade-message jade-message-assistant'),
+          a.setAttribute('data-typing-indicator', ''),
+          (a.innerHTML = `
         <div class="jade-message-avatar assistant">💬</div>
         <div class="jade-message-content">
           <div class="jade-message-bubble">
@@ -1389,4 +2331,219 @@ If you give me your guest count and rough budget, I can make the numbers more sp
             </div>
           </div>
         </div>
-      `,e.appendChild(a),this.scrollToBottom()}}removeTypingIndicator(){const e=this.shadowRoot.querySelector("[data-typing-indicator]");e&&e.remove()}unlockAudioContext(){try{this.audioCtx||(this.audioCtx=new(window.AudioContext||window.webkitAudioContext)),this.audioCtx.state==="suspended"&&this.audioCtx.resume().catch(()=>{})}catch{}}playNotificationSound(){if(this.soundEnabled){this.config.debug&&console.log("[JadeWidget] Playing notification sound (volume:",this.soundVolume,")");try{this.audioCtx||(this.audioCtx=new(window.AudioContext||window.webkitAudioContext));const e=this.audioCtx,a=()=>{const s=e.createGain();s.gain.setValueAtTime(0,e.currentTime),s.gain.linearRampToValueAtTime(this.soundVolume*.3,e.currentTime+.02),s.gain.exponentialRampToValueAtTime(1e-4,e.currentTime+.5),s.connect(e.destination),[880,1108].forEach((t,i)=>{const n=e.createOscillator();n.type="sine",n.frequency.setValueAtTime(t,e.currentTime+i*.12),n.connect(s),n.start(e.currentTime+i*.12),n.stop(e.currentTime+i*.12+.35)})};e.state==="suspended"?(this.config.debug&&console.warn("[JadeWidget] AudioContext suspended – attempting resume before chime"),e.resume().then(a).catch(()=>{console.info("[JadeWidget] Notification sound skipped – AudioContext could not be resumed (likely no prior user gesture)")})):a()}catch{}}}exportChat(){const e={exportedAt:new Date().toISOString(),messages:this.state.messages.map(i=>({role:i.role,content:i.content,timestamp:new Date(i.timestamp).toISOString()}))},a=JSON.stringify(e,null,2),s=new Blob([a],{type:"application/json"}),o=URL.createObjectURL(s),t=document.createElement("a");t.href=o,t.download=`jade-chat-${new Date().toISOString().slice(0,10)}.json`,document.body.appendChild(t),t.click(),document.body.removeChild(t),setTimeout(()=>URL.revokeObjectURL(o),500),this.exportToastTimeout&&clearTimeout(this.exportToastTimeout),this.showExportToast=!0,this.render(),this.exportToastTimeout=window.setTimeout(()=>{this.showExportToast=!1,this.render()},3e3)}performClearChat(){l.clearAll(),this.isMenuOpen=!1,this.showClearConfirm=!1,this.state={isOpen:!1,isMinimized:!1,showGreeting:!1,messages:this.getInitialMessages()},this.render()}scrollToBottom(){setTimeout(()=>{const e=this.shadowRoot.querySelector("[data-messages-container]");e&&(e.scrollTop=e.scrollHeight)},100)}focusInput(){setTimeout(()=>{const e=this.shadowRoot.querySelector("[data-input]");e&&e.focus()},100)}escapeHtml(e){const a=document.createElement("div");return a.textContent=e,a.innerHTML}shouldShowGreeting(){const e=l.loadMessages(),a=e.length===0||e.length===1;return!this.state.isOpen&&a&&!l.isGreetingDismissed()}mount(e){(e||document.body).appendChild(this.container),this.shouldShowGreeting()&&(this.greetingTimeout=window.setTimeout(()=>{this.state.showGreeting=!0,this.render()},1e3))}unmount(){this.container.remove(),this.greetingTimeout&&clearTimeout(this.greetingTimeout),this.exportToastTimeout&&clearTimeout(this.exportToastTimeout),this.audioCtx&&(this.audioCtx.close().catch(()=>{}),this.audioCtx=void 0),document.removeEventListener("keydown",this.escapeKeyHandler)}open(){this.openChat()}close(){this.closeChat()}toggle(){this.toggleChat()}reset(){l.clearAll(),this.state={isOpen:!1,isMinimized:!1,showGreeting:!1,messages:this.getInitialMessages()},this.render()}}let d,g,v=0;function z(){d==null||d.destroy(),d=void 0,h.instance&&(h.instance.unmount(),h.instance=void 0)}function N(r={}){v+=1;const e=v;g!==void 0&&(window.clearTimeout(g),g=void 0),z();const a={...j,...r};g=window.setTimeout(()=>{if(e!==v)return;const s=new Set(Array.from(document.querySelectorAll(".jade-widget-root"))),o=new R(a);o.mount();const t=Array.from(document.querySelectorAll(".jade-widget-root")),i=t.find(n=>!s.has(n))??t[t.length-1];if(!i){o.unmount(),console.error("[JadeWidget] Unable to locate the mounted widget root.");return}h.instance=o,d=new E(i,o,a),d.start(),g=void 0},a.showDelayMs)}const h={init:N,open:()=>{var r;d==null||d.show("open-api"),(r=h.instance)==null||r.open()},close:()=>{var r;(r=h.instance)==null||r.close()},toggle:()=>{var r,e,a;if(!(d!=null&&d.isVisible())){d==null||d.show("toggle-api"),(r=h.instance)==null||r.open();return}d!=null&&d.isOpen()?(e=h.instance)==null||e.close():(a=h.instance)==null||a.open()},hide:()=>{d==null||d.hide("hide-api")},show:()=>{d==null||d.show("show-api")},isOpen:()=>(d==null?void 0:d.isOpen())??!1,isVisible:()=>(d==null?void 0:d.isVisible())??!1,reset:()=>{var r;d==null||d.show("reset-api"),(r=h.instance)==null||r.reset()}};typeof window<"u"&&(window.JadeWidget=h),w.default=h,Object.defineProperties(w,{__esModule:{value:!0},[Symbol.toStringTag]:{value:"Module"}})})(this.JadeWidget=this.JadeWidget||{});
+      `),
+          e.appendChild(a),
+          this.scrollToBottom());
+      }
+    }
+    removeTypingIndicator() {
+      const e = this.shadowRoot.querySelector('[data-typing-indicator]');
+      e && e.remove();
+    }
+    unlockAudioContext() {
+      try {
+        (this.audioCtx ||
+          (this.audioCtx = new (window.AudioContext || window.webkitAudioContext)()),
+          this.audioCtx.state === 'suspended' && this.audioCtx.resume().catch(() => {}));
+      } catch {}
+    }
+    playNotificationSound() {
+      if (this.soundEnabled) {
+        this.config.debug &&
+          console.log('[JadeWidget] Playing notification sound (volume:', this.soundVolume, ')');
+        try {
+          this.audioCtx ||
+            (this.audioCtx = new (window.AudioContext || window.webkitAudioContext)());
+          const e = this.audioCtx,
+            a = () => {
+              const s = e.createGain();
+              (s.gain.setValueAtTime(0, e.currentTime),
+                s.gain.linearRampToValueAtTime(this.soundVolume * 0.3, e.currentTime + 0.02),
+                s.gain.exponentialRampToValueAtTime(1e-4, e.currentTime + 0.5),
+                s.connect(e.destination),
+                [880, 1108].forEach((t, i) => {
+                  const n = e.createOscillator();
+                  ((n.type = 'sine'),
+                    n.frequency.setValueAtTime(t, e.currentTime + i * 0.12),
+                    n.connect(s),
+                    n.start(e.currentTime + i * 0.12),
+                    n.stop(e.currentTime + i * 0.12 + 0.35));
+                }));
+            };
+          e.state === 'suspended'
+            ? (this.config.debug &&
+                console.warn(
+                  '[JadeWidget] AudioContext suspended – attempting resume before chime'
+                ),
+              e
+                .resume()
+                .then(a)
+                .catch(() => {
+                  console.info(
+                    '[JadeWidget] Notification sound skipped – AudioContext could not be resumed (likely no prior user gesture)'
+                  );
+                }))
+            : a();
+        } catch {}
+      }
+    }
+    exportChat() {
+      const e = {
+          exportedAt: new Date().toISOString(),
+          messages: this.state.messages.map(i => ({
+            role: i.role,
+            content: i.content,
+            timestamp: new Date(i.timestamp).toISOString(),
+          })),
+        },
+        a = JSON.stringify(e, null, 2),
+        s = new Blob([a], { type: 'application/json' }),
+        o = URL.createObjectURL(s),
+        t = document.createElement('a');
+      ((t.href = o),
+        (t.download = `jade-chat-${new Date().toISOString().slice(0, 10)}.json`),
+        document.body.appendChild(t),
+        t.click(),
+        document.body.removeChild(t),
+        setTimeout(() => URL.revokeObjectURL(o), 500),
+        this.exportToastTimeout && clearTimeout(this.exportToastTimeout),
+        (this.showExportToast = !0),
+        this.render(),
+        (this.exportToastTimeout = window.setTimeout(() => {
+          ((this.showExportToast = !1), this.render());
+        }, 3e3)));
+    }
+    performClearChat() {
+      (l.clearAll(),
+        (this.isMenuOpen = !1),
+        (this.showClearConfirm = !1),
+        (this.state = {
+          isOpen: !1,
+          isMinimized: !1,
+          showGreeting: !1,
+          messages: this.getInitialMessages(),
+        }),
+        this.render());
+    }
+    scrollToBottom() {
+      setTimeout(() => {
+        const e = this.shadowRoot.querySelector('[data-messages-container]');
+        e && (e.scrollTop = e.scrollHeight);
+      }, 100);
+    }
+    focusInput() {
+      setTimeout(() => {
+        const e = this.shadowRoot.querySelector('[data-input]');
+        e && e.focus();
+      }, 100);
+    }
+    escapeHtml(e) {
+      const a = document.createElement('div');
+      return ((a.textContent = e), a.innerHTML);
+    }
+    shouldShowGreeting() {
+      const e = l.loadMessages(),
+        a = e.length === 0 || e.length === 1;
+      return !this.state.isOpen && a && !l.isGreetingDismissed();
+    }
+    mount(e) {
+      ((e || document.body).appendChild(this.container),
+        this.shouldShowGreeting() &&
+          (this.greetingTimeout = window.setTimeout(() => {
+            ((this.state.showGreeting = !0), this.render());
+          }, 1e3)));
+    }
+    unmount() {
+      (this.container.remove(),
+        this.greetingTimeout && clearTimeout(this.greetingTimeout),
+        this.exportToastTimeout && clearTimeout(this.exportToastTimeout),
+        this.audioCtx && (this.audioCtx.close().catch(() => {}), (this.audioCtx = void 0)),
+        document.removeEventListener('keydown', this.escapeKeyHandler));
+    }
+    open() {
+      this.openChat();
+    }
+    close() {
+      this.closeChat();
+    }
+    toggle() {
+      this.toggleChat();
+    }
+    reset() {
+      (l.clearAll(),
+        (this.state = {
+          isOpen: !1,
+          isMinimized: !1,
+          showGreeting: !1,
+          messages: this.getInitialMessages(),
+        }),
+        this.render());
+    }
+  }
+  let d,
+    g,
+    v = 0;
+  function z() {
+    (d == null || d.destroy(),
+      (d = void 0),
+      h.instance && (h.instance.unmount(), (h.instance = void 0)));
+  }
+  function N(r = {}) {
+    v += 1;
+    const e = v;
+    (g !== void 0 && (window.clearTimeout(g), (g = void 0)), z());
+    const a = { ...j, ...r };
+    g = window.setTimeout(() => {
+      if (e !== v) return;
+      const s = new Set(Array.from(document.querySelectorAll('.jade-widget-root'))),
+        o = new R(a);
+      o.mount();
+      const t = Array.from(document.querySelectorAll('.jade-widget-root')),
+        i = t.find(n => !s.has(n)) ?? t[t.length - 1];
+      if (!i) {
+        (o.unmount(), console.error('[JadeWidget] Unable to locate the mounted widget root.'));
+        return;
+      }
+      ((h.instance = o), (d = new E(i, o, a)), d.start(), (g = void 0));
+    }, a.showDelayMs);
+  }
+  const h = {
+    init: N,
+    open: () => {
+      var r;
+      (d == null || d.show('open-api'), (r = h.instance) == null || r.open());
+    },
+    close: () => {
+      var r;
+      (r = h.instance) == null || r.close();
+    },
+    toggle: () => {
+      var r, e, a;
+      if (!(d != null && d.isVisible())) {
+        (d == null || d.show('toggle-api'), (r = h.instance) == null || r.open());
+        return;
+      }
+      d != null && d.isOpen()
+        ? (e = h.instance) == null || e.close()
+        : (a = h.instance) == null || a.open();
+    },
+    hide: () => {
+      d == null || d.hide('hide-api');
+    },
+    show: () => {
+      d == null || d.show('show-api');
+    },
+    isOpen: () => (d == null ? void 0 : d.isOpen()) ?? !1,
+    isVisible: () => (d == null ? void 0 : d.isVisible()) ?? !1,
+    reset: () => {
+      var r;
+      (d == null || d.show('reset-api'), (r = h.instance) == null || r.reset());
+    },
+  };
+  (typeof window < 'u' && (window.JadeWidget = h),
+    (w.default = h),
+    Object.defineProperties(w, {
+      __esModule: { value: !0 },
+      [Symbol.toStringTag]: { value: 'Module' },
+    }));
+})((this.JadeWidget = this.JadeWidget || {}));
