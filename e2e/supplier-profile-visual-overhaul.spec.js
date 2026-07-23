@@ -1,6 +1,9 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { test, expect } from '@playwright/test';
 
 const TEST_ID = 'theme-test';
+const supplierHtml = fs.readFileSync(path.resolve(process.cwd(), 'public/supplier.html'), 'utf8');
 
 function makeSupplier(overrides = {}) {
   return {
@@ -31,6 +34,10 @@ function makeSupplier(overrides = {}) {
 }
 
 async function mockSupplierProfile(page, supplier) {
+  await page.route(`**/supplier/${TEST_ID}`, route =>
+    route.fulfill({ status: 200, contentType: 'text/html', body: supplierHtml })
+  );
+
   await page.route(`**/api/suppliers/${TEST_ID}`, route =>
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(supplier) })
   );
