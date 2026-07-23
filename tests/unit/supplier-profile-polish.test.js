@@ -8,7 +8,9 @@ const read = relative => fs.readFileSync(path.join(__dirname, '../..', relative)
 const supplierHtml = read('public/supplier.html');
 const listingCss = read('public/assets/css/suppliers-mobile-polish.css');
 const profileCss = read('public/assets/css/supplier-profile-polish.css');
-const profileJs = read('public/assets/js/supplier-profile-polish.js');
+const profileThemeCss = read('public/assets/css/supplier-profile-theme.css');
+const profileJs = read('public/assets/js/supplier-profile-polish-base.js');
+const profileThemeJs = read('public/assets/js/supplier-profile-polish.js');
 const packagesJs = read('public/assets/js/supplier-profile-packages-v2.js');
 
 describe('supplier listing desktop summary placement', () => {
@@ -56,6 +58,50 @@ describe('supplier profile information polish', () => {
   test('hides generic subscription and verification groups from the wide badge section', () => {
     expect(profileJs).toContain("['subscription', 'verification'].includes(name)");
     expect(profileJs).toContain("container.classList.toggle('is-empty', !shouldShow)");
+  });
+});
+
+describe('supplier profile theme consistency', () => {
+  test('loads preserved polish before the cache-busted theme layer', () => {
+    expect(profileThemeJs).toContain("export * from './supplier-profile-polish-base.js'");
+    expect(profileThemeJs).toContain('/assets/css/supplier-profile-polish.css?v=19.4.1');
+    expect(profileThemeJs).toContain('/assets/css/supplier-profile-theme.css?v=19.5.0');
+    expect(profileThemeJs.indexOf('PROFILE_POLISH_STYLESHEET_ID')).toBeLessThan(
+      profileThemeJs.indexOf('PROFILE_THEME_STYLESHEET_ID')
+    );
+  });
+
+  test('feeds the existing profile tokens from the supplier accent', () => {
+    expect(profileThemeCss).toContain('--sp-profile-accent: #0b8073');
+    expect(profileThemeCss).toContain('--sp-primary: var(--sp-profile-accent-strong)');
+    expect(profileThemeCss).toContain('--sp-card-border: var(--sp-profile-accent-border)');
+  });
+
+  test('makes the saved supplier accent authoritative for colour-only heroes', () => {
+    expect(profileThemeCss).toMatch(/\.hero-media\.sp-hero-media--fallback\s*\{/);
+    expect(profileThemeCss).toContain('var(--sp-profile-accent) 52%');
+    expect(profileThemeCss).toContain('background-image: linear-gradient(');
+  });
+
+  test('uses a contrast-safe derived colour for solid CTA surfaces', () => {
+    expect(profileThemeCss).toContain('var(--sp-profile-accent) 40%');
+    expect(profileThemeCss).toContain('#0b1220');
+    expect(profileThemeCss).toMatch(/#btn-enquiry\.btn-primary,[\s\S]*\.sp-cta-card/);
+    expect(profileThemeCss).toContain('color: var(--sp-profile-on-strong) !important');
+  });
+
+  test('propagates the accent through highlights, packages and review calls to action', () => {
+    expect(profileThemeCss).toMatch(/\.sp-highlights\s*\{/);
+    expect(profileThemeCss).toMatch(/\.sp-service-tag\s*\{/);
+    expect(profileThemeCss).toMatch(/\.supplier-package-card-v2__action--details\s*\{/);
+    expect(profileThemeCss).toMatch(/\.review-summary\s*\{/);
+    expect(profileThemeCss).toMatch(/\.sp-reviews-widget--empty \.btn-write-review/);
+  });
+
+  test('does not override social-network or rating-star semantic colours', () => {
+    expect(profileThemeCss).not.toContain('.sp-social-link--facebook');
+    expect(profileThemeCss).not.toContain('.meta-rating .star-icon');
+    expect(profileThemeCss).not.toContain('.badge-verified');
   });
 });
 
