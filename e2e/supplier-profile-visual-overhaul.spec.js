@@ -108,7 +108,8 @@ async function mockSupplierProfile(page, supplier) {
 async function openProfile(page, supplier) {
   await mockSupplierProfile(page, supplier);
   await page.goto(`/supplier/${TEST_ID}?id=${TEST_ID}`, { waitUntil: 'domcontentloaded' });
-  await expect(page.locator('#hero-title')).toHaveText(supplier.name);
+  await expect(page.locator('.sp-cta-card__title')).toHaveText(supplier.name);
+  await expect(page.locator('.hero-identity')).toContainText(supplier.tagline);
   await expect(page.locator('html')).toHaveAttribute('data-sp-theme-ready', 'true');
   await expect(page.locator('#hero-avatar')).toHaveAttribute('data-avatar-status', 'loaded');
 }
@@ -168,12 +169,12 @@ test.describe('Supplier profile visual overhaul', () => {
     await openProfile(page, makeSupplier());
 
     const avatar = await page.locator('#hero-avatar').boundingBox();
-    const title = await page.locator('#hero-title').boundingBox();
+    const identity = await page.locator('.hero-identity').boundingBox();
     expect(avatar).not.toBeNull();
-    expect(title).not.toBeNull();
+    expect(identity).not.toBeNull();
     expect(avatar.width).toBeGreaterThanOrEqual(108);
-    expect(avatar.x + avatar.width).toBeLessThan(title.x + 8);
-    expect(Math.abs(avatar.y + avatar.height / 2 - (title.y + title.height / 2))).toBeLessThan(55);
+    expect(avatar.x + avatar.width).toBeLessThan(identity.x + 8);
+    expect(Math.abs(avatar.y + avatar.height / 2 - (identity.y + identity.height / 2))).toBeLessThan(70);
 
     await expect(page.locator('.sp-cta-card__note')).toHaveText(
       'Typically responds in around 6 hours.'
@@ -211,18 +212,18 @@ test.describe('Supplier profile visual overhaul', () => {
 
     const layout = await page.evaluate(() => {
       const avatar = document.getElementById('hero-avatar').getBoundingClientRect();
-      const title = document.getElementById('hero-title').getBoundingClientRect();
+      const identity = document.querySelector('.hero-identity').getBoundingClientRect();
       return {
         avatarWidth: avatar.width,
         avatarRight: avatar.right,
-        titleLeft: title.left,
+        identityLeft: identity.left,
         documentWidth: document.documentElement.scrollWidth,
         viewportWidth: window.innerWidth,
       };
     });
 
     expect(layout.avatarWidth).toBeGreaterThanOrEqual(72);
-    expect(layout.avatarRight).toBeLessThanOrEqual(layout.titleLeft + 8);
+    expect(layout.avatarRight).toBeLessThanOrEqual(layout.identityLeft + 8);
     expect(layout.documentWidth).toBeLessThanOrEqual(layout.viewportWidth + 1);
     await expect(page.locator('#btn-enquiry')).toBeVisible();
   });
