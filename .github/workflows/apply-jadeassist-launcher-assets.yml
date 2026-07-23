@@ -76,3 +76,19 @@ jobs:
         env:
           NODE_ENV: test
           JWT_SECRET: test-secret-for-jest-min-32-characters-long
+
+      - name: Check focused formatting
+        run: |
+          npx prettier --check \
+            public/assets/js/jadeassist-init.v2.js \
+            tests/integration/jadeassist-widget.test.js \
+            tests/integration/jadeassist-launcher-behaviour.test.js \
+            docs/jadeassist-widget.md
+
+      - name: Record focused validation success
+        if: github.event_name == 'push'
+        run: |
+          printf 'JadeAssist focused validation passed for %s\n' "$GITHUB_SHA" > .github/jadeassist-focused-validation.txt
+          git add .github/jadeassist-focused-validation.txt
+          git commit -m "test: record JadeAssist focused validation"
+          git push
