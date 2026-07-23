@@ -164,6 +164,13 @@ function mountRoutes(app, deps) {
   app.use('/api/admin/management', adminManagementRoutes); // Backward compatibility
   app.use('/api/v1/admin', adminHomepageCollageActiveRoutes);
   app.use('/api/admin', adminHomepageCollageActiveRoutes); // Backward compatibility
+  if (deps && supplierAdminRoutes.initializeDependencies) {
+    supplierAdminRoutes.initializeDependencies(deps);
+  }
+  // Mount the state-machine-backed supplier admin routes before the legacy admin router
+  // so overlapping approval and rejection endpoints cannot be shadowed.
+  app.use('/api/v1/admin', supplierAdminRoutes);
+  app.use('/api/admin', supplierAdminRoutes);
   app.use('/api/v1/admin', adminRoutes);
   app.use('/api/admin', adminRoutes); // Backward compatibility
 
@@ -328,11 +335,6 @@ function mountRoutes(app, deps) {
   app.use('/api/v1/supplier', supplierRoutes);
   app.use('/api/supplier', supplierRoutes);
 
-  if (deps && supplierAdminRoutes.initializeDependencies) {
-    supplierAdminRoutes.initializeDependencies(deps);
-  }
-  app.use('/api/v1/admin', supplierAdminRoutes);
-  app.use('/api/admin', supplierAdminRoutes);
   if (deps && supplierManagementRoutes.initializeDependencies) {
     supplierManagementRoutes.initializeDependencies(deps);
   }
