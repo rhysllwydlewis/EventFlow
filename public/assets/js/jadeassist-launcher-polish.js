@@ -4,7 +4,11 @@
   const STYLE_ID = 'eventflow-jadeassist-launcher-polish';
   const DOCUMENT_STYLE_ID = 'eventflow-jadeassist-launcher-host-state';
   const ROOT_SELECTOR = '.jade-widget-root';
-  const DEFAULT_DISMISS_DURATION_MS = 24 * 60 * 60 * 1000;
+  const DEFAULT_DISMISS_DURATION_MS = 0;
+  const LEGACY_DISMISS_STORAGE_KEYS = [
+    'jadeassist_dismissed_at',
+    'jade-widget-launcher-dismissed-at',
+  ];
   const POLISHED_ATTRIBUTE = 'data-eventflow-launcher-polished';
   const OBSERVER_PROPERTY = '__eventflowLauncherPolishObserver';
   const INIT_OVERRIDE_FLAG = '__eventflowLauncherPolishInstalled';
@@ -14,6 +18,24 @@
     return Number.isFinite(configured) && configured >= 0
       ? configured
       : DEFAULT_DISMISS_DURATION_MS;
+  }
+
+  function clearPersistedDismissals(config = {}) {
+    const storageKeys = new Set([
+      ...LEGACY_DISMISS_STORAGE_KEYS,
+      config.launcherDismissStorageKey,
+      window.JADEASSIST_CONFIG?.launcherDismissStorageKey,
+    ]);
+
+    try {
+      for (const storageKey of storageKeys) {
+        if (storageKey) {
+          localStorage.removeItem(storageKey);
+        }
+      }
+    } catch (_) {
+      // Storage may be unavailable. The zero-duration config still prevents new persistence.
+    }
   }
 
   function ensureDocumentStyles() {
@@ -46,9 +68,14 @@
 
     const originalInit = widget.init.bind(widget);
     widget.init = function eventFlowJadeAssistInit(config = {}) {
+      const launcherDismissDurationMs = configuredDismissDuration();
+      if (launcherDismissDurationMs <= 0) {
+        clearPersistedDismissals(config);
+      }
+
       return originalInit({
         ...config,
-        launcherDismissDurationMs: configuredDismissDuration(),
+        launcherDismissDurationMs,
       });
     };
 
@@ -215,6 +242,9 @@
 
   function start() {
     ensureDocumentStyles();
+    if (configuredDismissDuration() <= 0) {
+      clearPersistedDismissals();
+    }
     installInitOverride();
     polishMountedLaunchers();
 
@@ -228,8 +258,11 @@
 
   // Deferred scripts execute in document order before DOMContentLoaded. Install the
   // host-state rule and init wrapper immediately so the following EventFlow initializer
-  // receives the corrected behaviour on its very first call.
+  // receives page-only dismissal behaviour on its very first call.
   ensureDocumentStyles();
+  if (configuredDismissDuration() <= 0) {
+    clearPersistedDismissals();
+  }
   installInitOverride();
 
   if (document.readyState === 'loading') {
