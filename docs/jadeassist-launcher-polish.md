@@ -18,4 +18,4 @@ This follow-up closes the production and visual acceptance gaps left by PR #1394
 
 ## Verification
 
-The browser harness at `/test-jadeassist-launcher-polish.html` is exercised in both desktop and mobile Chromium by `tests/visual/jadeassist-launcher-polish.spec.mjs`. The checks cover mirrored geometry, the effective touch target, synchronized animation, accessible naming, image fallback and expiry of configured dismissal state.
+`tests/visual/jadeassist-launcher-polish.spec.mjs` serves a test-only virtual harness through Playwright, so no test page or harness script is shipped in `public/`. Both desktop and mobile Chromium cover mirrored geometry, the effective touch target, synchronized animation, accessible naming, image fallback and expiry of configured dismissal state.
