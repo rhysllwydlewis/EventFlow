@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 
+// Temporary branch-only generator. Removed after the hotfix is materialised.
 const rendererPath = 'utils/template-renderer.js';
 const renderTestPath = 'tests/integration/anonymous-public-render-path.test.js';
 const widgetTestPath = 'tests/integration/jadeassist-widget.test.js';
