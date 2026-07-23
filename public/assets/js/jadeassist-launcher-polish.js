@@ -2,6 +2,7 @@
   'use strict';
 
   const STYLE_ID = 'eventflow-jadeassist-launcher-polish';
+  const DOCUMENT_STYLE_ID = 'eventflow-jadeassist-launcher-host-state';
   const ROOT_SELECTOR = '.jade-widget-root';
   const DEFAULT_DISMISS_DURATION_MS = 24 * 60 * 60 * 1000;
   const POLISHED_ATTRIBUTE = 'data-eventflow-launcher-polished';
@@ -13,6 +14,25 @@
     return Number.isFinite(configured) && configured >= 0
       ? configured
       : DEFAULT_DISMISS_DURATION_MS;
+  }
+
+  function ensureDocumentStyles() {
+    if (document.getElementById(DOCUMENT_STYLE_ID)) {
+      return;
+    }
+
+    const style = document.createElement('style');
+    style.id = DOCUMENT_STYLE_ID;
+    style.textContent = `
+      ${ROOT_SELECTOR}[hidden],
+      ${ROOT_SELECTOR}[aria-hidden='true'] {
+        display: none !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+      }
+    `;
+    const styleTarget = document.head || document.documentElement;
+    styleTarget.appendChild(style);
   }
 
   function installInitOverride() {
@@ -194,10 +214,12 @@
   }
 
   function start() {
+    ensureDocumentStyles();
     installInitOverride();
     polishMountedLaunchers();
 
     const documentObserver = new MutationObserver(() => {
+      ensureDocumentStyles();
       installInitOverride();
       polishMountedLaunchers();
     });
@@ -205,8 +227,9 @@
   }
 
   // Deferred scripts execute in document order before DOMContentLoaded. Install the
-  // init wrapper immediately so the following EventFlow initializer receives the
-  // corrected dismissal duration on its very first call.
+  // host-state rule and init wrapper immediately so the following EventFlow initializer
+  // receives the corrected behaviour on its very first call.
+  ensureDocumentStyles();
   installInitOverride();
 
   if (document.readyState === 'loading') {
