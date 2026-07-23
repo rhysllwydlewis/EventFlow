@@ -47,21 +47,7 @@ jobs:
           node --check public/assets/js/vendor/jade-widget.js
           node --check tests/integration/jadeassist-launcher-behaviour.test.js
 
-      - name: Install dependencies
-        run: npm ci --prefer-offline --no-audit
-        env:
-          HUSKY: '0'
-
-      - name: Run focused JadeAssist integration tests
-        run: |
-          npx jest --runInBand --coverage=false \
-            tests/integration/jadeassist-widget.test.js \
-            tests/integration/jadeassist-launcher-behaviour.test.js
-        env:
-          NODE_ENV: test
-          JWT_SECRET: test-secret-for-jest-min-32-characters-long
-
-      - name: Commit verified integration
+      - name: Commit finalized integration
         if: github.event_name == 'push'
         run: |
           git config user.name "github-actions[bot]"
@@ -76,3 +62,17 @@ jobs:
             git commit -m "fix: finalize verified JadeAssist launcher integration"
             git push
           fi
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit
+        env:
+          HUSKY: '0'
+
+      - name: Run focused JadeAssist integration tests
+        run: |
+          npx jest --runInBand --coverage=false \
+            tests/integration/jadeassist-widget.test.js \
+            tests/integration/jadeassist-launcher-behaviour.test.js
+        env:
+          NODE_ENV: test
+          JWT_SECRET: test-secret-for-jest-min-32-characters-long
