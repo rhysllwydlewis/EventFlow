@@ -204,6 +204,11 @@
     documentObserver.observe(document.documentElement, { childList: true, subtree: true });
   }
 
+  // Deferred scripts execute in document order before DOMContentLoaded. Install the
+  // init wrapper immediately so the following EventFlow initializer receives the
+  // corrected dismissal duration on its very first call.
+  installInitOverride();
+
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', start, { once: true });
   } else {
