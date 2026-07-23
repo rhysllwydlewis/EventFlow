@@ -2,8 +2,55 @@
 
 import { test, expect } from '@playwright/test';
 
-const HARNESS_PATH = '/test-jadeassist-launcher-polish.html';
+const HARNESS_PATH = '/__jadeassist-launcher-polish';
 const DISMISSAL_KEY = 'jadeassist-polish-browser-test-dismissed-at';
+const HARNESS_HTML = `<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>JadeAssist launcher polish harness</title>
+    <style>
+      html, body { min-height: 100%; margin: 0; }
+      body {
+        background: linear-gradient(145deg, #f8fafc, #e7f3f1);
+        color: #0b1220;
+        font-family: Inter, system-ui, sans-serif;
+      }
+      main { max-width: 46rem; margin: 0 auto; padding: 4rem 1.5rem; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>JadeAssist launcher browser harness</h1>
+      <p>This deterministic page verifies the paired launcher controls in a real browser.</p>
+    </main>
+    <script src="/assets/js/vendor/jade-widget.js"></script>
+    <script>
+      window.JADEASSIST_CONFIG = { launcherDismissDurationMs: 60 * 60 * 1000 };
+    </script>
+    <script src="/assets/js/jadeassist-launcher-polish.js"></script>
+    <script>
+      window.JadeWidget.init({
+        apiBaseUrl: 'http://127.0.0.1:4173',
+        assistantName: 'Jade',
+        greetingTooltipText: '',
+        avatarUrl: '/assets/images/jadeassist-agent.png',
+        notificationBadgeUrl: '/assets/images/jadeassist-notification-badge.png',
+        closeButtonUrl: '/assets/images/jadeassist-close-button.png',
+        launcherDismissible: true,
+        launcherDismissStorageKey: '${DISMISSAL_KEY}',
+        launcherDismissDurationMs: 30 * 24 * 60 * 60 * 1000,
+        showDelayMs: 0,
+        offsetBottom: '6rem',
+        offsetLeft: '6rem',
+        offsetBottomMobile: '5rem',
+        offsetLeftMobile: '2rem',
+        scale: 0.85,
+      });
+    </script>
+  </body>
+</html>`;
 
 async function waitForPolishedLauncher(page) {
   await page.waitForFunction(() => {
@@ -21,6 +68,9 @@ async function waitForPolishedLauncher(page) {
 
 test.describe('JadeAssist launcher polish', () => {
   test.beforeEach(async ({ page }) => {
+    await page.route(`**${HARNESS_PATH}`, route =>
+      route.fulfill({ status: 200, contentType: 'text/html; charset=utf-8', body: HARNESS_HTML })
+    );
     await page.goto(HARNESS_PATH, { waitUntil: 'domcontentloaded' });
     await waitForPolishedLauncher(page);
   });
