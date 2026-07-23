@@ -1,0 +1,48 @@
+name: Apply JadeAssist cache bust
+
+on:
+  push:
+    branches:
+      - fix/jadeassist-close-button-cache-bust
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout hotfix branch
+        uses: actions/checkout@v4
+        with:
+          ref: fix/jadeassist-close-button-cache-bust
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.node-version'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit
+
+      - name: Apply cache-busting patch
+        run: node scripts/apply-jadeassist-cache-bust.mjs
+
+      - name: Format changed files
+        run: npx prettier --write utils/template-renderer.js tests/integration/anonymous-public-render-path.test.js tests/integration/jadeassist-widget.test.js
+
+      - name: Run focused regression tests
+        run: npx jest tests/integration/anonymous-public-render-path.test.js tests/integration/jadeassist-widget.test.js --runInBand
+
+      - name: Commit generated hotfix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add utils/template-renderer.js tests/integration/anonymous-public-render-path.test.js tests/integration/jadeassist-widget.test.js
+          if ! git diff --cached --quiet; then
+            git commit -m "fix: cache-bust JadeAssist widget assets"
+            git push
+          fi
