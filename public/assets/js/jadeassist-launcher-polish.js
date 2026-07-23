@@ -31,7 +31,8 @@
         pointer-events: none !important;
       }
     `;
-    (document.head || document.documentElement).appendChild(style);
+    const styleTarget = document.head || document.documentElement;
+    styleTarget.appendChild(style);
   }
 
   function installInitOverride() {
