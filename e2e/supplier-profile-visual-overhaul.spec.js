@@ -100,7 +100,7 @@ async function mockSupplierProfile(page, supplier) {
 
 async function openProfile(page, supplier) {
   await mockSupplierProfile(page, supplier);
-  await page.goto(`/supplier.html?id=${TEST_ID}`);
+  await page.goto(`/supplier/${TEST_ID}`);
   await expect(page.locator('#hero-title')).toHaveText(supplier.name);
   await expect(page.locator('html')).toHaveAttribute('data-sp-theme-ready', 'true');
   await expect(page.locator('#hero-avatar')).toHaveAttribute('data-avatar-status', 'loaded');
