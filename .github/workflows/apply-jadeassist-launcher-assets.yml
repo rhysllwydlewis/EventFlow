@@ -1,0 +1,41 @@
+name: Apply JadeAssist launcher assets
+
+on:
+  push:
+    branches:
+      - feature/jadeassist-launcher-assets
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/jadeassist-launcher-assets
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Apply launcher integration
+        run: node scripts/apply-jadeassist-launcher-assets.mjs
+
+      - name: Check generated JavaScript syntax
+        run: node --check public/assets/js/jadeassist-init.v2.js
+
+      - name: Commit generated integration
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/assets/js/jadeassist-init.v2.js tests/integration/jadeassist-widget.test.js docs/jadeassist-widget.md
+          if ! git diff --cached --quiet; then
+            git commit -m "feat: integrate JadeAssist launcher assets"
+            git push
+          fi
