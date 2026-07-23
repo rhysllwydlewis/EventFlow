@@ -9,7 +9,8 @@ const supplierHtml = read('public/supplier.html');
 const listingCss = read('public/assets/css/suppliers-mobile-polish.css');
 const profileCss = read('public/assets/css/supplier-profile-polish-base.css');
 const profileThemeCss = read('public/assets/css/supplier-profile-polish.css');
-const profileJs = read('public/assets/js/supplier-profile-polish.js');
+const profileJs = read('public/assets/js/supplier-profile-polish-base.js');
+const profileThemeJs = read('public/assets/js/supplier-profile-polish.js');
 const packagesJs = read('public/assets/js/supplier-profile-packages-v2.js');
 
 describe('supplier listing desktop summary placement', () => {
@@ -61,14 +62,20 @@ describe('supplier profile information polish', () => {
 });
 
 describe('supplier profile theme consistency', () => {
-  test('layers supplier theming after the existing profile polish', () => {
+  test('loads the preserved polish layer and cache-busts the themed stylesheet', () => {
+    expect(profileThemeJs).toContain("export * from './supplier-profile-polish-base.js'");
+    expect(profileThemeJs).toContain('/assets/css/supplier-profile-polish.css?v=19.5.0');
     expect(
       profileThemeCss
         .trimStart()
         .startsWith("@import url('./supplier-profile-polish-base.css?v=19.4.1');")
     ).toBe(true);
+  });
+
+  test('feeds the existing profile tokens from the supplier accent', () => {
     expect(profileThemeCss).toContain('--sp-profile-accent: #0b8073');
     expect(profileThemeCss).toContain('--sp-primary: var(--sp-profile-accent-strong)');
+    expect(profileThemeCss).toContain('--sp-card-border: var(--sp-profile-accent-border)');
   });
 
   test('makes the saved supplier accent authoritative for colour-only heroes', () => {
