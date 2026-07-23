@@ -1,446 +1,265 @@
+@import url('./supplier-profile-polish-base.css?v=19.4.1');
+
 /*
- * EventFlow supplier profile — focused public-profile polish.
- * Loaded by supplier-profile-polish.js after the existing profile stylesheets.
+ * Supplier-owned accent system for the public profile.
+ *
+ * EventFlow continues to own navigation, typography, neutral surfaces and
+ * semantic colours. The supplier's saved themeColor controls only the profile
+ * identity, calls to action and decorative accents.
  */
-
 :root {
-  --sp-page-max-width: 1320px;
-  --sp-sidebar-width: 300px;
-  --sp-grid-gap: 1.75rem;
   --sp-profile-accent: #0b8073;
+  --sp-profile-accent-strong: #075e56;
+  --sp-profile-accent-hover: #064d47;
+  --sp-profile-accent-light: #51c5b8;
+  --sp-profile-accent-soft: #f0fdf8;
+  --sp-profile-accent-subtle: #dff7f2;
+  --sp-profile-accent-border: #a9ded5;
+  --sp-profile-accent-shadow: rgba(11, 128, 115, 0.26);
+  --sp-profile-on-strong: #ffffff;
+
+  /*
+   * The strong colour deliberately mixes no more than 40% of the supplier
+   * colour with EventFlow's dark ink. Even a white supplier colour therefore
+   * retains AA contrast with white text on the primary CTA surfaces.
+   */
+  --sp-profile-accent-strong: color-mix(
+    in srgb,
+    var(--sp-profile-accent) 40%,
+    #0b1220
+  );
+  --sp-profile-accent-hover: color-mix(
+    in srgb,
+    var(--sp-profile-accent) 32%,
+    #0b1220
+  );
+  --sp-profile-accent-light: color-mix(
+    in srgb,
+    var(--sp-profile-accent) 76%,
+    #ffffff
+  );
+  --sp-profile-accent-soft: color-mix(
+    in srgb,
+    var(--sp-profile-accent) 8%,
+    #ffffff
+  );
+  --sp-profile-accent-subtle: color-mix(
+    in srgb,
+    var(--sp-profile-accent) 15%,
+    #ffffff
+  );
+  --sp-profile-accent-border: color-mix(
+    in srgb,
+    var(--sp-profile-accent) 32%,
+    #ffffff
+  );
+  --sp-profile-accent-shadow: color-mix(
+    in srgb,
+    var(--sp-profile-accent) 28%,
+    transparent
+  );
+
+  /* Feed the existing profile design system from the supplier accent. */
+  --sp-primary: var(--sp-profile-accent-strong);
+  --sp-primary-hover: var(--sp-profile-accent-hover);
+  --sp-primary-faint: var(--sp-profile-accent-soft);
+  --sp-primary-subtle: var(--sp-profile-accent-subtle);
+  --sp-card-border: var(--sp-profile-accent-border);
+  --sp-surface-green: var(--sp-profile-accent-soft);
 }
 
-/* Use the available desktop canvas without inflating typography. */
-.sp-page,
-.hero-content,
-.hero-avatar-wrap {
-  width: min(100%, var(--sp-page-max-width));
+/* A deliberate supplier colour wins over automatic category gradients. */
+.hero-media.sp-hero-media--fallback {
+  background-image: linear-gradient(
+    135deg,
+    var(--sp-profile-accent-strong) 0%,
+    var(--sp-profile-accent) 52%,
+    var(--sp-profile-accent-light) 100%
+  ) !important;
 }
 
-.sp-page-grid {
-  grid-template-columns: minmax(0, 1fr) minmax(280px, var(--sp-sidebar-width));
+.hero-avatar {
+  box-shadow:
+    0 4px 20px var(--sp-profile-accent-shadow),
+    0 1px 4px rgba(0, 0, 0, 0.12) !important;
 }
 
-.sp-page-main {
-  min-width: 0;
+/* Profile-owned primary actions. */
+#btn-enquiry.btn-primary,
+.sp-cta-card {
+  background: linear-gradient(
+    145deg,
+    var(--sp-profile-accent-strong),
+    var(--sp-profile-accent-hover)
+  ) !important;
+  color: var(--sp-profile-on-strong) !important;
+  box-shadow: 0 6px 22px var(--sp-profile-accent-shadow) !important;
 }
 
-.sp-aside-sticky {
-  top: 1.25rem;
+#btn-enquiry.btn-primary:hover {
+  background: linear-gradient(
+    145deg,
+    var(--sp-profile-accent-hover),
+    var(--sp-profile-accent-strong)
+  ) !important;
+  color: var(--sp-profile-on-strong) !important;
+  box-shadow: 0 8px 26px var(--sp-profile-accent-shadow) !important;
 }
 
-/* Make colour-only covers feel deliberate while keeping uploaded imagery untouched. */
-.hero-media {
-  isolation: isolate;
+.btn-secondary {
+  color: var(--sp-profile-accent-strong) !important;
+  border-color: var(--sp-profile-accent-border) !important;
 }
 
-.hero-media.sp-hero-media--fallback::before {
-  background-image:
-    radial-gradient(circle at 18% 30%, rgba(255, 255, 255, 0.12), transparent 34%),
-    radial-gradient(circle at 82% 18%, rgba(255, 255, 255, 0.08), transparent 30%),
-    linear-gradient(
-      120deg,
-      transparent 0 45%,
-      rgba(255, 255, 255, 0.045) 45% 46%,
-      transparent 46% 100%
-    ) !important;
-  background-size: auto, auto, 72px 72px;
-  opacity: 0.9;
+.btn-secondary:hover,
+#btn-save:hover,
+#btn-share:hover {
+  color: var(--sp-profile-accent-strong) !important;
+  border-color: var(--sp-profile-accent) !important;
+  background: var(--sp-profile-accent-soft) !important;
 }
 
-.hero-actions .btn,
-.sp-cta-btn,
-.supplier-package-card-v2__action {
-  min-height: 40px;
+/* Identity chips, headings and authored profile content. */
+.meta-category {
+  color: var(--sp-profile-accent-strong) !important;
+  background: var(--sp-profile-accent-soft) !important;
+  border-color: var(--sp-profile-accent-border) !important;
 }
 
-/* About: keep the full supplier-authored copy, with a calm collapsed preview. */
-.sp-about__description {
-  white-space: pre-line;
-  overflow-wrap: anywhere;
+.meta-item svg,
+.sp-card-title svg,
+.sp-gallery-empty__icon,
+.sp-trust-icon {
+  color: var(--sp-profile-accent-strong) !important;
 }
 
-.sp-about__description.is-collapsible:not(.is-expanded) {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 7;
-  overflow: hidden;
+.sp-card-title {
+  border-bottom-color: var(--sp-profile-accent-subtle) !important;
 }
 
-.sp-about__description.is-expanded {
-  display: block;
-  overflow: visible;
-}
-
-.sp-about__toggle {
-  appearance: none;
-  border: 0;
-  background: transparent;
-  color: #0b8073;
-  font: inherit;
-  font-size: 0.8125rem;
-  font-weight: 700;
-  line-height: 1.3;
-  padding: 0.35rem 0;
-  margin: -0.25rem 0 0.65rem;
-  cursor: pointer;
-  text-underline-offset: 3px;
-}
-
-.sp-about__toggle:hover {
-  text-decoration: underline;
-}
-
-.sp-about__toggle:focus-visible {
-  outline: 3px solid rgba(11, 128, 115, 0.28);
-  outline-offset: 2px;
-  border-radius: 4px;
-}
-
-.sp-about__website {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  font-weight: 650;
-}
-
-/* Social destinations should read as one EventFlow component family. */
-.sp-social-links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-top: 0.9rem;
-}
-
-.sp-social-link {
-  --sp-social-accent: #0b8073;
-  min-height: 38px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.45rem;
-  padding: 0.48rem 0.8rem;
-  border: 1px solid #dce5e7;
-  border-left: 3px solid var(--sp-social-accent);
-  border-radius: 9px;
-  background: #ffffff;
-  color: #24323f !important;
-  font-size: 0.8125rem;
-  font-weight: 700;
-  line-height: 1;
-  text-decoration: none !important;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
-  transition:
-    transform 0.15s ease,
-    border-color 0.15s ease,
-    background 0.15s ease,
-    box-shadow 0.15s ease;
-}
-
-.sp-social-link:hover {
-  transform: translateY(-1px);
-  border-color: color-mix(in srgb, var(--sp-social-accent) 42%, #dce5e7);
-  background: color-mix(in srgb, var(--sp-social-accent) 5%, #ffffff);
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
-}
-
-.sp-social-link:focus-visible {
-  outline: 3px solid color-mix(in srgb, var(--sp-social-accent) 28%, transparent);
-  outline-offset: 2px;
-}
-
-.sp-social-link__icon {
-  width: 17px;
-  height: 17px;
-  flex: 0 0 17px;
-  color: var(--sp-social-accent);
-}
-
-.sp-social-link__icon svg {
-  display: block;
-  width: 100%;
-  height: 100%;
-}
-
-.sp-social-link--facebook {
-  --sp-social-accent: #1877f2;
-}
-
-.sp-social-link--instagram {
-  --sp-social-accent: #c13584;
-}
-
-.sp-social-link--twitter {
-  --sp-social-accent: #111827;
-}
-
-.sp-social-link--linkedin {
-  --sp-social-accent: #0a66c2;
-}
-
-.sp-social-link--youtube {
-  --sp-social-accent: #ff0000;
-}
-
-.sp-social-link--tiktok {
-  --sp-social-accent: #111827;
-}
-
-/* Packages: three balanced cards where the desktop width supports it. */
-.supplier-packages-v2__grid,
-.sp-packages-grid {
-  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-  align-items: stretch;
-  gap: 1rem !important;
-}
-
-.supplier-package-card-v2 {
-  min-width: 0;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
-.supplier-package-card-v2__media-link {
-  display: block;
-  overflow: hidden;
-}
-
-.supplier-package-card-v2__link {
-  color: inherit;
-  text-decoration: none;
-}
-
+.sp-about__toggle,
+.sp-about__meta a,
+.sp-about__website,
 .supplier-package-card-v2__link:hover {
-  color: #0b8073 !important;
+  color: var(--sp-profile-accent-strong) !important;
 }
 
-.supplier-package-card-v2__body {
-  height: 100%;
+.sp-highlights {
+  background: linear-gradient(
+    135deg,
+    var(--sp-profile-accent-soft),
+    var(--sp-profile-accent-subtle)
+  ) !important;
+  border-color: var(--sp-profile-accent-border) !important;
 }
 
-.supplier-package-card-v2__title {
-  min-height: 2.3em;
+.sp-highlights__title,
+.sp-highlight-item {
+  color: var(--sp-profile-accent-strong) !important;
 }
 
-.supplier-package-card-v2__description {
-  min-height: calc(3 * 1.55em);
+.sp-highlight-check {
+  color: var(--sp-profile-accent-strong) !important;
 }
 
-.supplier-package-card-v2__footer {
-  margin-top: auto !important;
-  display: block !important;
+.sp-service-tag {
+  color: var(--sp-profile-accent-strong) !important;
+  background: var(--sp-profile-accent-soft) !important;
+  border-color: var(--sp-profile-accent-border) !important;
+}
+
+.sp-stats {
+  background: linear-gradient(
+    135deg,
+    var(--sp-profile-accent-soft),
+    var(--sp-profile-accent-subtle)
+  ) !important;
+  border-color: var(--sp-profile-accent-border) !important;
+}
+
+.sp-stat + .sp-stat::before {
+  background: var(--sp-profile-accent-border) !important;
+}
+
+.sp-stat__value {
+  background: linear-gradient(
+    135deg,
+    var(--sp-profile-accent-strong),
+    var(--sp-profile-accent)
+  ) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+}
+
+/* Sidebar support cards remain neutral but inherit a restrained border accent. */
+.sp-trust-card,
+.sp-details-card,
+.sp-card,
+.supplier-package-card-v2 {
+  border-color: var(--sp-profile-accent-border) !important;
+}
+
+/* Packages use the supplier accent without changing neutral card surfaces. */
+.supplier-package-card-v2:hover {
+  box-shadow: 0 8px 28px var(--sp-profile-accent-shadow), 0 2px 8px rgba(0, 0, 0, 0.07) !important;
 }
 
 .supplier-package-card-v2__price {
-  display: block;
-  min-height: 1.4em;
-}
-
-.supplier-package-card-v2__actions {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 0.5rem;
-  margin-top: 0.75rem;
-}
-
-.supplier-package-card-v2__action {
-  width: 100%;
-  min-width: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.55rem 0.65rem;
-  border-radius: 8px;
-  font: inherit;
-  font-size: 0.75rem;
-  font-weight: 750;
-  line-height: 1.15;
-  text-align: center;
-  text-decoration: none;
-  cursor: pointer;
-  transition:
-    transform 0.14s ease,
-    background 0.15s ease,
-    border-color 0.15s ease,
-    box-shadow 0.15s ease;
-}
-
-.supplier-package-card-v2__action:hover {
-  transform: translateY(-1px);
+  color: var(--sp-profile-accent-strong) !important;
 }
 
 .supplier-package-card-v2__action--plan {
-  border: 1px solid #b8e7df;
-  background: #effbf8;
-  color: #0b6f65;
+  border-color: var(--sp-profile-accent-border) !important;
+  background: var(--sp-profile-accent-soft) !important;
+  color: var(--sp-profile-accent-strong) !important;
 }
 
 .supplier-package-card-v2__action--plan:hover {
-  border-color: #0b8073;
-  background: #def7f1;
+  border-color: var(--sp-profile-accent) !important;
+  background: var(--sp-profile-accent-subtle) !important;
 }
 
 .supplier-package-card-v2__action--details {
-  border: 1px solid #0b8073;
-  background: #ffffff;
-  color: #0b8073;
+  border-color: var(--sp-profile-accent-strong) !important;
+  color: var(--sp-profile-accent-strong) !important;
 }
 
 .supplier-package-card-v2__action--details:hover {
-  background: #0b8073;
-  color: #ffffff;
+  background: var(--sp-profile-accent-strong) !important;
+  color: var(--sp-profile-on-strong) !important;
 }
 
-.supplier-package-card-v2__action:focus-visible {
-  outline: 3px solid rgba(11, 128, 115, 0.24);
-  outline-offset: 2px;
-}
-
-/* A zero-review supplier gets one compact, useful EventFlow-specific state. */
-.sp-reviews-widget--empty .review-summary,
-.sp-reviews-widget--empty .reviews-header,
-.sp-reviews-widget--empty .review-controls,
-.sp-reviews-widget--empty .review-pagination {
-  display: none !important;
-}
-
-.sp-reviews-widget--empty .reviews-section,
-.sp-reviews-widget--empty .reviews-list {
-  min-height: 0 !important;
-}
-
-.sp-reviews-widget--empty .reviews-empty {
-  min-height: 0 !important;
-  padding: 2.25rem 1.25rem !important;
-  border: 0 !important;
-  background: linear-gradient(180deg, #ffffff, #f8fcfb) !important;
-}
-
-.sp-reviews-widget--empty .reviews-empty .empty-icon {
-  font-size: 1.75rem !important;
-  margin-bottom: 0.45rem !important;
-}
-
-.sp-reviews-widget--empty .reviews-empty .empty-title {
-  font-size: 1rem !important;
-  color: #18212f !important;
-}
-
-.sp-reviews-widget--empty .reviews-empty .empty-message {
-  max-width: 430px;
-  margin-inline: auto;
-  font-size: 0.8125rem !important;
-  color: #667085 !important;
+/* Reviews inherit the supplier identity; rating stars remain semantic gold. */
+.review-summary {
+  background: linear-gradient(
+    135deg,
+    var(--sp-profile-accent-strong),
+    var(--sp-profile-accent-hover)
+  ) !important;
 }
 
 .sp-reviews-widget--empty .btn-write-review,
 .sp-reviews-widget--empty .reviews-empty__signin-cta {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 40px;
-  margin-top: 0.65rem;
-  padding: 0.55rem 1rem;
-  border: 1px solid #0b8073;
-  border-radius: 8px;
-  background: #0b8073;
-  color: #ffffff !important;
-  font-size: 0.8125rem;
-  font-weight: 700;
-  text-decoration: none;
+  border-color: var(--sp-profile-accent-strong) !important;
+  background: var(--sp-profile-accent-strong) !important;
+  color: var(--sp-profile-on-strong) !important;
 }
 
-/* Basic tier/verification badges already live in the hero/sidebar. */
-#sp-section-badges[hidden],
-#sp-section-badges.is-empty {
-  display: none !important;
+/* A single, visible keyboard focus language across themed controls. */
+#btn-enquiry:focus-visible,
+#btn-call:focus-visible,
+#btn-save:focus-visible,
+#btn-share:focus-visible,
+.sp-about__toggle:focus-visible,
+.sp-cta-btn:focus-visible,
+.supplier-package-card-v2__action:focus-visible,
+.supplier-package-card-v2__link:focus-visible,
+.sp-reviews-widget--empty .btn-write-review:focus-visible,
+.sp-reviews-widget--empty .reviews-empty__signin-cta:focus-visible {
+  outline: 3px solid var(--sp-profile-accent) !important;
+  outline-offset: 3px !important;
 }
 
-.sp-badges-section {
-  margin-top: 1.25rem !important;
-}
-
-/* General alignment and spacing cleanup. */
-.sp-page-main > .sp-section:empty,
-#sp-section-gallery[style*='display: none'],
-#sp-section-packages[style*='display: none'] {
-  display: none !important;
-}
-
-.sp-card,
-.sp-cta-card,
-.sp-trust-card,
-.sp-details-card {
-  border-radius: 12px !important;
-}
-
-@media (max-width: 1180px) {
-  :root {
-    --sp-page-max-width: 1120px;
-    --sp-sidebar-width: 285px;
-    --sp-grid-gap: 1.25rem;
-  }
-
-  .supplier-packages-v2__grid,
-  .sp-packages-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-  }
-}
-
-@media (max-width: 900px) {
-  .sp-page-grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .sp-page-main {
-    order: 1;
-  }
-
-  .sp-page-aside {
-    order: 2;
-  }
-
-  .sp-aside-sticky {
-    position: static;
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  #sp-sidebar-enquiry {
-    grid-column: 1 / -1;
-  }
-}
-
-@media (max-width: 640px) {
-  .supplier-packages-v2__grid,
-  .sp-packages-grid {
-    grid-template-columns: minmax(0, 1fr) !important;
-  }
-
-  .supplier-package-card-v2__title,
-  .supplier-package-card-v2__description {
-    min-height: 0;
-  }
-
-  .supplier-package-card-v2__actions {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .sp-aside-sticky {
-    display: flex;
-  }
-
-  .sp-social-link {
-    flex: 1 1 calc(50% - 0.25rem);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .sp-social-link,
-  .supplier-package-card-v2,
-  .supplier-package-card-v2__action,
-  .sp-about__toggle {
-    transition: none !important;
-  }
-}
+/* Platform and semantic colours are intentionally not themed:
+ * social-network controls, rating stars, verification, warning and error badges.
+ */
