@@ -54,9 +54,12 @@ test.describe('Customer enquiry journey against the real backend @backend', () =
   test('redirects the historical supplier query URL to the clean profile in one hop', async ({
     request,
   }) => {
-    const response = await request.get(`/supplier?id=${encodeURIComponent(fixtures.supplier.id)}`, {
-      maxRedirects: 0,
-    });
+    const response = await request.get(
+      `/supplier?id=${encodeURIComponent(fixtures.supplier.id)}`,
+      {
+        maxRedirects: 0,
+      }
+    );
     expect(response.status()).toBe(301);
     expect(response.headers().location).toBe(fixtures.supplier.path);
   });
