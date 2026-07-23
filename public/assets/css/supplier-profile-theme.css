@@ -1,9 +1,9 @@
 /*
- * Supplier-owned accent system for the public profile.
+ * Supplier profile visual system v20.
  *
- * EventFlow continues to own navigation, typography, neutral surfaces and
- * semantic colours. The supplier's saved themeColor controls only the profile
- * identity, calls to action and decorative accents.
+ * EventFlow owns the global shell and semantic states. The supplier-owned
+ * accent controls the public profile identity, calls to action and restrained
+ * decoration. Values are derived and written by supplier-profile-polish.js.
  */
 :root {
   --sp-profile-accent: #0b8073;
@@ -13,51 +13,13 @@
   --sp-profile-accent-soft: #f0fdf8;
   --sp-profile-accent-subtle: #dff7f2;
   --sp-profile-accent-border: #a9ded5;
-  --sp-profile-accent-shadow: rgba(11, 128, 115, 0.26);
+  --sp-profile-accent-border-strong: #72bfb3;
+  --sp-profile-accent-shadow: rgba(11, 128, 115, 0.24);
   --sp-profile-on-strong: #ffffff;
+  --sp-profile-identity-gap: 1.25rem;
+  --sp-avatar-size: 112px;
 
-  /*
-   * The strong colour deliberately mixes no more than 40% of the supplier
-   * colour with EventFlow's dark ink. Even a white supplier colour therefore
-   * retains AA contrast with white text on the primary CTA surfaces.
-   */
-  --sp-profile-accent-strong: color-mix(
-    in srgb,
-    var(--sp-profile-accent) 40%,
-    #0b1220
-  );
-  --sp-profile-accent-hover: color-mix(
-    in srgb,
-    var(--sp-profile-accent) 32%,
-    #0b1220
-  );
-  --sp-profile-accent-light: color-mix(
-    in srgb,
-    var(--sp-profile-accent) 76%,
-    #ffffff
-  );
-  --sp-profile-accent-soft: color-mix(
-    in srgb,
-    var(--sp-profile-accent) 8%,
-    #ffffff
-  );
-  --sp-profile-accent-subtle: color-mix(
-    in srgb,
-    var(--sp-profile-accent) 15%,
-    #ffffff
-  );
-  --sp-profile-accent-border: color-mix(
-    in srgb,
-    var(--sp-profile-accent) 32%,
-    #ffffff
-  );
-  --sp-profile-accent-shadow: color-mix(
-    in srgb,
-    var(--sp-profile-accent) 28%,
-    transparent
-  );
-
-  /* Feed the existing profile design system from the supplier accent. */
+  /* Feed the established profile tokens from the resolved supplier identity. */
   --sp-primary: var(--sp-profile-accent-strong);
   --sp-primary-hover: var(--sp-profile-accent-hover);
   --sp-primary-faint: var(--sp-profile-accent-soft);
@@ -66,8 +28,23 @@
   --sp-surface-green: var(--sp-profile-accent-soft);
 }
 
-/* A deliberate supplier colour wins over automatic category gradients. */
-.hero-media.sp-hero-media--fallback {
+/* --------------------------------------------------------------------------
+   Hero and identity
+   -------------------------------------------------------------------------- */
+
+.supplier-hero {
+  margin-bottom: 0 !important;
+  background: #ffffff;
+  border-bottom: 1px solid #e7edf0;
+}
+
+.hero-media {
+  border-radius: 0 0 14px 14px !important;
+  box-shadow: 0 10px 32px rgba(15, 23, 42, 0.12) !important;
+}
+
+/* Only the theme-colour fallback is overridden. Explicit presets and images win. */
+html[data-sp-hero-mode='theme'] .hero-media.sp-hero-media--fallback.sp-hero-use-accent {
   background-image: linear-gradient(
     135deg,
     var(--sp-profile-accent-strong) 0%,
@@ -76,13 +53,128 @@
   ) !important;
 }
 
-.hero-avatar {
-  box-shadow:
-    0 4px 20px var(--sp-profile-accent-shadow),
-    0 1px 4px rgba(0, 0, 0, 0.12) !important;
+.hero-avatar-wrap {
+  position: absolute !important;
+  top: calc(var(--sp-hero-height) + 1rem) !important;
+  left: 50% !important;
+  width: min(100%, var(--sp-page-max-width)) !important;
+  max-width: none !important;
+  height: var(--sp-avatar-size);
+  margin: 0 !important;
+  padding: 0 1.5rem !important;
+  transform: translateX(-50%);
+  pointer-events: none;
+  z-index: 12;
 }
 
-/* Profile-owned primary actions. */
+.hero-avatar {
+  width: var(--sp-avatar-size) !important;
+  height: var(--sp-avatar-size) !important;
+  border: 5px solid #ffffff !important;
+  box-shadow:
+    0 10px 30px var(--sp-profile-accent-shadow),
+    0 3px 10px rgba(15, 23, 42, 0.16) !important;
+  font-size: 2rem !important;
+  pointer-events: auto;
+}
+
+.hero-avatar.has-profile-photo {
+  background: #ffffff !important;
+}
+
+.hero-avatar:hover {
+  transform: translateY(-2px) scale(1.015) !important;
+}
+
+.hero-content {
+  width: min(100%, var(--sp-page-max-width)) !important;
+  min-height: calc(var(--sp-avatar-size) + 2rem);
+  margin: 0 auto !important;
+  padding:
+    1rem
+    1.5rem
+    1.5rem
+    calc(1.5rem + var(--sp-avatar-size) + var(--sp-profile-identity-gap)) !important;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center !important;
+  gap: 1.5rem !important;
+}
+
+.hero-identity {
+  min-width: 0;
+  align-self: center;
+}
+
+.hero-content h1 {
+  margin: 0 0 0.35rem !important;
+  font-size: clamp(1.8rem, 2.5vw, 2.35rem) !important;
+  line-height: 1.08 !important;
+  letter-spacing: -0.035em !important;
+  text-wrap: balance;
+}
+
+.supplier-tagline {
+  max-width: 72ch;
+  margin: 0 0 0.65rem !important;
+  font-size: 0.925rem !important;
+  line-height: 1.55 !important;
+  color: #536173 !important;
+}
+
+.supplier-meta {
+  gap: 0.45rem !important;
+  margin: 0 !important;
+}
+
+.meta-item {
+  min-height: 30px;
+  padding: 0.3rem 0.72rem !important;
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+  color: #425166 !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+}
+
+.meta-item:hover {
+  background: var(--sp-profile-accent-soft) !important;
+  border-color: var(--sp-profile-accent-border) !important;
+}
+
+.meta-category {
+  color: var(--sp-profile-accent-strong) !important;
+  background: var(--sp-profile-accent-soft) !important;
+  border-color: var(--sp-profile-accent-border) !important;
+}
+
+.meta-item svg,
+.sp-card-title svg,
+.sp-gallery-empty__icon {
+  color: var(--sp-profile-accent-strong) !important;
+}
+
+/* Rating stars and trust checks remain semantic, not supplier-themed. */
+.meta-rating .star-icon,
+.sp-detail-row__star {
+  color: #f59e0b !important;
+}
+
+.sp-trust-icon {
+  color: #059669 !important;
+}
+
+.hero-actions {
+  display: grid !important;
+  grid-template-columns: minmax(130px, auto) 42px 42px;
+  align-items: center !important;
+  gap: 0.55rem !important;
+  padding: 0 !important;
+}
+
+.hero-actions .btn {
+  min-height: 42px;
+}
+
 #btn-enquiry.btn-primary,
 .sp-cta-card {
   background: linear-gradient(
@@ -91,7 +183,11 @@
     var(--sp-profile-accent-hover)
   ) !important;
   color: var(--sp-profile-on-strong) !important;
-  box-shadow: 0 6px 22px var(--sp-profile-accent-shadow) !important;
+  box-shadow: 0 7px 24px var(--sp-profile-accent-shadow) !important;
+}
+
+#btn-enquiry.btn-primary {
+  padding-inline: 1.2rem !important;
 }
 
 #btn-enquiry.btn-primary:hover {
@@ -100,13 +196,18 @@
     var(--sp-profile-accent-hover),
     var(--sp-profile-accent-strong)
   ) !important;
-  color: var(--sp-profile-on-strong) !important;
-  box-shadow: 0 8px 26px var(--sp-profile-accent-shadow) !important;
+  box-shadow: 0 10px 30px var(--sp-profile-accent-shadow) !important;
 }
 
 .btn-secondary {
   color: var(--sp-profile-accent-strong) !important;
   border-color: var(--sp-profile-accent-border) !important;
+}
+
+#btn-save,
+#btn-share {
+  width: 42px;
+  padding: 0 !important;
 }
 
 .btn-secondary:hover,
@@ -117,22 +218,57 @@
   background: var(--sp-profile-accent-soft) !important;
 }
 
-/* Identity chips, headings and authored profile content. */
-.meta-category {
-  color: var(--sp-profile-accent-strong) !important;
-  background: var(--sp-profile-accent-soft) !important;
+/* --------------------------------------------------------------------------
+   Page rhythm and card hierarchy
+   -------------------------------------------------------------------------- */
+
+.sp-page {
+  padding-top: 1.4rem !important;
+  padding-bottom: 4rem !important;
+}
+
+.sp-page-grid {
+  gap: 1.75rem !important;
+}
+
+.sp-page-main {
+  gap: 1.1rem !important;
+}
+
+.sp-card,
+.sp-trust-card,
+.sp-details-card,
+.supplier-package-card-v2 {
   border-color: var(--sp-profile-accent-border) !important;
 }
 
-.meta-item svg,
-.sp-card-title svg,
-.sp-gallery-empty__icon,
-.sp-trust-icon {
-  color: var(--sp-profile-accent-strong) !important;
+.sp-card {
+  box-shadow:
+    0 1px 3px rgba(15, 23, 42, 0.05),
+    0 10px 30px rgba(15, 23, 42, 0.045) !important;
 }
 
 .sp-card-title {
+  font-size: 0.9rem !important;
   border-bottom-color: var(--sp-profile-accent-subtle) !important;
+  padding-bottom: 0.8rem !important;
+  margin-bottom: 1rem !important;
+}
+
+.sp-card-title svg {
+  width: 18px;
+  height: 18px;
+  padding: 3px;
+  border-radius: 6px;
+  background: var(--sp-profile-accent-soft);
+  box-sizing: content-box;
+}
+
+.sp-about__description {
+  max-width: 82ch;
+  font-size: 0.9rem !important;
+  line-height: 1.78 !important;
+  color: #344054 !important;
 }
 
 .sp-about__toggle,
@@ -142,13 +278,24 @@
   color: var(--sp-profile-accent-strong) !important;
 }
 
-.sp-highlights {
+.sp-about__toggle {
+  min-height: 38px;
+  padding: 0.45rem 0.15rem !important;
+}
+
+.sp-highlights,
+.sp-stats {
   background: linear-gradient(
     135deg,
     var(--sp-profile-accent-soft),
     var(--sp-profile-accent-subtle)
   ) !important;
   border-color: var(--sp-profile-accent-border) !important;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.035);
+}
+
+.sp-highlights {
+  padding: 1.05rem 1.35rem !important;
 }
 
 .sp-highlights__title,
@@ -157,21 +304,20 @@
 }
 
 .sp-highlight-check {
+  width: 20px;
+  height: 20px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 50%;
   color: var(--sp-profile-accent-strong) !important;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: inset 0 0 0 1px var(--sp-profile-accent-border);
 }
 
 .sp-service-tag {
+  min-height: 30px;
   color: var(--sp-profile-accent-strong) !important;
   background: var(--sp-profile-accent-soft) !important;
-  border-color: var(--sp-profile-accent-border) !important;
-}
-
-.sp-stats {
-  background: linear-gradient(
-    135deg,
-    var(--sp-profile-accent-soft),
-    var(--sp-profile-accent-subtle)
-  ) !important;
   border-color: var(--sp-profile-accent-border) !important;
 }
 
@@ -189,17 +335,99 @@
   background-clip: text !important;
 }
 
-/* Sidebar support cards remain neutral but inherit a restrained border accent. */
-.sp-trust-card,
-.sp-details-card,
-.sp-card,
-.supplier-package-card-v2 {
-  border-color: var(--sp-profile-accent-border) !important;
+/* --------------------------------------------------------------------------
+   Sidebar
+   -------------------------------------------------------------------------- */
+
+.sp-aside-sticky {
+  gap: 0.8rem !important;
 }
 
-/* Packages use the supplier accent without changing neutral card surfaces. */
+.sp-cta-card {
+  border: 0 !important;
+  padding: 1.35rem !important;
+}
+
+.sp-cta-card__title {
+  font-size: 1.2rem !important;
+  margin-bottom: 0.9rem !important;
+}
+
+.sp-cta-btn--primary {
+  min-height: 44px;
+}
+
+.sp-cta-card__note {
+  max-width: 28ch;
+  margin-inline: auto !important;
+  line-height: 1.45 !important;
+}
+
+.sp-trust-card,
+.sp-details-card {
+  background: #ffffff !important;
+  box-shadow:
+    0 1px 3px rgba(15, 23, 42, 0.05),
+    0 8px 24px rgba(15, 23, 42, 0.04) !important;
+}
+
+.sp-trust-card {
+  border-left: 3px solid #10b981 !important;
+}
+
+.sp-details-card {
+  border-left: 3px solid var(--sp-profile-accent) !important;
+}
+
+.sp-detail-row {
+  grid-template-columns: 1.4rem minmax(76px, 0.75fr) minmax(0, 1fr) !important;
+  gap: 0.55rem !important;
+  padding: 0.55rem 0 !important;
+  border-bottom-color: #eef2f6 !important;
+}
+
+.sp-detail-row__icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  display: inline-grid !important;
+  place-items: center;
+  color: var(--sp-profile-accent-strong);
+}
+
+.sp-detail-row__icon svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.sp-detail-row__label {
+  white-space: nowrap;
+}
+
+.sp-detail-row__value {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* --------------------------------------------------------------------------
+   Packages, reviews and gallery
+   -------------------------------------------------------------------------- */
+
+.supplier-package-card-v2 {
+  box-shadow:
+    0 1px 3px rgba(15, 23, 42, 0.05),
+    0 9px 24px rgba(15, 23, 42, 0.045) !important;
+}
+
 .supplier-package-card-v2:hover {
-  box-shadow: 0 8px 28px var(--sp-profile-accent-shadow), 0 2px 8px rgba(0, 0, 0, 0.07) !important;
+  transform: translateY(-4px) !important;
+  box-shadow:
+    0 12px 34px var(--sp-profile-accent-shadow),
+    0 3px 10px rgba(15, 23, 42, 0.08) !important;
 }
 
 .supplier-package-card-v2__price {
@@ -227,7 +455,6 @@
   color: var(--sp-profile-on-strong) !important;
 }
 
-/* Reviews inherit the supplier identity; rating stars remain semantic gold. */
 .review-summary {
   background: linear-gradient(
     135deg,
@@ -243,7 +470,15 @@
   color: var(--sp-profile-on-strong) !important;
 }
 
-/* A single, visible keyboard focus language across themed controls. */
+.sp-gallery__featured,
+.sp-gallery__thumb {
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.15);
+}
+
+/* --------------------------------------------------------------------------
+   Focus, responsive behaviour and motion
+   -------------------------------------------------------------------------- */
+
 #btn-enquiry:focus-visible,
 #btn-call:focus-visible,
 #btn-save:focus-visible,
@@ -258,6 +493,110 @@
   outline-offset: 3px !important;
 }
 
-/* Platform and semantic colours are intentionally not themed:
- * social-network controls, rating stars, verification, warning and error badges.
- */
+@media (max-width: 960px) {
+  :root {
+    --sp-avatar-size: 96px;
+    --sp-profile-identity-gap: 1rem;
+  }
+
+  .hero-content {
+    grid-template-columns: minmax(0, 1fr) !important;
+    align-items: start !important;
+    gap: 0.9rem !important;
+  }
+
+  .hero-actions {
+    justify-self: start;
+  }
+}
+
+@media (max-width: 680px) {
+  :root {
+    --sp-avatar-size: 82px;
+    --sp-profile-identity-gap: 0.8rem;
+  }
+
+  .hero-avatar-wrap {
+    top: calc(var(--sp-hero-height-mobile) + 0.9rem) !important;
+    padding-inline: 1rem !important;
+  }
+
+  .hero-avatar {
+    border-width: 4px !important;
+    font-size: 1.5rem !important;
+  }
+
+  .hero-content {
+    min-height: calc(var(--sp-avatar-size) + 1.8rem);
+    padding:
+      0.9rem
+      1rem
+      1.2rem
+      calc(1rem + var(--sp-avatar-size) + var(--sp-profile-identity-gap)) !important;
+  }
+
+  .hero-content h1 {
+    font-size: clamp(1.45rem, 7vw, 1.85rem) !important;
+  }
+
+  .supplier-tagline {
+    font-size: 0.84rem !important;
+  }
+
+  .hero-actions {
+    grid-column: 1 / -1;
+    width: calc(100vw - 2rem);
+    margin-left: calc(-1 * (var(--sp-avatar-size) + var(--sp-profile-identity-gap)));
+    grid-template-columns: minmax(0, 1fr) 42px 42px !important;
+  }
+
+  .sp-page {
+    padding-top: 1rem !important;
+  }
+
+  .sp-highlights__grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .sp-detail-row {
+    grid-template-columns: 1.35rem minmax(72px, 0.7fr) minmax(0, 1fr) !important;
+  }
+}
+
+@media (max-width: 420px) {
+  :root {
+    --sp-avatar-size: 74px;
+    --sp-profile-identity-gap: 0.65rem;
+  }
+
+  .hero-content {
+    padding-left: calc(0.8rem + var(--sp-avatar-size) + var(--sp-profile-identity-gap)) !important;
+    padding-right: 0.8rem !important;
+  }
+
+  .hero-avatar-wrap {
+    padding-inline: 0.8rem !important;
+  }
+
+  .hero-actions {
+    width: calc(100vw - 1.6rem);
+  }
+
+  .meta-item {
+    font-size: 0.75rem !important;
+    padding-inline: 0.6rem !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-avatar,
+  .supplier-package-card-v2,
+  #btn-enquiry,
+  #btn-save,
+  #btn-share {
+    transition: none !important;
+  }
+}
+
+/* Social-network colours, rating stars, verification, warnings and errors are
+ * deliberately left to their established semantic or platform palettes. */
