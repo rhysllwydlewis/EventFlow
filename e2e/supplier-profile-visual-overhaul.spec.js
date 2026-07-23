@@ -34,7 +34,7 @@ function makeSupplier(overrides = {}) {
 }
 
 async function mockSupplierProfile(page, supplier) {
-  await page.route(`**/supplier/${TEST_ID}`, route =>
+  await page.route(`**/supplier/${TEST_ID}*`, route =>
     route.fulfill({ status: 200, contentType: 'text/html', body: supplierHtml })
   );
 
@@ -107,7 +107,7 @@ async function mockSupplierProfile(page, supplier) {
 
 async function openProfile(page, supplier) {
   await mockSupplierProfile(page, supplier);
-  await page.goto(`/supplier/${TEST_ID}`);
+  await page.goto(`/supplier/${TEST_ID}?id=${TEST_ID}`);
   await expect(page.locator('#hero-title')).toHaveText(supplier.name);
   await expect(page.locator('html')).toHaveAttribute('data-sp-theme-ready', 'true');
   await expect(page.locator('#hero-avatar')).toHaveAttribute('data-avatar-status', 'loaded');
