@@ -686,9 +686,7 @@
 
     try {
       const avatarUrl = getAvatarUrl();
-      const notificationBadgeUrl = getAssetUrl(
-        'assets/images/jadeassist-notification-badge.png'
-      );
+      const notificationBadgeUrl = getAssetUrl('assets/images/jadeassist-notification-badge.png');
       const closeButtonUrl = getAssetUrl('assets/images/jadeassist-close-button.png');
       widgetAvatarUrl = avatarUrl; // Make available to showTeaser() for avatar display
 

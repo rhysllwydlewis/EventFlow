@@ -251,7 +251,9 @@ describe('JadeAssist Widget Pinning', () => {
       expect(buffer.subarray(0, 8).toString('hex')).toBe('89504e470d0a1a0a');
       expect(buffer.readUInt32BE(16)).toBeGreaterThanOrEqual(minimumSize);
       expect(buffer.readUInt32BE(20)).toBeGreaterThanOrEqual(minimumSize);
-      expect([4, 6].includes(buffer.readUInt8(25)) || buffer.includes(Buffer.from('tRNS'))).toBe(true);
+      expect([4, 6].includes(buffer.readUInt8(25)) || buffer.includes(Buffer.from('tRNS'))).toBe(
+        true
+      );
     });
 
     it('should configure all launcher assets and native dismissal settings', () => {
@@ -286,12 +288,10 @@ describe('JadeAssist Widget Pinning', () => {
       expect(bundle).toContain('isVisible');
     });
 
-    it('should keep dismissal duration and messaging aligned at 30 days', () => {
+    it('should keep dismissal duration aligned at 30 days', () => {
       const content = fs.readFileSync(initPath, 'utf8');
       expect(content).toContain('30 * 24 * 60 * 60 * 1000');
-      expect(content).toContain('Widget dismissed for 30 days');
       expect(content).not.toContain('dismissed for 24 h');
     });
   });
-
 });

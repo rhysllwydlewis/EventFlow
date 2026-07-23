@@ -100,9 +100,7 @@ describe('JadeAssist native launcher behaviour', () => {
     expect(root.getAttribute('aria-hidden')).toBe('true');
     expect(dom.window.JadeWidget.isVisible()).toBe(false);
     expect(Number(dom.window.localStorage.getItem(dismissalKey))).toBeGreaterThan(0);
-    expect(dismissalEvent).toEqual(
-      expect.objectContaining({ source: 'launcher-close-button' })
-    );
+    expect(dismissalEvent).toEqual(expect.objectContaining({ source: 'launcher-close-button' }));
 
     dom.window.JadeWidget.show();
     await wait(20);
