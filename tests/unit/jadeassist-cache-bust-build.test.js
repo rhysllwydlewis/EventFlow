@@ -12,7 +12,7 @@ const polishScriptPath = path.join(
   'js',
   'jadeassist-launcher-polish.js'
 );
-const expectedVersion = '20260723-2';
+const expectedVersion = '20260723-3';
 
 function expectOrderedScripts(html) {
   const vendorIndex = html.indexOf('/assets/js/vendor/jade-widget.js');
@@ -104,5 +104,8 @@ describe('JadeAssist production asset delivery', () => {
     expect(polishScript).toContain('eventflow-jade-launcher-float');
     expect(polishScript).toContain('DEFAULT_DISMISS_DURATION_MS = 24 * 60 * 60 * 1000');
     expect(polishScript).toContain("aria-label', 'Close JadeAssist assistant'");
+    expect(polishScript).toContain("DOCUMENT_STYLE_ID = 'eventflow-jadeassist-launcher-host-state'");
+    expect(polishScript).toContain('${ROOT_SELECTOR}[hidden]');
+    expect(polishScript).toContain('display: none !important');
   });
 });
