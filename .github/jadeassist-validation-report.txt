@@ -1,0 +1,10 @@
+JadeAssist focused validation
+commit=5a6e605d05d0aa815bc3392fb8bb08354a4558fb
+finalize=0
+sync=0
+bundle_markers=0
+syntax=0
+install=0
+prettier_write=0
+focused_tests=1
+prettier_check=0
