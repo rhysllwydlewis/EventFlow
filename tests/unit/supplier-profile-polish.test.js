@@ -65,42 +65,48 @@ describe('supplier profile theme consistency', () => {
   test('loads preserved polish before the cache-busted theme layer', () => {
     expect(profileThemeJs).toContain("export * from './supplier-profile-polish-base.js'");
     expect(profileThemeJs).toContain('/assets/css/supplier-profile-polish.css?v=19.4.1');
-    expect(profileThemeJs).toContain('/assets/css/supplier-profile-theme.css?v=19.5.0');
+    expect(profileThemeJs).toContain('/assets/css/supplier-profile-theme.css?v=20.0.0');
     expect(profileThemeJs.indexOf('PROFILE_POLISH_STYLESHEET_ID')).toBeLessThan(
       profileThemeJs.indexOf('PROFILE_THEME_STYLESHEET_ID')
     );
   });
 
-  test('feeds the existing profile tokens from the supplier accent', () => {
+  test('feeds the existing profile tokens from the resolved supplier accent', () => {
     expect(profileThemeCss).toContain('--sp-profile-accent: #0b8073');
     expect(profileThemeCss).toContain('--sp-primary: var(--sp-profile-accent-strong)');
     expect(profileThemeCss).toContain('--sp-card-border: var(--sp-profile-accent-border)');
+    expect(profileThemeJs).toContain("source: 'heroPreset'");
+    expect(profileThemeJs).toContain("source: 'category'");
   });
 
-  test('makes the saved supplier accent authoritative for colour-only heroes', () => {
-    expect(profileThemeCss).toMatch(/\.hero-media\.sp-hero-media--fallback\s*\{/);
-    expect(profileThemeCss).toContain('var(--sp-profile-accent) 52%');
-    expect(profileThemeCss).toContain('background-image: linear-gradient(');
+  test('themes only the colour fallback and preserves explicit hero presets', () => {
+    expect(profileThemeCss).toContain("html[data-sp-hero-mode='theme']");
+    expect(profileThemeCss).toContain('.sp-hero-use-accent');
+    expect(profileThemeJs).toContain("return 'preset'");
+    expect(profileThemeJs).toContain("heroMode === 'theme'");
   });
 
-  test('uses a contrast-safe derived colour for solid CTA surfaces', () => {
-    expect(profileThemeCss).toContain('var(--sp-profile-accent) 40%');
-    expect(profileThemeCss).toContain('#0b1220');
+  test('derives a contrast-safe colour for solid CTA surfaces', () => {
+    expect(profileThemeJs).toContain('strong: mixHex(accent, INK, 0.4)');
+    expect(profileThemeJs).toContain("'--sp-profile-accent-strong': palette.strong");
     expect(profileThemeCss).toMatch(/#btn-enquiry\.btn-primary,[\s\S]*\.sp-cta-card/);
     expect(profileThemeCss).toContain('color: var(--sp-profile-on-strong) !important');
   });
 
   test('propagates the accent through highlights, packages and review calls to action', () => {
-    expect(profileThemeCss).toMatch(/\.sp-highlights\s*\{/);
+    expect(profileThemeCss).toMatch(/\.sp-highlights\s*,/);
     expect(profileThemeCss).toMatch(/\.sp-service-tag\s*\{/);
     expect(profileThemeCss).toMatch(/\.supplier-package-card-v2__action--details\s*\{/);
     expect(profileThemeCss).toMatch(/\.review-summary\s*\{/);
     expect(profileThemeCss).toMatch(/\.sp-reviews-widget--empty \.btn-write-review/);
   });
 
-  test('does not override social-network or rating-star semantic colours', () => {
+  test('keeps social, rating and trust colours semantic', () => {
     expect(profileThemeCss).not.toContain('.sp-social-link--facebook');
-    expect(profileThemeCss).not.toContain('.meta-rating .star-icon');
+    expect(profileThemeCss).toContain('.meta-rating .star-icon');
+    expect(profileThemeCss).toContain('color: #f59e0b !important');
+    expect(profileThemeCss).toContain('.sp-trust-icon');
+    expect(profileThemeCss).toContain('color: #059669 !important');
     expect(profileThemeCss).not.toContain('.badge-verified');
   });
 });
