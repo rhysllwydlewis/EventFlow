@@ -4,13 +4,17 @@ on:
   push:
     branches:
       - feature/jadeassist-launcher-assets
+  pull_request:
+    branches:
+      - main
+    types: [opened, synchronize, reopened, ready_for_review]
 
 permissions:
   contents: write
 
 jobs:
   finalize:
-    if: github.actor != 'github-actions[bot]'
+    if: github.event_name == 'pull_request' || github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout feature branch
@@ -58,6 +62,7 @@ jobs:
           JWT_SECRET: test-secret-for-jest-min-32-characters-long
 
       - name: Commit verified integration
+        if: github.event_name == 'push'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
