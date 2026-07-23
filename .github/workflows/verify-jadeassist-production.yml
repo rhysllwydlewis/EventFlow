@@ -1,0 +1,214 @@
+name: Verify JadeAssist production close button
+
+on:
+  push:
+    branches:
+      - verify/jadeassist-close-button-production
+
+permissions:
+  contents: read
+
+jobs:
+  verify-production:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout verification branch
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.node-version'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Wait for the merged production image
+        shell: bash
+        run: |
+          set -euo pipefail
+          deployed=false
+          for attempt in $(seq 1 80); do
+            verify_url="https://event-flow.co.uk/?jade-production-verify=${GITHUB_RUN_ID}-${attempt}"
+            html="$(curl --fail --silent --show-error --location \
+              --header 'Cache-Control: no-cache' \
+              --header 'Pragma: no-cache' \
+              "$verify_url")"
+
+            if grep -Fq '/assets/js/vendor/jade-widget.js?v=20260723-1' <<<"$html" && \
+               grep -Fq '/assets/js/jadeassist-init.v2.js?v=20260723-1' <<<"$html"; then
+              deployed=true
+              echo "Versioned JadeAssist scripts are live after attempt ${attempt}."
+              break
+            fi
+
+            echo "Deployment has not exposed the versioned scripts yet (attempt ${attempt}/80)."
+            sleep 15
+          done
+
+          if [[ "$deployed" != true ]]; then
+            echo 'Timed out waiting for the production deployment.' >&2
+            exit 1
+          fi
+
+      - name: Verify deployed widget bundle and close asset
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location \
+            'https://event-flow.co.uk/assets/js/vendor/jade-widget.js?v=20260723-1' \
+            --output /tmp/jade-widget.js
+          curl --fail --silent --show-error --location \
+            'https://event-flow.co.uk/assets/images/jadeassist-close-button.png?v=20260723-1' \
+            --output /tmp/jadeassist-close-button.png
+
+          grep -Fq 'jade-launcher-dismiss' /tmp/jade-widget.js
+          grep -Fq 'launcher-close-button' /tmp/jade-widget.js
+
+          node <<'NODE'
+          const fs = require('fs');
+          const png = fs.readFileSync('/tmp/jadeassist-close-button.png');
+          if (png.length < 100 || png.subarray(0, 8).toString('hex') !== '89504e470d0a1a0a') {
+            throw new Error('The deployed close-button asset is not a valid PNG.');
+          }
+          console.log(`Verified deployed close-button PNG (${png.length} bytes).`);
+          NODE
+
+      - name: Verify close-button rendering and behaviour in Chromium
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const assert = require('assert/strict');
+          const { chromium } = require('@playwright/test');
+
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            const context = await browser.newContext({
+              viewport: { width: 1440, height: 1000 },
+              deviceScaleFactor: 1,
+            });
+
+            const consent = encodeURIComponent(
+              JSON.stringify({ v: 1, essential: true, functional: true, analytics: false })
+            );
+            await context.addCookies([
+              {
+                name: 'eventflow_cookie_consent',
+                value: consent,
+                domain: 'event-flow.co.uk',
+                path: '/',
+                secure: true,
+                sameSite: 'Lax',
+              },
+            ]);
+
+            const page = await context.newPage();
+            page.on('console', message => console.log(`[browser:${message.type()}] ${message.text()}`));
+            page.on('pageerror', error => console.error(`[browser:error] ${error.message}`));
+
+            await page.addInitScript(() => {
+              localStorage.removeItem('jadeassist_dismissed_at');
+              localStorage.removeItem('jade-widget-launcher-dismissed-at');
+              localStorage.removeItem('jadeassist-teaser-dismissed');
+            });
+
+            await page.goto(
+              `https://event-flow.co.uk/?jade-debug&production-verify=${Date.now()}`,
+              { waitUntil: 'domcontentloaded', timeout: 120000 }
+            );
+
+            await page.waitForFunction(
+              () => {
+                const root = document.querySelector('.jade-widget-root');
+                return Boolean(
+                  window.JadeWidget &&
+                    root &&
+                    !root.hidden &&
+                    root.shadowRoot?.querySelector('.jade-launcher-dismiss')
+                );
+              },
+              null,
+              { timeout: 45000 }
+            );
+
+            const rendered = await page.evaluate(() => {
+              const root = document.querySelector('.jade-widget-root');
+              const button = root.shadowRoot.querySelector('.jade-launcher-dismiss');
+              const image = button.querySelector('.jade-launcher-dismiss-asset');
+              const rect = button.getBoundingClientRect();
+              return {
+                rootHidden: root.hidden,
+                ariaLabel: button.getAttribute('aria-label'),
+                buttonWidth: rect.width,
+                buttonHeight: rect.height,
+                imageSrc: image?.src || '',
+                imageComplete: Boolean(image?.complete),
+                imageNaturalWidth: image?.naturalWidth || 0,
+              };
+            });
+
+            assert.equal(rendered.rootHidden, false);
+            assert.match(rendered.ariaLabel, /^Hide Jade/);
+            assert.equal(rendered.buttonWidth, 30);
+            assert.equal(rendered.buttonHeight, 30);
+            assert.match(rendered.imageSrc, /jadeassist-close-button\.png/);
+            assert.equal(rendered.imageComplete, true);
+            assert.ok(rendered.imageNaturalWidth > 0, 'close-button image should be decoded');
+
+            await page.screenshot({
+              path: 'jadeassist-production-close-button.png',
+              fullPage: false,
+            });
+
+            await page.evaluate(() => {
+              const root = document.querySelector('.jade-widget-root');
+              root.shadowRoot.querySelector('.jade-launcher-dismiss').click();
+            });
+            await page.waitForFunction(
+              () => document.querySelector('.jade-widget-root')?.hidden === true,
+              null,
+              { timeout: 5000 }
+            );
+
+            const dismissedAt = await page.evaluate(() =>
+              localStorage.getItem('jadeassist_dismissed_at')
+            );
+            assert.ok(Number(dismissedAt) > 0, 'dismissal timestamp should be persisted');
+
+            await page.evaluate(() => window.JadeWidget.show());
+            await page.waitForFunction(
+              () => {
+                const root = document.querySelector('.jade-widget-root');
+                return Boolean(
+                  root &&
+                    !root.hidden &&
+                    root.shadowRoot?.querySelector('.jade-launcher-dismiss')
+                );
+              },
+              null,
+              { timeout: 5000 }
+            );
+
+            console.log('Production JadeAssist close button rendered, dismissed and restored successfully.');
+            await browser.close();
+          })().catch(error => {
+            console.error(error);
+            process.exitCode = 1;
+          });
+          NODE
+
+      - name: Upload production verification screenshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jadeassist-production-close-button
+          path: jadeassist-production-close-button.png
+          if-no-files-found: warn
+          retention-days: 7
