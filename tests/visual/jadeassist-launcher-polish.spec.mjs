@@ -27,7 +27,7 @@ const HARNESS_HTML = `<!doctype html>
     </main>
     <script src="/assets/js/vendor/jade-widget.js"></script>
     <script>
-      window.JADEASSIST_CONFIG = { launcherDismissDurationMs: 60 * 60 * 1000 };
+      window.JADEASSIST_CONFIG = { launcherDismissDurationMs: 0 };
     </script>
     <script src="/assets/js/jadeassist-launcher-polish.js"></script>
     <script>
@@ -161,7 +161,9 @@ test.describe('JadeAssist launcher polish', () => {
       });
   });
 
-  test('hides the complete launcher and expires the configured dismissal', async ({ page }) => {
+  test('hides the complete launcher for the current page and restores it on reload', async ({
+    page,
+  }) => {
     await page.evaluate(() => {
       const root = document.querySelector('.jade-widget-root');
       root.shadowRoot.querySelector('.jade-launcher-dismiss').click();
@@ -194,12 +196,8 @@ test.describe('JadeAssist launcher polish', () => {
         avatarHeight: 0,
       });
 
-    const storedTimestamp = await page.evaluate(key => Number(localStorage.getItem(key)), DISMISSAL_KEY);
-    expect(storedTimestamp).toBeGreaterThan(0);
-
-    await page.evaluate(key => {
-      localStorage.setItem(key, String(Date.now() - 2 * 60 * 60 * 1000));
-    }, DISMISSAL_KEY);
+    const storedDismissal = await page.evaluate(key => localStorage.getItem(key), DISMISSAL_KEY);
+    expect(storedDismissal).toBeNull();
 
     await page.reload({ waitUntil: 'domcontentloaded' });
     await waitForPolishedLauncher(page);
@@ -225,5 +223,34 @@ test.describe('JadeAssist launcher polish', () => {
       return root.shadowRoot.querySelector('.jade-avatar-button').getBoundingClientRect().width;
     });
     expect(restoredAvatarWidth).toBeGreaterThan(0);
+  });
+
+  test('clears a previously persisted dismissal during startup', async ({ page }) => {
+    await page.evaluate(key => {
+      localStorage.setItem(key, String(Date.now()));
+    }, DISMISSAL_KEY);
+
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await waitForPolishedLauncher(page);
+
+    await expect
+      .poll(() =>
+        page.evaluate(key => {
+          const root = document.querySelector('.jade-widget-root');
+          const avatar = root.shadowRoot.querySelector('.jade-avatar-button');
+          return {
+            dismissal: localStorage.getItem(key),
+            display: getComputedStyle(root).display,
+            avatarWidth: avatar.getBoundingClientRect().width,
+          };
+        }, DISMISSAL_KEY)
+      )
+      .toMatchObject({ dismissal: null, display: 'block' });
+
+    const avatarWidth = await page.evaluate(() => {
+      const root = document.querySelector('.jade-widget-root');
+      return root.shadowRoot.querySelector('.jade-avatar-button').getBoundingClientRect().width;
+    });
+    expect(avatarWidth).toBeGreaterThan(0);
   });
 });
