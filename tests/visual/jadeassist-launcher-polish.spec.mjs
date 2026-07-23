@@ -161,25 +161,38 @@ test.describe('JadeAssist launcher polish', () => {
       });
   });
 
-  test('uses the configured one-hour dismissal instead of the former 30-day lockout', async ({
-    page,
-  }) => {
+  test('hides the complete launcher and expires the configured dismissal', async ({ page }) => {
     await page.evaluate(() => {
       const root = document.querySelector('.jade-widget-root');
       root.shadowRoot.querySelector('.jade-launcher-dismiss').click();
     });
 
+    await expect(page.locator('.jade-widget-root')).toBeHidden();
     await expect
       .poll(() =>
         page.evaluate(() => {
           const root = document.querySelector('.jade-widget-root');
+          const avatar = root.shadowRoot.querySelector('.jade-avatar-button');
+          const avatarRect = avatar.getBoundingClientRect();
+          const style = getComputedStyle(root);
           return {
             hidden: root.hidden,
-            stored: Number(localStorage.getItem('jadeassist-polish-browser-test-dismissed-at')),
+            ariaHidden: root.getAttribute('aria-hidden'),
+            display: style.display,
+            visibility: style.visibility,
+            avatarWidth: avatarRect.width,
+            avatarHeight: avatarRect.height,
           };
         })
       )
-      .toMatchObject({ hidden: true });
+      .toEqual({
+        hidden: true,
+        ariaHidden: 'true',
+        display: 'none',
+        visibility: 'hidden',
+        avatarWidth: 0,
+        avatarHeight: 0,
+      });
 
     const storedTimestamp = await page.evaluate(key => Number(localStorage.getItem(key)), DISMISSAL_KEY);
     expect(storedTimestamp).toBeGreaterThan(0);
@@ -190,17 +203,28 @@ test.describe('JadeAssist launcher polish', () => {
 
     await page.reload({ waitUntil: 'domcontentloaded' });
     await waitForPolishedLauncher(page);
+    await expect(page.locator('.jade-widget-root')).toBeVisible();
 
     await expect
       .poll(() =>
         page.evaluate(() => {
           const root = document.querySelector('.jade-widget-root');
+          const avatar = root.shadowRoot.querySelector('.jade-avatar-button');
           return {
             hidden: root.hidden,
+            ariaHidden: root.getAttribute('aria-hidden'),
+            visible: getComputedStyle(root).display !== 'none',
+            avatarWidth: avatar.getBoundingClientRect().width,
             dismissal: localStorage.getItem('jadeassist-polish-browser-test-dismissed-at'),
           };
         })
       )
-      .toEqual({ hidden: false, dismissal: null });
+      .toMatchObject({ hidden: false, ariaHidden: null, visible: true, dismissal: null });
+
+    const restoredAvatarWidth = await page.evaluate(() => {
+      const root = document.querySelector('.jade-widget-root');
+      return root.shadowRoot.querySelector('.jade-avatar-button').getBoundingClientRect().width;
+    });
+    expect(restoredAvatarWidth).toBeGreaterThan(0);
   });
 });
