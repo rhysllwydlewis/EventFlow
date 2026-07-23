@@ -1,0 +1,263 @@
+/*
+ * Supplier-owned accent system for the public profile.
+ *
+ * EventFlow continues to own navigation, typography, neutral surfaces and
+ * semantic colours. The supplier's saved themeColor controls only the profile
+ * identity, calls to action and decorative accents.
+ */
+:root {
+  --sp-profile-accent: #0b8073;
+  --sp-profile-accent-strong: #075e56;
+  --sp-profile-accent-hover: #064d47;
+  --sp-profile-accent-light: #51c5b8;
+  --sp-profile-accent-soft: #f0fdf8;
+  --sp-profile-accent-subtle: #dff7f2;
+  --sp-profile-accent-border: #a9ded5;
+  --sp-profile-accent-shadow: rgba(11, 128, 115, 0.26);
+  --sp-profile-on-strong: #ffffff;
+
+  /*
+   * The strong colour deliberately mixes no more than 40% of the supplier
+   * colour with EventFlow's dark ink. Even a white supplier colour therefore
+   * retains AA contrast with white text on the primary CTA surfaces.
+   */
+  --sp-profile-accent-strong: color-mix(
+    in srgb,
+    var(--sp-profile-accent) 40%,
+    #0b1220
+  );
+  --sp-profile-accent-hover: color-mix(
+    in srgb,
+    var(--sp-profile-accent) 32%,
+    #0b1220
+  );
+  --sp-profile-accent-light: color-mix(
+    in srgb,
+    var(--sp-profile-accent) 76%,
+    #ffffff
+  );
+  --sp-profile-accent-soft: color-mix(
+    in srgb,
+    var(--sp-profile-accent) 8%,
+    #ffffff
+  );
+  --sp-profile-accent-subtle: color-mix(
+    in srgb,
+    var(--sp-profile-accent) 15%,
+    #ffffff
+  );
+  --sp-profile-accent-border: color-mix(
+    in srgb,
+    var(--sp-profile-accent) 32%,
+    #ffffff
+  );
+  --sp-profile-accent-shadow: color-mix(
+    in srgb,
+    var(--sp-profile-accent) 28%,
+    transparent
+  );
+
+  /* Feed the existing profile design system from the supplier accent. */
+  --sp-primary: var(--sp-profile-accent-strong);
+  --sp-primary-hover: var(--sp-profile-accent-hover);
+  --sp-primary-faint: var(--sp-profile-accent-soft);
+  --sp-primary-subtle: var(--sp-profile-accent-subtle);
+  --sp-card-border: var(--sp-profile-accent-border);
+  --sp-surface-green: var(--sp-profile-accent-soft);
+}
+
+/* A deliberate supplier colour wins over automatic category gradients. */
+.hero-media.sp-hero-media--fallback {
+  background-image: linear-gradient(
+    135deg,
+    var(--sp-profile-accent-strong) 0%,
+    var(--sp-profile-accent) 52%,
+    var(--sp-profile-accent-light) 100%
+  ) !important;
+}
+
+.hero-avatar {
+  box-shadow:
+    0 4px 20px var(--sp-profile-accent-shadow),
+    0 1px 4px rgba(0, 0, 0, 0.12) !important;
+}
+
+/* Profile-owned primary actions. */
+#btn-enquiry.btn-primary,
+.sp-cta-card {
+  background: linear-gradient(
+    145deg,
+    var(--sp-profile-accent-strong),
+    var(--sp-profile-accent-hover)
+  ) !important;
+  color: var(--sp-profile-on-strong) !important;
+  box-shadow: 0 6px 22px var(--sp-profile-accent-shadow) !important;
+}
+
+#btn-enquiry.btn-primary:hover {
+  background: linear-gradient(
+    145deg,
+    var(--sp-profile-accent-hover),
+    var(--sp-profile-accent-strong)
+  ) !important;
+  color: var(--sp-profile-on-strong) !important;
+  box-shadow: 0 8px 26px var(--sp-profile-accent-shadow) !important;
+}
+
+.btn-secondary {
+  color: var(--sp-profile-accent-strong) !important;
+  border-color: var(--sp-profile-accent-border) !important;
+}
+
+.btn-secondary:hover,
+#btn-save:hover,
+#btn-share:hover {
+  color: var(--sp-profile-accent-strong) !important;
+  border-color: var(--sp-profile-accent) !important;
+  background: var(--sp-profile-accent-soft) !important;
+}
+
+/* Identity chips, headings and authored profile content. */
+.meta-category {
+  color: var(--sp-profile-accent-strong) !important;
+  background: var(--sp-profile-accent-soft) !important;
+  border-color: var(--sp-profile-accent-border) !important;
+}
+
+.meta-item svg,
+.sp-card-title svg,
+.sp-gallery-empty__icon,
+.sp-trust-icon {
+  color: var(--sp-profile-accent-strong) !important;
+}
+
+.sp-card-title {
+  border-bottom-color: var(--sp-profile-accent-subtle) !important;
+}
+
+.sp-about__toggle,
+.sp-about__meta a,
+.sp-about__website,
+.supplier-package-card-v2__link:hover {
+  color: var(--sp-profile-accent-strong) !important;
+}
+
+.sp-highlights {
+  background: linear-gradient(
+    135deg,
+    var(--sp-profile-accent-soft),
+    var(--sp-profile-accent-subtle)
+  ) !important;
+  border-color: var(--sp-profile-accent-border) !important;
+}
+
+.sp-highlights__title,
+.sp-highlight-item {
+  color: var(--sp-profile-accent-strong) !important;
+}
+
+.sp-highlight-check {
+  color: var(--sp-profile-accent-strong) !important;
+}
+
+.sp-service-tag {
+  color: var(--sp-profile-accent-strong) !important;
+  background: var(--sp-profile-accent-soft) !important;
+  border-color: var(--sp-profile-accent-border) !important;
+}
+
+.sp-stats {
+  background: linear-gradient(
+    135deg,
+    var(--sp-profile-accent-soft),
+    var(--sp-profile-accent-subtle)
+  ) !important;
+  border-color: var(--sp-profile-accent-border) !important;
+}
+
+.sp-stat + .sp-stat::before {
+  background: var(--sp-profile-accent-border) !important;
+}
+
+.sp-stat__value {
+  background: linear-gradient(
+    135deg,
+    var(--sp-profile-accent-strong),
+    var(--sp-profile-accent)
+  ) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+}
+
+/* Sidebar support cards remain neutral but inherit a restrained border accent. */
+.sp-trust-card,
+.sp-details-card,
+.sp-card,
+.supplier-package-card-v2 {
+  border-color: var(--sp-profile-accent-border) !important;
+}
+
+/* Packages use the supplier accent without changing neutral card surfaces. */
+.supplier-package-card-v2:hover {
+  box-shadow: 0 8px 28px var(--sp-profile-accent-shadow), 0 2px 8px rgba(0, 0, 0, 0.07) !important;
+}
+
+.supplier-package-card-v2__price {
+  color: var(--sp-profile-accent-strong) !important;
+}
+
+.supplier-package-card-v2__action--plan {
+  border-color: var(--sp-profile-accent-border) !important;
+  background: var(--sp-profile-accent-soft) !important;
+  color: var(--sp-profile-accent-strong) !important;
+}
+
+.supplier-package-card-v2__action--plan:hover {
+  border-color: var(--sp-profile-accent) !important;
+  background: var(--sp-profile-accent-subtle) !important;
+}
+
+.supplier-package-card-v2__action--details {
+  border-color: var(--sp-profile-accent-strong) !important;
+  color: var(--sp-profile-accent-strong) !important;
+}
+
+.supplier-package-card-v2__action--details:hover {
+  background: var(--sp-profile-accent-strong) !important;
+  color: var(--sp-profile-on-strong) !important;
+}
+
+/* Reviews inherit the supplier identity; rating stars remain semantic gold. */
+.review-summary {
+  background: linear-gradient(
+    135deg,
+    var(--sp-profile-accent-strong),
+    var(--sp-profile-accent-hover)
+  ) !important;
+}
+
+.sp-reviews-widget--empty .btn-write-review,
+.sp-reviews-widget--empty .reviews-empty__signin-cta {
+  border-color: var(--sp-profile-accent-strong) !important;
+  background: var(--sp-profile-accent-strong) !important;
+  color: var(--sp-profile-on-strong) !important;
+}
+
+/* A single, visible keyboard focus language across themed controls. */
+#btn-enquiry:focus-visible,
+#btn-call:focus-visible,
+#btn-save:focus-visible,
+#btn-share:focus-visible,
+.sp-about__toggle:focus-visible,
+.sp-cta-btn:focus-visible,
+.supplier-package-card-v2__action:focus-visible,
+.supplier-package-card-v2__link:focus-visible,
+.sp-reviews-widget--empty .btn-write-review:focus-visible,
+.sp-reviews-widget--empty .reviews-empty__signin-cta:focus-visible {
+  outline: 3px solid var(--sp-profile-accent) !important;
+  outline-offset: 3px !important;
+}
+
+/* Platform and semantic colours are intentionally not themed:
+ * social-network controls, rating stars, verification, warning and error badges.
+ */

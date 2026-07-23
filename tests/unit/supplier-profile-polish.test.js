@@ -7,8 +7,8 @@ const read = relative => fs.readFileSync(path.join(__dirname, '../..', relative)
 
 const supplierHtml = read('public/supplier.html');
 const listingCss = read('public/assets/css/suppliers-mobile-polish.css');
-const profileCss = read('public/assets/css/supplier-profile-polish-base.css');
-const profileThemeCss = read('public/assets/css/supplier-profile-polish.css');
+const profileCss = read('public/assets/css/supplier-profile-polish.css');
+const profileThemeCss = read('public/assets/css/supplier-profile-theme.css');
 const profileJs = read('public/assets/js/supplier-profile-polish-base.js');
 const profileThemeJs = read('public/assets/js/supplier-profile-polish.js');
 const packagesJs = read('public/assets/js/supplier-profile-packages-v2.js');
@@ -62,14 +62,13 @@ describe('supplier profile information polish', () => {
 });
 
 describe('supplier profile theme consistency', () => {
-  test('loads the preserved polish layer and cache-busts the themed stylesheet', () => {
+  test('loads preserved polish before the cache-busted theme layer', () => {
     expect(profileThemeJs).toContain("export * from './supplier-profile-polish-base.js'");
-    expect(profileThemeJs).toContain('/assets/css/supplier-profile-polish.css?v=19.5.0');
-    expect(
-      profileThemeCss
-        .trimStart()
-        .startsWith("@import url('./supplier-profile-polish-base.css?v=19.4.1');")
-    ).toBe(true);
+    expect(profileThemeJs).toContain('/assets/css/supplier-profile-polish.css?v=19.4.1');
+    expect(profileThemeJs).toContain('/assets/css/supplier-profile-theme.css?v=19.5.0');
+    expect(profileThemeJs.indexOf('PROFILE_POLISH_STYLESHEET_ID')).toBeLessThan(
+      profileThemeJs.indexOf('PROFILE_THEME_STYLESHEET_ID')
+    );
   });
 
   test('feeds the existing profile tokens from the supplier accent', () => {
