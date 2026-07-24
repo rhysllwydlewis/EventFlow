@@ -11,6 +11,7 @@ const profileCss = read('public/assets/css/supplier-profile-polish.css');
 const profileThemeCss = read('public/assets/css/supplier-profile-theme.css');
 const profileJs = read('public/assets/js/supplier-profile-polish-base.js');
 const profileThemeJs = read('public/assets/js/supplier-profile-polish.js');
+const publicPolishJs = read('public/assets/js/pages/supplier-profile-public-polish.js');
 const packagesJs = read('public/assets/js/supplier-profile-packages-v2.js');
 
 describe('supplier listing desktop summary placement', () => {
@@ -58,6 +59,12 @@ describe('supplier profile information polish', () => {
   test('hides generic subscription and verification groups from the wide badge section', () => {
     expect(profileJs).toContain("['subscription', 'verification'].includes(name)");
     expect(profileJs).toContain("container.classList.toggle('is-empty', !shouldShow)");
+  });
+
+  test('keeps mutation-driven response copy idempotent and preserves canonical wording', () => {
+    expect(publicPolishJs).toContain('if (note.textContent !== text)');
+    expect(publicPolishJs).toContain('if (note.dataset.derived !== derived)');
+    expect(publicPolishJs).toContain('/^typically responds\\b/i.test(currentText)');
   });
 });
 
