@@ -1,3 +1,4 @@
+import './supplier-profile-theme-owner.js';
 export * from './supplier-profile-polish-base.js';
 
 const PROFILE_POLISH_STYLESHEET_ID = 'supplier-profile-polish-styles';
@@ -215,6 +216,12 @@ function setThemeVariables(root, palette) {
   Object.entries(values).forEach(([name, value]) => root.style.setProperty(name, value));
 }
 
+function applyAvatarTheme(accent) {
+  const avatar = document.getElementById('hero-avatar');
+  if (!avatar || avatar.classList.contains('has-profile-photo')) return;
+  avatar.style.background = `linear-gradient(135deg, ${accent} 0%, ${mixHex(accent, WHITE, 0.7)} 100%)`;
+}
+
 function resolveHeroMode(supplier = {}) {
   if (supplier.bannerUrl || supplier.coverImage) {
     return 'image';
@@ -384,6 +391,7 @@ function applySupplierProfileTheme(supplier = window.__supplierData) {
   const theme = resolveSupplierTheme(supplier);
   const palette = createSupplierPalette(theme.accent);
   setThemeVariables(document.documentElement, palette);
+  applyAvatarTheme(theme.accent);
   updateHeroThemeState(supplier, theme);
   polishSidebarDetails(supplier);
   polishContactHierarchy(supplier);
