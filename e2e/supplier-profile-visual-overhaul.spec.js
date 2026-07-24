@@ -304,4 +304,43 @@ test.describe('Supplier profile visual overhaul', () => {
     expect(result.bodyCopy).toBeGreaterThanOrEqual(15);
     expect(result.paddingBottom).toBeGreaterThanOrEqual(180);
   });
+
+  test('uses a wider commercial desktop composition with balanced highlights and reviews', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1720, height: 1100 });
+    await openProfile(
+      page,
+      makeSupplier({
+        heroPreset: 'midnight',
+        highlights: [
+          '500+ five-star reviews',
+          'Hundreds of corporate events hosted',
+          'Audiences of up to 1,400',
+          'Live, virtual and hybrid experience',
+          'Trusted by global organisations',
+        ],
+      })
+    );
+
+    await expect(page.locator('#reviews-widget')).toHaveClass(/sp-reviews-widget--empty/);
+
+    const result = await page.evaluate(() => {
+      const shell = document.querySelector('.sp-page').getBoundingClientRect();
+      const hero = document.querySelector('.hero-media').getBoundingClientRect();
+      const highlights = getComputedStyle(document.querySelector('.sp-highlights__grid'));
+      const emptyReviews = document.querySelector('.reviews-empty').getBoundingClientRect();
+      return {
+        pageWidth: shell.width,
+        heroHeight: hero.height,
+        highlightColumns: highlights.gridTemplateColumns.split(' ').filter(Boolean).length,
+        emptyReviewHeight: emptyReviews.height,
+      };
+    });
+
+    expect(result.pageWidth).toBeGreaterThanOrEqual(1380);
+    expect(result.heroHeight).toBeLessThanOrEqual(160);
+    expect(result.highlightColumns).toBe(3);
+    expect(result.emptyReviewHeight).toBeLessThanOrEqual(260);
+  });
 });
