@@ -63,6 +63,6 @@ describe('supplier profile visual overhaul contracts', () => {
   });
 
   test('cache-busts the visual theme layer', () => {
-    expect(themeJs).toContain('/assets/css/supplier-profile-theme.css?v=20.0.0');
+    expect(themeJs).toContain('/assets/css/supplier-profile-theme.css?v=20.1.0');
   });
 });

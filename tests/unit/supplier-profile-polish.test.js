@@ -72,7 +72,7 @@ describe('supplier profile theme consistency', () => {
   test('loads preserved polish before the cache-busted theme layer', () => {
     expect(profileThemeJs).toContain("export * from './supplier-profile-polish-base.js'");
     expect(profileThemeJs).toContain('/assets/css/supplier-profile-polish.css?v=19.4.1');
-    expect(profileThemeJs).toContain('/assets/css/supplier-profile-theme.css?v=20.0.0');
+    expect(profileThemeJs).toContain('/assets/css/supplier-profile-theme.css?v=20.1.0');
     expect(profileThemeJs.indexOf('PROFILE_POLISH_STYLESHEET_ID')).toBeLessThan(
       profileThemeJs.indexOf('PROFILE_THEME_STYLESHEET_ID')
     );

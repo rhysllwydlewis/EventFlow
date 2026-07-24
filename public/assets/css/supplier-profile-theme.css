@@ -693,7 +693,7 @@ html[data-sp-hero-mode='theme'] {
 .sp-contact-summary__value,
 .sp-detail-row,
 .sp-highlight-item {
-  font-size: 0.9375rem !important;
+  font-size: 1rem !important;
 }
 
 .sp-card-title {
