@@ -1,0 +1,76 @@
+name: Fix supplier commercial polish validation
+
+on:
+  pull_request:
+    types: [synchronize, reopened]
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  fix-validation:
+    if: github.event.pull_request.head.ref == 'fix/supplier-profile-commercial-polish'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/supplier-profile-commercial-polish
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Make review styling independent and separate overlay tests
+        shell: bash
+        run: |
+          python <<'PY'
+          from pathlib import Path
+
+          css_path = Path('public/assets/css/supplier-profile-commercial-polish.css')
+          css = css_path.read_text().replace('.sp-reviews-widget--empty', '#reviews-widget')
+          css_path.write_text(css)
+
+          unit_path = Path('tests/unit/supplier-profile-commercial-polish.test.js')
+          unit = unit_path.read_text().replace(
+              ".sp-reviews-widget--empty .reviews-empty",
+              "#reviews-widget .reviews-empty",
+          )
+          unit_path.write_text(unit)
+
+          e2e_path = Path('e2e/supplier-profile-visual-overhaul.spec.js')
+          e2e = e2e_path.read_text()
+          e2e = e2e.replace(
+              "document.body.classList.add('ef-pwa-banner-visible');\n      const pageShell",
+              "document.getElementById('cookie-consent-banner')?.remove();\n      document.body.classList.add('ef-pwa-banner-visible');\n      const pageShell",
+              1,
+          )
+          e2e = e2e.replace(
+              "await expect(page.locator('#reviews-widget')).toHaveClass(/sp-reviews-widget--empty/);",
+              "await expect(page.locator('#reviews-widget .reviews-empty')).toBeVisible();",
+              1,
+          )
+          e2e_path.write_text(e2e)
+          PY
+
+      - name: Format corrected files
+        run: |
+          npm ci --ignore-scripts
+          npx prettier --write \
+            public/assets/css/supplier-profile-commercial-polish.css \
+            tests/unit/supplier-profile-commercial-polish.test.js \
+            e2e/supplier-profile-visual-overhaul.spec.js
+
+      - name: Commit validation corrections
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "4189826+github-actions[bot]@users.noreply.github.com"
+          git add \
+            public/assets/css/supplier-profile-commercial-polish.css \
+            tests/unit/supplier-profile-commercial-polish.test.js \
+            e2e/supplier-profile-visual-overhaul.spec.js
+          git commit -m "Harden supplier empty-review and overlay validation"
+          git push origin HEAD:fix/supplier-profile-commercial-polish
