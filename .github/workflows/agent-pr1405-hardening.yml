@@ -1,0 +1,88 @@
+name: Agent PR 1405 Hardening
+
+on:
+  push:
+    branches:
+      - agent/supplier-profile-theme-state
+
+permissions:
+  contents: write
+
+jobs:
+  harden:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+        env:
+          HUSKY: 0
+
+      - name: Apply guarded hardening changes
+        run: python3 scripts/agent-pr1405-hardening.py
+
+      - name: Format changed JavaScript
+        shell: bash
+        run: |
+          mapfile -t files < <(
+            {
+              git diff --name-only --diff-filter=ACMR origin/main...HEAD -- '*.js'
+              git diff --name-only --diff-filter=ACMR -- '*.js'
+              git ls-files --others --exclude-standard -- '*.js'
+            } | sort -u
+          )
+          if (( ${#files[@]} > 0 )); then
+            npx prettier --write "${files[@]}"
+          fi
+
+      - name: Run focused regression tests
+        run: >-
+          npx jest --runInBand --coverage=false
+          tests/unit/supplier-theme.test.js
+          tests/unit/supplier-profile-theme-owner.test.js
+          tests/unit/supplier-profile-visual-overhaul.test.js
+          tests/unit/supplier-public-profile.test.js
+          tests/unit/supplier-profile-photo-lightbox.test.js
+          tests/unit/public-supplier-avatar.test.js
+          tests/unit/supplier-approval.test.js
+          tests/unit/supplier-duplicate-prevention.test.js
+          tests/integration/supplier-theme-route.test.js
+
+      - name: Verify repository formatting
+        run: npm run format:check
+
+      - name: Commit audited changes
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            public/assets/js/public-supplier-avatar.js \
+            public/assets/js/supplier-profile.js \
+            public/assets/js/supplier-profile-polish.js \
+            public/assets/js/supplier-profile-theme-owner.js \
+            routes/supplier-management.js \
+            utils/supplierTheme.js \
+            tests/integration/supplier-theme-route.test.js \
+            tests/unit/public-supplier-avatar.test.js \
+            tests/unit/supplier-profile-photo-lightbox.test.js \
+            tests/unit/supplier-profile-theme-owner.test.js \
+            tests/unit/supplier-profile-visual-overhaul.test.js \
+            tests/unit/supplier-theme.test.js
+          if git diff --cached --quiet; then
+            echo "No audited changes to commit"
+          else
+            git commit -m "Audit supplier themes and add profile photo lightbox"
+            git push origin HEAD:agent/supplier-profile-theme-state
+          fi
