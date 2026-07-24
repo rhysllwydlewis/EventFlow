@@ -569,6 +569,11 @@ html[data-sp-hero-mode='theme'] .hero-media.sp-hero-media--fallback.sp-hero-use-
 /* Social, rating, verification, warning and error colours remain semantic. */
 
 /* Supplier profile layout balance v20.1 */
+html[data-sp-hero-mode='image'] {
+  --sp-hero-height: 300px;
+  --sp-hero-height-mobile: 200px;
+}
+
 html[data-sp-hero-mode='preset'],
 html[data-sp-hero-mode='category'],
 html[data-sp-hero-mode='theme'] {
@@ -577,7 +582,7 @@ html[data-sp-hero-mode='theme'] {
 }
 
 .hero-avatar-wrap {
-  top: calc(var(--sp-hero-height) - 2.25rem) !important;
+  top: calc(var(--sp-hero-height) - 1.75rem) !important;
 }
 
 .hero-content {
