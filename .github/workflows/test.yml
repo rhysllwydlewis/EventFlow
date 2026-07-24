@@ -60,6 +60,27 @@ jobs:
               '"  \'wedding planner\': \'wedding\',\\n    \'event planner\': \'wedding\',',
               '"    \'wedding planner\': \'wedding\',\\n    \'event planner\': \'wedding\',',
           )
+          needle = '''        """    avatarEl.dataset.avatarUrl = avatarUrl;
+            }
+          """,
+                  """    avatarEl.dataset.avatarUrl = avatarUrl;
+              enableAvatarLightbox(avatarEl, img, avatarUrl);
+            }
+          """,
+                  'enable loaded avatar lightbox',
+          '''
+          replacement = '''        """    avatarEl.dataset.avatarStatus = 'loaded';
+              avatarEl.dataset.avatarUrl = avatarUrl;
+            }
+          """,
+                  """    avatarEl.dataset.avatarStatus = 'loaded';
+              avatarEl.dataset.avatarUrl = avatarUrl;
+              enableAvatarLightbox(avatarEl, img, avatarUrl);
+            }
+          """,
+                  'enable loaded avatar lightbox',
+          '''
+          content = content.replace(needle, replacement)
           path.write_text(content)
           PY
 
