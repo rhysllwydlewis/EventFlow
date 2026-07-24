@@ -2,37 +2,30 @@ name: Test
 
 on:
   push:
-    branches: [main, agent/supplier-profile-theme-state]
+    branches: [main]
   pull_request:
     branches: [main]
 
+# Cancel in-progress runs when a new commit is pushed to the same branch/PR.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
-  contents: write
+  contents: read
 
 env:
   HUSKY: '0'
 
 jobs:
-  # Temporary branch-only cleanup; restored after the audited files are committed.
-  supplier-theme-lint-cleanup:
-    name: Supplier theme lint cleanup
-    if: >-
-      github.event_name == 'push' &&
-      github.ref == 'refs/heads/agent/supplier-profile-theme-state' &&
-      github.actor != 'github-actions[bot]'
+  smoke:
+    name: Smoke Tests (blocking)
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
     steps:
-      - name: Checkout branch
+      - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          ref: agent/supplier-profile-theme-state
-          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -40,81 +33,51 @@ jobs:
           node-version-file: '.node-version'
           cache: 'npm'
 
-      - name: Install dependencies
+      - name: Verify package-lock metadata
+        run: npm run check:lockfile
+
+      - name: Clean install dependencies
         run: npm ci --prefer-offline --no-audit
 
-      - name: Fix, verify and commit lint-clean files
-        shell: bash
-        run: |
-          set +e
-          : > /tmp/supplier-theme-lint-cleanup.txt
+      - name: Run smoke suites
+        run: npm run test:smoke
+        env:
+          NODE_ENV: test
+          JWT_SECRET: test-secret-for-jest-min-32-characters-long
 
-          python3 - <<'PY' >> /tmp/supplier-theme-lint-cleanup.txt 2>&1
-          from pathlib import Path
-          path = Path('tests/unit/supplier-profile-photo-lightbox.test.js')
-          content = path.read_text()
-          content = content.replace(
-              "set: value => element.setAttribute('id', value),",
-              "set: value => {\n          element.setAttribute('id', value);\n        },",
-          ).replace(
-              "set: value => element.setAttribute('src', value),",
-              "set: value => {\n          element.setAttribute('src', value);\n        },",
-          )
-          path.write_text(content)
-          PY
-          status=$?
+  # The full regression suite runs once in ci.yml and gates Build Verification.
 
-          audited_files=(
-            public/assets/js/public-supplier-avatar.js
-            public/assets/js/supplier-profile-polish.js
-            public/assets/js/supplier-profile-theme-owner.js
-            tests/unit/supplier-profile-photo-lightbox.test.js
-          )
+  mongo-replica-set-transactions:
+    name: Mongo Replica Set Transactions
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
 
-          if (( status == 0 )); then
-            npx eslint --rulesdir eslint-rules --fix "${audited_files[@]}" >> /tmp/supplier-theme-lint-cleanup.txt 2>&1
-            status=$?
-          fi
-          if (( status == 0 )); then
-            npx prettier --write "${audited_files[@]}" >> /tmp/supplier-theme-lint-cleanup.txt 2>&1
-            status=$?
-          fi
-          if (( status == 0 )); then
-            npx eslint --rulesdir eslint-rules --max-warnings=0 "${audited_files[@]}" >> /tmp/supplier-theme-lint-cleanup.txt 2>&1
-            status=$?
-          fi
-          if (( status == 0 )); then
-            npx jest --runInBand --coverage=false \
-              tests/unit/supplier-theme.test.js \
-              tests/unit/supplier-profile-theme-owner.test.js \
-              tests/unit/supplier-profile-visual-overhaul.test.js \
-              tests/unit/supplier-public-profile.test.js \
-              tests/unit/supplier-profile-photo-lightbox.test.js \
-              tests/unit/public-supplier-avatar.test.js \
-              tests/integration/supplier-theme-route.test.js \
-              >> /tmp/supplier-theme-lint-cleanup.txt 2>&1
-            status=$?
-          fi
-          if (( status == 0 )); then
-            npm run format:check >> /tmp/supplier-theme-lint-cleanup.txt 2>&1
-            status=$?
-          fi
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.node-version'
+          cache: 'npm'
 
-          if (( status != 0 )); then
-            cp /tmp/supplier-theme-lint-cleanup.txt supplier-theme-lint-cleanup.txt
-            git add -f supplier-theme-lint-cleanup.txt
-            git commit -m "Record supplier theme lint cleanup failure"
-            git push origin HEAD:agent/supplier-profile-theme-state
-            exit "$status"
-          fi
+      - name: Verify package-lock metadata
+        run: npm run check:lockfile
 
-          rm -f supplier-theme-lint-cleanup.txt
-          git add "${audited_files[@]}"
-          if git ls-files --error-unmatch supplier-theme-lint-cleanup.txt >/dev/null 2>&1; then
-            git rm supplier-theme-lint-cleanup.txt
-          fi
-          git commit -m "Clean supplier theme lint findings"
-          git push origin HEAD:agent/supplier-profile-theme-state
+      - name: Start MongoDB replica set
+        uses: supercharge/mongodb-github-action@1.12.0
+        with:
+          mongodb-version: '7.0'
+          mongodb-replica-set: rs0
+
+      - name: Clean install dependencies
+        run: npm ci --prefer-offline --no-audit
+
+      - name: Run replica-set transaction test
+        run: npx jest --runInBand --coverage=false tests/unit/messenger-v4.test.js
+        env:
+          NODE_ENV: test
+          JWT_SECRET: test-secret-for-jest-min-32-characters-long
+          MONGO_REPLICA_SET: 'true'
+          MONGODB_URI: mongodb://127.0.0.1:27017/eventflow?replicaSet=rs0
