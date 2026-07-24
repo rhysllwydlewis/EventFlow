@@ -290,6 +290,7 @@ test.describe('Supplier profile visual overhaul', () => {
     await openProfile(page, makeSupplier());
 
     const result = await page.evaluate(() => {
+      document.getElementById('cookie-consent-banner')?.remove();
       document.body.classList.add('ef-pwa-banner-visible');
       const pageShell = document.querySelector('.sp-page');
       const description = document.querySelector('.sp-about__description');
@@ -323,7 +324,7 @@ test.describe('Supplier profile visual overhaul', () => {
       })
     );
 
-    await expect(page.locator('#reviews-widget')).toHaveClass(/sp-reviews-widget--empty/);
+    await expect(page.locator('#reviews-widget .reviews-empty')).toBeVisible();
 
     const result = await page.evaluate(() => {
       const shell = document.querySelector('.sp-page').getBoundingClientRect();

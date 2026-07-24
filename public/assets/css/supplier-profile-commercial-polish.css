@@ -66,7 +66,7 @@ body.sp-profile-page .sp-highlight-check {
   margin-top: 0.05rem;
 }
 
-body.sp-profile-page .sp-reviews-widget--empty .reviews-empty {
+body.sp-profile-page #reviews-widget .reviews-empty {
   min-height: 0 !important;
   padding: 1.5rem 1.75rem !important;
   display: grid !important;
@@ -80,26 +80,26 @@ body.sp-profile-page .sp-reviews-widget--empty .reviews-empty {
   text-align: left !important;
 }
 
-body.sp-profile-page .sp-reviews-widget--empty .empty-icon {
+body.sp-profile-page #reviews-widget .empty-icon {
   grid-area: icon;
   margin: 0 !important;
   font-size: 1.5rem !important;
 }
 
-body.sp-profile-page .sp-reviews-widget--empty .empty-title {
+body.sp-profile-page #reviews-widget .empty-title {
   grid-area: title;
   margin: 0 !important;
   font-size: 1rem !important;
 }
 
-body.sp-profile-page .sp-reviews-widget--empty .empty-message {
+body.sp-profile-page #reviews-widget .empty-message {
   grid-area: message;
   margin: 0 !important;
   color: #667085 !important;
 }
 
-body.sp-profile-page .sp-reviews-widget--empty .btn-write-review,
-body.sp-profile-page .sp-reviews-widget--empty .reviews-empty__signin-cta {
+body.sp-profile-page #reviews-widget .btn-write-review,
+body.sp-profile-page #reviews-widget .reviews-empty__signin-cta {
   grid-area: action;
   margin: 0 !important;
   white-space: nowrap;
@@ -248,7 +248,7 @@ body.sp-profile-page:has(#cookie-consent-banner).ef-pwa-banner-visible .sp-page 
     grid-template-columns: 1fr !important;
   }
 
-  body.sp-profile-page .sp-reviews-widget--empty .reviews-empty {
+  body.sp-profile-page #reviews-widget .reviews-empty {
     grid-template-columns: auto minmax(0, 1fr);
     grid-template-areas:
       'icon title'
@@ -257,8 +257,8 @@ body.sp-profile-page:has(#cookie-consent-banner).ef-pwa-banner-visible .sp-page 
     padding: 1.25rem !important;
   }
 
-  body.sp-profile-page .sp-reviews-widget--empty .btn-write-review,
-  body.sp-profile-page .sp-reviews-widget--empty .reviews-empty__signin-cta {
+  body.sp-profile-page #reviews-widget .btn-write-review,
+  body.sp-profile-page #reviews-widget .reviews-empty__signin-cta {
     width: 100%;
     margin-top: 0.75rem !important;
   }

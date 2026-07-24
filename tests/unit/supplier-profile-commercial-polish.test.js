@@ -27,6 +27,6 @@ describe('supplier profile commercial polish contracts', () => {
 
   test('compacts the empty review experience', () => {
     expect(css).toContain("grid-template-areas:\n    'icon title action'");
-    expect(css).toContain('.sp-reviews-widget--empty .reviews-empty');
+    expect(css).toContain('#reviews-widget .reviews-empty');
   });
 });
