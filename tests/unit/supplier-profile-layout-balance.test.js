@@ -10,10 +10,13 @@ const themeCss = read('public/assets/css/supplier-profile-theme.css');
 
 describe('supplier profile layout balance contracts', () => {
   test('compacts fallback heroes while preserving full image heroes', () => {
+    expect(themeCss).toContain("html[data-sp-hero-mode='image']");
+    expect(themeCss).toContain('--sp-hero-height: 300px');
+    expect(themeCss).toContain('--sp-hero-height-mobile: 200px');
     expect(themeCss).toContain("html[data-sp-hero-mode='preset']");
     expect(themeCss).toContain('--sp-hero-height: 176px');
     expect(themeCss).toContain('--sp-hero-height-mobile: 148px');
-    expect(themeCss).toMatch(/\.hero-avatar-wrap\s*\{[\s\S]*var\(--sp-hero-height\) - 2\.25rem/);
+    expect(themeCss).toMatch(/\.hero-avatar-wrap\s*\{[\s\S]*var\(--sp-hero-height\) - 1\.75rem/);
   });
 
   test('moves badges into the identity and makes sidebar contact secondary', () => {
