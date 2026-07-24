@@ -17,6 +17,7 @@ env:
   HUSKY: '0'
 
 jobs:
+  # Temporary branch-only cleanup; restored after the audited files are committed.
   supplier-theme-lint-cleanup:
     name: Supplier theme lint cleanup
     if: >-
