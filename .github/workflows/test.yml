@@ -43,44 +43,61 @@ jobs:
       - name: Install dependencies
         run: npm ci --prefer-offline --no-audit
 
-      - name: Apply guarded hardening changes
-        run: python3 scripts/agent-pr1405-hardening.py
-
-      - name: Format changed JavaScript
+      - name: Apply, verify and commit audited changes
         shell: bash
         run: |
-          mapfile -t files < <(
-            {
-              git diff --name-only --diff-filter=ACMR origin/main...HEAD -- '*.js'
-              git diff --name-only --diff-filter=ACMR -- '*.js'
-              git ls-files --others --exclude-standard -- '*.js'
-            } | sort -u
-          )
-          if (( ${#files[@]} > 0 )); then
-            npx prettier --write "${files[@]}"
+          set +e
+          : > /tmp/agent-pr1405-hardening.log
+
+          python3 scripts/agent-pr1405-hardening.py >> /tmp/agent-pr1405-hardening.log 2>&1
+          status=$?
+
+          if (( status == 0 )); then
+            mapfile -t files < <(
+              {
+                git diff --name-only --diff-filter=ACMR origin/main...HEAD -- '*.js'
+                git diff --name-only --diff-filter=ACMR -- '*.js'
+                git ls-files --others --exclude-standard -- '*.js'
+              } | sort -u
+            )
+            if (( ${#files[@]} > 0 )); then
+              npx prettier --write "${files[@]}" >> /tmp/agent-pr1405-hardening.log 2>&1
+              status=$?
+            fi
           fi
 
-      - name: Run focused regression tests
-        run: >-
-          npx jest --runInBand --coverage=false
-          tests/unit/supplier-theme.test.js
-          tests/unit/supplier-profile-theme-owner.test.js
-          tests/unit/supplier-profile-visual-overhaul.test.js
-          tests/unit/supplier-public-profile.test.js
-          tests/unit/supplier-profile-photo-lightbox.test.js
-          tests/unit/public-supplier-avatar.test.js
-          tests/unit/supplier-approval.test.js
-          tests/unit/supplier-duplicate-prevention.test.js
-          tests/integration/supplier-theme-route.test.js
+          if (( status == 0 )); then
+            npx jest --runInBand --coverage=false \
+              tests/unit/supplier-theme.test.js \
+              tests/unit/supplier-profile-theme-owner.test.js \
+              tests/unit/supplier-profile-visual-overhaul.test.js \
+              tests/unit/supplier-public-profile.test.js \
+              tests/unit/supplier-profile-photo-lightbox.test.js \
+              tests/unit/public-supplier-avatar.test.js \
+              tests/unit/supplier-approval.test.js \
+              tests/unit/supplier-duplicate-prevention.test.js \
+              tests/integration/supplier-theme-route.test.js \
+              >> /tmp/agent-pr1405-hardening.log 2>&1
+            status=$?
+          fi
 
-      - name: Verify repository formatting
-        run: npm run format:check
+          if (( status == 0 )); then
+            npm run format:check >> /tmp/agent-pr1405-hardening.log 2>&1
+            status=$?
+          fi
 
-      - name: Commit audited changes
-        shell: bash
-        run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          if (( status != 0 )); then
+            cp /tmp/agent-pr1405-hardening.log agent-pr1405-hardening.log
+            git add agent-pr1405-hardening.log
+            git commit -m "Record supplier theme hardening failure"
+            git push origin HEAD:agent/supplier-profile-theme-state
+            exit "$status"
+          fi
+
+          rm -f agent-pr1405-hardening.log
           git add \
             public/assets/js/public-supplier-avatar.js \
             public/assets/js/supplier-profile.js \
@@ -94,6 +111,7 @@ jobs:
             tests/unit/supplier-profile-theme-owner.test.js \
             tests/unit/supplier-profile-visual-overhaul.test.js \
             tests/unit/supplier-theme.test.js
+          git add -u agent-pr1405-hardening.log
           if git diff --cached --quiet; then
             echo "No audited changes to commit"
           else
