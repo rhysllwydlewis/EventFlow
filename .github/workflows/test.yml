@@ -72,7 +72,7 @@ jobs:
           )
 
           if (( status == 0 )); then
-            npx eslint --fix "${audited_files[@]}" >> /tmp/supplier-theme-lint-cleanup.txt 2>&1
+            npx eslint --rulesdir eslint-rules --fix "${audited_files[@]}" >> /tmp/supplier-theme-lint-cleanup.txt 2>&1
             status=$?
           fi
           if (( status == 0 )); then
@@ -80,7 +80,7 @@ jobs:
             status=$?
           fi
           if (( status == 0 )); then
-            npx eslint --max-warnings=0 "${audited_files[@]}" >> /tmp/supplier-theme-lint-cleanup.txt 2>&1
+            npx eslint --rulesdir eslint-rules --max-warnings=0 "${audited_files[@]}" >> /tmp/supplier-theme-lint-cleanup.txt 2>&1
             status=$?
           fi
           if (( status == 0 )); then
@@ -111,6 +111,10 @@ jobs:
             exit "$status"
           fi
 
+          rm -f supplier-theme-lint-cleanup.txt
           git add "${audited_files[@]}"
+          if git ls-files --error-unmatch supplier-theme-lint-cleanup.txt >/dev/null 2>&1; then
+            git rm supplier-theme-lint-cleanup.txt
+          fi
           git commit -m "Clean supplier theme lint findings"
           git push origin HEAD:agent/supplier-profile-theme-state
