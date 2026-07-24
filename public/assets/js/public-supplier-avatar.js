@@ -1,6 +1,7 @@
 'use strict';
 
 let activeRequestId = 0;
+let activeLightbox = null;
 
 function getSupplierId() {
   return new URLSearchParams(window.location.search).get('id') || '';
@@ -76,6 +77,7 @@ function setPlaceholder(img, initialsEl, initials) {
     avatarEl.classList.remove('has-profile-photo');
     avatarEl.dataset.avatarStatus = 'placeholder';
     avatarEl.removeAttribute('data-avatar-url');
+    disableAvatarLightbox(avatarEl);
   }
   if (img) {
     img.removeAttribute('src');
@@ -172,12 +174,175 @@ async function fetchLegacyAvatarEndpoint(supplierId) {
   }
 }
 
+function ensureAvatarLightboxStyles() {
+  if (!document?.head || document.getElementById('sp-avatar-lightbox-styles')) return;
+  const style = document.createElement('style');
+  style.id = 'sp-avatar-lightbox-styles';
+  style.textContent = `
+    .hero-avatar.is-lightbox-trigger { cursor: zoom-in; }
+    .hero-avatar.is-lightbox-trigger:focus-visible {
+      outline: 3px solid var(--sp-profile-accent, #0b8073);
+      outline-offset: 4px;
+    }
+    .sp-avatar-lightbox {
+      position: fixed;
+      inset: 0;
+      z-index: 10000;
+      display: grid;
+      place-items: center;
+      padding: 1.25rem;
+      background: rgba(2, 6, 23, 0.88);
+      backdrop-filter: blur(8px);
+    }
+    .sp-avatar-lightbox__dialog {
+      position: relative;
+      display: grid;
+      gap: 0.75rem;
+      max-width: min(92vw, 760px);
+      max-height: 92vh;
+      margin: 0;
+    }
+    .sp-avatar-lightbox__image {
+      display: block;
+      max-width: 100%;
+      max-height: 78vh;
+      margin: auto;
+      border-radius: 22px;
+      background: #fff;
+      box-shadow: 0 30px 90px rgba(0, 0, 0, 0.45);
+      object-fit: contain;
+    }
+    .sp-avatar-lightbox__caption {
+      margin: 0;
+      color: #fff;
+      text-align: center;
+      font-weight: 700;
+    }
+    .sp-avatar-lightbox__close {
+      position: absolute;
+      top: 0.75rem;
+      right: 0.75rem;
+      width: 44px;
+      height: 44px;
+      border: 0;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.82);
+      color: #fff;
+      font-size: 1.75rem;
+      line-height: 1;
+      cursor: pointer;
+    }
+    .sp-avatar-lightbox__close:focus-visible {
+      outline: 3px solid #fff;
+      outline-offset: 3px;
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+function closeAvatarLightbox() {
+  if (!activeLightbox) return;
+  const { overlay, trigger, previousBodyOverflow, onKeydown } = activeLightbox;
+  document.removeEventListener('keydown', onKeydown);
+  if (document.body) document.body.style.overflow = previousBodyOverflow;
+  overlay.remove();
+  activeLightbox = null;
+  if (trigger && typeof trigger.focus === 'function') trigger.focus();
+}
+
+function openAvatarLightbox(avatarUrl, supplierName = 'Supplier', trigger = null) {
+  if (!isUsableSupplierImageUrl(avatarUrl) || !document?.body || !document.createElement) {
+    return null;
+  }
+  closeAvatarLightbox();
+  ensureAvatarLightboxStyles();
+
+  const overlay = document.createElement('div');
+  overlay.className = 'sp-avatar-lightbox';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
+  overlay.setAttribute('aria-labelledby', 'sp-avatar-lightbox-caption');
+
+  const dialog = document.createElement('figure');
+  dialog.className = 'sp-avatar-lightbox__dialog';
+  const image = document.createElement('img');
+  image.className = 'sp-avatar-lightbox__image';
+  image.src = avatarUrl;
+  image.alt = `${supplierName} profile photo`;
+  const caption = document.createElement('figcaption');
+  caption.id = 'sp-avatar-lightbox-caption';
+  caption.className = 'sp-avatar-lightbox__caption';
+  caption.textContent = `${supplierName} profile photo`;
+  const closeButton = document.createElement('button');
+  closeButton.type = 'button';
+  closeButton.className = 'sp-avatar-lightbox__close';
+  closeButton.setAttribute('aria-label', 'Close larger profile photo');
+  closeButton.textContent = '×';
+
+  dialog.append(image, caption, closeButton);
+  overlay.appendChild(dialog);
+  const previousBodyOverflow = document.body.style.overflow;
+  document.body.style.overflow = 'hidden';
+  document.body.appendChild(overlay);
+
+  const onKeydown = event => {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      closeAvatarLightbox();
+    } else if (event.key === 'Tab') {
+      event.preventDefault();
+      closeButton.focus();
+    }
+  };
+  activeLightbox = { overlay, trigger, previousBodyOverflow, onKeydown };
+  document.addEventListener('keydown', onKeydown);
+  closeButton.addEventListener('click', closeAvatarLightbox);
+  overlay.addEventListener('click', event => {
+    if (event.target === overlay) closeAvatarLightbox();
+  });
+  closeButton.focus();
+  return overlay;
+}
+
+function disableAvatarLightbox(avatarEl) {
+  if (!avatarEl) return;
+  avatarEl.classList?.remove('is-lightbox-trigger');
+  avatarEl.removeAttribute?.('role');
+  avatarEl.removeAttribute?.('tabindex');
+  avatarEl.removeAttribute?.('aria-label');
+  if (avatarEl.dataset) delete avatarEl.dataset.avatarLightboxUrl;
+}
+
+function enableAvatarLightbox(avatarEl, img, avatarUrl) {
+  if (!avatarEl || !img || !isUsableSupplierImageUrl(avatarUrl)) return;
+  ensureAvatarLightboxStyles();
+  const supplierName = String(window.__supplierData?.name || 'Supplier').trim() || 'Supplier';
+  avatarEl.classList?.add('is-lightbox-trigger');
+  avatarEl.setAttribute?.('role', 'button');
+  avatarEl.setAttribute?.('tabindex', '0');
+  avatarEl.setAttribute?.('aria-label', `View larger profile photo for ${supplierName}`);
+  if (avatarEl.dataset) avatarEl.dataset.avatarLightboxUrl = avatarUrl;
+  if (avatarEl.dataset?.avatarLightboxReady === 'true' || !avatarEl.addEventListener) return;
+
+  const activate = event => {
+    if (event.type === 'keydown' && !['Enter', ' '].includes(event.key)) return;
+    const url = avatarEl.dataset?.avatarLightboxUrl;
+    if (!url || !avatarEl.classList?.contains('has-profile-photo')) return;
+    event.preventDefault();
+    openAvatarLightbox(url, String(window.__supplierData?.name || 'Supplier'), avatarEl);
+  };
+  avatarEl.addEventListener('click', activate);
+  avatarEl.addEventListener('keydown', activate);
+  avatarEl.dataset.avatarLightboxReady = 'true';
+}
+
 function showAvatarImage(img, initialsEl, avatarUrl) {
   const avatarEl = prepareAvatarShell(img, initialsEl);
   if (avatarEl) {
     avatarEl.classList.add('has-profile-photo');
     avatarEl.dataset.avatarStatus = 'loaded';
     avatarEl.dataset.avatarUrl = avatarUrl;
+    enableAvatarLightbox(avatarEl, img, avatarUrl);
   }
   img.classList.remove('sp-polish-safe-hidden');
   img.hidden = false;
@@ -267,9 +432,12 @@ if (typeof module !== 'undefined') {
   module.exports = {
     fetchLegacyAvatarEndpoint,
     fetchSupplierFromSearchRoute,
+    closeAvatarLightbox,
+    enableAvatarLightbox,
     findSupplierInSearchPayload,
     getSupplierProfileImage,
     loadPublicSupplierAvatar,
+    openAvatarLightbox,
     setPlaceholder,
     showAvatarImage,
   };

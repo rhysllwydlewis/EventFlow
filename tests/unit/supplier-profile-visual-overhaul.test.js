@@ -15,7 +15,9 @@ describe('supplier profile visual overhaul contracts', () => {
     expect(themeJs).toContain("if (mode === 'automatic')");
     expect(themeJs).toContain("return { accent: chosen, source: 'themeColor' }");
     expect(themeJs).toContain("return { accent: PRESET_ACCENTS[preset], source: 'heroPreset' }");
-    expect(themeJs).toContain("return { accent: CATEGORY_ACCENTS[categoryKey], source: 'category' }");
+    expect(themeJs).toContain(
+      "return { accent: CATEGORY_ACCENTS[categoryKey], source: 'category' }"
+    );
     expect(themeJs).toContain("return { accent: DEFAULT_ACCENT, source: 'default' }");
   });
 

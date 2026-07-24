@@ -83,10 +83,7 @@ describe('supplier theme state', () => {
 
   test('does not let the legacy customisation page silently replace automatic themes with teal', () => {
     expect(
-      buildSupplierThemeMutation(
-        { themeColor: '#0B8073' },
-        { category: 'Photography' }
-      )
+      buildSupplierThemeMutation({ themeColor: '#0B8073' }, { category: 'Photography' })
     ).toEqual({
       set: { themeMode: 'automatic' },
       unset: { heroPreset: 1, themeColor: 1 },

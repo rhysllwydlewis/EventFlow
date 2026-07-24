@@ -64,9 +64,10 @@ async function ensureCsrfToken() {
   throw new Error('Could not verify this save. Please refresh and try again.');
 }
 
-function closeModal(overlay) {
-  overlay.style.opacity = '0';
-  setTimeout(() => overlay.remove(), 180);
+function getFocusableElements(container) {
+  return [
+    ...container.querySelectorAll('button, input, select, textarea, a[href], [tabindex]'),
+  ].filter(element => !element.disabled && element.getAttribute('tabindex') !== '-1');
 }
 
 function showToast(message, type = 'success') {
@@ -128,13 +129,13 @@ function openThemeEditor(supplierId) {
   overlay.className = 'sp-modal-overlay';
   overlay.setAttribute('role', 'dialog');
   overlay.setAttribute('aria-modal', 'true');
-  overlay.setAttribute('aria-label', 'Edit profile theme');
+  overlay.setAttribute('aria-labelledby', 'spThemeEditorTitle');
   overlay.innerHTML = `
     <div class="sp-modal sp-modal--wide">
       <div class="sp-modal__header">
         <div class="sp-modal__icon" aria-hidden="true">🎨</div>
         <div>
-          <div class="sp-modal__title">Edit profile theme</div>
+          <div class="sp-modal__title" id="spThemeEditorTitle">Edit profile theme</div>
           <div class="sp-modal__subtitle">Choose profile colours and optionally add a banner image</div>
         </div>
         <button type="button" class="sp-modal__close" aria-label="Close">×</button>
@@ -183,6 +184,46 @@ function openThemeEditor(supplierId) {
   const customRow = overlay.querySelector('#spCustomColourRow');
   const colorInput = overlay.querySelector('#spThemeColorV2');
   const hexInput = overlay.querySelector('#spThemeColorHexV2');
+  const previouslyFocused = document.activeElement;
+  const previousBodyOverflow = document.body.style.overflow;
+  let dismissed = false;
+
+  const dismiss = () => {
+    if (dismissed) return;
+    dismissed = true;
+    document.removeEventListener('keydown', handleDialogKeydown);
+    document.body.style.overflow = previousBodyOverflow;
+    overlay.remove();
+    if (previouslyFocused && typeof previouslyFocused.focus === 'function') {
+      previouslyFocused.focus();
+    }
+  };
+
+  const handleDialogKeydown = event => {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      dismiss();
+      return;
+    }
+    if (event.key !== 'Tab') return;
+    const focusable = getFocusableElements(overlay);
+    if (focusable.length === 0) {
+      event.preventDefault();
+      return;
+    }
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  };
+
+  document.body.style.overflow = 'hidden';
+  document.addEventListener('keydown', handleDialogKeydown);
 
   const renderSelection = () => {
     modeGrid.querySelectorAll('[data-theme-mode]').forEach(button => {
@@ -190,9 +231,16 @@ function openThemeEditor(supplierId) {
         button.dataset.themeMode === selectedMode &&
         (selectedMode !== 'preset' || button.dataset.preset === selectedPreset);
       button.classList.toggle('is-selected', selected);
+      button.setAttribute('aria-pressed', String(selected));
     });
     customRow.classList.toggle('is-selected', selectedMode === 'custom');
   };
+
+  renderSelection();
+  setTimeout(() => {
+    const selected = overlay.querySelector('[aria-pressed="true"]');
+    (selected || overlay.querySelector('.sp-modal__close'))?.focus();
+  }, 0);
 
   modeGrid.addEventListener('click', event => {
     const button = event.target.closest('[data-theme-mode]');
@@ -215,10 +263,10 @@ function openThemeEditor(supplierId) {
     }
   });
 
-  overlay.querySelector('.sp-modal__close').addEventListener('click', () => closeModal(overlay));
-  overlay.querySelector('.js-theme-cancel').addEventListener('click', () => closeModal(overlay));
+  overlay.querySelector('.sp-modal__close').addEventListener('click', () => dismiss());
+  overlay.querySelector('.js-theme-cancel').addEventListener('click', () => dismiss());
   overlay.addEventListener('click', event => {
-    if (event.target === overlay) closeModal(overlay);
+    if (event.target === overlay) dismiss();
   });
 
   overlay.querySelector('.js-theme-save').addEventListener('click', async event => {
@@ -244,7 +292,7 @@ function openThemeEditor(supplierId) {
       window.SupplierProfileTheme?.applySupplierProfileTheme(window.__supplierData);
       ensureOwnerThemeButton(window.__supplierData);
       showToast('Profile theme updated ✓');
-      closeModal(overlay);
+      dismiss();
     } catch (error) {
       showToast(error.message, 'error');
       button.disabled = false;

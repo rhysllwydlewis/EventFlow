@@ -211,12 +211,21 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
     wedding: 'wedding',
     weddings: 'wedding',
     'wedding planner': 'wedding',
+    'event planner': 'wedding',
+    planning: 'wedding',
+    'wedding fayre': 'wedding',
+    stationery: 'wedding',
+    celebrant: 'wedding',
     photography: 'photography',
     photographer: 'photography',
+    videography: 'photography',
+    videographer: 'photography',
     catering: 'catering',
     caterer: 'catering',
     food: 'catering',
+    cake: 'catering',
     music: 'music',
+    'music/dj': 'music',
     dj: 'music',
     band: 'music',
     musicians: 'music',
@@ -224,11 +233,16 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
     flowers: 'flowers',
     florist: 'flowers',
     floral: 'flowers',
+    decor: 'flowers',
     venue: 'venue',
     venues: 'venue',
     transport: 'transport',
     cars: 'transport',
     chauffeur: 'transport',
+    beauty: 'beauty',
+    'hair & makeup': 'beauty',
+    bridalwear: 'beauty',
+    jewellery: 'beauty',
   };
 
   const PRESET_GRADIENTS_V2 = {
@@ -251,8 +265,9 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
     music: '#6a0dad',
     entertainment: '#c2185b',
     flowers: '#386641',
-    venue: '#374151',
-    transport: '#1a3a4a',
+    venue: '#4a5568',
+    transport: '#1a6b8a',
+    beauty: '#9d174d',
   };
 
   function _getInitials(name) {
@@ -319,6 +334,20 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
     const heroMedia = heroSection ? heroSection.querySelector('.hero-media') : null;
 
     if (heroBanner) {
+      const themeMode = ['automatic', 'preset', 'custom'].includes(supplier.themeMode)
+        ? supplier.themeMode
+        : null;
+      const preset = supplier.heroPreset && PRESET_GRADIENTS_V2[supplier.heroPreset];
+      const catKey = (supplier.category || '').toLowerCase().trim();
+      const catPreset = CATEGORY_PRESETS[catKey];
+      const validThemeColor =
+        supplier.themeColor && /^#[0-9A-F]{6}$/i.test(supplier.themeColor)
+          ? supplier.themeColor
+          : null;
+
+      heroSection?.removeAttribute('data-category-preset');
+      heroMedia?.style.removeProperty('--supplier-theme');
+
       if (bannerUrl) {
         heroBanner.src = bannerUrl;
         heroBanner.alt = `${supplier.name} banner`;
@@ -327,23 +356,21 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
           heroMedia.style.backgroundImage = '';
         }
       } else {
+        heroBanner.removeAttribute('src');
         heroBanner.style.display = 'none';
         if (heroMedia) {
-          const preset = supplier.heroPreset && PRESET_GRADIENTS_V2[supplier.heroPreset];
-          if (preset) {
+          const usePreset = themeMode === 'preset' || (!themeMode && preset);
+          const useCustom = themeMode === 'custom' || (!themeMode && !preset && validThemeColor);
+          if (usePreset && preset) {
             heroMedia.style.backgroundImage = preset;
+          } else if (useCustom && validThemeColor) {
+            heroMedia.style.backgroundImage = '';
+            heroMedia.style.setProperty('--supplier-theme', validThemeColor);
+          } else if (catPreset && heroSection) {
+            heroSection.setAttribute('data-category-preset', catPreset);
+            heroMedia.style.backgroundImage = '';
           } else {
-            const catKey = (supplier.category || '').toLowerCase().trim();
-            const catPreset = CATEGORY_PRESETS[catKey];
-            if (catPreset && heroSection) {
-              heroSection.setAttribute('data-category-preset', catPreset);
-              heroMedia.style.backgroundImage = '';
-            } else if (supplier.themeColor && /^#[0-9A-F]{6}$/i.test(supplier.themeColor)) {
-              heroMedia.style.backgroundImage = '';
-              heroMedia.style.setProperty('--supplier-theme', supplier.themeColor);
-            } else {
-              heroMedia.style.backgroundImage = '';
-            }
+            heroMedia.style.backgroundImage = '';
           }
         }
       }

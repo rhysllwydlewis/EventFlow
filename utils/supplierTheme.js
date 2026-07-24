@@ -76,17 +76,23 @@ function normaliseThemeColor(value) {
 }
 
 function normaliseHeroPreset(value) {
-  const candidate = String(value || '').trim().toLowerCase();
+  const candidate = String(value || '')
+    .trim()
+    .toLowerCase();
   return HERO_PRESET_ACCENTS[candidate] ? candidate : null;
 }
 
 function normaliseThemeMode(value) {
-  const candidate = String(value || '').trim().toLowerCase();
+  const candidate = String(value || '')
+    .trim()
+    .toLowerCase();
   return VALID_THEME_MODES.includes(candidate) ? candidate : null;
 }
 
 function resolveCategoryTheme(category) {
-  const key = String(category || '').trim().toLowerCase();
+  const key = String(category || '')
+    .trim()
+    .toLowerCase();
   const family = CATEGORY_THEME_FAMILIES[key] || 'default';
   return { family, accent: CATEGORY_ACCENTS[family] || DEFAULT_THEME_COLOR };
 }
@@ -146,12 +152,8 @@ function buildSupplierThemeMutation(body = {}, existing = {}) {
     return { error: 'Invalid theme mode', set, unset };
   }
 
-  const requestedPreset = hasOwn(body, 'heroPreset')
-    ? normaliseHeroPreset(body.heroPreset)
-    : null;
-  const requestedColor = hasOwn(body, 'themeColor')
-    ? normaliseThemeColor(body.themeColor)
-    : null;
+  const requestedPreset = hasOwn(body, 'heroPreset') ? normaliseHeroPreset(body.heroPreset) : null;
+  const requestedColor = hasOwn(body, 'themeColor') ? normaliseThemeColor(body.themeColor) : null;
 
   if (requestedMode === 'automatic') {
     set.themeMode = 'automatic';

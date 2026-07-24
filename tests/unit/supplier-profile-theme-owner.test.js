@@ -13,9 +13,7 @@ describe('supplier profile owner theme editing', () => {
     expect(safePublicSupplier(supplier)).toMatchObject({ isOwner: false });
     expect(safePublicSupplier(supplier).ownerUserId).toBeUndefined();
 
-    expect(
-      safePublicSupplier(supplier, { isOwner: true, exposeOwnerUserId: true })
-    ).toMatchObject({
+    expect(safePublicSupplier(supplier, { isOwner: true, exposeOwnerUserId: true })).toMatchObject({
       isOwner: true,
       ownerUserId: 'user_1',
     });
@@ -31,9 +29,18 @@ describe('supplier profile owner theme editing', () => {
   test('offers explicit automatic, preset and custom modes', () => {
     const editor = read('public/assets/js/supplier-profile-theme-owner.js');
     expect(editor).toContain('Automatic follows the supplier category');
-    expect(editor).toContain("themeMode: selectedMode");
+    expect(editor).toContain('themeMode: selectedMode');
     expect(editor).toContain("selectedMode === 'preset'");
     expect(editor).toContain("selectedMode === 'custom'");
+  });
+
+  test('keeps the theme dialog keyboard accessible', () => {
+    const editor = read('public/assets/js/supplier-profile-theme-owner.js');
+    expect(editor).toContain("event.key === 'Escape'");
+    expect(editor).toContain("event.key !== 'Tab'");
+    expect(editor).toContain("aria-labelledby', 'spThemeEditorTitle'");
+    expect(editor).toContain("button.setAttribute('aria-pressed'");
+    expect(editor).toContain('previousBodyOverflow');
   });
 
   test('merges the canonical server response and reapplies the full profile theme', () => {

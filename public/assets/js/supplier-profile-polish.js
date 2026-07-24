@@ -110,12 +110,16 @@ function ensureCurrentProfileStylesheets() {
 }
 
 function normaliseHex(value) {
-  const candidate = String(value || '').trim().toLowerCase();
+  const candidate = String(value || '')
+    .trim()
+    .toLowerCase();
   return /^#[0-9a-f]{6}$/.test(candidate) ? candidate : null;
 }
 
 function normaliseThemeMode(value) {
-  const candidate = String(value || '').trim().toLowerCase();
+  const candidate = String(value || '')
+    .trim()
+    .toLowerCase();
   return ['automatic', 'preset', 'custom'].includes(candidate) ? candidate : null;
 }
 
@@ -127,7 +131,9 @@ function hexToRgb(hex) {
 function rgbToHex({ r, g, b }) {
   return `#${[r, g, b]
     .map(channel =>
-      Math.max(0, Math.min(255, Math.round(channel))).toString(16).padStart(2, '0')
+      Math.max(0, Math.min(255, Math.round(channel)))
+        .toString(16)
+        .padStart(2, '0')
     )
     .join('')}`;
 }
@@ -149,7 +155,13 @@ function rgba(hex, alpha) {
 }
 
 function resolveCategoryKey(category) {
-  return CATEGORY_PRESETS[String(category || '').trim().toLowerCase()] || 'default';
+  return (
+    CATEGORY_PRESETS[
+      String(category || '')
+        .trim()
+        .toLowerCase()
+    ] || 'default'
+  );
 }
 
 function resolveAutomaticTheme(supplier = {}) {
@@ -163,7 +175,9 @@ function resolveAutomaticTheme(supplier = {}) {
 function resolveSupplierTheme(supplier = {}) {
   const mode = normaliseThemeMode(supplier.themeMode);
   const chosen = normaliseHex(supplier.themeColor);
-  const preset = String(supplier.heroPreset || '').trim().toLowerCase();
+  const preset = String(supplier.heroPreset || '')
+    .trim()
+    .toLowerCase();
 
   if (mode === 'custom') {
     return chosen ? { accent: chosen, source: 'themeColor' } : resolveAutomaticTheme(supplier);
@@ -227,7 +241,9 @@ function resolveHeroMode(supplier = {}) {
     return 'image';
   }
   const mode = normaliseThemeMode(supplier.themeMode);
-  const preset = String(supplier.heroPreset || '').trim().toLowerCase();
+  const preset = String(supplier.heroPreset || '')
+    .trim()
+    .toLowerCase();
   if (mode === 'preset') {
     return PRESET_ACCENTS[preset]
       ? 'preset'
