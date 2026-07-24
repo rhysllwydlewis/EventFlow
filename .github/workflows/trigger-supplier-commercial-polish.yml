@@ -38,6 +38,18 @@ jobs:
           exec(compile(script, 'supplier-commercial-polish', 'exec'))
           PY
 
+      - name: Normalise generated unit test header
+        shell: bash
+        run: |
+          python <<'PY'
+          from pathlib import Path
+
+          path = Path('tests/unit/supplier-profile-commercial-polish.test.js')
+          text = path.read_text()
+          text = text.replace("\\'use strict\\';", "'use strict';", 1)
+          path.write_text(text)
+          PY
+
       - name: Format changed files
         run: |
           npm ci --ignore-scripts
