@@ -3,7 +3,8 @@
 const fs = require('fs');
 const path = require('path');
 
-const read = relative => fs.readFileSync(path.join(__dirname, '../..', relative), 'utf8');
+const read = relative =>
+  fs.readFileSync(path.join(__dirname, '../..', relative), 'utf8');
 
 const css = read('public/assets/css/supplier-profile-commercial-polish.css');
 
@@ -11,7 +12,7 @@ describe('supplier profile loading parity contracts', () => {
   test('keeps the unresolved hero at the final compact fallback height', () => {
     expect(css).toContain("html:not([data-sp-theme-ready='true'])");
     expect(css).toContain('--sp-hero-height: 146px !important');
-    expect(css).toContain("#supplier-hero .hero-media > img");
+    expect(css).toContain('#supplier-hero .hero-media > img');
     expect(css).toContain('opacity: 0 !important');
   });
 
