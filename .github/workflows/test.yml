@@ -43,10 +43,13 @@ jobs:
       - name: Install dependencies
         run: npm ci --prefer-offline --no-audit
 
-      - name: Fix changed-file lint findings
+      - name: Fix, verify and commit lint-clean files
         shell: bash
         run: |
-          python3 - <<'PY'
+          set +e
+          : > /tmp/supplier-theme-lint-cleanup.txt
+
+          python3 - <<'PY' >> /tmp/supplier-theme-lint-cleanup.txt 2>&1
           from pathlib import Path
           path = Path('tests/unit/supplier-profile-photo-lightbox.test.js')
           content = path.read_text()
@@ -59,44 +62,55 @@ jobs:
           )
           path.write_text(content)
           PY
-          npx eslint --fix \
-            public/assets/js/supplier-profile-polish.js \
-            public/assets/js/supplier-profile-theme-owner.js \
+          status=$?
+
+          audited_files=(
+            public/assets/js/public-supplier-avatar.js
+            public/assets/js/supplier-profile-polish.js
+            public/assets/js/supplier-profile-theme-owner.js
             tests/unit/supplier-profile-photo-lightbox.test.js
-          npx prettier --write \
-            public/assets/js/supplier-profile-polish.js \
-            public/assets/js/supplier-profile-theme-owner.js \
-            tests/unit/supplier-profile-photo-lightbox.test.js
+          )
 
-      - name: Enforce zero lint findings in audited files
-        run: >-
-          npx eslint --max-warnings=0
-          public/assets/js/supplier-profile-polish.js
-          public/assets/js/supplier-profile-theme-owner.js
-          tests/unit/supplier-profile-photo-lightbox.test.js
+          if (( status == 0 )); then
+            npx eslint --fix "${audited_files[@]}" >> /tmp/supplier-theme-lint-cleanup.txt 2>&1
+            status=$?
+          fi
+          if (( status == 0 )); then
+            npx prettier --write "${audited_files[@]}" >> /tmp/supplier-theme-lint-cleanup.txt 2>&1
+            status=$?
+          fi
+          if (( status == 0 )); then
+            npx eslint --max-warnings=0 "${audited_files[@]}" >> /tmp/supplier-theme-lint-cleanup.txt 2>&1
+            status=$?
+          fi
+          if (( status == 0 )); then
+            npx jest --runInBand --coverage=false \
+              tests/unit/supplier-theme.test.js \
+              tests/unit/supplier-profile-theme-owner.test.js \
+              tests/unit/supplier-profile-visual-overhaul.test.js \
+              tests/unit/supplier-public-profile.test.js \
+              tests/unit/supplier-profile-photo-lightbox.test.js \
+              tests/unit/public-supplier-avatar.test.js \
+              tests/integration/supplier-theme-route.test.js \
+              >> /tmp/supplier-theme-lint-cleanup.txt 2>&1
+            status=$?
+          fi
+          if (( status == 0 )); then
+            npm run format:check >> /tmp/supplier-theme-lint-cleanup.txt 2>&1
+            status=$?
+          fi
 
-      - name: Run focused regression tests
-        run: >-
-          npx jest --runInBand --coverage=false
-          tests/unit/supplier-theme.test.js
-          tests/unit/supplier-profile-theme-owner.test.js
-          tests/unit/supplier-profile-visual-overhaul.test.js
-          tests/unit/supplier-public-profile.test.js
-          tests/unit/supplier-profile-photo-lightbox.test.js
-          tests/unit/public-supplier-avatar.test.js
-          tests/integration/supplier-theme-route.test.js
-
-      - name: Verify repository formatting
-        run: npm run format:check
-
-      - name: Commit lint-clean audited files
-        shell: bash
-        run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add \
-            public/assets/js/supplier-profile-polish.js \
-            public/assets/js/supplier-profile-theme-owner.js \
-            tests/unit/supplier-profile-photo-lightbox.test.js
+
+          if (( status != 0 )); then
+            cp /tmp/supplier-theme-lint-cleanup.txt supplier-theme-lint-cleanup.txt
+            git add -f supplier-theme-lint-cleanup.txt
+            git commit -m "Record supplier theme lint cleanup failure"
+            git push origin HEAD:agent/supplier-profile-theme-state
+            exit "$status"
+          fi
+
+          git add "${audited_files[@]}"
           git commit -m "Clean supplier theme lint findings"
           git push origin HEAD:agent/supplier-profile-theme-state
