@@ -232,7 +232,9 @@ function setThemeVariables(root, palette) {
 
 function applyAvatarTheme(accent) {
   const avatar = document.getElementById('hero-avatar');
-  if (!avatar || avatar.classList.contains('has-profile-photo')) return;
+  if (!avatar || avatar.classList.contains('has-profile-photo')) {
+    return;
+  }
   avatar.style.background = `linear-gradient(135deg, ${accent} 0%, ${mixHex(accent, WHITE, 0.7)} 100%)`;
 }
 
@@ -284,7 +286,9 @@ function formatResponseMessage(value) {
   if (!Number.isFinite(hours) || hours <= 0) {
     return 'Send a message and the supplier will reply through EventFlow.';
   }
-  if (hours < 1) return 'Typically responds in under an hour.';
+  if (hours < 1) {
+    return 'Typically responds in under an hour.';
+  }
   if (hours < 24) {
     return `Typically responds in around ${Math.round(hours)} hour${Math.round(hours) === 1 ? '' : 's'}.`;
   }
@@ -294,7 +298,9 @@ function formatResponseMessage(value) {
 
 function polishSidebarDetails(supplier = {}) {
   const note = document.querySelector('.sp-cta-card__note');
-  if (note) note.textContent = formatResponseMessage(supplier.avgResponseTime);
+  if (note) {
+    note.textContent = formatResponseMessage(supplier.avgResponseTime);
+  }
 
   document.querySelectorAll('.sp-detail-row').forEach(row => {
     const label = String(row.querySelector('.sp-detail-row__label')?.textContent || '')
@@ -320,8 +326,12 @@ const CONTACT_ICONS = Object.freeze({
 function moveHeroBadgesIntoIdentity() {
   const badges = document.getElementById('hero-badges');
   const identity = document.querySelector('.hero-identity');
-  if (!badges || !identity) return;
-  if (badges.parentElement !== identity) identity.appendChild(badges);
+  if (!badges || !identity) {
+    return;
+  }
+  if (badges.parentElement !== identity) {
+    identity.appendChild(badges);
+  }
   badges.classList.add('hero-badges--identity');
 }
 
@@ -367,10 +377,14 @@ function polishContactHierarchy(supplier = {}) {
   document.body?.classList.add('sp-profile-page');
   moveHeroBadgesIntoIdentity();
   const card = document.querySelector('.sp-cta-card');
-  if (!card) return;
+  if (!card) {
+    return;
+  }
   card.classList.add('sp-contact-card');
   const eyebrow = card.querySelector('.sp-cta-card__name');
-  if (eyebrow) eyebrow.textContent = 'Contact & availability';
+  if (eyebrow) {
+    eyebrow.textContent = 'Contact & availability';
+  }
   const title = card.querySelector('.sp-cta-card__title');
   if (title) {
     title.textContent = supplier.name ? `Plan with ${supplier.name}` : 'Plan your enquiry';
@@ -398,12 +412,16 @@ function polishContactHierarchy(supplier = {}) {
       '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>Send a message</span>';
   }
   const note = card.querySelector('.sp-cta-card__note');
-  if (note) note.hidden = true;
+  if (note) {
+    note.hidden = true;
+  }
 }
 
 function applySupplierProfileTheme(supplier = window.__supplierData) {
   ensureCurrentProfileStylesheets();
-  if (!supplier) return null;
+  if (!supplier) {
+    return null;
+  }
   const theme = resolveSupplierTheme(supplier);
   const palette = createSupplierPalette(theme.accent);
   setThemeVariables(document.documentElement, palette);

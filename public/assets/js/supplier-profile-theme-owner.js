@@ -24,9 +24,15 @@ const escapeHtml = value =>
 
 function resolveStoredMode(supplier = {}) {
   const explicit = String(supplier.themeMode || '').toLowerCase();
-  if (['automatic', 'preset', 'custom'].includes(explicit)) return explicit;
-  if (HEX_RE.test(String(supplier.themeColor || ''))) return 'custom';
-  if (HERO_PRESETS.some(([id]) => id === supplier.heroPreset)) return 'preset';
+  if (['automatic', 'preset', 'custom'].includes(explicit)) {
+    return explicit;
+  }
+  if (HEX_RE.test(String(supplier.themeColor || ''))) {
+    return 'custom';
+  }
+  if (HERO_PRESETS.some(([id]) => id === supplier.heroPreset)) {
+    return 'preset';
+  }
   return 'automatic';
 }
 
@@ -44,12 +50,16 @@ async function ensureCsrfToken() {
     window.__CSRF_TOKEN__ ||
     window.csrfToken ||
     '';
-  if (existing) return existing;
+  if (existing) {
+    return existing;
+  }
 
   for (const endpoint of ['/api/csrf-token', '/api/v1/csrf-token']) {
     try {
       const response = await fetch(endpoint, { credentials: 'include' });
-      if (!response.ok) continue;
+      if (!response.ok) {
+        continue;
+      }
       const data = await response.json();
       const token = data.csrfToken || data.token;
       if (token) {
@@ -72,7 +82,9 @@ function getFocusableElements(container) {
 
 function showToast(message, type = 'success') {
   const existing = document.querySelector('.sp-save-toast');
-  if (existing) existing.remove();
+  if (existing) {
+    existing.remove();
+  }
   const toast = document.createElement('div');
   toast.className = `sp-save-toast sp-save-toast--${type}`;
   toast.textContent = message;
@@ -81,7 +93,9 @@ function showToast(message, type = 'success') {
 }
 
 function mergeCanonicalSupplier(nextSupplier) {
-  if (!window.__supplierData || !nextSupplier) return;
+  if (!window.__supplierData || !nextSupplier) {
+    return;
+  }
   for (const key of ['themeMode', 'themeColor', 'heroPreset']) {
     delete window.__supplierData[key];
   }
@@ -189,7 +203,9 @@ function openThemeEditor(supplierId) {
   let dismissed = false;
 
   const dismiss = () => {
-    if (dismissed) return;
+    if (dismissed) {
+      return;
+    }
     dismissed = true;
     document.removeEventListener('keydown', handleDialogKeydown);
     document.body.style.overflow = previousBodyOverflow;
@@ -205,7 +221,9 @@ function openThemeEditor(supplierId) {
       dismiss();
       return;
     }
-    if (event.key !== 'Tab') return;
+    if (event.key !== 'Tab') {
+      return;
+    }
     const focusable = getFocusableElements(overlay);
     if (focusable.length === 0) {
       event.preventDefault();
@@ -244,9 +262,13 @@ function openThemeEditor(supplierId) {
 
   modeGrid.addEventListener('click', event => {
     const button = event.target.closest('[data-theme-mode]');
-    if (!button) return;
+    if (!button) {
+      return;
+    }
     selectedMode = button.dataset.themeMode;
-    if (selectedMode === 'preset') selectedPreset = button.dataset.preset;
+    if (selectedMode === 'preset') {
+      selectedPreset = button.dataset.preset;
+    }
     renderSelection();
   });
 
@@ -266,7 +288,9 @@ function openThemeEditor(supplierId) {
   overlay.querySelector('.sp-modal__close').addEventListener('click', () => dismiss());
   overlay.querySelector('.js-theme-cancel').addEventListener('click', () => dismiss());
   overlay.addEventListener('click', event => {
-    if (event.target === overlay) dismiss();
+    if (event.target === overlay) {
+      dismiss();
+    }
   });
 
   overlay.querySelector('.js-theme-save').addEventListener('click', async event => {
@@ -301,9 +325,13 @@ function openThemeEditor(supplierId) {
 }
 
 function ensureOwnerThemeButton(supplier = window.__supplierData) {
-  if (!supplier?.isOwner || !supplier.id) return;
+  if (!supplier?.isOwner || !supplier.id) {
+    return;
+  }
   const heroMedia = document.querySelector('#supplier-hero .hero-media');
-  if (!heroMedia) return;
+  if (!heroMedia) {
+    return;
+  }
 
   heroMedia
     .querySelectorAll(`.sp-hero-edit-btn:not(.sp-name-edit-btn):not(.${OWNER_THEME_EDITOR_CLASS})`)
@@ -322,7 +350,9 @@ function ensureOwnerThemeButton(supplier = window.__supplierData) {
 }
 
 function activateOwnerThemeEditor(supplier) {
-  if (!supplier?.isOwner) return;
+  if (!supplier?.isOwner) {
+    return;
+  }
   ensureOwnerThemeButton(supplier);
   const hero = document.getElementById('supplier-hero');
   if (hero && hero.dataset.spThemeOwnerObserved !== 'true') {

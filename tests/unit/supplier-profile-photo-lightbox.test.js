@@ -46,7 +46,9 @@ function createFixture() {
         classList: null,
         setAttribute(name, value) {
           this.attributes[name] = String(value);
-          if (name === 'id') ids.set(String(value), this);
+          if (name === 'id') {
+            ids.set(String(value), this);
+          }
         },
         getAttribute(name) {
           return Object.prototype.hasOwnProperty.call(this.attributes, name)
@@ -65,7 +67,9 @@ function createFixture() {
           return node;
         },
         remove() {
-          if (!this.parentNode) return;
+          if (!this.parentNode) {
+            return;
+          }
           this.parentNode.children = this.parentNode.children.filter(child => child !== this);
           this.parentNode = null;
         },
@@ -110,7 +114,9 @@ function createFixture() {
           const queue = [...this.children];
           while (queue.length > 0) {
             const node = queue.shift();
-            if (match(node)) return node;
+            if (match(node)) {
+              return node;
+            }
             queue.push(...(node.children || []));
           }
           return null;
@@ -119,11 +125,15 @@ function createFixture() {
       element.classList = createClassList(element);
       Object.defineProperty(element, 'id', {
         get: () => element.getAttribute('id') || '',
-        set: value => element.setAttribute('id', value),
+        set: value => {
+          element.setAttribute('id', value);
+        },
       });
       Object.defineProperty(element, 'src', {
         get: () => element.getAttribute('src') || '',
-        set: value => element.setAttribute('src', value),
+        set: value => {
+          element.setAttribute('src', value);
+        },
       });
       return element;
     },

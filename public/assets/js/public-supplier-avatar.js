@@ -175,7 +175,9 @@ async function fetchLegacyAvatarEndpoint(supplierId) {
 }
 
 function ensureAvatarLightboxStyles() {
-  if (!document?.head || document.getElementById('sp-avatar-lightbox-styles')) return;
+  if (!document?.head || document.getElementById('sp-avatar-lightbox-styles')) {
+    return;
+  }
   const style = document.createElement('style');
   style.id = 'sp-avatar-lightbox-styles';
   style.textContent = `
@@ -241,13 +243,19 @@ function ensureAvatarLightboxStyles() {
 }
 
 function closeAvatarLightbox() {
-  if (!activeLightbox) return;
+  if (!activeLightbox) {
+    return;
+  }
   const { overlay, trigger, previousBodyOverflow, onKeydown } = activeLightbox;
   document.removeEventListener('keydown', onKeydown);
-  if (document.body) document.body.style.overflow = previousBodyOverflow;
+  if (document.body) {
+    document.body.style.overflow = previousBodyOverflow;
+  }
   overlay.remove();
   activeLightbox = null;
-  if (trigger && typeof trigger.focus === 'function') trigger.focus();
+  if (trigger && typeof trigger.focus === 'function') {
+    trigger.focus();
+  }
 }
 
 function openAvatarLightbox(avatarUrl, supplierName = 'Supplier', trigger = null) {
@@ -298,36 +306,52 @@ function openAvatarLightbox(avatarUrl, supplierName = 'Supplier', trigger = null
   document.addEventListener('keydown', onKeydown);
   closeButton.addEventListener('click', closeAvatarLightbox);
   overlay.addEventListener('click', event => {
-    if (event.target === overlay) closeAvatarLightbox();
+    if (event.target === overlay) {
+      closeAvatarLightbox();
+    }
   });
   closeButton.focus();
   return overlay;
 }
 
 function disableAvatarLightbox(avatarEl) {
-  if (!avatarEl) return;
+  if (!avatarEl) {
+    return;
+  }
   avatarEl.classList?.remove('is-lightbox-trigger');
   avatarEl.removeAttribute?.('role');
   avatarEl.removeAttribute?.('tabindex');
   avatarEl.removeAttribute?.('aria-label');
-  if (avatarEl.dataset) delete avatarEl.dataset.avatarLightboxUrl;
+  if (avatarEl.dataset) {
+    delete avatarEl.dataset.avatarLightboxUrl;
+  }
 }
 
 function enableAvatarLightbox(avatarEl, img, avatarUrl) {
-  if (!avatarEl || !img || !isUsableSupplierImageUrl(avatarUrl)) return;
+  if (!avatarEl || !img || !isUsableSupplierImageUrl(avatarUrl)) {
+    return;
+  }
   ensureAvatarLightboxStyles();
   const supplierName = String(window.__supplierData?.name || 'Supplier').trim() || 'Supplier';
   avatarEl.classList?.add('is-lightbox-trigger');
   avatarEl.setAttribute?.('role', 'button');
   avatarEl.setAttribute?.('tabindex', '0');
   avatarEl.setAttribute?.('aria-label', `View larger profile photo for ${supplierName}`);
-  if (avatarEl.dataset) avatarEl.dataset.avatarLightboxUrl = avatarUrl;
-  if (avatarEl.dataset?.avatarLightboxReady === 'true' || !avatarEl.addEventListener) return;
+  if (avatarEl.dataset) {
+    avatarEl.dataset.avatarLightboxUrl = avatarUrl;
+  }
+  if (avatarEl.dataset?.avatarLightboxReady === 'true' || !avatarEl.addEventListener) {
+    return;
+  }
 
   const activate = event => {
-    if (event.type === 'keydown' && !['Enter', ' '].includes(event.key)) return;
+    if (event.type === 'keydown' && !['Enter', ' '].includes(event.key)) {
+      return;
+    }
     const url = avatarEl.dataset?.avatarLightboxUrl;
-    if (!url || !avatarEl.classList?.contains('has-profile-photo')) return;
+    if (!url || !avatarEl.classList?.contains('has-profile-photo')) {
+      return;
+    }
     event.preventDefault();
     openAvatarLightbox(url, String(window.__supplierData?.name || 'Supplier'), avatarEl);
   };
