@@ -47,9 +47,23 @@ jobs:
         shell: bash
         run: |
           set +e
-          : > /tmp/agent-pr1405-hardening.log
+          : > /tmp/agent-pr1405-hardening.txt
 
-          python3 scripts/agent-pr1405-hardening.py >> /tmp/agent-pr1405-hardening.log 2>&1
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('scripts/agent-pr1405-hardening.py')
+          content = path.read_text()
+          content = content.replace(
+              '"  \'wedding planner\': \'wedding\',\\n"',
+              '"    \'wedding planner\': \'wedding\',\\n"',
+          ).replace(
+              '"  \'wedding planner\': \'wedding\',\\n    \'event planner\': \'wedding\',',
+              '"    \'wedding planner\': \'wedding\',\\n    \'event planner\': \'wedding\',',
+          )
+          path.write_text(content)
+          PY
+
+          python3 scripts/agent-pr1405-hardening.py >> /tmp/agent-pr1405-hardening.txt 2>&1
           status=$?
 
           if (( status == 0 )); then
@@ -61,7 +75,7 @@ jobs:
               } | sort -u
             )
             if (( ${#files[@]} > 0 )); then
-              npx prettier --write "${files[@]}" >> /tmp/agent-pr1405-hardening.log 2>&1
+              npx prettier --write "${files[@]}" >> /tmp/agent-pr1405-hardening.txt 2>&1
               status=$?
             fi
           fi
@@ -77,12 +91,12 @@ jobs:
               tests/unit/supplier-approval.test.js \
               tests/unit/supplier-duplicate-prevention.test.js \
               tests/integration/supplier-theme-route.test.js \
-              >> /tmp/agent-pr1405-hardening.log 2>&1
+              >> /tmp/agent-pr1405-hardening.txt 2>&1
             status=$?
           fi
 
           if (( status == 0 )); then
-            npm run format:check >> /tmp/agent-pr1405-hardening.log 2>&1
+            npm run format:check >> /tmp/agent-pr1405-hardening.txt 2>&1
             status=$?
           fi
 
@@ -90,14 +104,14 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
           if (( status != 0 )); then
-            cp /tmp/agent-pr1405-hardening.log agent-pr1405-hardening.log
-            git add agent-pr1405-hardening.log
+            cp /tmp/agent-pr1405-hardening.txt agent-pr1405-hardening.txt
+            git add -f agent-pr1405-hardening.txt
             git commit -m "Record supplier theme hardening failure"
             git push origin HEAD:agent/supplier-profile-theme-state
             exit "$status"
           fi
 
-          rm -f agent-pr1405-hardening.log
+          rm -f agent-pr1405-hardening.txt
           git add \
             public/assets/js/public-supplier-avatar.js \
             public/assets/js/supplier-profile.js \
@@ -111,7 +125,9 @@ jobs:
             tests/unit/supplier-profile-theme-owner.test.js \
             tests/unit/supplier-profile-visual-overhaul.test.js \
             tests/unit/supplier-theme.test.js
-          git add -u agent-pr1405-hardening.log
+          if git ls-files --error-unmatch agent-pr1405-hardening.txt >/dev/null 2>&1; then
+            git rm agent-pr1405-hardening.txt
+          fi
           if git diff --cached --quiet; then
             echo "No audited changes to commit"
           else
