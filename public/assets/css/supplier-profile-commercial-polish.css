@@ -14,8 +14,8 @@ body.sp-profile-page .hero-avatar-wrap {
 html[data-sp-hero-mode='preset'],
 html[data-sp-hero-mode='category'],
 html[data-sp-hero-mode='theme'] {
-  --sp-hero-height: 146px;
-  --sp-hero-height-mobile: 132px;
+  --sp-hero-height: 146px !important;
+  --sp-hero-height-mobile: 132px !important;
 }
 
 body.sp-profile-page .supplier-tagline {
