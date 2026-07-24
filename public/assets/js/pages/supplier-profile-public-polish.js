@@ -103,6 +103,15 @@
     gallerySection.style.display = 'none';
   }
 
+  function updateResponseNote(note, text, derived) {
+    if (note.textContent !== text) {
+      note.textContent = text;
+    }
+    if (note.dataset.derived !== derived) {
+      note.dataset.derived = derived;
+    }
+  }
+
   function deriveResponseCopy() {
     const details = document.querySelectorAll('.sp-detail-row');
     let responseText = '';
@@ -116,11 +125,15 @@
     const note = document.querySelector('.sp-cta-card__note');
     if (!note) return;
     if (responseText) {
-      note.textContent = responseText;
-      note.dataset.derived = 'true';
+      const currentText = String(note.textContent || '').trim();
+      const nextText = /^typically responds\b/i.test(currentText) ? currentText : responseText;
+      updateResponseNote(note, nextText, 'true');
     } else if (/usually responds/i.test(note.textContent || '')) {
-      note.textContent = 'Send a message and the supplier will reply through EventFlow.';
-      note.dataset.derived = 'false';
+      updateResponseNote(
+        note,
+        'Send a message and the supplier will reply through EventFlow.',
+        'false'
+      );
     }
   }
 
