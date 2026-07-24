@@ -167,10 +167,13 @@ function safePublicSupplier(supplier = {}, extras = {}) {
   const avgResponseTime = numberOrNull(source.avgResponseTime);
   const ownerUserId = maybeText(source.ownerUserId, 100);
   const messagingRecipientId = extra.exposeMessagingRecipient === true ? ownerUserId : '';
+  const exposedOwnerUserId = extra.exposeOwnerUserId === true ? ownerUserId : '';
   const theme = normaliseStoredSupplierTheme(source);
   return {
     id: maybeText(source.id, 100),
     ...(messagingRecipientId ? { messagingRecipientId } : {}),
+    ...(exposedOwnerUserId ? { ownerUserId: exposedOwnerUserId } : {}),
+    isOwner: bool(extra.isOwner),
     name: maybeText(source.name, 140) || 'Supplier',
     category: maybeText(source.category, 100),
     location: maybeText(source.location, 180),
