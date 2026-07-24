@@ -15,6 +15,11 @@ RUN npm ci --omit=dev --ignore-scripts --no-audit
 # Bundle app source
 COPY . .
 
+# The public HTML references long-lived static JavaScript. Rewrite the JadeAssist
+# script URLs with a release token so browsers cannot keep the pre-close-button
+# bundle after a deployment.
+RUN node scripts/version-jadeassist-assets.mjs
+
 # Ensure the uploads directory exists and all files are owned by the node user
 # (must be done as root before USER node switch)
 RUN mkdir -p uploads && chown -R node:node /app

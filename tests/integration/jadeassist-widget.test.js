@@ -170,7 +170,7 @@ describe('JadeAssist Widget Pinning', () => {
 
     it('should resolve avatar URL for subpath deployments', () => {
       expect(v2Content).toContain('getAvatarUrl');
-      expect(v2Content).toContain('jade-avatar.png');
+      expect(v2Content).toContain('jadeassist-agent.png');
     });
 
     it('should include Jade avatar in teaser bubble HTML', () => {
@@ -236,6 +236,62 @@ describe('JadeAssist Widget Pinning', () => {
     it('should isolate close button from teaser body click handler', () => {
       // The teaser body click listener must bail out when the close button is clicked
       expect(legacyContent).toContain('closeBtn.contains(e.target)');
+    });
+  });
+  describe('Approved launcher assets and dismissal behaviour', () => {
+    const imageDir = path.join(publicDir, 'assets/images');
+    const initPath = path.join(publicDir, 'assets/js/jadeassist-init.v2.js');
+
+    it.each([
+      ['jadeassist-agent.png', 160],
+      ['jadeassist-notification-badge.png', 96],
+      ['jadeassist-close-button.png', 96],
+    ])('should include a valid transparent %s asset', (fileName, minimumSize) => {
+      const buffer = fs.readFileSync(path.join(imageDir, fileName));
+      expect(buffer.subarray(0, 8).toString('hex')).toBe('89504e470d0a1a0a');
+      expect(buffer.readUInt32BE(16)).toBeGreaterThanOrEqual(minimumSize);
+      expect(buffer.readUInt32BE(20)).toBeGreaterThanOrEqual(minimumSize);
+      expect([4, 6].includes(buffer.readUInt8(25)) || buffer.includes(Buffer.from('tRNS'))).toBe(
+        true
+      );
+    });
+
+    it('should configure all launcher assets and native dismissal settings', () => {
+      const content = fs.readFileSync(initPath, 'utf8');
+      expect(content).toContain('jadeassist-notification-badge.png');
+      expect(content).toContain('jadeassist-close-button.png');
+      expect(content).toContain('notificationBadgeUrl');
+      expect(content).toContain('closeButtonUrl');
+      expect(content).toContain('launcherDismissible: true');
+      expect(content).toContain('launcherDismissStorageKey: DISMISS_STORAGE_KEY');
+      expect(content).toContain('launcherDismissDurationMs: DISMISS_DURATION_MS');
+      expect(content).toContain('showDelayMs: 0');
+    });
+
+    it('should use the verified native launcher controls and sync teaser dismissal', () => {
+      const content = fs.readFileSync(initPath, 'utf8');
+      const bundle = fs.readFileSync(
+        path.join(publicDir, 'assets/js/vendor/jade-widget.js'),
+        'utf8'
+      );
+
+      expect(content).toContain('bindWidgetLifecycleEvents');
+      expect(content).toContain("window.addEventListener('jadeassist:widget-dismissed'");
+      expect(content).not.toContain('function enhanceLauncherAssets');
+      expect(content).not.toContain('function injectDismissButton');
+
+      expect(bundle).toContain('jade-launcher-dismiss');
+      expect(bundle).toContain('jade-avatar-badge-asset');
+      expect(bundle).toContain('jadeassist:widget-dismissed');
+      expect(bundle).toContain('notificationBadgeUrl');
+      expect(bundle).toContain('closeButtonUrl');
+      expect(bundle).toContain('isVisible');
+    });
+
+    it('should keep dismissal duration aligned at 30 days', () => {
+      const content = fs.readFileSync(initPath, 'utf8');
+      expect(content).toContain('30 * 24 * 60 * 60 * 1000');
+      expect(content).not.toContain('dismissed for 24 h');
     });
   });
 });
