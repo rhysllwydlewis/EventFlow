@@ -9,6 +9,7 @@ const express = require('express');
 const logger = require('../utils/logger');
 const catalogCache = require('../services/catalogCache');
 const { supplierApprovalDefaults } = require('../services/supplierProfileProvisioning.service');
+const { buildSupplierThemeMutation } = require('../utils/supplierTheme');
 const router = express.Router();
 
 /**
@@ -28,7 +29,6 @@ const PATCH_FIELD_MAX_LENGTHS = {
   bannerUrl: 500,
   tagline: 200,
   phone: 30,
-  heroPreset: 40,
 };
 
 // Dependencies injected by server.js
@@ -51,7 +51,6 @@ function initializeDependencies(deps) {
     throw new Error('Supplier Management routes: dependencies object is required');
   }
 
-  // Validate required dependencies
   const required = [
     'dbUnified',
     'authRequired',
@@ -82,12 +81,6 @@ function initializeDependencies(deps) {
   supplierAnalytics = deps.supplierAnalytics;
 }
 
-/**
- * Deferred middleware wrappers
- * These are safe to reference in route definitions at require() time
- * because they defer the actual middleware call to request time,
- * when dependencies are guaranteed to be initialized.
- */
 function applyAuthRequired(req, res, next) {
   if (!authRequired) {
     return res.status(503).json({ error: 'Auth service not initialized' });
@@ -132,9 +125,8 @@ function applyRequireVerifiedUser(req, res, next) {
 router.get('/:id/analytics', applyAuthRequired, applyRoleRequired('supplier'), async (req, res) => {
   try {
     const supplierId = req.params.id;
-    const period = parseInt(req.query.period) || 7; // Default 7 days
+    const period = parseInt(req.query.period) || 7;
 
-    // Verify ownership
     const supplier = await dbUnified.findOne('suppliers', {
       id: supplierId,
       ownerUserId: req.user.id,
@@ -143,10 +135,7 @@ router.get('/:id/analytics', applyAuthRequired, applyRoleRequired('supplier'), a
       return res.status(404).json({ error: 'Supplier not found' });
     }
 
-    // Get analytics from the supplier analytics utility
     const analytics = await supplierAnalytics.getSupplierAnalytics(supplierId, period);
-
-    // Format response to match expected structure
     const labels = analytics.dailyData.map(d => d.label);
     const views = analytics.dailyData.map(d => d.views);
     const enquiries = analytics.dailyData.map(d => d.enquiries);
@@ -179,8 +168,6 @@ router.post(
   async (req, res) => {
     try {
       const supplierId = req.params.id;
-
-      // Verify ownership
       const supplier = await dbUnified.findOne('suppliers', {
         id: supplierId,
         ownerUserId: req.user.id,
@@ -191,12 +178,7 @@ router.post(
 
       const badgeManagement = require('../utils/badgeManagement');
       const results = await badgeManagement.evaluateSupplierBadges(supplierId);
-
-      res.json({
-        success: true,
-        message: 'Badge evaluation completed',
-        results,
-      });
+      res.json({ success: true, message: 'Badge evaluation completed', results });
     } catch (error) {
       logger.error('Error evaluating supplier badges:', error);
       res.status(500).json({ error: 'Failed to evaluate badges' });
@@ -221,9 +203,6 @@ router.post(
       return res.status(400).json({ error: 'Missing fields' });
     }
 
-    // Enforce 1:1 relationship: one supplier profile per user account.
-    // Keep legacy/demo suppliers with ownerUserId null untouched; linked users are checked by ownerUserId.
-    // Uniqueness is enforced by DB query (ownerUserId === req.user.id) rather than an in-memory scan.
     const [existing, ownerUser] = await Promise.all([
       dbUnified.findOne('suppliers', { ownerUserId: req.user.id }),
       dbUnified.findOne('users', { id: req.user.id }),
@@ -242,7 +221,6 @@ router.post(
       });
     }
 
-    // For Venues category, validate and require venuePostcode
     if (b.category === 'Venues') {
       if (!b.venuePostcode) {
         return res.status(400).json({
@@ -250,9 +228,7 @@ router.post(
         });
       }
       if (!geocoding.isValidUKPostcode(b.venuePostcode)) {
-        return res.status(400).json({
-          error: 'Invalid UK postcode format',
-        });
+        return res.status(400).json({ error: 'Invalid UK postcode format' });
       }
     }
 
@@ -260,17 +236,7 @@ router.post(
       .map(x => x.trim())
       .filter(Boolean);
     const nowIso = new Date().toISOString();
-
-    // Approval defaults come from the shared provisioning service which reads
-    // the autoApproveSupplierVerification feature flag. When ON, the service
-    // returns { approved: true, approvedAt, approvedBy: 'system', ... }.
-    // When OFF it returns { approved: false, verified: false, ... }.
-    // We spread these onto s so the flag is always set explicitly.
     const approvalDefaults = await supplierApprovalDefaults(nowIso);
-    // approvalDefaults.approved is either true (auto-approve ON) or false (manual approval needed).
-    // s.approved = true  → set by service when autoApproveSupplierVerification === true
-    // s.approvedAt / s.approvedBy = 'system' → set by service on auto-approval
-    // approved: false, → default when auto-approve is OFF (manual admin review required)
 
     const s = {
       id: uid('sup'),
@@ -288,29 +254,26 @@ router.post(
       photosGallery: [],
       email: ownerUser?.email || req.user.email || '',
       profileComplete: false,
+      themeMode: 'automatic',
       createdAt: nowIso,
       updatedAt: nowIso,
       ...approvalDefaults,
     };
 
-    // Add venue-specific fields if category is Venues
     if (b.category === 'Venues' && b.venuePostcode) {
       s.venuePostcode = String(b.venuePostcode).trim().toUpperCase();
-
-      // Geocode the postcode to get coordinates
       try {
         const coords = await geocoding.geocodePostcode(s.venuePostcode);
         if (coords) {
           s.latitude = coords.latitude;
           s.longitude = coords.longitude;
-          s.venuePostcode = coords.postcode; // Use normalized postcode from API
+          s.venuePostcode = coords.postcode;
           logger.info(`✅ Geocoded venue ${s.name}: ${coords.latitude}, ${coords.longitude}`);
         } else {
           logger.warn(`⚠️ Could not geocode postcode ${s.venuePostcode} for venue ${s.name}`);
         }
       } catch (error) {
         logger.error('Geocoding error:', error);
-        // Continue without coordinates - validation already passed
       }
     }
 
@@ -335,6 +298,7 @@ router.post(
         .status(500)
         .json({ error: 'Failed to create supplier profile. Please try again.' });
     }
+
     logger.info('Supplier profile created', {
       supplierId: s.id,
       userId: req.user.id,
@@ -363,17 +327,12 @@ router.patch(
     const b = req.body || {};
     const supplierPatch = {};
 
-    // If updating a Venues category supplier with venuePostcode
     if (b.venuePostcode && s.category === 'Venues') {
       if (!geocoding.isValidUKPostcode(b.venuePostcode)) {
-        return res.status(400).json({
-          error: 'Invalid UK postcode format',
-        });
+        return res.status(400).json({ error: 'Invalid UK postcode format' });
       }
 
-      // Update postcode and geocode
       supplierPatch.venuePostcode = String(b.venuePostcode).trim().toUpperCase();
-
       try {
         const coords = await geocoding.geocodePostcode(supplierPatch.venuePostcode);
         if (coords) {
@@ -395,15 +354,12 @@ router.patch(
       }
     }
 
-    // Validate and set theme color (must be valid hex color)
-    if (b.themeColor && typeof b.themeColor === 'string') {
-      const hexColorRegex = /^#[0-9A-F]{6}$/i;
-      if (hexColorRegex.test(b.themeColor.trim())) {
-        supplierPatch.themeColor = b.themeColor.trim();
-      }
+    const themeMutation = buildSupplierThemeMutation(b, s);
+    if (themeMutation.error) {
+      return res.status(400).json({ error: themeMutation.error });
     }
+    Object.assign(supplierPatch, themeMutation.set);
 
-    // Handle array fields
     if (b.amenities) {
       supplierPatch.amenities = String(b.amenities)
         .split(',')
@@ -415,17 +371,16 @@ router.patch(
       supplierPatch.highlights = b.highlights
         .map(x => String(x).trim())
         .filter(Boolean)
-        .slice(0, 5); // Limit to 5 highlights
+        .slice(0, 5);
     }
 
     if (b.featuredServices && Array.isArray(b.featuredServices)) {
       supplierPatch.featuredServices = b.featuredServices
         .map(x => String(x).trim())
         .filter(Boolean)
-        .slice(0, 10); // Limit to 10 services
+        .slice(0, 10);
     }
 
-    // Handle social links with validation
     if (b.socialLinks && typeof b.socialLinks === 'object') {
       supplierPatch.socialLinks = {};
       const allowedPlatforms = [
@@ -439,16 +394,12 @@ router.patch(
       for (const platform of allowedPlatforms) {
         if (b.socialLinks[platform] && typeof b.socialLinks[platform] === 'string') {
           const url = b.socialLinks[platform].trim();
-          // Robust URL validation using URL constructor
           try {
             const parsedUrl = new URL(url);
-            // Only allow http and https protocols
             if (parsedUrl.protocol === 'http:' || parsedUrl.protocol === 'https:') {
-              // Use the parsed URL to prevent XSS
               supplierPatch.socialLinks[platform] = parsedUrl.href;
             }
           } catch (err) {
-            // Invalid URL, skip it
             logger.warn(`Invalid social link URL for ${platform}: ${url}`);
           }
         }
@@ -459,15 +410,21 @@ router.patch(
     if (b.maxGuests != null) {
       supplierPatch.maxGuests = parseInt(b.maxGuests, 10) || 0;
     }
-    // NOTE: do NOT touch approved here — supplier edits must never revoke approval.
-    await dbUnified.updateOne('suppliers', { id: req.params.id }, { $set: supplierPatch });
 
-    // Bust catalog cache — profile edit means the supplier data may have changed
+    supplierPatch.updatedAt = new Date().toISOString();
+    const update = { $set: supplierPatch };
+    if (Object.keys(themeMutation.unset).length > 0) {
+      update.$unset = themeMutation.unset;
+    }
+    await dbUnified.updateOne('suppliers', { id: req.params.id }, update);
+
     catalogCache
       .invalidate()
       .catch(e => logger.warn('[catalogCache] invalidate error:', e.message));
 
-    res.json({ ok: true, supplier: { ...s, ...supplierPatch } });
+    const updatedSupplier = { ...s, ...supplierPatch };
+    Object.keys(themeMutation.unset).forEach(key => delete updatedSupplier[key]);
+    res.json({ ok: true, supplier: updatedSupplier });
   }
 );
 
@@ -494,7 +451,6 @@ router.post(
     });
     await Promise.all(proUpdatePromises);
 
-    // Optionally also mirror this onto the user record if present
     try {
       await dbUnified.updateOne(
         'users',
@@ -511,8 +467,6 @@ router.post(
 
 /**
  * POST /api/me/suppliers/verification-request
- * This endpoint has been removed. Supplier verification now uses the existing
- * state-machine-backed endpoint: POST /api/supplier/verification/submit
  */
 router.post('/verification-request', (_req, res) => {
   res.status(410).json({
