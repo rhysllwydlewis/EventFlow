@@ -37,6 +37,11 @@ jobs:
           end = workflow.index(end_marker, start)
           payload = textwrap.dedent(workflow[start:end])
           exec(compile(payload, 'supplier-profile-balance-patch', 'exec'), {'__name__': '__main__'})
+
+          unit_path = Path('tests/unit/supplier-profile-layout-balance.test.js')
+          unit_text = unit_path.read_text()
+          if unit_text.startswith('\\\n'):
+              unit_path.write_text(unit_text[2:])
           PY
 
       - name: Format changed files with repository tooling
