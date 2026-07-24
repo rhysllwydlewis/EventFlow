@@ -1,70 +1,70 @@
-[90mpublic/assets/js/public-supplier-avatar.js[39m 68ms (unchanged)
-public/assets/js/supplier-profile-polish.js 42ms
-public/assets/js/supplier-profile-theme-owner.js 26ms
-[90mpublic/assets/js/supplier-profile.js[39m 74ms (unchanged)
-[90mroutes/supplier-management.js[39m 26ms (unchanged)
-[90mroutes/supplier-profile-safe.js[39m 8ms (unchanged)
-[90mtests/integration/supplier-theme-route.test.js[39m 5ms (unchanged)
-[90mtests/unit/supplier-profile-photo-lightbox.test.js[39m 11ms (unchanged)
-tests/unit/supplier-profile-theme-owner.test.js 3ms
-tests/unit/supplier-profile-visual-overhaul.test.js 3ms
-[90mtests/unit/supplier-public-profile.test.js[39m 4ms (unchanged)
-tests/unit/supplier-theme.test.js 3ms
-[90mutils/supplierPublicProfile.js[39m 11ms (unchanged)
-utils/supplierTheme.js 8ms
-2026-07-24 18:05:40 [[33mwarn[39m]: Unapproved supplier attempted restricted action {"userId":"user-1","supplierId":"sup-1","path":"/test","method":"POST"}
-2026-07-24 18:05:40 [[33mwarn[39m]: Unapproved supplier attempted restricted action {"userId":"user-1","supplierId":"sup-1","path":"/test","method":"POST"}
-2026-07-24 18:05:40 [[31merror[39m]: Error checking supplier approval status in requireApprovedSupplier: DB unavailable {"stack":"Error: DB unavailable\n    at Object.<anonymous> (/home/runner/work/EventFlow/EventFlow/tests/unit/supplier-approval.test.js:225:35)\n    at Promise.then.completed (/home/runner/work/EventFlow/EventFlow/node_modules/jest-circus/build/utils.js:298:28)\n    at new Promise (<anonymous>)\n    at callAsyncCircusFn (/home/runner/work/EventFlow/EventFlow/node_modules/jest-circus/build/utils.js:231:10)\n    at _callCircusTest (/home/runner/work/EventFlow/EventFlow/node_modules/jest-circus/build/run.js:316:40)\n    at _runTest (/home/runner/work/EventFlow/EventFlow/node_modules/jest-circus/build/run.js:252:3)\n    at _runTestsForDescribeBlock (/home/runner/work/EventFlow/EventFlow/node_modules/jest-circus/build/run.js:126:9)\n    at _runTestsForDescribeBlock (/home/runner/work/EventFlow/EventFlow/node_modules/jest-circus/build/run.js:121:9)\n    at run (/home/runner/work/EventFlow/EventFlow/node_modules/jest-circus/build/run.js:71:3)\n    at runAndTransformResultsToJestFormat (/home/runner/work/EventFlow/EventFlow/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)\n    at jestAdapter (/home/runner/work/EventFlow/EventFlow/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)\n    at runTestInternal (/home/runner/work/EventFlow/EventFlow/node_modules/jest-runner/build/runTest.js:367:16)\n    at runTest (/home/runner/work/EventFlow/EventFlow/node_modules/jest-runner/build/runTest.js:444:34)"}
+[90mpublic/assets/js/public-supplier-avatar.js[39m 108ms (unchanged)
+public/assets/js/supplier-profile-polish.js 67ms
+public/assets/js/supplier-profile-theme-owner.js 43ms
+[90mpublic/assets/js/supplier-profile.js[39m 108ms (unchanged)
+[90mroutes/supplier-management.js[39m 46ms (unchanged)
+[90mroutes/supplier-profile-safe.js[39m 10ms (unchanged)
+[90mtests/integration/supplier-theme-route.test.js[39m 10ms (unchanged)
+[90mtests/unit/supplier-profile-photo-lightbox.test.js[39m 19ms (unchanged)
+tests/unit/supplier-profile-theme-owner.test.js 4ms
+tests/unit/supplier-profile-visual-overhaul.test.js 4ms
+[90mtests/unit/supplier-public-profile.test.js[39m 6ms (unchanged)
+tests/unit/supplier-theme.test.js 5ms
+[90mutils/supplierPublicProfile.js[39m 18ms (unchanged)
+utils/supplierTheme.js 10ms
+2026-07-24 18:10:34 [[33mwarn[39m]: Unapproved supplier attempted restricted action {"userId":"user-1","supplierId":"sup-1","path":"/test","method":"POST"}
+2026-07-24 18:10:34 [[33mwarn[39m]: Unapproved supplier attempted restricted action {"userId":"user-1","supplierId":"sup-1","path":"/test","method":"POST"}
+2026-07-24 18:10:34 [[31merror[39m]: Error checking supplier approval status in requireApprovedSupplier: DB unavailable {"stack":"Error: DB unavailable\n    at Object.<anonymous> (/home/runner/work/EventFlow/EventFlow/tests/unit/supplier-approval.test.js:225:35)\n    at Promise.then.completed (/home/runner/work/EventFlow/EventFlow/node_modules/jest-circus/build/utils.js:298:28)\n    at new Promise (<anonymous>)\n    at callAsyncCircusFn (/home/runner/work/EventFlow/EventFlow/node_modules/jest-circus/build/utils.js:231:10)\n    at _callCircusTest (/home/runner/work/EventFlow/EventFlow/node_modules/jest-circus/build/run.js:316:40)\n    at _runTest (/home/runner/work/EventFlow/EventFlow/node_modules/jest-circus/build/run.js:252:3)\n    at _runTestsForDescribeBlock (/home/runner/work/EventFlow/EventFlow/node_modules/jest-circus/build/run.js:126:9)\n    at _runTestsForDescribeBlock (/home/runner/work/EventFlow/EventFlow/node_modules/jest-circus/build/run.js:121:9)\n    at run (/home/runner/work/EventFlow/EventFlow/node_modules/jest-circus/build/run.js:71:3)\n    at runAndTransformResultsToJestFormat (/home/runner/work/EventFlow/EventFlow/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)\n    at jestAdapter (/home/runner/work/EventFlow/EventFlow/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)\n    at runTestInternal (/home/runner/work/EventFlow/EventFlow/node_modules/jest-runner/build/runTest.js:367:16)\n    at runTest (/home/runner/work/EventFlow/EventFlow/node_modules/jest-runner/build/runTest.js:444:34)"}
 PASS tests/unit/supplier-approval.test.js
   supplier.service.js — createSupplier defaults
-    ✓ explicitly sets approved: false on new supplier profile creation (1 ms)
+    ✓ explicitly sets approved: false on new supplier profile creation (2 ms)
     ✓ sets approved in the Admin approval section (not user-modifiable block)
   supplier-management.js — createSupplier defaults
-    ✓ delegates approval defaults to supplierApprovalDefaults (not inlined)
-    ✓ references autoApproveSupplierVerification in comment so it is traceable (1 ms)
-    ✓ comment documents that s.approved = true is set by service on auto-approval
+    ✓ delegates approval defaults to supplierApprovalDefaults (not inlined) (1 ms)
+    ✓ references autoApproveSupplierVerification in comment so it is traceable
+    ✓ comment documents that s.approved = true is set by service on auto-approval (1 ms)
     ✓ comment documents the approved: false, default when auto-approve is OFF
   supplier-management.js — PATCH must not revoke approval
     ✓ does NOT assign approved in the PATCH route body (1 ms)
     ✓ has a comment noting that approved must not be touched on edit
   middleware/auth.js — requireApprovedSupplier
-    ✓ exports requireApprovedSupplier function
-    ✓ returns 403 with SUPPLIER_NOT_APPROVED code for unapproved suppliers (1 ms)
-    ✓ only enforces approval for supplier-role users (2 ms)
+    ✓ exports requireApprovedSupplier function (1 ms)
+    ✓ returns 403 with SUPPLIER_NOT_APPROVED code for unapproved suppliers
+    ✓ only enforces approval for supplier-role users (3 ms)
     ✓ checks approved === true on the supplier profile document
-    ✓ returns 403 when supplier profile is not found
+    ✓ returns 403 when supplier profile is not found (1 ms)
   requireApprovedSupplier middleware — runtime behaviour
     ✓ calls next() for an approved supplier (1 ms)
-    ✓ returns 403 SUPPLIER_NOT_APPROVED for unapproved supplier (2 ms)
+    ✓ returns 403 SUPPLIER_NOT_APPROVED for unapproved supplier (3 ms)
     ✓ returns 403 SUPPLIER_NOT_APPROVED when approved field is missing (1 ms)
-    ✓ returns 403 when supplier profile is not found
+    ✓ returns 403 when supplier profile is not found (1 ms)
     ✓ calls next() for non-supplier users (no profile check needed)
     ✓ calls next() for admin users (no profile check needed) (1 ms)
     ✓ returns 401 when req.user is missing
-    ✓ returns 503 when db throws an error (13 ms)
+    ✓ returns 503 when db throws an error (19 ms)
   packages.js — approval gating
-    ✓ declares requireApprovedSupplier as an injected dependency
-    ✓ defines applyRequireApprovedSupplier deferred wrapper (1 ms)
+    ✓ declares requireApprovedSupplier as an injected dependency (1 ms)
+    ✓ defines applyRequireApprovedSupplier deferred wrapper
     ✓ requires approved supplier for package creation (POST /me/packages)
-    ✓ requires approved supplier for package update (PUT /me/packages/:id)
+    ✓ requires approved supplier for package update (PUT /me/packages/:id) (1 ms)
     ✓ requires approved supplier for package deletion (DELETE /me/packages/:id)
     ✓ requires approved supplier for package photo upload (POST /me/packages/:id/photos)
     ✓ requires approved supplier for package photo delete (DELETE /me/packages/:id/photos)
     ✓ requires approved supplier for package pause (PUT /me/packages/:id/pause)
-    ✓ requires approved supplier for package unpause (PUT /me/packages/:id/unpause)
+    ✓ requires approved supplier for package unpause (PUT /me/packages/:id/unpause) (1 ms)
     ✓ requires approved supplier for gallery reorder (PUT /me/packages/:id/gallery/order)
-    ✓ requires role=supplier for package photo upload (POST /me/packages/:id/photos) (1 ms)
+    ✓ requires role=supplier for package photo upload (POST /me/packages/:id/photos)
     ✓ requires role=supplier for package photo delete (DELETE /me/packages/:id/photos)
   messenger-v4.js — approval gating
-    ✓ accepts requireApprovedSupplier as injected dependency
+    ✓ accepts requireApprovedSupplier as injected dependency (1 ms)
     ✓ defines applyRequireApprovedSupplier wrapper
     ✓ gates POST /conversations with applyRequireApprovedSupplier
     ✓ gates POST /conversations/:id/messages with applyRequireApprovedSupplier
   public-calendar.js — approval gating
-    ✓ imports requireApprovedSupplier from middleware/auth (1 ms)
+    ✓ imports requireApprovedSupplier from middleware/auth
     ✓ gates POST /events with requireApprovedSupplier
     ✓ gates PUT /events/:id with requireApprovedSupplier
-    ✓ gates DELETE /events/:id with requireApprovedSupplier
+    ✓ gates DELETE /events/:id with requireApprovedSupplier (1 ms)
   supplier-admin.js — admin approve endpoint
     ✓ has POST /suppliers/:id/approve endpoint
     ✓ sets approved: true when approving
@@ -72,18 +72,18 @@ PASS tests/unit/supplier-approval.test.js
     ✓ requires admin role for approval (1 ms)
     ✓ writes an audit log entry when approving
   supplier-management.js — legacy verification-request endpoint returns 410
-    ✓ has the /verification-request route returning 410 (removed)
+    ✓ has the /verification-request route returning 410 (removed) (1 ms)
     ✓ does NOT create support tickets for supplier verification
     ✓ does NOT insert into the tickets collection for verification
   routes/supplier.js — POST /verification/submit uses state machine
     ✓ has POST /verification/submit endpoint
     ✓ transitions supplier to pending_review state
     ✓ checks the state machine canTransition before updating
-    ✓ returns 409 when transition is not allowed (e.g. already pending)
+    ✓ returns 409 when transition is not allowed (e.g. already pending) (1 ms)
     ✓ auto-approves when autoApproveSupplierVerification is enabled
-    ✓ does NOT create support tickets
+    ✓ does NOT create support tickets (1 ms)
   routes/admin.js — GET /suppliers/verification-requests returns 410
-    ✓ still has the /suppliers/verification-requests route (returns 410)
+    ✓ still has the /suppliers/verification-requests route (returns 410) (1 ms)
     ✓ returns 410 Gone (endpoint removed)
     ✓ does NOT scan tickets for supplier_verification ticketType
     ✓ requires admin role
@@ -93,23 +93,23 @@ PASS tests/unit/supplier-approval.test.js
     ✓ requires admin role
   routes/auth.js — /api/auth/me includes supplierApproved
     ✓ includes supplierApproved in /me response for supplier users
-    ✓ fetches supplier profile to determine approval status
-    ✓ returns null supplierApproved for non-supplier users (3 ms)
+    ✓ fetches supplier profile to determine approval status (3 ms)
+    ✓ returns null supplierApproved for non-supplier users
   dashboard-supplier-verification.js — banner reads data.user.*
     ✓ reads role from data.user not data directly
     ✓ reads supplierApproved from data.user not data directly
-    ✓ uses state-machine submit endpoint, not the removed ticket endpoint
+    ✓ uses state-machine submit endpoint, not the removed ticket endpoint (1 ms)
     ✓ shows pending state message when supplier is already in pending_review
   routes/suppliers.js — public directory filters unapproved
     ✓ filters list endpoint to only return approved suppliers
     ✓ hides unapproved supplier profiles from non-admin/non-owner public access
   db-utils.js — migration preserves approved for existing suppliers
-    ✓ migration sets approved field defaulting existing suppliers to true
-    ✓ migration does not hard-code approved: false for existing suppliers (1 ms)
+    ✓ migration sets approved field defaulting existing suppliers to true (1 ms)
+    ✓ migration does not hard-code approved: false for existing suppliers
   admin-suppliers-init.js — rejectSupplier calls correct endpoint
     ✓ rejectSupplier calls POST /api/admin/suppliers/:id/reject
     ✓ rejectSupplier does NOT call the approve endpoint with approved:false
-    ✓ rejectSupplier prompts for rejection notes via input modal
+    ✓ rejectSupplier prompts for rejection notes via input modal (1 ms)
     ✓ rejectSupplier sends notes field in request body
   supplier-admin.js — reject endpoint increments rejection counter
     ✓ stores verificationRejectionCount in reject endpoint updates
@@ -119,18 +119,18 @@ PASS tests/unit/supplier-approval.test.js
   routes/supplier.js — submit blocks after 5 rejections
     ✓ checks verificationRejectionCount before allowing resubmission
     ✓ returns 403 when rejection count >= 5
-    ✓ uses >= 5 as the blocking threshold
+    ✓ uses >= 5 as the blocking threshold (1 ms)
   routes/supplier.js — status endpoint includes rejection count
     ✓ status endpoint returns verificationRejectionCount field
   dashboard-supplier-verification.js — rejection and blocked state handling
     ✓ handles rejected verificationStatus state
     ✓ handles needs_changes verificationStatus state
-    ✓ shows blocked banner when verificationRejectionCount >= 5
+    ✓ shows blocked banner when verificationRejectionCount >= 5 (1 ms)
     ✓ displays admin rejection notes in the banner for rejected state
     ✓ shows rejection notes in modal when resubmitting
     ✓ shows supplier notes textarea in resubmit modal
     ✓ handles VERIFICATION_MAX_REJECTIONS error from submit endpoint
-    ✓ uses distinct CSS class for amber (get-verified) button hover
+    ✓ uses distinct CSS class for amber (get-verified) button hover (1 ms)
     ✓ uses distinct CSS class for red (resubmit) button hover
     ✓ uses correct red hover colour for resubmit button (not amber)
     ✓ shows rejection notes in blocked banner
@@ -138,10 +138,10 @@ PASS tests/unit/supplier-approval.test.js
     ✓ uses ⚠️ emoji for unverified (not submitted) state instead of ⏳
   routes/supplier.js — email validation on POST /verification/submit
     ✓ defines EMAIL_REGEX as a module-level constant
-    ✓ EMAIL_REGEX rejects addresses without an @ symbol
-    ✓ validates email format and returns 400 on invalid input (1 ms)
+    ✓ EMAIL_REGEX rejects addresses without an @ symbol (1 ms)
+    ✓ validates email format and returns 400 on invalid input
     ✓ prefers updated email from request body, falls back to stored supplier email
-    ✓ email validation runs AFTER the required-fields presence check
+    ✓ email validation runs AFTER the required-fields presence check (1 ms)
   routes/supplier-management.js — PATCH field max-length enforcement
     ✓ defines PATCH_FIELD_MAX_LENGTHS as a module-level constant
     ✓ PATCH_FIELD_MAX_LENGTHS covers all expected string fields (1 ms)
@@ -150,114 +150,99 @@ PASS tests/unit/supplier-approval.test.js
 
 PASS tests/unit/public-supplier-avatar.test.js
   public supplier avatar canonical service and endpoint
-    ✓ endpoint returns only public avatar fields when approved supplier has photo (36 ms)
-    ✓ endpoint returns hasPhoto true using logo when canonical avatar is missing (16 ms)
-    ✓ endpoint uses highest priority safe fallback when canonical avatar is missing (37 ms)
-    ✓ write-through failure still returns safe fallback avatar (15 ms)
-    ✓ endpoint returns placeholder metadata for approved supplier without photo (12 ms)
-    ✓ endpoint does not expose non-public suppliers (14 ms)
+    ✓ endpoint returns only public avatar fields when approved supplier has photo (56 ms)
+    ✓ endpoint returns hasPhoto true using logo when canonical avatar is missing (25 ms)
+    ✓ endpoint uses highest priority safe fallback when canonical avatar is missing (69 ms)
+    ✓ write-through failure still returns safe fallback avatar (25 ms)
+    ✓ endpoint returns placeholder metadata for approved supplier without photo (22 ms)
+    ✓ endpoint does not expose non-public suppliers (23 ms)
     ✓ URL safety rejects data, javascript and protocol-relative URLs
     ✓ diagnostic reports fallback source and write-through attempt without exposing private data (1 ms)
     ✓ diagnostic reachability checks resolve relative safe image URLs against a base URL (1 ms)
-    ✓ upload and delete sync set and unset canonical publicProfileAvatarUrl
+    ✓ upload and delete sync set and unset canonical publicProfileAvatarUrl (1 ms)
     ✓ user avatar sync supports legacy email-linked suppliers
     ✓ backfill repairs old profile fields and does not overwrite canonical avatar without force (1 ms)
   public-supplier-avatar client
-    ✓ fetches dedicated endpoint, sets src, waits for load, and restores placeholder on error (2 ms)
+    ✓ fetches dedicated endpoint, sets src, waits for load, and restores placeholder on error (3 ms)
 
 PASS tests/unit/supplier-duplicate-prevention.test.js
   supplier-management.js — duplicate prevention logic
     ✓ checks for existing supplier profile before inserting (1 ms)
     ✓ uses SUPPLIER_PROFILE_EXISTS error code when duplicate found
-    ✓ requires verified user for supplier creation
+    ✓ requires verified user for supplier creation (1 ms)
     ✓ requires verified user for supplier update
   packages.js — verification gating
     ✓ requires verified user for package creation (POST /me/packages)
-    ✓ requires verified user for package update (PUT /me/packages/:id) (1 ms)
+    ✓ requires verified user for package update (PUT /me/packages/:id)
     ✓ requires verified user for package deletion (DELETE /me/packages/:id)
     ✓ requires verified user for package photo upload (POST /me/packages/:id/photos)
     ✓ requires verified user for package photo delete (DELETE /me/packages/:id/photos)
-    ✓ requires verified user for package pause (PUT /me/packages/:id/pause)
+    ✓ requires verified user for package pause (PUT /me/packages/:id/pause) (1 ms)
     ✓ requires verified user for package unpause (PUT /me/packages/:id/unpause)
   admin.js — duplicate detection endpoints
     ✓ has GET /suppliers/duplicates endpoint
     ✓ has POST /suppliers/cleanup-duplicates endpoint
     ✓ cleanup-duplicates endpoint writes an audit log entry
     ✓ cleanup-duplicates requires admin role and CSRF protection
-    ✓ duplicates scan does NOT use __no_owner__ as a grouping key (1 ms)
+    ✓ duplicates scan does NOT use __no_owner__ as a grouping key
     ✓ duplicates scan returns missingOwnerSuppliers field
     ✓ duplicates scan skips suppliers without ownerUserId
-    ✓ cleanup-duplicates rejects __no_owner__ sentinel value
+    ✓ cleanup-duplicates rejects __no_owner__ sentinel value (1 ms)
     ✓ cleanup-duplicates supports dryRun option
     ✓ cleanup-duplicates returns dryRun:true in response when dry run requested
     ✓ cleanup-duplicates defaults dryRun to true (safe-by-default)
     ✓ cleanup-duplicates requires confirm=true when dryRun is false
-    ✓ cleanup-duplicates rejects empty/whitespace ownerUserId
-    ✓ cleanup-duplicates reassigns reviews collection (1 ms)
+    ✓ cleanup-duplicates rejects empty/whitespace ownerUserId (1 ms)
+    ✓ cleanup-duplicates reassigns reviews collection
     ✓ cleanup-duplicates reassigns threads collection
     ✓ cleanup-duplicates reassigns messages collection
   admin.js — cleanup-duplicates reassignment plan
     ✓ uses collectionsToReassign array covering packages, reviews, threads, messages (1 ms)
   emailVerification.js — canonical verification link
-    ✓ sends /verify?token=... links (not /verify-email?token=...)
+    ✓ sends /verify?token=... links (not /verify-email?token=...) (1 ms)
 
 FAIL tests/unit/supplier-profile-photo-lightbox.test.js
   supplier profile photo lightbox
-    ✕ opens the loaded avatar on click and closes with Escape (2 ms)
-    ✕ supports keyboard activation and disables enlargement for placeholders (1 ms)
+    ✕ opens the loaded avatar on click and closes with Escape (4 ms)
+    ✓ supports keyboard activation and disables enlargement for placeholders (1 ms)
 
   ● supplier profile photo lightbox › opens the loaded avatar on click and closes with Escape
 
-    expect(received).not.toBeNull()
+    expect(received).toBe(expected) // Object.is equality
 
-    Received: null
+    Expected: ""
+    Received: undefined
 
-    [0m [90m 185 |[39m     fixture[33m.[39mavatar[33m.[39mdispatchEvent({ type[33m:[39m [32m'click'[39m })[33m;[39m
-     [90m 186 |[39m     [36mconst[39m dialog [33m=[39m fixture[33m.[39mdocument[33m.[39mbody[33m.[39mquerySelector([32m'.sp-avatar-lightbox'[39m)[33m;[39m
-    [31m[1m>[22m[39m[90m 187 |[39m     expect(dialog)[33m.[39mnot[33m.[39mtoBeNull()[33m;[39m
-     [90m     |[39m                        [31m[1m^[22m[39m
-     [90m 188 |[39m     expect(dialog[33m.[39mgetAttribute([32m'aria-modal'[39m))[33m.[39mtoBe([32m'true'[39m)[33m;[39m
-     [90m 189 |[39m     expect(dialog[33m.[39mquerySelector([32m'img'[39m)[33m.[39mgetAttribute([32m'src'[39m))[33m.[39mtoBe([32m'/uploads/example.jpg'[39m)[33m;[39m
-     [90m 190 |[39m     expect(fixture[33m.[39mdocument[33m.[39mbody[33m.[39mstyle[33m.[39moverflow)[33m.[39mtoBe([32m'hidden'[39m)[33m;[39m[0m
+    [0m [90m 203 |[39m     fixture[33m.[39mdocument[33m.[39mdispatchEvent({ type[33m:[39m [32m'keydown'[39m[33m,[39m key[33m:[39m [32m'Escape'[39m })[33m;[39m
+     [90m 204 |[39m     expect(fixture[33m.[39mdocument[33m.[39mbody[33m.[39mquerySelector([32m'.sp-avatar-lightbox'[39m))[33m.[39mtoBeNull()[33m;[39m
+    [31m[1m>[22m[39m[90m 205 |[39m     expect(fixture[33m.[39mdocument[33m.[39mbody[33m.[39mstyle[33m.[39moverflow)[33m.[39mtoBe([32m''[39m)[33m;[39m
+     [90m     |[39m                                                  [31m[1m^[22m[39m
+     [90m 206 |[39m     expect(fixture[33m.[39mdocument[33m.[39mactiveElement)[33m.[39mtoBe(fixture[33m.[39mavatar)[33m;[39m
+     [90m 207 |[39m   })[33m;[39m
+     [90m 208 |[39m[0m
 
-      at Object.toBeNull (tests/unit/supplier-profile-photo-lightbox.test.js:187:24)
-
-  ● supplier profile photo lightbox › supports keyboard activation and disables enlargement for placeholders
-
-    expect(received).not.toBeNull()
-
-    Received: null
-
-    [0m [90m 201 |[39m     client[33m.[39mshowAvatarImage(fixture[33m.[39mimage[33m,[39m fixture[33m.[39minitials[33m,[39m [32m'/uploads/example.jpg'[39m)[33m;[39m
-     [90m 202 |[39m     fixture[33m.[39mavatar[33m.[39mdispatchEvent({ type[33m:[39m [32m'keydown'[39m[33m,[39m key[33m:[39m [32m'Enter'[39m })[33m;[39m
-    [31m[1m>[22m[39m[90m 203 |[39m     expect(fixture[33m.[39mdocument[33m.[39mbody[33m.[39mquerySelector([32m'.sp-avatar-lightbox'[39m))[33m.[39mnot[33m.[39mtoBeNull()[33m;[39m
-     [90m     |[39m                                                                            [31m[1m^[22m[39m
-     [90m 204 |[39m     client[33m.[39mcloseAvatarLightbox()[33m;[39m
-     [90m 205 |[39m
-     [90m 206 |[39m     client[33m.[39msetPlaceholder(fixture[33m.[39mimage[33m,[39m fixture[33m.[39minitials[33m,[39m [32m'ES'[39m)[33m;[39m[0m
-
-      at Object.toBeNull (tests/unit/supplier-profile-photo-lightbox.test.js:203:76)
+      at Object.toBe (tests/unit/supplier-profile-photo-lightbox.test.js:205:50)
 
 PASS tests/unit/supplier-public-profile.test.js
   supplier public profile safety helpers
-    ✓ strips private/internal fields from public supplier payloads (1 ms)
+    ✓ strips private/internal fields from public supplier payloads (2 ms)
     ✓ allows only safe public image URL forms
-    ✓ returns resolved profile-photo fields without letting logo override the avatar
-    ✓ handles null and malformed nested public profile fields without leaking placeholders
+    ✓ returns resolved profile-photo fields without letting logo override the avatar (1 ms)
+    ✓ handles null and malformed nested public profile fields without leaking placeholders (1 ms)
     ✓ normalises URLs through URL parsing and rejects non-absolute external links (1 ms)
     ✓ returns trimmed package payloads for public profile cards
-    ✓ preserves only the effective public supplier theme state
+    ✓ preserves only the effective public supplier theme state (1 ms)
 
 PASS tests/unit/supplier-theme.test.js
   supplier theme state
     ✓ normalises stored modes and removes stale competing values (1 ms)
-    ✓ makes preset, custom and automatic mutations mutually exclusive
-    ✓ keeps legacy owner-editor preset payloads aligned (1 ms)
+    ✓ makes preset, custom and automatic mutations mutually exclusive (1 ms)
+    ✓ keeps legacy owner-editor preset payloads aligned
     ✓ accepts the legacy owner-editor custom-colour payload shape
-    ✓ does not let the legacy customisation page silently replace automatic themes with teal
+    ✓ does not let the legacy customisation page silently replace automatic themes with teal (1 ms)
     ✓ does not let the legacy customisation page silently replace a preset with teal
     ✓ covers canonical supplier categories with visual families
-    ✓ rejects invalid explicit theme state (1 ms)
+    ✓ rejects invalid explicit theme state
 
 PASS tests/unit/supplier-profile-visual-overhaul.test.js
   supplier profile visual overhaul contracts
@@ -267,26 +252,26 @@ PASS tests/unit/supplier-profile-visual-overhaul.test.js
     ✓ derives contrast-safe tokens in JavaScript rather than relying on color-mix support (1 ms)
     ✓ places a larger portrait beside the supplier identity at desktop and mobile sizes
     ✓ keeps semantic colours separate while theming profile-owned controls (1 ms)
-    ✓ replaces generic response claims and emoji detail icons with data-aware polish (1 ms)
+    ✓ replaces generic response claims and emoji detail icons with data-aware polish
     ✓ cache-busts the visual theme layer
 
 PASS tests/integration/supplier-theme-route.test.js
   supplier theme PATCH route
-    ✓ stores preset mode and atomically removes a stale custom colour (174 ms)
-    ✓ supports automatic mode by clearing both competing fields (36 ms)
-    ✓ rejects an invalid explicit mode without writing (57 ms)
+    ✓ stores preset mode and atomically removes a stale custom colour (263 ms)
+    ✓ supports automatic mode by clearing both competing fields (57 ms)
+    ✓ rejects an invalid explicit mode without writing (76 ms)
 
 PASS tests/unit/supplier-profile-theme-owner.test.js
   supplier profile owner theme editing
     ✓ exposes owner identity only to the authenticated owner (1 ms)
     ✓ the safe route enables owner editing without exposing the owner id generally
     ✓ offers explicit automatic, preset and custom modes
-    ✓ keeps the theme dialog keyboard accessible (1 ms)
-    ✓ merges the canonical server response and reapplies the full profile theme
+    ✓ keeps the theme dialog keyboard accessible
+    ✓ merges the canonical server response and reapplies the full profile theme (1 ms)
 
 Test Suites: 1 failed, 8 passed, 9 total
-Tests:       2 failed, 180 passed, 182 total
+Tests:       1 failed, 181 passed, 182 total
 Snapshots:   0 total
-Time:        1.169 s
+Time:        1.841 s
 Ran all test suites matching /tests\/unit\/supplier-theme.test.js|tests\/unit\/supplier-profile-theme-owner.test.js|tests\/unit\/supplier-profile-visual-overhaul.test.js|tests\/unit\/supplier-public-profile.test.js|tests\/unit\/supplier-profile-photo-lightbox.test.js|tests\/unit\/public-supplier-avatar.test.js|tests\/unit\/supplier-approval.test.js|tests\/unit\/supplier-duplicate-prevention.test.js|tests\/integration\/supplier-theme-route.test.js/i.
 Force exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after all tests finished?
