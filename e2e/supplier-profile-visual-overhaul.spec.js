@@ -290,6 +290,7 @@ test.describe('Supplier profile visual overhaul', () => {
     await openProfile(page, makeSupplier());
 
     const result = await page.evaluate(() => {
+      document.getElementById('cookie-consent-banner')?.remove();
       document.body.classList.add('ef-pwa-banner-visible');
       const pageShell = document.querySelector('.sp-page');
       const description = document.querySelector('.sp-about__description');
@@ -303,5 +304,53 @@ test.describe('Supplier profile visual overhaul', () => {
     expect(result.pageWidth).toBeGreaterThanOrEqual(1300);
     expect(result.bodyCopy).toBeGreaterThanOrEqual(15);
     expect(result.paddingBottom).toBeGreaterThanOrEqual(180);
+  });
+
+  test('uses a wider commercial desktop composition with balanced highlights and reviews', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1720, height: 1100 });
+    await openProfile(
+      page,
+      makeSupplier({
+        heroPreset: 'midnight',
+        highlights: [
+          '500+ five-star reviews',
+          'Hundreds of corporate events hosted',
+          'Audiences of up to 1,400',
+          'Live, virtual and hybrid experience',
+          'Trusted by global organisations',
+        ],
+      })
+    );
+
+    await page.locator('#reviews-list').evaluate(list => {
+      list.innerHTML = `
+        <div class="reviews-empty">
+          <div class="empty-icon">⭐</div>
+          <h3 class="empty-title">No EventFlow reviews yet</h3>
+          <p class="empty-message">Be the first to share your experience with this supplier on EventFlow.</p>
+          <a class="reviews-empty__signin-cta" href="/auth">Sign in to write a review</a>
+        </div>`;
+    });
+    await expect(page.locator('#reviews-widget .reviews-empty')).toBeVisible();
+
+    const result = await page.evaluate(() => {
+      const shell = document.querySelector('.sp-page').getBoundingClientRect();
+      const hero = document.querySelector('.hero-media').getBoundingClientRect();
+      const highlights = getComputedStyle(document.querySelector('.sp-highlights__grid'));
+      const emptyReviews = document.querySelector('.reviews-empty').getBoundingClientRect();
+      return {
+        pageWidth: shell.width,
+        heroHeight: hero.height,
+        highlightColumns: highlights.gridTemplateColumns.split(' ').filter(Boolean).length,
+        emptyReviewHeight: emptyReviews.height,
+      };
+    });
+
+    expect(result.pageWidth).toBeGreaterThanOrEqual(1380);
+    expect(result.heroHeight).toBeLessThanOrEqual(160);
+    expect(result.highlightColumns).toBe(3);
+    expect(result.emptyReviewHeight).toBeLessThanOrEqual(260);
   });
 });

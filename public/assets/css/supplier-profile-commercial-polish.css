@@ -1,0 +1,293 @@
+/*
+ * Supplier profile commercial polish v20.2.
+ * Refines large-screen composition and coordinates global consent/install overlays
+ * without changing supplier data, theming or marketplace behaviour.
+ */
+
+body.sp-profile-page .sp-page,
+body.sp-profile-page .hero-content,
+body.sp-profile-page .hero-avatar-wrap {
+  width: min(calc(100% - 3rem), 1420px) !important;
+  max-width: 1420px !important;
+}
+
+html[data-sp-hero-mode='preset'],
+html[data-sp-hero-mode='category'],
+html[data-sp-hero-mode='theme'] {
+  --sp-hero-height: 146px !important;
+  --sp-hero-height-mobile: 132px !important;
+}
+
+body.sp-profile-page .supplier-tagline {
+  max-width: 62ch;
+  font-size: 1rem !important;
+  line-height: 1.55 !important;
+}
+
+body.sp-profile-page .sp-card,
+body.sp-profile-page .sp-trust-card,
+body.sp-profile-page .sp-details-card,
+body.sp-profile-page .supplier-package-card-v2 {
+  border-color: #dfe6eb !important;
+}
+
+body.sp-profile-page .sp-card {
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 8px 22px rgba(15, 23, 42, 0.035) !important;
+}
+
+body.sp-profile-page #sp-section-about > .sp-card {
+  border-color: #e5eaee !important;
+  box-shadow: none !important;
+}
+
+body.sp-profile-page .sp-highlights {
+  padding: 1.15rem 1.35rem !important;
+  background: #ffffff !important;
+  border: 0 !important;
+  border-left: 4px solid var(--sp-profile-accent) !important;
+  box-shadow: none !important;
+}
+
+body.sp-profile-page .sp-highlights__grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 0.85rem 1.25rem !important;
+}
+
+body.sp-profile-page .sp-highlight-item {
+  align-items: flex-start !important;
+  color: #344054 !important;
+  line-height: 1.45 !important;
+}
+
+body.sp-profile-page .sp-highlight-check {
+  flex: 0 0 auto;
+  margin-top: 0.05rem;
+}
+
+body.sp-profile-page #reviews-widget .reviews-empty {
+  min-height: 0 !important;
+  padding: 1.5rem 1.75rem !important;
+  display: grid !important;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    'icon title action'
+    'icon message action';
+  column-gap: 1rem;
+  row-gap: 0.25rem;
+  align-items: center;
+  text-align: left !important;
+}
+
+body.sp-profile-page #reviews-widget .empty-icon {
+  grid-area: icon;
+  margin: 0 !important;
+  font-size: 1.5rem !important;
+}
+
+body.sp-profile-page #reviews-widget .empty-title {
+  grid-area: title;
+  margin: 0 !important;
+  font-size: 1rem !important;
+}
+
+body.sp-profile-page #reviews-widget .empty-message {
+  grid-area: message;
+  margin: 0 !important;
+  color: #667085 !important;
+}
+
+body.sp-profile-page #reviews-widget .btn-write-review,
+body.sp-profile-page #reviews-widget .reviews-empty__signin-cta {
+  grid-area: action;
+  margin: 0 !important;
+  white-space: nowrap;
+}
+
+body.sp-profile-page .footer {
+  margin-top: 2rem !important;
+}
+
+body.sp-profile-page .supplier-footer-content {
+  padding-top: 2rem !important;
+  padding-bottom: 2rem !important;
+}
+
+/* Cookie consent is a contained, readable bottom sheet on the supplier page. */
+body.sp-profile-page .cookie-consent-banner {
+  position: fixed;
+  z-index: 10050;
+  left: 50%;
+  right: auto;
+  bottom: 1rem;
+  width: min(1180px, calc(100vw - 2rem));
+  max-width: none;
+  margin: 0;
+  color: #0b1220;
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid #d9e2e7;
+  border-radius: 16px;
+  box-shadow: 0 22px 60px rgba(15, 23, 42, 0.2);
+  opacity: 0;
+  visibility: hidden;
+  transform: translate(-50%, 1rem);
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease,
+    visibility 0.2s ease;
+}
+
+body.sp-profile-page .cookie-consent-banner.cookie-consent-visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translate(-50%, 0);
+}
+
+body.sp-profile-page .cookie-consent-banner.cookie-consent-hiding {
+  opacity: 0;
+  transform: translate(-50%, 1rem);
+}
+
+body.sp-profile-page .cookie-consent-content {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1rem 1.5rem;
+  align-items: end;
+  padding: 1rem 1.25rem;
+}
+
+body.sp-profile-page .cookie-consent-message p {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+body.sp-profile-page .cookie-consent-message p + p {
+  margin-top: 0.35rem;
+}
+
+body.sp-profile-page .cookie-consent-links a {
+  color: #08776c;
+  font-weight: 600;
+}
+
+body.sp-profile-page .cookie-consent-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.55rem;
+}
+
+body.sp-profile-page .cookie-consent-btn {
+  min-height: 42px;
+  padding: 0.6rem 1rem;
+  border: 1px solid #cbd5dc;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+body.sp-profile-page .cookie-consent-accept {
+  color: #ffffff;
+  background: #0b8073;
+  border-color: #0b8073;
+}
+
+body.sp-profile-page .cookie-consent-reject,
+body.sp-profile-page .cookie-consent-manage {
+  color: #344054;
+  background: #ffffff;
+}
+
+body.sp-profile-page:has(#cookie-consent-banner) #ef-pwa-install-banner {
+  display: none !important;
+}
+
+body.sp-profile-page:has(#cookie-consent-banner).ef-pwa-banner-visible {
+  padding-bottom: 0 !important;
+}
+
+body.sp-profile-page:has(#cookie-consent-banner).ef-pwa-banner-visible .sp-page {
+  padding-bottom: 4rem !important;
+}
+
+@media (min-width: 1180px) {
+  body.sp-profile-page .sp-page-grid {
+    grid-template-columns: minmax(0, 1fr) 320px !important;
+    gap: 2rem !important;
+  }
+
+  body.sp-profile-page .hero-content {
+    grid-template-columns: minmax(0, 780px) auto !important;
+    justify-content: start !important;
+    column-gap: clamp(2rem, 5vw, 6rem) !important;
+  }
+
+  body.sp-profile-page .hero-actions {
+    justify-self: start;
+  }
+}
+
+@media (max-width: 900px) {
+  body.sp-profile-page .sp-highlights__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 680px) {
+  body.sp-profile-page .sp-page,
+  body.sp-profile-page .hero-content,
+  body.sp-profile-page .hero-avatar-wrap {
+    width: 100% !important;
+  }
+
+  body.sp-profile-page .sp-highlights__grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  body.sp-profile-page #reviews-widget .reviews-empty {
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+      'icon title'
+      'icon message'
+      'action action';
+    padding: 1.25rem !important;
+  }
+
+  body.sp-profile-page #reviews-widget .btn-write-review,
+  body.sp-profile-page #reviews-widget .reviews-empty__signin-cta {
+    width: 100%;
+    margin-top: 0.75rem !important;
+  }
+
+  body.sp-profile-page .cookie-consent-banner {
+    bottom: 0.5rem;
+    width: calc(100vw - 1rem);
+    border-radius: 14px;
+  }
+
+  body.sp-profile-page .cookie-consent-content {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+    padding: 1rem;
+  }
+
+  body.sp-profile-page .cookie-consent-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    justify-content: stretch;
+  }
+
+  body.sp-profile-page .cookie-consent-manage {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.sp-profile-page .cookie-consent-banner {
+    transition: none;
+  }
+}
