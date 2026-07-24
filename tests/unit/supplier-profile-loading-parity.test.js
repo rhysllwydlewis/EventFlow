@@ -3,8 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const read = relative =>
-  fs.readFileSync(path.join(__dirname, '../..', relative), 'utf8');
+const read = relative => fs.readFileSync(path.join(__dirname, '../..', relative), 'utf8');
 
 const css = read('public/assets/css/supplier-profile-commercial-polish.css');
 

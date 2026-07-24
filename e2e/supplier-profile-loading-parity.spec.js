@@ -3,10 +3,7 @@ import path from 'node:path';
 import { test, expect } from '@playwright/test';
 
 const TEST_ID = 'loading-parity-test';
-const supplierHtml = fs.readFileSync(
-  path.resolve(process.cwd(), 'public/supplier.html'),
-  'utf8'
-);
+const supplierHtml = fs.readFileSync(path.resolve(process.cwd(), 'public/supplier.html'), 'utf8');
 
 const supplier = {
   id: TEST_ID,
@@ -46,17 +43,14 @@ test('loading shell reserves the rendered supplier profile geometry', async ({ p
       body: JSON.stringify(supplier),
     });
   });
-  await page.route(
-    `**/api/supplier-profile/${TEST_ID}/package-cards**`,
-    async route => {
-      await responseGate;
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ items: [] }),
-      });
-    }
-  );
+  await page.route(`**/api/supplier-profile/${TEST_ID}/package-cards**`, async route => {
+    await responseGate;
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ items: [] }),
+    });
+  });
   await page.route(`**/api/public/suppliers/${TEST_ID}/avatar`, route =>
     route.fulfill({
       status: 200,
@@ -80,10 +74,7 @@ test('loading shell reserves the rendered supplier profile geometry', async ({ p
     waitUntil: 'domcontentloaded',
   });
 
-  await expect(page.locator('html')).not.toHaveAttribute(
-    'data-sp-theme-ready',
-    'true'
-  );
+  await expect(page.locator('html')).not.toHaveAttribute('data-sp-theme-ready', 'true');
   await expect(page.locator('.supplier-packages-v2--loading')).toBeVisible();
 
   const loading = await page.evaluate(() => {
@@ -109,20 +100,17 @@ test('loading shell reserves the rendered supplier profile geometry', async ({ p
 
     return {
       heroHeight: hero.height,
-      heroBackground: getComputedStyle(document.querySelector('.hero-media'))
-        .backgroundImage,
+      heroBackground: getComputedStyle(document.querySelector('.hero-media')).backgroundImage,
       columns: pageGrid.gridTemplateColumns.split(' ').filter(Boolean).length,
       asideWidth: aside.width,
       aboutHeight: Number.parseFloat(aboutPlaceholder.height),
       sidebarHeight: Number.parseFloat(sidebarPlaceholder.height),
       packageHeight: packageCard.getBoundingClientRect().height,
       packageMessageVisibility: getComputedStyle(packageMessage).visibility,
-      actionPointerEvents: getComputedStyle(document.querySelector('.hero-actions'))
-        .pointerEvents,
+      actionPointerEvents: getComputedStyle(document.querySelector('.hero-actions')).pointerEvents,
       footerTop: footer.top,
       pwaDisplay: getComputedStyle(pwa).display,
-      bodyPaddingBottom:
-        Number.parseFloat(getComputedStyle(document.body).paddingBottom) || 0,
+      bodyPaddingBottom: Number.parseFloat(getComputedStyle(document.body).paddingBottom) || 0,
     };
   });
 
@@ -150,8 +138,7 @@ test('loading shell reserves the rendered supplier profile geometry', async ({ p
       getComputedStyle(document.querySelector('.sp-page')).paddingTop
     ),
     heroHeight: document.querySelector('.hero-media').getBoundingClientRect().height,
-    pwaDisplay: getComputedStyle(document.getElementById('ef-pwa-install-banner'))
-      .display,
+    pwaDisplay: getComputedStyle(document.getElementById('ef-pwa-install-banner')).display,
   }));
 
   expect(loaded.pageTopPadding).toBeLessThanOrEqual(18);
