@@ -1,0 +1,11 @@
+Traceback (most recent call last):
+  File "/home/runner/work/EventFlow/EventFlow/scripts/agent-pr1405-hardening.py", line 738, in <module>
+    main()
+  File "/home/runner/work/EventFlow/EventFlow/scripts/agent-pr1405-hardening.py", line 731, in main
+    add_avatar_lightbox()
+  File "/home/runner/work/EventFlow/EventFlow/scripts/agent-pr1405-hardening.py", line 456, in add_avatar_lightbox
+    content = replace_once(
+              ^^^^^^^^^^^^^
+  File "/home/runner/work/EventFlow/EventFlow/scripts/agent-pr1405-hardening.py", line 21, in replace_once
+    raise RuntimeError(f'{label}: expected one match, found {count}')
+RuntimeError: enable loaded avatar lightbox: expected one match, found 2
