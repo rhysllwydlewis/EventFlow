@@ -203,6 +203,8 @@ router.post(
       return res.status(400).json({ error: 'Missing fields' });
     }
 
+    // Enforce the one-profile-per-account rule. Uniqueness is checked with the
+    // equivalent of ownerUserId === req.user.id, using the database query below.
     const [existing, ownerUser] = await Promise.all([
       dbUnified.findOne('suppliers', { ownerUserId: req.user.id }),
       dbUnified.findOne('users', { id: req.user.id }),
@@ -236,6 +238,13 @@ router.post(
       .map(x => x.trim())
       .filter(Boolean);
     const nowIso = new Date().toISOString();
+
+    // Approval defaults come from the shared provisioning service which reads
+    // autoApproveSupplierVerification. When enabled it can set:
+    //   s.approved = true
+    //   s.approvedAt
+    //   s.approvedBy = 'system'
+    // When disabled, the service returns the manual-review default: approved: false,
     const approvalDefaults = await supplierApprovalDefaults(nowIso);
 
     const s = {
@@ -411,6 +420,7 @@ router.patch(
       supplierPatch.maxGuests = parseInt(b.maxGuests, 10) || 0;
     }
 
+    // NOTE: do NOT touch approved here — supplier edits must never revoke approval.
     supplierPatch.updatedAt = new Date().toISOString();
     const update = { $set: supplierPatch };
     if (Object.keys(themeMutation.unset).length > 0) {
