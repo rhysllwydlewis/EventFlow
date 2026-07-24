@@ -69,6 +69,18 @@ describe('supplier theme state', () => {
     });
   });
 
+  test('accepts the legacy owner-editor custom-colour payload shape', () => {
+    expect(
+      buildSupplierThemeMutation(
+        { heroPreset: '', themeColor: '#ec4899' },
+        { themeMode: 'preset', heroPreset: 'midnight' }
+      )
+    ).toEqual({
+      set: { themeMode: 'custom', themeColor: '#EC4899' },
+      unset: { heroPreset: 1 },
+    });
+  });
+
   test('does not let the legacy customisation page silently replace automatic themes with teal', () => {
     expect(
       buildSupplierThemeMutation(
