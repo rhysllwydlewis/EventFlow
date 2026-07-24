@@ -3,7 +3,7 @@ export * from './supplier-profile-polish-base.js';
 const PROFILE_POLISH_STYLESHEET_ID = 'supplier-profile-polish-styles';
 const PROFILE_POLISH_STYLESHEET_HREF = '/assets/css/supplier-profile-polish.css?v=19.4.1';
 const PROFILE_THEME_STYLESHEET_ID = 'supplier-profile-theme-styles';
-const PROFILE_THEME_STYLESHEET_HREF = '/assets/css/supplier-profile-theme.css?v=20.0.0';
+const PROFILE_THEME_STYLESHEET_HREF = '/assets/css/supplier-profile-theme.css?v=20.1.0';
 
 const DEFAULT_ACCENT = '#0b8073';
 const INK = '#0b1220';
@@ -257,6 +257,119 @@ function polishSidebarDetails(supplier = {}) {
   });
 }
 
+const CONTACT_ICONS = Object.freeze({
+  response:
+    '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+  location:
+    '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 5.5-8 11-8 11S4 15.5 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg>',
+  price:
+    '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 7.5c0-2-1.7-3.5-4-3.5S8 5.5 8 7.5 9.7 11 12 11s4 1.5 4 3.5S14.3 18 12 18s-4-1.5-4-3.5M12 2v20"/></svg>',
+});
+
+function moveHeroBadgesIntoIdentity() {
+  const badges = document.getElementById('hero-badges');
+  const identity = document.querySelector('.hero-identity');
+  if (!badges || !identity) {
+    return;
+  }
+  if (badges.parentElement !== identity) {
+    identity.appendChild(badges);
+  }
+  badges.classList.add('hero-badges--identity');
+}
+
+function formatStartingPrice(supplier = {}) {
+  const numericCandidates = [
+    supplier.startingPrice,
+    supplier.priceFrom,
+    supplier.minimumPrice,
+    supplier.minPrice,
+  ];
+  const numeric = numericCandidates
+    .map(value => Number(value))
+    .find(value => Number.isFinite(value) && value > 0);
+  if (numeric) {
+    return new Intl.NumberFormat('en-GB', {
+      style: 'currency',
+      currency: 'GBP',
+      maximumFractionDigits: 0,
+    }).format(numeric);
+  }
+  const range = String(supplier.priceRange || '').trim();
+  return range || null;
+}
+
+function createContactSummaryRow(label, value, iconName) {
+  const row = document.createElement('div');
+  row.className = 'sp-contact-summary__row';
+
+  const icon = document.createElement('span');
+  icon.className = 'sp-contact-summary__icon';
+  icon.setAttribute('aria-hidden', 'true');
+  icon.innerHTML = CONTACT_ICONS[iconName];
+
+  const copy = document.createElement('span');
+  const labelNode = document.createElement('span');
+  labelNode.className = 'sp-contact-summary__label';
+  labelNode.textContent = label;
+  const valueNode = document.createElement('span');
+  valueNode.className = 'sp-contact-summary__value';
+  valueNode.textContent = value;
+  copy.append(labelNode, valueNode);
+  row.append(icon, copy);
+  return row;
+}
+
+function polishContactHierarchy(supplier = {}) {
+  document.body?.classList.add('sp-profile-page');
+  moveHeroBadgesIntoIdentity();
+
+  const card = document.querySelector('.sp-cta-card');
+  if (!card) {
+    return;
+  }
+  card.classList.add('sp-contact-card');
+
+  const eyebrow = card.querySelector('.sp-cta-card__name');
+  if (eyebrow) {
+    eyebrow.textContent = 'Contact & availability';
+  }
+
+  const title = card.querySelector('.sp-cta-card__title');
+  if (title) {
+    title.textContent = supplier.name ? `Plan with ${supplier.name}` : 'Plan your enquiry';
+  }
+
+  let summary = card.querySelector('.sp-contact-summary');
+  if (!summary) {
+    summary = document.createElement('div');
+    summary.className = 'sp-contact-summary';
+    card.querySelector('.sp-cta-card__actions')?.before(summary);
+  }
+  summary.replaceChildren();
+  summary.append(
+    createContactSummaryRow('Response', formatResponseMessage(supplier.avgResponseTime), 'response')
+  );
+  if (supplier.location) {
+    summary.append(createContactSummaryRow('Location', String(supplier.location), 'location'));
+  }
+  const startingPrice = formatStartingPrice(supplier);
+  if (startingPrice) {
+    summary.append(createContactSummaryRow('Starting from', startingPrice, 'price'));
+  }
+
+  const button = card.querySelector('#sidebar-btn-enquiry');
+  if (button) {
+    button.innerHTML =
+      '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>Send a message</span>';
+  }
+
+  const note = card.querySelector('.sp-cta-card__note');
+  if (note) {
+    note.hidden = true;
+  }
+}
+
 function applySupplierProfileTheme(supplier = window.__supplierData) {
   ensureCurrentProfileStylesheets();
   if (!supplier) {
@@ -268,6 +381,7 @@ function applySupplierProfileTheme(supplier = window.__supplierData) {
   setThemeVariables(document.documentElement, palette);
   updateHeroThemeState(supplier, theme);
   polishSidebarDetails(supplier);
+  polishContactHierarchy(supplier);
   document.documentElement.dataset.spThemeReady = 'true';
   return { ...theme, palette, heroMode: resolveHeroMode(supplier) };
 }
