@@ -153,6 +153,7 @@ function createFixture() {
   };
   document.head = document.createElement('head');
   document.body = document.createElement('body');
+  document.body.style.overflow = '';
   const avatar = document.createElement('div');
   avatar.id = 'hero-avatar';
   avatar.className = 'hero-avatar';
