@@ -9,6 +9,7 @@ const express = require('express');
 const logger = require('../utils/logger');
 const catalogCache = require('../services/catalogCache');
 const { supplierApprovalDefaults } = require('../services/supplierProfileProvisioning.service');
+const { buildSupplierThemeMutation } = require('../utils/supplierTheme');
 const router = express.Router();
 
 /**
@@ -28,7 +29,6 @@ const PATCH_FIELD_MAX_LENGTHS = {
   bannerUrl: 500,
   tagline: 200,
   phone: 30,
-  heroPreset: 40,
 };
 
 // Dependencies injected by server.js
@@ -395,13 +395,11 @@ router.patch(
       }
     }
 
-    // Validate and set theme color (must be valid hex color)
-    if (b.themeColor && typeof b.themeColor === 'string') {
-      const hexColorRegex = /^#[0-9A-F]{6}$/i;
-      if (hexColorRegex.test(b.themeColor.trim())) {
-        supplierPatch.themeColor = b.themeColor.trim();
-      }
+    const themeMutation = buildSupplierThemeMutation(b, s);
+    if (themeMutation.error) {
+      return res.status(400).json({ error: themeMutation.error });
     }
+    Object.assign(supplierPatch, themeMutation.set);
 
     // Handle array fields
     if (b.amenities) {
@@ -460,14 +458,21 @@ router.patch(
       supplierPatch.maxGuests = parseInt(b.maxGuests, 10) || 0;
     }
     // NOTE: do NOT touch approved here — supplier edits must never revoke approval.
-    await dbUnified.updateOne('suppliers', { id: req.params.id }, { $set: supplierPatch });
+    supplierPatch.updatedAt = new Date().toISOString();
+    const update = { $set: supplierPatch };
+    if (Object.keys(themeMutation.unset).length > 0) {
+      update.$unset = themeMutation.unset;
+    }
+    await dbUnified.updateOne('suppliers', { id: req.params.id }, update);
 
     // Bust catalog cache — profile edit means the supplier data may have changed
     catalogCache
       .invalidate()
       .catch(e => logger.warn('[catalogCache] invalidate error:', e.message));
 
-    res.json({ ok: true, supplier: { ...s, ...supplierPatch } });
+    const updatedSupplier = { ...s, ...supplierPatch };
+    Object.keys(themeMutation.unset).forEach(key => delete updatedSupplier[key]);
+    res.json({ ok: true, supplier: updatedSupplier });
   }
 );
 

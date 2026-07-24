@@ -1,6 +1,7 @@
 'use strict';
 
 const { stripHtml } = require('./helpers');
+const { normaliseStoredSupplierTheme } = require('./supplierTheme');
 
 const DEFAULT_MAX_IMAGE_CHARS = 1200000;
 const DATA_IMAGE_RE = /^data:image\/(png|jpe?g|webp|gif);base64,[a-z0-9+/]+={0,2}$/i;
@@ -166,9 +167,13 @@ function safePublicSupplier(supplier = {}, extras = {}) {
   const avgResponseTime = numberOrNull(source.avgResponseTime);
   const ownerUserId = maybeText(source.ownerUserId, 100);
   const messagingRecipientId = extra.exposeMessagingRecipient === true ? ownerUserId : '';
+  const exposedOwnerUserId = extra.exposeOwnerUserId === true ? ownerUserId : '';
+  const theme = normaliseStoredSupplierTheme(source);
   return {
     id: maybeText(source.id, 100),
     ...(messagingRecipientId ? { messagingRecipientId } : {}),
+    ...(exposedOwnerUserId ? { ownerUserId: exposedOwnerUserId } : {}),
+    isOwner: bool(extra.isOwner),
     name: maybeText(source.name, 140) || 'Supplier',
     category: maybeText(source.category, 100),
     location: maybeText(source.location, 180),
@@ -187,9 +192,9 @@ function safePublicSupplier(supplier = {}, extras = {}) {
     avatarUrl: profilePhotoUrl,
     displayAvatarUrl: profilePhotoUrl,
     resolvedProfileImageUrl: profilePhotoUrl,
-    themeColor: /^#[0-9a-f]{6}$/i.test(String(source.themeColor || ''))
-      ? String(source.themeColor).trim()
-      : null,
+    themeMode: theme.themeMode,
+    themeColor: theme.themeColor,
+    heroPreset: theme.heroPreset,
     priceRange: maybeText(source.priceRange || source.price_display, 80),
     price_display: maybeText(source.price_display || source.priceRange, 80),
     priceHint: maybeText(source.priceHint || source.price_display, 80),

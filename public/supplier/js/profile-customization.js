@@ -22,6 +22,7 @@
   let suppliers = [];
   let dirty = false;
   let initialising = false;
+  let themeSelectionChanged = false;
 
   function $(id) {
     return document.getElementById(id);
@@ -489,6 +490,7 @@
       tag.style.color = safeColor;
     });
     if (shouldMarkDirty) {
+      themeSelectionChanged = true;
       markDirty();
       updateLivePreview();
     }
@@ -612,14 +614,18 @@
 
   function buildSavePayload() {
     const bannerInput = document.getElementById('sup-banner');
-    return {
+    const payload = {
       bannerUrl: bannerInput?.value?.trim() || '',
       tagline: $('sup-tagline')?.value?.trim() || '',
-      themeColor: getThemeColor(),
       highlights: readHighlights(),
       featuredServices: readFeaturedServices(),
       socialLinks: readSocialLinks(),
     };
+    if (themeSelectionChanged) {
+      payload.themeMode = 'custom';
+      payload.themeColor = getThemeColor();
+    }
+    return payload;
   }
 
   function renderPlaceholder(container, message) {
@@ -733,6 +739,7 @@
       updateTaglineCount();
     }
     applyThemeColor(supplier.themeColor || DEFAULT_COLOR, false);
+    themeSelectionChanged = false;
 
     for (let i = 1; i <= 5; i++) {
       const input = $(`sup-highlight-${i}`);

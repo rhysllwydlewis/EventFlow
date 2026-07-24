@@ -204,6 +204,10 @@
   background: linear-gradient(135deg, #1a3a4a 0%, #1a6b8a 50%, #2196c0 100%);
 }
 
+.supplier-hero[data-category-preset="beauty"] .hero-media {
+  background: linear-gradient(135deg, #831843 0%, #9d174d 50%, #db2777 100%);
+}
+
 /* ─── 3. Reviews Section — Replace Purple Gradient ─────────────────────────── */
 
 /* Override the jarring purple gradient from reviews.css */

@@ -7,15 +7,30 @@ const read = relative => fs.readFileSync(path.join(__dirname, '../..', relative)
 
 const themeJs = read('public/assets/js/supplier-profile-polish.js');
 const themeCss = read('public/assets/css/supplier-profile-theme.css');
+const categoryCss = read('public/assets/css/supplier-profile-v2.css');
 
 describe('supplier profile visual overhaul contracts', () => {
-  test('resolves the profile accent from colour, preset, category, then EventFlow default', () => {
+  test('resolves the profile accent from explicit mode, legacy values, category, then EventFlow default', () => {
+    expect(themeJs).toContain("if (mode === 'custom')");
+    expect(themeJs).toContain("if (mode === 'preset')");
+    expect(themeJs).toContain("if (mode === 'automatic')");
     expect(themeJs).toContain("return { accent: chosen, source: 'themeColor' }");
     expect(themeJs).toContain("return { accent: PRESET_ACCENTS[preset], source: 'heroPreset' }");
     expect(themeJs).toContain(
       "return { accent: CATEGORY_ACCENTS[categoryKey], source: 'category' }"
     );
     expect(themeJs).toContain("return { accent: DEFAULT_ACCENT, source: 'default' }");
+  });
+
+  test('covers every canonical category family used by the supplier dashboard', () => {
+    expect(themeJs).toContain("'music/dj': 'music'");
+    expect(themeJs).toContain("videography: 'photography'");
+    expect(themeJs).toContain("'event planner': 'wedding'");
+    expect(themeJs).toContain("'hair & makeup': 'beauty'");
+    expect(themeJs).toContain("decor: 'flowers'");
+    expect(themeJs).toContain("cake: 'catering'");
+    expect(categoryCss).toContain('data-category-preset="beauty"');
+    expect(categoryCss).toContain('#9d174d');
   });
 
   test('preserves explicit hero presets and themes only the colour fallback', () => {

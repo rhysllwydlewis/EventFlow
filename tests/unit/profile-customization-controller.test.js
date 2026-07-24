@@ -21,6 +21,13 @@ describe('profile customization controller', () => {
     expect(controller).not.toContain('if (Object.keys(socialLinks).length > 0)');
   });
 
+  it('only writes an explicit custom theme after the supplier changes the colour', () => {
+    expect(controller).toContain('let themeSelectionChanged = false');
+    expect(controller).toContain("payload.themeMode = 'custom'");
+    expect(controller).toContain('if (themeSelectionChanged)');
+    expect(controller).not.toContain('themeColor: getThemeColor(),');
+  });
+
   it('uses the app CSRF token pattern instead of the removed auth csrf endpoint', () => {
     expect(controller).toContain("const endpoints = ['/api/csrf-token', '/api/v1/csrf-token']");
     expect(controller).toContain("readCookie('csrf')");

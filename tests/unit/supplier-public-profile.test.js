@@ -135,4 +135,36 @@ describe('supplier public profile safety helpers', () => {
     expect(pkg.costInternal).toBeUndefined();
     expect(pkg.supplierMargin).toBeUndefined();
   });
+
+  test('preserves only the effective public supplier theme state', () => {
+    expect(
+      safePublicSupplier({
+        themeMode: 'preset',
+        heroPreset: 'midnight',
+        themeColor: '#ec4899',
+      })
+    ).toMatchObject({
+      themeMode: 'preset',
+      heroPreset: 'midnight',
+      themeColor: null,
+    });
+
+    expect(
+      safePublicSupplier({
+        themeMode: 'custom',
+        heroPreset: 'midnight',
+        themeColor: '#ec4899',
+      })
+    ).toMatchObject({
+      themeMode: 'custom',
+      heroPreset: null,
+      themeColor: '#EC4899',
+    });
+
+    expect(safePublicSupplier({ category: 'Photography' })).toMatchObject({
+      themeMode: 'automatic',
+      heroPreset: null,
+      themeColor: null,
+    });
+  });
 });

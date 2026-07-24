@@ -1,3 +1,4 @@
+import './supplier-profile-theme-owner.js';
 export * from './supplier-profile-polish-base.js';
 
 const PROFILE_POLISH_STYLESHEET_ID = 'supplier-profile-polish-styles';
@@ -26,12 +27,21 @@ const CATEGORY_PRESETS = Object.freeze({
   wedding: 'wedding',
   weddings: 'wedding',
   'wedding planner': 'wedding',
+  'event planner': 'wedding',
+  planning: 'wedding',
+  'wedding fayre': 'wedding',
+  stationery: 'wedding',
+  celebrant: 'wedding',
   photography: 'photography',
   photographer: 'photography',
+  videography: 'photography',
+  videographer: 'photography',
   catering: 'catering',
   caterer: 'catering',
   food: 'catering',
+  cake: 'catering',
   music: 'music',
+  'music/dj': 'music',
   dj: 'music',
   band: 'music',
   musicians: 'music',
@@ -39,11 +49,17 @@ const CATEGORY_PRESETS = Object.freeze({
   flowers: 'flowers',
   florist: 'flowers',
   floral: 'flowers',
+  decor: 'flowers',
   venue: 'venue',
   venues: 'venue',
   transport: 'transport',
   cars: 'transport',
   chauffeur: 'transport',
+  beauty: 'beauty',
+  'hair & makeup': 'beauty',
+  bridalwear: 'beauty',
+  jewellery: 'beauty',
+  other: 'default',
 });
 
 const CATEGORY_ACCENTS = Object.freeze({
@@ -55,6 +71,8 @@ const CATEGORY_ACCENTS = Object.freeze({
   flowers: '#386641',
   venue: '#4a5568',
   transport: '#1a6b8a',
+  beauty: '#9d174d',
+  default: DEFAULT_ACCENT,
 });
 
 const DETAIL_ICONS = Object.freeze({
@@ -98,13 +116,16 @@ function normaliseHex(value) {
   return /^#[0-9a-f]{6}$/.test(candidate) ? candidate : null;
 }
 
+function normaliseThemeMode(value) {
+  const candidate = String(value || '')
+    .trim()
+    .toLowerCase();
+  return ['automatic', 'preset', 'custom'].includes(candidate) ? candidate : null;
+}
+
 function hexToRgb(hex) {
   const value = Number.parseInt(hex.slice(1), 16);
-  return {
-    r: value >> 16,
-    g: (value >> 8) & 255,
-    b: value & 255,
-  };
+  return { r: value >> 16, g: (value >> 8) & 255, b: value & 255 };
 }
 
 function rgbToHex({ r, g, b }) {
@@ -139,29 +160,45 @@ function resolveCategoryKey(category) {
       String(category || '')
         .trim()
         .toLowerCase()
-    ] || null
+    ] || 'default'
   );
 }
 
-function resolveSupplierTheme(supplier = {}) {
-  const chosen = normaliseHex(supplier.themeColor);
-  if (chosen) {
-    return { accent: chosen, source: 'themeColor' };
+function resolveAutomaticTheme(supplier = {}) {
+  const categoryKey = resolveCategoryKey(supplier.category);
+  if (categoryKey !== 'default' && CATEGORY_ACCENTS[categoryKey]) {
+    return { accent: CATEGORY_ACCENTS[categoryKey], source: 'category' };
   }
+  return { accent: DEFAULT_ACCENT, source: 'default' };
+}
 
+function resolveSupplierTheme(supplier = {}) {
+  const mode = normaliseThemeMode(supplier.themeMode);
+  const chosen = normaliseHex(supplier.themeColor);
   const preset = String(supplier.heroPreset || '')
     .trim()
     .toLowerCase();
+
+  if (mode === 'custom') {
+    return chosen ? { accent: chosen, source: 'themeColor' } : resolveAutomaticTheme(supplier);
+  }
+  if (mode === 'preset') {
+    return PRESET_ACCENTS[preset]
+      ? { accent: PRESET_ACCENTS[preset], source: 'heroPreset' }
+      : resolveAutomaticTheme(supplier);
+  }
+  if (mode === 'automatic') {
+    return resolveAutomaticTheme(supplier);
+  }
+
+  // Legacy profiles had no explicit themeMode. Preserve their previous priority.
+  if (chosen) {
+    return { accent: chosen, source: 'themeColor' };
+  }
   if (PRESET_ACCENTS[preset]) {
     return { accent: PRESET_ACCENTS[preset], source: 'heroPreset' };
   }
-
-  const categoryKey = resolveCategoryKey(supplier.category);
-  if (categoryKey && CATEGORY_ACCENTS[categoryKey]) {
-    return { accent: CATEGORY_ACCENTS[categoryKey], source: 'category' };
-  }
-
-  return { accent: DEFAULT_ACCENT, source: 'default' };
+  return resolveAutomaticTheme(supplier);
 }
 
 function createSupplierPalette(accent) {
@@ -193,26 +230,46 @@ function setThemeVariables(root, palette) {
   Object.entries(values).forEach(([name, value]) => root.style.setProperty(name, value));
 }
 
+function applyAvatarTheme(accent) {
+  const avatar = document.getElementById('hero-avatar');
+  if (!avatar || avatar.classList.contains('has-profile-photo')) {
+    return;
+  }
+  avatar.style.background = `linear-gradient(135deg, ${accent} 0%, ${mixHex(accent, WHITE, 0.7)} 100%)`;
+}
+
 function resolveHeroMode(supplier = {}) {
   if (supplier.bannerUrl || supplier.coverImage) {
     return 'image';
   }
-  if (
-    PRESET_ACCENTS[
-      String(supplier.heroPreset || '')
-        .trim()
-        .toLowerCase()
-    ]
-  ) {
+  const mode = normaliseThemeMode(supplier.themeMode);
+  const preset = String(supplier.heroPreset || '')
+    .trim()
+    .toLowerCase();
+  if (mode === 'preset') {
+    return PRESET_ACCENTS[preset]
+      ? 'preset'
+      : resolveCategoryKey(supplier.category) !== 'default'
+        ? 'category'
+        : 'theme';
+  }
+  if (mode === 'custom') {
+    return normaliseHex(supplier.themeColor)
+      ? 'theme'
+      : resolveCategoryKey(supplier.category) !== 'default'
+        ? 'category'
+        : 'theme';
+  }
+  if (mode === 'automatic') {
+    return resolveCategoryKey(supplier.category) !== 'default' ? 'category' : 'theme';
+  }
+  if (PRESET_ACCENTS[preset]) {
     return 'preset';
   }
   if (normaliseHex(supplier.themeColor)) {
     return 'theme';
   }
-  if (resolveCategoryKey(supplier.category)) {
-    return 'category';
-  }
-  return 'theme';
+  return resolveCategoryKey(supplier.category) !== 'default' ? 'category' : 'theme';
 }
 
 function updateHeroThemeState(supplier, theme) {
@@ -279,13 +336,12 @@ function moveHeroBadgesIntoIdentity() {
 }
 
 function formatStartingPrice(supplier = {}) {
-  const numericCandidates = [
+  const numeric = [
     supplier.startingPrice,
     supplier.priceFrom,
     supplier.minimumPrice,
     supplier.minPrice,
-  ];
-  const numeric = numericCandidates
+  ]
     .map(value => Number(value))
     .find(value => Number.isFinite(value) && value > 0);
   if (numeric) {
@@ -295,19 +351,16 @@ function formatStartingPrice(supplier = {}) {
       maximumFractionDigits: 0,
     }).format(numeric);
   }
-  const range = String(supplier.priceRange || '').trim();
-  return range || null;
+  return String(supplier.priceRange || '').trim() || null;
 }
 
 function createContactSummaryRow(label, value, iconName) {
   const row = document.createElement('div');
   row.className = 'sp-contact-summary__row';
-
   const icon = document.createElement('span');
   icon.className = 'sp-contact-summary__icon';
   icon.setAttribute('aria-hidden', 'true');
   icon.innerHTML = CONTACT_ICONS[iconName];
-
   const copy = document.createElement('span');
   const labelNode = document.createElement('span');
   labelNode.className = 'sp-contact-summary__label';
@@ -323,23 +376,19 @@ function createContactSummaryRow(label, value, iconName) {
 function polishContactHierarchy(supplier = {}) {
   document.body?.classList.add('sp-profile-page');
   moveHeroBadgesIntoIdentity();
-
   const card = document.querySelector('.sp-cta-card');
   if (!card) {
     return;
   }
   card.classList.add('sp-contact-card');
-
   const eyebrow = card.querySelector('.sp-cta-card__name');
   if (eyebrow) {
     eyebrow.textContent = 'Contact & availability';
   }
-
   const title = card.querySelector('.sp-cta-card__title');
   if (title) {
     title.textContent = supplier.name ? `Plan with ${supplier.name}` : 'Plan your enquiry';
   }
-
   let summary = card.querySelector('.sp-contact-summary');
   if (!summary) {
     summary = document.createElement('div');
@@ -357,13 +406,11 @@ function polishContactHierarchy(supplier = {}) {
   if (startingPrice) {
     summary.append(createContactSummaryRow('Starting from', startingPrice, 'price'));
   }
-
   const button = card.querySelector('#sidebar-btn-enquiry');
   if (button) {
     button.innerHTML =
       '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>Send a message</span>';
   }
-
   const note = card.querySelector('.sp-cta-card__note');
   if (note) {
     note.hidden = true;
@@ -375,10 +422,10 @@ function applySupplierProfileTheme(supplier = window.__supplierData) {
   if (!supplier) {
     return null;
   }
-
   const theme = resolveSupplierTheme(supplier);
   const palette = createSupplierPalette(theme.accent);
   setThemeVariables(document.documentElement, palette);
+  applyAvatarTheme(theme.accent);
   updateHeroThemeState(supplier, theme);
   polishSidebarDetails(supplier);
   polishContactHierarchy(supplier);
@@ -399,6 +446,7 @@ window.SupplierProfileTheme = {
   createSupplierPalette,
   formatResponseMessage,
   normaliseHex,
+  normaliseThemeMode,
   resolveHeroMode,
   resolveSupplierTheme,
 };
@@ -414,6 +462,7 @@ export {
   createSupplierPalette,
   formatResponseMessage,
   normaliseHex,
+  normaliseThemeMode,
   resolveHeroMode,
   resolveSupplierTheme,
 };
