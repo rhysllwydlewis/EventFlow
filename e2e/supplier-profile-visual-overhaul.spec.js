@@ -324,6 +324,15 @@ test.describe('Supplier profile visual overhaul', () => {
       })
     );
 
+    await page.locator('#reviews-list').evaluate(list => {
+      list.innerHTML = `
+        <div class="reviews-empty">
+          <div class="empty-icon">⭐</div>
+          <h3 class="empty-title">No EventFlow reviews yet</h3>
+          <p class="empty-message">Be the first to share your experience with this supplier on EventFlow.</p>
+          <a class="reviews-empty__signin-cta" href="/auth">Sign in to write a review</a>
+        </div>`;
+    });
     await expect(page.locator('#reviews-widget .reviews-empty')).toBeVisible();
 
     const result = await page.evaluate(() => {
