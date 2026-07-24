@@ -1,0 +1,39 @@
+name: Format PR 1382 enquiry spec
+
+on:
+  push:
+    branches:
+      - test/repair-all-backend-playwright-quarantine
+    paths:
+      - '.github/workflows/format-pr-1382.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: test/repair-all-backend-playwright-quarantine
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.node-version'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit
+
+      - name: Format enquiry specification
+        run: npx prettier --write e2e/customer-enquiry-flow.spec.js
+
+      - name: Upload canonical file
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-1382-prettier-output
+          path: e2e/customer-enquiry-flow.spec.js
+          retention-days: 1
