@@ -186,18 +186,25 @@ function buildSupplierThemeMutation(body = {}, existing = {}) {
 
   // Backwards-compatible inference for existing clients that do not send themeMode.
   if (hasOwn(body, 'heroPreset')) {
-    if (body.heroPreset === null || String(body.heroPreset).trim() === '') {
+    const presetWasCleared = body.heroPreset === null || String(body.heroPreset).trim() === '';
+    if (!presetWasCleared) {
+      if (!requestedPreset) {
+        return { error: 'Invalid hero preset', set, unset };
+      }
+      set.themeMode = 'preset';
+      set.heroPreset = requestedPreset;
+      unset.themeColor = 1;
+      return { set, unset };
+    }
+
+    // The inline owner editor sends heroPreset: '' together with themeColor when
+    // a custom colour or banner is selected. Let the colour branch below decide
+    // the effective mode instead of discarding the newly selected colour.
+    if (!hasOwn(body, 'themeColor')) {
       unset.heroPreset = 1;
       set.themeMode = normaliseThemeColor(existing.themeColor) ? 'custom' : 'automatic';
       return { set, unset };
     }
-    if (!requestedPreset) {
-      return { error: 'Invalid hero preset', set, unset };
-    }
-    set.themeMode = 'preset';
-    set.heroPreset = requestedPreset;
-    unset.themeColor = 1;
-    return { set, unset };
   }
 
   if (hasOwn(body, 'themeColor')) {
