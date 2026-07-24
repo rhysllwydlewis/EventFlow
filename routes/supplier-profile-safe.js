@@ -78,6 +78,8 @@ router.get('/suppliers/:id', async (req, res, next) => {
       return res.status(404).json({ error: 'Supplier not found' });
     }
 
+    const user = currentUser(req);
+    const isOwner = Boolean(user && supplier.ownerUserId && user.id === supplier.ownerUserId);
     const packages = await dbUnified.read('packages');
     const featuredSupplier = packages.some(pkg => pkg.supplierId === supplier.id && pkg.featured);
     const isPro = supplierIsProActive
@@ -93,7 +95,9 @@ router.get('/suppliers/:id', async (req, res, next) => {
       safePublicSupplier(publicSupplier, {
         badgeDetails: await badgeDetailsFor(supplier),
         exposeMessagingRecipient: true,
+        exposeOwnerUserId: isOwner,
         featuredSupplier,
+        isOwner,
         isPreview: preview,
         isPro,
         profilePhotoUrl,
