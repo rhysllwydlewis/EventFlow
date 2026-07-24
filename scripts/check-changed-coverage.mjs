@@ -39,6 +39,7 @@ function eligible(file) {
   if (!file.endsWith('.js')) return false;
   if (
     file.endsWith('.config.js') ||
+    file === 'routes/e2e-test-support.js' ||
     file.startsWith('tests/') ||
     file.startsWith('e2e/') ||
     file.startsWith('public/') ||

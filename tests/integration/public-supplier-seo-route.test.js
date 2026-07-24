@@ -120,6 +120,27 @@ describe('public supplier SEO routes', () => {
     expect(dbUnified.read).toHaveBeenCalledTimes(3);
   });
 
+  test('reads a fresh supplier snapshot for each request in full backend browser mode', async () => {
+    const originalMode = process.env.E2E_MODE;
+    process.env.E2E_MODE = 'full';
+
+    try {
+      const { app, dbUnified } = createApp({
+        suppliers: [approvedSupplier],
+        users: [{ id: 'user-1' }],
+      });
+      const slug = buildPublicSupplierSlug(approvedSupplier);
+
+      await request(app).get(`/supplier/${slug}`).expect(200);
+      await request(app).get(`/supplier/${slug}`).expect(200);
+
+      expect(dbUnified.read).toHaveBeenCalledTimes(6);
+    } finally {
+      if (originalMode === undefined) delete process.env.E2E_MODE;
+      else process.env.E2E_MODE = originalMode;
+    }
+  });
+
   test('rejects malformed public slugs before reading supplier data', async () => {
     const { app, dbUnified } = createApp({
       suppliers: [approvedSupplier],

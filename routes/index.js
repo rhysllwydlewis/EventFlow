@@ -164,6 +164,29 @@ function mountRoutes(app, deps) {
   app.use('/api/admin/management', adminManagementRoutes); // Backward compatibility
   app.use('/api/v1/admin', adminHomepageCollageActiveRoutes);
   app.use('/api/admin', adminHomepageCollageActiveRoutes); // Backward compatibility
+  if (deps && supplierAdminRoutes.initializeDependencies) {
+    supplierAdminRoutes.initializeDependencies(deps);
+  }
+  // server.js mounts the legacy admin router before calling mountRoutes(). Prioritise
+  // the authoritative verification-state routes inside that already-mounted router so
+  // approve/reject transitions cannot be intercepted by the older handlers.
+  if (!adminRoutes.__supplierVerificationRoutesPrioritised) {
+    const verificationPaths = new Set([
+      '/suppliers/:id/approve',
+      '/suppliers/:id/reject',
+      '/suppliers/:id/request-changes',
+      '/suppliers/:id/suspend',
+    ]);
+    const verificationLayers = supplierAdminRoutes.stack.filter(
+      layer => layer.route && verificationPaths.has(layer.route.path)
+    );
+    adminRoutes.stack.unshift(...verificationLayers);
+    adminRoutes.__supplierVerificationRoutesPrioritised = true;
+  }
+  // Mount the state-machine-backed supplier admin routes before the legacy admin router
+  // for applications that consume routes/index.js without server.js's compatibility mounts.
+  app.use('/api/v1/admin', supplierAdminRoutes);
+  app.use('/api/admin', supplierAdminRoutes);
   app.use('/api/v1/admin', adminRoutes);
   app.use('/api/admin', adminRoutes); // Backward compatibility
 
@@ -328,11 +351,6 @@ function mountRoutes(app, deps) {
   app.use('/api/v1/supplier', supplierRoutes);
   app.use('/api/supplier', supplierRoutes);
 
-  if (deps && supplierAdminRoutes.initializeDependencies) {
-    supplierAdminRoutes.initializeDependencies(deps);
-  }
-  app.use('/api/v1/admin', supplierAdminRoutes);
-  app.use('/api/admin', supplierAdminRoutes);
   if (deps && supplierManagementRoutes.initializeDependencies) {
     supplierManagementRoutes.initializeDependencies(deps);
   }

@@ -92,6 +92,7 @@ router.get('/suppliers/:id', async (req, res, next) => {
     return res.json(
       safePublicSupplier(publicSupplier, {
         badgeDetails: await badgeDetailsFor(supplier),
+        exposeMessagingRecipient: true,
         featuredSupplier,
         isPreview: preview,
         isPro,

@@ -1,226 +1,122 @@
 import { test, expect } from '@playwright/test';
+import {
+  cleanupBackendFixtures,
+  createRunId,
+  seedBackendFixtures,
+} from './helpers/backend-fixtures.js';
 
-test.describe('Package Browsing and Booking @backend', () => {
-  test.beforeEach(async ({ page }) => {
-    await page.goto('/');
+test.describe('Packages against the real backend @backend', () => {
+  const runId = createRunId('packages');
+  let fixtures;
+
+  test.beforeAll(async ({ request }) => {
+    fixtures = await seedBackendFixtures(request, runId);
   });
 
-  test('should display packages page', async ({ page }) => {
-    // Navigate to packages if available
-    const packagesLink = page.locator('a:has-text("Packages"), a[href*="package"]');
-    if ((await packagesLink.count()) > 0) {
-      await packagesLink.first().click();
-      await page.waitForLoadState('networkidle');
+  test.afterAll(async ({ request }) => {
+    await cleanupBackendFixtures(request, runId);
+  });
 
-      // Should show package listings
-      const packageCards = page.locator('.package-card, [data-package-id], .card');
-      if ((await packageCards.count()) > 0) {
-        expect(await packageCards.count()).toBeGreaterThan(0);
-      }
+  test('renders an approved package on its clean canonical URL', async ({ page }) => {
+    await page.goto(fixtures.package.path);
+
+    await expect(page.locator('#package-content')).toBeVisible();
+    await expect(page.locator('#package-title')).toHaveText(fixtures.package.title);
+    await expect(page.locator('#package-price')).toHaveText('£750');
+    await expect(page.locator('#package-description')).toContainText(
+      'full-day photography package'
+    );
+    await expect(page.locator('#pkg-sup-name')).toHaveText(fixtures.supplier.name);
+    await expect(page.locator('#pkg-view-profile-btn')).toHaveAttribute(
+      'href',
+      new RegExp(`supplier.*${fixtures.supplier.id}`)
+    );
+
+    const canonical = await page.locator('link[rel="canonical"]').getAttribute('href');
+    expect(canonical).toBe(`https://event-flow.co.uk${fixtures.package.path}`);
+  });
+
+  test('redirects legacy query URLs to the clean package path in one hop', async ({ request }) => {
+    for (const query of [
+      `slug=${encodeURIComponent(fixtures.package.slug)}`,
+      `id=${encodeURIComponent(fixtures.package.id)}`,
+      `packageId=${encodeURIComponent(fixtures.package.id)}`,
+    ]) {
+      const response = await request.get(`/package?${query}`, {
+        maxRedirects: 0,
+      });
+      expect(response.status()).toBe(301);
+      expect(response.headers().location).toBe(fixtures.package.path);
     }
   });
 
-  test('should show package details', async ({ page }) => {
-    // Find first package card
-    const packageCard = page.locator('.package-card, [data-package-id]').first();
-    if ((await packageCard.count()) > 0) {
-      await packageCard.click();
-      await page.waitForLoadState('networkidle');
-
-      // Should show package details
-      const packageName = page.locator('h1, .package-name, [data-package-name]');
-      if ((await packageName.count()) > 0) {
-        await expect(packageName).toBeVisible();
-      }
-
-      // Should show price
-      const price = page.locator('.price, [data-price]');
-      if ((await price.count()) > 0) {
-        await expect(price.first()).toBeVisible();
-      }
-    }
-  });
-
-  test('should display package images in gallery', async ({ page }) => {
-    const packageCard = page.locator('.package-card, [data-package-id]').first();
-    if ((await packageCard.count()) > 0) {
-      await packageCard.click();
-      await page.waitForLoadState('networkidle');
-
-      // Look for image gallery
-      const gallery = page.locator('.gallery, .carousel, [data-gallery]');
-      if ((await gallery.count()) > 0) {
-        await expect(gallery.first()).toBeVisible();
-
-        // Should have images
-        const images = gallery.locator('img');
-        if ((await images.count()) > 0) {
-          expect(await images.count()).toBeGreaterThan(0);
-        }
-      }
-    }
-  });
-
-  test('should filter packages by price range', async ({ page }) => {
-    const packagesLink = page.locator('a:has-text("Packages"), a[href*="package"]');
-    if ((await packagesLink.count()) > 0) {
-      await packagesLink.first().click();
-      await page.waitForLoadState('networkidle');
-
-      // Look for price filter
-      const priceFilter = page.locator('input[type="range"][name*="price"], .price-filter input');
-      if ((await priceFilter.count()) > 0) {
-        // Adjust price filter
-        await priceFilter.first().fill('500');
-        await page.waitForTimeout(1000);
-
-        // Results should be filtered
-        const packages = page.locator('.package-card, [data-package-id]');
-        if ((await packages.count()) > 0) {
-          expect(await packages.count()).toBeGreaterThan(0);
-        }
-      }
-    }
-  });
-
-  test('should add package to comparison', async ({ page }) => {
-    const packageCard = page.locator('.package-card, [data-package-id]').first();
-    if ((await packageCard.count()) > 0) {
-      // Look for compare button
-      const compareButton = packageCard.locator(
-        'button:has-text("Compare"), [data-action="compare"]'
-      );
-      if ((await compareButton.count()) > 0) {
-        await compareButton.click();
-
-        // Should show confirmation or update compare count
-        const compareCount = page.locator('.compare-count, [data-compare-count]');
-        if ((await compareCount.count()) > 0) {
-          const count = await compareCount.textContent();
-          expect(parseInt(count || '0')).toBeGreaterThan(0);
-        }
-      }
-    }
-  });
-
-  test('should show booking form for authenticated users', async ({ page }) => {
-    const packageCard = page.locator('.package-card, [data-package-id]').first();
-    if ((await packageCard.count()) > 0) {
-      await packageCard.click();
-      await page.waitForLoadState('networkidle');
-
-      // Look for booking button
-      const bookButton = page.locator(
-        'button:has-text("Book"), button:has-text("Enquire"), [data-action="book"]'
-      );
-      if ((await bookButton.count()) > 0) {
-        await bookButton.first().click();
-
-        // Should show booking form or redirect to auth
-        await page.waitForTimeout(1000);
-
-        // Check if form or auth page is shown
-        const bookingForm = page.locator('form[data-booking], .booking-form');
-        const authPage = page.url().includes('auth');
-
-        expect((await bookingForm.count()) > 0 || authPage).toBeTruthy();
-      }
-    }
-  });
-
-  test('should display package reviews', async ({ page }) => {
-    const packageCard = page.locator('.package-card, [data-package-id]').first();
-    if ((await packageCard.count()) > 0) {
-      await packageCard.click();
-      await page.waitForLoadState('networkidle');
-
-      // Look for reviews section
-      const reviews = page.locator('.reviews, [data-reviews], .review-list');
-      if ((await reviews.count()) > 0) {
-        await expect(reviews.first()).toBeVisible();
-      }
-    }
-  });
-
-  test('should show related packages', async ({ page }) => {
-    const packageCard = page.locator('.package-card, [data-package-id]').first();
-    if ((await packageCard.count()) > 0) {
-      await packageCard.click();
-      await page.waitForLoadState('networkidle');
-
-      // Look for related packages section
-      const relatedPackages = page.locator(
-        '.related-packages, [data-related], h2:has-text("Related")'
-      );
-      if ((await relatedPackages.count()) > 0) {
-        await expect(relatedPackages.first()).toBeVisible();
-      }
-    }
-  });
-});
-
-test.describe('Supplier results mini package card navigation', () => {
-  test('clicking a mini package card navigates to the package detail page', async ({ page }) => {
-    // Navigate to the suppliers results page
-    await page.goto('/suppliers.html');
-    await page.waitForLoadState('networkidle');
-
-    // Trigger a search to load supplier cards (submit the search form or wait for default results)
-    const searchBtn = page.locator('button[type="submit"], button:has-text("Search"), #search-btn');
-    if ((await searchBtn.count()) > 0) {
-      await searchBtn.first().click();
-      await page.waitForLoadState('networkidle');
-    }
-
-    // Wait for mini-card anchors to appear
-    const miniCard = page.locator('a.sp-pkg-mini').first();
-    if ((await miniCard.count()) === 0) {
-      // No mini cards rendered — skip gracefully (no packages in results)
-      return;
-    }
-
-    // Grab the href before clicking so we can assert the URL changed correctly
-    const href = await miniCard.getAttribute('href');
-    expect(href).toBeTruthy();
-    expect(href).toMatch(/\/package/);
-
-    // Click the card (not the inner button)
-    await miniCard.click();
-    await page.waitForLoadState('networkidle');
-
-    // URL should have changed to the package detail path
-    const currentUrl = page.url();
-    expect(currentUrl).toMatch(/\/package/);
-  });
-
-  test('Add to plan button inside mini card does not navigate to package detail', async ({
-    page,
+  test('returns the current package, supplier and category contract from the API', async ({
+    request,
   }) => {
-    await page.goto('/suppliers.html');
-    await page.waitForLoadState('networkidle');
+    const response = await request.get(
+      `/api/packages/${encodeURIComponent(fixtures.package.slug)}`
+    );
+    expect(response.ok()).toBe(true);
+    const body = await response.json();
 
-    const searchBtn = page.locator('button[type="submit"], button:has-text("Search"), #search-btn');
-    if ((await searchBtn.count()) > 0) {
-      await searchBtn.first().click();
-      await page.waitForLoadState('networkidle');
+    expect(body.package).toMatchObject({
+      id: fixtures.package.id,
+      title: fixtures.package.title,
+      approved: true,
+      paused: false,
+    });
+    expect(body.supplier).toMatchObject({
+      id: fixtures.supplier.id,
+      name: fixtures.supplier.name,
+    });
+    expect(Array.isArray(body.categories)).toBe(true);
+  });
+
+  test('keeps paused packages out of indexable HTML while preserving the current API contract', async ({
+    request,
+  }) => {
+    const htmlResponse = await request.get(
+      `/package/${encodeURIComponent(fixtures.pausedPackage.slug)}`
+    );
+    expect(htmlResponse.status()).toBe(404);
+    expect(htmlResponse.headers()['x-robots-tag']).toMatch(/noindex/);
+
+    const apiResponse = await request.get(
+      `/api/packages/${encodeURIComponent(fixtures.pausedPackage.slug)}`
+    );
+    expect(apiResponse.ok()).toBe(true);
+    await expect(apiResponse.json()).resolves.toMatchObject({
+      package: expect.objectContaining({
+        id: fixtures.pausedPackage.id,
+        approved: true,
+        paused: true,
+      }),
+    });
+  });
+
+  test('keeps unapproved and missing packages out of both public surfaces', async ({ request }) => {
+    for (const slug of [fixtures.unapprovedPackage.slug, `missing-${runId}`]) {
+      const htmlResponse = await request.get(`/package/${encodeURIComponent(slug)}`);
+      expect(htmlResponse.status()).toBe(404);
+      expect(htmlResponse.headers()['x-robots-tag']).toMatch(/noindex/);
+
+      const apiResponse = await request.get(`/api/packages/${encodeURIComponent(slug)}`);
+      expect(apiResponse.status()).toBe(404);
     }
+  });
 
-    const addToPlanBtn = page.locator('.btn-add-to-plan').first();
-    if ((await addToPlanBtn.count()) === 0) {
-      return;
-    }
+  test('sends a logged-out Add to Plan action through the intent-aware auth gate', async ({
+    page,
+    context,
+  }) => {
+    await context.clearCookies();
+    await page.goto(fixtures.package.path);
+    await expect(page.locator('#pkg-add-to-plan-btn')).toBeVisible();
+    await page.locator('#pkg-add-to-plan-btn').click();
+    await page.waitForURL(/\/auth\?/);
 
-    const urlBefore = page.url();
-
-    // Click should NOT navigate to /package — it redirects to /auth or /start
-    await addToPlanBtn.click();
-    // Wait for any navigation or redirect triggered by the button
-    await page.waitForLoadState('networkidle').catch(() => {});
-
-    const urlAfter = page.url();
-    // Should not have gone to a /package route
-    expect(urlAfter).not.toMatch(/\/package(\?|$)/);
-    // Should still be on suppliers page or redirect to auth/start
-    expect(urlAfter).toMatch(/suppliers|auth|start/);
+    const url = new URL(page.url());
+    expect(url.searchParams.get('intent')).toBe('plan');
+    expect(url.searchParams.get('redirect')).toBe(fixtures.package.path);
   });
 });

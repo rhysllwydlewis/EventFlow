@@ -1,26 +1,25 @@
 {
   "blocking": [
     "admin-consolidation.spec.js",
+    "admin-feature-flags.spec.js",
     "admin-moderation.spec.js",
     "admin-photos.spec.js",
     "auth-navbar-logout.spec.js",
     "auth.spec.js",
+    "customer-enquiry-flow.spec.js",
+    "packages.spec.js",
     "pexels-collection-media.spec.js",
     "pexels-test-endpoint.spec.js",
+    "public-discovery-funnel.spec.js",
     "real-time-messaging.spec.js",
     "security-headers.spec.js",
     "start-wizard-journey.spec.js",
+    "supplier-dashboard-improvements.spec.js",
+    "supplier-onboarding.spec.js",
+    "supplier-reviews.spec.js",
+    "supplier-verification-flow.spec.js",
     "suppliers.spec.js",
     "websocket-v2.spec.js"
   ],
-  "quarantined": {
-    "admin-feature-flags.spec.js": "The historical test never authenticates or changes flags and still expects obsolete registration status codes instead of the current validation and rate-limit contract.",
-    "customer-enquiry-flow.spec.js": "The supplier-listing navigation and lead-quality selectors no longer represent the current enquiry journey and include network-idle waits on a live page.",
-    "packages.spec.js": "The package page scenarios rely on network-idle and legacy price-filter controls that are not deterministic against the current live application shell.",
-    "public-discovery-funnel.spec.js": "The marketplace new-listing scenario expects an obsolete logged-out redirect path while the rest of this mixed public funnel is covered by the static blocking suite.",
-    "supplier-dashboard-improvements.spec.js": "The suite asserts removed onboarding cards, legacy section classes and dashboard selectors rather than the current supplier dashboard contract.",
-    "supplier-onboarding.spec.js": "The suite follows generic supplier links to browse pages and expects a retired full-profile registration form instead of the current account-first onboarding flow.",
-    "supplier-reviews.spec.js": "The review-widget scenarios depend on stale supplier profile fixtures, network-idle and resources that are no longer loaded by the current profile page.",
-    "supplier-verification-flow.spec.js": "The source-regression assertions look for retired literal status and audit constant names rather than testing the current verification API behaviour."
-  }
+  "quarantined": {}
 }

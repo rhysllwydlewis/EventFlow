@@ -35,12 +35,12 @@ describe('autonomous quality workflow contracts', () => {
     expect(workflow).not.toMatch(/continue-on-error:\s*true/);
   });
 
-  test('backend suite quarantine is explicit, validated and preserves a substantial blocking suite', () => {
+  test('backend suite classification is explicit and preserves a substantial blocking suite', () => {
     const classification = JSON.parse(read('e2e/backend-suite-classification.json'));
     const runner = read('scripts/run-backend-e2e.mjs');
 
     expect(classification.blocking.length).toBeGreaterThanOrEqual(8);
-    expect(Object.keys(classification.quarantined).length).toBeGreaterThan(0);
+    expect(classification.quarantined).toEqual(expect.any(Object));
     expect(new Set(classification.blocking).size).toBe(classification.blocking.length);
     for (const [file, reason] of Object.entries(classification.quarantined)) {
       expect(classification.blocking).not.toContain(file);

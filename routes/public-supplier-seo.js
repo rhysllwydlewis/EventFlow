@@ -74,6 +74,10 @@ function createPublicSupplierSeoRouter(options = {}) {
   }
 
   function readPublicSuppliers() {
+    if (process.env.E2E_MODE === 'full') {
+      return loadPublicSuppliers();
+    }
+
     const now = Date.now();
     if (supplierCache && now < supplierCacheExpiresAt) {
       return Promise.resolve(supplierCache);
