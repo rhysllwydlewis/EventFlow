@@ -1,4 +1,0 @@
-Traceback (most recent call last):
-  File "<stdin>", line 17, in <module>
-  File "<stdin>", line 7, in replace_once
-RuntimeError: legacy explicit theme selection: expected one match, found 0

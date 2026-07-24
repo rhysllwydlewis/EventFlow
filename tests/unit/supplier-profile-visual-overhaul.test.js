@@ -7,6 +7,7 @@ const read = relative => fs.readFileSync(path.join(__dirname, '../..', relative)
 
 const themeJs = read('public/assets/js/supplier-profile-polish.js');
 const themeCss = read('public/assets/css/supplier-profile-theme.css');
+const categoryCss = read('public/assets/css/supplier-profile-v2.css');
 
 describe('supplier profile visual overhaul contracts', () => {
   test('resolves the profile accent from explicit mode, legacy values, category, then EventFlow default', () => {
@@ -28,6 +29,8 @@ describe('supplier profile visual overhaul contracts', () => {
     expect(themeJs).toContain("'hair & makeup': 'beauty'");
     expect(themeJs).toContain("decor: 'flowers'");
     expect(themeJs).toContain("cake: 'catering'");
+    expect(categoryCss).toContain('data-category-preset="beauty"');
+    expect(categoryCss).toContain('#9d174d');
   });
 
   test('preserves explicit hero presets and themes only the colour fallback', () => {

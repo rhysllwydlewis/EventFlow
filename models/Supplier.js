@@ -118,6 +118,9 @@ const VALIDATION_RULES = {
  * Media & Content
  * @property {string} logo - Logo image URL
  * @property {string} coverImage - Banner/cover image URL
+ * @property {'automatic'|'preset'|'custom'} themeMode - Explicit profile colour mode
+ * @property {string|null} heroPreset - Valid named profile theme preset when themeMode is 'preset'
+ * @property {string|null} themeColor - Six-digit hex colour when themeMode is 'custom'
  * @property {string[]} images - Gallery image URLs
  * @property {string} bookingUrl - Direct booking URL (max 500 chars, valid URL format)
  * @property {string} videoUrl - Intro video URL (max 500 chars, valid URL format)
