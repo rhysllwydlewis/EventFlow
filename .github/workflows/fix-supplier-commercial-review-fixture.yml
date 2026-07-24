@@ -10,6 +10,7 @@ permissions:
 
 jobs:
   fix-review-fixture:
+    # This workflow is temporary and scoped to PR #1403.
     if: github.event.pull_request.head.ref == 'fix/supplier-profile-commercial-polish'
     runs-on: ubuntu-latest
     steps:
