@@ -108,7 +108,7 @@ async function mockSupplierProfile(page, supplier) {
 async function openProfile(page, supplier) {
   await mockSupplierProfile(page, supplier);
   await page.goto(`/supplier/${TEST_ID}?id=${TEST_ID}`, { waitUntil: 'domcontentloaded' });
-  await expect(page.locator('.sp-cta-card__title')).toHaveText(supplier.name);
+  await expect(page.locator('.sp-cta-card__title')).toHaveText(`Plan with ${supplier.name}`);
   await expect(page.locator('.hero-identity')).toContainText(supplier.tagline);
   await expect(page.locator('html')).toHaveAttribute('data-sp-theme-ready', 'true');
   await expect(page.locator('#hero-avatar')).toHaveAttribute('data-avatar-status', 'loaded');
