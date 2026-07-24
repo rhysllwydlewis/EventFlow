@@ -77,6 +77,18 @@ describe('supplier theme state', () => {
       )
     ).toEqual({
       set: { themeMode: 'automatic' },
+      unset: { heroPreset: 1, themeColor: 1 },
+    });
+  });
+
+  test('does not let the legacy customisation page silently replace a preset with teal', () => {
+    expect(
+      buildSupplierThemeMutation(
+        { themeColor: '#0B8073' },
+        { themeMode: 'preset', heroPreset: 'midnight', category: 'Photography' }
+      )
+    ).toEqual({
+      set: { themeMode: 'preset' },
       unset: { themeColor: 1 },
     });
   });
