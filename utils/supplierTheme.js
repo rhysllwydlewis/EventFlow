@@ -211,14 +211,21 @@ function buildSupplierThemeMutation(body = {}, existing = {}) {
     }
 
     // The legacy customisation page always submits EF teal, even when the supplier
-    // never chose a custom colour. Preserve category-driven automatic themes in that case.
+    // did not edit their theme. Preserve an existing preset, or category-driven
+    // automatic mode, instead of silently turning an unrelated save into custom teal.
+    const existingMode = normaliseThemeMode(existing.themeMode);
+    const existingPreset = normaliseHeroPreset(existing.heroPreset);
     const isLegacyImplicitDefault =
       requestedColor === DEFAULT_THEME_COLOR &&
       !normaliseThemeColor(existing.themeColor) &&
-      !normaliseHeroPreset(existing.heroPreset) &&
-      !normaliseThemeMode(existing.themeMode);
+      existingMode !== 'custom';
     if (isLegacyImplicitDefault) {
-      set.themeMode = 'automatic';
+      if (existingPreset) {
+        set.themeMode = 'preset';
+      } else {
+        set.themeMode = 'automatic';
+        unset.heroPreset = 1;
+      }
       unset.themeColor = 1;
       return { set, unset };
     }
