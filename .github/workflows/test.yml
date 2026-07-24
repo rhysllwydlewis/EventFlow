@@ -66,49 +66,38 @@ jobs:
           )
           replace_once(
               controller,
-              """    if (shouldMarkDirty) {
-              markDirty();
-              updateLivePreview();
-            }
-          """,
-              """    if (shouldMarkDirty) {
-              themeSelectionChanged = true;
-              markDirty();
-              updateLivePreview();
-            }
-          """,
+              "    if (shouldMarkDirty) {\n      markDirty();\n      updateLivePreview();\n    }\n",
+              "    if (shouldMarkDirty) {\n      themeSelectionChanged = true;\n      markDirty();\n      updateLivePreview();\n    }\n",
               'legacy explicit theme selection',
           )
           replace_once(
               controller,
-              """  function buildSavePayload() {
-              const bannerInput = document.getElementById('sup-banner');
-              return {
-                bannerUrl: bannerInput?.value?.trim() || '',
-                tagline: $('sup-tagline')?.value?.trim() || '',
-                themeColor: getThemeColor(),
-                highlights: readHighlights(),
-                featuredServices: readFeaturedServices(),
-                socialLinks: readSocialLinks(),
-              };
-            }
-          """,
-              """  function buildSavePayload() {
-              const bannerInput = document.getElementById('sup-banner');
-              const payload = {
-                bannerUrl: bannerInput?.value?.trim() || '',
-                tagline: $('sup-tagline')?.value?.trim() || '',
-                highlights: readHighlights(),
-                featuredServices: readFeaturedServices(),
-                socialLinks: readSocialLinks(),
-              };
-              if (themeSelectionChanged) {
-                payload.themeMode = 'custom';
-                payload.themeColor = getThemeColor();
-              }
-              return payload;
-            }
-          """,
+              "  function buildSavePayload() {\n"
+              "    const bannerInput = document.getElementById('sup-banner');\n"
+              "    return {\n"
+              "      bannerUrl: bannerInput?.value?.trim() || '',\n"
+              "      tagline: $('sup-tagline')?.value?.trim() || '',\n"
+              "      themeColor: getThemeColor(),\n"
+              "      highlights: readHighlights(),\n"
+              "      featuredServices: readFeaturedServices(),\n"
+              "      socialLinks: readSocialLinks(),\n"
+              "    };\n"
+              "  }\n",
+              "  function buildSavePayload() {\n"
+              "    const bannerInput = document.getElementById('sup-banner');\n"
+              "    const payload = {\n"
+              "      bannerUrl: bannerInput?.value?.trim() || '',\n"
+              "      tagline: $('sup-tagline')?.value?.trim() || '',\n"
+              "      highlights: readHighlights(),\n"
+              "      featuredServices: readFeaturedServices(),\n"
+              "      socialLinks: readSocialLinks(),\n"
+              "    };\n"
+              "    if (themeSelectionChanged) {\n"
+              "      payload.themeMode = 'custom';\n"
+              "      payload.themeColor = getThemeColor();\n"
+              "    }\n"
+              "    return payload;\n"
+              "  }\n",
               'legacy save payload',
           )
           replace_once(
@@ -121,18 +110,15 @@ jobs:
           category_css = Path('public/assets/css/supplier-profile-v2.css')
           replace_once(
               category_css,
-              """.supplier-hero[data-category-preset="transport"] .hero-media {
-              background: linear-gradient(135deg, #1a3a4a 0%, #1a6b8a 50%, #2196c0 100%);
-            }
-          """,
-              """.supplier-hero[data-category-preset="transport"] .hero-media {
-              background: linear-gradient(135deg, #1a3a4a 0%, #1a6b8a 50%, #2196c0 100%);
-            }
-
-            .supplier-hero[data-category-preset="beauty"] .hero-media {
-              background: linear-gradient(135deg, #831843 0%, #9d174d 50%, #db2777 100%);
-            }
-          """,
+              ".supplier-hero[data-category-preset=\"transport\"] .hero-media {\n"
+              "  background: linear-gradient(135deg, #1a3a4a 0%, #1a6b8a 50%, #2196c0 100%);\n"
+              "}\n",
+              ".supplier-hero[data-category-preset=\"transport\"] .hero-media {\n"
+              "  background: linear-gradient(135deg, #1a3a4a 0%, #1a6b8a 50%, #2196c0 100%);\n"
+              "}\n\n"
+              ".supplier-hero[data-category-preset=\"beauty\"] .hero-media {\n"
+              "  background: linear-gradient(135deg, #831843 0%, #9d174d 50%, #db2777 100%);\n"
+              "}\n",
               'beauty category gradient',
           )
 
@@ -145,46 +131,37 @@ jobs:
           )
           replace_once(
               visual_test,
-              """    expect(themeJs).toContain("cake: 'catering'");
-              });
-          """,
-              """    expect(themeJs).toContain("cake: 'catering'");
-                expect(categoryCss).toContain('data-category-preset="beauty"');
-                expect(categoryCss).toContain('#9d174d');
-              });
-          """,
+              "    expect(themeJs).toContain(\"cake: 'catering'\");\n  });\n",
+              "    expect(themeJs).toContain(\"cake: 'catering'\");\n"
+              "    expect(categoryCss).toContain('data-category-preset=\"beauty\"');\n"
+              "    expect(categoryCss).toContain('#9d174d');\n"
+              "  });\n",
               'beauty gradient contract',
           )
 
           controller_test = Path('tests/unit/profile-customization-controller.test.js')
-          replace_once(
-              controller_test,
-              """  it('uses the app CSRF token pattern instead of the removed auth csrf endpoint', () => {
-          """,
-              """  it('only writes an explicit custom theme after the supplier changes the colour', () => {
-                expect(controller).toContain('let themeSelectionChanged = false');
-                expect(controller).toContain("payload.themeMode = 'custom'");
-                expect(controller).toContain('if (themeSelectionChanged)');
-                expect(controller).not.toContain('themeColor: getThemeColor(),');
-              });
-
-              it('uses the app CSRF token pattern instead of the removed auth csrf endpoint', () => {
-          """,
-              'legacy theme payload contract',
+          marker = "  it('uses the app CSRF token pattern instead of the removed auth csrf endpoint', () => {\n"
+          addition = (
+              "  it('only writes an explicit custom theme after the supplier changes the colour', () => {\n"
+              "    expect(controller).toContain('let themeSelectionChanged = false');\n"
+              "    expect(controller).toContain(\"payload.themeMode = 'custom'\");\n"
+              "    expect(controller).toContain('if (themeSelectionChanged)');\n"
+              "    expect(controller).not.toContain('themeColor: getThemeColor(),');\n"
+              "  });\n\n"
+              + marker
           )
+          replace_once(controller_test, marker, addition, 'legacy theme payload contract')
 
           model = Path('models/Supplier.js')
           replace_once(
               model,
-              """ * @property {string} coverImage - Banner/cover image URL
-             * @property {string[]} images - Gallery image URLs
-          """,
-              """ * @property {string} coverImage - Banner/cover image URL
-             * @property {'automatic'|'preset'|'custom'} themeMode - Explicit profile colour mode
-             * @property {string|null} heroPreset - Valid named profile theme preset when themeMode is 'preset'
-             * @property {string|null} themeColor - Six-digit hex colour when themeMode is 'custom'
-             * @property {string[]} images - Gallery image URLs
-          """,
+              " * @property {string} coverImage - Banner/cover image URL\n"
+              " * @property {string[]} images - Gallery image URLs\n",
+              " * @property {string} coverImage - Banner/cover image URL\n"
+              " * @property {'automatic'|'preset'|'custom'} themeMode - Explicit profile colour mode\n"
+              " * @property {string|null} heroPreset - Valid named profile theme preset when themeMode is 'preset'\n"
+              " * @property {string|null} themeColor - Six-digit hex colour when themeMode is 'custom'\n"
+              " * @property {string[]} images - Gallery image URLs\n",
               'supplier theme schema documentation',
           )
           PY
@@ -230,11 +207,15 @@ jobs:
             exit "$status"
           fi
 
+          rm -f final-supplier-theme-hardening.txt
           git add \
             public/supplier/js/profile-customization.js \
             public/assets/css/supplier-profile-v2.css \
             tests/unit/profile-customization-controller.test.js \
             tests/unit/supplier-profile-visual-overhaul.test.js \
             models/Supplier.js
+          if git ls-files --error-unmatch final-supplier-theme-hardening.txt >/dev/null 2>&1; then
+            git rm final-supplier-theme-hardening.txt
+          fi
           git commit -m "Complete supplier theme legacy and category hardening"
           git push origin HEAD:agent/supplier-profile-theme-state
