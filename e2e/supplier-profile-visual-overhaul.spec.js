@@ -229,4 +229,79 @@ test.describe('Supplier profile visual overhaul', () => {
     expect(layout.documentWidth).toBeLessThanOrEqual(layout.viewportWidth + 1);
     await expect(page.locator('#btn-enquiry')).toBeVisible();
   });
+
+  test('compacts fallback heroes and makes the contact hierarchy deliberate', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await openProfile(page, makeSupplier({ heroPreset: 'midnight' }));
+
+    const layout = await page.evaluate(() => {
+      const hero = document.querySelector('.hero-media').getBoundingClientRect();
+      const avatar = document.getElementById('hero-avatar').getBoundingClientRect();
+      const heroButton = getComputedStyle(document.getElementById('btn-enquiry'));
+      const sidebarCard = getComputedStyle(document.querySelector('.sp-contact-card'));
+      const sidebarButton = getComputedStyle(document.getElementById('sidebar-btn-enquiry'));
+      return {
+        heroHeight: hero.height,
+        heroBottom: hero.bottom,
+        avatarTop: avatar.top,
+        avatarBottom: avatar.bottom,
+        badgesParent: document.getElementById('hero-badges').parentElement.className,
+        heroButtonImage: heroButton.backgroundImage,
+        sidebarBackground: sidebarCard.backgroundColor,
+        sidebarButtonImage: sidebarButton.backgroundImage,
+      };
+    });
+
+    expect(layout.heroHeight).toBeLessThanOrEqual(190);
+    expect(layout.avatarTop).toBeLessThan(layout.heroBottom);
+    expect(layout.avatarBottom).toBeGreaterThan(layout.heroBottom);
+    expect(layout.badgesParent).toContain('hero-identity');
+    expect(layout.heroButtonImage).not.toBe('none');
+    expect(layout.sidebarBackground).toBe('rgb(255, 255, 255)');
+    expect(layout.sidebarButtonImage).toBe('none');
+    await expect(page.locator('.sp-cta-card__name')).toHaveText('Contact & availability');
+    await expect(page.locator('.sp-cta-card__title')).toHaveText('Plan with Alex Example');
+    await expect(page.locator('.sp-contact-summary__row')).toHaveCount(2);
+  });
+
+  test('keeps uploaded-banner profiles at the full hero height', async ({ page }) => {
+    await page.route('**/test-assets/supplier-banner.svg', route =>
+      route.fulfill({
+        status: 200,
+        contentType: 'image/svg+xml',
+        body: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 400"><rect width="1200" height="400" fill="#0f3460"/></svg>',
+      })
+    );
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await openProfile(
+      page,
+      makeSupplier({ bannerUrl: '/test-assets/supplier-banner.svg', heroPreset: 'midnight' })
+    );
+
+    await expect(page.locator('html')).toHaveAttribute('data-sp-hero-mode', 'image');
+    const hero = await page.locator('.hero-media').boundingBox();
+    expect(hero.height).toBeGreaterThanOrEqual(280);
+  });
+
+  test('uses a readable large-screen content scale and reserves overlay clearance', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1600, height: 1000 });
+    await openProfile(page, makeSupplier());
+
+    const result = await page.evaluate(() => {
+      document.body.classList.add('ef-pwa-banner-visible');
+      const pageShell = document.querySelector('.sp-page');
+      const description = document.querySelector('.sp-about__description');
+      return {
+        pageWidth: pageShell.getBoundingClientRect().width,
+        bodyCopy: Number.parseFloat(getComputedStyle(description).fontSize),
+        paddingBottom: Number.parseFloat(getComputedStyle(pageShell).paddingBottom),
+      };
+    });
+
+    expect(result.pageWidth).toBeGreaterThanOrEqual(1300);
+    expect(result.bodyCopy).toBeGreaterThanOrEqual(15);
+    expect(result.paddingBottom).toBeGreaterThanOrEqual(180);
+  });
 });
