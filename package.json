@@ -138,7 +138,7 @@
     "mongodb-memory-server": "^11.0.1",
     "playwright": "^1.59.1",
     "postcss": "^8.5.19",
-    "prettier": "^3.7.4",
+    "prettier": "3.7.4",
     "supertest": "^6.3.4",
     "typescript": "^7.0.2",
     "xlsx": "^0.18.5"
@@ -154,11 +154,12 @@
   },
   "overrides": {
     "axios": "^1.18.0",
-    "brace-expansion": "1.1.16",
+    "brace-expansion": "5.0.8",
     "fast-uri": "^3.1.4",
     "filelist": {
-      ".": ">=1.0.5",
-      "brace-expansion": "5.0.7"
+      ".": "2.0.2",
+      "minimatch": "10.2.5",
+      "brace-expansion": "5.0.8"
     },
     "engine.io": "6.6.9",
     "socket.io-adapter": "2.5.8",
