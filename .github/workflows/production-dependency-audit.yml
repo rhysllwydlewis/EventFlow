@@ -51,12 +51,19 @@ jobs:
           set -o pipefail
           npm run audit 2>&1 | tee production-audit-report.txt
 
+      - name: Capture machine-readable audit report
+        if: always()
+        shell: bash
+        run: npm audit --omit=dev --audit-level=high --json > production-audit-report.json || true
+
       - name: Upload production audit report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: production-dependency-audit-report
-          path: production-audit-report.txt
+          path: |
+            production-audit-report.txt
+            production-audit-report.json
           if-no-files-found: error
           retention-days: 7
 
