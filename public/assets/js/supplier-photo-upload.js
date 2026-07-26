@@ -1,9 +1,9 @@
 /**
  * Supplier Photo Upload Module for EventFlow
- * Handles uploading supplier gallery photos via REST API
+ * Handles uploading supplier gallery photos via REST API.
  *
- * NOTE: Photos are stored locally in /uploads directory with metadata in MongoDB.
- * The backend uses base64 encoding for image transfer and stores files on the filesystem.
+ * Images are transferred as base64 payloads and persisted by the backend's
+ * MongoDB-backed photo pipeline. Supplier records store the returned URLs.
  */
 
 const isDevelopment =
@@ -35,7 +35,7 @@ class SupplierPhotoUpload {
   }
 
   /**
-   * Upload a photo to local storage via REST API
+   * Upload a photo to persistent storage via REST API.
    * @param {File} file - The image file to upload
    * @param {string} supplierId - The supplier ID
    * @returns {Promise<Object>} Photo metadata with download URL
@@ -58,28 +58,43 @@ class SupplierPhotoUpload {
 
       // Upload via API with base64 image
       const csrfToken = await this.ensureCsrfToken();
-      const response = await fetch(`${this.apiBase}/me/suppliers/${supplierId}/photos`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRF-Token': csrfToken,
-        },
-        body: JSON.stringify({
-          image: base64Image,
-        }),
-      });
+      const response = await fetch(
+        `${this.apiBase}/me/suppliers/${encodeURIComponent(supplierId)}/photos`,
+        {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': csrfToken,
+          },
+          body: JSON.stringify({
+            image: base64Image,
+          }),
+        }
+      );
 
       if (!response.ok) {
         throw new Error('Failed to upload photo');
       }
 
       const data = await response.json();
+      const serverPhoto =
+        data && data.photo && typeof data.photo === 'object' && !Array.isArray(data.photo)
+          ? data.photo
+          : {};
+      const photoUrl = serverPhoto.url || data.url;
+      if (!photoUrl) {
+        throw new Error('Photo upload did not return a usable URL');
+      }
       const photoMetadata = {
-        id: data.photoId || data.id || Date.now().toString(), // Fallback to timestamp if no ID
-        url: data.url,
-        filename: file.name,
-        uploadedAt: new Date().toISOString(),
+        ...serverPhoto,
+        // Prefer a server-generated id. Existing gallery routes also accept the
+        // stored URL, so it is the stable compatibility fallback for legacy
+        // responses that do not yet return a dedicated photo id.
+        id: serverPhoto.id || data.photoId || data.id || photoUrl,
+        url: photoUrl,
+        filename: serverPhoto.filename || file.name,
+        uploadedAt: serverPhoto.uploadedAt || new Date().toISOString(),
       };
 
       this.uploadedPhotos.push(photoMetadata);
@@ -94,21 +109,24 @@ class SupplierPhotoUpload {
   }
 
   /**
-   * Delete a photo from local storage via REST API
-   * @param {string} photoId - Photo ID
+   * Delete a photo from persistent storage via REST API.
+   * @param {string} photoId - Photo ID or legacy stored URL
    * @param {string} supplierId - Supplier ID
    * @returns {Promise<void>}
    */
   async deletePhoto(photoId, supplierId) {
     try {
       const csrfToken = await this.ensureCsrfToken();
-      const response = await fetch(`${this.apiBase}/me/suppliers/${supplierId}/photos/${photoId}`, {
-        method: 'DELETE',
-        credentials: 'include',
-        headers: {
-          'X-CSRF-Token': csrfToken,
-        },
-      });
+      const response = await fetch(
+        `${this.apiBase}/me/suppliers/${encodeURIComponent(supplierId)}/photos/${encodeURIComponent(photoId)}`,
+        {
+          method: 'DELETE',
+          credentials: 'include',
+          headers: {
+            'X-CSRF-Token': csrfToken,
+          },
+        }
+      );
 
       if (!response.ok) {
         throw new Error('Failed to delete photo');
@@ -125,21 +143,25 @@ class SupplierPhotoUpload {
   }
 
   /**
-   * Get all photos for a supplier via REST API
+   * Get all photos for a supplier via REST API.
    * @param {string} supplierId - Supplier ID
    * @returns {Promise<Array>} Array of photo metadata
    */
   async getSupplierPhotos(supplierId) {
     try {
-      const response = await fetch(`${this.apiBase}/me/suppliers/${supplierId}/photos`, {
-        credentials: 'include',
-      });
+      const response = await fetch(
+        `${this.apiBase}/me/suppliers/${encodeURIComponent(supplierId)}/photos`,
+        {
+          credentials: 'include',
+        }
+      );
 
       if (!response.ok) {
         throw new Error('Failed to fetch photos');
       }
 
-      const photos = await response.json();
+      const data = await response.json();
+      const photos = Array.isArray(data) ? data : Array.isArray(data.photos) ? data.photos : [];
       this.uploadedPhotos = photos;
       return photos;
     } catch (error) {
@@ -150,7 +172,7 @@ class SupplierPhotoUpload {
 
   /**
    * Compress an image file before upload
-   * @param {File} file - Image file
+   * @param {File} file - The image file
    * @returns {Promise<Blob>} Compressed image blob
    */
   async compressImage(file) {
@@ -244,7 +266,7 @@ class SupplierPhotoUpload {
   /**
    * Batch upload multiple photos
    * @param {File[]} files - Array of image files
-   * @param {string} supplierId - Supplier ID
+   * @param {string} supplierId - The supplier ID
    * @param {Function} progressCallback - Progress callback (optional)
    * @returns {Promise<Array>} Array of uploaded photo metadata
    */
@@ -278,7 +300,7 @@ class SupplierPhotoUpload {
    * Upload multiple photos with per-photo callback
    * This method provides compatibility with supplier-gallery.js callback signature
    * @param {File[]} files - Array of image files
-   * @param {string} supplierId - Supplier ID
+   * @param {string} supplierId - The supplier ID
    * @param {Function} progressCallback - Callback with signature (current, total, photoData, error)
    * @returns {Promise<Array>} Array of upload results
    */
