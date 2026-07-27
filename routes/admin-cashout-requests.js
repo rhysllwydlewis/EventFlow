@@ -1,14 +1,5 @@
 /**
- * Admin Cashout Request Routes
- * Admin-only endpoints for managing partner cashout requests
- *
- * Base path (mounted in routes/index.js): /api/admin/cashout-requests
- *
- * Status workflow:
- *   submitted → approved | rejected
- *   approved  → processing → delivered
- *   rejected  releases held points back to partner
- *   delivered finalises the hold as a permanent redemption
+ * Admin-only endpoints for managing partner cashout requests.
  */
 
 'use strict';
@@ -22,99 +13,79 @@ const { csrfProtection } = require('../middleware/csrf');
 const partnerService = require('../services/partnerService');
 
 const router = express.Router();
-
-// All routes require admin authentication
 router.use(authRequired, roleRequired('admin'));
 
-/** Allowed status transitions */
 const VALID_STATUSES = ['submitted', 'approved', 'rejected', 'processing', 'delivered'];
 const VALID_TRANSITIONS = {
   submitted: ['approved', 'rejected'],
   approved: ['processing', 'rejected'],
   processing: ['delivered', 'rejected'],
-  // terminal states cannot be changed
   rejected: [],
   delivered: [],
 };
 
-// ─── List Cashout Requests ────────────────────────────────────────────────────
-
-/**
- * GET /api/admin/cashout-requests
- * List all partner cashout requests.
- * Query params: status, partnerId, limit (max 200)
- */
 router.get('/', async (req, res) => {
   try {
     const { status, partnerId, limit } = req.query;
     const maxLimit = Math.min(parseInt(limit, 10) || 100, 200);
-
     let requests = (await dbUnified.read('partner_cashout_requests')) || [];
 
     if (status) {
       if (!VALID_STATUSES.includes(status)) {
-        return res
-          .status(400)
-          .json({ error: `status must be one of: ${VALID_STATUSES.join(', ')}` });
+        return res.status(400).json({ error: `status must be one of: ${VALID_STATUSES.join(', ')}` });
       }
-      requests = requests.filter(r => r.status === status);
+      requests = requests.filter(request => request.status === status);
     }
-    if (partnerId) {
-      requests = requests.filter(r => r.partnerId === partnerId);
-    }
+    if (partnerId) requests = requests.filter(request => request.partnerId === partnerId);
 
     requests.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     requests = requests.slice(0, maxLimit);
-
-    // Enrich with partner user info
     const users = await dbUnified.read('users');
     const partners = await dbUnified.read('partners');
 
-    const enriched = requests.map(r => {
-      const partner = partners.find(p => p.id === r.partnerId);
-      const user = users.find(u => u.id === r.partnerUserId);
+    const enriched = requests.map(request => {
+      const partner = partners.find(item => item.id === request.partnerId);
+      const user = users.find(item => item.id === request.partnerUserId);
       return {
-        ...r,
+        ...request,
         partnerRefCode: partner ? partner.refCode : null,
         partnerUser: user ? { name: user.name, email: user.email, company: user.company } : null,
         deletedUser: !user,
+        fraudSummary: {
+          riskLevel: request.fraudRiskLevel || 'not_assessed',
+          riskScore: request.fraudRiskScore ?? null,
+          reviewRequired: request.fraudReviewRequired === true,
+          reviewedAt: request.fraudReviewedAt || null,
+        },
       };
     });
 
-    res.json({ items: enriched, total: enriched.length });
+    return res.json({ items: enriched, total: enriched.length });
   } catch (err) {
     logger.error('Error listing cashout requests:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-// ─── Get Cashout Request Detail ───────────────────────────────────────────────
-
-/**
- * GET /api/admin/cashout-requests/:id
- * Get full detail of a single cashout request.
- */
 router.get('/:id', async (req, res) => {
   try {
-    const all = (await dbUnified.read('partner_cashout_requests')) || [];
-    const request = all.find(r => r.id === req.params.id);
-    if (!request) {
-      return res.status(404).json({ error: 'Cashout request not found' });
-    }
+    const request = await dbUnified.findOne('partner_cashout_requests', { id: req.params.id });
+    if (!request) return res.status(404).json({ error: 'Cashout request not found' });
 
-    const users = await dbUnified.read('users');
-    const partners = await dbUnified.read('partners');
-    const partner = partners.find(p => p.id === request.partnerId);
-    const user = users.find(u => u.id === request.partnerUserId);
-
-    // Also retrieve hold and redeem transaction details for audit
-    const txns = (await dbUnified.read('partner_credit_transactions')) || [];
-    const holdTxn = request.holdTxnId ? txns.find(t => t.id === request.holdTxnId) : null;
+    const [users, partners, txns, fraudAssessment] = await Promise.all([
+      dbUnified.read('users'),
+      dbUnified.read('partners'),
+      dbUnified.read('partner_credit_transactions'),
+      dbUnified.findOne('partner_fraud_assessments', { requestId: request.id }),
+    ]);
+    const partner = partners.find(item => item.id === request.partnerId);
+    const user = users.find(item => item.id === request.partnerUserId);
+    const holdTxn = request.holdTxnId ? txns.find(item => item.id === request.holdTxnId) : null;
     const redeemTxn = request.finalRedeemTxnId
-      ? txns.find(t => t.id === request.finalRedeemTxnId)
+      ? txns.find(item => item.id === request.finalRedeemTxnId)
       : null;
 
-    res.json({
+    return res.json({
       request: {
         ...request,
         partnerRefCode: partner ? partner.refCode : null,
@@ -122,44 +93,26 @@ router.get('/:id', async (req, res) => {
       },
       holdTransaction: holdTxn || null,
       redeemTransaction: redeemTxn || null,
+      fraudAssessment: fraudAssessment || null,
     });
   } catch (err) {
     logger.error('Error fetching cashout request:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-// ─── Update Cashout Request ───────────────────────────────────────────────────
-
-/**
- * PATCH /api/admin/cashout-requests/:id
- * Update a cashout request status and/or add admin notes.
- *
- * Body:
- *   status              – new status (must be a valid transition)
- *   adminResponseMessage – optional message visible to partner
- *   adminInternalNotes  – optional internal notes (not shown to partner)
- *   deliveryDetails     – optional { code, reference, last4, ... } (required when status=delivered)
- */
 router.patch('/:id', csrfProtection, async (req, res) => {
   try {
     const { status, adminResponseMessage, adminInternalNotes, deliveryDetails } = req.body || {};
-
-    const all = (await dbUnified.read('partner_cashout_requests')) || [];
-    const request = all.find(r => r.id === req.params.id);
-    if (!request) {
-      return res.status(404).json({ error: 'Cashout request not found' });
-    }
+    const request = await dbUnified.findOne('partner_cashout_requests', { id: req.params.id });
+    if (!request) return res.status(404).json({ error: 'Cashout request not found' });
 
     const now = new Date().toISOString();
     const updates = { updatedAt: now };
 
-    // Status transition
     if (status !== undefined) {
       if (!VALID_STATUSES.includes(status)) {
-        return res
-          .status(400)
-          .json({ error: `status must be one of: ${VALID_STATUSES.join(', ')}` });
+        return res.status(400).json({ error: `status must be one of: ${VALID_STATUSES.join(', ')}` });
       }
       const allowed = VALID_TRANSITIONS[request.status] || [];
       if (!allowed.includes(status)) {
@@ -167,71 +120,50 @@ router.patch('/:id', csrfProtection, async (req, res) => {
           error: `Cannot transition from '${request.status}' to '${status}'. Allowed: ${allowed.length ? allowed.join(', ') : 'none (terminal state)'}`,
         });
       }
-
-      updates.status = status;
-      updates.adminUserIdApproved = req.user.id;
-
-      if (status === 'approved') {
-        updates.approvedAt = now;
-      } else if (status === 'rejected') {
-        updates.rejectedAt = now;
-      } else if (status === 'processing') {
-        updates.processingAt = now;
-      } else if (status === 'delivered') {
-        updates.deliveredAt = now;
-        if (deliveryDetails) {
-          updates.deliveryDetails = deliveryDetails;
+      if (status === 'delivered') {
+        const evidence = deliveryDetails && typeof deliveryDetails === 'object' ? deliveryDetails : null;
+        const hasReference = Boolean(
+          evidence &&
+            [evidence.code, evidence.reference, evidence.last4].some(value => String(value || '').trim())
+        );
+        if (!hasReference) {
+          return res.status(400).json({
+            error: 'Delivery evidence is required before a cashout can be marked delivered.',
+            code: 'CASHOUT_DELIVERY_EVIDENCE_REQUIRED',
+          });
         }
       }
 
-      // Side-effects for terminal transitions
-      if (status === 'rejected') {
-        // Release held points back to partner
-        if (request.holdTxnId) {
-          const releaseResult = await partnerService.releaseCashoutHold(
-            request.holdTxnId,
-            request.partnerId
-          );
-          if (releaseResult) {
-            logger.info(
-              `Points released for rejected cashout ${request.id}: holdTxn=${request.holdTxnId}`
-            );
-          }
-        }
-      } else if (status === 'delivered') {
-        // Finalise the cashout: release the hold first, then insert a permanent REDEEM.
-        // Net effect on available balance: hold release (+N) then redeem (-N) = 0 net change
-        // from the held state, which is correct — points were already "reserved".
-        //
-        // Both steps are idempotent: releaseCashoutHold() skips duplicate releases, and
-        // we check for an existing REDEEM (by externalRef) before inserting a new one.
+      updates.status = status;
+      updates.adminUserIdApproved = req.user.id;
+      if (status === 'approved') updates.approvedAt = now;
+      if (status === 'rejected') updates.rejectedAt = now;
+      if (status === 'processing') updates.processingAt = now;
+      if (status === 'delivered') {
+        updates.deliveredAt = now;
+        updates.deliveryDetails = deliveryDetails;
+      }
+
+      if (status === 'rejected' && request.holdTxnId) {
+        await partnerService.releaseCashoutHold(request.holdTxnId, request.partnerId);
+      }
+
+      if (status === 'delivered') {
         if (request.holdTxnId) {
           await partnerService.releaseCashoutHold(request.holdTxnId, request.partnerId);
         }
-
-        // Idempotency guard: check whether a REDEEM for this cashout request was
-        // already created by a previous (partially-failed) attempt.
         if (request.finalRedeemTxnId) {
-          // Previous attempt completed the REDEEM but failed before persisting
-          // finalRedeemTxnId — reuse the existing transaction ID.
           updates.finalRedeemTxnId = request.finalRedeemTxnId;
-          logger.info(
-            `Cashout delivered (idempotent): ${request.id} — reusing finalRedeemTxn=${request.finalRedeemTxnId}`
-          );
         } else {
-          // Check the transactions table for an existing REDEEM linked to this request
           const allTxns = (await dbUnified.read('partner_credit_transactions')) || [];
           const existingRedeem = allTxns.find(
-            t =>
-              t.type === partnerService.CREDIT_TYPES.REDEEM &&
-              t.partnerId === request.partnerId &&
-              t.externalRef === request.id
+            txn =>
+              txn.type === partnerService.CREDIT_TYPES.REDEEM &&
+              txn.partnerId === request.partnerId &&
+              txn.externalRef === request.id
           );
           if (existingRedeem) {
             updates.finalRedeemTxnId = existingRedeem.id;
-            logger.info(
-              `Cashout delivered (idempotent): ${request.id} — found existing REDEEM ${existingRedeem.id}`
-            );
           } else {
             const finalRedeem = {
               id: uid('ptx'),
@@ -243,15 +175,13 @@ router.patch('/:id', csrfProtection, async (req, res) => {
               externalRef: request.id,
               createdAt: now,
             };
-            const cashoutTxInserted = await dbUnified.insertOne(
-              'partner_credit_transactions',
-              finalRedeem
-            );
-            if (!cashoutTxInserted) {
-              logger.error('[CASHOUT] credit_tx insertOne failed');
+            const inserted = await dbUnified.insertOne('partner_credit_transactions', finalRedeem);
+            if (!inserted) {
+              const error = new Error('Failed to persist the final cashout redemption.');
+              error.code = 'CASHOUT_REDEEM_WRITE_FAILED';
+              throw error;
             }
             updates.finalRedeemTxnId = finalRedeem.id;
-            logger.info(`Cashout delivered: ${request.id} — finalRedeemTxn=${finalRedeem.id}`);
           }
         }
       }
@@ -264,55 +194,44 @@ router.patch('/:id', csrfProtection, async (req, res) => {
       updates.adminInternalNotes = String(adminInternalNotes).trim().slice(0, 2000) || null;
     }
 
-    await dbUnified.updateOne('partner_cashout_requests', { id: req.params.id }, { $set: updates });
-
-    logger.info(
-      `Admin ${req.user.id} updated cashout request ${req.params.id}: ${JSON.stringify(updates)}`
+    const updatedRecord = await dbUnified.updateOne(
+      'partner_cashout_requests',
+      { id: req.params.id },
+      { $set: updates }
     );
+    if (!updatedRecord) {
+      return res.status(500).json({ error: 'Failed to update cashout request' });
+    }
 
-    const updated = { ...request, ...updates };
-    res.json({ ok: true, request: updated });
+    logger.info(`Admin ${req.user.id} updated cashout request ${req.params.id}`);
+    return res.json({ ok: true, request: { ...request, ...updates } });
   } catch (err) {
     logger.error('Error updating cashout request:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    const statusCode = Number(err.statusCode) || 500;
+    return res.status(statusCode).json({
+      error: statusCode < 500 ? err.message : 'Internal server error',
+      code: err.code || 'CASHOUT_UPDATE_FAILED',
+      assessment: err.assessment || undefined,
+    });
   }
 });
 
-// ─── Delete Cashout Request ───────────────────────────────────────────────────
-
-/**
- * DELETE /api/admin/cashout-requests/:id
- * Permanently delete a cashout request record.
- * Only allowed for requests in terminal states (rejected or delivered).
- */
 router.delete('/:id', csrfProtection, async (req, res) => {
   try {
-    const all = (await dbUnified.read('partner_cashout_requests')) || [];
-    const request = all.find(r => r.id === req.params.id);
-    if (!request) {
-      return res.status(404).json({ error: 'Cashout request not found' });
-    }
-
-    const TERMINAL_STATES = ['rejected', 'delivered'];
-    if (!TERMINAL_STATES.includes(request.status)) {
+    const request = await dbUnified.findOne('partner_cashout_requests', { id: req.params.id });
+    if (!request) return res.status(404).json({ error: 'Cashout request not found' });
+    if (!['rejected', 'delivered'].includes(request.status)) {
       return res.status(409).json({
         error: `Cannot delete a cashout request in "${request.status}" state. Only rejected or delivered requests can be deleted.`,
       });
     }
-
     const deleted = await dbUnified.deleteOne('partner_cashout_requests', { id: req.params.id });
-    if (!deleted) {
-      return res.status(500).json({ error: 'Failed to delete cashout request' });
-    }
-
-    logger.info(
-      `Admin ${req.user.id} deleted cashout request ${req.params.id} (status: ${request.status})`
-    );
-
-    res.json({ ok: true });
+    if (!deleted) return res.status(500).json({ error: 'Failed to delete cashout request' });
+    logger.info(`Admin ${req.user.id} deleted cashout request ${req.params.id}`);
+    return res.json({ ok: true });
   } catch (err) {
     logger.error('Error deleting cashout request:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
