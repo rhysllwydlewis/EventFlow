@@ -142,26 +142,49 @@ jobs:
 
       - name: Lint changed JavaScript
         if: steps.payload.outputs.apply == 'true' && steps.focused-tests.outputs.exit_code == '0'
-        run: >-
-          npx eslint
-          services/partnerService.js
-          routes/partner.js
-          public/assets/js/pages/partner-dashboard-init.js
-          tests/unit/partner-cashout-requests.test.js
-          tests/unit/partner-new-endpoints.test.js
-          tests/unit/partner-payout-validation.test.js
-          tests/unit/partner-ledger-integrity.test.js
-          tests/unit/partner-dashboard-frontend.test.js
-          --rulesdir eslint-rules
+        id: changed-lint
+        shell: bash
+        run: |
+          set +e
+          npx eslint \
+            services/partnerService.js \
+            routes/partner.js \
+            public/assets/js/pages/partner-dashboard-init.js \
+            tests/unit/partner-cashout-requests.test.js \
+            tests/unit/partner-new-endpoints.test.js \
+            tests/unit/partner-payout-validation.test.js \
+            tests/unit/partner-ledger-integrity.test.js \
+            tests/unit/partner-dashboard-frontend.test.js \
+            --rulesdir eslint-rules \
+            > .partner-lint-diagnostics.log 2>&1
+          status=$?
+          cat .partner-lint-diagnostics.log
+          echo "exit_code=${status}" >> "$GITHUB_OUTPUT"
+          exit 0
 
-      - name: Commit implementation
-        if: steps.payload.outputs.apply == 'true' && steps.focused-tests.outputs.exit_code == '0'
+      - name: Publish failed lint diagnostics to branch
+        if: steps.payload.outputs.apply == 'true' && steps.changed-lint.outputs.exit_code != '0'
         shell: bash
         run: |
           set -euo pipefail
-          rm -f .partner-test-diagnostics.log
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add services/partnerService.js routes/partner.js public/partner/dashboard.html public/assets/css/partner-dashboard-v2.css public/assets/js/pages/partner-dashboard-init.js tests/unit/partner-cashout-requests.test.js tests/unit/partner-new-endpoints.test.js tests/unit/partner-payout-validation.test.js tests/unit/partner-ledger-integrity.test.js tests/unit/partner-dashboard-frontend.test.js docs/PARTNER_PORTAL.md .partner-payload .partner-test-diagnostics.log
+          git add -f .partner-lint-diagnostics.log
+          git commit -m "chore(partner): capture changed-code lint diagnostics"
+          git push origin HEAD:agent/partner-dashboard-reliability
+
+      - name: Enforce changed-code lint
+        if: steps.payload.outputs.apply == 'true' && steps.changed-lint.outputs.exit_code != '0'
+        run: exit 1
+
+      - name: Commit implementation
+        if: steps.payload.outputs.apply == 'true' && steps.focused-tests.outputs.exit_code == '0' && steps.changed-lint.outputs.exit_code == '0'
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f .partner-test-diagnostics.log .partner-lint-diagnostics.log
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add services/partnerService.js routes/partner.js public/partner/dashboard.html public/assets/css/partner-dashboard-v2.css public/assets/js/pages/partner-dashboard-init.js tests/unit/partner-cashout-requests.test.js tests/unit/partner-new-endpoints.test.js tests/unit/partner-payout-validation.test.js tests/unit/partner-ledger-integrity.test.js tests/unit/partner-dashboard-frontend.test.js docs/PARTNER_PORTAL.md .partner-payload .partner-test-diagnostics.log .partner-lint-diagnostics.log
           git commit -m "fix(partner): harden reward cashouts and improve dashboard [partner-payload-applied]"
           git push origin HEAD:agent/partner-dashboard-reliability
