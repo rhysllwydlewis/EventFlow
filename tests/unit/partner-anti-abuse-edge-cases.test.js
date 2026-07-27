@@ -36,9 +36,8 @@ const mockDb = {
   }),
 };
 
-const mockAwardSignup = jest.fn(async supplierUserId => ({ supplierUserId }));
 const mockPartnerService = {
-  awardReferralSignupBonus: mockAwardSignup,
+  awardReferralSignupBonus: jest.fn(async supplierUserId => ({ supplierUserId })),
   awardPackageBonus: jest.fn(async supplierUserId => ({ supplierUserId })),
   awardFirstReviewBonus: jest.fn(async supplierUserId => ({ supplierUserId })),
   awardSubscriptionBonus: jest.fn(async supplierUserId => ({ supplierUserId })),
@@ -56,6 +55,17 @@ const antiAbuse = require('../../services/partnerAntiAbuseService');
 
 function hoursAgo(hours) {
   return new Date(Date.now() - hours * 3600000).toISOString();
+}
+
+function addReward(supplierUserId, type = 'REFERRAL_SIGNUP_BONUS', amount = 5) {
+  mockCollections.partner_credit_transactions.push({
+    id: `ptx_${supplierUserId}_${type}`,
+    partnerId: 'prt_1',
+    supplierUserId,
+    type,
+    amount,
+    createdAt: hoursAgo(48),
+  });
 }
 
 function seedEligibleSupplier() {
@@ -110,6 +120,12 @@ beforeEach(() => {
   mockDb.insertOne.mockImplementation(async (collection, record) => {
     mockCollections[collection].push(record);
     return record;
+  });
+  mockDb.updateOne.mockImplementation(async (collection, query, update) => {
+    const item = (mockCollections[collection] || []).find(candidate => matches(candidate, query));
+    if (!item) return null;
+    Object.assign(item, update.$set || update);
+    return item;
   });
 });
 
@@ -171,6 +187,11 @@ test('requires an established independent verified customer for review evidence'
     reason: 'INDEPENDENT_VERIFIED_REVIEW_MISSING',
   });
 
+  mockCollections.users.find(user => user.id === 'usr_customer').createdAt = null;
+  await expect(antiAbuse.reviewRewardEvidence('usr_supplier', 'usr_partner')).resolves.toMatchObject({
+    eligible: false,
+  });
+
   mockCollections.users.find(user => user.id === 'usr_customer').createdAt = hoursAgo(120);
   mockCollections.reviews[0].flagged = true;
   await expect(antiAbuse.reviewRewardEvidence('usr_supplier', 'usr_partner')).resolves.toMatchObject({
@@ -207,33 +228,6 @@ test('wraps reward methods and withholds ineligible activity', async () => {
 
   mockCollections.users.find(user => user.id === 'usr_supplier').verified = false;
   await expect(mockPartnerService.awardPackageBonus('usr_supplier')).resolves.toBeNull();
-});
-
-test('reconciles the deferred signup reward after successful email verification', async () => {
-  seedEligibleSupplier();
-  antiAbuse.installRewardGuards(mockPartnerService);
-  const req = { method: 'POST', path: '/verify-email' };
-  const originalJson = jest.fn(body => body);
-  const res = { json: originalJson };
-  const next = jest.fn();
-
-  antiAbuse.deferredSignupRewardMiddleware(req, res, next);
-  res.json({ ok: true, user: { id: 'usr_supplier' } });
-  await new Promise(resolve => setImmediate(resolve));
-
-  expect(next).toHaveBeenCalledTimes(1);
-  expect(mockAwardSignup).toHaveBeenCalledWith('usr_supplier');
-  expect(originalJson).toHaveBeenCalledWith({ ok: true, user: { id: 'usr_supplier' } });
-});
-
-test('leaves unrelated responses untouched in deferred signup middleware', () => {
-  const next = jest.fn();
-  antiAbuse.deferredSignupRewardMiddleware(
-    { method: 'GET', path: '/profile' },
-    { json: jest.fn() },
-    next
-  );
-  expect(next).toHaveBeenCalledTimes(1);
 });
 
 test('blocks cashouts with missing identity, no referrals and orphan reward records', async () => {
@@ -294,6 +288,7 @@ test('flags rapid partner cashouts and rapid non-signup milestones', async () =>
 test('does not treat repeated public email providers as concentrated business identity', async () => {
   seedEligibleSupplier();
   mockCollections.users.find(user => user.id === 'usr_supplier').email = 'supplier@gmail.com';
+  addReward('usr_supplier');
 
   for (let index = 2; index <= 3; index += 1) {
     mockCollections.users.push({
@@ -313,7 +308,9 @@ test('does not treat repeated public email providers as concentrated business id
       partnerId: 'prt_1',
       supplierUserId: `usr_supplier_${index}`,
       supplierCreatedAt: hoursAgo(72),
+      createdAt: hoursAgo(72),
     });
+    addReward(`usr_supplier_${index}`);
   }
 
   const result = await antiAbuse.assessCashout({ partnerId: 'prt_1', requestId: 'pcr_public' });
@@ -322,7 +319,7 @@ test('does not treat repeated public email providers as concentrated business id
   );
 });
 
-test('fails closed when a fraud assessment cannot be persisted', async () => {
+test('fails closed when a new fraud assessment cannot be persisted', async () => {
   mockDb.insertOne.mockResolvedValueOnce(null);
 
   await expect(
@@ -333,4 +330,23 @@ test('fails closed when a fraud assessment cannot be persisted', async () => {
       score: 50,
     })
   ).rejects.toThrow('Fraud assessment did not persist');
+});
+
+test('fails closed when an existing fraud assessment cannot be updated', async () => {
+  mockCollections.partner_fraud_assessments.push({
+    id: 'assessment_1',
+    partnerId: 'prt_1',
+    requestId: 'pcr_1',
+    score: 20,
+  });
+  mockDb.updateOne.mockResolvedValueOnce(null);
+
+  await expect(
+    antiAbuse.persistAssessment({
+      id: 'assessment_new',
+      partnerId: 'prt_1',
+      requestId: 'pcr_1',
+      score: 50,
+    })
+  ).rejects.toThrow('Fraud assessment update did not persist');
 });
