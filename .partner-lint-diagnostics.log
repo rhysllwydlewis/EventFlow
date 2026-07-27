@@ -1,0 +1,159 @@
+
+/home/runner/work/EventFlow/EventFlow/public/assets/js/pages/partner-dashboard-init.js
+    42:17  warning  Expected { after 'if' condition  curly
+    44:43  warning  Expected { after 'if' condition  curly
+    86:17  warning  Expected { after 'if' condition  curly
+    97:32  warning  Expected { after 'if' condition  curly
+    99:23  warning  Expected { after 'if' condition  curly
+   130:20  warning  Expected { after 'if' condition  curly
+   135:21  warning  Expected { after 'if' condition  curly
+   141:21  warning  Expected { after 'if' condition  curly
+   165:40  warning  Expected { after 'if' condition  curly
+   167:39  warning  Expected { after 'if' condition  curly
+   180:33  warning  Expected { after 'if' condition  curly
+   182:33  warning  Expected { after 'for-of'        curly
+   191:78  warning  Expected { after 'if' condition  curly
+   194:41  warning  Expected { after 'if' condition  curly
+   195:40  warning  Expected { after 'if' condition  curly
+   196:35  warning  Expected { after 'if' condition  curly
+   197:34  warning  Expected { after 'if' condition  curly
+   205:60  warning  Expected { after 'if' condition  curly
+   217:24  warning  Expected { after 'if' condition  curly
+   223:30  warning  Expected { after 'if' condition  curly
+   243:19  warning  Expected { after 'if' condition  curly
+   244:51  warning  Expected { after 'if' condition  curly
+   256:19  warning  Expected { after 'if' condition  curly
+   258:35  warning  Expected { after 'if' condition  curly
+   261:47  warning  Expected { after 'if' condition  curly
+   268:39  warning  Expected { after 'if' condition  curly
+   286:26  warning  Expected { after 'if' condition  curly
+   308:23  warning  Expected { after 'if' condition  curly
+   338:7   warning  Expected { after 'if' condition  curly
+   340:7   warning  Expected { after 'if' condition  curly
+   341:56  warning  Expected { after 'if' condition  curly
+   346:42  warning  Expected { after 'if' condition  curly
+   348:58  warning  Expected { after 'if' condition  curly
+   428:24  warning  Expected { after 'if' condition  curly
+   473:7   warning  Expected { after 'if' condition  curly
+   580:56  warning  Expected { after 'if' condition  curly
+   605:36  warning  Expected { after 'if' condition  curly
+   625:21  warning  Expected { after 'if' condition  curly
+   626:28  warning  Expected { after 'if' condition  curly
+   651:47  warning  Expected { after 'if' condition  curly
+   652:47  warning  Expected { after 'if' condition  curly
+   725:21  warning  Expected { after 'if' condition  curly
+   936:17  warning  Expected { after 'if' condition  curly
+   953:34  warning  Expected { after 'if' condition  curly
+   961:34  warning  Expected { after 'if' condition  curly
+   984:17  error    Empty block statement            no-empty
+  1027:21  warning  Expected { after 'if' condition  curly
+  1038:56  warning  Expected { after 'if' condition  curly
+  1058:16  warning  Expected { after 'if' condition  curly
+
+/home/runner/work/EventFlow/EventFlow/routes/partner.js
+   32:26  warning  Expected { after 'if' condition  curly
+   77:47  warning  Expected { after 'if' condition  curly
+  131:20  warning  Expected { after 'if' condition  curly
+  210:19  warning  Expected { after 'if' condition  curly
+  211:40  warning  Expected { after 'if' condition  curly
+  253:19  warning  Expected { after 'if' condition  curly
+  254:40  warning  Expected { after 'if' condition  curly
+  264:51  warning  Expected { after 'if' condition  curly
+  327:19  warning  Expected { after 'if' condition  curly
+  328:40  warning  Expected { after 'if' condition  curly
+  346:73  warning  Expected { after 'if' condition  curly
+  347:66  warning  Expected { after 'if' condition  curly
+  348:69  warning  Expected { after 'if' condition  curly
+  349:60  warning  Expected { after 'if' condition  curly
+  367:19  warning  Expected { after 'if' condition  curly
+  368:40  warning  Expected { after 'if' condition  curly
+  437:21  warning  Expected { after 'if' condition  curly
+  438:42  warning  Expected { after 'if' condition  curly
+  456:19  warning  Expected { after 'if' condition  curly
+  457:40  warning  Expected { after 'if' condition  curly
+  476:21  warning  Expected { after 'if' condition  curly
+  484:21  warning  Expected { after 'if' condition  curly
+  485:21  warning  Expected { after 'if' condition  curly
+  537:19  warning  Expected { after 'if' condition  curly
+  555:19  warning  Expected { after 'if' condition  curly
+  561:18  warning  Expected { after 'if' condition  curly
+  577:21  warning  Expected { after 'if' condition  curly
+  583:20  warning  Expected { after 'if' condition  curly
+  585:9   warning  Expected { after 'if' condition  curly
+  589:21  warning  Expected { after 'if' condition  curly
+  615:21  warning  Expected { after 'if' condition  curly
+  633:19  warning  Expected { after 'if' condition  curly
+  634:40  warning  Expected { after 'if' condition  curly
+  698:27  warning  Expected { after 'if' condition  curly
+  732:31  warning  Expected { after 'if' condition  curly
+  773:19  warning  Expected { after 'if' condition  curly
+  774:40  warning  Expected { after 'if' condition  curly
+  805:19  warning  Expected { after 'if' condition  curly
+  806:40  warning  Expected { after 'if' condition  curly
+  811:25  warning  Expected { after 'if' condition  curly
+  824:19  warning  Expected { after 'if' condition  curly
+  825:40  warning  Expected { after 'if' condition  curly
+  831:19  warning  Expected { after 'if' condition  curly
+  836:19  warning  Expected { after 'if' condition  curly
+  840:7   warning  Expected { after 'if' condition  curly
+  841:39  warning  Expected { after 'if' condition  curly
+  869:21  warning  Expected { after 'if' condition  curly
+  870:42  warning  Expected { after 'if' condition  curly
+  881:32  warning  Expected { after 'if' condition  curly
+
+/home/runner/work/EventFlow/EventFlow/services/partnerService.js
+   54:25  warning  Expected { after 'if' condition  curly
+   56:11  warning  Expected { after 'if' condition  curly
+   69:27  warning  Expected { after 'if' condition  curly
+   71:35  warning  Expected { after 'if' condition  curly
+   80:34  warning  Expected { after 'if' condition  curly
+  101:17  warning  Expected { after 'if' condition  curly
+  111:17  warning  Expected { after 'if' condition  curly
+  139:14  warning  Expected { after 'if' condition  curly
+  141:16  warning  Expected { after 'if' condition  curly
+  150:15  warning  Expected { after 'if' condition  curly
+  172:17  warning  Expected { after 'if' condition  curly
+  184:17  warning  Expected { after 'if' condition  curly
+  194:17  warning  Expected { after 'if' condition  curly
+  216:17  warning  Expected { after 'if' condition  curly
+  229:17  warning  Expected { after 'if' condition  curly
+  280:39  warning  Expected { after 'if' condition  curly
+  281:44  warning  Expected { after 'if' condition  curly
+  283:61  warning  Expected { after 'if' condition  curly
+  300:18  warning  Expected { after 'if' condition  curly
+  321:76  warning  Expected { after 'if' condition  curly
+  323:48  warning  Expected { after 'if' condition  curly
+  343:76  warning  Expected { after 'if' condition  curly
+  345:48  warning  Expected { after 'if' condition  curly
+  365:18  warning  Expected { after 'if' condition  curly
+  367:48  warning  Expected { after 'if' condition  curly
+  379:18  warning  Expected { after 'if' condition  curly
+  381:48  warning  Expected { after 'if' condition  curly
+  443:15  warning  Expected { after 'if' condition  curly
+  471:17  warning  Expected { after 'if' condition  curly
+  496:14  warning  Expected { after 'if' condition  curly
+  502:17  warning  Expected { after 'if' condition  curly
+  549:50  warning  Expected { after 'if' condition  curly
+  550:60  warning  Expected { after 'if' condition  curly
+  551:63  warning  Expected { after 'if' condition  curly
+  552:60  warning  Expected { after 'if' condition  curly
+  553:52  warning  Expected { after 'if' condition  curly
+  562:45  warning  Expected { after 'if' condition  curly
+  563:12  warning  Expected { after 'else'          curly
+
+/home/runner/work/EventFlow/EventFlow/tests/unit/partner-cashout-requests.test.js
+  26:7  warning  Expected { after 'if' condition  curly
+
+/home/runner/work/EventFlow/EventFlow/tests/unit/partner-ledger-integrity.test.js
+  29:33  warning  Expected { after 'if' condition  curly
+  65:33  warning  Expected { after 'if' condition  curly
+
+/home/runner/work/EventFlow/EventFlow/tests/unit/partner-new-endpoints.test.js
+  25:7  warning  Expected { after 'if' condition  curly
+
+/home/runner/work/EventFlow/EventFlow/tests/unit/partner-payout-validation.test.js
+  26:7  warning  Expected { after 'if' condition  curly
+
+✖ 141 problems (1 error, 140 warnings)
+  0 errors and 140 warnings potentially fixable with the `--fix` option.
+
