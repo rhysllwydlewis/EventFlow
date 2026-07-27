@@ -6,60 +6,78 @@ This document describes the technical and manual controls applied to EventFlow p
 
 A referred supplier must:
 
-- have a supplier account;
-- have a verified email address;
-- have a company name;
-- have a valid referral record linked to an active partner; and
-- not share a matching company identity or private business email domain with the referring partner.
+- have a supplier account and verified email address;
+- have a completed, administrator-approved supplier profile;
+- have a company identity;
+- have a valid referral linked to an active, verified partner; and
+- not share a matching company identity or private business email domain with the partner.
 
-Public email providers such as Gmail and Outlook are not treated as identity matches by themselves.
+Public providers such as Gmail and Outlook are not treated as identity matches by themselves.
 
-The eligibility guard applies to signup, package, first-review and paid-subscription rewards. A withheld reward is logged with a reason code and is not added to the partner ledger.
+The controls apply to signup, package, first-review and paid-subscription rewards. Withheld activity is logged with a structured reason and is not added to the ledger.
 
-Verified signup rewards are reconciled before partner balances are calculated. This means an unverified signup does not create withdrawable value, but the reward can be added automatically after the supplier becomes eligible.
+Additional milestone evidence is required:
+
+- package rewards require a complete, active and approved package with a title, price, category and event type;
+- review rewards require an approved, unflagged review from a verified customer with genuine message history;
+- the reviewer must not be the supplier, the partner or another supplier account; and
+- a reviewer account created less than 24 hours before the review does not qualify for the partner reward.
+
+Eligible signup rewards are reconciled before partner balances are calculated. An unverified or unapproved signup therefore creates no withdrawable value, while a legitimate supplier can receive the deferred reward after approval.
 
 ## Cashout fraud assessment
 
-Every attempt to approve a partner cashout is assessed using current database records. The assessment considers:
+Every attempted cashout approval is reassessed from current records. Signals include:
 
-- whether the partner account and email are active and verified;
-- whether this is the partner's first cashout;
-- how quickly the cashout follows partner registration;
-- whether rewarded suppliers are verified;
-- possible partner and supplier identity overlap;
+- missing, disabled or unverified partner identity;
+- first cashout and unusually rapid cashout requests;
+- unverified or unapproved referred suppliers;
+- partner and supplier identity overlap;
 - unusually rapid milestone completion;
-- repeated supplier email domains; and
-- reward transactions that do not have a matching referral record.
+- repeated private supplier email domains;
+- package rewards without a qualifying package;
+- review rewards without an independently verified review; and
+- reward transactions without a matching referral.
 
 Assessments are persisted in `partner_fraud_assessments` and the risk summary is attached to the cashout request.
 
-A high-risk assessment fails closed. The cashout remains unapproved and must be rejected or investigated before any reward is delivered.
+A high-risk assessment fails closed and cannot be approved. A first or review-level cashout also requires an internal review note of at least 20 characters before approval. Successful approval records the assessment and review time.
+
+## Refund, dispute and chargeback clawbacks
+
+When a recorded subscription payment changes to `refunded`, `disputed` or `chargeback`, EventFlow automatically creates an idempotent debit equal to the original partner subscription reward.
+
+The debit is linked to the original reward, supplier and payment reference. Repeated delivery of the same adverse payment status cannot create a second clawback. The referral record retains the reversal date and reference for investigation.
+
+The existing Stripe `charge.refunded` handler therefore triggers automatic partner clawback. Any future dispute handler that marks a payment as disputed or charged back receives the same protection automatically.
 
 ## Database protections
 
 MongoDB indexes enforce:
 
-- one partner record per user;
+- one partner per user;
 - one referral attribution per supplier;
-- one reward of each type per partner and supplier;
-- one cashout request per partner and idempotency key; and
-- one fraud assessment per cashout request.
+- one qualifying reward of each type per partner and supplier;
+- one transaction per type and external reference;
+- one cashout per partner and idempotency key; and
+- one fraud assessment per cashout.
 
-The partial unique indexes exclude records that do not contain the relevant supplier or idempotency value.
+The reward uniqueness index is deliberately limited to the four milestone reward types. It does not prevent legitimate adjustments, cashout releases or clawbacks for the same supplier.
 
 ## Launch operating procedure
 
 During the initial launch:
 
-1. Manually review every first cashout.
-2. Review every high-risk signal against the supplier profile, package, review and payment records.
-3. Reject cashouts involving fake, duplicate, test or self-referred suppliers.
-4. Disable the partner account where deliberate abuse is established.
-5. Record the reason in internal cashout notes and retain the fraud assessment.
-6. Check Stripe for refunds, disputes or chargebacks before delivering larger rewards.
+1. Review every first cashout and record the checks in internal notes.
+2. Compare assessment signals with the supplier profile, package, review and payment records.
+3. Reject fake, duplicate, test or self-referred suppliers.
+4. Disable the partner where deliberate abuse is established.
+5. Retain the assessment and internal decision record.
+6. Confirm the relevant Stripe payment remains paid before delivering a larger reward.
+7. Treat shared infrastructure and rapid activity as indicators rather than proof in isolation.
 
-Shared infrastructure or a rapid milestone is an indicator, not proof by itself. Legitimate cases should be documented rather than automatically penalised.
+## Operational boundary
 
-## Current boundary
+The platform does not currently collect a dedicated device fingerprint or registration-IP fingerprint for partner matching. This avoids introducing a new privacy-sensitive identifier solely for the programme. Existing review IP hashing and account, business, content, payment and timing evidence are used instead.
 
-The current implementation prevents weak identities from earning new rewards and blocks high-risk cashout approval. Stripe refund and chargeback events should still be checked during manual review; automatic reward clawback is a separate follow-up hardening item.
+Device or network fingerprinting should only be added after a documented privacy assessment, retention rule and false-positive appeal process.
