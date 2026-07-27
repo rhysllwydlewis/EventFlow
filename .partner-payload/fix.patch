@@ -1,0 +1,65 @@
+--- a/tests/unit/partner-cashout-requests.test.js
++++ b/tests/unit/partner-cashout-requests.test.js
+@@ -51,14 +51,14 @@
+ };
+ jest.mock('../../services/partnerService', () => mockPartnerService);
+ 
+-const db = {
++const mockDb = {
+   read: jest.fn().mockResolvedValue([]),
+   find: jest.fn().mockResolvedValue([]),
+   findOne: jest.fn().mockResolvedValue(null),
+   insertOne: jest.fn().mockResolvedValue({ id: 'persisted' }),
+   updateOne: jest.fn().mockResolvedValue({ modified: 1 }),
+ };
+-jest.mock('../../db-unified', () => db);
++jest.mock('../../db-unified', () => mockDb);
+ 
+ let mockIdCounter = 0;
+ jest.mock('../../store', () => ({
+@@ -96,8 +96,8 @@
+     mockPartnerService.getBalance.mockResolvedValue({ availableBalance: 5000, transactions: [] });
+     mockPartnerService.createCashoutHold.mockResolvedValue({ id: 'ptx_hold_001' });
+     mockPartnerService.releaseCashoutHold.mockResolvedValue({ id: 'ptx_release_001' });
+-    db.findOne.mockResolvedValue(null);
+-    db.insertOne.mockResolvedValue({ id: 'persisted' });
++    mockDb.findOne.mockResolvedValue(null);
++    mockDb.insertOne.mockResolvedValue({ id: 'persisted' });
+   });
+ 
+   it('requires authentication and the partner role', async () => {
+@@ -132,14 +132,14 @@
+     mockPartnerService.createCashoutHold.mockRejectedValue(new Error('ledger unavailable'));
+     const response = await postCashout(app);
+     expect(response.status).toBe(500);
+-    expect(db.insertOne).not.toHaveBeenCalledWith(
++    expect(mockDb.insertOne).not.toHaveBeenCalledWith(
+       'partner_cashout_requests',
+       expect.anything()
+     );
+   });
+ 
+   it('releases a persisted hold when request insertion fails', async () => {
+-    db.insertOne.mockResolvedValueOnce(null);
++    mockDb.insertOne.mockResolvedValueOnce(null);
+     const response = await postCashout(app);
+     expect(response.status).toBe(500);
+     expect(response.body.error).toMatch(/restored/i);
+@@ -147,7 +147,7 @@
+   });
+ 
+   it('flags manual reconciliation when both request insertion and rollback fail', async () => {
+-    db.insertOne.mockResolvedValueOnce(null);
++    mockDb.insertOne.mockResolvedValueOnce(null);
+     mockPartnerService.releaseCashoutHold.mockRejectedValue(new Error('rollback unavailable'));
+     const response = await postCashout(app);
+     expect(response.status).toBe(500);
+@@ -156,7 +156,7 @@
+   });
+ 
+   it('replays an existing request without creating another hold', async () => {
+-    db.findOne.mockResolvedValue({
++    mockDb.findOne.mockResolvedValue({
+       id: 'pcr_existing',
+       partnerId: 'prt_001',
+       idempotencyKey: 'cashout_test_key_001',
