@@ -96,32 +96,14 @@ jobs:
 
       - name: Run focused partner tests
         if: steps.payload.outputs.apply == 'true'
-        id: focused-tests
-        continue-on-error: true
-        shell: bash
-        run: |
-          set -o pipefail
-          npx jest --runInBand --coverage=false \
-            tests/unit/partner-cashout-requests.test.js \
-            tests/unit/partner-new-endpoints.test.js \
-            tests/unit/partner-payout-validation.test.js \
-            tests/unit/partner-ledger-integrity.test.js \
-            tests/unit/partner-dashboard-frontend.test.js \
-            tests/unit/partner-points-enhancements.test.js \
-            2>&1 | tee focused-partner-tests.log
-
-      - name: Upload focused test diagnostics
-        if: steps.payload.outputs.apply == 'true' && always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: partner-dashboard-focused-tests
-          path: focused-partner-tests.log
-          if-no-files-found: error
-          retention-days: 7
-
-      - name: Enforce focused partner tests
-        if: steps.payload.outputs.apply == 'true' && steps.focused-tests.outcome == 'failure'
-        run: exit 1
+        run: >-
+          npx jest --runInBand --coverage=false
+          tests/unit/partner-cashout-requests.test.js
+          tests/unit/partner-new-endpoints.test.js
+          tests/unit/partner-payout-validation.test.js
+          tests/unit/partner-ledger-integrity.test.js
+          tests/unit/partner-dashboard-frontend.test.js
+          tests/unit/partner-points-enhancements.test.js
 
       - name: Lint changed JavaScript
         if: steps.payload.outputs.apply == 'true'
