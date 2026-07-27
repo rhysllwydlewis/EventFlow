@@ -69,9 +69,11 @@ async function clawBackSubscriptionReward({ supplierUserId, externalRef, reason 
 
 async function clawBackForPaymentRecord(payment, status) {
   if (!payment || !['refunded', 'disputed', 'chargeback'].includes(status)) return null;
+  const paymentReference = payment.stripePaymentId || payment.id;
   return clawBackSubscriptionReward({
     supplierUserId: payment.userId,
-    externalRef: `payment:${payment.stripePaymentId || payment.id}:${status}`,
+    // One stable reference prevents a refund followed by a dispute update from debiting twice.
+    externalRef: `payment:${paymentReference}:partner-subscription-reward`,
     reason: `Stripe payment marked ${status}`,
   });
 }
