@@ -16,9 +16,9 @@ jest.mock('../../utils/logger', () => ({
   debug: jest.fn(),
 }));
 
-test('the server-loaded database utility activates partner anti-abuse guards at module load', () => {
+test('the route mounting path activates partner anti-abuse guards before partner routes load', () => {
   jest.isolateModules(() => {
-    require('../../utils/database');
+    require('../../middleware/partnerReferralCampaignCapture');
   });
   expect(mockInstall).toHaveBeenCalledTimes(1);
 });
