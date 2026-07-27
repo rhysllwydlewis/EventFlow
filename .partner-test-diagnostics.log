@@ -1,0 +1,369 @@
+===== focused partner test attempt 1 =====
+PASS tests/unit/partner-points-enhancements.test.js
+  PartnerService — points enhancements
+    awardReferralSignupBonus()
+      ✓ awards +5 credits when referred supplier signs up (2 ms)
+      ✓ is idempotent — does not double-award on second call
+      ✓ returns null when supplier is not a referral (1 ms)
+      ✓ returns null when partner is disabled
+    awardFirstReviewBonus()
+      ✓ awards +15 credits when referred supplier receives first review (1 ms)
+      ✓ is idempotent — does not award twice
+      ✓ returns null when supplier is not a referral (1 ms)
+    awardProfileApprovedBonus()
+      ✓ always returns null (bonus removed) (4 ms)
+      ✓ returns null for any supplier user ID (1 ms)
+    getBalance() — available vs maturing points
+      ✓ places credits older than 30 days in availableBalance (1 ms)
+      ✓ places recently earned credits in maturingBalance
+      ✓ splits mixed old and recent credits correctly
+      ✓ subtracts REDEEM transactions from availableBalance (1 ms)
+      ✓ availableBalance cannot go below zero
+    debitPoints() and reverseDebit()
+      ✓ debitPoints inserts a negative REDEEM transaction
+      ✓ reverseDebit inserts a positive ADJUSTMENT to cancel the debit (1 ms)
+      ✓ reverseDebit returns null when debit not found
+    POINTS_PER_GBP
+      ✓ is a positive integer (1 ms)
+      ✓ defaults to 100 (100 points = £1)
+
+PASS tests/unit/partner-new-endpoints.test.js
+  GET /api/partner/me
+    ✓ returns one authoritative programme configuration object (10 ms)
+    ✓ continues to block financial data for disabled partners while advertising support (2 ms)
+  GET /api/partner/referrals
+    ✓ derives review qualification from FIRST_REVIEW_BONUS ledger activity (2 ms)
+    ✓ does not expire the review milestone when the package/subscription window closes (2 ms)
+  restricted support for disabled partners
+    ✓ allows a disabled partner to create an account-access ticket (6 ms)
+    ✓ allows a disabled partner to list existing support tickets (1 ms)
+
+FAIL tests/unit/partner-cashout-requests.test.js
+  ● Test suite failed to run
+
+    ReferenceError: /home/runner/work/EventFlow/EventFlow/tests/unit/partner-cashout-requests.test.js: The module factory of `jest.mock()` is not allowed to reference any out-of-scope variables.
+    Invalid variable access: db
+    Allowed objects: AbortController, AbortSignal, AggregateError, Array, ArrayBuffer, Atomics, BigInt, BigInt64Array, BigUint64Array, Blob, Boolean, BroadcastChannel, Buffer, ByteLengthQueuingStrategy, CompressionStream, CountQueuingStrategy, Crypto, CryptoKey, CustomEvent, DOMException, DataView, Date, DecompressionStream, Error, EvalError, Event, EventTarget, File, FinalizationRegistry, Float32Array, Float64Array, FormData, Function, Generator, GeneratorFunction, Headers, Infinity, Int16Array, Int32Array, Int8Array, InternalError, Intl, Iterator, JSON, Map, Math, MessageChannel, MessageEvent, MessagePort, NaN, Navigator, Number, Object, Performance, PerformanceEntry, PerformanceMark, PerformanceMeasure, PerformanceObserver, PerformanceObserverEntryList, PerformanceResourceTiming, Promise, Proxy, RangeError, ReadableByteStreamController, ReadableStream, ReadableStreamBYOBReader, ReadableStreamBYOBRequest, ReadableStreamDefaultController, ReadableStreamDefaultReader, ReferenceError, Reflect, RegExp, Request, Response, Set, SharedArrayBuffer, String, SubtleCrypto, Symbol, SyntaxError, TextDecoder, TextDecoderStream, TextEncoder, TextEncoderStream, TransformStream, TransformStreamDefaultController, TypeError, URIError, URL, URLSearchParams, Uint16Array, Uint32Array, Uint8Array, Uint8ClampedArray, WeakMap, WeakRef, WeakSet, WebAssembly, WebSocket, WritableStream, WritableStreamDefaultController, WritableStreamDefaultWriter, __dirname, __filename, arguments, atob, btoa, clearImmediate, clearInterval, clearTimeout, console, crypto, decodeURI, decodeURIComponent, encodeURI, encodeURIComponent, escape, eval, expect, exports, fetch, global, globalThis, isFinite, isNaN, jest, module, navigator, parseFloat, parseInt, performance, process, queueMicrotask, require, setImmediate, setInterval, setTimeout, structuredClone, undefined, unescape.
+    Note: This is a precaution to guard against uninitialized mock variables. If it is ensured that the mock is required lazily, variable names prefixed with `mock` (case insensitive) are permitted.
+
+    [0m [90m 67 |[39m   updateOne[33m:[39m jest[33m.[39mfn()[33m.[39mmockResolvedValue({ modified[33m:[39m [35m1[39m })[33m,[39m
+     [90m 68 |[39m }[33m;[39m
+    [31m[1m>[22m[39m[90m 69 |[39m jest[33m.[39mmock([32m'../../db-unified'[39m[33m,[39m () [33m=>[39m db)[33m;[39m
+     [90m    |[39m                                     [31m[1m^[22m[39m[31m[1m^[22m[39m
+     [90m 70 |[39m
+     [90m 71 |[39m [36mlet[39m mockIdCounter [33m=[39m [35m0[39m[33m;[39m
+     [90m 72 |[39m jest[33m.[39mmock([32m'../../store'[39m[33m,[39m () [33m=>[39m ({[0m
+
+      at File.buildCodeFrameError (node_modules/@babel/core/src/transformation/file/file.ts:251:12)
+      at NodePath.buildError [as buildCodeFrameError] (node_modules/@babel/traverse/src/path/index.ts:161:21)
+      at call (node_modules/@babel/traverse/src/visitors.ts:299:14)
+      at NodePath.call [as _call] (node_modules/@babel/traverse/src/path/context.ts:36:20)
+      at NodePath.call (node_modules/@babel/traverse/src/path/context.ts:21:18)
+      at NodePath.call [as visit] (node_modules/@babel/traverse/src/path/context.ts:97:31)
+      at TraversalContext.visit [as visitQueue] (node_modules/@babel/traverse/src/context.ts:161:16)
+      at TraversalContext.visitQueue [as visitMultiple] (node_modules/@babel/traverse/src/context.ts:109:17)
+      at TraversalContext.visitMultiple [as visit] (node_modules/@babel/traverse/src/context.ts:192:19)
+      at visit (node_modules/@babel/traverse/src/traverse-node.ts:208:17)
+      at NodePath.visit (node_modules/@babel/traverse/src/path/context.ts:104:33)
+      at TraversalContext.visit [as visitQueue] (node_modules/@babel/traverse/src/context.ts:161:16)
+      at TraversalContext.visitQueue [as visitSingle] (node_modules/@babel/traverse/src/context.ts:119:19)
+      at TraversalContext.visitSingle [as visit] (node_modules/@babel/traverse/src/context.ts:194:19)
+      at visit (node_modules/@babel/traverse/src/traverse-node.ts:208:17)
+      at traverse (node_modules/@babel/traverse/src/index.ts:84:15)
+      at transformFile (node_modules/@babel/core/src/transformation/index.ts:120:15)
+          at transformFile.next (<anonymous>)
+      at transformFile (node_modules/@babel/core/src/transformation/index.ts:50:12)
+          at run.next (<anonymous>)
+      at transform (node_modules/@babel/core/src/transform.ts:29:20)
+          at transform.next (<anonymous>)
+      at evaluateSync (node_modules/gensync/index.js:251:28)
+      at sync (node_modules/gensync/index.js:89:14)
+      at fn (node_modules/@babel/core/src/errors/rewrite-stack-trace.ts:99:14)
+      at transformSync (node_modules/@babel/core/src/transform.ts:66:52)
+      at ScriptTransformer.transformSource (node_modules/@jest/transform/build/ScriptTransformer.js:545:31)
+      at ScriptTransformer._transformAndBuildScript (node_modules/@jest/transform/build/ScriptTransformer.js:674:40)
+      at ScriptTransformer.transform (node_modules/@jest/transform/build/ScriptTransformer.js:726:19)
+
+PASS tests/unit/partner-payout-validation.test.js
+  POST /api/partner/support-ticket
+    ✓ requires authentication and the partner role (5 ms)
+    ✓ validates required fields (2 ms)
+    ✓ validates required fields (1 ms)
+    ✓ validates required fields (2 ms)
+    ✓ validates required fields (1 ms)
+    ✓ creates a normal partner-support ticket for active accounts (1 ms)
+    ✓ creates a restricted account-access ticket for disabled accounts (2 ms)
+    ✓ limits the stored subject and message lengths (2 ms)
+
+PASS tests/unit/partner-ledger-integrity.test.js
+  partner ledger integrity
+    ✓ throws when a cashout hold does not persist (1 ms)
+    ✓ returns the original hold when the same cashout reference is retried (1 ms)
+    ✓ creates only one release for a held transaction
+    ✓ derives review qualification timestamps from existing ledger entries
+    ✓ includes the review reward in potential points without applying the attribution expiry (1 ms)
+
+PASS tests/unit/partner-dashboard-frontend.test.js
+  partner dashboard frontend contract
+    ✓ provides six accessible dashboard sections
+    ✓ renders all four advertised referral milestones
+    ✓ uses a current state object for copy and sharing actions
+    ✓ sends an idempotency key with each cashout request
+    ✓ loads secondary dashboard sections independently
+    ✓ uses partner-specific support detail and reply endpoints
+    ✓ includes focus trapping, Escape close and reduced-motion support
+    ✓ surfaces existing Share Pack and Programme Terms resources
+
+Test Suites: 1 failed, 5 passed, 6 total
+Tests:       46 passed, 46 total
+Snapshots:   0 total
+Time:        0.718 s
+Ran all test suites matching /tests\/unit\/partner-cashout-requests.test.js|tests\/unit\/partner-new-endpoints.test.js|tests\/unit\/partner-payout-validation.test.js|tests\/unit\/partner-ledger-integrity.test.js|tests\/unit\/partner-dashboard-frontend.test.js|tests\/unit\/partner-points-enhancements.test.js/i.
+Force exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after all tests finished?
+attempt 1 exit code: 1
+===== focused partner test attempt 2 =====
+PASS tests/unit/partner-points-enhancements.test.js
+  PartnerService — points enhancements
+    awardReferralSignupBonus()
+      ✓ awards +5 credits when referred supplier signs up (2 ms)
+      ✓ is idempotent — does not double-award on second call (1 ms)
+      ✓ returns null when supplier is not a referral
+      ✓ returns null when partner is disabled (1 ms)
+    awardFirstReviewBonus()
+      ✓ awards +15 credits when referred supplier receives first review
+      ✓ is idempotent — does not award twice
+      ✓ returns null when supplier is not a referral (1 ms)
+    awardProfileApprovedBonus()
+      ✓ always returns null (bonus removed)
+      ✓ returns null for any supplier user ID
+    getBalance() — available vs maturing points
+      ✓ places credits older than 30 days in availableBalance (1 ms)
+      ✓ places recently earned credits in maturingBalance
+      ✓ splits mixed old and recent credits correctly
+      ✓ subtracts REDEEM transactions from availableBalance
+      ✓ availableBalance cannot go below zero (1 ms)
+    debitPoints() and reverseDebit()
+      ✓ debitPoints inserts a negative REDEEM transaction
+      ✓ reverseDebit inserts a positive ADJUSTMENT to cancel the debit (1 ms)
+      ✓ reverseDebit returns null when debit not found
+    POINTS_PER_GBP
+      ✓ is a positive integer (1 ms)
+      ✓ defaults to 100 (100 points = £1)
+
+PASS tests/unit/partner-new-endpoints.test.js
+  GET /api/partner/me
+    ✓ returns one authoritative programme configuration object (10 ms)
+    ✓ continues to block financial data for disabled partners while advertising support (2 ms)
+  GET /api/partner/referrals
+    ✓ derives review qualification from FIRST_REVIEW_BONUS ledger activity (2 ms)
+    ✓ does not expire the review milestone when the package/subscription window closes (1 ms)
+  restricted support for disabled partners
+    ✓ allows a disabled partner to create an account-access ticket (7 ms)
+    ✓ allows a disabled partner to list existing support tickets (1 ms)
+
+PASS tests/unit/partner-payout-validation.test.js
+  POST /api/partner/support-ticket
+    ✓ requires authentication and the partner role (9 ms)
+    ✓ validates required fields (2 ms)
+    ✓ validates required fields (1 ms)
+    ✓ validates required fields (1 ms)
+    ✓ validates required fields (2 ms)
+    ✓ creates a normal partner-support ticket for active accounts (1 ms)
+    ✓ creates a restricted account-access ticket for disabled accounts (1 ms)
+    ✓ limits the stored subject and message lengths (1 ms)
+
+PASS tests/unit/partner-ledger-integrity.test.js
+  partner ledger integrity
+    ✓ throws when a cashout hold does not persist (1 ms)
+    ✓ returns the original hold when the same cashout reference is retried
+    ✓ creates only one release for a held transaction
+    ✓ derives review qualification timestamps from existing ledger entries (1 ms)
+    ✓ includes the review reward in potential points without applying the attribution expiry
+
+PASS tests/unit/partner-dashboard-frontend.test.js
+  partner dashboard frontend contract
+    ✓ provides six accessible dashboard sections (1 ms)
+    ✓ renders all four advertised referral milestones (1 ms)
+    ✓ uses a current state object for copy and sharing actions
+    ✓ sends an idempotency key with each cashout request
+    ✓ loads secondary dashboard sections independently (1 ms)
+    ✓ uses partner-specific support detail and reply endpoints
+    ✓ includes focus trapping, Escape close and reduced-motion support
+    ✓ surfaces existing Share Pack and Programme Terms resources (1 ms)
+
+FAIL tests/unit/partner-cashout-requests.test.js
+  ● Test suite failed to run
+
+    ReferenceError: /home/runner/work/EventFlow/EventFlow/tests/unit/partner-cashout-requests.test.js: The module factory of `jest.mock()` is not allowed to reference any out-of-scope variables.
+    Invalid variable access: db
+    Allowed objects: AbortController, AbortSignal, AggregateError, Array, ArrayBuffer, Atomics, BigInt, BigInt64Array, BigUint64Array, Blob, Boolean, BroadcastChannel, Buffer, ByteLengthQueuingStrategy, CompressionStream, CountQueuingStrategy, Crypto, CryptoKey, CustomEvent, DOMException, DataView, Date, DecompressionStream, Error, EvalError, Event, EventTarget, File, FinalizationRegistry, Float32Array, Float64Array, FormData, Function, Generator, GeneratorFunction, Headers, Infinity, Int16Array, Int32Array, Int8Array, InternalError, Intl, Iterator, JSON, Map, Math, MessageChannel, MessageEvent, MessagePort, NaN, Navigator, Number, Object, Performance, PerformanceEntry, PerformanceMark, PerformanceMeasure, PerformanceObserver, PerformanceObserverEntryList, PerformanceResourceTiming, Promise, Proxy, RangeError, ReadableByteStreamController, ReadableStream, ReadableStreamBYOBReader, ReadableStreamBYOBRequest, ReadableStreamDefaultController, ReadableStreamDefaultReader, ReferenceError, Reflect, RegExp, Request, Response, Set, SharedArrayBuffer, String, SubtleCrypto, Symbol, SyntaxError, TextDecoder, TextDecoderStream, TextEncoder, TextEncoderStream, TransformStream, TransformStreamDefaultController, TypeError, URIError, URL, URLSearchParams, Uint16Array, Uint32Array, Uint8Array, Uint8ClampedArray, WeakMap, WeakRef, WeakSet, WebAssembly, WebSocket, WritableStream, WritableStreamDefaultController, WritableStreamDefaultWriter, __dirname, __filename, arguments, atob, btoa, clearImmediate, clearInterval, clearTimeout, console, crypto, decodeURI, decodeURIComponent, encodeURI, encodeURIComponent, escape, eval, expect, exports, fetch, global, globalThis, isFinite, isNaN, jest, module, navigator, parseFloat, parseInt, performance, process, queueMicrotask, require, setImmediate, setInterval, setTimeout, structuredClone, undefined, unescape.
+    Note: This is a precaution to guard against uninitialized mock variables. If it is ensured that the mock is required lazily, variable names prefixed with `mock` (case insensitive) are permitted.
+
+    [0m [90m 67 |[39m   updateOne[33m:[39m jest[33m.[39mfn()[33m.[39mmockResolvedValue({ modified[33m:[39m [35m1[39m })[33m,[39m
+     [90m 68 |[39m }[33m;[39m
+    [31m[1m>[22m[39m[90m 69 |[39m jest[33m.[39mmock([32m'../../db-unified'[39m[33m,[39m () [33m=>[39m db)[33m;[39m
+     [90m    |[39m                                     [31m[1m^[22m[39m[31m[1m^[22m[39m
+     [90m 70 |[39m
+     [90m 71 |[39m [36mlet[39m mockIdCounter [33m=[39m [35m0[39m[33m;[39m
+     [90m 72 |[39m jest[33m.[39mmock([32m'../../store'[39m[33m,[39m () [33m=>[39m ({[0m
+
+      at File.buildCodeFrameError (node_modules/@babel/core/src/transformation/file/file.ts:251:12)
+      at NodePath.buildError [as buildCodeFrameError] (node_modules/@babel/traverse/src/path/index.ts:161:21)
+      at call (node_modules/@babel/traverse/src/visitors.ts:299:14)
+      at NodePath.call [as _call] (node_modules/@babel/traverse/src/path/context.ts:36:20)
+      at NodePath.call (node_modules/@babel/traverse/src/path/context.ts:21:18)
+      at NodePath.call [as visit] (node_modules/@babel/traverse/src/path/context.ts:97:31)
+      at TraversalContext.visit [as visitQueue] (node_modules/@babel/traverse/src/context.ts:161:16)
+      at TraversalContext.visitQueue [as visitMultiple] (node_modules/@babel/traverse/src/context.ts:109:17)
+      at TraversalContext.visitMultiple [as visit] (node_modules/@babel/traverse/src/context.ts:192:19)
+      at visit (node_modules/@babel/traverse/src/traverse-node.ts:208:17)
+      at NodePath.visit (node_modules/@babel/traverse/src/path/context.ts:104:33)
+      at TraversalContext.visit [as visitQueue] (node_modules/@babel/traverse/src/context.ts:161:16)
+      at TraversalContext.visitQueue [as visitSingle] (node_modules/@babel/traverse/src/context.ts:119:19)
+      at TraversalContext.visitSingle [as visit] (node_modules/@babel/traverse/src/context.ts:194:19)
+      at visit (node_modules/@babel/traverse/src/traverse-node.ts:208:17)
+      at traverse (node_modules/@babel/traverse/src/index.ts:84:15)
+      at transformFile (node_modules/@babel/core/src/transformation/index.ts:120:15)
+          at transformFile.next (<anonymous>)
+      at transformFile (node_modules/@babel/core/src/transformation/index.ts:50:12)
+          at run.next (<anonymous>)
+      at transform (node_modules/@babel/core/src/transform.ts:29:20)
+          at transform.next (<anonymous>)
+      at evaluateSync (node_modules/gensync/index.js:251:28)
+      at sync (node_modules/gensync/index.js:89:14)
+      at fn (node_modules/@babel/core/src/errors/rewrite-stack-trace.ts:99:14)
+      at transformSync (node_modules/@babel/core/src/transform.ts:66:52)
+      at ScriptTransformer.transformSource (node_modules/@jest/transform/build/ScriptTransformer.js:545:31)
+      at ScriptTransformer._transformAndBuildScript (node_modules/@jest/transform/build/ScriptTransformer.js:674:40)
+      at ScriptTransformer.transform (node_modules/@jest/transform/build/ScriptTransformer.js:726:19)
+
+Test Suites: 1 failed, 5 passed, 6 total
+Tests:       46 passed, 46 total
+Snapshots:   0 total
+Time:        0.456 s, estimated 1 s
+Ran all test suites matching /tests\/unit\/partner-cashout-requests.test.js|tests\/unit\/partner-new-endpoints.test.js|tests\/unit\/partner-payout-validation.test.js|tests\/unit\/partner-ledger-integrity.test.js|tests\/unit\/partner-dashboard-frontend.test.js|tests\/unit\/partner-points-enhancements.test.js/i.
+Force exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after all tests finished?
+attempt 2 exit code: 1
+===== focused partner test attempt 3 =====
+PASS tests/unit/partner-new-endpoints.test.js
+  GET /api/partner/me
+    ✓ returns one authoritative programme configuration object (11 ms)
+    ✓ continues to block financial data for disabled partners while advertising support (2 ms)
+  GET /api/partner/referrals
+    ✓ derives review qualification from FIRST_REVIEW_BONUS ledger activity (2 ms)
+    ✓ does not expire the review milestone when the package/subscription window closes (2 ms)
+  restricted support for disabled partners
+    ✓ allows a disabled partner to create an account-access ticket (6 ms)
+    ✓ allows a disabled partner to list existing support tickets (2 ms)
+
+PASS tests/unit/partner-points-enhancements.test.js
+  PartnerService — points enhancements
+    awardReferralSignupBonus()
+      ✓ awards +5 credits when referred supplier signs up (1 ms)
+      ✓ is idempotent — does not double-award on second call
+      ✓ returns null when supplier is not a referral
+      ✓ returns null when partner is disabled
+    awardFirstReviewBonus()
+      ✓ awards +15 credits when referred supplier receives first review (1 ms)
+      ✓ is idempotent — does not award twice
+      ✓ returns null when supplier is not a referral
+    awardProfileApprovedBonus()
+      ✓ always returns null (bonus removed)
+      ✓ returns null for any supplier user ID
+    getBalance() — available vs maturing points
+      ✓ places credits older than 30 days in availableBalance (1 ms)
+      ✓ places recently earned credits in maturingBalance
+      ✓ splits mixed old and recent credits correctly
+      ✓ subtracts REDEEM transactions from availableBalance
+      ✓ availableBalance cannot go below zero
+    debitPoints() and reverseDebit()
+      ✓ debitPoints inserts a negative REDEEM transaction
+      ✓ reverseDebit inserts a positive ADJUSTMENT to cancel the debit
+      ✓ reverseDebit returns null when debit not found
+    POINTS_PER_GBP
+      ✓ is a positive integer (1 ms)
+      ✓ defaults to 100 (100 points = £1)
+
+PASS tests/unit/partner-payout-validation.test.js
+  POST /api/partner/support-ticket
+    ✓ requires authentication and the partner role (8 ms)
+    ✓ validates required fields (2 ms)
+    ✓ validates required fields (1 ms)
+    ✓ validates required fields (1 ms)
+    ✓ validates required fields (1 ms)
+    ✓ creates a normal partner-support ticket for active accounts (2 ms)
+    ✓ creates a restricted account-access ticket for disabled accounts (1 ms)
+    ✓ limits the stored subject and message lengths (3 ms)
+
+PASS tests/unit/partner-dashboard-frontend.test.js
+  partner dashboard frontend contract
+    ✓ provides six accessible dashboard sections (7 ms)
+    ✓ renders all four advertised referral milestones
+    ✓ uses a current state object for copy and sharing actions (3 ms)
+    ✓ sends an idempotency key with each cashout request
+    ✓ loads secondary dashboard sections independently (1 ms)
+    ✓ uses partner-specific support detail and reply endpoints
+    ✓ includes focus trapping, Escape close and reduced-motion support (1 ms)
+    ✓ surfaces existing Share Pack and Programme Terms resources (2 ms)
+
+PASS tests/unit/partner-ledger-integrity.test.js
+  partner ledger integrity
+    ✓ throws when a cashout hold does not persist (1 ms)
+    ✓ returns the original hold when the same cashout reference is retried (1 ms)
+    ✓ creates only one release for a held transaction
+    ✓ derives review qualification timestamps from existing ledger entries
+    ✓ includes the review reward in potential points without applying the attribution expiry (1 ms)
+
+FAIL tests/unit/partner-cashout-requests.test.js
+  ● Test suite failed to run
+
+    ReferenceError: /home/runner/work/EventFlow/EventFlow/tests/unit/partner-cashout-requests.test.js: The module factory of `jest.mock()` is not allowed to reference any out-of-scope variables.
+    Invalid variable access: db
+    Allowed objects: AbortController, AbortSignal, AggregateError, Array, ArrayBuffer, Atomics, BigInt, BigInt64Array, BigUint64Array, Blob, Boolean, BroadcastChannel, Buffer, ByteLengthQueuingStrategy, CompressionStream, CountQueuingStrategy, Crypto, CryptoKey, CustomEvent, DOMException, DataView, Date, DecompressionStream, Error, EvalError, Event, EventTarget, File, FinalizationRegistry, Float32Array, Float64Array, FormData, Function, Generator, GeneratorFunction, Headers, Infinity, Int16Array, Int32Array, Int8Array, InternalError, Intl, Iterator, JSON, Map, Math, MessageChannel, MessageEvent, MessagePort, NaN, Navigator, Number, Object, Performance, PerformanceEntry, PerformanceMark, PerformanceMeasure, PerformanceObserver, PerformanceObserverEntryList, PerformanceResourceTiming, Promise, Proxy, RangeError, ReadableByteStreamController, ReadableStream, ReadableStreamBYOBReader, ReadableStreamBYOBRequest, ReadableStreamDefaultController, ReadableStreamDefaultReader, ReferenceError, Reflect, RegExp, Request, Response, Set, SharedArrayBuffer, String, SubtleCrypto, Symbol, SyntaxError, TextDecoder, TextDecoderStream, TextEncoder, TextEncoderStream, TransformStream, TransformStreamDefaultController, TypeError, URIError, URL, URLSearchParams, Uint16Array, Uint32Array, Uint8Array, Uint8ClampedArray, WeakMap, WeakRef, WeakSet, WebAssembly, WebSocket, WritableStream, WritableStreamDefaultController, WritableStreamDefaultWriter, __dirname, __filename, arguments, atob, btoa, clearImmediate, clearInterval, clearTimeout, console, crypto, decodeURI, decodeURIComponent, encodeURI, encodeURIComponent, escape, eval, expect, exports, fetch, global, globalThis, isFinite, isNaN, jest, module, navigator, parseFloat, parseInt, performance, process, queueMicrotask, require, setImmediate, setInterval, setTimeout, structuredClone, undefined, unescape.
+    Note: This is a precaution to guard against uninitialized mock variables. If it is ensured that the mock is required lazily, variable names prefixed with `mock` (case insensitive) are permitted.
+
+    [0m [90m 67 |[39m   updateOne[33m:[39m jest[33m.[39mfn()[33m.[39mmockResolvedValue({ modified[33m:[39m [35m1[39m })[33m,[39m
+     [90m 68 |[39m }[33m;[39m
+    [31m[1m>[22m[39m[90m 69 |[39m jest[33m.[39mmock([32m'../../db-unified'[39m[33m,[39m () [33m=>[39m db)[33m;[39m
+     [90m    |[39m                                     [31m[1m^[22m[39m[31m[1m^[22m[39m
+     [90m 70 |[39m
+     [90m 71 |[39m [36mlet[39m mockIdCounter [33m=[39m [35m0[39m[33m;[39m
+     [90m 72 |[39m jest[33m.[39mmock([32m'../../store'[39m[33m,[39m () [33m=>[39m ({[0m
+
+      at File.buildCodeFrameError (node_modules/@babel/core/src/transformation/file/file.ts:251:12)
+      at NodePath.buildError [as buildCodeFrameError] (node_modules/@babel/traverse/src/path/index.ts:161:21)
+      at call (node_modules/@babel/traverse/src/visitors.ts:299:14)
+      at NodePath.call [as _call] (node_modules/@babel/traverse/src/path/context.ts:36:20)
+      at NodePath.call (node_modules/@babel/traverse/src/path/context.ts:21:18)
+      at NodePath.call [as visit] (node_modules/@babel/traverse/src/path/context.ts:97:31)
+      at TraversalContext.visit [as visitQueue] (node_modules/@babel/traverse/src/context.ts:161:16)
+      at TraversalContext.visitQueue [as visitMultiple] (node_modules/@babel/traverse/src/context.ts:109:17)
+      at TraversalContext.visitMultiple [as visit] (node_modules/@babel/traverse/src/context.ts:192:19)
+      at visit (node_modules/@babel/traverse/src/traverse-node.ts:208:17)
+      at NodePath.visit (node_modules/@babel/traverse/src/path/context.ts:104:33)
+      at TraversalContext.visit [as visitQueue] (node_modules/@babel/traverse/src/context.ts:161:16)
+      at TraversalContext.visitQueue [as visitSingle] (node_modules/@babel/traverse/src/context.ts:119:19)
+      at TraversalContext.visitSingle [as visit] (node_modules/@babel/traverse/src/context.ts:194:19)
+      at visit (node_modules/@babel/traverse/src/traverse-node.ts:208:17)
+      at traverse (node_modules/@babel/traverse/src/index.ts:84:15)
+      at transformFile (node_modules/@babel/core/src/transformation/index.ts:120:15)
+          at transformFile.next (<anonymous>)
+      at transformFile (node_modules/@babel/core/src/transformation/index.ts:50:12)
+          at run.next (<anonymous>)
+      at transform (node_modules/@babel/core/src/transform.ts:29:20)
+          at transform.next (<anonymous>)
+      at evaluateSync (node_modules/gensync/index.js:251:28)
+      at sync (node_modules/gensync/index.js:89:14)
+      at fn (node_modules/@babel/core/src/errors/rewrite-stack-trace.ts:99:14)
+      at transformSync (node_modules/@babel/core/src/transform.ts:66:52)
+      at ScriptTransformer.transformSource (node_modules/@jest/transform/build/ScriptTransformer.js:545:31)
+      at ScriptTransformer._transformAndBuildScript (node_modules/@jest/transform/build/ScriptTransformer.js:674:40)
+      at ScriptTransformer.transform (node_modules/@jest/transform/build/ScriptTransformer.js:726:19)
+
+Test Suites: 1 failed, 5 passed, 6 total
+Tests:       46 passed, 46 total
+Snapshots:   0 total
+Time:        0.484 s, estimated 1 s
+Ran all test suites matching /tests\/unit\/partner-cashout-requests.test.js|tests\/unit\/partner-new-endpoints.test.js|tests\/unit\/partner-payout-validation.test.js|tests\/unit\/partner-ledger-integrity.test.js|tests\/unit\/partner-dashboard-frontend.test.js|tests\/unit\/partner-points-enhancements.test.js/i.
+Force exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after all tests finished?
+attempt 3 exit code: 1
