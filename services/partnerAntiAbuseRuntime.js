@@ -142,6 +142,11 @@ function installDatabaseGuards() {
     if (collection === 'payments' && ['refunded', 'disputed', 'chargeback'].includes(nextStatus)) {
       const payment = await dbUnified.findOne('payments', query);
       const result = await originalUpdateOne(collection, query, update, ...rest);
+      if (!result) {
+        const error = new Error('Adverse payment status update did not persist');
+        error.code = 'PARTNER_PAYMENT_STATUS_WRITE_FAILED';
+        throw error;
+      }
       if (payment) {
         try {
           await partnerClawback.clawBackForPaymentRecord(
