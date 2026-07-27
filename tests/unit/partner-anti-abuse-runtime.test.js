@@ -32,9 +32,14 @@ function loadRuntime({ assessment } = {}) {
     updateOne: mockOriginalUpdateOne,
   };
   const mockPartnerService = {
+    CREDIT_TYPES: {
+      REFERRAL_SIGNUP_BONUS: 'REFERRAL_SIGNUP_BONUS',
+      PACKAGE_BONUS: 'PACKAGE_BONUS',
+      FIRST_REVIEW_BONUS: 'FIRST_REVIEW_BONUS',
+    },
     awardReferralSignupBonus: jest.fn(async supplierUserId => ({ supplierUserId })),
-    awardPackageBonus: jest.fn(),
-    awardFirstReviewBonus: jest.fn(),
+    awardPackageBonus: jest.fn(async () => null),
+    awardFirstReviewBonus: jest.fn(async () => null),
     awardSubscriptionBonus: jest.fn(),
     getBalance: jest.fn(async partnerId => ({ partnerId, availableBalance: 100 })),
   };
@@ -80,13 +85,15 @@ describe('partner anti-abuse runtime', () => {
     jest.clearAllMocks();
   });
 
-  test('installs reward guards once and reconciles signup rewards before balance reads', async () => {
+  test('installs reward guards once and reconciles safe deferred rewards before balance reads', async () => {
     const { runtime, mockPartnerService, mockAntiAbuse } = loadRuntime();
     runtime.install();
     runtime.install();
     const balance = await mockPartnerService.getBalance('prt_1');
     expect(mockAntiAbuse.installRewardGuards).toHaveBeenCalledTimes(1);
     expect(mockPartnerService.awardReferralSignupBonus).toHaveBeenCalledTimes(2);
+    expect(mockPartnerService.awardPackageBonus).toHaveBeenCalledTimes(2);
+    expect(mockPartnerService.awardFirstReviewBonus).toHaveBeenCalledTimes(2);
     expect(balance).toEqual({ partnerId: 'prt_1', availableBalance: 100 });
   });
 
