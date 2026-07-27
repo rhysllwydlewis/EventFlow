@@ -39,12 +39,32 @@ const mockDb = {
 };
 
 const mockReleaseCashoutHold = jest.fn(async () => ({ id: 'ptx_release' }));
+let mockCurrentAssessment;
+const mockAssessCashout = jest.fn(async () => mockCurrentAssessment);
+const mockPersistAssessment = jest.fn(async assessment => {
+  const existingIndex = mockCollections.partner_fraud_assessments.findIndex(
+    item => item.requestId === assessment.requestId
+  );
+  if (existingIndex >= 0) {
+    mockCollections.partner_fraud_assessments[existingIndex] = {
+      ...mockCollections.partner_fraud_assessments[existingIndex],
+      ...assessment,
+    };
+  } else {
+    mockCollections.partner_fraud_assessments.push({ ...assessment });
+  }
+  return assessment;
+});
 
 jest.mock('../../db-unified', () => mockDb);
 jest.mock('../../store', () => ({ uid: jest.fn(() => 'ptx_final') }));
 jest.mock('../../services/partnerService', () => ({
   CREDIT_TYPES: { REDEEM: 'REDEEM' },
   releaseCashoutHold: mockReleaseCashoutHold,
+}));
+jest.mock('../../services/partnerAntiAbuseService', () => ({
+  assessCashout: mockAssessCashout,
+  persistAssessment: mockPersistAssessment,
 }));
 jest.mock('../../middleware/auth', () => ({
   authRequired: (req, _res, next) => {
@@ -98,7 +118,34 @@ function seedRequest(overrides = {}) {
 beforeEach(() => {
   Object.values(mockCollections).forEach(items => items.splice(0, items.length));
   jest.clearAllMocks();
+  mockCurrentAssessment = {
+    id: 'assessment_1',
+    partnerId: 'prt_1',
+    requestId: 'pcr_1',
+    score: 0,
+    riskLevel: 'low',
+    requiresManualReview: false,
+    blockApproval: false,
+    signals: [],
+    metrics: { referralCount: 1 },
+    assessedAt: '2026-07-02T12:00:00.000Z',
+  };
   mockReleaseCashoutHold.mockResolvedValue({ id: 'ptx_release' });
+  mockAssessCashout.mockImplementation(async () => mockCurrentAssessment);
+  mockPersistAssessment.mockImplementation(async assessment => {
+    const existingIndex = mockCollections.partner_fraud_assessments.findIndex(
+      item => item.requestId === assessment.requestId
+    );
+    if (existingIndex >= 0) {
+      mockCollections.partner_fraud_assessments[existingIndex] = {
+        ...mockCollections.partner_fraud_assessments[existingIndex],
+        ...assessment,
+      };
+    } else {
+      mockCollections.partner_fraud_assessments.push({ ...assessment });
+    }
+    return assessment;
+  });
   mockDb.insertOne.mockImplementation(async (collection, record) => {
     mockCollections[collection].push(record);
     return record;
@@ -148,6 +195,91 @@ test('returns the persisted fraud assessment with cashout detail', async () => {
   expect(response.body.fraudAssessment).toMatchObject({
     id: 'assessment_1',
     requestId: 'pcr_1',
+  });
+});
+
+test('requires a meaningful internal note when a cashout needs manual review', async () => {
+  seedRequest();
+  mockCurrentAssessment = {
+    ...mockCurrentAssessment,
+    score: 25,
+    riskLevel: 'review',
+    requiresManualReview: true,
+    signals: [{ code: 'FIRST_CASHOUT' }],
+  };
+
+  const response = await request(buildApp())
+    .patch('/api/admin/cashout-requests/pcr_1')
+    .send({ status: 'approved', adminInternalNotes: 'Checked' });
+
+  expect(response.status).toBe(409);
+  expect(response.body).toMatchObject({
+    code: 'PARTNER_CASHOUT_REVIEW_NOTE_REQUIRED',
+    assessment: { score: 25, riskLevel: 'review' },
+  });
+  expect(mockPersistAssessment).toHaveBeenCalledWith(mockCurrentAssessment);
+  expect(mockCollections.partner_cashout_requests[0]).toMatchObject({
+    status: 'submitted',
+    fraudRiskScore: 25,
+    fraudReviewRequired: true,
+  });
+});
+
+test('blocks high-risk approval even when an administrator supplies a review note', async () => {
+  seedRequest();
+  mockCurrentAssessment = {
+    ...mockCurrentAssessment,
+    score: 85,
+    riskLevel: 'high',
+    requiresManualReview: true,
+    blockApproval: true,
+    signals: [{ code: 'POSSIBLE_SELF_REFERRAL' }],
+  };
+
+  const response = await request(buildApp())
+    .patch('/api/admin/cashout-requests/pcr_1')
+    .send({
+      status: 'approved',
+      adminInternalNotes: 'Reviewed the records but the identity overlap remains unresolved.',
+    });
+
+  expect(response.status).toBe(409);
+  expect(response.body).toMatchObject({
+    code: 'PARTNER_CASHOUT_HIGH_RISK',
+    assessment: { score: 85, riskLevel: 'high' },
+  });
+  expect(mockCollections.partner_cashout_requests[0].status).toBe('submitted');
+});
+
+test('approves a reviewed cashout and stores its fraud evidence', async () => {
+  seedRequest();
+  mockCurrentAssessment = {
+    ...mockCurrentAssessment,
+    score: 25,
+    riskLevel: 'review',
+    requiresManualReview: true,
+    signals: [{ code: 'FIRST_CASHOUT' }],
+  };
+
+  const response = await request(buildApp())
+    .patch('/api/admin/cashout-requests/pcr_1')
+    .send({
+      status: 'approved',
+      adminInternalNotes: 'Checked supplier identity, package evidence and the Stripe payment.',
+    });
+
+  expect(response.status).toBe(200);
+  expect(response.body.request).toMatchObject({
+    status: 'approved',
+    fraudRiskScore: 25,
+    fraudRiskLevel: 'review',
+    fraudReviewRequired: true,
+    fraudReviewedAt: expect.any(String),
+  });
+  expect(mockCollections.partner_cashout_requests[0]).toMatchObject({
+    status: 'approved',
+    fraudRiskScore: 25,
+    adminInternalNotes: 'Checked supplier identity, package evidence and the Stripe payment.',
   });
 });
 
@@ -234,27 +366,6 @@ test('fails closed when the hold cannot be released after redemption', async () 
   expect(response.status).toBe(500);
   expect(response.body.code).toBe('CASHOUT_HOLD_RELEASE_FAILED');
   expect(mockCollections.partner_cashout_requests[0].status).toBe('processing');
-});
-
-test('preserves anti-abuse conflict details returned by the guarded database update', async () => {
-  seedRequest();
-  const guardedError = Object.assign(new Error('Manual review required'), {
-    statusCode: 409,
-    code: 'PARTNER_CASHOUT_REVIEW_NOTE_REQUIRED',
-    assessment: { score: 25 },
-  });
-  mockDb.updateOne.mockRejectedValueOnce(guardedError);
-
-  const response = await request(buildApp())
-    .patch('/api/admin/cashout-requests/pcr_1')
-    .send({ status: 'approved' });
-
-  expect(response.status).toBe(409);
-  expect(response.body).toMatchObject({
-    error: 'Manual review required',
-    code: 'PARTNER_CASHOUT_REVIEW_NOTE_REQUIRED',
-    assessment: { score: 25 },
-  });
 });
 
 test('releases held points when an administrator rejects a request', async () => {
