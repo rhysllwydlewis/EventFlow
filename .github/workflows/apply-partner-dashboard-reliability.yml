@@ -94,37 +94,51 @@ jobs:
           node --check tests/unit/partner-ledger-integrity.test.js
           node --check tests/unit/partner-dashboard-frontend.test.js
 
-      - name: Run focused partner tests
+      - name: Run focused partner tests repeatedly
         if: steps.payload.outputs.apply == 'true'
         id: focused-tests
-        continue-on-error: true
         shell: bash
         run: |
-          set -o pipefail
-          npx jest --runInBand --coverage=false \
-            tests/unit/partner-cashout-requests.test.js \
-            tests/unit/partner-new-endpoints.test.js \
-            tests/unit/partner-payout-validation.test.js \
-            tests/unit/partner-ledger-integrity.test.js \
-            tests/unit/partner-dashboard-frontend.test.js \
-            tests/unit/partner-points-enhancements.test.js \
-            2>&1 | tee /tmp/focused-partner-tests.log
+          set +e
+          : > .partner-test-diagnostics.log
+          final_status=0
+          for attempt in 1 2 3; do
+            echo "===== focused partner test attempt ${attempt} =====" | tee -a .partner-test-diagnostics.log
+            npx jest --runInBand --coverage=false \
+              tests/unit/partner-cashout-requests.test.js \
+              tests/unit/partner-new-endpoints.test.js \
+              tests/unit/partner-payout-validation.test.js \
+              tests/unit/partner-ledger-integrity.test.js \
+              tests/unit/partner-dashboard-frontend.test.js \
+              tests/unit/partner-points-enhancements.test.js \
+              >> .partner-test-diagnostics.log 2>&1
+            status=$?
+            echo "attempt ${attempt} exit code: ${status}" | tee -a .partner-test-diagnostics.log
+            if [[ ${status} -ne 0 ]]; then
+              final_status=${status}
+            fi
+          done
+          cat .partner-test-diagnostics.log
+          echo "exit_code=${final_status}" >> "$GITHUB_OUTPUT"
+          exit 0
 
-      - name: Upload focused test diagnostics
-        if: steps.payload.outputs.apply == 'true' && always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: partner-dashboard-focused-tests
-          path: /tmp/focused-partner-tests.log
-          if-no-files-found: error
-          retention-days: 7
+      - name: Publish failed test diagnostics to branch
+        if: steps.payload.outputs.apply == 'true' && steps.focused-tests.outputs.exit_code != '0'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f .partner-test-diagnostics.log
+          git commit -m "chore(partner): capture focused test failure diagnostics"
+          git push origin HEAD:agent/partner-dashboard-reliability
 
       - name: Enforce focused partner tests
-        if: steps.payload.outputs.apply == 'true' && steps.focused-tests.outcome == 'failure'
+        if: steps.payload.outputs.apply == 'true' && steps.focused-tests.outputs.exit_code != '0'
         run: exit 1
 
       - name: Lint changed JavaScript
-        if: steps.payload.outputs.apply == 'true'
+        if: steps.payload.outputs.apply == 'true' && steps.focused-tests.outputs.exit_code == '0'
         run: >-
           npx eslint
           services/partnerService.js
@@ -138,12 +152,13 @@ jobs:
           --rulesdir eslint-rules
 
       - name: Commit implementation
-        if: steps.payload.outputs.apply == 'true'
+        if: steps.payload.outputs.apply == 'true' && steps.focused-tests.outputs.exit_code == '0'
         shell: bash
         run: |
           set -euo pipefail
+          rm -f .partner-test-diagnostics.log
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add services/partnerService.js routes/partner.js public/partner/dashboard.html public/assets/css/partner-dashboard-v2.css public/assets/js/pages/partner-dashboard-init.js tests/unit/partner-cashout-requests.test.js tests/unit/partner-new-endpoints.test.js tests/unit/partner-payout-validation.test.js tests/unit/partner-ledger-integrity.test.js tests/unit/partner-dashboard-frontend.test.js docs/PARTNER_PORTAL.md .partner-payload
+          git add services/partnerService.js routes/partner.js public/partner/dashboard.html public/assets/css/partner-dashboard-v2.css public/assets/js/pages/partner-dashboard-init.js tests/unit/partner-cashout-requests.test.js tests/unit/partner-new-endpoints.test.js tests/unit/partner-payout-validation.test.js tests/unit/partner-ledger-integrity.test.js tests/unit/partner-dashboard-frontend.test.js docs/PARTNER_PORTAL.md .partner-payload .partner-test-diagnostics.log
           git commit -m "fix(partner): harden reward cashouts and improve dashboard [partner-payload-applied]"
           git push origin HEAD:agent/partner-dashboard-reliability
