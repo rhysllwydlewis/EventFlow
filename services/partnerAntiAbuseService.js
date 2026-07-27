@@ -10,6 +10,13 @@ const FIRST_CASHOUT_REVIEW_SCORE = 20;
 const RAPID_CASHOUT_HOURS = 72;
 const RAPID_MILESTONE_HOURS = 2;
 const MIN_REVIEWER_ACCOUNT_HOURS = 24;
+const MILESTONE_REWARD_TYPES = Object.freeze([
+  'PACKAGE_BONUS',
+  'SUBSCRIPTION_BONUS',
+  'REFERRAL_SIGNUP_BONUS',
+  'FIRST_REVIEW_BONUS',
+]);
+const MILESTONE_REWARD_TYPE_SET = new Set(MILESTONE_REWARD_TYPES);
 const PUBLIC_EMAIL_DOMAINS = new Set([
   'gmail.com',
   'googlemail.com',
@@ -70,6 +77,23 @@ function isMeaningfulPackage(pkg) {
   );
 }
 
+function isIndependentVerifiedReview(review, users, supplierIds, supplierUserId, partnerUserId) {
+  if (!review || !supplierIds.has(review.supplierId)) return false;
+  if (review.approved !== true || review.flagged === true) return false;
+  if (review.emailVerified !== true || review.verified !== true) return false;
+  if (!review.userId || review.userId === supplierUserId || review.userId === partnerUserId) {
+    return false;
+  }
+
+  const reviewer = (users || []).find(user => user.id === review.userId);
+  if (!reviewer || reviewer.verified !== true || reviewer.role === 'supplier') return false;
+
+  const reviewerAge = reviewer.createdAt
+    ? hoursBetween(reviewer.createdAt, review.createdAt || new Date().toISOString())
+    : null;
+  return reviewerAge !== null && reviewerAge >= MIN_REVIEWER_ACCOUNT_HOURS;
+}
+
 async function getApprovedSupplierProfiles(supplierUserId) {
   const profiles = await dbUnified.find('suppliers', { ownerUserId: supplierUserId });
   return (profiles || []).filter(profile => profile && profile.approved === true);
@@ -97,19 +121,9 @@ async function reviewRewardEvidence(supplierUserId, partnerUserId) {
   }
   const supplierIds = new Set(profiles.map(profile => profile.id));
   const [reviews, users] = await Promise.all([dbUnified.read('reviews'), dbUnified.read('users')]);
-  const now = new Date().toISOString();
-  const qualifying = (reviews || []).find(review => {
-    if (!supplierIds.has(review.supplierId)) return false;
-    if (review.approved !== true || review.flagged === true) return false;
-    if (review.emailVerified !== true || review.verified !== true) return false;
-    if (!review.userId || review.userId === supplierUserId || review.userId === partnerUserId) {
-      return false;
-    }
-    const reviewer = (users || []).find(user => user.id === review.userId);
-    if (!reviewer || reviewer.verified !== true || reviewer.role === 'supplier') return false;
-    const reviewerAge = reviewer.createdAt ? hoursBetween(reviewer.createdAt, review.createdAt || now) : null;
-    return reviewerAge === null || reviewerAge >= MIN_REVIEWER_ACCOUNT_HOURS;
-  });
+  const qualifying = (reviews || []).find(review =>
+    isIndependentVerifiedReview(review, users, supplierIds, supplierUserId, partnerUserId)
+  );
   return qualifying
     ? { eligible: true, qualifyingReviewId: qualifying.id }
     : { eligible: false, reason: 'INDEPENDENT_VERIFIED_REVIEW_MISSING' };
@@ -210,30 +224,6 @@ function installRewardGuards(partnerService = require('./partnerService')) {
   return partnerService;
 }
 
-function deferredSignupRewardMiddleware(req, res, next) {
-  const verificationRequest =
-    (req.method === 'GET' && req.path === '/verify') ||
-    (req.method === 'POST' && req.path === '/verify-email');
-  if (!verificationRequest) return next();
-
-  const originalJson = res.json.bind(res);
-  res.json = body => {
-    if (body?.ok === true && body?.user?.id) {
-      const partnerService = installRewardGuards();
-      setImmediate(() => {
-        partnerService.awardReferralSignupBonus(body.user.id).catch(error => {
-          logger.warn('[PARTNER-ANTI-ABUSE] Deferred signup reward failed', {
-            supplierUserId: body.user.id,
-            error: error.message,
-          });
-        });
-      });
-    }
-    return originalJson(body);
-  };
-  return next();
-}
-
 async function assessCashout({ partnerId, requestId = null, requestedAt = new Date().toISOString() }) {
   const [partners, users, referrals, transactions, requests, suppliers, packages, reviews] =
     await Promise.all([
@@ -251,9 +241,23 @@ async function assessCashout({ partnerId, requestId = null, requestedAt = new Da
   const partnerUser = partner ? (users || []).find(user => user.id === partner.userId) : null;
   const partnerReferrals = (referrals || []).filter(item => item.partnerId === partnerId);
   const partnerTransactions = (transactions || []).filter(item => item.partnerId === partnerId);
+  const rewardTransactions = partnerTransactions.filter(
+    transaction =>
+      transaction.supplierUserId &&
+      Number(transaction.amount) > 0 &&
+      MILESTONE_REWARD_TYPE_SET.has(transaction.type)
+  );
+  const rewardedSupplierIds = new Set(
+    rewardTransactions.map(transaction => transaction.supplierUserId)
+  );
+  const supportingReferrals = partnerReferrals.filter(referral =>
+    rewardedSupplierIds.has(referral.supplierUserId)
+  );
   const priorRequests = (requests || []).filter(
     item => item.partnerId === partnerId && item.id !== requestId
   );
+  const priorDeliveredRequests = priorRequests.filter(item => item.status === 'delivered');
+  const firstDeliveredCashout = priorDeliveredRequests.length === 0;
   const signals = [];
 
   if (!partner || !partnerUser) {
@@ -269,23 +273,27 @@ async function assessCashout({ partnerId, requestId = null, requestedAt = new Da
     }
   }
 
-  if (priorRequests.length === 0) {
+  if (firstDeliveredCashout) {
     addSignal(
       signals,
       'FIRST_CASHOUT',
       FIRST_CASHOUT_REVIEW_SCORE,
-      'This is the partner’s first cashout and requires a recorded manual review.'
+      'No previous cashout has been delivered; this request requires a recorded manual review.'
     );
   }
 
   const partnerAgeHours = partner?.createdAt ? hoursBetween(partner.createdAt, requestedAt) : null;
-  if (partnerAgeHours !== null && partnerAgeHours < RAPID_CASHOUT_HOURS) {
+  if (
+    firstDeliveredCashout &&
+    partnerAgeHours !== null &&
+    partnerAgeHours < RAPID_CASHOUT_HOURS
+  ) {
     addSignal(signals, 'RAPID_FIRST_CASHOUT', 35, 'Cashout requested shortly after partner signup.', {
       partnerAgeHours: Math.round(partnerAgeHours * 10) / 10,
     });
   }
-  if (partnerReferrals.length === 0) {
-    addSignal(signals, 'NO_REFERRAL_RECORDS', 40, 'Cashout has no supporting referral records.');
+  if (rewardTransactions.length > 0 && partnerReferrals.length === 0) {
+    addSignal(signals, 'NO_REFERRAL_RECORDS', 40, 'Cashout rewards have no supporting referrals.');
   }
 
   const partnerCompany = normalise(partnerUser?.company);
@@ -298,7 +306,7 @@ async function assessCashout({ partnerId, requestId = null, requestedAt = new Da
   let weakPackageRewards = 0;
   let weakReviewRewards = 0;
 
-  for (const referral of partnerReferrals) {
+  for (const referral of supportingReferrals) {
     const supplierUser = (users || []).find(user => user.id === referral.supplierUserId);
     if (!supplierUser || supplierUser.verified !== true) unverifiedSuppliers += 1;
     const supplierProfiles = (suppliers || []).filter(
@@ -322,40 +330,41 @@ async function assessCashout({ partnerId, requestId = null, requestedAt = new Da
       identityMatches += 1;
     }
 
-    const supplierTxns = partnerTransactions.filter(
-      txn => txn.supplierUserId === referral.supplierUserId && Number(txn.amount) > 0
+    const supplierTxns = rewardTransactions.filter(
+      transaction => transaction.supplierUserId === referral.supplierUserId
     );
     const supplierIds = new Set(approvedProfiles.map(profile => profile.id));
-    for (const txn of supplierTxns) {
-      const elapsed = hoursBetween(referral.supplierCreatedAt || referral.createdAt, txn.createdAt);
+    for (const transaction of supplierTxns) {
+      const elapsed = hoursBetween(
+        referral.supplierCreatedAt || referral.createdAt,
+        transaction.createdAt
+      );
       if (
         elapsed !== null &&
         elapsed < RAPID_MILESTONE_HOURS &&
-        txn.type !== 'REFERRAL_SIGNUP_BONUS'
+        transaction.type !== 'REFERRAL_SIGNUP_BONUS'
       ) {
         rapidMilestones += 1;
       }
       if (
-        txn.type === 'PACKAGE_BONUS' &&
+        transaction.type === 'PACKAGE_BONUS' &&
         !(packages || []).some(pkg => supplierIds.has(pkg.supplierId) && isMeaningfulPackage(pkg))
       ) {
         weakPackageRewards += 1;
       }
-      if (txn.type === 'FIRST_REVIEW_BONUS') {
-        const hasReview = (reviews || []).some(review => {
-          if (!supplierIds.has(review.supplierId)) return false;
-          if (review.approved !== true || review.flagged === true) return false;
-          if (review.emailVerified !== true || review.verified !== true) return false;
-          const reviewer = (users || []).find(user => user.id === review.userId);
-          return Boolean(
-            reviewer &&
-              reviewer.verified === true &&
-              reviewer.role !== 'supplier' &&
-              review.userId !== referral.supplierUserId &&
-              review.userId !== partner?.userId
-          );
-        });
-        if (!hasReview) weakReviewRewards += 1;
+      if (
+        transaction.type === 'FIRST_REVIEW_BONUS' &&
+        !(reviews || []).some(review =>
+          isIndependentVerifiedReview(
+            review,
+            users,
+            supplierIds,
+            referral.supplierUserId,
+            partner?.userId
+          )
+        )
+      ) {
+        weakReviewRewards += 1;
       }
     }
   }
@@ -415,20 +424,12 @@ async function assessCashout({ partnerId, requestId = null, requestedAt = new Da
       signals,
       'CONCENTRATED_PRIVATE_EMAIL_DOMAINS',
       20,
-      'Several referred suppliers use the same private email domain.',
+      'Several rewarded suppliers use the same private email domain.',
       { domains: repeatedDomains.map(([domain, count]) => ({ domain, count })) }
     );
   }
 
-  const rewardBySupplier = new Map();
-  for (const txn of partnerTransactions) {
-    if (!txn.supplierUserId || Number(txn.amount) <= 0) continue;
-    rewardBySupplier.set(
-      txn.supplierUserId,
-      (rewardBySupplier.get(txn.supplierUserId) || 0) + Number(txn.amount)
-    );
-  }
-  const orphanRewardSuppliers = [...rewardBySupplier.keys()].filter(
+  const orphanRewardSuppliers = [...rewardedSupplierIds].filter(
     supplierUserId =>
       !partnerReferrals.some(referral => referral.supplierUserId === supplierUserId)
   );
@@ -449,12 +450,14 @@ async function assessCashout({ partnerId, requestId = null, requestedAt = new Da
     requestId,
     score,
     riskLevel: score >= HIGH_RISK_SCORE ? 'high' : score >= REVIEW_SCORE ? 'review' : 'low',
-    requiresManualReview: score >= REVIEW_SCORE || priorRequests.length === 0,
+    requiresManualReview: score >= REVIEW_SCORE || firstDeliveredCashout,
     blockApproval: score >= HIGH_RISK_SCORE,
     signals,
     metrics: {
       referralCount: partnerReferrals.length,
+      rewardedReferralCount: supportingReferrals.length,
       priorCashoutCount: priorRequests.length,
+      priorDeliveredCashoutCount: priorDeliveredRequests.length,
       unverifiedSupplierCount: unverifiedSuppliers,
       unapprovedSupplierProfileCount: unapprovedSupplierProfiles,
       identityMatchCount: identityMatches,
@@ -480,11 +483,12 @@ async function persistAssessment(assessment) {
     ? await dbUnified.findOne('partner_fraud_assessments', { requestId: assessment.requestId })
     : null;
   if (existing) {
-    await dbUnified.updateOne(
+    const updated = await dbUnified.updateOne(
       'partner_fraud_assessments',
       { id: existing.id },
       { $set: { ...assessment, id: existing.id } }
     );
+    if (!updated) throw new Error('Fraud assessment update did not persist');
     return { ...assessment, id: existing.id };
   }
   const inserted = await dbUnified.insertOne('partner_fraud_assessments', assessment);
@@ -495,14 +499,15 @@ async function persistAssessment(assessment) {
 module.exports = {
   HIGH_RISK_SCORE,
   REVIEW_SCORE,
+  MILESTONE_REWARD_TYPES,
   assessCashout,
   persistAssessment,
   supplierRewardEligibility,
   packageRewardEvidence,
   reviewRewardEvidence,
   installRewardGuards,
-  deferredSignupRewardMiddleware,
   emailDomain,
   normalise,
   isMeaningfulPackage,
+  isIndependentVerifiedReview,
 };
