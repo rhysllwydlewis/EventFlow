@@ -36,7 +36,7 @@ const mockDebitPoints = jest.fn(async ({ partnerId, amount, notes, externalRef }
 });
 
 jest.mock('../../services/partnerService', () => ({
-  CREDIT_TYPES: { SUBSCRIPTION_BONUS: 'SUBSCRIPTION_BONUS' },
+  CREDIT_TYPES: { SUBSCRIPTION_BONUS: 'SUBSCRIPTION_BONUS', REDEEM: 'REDEEM' },
   SUBSCRIPTION_BONUS: 100,
   debitPoints: mockDebitPoints,
 }));
@@ -80,7 +80,9 @@ test('creates one REDEEM debit across repeated refund and dispute updates', asyn
   });
   expect(second).toMatchObject({ id: 'ptx_clawback', type: 'REDEEM' });
   expect(mockDebitPoints).toHaveBeenCalledTimes(1);
-  expect(mockCollections.partner_credit_transactions.find(item => item.id === 'ptx_clawback')).toMatchObject({
+  expect(
+    mockCollections.partner_credit_transactions.find(item => item.id === 'ptx_clawback')
+  ).toMatchObject({
     type: 'REDEEM',
     subtype: 'PARTNER_REWARD_CLAWBACK',
     originalRewardTxnId: 'ptx_reward',
