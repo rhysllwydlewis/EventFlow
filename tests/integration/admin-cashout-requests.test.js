@@ -30,7 +30,7 @@ describe('admin cashout request security', () => {
   });
 
   test('persists the permanent redemption before releasing its temporary hold', () => {
-    const deliveryStart = routeContent.indexOf("} else if (status === 'delivered') {");
+    const deliveryStart = routeContent.lastIndexOf("} else if (status === 'delivered') {");
     const deliveryBlock = routeContent.slice(deliveryStart);
     const insertPosition = deliveryBlock.indexOf('const cashoutTxInserted');
     const releasePosition = deliveryBlock.indexOf('releaseCashoutHold');
