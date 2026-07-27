@@ -62,7 +62,7 @@ beforeEach(() => {
   });
 });
 
-test('creates one debit across repeated refund and dispute updates', async () => {
+test('creates one REDEEM debit across repeated refund and dispute updates', async () => {
   const payment = {
     id: 'pay_1',
     userId: 'usr_supplier',
@@ -73,12 +73,18 @@ test('creates one debit across repeated refund and dispute updates', async () =>
   const second = await clawback.clawBackForPaymentRecord(payment, 'disputed');
 
   expect(first).toMatchObject({
-    type: clawback.CLAWBACK_TYPE,
+    type: 'REDEEM',
+    subtype: clawback.CLAWBACK_SUBTYPE,
     supplierUserId: 'usr_supplier',
     amount: -100,
   });
-  expect(second).toMatchObject({ id: 'ptx_clawback' });
+  expect(second).toMatchObject({ id: 'ptx_clawback', type: 'REDEEM' });
   expect(mockDebitPoints).toHaveBeenCalledTimes(1);
+  expect(mockCollections.partner_credit_transactions.find(item => item.id === 'ptx_clawback')).toMatchObject({
+    type: 'REDEEM',
+    subtype: 'PARTNER_REWARD_CLAWBACK',
+    originalRewardTxnId: 'ptx_reward',
+  });
   expect(mockCollections.partner_referrals[0]).toMatchObject({
     subscriptionRewardReversalRef: 'payment:pi_1:partner-subscription-reward',
   });
