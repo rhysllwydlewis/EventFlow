@@ -36,7 +36,7 @@ function createRes({ statusCode = 201 } = {}) {
 
 describe('partnerReferralCampaignCapture middleware', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    mockDb.updateOne.mockClear();
   });
 
   it('installs partner anti-abuse guards when the route middleware is loaded', () => {
