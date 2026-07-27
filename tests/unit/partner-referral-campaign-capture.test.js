@@ -3,8 +3,10 @@
 const mockDb = {
   updateOne: jest.fn(() => Promise.resolve({ modified: 1 })),
 };
+const mockInstall = jest.fn();
 
 jest.mock('../../db-unified', () => mockDb);
+jest.mock('../../services/partnerAntiAbuseRuntime', () => ({ install: mockInstall }));
 
 jest.mock('../../utils/logger', () => ({
   warn: jest.fn(),
@@ -35,6 +37,10 @@ function createRes({ statusCode = 201 } = {}) {
 describe('partnerReferralCampaignCapture middleware', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+
+  it('installs partner anti-abuse guards when the route middleware is loaded', () => {
+    expect(mockInstall).toHaveBeenCalledTimes(1);
   });
 
   it('extracts and sanitises campaign metadata from body, query and referer', () => {
