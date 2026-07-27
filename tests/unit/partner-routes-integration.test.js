@@ -93,7 +93,10 @@ const mockPartnerService = {
   listReferralsByPartnerId: jest.fn(),
   getReviewQualifications: jest.fn(),
   isWithinAttributionWindow: jest.fn(),
-  maskReferralName: jest.fn(name => (name ? `${name[0]}***` : 'S***r')),
+  maskReferralName: jest.fn((name, company, email) => {
+    const source = name || company || email;
+    return source ? `${source[0]}***` : 'S***r';
+  }),
   regenerateCode: jest.fn(),
   getCodeHistory: jest.fn(),
   createCashoutHold: jest.fn(),
@@ -223,11 +226,9 @@ describe('partner route integration coverage', () => {
     );
     expect(mockNotifyAdmins).toHaveBeenCalled();
     expect(mockJwtSign).toHaveBeenCalled();
-    expect(mockSetAuthCookie).toHaveBeenCalledWith(
-      expect.anything(),
-      'signed-partner-token',
-      { remember: true }
-    );
+    expect(mockSetAuthCookie).toHaveBeenCalledWith(expect.anything(), 'signed-partner-token', {
+      remember: true,
+    });
   });
 
   it('validates registration inputs and duplicate accounts', async () => {
