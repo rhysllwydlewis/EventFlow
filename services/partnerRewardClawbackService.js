@@ -19,18 +19,25 @@ async function findPartnerSubscriptionReward(supplierUserId) {
 
 async function clawBackSubscriptionReward({ supplierUserId, externalRef, reason }) {
   if (!supplierUserId || !externalRef) return null;
-  const existing = await dbUnified.findOne('partner_credit_transactions', { externalRef });
-  if (existing) return existing;
+
+  const redeemType = partnerService.CREDIT_TYPES.REDEEM || 'REDEEM';
+  const existingDebit = await dbUnified.findOne('partner_credit_transactions', {
+    type: redeemType,
+    externalRef,
+  });
+  if (existingDebit?.subtype === CLAWBACK_SUBTYPE) return existingDebit;
 
   const match = await findPartnerSubscriptionReward(supplierUserId);
   if (!match) return null;
 
-  const debit = await partnerService.debitPoints({
-    partnerId: match.referral.partnerId,
-    amount: Math.abs(Number(match.reward.amount) || partnerService.SUBSCRIPTION_BONUS),
-    notes: `Partner subscription reward clawback: ${reason || 'payment reversed'}`,
-    externalRef,
-  });
+  const debit =
+    existingDebit ||
+    (await partnerService.debitPoints({
+      partnerId: match.referral.partnerId,
+      amount: Math.abs(Number(match.reward.amount) || partnerService.SUBSCRIPTION_BONUS),
+      notes: `Partner subscription reward clawback: ${reason || 'payment reversed'}`,
+      externalRef,
+    }));
   if (!debit) throw new Error('Partner reward clawback debit did not persist');
 
   // Keep the canonical REDEEM type so getBalance() continues to subtract the debit
