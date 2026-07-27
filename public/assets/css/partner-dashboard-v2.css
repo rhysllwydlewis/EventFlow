@@ -77,7 +77,7 @@
   border-radius: 10px;
   background: var(--partner-accent-strong);
   color: #fff;
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
   font-weight: 800;
 }
 
@@ -93,7 +93,7 @@
   background: transparent;
   color: var(--partner-muted);
   font: inherit;
-  font-size: 0.86rem;
+  font-size: 0.875rem;
   text-decoration: none;
   cursor: pointer;
 }
@@ -123,7 +123,7 @@
 .partner-card-kicker {
   margin: 0 0 0.35rem;
   color: var(--partner-accent);
-  font-size: 0.76rem;
+  font-size: 0.75rem;
   font-weight: 750;
   letter-spacing: 0.09em;
   text-transform: uppercase;
@@ -146,7 +146,7 @@
 .partner-app-account {
   max-width: 18rem;
   color: var(--partner-soft);
-  font-size: 0.86rem;
+  font-size: 0.875rem;
   text-align: right;
   overflow-wrap: anywhere;
 }
@@ -176,7 +176,7 @@
 }
 .partner-disabled-v2 h2 {
   margin: 0 0 0.35rem;
-  font-size: 1.2rem;
+  font-size: 1.25rem;
 }
 .partner-disabled-v2 p {
   margin: 0 0 0.75rem;
@@ -203,7 +203,7 @@
   background: transparent;
   color: var(--partner-muted);
   font: inherit;
-  font-size: 0.86rem;
+  font-size: 0.875rem;
   font-weight: 650;
   cursor: pointer;
 }
@@ -259,7 +259,7 @@
   display: block;
   margin-bottom: 0.7rem;
   color: var(--partner-muted);
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
   font-weight: 650;
 }
 .partner-balance-card strong {
@@ -271,7 +271,7 @@
 }
 .partner-balance-card small {
   color: var(--partner-soft);
-  font-size: 0.78rem;
+  font-size: 0.75rem;
 }
 .partner-balance-grid[data-loading='true'] .partner-balance-card strong,
 .partner-balance-grid[data-loading='true'] .partner-balance-card small {
@@ -324,14 +324,14 @@
 .partner-resource-card h3 {
   margin: 0;
   color: var(--partner-text);
-  font-size: 1.06rem;
+  font-size: 1rem;
   letter-spacing: -0.02em;
 }
 .partner-card-heading p,
 .partner-panel-heading p,
 .partner-resource-card p {
   margin: 0.25rem 0 0;
-  font-size: 0.86rem;
+  font-size: 0.875rem;
 }
 
 .partner-code-pill {
@@ -343,7 +343,7 @@
   border-radius: 999px;
   color: var(--partner-accent);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   cursor: pointer;
 }
 .partner-code-pill:focus-visible {
@@ -364,7 +364,7 @@
   min-width: 0;
   flex: 1;
   color: var(--partner-muted);
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -393,7 +393,7 @@
   min-height: 44px;
   border-radius: 0.65rem;
   font: inherit;
-  font-size: 0.84rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   text-decoration: none;
   cursor: pointer;
@@ -440,7 +440,7 @@
   gap: 1rem;
   margin-bottom: 0.55rem;
   color: var(--partner-muted);
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
 }
 .partner-progress-track {
   height: 9px;
@@ -459,7 +459,7 @@
 .partner-card-note {
   margin: 0.75rem 0 0;
   color: var(--partner-muted);
-  font-size: 0.84rem;
+  font-size: 0.8125rem;
 }
 
 .partner-performance-list {
@@ -477,7 +477,7 @@
 }
 .partner-performance-list dt {
   color: var(--partner-muted);
-  font-size: 0.84rem;
+  font-size: 0.8125rem;
 }
 .partner-performance-list dd {
   margin: 0;
@@ -493,7 +493,7 @@
   display: grid;
   gap: 0.3rem;
   color: var(--partner-soft);
-  font-size: 0.74rem;
+  font-size: 0.75rem;
   font-weight: 650;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -573,7 +573,7 @@
 .partner-referral-card-v2__meta,
 .partner-referral-card-v2__value {
   color: var(--partner-soft);
-  font-size: 0.78rem;
+  font-size: 0.75rem;
 }
 .partner-referral-card-v2__value {
   text-align: right;
@@ -581,7 +581,7 @@
 .partner-referral-card-v2__value strong {
   display: block;
   color: var(--partner-accent);
-  font-size: 0.9rem;
+  font-size: 0.875rem;
 }
 .partner-stage-grid {
   display: grid;
@@ -599,11 +599,11 @@
   display: block;
   margin-bottom: 0.25rem;
   color: var(--partner-soft);
-  font-size: 0.7rem;
+  font-size: 0.6875rem;
 }
 .partner-stage-v2 strong {
   color: var(--partner-muted);
-  font-size: 0.78rem;
+  font-size: 0.75rem;
 }
 .partner-stage-v2--done {
   border-color: rgba(75, 213, 177, 0.3);
@@ -622,7 +622,7 @@
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.06);
   color: var(--partner-muted);
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 700;
 }
 .partner-state-pill--active {
@@ -674,7 +674,7 @@
   display: grid;
   gap: 0.35rem;
   color: var(--partner-muted);
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
   font-weight: 650;
 }
 .partner-form-v2 label small {
@@ -700,7 +700,7 @@
 .partner-form-actions span {
   min-height: 1.2rem;
   color: var(--partner-muted);
-  font-size: 0.8rem;
+  font-size: 0.8125rem;
 }
 
 .partner-password-wrap {
@@ -751,7 +751,7 @@
 .partner-ticket-row-v2 p {
   margin: 0.2rem 0 0;
   color: var(--partner-soft);
-  font-size: 0.78rem;
+  font-size: 0.75rem;
 }
 .partner-status-pill {
   display: inline-flex;
@@ -759,7 +759,7 @@
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.06);
   color: var(--partner-muted);
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 750;
   white-space: nowrap;
 }
@@ -784,7 +784,7 @@
 .partner-table-v2 {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
 }
 .partner-table-v2 th,
 .partner-table-v2 td {
@@ -794,7 +794,7 @@
 }
 .partner-table-v2 th {
   color: var(--partner-soft);
-  font-size: 0.7rem;
+  font-size: 0.6875rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -820,7 +820,7 @@
   border-radius: 50%;
   background: rgba(75, 213, 177, 0.1);
   color: var(--partner-accent);
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 800;
 }
 .partner-resource-card .partner-primary-btn,
@@ -841,7 +841,7 @@
   display: block;
   margin-bottom: 0.25rem;
   color: var(--partner-soft);
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
@@ -1043,7 +1043,7 @@
   .partner-table-v2 td::before {
     content: attr(data-label) ': ';
     color: var(--partner-soft);
-    font-size: 0.7rem;
+    font-size: 0.6875rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
   }

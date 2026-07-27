@@ -725,7 +725,7 @@ describe('PartnerService', () => {
       expect(result.pendingSubscription).toBe(0);
     });
 
-    it('calculates pending package and subscription bonuses', async () => {
+    it('calculates pending package, review and subscription bonuses', async () => {
       // Active referral, nothing qualified
       mockStore.partner_referrals.push({
         id: 'ref_p1',
@@ -737,10 +737,11 @@ describe('PartnerService', () => {
       });
 
       const result = await partnerService.getPendingPoints('prt_pending');
-      // Pending = +10 (package) + +100 (subscription)
+      // Pending = +10 (package) + +15 (review) + +100 (subscription)
       expect(result.pendingPackage).toBe(10);
       expect(result.pendingSubscription).toBe(100);
-      expect(result.totalPending).toBe(110);
+      expect(result.pendingReview).toBe(15);
+      expect(result.totalPending).toBe(125);
     });
 
     it('excludes already-qualified bonuses from pending', async () => {
@@ -756,10 +757,11 @@ describe('PartnerService', () => {
       const result = await partnerService.getPendingPoints('prt_pending');
       expect(result.pendingPackage).toBe(0);
       expect(result.pendingSubscription).toBe(100);
-      expect(result.totalPending).toBe(100);
+      expect(result.pendingReview).toBe(15);
+      expect(result.totalPending).toBe(115);
     });
 
-    it('ignores referrals outside the attribution window', async () => {
+    it('expires package and subscription potential but keeps review potential', async () => {
       const oldDate = new Date(Date.now() - 40 * 24 * 60 * 60 * 1000).toISOString(); // 40 days ago
       mockStore.partner_referrals.push({
         id: 'ref_p3',
@@ -771,7 +773,10 @@ describe('PartnerService', () => {
       });
 
       const result = await partnerService.getPendingPoints('prt_pending');
-      expect(result.totalPending).toBe(0);
+      expect(result.pendingPackage).toBe(0);
+      expect(result.pendingSubscription).toBe(0);
+      expect(result.pendingReview).toBe(15);
+      expect(result.totalPending).toBe(15);
     });
   });
 
