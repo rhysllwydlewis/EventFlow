@@ -9,10 +9,22 @@ const partnerClawback = require('./partnerRewardClawbackService');
 let installed = false;
 
 async function reconcileVerifiedSignupRewards(partnerId) {
-  const referrals = await dbUnified.find('partner_referrals', { partnerId });
+  const [referrals, rewardedTransactions] = await Promise.all([
+    dbUnified.find('partner_referrals', { partnerId }),
+    dbUnified.find('partner_credit_transactions', {
+      partnerId,
+      type: partnerService.CREDIT_TYPES.REFERRAL_SIGNUP_BONUS,
+    }),
+  ]);
+  const rewardedSupplierIds = new Set(
+    (rewardedTransactions || []).map(transaction => transaction.supplierUserId).filter(Boolean)
+  );
+
   for (const referral of referrals || []) {
+    if (rewardedSupplierIds.has(referral.supplierUserId)) continue;
     try {
-      await partnerService.awardReferralSignupBonus(referral.supplierUserId);
+      const reward = await partnerService.awardReferralSignupBonus(referral.supplierUserId);
+      if (reward) rewardedSupplierIds.add(referral.supplierUserId);
     } catch (error) {
       logger.warn('[PARTNER-ANTI-ABUSE] Signup reward reconciliation failed', {
         partnerId,
@@ -32,7 +44,12 @@ function installBalanceReconciliation() {
 }
 
 function reviewNoteFrom(request, update) {
-  return String(update?.$set?.adminInternalNotes ?? update?.adminInternalNotes ?? request?.adminInternalNotes ?? '').trim();
+  return String(
+    update?.$set?.adminInternalNotes ??
+      update?.adminInternalNotes ??
+      request?.adminInternalNotes ??
+      ''
+  ).trim();
 }
 
 function installDatabaseGuards() {
