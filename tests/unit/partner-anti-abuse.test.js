@@ -44,6 +44,18 @@ function oldDate(days = 120) {
   return new Date(Date.now() - days * 86400000).toISOString();
 }
 
+function addReward(supplierUserId, type = 'REFERRAL_SIGNUP_BONUS', amount = 5, overrides = {}) {
+  mockCollections.partner_credit_transactions.push({
+    id: `ptx_${supplierUserId}_${type}`,
+    partnerId: 'prt_1',
+    supplierUserId,
+    type,
+    amount,
+    createdAt: oldDate(30),
+    ...overrides,
+  });
+}
+
 function seedHealthyPartner({ withPackage = true, withReview = true } = {}) {
   const old = oldDate();
   mockCollections.partners.push({
@@ -194,30 +206,59 @@ describe('partner reward eligibility', () => {
 });
 
 describe('partner cashout assessment', () => {
-  it('requires a recorded review for a healthy first cashout without classifying it high risk', async () => {
+  it('requires manual review for a healthy first delivered cashout without classifying it high risk', async () => {
     seedHealthyPartner();
-    mockCollections.partner_credit_transactions.push({
-      id: 'ptx_1',
-      partnerId: 'prt_1',
-      supplierUserId: 'usr_supplier',
-      type: 'SUBSCRIPTION_BONUS',
-      amount: 100,
-      createdAt: oldDate(90),
-    });
+    addReward('usr_supplier', 'SUBSCRIPTION_BONUS', 100, { createdAt: oldDate(90) });
+
     const result = await antiAbuse.assessCashout({ partnerId: 'prt_1', requestId: 'pcr_1' });
+
     expect(result.requiresManualReview).toBe(true);
     expect(result.blockApproval).toBe(false);
     expect(result.signals.map(signal => signal.code)).toContain('FIRST_CASHOUT');
+    expect(result.metrics.rewardedReferralCount).toBe(1);
   });
 
-  it('blocks self-referrals, unverified suppliers and unapproved profiles', async () => {
+  it('keeps first-cashout review after a rejected request and clears it after delivery', async () => {
     seedHealthyPartner();
+    addReward('usr_supplier');
+    mockCollections.partner_cashout_requests.push({
+      id: 'pcr_rejected',
+      partnerId: 'prt_1',
+      status: 'rejected',
+    });
+
+    const afterRejection = await antiAbuse.assessCashout({
+      partnerId: 'prt_1',
+      requestId: 'pcr_next',
+    });
+    expect(afterRejection.signals.map(signal => signal.code)).toContain('FIRST_CASHOUT');
+    expect(afterRejection.metrics.priorCashoutCount).toBe(1);
+    expect(afterRejection.metrics.priorDeliveredCashoutCount).toBe(0);
+
+    mockCollections.partner_cashout_requests.push({
+      id: 'pcr_delivered',
+      partnerId: 'prt_1',
+      status: 'delivered',
+    });
+    const afterDelivery = await antiAbuse.assessCashout({
+      partnerId: 'prt_1',
+      requestId: 'pcr_later',
+    });
+    expect(afterDelivery.signals.map(signal => signal.code)).not.toContain('FIRST_CASHOUT');
+    expect(afterDelivery.metrics.priorDeliveredCashoutCount).toBe(1);
+  });
+
+  it('blocks self-referrals, unverified suppliers and unapproved profiles when they earned points', async () => {
+    seedHealthyPartner();
+    addReward('usr_supplier');
     const supplier = mockCollections.users.find(user => user.id === 'usr_supplier');
     supplier.email = 'supplier@example-agency.co.uk';
     supplier.company = 'Example Agency';
     supplier.verified = false;
     mockCollections.suppliers[0].approved = false;
+
     const result = await antiAbuse.assessCashout({ partnerId: 'prt_1', requestId: 'pcr_2' });
+
     expect(result.blockApproval).toBe(true);
     expect(result.signals.map(signal => signal.code)).toEqual(
       expect.arrayContaining([
@@ -228,27 +269,29 @@ describe('partner cashout assessment', () => {
     );
   });
 
+  it('does not score weak referrals that never contributed reward points', async () => {
+    seedHealthyPartner();
+    mockCollections.users.find(user => user.id === 'usr_supplier').verified = false;
+    mockCollections.suppliers[0].approved = false;
+
+    const result = await antiAbuse.assessCashout({ partnerId: 'prt_1', requestId: 'pcr_adjustment' });
+
+    expect(result.signals.map(signal => signal.code)).not.toEqual(
+      expect.arrayContaining([
+        'UNVERIFIED_REFERRED_SUPPLIERS',
+        'UNAPPROVED_SUPPLIER_PROFILES',
+      ])
+    );
+    expect(result.metrics.rewardedReferralCount).toBe(0);
+  });
+
   it('blocks historical package and review rewards lacking current supporting evidence', async () => {
     seedHealthyPartner({ withPackage: false, withReview: false });
-    mockCollections.partner_credit_transactions.push(
-      {
-        id: 'ptx_pkg',
-        partnerId: 'prt_1',
-        supplierUserId: 'usr_supplier',
-        type: 'PACKAGE_BONUS',
-        amount: 10,
-        createdAt: oldDate(30),
-      },
-      {
-        id: 'ptx_review',
-        partnerId: 'prt_1',
-        supplierUserId: 'usr_supplier',
-        type: 'FIRST_REVIEW_BONUS',
-        amount: 15,
-        createdAt: oldDate(20),
-      }
-    );
+    addReward('usr_supplier', 'PACKAGE_BONUS', 10);
+    addReward('usr_supplier', 'FIRST_REVIEW_BONUS', 15);
+
     const result = await antiAbuse.assessCashout({ partnerId: 'prt_1', requestId: 'pcr_3' });
+
     expect(result.blockApproval).toBe(true);
     expect(result.signals.map(signal => signal.code)).toEqual(
       expect.arrayContaining([
@@ -258,8 +301,9 @@ describe('partner cashout assessment', () => {
     );
   });
 
-  it('ignores concentrated public email domains but flags concentrated private domains', async () => {
+  it('flags concentrated private domains only across suppliers who earned points', async () => {
     seedHealthyPartner();
+    addReward('usr_supplier');
     for (let index = 2; index <= 3; index += 1) {
       mockCollections.users.push({
         id: `usr_supplier_${index}`,
@@ -268,14 +312,22 @@ describe('partner cashout assessment', () => {
         company: `Venue ${index}`,
         verified: true,
       });
+      mockCollections.suppliers.push({
+        id: `sup_${index}`,
+        ownerUserId: `usr_supplier_${index}`,
+        approved: true,
+      });
       mockCollections.partner_referrals.push({
         id: `ref_${index}`,
         partnerId: 'prt_1',
         supplierUserId: `usr_supplier_${index}`,
         supplierCreatedAt: oldDate(),
       });
+      addReward(`usr_supplier_${index}`);
     }
+
     const result = await antiAbuse.assessCashout({ partnerId: 'prt_1', requestId: 'pcr_domains' });
+
     expect(result.signals.map(signal => signal.code)).toContain(
       'CONCENTRATED_PRIVATE_EMAIL_DOMAINS'
     );
