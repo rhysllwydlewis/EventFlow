@@ -19,10 +19,7 @@ async function findPartnerSubscriptionReward(supplierUserId) {
 
 async function clawBackSubscriptionReward({ supplierUserId, externalRef, reason }) {
   if (!supplierUserId || !externalRef) return null;
-  const existing = await dbUnified.findOne('partner_credit_transactions', {
-    type: CLAWBACK_TYPE,
-    externalRef,
-  });
+  const existing = await dbUnified.findOne('partner_credit_transactions', { externalRef });
   if (existing) return existing;
 
   const match = await findPartnerSubscriptionReward(supplierUserId);
@@ -34,8 +31,9 @@ async function clawBackSubscriptionReward({ supplierUserId, externalRef, reason 
     notes: `Partner subscription reward clawback: ${reason || 'payment reversed'}`,
     externalRef,
   });
+  if (!debit) throw new Error('Partner reward clawback debit did not persist');
 
-  await dbUnified.updateOne(
+  const updatedDebit = await dbUnified.updateOne(
     'partner_credit_transactions',
     { id: debit.id },
     {
@@ -46,7 +44,9 @@ async function clawBackSubscriptionReward({ supplierUserId, externalRef, reason 
       },
     }
   );
-  await dbUnified.updateOne(
+  if (!updatedDebit) throw new Error('Partner reward clawback audit fields did not persist');
+
+  const updatedReferral = await dbUnified.updateOne(
     'partner_referrals',
     { id: match.referral.id },
     {
@@ -56,6 +56,7 @@ async function clawBackSubscriptionReward({ supplierUserId, externalRef, reason 
       },
     }
   );
+  if (!updatedReferral) throw new Error('Partner referral clawback state did not persist');
 
   logger.warn('[PARTNER-ANTI-ABUSE] Subscription reward clawed back', {
     partnerId: match.referral.partnerId,
