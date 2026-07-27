@@ -8,6 +8,7 @@ const logger = require('./utils/logger');
 
 const { getDb } = require('./db');
 const { initializeCollections, createIndexes } = require('./models');
+const partnerAntiAbuseRuntime = require('./services/partnerAntiAbuseRuntime');
 
 // Additional collections not in models (reports, audit_logs, search_history)
 const ADDITIONAL_COLLECTIONS = [
@@ -79,9 +80,45 @@ const ADDITIONAL_COLLECTIONS = [
     indexes: [
       { keys: { id: 1 }, options: { unique: true } },
       { keys: { partnerId: 1 }, options: {} },
-      { keys: { supplierUserId: 1, type: 1, partnerId: 1 }, options: {} },
+      {
+        keys: { supplierUserId: 1, type: 1, partnerId: 1 },
+        options: {
+          unique: true,
+          partialFilterExpression: { supplierUserId: { $type: 'string' } },
+        },
+      },
       { keys: { type: 1 }, options: {} },
       { keys: { createdAt: -1 }, options: {} },
+    ],
+  },
+  {
+    name: 'partner_cashout_requests',
+    indexes: [
+      { keys: { id: 1 }, options: { unique: true } },
+      {
+        keys: { partnerId: 1, idempotencyKey: 1 },
+        options: {
+          unique: true,
+          partialFilterExpression: { idempotencyKey: { $type: 'string' } },
+        },
+      },
+      { keys: { partnerId: 1, status: 1 }, options: {} },
+      { keys: { createdAt: -1 }, options: {} },
+    ],
+  },
+  {
+    name: 'partner_fraud_assessments',
+    indexes: [
+      { keys: { id: 1 }, options: { unique: true } },
+      {
+        keys: { requestId: 1 },
+        options: {
+          unique: true,
+          partialFilterExpression: { requestId: { $type: 'string' } },
+        },
+      },
+      { keys: { partnerId: 1, assessedAt: -1 }, options: {} },
+      { keys: { riskLevel: 1 }, options: {} },
     ],
   },
 ];
@@ -92,6 +129,7 @@ const ADDITIONAL_COLLECTIONS = [
  */
 async function initializeDatabase() {
   try {
+    partnerAntiAbuseRuntime.install();
     const db = await getDb();
     logger.info('Initializing database collections and indexes...');
 
@@ -163,6 +201,11 @@ async function getDatabaseStats() {
       'reports',
       'audit_logs',
       'search_history',
+      'partners',
+      'partner_referrals',
+      'partner_credit_transactions',
+      'partner_cashout_requests',
+      'partner_fraud_assessments',
     ];
 
     const collectionStats = {};
