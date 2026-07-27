@@ -29,6 +29,16 @@ describe('admin cashout request security', () => {
     expect(routeContent).toContain('request.finalRedeemTxnId');
   });
 
+  test('persists the permanent redemption before releasing its temporary hold', () => {
+    const deliveryStart = routeContent.indexOf("if (status === 'delivered') {", 5000);
+    const deliveryBlock = routeContent.slice(deliveryStart);
+    const insertPosition = deliveryBlock.indexOf("insertOne('partner_credit_transactions'");
+    const releasePosition = deliveryBlock.indexOf('releaseCashoutHold');
+    expect(insertPosition).toBeGreaterThan(-1);
+    expect(releasePosition).toBeGreaterThan(insertPosition);
+    expect(deliveryBlock).toContain('CASHOUT_HOLD_RELEASE_FAILED');
+  });
+
   test('does not mark a cashout delivered without delivery evidence', () => {
     expect(routeContent).toContain('CASHOUT_DELIVERY_EVIDENCE_REQUIRED');
     expect(routeContent).toContain('Delivery evidence is required');
