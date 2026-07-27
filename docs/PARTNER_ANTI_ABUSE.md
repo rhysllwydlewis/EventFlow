@@ -23,7 +23,7 @@ Additional milestone evidence is required:
 - the reviewer must not be the supplier, the partner or another supplier account; and
 - a reviewer account created less than 24 hours before the review does not qualify for the partner reward.
 
-Eligible signup rewards are reconciled before partner balances are calculated. An unverified or unapproved signup therefore creates no withdrawable value, while a legitimate supplier can receive the deferred reward after approval.
+Eligible signup, package and first-review rewards are reconciled before partner balances are calculated. Weak or unapproved activity therefore creates no withdrawable value, while a legitimate milestone can receive its deferred reward after supplier, package or review approval. Existing ledger entries are skipped so reconciliation remains idempotent.
 
 ## Cashout fraud assessment
 
