@@ -118,6 +118,40 @@ async function addDatabaseIndexes() {
       logger.debug('Background job telemetry indexes may already exist:', error.message);
     }
 
+    // Partner reward integrity and anti-abuse indexes
+    try {
+      await db.collection('partners').createIndex({ userId: 1 }, { unique: true });
+      await db.collection('partners').createIndex({ refCode: 1 }, { unique: true });
+      await db.collection('partner_referrals').createIndex({ supplierUserId: 1 }, { unique: true });
+      await db.collection('partner_credit_transactions').createIndex(
+        { supplierUserId: 1, type: 1, partnerId: 1 },
+        {
+          unique: true,
+          partialFilterExpression: { supplierUserId: { $type: 'string' } },
+        }
+      );
+      await db.collection('partner_cashout_requests').createIndex(
+        { partnerId: 1, idempotencyKey: 1 },
+        {
+          unique: true,
+          partialFilterExpression: { idempotencyKey: { $type: 'string' } },
+        }
+      );
+      await db.collection('partner_fraud_assessments').createIndex(
+        { requestId: 1 },
+        {
+          unique: true,
+          partialFilterExpression: { requestId: { $type: 'string' } },
+        }
+      );
+      await db
+        .collection('partner_fraud_assessments')
+        .createIndex({ partnerId: 1, assessedAt: -1 });
+      logger.debug('Partner anti-abuse indexes created');
+    } catch (error) {
+      logger.warn('Partner anti-abuse indexes could not be fully created:', error.message);
+    }
+
     logger.info('Database indexes created successfully');
   } catch (error) {
     logger.error('Error creating database indexes:', error);
