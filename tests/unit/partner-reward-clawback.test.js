@@ -62,7 +62,7 @@ beforeEach(() => {
   });
 });
 
-test('creates an idempotent debit for a refunded subscription payment', async () => {
+test('creates one debit across repeated refund and dispute updates', async () => {
   const payment = {
     id: 'pay_1',
     userId: 'usr_supplier',
@@ -70,7 +70,7 @@ test('creates an idempotent debit for a refunded subscription payment', async ()
   };
 
   const first = await clawback.clawBackForPaymentRecord(payment, 'refunded');
-  const second = await clawback.clawBackForPaymentRecord(payment, 'refunded');
+  const second = await clawback.clawBackForPaymentRecord(payment, 'disputed');
 
   expect(first).toMatchObject({
     type: clawback.CLAWBACK_TYPE,
@@ -80,7 +80,7 @@ test('creates an idempotent debit for a refunded subscription payment', async ()
   expect(second).toMatchObject({ id: 'ptx_clawback' });
   expect(mockDebitPoints).toHaveBeenCalledTimes(1);
   expect(mockCollections.partner_referrals[0]).toMatchObject({
-    subscriptionRewardReversalRef: 'payment:pi_1:refunded',
+    subscriptionRewardReversalRef: 'payment:pi_1:partner-subscription-reward',
   });
 });
 
