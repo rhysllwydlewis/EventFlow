@@ -1,239 +1,163 @@
 /**
- * Unit tests for partner payout and support-ticket endpoints.
- *
- * Payout request (`POST /api/partner/payout-request`):
- *   - Returns 503 "coming soon" for all authenticated partner requests
- *   - Still rejects unauthenticated (401) and non-partner role (403)
- *
- * Support ticket (`POST /api/partner/support-ticket`):
- *   - Returns 401 for unauthenticated, 403 for non-partner role
- *   - Returns 403 for disabled partner accounts
- *   - Returns 400 when subject or message is missing
- *   - Returns 201 for valid tickets
+ * Partner support validation and restricted-access tests.
  */
-
 'use strict';
 
 const express = require('express');
 const request = require('supertest');
 
-// ─── Mocks ────────────────────────────────────────────────────────────────────
-
-jest.mock('../../utils/logger', () => ({
-  info: jest.fn(),
-  warn: jest.fn(),
-  error: jest.fn(),
+jest.mock('../../utils/logger', () => ({ info: jest.fn(), warn: jest.fn(), error: jest.fn() }));
+jest.mock('../../utils/postmark', () => ({ sendMail: jest.fn(), FROM_HELLO: 'hello@example.com' }));
+jest.mock('../../services/notifyAdmins.service', () => ({
+  notifyAdmins: jest.fn().mockResolvedValue(undefined),
 }));
+jest.mock('../../middleware/csrf', () => ({ csrfProtection: (_req, _res, next) => next() }));
+jest.mock('../../middleware/rateLimits', () => ({ authLimiter: (_req, _res, next) => next() }));
+jest.mock('../../middleware/validation', () => ({ passwordOk: jest.fn().mockReturnValue(true) }));
+jest.mock('bcryptjs', () => ({ hash: jest.fn(), compare: jest.fn() }));
+jest.mock('jsonwebtoken', () => ({ sign: jest.fn().mockReturnValue('token') }));
+jest.mock('validator', () => ({ isEmail: jest.fn().mockReturnValue(true) }));
 
-jest.mock('../../utils/postmark', () => ({
-  sendEmail: jest.fn().mockResolvedValue({ MessageID: 'mock-id' }),
-}));
-
-jest.mock('../../middleware/csrf', () => ({
-  csrfProtection: (_req, _res, next) => next(),
-}));
-
-jest.mock('../../middleware/rateLimits', () => ({
-  authLimiter: (_req, _res, next) => next(),
-  writeLimiter: (_req, _res, next) => next(),
-}));
-
-// Auth mock — default: authenticated partner; tests can override per-request via headers
-jest.mock('../../middleware/auth', () => {
-  const JWT_SECRET = 'test-secret';
-
-  function authRequired(req, res, next) {
-    const role = req.headers['x-test-role'];
-    if (role === 'none') {
+jest.mock('../../middleware/auth', () => ({
+  JWT_SECRET: 'test-secret',
+  setAuthCookie: jest.fn(),
+  authRequired(req, res, next) {
+    if (req.headers['x-test-role'] === 'none')
       return res.status(401).json({ error: 'Unauthorized' });
-    }
     req.user = {
-      id: req.headers['x-test-user-id'] || 'usr_partner_001',
-      role: role || 'partner',
-      email: req.headers['x-test-email'] || 'partner@example.com',
+      id: 'usr_partner_001',
+      role: req.headers['x-test-role'] || 'partner',
+      email: 'partner@example.com',
       name: 'Test Partner',
     };
     next();
-  }
-
-  function roleRequired(requiredRole) {
-    return (req, res, next) => {
-      if (!req.user || req.user.role !== requiredRole) {
-        return res.status(403).json({ error: 'Forbidden' });
-      }
-      next();
-    };
-  }
-
-  return { JWT_SECRET, authRequired, roleRequired, setAuthCookie: jest.fn() };
-});
-
-jest.mock('bcryptjs', () => ({
-  hash: jest.fn().mockResolvedValue('hashed'),
-  compare: jest.fn().mockResolvedValue(true),
-}));
-jest.mock('jsonwebtoken', () => ({
-  sign: jest.fn().mockReturnValue('token'),
-  verify: jest
-    .fn()
-    .mockImplementation((token, secret, cb) =>
-      cb(null, { id: 'usr_partner_001', role: 'partner' })
-    ),
-}));
-jest.mock('validator', () => ({
-  isEmail: jest.fn().mockReturnValue(true),
-  normalizeEmail: jest.fn(e => e),
-  escape: jest.fn(s => s),
-  isLength: jest.fn().mockReturnValue(true),
-  trim: jest.fn(s => s),
-  default: { isEmail: jest.fn().mockReturnValue(true) },
-}));
-jest.mock('../../middleware/validation', () => ({
-  passwordOk: jest.fn().mockReturnValue(true),
+  },
+  roleRequired(role) {
+    return (req, res, next) =>
+      req.user?.role === role ? next() : res.status(403).json({ error: 'Forbidden' });
+  },
 }));
 
-jest.mock('../../services/partnerService', () => ({
+const mockPartnerService = {
   getPartnerByUserId: jest.fn(),
+  POINTS_PER_GBP: 100,
+  CREDIT_MATURITY_DAYS: 30,
+  ATTRIBUTION_DAYS: 30,
   getBalance: jest.fn(),
-  listReferralsByPartnerId: jest.fn().mockResolvedValue([]),
-  maskReferralName: jest.fn(name => (name ? `${name[0]}***` : 'S***r')),
-  getCodeHistory: jest.fn().mockResolvedValue([]),
-  getPendingPoints: jest.fn().mockResolvedValue({ totalPending: 0 }),
-  getPartnerByAnyRefCode: jest.fn().mockResolvedValue(null),
+  getPendingPoints: jest.fn(),
+  listReferralsByPartnerId: jest.fn(),
+  getReviewQualifications: jest.fn(),
+  maskReferralName: jest.fn(),
+  getCodeHistory: jest.fn(),
   regenerateCode: jest.fn(),
   createPartner: jest.fn(),
-}));
+};
+jest.mock('../../services/partnerService', () => mockPartnerService);
 
-jest.mock('../../db-unified', () => ({
+const mockDb = {
   read: jest.fn().mockResolvedValue([]),
-  findOne: jest.fn().mockResolvedValue(null),
-  insertOne: jest.fn().mockResolvedValue({ id: 'tkt_001' }),
+  find: jest.fn().mockResolvedValue([]),
+  findOne: jest
+    .fn()
+    .mockResolvedValue({
+      id: 'usr_partner_001',
+      name: 'Test Partner',
+      email: 'partner@example.com',
+    }),
+  insertOne: jest.fn().mockResolvedValue({ id: 'persisted' }),
   updateOne: jest.fn().mockResolvedValue({ modified: 1 }),
-}));
+};
+jest.mock('../../db-unified', () => mockDb);
 
+let mockId = 0;
 jest.mock('../../store', () => ({
-  uid: (prefix = 'id') => `${prefix}_test_${Date.now()}`,
+  uid: prefix => `${prefix}_${++mockId}`,
   DATA_DIR: '/tmp/test-data',
 }));
 
-// ─── App setup ────────────────────────────────────────────────────────────────
-
-const partnerService = require('../../services/partnerService');
-const partnerRouter = require('../../routes/partner');
-
-function buildApp() {
-  const app = express();
-  app.use(express.json());
-  app.use('/api/partner', partnerRouter);
-  return app;
+const router = require('../../routes/partner');
+function app() {
+  const instance = express();
+  instance.use(express.json());
+  instance.use('/api/partner', router);
+  return instance;
 }
 
-// ─── Fixtures ────────────────────────────────────────────────────────────────
+const ACTIVE = { id: 'prt_001', userId: 'usr_partner_001', refCode: 'p_TEST', status: 'active' };
+const DISABLED = { ...ACTIVE, status: 'disabled' };
 
-const ACTIVE_PARTNER = {
-  id: 'prt_001',
-  userId: 'usr_partner_001',
-  refCode: 'p_TEST01',
-  status: 'active',
-};
-
-const DISABLED_PARTNER = {
-  ...ACTIVE_PARTNER,
-  status: 'disabled',
-};
-
-// ─── Support ticket ───────────────────────────────────────────────────────────
-
-describe('POST /api/partner/support-ticket — validation', () => {
-  let app;
-
+describe('POST /api/partner/support-ticket', () => {
   beforeEach(() => {
-    app = buildApp();
     jest.clearAllMocks();
-    partnerService.getPartnerByUserId.mockResolvedValue(ACTIVE_PARTNER);
+    mockPartnerService.getPartnerByUserId.mockResolvedValue(ACTIVE);
+    mockDb.findOne.mockResolvedValue({
+      id: 'usr_partner_001',
+      name: 'Test Partner',
+      email: 'partner@example.com',
+    });
+    mockDb.insertOne.mockResolvedValue({ id: 'persisted' });
   });
 
-  it('returns 401 when user is not authenticated', async () => {
-    const res = await request(app)
+  it('requires authentication and the partner role', async () => {
+    expect(
+      (
+        await request(app())
+          .post('/api/partner/support-ticket')
+          .set('x-test-role', 'none')
+          .send({ subject: 'Test', message: 'Hello' })
+      ).status
+    ).toBe(401);
+    expect(
+      (
+        await request(app())
+          .post('/api/partner/support-ticket')
+          .set('x-test-role', 'customer')
+          .send({ subject: 'Test', message: 'Hello' })
+      ).status
+    ).toBe(403);
+  });
+
+  it.each([
+    [{ message: 'Hello' }, /subject/i],
+    [{ subject: 'Question' }, /message/i],
+    [{ subject: '   ', message: 'Hello' }, /subject/i],
+    [{ subject: 'Question', message: '   ' }, /message/i],
+  ])('validates required fields', async (payload, pattern) => {
+    const response = await request(app()).post('/api/partner/support-ticket').send(payload);
+    expect(response.status).toBe(400);
+    expect(response.body.error).toMatch(pattern);
+  });
+
+  it('creates a normal partner-support ticket for active accounts', async () => {
+    const response = await request(app())
       .post('/api/partner/support-ticket')
-      .set('x-test-role', 'none')
-      .send({ subject: 'Test', message: 'Hello' });
-
-    expect(res.status).toBe(401);
+      .send({ subject: 'Question about referrals', message: 'When do points mature?' });
+    expect(response.status).toBe(201);
+    expect(mockDb.insertOne).toHaveBeenCalledWith(
+      'tickets',
+      expect.objectContaining({ category: 'partner_support', priority: 'normal' })
+    );
   });
 
-  it('returns 403 when user is not a partner', async () => {
-    const res = await request(app)
+  it('creates a restricted account-access ticket for disabled accounts', async () => {
+    mockPartnerService.getPartnerByUserId.mockResolvedValue(DISABLED);
+    const response = await request(app())
       .post('/api/partner/support-ticket')
-      .set('x-test-role', 'customer')
-      .send({ subject: 'Test', message: 'Hello' });
-
-    expect(res.status).toBe(403);
+      .send({ subject: 'Account access', message: 'Please review the restriction.' });
+    expect(response.status).toBe(201);
+    expect(mockDb.insertOne).toHaveBeenCalledWith(
+      'tickets',
+      expect.objectContaining({ category: 'partner_account_access', priority: 'high' })
+    );
   });
 
-  it('returns 403 when partner account is disabled', async () => {
-    partnerService.getPartnerByUserId.mockResolvedValue(DISABLED_PARTNER);
-
-    const res = await request(app)
-      .post('/api/partner/support-ticket')
-      .send({ subject: 'Test', message: 'Hello' });
-
-    expect(res.status).toBe(403);
-    expect(res.body).toMatchObject({ disabled: true });
-  });
-
-  it('returns 400 when subject is missing', async () => {
-    const res = await request(app)
-      .post('/api/partner/support-ticket')
-      .send({ message: 'Hello team' });
-
-    expect(res.status).toBe(400);
-    expect(res.body.error).toMatch(/subject is required/i);
-  });
-
-  it('returns 400 when subject is empty string', async () => {
-    const res = await request(app)
-      .post('/api/partner/support-ticket')
-      .send({ subject: '   ', message: 'Hello team' });
-
-    expect(res.status).toBe(400);
-    expect(res.body.error).toMatch(/subject is required/i);
-  });
-
-  it('returns 400 when message is missing', async () => {
-    const res = await request(app)
-      .post('/api/partner/support-ticket')
-      .send({ subject: 'Test subject' });
-
-    expect(res.status).toBe(400);
-    expect(res.body.error).toMatch(/message is required/i);
-  });
-
-  it('returns 400 when message is empty string', async () => {
-    const res = await request(app)
-      .post('/api/partner/support-ticket')
-      .send({ subject: 'Test subject', message: '   ' });
-
-    expect(res.status).toBe(400);
-    expect(res.body.error).toMatch(/message is required/i);
-  });
-
-  it('returns 201 for a valid support ticket', async () => {
-    const res = await request(app)
-      .post('/api/partner/support-ticket')
-      .send({ subject: 'Question about referrals', message: 'When do I get my bonus?' });
-
-    expect(res.status).toBe(201);
-    expect(res.body.ok).toBe(true);
-    expect(res.body.ticketId).toBeTruthy();
-  });
-
-  it('truncates subject to 150 chars and message to 2000 chars', async () => {
-    const res = await request(app)
+  it('limits the stored subject and message lengths', async () => {
+    const response = await request(app())
       .post('/api/partner/support-ticket')
       .send({ subject: 'A'.repeat(200), message: 'B'.repeat(3000) });
-
-    expect(res.status).toBe(201);
-    expect(res.body.ok).toBe(true);
+    expect(response.status).toBe(201);
+    const ticket = mockDb.insertOne.mock.calls[0][1];
+    expect(ticket.subject).toHaveLength(150);
+    expect(ticket.message).toHaveLength(2000);
   });
 });

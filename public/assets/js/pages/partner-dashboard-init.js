@@ -1,1662 +1,1083 @@
 /**
- * Partner Dashboard — init
- * Loads partner data and renders stats, referral link, referrals list, and transactions.
+ * Partner Dashboard v2
+ * Independent section loading, current-state sharing, resilient cashouts and accessible dialogs/tabs.
  */
 (function () {
   'use strict';
-  function escapeHtml(s) {
-    if (!s) return '';
-    const d = document.createElement('div');
-    d.textContent = String(s);
-    return d.innerHTML;
+
+  const API_BASE = '/api/v1/partner';
+  const state = {
+    user: null,
+    partner: null,
+    profile: null,
+    credits: null,
+    config: null,
+    stats: null,
+    referrals: [],
+    transactions: [],
+    cashouts: [],
+    tickets: [],
+    codeHistory: [],
+    disabled: false,
+    referralFilter: 'all',
+    referralSort: 'newest',
+    cashoutKey: null,
+  };
+
+  const retryHandlers = {};
+  let toastTimer = null;
+  let activeDialog = null;
+  let dialogTrigger = null;
+  let confirmResolver = null;
+
+  const byId = id => document.getElementById(id);
+
+  function escapeHtml(value) {
+    const node = document.createElement('div');
+    node.textContent = String(value ?? '');
+    return node.innerHTML;
   }
 
-  // ── Helpers ──────────────────────────────────────────────────────────────────
-
-  function esc(str) {
-    const d = document.createElement('div');
-    d.textContent = str;
-    return d.innerHTML;
-  }
-
-  function fmtDate(iso) {
-    if (!iso) {
-      return '—';
-    }
-    return new Date(iso).toLocaleDateString('en-GB', {
+  function formatDate(value, options = {}) {
+    if (!value) return '—';
+    const date = new Date(value);
+    if (!Number.isFinite(date.getTime())) return '—';
+    return date.toLocaleDateString('en-GB', {
       day: 'numeric',
       month: 'short',
-      year: 'numeric',
+      year: options.withYear === false ? undefined : 'numeric',
     });
   }
 
-  function fmtCredits(n) {
-    return typeof n === 'number' ? n.toLocaleString() : '—';
+  function formatPoints(value) {
+    return Number(value || 0).toLocaleString('en-GB');
   }
 
-  function toPounds(credits, pointsPerGbp) {
-    const rate = Number.isInteger(pointsPerGbp) && pointsPerGbp > 0 ? pointsPerGbp : 100;
-    return `£${((credits || 0) / rate).toFixed(2)}`;
+  function toPounds(points) {
+    const rate = Number(state.config?.pointsPerGbp || 100);
+    return `£${(Number(points || 0) / rate).toFixed(2)}`;
   }
 
-  function showToast(msg, type = 'success') {
-    const toast = document.getElementById('partner-toast');
-    if (!toast) {
-      return;
-    }
-    // Set ARIA role: 'alert' for errors (assertive announcement), 'status' for others
+  function typeLabel(type) {
+    return (
+      {
+        REFERRAL_SIGNUP_BONUS: 'Supplier signup',
+        PACKAGE_BONUS: 'First package',
+        FIRST_REVIEW_BONUS: 'First customer review',
+        SUBSCRIPTION_BONUS: 'First paid subscription',
+        ADJUSTMENT: 'Account adjustment',
+        CASHOUT_HOLD: 'Redemption hold',
+        CASHOUT_RELEASE: 'Hold returned',
+        REDEEM: 'Reward delivered',
+      }[type] || String(type || 'Activity')
+    );
+  }
+
+  function methodLabel(method) {
+    return method === 'amazon_voucher'
+      ? 'Amazon Voucher'
+      : method === 'prepaid_debit_card'
+        ? 'Pre-Paid Debit Card'
+        : method || 'Reward';
+  }
+
+  function showToast(message, type = 'success') {
+    const toast = byId('partner-toast');
+    if (!toast) return;
+    clearTimeout(toastTimer);
+    toast.textContent = message;
+    toast.className = `partner-toast-v2 is-visible${type === 'error' ? ' is-error' : ''}`;
     toast.setAttribute('role', type === 'error' ? 'alert' : 'status');
-    toast.textContent = msg;
-    toast.className = `partner-toast partner-toast--${type} show`;
-    setTimeout(() => toast.classList.remove('show'), 3000);
+    toastTimer = setTimeout(() => {
+      toast.className = 'partner-toast-v2';
+    }, 3500);
   }
 
-  // ── In-page confirmation dialog ───────────────────────────────────────────────
-
-  function showConfirmDialog(message) {
-    return new Promise(resolve => {
-      const existing = document.getElementById('_partner_confirm_dialog');
-      if (existing) existing.remove();
-
-      const overlay = document.createElement('div');
-      overlay.id = '_partner_confirm_dialog';
-      overlay.setAttribute('role', 'dialog');
-      overlay.setAttribute('aria-modal', 'true');
-      overlay.setAttribute('aria-label', 'Confirm action');
-      overlay.className = 'partner-confirm-overlay';
-
-      overlay.innerHTML = `
-        <div style="background:rgba(15,28,35,0.97);border:1px solid rgba(255,255,255,0.14);border-radius:16px;max-width:400px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,0.5);padding:1.5rem;">
-          <p style="margin:0 0 1.25rem;font-size: 0.875rem;color:rgba(255,255,255,0.85);line-height:1.55;white-space:pre-line;">${escHtml(message)}</p>
-          <div style="display:flex;justify-content:flex-end;gap:0.75rem;">
-            <button type="button" id="_partner_confirm_cancel" class="ef-cta partner-confirm-cancel">Cancel</button>
-            <button type="button" id="_partner_confirm_ok" class="ef-cta partner-confirm-ok">Confirm</button>
-          </div>
-        </div>
-      `;
-
-      document.body.appendChild(overlay);
-
-      const cleanup = val => {
-        overlay.remove();
-        resolve(val);
-      };
-      overlay
-        .querySelector('#_partner_confirm_cancel')
-        .addEventListener('click', () => cleanup(false));
-      overlay.querySelector('#_partner_confirm_ok').addEventListener('click', () => cleanup(true));
-      overlay.addEventListener('click', e => {
-        if (e.target === overlay) cleanup(false);
-      });
-      overlay.querySelector('#_partner_confirm_ok').focus();
-    });
+  async function getCsrfToken() {
+    if (window.__CSRF_TOKEN__) return window.__CSRF_TOKEN__;
+    const response = await fetch('/api/v1/csrf-token', { credentials: 'include' });
+    if (!response.ok) return '';
+    const body = await response.json().catch(() => ({}));
+    return body.csrfToken || '';
   }
 
-  // ── Auth guard ────────────────────────────────────────────────────────────────
+  async function api(path, options = {}) {
+    const request = { credentials: 'include', ...options };
+    request.headers = { ...(options.headers || {}) };
+    if (options.body && !request.headers['Content-Type']) {
+      request.headers['Content-Type'] = 'application/json';
+    }
+    if (options.method && !['GET', 'HEAD'].includes(options.method.toUpperCase())) {
+      request.headers['X-CSRF-Token'] = await getCsrfToken();
+    }
+    const response = await fetch(`${API_BASE}${path}`, request);
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const error = new Error(body.error || `Request failed (${response.status})`);
+      error.status = response.status;
+      error.body = body;
+      throw error;
+    }
+    return body;
+  }
+
+  function loadingMarkup(message) {
+    return `<span class="partner-spinner" aria-hidden="true"></span><p>${escapeHtml(message)}</p>`;
+  }
+
+  function setLoading(containerId, message) {
+    const container = byId(containerId);
+    if (container) container.innerHTML = loadingMarkup(message);
+  }
+
+  function renderEmpty(containerId, title, message, actionHtml = '') {
+    const container = byId(containerId);
+    if (!container) return;
+    container.innerHTML = `<div class="partner-empty-v2"><strong>${escapeHtml(title)}</strong><p>${escapeHtml(message)}</p>${actionHtml}</div>`;
+  }
+
+  function renderSectionError(containerId, retryKey, message) {
+    const container = byId(containerId);
+    if (!container) return;
+    container.innerHTML = `<div class="partner-section-error"><strong>Unable to load this section</strong><p>${escapeHtml(message || 'Please try again.')}</p><button type="button" class="partner-secondary-btn" data-retry="${escapeHtml(retryKey)}">Retry</button></div>`;
+  }
 
   async function ensureAuth() {
     try {
-      const res = await fetch('/api/v1/auth/me', { credentials: 'include' });
-      if (!res.ok) {
-        window.location.replace(
-          `/partner?redirect=${encodeURIComponent(window.location.pathname)}`
-        );
-        return null;
-      }
-      const data = await res.json();
-      const user = data.user || data;
-      if (!user || !user.id) {
+      const response = await fetch('/api/v1/auth/me', { credentials: 'include' });
+      const body = await response.json().catch(() => ({}));
+      const user = body.user || (body.id ? body : null);
+      if (!response.ok || !user?.id || user.role !== 'partner') {
         window.location.replace('/partner');
         return null;
       }
-      // Admins should use the admin partners dashboard, not the partner portal
-      if (user.role === 'admin') {
-        window.location.replace('/admin-partners');
-        return null;
-      }
-      if (user.role !== 'partner') {
-        window.location.replace('/partner');
-        return null;
-      }
+      state.user = user;
       return user;
-    } catch (err) {
+    } catch (_) {
       window.location.replace('/partner');
       return null;
     }
   }
 
-  // ── Logout ────────────────────────────────────────────────────────────────────
-
-  async function getCsrfToken() {
-    // Try the global CSRF token first (set by csrf-handler.js if loaded)
-    if (window.__CSRF_TOKEN__) {
-      return window.__CSRF_TOKEN__;
+  function setGreeting(profile) {
+    const hour = new Date().getHours();
+    const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+    if (byId('partner-greeting-time')) byId('partner-greeting-time').textContent = greeting;
+    const firstName = profile?.firstName || String(profile?.name || '').split(' ')[0] || 'Partner';
+    if (byId('partner-name-heading')) byId('partner-name-heading').textContent = firstName;
+    if (byId('partner-user-name')) {
+      byId('partner-user-name').textContent = profile?.name || state.user?.email || '';
     }
-    // Fall back to fetching a fresh token
-    try {
-      const r = await fetch('/api/v1/csrf-token', { credentials: 'include' });
-      if (r.ok) {
-        const d = await r.json();
-        return d.csrfToken || '';
-      }
-    } catch (_) {
-      // Ignore fetch errors
-    }
-    return '';
   }
 
-  function initLogout() {
-    const btn = document.getElementById('partner-logout-btn');
-    if (!btn) {
+  function selectPanel(panelName, focusTab = false) {
+    const tabs = [...document.querySelectorAll('#partner-dashboard-tabs [role="tab"]')];
+    const panels = [...document.querySelectorAll('[data-dashboard-panel]')];
+    for (const tab of tabs) {
+      const selected = tab.dataset.panel === panelName;
+      tab.setAttribute('aria-selected', String(selected));
+      tab.tabIndex = selected ? 0 : -1;
+      if (selected && focusTab) tab.focus();
+    }
+    for (const panel of panels) panel.hidden = panel.dataset.dashboardPanel !== panelName;
+    history.replaceState(null, '', `#${panelName}`);
+  }
+
+  function initTabs() {
+    const tabs = [...document.querySelectorAll('#partner-dashboard-tabs [role="tab"]')];
+    tabs.forEach((tab, index) => {
+      tab.addEventListener('click', () => selectPanel(tab.dataset.panel));
+      tab.addEventListener('keydown', event => {
+        if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+        event.preventDefault();
+        let nextIndex = index;
+        if (event.key === 'ArrowRight') nextIndex = (index + 1) % tabs.length;
+        if (event.key === 'ArrowLeft') nextIndex = (index - 1 + tabs.length) % tabs.length;
+        if (event.key === 'Home') nextIndex = 0;
+        if (event.key === 'End') nextIndex = tabs.length - 1;
+        selectPanel(tabs[nextIndex].dataset.panel, true);
+      });
+    });
+    document.querySelectorAll('[data-open-panel]').forEach(button => {
+      button.addEventListener('click', () => selectPanel(button.dataset.openPanel, true));
+    });
+    const hashPanel = location.hash.replace('#', '');
+    if (tabs.some(tab => tab.dataset.panel === hashPanel)) selectPanel(hashPanel);
+  }
+
+  function focusableElements(dialog) {
+    return [
+      ...dialog.querySelectorAll(
+        'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      ),
+    ].filter(element => !element.hidden && element.offsetParent !== null);
+  }
+
+  function handleDialogKeydown(event) {
+    if (!activeDialog) return;
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      closeDialog(activeDialog);
       return;
     }
-    btn.addEventListener('click', async () => {
-      try {
-        const csrfToken = await getCsrfToken();
-        await fetch('/api/v1/auth/logout', {
-          method: 'POST',
-          credentials: 'include',
-          headers: { 'X-CSRF-Token': csrfToken },
-        });
-      } catch (_) {
-        // Best-effort logout — navigate regardless
-      }
-      // Clear any stale client-side auth state
-      try {
-        if (window.AuthStateManager) {
-          window.AuthStateManager.logout();
-        }
-        localStorage.removeItem('user');
-        sessionStorage.clear();
-      } catch (_) {
-        // Ignore storage errors
-      }
-      window.location.replace('/partner');
+    if (event.key !== 'Tab') return;
+    const dialog = activeDialog.querySelector('[role="dialog"], [role="alertdialog"]');
+    const focusable = dialog ? focusableElements(dialog) : [];
+    if (!focusable.length) {
+      event.preventDefault();
+      dialog?.focus();
+      return;
+    }
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
+
+  function openDialog(overlay, trigger = document.activeElement) {
+    if (!overlay) return;
+    if (activeDialog && activeDialog !== overlay) closeDialog(activeDialog, false);
+    activeDialog = overlay;
+    dialogTrigger = trigger;
+    overlay.hidden = false;
+    document.body.style.overflow = 'hidden';
+    document.addEventListener('keydown', handleDialogKeydown);
+    const dialog = overlay.querySelector('[role="dialog"], [role="alertdialog"]');
+    const focusable = dialog ? focusableElements(dialog) : [];
+    (focusable[0] || dialog)?.focus();
+  }
+
+  function closeDialog(overlay, restoreFocus = true) {
+    if (!overlay) return;
+    overlay.hidden = true;
+    if (activeDialog === overlay) activeDialog = null;
+    document.body.style.overflow = '';
+    document.removeEventListener('keydown', handleDialogKeydown);
+    if (restoreFocus && dialogTrigger?.focus) dialogTrigger.focus();
+    dialogTrigger = null;
+  }
+
+  function initDialogs() {
+    document.querySelectorAll('.partner-dialog-overlay').forEach(overlay => {
+      overlay.addEventListener('click', event => {
+        if (event.target === overlay) closeDialog(overlay);
+      });
+      overlay.querySelectorAll('[data-close-dialog]').forEach(button => {
+        button.addEventListener('click', () => closeDialog(overlay));
+      });
     });
   }
 
-  // ── Load partner data ─────────────────────────────────────────────────────────
+  function confirmAction(message) {
+    const overlay = byId('partner-confirm-overlay');
+    byId('partner-confirm-message').textContent = message;
+    openDialog(overlay);
+    return new Promise(resolve => {
+      confirmResolver = resolve;
+    });
+  }
 
-  async function loadPartnerData() {
-    const res = await fetch('/api/v1/partner/me', { credentials: 'include' });
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      if (res.status === 403 && body.disabled) {
-        const err = new Error(body.error || 'Your partner account has been disabled.');
-        err.disabled = true;
-        throw err;
-      }
-      throw new Error('Failed to load partner data');
+  function finishConfirm(result) {
+    if (confirmResolver) confirmResolver(result);
+    confirmResolver = null;
+    closeDialog(byId('partner-confirm-overlay'));
+  }
+
+  function renderDisabled(error) {
+    state.disabled = true;
+    const panel = byId('partner-disabled-panel');
+    panel.hidden = false;
+    byId('partner-disabled-msg').textContent =
+      error?.body?.error || error?.message || 'Your partner account is currently disabled.';
+    byId('partner-status-line').textContent = 'Account support remains available.';
+    byId('partner-status-line').style.color = 'var(--partner-danger)';
+    byId('partner-balance-grid').hidden = true;
+    document.querySelectorAll('#partner-dashboard-tabs [role="tab"]').forEach(tab => {
+      tab.hidden = tab.dataset.panel !== 'support';
+    });
+    document.querySelectorAll('[data-dashboard-panel]').forEach(panelElement => {
+      panelElement.hidden = panelElement.dataset.dashboardPanel !== 'support';
+    });
+    selectPanel('support');
+    const supportTitle = byId('support-modal-title');
+    if (supportTitle) supportTitle.textContent = 'Contact account support';
+  }
+
+  function renderCore() {
+    const credits = state.credits || {};
+    setGreeting(state.profile);
+    byId('partner-status-line').textContent = nextActionMessage();
+    byId('partner-status-line').style.color = '';
+    byId('partner-balance-grid').removeAttribute('data-loading');
+    byId('partner-balance-grid').hidden = false;
+
+    byId('stat-balance').textContent = formatPoints(credits.availableBalance);
+    byId('stat-balance-gbp').textContent = toPounds(credits.availableBalance);
+    byId('stat-pending').textContent = formatPoints(credits.maturingBalance);
+    byId('stat-pending-gbp').textContent = toPounds(credits.maturingBalance);
+    byId('stat-potential').textContent = formatPoints(credits.pendingPoints);
+    byId('stat-potential-gbp').textContent = toPounds(credits.pendingPoints);
+    byId('stat-earned').textContent = formatPoints(credits.totalEarned);
+    byId('stat-earned-gbp').textContent = toPounds(credits.totalEarned);
+
+    byId('partner-ref-link').textContent = state.partner.refLink;
+    byId('partner-ref-code-badge').textContent = state.partner.refCode;
+    byId('partner-code-display').textContent = state.partner.refCode;
+    byId('cashout-rule-summary').textContent =
+      `${state.config.pointsPerGbp} points = £1. Minimum redemption £${state.config.minimumCashoutGbp}.`;
+
+    const firstName = byId('settings-firstname');
+    const lastName = byId('settings-lastname');
+    const company = byId('settings-company');
+    if (firstName && document.activeElement !== firstName)
+      firstName.value = state.profile.firstName || '';
+    if (lastName && document.activeElement !== lastName)
+      lastName.value = state.profile.lastName || '';
+    if (company && document.activeElement !== company) company.value = state.profile.company || '';
+    renderCashoutForm();
+  }
+
+  function nextActionMessage() {
+    if (!state.config || !state.credits) return 'Your partner account is active.';
+    const minimumPoints = state.config.minimumCashoutGbp * state.config.pointsPerGbp;
+    if (state.credits.availableBalance >= minimumPoints) return 'Your rewards are ready to redeem.';
+    if (state.stats?.referralActivity?.active) {
+      return `${state.stats.referralActivity.active} active referral${state.stats.referralActivity.active === 1 ? '' : 's'} can still complete milestones.`;
     }
-    return res.json();
+    const remaining = Math.max(0, minimumPoints - Number(state.credits.availableBalance || 0));
+    return `${formatPoints(remaining)} more points will unlock your next reward.`;
+  }
+
+  async function loadCore() {
+    try {
+      const body = await api('/me');
+      state.disabled = false;
+      state.partner = body.partner;
+      state.profile = body.userProfile || {};
+      state.credits = body.credits || {};
+      state.config = body.config || {
+        pointsPerGbp: body.pointsPerGbp || 100,
+        maturityDays: 30,
+        attributionDays: 30,
+        minimumCashoutGbp: 15,
+        cashoutDenominations: [],
+        cashoutMethods: ['amazon_voucher', 'prepaid_debit_card'],
+      };
+      renderCore();
+      return body;
+    } catch (error) {
+      if (error.status === 403 && error.body?.disabled) {
+        renderDisabled(error);
+        return null;
+      }
+      byId('partner-status-line').textContent =
+        'Unable to load your account. Refresh the page to try again.';
+      byId('partner-status-line').style.color = 'var(--partner-danger)';
+      byId('partner-balance-grid').removeAttribute('data-loading');
+      throw error;
+    }
+  }
+
+  function renderStats() {
+    const stats = state.stats || {};
+    const progress = stats.cashoutProgress || {};
+    const activity = stats.referralActivity || {};
+    const percentage = Math.max(0, Math.min(100, Number(progress.percentToNextCashout || 0)));
+    byId('milestone-fill').style.width = `${percentage}%`;
+    byId('milestone-track').setAttribute('aria-valuenow', String(percentage));
+    byId('milestone-percent').textContent = `${percentage}%`;
+    byId('milestone-value-label').textContent =
+      `${formatPoints(progress.availablePoints)} / ${formatPoints(progress.minCashoutPoints)} points`;
+    byId('milestone-hint').textContent =
+      Number(progress.pointsToNextCashout || 0) > 0
+        ? `${formatPoints(progress.pointsToNextCashout)} points (${toPounds(progress.pointsToNextCashout)}) to your next redemption.`
+        : 'You have enough available points to redeem a reward.';
+
+    byId('performance-total').textContent = formatPoints(activity.total);
+    byId('performance-active').textContent = formatPoints(activity.active);
+    byId('performance-completed').textContent = formatPoints(activity.completed);
+    byId('performance-paid').textContent = formatPoints(activity.paidConversions);
+
+    const breakdown = stats.breakdown || {};
+    const rows = [
+      ['Supplier signups', breakdown.signup || 0],
+      ['First packages', breakdown.package || 0],
+      ['First customer reviews', breakdown.review || 0],
+      ['First paid subscriptions', breakdown.subscription || 0],
+      ['Account adjustments', breakdown.adjustment || 0],
+    ];
+    byId('breakdown-container').innerHTML = `<div class="partner-breakdown-v2">${rows
+      .map(
+        ([label, points]) =>
+          `<div class="partner-breakdown-row"><span>${escapeHtml(label)}</span><strong>${formatPoints(points)} points<small>${toPounds(points)}</small></strong></div>`
+      )
+      .join('')}</div>`;
+    byId('partner-status-line').textContent = nextActionMessage();
+  }
+
+  async function loadStats() {
+    setLoading('breakdown-container', 'Loading breakdown…');
+    try {
+      const body = await api('/stats');
+      state.stats = body;
+      if (body.config) state.config = body.config;
+      renderStats();
+    } catch (error) {
+      renderSectionError('breakdown-container', 'stats', error.message);
+      byId('milestone-value-label').textContent = 'Unavailable';
+      byId('milestone-hint').textContent = 'Reward progress could not be loaded.';
+    }
+  }
+
+  function referralStage(label, complete, completeText, pendingText, expired = false) {
+    const className = complete
+      ? 'partner-stage-v2 partner-stage-v2--done'
+      : expired
+        ? 'partner-stage-v2 partner-stage-v2--expired'
+        : 'partner-stage-v2';
+    return `<div class="${className}"><span>${escapeHtml(label)}</span><strong>${escapeHtml(complete ? completeText : pendingText)}</strong></div>`;
+  }
+
+  function referralCard(referral, compact = false) {
+    const packageExpired = !referral.withinWindow && !referral.packageQualified;
+    const subscriptionExpired = !referral.withinWindow && !referral.subscriptionQualified;
+    const timing = referral.withinWindow
+      ? `${referral.daysRemaining} day${referral.daysRemaining === 1 ? '' : 's'} left for time-limited milestones`
+      : 'Package and subscription window closed';
+    const stages = compact
+      ? ''
+      : `<div class="partner-stage-grid">
+          ${referralStage('Signup', true, 'Completed · +5', '')}
+          ${referralStage('First package', referral.packageQualified, 'Completed · +10', packageExpired ? 'Window expired' : 'Still available · +10', packageExpired)}
+          ${referralStage('First review', referral.reviewQualified, 'Completed · +15', 'Still available · +15')}
+          ${referralStage('Paid subscription', referral.subscriptionQualified, 'Completed · +100', subscriptionExpired ? 'Window expired' : 'Still available · +100', subscriptionExpired)}
+        </div>`;
+    return `<article class="partner-referral-card-v2">
+      <div class="partner-referral-card-v2__top">
+        <div><div class="partner-referral-card-v2__name">${escapeHtml(referral.supplierName)}</div><div class="partner-referral-card-v2__meta">Joined ${formatDate(referral.signedUpAt)} · ${escapeHtml(timing)}</div></div>
+        <div class="partner-referral-card-v2__value"><strong>${formatPoints(referral.pointsEarned)} earned</strong>${formatPoints(referral.potentialPoints)} potential</div>
+      </div>
+      ${stages}
+      <span class="partner-state-pill partner-state-pill--${escapeHtml(referral.state)}">${escapeHtml(referral.state.charAt(0).toUpperCase() + referral.state.slice(1))}</span>
+    </article>`;
+  }
+
+  function sortedFilteredReferrals() {
+    let items = [...state.referrals];
+    if (state.referralFilter !== 'all')
+      items = items.filter(item => item.state === state.referralFilter);
+    if (state.referralSort === 'expiring') {
+      items.sort(
+        (a, b) =>
+          (a.withinWindow ? a.daysRemaining : Number.MAX_SAFE_INTEGER) -
+          (b.withinWindow ? b.daysRemaining : Number.MAX_SAFE_INTEGER)
+      );
+    } else if (state.referralSort === 'potential') {
+      items.sort((a, b) => b.potentialPoints - a.potentialPoints);
+    } else {
+      items.sort((a, b) => new Date(b.signedUpAt) - new Date(a.signedUpAt));
+    }
+    return items;
+  }
+
+  function renderReferrals() {
+    const items = sortedFilteredReferrals();
+    if (!items.length) {
+      renderEmpty(
+        'referrals-container',
+        state.referrals.length ? 'No matching referrals' : 'No referred suppliers yet',
+        state.referrals.length
+          ? 'Choose another filter to see your referrals.'
+          : 'Share your referral link with genuine event suppliers to begin.'
+      );
+    } else {
+      byId('referrals-container').innerHTML =
+        `<div class="partner-referral-list">${items.map(item => referralCard(item)).join('')}</div>`;
+    }
+
+    const recent = state.referrals.slice(0, 3);
+    if (!recent.length) {
+      renderEmpty(
+        'overview-referrals-container',
+        'No referrals yet',
+        'Your latest referred suppliers will appear here.'
+      );
+    } else {
+      byId('overview-referrals-container').innerHTML =
+        `<div class="partner-referral-list">${recent.map(item => referralCard(item, true)).join('')}</div>`;
+    }
   }
 
   async function loadReferrals() {
-    const res = await fetch('/api/v1/partner/referrals', { credentials: 'include' });
-    if (!res.ok) {
-      throw new Error('Failed to load referrals');
+    setLoading('referrals-container', 'Loading referrals…');
+    setLoading('overview-referrals-container', 'Loading recent referrals…');
+    try {
+      const body = await api('/referrals');
+      state.referrals = body.items || [];
+      renderReferrals();
+    } catch (error) {
+      renderSectionError('referrals-container', 'referrals', error.message);
+      renderSectionError('overview-referrals-container', 'referrals', error.message);
     }
-    return res.json();
+  }
+
+  function renderTransactions() {
+    if (!state.transactions.length) {
+      renderEmpty(
+        'transactions-container',
+        'No points activity yet',
+        'Reward activity and redemptions will appear here.'
+      );
+      byId('transaction-count-label').textContent = 'No points activity yet.';
+      return;
+    }
+    const visible = state.transactions.slice(0, 50);
+    byId('transaction-count-label').textContent =
+      state.transactions.length > visible.length
+        ? `Showing the latest ${visible.length} of ${state.transactions.length} entries.`
+        : `${state.transactions.length} ${state.transactions.length === 1 ? 'entry' : 'entries'} in your history.`;
+    const rows = visible
+      .map(transaction => {
+        const amountClass = transaction.amount >= 0 ? 'partner-positive' : 'partner-negative';
+        const amount = `${transaction.amount >= 0 ? '+' : ''}${formatPoints(transaction.amount)}`;
+        const availability = transaction.availability || 'available';
+        const maturity =
+          availability === 'maturing' && transaction.maturesAt
+            ? `Available ${formatDate(transaction.maturesAt)}`
+            : availability.charAt(0).toUpperCase() + availability.slice(1);
+        return `<tr>
+          <td data-label="Activity"><strong>${escapeHtml(typeLabel(transaction.type))}</strong>${transaction.supplierName ? `<br><small>${escapeHtml(transaction.supplierName)}</small>` : ''}</td>
+          <td data-label="Points" class="${amountClass}">${escapeHtml(amount)}</td>
+          <td data-label="Value">${toPounds(Math.abs(transaction.amount))}</td>
+          <td data-label="Status">${escapeHtml(maturity)}</td>
+          <td data-label="Date">${formatDate(transaction.createdAt)}</td>
+          <td data-label="Reference">${escapeHtml(transaction.externalRef || transaction.notes || '—')}</td>
+        </tr>`;
+      })
+      .join('');
+    byId('transactions-container').innerHTML =
+      `<div class="partner-table-v2-wrap"><table class="partner-table-v2"><thead><tr><th>Activity</th><th>Points</th><th>Value</th><th>Status</th><th>Date</th><th>Reference</th></tr></thead><tbody>${rows}</tbody></table></div>`;
   }
 
   async function loadTransactions() {
-    const res = await fetch('/api/v1/partner/transactions', { credentials: 'include' });
-    if (!res.ok) {
-      throw new Error('Failed to load transactions');
-    }
-    return res.json();
-  }
-
-  // ── Render stats ──────────────────────────────────────────────────────────────
-
-  function renderStats(credits, referralCount, pointsPerGbp) {
-    if (!credits || typeof credits !== 'object') {
-      return;
-    }
-    // Remove skeleton loading state from stats grid
-    const statsGrid = document.querySelector('.partner-stats-grid');
-    if (statsGrid) {
-      statsGrid.removeAttribute('data-loading');
-    }
-    const available =
-      credits.availableBalance !== undefined ? credits.availableBalance : credits.balance;
-    const maturing = credits.maturingBalance || 0;
-    const potential = credits.pendingPoints || 0;
-    document.getElementById('stat-balance').textContent = fmtCredits(available);
-    document.getElementById('stat-balance-gbp').textContent = toPounds(available, pointsPerGbp);
-    document.getElementById('stat-pending').textContent = fmtCredits(maturing);
-    const potentialEl = document.getElementById('stat-potential');
-    if (potentialEl) {
-      potentialEl.textContent = fmtCredits(potential);
-    }
-    document.getElementById('stat-earned').textContent = fmtCredits(credits.totalEarned);
-    const earnedSubEl = document.getElementById('stat-earned-sub');
-    if (earnedSubEl) {
-      earnedSubEl.textContent = `= ${toPounds(credits.totalEarned, pointsPerGbp)}`;
-    }
-    const bonusesEl = document.getElementById('stat-bonuses');
-    if (bonusesEl) {
-      bonusesEl.textContent = fmtCredits(
-        (credits.signupBonusTotal || 0) +
-          (credits.packageBonusTotal || 0) +
-          (credits.reviewBonusTotal || 0) +
-          (credits.subscriptionBonusTotal || 0)
-      );
-    }
-    document.getElementById('stat-referrals').textContent = fmtCredits(referralCount);
-  }
-
-  // ── Render referrals ──────────────────────────────────────────────────────────
-
-  // ── Render transactions ───────────────────────────────────────────────────────
-
-  function renderTransactions(txns, pointsPerGbp) {
-    const container = document.getElementById('transactions-container');
-    if (!container) {
-      return;
-    }
-
-    if (!txns || txns.length === 0) {
-      container.innerHTML = `
-        <div class="partner-empty">
-          <div class="partner-empty-icon" aria-hidden="true">💸</div>
-          <p class="partner-empty-text">No credit activity yet.</p>
-        </div>`;
-      return;
-    }
-
-    const typeLabels = {
-      PACKAGE_BONUS: { label: 'Package Bonus', icon: '📦' },
-      SUBSCRIPTION_BONUS: { label: 'Subscription Bonus', icon: '💳' },
-      REFERRAL_SIGNUP_BONUS: { label: 'Referral Signup', icon: '🔗' },
-      FIRST_REVIEW_BONUS: { label: 'First Review Bonus', icon: '⭐' },
-      ADJUSTMENT: { label: 'Admin Adjustment', icon: '⚙️' },
-      REDEEM: { label: 'Redemption', icon: '🎁' },
-      CASHOUT_HOLD: { label: 'Cashout Hold', icon: '🔒' },
-      CASHOUT_RELEASE: { label: 'Hold Released', icon: '🔓' },
-    };
-
-    const rows = txns.slice(0, 50).map(t => {
-      const meta = typeLabels[t.type] || { label: t.type, icon: '•' };
-      const amtClass = t.amount >= 0 ? 'color:#6ee7b7' : 'color:#fca5a5';
-      const amtStr = t.amount >= 0 ? `+${t.amount}` : `${t.amount}`;
-      return `<tr>
-        <td>${esc(meta.icon)} ${esc(meta.label)}</td>
-        <td style="${amtClass};font-weight:700;">${amtStr} points</td>
-        <td style="color:rgba(255,255,255,0.45)">${toPounds(Math.abs(t.amount), pointsPerGbp)}</td>
-        <td>${fmtDate(t.createdAt)}</td>
-        <td style="color:rgba(255,255,255,0.4);font-size: 0.75rem;">${esc(t.notes || '')}</td>
-      </tr>`;
-    });
-
-    container.innerHTML = `
-      <div class="partner-table-wrap">
-        <table class="partner-table" aria-label="Point transactions">
-          <thead>
-            <tr>
-              <th>Type</th>
-              <th>Points</th>
-              <th>Value</th>
-              <th>Date</th>
-              <th>Notes</th>
-            </tr>
-          </thead>
-          <tbody>${rows.join('')}</tbody>
-        </table>
-      </div>`;
-  }
-
-  // ── Earnings breakdown ───────────────────────────────────────────────────────
-
-  function renderBreakdown(breakdown, pointsPerGbp) {
-    const container = document.getElementById('breakdown-container');
-    if (!container) return;
-
-    const items = [
-      { key: 'signup', icon: '🔗', label: 'Signup bonuses', pts: breakdown.signup || 0 },
-      { key: 'package', icon: '📦', label: 'Package bonuses', pts: breakdown.package || 0 },
-      { key: 'review', icon: '⭐', label: 'Review bonuses', pts: breakdown.review || 0 },
-      {
-        key: 'subscription',
-        icon: '💳',
-        label: 'Subscription bonuses',
-        pts: breakdown.subscription || 0,
-      },
-    ];
-
-    const total = items.reduce((s, i) => s + i.pts, 0);
-
-    if (total === 0) {
-      container.innerHTML = `
-        <div class="partner-share-tip" style="margin-bottom:1rem;">
-          <div class="partner-share-tip__icon">💡</div>
-          <div class="partner-share-tip__body">
-            <p class="partner-share-tip__title">No earnings yet — here's how to start</p>
-            <p class="partner-share-tip__text">Share your referral link with event suppliers. When they sign up and get active, you earn points for each milestone they hit.</p>
-          </div>
-        </div>
-        <div class="partner-breakdown">
-          ${items
-            .map(
-              item => `
-            <div class="partner-breakdown-item">
-              <div class="partner-breakdown-icon">${item.icon}</div>
-              <div class="partner-breakdown-label">${esc(item.label)}</div>
-              <div class="partner-breakdown-pts">0 <span>pts</span></div>
-              <div class="partner-breakdown-gbp">£0.00</div>
-              <div class="partner-breakdown-bar-track"><div class="partner-breakdown-bar-fill" style="width:0%"></div></div>
-            </div>`
-            )
-            .join('')}
-        </div>`;
-      return;
-    }
-
-    container.innerHTML = `<div class="partner-breakdown">
-      ${items
-        .map(item => {
-          const pct = total > 0 ? Math.round((item.pts / total) * 100) : 0;
-          const gbp = toPounds(item.pts, pointsPerGbp);
-          return `
-          <div class="partner-breakdown-item">
-            <div class="partner-breakdown-icon">${item.icon}</div>
-            <div class="partner-breakdown-label">${esc(item.label)}</div>
-            <div class="partner-breakdown-pts">${item.pts.toLocaleString()} <span>pts</span></div>
-            <div class="partner-breakdown-gbp">${gbp}</div>
-            <div class="partner-breakdown-bar-track">
-              <div class="partner-breakdown-bar-fill" style="width:${pct}%"></div>
-            </div>
-          </div>`;
-        })
-        .join('')}
-    </div>`;
-  }
-
-  // ── Milestone progress ─────────────────────────────────────────────────────
-
-  function renderMilestone(cashoutProgress, pointsPerGbp) {
-    const fill = document.getElementById('milestone-fill');
-    const track = document.getElementById('milestone-track');
-    const label = document.getElementById('milestone-value-label');
-    const hint = document.getElementById('milestone-hint');
-    if (!fill || !label || !hint) return;
-
-    const {
-      availablePoints = 0,
-      minCashoutPoints = 1500,
-      pointsToNextCashout = 1500,
-      percentToNextCashout = 0,
-    } = cashoutProgress || {};
-    const pct = Math.min(100, percentToNextCashout || 0);
-    const availGbp = toPounds(availablePoints, pointsPerGbp);
-
-    fill.style.width = `${pct}%`;
-    if (track) {
-      track.setAttribute('aria-valuenow', pct);
-    }
-    if (pct >= 100) fill.classList.add('partner-milestone-fill--complete');
-
-    label.textContent = `${(availablePoints || 0).toLocaleString()} / ${minCashoutPoints.toLocaleString()} pts (${availGbp})`;
-
-    if (availablePoints >= minCashoutPoints) {
-      hint.innerHTML = `<strong>🎉 Ready to cashout!</strong> Scroll down to request your cashout below.`;
-      // Update section title to reflect readiness
-      const milestoneTitle = document.querySelector('#milestone-section .partner-section-title');
-      if (milestoneTitle) milestoneTitle.textContent = '✅ Cashout Available!';
-    } else {
-      const needed = toPounds(pointsToNextCashout, pointsPerGbp);
-      hint.innerHTML = `<strong>${(pointsToNextCashout || 0).toLocaleString()} pts (${needed})</strong> more to reach your first cashout.`;
-    }
-  }
-
-  // ── Share buttons ──────────────────────────────────────────────────────────
-
-  function initShareButtons(refLink) {
-    const whatsappBtn = document.getElementById('partner-share-whatsapp');
-    const emailBtn = document.getElementById('partner-share-email');
-    if (!refLink) return;
-
-    const message = encodeURIComponent(
-      `Hey! I thought you might be interested in listing your event business on EventFlow — it's a great way to reach more customers. You can sign up here: ${refLink}`
-    );
-
-    if (whatsappBtn) {
-      whatsappBtn.href = `https://wa.me/?text=${message}`;
-    }
-    if (emailBtn) {
-      const subject = encodeURIComponent('Join EventFlow — great for event suppliers');
-      const body = encodeURIComponent(
-        `Hi,
-
-I thought you might want to check out EventFlow — it's a platform for event suppliers to reach more customers and manage their bookings.
-
-Here's my referral link to sign up:
-${refLink}
-
-Best wishes`
-      );
-      emailBtn.href = `mailto:?subject=${subject}&body=${body}`;
-    }
-  }
-
-  // ── Credit Activity tabs ───────────────────────────────────────────────────
-
-  function initCreditTabs() {
-    const tabBreakdown = document.getElementById('tab-breakdown');
-    const tabTransactions = document.getElementById('tab-transactions');
-    const panelBreakdown = document.getElementById('panel-breakdown');
-    const panelTransactions = document.getElementById('panel-transactions');
-    if (!tabBreakdown || !tabTransactions) return;
-
-    function switchTab(active, inactive, showPanel, hidePanel) {
-      active.classList.add('active');
-      active.setAttribute('aria-selected', 'true');
-      inactive.classList.remove('active');
-      inactive.setAttribute('aria-selected', 'false');
-      showPanel.hidden = false;
-      hidePanel.hidden = true;
-    }
-
-    tabBreakdown.addEventListener('click', () =>
-      switchTab(tabBreakdown, tabTransactions, panelBreakdown, panelTransactions)
-    );
-    tabTransactions.addEventListener('click', () =>
-      switchTab(tabTransactions, tabBreakdown, panelTransactions, panelBreakdown)
-    );
-  }
-
-  // ── Referrals as progress cards ─────────────────────────────────────────────
-
-  function renderReferralCards(referrals) {
-    const container = document.getElementById('referrals-container');
-    if (!container) return;
-
-    if (!referrals || referrals.length === 0) {
-      container.innerHTML = `
-        <div class="partner-share-tip">
-          <div class="partner-share-tip__icon">🔗</div>
-          <div class="partner-share-tip__body">
-            <p class="partner-share-tip__title">No referred suppliers yet</p>
-            <p class="partner-share-tip__text">Copy your referral link above and share it with event suppliers — photographers, venues, caterers, DJs — anyone looking to grow their bookings.</p>
-          </div>
-        </div>`;
-      return;
-    }
-
-    const cards = referrals.map(r => {
-      const withinWindow = r.withinWindow;
-
-      function stage(done, pendingText, doneText) {
-        if (done)
-          return `<span class="partner-stage partner-stage--done"><span class="partner-stage-dot"></span>${esc(doneText)}</span>`;
-        if (withinWindow)
-          return `<span class="partner-stage partner-stage--pending"><span class="partner-stage-dot"></span>${esc(pendingText)}</span>`;
-        return `<span class="partner-stage partner-stage--expired"><span class="partner-stage-dot"></span>${esc(pendingText)}</span>`;
-      }
-
-      return `
-        <div class="partner-referral-card">
-          <div class="partner-referral-card__top">
-            <span class="partner-referral-card__name">${esc(r.supplierName || '—')}</span>
-            <span class="partner-referral-card__date">${fmtDate(r.signedUpAt)}</span>
-          </div>
-          <div class="partner-referral-card__stages">
-            <span class="partner-stage partner-stage--done"><span class="partner-stage-dot"></span>✓ Signed up (+5)</span>
-            ${stage(r.packageQualified, 'Package pending', '✓ Package (+10)')}
-            ${stage(r.subscriptionQualified, 'Subscription pending', '✓ Subscription (+100)')}
-            ${
-              withinWindow
-                ? '<span class="partner-stage partner-stage--pending"><span class="partner-stage-dot"></span>Active window</span>'
-                : '<span class="partner-stage partner-stage--expired"><span class="partner-stage-dot"></span>Window closed</span>'
-            }
-          </div>
-        </div>`;
-    });
-
-    container.innerHTML = `<div class="partner-referral-cards">${cards.join('')}</div>`;
-  }
-
-  // ── Account settings ─────────────────────────────────────────────────────────
-
-  function initAccountSettings(user, userProfile) {
-    // Pre-fill profile form — use userProfile (from GET /partner/me which reads the DB)
-    // since the JWT user object only contains id/email/role, not first/last/company
-    const fnInput = document.getElementById('settings-firstname');
-    const lnInput = document.getElementById('settings-lastname');
-    const coInput = document.getElementById('settings-company');
-    const profile = userProfile || {};
-
-    if (fnInput && profile.firstName) fnInput.value = profile.firstName;
-    if (lnInput && profile.lastName) lnInput.value = profile.lastName;
-    if (coInput && profile.company) coInput.value = profile.company;
-
-    // Profile form
-    const profileForm = document.getElementById('partner-profile-form');
-    const profileStatus = document.getElementById('profile-status');
-    const profileBtn = document.getElementById('profile-save-btn');
-
-    if (profileForm) {
-      profileForm.addEventListener('submit', async e => {
-        e.preventDefault();
-        profileBtn.disabled = true;
-        profileStatus.textContent = '';
-        profileStatus.className = 'partner-status partner-settings-status';
-
-        const payload = {};
-        if (fnInput && fnInput.value.trim()) payload.firstName = fnInput.value.trim();
-        if (lnInput && lnInput.value.trim()) payload.lastName = lnInput.value.trim();
-        if (coInput !== undefined) payload.company = coInput.value.trim() || null;
-
-        // Guard: nothing to update
-        if (Object.keys(payload).length === 0) {
-          profileStatus.textContent = 'No changes to save';
-          profileStatus.style.color = 'rgba(255,255,255,0.45)';
-          profileBtn.disabled = false;
-          return;
-        }
-
-        try {
-          const csrfToken = await getCsrfToken();
-          const res = await fetch('/api/v1/partner/me', {
-            method: 'PATCH',
-            credentials: 'include',
-            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
-            body: JSON.stringify(payload),
-          });
-          const data = await res.json().catch(() => ({}));
-          if (res.ok) {
-            profileStatus.textContent = '✓ Profile saved';
-            profileStatus.style.color = '#6ee7b7';
-            showToast('Profile updated successfully', 'success');
-            // Update greeting if name changed
-            const nameEl = document.getElementById('partner-name-heading');
-            if (nameEl && payload.firstName) nameEl.textContent = payload.firstName;
-            // Also update the header user-name area (shows full name)
-            const headerNameEl = document.getElementById('partner-user-name');
-            if (headerNameEl && (payload.firstName || payload.lastName)) {
-              const fn = payload.firstName || fnInput?.value?.trim() || '';
-              const ln = payload.lastName || lnInput?.value?.trim() || '';
-              headerNameEl.textContent = `${fn} ${ln}`.trim();
-            }
-          } else {
-            profileStatus.textContent = data.error || 'Failed to save profile';
-            profileStatus.style.color = '#fca5a5';
-          }
-        } catch (_) {
-          profileStatus.textContent = 'Network error — please try again';
-          profileStatus.style.color = '#fca5a5';
-        } finally {
-          profileBtn.disabled = false;
-        }
-      });
-    }
-
-    // Password form
-    const passwordForm = document.getElementById('partner-password-form');
-    const passwordStatus = document.getElementById('password-status');
-    const passwordBtn = document.getElementById('password-save-btn');
-
-    if (passwordForm) {
-      passwordForm.addEventListener('submit', async e => {
-        e.preventDefault();
-        passwordBtn.disabled = true;
-        passwordStatus.textContent = '';
-        passwordStatus.className = 'partner-status partner-settings-status';
-
-        const currentPw = document.getElementById('settings-current-pw')?.value || '';
-        const newPw = document.getElementById('settings-new-pw')?.value || '';
-
-        if (!currentPw || !newPw) {
-          passwordStatus.textContent = 'Both fields are required';
-          passwordStatus.style.color = '#fca5a5';
-          passwordBtn.disabled = false;
-          return;
-        }
-
-        try {
-          const csrfToken = await getCsrfToken();
-          const res = await fetch('/api/v1/partner/change-password', {
-            method: 'POST',
-            credentials: 'include',
-            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
-            body: JSON.stringify({ currentPassword: currentPw, newPassword: newPw }),
-          });
-          const data = await res.json().catch(() => ({}));
-          if (res.ok) {
-            passwordStatus.textContent = '✓ Password changed';
-            passwordStatus.style.color = '#6ee7b7';
-            passwordForm.reset();
-            showToast('Password changed successfully', 'success');
-          } else {
-            passwordStatus.textContent = data.error || 'Failed to change password';
-            passwordStatus.style.color = '#fca5a5';
-          }
-        } catch (_) {
-          passwordStatus.textContent = 'Network error — please try again';
-          passwordStatus.style.color = '#fca5a5';
-        } finally {
-          passwordBtn.disabled = false;
-        }
-      });
-    }
-
-    // Password visibility toggles in settings
-    document
-      .querySelectorAll(
-        '#partner-profile-form .partner-pw-toggle, #partner-password-form .partner-pw-toggle'
-      )
-      .forEach(btn => {
-        btn.addEventListener('click', () => {
-          const inputId = btn.dataset.target;
-          if (!inputId) return;
-          const input = document.getElementById(inputId);
-          if (!input) return;
-          input.type = input.type === 'password' ? 'text' : 'password';
-          btn.setAttribute(
-            'aria-label',
-            input.type === 'password' ? 'Show password' : 'Hide password'
-          );
-        });
-      });
-  }
-
-  // ── Fetch and render partner stats ────────────────────────────────────────
-
-  async function loadAndRenderStats(pointsPerGbp) {
+    setLoading('transactions-container', 'Loading points activity…');
     try {
-      const res = await fetch('/api/v1/partner/stats', { credentials: 'include' });
-      if (!res.ok) return;
-      const data = await res.json();
-      renderBreakdown(data.breakdown || {}, pointsPerGbp);
-      renderMilestone(data.cashoutProgress || {}, pointsPerGbp);
-    } catch (_) {
-      // Non-critical — silently fail
+      const body = await api('/transactions');
+      state.transactions = body.items || [];
+      renderTransactions();
+    } catch (error) {
+      renderSectionError('transactions-container', 'transactions', error.message);
     }
   }
 
-  // ── Referral link copy ────────────────────────────────────────────────────────
-
-  function initCopyButton(refLink) {
-    const btn = document.getElementById('partner-copy-btn');
-    const copyText = document.getElementById('copy-btn-text');
-    if (!btn || !copyText) {
+  function renderCashoutForm() {
+    const container = byId('cashout-container');
+    if (!container || !state.credits || !state.config) return;
+    const availablePoints = Number(state.credits.availableBalance || 0);
+    const availableGbp = availablePoints / Number(state.config.pointsPerGbp || 100);
+    const denominations = (state.config.cashoutDenominations || []).filter(
+      value => value <= availableGbp
+    );
+    if (!denominations.length) {
+      container.innerHTML = `<div class="partner-empty-v2"><strong>Redemption not yet available</strong><p>You have ${toPounds(availablePoints)} available. The minimum redemption is £${escapeHtml(state.config.minimumCashoutGbp)}.</p></div>`;
       return;
     }
-
-    btn.addEventListener('click', async () => {
-      try {
-        await navigator.clipboard.writeText(refLink);
-        btn.classList.add('copied');
-        copyText.textContent = '✓ Copied!';
-        showToast('Referral link copied to clipboard!', 'success');
-        setTimeout(() => {
-          btn.classList.remove('copied');
-          copyText.textContent = 'Copy link';
-        }, 2000);
-      } catch (_) {
-        // Fallback for browsers without clipboard API
-        const ta = document.createElement('textarea');
-        ta.value = refLink;
-        ta.style.position = 'fixed';
-        ta.style.opacity = '0';
-        document.body.appendChild(ta);
-        ta.focus();
-        ta.select();
-        document.execCommand('copy');
-        document.body.removeChild(ta);
-        showToast('Referral link copied!', 'success');
-      }
+    container.innerHTML = `<form id="cashout-form" class="partner-form-v2 partner-cashout-form" novalidate>
+      <label>Reward method<select name="method" required><option value="">Select a method</option>${(state.config.cashoutMethods || []).map(method => `<option value="${escapeHtml(method)}">${escapeHtml(methodLabel(method))}</option>`).join('')}</select></label>
+      <label>Amount<select name="denominationGbp" required><option value="">Select an amount</option>${denominations.map(value => `<option value="${value}">£${value}</option>`).join('')}</select></label>
+      <label>Message <small>Optional</small><textarea name="partnerMessage" maxlength="1000" rows="3" placeholder="Any information our team should know"></textarea></label>
+      <p class="partner-card-note">Available now: ${formatPoints(availablePoints)} points (${toPounds(availablePoints)}).</p>
+      <div class="partner-form-actions"><button type="submit" class="partner-primary-btn">Submit redemption request</button><span id="cashout-status" role="alert" aria-live="polite"></span></div>
+    </form>`;
+    const form = byId('cashout-form');
+    form.addEventListener('change', () => {
+      state.cashoutKey = null;
     });
+    form.addEventListener('submit', submitCashout);
   }
 
-  // ── Referral code badge copy ──────────────────────────────────────────────────
+  function newCashoutKey() {
+    if (window.crypto?.randomUUID) return `cashout_${window.crypto.randomUUID()}`;
+    return `cashout_${Date.now()}_${Math.random().toString(36).slice(2, 12)}`;
+  }
 
-  function initRefCodeCopy(refCode) {
-    const badge = document.getElementById('partner-ref-code-badge');
-    if (!badge || !refCode) {
+  async function submitCashout(event) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const submit = form.querySelector('button[type="submit"]');
+    const status = byId('cashout-status');
+    const method = form.elements.method.value;
+    const denominationGbp = Number(form.elements.denominationGbp.value);
+    const partnerMessage = form.elements.partnerMessage.value.trim();
+    if (!method || !Number.isInteger(denominationGbp)) {
+      status.textContent = 'Select a reward method and amount.';
+      status.style.color = 'var(--partner-danger)';
       return;
     }
-
-    async function copyCode() {
-      try {
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          await navigator.clipboard.writeText(refCode);
-        } else {
-          // Fallback for older browsers
-          const ta = document.createElement('textarea');
-          ta.value = refCode;
-          ta.style.position = 'fixed';
-          ta.style.opacity = '0';
-          document.body.appendChild(ta);
-          ta.focus();
-          ta.select();
-          document.execCommand('copy');
-          document.body.removeChild(ta);
-        }
-        showToast('Partner code copied!', 'success');
-      } catch (err) {
-        console.error('Failed to copy partner code:', err);
-        showToast('Could not copy — please copy the code manually.', 'error');
-      }
+    const confirmed = await confirmAction(
+      `Submit a £${denominationGbp} ${methodLabel(method)} redemption request? The matching points will be held immediately.`
+    );
+    if (!confirmed) return;
+    if (!state.cashoutKey) state.cashoutKey = newCashoutKey();
+    submit.disabled = true;
+    status.textContent = 'Submitting securely…';
+    status.style.color = '';
+    try {
+      const body = await api('/cashout-requests', {
+        method: 'POST',
+        headers: { 'Idempotency-Key': state.cashoutKey },
+        body: JSON.stringify({
+          method,
+          denominationGbp,
+          partnerMessage,
+          idempotencyKey: state.cashoutKey,
+        }),
+      });
+      state.cashoutKey = null;
+      showToast(
+        body.idempotentReplay
+          ? 'This request was already submitted.'
+          : 'Redemption request submitted.'
+      );
+      await Promise.allSettled([loadCore(), loadStats(), loadTransactions(), loadCashouts()]);
+    } catch (error) {
+      status.textContent = error.message;
+      status.style.color = 'var(--partner-danger)';
+      if (error.status && error.status < 500) state.cashoutKey = null;
+      if (error.body?.reconciliationRequired) selectPanel('support', true);
+    } finally {
+      submit.disabled = false;
     }
-
-    badge.addEventListener('click', copyCode);
-    badge.addEventListener('keydown', e => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        copyCode();
-      }
-    });
   }
 
-  // ── Code history ──────────────────────────────────────────────────────────────
+  function cashoutStatusPill(status) {
+    const label = String(status || 'submitted').replace(/_/g, ' ');
+    return `<span class="partner-status-pill partner-status-pill--${escapeHtml(status || 'submitted')}">${escapeHtml(label.charAt(0).toUpperCase() + label.slice(1))}</span>`;
+  }
+
+  function renderCashouts() {
+    if (!state.cashouts.length) {
+      renderEmpty(
+        'cashout-history-container',
+        'No redemptions yet',
+        'Submitted reward requests will appear here.'
+      );
+      return;
+    }
+    byId('cashout-history-container').innerHTML =
+      `<div class="partner-history-list">${state.cashouts
+        .map(
+          request =>
+            `<article class="partner-history-row"><div><strong>£${escapeHtml(request.denominationGbp)} ${escapeHtml(methodLabel(request.method))}</strong><p>Submitted ${formatDate(request.createdAt)} · ${formatPoints(request.pointsHeld)} points held${request.adminResponseMessage ? ` · ${escapeHtml(request.adminResponseMessage)}` : ''}</p></div>${cashoutStatusPill(request.status)}</article>`
+        )
+        .join('')}</div>`;
+  }
+
+  async function loadCashouts() {
+    setLoading('cashout-history-container', 'Loading redemption history…');
+    try {
+      const body = await api('/cashout-requests');
+      state.cashouts = body.items || [];
+      renderCashouts();
+    } catch (error) {
+      renderSectionError('cashout-history-container', 'cashouts', error.message);
+    }
+  }
+
+  function renderCodeHistory() {
+    if (!state.codeHistory.length) {
+      renderEmpty(
+        'code-history-container',
+        'No previous codes',
+        'Your current partner code has never been regenerated.'
+      );
+      return;
+    }
+    byId('code-history-container').innerHTML =
+      `<div class="partner-history-list">${state.codeHistory
+        .map(
+          item =>
+            `<div class="partner-history-row"><div><strong><code>${escapeHtml(item.refCode)}</code></strong><p>Replaced ${formatDate(item.archivedAt)} · Existing links remain valid</p></div><span class="partner-status-pill">Historical</span></div>`
+        )
+        .join('')}</div>`;
+  }
 
   async function loadCodeHistory() {
-    const res = await fetch('/api/v1/partner/code-history', { credentials: 'include' });
-    if (!res.ok) {
-      throw new Error('Failed to load code history');
+    setLoading('code-history-container', 'Loading code history…');
+    try {
+      const body = await api('/code-history');
+      state.codeHistory = body.items || [];
+      renderCodeHistory();
+    } catch (error) {
+      renderSectionError('code-history-container', 'codeHistory', error.message);
     }
-    return res.json();
   }
 
-  function renderCodeHistory(historyItems) {
-    const container = document.getElementById('code-history-container');
-    if (!container) {
-      return;
-    }
-
-    if (!historyItems || historyItems.length === 0) {
-      container.innerHTML =
-        '<p class="partner-empty-text" style="color:rgba(255,255,255,0.35);font-size: 0.8125rem;">' +
-        'No previous codes — your current code has never been regenerated.</p>';
-      return;
-    }
-
-    // Show archived codes in a table (oldest first)
-    const rows = historyItems.map(
-      h => `<tr>
-      <td><code style="font-family:monospace;color:#a5b4fc;">${esc(h.refCode)}</code></td>
-      <td style="color:rgba(255,255,255,0.5);">${fmtDate(h.archivedAt)}</td>
-      <td><span class="p-badge p-badge--inactive" style="font-size: 0.6875rem;">Archived (still valid)</span></td>
-    </tr>`
+  async function regenerateCode() {
+    const confirmed = await confirmAction(
+      'Generate a new partner code? Previous links will remain valid, but all dashboard sharing actions will switch to the new code.'
     );
-
-    container.innerHTML = `
-      <div class="partner-table-wrap">
-        <table class="partner-table" aria-label="Partner code history">
-          <thead>
-            <tr>
-              <th>Old Code</th>
-              <th>Archived On</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>${rows.join('')}</tbody>
-        </table>
-      </div>`;
+    if (!confirmed) return;
+    const button = byId('partner-regen-btn');
+    button.disabled = true;
+    button.textContent = 'Generating…';
+    try {
+      const body = await api('/regenerate-code', { method: 'POST', body: '{}' });
+      state.partner.refCode = body.newCode;
+      state.partner.refLink = body.refLink;
+      byId('partner-ref-code-badge').textContent = body.newCode;
+      byId('partner-code-display').textContent = body.newCode;
+      byId('partner-ref-link').textContent = body.refLink;
+      await loadCodeHistory();
+      showToast('New partner code created. Previous links still work.');
+    } catch (error) {
+      showToast(error.message, 'error');
+    } finally {
+      button.disabled = false;
+      button.textContent = 'Generate a new code';
+    }
   }
 
-  // ── Code regeneration ─────────────────────────────────────────────────────────
-
-  function initRegenButton(partner, onRegenerated) {
-    const btn = document.getElementById('partner-regen-btn');
-    if (!btn) {
-      return;
-    }
-
-    btn.addEventListener('click', async () => {
-      const confirmed = await showConfirmDialog(
-        'Are you sure you want to generate a new partner code?\n\nYour old code will still work — this just creates a new one.'
+  function renderTickets() {
+    if (!state.tickets.length) {
+      renderEmpty(
+        'partner-tickets-container',
+        'No support tickets yet',
+        'Use the button above whenever you need help.',
+        '<button type="button" class="partner-primary-btn" data-open-support>Raise a support ticket</button>'
       );
-      if (!confirmed) {
-        return;
-      }
-
-      btn.disabled = true;
-      btn.textContent = 'Regenerating…';
-
-      try {
-        const csrfToken = await getCsrfToken();
-        const res = await fetch('/api/v1/partner/regenerate-code', {
-          method: 'POST',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-Token': csrfToken,
-          },
-          body: JSON.stringify({}),
-        });
-
-        if (!res.ok) {
-          const body = await res.json().catch(() => ({}));
-          throw new Error(body.error || 'Failed to regenerate code');
-        }
-
-        const data = await res.json();
-        showToast('New code generated! Old code still works.', 'success');
-
-        // Notify parent to refresh partner data
-        if (typeof onRegenerated === 'function') {
-          onRegenerated(data);
-        }
-      } catch (err) {
-        showToast(err.message || 'Failed to regenerate code', 'error');
-      } finally {
-        btn.disabled = false;
-        btn.innerHTML =
-          '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> Regenerate code';
-      }
-    });
-  }
-
-  // ── Support ticket modal ──────────────────────────────────────────────────────
-
-  function initSupportTicketModal() {
-    const overlay = document.getElementById('support-modal-overlay');
-    const openBtn = document.getElementById('partner-support-btn');
-    const cancelBtn = document.getElementById('support-modal-cancel');
-    const form = document.getElementById('support-ticket-form');
-    const statusEl = document.getElementById('support-modal-status');
-    const submitBtn = document.getElementById('support-modal-submit');
-
-    if (!overlay || !openBtn) {
+      byId('partner-tickets-container')
+        .querySelector('[data-open-support]')
+        ?.addEventListener('click', openSupportModal);
       return;
     }
-
-    function openModal() {
-      if (statusEl) {
-        statusEl.textContent = '';
-        statusEl.className = 'partner-status';
-      }
-      if (form) {
-        form.reset();
-      }
-      overlay.style.display = 'flex';
-      overlay.setAttribute('aria-hidden', 'false');
-      document.body.style.overflow = 'hidden';
-    }
-
-    function closeModal() {
-      overlay.style.display = 'none';
-      overlay.setAttribute('aria-hidden', 'true');
-      document.body.style.overflow = '';
-    }
-
-    openBtn.addEventListener('click', openModal);
-    if (cancelBtn) {
-      cancelBtn.addEventListener('click', closeModal);
-    }
-    overlay.addEventListener('click', e => {
-      if (e.target === overlay) {
-        closeModal();
-      }
-    });
-
-    if (form) {
-      form.addEventListener('submit', async e => {
-        e.preventDefault();
-        if (statusEl) {
-          statusEl.textContent = '';
-        }
-
-        const subjectInput = document.getElementById('support-subject');
-        const messageInput = document.getElementById('support-message');
-
-        const subject = subjectInput ? subjectInput.value.trim() : '';
-        const message = messageInput ? messageInput.value.trim() : '';
-
-        if (!subject) {
-          if (statusEl) {
-            statusEl.textContent = 'Please enter a subject.';
-            statusEl.className = 'partner-status partner-status--error';
-          }
-          return;
-        }
-        if (!message) {
-          if (statusEl) {
-            statusEl.textContent = 'Please enter a message.';
-            statusEl.className = 'partner-status partner-status--error';
-          }
-          return;
-        }
-
-        if (submitBtn) {
-          submitBtn.disabled = true;
-          submitBtn.textContent = 'Sending…';
-        }
-
-        try {
-          const csrfToken = await getCsrfToken();
-          const res = await fetch('/api/v1/partner/support-ticket', {
-            method: 'POST',
-            credentials: 'include',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-CSRF-Token': csrfToken,
-            },
-            body: JSON.stringify({ subject, message }),
-          });
-
-          const body = await res.json().catch(() => ({}));
-
-          if (!res.ok) {
-            throw new Error(body.error || 'Failed to submit ticket');
-          }
-
-          closeModal();
-          showToast('Support ticket submitted! Our team will be in touch.', 'success');
-          // Refresh ticket list
-          loadAndRenderTickets();
-        } catch (err) {
-          if (statusEl) {
-            statusEl.textContent = err.message || 'Failed to submit ticket.';
-            statusEl.className = 'partner-status partner-status--error';
-          }
-        } finally {
-          if (submitBtn) {
-            submitBtn.disabled = false;
-            submitBtn.textContent = 'Send ticket';
-          }
-        }
+    byId('partner-tickets-container').innerHTML = `<div class="partner-ticket-list">${state.tickets
+      .map(
+        ticket =>
+          `<button type="button" class="partner-ticket-row-v2" data-ticket-id="${escapeHtml(ticket.id)}"><div><strong>${escapeHtml(ticket.subject)}</strong><p>Opened ${formatDate(ticket.createdAt)} · ${ticket.responseCount || 0} ${ticket.responseCount === 1 ? 'reply' : 'replies'}</p></div>${cashoutStatusPill(ticket.status)}</button>`
+      )
+      .join('')}</div>`;
+    byId('partner-tickets-container')
+      .querySelectorAll('[data-ticket-id]')
+      .forEach(button => {
+        button.addEventListener('click', () => openTicket(button.dataset.ticketId, button));
       });
+  }
+
+  async function loadTickets() {
+    setLoading('partner-tickets-container', 'Loading support tickets…');
+    try {
+      const body = await api('/support-tickets');
+      state.tickets = body.items || [];
+      renderTickets();
+    } catch (error) {
+      renderSectionError('partner-tickets-container', 'tickets', error.message);
     }
   }
 
-  // ── Partner Support Tickets ───────────────────────────────────────────────────
-
-  function getTicketStatusBadge(status) {
-    const map = {
-      open: { label: 'Open', color: '#6ee7b7', bg: 'rgba(16,185,129,0.15)' },
-      in_progress: { label: 'In Progress', color: '#fbbf24', bg: 'rgba(251,191,36,0.15)' },
-      resolved: { label: 'Resolved', color: 'rgba(255,255,255,0.4)', bg: 'rgba(255,255,255,0.06)' },
-      closed: { label: 'Closed', color: 'rgba(255,255,255,0.3)', bg: 'rgba(255,255,255,0.04)' },
-    };
-    const s = map[status] || {
-      label: status || 'Unknown',
-      color: 'rgba(255,255,255,0.4)',
-      bg: 'rgba(255,255,255,0.06)',
-    };
-    return `<span style="display:inline-block;padding:0.2rem 0.6rem;border-radius:100px;font-size:0.75rem;font-weight:600;color:${s.color};background:${s.bg};">${s.label}</span>`;
+  function openSupportModal(event) {
+    const form = byId('support-ticket-form');
+    form.reset();
+    byId('support-modal-status').textContent = '';
+    byId('support-modal-title').textContent = state.disabled
+      ? 'Contact account support'
+      : 'Raise a support ticket';
+    openDialog(byId('support-modal-overlay'), event?.currentTarget || document.activeElement);
   }
 
-  async function loadAndRenderTickets() {
-    const container = document.getElementById('partner-tickets-container');
-    if (!container) {
+  async function submitSupportTicket(event) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const subject = byId('support-subject').value.trim();
+    const message = byId('support-message').value.trim();
+    const status = byId('support-modal-status');
+    const button = byId('support-modal-submit');
+    if (!subject || !message) {
+      status.textContent = 'Enter a subject and message.';
+      status.style.color = 'var(--partner-danger)';
       return;
     }
-
+    button.disabled = true;
+    button.textContent = 'Sending…';
     try {
-      const res = await fetch('/api/v1/partner/support-tickets', { credentials: 'include' });
-      if (!res.ok) {
-        throw new Error('Failed to load tickets');
-      }
-      const { items } = await res.json();
-
-      if (!items || items.length === 0) {
-        container.innerHTML = `
-          <div class="partner-empty">
-            <div class="partner-empty-icon" aria-hidden="true">🎫</div>
-            <p class="partner-empty-text">No support tickets yet.</p>
-            <button
-              type="button"
-              id="partner-empty-ticket-btn"
-              style="margin-top:0.75rem;padding:0.45rem 1.1rem;background:linear-gradient(135deg,rgba(11,128,115,0.3),rgba(16,185,129,0.2));border:1px solid rgba(16,185,129,0.35);border-radius:8px;color:#6ee7b7;cursor:pointer;font-size: 0.8125rem;font-weight:600;"
-              aria-label="Raise a support ticket"
-            >✉️ Raise a support ticket</button>
-          </div>`;
-        const emptyBtn = document.getElementById('partner-empty-ticket-btn');
-        if (emptyBtn) {
-          emptyBtn.addEventListener('click', () => {
-            const openBtn = document.getElementById('partner-support-btn');
-            if (openBtn) openBtn.click();
-          });
-        }
-        return;
-      }
-
-      const rows = items
-        .map(
-          t => `
-        <div class="partner-ticket-row" tabindex="0" role="button" data-ticket-id="${escHtml(String(t._id || t.id || ''))}" aria-label="View ticket: ${escHtml(t.subject)}">
-          <div style="flex:1;min-width:0;">
-            <div style="font-size: 0.875rem;font-weight:600;color:#fff;margin-bottom:0.2rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(t.subject)}</div>
-            <div style="font-size: 0.75rem;color:rgba(255,255,255,0.38);">Opened ${fmtDate(t.createdAt)}${t.responseCount ? ` · ${t.responseCount} response${t.responseCount !== 1 ? 's' : ''}` : ''}</div>
-          </div>
-          <div style="flex-shrink:0;">${getTicketStatusBadge(t.status)}</div>
-        </div>`
-        )
-        .join('');
-
-      container.innerHTML = `<div style="padding:0 0.25rem;">${rows}</div>`;
-
-      container.querySelectorAll('.partner-ticket-row').forEach(row => {
-        const open = () => viewTicket(row.dataset.ticketId);
-        row.addEventListener('click', open);
-        row.addEventListener('keydown', e => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            open();
-          }
-        });
+      await api('/support-ticket', {
+        method: 'POST',
+        body: JSON.stringify({ subject, message }),
       });
-    } catch (err) {
-      container.innerHTML = `
-        <div class="partner-empty">
-          <div class="partner-empty-icon" aria-hidden="true">⚠️</div>
-          <p class="partner-empty-text">Failed to load tickets. Please refresh.</p>
-        </div>`;
+      closeDialog(byId('support-modal-overlay'));
+      showToast('Support ticket submitted.');
+      await loadTickets();
+      form.reset();
+    } catch (error) {
+      status.textContent = error.message;
+      status.style.color = 'var(--partner-danger)';
+    } finally {
+      button.disabled = false;
+      button.textContent = 'Send ticket';
     }
   }
 
-  async function viewTicket(ticketId) {
-    const overlay = document.getElementById('partner-ticket-detail-overlay');
-    const body = document.getElementById('partner-ticket-detail-body');
-    const titleEl = document.getElementById('partner-ticket-detail-title');
-    if (!overlay || !body) return;
-
-    body.innerHTML = `
-      <div class="partner-empty">
-        <span class="partner-spinner" aria-hidden="true"></span>
-        <p class="partner-empty-text">Loading ticket…</p>
-      </div>`;
-    overlay.style.display = 'flex';
-    document.body.style.overflow = 'hidden';
-
-    function closeDetail() {
-      overlay.style.display = 'none';
-      document.body.style.overflow = '';
-      document.removeEventListener('keydown', handleEsc);
-    }
-
-    function handleEsc(e) {
-      if (e.key === 'Escape') closeDetail();
-    }
-
-    const closeBtn = document.getElementById('partner-ticket-detail-close');
-    if (closeBtn) {
-      closeBtn.onclick = closeDetail;
-    }
-    overlay.onclick = e => {
-      if (e.target === overlay) closeDetail();
-    };
-
-    document.addEventListener('keydown', handleEsc);
-
+  async function openTicket(ticketId, trigger) {
+    const overlay = byId('partner-ticket-detail-overlay');
+    const body = byId('partner-ticket-detail-body');
+    body.innerHTML = loadingMarkup('Loading ticket…');
+    openDialog(overlay, trigger);
     try {
-      const r = await fetch('/api/v1/tickets/' + encodeURIComponent(ticketId), {
+      const response = await api(`/support-tickets/${encodeURIComponent(ticketId)}`);
+      const ticket = response.ticket;
+      byId('partner-ticket-detail-title').textContent = ticket.subject || 'Support ticket';
+      const replies = ticket.responses || [];
+      body.innerHTML = `<div class="partner-ticket-message"><small>Opened ${formatDate(ticket.createdAt)}</small>${escapeHtml(ticket.message || '')}</div>
+        ${replies.length ? `<div class="partner-ticket-thread">${replies.map(reply => `<div class="partner-ticket-reply ${reply.isStaff || reply.authorRole === 'admin' ? 'partner-ticket-reply--staff' : ''}"><small>${reply.isStaff || reply.authorRole === 'admin' ? 'EventFlow Support' : 'You'} · ${formatDate(reply.createdAt)}</small>${escapeHtml(reply.message || reply.content || '')}</div>`).join('')}</div>` : ''}
+        ${ticket.status === 'closed' ? '<p class="partner-card-note">This ticket is closed.</p>' : `<form class="partner-form-v2" id="ticket-reply-form"><label>Add a reply<textarea name="message" maxlength="5000" rows="4" required></textarea></label><div class="partner-form-actions"><button type="submit" class="partner-primary-btn">Send reply</button><span id="ticket-reply-status" role="alert" aria-live="polite"></span></div></form>`}`;
+      byId('ticket-reply-form')?.addEventListener('submit', event =>
+        submitTicketReply(event, ticketId)
+      );
+    } catch (error) {
+      renderSectionError('partner-ticket-detail-body', 'ticketDetail', error.message);
+      retryHandlers.ticketDetail = () => openTicket(ticketId, trigger);
+    }
+  }
+
+  async function submitTicketReply(event, ticketId) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const message = form.elements.message.value.trim();
+    const status = byId('ticket-reply-status');
+    const button = form.querySelector('button[type="submit"]');
+    if (!message) {
+      status.textContent = 'Enter a reply.';
+      status.style.color = 'var(--partner-danger)';
+      return;
+    }
+    button.disabled = true;
+    try {
+      await api(`/support-tickets/${encodeURIComponent(ticketId)}/reply`, {
+        method: 'POST',
+        body: JSON.stringify({ message }),
+      });
+      showToast('Reply sent.');
+      await Promise.allSettled([loadTickets(), openTicket(ticketId, dialogTrigger)]);
+    } catch (error) {
+      status.textContent = error.message;
+      status.style.color = 'var(--partner-danger)';
+    } finally {
+      button.disabled = false;
+    }
+  }
+
+  async function saveProfile(event) {
+    event.preventDefault();
+    const button = byId('profile-save-btn');
+    const status = byId('profile-status');
+    const payload = {
+      firstName: byId('settings-firstname').value.trim(),
+      lastName: byId('settings-lastname').value.trim(),
+      company: byId('settings-company').value.trim() || null,
+    };
+    button.disabled = true;
+    status.textContent = 'Saving…';
+    try {
+      await api('/me', { method: 'PATCH', body: JSON.stringify(payload) });
+      state.profile = {
+        ...state.profile,
+        ...payload,
+        name: `${payload.firstName} ${payload.lastName}`.trim(),
+      };
+      setGreeting(state.profile);
+      status.textContent = 'Profile saved.';
+      status.style.color = 'var(--partner-accent)';
+      showToast('Profile updated.');
+    } catch (error) {
+      status.textContent = error.message;
+      status.style.color = 'var(--partner-danger)';
+    } finally {
+      button.disabled = false;
+    }
+  }
+
+  async function changePassword(event) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const button = byId('password-save-btn');
+    const status = byId('password-status');
+    const currentPassword = byId('settings-current-pw').value;
+    const newPassword = byId('settings-new-pw').value;
+    if (!currentPassword || !newPassword) {
+      status.textContent = 'Enter both passwords.';
+      status.style.color = 'var(--partner-danger)';
+      return;
+    }
+    button.disabled = true;
+    status.textContent = 'Updating…';
+    try {
+      await api('/change-password', {
+        method: 'POST',
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+      form.reset();
+      status.textContent = 'Password changed.';
+      status.style.color = 'var(--partner-accent)';
+      showToast('Password changed.');
+    } catch (error) {
+      status.textContent = error.message;
+      status.style.color = 'var(--partner-danger)';
+    } finally {
+      button.disabled = false;
+    }
+  }
+
+  async function copyText(value, message) {
+    if (!value) return;
+    try {
+      await navigator.clipboard.writeText(value);
+    } catch (_) {
+      const textarea = document.createElement('textarea');
+      textarea.value = value;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      textarea.remove();
+    }
+    showToast(message);
+  }
+
+  function shareWhatsApp() {
+    if (!state.partner?.refLink) return;
+    const text = encodeURIComponent(
+      `I thought your event business might be a good fit for EventFlow. You can create a supplier profile here: ${state.partner.refLink}`
+    );
+    window.open(`https://wa.me/?text=${text}`, '_blank', 'noopener,noreferrer');
+  }
+
+  function shareEmail() {
+    if (!state.partner?.refLink) return;
+    const subject = encodeURIComponent('Invitation to join EventFlow as an event supplier');
+    const body = encodeURIComponent(
+      `Hi,\n\nI thought EventFlow might be useful for your event business. You can create a supplier profile here:\n${state.partner.refLink}\n\nBest wishes`
+    );
+    window.location.href = `mailto:?subject=${subject}&body=${body}`;
+  }
+
+  async function logout() {
+    try {
+      const csrf = await getCsrfToken();
+      await fetch('/api/v1/auth/logout', {
+        method: 'POST',
         credentials: 'include',
+        headers: { 'X-CSRF-Token': csrf },
       });
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      const d = await r.json();
-      const ticket = d.ticket || d;
-      const replies = ticket.replies || [];
-
-      if (titleEl) titleEl.textContent = ticket.subject || 'Support Ticket';
-
-      const replyItems = replies
-        .map(reply => {
-          const isStaff = reply.isStaff || reply.authorRole === 'admin';
-          return `
-          <div class="partner-reply-item ${isStaff ? 'partner-reply-item--staff' : 'partner-reply-item--user'}">
-            <div class="partner-reply-meta">${isStaff ? '🛡 EventFlow Support' : '👤 You'} &nbsp;·&nbsp; ${fmtDate(reply.createdAt)}</div>
-            <div style="white-space:pre-wrap;color:rgba(255,255,255,0.8);">${escHtml(reply.message || reply.content || '')}</div>
-          </div>`;
-        })
-        .join('');
-
-      const replyForm =
-        ticket.status !== 'closed'
-          ? `
-        <div class="partner-reply-form">
-          <p class="partner-reply-label">Add a reply</p>
-          <textarea
-            id="partner-reply-message"
-            class="partner-reply-textarea"
-            rows="3"
-            placeholder="Type your reply…"
-            maxlength="5000"
-            aria-label="Your reply"
-          ></textarea>
-          <button
-            type="button"
-            class="ef-cta partner-reply-submit"
-            id="partner-reply-submit"
-            data-ticket-id="${escHtml(String(ticket._id || ticket.id))}"
-          >Send Reply</button>
-          <span id="partner-reply-status" role="status" aria-live="polite" style="font-size: 0.75rem;margin-top:0.25rem;"></span>
-        </div>`
-          : '<p style="color:rgba(255,255,255,0.35);font-size:0.875rem;margin-top:1rem;">This ticket is closed.</p>';
-
-      body.innerHTML = `
-        <div style="font-size: 0.75rem;color:rgba(255,255,255,0.4);margin-bottom:0.75rem;">
-          Status: <strong style="color:#fff;">${escHtml(ticket.status || 'open')}</strong>
-          &nbsp;·&nbsp; Opened ${fmtDate(ticket.createdAt)}
-        </div>
-        <div class="partner-ticket-message-box">${escHtml(ticket.message || '')}</div>
-        ${replies.length ? `<div class="partner-reply-thread">${replyItems}</div>` : ''}
-        ${replyForm}
-      `;
-
-      const sendBtn = body.querySelector('#partner-reply-submit');
-      if (sendBtn) {
-        sendBtn.addEventListener('click', async () => {
-          const textarea = body.querySelector('#partner-reply-message');
-          const statusEl = body.querySelector('#partner-reply-status');
-          const msg = textarea ? textarea.value.trim() : '';
-          if (!msg) {
-            if (statusEl) {
-              statusEl.textContent = 'Please enter a reply.';
-              statusEl.style.color = '#ef4444';
-            }
-            return;
-          }
-          sendBtn.disabled = true;
-          sendBtn.textContent = 'Sending…';
-          if (statusEl) statusEl.textContent = '';
-          try {
-            const csrfToken = await getCsrfToken();
-            const rr = await fetch(
-              '/api/v1/tickets/' + encodeURIComponent(sendBtn.dataset.ticketId) + '/reply',
-              {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
-                credentials: 'include',
-                body: JSON.stringify({ message: msg }),
-              }
-            );
-            if (!rr.ok) throw new Error('HTTP ' + rr.status);
-            if (statusEl) {
-              statusEl.textContent = '✓ Reply sent';
-              statusEl.style.color = '#10b981';
-            }
-            if (textarea) textarea.value = '';
-            setTimeout(() => viewTicket(sendBtn.dataset.ticketId), 800);
-          } catch (err) {
-            if (statusEl) {
-              statusEl.textContent = '✗ Failed: ' + err.message;
-              statusEl.style.color = '#ef4444';
-            }
-          } finally {
-            sendBtn.disabled = false;
-            sendBtn.textContent = 'Send Reply';
-          }
-        });
-      }
-    } catch (err) {
-      body.innerHTML = `<div style="color:#ef4444;padding:1rem;">Failed to load ticket: ${escHtml(err.message)}</div>`;
+    } catch (_) {
+      // Navigation still clears the session client-side.
     }
-  }
-
-  function escHtml(str) {
-    return String(str || '')
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
-  }
-
-  // ── Cashout Requests ──────────────────────────────────────────────────────────
-
-  const CASHOUT_STATUS_MAP = {
-    submitted: { label: 'Submitted', color: '#93c5fd', bg: 'rgba(59,130,246,0.15)' },
-    approved: { label: 'Approved', color: '#6ee7b7', bg: 'rgba(16,185,129,0.15)' },
-    processing: { label: 'Processing', color: '#fcd34d', bg: 'rgba(245,158,11,0.15)' },
-    delivered: { label: 'Delivered', color: '#86efac', bg: 'rgba(34,197,94,0.18)' },
-    rejected: { label: 'Rejected', color: '#fca5a5', bg: 'rgba(239,68,68,0.12)' },
-  };
-
-  function getCashoutStatusBadge(status) {
-    const s = CASHOUT_STATUS_MAP[status] || {
-      label: status || 'Unknown',
-      color: 'rgba(255,255,255,0.4)',
-      bg: 'rgba(255,255,255,0.06)',
-    };
-    return `<span style="display:inline-block;padding:0.18rem 0.55rem;border-radius:100px;font-size: 0.6875rem;font-weight:600;color:${s.color};background:${s.bg};">${escHtml(s.label)}</span>`;
-  }
-
-  async function loadCashoutHistory() {
-    const container = document.getElementById('cashout-history-container');
-    if (!container) {
-      return;
-    }
-
     try {
-      const res = await fetch('/api/v1/partner/cashout-requests', { credentials: 'include' });
-      if (!res.ok) {
-        throw new Error('Failed to load cashout history');
-      }
-      const { items } = await res.json();
-
-      if (!items || items.length === 0) {
-        container.innerHTML = `
-          <div class="partner-empty">
-            <div class="partner-empty-icon" aria-hidden="true">💸</div>
-            <p class="partner-empty-text">No cashout requests yet — submit your first one above!</p>
-          </div>`;
-        return;
-      }
-
-      const rows = items
-        .map(r => {
-          const methodLabel =
-            r.method === 'amazon_voucher'
-              ? 'Amazon Voucher'
-              : r.method === 'prepaid_debit_card'
-                ? 'Pre-Paid Debit Card'
-                : escHtml(r.method || '');
-          const deliveryNote =
-            r.status === 'submitted' || r.status === 'approved' || r.status === 'processing'
-              ? '<span style="font-size:0.75rem;opacity:0.6;"> · Est. 3–5 working days</span>'
-              : '';
-          const adminMsg = r.adminResponseMessage
-            ? `<div class="cashout-history-admin-msg">💬 ${escHtml(r.adminResponseMessage)}</div>`
-            : '';
-          return `
-          <div class="cashout-history-row">
-            <div class="cashout-history-info">
-              <div class="cashout-history-recipient"><strong>£${escHtml(String(r.denominationGbp))}</strong> — ${escHtml(methodLabel)}</div>
-              <div class="cashout-history-meta">
-                ${fmtDate(r.createdAt)}${deliveryNote}
-                ${r.deliveredAt ? ` · Delivered ${fmtDate(r.deliveredAt)}` : ''}
-              </div>
-              ${adminMsg}
-            </div>
-            <div class="cashout-history-actions">
-              ${getCashoutStatusBadge(r.status)}
-            </div>
-          </div>`;
-        })
-        .join('');
-
-      container.innerHTML = `<div class="cashout-history-list">${rows}</div>`;
-    } catch (err) {
-      container.innerHTML = `
-        <div class="partner-empty">
-          <div class="partner-empty-icon" aria-hidden="true">⚠️</div>
-          <p class="partner-empty-text">Failed to load cashout history. Please refresh.</p>
-        </div>`;
+      window.AuthStateManager?.logout();
+      localStorage.removeItem('user');
+      sessionStorage.clear();
+    } catch (_) {
+      // Storage can be unavailable in privacy modes; the server session remains authoritative.
     }
+    window.location.replace('/partner');
   }
 
-  function initCashoutSection(credits, pointsPerGbp) {
-    const insufficientEl = document.getElementById('cashout-insufficient');
-    const formWrap = document.getElementById('cashout-form-wrap');
-    const confirmationEl = document.getElementById('cashout-confirmation');
-
-    if (!formWrap) {
-      return;
-    }
-
-    const rate = Number.isInteger(pointsPerGbp) && pointsPerGbp > 0 ? pointsPerGbp : 100;
-    const MIN_DENOM = 15;
-    const STEP = 5;
-
-    const availBal = credits
-      ? credits.availableBalance !== undefined
-        ? credits.availableBalance
-        : credits.balance || 0
-      : 0;
-    const availGbp = Math.floor(availBal / rate);
-    const maxDenom = Math.floor(availGbp / STEP) * STEP;
-
-    // Update balance hint
-    const balancePtsEl = document.getElementById('cashout-balance-pts');
-    const balanceGbpEl = document.getElementById('cashout-balance-gbp');
-    if (balancePtsEl) {
-      balancePtsEl.textContent = availBal.toLocaleString();
-    }
-    if (balanceGbpEl) {
-      balanceGbpEl.textContent = toPounds(availBal, rate);
-    }
-
-    // Insufficient balance?
-    if (availGbp < MIN_DENOM) {
-      if (insufficientEl) {
-        insufficientEl.style.display = 'flex';
-        const msgEl = document.getElementById('cashout-avail-gbp-msg');
-        if (msgEl) {
-          msgEl.textContent = toPounds(availBal, rate);
-        }
+  function initStaticActions() {
+    byId('partner-logout-btn')?.addEventListener('click', logout);
+    byId('partner-copy-btn')?.addEventListener('click', () =>
+      copyText(state.partner?.refLink, 'Referral link copied.')
+    );
+    byId('partner-ref-code-badge')?.addEventListener('click', () =>
+      copyText(state.partner?.refCode, 'Partner code copied.')
+    );
+    byId('partner-ref-code-badge')?.addEventListener('keydown', event => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        copyText(state.partner?.refCode, 'Partner code copied.');
       }
-      return; // Don't show the form
-    }
-
-    // Populate denomination dropdown
-    const denomSelect = document.getElementById('cashout-denomination');
-    if (denomSelect) {
-      denomSelect.innerHTML = '<option value="">Select an amount…</option>';
-      for (let d = MIN_DENOM; d <= maxDenom; d += STEP) {
-        const opt = document.createElement('option');
-        opt.value = d;
-        opt.textContent = `£${d}`;
-        denomSelect.appendChild(opt);
-      }
-    }
-
-    formWrap.style.display = 'block';
-
-    const form = document.getElementById('cashout-form');
-    const statusEl = document.getElementById('cashout-status');
-    const submitBtn = document.getElementById('cashout-submit-btn');
-    const confirmMsgEl = document.getElementById('cashout-confirmation-msg');
-    const newBtn = document.getElementById('cashout-new-btn');
-
-    if (newBtn) {
-      newBtn.addEventListener('click', () => {
-        if (confirmationEl) {
-          confirmationEl.style.display = 'none';
-        }
-        formWrap.style.display = 'block';
-        if (form) {
-          form.reset();
-        }
-        if (denomSelect) {
-          denomSelect.innerHTML = '<option value="">Select an amount…</option>';
-          for (let d = MIN_DENOM; d <= maxDenom; d += STEP) {
-            const opt = document.createElement('option');
-            opt.value = d;
-            opt.textContent = `£${d}`;
-            denomSelect.appendChild(opt);
-          }
-        }
-        if (statusEl) {
-          statusEl.textContent = '';
-          statusEl.className = 'partner-status';
-        }
+    });
+    byId('partner-share-whatsapp')?.addEventListener('click', shareWhatsApp);
+    byId('partner-share-email')?.addEventListener('click', shareEmail);
+    byId('share-panel-copy')?.addEventListener('click', () =>
+      copyText(state.partner?.refLink, 'Referral link copied.')
+    );
+    byId('share-panel-whatsapp')?.addEventListener('click', shareWhatsApp);
+    byId('partner-regen-btn')?.addEventListener('click', regenerateCode);
+    byId('partner-support-btn')?.addEventListener('click', openSupportModal);
+    byId('partner-disabled-support-btn')?.addEventListener('click', openSupportModal);
+    byId('support-ticket-form')?.addEventListener('submit', submitSupportTicket);
+    byId('partner-profile-form')?.addEventListener('submit', saveProfile);
+    byId('partner-password-form')?.addEventListener('submit', changePassword);
+    byId('partner-confirm-cancel')?.addEventListener('click', () => finishConfirm(false));
+    byId('partner-confirm-ok')?.addEventListener('click', () => finishConfirm(true));
+    byId('referral-filter')?.addEventListener('change', event => {
+      state.referralFilter = event.target.value;
+      renderReferrals();
+    });
+    byId('referral-sort')?.addEventListener('change', event => {
+      state.referralSort = event.target.value;
+      renderReferrals();
+    });
+    document.querySelectorAll('[data-password-target]').forEach(button => {
+      button.addEventListener('click', () => {
+        const input = byId(button.dataset.passwordTarget);
+        if (!input) return;
+        input.type = input.type === 'password' ? 'text' : 'password';
+        button.textContent = input.type === 'password' ? 'Show' : 'Hide';
+        button.setAttribute(
+          'aria-label',
+          `${input.type === 'password' ? 'Show' : 'Hide'} password`
+        );
       });
-    }
-
-    if (!form) {
-      return;
-    }
-
-    form.addEventListener('submit', async e => {
-      e.preventDefault();
-      if (statusEl) {
-        statusEl.textContent = '';
-        statusEl.className = 'partner-status';
-      }
-
-      const method = ((form.elements['method'] || {}).value || '').trim();
-      const denominationGbp = parseInt((form.elements['denominationGbp'] || {}).value || '', 10);
-      const partnerMessage = ((form.elements['partnerMessage'] || {}).value || '').trim();
-
-      if (!method) {
-        if (statusEl) {
-          statusEl.textContent = 'Please select a payout method.';
-          statusEl.className = 'partner-status partner-status--error';
-        }
-        return;
-      }
-      if (!denominationGbp || isNaN(denominationGbp)) {
-        if (statusEl) {
-          statusEl.textContent = 'Please select an amount.';
-          statusEl.className = 'partner-status partner-status--error';
-        }
-        return;
-      }
-
-      if (submitBtn) {
-        submitBtn.disabled = true;
-        submitBtn.textContent = 'Submitting…';
-      }
-
-      try {
-        const csrfToken = await getCsrfToken();
-        const res = await fetch('/api/v1/partner/cashout-requests', {
-          method: 'POST',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
-          body: JSON.stringify({
-            method,
-            denominationGbp,
-            partnerMessage: partnerMessage || undefined,
-          }),
-        });
-
-        const body = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          throw new Error(body.error || 'Failed to submit cashout request');
-        }
-
-        const methodLabel = method === 'amazon_voucher' ? 'Amazon Voucher' : 'Pre-Paid Debit Card';
-        formWrap.style.display = 'none';
-        if (confirmationEl) {
-          confirmationEl.style.display = 'block';
-        }
-        if (confirmMsgEl) {
-          confirmMsgEl.innerHTML = `Request for <strong>£${escHtml(String(denominationGbp))}</strong> via <strong>${escHtml(methodLabel)}</strong> submitted. Ref: <code style="font-family:monospace;font-size:0.8em;">${escHtml(body.cashoutRequestId || '')}</code><br>Typically processed within <strong>3–5 working days</strong>.`;
-        }
-        loadCashoutHistory();
-      } catch (err) {
-        if (statusEl) {
-          statusEl.textContent = err.message || 'Failed to submit request.';
-          statusEl.className = 'partner-status partner-status--error';
-        }
-      } finally {
-        if (submitBtn) {
-          submitBtn.disabled = false;
-          submitBtn.textContent = '💸 Submit Cashout Request';
-        }
-      }
+    });
+    document.addEventListener('click', event => {
+      const retry = event.target.closest('[data-retry]');
+      if (retry && retryHandlers[retry.dataset.retry]) retryHandlers[retry.dataset.retry]();
     });
   }
 
-  // ── Main ──────────────────────────────────────────────────────────────────────
+  function registerRetryHandlers() {
+    retryHandlers.stats = loadStats;
+    retryHandlers.referrals = loadReferrals;
+    retryHandlers.transactions = loadTransactions;
+    retryHandlers.cashouts = loadCashouts;
+    retryHandlers.codeHistory = loadCodeHistory;
+    retryHandlers.tickets = loadTickets;
+  }
 
   async function init() {
-    initLogout();
+    initTabs();
+    initDialogs();
+    initStaticActions();
+    registerRetryHandlers();
 
     const user = await ensureAuth();
-    if (!user) {
+    if (!user) return;
+    byId('partner-user-name').textContent = user.name || user.email || '';
+
+    try {
+      const core = await loadCore();
+      if (!core && state.disabled) {
+        await loadTickets();
+        return;
+      }
+    } catch (_) {
       return;
     }
 
-    // Show user name in header
-    const nameEl = document.getElementById('partner-user-name');
-    if (nameEl) {
-      nameEl.textContent = user.name || user.email || '';
-    }
-
-    const nameHeading = document.getElementById('partner-name-heading');
-
-    async function loadAll() {
-      const [partnerData, referralsData, txnsData, codeHistoryData] = await Promise.all([
-        loadPartnerData(),
-        loadReferrals(),
-        loadTransactions(),
-        loadCodeHistory(),
-      ]);
-      return { partnerData, referralsData, txnsData, codeHistoryData };
-    }
-
-    try {
-      const { partnerData, referralsData, txnsData, codeHistoryData } = await loadAll();
-
-      const { partner, credits } = partnerData;
-      const pointsPerGbp = partnerData.pointsPerGbp || 100;
-      const referrals = referralsData.items || [];
-      const transactions = txnsData.items || [];
-      const codeHistory = codeHistoryData.items || [];
-
-      // Update heading with time-based greeting
-      if (nameHeading) {
-        nameHeading.textContent = user.firstName || (user.name || '').split(' ')[0] || 'Partner';
-      }
-      const greetingTimeEl = document.getElementById('partner-greeting-time');
-      if (greetingTimeEl) {
-        const hour = new Date().getHours();
-        greetingTimeEl.textContent =
-          hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
-      }
-
-      // Update status line
-      const statusLine = document.getElementById('partner-status-line');
-      if (statusLine) {
-        statusLine.textContent =
-          partner.status === 'active'
-            ? 'Your partner account is active'
-            : '⚠️ Your account is currently disabled — contact support';
-        if (partner.status !== 'active') {
-          statusLine.style.color = '#fca5a5';
-        }
-      }
-
-      // Render stats
-      renderStats(credits, referrals.length, pointsPerGbp);
-
-      // Referral link
-      const refLinkEl = document.getElementById('partner-ref-link');
-      const refCodeBadge = document.getElementById('partner-ref-code-badge');
-      if (refLinkEl) {
-        refLinkEl.textContent = partner.refLink;
-      }
-      if (refCodeBadge) {
-        refCodeBadge.textContent = partner.refCode;
-      }
-      initCopyButton(partner.refLink);
-
-      // Copy referral code badge
-      initRefCodeCopy(partner.refCode);
-
-      // Code management
-      const codeDisplay = document.getElementById('partner-code-display');
-      if (codeDisplay) {
-        codeDisplay.textContent = partner.refCode;
-      }
-      renderCodeHistory(codeHistory);
-      initRegenButton(partner, async data => {
-        // On successful regeneration, reload to reflect the new code everywhere
-        const refLinkBox = document.getElementById('partner-ref-link');
-        if (refLinkBox) {
-          refLinkBox.textContent = data.refLink || '';
-        }
-        if (refCodeBadge) {
-          refCodeBadge.textContent = data.newCode || '';
-        }
-        if (codeDisplay) {
-          codeDisplay.textContent = data.newCode || '';
-        }
-        // Reload code history
-        try {
-          const fresh = await loadCodeHistory();
-          renderCodeHistory(fresh.items || []);
-        } catch (_) {
-          // Non-blocking
-        }
-      });
-
-      // Support ticket modal
-      initSupportTicketModal();
-
-      // Load and render partner's own tickets
-      loadAndRenderTickets();
-
-      // Cashout request section
-      initCashoutSection(credits, pointsPerGbp);
-
-      // Cashout request history
-      loadCashoutHistory();
-
-      // Referrals as progress cards
-      renderReferralCards(referrals);
-
-      // Credit Activity — breakdown + transactions
-      renderTransactions(transactions, pointsPerGbp);
-      initCreditTabs();
-
-      // Share buttons
-      initShareButtons(partner.refLink);
-
-      // Stats (earnings breakdown + milestone)
-      loadAndRenderStats(pointsPerGbp);
-
-      // Account settings — pass userProfile from /partner/me for pre-fill
-      initAccountSettings(user, partnerData.userProfile || {});
-    } catch (err) {
-      console.error('Dashboard load error:', err);
-
-      // Remove skeleton state so stats grid doesn't hang in loading animation
-      const statsGrid = document.querySelector('.partner-stats-grid');
-      if (statsGrid) {
-        statsGrid.removeAttribute('data-loading');
-      }
-
-      const statusLine = document.getElementById('partner-status-line');
-      if (err.disabled) {
-        // Account disabled — show the dedicated disabled panel with next steps
-        const disabledPanel = document.getElementById('partner-disabled-panel');
-        const disabledMsg = document.getElementById('partner-disabled-msg');
-        const disabledSupportLink = document.getElementById('partner-disabled-support-link');
-
-        if (disabledPanel) {
-          if (disabledMsg) {
-            disabledMsg.textContent = err.message || 'Your partner account has been disabled.';
-          }
-          disabledPanel.removeAttribute('hidden');
-        }
-
-        if (nameHeading) {
-          nameHeading.textContent = 'Account Disabled';
-        }
-        if (statusLine) {
-          statusLine.textContent = 'Contact support to resolve this.';
-          statusLine.style.color = '#fca5a5';
-        }
-
-        // Wire up the support link inside the disabled panel to open the modal
-        if (disabledSupportLink) {
-          disabledSupportLink.addEventListener('click', e => {
-            e.preventDefault();
-            const openBtn = document.getElementById('partner-support-btn');
-            if (openBtn) {
-              openBtn.click();
-            }
-          });
-        }
-
-        // Clear loading placeholders in data containers
-        const containers = [
-          'referrals-container',
-          'transactions-container',
-          'code-history-container',
-        ];
-        containers.forEach(id => {
-          const el = document.getElementById(id);
-          if (el) {
-            el.innerHTML = `
-              <div class="partner-empty">
-                <div class="partner-empty-icon" aria-hidden="true">🚫</div>
-                <p class="partner-empty-text">Account disabled — data unavailable.</p>
-              </div>`;
-          }
-        });
-        return;
-      }
-      if (statusLine) {
-        statusLine.textContent = 'Error loading dashboard data. Please refresh.';
-        statusLine.style.color = '#fca5a5';
-      }
-      if (nameHeading) {
-        nameHeading.textContent = 'Partner';
-      }
-      // Show retry button and clear loading placeholders
-      const containers = ['referrals-container', 'transactions-container'];
-      containers.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) {
-          el.innerHTML = `
-            <div class="partner-empty">
-              <div class="partner-empty-icon" aria-hidden="true">⚠️</div>
-              <p class="partner-empty-text">Failed to load data.</p>
-              <button type="button" class="partner-retry-btn" onclick="window.location.reload()" style="margin-top:0.75rem;padding:0.45rem 1rem;background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.3);border-radius:8px;color:#6ee7b7;cursor:pointer;font-size: 0.8125rem;">
-                Retry
-              </button>
-            </div>`;
-        }
-      });
-    }
+    await Promise.allSettled([
+      loadStats(),
+      loadReferrals(),
+      loadTransactions(),
+      loadCashouts(),
+      loadCodeHistory(),
+      loadTickets(),
+    ]);
   }
 
   if (document.readyState === 'loading') {
