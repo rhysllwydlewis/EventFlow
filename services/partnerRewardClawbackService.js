@@ -4,7 +4,7 @@ const dbUnified = require('../db-unified');
 const logger = require('../utils/logger');
 const partnerService = require('./partnerService');
 
-const CLAWBACK_TYPE = 'PARTNER_REWARD_CLAWBACK';
+const CLAWBACK_SUBTYPE = 'PARTNER_REWARD_CLAWBACK';
 
 async function findPartnerSubscriptionReward(supplierUserId) {
   const referral = await dbUnified.findOne('partner_referrals', { supplierUserId });
@@ -33,12 +33,14 @@ async function clawBackSubscriptionReward({ supplierUserId, externalRef, reason 
   });
   if (!debit) throw new Error('Partner reward clawback debit did not persist');
 
+  // Keep the canonical REDEEM type so getBalance() continues to subtract the debit
+  // from available rewards. The subtype supplies the audit classification.
   const updatedDebit = await dbUnified.updateOne(
     'partner_credit_transactions',
     { id: debit.id },
     {
       $set: {
-        type: CLAWBACK_TYPE,
+        subtype: CLAWBACK_SUBTYPE,
         supplierUserId,
         originalRewardTxnId: match.reward.id,
       },
@@ -64,7 +66,7 @@ async function clawBackSubscriptionReward({ supplierUserId, externalRef, reason 
     originalRewardTxnId: match.reward.id,
     externalRef,
   });
-  return { ...debit, type: CLAWBACK_TYPE, supplierUserId };
+  return { ...debit, subtype: CLAWBACK_SUBTYPE, supplierUserId };
 }
 
 async function clawBackForPaymentRecord(payment, status) {
@@ -72,14 +74,13 @@ async function clawBackForPaymentRecord(payment, status) {
   const paymentReference = payment.stripePaymentId || payment.id;
   return clawBackSubscriptionReward({
     supplierUserId: payment.userId,
-    // One stable reference prevents a refund followed by a dispute update from debiting twice.
     externalRef: `payment:${paymentReference}:partner-subscription-reward`,
     reason: `Stripe payment marked ${status}`,
   });
 }
 
 module.exports = {
-  CLAWBACK_TYPE,
+  CLAWBACK_SUBTYPE,
   findPartnerSubscriptionReward,
   clawBackSubscriptionReward,
   clawBackForPaymentRecord,
