@@ -1,0 +1,214 @@
+name: Apply partner anti-abuse hardening
+
+on:
+  pull_request:
+    branches: [main]
+    types: [synchronize]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apply-partner-anti-abuse
+  cancel-in-progress: true
+
+env:
+  HUSKY: '0'
+  NODE_ENV: test
+  JWT_SECRET: partner-anti-abuse-secret-minimum-32-characters
+
+jobs:
+  apply:
+    if: ${{ github.head_ref == 'agent/partner-anti-abuse-hardening' && !contains(github.event.head_commit.message, '[anti-abuse-applied]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/partner-anti-abuse-hardening
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.node-version'
+          cache: npm
+      - name: Patch partner reward and cashout controls
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+
+          def replace_once(path, old, new):
+              p = Path(path)
+              text = p.read_text()
+              if old not in text:
+                  raise SystemExit(f'Pattern not found in {path}: {old[:100]!r}')
+              p.write_text(text.replace(old, new, 1))
+
+          # Signup rewards only become payable after supplier email verification.
+          replace_once(
+              'services/partnerService.js',
+              "async function awardReferralSignupBonus(supplierUserId) {\n  const referral = await getReferralBySupplierUserId(supplierUserId);\n  if (!referral) return null;",
+              "async function awardReferralSignupBonus(supplierUserId) {\n  const referral = await getReferralBySupplierUserId(supplierUserId);\n  if (!referral) return null;\n  const supplier = await dbUnified.findOne('users', { id: supplierUserId });\n  if (!supplier || supplier.role !== 'supplier' || supplier.verified !== true) {\n    logger.info('[PARTNER-SVC] Signup reward withheld until supplier verification', {\n      supplierUserId,\n      hasSupplier: Boolean(supplier),\n      verified: supplier?.verified === true,\n    });\n    return null;\n  }"
+          )
+
+          # Award the deferred signup reward from every successful email-verification path.
+          auth = Path('routes/auth.js')
+          text = auth.read_text()
+          hooks = [
+              ("    logger.info('User verified successfully via JWT');\n", "    logger.info('User verified successfully via JWT');\n    if (user.role === 'supplier') {\n      const partnerService = require('../services/partnerService');\n      partnerService.awardReferralSignupBonus(user.id).catch(error =>\n        logger.warn('Deferred partner signup reward failed:', error.message)\n      );\n    }\n"),
+              ("  logger.info('User verified successfully (legacy)', { tokenField });\n", "  logger.info('User verified successfully (legacy)', { tokenField });\n  if (legacyUser.role === 'supplier') {\n    const partnerService = require('../services/partnerService');\n    partnerService.awardReferralSignupBonus(legacyUser.id).catch(error =>\n      logger.warn('Deferred partner signup reward failed:', error.message)\n    );\n  }\n"),
+              ("    logger.info('User verified successfully via POST');\n", "    logger.info('User verified successfully via POST');\n    if (user.role === 'supplier') {\n      const partnerService = require('../services/partnerService');\n      partnerService.awardReferralSignupBonus(user.id).catch(error =>\n        logger.warn('Deferred partner signup reward failed:', error.message)\n      );\n    }\n"),
+          ]
+          for old, new in hooks:
+              if old not in text:
+                  raise SystemExit(f'Auth verification hook not found: {old!r}')
+              text = text.replace(old, new, 1)
+          auth.write_text(text)
+
+          # Persist a fraud assessment with every newly submitted cashout.
+          replace_once(
+              'routes/partner.js',
+              "const partnerService = require('../services/partnerService');\n",
+              "const partnerService = require('../services/partnerService');\nconst partnerAntiAbuse = require('../services/partnerAntiAbuseService');\n"
+          )
+          replace_once(
+              'routes/partner.js',
+              "        const refreshedBalance = await partnerService.getBalance(partner.id);\n        return res.status(201).json({",
+              "        let fraudAssessment = null;\n        try {\n          fraudAssessment = await partnerAntiAbuse.assessCashout({\n            partnerId: partner.id,\n            requestId: requestRecord.id,\n            requestedAt: requestRecord.createdAt,\n          });\n          await partnerAntiAbuse.persistAssessment(fraudAssessment);\n          await dbUnified.updateOne(\n            'partner_cashout_requests',\n            { id: requestRecord.id },\n            {\n              $set: {\n                fraudRiskScore: fraudAssessment.score,\n                fraudRiskLevel: fraudAssessment.riskLevel,\n                fraudReviewRequired: fraudAssessment.requiresManualReview,\n                fraudAssessedAt: fraudAssessment.assessedAt,\n              },\n            }\n          );\n        } catch (fraudError) {\n          logger.error('[PARTNER-CASHOUT] Fraud assessment failed', {\n            partnerId: partner.id,\n            cashoutId: requestRecord.id,\n            error: fraudError.message,\n          });\n          await dbUnified.updateOne(\n            'partner_cashout_requests',\n            { id: requestRecord.id },\n            { $set: { fraudReviewRequired: true, fraudAssessmentFailed: true } }\n          );\n        }\n\n        const refreshedBalance = await partnerService.getBalance(partner.id);\n        return res.status(201).json({"
+          )
+          replace_once(
+              'routes/partner.js',
+              "          config,\n          message: `Your cashout request",
+              "          config,\n          fraudReview: fraudAssessment\n            ? {\n                riskLevel: fraudAssessment.riskLevel,\n                requiresManualReview: fraudAssessment.requiresManualReview,\n              }\n            : { riskLevel: 'review', requiresManualReview: true },\n          message: `Your cashout request"
+          )
+
+          # Admin approvals are blocked for high-risk assessments unless a reasoned override is recorded.
+          replace_once(
+              'routes/admin-cashout-requests.js',
+              "const partnerService = require('../services/partnerService');\n",
+              "const partnerService = require('../services/partnerService');\nconst partnerAntiAbuse = require('../services/partnerAntiAbuseService');\n"
+          )
+          replace_once(
+              'routes/admin-cashout-requests.js',
+              "    const { status, adminResponseMessage, adminInternalNotes, deliveryDetails } = req.body || {};",
+              "    const {\n      status,\n      adminResponseMessage,\n      adminInternalNotes,\n      deliveryDetails,\n      fraudOverrideReason,\n    } = req.body || {};"
+          )
+          replace_once(
+              'routes/admin-cashout-requests.js',
+              "      updates.status = status;\n      updates.adminUserIdApproved = req.user.id;\n\n      if (status === 'approved') {",
+              "      if (status === 'approved') {\n        const assessment = await partnerAntiAbuse.assessCashout({\n          partnerId: request.partnerId,\n          requestId: request.id,\n          requestedAt: request.createdAt,\n        });\n        await partnerAntiAbuse.persistAssessment(assessment);\n        updates.fraudRiskScore = assessment.score;\n        updates.fraudRiskLevel = assessment.riskLevel;\n        updates.fraudReviewRequired = assessment.requiresManualReview;\n        updates.fraudAssessedAt = assessment.assessedAt;\n\n        const override = String(fraudOverrideReason || '').trim();\n        if (assessment.blockApproval && override.length < 20) {\n          return res.status(409).json({\n            error:\n              'This cashout is high risk and cannot be approved without a fraud override reason of at least 20 characters.',\n            code: 'PARTNER_CASHOUT_HIGH_RISK',\n            assessment,\n          });\n        }\n        if (assessment.blockApproval) {\n          updates.fraudOverrideReason = override.slice(0, 2000);\n          updates.fraudOverrideBy = req.user.id;\n          updates.fraudOverrideAt = now;\n        }\n      }\n\n      updates.status = status;\n      updates.adminUserIdApproved = req.user.id;\n\n      if (status === 'approved') {"
+          )
+          replace_once(
+              'routes/admin-cashout-requests.js',
+              "      redeemTransaction: redeemTxn || null,\n    });",
+              "      redeemTransaction: redeemTxn || null,\n      fraudAssessment:\n        (await dbUnified.findOne('partner_fraud_assessments', { requestId: request.id })) || null,\n    });"
+          )
+
+          # Database-enforced uniqueness closes race windows around rewards and retries.
+          dbinit = Path('db-init.js')
+          text = dbinit.read_text()
+          text = text.replace(
+              "      { keys: { supplierUserId: 1, type: 1, partnerId: 1 }, options: {} },",
+              "      {\n        keys: { supplierUserId: 1, type: 1, partnerId: 1 },\n        options: {\n          unique: true,\n          partialFilterExpression: { supplierUserId: { $type: 'string' } },\n        },\n      },",
+              1,
+          )
+          marker = "  {\n    name: 'partner_credit_transactions',"
+          if marker not in text:
+              raise SystemExit('Partner collection marker not found')
+          insert_after = "  {\n    name: 'partner_credit_transactions',\n    indexes: [\n      { keys: { id: 1 }, options: { unique: true } },\n      { keys: { partnerId: 1 }, options: {} },\n      {\n        keys: { supplierUserId: 1, type: 1, partnerId: 1 },\n        options: {\n          unique: true,\n          partialFilterExpression: { supplierUserId: { $type: 'string' } },\n        },\n      },\n      { keys: { type: 1 }, options: {} },\n      { keys: { createdAt: -1 }, options: {} },\n    ],\n  },"
+          if insert_after not in text:
+              raise SystemExit('Updated partner transaction collection not found')
+          additions = insert_after + "\n  {\n    name: 'partner_cashout_requests',\n    indexes: [\n      { keys: { id: 1 }, options: { unique: true } },\n      {\n        keys: { partnerId: 1, idempotencyKey: 1 },\n        options: {\n          unique: true,\n          partialFilterExpression: { idempotencyKey: { $type: 'string' } },\n        },\n      },\n      { keys: { partnerId: 1, status: 1 }, options: {} },\n      { keys: { createdAt: -1 }, options: {} },\n    ],\n  },\n  {\n    name: 'partner_fraud_assessments',\n    indexes: [\n      { keys: { id: 1 }, options: { unique: true } },\n      { keys: { requestId: 1 }, options: { unique: true } },\n      { keys: { partnerId: 1, assessedAt: -1 }, options: {} },\n      { keys: { riskLevel: 1 }, options: {} },\n    ],\n  },"
+          text = text.replace(insert_after, additions, 1)
+          dbinit.write_text(text)
+
+          # Document launch controls and manual review policy.
+          docs = Path('docs/PARTNER_PORTAL.md')
+          text = docs.read_text()
+          section = """
+
+## Anti-abuse and launch controls
+
+EventFlow treats partner rewards as provisional until the underlying activity has matured and passed cashout review.
+
+- Supplier signup points are not awarded until the supplier verifies their email address.
+- Every first cashout requires manual review.
+- Every cashout receives a persisted fraud-risk assessment based on account age, supplier verification, identity overlap, milestone velocity, repeated email domains and ledger/referral consistency.
+- High-risk cashouts cannot be approved unless an administrator records a reasoned override of at least 20 characters.
+- Partner/supplier identity overlap, unverified rewarded suppliers and orphan reward transactions are high-severity signals.
+- Database uniqueness prevents duplicate milestone rewards and repeated idempotency keys even when requests race across application instances.
+- Administrators should confirm that packages, reviews and paid subscriptions are genuine before overriding any high-risk result.
+- Shared domains or rapid activity are indicators, not automatic proof of fraud; legitimate cases must be documented in the internal cashout notes.
+"""
+          if '## Anti-abuse and launch controls' not in text:
+              text += section
+          docs.write_text(text)
+
+          # Add contract coverage for verification gating.
+          test = Path('tests/unit/partner-anti-abuse-contract.test.js')
+          test.write_text("""'use strict';
+
+const fs = require('fs');
+const path = require('path');
+
+describe('partner anti-abuse contracts', () => {
+  const root = path.join(__dirname, '../..');
+  const read = file => fs.readFileSync(path.join(root, file), 'utf8');
+
+  test('signup rewards require a verified supplier', () => {
+    const service = read('services/partnerService.js');
+    expect(service).toContain("supplier.role !== 'supplier' || supplier.verified !== true");
+    expect(service).toContain('Signup reward withheld until supplier verification');
+  });
+
+  test('all email verification paths release the deferred signup reward', () => {
+    const auth = read('routes/auth.js');
+    expect((auth.match(/Deferred partner signup reward failed/g) || [])).toHaveLength(3);
+  });
+
+  test('high-risk cashouts require a reasoned administrator override', () => {
+    const admin = read('routes/admin-cashout-requests.js');
+    expect(admin).toContain('PARTNER_CASHOUT_HIGH_RISK');
+    expect(admin).toContain('override.length < 20');
+  });
+
+  test('cashout creation persists a fraud assessment', () => {
+    const route = read('routes/partner.js');
+    expect(route).toContain('partnerAntiAbuse.assessCashout');
+    expect(route).toContain('fraudReviewRequired');
+  });
+
+  test('database indexes enforce reward and idempotency uniqueness', () => {
+    const dbInit = read('db-init.js');
+    expect(dbInit).toContain("name: 'partner_fraud_assessments'");
+    expect(dbInit).toContain("name: 'partner_cashout_requests'");
+    expect(dbInit).toContain("partialFilterExpression: { supplierUserId: { $type: 'string' } }");
+  });
+});
+""")
+          PY
+      - run: npm ci --prefer-offline --no-audit
+      - name: Format changed files
+        run: npx prettier --write services/partnerService.js services/partnerAntiAbuseService.js routes/auth.js routes/partner.js routes/admin-cashout-requests.js db-init.js docs/PARTNER_PORTAL.md tests/unit/partner-anti-abuse.test.js tests/unit/partner-anti-abuse-contract.test.js
+      - name: Validate syntax
+        run: |
+          node --check services/partnerService.js
+          node --check services/partnerAntiAbuseService.js
+          node --check routes/auth.js
+          node --check routes/partner.js
+          node --check routes/admin-cashout-requests.js
+          node --check db-init.js
+      - name: Run anti-abuse and partner suites
+        run: npx jest --runInBand --coverage=false tests/unit/partner-anti-abuse.test.js tests/unit/partner-anti-abuse-contract.test.js tests/unit/partner-service.test.js tests/unit/partner-cashout-requests.test.js tests/integration/admin-cashout-requests.test.js
+      - name: Run changed-code lint
+        run: npx eslint services/partnerService.js services/partnerAntiAbuseService.js routes/auth.js routes/partner.js routes/admin-cashout-requests.js db-init.js tests/unit/partner-anti-abuse.test.js tests/unit/partner-anti-abuse-contract.test.js --max-warnings=0
+      - name: Commit implementation and remove installer
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f .github/workflows/apply-partner-anti-abuse.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "fix(partner): harden referral rewards against abuse [anti-abuse-applied]"
+          git push origin HEAD:agent/partner-anti-abuse-hardening
