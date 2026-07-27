@@ -1,379 +1,270 @@
-# Partner / Affiliate Portal
+# EventFlow Partner Portal
 
-## Overview
+## Purpose
 
-The Partner Portal is a **hidden** area of EventFlow that allows influencers, Facebook group admins, and community promoters to earn points by referring event suppliers to sign up and get started on EventFlow.
+The Partner Portal is the private EventFlow workspace for community partners, creators, group administrators and other approved referrers who introduce genuine event suppliers to EventFlow.
 
-It lives at `/partner` — this URL is **not indexed** (`noindex, nofollow`) and not linked from public navigation. You share the URL directly with partners.
+The programme lives under `/partner` and is intentionally excluded from search indexing. Partners receive a unique referral code and link. Supplier activity attributed to that link can create reward points.
 
----
+## Main pages
 
-## User Flows
+| URL                        | Purpose                              |
+| -------------------------- | ------------------------------------ |
+| `/partner`                 | Partner sign-in and registration     |
+| `/partner/dashboard`       | Partner workspace                    |
+| `/partner/media-pack.html` | Approved copy-ready sharing material |
+| `/partner/terms.html`      | Partner Programme Terms              |
+| `/admin-partners`          | Administrator partner moderation     |
+| `/admin-cashout-requests`  | Administrator redemption processing  |
 
-### Partner signs up
+## Dashboard structure
 
-1. Partner visits `/partner`
-2. Partner clicks "Join as partner" and fills in the signup form
-3. Their account is **auto-activated** with role `partner`
-4. A unique referral link is generated: `https://yourdomain.com/auth?ref=p_XXXXXXXX&role=supplier`
-5. Partner is redirected to `/partner/dashboard`
+The dashboard is organised into six accessible sections on one route:
 
-### Supplier signs up via partner link
+1. **Overview** – available, maturing, potential and total rewards; current referral link; redemption progress; recent referrals.
+2. **Referrals** – privacy-masked suppliers, milestone progress, attribution deadlines, earned points and remaining potential.
+3. **Rewards** – earnings breakdown, points activity, redemption form and redemption history.
+4. **Share Tools** – links to the existing Share Pack and Programme Terms plus current-link quick actions.
+5. **Support** – ticket creation, ticket history, detail and replies.
+6. **Settings** – profile, password and partner-code management.
 
-1. Partner shares their referral link
-2. Supplier clicks the link — it lands on the existing `/auth` registration page
-3. The `ref` code is passed in the form body and stored in the registration call
-4. On successful registration, a `partner_referral` record is created linking the supplier to the partner
+Secondary sections load independently. A failure in one endpoint must not prevent the rest of the dashboard from working.
 
-### Points are earned
+## Reward milestones
 
-- **+5 points** when the referred supplier **signs up** via the partner's referral link (immediate on registration)
-- **+10 points** when the referred supplier creates their **first-ever package** (within 30 days of their signup)
-- **+15 points** when the referred supplier receives their **first customer review**
-- **+100 points** when the referred supplier makes their **first successful Stripe subscription payment** (within 30 days of their signup, **not** trial activations or £0 invoices)
-- All bonuses are awarded **only once** per supplier (idempotent)
+The standard reward model is:
 
-> **Note:** A `PROFILE_APPROVED_BONUS` type exists in the ledger schema for historical reasons but is no longer awarded. Profile approval does not trigger any point bonus.
+| Milestone                                                                | Points | Eligibility window                                                                             |
+| ------------------------------------------------------------------------ | -----: | ---------------------------------------------------------------------------------------------- |
+| Referred supplier signs up                                               |      5 | Recorded when the supplier registers through a valid current or historical code                |
+| Referred supplier creates their first package                            |     10 | Must occur within 30 days of supplier signup                                                   |
+| Referred supplier receives their first customer review                   |     15 | No attribution expiry is currently applied by the reward service                               |
+| Referred supplier makes their first successful paid subscription payment |    100 | Must occur within 30 days of supplier signup; £0 invoices and trial activations do not qualify |
 
-### Available vs maturing points
+Each reward is idempotent per partner, supplier and reward type.
 
-Once earned, points go through a **30-day maturation period** before they become available for cashout:
+The deprecated `PROFILE_APPROVED_BONUS` ledger type remains recognised for historical compatibility but no new profile-approval reward is issued.
 
-| Point state   | Description                                                                            |
-| ------------- | -------------------------------------------------------------------------------------- |
-| **Maturing**  | Recently earned — not yet available for cashout (< 30 days old)                        |
-| **Available** | Mature points (≥ 30 days old) — can be used for cashout requests                       |
-| **Potential** | Points that _could_ be earned from active referrals in their 30-day attribution window |
+## Referral status
 
-### Point value and conversion
+`GET /api/v1/partner/referrals` returns a privacy-safe view of each referral including:
 
-Points convert to GBP at a rate configured by the `POINTS_PER_GBP` environment variable (default: 100 points = £1). This rate is also returned by `GET /api/v1/partner/me` as `pointsPerGbp` so the dashboard always reflects the live configured rate.
+- masked supplier name;
+- signup date;
+- attribution expiry date;
+- days remaining for package and subscription milestones;
+- package qualification and timestamp;
+- review qualification and timestamp;
+- subscription qualification and timestamp;
+- points earned from that supplier;
+- remaining potential points;
+- current state: `active`, `completed` or `expired`;
+- stored campaign metadata where available.
 
-| Points | GBP value |
-| ------ | --------- |
-| 1      | £0.01     |
-| 10     | £0.10     |
-| 100    | £1.00     |
+Review qualification is derived from existing `FIRST_REVIEW_BONUS` ledger transactions. This avoids a risky data migration and ensures already rewarded referrals display correctly.
 
----
+Package and subscription expiry must not be applied to the review milestone.
 
-## Pages
+## Point maturity
 
-| URL                                | Who can access    | Description                                                     |
-| ---------------------------------- | ----------------- | --------------------------------------------------------------- |
-| `/partner`                         | Public (hidden)   | Entry — login or sign up as partner                             |
-| `/partner/dashboard`               | Partners & admins | Dashboard with ref link, stats, referrals, and cashout requests |
-| `/admin-partners`                  | Admins only       | Standalone partner moderation dashboard                         |
-| `/admin-cashout-requests`          | Admins only       | Partner cashout requests back-office (approve/reject/deliver)   |
-| `/admin` (Partners section in nav) | Admins only       | Partner moderation also accessible from the main admin navbar   |
+Reward points mature after the configured maturity period, currently 30 days.
 
----
+| State         | Meaning                                                             |
+| ------------- | ------------------------------------------------------------------- |
+| **Maturing**  | Earned reward points that have not reached the maturity date        |
+| **Available** | Mature reward points that can be redeemed                           |
+| **Potential** | Milestones that remain available for current referrals              |
+| **Held**      | Available points reserved against a submitted redemption request    |
+| **Redeemed**  | Points permanently deducted after reward delivery                   |
+| **Released**  | A previous hold returned after rejection or failed request creation |
 
-## API Endpoints
+Positive administrator adjustments are immediately available. Cashout holds reduce available balance. A release restores held points.
 
-### Partner (requires `partner` role)
+## Programme configuration
 
-| Method | Path                                   | Description                                                          |
-| ------ | -------------------------------------- | -------------------------------------------------------------------- |
-| `POST` | `/api/v1/partner/register`             | Create a new partner account                                         |
-| `GET`  | `/api/v1/partner/me`                   | Get current partner profile, ref code, balance                       |
-| `GET`  | `/api/v1/partner/referrals`            | List referred suppliers with statuses                                |
-| `GET`  | `/api/v1/partner/transactions`         | List point transaction history                                       |
-| `POST` | `/api/v1/partner/regenerate-code`      | Generate a new referral code (old code stays valid)                  |
-| `GET`  | `/api/v1/partner/code-history`         | List previously used referral codes                                  |
-| `POST` | `/api/v1/partner/support-ticket`       | Raise a general support ticket from the partner dashboard            |
-| `GET`  | `/api/v1/partner/support-tickets`      | List all support tickets raised by the current partner               |
-| `POST` | `/api/v1/partner/cashout-requests`     | Submit a new cashout request (Amazon Voucher or Pre-Paid Debit Card) |
-| `GET`  | `/api/v1/partner/cashout-requests`     | List the current partner's own cashout requests                      |
-| `GET`  | `/api/v1/partner/cashout-requests/:id` | Get details of a single cashout request                              |
+The backend is the single source of truth for the current programme rules. `GET /api/v1/partner/me` and `GET /api/v1/partner/stats` expose:
 
-> **Note:** All partner API endpoints return `403 { error: "...", disabled: true }` if the partner's account status is `disabled`. The dashboard will show a clear "account disabled" message in this case.
-
-#### Support ticket fields (`POST /api/v1/partner/support-ticket`)
-
-| Field     | Type   | Rules                              |
-| --------- | ------ | ---------------------------------- |
-| `subject` | string | **Required.** Max 150 characters.  |
-| `message` | string | **Required.** Max 2000 characters. |
-
-Validation errors return HTTP `400` with a JSON body `{ "error": "..." }` describing the problem.
-
-#### Cashout request flow
-
-Partners can submit cashout requests directly from the partner dashboard. The flow is:
-
-1. Partner checks their **available balance** (mature points ≥ 30 days old).
-2. Partner selects a **payout method**: Amazon Voucher or Pre-Paid Debit Card.
-3. Partner selects a **denomination** in £5 increments (minimum £15, maximum equal to available GBP balance).
-4. Dashboard submits `POST /cashout-requests`; the server validates the request and immediately creates a `CASHOUT_HOLD` ledger transaction to reserve the points.
-5. Request is placed in `submitted` status and appears in the admin cashout requests queue at `/admin-cashout-requests`.
-6. Partner sees a history list with status updates and any admin response messages.
-
-**Typical processing time:** 3–5 working days.
-
-**Denomination rules:**
-
-- Minimum: £15
-- Increments: £5 (£15, £20, £25, …)
-- Maximum: floor(availableGbp / 5) × 5
-- Configurable via `CASHOUT_DENOMINATIONS` env var (comma-separated integers)
-
-**Financial safety:**
-
-- The server enforces that the partner has **sufficient available points** (not maturing) before creating a request.
-- Points are held atomically via a `CASHOUT_HOLD` ledger transaction on submission — prevents double-spend.
-- On **rejection**, a `CASHOUT_RELEASE` transaction restores the held points.
-- On **delivery**, the hold is released and a final `REDEEM` transaction records the permanent deduction.
-
-### Admin (requires `admin` role)
-
-| Method   | Path                                                      | Description                                                                            |
-| -------- | --------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| `GET`    | `/api/v1/admin/partners`                                  | List all partners (search & filter)                                                    |
-| `GET`    | `/api/v1/admin/partners/:id`                              | Get full detail for a partner                                                          |
-| `PATCH`  | `/api/v1/admin/partners/:id/status`                       | Enable or disable a partner                                                            |
-| `POST`   | `/api/v1/admin/partners/:id/credits`                      | Apply manual credit adjustment                                                         |
-| `GET`    | `/api/v1/admin/partners/payout-requests`                  | List all payout request tickets (legacy ticket-based flow)                             |
-| `PATCH`  | `/api/v1/admin/partners/payout-requests/:ticketId/status` | Update payout ticket status (legacy)                                                   |
-| `GET`    | `/api/v1/admin/cashout-requests`                          | List all partner cashout requests (filter: status, partnerId)                          |
-| `GET`    | `/api/v1/admin/cashout-requests/:id`                      | Get full detail of a cashout request (with ledger transactions)                        |
-| `PATCH`  | `/api/v1/admin/cashout-requests/:id`                      | Update status/notes (approve → processing → delivered / reject) + CSRF                 |
-| `DELETE` | `/api/v1/admin/cashout-requests/:id`                      | Delete a cashout request (only allowed for terminal states: rejected/delivered) + CSRF |
-
-#### Cashout request status workflow
-
+```json
+{
+  "pointsPerGbp": 100,
+  "maturityDays": 30,
+  "attributionDays": 30,
+  "minimumCashoutGbp": 15,
+  "cashoutDenominations": [15, 20, 25],
+  "cashoutMethods": ["amazon_voucher", "prepaid_debit_card"]
+}
 ```
+
+The dashboard must use this object rather than hardcoding reward values, minimums or denominations.
+
+Environment variables:
+
+| Variable                    | Purpose                                                           |
+| --------------------------- | ----------------------------------------------------------------- |
+| `POINTS_PER_GBP`            | Number of points equal to £1; default 100                         |
+| `CASHOUT_DENOMINATIONS`     | Comma-separated allowed GBP amounts; default £15–£500 in £5 steps |
+| `BASE_URL` / `APP_BASE_URL` | Canonical origin used for referral links                          |
+| `JWT_SECRET`                | Authentication signing secret                                     |
+| `MONGODB_URI`               | Production database connection                                    |
+
+## Redemption integrity
+
+### Request requirements
+
+`POST /api/v1/partner/cashout-requests` requires:
+
+- authenticated active partner;
+- supported reward method;
+- configured denomination;
+- enough **available** points;
+- a valid `Idempotency-Key` header or matching `idempotencyKey` body field.
+
+Maturing points and points already held against another request cannot be reused.
+
+### Safe creation sequence
+
+Cashout creation is serialised per partner within the application process:
+
+1. Look for an existing request with the same partner and idempotency key.
+2. Return that request when found.
+3. Re-read the available balance inside the protected section.
+4. Persist a `CASHOUT_HOLD` ledger transaction.
+5. Refuse to continue if the hold was not durably written.
+6. Persist the cashout request referencing the hold.
+7. Re-read and return the refreshed balance.
+
+If request insertion fails after the hold is written, the service immediately persists a `CASHOUT_RELEASE`.
+
+If both request insertion and rollback fail, the response contains:
+
+- `reconciliationRequired: true`;
+- a cashout reference;
+- instructions to contact support.
+
+This condition must be logged as a critical operational error.
+
+### Idempotency
+
+The same idempotency key for the same partner returns the original request and does not create another hold.
+
+The browser keeps the same key after a network/server error so a safe retry cannot duplicate the request. The key is reset after success or after a client-side validation error.
+
+### Status workflow
+
+```text
 submitted → approved → processing → delivered
-                   ↘                ↗
-                    rejected (releases held points)
+     └──────────────→ rejected
 ```
 
-| Status       | Transitions to           | Side effect                                                            |
-| ------------ | ------------------------ | ---------------------------------------------------------------------- |
-| `submitted`  | `approved`, `rejected`   | —                                                                      |
-| `approved`   | `processing`, `rejected` | —                                                                      |
-| `processing` | `delivered`, `rejected`  | —                                                                      |
-| `delivered`  | (terminal)               | CASHOUT_HOLD released + final REDEEM transaction created               |
-| `rejected`   | (terminal)               | CASHOUT_HOLD released via CASHOUT_RELEASE — points restored to partner |
+- `submitted`: points are held.
+- `approved`: administrator has accepted the request.
+- `processing`: reward delivery is underway.
+- `delivered`: hold is finalised and points are permanently redeemed.
+- `rejected`: held points are released.
 
----
+Typical processing time is 3–5 working days.
 
-## Data Collections
+## Disabled-account support
 
-Three collections are used (in `store.js` and MongoDB):
+Financial, referral, transaction, code and settings endpoints continue to reject disabled partners.
 
-### `partners`
+Disabled partners retain access only to restricted support functions:
 
-| Field       | Type       | Description                                                      |
-| ----------- | ---------- | ---------------------------------------------------------------- |
-| `id`        | string     | Unique ID (`prt_...`)                                            |
-| `userId`    | string     | Links to `users` collection (**unique**: one user → one partner) |
-| `refCode`   | string     | Unique referral code (e.g. `p_A1B2C3D4`) (**unique**)            |
-| `status`    | string     | `active` or `disabled`                                           |
-| `createdAt` | ISO string | Account creation time                                            |
+- create an account-access support ticket;
+- list their own support tickets;
+- open their own support tickets;
+- reply to their own tickets unless closed.
 
-### `partner_referrals`
+Tickets raised while disabled use:
 
-| Field                   | Type       | Description                                                                          |
-| ----------------------- | ---------- | ------------------------------------------------------------------------------------ |
-| `id`                    | string     | Unique ID (`ref_...`)                                                                |
-| `partnerId`             | string     | Links to `partners`                                                                  |
-| `supplierUserId`        | string     | The referred supplier's user ID (**unique**: one supplier → one partner attribution) |
-| `supplierCreatedAt`     | ISO string | When the supplier signed up                                                          |
-| `attributionExpiresAt`  | ISO string | `supplierCreatedAt + 30 days`                                                        |
-| `packageQualified`      | boolean    | Package bonus awarded                                                                |
-| `subscriptionQualified` | boolean    | Subscription bonus awarded                                                           |
+- category `partner_account_access`;
+- high priority;
+- the authenticated partner/user identifiers.
 
-### `partner_credit_transactions`
+The disabled dashboard hides financial and referral content and opens the Support section. It also provides `hello@event-flow.co.uk` as a fallback through the programme wording.
 
-| Field            | Type           | Description                                                                                                                                                                                                 |
-| ---------------- | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `id`             | string         | Unique ID (`ptx_...`)                                                                                                                                                                                       |
-| `partnerId`      | string         | Links to `partners`                                                                                                                                                                                         |
-| `supplierUserId` | string \| null | Supplier who triggered the point award (null for adjustments/debits)                                                                                                                                        |
-| `type`           | string         | `PACKAGE_BONUS`, `SUBSCRIPTION_BONUS`, `REFERRAL_SIGNUP_BONUS`, `FIRST_REVIEW_BONUS`, `PROFILE_APPROVED_BONUS` _(never awarded — deprecated)_, `ADJUSTMENT`, `REDEEM`, `CASHOUT_HOLD`, or `CASHOUT_RELEASE` |
-| `amount`         | number         | Point amount (positive = earn, negative = deduct/hold)                                                                                                                                                      |
-| `notes`          | string         | Human-readable note                                                                                                                                                                                         |
-| `adminUserId`    | string \| null | Set for admin adjustments                                                                                                                                                                                   |
-| `externalRef`    | string \| null | Reference to cashout request ID (set on CASHOUT_HOLD/CASHOUT_RELEASE/REDEEM)                                                                                                                                |
-| `createdAt`      | ISO string     | Transaction timestamp                                                                                                                                                                                       |
+## Partner code management
 
-> **Maturity rule:** Points with `type !== REDEEM` and `type !== ADJUSTMENT` and `type !== CASHOUT_HOLD` and `type !== CASHOUT_RELEASE` are only included in `availableBalance` once they are ≥ 30 days old (`CREDIT_MATURITY_DAYS`). Younger points appear in `maturingBalance`.
->
-> **Hold rule:** `CASHOUT_HOLD` transactions count against `availableBalance` (treated like REDEEM for balance calculation). `CASHOUT_RELEASE` transactions restore the held amount (subtracted from the redeemed tally).
+Partners can generate a new current code.
 
-### `partner_cashout_requests`
+The previous code is stored in `partner_code_history` and remains valid so old Facebook posts, messages and campaign links continue to attribute suppliers correctly.
 
-New in the cashout request system. Each record represents a manual cashout request from a partner.
+The dashboard stores the current partner code and referral URL in one client-side state object. All copy, WhatsApp and email actions read from that current state at click time. Regeneration updates:
 
-| Field                  | Type               | Description                                                         |
-| ---------------------- | ------------------ | ------------------------------------------------------------------- |
-| `id`                   | string             | Unique ID (`pcr_...`)                                               |
-| `partnerId`            | string             | Links to `partners`                                                 |
-| `partnerUserId`        | string             | User ID of the partner                                              |
-| `method`               | string             | `amazon_voucher` or `prepaid_debit_card`                            |
-| `denominationGbp`      | number             | GBP amount (integer, £5 increments, min £15)                        |
-| `pointsHeld`           | number             | Points reserved via CASHOUT_HOLD                                    |
-| `pointsPerGbpSnapshot` | number             | POINTS_PER_GBP rate at time of request (for audit)                  |
-| `status`               | string             | `submitted`, `approved`, `rejected`, `processing`, or `delivered`   |
-| `partnerMessage`       | string \| null     | Optional notes from the partner                                     |
-| `adminResponseMessage` | string \| null     | Admin response visible to the partner                               |
-| `adminInternalNotes`   | string \| null     | Admin internal notes (not shown to partner)                         |
-| `adminUserIdApproved`  | string \| null     | Admin user ID who last actioned the request                         |
-| `holdTxnId`            | string             | ID of the CASHOUT_HOLD transaction in `partner_credit_transactions` |
-| `finalRedeemTxnId`     | string \| null     | ID of the final REDEEM transaction (set on delivery)                |
-| `deliveryDetails`      | object \| null     | Delivery metadata (voucher code / card reference, etc.)             |
-| `approvedAt`           | ISO string \| null | Timestamp when approved                                             |
-| `rejectedAt`           | ISO string \| null | Timestamp when rejected                                             |
-| `processingAt`         | ISO string \| null | Timestamp when moved to processing                                  |
-| `deliveredAt`          | ISO string \| null | Timestamp when delivered                                            |
-| `createdAt`            | ISO string         | Request creation timestamp                                          |
-| `updatedAt`            | ISO string         | Last update timestamp                                               |
+- displayed URL;
+- displayed code badge;
+- settings code display;
+- copy action;
+- WhatsApp action;
+- email action;
+- code history.
 
-### Database Indexes / Uniqueness
+## Support ticket endpoints
 
-The following unique constraints are enforced via MongoDB indexes (see `db-init.js`):
+| Method | Endpoint                                    | Description                                         |
+| ------ | ------------------------------------------- | --------------------------------------------------- |
+| `POST` | `/api/v1/partner/support-ticket`            | Create a normal or restricted account-access ticket |
+| `GET`  | `/api/v1/partner/support-tickets`           | List the current partner’s tickets                  |
+| `GET`  | `/api/v1/partner/support-tickets/:id`       | Read one owned ticket                               |
+| `POST` | `/api/v1/partner/support-tickets/:id/reply` | Reply to one owned, non-closed ticket               |
 
-| Collection          | Field(s)         | Constraint                                                  |
-| ------------------- | ---------------- | ----------------------------------------------------------- |
-| `partners`          | `userId`         | Unique — one user can only be one partner                   |
-| `partners`          | `refCode`        | Unique — referral codes are globally unique                 |
-| `partner_referrals` | `supplierUserId` | Unique — one supplier can only be attributed to one partner |
+Partner-specific detail/reply endpoints are used by the dashboard so disabled partners are not routed through unrelated generic ticket access rules.
 
-These indexes are created automatically when the database is initialised. If running a fresh deployment or migration, run `node db-init.js` to ensure indexes are applied.
+## API summary
 
----
+| Method  | Endpoint                               | Purpose                                             |
+| ------- | -------------------------------------- | --------------------------------------------------- |
+| `POST`  | `/api/v1/partner/register`             | Register partner account                            |
+| `GET`   | `/api/v1/partner/me`                   | Core profile, balance and configuration             |
+| `PATCH` | `/api/v1/partner/me`                   | Update profile                                      |
+| `POST`  | `/api/v1/partner/change-password`      | Change password                                     |
+| `GET`   | `/api/v1/partner/referrals`            | Enriched referral milestone list                    |
+| `GET`   | `/api/v1/partner/transactions`         | Enriched ledger history and maturity state          |
+| `GET`   | `/api/v1/partner/stats`                | Breakdown, redemption progress and referral summary |
+| `POST`  | `/api/v1/partner/regenerate-code`      | Generate a new current partner code                 |
+| `GET`   | `/api/v1/partner/code-history`         | Historical codes                                    |
+| `POST`  | `/api/v1/partner/cashout-requests`     | Submit idempotent redemption request                |
+| `GET`   | `/api/v1/partner/cashout-requests`     | List owned requests                                 |
+| `GET`   | `/api/v1/partner/cashout-requests/:id` | Read owned request                                  |
 
-## Disabled Partner Semantics
+## Accessibility and responsive behaviour
 
-When an admin sets a partner's status to `disabled`:
+The dashboard provides:
 
-- **API access blocked**: All partner dashboard API endpoints (`/me`, `/referrals`, `/transactions`) return `403` with `{ disabled: true }`.
-- **Dashboard**: The partner dashboard will display a clear "Account disabled — please contact support" message.
-- **No new point awards**: `awardPackageBonus()` and `awardSubscriptionBonus()` both return `null` and skip the award for disabled partners.
-- **Referral recording**: New supplier sign-ups via a disabled partner's ref link are **still recorded** in `partner_referrals` (the attribution exists), but no points will be awarded until the partner is re-enabled.
-- **Existing points**: Disabling a partner does **not** remove existing points or transactions from the ledger.
-- **Re-enabling**: When a partner is re-enabled (status set back to `active`), future qualifying events will resume awarding points. However, bonuses that were missed while disabled are **not** retroactively awarded.
+- tab/tabpanel relationships;
+- Left/Right/Home/End keyboard tab navigation;
+- visible focus indicators;
+- dialog focus trapping;
+- Escape-to-close;
+- focus restoration after closing;
+- live regions for loading, success and error messages;
+- reduced-motion handling;
+- 44px primary touch targets;
+- single-column mobile reward cards;
+- responsive transaction rows and referral milestone cards.
 
----
+## Testing
 
-## Technical Integration Points
-
-### Package creation hook
-
-`routes/packages.js` — after inserting a package, checks if it's the supplier's first package and calls `partnerService.awardPackageBonus(supplierUserId)`.
-
-### Stripe webhook hook
-
-`webhooks/stripeWebhookHandler.js` — inside `handleInvoicePaymentSucceeded()`, after updating subscription status, calls `partnerService.awardSubscriptionBonus(subscription.userId)`.
-
-**Important**: The subscription bonus is only awarded when `invoice.amount_paid > 0`. This prevents awarding points for:
-
-- Trial activations (£0 first invoice)
-- Free plan activations
-- Any Stripe invoice with `amount_paid === 0`
-
-### Referral sign-up hook
-
-`routes/auth.js` — after `partnerService.recordReferral()` succeeds, calls `partnerService.awardReferralSignupBonus(supplierUserId)` (non-blocking).
-
-### First review hook
-
-`routes/reviews.js` — after a customer review is created (`POST /api/suppliers/:supplierId/reviews`), calls `partnerService.awardFirstReviewBonus(supplier.ownerUserId)` (non-blocking).
-
-### Profile approval hook
-
-`routes/supplier-admin.js` — after an admin approves a supplier profile (`POST /api/admin/suppliers/:id/approve`), calls `partnerService.awardProfileApprovedBonus(supplier.ownerUserId)` (non-blocking).
-
-### Referral capture on registration
-
-`routes/auth.js` — the `POST /register` handler accepts an optional `ref` field in the request body. When a supplier registers with a valid `ref` code belonging to an active partner, `partnerService.recordReferral()` is called.
-
-### Frontend capture
-
-The frontend can pass `ref` in the registration form body. The `/auth` page can be linked as:
-
-```
-https://yourdomain.com/auth?ref=p_XXXXXXXX&role=supplier
-```
-
-The `ref-capture.js` utility (or inline auth form logic) should read the `ref` query param and include it in the registration API call.
-
----
-
-## Environment Variables
-
-| Variable         | Required   | Description                                                                |
-| ---------------- | ---------- | -------------------------------------------------------------------------- |
-| `BASE_URL`       | No         | Full URL used to generate referral links (e.g. `https://event-flow.co.uk`) |
-| `JWT_SECRET`     | Yes        | JWT signing secret (shared with rest of app)                               |
-| `MONGODB_URI`    | Yes (prod) | MongoDB connection string                                                  |
-| `POINTS_PER_GBP` | No         | Conversion rate: points per £1 (default: `100`)                            |
-
----
-
-## Admin Operations
-
-### Accessing partner moderation
-
-Partner moderation is available in **two places**:
-
-1. **Main admin navigation** — the "Partners" entry (🤝) in the admin navbar links directly to `/admin-partners` from every admin page.
-2. **Standalone page** — navigate directly to `/admin-partners`.
-
-### Gift card payout requests (admin)
-
-The admin payout requests tab (`GET /api/v1/admin/partners/payout-requests`) and status update endpoint (`PATCH /api/v1/admin/partners/payout-requests/:ticketId/status`) remain available for any legacy tickets already in the system.
-
-### Enable / Disable a partner
-
-From `/admin-partners`, click "Disable" to prevent a partner from earning further points. See [Disabled Partner Semantics](#disabled-partner-semantics) above for full behaviour details.
-
-### Manual point adjustment
-
-Click "Credits" next to any partner to open the adjustment modal. Enter a positive or negative integer and a **required** audit note. All adjustments are stored in the `partner_credit_transactions` ledger with `type: ADJUSTMENT`.
-
-### View partner details
-
-Click "View" to open a side panel showing:
-
-- Partner profile info
-- Point breakdown (balance, package bonuses, subscription bonuses)
-- Transaction history
-- Full referral list with qualification status
-
----
-
-## Security Notes
-
-- The `/partner` route is **not linked publicly** and carries `X-Robots-Tag: noindex, nofollow` on all `/partner*` sub-paths (enforced by `middleware/seo.js`).
-- Partner role (`role: 'partner'`) can **only** be assigned via the partner signup endpoint (`POST /api/v1/partner/register`).
-- The general registration endpoint (`POST /api/v1/auth/register`) only allows `supplier` and `customer` roles.
-- All partner dashboard API routes require `authRequired + roleRequired('partner')` middleware.
-- All admin partner API routes require `authRequired + roleRequired('admin')` middleware.
-- Server-side HTML guards in `server.js` prevent unauthenticated access to `/partner/dashboard` and `/admin-partners` before `express.static()` serves the files.
-- Disabled partner accounts are blocked at the API layer — the middleware check runs before any data is returned.
-
----
-
-## Running Tests
+Relevant focused checks:
 
 ```bash
-# Run partner service unit tests
-npx jest tests/unit/partner-service.test.js --verbose
-
-# Run partner points enhancements tests (new bonus types, available/maturing balance)
-npx jest tests/unit/partner-points-enhancements.test.js --verbose
-
-# Run new partner endpoints tests (support tickets, pointsPerGbp)
-npx jest tests/unit/partner-new-endpoints.test.js --verbose
-
-# Run partner payout validation unit tests
-npx jest tests/unit/partner-payout-validation.test.js --verbose
-
-# Run admin partner payout security integration tests
-npx jest tests/integration/admin-partner-payout.test.js --verbose
-
-# Run Stripe webhook handler tests (includes partner bonus gating tests)
-npx jest tests/unit/stripeWebhookHandler.test.js --verbose
+npx jest --runInBand --coverage=false \
+  tests/unit/partner-cashout-requests.test.js \
+  tests/unit/partner-ledger-integrity.test.js \
+  tests/unit/partner-new-endpoints.test.js \
+  tests/unit/partner-payout-validation.test.js \
+  tests/unit/partner-dashboard-frontend.test.js \
+  tests/unit/partner-points-enhancements.test.js
 ```
+
+The full repository test, formatting, linting, E2E, visual and accessibility workflows should also run in CI.
+
+## Operational reconciliation
+
+Administrators should investigate any log containing:
+
+```text
+[PARTNER-CASHOUT] CRITICAL rollback failure
+```
+
+Use the logged partner ID, cashout ID and hold transaction ID to reconcile the ledger and cashout request collection before manually adjusting points.
