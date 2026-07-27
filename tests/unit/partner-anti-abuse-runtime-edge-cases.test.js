@@ -147,6 +147,25 @@ test('updates an adverse payment status without clawback when its payment record
   expect(mockClawback.clawBackForPaymentRecord).not.toHaveBeenCalled();
 });
 
+test('fails before clawback when an adverse payment status does not persist', async () => {
+  const payment = {
+    id: 'pay_1',
+    userId: 'usr_supplier',
+    stripePaymentId: 'pi_1',
+    status: 'succeeded',
+  };
+  const { runtime, mockDb, mockClawback, mockOriginalUpdateOne } = loadRuntime({ payment });
+  runtime.install();
+  mockOriginalUpdateOne.mockResolvedValueOnce(null);
+
+  await expect(
+    mockDb.updateOne('payments', { id: 'pay_1' }, { $set: { status: 'refunded' } })
+  ).rejects.toMatchObject({
+    code: 'PARTNER_PAYMENT_STATUS_WRITE_FAILED',
+  });
+  expect(mockClawback.clawBackForPaymentRecord).not.toHaveBeenCalled();
+});
+
 test('fails the adverse payment update when automatic clawback fails', async () => {
   const payment = {
     id: 'pay_1',
