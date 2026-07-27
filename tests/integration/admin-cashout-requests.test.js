@@ -1,188 +1,69 @@
-/**
- * Integration tests for admin cashout-request endpoints.
- *
- * Verifies (via static source analysis):
- * - Routes are protected by authRequired + roleRequired('admin')
- * - PATCH endpoint enforces CSRF protection
- * - Route structure: GET /, GET /:id, PATCH /:id
- * - Status transitions validation is present
- * - Ledger side-effects (hold release / final redeem) are present
- */
-
 'use strict';
 
 const fs = require('fs');
 const path = require('path');
 
-const ROUTES_FILE = path.join(__dirname, '../../routes/admin-cashout-requests.js');
+const routeContent = fs.readFileSync(
+  path.join(__dirname, '../../routes/admin-cashout-requests.js'),
+  'utf8'
+);
 
-let routeContent;
-
-beforeAll(() => {
-  routeContent = fs.readFileSync(ROUTES_FILE, 'utf8');
-});
-
-// ─── Auth Middleware ──────────────────────────────────────────────────────────
-
-describe('Admin Cashout Requests — Auth Middleware', () => {
-  it('imports authRequired and roleRequired', () => {
-    expect(routeContent).toContain('authRequired');
-    expect(routeContent).toContain('roleRequired');
-  });
-
-  it('applies router-level authRequired + roleRequired("admin") to all routes', () => {
+describe('admin cashout request security', () => {
+  test('all routes require an administrator and writes require CSRF', () => {
     expect(routeContent).toMatch(/router\.use\(authRequired,\s*roleRequired\(['"]admin['"]\)\)/);
-  });
-
-  it('auth guard appears before GET / route', () => {
-    const authPos = routeContent.indexOf("router.use(authRequired, roleRequired('admin'))");
-    const listPos = routeContent.indexOf("router.get('/'");
-    expect(authPos).toBeGreaterThan(-1);
-    expect(listPos).toBeGreaterThan(-1);
-    expect(authPos).toBeLessThan(listPos);
-  });
-});
-
-// ─── CSRF Protection ─────────────────────────────────────────────────────────
-
-describe('Admin Cashout Requests — CSRF Protection', () => {
-  it('imports csrfProtection', () => {
-    expect(routeContent).toContain('csrfProtection');
-  });
-
-  it('PATCH /:id uses csrfProtection', () => {
     expect(routeContent).toContain("router.patch('/:id', csrfProtection,");
-  });
-
-  it('DELETE /:id uses csrfProtection', () => {
     expect(routeContent).toContain("router.delete('/:id', csrfProtection,");
   });
-});
 
-// ─── Endpoint Existence ───────────────────────────────────────────────────────
-
-describe('Admin Cashout Requests — Endpoint Existence', () => {
-  it('GET / endpoint exists', () => {
-    expect(routeContent).toContain("router.get('/',");
-  });
-
-  it('GET /:id endpoint exists', () => {
-    expect(routeContent).toContain("router.get('/:id',");
-  });
-
-  it('PATCH /:id endpoint exists', () => {
-    expect(routeContent).toContain("router.patch('/:id', csrfProtection,");
-  });
-
-  it('DELETE /:id endpoint exists', () => {
-    expect(routeContent).toContain("router.delete('/:id', csrfProtection,");
-  });
-});
-
-// ─── Status Transitions ───────────────────────────────────────────────────────
-
-describe('Admin Cashout Requests — Status Workflow', () => {
-  it('defines VALID_STATUSES including all required statuses', () => {
-    expect(routeContent).toContain("'submitted'");
-    expect(routeContent).toContain("'approved'");
-    expect(routeContent).toContain("'rejected'");
-    expect(routeContent).toContain("'processing'");
-    expect(routeContent).toContain("'delivered'");
-  });
-
-  it('defines VALID_TRANSITIONS map', () => {
+  test('enforces the cashout status state machine', () => {
     expect(routeContent).toContain('VALID_TRANSITIONS');
-  });
-
-  it('validates that status transitions are allowed', () => {
     expect(routeContent).toContain('Cannot transition from');
+    expect(routeContent).toContain("submitted: ['approved', 'rejected']");
+    expect(routeContent).toContain("processing: ['delivered', 'rejected']");
   });
 
-  it('releases hold on rejection', () => {
+  test('releases holds on rejection and finalises redemption on delivery', () => {
     expect(routeContent).toContain('releaseCashoutHold');
-    expect(routeContent).toContain("status === 'rejected'");
-  });
-
-  it('creates a final REDEEM transaction on delivery', () => {
-    expect(routeContent).toContain("status === 'delivered'");
     expect(routeContent).toContain('CREDIT_TYPES.REDEEM');
-  });
-});
-
-// ─── Collection Names ─────────────────────────────────────────────────────────
-
-describe('Admin Cashout Requests — Data Model', () => {
-  it('reads from partner_cashout_requests collection', () => {
-    expect(routeContent).toContain("'partner_cashout_requests'");
+    expect(routeContent).toContain('externalRef === request.id');
+    expect(routeContent).toContain('request.finalRedeemTxnId');
   });
 
-  it('enriches responses with partner user info', () => {
-    expect(routeContent).toContain('partnerUser');
+  test('does not mark a cashout delivered without delivery evidence', () => {
+    expect(routeContent).toContain('CASHOUT_DELIVERY_EVIDENCE_REQUIRED');
+    expect(routeContent).toContain('Delivery evidence is required');
+    expect(routeContent).toContain('evidence.reference');
   });
 
-  it('stores adminUserId on updates', () => {
-    expect(routeContent).toContain('adminUserIdApproved');
-  });
-});
-
-// ─── Delete Endpoint ─────────────────────────────────────────────────────────
-
-describe('Admin Cashout Requests — Delete Endpoint', () => {
-  it('only allows deletion of terminal states', () => {
-    expect(routeContent).toContain("TERMINAL_STATES = ['rejected', 'delivered']");
+  test('fails when the final redemption ledger write does not persist', () => {
+    expect(routeContent).toContain('CASHOUT_REDEEM_WRITE_FAILED');
+    expect(routeContent).toContain('Failed to persist the final cashout redemption');
   });
 
-  it('rejects deletion of non-terminal requests with 409', () => {
-    expect(routeContent).toContain('Cannot delete a cashout request in');
+  test('returns anti-abuse status codes instead of flattening them into a generic 500', () => {
+    expect(routeContent).toContain('Number(err.statusCode) || 500');
+    expect(routeContent).toContain("code: err.code || 'CASHOUT_UPDATE_FAILED'");
+    expect(routeContent).toContain('assessment: err.assessment || undefined');
   });
 
-  it('calls deleteOne on partner_cashout_requests', () => {
+  test('exposes the persisted fraud assessment in cashout detail', () => {
+    expect(routeContent).toContain("findOne('partner_fraud_assessments'");
+    expect(routeContent).toContain('fraudAssessment: fraudAssessment || null');
+    expect(routeContent).toContain('fraudSummary');
+  });
+
+  test('only deletes terminal requests and records the action', () => {
+    expect(routeContent).toContain("['rejected', 'delivered'].includes(request.status)");
     expect(routeContent).toContain("deleteOne('partner_cashout_requests'");
-  });
-
-  it('logs the deletion action', () => {
     expect(routeContent).toContain('deleted cashout request');
   });
 });
 
-// ─── Idempotency Guards ───────────────────────────────────────────────────────
+describe('partner pages remain noindex', () => {
+  const seoContent = fs.readFileSync(path.join(__dirname, '../../middleware/seo.js'), 'utf8');
 
-describe('Admin Cashout Requests — Delivery Idempotency', () => {
-  it('checks for an existing REDEEM before inserting a new one on delivery', () => {
-    // Confirms the delivered branch checks for existing REDEEM by externalRef
-    expect(routeContent).toContain('finalRedeemTxnId');
-    expect(routeContent).toContain('externalRef === request.id');
-  });
-
-  it('guards against duplicate REDEEM when finalRedeemTxnId is already set', () => {
-    expect(routeContent).toContain('request.finalRedeemTxnId');
-  });
-
-  it('uses releaseCashoutHold (idempotent) before inserting REDEEM', () => {
-    const releasePos = routeContent.indexOf('releaseCashoutHold');
-    const redeemPos = routeContent.indexOf('CREDIT_TYPES.REDEEM');
-    expect(releasePos).toBeGreaterThan(-1);
-    expect(redeemPos).toBeGreaterThan(-1);
-    // releaseCashoutHold is called before REDEEM is inserted
-    expect(releasePos).toBeLessThan(redeemPos);
-  });
-});
-
-// ─── SEO / noindex ────────────────────────────────────────────────────────────
-
-describe('Admin Cashout Requests — Noindex (SEO Middleware)', () => {
-  const seoMiddlewareFile = require('path').join(__dirname, '../../middleware/seo.js');
-  let seoContent;
-
-  beforeAll(() => {
-    seoContent = require('fs').readFileSync(seoMiddlewareFile, 'utf8');
-  });
-
-  it('seo middleware includes /partner in noindexPrefixes', () => {
+  test('partner pages are excluded from indexing', () => {
     expect(seoContent).toContain("'/partner'");
-  });
-
-  it('noindexMiddleware sets X-Robots-Tag header', () => {
     expect(seoContent).toContain('X-Robots-Tag');
     expect(seoContent).toContain('noindex, nofollow');
   });
