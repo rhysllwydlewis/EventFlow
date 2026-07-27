@@ -1,0 +1,59 @@
+FAIL tests/unit/partner-routes-integration.test.js
+  partner route integration coverage
+    ✓ registers a partner and returns the generated referral identity (41 ms)
+    ✓ validates registration inputs and duplicate accounts (20 ms)
+    ✓ returns the live programme configuration and profile summary (19 ms)
+    ✕ projects complete and expired referrals with masked identities and potential points (9 ms)
+    ✓ enriches transactions with maturity, supplier and redemption states (4 ms)
+    ✓ calculates partner performance and reward progress (5 ms)
+    ✓ regenerates referral codes and returns code history (6 ms)
+    ✓ allows disabled partners to create and continue restricted account-access support (9 ms)
+    ✓ updates profile identity and changes a valid password (6 ms)
+
+  ● partner route integration coverage › projects complete and expired referrals with masked identities and potential points
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  -  2
+    + Received  + 14
+
+    - ObjectContaining {
+    + Object {
+    +   "attributionExpiresAt": "2026-07-12T21:08:41.422Z",
+    +   "campaign": null,
+        "daysRemaining": 0,
+    +   "id": "ref_expired",
+    +   "medium": null,
+    +   "packageQualified": false,
+    +   "packageQualifiedAt": null,
+        "pointsEarned": 5,
+        "potentialPoints": 15,
+        "reviewQualified": false,
+    +   "reviewQualifiedAt": null,
+    +   "signedUpAt": "2026-06-12T21:08:41.422Z",
+    +   "source": null,
+        "state": "expired",
+    -   "supplierName": "E***",
+    +   "subscriptionQualified": false,
+    +   "subscriptionQualifiedAt": null,
+    +   "supplierName": "S***r",
+    +   "withinWindow": false,
+      }
+
+    [0m [90m 376 |[39m     )[33m;[39m
+     [90m 377 |[39m     expect(active[33m.[39mdaysRemaining)[33m.[39mtoBeGreaterThan([35m0[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 378 |[39m     expect(expired)[33m.[39mtoEqual(
+     [90m     |[39m                     [31m[1m^[22m[39m
+     [90m 379 |[39m       expect[33m.[39mobjectContaining({
+     [90m 380 |[39m         supplierName[33m:[39m [32m'E***'[39m[33m,[39m
+     [90m 381 |[39m         state[33m:[39m [32m'expired'[39m[33m,[39m[0m
+
+      at Object.toEqual (tests/unit/partner-routes-integration.test.js:378:21)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 8 passed, 9 total
+Snapshots:   0 total
+Time:        1.144 s
+Ran all test suites matching /tests\/unit\/partner-routes-integration.test.js/i.
+Force exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after all tests finished?
+ROUTE_TEST_EXIT_CODE=1
