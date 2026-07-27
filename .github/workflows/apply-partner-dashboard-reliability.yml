@@ -51,6 +51,9 @@ jobs:
           base64 --decode /tmp/partner-dashboard-payload.b64 > /tmp/partner-dashboard-payload.tar.gz
           echo "87b07c1338ea8d21d476697aa0c62bc96b4ce58c0be3afad57db7c5428cbb82e  /tmp/partner-dashboard-payload.tar.gz" | sha256sum -c -
           tar -xzf /tmp/partner-dashboard-payload.tar.gz -C .
+          if [[ -f .partner-payload/fix.patch ]]; then
+            git apply .partner-payload/fix.patch
+          fi
           rm -rf .partner-payload
 
       - name: Setup Node.js
