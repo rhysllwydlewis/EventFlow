@@ -26,14 +26,26 @@ async function initializeDatabase() {
   }
 }
 
+/**
+ * Check if MongoDB is available
+ * @returns {boolean} True if MongoDB is configured
+ */
 function isMongoAvailable() {
   return mongoDb.isMongoAvailable();
 }
 
+/**
+ * Check if database is connected
+ * @returns {boolean} True if database is connected
+ */
 function isConnected() {
   return mongoDb.isConnected ? mongoDb.isConnected() : false;
 }
 
+/**
+ * Get database connection status
+ * @returns {Object} Status object with connection state
+ */
 function getConnectionStatus() {
   const dbStatus = dbUnified.getStatus();
   return {
@@ -48,6 +60,7 @@ module.exports = {
   isMongoAvailable,
   isConnected,
   getConnectionStatus,
+  // Re-export for compatibility
   dbUnified,
   mongoDb,
 };
