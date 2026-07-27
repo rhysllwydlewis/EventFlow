@@ -87,7 +87,7 @@ function seedEligibleSupplier() {
       role: 'customer',
       email: 'customer@gmail.com',
       verified: true,
-      createdAt: hoursAgo(72),
+      createdAt: hoursAgo(120),
     }
   );
   mockCollections.suppliers.push({
@@ -171,7 +171,7 @@ test('requires an established independent verified customer for review evidence'
     reason: 'INDEPENDENT_VERIFIED_REVIEW_MISSING',
   });
 
-  mockCollections.users.find(user => user.id === 'usr_customer').createdAt = hoursAgo(72);
+  mockCollections.users.find(user => user.id === 'usr_customer').createdAt = hoursAgo(120);
   mockCollections.reviews[0].flagged = true;
   await expect(antiAbuse.reviewRewardEvidence('usr_supplier', 'usr_partner')).resolves.toMatchObject({
     eligible: false,
