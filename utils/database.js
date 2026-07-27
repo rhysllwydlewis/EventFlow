@@ -6,11 +6,6 @@
 'use strict';
 
 const logger = require('./logger');
-const partnerAntiAbuseRuntime = require('../services/partnerAntiAbuseRuntime');
-
-// server.js imports this module before mounting routes, so install the reward and
-// cashout guards immediately rather than waiting for background database startup.
-partnerAntiAbuseRuntime.install();
 
 const PARTNER_REWARD_TYPES = [
   'PACKAGE_BONUS',
