@@ -149,9 +149,9 @@ router.patch('/:id', csrfProtection, async (req, res) => {
       }
 
       if (status === 'delivered') {
-        if (request.holdTxnId) {
-          await partnerService.releaseCashoutHold(request.holdTxnId, request.partnerId);
-        }
+        // Persist or recover the permanent debit before releasing the temporary hold.
+        // A retry can then safely recover an interrupted delivery without making the
+        // held balance available between the two ledger operations.
         if (request.finalRedeemTxnId) {
           updates.finalRedeemTxnId = request.finalRedeemTxnId;
         } else {
@@ -182,6 +182,17 @@ router.patch('/:id', csrfProtection, async (req, res) => {
               throw error;
             }
             updates.finalRedeemTxnId = finalRedeem.id;
+          }
+        }
+        if (request.holdTxnId) {
+          const released = await partnerService.releaseCashoutHold(
+            request.holdTxnId,
+            request.partnerId
+          );
+          if (!released) {
+            const error = new Error('Failed to release the cashout hold after redemption.');
+            error.code = 'CASHOUT_HOLD_RELEASE_FAILED';
+            throw error;
           }
         }
       }
