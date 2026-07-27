@@ -63,3 +63,16 @@
        id: 'pcr_existing',
        partnerId: 'prt_001',
        idempotencyKey: 'cashout_test_key_001',
+--- a/public/assets/js/pages/partner-dashboard-init.js
++++ b/public/assets/js/pages/partner-dashboard-init.js
+@@ -910,7 +910,9 @@
+       window.AuthStateManager?.logout();
+       localStorage.removeItem('user');
+       sessionStorage.clear();
+-    } catch (_) {}
++    } catch (_) {
++      // Storage can be unavailable in privacy modes; the server session remains authoritative.
++    }
+     window.location.replace('/partner');
+   }
+ 
