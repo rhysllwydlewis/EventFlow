@@ -30,9 +30,9 @@ describe('admin cashout request security', () => {
   });
 
   test('persists the permanent redemption before releasing its temporary hold', () => {
-    const deliveryStart = routeContent.indexOf("if (status === 'delivered') {", 5000);
+    const deliveryStart = routeContent.indexOf("} else if (status === 'delivered') {");
     const deliveryBlock = routeContent.slice(deliveryStart);
-    const insertPosition = deliveryBlock.indexOf("insertOne('partner_credit_transactions'");
+    const insertPosition = deliveryBlock.indexOf('const cashoutTxInserted');
     const releasePosition = deliveryBlock.indexOf('releaseCashoutHold');
     expect(insertPosition).toBeGreaterThan(-1);
     expect(releasePosition).toBeGreaterThan(insertPosition);
@@ -42,7 +42,7 @@ describe('admin cashout request security', () => {
   test('does not mark a cashout delivered without delivery evidence', () => {
     expect(routeContent).toContain('CASHOUT_DELIVERY_EVIDENCE_REQUIRED');
     expect(routeContent).toContain('Delivery evidence is required');
-    expect(routeContent).toContain('evidence.reference');
+    expect(routeContent).toContain('deliveryDetails.reference');
   });
 
   test('fails when the final redemption ledger write does not persist', () => {
@@ -63,7 +63,8 @@ describe('admin cashout request security', () => {
   });
 
   test('only deletes terminal requests and records the action', () => {
-    expect(routeContent).toContain("['rejected', 'delivered'].includes(request.status)");
+    expect(routeContent).toContain("TERMINAL_STATES = ['rejected', 'delivered']");
+    expect(routeContent).toContain('TERMINAL_STATES.includes(request.status)');
     expect(routeContent).toContain("deleteOne('partner_cashout_requests'");
     expect(routeContent).toContain('deleted cashout request');
   });
