@@ -6,6 +6,7 @@ on:
       - main
     types:
       - opened
+      - synchronize
 
 permissions:
   contents: write
@@ -30,7 +31,19 @@ jobs:
           ref: agent/partner-dashboard-reliability
           fetch-depth: 0
 
+      - name: Detect pending payload
+        id: payload
+        shell: bash
+        run: |
+          if [[ -d .partner-payload ]]; then
+            echo "apply=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "apply=false" >> "$GITHUB_OUTPUT"
+            echo "Partner payload already applied; no installer work required."
+          fi
+
       - name: Verify and apply payload
+        if: steps.payload.outputs.apply == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -41,15 +54,18 @@ jobs:
           rm -rf .partner-payload
 
       - name: Setup Node.js
+        if: steps.payload.outputs.apply == 'true'
         uses: actions/setup-node@v4
         with:
           node-version-file: '.node-version'
           cache: npm
 
       - name: Install dependencies
+        if: steps.payload.outputs.apply == 'true'
         run: npm ci --prefer-offline --no-audit
 
       - name: Format changed files
+        if: steps.payload.outputs.apply == 'true'
         run: >-
           npx prettier --write
           services/partnerService.js
@@ -65,6 +81,7 @@ jobs:
           docs/PARTNER_PORTAL.md
 
       - name: Validate JavaScript syntax
+        if: steps.payload.outputs.apply == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -78,16 +95,36 @@ jobs:
           node --check tests/unit/partner-dashboard-frontend.test.js
 
       - name: Run focused partner tests
-        run: >-
-          npx jest --runInBand --coverage=false
-          tests/unit/partner-cashout-requests.test.js
-          tests/unit/partner-new-endpoints.test.js
-          tests/unit/partner-payout-validation.test.js
-          tests/unit/partner-ledger-integrity.test.js
-          tests/unit/partner-dashboard-frontend.test.js
-          tests/unit/partner-points-enhancements.test.js
+        if: steps.payload.outputs.apply == 'true'
+        id: focused-tests
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          npx jest --runInBand --coverage=false \
+            tests/unit/partner-cashout-requests.test.js \
+            tests/unit/partner-new-endpoints.test.js \
+            tests/unit/partner-payout-validation.test.js \
+            tests/unit/partner-ledger-integrity.test.js \
+            tests/unit/partner-dashboard-frontend.test.js \
+            tests/unit/partner-points-enhancements.test.js \
+            2>&1 | tee focused-partner-tests.log
+
+      - name: Upload focused test diagnostics
+        if: steps.payload.outputs.apply == 'true' && always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: partner-dashboard-focused-tests
+          path: focused-partner-tests.log
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Enforce focused partner tests
+        if: steps.payload.outputs.apply == 'true' && steps.focused-tests.outcome == 'failure'
+        run: exit 1
 
       - name: Lint changed JavaScript
+        if: steps.payload.outputs.apply == 'true'
         run: >-
           npx eslint
           services/partnerService.js
@@ -101,6 +138,7 @@ jobs:
           --rulesdir eslint-rules
 
       - name: Commit implementation
+        if: steps.payload.outputs.apply == 'true'
         shell: bash
         run: |
           set -euo pipefail
