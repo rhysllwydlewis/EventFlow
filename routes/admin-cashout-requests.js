@@ -20,6 +20,7 @@ const { uid } = require('../store');
 const { authRequired, roleRequired } = require('../middleware/auth');
 const { csrfProtection } = require('../middleware/csrf');
 const partnerService = require('../services/partnerService');
+const partnerAntiAbuse = require('../services/partnerAntiAbuseService');
 
 const router = express.Router();
 
@@ -42,6 +43,55 @@ function hasDeliveryEvidence(deliveryDetails) {
   return [deliveryDetails.code, deliveryDetails.reference, deliveryDetails.last4].some(value =>
     Boolean(String(value || '').trim())
   );
+}
+
+async function assessApproval(request, adminInternalNotes, now) {
+  const assessment = await partnerAntiAbuse.assessCashout({
+    partnerId: request.partnerId,
+    requestId: request.id,
+    requestedAt: request.createdAt,
+  });
+  await partnerAntiAbuse.persistAssessment(assessment);
+
+  const riskFields = {
+    fraudRiskScore: assessment.score,
+    fraudRiskLevel: assessment.riskLevel,
+    fraudReviewRequired: assessment.requiresManualReview,
+    fraudAssessedAt: assessment.assessedAt,
+  };
+
+  if (assessment.blockApproval) {
+    await dbUnified.updateOne(
+      'partner_cashout_requests',
+      { id: request.id },
+      { $set: riskFields }
+    );
+    const error = new Error(
+      'High-risk partner cashout blocked. Reject the request or resolve the underlying fraud signals.'
+    );
+    error.code = 'PARTNER_CASHOUT_HIGH_RISK';
+    error.statusCode = 409;
+    error.assessment = assessment;
+    throw error;
+  }
+
+  const reviewNote = String(adminInternalNotes ?? request.adminInternalNotes ?? '').trim();
+  if (assessment.requiresManualReview && reviewNote.length < 20) {
+    await dbUnified.updateOne(
+      'partner_cashout_requests',
+      { id: request.id },
+      { $set: riskFields }
+    );
+    const error = new Error(
+      'This cashout requires manual review. Add an internal review note of at least 20 characters before approval.'
+    );
+    error.code = 'PARTNER_CASHOUT_REVIEW_NOTE_REQUIRED';
+    error.statusCode = 409;
+    error.assessment = assessment;
+    throw error;
+  }
+
+  return { ...riskFields, fraudReviewedAt: now };
 }
 
 // ─── List Cashout Requests ────────────────────────────────────────────────────
@@ -195,6 +245,7 @@ router.patch('/:id', csrfProtection, async (req, res) => {
       updates.adminUserIdApproved = req.user.id;
 
       if (status === 'approved') {
+        Object.assign(updates, await assessApproval(request, adminInternalNotes, now));
         updates.approvedAt = now;
       } else if (status === 'rejected') {
         updates.rejectedAt = now;
