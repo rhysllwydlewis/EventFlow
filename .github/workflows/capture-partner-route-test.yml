@@ -1,4 +1,4 @@
-name: Capture partner route integration failure
+name: Finalise partner route coverage
 
 on:
   pull_request:
@@ -9,43 +9,62 @@ permissions:
   contents: write
 
 concurrency:
-  group: capture-partner-route-test
-  cancel-in-progress: true
+  group: finalise-partner-route-coverage
+  cancel-in-progress: false
 
 env:
   HUSKY: '0'
   NODE_ENV: test
-  JWT_SECRET: partner-route-diagnostics-minimum-32-characters
+  JWT_SECRET: partner-route-finalisation-minimum-32-characters
+  PATCH_COVERAGE_MIN: '80'
 
 jobs:
-  capture:
+  finalise:
     if: ${{ github.head_ref == 'agent/partner-dashboard-reliability' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
         with:
           ref: agent/partner-dashboard-reliability
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version-file: '.node-version'
           cache: npm
-      - run: npm ci --prefer-offline --no-audit
-      - name: Run isolated route suite
+      - name: Align the referral-name fixture with production masking
         shell: bash
         run: |
-          set +e
-          npx jest --runInBand --coverage=false tests/unit/partner-routes-integration.test.js > .partner-route-test.log 2>&1
-          status=$?
-          echo "ROUTE_TEST_EXIT_CODE=${status}" >> .partner-route-test.log
-          cat .partner-route-test.log
-          exit 0
-      - name: Commit diagnostics
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('tests/unit/partner-routes-integration.test.js')
+          text = path.read_text()
+          old = "  maskReferralName: jest.fn(name => (name ? `${name[0]}***` : 'S***r')),"
+          new = """  maskReferralName: jest.fn((name, company, email) => {
+            const source = name || company || email;
+            return source ? `${source[0]}***` : 'S***r';
+          }),"""
+          if old not in text:
+              raise SystemExit('maskReferralName fixture pattern not found')
+          path.write_text(text.replace(old, new, 1))
+          PY
+      - run: npm ci --prefer-offline --no-audit
+      - name: Format the route integration suite
+        run: npx prettier --write tests/unit/partner-routes-integration.test.js
+      - name: Run isolated route integration suite
+        run: npx jest --runInBand --coverage=false tests/unit/partner-routes-integration.test.js
+      - name: Run complete Jest suite
+        run: npm run test:full -- --runInBand
+      - name: Enforce changed-code coverage
+        run: node scripts/check-changed-coverage.mjs
+      - name: Commit final route coverage and remove diagnostics
         shell: bash
         run: |
           set -euo pipefail
+          rm -f .partner-route-test.log
+          rm -f .github/workflows/capture-partner-route-test.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f .partner-route-test.log
-          git commit -m "chore(partner): capture route integration diagnostics [route-diagnostics]"
+          git add tests/unit/partner-routes-integration.test.js .partner-route-test.log .github/workflows/capture-partner-route-test.yml
+          git commit -m "test(partner): cover partner dashboard route flows"
           git push origin HEAD:agent/partner-dashboard-reliability
