@@ -8,7 +8,6 @@ const logger = require('./utils/logger');
 
 const { getDb } = require('./db');
 const { initializeCollections, createIndexes } = require('./models');
-const partnerAntiAbuseRuntime = require('./services/partnerAntiAbuseRuntime');
 
 const REWARD_TYPES = [
   'PACKAGE_BONUS',
@@ -141,7 +140,6 @@ const ADDITIONAL_COLLECTIONS = [
 
 async function initializeDatabase() {
   try {
-    partnerAntiAbuseRuntime.install();
     const db = await getDb();
     logger.info('Initializing database collections and indexes...');
     await initializeCollections(db);
