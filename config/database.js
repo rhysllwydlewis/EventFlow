@@ -8,6 +8,7 @@
 const dbUnified = require('../db-unified');
 const mongoDb = require('../db');
 const logger = require('../utils/logger');
+const partnerAntiAbuseRuntime = require('../services/partnerAntiAbuseRuntime');
 
 /**
  * Initialize database connection
@@ -16,6 +17,7 @@ const logger = require('../utils/logger');
  */
 async function initializeDatabase() {
   try {
+    partnerAntiAbuseRuntime.install();
     logger.info('Connecting to database...');
     const dbType = await dbUnified.initializeDatabase();
     logger.info(`Database connection successful: ${dbType}`);
