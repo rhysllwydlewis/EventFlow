@@ -9,6 +9,7 @@ const REVIEW_SCORE = 25;
 const FIRST_CASHOUT_REVIEW_SCORE = 20;
 const RAPID_CASHOUT_HOURS = 72;
 const RAPID_MILESTONE_HOURS = 2;
+const MIN_REVIEWER_ACCOUNT_HOURS = 24;
 const PUBLIC_EMAIL_DOMAINS = new Set([
   'gmail.com',
   'googlemail.com',
@@ -56,7 +57,65 @@ function assessmentId(partnerId, requestId) {
     .slice(0, 20);
 }
 
-async function supplierRewardEligibility(supplierUserId) {
+function isMeaningfulPackage(pkg) {
+  return Boolean(
+    pkg &&
+      pkg.approved === true &&
+      pkg.paused !== true &&
+      String(pkg.title || '').trim().length >= 3 &&
+      String(pkg.price || '').trim() &&
+      String(pkg.primaryCategoryKey || '').trim() &&
+      Array.isArray(pkg.eventTypes) &&
+      pkg.eventTypes.length > 0
+  );
+}
+
+async function getApprovedSupplierProfiles(supplierUserId) {
+  const profiles = await dbUnified.find('suppliers', { ownerUserId: supplierUserId });
+  return (profiles || []).filter(profile => profile && profile.approved === true);
+}
+
+async function packageRewardEvidence(supplierUserId) {
+  const profiles = await getApprovedSupplierProfiles(supplierUserId);
+  if (!profiles.length) {
+    return { eligible: false, reason: 'SUPPLIER_PROFILE_NOT_APPROVED' };
+  }
+  const supplierIds = new Set(profiles.map(profile => profile.id));
+  const packages = await dbUnified.read('packages');
+  const qualifying = (packages || []).find(
+    pkg => supplierIds.has(pkg.supplierId) && isMeaningfulPackage(pkg)
+  );
+  return qualifying
+    ? { eligible: true, qualifyingPackageId: qualifying.id }
+    : { eligible: false, reason: 'QUALIFYING_PACKAGE_MISSING' };
+}
+
+async function reviewRewardEvidence(supplierUserId, partnerUserId) {
+  const profiles = await getApprovedSupplierProfiles(supplierUserId);
+  if (!profiles.length) {
+    return { eligible: false, reason: 'SUPPLIER_PROFILE_NOT_APPROVED' };
+  }
+  const supplierIds = new Set(profiles.map(profile => profile.id));
+  const [reviews, users] = await Promise.all([dbUnified.read('reviews'), dbUnified.read('users')]);
+  const now = new Date().toISOString();
+  const qualifying = (reviews || []).find(review => {
+    if (!supplierIds.has(review.supplierId)) return false;
+    if (review.approved !== true || review.flagged === true) return false;
+    if (review.emailVerified !== true || review.verified !== true) return false;
+    if (!review.userId || review.userId === supplierUserId || review.userId === partnerUserId) {
+      return false;
+    }
+    const reviewer = (users || []).find(user => user.id === review.userId);
+    if (!reviewer || reviewer.verified !== true || reviewer.role === 'supplier') return false;
+    const reviewerAge = reviewer.createdAt ? hoursBetween(reviewer.createdAt, review.createdAt || now) : null;
+    return reviewerAge === null || reviewerAge >= MIN_REVIEWER_ACCOUNT_HOURS;
+  });
+  return qualifying
+    ? { eligible: true, qualifyingReviewId: qualifying.id }
+    : { eligible: false, reason: 'INDEPENDENT_VERIFIED_REVIEW_MISSING' };
+}
+
+async function supplierRewardEligibility(supplierUserId, methodName = 'awardReferralSignupBonus') {
   const supplier = await dbUnified.findOne('users', { id: supplierUserId });
   if (!supplier || supplier.role !== 'supplier') {
     return { eligible: false, reason: 'SUPPLIER_ACCOUNT_MISSING' };
@@ -76,8 +135,8 @@ async function supplierRewardEligibility(supplierUserId) {
     return { eligible: false, reason: 'PARTNER_NOT_ACTIVE', supplier, referral };
   }
   const partnerUser = await dbUnified.findOne('users', { id: partner.userId });
-  if (!partnerUser) {
-    return { eligible: false, reason: 'PARTNER_IDENTITY_MISSING', supplier, referral, partner };
+  if (!partnerUser || partnerUser.verified !== true) {
+    return { eligible: false, reason: 'PARTNER_IDENTITY_INVALID', supplier, referral, partner };
   }
 
   const supplierCompany = normalise(supplier.company);
@@ -102,12 +161,25 @@ async function supplierRewardEligibility(supplierUserId) {
     };
   }
 
+  const approvedProfiles = await getApprovedSupplierProfiles(supplierUserId);
+  if (!approvedProfiles.length) {
+    return { eligible: false, reason: 'SUPPLIER_PROFILE_NOT_APPROVED', supplier, referral, partner };
+  }
+
+  if (methodName === 'awardPackageBonus') {
+    const evidence = await packageRewardEvidence(supplierUserId);
+    if (!evidence.eligible) return { ...evidence, supplier, referral, partner };
+  }
+  if (methodName === 'awardFirstReviewBonus') {
+    const evidence = await reviewRewardEvidence(supplierUserId, partner.userId);
+    if (!evidence.eligible) return { ...evidence, supplier, referral, partner };
+  }
+
   return { eligible: true, supplier, referral, partner, partnerUser };
 }
 
 function installRewardGuards(partnerService = require('./partnerService')) {
   if (rewardGuardsInstalled) return partnerService;
-
   const rewardMethods = [
     'awardReferralSignupBonus',
     'awardPackageBonus',
@@ -119,7 +191,7 @@ function installRewardGuards(partnerService = require('./partnerService')) {
     const original = partnerService[methodName];
     if (typeof original !== 'function') continue;
     partnerService[methodName] = async supplierUserId => {
-      const eligibility = await supplierRewardEligibility(supplierUserId);
+      const eligibility = await supplierRewardEligibility(supplierUserId, methodName);
       if (!eligibility.eligible) {
         logger.warn('[PARTNER-ANTI-ABUSE] Reward withheld', {
           methodName,
@@ -163,13 +235,17 @@ function deferredSignupRewardMiddleware(req, res, next) {
 }
 
 async function assessCashout({ partnerId, requestId = null, requestedAt = new Date().toISOString() }) {
-  const [partners, users, referrals, transactions, requests] = await Promise.all([
-    dbUnified.read('partners'),
-    dbUnified.read('users'),
-    dbUnified.read('partner_referrals'),
-    dbUnified.read('partner_credit_transactions'),
-    dbUnified.read('partner_cashout_requests'),
-  ]);
+  const [partners, users, referrals, transactions, requests, suppliers, packages, reviews] =
+    await Promise.all([
+      dbUnified.read('partners'),
+      dbUnified.read('users'),
+      dbUnified.read('partner_referrals'),
+      dbUnified.read('partner_credit_transactions'),
+      dbUnified.read('partner_cashout_requests'),
+      dbUnified.read('suppliers'),
+      dbUnified.read('packages'),
+      dbUnified.read('reviews'),
+    ]);
 
   const partner = (partners || []).find(item => item.id === partnerId);
   const partnerUser = partner ? (users || []).find(user => user.id === partner.userId) : null;
@@ -198,7 +274,7 @@ async function assessCashout({ partnerId, requestId = null, requestedAt = new Da
       signals,
       'FIRST_CASHOUT',
       FIRST_CASHOUT_REVIEW_SCORE,
-      'This is the partner’s first cashout and must be reviewed manually.'
+      'This is the partner’s first cashout and requires a recorded manual review.'
     );
   }
 
@@ -208,7 +284,6 @@ async function assessCashout({ partnerId, requestId = null, requestedAt = new Da
       partnerAgeHours: Math.round(partnerAgeHours * 10) / 10,
     });
   }
-
   if (partnerReferrals.length === 0) {
     addSignal(signals, 'NO_REFERRAL_RECORDS', 40, 'Cashout has no supporting referral records.');
   }
@@ -217,19 +292,26 @@ async function assessCashout({ partnerId, requestId = null, requestedAt = new Da
   const partnerDomain = emailDomain(partnerUser?.email);
   const supplierDomains = new Map();
   let unverifiedSuppliers = 0;
+  let unapprovedSupplierProfiles = 0;
   let identityMatches = 0;
   let rapidMilestones = 0;
+  let weakPackageRewards = 0;
+  let weakReviewRewards = 0;
 
   for (const referral of partnerReferrals) {
-    const supplier = (users || []).find(user => user.id === referral.supplierUserId);
-    if (!supplier || supplier.verified !== true) unverifiedSuppliers += 1;
+    const supplierUser = (users || []).find(user => user.id === referral.supplierUserId);
+    if (!supplierUser || supplierUser.verified !== true) unverifiedSuppliers += 1;
+    const supplierProfiles = (suppliers || []).filter(
+      profile => profile.ownerUserId === referral.supplierUserId
+    );
+    const approvedProfiles = supplierProfiles.filter(profile => profile.approved === true);
+    if (!approvedProfiles.length) unapprovedSupplierProfiles += 1;
 
-    const supplierDomain = emailDomain(supplier?.email);
+    const supplierDomain = emailDomain(supplierUser?.email);
     if (supplierDomain) {
       supplierDomains.set(supplierDomain, (supplierDomains.get(supplierDomain) || 0) + 1);
     }
-
-    const supplierCompany = normalise(supplier?.company);
+    const supplierCompany = normalise(supplierUser?.company);
     if (
       (partnerDomain &&
         supplierDomain &&
@@ -243,6 +325,7 @@ async function assessCashout({ partnerId, requestId = null, requestedAt = new Da
     const supplierTxns = partnerTransactions.filter(
       txn => txn.supplierUserId === referral.supplierUserId && Number(txn.amount) > 0
     );
+    const supplierIds = new Set(approvedProfiles.map(profile => profile.id));
     for (const txn of supplierTxns) {
       const elapsed = hoursBetween(referral.supplierCreatedAt || referral.createdAt, txn.createdAt);
       if (
@@ -252,26 +335,49 @@ async function assessCashout({ partnerId, requestId = null, requestedAt = new Da
       ) {
         rapidMilestones += 1;
       }
+      if (
+        txn.type === 'PACKAGE_BONUS' &&
+        !(packages || []).some(pkg => supplierIds.has(pkg.supplierId) && isMeaningfulPackage(pkg))
+      ) {
+        weakPackageRewards += 1;
+      }
+      if (txn.type === 'FIRST_REVIEW_BONUS') {
+        const hasReview = (reviews || []).some(review => {
+          if (!supplierIds.has(review.supplierId)) return false;
+          if (review.approved !== true || review.flagged === true) return false;
+          if (review.emailVerified !== true || review.verified !== true) return false;
+          const reviewer = (users || []).find(user => user.id === review.userId);
+          return Boolean(
+            reviewer &&
+              reviewer.verified === true &&
+              reviewer.role !== 'supplier' &&
+              review.userId !== referral.supplierUserId &&
+              review.userId !== partner?.userId
+          );
+        });
+        if (!hasReview) weakReviewRewards += 1;
+      }
     }
   }
 
   if (unverifiedSuppliers > 0) {
+    addSignal(signals, 'UNVERIFIED_REFERRED_SUPPLIERS', 30, 'Rewarded suppliers are unverified.', {
+      count: unverifiedSuppliers,
+    });
+  }
+  if (unapprovedSupplierProfiles > 0) {
     addSignal(
       signals,
-      'UNVERIFIED_REFERRED_SUPPLIERS',
-      30,
-      'One or more rewarded suppliers are unverified.',
-      { count: unverifiedSuppliers }
+      'UNAPPROVED_SUPPLIER_PROFILES',
+      35,
+      'Rewarded suppliers do not all have approved business profiles.',
+      { count: unapprovedSupplierProfiles }
     );
   }
   if (identityMatches > 0) {
-    addSignal(
-      signals,
-      'POSSIBLE_SELF_REFERRAL',
-      50,
-      'Partner and supplier identity details overlap.',
-      { count: identityMatches }
-    );
+    addSignal(signals, 'POSSIBLE_SELF_REFERRAL', 50, 'Partner and supplier identities overlap.', {
+      count: identityMatches,
+    });
   }
   if (rapidMilestones > 0) {
     addSignal(
@@ -282,14 +388,34 @@ async function assessCashout({ partnerId, requestId = null, requestedAt = new Da
       { count: rapidMilestones }
     );
   }
+  if (weakPackageRewards > 0) {
+    addSignal(
+      signals,
+      'PACKAGE_REWARD_WITHOUT_QUALIFYING_PACKAGE',
+      60,
+      'Package rewards exist without a complete approved package.',
+      { count: weakPackageRewards }
+    );
+  }
+  if (weakReviewRewards > 0) {
+    addSignal(
+      signals,
+      'REVIEW_REWARD_WITHOUT_VERIFIED_REVIEW',
+      60,
+      'Review rewards exist without an approved independently verified review.',
+      { count: weakReviewRewards }
+    );
+  }
 
-  const repeatedDomains = [...supplierDomains.entries()].filter(([, count]) => count >= 3);
+  const repeatedDomains = [...supplierDomains.entries()].filter(
+    ([domain, count]) => count >= 3 && !PUBLIC_EMAIL_DOMAINS.has(domain)
+  );
   if (repeatedDomains.length) {
     addSignal(
       signals,
-      'CONCENTRATED_EMAIL_DOMAINS',
+      'CONCENTRATED_PRIVATE_EMAIL_DOMAINS',
       20,
-      'Several referred suppliers use the same email domain.',
+      'Several referred suppliers use the same private email domain.',
       { domains: repeatedDomains.map(([domain, count]) => ({ domain, count })) }
     );
   }
@@ -330,8 +456,11 @@ async function assessCashout({ partnerId, requestId = null, requestedAt = new Da
       referralCount: partnerReferrals.length,
       priorCashoutCount: priorRequests.length,
       unverifiedSupplierCount: unverifiedSuppliers,
+      unapprovedSupplierProfileCount: unapprovedSupplierProfiles,
       identityMatchCount: identityMatches,
       rapidMilestoneCount: rapidMilestones,
+      weakPackageRewardCount: weakPackageRewards,
+      weakReviewRewardCount: weakReviewRewards,
     },
     assessedAt: new Date().toISOString(),
   };
@@ -343,7 +472,6 @@ async function assessCashout({ partnerId, requestId = null, requestedAt = new Da
     riskLevel: result.riskLevel,
     signalCodes: signals.map(signal => signal.code),
   });
-
   return result;
 }
 
@@ -370,8 +498,11 @@ module.exports = {
   assessCashout,
   persistAssessment,
   supplierRewardEligibility,
+  packageRewardEvidence,
+  reviewRewardEvidence,
   installRewardGuards,
   deferredSignupRewardMiddleware,
   emailDomain,
   normalise,
+  isMeaningfulPackage,
 };
