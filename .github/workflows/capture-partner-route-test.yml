@@ -1,0 +1,51 @@
+name: Capture partner route integration failure
+
+on:
+  pull_request:
+    branches: [main]
+    types: [synchronize]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: capture-partner-route-test
+  cancel-in-progress: true
+
+env:
+  HUSKY: '0'
+  NODE_ENV: test
+  JWT_SECRET: partner-route-diagnostics-minimum-32-characters
+
+jobs:
+  capture:
+    if: ${{ github.head_ref == 'agent/partner-dashboard-reliability' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/partner-dashboard-reliability
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.node-version'
+          cache: npm
+      - run: npm ci --prefer-offline --no-audit
+      - name: Run isolated route suite
+        shell: bash
+        run: |
+          set +e
+          npx jest --runInBand --coverage=false tests/unit/partner-routes-integration.test.js > .partner-route-test.log 2>&1
+          status=$?
+          echo "ROUTE_TEST_EXIT_CODE=${status}" >> .partner-route-test.log
+          cat .partner-route-test.log
+          exit 0
+      - name: Commit diagnostics
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f .partner-route-test.log
+          git commit -m "chore(partner): capture route integration diagnostics [route-diagnostics]"
+          git push origin HEAD:agent/partner-dashboard-reliability
