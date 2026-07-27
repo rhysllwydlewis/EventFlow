@@ -9,6 +9,21 @@ const REVIEW_SCORE = 25;
 const FIRST_CASHOUT_REVIEW_SCORE = 20;
 const RAPID_CASHOUT_HOURS = 72;
 const RAPID_MILESTONE_HOURS = 2;
+const PUBLIC_EMAIL_DOMAINS = new Set([
+  'gmail.com',
+  'googlemail.com',
+  'outlook.com',
+  'hotmail.com',
+  'live.com',
+  'yahoo.com',
+  'icloud.com',
+  'me.com',
+  'aol.com',
+  'proton.me',
+  'protonmail.com',
+]);
+
+let rewardGuardsInstalled = false;
 
 function normalise(value) {
   return String(value || '')
@@ -39,6 +54,112 @@ function assessmentId(partnerId, requestId) {
     .update(`${partnerId}:${requestId || 'preview'}`)
     .digest('hex')
     .slice(0, 20);
+}
+
+async function supplierRewardEligibility(supplierUserId) {
+  const supplier = await dbUnified.findOne('users', { id: supplierUserId });
+  if (!supplier || supplier.role !== 'supplier') {
+    return { eligible: false, reason: 'SUPPLIER_ACCOUNT_MISSING' };
+  }
+  if (supplier.verified !== true) {
+    return { eligible: false, reason: 'SUPPLIER_EMAIL_UNVERIFIED', supplier };
+  }
+  if (!String(supplier.company || '').trim()) {
+    return { eligible: false, reason: 'SUPPLIER_COMPANY_MISSING', supplier };
+  }
+
+  const referral = await dbUnified.findOne('partner_referrals', { supplierUserId });
+  if (!referral) return { eligible: false, reason: 'REFERRAL_RECORD_MISSING', supplier };
+
+  const partner = await dbUnified.findOne('partners', { id: referral.partnerId });
+  if (!partner || partner.status !== 'active') {
+    return { eligible: false, reason: 'PARTNER_NOT_ACTIVE', supplier, referral };
+  }
+  const partnerUser = await dbUnified.findOne('users', { id: partner.userId });
+  if (!partnerUser) {
+    return { eligible: false, reason: 'PARTNER_IDENTITY_MISSING', supplier, referral, partner };
+  }
+
+  const supplierCompany = normalise(supplier.company);
+  const partnerCompany = normalise(partnerUser.company);
+  const supplierDomain = emailDomain(supplier.email);
+  const partnerDomain = emailDomain(partnerUser.email);
+  const samePrivateDomain =
+    supplierDomain &&
+    partnerDomain &&
+    supplierDomain === partnerDomain &&
+    !PUBLIC_EMAIL_DOMAINS.has(supplierDomain);
+  const sameCompany = supplierCompany && partnerCompany && supplierCompany === partnerCompany;
+
+  if (partner.userId === supplierUserId || samePrivateDomain || sameCompany) {
+    return {
+      eligible: false,
+      reason: 'POSSIBLE_SELF_REFERRAL',
+      supplier,
+      referral,
+      partner,
+      evidence: { samePrivateDomain, sameCompany },
+    };
+  }
+
+  return { eligible: true, supplier, referral, partner, partnerUser };
+}
+
+function installRewardGuards(partnerService = require('./partnerService')) {
+  if (rewardGuardsInstalled) return partnerService;
+
+  const rewardMethods = [
+    'awardReferralSignupBonus',
+    'awardPackageBonus',
+    'awardFirstReviewBonus',
+    'awardSubscriptionBonus',
+  ];
+
+  for (const methodName of rewardMethods) {
+    const original = partnerService[methodName];
+    if (typeof original !== 'function') continue;
+    partnerService[methodName] = async supplierUserId => {
+      const eligibility = await supplierRewardEligibility(supplierUserId);
+      if (!eligibility.eligible) {
+        logger.warn('[PARTNER-ANTI-ABUSE] Reward withheld', {
+          methodName,
+          supplierUserId,
+          reason: eligibility.reason,
+          evidence: eligibility.evidence,
+        });
+        return null;
+      }
+      return original(supplierUserId);
+    };
+  }
+
+  rewardGuardsInstalled = true;
+  logger.info('[PARTNER-ANTI-ABUSE] Reward eligibility guards installed');
+  return partnerService;
+}
+
+function deferredSignupRewardMiddleware(req, res, next) {
+  const verificationRequest =
+    (req.method === 'GET' && req.path === '/verify') ||
+    (req.method === 'POST' && req.path === '/verify-email');
+  if (!verificationRequest) return next();
+
+  const originalJson = res.json.bind(res);
+  res.json = body => {
+    if (body?.ok === true && body?.user?.id) {
+      const partnerService = installRewardGuards();
+      setImmediate(() => {
+        partnerService.awardReferralSignupBonus(body.user.id).catch(error => {
+          logger.warn('[PARTNER-ANTI-ABUSE] Deferred signup reward failed', {
+            supplierUserId: body.user.id,
+            error: error.message,
+          });
+        });
+      });
+    }
+    return originalJson(body);
+  };
+  return next();
 }
 
 async function assessCashout({ partnerId, requestId = null, requestedAt = new Date().toISOString() }) {
@@ -104,11 +225,16 @@ async function assessCashout({ partnerId, requestId = null, requestedAt = new Da
     if (!supplier || supplier.verified !== true) unverifiedSuppliers += 1;
 
     const supplierDomain = emailDomain(supplier?.email);
-    if (supplierDomain) supplierDomains.set(supplierDomain, (supplierDomains.get(supplierDomain) || 0) + 1);
+    if (supplierDomain) {
+      supplierDomains.set(supplierDomain, (supplierDomains.get(supplierDomain) || 0) + 1);
+    }
 
     const supplierCompany = normalise(supplier?.company);
     if (
-      (partnerDomain && supplierDomain && partnerDomain === supplierDomain && !['gmail.com', 'outlook.com', 'hotmail.com', 'yahoo.com', 'icloud.com'].includes(partnerDomain)) ||
+      (partnerDomain &&
+        supplierDomain &&
+        partnerDomain === supplierDomain &&
+        !PUBLIC_EMAIL_DOMAINS.has(partnerDomain)) ||
       (partnerCompany && supplierCompany && partnerCompany === supplierCompany)
     ) {
       identityMatches += 1;
@@ -119,33 +245,53 @@ async function assessCashout({ partnerId, requestId = null, requestedAt = new Da
     );
     for (const txn of supplierTxns) {
       const elapsed = hoursBetween(referral.supplierCreatedAt || referral.createdAt, txn.createdAt);
-      if (elapsed !== null && elapsed < RAPID_MILESTONE_HOURS && txn.type !== 'REFERRAL_SIGNUP_BONUS') {
+      if (
+        elapsed !== null &&
+        elapsed < RAPID_MILESTONE_HOURS &&
+        txn.type !== 'REFERRAL_SIGNUP_BONUS'
+      ) {
         rapidMilestones += 1;
       }
     }
   }
 
   if (unverifiedSuppliers > 0) {
-    addSignal(signals, 'UNVERIFIED_REFERRED_SUPPLIERS', 30, 'One or more rewarded suppliers are unverified.', {
-      count: unverifiedSuppliers,
-    });
+    addSignal(
+      signals,
+      'UNVERIFIED_REFERRED_SUPPLIERS',
+      30,
+      'One or more rewarded suppliers are unverified.',
+      { count: unverifiedSuppliers }
+    );
   }
   if (identityMatches > 0) {
-    addSignal(signals, 'POSSIBLE_SELF_REFERRAL', 50, 'Partner and supplier identity details overlap.', {
-      count: identityMatches,
-    });
+    addSignal(
+      signals,
+      'POSSIBLE_SELF_REFERRAL',
+      50,
+      'Partner and supplier identity details overlap.',
+      { count: identityMatches }
+    );
   }
   if (rapidMilestones > 0) {
-    addSignal(signals, 'RAPID_MILESTONE_COMPLETION', 25, 'Milestones completed unusually quickly after signup.', {
-      count: rapidMilestones,
-    });
+    addSignal(
+      signals,
+      'RAPID_MILESTONE_COMPLETION',
+      25,
+      'Milestones completed unusually quickly after signup.',
+      { count: rapidMilestones }
+    );
   }
 
   const repeatedDomains = [...supplierDomains.entries()].filter(([, count]) => count >= 3);
   if (repeatedDomains.length) {
-    addSignal(signals, 'CONCENTRATED_EMAIL_DOMAINS', 20, 'Several referred suppliers use the same email domain.', {
-      domains: repeatedDomains.map(([domain, count]) => ({ domain, count })),
-    });
+    addSignal(
+      signals,
+      'CONCENTRATED_EMAIL_DOMAINS',
+      20,
+      'Several referred suppliers use the same email domain.',
+      { domains: repeatedDomains.map(([domain, count]) => ({ domain, count })) }
+    );
   }
 
   const rewardBySupplier = new Map();
@@ -157,12 +303,17 @@ async function assessCashout({ partnerId, requestId = null, requestedAt = new Da
     );
   }
   const orphanRewardSuppliers = [...rewardBySupplier.keys()].filter(
-    supplierUserId => !partnerReferrals.some(referral => referral.supplierUserId === supplierUserId)
+    supplierUserId =>
+      !partnerReferrals.some(referral => referral.supplierUserId === supplierUserId)
   );
   if (orphanRewardSuppliers.length) {
-    addSignal(signals, 'ORPHAN_REWARD_TRANSACTIONS', 60, 'Reward transactions exist without referral records.', {
-      count: orphanRewardSuppliers.length,
-    });
+    addSignal(
+      signals,
+      'ORPHAN_REWARD_TRANSACTIONS',
+      60,
+      'Reward transactions exist without referral records.',
+      { count: orphanRewardSuppliers.length }
+    );
   }
 
   const score = Math.min(100, signals.reduce((total, signal) => total + signal.score, 0));
@@ -218,6 +369,9 @@ module.exports = {
   REVIEW_SCORE,
   assessCashout,
   persistAssessment,
+  supplierRewardEligibility,
+  installRewardGuards,
+  deferredSignupRewardMiddleware,
   emailDomain,
   normalise,
 };
