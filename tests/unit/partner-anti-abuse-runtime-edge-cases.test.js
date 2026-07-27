@@ -1,6 +1,6 @@
 'use strict';
 
-function loadRuntime({ cashout = null, payment = null, assessment, signupFailure, clawbackFailure } = {}) {
+function loadRuntime({ cashout = null, payment = null, assessment, rewardFailure, clawbackFailure } = {}) {
   jest.resetModules();
 
   const mockOriginalUpdateOne = jest.fn(async (_collection, _query, update) => update);
@@ -17,13 +17,19 @@ function loadRuntime({ cashout = null, payment = null, assessment, signupFailure
     }),
     updateOne: mockOriginalUpdateOne,
   };
+  const awardReward = jest.fn(async supplierUserId => {
+    if (rewardFailure) throw rewardFailure;
+    return { supplierUserId };
+  });
   const mockPartnerService = {
-    awardReferralSignupBonus: jest.fn(async supplierUserId => {
-      if (signupFailure) throw signupFailure;
-      return { supplierUserId };
-    }),
-    awardPackageBonus: jest.fn(),
-    awardFirstReviewBonus: jest.fn(),
+    CREDIT_TYPES: {
+      REFERRAL_SIGNUP_BONUS: 'REFERRAL_SIGNUP_BONUS',
+      PACKAGE_BONUS: 'PACKAGE_BONUS',
+      FIRST_REVIEW_BONUS: 'FIRST_REVIEW_BONUS',
+    },
+    awardReferralSignupBonus: awardReward,
+    awardPackageBonus: jest.fn(async () => null),
+    awardFirstReviewBonus: jest.fn(async () => null),
     awardSubscriptionBonus: jest.fn(),
     getBalance: jest.fn(async partnerId => ({ partnerId, availableBalance: 50 })),
   };
@@ -78,9 +84,9 @@ afterEach(() => {
   jest.clearAllMocks();
 });
 
-test('logs a failed deferred signup reconciliation without breaking balance reads', async () => {
+test('logs a failed deferred reward without breaking balance reads', async () => {
   const failure = new Error('temporary reward failure');
-  const { runtime, mockPartnerService, mockLogger } = loadRuntime({ signupFailure: failure });
+  const { runtime, mockPartnerService, mockLogger } = loadRuntime({ rewardFailure: failure });
   runtime.install();
 
   await expect(mockPartnerService.getBalance('prt_1')).resolves.toEqual({
@@ -88,10 +94,11 @@ test('logs a failed deferred signup reconciliation without breaking balance read
     availableBalance: 50,
   });
   expect(mockLogger.warn).toHaveBeenCalledWith(
-    '[PARTNER-ANTI-ABUSE] Signup reward reconciliation failed',
+    '[PARTNER-ANTI-ABUSE] Deferred reward reconciliation failed',
     expect.objectContaining({
       partnerId: 'prt_1',
       supplierUserId: 'usr_supplier_1',
+      rewardType: 'REFERRAL_SIGNUP_BONUS',
       error: 'temporary reward failure',
     })
   );
