@@ -11,6 +11,7 @@ const stripeEvidence = require('./partnerRewardStripeEvidenceService');
 const CLAWBACK_SUBTYPE = 'PARTNER_REWARD_INTEGRITY_CLAWBACK';
 const REVERSAL_MODE_PENDING = 'void_pending';
 const REVERSAL_MODE_MATURED = 'debit_matured';
+const MIN_REVALIDATION_DAYS = 90;
 
 const METHOD_BY_TYPE = Object.freeze({
   REFERRAL_SIGNUP_BONUS: 'awardReferralSignupBonus',
@@ -19,19 +20,25 @@ const METHOD_BY_TYPE = Object.freeze({
   SUBSCRIPTION_BONUS: 'awardSubscriptionBonus',
 });
 
-const TEMPORAL_REASONS = new Set([
+const NON_CLAWBACK_REASONS = new Set([
   'SUPPLIER_MIN_ACCOUNT_AGE_NOT_MET',
   'PACKAGE_MIN_LIVE_PERIOD_NOT_MET',
   'REVIEW_MODERATION_WINDOW_NOT_MET',
   'SUBSCRIPTION_SETTLEMENT_WINDOW_NOT_MET',
   'STRIPE_PAYMENT_EVIDENCE_UNAVAILABLE',
   'STRIPE_PAYMENT_EVIDENCE_PERSIST_FAILED',
+  'REVIEW_RING_SHARED_DEVICE_NETWORK',
+  'REVIEW_RING_SHARED_IP',
 ]);
+
+function effectiveRevalidationDays() {
+  return Math.max(MIN_REVALIDATION_DAYS, Number(advancedIntegrity.getConfig().revalidationDays || 0));
+}
 
 function isWithinRevalidationWindow(transaction, now = Date.now()) {
   const createdAt = Date.parse(transaction?.createdAt);
   if (!Number.isFinite(createdAt)) return false;
-  return now - createdAt <= advancedIntegrity.getConfig().revalidationDays * 86400000;
+  return now - createdAt <= effectiveRevalidationDays() * 86400000;
 }
 
 function isEffectivelyMature(transaction, now = Date.now()) {
@@ -184,7 +191,7 @@ async function clawBackRewardTransaction(transaction, reason) {
 }
 
 async function clawBackIfDurablyInvalid(transaction, decision) {
-  if (decision.eligible || TEMPORAL_REASONS.has(decision.reason)) return false;
+  if (decision.eligible || NON_CLAWBACK_REASONS.has(decision.reason)) return false;
   await clawBackRewardTransaction(transaction, decision.reason);
   return true;
 }
@@ -267,13 +274,15 @@ module.exports = {
   CLAWBACK_SUBTYPE,
   REVERSAL_MODE_PENDING,
   REVERSAL_MODE_MATURED,
+  MIN_REVALIDATION_DAYS,
   METHOD_BY_TYPE,
   clawBackRewardTransaction,
   revalidatePartnerRewards,
   _test: {
+    effectiveRevalidationDays,
     isWithinRevalidationWindow,
     isEffectivelyMature,
-    TEMPORAL_REASONS,
+    NON_CLAWBACK_REASONS,
     clawBackIfDurablyInvalid,
     voidPendingReward,
     debitMaturedReward,
