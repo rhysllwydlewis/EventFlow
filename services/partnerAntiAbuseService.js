@@ -48,7 +48,10 @@ function emailDomain(email) {
 }
 
 function normalisePhone(value) {
-  const digits = String(value || '').replace(/\D/g, '');
+  let digits = String(value || '').replace(/\D/g, '');
+  if (digits.startsWith('00')) digits = digits.slice(2);
+  if (digits.startsWith('44') && digits.length >= 11) return digits;
+  if (digits.startsWith('0') && digits.length >= 10) return `44${digits.slice(1)}`;
   return digits.length >= 7 ? digits : '';
 }
 
@@ -105,8 +108,8 @@ function identityOverlap(left = {}, right = {}) {
   const sameWebsite = Boolean(leftWebsite && rightWebsite && leftWebsite === rightWebsite);
   const samePostcode = Boolean(
     normalisePostcode(left.postcode || left.postalCode) &&
-    normalisePostcode(left.postcode || left.postalCode) ===
-      normalisePostcode(right.postcode || right.postalCode)
+      normalisePostcode(left.postcode || left.postalCode) ===
+        normalisePostcode(right.postcode || right.postalCode)
   );
   const leftCompanyNumber = normalise(
     left.companyNumber || left.companiesHouseNumber || left.registrationNumber
@@ -123,11 +126,11 @@ function identityOverlap(left = {}, right = {}) {
   return {
     strongMatch: Boolean(
       exactCompany ||
-      samePhone ||
-      sameWebsite ||
-      sameCompanyNumber ||
-      sameVatNumber ||
-      (fuzzyCompany && samePostcode)
+        samePhone ||
+        sameWebsite ||
+        sameCompanyNumber ||
+        sameVatNumber ||
+        (fuzzyCompany && samePostcode)
     ),
     exactCompany,
     fuzzyCompany,
@@ -161,13 +164,13 @@ function assessmentId(partnerId, requestId) {
 function isMeaningfulPackage(pkg) {
   return Boolean(
     pkg &&
-    pkg.approved === true &&
-    pkg.paused !== true &&
-    String(pkg.title || '').trim().length >= 3 &&
-    String(pkg.price || '').trim() &&
-    String(pkg.primaryCategoryKey || '').trim() &&
-    Array.isArray(pkg.eventTypes) &&
-    pkg.eventTypes.length > 0
+      pkg.approved === true &&
+      pkg.paused !== true &&
+      String(pkg.title || '').trim().length >= 3 &&
+      String(pkg.price || '').trim() &&
+      String(pkg.primaryCategoryKey || '').trim() &&
+      Array.isArray(pkg.eventTypes) &&
+      pkg.eventTypes.length > 0
   );
 }
 
@@ -417,9 +420,7 @@ async function assessCashout({
       'RAPID_FIRST_CASHOUT',
       35,
       'Cashout requested shortly after partner signup.',
-      {
-        partnerAgeHours: Math.round(partnerAgeHours * 10) / 10,
-      }
+      { partnerAgeHours: Math.round(partnerAgeHours * 10) / 10 }
     );
   }
   if (rewardTransactions.length > 0 && partnerReferrals.length === 0) {
@@ -454,13 +455,15 @@ async function assessCashout({
       ...(supplierUser || {}),
       ...(approvedProfiles[0] || {}),
     });
+    const registrationSignals = supplierUser?.registrationRiskSignalCodes || [];
     if (
       (partnerDomain &&
         supplierDomain &&
         partnerDomain === supplierDomain &&
         !PUBLIC_EMAIL_DOMAINS.has(partnerDomain)) ||
       supplierIdentity.strongMatch ||
-      (supplierUser?.registrationRiskSignalCodes || []).includes('PARTNER_SUPPLIER_DEVICE_OVERLAP')
+      registrationSignals.includes('PARTNER_SUPPLIER_DEVICE_OVERLAP') ||
+      registrationSignals.includes('PARTNER_SUPPLIER_DEVICE_COOKIE_OVERLAP')
     ) {
       identityMatches += 1;
     }
