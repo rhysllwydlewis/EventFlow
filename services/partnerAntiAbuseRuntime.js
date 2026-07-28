@@ -27,6 +27,13 @@ const RECONCILABLE_REWARDS = [
   },
 ];
 
+const REWARD_TOTAL_FIELDS = Object.freeze({
+  [partnerService.CREDIT_TYPES.PACKAGE_BONUS]: 'packageBonusTotal',
+  [partnerService.CREDIT_TYPES.SUBSCRIPTION_BONUS]: 'subscriptionBonusTotal',
+  [partnerService.CREDIT_TYPES.REFERRAL_SIGNUP_BONUS]: 'signupBonusTotal',
+  [partnerService.CREDIT_TYPES.FIRST_REVIEW_BONUS]: 'reviewBonusTotal',
+});
+
 async function reconcileEligibleRewards(partnerId) {
   const [referrals, rewardedTransactions] = await Promise.all([
     dbUnified.find('partner_referrals', { partnerId }),
@@ -66,7 +73,7 @@ function applyExtendedMaturity(balance) {
   let deferred = 0;
 
   for (const transaction of balance.transactions) {
-    if (Number(transaction.amount) <= 0 || !transaction.maturesAt) continue;
+    if (transaction.reversedAt || Number(transaction.amount) <= 0 || !transaction.maturesAt) continue;
     const maturesAt = Date.parse(transaction.maturesAt);
     const createdAt = Date.parse(transaction.createdAt);
     if (!Number.isFinite(maturesAt) || !Number.isFinite(createdAt)) continue;
@@ -86,12 +93,46 @@ function applyExtendedMaturity(balance) {
   };
 }
 
+function applyRewardReversals(balance) {
+  if (!balance || !Array.isArray(balance.transactions)) return balance;
+  const result = {
+    ...balance,
+    voidedPendingPoints: Number(balance.voidedPendingPoints || 0),
+    clawedBackPoints: Number(balance.clawedBackPoints || 0),
+  };
+
+  for (const transaction of balance.transactions) {
+    if (!transaction.reversedAt || Number(transaction.amount) <= 0) continue;
+    const totalField = REWARD_TOTAL_FIELDS[transaction.type];
+    if (!totalField) continue;
+    const amount = Number(transaction.amount);
+
+    result[totalField] = Math.max(0, Number(result[totalField] || 0) - amount);
+    result.totalEarned = Math.max(0, Number(result.totalEarned || 0) - amount);
+
+    if (transaction.reversalMode === 'void_pending') {
+      // No financial debit exists for a pending void. Remove the invalid credit itself
+      // from the headline balance and from whichever maturing bucket held it.
+      result.balance = Number(result.balance || 0) - amount;
+      result.maturingBalance = Math.max(0, Number(result.maturingBalance || 0) - amount);
+      result.voidedPendingPoints += amount;
+    } else if (transaction.reversalMode === 'debit_matured') {
+      // The REDEEM transaction already reduces availableBalance and headline balance.
+      // Only correct the earned/reward reporting totals here.
+      result.clawedBackPoints += amount;
+    }
+  }
+
+  return result;
+}
+
 function installBalanceReconciliation() {
   const originalGetBalance = partnerService.getBalance.bind(partnerService);
   partnerService.getBalance = async partnerId => {
     await partnerRewardIntegrityRuntime.revalidatePartnerRewards(partnerId);
     await reconcileEligibleRewards(partnerId);
-    return applyExtendedMaturity(await originalGetBalance(partnerId));
+    const baseBalance = await originalGetBalance(partnerId);
+    return applyRewardReversals(applyExtendedMaturity(baseBalance));
   };
 }
 
@@ -110,5 +151,5 @@ module.exports = {
   install,
   reconcileEligibleRewards,
   RECONCILABLE_REWARDS,
-  _test: { applyExtendedMaturity },
+  _test: { applyExtendedMaturity, applyRewardReversals },
 };
