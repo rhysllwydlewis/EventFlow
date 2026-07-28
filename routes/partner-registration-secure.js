@@ -9,6 +9,7 @@ const dbUnified = require('../db-unified');
 const { uid } = require('../store');
 const { csrfProtection } = require('../middleware/csrf');
 const { registrationLimiter } = require('../middleware/rateLimits');
+const { featureRequired } = require('../middleware/features');
 const { passwordOk } = require('../middleware/validation');
 const partnerService = require('../services/partnerService');
 const postmark = require('../utils/postmark');
@@ -18,6 +19,11 @@ const { notifyAdmins } = require('../services/notifyAdmins.service');
 const registrationRisk = require('../services/partnerRegistrationRiskService');
 
 const router = express.Router();
+let _verifyAltcha = null;
+
+function initializeDependencies(deps = {}) {
+  _verifyAltcha = typeof deps.verifyAltcha === 'function' ? deps.verifyAltcha : null;
+}
 
 function getBaseUrl(req) {
   return process.env.BASE_URL || process.env.APP_BASE_URL || `${req.protocol}://${req.get('host')}`;
@@ -27,10 +33,44 @@ const partnerRegistrationRiskGuard = registrationRisk.registrationRiskGuard({
   roleResolver: () => 'partner',
 });
 
+async function partnerCaptchaGuard(req, res, next) {
+  if (!_verifyAltcha) {
+    if (process.env.NODE_ENV === 'production') {
+      logger.error('[PARTNER-REGISTER] CAPTCHA verifier is unavailable in production');
+      return res.status(503).json({
+        error: 'Registration verification is temporarily unavailable. Please try again later.',
+        code: 'CAPTCHA_VERIFIER_UNAVAILABLE',
+      });
+    }
+    return next();
+  }
+
+  try {
+    const captchaResult = await _verifyAltcha(req.body?.captchaToken);
+    if (!captchaResult?.success) {
+      return res.status(400).json({
+        error: captchaResult?.error || 'CAPTCHA verification failed',
+        code: 'CAPTCHA_VERIFICATION_FAILED',
+      });
+    }
+    return next();
+  } catch (error) {
+    logger.error('[PARTNER-REGISTER] CAPTCHA verification failed unexpectedly', {
+      error: error.message,
+    });
+    return res.status(503).json({
+      error: 'Registration verification is temporarily unavailable. Please try again later.',
+      code: 'CAPTCHA_VERIFICATION_UNAVAILABLE',
+    });
+  }
+}
+
 router.post(
   '/register',
-  registrationLimiter,
+  featureRequired('registration'),
   csrfProtection,
+  registrationLimiter,
+  partnerCaptchaGuard,
   partnerRegistrationRiskGuard,
   async (req, res) => {
     try {
@@ -54,8 +94,16 @@ router.post(
       if (!cleanFirstName || !cleanLastName) {
         return res.status(400).json({ error: 'First name and last name are required' });
       }
+      if (!/\p{L}/u.test(cleanFirstName) || !/\p{L}/u.test(cleanLastName)) {
+        return res
+          .status(400)
+          .json({ error: 'First and last name must contain at least one letter' });
+      }
       if (!validator.isEmail(cleanEmail)) {
         return res.status(400).json({ error: 'Valid email address is required' });
+      }
+      if (typeof password !== 'string' || password.length > 1024) {
+        return res.status(400).json({ error: 'Password is too long (maximum 1,024 characters)' });
       }
       if (!password || !passwordOk(password)) {
         return res.status(400).json({
@@ -116,9 +164,10 @@ router.post(
           error: riskError.message,
         });
         await dbUnified.deleteOne('users', { id: user.id });
-        return res
-          .status(503)
-          .json({ error: 'Registration could not be completed safely. Please retry.' });
+        return res.status(503).json({
+          error: 'Registration could not be completed safely. Please retry.',
+          code: 'REGISTRATION_RISK_UNAVAILABLE',
+        });
       }
 
       let partner;
@@ -178,4 +227,5 @@ router.post(
   }
 );
 
+router.initializeDependencies = initializeDependencies;
 module.exports = router;
