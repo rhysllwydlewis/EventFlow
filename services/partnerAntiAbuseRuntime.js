@@ -95,18 +95,23 @@ function applyExtendedMaturity(balance) {
 
 function applyRewardReversals(balance) {
   if (!balance || !Array.isArray(balance.transactions)) return balance;
+  const reversedRewards = balance.transactions.filter(
+    transaction =>
+      transaction.reversedAt &&
+      Number(transaction.amount) > 0 &&
+      Boolean(REWARD_TOTAL_FIELDS[transaction.type])
+  );
+  if (!reversedRewards.length) return balance;
+
   const result = {
     ...balance,
     voidedPendingPoints: Number(balance.voidedPendingPoints || 0),
     clawedBackPoints: Number(balance.clawedBackPoints || 0),
   };
 
-  for (const transaction of balance.transactions) {
-    if (!transaction.reversedAt || Number(transaction.amount) <= 0) continue;
+  for (const transaction of reversedRewards) {
     const totalField = REWARD_TOTAL_FIELDS[transaction.type];
-    if (!totalField) continue;
     const amount = Number(transaction.amount);
-
     result[totalField] = Math.max(0, Number(result[totalField] || 0) - amount);
     result.totalEarned = Math.max(0, Number(result.totalEarned || 0) - amount);
 
