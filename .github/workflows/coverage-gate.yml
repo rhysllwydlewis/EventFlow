@@ -53,6 +53,7 @@ jobs:
           python scripts/apply-partner-pr1-hardening.py
           python scripts/apply-partner-pr1-safety-tuning.py
           python scripts/apply-partner-pr1-final-review.py
+          python scripts/apply-partner-pr1-post-review.py
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
