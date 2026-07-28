@@ -25,9 +25,11 @@ async function clawBackSubscriptionReward({ supplierUserId, externalRef, reason 
     type: redeemType,
     externalRef,
   });
-  if (existingDebit?.subtype === CLAWBACK_SUBTYPE) return existingDebit;
-
   const match = await findPartnerSubscriptionReward(supplierUserId);
+
+  // A completed debit remains authoritative even if historic referral or reward data
+  // has subsequently been removed. Returning it is safe because no new debit is created.
+  if (!match && existingDebit?.subtype === CLAWBACK_SUBTYPE) return existingDebit;
   if (!match) return null;
 
   const debit =
@@ -40,8 +42,8 @@ async function clawBackSubscriptionReward({ supplierUserId, externalRef, reason 
     }));
   if (!debit) throw new Error('Partner reward clawback debit did not persist');
 
-  // Keep the canonical REDEEM type so getBalance() continues to subtract the debit
-  // from available rewards. The subtype supplies the audit classification.
+  // Reapply both audit writes on every retry. This repairs a webhook attempt that
+  // persisted the debit but failed before the referral reversal marker was stored.
   const updatedDebit = await dbUnified.updateOne(
     'partner_credit_transactions',
     { id: debit.id },
