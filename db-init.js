@@ -16,7 +16,6 @@ const REWARD_TYPES = [
   'FIRST_REVIEW_BONUS',
 ];
 
-// Additional collections not in models (reports, audit_logs, search_history)
 const ADDITIONAL_COLLECTIONS = [
   {
     name: 'reviews',
@@ -86,8 +85,9 @@ const ADDITIONAL_COLLECTIONS = [
       { keys: { id: 1 }, options: { unique: true } },
       { keys: { partnerId: 1 }, options: {} },
       {
-        keys: { supplierUserId: 1, type: 1, partnerId: 1 },
+        keys: { partnerId: 1, supplierUserId: 1, type: 1 },
         options: {
+          name: 'uniq_partner_reward_milestone',
           unique: true,
           partialFilterExpression: {
             supplierUserId: { $type: 'string' },
@@ -98,6 +98,7 @@ const ADDITIONAL_COLLECTIONS = [
       {
         keys: { type: 1, externalRef: 1 },
         options: {
+          name: 'uniq_partner_ledger_external_ref',
           unique: true,
           partialFilterExpression: { externalRef: { $type: 'string' } },
         },
@@ -111,8 +112,9 @@ const ADDITIONAL_COLLECTIONS = [
     indexes: [
       { keys: { id: 1 }, options: { unique: true } },
       {
-        keys: { partnerId: 1, idempotencyKey: 1 },
+        keys: { idempotencyKey: 1, partnerId: 1 },
         options: {
+          name: 'uniq_partner_cashout_idempotency',
           unique: true,
           partialFilterExpression: { idempotencyKey: { $type: 'string' } },
         },
@@ -128,6 +130,7 @@ const ADDITIONAL_COLLECTIONS = [
       {
         keys: { requestId: 1 },
         options: {
+          name: 'uniq_partner_fraud_request',
           unique: true,
           partialFilterExpression: { requestId: { $type: 'string' } },
         },
@@ -145,7 +148,7 @@ async function initializeDatabase() {
     await initializeCollections(db);
     await createIndexes(db);
     const existingCollections = await db.listCollections().toArray();
-    const existingNames = existingCollections.map(c => c.name);
+    const existingNames = existingCollections.map(collection => collection.name);
 
     for (const collectionDef of ADDITIONAL_COLLECTIONS) {
       const { name, indexes } = collectionDef;
@@ -160,10 +163,10 @@ async function initializeDatabase() {
         for (const index of indexes) {
           try {
             await collection.createIndex(index.keys, index.options);
-            logger.info(`  ✓ Ensured index on ${name}: ${Object.keys(index.keys).join('_')}`);
-          } catch (err) {
-            if (err.code !== 85 && err.code !== 86) {
-              logger.warn(`  ⚠ Could not create index on ${name}:`, err.message);
+            logger.info(`  ✓ Ensured index on ${name}: ${index.options.name || Object.keys(index.keys).join('_')}`);
+          } catch (error) {
+            if (error.code !== 85 && error.code !== 86) {
+              logger.warn(`  ⚠ Could not create index on ${name}:`, error.message);
             }
           }
         }
@@ -205,7 +208,7 @@ async function getDatabaseStats() {
     for (const collectionName of allCollections) {
       try {
         collectionStats[collectionName] = await db.collection(collectionName).countDocuments();
-      } catch (_err) {
+      } catch (_error) {
         collectionStats[collectionName] = 0;
       }
     }
