@@ -4,6 +4,8 @@ const dbUnified = require('../db-unified');
 const logger = require('../utils/logger');
 const partnerService = require('./partnerService');
 const integrity = require('./partnerRewardIntegrityService');
+const advancedIntegrity = require('./partnerRewardIntegrityAdvancedService');
+const integrityClawback = require('./partnerRewardIntegrityClawbackService');
 
 let installed = false;
 
@@ -53,6 +55,29 @@ async function recordWithheld({ supplierUserId, partnerId, rewardType, decision 
   }
 }
 
+async function applyRiskMaturity(transaction, partnerId, supplierUserId) {
+  if (!transaction?.id) return transaction;
+  const extraDays = await advancedIntegrity.maturityExtensionDays({ partnerId, supplierUserId });
+  if (!extraDays) return transaction;
+  const baseDays = Number(partnerService.CREDIT_MATURITY_DAYS || 30);
+  const createdAtMs = Date.parse(transaction.createdAt);
+  if (!Number.isFinite(createdAtMs)) return transaction;
+  const maturesAt = new Date(createdAtMs + (baseDays + extraDays) * 86400000).toISOString();
+  const updated = await dbUnified.updateOne(
+    'partner_credit_transactions',
+    { id: transaction.id },
+    {
+      $set: {
+        maturesAt,
+        maturityExtensionDays: extraDays,
+        maturityRiskAppliedAt: new Date().toISOString(),
+      },
+    }
+  );
+  if (!updated) throw new Error('Partner reward maturity extension did not persist');
+  return { ...transaction, maturesAt, maturityExtensionDays: extraDays };
+}
+
 function installRewardMethodGuards() {
   for (const [methodName, config] of Object.entries(METHOD_CONFIG)) {
     const original = partnerService[methodName];
@@ -84,6 +109,29 @@ function installRewardMethodGuards() {
         return null;
       }
 
+      const advancedEvidence = await advancedIntegrity.methodRewardEvidence({
+        supplierUserId,
+        partnerId: partner.id,
+        partnerUserId: partner.userId,
+        methodName,
+        baseEvidence: evidence,
+      });
+      if (!advancedEvidence.eligible) {
+        await recordWithheld({
+          supplierUserId,
+          partnerId: partner.id,
+          rewardType: config.type,
+          decision: advancedEvidence,
+        });
+        logger.warn('[PARTNER-REWARD-INTEGRITY] Reward withheld by advanced integrity policy', {
+          supplierUserId,
+          partnerId: partner.id,
+          rewardType: config.type,
+          reason: advancedEvidence.reason,
+        });
+        return null;
+      }
+
       const capDecision = await integrity.canAwardCredit({
         partnerId: partner.id,
         supplierUserId,
@@ -106,7 +154,30 @@ function installRewardMethodGuards() {
         return null;
       }
 
-      return original(supplierUserId);
+      const exposureDecision = await advancedIntegrity.exposureDecision({
+        partnerId: partner.id,
+        supplierUserId,
+        type: config.type,
+        amount: config.amount,
+      });
+      if (!exposureDecision.eligible) {
+        await recordWithheld({
+          supplierUserId,
+          partnerId: partner.id,
+          rewardType: config.type,
+          decision: exposureDecision,
+        });
+        logger.warn('[PARTNER-REWARD-INTEGRITY] Reward withheld by exposure control', {
+          supplierUserId,
+          partnerId: partner.id,
+          rewardType: config.type,
+          reason: exposureDecision.reason,
+        });
+        return null;
+      }
+
+      const reward = await original(supplierUserId);
+      return reward ? applyRiskMaturity(reward, partner.id, supplierUserId) : reward;
     };
   }
 }
@@ -138,18 +209,26 @@ function installAttributionGuard() {
   };
 }
 
+async function revalidatePartnerRewards(partnerId) {
+  return integrityClawback.revalidatePartnerRewards(partnerId);
+}
+
 function install() {
   if (installed) return;
   installRewardMethodGuards();
   installAttributionGuard();
   installed = true;
-  logger.info('[PARTNER-REWARD-INTEGRITY] Qualification, cap and attribution guards installed');
+  logger.info(
+    '[PARTNER-REWARD-INTEGRITY] Qualification, exposure, maturity and attribution guards installed'
+  );
 }
 
 module.exports = {
   install,
+  revalidatePartnerRewards,
   METHOD_CONFIG,
   _test: {
     resolvePartnerContext,
+    applyRiskMaturity,
   },
 };
