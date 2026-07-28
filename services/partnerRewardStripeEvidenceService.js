@@ -6,6 +6,8 @@ const logger = require('../utils/logger');
 const paymentService = require('./paymentService');
 const baseIntegrity = require('./partnerRewardIntegrityService');
 
+let evidenceStripeClient = null;
+
 function numberEnv(name, fallback, min = 0, max = Number.MAX_SAFE_INTEGER) {
   const parsed = Number.parseInt(process.env[name] || '', 10);
   if (!Number.isFinite(parsed)) return fallback;
@@ -82,6 +84,56 @@ function paymentInstrumentEvidence(paymentIntent) {
   return { kind: null, hash: null, confidence: 'none' };
 }
 
+function getEvidenceStripeClient() {
+  if (evidenceStripeClient) return evidenceStripeClient;
+  const secret = process.env.STRIPE_SECRET_KEY;
+  if (!secret) return null;
+  try {
+    const stripeLib = require('stripe');
+    evidenceStripeClient = stripeLib(secret, { apiVersion: '2025-12-15.clover' });
+    return evidenceStripeClient;
+  } catch (error) {
+    logger.warn('[PARTNER-REWARD-INTEGRITY] Could not initialise Stripe evidence client', {
+      error: error.message,
+    });
+    return null;
+  }
+}
+
+async function enrichPaymentInstrument(paymentIntent) {
+  if (!paymentIntent || paymentInstrumentEvidence(paymentIntent).confidence === 'strong') {
+    return paymentIntent;
+  }
+  const client = getEvidenceStripeClient();
+  if (!client) return paymentIntent;
+  const enriched = { ...paymentIntent };
+
+  try {
+    if (typeof paymentIntent.payment_method === 'string' && client.paymentMethods?.retrieve) {
+      enriched.payment_method = await client.paymentMethods.retrieve(paymentIntent.payment_method);
+    }
+  } catch (error) {
+    logger.warn('[PARTNER-REWARD-INTEGRITY] PaymentMethod fingerprint enrichment failed', {
+      paymentIntentId: paymentIntent.id,
+      error: error.message,
+    });
+  }
+
+  if (paymentInstrumentEvidence(enriched).confidence === 'strong') return enriched;
+
+  try {
+    if (typeof paymentIntent.latest_charge === 'string' && client.charges?.retrieve) {
+      enriched.latest_charge = await client.charges.retrieve(paymentIntent.latest_charge);
+    }
+  } catch (error) {
+    logger.warn('[PARTNER-REWARD-INTEGRITY] Charge fingerprint enrichment failed', {
+      paymentIntentId: paymentIntent.id,
+      error: error.message,
+    });
+  }
+  return enriched;
+}
+
 function storedEvidence(invoice) {
   const evidence = invoice?.partnerRewardPaymentEvidence;
   if (!evidence || typeof evidence !== 'object') return null;
@@ -155,7 +207,8 @@ async function captureEvidence(invoice, subscription) {
     };
   }
 
-  const instrument = paymentInstrumentEvidence(paymentIntent);
+  const enrichedPaymentIntent = await enrichPaymentInstrument(paymentIntent);
+  const instrument = paymentInstrumentEvidence(enrichedPaymentIntent);
   const evidence = {
     paymentIntentId,
     paymentIntentStatus: paymentIntent.status,
@@ -260,6 +313,10 @@ async function subscriptionRewardEvidence(supplierUserId, invoiceId) {
   };
 }
 
+function resetStripeClientForTests() {
+  evidenceStripeClient = null;
+}
+
 module.exports = {
   getConfig,
   subscriptionRewardEvidence,
@@ -270,5 +327,8 @@ module.exports = {
     objectId,
     storedEvidence,
     captureEvidence,
+    enrichPaymentInstrument,
+    getEvidenceStripeClient,
+    resetStripeClientForTests,
   },
 };
