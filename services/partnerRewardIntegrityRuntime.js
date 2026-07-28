@@ -12,6 +12,7 @@ const stripeEvidence = require('./partnerRewardStripeEvidenceService');
 const qualificationEvidence = require('./partnerRewardQualificationEvidenceService');
 const integrityClawback = require('./partnerRewardIntegrityClawbackService');
 const integrityIndexes = require('./partnerRewardIntegrityIndexService');
+const awardLock = require('./partnerRewardAwardLockService');
 
 let installed = false;
 
@@ -177,6 +178,80 @@ async function finaliseAward({
   }
 }
 
+async function awardInsideLock({
+  original,
+  methodName,
+  config,
+  supplierUserId,
+  partner,
+  supplierDecision,
+  evidence,
+  stripeDecision,
+}) {
+  const capDecision = await integrity.canAwardCredit({
+    partnerId: partner.id,
+    supplierUserId,
+    type: config.type,
+    amount: config.amount,
+  });
+  if (
+    await withholdIfInvalid({
+      decision: capDecision,
+      supplierUserId,
+      partnerId: partner.id,
+      rewardType: config.type,
+      logMessage: '[PARTNER-REWARD-INTEGRITY] Reward withheld by earning cap',
+    })
+  ) {
+    return null;
+  }
+
+  const exposureDecision = await advancedIntegrity.exposureDecision({
+    partnerId: partner.id,
+    supplierUserId,
+    type: config.type,
+    amount: config.amount,
+  });
+  if (
+    await withholdIfInvalid({
+      decision: exposureDecision,
+      supplierUserId,
+      partnerId: partner.id,
+      rewardType: config.type,
+      logMessage: '[PARTNER-REWARD-INTEGRITY] Reward withheld by exposure control',
+    })
+  ) {
+    return null;
+  }
+
+  const pendingDecision = await exposureSafety.pendingExposureDecision({
+    partnerId: partner.id,
+    amount: config.amount,
+  });
+  if (
+    await withholdIfInvalid({
+      decision: pendingDecision,
+      supplierUserId,
+      partnerId: partner.id,
+      rewardType: config.type,
+      logMessage: '[PARTNER-REWARD-INTEGRITY] Reward withheld by pending exposure control',
+    })
+  ) {
+    return null;
+  }
+
+  const reward = await original(supplierUserId);
+  return finaliseAward({
+    reward,
+    methodName,
+    partnerId: partner.id,
+    supplierUserId,
+    supplierDecision,
+    baseEvidence: evidence,
+    stripeDecision,
+  });
+}
+
 function installRewardMethodGuards() {
   for (const [methodName, config] of Object.entries(METHOD_CONFIG)) {
     const original = partnerService[methodName];
@@ -252,68 +327,37 @@ function installRewardMethodGuards() {
         return null;
       }
 
-      const capDecision = await integrity.canAwardCredit({
-        partnerId: partner.id,
-        supplierUserId,
-        type: config.type,
-        amount: config.amount,
-      });
-      if (
-        await withholdIfInvalid({
-          decision: capDecision,
-          supplierUserId,
-          partnerId: partner.id,
-          rewardType: config.type,
-          logMessage: '[PARTNER-REWARD-INTEGRITY] Reward withheld by earning cap',
-        })
-      ) {
-        return null;
+      try {
+        return await awardLock.withPartnerAwardLock(partner.id, () =>
+          awardInsideLock({
+            original,
+            methodName,
+            config,
+            supplierUserId,
+            partner,
+            supplierDecision,
+            evidence,
+            stripeDecision,
+          })
+        );
+      } catch (error) {
+        if (error.code === 'PARTNER_REWARD_AWARD_LOCK_TIMEOUT') {
+          await recordDecision({
+            supplierUserId,
+            partnerId: partner.id,
+            rewardType: config.type,
+            decision: { reason: error.code, evidence: {} },
+            eventType: 'reward_deferred',
+          });
+          logger.warn('[PARTNER-REWARD-INTEGRITY] Reward deferred because award lock is busy', {
+            supplierUserId,
+            partnerId: partner.id,
+            rewardType: config.type,
+          });
+          return null;
+        }
+        throw error;
       }
-
-      const exposureDecision = await advancedIntegrity.exposureDecision({
-        partnerId: partner.id,
-        supplierUserId,
-        type: config.type,
-        amount: config.amount,
-      });
-      if (
-        await withholdIfInvalid({
-          decision: exposureDecision,
-          supplierUserId,
-          partnerId: partner.id,
-          rewardType: config.type,
-          logMessage: '[PARTNER-REWARD-INTEGRITY] Reward withheld by exposure control',
-        })
-      ) {
-        return null;
-      }
-
-      const pendingDecision = await exposureSafety.pendingExposureDecision({
-        partnerId: partner.id,
-        amount: config.amount,
-      });
-      if (
-        await withholdIfInvalid({
-          decision: pendingDecision,
-          supplierUserId,
-          partnerId: partner.id,
-          rewardType: config.type,
-          logMessage: '[PARTNER-REWARD-INTEGRITY] Reward withheld by pending exposure control',
-        })
-      ) {
-        return null;
-      }
-
-      const reward = await original(supplierUserId);
-      return finaliseAward({
-        reward,
-        methodName,
-        partnerId: partner.id,
-        supplierUserId,
-        supplierDecision,
-        baseEvidence: evidence,
-        stripeDecision,
-      });
     };
   }
 }
@@ -374,5 +418,6 @@ module.exports = {
     withholdIfInvalid,
     ensureIndexesBestEffort,
     finaliseAward,
+    awardInsideLock,
   },
 };
