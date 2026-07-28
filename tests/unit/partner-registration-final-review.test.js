@@ -48,9 +48,14 @@ jest.mock('../../utils/logger', () => ({ info: jest.fn(), warn: jest.fn(), error
 
 const service = require('../../services/partnerRegistrationRiskService');
 
-function makeReq({ ip = '203.0.113.10', email = 'person@example.com', role = 'supplier' } = {}) {
+function makeReq({
+  ip = '203.0.113.10',
+  email = 'person@example.com',
+  role = 'supplier',
+  ua = 'Mozilla/5.0 Chrome/126',
+} = {}) {
   const headers = {
-    'user-agent': 'Mozilla/5.0 Chrome/126',
+    'user-agent': ua,
     'accept-language': 'en-GB',
     'sec-ch-ua': 'Chromium',
     'sec-ch-ua-platform': 'Windows',
@@ -73,6 +78,8 @@ beforeEach(() => {
   process.env.PARTNER_ABUSE_ENFORCEMENT_MODE = 'enforce';
   delete process.env.PARTNER_ABUSE_IP_REPUTATION_URL;
   delete process.env.PARTNER_ABUSE_OVERRIDE_AUDIT_RETENTION_DAYS;
+  delete process.env.PARTNER_ABUSE_BROWSER_REGISTRATION_MAX;
+  delete process.env.PARTNER_ABUSE_DEVICE_NETWORK_REGISTRATION_MAX;
 });
 
 afterAll(() => {
@@ -181,4 +188,35 @@ test('public email-domain concentration is not used as a velocity signal', async
     role: 'supplier',
   });
   expect(assessment.signalCodes).not.toContain('EMAIL_DOMAIN_VELOCITY');
+});
+
+test('correlated browser and browser-network evidence cannot self-stack into an automatic block', async () => {
+  process.env.PARTNER_ABUSE_BROWSER_REGISTRATION_MAX = '4';
+  process.env.PARTNER_ABUSE_DEVICE_NETWORK_REGISTRATION_MAX = '4';
+
+  for (let index = 1; index <= 4; index += 1) {
+    const email = `office${index}@example.com`;
+    const priorReq = makeReq({ ip: `203.0.113.${index + 10}`, email });
+    const signals = service.extractRequestSignals(priorReq, { email });
+    mockCollections.partner_abuse_events.push({
+      id: `office_${index}`,
+      assessmentId: `office_assessment_${index}`,
+      role: 'supplier',
+      outcome: 'created',
+      createdAt: new Date().toISOString(),
+      ...signals,
+    });
+  }
+
+  const assessment = await service.assessRegistration({
+    req: makeReq({ ip: '203.0.113.99', email: 'office-new@example.net' }),
+    email: 'office-new@example.net',
+    role: 'supplier',
+  });
+
+  expect(assessment.signalCodes).toEqual(
+    expect.arrayContaining(['BROWSER_MULTI_ACCOUNT', 'DEVICE_NETWORK_MULTI_ACCOUNT'])
+  );
+  expect(assessment.score).toBeLessThan(70);
+  expect(assessment.action).toBe('review');
 });
