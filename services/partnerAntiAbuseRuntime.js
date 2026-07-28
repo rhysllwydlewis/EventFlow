@@ -4,6 +4,7 @@ const dbUnified = require('../db-unified');
 const logger = require('../utils/logger');
 const partnerService = require('./partnerService');
 const partnerAntiAbuse = require('./partnerAntiAbuseService');
+const partnerRewardIntegrityRuntime = require('./partnerRewardIntegrityRuntime');
 
 let installed = false;
 
@@ -19,6 +20,10 @@ const RECONCILABLE_REWARDS = [
   {
     type: partnerService.CREDIT_TYPES.FIRST_REVIEW_BONUS,
     method: 'awardFirstReviewBonus',
+  },
+  {
+    type: partnerService.CREDIT_TYPES.SUBSCRIPTION_BONUS,
+    method: 'awardSubscriptionBonus',
   },
 ];
 
@@ -64,9 +69,12 @@ function installBalanceReconciliation() {
 function install() {
   if (installed) return;
   partnerAntiAbuse.installRewardGuards(partnerService);
+  partnerRewardIntegrityRuntime.install();
   installBalanceReconciliation();
   installed = true;
-  logger.info('[PARTNER-ANTI-ABUSE] Reward guards and reconciliation installed');
+  logger.info(
+    '[PARTNER-ANTI-ABUSE] Reward eligibility, integrity guards and reconciliation installed'
+  );
 }
 
 module.exports = {
