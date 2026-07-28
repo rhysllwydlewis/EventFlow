@@ -4,6 +4,7 @@ const dbUnified = require('../db-unified');
 const logger = require('../utils/logger');
 const partnerService = require('./partnerService');
 const integrity = require('./partnerRewardIntegrityService');
+const candidateSelection = require('./partnerRewardCandidateSelectionService');
 const supplierEvidence = require('./partnerRewardSupplierEvidenceService');
 const advancedIntegrity = require('./partnerRewardIntegrityAdvancedService');
 const exposureSafety = require('./partnerRewardExposureSafetyService');
@@ -99,6 +100,7 @@ async function applyRiskMaturity(transaction, partnerId, supplierUserId) {
 
 async function evaluateStripeEvidence(methodName, supplierUserId, baseEvidence) {
   if (methodName !== 'awardSubscriptionBonus') return { eligible: true };
+  if (baseEvidence.stripeDecision) return baseEvidence.stripeDecision;
   return stripeEvidence.subscriptionRewardEvidence(supplierUserId, baseEvidence.invoiceId);
 }
 
@@ -185,9 +187,8 @@ function installRewardMethodGuards() {
       const { referral, partner } = await resolvePartnerContext(supplierUserId);
       if (!referral || !partner) return original(supplierUserId);
 
-      const evidence = await integrity.methodRewardEvidence({
+      const evidence = await candidateSelection.selectRewardEvidence({
         supplierUserId,
-        partnerId: partner.id,
         partnerUserId: partner.userId,
         methodName,
       });
