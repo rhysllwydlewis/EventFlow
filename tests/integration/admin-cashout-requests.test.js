@@ -43,11 +43,11 @@ describe('admin cashout request security', () => {
     const insertPosition = deliveryBlock.indexOf(
       "insertOne('partner_credit_transactions', finalRedeem)"
     );
-    const releasePosition = deliveryBlock.indexOf('releaseCashoutHold');
+    const releasePosition = deliveryBlock.indexOf('releaseCashoutHoldOrThrow');
     expect(insertPosition).toBeGreaterThan(-1);
     expect(releasePosition).toBeGreaterThan(insertPosition);
     expect(deliveryBlock).toContain('CASHOUT_REDEEM_WRITE_FAILED');
-    expect(deliveryBlock).toContain('CASHOUT_HOLD_RELEASE_FAILED');
+    expect(routeContent).toContain("error.code = 'CASHOUT_HOLD_RELEASE_FAILED'");
   });
 
   test('verifies a stored final redemption before trusting its transaction ID', () => {
