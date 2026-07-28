@@ -3,10 +3,12 @@
 const dbUnified = require('../db-unified');
 const logger = require('../utils/logger');
 const partnerService = require('./partnerService');
+const partnerAntiAbuse = require('./partnerAntiAbuseService');
 const baseIntegrity = require('./partnerRewardIntegrityService');
 const supplierEvidence = require('./partnerRewardSupplierEvidenceService');
 const advancedIntegrity = require('./partnerRewardIntegrityAdvancedService');
 const stripeEvidence = require('./partnerRewardStripeEvidenceService');
+const qualificationEvidence = require('./partnerRewardQualificationEvidenceService');
 
 const CLAWBACK_SUBTYPE = 'PARTNER_REWARD_INTEGRITY_CLAWBACK';
 const REVERSAL_MODE_PENDING = 'void_pending';
@@ -122,8 +124,6 @@ async function debitMaturedReward(transaction, reason, rewardAmount) {
     }));
   if (!debit) throw new Error('Partner integrity clawback debit did not persist');
 
-  // Reapply every audit write on retries. This repairs a partial attempt where the
-  // financial debit persisted but one of the later audit markers did not.
   const now = new Date().toISOString();
   const updatedDebit = await dbUnified.updateOne(
     'partner_credit_transactions',
@@ -173,8 +173,6 @@ async function clawBackRewardTransaction(transaction, reason) {
     throw error;
   }
 
-  // A pending reward that has already been voided must never later turn into a debit
-  // simply because time passed before a retry.
   if (transaction.reversedAt && transaction.reversalMode === REVERSAL_MODE_PENDING) {
     return {
       id: null,
@@ -184,9 +182,7 @@ async function clawBackRewardTransaction(transaction, reason) {
     };
   }
 
-  if (!isEffectivelyMature(transaction)) {
-    return voidPendingReward(transaction, reason);
-  }
+  if (!isEffectivelyMature(transaction)) return voidPendingReward(transaction, reason);
   return debitMaturedReward(transaction, reason, rewardAmount);
 }
 
@@ -194,6 +190,80 @@ async function clawBackIfDurablyInvalid(transaction, decision) {
   if (decision.eligible || NON_CLAWBACK_REASONS.has(decision.reason)) return false;
   await clawBackRewardTransaction(transaction, decision.reason);
   return true;
+}
+
+function baseEvidenceFromSnapshot(transaction) {
+  const snapshot = transaction.qualificationEvidence || {};
+  return {
+    eligible: true,
+    packageId: snapshot.packageId || null,
+    reviewId: snapshot.reviewId || null,
+    invoiceId: snapshot.invoiceId || null,
+  };
+}
+
+async function revalidateSnapshotReward(transaction, partner, methodName) {
+  const snapshotDecision = await qualificationEvidence.revalidateSnapshot(
+    transaction,
+    partner.userId
+  );
+  if (snapshotDecision === null) return null;
+
+  // Re-run common account/self-referral checks without asking the legacy guard to
+  // select a different package/review/invoice than the one that actually earned this reward.
+  const commonDecision = await partnerAntiAbuse.supplierRewardEligibility(
+    transaction.supplierUserId,
+    'awardReferralSignupBonus'
+  );
+  if (!commonDecision.eligible) return commonDecision;
+
+  const supplierDecision = await supplierEvidence.methodRewardEvidence({
+    supplierUserId: transaction.supplierUserId,
+    methodName,
+  });
+  if (!supplierDecision.eligible) return supplierDecision;
+  if (!snapshotDecision.eligible) return snapshotDecision;
+
+  return advancedIntegrity.methodRewardEvidence({
+    supplierUserId: transaction.supplierUserId,
+    partnerId: transaction.partnerId,
+    partnerUserId: partner.userId,
+    methodName,
+    baseEvidence: baseEvidenceFromSnapshot(transaction),
+  });
+}
+
+async function revalidateLegacyReward(transaction, partner, methodName) {
+  const baseEvidence = await baseIntegrity.methodRewardEvidence({
+    supplierUserId: transaction.supplierUserId,
+    partnerId: transaction.partnerId,
+    partnerUserId: partner.userId,
+    methodName,
+  });
+  if (!baseEvidence.eligible) return baseEvidence;
+
+  const supplierDecision = await supplierEvidence.methodRewardEvidence({
+    supplierUserId: transaction.supplierUserId,
+    methodName,
+  });
+  if (!supplierDecision.eligible) return supplierDecision;
+
+  const advancedEvidence = await advancedIntegrity.methodRewardEvidence({
+    supplierUserId: transaction.supplierUserId,
+    partnerId: transaction.partnerId,
+    partnerUserId: partner.userId,
+    methodName,
+    baseEvidence,
+  });
+  if (!advancedEvidence.eligible) return advancedEvidence;
+
+  if (methodName === 'awardSubscriptionBonus') {
+    return stripeEvidence.subscriptionRewardEvidence(
+      transaction.supplierUserId,
+      baseEvidence.invoiceId
+    );
+  }
+  return { eligible: true };
 }
 
 async function revalidatePartnerRewards(partnerId) {
@@ -218,45 +288,12 @@ async function revalidatePartnerRewards(partnerId) {
     checked += 1;
     const methodName = METHOD_BY_TYPE[transaction.type];
     try {
-      const baseEvidence = await baseIntegrity.methodRewardEvidence({
-        supplierUserId: transaction.supplierUserId,
-        partnerId,
-        partnerUserId: partner.userId,
-        methodName,
-      });
-      if (!baseEvidence.eligible) {
-        if (await clawBackIfDurablyInvalid(transaction, baseEvidence)) clawedBack += 1;
-        continue;
-      }
-
-      const supplierDecision = await supplierEvidence.methodRewardEvidence({
-        supplierUserId: transaction.supplierUserId,
-        methodName,
-      });
-      if (!supplierDecision.eligible) {
-        if (await clawBackIfDurablyInvalid(transaction, supplierDecision)) clawedBack += 1;
-        continue;
-      }
-
-      const advancedEvidence = await advancedIntegrity.methodRewardEvidence({
-        supplierUserId: transaction.supplierUserId,
-        partnerId,
-        partnerUserId: partner.userId,
-        methodName,
-        baseEvidence,
-      });
-      if (!advancedEvidence.eligible) {
-        if (await clawBackIfDurablyInvalid(transaction, advancedEvidence)) clawedBack += 1;
-        continue;
-      }
-
-      if (methodName === 'awardSubscriptionBonus') {
-        const paymentDecision = await stripeEvidence.subscriptionRewardEvidence(
-          transaction.supplierUserId,
-          baseEvidence.invoiceId
-        );
-        if (await clawBackIfDurablyInvalid(transaction, paymentDecision)) clawedBack += 1;
-      }
+      const snapshotDecision = await revalidateSnapshotReward(transaction, partner, methodName);
+      const decision =
+        snapshotDecision === null
+          ? await revalidateLegacyReward(transaction, partner, methodName)
+          : snapshotDecision;
+      if (await clawBackIfDurablyInvalid(transaction, decision)) clawedBack += 1;
     } catch (error) {
       logger.error('[PARTNER-REWARD-INTEGRITY] Reward revalidation failed', {
         partnerId,
@@ -286,5 +323,8 @@ module.exports = {
     clawBackIfDurablyInvalid,
     voidPendingReward,
     debitMaturedReward,
+    baseEvidenceFromSnapshot,
+    revalidateSnapshotReward,
+    revalidateLegacyReward,
   },
 };
