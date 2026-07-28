@@ -1,0 +1,51 @@
+name: Partner Diagnostics
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+env:
+  HUSKY: '0'
+
+jobs:
+  smoke-diagnostics:
+    name: Capture partner smoke failure
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.node-version'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit
+
+      - name: Capture smoke output
+        shell: bash
+        run: |
+          set +e
+          npm run test:smoke > smoke.log 2>&1
+          code=$?
+          printf '%s\n' "$code" > smoke-exit-code.txt
+          tail -n 400 smoke.log
+          exit 0
+        env:
+          NODE_ENV: test
+          JWT_SECRET: test-secret-for-jest-min-32-characters-long
+
+      - name: Upload smoke diagnostics
+        uses: actions/upload-artifact@v4
+        with:
+          name: partner-smoke-diagnostics
+          path: |
+            smoke.log
+            smoke-exit-code.txt
+          if-no-files-found: error
