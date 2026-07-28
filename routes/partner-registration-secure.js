@@ -3,6 +3,7 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const validator = require('validator');
+const { verifySolution } = require('altcha-lib');
 
 const logger = require('../utils/logger');
 const dbUnified = require('../db-unified');
@@ -33,36 +34,44 @@ const partnerRegistrationRiskGuard = registrationRisk.registrationRiskGuard({
   roleResolver: () => 'partner',
 });
 
-async function partnerCaptchaGuard(req, res, next) {
-  if (!_verifyAltcha) {
+async function verifyPartnerCaptcha(payload) {
+  if (_verifyAltcha) return _verifyAltcha(payload);
+
+  const hmacKey = process.env.ALTCHA_HMAC_KEY;
+  if (!hmacKey) {
     if (process.env.NODE_ENV === 'production') {
-      logger.error('[PARTNER-REGISTER] CAPTCHA verifier is unavailable in production');
-      return res.status(503).json({
-        error: 'Registration verification is temporarily unavailable. Please try again later.',
-        code: 'CAPTCHA_VERIFIER_UNAVAILABLE',
-      });
+      return { success: false, unavailable: true, error: 'CAPTCHA verification not configured' };
     }
-    return next();
+    return { success: true, warning: 'Captcha verification disabled outside production' };
   }
+  if (!payload) return { success: false, error: 'No ALTCHA payload provided' };
 
   try {
-    const captchaResult = await _verifyAltcha(req.body?.captchaToken);
-    if (!captchaResult?.success) {
-      return res.status(400).json({
-        error: captchaResult?.error || 'CAPTCHA verification failed',
-        code: 'CAPTCHA_VERIFICATION_FAILED',
-      });
-    }
-    return next();
+    const valid = await verifySolution(payload, hmacKey);
+    return valid
+      ? { success: true }
+      : { success: false, error: 'ALTCHA verification failed' };
   } catch (error) {
-    logger.error('[PARTNER-REGISTER] CAPTCHA verification failed unexpectedly', {
-      error: error.message,
-    });
+    logger.error('[PARTNER-REGISTER] ALTCHA verification error', { error: error.message });
+    return { success: false, unavailable: true, error: 'Captcha verification error' };
+  }
+}
+
+async function partnerCaptchaGuard(req, res, next) {
+  const captchaResult = await verifyPartnerCaptcha(req.body?.captchaToken);
+  if (captchaResult.success) return next();
+
+  if (captchaResult.unavailable) {
     return res.status(503).json({
       error: 'Registration verification is temporarily unavailable. Please try again later.',
-      code: 'CAPTCHA_VERIFICATION_UNAVAILABLE',
+      code: 'CAPTCHA_VERIFIER_UNAVAILABLE',
     });
   }
+
+  return res.status(400).json({
+    error: captchaResult.error || 'CAPTCHA verification failed',
+    code: 'CAPTCHA_VERIFICATION_FAILED',
+  });
 }
 
 router.post(
