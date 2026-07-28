@@ -1,0 +1,37 @@
+name: Agent Source Snapshot
+
+on:
+  push:
+    branches:
+      - agent/partner-abuse-identity-risk
+    paths:
+      - '.github/workflows/agent-source-snapshot.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  HUSKY: '0'
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create source archive
+        run: |
+          git archive --format=tar.gz --output=eventflow-source.tar.gz HEAD
+
+      - name: Upload source archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: eventflow-source
+          path: eventflow-source.tar.gz
+          if-no-files-found: error
+          retention-days: 1
