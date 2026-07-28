@@ -24,21 +24,26 @@ function loadRuntime({ existingTransactions = [], rewardFailure = null } = {}) {
       REFERRAL_SIGNUP_BONUS: 'REFERRAL_SIGNUP_BONUS',
       PACKAGE_BONUS: 'PACKAGE_BONUS',
       FIRST_REVIEW_BONUS: 'FIRST_REVIEW_BONUS',
+      SUBSCRIPTION_BONUS: 'SUBSCRIPTION_BONUS',
     },
     awardReferralSignupBonus: awardSignup,
     awardPackageBonus: jest.fn(async () => null),
     awardFirstReviewBonus: jest.fn(async () => null),
-    awardSubscriptionBonus: jest.fn(),
+    awardSubscriptionBonus: jest.fn(async () => null),
     getBalance: jest.fn(async partnerId => ({ partnerId, availableBalance: 100 })),
   };
   const mockAntiAbuse = {
     installRewardGuards: jest.fn(service => service),
+  };
+  const mockRewardIntegrityRuntime = {
+    install: jest.fn(),
   };
   const mockLogger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
 
   jest.doMock('../../db-unified', () => mockDb);
   jest.doMock('../../services/partnerService', () => mockPartnerService);
   jest.doMock('../../services/partnerAntiAbuseService', () => mockAntiAbuse);
+  jest.doMock('../../services/partnerRewardIntegrityRuntime', () => mockRewardIntegrityRuntime);
   jest.doMock('../../utils/logger', () => mockLogger);
 
   const runtime = require('../../services/partnerAntiAbuseRuntime');
@@ -47,6 +52,7 @@ function loadRuntime({ existingTransactions = [], rewardFailure = null } = {}) {
     mockDb,
     mockPartnerService,
     mockAntiAbuse,
+    mockRewardIntegrityRuntime,
     mockLogger,
   };
 }
@@ -57,17 +63,19 @@ describe('partner anti-abuse reward runtime', () => {
     jest.clearAllMocks();
   });
 
-  test('installs reward guards once and reconciles safe deferred rewards before balance reads', async () => {
-    const { runtime, mockPartnerService, mockAntiAbuse } = loadRuntime();
+  test('installs both reward guard layers once and reconciles safe deferred rewards before balance reads', async () => {
+    const { runtime, mockPartnerService, mockAntiAbuse, mockRewardIntegrityRuntime } = loadRuntime();
     runtime.install();
     runtime.install();
 
     const balance = await mockPartnerService.getBalance('prt_1');
 
     expect(mockAntiAbuse.installRewardGuards).toHaveBeenCalledTimes(1);
+    expect(mockRewardIntegrityRuntime.install).toHaveBeenCalledTimes(1);
     expect(mockPartnerService.awardReferralSignupBonus).toHaveBeenCalledTimes(2);
     expect(mockPartnerService.awardPackageBonus).toHaveBeenCalledTimes(2);
     expect(mockPartnerService.awardFirstReviewBonus).toHaveBeenCalledTimes(2);
+    expect(mockPartnerService.awardSubscriptionBonus).toHaveBeenCalledTimes(2);
     expect(balance).toEqual({ partnerId: 'prt_1', availableBalance: 100 });
   });
 
@@ -86,6 +94,12 @@ describe('partner anti-abuse reward runtime', () => {
           type: 'PACKAGE_BONUS',
           amount: 10,
         },
+        {
+          partnerId: 'prt_1',
+          supplierUserId: 'usr_supplier_1',
+          type: 'SUBSCRIPTION_BONUS',
+          amount: 100,
+        },
       ],
     });
     runtime.install();
@@ -94,6 +108,7 @@ describe('partner anti-abuse reward runtime', () => {
 
     expect(mockPartnerService.awardReferralSignupBonus).not.toHaveBeenCalledWith('usr_supplier_1');
     expect(mockPartnerService.awardPackageBonus).not.toHaveBeenCalledWith('usr_supplier_1');
+    expect(mockPartnerService.awardSubscriptionBonus).not.toHaveBeenCalledWith('usr_supplier_1');
     expect(mockPartnerService.awardFirstReviewBonus).toHaveBeenCalledWith('usr_supplier_1');
     expect(mockPartnerService.awardReferralSignupBonus).toHaveBeenCalledWith('usr_supplier_2');
   });
