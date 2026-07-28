@@ -38,7 +38,7 @@ describe('admin cashout request security', () => {
   });
 
   test('persists the permanent redemption before releasing its temporary hold', () => {
-    const deliveryStart = routeContent.indexOf("if (status === 'delivered') {", 7000);
+    const deliveryStart = routeContent.lastIndexOf("if (status === 'delivered') {");
     const deliveryBlock = routeContent.slice(deliveryStart);
     const insertPosition = deliveryBlock.indexOf(
       "insertOne('partner_credit_transactions', finalRedeem)"
