@@ -24,16 +24,13 @@ const partnerAntiAbuse = require('../services/partnerAntiAbuseService');
 
 const router = express.Router();
 
-// All routes require admin authentication
 router.use(authRequired, roleRequired('admin'));
 
-/** Allowed status transitions */
 const VALID_STATUSES = ['submitted', 'approved', 'rejected', 'processing', 'delivered'];
 const VALID_TRANSITIONS = {
   submitted: ['approved', 'rejected'],
   approved: ['processing', 'rejected'],
   processing: ['delivered', 'rejected'],
-  // terminal states cannot be changed
   rejected: [],
   delivered: [],
 };
@@ -43,6 +40,19 @@ function hasDeliveryEvidence(deliveryDetails) {
   return [deliveryDetails.code, deliveryDetails.reference, deliveryDetails.last4].some(value =>
     Boolean(String(value || '').trim())
   );
+}
+
+async function persistRiskFields(requestId, riskFields) {
+  const persisted = await dbUnified.updateOne(
+    'partner_cashout_requests',
+    { id: requestId },
+    { $set: riskFields }
+  );
+  if (!persisted) {
+    const error = new Error('Cashout fraud risk fields did not persist.');
+    error.code = 'PARTNER_CASHOUT_RISK_WRITE_FAILED';
+    throw error;
+  }
 }
 
 async function assessApproval(request, adminInternalNotes, now) {
@@ -61,11 +71,7 @@ async function assessApproval(request, adminInternalNotes, now) {
   };
 
   if (assessment.blockApproval) {
-    await dbUnified.updateOne(
-      'partner_cashout_requests',
-      { id: request.id },
-      { $set: riskFields }
-    );
+    await persistRiskFields(request.id, riskFields);
     const error = new Error(
       'High-risk partner cashout blocked. Reject the request or resolve the underlying fraud signals.'
     );
@@ -77,11 +83,7 @@ async function assessApproval(request, adminInternalNotes, now) {
 
   const reviewNote = String(adminInternalNotes ?? request.adminInternalNotes ?? '').trim();
   if (assessment.requiresManualReview && reviewNote.length < 20) {
-    await dbUnified.updateOne(
-      'partner_cashout_requests',
-      { id: request.id },
-      { $set: riskFields }
-    );
+    await persistRiskFields(request.id, riskFields);
     const error = new Error(
       'This cashout requires manual review. Add an internal review note of at least 20 characters before approval.'
     );
@@ -94,18 +96,10 @@ async function assessApproval(request, adminInternalNotes, now) {
   return { ...riskFields, fraudReviewedAt: now };
 }
 
-// ─── List Cashout Requests ────────────────────────────────────────────────────
-
-/**
- * GET /api/admin/cashout-requests
- * List all partner cashout requests.
- * Query params: status, partnerId, limit (max 200)
- */
 router.get('/', async (req, res) => {
   try {
     const { status, partnerId, limit } = req.query;
     const maxLimit = Math.min(parseInt(limit, 10) || 100, 200);
-
     let requests = (await dbUnified.read('partner_cashout_requests')) || [];
 
     if (status) {
@@ -114,138 +108,131 @@ router.get('/', async (req, res) => {
           .status(400)
           .json({ error: `status must be one of: ${VALID_STATUSES.join(', ')}` });
       }
-      requests = requests.filter(r => r.status === status);
+      requests = requests.filter(item => item.status === status);
     }
-    if (partnerId) {
-      requests = requests.filter(r => r.partnerId === partnerId);
-    }
+    if (partnerId) requests = requests.filter(item => item.partnerId === partnerId);
 
     requests.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     requests = requests.slice(0, maxLimit);
 
-    // Enrich with partner user info
-    const users = await dbUnified.read('users');
-    const partners = await dbUnified.read('partners');
-
-    const enriched = requests.map(r => {
-      const partner = partners.find(p => p.id === r.partnerId);
-      const user = users.find(u => u.id === r.partnerUserId);
+    const [users, partners] = await Promise.all([
+      dbUnified.read('users'),
+      dbUnified.read('partners'),
+    ]);
+    const enriched = requests.map(item => {
+      const partner = partners.find(candidate => candidate.id === item.partnerId);
+      const user = users.find(candidate => candidate.id === item.partnerUserId);
       return {
-        ...r,
+        ...item,
         partnerRefCode: partner ? partner.refCode : null,
         partnerUser: user ? { name: user.name, email: user.email, company: user.company } : null,
         deletedUser: !user,
         fraudSummary: {
-          riskLevel: r.fraudRiskLevel || 'not_assessed',
-          riskScore: r.fraudRiskScore ?? null,
-          reviewRequired: r.fraudReviewRequired === true,
-          reviewedAt: r.fraudReviewedAt || null,
+          riskLevel: item.fraudRiskLevel || 'not_assessed',
+          riskScore: item.fraudRiskScore ?? null,
+          reviewRequired: item.fraudReviewRequired === true,
+          reviewedAt: item.fraudReviewedAt || null,
         },
       };
     });
 
     return res.json({ items: enriched, total: enriched.length });
-  } catch (err) {
-    logger.error('Error listing cashout requests:', err);
+  } catch (error) {
+    logger.error('Error listing cashout requests:', error);
     return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-// ─── Get Cashout Request Detail ───────────────────────────────────────────────
-
-/**
- * GET /api/admin/cashout-requests/:id
- * Get full detail of a single cashout request.
- */
 router.get('/:id', async (req, res) => {
   try {
-    const all = (await dbUnified.read('partner_cashout_requests')) || [];
-    const request = all.find(r => r.id === req.params.id);
-    if (!request) {
+    const requests = (await dbUnified.read('partner_cashout_requests')) || [];
+    const cashoutRequest = requests.find(item => item.id === req.params.id);
+    if (!cashoutRequest) {
       return res.status(404).json({ error: 'Cashout request not found' });
     }
 
-    const [users, partners, txns, fraudAssessment] = await Promise.all([
+    const [users, partners, transactions, fraudAssessment] = await Promise.all([
       dbUnified.read('users'),
       dbUnified.read('partners'),
       dbUnified.read('partner_credit_transactions'),
-      dbUnified.findOne('partner_fraud_assessments', { requestId: request.id }),
+      dbUnified.findOne('partner_fraud_assessments', { requestId: cashoutRequest.id }),
     ]);
-    const partner = partners.find(p => p.id === request.partnerId);
-    const user = users.find(u => u.id === request.partnerUserId);
-
-    // Also retrieve hold and redeem transaction details for audit
-    const holdTxn = request.holdTxnId ? txns.find(t => t.id === request.holdTxnId) : null;
-    const redeemTxn = request.finalRedeemTxnId
-      ? txns.find(t => t.id === request.finalRedeemTxnId)
+    const partner = partners.find(item => item.id === cashoutRequest.partnerId);
+    const user = users.find(item => item.id === cashoutRequest.partnerUserId);
+    const holdTransaction = cashoutRequest.holdTxnId
+      ? transactions.find(item => item.id === cashoutRequest.holdTxnId)
+      : null;
+    const redeemTransaction = cashoutRequest.finalRedeemTxnId
+      ? transactions.find(item => item.id === cashoutRequest.finalRedeemTxnId)
       : null;
 
     return res.json({
       request: {
-        ...request,
+        ...cashoutRequest,
         partnerRefCode: partner ? partner.refCode : null,
         partnerUser: user ? { name: user.name, email: user.email, company: user.company } : null,
       },
-      holdTransaction: holdTxn || null,
-      redeemTransaction: redeemTxn || null,
+      holdTransaction: holdTransaction || null,
+      redeemTransaction: redeemTransaction || null,
       fraudAssessment: fraudAssessment || null,
     });
-  } catch (err) {
-    logger.error('Error fetching cashout request:', err);
+  } catch (error) {
+    logger.error('Error fetching cashout request:', error);
     return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-// ─── Update Cashout Request ───────────────────────────────────────────────────
-
-/**
- * PATCH /api/admin/cashout-requests/:id
- * Update a cashout request status and/or add admin notes.
- *
- * Body:
- *   status              – new status (must be a valid transition)
- *   adminResponseMessage – optional message visible to partner
- *   adminInternalNotes  – optional internal notes (not shown to partner)
- *   deliveryDetails     – optional { code, reference, last4, ... } (required when status=delivered)
- */
 router.patch('/:id', csrfProtection, async (req, res) => {
   try {
     const { status, adminResponseMessage, adminInternalNotes, deliveryDetails } = req.body || {};
-
-    const all = (await dbUnified.read('partner_cashout_requests')) || [];
-    const request = all.find(r => r.id === req.params.id);
-    if (!request) {
+    const requests = (await dbUnified.read('partner_cashout_requests')) || [];
+    const cashoutRequest = requests.find(item => item.id === req.params.id);
+    if (!cashoutRequest) {
       return res.status(404).json({ error: 'Cashout request not found' });
     }
 
     const now = new Date().toISOString();
     const updates = { updatedAt: now };
 
-    // Status transition
     if (status !== undefined) {
       if (!VALID_STATUSES.includes(status)) {
         return res
           .status(400)
           .json({ error: `status must be one of: ${VALID_STATUSES.join(', ')}` });
       }
-      const allowed = VALID_TRANSITIONS[request.status] || [];
+      const allowed = VALID_TRANSITIONS[cashoutRequest.status] || [];
       if (!allowed.includes(status)) {
         return res.status(400).json({
-          error: `Cannot transition from '${request.status}' to '${status}'. Allowed: ${allowed.length ? allowed.join(', ') : 'none (terminal state)'}`,
+          error: `Cannot transition from '${cashoutRequest.status}' to '${status}'. Allowed: ${allowed.length ? allowed.join(', ') : 'none (terminal state)'}`,
         });
       }
-      if (status === 'delivered' && !hasDeliveryEvidence(deliveryDetails)) {
-        return res.status(400).json({
-          error: 'Delivery evidence is required before a cashout can be marked delivered.',
-          code: 'CASHOUT_DELIVERY_EVIDENCE_REQUIRED',
-        });
+
+      if (status === 'delivered') {
+        if (!hasDeliveryEvidence(deliveryDetails)) {
+          return res.status(400).json({
+            error: 'Delivery evidence is required before a cashout can be marked delivered.',
+            code: 'CASHOUT_DELIVERY_EVIDENCE_REQUIRED',
+          });
+        }
+        if (!cashoutRequest.holdTxnId) {
+          return res.status(409).json({
+            error: 'The cashout has no active points hold and cannot be delivered safely.',
+            code: 'CASHOUT_HOLD_MISSING',
+          });
+        }
+        if (!Number.isFinite(Number(cashoutRequest.pointsHeld)) || Number(cashoutRequest.pointsHeld) <= 0) {
+          return res.status(409).json({
+            error: 'The cashout held-points value is invalid.',
+            code: 'CASHOUT_POINTS_INVALID',
+          });
+        }
       }
 
       updates.status = status;
       updates.adminUserIdApproved = req.user.id;
 
       if (status === 'approved') {
-        Object.assign(updates, await assessApproval(request, adminInternalNotes, now));
+        Object.assign(updates, await assessApproval(cashoutRequest, adminInternalNotes, now));
         updates.approvedAt = now;
       } else if (status === 'rejected') {
         updates.rejectedAt = now;
@@ -256,69 +243,70 @@ router.patch('/:id', csrfProtection, async (req, res) => {
         updates.deliveryDetails = deliveryDetails;
       }
 
-      // Side-effects for terminal transitions
-      if (status === 'rejected') {
-        // Release held points back to partner
-        if (request.holdTxnId) {
-          const releaseResult = await partnerService.releaseCashoutHold(
-            request.holdTxnId,
-            request.partnerId
+      if (status === 'rejected' && cashoutRequest.holdTxnId) {
+        const releaseResult = await partnerService.releaseCashoutHold(
+          cashoutRequest.holdTxnId,
+          cashoutRequest.partnerId
+        );
+        if (releaseResult) {
+          logger.info(
+            `Points released for rejected cashout ${cashoutRequest.id}: holdTxn=${cashoutRequest.holdTxnId}`
           );
-          if (releaseResult) {
-            logger.info(
-              `Points released for rejected cashout ${request.id}: holdTxn=${request.holdTxnId}`
-            );
-          }
         }
-      } else if (status === 'delivered') {
-        // Finalise the permanent debit before releasing the temporary hold. A retry can
-        // then recover an interrupted delivery without briefly restoring spendable points.
-        if (request.finalRedeemTxnId) {
-          updates.finalRedeemTxnId = request.finalRedeemTxnId;
-        } else {
-          const allTxns = (await dbUnified.read('partner_credit_transactions')) || [];
-          const existingRedeem = allTxns.find(
-            t =>
-              t.type === partnerService.CREDIT_TYPES.REDEEM &&
-              t.partnerId === request.partnerId &&
-              t.externalRef === request.id
+      }
+
+      if (status === 'delivered') {
+        const transactions = (await dbUnified.read('partner_credit_transactions')) || [];
+        let existingRedeem = null;
+
+        if (cashoutRequest.finalRedeemTxnId) {
+          existingRedeem = transactions.find(
+            transaction =>
+              transaction.id === cashoutRequest.finalRedeemTxnId &&
+              transaction.type === partnerService.CREDIT_TYPES.REDEEM &&
+              transaction.partnerId === cashoutRequest.partnerId &&
+              transaction.externalRef === cashoutRequest.id
           );
-          if (existingRedeem) {
-            updates.finalRedeemTxnId = existingRedeem.id;
-          } else {
-            const finalRedeem = {
-              id: uid('ptx'),
-              partnerId: request.partnerId,
-              supplierUserId: null,
-              type: partnerService.CREDIT_TYPES.REDEEM,
-              amount: -Math.abs(request.pointsHeld),
-              notes: `Cashout delivered: £${request.denominationGbp} via ${request.method} (request ${request.id})`,
-              externalRef: request.id,
-              createdAt: now,
-            };
-            const cashoutTxInserted = await dbUnified.insertOne(
-              'partner_credit_transactions',
-              finalRedeem
-            );
-            if (!cashoutTxInserted) {
-              const error = new Error('Failed to persist the final cashout redemption.');
-              error.code = 'CASHOUT_REDEEM_WRITE_FAILED';
-              throw error;
-            }
-            updates.finalRedeemTxnId = finalRedeem.id;
-          }
+        }
+        if (!existingRedeem) {
+          existingRedeem = transactions.find(
+            transaction =>
+              transaction.type === partnerService.CREDIT_TYPES.REDEEM &&
+              transaction.partnerId === cashoutRequest.partnerId &&
+              transaction.externalRef === cashoutRequest.id
+          );
         }
 
-        if (request.holdTxnId) {
-          const releaseResult = await partnerService.releaseCashoutHold(
-            request.holdTxnId,
-            request.partnerId
-          );
-          if (!releaseResult) {
-            const error = new Error('Failed to release the cashout hold after redemption.');
-            error.code = 'CASHOUT_HOLD_RELEASE_FAILED';
+        if (existingRedeem) {
+          updates.finalRedeemTxnId = existingRedeem.id;
+        } else {
+          const finalRedeem = {
+            id: uid('ptx'),
+            partnerId: cashoutRequest.partnerId,
+            supplierUserId: null,
+            type: partnerService.CREDIT_TYPES.REDEEM,
+            amount: -Math.abs(Number(cashoutRequest.pointsHeld)),
+            notes: `Cashout delivered: £${cashoutRequest.denominationGbp} via ${cashoutRequest.method} (request ${cashoutRequest.id})`,
+            externalRef: cashoutRequest.id,
+            createdAt: now,
+          };
+          const inserted = await dbUnified.insertOne('partner_credit_transactions', finalRedeem);
+          if (!inserted) {
+            const error = new Error('Failed to persist the final cashout redemption.');
+            error.code = 'CASHOUT_REDEEM_WRITE_FAILED';
             throw error;
           }
+          updates.finalRedeemTxnId = finalRedeem.id;
+        }
+
+        const releaseResult = await partnerService.releaseCashoutHold(
+          cashoutRequest.holdTxnId,
+          cashoutRequest.partnerId
+        );
+        if (!releaseResult) {
+          const error = new Error('Failed to release the cashout hold after redemption.');
+          error.code = 'CASHOUT_HOLD_RELEASE_FAILED';
+          throw error;
         }
       }
     }
@@ -342,39 +330,30 @@ router.patch('/:id', csrfProtection, async (req, res) => {
     logger.info(
       `Admin ${req.user.id} updated cashout request ${req.params.id}: ${JSON.stringify(updates)}`
     );
-
-    const updated = { ...request, ...updates };
-    return res.json({ ok: true, request: updated });
-  } catch (err) {
-    logger.error('Error updating cashout request:', err);
-    const statusCode = Number(err.statusCode) || 500;
+    return res.json({ ok: true, request: { ...cashoutRequest, ...updates } });
+  } catch (error) {
+    logger.error('Error updating cashout request:', error);
+    const statusCode = Number(error.statusCode) || 500;
     return res.status(statusCode).json({
-      error: statusCode < 500 ? err.message : 'Internal server error',
-      code: err.code || 'CASHOUT_UPDATE_FAILED',
-      assessment: err.assessment || undefined,
+      error: statusCode < 500 ? error.message : 'Internal server error',
+      code: error.code || 'CASHOUT_UPDATE_FAILED',
+      assessment: error.assessment || undefined,
     });
   }
 });
 
-// ─── Delete Cashout Request ───────────────────────────────────────────────────
-
-/**
- * DELETE /api/admin/cashout-requests/:id
- * Permanently delete a cashout request record.
- * Only allowed for requests in terminal states (rejected or delivered).
- */
 router.delete('/:id', csrfProtection, async (req, res) => {
   try {
-    const all = (await dbUnified.read('partner_cashout_requests')) || [];
-    const request = all.find(r => r.id === req.params.id);
-    if (!request) {
+    const requests = (await dbUnified.read('partner_cashout_requests')) || [];
+    const cashoutRequest = requests.find(item => item.id === req.params.id);
+    if (!cashoutRequest) {
       return res.status(404).json({ error: 'Cashout request not found' });
     }
 
     const TERMINAL_STATES = ['rejected', 'delivered'];
-    if (!TERMINAL_STATES.includes(request.status)) {
+    if (!TERMINAL_STATES.includes(cashoutRequest.status)) {
       return res.status(409).json({
-        error: `Cannot delete a cashout request in "${request.status}" state. Only rejected or delivered requests can be deleted.`,
+        error: `Cannot delete a cashout request in "${cashoutRequest.status}" state. Only rejected or delivered requests can be deleted.`,
       });
     }
 
@@ -384,12 +363,11 @@ router.delete('/:id', csrfProtection, async (req, res) => {
     }
 
     logger.info(
-      `Admin ${req.user.id} deleted cashout request ${req.params.id} (status: ${request.status})`
+      `Admin ${req.user.id} deleted cashout request ${req.params.id} (status: ${cashoutRequest.status})`
     );
-
     return res.json({ ok: true });
-  } catch (err) {
-    logger.error('Error deleting cashout request:', err);
+  } catch (error) {
+    logger.error('Error deleting cashout request:', error);
     return res.status(500).json({ error: 'Internal server error' });
   }
 });
