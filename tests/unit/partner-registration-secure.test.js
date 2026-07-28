@@ -7,7 +7,10 @@ const mockUsers = [];
 const mockDb = {
   findOne: jest.fn(async (collection, query) => {
     if (collection !== 'users') return null;
-    return mockUsers.find(user => Object.entries(query).every(([key, value]) => user[key] === value)) || null;
+    return (
+      mockUsers.find(user => Object.entries(query).every(([key, value]) => user[key] === value)) ||
+      null
+    );
   }),
   insertOne: jest.fn(async (collection, record) => {
     if (collection === 'users') mockUsers.push(record);
@@ -20,8 +23,16 @@ const mockDb = {
     return mockUsers.splice(index, 1)[0];
   }),
 };
-const mockCreatePartner = jest.fn(async userId => ({ id: 'prt_1', userId, refCode: 'P_TEST', status: 'active' }));
-const mockSendVerificationEmail = jest.fn(async () => ({ provider: 'postmark', MessageID: 'msg_1' }));
+const mockCreatePartner = jest.fn(async userId => ({
+  id: 'prt_1',
+  userId,
+  refCode: 'P_TEST',
+  status: 'active',
+}));
+const mockSendVerificationEmail = jest.fn(async () => ({
+  provider: 'postmark',
+  MessageID: 'msg_1',
+}));
 const mockSendMail = jest.fn(async () => ({ ok: true }));
 const mockCompleteRegistrationRisk = jest.fn(async () => ({ id: 'event_1' }));
 const mockRegistrationRiskGuard = jest.fn(() => (req, _res, next) => {
@@ -40,7 +51,9 @@ const mockRegistrationRiskGuard = jest.fn(() => (req, _res, next) => {
 jest.mock('../../db-unified', () => mockDb);
 jest.mock('../../store', () => ({ uid: jest.fn(() => 'usr_partner_1') }));
 jest.mock('../../middleware/csrf', () => ({ csrfProtection: (_req, _res, next) => next() }));
-jest.mock('../../middleware/rateLimits', () => ({ registrationLimiter: (_req, _res, next) => next() }));
+jest.mock('../../middleware/rateLimits', () => ({
+  registrationLimiter: (_req, _res, next) => next(),
+}));
 jest.mock('../../middleware/validation', () => ({ passwordOk: jest.fn(() => true) }));
 jest.mock('../../services/partnerService', () => ({ createPartner: mockCreatePartner }));
 jest.mock('../../services/partnerRegistrationRiskService', () => ({
@@ -59,7 +72,9 @@ jest.mock('../../utils/postmark', () => ({
   sendVerificationEmail: mockSendVerificationEmail,
   sendMail: mockSendMail,
 }));
-jest.mock('../../services/notifyAdmins.service', () => ({ notifyAdmins: jest.fn(async () => undefined) }));
+jest.mock('../../services/notifyAdmins.service', () => ({
+  notifyAdmins: jest.fn(async () => undefined),
+}));
 jest.mock('../../utils/logger', () => ({ info: jest.fn(), warn: jest.fn(), error: jest.fn() }));
 jest.mock('bcryptjs', () => ({ hash: jest.fn(async () => 'hashed-password') }));
 

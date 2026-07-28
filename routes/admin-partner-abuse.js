@@ -53,7 +53,9 @@ router.patch('/appeals/:id', csrfProtection, async (req, res) => {
     const note = String(req.body?.internalNote || '').trim();
     if (!allowed.has(status)) return res.status(400).json({ error: 'Invalid appeal status.' });
     if (status !== 'open' && note.length < 20) {
-      return res.status(400).json({ error: 'A resolution note of at least 20 characters is required.' });
+      return res
+        .status(400)
+        .json({ error: 'A resolution note of at least 20 characters is required.' });
     }
     const now = new Date().toISOString();
     const updated = await dbUnified.updateOne(
@@ -90,7 +92,9 @@ router.get('/overrides', async (_req, res) => {
 
 router.post('/overrides', csrfProtection, async (req, res) => {
   try {
-    const email = String(req.body?.email || '').trim().toLowerCase();
+    const email = String(req.body?.email || '')
+      .trim()
+      .toLowerCase();
     const reason = String(req.body?.reason || '').trim();
     if (!validator.isEmail(email)) return res.status(400).json({ error: 'Valid email required.' });
     if (reason.length < 20) {

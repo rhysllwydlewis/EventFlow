@@ -36,9 +36,13 @@ const { validateToken } = require('../middleware/token');
 const domainAdmin = require('../middleware/domain-admin');
 const googleAuthService = require('../services/googleAuth.service');
 const userProvenance = require('../services/userProvenance.service');
+const partnerRegistrationRisk = require('../services/partnerRegistrationRiskService');
 const { ensureSupplierProfileForUser } = require('../services/supplierProfileProvisioning.service');
 
 const router = express.Router();
+const supplierRegistrationRiskGuard = partnerRegistrationRisk.registrationRiskGuard({
+  roleResolver: req => (req.body?.role === 'supplier' ? 'supplier' : null),
+});
 
 // This will be set by the main server.js when mounting these routes (legacy compatibility)
 // eslint-disable-next-line no-unused-vars
@@ -226,6 +230,7 @@ router.post(
   featureRequired('registration'),
   csrfProtection, // CSRF guard — was missing from registration unlike all other auth POSTs
   registrationLimiter, // Tighter than authLimiter: each attempt triggers bcrypt + email send
+  supplierRegistrationRiskGuard,
   async (req, res) => {
     const {
       firstName,
@@ -434,6 +439,22 @@ router.post(
       return res.status(500).json({
         error: 'Failed to create account. Please try again.',
       });
+    }
+
+    if (user.role === 'supplier' && req.partnerRegistrationRisk) {
+      try {
+        await partnerRegistrationRisk.completeRegistrationRisk(req, user.id);
+      } catch (riskError) {
+        logger.error('[REGISTER] supplier registration risk metadata failed; rolling back user', {
+          userId: user.id,
+          error: riskError.message,
+        });
+        await dbUnified.deleteOne('users', { id: user.id });
+        return res.status(503).json({
+          error: 'Registration could not be completed safely. Please try again.',
+          code: 'REGISTRATION_RISK_UNAVAILABLE',
+        });
+      }
     }
 
     if (user.role === 'supplier') {
@@ -864,6 +885,45 @@ router.post('/google', strictAuthLimiter, csrfProtection, async (req, res) => {
         }
       }
 
+      if (roleFinal === 'supplier') {
+        try {
+          const googleRisk = await partnerRegistrationRisk.assessRegistration({
+            req,
+            email,
+            role: 'supplier',
+            refCode,
+          });
+          req.partnerRegistrationRisk = googleRisk;
+          req.partnerRegistrationRiskFinalized = false;
+          if (googleRisk.action === 'block') {
+            req.partnerRegistrationRiskFinalized = true;
+            await partnerRegistrationRisk.recordRegistrationEvent({
+              assessment: googleRisk,
+              outcome: 'blocked',
+            });
+            return res.status(403).json({
+              error: 'We could not complete this registration automatically.',
+              code: 'REGISTRATION_RISK_BLOCKED',
+              appealPath: '/api/partner/abuse-appeals',
+            });
+          }
+          await partnerRegistrationRisk.recordRegistrationEvent({
+            assessment: googleRisk,
+            outcome: 'attempt',
+          });
+        } catch (riskError) {
+          logger.error('[GOOGLE-AUTH] registration risk assessment failed', {
+            error: riskError.message,
+          });
+          if (process.env.PARTNER_ABUSE_FAIL_OPEN !== 'true') {
+            return res.status(503).json({
+              error: 'Registration is temporarily unavailable. Please try again shortly.',
+              code: 'REGISTRATION_RISK_UNAVAILABLE',
+            });
+          }
+        }
+      }
+
       user = buildGoogleUser({
         googleProfile,
         roleFinal,
@@ -883,6 +943,21 @@ router.post('/google', strictAuthLimiter, csrfProtection, async (req, res) => {
       }
 
       if (roleFinal === 'supplier') {
+        try {
+          if (req.partnerRegistrationRisk) {
+            await partnerRegistrationRisk.completeRegistrationRisk(req, user.id);
+          }
+        } catch (riskError) {
+          logger.error('[GOOGLE-AUTH] risk metadata failed; rolling back new user', {
+            userId: user.id,
+            error: riskError.message,
+          });
+          await dbUnified.deleteOne('users', { id: user.id });
+          return res.status(503).json({
+            error: 'Registration could not be completed safely. Please try again.',
+            code: 'REGISTRATION_RISK_UNAVAILABLE',
+          });
+        }
         await recordSupplierPartnerReferral(refCode, user);
       }
     }

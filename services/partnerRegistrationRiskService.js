@@ -121,7 +121,9 @@ function hmac(kind, value) {
 }
 
 function normaliseEmail(email) {
-  return String(email || '').trim().toLowerCase();
+  return String(email || '')
+    .trim()
+    .toLowerCase();
 }
 
 function splitEmail(email) {
@@ -193,7 +195,9 @@ function requestIp(req) {
 
 function header(req, name) {
   const value = req.get ? req.get(name) : req.headers?.[String(name).toLowerCase()];
-  return String(value || '').trim().slice(0, 512);
+  return String(value || '')
+    .trim()
+    .slice(0, 512);
 }
 
 function browserSignature(req) {
@@ -218,7 +222,9 @@ function extractRequestSignals(req, { email, refCode } = {}) {
   const exactEmail = normaliseEmail(email);
   const canonicalEmail = canonicalIdentityEmail(email);
   const domain = emailDomain(email);
-  const referralCode = String(refCode || '').trim().toUpperCase();
+  const referralCode = String(refCode || '')
+    .trim()
+    .toUpperCase();
   return {
     ip,
     ipHash: hmac('ip', ip),
@@ -318,7 +324,8 @@ async function assessRegistration({ req, email, role, refCode = null, now = new 
   const nowIso = now.toISOString();
   const nowMs = now.getTime();
   const allEvents = (await dbUnified.read('partner_abuse_events')) || [];
-  const windowEvents = recentEvents(allEvents, config.ipWindowHours, nowMs);
+  const primaryEvents = allEvents.filter(event => ['attempt', 'blocked'].includes(event.outcome));
+  const windowEvents = recentEvents(primaryEvents, config.ipWindowHours, nowMs);
   const matchingIp = signals.ipHash
     ? windowEvents.filter(event => event.ipHash === signals.ipHash)
     : [];
@@ -477,7 +484,8 @@ async function assessRegistration({ req, email, role, refCode = null, now = new 
     100,
     riskSignals.reduce((total, signal) => total + signal.score, 0)
   );
-  let riskLevel = score >= config.blockScore ? 'high' : score >= config.reviewScore ? 'review' : 'low';
+  let riskLevel =
+    score >= config.blockScore ? 'high' : score >= config.reviewScore ? 'review' : 'low';
   let action = 'allow';
   if (!override && config.mode === 'enforce' && score >= config.blockScore) action = 'block';
   else if (score >= config.reviewScore) action = 'review';
@@ -552,6 +560,7 @@ async function recordRegistrationEvent({ assessment, outcome, userId = null, req
     overrideApplied: assessment.overrideApplied,
     createdAt: now.toISOString(),
     expiresAt: eventExpiry(now, config.retentionDays),
+    expiresAtDate: new Date(eventExpiry(now, config.retentionDays)),
   };
   const inserted = await dbUnified.insertOne('partner_abuse_events', event);
   if (!inserted) throw new Error('Partner abuse event did not persist');
@@ -568,7 +577,7 @@ async function persistUserRegistrationRisk(userId, assessment) {
         registrationRiskLevel: assessment.riskLevel,
         registrationRiskSignalCodes: assessment.signalCodes,
         registrationRiskAssessedAt: assessment.assessedAt,
-        registrationRiskReviewRequired: assessment.action === 'review',
+        registrationRiskReviewRequired: assessment.action !== 'allow',
       },
     }
   );
@@ -588,7 +597,9 @@ function registrationRiskGuard({ roleResolver } = {}) {
         refCode: req.body?.ref,
       });
       req.partnerRegistrationRisk = assessment;
+      req.partnerRegistrationRiskFinalized = false;
       if (assessment.action === 'block') {
+        req.partnerRegistrationRiskFinalized = true;
         await recordRegistrationEvent({ assessment, outcome: 'blocked' });
         res.setHeader('Cache-Control', 'no-store');
         return res.status(403).json({
@@ -600,6 +611,15 @@ function registrationRiskGuard({ roleResolver } = {}) {
         });
       }
       await recordRegistrationEvent({ assessment, outcome: 'attempt' });
+      res.once('finish', () => {
+        if (req.partnerRegistrationRiskFinalized || res.statusCode < 400) return;
+        req.partnerRegistrationRiskFinalized = true;
+        recordRegistrationEvent({ assessment, outcome: 'failed' }).catch(error =>
+          logger.warn('[PARTNER-IDENTITY-RISK] Failed registration audit did not persist', {
+            error: error.message,
+          })
+        );
+      });
       return next();
     } catch (error) {
       logger.error('[PARTNER-IDENTITY-RISK] Registration assessment failed', {
@@ -618,7 +638,9 @@ async function completeRegistrationRisk(req, userId) {
   const assessment = req.partnerRegistrationRisk;
   if (!assessment) return null;
   await persistUserRegistrationRisk(userId, assessment);
-  return recordRegistrationEvent({ assessment, outcome: 'created', userId });
+  const event = await recordRegistrationEvent({ assessment, outcome: 'created', userId });
+  req.partnerRegistrationRiskFinalized = true;
+  return event;
 }
 
 async function createRegistrationOverride({ email, reason, adminUserId, expiresInDays = 7 }) {
@@ -637,6 +659,7 @@ async function createRegistrationOverride({ email, reason, adminUserId, expiresI
     adminUserId,
     createdAt: now.toISOString(),
     expiresAt: eventExpiry(now, days),
+    expiresAtDate: new Date(eventExpiry(now, days)),
   };
   const inserted = await dbUnified.insertOne('partner_abuse_overrides', override);
   if (!inserted) throw new Error('Registration override did not persist');
@@ -645,8 +668,12 @@ async function createRegistrationOverride({ email, reason, adminUserId, expiresI
 
 async function createAppeal({ email, name, message, source = 'partner_registration' }) {
   const cleanEmail = normaliseEmail(email);
-  const cleanName = String(name || '').trim().slice(0, 120);
-  const cleanMessage = String(message || '').trim().slice(0, 3000);
+  const cleanName = String(name || '')
+    .trim()
+    .slice(0, 120);
+  const cleanMessage = String(message || '')
+    .trim()
+    .slice(0, 3000);
   if (!cleanEmail || !cleanEmail.includes('@')) throw new Error('A valid email is required');
   if (cleanMessage.length < 20) throw new Error('Appeal message must be at least 20 characters');
   const config = getConfig();
@@ -662,6 +689,7 @@ async function createAppeal({ email, name, message, source = 'partner_registrati
     createdAt: now.toISOString(),
     updatedAt: now.toISOString(),
     expiresAt: eventExpiry(now, config.appealRetentionDays),
+    expiresAtDate: new Date(eventExpiry(now, config.appealRetentionDays)),
   };
   const inserted = await dbUnified.insertOne('partner_abuse_appeals', appeal);
   if (!inserted) throw new Error('Appeal did not persist');

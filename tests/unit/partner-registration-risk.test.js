@@ -46,7 +46,13 @@ function req({ ip = '203.0.113.10', ua = 'Mozilla/5.0 Chrome/126', language = 'e
   };
 }
 
-function seedEvent({ email, role = 'supplier', request = req(), refCode = 'P_TEST', createdAt } = {}) {
+function seedEvent({
+  email,
+  role = 'supplier',
+  request = req(),
+  refCode = 'P_TEST',
+  createdAt,
+} = {}) {
   const hashes = service.extractRequestSignals(request, { email, refCode });
   mockCollections.partner_abuse_events.push({
     id: `existing_${mockCollections.partner_abuse_events.length + 1}`,

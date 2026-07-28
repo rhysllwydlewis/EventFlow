@@ -12,7 +12,9 @@ const router = express.Router();
 
 router.post('/abuse-appeals', registrationLimiter, csrfProtection, async (req, res) => {
   try {
-    const email = String(req.body?.email || '').trim().toLowerCase();
+    const email = String(req.body?.email || '')
+      .trim()
+      .toLowerCase();
     const name = String(req.body?.name || '').trim();
     const message = String(req.body?.message || '').trim();
     if (!validator.isEmail(email)) {

@@ -35,11 +35,21 @@ router.post(
   async (req, res) => {
     try {
       const { firstName, lastName, email, password, location, company } = req.body || {};
-      const cleanFirstName = String(firstName || '').trim().slice(0, 40);
-      const cleanLastName = String(lastName || '').trim().slice(0, 40);
-      const cleanEmail = String(email || '').trim().toLowerCase();
-      const cleanLocation = String(location || '').trim().slice(0, 100);
-      const cleanCompany = String(company || '').trim().slice(0, 100);
+      const cleanFirstName = String(firstName || '')
+        .trim()
+        .slice(0, 40);
+      const cleanLastName = String(lastName || '')
+        .trim()
+        .slice(0, 40);
+      const cleanEmail = String(email || '')
+        .trim()
+        .toLowerCase();
+      const cleanLocation = String(location || '')
+        .trim()
+        .slice(0, 100);
+      const cleanCompany = String(company || '')
+        .trim()
+        .slice(0, 100);
 
       if (!cleanFirstName || !cleanLastName) {
         return res.status(400).json({ error: 'First name and last name are required' });
@@ -50,7 +60,9 @@ router.post(
       if (!password || !passwordOk(password)) {
         return res
           .status(400)
-          .json({ error: 'Password must be at least 8 characters and include letters and numbers' });
+          .json({
+            error: 'Password must be at least 8 characters and include letters and numbers',
+          });
       }
       if (!cleanLocation) return res.status(400).json({ error: 'Location is required' });
 
@@ -93,7 +105,9 @@ router.post(
 
       const inserted = await dbUnified.insertOne('users', user);
       if (!inserted) {
-        return res.status(500).json({ error: 'Failed to create partner account. Please try again.' });
+        return res
+          .status(500)
+          .json({ error: 'Failed to create partner account. Please try again.' });
       }
 
       try {
