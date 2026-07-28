@@ -6,6 +6,7 @@ const partnerService = require('./partnerService');
 const baseIntegrity = require('./partnerRewardIntegrityService');
 const supplierEvidence = require('./partnerRewardSupplierEvidenceService');
 const advancedIntegrity = require('./partnerRewardIntegrityAdvancedService');
+const stripeEvidence = require('./partnerRewardStripeEvidenceService');
 
 const CLAWBACK_SUBTYPE = 'PARTNER_REWARD_INTEGRITY_CLAWBACK';
 
@@ -21,6 +22,8 @@ const TEMPORAL_REASONS = new Set([
   'PACKAGE_MIN_LIVE_PERIOD_NOT_MET',
   'REVIEW_MODERATION_WINDOW_NOT_MET',
   'SUBSCRIPTION_SETTLEMENT_WINDOW_NOT_MET',
+  'STRIPE_PAYMENT_EVIDENCE_UNAVAILABLE',
+  'STRIPE_PAYMENT_EVIDENCE_PERSIST_FAILED',
 ]);
 
 function isWithinRevalidationWindow(transaction, now = Date.now()) {
@@ -158,7 +161,18 @@ async function revalidatePartnerRewards(partnerId) {
         methodName,
         baseEvidence,
       });
-      if (await clawBackIfDurablyInvalid(transaction, advancedEvidence)) clawedBack += 1;
+      if (!advancedEvidence.eligible) {
+        if (await clawBackIfDurablyInvalid(transaction, advancedEvidence)) clawedBack += 1;
+        continue;
+      }
+
+      if (methodName === 'awardSubscriptionBonus') {
+        const paymentDecision = await stripeEvidence.subscriptionRewardEvidence(
+          transaction.supplierUserId,
+          baseEvidence.invoiceId
+        );
+        if (await clawBackIfDurablyInvalid(transaction, paymentDecision)) clawedBack += 1;
+      }
     } catch (error) {
       logger.error('[PARTNER-REWARD-INTEGRITY] Reward revalidation failed', {
         partnerId,
