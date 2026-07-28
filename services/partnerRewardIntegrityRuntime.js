@@ -8,6 +8,7 @@ const supplierEvidence = require('./partnerRewardSupplierEvidenceService');
 const advancedIntegrity = require('./partnerRewardIntegrityAdvancedService');
 const exposureSafety = require('./partnerRewardExposureSafetyService');
 const stripeEvidence = require('./partnerRewardStripeEvidenceService');
+const qualificationEvidence = require('./partnerRewardQualificationEvidenceService');
 const integrityClawback = require('./partnerRewardIntegrityClawbackService');
 const integrityIndexes = require('./partnerRewardIntegrityIndexService');
 
@@ -133,6 +134,45 @@ async function withholdIfInvalid({ decision, supplierUserId, partnerId, rewardTy
     reason: decision.reason,
   });
   return true;
+}
+
+async function finaliseAward({
+  reward,
+  methodName,
+  partnerId,
+  supplierUserId,
+  supplierDecision,
+  baseEvidence,
+  stripeDecision,
+}) {
+  if (!reward) return reward;
+  const snapshot = qualificationEvidence.buildSnapshot({
+    methodName,
+    supplierDecision,
+    baseEvidence,
+    stripeDecision,
+  });
+
+  let persistedReward;
+  try {
+    persistedReward = await qualificationEvidence.persistSnapshot(reward, snapshot);
+  } catch (error) {
+    await integrityClawback.clawBackRewardTransaction(
+      reward,
+      'QUALIFICATION_EVIDENCE_PERSIST_FAILED'
+    );
+    throw error;
+  }
+
+  try {
+    return await applyRiskMaturity(persistedReward, partnerId, supplierUserId);
+  } catch (error) {
+    await integrityClawback.clawBackRewardTransaction(
+      persistedReward,
+      'MATURITY_EXTENSION_PERSIST_FAILED'
+    );
+    throw error;
+  }
 }
 
 function installRewardMethodGuards() {
@@ -264,7 +304,15 @@ function installRewardMethodGuards() {
       }
 
       const reward = await original(supplierUserId);
-      return reward ? applyRiskMaturity(reward, partner.id, supplierUserId) : reward;
+      return finaliseAward({
+        reward,
+        methodName,
+        partnerId: partner.id,
+        supplierUserId,
+        supplierDecision,
+        baseEvidence: evidence,
+        stripeDecision,
+      });
     };
   }
 }
@@ -324,5 +372,6 @@ module.exports = {
     evaluateStripeEvidence,
     withholdIfInvalid,
     ensureIndexesBestEffort,
+    finaliseAward,
   },
 };
