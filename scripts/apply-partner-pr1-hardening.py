@@ -80,6 +80,7 @@ function normalisePhone(value) {
 
 function normaliseBusinessText(value) {
   return String(value || '')
+    .slice(0, 500)
     .trim()
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, ' ')
@@ -89,6 +90,7 @@ function normaliseBusinessText(value) {
 
 function normalisePostcode(value) {
   return String(value || '')
+    .slice(0, 40)
     .trim()
     .toUpperCase()
     .replace(/[^A-Z0-9]/g, '');
@@ -96,13 +98,14 @@ function normalisePostcode(value) {
 
 function normaliseBusinessIdentifier(value) {
   return String(value || '')
+    .slice(0, 80)
     .trim()
     .toUpperCase()
     .replace(/[^A-Z0-9]/g, '');
 }
 
 function websiteHost(value) {
-  const raw = String(value || '').trim();
+  const raw = String(value || '').trim().slice(0, 500);
   if (!raw) return '';
   try {
     const parsed = new URL(/^https?:\/\//i.test(raw) ? raw : `https://${raw}`);
@@ -133,7 +136,7 @@ function browserSignature(req) {""",
 
 function requestCookie(req, name) {
   if (req.cookies && typeof req.cookies[name] === 'string') return req.cookies[name];
-  const cookieHeader = header(req, 'cookie');
+  const cookieHeader = String(req.headers?.cookie || '').slice(0, 8192);
   if (!cookieHeader) return '';
   for (const part of cookieHeader.split(';')) {
     const separator = part.indexOf('=');
@@ -547,7 +550,6 @@ replace_once(
   const partnerAbuseAppealRoutes = require('./partner-abuse-appeals');""",
 )
 
-# Add the privacy-focused, self-hosted ALTCHA widget to partner signup.
 replace_once(
     'public/partner/index.html',
     """                <div id="signup-status" class="partner-status" role="alert" aria-live="polite"></div>
@@ -656,12 +658,12 @@ router.post('/register', (_req, res) =>
 """
     partner_path.write_text(partner_source[:start] + replacement + partner_source[end:])
 
-# Existing legacy-router coverage should assert the defence-in-depth behaviour;
-# the secure route has its own executable registration suite.
+# Replace the two legacy registration tests with an explicit defence-in-depth
+# assertion. Secure registration validation lives in partner-registration-secure.test.js.
 test_path = Path('tests/unit/partner-routes-integration.test.js')
 test_source = test_path.read_text()
 old_test_start = "  it('registers a partner and returns the generated referral identity', async () => {"
-next_test_marker = "\n\n  it('returns dashboard profile data"
+next_test_marker = "\n\n  it('returns the live programme configuration and profile summary'"
 if old_test_start in test_source:
     start = test_source.index(old_test_start)
     end = test_source.index(next_test_marker, start)
@@ -683,9 +685,6 @@ if old_test_start in test_source:
 elif 'PARTNER_REGISTRATION_SECURE_ROUTE_REQUIRED' not in test_source:
     raise SystemExit('Expected legacy partner route registration test not found')
 
-# ---------------------------------------------------------------------------
-# Database indexes for new pseudonymous correlation fields.
-# ---------------------------------------------------------------------------
 replace_once(
     'db-init.js',
     """      { keys: { deviceNetworkHash: 1, createdAt: -1 }, options: {} },
@@ -700,8 +699,6 @@ replace_once(
       { keys: { companyPostcodeHash: 1, createdAt: -1 }, options: {} },""",
 )
 
-# Privacy and operating docs: explain the first-party device token and configurable
-# suspicious domains / hard velocity guard.
 replace_once(
     'public/privacy.html',
     """        <li><strong>Pseudonymous Browser Signals:</strong> Browser type, language and standard browser client hints combined into a protected signature. This is a risk signal and is not treated as proof that two people are the same person.</li>""",
@@ -737,7 +734,6 @@ replace_once(
     """The browser signature uses the user-agent, language and browser client-hint headers. In addition, registration may set an HTTP-only, SameSite=Lax first-party random device token (`ef_partner_device`) which is HMAC-protected before it enters the anti-abuse event ledger. Neither signal is a claim that EventFlow can uniquely identify a physical device, and technical evidence must be combined with other evidence before adverse manual action is taken.""",
 )
 
-# Add new focused suites to the permanent smoke gate.
 import json
 package_path = Path('package.json')
 package = json.loads(package_path.read_text())
