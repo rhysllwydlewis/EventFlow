@@ -4,6 +4,7 @@ const express = require('express');
 const request = require('supertest');
 
 const mockDb = {
+  read: jest.fn(async () => ({})),
   findOne: jest.fn(async () => null),
   insertOne: jest.fn(async (_collection, record) => record),
   deleteOne: jest.fn(async () => ({ deleted: 1 })),
@@ -71,6 +72,8 @@ function body(captchaToken = 'valid-captcha') {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  router.initializeDependencies({});
+  mockDb.read.mockResolvedValue({});
   mockDb.findOne.mockResolvedValue(null);
   mockDb.insertOne.mockImplementation(async (_collection, record) => record);
   mockCreatePartner.mockResolvedValue({ id: 'prt_1', refCode: 'P_TEST' });
@@ -101,6 +104,24 @@ test('accepts a verified ALTCHA payload and continues secure registration', asyn
   expect(response.body.requiresVerification).toBe(true);
   expect(verifyAltcha).toHaveBeenCalledWith('valid-captcha');
   expect(mockDb.insertOne).toHaveBeenCalledWith('users', expect.objectContaining({ verified: false }));
+});
+
+test('fails closed when the CAPTCHA verifier is unavailable in production', async () => {
+  const previousEnv = process.env.NODE_ENV;
+  const previousKey = process.env.ALTCHA_HMAC_KEY;
+  process.env.NODE_ENV = 'production';
+  delete process.env.ALTCHA_HMAC_KEY;
+  router.initializeDependencies({});
+  try {
+    const response = await request(app()).post('/api/partner/register').send(body());
+    expect(response.status).toBe(503);
+    expect(response.body.code).toBe('CAPTCHA_VERIFIER_UNAVAILABLE');
+    expect(mockDb.insertOne).not.toHaveBeenCalledWith('users', expect.anything());
+  } finally {
+    process.env.NODE_ENV = previousEnv;
+    if (previousKey === undefined) delete process.env.ALTCHA_HMAC_KEY;
+    else process.env.ALTCHA_HMAC_KEY = previousKey;
+  }
 });
 
 test('partner frontend includes self-hosted ALTCHA and sends captchaToken', () => {
