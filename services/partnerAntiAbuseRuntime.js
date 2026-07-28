@@ -61,11 +61,22 @@ async function reconcileEligibleRewards(partnerId) {
 function applyExtendedMaturity(balance) {
   if (!balance || !Array.isArray(balance.transactions)) return balance;
   const now = Date.now();
+  const baseMaturityDays = Number(partnerService.CREDIT_MATURITY_DAYS || 30);
+  const baseMaturityCutoff = now - baseMaturityDays * 86400000;
   let deferred = 0;
+
   for (const transaction of balance.transactions) {
     if (Number(transaction.amount) <= 0 || !transaction.maturesAt) continue;
     const maturesAt = Date.parse(transaction.maturesAt);
-    if (Number.isFinite(maturesAt) && maturesAt > now) deferred += Number(transaction.amount);
+    const createdAt = Date.parse(transaction.createdAt);
+    if (!Number.isFinite(maturesAt) || !Number.isFinite(createdAt)) continue;
+
+    // The underlying balance calculator already keeps rewards younger than the normal
+    // maturity window in maturingBalance. Only move a reward here once it would otherwise
+    // have become available under the normal rule but its explicit risk maturity is later.
+    if (createdAt <= baseMaturityCutoff && maturesAt > now) {
+      deferred += Number(transaction.amount);
+    }
   }
   if (!deferred) return balance;
   return {
