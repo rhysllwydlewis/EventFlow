@@ -25,19 +25,23 @@ jest.mock('../../utils/logger', () => ({
 
 const databaseInit = require('../../db-init');
 
-test('defines unique indexes only for actual partner reward milestone types', () => {
+test('defines a named unique index only for actual partner reward milestones', () => {
   const transactions = databaseInit.ADDITIONAL_COLLECTIONS.find(
     collection => collection.name === 'partner_credit_transactions'
   );
   const rewardIndex = transactions.indexes.find(
-    index => index.keys.supplierUserId === 1 && index.keys.type === 1
+    index => index.options.name === 'uniq_partner_reward_milestone'
   );
 
-  expect(rewardIndex.options).toMatchObject({
-    unique: true,
-    partialFilterExpression: {
-      supplierUserId: { $type: 'string' },
-      type: { $in: databaseInit.REWARD_TYPES },
+  expect(rewardIndex).toMatchObject({
+    keys: { partnerId: 1, supplierUserId: 1, type: 1 },
+    options: {
+      name: 'uniq_partner_reward_milestone',
+      unique: true,
+      partialFilterExpression: {
+        supplierUserId: { $type: 'string' },
+        type: { $in: databaseInit.REWARD_TYPES },
+      },
     },
   });
   expect(databaseInit.REWARD_TYPES).toEqual([
@@ -48,20 +52,29 @@ test('defines unique indexes only for actual partner reward milestone types', ()
   ]);
 });
 
-test('creates cashout, assessment and clawback idempotency indexes during initialisation', async () => {
+test('creates named cashout, assessment and ledger idempotency indexes', async () => {
   await databaseInit.initializeDatabase();
 
   expect(mockCreateIndex).toHaveBeenCalledWith(
-    { partnerId: 1, idempotencyKey: 1 },
-    expect.objectContaining({ unique: true })
+    { idempotencyKey: 1, partnerId: 1 },
+    expect.objectContaining({
+      name: 'uniq_partner_cashout_idempotency',
+      unique: true,
+    })
   );
   expect(mockCreateIndex).toHaveBeenCalledWith(
     { requestId: 1 },
-    expect.objectContaining({ unique: true })
+    expect.objectContaining({
+      name: 'uniq_partner_fraud_request',
+      unique: true,
+    })
   );
   expect(mockCreateIndex).toHaveBeenCalledWith(
     { type: 1, externalRef: 1 },
-    expect.objectContaining({ unique: true })
+    expect.objectContaining({
+      name: 'uniq_partner_ledger_external_ref',
+      unique: true,
+    })
   );
 });
 
