@@ -48,7 +48,9 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Apply authoritative route/database integration
-        run: python scripts/apply-partner-pr1-integration.py
+        run: |
+          python scripts/apply-partner-pr1-integration.py
+          python scripts/apply-partner-pr1-review-fixes.py
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -67,7 +69,8 @@ jobs:
             routes/index.js routes/auth.js db-init.js public/privacy.html package.json \
             routes/partner-registration-secure.js routes/partner-abuse-appeals.js \
             routes/admin-partner-abuse.js tests/unit/partner-registration-risk.test.js \
-            tests/unit/partner-registration-secure.test.js docs/PARTNER_ANTI_ABUSE_PR1.md
+            tests/unit/partner-registration-secure.test.js \
+            tests/unit/partner-anti-abuse-identity.test.js docs/PARTNER_ANTI_ABUSE_PR1.md
 
       - name: Commit integration if required
         run: |
