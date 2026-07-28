@@ -20,7 +20,7 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   </head>
   <body class="partner-page">
-<!-- Background decoration -->
+    <!-- Background decoration -->
     <div class="partner-bg" aria-hidden="true">
       <div class="partner-bg-blob partner-bg-blob--1"></div>
       <div class="partner-bg-blob partner-bg-blob--2"></div>
@@ -28,11 +28,20 @@
     </div>
 
     <!-- Header bar — matches partner dashboard style -->
-    <header style="position:relative;z-index:10;padding:1rem 1.5rem;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.06);">
+    <header
+      style="position:relative;z-index:10;padding:1rem 1.5rem;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.06);"
+    >
       <a href="/partner" style="display:flex;align-items:center;gap:0.6rem;text-decoration:none;">
-        <div class="partner-brand-logo-mark" style="width:34px;height:34px;font-size:0.9rem;" aria-hidden="true">EF</div>
+        <div
+          class="partner-brand-logo-mark"
+          style="width:34px;height:34px;font-size:0.9rem;"
+          aria-hidden="true"
+        >
+          EF
+        </div>
         <span style="color:#fff;font-weight:700;font-size:0.95rem;letter-spacing:-0.01em;">
-          EventFlow <span style="color:rgba(16,185,129,0.8);font-weight:500;">Partners</span>
+          EventFlow
+          <span style="color:rgba(16,185,129,0.8);font-weight:500;">Partners</span>
         </span>
       </a>
     </header>
@@ -40,10 +49,7 @@
     <main class="partner-main" id="main-content">
       <section class="partner-hero" aria-label="Partner programme entry">
         <div class="partner-hero-inner">
-
-          <!-- Brand / info panel -->
           <div class="partner-brand-panel">
-
             <div class="partner-badge">
               <div class="partner-badge-dot" aria-hidden="true"></div>
               Partner Programme
@@ -55,8 +61,8 @@
             </h1>
 
             <p class="partner-hero-desc">
-              Share your unique referral link with event suppliers and earn rewards
-              every time they join and get started on EventFlow.
+              Share your unique referral link with event suppliers and earn rewards every time they
+              join and get started on EventFlow.
             </p>
 
             <div class="partner-reward-pills" role="list" aria-label="Reward structure">
@@ -72,20 +78,19 @@
               <span class="partner-reward-pill" role="listitem">
                 💳 <strong>+100 points</strong>&nbsp; First subscription payment
               </span>
-              <span class="partner-reward-pill" role="listitem">
-                ⏱ Points available after 30 days
-              </span>
+              <span class="partner-reward-pill" role="listitem">⏱ Points available after 30 days</span>
             </div>
 
-            <p class="partner-value-key" style="font-size:0.82rem;color:rgba(255,255,255,0.45);">
-              100 points = £1.00 &nbsp;·&nbsp; Minimum cashout £15 &nbsp;·&nbsp; Cashout via Amazon Voucher or Pre-Paid Debit Card
+            <p
+              class="partner-value-key"
+              style="font-size:0.82rem;color:rgba(255,255,255,0.45);"
+            >
+              100 points = £1.00 &nbsp;·&nbsp; Minimum cashout £15 &nbsp;·&nbsp; Cashout via Amazon
+              Voucher or Pre-Paid Debit Card
             </p>
           </div>
 
-          <!-- Auth panel -->
           <div class="partner-auth-panel" role="region" aria-label="Sign in or create account">
-
-            <!-- Partner programme explainer -->
             <div class="partner-explainer" aria-label="About the Partner Programme">
               <p>
                 <strong style="color:rgba(255,255,255,0.85);">What is it?</strong>
@@ -93,8 +98,8 @@
                 signs up through your unique referral link and gets started on the platform.
               </p>
               <p>
-                Points mature after <strong>30 days</strong> and can be cashed out as an
-                Amazon Voucher or Pre-Paid Debit Card once you reach £15 (100 pts = £1).
+                Points mature after <strong>30 days</strong> and can be cashed out as an Amazon Voucher
+                or Pre-Paid Debit Card once you reach £15 (100 pts = £1).
               </p>
               <p>
                 <a href="/partner/terms.html" target="_blank" rel="noopener noreferrer">
@@ -111,7 +116,9 @@
                 type="button"
                 aria-selected="true"
                 aria-controls="panel-signin"
-              >Log in</button>
+              >
+                Log in
+              </button>
               <button
                 class="ef-cta partner-tab"
                 id="tab-signup"
@@ -119,11 +126,17 @@
                 type="button"
                 aria-selected="false"
                 aria-controls="panel-signup"
-              >Join as partner</button>
+              >
+                Join as partner
+              </button>
             </div>
 
-            <!-- Sign in panel -->
-            <div id="panel-signin" class="partner-tab-panel active" role="tabpanel" aria-labelledby="tab-signin">
+            <div
+              id="panel-signin"
+              class="partner-tab-panel active"
+              role="tabpanel"
+              aria-labelledby="tab-signin"
+            >
               <form id="partner-login-form" novalidate autocomplete="on">
                 <div class="partner-field">
                   <label for="login-email">Email address</label>
@@ -137,7 +150,12 @@
                     placeholder="you@example.com"
                     aria-describedby="login-email-error"
                   />
-                  <span class="partner-field-error" id="login-email-error" role="alert" aria-live="polite"></span>
+                  <span
+                    class="partner-field-error"
+                    id="login-email-error"
+                    role="alert"
+                    aria-live="polite"
+                  ></span>
                 </div>
                 <div class="partner-field">
                   <label for="login-password">Password</label>
@@ -158,12 +176,29 @@
                       aria-label="Show password"
                       data-target="login-password"
                     >
-                      <!-- eye icon (show state) -->
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                      <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        aria-hidden="true"
+                      >
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                        <circle cx="12" cy="12" r="3" />
+                      </svg>
                     </button>
                   </div>
-                  <span class="partner-capslock-hint" id="login-capslock" aria-live="polite" hidden>⚠️ Caps Lock is on</span>
-                  <span class="partner-field-error" id="login-password-error" role="alert" aria-live="polite"></span>
+                  <span class="partner-capslock-hint" id="login-capslock" aria-live="polite" hidden
+                    >⚠️ Caps Lock is on</span
+                  >
+                  <span
+                    class="partner-field-error"
+                    id="login-password-error"
+                    role="alert"
+                    aria-live="polite"
+                  ></span>
                 </div>
                 <div id="login-status" class="partner-status" role="alert" aria-live="assertive"></div>
                 <button type="submit" class="ef-cta partner-submit-btn" id="login-btn">
@@ -175,22 +210,51 @@
               </form>
             </div>
 
-            <!-- Sign up panel -->
-            <div id="panel-signup" class="partner-tab-panel" role="tabpanel" aria-labelledby="tab-signup" hidden>
+            <div
+              id="panel-signup"
+              class="partner-tab-panel"
+              role="tabpanel"
+              aria-labelledby="tab-signup"
+              hidden
+            >
               <form id="partner-signup-form" novalidate autocomplete="on">
                 <div class="partner-field-row">
                   <div class="partner-field">
                     <label for="reg-firstname">First name</label>
-                    <input id="reg-firstname" name="firstName" type="text" class="partner-input" autocomplete="given-name" required placeholder="Jane" />
+                    <input
+                      id="reg-firstname"
+                      name="firstName"
+                      type="text"
+                      class="partner-input"
+                      autocomplete="given-name"
+                      required
+                      placeholder="Jane"
+                    />
                   </div>
                   <div class="partner-field">
                     <label for="reg-lastname">Last name</label>
-                    <input id="reg-lastname" name="lastName" type="text" class="partner-input" autocomplete="family-name" required placeholder="Smith" />
+                    <input
+                      id="reg-lastname"
+                      name="lastName"
+                      type="text"
+                      class="partner-input"
+                      autocomplete="family-name"
+                      required
+                      placeholder="Smith"
+                    />
                   </div>
                 </div>
                 <div class="partner-field">
                   <label for="reg-email">Email address</label>
-                  <input id="reg-email" name="email" type="email" class="partner-input" autocomplete="email" required placeholder="you@example.com" />
+                  <input
+                    id="reg-email"
+                    name="email"
+                    type="email"
+                    class="partner-input"
+                    autocomplete="email"
+                    required
+                    placeholder="you@example.com"
+                  />
                 </div>
                 <div class="partner-field">
                   <label for="reg-password">Password</label>
@@ -211,45 +275,82 @@
                       aria-label="Show password"
                       data-target="reg-password"
                     >
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                      <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        aria-hidden="true"
+                      >
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                        <circle cx="12" cy="12" r="3" />
+                      </svg>
                     </button>
                   </div>
-                  <span class="partner-capslock-hint" id="reg-capslock" aria-live="polite" hidden>⚠️ Caps Lock is on</span>
+                  <span class="partner-capslock-hint" id="reg-capslock" aria-live="polite" hidden
+                    >⚠️ Caps Lock is on</span
+                  >
                 </div>
                 <div class="partner-field">
                   <label for="reg-location">Your location</label>
-                  <input id="reg-location" name="location" type="text" class="partner-input" autocomplete="address-level2" required placeholder="e.g. London" />
+                  <input
+                    id="reg-location"
+                    name="location"
+                    type="text"
+                    class="partner-input"
+                    autocomplete="address-level2"
+                    required
+                    placeholder="e.g. London"
+                  />
                 </div>
                 <div class="partner-field">
                   <label for="reg-company">
                     Company / channel name
                     <span style="color:rgba(255,255,255,0.35);font-weight:400;">(optional)</span>
                   </label>
-                  <input id="reg-company" name="company" type="text" class="partner-input" placeholder="e.g. Wedding Vibes Group" />
+                  <input
+                    id="reg-company"
+                    name="company"
+                    type="text"
+                    class="partner-input"
+                    placeholder="e.g. Wedding Vibes Group"
+                  />
+                </div>
+                <div class="partner-field" aria-label="Registration verification">
+                  <altcha-widget
+                    id="partner-reg-altcha-widget"
+                    challengeurl="/api/v1/altcha/challenge"
+                    auto="onsubmit"
+                  ></altcha-widget>
                 </div>
                 <div id="signup-status" class="partner-status" role="alert" aria-live="polite"></div>
                 <button type="submit" class="ef-cta partner-submit-btn" id="signup-btn">
                   <span class="btn-text">Create partner account</span>
                 </button>
                 <p class="partner-legal-line">
-                  By joining you agree to our
-                  <a href="/terms">Terms</a>
-                  and
+                  By joining you agree to our <a href="/terms">Terms</a> and
                   <a href="/privacy">Privacy Policy</a>.
                 </p>
               </form>
             </div>
           </div>
-
         </div>
       </section>
     </main>
 
-    <!-- Toast notification -->
-    <div id="partner-toast" class="partner-toast" role="status" aria-live="polite" aria-atomic="true"></div>
+    <div
+      id="partner-toast"
+      class="partner-toast"
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+    ></div>
 
     <script src="/assets/js/utils/auth-state.js" defer></script>
+    <script src="/assets/js/vendor/altcha.min.js" defer></script>
     <script src="/assets/js/cookie-consent.js?v=2.0.0" defer></script>
-    <script src="/assets/js/pages/partner-init.js?v=18.3.0" defer></script>
+    <script src="/assets/js/pages/partner-init.js?v=18.5.0" defer></script>
   </body>
 </html>
