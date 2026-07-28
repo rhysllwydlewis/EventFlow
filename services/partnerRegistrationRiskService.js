@@ -523,16 +523,26 @@ async function loadRegistrationEvents({ now, config, canonicalEmailHash }) {
 }
 
 function scoreSignals(signals) {
-  const providerScore = Math.min(
-    60,
-    signals
-      .filter(signal => signal.group === 'network_reputation')
-      .reduce((total, signal) => total + signal.score, 0)
-  );
-  const otherScore = signals
-    .filter(signal => signal.group !== 'network_reputation')
-    .reduce((total, signal) => total + signal.score, 0);
-  return Math.min(100, providerScore + otherScore);
+  const caps = {
+    network_reputation: 60,
+    browser_network: 45,
+    business_identity: 65,
+    stable_device: signals.some(signal => signal.code === 'DEVICE_COOKIE_HARD_LIMIT') ? 80 : 65,
+  };
+  const grouped = new Map();
+  let general = 0;
+  for (const signal of signals) {
+    if (signal.group === 'general') {
+      general += signal.score;
+      continue;
+    }
+    grouped.set(signal.group, (grouped.get(signal.group) || 0) + signal.score);
+  }
+  let total = general;
+  for (const [group, score] of grouped.entries()) {
+    total += Math.min(score, caps[group] ?? score);
+  }
+  return Math.min(100, total);
 }
 
 async function assessRegistration({ req, email, role, refCode = null, now = new Date() }) {
@@ -621,9 +631,10 @@ async function assessRegistration({ req, email, role, refCode = null, now = new 
     addSignal(
       riskSignals,
       'BROWSER_MULTI_ACCOUNT',
-      40,
+      30,
       'The same browser signature has been used for multiple account identities.',
-      { accountCount: browserAccounts }
+      { accountCount: browserAccounts },
+      'browser_network'
     );
   }
 
@@ -632,9 +643,10 @@ async function assessRegistration({ req, email, role, refCode = null, now = new 
     addSignal(
       riskSignals,
       'DEVICE_NETWORK_MULTI_ACCOUNT',
-      55,
+      35,
       'The same pseudonymous browser/network signature has created multiple accounts.',
-      { accountCount: deviceNetworkAccounts }
+      { accountCount: deviceNetworkAccounts },
+      'browser_network'
     );
   }
 
@@ -645,7 +657,8 @@ async function assessRegistration({ req, email, role, refCode = null, now = new 
       'DEVICE_COOKIE_HARD_LIMIT',
       80,
       'One first-party device token exceeded the hard multi-account limit.',
-      { accountCount: deviceCookieAccounts }
+      { accountCount: deviceCookieAccounts },
+      'stable_device'
     );
   } else if (deviceCookieAccounts >= config.deviceNetworkRegistrationMax) {
     addSignal(
@@ -653,7 +666,8 @@ async function assessRegistration({ req, email, role, refCode = null, now = new 
       'DEVICE_COOKIE_MULTI_ACCOUNT',
       60,
       'One first-party pseudonymous device token has created multiple account identities.',
-      { accountCount: deviceCookieAccounts }
+      { accountCount: deviceCookieAccounts },
+      'stable_device'
     );
   }
 
@@ -694,7 +708,9 @@ async function assessRegistration({ req, email, role, refCode = null, now = new 
       riskSignals,
       'PARTNER_SUPPLIER_DEVICE_COOKIE_OVERLAP',
       65,
-      'Partner and supplier registrations share the same first-party pseudonymous device token.'
+      'Partner and supplier registrations share the same first-party pseudonymous device token.',
+      {},
+      'stable_device'
     );
   }
 
@@ -706,8 +722,10 @@ async function assessRegistration({ req, email, role, refCode = null, now = new 
     addSignal(
       riskSignals,
       'PARTNER_SUPPLIER_DEVICE_OVERLAP',
-      55,
-      'Partner and supplier registrations share the same pseudonymous browser/network signature.'
+      35,
+      'Partner and supplier registrations share the same pseudonymous browser/network signature.',
+      {},
+      'browser_network'
     );
   }
 
@@ -738,7 +756,8 @@ async function assessRegistration({ req, email, role, refCode = null, now = new 
       'BUSINESS_IDENTITY_REUSE',
       55,
       'Business identity evidence is already associated with another registration identity.',
-      { matchedFields: reusedBusinessFields }
+      { matchedFields: reusedBusinessFields },
+      'business_identity'
     );
   }
 
@@ -759,7 +778,9 @@ async function assessRegistration({ req, email, role, refCode = null, now = new 
       riskSignals,
       'PARTNER_SUPPLIER_BUSINESS_OVERLAP',
       65,
-      'Partner and supplier registrations share strong pseudonymous business identity evidence.'
+      'Partner and supplier registrations share strong pseudonymous business identity evidence.',
+      {},
+      'business_identity'
     );
   }
 
