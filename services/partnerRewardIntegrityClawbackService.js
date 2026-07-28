@@ -4,6 +4,7 @@ const dbUnified = require('../db-unified');
 const logger = require('../utils/logger');
 const partnerService = require('./partnerService');
 const baseIntegrity = require('./partnerRewardIntegrityService');
+const supplierEvidence = require('./partnerRewardSupplierEvidenceService');
 const advancedIntegrity = require('./partnerRewardIntegrityAdvancedService');
 
 const CLAWBACK_SUBTYPE = 'PARTNER_REWARD_INTEGRITY_CLAWBACK';
@@ -102,6 +103,12 @@ async function clawBackRewardTransaction(transaction, reason) {
   return { ...debit, subtype: CLAWBACK_SUBTYPE, supplierUserId: transaction.supplierUserId };
 }
 
+async function clawBackIfDurablyInvalid(transaction, decision) {
+  if (decision.eligible || TEMPORAL_REASONS.has(decision.reason)) return false;
+  await clawBackRewardTransaction(transaction, decision.reason);
+  return true;
+}
+
 async function revalidatePartnerRewards(partnerId) {
   const [partner, transactions] = await Promise.all([
     dbUnified.findOne('partners', { id: partnerId }),
@@ -131,12 +138,19 @@ async function revalidatePartnerRewards(partnerId) {
         methodName,
       });
       if (!baseEvidence.eligible) {
-        if (!TEMPORAL_REASONS.has(baseEvidence.reason)) {
-          await clawBackRewardTransaction(transaction, baseEvidence.reason);
-          clawedBack += 1;
-        }
+        if (await clawBackIfDurablyInvalid(transaction, baseEvidence)) clawedBack += 1;
         continue;
       }
+
+      const supplierDecision = await supplierEvidence.methodRewardEvidence({
+        supplierUserId: transaction.supplierUserId,
+        methodName,
+      });
+      if (!supplierDecision.eligible) {
+        if (await clawBackIfDurablyInvalid(transaction, supplierDecision)) clawedBack += 1;
+        continue;
+      }
+
       const advancedEvidence = await advancedIntegrity.methodRewardEvidence({
         supplierUserId: transaction.supplierUserId,
         partnerId,
@@ -144,10 +158,7 @@ async function revalidatePartnerRewards(partnerId) {
         methodName,
         baseEvidence,
       });
-      if (!advancedEvidence.eligible && !TEMPORAL_REASONS.has(advancedEvidence.reason)) {
-        await clawBackRewardTransaction(transaction, advancedEvidence.reason);
-        clawedBack += 1;
-      }
+      if (await clawBackIfDurablyInvalid(transaction, advancedEvidence)) clawedBack += 1;
     } catch (error) {
       logger.error('[PARTNER-REWARD-INTEGRITY] Reward revalidation failed', {
         partnerId,
@@ -166,5 +177,5 @@ module.exports = {
   METHOD_BY_TYPE,
   clawBackRewardTransaction,
   revalidatePartnerRewards,
-  _test: { isWithinRevalidationWindow, TEMPORAL_REASONS },
+  _test: { isWithinRevalidationWindow, TEMPORAL_REASONS, clawBackIfDurablyInvalid },
 };
