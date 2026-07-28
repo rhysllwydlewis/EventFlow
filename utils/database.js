@@ -157,9 +157,43 @@ async function addDatabaseIndexes() {
       await db
         .collection('partner_fraud_assessments')
         .createIndex({ partnerId: 1, assessedAt: -1 });
-      logger.debug('Partner anti-abuse indexes created');
+      logger.debug('Partner reward anti-abuse indexes created');
     } catch (error) {
-      logger.warn('Partner anti-abuse indexes could not be fully created:', error.message);
+      logger.warn('Partner reward anti-abuse indexes could not be fully created:', error.message);
+    }
+
+    try {
+      const abuseEvents = db.collection('partner_abuse_events');
+      await abuseEvents.createIndex({ id: 1 }, { unique: true });
+      await abuseEvents.createIndex({ outcome: 1, createdAt: -1 });
+      await abuseEvents.createIndex({ canonicalEmailHash: 1, createdAt: -1 });
+      await abuseEvents.createIndex({ ipHash: 1, createdAt: -1 });
+      await abuseEvents.createIndex({ subnetHash: 1, createdAt: -1 });
+      await abuseEvents.createIndex({ browserHash: 1, createdAt: -1 });
+      await abuseEvents.createIndex({ deviceNetworkHash: 1, createdAt: -1 });
+      await abuseEvents.createIndex({ deviceCookieHash: 1, createdAt: -1 });
+      await abuseEvents.createIndex({ referralCodeHash: 1, createdAt: -1 });
+      await abuseEvents.createIndex({ phoneHash: 1, createdAt: -1 });
+      await abuseEvents.createIndex({ websiteHash: 1, createdAt: -1 });
+      await abuseEvents.createIndex({ companyNumberHash: 1, createdAt: -1 });
+      await abuseEvents.createIndex({ vatNumberHash: 1, createdAt: -1 });
+      await abuseEvents.createIndex({ companyPostcodeHash: 1, createdAt: -1 });
+      await abuseEvents.createIndex({ companyAddressHash: 1, createdAt: -1 });
+      await abuseEvents.createIndex({ expiresAtDate: 1 }, { expireAfterSeconds: 0 });
+
+      const overrides = db.collection('partner_abuse_overrides');
+      await overrides.createIndex({ id: 1 }, { unique: true });
+      await overrides.createIndex({ subjectHash: 1, scope: 1, createdAt: -1 });
+      await overrides.createIndex({ retentionExpiresAtDate: 1 }, { expireAfterSeconds: 0 });
+
+      const appeals = db.collection('partner_abuse_appeals');
+      await appeals.createIndex({ id: 1 }, { unique: true });
+      await appeals.createIndex({ status: 1, createdAt: -1 });
+      await appeals.createIndex({ emailIdentityHash: 1 });
+      await appeals.createIndex({ expiresAtDate: 1 }, { expireAfterSeconds: 0 });
+      logger.debug('Partner registration anti-abuse indexes created');
+    } catch (error) {
+      logger.warn('Partner registration anti-abuse indexes could not be fully created:', error.message);
     }
 
     logger.info('Database indexes created successfully');
