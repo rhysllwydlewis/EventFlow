@@ -9,6 +9,8 @@ const advancedIntegrity = require('./partnerRewardIntegrityAdvancedService');
 const stripeEvidence = require('./partnerRewardStripeEvidenceService');
 
 const CLAWBACK_SUBTYPE = 'PARTNER_REWARD_INTEGRITY_CLAWBACK';
+const REVERSAL_MODE_PENDING = 'void_pending';
+const REVERSAL_MODE_MATURED = 'debit_matured';
 
 const METHOD_BY_TYPE = Object.freeze({
   REFERRAL_SIGNUP_BONUS: 'awardReferralSignupBonus',
@@ -32,15 +34,72 @@ function isWithinRevalidationWindow(transaction, now = Date.now()) {
   return now - createdAt <= advancedIntegrity.getConfig().revalidationDays * 86400000;
 }
 
-async function clawBackRewardTransaction(transaction, reason) {
-  if (!transaction?.id || !transaction.partnerId || !transaction.supplierUserId) return null;
-  const rewardAmount = Math.abs(Number(transaction.amount));
-  if (!Number.isFinite(rewardAmount) || rewardAmount <= 0) {
-    const error = new Error('Partner integrity clawback reward amount is invalid');
-    error.code = 'PARTNER_REWARD_CLAWBACK_AMOUNT_INVALID';
-    throw error;
-  }
+function isEffectivelyMature(transaction, now = Date.now()) {
+  const explicitMaturity = Date.parse(transaction?.maturesAt);
+  if (Number.isFinite(explicitMaturity)) return explicitMaturity <= now;
+  const createdAt = Date.parse(transaction?.createdAt);
+  if (!Number.isFinite(createdAt)) return false;
+  const maturityDays = Number(partnerService.CREDIT_MATURITY_DAYS || 30);
+  return createdAt <= now - maturityDays * 86400000;
+}
 
+async function persistRewardReversal(transaction, { reason, reversalTxnId, reversalMode, now }) {
+  const updatedReward = await dbUnified.updateOne(
+    'partner_credit_transactions',
+    { id: transaction.id },
+    {
+      $set: {
+        reversedAt: transaction.reversedAt || now,
+        reversalTxnId: reversalTxnId || null,
+        reversalReason: reason,
+        reversalMode,
+      },
+    }
+  );
+  if (!updatedReward) throw new Error('Original reward reversal marker did not persist');
+  return updatedReward;
+}
+
+async function recordReversalEvent(transaction, reason, reversalMode, reversalTxnId = null) {
+  return baseIntegrity.recordIntegrityEvent({
+    partnerId: transaction.partnerId,
+    supplierUserId: transaction.supplierUserId,
+    rewardType: transaction.type,
+    reason,
+    eventType: 'reward_clawback',
+    evidence: {
+      originalRewardTxnId: transaction.id,
+      reversalTxnId,
+      reversalMode,
+    },
+  });
+}
+
+async function voidPendingReward(transaction, reason) {
+  const now = new Date().toISOString();
+  await persistRewardReversal(transaction, {
+    reason,
+    reversalTxnId: null,
+    reversalMode: REVERSAL_MODE_PENDING,
+    now,
+  });
+  await recordReversalEvent(transaction, reason, REVERSAL_MODE_PENDING, null);
+  logger.warn('[PARTNER-REWARD-INTEGRITY] Pending reward voided after evidence invalidation', {
+    partnerId: transaction.partnerId,
+    supplierUserId: transaction.supplierUserId,
+    rewardType: transaction.type,
+    originalRewardTxnId: transaction.id,
+    reason,
+  });
+  return {
+    id: null,
+    subtype: CLAWBACK_SUBTYPE,
+    reversalMode: REVERSAL_MODE_PENDING,
+    supplierUserId: transaction.supplierUserId,
+  };
+}
+
+async function debitMaturedReward(transaction, reason, rewardAmount) {
   const externalRef = `reward-integrity:${transaction.id}`;
   const existing = await dbUnified.findOne('partner_credit_transactions', {
     type: partnerService.CREDIT_TYPES.REDEEM,
@@ -69,41 +128,59 @@ async function clawBackRewardTransaction(transaction, reason) {
         originalRewardTxnId: transaction.id,
         originalRewardType: transaction.type,
         integrityReason: reason,
+        reversalMode: REVERSAL_MODE_MATURED,
       },
     }
   );
   if (!updatedDebit) throw new Error('Partner integrity clawback audit fields did not persist');
 
-  const updatedReward = await dbUnified.updateOne(
-    'partner_credit_transactions',
-    { id: transaction.id },
-    {
-      $set: {
-        reversedAt: transaction.reversedAt || now,
-        reversalTxnId: debit.id,
-        reversalReason: reason,
-      },
-    }
-  );
-  if (!updatedReward) throw new Error('Original reward reversal marker did not persist');
-
-  await baseIntegrity.recordIntegrityEvent({
-    partnerId: transaction.partnerId,
-    supplierUserId: transaction.supplierUserId,
-    rewardType: transaction.type,
+  await persistRewardReversal(transaction, {
     reason,
-    eventType: 'reward_clawback',
-    evidence: { originalRewardTxnId: transaction.id, reversalTxnId: debit.id },
+    reversalTxnId: debit.id,
+    reversalMode: REVERSAL_MODE_MATURED,
+    now,
   });
+  await recordReversalEvent(transaction, reason, REVERSAL_MODE_MATURED, debit.id);
 
-  logger.warn('[PARTNER-REWARD-INTEGRITY] Reward clawed back after evidence invalidation', {
+  logger.warn('[PARTNER-REWARD-INTEGRITY] Mature reward clawed back after evidence invalidation', {
     partnerId: transaction.partnerId,
     supplierUserId: transaction.supplierUserId,
     rewardType: transaction.type,
     originalRewardTxnId: transaction.id,
     reason,
   });
-  return { ...debit, subtype: CLAWBACK_SUBTYPE, supplierUserId: transaction.supplierUserId };
+  return {
+    ...debit,
+    subtype: CLAWBACK_SUBTYPE,
+    reversalMode: REVERSAL_MODE_MATURED,
+    supplierUserId: transaction.supplierUserId,
+  };
+}
+
+async function clawBackRewardTransaction(transaction, reason) {
+  if (!transaction?.id || !transaction.partnerId || !transaction.supplierUserId) return null;
+  const rewardAmount = Math.abs(Number(transaction.amount));
+  if (!Number.isFinite(rewardAmount) || rewardAmount <= 0) {
+    const error = new Error('Partner integrity clawback reward amount is invalid');
+    error.code = 'PARTNER_REWARD_CLAWBACK_AMOUNT_INVALID';
+    throw error;
+  }
+
+  // A pending reward that has already been voided must never later turn into a debit
+  // simply because time passed before a retry.
+  if (transaction.reversedAt && transaction.reversalMode === REVERSAL_MODE_PENDING) {
+    return {
+      id: null,
+      subtype: CLAWBACK_SUBTYPE,
+      reversalMode: REVERSAL_MODE_PENDING,
+      supplierUserId: transaction.supplierUserId,
+    };
+  }
+
+  if (!isEffectivelyMature(transaction)) {
+    return voidPendingReward(transaction, reason);
+  }
+  return debitMaturedReward(transaction, reason, rewardAmount);
 }
 
 async function clawBackIfDurablyInvalid(transaction, decision) {
@@ -188,8 +265,17 @@ async function revalidatePartnerRewards(partnerId) {
 
 module.exports = {
   CLAWBACK_SUBTYPE,
+  REVERSAL_MODE_PENDING,
+  REVERSAL_MODE_MATURED,
   METHOD_BY_TYPE,
   clawBackRewardTransaction,
   revalidatePartnerRewards,
-  _test: { isWithinRevalidationWindow, TEMPORAL_REASONS, clawBackIfDurablyInvalid },
+  _test: {
+    isWithinRevalidationWindow,
+    isEffectivelyMature,
+    TEMPORAL_REASONS,
+    clawBackIfDurablyInvalid,
+    voidPendingReward,
+    debitMaturedReward,
+  },
 };
