@@ -5,6 +5,7 @@ This document describes the first layer of EventFlow's Partner Programme anti-ab
 ## Principles
 
 - No single shared-IP, VPN, Tor, hosting-network or public-email-domain signal automatically proves abuse.
+- Correlated technical signals are grouped into evidence families so several labels describing substantially the same underlying evidence cannot simply add themselves into an automatic block.
 - High-confidence evidence such as disposable identity use or deliberately high hard-velocity limits can block registration; ambiguous evidence is recorded for review.
 - Registration risk thresholds are configurable and can be run in `monitor` mode before enforcement.
 - Anti-abuse evidence is pseudonymised wherever it does not need to remain directly identifiable.
@@ -31,7 +32,7 @@ The registration risk engine can evaluate:
 - Obvious headless/browser-automation user agents.
 - Optional external IP reputation signals for VPN, proxy, Tor, datacentre/hosting and reputation risk.
 
-Signals are stored with reason codes so an administrator can see why an assessment reached its score.
+Signals are stored with reason codes so an administrator can see why an assessment reached its score. Correlated browser/browser-network evidence, stable first-party device evidence, strong business-identity evidence and external network-reputation labels each have an evidence-family cap before the overall score is calculated. Deliberate hard-limit reason codes retain enough weight to block when that explicit threshold is reached.
 
 ## Pseudonymous technical evidence
 
@@ -156,9 +157,11 @@ Appeals retain the contact email because EventFlow needs a way to investigate an
 Shared offices, households, venues, mobile networks and privacy tools can cause multiple legitimate users to share technical signals. Therefore:
 
 - a shared IP alone is primarily a velocity/review signal;
+- browser and browser/network matches are one correlated evidence family rather than independent block-strength facts;
 - ordinary VPN/proxy, Tor or hosting-network evidence is review evidence and is capped as one provider evidence family;
+- stable first-party device evidence is stronger than a generic browser signature, but its related reason codes are capped as one family unless the explicit hard multi-account limit is reached;
 - public domains such as Gmail/Outlook are not suspicious merely because several users share the domain;
-- a company name by itself is not treated as strong business-identity reuse;
+- a company name by itself is not treated as strong business-identity reuse, and overlapping business reason codes are capped as one evidence family;
 - administrators should review the signal combination, account evidence and appeal information before permanently excluding a legitimate person.
 
 The public privacy notice explains the fraud-prevention purpose, pseudonymous network/browser/email processing, optional external network reputation processing, decision evidence and retention periods. The general technical-data section also covers device information used by the service.
