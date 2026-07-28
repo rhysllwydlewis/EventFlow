@@ -27,25 +27,16 @@ const mockDb = {
 
 const mockPartnerService = {
   CREDIT_TYPES: { REDEEM: 'REDEEM' },
-  debitPoints: jest.fn(async ({ partnerId, amount, notes, externalRef }) => {
-    const debit = {
-      id: `redeem_${mockCollections.partner_credit_transactions.length}`,
-      partnerId,
-      supplierUserId: null,
-      type: 'REDEEM',
-      amount: -Math.abs(amount),
-      notes,
-      externalRef,
-      createdAt: new Date().toISOString(),
-    };
-    mockCollections.partner_credit_transactions.push(debit);
-    return debit;
-  }),
+  debitPoints: jest.fn(),
 };
 
 const mockBaseIntegrity = {
   methodRewardEvidence: jest.fn(async () => ({ eligible: true, packageId: 'pkg_1' })),
   recordIntegrityEvent: jest.fn(async () => ({ id: 'pri_1' })),
+};
+
+const mockSupplierEvidence = {
+  methodRewardEvidence: jest.fn(async () => ({ eligible: true, supplierId: 'sup_1' })),
 };
 
 const mockAdvancedIntegrity = {
@@ -56,6 +47,7 @@ const mockAdvancedIntegrity = {
 jest.mock('../../db-unified', () => mockDb);
 jest.mock('../../services/partnerService', () => mockPartnerService);
 jest.mock('../../services/partnerRewardIntegrityService', () => mockBaseIntegrity);
+jest.mock('../../services/partnerRewardSupplierEvidenceService', () => mockSupplierEvidence);
 jest.mock('../../services/partnerRewardIntegrityAdvancedService', () => mockAdvancedIntegrity);
 jest.mock('../../utils/logger', () => ({ info: jest.fn(), warn: jest.fn(), error: jest.fn() }));
 
@@ -78,6 +70,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   mockBaseIntegrity.methodRewardEvidence.mockResolvedValue({ eligible: true, packageId: 'pkg_1' });
   mockBaseIntegrity.recordIntegrityEvent.mockResolvedValue({ id: 'pri_1' });
+  mockSupplierEvidence.methodRewardEvidence.mockResolvedValue({ eligible: true, supplierId: 'sup_1' });
   mockAdvancedIntegrity.getConfig.mockReturnValue({ revalidationDays: 30 });
   mockAdvancedIntegrity.methodRewardEvidence.mockResolvedValue({ eligible: true });
   mockPartnerService.debitPoints.mockImplementation(async ({ partnerId, amount, notes, externalRef }) => {
@@ -120,7 +113,41 @@ test('creates an idempotent debit and marks the original reward reversed', async
   );
 });
 
-test('revalidation claws back a reward when durable evidence has been invalidated', async () => {
+test('a retry repairs original reward markers when the financial debit already exists', async () => {
+  const original = reward();
+  mockCollections.partner_credit_transactions.push(
+    original,
+    {
+      id: 'existing_debit',
+      partnerId: 'partner_1',
+      supplierUserId: 'supplier_1',
+      type: 'REDEEM',
+      subtype: 'PARTNER_REWARD_INTEGRITY_CLAWBACK',
+      externalRef: 'reward-integrity:reward_1',
+      amount: -10,
+    }
+  );
+
+  await expect(
+    service.clawBackRewardTransaction(original, 'QUALIFYING_PACKAGE_MISSING')
+  ).resolves.toMatchObject({ id: 'existing_debit' });
+  expect(mockPartnerService.debitPoints).not.toHaveBeenCalled();
+  expect(original).toMatchObject({
+    reversedAt: expect.any(String),
+    reversalTxnId: 'existing_debit',
+    reversalReason: 'QUALIFYING_PACKAGE_MISSING',
+  });
+});
+
+test('rejects a clawback with an invalid reward amount before writing a debit', async () => {
+  const original = reward({ amount: 0 });
+  await expect(
+    service.clawBackRewardTransaction(original, 'QUALIFYING_PACKAGE_MISSING')
+  ).rejects.toMatchObject({ code: 'PARTNER_REWARD_CLAWBACK_AMOUNT_INVALID' });
+  expect(mockPartnerService.debitPoints).not.toHaveBeenCalled();
+});
+
+test('revalidation claws back a reward when durable base evidence has been invalidated', async () => {
   mockCollections.partners.push({ id: 'partner_1', userId: 'partner_user' });
   const original = reward({ type: 'FIRST_REVIEW_BONUS', amount: 15 });
   mockCollections.partner_credit_transactions.push(original);
@@ -137,6 +164,23 @@ test('revalidation claws back a reward when durable evidence has been invalidate
   expect(mockPartnerService.debitPoints).toHaveBeenCalledWith(
     expect.objectContaining({ partnerId: 'partner_1', amount: 15 })
   );
+});
+
+test('revalidation claws back a reward when supplier evidence becomes invalid', async () => {
+  mockCollections.partners.push({ id: 'partner_1', userId: 'partner_user' });
+  const original = reward();
+  mockCollections.partner_credit_transactions.push(original);
+  mockSupplierEvidence.methodRewardEvidence.mockResolvedValueOnce({
+    eligible: false,
+    reason: 'SUPPLIER_REWARD_HOLD_ACTIVE',
+  });
+
+  await expect(service.revalidatePartnerRewards('partner_1')).resolves.toEqual({
+    checked: 1,
+    clawedBack: 1,
+  });
+  expect(original.reversalReason).toBe('SUPPLIER_REWARD_HOLD_ACTIVE');
+  expect(mockAdvancedIntegrity.methodRewardEvidence).not.toHaveBeenCalled();
 });
 
 test('revalidation does not claw back a reward for a temporary timing condition', async () => {
@@ -183,25 +227,4 @@ test('does not revalidate rewards outside the configured revalidation window', a
     clawedBack: 0,
   });
   expect(mockBaseIntegrity.methodRewardEvidence).not.toHaveBeenCalled();
-});
-
-test('does not create a second clawback when the external reference already exists', async () => {
-  const original = reward();
-  mockCollections.partner_credit_transactions.push(
-    original,
-    {
-      id: 'existing_debit',
-      partnerId: 'partner_1',
-      supplierUserId: 'supplier_1',
-      type: 'REDEEM',
-      subtype: 'PARTNER_REWARD_INTEGRITY_CLAWBACK',
-      externalRef: 'reward-integrity:reward_1',
-      amount: -10,
-    }
-  );
-
-  await expect(
-    service.clawBackRewardTransaction(original, 'QUALIFYING_PACKAGE_MISSING')
-  ).resolves.toMatchObject({ id: 'existing_debit' });
-  expect(mockPartnerService.debitPoints).not.toHaveBeenCalled();
 });
