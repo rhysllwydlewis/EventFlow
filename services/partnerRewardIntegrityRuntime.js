@@ -4,6 +4,7 @@ const dbUnified = require('../db-unified');
 const logger = require('../utils/logger');
 const partnerService = require('./partnerService');
 const integrity = require('./partnerRewardIntegrityService');
+const supplierEvidence = require('./partnerRewardSupplierEvidenceService');
 const advancedIntegrity = require('./partnerRewardIntegrityAdvancedService');
 const integrityClawback = require('./partnerRewardIntegrityClawbackService');
 
@@ -105,6 +106,26 @@ function installRewardMethodGuards() {
           partnerId: partner.id,
           rewardType: config.type,
           reason: evidence.reason,
+        });
+        return null;
+      }
+
+      const supplierDecision = await supplierEvidence.methodRewardEvidence({
+        supplierUserId,
+        methodName,
+      });
+      if (!supplierDecision.eligible) {
+        await recordWithheld({
+          supplierUserId,
+          partnerId: partner.id,
+          rewardType: config.type,
+          decision: supplierDecision,
+        });
+        logger.warn('[PARTNER-REWARD-INTEGRITY] Reward withheld by supplier evidence policy', {
+          supplierUserId,
+          partnerId: partner.id,
+          rewardType: config.type,
+          reason: supplierDecision.reason,
         });
         return null;
       }
@@ -219,7 +240,7 @@ function install() {
   installAttributionGuard();
   installed = true;
   logger.info(
-    '[PARTNER-REWARD-INTEGRITY] Qualification, exposure, maturity and attribution guards installed'
+    '[PARTNER-REWARD-INTEGRITY] Supplier evidence, qualification, exposure, maturity and attribution guards installed'
   );
 }
 
