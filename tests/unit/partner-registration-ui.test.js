@@ -10,7 +10,8 @@ const source = fs.readFileSync(
 
 test('partner signup keeps unverified users on the entry page with verification instructions', () => {
   expect(source).toContain('if (data.requiresVerification)');
-  expect(source).toContain('Check your email to verify your address before logging in.');
+  expect(source).toMatch(/Check your email[^']*logging in/i);
+  expect(source).toContain('form.reset()');
   expect(source).not.toContain(
     "showStatus(status, '✓ Account created! Redirecting to your dashboard…', 'success')"
   );
@@ -18,7 +19,13 @@ test('partner signup keeps unverified users on the entry page with verification 
 
 test('partner signup does not navigate directly to the dashboard after account creation', () => {
   const signupSection = source.slice(source.indexOf('function initSignupForm()'));
-  expect(signupSection).not.toContain(
-    "setTimeout(() => window.location.replace('/partner/dashboard')"
-  );
+  expect(signupSection).not.toContain("window.location.replace('/partner/dashboard')");
+});
+
+test('partner signup requires an ALTCHA payload before posting registration', () => {
+  const signupSection = source.slice(source.indexOf('function initSignupForm()'));
+  expect(signupSection).toContain("document.getElementById('partner-reg-altcha-widget')");
+  expect(signupSection).toContain('const captchaToken = readAltchaPayload(altchaWidget)');
+  expect(signupSection).toContain('if (!captchaToken)');
+  expect(signupSection).toContain('captchaToken,');
 });
