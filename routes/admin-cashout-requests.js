@@ -7,7 +7,7 @@
  * Status workflow:
  *   submitted → approved | rejected
  *   approved  → processing → delivered
- *   rejected  releases held points back to partner
+ *   rejected  releases held points and reverses any interrupted redemption
  *   delivered finalises the hold as a permanent redemption
  */
 
@@ -42,6 +42,78 @@ function hasDeliveryEvidence(deliveryDetails) {
   );
 }
 
+function findCashoutRedeem(transactions, cashoutRequest) {
+  const redeemType = partnerService.CREDIT_TYPES.REDEEM;
+  const isMatchingRedeem = transaction =>
+    transaction &&
+    transaction.type === redeemType &&
+    transaction.partnerId === cashoutRequest.partnerId &&
+    transaction.externalRef === cashoutRequest.id;
+
+  if (cashoutRequest.finalRedeemTxnId) {
+    const byStoredId = transactions.find(
+      transaction => transaction.id === cashoutRequest.finalRedeemTxnId && isMatchingRedeem(transaction)
+    );
+    if (byStoredId) return byStoredId;
+  }
+
+  return transactions.find(isMatchingRedeem) || null;
+}
+
+async function reverseInterruptedRedeem(cashoutRequest, transactions, now) {
+  const redeem = findCashoutRedeem(transactions, cashoutRequest);
+  if (!redeem) return null;
+
+  const adjustmentType = partnerService.CREDIT_TYPES.ADJUSTMENT || 'ADJUSTMENT';
+  const existing = transactions.find(
+    transaction =>
+      transaction.type === adjustmentType &&
+      transaction.partnerId === cashoutRequest.partnerId &&
+      transaction.externalRef === redeem.id &&
+      transaction.subtype === 'CASHOUT_REDEEM_REVERSAL'
+  );
+  if (existing) return existing;
+
+  const reversal = {
+    id: uid('ptx'),
+    partnerId: cashoutRequest.partnerId,
+    supplierUserId: null,
+    type: adjustmentType,
+    subtype: 'CASHOUT_REDEEM_REVERSAL',
+    amount: Math.abs(Number(redeem.amount)),
+    notes: `Reversal of interrupted cashout redemption ${redeem.id} for request ${cashoutRequest.id}`,
+    externalRef: redeem.id,
+    createdAt: now,
+  };
+
+  if (!Number.isFinite(reversal.amount) || reversal.amount <= 0) {
+    const error = new Error('The interrupted cashout redemption amount is invalid.');
+    error.code = 'CASHOUT_REDEEM_REVERSAL_INVALID';
+    throw error;
+  }
+
+  const inserted = await dbUnified.insertOne('partner_credit_transactions', reversal);
+  if (!inserted) {
+    const error = new Error('Failed to persist the cashout redemption reversal.');
+    error.code = 'CASHOUT_REDEEM_REVERSAL_WRITE_FAILED';
+    throw error;
+  }
+  return reversal;
+}
+
+async function releaseCashoutHoldOrThrow(cashoutRequest, message) {
+  const releaseResult = await partnerService.releaseCashoutHold(
+    cashoutRequest.holdTxnId,
+    cashoutRequest.partnerId
+  );
+  if (!releaseResult) {
+    const error = new Error(message);
+    error.code = 'CASHOUT_HOLD_RELEASE_FAILED';
+    throw error;
+  }
+  return releaseResult;
+}
+
 async function persistRiskFields(requestId, riskFields) {
   const persisted = await dbUnified.updateOne(
     'partner_cashout_requests',
@@ -55,11 +127,11 @@ async function persistRiskFields(requestId, riskFields) {
   }
 }
 
-async function assessApproval(request, adminInternalNotes, now) {
+async function assessApproval(cashoutRequest, adminInternalNotes, now) {
   const assessment = await partnerAntiAbuse.assessCashout({
-    partnerId: request.partnerId,
-    requestId: request.id,
-    requestedAt: request.createdAt,
+    partnerId: cashoutRequest.partnerId,
+    requestId: cashoutRequest.id,
+    requestedAt: cashoutRequest.createdAt,
   });
   await partnerAntiAbuse.persistAssessment(assessment);
 
@@ -71,7 +143,7 @@ async function assessApproval(request, adminInternalNotes, now) {
   };
 
   if (assessment.blockApproval) {
-    await persistRiskFields(request.id, riskFields);
+    await persistRiskFields(cashoutRequest.id, riskFields);
     const error = new Error(
       'High-risk partner cashout blocked. Reject the request or resolve the underlying fraud signals.'
     );
@@ -81,9 +153,11 @@ async function assessApproval(request, adminInternalNotes, now) {
     throw error;
   }
 
-  const reviewNote = String(adminInternalNotes ?? request.adminInternalNotes ?? '').trim();
+  const reviewNote = String(
+    adminInternalNotes ?? cashoutRequest.adminInternalNotes ?? ''
+  ).trim();
   if (assessment.requiresManualReview && reviewNote.length < 20) {
-    await persistRiskFields(request.id, riskFields);
+    await persistRiskFields(cashoutRequest.id, riskFields);
     const error = new Error(
       'This cashout requires manual review. Add an internal review note of at least 20 characters before approval.'
     );
@@ -125,7 +199,9 @@ router.get('/', async (req, res) => {
       return {
         ...item,
         partnerRefCode: partner ? partner.refCode : null,
-        partnerUser: user ? { name: user.name, email: user.email, company: user.company } : null,
+        partnerUser: user
+          ? { name: user.name, email: user.email, company: user.company }
+          : null,
         deletedUser: !user,
         fraudSummary: {
           riskLevel: item.fraudRiskLevel || 'not_assessed',
@@ -162,15 +238,15 @@ router.get('/:id', async (req, res) => {
     const holdTransaction = cashoutRequest.holdTxnId
       ? transactions.find(item => item.id === cashoutRequest.holdTxnId)
       : null;
-    const redeemTransaction = cashoutRequest.finalRedeemTxnId
-      ? transactions.find(item => item.id === cashoutRequest.finalRedeemTxnId)
-      : null;
+    const redeemTransaction = findCashoutRedeem(transactions, cashoutRequest);
 
     return res.json({
       request: {
         ...cashoutRequest,
         partnerRefCode: partner ? partner.refCode : null,
-        partnerUser: user ? { name: user.name, email: user.email, company: user.company } : null,
+        partnerUser: user
+          ? { name: user.name, email: user.email, company: user.company }
+          : null,
       },
       holdTransaction: holdTransaction || null,
       redeemTransaction: redeemTransaction || null,
@@ -220,7 +296,10 @@ router.patch('/:id', csrfProtection, async (req, res) => {
             code: 'CASHOUT_HOLD_MISSING',
           });
         }
-        if (!Number.isFinite(Number(cashoutRequest.pointsHeld)) || Number(cashoutRequest.pointsHeld) <= 0) {
+        if (
+          !Number.isFinite(Number(cashoutRequest.pointsHeld)) ||
+          Number(cashoutRequest.pointsHeld) <= 0
+        ) {
           return res.status(409).json({
             error: 'The cashout held-points value is invalid.',
             code: 'CASHOUT_POINTS_INVALID',
@@ -243,12 +322,16 @@ router.patch('/:id', csrfProtection, async (req, res) => {
         updates.deliveryDetails = deliveryDetails;
       }
 
-      if (status === 'rejected' && cashoutRequest.holdTxnId) {
-        const releaseResult = await partnerService.releaseCashoutHold(
-          cashoutRequest.holdTxnId,
-          cashoutRequest.partnerId
-        );
-        if (releaseResult) {
+      if (status === 'rejected') {
+        const transactions = (await dbUnified.read('partner_credit_transactions')) || [];
+        const reversal = await reverseInterruptedRedeem(cashoutRequest, transactions, now);
+        if (reversal) updates.finalRedeemReversalTxnId = reversal.id;
+
+        if (cashoutRequest.holdTxnId) {
+          await releaseCashoutHoldOrThrow(
+            cashoutRequest,
+            'Failed to release the cashout hold after rejection.'
+          );
           logger.info(
             `Points released for rejected cashout ${cashoutRequest.id}: holdTxn=${cashoutRequest.holdTxnId}`
           );
@@ -257,25 +340,7 @@ router.patch('/:id', csrfProtection, async (req, res) => {
 
       if (status === 'delivered') {
         const transactions = (await dbUnified.read('partner_credit_transactions')) || [];
-        let existingRedeem = null;
-
-        if (cashoutRequest.finalRedeemTxnId) {
-          existingRedeem = transactions.find(
-            transaction =>
-              transaction.id === cashoutRequest.finalRedeemTxnId &&
-              transaction.type === partnerService.CREDIT_TYPES.REDEEM &&
-              transaction.partnerId === cashoutRequest.partnerId &&
-              transaction.externalRef === cashoutRequest.id
-          );
-        }
-        if (!existingRedeem) {
-          existingRedeem = transactions.find(
-            transaction =>
-              transaction.type === partnerService.CREDIT_TYPES.REDEEM &&
-              transaction.partnerId === cashoutRequest.partnerId &&
-              transaction.externalRef === cashoutRequest.id
-          );
-        }
+        let existingRedeem = findCashoutRedeem(transactions, cashoutRequest);
 
         if (existingRedeem) {
           updates.finalRedeemTxnId = existingRedeem.id;
@@ -296,26 +361,24 @@ router.patch('/:id', csrfProtection, async (req, res) => {
             error.code = 'CASHOUT_REDEEM_WRITE_FAILED';
             throw error;
           }
+          existingRedeem = finalRedeem;
           updates.finalRedeemTxnId = finalRedeem.id;
         }
 
-        const releaseResult = await partnerService.releaseCashoutHold(
-          cashoutRequest.holdTxnId,
-          cashoutRequest.partnerId
+        await releaseCashoutHoldOrThrow(
+          cashoutRequest,
+          'Failed to release the cashout hold after redemption.'
         );
-        if (!releaseResult) {
-          const error = new Error('Failed to release the cashout hold after redemption.');
-          error.code = 'CASHOUT_HOLD_RELEASE_FAILED';
-          throw error;
-        }
       }
     }
 
     if (adminResponseMessage !== undefined) {
-      updates.adminResponseMessage = String(adminResponseMessage).trim().slice(0, 2000) || null;
+      updates.adminResponseMessage =
+        String(adminResponseMessage).trim().slice(0, 2000) || null;
     }
     if (adminInternalNotes !== undefined) {
-      updates.adminInternalNotes = String(adminInternalNotes).trim().slice(0, 2000) || null;
+      updates.adminInternalNotes =
+        String(adminInternalNotes).trim().slice(0, 2000) || null;
     }
 
     const updatedRecord = await dbUnified.updateOne(
@@ -324,7 +387,9 @@ router.patch('/:id', csrfProtection, async (req, res) => {
       { $set: updates }
     );
     if (!updatedRecord) {
-      return res.status(500).json({ error: 'Failed to update cashout request' });
+      const error = new Error('Failed to update cashout request.');
+      error.code = 'CASHOUT_REQUEST_WRITE_FAILED';
+      throw error;
     }
 
     logger.info(
@@ -357,7 +422,9 @@ router.delete('/:id', csrfProtection, async (req, res) => {
       });
     }
 
-    const deleted = await dbUnified.deleteOne('partner_cashout_requests', { id: req.params.id });
+    const deleted = await dbUnified.deleteOne('partner_cashout_requests', {
+      id: req.params.id,
+    });
     if (!deleted) {
       return res.status(500).json({ error: 'Failed to delete cashout request' });
     }
