@@ -74,6 +74,30 @@ async function partnerCaptchaGuard(req, res, next) {
   });
 }
 
+async function markRiskEventRolledBack(riskEvent, userId, reason) {
+  if (!riskEvent?.id) return;
+  try {
+    await dbUnified.updateOne(
+      'partner_abuse_events',
+      { id: riskEvent.id },
+      {
+        $set: {
+          outcome: 'rolled_back',
+          userId,
+          rollbackReason: reason,
+          finalizedAt: new Date().toISOString(),
+        },
+      }
+    );
+  } catch (error) {
+    logger.warn('[PARTNER-REGISTER] Failed to reconcile rolled-back risk event', {
+      riskEventId: riskEvent.id,
+      userId,
+      error: error.message,
+    });
+  }
+}
+
 router.post(
   '/register',
   featureRequired('registration'),
@@ -165,8 +189,9 @@ router.post(
           .json({ error: 'Failed to create partner account. Please try again.' });
       }
 
+      let riskEvent;
       try {
-        await registrationRisk.completeRegistrationRisk(req, user.id);
+        riskEvent = await registrationRisk.completeRegistrationRisk(req, user.id);
       } catch (riskError) {
         logger.error('[PARTNER-REGISTER] Risk metadata failed; rolling back user', {
           userId: user.id,
@@ -188,6 +213,7 @@ router.post(
           error: partnerError.message,
         });
         await dbUnified.deleteOne('users', { id: user.id });
+        await markRiskEventRolledBack(riskEvent, user.id, 'partner_record_creation_failed');
         throw partnerError;
       }
 
