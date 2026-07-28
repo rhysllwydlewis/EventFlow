@@ -50,6 +50,7 @@ const mockAdvancedIntegrity = {
 };
 const mockStripeEvidence = { subscriptionRewardEvidence: jest.fn(async () => ({ eligible: true })) };
 const mockClawback = { revalidatePartnerRewards: jest.fn(async () => ({ checked: 0, clawedBack: 0 })) };
+const mockIndexes = { ensureIndexes: jest.fn(async () => true) };
 
 jest.mock('../../db-unified', () => mockDb);
 jest.mock('../../services/partnerService', () => mockPartnerService);
@@ -58,6 +59,7 @@ jest.mock('../../services/partnerRewardSupplierEvidenceService', () => mockSuppl
 jest.mock('../../services/partnerRewardIntegrityAdvancedService', () => mockAdvancedIntegrity);
 jest.mock('../../services/partnerRewardStripeEvidenceService', () => mockStripeEvidence);
 jest.mock('../../services/partnerRewardIntegrityClawbackService', () => mockClawback);
+jest.mock('../../services/partnerRewardIntegrityIndexService', () => mockIndexes);
 jest.mock('../../utils/logger', () => ({ info: jest.fn(), warn: jest.fn(), error: jest.fn() }));
 
 const runtime = require('../../services/partnerRewardIntegrityRuntime');
@@ -79,6 +81,10 @@ function seedReferral() {
   mockCollections.partner_referrals.push({ id: 'ref_1', partnerId: 'partner_1', supplierUserId: 'supplier_1' });
   mockCollections.partners.push({ id: 'partner_1', userId: 'partner_user', status: 'active' });
 }
+
+test('initializes reward integrity indexes during runtime installation', () => {
+  expect(mockIndexes.ensureIndexes).toHaveBeenCalledTimes(1);
+});
 
 test('allows a package reward only after all evidence and exposure checks pass', async () => {
   seedReferral();
