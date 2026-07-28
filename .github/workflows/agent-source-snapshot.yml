@@ -16,6 +16,7 @@ env:
 
 jobs:
   snapshot:
+    name: Archive PR1 source
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -25,8 +26,7 @@ jobs:
           fetch-depth: 0
 
       - name: Create source archive
-        run: |
-          git archive --format=tar.gz --output=eventflow-source.tar.gz HEAD
+        run: git archive --format=tar.gz --output=eventflow-source.tar.gz HEAD
 
       - name: Upload source archive
         uses: actions/upload-artifact@v4
