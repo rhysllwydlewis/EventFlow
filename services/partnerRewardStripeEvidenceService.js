@@ -119,19 +119,72 @@ async function enrichPaymentInstrument(paymentIntent) {
     });
   }
 
-  if (paymentInstrumentEvidence(enriched).confidence === 'strong') return enriched;
-
   try {
     if (typeof paymentIntent.latest_charge === 'string' && client.charges?.retrieve) {
       enriched.latest_charge = await client.charges.retrieve(paymentIntent.latest_charge);
     }
   } catch (error) {
-    logger.warn('[PARTNER-REWARD-INTEGRITY] Charge fingerprint enrichment failed', {
+    logger.warn('[PARTNER-REWARD-INTEGRITY] Charge integrity enrichment failed', {
       paymentIntentId: paymentIntent.id,
       error: error.message,
     });
   }
   return enriched;
+}
+
+function localAdversePaymentEvidence(payments, paymentIntentId, supplierUserId) {
+  const adverse = (payments || []).find(
+    payment =>
+      payment.userId === supplierUserId &&
+      payment.stripePaymentId === paymentIntentId &&
+      ['refunded', 'disputed', 'chargeback'].includes(payment.status)
+  );
+  if (!adverse) return { eligible: true };
+  const reasonByStatus = {
+    refunded: 'STRIPE_PAYMENT_REFUNDED',
+    disputed: 'STRIPE_PAYMENT_DISPUTED',
+    chargeback: 'STRIPE_PAYMENT_CHARGEBACK',
+  };
+  return {
+    eligible: false,
+    reason: reasonByStatus[adverse.status],
+    evidence: { paymentId: adverse.id || null, status: adverse.status },
+  };
+}
+
+function chargeAdverseEvidence(paymentIntent, minSubscriptionAmount) {
+  const charge =
+    paymentIntent?.latest_charge && typeof paymentIntent.latest_charge === 'object'
+      ? paymentIntent.latest_charge
+      : null;
+  if (!charge) return { eligible: true };
+  if (charge.disputed === true) {
+    return {
+      eligible: false,
+      reason: 'STRIPE_PAYMENT_DISPUTED',
+      evidence: { chargeId: charge.id || null },
+    };
+  }
+  const amountRefunded = Number(charge.amount_refunded || 0);
+  const originalAmount = Number(charge.amount || paymentIntent.amount_received || 0);
+  if (charge.refunded === true || (originalAmount > 0 && amountRefunded >= originalAmount)) {
+    return {
+      eligible: false,
+      reason: 'STRIPE_PAYMENT_REFUNDED',
+      evidence: { chargeId: charge.id || null },
+    };
+  }
+  if (amountRefunded > 0 && originalAmount > 0) {
+    const remaining = (originalAmount - amountRefunded) / 100;
+    if (remaining < minSubscriptionAmount) {
+      return {
+        eligible: false,
+        reason: 'SUBSCRIPTION_PAYMENT_AMOUNT_TOO_LOW_AFTER_REFUND',
+        evidence: { chargeId: charge.id || null, remainingAmount: remaining },
+      };
+    }
+  }
+  return { eligible: true };
 }
 
 function storedEvidence(invoice) {
@@ -141,11 +194,15 @@ function storedEvidence(invoice) {
   return evidence;
 }
 
-async function captureEvidence(invoice, subscription) {
+async function captureEvidence(invoice, subscription, payments = []) {
   const paymentIntentId = invoice?.stripePaymentIntentId;
   if (!paymentIntentId) {
     return { eligible: false, reason: 'STRIPE_PAYMENT_INTENT_MISSING' };
   }
+
+  const localAdverse = localAdversePaymentEvidence(payments, paymentIntentId, invoice.userId);
+  if (!localAdverse.eligible) return localAdverse;
+
   let paymentIntent;
   try {
     paymentIntent = await paymentService.getPaymentIntent(paymentIntentId);
@@ -193,10 +250,8 @@ async function captureEvidence(invoice, subscription) {
   }
 
   const amountReceived = Number(paymentIntent.amount_received) / 100;
-  if (
-    !Number.isFinite(amountReceived) ||
-    amountReceived < baseIntegrity.getConfig().minSubscriptionAmount
-  ) {
+  const minimumAmount = baseIntegrity.getConfig().minSubscriptionAmount;
+  if (!Number.isFinite(amountReceived) || amountReceived < minimumAmount) {
     return {
       eligible: false,
       reason: 'SUBSCRIPTION_PAYMENT_AMOUNT_TOO_LOW',
@@ -208,12 +263,22 @@ async function captureEvidence(invoice, subscription) {
   }
 
   const enrichedPaymentIntent = await enrichPaymentInstrument(paymentIntent);
+  const adverseCharge = chargeAdverseEvidence(enrichedPaymentIntent, minimumAmount);
+  if (!adverseCharge.eligible) return adverseCharge;
+
   const instrument = paymentInstrumentEvidence(enrichedPaymentIntent);
+  const charge =
+    enrichedPaymentIntent.latest_charge && typeof enrichedPaymentIntent.latest_charge === 'object'
+      ? enrichedPaymentIntent.latest_charge
+      : null;
   const evidence = {
     paymentIntentId,
     paymentIntentStatus: paymentIntent.status,
     livemode: true,
     stripeCustomerId: stripeCustomerId || subscription?.stripeCustomerId || null,
+    stripeChargeId: charge?.id || objectId(paymentIntent.latest_charge),
+    chargeDisputed: charge?.disputed === true,
+    amountRefunded: Number(charge?.amount_refunded || 0) / 100,
     amountReceived,
     currency: paymentIntent.currency || invoice.currency || null,
     paymentInstrumentHash: instrument.hash,
@@ -238,10 +303,11 @@ async function captureEvidence(invoice, subscription) {
 
 async function subscriptionRewardEvidence(supplierUserId, invoiceId) {
   const config = getConfig();
-  const [invoice, subscriptions, invoices] = await Promise.all([
+  const [invoice, subscriptions, invoices, payments] = await Promise.all([
     dbUnified.findOne('invoices', { id: invoiceId }),
     dbUnified.read('subscriptions'),
     dbUnified.read('invoices'),
+    dbUnified.read('payments'),
   ]);
   if (!invoice || invoice.userId !== supplierUserId || invoice.status !== 'paid') {
     return { eligible: false, reason: 'QUALIFYING_PAID_SUBSCRIPTION_INVOICE_MISSING' };
@@ -261,7 +327,7 @@ async function subscriptionRewardEvidence(supplierUserId, invoiceId) {
     };
   }
 
-  const captured = await captureEvidence(invoice, subscription);
+  const captured = await captureEvidence(invoice, subscription, payments);
   if (!captured.eligible) return captured;
   const evidence = captured.evidence;
 
@@ -325,6 +391,8 @@ module.exports = {
     paymentInstrumentEvidence,
     fingerprintFromObject,
     objectId,
+    localAdversePaymentEvidence,
+    chargeAdverseEvidence,
     storedEvidence,
     captureEvidence,
     enrichPaymentInstrument,
