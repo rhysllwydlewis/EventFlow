@@ -24,15 +24,16 @@ test('the route mounting path activates partner anti-abuse guards before partner
   expect(mockInstall).toHaveBeenCalledTimes(1);
 });
 
-test('the production index routine installs partner reward and cashout integrity indexes', async () => {
+test('the production index routine installs distinct named integrity indexes', async () => {
   const { addDatabaseIndexes } = require('../../utils/database');
 
   await addDatabaseIndexes();
 
   expect(mockCollection).toHaveBeenCalledWith('partner_credit_transactions');
   expect(mockCreateIndex).toHaveBeenCalledWith(
-    { supplierUserId: 1, type: 1, partnerId: 1 },
+    { partnerId: 1, supplierUserId: 1, type: 1 },
     expect.objectContaining({
+      name: 'uniq_partner_reward_milestone',
       unique: true,
       partialFilterExpression: expect.objectContaining({
         supplierUserId: { $type: 'string' },
@@ -48,11 +49,11 @@ test('the production index routine installs partner reward and cashout integrity
     })
   );
   expect(mockCreateIndex).toHaveBeenCalledWith(
-    { partnerId: 1, idempotencyKey: 1 },
-    expect.objectContaining({ unique: true })
+    { idempotencyKey: 1, partnerId: 1 },
+    expect.objectContaining({ name: 'uniq_partner_cashout_idempotency', unique: true })
   );
   expect(mockCreateIndex).toHaveBeenCalledWith(
     { requestId: 1 },
-    expect.objectContaining({ unique: true })
+    expect.objectContaining({ name: 'uniq_partner_fraud_request', unique: true })
   );
 });
