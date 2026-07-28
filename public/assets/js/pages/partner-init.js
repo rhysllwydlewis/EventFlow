@@ -463,8 +463,18 @@
           return;
         }
 
-        showStatus(status, '✓ Account created! Redirecting to your dashboard…', 'success');
-        setTimeout(() => window.location.replace('/partner/dashboard'), 800);
+        if (data.requiresVerification) {
+          showStatus(
+            status,
+            data.message ||
+              'Account created. Check your email to verify your address before logging in.',
+            'success'
+          );
+          form.reset();
+          return;
+        }
+
+        showStatus(status, '✓ Account created! You can now log in.', 'success');
       } catch (err) {
         showStatus(status, 'Network error. Please try again.', 'error');
       } finally {

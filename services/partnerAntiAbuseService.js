@@ -426,7 +426,6 @@ async function assessCashout({
     addSignal(signals, 'NO_REFERRAL_RECORDS', 40, 'Cashout rewards have no supporting referrals.');
   }
 
-  const partnerCompany = normalise(partnerUser?.company);
   const partnerDomain = emailDomain(partnerUser?.email);
   const supplierDomains = new Map();
   let unverifiedSuppliers = 0;

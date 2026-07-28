@@ -18,5 +18,7 @@ test('partner signup keeps unverified users on the entry page with verification 
 
 test('partner signup does not navigate directly to the dashboard after account creation', () => {
   const signupSection = source.slice(source.indexOf('function initSignupForm()'));
-  expect(signupSection).not.toContain("setTimeout(() => window.location.replace('/partner/dashboard')");
+  expect(signupSection).not.toContain(
+    "setTimeout(() => window.location.replace('/partner/dashboard')"
+  );
 });
