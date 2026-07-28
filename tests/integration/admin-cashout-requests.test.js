@@ -22,41 +22,47 @@ describe('admin cashout request security', () => {
     expect(routeContent).toContain("processing: ['delivered', 'rejected']");
   });
 
-  test('releases holds on rejection and finalises redemption on delivery', () => {
-    expect(routeContent).toContain('releaseCashoutHold');
-    expect(routeContent).toContain('CREDIT_TYPES.REDEEM');
-    expect(routeContent).toContain('externalRef === request.id');
-    expect(routeContent).toContain('request.finalRedeemTxnId');
+  test('runs and persists a fraud assessment before approval', () => {
+    expect(routeContent).toContain('partnerAntiAbuse.assessCashout');
+    expect(routeContent).toContain('partnerAntiAbuse.persistAssessment');
+    expect(routeContent).toContain('PARTNER_CASHOUT_HIGH_RISK');
+    expect(routeContent).toContain('PARTNER_CASHOUT_REVIEW_NOTE_REQUIRED');
+    expect(routeContent).toContain('PARTNER_CASHOUT_RISK_WRITE_FAILED');
   });
 
-  test('persists the permanent redemption before releasing its temporary hold', () => {
-    const deliveryStart = routeContent.lastIndexOf("} else if (status === 'delivered') {");
-    const deliveryBlock = routeContent.slice(deliveryStart);
-    const insertPosition = deliveryBlock.indexOf('const cashoutTxInserted');
-    const releasePosition = deliveryBlock.indexOf('releaseCashoutHold');
-    expect(insertPosition).toBeGreaterThan(-1);
-    expect(releasePosition).toBeGreaterThan(insertPosition);
-    expect(deliveryBlock).toContain('CASHOUT_HOLD_RELEASE_FAILED');
-  });
-
-  test('does not mark a cashout delivered without delivery evidence', () => {
+  test('requires an active hold, a valid amount and delivery evidence', () => {
     expect(routeContent).toContain('CASHOUT_DELIVERY_EVIDENCE_REQUIRED');
-    expect(routeContent).toContain('Delivery evidence is required');
+    expect(routeContent).toContain('CASHOUT_HOLD_MISSING');
+    expect(routeContent).toContain('CASHOUT_POINTS_INVALID');
     expect(routeContent).toContain('deliveryDetails.reference');
   });
 
-  test('fails when the final redemption ledger write does not persist', () => {
-    expect(routeContent).toContain('CASHOUT_REDEEM_WRITE_FAILED');
-    expect(routeContent).toContain('Failed to persist the final cashout redemption');
+  test('persists the permanent redemption before releasing its temporary hold', () => {
+    const deliveryStart = routeContent.indexOf("if (status === 'delivered') {", 7000);
+    const deliveryBlock = routeContent.slice(deliveryStart);
+    const insertPosition = deliveryBlock.indexOf(
+      "insertOne('partner_credit_transactions', finalRedeem)"
+    );
+    const releasePosition = deliveryBlock.indexOf('releaseCashoutHold');
+    expect(insertPosition).toBeGreaterThan(-1);
+    expect(releasePosition).toBeGreaterThan(insertPosition);
+    expect(deliveryBlock).toContain('CASHOUT_REDEEM_WRITE_FAILED');
+    expect(deliveryBlock).toContain('CASHOUT_HOLD_RELEASE_FAILED');
+  });
+
+  test('verifies a stored final redemption before trusting its transaction ID', () => {
+    expect(routeContent).toContain('transaction.id === cashoutRequest.finalRedeemTxnId');
+    expect(routeContent).toContain('transaction.externalRef === cashoutRequest.id');
+    expect(routeContent).toContain('updates.finalRedeemTxnId = existingRedeem.id');
   });
 
   test('returns anti-abuse status codes instead of flattening them into a generic 500', () => {
-    expect(routeContent).toContain('Number(err.statusCode) || 500');
-    expect(routeContent).toContain("code: err.code || 'CASHOUT_UPDATE_FAILED'");
-    expect(routeContent).toContain('assessment: err.assessment || undefined');
+    expect(routeContent).toContain('Number(error.statusCode) || 500');
+    expect(routeContent).toContain("code: error.code || 'CASHOUT_UPDATE_FAILED'");
+    expect(routeContent).toContain('assessment: error.assessment || undefined');
   });
 
-  test('exposes the persisted fraud assessment in cashout detail', () => {
+  test('exposes the persisted fraud assessment in cashout detail and list summaries', () => {
     expect(routeContent).toContain("findOne('partner_fraud_assessments'");
     expect(routeContent).toContain('fraudAssessment: fraudAssessment || null');
     expect(routeContent).toContain('fraudSummary');
@@ -64,7 +70,7 @@ describe('admin cashout request security', () => {
 
   test('only deletes terminal requests and records the action', () => {
     expect(routeContent).toContain("TERMINAL_STATES = ['rejected', 'delivered']");
-    expect(routeContent).toContain('TERMINAL_STATES.includes(request.status)');
+    expect(routeContent).toContain('TERMINAL_STATES.includes(cashoutRequest.status)');
     expect(routeContent).toContain("deleteOne('partner_cashout_requests'");
     expect(routeContent).toContain('deleted cashout request');
   });
