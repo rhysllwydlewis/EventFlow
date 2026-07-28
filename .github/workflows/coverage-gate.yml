@@ -18,7 +18,7 @@ on:
       - '.github/workflows/coverage-gate.yml'
   workflow_dispatch:
 
-# Temporary write permission is required only while PR #1415 applies its integration
+# Temporary write permission is required only while PR #1415 applies its review
 # commits. This workflow is restored to contents:read before the PR is marked ready.
 permissions:
   contents: write
@@ -48,7 +48,9 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Apply second-pass review fixes
-        run: python scripts/apply-partner-pr1-review-fixes.py
+        run: |
+          python scripts/apply-partner-pr1-review-fixes.py
+          python scripts/apply-partner-pr1-hardening.py
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -64,12 +66,16 @@ jobs:
           npx prettier --write \
             services/partnerRegistrationRiskService.js \
             services/partnerAntiAbuseService.js \
-            routes/index.js routes/auth.js db-init.js public/privacy.html package.json \
+            routes/index.js routes/auth.js routes/partner.js db-init.js \
+            public/privacy.html public/partner/index.html package.json \
             public/assets/js/pages/partner-init.js \
             routes/partner-registration-secure.js routes/partner-abuse-appeals.js \
             routes/admin-partner-abuse.js tests/unit/partner-registration-risk.test.js \
+            tests/unit/partner-registration-risk-advanced.test.js \
             tests/unit/partner-registration-secure.test.js \
+            tests/unit/partner-registration-captcha.test.js \
             tests/unit/partner-registration-ui.test.js \
+            tests/unit/partner-routes-integration.test.js \
             tests/unit/partner-anti-abuse-identity.test.js docs/PARTNER_ANTI_ABUSE_PR1.md
 
       - name: Commit review fixes if required
@@ -81,7 +87,7 @@ jobs:
             echo "PR1 review fixes already applied"
             exit 0
           fi
-          git commit -m "fix(partner): apply PR1 second-pass review fixes"
+          git commit -m "fix(partner): complete PR1 identity and device hardening"
           git push origin HEAD:${{ github.event.pull_request.head.ref }}
 
   changed-coverage:
