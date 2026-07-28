@@ -6,11 +6,17 @@ const partnerService = require('./partnerService');
 const integrity = require('./partnerRewardIntegrityService');
 const supplierEvidence = require('./partnerRewardSupplierEvidenceService');
 const advancedIntegrity = require('./partnerRewardIntegrityAdvancedService');
+const exposureSafety = require('./partnerRewardExposureSafetyService');
 const stripeEvidence = require('./partnerRewardStripeEvidenceService');
 const integrityClawback = require('./partnerRewardIntegrityClawbackService');
 const integrityIndexes = require('./partnerRewardIntegrityIndexService');
 
 let installed = false;
+
+const SOFT_SIGNAL_REASONS = new Set([
+  'REVIEW_RING_SHARED_DEVICE_NETWORK',
+  'REVIEW_RING_SHARED_IP',
+]);
 
 const METHOD_CONFIG = Object.freeze({
   awardReferralSignupBonus: {
@@ -31,6 +37,14 @@ const METHOD_CONFIG = Object.freeze({
   },
 });
 
+function ensureIndexesBestEffort() {
+  integrityIndexes.ensureIndexes().catch(error => {
+    logger.warn('[PARTNER-REWARD-INTEGRITY] Reward integrity indexes are not ready yet', {
+      error: error.message,
+    });
+  });
+}
+
 async function resolvePartnerContext(supplierUserId) {
   const referral = await dbUnified.findOne('partner_referrals', { supplierUserId });
   if (!referral) return { referral: null, partner: null };
@@ -38,7 +52,7 @@ async function resolvePartnerContext(supplierUserId) {
   return { referral, partner };
 }
 
-async function recordWithheld({ supplierUserId, partnerId, rewardType, decision }) {
+async function recordDecision({ supplierUserId, partnerId, rewardType, decision, eventType }) {
   try {
     await integrity.recordIntegrityEvent({
       partnerId,
@@ -46,9 +60,10 @@ async function recordWithheld({ supplierUserId, partnerId, rewardType, decision 
       rewardType,
       reason: decision.reason,
       evidence: decision.evidence || {},
+      eventType,
     });
   } catch (error) {
-    logger.warn('[PARTNER-REWARD-INTEGRITY] Failed to persist withheld reward evidence', {
+    logger.warn('[PARTNER-REWARD-INTEGRITY] Failed to persist reward integrity evidence', {
       supplierUserId,
       partnerId,
       rewardType,
@@ -88,7 +103,29 @@ async function evaluateStripeEvidence(methodName, supplierUserId, baseEvidence) 
 
 async function withholdIfInvalid({ decision, supplierUserId, partnerId, rewardType, logMessage }) {
   if (decision.eligible) return false;
-  await recordWithheld({ supplierUserId, partnerId, rewardType, decision });
+  if (SOFT_SIGNAL_REASONS.has(decision.reason)) {
+    await recordDecision({
+      supplierUserId,
+      partnerId,
+      rewardType,
+      decision,
+      eventType: 'reward_risk_signal',
+    });
+    logger.warn('[PARTNER-REWARD-INTEGRITY] Soft reward risk signal recorded without blocking', {
+      supplierUserId,
+      partnerId,
+      rewardType,
+      reason: decision.reason,
+    });
+    return false;
+  }
+  await recordDecision({
+    supplierUserId,
+    partnerId,
+    rewardType,
+    decision,
+    eventType: 'reward_withheld',
+  });
   logger.warn(logMessage, {
     supplierUserId,
     partnerId,
@@ -104,6 +141,7 @@ function installRewardMethodGuards() {
     if (typeof original !== 'function') continue;
 
     partnerService[methodName] = async supplierUserId => {
+      ensureIndexesBestEffort();
       const { referral, partner } = await resolvePartnerContext(supplierUserId);
       if (!referral || !partner) return original(supplierUserId);
 
@@ -209,6 +247,22 @@ function installRewardMethodGuards() {
         return null;
       }
 
+      const pendingDecision = await exposureSafety.pendingExposureDecision({
+        partnerId: partner.id,
+        amount: config.amount,
+      });
+      if (
+        await withholdIfInvalid({
+          decision: pendingDecision,
+          supplierUserId,
+          partnerId: partner.id,
+          rewardType: config.type,
+          logMessage: '[PARTNER-REWARD-INTEGRITY] Reward withheld by pending exposure control',
+        })
+      ) {
+        return null;
+      }
+
       const reward = await original(supplierUserId);
       return reward ? applyRiskMaturity(reward, partner.id, supplierUserId) : reward;
     };
@@ -220,6 +274,7 @@ function installAttributionGuard() {
   if (typeof original !== 'function') return;
 
   partnerService.recordReferral = async input => {
+    ensureIndexesBestEffort();
     const existing = input?.supplierUserId
       ? await dbUnified.findOne('partner_referrals', { supplierUserId: input.supplierUserId })
       : null;
@@ -243,6 +298,7 @@ function installAttributionGuard() {
 }
 
 async function revalidatePartnerRewards(partnerId) {
+  ensureIndexesBestEffort();
   return integrityClawback.revalidatePartnerRewards(partnerId);
 }
 
@@ -250,11 +306,7 @@ function install() {
   if (installed) return;
   installRewardMethodGuards();
   installAttributionGuard();
-  integrityIndexes.ensureIndexes().catch(error => {
-    logger.warn('[PARTNER-REWARD-INTEGRITY] Continuing while index initialization retries later', {
-      error: error.message,
-    });
-  });
+  ensureIndexesBestEffort();
   installed = true;
   logger.info(
     '[PARTNER-REWARD-INTEGRITY] Supplier, payment, qualification, exposure, maturity and attribution guards installed'
@@ -265,10 +317,12 @@ module.exports = {
   install,
   revalidatePartnerRewards,
   METHOD_CONFIG,
+  SOFT_SIGNAL_REASONS,
   _test: {
     resolvePartnerContext,
     applyRiskMaturity,
     evaluateStripeEvidence,
     withholdIfInvalid,
+    ensureIndexesBestEffort,
   },
 };
