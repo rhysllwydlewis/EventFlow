@@ -12,24 +12,24 @@ const mockCollections = {
   partner_fraud_assessments: [],
 };
 
-function matches(item, query) {
+function mockMatches(item, query) {
   return Object.entries(query).every(([key, value]) => item[key] === value);
 }
 
 jest.mock('../../db-unified', () => ({
   read: jest.fn(async collection => mockCollections[collection] || []),
   find: jest.fn(async (collection, query) =>
-    (mockCollections[collection] || []).filter(item => matches(item, query))
+    (mockCollections[collection] || []).filter(item => mockMatches(item, query))
   ),
   findOne: jest.fn(async (collection, query) =>
-    (mockCollections[collection] || []).find(item => matches(item, query)) || null
+    (mockCollections[collection] || []).find(item => mockMatches(item, query)) || null
   ),
   insertOne: jest.fn(async (collection, record) => {
     mockCollections[collection].push(record);
     return record;
   }),
   updateOne: jest.fn(async (collection, query, update) => {
-    const item = (mockCollections[collection] || []).find(candidate => matches(candidate, query));
+    const item = (mockCollections[collection] || []).find(candidate => mockMatches(candidate, query));
     if (!item) return null;
     Object.assign(item, update.$set || update);
     return item;
