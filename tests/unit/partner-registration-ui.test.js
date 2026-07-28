@@ -22,10 +22,13 @@ test('partner signup does not navigate directly to the dashboard after account c
   expect(signupSection).not.toContain("window.location.replace('/partner/dashboard')");
 });
 
-test('partner signup requires an ALTCHA payload before posting registration', () => {
+test('partner signup captures verified ALTCHA state before posting registration', () => {
+  const altchaSection = source.slice(source.indexOf('function initPartnerAltcha()'));
   const signupSection = source.slice(source.indexOf('function initSignupForm()'));
+  expect(altchaSection).toContain("widget.addEventListener('statechange'");
+  expect(altchaSection).toContain("event.detail?.state === 'verified'");
   expect(signupSection).toContain("document.getElementById('partner-reg-altcha-widget')");
-  expect(signupSection).toContain('const captchaToken = readAltchaPayload(altchaWidget)');
+  expect(signupSection).toContain('partnerCaptchaPayload || readAltchaPayload(altchaWidget)');
   expect(signupSection).toContain('if (!captchaToken)');
   expect(signupSection).toContain('captchaToken,');
 });
