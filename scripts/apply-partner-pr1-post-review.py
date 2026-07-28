@@ -1,5 +1,4 @@
 from pathlib import Path
-import json
 
 
 def replace_once(path, old, new):
@@ -167,7 +166,7 @@ test('fails closed when the CAPTCHA verifier is unavailable in production', asyn
   process.env.NODE_ENV = 'production';
   router.initializeDependencies({});
   try {
-    const response = await request(buildApp()).post('/api/partner/register').send(validPayload());
+    const response = await request(app()).post('/api/partner/register').send(body());
     expect(response.status).toBe(503);
     expect(response.body.code).toBe('CAPTCHA_VERIFIER_UNAVAILABLE');
     expect(mockDb.insertOne).not.toHaveBeenCalledWith('users', expect.anything());
