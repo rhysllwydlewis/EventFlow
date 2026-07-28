@@ -108,7 +108,7 @@ test('does nothing when the supplier has no referral attribution', async () => {
   expect(mockDebitPoints).not.toHaveBeenCalled();
 });
 
-test('returns an existing debit for an idempotent retry', async () => {
+test('returns an existing completed debit when historic source records no longer exist', async () => {
   const existing = {
     id: 'ptx_existing',
     type: 'REDEEM',
@@ -124,6 +124,31 @@ test('returns an existing debit for an idempotent retry', async () => {
     })
   ).resolves.toBe(existing);
   expect(mockDebitPoints).not.toHaveBeenCalled();
+});
+
+test('repairs a completed debit when the referral reversal marker was not stored', async () => {
+  seedReward();
+  mockCollections.partner_credit_transactions.push({
+    id: 'ptx_existing',
+    partnerId: 'prt_1',
+    supplierUserId: 'usr_supplier',
+    type: 'REDEEM',
+    subtype: 'PARTNER_REWARD_CLAWBACK',
+    externalRef: 'payment:1',
+    amount: -100,
+  });
+
+  const result = await clawback.clawBackSubscriptionReward({
+    supplierUserId: 'usr_supplier',
+    externalRef: 'payment:1',
+  });
+
+  expect(result).toMatchObject({ id: 'ptx_existing', subtype: 'PARTNER_REWARD_CLAWBACK' });
+  expect(mockDebitPoints).not.toHaveBeenCalled();
+  expect(mockCollections.partner_referrals[0]).toMatchObject({
+    subscriptionRewardReversalRef: 'payment:1',
+    subscriptionRewardReversedAt: expect.any(String),
+  });
 });
 
 test('fails closed when the clawback debit does not persist', async () => {
