@@ -149,3 +149,5 @@ At least monthly during launch, review:
 - unusually concentrated partner referral codes.
 
 Adjust thresholds through configuration only after reviewing evidence. Avoid exposing exact fraud thresholds publicly.
+
+The registration risk layer is deliberately mounted on the authoritative registration routes after normal CSRF and rate-limit controls so malformed or rate-limited traffic does not inflate persistent fraud counters.
