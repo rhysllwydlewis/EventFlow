@@ -5,6 +5,7 @@ const request = require('supertest');
 
 const mockUsers = [];
 const mockDb = {
+  read: jest.fn(async () => ({})),
   findOne: jest.fn(async (collection, query) => {
     if (collection !== 'users') return null;
     return (
@@ -22,6 +23,7 @@ const mockDb = {
     if (index < 0) return null;
     return mockUsers.splice(index, 1)[0];
   }),
+  updateOne: jest.fn(async () => true),
 };
 const mockCreatePartner = jest.fn(async userId => ({
   id: 'prt_1',
@@ -87,27 +89,34 @@ function app() {
   return instance;
 }
 
-beforeEach(() => {
-  mockUsers.splice(0, mockUsers.length);
-  jest.clearAllMocks();
-  mockDb.insertOne.mockImplementation(async (collection, record) => {
-    if (collection === 'users') mockUsers.push(record);
-    return record;
-  });
-  mockCompleteRegistrationRisk.mockResolvedValue({ id: 'event_1' });
-  mockCreatePartner.mockResolvedValue({ id: 'prt_1', refCode: 'P_TEST', status: 'active' });
-  mockSendVerificationEmail.mockResolvedValue({ provider: 'postmark', MessageID: 'msg_1' });
-});
-
-test('creates partners unverified and requires email verification before login', async () => {
-  const response = await request(app()).post('/api/partner/register').send({
+function registrationBody() {
+  return {
     firstName: 'Pat',
     lastName: 'Partner',
     email: 'pat@example.com',
     password: 'Password123',
     location: 'Cardiff',
     company: 'Partner Co',
+  };
+}
+
+beforeEach(() => {
+  mockUsers.splice(0, mockUsers.length);
+  jest.clearAllMocks();
+  router.initializeDependencies({});
+  mockDb.read.mockResolvedValue({});
+  mockDb.insertOne.mockImplementation(async (collection, record) => {
+    if (collection === 'users') mockUsers.push(record);
+    return record;
   });
+  mockDb.updateOne.mockResolvedValue(true);
+  mockCompleteRegistrationRisk.mockResolvedValue({ id: 'event_1' });
+  mockCreatePartner.mockResolvedValue({ id: 'prt_1', refCode: 'P_TEST', status: 'active' });
+  mockSendVerificationEmail.mockResolvedValue({ provider: 'postmark', MessageID: 'msg_1' });
+});
+
+test('creates partners unverified and requires email verification before login', async () => {
+  const response = await request(app()).post('/api/partner/register').send(registrationBody());
 
   expect(response.status).toBe(201);
   expect(response.body).toMatchObject({ ok: true, requiresVerification: true });
@@ -126,13 +135,7 @@ test('creates partners unverified and requires email verification before login',
 
 test('does not create an account when the verification email cannot be sent', async () => {
   mockSendVerificationEmail.mockRejectedValueOnce(new Error('mail unavailable'));
-  const response = await request(app()).post('/api/partner/register').send({
-    firstName: 'Pat',
-    lastName: 'Partner',
-    email: 'pat@example.com',
-    password: 'Password123',
-    location: 'Cardiff',
-  });
+  const response = await request(app()).post('/api/partner/register').send(registrationBody());
   expect(response.status).toBe(500);
   expect(mockUsers).toHaveLength(0);
   expect(mockCreatePartner).not.toHaveBeenCalled();
@@ -140,27 +143,27 @@ test('does not create an account when the verification email cannot be sent', as
 
 test('rolls back the user when risk metadata cannot be persisted', async () => {
   mockCompleteRegistrationRisk.mockRejectedValueOnce(new Error('risk store unavailable'));
-  const response = await request(app()).post('/api/partner/register').send({
-    firstName: 'Pat',
-    lastName: 'Partner',
-    email: 'pat@example.com',
-    password: 'Password123',
-    location: 'Cardiff',
-  });
+  const response = await request(app()).post('/api/partner/register').send(registrationBody());
   expect(response.status).toBe(503);
   expect(mockUsers).toHaveLength(0);
   expect(mockCreatePartner).not.toHaveBeenCalled();
 });
 
-test('rolls back the user if partner record creation fails', async () => {
+test('rolls back user and reconciles the risk event if partner creation fails', async () => {
   mockCreatePartner.mockRejectedValueOnce(new Error('partner insert failed'));
-  const response = await request(app()).post('/api/partner/register').send({
-    firstName: 'Pat',
-    lastName: 'Partner',
-    email: 'pat@example.com',
-    password: 'Password123',
-    location: 'Cardiff',
-  });
+  const response = await request(app()).post('/api/partner/register').send(registrationBody());
+
   expect(response.status).toBe(500);
   expect(mockUsers).toHaveLength(0);
+  expect(mockDb.updateOne).toHaveBeenCalledWith(
+    'partner_abuse_events',
+    { id: 'event_1' },
+    {
+      $set: expect.objectContaining({
+        outcome: 'rolled_back',
+        userId: 'usr_partner_1',
+        rollbackReason: 'partner_record_creation_failed',
+      }),
+    }
+  );
 });
