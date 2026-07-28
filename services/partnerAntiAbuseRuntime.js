@@ -58,11 +58,29 @@ async function reconcileEligibleRewards(partnerId) {
   }
 }
 
+function applyExtendedMaturity(balance) {
+  if (!balance || !Array.isArray(balance.transactions)) return balance;
+  const now = Date.now();
+  let deferred = 0;
+  for (const transaction of balance.transactions) {
+    if (Number(transaction.amount) <= 0 || !transaction.maturesAt) continue;
+    const maturesAt = Date.parse(transaction.maturesAt);
+    if (Number.isFinite(maturesAt) && maturesAt > now) deferred += Number(transaction.amount);
+  }
+  if (!deferred) return balance;
+  return {
+    ...balance,
+    availableBalance: Math.max(0, Number(balance.availableBalance || 0) - deferred),
+    maturingBalance: Number(balance.maturingBalance || 0) + deferred,
+  };
+}
+
 function installBalanceReconciliation() {
   const originalGetBalance = partnerService.getBalance.bind(partnerService);
   partnerService.getBalance = async partnerId => {
+    await partnerRewardIntegrityRuntime.revalidatePartnerRewards(partnerId);
     await reconcileEligibleRewards(partnerId);
-    return originalGetBalance(partnerId);
+    return applyExtendedMaturity(await originalGetBalance(partnerId));
   };
 }
 
@@ -73,7 +91,7 @@ function install() {
   installBalanceReconciliation();
   installed = true;
   logger.info(
-    '[PARTNER-ANTI-ABUSE] Reward eligibility, integrity guards and reconciliation installed'
+    '[PARTNER-ANTI-ABUSE] Reward eligibility, integrity guards, revalidation and reconciliation installed'
   );
 }
 
@@ -81,4 +99,5 @@ module.exports = {
   install,
   reconcileEligibleRewards,
   RECONCILABLE_REWARDS,
+  _test: { applyExtendedMaturity },
 };
