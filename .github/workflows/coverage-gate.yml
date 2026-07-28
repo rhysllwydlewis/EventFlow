@@ -52,6 +52,7 @@ jobs:
           python scripts/apply-partner-pr1-review-fixes.py
           python scripts/apply-partner-pr1-hardening.py
           python scripts/apply-partner-pr1-safety-tuning.py
+          python scripts/apply-partner-pr1-final-review.py
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -67,12 +68,13 @@ jobs:
           npx prettier --write \
             services/partnerRegistrationRiskService.js \
             services/partnerAntiAbuseService.js \
-            routes/index.js routes/auth.js routes/partner.js db-init.js \
+            routes/index.js routes/auth.js routes/partner.js db-init.js utils/database.js \
             public/privacy.html public/partner/index.html package.json \
             public/assets/js/pages/partner-init.js \
             routes/partner-registration-secure.js routes/partner-abuse-appeals.js \
             routes/admin-partner-abuse.js tests/unit/partner-registration-risk.test.js \
             tests/unit/partner-registration-risk-advanced.test.js \
+            tests/unit/partner-registration-final-review.test.js \
             tests/unit/partner-registration-secure.test.js \
             tests/unit/partner-registration-captcha.test.js \
             tests/unit/partner-registration-ui.test.js \
