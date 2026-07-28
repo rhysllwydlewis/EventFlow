@@ -20,6 +20,7 @@ function loadRuntime({ existingTransactions = [], rewardFailure = null, balance 
     return { supplierUserId, type: 'REFERRAL_SIGNUP_BONUS' };
   });
   const mockPartnerService = {
+    CREDIT_MATURITY_DAYS: 30,
     CREDIT_TYPES: {
       REFERRAL_SIGNUP_BONUS: 'REFERRAL_SIGNUP_BONUS',
       PACKAGE_BONUS: 'PACKAGE_BONUS',
@@ -34,9 +35,7 @@ function loadRuntime({ existingTransactions = [], rewardFailure = null, balance 
       balance || { partnerId, availableBalance: 100, maturingBalance: 0, transactions: [] }
     ),
   };
-  const mockAntiAbuse = {
-    installRewardGuards: jest.fn(service => service),
-  };
+  const mockAntiAbuse = { installRewardGuards: jest.fn(service => service) };
   const mockRewardIntegrityRuntime = {
     install: jest.fn(),
     revalidatePartnerRewards: jest.fn(async () => ({ checked: 0, clawedBack: 0 })),
@@ -50,14 +49,7 @@ function loadRuntime({ existingTransactions = [], rewardFailure = null, balance 
   jest.doMock('../../utils/logger', () => mockLogger);
 
   const runtime = require('../../services/partnerAntiAbuseRuntime');
-  return {
-    runtime,
-    mockDb,
-    mockPartnerService,
-    mockAntiAbuse,
-    mockRewardIntegrityRuntime,
-    mockLogger,
-  };
+  return { runtime, mockDb, mockPartnerService, mockAntiAbuse, mockRewardIntegrityRuntime, mockLogger };
 }
 
 describe('partner anti-abuse reward runtime', () => {
@@ -70,9 +62,7 @@ describe('partner anti-abuse reward runtime', () => {
     const { runtime, mockPartnerService, mockAntiAbuse, mockRewardIntegrityRuntime } = loadRuntime();
     runtime.install();
     runtime.install();
-
     const balance = await mockPartnerService.getBalance('prt_1');
-
     expect(mockAntiAbuse.installRewardGuards).toHaveBeenCalledTimes(1);
     expect(mockRewardIntegrityRuntime.install).toHaveBeenCalledTimes(1);
     expect(mockRewardIntegrityRuntime.revalidatePartnerRewards).toHaveBeenCalledWith('prt_1');
@@ -80,41 +70,19 @@ describe('partner anti-abuse reward runtime', () => {
     expect(mockPartnerService.awardPackageBonus).toHaveBeenCalledTimes(2);
     expect(mockPartnerService.awardFirstReviewBonus).toHaveBeenCalledTimes(2);
     expect(mockPartnerService.awardSubscriptionBonus).toHaveBeenCalledTimes(2);
-    expect(balance).toEqual({
-      partnerId: 'prt_1',
-      availableBalance: 100,
-      maturingBalance: 0,
-      transactions: [],
-    });
+    expect(balance).toEqual({ partnerId: 'prt_1', availableBalance: 100, maturingBalance: 0, transactions: [] });
   });
 
   test('does not retry milestone rewards already present in the ledger', async () => {
     const { runtime, mockPartnerService } = loadRuntime({
       existingTransactions: [
-        {
-          partnerId: 'prt_1',
-          supplierUserId: 'usr_supplier_1',
-          type: 'REFERRAL_SIGNUP_BONUS',
-          amount: 5,
-        },
-        {
-          partnerId: 'prt_1',
-          supplierUserId: 'usr_supplier_1',
-          type: 'PACKAGE_BONUS',
-          amount: 10,
-        },
-        {
-          partnerId: 'prt_1',
-          supplierUserId: 'usr_supplier_1',
-          type: 'SUBSCRIPTION_BONUS',
-          amount: 100,
-        },
+        { partnerId: 'prt_1', supplierUserId: 'usr_supplier_1', type: 'REFERRAL_SIGNUP_BONUS', amount: 5 },
+        { partnerId: 'prt_1', supplierUserId: 'usr_supplier_1', type: 'PACKAGE_BONUS', amount: 10 },
+        { partnerId: 'prt_1', supplierUserId: 'usr_supplier_1', type: 'SUBSCRIPTION_BONUS', amount: 100 },
       ],
     });
     runtime.install();
-
     await mockPartnerService.getBalance('prt_1');
-
     expect(mockPartnerService.awardReferralSignupBonus).not.toHaveBeenCalledWith('usr_supplier_1');
     expect(mockPartnerService.awardPackageBonus).not.toHaveBeenCalledWith('usr_supplier_1');
     expect(mockPartnerService.awardSubscriptionBonus).not.toHaveBeenCalledWith('usr_supplier_1');
@@ -126,7 +94,6 @@ describe('partner anti-abuse reward runtime', () => {
     const failure = new Error('temporary reward failure');
     const { runtime, mockPartnerService, mockLogger } = loadRuntime({ rewardFailure: failure });
     runtime.install();
-
     await expect(mockPartnerService.getBalance('prt_1')).resolves.toEqual({
       partnerId: 'prt_1',
       availableBalance: 100,
@@ -144,25 +111,36 @@ describe('partner anti-abuse reward runtime', () => {
     );
   });
 
-  test('keeps a risk-extended reward out of available balance until its explicit maturity date', async () => {
+  test('keeps a base-matured reward unavailable until its explicit risk maturity date', async () => {
     const futureMaturity = new Date(Date.now() + 7 * 86400000).toISOString();
+    const createdAt = new Date(Date.now() - 40 * 86400000).toISOString();
     const { runtime, mockPartnerService } = loadRuntime({
       balance: {
         partnerId: 'prt_1',
         availableBalance: 115,
         maturingBalance: 0,
-        transactions: [
-          {
-            id: 'ptx_reward',
-            type: 'FIRST_REVIEW_BONUS',
-            amount: 15,
-            maturesAt: futureMaturity,
-          },
-        ],
+        transactions: [{ id: 'ptx_reward', type: 'FIRST_REVIEW_BONUS', amount: 15, createdAt, maturesAt: futureMaturity }],
       },
     });
     runtime.install();
+    await expect(mockPartnerService.getBalance('prt_1')).resolves.toMatchObject({
+      availableBalance: 100,
+      maturingBalance: 15,
+    });
+  });
 
+  test('does not double-count a reward already inside the normal 30-day maturing balance', async () => {
+    const futureMaturity = new Date(Date.now() + 40 * 86400000).toISOString();
+    const createdAt = new Date(Date.now() - 10 * 86400000).toISOString();
+    const { runtime, mockPartnerService } = loadRuntime({
+      balance: {
+        partnerId: 'prt_1',
+        availableBalance: 100,
+        maturingBalance: 15,
+        transactions: [{ id: 'ptx_reward', type: 'FIRST_REVIEW_BONUS', amount: 15, createdAt, maturesAt: futureMaturity }],
+      },
+    });
+    runtime.install();
     await expect(mockPartnerService.getBalance('prt_1')).resolves.toMatchObject({
       availableBalance: 100,
       maturingBalance: 15,
