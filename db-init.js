@@ -163,7 +163,9 @@ async function initializeDatabase() {
         for (const index of indexes) {
           try {
             await collection.createIndex(index.keys, index.options);
-            logger.info(`  ✓ Ensured index on ${name}: ${index.options.name || Object.keys(index.keys).join('_')}`);
+            logger.info(
+              `  ✓ Ensured index on ${name}: ${index.options.name || Object.keys(index.keys).join('_')}`
+            );
           } catch (error) {
             if (error.code !== 85 && error.code !== 86) {
               logger.warn(`  ⚠ Could not create index on ${name}:`, error.message);

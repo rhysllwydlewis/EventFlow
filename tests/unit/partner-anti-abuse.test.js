@@ -21,15 +21,18 @@ jest.mock('../../db-unified', () => ({
   find: jest.fn(async (collection, query) =>
     (mockCollections[collection] || []).filter(item => mockMatches(item, query))
   ),
-  findOne: jest.fn(async (collection, query) =>
-    (mockCollections[collection] || []).find(item => mockMatches(item, query)) || null
+  findOne: jest.fn(
+    async (collection, query) =>
+      (mockCollections[collection] || []).find(item => mockMatches(item, query)) || null
   ),
   insertOne: jest.fn(async (collection, record) => {
     mockCollections[collection].push(record);
     return record;
   }),
   updateOne: jest.fn(async (collection, query, update) => {
-    const item = (mockCollections[collection] || []).find(candidate => mockMatches(candidate, query));
+    const item = (mockCollections[collection] || []).find(candidate =>
+      mockMatches(candidate, query)
+    );
     if (!item) return null;
     Object.assign(item, update.$set || update);
     return item;
@@ -153,7 +156,8 @@ describe('partner reward eligibility', () => {
   ])('rejects %s supplier activity', async (scenario, reason) => {
     seedHealthyPartner();
     const supplier = mockCollections.users.find(user => user.id === 'usr_supplier');
-    if (scenario === 'missing') mockCollections.users.splice(mockCollections.users.indexOf(supplier), 1);
+    if (scenario === 'missing')
+      mockCollections.users.splice(mockCollections.users.indexOf(supplier), 1);
     if (scenario === 'unverified') supplier.verified = false;
     if (scenario === 'company') supplier.company = '';
     if (scenario === 'referral') mockCollections.partner_referrals.splice(0, 1);
@@ -274,13 +278,13 @@ describe('partner cashout assessment', () => {
     mockCollections.users.find(user => user.id === 'usr_supplier').verified = false;
     mockCollections.suppliers[0].approved = false;
 
-    const result = await antiAbuse.assessCashout({ partnerId: 'prt_1', requestId: 'pcr_adjustment' });
+    const result = await antiAbuse.assessCashout({
+      partnerId: 'prt_1',
+      requestId: 'pcr_adjustment',
+    });
 
     expect(result.signals.map(signal => signal.code)).not.toEqual(
-      expect.arrayContaining([
-        'UNVERIFIED_REFERRED_SUPPLIERS',
-        'UNAPPROVED_SUPPLIER_PROFILES',
-      ])
+      expect.arrayContaining(['UNVERIFIED_REFERRED_SUPPLIERS', 'UNAPPROVED_SUPPLIER_PROFILES'])
     );
     expect(result.metrics.rewardedReferralCount).toBe(0);
   });

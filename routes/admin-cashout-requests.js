@@ -52,7 +52,8 @@ function findCashoutRedeem(transactions, cashoutRequest) {
 
   if (cashoutRequest.finalRedeemTxnId) {
     const byStoredId = transactions.find(
-      transaction => transaction.id === cashoutRequest.finalRedeemTxnId && isMatchingRedeem(transaction)
+      transaction =>
+        transaction.id === cashoutRequest.finalRedeemTxnId && isMatchingRedeem(transaction)
     );
     if (byStoredId) return byStoredId;
   }
@@ -153,9 +154,7 @@ async function assessApproval(cashoutRequest, adminInternalNotes, now) {
     throw error;
   }
 
-  const reviewNote = String(
-    adminInternalNotes ?? cashoutRequest.adminInternalNotes ?? ''
-  ).trim();
+  const reviewNote = String(adminInternalNotes ?? cashoutRequest.adminInternalNotes ?? '').trim();
   if (assessment.requiresManualReview && reviewNote.length < 20) {
     await persistRiskFields(cashoutRequest.id, riskFields);
     const error = new Error(
@@ -199,9 +198,7 @@ router.get('/', async (req, res) => {
       return {
         ...item,
         partnerRefCode: partner ? partner.refCode : null,
-        partnerUser: user
-          ? { name: user.name, email: user.email, company: user.company }
-          : null,
+        partnerUser: user ? { name: user.name, email: user.email, company: user.company } : null,
         deletedUser: !user,
         fraudSummary: {
           riskLevel: item.fraudRiskLevel || 'not_assessed',
@@ -244,9 +241,7 @@ router.get('/:id', async (req, res) => {
       request: {
         ...cashoutRequest,
         partnerRefCode: partner ? partner.refCode : null,
-        partnerUser: user
-          ? { name: user.name, email: user.email, company: user.company }
-          : null,
+        partnerUser: user ? { name: user.name, email: user.email, company: user.company } : null,
       },
       holdTransaction: holdTransaction || null,
       redeemTransaction: redeemTransaction || null,
@@ -373,12 +368,10 @@ router.patch('/:id', csrfProtection, async (req, res) => {
     }
 
     if (adminResponseMessage !== undefined) {
-      updates.adminResponseMessage =
-        String(adminResponseMessage).trim().slice(0, 2000) || null;
+      updates.adminResponseMessage = String(adminResponseMessage).trim().slice(0, 2000) || null;
     }
     if (adminInternalNotes !== undefined) {
-      updates.adminInternalNotes =
-        String(adminInternalNotes).trim().slice(0, 2000) || null;
+      updates.adminInternalNotes = String(adminInternalNotes).trim().slice(0, 2000) || null;
     }
 
     const updatedRecord = await dbUnified.updateOne(

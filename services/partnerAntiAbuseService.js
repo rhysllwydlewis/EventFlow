@@ -41,7 +41,9 @@ function normalise(value) {
 }
 
 function emailDomain(email) {
-  const value = String(email || '').trim().toLowerCase();
+  const value = String(email || '')
+    .trim()
+    .toLowerCase();
   return value.includes('@') ? value.split('@').pop() : '';
 }
 
@@ -67,13 +69,13 @@ function assessmentId(partnerId, requestId) {
 function isMeaningfulPackage(pkg) {
   return Boolean(
     pkg &&
-      pkg.approved === true &&
-      pkg.paused !== true &&
-      String(pkg.title || '').trim().length >= 3 &&
-      String(pkg.price || '').trim() &&
-      String(pkg.primaryCategoryKey || '').trim() &&
-      Array.isArray(pkg.eventTypes) &&
-      pkg.eventTypes.length > 0
+    pkg.approved === true &&
+    pkg.paused !== true &&
+    String(pkg.title || '').trim().length >= 3 &&
+    String(pkg.price || '').trim() &&
+    String(pkg.primaryCategoryKey || '').trim() &&
+    Array.isArray(pkg.eventTypes) &&
+    pkg.eventTypes.length > 0
   );
 }
 
@@ -177,7 +179,13 @@ async function supplierRewardEligibility(supplierUserId, methodName = 'awardRefe
 
   const approvedProfiles = await getApprovedSupplierProfiles(supplierUserId);
   if (!approvedProfiles.length) {
-    return { eligible: false, reason: 'SUPPLIER_PROFILE_NOT_APPROVED', supplier, referral, partner };
+    return {
+      eligible: false,
+      reason: 'SUPPLIER_PROFILE_NOT_APPROVED',
+      supplier,
+      referral,
+      partner,
+    };
   }
 
   if (methodName === 'awardPackageBonus') {
@@ -224,7 +232,11 @@ function installRewardGuards(partnerService = require('./partnerService')) {
   return partnerService;
 }
 
-async function assessCashout({ partnerId, requestId = null, requestedAt = new Date().toISOString() }) {
+async function assessCashout({
+  partnerId,
+  requestId = null,
+  requestedAt = new Date().toISOString(),
+}) {
   const [partners, users, referrals, transactions, requests, suppliers, packages, reviews] =
     await Promise.all([
       dbUnified.read('partners'),
@@ -283,14 +295,16 @@ async function assessCashout({ partnerId, requestId = null, requestedAt = new Da
   }
 
   const partnerAgeHours = partner?.createdAt ? hoursBetween(partner.createdAt, requestedAt) : null;
-  if (
-    firstDeliveredCashout &&
-    partnerAgeHours !== null &&
-    partnerAgeHours < RAPID_CASHOUT_HOURS
-  ) {
-    addSignal(signals, 'RAPID_FIRST_CASHOUT', 35, 'Cashout requested shortly after partner signup.', {
-      partnerAgeHours: Math.round(partnerAgeHours * 10) / 10,
-    });
+  if (firstDeliveredCashout && partnerAgeHours !== null && partnerAgeHours < RAPID_CASHOUT_HOURS) {
+    addSignal(
+      signals,
+      'RAPID_FIRST_CASHOUT',
+      35,
+      'Cashout requested shortly after partner signup.',
+      {
+        partnerAgeHours: Math.round(partnerAgeHours * 10) / 10,
+      }
+    );
   }
   if (rewardTransactions.length > 0 && partnerReferrals.length === 0) {
     addSignal(signals, 'NO_REFERRAL_RECORDS', 40, 'Cashout rewards have no supporting referrals.');
@@ -430,8 +444,7 @@ async function assessCashout({ partnerId, requestId = null, requestedAt = new Da
   }
 
   const orphanRewardSuppliers = [...rewardedSupplierIds].filter(
-    supplierUserId =>
-      !partnerReferrals.some(referral => referral.supplierUserId === supplierUserId)
+    supplierUserId => !partnerReferrals.some(referral => referral.supplierUserId === supplierUserId)
   );
   if (orphanRewardSuppliers.length) {
     addSignal(
@@ -443,7 +456,10 @@ async function assessCashout({ partnerId, requestId = null, requestedAt = new Da
     );
   }
 
-  const score = Math.min(100, signals.reduce((total, signal) => total + signal.score, 0));
+  const score = Math.min(
+    100,
+    signals.reduce((total, signal) => total + signal.score, 0)
+  );
   const result = {
     id: assessmentId(partnerId, requestId),
     partnerId,

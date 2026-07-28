@@ -10,8 +10,9 @@ function matches(item, query) {
 }
 
 const mockDb = {
-  findOne: jest.fn(async (collection, query) =>
-    (mockCollections[collection] || []).find(item => matches(item, query)) || null
+  findOne: jest.fn(
+    async (collection, query) =>
+      (mockCollections[collection] || []).find(item => matches(item, query)) || null
   ),
   updateOne: jest.fn(async (collection, query, update) => {
     const item = (mockCollections[collection] || []).find(candidate => matches(candidate, query));

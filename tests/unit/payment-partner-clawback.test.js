@@ -72,9 +72,9 @@ test('propagates clawback failures so Stripe can retry the webhook', async () =>
     new Error('clawback audit write failed')
   );
 
-  await expect(
-    paymentService.updatePaymentRecord('pay_1', { status: 'refunded' })
-  ).rejects.toThrow('clawback audit write failed');
+  await expect(paymentService.updatePaymentRecord('pay_1', { status: 'refunded' })).rejects.toThrow(
+    'clawback audit write failed'
+  );
   expect(mockLogger.error).toHaveBeenCalledWith(
     '[PARTNER-ANTI-ABUSE] Automatic reward clawback failed',
     expect.objectContaining({

@@ -21,8 +21,9 @@ const mockDb = {
   find: jest.fn(async (collection, query) =>
     (mockCollections[collection] || []).filter(item => matches(item, query))
   ),
-  findOne: jest.fn(async (collection, query) =>
-    (mockCollections[collection] || []).find(item => matches(item, query)) || null
+  findOne: jest.fn(
+    async (collection, query) =>
+      (mockCollections[collection] || []).find(item => matches(item, query)) || null
   ),
   insertOne: jest.fn(async (collection, record) => {
     mockCollections[collection].push(record);
@@ -182,19 +183,25 @@ test('requires an established independent verified customer for review evidence'
 
   mockCollections.users.find(user => user.id === 'usr_customer').createdAt = hoursAgo(61);
   mockCollections.reviews[0].createdAt = hoursAgo(60);
-  await expect(antiAbuse.reviewRewardEvidence('usr_supplier', 'usr_partner')).resolves.toMatchObject({
+  await expect(
+    antiAbuse.reviewRewardEvidence('usr_supplier', 'usr_partner')
+  ).resolves.toMatchObject({
     eligible: false,
     reason: 'INDEPENDENT_VERIFIED_REVIEW_MISSING',
   });
 
   mockCollections.users.find(user => user.id === 'usr_customer').createdAt = null;
-  await expect(antiAbuse.reviewRewardEvidence('usr_supplier', 'usr_partner')).resolves.toMatchObject({
+  await expect(
+    antiAbuse.reviewRewardEvidence('usr_supplier', 'usr_partner')
+  ).resolves.toMatchObject({
     eligible: false,
   });
 
   mockCollections.users.find(user => user.id === 'usr_customer').createdAt = hoursAgo(120);
   mockCollections.reviews[0].flagged = true;
-  await expect(antiAbuse.reviewRewardEvidence('usr_supplier', 'usr_partner')).resolves.toMatchObject({
+  await expect(
+    antiAbuse.reviewRewardEvidence('usr_supplier', 'usr_partner')
+  ).resolves.toMatchObject({
     eligible: false,
   });
 });

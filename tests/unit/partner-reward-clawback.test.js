@@ -6,10 +6,11 @@ const mockCollections = {
 };
 
 jest.mock('../../db-unified', () => ({
-  findOne: jest.fn(async (collection, query) =>
-    (mockCollections[collection] || []).find(item =>
-      Object.entries(query).every(([key, value]) => item[key] === value)
-    ) || null
+  findOne: jest.fn(
+    async (collection, query) =>
+      (mockCollections[collection] || []).find(item =>
+        Object.entries(query).every(([key, value]) => item[key] === value)
+      ) || null
   ),
   updateOne: jest.fn(async (collection, query, update) => {
     const item = (mockCollections[collection] || []).find(candidate =>

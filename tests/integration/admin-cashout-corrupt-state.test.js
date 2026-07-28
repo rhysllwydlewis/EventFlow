@@ -17,8 +17,9 @@ function matches(item, query) {
 
 const mockDb = {
   read: jest.fn(async collection => mockCollections[collection] || []),
-  findOne: jest.fn(async (collection, query) =>
-    (mockCollections[collection] || []).find(item => matches(item, query)) || null
+  findOne: jest.fn(
+    async (collection, query) =>
+      (mockCollections[collection] || []).find(item => matches(item, query)) || null
   ),
   insertOne: jest.fn(async (collection, record) => {
     mockCollections[collection].push(record);
@@ -194,12 +195,10 @@ test('fails closed when blocked-risk fields cannot be stored', async () => {
   };
   mockDb.updateOne.mockResolvedValueOnce(null);
 
-  const response = await request(buildApp())
-    .patch('/api/admin/cashout-requests/pcr_corrupt')
-    .send({
-      status: 'approved',
-      adminInternalNotes: 'The identity evidence remains unresolved after manual review.',
-    });
+  const response = await request(buildApp()).patch('/api/admin/cashout-requests/pcr_corrupt').send({
+    status: 'approved',
+    adminInternalNotes: 'The identity evidence remains unresolved after manual review.',
+  });
 
   expect(response.status).toBe(500);
   expect(response.body.code).toBe('PARTNER_CASHOUT_RISK_WRITE_FAILED');

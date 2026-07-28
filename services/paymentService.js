@@ -284,7 +284,11 @@ async function updatePaymentRecord(paymentId, updates) {
   }
 
   const paymentUpdates = { ...updates, updatedAt: new Date().toISOString() };
-  const persisted = await dbUnified.updateOne('payments', { id: paymentId }, { $set: paymentUpdates });
+  const persisted = await dbUnified.updateOne(
+    'payments',
+    { id: paymentId },
+    { $set: paymentUpdates }
+  );
   if (!persisted) {
     const error = new Error('Payment update did not persist');
     error.code = 'PAYMENT_UPDATE_WRITE_FAILED';

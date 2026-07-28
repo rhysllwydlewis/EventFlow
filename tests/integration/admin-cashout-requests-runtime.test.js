@@ -17,8 +17,9 @@ function matches(item, query) {
 
 const mockDb = {
   read: jest.fn(async collection => mockCollections[collection] || []),
-  findOne: jest.fn(async (collection, query) =>
-    (mockCollections[collection] || []).find(item => matches(item, query)) || null
+  findOne: jest.fn(
+    async (collection, query) =>
+      (mockCollections[collection] || []).find(item => matches(item, query)) || null
   ),
   insertOne: jest.fn(async (collection, record) => {
     mockCollections[collection].push(record);
@@ -236,12 +237,10 @@ test('blocks high-risk approval even when an administrator supplies a review not
     signals: [{ code: 'POSSIBLE_SELF_REFERRAL' }],
   };
 
-  const response = await request(buildApp())
-    .patch('/api/admin/cashout-requests/pcr_1')
-    .send({
-      status: 'approved',
-      adminInternalNotes: 'Reviewed the records but the identity overlap remains unresolved.',
-    });
+  const response = await request(buildApp()).patch('/api/admin/cashout-requests/pcr_1').send({
+    status: 'approved',
+    adminInternalNotes: 'Reviewed the records but the identity overlap remains unresolved.',
+  });
 
   expect(response.status).toBe(409);
   expect(response.body).toMatchObject({
@@ -261,12 +260,10 @@ test('approves a reviewed cashout and stores its fraud evidence', async () => {
     signals: [{ code: 'FIRST_CASHOUT' }],
   };
 
-  const response = await request(buildApp())
-    .patch('/api/admin/cashout-requests/pcr_1')
-    .send({
-      status: 'approved',
-      adminInternalNotes: 'Checked supplier identity, package evidence and the Stripe payment.',
-    });
+  const response = await request(buildApp()).patch('/api/admin/cashout-requests/pcr_1').send({
+    status: 'approved',
+    adminInternalNotes: 'Checked supplier identity, package evidence and the Stripe payment.',
+  });
 
   expect(response.status).toBe(200);
   expect(response.body.request).toMatchObject({
