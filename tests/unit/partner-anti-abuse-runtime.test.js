@@ -1,6 +1,6 @@
 'use strict';
 
-function loadRuntime({ existingTransactions = [], rewardFailure = null } = {}) {
+function loadRuntime({ existingTransactions = [], rewardFailure = null, balance = null } = {}) {
   jest.resetModules();
 
   const mockDb = {
@@ -30,13 +30,16 @@ function loadRuntime({ existingTransactions = [], rewardFailure = null } = {}) {
     awardPackageBonus: jest.fn(async () => null),
     awardFirstReviewBonus: jest.fn(async () => null),
     awardSubscriptionBonus: jest.fn(async () => null),
-    getBalance: jest.fn(async partnerId => ({ partnerId, availableBalance: 100 })),
+    getBalance: jest.fn(async partnerId =>
+      balance || { partnerId, availableBalance: 100, maturingBalance: 0, transactions: [] }
+    ),
   };
   const mockAntiAbuse = {
     installRewardGuards: jest.fn(service => service),
   };
   const mockRewardIntegrityRuntime = {
     install: jest.fn(),
+    revalidatePartnerRewards: jest.fn(async () => ({ checked: 0, clawedBack: 0 })),
   };
   const mockLogger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
 
@@ -63,7 +66,7 @@ describe('partner anti-abuse reward runtime', () => {
     jest.clearAllMocks();
   });
 
-  test('installs both reward guard layers once and reconciles safe deferred rewards before balance reads', async () => {
+  test('installs both reward guard layers and revalidates before deferred reward reconciliation', async () => {
     const { runtime, mockPartnerService, mockAntiAbuse, mockRewardIntegrityRuntime } = loadRuntime();
     runtime.install();
     runtime.install();
@@ -72,11 +75,17 @@ describe('partner anti-abuse reward runtime', () => {
 
     expect(mockAntiAbuse.installRewardGuards).toHaveBeenCalledTimes(1);
     expect(mockRewardIntegrityRuntime.install).toHaveBeenCalledTimes(1);
+    expect(mockRewardIntegrityRuntime.revalidatePartnerRewards).toHaveBeenCalledWith('prt_1');
     expect(mockPartnerService.awardReferralSignupBonus).toHaveBeenCalledTimes(2);
     expect(mockPartnerService.awardPackageBonus).toHaveBeenCalledTimes(2);
     expect(mockPartnerService.awardFirstReviewBonus).toHaveBeenCalledTimes(2);
     expect(mockPartnerService.awardSubscriptionBonus).toHaveBeenCalledTimes(2);
-    expect(balance).toEqual({ partnerId: 'prt_1', availableBalance: 100 });
+    expect(balance).toEqual({
+      partnerId: 'prt_1',
+      availableBalance: 100,
+      maturingBalance: 0,
+      transactions: [],
+    });
   });
 
   test('does not retry milestone rewards already present in the ledger', async () => {
@@ -121,6 +130,8 @@ describe('partner anti-abuse reward runtime', () => {
     await expect(mockPartnerService.getBalance('prt_1')).resolves.toEqual({
       partnerId: 'prt_1',
       availableBalance: 100,
+      maturingBalance: 0,
+      transactions: [],
     });
     expect(mockLogger.warn).toHaveBeenCalledWith(
       '[PARTNER-ANTI-ABUSE] Deferred reward reconciliation failed',
@@ -131,5 +142,30 @@ describe('partner anti-abuse reward runtime', () => {
         error: 'temporary reward failure',
       })
     );
+  });
+
+  test('keeps a risk-extended reward out of available balance until its explicit maturity date', async () => {
+    const futureMaturity = new Date(Date.now() + 7 * 86400000).toISOString();
+    const { runtime, mockPartnerService } = loadRuntime({
+      balance: {
+        partnerId: 'prt_1',
+        availableBalance: 115,
+        maturingBalance: 0,
+        transactions: [
+          {
+            id: 'ptx_reward',
+            type: 'FIRST_REVIEW_BONUS',
+            amount: 15,
+            maturesAt: futureMaturity,
+          },
+        ],
+      },
+    });
+    runtime.install();
+
+    await expect(mockPartnerService.getBalance('prt_1')).resolves.toMatchObject({
+      availableBalance: 100,
+      maturingBalance: 15,
+    });
   });
 });
