@@ -209,7 +209,7 @@ async function processRefund(paymentIntentId, amount = null, reason = 'requested
 
 /**
  * Retrieve payment intent
- * @param {string} paymentIntentId - Payment intent ID
+ * @param {string} paymentIntentId - Stripe payment intent ID
  * @returns {Promise<Object>} Payment intent object
  */
 async function getPaymentIntent(paymentIntentId) {
@@ -284,8 +284,35 @@ async function updatePaymentRecord(paymentId, updates) {
   }
 
   const paymentUpdates = { ...updates, updatedAt: new Date().toISOString() };
-  await dbUnified.updateOne('payments', { id: paymentId }, { $set: paymentUpdates });
-  return { ...payment, ...paymentUpdates };
+  const persisted = await dbUnified.updateOne(
+    'payments',
+    { id: paymentId },
+    { $set: paymentUpdates }
+  );
+  if (!persisted) {
+    const error = new Error('Payment update did not persist');
+    error.code = 'PAYMENT_UPDATE_WRITE_FAILED';
+    throw error;
+  }
+
+  const updatedPayment = { ...payment, ...paymentUpdates };
+  if (['refunded', 'disputed', 'chargeback'].includes(updatedPayment.status)) {
+    // Lazy-load to avoid a circular dependency: the clawback service uses partnerService,
+    // which is also used by subscription webhook handlers that import this service.
+    const partnerClawback = require('./partnerRewardClawbackService');
+    try {
+      await partnerClawback.clawBackForPaymentRecord(updatedPayment, updatedPayment.status);
+    } catch (error) {
+      logger.error('[PARTNER-ANTI-ABUSE] Automatic reward clawback failed', {
+        paymentId: payment.id,
+        status: updatedPayment.status,
+        error: error.message,
+      });
+      throw error;
+    }
+  }
+
+  return updatedPayment;
 }
 
 /**

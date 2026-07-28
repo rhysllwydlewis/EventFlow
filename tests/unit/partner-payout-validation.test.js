@@ -57,13 +57,11 @@ jest.mock('../../services/partnerService', () => mockPartnerService);
 const mockDb = {
   read: jest.fn().mockResolvedValue([]),
   find: jest.fn().mockResolvedValue([]),
-  findOne: jest
-    .fn()
-    .mockResolvedValue({
-      id: 'usr_partner_001',
-      name: 'Test Partner',
-      email: 'partner@example.com',
-    }),
+  findOne: jest.fn().mockResolvedValue({
+    id: 'usr_partner_001',
+    name: 'Test Partner',
+    email: 'partner@example.com',
+  }),
   insertOne: jest.fn().mockResolvedValue({ id: 'persisted' }),
   updateOne: jest.fn().mockResolvedValue({ modified: 1 }),
 };

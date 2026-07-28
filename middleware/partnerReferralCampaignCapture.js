@@ -2,6 +2,12 @@
 
 const dbUnified = require('../db-unified');
 const logger = require('../utils/logger');
+const partnerAntiAbuseRuntime = require('../services/partnerAntiAbuseRuntime');
+
+// routes/index.js imports this middleware before loading the partner, package,
+// review and cashout routes. Install the programme guards here so ordinary
+// database utility imports remain side-effect free in workers and tests.
+partnerAntiAbuseRuntime.install();
 
 const CAMPAIGN_FIELDS = ['source', 'medium', 'campaign', 'content', 'term'];
 
