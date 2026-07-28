@@ -30,23 +30,30 @@ function isWithinRevalidationWindow(transaction, now = Date.now()) {
 
 async function clawBackRewardTransaction(transaction, reason) {
   if (!transaction?.id || !transaction.partnerId || !transaction.supplierUserId) return null;
+  const rewardAmount = Math.abs(Number(transaction.amount));
+  if (!Number.isFinite(rewardAmount) || rewardAmount <= 0) {
+    const error = new Error('Partner integrity clawback reward amount is invalid');
+    error.code = 'PARTNER_REWARD_CLAWBACK_AMOUNT_INVALID';
+    throw error;
+  }
+
   const externalRef = `reward-integrity:${transaction.id}`;
   const existing = await dbUnified.findOne('partner_credit_transactions', {
     type: partnerService.CREDIT_TYPES.REDEEM,
     externalRef,
   });
-  if (existing?.subtype === CLAWBACK_SUBTYPE) return existing;
-
   const debit =
     existing ||
     (await partnerService.debitPoints({
       partnerId: transaction.partnerId,
-      amount: Math.abs(Number(transaction.amount) || 0),
+      amount: rewardAmount,
       notes: `Partner reward integrity clawback: ${reason}`,
       externalRef,
     }));
   if (!debit) throw new Error('Partner integrity clawback debit did not persist');
 
+  // Reapply every audit write on retries. This repairs a partial attempt where the
+  // financial debit persisted but one of the later audit markers did not.
   const now = new Date().toISOString();
   const updatedDebit = await dbUnified.updateOne(
     'partner_credit_transactions',
@@ -68,7 +75,7 @@ async function clawBackRewardTransaction(transaction, reason) {
     { id: transaction.id },
     {
       $set: {
-        reversedAt: now,
+        reversedAt: transaction.reversedAt || now,
         reversalTxnId: debit.id,
         reversalReason: reason,
       },
@@ -92,7 +99,7 @@ async function clawBackRewardTransaction(transaction, reason) {
     originalRewardTxnId: transaction.id,
     reason,
   });
-  return { ...debit, subtype: CLAWBACK_SUBTYPE };
+  return { ...debit, subtype: CLAWBACK_SUBTYPE, supplierUserId: transaction.supplierUserId };
 }
 
 async function revalidatePartnerRewards(partnerId) {
