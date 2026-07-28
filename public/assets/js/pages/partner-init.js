@@ -5,6 +5,7 @@
   'use strict';
 
   let csrfToken = '';
+  let partnerCaptchaPayload = null;
 
   async function fetchCsrfToken() {
     if (csrfToken) return csrfToken;
@@ -270,6 +271,21 @@
     return widget.value || null;
   }
 
+  function initPartnerAltcha() {
+    const widget = document.getElementById('partner-reg-altcha-widget');
+    if (!widget) return;
+
+    widget.addEventListener('statechange', event => {
+      if (event.detail?.state === 'verified') {
+        partnerCaptchaPayload = event.detail.payload || readAltchaPayload(widget);
+      } else {
+        partnerCaptchaPayload = null;
+      }
+    });
+
+    partnerCaptchaPayload = readAltchaPayload(widget);
+  }
+
   function initSignupForm() {
     const form = document.getElementById('partner-signup-form');
     const status = document.getElementById('signup-status');
@@ -287,7 +303,7 @@
       const location = form.querySelector('#reg-location')?.value.trim() || '';
       const company = form.querySelector('#reg-company')?.value.trim() || '';
       const altchaWidget = document.getElementById('partner-reg-altcha-widget');
-      const captchaToken = readAltchaPayload(altchaWidget);
+      const captchaToken = partnerCaptchaPayload || readAltchaPayload(altchaWidget);
 
       if (!firstName || !lastName) {
         showStatus(status, 'First and last name are required.', 'error');
@@ -345,6 +361,7 @@
             'success'
           );
           form.reset();
+          partnerCaptchaPayload = null;
           return;
         }
         showStatus(status, '✓ Account created! You can now log in.', 'success');
@@ -364,6 +381,7 @@
     initCapsLockHints();
     initLoginForm();
     initForgotPassword();
+    initPartnerAltcha();
     initSignupForm();
   }
 
