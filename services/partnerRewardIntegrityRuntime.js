@@ -6,6 +6,7 @@ const partnerService = require('./partnerService');
 const integrity = require('./partnerRewardIntegrityService');
 const supplierEvidence = require('./partnerRewardSupplierEvidenceService');
 const advancedIntegrity = require('./partnerRewardIntegrityAdvancedService');
+const stripeEvidence = require('./partnerRewardStripeEvidenceService');
 const integrityClawback = require('./partnerRewardIntegrityClawbackService');
 
 let installed = false;
@@ -79,6 +80,11 @@ async function applyRiskMaturity(transaction, partnerId, supplierUserId) {
   return { ...transaction, maturesAt, maturityExtensionDays: extraDays };
 }
 
+async function evaluateStripeEvidence(methodName, supplierUserId, baseEvidence) {
+  if (methodName !== 'awardSubscriptionBonus') return { eligible: true };
+  return stripeEvidence.subscriptionRewardEvidence(supplierUserId, baseEvidence.invoiceId);
+}
+
 function installRewardMethodGuards() {
   for (const [methodName, config] of Object.entries(METHOD_CONFIG)) {
     const original = partnerService[methodName];
@@ -95,12 +101,7 @@ function installRewardMethodGuards() {
         methodName,
       });
       if (!evidence.eligible) {
-        await recordWithheld({
-          supplierUserId,
-          partnerId: partner.id,
-          rewardType: config.type,
-          decision: evidence,
-        });
+        await recordWithheld({ supplierUserId, partnerId: partner.id, rewardType: config.type, decision: evidence });
         logger.warn('[PARTNER-REWARD-INTEGRITY] Reward withheld by qualification policy', {
           supplierUserId,
           partnerId: partner.id,
@@ -110,17 +111,9 @@ function installRewardMethodGuards() {
         return null;
       }
 
-      const supplierDecision = await supplierEvidence.methodRewardEvidence({
-        supplierUserId,
-        methodName,
-      });
+      const supplierDecision = await supplierEvidence.methodRewardEvidence({ supplierUserId, methodName });
       if (!supplierDecision.eligible) {
-        await recordWithheld({
-          supplierUserId,
-          partnerId: partner.id,
-          rewardType: config.type,
-          decision: supplierDecision,
-        });
+        await recordWithheld({ supplierUserId, partnerId: partner.id, rewardType: config.type, decision: supplierDecision });
         logger.warn('[PARTNER-REWARD-INTEGRITY] Reward withheld by supplier evidence policy', {
           supplierUserId,
           partnerId: partner.id,
@@ -138,17 +131,24 @@ function installRewardMethodGuards() {
         baseEvidence: evidence,
       });
       if (!advancedEvidence.eligible) {
-        await recordWithheld({
-          supplierUserId,
-          partnerId: partner.id,
-          rewardType: config.type,
-          decision: advancedEvidence,
-        });
+        await recordWithheld({ supplierUserId, partnerId: partner.id, rewardType: config.type, decision: advancedEvidence });
         logger.warn('[PARTNER-REWARD-INTEGRITY] Reward withheld by advanced integrity policy', {
           supplierUserId,
           partnerId: partner.id,
           rewardType: config.type,
           reason: advancedEvidence.reason,
+        });
+        return null;
+      }
+
+      const stripeDecision = await evaluateStripeEvidence(methodName, supplierUserId, evidence);
+      if (!stripeDecision.eligible) {
+        await recordWithheld({ supplierUserId, partnerId: partner.id, rewardType: config.type, decision: stripeDecision });
+        logger.warn('[PARTNER-REWARD-INTEGRITY] Reward withheld by Stripe payment evidence policy', {
+          supplierUserId,
+          partnerId: partner.id,
+          rewardType: config.type,
+          reason: stripeDecision.reason,
         });
         return null;
       }
@@ -160,12 +160,7 @@ function installRewardMethodGuards() {
         amount: config.amount,
       });
       if (!capDecision.eligible) {
-        await recordWithheld({
-          supplierUserId,
-          partnerId: partner.id,
-          rewardType: config.type,
-          decision: capDecision,
-        });
+        await recordWithheld({ supplierUserId, partnerId: partner.id, rewardType: config.type, decision: capDecision });
         logger.warn('[PARTNER-REWARD-INTEGRITY] Reward withheld by earning cap', {
           supplierUserId,
           partnerId: partner.id,
@@ -182,12 +177,7 @@ function installRewardMethodGuards() {
         amount: config.amount,
       });
       if (!exposureDecision.eligible) {
-        await recordWithheld({
-          supplierUserId,
-          partnerId: partner.id,
-          rewardType: config.type,
-          decision: exposureDecision,
-        });
+        await recordWithheld({ supplierUserId, partnerId: partner.id, rewardType: config.type, decision: exposureDecision });
         logger.warn('[PARTNER-REWARD-INTEGRITY] Reward withheld by exposure control', {
           supplierUserId,
           partnerId: partner.id,
@@ -240,7 +230,7 @@ function install() {
   installAttributionGuard();
   installed = true;
   logger.info(
-    '[PARTNER-REWARD-INTEGRITY] Supplier evidence, qualification, exposure, maturity and attribution guards installed'
+    '[PARTNER-REWARD-INTEGRITY] Supplier, payment, qualification, exposure, maturity and attribution guards installed'
   );
 }
 
@@ -251,5 +241,6 @@ module.exports = {
   _test: {
     resolvePartnerContext,
     applyRiskMaturity,
+    evaluateStripeEvidence,
   },
 };
