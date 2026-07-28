@@ -88,7 +88,9 @@ beforeEach(() => {
   process.env.PARTNER_ABUSE_ENFORCEMENT_MODE = 'enforce';
   delete process.env.PARTNER_ABUSE_SUSPICIOUS_EMAIL_DOMAINS;
   delete process.env.PARTNER_ABUSE_IP_REGISTRATION_MAX;
+  delete process.env.PARTNER_ABUSE_IP_HARD_REGISTRATION_MAX;
   delete process.env.PARTNER_ABUSE_REFERRAL_REGISTRATION_MAX;
+  delete process.env.PARTNER_ABUSE_REFERRAL_HARD_REGISTRATION_MAX;
   delete process.env.PARTNER_ABUSE_DEVICE_NETWORK_REGISTRATION_MAX;
   delete process.env.PARTNER_ABUSE_HARD_VELOCITY_MULTIPLIER;
 });
@@ -225,10 +227,33 @@ test('company name reuse alone is not enough to become a strong business-identit
   expect(assessment.signalCodes).not.toContain('BUSINESS_IDENTITY_REUSE');
 });
 
-test('sustained same-IP registration velocity reaches a hard abuse limit', async () => {
+test('company and full address reuse is treated as corroborated business identity evidence', async () => {
+  seedPrimaryEvent({
+    email: 'partner@example.com',
+    role: 'partner',
+    body: { company: 'Alpha Events Ltd', address: '10 Example Street, Cardiff' },
+  });
+  const req = makeReq({
+    email: 'supplier@example.net',
+    role: 'supplier',
+    ip: '198.51.100.61',
+    ua: 'Different Browser',
+    body: { company: 'Alpha Events Ltd', addressLine1: '10 Example Street, Cardiff' },
+  });
+  const assessment = await service.assessRegistration({
+    req,
+    email: 'supplier@example.net',
+    role: 'supplier',
+  });
+  expect(assessment.signalCodes).toEqual(
+    expect.arrayContaining(['BUSINESS_IDENTITY_REUSE', 'PARTNER_SUPPLIER_BUSINESS_OVERLAP'])
+  );
+});
+
+test('extreme same-IP velocity reaches the deliberately high hard abuse limit', async () => {
   process.env.PARTNER_ABUSE_IP_REGISTRATION_MAX = '2';
-  process.env.PARTNER_ABUSE_HARD_VELOCITY_MULTIPLIER = '2';
-  for (let index = 0; index < 4; index += 1) {
+  process.env.PARTNER_ABUSE_IP_HARD_REGISTRATION_MAX = '10';
+  for (let index = 0; index < 10; index += 1) {
     seedPrimaryEvent({
       email: `person${index}@example.com`,
       token: `different-device-token-${index}-abcdefghijklmnop`,
@@ -248,10 +273,10 @@ test('sustained same-IP registration velocity reaches a hard abuse limit', async
   expect(assessment.action).toBe('block');
 });
 
-test('sustained referral-code velocity reaches a hard abuse limit independently of shared IPs', async () => {
+test('extreme referral-code velocity can reach a hard abuse limit without a shared IP', async () => {
   process.env.PARTNER_ABUSE_REFERRAL_REGISTRATION_MAX = '2';
-  process.env.PARTNER_ABUSE_HARD_VELOCITY_MULTIPLIER = '2';
-  for (let index = 0; index < 4; index += 1) {
+  process.env.PARTNER_ABUSE_REFERRAL_HARD_REGISTRATION_MAX = '20';
+  for (let index = 0; index < 20; index += 1) {
     seedPrimaryEvent({
       email: `ref${index}@example.com`,
       refCode: 'P_HOT',
