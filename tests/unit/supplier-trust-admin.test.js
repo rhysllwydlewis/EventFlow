@@ -120,6 +120,19 @@ describe('supplier trust admin routes', () => {
     );
   });
 
+  test('retries an optimistic trust write race before auditing the successful change', async () => {
+    updateOne.mockImplementationOnce(async () => false);
+
+    const res = await request(app())
+      .post('/suppliers/sup_1/trust-badges/licence-verified')
+      .send({});
+
+    expect(res.status).toBe(200);
+    expect(updateOne).toHaveBeenCalledTimes(2);
+    expect(data.badges).toContain('licence-verified');
+    expect(auditLog).toHaveBeenCalledTimes(1);
+  });
+
   test('rolls back the public trust change when the audit record cannot be saved', async () => {
     data.badges = ['fast-responder'];
     data.trustVerifications = { dbs: { verified: false } };
@@ -166,15 +179,41 @@ describe('supplier trust admin routes', () => {
     expect(data.trustVerifications.publicLiability).toBeUndefined();
   });
 
-  test('fails before auditing when the trust mutation cannot be persisted', async () => {
-    updateOne.mockImplementationOnce(async () => false);
+  test('does not roll back over a newer decision on the same credential', async () => {
+    auditLog.mockImplementationOnce(async () => {
+      data.trustVerifications.publicLiability = {
+        verified: true,
+        verifiedAt: '2099-01-01T00:00:00.000Z',
+        verifiedBy: 'admin_2',
+      };
+      data.badges = ['public-liability-verified'];
+      return null;
+    });
+
+    const res = await request(app())
+      .post('/suppliers/sup_1/trust-badges/public-liability-verified')
+      .send({});
+
+    expect(res.status).toBe(503);
+    expect(res.body.error).toMatch(/rollback could not be confirmed/i);
+    expect(updateOne).toHaveBeenCalledTimes(1);
+    expect(data.trustVerifications.publicLiability).toMatchObject({
+      verified: true,
+      verifiedAt: '2099-01-01T00:00:00.000Z',
+      verifiedBy: 'admin_2',
+    });
+  });
+
+  test('fails closed before auditing when trust persistence repeatedly loses the write race', async () => {
+    updateOne.mockResolvedValue(false);
 
     const res = await request(app())
       .post('/suppliers/sup_1/trust-badges/licence-verified')
       .send({});
 
-    expect(res.status).toBe(500);
-    expect(res.body.error).toMatch(/persist supplier trust verification/i);
+    expect(res.status).toBe(503);
+    expect(res.body.error).toMatch(/changed while saving/i);
+    expect(updateOne).toHaveBeenCalledTimes(3);
     expect(auditLog).not.toHaveBeenCalled();
   });
 
