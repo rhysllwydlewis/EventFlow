@@ -101,15 +101,22 @@ function safeVerifications(verifications = {}) {
 /**
  * Public trust credentials are admin-confirmed status only. Never expose
  * reviewer identity, notes, certificate numbers or DBS/document contents.
+ *
+ * The existing admin badge assignment API is the canonical manual-control path
+ * for these credentials. Structured trustVerifications remain supported so a
+ * future document workflow can migrate without changing the public contract.
  */
-function safeTrustVerifications(trustVerifications = {}) {
+function safeTrustVerifications(trustVerifications = {}, badges = []) {
   const source =
     trustVerifications && typeof trustVerifications === 'object' ? trustVerifications : {};
-  const safeCredential = value => ({ verified: bool(value?.verified) });
+  const badgeSet = new Set(Array.isArray(badges) ? badges.map(value => text(value, 80)) : []);
+  const verified = (value, badgeId) => bool(value?.verified) || badgeSet.has(badgeId);
   return {
-    publicLiability: safeCredential(source.publicLiability),
-    dbs: safeCredential(source.dbs),
-    licence: safeCredential(source.licence),
+    publicLiability: {
+      verified: verified(source.publicLiability, 'public-liability-verified'),
+    },
+    dbs: { verified: verified(source.dbs, 'dbs-checked') },
+    licence: { verified: verified(source.licence, 'licence-verified') },
   };
 }
 
@@ -187,6 +194,7 @@ function safePublicSupplier(supplier = {}, extras = {}) {
   const exposedOwnerUserId = extra.exposeOwnerUserId === true ? ownerUserId : '';
   const theme = normaliseStoredSupplierTheme(source);
   const profileApproved = bool(source.approved) || source.verificationStatus === 'approved';
+  const badges = safeStringArray(source.badges, 24, 80);
   return {
     id: maybeText(source.id, 100),
     ...(messagingRecipientId ? { messagingRecipientId } : {}),
@@ -249,14 +257,14 @@ function safePublicSupplier(supplier = {}, extras = {}) {
     phoneVerified: bool(source.phoneVerified || source.verifications?.phone?.verified),
     businessVerified: bool(source.businessVerified || source.verifications?.business?.verified),
     verifications: safeVerifications(source.verifications),
-    trustVerifications: safeTrustVerifications(source.trustVerifications),
+    trustVerifications: safeTrustVerifications(source.trustVerifications, badges),
     // Legacy self-declared fields remain in the payload for compatibility, but
     // they must never be rendered as EventFlow verification/trust badges.
     insurance: bool(source.insurance),
     license: maybeText(source.license, 120),
     isFoundingSupplier: bool(source.isFoundingSupplier || source.isFounding || source.founding),
     isFounding: bool(source.isFounding || source.isFoundingSupplier || source.founding),
-    founding: bool(source.founding || source.isFoundingSupplier || source.isFounding),
+    founding: bool(source.founding || source.isFoundingSupplier || source.founding),
     foundingYear: numberOrNull(source.foundingYear),
     featured: bool(source.featured || extra.featuredSupplier),
     featuredSupplier: bool(extra.featuredSupplier || source.featuredSupplier),
@@ -265,7 +273,7 @@ function safePublicSupplier(supplier = {}, extras = {}) {
     subscription: source.subscription?.tier
       ? { tier: maybeText(source.subscription.tier, 40) }
       : undefined,
-    badges: safeStringArray(source.badges, 24, 80),
+    badges,
     badgeDetails: safeBadgeDetails(extra.badgeDetails || source.badgeDetails),
     topPackages: safeTopPackages(source.topPackages),
     isPreview: bool(extra.isPreview),
