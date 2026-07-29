@@ -36,7 +36,18 @@
       !Array.isArray(supplier.socialLinks)
         ? supplier.socialLinks
         : {};
-    return { ...legacy, ...canonical };
+
+    // Preserve a populated legacy value when a migrated record contains an empty
+    // canonical key. Non-empty canonical values still take precedence.
+    const merged = { ...legacy };
+    Object.entries(canonical).forEach(([key, value]) => {
+      if (value) {
+        merged[key] = value;
+      } else if (!merged[key]) {
+        merged[key] = value;
+      }
+    });
+    return merged;
   }
 
   /**
