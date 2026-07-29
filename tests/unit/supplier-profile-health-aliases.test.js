@@ -39,6 +39,18 @@ describe('supplier profile health aliases', () => {
     expect(result.completedItems.map(item => item.id)).toContain('socials');
   });
 
+  test('empty canonical social values do not erase populated legacy values', () => {
+    const result = window.ProfileHealthWidget.calculate({
+      socials: {
+        facebook: 'https://facebook.com/example',
+        instagram: 'https://instagram.com/example',
+      },
+      socialLinks: { facebook: '' },
+    });
+
+    expect(result.completedItems.map(item => item.id)).toContain('socials');
+  });
+
   test('description and banner aliases satisfy their canonical health checks', () => {
     const result = window.ProfileHealthWidget.calculate({
       description_long: 'A'.repeat(120),
