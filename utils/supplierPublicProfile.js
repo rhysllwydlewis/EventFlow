@@ -104,7 +104,7 @@ function safeGalleryItems(source = {}) {
       typeof item === 'string'
         ? item
         : item &&
-          (item.url || item.src || item.thumbnail || item.large || item.original || item.optimized);
+          (item.url || item.large || item.optimized || item.original || item.thumbnail || item.src);
     const url = safeImageUrl(raw);
     if (url && !seen.has(url)) {
       seen.add(url);
