@@ -185,12 +185,7 @@
   }
 
   function profileApproved(supplier) {
-    return Boolean(
-      supplier?.profileApproved ||
-        supplier?.approved ||
-        supplier?.verificationStatus === 'approved' ||
-        supplier?.verified
-    );
+    return supplier?.profileApproved === true || supplier?.approved === true;
   }
 
   function trustCredentialVerified(supplier, key) {
@@ -297,13 +292,26 @@
         verificationRow = row;
       }
     });
-    if (!verificationRow) return;
 
     const extra = [
       ['publicLiability', 'PLI verified'],
       ['dbs', 'DBS checked'],
       ['licence', 'Licence verified'],
     ];
+    const hasExtraVerification = extra.some(([key]) => trustCredentialVerified(supplier, key));
+    if (!verificationRow && hasExtraVerification) {
+      const card = section.querySelector('.sp-badges-section');
+      if (card) {
+        const label = document.createElement('p');
+        label.className = 'sp-badges-group-label';
+        label.textContent = 'Verification';
+        verificationRow = document.createElement('div');
+        verificationRow.className = 'sp-badges-row';
+        card.append(label, verificationRow);
+      }
+    }
+    if (!verificationRow) return;
+
     extra.forEach(([key, label]) => {
       const marker = `trust-${key}`;
       const existing = verificationRow.querySelector(`[data-trust-badge="${marker}"]`);
