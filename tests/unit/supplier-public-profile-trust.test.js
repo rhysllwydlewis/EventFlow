@@ -171,6 +171,22 @@ describe('supplier public profile trust boundary', () => {
     });
   });
 
+  test('blank canonical social keys do not erase populated legacy links', () => {
+    const publicSupplier = safePublicSupplier({
+      id: 'sup_social_migration',
+      socials: {
+        facebook: 'https://facebook.com/example',
+        instagram: 'https://instagram.com/example',
+      },
+      socialLinks: { facebook: '' },
+    });
+
+    expect(publicSupplier.socialLinks).toEqual({
+      facebook: 'https://facebook.com/example',
+      instagram: 'https://instagram.com/example',
+    });
+  });
+
   test('public serializer rejects base64 banner data but accepts stable image routes', () => {
     expect(safeImageUrl('data:image/png;base64,aGVsbG8=')).toBe('');
     expect(safeImageUrl('/api/photos/photo_123')).toBe('/api/photos/photo_123');
