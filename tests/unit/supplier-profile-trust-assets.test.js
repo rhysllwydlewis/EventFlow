@@ -37,4 +37,24 @@ describe('supplier public trust asset wiring', () => {
     expect(source).not.toMatch(/emailVerified\s*\|\|[^\n]*supplier\.verified/);
     expect(source).not.toMatch(/verifications\?\.email\?\.verified\s*\|\|\s*supplier\.verified/);
   });
+
+  test('admin supplier list fixes permission copy without replacing approval refresh behaviour', () => {
+    const source = fs.readFileSync(
+      path.join(root, 'public/assets/js/pages/admin-suppliers-health-consistency.js'),
+      'utf8'
+    );
+
+    expect(source).toContain('originalShowConfirmModal');
+    expect(source).toContain('Public calendar publishing still depends on the supplier category');
+    expect(source).not.toContain('window.location.reload()');
+  });
+
+  test('admin trust diagnostic opens the authorised public preview for unapproved suppliers', () => {
+    const source = fs.readFileSync(
+      path.join(root, 'public/assets/js/pages/admin-supplier-trust-consistency.js'),
+      'utf8'
+    );
+
+    expect(source).toContain('/supplier?id=${encodeURIComponent(supplierId)}&preview=true');
+  });
 });
