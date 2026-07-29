@@ -11,19 +11,16 @@
     {
       id: 'public-liability-verified',
       label: 'Public Liability Insurance',
-      publicLabel: 'PLI verified',
       help: 'Only confirm after EventFlow has reviewed appropriate public liability insurance evidence.',
     },
     {
       id: 'dbs-checked',
       label: 'DBS Check',
-      publicLabel: 'DBS checked',
       help: 'Only confirm that evidence has been checked. Do not store or expose DBS contents in this badge.',
     },
     {
       id: 'licence-verified',
       label: 'Relevant Licence',
-      publicLabel: 'Licence verified',
       help: 'Only confirm where a relevant licence has been independently reviewed by EventFlow.',
     },
   ];
@@ -95,20 +92,24 @@
     if (!supplier) return;
 
     const descriptionValue = findInfoValue('businessInfo', 'Description');
-    if (descriptionValue) {
-      descriptionValue.textContent = canonicalDescription(supplier) || 'No description';
+    const description = canonicalDescription(supplier) || 'No description';
+    if (descriptionValue && descriptionValue.textContent !== description) {
+      descriptionValue.textContent = description;
     }
 
     const health = calculateAdminHealth(supplier);
     document.querySelectorAll('#supplierMeta .supplier-meta-item').forEach(item => {
       const strong = item.querySelector('strong');
       if (strong?.textContent?.trim() === 'Health Score:') {
-        item.innerHTML = `<strong>Health Score:</strong> ${health}/100`;
+        const expected = `Health Score: ${health}/100`;
+        if (item.textContent.replace(/\s+/g, ' ').trim() !== expected) {
+          item.innerHTML = `<strong>Health Score:</strong> ${health}/100`;
+        }
       }
     });
 
     const analyticsHealth = document.getElementById('healthScore');
-    if (analyticsHealth) {
+    if (analyticsHealth && analyticsHealth.textContent !== String(health)) {
       analyticsHealth.textContent = String(health);
     }
   }
@@ -147,10 +148,10 @@
     };
   }
 
-  function statusPill(verified) {
+  function statusPill(verified, positiveLabel = 'Verified', negativeLabel = 'Not verified') {
     return verified
-      ? '<span style="display:inline-block;padding:0.18rem 0.55rem;border-radius:999px;background:#d1fae5;color:#065f46;font-size:0.78rem;font-weight:700;">Verified</span>'
-      : '<span style="display:inline-block;padding:0.18rem 0.55rem;border-radius:999px;background:#f1f5f9;color:#475569;font-size:0.78rem;font-weight:700;">Not verified</span>';
+      ? `<span style="display:inline-block;padding:0.18rem 0.55rem;border-radius:999px;background:#d1fae5;color:#065f46;font-size:0.78rem;font-weight:700;">${AdminShared.escapeHtml(positiveLabel)}</span>`
+      : `<span style="display:inline-block;padding:0.18rem 0.55rem;border-radius:999px;background:#f1f5f9;color:#475569;font-size:0.78rem;font-weight:700;">${AdminShared.escapeHtml(negativeLabel)}</span>`;
   }
 
   function bannerPill(state) {
@@ -183,6 +184,27 @@
     if (!card) return;
 
     const banner = bannerState(supplier);
+    const profileApproved =
+      supplier.approved === true ||
+      supplier.verificationStatus === 'approved' ||
+      supplier.verified === true;
+    const trustState = TRUST_BADGES.map(item => [item.id, isTrustedBadge(item.id)]);
+    const signature = JSON.stringify({
+      profileApproved,
+      bannerTone: banner.tone,
+      bannerLabel: banner.label,
+      bannerValue: asText(supplier.bannerUrl || supplier.coverImage),
+      trustState,
+    });
+
+    // The overview is observed because the primary admin script renders after us.
+    // Do not rebuild this card unless its underlying state actually changed, or
+    // our own DOM writes would recursively trigger the MutationObserver.
+    if (card.dataset.renderSignature === signature) {
+      return;
+    }
+    card.dataset.renderSignature = signature;
+
     const rows = TRUST_BADGES.map(item => {
       const verified = isTrustedBadge(item.id);
       return `
@@ -204,11 +226,6 @@
       `;
     }).join('');
 
-    const profileApproved =
-      supplier.approved === true ||
-      supplier.verificationStatus === 'approved' ||
-      supplier.verified === true;
-
     card.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap;">
         <div>
@@ -223,7 +240,7 @@
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:0.75rem;margin-top:1rem;">
         <div style="padding:0.8rem;border:1px solid #e5e7eb;border-radius:10px;">
           <div class="small" style="color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;">Profile approval</div>
-          <div style="margin-top:0.35rem;">${statusPill(profileApproved)}</div>
+          <div style="margin-top:0.35rem;">${statusPill(profileApproved, 'Approved', 'Not approved')}</div>
         </div>
         <div style="padding:0.8rem;border:1px solid #e5e7eb;border-radius:10px;">
           <div class="small" style="color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;">Banner</div>
