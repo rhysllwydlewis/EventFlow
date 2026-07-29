@@ -243,8 +243,8 @@
           ${scoreData.incompleteItems.map(item => renderChecklistItem(item, false)).join('')}
         </ul>
 
-        <button 
-          class="ef-cta health-cta" 
+        <button
+          class="ef-cta health-cta"
           data-href="/supplier/profile-customization"
           aria-label="Improve your profile to ${scoreData.percentage}%"
         >
