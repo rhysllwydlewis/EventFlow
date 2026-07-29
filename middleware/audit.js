@@ -50,7 +50,15 @@ async function auditLog(params) {
   };
 
   try {
-    await dbUnified.insertOne('audit_logs', logEntry);
+    // dbUnified.insertOne normalises storage failures to null instead of throwing.
+    // Check the return value so callers that need fail-closed auditing can
+    // distinguish a durable audit record from a swallowed database failure.
+    const inserted = await dbUnified.insertOne('audit_logs', logEntry);
+    if (!inserted) {
+      logger.error('[AUDIT ERROR] Audit storage returned no persisted entry');
+      logger.error('[AUDIT ERROR] Failed log entry:', logEntry);
+      return null;
+    }
 
     logger.info(`[AUDIT] ${adminEmail} performed ${action} on ${targetType} ${targetId}`);
 
