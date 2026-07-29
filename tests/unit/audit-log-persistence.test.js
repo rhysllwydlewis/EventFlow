@@ -5,14 +5,14 @@ describe('auditLog persistence result', () => {
     jest.resetModules();
   });
 
-  function loadAudit(insertOne) {
+  function loadAudit(insertOne, uid = jest.fn(() => 'audit_1')) {
     const logger = {
       info: jest.fn(),
       warn: jest.fn(),
       error: jest.fn(),
     };
     jest.doMock('../../db-unified', () => ({
-      uid: jest.fn(() => 'audit_1'),
+      uid,
       insertOne,
       read: jest.fn(async () => []),
     }));
@@ -68,6 +68,21 @@ describe('auditLog persistence result', () => {
     expect(logger.error).toHaveBeenCalledWith(
       '[AUDIT ERROR] Failed to write audit log:',
       'database unavailable'
+    );
+  });
+
+  test('returns null instead of throwing if audit entry ID creation fails', async () => {
+    const insertOne = jest.fn();
+    const uid = jest.fn(() => {
+      throw new Error('uid unavailable');
+    });
+    const { auditLog, logger } = loadAudit(insertOne, uid);
+
+    await expect(auditLog(params)).resolves.toBeNull();
+    expect(insertOne).not.toHaveBeenCalled();
+    expect(logger.error).toHaveBeenCalledWith(
+      '[AUDIT ERROR] Failed to write audit log:',
+      'uid unavailable'
     );
   });
 });
