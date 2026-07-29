@@ -264,7 +264,7 @@ function safePublicSupplier(supplier = {}, extras = {}) {
     license: maybeText(source.license, 120),
     isFoundingSupplier: bool(source.isFoundingSupplier || source.isFounding || source.founding),
     isFounding: bool(source.isFounding || source.isFoundingSupplier || source.founding),
-    founding: bool(source.founding || source.isFoundingSupplier || source.founding),
+    founding: bool(source.founding || source.isFoundingSupplier || source.isFounding),
     foundingYear: numberOrNull(source.foundingYear),
     featured: bool(source.featured || extra.featuredSupplier),
     featuredSupplier: bool(extra.featuredSupplier || source.featuredSupplier),
