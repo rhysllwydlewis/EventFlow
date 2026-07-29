@@ -24,6 +24,20 @@ describe('supplier public profile trust boundary', () => {
     expect(publicSupplier.verifications.email.verified).toBe(false);
   });
 
+  test('profile approval fails closed when only stale legacy approval signals are present', () => {
+    const publicSupplier = safePublicSupplier({
+      id: 'sup_mismatch',
+      name: 'Mismatched Supplier',
+      approved: false,
+      verified: true,
+      verificationStatus: 'approved',
+    });
+
+    expect(publicSupplier.approved).toBe(false);
+    expect(publicSupplier.profileApproved).toBe(false);
+    expect(publicSupplier.emailVerified).toBe(false);
+  });
+
   test('does not promote supplier-entered insurance or licence text into verified trust claims', () => {
     const publicSupplier = safePublicSupplier({
       id: 'sup_self_declared',
@@ -81,6 +95,32 @@ describe('supplier public profile trust boundary', () => {
     expect(JSON.stringify(trust)).not.toContain('Sensitive note');
     expect(JSON.stringify(trust)).not.toContain('POLICY-SECRET');
     expect(JSON.stringify(trust)).not.toContain('admin@example.com');
+  });
+
+  test('mixed-schema profiles retain legacy gallery and social data when canonical containers are empty', () => {
+    const publicSupplier = safePublicSupplier({
+      id: 'sup_migrated',
+      name: 'Migrated Supplier',
+      description_long: '',
+      blurb: 'A useful legacy business description.',
+      photosGallery: [],
+      images: ['/api/photos/legacy_1', '/api/photos/legacy_2'],
+      socialLinks: {},
+      socials: {
+        instagram: 'https://instagram.com/example',
+        facebook: 'https://facebook.com/example',
+      },
+    });
+
+    expect(publicSupplier.description).toBe('A useful legacy business description.');
+    expect(publicSupplier.photosGallery).toEqual([
+      '/api/photos/legacy_1',
+      '/api/photos/legacy_2',
+    ]);
+    expect(publicSupplier.socialLinks).toMatchObject({
+      instagram: 'https://instagram.com/example',
+      facebook: 'https://facebook.com/example',
+    });
   });
 
   test('public serializer rejects base64 banner data but accepts stable image routes', () => {
