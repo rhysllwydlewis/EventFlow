@@ -246,10 +246,9 @@ function safePublicSupplier(supplier = {}, extras = {}) {
     rating,
     averageRating: rating,
     reviewCount,
-    // `verified` is the legacy profile-approval flag. It is deliberately kept
-    // separate from email verification so the public UI cannot claim an email
-    // address was verified merely because an admin approved the listing.
-    verified: bool(source.verified),
+    // `verified` is a legacy profile-approval flag. Preserve its historical
+    // approved fallback for compatibility, but never use it as proof of email verification.
+    verified: bool(source.verified || source.approved),
     approved: profileApproved,
     profileApproved,
     verificationStatus: maybeText(source.verificationStatus, 40),
