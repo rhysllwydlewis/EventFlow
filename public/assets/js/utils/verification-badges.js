@@ -137,13 +137,15 @@ export function renderVerificationBadges(supplier, options = {}) {
         EARNED_TYPE_CLASS[badge.id] || EARNED_TYPE_CLASS[badge.type] || 'badge-custom';
       // For custom badges (no CSS ::before icon), include badge.icon in text.
       // For standard badge types, CSS ::before handles the icon — omit it here.
-      const iconText = cssClass === 'badge-custom' && badge.icon ? `${badge.icon} ` : '';
+      const iconText =
+        cssClass === 'badge-custom' && badge.icon ? `${escapeHtml(badge.icon)} ` : '';
+      const safeName = escapeHtml(badge.name || 'Badge');
       badges.push({
         html: `<span class="badge ${cssClass} ${size === 'small' ? 'badge-sm' : ''}" 
                      title="${escapeHtml(badge.description || badge.name)}" 
                      role="status"
-                     aria-label="${escapeHtml(badge.name)}">
-                 ${iconText}${badge.name}
+                     aria-label="${safeName}">
+                 ${iconText}${safeName}
                </span>`,
         priority: 2,
       });
@@ -151,8 +153,10 @@ export function renderVerificationBadges(supplier, options = {}) {
   }
 
   // Priority 4: Verification Badges (priority: 3 — shown last)
-  // Email Verified
-  if (supplier.emailVerified || supplier.verifications?.email?.verified || supplier.verified) {
+  // Email verification is an explicit fact. `supplier.verified` historically means
+  // profile/business approval in several parts of EventFlow and must never be used
+  // as evidence that the email address itself was verified.
+  if (supplier.emailVerified || supplier.verifications?.email?.verified) {
     if (showAll) {
       badges.push({
         html: `<span class="badge badge-email-verified ${size === 'small' ? 'badge-sm' : ''}" 
@@ -246,23 +250,26 @@ export function renderVerificationSection(supplier) {
     verifications.push({
       icon: '⭐',
       title: 'Founding Supplier',
-      description: 'Original member of the EventFlow platform since 2024',
+      description: 'Early supporter of the EventFlow platform',
       verified: true,
       class: 'founding',
     });
   }
 
   // Email Verification
-  const emailVerified =
-    supplier.emailVerified || supplier.verifications?.email?.verified || supplier.verified;
+  const emailVerified = supplier.emailVerified || supplier.verifications?.email?.verified;
   const emailDate = formatVerificationDate(
-    supplier.verifications?.email?.verifiedAt || supplier.createdAt
+    supplier.verifications?.email?.verifiedAt || supplier.emailVerifiedAt
   );
 
   verifications.push({
     icon: emailVerified ? '✓' : '○',
     title: 'Email Address',
-    description: emailVerified ? `Verified ${emailDate}` : 'Not yet verified',
+    description: emailVerified
+      ? emailDate
+        ? `Verified ${emailDate}`
+        : 'Verified'
+      : 'Not yet verified',
     verified: emailVerified,
     class: 'email',
   });
@@ -274,7 +281,11 @@ export function renderVerificationSection(supplier) {
   verifications.push({
     icon: phoneVerified ? '✓' : '○',
     title: 'Phone Number',
-    description: phoneVerified ? `Verified ${phoneDate}` : 'Not yet verified',
+    description: phoneVerified
+      ? phoneDate
+        ? `Verified ${phoneDate}`
+        : 'Verified'
+      : 'Not yet verified',
     verified: phoneVerified,
     class: 'phone',
   });
@@ -286,7 +297,11 @@ export function renderVerificationSection(supplier) {
   verifications.push({
     icon: businessVerified ? '✓' : '○',
     title: 'Business Documents',
-    description: businessVerified ? `Verified ${businessDate}` : 'Not yet verified',
+    description: businessVerified
+      ? businessDate
+        ? `Verified ${businessDate}`
+        : 'Verified'
+      : 'Not yet verified',
     verified: businessVerified,
     class: 'business',
   });
@@ -354,7 +369,7 @@ export function getVerificationSummary(supplier) {
   }
 
   const checks = [
-    supplier.emailVerified || supplier.verifications?.email?.verified || supplier.verified,
+    supplier.emailVerified || supplier.verifications?.email?.verified,
     supplier.phoneVerified || supplier.verifications?.phone?.verified,
     supplier.businessVerified || supplier.verifications?.business?.verified,
   ];
