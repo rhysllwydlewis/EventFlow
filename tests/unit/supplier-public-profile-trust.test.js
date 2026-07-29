@@ -40,6 +40,25 @@ describe('supplier public profile trust boundary', () => {
     expect(publicSupplier.emailVerified).toBe(false);
   });
 
+  test('top-level verification facts are mirrored into the nested public verification object', () => {
+    const publicSupplier = safePublicSupplier({
+      id: 'sup_top_level_verification',
+      emailVerified: true,
+      phoneVerified: true,
+      businessVerified: true,
+      verifications: {},
+    });
+
+    expect(publicSupplier.emailVerified).toBe(true);
+    expect(publicSupplier.phoneVerified).toBe(true);
+    expect(publicSupplier.businessVerified).toBe(true);
+    expect(publicSupplier.verifications).toEqual({
+      email: { verified: true },
+      phone: { verified: true },
+      business: { verified: true },
+    });
+  });
+
   test('does not expose supplier-entered insurance or licence text as public trust data', () => {
     const publicSupplier = safePublicSupplier({
       id: 'sup_self_declared',
