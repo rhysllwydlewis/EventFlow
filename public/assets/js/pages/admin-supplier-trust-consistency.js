@@ -119,9 +119,7 @@
   }
 
   function isTrustedBadge(item) {
-    const badgeConfirmed = Array.isArray(supplier?.badges) && supplier.badges.includes(item.id);
-    const structuredConfirmed = supplier?.trustVerifications?.[item.key]?.verified === true;
-    return badgeConfirmed || structuredConfirmed;
+    return supplier?.trustVerifications?.[item.key]?.verified === true;
   }
 
   function bannerState(data) {
@@ -298,11 +296,6 @@
       const updated = response?.supplier || {};
       if (Array.isArray(updated.badges)) {
         supplier.badges = updated.badges;
-      } else {
-        const current = new Set(Array.isArray(supplier.badges) ? supplier.badges : []);
-        if (awarding) current.add(badgeId);
-        else current.delete(badgeId);
-        supplier.badges = Array.from(current);
       }
       if (updated.trustVerifications && typeof updated.trustVerifications === 'object') {
         supplier.trustVerifications = updated.trustVerifications;
