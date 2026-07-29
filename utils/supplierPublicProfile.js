@@ -98,6 +98,20 @@ function safeSocialLinks(socialLinks = {}) {
   }, {});
 }
 
+function mergeSocialLinkSources(legacyValue, canonicalValue) {
+  const legacy = plainObject(legacyValue);
+  const canonical = plainObject(canonicalValue);
+  const merged = { ...legacy };
+  for (const [key, value] of Object.entries(canonical)) {
+    // A migrated record can contain a blank canonical key alongside a populated
+    // legacy value. Blank placeholders must not erase real public profile data.
+    if (value || !merged[key]) {
+      merged[key] = value;
+    }
+  }
+  return merged;
+}
+
 function safeGalleryItems(source = {}) {
   const canonical = Array.isArray(source.photosGallery) ? source.photosGallery : [];
   const legacy = Array.isArray(source.images) ? source.images : [];
@@ -214,10 +228,9 @@ function safePublicSupplier(supplier = {}, extras = {}) {
       source.logo
   );
   const website = safeExternalUrl(source.website);
-  const socialLinks = safeSocialLinks({
-    ...plainObject(source.socials),
-    ...plainObject(source.socialLinks),
-  });
+  const socialLinks = safeSocialLinks(
+    mergeSocialLinkSources(source.socials, source.socialLinks)
+  );
   const rating = numberOrNull(source.averageRating ?? source.rating);
   const reviewCount = numberOrNull(source.reviewCount);
   const avgResponseTime = numberOrNull(source.avgResponseTime);
