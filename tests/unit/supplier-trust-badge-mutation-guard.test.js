@@ -3,6 +3,10 @@
 describe('supplier trust badge generic mutation guard', () => {
   beforeEach(() => {
     jest.resetModules();
+    jest.doMock('../../db-unified', () => ({
+      read: jest.fn(),
+      updateOne: jest.fn(),
+    }));
     jest.doMock('../../utils/logger', () => ({
       info: jest.fn(),
       warn: jest.fn(),
