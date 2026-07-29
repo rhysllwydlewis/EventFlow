@@ -139,4 +139,13 @@ describe('supplier banner persistence', () => {
     expect(res.body.supplier.bannerUrl).toBe('');
     expect(res.body.supplier.coverImage).toBe('');
   });
+
+  test('does not report a successful profile update when database persistence fails', async () => {
+    updateOne.mockImplementationOnce(async () => false);
+
+    const res = await request(app()).patch('/sup_1').send({ tagline: 'Updated tagline' });
+
+    expect(res.status).toBe(500);
+    expect(res.body.error).toMatch(/failed to update supplier profile/i);
+  });
 });
