@@ -14,6 +14,20 @@ describe('supplier public trust asset wiring', () => {
     expect(html).toContain('/assets/js/pages/supplier-init.js?v=2.0.0');
   });
 
+  test('supplier init keeps stale public renderers behind the same fail-closed trust boundary', () => {
+    const source = fs.readFileSync(
+      path.join(root, 'public/assets/js/pages/supplier-init.js'),
+      'utf8'
+    );
+
+    expect(source).toContain('supplier.verified = emailVerified');
+    expect(source).toContain('delete supplier.insurance');
+    expect(source).toContain('delete supplier.license');
+    expect(source).toContain("supplier-profile-public-polish.js?v=2.0.0");
+    expect(source).not.toContain("supplier-profile-public-polish.js?v=1.0.0");
+    expect(source).toMatch(/DATA_IMAGE_RE\.test\(raw\)[\s\S]{0,80}return ''/);
+  });
+
   test('shared verification badge utility never treats generic supplier verified as email proof', () => {
     const source = fs.readFileSync(
       path.join(root, 'public/assets/js/utils/verification-badges.js'),
