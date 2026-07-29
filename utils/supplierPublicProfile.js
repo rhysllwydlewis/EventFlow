@@ -223,6 +223,7 @@ function safePublicSupplier(supplier = {}, extras = {}) {
   // supplier to the directory. A stale verificationStatus must not create a
   // stronger public trust claim than the authoritative approved flag.
   const profileApproved = bool(source.approved);
+  const emailVerified = bool(source.emailVerified || source.verifications?.email?.verified);
   const badges = safeStringArray(source.badges, 24, 80);
   return {
     id: maybeText(source.id, 100),
@@ -276,21 +277,19 @@ function safePublicSupplier(supplier = {}, extras = {}) {
     rating,
     averageRating: rating,
     reviewCount,
-    // `verified` is a legacy profile-verification flag kept for compatibility.
-    // Consumers must not interpret it as email verification.
-    verified: bool(source.verified || source.approved),
+    // The legacy public `verified` alias now mirrors the explicit email fact so
+    // stale public clients cannot mistake profile approval for email verification.
+    verified: emailVerified,
     approved: profileApproved,
     profileApproved,
     verificationStatus: maybeText(source.verificationStatus, 40),
-    emailVerified: bool(source.emailVerified || source.verifications?.email?.verified),
+    emailVerified,
     phoneVerified: bool(source.phoneVerified || source.verifications?.phone?.verified),
     businessVerified: bool(source.businessVerified || source.verifications?.business?.verified),
     verifications: safeVerifications(source.verifications),
     trustVerifications: safeTrustVerifications(source.trustVerifications),
-    // Legacy self-declared fields remain in the payload for compatibility only.
-    // Public UI must never present them as EventFlow-confirmed trust signals.
-    insurance: bool(source.insurance),
-    license: maybeText(source.license, 120),
+    // Self-declared insurance/licence values are intentionally not exposed by the
+    // safe public profile. Only structured EventFlow-confirmed trust status is public.
     isFoundingSupplier: bool(source.isFoundingSupplier || source.isFounding || source.founding),
     isFounding: bool(source.isFounding || source.isFoundingSupplier || source.founding),
     founding: bool(source.founding || source.isFoundingSupplier || source.isFounding),
