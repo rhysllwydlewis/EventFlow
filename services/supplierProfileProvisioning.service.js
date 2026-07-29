@@ -2,6 +2,7 @@
 
 const dbUnified = require('../db-unified');
 const logger = require('../utils/logger');
+const { auditLog, AUDIT_ACTIONS } = require('../middleware/audit');
 const { VERIFICATION_STATES } = require('../utils/supplierVerificationStateMachine');
 
 function emailLocalPart(email) {
@@ -46,6 +47,33 @@ async function supplierApprovalDefaults(nowIso) {
     submittedAt: null,
     verificationSubmittedAt: null,
   };
+}
+
+async function recordAutomaticApprovalAudit(supplier) {
+  if (!supplier || supplier.approved !== true || supplier.approvedBy !== 'system') {
+    return;
+  }
+
+  try {
+    await auditLog({
+      adminId: 'system',
+      adminEmail: 'system',
+      action: AUDIT_ACTIONS.SUPPLIER_APPROVED,
+      targetType: 'supplier',
+      targetId: supplier.id,
+      details: {
+        name: supplier.name,
+        source: 'autoApproveSupplierVerification',
+        ownerUserId: supplier.ownerUserId,
+      },
+    });
+  } catch (error) {
+    // Provisioning must not fail just because the audit store is temporarily unavailable.
+    logger.warn('Failed to record automatically provisioned supplier approval audit event', {
+      supplierId: supplier.id,
+      error: error.message,
+    });
+  }
 }
 
 function isDuplicateLikeError(error) {
@@ -94,6 +122,7 @@ async function ensureSupplierProfileForUser(user, options = {}) {
   try {
     const inserted = await dbUnified.insertOne('suppliers', supplier);
     if (inserted) {
+      await recordAutomaticApprovalAudit(inserted);
       return inserted;
     }
   } catch (error) {
