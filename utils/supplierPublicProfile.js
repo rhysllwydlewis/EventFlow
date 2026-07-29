@@ -28,6 +28,10 @@ function bool(value) {
   return value === true;
 }
 
+function plainObject(value) {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+}
+
 function safeImageUrl(value, max = DEFAULT_MAX_IMAGE_CHARS) {
   const cleaned = text(value, max);
   if (!cleaned) {
@@ -78,7 +82,7 @@ function safeStringArray(items, maxItems = 12, maxLen = 120) {
 }
 
 function safeSocialLinks(socialLinks = {}) {
-  const source = socialLinks && typeof socialLinks === 'object' ? socialLinks : {};
+  const source = plainObject(socialLinks);
   const allowed = ['facebook', 'instagram', 'twitter', 'linkedin', 'youtube', 'tiktok'];
   return allowed.reduce((acc, platform) => {
     const safe = safeExternalUrl(source[platform]);
@@ -89,8 +93,33 @@ function safeSocialLinks(socialLinks = {}) {
   }, {});
 }
 
+function safeGalleryItems(source = {}) {
+  const canonical = Array.isArray(source.photosGallery) ? source.photosGallery : [];
+  const legacy = Array.isArray(source.images) ? source.images : [];
+  const seen = new Set();
+  const safe = [];
+
+  for (const item of [...canonical, ...legacy]) {
+    const raw =
+      typeof item === 'string'
+        ? item
+        : item &&
+          (item.url || item.src || item.thumbnail || item.large || item.original || item.optimized);
+    const url = safeImageUrl(raw);
+    if (url && !seen.has(url)) {
+      seen.add(url);
+      safe.push(url);
+    }
+    if (safe.length >= 24) {
+      break;
+    }
+  }
+
+  return safe;
+}
+
 function safeVerifications(verifications = {}) {
-  const source = verifications && typeof verifications === 'object' ? verifications : {};
+  const source = plainObject(verifications);
   return {
     email: { verified: bool(source.email?.verified) },
     phone: { verified: bool(source.phone?.verified) },
@@ -102,13 +131,11 @@ function safeVerifications(verifications = {}) {
  * Public trust credentials are admin-confirmed status only. Never expose
  * reviewer identity, notes, certificate numbers or DBS/document contents.
  *
- * The existing admin badge assignment API is the canonical manual-control path
- * for these credentials. Structured trustVerifications remain supported so a
- * future document workflow can migrate without changing the public contract.
+ * Manual badge IDs remain supported alongside structured trustVerifications so
+ * existing records and the dedicated admin trust endpoint share one public contract.
  */
 function safeTrustVerifications(trustVerifications = {}, badges = []) {
-  const source =
-    trustVerifications && typeof trustVerifications === 'object' ? trustVerifications : {};
+  const source = plainObject(trustVerifications);
   const badgeSet = new Set(Array.isArray(badges) ? badges.map(value => text(value, 80)) : []);
   const verified = (value, badgeId) => bool(value?.verified) || badgeSet.has(badgeId);
   return {
@@ -185,7 +212,10 @@ function safePublicSupplier(supplier = {}, extras = {}) {
       source.logo
   );
   const website = safeExternalUrl(source.website);
-  const socialLinks = safeSocialLinks(source.socialLinks || source.socials);
+  const socialLinks = safeSocialLinks({
+    ...plainObject(source.socials),
+    ...plainObject(source.socialLinks),
+  });
   const rating = numberOrNull(source.averageRating ?? source.rating);
   const reviewCount = numberOrNull(source.reviewCount);
   const avgResponseTime = numberOrNull(source.avgResponseTime);
@@ -193,23 +223,29 @@ function safePublicSupplier(supplier = {}, extras = {}) {
   const messagingRecipientId = extra.exposeMessagingRecipient === true ? ownerUserId : '';
   const exposedOwnerUserId = extra.exposeOwnerUserId === true ? ownerUserId : '';
   const theme = normaliseStoredSupplierTheme(source);
-  const profileApproved = bool(source.approved) || source.verificationStatus === 'approved';
+  // Public approval is fail-closed and follows the same flag used to admit a
+  // supplier to the directory. A stale verificationStatus must not create a
+  // stronger public trust claim than the authoritative approved flag.
+  const profileApproved = bool(source.approved);
   const badges = safeStringArray(source.badges, 24, 80);
   return {
     id: maybeText(source.id, 100),
     ...(messagingRecipientId ? { messagingRecipientId } : {}),
     ...(exposedOwnerUserId ? { ownerUserId: exposedOwnerUserId } : {}),
     isOwner: bool(extra.isOwner),
-    name: maybeText(source.name, 140) || 'Supplier',
+    name: maybeText(source.name || source.businessName, 140) || 'Supplier',
     category: maybeText(source.category, 100),
     location: maybeText(source.location, 180),
     postcode: maybeText(source.postcode || source.venuePostcode, 32),
     tagline: maybeText(source.tagline, 220),
     description: maybeText(
-      source.description_long || source.description_short || source.description,
+      source.description_long || source.description_short || source.description || source.blurb,
       1200
     ),
-    description_short: maybeText(source.description_short || source.description, 320),
+    description_short: maybeText(
+      source.description_short || source.description || source.blurb || source.description_long,
+      320
+    ),
     description_long: maybeText(source.description_long, 5000),
     metaDescription: maybeText(source.metaDescription, 260),
     bannerUrl,
@@ -224,9 +260,12 @@ function safePublicSupplier(supplier = {}, extras = {}) {
     themeMode: theme.themeMode,
     themeColor: theme.themeColor,
     heroPreset: theme.heroPreset,
-    priceRange: maybeText(source.priceRange || source.price_display, 80),
-    price_display: maybeText(source.price_display || source.priceRange, 80),
-    priceHint: maybeText(source.priceHint || source.price_display, 80),
+    priceRange: maybeText(source.priceRange || source.price_display || source.priceDisplay, 80),
+    price_display: maybeText(source.price_display || source.priceRange || source.priceDisplay, 80),
+    priceHint: maybeText(
+      source.priceHint || source.price_display || source.priceRange || source.priceDisplay,
+      80
+    ),
     website,
     phone: safePhone(source.phone),
     maxGuests: numberOrNull(source.maxGuests),
@@ -234,20 +273,15 @@ function safePublicSupplier(supplier = {}, extras = {}) {
     highlights: safeStringArray(source.highlights, 5, 80),
     featuredServices: safeStringArray(source.featuredServices, 10, 100),
     socialLinks,
-    photosGallery: Array.isArray(source.photosGallery)
-      ? source.photosGallery
-          .map(item => safeImageUrl(typeof item === 'string' ? item : item?.url || item?.src))
-          .filter(Boolean)
-          .slice(0, 24)
-      : [],
+    photosGallery: safeGalleryItems(source),
     completedEvents: numberOrNull(source.completedEvents),
     createdAt: maybeText(source.createdAt, 40),
     avgResponseTime,
     rating,
     averageRating: rating,
     reviewCount,
-    // `verified` is a legacy profile-approval flag. Preserve its historical
-    // approved fallback for compatibility, but never use it as proof of email verification.
+    // `verified` is a legacy profile-verification flag kept for compatibility.
+    // Consumers must not interpret it as email verification.
     verified: bool(source.verified || source.approved),
     approved: profileApproved,
     profileApproved,
@@ -257,8 +291,8 @@ function safePublicSupplier(supplier = {}, extras = {}) {
     businessVerified: bool(source.businessVerified || source.verifications?.business?.verified),
     verifications: safeVerifications(source.verifications),
     trustVerifications: safeTrustVerifications(source.trustVerifications, badges),
-    // Legacy self-declared fields remain in the payload for compatibility, but
-    // they must never be rendered as EventFlow verification/trust badges.
+    // Legacy self-declared fields remain in the payload for compatibility only.
+    // Public UI must never present them as EventFlow-confirmed trust signals.
     insurance: bool(source.insurance),
     license: maybeText(source.license, 120),
     isFoundingSupplier: bool(source.isFoundingSupplier || source.isFounding || source.founding),
