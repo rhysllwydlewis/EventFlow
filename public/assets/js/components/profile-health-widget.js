@@ -17,14 +17,26 @@
   }
 
   function galleryItems(supplier) {
-    if (Array.isArray(supplier?.photosGallery)) return supplier.photosGallery;
-    if (Array.isArray(supplier?.images)) return supplier.images;
-    return [];
+    const canonical = Array.isArray(supplier?.photosGallery) ? supplier.photosGallery : [];
+    const legacy = Array.isArray(supplier?.images) ? supplier.images : [];
+    // Some migrated records have an empty canonical array plus populated legacy images.
+    // Merge both collections and de-duplicate simple string URLs so those profiles do
+    // not lose health points merely because both schema generations are present.
+    return Array.from(new Set([...canonical, ...legacy].filter(Boolean)));
   }
 
   function socialLinks(supplier) {
-    const value = supplier?.socialLinks || supplier?.socials;
-    return value && typeof value === 'object' ? value : {};
+    const legacy =
+      supplier?.socials && typeof supplier.socials === 'object' && !Array.isArray(supplier.socials)
+        ? supplier.socials
+        : {};
+    const canonical =
+      supplier?.socialLinks &&
+      typeof supplier.socialLinks === 'object' &&
+      !Array.isArray(supplier.socialLinks)
+        ? supplier.socialLinks
+        : {};
+    return { ...legacy, ...canonical };
   }
 
   /**
