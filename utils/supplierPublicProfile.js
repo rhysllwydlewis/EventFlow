@@ -33,6 +33,8 @@ function safeImageUrl(value, max = DEFAULT_MAX_IMAGE_CHARS) {
   if (!cleaned) {
     return '';
   }
+  // Base64 data URLs are deliberately not exposed publicly. Supplier media must
+  // be persisted to the normal image store and referenced by a stable URL.
   if (DATA_IMAGE_RE.test(cleaned)) {
     return '';
   }
@@ -93,6 +95,21 @@ function safeVerifications(verifications = {}) {
     email: { verified: bool(source.email?.verified) },
     phone: { verified: bool(source.phone?.verified) },
     business: { verified: bool(source.business?.verified) },
+  };
+}
+
+/**
+ * Public trust credentials are admin-confirmed status only. Never expose
+ * reviewer identity, notes, certificate numbers or DBS/document contents.
+ */
+function safeTrustVerifications(trustVerifications = {}) {
+  const source =
+    trustVerifications && typeof trustVerifications === 'object' ? trustVerifications : {};
+  const safeCredential = value => ({ verified: bool(value?.verified) });
+  return {
+    publicLiability: safeCredential(source.publicLiability),
+    dbs: safeCredential(source.dbs),
+    licence: safeCredential(source.licence),
   };
 }
 
@@ -161,7 +178,7 @@ function safePublicSupplier(supplier = {}, extras = {}) {
       source.logo
   );
   const website = safeExternalUrl(source.website);
-  const socialLinks = safeSocialLinks(source.socialLinks);
+  const socialLinks = safeSocialLinks(source.socialLinks || source.socials);
   const rating = numberOrNull(source.averageRating ?? source.rating);
   const reviewCount = numberOrNull(source.reviewCount);
   const avgResponseTime = numberOrNull(source.avgResponseTime);
@@ -169,6 +186,7 @@ function safePublicSupplier(supplier = {}, extras = {}) {
   const messagingRecipientId = extra.exposeMessagingRecipient === true ? ownerUserId : '';
   const exposedOwnerUserId = extra.exposeOwnerUserId === true ? ownerUserId : '';
   const theme = normaliseStoredSupplierTheme(source);
+  const profileApproved = bool(source.approved) || source.verificationStatus === 'approved';
   return {
     id: maybeText(source.id, 100),
     ...(messagingRecipientId ? { messagingRecipientId } : {}),
@@ -179,8 +197,11 @@ function safePublicSupplier(supplier = {}, extras = {}) {
     location: maybeText(source.location, 180),
     postcode: maybeText(source.postcode || source.venuePostcode, 32),
     tagline: maybeText(source.tagline, 220),
-    description: maybeText(source.description || source.description_short, 1200),
-    description_short: maybeText(source.description_short, 320),
+    description: maybeText(
+      source.description_long || source.description_short || source.description,
+      1200
+    ),
+    description_short: maybeText(source.description_short || source.description, 320),
     description_long: maybeText(source.description_long, 5000),
     metaDescription: maybeText(source.metaDescription, 260),
     bannerUrl,
@@ -217,12 +238,20 @@ function safePublicSupplier(supplier = {}, extras = {}) {
     rating,
     averageRating: rating,
     reviewCount,
-    verified: bool(source.verified || source.approved),
-    approved: bool(source.approved),
+    // `verified` is the legacy profile-approval flag. It is deliberately kept
+    // separate from email verification so the public UI cannot claim an email
+    // address was verified merely because an admin approved the listing.
+    verified: bool(source.verified),
+    approved: profileApproved,
+    profileApproved,
+    verificationStatus: maybeText(source.verificationStatus, 40),
     emailVerified: bool(source.emailVerified || source.verifications?.email?.verified),
     phoneVerified: bool(source.phoneVerified || source.verifications?.phone?.verified),
     businessVerified: bool(source.businessVerified || source.verifications?.business?.verified),
     verifications: safeVerifications(source.verifications),
+    trustVerifications: safeTrustVerifications(source.trustVerifications),
+    // Legacy self-declared fields remain in the payload for compatibility, but
+    // they must never be rendered as EventFlow verification/trust badges.
     insurance: bool(source.insurance),
     license: maybeText(source.license, 120),
     isFoundingSupplier: bool(source.isFoundingSupplier || source.isFounding || source.founding),
@@ -249,4 +278,5 @@ module.exports = {
   safeImageUrl,
   safePublicPackage,
   safePublicSupplier,
+  safeTrustVerifications,
 };
