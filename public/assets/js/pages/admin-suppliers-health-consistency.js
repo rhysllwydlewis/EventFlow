@@ -153,28 +153,28 @@
   }
 
   function installApprovalCopyFix() {
-    // The main admin script historically promised calendar publishing as part of
-    // ordinary approval. Keep the actual confirmation copy aligned with category /
-    // explicit-override permissions, not just the explanatory toggle text.
-    window.approveSupplier = async function approveSupplierWithAccuratePermissions(id) {
-      const confirmed = await AdminShared.showConfirmModal({
-        title: 'Approve Supplier',
-        message:
-          'Approve this supplier? They will be able to create packages, send messages and appear in search. Public calendar publishing still depends on the supplier category or an explicit admin override.',
-        confirmText: 'Approve',
-      });
-      if (!confirmed) {
-        return;
+    if (AdminShared.__supplierApprovalCopyFixed) {
+      return;
+    }
+    const originalShowConfirmModal = AdminShared.showConfirmModal;
+    if (typeof originalShowConfirmModal !== 'function') {
+      return;
+    }
+
+    // Preserve the original approval action (including its in-place table refresh)
+    // and only correct the outdated permission promise at the modal boundary.
+    AdminShared.showConfirmModal = function showConfirmModalWithSupplierPermissionCopy(options = {}) {
+      const next = { ...options };
+      if (
+        next.title === 'Approve Supplier' &&
+        /publish calendar events/i.test(String(next.message || ''))
+      ) {
+        next.message =
+          'Approve this supplier? They will be able to create packages, send messages and appear in search. Public calendar publishing still depends on the supplier category or an explicit admin override.';
       }
-      try {
-        await AdminShared.api(`/api/admin/suppliers/${id}/approve`, 'POST', { approved: true });
-        AdminShared.showToast('Supplier approved', 'success');
-        window.location.reload();
-      } catch (error) {
-        console.error('Error approving supplier:', error);
-        AdminShared.showToast(`Failed to approve supplier: ${error.message}`, 'error');
-      }
+      return originalShowConfirmModal.call(AdminShared, next);
     };
+    AdminShared.__supplierApprovalCopyFixed = true;
   }
 
   async function loadCanonicalScores() {
