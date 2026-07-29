@@ -6,6 +6,11 @@ const { normaliseStoredSupplierTheme } = require('./supplierTheme');
 const DEFAULT_MAX_IMAGE_CHARS = 1200000;
 const DATA_IMAGE_RE = /^data:image\/(png|jpe?g|webp|gif);base64,[a-z0-9+/]+={0,2}$/i;
 const ROOTED_IMAGE_RE = /^\/[^/\\:][^:]*$/;
+const INTERNAL_TRUST_BADGE_IDS = new Set([
+  'public-liability-verified',
+  'dbs-checked',
+  'licence-verified',
+]);
 
 function text(value, max = 500) {
   if (value === null || value === undefined) {
@@ -157,7 +162,7 @@ function safeBadgeDetails(badges = []) {
       icon: maybeText(badge.icon, 20),
       displayOrder: numberOrNull(badge.displayOrder),
     }))
-    .filter(badge => badge.id || badge.name)
+    .filter(badge => (badge.id || badge.name) && !INTERNAL_TRUST_BADGE_IDS.has(badge.id))
     .slice(0, 24);
 }
 
@@ -224,7 +229,11 @@ function safePublicSupplier(supplier = {}, extras = {}) {
   // stronger public trust claim than the authoritative approved flag.
   const profileApproved = bool(source.approved);
   const emailVerified = bool(source.emailVerified || source.verifications?.email?.verified);
-  const badges = safeStringArray(source.badges, 24, 80);
+  // Manual trust badge IDs are internal state only. The public contract exposes
+  // structured trustVerifications instead, preventing badge-ID interpretation drift.
+  const badges = safeStringArray(source.badges, 24, 80).filter(
+    badgeId => !INTERNAL_TRUST_BADGE_IDS.has(badgeId)
+  );
   return {
     id: maybeText(source.id, 100),
     ...(messagingRecipientId ? { messagingRecipientId } : {}),
