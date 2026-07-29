@@ -6,17 +6,46 @@
 (function () {
   'use strict';
 
+  function descriptionValue(supplier) {
+    return String(
+      supplier?.description_long ||
+        supplier?.description_short ||
+        supplier?.description ||
+        supplier?.blurb ||
+        ''
+    ).trim();
+  }
+
+  function galleryItems(supplier) {
+    if (Array.isArray(supplier?.photosGallery)) return supplier.photosGallery;
+    if (Array.isArray(supplier?.images)) return supplier.images;
+    return [];
+  }
+
+  function socialLinks(supplier) {
+    const value = supplier?.socialLinks || supplier?.socials;
+    return value && typeof value === 'object' ? value : {};
+  }
+
   /**
    * Weighted scoring criteria for profile health
    * Total: 100 points
+   *
+   * Checks use the canonical supplier fields plus supported legacy aliases so
+   * the dashboard does not mark populated profile content as missing.
    */
   const HEALTH_CRITERIA = [
-    { id: 'logo', label: 'Profile photo', weight: 10, check: s => !!s.logo },
+    {
+      id: 'logo',
+      label: 'Profile photo',
+      weight: 10,
+      check: s => !!(s.logo || s.profileImage || s.profilePhotoUrl || s.avatarUrl),
+    },
     {
       id: 'description',
       label: 'Description (100+ characters)',
       weight: 10,
-      check: s => s.description && s.description.length >= 100,
+      check: s => descriptionValue(s).length >= 100,
     },
     {
       id: 'contact',
@@ -28,20 +57,25 @@
       id: 'location',
       label: 'Location & postcode',
       weight: 10,
-      check: s => !!s.location && !!s.postcode,
+      check: s => !!s.location && !!(s.postcode || s.venuePostcode),
     },
-    { id: 'coverImage', label: 'Banner image', weight: 10, check: s => !!s.coverImage },
+    {
+      id: 'coverImage',
+      label: 'Banner image',
+      weight: 10,
+      check: s => !!(s.bannerUrl || s.coverImage),
+    },
     {
       id: 'gallery',
       label: 'Gallery (3+ images)',
       weight: 10,
-      check: s => Array.isArray(s.images) && s.images.length >= 3,
+      check: s => galleryItems(s).length >= 3,
     },
     {
       id: 'socials',
       label: 'Social media (2+ platforms)',
       weight: 10,
-      check: s => s.socials && Object.keys(s.socials).filter(k => s.socials[k]).length >= 2,
+      check: s => Object.values(socialLinks(s)).filter(Boolean).length >= 2,
     },
     { id: 'website', label: 'Website URL', weight: 5, check: s => !!s.website },
     {
@@ -70,7 +104,7 @@
     const incompleteItems = [];
 
     HEALTH_CRITERIA.forEach(criterion => {
-      const isComplete = criterion.check(supplier);
+      const isComplete = criterion.check(supplier || {});
       if (isComplete) {
         earnedPoints += criterion.weight;
         completedItems.push(criterion);
