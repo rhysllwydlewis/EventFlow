@@ -59,11 +59,15 @@ describe('supplier public profile trust boundary', () => {
     });
   });
 
-  test('generic badge IDs alone cannot create public trust claims', () => {
+  test('generic trust badge IDs are internal-only and cannot create public trust claims', () => {
     const publicSupplier = safePublicSupplier({
       id: 'sup_badge_only',
       name: 'Badge Only Supplier',
-      badges: ['public-liability-verified', 'dbs-checked', 'licence-verified'],
+      badges: ['public-liability-verified', 'dbs-checked', 'licence-verified', 'fast-responder'],
+      badgeDetails: [
+        { id: 'dbs-checked', type: 'verified', name: 'DBS Check Confirmed' },
+        { id: 'fast-responder', type: 'fast-responder', name: 'Fast Responder' },
+      ],
       trustVerifications: {},
     });
 
@@ -72,6 +76,10 @@ describe('supplier public profile trust boundary', () => {
       dbs: { verified: false },
       licence: { verified: false },
     });
+    expect(publicSupplier.badges).toEqual(['fast-responder']);
+    expect(publicSupplier.badgeDetails).toEqual([
+      expect.objectContaining({ id: 'fast-responder', name: 'Fast Responder' }),
+    ]);
   });
 
   test('structured admin trust state becomes safe public boolean trust claims', () => {
