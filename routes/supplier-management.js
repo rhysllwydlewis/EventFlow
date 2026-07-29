@@ -413,7 +413,7 @@ router.post(
     // leaving admins with an approved record and no corresponding approval event.
     if (s.approved === true && s.approvedBy === 'system') {
       try {
-        await auditLog({
+        const auditEntry = await auditLog({
           adminId: 'system',
           adminEmail: 'system',
           action: AUDIT_ACTIONS.SUPPLIER_APPROVED,
@@ -425,6 +425,13 @@ router.post(
             ownerUserId: s.ownerUserId,
           },
         });
+        if (!auditEntry) {
+          // Creation remains non-blocking by design, but do not silently treat an
+          // audit storage outage as a successfully recorded approval event.
+          logger.warn('Automatic supplier approval audit could not be persisted', {
+            supplierId: s.id,
+          });
+        }
       } catch (auditError) {
         // Profile creation must not fail solely because audit persistence is unavailable.
         logger.warn('Failed to record automatic supplier approval audit event', {
@@ -586,7 +593,14 @@ router.patch(
     if (Object.keys(themeMutation.unset).length > 0) {
       update.$unset = themeMutation.unset;
     }
-    await dbUnified.updateOne('suppliers', { id: req.params.id }, update);
+    const persisted = await dbUnified.updateOne('suppliers', { id: req.params.id }, update);
+    if (!persisted) {
+      logger.error('Supplier profile update was not persisted', {
+        supplierId: s.id,
+        ownerUserId: req.user.id,
+      });
+      return res.status(500).json({ error: 'Failed to update supplier profile. Please try again.' });
+    }
 
     // Bust catalog cache — profile edit means the supplier data may have changed
     catalogCache
