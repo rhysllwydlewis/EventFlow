@@ -71,8 +71,8 @@ export function renderVerificationBadges(supplier, options = {}) {
       (supplier.badges.includes('founding') || supplier.badges.includes('founder')))
   ) {
     badges.push({
-      html: `<span class="badge badge-founding ${size === 'small' ? 'badge-sm' : ''}" 
-                   title="Founding Supplier - One of our first partners" 
+      html: `<span class="badge badge-founding ${size === 'small' ? 'badge-sm' : ''}"
+                   title="Founding Supplier - One of our first partners"
                    role="status"
                    aria-label="Founding supplier">
                Founding Supplier
@@ -85,8 +85,8 @@ export function renderVerificationBadges(supplier, options = {}) {
   const tier = resolveSupplierTier(supplier);
   if (tier === 'pro_plus') {
     badges.push({
-      html: `<span class="badge badge-pro-plus ${size === 'small' ? 'badge-sm' : ''}" 
-                   title="Pro Plus — Premium subscription" 
+      html: `<span class="badge badge-pro-plus ${size === 'small' ? 'badge-sm' : ''}"
+                   title="Pro Plus — Premium subscription"
                    role="status"
                    aria-label="Pro Plus subscriber">
                Pro Plus
@@ -95,8 +95,8 @@ export function renderVerificationBadges(supplier, options = {}) {
     });
   } else if (tier === 'pro') {
     badges.push({
-      html: `<span class="badge badge-pro ${size === 'small' ? 'badge-sm' : ''}" 
-                   title="Pro — Enhanced subscription" 
+      html: `<span class="badge badge-pro ${size === 'small' ? 'badge-sm' : ''}"
+                   title="Pro — Enhanced subscription"
                    role="status"
                    aria-label="Pro subscriber">
                Pro
@@ -109,8 +109,8 @@ export function renderVerificationBadges(supplier, options = {}) {
   // Priority 3a: Featured Badge (priority: 2 — rendered after tier)
   if (supplier.featured || supplier.featuredSupplier) {
     badges.push({
-      html: `<span class="badge badge-featured ${size === 'small' ? 'badge-sm' : ''}" 
-                   title="Featured Supplier" 
+      html: `<span class="badge badge-featured ${size === 'small' ? 'badge-sm' : ''}"
+                   title="Featured Supplier"
                    role="status"
                    aria-label="Featured supplier">
                Featured
@@ -141,8 +141,8 @@ export function renderVerificationBadges(supplier, options = {}) {
         cssClass === 'badge-custom' && badge.icon ? `${escapeHtml(badge.icon)} ` : '';
       const safeName = escapeHtml(badge.name || 'Badge');
       badges.push({
-        html: `<span class="badge ${cssClass} ${size === 'small' ? 'badge-sm' : ''}" 
-                     title="${escapeHtml(badge.description || badge.name)}" 
+        html: `<span class="badge ${cssClass} ${size === 'small' ? 'badge-sm' : ''}"
+                     title="${escapeHtml(badge.description || badge.name)}"
                      role="status"
                      aria-label="${safeName}">
                  ${iconText}${safeName}
@@ -159,8 +159,8 @@ export function renderVerificationBadges(supplier, options = {}) {
   if (supplier.emailVerified || supplier.verifications?.email?.verified) {
     if (showAll) {
       badges.push({
-        html: `<span class="badge badge-email-verified ${size === 'small' ? 'badge-sm' : ''}" 
-                     title="Email address verified" 
+        html: `<span class="badge badge-email-verified ${size === 'small' ? 'badge-sm' : ''}"
+                     title="Email address verified"
                      role="status"
                      aria-label="Email verified">
                  <i class="fas fa-envelope-circle-check" aria-hidden="true"></i> Email
@@ -174,8 +174,8 @@ export function renderVerificationBadges(supplier, options = {}) {
   if (supplier.phoneVerified || supplier.verifications?.phone?.verified) {
     if (showAll) {
       badges.push({
-        html: `<span class="badge badge-phone-verified ${size === 'small' ? 'badge-sm' : ''}" 
-                     title="Phone number verified" 
+        html: `<span class="badge badge-phone-verified ${size === 'small' ? 'badge-sm' : ''}"
+                     title="Phone number verified"
                      role="status"
                      aria-label="Phone verified">
                  <i class="fas fa-phone-check" aria-hidden="true"></i> Phone
@@ -189,8 +189,8 @@ export function renderVerificationBadges(supplier, options = {}) {
   if (supplier.businessVerified || supplier.verifications?.business?.verified) {
     if (showAll) {
       badges.push({
-        html: `<span class="badge badge-business-verified ${size === 'small' ? 'badge-sm' : ''}" 
-                     title="Business documents verified" 
+        html: `<span class="badge badge-business-verified ${size === 'small' ? 'badge-sm' : ''}"
+                     title="Business documents verified"
                      role="status"
                      aria-label="Business verified">
                  <i class="fas fa-building-circle-check" aria-hidden="true"></i> Business
