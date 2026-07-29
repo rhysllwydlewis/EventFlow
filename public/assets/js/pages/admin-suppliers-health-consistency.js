@@ -30,13 +30,12 @@
   }
 
   function canonicalPhotoCount(supplier) {
-    if (Array.isArray(supplier?.photosGallery)) {
-      return supplier.photosGallery.length;
-    }
-    if (Array.isArray(supplier?.images)) {
-      return supplier.images.length;
-    }
-    return Number(supplier?.photoCount || 0) || 0;
+    const canonical = Array.isArray(supplier?.photosGallery) ? supplier.photosGallery.length : 0;
+    const legacy = Array.isArray(supplier?.images) ? supplier.images.length : 0;
+    const recorded = Number(supplier?.photoCount || 0) || 0;
+    // Mixed-schema records can contain photosGallery: [] alongside populated legacy
+    // images. Use the strongest available signal rather than first-array-wins.
+    return Math.max(canonical, legacy, recorded);
   }
 
   function calculateScore(supplier) {
