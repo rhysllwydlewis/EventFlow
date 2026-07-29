@@ -30,6 +30,15 @@ describe('supplier profile health aliases', () => {
     expect(result.completedItems.map(item => item.id)).toContain('gallery');
   });
 
+  test('the same mixed-schema photo cannot count twice toward gallery completion', () => {
+    const result = window.ProfileHealthWidget.calculate({
+      photosGallery: [{ url: '/api/photos/a' }, { url: '/api/photos/b' }],
+      images: [{ url: '/api/photos/a' }],
+    });
+
+    expect(result.completedItems.map(item => item.id)).not.toContain('gallery');
+  });
+
   test('modern and legacy social maps are merged before counting platforms', () => {
     const result = window.ProfileHealthWidget.calculate({
       socials: { facebook: 'https://facebook.com/example' },
