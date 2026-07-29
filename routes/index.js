@@ -42,6 +42,7 @@ const savedRoutes = require('./saved');
 const supplierRoutes = require('./supplier');
 const supplierExportSafeRoutes = require('./supplier-export-safe');
 const supplierAdminRoutes = require('./supplier-admin');
+const supplierTrustAdminRoutes = require('./supplier-trust-admin');
 const supplierManagementRoutes = require('./supplier-management');
 const suppliersV2Routes = require('./suppliers-v2');
 const supplierProfileSafeRoutes = require('./supplier-profile-safe');
@@ -187,6 +188,10 @@ function mountRoutes(app, deps) {
   // for applications that consume routes/index.js without server.js's compatibility mounts.
   app.use('/api/v1/admin', supplierAdminRoutes);
   app.use('/api/admin', supplierAdminRoutes);
+  // Dedicated trust-credential mutations are isolated from generic badge awards so
+  // PLI/DBS/licence changes have an actor-attributed audit trail and structured status.
+  app.use('/api/v1/admin', supplierTrustAdminRoutes);
+  app.use('/api/admin', supplierTrustAdminRoutes);
   app.use('/api/v1/admin', adminRoutes);
   app.use('/api/admin', adminRoutes); // Backward compatibility
 
