@@ -123,12 +123,13 @@ function safeGalleryItems(source = {}) {
   return safe;
 }
 
-function safeVerifications(verifications = {}) {
+function safeVerifications(verifications = {}, fallbacks = {}) {
   const source = plainObject(verifications);
+  const fallback = plainObject(fallbacks);
   return {
-    email: { verified: bool(source.email?.verified) },
-    phone: { verified: bool(source.phone?.verified) },
-    business: { verified: bool(source.business?.verified) },
+    email: { verified: bool(source.email?.verified) || bool(fallback.emailVerified) },
+    phone: { verified: bool(source.phone?.verified) || bool(fallback.phoneVerified) },
+    business: { verified: bool(source.business?.verified) || bool(fallback.businessVerified) },
   };
 }
 
@@ -228,7 +229,10 @@ function safePublicSupplier(supplier = {}, extras = {}) {
   // supplier to the directory. A stale verificationStatus must not create a
   // stronger public trust claim than the authoritative approved flag.
   const profileApproved = bool(source.approved);
-  const emailVerified = bool(source.emailVerified || source.verifications?.email?.verified);
+  const emailVerified = bool(source.emailVerified) || bool(source.verifications?.email?.verified);
+  const phoneVerified = bool(source.phoneVerified) || bool(source.verifications?.phone?.verified);
+  const businessVerified =
+    bool(source.businessVerified) || bool(source.verifications?.business?.verified);
   // Manual trust badge IDs are internal state only. The public contract exposes
   // structured trustVerifications instead, preventing badge-ID interpretation drift.
   const badges = safeStringArray(source.badges, 24, 80).filter(
@@ -293,9 +297,13 @@ function safePublicSupplier(supplier = {}, extras = {}) {
     profileApproved,
     verificationStatus: maybeText(source.verificationStatus, 40),
     emailVerified,
-    phoneVerified: bool(source.phoneVerified || source.verifications?.phone?.verified),
-    businessVerified: bool(source.businessVerified || source.verifications?.business?.verified),
-    verifications: safeVerifications(source.verifications),
+    phoneVerified,
+    businessVerified,
+    verifications: safeVerifications(source.verifications, {
+      emailVerified,
+      phoneVerified,
+      businessVerified,
+    }),
     trustVerifications: safeTrustVerifications(source.trustVerifications),
     // Self-declared insurance/licence values are intentionally not exposed by the
     // safe public profile. Only structured EventFlow-confirmed trust status is public.
