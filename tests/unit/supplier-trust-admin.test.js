@@ -40,7 +40,13 @@ describe('supplier trust admin routes', () => {
     jest.doMock('../../middleware/rateLimits', () => ({
       writeLimiter: (_req, _res, next) => next(),
     }));
-    jest.doMock('../../middleware/audit', () => ({ auditLog }));
+    jest.doMock('../../middleware/audit', () => ({
+      auditLog,
+      AUDIT_ACTIONS: {
+        SUPPLIER_TRUST_BADGE_CONFIRMED: 'supplier_trust_badge_confirmed',
+        SUPPLIER_TRUST_BADGE_REMOVED: 'supplier_trust_badge_removed',
+      },
+    }));
     jest.doMock('../../services/catalogCache', () => ({
       invalidate: jest.fn(async () => undefined),
     }));
@@ -128,6 +134,36 @@ describe('supplier trust admin routes', () => {
     expect(updateOne).toHaveBeenCalledTimes(2);
     expect(data.badges).toEqual(['fast-responder']);
     expect(data.trustVerifications).toEqual({ dbs: { verified: false } });
+  });
+
+  test('audit rollback preserves unrelated changes made after the trust mutation', async () => {
+    data.badges = ['fast-responder'];
+    data.trustVerifications = { dbs: { verified: false } };
+    auditLog.mockResolvedValueOnce(null);
+    updateOne.mockImplementationOnce(async (_collection, _filter, update) => {
+      Object.assign(data, update.$set || {});
+      // Simulate a separate admin action landing before this request discovers
+      // that its audit record failed.
+      data.badges = [...data.badges, 'top-rated'];
+      data.trustVerifications = {
+        ...data.trustVerifications,
+        dbs: { verified: true, verifiedAt: '2026-07-29T12:00:00.000Z' },
+      };
+      return true;
+    });
+
+    const res = await request(app())
+      .post('/suppliers/sup_1/trust-badges/public-liability-verified')
+      .send({});
+
+    expect(res.status).toBe(503);
+    expect(data.badges).toEqual(expect.arrayContaining(['fast-responder', 'top-rated']));
+    expect(data.badges).not.toContain('public-liability-verified');
+    expect(data.trustVerifications.dbs).toEqual({
+      verified: true,
+      verifiedAt: '2026-07-29T12:00:00.000Z',
+    });
+    expect(data.trustVerifications.publicLiability).toBeUndefined();
   });
 
   test('fails before auditing when the trust mutation cannot be persisted', async () => {
