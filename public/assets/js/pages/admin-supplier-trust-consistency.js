@@ -35,6 +35,11 @@
     return value === null || value === undefined ? '' : String(value).trim();
   }
 
+  function finiteNumber(value, fallback = 0) {
+    const number = Number(value);
+    return Number.isFinite(number) ? number : fallback;
+  }
+
   function canonicalDescription(data) {
     return (
       asText(data?.description_long) ||
@@ -51,7 +56,7 @@
   function canonicalPhotoCount(data) {
     const canonical = Array.isArray(data?.photosGallery) ? data.photosGallery.length : 0;
     const legacy = Array.isArray(data?.images) ? data.images.length : 0;
-    const recorded = Number(data?.photoCount || 0) || 0;
+    const recorded = Math.max(0, finiteNumber(data?.photoCount));
     return Math.max(canonical, legacy, recorded);
   }
 
@@ -70,13 +75,13 @@
     const completedFields = profileValues.filter(Boolean).length;
     score += (completedFields / profileValues.length) * 30;
 
-    const responseRate = Number(data?.responseRate || 0);
+    const responseRate = finiteNumber(data?.responseRate);
     score += Math.max(0, Math.min(1, responseRate)) * 25;
 
-    const averageRating = Number(data?.averageRating ?? data?.rating ?? 0);
+    const averageRating = finiteNumber(data?.averageRating ?? data?.rating);
     score += (Math.max(0, Math.min(5, averageRating)) / 5) * 20;
 
-    const bookingCount = Number(data?.bookingCount || data?.bookings?.length || 0);
+    const bookingCount = finiteNumber(data?.bookingCount ?? data?.bookings?.length);
     score += Math.min(Math.max(bookingCount, 0) / 10, 1) * 15;
 
     score += Math.min(canonicalPhotoCount(data) / 10, 1) * 10;
@@ -241,7 +246,7 @@
             These are EventFlow-confirmed trust signals, separate from normal profile approval. Do not confirm PLI, DBS or licence badges from supplier-entered text alone. No DBS contents or sensitive certificate details are stored in these badges.
           </p>
         </div>
-        <a class="ef-cta btn btn-secondary btn-small" href="/supplier?id=${encodeURIComponent(supplierId)}" target="_blank" rel="noopener noreferrer">Open public profile</a>
+        <a class="ef-cta btn btn-secondary btn-small" href="/supplier?id=${encodeURIComponent(supplierId)}&preview=true" target="_blank" rel="noopener noreferrer">Open public profile</a>
       </div>
 
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:0.75rem;margin-top:1rem;">
