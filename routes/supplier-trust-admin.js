@@ -30,6 +30,28 @@ function normaliseTrustVerifications(value) {
   return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
 }
 
+async function rollbackUnauditedTrustChange(supplierId, originalBadges, originalTrust) {
+  try {
+    await dbUnified.updateOne(
+      'suppliers',
+      { id: supplierId },
+      {
+        $set: {
+          badges: originalBadges,
+          trustVerifications: originalTrust,
+        },
+      }
+    );
+    return true;
+  } catch (error) {
+    logger.error('CRITICAL: failed to roll back unaudited supplier trust change', {
+      supplierId,
+      error: error.message,
+    });
+    return false;
+  }
+}
+
 async function mutateTrustBadge(req, res, verified) {
   try {
     const { supplierId, badgeId } = req.params;
@@ -44,15 +66,16 @@ async function mutateTrustBadge(req, res, verified) {
     }
 
     const now = new Date().toISOString();
-    const badges = new Set(Array.isArray(supplier.badges) ? supplier.badges : []);
+    const originalBadges = Array.isArray(supplier.badges) ? [...supplier.badges] : [];
+    const originalTrust = normaliseTrustVerifications(supplier.trustVerifications);
+    const badges = new Set(originalBadges);
     if (verified) {
       badges.add(badgeId);
     } else {
       badges.delete(badgeId);
     }
 
-    const currentTrust = normaliseTrustVerifications(supplier.trustVerifications);
-    const currentCredential = normaliseTrustVerifications(currentTrust[definition.key]);
+    const currentCredential = normaliseTrustVerifications(originalTrust[definition.key]);
     const credential = verified
       ? {
           ...currentCredential,
@@ -70,12 +93,12 @@ async function mutateTrustBadge(req, res, verified) {
         };
 
     const trustVerifications = {
-      ...currentTrust,
+      ...originalTrust,
       [definition.key]: credential,
     };
     const badgeList = Array.from(badges);
 
-    await dbUnified.updateOne(
+    const updated = await dbUnified.updateOne(
       'suppliers',
       { id: supplierId },
       {
@@ -86,8 +109,11 @@ async function mutateTrustBadge(req, res, verified) {
         },
       }
     );
+    if (!updated) {
+      return res.status(500).json({ error: 'Failed to persist supplier trust verification' });
+    }
 
-    await auditLog({
+    const auditEntry = await auditLog({
       adminId: req.user.id,
       adminEmail: req.user.email,
       action: verified ? 'supplier_trust_badge_confirmed' : 'supplier_trust_badge_removed',
@@ -102,6 +128,22 @@ async function mutateTrustBadge(req, res, verified) {
       ipAddress: req.ip || req.connection?.remoteAddress || null,
       userAgent: req.get('user-agent') || null,
     });
+
+    // auditLog intentionally absorbs storage errors and returns null. A public
+    // EventFlow trust claim must not survive without an attributable audit record,
+    // so revert the trust mutation and fail closed when auditing is unavailable.
+    if (!auditEntry) {
+      const rolledBack = await rollbackUnauditedTrustChange(
+        supplierId,
+        originalBadges,
+        originalTrust
+      );
+      return res.status(503).json({
+        error: rolledBack
+          ? 'Trust verification was not changed because the audit record could not be saved'
+          : 'Trust verification audit failed and rollback could not be confirmed',
+      });
+    }
 
     catalogCache
       .invalidate()
