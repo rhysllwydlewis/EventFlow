@@ -32,7 +32,7 @@ function normaliseTrustVerifications(value) {
 
 async function rollbackUnauditedTrustChange(supplierId, originalBadges, originalTrust) {
   try {
-    await dbUnified.updateOne(
+    const rolledBack = await dbUnified.updateOne(
       'suppliers',
       { id: supplierId },
       {
@@ -42,6 +42,10 @@ async function rollbackUnauditedTrustChange(supplierId, originalBadges, original
         },
       }
     );
+    if (!rolledBack) {
+      logger.error('CRITICAL: unaudited supplier trust rollback was not persisted', { supplierId });
+      return false;
+    }
     return true;
   } catch (error) {
     logger.error('CRITICAL: failed to roll back unaudited supplier trust change', {
