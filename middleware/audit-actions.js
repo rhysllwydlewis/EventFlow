@@ -40,6 +40,8 @@ const AUDIT_ACTIONS = {
   SUPPLIER_DELETED: 'supplier_deleted',
   SUPPLIER_EDITED: 'supplier_edited',
   SUPPLIER_UPDATED: 'supplier_updated',
+  SUPPLIER_TRUST_BADGE_CONFIRMED: 'supplier_trust_badge_confirmed',
+  SUPPLIER_TRUST_BADGE_REMOVED: 'supplier_trust_badge_removed',
 
   // Package management
   PACKAGE_CREATED: 'package_created',
