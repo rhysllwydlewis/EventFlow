@@ -55,7 +55,7 @@ async function recordAutomaticApprovalAudit(supplier) {
   }
 
   try {
-    await auditLog({
+    const auditEntry = await auditLog({
       adminId: 'system',
       adminEmail: 'system',
       action: AUDIT_ACTIONS.SUPPLIER_APPROVED,
@@ -67,6 +67,14 @@ async function recordAutomaticApprovalAudit(supplier) {
         ownerUserId: supplier.ownerUserId,
       },
     });
+    if (!auditEntry) {
+      // Auto-provisioning deliberately remains available during a temporary audit
+      // outage, but make the missing provenance visible instead of silently treating
+      // auditLog's null result as success.
+      logger.warn('Automatically provisioned supplier was approved but audit persistence failed', {
+        supplierId: supplier.id,
+      });
+    }
   } catch (error) {
     // Provisioning must not fail just because the audit store is temporarily unavailable.
     logger.warn('Failed to record automatically provisioned supplier approval audit event', {
