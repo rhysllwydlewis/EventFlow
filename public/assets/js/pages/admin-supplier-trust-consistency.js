@@ -10,16 +10,19 @@
   const TRUST_BADGES = [
     {
       id: 'public-liability-verified',
+      key: 'publicLiability',
       label: 'Public Liability Insurance',
       help: 'Only confirm after EventFlow has reviewed appropriate public liability insurance evidence.',
     },
     {
       id: 'dbs-checked',
+      key: 'dbs',
       label: 'DBS Check',
       help: 'Only confirm that evidence has been checked. Do not store or expose DBS contents in this badge.',
     },
     {
       id: 'licence-verified',
+      key: 'licence',
       label: 'Relevant Licence',
       help: 'Only confirm where a relevant licence has been independently reviewed by EventFlow.',
     },
@@ -46,9 +49,10 @@
   }
 
   function canonicalPhotoCount(data) {
-    if (Array.isArray(data?.photosGallery)) return data.photosGallery.length;
-    if (Array.isArray(data?.images)) return data.images.length;
-    return Number(data?.photoCount || 0) || 0;
+    const canonical = Array.isArray(data?.photosGallery) ? data.photosGallery.length : 0;
+    const legacy = Array.isArray(data?.images) ? data.images.length : 0;
+    const recorded = Number(data?.photoCount || 0) || 0;
+    return Math.max(canonical, legacy, recorded);
   }
 
   // Mirrors the Supplier Management score so the list and detail views do not
@@ -114,8 +118,10 @@
     }
   }
 
-  function isTrustedBadge(id) {
-    return Array.isArray(supplier?.badges) && supplier.badges.includes(id);
+  function isTrustedBadge(item) {
+    const badgeConfirmed = Array.isArray(supplier?.badges) && supplier.badges.includes(item.id);
+    const structuredConfirmed = supplier?.trustVerifications?.[item.key]?.verified === true;
+    return badgeConfirmed || structuredConfirmed;
   }
 
   function bannerState(data) {
@@ -184,13 +190,16 @@
     if (!card) return;
 
     const banner = bannerState(supplier);
-    const profileApproved =
-      supplier.approved === true ||
-      supplier.verificationStatus === 'approved' ||
-      supplier.verified === true;
-    const trustState = TRUST_BADGES.map(item => [item.id, isTrustedBadge(item.id)]);
+    // Public directory visibility is controlled by approved === true. Keep this
+    // diagnostic fail-closed instead of upgrading stale verified/status aliases.
+    const profileApproved = supplier.approved === true;
+    const conflictingApprovalSignal =
+      !profileApproved &&
+      (supplier.verificationStatus === 'approved' || supplier.verified === true);
+    const trustState = TRUST_BADGES.map(item => [item.id, isTrustedBadge(item)]);
     const signature = JSON.stringify({
       profileApproved,
+      conflictingApprovalSignal,
       bannerTone: banner.tone,
       bannerLabel: banner.label,
       bannerValue: asText(supplier.bannerUrl || supplier.coverImage),
@@ -206,7 +215,7 @@
     card.dataset.renderSignature = signature;
 
     const rows = TRUST_BADGES.map(item => {
-      const verified = isTrustedBadge(item.id);
+      const verified = isTrustedBadge(item);
       return `
         <div style="display:grid;grid-template-columns:minmax(180px,1fr) auto;gap:1rem;align-items:center;padding:0.85rem 0;border-top:1px solid #eef2f7;">
           <div>
@@ -241,6 +250,11 @@
         <div style="padding:0.8rem;border:1px solid #e5e7eb;border-radius:10px;">
           <div class="small" style="color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;">Profile approval</div>
           <div style="margin-top:0.35rem;">${statusPill(profileApproved, 'Approved', 'Not approved')}</div>
+          ${
+            conflictingApprovalSignal
+              ? '<div class="small" style="color:#b45309;margin-top:0.4rem;">Data mismatch: a legacy verification signal says approved, but the authoritative listing flag is not approved.</div>'
+              : ''
+          }
         </div>
         <div style="padding:0.8rem;border:1px solid #e5e7eb;border-radius:10px;">
           <div class="small" style="color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;">Banner</div>
@@ -267,8 +281,8 @@
     const confirmed = await AdminShared.showConfirmModal({
       title: awarding ? `Confirm ${config.label}` : `Remove ${config.label}`,
       message: awarding
-        ? `Confirm that EventFlow has reviewed sufficient evidence for ${config.label}. This will show a trust signal on the public supplier profile.`
-        : `Remove the public ${config.label} trust signal from this supplier?`,
+        ? `Confirm that EventFlow has reviewed sufficient evidence for ${config.label}. This will show a trust signal on the public supplier profile and create an admin audit record.`
+        : `Remove the public ${config.label} trust signal from this supplier? This change will be audited.`,
       confirmText: awarding ? 'Confirm verified' : 'Remove',
       cancelText: 'Cancel',
     });
@@ -276,15 +290,23 @@
 
     button.disabled = true;
     try {
-      await AdminShared.api(
-        `/api/admin/suppliers/${supplierId}/badges/${encodeURIComponent(badgeId)}`,
+      const response = await AdminShared.api(
+        `/api/admin/suppliers/${supplierId}/trust-badges/${encodeURIComponent(badgeId)}`,
         awarding ? 'POST' : 'DELETE',
         awarding ? {} : undefined
       );
-      const current = new Set(Array.isArray(supplier.badges) ? supplier.badges : []);
-      if (awarding) current.add(badgeId);
-      else current.delete(badgeId);
-      supplier.badges = Array.from(current);
+      const updated = response?.supplier || {};
+      if (Array.isArray(updated.badges)) {
+        supplier.badges = updated.badges;
+      } else {
+        const current = new Set(Array.isArray(supplier.badges) ? supplier.badges : []);
+        if (awarding) current.add(badgeId);
+        else current.delete(badgeId);
+        supplier.badges = Array.from(current);
+      }
+      if (updated.trustVerifications && typeof updated.trustVerifications === 'object') {
+        supplier.trustVerifications = updated.trustVerifications;
+      }
       AdminShared.showToast(
         awarding ? `${config.label} confirmed` : `${config.label} verification removed`,
         'success'
