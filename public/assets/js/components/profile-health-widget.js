@@ -16,13 +16,24 @@
     ).trim();
   }
 
+  function galleryItemKey(item) {
+    if (typeof item === 'string') {
+      return item.trim();
+    }
+    if (!item || typeof item !== 'object') {
+      return '';
+    }
+    return String(
+      item.url || item.large || item.optimized || item.original || item.thumbnail || item.src || ''
+    ).trim();
+  }
+
   function galleryItems(supplier) {
     const canonical = Array.isArray(supplier?.photosGallery) ? supplier.photosGallery : [];
     const legacy = Array.isArray(supplier?.images) ? supplier.images : [];
-    // Some migrated records have an empty canonical array plus populated legacy images.
-    // Merge both collections and de-duplicate simple string URLs so those profiles do
-    // not lose health points merely because both schema generations are present.
-    return Array.from(new Set([...canonical, ...legacy].filter(Boolean)));
+    // Some migrated records have both schema generations populated. Compare their
+    // actual media URLs rather than object identity so the same photo cannot count twice.
+    return Array.from(new Set([...canonical, ...legacy].map(galleryItemKey).filter(Boolean)));
   }
 
   function socialLinks(supplier) {
