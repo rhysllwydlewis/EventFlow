@@ -57,11 +57,30 @@ describe('supplier public profile trust boundary', () => {
     });
   });
 
-  test('admin trust badge IDs become safe public boolean trust claims', () => {
+  test('generic badge IDs alone cannot create public trust claims', () => {
+    const publicSupplier = safePublicSupplier({
+      id: 'sup_badge_only',
+      name: 'Badge Only Supplier',
+      badges: ['public-liability-verified', 'dbs-checked', 'licence-verified'],
+      trustVerifications: {},
+    });
+
+    expect(publicSupplier.trustVerifications).toEqual({
+      publicLiability: { verified: false },
+      dbs: { verified: false },
+      licence: { verified: false },
+    });
+  });
+
+  test('structured admin trust state becomes safe public boolean trust claims', () => {
     const publicSupplier = safePublicSupplier({
       id: 'sup_trusted',
       name: 'Trusted Supplier',
-      badges: ['public-liability-verified', 'dbs-checked', 'licence-verified'],
+      trustVerifications: {
+        publicLiability: { verified: true, verifiedBy: 'admin_1', policyNumber: 'SECRET' },
+        dbs: { verified: true, verifiedBy: 'admin_1', certificateNumber: 'SECRET' },
+        licence: { verified: true, verifiedBy: 'admin_1' },
+      },
     });
 
     expect(publicSupplier.trustVerifications).toEqual({
