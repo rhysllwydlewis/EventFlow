@@ -129,6 +129,22 @@ const BADGE_DEFINITIONS = {
   },
 };
 
+const TRUST_BADGE_IDS = new Set([
+  BADGE_DEFINITIONS.PUBLIC_LIABILITY_VERIFIED.id,
+  BADGE_DEFINITIONS.DBS_CHECKED.id,
+  BADGE_DEFINITIONS.LICENCE_VERIFIED.id,
+]);
+
+function assertGenericBadgeMutationAllowed(badgeId) {
+  if (TRUST_BADGE_IDS.has(badgeId)) {
+    const error = new Error(
+      'Trust credential badges must be changed through the dedicated audited trust verification endpoint'
+    );
+    error.code = 'TRUST_BADGE_DEDICATED_ENDPOINT_REQUIRED';
+    throw error;
+  }
+}
+
 /**
  * Initialize default badges in the database if they don't exist
  * @returns {Promise<void>}
@@ -414,6 +430,8 @@ async function evaluateAllSupplierBadges() {
  */
 async function awardBadge(supplierId, badgeId, awardedBy) {
   try {
+    assertGenericBadgeMutationAllowed(badgeId);
+
     const suppliers = await dbUnified.read('suppliers');
     const badges = await dbUnified.read('badges');
 
@@ -464,6 +482,8 @@ async function awardBadge(supplierId, badgeId, awardedBy) {
  */
 async function revokeBadge(supplierId, badgeId, revokedBy) {
   try {
+    assertGenericBadgeMutationAllowed(badgeId);
+
     const suppliers = await dbUnified.read('suppliers');
     const badges = await dbUnified.read('badges');
 
@@ -507,6 +527,7 @@ async function revokeBadge(supplierId, badgeId, revokedBy) {
 
 module.exports = {
   BADGE_DEFINITIONS,
+  TRUST_BADGE_IDS,
   initializeDefaultBadges,
   meetsCriteria,
   calculateSupplierStats,
