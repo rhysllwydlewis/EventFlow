@@ -46,7 +46,7 @@
     "release:tag": "git tag -a v$npm_package_version -m \"Release v$npm_package_version\" && git push origin v$npm_package_version",
     "release:tag:interactive": "bash scripts/create-release-tag.sh",
     "sitemap": "node scripts/generate-sitemap.js",
-    "test:smoke": "jest --runInBand --coverage=false tests/integration/admin-bulk-user-actions.test.js tests/integration/admin-batch-validation.test.js tests/integration/csrf-protection.test.js tests/integration/plan-api.test.js tests/integration/ai-plan-route.test.js tests/integration/subscription-flow.test.js tests/integration/reviews-v2.test.js tests/integration/lead-scoring.test.js tests/integration/contact-form.test.js tests/integration/sentry-frontend-coverage.test.js tests/integration/auth-security-regressions.test.js tests/integration/admin-cashout-requests.test.js tests/integration/admin-cashout-requests-runtime.test.js tests/integration/admin-cashout-corrupt-state.test.js tests/unit/partner-anti-abuse.test.js tests/unit/partner-anti-abuse-edge-cases.test.js tests/unit/partner-anti-abuse-runtime.test.js tests/unit/partner-anti-abuse-startup.test.js tests/unit/partner-database-indexes.test.js tests/unit/partner-referral-campaign-capture.test.js tests/unit/partner-reward-clawback.test.js tests/unit/partner-reward-clawback-edge-cases.test.js tests/unit/payment-partner-clawback.test.js tests/unit/supplier-public-profile-trust.test.js tests/unit/supplier-auto-approval-audit.test.js tests/unit/supplier-trust-admin.test.js tests/unit/supplier-banner-persistence.test.js tests/unit/supplier-profile-trust-assets.test.js",
+    "test:smoke": "jest --runInBand --coverage=false tests/integration/admin-bulk-user-actions.test.js tests/integration/admin-batch-validation.test.js tests/integration/csrf-protection.test.js tests/integration/plan-api.test.js tests/integration/ai-plan-route.test.js tests/integration/subscription-flow.test.js tests/integration/reviews-v2.test.js tests/integration/lead-scoring.test.js tests/integration/contact-form.test.js tests/integration/sentry-frontend-coverage.test.js tests/integration/auth-security-regressions.test.js tests/integration/admin-cashout-requests.test.js tests/integration/admin-cashout-requests-runtime.test.js tests/integration/admin-cashout-corrupt-state.test.js tests/unit/partner-anti-abuse.test.js tests/unit/partner-anti-abuse-edge-cases.test.js tests/unit/partner-anti-abuse-runtime.test.js tests/unit/partner-anti-abuse-startup.test.js tests/unit/partner-database-indexes.test.js tests/unit/partner-referral-campaign-capture.test.js tests/unit/partner-reward-clawback.test.js tests/unit/partner-reward-clawback-edge-cases.test.js tests/unit/payment-partner-clawback.test.js tests/unit/supplier-public-profile-trust.test.js tests/unit/supplier-auto-approval-audit.test.js tests/unit/supplier-trust-admin.test.js tests/unit/supplier-banner-persistence.test.js tests/unit/supplier-profile-trust-assets.test.js tests/unit/supplier-profile-health-aliases.test.js",
     "test:full": "jest --coverage",
     "test:ci": "jest --runInBand --detectOpenHandles --coverage=false",
     "preflight": "node scripts/preflight.mjs",
@@ -123,7 +123,6 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.11.1",
-    "@playwright/test": "^1.59.1",
     "@sentry/browser": "^8.0.0",
     "@types/jest": "^29.5.14",
     "altcha": "^2.3.0",
