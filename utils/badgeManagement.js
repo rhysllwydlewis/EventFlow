@@ -12,8 +12,9 @@ const logger = require('./logger');
  * Badge type definitions with auto-award criteria.
  *
  * Trust credentials (PLI / DBS / licence) are deliberately non-automatic.
- * They can only be awarded through the existing admin-only supplier badge API.
- * Suppliers must never be able to self-assert these EventFlow trust claims.
+ * They can only be confirmed through the dedicated audited admin trust endpoint.
+ * Suppliers and generic badge mutation paths must never be able to self-assert
+ * these EventFlow trust claims.
  */
 const BADGE_DEFINITIONS = {
   FAST_RESPONDER: {
@@ -56,7 +57,7 @@ const BADGE_DEFINITIONS = {
     color: '#8B5CF6',
     autoAssign: true,
     autoAssignCriteria: {
-      completedEvents: { gt: 50 }, // Greater than 50
+      completedEvents: { gt: 50 }, // Greater than 50 events
     },
     displayOrder: 3,
   },
@@ -392,6 +393,11 @@ async function evaluateAllSupplierBadges() {
       }
     }
 
+    logger.info(
+      `Badge evaluation complete: ${results.evaluated}/${results.total} evaluated, ` +
+        `${results.awarded} awarded, ${results.revoked} revoked, ${results.errors} errors`
+    );
+
     return results;
   } catch (error) {
     logger.error('Error evaluating all supplier badges:', error);
@@ -399,10 +405,113 @@ async function evaluateAllSupplierBadges() {
   }
 }
 
+/**
+ * Manually award a badge to a supplier
+ * @param {string} supplierId - Supplier ID
+ * @param {string} badgeId - Badge ID
+ * @param {string} awardedBy - User ID who awarded the badge
+ * @returns {Promise<Object>}
+ */
+async function awardBadge(supplierId, badgeId, awardedBy) {
+  try {
+    const suppliers = await dbUnified.read('suppliers');
+    const badges = await dbUnified.read('badges');
+
+    const supplier = suppliers.find(s => s.id === supplierId);
+    const badge = badges.find(b => b.id === badgeId);
+
+    if (!supplier) {
+      throw new Error('Supplier not found');
+    }
+    if (!badge) {
+      throw new Error('Badge not found');
+    }
+
+    if (!supplier.badges) {
+      supplier.badges = [];
+    }
+
+    if (!supplier.badges.includes(badgeId)) {
+      supplier.badges.push(badgeId);
+      await dbUnified.updateOne(
+        'suppliers',
+        { id: supplierId },
+        {
+          $set: { badges: supplier.badges },
+        }
+      );
+
+      logger.info(`✓ Manually awarded badge "${badge.name}" to supplier ${supplier.name}`, {
+        awardedBy,
+      });
+
+      return { success: true, badge };
+    }
+
+    return { success: false, reason: 'Badge already awarded' };
+  } catch (error) {
+    logger.error('Error manually awarding badge:', error);
+    throw error;
+  }
+}
+
+/**
+ * Manually revoke a badge from a supplier
+ * @param {string} supplierId - Supplier ID
+ * @param {string} badgeId - Badge ID
+ * @param {string} revokedBy - User ID who revoked the badge
+ * @returns {Promise<Object>}
+ */
+async function revokeBadge(supplierId, badgeId, revokedBy) {
+  try {
+    const suppliers = await dbUnified.read('suppliers');
+    const badges = await dbUnified.read('badges');
+
+    const supplier = suppliers.find(s => s.id === supplierId);
+    const badge = badges.find(b => b.id === badgeId);
+
+    if (!supplier) {
+      throw new Error('Supplier not found');
+    }
+    if (!badge) {
+      throw new Error('Badge not found');
+    }
+
+    if (!supplier.badges) {
+      supplier.badges = [];
+    }
+
+    if (supplier.badges.includes(badgeId)) {
+      supplier.badges = supplier.badges.filter(id => id !== badgeId);
+      await dbUnified.updateOne(
+        'suppliers',
+        { id: supplierId },
+        {
+          $set: { badges: supplier.badges },
+        }
+      );
+
+      logger.info(`✗ Manually revoked badge "${badge.name}" from supplier ${supplier.name}`, {
+        revokedBy,
+      });
+
+      return { success: true, badge };
+    }
+
+    return { success: false, reason: 'Badge not currently awarded' };
+  } catch (error) {
+    logger.error('Error manually revoking badge:', error);
+    throw error;
+  }
+}
+
 module.exports = {
   BADGE_DEFINITIONS,
   initializeDefaultBadges,
+  meetsCriteria,
+  calculateSupplierStats,
   evaluateSupplierBadges,
   evaluateAllSupplierBadges,
-  calculateSupplierStats,
+  awardBadge,
+  revokeBadge,
 };
