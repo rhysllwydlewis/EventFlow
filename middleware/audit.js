@@ -23,33 +23,34 @@ const logger = require('../utils/logger');
  * @returns {Promise<Object|null>} The created audit log entry or null on error
  */
 async function auditLog(params) {
-  const {
-    adminId,
-    adminEmail,
-    action,
-    targetType,
-    targetId,
-    details = {},
-    ipAddress = null,
-    userAgent = null,
-  } = params;
-
-  const now = new Date().toISOString();
-  const logEntry = {
-    id: dbUnified.uid('audit'),
-    adminId,
-    adminEmail,
-    action,
-    targetType,
-    targetId,
-    details,
-    ipAddress,
-    userAgent,
-    timestamp: now,
-    createdAt: now,
-  };
-
+  let logEntry = null;
   try {
+    const {
+      adminId,
+      adminEmail,
+      action,
+      targetType,
+      targetId,
+      details = {},
+      ipAddress = null,
+      userAgent = null,
+    } = params || {};
+
+    const now = new Date().toISOString();
+    logEntry = {
+      id: dbUnified.uid('audit'),
+      adminId,
+      adminEmail,
+      action,
+      targetType,
+      targetId,
+      details,
+      ipAddress,
+      userAgent,
+      timestamp: now,
+      createdAt: now,
+    };
+
     // dbUnified.insertOne normalises storage failures to null instead of throwing.
     // Check the return value so callers that need fail-closed auditing can
     // distinguish a durable audit record from a swallowed database failure.
@@ -64,9 +65,12 @@ async function auditLog(params) {
 
     return logEntry;
   } catch (error) {
-    // Log error but don't throw - audit logging should never break the main flow
+    // Audit logging is deliberately non-throwing. Fail-closed callers inspect the
+    // null return and can compensate/rollback their own state change.
     logger.error('[AUDIT ERROR] Failed to write audit log:', error.message);
-    logger.error('[AUDIT ERROR] Failed log entry:', logEntry);
+    if (logEntry) {
+      logger.error('[AUDIT ERROR] Failed log entry:', logEntry);
+    }
     return null;
   }
 }
