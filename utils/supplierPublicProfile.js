@@ -131,19 +131,15 @@ function safeVerifications(verifications = {}) {
  * Public trust credentials are admin-confirmed status only. Never expose
  * reviewer identity, notes, certificate numbers or DBS/document contents.
  *
- * Manual badge IDs remain supported alongside structured trustVerifications so
- * existing records and the dedicated admin trust endpoint share one public contract.
+ * Structured trustVerifications are authoritative. Generic supplier badge APIs
+ * cannot create a PLI/DBS/licence public trust claim by merely adding a badge ID.
  */
-function safeTrustVerifications(trustVerifications = {}, badges = []) {
+function safeTrustVerifications(trustVerifications = {}) {
   const source = plainObject(trustVerifications);
-  const badgeSet = new Set(Array.isArray(badges) ? badges.map(value => text(value, 80)) : []);
-  const verified = (value, badgeId) => bool(value?.verified) || badgeSet.has(badgeId);
   return {
-    publicLiability: {
-      verified: verified(source.publicLiability, 'public-liability-verified'),
-    },
-    dbs: { verified: verified(source.dbs, 'dbs-checked') },
-    licence: { verified: verified(source.licence, 'licence-verified') },
+    publicLiability: { verified: bool(source.publicLiability?.verified) },
+    dbs: { verified: bool(source.dbs?.verified) },
+    licence: { verified: bool(source.licence?.verified) },
   };
 }
 
@@ -290,7 +286,7 @@ function safePublicSupplier(supplier = {}, extras = {}) {
     phoneVerified: bool(source.phoneVerified || source.verifications?.phone?.verified),
     businessVerified: bool(source.businessVerified || source.verifications?.business?.verified),
     verifications: safeVerifications(source.verifications),
-    trustVerifications: safeTrustVerifications(source.trustVerifications, badges),
+    trustVerifications: safeTrustVerifications(source.trustVerifications),
     // Legacy self-declared fields remain in the payload for compatibility only.
     // Public UI must never present them as EventFlow-confirmed trust signals.
     insurance: bool(source.insurance),
