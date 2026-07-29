@@ -10,6 +10,7 @@ const catalogCache = require('../services/catalogCache');
 const logger = require('../utils/logger');
 
 const router = express.Router();
+const MAX_WRITE_ATTEMPTS = 3;
 
 const TRUST_BADGES = Object.freeze({
   'public-liability-verified': {
@@ -30,6 +31,17 @@ function normaliseTrustVerifications(value) {
   return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
 }
 
+function optimisticFilter(supplierId, snapshot, extra = {}) {
+  const filter = { id: supplierId, ...extra };
+  // Most supplier records carry updatedAt. Including it makes the whole-object
+  // badges/trustVerifications write compare-and-set safe and prevents a stale
+  // admin screen from overwriting a concurrent supplier/admin change.
+  if (snapshot && snapshot.updatedAt !== undefined) {
+    filter.updatedAt = snapshot.updatedAt;
+  }
+  return filter;
+}
+
 async function rollbackUnauditedTrustChange({
   supplierId,
   badgeId,
@@ -37,65 +49,73 @@ async function rollbackUnauditedTrustChange({
   originalHadBadge,
   originalCredential,
   originalCredentialExisted,
-  originalUpdatedAt,
   markerField,
   markerValue,
 }) {
   try {
-    const latest = await dbUnified.findOne('suppliers', { id: supplierId });
-    if (!latest) {
-      logger.error('CRITICAL: supplier disappeared before unaudited trust rollback', { supplierId });
-      return false;
-    }
+    for (let attempt = 1; attempt <= MAX_WRITE_ATTEMPTS; attempt++) {
+      const latest = await dbUnified.findOne('suppliers', { id: supplierId });
+      if (!latest) {
+        logger.error('CRITICAL: supplier disappeared before unaudited trust rollback', {
+          supplierId,
+        });
+        return false;
+      }
 
-    const latestTrust = normaliseTrustVerifications(latest.trustVerifications);
-    const latestCredential = normaliseTrustVerifications(latestTrust[trustKey]);
+      const latestTrust = normaliseTrustVerifications(latest.trustVerifications);
+      const latestCredential = normaliseTrustVerifications(latestTrust[trustKey]);
 
-    // Do not overwrite a newer admin decision on the same credential. The marker is
-    // written by this request and is used as a compare-and-set guard for the rollback.
-    if (latestCredential[markerField] !== markerValue) {
-      logger.error('CRITICAL: unaudited supplier trust rollback was superseded by a newer change', {
+      // Do not overwrite a newer admin decision on the same credential. The marker
+      // belongs to this request and acts as the ownership token for its rollback.
+      if (latestCredential[markerField] !== markerValue) {
+        logger.error('CRITICAL: unaudited supplier trust rollback was superseded by a newer change', {
+          supplierId,
+          trustKey,
+        });
+        return false;
+      }
+
+      const badges = new Set(Array.isArray(latest.badges) ? latest.badges : []);
+      if (originalHadBadge) {
+        badges.add(badgeId);
+      } else {
+        badges.delete(badgeId);
+      }
+
+      const trustVerifications = { ...latestTrust };
+      if (originalCredentialExisted) {
+        trustVerifications[trustKey] = originalCredential;
+      } else {
+        delete trustVerifications[trustKey];
+      }
+
+      const rollbackAt = new Date().toISOString();
+      const filter = optimisticFilter(supplierId, latest, {
+        [`trustVerifications.${trustKey}.${markerField}`]: markerValue,
+      });
+      const rolledBack = await dbUnified.updateOne('suppliers', filter, {
+        $set: {
+          badges: Array.from(badges),
+          trustVerifications,
+          updatedAt: rollbackAt,
+        },
+      });
+      if (rolledBack) {
+        return true;
+      }
+
+      logger.warn('Unaudited supplier trust rollback lost an optimistic write race; retrying', {
         supplierId,
         trustKey,
+        attempt,
       });
-      return false;
     }
 
-    const badges = new Set(Array.isArray(latest.badges) ? latest.badges : []);
-    if (originalHadBadge) {
-      badges.add(badgeId);
-    } else {
-      badges.delete(badgeId);
-    }
-
-    const trustVerifications = { ...latestTrust };
-    if (originalCredentialExisted) {
-      trustVerifications[trustKey] = originalCredential;
-    } else {
-      delete trustVerifications[trustKey];
-    }
-
-    const filter = {
-      id: supplierId,
-      [`trustVerifications.${trustKey}.${markerField}`]: markerValue,
-    };
-    const setFields = {
-      badges: Array.from(badges),
-      trustVerifications,
-    };
-    if (originalUpdatedAt !== undefined) {
-      setFields.updatedAt = originalUpdatedAt;
-    }
-
-    const rolledBack = await dbUnified.updateOne('suppliers', filter, { $set: setFields });
-    if (!rolledBack) {
-      logger.error('CRITICAL: unaudited supplier trust rollback was not persisted', {
-        supplierId,
-        trustKey,
-      });
-      return false;
-    }
-    return true;
+    logger.error('CRITICAL: unaudited supplier trust rollback exhausted retries', {
+      supplierId,
+      trustKey,
+    });
+    return false;
   } catch (error) {
     logger.error('CRITICAL: failed to roll back unaudited supplier trust change', {
       supplierId,
@@ -106,6 +126,93 @@ async function rollbackUnauditedTrustChange({
   }
 }
 
+function buildTrustMutation(supplier, definition, badgeId, verified, now, actorId) {
+  const originalBadges = Array.isArray(supplier.badges) ? [...supplier.badges] : [];
+  const originalHadBadge = originalBadges.includes(badgeId);
+  const originalTrust = normaliseTrustVerifications(supplier.trustVerifications);
+  const originalCredentialExisted = Object.prototype.hasOwnProperty.call(
+    originalTrust,
+    definition.key
+  );
+  const originalCredential = originalCredentialExisted
+    ? { ...normaliseTrustVerifications(originalTrust[definition.key]) }
+    : undefined;
+
+  const badges = new Set(originalBadges);
+  if (verified) {
+    badges.add(badgeId);
+  } else {
+    badges.delete(badgeId);
+  }
+
+  const currentCredential = normaliseTrustVerifications(originalTrust[definition.key]);
+  const credential = verified
+    ? {
+        ...currentCredential,
+        verified: true,
+        verifiedAt: now,
+        verifiedBy: actorId,
+        revokedAt: null,
+        revokedBy: null,
+      }
+    : {
+        ...currentCredential,
+        verified: false,
+        revokedAt: now,
+        revokedBy: actorId,
+      };
+
+  return {
+    badgeList: Array.from(badges),
+    trustVerifications: {
+      ...originalTrust,
+      [definition.key]: credential,
+    },
+    originalHadBadge,
+    originalCredential,
+    originalCredentialExisted,
+  };
+}
+
+async function persistTrustMutation(supplierId, definition, badgeId, verified, actorId) {
+  for (let attempt = 1; attempt <= MAX_WRITE_ATTEMPTS; attempt++) {
+    const supplier = await dbUnified.findOne('suppliers', { id: supplierId });
+    if (!supplier) {
+      return { status: 'missing' };
+    }
+
+    const now = new Date().toISOString();
+    const mutation = buildTrustMutation(supplier, definition, badgeId, verified, now, actorId);
+    const updated = await dbUnified.updateOne(
+      'suppliers',
+      optimisticFilter(supplierId, supplier),
+      {
+        $set: {
+          badges: mutation.badgeList,
+          trustVerifications: mutation.trustVerifications,
+          updatedAt: now,
+        },
+      }
+    );
+
+    if (updated) {
+      return {
+        status: 'updated',
+        now,
+        ...mutation,
+      };
+    }
+
+    logger.warn('Supplier trust mutation lost an optimistic write race; retrying', {
+      supplierId,
+      trustKey: definition.key,
+      attempt,
+    });
+  }
+
+  return { status: 'retry_exhausted' };
+}
+
 async function mutateTrustBadge(req, res, verified) {
   try {
     const { supplierId, badgeId } = req.params;
@@ -114,65 +221,20 @@ async function mutateTrustBadge(req, res, verified) {
       return res.status(400).json({ error: 'Unsupported trust badge' });
     }
 
-    const supplier = await dbUnified.findOne('suppliers', { id: supplierId });
-    if (!supplier) {
+    const mutation = await persistTrustMutation(
+      supplierId,
+      definition,
+      badgeId,
+      verified,
+      req.user.id
+    );
+    if (mutation.status === 'missing') {
       return res.status(404).json({ error: 'Supplier not found' });
     }
-
-    const now = new Date().toISOString();
-    const originalBadges = Array.isArray(supplier.badges) ? [...supplier.badges] : [];
-    const originalHadBadge = originalBadges.includes(badgeId);
-    const originalTrust = normaliseTrustVerifications(supplier.trustVerifications);
-    const originalCredentialExisted = Object.prototype.hasOwnProperty.call(
-      originalTrust,
-      definition.key
-    );
-    const originalCredential = originalCredentialExisted
-      ? { ...normaliseTrustVerifications(originalTrust[definition.key]) }
-      : undefined;
-    const badges = new Set(originalBadges);
-    if (verified) {
-      badges.add(badgeId);
-    } else {
-      badges.delete(badgeId);
-    }
-
-    const currentCredential = normaliseTrustVerifications(originalTrust[definition.key]);
-    const credential = verified
-      ? {
-          ...currentCredential,
-          verified: true,
-          verifiedAt: now,
-          verifiedBy: req.user.id,
-          revokedAt: null,
-          revokedBy: null,
-        }
-      : {
-          ...currentCredential,
-          verified: false,
-          revokedAt: now,
-          revokedBy: req.user.id,
-        };
-
-    const trustVerifications = {
-      ...originalTrust,
-      [definition.key]: credential,
-    };
-    const badgeList = Array.from(badges);
-
-    const updated = await dbUnified.updateOne(
-      'suppliers',
-      { id: supplierId },
-      {
-        $set: {
-          badges: badgeList,
-          trustVerifications,
-          updatedAt: now,
-        },
-      }
-    );
-    if (!updated) {
-      return res.status(500).json({ error: 'Failed to persist supplier trust verification' });
+    if (mutation.status !== 'updated') {
+      return res.status(503).json({
+        error: 'Supplier trust state changed while saving. Please refresh and try again.',
+      });
     }
 
     const auditEntry = await auditLog({
@@ -201,12 +263,11 @@ async function mutateTrustBadge(req, res, verified) {
         supplierId,
         badgeId,
         trustKey: definition.key,
-        originalHadBadge,
-        originalCredential,
-        originalCredentialExisted,
-        originalUpdatedAt: supplier.updatedAt,
+        originalHadBadge: mutation.originalHadBadge,
+        originalCredential: mutation.originalCredential,
+        originalCredentialExisted: mutation.originalCredentialExisted,
         markerField: verified ? 'verifiedAt' : 'revokedAt',
-        markerValue: now,
+        markerValue: mutation.now,
       });
       return res.status(503).json({
         error: rolledBack
@@ -223,8 +284,8 @@ async function mutateTrustBadge(req, res, verified) {
       ok: true,
       supplier: {
         id: supplierId,
-        badges: badgeList,
-        trustVerifications,
+        badges: mutation.badgeList,
+        trustVerifications: mutation.trustVerifications,
       },
     });
   } catch (error) {
