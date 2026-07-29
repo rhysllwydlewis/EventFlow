@@ -20,6 +20,7 @@ describe('supplier public profile trust boundary', () => {
 
     expect(publicSupplier.profileApproved).toBe(true);
     expect(publicSupplier.approved).toBe(true);
+    expect(publicSupplier.verified).toBe(false);
     expect(publicSupplier.emailVerified).toBe(false);
     expect(publicSupplier.verifications.email.verified).toBe(false);
   });
@@ -35,10 +36,11 @@ describe('supplier public profile trust boundary', () => {
 
     expect(publicSupplier.approved).toBe(false);
     expect(publicSupplier.profileApproved).toBe(false);
+    expect(publicSupplier.verified).toBe(false);
     expect(publicSupplier.emailVerified).toBe(false);
   });
 
-  test('does not promote supplier-entered insurance or licence text into verified trust claims', () => {
+  test('does not expose supplier-entered insurance or licence text as public trust data', () => {
     const publicSupplier = safePublicSupplier({
       id: 'sup_self_declared',
       name: 'Self Declared Supplier',
@@ -48,8 +50,8 @@ describe('supplier public profile trust boundary', () => {
       badges: [],
     });
 
-    expect(publicSupplier.insurance).toBe(true); // legacy compatibility only
-    expect(publicSupplier.license).toBe('LIC-12345');
+    expect(publicSupplier.insurance).toBeUndefined();
+    expect(publicSupplier.license).toBeUndefined();
     expect(publicSupplier.trustVerifications).toEqual({
       publicLiability: { verified: false },
       dbs: { verified: false },
