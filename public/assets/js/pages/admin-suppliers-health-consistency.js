@@ -12,6 +12,11 @@
     return value === null || value === undefined ? '' : String(value).trim();
   }
 
+  function finiteNumber(value, fallback = 0) {
+    const number = Number(value);
+    return Number.isFinite(number) ? number : fallback;
+  }
+
   function canonicalDescription(supplier) {
     return (
       asText(supplier?.description_long) ||
@@ -32,7 +37,7 @@
   function canonicalPhotoCount(supplier) {
     const canonical = Array.isArray(supplier?.photosGallery) ? supplier.photosGallery.length : 0;
     const legacy = Array.isArray(supplier?.images) ? supplier.images.length : 0;
-    const recorded = Number(supplier?.photoCount || 0) || 0;
+    const recorded = Math.max(0, finiteNumber(supplier?.photoCount));
     // Mixed-schema records can contain photosGallery: [] alongside populated legacy
     // images. Use the strongest available signal rather than first-array-wins.
     return Math.max(canonical, legacy, recorded);
@@ -48,15 +53,18 @@
     ];
     const profileScore = (profileValues.filter(Boolean).length / profileValues.length) * 30;
 
-    const responseRate = Math.max(0, Math.min(1, Number(supplier?.responseRate || 0)));
+    const responseRate = Math.max(0, Math.min(1, finiteNumber(supplier?.responseRate)));
     const responseScore = responseRate * 25;
 
-    const rating = Math.max(0, Math.min(5, Number(supplier?.averageRating ?? supplier?.rating ?? 0)));
+    const rating = Math.max(
+      0,
+      Math.min(5, finiteNumber(supplier?.averageRating ?? supplier?.rating))
+    );
     const ratingScore = (rating / 5) * 20;
 
     const bookingCount = Math.max(
       0,
-      Number(supplier?.bookingCount || supplier?.bookings?.length || 0)
+      finiteNumber(supplier?.bookingCount ?? supplier?.bookings?.length)
     );
     const bookingScore = Math.min(bookingCount / 10, 1) * 15;
 
@@ -132,7 +140,11 @@
 
   function syncAverage() {
     const avgElement = document.getElementById('avgScore');
-    if (!avgElement || suppliersById.size === 0) {
+    if (!avgElement) {
+      return;
+    }
+    if (suppliersById.size === 0) {
+      avgElement.textContent = '0.0%';
       return;
     }
     const scores = Array.from(suppliersById.values(), calculateScore);
@@ -140,12 +152,40 @@
     avgElement.textContent = `${average.toFixed(1)}%`;
   }
 
+  function installApprovalCopyFix() {
+    // The main admin script historically promised calendar publishing as part of
+    // ordinary approval. Keep the actual confirmation copy aligned with category /
+    // explicit-override permissions, not just the explanatory toggle text.
+    window.approveSupplier = async function approveSupplierWithAccuratePermissions(id) {
+      const confirmed = await AdminShared.showConfirmModal({
+        title: 'Approve Supplier',
+        message:
+          'Approve this supplier? They will be able to create packages, send messages and appear in search. Public calendar publishing still depends on the supplier category or an explicit admin override.',
+        confirmText: 'Approve',
+      });
+      if (!confirmed) {
+        return;
+      }
+      try {
+        await AdminShared.api(`/api/admin/suppliers/${id}/approve`, 'POST', { approved: true });
+        AdminShared.showToast('Supplier approved', 'success');
+        window.location.reload();
+      } catch (error) {
+        console.error('Error approving supplier:', error);
+        AdminShared.showToast(`Failed to approve supplier: ${error.message}`, 'error');
+      }
+    };
+  }
+
   async function loadCanonicalScores() {
+    installApprovalCopyFix();
     try {
       const response = await AdminShared.api('/api/admin/suppliers');
       const suppliers = response.items || response.suppliers || [];
       suppliersById = new Map(
-        suppliers.map(supplier => [String(supplier.id || supplier._id || ''), supplier])
+        suppliers
+          .map(supplier => [String(supplier.id || supplier._id || ''), supplier])
+          .filter(([id]) => id)
       );
       syncRows();
       syncAverage();
