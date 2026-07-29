@@ -9,7 +9,11 @@ const dbUnified = require('../db-unified');
 const logger = require('./logger');
 
 /**
- * Badge type definitions with auto-award criteria
+ * Badge type definitions with auto-award criteria.
+ *
+ * Trust credentials (PLI / DBS / licence) are deliberately non-automatic.
+ * They can only be awarded through the existing admin-only supplier badge API.
+ * Suppliers must never be able to self-assert these EventFlow trust claims.
  */
 const BADGE_DEFINITIONS = {
   FAST_RESPONDER: {
@@ -64,6 +68,39 @@ const BADGE_DEFINITIONS = {
     description: 'Verified supplier with confirmed business details',
     icon: '✓',
     color: '#10B981',
+    autoAssign: false,
+    displayOrder: 2,
+  },
+  PUBLIC_LIABILITY_VERIFIED: {
+    id: 'public-liability-verified',
+    name: 'Public Liability Insurance Verified',
+    slug: 'public-liability-verified',
+    type: 'verified',
+    description: 'Public liability insurance evidence has been reviewed by EventFlow',
+    icon: '🛡️',
+    color: '#0B8073',
+    autoAssign: false,
+    displayOrder: 2,
+  },
+  DBS_CHECKED: {
+    id: 'dbs-checked',
+    name: 'DBS Check Confirmed',
+    slug: 'dbs-checked',
+    type: 'verified',
+    description: 'DBS evidence has been confirmed by EventFlow',
+    icon: '✓',
+    color: '#0B8073',
+    autoAssign: false,
+    displayOrder: 2,
+  },
+  LICENCE_VERIFIED: {
+    id: 'licence-verified',
+    name: 'Licence Verified',
+    slug: 'licence-verified',
+    type: 'verified',
+    description: 'Relevant licence evidence has been reviewed by EventFlow',
+    icon: '✓',
+    color: '#0B8073',
     autoAssign: false,
     displayOrder: 2,
   },
@@ -283,7 +320,7 @@ async function evaluateSupplierBadges(supplierId) {
     const supplier = suppliers[supplierIndex];
     const stats = await calculateSupplierStats(supplierId);
 
-    // Get auto-assignable badges
+    // Get auto-assignable badges. Manual trust badges are never included here.
     const autoAssignBadges = badges.filter(b => b.autoAssign && b.active);
 
     // Initialize badges array if not exists
@@ -304,7 +341,6 @@ async function evaluateSupplierBadges(supplierId) {
         awarded.push(badge.id);
         logger.info(`✓ Awarded badge "${badge.name}" to supplier ${supplier.name}`);
       } else if (!meetsRequirements && hasBadge) {
-        // Revoke badge if no longer meets criteria
         supplier.badges = supplier.badges.filter(b => b !== badge.id);
         revoked.push(badge.id);
         logger.info(`✗ Revoked badge "${badge.name}" from supplier ${supplier.name}`);
