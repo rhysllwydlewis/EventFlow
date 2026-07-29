@@ -114,6 +114,34 @@ describe('supplier trust admin routes', () => {
     );
   });
 
+  test('rolls back the public trust change when the audit record cannot be saved', async () => {
+    data.badges = ['fast-responder'];
+    data.trustVerifications = { dbs: { verified: false } };
+    auditLog.mockResolvedValueOnce(null);
+
+    const res = await request(app())
+      .post('/suppliers/sup_1/trust-badges/public-liability-verified')
+      .send({});
+
+    expect(res.status).toBe(503);
+    expect(res.body.error).toMatch(/audit record could not be saved/i);
+    expect(updateOne).toHaveBeenCalledTimes(2);
+    expect(data.badges).toEqual(['fast-responder']);
+    expect(data.trustVerifications).toEqual({ dbs: { verified: false } });
+  });
+
+  test('fails before auditing when the trust mutation cannot be persisted', async () => {
+    updateOne.mockImplementationOnce(async () => false);
+
+    const res = await request(app())
+      .post('/suppliers/sup_1/trust-badges/licence-verified')
+      .send({});
+
+    expect(res.status).toBe(500);
+    expect(res.body.error).toMatch(/persist supplier trust verification/i);
+    expect(auditLog).not.toHaveBeenCalled();
+  });
+
   test('rejects arbitrary badge IDs so the trust endpoint cannot become a generic award API', async () => {
     const res = await request(app()).post('/suppliers/sup_1/trust-badges/top-rated').send({});
 
