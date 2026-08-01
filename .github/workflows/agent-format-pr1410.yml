@@ -1,23 +1,25 @@
 name: Agent Format PR 1410
 
 on:
-  push:
+  pull_request:
     branches:
-      - dependabot/npm_and_yarn/prettier-3.9.6
+      - main
+    paths:
+      - package.json
+      - package-lock.json
+      - .github/workflows/agent-format-pr1410.yml
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  format:
-    if: github.actor != 'github-actions[bot]'
+  format-artifact:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout PR branch
+      - name: Checkout PR head
         uses: actions/checkout@v4
         with:
-          ref: dependabot/npm_and_yarn/prettier-3.9.6
-          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -40,20 +42,16 @@ jobs:
             public/assets/vendor/chart.umd.js \
             routes/wedding-websites.js
 
-      - name: Commit formatted files
-        run: |
-          if git diff --quiet; then
-            echo "No formatting changes were required."
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add \
-            docs/features/PEXELS_ADVANCED_FEATURES.md \
-            docs/guides/SW_API_CACHING_SECURITY.md \
-            docs/security.md \
-            public/assets/js/vendor/altcha-widget.js \
-            public/assets/vendor/chart.umd.js \
+      - name: Upload formatted files
+        uses: actions/upload-artifact@v4
+        with:
+          name: formatted-pr1410
+          path: |
+            docs/features/PEXELS_ADVANCED_FEATURES.md
+            docs/guides/SW_API_CACHING_SECURITY.md
+            docs/security.md
+            public/assets/js/vendor/altcha-widget.js
+            public/assets/vendor/chart.umd.js
             routes/wedding-websites.js
-          git commit -m "style: apply Prettier 3.9.6 formatting"
-          git push origin HEAD:dependabot/npm_and_yarn/prettier-3.9.6
+          if-no-files-found: error
+          retention-days: 2
