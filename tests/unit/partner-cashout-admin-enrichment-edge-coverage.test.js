@@ -1,5 +1,6 @@
 'use strict';
 
+// Keep list, detail and pass-through response shapes covered when enrichment is refactored.
 const request = require('supertest');
 const mockStrictStore = {
   read: jest.fn(async () => []),
