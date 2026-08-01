@@ -116,7 +116,10 @@ test('lists appeals and updates a reviewed appeal with attributed evidence', asy
 
   const update = await request(app())
     .patch('/api/admin/partner-abuse/appeals/appeal_1')
-    .send({ status: 'accepted', internalNote: 'Verified independently and approved after manual review.' });
+    .send({
+      status: 'accepted',
+      internalNote: 'Verified independently and approved after manual review.',
+    });
   expect(update.status).toBe(200);
   expect(collections.partner_abuse_appeals[0]).toEqual(
     expect.objectContaining({ status: 'accepted', reviewedBy: 'admin_1' })
@@ -138,7 +141,11 @@ test('creates, lists and revokes temporary registration overrides', async () => 
   });
   expect(created.status).toBe(201);
   expect(mockCreateOverride).toHaveBeenCalledWith(
-    expect.objectContaining({ email: 'reviewed@example.com', adminUserId: 'admin_1', expiresInDays: 4 })
+    expect.objectContaining({
+      email: 'reviewed@example.com',
+      adminUserId: 'admin_1',
+      expiresInDays: 4,
+    })
   );
 
   collections.partner_abuse_overrides.push({
@@ -181,7 +188,10 @@ test('validates override input and returns non-secret active configuration', asy
 test('returns not found for missing appeal and override updates', async () => {
   const appeal = await request(app())
     .patch('/api/admin/partner-abuse/appeals/missing')
-    .send({ status: 'resolved', internalNote: 'Checked all evidence and no matching record was found.' });
+    .send({
+      status: 'resolved',
+      internalNote: 'Checked all evidence and no matching record was found.',
+    });
   expect(appeal.status).toBe(404);
 
   const override = await request(app())

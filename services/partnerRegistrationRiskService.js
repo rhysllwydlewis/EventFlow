@@ -375,10 +375,7 @@ function extractRequestSignals(req, { email, refCode } = {}) {
       'company-postcode',
       company && postcode ? `${company}|${postcode}` : ''
     ),
-    companyAddressHash: hmac(
-      'company-address',
-      company && address ? `${company}|${address}` : ''
-    ),
+    companyAddressHash: hmac('company-address', company && address ? `${company}|${address}` : ''),
     isPublicEmailDomain: PUBLIC_EMAIL_DOMAINS.has(domain),
     isDisposableEmail: isDisposableEmail(email),
     isSuspiciousEmail: isSuspiciousEmail(email),
@@ -484,7 +481,9 @@ async function lookupIpReputation(ip, timeoutMs) {
 }
 
 async function loadRegistrationEvents({ now, config, canonicalEmailHash }) {
-  const retentionCutoffIso = new Date(now.getTime() - config.retentionDays * 86400000).toISOString();
+  const retentionCutoffIso = new Date(
+    now.getTime() - config.retentionDays * 86400000
+  ).toISOString();
   const primaryOutcomes = ['attempt', 'created', 'blocked'];
 
   if (typeof dbUnified.findWithOptions === 'function') {
@@ -741,12 +740,12 @@ async function assessRegistration({ req, email, role, refCode = null, now = new 
     .filter(([field]) =>
       Boolean(
         signals[field] &&
-          primaryEvents.some(
-            event =>
-              event[field] === signals[field] &&
-              event.exactEmailHash &&
-              event.exactEmailHash !== signals.exactEmailHash
-          )
+        primaryEvents.some(
+          event =>
+            event[field] === signals[field] &&
+            event.exactEmailHash &&
+            event.exactEmailHash !== signals.exactEmailHash
+        )
       )
     )
     .map(([, label]) => label);
@@ -764,13 +763,13 @@ async function assessRegistration({ req, email, role, refCode = null, now = new 
   const crossRoleBusiness = businessFields.some(([field]) =>
     Boolean(
       signals[field] &&
-        primaryEvents.some(
-          event =>
-            event[field] === signals[field] &&
-            event.role &&
-            event.role !== role &&
-            ['partner', 'supplier'].includes(event.role)
-        )
+      primaryEvents.some(
+        event =>
+          event[field] === signals[field] &&
+          event.role &&
+          event.role !== role &&
+          ['partner', 'supplier'].includes(event.role)
+      )
     )
   );
   if (crossRoleBusiness) {
