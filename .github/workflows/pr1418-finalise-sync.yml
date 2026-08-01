@@ -95,10 +95,44 @@ jobs:
             tests/unit/supplier-public-profile-trust.test.js \
             utils/supplierPublicProfile.js
 
-      - name: Verify lint and smoke suites
+      - name: Capture lint diagnostics
         run: |
-          npm run lint
-          npm run test:smoke
+          set +e
+          npm run lint > lint.log 2>&1
+          status=$?
+          cat lint.log
+          echo "$status" > lint.exit
+          exit 0
+
+      - name: Capture smoke diagnostics
+        run: |
+          set +e
+          npm run test:smoke > smoke.log 2>&1
+          status=$?
+          cat smoke.log
+          echo "$status" > smoke.exit
+          exit 0
+
+      - name: Upload verifier diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr1418-finalise-diagnostics
+          path: |
+            lint.log
+            lint.exit
+            smoke.log
+            smoke.exit
+          retention-days: 7
+
+      - name: Enforce lint and smoke results
+        run: |
+          lint_status="$(cat lint.exit)"
+          smoke_status="$(cat smoke.exit)"
+          echo "lint exit: $lint_status"
+          echo "smoke exit: $smoke_status"
+          test "$lint_status" = "0"
+          test "$smoke_status" = "0"
 
       - name: Commit verified integration and remove helper
         run: |
