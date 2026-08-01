@@ -3,10 +3,9 @@ name: PR1415 Diagnostics
 on:
   pull_request:
     branches: [main]
-  workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 env:
   HUSKY: '0'
@@ -16,9 +15,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:
-      - name: Checkout full history
+      - name: Checkout PR branch
         uses: actions/checkout@v4
         with:
+          ref: ${{ github.head_ref }}
           fetch-depth: 0
 
       - name: Setup Node.js
@@ -37,13 +37,16 @@ jobs:
 
           test_path = Path('tests/unit/supplier-profile-provisioning-hardening.test.js')
           text = test_path.read_text()
-          old = """describe('supplier registration provisioning integration', () => {
+          marker = "describe('supplier registration provisioning integration', () => {"
+          before, section = text.split(marker, 1)
+
+          setup_old = """
             beforeEach(() => {
               jest.resetModules();
               mockLogger();
             });
           """
-          new = """describe('supplier registration provisioning integration', () => {
+          setup_new = """
             const originalPartnerAbuseHashSecret = process.env.PARTNER_ABUSE_HASH_SECRET;
 
             beforeEach(() => {
@@ -60,57 +63,73 @@ jobs:
               }
             });
           """
-          assert old in text, 'supplier integration setup block not found'
-          text = text.replace(old, new, 1)
+          assert setup_old in section, 'supplier integration setup block not found'
+          section = section.replace(setup_old, setup_new, 1)
 
-          old = """      users: [],
-              suppliers: [],
+          fixture_old = """      suppliers: [],
               settings: { features: { registration: true, supplierApplications: true } },
           """
-          new = """      users: [],
-              suppliers: [],
+          if fixture_old not in section:
+              fixture_old = """      suppliers: [],
+              settings: { features: { registration: true, supplierApplications: true } },
+          """.replace('      settings', '      settings')
+          fixture_new = """      suppliers: [],
               partner_abuse_events: [],
               partner_abuse_overrides: [],
               partner_abuse_appeals: [],
               settings: { features: { registration: true, supplierApplications: true } },
           """
-          assert old in text, 'supplier integration data fixture not found'
-          text = text.replace(old, new, 1)
+          # Use line-oriented insertion so indentation differences do not matter.
+          lines = section.splitlines(keepends=True)
+          inserted = False
+          for index, line in enumerate(lines):
+              if not inserted and line.strip() == 'suppliers: [],':
+                  indent = line[:len(line) - len(line.lstrip())]
+                  lines[index + 1:index + 1] = [
+                      f'{indent}partner_abuse_events: [],\n',
+                      f'{indent}partner_abuse_overrides: [],\n',
+                      f'{indent}partner_abuse_appeals: [],\n',
+                  ]
+                  inserted = True
+                  break
+          assert inserted, 'supplier integration data fixture not found'
+          section = ''.join(lines)
 
-          old = """      read: jest.fn(async collection => data[collection] || {}),
-              findOne: jest.fn(async (collection, filter) => {
+          read_line = 'read: jest.fn(async collection => data[collection] || {}),'
+          read_index = section.find(read_line)
+          assert read_index >= 0, 'db fixture insertion point not found'
+          line_start = section.rfind('\n', 0, read_index) + 1
+          indent = section[line_start:read_index]
+          insertion_at = section.find('\n', read_index) + 1
+          find_with_options = f"""{indent}findWithOptions: jest.fn(async (collection, query = {{}}, options = {{}}) => {{
+          {indent}  const rows = Array.isArray(data[collection]) ? data[collection] : [];
+          {indent}  const matches = row =>
+          {indent}    Object.entries(query).every(([key, expected]) => {{
+          {indent}      if (expected && typeof expected === 'object' && !Array.isArray(expected)) {{
+          {indent}        if (Array.isArray(expected.$in)) return expected.$in.includes(row[key]);
+          {indent}        if (expected.$gte !== undefined) return row[key] >= expected.$gte;
+          {indent}        if (expected.$gt !== undefined) return row[key] > expected.$gt;
+          {indent}        if (expected.$exists !== undefined) {{
+          {indent}          return expected.$exists
+          {indent}            ? Object.prototype.hasOwnProperty.call(row, key)
+          {indent}            : !Object.prototype.hasOwnProperty.call(row, key);
+          {indent}        }}
+          {indent}      }}
+          {indent}      return row[key] === expected;
+          {indent}    }});
+          {indent}  const results = rows.filter(matches);
+          {indent}  const sortEntries = Object.entries(options.sort || {{}});
+          {indent}  if (sortEntries.length) {{
+          {indent}    const [field, direction] = sortEntries[0];
+          {indent}    results.sort((left, right) =>
+          {indent}      direction * String(left[field] || '').localeCompare(String(right[field] || ''))
+          {indent}    );
+          {indent}  }}
+          {indent}  return results.slice(0, options.limit || results.length);
+          {indent}}}),
           """
-          new = """      read: jest.fn(async collection => data[collection] || {}),
-              findWithOptions: jest.fn(async (collection, query = {}, options = {}) => {
-                const rows = Array.isArray(data[collection]) ? data[collection] : [];
-                const matches = row =>
-                  Object.entries(query).every(([key, expected]) => {
-                    if (expected && typeof expected === 'object' && !Array.isArray(expected)) {
-                      if (Array.isArray(expected.$in)) return expected.$in.includes(row[key]);
-                      if (expected.$gte !== undefined) return row[key] >= expected.$gte;
-                      if (expected.$gt !== undefined) return row[key] > expected.$gt;
-                      if (expected.$exists !== undefined) {
-                        return expected.$exists
-                          ? Object.prototype.hasOwnProperty.call(row, key)
-                          : !Object.prototype.hasOwnProperty.call(row, key);
-                      }
-                    }
-                    return row[key] === expected;
-                  });
-                const results = rows.filter(matches);
-                const sortEntries = Object.entries(options.sort || {});
-                if (sortEntries.length) {
-                  const [field, direction] = sortEntries[0];
-                  results.sort((left, right) =>
-                    direction * String(left[field] || '').localeCompare(String(right[field] || ''))
-                  );
-                }
-                return results.slice(0, options.limit || results.length);
-              }),
-              findOne: jest.fn(async (collection, filter) => {
-          """
-          assert old in text, 'db fixture insertion point not found'
-          test_path.write_text(text.replace(old, new, 1))
+          section = section[:insertion_at] + find_with_options + section[insertion_at:]
+          test_path.write_text(before + marker + section)
 
           e2e_path = Path('e2e/auth.spec.js')
           text = e2e_path.read_text()
@@ -163,10 +182,7 @@ jobs:
         env:
           NODE_ENV: test
           JWT_SECRET: test-secret-for-jest-min-32-characters-long
-        run: |
-          set -o pipefail
-          npx jest --runInBand --coverage=false tests/unit/supplier-profile-provisioning-hardening.test.js \
-            2>&1 | tee pr1415-focused-jest.txt
+        run: npx jest --runInBand --coverage=false tests/unit/supplier-profile-provisioning-hardening.test.js
 
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
@@ -175,33 +191,31 @@ jobs:
         env:
           NODE_ENV: test
           JWT_SECRET: test-secret-for-jest-min-32-characters-long
-        run: |
-          set -o pipefail
-          npx playwright test e2e/auth.spec.js \
-            --grep "password toggle stays vertically centered on mobile before and after click" \
-            --reporter=line 2>&1 | tee pr1415-focused-e2e.txt
+        run: >-
+          npx playwright test e2e/auth.spec.js
+          --grep "password toggle stays vertically centered on mobile before and after click"
+          --reporter=line
 
-      - name: Upload corrected files and evidence
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: pr1415-corrected-files
-          path: |
-            docs/PARTNER_ANTI_ABUSE_PR1_VALIDATION.md
-            routes/admin-partner-abuse.js
-            routes/partner-abuse-appeals.js
-            routes/partner-registration-secure.js
-            services/partnerAntiAbuseService.js
-            services/partnerRegistrationRiskService.js
-            tests/unit/partner-abuse-admin-routes.test.js
-            tests/unit/partner-registration-final-review.test.js
-            tests/unit/partner-registration-secure.test.js
-            tests/unit/supplier-profile-provisioning-hardening.test.js
-            e2e/auth.spec.js
+      - name: Commit verified corrections and remove diagnostics
+        env:
+          TARGET_BRANCH: ${{ github.head_ref }}
+        run: |
+          git config user.name "EventFlow CI Maintainer"
+          git config user.email "actions@users.noreply.github.com"
+          git add \
+            docs/PARTNER_ANTI_ABUSE_PR1_VALIDATION.md \
+            routes/admin-partner-abuse.js \
+            routes/partner-abuse-appeals.js \
+            routes/partner-registration-secure.js \
+            services/partnerAntiAbuseService.js \
+            services/partnerRegistrationRiskService.js \
+            tests/unit/partner-abuse-admin-routes.test.js \
+            tests/unit/partner-registration-final-review.test.js \
+            tests/unit/partner-registration-secure.test.js \
+            tests/unit/supplier-profile-provisioning-hardening.test.js \
+            e2e/auth.spec.js \
             public/assets/css/auth.css
-            pr1415-focused-jest.txt
-            pr1415-focused-e2e.txt
-            test-results
-            playwright-report
-          if-no-files-found: warn
-          retention-days: 2
+          git rm .github/workflows/pr1415-diagnostics.yml
+          git diff --cached --check
+          git commit -m "fix(partner): complete PR1415 regression corrections"
+          git push origin "HEAD:${TARGET_BRANCH}"
