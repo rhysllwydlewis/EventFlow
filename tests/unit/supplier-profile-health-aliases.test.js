@@ -22,7 +22,7 @@ describe('supplier profile health aliases', () => {
   });
 
   test('empty canonical gallery still counts populated legacy images', () => {
-    const result = window.ProfileHealthWidget.calculate({
+    const result = global.window.ProfileHealthWidget.calculate({
       photosGallery: [],
       images: ['/api/photos/a', '/api/photos/b', '/api/photos/c'],
     });
@@ -31,7 +31,7 @@ describe('supplier profile health aliases', () => {
   });
 
   test('the same mixed-schema photo cannot count twice toward gallery completion', () => {
-    const result = window.ProfileHealthWidget.calculate({
+    const result = global.window.ProfileHealthWidget.calculate({
       photosGallery: [{ url: '/api/photos/a' }, { url: '/api/photos/b' }],
       images: [{ url: '/api/photos/a' }],
     });
@@ -40,7 +40,7 @@ describe('supplier profile health aliases', () => {
   });
 
   test('modern and legacy social maps are merged before counting platforms', () => {
-    const result = window.ProfileHealthWidget.calculate({
+    const result = global.window.ProfileHealthWidget.calculate({
       socials: { facebook: 'https://facebook.com/example' },
       socialLinks: { instagram: 'https://instagram.com/example' },
     });
@@ -49,7 +49,7 @@ describe('supplier profile health aliases', () => {
   });
 
   test('empty canonical social values do not erase populated legacy values', () => {
-    const result = window.ProfileHealthWidget.calculate({
+    const result = global.window.ProfileHealthWidget.calculate({
       socials: {
         facebook: 'https://facebook.com/example',
         instagram: 'https://instagram.com/example',
@@ -61,7 +61,7 @@ describe('supplier profile health aliases', () => {
   });
 
   test('description and banner aliases satisfy their canonical health checks', () => {
-    const result = window.ProfileHealthWidget.calculate({
+    const result = global.window.ProfileHealthWidget.calculate({
       description_long: 'A'.repeat(120),
       bannerUrl: '/api/photos/banner',
     });
