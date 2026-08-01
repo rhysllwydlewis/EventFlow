@@ -67,6 +67,13 @@ const mockIntegrity = {
   recordIntegrityEvent: jest.fn(async () => ({ id: 'pri_1' })),
   recordAttributionConflict: jest.fn(async () => ({ id: 'pri_conflict' })),
 };
+const mockCandidateSelection = {
+  selectRewardEvidence: jest.fn(async () => ({
+    eligible: true,
+    packageId: 'pkg_1',
+    invoiceId: 'inv_1',
+  })),
+};
 const mockSupplierEvidence = {
   methodRewardEvidence: jest.fn(async () => ({ eligible: true })),
 };
@@ -81,19 +88,30 @@ const mockExposureSafety = {
 const mockStripeEvidence = {
   subscriptionRewardEvidence: jest.fn(async () => ({ eligible: true })),
 };
+const mockQualificationEvidence = {
+  buildSnapshot: jest.fn(() => ({ version: 1 })),
+  persistSnapshot: jest.fn(async reward => reward),
+};
 const mockClawback = {
+  clawBackRewardTransaction: jest.fn(async () => ({ id: 'clawback_1' })),
   revalidatePartnerRewards: jest.fn(async () => ({ checked: 0, clawedBack: 0 })),
+};
+const mockAwardLock = {
+  withPartnerAwardLock: jest.fn(async (_partnerId, award) => award()),
 };
 const mockIndexes = { ensureIndexes: jest.fn(async () => true) };
 
 jest.mock('../../db-unified', () => mockDb);
 jest.mock('../../services/partnerService', () => mockPartnerService);
 jest.mock('../../services/partnerRewardIntegrityService', () => mockIntegrity);
+jest.mock('../../services/partnerRewardCandidateSelectionService', () => mockCandidateSelection);
 jest.mock('../../services/partnerRewardSupplierEvidenceService', () => mockSupplierEvidence);
 jest.mock('../../services/partnerRewardIntegrityAdvancedService', () => mockAdvancedIntegrity);
 jest.mock('../../services/partnerRewardExposureSafetyService', () => mockExposureSafety);
 jest.mock('../../services/partnerRewardStripeEvidenceService', () => mockStripeEvidence);
+jest.mock('../../services/partnerRewardQualificationEvidenceService', () => mockQualificationEvidence);
 jest.mock('../../services/partnerRewardIntegrityClawbackService', () => mockClawback);
+jest.mock('../../services/partnerRewardAwardLockService', () => mockAwardLock);
 jest.mock('../../services/partnerRewardIntegrityIndexService', () => mockIndexes);
 jest.mock('../../utils/logger', () => ({ info: jest.fn(), warn: jest.fn(), error: jest.fn() }));
 
@@ -110,12 +128,20 @@ beforeEach(() => {
     invoiceId: 'inv_1',
   });
   mockIntegrity.canAwardCredit.mockResolvedValue({ eligible: true });
+  mockCandidateSelection.selectRewardEvidence.mockResolvedValue({
+    eligible: true,
+    packageId: 'pkg_1',
+    invoiceId: 'inv_1',
+  });
   mockSupplierEvidence.methodRewardEvidence.mockResolvedValue({ eligible: true });
   mockAdvancedIntegrity.methodRewardEvidence.mockResolvedValue({ eligible: true });
   mockAdvancedIntegrity.exposureDecision.mockResolvedValue({ eligible: true });
   mockAdvancedIntegrity.maturityExtensionDays.mockResolvedValue(0);
   mockExposureSafety.pendingExposureDecision.mockResolvedValue({ eligible: true });
   mockStripeEvidence.subscriptionRewardEvidence.mockResolvedValue({ eligible: true });
+  mockQualificationEvidence.buildSnapshot.mockReturnValue({ version: 1 });
+  mockQualificationEvidence.persistSnapshot.mockImplementation(async reward => reward);
+  mockAwardLock.withPartnerAwardLock.mockImplementation(async (_partnerId, award) => award());
   mockIndexes.ensureIndexes.mockResolvedValue(true);
 });
 
@@ -136,7 +162,7 @@ test('allows a package reward only after every qualification and exposure gate p
   });
 
   expect(mockIndexes.ensureIndexes).toHaveBeenCalled();
-  expect(mockIntegrity.methodRewardEvidence).toHaveBeenCalledWith(
+  expect(mockCandidateSelection.selectRewardEvidence).toHaveBeenCalledWith(
     expect.objectContaining({ methodName: 'awardPackageBonus' })
   );
   expect(mockSupplierEvidence.methodRewardEvidence).toHaveBeenCalledWith({
