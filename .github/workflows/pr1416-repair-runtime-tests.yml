@@ -6,6 +6,12 @@ on:
       - agent/partner-anti-abuse-pr2-reward-integrity
     paths:
       - .github/workflows/pr1416-repair-runtime-tests.yml
+  pull_request:
+    types: [synchronize]
+    branches:
+      - main
+    paths:
+      - .github/workflows/pr1416-repair-runtime-tests.yml
 
 permissions:
   contents: write
