@@ -1,5 +1,6 @@
 'use strict';
 
+// Preserve owner-token, expiry and lease-boundary behaviour across lock-service refactors.
 const localBackend = { backend: 'local', authoritative: false };
 const mockStrictStore = {
   ensureAuthoritative: jest.fn(async () => localBackend),
