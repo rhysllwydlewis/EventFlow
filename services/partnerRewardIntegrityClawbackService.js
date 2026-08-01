@@ -212,8 +212,8 @@ async function revalidateSnapshotReward(transaction, partner, methodName) {
   );
   if (snapshotDecision === null) return null;
 
-  // Re-run common account/self-referral checks without asking the legacy guard to
-  // select a different package/review/invoice than the one that actually earned this reward.
+  // Re-run current identity and fraud controls without selecting a different
+  // package/review/invoice than the one that actually earned this reward.
   const commonDecision = await partnerAntiAbuse.supplierRewardEligibility(
     transaction.supplierUserId,
     'awardReferralSignupBonus'
@@ -225,15 +225,34 @@ async function revalidateSnapshotReward(transaction, partner, methodName) {
     methodName,
   });
   if (!supplierDecision.eligible) return supplierDecision;
-  if (!snapshotDecision.eligible) return snapshotDecision;
 
-  return advancedIntegrity.methodRewardEvidence({
+  const duplicateBusiness = await baseIntegrity.duplicateSupplierBusinessEvidence(
+    transaction.supplierUserId
+  );
+  if (duplicateBusiness.duplicate) {
+    return {
+      eligible: false,
+      reason: 'DUPLICATE_SUPPLIER_BUSINESS_IDENTITY',
+      evidence: duplicateBusiness,
+    };
+  }
+
+  const advancedDecision = await advancedIntegrity.methodRewardEvidence({
     supplierUserId: transaction.supplierUserId,
     partnerId: transaction.partnerId,
     partnerUserId: partner.userId,
     methodName,
     baseEvidence: baseEvidenceFromSnapshot(transaction),
   });
+
+  const invalidDecisions = [snapshotDecision, advancedDecision].filter(
+    decision => !decision.eligible
+  );
+  return (
+    invalidDecisions.find(decision => !NON_CLAWBACK_REASONS.has(decision.reason)) ||
+    invalidDecisions[0] ||
+    { eligible: true }
+  );
 }
 
 async function revalidateLegacyReward(transaction, partner, methodName) {
