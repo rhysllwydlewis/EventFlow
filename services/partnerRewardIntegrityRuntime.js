@@ -3,6 +3,7 @@
 const dbUnified = require('../db-unified');
 const logger = require('../utils/logger');
 const partnerService = require('./partnerService');
+const partnerAntiAbuse = require('./partnerAntiAbuseService');
 const integrity = require('./partnerRewardIntegrityService');
 const candidateSelection = require('./partnerRewardCandidateSelectionService');
 const supplierEvidence = require('./partnerRewardSupplierEvidenceService');
@@ -36,6 +37,17 @@ const METHOD_CONFIG = Object.freeze({
     amount: partnerService.SUBSCRIPTION_BONUS,
   },
 });
+
+const METHOD_NAME_BY_TYPE = Object.freeze(
+  Object.fromEntries(
+    Object.entries(METHOD_CONFIG).map(([methodName, config]) => [config.type, methodName])
+  )
+);
+
+const TECHNICAL_QUARANTINE_REASONS = new Set([
+  'QUALIFICATION_EVIDENCE_PERSIST_FAILED',
+  'MATURITY_EXTENSION_PERSIST_FAILED',
+]);
 
 function ensureIndexesBestEffort() {
   integrityIndexes.ensureIndexes().catch(error => {
@@ -249,6 +261,156 @@ async function awardInsideLock({
   });
 }
 
+function isTechnicalQuarantinedReward(transaction) {
+  return Boolean(
+    transaction?.id &&
+      transaction.partnerId &&
+      transaction.supplierUserId &&
+      transaction.reversedAt &&
+      transaction.reversalMode === 'void_pending' &&
+      TECHNICAL_QUARANTINE_REASONS.has(transaction.reversalReason)
+  );
+}
+
+function isHardInvalidDecision(decision) {
+  return !decision?.eligible && !SOFT_SIGNAL_REASONS.has(decision?.reason);
+}
+
+async function repairTechnicalReward(transaction) {
+  if (!isTechnicalQuarantinedReward(transaction)) return null;
+  const methodName = METHOD_NAME_BY_TYPE[transaction.type];
+  const amount = Math.abs(Number(transaction.amount));
+  if (!methodName || !Number.isFinite(amount) || amount <= 0) return null;
+
+  const { referral, partner } = await resolvePartnerContext(transaction.supplierUserId);
+  if (!referral || !partner || referral.partnerId !== transaction.partnerId) return null;
+
+  try {
+    return await awardLock.withPartnerAwardLock(partner.id, async () => {
+      const storedReward =
+        (await dbUnified.findOne('partner_credit_transactions', { id: transaction.id })) ||
+        transaction;
+      if (!isTechnicalQuarantinedReward(storedReward)) return null;
+
+      const commonDecision = await partnerAntiAbuse.supplierRewardEligibility(
+        transaction.supplierUserId,
+        'awardReferralSignupBonus'
+      );
+      if (!commonDecision?.eligible) return null;
+
+      const evidence = await candidateSelection.selectRewardEvidence({
+        supplierUserId: transaction.supplierUserId,
+        partnerUserId: partner.userId,
+        methodName,
+      });
+      if (!evidence?.eligible) return null;
+
+      const supplierDecision = await supplierEvidence.methodRewardEvidence({
+        supplierUserId: transaction.supplierUserId,
+        methodName,
+      });
+      if (!supplierDecision?.eligible) return null;
+
+      const advancedDecision = await advancedIntegrity.methodRewardEvidence({
+        supplierUserId: transaction.supplierUserId,
+        partnerId: partner.id,
+        partnerUserId: partner.userId,
+        methodName,
+        baseEvidence: evidence,
+      });
+      if (isHardInvalidDecision(advancedDecision)) return null;
+
+      const stripeDecision = await evaluateStripeEvidence(
+        methodName,
+        transaction.supplierUserId,
+        evidence
+      );
+      if (!stripeDecision?.eligible) return null;
+
+      const capDecision = await integrity.canAwardCredit({
+        partnerId: partner.id,
+        supplierUserId: transaction.supplierUserId,
+        type: transaction.type,
+        amount: 0,
+      });
+      if (!capDecision?.eligible) return null;
+
+      const exposureDecision = await advancedIntegrity.exposureDecision({
+        partnerId: partner.id,
+        supplierUserId: transaction.supplierUserId,
+        type: transaction.type,
+        amount: 0,
+      });
+      if (!exposureDecision?.eligible) return null;
+
+      const pendingDecision = await exposureSafety.pendingExposureDecision({
+        partnerId: partner.id,
+        amount,
+      });
+      if (!pendingDecision?.eligible) return null;
+
+      const snapshot = qualificationEvidence.buildSnapshot({
+        methodName,
+        supplierDecision,
+        baseEvidence: evidence,
+        stripeDecision,
+      });
+      const technicalRepairAt = new Date().toISOString();
+      const repairCandidate = {
+        ...storedReward,
+        reversedAt: null,
+        reversalTxnId: null,
+        reversalReason: null,
+        reversalMode: null,
+        technicalRepairAt,
+      };
+      const snapshotReward = await qualificationEvidence.persistSnapshot(repairCandidate, snapshot);
+      const updated = await dbUnified.updateOne(
+        'partner_credit_transactions',
+        { id: storedReward.id },
+        {
+          $set: {
+            qualificationEvidence: snapshotReward.qualificationEvidence || snapshot,
+            reversedAt: null,
+            reversalTxnId: null,
+            reversalReason: null,
+            reversalMode: null,
+            technicalRepairAt,
+          },
+        }
+      );
+      if (!updated) throw new Error('Technical partner reward repair did not persist');
+
+      const repaired = await applyRiskMaturity(
+        { ...snapshotReward, ...updated },
+        partner.id,
+        transaction.supplierUserId
+      );
+      await integrity.recordIntegrityEvent({
+        partnerId: partner.id,
+        supplierUserId: transaction.supplierUserId,
+        rewardType: transaction.type,
+        reason: 'TECHNICAL_REWARD_REPAIRED',
+        eventType: 'reward_technical_repair',
+        evidence: {
+          rewardTxnId: storedReward.id,
+          previousReversalReason: transaction.reversalReason,
+        },
+      });
+      return repaired;
+    });
+  } catch (error) {
+    if (error.code === 'PARTNER_REWARD_AWARD_LOCK_TIMEOUT') {
+      logger.warn('[PARTNER-REWARD-INTEGRITY] Technical reward repair deferred because lock is busy', {
+        partnerId: partner.id,
+        rewardTxnId: transaction.id,
+      });
+      return null;
+    }
+    throw error;
+  }
+}
+
 function installRewardMethodGuards() {
   for (const [methodName, config] of Object.entries(METHOD_CONFIG)) {
     const original = partnerService[methodName];
@@ -407,8 +569,12 @@ function install() {
 module.exports = {
   install,
   revalidatePartnerRewards,
+  repairTechnicalReward,
+  isTechnicalQuarantinedReward,
   METHOD_CONFIG,
+  METHOD_NAME_BY_TYPE,
   SOFT_SIGNAL_REASONS,
+  TECHNICAL_QUARANTINE_REASONS,
   _test: {
     resolvePartnerContext,
     applyRiskMaturity,
@@ -417,5 +583,6 @@ module.exports = {
     ensureIndexesBestEffort,
     finaliseAward,
     awardInsideLock,
+    isHardInvalidDecision,
   },
 };
