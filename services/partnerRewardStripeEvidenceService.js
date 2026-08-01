@@ -1,6 +1,6 @@
 'use strict';
 
-const crypto = require('crypto');
+const nodeCrypto = require('crypto');
 const dbUnified = require('../db-unified');
 const logger = require('../utils/logger');
 const paymentService = require('./paymentService');
@@ -33,7 +33,7 @@ const hashSecret = () => {
 
 const hashPaymentReference = (kind, value) => {
   if (!value) return null;
-  return crypto
+  return nodeCrypto
     .createHmac('sha256', hashSecret())
     .update(`partner-payment:${kind}:${String(value)}`)
     .digest('hex');
@@ -203,7 +203,7 @@ const captureEvidence = async (invoice, subscription, payments = []) => {
   const localAdverse = localAdversePaymentEvidence(payments, paymentIntentId, invoice.userId);
   if (!localAdverse.eligible) return localAdverse;
 
-  let paymentIntent;
+  let paymentIntent = null;
   try {
     paymentIntent = await paymentService.getPaymentIntent(paymentIntentId);
   } catch (error) {

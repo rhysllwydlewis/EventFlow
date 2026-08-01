@@ -83,7 +83,7 @@ const ensureIndexes = async () => {
     });
     throw error;
   });
-  return ensurePromise;
+  return await ensurePromise;
 };
 
 const resetForTests = () => {

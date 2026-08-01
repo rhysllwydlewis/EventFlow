@@ -111,7 +111,7 @@ const applyRiskMaturity = async (transaction, partnerId, supplierUserId) => {
 const evaluateStripeEvidence = async (methodName, supplierUserId, baseEvidence) => {
   if (methodName !== 'awardSubscriptionBonus') return { eligible: true };
   if (baseEvidence.stripeDecision) return baseEvidence.stripeDecision;
-  return stripeEvidence.subscriptionRewardEvidence(supplierUserId, baseEvidence.invoiceId);
+  return await stripeEvidence.subscriptionRewardEvidence(supplierUserId, baseEvidence.invoiceId);
 };
 
 const withholdIfInvalid = async ({
@@ -171,7 +171,7 @@ const finaliseAward = async ({
     stripeDecision,
   });
 
-  let persistedReward;
+  let persistedReward = null;
   try {
     persistedReward = await qualificationEvidence.persistSnapshot(reward, snapshot);
   } catch (error) {
@@ -561,7 +561,7 @@ const installAttributionGuard = () => {
 
 const revalidatePartnerRewards = async partnerId => {
   ensureIndexesBestEffort();
-  return integrityClawback.revalidatePartnerRewards(partnerId);
+  return await integrityClawback.revalidatePartnerRewards(partnerId);
 };
 
 const install = () => {

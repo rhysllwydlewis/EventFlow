@@ -162,17 +162,22 @@ const revalidateExactReview = async (transaction, partnerUserId) => {
 const revalidateExactSubscription = async transaction => {
   const snapshot = transaction.qualificationEvidence || {};
   if (!snapshot.invoiceId) return { eligible: false, reason: 'QUALIFICATION_EVIDENCE_MISSING' };
-  return stripeEvidence.subscriptionRewardEvidence(transaction.supplierUserId, snapshot.invoiceId);
+  return await stripeEvidence.subscriptionRewardEvidence(
+    transaction.supplierUserId,
+    snapshot.invoiceId
+  );
 };
 
 const revalidateSnapshot = async (transaction, partnerUserId) => {
   const snapshot = transaction?.qualificationEvidence;
   if (!snapshot || snapshot.version !== SNAPSHOT_VERSION) return null;
-  if (transaction.type === 'PACKAGE_BONUS') return revalidateExactPackage(transaction);
+  if (transaction.type === 'PACKAGE_BONUS') return await revalidateExactPackage(transaction);
   if (transaction.type === 'FIRST_REVIEW_BONUS') {
-    return revalidateExactReview(transaction, partnerUserId);
+    return await revalidateExactReview(transaction, partnerUserId);
   }
-  if (transaction.type === 'SUBSCRIPTION_BONUS') return revalidateExactSubscription(transaction);
+  if (transaction.type === 'SUBSCRIPTION_BONUS') {
+    return await revalidateExactSubscription(transaction);
+  }
   return { eligible: true };
 };
 

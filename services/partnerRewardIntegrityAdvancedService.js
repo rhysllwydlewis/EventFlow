@@ -184,6 +184,102 @@ const reviewNetworkKey = review => {
   return ip && ua ? `${ip}:${ua}` : '';
 };
 
+const nearDuplicateReviewEvidence = (review, reviews, config) => {
+  const selectedText = reviewText(review);
+  if (normaliseText(selectedText).length < 80) return null;
+  const threshold = config.reviewSimilarityPercent / 100;
+  const duplicate = (reviews || []).find(candidate => {
+    if (
+      !candidate ||
+      candidate.id === review.id ||
+      candidate.userId === review.userId ||
+      candidate.approved !== true
+    ) {
+      return false;
+    }
+    return jaccardSimilarity(selectedText, reviewText(candidate)) >= threshold;
+  });
+  if (!duplicate) return null;
+  const similarity = jaccardSimilarity(selectedText, reviewText(duplicate));
+  return {
+    eligible: false,
+    reason: 'NEAR_DUPLICATE_REVIEW_CONTENT',
+    evidence: {
+      reviewId: review.id,
+      duplicateReviewId: duplicate.id,
+      similarity: Math.round(similarity * 1000) / 1000,
+    },
+  };
+};
+
+const recentApprovedSupplierReviews = (review, reviews, config) => {
+  const cutoff = Date.now() - config.reviewRingWindowDays * 86400000;
+  return (reviews || []).filter(candidate => {
+    if (!candidate || candidate.supplierId !== review.supplierId || candidate.approved !== true) {
+      return false;
+    }
+    const createdAt = Date.parse(candidate.createdAt);
+    return Number.isFinite(createdAt) && createdAt >= cutoff;
+  });
+};
+
+const reviewRingEvidence = (review, reviews, config) => {
+  const recentReviews = recentApprovedSupplierReviews(review, reviews, config);
+  const deviceKey = reviewNetworkKey(review);
+  const sameDeviceUsers = deviceKey
+    ? new Set(
+        recentReviews
+          .filter(candidate => reviewNetworkKey(candidate) === deviceKey)
+          .map(candidate => candidate.userId)
+          .filter(Boolean)
+      )
+    : new Set();
+  if (sameDeviceUsers.size >= config.reviewRingSameDeviceMax) {
+    return {
+      eligible: false,
+      reason: 'REVIEW_RING_SHARED_DEVICE_NETWORK',
+      evidence: { reviewId: review.id, reviewerCount: sameDeviceUsers.size },
+    };
+  }
+
+  const sameIpUsers = review.ipAddress
+    ? new Set(
+        recentReviews
+          .filter(candidate => candidate.ipAddress === review.ipAddress)
+          .map(candidate => candidate.userId)
+          .filter(Boolean)
+      )
+    : new Set();
+  if (sameIpUsers.size >= config.reviewRingSameIpMax) {
+    return {
+      eligible: false,
+      reason: 'REVIEW_RING_SHARED_IP',
+      evidence: { reviewId: review.id, reviewerCount: sameIpUsers.size },
+    };
+  }
+  return null;
+};
+
+const linkedRewardPartyEvidence = async (review, supplierUserId, partnerUserId) => {
+  const abuseEvents = await dbUnified.read('partner_abuse_events');
+  const reviewerEvent = latestCreatedEvent(abuseEvents, review.userId);
+  if (!reviewerEvent?.deviceCookieHash) return null;
+  const linkedParties = [
+    ['supplier', latestCreatedEvent(abuseEvents, supplierUserId)],
+    ['partner', latestCreatedEvent(abuseEvents, partnerUserId)],
+  ];
+  const match = linkedParties.find(
+    ([, event]) => event?.deviceCookieHash === reviewerEvent.deviceCookieHash
+  );
+  return match
+    ? {
+        eligible: false,
+        reason: 'REVIEWER_LINKED_DEVICE_TO_REWARD_PARTY',
+        evidence: { reviewId: review.id, linkedRole: match[0] },
+      }
+    : null;
+};
+
 const reviewNetworkEvidence = async (supplierUserId, partnerUserId, reviewId) => {
   if (!reviewId) return { eligible: true };
   const config = getConfig();
@@ -193,7 +289,6 @@ const reviewNetworkEvidence = async (supplierUserId, partnerUserId, reviewId) =>
   ]);
   const review = (reviews || []).find(item => item.id === reviewId);
   if (!review) return { eligible: false, reason: 'QUALIFYING_REVIEW_MISSING' };
-
   if ((profiles || []).some(profile => profile.ownerUserId === review.userId)) {
     return {
       eligible: false,
@@ -212,96 +307,15 @@ const reviewNetworkEvidence = async (supplierUserId, partnerUserId, reviewId) =>
     };
   }
 
-  const selectedText = reviewText(review);
-  if (normaliseText(selectedText).length >= 80) {
-    const threshold = config.reviewSimilarityPercent / 100;
-    for (const candidate of reviews || []) {
-      if (
-        !candidate ||
-        candidate.id === review.id ||
-        candidate.userId === review.userId ||
-        candidate.approved !== true
-      ) {
-        continue;
-      }
-      const similarity = jaccardSimilarity(selectedText, reviewText(candidate));
-      if (similarity >= threshold) {
-        return {
-          eligible: false,
-          reason: 'NEAR_DUPLICATE_REVIEW_CONTENT',
-          evidence: {
-            reviewId,
-            duplicateReviewId: candidate.id,
-            similarity: Math.round(similarity * 1000) / 1000,
-          },
-        };
-      }
+  const duplicateEvidence = nearDuplicateReviewEvidence(review, reviews, config);
+  if (duplicateEvidence) return duplicateEvidence;
+  const ringEvidence = reviewRingEvidence(review, reviews, config);
+  if (ringEvidence) return ringEvidence;
+  return (
+    (await linkedRewardPartyEvidence(review, supplierUserId, partnerUserId)) || {
+      eligible: true,
     }
-  }
-
-  const cutoff = Date.now() - config.reviewRingWindowDays * 86400000;
-  const recentSameSupplier = (reviews || []).filter(candidate => {
-    if (!candidate || candidate.supplierId !== review.supplierId || candidate.approved !== true)
-      return false;
-    const createdAt = Date.parse(candidate.createdAt);
-    return Number.isFinite(createdAt) && createdAt >= cutoff;
-  });
-  const deviceKey = reviewNetworkKey(review);
-  if (deviceKey) {
-    const sameDeviceUsers = new Set(
-      recentSameSupplier
-        .filter(candidate => reviewNetworkKey(candidate) === deviceKey)
-        .map(candidate => candidate.userId)
-        .filter(Boolean)
-    );
-    if (sameDeviceUsers.size >= config.reviewRingSameDeviceMax) {
-      return {
-        eligible: false,
-        reason: 'REVIEW_RING_SHARED_DEVICE_NETWORK',
-        evidence: { reviewId, reviewerCount: sameDeviceUsers.size },
-      };
-    }
-  }
-  if (review.ipAddress) {
-    const sameIpUsers = new Set(
-      recentSameSupplier
-        .filter(candidate => candidate.ipAddress && candidate.ipAddress === review.ipAddress)
-        .map(candidate => candidate.userId)
-        .filter(Boolean)
-    );
-    if (sameIpUsers.size >= config.reviewRingSameIpMax) {
-      return {
-        eligible: false,
-        reason: 'REVIEW_RING_SHARED_IP',
-        evidence: { reviewId, reviewerCount: sameIpUsers.size },
-      };
-    }
-  }
-
-  const abuseEvents = await dbUnified.read('partner_abuse_events');
-  const reviewerEvent = latestCreatedEvent(abuseEvents, review.userId);
-  if (reviewerEvent) {
-    const supplierEvent = latestCreatedEvent(abuseEvents, supplierUserId);
-    const partnerEvent = latestCreatedEvent(abuseEvents, partnerUserId);
-    for (const [label, linkedEvent] of [
-      ['supplier', supplierEvent],
-      ['partner', partnerEvent],
-    ]) {
-      if (
-        linkedEvent &&
-        reviewerEvent.deviceCookieHash &&
-        reviewerEvent.deviceCookieHash === linkedEvent.deviceCookieHash
-      ) {
-        return {
-          eligible: false,
-          reason: 'REVIEWER_LINKED_DEVICE_TO_REWARD_PARTY',
-          evidence: { reviewId, linkedRole: label },
-        };
-      }
-    }
-  }
-
-  return { eligible: true };
+  );
 };
 
 const paymentInstrumentHash = invoice => {

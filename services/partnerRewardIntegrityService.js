@@ -1,6 +1,6 @@
 'use strict';
 
-const crypto = require('crypto');
+const nodeCrypto = require('crypto');
 const dbUnified = require('../db-unified');
 const logger = require('../utils/logger');
 
@@ -54,7 +54,7 @@ const normaliseText = value => {
   return String(value || '')
     .trim()
     .toLowerCase()
-    .replace(/[^a-z0-9£$€]+/g, ' ')
+    .replace(/[^a-z0-9£$€]+/gu, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 };
@@ -83,7 +83,7 @@ const websiteHost = value => {
   try {
     const parsed = new URL(/^https?:\/\//i.test(raw) ? raw : `https://${raw}`);
     return parsed.hostname.toLowerCase().replace(/^www\./, '');
-  } catch (_) {
+  } catch {
     return '';
   }
 };
@@ -275,6 +275,40 @@ const hasTwoWayMessageHistory = async (reviewerUserId, supplierId, supplierOwner
   );
 };
 
+const isCandidateReview = (review, supplierIds, supplierUserId, partnerUserId) =>
+  Boolean(
+    supplierIds.has(review?.supplierId) &&
+    review.approved === true &&
+    review.flagged !== true &&
+    review.verified === true &&
+    review.emailVerified === true &&
+    review.userId &&
+    review.userId !== supplierUserId &&
+    review.userId !== partnerUserId
+  );
+
+const eligibleReviewer = (review, users, config) => {
+  const reviewer = (users || []).find(user => user.id === review.userId);
+  if (!reviewer || reviewer.verified !== true || reviewer.role === 'supplier') return null;
+  const reviewerAge = hoursBetween(
+    reviewer.createdAt,
+    review.createdAt || new Date().toISOString()
+  );
+  return reviewerAge !== null && reviewerAge >= config.reviewerMinAccountHours ? reviewer : null;
+};
+
+const duplicateReviewFor = (review, reviews) => {
+  const textKey = reviewTextKey(review);
+  if (!textKey) return null;
+  return (reviews || []).find(
+    candidate =>
+      candidate.id !== review.id &&
+      candidate.userId !== review.userId &&
+      candidate.approved === true &&
+      reviewTextKey(candidate) === textKey
+  );
+};
+
 const reviewRewardEvidence = async (supplierUserId, partnerUserId) => {
   const config = getConfig();
   const [profiles, reviews, users] = await Promise.all([
@@ -283,44 +317,28 @@ const reviewRewardEvidence = async (supplierUserId, partnerUserId) => {
     dbUnified.read('users'),
   ]);
   const approvedProfiles = (profiles || []).filter(profile => profile.approved === true);
-  if (!approvedProfiles.length) return { eligible: false, reason: 'SUPPLIER_PROFILE_NOT_APPROVED' };
+  if (!approvedProfiles.length) {
+    return { eligible: false, reason: 'SUPPLIER_PROFILE_NOT_APPROVED' };
+  }
   const supplierIds = new Set(approvedProfiles.map(profile => profile.id));
 
   for (const review of reviews || []) {
-    if (!supplierIds.has(review.supplierId)) continue;
-    if (review.approved !== true || review.flagged === true) continue;
-    if (review.verified !== true || review.emailVerified !== true) continue;
-    if (!review.userId || review.userId === supplierUserId || review.userId === partnerUserId)
-      continue;
+    if (!isCandidateReview(review, supplierIds, supplierUserId, partnerUserId)) continue;
+    if (!eligibleReviewer(review, users, config)) continue;
 
-    const reviewer = (users || []).find(user => user.id === review.userId);
-    if (!reviewer || reviewer.verified !== true || reviewer.role === 'supplier') continue;
-    const reviewerAge = hoursBetween(
-      reviewer.createdAt,
-      review.createdAt || new Date().toISOString()
-    );
-    if (reviewerAge === null || reviewerAge < config.reviewerMinAccountHours) continue;
     const reviewAge = hoursBetween(review.createdAt);
     if (reviewAge === null || reviewAge < config.reviewMinAgeHours) continue;
-    if (!(await hasTwoWayMessageHistory(review.userId, review.supplierId, supplierUserId)))
+    if (!(await hasTwoWayMessageHistory(review.userId, review.supplierId, supplierUserId))) {
       continue;
+    }
 
-    const textKey = reviewTextKey(review);
-    if (textKey) {
-      const duplicate = (reviews || []).find(
-        candidate =>
-          candidate.id !== review.id &&
-          candidate.userId !== review.userId &&
-          candidate.approved === true &&
-          reviewTextKey(candidate) === textKey
-      );
-      if (duplicate) {
-        return {
-          eligible: false,
-          reason: 'DUPLICATE_REVIEW_CONTENT',
-          evidence: { reviewId: review.id, duplicateReviewId: duplicate.id },
-        };
-      }
+    const duplicate = duplicateReviewFor(review, reviews);
+    if (duplicate) {
+      return {
+        eligible: false,
+        reason: 'DUPLICATE_REVIEW_CONTENT',
+        evidence: { reviewId: review.id, duplicateReviewId: duplicate.id },
+      };
     }
     return { eligible: true, reviewId: review.id, reviewerUserId: review.userId };
   }
@@ -449,7 +467,7 @@ const canAwardCredit = async ({ partnerId, supplierUserId, type, amount }) => {
 };
 
 const integrityEventId = parts => {
-  return `pri_${crypto.createHash('sha256').update(parts.join(':')).digest('hex').slice(0, 24)}`;
+  return `pri_${nodeCrypto.createHash('sha256').update(parts.join(':')).digest('hex').slice(0, 24)}`;
 };
 
 const recordIntegrityEvent = async ({
@@ -498,7 +516,7 @@ const recordAttributionConflict = async ({
   existingPartnerId,
   attemptedPartnerId,
 }) => {
-  return recordIntegrityEvent({
+  return await recordIntegrityEvent({
     partnerId: existingPartnerId,
     supplierUserId,
     rewardType: null,

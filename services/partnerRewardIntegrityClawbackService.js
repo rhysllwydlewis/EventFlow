@@ -73,7 +73,7 @@ const persistRewardReversal = async (transaction, { reason, reversalTxnId, rever
 };
 
 const recordReversalEvent = async (transaction, reason, reversalMode, reversalTxnId = null) => {
-  return baseIntegrity.recordIntegrityEvent({
+  return await baseIntegrity.recordIntegrityEvent({
     partnerId: transaction.partnerId,
     supplierUserId: transaction.supplierUserId,
     rewardType: transaction.type,
@@ -185,8 +185,8 @@ const clawBackRewardTransaction = async (transaction, reason) => {
     };
   }
 
-  if (!isEffectivelyMature(transaction)) return voidPendingReward(transaction, reason);
-  return debitMaturedReward(transaction, reason, rewardAmount);
+  if (!isEffectivelyMature(transaction)) return await voidPendingReward(transaction, reason);
+  return await debitMaturedReward(transaction, reason, rewardAmount);
 };
 
 const clawBackIfDurablyInvalid = async (transaction, decision) => {
