@@ -1,3 +1,4 @@
+# Follow-up commit triggers this branch-scoped verifier after workflow registration.
 name: PR 1418 targeted test fixes
 
 on:
