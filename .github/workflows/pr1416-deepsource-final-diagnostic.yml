@@ -23,6 +23,7 @@ jobs:
           import http.cookiejar
           import json
           import os
+          import urllib.error
           import urllib.request
           from collections import Counter, defaultdict
           from pathlib import Path
@@ -39,7 +40,7 @@ jobs:
             raise RuntimeError('DeepSource did not provide a CSRF cookie')
 
           query = '''
-          query EnumerateCheckIssues($checkId: ID!, $after: String) {
+          query EnumerateCheckIssues($checkId: String!, $after: String) {
             check(checkId: $checkId) {
               allIssues(first: 15, after: $after) {
                 pageInfo { hasNextPage endCursor }
@@ -73,7 +74,12 @@ jobs:
               },
               method='POST',
             )
-            response = json.loads(opener.open(request).read())
+            try:
+              raw_response = opener.open(request).read()
+            except urllib.error.HTTPError as error:
+              print(error.read().decode(errors='replace'))
+              raise
+            response = json.loads(raw_response)
             if response.get('errors'):
               raise RuntimeError(json.dumps(response['errors'], indent=2))
             connection = response['data']['check']['allIssues']
