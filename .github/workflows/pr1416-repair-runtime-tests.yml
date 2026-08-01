@@ -1,0 +1,189 @@
+name: Repair PR 1416 runtime tests
+
+on:
+  push:
+    branches:
+      - agent/partner-anti-abuse-pr2-reward-integrity
+    paths:
+      - .github/workflows/pr1416-repair-runtime-tests.yml
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-24.04
+    env:
+      HUSKY: 0
+      NODE_ENV: test
+      JWT_SECRET: test-secret-for-jest-min-32-characters-long
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/partner-anti-abuse-pr2-reward-integrity
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: npm
+
+      - name: Update runtime unit-test boundaries
+        shell: bash
+        run: |
+          python <<'PY'
+          from pathlib import Path
+
+          path = Path('tests/unit/partner-reward-integrity-runtime.test.js')
+          text = path.read_text()
+
+          old = """const mockSupplierEvidence = {
+  methodRewardEvidence: jest.fn(async () => ({ eligible: true })),
+};
+"""
+          new = """const mockCandidateSelection = {
+  selectRewardEvidence: jest.fn(async () => ({
+    eligible: true,
+    packageId: 'pkg_1',
+    invoiceId: 'inv_1',
+  })),
+};
+const mockSupplierEvidence = {
+  methodRewardEvidence: jest.fn(async () => ({ eligible: true })),
+};
+"""
+          assert old in text, 'candidate-selection insertion point not found'
+          text = text.replace(old, new, 1)
+
+          old = """const mockClawback = {
+  revalidatePartnerRewards: jest.fn(async () => ({ checked: 0, clawedBack: 0 })),
+};
+const mockIndexes = { ensureIndexes: jest.fn(async () => true) };
+"""
+          new = """const mockQualificationEvidence = {
+  buildSnapshot: jest.fn(() => ({ version: 1 })),
+  persistSnapshot: jest.fn(async reward => reward),
+};
+const mockClawback = {
+  clawBackRewardTransaction: jest.fn(async () => ({ id: 'clawback_1' })),
+  revalidatePartnerRewards: jest.fn(async () => ({ checked: 0, clawedBack: 0 })),
+};
+const mockAwardLock = {
+  withPartnerAwardLock: jest.fn(async (_partnerId, award) => award()),
+};
+const mockIndexes = { ensureIndexes: jest.fn(async () => true) };
+"""
+          assert old in text, 'qualification/lock insertion point not found'
+          text = text.replace(old, new, 1)
+
+          old = """jest.mock('../../services/partnerRewardIntegrityService', () => mockIntegrity);
+jest.mock('../../services/partnerRewardSupplierEvidenceService', () => mockSupplierEvidence);
+"""
+          new = """jest.mock('../../services/partnerRewardIntegrityService', () => mockIntegrity);
+jest.mock('../../services/partnerRewardCandidateSelectionService', () => mockCandidateSelection);
+jest.mock('../../services/partnerRewardSupplierEvidenceService', () => mockSupplierEvidence);
+"""
+          assert old in text, 'candidate-selection mock insertion point not found'
+          text = text.replace(old, new, 1)
+
+          old = """jest.mock('../../services/partnerRewardStripeEvidenceService', () => mockStripeEvidence);
+jest.mock('../../services/partnerRewardIntegrityClawbackService', () => mockClawback);
+jest.mock('../../services/partnerRewardIntegrityIndexService', () => mockIndexes);
+"""
+          new = """jest.mock('../../services/partnerRewardStripeEvidenceService', () => mockStripeEvidence);
+jest.mock('../../services/partnerRewardQualificationEvidenceService', () => mockQualificationEvidence);
+jest.mock('../../services/partnerRewardIntegrityClawbackService', () => mockClawback);
+jest.mock('../../services/partnerRewardAwardLockService', () => mockAwardLock);
+jest.mock('../../services/partnerRewardIntegrityIndexService', () => mockIndexes);
+"""
+          assert old in text, 'qualification/lock mock insertion point not found'
+          text = text.replace(old, new, 1)
+
+          old = """  mockIntegrity.canAwardCredit.mockResolvedValue({ eligible: true });
+  mockSupplierEvidence.methodRewardEvidence.mockResolvedValue({ eligible: true });
+"""
+          new = """  mockIntegrity.canAwardCredit.mockResolvedValue({ eligible: true });
+  mockCandidateSelection.selectRewardEvidence.mockResolvedValue({
+    eligible: true,
+    packageId: 'pkg_1',
+    invoiceId: 'inv_1',
+  });
+  mockSupplierEvidence.methodRewardEvidence.mockResolvedValue({ eligible: true });
+"""
+          assert old in text, 'candidate-selection reset insertion point not found'
+          text = text.replace(old, new, 1)
+
+          old = """  mockStripeEvidence.subscriptionRewardEvidence.mockResolvedValue({ eligible: true });
+  mockIndexes.ensureIndexes.mockResolvedValue(true);
+"""
+          new = """  mockStripeEvidence.subscriptionRewardEvidence.mockResolvedValue({ eligible: true });
+  mockQualificationEvidence.buildSnapshot.mockReturnValue({ version: 1 });
+  mockQualificationEvidence.persistSnapshot.mockImplementation(async reward => reward);
+  mockAwardLock.withPartnerAwardLock.mockImplementation(async (_partnerId, award) => award());
+  mockIndexes.ensureIndexes.mockResolvedValue(true);
+"""
+          assert old in text, 'snapshot/lock reset insertion point not found'
+          text = text.replace(old, new, 1)
+
+          old = """  expect(mockIntegrity.methodRewardEvidence).toHaveBeenCalledWith(
+    expect.objectContaining({ methodName: 'awardPackageBonus' })
+  );
+"""
+          new = """  expect(mockCandidateSelection.selectRewardEvidence).toHaveBeenCalledWith(
+    expect.objectContaining({ methodName: 'awardPackageBonus' })
+  );
+"""
+          assert old in text, 'candidate-selection expectation not found'
+          text = text.replace(old, new, 1)
+
+          path.write_text(text)
+          PY
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit
+
+      - name: Format PR files
+        run: |
+          npx prettier --write \
+            services/partnerAntiAbuseRuntime.js \
+            services/partnerCashoutActiveRewardRiskService.js \
+            services/partnerRewardCandidateSelectionService.js \
+            services/partnerRewardIntegrityAdvancedService.js \
+            services/partnerRewardIntegrityClawbackService.js \
+            services/partnerRewardIntegrityIndexService.js \
+            services/partnerRewardIntegrityRuntime.js \
+            services/partnerRewardIntegrityService.js \
+            services/partnerRewardQualificationEvidenceService.js \
+            services/partnerRewardStripeEvidenceService.js \
+            services/partnerRewardSupplierEvidenceService.js \
+            tests/unit/partner-anti-abuse-runtime.test.js \
+            tests/unit/partner-reward-award-lock.test.js \
+            tests/unit/partner-reward-candidate-selection.test.js \
+            tests/unit/partner-reward-exposure-safety.test.js \
+            tests/unit/partner-reward-integrity-advanced.test.js \
+            tests/unit/partner-reward-integrity-clawback.test.js \
+            tests/unit/partner-reward-integrity-runtime.test.js \
+            tests/unit/partner-reward-integrity.test.js \
+            tests/unit/partner-reward-qualification-evidence.test.js \
+            tests/unit/partner-reward-snapshot-revalidation.test.js \
+            tests/unit/partner-reward-stripe-evidence.test.js \
+            tests/unit/partner-reward-supplier-evidence.test.js \
+            tests/unit/partner-reward-technical-repair.test.js
+
+      - name: Verify repaired runtime test
+        run: npx jest --runInBand --coverage=false tests/unit/partner-reward-integrity-runtime.test.js
+
+      - name: Verify smoke suite
+        run: npm run test:smoke
+
+      - name: Commit repair and remove temporary workflow
+        shell: bash
+        run: |
+          rm .github/workflows/pr1416-repair-runtime-tests.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "test(partner): align reward runtime mocks and formatting"
+          git push origin HEAD:agent/partner-anti-abuse-pr2-reward-integrity
