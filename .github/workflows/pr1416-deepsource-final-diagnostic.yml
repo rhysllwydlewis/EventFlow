@@ -39,16 +39,14 @@ jobs:
             raise RuntimeError('DeepSource did not provide a CSRF cookie')
 
           query = '''
-          query EnumerateCheckIssues($id: ID!, $after: String) {
-            node(id: $id) {
-              ... on Check {
-                allIssues(first: 100, after: $after) {
-                  pageInfo { hasNextPage endCursor }
-                  edges {
-                    node {
-                      id path text shortcode category severity
-                      beginLine beginColumn endLine endColumn
-                    }
+          query EnumerateCheckIssues($checkId: ID!, $after: String) {
+            check(checkId: $checkId) {
+              allIssues(first: 15, after: $after) {
+                pageInfo { hasNextPage endCursor }
+                edges {
+                  node {
+                    id path text shortcode category severity
+                    beginLine beginColumn endLine endColumn
                   }
                 }
               }
@@ -61,7 +59,7 @@ jobs:
           while True:
             body = json.dumps({
               'query': query,
-              'variables': {'id': os.environ['CHECK_ID'], 'after': after},
+              'variables': {'checkId': os.environ['CHECK_ID'], 'after': after},
             }).encode()
             request = urllib.request.Request(
               'https://app.deepsource.com/graphql/',
@@ -78,7 +76,7 @@ jobs:
             response = json.loads(opener.open(request).read())
             if response.get('errors'):
               raise RuntimeError(json.dumps(response['errors'], indent=2))
-            connection = response['data']['node']['allIssues']
+            connection = response['data']['check']['allIssues']
             issues.extend(edge['node'] for edge in connection['edges'])
             page_info = connection['pageInfo']
             if not page_info['hasNextPage']:
