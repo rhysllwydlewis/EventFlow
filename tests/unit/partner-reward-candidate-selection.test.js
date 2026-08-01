@@ -76,7 +76,10 @@ const service = require('../../services/partnerRewardCandidateSelectionService')
 beforeEach(() => {
   Object.values(collections).forEach(items => items.splice(0, items.length));
   jest.clearAllMocks();
-  mockBase.duplicateSupplierBusinessEvidence.mockResolvedValue({ duplicate: false, strongKeyCount: 0 });
+  mockBase.duplicateSupplierBusinessEvidence.mockResolvedValue({
+    duplicate: false,
+    strongKeyCount: 0,
+  });
   mockBase.signupRewardEvidence.mockResolvedValue({ eligible: true });
   mockBase.packageQuality.mockImplementation(pkg =>
     pkg.baseEligible === false

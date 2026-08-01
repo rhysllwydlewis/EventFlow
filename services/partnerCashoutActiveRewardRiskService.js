@@ -35,7 +35,9 @@ const REWARD_DERIVED_SIGNAL_CODES = new Set([
 ]);
 
 function emailDomain(email) {
-  const value = String(email || '').trim().toLowerCase();
+  const value = String(email || '')
+    .trim()
+    .toLowerCase();
   return value.includes('@') ? value.split('@').pop() : '';
 }
 
@@ -51,15 +53,16 @@ function signal(code, score, message, evidence = {}) {
 }
 
 async function recomputeRewardSignals(partnerId, requestedAt = new Date().toISOString()) {
-  const [partners, users, referrals, transactions, suppliers, packages, reviews] = await Promise.all([
-    dbUnified.read('partners'),
-    dbUnified.read('users'),
-    dbUnified.read('partner_referrals'),
-    dbUnified.read('partner_credit_transactions'),
-    dbUnified.read('suppliers'),
-    dbUnified.read('packages'),
-    dbUnified.read('reviews'),
-  ]);
+  const [partners, users, referrals, transactions, suppliers, packages, reviews] =
+    await Promise.all([
+      dbUnified.read('partners'),
+      dbUnified.read('users'),
+      dbUnified.read('partner_referrals'),
+      dbUnified.read('partner_credit_transactions'),
+      dbUnified.read('suppliers'),
+      dbUnified.read('packages'),
+      dbUnified.read('reviews'),
+    ]);
   const partner = (partners || []).find(item => item.id === partnerId);
   const partnerUser = partner ? (users || []).find(user => user.id === partner.userId) : null;
   const partnerReferrals = (referrals || []).filter(item => item.partnerId === partnerId);
@@ -79,7 +82,9 @@ async function recomputeRewardSignals(partnerId, requestedAt = new Date().toISOS
   const signals = [];
 
   if (activeRewards.length > 0 && partnerReferrals.length === 0) {
-    signals.push(signal('NO_REFERRAL_RECORDS', 40, 'Cashout rewards have no supporting referrals.'));
+    signals.push(
+      signal('NO_REFERRAL_RECORDS', 40, 'Cashout rewards have no supporting referrals.')
+    );
   }
 
   const partnerDomain = emailDomain(partnerUser?.email);
@@ -263,8 +268,7 @@ async function recomputeRewardSignals(partnerId, requestedAt = new Date().toISOS
   }
 
   const orphanRewardSuppliers = [...rewardedSupplierIds].filter(
-    supplierUserId =>
-      !partnerReferrals.some(referral => referral.supplierUserId === supplierUserId)
+    supplierUserId => !partnerReferrals.some(referral => referral.supplierUserId === supplierUserId)
   );
   if (orphanRewardSuppliers.length) {
     signals.push(

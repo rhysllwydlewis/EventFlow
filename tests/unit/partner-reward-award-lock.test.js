@@ -34,7 +34,9 @@ test('acquires a Mongo-backed partner lock, runs the award and always releases i
   expect(mockDb.collection).toHaveBeenCalledWith('partner_reward_award_locks');
   expect(mockFindOneAndUpdate).toHaveBeenCalledWith(
     expect.objectContaining({ _id: 'partner_1' }),
-    expect.objectContaining({ $set: expect.objectContaining({ owner: expect.any(String), expiresAt: expect.any(Date) }) }),
+    expect.objectContaining({
+      $set: expect.objectContaining({ owner: expect.any(String), expiresAt: expect.any(Date) }),
+    }),
     { upsert: true, returnDocument: 'after' }
   );
   expect(operation).toHaveBeenCalledTimes(1);
@@ -54,9 +56,11 @@ test('releases the partner lock even when the protected operation fails', async 
 test('treats duplicate-key contention as another process holding the lock, then retries', async () => {
   const duplicate = new Error('duplicate key');
   duplicate.code = 11000;
-  mockFindOneAndUpdate.mockRejectedValueOnce(duplicate).mockImplementationOnce(async (_filter, update) => ({
-    value: { _id: 'partner_1', owner: update.$set.owner, expiresAt: update.$set.expiresAt },
-  }));
+  mockFindOneAndUpdate
+    .mockRejectedValueOnce(duplicate)
+    .mockImplementationOnce(async (_filter, update) => ({
+      value: { _id: 'partner_1', owner: update.$set.owner, expiresAt: update.$set.expiresAt },
+    }));
 
   await expect(service.withPartnerAwardLock('partner_1', async () => true)).resolves.toBe(true);
   expect(mockFindOneAndUpdate).toHaveBeenCalledTimes(2);

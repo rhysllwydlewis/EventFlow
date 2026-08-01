@@ -6,10 +6,22 @@ let ensurePromise = null;
 
 async function createIndexes(db) {
   const integrityEvents = db.collection('partner_reward_integrity_events');
-  await integrityEvents.createIndex({ id: 1 }, { name: 'uniq_partner_reward_integrity_event', unique: true });
-  await integrityEvents.createIndex({ partnerId: 1, lastSeenAt: -1 }, { name: 'partner_reward_integrity_partner_time' });
-  await integrityEvents.createIndex({ supplierUserId: 1, lastSeenAt: -1 }, { name: 'partner_reward_integrity_supplier_time' });
-  await integrityEvents.createIndex({ eventType: 1, reason: 1, lastSeenAt: -1 }, { name: 'partner_reward_integrity_reason_time' });
+  await integrityEvents.createIndex(
+    { id: 1 },
+    { name: 'uniq_partner_reward_integrity_event', unique: true }
+  );
+  await integrityEvents.createIndex(
+    { partnerId: 1, lastSeenAt: -1 },
+    { name: 'partner_reward_integrity_partner_time' }
+  );
+  await integrityEvents.createIndex(
+    { supplierUserId: 1, lastSeenAt: -1 },
+    { name: 'partner_reward_integrity_supplier_time' }
+  );
+  await integrityEvents.createIndex(
+    { eventType: 1, reason: 1, lastSeenAt: -1 },
+    { name: 'partner_reward_integrity_reason_time' }
+  );
 
   const transactions = db.collection('partner_credit_transactions');
   await transactions.createIndex(

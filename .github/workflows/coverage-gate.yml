@@ -12,35 +12,35 @@ on:
       - 'models/**/*.js'
       - 'utils/**/*.js'
       - 'tests/**/*.js'
+      - 'jest.config.js'
+      - 'scripts/check-changed-coverage.mjs'
       - 'package*.json'
       - '.github/workflows/coverage-gate.yml'
-      - '.github/workflows/pr1416-repair-runtime-test.yml'
-      - '.github/workflows/pr1416-repair-runtime-tests.yml'
+  workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
-  group: pr1416-autofix-${{ github.ref }}
+  group: changed-coverage-${{ github.ref }}
   cancel-in-progress: true
 
 env:
   HUSKY: '0'
   NODE_ENV: test
   JWT_SECRET: changed-coverage-secret-for-ci-minimum-32-characters
+  PATCH_COVERAGE_MIN: '80'
 
 jobs:
-  repair:
-    name: Repair, format and verify PR 1416
-    if: github.actor != 'github-actions[bot]' && github.head_ref == 'agent/partner-anti-abuse-pr2-reward-integrity'
+  changed-coverage:
+    name: Changed executable lines (80%)
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 35
 
     steps:
-      - name: Checkout PR branch
+      - name: Checkout repository history
         uses: actions/checkout@v4
         with:
-          ref: agent/partner-anti-abuse-pr2-reward-integrity
           fetch-depth: 0
 
       - name: Setup Node.js
@@ -49,54 +49,23 @@ jobs:
           node-version-file: '.node-version'
           cache: npm
 
+      - name: Verify package-lock metadata
+        run: npm run check:lockfile
+
       - name: Install dependencies
         run: npm ci --prefer-offline --no-audit
 
-      - name: Format intended PR files
-        run: |
-          npx prettier --write \
-            services/partnerAntiAbuseRuntime.js \
-            services/partnerCashoutActiveRewardRiskService.js \
-            services/partnerRewardCandidateSelectionService.js \
-            services/partnerRewardIntegrityAdvancedService.js \
-            services/partnerRewardIntegrityClawbackService.js \
-            services/partnerRewardIntegrityIndexService.js \
-            services/partnerRewardIntegrityRuntime.js \
-            services/partnerRewardIntegrityService.js \
-            services/partnerRewardQualificationEvidenceService.js \
-            services/partnerRewardStripeEvidenceService.js \
-            services/partnerRewardSupplierEvidenceService.js \
-            tests/unit/partner-anti-abuse-runtime.test.js \
-            tests/unit/partner-reward-award-lock.test.js \
-            tests/unit/partner-reward-candidate-selection.test.js \
-            tests/unit/partner-reward-exposure-safety.test.js \
-            tests/unit/partner-reward-integrity-advanced.test.js \
-            tests/unit/partner-reward-integrity-clawback.test.js \
-            tests/unit/partner-reward-integrity-runtime.test.js \
-            tests/unit/partner-reward-integrity.test.js \
-            tests/unit/partner-reward-qualification-evidence.test.js \
-            tests/unit/partner-reward-snapshot-revalidation.test.js \
-            tests/unit/partner-reward-stripe-evidence.test.js \
-            tests/unit/partner-reward-supplier-evidence.test.js \
-            tests/unit/partner-reward-technical-repair.test.js
+      - name: Generate coverage
+        run: npm run test:full -- --runInBand
 
-      - name: Verify repaired runtime test
-        run: npx jest --runInBand --coverage=false tests/unit/partner-reward-integrity-runtime.test.js
+      - name: Enforce changed-code coverage
+        run: node scripts/check-changed-coverage.mjs
 
-      - name: Verify smoke suite
-        run: npm run test:smoke
-
-      - name: Restore workflows and publish repair
-        shell: bash
-        run: |
-          rm -f \
-            .github/workflows/pr1416-repair-runtime-test.yml \
-            .github/workflows/pr1416-repair-runtime-tests.yml
-          git fetch origin main
-          git checkout origin/main -- .github/workflows/coverage-gate.yml
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git diff --cached --check
-          git commit -m "test(partner): repair reward runtime isolation and formatting"
-          git push origin HEAD:agent/partner-anti-abuse-pr2-reward-integrity
+      - name: Upload coverage evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: changed-code-coverage
+          path: coverage
+          if-no-files-found: warn
+          retention-days: 14

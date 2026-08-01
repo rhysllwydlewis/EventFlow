@@ -35,12 +35,7 @@ function getConfig() {
     signupMinAgeHours: numberEnv('PARTNER_REWARD_SIGNUP_MIN_AGE_HOURS', 24, 0, 168),
     packageMinLiveHours: numberEnv('PARTNER_REWARD_PACKAGE_MIN_LIVE_HOURS', 24, 0, 168),
     reviewMinAgeHours: numberEnv('PARTNER_REWARD_REVIEW_MIN_AGE_HOURS', 24, 0, 168),
-    reviewerMinAccountHours: numberEnv(
-      'PARTNER_REWARD_REVIEWER_MIN_ACCOUNT_HOURS',
-      24,
-      0,
-      720
-    ),
+    reviewerMinAccountHours: numberEnv('PARTNER_REWARD_REVIEWER_MIN_ACCOUNT_HOURS', 24, 0, 720),
     packageMinDescriptionLength: numberEnv(
       'PARTNER_REWARD_PACKAGE_MIN_DESCRIPTION_LENGTH',
       40,
@@ -51,12 +46,7 @@ function getConfig() {
     dailyPointsCap: numberEnv('PARTNER_REWARD_DAILY_POINTS_CAP', 5000, 130, 1000000),
     weeklyPointsCap: numberEnv('PARTNER_REWARD_WEEKLY_POINTS_CAP', 20000, 130, 5000000),
     monthlyPointsCap: numberEnv('PARTNER_REWARD_MONTHLY_POINTS_CAP', 60000, 130, 10000000),
-    campaignDailySupplierCap: numberEnv(
-      'PARTNER_REWARD_CAMPAIGN_DAILY_SUPPLIER_CAP',
-      50,
-      5,
-      10000
-    ),
+    campaignDailySupplierCap: numberEnv('PARTNER_REWARD_CAMPAIGN_DAILY_SUPPLIER_CAP', 50, 5, 10000),
   };
 }
 
@@ -145,20 +135,38 @@ function businessIdentity(profile = {}, user = {}) {
 function duplicateBusinessMatch(left, right) {
   if (left.companyNumber && left.companyNumber === right.companyNumber) return 'COMPANY_NUMBER';
   if (left.vatNumber && left.vatNumber === right.vatNumber) return 'VAT_NUMBER';
-  if (left.website && left.postcode && left.website === right.website && left.postcode === right.postcode) {
+  if (
+    left.website &&
+    left.postcode &&
+    left.website === right.website &&
+    left.postcode === right.postcode
+  ) {
     return 'WEBSITE_AND_POSTCODE';
   }
-  if (left.phone && left.postcode && left.phone === right.phone && left.postcode === right.postcode) {
+  if (
+    left.phone &&
+    left.postcode &&
+    left.phone === right.phone &&
+    left.postcode === right.postcode
+  ) {
     return 'PHONE_AND_POSTCODE';
   }
-  if (left.company && left.postcode && left.company === right.company && left.postcode === right.postcode) {
+  if (
+    left.company &&
+    left.postcode &&
+    left.company === right.company &&
+    left.postcode === right.postcode
+  ) {
     return 'COMPANY_AND_POSTCODE';
   }
   return null;
 }
 
 async function duplicateSupplierBusinessEvidence(supplierUserId) {
-  const [users, profiles] = await Promise.all([dbUnified.read('users'), dbUnified.read('suppliers')]);
+  const [users, profiles] = await Promise.all([
+    dbUnified.read('users'),
+    dbUnified.read('suppliers'),
+  ]);
   const currentProfiles = (profiles || []).filter(
     profile => profile.ownerUserId === supplierUserId && profile.approved === true
   );
@@ -201,10 +209,7 @@ function packageQuality(pkg, config = getConfig()) {
     return { eligible: false, reason: 'PACKAGE_TITLE_NOT_MEANINGFUL' };
   }
   const description = String(pkg.description || '').trim();
-  if (
-    description.length < config.packageMinDescriptionLength ||
-    isPlaceholder(description)
-  ) {
+  if (description.length < config.packageMinDescriptionLength || isPlaceholder(description)) {
     return { eligible: false, reason: 'PACKAGE_DESCRIPTION_NOT_MEANINGFUL' };
   }
   if (!String(pkg.primaryCategoryKey || '').trim()) {
@@ -285,15 +290,20 @@ async function reviewRewardEvidence(supplierUserId, partnerUserId) {
     if (!supplierIds.has(review.supplierId)) continue;
     if (review.approved !== true || review.flagged === true) continue;
     if (review.verified !== true || review.emailVerified !== true) continue;
-    if (!review.userId || review.userId === supplierUserId || review.userId === partnerUserId) continue;
+    if (!review.userId || review.userId === supplierUserId || review.userId === partnerUserId)
+      continue;
 
     const reviewer = (users || []).find(user => user.id === review.userId);
     if (!reviewer || reviewer.verified !== true || reviewer.role === 'supplier') continue;
-    const reviewerAge = hoursBetween(reviewer.createdAt, review.createdAt || new Date().toISOString());
+    const reviewerAge = hoursBetween(
+      reviewer.createdAt,
+      review.createdAt || new Date().toISOString()
+    );
     if (reviewerAge === null || reviewerAge < config.reviewerMinAccountHours) continue;
     const reviewAge = hoursBetween(review.createdAt);
     if (reviewAge === null || reviewAge < config.reviewMinAgeHours) continue;
-    if (!(await hasTwoWayMessageHistory(review.userId, review.supplierId, supplierUserId))) continue;
+    if (!(await hasTwoWayMessageHistory(review.userId, review.supplierId, supplierUserId)))
+      continue;
 
     const textKey = reviewTextKey(review);
     if (textKey) {
@@ -483,7 +493,11 @@ async function recordIntegrityEvent({
   return event;
 }
 
-async function recordAttributionConflict({ supplierUserId, existingPartnerId, attemptedPartnerId }) {
+async function recordAttributionConflict({
+  supplierUserId,
+  existingPartnerId,
+  attemptedPartnerId,
+}) {
   return recordIntegrityEvent({
     partnerId: existingPartnerId,
     supplierUserId,

@@ -73,7 +73,8 @@ function applyExtendedMaturity(balance) {
   let deferred = 0;
 
   for (const transaction of balance.transactions) {
-    if (transaction.reversedAt || Number(transaction.amount) <= 0 || !transaction.maturesAt) continue;
+    if (transaction.reversedAt || Number(transaction.amount) <= 0 || !transaction.maturesAt)
+      continue;
     const maturesAt = Date.parse(transaction.maturesAt);
     const createdAt = Date.parse(transaction.createdAt);
     if (!Number.isFinite(maturesAt) || !Number.isFinite(createdAt)) continue;

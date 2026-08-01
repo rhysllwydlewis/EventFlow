@@ -2,7 +2,9 @@
 
 const mockTransactions = [];
 const mockDb = {
-  find: jest.fn(async collection => (collection === 'partner_credit_transactions' ? mockTransactions : [])),
+  find: jest.fn(async collection =>
+    collection === 'partner_credit_transactions' ? mockTransactions : []
+  ),
 };
 const mockPartnerService = { CREDIT_MATURITY_DAYS: 30 };
 

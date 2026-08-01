@@ -1,10 +1,17 @@
 'use strict';
 
 const mockCollections = { users: [], suppliers: [], threads: [], messages: [] };
-function mockMatches(item, query) { return Object.entries(query || {}).every(([key, value]) => item[key] === value); }
+function mockMatches(item, query) {
+  return Object.entries(query || {}).every(([key, value]) => item[key] === value);
+}
 const mockDb = {
-  findOne: jest.fn(async (collection, query) => (mockCollections[collection] || []).find(item => mockMatches(item, query)) || null),
-  find: jest.fn(async (collection, query) => (mockCollections[collection] || []).filter(item => mockMatches(item, query))),
+  findOne: jest.fn(
+    async (collection, query) =>
+      (mockCollections[collection] || []).find(item => mockMatches(item, query)) || null
+  ),
+  find: jest.fn(async (collection, query) =>
+    (mockCollections[collection] || []).filter(item => mockMatches(item, query))
+  ),
   read: jest.fn(async collection => mockCollections[collection] || []),
 };
 
@@ -27,7 +34,8 @@ function seedCompleteProfile() {
     status: 'published',
     name: 'Example Events',
     category: 'Event Planner',
-    description: 'Professional event planning for weddings, corporate events and private celebrations.',
+    description:
+      'Professional event planning for weddings, corporate events and private celebrations.',
     location: 'Cardiff',
     website: 'https://example-events.co.uk',
   });
@@ -71,12 +79,16 @@ test('social link can provide contact evidence when website and phone are absent
   seedCompleteProfile();
   delete mockCollections.suppliers[0].website;
   mockCollections.suppliers[0].socials = { instagram: 'https://instagram.com/exampleevents' };
-  await expect(service.supplierProfileEvidence('supplier_1')).resolves.toMatchObject({ eligible: true });
+  await expect(service.supplierProfileEvidence('supplier_1')).resolves.toMatchObject({
+    eligible: true,
+  });
 });
 
 test('package-customer interaction is optional by default', async () => {
   seedCompleteProfile();
-  await expect(service.packageInteractionEvidence('supplier_1')).resolves.toEqual({ eligible: true });
+  await expect(service.packageInteractionEvidence('supplier_1')).resolves.toEqual({
+    eligible: true,
+  });
 });
 
 test('when enabled, package reward requires a genuine inbound customer message', async () => {

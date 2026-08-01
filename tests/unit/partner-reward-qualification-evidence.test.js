@@ -15,8 +15,9 @@ function matches(item, query) {
 }
 
 const mockDb = {
-  findOne: jest.fn(async (collection, query) =>
-    (collections[collection] || []).find(item => matches(item, query)) || null
+  findOne: jest.fn(
+    async (collection, query) =>
+      (collections[collection] || []).find(item => matches(item, query)) || null
   ),
   find: jest.fn(async (collection, query) =>
     (collections[collection] || []).filter(item => matches(item, query))
@@ -33,10 +34,15 @@ const mockDb = {
 const mockBase = {
   getConfig: jest.fn(() => ({ reviewerMinAccountHours: 24, reviewMinAgeHours: 24 })),
   packageQuality: jest.fn(pkg =>
-    pkg.approved === true ? { eligible: true, price: Number(pkg.price || 10) } : { eligible: false, reason: 'PACKAGE_NOT_APPROVED' }
+    pkg.approved === true
+      ? { eligible: true, price: Number(pkg.price || 10) }
+      : { eligible: false, reason: 'PACKAGE_NOT_APPROVED' }
   ),
   _test: {
-    reviewTextKey: review => String(`${review.title || ''} ${review.comment || ''}`).trim().toLowerCase(),
+    reviewTextKey: review =>
+      String(`${review.title || ''} ${review.comment || ''}`)
+        .trim()
+        .toLowerCase(),
     hoursBetween: (earlier, later = new Date().toISOString()) => {
       const start = Date.parse(earlier);
       const end = Date.parse(later);
@@ -86,7 +92,11 @@ test('builds a minimal non-sensitive snapshot tied to the evidence that earned t
     baseEvidence: { invoiceId: 'inv_1' },
     stripeDecision: {
       invoiceId: 'inv_1',
-      paymentEvidence: { paymentIntentId: 'pi_1', stripeChargeId: 'ch_1', paymentInstrumentHash: 'secret-hash' },
+      paymentEvidence: {
+        paymentIntentId: 'pi_1',
+        stripeChargeId: 'ch_1',
+        paymentInstrumentHash: 'secret-hash',
+      },
     },
   });
   expect(snapshot).toMatchObject({
@@ -191,6 +201,9 @@ test('subscription snapshot revalidation uses the exact invoice that earned the 
 
 test('legacy rewards without a versioned snapshot are explicitly delegated to legacy revalidation', async () => {
   await expect(
-    service.revalidateSnapshot({ type: 'PACKAGE_BONUS', supplierUserId: 'supplier_1' }, 'partner_user')
+    service.revalidateSnapshot(
+      { type: 'PACKAGE_BONUS', supplierUserId: 'supplier_1' },
+      'partner_user'
+    )
   ).resolves.toBeNull();
 });

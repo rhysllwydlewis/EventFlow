@@ -37,10 +37,11 @@ const mockCollections = {
   partner_credit_transactions: [],
 };
 const mockDb = {
-  findOne: jest.fn(async (collection, query) =>
-    (mockCollections[collection] || []).find(item =>
-      Object.entries(query || {}).every(([key, value]) => item[key] === value)
-    ) || null
+  findOne: jest.fn(
+    async (collection, query) =>
+      (mockCollections[collection] || []).find(item =>
+        Object.entries(query || {}).every(([key, value]) => item[key] === value)
+      ) || null
   ),
   updateOne: jest.fn(async (collection, query, update) => {
     const items = mockCollections[collection] || [];
@@ -109,7 +110,10 @@ jest.mock('../../services/partnerRewardSupplierEvidenceService', () => mockSuppl
 jest.mock('../../services/partnerRewardIntegrityAdvancedService', () => mockAdvancedIntegrity);
 jest.mock('../../services/partnerRewardExposureSafetyService', () => mockExposureSafety);
 jest.mock('../../services/partnerRewardStripeEvidenceService', () => mockStripeEvidence);
-jest.mock('../../services/partnerRewardQualificationEvidenceService', () => mockQualificationEvidence);
+jest.mock(
+  '../../services/partnerRewardQualificationEvidenceService',
+  () => mockQualificationEvidence
+);
 jest.mock('../../services/partnerRewardIntegrityClawbackService', () => mockClawback);
 jest.mock('../../services/partnerRewardAwardLockService', () => mockAwardLock);
 jest.mock('../../services/partnerRewardIntegrityIndexService', () => mockIndexes);

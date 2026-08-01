@@ -36,8 +36,18 @@ function getConfig() {
     reviewRingWindowDays: numberEnv('PARTNER_REWARD_REVIEW_RING_WINDOW_DAYS', 30, 1, 180),
     reviewRingSameDeviceMax: numberEnv('PARTNER_REWARD_REVIEW_RING_SAME_DEVICE_MAX', 3, 2, 20),
     reviewRingSameIpMax: numberEnv('PARTNER_REWARD_REVIEW_RING_SAME_IP_MAX', 5, 3, 50),
-    subscriptionSettlementHours: numberEnv('PARTNER_REWARD_SUBSCRIPTION_SETTLEMENT_HOURS', 24, 0, 168),
-    paymentInstrumentSupplierCap: numberEnv('PARTNER_REWARD_PAYMENT_INSTRUMENT_SUPPLIER_CAP', 2, 1, 20),
+    subscriptionSettlementHours: numberEnv(
+      'PARTNER_REWARD_SUBSCRIPTION_SETTLEMENT_HOURS',
+      24,
+      0,
+      168
+    ),
+    paymentInstrumentSupplierCap: numberEnv(
+      'PARTNER_REWARD_PAYMENT_INSTRUMENT_SUPPLIER_CAP',
+      2,
+      1,
+      20
+    ),
     perSupplierPointsCap: numberEnv('PARTNER_REWARD_PER_SUPPLIER_POINTS_CAP', 130, 130, 10000),
     pendingPointsCap: numberEnv('PARTNER_REWARD_PENDING_POINTS_CAP', 5000, 130, 1000000),
     newPartnerAgeDays: numberEnv('PARTNER_REWARD_NEW_PARTNER_AGE_DAYS', 14, 1, 90),
@@ -45,7 +55,12 @@ function getConfig() {
     rapidRewardWindowHours: numberEnv('PARTNER_REWARD_RAPID_WINDOW_HOURS', 1, 1, 24),
     rapidRewardCountCap: numberEnv('PARTNER_REWARD_RAPID_COUNT_CAP', 12, 2, 500),
     riskyMaturityExtraDays: numberEnv('PARTNER_REWARD_RISKY_MATURITY_EXTRA_DAYS', 30, 0, 180),
-    highRiskMaturityExtraDays: numberEnv('PARTNER_REWARD_HIGH_RISK_MATURITY_EXTRA_DAYS', 60, 0, 365),
+    highRiskMaturityExtraDays: numberEnv(
+      'PARTNER_REWARD_HIGH_RISK_MATURITY_EXTRA_DAYS',
+      60,
+      0,
+      365
+    ),
     revalidationDays: numberEnv('PARTNER_REWARD_REVALIDATION_DAYS', 30, 1, 365),
   };
 }
@@ -60,7 +75,11 @@ function normaliseText(value) {
 }
 
 function tokenSet(value) {
-  return new Set(normaliseText(value).split(' ').filter(token => token.length >= 2));
+  return new Set(
+    normaliseText(value)
+      .split(' ')
+      .filter(token => token.length >= 2)
+  );
 }
 
 function jaccardSimilarity(left, right) {
@@ -83,7 +102,9 @@ function reviewText(review) {
 function paidRewardTransactions(transactions) {
   return (transactions || []).filter(
     transaction =>
-      MILESTONE_TYPES.has(transaction.type) && Number(transaction.amount) > 0 && !transaction.reversedAt
+      MILESTONE_TYPES.has(transaction.type) &&
+      Number(transaction.amount) > 0 &&
+      !transaction.reversedAt
   );
 }
 
@@ -220,7 +241,8 @@ async function reviewNetworkEvidence(supplierUserId, partnerUserId, reviewId) {
 
   const cutoff = Date.now() - config.reviewRingWindowDays * 86400000;
   const recentSameSupplier = (reviews || []).filter(candidate => {
-    if (!candidate || candidate.supplierId !== review.supplierId || candidate.approved !== true) return false;
+    if (!candidate || candidate.supplierId !== review.supplierId || candidate.approved !== true)
+      return false;
     const createdAt = Date.parse(candidate.createdAt);
     return Number.isFinite(createdAt) && createdAt >= cutoff;
   });
@@ -283,7 +305,9 @@ async function reviewNetworkEvidence(supplierUserId, partnerUserId, reviewId) {
 }
 
 function paymentInstrumentHash(invoice) {
-  return String(invoice?.paymentInstrumentHash || invoice?.metadata?.paymentInstrumentHash || '').trim();
+  return String(
+    invoice?.paymentInstrumentHash || invoice?.metadata?.paymentInstrumentHash || ''
+  ).trim();
 }
 
 async function subscriptionPaymentEvidence(supplierUserId, invoiceId) {
@@ -318,14 +342,22 @@ async function subscriptionPaymentEvidence(supplierUserId, invoiceId) {
     subscription.stripeSubscriptionId &&
     invoice.stripeSubscriptionId !== subscription.stripeSubscriptionId
   ) {
-    return { eligible: false, reason: 'STRIPE_SUBSCRIPTION_OWNERSHIP_MISMATCH', evidence: { invoiceId } };
+    return {
+      eligible: false,
+      reason: 'STRIPE_SUBSCRIPTION_OWNERSHIP_MISMATCH',
+      evidence: { invoiceId },
+    };
   }
   if (
     invoice.stripeCustomerId &&
     subscription.stripeCustomerId &&
     invoice.stripeCustomerId !== subscription.stripeCustomerId
   ) {
-    return { eligible: false, reason: 'STRIPE_CUSTOMER_OWNERSHIP_MISMATCH', evidence: { invoiceId } };
+    return {
+      eligible: false,
+      reason: 'STRIPE_CUSTOMER_OWNERSHIP_MISMATCH',
+      evidence: { invoiceId },
+    };
   }
 
   const customerId = invoice.stripeCustomerId || subscription.stripeCustomerId;
@@ -348,14 +380,21 @@ async function subscriptionPaymentEvidence(supplierUserId, invoiceId) {
   if (instrument) {
     const instrumentUsers = new Set(
       (invoices || [])
-        .filter(item => item.status === 'paid' && paymentInstrumentHash(item) === instrument && item.userId)
+        .filter(
+          item =>
+            item.status === 'paid' && paymentInstrumentHash(item) === instrument && item.userId
+        )
         .map(item => item.userId)
     );
     if (instrumentUsers.size > config.paymentInstrumentSupplierCap) {
       return {
         eligible: false,
         reason: 'PAYMENT_INSTRUMENT_REUSED_ACROSS_SUPPLIERS',
-        evidence: { invoiceId, supplierCount: instrumentUsers.size, cap: config.paymentInstrumentSupplierCap },
+        evidence: {
+          invoiceId,
+          supplierCount: instrumentUsers.size,
+          cap: config.paymentInstrumentSupplierCap,
+        },
       };
     }
   }
@@ -430,12 +469,18 @@ async function campaignPolicyEvidence(supplierUserId) {
 function normaliseCompanyName(value) {
   return normaliseText(value)
     .split(' ')
-    .filter(token => !['limited', 'ltd', 'llp', 'plc', 'inc', 'incorporated', 'company', 'co'].includes(token))
+    .filter(
+      token =>
+        !['limited', 'ltd', 'llp', 'plc', 'inc', 'incorporated', 'company', 'co'].includes(token)
+    )
     .join(' ');
 }
 
 async function fuzzyDuplicateBusinessEvidence(supplierUserId) {
-  const [users, profiles] = await Promise.all([dbUnified.read('users'), dbUnified.read('suppliers')]);
+  const [users, profiles] = await Promise.all([
+    dbUnified.read('users'),
+    dbUnified.read('suppliers'),
+  ]);
   const own = (profiles || []).filter(
     profile => profile.ownerUserId === supplierUserId && profile.approved === true
   );
@@ -446,7 +491,10 @@ async function fuzzyDuplicateBusinessEvidence(supplierUserId) {
         current.name ||
         users.find(user => user.id === supplierUserId)?.company
     );
-    const currentPostcode = normaliseText(current.postcode || current.postalCode).replace(/\s/g, '');
+    const currentPostcode = normaliseText(current.postcode || current.postalCode).replace(
+      /\s/g,
+      ''
+    );
     if (!currentName || !currentPostcode) continue;
     for (const other of profiles || []) {
       if (!other || other.ownerUserId === supplierUserId || other.approved !== true) continue;
@@ -536,7 +584,9 @@ async function exposureDecision({ partnerId, supplierUserId, amount }) {
     };
   }
 
-  const partnerAgeMs = partner?.createdAt ? now - Date.parse(partner.createdAt) : Number.POSITIVE_INFINITY;
+  const partnerAgeMs = partner?.createdAt
+    ? now - Date.parse(partner.createdAt)
+    : Number.POSITIVE_INFINITY;
   if (Number.isFinite(partnerAgeMs) && partnerAgeMs < config.newPartnerAgeDays * 86400000) {
     const total = rewards.reduce((sum, transaction) => sum + Number(transaction.amount || 0), 0);
     if (total + Number(amount || 0) > config.newPartnerPointsCap) {
@@ -575,7 +625,9 @@ async function maturityExtensionDays({ partnerId, supplierUserId }) {
     dbUnified.findOne('users', { id: supplierUserId }),
   ]);
   const partnerUser = partner ? await dbUnified.findOne('users', { id: partner.userId }) : null;
-  const levels = [supplier?.registrationRiskLevel, partnerUser?.registrationRiskLevel].filter(Boolean);
+  const levels = [supplier?.registrationRiskLevel, partnerUser?.registrationRiskLevel].filter(
+    Boolean
+  );
   if (levels.includes('high')) return config.highRiskMaturityExtraDays;
   if (levels.includes('review')) return config.riskyMaturityExtraDays;
   return 0;

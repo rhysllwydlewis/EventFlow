@@ -16,10 +16,7 @@ const awardLock = require('./partnerRewardAwardLockService');
 
 let installed = false;
 
-const SOFT_SIGNAL_REASONS = new Set([
-  'REVIEW_RING_SHARED_DEVICE_NETWORK',
-  'REVIEW_RING_SHARED_IP',
-]);
+const SOFT_SIGNAL_REASONS = new Set(['REVIEW_RING_SHARED_DEVICE_NETWORK', 'REVIEW_RING_SHARED_IP']);
 
 const METHOD_CONFIG = Object.freeze({
   awardReferralSignupBonus: {
@@ -321,7 +318,8 @@ function installRewardMethodGuards() {
           supplierUserId,
           partnerId: partner.id,
           rewardType: config.type,
-          logMessage: '[PARTNER-REWARD-INTEGRITY] Reward withheld by Stripe payment evidence policy',
+          logMessage:
+            '[PARTNER-REWARD-INTEGRITY] Reward withheld by Stripe payment evidence policy',
         })
       ) {
         return null;

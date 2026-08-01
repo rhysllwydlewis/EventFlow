@@ -9,8 +9,9 @@ function matches(item, query) {
   return Object.entries(query || {}).every(([key, value]) => item[key] === value);
 }
 const mockDb = {
-  findOne: jest.fn(async (collection, query) =>
-    (collections[collection] || []).find(item => matches(item, query)) || null
+  findOne: jest.fn(
+    async (collection, query) =>
+      (collections[collection] || []).find(item => matches(item, query)) || null
   ),
   updateOne: jest.fn(async (collection, query, update) => {
     const item = (collections[collection] || []).find(candidate => matches(candidate, query));
@@ -116,7 +117,10 @@ beforeEach(() => {
   collections.partners.push({ id: 'partner_1', userId: 'partner_user', status: 'active' });
   mockAntiAbuse.supplierRewardEligibility.mockResolvedValue({ eligible: true });
   mockCandidates.selectRewardEvidence.mockResolvedValue({ eligible: true, packageId: 'pkg_1' });
-  mockSupplierEvidence.methodRewardEvidence.mockResolvedValue({ eligible: true, supplierId: 'sup_1' });
+  mockSupplierEvidence.methodRewardEvidence.mockResolvedValue({
+    eligible: true,
+    supplierId: 'sup_1',
+  });
   mockAdvanced.methodRewardEvidence.mockResolvedValue({ eligible: true });
   mockAdvanced.exposureDecision.mockResolvedValue({ eligible: true });
   mockAdvanced.maturityExtensionDays.mockResolvedValue(0);

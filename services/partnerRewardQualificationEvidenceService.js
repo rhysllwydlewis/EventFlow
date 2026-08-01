@@ -7,7 +7,12 @@ const stripeEvidence = require('./partnerRewardStripeEvidenceService');
 
 const SNAPSHOT_VERSION = 1;
 
-function buildSnapshot({ methodName, supplierDecision = {}, baseEvidence = {}, stripeDecision = {} }) {
+function buildSnapshot({
+  methodName,
+  supplierDecision = {},
+  baseEvidence = {},
+  stripeDecision = {},
+}) {
   const snapshot = {
     version: SNAPSHOT_VERSION,
     methodName,
@@ -36,7 +41,11 @@ async function persistSnapshot(transaction, snapshot) {
     error.code = 'PARTNER_REWARD_EVIDENCE_WRITE_FAILED';
     throw error;
   }
-  return { ...transaction, qualificationEvidence: snapshot, qualificationEvidenceVersion: SNAPSHOT_VERSION };
+  return {
+    ...transaction,
+    qualificationEvidence: snapshot,
+    qualificationEvidenceVersion: SNAPSHOT_VERSION,
+  };
 }
 
 function reviewTextKey(review) {
@@ -44,7 +53,9 @@ function reviewTextKey(review) {
 }
 
 function reviewAccountAgeHours(user, review) {
-  return user?.createdAt ? baseIntegrity._test.hoursBetween(user.createdAt, review?.createdAt) : null;
+  return user?.createdAt
+    ? baseIntegrity._test.hoursBetween(user.createdAt, review?.createdAt)
+    : null;
 }
 
 function hasTwoWayMessageHistory(threads, messages, reviewerUserId, supplierIds) {
@@ -52,7 +63,9 @@ function hasTwoWayMessageHistory(threads, messages, reviewerUserId, supplierIds)
     thread => thread.customerId === reviewerUserId && supplierIds.has(thread.supplierId)
   );
   for (const thread of candidateThreads) {
-    const realMessages = (messages || []).filter(message => message.threadId === thread.id && !message.isDraft);
+    const realMessages = (messages || []).filter(
+      message => message.threadId === thread.id && !message.isDraft
+    );
     const fromCustomer = realMessages.some(
       message => (message.senderId || message.fromUserId) === reviewerUserId
     );

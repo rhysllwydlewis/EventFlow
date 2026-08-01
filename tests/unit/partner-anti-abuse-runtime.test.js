@@ -31,8 +31,9 @@ function loadRuntime({ existingTransactions = [], rewardFailure = null, balance 
     awardPackageBonus: jest.fn(async () => null),
     awardFirstReviewBonus: jest.fn(async () => null),
     awardSubscriptionBonus: jest.fn(async () => null),
-    getBalance: jest.fn(async partnerId =>
-      balance || { partnerId, availableBalance: 100, maturingBalance: 0, transactions: [] }
+    getBalance: jest.fn(
+      async partnerId =>
+        balance || { partnerId, availableBalance: 100, maturingBalance: 0, transactions: [] }
     ),
   };
   const mockAntiAbuse = { installRewardGuards: jest.fn(service => service) };
@@ -66,7 +67,8 @@ describe('partner anti-abuse reward runtime', () => {
   });
 
   test('installs both reward guard layers and revalidates before deferred reward reconciliation', async () => {
-    const { runtime, mockPartnerService, mockAntiAbuse, mockRewardIntegrityRuntime } = loadRuntime();
+    const { runtime, mockPartnerService, mockAntiAbuse, mockRewardIntegrityRuntime } =
+      loadRuntime();
     runtime.install();
     runtime.install();
     const balance = await mockPartnerService.getBalance('prt_1');

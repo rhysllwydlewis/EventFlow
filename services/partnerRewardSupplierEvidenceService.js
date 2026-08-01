@@ -48,7 +48,9 @@ function meaningful(value) {
 
 function hasSocialEvidence(profile) {
   if (!profile?.socials || typeof profile.socials !== 'object') return false;
-  return Object.values(profile.socials).some(value => /^https?:\/\//i.test(String(value || '').trim()));
+  return Object.values(profile.socials).some(value =>
+    /^https?:\/\//i.test(String(value || '').trim())
+  );
 }
 
 function contactEvidence(profile, user = {}) {

@@ -23,8 +23,9 @@ const mockDb = {
   find: jest.fn(async (collection, query) =>
     (collections[collection] || []).filter(item => matches(item, query))
   ),
-  findOne: jest.fn(async (collection, query) =>
-    (collections[collection] || []).find(item => matches(item, query)) || null
+  findOne: jest.fn(
+    async (collection, query) =>
+      (collections[collection] || []).find(item => matches(item, query)) || null
   ),
   insertOne: jest.fn(async (collection, record) => {
     collections[collection].push(record);
@@ -150,7 +151,8 @@ test('requires review reward evidence to include a mature verified reviewer and 
     verified: true,
     emailVerified: true,
     title: 'Excellent service',
-    comment: 'The supplier communicated clearly and delivered exactly what we agreed for our event.',
+    comment:
+      'The supplier communicated clearly and delivered exactly what we agreed for our event.',
     createdAt: isoHoursAgo(48),
   });
   collections.threads.push({ id: 'thd_1', customerId: 'customer_1', supplierId: 'sup_1' });
@@ -178,7 +180,8 @@ test('rejects copied review content from a different reviewer', async () => {
     { id: 'customer_2', role: 'customer', verified: true, createdAt: isoHoursAgo(200) }
   );
   collections.suppliers.push({ id: 'sup_1', ownerUserId: 'supplier_1', approved: true });
-  const comment = 'The supplier communicated clearly and delivered exactly what we agreed for our event.';
+  const comment =
+    'The supplier communicated clearly and delivered exactly what we agreed for our event.';
   collections.reviews.push(
     {
       id: 'rev_1',
@@ -215,7 +218,12 @@ test('rejects copied review content from a different reviewer', async () => {
 });
 
 test('requires a persisted paid non-free subscription invoice', async () => {
-  collections.subscriptions.push({ id: 'sub_1', userId: 'supplier_1', plan: 'pro', status: 'active' });
+  collections.subscriptions.push({
+    id: 'sub_1',
+    userId: 'supplier_1',
+    plan: 'pro',
+    status: 'active',
+  });
   collections.invoices.push({
     id: 'inv_1',
     userId: 'supplier_1',

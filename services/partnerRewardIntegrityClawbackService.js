@@ -34,7 +34,10 @@ const NON_CLAWBACK_REASONS = new Set([
 ]);
 
 function effectiveRevalidationDays() {
-  return Math.max(MIN_REVALIDATION_DAYS, Number(advancedIntegrity.getConfig().revalidationDays || 0));
+  return Math.max(
+    MIN_REVALIDATION_DAYS,
+    Number(advancedIntegrity.getConfig().revalidationDays || 0)
+  );
 }
 
 function isWithinRevalidationWindow(transaction, now = Date.now()) {

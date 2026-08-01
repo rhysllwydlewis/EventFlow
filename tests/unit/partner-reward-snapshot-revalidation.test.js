@@ -5,8 +5,9 @@ function matches(item, query) {
   return Object.entries(query || {}).every(([key, value]) => item[key] === value);
 }
 const mockDb = {
-  findOne: jest.fn(async (collection, query) =>
-    (collections[collection] || []).find(item => matches(item, query)) || null
+  findOne: jest.fn(
+    async (collection, query) =>
+      (collections[collection] || []).find(item => matches(item, query)) || null
   ),
   find: jest.fn(async (collection, query) =>
     (collections[collection] || []).filter(item => matches(item, query))

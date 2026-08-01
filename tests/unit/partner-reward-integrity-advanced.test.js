@@ -22,8 +22,9 @@ const mockDb = {
   find: jest.fn(async (collection, query) =>
     (collections[collection] || []).filter(item => matches(item, query))
   ),
-  findOne: jest.fn(async (collection, query) =>
-    (collections[collection] || []).find(item => matches(item, query)) || null
+  findOne: jest.fn(
+    async (collection, query) =>
+      (collections[collection] || []).find(item => matches(item, query)) || null
   ),
 };
 

@@ -6,10 +6,7 @@ const advancedIntegrity = require('./partnerRewardIntegrityAdvancedService');
 const stripeEvidence = require('./partnerRewardStripeEvidenceService');
 const qualificationEvidence = require('./partnerRewardQualificationEvidenceService');
 
-const SOFT_REVIEW_REASONS = new Set([
-  'REVIEW_RING_SHARED_DEVICE_NETWORK',
-  'REVIEW_RING_SHARED_IP',
-]);
+const SOFT_REVIEW_REASONS = new Set(['REVIEW_RING_SHARED_DEVICE_NETWORK', 'REVIEW_RING_SHARED_IP']);
 
 function withBase(result, extra = {}) {
   return result.eligible ? { ...result, ...extra } : result;

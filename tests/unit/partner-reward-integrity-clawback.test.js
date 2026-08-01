@@ -11,14 +11,17 @@ function mockMatches(item, query) {
 }
 
 const mockDb = {
-  findOne: jest.fn(async (collection, query) =>
-    (mockCollections[collection] || []).find(item => mockMatches(item, query)) || null
+  findOne: jest.fn(
+    async (collection, query) =>
+      (mockCollections[collection] || []).find(item => mockMatches(item, query)) || null
   ),
   find: jest.fn(async (collection, query) =>
     (mockCollections[collection] || []).filter(item => mockMatches(item, query))
   ),
   updateOne: jest.fn(async (collection, query, update) => {
-    const item = (mockCollections[collection] || []).find(candidate => mockMatches(candidate, query));
+    const item = (mockCollections[collection] || []).find(candidate =>
+      mockMatches(candidate, query)
+    );
     if (!item) return null;
     Object.assign(item, update.$set || update);
     return item;
@@ -31,7 +34,11 @@ const mockPartnerService = {
   debitPoints: jest.fn(),
 };
 const mockBaseIntegrity = {
-  methodRewardEvidence: jest.fn(async () => ({ eligible: true, packageId: 'pkg_1', invoiceId: 'inv_1' })),
+  methodRewardEvidence: jest.fn(async () => ({
+    eligible: true,
+    packageId: 'pkg_1',
+    invoiceId: 'inv_1',
+  })),
   recordIntegrityEvent: jest.fn(async () => ({ id: 'pri_1' })),
 };
 const mockSupplierEvidence = {
@@ -86,20 +93,22 @@ beforeEach(() => {
   mockAdvancedIntegrity.getConfig.mockReturnValue({ revalidationDays: 30 });
   mockAdvancedIntegrity.methodRewardEvidence.mockResolvedValue({ eligible: true });
   mockStripeEvidence.subscriptionRewardEvidence.mockResolvedValue({ eligible: true });
-  mockPartnerService.debitPoints.mockImplementation(async ({ partnerId, amount, notes, externalRef }) => {
-    const debit = {
-      id: `redeem_${mockCollections.partner_credit_transactions.length}`,
-      partnerId,
-      supplierUserId: null,
-      type: 'REDEEM',
-      amount: -Math.abs(amount),
-      notes,
-      externalRef,
-      createdAt: new Date().toISOString(),
-    };
-    mockCollections.partner_credit_transactions.push(debit);
-    return debit;
-  });
+  mockPartnerService.debitPoints.mockImplementation(
+    async ({ partnerId, amount, notes, externalRef }) => {
+      const debit = {
+        id: `redeem_${mockCollections.partner_credit_transactions.length}`,
+        partnerId,
+        supplierUserId: null,
+        type: 'REDEEM',
+        amount: -Math.abs(amount),
+        notes,
+        externalRef,
+        createdAt: new Date().toISOString(),
+      };
+      mockCollections.partner_credit_transactions.push(debit);
+      return debit;
+    }
+  );
 });
 
 test('voids an invalid pending reward without debiting other legitimate points', async () => {
@@ -127,7 +136,10 @@ test('creates one financial debit for an invalid reward that already matured', a
   const first = await service.clawBackRewardTransaction(original, 'QUALIFYING_PACKAGE_MISSING');
   const second = await service.clawBackRewardTransaction(original, 'QUALIFYING_PACKAGE_MISSING');
 
-  expect(first).toMatchObject({ reversalMode: 'debit_matured', subtype: 'PARTNER_REWARD_INTEGRITY_CLAWBACK' });
+  expect(first).toMatchObject({
+    reversalMode: 'debit_matured',
+    subtype: 'PARTNER_REWARD_INTEGRITY_CLAWBACK',
+  });
   expect(second.id).toBe(first.id);
   expect(mockPartnerService.debitPoints).toHaveBeenCalledTimes(1);
   expect(original).toMatchObject({
@@ -140,18 +152,15 @@ test('creates one financial debit for an invalid reward that already matured', a
 
 test('repairs original mature reward markers when the clawback debit already exists', async () => {
   const original = matureReward();
-  mockCollections.partner_credit_transactions.push(
-    original,
-    {
-      id: 'existing_debit',
-      partnerId: 'partner_1',
-      supplierUserId: 'supplier_1',
-      type: 'REDEEM',
-      subtype: 'PARTNER_REWARD_INTEGRITY_CLAWBACK',
-      externalRef: 'reward-integrity:reward_1',
-      amount: -10,
-    }
-  );
+  mockCollections.partner_credit_transactions.push(original, {
+    id: 'existing_debit',
+    partnerId: 'partner_1',
+    supplierUserId: 'supplier_1',
+    type: 'REDEEM',
+    subtype: 'PARTNER_REWARD_INTEGRITY_CLAWBACK',
+    externalRef: 'reward-integrity:reward_1',
+    amount: -10,
+  });
 
   await expect(
     service.clawBackRewardTransaction(original, 'QUALIFYING_PACKAGE_MISSING')

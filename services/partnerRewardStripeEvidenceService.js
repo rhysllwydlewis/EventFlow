@@ -353,7 +353,8 @@ async function subscriptionRewardEvidence(supplierUserId, invoiceId) {
           item =>
             item.status === 'paid' &&
             item.userId &&
-            item.partnerRewardPaymentEvidence?.paymentInstrumentHash === evidence.paymentInstrumentHash
+            item.partnerRewardPaymentEvidence?.paymentInstrumentHash ===
+              evidence.paymentInstrumentHash
         )
         .map(item => item.userId)
     );
