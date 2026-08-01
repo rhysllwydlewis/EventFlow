@@ -1,0 +1,77 @@
+name: PR1415 Diagnostics
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  HUSKY: '0'
+
+jobs:
+  diagnostics:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.node-version'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit
+
+      - name: Produce exact Prettier outputs
+        run: |
+          npx prettier --write \
+            docs/PARTNER_ANTI_ABUSE_PR1_VALIDATION.md \
+            routes/admin-partner-abuse.js \
+            routes/partner-abuse-appeals.js \
+            routes/partner-registration-secure.js \
+            services/partnerAntiAbuseService.js \
+            services/partnerRegistrationRiskService.js \
+            tests/unit/partner-abuse-admin-routes.test.js \
+            tests/unit/partner-registration-final-review.test.js \
+            tests/unit/partner-registration-secure.test.js
+
+      - name: Generate changed-code coverage evidence
+        env:
+          NODE_ENV: test
+          JWT_SECRET: test-secret-for-jest-min-32-characters-long
+          COVERAGE_BASE_REF: origin/main
+        run: |
+          set +e
+          npm run test:full -- --runInBand > pr1415-full-test.txt 2>&1
+          test_status=$?
+          npm run coverage:changed > pr1415-coverage-summary.txt 2>&1
+          coverage_status=$?
+          printf 'full_test_status=%s\ncoverage_status=%s\n' "$test_status" "$coverage_status" > pr1415-status.txt
+          exit 0
+
+      - name: Upload diagnostic evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr1415-diagnostics
+          path: |
+            docs/PARTNER_ANTI_ABUSE_PR1_VALIDATION.md
+            routes/admin-partner-abuse.js
+            routes/partner-abuse-appeals.js
+            routes/partner-registration-secure.js
+            services/partnerAntiAbuseService.js
+            services/partnerRegistrationRiskService.js
+            tests/unit/partner-abuse-admin-routes.test.js
+            tests/unit/partner-registration-final-review.test.js
+            tests/unit/partner-registration-secure.test.js
+            pr1415-full-test.txt
+            pr1415-coverage-summary.txt
+            pr1415-status.txt
+          retention-days: 2
