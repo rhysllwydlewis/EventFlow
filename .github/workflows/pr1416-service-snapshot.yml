@@ -4,13 +4,16 @@ on:
   push:
     branches:
       - agent/partner-anti-abuse-pr2-reward-integrity
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: write
 
 concurrency:
   group: pr1416-deepsource-ast-repair
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   repair:
@@ -130,6 +133,7 @@ jobs:
             --runInBand
 
       - name: Commit verified service repair
+        if: github.event_name == 'push'
         shell: bash
         run: |
           rm -f \
