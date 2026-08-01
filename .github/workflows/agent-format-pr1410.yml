@@ -3,7 +3,7 @@ name: Agent Format PR 1410
 on:
   push:
     branches:
-      - dependabot/npm_and_yarn/prettier-3.9.6
+      - agent/pr1410-prettier-finalize
 
 permissions:
   contents: write
@@ -13,10 +13,10 @@ jobs:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout PR branch
+      - name: Checkout temporary finalisation branch
         uses: actions/checkout@v4
         with:
-          ref: dependabot/npm_and_yarn/prettier-3.9.6
+          ref: agent/pr1410-prettier-finalize
           fetch-depth: 0
 
       - name: Set up Node.js
@@ -51,4 +51,4 @@ jobs:
             docs/security.md \
             routes/wedding-websites.js
           git commit -m "style: align repository with Prettier 3.9.6"
-          git push origin HEAD:dependabot/npm_and_yarn/prettier-3.9.6
+          git push origin HEAD:agent/pr1410-prettier-finalize
