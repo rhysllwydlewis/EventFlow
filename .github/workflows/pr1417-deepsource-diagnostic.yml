@@ -37,13 +37,9 @@ jobs:
         run: |
           python <<'PY'
           from pathlib import Path
-
           path = Path('public/assets/js/pages/admin-cashout-requests-init.js')
           source = path.read_text()
-          old = """    if (status === 'rejected' && !window.confirm('Mark this partner cashout identity review as rejected?')) {
-      return;
-    }
-"""
+          old = "    if (status === 'rejected' && !window.confirm('Mark this partner cashout identity review as rejected?')) {\n      return;\n    }\n"
           if old in source:
               path.write_text(source.replace(old, '', 1))
           PY
