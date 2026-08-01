@@ -1,4 +1,4 @@
-name: PR 1417 DeepSource diagnostic
+name: PR 1417 verified repair
 
 on:
   pull_request:
@@ -6,167 +6,119 @@ on:
       - main
 
 permissions:
-  contents: read
-  statuses: read
+  contents: write
+
+concurrency:
+  group: pr1417-verified-repair
+  cancel-in-progress: false
 
 jobs:
-  enumerate:
+  repair:
+    if: github.event.pull_request.head.ref == 'agent/partner-anti-abuse-pr3-cashout-ops'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-    env:
-      GH_TOKEN: ${{ github.token }}
-      TARGET_SHA: ${{ github.event.pull_request.head.sha }}
+    timeout-minutes: 20
     steps:
-      - name: Wait for DeepSource JavaScript result
-        shell: bash
-        run: |
-          mkdir -p diagnostic
-          for attempt in $(seq 1 90); do
-            gh api "repos/${GITHUB_REPOSITORY}/commits/${TARGET_SHA}/status" > diagnostic/status.json
-            state=$(jq -r '.statuses[] | select(.context == "DeepSource: JavaScript") | .state' diagnostic/status.json | head -1)
-            target=$(jq -r '.statuses[] | select(.context == "DeepSource: JavaScript") | .target_url' diagnostic/status.json | head -1)
-            echo "attempt=$attempt state=$state target=$target"
-            if [[ -n "$target" && "$target" != "null" && "$state" != "pending" && -n "$state" ]]; then
-              printf '%s\n' "$target" > diagnostic/target-url.txt
-              break
-            fi
-            sleep 10
-          done
-          test -s diagnostic/target-url.txt
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/partner-anti-abuse-pr3-cashout-ops
+          fetch-depth: 0
 
-      - name: Enumerate all DeepSource findings
-        shell: bash
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit
+        env:
+          HUSKY: 0
+
+      - name: Repair native-dialog regression
         run: |
           python <<'PY'
-          import base64
-          import http.cookiejar
-          import json
-          import os
-          import re
-          import urllib.error
-          import urllib.request
-          from collections import Counter, defaultdict
           from pathlib import Path
 
-          target = Path('diagnostic/target-url.txt').read_text().strip()
-          cookie_jar = http.cookiejar.CookieJar()
-          opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cookie_jar))
-          opener.addheaders = [('User-Agent', 'EventFlow-PR1417-Diagnostic/1.0')]
-          opener.open('https://app.deepsource.com/api/set-csrf-cookie/').read()
-          csrf_token = next(
-            (cookie.value for cookie in cookie_jar if cookie.name in {'csrftoken', 'csrf'}),
-            None,
-          )
-          if not csrf_token:
-            raise RuntimeError('DeepSource did not provide a CSRF cookie')
-
-          report = opener.open(target).read().decode(errors='replace')
-          Path('diagnostic/report.html').write_text(report)
-          candidates = sorted(set(re.findall(r'Q2hlY2s6[A-Za-z0-9_+/=-]+', report)))
-          decoded = []
-          for candidate in candidates:
-            try:
-              decoded.append((candidate, base64.b64decode(candidate + '===').decode(errors='replace')))
-            except Exception:
-              pass
-          print('Check candidates:', decoded)
-          if not candidates:
-            raise RuntimeError('No DeepSource check ID was found in the report page')
-
-          query = '''
-          query EnumerateCheckIssues($checkId: ID!, $after: String) {
-            check(checkId: $checkId) {
-              allIssues(first: 15, after: $after) {
-                pageInfo { hasNextPage endCursor }
-                edges {
-                  node {
-                    ... on StaticAnalysisIssue {
-                      id path text shortcode category severity
-                      beginLine beginColumn endLine endColumn
-                    }
-                  }
-                }
-              }
-            }
-          }
-          '''
-
-          def graphql(check_id, after=None):
-            body = json.dumps({
-              'query': query,
-              'variables': {'checkId': check_id, 'after': after},
-            }).encode()
-            request = urllib.request.Request(
-              'https://app.deepsource.com/graphql/',
-              data=body,
-              headers={
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-                'Origin': 'https://app.deepsource.com',
-                'Referer': target,
-                'X-CSRFToken': csrf_token,
-              },
-              method='POST',
-            )
-            try:
-              return json.loads(opener.open(request).read())
-            except urllib.error.HTTPError as error:
-              print(error.read().decode(errors='replace'))
-              raise
-
-          check_id = None
-          first_response = None
-          for candidate in candidates:
-            response = graphql(candidate)
-            if response.get('data', {}).get('check') is not None:
-              check_id = candidate
-              first_response = response
-              break
-          if not check_id:
-            raise RuntimeError('None of the report check IDs resolved through DeepSource GraphQL')
-          print('Selected check ID:', check_id)
-
-          issues = []
-          response = first_response
-          after = None
-          while True:
-            if response.get('errors'):
-              raise RuntimeError(json.dumps(response['errors'], indent=2))
-            connection = response['data']['check']['allIssues']
-            issues.extend(
-              edge['node'] for edge in connection['edges'] if edge.get('node', {}).get('shortcode')
-            )
-            page_info = connection['pageInfo']
-            if not page_info['hasNextPage']:
-              break
-            after = page_info['endCursor']
-            response = graphql(check_id, after)
-
-          Path('diagnostic/issues.json').write_text(json.dumps(issues, indent=2))
-          by_code = Counter(issue['shortcode'] for issue in issues)
-          by_file = defaultdict(Counter)
-          for issue in issues:
-            by_file[issue['path']][issue['shortcode']] += 1
-          summary = {
-            'total': len(issues),
-            'by_code': dict(sorted(by_code.items())),
-            'by_file': {
-              path: dict(sorted(counts.items()))
-              for path, counts in sorted(by_file.items())
-            },
-          }
-          Path('diagnostic/summary.json').write_text(json.dumps(summary, indent=2))
-          print(json.dumps(summary, indent=2))
-          print('\nExact findings:')
-          for issue in issues:
-            print(
-              f"{issue['shortcode']} {issue['path']}:{issue['beginLine']} "
-              f"[{issue['severity']}] {issue['text']}"
-            )
+          path = Path('public/assets/js/pages/admin-cashout-requests-init.js')
+          source = path.read_text()
+          old = """    if (status === 'rejected' && !window.confirm('Mark this partner cashout identity review as rejected?')) {
+      return;
+    }
+"""
+          if old in source:
+              path.write_text(source.replace(old, '', 1))
           PY
 
-      - uses: actions/upload-artifact@v4
-        with:
-          name: pr1417-deepsource-findings
-          path: diagnostic
-          retention-days: 1
+      - name: Format files reported by CI
+        run: |
+          npx prettier --write \
+            docs/PARTNER_ANTI_ABUSE_PR3.md \
+            middleware/partnerReferralCampaignCapture.js \
+            public/assets/js/pages/admin-cashout-requests-init.js \
+            services/partnerCashoutAdminEnrichmentRuntime.js \
+            services/partnerCashoutLockRuntime.js \
+            services/partnerCashoutOperationLockService.js \
+            services/partnerCashoutOperationsIndexService.js \
+            services/partnerCashoutOperationsRuntime.js \
+            services/partnerCashoutOperationsService.js \
+            services/partnerCashoutStrictStore.js \
+            tests/unit/partner-anti-abuse-startup.test.js \
+            tests/unit/partner-cashout-admin-ui.test.js \
+            tests/unit/partner-cashout-operation-lock.test.js \
+            tests/unit/partner-cashout-operations-runtime.test.js \
+            tests/unit/partner-cashout-operations.test.js \
+            tests/unit/partner-cashout-runtime-order.test.js \
+            tests/unit/partner-cashout-strict-store.test.js
+
+      - name: Verify repair
+        run: |
+          npx jest \
+            tests/unit/admin-allowlist.test.js \
+            tests/unit/partner-cashout-admin-ui.test.js \
+            --runInBand --coverage=false
+          npx prettier --check \
+            docs/PARTNER_ANTI_ABUSE_PR3.md \
+            middleware/partnerReferralCampaignCapture.js \
+            public/assets/js/pages/admin-cashout-requests-init.js \
+            services/partnerCashoutAdminEnrichmentRuntime.js \
+            services/partnerCashoutLockRuntime.js \
+            services/partnerCashoutOperationLockService.js \
+            services/partnerCashoutOperationsIndexService.js \
+            services/partnerCashoutOperationsRuntime.js \
+            services/partnerCashoutOperationsService.js \
+            services/partnerCashoutStrictStore.js \
+            tests/unit/partner-anti-abuse-startup.test.js \
+            tests/unit/partner-cashout-admin-ui.test.js \
+            tests/unit/partner-cashout-operation-lock.test.js \
+            tests/unit/partner-cashout-operations-runtime.test.js \
+            tests/unit/partner-cashout-operations.test.js \
+            tests/unit/partner-cashout-runtime-order.test.js \
+            tests/unit/partner-cashout-strict-store.test.js
+
+      - name: Commit verified repair
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            docs/PARTNER_ANTI_ABUSE_PR3.md \
+            middleware/partnerReferralCampaignCapture.js \
+            public/assets/js/pages/admin-cashout-requests-init.js \
+            services/partnerCashoutAdminEnrichmentRuntime.js \
+            services/partnerCashoutLockRuntime.js \
+            services/partnerCashoutOperationLockService.js \
+            services/partnerCashoutOperationsIndexService.js \
+            services/partnerCashoutOperationsRuntime.js \
+            services/partnerCashoutOperationsService.js \
+            services/partnerCashoutStrictStore.js \
+            tests/unit/partner-anti-abuse-startup.test.js \
+            tests/unit/partner-cashout-admin-ui.test.js \
+            tests/unit/partner-cashout-operation-lock.test.js \
+            tests/unit/partner-cashout-operations-runtime.test.js \
+            tests/unit/partner-cashout-operations.test.js \
+            tests/unit/partner-cashout-runtime-order.test.js \
+            tests/unit/partner-cashout-strict-store.test.js
+          if git diff --cached --quiet; then
+            echo "No repair changes remain."
+            exit 0
+          fi
+          git commit -m "fix(partner): repair PR 1417 regression and formatting failures"
+          git push origin HEAD:agent/partner-anti-abuse-pr3-cashout-ops
