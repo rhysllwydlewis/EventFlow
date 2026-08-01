@@ -11,7 +11,7 @@ const script = fs.readFileSync(
 describe('partner cashout admin safety UI', () => {
   test('surfaces emergency payout controls with a reasoned CSRF-protected write path', () => {
     expect(script).toContain('/api/v1/admin/cashout-requests/ops/controls');
-    expect(script).toContain("getCsrfToken()");
+    expect(script).toContain('getCsrfToken()');
     expect(script).toContain("'X-CSRF-Token': csrfToken");
     expect(script).toContain('Operational reason');
     expect(script).toContain('Pause cashouts');

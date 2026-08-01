@@ -9,9 +9,15 @@ const mockCollection = {
   countDocuments: jest.fn(),
 };
 const mockCursor = {
-  sort: jest.fn(function () { return this; }),
-  skip: jest.fn(function () { return this; }),
-  limit: jest.fn(function () { return this; }),
+  sort: jest.fn(function () {
+    return this;
+  }),
+  skip: jest.fn(function () {
+    return this;
+  }),
+  limit: jest.fn(function () {
+    return this;
+  }),
   toArray: jest.fn(),
 };
 const mockMongoDb = {
@@ -69,7 +75,9 @@ test('Mongo findOne failures become a standard fail-closed storage error instead
   mockUnified.getDatabaseType.mockReturnValue('mongodb');
   mockCollection.findOne.mockRejectedValueOnce(new Error('network read failed'));
 
-  await expect(store.findOne('partner_cashout_requests', { id: 'cashout_1' })).rejects.toMatchObject({
+  await expect(
+    store.findOne('partner_cashout_requests', { id: 'cashout_1' })
+  ).rejects.toMatchObject({
     code: 'PARTNER_CASHOUT_STORAGE_UNAVAILABLE',
     message: 'Authoritative cashout storage read failed.',
   });

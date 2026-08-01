@@ -108,7 +108,8 @@
   }
 
   function reconciliationPresentation(summary) {
-    if (!summary || summary.status === 'not_run') return { label: 'Ledger not checked', tone: 'neutral' };
+    if (!summary || summary.status === 'not_run')
+      return { label: 'Ledger not checked', tone: 'neutral' };
     if (summary.status === 'ok') {
       return {
         label:
@@ -160,7 +161,10 @@
         [field]: paused,
         reason,
       });
-      showToast(paused ? 'Cashout safety pause enabled.' : 'Cashout safety pause lifted.', 'success');
+      showToast(
+        paused ? 'Cashout safety pause enabled.' : 'Cashout safety pause lifted.',
+        'success'
+      );
       await loadOperationsPanel();
     } catch (error) {
       showToast(error.message || 'Failed to update cashout controls.', 'error');
@@ -170,7 +174,8 @@
   async function loadOperationsPanel() {
     const panel = ensureOperationsPanel();
     if (!panel) return;
-    panel.innerHTML = '<div style="color:#6b7280;font-size:.875rem;">Loading cashout safety controls…</div>';
+    panel.innerHTML =
+      '<div style="color:#6b7280;font-size:.875rem;">Loading cashout safety controls…</div>';
     try {
       const res = await fetch('/api/v1/admin/cashout-requests/ops/controls', {
         credentials: 'include',
@@ -201,12 +206,16 @@
             </div>
           </div>
         </div>`;
-      document.getElementById('acr-toggle-cashouts')?.addEventListener('click', () =>
-        updatePauseControl('cashoutsPaused', !controls.cashoutsPaused)
-      );
-      document.getElementById('acr-toggle-master-payout')?.addEventListener('click', () =>
-        updatePauseControl('programmePaused', !controls.programmePaused)
-      );
+      document
+        .getElementById('acr-toggle-cashouts')
+        ?.addEventListener('click', () =>
+          updatePauseControl('cashoutsPaused', !controls.cashoutsPaused)
+        );
+      document
+        .getElementById('acr-toggle-master-payout')
+        ?.addEventListener('click', () =>
+          updatePauseControl('programmePaused', !controls.programmePaused)
+        );
     } catch (error) {
       panel.innerHTML = `<div style="color:#b91c1c;font-size:.875rem;font-weight:650;">Safety controls unavailable: ${esc(error.message || 'Unknown error')}</div>`;
     }
@@ -319,16 +328,16 @@
       document.getElementById('acr-modal-internal-notes')?.focus();
       return;
     }
-    if (status === 'rejected' && !window.confirm('Mark this partner cashout identity review as rejected?')) {
-      return;
-    }
     try {
       await apiWrite(
         `/api/v1/admin/cashout-requests/ops/identity/${encodeURIComponent(_currentRequest.partnerId)}`,
         'PATCH',
         { status, reason }
       );
-      showToast(status === 'verified' ? 'Cashout identity verified.' : 'Cashout identity rejected.', 'success');
+      showToast(
+        status === 'verified' ? 'Cashout identity verified.' : 'Cashout identity rejected.',
+        'success'
+      );
       closeModal();
       await loadRequests();
     } catch (error) {
@@ -338,7 +347,8 @@
 
   async function runReconciliation() {
     if (!_currentRequest) return;
-    const reason = currentInternalNote() || 'Manual reconciliation from the cashout administration screen.';
+    const reason =
+      currentInternalNote() || 'Manual reconciliation from the cashout administration screen.';
     try {
       const data = await apiWrite(
         `/api/v1/admin/cashout-requests/ops/reconcile/${encodeURIComponent(_currentRequest.id)}`,
@@ -354,7 +364,10 @@
         );
       } else {
         const codes = (data.reconciliation?.issues || []).map(item => item.code).filter(Boolean);
-        showToast(`Ledger reconciliation failed${codes.length ? `: ${codes.join(', ')}` : '.'}`, 'error');
+        showToast(
+          `Ledger reconciliation failed${codes.length ? `: ${codes.join(', ')}` : '.'}`,
+          'error'
+        );
       }
       closeModal();
       await loadRequests();
@@ -438,12 +451,12 @@
         ${r.deliveryDetails ? `<div class="acr-modal-field"><span class="acr-modal-label">Delivery details</span><div class="acr-modal-value" style="background:#f0fdf4;padding:0.6rem;border-radius:8px;font-family:monospace;font-size:0.85rem;">${esc(typeof r.deliveryDetails === 'object' ? JSON.stringify(r.deliveryDetails) : String(r.deliveryDetails))}</div></div>` : ''}
       `;
 
-    document.getElementById('acr-identity-verify-btn')?.addEventListener('click', () =>
-      setIdentityReview('verified')
-    );
-    document.getElementById('acr-identity-reject-btn')?.addEventListener('click', () =>
-      setIdentityReview('rejected')
-    );
+    document
+      .getElementById('acr-identity-verify-btn')
+      ?.addEventListener('click', () => setIdentityReview('verified'));
+    document
+      .getElementById('acr-identity-reject-btn')
+      ?.addEventListener('click', () => setIdentityReview('rejected'));
     document.getElementById('acr-reconcile-btn')?.addEventListener('click', runReconciliation);
 
     if (responseMsg) responseMsg.value = r.adminResponseMessage || '';

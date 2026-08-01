@@ -24,7 +24,10 @@ async function createIndexes(db) {
       partialFilterExpression: { partnerId: { $type: 'string' } },
     }
   );
-  await events.createIndex({ action: 1, createdAt: -1 }, { name: 'partner_cashout_ops_action_time' });
+  await events.createIndex(
+    { action: 1, createdAt: -1 },
+    { name: 'partner_cashout_ops_action_time' }
+  );
 
   const requests = db.collection('partner_cashout_requests');
   await requests.createIndex(

@@ -12,7 +12,9 @@ const mockDatabase = { collection: mockCollection };
 jest.mock('../../db-unified', () => ({ updateOne: jest.fn(async () => ({ modified: 1 })) }));
 jest.mock('../../services/partnerAntiAbuseRuntime', () => ({ install: mockInstall }));
 jest.mock('../../services/partnerCashoutLockRuntime', () => ({ install: mockCashoutLockInstall }));
-jest.mock('../../services/partnerCashoutOperationsRuntime', () => ({ install: mockCashoutOpsInstall }));
+jest.mock('../../services/partnerCashoutOperationsRuntime', () => ({
+  install: mockCashoutOpsInstall,
+}));
 jest.mock('../../services/partnerCashoutAdminEnrichmentRuntime', () => ({
   install: mockCashoutAdminEnrichmentInstall,
 }));

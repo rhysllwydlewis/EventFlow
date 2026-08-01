@@ -16,7 +16,9 @@ function integerEnv(name, fallback, min = 0, max = Number.MAX_SAFE_INTEGER) {
 }
 
 function booleanEnv(name, fallback) {
-  const raw = String(process.env[name] || '').trim().toLowerCase();
+  const raw = String(process.env[name] || '')
+    .trim()
+    .toLowerCase();
   if (!raw) return fallback;
   if (['1', 'true', 'yes', 'on'].includes(raw)) return true;
   if (['0', 'false', 'no', 'off'].includes(raw)) return false;
@@ -37,17 +39,17 @@ function getConfig() {
       15,
       maxSingleCashoutGbp
     ),
-    rolling24hMaxGbp: integerEnv(
-      'PARTNER_CASHOUT_24H_MAX_GBP',
-      maxSingleCashoutGbp,
-      15,
-      20000
-    ),
+    rolling24hMaxGbp: integerEnv('PARTNER_CASHOUT_24H_MAX_GBP', maxSingleCashoutGbp, 15, 20000),
     rolling30dMaxGbp: integerEnv('PARTNER_CASHOUT_30D_MAX_GBP', 1000, 15, 100000),
     maxOpenRequests: integerEnv('PARTNER_CASHOUT_MAX_OPEN_REQUESTS', 1, 1, 20),
     highValueReviewGbp: integerEnv('PARTNER_CASHOUT_HIGH_VALUE_REVIEW_GBP', 100, 15, 5000),
     identityReviewRequired: booleanEnv('PARTNER_CASHOUT_IDENTITY_REVIEW_REQUIRED', true),
-    identityReviewMaxAgeDays: integerEnv('PARTNER_CASHOUT_IDENTITY_REVIEW_MAX_AGE_DAYS', 365, 1, 3650),
+    identityReviewMaxAgeDays: integerEnv(
+      'PARTNER_CASHOUT_IDENTITY_REVIEW_MAX_AGE_DAYS',
+      365,
+      1,
+      3650
+    ),
   };
 }
 
@@ -72,7 +74,8 @@ function pauseDecision(controls) {
     return {
       blocked: true,
       code: 'PARTNER_PROGRAMME_PAUSED',
-      message: 'The Partner Programme cashout pipeline is temporarily paused for operational review.',
+      message:
+        'The Partner Programme cashout pipeline is temporarily paused for operational review.',
     };
   }
   if (controls?.cashoutsPaused === true) {
@@ -94,7 +97,9 @@ async function setControls({ programmePaused, cashoutsPaused, reason, adminUserI
   }
   const cleanReason = String(reason || '').trim();
   if (cleanReason.length < 10) {
-    const error = new Error('A reason of at least 10 characters is required for programme control changes.');
+    const error = new Error(
+      'A reason of at least 10 characters is required for programme control changes.'
+    );
     error.code = 'PARTNER_CASHOUT_CONTROL_REASON_REQUIRED';
     throw error;
   }
@@ -138,9 +143,9 @@ async function setControls({ programmePaused, cashoutsPaused, reason, adminUserI
     const verified = await strictStore.findOne('partner_programme_controls', { id: CONTROL_ID });
     persisted = Boolean(
       verified &&
-        verified.programmePaused === next.programmePaused &&
-        verified.cashoutsPaused === next.cashoutsPaused &&
-        verified.reason === next.reason
+      verified.programmePaused === next.programmePaused &&
+      verified.cashoutsPaused === next.cashoutsPaused &&
+      verified.reason === next.reason
     );
   }
 
@@ -175,31 +180,44 @@ async function evaluateLimits({ partnerId, denominationGbp, requestId = null, no
   const violations = [];
   const reviewReasons = [];
 
-  const addViolation = (code, message, evidence = {}) => violations.push({ code, message, evidence });
+  const addViolation = (code, message, evidence = {}) =>
+    violations.push({ code, message, evidence });
   if (!Number.isFinite(amount) || amount <= 0) {
     addViolation('PARTNER_CASHOUT_AMOUNT_INVALID', 'The cashout amount is invalid.');
   } else {
     if (amount > config.maxSingleCashoutGbp) {
-      addViolation('PARTNER_CASHOUT_SINGLE_LIMIT', 'The requested cashout exceeds the single-request limit.', {
-        requestedGbp: amount,
-        limitGbp: config.maxSingleCashoutGbp,
-      });
+      addViolation(
+        'PARTNER_CASHOUT_SINGLE_LIMIT',
+        'The requested cashout exceeds the single-request limit.',
+        {
+          requestedGbp: amount,
+          limitGbp: config.maxSingleCashoutGbp,
+        }
+      );
     }
     if (firstCashout && amount > config.firstCashoutMaxGbp) {
-      addViolation('PARTNER_CASHOUT_FIRST_LIMIT', 'The first cashout exceeds the launch-safety limit.', {
-        requestedGbp: amount,
-        limitGbp: config.firstCashoutMaxGbp,
-      });
+      addViolation(
+        'PARTNER_CASHOUT_FIRST_LIMIT',
+        'The first cashout exceeds the launch-safety limit.',
+        {
+          requestedGbp: amount,
+          limitGbp: config.firstCashoutMaxGbp,
+        }
+      );
     }
     if (amount >= config.highValueReviewGbp) reviewReasons.push('HIGH_VALUE_CASHOUT');
   }
 
   const openRequests = otherRequests.filter(request => OPEN_STATUSES.has(request.status));
   if (openRequests.length >= config.maxOpenRequests) {
-    addViolation('PARTNER_CASHOUT_OPEN_REQUEST_LIMIT', 'Too many cashout requests are already open.', {
-      openRequestCount: openRequests.length,
-      limit: config.maxOpenRequests,
-    });
+    addViolation(
+      'PARTNER_CASHOUT_OPEN_REQUEST_LIMIT',
+      'Too many cashout requests are already open.',
+      {
+        openRequestCount: openRequests.length,
+        limit: config.maxOpenRequests,
+      }
+    );
   }
 
   const rolling = windowMs =>
@@ -213,18 +231,26 @@ async function evaluateLimits({ partnerId, denominationGbp, requestId = null, no
   const prior30d = total(rolling(30 * 86400000));
 
   if (amount > 0 && prior24h + amount > config.rolling24hMaxGbp) {
-    addViolation('PARTNER_CASHOUT_24H_LIMIT', 'The rolling 24-hour cashout limit would be exceeded.', {
-      currentGbp: prior24h,
-      requestedGbp: amount,
-      limitGbp: config.rolling24hMaxGbp,
-    });
+    addViolation(
+      'PARTNER_CASHOUT_24H_LIMIT',
+      'The rolling 24-hour cashout limit would be exceeded.',
+      {
+        currentGbp: prior24h,
+        requestedGbp: amount,
+        limitGbp: config.rolling24hMaxGbp,
+      }
+    );
   }
   if (amount > 0 && prior30d + amount > config.rolling30dMaxGbp) {
-    addViolation('PARTNER_CASHOUT_30D_LIMIT', 'The rolling 30-day cashout limit would be exceeded.', {
-      currentGbp: prior30d,
-      requestedGbp: amount,
-      limitGbp: config.rolling30dMaxGbp,
-    });
+    addViolation(
+      'PARTNER_CASHOUT_30D_LIMIT',
+      'The rolling 30-day cashout limit would be exceeded.',
+      {
+        currentGbp: prior30d,
+        requestedGbp: amount,
+        limitGbp: config.rolling30dMaxGbp,
+      }
+    );
   }
   if (firstCashout) reviewReasons.push('FIRST_CASHOUT');
 
@@ -245,7 +271,9 @@ async function evaluateLimits({ partnerId, denominationGbp, requestId = null, no
 }
 
 function normalisedIdentityValue(value) {
-  return String(value || '').trim().toLowerCase();
+  return String(value || '')
+    .trim()
+    .toLowerCase();
 }
 
 async function identityDecision(partnerId, now = Date.now()) {
@@ -280,13 +308,15 @@ async function identityDecision(partnerId, now = Date.now()) {
   }
   if (
     partner.cashoutIdentityEmailSnapshot &&
-    normalisedIdentityValue(partner.cashoutIdentityEmailSnapshot) !== normalisedIdentityValue(user.email)
+    normalisedIdentityValue(partner.cashoutIdentityEmailSnapshot) !==
+      normalisedIdentityValue(user.email)
   ) {
     return { eligible: false, reason: 'PARTNER_CASHOUT_IDENTITY_CHANGED' };
   }
   if (
     partner.cashoutIdentityCompanySnapshot &&
-    normalisedIdentityValue(partner.cashoutIdentityCompanySnapshot) !== normalisedIdentityValue(user.company)
+    normalisedIdentityValue(partner.cashoutIdentityCompanySnapshot) !==
+      normalisedIdentityValue(user.company)
   ) {
     return { eligible: false, reason: 'PARTNER_CASHOUT_IDENTITY_CHANGED' };
   }
@@ -313,7 +343,9 @@ async function setIdentityReview({ partnerId, status, reason, adminUserId }) {
     error.code = 'PARTNER_NOT_FOUND';
     throw error;
   }
-  const partnerUser = partner.userId ? await strictStore.findOne('users', { id: partner.userId }) : null;
+  const partnerUser = partner.userId
+    ? await strictStore.findOne('users', { id: partner.userId })
+    : null;
   if (status === 'verified' && (!partnerUser || partnerUser.verified !== true)) {
     const error = new Error(
       'A partner with a verified email account is required before cashout identity can be verified.'
@@ -406,7 +438,9 @@ async function reconcileRequest(cashoutRequest, options = {}) {
     Number.isFinite(Number(cashoutRequest.pointsHeld)) &&
     Number(hold.amount) !== -Math.abs(Number(cashoutRequest.pointsHeld))
   ) {
-    issues.push(issue('CASHOUT_HOLD_AMOUNT_MISMATCH', 'Cashout hold amount does not match held points.'));
+    issues.push(
+      issue('CASHOUT_HOLD_AMOUNT_MISMATCH', 'Cashout hold amount does not match held points.')
+    );
   }
 
   const releases = hold
@@ -433,29 +467,49 @@ async function reconcileRequest(cashoutRequest, options = {}) {
 
   if (redeems.length > 1) {
     issues.push(
-      issue('CASHOUT_REDEEM_DUPLICATED', 'Cashout has more than one permanent redemption debit.', 'error', {
-        redeemCount: redeems.length,
-      })
+      issue(
+        'CASHOUT_REDEEM_DUPLICATED',
+        'Cashout has more than one permanent redemption debit.',
+        'error',
+        {
+          redeemCount: redeems.length,
+        }
+      )
     );
   }
   if (releases.length > 1) {
     issues.push(
-      issue('CASHOUT_RELEASE_DUPLICATED', 'Cashout hold has been released more than once.', 'error', {
-        releaseCount: releases.length,
-      })
+      issue(
+        'CASHOUT_RELEASE_DUPLICATED',
+        'Cashout hold has been released more than once.',
+        'error',
+        {
+          releaseCount: releases.length,
+        }
+      )
     );
   }
   if (
     redeems.length === 1 &&
     Number(redeems[0].amount) !== -Math.abs(Number(cashoutRequest.pointsHeld))
   ) {
-    issues.push(issue('CASHOUT_REDEEM_AMOUNT_MISMATCH', 'Cashout redemption amount does not match held points.'));
+    issues.push(
+      issue(
+        'CASHOUT_REDEEM_AMOUNT_MISMATCH',
+        'Cashout redemption amount does not match held points.'
+      )
+    );
   }
   if (
     releases.length === 1 &&
     Number(releases[0].amount) !== Math.abs(Number(cashoutRequest.pointsHeld))
   ) {
-    issues.push(issue('CASHOUT_RELEASE_AMOUNT_MISMATCH', 'Cashout hold release amount does not match held points.'));
+    issues.push(
+      issue(
+        'CASHOUT_RELEASE_AMOUNT_MISMATCH',
+        'Cashout hold release amount does not match held points.'
+      )
+    );
   }
   if (
     cashoutRequest.finalRedeemTxnId &&
@@ -463,7 +517,10 @@ async function reconcileRequest(cashoutRequest, options = {}) {
     redeems[0].id !== cashoutRequest.finalRedeemTxnId
   ) {
     issues.push(
-      issue('CASHOUT_REDEEM_ID_MISMATCH', 'Stored final redemption ID does not match the cashout ledger debit.')
+      issue(
+        'CASHOUT_REDEEM_ID_MISMATCH',
+        'Stored final redemption ID does not match the cashout ledger debit.'
+      )
     );
   }
 
@@ -492,10 +549,14 @@ async function reconcileRequest(cashoutRequest, options = {}) {
     }
   } else if (active) {
     if (releases.length > 0) {
-      issues.push(issue('CASHOUT_HOLD_ALREADY_RELEASED', 'An active cashout has already released its hold.'));
+      issues.push(
+        issue('CASHOUT_HOLD_ALREADY_RELEASED', 'An active cashout has already released its hold.')
+      );
     }
     if (redeems.length > 0) {
-      issues.push(issue('CASHOUT_REDEEM_PREMATURE', 'An undelivered cashout already has a redemption debit.'));
+      issues.push(
+        issue('CASHOUT_REDEEM_PREMATURE', 'An undelivered cashout already has a redemption debit.')
+      );
     }
   }
 
@@ -619,7 +680,8 @@ async function recordOpsEvent({
 async function submissionDecision({ partnerId, denominationGbp }) {
   const controls = await getControls();
   const pause = pauseDecision(controls);
-  if (pause.blocked) return { allowed: false, reason: pause.code, message: pause.message, controls };
+  if (pause.blocked)
+    return { allowed: false, reason: pause.code, message: pause.message, controls };
   const partner = await strictStore.findOne('partners', { id: partnerId });
   if (!partner || partner.status !== 'active') {
     return { allowed: false, reason: 'PARTNER_CASHOUT_PARTNER_NOT_ACTIVE' };
@@ -642,7 +704,8 @@ async function submissionDecision({ partnerId, denominationGbp }) {
 async function approvalDecision(cashoutRequest) {
   const controls = await getControls();
   const pause = pauseDecision(controls);
-  if (pause.blocked) return { allowed: false, reason: pause.code, message: pause.message, controls };
+  if (pause.blocked)
+    return { allowed: false, reason: pause.code, message: pause.message, controls };
 
   const [identity, limits, reconciliation] = await Promise.all([
     identityDecision(cashoutRequest.partnerId),

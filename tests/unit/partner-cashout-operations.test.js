@@ -15,8 +15,9 @@ function matches(item, query) {
 
 const mockStrictStore = {
   ensureAuthoritative: jest.fn(async () => ({ backend: 'local', authoritative: false })),
-  findOne: jest.fn(async (collection, query) =>
-    (collections[collection] || []).find(item => matches(item, query)) || null
+  findOne: jest.fn(
+    async (collection, query) =>
+      (collections[collection] || []).find(item => matches(item, query)) || null
   ),
   find: jest.fn(async (collection, query) =>
     (collections[collection] || []).filter(item => matches(item, query))
@@ -123,8 +124,9 @@ beforeEach(() => {
   Object.values(collections).forEach(items => items.splice(0, items.length));
   jest.clearAllMocks();
   mockStrictStore.ensureAuthoritative.mockResolvedValue({ backend: 'local', authoritative: false });
-  mockStrictStore.findOne.mockImplementation(async (collection, query) =>
-    (collections[collection] || []).find(item => matches(item, query)) || null
+  mockStrictStore.findOne.mockImplementation(
+    async (collection, query) =>
+      (collections[collection] || []).find(item => matches(item, query)) || null
   );
   mockStrictStore.find.mockImplementation(async (collection, query) =>
     (collections[collection] || []).filter(item => matches(item, query))
@@ -201,7 +203,9 @@ test('open cashout and rolling limits include submitted requests so parallel req
 
   const decision = await service.evaluateLimits({ partnerId: 'partner_1', denominationGbp: 50 });
   expect(decision.allowed).toBe(false);
-  expect(decision.violations.map(item => item.code)).toContain('PARTNER_CASHOUT_OPEN_REQUEST_LIMIT');
+  expect(decision.violations.map(item => item.code)).toContain(
+    'PARTNER_CASHOUT_OPEN_REQUEST_LIMIT'
+  );
   expect(decision.metrics.openRequestCount).toBe(1);
   expect(decision.metrics.rolling24hGbp).toBe(100);
 });

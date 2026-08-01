@@ -90,7 +90,8 @@ function buildPartnerLockGuard() {
           code: error.code,
         });
         return res.status(503).json({
-          error: 'Cashout concurrency protection is temporarily unavailable. Please try again later.',
+          error:
+            'Cashout concurrency protection is temporarily unavailable. Please try again later.',
           code: error.code || 'PARTNER_CASHOUT_LOCK_UNAVAILABLE',
         });
       }
@@ -117,7 +118,8 @@ function buildAdminLockGuard() {
         code: error.code,
       });
       return res.status(503).json({
-        error: 'Cashout concurrency protection is temporarily unavailable. No transition was applied.',
+        error:
+          'Cashout concurrency protection is temporarily unavailable. No transition was applied.',
         code: error.code || 'PARTNER_CASHOUT_LOCK_UNAVAILABLE',
       });
     }
@@ -163,7 +165,9 @@ function install() {
     layer => layer.route?.path === '/:id' && layer.route.methods?.delete
   );
   installed = true;
-  logger.info('[PARTNER-CASHOUT-OPS] Distributed locks and financial audit retention guards installed');
+  logger.info(
+    '[PARTNER-CASHOUT-OPS] Distributed locks and financial audit retention guards installed'
+  );
 }
 
 module.exports = {

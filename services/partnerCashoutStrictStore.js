@@ -142,7 +142,8 @@ async function findWithOptions(collectionName, query = {}, options = {}) {
         let cursor = context.db.collection(collectionName).find(query);
         if (options.sort) cursor = cursor.sort(options.sort);
         if (Number.isInteger(options.skip) && options.skip > 0) cursor = cursor.skip(options.skip);
-        if (Number.isInteger(options.limit) && options.limit > 0) cursor = cursor.limit(options.limit);
+        if (Number.isInteger(options.limit) && options.limit > 0)
+          cursor = cursor.limit(options.limit);
         return await cursor.toArray();
       } catch (error) {
         return throwStorageFailure('paged query', collectionName, error);

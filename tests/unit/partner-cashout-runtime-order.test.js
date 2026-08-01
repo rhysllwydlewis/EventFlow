@@ -180,7 +180,9 @@ test('partner submission executes CSRF then distributed lock then PR3 policy the
   expect(mockOps.submissionDecision).toHaveBeenCalled();
   expect(mockLegacyPartner).toHaveBeenCalled();
 
-  expect(mockCsrf.mock.invocationCallOrder[0]).toBeLessThan(mockAcquire.mock.invocationCallOrder[0]);
+  expect(mockCsrf.mock.invocationCallOrder[0]).toBeLessThan(
+    mockAcquire.mock.invocationCallOrder[0]
+  );
   expect(mockAcquire.mock.invocationCallOrder[0]).toBeLessThan(
     mockOps.submissionDecision.mock.invocationCallOrder[0]
   );
@@ -199,7 +201,9 @@ test('admin approval executes CSRF then request lock then PR3 approval policy th
   expect(mockOps.approvalDecision).toHaveBeenCalledWith(mockCashout);
   expect(mockLegacyAdmin).toHaveBeenCalled();
 
-  expect(mockCsrf.mock.invocationCallOrder[0]).toBeLessThan(mockAcquire.mock.invocationCallOrder[0]);
+  expect(mockCsrf.mock.invocationCallOrder[0]).toBeLessThan(
+    mockAcquire.mock.invocationCallOrder[0]
+  );
   expect(mockAcquire.mock.invocationCallOrder[0]).toBeLessThan(
     mockOps.approvalDecision.mock.invocationCallOrder[0]
   );

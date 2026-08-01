@@ -12,7 +12,8 @@ function lockId(scope) {
 }
 
 function isExpired(lock, now = Date.now()) {
-  const expiresAt = lock?.expiresAt instanceof Date ? lock.expiresAt.getTime() : Date.parse(lock?.expiresAt);
+  const expiresAt =
+    lock?.expiresAt instanceof Date ? lock.expiresAt.getTime() : Date.parse(lock?.expiresAt);
   return Number.isFinite(expiresAt) && expiresAt <= now;
 }
 
@@ -88,7 +89,9 @@ async function acquire(scope, ttlMs = DEFAULT_TTL_MS) {
     return lock;
   } catch (error) {
     if (!strictStore.isDuplicateKey(error)) {
-      throw storageUnavailableError(`Cashout operation lock could not be persisted: ${error.message}`);
+      throw storageUnavailableError(
+        `Cashout operation lock could not be persisted: ${error.message}`
+      );
     }
 
     // A duplicate is only a normal busy result while a genuine live competing

@@ -8,7 +8,9 @@ const ops = require('./partnerCashoutOperationsService');
 let installed = false;
 
 function normalise(value) {
-  return String(value || '').trim().toLowerCase();
+  return String(value || '')
+    .trim()
+    .toLowerCase();
 }
 
 function identitySummary(partner, user, config = ops.getConfig(), now = Date.now()) {
@@ -113,12 +115,7 @@ function wrapJsonWithEnrichment(res, maps) {
     if (body.request && typeof body.request === 'object') {
       return originalJson({
         ...body,
-        request: enrichCashout(
-          body.request,
-          maps.partnersById,
-          maps.usersById,
-          maps.config
-        ),
+        request: enrichCashout(body.request, maps.partnersById, maps.usersById, maps.config),
       });
     }
     return originalJson(body);
@@ -156,7 +153,8 @@ function insertBeforeFirstCashoutRead(router, layers) {
       layer.route.methods?.get &&
       (layer.route.path === '/' || layer.route.path === '/:id')
   );
-  if (index < 0) throw new Error('Admin cashout read routes were not found during enrichment installation');
+  if (index < 0)
+    throw new Error('Admin cashout read routes were not found during enrichment installation');
   router.stack.splice(index, 0, ...layers);
 }
 

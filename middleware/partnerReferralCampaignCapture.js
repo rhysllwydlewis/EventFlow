@@ -90,7 +90,12 @@ const isRegistrationResponse = (req, res, body) => {
   const user = body.user || {};
 
   return (
-    methodOk && pathOk && statusOk && body.ok === true && user.role === 'supplier' && Boolean(user.id)
+    methodOk &&
+    pathOk &&
+    statusOk &&
+    body.ok === true &&
+    user.role === 'supplier' &&
+    Boolean(user.id)
   );
 };
 

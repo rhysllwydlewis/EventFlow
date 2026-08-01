@@ -212,7 +212,8 @@ function buildAdminTransitionGuard() {
             },
           }).catch(() => {});
           return res.status(409).json({
-            error: 'Cashout ledger reconciliation failed. Resolve the ledger state before continuing.',
+            error:
+              'Cashout ledger reconciliation failed. Resolve the ledger state before continuing.',
             code: 'PARTNER_CASHOUT_RECONCILIATION_FAILED',
             reconciliation,
           });

@@ -41,7 +41,10 @@ beforeEach(() => {
   locks.splice(0, locks.length);
   jest.clearAllMocks();
   service._test.resetLocalLocksForTests();
-  mockStrictStore.ensureAuthoritative.mockResolvedValue({ backend: 'mongodb', authoritative: true });
+  mockStrictStore.ensureAuthoritative.mockResolvedValue({
+    backend: 'mongodb',
+    authoritative: true,
+  });
   mockStrictStore.isDuplicateKey.mockImplementation(error => error?.code === 11000);
   mockStrictStore._test.isDuplicateKey.mockImplementation(error => error?.code === 11000);
   mockStrictStore.findOne.mockImplementation(
@@ -159,14 +162,23 @@ test('an ordinary expired Mongo lock is removed before a new owner is admitted',
 });
 
 test('non-production local fallback uses an in-process lock rather than claiming distributed safety', async () => {
-  mockStrictStore.ensureAuthoritative.mockResolvedValueOnce({ backend: 'local', authoritative: false });
+  mockStrictStore.ensureAuthoritative.mockResolvedValueOnce({
+    backend: 'local',
+    authoritative: false,
+  });
   const first = await service.acquire('partner:partner_1');
-  mockStrictStore.ensureAuthoritative.mockResolvedValueOnce({ backend: 'local', authoritative: false });
+  mockStrictStore.ensureAuthoritative.mockResolvedValueOnce({
+    backend: 'local',
+    authoritative: false,
+  });
   const second = await service.acquire('partner:partner_1');
   expect(first).not.toBeNull();
   expect(second).toBeNull();
   expect(mockStrictStore.insertOne).not.toHaveBeenCalled();
-  mockStrictStore.ensureAuthoritative.mockResolvedValueOnce({ backend: 'local', authoritative: false });
+  mockStrictStore.ensureAuthoritative.mockResolvedValueOnce({
+    backend: 'local',
+    authoritative: false,
+  });
   await expect(service.release(first)).resolves.toBe(true);
 });
 
@@ -181,5 +193,7 @@ test('production/storage failure is exposed as a lock-storage failure', async ()
 
 test('TTL helper recognises Date and ISO expiry values', () => {
   expect(service._test.isExpired({ expiresAt: new Date(Date.now() - 1000) })).toBe(true);
-  expect(service._test.isExpired({ expiresAt: new Date(Date.now() + 10000).toISOString() })).toBe(false);
+  expect(service._test.isExpired({ expiresAt: new Date(Date.now() + 10000).toISOString() })).toBe(
+    false
+  );
 });

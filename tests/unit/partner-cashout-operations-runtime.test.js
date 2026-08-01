@@ -65,7 +65,8 @@ const cashoutRequest = {
 const mockStrictStore = {
   findOne: jest.fn(async (collection, query) => {
     if (collection === 'partners' && query.userId === 'user_1') return partnerRecord;
-    if (collection === 'partner_cashout_requests' && query.id === 'cashout_1') return cashoutRequest;
+    if (collection === 'partner_cashout_requests' && query.id === 'cashout_1')
+      return cashoutRequest;
     return null;
   }),
   findWithOptions: jest.fn(async () => []),
@@ -166,7 +167,8 @@ beforeEach(() => {
   });
   mockStrictStore.findOne.mockImplementation(async (collection, query) => {
     if (collection === 'partners' && query.userId === 'user_1') return partnerRecord;
-    if (collection === 'partner_cashout_requests' && query.id === 'cashout_1') return cashoutRequest;
+    if (collection === 'partner_cashout_requests' && query.id === 'cashout_1')
+      return cashoutRequest;
     return null;
   });
   mockStrictStore.findWithOptions.mockResolvedValue([]);
@@ -324,7 +326,10 @@ test('admin can pause cashouts through the operations control endpoint', async (
 test('admin identity review endpoint records a reasoned verification decision', async () => {
   const response = await request(adminApp())
     .patch('/api/admin/cashout-requests/ops/identity/partner_1')
-    .send({ status: 'verified', reason: 'Partner identity and business records manually checked.' });
+    .send({
+      status: 'verified',
+      reason: 'Partner identity and business records manually checked.',
+    });
 
   expect(response.status).toBe(200);
   expect(mockOps.setIdentityReview).toHaveBeenCalledWith(
@@ -358,7 +363,9 @@ test('manual reconciliation endpoint persists the current ledger result and targ
 });
 
 test('operations event listing uses bounded authoritative pagination instead of reading the entire collection', async () => {
-  mockStrictStore.findWithOptions.mockResolvedValueOnce([{ id: 'event_1', partnerId: 'partner_1' }]);
+  mockStrictStore.findWithOptions.mockResolvedValueOnce([
+    { id: 'event_1', partnerId: 'partner_1' },
+  ]);
   mockStrictStore.count.mockResolvedValueOnce(1);
 
   const response = await request(adminApp()).get(
@@ -407,7 +414,8 @@ test('repeated high-risk assessment does not spam administrators once persisted 
   });
   mockStrictStore.findOne.mockImplementation(async (collection, query) => {
     if (collection === 'partners' && query.userId === 'user_1') return partnerRecord;
-    if (collection === 'partner_cashout_requests' && query.id === 'cashout_1') return cashoutRequest;
+    if (collection === 'partner_cashout_requests' && query.id === 'cashout_1')
+      return cashoutRequest;
     if (collection === 'partner_fraud_assessments' && query.requestId === 'cashout_1') {
       return { requestId: 'cashout_1', riskLevel: 'high', blockApproval: true };
     }

@@ -24,14 +24,14 @@ PR3 does not use EventFlow's normal resilient database wrapper for money-out saf
 
 All amounts below are defaults and are configurable through environment variables.
 
-| Control | Default | Environment variable |
-| --- | ---: | --- |
-| Maximum single cashout | £500 | `PARTNER_CASHOUT_MAX_SINGLE_GBP` |
-| Maximum first cashout | £100 | `PARTNER_CASHOUT_FIRST_MAX_GBP` |
-| Rolling 24-hour cashout exposure | £500 | `PARTNER_CASHOUT_24H_MAX_GBP` |
-| Rolling 30-day cashout exposure | £1,000 | `PARTNER_CASHOUT_30D_MAX_GBP` |
-| Maximum open requests per partner | 1 | `PARTNER_CASHOUT_MAX_OPEN_REQUESTS` |
-| High-value manual-review threshold | £100 | `PARTNER_CASHOUT_HIGH_VALUE_REVIEW_GBP` |
+| Control                            | Default | Environment variable                    |
+| ---------------------------------- | ------: | --------------------------------------- |
+| Maximum single cashout             |    £500 | `PARTNER_CASHOUT_MAX_SINGLE_GBP`        |
+| Maximum first cashout              |    £100 | `PARTNER_CASHOUT_FIRST_MAX_GBP`         |
+| Rolling 24-hour cashout exposure   |    £500 | `PARTNER_CASHOUT_24H_MAX_GBP`           |
+| Rolling 30-day cashout exposure    |  £1,000 | `PARTNER_CASHOUT_30D_MAX_GBP`           |
+| Maximum open requests per partner  |       1 | `PARTNER_CASHOUT_MAX_OPEN_REQUESTS`     |
+| High-value manual-review threshold |    £100 | `PARTNER_CASHOUT_HIGH_VALUE_REVIEW_GBP` |
 
 Submitted, approved and processing requests count as open exposure. Submitted, approved, processing and delivered requests count toward rolling cashout exposure. Rejected requests do not consume the rolling payout limit.
 
