@@ -4,6 +4,8 @@ const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 
+// Load the browser IIFE in a minimal sandbox. This avoids pulling the ESM-only
+// jsdom dependency into the repository's CommonJS Jest configuration.
 const widgetSource = fs.readFileSync(
   path.join(__dirname, '../../public/assets/js/components/profile-health-widget.js'),
   'utf8'
