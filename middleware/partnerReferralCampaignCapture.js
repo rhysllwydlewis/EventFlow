@@ -26,7 +26,7 @@ partnerCashoutOperationsIndexes.ensureIndexes().catch(error => {
 
 const CAMPAIGN_FIELDS = ['source', 'medium', 'campaign', 'content', 'term'];
 
-function sanitizeCampaignValue(value, maxLength = 80) {
+const sanitizeCampaignValue = (value, maxLength = 80) => {
   if (typeof value !== 'string') {
     return undefined;
   }
@@ -38,21 +38,21 @@ function sanitizeCampaignValue(value, maxLength = 80) {
     .slice(0, maxLength);
 
   return clean || undefined;
-}
+};
 
-function readUrlParams(urlLike) {
+const readUrlParams = urlLike => {
   if (!urlLike || typeof urlLike !== 'string') {
     return new URLSearchParams();
   }
 
   try {
     return new URL(urlLike, 'https://event-flow.local').searchParams;
-  } catch (_) {
+  } catch {
     return new URLSearchParams();
   }
-}
+};
 
-function extractCampaignMetadata(req) {
+const extractCampaignMetadata = req => {
   const body = req.body || {};
   const query = req.query || {};
   const refererParams = readUrlParams(req.get ? req.get('referer') : '');
@@ -74,13 +74,12 @@ function extractCampaignMetadata(req) {
   });
 
   return metadata;
-}
+};
 
-function hasCampaignMetadata(metadata) {
-  return !!metadata && CAMPAIGN_FIELDS.some(field => !!metadata[field]);
-}
+const hasCampaignMetadata = metadata =>
+  Boolean(metadata) && CAMPAIGN_FIELDS.some(field => Boolean(metadata[field]));
 
-function isRegistrationResponse(req, res, body) {
+const isRegistrationResponse = (req, res, body) => {
   if (!req || !res || !body || typeof body !== 'object') {
     return false;
   }
@@ -91,11 +90,11 @@ function isRegistrationResponse(req, res, body) {
   const user = body.user || {};
 
   return (
-    methodOk && pathOk && statusOk && body.ok === true && user.role === 'supplier' && !!user.id
+    methodOk && pathOk && statusOk && body.ok === true && user.role === 'supplier' && Boolean(user.id)
   );
-}
+};
 
-function partnerReferralCampaignCapture(req, res, next) {
+const partnerReferralCampaignCapture = (req, res, next) => {
   const metadata = extractCampaignMetadata(req);
   const refCode = req.body && req.body.ref;
 
@@ -122,7 +121,7 @@ function partnerReferralCampaignCapture(req, res, next) {
   };
 
   return next();
-}
+};
 
 partnerReferralCampaignCapture.extractCampaignMetadata = extractCampaignMetadata;
 partnerReferralCampaignCapture.sanitizeCampaignValue = sanitizeCampaignValue;
