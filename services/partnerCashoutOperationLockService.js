@@ -53,6 +53,7 @@
       await strictStore.deleteOne(COLLECTION, {
         id,
         ownerToken: existing.ownerToken,
+        expiresAt: existing.expiresAt,
       })
     );
   }

@@ -18,11 +18,17 @@ partnerAntiAbuseRuntime.install();
 partnerCashoutOperationsRuntime.install();
 partnerCashoutLockRuntime.install();
 partnerCashoutAdminEnrichmentRuntime.install();
-partnerCashoutOperationsIndexes.ensureIndexes().catch(error => {
-  logger.warn('[PARTNER-CASHOUT-OPS] Cashout operations indexes are not ready yet', {
-    error: error.message,
+dbUnified
+  .initializeDatabase()
+  .then(backend => {
+    if (backend !== 'mongodb') return null;
+    return partnerCashoutOperationsIndexes.ensureIndexes();
+  })
+  .catch(error => {
+    logger.warn('[PARTNER-CASHOUT-OPS] Cashout operations indexes are not ready yet', {
+      error: error.message,
+    });
   });
-});
 
 const CAMPAIGN_FIELDS = ['source', 'medium', 'campaign', 'content', 'term'];
 

@@ -144,8 +144,34 @@ test('expired lock cleanup is owner-token scoped so a stale cleaner cannot delet
   expect(mockStrictStore.deleteOne).toHaveBeenCalledWith(service.COLLECTION, {
     id,
     ownerToken: 'expired-owner',
+    expiresAt: expired.expiresAt,
   });
   expect(locks).toEqual([replacement]);
+});
+
+test('expired cleanup cannot delete a same-owner lease renewed after the expiry read', async () => {
+  const id = 'partner-cashout:partner:partner_1';
+  const expired = {
+    id,
+    scope: 'partner:partner_1',
+    ownerToken: 'same-owner',
+    expiresAt: new Date(Date.now() - 1000),
+  };
+  const renewed = {
+    ...expired,
+    expiresAt: new Date(Date.now() + 60000),
+  };
+  locks.push(expired);
+  mockStrictStore.deleteOne.mockImplementationOnce(async (_collection, query) => {
+    locks[0] = renewed;
+    const index = locks.findIndex(item => matches(item, query));
+    if (index < 0) return false;
+    locks.splice(index, 1);
+    return true;
+  });
+
+  await expect(service._test.removeExpired(id, Date.now(), 'mongodb')).resolves.toBe(false);
+  expect(locks).toEqual([renewed]);
 });
 
 test('an ordinary expired Mongo lock is removed before a new owner is admitted', async () => {

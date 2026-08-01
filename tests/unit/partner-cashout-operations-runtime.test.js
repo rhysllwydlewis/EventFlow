@@ -425,3 +425,30 @@ test('repeated high-risk assessment does not spam administrators once persisted 
   await mockAntiAbuse.assessCashout({ partnerId: 'partner_1', requestId: 'cashout_1' });
   expect(mockNotifyAdmins).not.toHaveBeenCalled();
 });
+
+test('idempotent submission replay bypasses changed cashout limits and reaches the legacy replay handler', async () => {
+  mockStrictStore.findOne.mockImplementation(async (collection, query) => {
+    if (collection === 'partners' && query.userId === 'user_1') return partnerRecord;
+    if (
+      collection === 'partner_cashout_requests' &&
+      query.partnerId === 'partner_1' &&
+      query.idempotencyKey === 'replay-key-123'
+    ) {
+      return cashoutRequest;
+    }
+    return null;
+  });
+  mockOps.submissionDecision.mockResolvedValueOnce({
+    allowed: false,
+    reason: 'PARTNER_CASHOUT_OPEN_REQUEST_LIMIT',
+  });
+
+  const response = await request(partnerApp())
+    .post('/api/partner/cashout-requests')
+    .set('Idempotency-Key', 'replay-key-123')
+    .send({ denominationGbp: 50 });
+
+  expect(response.status).toBe(201);
+  expect(mockLegacyPartnerPost).toHaveBeenCalledTimes(1);
+  expect(mockOps.submissionDecision).not.toHaveBeenCalled();
+});
