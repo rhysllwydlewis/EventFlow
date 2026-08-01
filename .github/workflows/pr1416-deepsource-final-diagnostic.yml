@@ -20,11 +20,23 @@ jobs:
         run: |
           mkdir -p diagnostic
           python <<'PY'
+          import http.cookiejar
           import json
           import os
           import urllib.request
           from collections import Counter, defaultdict
           from pathlib import Path
+
+          cookie_jar = http.cookiejar.CookieJar()
+          opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cookie_jar))
+          opener.addheaders = [('User-Agent', 'EventFlow-PR1416-Diagnostic/1.0')]
+          opener.open('https://app.deepsource.com/api/set-csrf-cookie/').read()
+          csrf_token = next(
+            (cookie.value for cookie in cookie_jar if cookie.name in {'csrftoken', 'csrf'}),
+            None,
+          )
+          if not csrf_token:
+            raise RuntimeError('DeepSource did not provide a CSRF cookie')
 
           query = '''
           query EnumerateCheckIssues($id: ID!, $after: String) {
@@ -58,11 +70,12 @@ jobs:
                 'Content-Type': 'application/json',
                 'Accept': 'application/json',
                 'Origin': 'https://app.deepsource.com',
-                'User-Agent': 'EventFlow-PR1416-Diagnostic/1.0',
+                'Referer': 'https://app.deepsource.com/',
+                'X-CSRFToken': csrf_token,
               },
               method='POST',
             )
-            response = json.loads(urllib.request.urlopen(request).read())
+            response = json.loads(opener.open(request).read())
             if response.get('errors'):
               raise RuntimeError(json.dumps(response['errors'], indent=2))
             connection = response['data']['node']['allIssues']
