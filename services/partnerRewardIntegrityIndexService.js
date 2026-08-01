@@ -4,7 +4,7 @@ const logger = require('../utils/logger');
 
 let ensurePromise = null;
 
-async function createIndexes(db) {
+const createIndexes = async db => {
   const integrityEvents = db.collection('partner_reward_integrity_events');
   await integrityEvents.createIndex(
     { id: 1 },
@@ -66,9 +66,9 @@ async function createIndexes(db) {
       partialFilterExpression: { stripeCustomerId: { $type: 'string' } },
     }
   );
-}
+};
 
-async function ensureIndexes() {
+const ensureIndexes = async () => {
   if (ensurePromise) return ensurePromise;
   ensurePromise = (async () => {
     const { getDb } = require('../db');
@@ -84,10 +84,10 @@ async function ensureIndexes() {
     throw error;
   });
   return ensurePromise;
-}
+};
 
-function resetForTests() {
+const resetForTests = () => {
   ensurePromise = null;
-}
+};
 
 module.exports = { ensureIndexes, _test: { createIndexes, resetForTests } };

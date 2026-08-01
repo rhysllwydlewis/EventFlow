@@ -15,21 +15,21 @@ const PLACEHOLDER_PROFILE_TEXT = new Set([
   'none',
 ]);
 
-function numberEnv(name, fallback, min = 0, max = Number.MAX_SAFE_INTEGER) {
+const numberEnv = (name, fallback, min = 0, max = Number.MAX_SAFE_INTEGER) => {
   const parsed = Number.parseInt(process.env[name] || '', 10);
   if (!Number.isFinite(parsed)) return fallback;
   return Math.min(max, Math.max(min, parsed));
-}
+};
 
-function booleanEnv(name, fallback = false) {
+const booleanEnv = (name, fallback = false) => {
   const raw = String(process.env[name] || '')
     .trim()
     .toLowerCase();
   if (!raw) return fallback;
   return ['1', 'true', 'yes', 'on'].includes(raw);
-}
+};
 
-function getConfig() {
+const getConfig = () => {
   return {
     minDescriptionLength: numberEnv('PARTNER_REWARD_SUPPLIER_MIN_DESCRIPTION_LENGTH', 40, 0, 500),
     packageRequireCustomerInteraction: booleanEnv(
@@ -37,23 +37,23 @@ function getConfig() {
       false
     ),
   };
-}
+};
 
-function meaningful(value) {
+const meaningful = value => {
   const text = String(value || '')
     .trim()
     .toLowerCase();
   return Boolean(text && !PLACEHOLDER_PROFILE_TEXT.has(text));
-}
+};
 
-function hasSocialEvidence(profile) {
+const hasSocialEvidence = profile => {
   if (!profile?.socials || typeof profile.socials !== 'object') return false;
   return Object.values(profile.socials).some(value =>
     /^https?:\/\//i.test(String(value || '').trim())
   );
-}
+};
 
-function contactEvidence(profile, user = {}) {
+const contactEvidence = (profile, user = {}) => {
   const candidates = [
     profile.website,
     profile.phone,
@@ -67,9 +67,9 @@ function contactEvidence(profile, user = {}) {
     user.vatNumber,
   ];
   return candidates.some(meaningful) || hasSocialEvidence(profile);
-}
+};
 
-async function supplierProfileEvidence(supplierUserId) {
+const supplierProfileEvidence = async supplierUserId => {
   const config = getConfig();
   const [user, profiles] = await Promise.all([
     dbUnified.findOne('users', { id: supplierUserId }),
@@ -111,9 +111,9 @@ async function supplierProfileEvidence(supplierUserId) {
     reason: 'SUPPLIER_PROFILE_EVIDENCE_INCOMPLETE',
     evidence: { requiredDescriptionLength: config.minDescriptionLength },
   };
-}
+};
 
-async function packageInteractionEvidence(supplierUserId) {
+const packageInteractionEvidence = async supplierUserId => {
   const config = getConfig();
   if (!config.packageRequireCustomerInteraction) return { eligible: true };
 
@@ -138,9 +138,9 @@ async function packageInteractionEvidence(supplierUserId) {
   return interaction
     ? { eligible: true, interactionMessageId: interaction.id || null }
     : { eligible: false, reason: 'PACKAGE_CUSTOMER_INTERACTION_MISSING' };
-}
+};
 
-async function methodRewardEvidence({ supplierUserId, methodName }) {
+const methodRewardEvidence = async ({ supplierUserId, methodName }) => {
   const profile = await supplierProfileEvidence(supplierUserId);
   if (!profile.eligible) return profile;
   if (methodName === 'awardPackageBonus') {
@@ -148,7 +148,7 @@ async function methodRewardEvidence({ supplierUserId, methodName }) {
     if (!interaction.eligible) return interaction;
   }
   return { eligible: true, supplierId: profile.supplierId };
-}
+};
 
 module.exports = {
   getConfig,

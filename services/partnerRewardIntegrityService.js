@@ -24,13 +24,13 @@ const PLACEHOLDER_TEXT = new Set([
   'none',
 ]);
 
-function numberEnv(name, fallback, min = 0, max = Number.MAX_SAFE_INTEGER) {
+const numberEnv = (name, fallback, min = 0, max = Number.MAX_SAFE_INTEGER) => {
   const parsed = Number.parseInt(process.env[name] || '', 10);
   if (!Number.isFinite(parsed)) return fallback;
   return Math.min(max, Math.max(min, parsed));
-}
+};
 
-function getConfig() {
+const getConfig = () => {
   return {
     signupMinAgeHours: numberEnv('PARTNER_REWARD_SIGNUP_MIN_AGE_HOURS', 24, 0, 168),
     packageMinLiveHours: numberEnv('PARTNER_REWARD_PACKAGE_MIN_LIVE_HOURS', 24, 0, 168),
@@ -48,36 +48,36 @@ function getConfig() {
     monthlyPointsCap: numberEnv('PARTNER_REWARD_MONTHLY_POINTS_CAP', 60000, 130, 10000000),
     campaignDailySupplierCap: numberEnv('PARTNER_REWARD_CAMPAIGN_DAILY_SUPPLIER_CAP', 50, 5, 10000),
   };
-}
+};
 
-function normaliseText(value) {
+const normaliseText = value => {
   return String(value || '')
     .trim()
     .toLowerCase()
     .replace(/[^a-z0-9£$€]+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
-}
+};
 
-function normaliseCompact(value) {
+const normaliseCompact = value => {
   return normaliseText(value).replace(/[^a-z0-9]/g, '');
-}
+};
 
-function normalisePhone(value) {
+const normalisePhone = value => {
   let digits = String(value || '').replace(/\D/g, '');
   if (digits.startsWith('00')) digits = digits.slice(2);
   if (digits.startsWith('44') && digits.length >= 11) return digits;
   if (digits.startsWith('0') && digits.length >= 10) return `44${digits.slice(1)}`;
   return digits.length >= 7 ? digits : '';
-}
+};
 
-function normalisePostcode(value) {
+const normalisePostcode = value => {
   return String(value || '')
     .toUpperCase()
     .replace(/[^A-Z0-9]/g, '');
-}
+};
 
-function websiteHost(value) {
+const websiteHost = value => {
   const raw = String(value || '').trim();
   if (!raw) return '';
   try {
@@ -86,31 +86,31 @@ function websiteHost(value) {
   } catch (_) {
     return '';
   }
-}
+};
 
-function hoursBetween(earlier, later = new Date().toISOString()) {
+const hoursBetween = (earlier, later = new Date().toISOString()) => {
   const start = new Date(earlier).getTime();
   const end = new Date(later).getTime();
   if (!Number.isFinite(start) || !Number.isFinite(end) || end < start) return null;
   return (end - start) / 3600000;
-}
+};
 
-function isPlaceholder(value) {
+const isPlaceholder = value => {
   const text = normaliseText(value);
   if (!text) return true;
   return PLACEHOLDER_TEXT.has(text) || /^(test|sample|placeholder)\s*\d*$/.test(text);
-}
+};
 
-function parsePositivePrice(value) {
+const parsePositivePrice = value => {
   const match = String(value || '')
     .replace(/,/g, '')
     .match(/\d+(?:\.\d+)?/);
   if (!match) return null;
   const amount = Number(match[0]);
   return Number.isFinite(amount) && amount > 0 ? amount : null;
-}
+};
 
-function businessIdentity(profile = {}, user = {}) {
+const businessIdentity = (profile = {}, user = {}) => {
   return {
     company: normaliseCompact(
       profile.company || profile.companyName || profile.businessName || user.company
@@ -130,9 +130,9 @@ function businessIdentity(profile = {}, user = {}) {
       profile.vatNumber || profile.vatRegistrationNumber || user.vatNumber
     ),
   };
-}
+};
 
-function duplicateBusinessMatch(left, right) {
+const duplicateBusinessMatch = (left, right) => {
   if (left.companyNumber && left.companyNumber === right.companyNumber) return 'COMPANY_NUMBER';
   if (left.vatNumber && left.vatNumber === right.vatNumber) return 'VAT_NUMBER';
   if (
@@ -160,9 +160,9 @@ function duplicateBusinessMatch(left, right) {
     return 'COMPANY_AND_POSTCODE';
   }
   return null;
-}
+};
 
-async function duplicateSupplierBusinessEvidence(supplierUserId) {
+const duplicateSupplierBusinessEvidence = async supplierUserId => {
   const [users, profiles] = await Promise.all([
     dbUnified.read('users'),
     dbUnified.read('suppliers'),
@@ -199,9 +199,9 @@ async function duplicateSupplierBusinessEvidence(supplierUserId) {
     }
   }
   return { duplicate: false };
-}
+};
 
-function packageQuality(pkg, config = getConfig()) {
+const packageQuality = (pkg, config = getConfig()) => {
   if (!pkg || pkg.approved !== true || pkg.paused === true) {
     return { eligible: false, reason: 'PACKAGE_NOT_LIVE_AND_APPROVED' };
   }
@@ -230,9 +230,9 @@ function packageQuality(pkg, config = getConfig()) {
     };
   }
   return { eligible: true, packageId: pkg.id, liveHours };
-}
+};
 
-async function packageRewardEvidence(supplierUserId) {
+const packageRewardEvidence = async supplierUserId => {
   const config = getConfig();
   const profiles = await dbUnified.find('suppliers', { ownerUserId: supplierUserId });
   const approvedProfiles = (profiles || []).filter(profile => profile.approved === true);
@@ -247,14 +247,14 @@ async function packageRewardEvidence(supplierUserId) {
     firstReason = quality.reason || firstReason;
   }
   return { eligible: false, reason: firstReason };
-}
+};
 
-function reviewTextKey(review) {
+const reviewTextKey = review => {
   const text = normaliseText(`${review?.title || ''} ${review?.comment || ''}`);
   return text.length >= 40 ? text : '';
-}
+};
 
-async function hasTwoWayMessageHistory(reviewerUserId, supplierId, supplierOwnerUserId) {
+const hasTwoWayMessageHistory = async (reviewerUserId, supplierId, supplierOwnerUserId) => {
   const [threads, messages] = await Promise.all([
     dbUnified.read('threads'),
     dbUnified.read('messages'),
@@ -273,9 +273,9 @@ async function hasTwoWayMessageHistory(reviewerUserId, supplierId, supplierOwner
     relevantMessages.some(message => sender(message) === reviewerUserId) &&
     relevantMessages.some(message => sender(message) === supplierOwnerUserId)
   );
-}
+};
 
-async function reviewRewardEvidence(supplierUserId, partnerUserId) {
+const reviewRewardEvidence = async (supplierUserId, partnerUserId) => {
   const config = getConfig();
   const [profiles, reviews, users] = await Promise.all([
     dbUnified.find('suppliers', { ownerUserId: supplierUserId }),
@@ -325,9 +325,9 @@ async function reviewRewardEvidence(supplierUserId, partnerUserId) {
     return { eligible: true, reviewId: review.id, reviewerUserId: review.userId };
   }
   return { eligible: false, reason: 'INDEPENDENT_CUSTOMER_INTERACTION_MISSING' };
-}
+};
 
-async function subscriptionRewardEvidence(supplierUserId) {
+const subscriptionRewardEvidence = async supplierUserId => {
   const config = getConfig();
   const [invoices, subscriptions] = await Promise.all([
     dbUnified.read('invoices'),
@@ -352,9 +352,9 @@ async function subscriptionRewardEvidence(supplierUserId) {
     };
   }
   return { eligible: false, reason: 'QUALIFYING_PAID_SUBSCRIPTION_INVOICE_MISSING' };
-}
+};
 
-async function signupRewardEvidence(supplierUserId) {
+const signupRewardEvidence = async supplierUserId => {
   const config = getConfig();
   const supplier = await dbUnified.findOne('users', { id: supplierUserId });
   if (!supplier || supplier.role !== 'supplier') {
@@ -369,9 +369,9 @@ async function signupRewardEvidence(supplierUserId) {
     };
   }
   return { eligible: true, ageHours };
-}
+};
 
-async function methodRewardEvidence({ supplierUserId, partnerId, partnerUserId, methodName }) {
+const methodRewardEvidence = async ({ supplierUserId, partnerId, partnerUserId, methodName }) => {
   const duplicateBusiness = await duplicateSupplierBusinessEvidence(supplierUserId);
   if (duplicateBusiness.duplicate) {
     return {
@@ -392,9 +392,9 @@ async function methodRewardEvidence({ supplierUserId, partnerId, partnerUserId, 
     methodName,
   });
   return { eligible: false, reason: 'UNKNOWN_REWARD_METHOD' };
-}
+};
 
-function sumPositiveRewards(transactions, sinceMs) {
+const sumPositiveRewards = (transactions, sinceMs) => {
   return (transactions || [])
     .filter(transaction => {
       if (!REWARD_TYPES.has(transaction.type) || Number(transaction.amount) <= 0) return false;
@@ -402,9 +402,9 @@ function sumPositiveRewards(transactions, sinceMs) {
       return Number.isFinite(createdAt) && createdAt >= sinceMs;
     })
     .reduce((total, transaction) => total + Number(transaction.amount || 0), 0);
-}
+};
 
-async function canAwardCredit({ partnerId, supplierUserId, type, amount }) {
+const canAwardCredit = async ({ partnerId, supplierUserId, type, amount }) => {
   if (!REWARD_TYPES.has(type)) return { eligible: true };
   const config = getConfig();
   const now = Date.now();
@@ -446,20 +446,20 @@ async function canAwardCredit({ partnerId, supplierUserId, type, amount }) {
     }
   }
   return { eligible: true };
-}
+};
 
-function integrityEventId(parts) {
+const integrityEventId = parts => {
   return `pri_${crypto.createHash('sha256').update(parts.join(':')).digest('hex').slice(0, 24)}`;
-}
+};
 
-async function recordIntegrityEvent({
+const recordIntegrityEvent = async ({
   partnerId,
   supplierUserId,
   rewardType,
   reason,
   evidence = {},
   eventType = 'reward_withheld',
-}) {
+}) => {
   const id = integrityEventId([
     eventType,
     partnerId || 'none',
@@ -491,13 +491,13 @@ async function recordIntegrityEvent({
   };
   await dbUnified.insertOne('partner_reward_integrity_events', event);
   return event;
-}
+};
 
-async function recordAttributionConflict({
+const recordAttributionConflict = async ({
   supplierUserId,
   existingPartnerId,
   attemptedPartnerId,
-}) {
+}) => {
   return recordIntegrityEvent({
     partnerId: existingPartnerId,
     supplierUserId,
@@ -506,7 +506,7 @@ async function recordAttributionConflict({
     eventType: 'attribution_conflict',
     evidence: { existingPartnerId, attemptedPartnerId },
   });
-}
+};
 
 module.exports = {
   REWARD_TYPES,

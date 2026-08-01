@@ -8,20 +8,20 @@ const baseIntegrity = require('./partnerRewardIntegrityService');
 
 let evidenceStripeClient = null;
 
-function numberEnv(name, fallback, min = 0, max = Number.MAX_SAFE_INTEGER) {
+const numberEnv = (name, fallback, min = 0, max = Number.MAX_SAFE_INTEGER) => {
   const parsed = Number.parseInt(process.env[name] || '', 10);
   if (!Number.isFinite(parsed)) return fallback;
   return Math.min(max, Math.max(min, parsed));
-}
+};
 
-function getConfig() {
+const getConfig = () => {
   return {
     settlementHours: numberEnv('PARTNER_REWARD_SUBSCRIPTION_SETTLEMENT_HOURS', 24, 0, 168),
     instrumentSupplierCap: numberEnv('PARTNER_REWARD_PAYMENT_INSTRUMENT_SUPPLIER_CAP', 2, 1, 20),
   };
-}
+};
 
-function hashSecret() {
+const hashSecret = () => {
   const configured =
     process.env.PARTNER_ABUSE_HASH_SECRET || process.env.JWT_SECRET || process.env.SESSION_SECRET;
   if (configured) return configured;
@@ -29,22 +29,22 @@ function hashSecret() {
     throw new Error('Partner abuse hash secret is required for payment evidence in production');
   }
   return 'eventflow-partner-reward-integrity-development-only';
-}
+};
 
-function hashPaymentReference(kind, value) {
+const hashPaymentReference = (kind, value) => {
   if (!value) return null;
   return crypto
     .createHmac('sha256', hashSecret())
     .update(`partner-payment:${kind}:${String(value)}`)
     .digest('hex');
-}
+};
 
-function objectId(value) {
+const objectId = value => {
   if (!value) return null;
   return typeof value === 'string' ? value : value.id || null;
-}
+};
 
-function fingerprintFromObject(value) {
+const fingerprintFromObject = value => {
   if (!value || typeof value !== 'object') return null;
   return (
     value.card?.fingerprint ||
@@ -55,9 +55,9 @@ function fingerprintFromObject(value) {
     value.generated_from?.payment_method_details?.card_present?.fingerprint ||
     null
   );
-}
+};
 
-function paymentInstrumentEvidence(paymentIntent) {
+const paymentInstrumentEvidence = paymentIntent => {
   const paymentMethod = paymentIntent?.payment_method;
   const directFingerprint = fingerprintFromObject(paymentMethod);
   const chargeDetails =
@@ -82,9 +82,9 @@ function paymentInstrumentEvidence(paymentIntent) {
     };
   }
   return { kind: null, hash: null, confidence: 'none' };
-}
+};
 
-function getEvidenceStripeClient() {
+const getEvidenceStripeClient = () => {
   if (evidenceStripeClient) return evidenceStripeClient;
   const secret = process.env.STRIPE_SECRET_KEY;
   if (!secret) return null;
@@ -98,9 +98,9 @@ function getEvidenceStripeClient() {
     });
     return null;
   }
-}
+};
 
-async function enrichPaymentInstrument(paymentIntent) {
+const enrichPaymentInstrument = async paymentIntent => {
   if (!paymentIntent || paymentInstrumentEvidence(paymentIntent).confidence === 'strong') {
     return paymentIntent;
   }
@@ -130,9 +130,9 @@ async function enrichPaymentInstrument(paymentIntent) {
     });
   }
   return enriched;
-}
+};
 
-function localAdversePaymentEvidence(payments, paymentIntentId, supplierUserId) {
+const localAdversePaymentEvidence = (payments, paymentIntentId, supplierUserId) => {
   const adverse = (payments || []).find(
     payment =>
       payment.userId === supplierUserId &&
@@ -150,9 +150,9 @@ function localAdversePaymentEvidence(payments, paymentIntentId, supplierUserId) 
     reason: reasonByStatus[adverse.status],
     evidence: { paymentId: adverse.id || null, status: adverse.status },
   };
-}
+};
 
-function chargeAdverseEvidence(paymentIntent, minSubscriptionAmount) {
+const chargeAdverseEvidence = (paymentIntent, minSubscriptionAmount) => {
   const charge =
     paymentIntent?.latest_charge && typeof paymentIntent.latest_charge === 'object'
       ? paymentIntent.latest_charge
@@ -185,16 +185,16 @@ function chargeAdverseEvidence(paymentIntent, minSubscriptionAmount) {
     }
   }
   return { eligible: true };
-}
+};
 
-function storedEvidence(invoice) {
+const storedEvidence = invoice => {
   const evidence = invoice?.partnerRewardPaymentEvidence;
   if (!evidence || typeof evidence !== 'object') return null;
   if (!evidence.capturedAt || evidence.paymentIntentStatus !== 'succeeded') return null;
   return evidence;
-}
+};
 
-async function captureEvidence(invoice, subscription, payments = []) {
+const captureEvidence = async (invoice, subscription, payments = []) => {
   const paymentIntentId = invoice?.stripePaymentIntentId;
   if (!paymentIntentId) {
     return { eligible: false, reason: 'STRIPE_PAYMENT_INTENT_MISSING' };
@@ -299,9 +299,9 @@ async function captureEvidence(invoice, subscription, payments = []) {
     };
   }
   return { eligible: true, evidence, source: 'stripe' };
-}
+};
 
-async function subscriptionRewardEvidence(supplierUserId, invoiceId) {
+const subscriptionRewardEvidence = async (supplierUserId, invoiceId) => {
   const config = getConfig();
   const [invoice, subscriptions, invoices, payments] = await Promise.all([
     dbUnified.findOne('invoices', { id: invoiceId }),
@@ -378,11 +378,11 @@ async function subscriptionRewardEvidence(supplierUserId, invoiceId) {
     invoiceId,
     paymentEvidence: evidence,
   };
-}
+};
 
-function resetStripeClientForTests() {
+const resetStripeClientForTests = () => {
   evidenceStripeClient = null;
-}
+};
 
 module.exports = {
   getConfig,

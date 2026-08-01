@@ -8,11 +8,11 @@ const qualificationEvidence = require('./partnerRewardQualificationEvidenceServi
 
 const SOFT_REVIEW_REASONS = new Set(['REVIEW_RING_SHARED_DEVICE_NETWORK', 'REVIEW_RING_SHARED_IP']);
 
-function withBase(result, extra = {}) {
+const withBase = (result, extra = {}) => {
   return result.eligible ? { ...result, ...extra } : result;
-}
+};
 
-async function selectPackageEvidence(supplierUserId) {
+const selectPackageEvidence = async supplierUserId => {
   const profiles = await dbUnified.find('suppliers', { ownerUserId: supplierUserId });
   const approvedProfiles = (profiles || []).filter(profile => profile.approved === true);
   if (!approvedProfiles.length) return { eligible: false, reason: 'SUPPLIER_PROFILE_NOT_APPROVED' };
@@ -32,9 +32,9 @@ async function selectPackageEvidence(supplierUserId) {
     if (firstFailure.reason === 'QUALIFYING_PACKAGE_MISSING') firstFailure = copyCheck;
   }
   return firstFailure;
-}
+};
 
-async function selectReviewEvidence(supplierUserId, partnerUserId) {
+const selectReviewEvidence = async (supplierUserId, partnerUserId) => {
   const [profiles, reviews] = await Promise.all([
     dbUnified.find('suppliers', { ownerUserId: supplierUserId }),
     dbUnified.read('reviews'),
@@ -79,9 +79,9 @@ async function selectReviewEvidence(supplierUserId, partnerUserId) {
   }
 
   return softCandidate || firstFailure;
-}
+};
 
-async function selectSubscriptionEvidence(supplierUserId) {
+const selectSubscriptionEvidence = async supplierUserId => {
   const config = baseIntegrity.getConfig();
   const invoices = await dbUnified.read('invoices');
   let firstFailure = { eligible: false, reason: 'QUALIFYING_PAID_SUBSCRIPTION_INVOICE_MISSING' };
@@ -124,9 +124,9 @@ async function selectSubscriptionEvidence(supplierUserId) {
   }
 
   return temporaryFailure || firstFailure;
-}
+};
 
-async function selectRewardEvidence({ supplierUserId, partnerUserId, methodName }) {
+const selectRewardEvidence = async ({ supplierUserId, partnerUserId, methodName }) => {
   const duplicateBusiness = await baseIntegrity.duplicateSupplierBusinessEvidence(supplierUserId);
   if (duplicateBusiness.duplicate) {
     return {
@@ -145,7 +145,7 @@ async function selectRewardEvidence({ supplierUserId, partnerUserId, methodName 
   }
   if (methodName === 'awardSubscriptionBonus') return selectSubscriptionEvidence(supplierUserId);
   return { eligible: false, reason: 'UNKNOWN_REWARD_METHOD' };
-}
+};
 
 module.exports = {
   SOFT_REVIEW_REASONS,

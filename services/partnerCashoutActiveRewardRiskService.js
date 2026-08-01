@@ -174,15 +174,20 @@ const createMetrics = context => ({
   reversedRewardTransactionCount: context.reversedRewardTransactionCount,
 });
 
-const hasIdentityRisk = ({ partnerDomain, supplierDomain, supplierIdentity, registrationSignals }) =>
+const hasIdentityRisk = ({
+  partnerDomain,
+  supplierDomain,
+  supplierIdentity,
+  registrationSignals,
+}) =>
   Boolean(
     (partnerDomain &&
       supplierDomain &&
       partnerDomain === supplierDomain &&
       !PUBLIC_EMAIL_DOMAINS.has(partnerDomain)) ||
-      supplierIdentity.strongMatch ||
-      registrationSignals.includes('PARTNER_SUPPLIER_DEVICE_OVERLAP') ||
-      registrationSignals.includes('PARTNER_SUPPLIER_DEVICE_COOKIE_OVERLAP')
+    supplierIdentity.strongMatch ||
+    registrationSignals.includes('PARTNER_SUPPLIER_DEVICE_OVERLAP') ||
+    registrationSignals.includes('PARTNER_SUPPLIER_DEVICE_COOKIE_OVERLAP')
   );
 
 const updateRegistrationMetrics = (supplierUser, metrics) => {
@@ -339,10 +344,7 @@ const appendOrphanRewardSignal = (signals, context) => {
   );
 };
 
-const recomputeRewardSignals = async (
-  partnerId,
-  requestedAt = new Date().toISOString()
-) => {
+const recomputeRewardSignals = async (partnerId, requestedAt = new Date().toISOString()) => {
   const collections = await loadRiskCollections();
   const context = buildRewardContext(partnerId, collections);
   const signals = [];

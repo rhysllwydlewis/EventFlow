@@ -7,12 +7,12 @@ const stripeEvidence = require('./partnerRewardStripeEvidenceService');
 
 const SNAPSHOT_VERSION = 1;
 
-function buildSnapshot({
+const buildSnapshot = ({
   methodName,
   supplierDecision = {},
   baseEvidence = {},
   stripeDecision = {},
-}) {
+}) => {
   const snapshot = {
     version: SNAPSHOT_VERSION,
     methodName,
@@ -27,9 +27,9 @@ function buildSnapshot({
     snapshot.stripeChargeId = stripeDecision.paymentEvidence?.stripeChargeId || null;
   }
   return snapshot;
-}
+};
 
-async function persistSnapshot(transaction, snapshot) {
+const persistSnapshot = async (transaction, snapshot) => {
   if (!transaction?.id) return transaction;
   const updated = await dbUnified.updateOne(
     'partner_credit_transactions',
@@ -46,19 +46,19 @@ async function persistSnapshot(transaction, snapshot) {
     qualificationEvidence: snapshot,
     qualificationEvidenceVersion: SNAPSHOT_VERSION,
   };
-}
+};
 
-function reviewTextKey(review) {
+const reviewTextKey = review => {
   return baseIntegrity._test.reviewTextKey(review);
-}
+};
 
-function reviewAccountAgeHours(user, review) {
+const reviewAccountAgeHours = (user, review) => {
   return user?.createdAt
     ? baseIntegrity._test.hoursBetween(user.createdAt, review?.createdAt)
     : null;
-}
+};
 
-function hasTwoWayMessageHistory(threads, messages, reviewerUserId, supplierIds) {
+const hasTwoWayMessageHistory = (threads, messages, reviewerUserId, supplierIds) => {
   const candidateThreads = (threads || []).filter(
     thread => thread.customerId === reviewerUserId && supplierIds.has(thread.supplierId)
   );
@@ -76,9 +76,9 @@ function hasTwoWayMessageHistory(threads, messages, reviewerUserId, supplierIds)
     if (fromCustomer && fromSupplier) return true;
   }
   return false;
-}
+};
 
-async function revalidateExactPackage(transaction) {
+const revalidateExactPackage = async transaction => {
   const snapshot = transaction.qualificationEvidence || {};
   if (!snapshot.packageId) return { eligible: false, reason: 'QUALIFICATION_EVIDENCE_MISSING' };
   const [pkg, profiles] = await Promise.all([
@@ -92,9 +92,9 @@ async function revalidateExactPackage(transaction) {
   const quality = baseIntegrity.packageQuality(pkg);
   if (!quality.eligible) return quality;
   return advancedIntegrity.packageCopyEvidence(transaction.supplierUserId, snapshot.packageId);
-}
+};
 
-async function revalidateExactReview(transaction, partnerUserId) {
+const revalidateExactReview = async (transaction, partnerUserId) => {
   const snapshot = transaction.qualificationEvidence || {};
   if (!snapshot.reviewId) return { eligible: false, reason: 'QUALIFICATION_EVIDENCE_MISSING' };
   const [review, users, profiles, reviews, threads, messages] = await Promise.all([
@@ -157,15 +157,15 @@ async function revalidateExactReview(transaction, partnerUserId) {
     partnerUserId,
     snapshot.reviewId
   );
-}
+};
 
-async function revalidateExactSubscription(transaction) {
+const revalidateExactSubscription = async transaction => {
   const snapshot = transaction.qualificationEvidence || {};
   if (!snapshot.invoiceId) return { eligible: false, reason: 'QUALIFICATION_EVIDENCE_MISSING' };
   return stripeEvidence.subscriptionRewardEvidence(transaction.supplierUserId, snapshot.invoiceId);
-}
+};
 
-async function revalidateSnapshot(transaction, partnerUserId) {
+const revalidateSnapshot = async (transaction, partnerUserId) => {
   const snapshot = transaction?.qualificationEvidence;
   if (!snapshot || snapshot.version !== SNAPSHOT_VERSION) return null;
   if (transaction.type === 'PACKAGE_BONUS') return revalidateExactPackage(transaction);
@@ -174,7 +174,7 @@ async function revalidateSnapshot(transaction, partnerUserId) {
   }
   if (transaction.type === 'SUBSCRIPTION_BONUS') return revalidateExactSubscription(transaction);
   return { eligible: true };
-}
+};
 
 module.exports = {
   SNAPSHOT_VERSION,

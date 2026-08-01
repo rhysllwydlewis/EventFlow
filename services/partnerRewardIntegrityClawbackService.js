@@ -33,29 +33,29 @@ const NON_CLAWBACK_REASONS = new Set([
   'REVIEW_RING_SHARED_IP',
 ]);
 
-function effectiveRevalidationDays() {
+const effectiveRevalidationDays = () => {
   return Math.max(
     MIN_REVALIDATION_DAYS,
     Number(advancedIntegrity.getConfig().revalidationDays || 0)
   );
-}
+};
 
-function isWithinRevalidationWindow(transaction, now = Date.now()) {
+const isWithinRevalidationWindow = (transaction, now = Date.now()) => {
   const createdAt = Date.parse(transaction?.createdAt);
   if (!Number.isFinite(createdAt)) return false;
   return now - createdAt <= effectiveRevalidationDays() * 86400000;
-}
+};
 
-function isEffectivelyMature(transaction, now = Date.now()) {
+const isEffectivelyMature = (transaction, now = Date.now()) => {
   const explicitMaturity = Date.parse(transaction?.maturesAt);
   if (Number.isFinite(explicitMaturity)) return explicitMaturity <= now;
   const createdAt = Date.parse(transaction?.createdAt);
   if (!Number.isFinite(createdAt)) return false;
   const maturityDays = Number(partnerService.CREDIT_MATURITY_DAYS || 30);
   return createdAt <= now - maturityDays * 86400000;
-}
+};
 
-async function persistRewardReversal(transaction, { reason, reversalTxnId, reversalMode, now }) {
+const persistRewardReversal = async (transaction, { reason, reversalTxnId, reversalMode, now }) => {
   const updatedReward = await dbUnified.updateOne(
     'partner_credit_transactions',
     { id: transaction.id },
@@ -70,9 +70,9 @@ async function persistRewardReversal(transaction, { reason, reversalTxnId, rever
   );
   if (!updatedReward) throw new Error('Original reward reversal marker did not persist');
   return updatedReward;
-}
+};
 
-async function recordReversalEvent(transaction, reason, reversalMode, reversalTxnId = null) {
+const recordReversalEvent = async (transaction, reason, reversalMode, reversalTxnId = null) => {
   return baseIntegrity.recordIntegrityEvent({
     partnerId: transaction.partnerId,
     supplierUserId: transaction.supplierUserId,
@@ -85,9 +85,9 @@ async function recordReversalEvent(transaction, reason, reversalMode, reversalTx
       reversalMode,
     },
   });
-}
+};
 
-async function voidPendingReward(transaction, reason) {
+const voidPendingReward = async (transaction, reason) => {
   const now = new Date().toISOString();
   await persistRewardReversal(transaction, {
     reason,
@@ -109,9 +109,9 @@ async function voidPendingReward(transaction, reason) {
     reversalMode: REVERSAL_MODE_PENDING,
     supplierUserId: transaction.supplierUserId,
   };
-}
+};
 
-async function debitMaturedReward(transaction, reason, rewardAmount) {
+const debitMaturedReward = async (transaction, reason, rewardAmount) => {
   const externalRef = `reward-integrity:${transaction.id}`;
   const existing = await dbUnified.findOne('partner_credit_transactions', {
     type: partnerService.CREDIT_TYPES.REDEEM,
@@ -165,9 +165,9 @@ async function debitMaturedReward(transaction, reason, rewardAmount) {
     reversalMode: REVERSAL_MODE_MATURED,
     supplierUserId: transaction.supplierUserId,
   };
-}
+};
 
-async function clawBackRewardTransaction(transaction, reason) {
+const clawBackRewardTransaction = async (transaction, reason) => {
   if (!transaction?.id || !transaction.partnerId || !transaction.supplierUserId) return null;
   const rewardAmount = Math.abs(Number(transaction.amount));
   if (!Number.isFinite(rewardAmount) || rewardAmount <= 0) {
@@ -187,15 +187,15 @@ async function clawBackRewardTransaction(transaction, reason) {
 
   if (!isEffectivelyMature(transaction)) return voidPendingReward(transaction, reason);
   return debitMaturedReward(transaction, reason, rewardAmount);
-}
+};
 
-async function clawBackIfDurablyInvalid(transaction, decision) {
+const clawBackIfDurablyInvalid = async (transaction, decision) => {
   if (decision.eligible || NON_CLAWBACK_REASONS.has(decision.reason)) return false;
   await clawBackRewardTransaction(transaction, decision.reason);
   return true;
-}
+};
 
-function baseEvidenceFromSnapshot(transaction) {
+const baseEvidenceFromSnapshot = transaction => {
   const snapshot = transaction.qualificationEvidence || {};
   return {
     eligible: true,
@@ -203,9 +203,9 @@ function baseEvidenceFromSnapshot(transaction) {
     reviewId: snapshot.reviewId || null,
     invoiceId: snapshot.invoiceId || null,
   };
-}
+};
 
-async function revalidateSnapshotReward(transaction, partner, methodName) {
+const revalidateSnapshotReward = async (transaction, partner, methodName) => {
   const snapshotDecision = await qualificationEvidence.revalidateSnapshot(
     transaction,
     partner.userId
@@ -252,9 +252,9 @@ async function revalidateSnapshotReward(transaction, partner, methodName) {
     invalidDecisions.find(decision => !NON_CLAWBACK_REASONS.has(decision.reason)) ||
     invalidDecisions[0] || { eligible: true }
   );
-}
+};
 
-async function revalidateLegacyReward(transaction, partner, methodName) {
+const revalidateLegacyReward = async (transaction, partner, methodName) => {
   const baseEvidence = await baseIntegrity.methodRewardEvidence({
     supplierUserId: transaction.supplierUserId,
     partnerId: transaction.partnerId,
@@ -285,9 +285,9 @@ async function revalidateLegacyReward(transaction, partner, methodName) {
     );
   }
   return { eligible: true };
-}
+};
 
-async function revalidatePartnerRewards(partnerId) {
+const revalidatePartnerRewards = async partnerId => {
   const [partner, transactions] = await Promise.all([
     dbUnified.findOne('partners', { id: partnerId }),
     dbUnified.find('partner_credit_transactions', { partnerId }),
@@ -326,7 +326,7 @@ async function revalidatePartnerRewards(partnerId) {
   }
 
   return { checked, clawedBack };
-}
+};
 
 module.exports = {
   CLAWBACK_SUBTYPE,

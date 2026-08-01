@@ -10,19 +10,19 @@ const MILESTONE_TYPES = new Set([
   'FIRST_REVIEW_BONUS',
 ]);
 
-function numberEnv(name, fallback, min = 0, max = Number.MAX_SAFE_INTEGER) {
+const numberEnv = (name, fallback, min = 0, max = Number.MAX_SAFE_INTEGER) => {
   const parsed = Number.parseInt(process.env[name] || '', 10);
   if (!Number.isFinite(parsed)) return fallback;
   return Math.min(max, Math.max(min, parsed));
-}
+};
 
-function getConfig() {
+const getConfig = () => {
   return {
     pendingPointsCap: numberEnv('PARTNER_REWARD_PENDING_POINTS_CAP', 5000, 130, 1000000),
   };
-}
+};
 
-function isPendingReward(transaction, now = Date.now()) {
+const isPendingReward = (transaction, now = Date.now()) => {
   if (
     !transaction ||
     transaction.reversedAt ||
@@ -37,9 +37,9 @@ function isPendingReward(transaction, now = Date.now()) {
   if (!Number.isFinite(createdAt)) return false;
   const maturityDays = Number(partnerService.CREDIT_MATURITY_DAYS || 30);
   return createdAt > now - maturityDays * 86400000;
-}
+};
 
-async function pendingExposureDecision({ partnerId, amount }) {
+const pendingExposureDecision = async ({ partnerId, amount }) => {
   const config = getConfig();
   const transactions = await dbUnified.find('partner_credit_transactions', { partnerId });
   const pending = (transactions || [])
@@ -53,7 +53,7 @@ async function pendingExposureDecision({ partnerId, amount }) {
     };
   }
   return { eligible: true };
-}
+};
 
 module.exports = {
   getConfig,

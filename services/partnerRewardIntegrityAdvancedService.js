@@ -23,13 +23,13 @@ const DEFAULT_PROHIBITED_CAMPAIGN_TERMS = [
   'bot signup',
 ];
 
-function numberEnv(name, fallback, min = 0, max = Number.MAX_SAFE_INTEGER) {
+const numberEnv = (name, fallback, min = 0, max = Number.MAX_SAFE_INTEGER) => {
   const parsed = Number.parseInt(process.env[name] || '', 10);
   if (!Number.isFinite(parsed)) return fallback;
   return Math.min(max, Math.max(min, parsed));
-}
+};
 
-function getConfig() {
+const getConfig = () => {
   return {
     packageSimilarityPercent: numberEnv('PARTNER_REWARD_PACKAGE_SIMILARITY_PERCENT', 94, 80, 100),
     reviewSimilarityPercent: numberEnv('PARTNER_REWARD_REVIEW_SIMILARITY_PERCENT', 92, 80, 100),
@@ -63,60 +63,60 @@ function getConfig() {
     ),
     revalidationDays: numberEnv('PARTNER_REWARD_REVALIDATION_DAYS', 30, 1, 365),
   };
-}
+};
 
-function normaliseText(value) {
+const normaliseText = value => {
   return String(value || '')
     .trim()
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
-}
+};
 
-function tokenSet(value) {
+const tokenSet = value => {
   return new Set(
     normaliseText(value)
       .split(' ')
       .filter(token => token.length >= 2)
   );
-}
+};
 
-function jaccardSimilarity(left, right) {
-  const a = tokenSet(left);
-  const b = tokenSet(right);
-  if (!a.size || !b.size) return 0;
+const jaccardSimilarity = (left, right) => {
+  const leftTokens = tokenSet(left);
+  const rightTokens = tokenSet(right);
+  if (!leftTokens.size || !rightTokens.size) return 0;
   let intersection = 0;
-  for (const token of a) if (b.has(token)) intersection += 1;
-  return intersection / (a.size + b.size - intersection);
-}
+  for (const token of leftTokens) if (rightTokens.has(token)) intersection += 1;
+  return intersection / (leftTokens.size + rightTokens.size - intersection);
+};
 
-function packageText(pkg) {
+const packageText = pkg => {
   return `${pkg?.title || ''} ${pkg?.description || ''}`.trim();
-}
+};
 
-function reviewText(review) {
+const reviewText = review => {
   return `${review?.title || ''} ${review?.comment || ''}`.trim();
-}
+};
 
-function paidRewardTransactions(transactions) {
+const paidRewardTransactions = transactions => {
   return (transactions || []).filter(
     transaction =>
       MILESTONE_TYPES.has(transaction.type) &&
       Number(transaction.amount) > 0 &&
       !transaction.reversedAt
   );
-}
+};
 
-function latestCreatedEvent(events, userId) {
+const latestCreatedEvent = (events, userId) => {
   return (
     (events || [])
       .filter(event => event.userId === userId && event.outcome === 'created')
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0] || null
   );
-}
+};
 
-async function supplierHoldEvidence(supplierUserId) {
+const supplierHoldEvidence = async supplierUserId => {
   const [user, profiles] = await Promise.all([
     dbUnified.findOne('users', { id: supplierUserId }),
     dbUnified.find('suppliers', { ownerUserId: supplierUserId }),
@@ -139,9 +139,9 @@ async function supplierHoldEvidence(supplierUserId) {
     };
   }
   return { eligible: true };
-}
+};
 
-async function packageCopyEvidence(supplierUserId, packageId) {
+const packageCopyEvidence = async (supplierUserId, packageId) => {
   if (!packageId) return { eligible: true };
   const config = getConfig();
   const [packages, profiles] = await Promise.all([
@@ -176,15 +176,15 @@ async function packageCopyEvidence(supplierUserId, packageId) {
     }
   }
   return { eligible: true };
-}
+};
 
-function reviewNetworkKey(review) {
+const reviewNetworkKey = review => {
   const ip = String(review?.ipAddress || '').trim();
   const ua = normaliseText(review?.userAgent || '');
   return ip && ua ? `${ip}:${ua}` : '';
-}
+};
 
-async function reviewNetworkEvidence(supplierUserId, partnerUserId, reviewId) {
+const reviewNetworkEvidence = async (supplierUserId, partnerUserId, reviewId) => {
   if (!reviewId) return { eligible: true };
   const config = getConfig();
   const [reviews, profiles] = await Promise.all([
@@ -302,15 +302,15 @@ async function reviewNetworkEvidence(supplierUserId, partnerUserId, reviewId) {
   }
 
   return { eligible: true };
-}
+};
 
-function paymentInstrumentHash(invoice) {
+const paymentInstrumentHash = invoice => {
   return String(
     invoice?.paymentInstrumentHash || invoice?.metadata?.paymentInstrumentHash || ''
   ).trim();
-}
+};
 
-async function subscriptionPaymentEvidence(supplierUserId, invoiceId) {
+const subscriptionPaymentEvidence = async (supplierUserId, invoiceId) => {
   if (!invoiceId) return { eligible: true };
   const config = getConfig();
   const [invoices, subscriptions] = await Promise.all([
@@ -400,9 +400,9 @@ async function subscriptionPaymentEvidence(supplierUserId, invoiceId) {
   }
 
   return { eligible: true };
-}
+};
 
-async function referralLoopEvidence(partnerId, supplierUserId) {
+const referralLoopEvidence = async (partnerId, supplierUserId) => {
   const [partners, referrals] = await Promise.all([
     dbUnified.read('partners'),
     dbUnified.read('partner_referrals'),
@@ -437,17 +437,17 @@ async function referralLoopEvidence(partnerId, supplierUserId) {
     for (const next of edges.get(current) || []) stack.push(next);
   }
   return { eligible: true };
-}
+};
 
-function prohibitedCampaignTerms() {
+const prohibitedCampaignTerms = () => {
   const configured = String(process.env.PARTNER_REWARD_PROHIBITED_CAMPAIGN_TERMS || '')
     .split(',')
     .map(value => normaliseText(value))
     .filter(Boolean);
   return [...DEFAULT_PROHIBITED_CAMPAIGN_TERMS.map(normaliseText), ...configured];
-}
+};
 
-async function campaignPolicyEvidence(supplierUserId) {
+const campaignPolicyEvidence = async supplierUserId => {
   const referral = await dbUnified.findOne('partner_referrals', { supplierUserId });
   if (!referral) return { eligible: true };
   const haystack = normaliseText(
@@ -464,9 +464,9 @@ async function campaignPolicyEvidence(supplierUserId) {
         evidence: { matchedTerm: matched },
       }
     : { eligible: true };
-}
+};
 
-function normaliseCompanyName(value) {
+const normaliseCompanyName = value => {
   return normaliseText(value)
     .split(' ')
     .filter(
@@ -474,9 +474,9 @@ function normaliseCompanyName(value) {
         !['limited', 'ltd', 'llp', 'plc', 'inc', 'incorporated', 'company', 'co'].includes(token)
     )
     .join(' ');
-}
+};
 
-async function fuzzyDuplicateBusinessEvidence(supplierUserId) {
+const fuzzyDuplicateBusinessEvidence = async supplierUserId => {
   const [users, profiles] = await Promise.all([
     dbUnified.read('users'),
     dbUnified.read('suppliers'),
@@ -520,15 +520,15 @@ async function fuzzyDuplicateBusinessEvidence(supplierUserId) {
     }
   }
   return { eligible: true };
-}
+};
 
-async function methodRewardEvidence({
+const methodRewardEvidence = async ({
   supplierUserId,
   partnerId,
   partnerUserId,
   methodName,
   baseEvidence = {},
-}) {
+}) => {
   for (const check of [
     () => supplierHoldEvidence(supplierUserId),
     () => referralLoopEvidence(partnerId, supplierUserId),
@@ -549,9 +549,9 @@ async function methodRewardEvidence({
     return subscriptionPaymentEvidence(supplierUserId, baseEvidence.invoiceId);
   }
   return { eligible: true };
-}
+};
 
-async function exposureDecision({ partnerId, supplierUserId, amount }) {
+const exposureDecision = async ({ partnerId, supplierUserId, amount }) => {
   const config = getConfig();
   const [transactions, partner] = await Promise.all([
     dbUnified.find('partner_credit_transactions', { partnerId }),
@@ -616,9 +616,9 @@ async function exposureDecision({ partnerId, supplierUserId, amount }) {
   }
 
   return { eligible: true };
-}
+};
 
-async function maturityExtensionDays({ partnerId, supplierUserId }) {
+const maturityExtensionDays = async ({ partnerId, supplierUserId }) => {
   const config = getConfig();
   const [partner, supplier] = await Promise.all([
     dbUnified.findOne('partners', { id: partnerId }),
@@ -631,7 +631,7 @@ async function maturityExtensionDays({ partnerId, supplierUserId }) {
   if (levels.includes('high')) return config.highRiskMaturityExtraDays;
   if (levels.includes('review')) return config.riskyMaturityExtraDays;
   return 0;
-}
+};
 
 module.exports = {
   getConfig,

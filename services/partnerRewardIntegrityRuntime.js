@@ -49,22 +49,22 @@ const TECHNICAL_QUARANTINE_REASONS = new Set([
   'MATURITY_EXTENSION_PERSIST_FAILED',
 ]);
 
-function ensureIndexesBestEffort() {
+const ensureIndexesBestEffort = () => {
   integrityIndexes.ensureIndexes().catch(error => {
     logger.warn('[PARTNER-REWARD-INTEGRITY] Reward integrity indexes are not ready yet', {
       error: error.message,
     });
   });
-}
+};
 
-async function resolvePartnerContext(supplierUserId) {
+const resolvePartnerContext = async supplierUserId => {
   const referral = await dbUnified.findOne('partner_referrals', { supplierUserId });
   if (!referral) return { referral: null, partner: null };
   const partner = await dbUnified.findOne('partners', { id: referral.partnerId });
   return { referral, partner };
-}
+};
 
-async function recordDecision({ supplierUserId, partnerId, rewardType, decision, eventType }) {
+const recordDecision = async ({ supplierUserId, partnerId, rewardType, decision, eventType }) => {
   try {
     await integrity.recordIntegrityEvent({
       partnerId,
@@ -83,9 +83,9 @@ async function recordDecision({ supplierUserId, partnerId, rewardType, decision,
       error: error.message,
     });
   }
-}
+};
 
-async function applyRiskMaturity(transaction, partnerId, supplierUserId) {
+const applyRiskMaturity = async (transaction, partnerId, supplierUserId) => {
   if (!transaction?.id) return transaction;
   const extraDays = await advancedIntegrity.maturityExtensionDays({ partnerId, supplierUserId });
   if (!extraDays) return transaction;
@@ -106,15 +106,21 @@ async function applyRiskMaturity(transaction, partnerId, supplierUserId) {
   );
   if (!updated) throw new Error('Partner reward maturity extension did not persist');
   return { ...transaction, maturesAt, maturityExtensionDays: extraDays };
-}
+};
 
-async function evaluateStripeEvidence(methodName, supplierUserId, baseEvidence) {
+const evaluateStripeEvidence = async (methodName, supplierUserId, baseEvidence) => {
   if (methodName !== 'awardSubscriptionBonus') return { eligible: true };
   if (baseEvidence.stripeDecision) return baseEvidence.stripeDecision;
   return stripeEvidence.subscriptionRewardEvidence(supplierUserId, baseEvidence.invoiceId);
-}
+};
 
-async function withholdIfInvalid({ decision, supplierUserId, partnerId, rewardType, logMessage }) {
+const withholdIfInvalid = async ({
+  decision,
+  supplierUserId,
+  partnerId,
+  rewardType,
+  logMessage,
+}) => {
   if (decision.eligible) return false;
   if (SOFT_SIGNAL_REASONS.has(decision.reason)) {
     await recordDecision({
@@ -146,9 +152,9 @@ async function withholdIfInvalid({ decision, supplierUserId, partnerId, rewardTy
     reason: decision.reason,
   });
   return true;
-}
+};
 
-async function finaliseAward({
+const finaliseAward = async ({
   reward,
   methodName,
   partnerId,
@@ -156,7 +162,7 @@ async function finaliseAward({
   supplierDecision,
   baseEvidence,
   stripeDecision,
-}) {
+}) => {
   if (!reward) return reward;
   const snapshot = qualificationEvidence.buildSnapshot({
     methodName,
@@ -185,9 +191,9 @@ async function finaliseAward({
     );
     throw error;
   }
-}
+};
 
-async function awardInsideLock({
+const awardInsideLock = async ({
   original,
   methodName,
   config,
@@ -196,7 +202,7 @@ async function awardInsideLock({
   supplierDecision,
   evidence,
   stripeDecision,
-}) {
+}) => {
   const capDecision = await integrity.canAwardCredit({
     partnerId: partner.id,
     supplierUserId,
@@ -259,9 +265,9 @@ async function awardInsideLock({
     baseEvidence: evidence,
     stripeDecision,
   });
-}
+};
 
-function isTechnicalQuarantinedReward(transaction) {
+const isTechnicalQuarantinedReward = transaction => {
   return Boolean(
     transaction?.id &&
     transaction.partnerId &&
@@ -270,13 +276,13 @@ function isTechnicalQuarantinedReward(transaction) {
     transaction.reversalMode === 'void_pending' &&
     TECHNICAL_QUARANTINE_REASONS.has(transaction.reversalReason)
   );
-}
+};
 
-function isHardInvalidDecision(decision) {
+const isHardInvalidDecision = decision => {
   return !decision?.eligible && !SOFT_SIGNAL_REASONS.has(decision?.reason);
-}
+};
 
-async function repairTechnicalReward(transaction) {
+const repairTechnicalReward = async transaction => {
   if (!isTechnicalQuarantinedReward(transaction)) return null;
   const methodName = METHOD_NAME_BY_TYPE[transaction.type];
   const amount = Math.abs(Number(transaction.amount));
@@ -412,9 +418,9 @@ async function repairTechnicalReward(transaction) {
     }
     throw error;
   }
-}
+};
 
-function installRewardMethodGuards() {
+const installRewardMethodGuards = () => {
   for (const [methodName, config] of Object.entries(METHOD_CONFIG)) {
     const original = partnerService[methodName];
     if (typeof original !== 'function') continue;
@@ -523,9 +529,9 @@ function installRewardMethodGuards() {
       }
     };
   }
-}
+};
 
-function installAttributionGuard() {
+const installAttributionGuard = () => {
   const original = partnerService.recordReferral;
   if (typeof original !== 'function') return;
 
@@ -551,14 +557,14 @@ function installAttributionGuard() {
     }
     return original(input);
   };
-}
+};
 
-async function revalidatePartnerRewards(partnerId) {
+const revalidatePartnerRewards = async partnerId => {
   ensureIndexesBestEffort();
   return integrityClawback.revalidatePartnerRewards(partnerId);
-}
+};
 
-function install() {
+const install = () => {
   if (installed) return;
   installRewardMethodGuards();
   installAttributionGuard();
@@ -567,7 +573,7 @@ function install() {
   logger.info(
     '[PARTNER-REWARD-INTEGRITY] Supplier, payment, qualification, exposure, maturity and attribution guards installed'
   );
-}
+};
 
 module.exports = {
   install,
