@@ -106,6 +106,11 @@ test('blocks a reviewer that also owns a supplier profile', async () => {
 
 test('detects a review ring sharing the same network and browser signature', async () => {
   collections.suppliers.push({ id: 'sup_target', ownerUserId: 'supplier_1', approved: true });
+  const distinctComments = [
+    'The supplier communicated clearly, arrived early and delivered the finished gallery promptly.',
+    'Our guests enjoyed the relaxed service and the team handled every venue change professionally.',
+    'Booking was straightforward, pricing was transparent and the final photographs exceeded expectations.',
+  ];
   for (let index = 1; index <= 3; index += 1) {
     collections.reviews.push({
       id: `rev_${index}`,
@@ -117,7 +122,7 @@ test('detects a review ring sharing the same network and browser signature', asy
       ipAddress: 'same-ip-hash',
       userAgent: 'Mozilla/5.0 Same Browser',
       title: `Review ${index}`,
-      comment: `Distinct genuine-looking review content number ${index} that is deliberately different from the others.`,
+      comment: distinctComments[index - 1],
     });
   }
   await expect(

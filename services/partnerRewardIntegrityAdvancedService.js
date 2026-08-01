@@ -141,7 +141,8 @@ async function packageCopyEvidence(supplierUserId, packageId) {
     const similarity = jaccardSimilarity(currentText, packageText(candidate));
     const sameTitle = normaliseText(current.title) === normaliseText(candidate.title);
     const samePrice = normaliseText(current.price) === normaliseText(candidate.price);
-    if (similarity >= threshold && (sameTitle || samePrice)) {
+    const strongMetadataCopy = sameTitle && samePrice && similarity >= 0.8;
+    if (strongMetadataCopy || (similarity >= threshold && (sameTitle || samePrice))) {
       return {
         eligible: false,
         reason: 'NEAR_DUPLICATE_PACKAGE_CONTENT',

@@ -57,6 +57,7 @@ const mockDb = {
   }),
 };
 const mockIntegrity = {
+  duplicateSupplierBusinessEvidence: jest.fn(async () => ({ duplicate: false })),
   methodRewardEvidence: jest.fn(async () => ({
     eligible: true,
     packageId: 'pkg_1',
@@ -102,6 +103,7 @@ beforeAll(() => runtime.install());
 beforeEach(() => {
   Object.values(mockCollections).forEach(items => items.splice(0, items.length));
   jest.clearAllMocks();
+  mockIntegrity.duplicateSupplierBusinessEvidence.mockResolvedValue({ duplicate: false });
   mockIntegrity.methodRewardEvidence.mockResolvedValue({
     eligible: true,
     packageId: 'pkg_1',
