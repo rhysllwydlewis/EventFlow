@@ -228,9 +228,7 @@ function safePublicSupplier(supplier = {}, extras = {}) {
       source.logo
   );
   const website = safeExternalUrl(source.website);
-  const socialLinks = safeSocialLinks(
-    mergeSocialLinkSources(source.socials, source.socialLinks)
-  );
+  const socialLinks = safeSocialLinks(mergeSocialLinkSources(source.socials, source.socialLinks));
   const rating = numberOrNull(source.averageRating ?? source.rating);
   const reviewCount = numberOrNull(source.reviewCount);
   const avgResponseTime = numberOrNull(source.avgResponseTime);

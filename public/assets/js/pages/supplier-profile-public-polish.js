@@ -288,7 +288,10 @@
     let verificationRow = null;
     verificationRows.forEach(row => {
       const label = row.previousElementSibling;
-      if (label?.classList.contains('sp-badges-group-label') && /verification/i.test(label.textContent)) {
+      if (
+        label?.classList.contains('sp-badges-group-label') &&
+        /verification/i.test(label.textContent)
+      ) {
         verificationRow = row;
       }
     });

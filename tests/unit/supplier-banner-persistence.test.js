@@ -119,9 +119,7 @@ describe('supplier banner persistence', () => {
   });
 
   test('rejects unsafe banner URL schemes', async () => {
-    const res = await request(app())
-      .patch('/sup_1')
-      .send({ bannerUrl: 'javascript:alert(1)' });
+    const res = await request(app()).patch('/sup_1').send({ bannerUrl: 'javascript:alert(1)' });
 
     expect(res.status).toBe(400);
     expect(res.body.error).toMatch(/uploaded image|http\/https/i);

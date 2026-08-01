@@ -23,8 +23,8 @@ describe('supplier public trust asset wiring', () => {
     expect(source).toContain('supplier.verified = emailVerified');
     expect(source).toContain('delete supplier.insurance');
     expect(source).toContain('delete supplier.license');
-    expect(source).toContain("supplier-profile-public-polish.js?v=2.0.0");
-    expect(source).not.toContain("supplier-profile-public-polish.js?v=1.0.0");
+    expect(source).toContain('supplier-profile-public-polish.js?v=2.0.0');
+    expect(source).not.toContain('supplier-profile-public-polish.js?v=1.0.0');
     expect(source).toMatch(/DATA_IMAGE_RE\.test\(raw\)[\s\S]{0,80}return ''/);
   });
 

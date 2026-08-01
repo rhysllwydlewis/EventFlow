@@ -68,10 +68,13 @@ async function rollbackUnauditedTrustChange({
       // Do not overwrite a newer admin decision on the same credential. The marker
       // belongs to this request and acts as the ownership token for its rollback.
       if (latestCredential[markerField] !== markerValue) {
-        logger.error('CRITICAL: unaudited supplier trust rollback was superseded by a newer change', {
-          supplierId,
-          trustKey,
-        });
+        logger.error(
+          'CRITICAL: unaudited supplier trust rollback was superseded by a newer change',
+          {
+            supplierId,
+            trustKey,
+          }
+        );
         return false;
       }
 
@@ -183,17 +186,13 @@ async function persistTrustMutation(supplierId, definition, badgeId, verified, a
 
     const now = new Date().toISOString();
     const mutation = buildTrustMutation(supplier, definition, badgeId, verified, now, actorId);
-    const updated = await dbUnified.updateOne(
-      'suppliers',
-      optimisticFilter(supplierId, supplier),
-      {
-        $set: {
-          badges: mutation.badgeList,
-          trustVerifications: mutation.trustVerifications,
-          updatedAt: now,
-        },
-      }
-    );
+    const updated = await dbUnified.updateOne('suppliers', optimisticFilter(supplierId, supplier), {
+      $set: {
+        badges: mutation.badgeList,
+        trustVerifications: mutation.trustVerifications,
+        updatedAt: now,
+      },
+    });
 
     if (updated) {
       return {

@@ -161,10 +161,7 @@ describe('supplier public profile trust boundary', () => {
     });
 
     expect(publicSupplier.description).toBe('A useful legacy business description.');
-    expect(publicSupplier.photosGallery).toEqual([
-      '/api/photos/legacy_1',
-      '/api/photos/legacy_2',
-    ]);
+    expect(publicSupplier.photosGallery).toEqual(['/api/photos/legacy_1', '/api/photos/legacy_2']);
     expect(publicSupplier.socialLinks).toMatchObject({
       instagram: 'https://instagram.com/example',
       facebook: 'https://facebook.com/example',
@@ -194,14 +191,13 @@ describe('supplier public profile trust boundary', () => {
 });
 
 describe('manual trust badge definitions', () => {
-  test.each([
-    'PUBLIC_LIABILITY_VERIFIED',
-    'DBS_CHECKED',
-    'LICENCE_VERIFIED',
-  ])('%s cannot be auto-awarded', key => {
-    const badge = BADGE_DEFINITIONS[key];
-    expect(badge).toBeDefined();
-    expect(badge.type).toBe('verified');
-    expect(badge.autoAssign).toBe(false);
-  });
+  test.each(['PUBLIC_LIABILITY_VERIFIED', 'DBS_CHECKED', 'LICENCE_VERIFIED'])(
+    '%s cannot be auto-awarded',
+    key => {
+      const badge = BADGE_DEFINITIONS[key];
+      expect(badge).toBeDefined();
+      expect(badge.type).toBe('verified');
+      expect(badge.autoAssign).toBe(false);
+    }
+  );
 });

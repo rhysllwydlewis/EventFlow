@@ -511,7 +511,8 @@ router.patch(
           error: error.message,
         });
         return res.status(status).json({
-          error: error.name === 'ValidationError' ? error.message : 'Failed to process banner image',
+          error:
+            error.name === 'ValidationError' ? error.message : 'Failed to process banner image',
         });
       }
     }
@@ -599,7 +600,9 @@ router.patch(
         supplierId: s.id,
         ownerUserId: req.user.id,
       });
-      return res.status(500).json({ error: 'Failed to update supplier profile. Please try again.' });
+      return res
+        .status(500)
+        .json({ error: 'Failed to update supplier profile. Please try again.' });
     }
 
     // Bust catalog cache — profile edit means the supplier data may have changed

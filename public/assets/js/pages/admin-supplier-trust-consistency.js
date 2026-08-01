@@ -91,8 +91,9 @@
   function findInfoValue(containerId, labelText) {
     const container = document.getElementById(containerId);
     if (!container) return null;
-    const field = Array.from(container.querySelectorAll('.info-field')).find(item =>
-      item.querySelector('label')?.textContent?.trim().toLowerCase() === labelText.toLowerCase()
+    const field = Array.from(container.querySelectorAll('.info-field')).find(
+      item =>
+        item.querySelector('label')?.textContent?.trim().toLowerCase() === labelText.toLowerCase()
     );
     return field?.querySelector('value') || null;
   }
@@ -140,7 +141,8 @@
       return {
         tone: 'red',
         label: 'Legacy upload needs repair',
-        detail: 'A base64/data URL is stored. Public profiles deliberately do not publish this format.',
+        detail:
+          'A base64/data URL is stored. Public profiles deliberately do not publish this format.',
       };
     }
     if (/^(https?:\/\/|\/api\/photos\/|\/uploads\/)/i.test(value)) {

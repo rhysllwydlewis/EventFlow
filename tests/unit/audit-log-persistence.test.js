@@ -40,7 +40,10 @@ describe('auditLog persistence result', () => {
       adminId: 'admin_1',
       targetId: 'sup_1',
     });
-    expect(insertOne).toHaveBeenCalledWith('audit_logs', expect.objectContaining({ id: 'audit_1' }));
+    expect(insertOne).toHaveBeenCalledWith(
+      'audit_logs',
+      expect.objectContaining({ id: 'audit_1' })
+    );
     expect(logger.info).toHaveBeenCalled();
   });
 

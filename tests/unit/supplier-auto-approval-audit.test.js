@@ -9,9 +9,7 @@ describe('supplier automatic approval audit', () => {
     const auditLog = jest.fn(async () => ({ id: 'audit_1' }));
     const dbUnified = {
       read: jest.fn(async collection =>
-        collection === 'settings'
-          ? { features: { autoApproveSupplierVerification: true } }
-          : []
+        collection === 'settings' ? { features: { autoApproveSupplierVerification: true } } : []
       ),
       findOne: jest.fn(async () => null),
       insertOne: jest.fn(async (_collection, doc) => doc),
@@ -29,7 +27,9 @@ describe('supplier automatic approval audit', () => {
       error: jest.fn(),
     }));
 
-    const { ensureSupplierProfileForUser } = require('../../services/supplierProfileProvisioning.service');
+    const {
+      ensureSupplierProfileForUser,
+    } = require('../../services/supplierProfileProvisioning.service');
     const supplier = await ensureSupplierProfileForUser({
       id: 'usr_supplier',
       role: 'supplier',
@@ -59,9 +59,7 @@ describe('supplier automatic approval audit', () => {
     const auditLog = jest.fn();
     const dbUnified = {
       read: jest.fn(async collection =>
-        collection === 'settings'
-          ? { features: { autoApproveSupplierVerification: false } }
-          : []
+        collection === 'settings' ? { features: { autoApproveSupplierVerification: false } } : []
       ),
       findOne: jest.fn(async () => null),
       insertOne: jest.fn(async (_collection, doc) => doc),
@@ -79,7 +77,9 @@ describe('supplier automatic approval audit', () => {
       error: jest.fn(),
     }));
 
-    const { ensureSupplierProfileForUser } = require('../../services/supplierProfileProvisioning.service');
+    const {
+      ensureSupplierProfileForUser,
+    } = require('../../services/supplierProfileProvisioning.service');
     const supplier = await ensureSupplierProfileForUser({
       id: 'usr_supplier',
       role: 'supplier',

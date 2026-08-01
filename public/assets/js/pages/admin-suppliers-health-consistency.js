@@ -163,7 +163,9 @@
 
     // Preserve the original approval action (including its in-place table refresh)
     // and only correct the outdated permission promise at the modal boundary.
-    AdminShared.showConfirmModal = function showConfirmModalWithSupplierPermissionCopy(options = {}) {
+    AdminShared.showConfirmModal = function showConfirmModalWithSupplierPermissionCopy(
+      options = {}
+    ) {
       const next = { ...options };
       if (
         next.title === 'Approve Supplier' &&
