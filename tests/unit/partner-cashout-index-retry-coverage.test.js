@@ -1,5 +1,6 @@
 'use strict';
 
+// Exercise both the successful memoised bootstrap and the failure-reset retry path.
 const mockCreateIndex = jest.fn(async () => 'ok');
 const mockCollection = jest.fn(() => ({ createIndex: mockCreateIndex }));
 const mockDb = { collection: mockCollection };
