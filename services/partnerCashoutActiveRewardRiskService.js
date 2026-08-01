@@ -34,25 +34,74 @@ const REWARD_DERIVED_SIGNAL_CODES = new Set([
   'ORPHAN_REWARD_TRANSACTIONS',
 ]);
 
-function emailDomain(email) {
+const COUNT_SIGNAL_DEFINITIONS = Object.freeze([
+  {
+    metric: 'unverifiedSupplierCount',
+    code: 'UNVERIFIED_REFERRED_SUPPLIERS',
+    score: 30,
+    message: 'Rewarded suppliers are unverified.',
+  },
+  {
+    metric: 'unapprovedSupplierProfileCount',
+    code: 'UNAPPROVED_SUPPLIER_PROFILES',
+    score: 35,
+    message: 'Rewarded suppliers do not all have approved business profiles.',
+  },
+  {
+    metric: 'riskyRegistrationSupplierCount',
+    code: 'RISKY_SUPPLIER_REGISTRATION_HISTORY',
+    score: 25,
+    message: 'Rewarded suppliers include registrations with unresolved identity or network risk.',
+  },
+  {
+    metric: 'riskyUnverifiedPhoneCount',
+    code: 'RISKY_SUPPLIER_PHONE_UNVERIFIED',
+    score: 10,
+    message: 'Risk-flagged supplier accounts include unverified supplied phone numbers.',
+  },
+  {
+    metric: 'identityMatchCount',
+    code: 'POSSIBLE_SELF_REFERRAL',
+    score: 50,
+    message: 'Partner and supplier identities overlap.',
+  },
+  {
+    metric: 'rapidMilestoneCount',
+    code: 'RAPID_MILESTONE_COMPLETION',
+    score: 25,
+    message: 'Milestones completed unusually quickly after signup.',
+  },
+  {
+    metric: 'weakPackageRewardCount',
+    code: 'PACKAGE_REWARD_WITHOUT_QUALIFYING_PACKAGE',
+    score: 60,
+    message: 'Package rewards exist without a complete approved package.',
+  },
+  {
+    metric: 'weakReviewRewardCount',
+    code: 'REVIEW_REWARD_WITHOUT_VERIFIED_REVIEW',
+    score: 60,
+    message: 'Review rewards exist without an approved independently verified review.',
+  },
+]);
+
+const emailDomain = email => {
   const value = String(email || '')
     .trim()
     .toLowerCase();
   return value.includes('@') ? value.split('@').pop() : '';
-}
+};
 
-function hoursBetween(earlier, later) {
+const hoursBetween = (earlier, later) => {
   const start = Date.parse(earlier);
   const end = Date.parse(later);
   if (!Number.isFinite(start) || !Number.isFinite(end) || end < start) return null;
   return (end - start) / 3600000;
-}
+};
 
-function signal(code, score, message, evidence = {}) {
-  return { code, score, message, evidence };
-}
+const signal = (code, score, message, evidence = {}) => ({ code, score, message, evidence });
 
-async function recomputeRewardSignals(partnerId, requestedAt = new Date().toISOString()) {
+const loadRiskCollections = async () => {
   const [partners, users, referrals, transactions, suppliers, packages, reviews] =
     await Promise.all([
       dbUnified.read('partners'),
@@ -63,11 +112,25 @@ async function recomputeRewardSignals(partnerId, requestedAt = new Date().toISOS
       dbUnified.read('packages'),
       dbUnified.read('reviews'),
     ]);
-  const partner = (partners || []).find(item => item.id === partnerId);
-  const partnerUser = partner ? (users || []).find(user => user.id === partner.userId) : null;
-  const partnerReferrals = (referrals || []).filter(item => item.partnerId === partnerId);
+  return {
+    partners: partners || [],
+    users: users || [],
+    referrals: referrals || [],
+    transactions: transactions || [],
+    suppliers: suppliers || [],
+    packages: packages || [],
+    reviews: reviews || [],
+  };
+};
+
+const buildRewardContext = (partnerId, collections) => {
+  const partner = collections.partners.find(item => item.id === partnerId);
+  const partnerUser = partner
+    ? collections.users.find(user => user.id === partner.userId) || null
+    : null;
+  const partnerReferrals = collections.referrals.filter(item => item.partnerId === partnerId);
   const milestoneTypes = new Set(partnerAntiAbuse.MILESTONE_REWARD_TYPES || []);
-  const activeRewards = (transactions || []).filter(
+  const activeRewards = collections.transactions.filter(
     transaction =>
       transaction.partnerId === partnerId &&
       transaction.supplierUserId &&
@@ -79,232 +142,238 @@ async function recomputeRewardSignals(partnerId, requestedAt = new Date().toISOS
   const supportingReferrals = partnerReferrals.filter(referral =>
     rewardedSupplierIds.has(referral.supplierUserId)
   );
-  const signals = [];
+  const reversedRewardTransactionCount = collections.transactions.filter(
+    transaction =>
+      transaction.partnerId === partnerId &&
+      milestoneTypes.has(transaction.type) &&
+      transaction.reversedAt
+  ).length;
+  return {
+    partner,
+    partnerUser,
+    partnerReferrals,
+    milestoneTypes,
+    activeRewards,
+    rewardedSupplierIds,
+    supportingReferrals,
+    reversedRewardTransactionCount,
+  };
+};
 
-  if (activeRewards.length > 0 && partnerReferrals.length === 0) {
+const createMetrics = context => ({
+  rewardedReferralCount: context.supportingReferrals.length,
+  unverifiedSupplierCount: 0,
+  unapprovedSupplierProfileCount: 0,
+  identityMatchCount: 0,
+  rapidMilestoneCount: 0,
+  weakPackageRewardCount: 0,
+  weakReviewRewardCount: 0,
+  riskyRegistrationSupplierCount: 0,
+  riskyUnverifiedPhoneCount: 0,
+  activeRewardTransactionCount: context.activeRewards.length,
+  reversedRewardTransactionCount: context.reversedRewardTransactionCount,
+});
+
+const hasIdentityRisk = ({ partnerDomain, supplierDomain, supplierIdentity, registrationSignals }) =>
+  Boolean(
+    (partnerDomain &&
+      supplierDomain &&
+      partnerDomain === supplierDomain &&
+      !PUBLIC_EMAIL_DOMAINS.has(partnerDomain)) ||
+      supplierIdentity.strongMatch ||
+      registrationSignals.includes('PARTNER_SUPPLIER_DEVICE_OVERLAP') ||
+      registrationSignals.includes('PARTNER_SUPPLIER_DEVICE_COOKIE_OVERLAP')
+  );
+
+const updateRegistrationMetrics = (supplierUser, metrics) => {
+  if (!['review', 'high'].includes(supplierUser?.registrationRiskLevel)) return;
+  metrics.riskyRegistrationSupplierCount += 1;
+  const hasPhone = supplierUser?.phone || supplierUser?.phoneNumber;
+  if (hasPhone && supplierUser?.phoneVerified !== true) {
+    metrics.riskyUnverifiedPhoneCount += 1;
+  }
+};
+
+const hasQualifyingPackage = (supplierIds, packages) =>
+  packages.some(
+    pkg => supplierIds.has(pkg.supplierId) && partnerAntiAbuse.isMeaningfulPackage(pkg)
+  );
+
+const hasQualifyingReview = ({ supplierIds, reviews, users, referral, partner }) =>
+  reviews.some(review =>
+    partnerAntiAbuse.isIndependentVerifiedReview(
+      review,
+      users,
+      supplierIds,
+      referral.supplierUserId,
+      partner?.userId
+    )
+  );
+
+const analyseRewardTransaction = ({
+  transaction,
+  referral,
+  requestedAt,
+  supplierIds,
+  collections,
+  context,
+  metrics,
+}) => {
+  const elapsed = hoursBetween(
+    referral.supplierCreatedAt || referral.createdAt,
+    transaction.createdAt || requestedAt
+  );
+  if (
+    elapsed !== null &&
+    elapsed < RAPID_MILESTONE_HOURS &&
+    transaction.type !== 'REFERRAL_SIGNUP_BONUS'
+  ) {
+    metrics.rapidMilestoneCount += 1;
+  }
+  if (
+    transaction.type === 'PACKAGE_BONUS' &&
+    !hasQualifyingPackage(supplierIds, collections.packages)
+  ) {
+    metrics.weakPackageRewardCount += 1;
+  }
+  if (
+    transaction.type === 'FIRST_REVIEW_BONUS' &&
+    !hasQualifyingReview({
+      supplierIds,
+      reviews: collections.reviews,
+      users: collections.users,
+      referral,
+      partner: context.partner,
+    })
+  ) {
+    metrics.weakReviewRewardCount += 1;
+  }
+};
+
+const analyseSupportingReferral = ({
+  referral,
+  requestedAt,
+  partnerDomain,
+  supplierDomains,
+  collections,
+  context,
+  metrics,
+}) => {
+  const supplierUser = collections.users.find(user => user.id === referral.supplierUserId);
+  if (!supplierUser || supplierUser.verified !== true) metrics.unverifiedSupplierCount += 1;
+
+  const supplierProfiles = collections.suppliers.filter(
+    profile => profile.ownerUserId === referral.supplierUserId
+  );
+  const approvedProfiles = supplierProfiles.filter(profile => profile.approved === true);
+  if (!approvedProfiles.length) metrics.unapprovedSupplierProfileCount += 1;
+
+  const supplierDomain = emailDomain(supplierUser?.email);
+  if (supplierDomain) {
+    supplierDomains.set(supplierDomain, (supplierDomains.get(supplierDomain) || 0) + 1);
+  }
+  const supplierIdentity = partnerAntiAbuse.identityOverlap(context.partnerUser || {}, {
+    ...(supplierUser || {}),
+    ...(approvedProfiles[0] || {}),
+  });
+  const registrationSignals = supplierUser?.registrationRiskSignalCodes || [];
+  if (hasIdentityRisk({ partnerDomain, supplierDomain, supplierIdentity, registrationSignals })) {
+    metrics.identityMatchCount += 1;
+  }
+  updateRegistrationMetrics(supplierUser, metrics);
+
+  const supplierIds = new Set(approvedProfiles.map(profile => profile.id));
+  const supplierTransactions = context.activeRewards.filter(
+    transaction => transaction.supplierUserId === referral.supplierUserId
+  );
+  for (const transaction of supplierTransactions) {
+    analyseRewardTransaction({
+      transaction,
+      referral,
+      requestedAt,
+      supplierIds,
+      collections,
+      context,
+      metrics,
+    });
+  }
+};
+
+const appendCountSignals = (signals, metrics) => {
+  for (const definition of COUNT_SIGNAL_DEFINITIONS) {
+    const count = metrics[definition.metric];
+    if (count > 0) {
+      signals.push(signal(definition.code, definition.score, definition.message, { count }));
+    }
+  }
+};
+
+const appendRepeatedDomainSignal = (signals, supplierDomains) => {
+  const repeatedDomains = [...supplierDomains.entries()].filter(
+    ([domain, count]) => count >= 3 && !PUBLIC_EMAIL_DOMAINS.has(domain)
+  );
+  if (!repeatedDomains.length) return;
+  signals.push(
+    signal(
+      'CONCENTRATED_PRIVATE_EMAIL_DOMAINS',
+      20,
+      'Several rewarded suppliers use the same private email domain.',
+      { domains: repeatedDomains.map(([domain, count]) => ({ domain, count })) }
+    )
+  );
+};
+
+const appendOrphanRewardSignal = (signals, context) => {
+  const orphanRewardSuppliers = [...context.rewardedSupplierIds].filter(
+    supplierUserId =>
+      !context.partnerReferrals.some(referral => referral.supplierUserId === supplierUserId)
+  );
+  if (!orphanRewardSuppliers.length) return;
+  signals.push(
+    signal(
+      'ORPHAN_REWARD_TRANSACTIONS',
+      60,
+      'Reward transactions exist without referral records.',
+      { count: orphanRewardSuppliers.length }
+    )
+  );
+};
+
+const recomputeRewardSignals = async (
+  partnerId,
+  requestedAt = new Date().toISOString()
+) => {
+  const collections = await loadRiskCollections();
+  const context = buildRewardContext(partnerId, collections);
+  const signals = [];
+  if (context.activeRewards.length > 0 && context.partnerReferrals.length === 0) {
     signals.push(
       signal('NO_REFERRAL_RECORDS', 40, 'Cashout rewards have no supporting referrals.')
     );
   }
 
-  const partnerDomain = emailDomain(partnerUser?.email);
+  const metrics = createMetrics(context);
   const supplierDomains = new Map();
-  let unverifiedSuppliers = 0;
-  let unapprovedSupplierProfiles = 0;
-  let identityMatches = 0;
-  let rapidMilestones = 0;
-  let weakPackageRewards = 0;
-  let weakReviewRewards = 0;
-  let riskyRegistrationSuppliers = 0;
-  let riskyUnverifiedPhones = 0;
-
-  for (const referral of supportingReferrals) {
-    const supplierUser = (users || []).find(user => user.id === referral.supplierUserId);
-    if (!supplierUser || supplierUser.verified !== true) unverifiedSuppliers += 1;
-    const supplierProfiles = (suppliers || []).filter(
-      profile => profile.ownerUserId === referral.supplierUserId
-    );
-    const approvedProfiles = supplierProfiles.filter(profile => profile.approved === true);
-    if (!approvedProfiles.length) unapprovedSupplierProfiles += 1;
-
-    const supplierDomain = emailDomain(supplierUser?.email);
-    if (supplierDomain) {
-      supplierDomains.set(supplierDomain, (supplierDomains.get(supplierDomain) || 0) + 1);
-    }
-    const supplierIdentity = partnerAntiAbuse.identityOverlap(partnerUser || {}, {
-      ...(supplierUser || {}),
-      ...(approvedProfiles[0] || {}),
+  const partnerDomain = emailDomain(context.partnerUser?.email);
+  for (const referral of context.supportingReferrals) {
+    analyseSupportingReferral({
+      referral,
+      requestedAt,
+      partnerDomain,
+      supplierDomains,
+      collections,
+      context,
+      metrics,
     });
-    const registrationSignals = supplierUser?.registrationRiskSignalCodes || [];
-    if (
-      (partnerDomain &&
-        supplierDomain &&
-        partnerDomain === supplierDomain &&
-        !PUBLIC_EMAIL_DOMAINS.has(partnerDomain)) ||
-      supplierIdentity.strongMatch ||
-      registrationSignals.includes('PARTNER_SUPPLIER_DEVICE_OVERLAP') ||
-      registrationSignals.includes('PARTNER_SUPPLIER_DEVICE_COOKIE_OVERLAP')
-    ) {
-      identityMatches += 1;
-    }
-    if (['review', 'high'].includes(supplierUser?.registrationRiskLevel)) {
-      riskyRegistrationSuppliers += 1;
-      if (
-        (supplierUser?.phone || supplierUser?.phoneNumber) &&
-        supplierUser?.phoneVerified !== true
-      ) {
-        riskyUnverifiedPhones += 1;
-      }
-    }
-
-    const supplierTxns = activeRewards.filter(
-      transaction => transaction.supplierUserId === referral.supplierUserId
-    );
-    const supplierIds = new Set(approvedProfiles.map(profile => profile.id));
-    for (const transaction of supplierTxns) {
-      const elapsed = hoursBetween(
-        referral.supplierCreatedAt || referral.createdAt,
-        transaction.createdAt || requestedAt
-      );
-      if (
-        elapsed !== null &&
-        elapsed < RAPID_MILESTONE_HOURS &&
-        transaction.type !== 'REFERRAL_SIGNUP_BONUS'
-      ) {
-        rapidMilestones += 1;
-      }
-      if (
-        transaction.type === 'PACKAGE_BONUS' &&
-        !(packages || []).some(
-          pkg => supplierIds.has(pkg.supplierId) && partnerAntiAbuse.isMeaningfulPackage(pkg)
-        )
-      ) {
-        weakPackageRewards += 1;
-      }
-      if (
-        transaction.type === 'FIRST_REVIEW_BONUS' &&
-        !(reviews || []).some(review =>
-          partnerAntiAbuse.isIndependentVerifiedReview(
-            review,
-            users,
-            supplierIds,
-            referral.supplierUserId,
-            partner?.userId
-          )
-        )
-      ) {
-        weakReviewRewards += 1;
-      }
-    }
   }
 
-  if (unverifiedSuppliers > 0) {
-    signals.push(
-      signal('UNVERIFIED_REFERRED_SUPPLIERS', 30, 'Rewarded suppliers are unverified.', {
-        count: unverifiedSuppliers,
-      })
-    );
-  }
-  if (unapprovedSupplierProfiles > 0) {
-    signals.push(
-      signal(
-        'UNAPPROVED_SUPPLIER_PROFILES',
-        35,
-        'Rewarded suppliers do not all have approved business profiles.',
-        { count: unapprovedSupplierProfiles }
-      )
-    );
-  }
-  if (riskyRegistrationSuppliers > 0) {
-    signals.push(
-      signal(
-        'RISKY_SUPPLIER_REGISTRATION_HISTORY',
-        25,
-        'Rewarded suppliers include registrations with unresolved identity or network risk.',
-        { count: riskyRegistrationSuppliers }
-      )
-    );
-  }
-  if (riskyUnverifiedPhones > 0) {
-    signals.push(
-      signal(
-        'RISKY_SUPPLIER_PHONE_UNVERIFIED',
-        10,
-        'Risk-flagged supplier accounts include unverified supplied phone numbers.',
-        { count: riskyUnverifiedPhones }
-      )
-    );
-  }
-  if (identityMatches > 0) {
-    signals.push(
-      signal('POSSIBLE_SELF_REFERRAL', 50, 'Partner and supplier identities overlap.', {
-        count: identityMatches,
-      })
-    );
-  }
-  if (rapidMilestones > 0) {
-    signals.push(
-      signal(
-        'RAPID_MILESTONE_COMPLETION',
-        25,
-        'Milestones completed unusually quickly after signup.',
-        { count: rapidMilestones }
-      )
-    );
-  }
-  if (weakPackageRewards > 0) {
-    signals.push(
-      signal(
-        'PACKAGE_REWARD_WITHOUT_QUALIFYING_PACKAGE',
-        60,
-        'Package rewards exist without a complete approved package.',
-        { count: weakPackageRewards }
-      )
-    );
-  }
-  if (weakReviewRewards > 0) {
-    signals.push(
-      signal(
-        'REVIEW_REWARD_WITHOUT_VERIFIED_REVIEW',
-        60,
-        'Review rewards exist without an approved independently verified review.',
-        { count: weakReviewRewards }
-      )
-    );
-  }
+  appendCountSignals(signals, metrics);
+  appendRepeatedDomainSignal(signals, supplierDomains);
+  appendOrphanRewardSignal(signals, context);
+  return { signals, metrics };
+};
 
-  const repeatedDomains = [...supplierDomains.entries()].filter(
-    ([domain, count]) => count >= 3 && !PUBLIC_EMAIL_DOMAINS.has(domain)
-  );
-  if (repeatedDomains.length) {
-    signals.push(
-      signal(
-        'CONCENTRATED_PRIVATE_EMAIL_DOMAINS',
-        20,
-        'Several rewarded suppliers use the same private email domain.',
-        { domains: repeatedDomains.map(([domain, count]) => ({ domain, count })) }
-      )
-    );
-  }
-
-  const orphanRewardSuppliers = [...rewardedSupplierIds].filter(
-    supplierUserId => !partnerReferrals.some(referral => referral.supplierUserId === supplierUserId)
-  );
-  if (orphanRewardSuppliers.length) {
-    signals.push(
-      signal(
-        'ORPHAN_REWARD_TRANSACTIONS',
-        60,
-        'Reward transactions exist without referral records.',
-        { count: orphanRewardSuppliers.length }
-      )
-    );
-  }
-
-  return {
-    signals,
-    metrics: {
-      rewardedReferralCount: supportingReferrals.length,
-      unverifiedSupplierCount: unverifiedSuppliers,
-      unapprovedSupplierProfileCount: unapprovedSupplierProfiles,
-      identityMatchCount: identityMatches,
-      rapidMilestoneCount: rapidMilestones,
-      weakPackageRewardCount: weakPackageRewards,
-      weakReviewRewardCount: weakReviewRewards,
-      riskyRegistrationSupplierCount: riskyRegistrationSuppliers,
-      riskyUnverifiedPhoneCount: riskyUnverifiedPhones,
-      activeRewardTransactionCount: activeRewards.length,
-      reversedRewardTransactionCount: (transactions || []).filter(
-        transaction =>
-          transaction.partnerId === partnerId &&
-          milestoneTypes.has(transaction.type) &&
-          transaction.reversedAt
-      ).length,
-    },
-  };
-}
-
-async function adjustAssessment(assessment, { partnerId, requestedAt }) {
+const adjustAssessment = async (assessment, { partnerId, requestedAt }) => {
   if (!assessment || !partnerId) return assessment;
   const recomputed = await recomputeRewardSignals(partnerId, requestedAt);
   const nonRewardSignals = (assessment.signals || []).filter(
@@ -325,7 +394,7 @@ async function adjustAssessment(assessment, { partnerId, requestedAt }) {
     signals,
     metrics: { ...(assessment.metrics || {}), ...recomputed.metrics },
   };
-}
+};
 
 module.exports = {
   adjustAssessment,
