@@ -29,7 +29,9 @@ const mockSendVerificationEmail = jest.fn(async () => ({ MessageID: 'verify_1' }
 jest.mock('../../db-unified', () => mockDb);
 jest.mock('../../store', () => ({ uid: jest.fn(() => 'usr_1') }));
 jest.mock('../../middleware/csrf', () => ({ csrfProtection: (_req, _res, next) => next() }));
-jest.mock('../../middleware/rateLimits', () => ({ registrationLimiter: (_req, _res, next) => next() }));
+jest.mock('../../middleware/rateLimits', () => ({
+  registrationLimiter: (_req, _res, next) => next(),
+}));
 jest.mock('../../middleware/validation', () => ({ passwordOk: jest.fn(() => true) }));
 jest.mock('../../services/partnerService', () => ({ createPartner: mockCreatePartner }));
 jest.mock('../../services/partnerRegistrationRiskService', () => ({
@@ -40,13 +42,17 @@ jest.mock('../../services/userProvenance.service', () => ({
   emailPasswordPendingProvenance: jest.fn(() => ({ verificationMethod: 'pending' })),
   metadataFromSendResult: jest.fn(() => ({})),
 }));
-jest.mock('../../utils/token', () => ({ generateVerificationToken: jest.fn(() => 'verify-token') }));
+jest.mock('../../utils/token', () => ({
+  generateVerificationToken: jest.fn(() => 'verify-token'),
+}));
 jest.mock('../../utils/postmark', () => ({
   FROM_HELLO: 'hello@example.com',
   sendVerificationEmail: mockSendVerificationEmail,
   sendMail: jest.fn(async () => ({ ok: true })),
 }));
-jest.mock('../../services/notifyAdmins.service', () => ({ notifyAdmins: jest.fn(async () => undefined) }));
+jest.mock('../../services/notifyAdmins.service', () => ({
+  notifyAdmins: jest.fn(async () => undefined),
+}));
 jest.mock('../../utils/logger', () => ({ info: jest.fn(), warn: jest.fn(), error: jest.fn() }));
 jest.mock('bcryptjs', () => ({ hash: jest.fn(async () => 'hashed-password') }));
 
@@ -82,7 +88,10 @@ beforeEach(() => {
 });
 
 test('rejects partner registration when ALTCHA verification fails', async () => {
-  const verifyAltcha = jest.fn(async () => ({ success: false, error: 'ALTCHA verification failed' }));
+  const verifyAltcha = jest.fn(async () => ({
+    success: false,
+    error: 'ALTCHA verification failed',
+  }));
   router.initializeDependencies({ verifyAltcha });
 
   const response = await request(app()).post('/api/partner/register').send(body('bad-captcha'));
@@ -103,7 +112,10 @@ test('accepts a verified ALTCHA payload and continues secure registration', asyn
   expect(response.status).toBe(201);
   expect(response.body.requiresVerification).toBe(true);
   expect(verifyAltcha).toHaveBeenCalledWith('valid-captcha');
-  expect(mockDb.insertOne).toHaveBeenCalledWith('users', expect.objectContaining({ verified: false }));
+  expect(mockDb.insertOne).toHaveBeenCalledWith(
+    'users',
+    expect.objectContaining({ verified: false })
+  );
 });
 
 test('fails closed when the CAPTCHA verifier is unavailable in production', async () => {
@@ -128,7 +140,10 @@ test('partner frontend includes self-hosted ALTCHA and sends captchaToken', () =
   const fs = require('fs');
   const path = require('path');
   const html = fs.readFileSync(path.join(process.cwd(), 'public/partner/index.html'), 'utf8');
-  const js = fs.readFileSync(path.join(process.cwd(), 'public/assets/js/pages/partner-init.js'), 'utf8');
+  const js = fs.readFileSync(
+    path.join(process.cwd(), 'public/assets/js/pages/partner-init.js'),
+    'utf8'
+  );
 
   expect(html).toContain('id="partner-reg-altcha-widget"');
   expect(html).toContain('challengeurl="/api/v1/altcha/challenge"');

@@ -41,9 +41,9 @@ const mockDb = {
   }),
 };
 
-let id = 0;
+let mockId = 0;
 jest.mock('../../db-unified', () => mockDb);
-jest.mock('../../store', () => ({ uid: prefix => `${prefix}_${++id}` }));
+jest.mock('../../store', () => ({ uid: prefix => `${prefix}_${++mockId}` }));
 jest.mock('../../utils/logger', () => ({ info: jest.fn(), warn: jest.fn(), error: jest.fn() }));
 
 const service = require('../../services/partnerRegistrationRiskService');
@@ -72,7 +72,7 @@ function makeReq({
 beforeEach(() => {
   Object.values(mockCollections).forEach(rows => rows.splice(0, rows.length));
   jest.clearAllMocks();
-  id = 0;
+  mockId = 0;
   process.env.NODE_ENV = 'test';
   process.env.PARTNER_ABUSE_HASH_SECRET = 'final-review-risk-test-secret';
   process.env.PARTNER_ABUSE_ENFORCEMENT_MODE = 'enforce';
@@ -89,9 +89,7 @@ afterAll(() => {
 
 test('normalises compressed IPv6 addresses to a stable /64 subnet', () => {
   expect(service.subnetForIp('2001:db8:abcd:12::1')).toBe('2001:0db8:abcd:0012::/64');
-  expect(service.subnetForIp('2001:db8:abcd:12:ffff::99')).toBe(
-    '2001:0db8:abcd:0012::/64'
-  );
+  expect(service.subnetForIp('2001:db8:abcd:12:ffff::99')).toBe('2001:0db8:abcd:0012::/64');
 });
 
 test('uses bounded indexed event queries when supported by the database', async () => {

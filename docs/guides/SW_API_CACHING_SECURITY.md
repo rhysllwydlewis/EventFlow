@@ -189,9 +189,7 @@ const SAFE_CACHEABLE_ENDPOINTS = [
 ```javascript
 router.get('/your-new-endpoint', async (req, res) => {
   res.setHeader('Cache-Control', 'public, max-age=300');
-  res.json({
-    /* ... */
-  });
+  res.json({/* ... */});
 });
 ```
 

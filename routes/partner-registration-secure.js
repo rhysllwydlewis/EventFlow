@@ -48,9 +48,7 @@ async function verifyPartnerCaptcha(payload) {
 
   try {
     const valid = await verifySolution(payload, hmacKey);
-    return valid
-      ? { success: true }
-      : { success: false, error: 'ALTCHA verification failed' };
+    return valid ? { success: true } : { success: false, error: 'ALTCHA verification failed' };
   } catch (error) {
     logger.error('[PARTNER-REGISTER] ALTCHA verification error', { error: error.message });
     return { success: false, unavailable: true, error: 'Captcha verification error' };

@@ -412,9 +412,20 @@ describe('packages route supplier ownership and approval', () => {
 });
 
 describe('supplier registration provisioning integration', () => {
+  const originalPartnerAbuseHashSecret = process.env.PARTNER_ABUSE_HASH_SECRET;
+
   beforeEach(() => {
     jest.resetModules();
     mockLogger();
+    process.env.PARTNER_ABUSE_HASH_SECRET = 'supplier-provisioning-risk-test-secret';
+  });
+
+  afterEach(() => {
+    if (originalPartnerAbuseHashSecret === undefined) {
+      delete process.env.PARTNER_ABUSE_HASH_SECRET;
+    } else {
+      process.env.PARTNER_ABUSE_HASH_SECRET = originalPartnerAbuseHashSecret;
+    }
   });
 
   function loadAuthRegistrationApp() {
@@ -422,6 +433,9 @@ describe('supplier registration provisioning integration', () => {
     const data = {
       users: [],
       suppliers: [],
+      partner_abuse_events: [],
+      partner_abuse_overrides: [],
+      partner_abuse_appeals: [],
       settings: { features: { registration: true, supplierApplications: true } },
     };
     let idCounter = 0;
@@ -453,6 +467,33 @@ describe('supplier registration provisioning integration', () => {
 
     const dbUnified = {
       read: jest.fn(async collection => data[collection] || {}),
+      findWithOptions: jest.fn(async (collection, query = {}, options = {}) => {
+        const rows = Array.isArray(data[collection]) ? data[collection] : [];
+        const matches = row =>
+          Object.entries(query).every(([key, expected]) => {
+            if (expected && typeof expected === 'object' && !Array.isArray(expected)) {
+              if (Array.isArray(expected.$in)) return expected.$in.includes(row[key]);
+              if (expected.$gte !== undefined) return row[key] >= expected.$gte;
+              if (expected.$gt !== undefined) return row[key] > expected.$gt;
+              if (expected.$exists !== undefined) {
+                return expected.$exists
+                  ? Object.prototype.hasOwnProperty.call(row, key)
+                  : !Object.prototype.hasOwnProperty.call(row, key);
+              }
+            }
+            return row[key] === expected;
+          });
+        const results = rows.filter(matches);
+        const sortEntries = Object.entries(options.sort || {});
+        if (sortEntries.length) {
+          const [field, direction] = sortEntries[0];
+          results.sort(
+            (left, right) =>
+              direction * String(left[field] || '').localeCompare(String(right[field] || ''))
+          );
+        }
+        return results.slice(0, options.limit || results.length);
+      }),
       findOne: jest.fn(async (collection, filter) => {
         const rows = data[collection] || [];
         return rows.find(row => Object.keys(filter).every(key => row[key] === filter[key])) || null;

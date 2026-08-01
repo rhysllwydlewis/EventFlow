@@ -18,7 +18,9 @@ const mockDb = {
     return record;
   }),
   updateOne: jest.fn(async (collection, query, update) => {
-    const item = (mockCollections[collection] || []).find(candidate => mockMatches(candidate, query));
+    const item = (mockCollections[collection] || []).find(candidate =>
+      mockMatches(candidate, query)
+    );
     if (!item) return null;
     Object.assign(item, update.$set || update);
     return item;

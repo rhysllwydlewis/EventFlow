@@ -260,7 +260,7 @@ test.describe('Authentication Flow', () => {
     await page.waitForTimeout(500);
 
     const passwordInput = page.locator('#login-password');
-    const toggleButton = page.locator('.password-toggle').first();
+    const toggleButton = passwordInput.locator('xpath=..').locator('.password-toggle');
 
     await expect(passwordInput).toBeVisible();
     await expect(toggleButton).toBeVisible();

@@ -39,7 +39,9 @@
     const label = button.querySelector('.btn-text');
     button.disabled = loading;
     if (label) {
-      label.textContent = loading ? 'Please wait…' : button.dataset.defaultText || label.textContent;
+      label.textContent = loading
+        ? 'Please wait…'
+        : button.dataset.defaultText || label.textContent;
     }
   }
 

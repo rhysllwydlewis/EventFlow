@@ -72,6 +72,25 @@ function websiteHost(value) {
   }
 }
 
+function normaliseCompanyForSimilarity(value) {
+  const legalSuffixes = {
+    limited: 'ltd',
+    incorporated: 'inc',
+    corporation: 'corp',
+    company: 'co',
+  };
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/&/g, ' and ')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map(token => legalSuffixes[token] || token)
+    .join('');
+}
+
 function trigrams(value) {
   const clean = `  ${normalise(value)}  `;
   if (clean.length < 5) return new Set([clean]);
@@ -83,8 +102,8 @@ function trigrams(value) {
 
 function companySimilarity(left, right) {
   if (!left || !right) return 0;
-  const a = trigrams(left);
-  const b = trigrams(right);
+  const a = trigrams(normaliseCompanyForSimilarity(left));
+  const b = trigrams(normaliseCompanyForSimilarity(right));
   let overlap = 0;
   for (const token of a) if (b.has(token)) overlap += 1;
   return (2 * overlap) / (a.size + b.size);
@@ -108,8 +127,8 @@ function identityOverlap(left = {}, right = {}) {
   const sameWebsite = Boolean(leftWebsite && rightWebsite && leftWebsite === rightWebsite);
   const samePostcode = Boolean(
     normalisePostcode(left.postcode || left.postalCode) &&
-      normalisePostcode(left.postcode || left.postalCode) ===
-        normalisePostcode(right.postcode || right.postalCode)
+    normalisePostcode(left.postcode || left.postalCode) ===
+      normalisePostcode(right.postcode || right.postalCode)
   );
   const leftCompanyNumber = normalise(
     left.companyNumber || left.companiesHouseNumber || left.registrationNumber
@@ -126,11 +145,11 @@ function identityOverlap(left = {}, right = {}) {
   return {
     strongMatch: Boolean(
       exactCompany ||
-        samePhone ||
-        sameWebsite ||
-        sameCompanyNumber ||
-        sameVatNumber ||
-        (fuzzyCompany && samePostcode)
+      samePhone ||
+      sameWebsite ||
+      sameCompanyNumber ||
+      sameVatNumber ||
+      (fuzzyCompany && samePostcode)
     ),
     exactCompany,
     fuzzyCompany,
@@ -164,13 +183,13 @@ function assessmentId(partnerId, requestId) {
 function isMeaningfulPackage(pkg) {
   return Boolean(
     pkg &&
-      pkg.approved === true &&
-      pkg.paused !== true &&
-      String(pkg.title || '').trim().length >= 3 &&
-      String(pkg.price || '').trim() &&
-      String(pkg.primaryCategoryKey || '').trim() &&
-      Array.isArray(pkg.eventTypes) &&
-      pkg.eventTypes.length > 0
+    pkg.approved === true &&
+    pkg.paused !== true &&
+    String(pkg.title || '').trim().length >= 3 &&
+    String(pkg.price || '').trim() &&
+    String(pkg.primaryCategoryKey || '').trim() &&
+    Array.isArray(pkg.eventTypes) &&
+    pkg.eventTypes.length > 0
   );
 }
 
