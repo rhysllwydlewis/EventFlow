@@ -8,8 +8,12 @@ const source = fs.readFileSync(path.join(process.cwd(), 'routes/index.js'), 'utf
 test('mounts secure partner registration before the legacy partner dashboard router', () => {
   const secureRequire = source.indexOf("require('./partner-registration-secure')");
   const legacyRequire = source.indexOf("require('./partner')");
-  const secureV1Mount = source.indexOf("app.use('/api/v1/partner', securePartnerRegistrationRoutes)");
-  const secureLegacyMount = source.indexOf("app.use('/api/partner', securePartnerRegistrationRoutes)");
+  const secureV1Mount = source.indexOf(
+    "app.use('/api/v1/partner', securePartnerRegistrationRoutes)"
+  );
+  const secureLegacyMount = source.indexOf(
+    "app.use('/api/partner', securePartnerRegistrationRoutes)"
+  );
   const legacyV1Mount = source.indexOf("app.use('/api/v1/partner', partnerRoutes)");
   const legacyMount = source.indexOf("app.use('/api/partner', partnerRoutes)");
 

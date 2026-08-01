@@ -193,7 +193,10 @@ async function addDatabaseIndexes() {
       await appeals.createIndex({ expiresAtDate: 1 }, { expireAfterSeconds: 0 });
       logger.debug('Partner registration anti-abuse indexes created');
     } catch (error) {
-      logger.warn('Partner registration anti-abuse indexes could not be fully created:', error.message);
+      logger.warn(
+        'Partner registration anti-abuse indexes could not be fully created:',
+        error.message
+      );
     }
 
     logger.info('Database indexes created successfully');

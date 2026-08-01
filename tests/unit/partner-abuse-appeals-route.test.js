@@ -59,9 +59,7 @@ test('records a valid appeal and notifies administrators without exposing the em
   });
 
   expect(response.status).toBe(201);
-  expect(response.body).toEqual(
-    expect.objectContaining({ ok: true, appealId: 'appeal_1' })
-  );
+  expect(response.body).toEqual(expect.objectContaining({ ok: true, appealId: 'appeal_1' }));
   expect(mockCreateAppeal).toHaveBeenCalledWith({
     email: 'person@example.com',
     name: 'Pat Person',

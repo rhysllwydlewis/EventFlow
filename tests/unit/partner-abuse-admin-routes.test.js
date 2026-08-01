@@ -114,12 +114,10 @@ test('lists appeals and updates a reviewed appeal with attributed evidence', asy
   expect(list.status).toBe(200);
   expect(list.body.total).toBe(1);
 
-  const update = await request(app())
-    .patch('/api/admin/partner-abuse/appeals/appeal_1')
-    .send({
-      status: 'accepted',
-      internalNote: 'Verified independently and approved after manual review.',
-    });
+  const update = await request(app()).patch('/api/admin/partner-abuse/appeals/appeal_1').send({
+    status: 'accepted',
+    internalNote: 'Verified independently and approved after manual review.',
+  });
   expect(update.status).toBe(200);
   expect(collections.partner_abuse_appeals[0]).toEqual(
     expect.objectContaining({ status: 'accepted', reviewedBy: 'admin_1' })
@@ -186,12 +184,10 @@ test('validates override input and returns non-secret active configuration', asy
 });
 
 test('returns not found for missing appeal and override updates', async () => {
-  const appeal = await request(app())
-    .patch('/api/admin/partner-abuse/appeals/missing')
-    .send({
-      status: 'resolved',
-      internalNote: 'Checked all evidence and no matching record was found.',
-    });
+  const appeal = await request(app()).patch('/api/admin/partner-abuse/appeals/missing').send({
+    status: 'resolved',
+    internalNote: 'Checked all evidence and no matching record was found.',
+  });
   expect(appeal.status).toBe(404);
 
   const override = await request(app())
