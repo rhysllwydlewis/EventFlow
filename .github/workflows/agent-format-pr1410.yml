@@ -1,0 +1,59 @@
+name: Agent Format PR 1410
+
+on:
+  push:
+    branches:
+      - dependabot/npm_and_yarn/prettier-3.9.6
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: dependabot/npm_and_yarn/prettier-3.9.6
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: npm
+
+      - name: Install dependencies
+        env:
+          HUSKY: 0
+        run: npm ci --prefer-offline --no-audit
+
+      - name: Apply Prettier 3.9.6 formatting
+        run: |
+          npx prettier --write \
+            docs/features/PEXELS_ADVANCED_FEATURES.md \
+            docs/guides/SW_API_CACHING_SECURITY.md \
+            docs/security.md \
+            public/assets/js/vendor/altcha-widget.js \
+            public/assets/vendor/chart.umd.js \
+            routes/wedding-websites.js
+
+      - name: Commit formatted files
+        run: |
+          if git diff --quiet; then
+            echo "No formatting changes were required."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            docs/features/PEXELS_ADVANCED_FEATURES.md \
+            docs/guides/SW_API_CACHING_SECURITY.md \
+            docs/security.md \
+            public/assets/js/vendor/altcha-widget.js \
+            public/assets/vendor/chart.umd.js \
+            routes/wedding-websites.js
+          git commit -m "style: apply Prettier 3.9.6 formatting"
+          git push origin HEAD:dependabot/npm_and_yarn/prettier-3.9.6
