@@ -1,0 +1,36 @@
+name: PR1416 Sync Main
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+
+env:
+  HUSKY: '0'
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR branch with history
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+
+      - name: Merge current main
+        run: |
+          git config user.name "EventFlow CI Maintainer"
+          git config user.email "actions@users.noreply.github.com"
+          git fetch origin main
+          git merge --no-ff origin/main -m "chore(partner): sync PR2 with merged PR1"
+
+      - name: Remove sync workflow and push
+        env:
+          TARGET_BRANCH: ${{ github.head_ref }}
+        run: |
+          git rm .github/workflows/pr1416-sync-main.yml
+          git commit -m "chore(ci): remove PR1416 sync workflow"
+          git push origin "HEAD:${TARGET_BRANCH}"
