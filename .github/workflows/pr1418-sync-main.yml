@@ -1,0 +1,42 @@
+name: PR 1418 sync latest main
+
+on:
+  push:
+    branches:
+      - agent/supplier-profile-trust-consistency
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pr1418-sync-main
+  cancel-in-progress: false
+
+jobs:
+  sync-main:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/supplier-profile-trust-consistency
+          fetch-depth: 0
+
+      - name: Merge latest main
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git merge --no-edit origin/main
+
+      - name: Remove temporary sync files
+        run: |
+          rm -f .github/pr1418-base-refresh.txt
+          rm -f .github/workflows/pr1418-sync-main.yml
+          git add .github/pr1418-base-refresh.txt .github/workflows/pr1418-sync-main.yml
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: remove PR 1418 sync helpers"
+          fi
+
+      - name: Push synchronised branch
+        run: git push origin HEAD:agent/supplier-profile-trust-consistency
