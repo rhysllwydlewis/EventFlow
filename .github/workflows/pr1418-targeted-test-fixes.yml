@@ -32,7 +32,7 @@ jobs:
           node-version-file: .node-version
           cache: npm
 
-      - name: Patch brittle source and geometry assertions
+      - name: Patch full-suite assertion and stabilise auth toggle geometry
         run: |
           python <<'PY'
           from pathlib import Path
@@ -54,21 +54,24 @@ jobs:
           assert old_supplier in supplier_test, 'supplier assertion anchor missing'
           supplier_test_path.write_text(supplier_test.replace(old_supplier, new_supplier, 1))
 
-          auth_test_path = Path('e2e/auth.spec.js')
-          auth_test = auth_test_path.read_text()
-          old_auth = """    // The toggle must not drift relative to the input (within 4px tolerance)
-    const toggleOffsetBefore = toggleBoxBefore.y - inputBoxBefore.y;
-    const toggleOffsetAfter = toggleBoxAfter.y - inputBoxAfter.y;
-    expect(Math.abs(toggleOffsetAfter - toggleOffsetBefore)).toBeLessThanOrEqual(4);"""
-          new_auth = """    // Compare centres rather than top edges because the two eye icons can
-    // have different rendered heights while remaining visually centred.
-    const inputCenterBefore = inputBoxBefore.y + inputBoxBefore.height / 2;
-    const inputCenterAfter = inputBoxAfter.y + inputBoxAfter.height / 2;
-    const centeredOffsetBefore = toggleCenterBefore - inputCenterBefore;
-    const centeredOffsetAfter = toggleCenterAfter - inputCenterAfter;
-    expect(Math.abs(centeredOffsetAfter - centeredOffsetBefore)).toBeLessThanOrEqual(4);"""
-          assert old_auth in auth_test, 'auth geometry assertion anchor missing'
-          auth_test_path.write_text(auth_test.replace(old_auth, new_auth, 1))
+          css_path = Path('public/assets/css/auth.css')
+          css = css_path.read_text()
+          old_css = """  /* !important overrides `button { width:100%; margin-top:6px }` from styles.css */
+  width: auto !important;
+  margin-top: 0 !important;
+  /* neutralize `min-height/min-width: 44px` from mobile-optimizations.css */
+  min-height: unset !important;
+  min-width: unset !important;
+  height: auto !important;"""
+          new_css = """  /* Keep the visual button box stable when the eye SVG is swapped. The
+     separate ::before pseudo-element still provides the 44px touch target. */
+  width: 32px !important;
+  height: 32px !important;
+  margin-top: 0 !important;
+  min-height: 32px !important;
+  min-width: 32px !important;"""
+          assert old_css in css, 'password toggle sizing anchor missing'
+          css_path.write_text(css.replace(old_css, new_css, 1))
           PY
 
       - name: Install dependencies
@@ -78,7 +81,7 @@ jobs:
 
       - name: Verify targeted Jest and Playwright tests
         run: |
-          npx prettier --write tests/unit/supplier-approval.test.js e2e/auth.spec.js
+          npx prettier --write tests/unit/supplier-approval.test.js public/assets/css/auth.css
           npx jest tests/unit/supplier-approval.test.js --runInBand --coverage=false
           CI=true npx playwright test e2e/auth.spec.js --project=chromium --grep "password toggle stays vertically centered"
 
@@ -87,6 +90,6 @@ jobs:
           rm .github/workflows/pr1418-targeted-test-fixes.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add tests/unit/supplier-approval.test.js e2e/auth.spec.js .github/workflows/pr1418-targeted-test-fixes.yml
-          git commit -m "test(suppliers): make full and auth assertions behaviour-based"
+          git add tests/unit/supplier-approval.test.js public/assets/css/auth.css .github/workflows/pr1418-targeted-test-fixes.yml
+          git commit -m "fix(auth): stabilise password toggle geometry and supplier assertion"
           git push origin HEAD:agent/supplier-profile-trust-consistency
