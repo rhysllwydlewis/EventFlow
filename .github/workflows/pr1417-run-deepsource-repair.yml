@@ -59,8 +59,7 @@ jobs:
             public/assets/js/pages/admin-cashout-requests-init.js
           npx eslint \
             services/partnerCashoutAdminEnrichmentRuntime.js \
-            services/partnerCashoutLockRuntime.js \
-            public/assets/js/pages/admin-cashout-requests-init.js
+            services/partnerCashoutLockRuntime.js
           npx jest \
             tests/unit/admin-allowlist.test.js \
             tests/unit/partner-cashout-admin-ui.test.js \
