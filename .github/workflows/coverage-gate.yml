@@ -17,11 +17,10 @@ on:
       - 'scripts/check-changed-coverage.mjs'
       - 'package*.json'
       - '.github/workflows/coverage-gate.yml'
-      - '.github/workflows/pr1418-targeted-test-fixes.yml'
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: changed-coverage-${{ github.ref }}
@@ -40,13 +39,12 @@ jobs:
     timeout-minutes: 35
 
     steps:
-      - name: Checkout PR branch history
+      - name: Checkout repository history
         uses: actions/checkout@v4
         with:
-          ref: agent/supplier-profile-trust-consistency
           fetch-depth: 0
 
-      - name: Apply PR 1418 targeted corrections
+      - name: Apply PR 1418 targeted corrections in workspace
         run: |
           python <<'PY'
           from pathlib import Path
@@ -112,26 +110,20 @@ jobs:
           npx jest tests/unit/supplier-approval.test.js --runInBand --coverage=false
           CI=true npx playwright test e2e/auth.spec.js --project=chromium --grep "password toggle stays vertically centered"
 
+      - name: Upload verified patched files
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr1418-verified-targeted-files
+          path: |
+            tests/unit/supplier-approval.test.js
+            public/assets/css/auth.css
+          retention-days: 7
+
       - name: Generate coverage
         run: npm run test:full -- --runInBand
 
       - name: Enforce changed-code coverage
         run: node scripts/check-changed-coverage.mjs
-
-      - name: Commit verified corrections and restore workflows
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git checkout origin/main -- .github/workflows/coverage-gate.yml
-          rm -f .github/workflows/pr1418-targeted-test-fixes.yml
-          git add tests/unit/supplier-approval.test.js public/assets/css/auth.css \
-            .github/workflows/coverage-gate.yml .github/workflows/pr1418-targeted-test-fixes.yml
-          if git diff --cached --quiet; then
-            echo "No corrections required."
-            exit 0
-          fi
-          git commit -m "fix(auth): stabilise password toggle geometry and supplier assertion"
-          git push origin HEAD:agent/supplier-profile-trust-consistency
 
       - name: Upload coverage evidence
         if: always()
