@@ -1,28 +1,32 @@
 'use strict';
 
-const { JSDOM } = require('jsdom');
+const fs = require('fs');
+const path = require('path');
+const vm = require('vm');
+
+const widgetSource = fs.readFileSync(
+  path.join(__dirname, '../../public/assets/js/components/profile-health-widget.js'),
+  'utf8'
+);
 
 describe('supplier profile health aliases', () => {
-  let dom;
+  let widget;
 
   beforeEach(() => {
-    jest.resetModules();
-    dom = new JSDOM('<!doctype html><html><body></body></html>', {
-      url: 'https://event-flow.co.uk/dashboard/supplier',
-    });
-    global.window = dom.window;
-    global.document = dom.window.document;
-    require('../../public/assets/js/components/profile-health-widget.js');
-  });
+    const sandbox = {
+      window: {},
+      document: {},
+      console: { warn: jest.fn() },
+    };
 
-  afterEach(() => {
-    dom.window.close();
-    delete global.window;
-    delete global.document;
+    vm.runInNewContext(widgetSource, sandbox, {
+      filename: 'profile-health-widget.js',
+    });
+    widget = sandbox.window.ProfileHealthWidget;
   });
 
   test('empty canonical gallery still counts populated legacy images', () => {
-    const result = global.window.ProfileHealthWidget.calculate({
+    const result = widget.calculate({
       photosGallery: [],
       images: ['/api/photos/a', '/api/photos/b', '/api/photos/c'],
     });
@@ -31,7 +35,7 @@ describe('supplier profile health aliases', () => {
   });
 
   test('the same mixed-schema photo cannot count twice toward gallery completion', () => {
-    const result = global.window.ProfileHealthWidget.calculate({
+    const result = widget.calculate({
       photosGallery: [{ url: '/api/photos/a' }, { url: '/api/photos/b' }],
       images: [{ url: '/api/photos/a' }],
     });
@@ -40,7 +44,7 @@ describe('supplier profile health aliases', () => {
   });
 
   test('modern and legacy social maps are merged before counting platforms', () => {
-    const result = global.window.ProfileHealthWidget.calculate({
+    const result = widget.calculate({
       socials: { facebook: 'https://facebook.com/example' },
       socialLinks: { instagram: 'https://instagram.com/example' },
     });
@@ -49,7 +53,7 @@ describe('supplier profile health aliases', () => {
   });
 
   test('empty canonical social values do not erase populated legacy values', () => {
-    const result = global.window.ProfileHealthWidget.calculate({
+    const result = widget.calculate({
       socials: {
         facebook: 'https://facebook.com/example',
         instagram: 'https://instagram.com/example',
@@ -61,7 +65,7 @@ describe('supplier profile health aliases', () => {
   });
 
   test('description and banner aliases satisfy their canonical health checks', () => {
-    const result = global.window.ProfileHealthWidget.calculate({
+    const result = widget.calculate({
       description_long: 'A'.repeat(120),
       bannerUrl: '/api/photos/banner',
     });
