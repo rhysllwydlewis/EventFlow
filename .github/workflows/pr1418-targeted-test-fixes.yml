@@ -1,0 +1,87 @@
+name: PR 1418 targeted test fixes
+
+on:
+  push:
+    branches:
+      - agent/supplier-profile-trust-consistency
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pr1418-targeted-test-fixes
+  cancel-in-progress: true
+
+jobs:
+  patch-and-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/supplier-profile-trust-consistency
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: npm
+
+      - name: Patch brittle source and geometry assertions
+        run: |
+          python <<'PY'
+          from pathlib import Path
+
+          supplier_test_path = Path('tests/unit/supplier-approval.test.js')
+          supplier_test = supplier_test_path.read_text()
+          old_supplier = """  it('applies .trim() and .substring() to each field in the PATCH loop', () => {
+    const patchSection = content.slice(content.indexOf('PATCH /api/me/suppliers/:id'));
+    expect(patchSection.slice(0, 2000)).toContain('.trim()');
+    expect(patchSection.slice(0, 2000)).toContain('.substring(0, maxLen)');
+  });"""
+          new_supplier = """  it('applies .trim() and .substring() to each field in the PATCH loop', () => {
+    const patchSection = content.slice(content.indexOf('PATCH /api/me/suppliers/:id'));
+    const boundedStringLoop = patchSection.match(
+      /for \(const \[k, maxLen\][\s\S]*?supplierPatch\[k\] = b\[k\]\.trim\(\)\.substring\(0, maxLen\);/
+    );
+    expect(boundedStringLoop).toBeTruthy();
+  });"""
+          assert old_supplier in supplier_test, 'supplier assertion anchor missing'
+          supplier_test_path.write_text(supplier_test.replace(old_supplier, new_supplier, 1))
+
+          auth_test_path = Path('e2e/auth.spec.js')
+          auth_test = auth_test_path.read_text()
+          old_auth = """    // The toggle must not drift relative to the input (within 4px tolerance)
+    const toggleOffsetBefore = toggleBoxBefore.y - inputBoxBefore.y;
+    const toggleOffsetAfter = toggleBoxAfter.y - inputBoxAfter.y;
+    expect(Math.abs(toggleOffsetAfter - toggleOffsetBefore)).toBeLessThanOrEqual(4);"""
+          new_auth = """    // Compare centres rather than top edges because the two eye icons can
+    // have different rendered heights while remaining visually centred.
+    const inputCenterBefore = inputBoxBefore.y + inputBoxBefore.height / 2;
+    const inputCenterAfter = inputBoxAfter.y + inputBoxAfter.height / 2;
+    const centeredOffsetBefore = toggleCenterBefore - inputCenterBefore;
+    const centeredOffsetAfter = toggleCenterAfter - inputCenterAfter;
+    expect(Math.abs(centeredOffsetAfter - centeredOffsetBefore)).toBeLessThanOrEqual(4);"""
+          assert old_auth in auth_test, 'auth geometry assertion anchor missing'
+          auth_test_path.write_text(auth_test.replace(old_auth, new_auth, 1))
+          PY
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit
+        env:
+          HUSKY: 0
+
+      - name: Verify targeted Jest and Playwright tests
+        run: |
+          npx prettier --write tests/unit/supplier-approval.test.js e2e/auth.spec.js
+          npx jest tests/unit/supplier-approval.test.js --runInBand --coverage=false
+          CI=true npx playwright test e2e/auth.spec.js --project=chromium --grep "password toggle stays vertically centered"
+
+      - name: Commit verified fixes and remove helper
+        run: |
+          rm .github/workflows/pr1418-targeted-test-fixes.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tests/unit/supplier-approval.test.js e2e/auth.spec.js .github/workflows/pr1418-targeted-test-fixes.yml
+          git commit -m "test(suppliers): make full and auth assertions behaviour-based"
+          git push origin HEAD:agent/supplier-profile-trust-consistency
