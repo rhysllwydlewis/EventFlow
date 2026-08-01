@@ -33,14 +33,17 @@ jobs:
         run: |
           python <<'RUNNER'
           from pathlib import Path
-          import textwrap
 
           workflow = Path('.github/workflows/pr1417-deepsource-current-diagnostic.yml').read_text()
           start_marker = "          python <<'PY'\n"
           end_marker = "\n          PY\n"
           start = workflow.index(start_marker) + len(start_marker)
           end = workflow.index(end_marker, start)
-          script = textwrap.dedent(workflow[start:end])
+          lines = workflow[start:end].splitlines()
+          script = '\n'.join(
+              line[10:] if line.startswith('          ') else line
+              for line in lines
+          )
           exec(compile(script, 'pr1417-deepsource-repair.py', 'exec'))
           RUNNER
 
