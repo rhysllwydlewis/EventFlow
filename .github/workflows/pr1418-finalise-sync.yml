@@ -1,0 +1,89 @@
+name: PR 1418 finalise sync
+
+on:
+  push:
+    branches:
+      - agent/supplier-profile-trust-consistency
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pr1418-finalise-sync
+  cancel-in-progress: false
+
+jobs:
+  finalise:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/supplier-profile-trust-consistency
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: npm
+
+      - name: Restore supplier trust integration after main sync
+        run: |
+          python <<'PY'
+          import json
+          from pathlib import Path
+
+          routes_path = Path('routes/index.js')
+          routes = routes_path.read_text()
+          require_anchor = "const supplierAdminRoutes = require('./supplier-admin');"
+          require_line = "const supplierTrustAdminRoutes = require('./supplier-trust-admin');"
+          if require_line not in routes:
+              assert require_anchor in routes, 'supplier admin import anchor missing'
+              routes = routes.replace(require_anchor, require_anchor + "\n" + require_line, 1)
+
+          mount_anchor = "  app.use('/api/v1/admin', supplierAdminRoutes);\n  app.use('/api/admin', supplierAdminRoutes);"
+          mount_block = mount_anchor + "\n  // Dedicated trust-credential mutations use the audited structured trust path.\n  app.use('/api/v1/admin', supplierTrustAdminRoutes);\n  app.use('/api/admin', supplierTrustAdminRoutes);"
+          if "app.use('/api/v1/admin', supplierTrustAdminRoutes);" not in routes:
+              assert mount_anchor in routes, 'supplier admin mount anchor missing'
+              routes = routes.replace(mount_anchor, mount_block, 1)
+          routes_path.write_text(routes)
+
+          package_path = Path('package.json')
+          package = json.loads(package_path.read_text())
+          supplier_tests = [
+              'tests/unit/audit-log-persistence.test.js',
+              'tests/unit/supplier-public-profile-trust.test.js',
+              'tests/unit/supplier-auto-approval-audit.test.js',
+              'tests/unit/supplier-trust-admin.test.js',
+              'tests/unit/supplier-trust-badge-mutation-guard.test.js',
+              'tests/unit/supplier-banner-persistence.test.js',
+              'tests/unit/supplier-profile-trust-assets.test.js',
+              'tests/unit/supplier-profile-health-aliases.test.js',
+          ]
+          smoke = package['scripts']['test:smoke']
+          for test in supplier_tests:
+              if test not in smoke:
+                  smoke += ' ' + test
+          package['scripts']['test:smoke'] = smoke
+          package_path.write_text(json.dumps(package, indent=2) + '\n')
+          PY
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit
+        env:
+          HUSKY: 0
+
+      - name: Format and verify
+        run: |
+          npx prettier --write routes/index.js package.json
+          npx prettier --check routes/index.js package.json
+          npm run test:smoke
+
+      - name: Commit integration and remove helper
+        run: |
+          rm .github/workflows/pr1418-finalise-sync.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add routes/index.js package.json .github/workflows/pr1418-finalise-sync.yml
+          git commit -m "fix(suppliers): preserve trust routes and smoke coverage after sync"
+          git push origin HEAD:agent/supplier-profile-trust-consistency
