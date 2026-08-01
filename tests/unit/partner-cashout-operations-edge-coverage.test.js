@@ -246,13 +246,17 @@ test('identity checks can be disabled, expire old reviews and detect company dri
   await expect(service.identityDecision('partner_1')).resolves.toMatchObject({ eligible: true });
 
   process.env.PARTNER_CASHOUT_IDENTITY_REVIEW_REQUIRED = 'true';
-  await expect(service.identityDecision('partner_1', Date.parse('2026-08-01T00:00:00.000Z'))).resolves.toMatchObject({
+  await expect(
+    service.identityDecision('partner_1', Date.parse('2026-08-01T00:00:00.000Z'))
+  ).resolves.toMatchObject({
     eligible: false,
     reason: 'PARTNER_CASHOUT_IDENTITY_REVIEW_EXPIRED',
   });
 
   collections.partners[0].cashoutIdentityVerifiedAt = '2026-08-01T00:00:00.000Z';
-  await expect(service.identityDecision('partner_1', Date.parse('2026-08-02T00:00:00.000Z'))).resolves.toMatchObject({
+  await expect(
+    service.identityDecision('partner_1', Date.parse('2026-08-02T00:00:00.000Z'))
+  ).resolves.toMatchObject({
     eligible: false,
     reason: 'PARTNER_CASHOUT_IDENTITY_CHANGED',
   });

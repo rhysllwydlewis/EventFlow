@@ -91,11 +91,7 @@ test('Mongo paged queries apply sort, skip and limit and count through the autho
   mockCollection.countDocuments.mockResolvedValue(7);
 
   await expect(
-    store.findWithOptions(
-      'items',
-      { active: true },
-      { sort: { createdAt: -1 }, skip: 4, limit: 2 }
-    )
+    store.findWithOptions('items', { active: true }, { sort: { createdAt: -1 }, skip: 4, limit: 2 })
   ).resolves.toEqual([{ id: 'paged' }]);
   await expect(store.count('items', { active: true })).resolves.toBe(7);
 
@@ -115,13 +111,28 @@ test('an unacknowledged Mongo insert fails closed', async () => {
 });
 
 test.each([
-  ['delete', () => store.deleteOne('items', { id: 'one' }), () => mockCollection.deleteOne.mockRejectedValueOnce(new Error('delete failed'))],
-  ['paged query', () => store.findWithOptions('items', {}, { limit: 2 }), () => mockCursor.toArray.mockRejectedValueOnce(new Error('cursor failed'))],
-  ['count', () => store.count('items', {}), () => mockCollection.countDocuments.mockRejectedValueOnce(new Error('count failed'))],
-])('Mongo %s failures are normalised to the fail-closed storage error', async (_name, operation, fail) => {
-  mockUnified.getDatabaseType.mockReturnValue('mongodb');
-  fail();
-  await expect(operation()).rejects.toMatchObject({
-    code: 'PARTNER_CASHOUT_STORAGE_UNAVAILABLE',
-  });
-});
+  [
+    'delete',
+    () => store.deleteOne('items', { id: 'one' }),
+    () => mockCollection.deleteOne.mockRejectedValueOnce(new Error('delete failed')),
+  ],
+  [
+    'paged query',
+    () => store.findWithOptions('items', {}, { limit: 2 }),
+    () => mockCursor.toArray.mockRejectedValueOnce(new Error('cursor failed')),
+  ],
+  [
+    'count',
+    () => store.count('items', {}),
+    () => mockCollection.countDocuments.mockRejectedValueOnce(new Error('count failed')),
+  ],
+])(
+  'Mongo %s failures are normalised to the fail-closed storage error',
+  async (_name, operation, fail) => {
+    mockUnified.getDatabaseType.mockReturnValue('mongodb');
+    fail();
+    await expect(operation()).rejects.toMatchObject({
+      code: 'PARTNER_CASHOUT_STORAGE_UNAVAILABLE',
+    });
+  }
+);

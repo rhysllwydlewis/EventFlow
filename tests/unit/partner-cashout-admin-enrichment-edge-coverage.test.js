@@ -25,7 +25,12 @@ test.each([
   [null, null, 'PARTNER_CASHOUT_IDENTITY_MISSING'],
   [{ id: 'p', status: 'inactive' }, { verified: true }, 'PARTNER_CASHOUT_PARTNER_NOT_ACTIVE'],
   [
-    { id: 'p', status: 'active', cashoutIdentityStatus: 'verified', cashoutIdentityVerifiedAt: new Date().toISOString() },
+    {
+      id: 'p',
+      status: 'active',
+      cashoutIdentityStatus: 'verified',
+      cashoutIdentityVerifiedAt: new Date().toISOString(),
+    },
     { verified: false },
     'PARTNER_CASHOUT_EMAIL_UNVERIFIED',
   ],
