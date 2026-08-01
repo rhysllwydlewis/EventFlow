@@ -1,6 +1,6 @@
-(() => {
-  'use strict';
+'use strict';
 
+(() => {
   const express = require('express');
   const logger = require('../utils/logger');
   const strictStore = require('./partnerCashoutStrictStore');
