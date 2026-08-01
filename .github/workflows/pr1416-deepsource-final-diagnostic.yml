@@ -1,0 +1,68 @@
+name: PR 1416 final DeepSource diagnostic
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  statuses: read
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TARGET_SHA: ${{ github.event.pull_request.head.sha }}
+    steps:
+      - name: Capture DeepSource report
+        shell: bash
+        run: |
+          mkdir -p diagnostic
+          for attempt in $(seq 1 90); do
+            gh api "repos/${GITHUB_REPOSITORY}/commits/${TARGET_SHA}/status" > diagnostic/status.json
+            state=$(jq -r '.statuses[] | select(.context == "DeepSource: JavaScript") | .state' diagnostic/status.json | head -1)
+            target=$(jq -r '.statuses[] | select(.context == "DeepSource: JavaScript") | .target_url' diagnostic/status.json | head -1)
+            echo "attempt=$attempt state=$state target=$target"
+            if [[ -n "$target" && "$target" != "null" && "$state" != "pending" && -n "$state" ]]; then
+              break
+            fi
+            sleep 10
+          done
+          jq '.statuses[] | select(.context == "DeepSource: JavaScript")' diagnostic/status.json > diagnostic/deepsource-status.json
+          target=$(jq -r '.target_url' diagnostic/deepsource-status.json)
+          curl --fail-with-body --silent --show-error --location --dump-header diagnostic/headers.txt "$target" --output diagnostic/report.html
+          python <<'PY'
+          import html
+          import json
+          import re
+          from pathlib import Path
+
+          raw = Path('diagnostic/report.html').read_text(errors='replace')
+          plain = html.unescape(re.sub(r'<[^>]+>', ' ', raw))
+          plain = re.sub(r'\s+', ' ', plain)
+          Path('diagnostic/report.txt').write_text(plain)
+
+          codes = sorted(set(re.findall(r'JS-(?:R|C)?\d{4}|JS-\d{4}', raw)))
+          files = sorted(set(re.findall(r'(?:services|tests)/[A-Za-z0-9._/-]+\.js', raw)))
+          details = {
+            'codes': codes,
+            'files': files,
+            'report_bytes': len(raw),
+          }
+          Path('diagnostic/summary.json').write_text(json.dumps(details, indent=2))
+          print(json.dumps(details, indent=2))
+          for keyword in ['critical', 'complexity', 'bug risk', 'anti-pattern', 'performance', 'security', 'style']:
+            for match in re.finditer(keyword, plain, flags=re.I):
+              start = max(0, match.start() - 600)
+              end = min(len(plain), match.end() + 1200)
+              print(f'\n--- {keyword} ---\n{plain[start:end]}')
+          PY
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pr1416-deepsource-final-diagnostic
+          path: diagnostic
+          retention-days: 1
