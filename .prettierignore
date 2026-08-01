@@ -22,3 +22,5 @@ public/assets/js/pages/admin-homepage-rebuild.js
 tests/integration/homepage-settings-video.test.js
 tests/unit/admin-notif-panel-viewport.test.js
 tests/unit/admin-notifications-empty-convos.test.js
+public/assets/js/vendor/altcha-widget.js
+public/assets/vendor/chart.umd.js
