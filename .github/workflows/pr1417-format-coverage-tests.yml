@@ -1,0 +1,72 @@
+name: PR 1417 format coverage tests
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pr1417-format-coverage-tests
+  cancel-in-progress: false
+
+jobs:
+  format-and-verify:
+    if: github.event.pull_request.head.ref == 'agent/partner-anti-abuse-pr3-cashout-ops'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/partner-anti-abuse-pr3-cashout-ops
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit
+        env:
+          HUSKY: 0
+
+      - name: Format coverage suites
+        run: |
+          npx prettier --write \
+            tests/unit/partner-cashout-admin-enrichment-edge-coverage.test.js \
+            tests/unit/partner-cashout-operations-edge-coverage.test.js \
+            tests/unit/partner-cashout-strict-store-edge-coverage.test.js
+
+      - name: Verify all added coverage suites
+        run: |
+          npx prettier --check \
+            tests/unit/partner-cashout-admin-enrichment-edge-coverage.test.js \
+            tests/unit/partner-cashout-index-retry-coverage.test.js \
+            tests/unit/partner-cashout-lock-runtime-edge-coverage.test.js \
+            tests/unit/partner-cashout-operation-lock-edge-coverage.test.js \
+            tests/unit/partner-cashout-operations-edge-coverage.test.js \
+            tests/unit/partner-cashout-strict-store-edge-coverage.test.js
+          npx jest \
+            tests/unit/partner-cashout-admin-enrichment-edge-coverage.test.js \
+            tests/unit/partner-cashout-index-retry-coverage.test.js \
+            tests/unit/partner-cashout-lock-runtime-edge-coverage.test.js \
+            tests/unit/partner-cashout-operation-lock-edge-coverage.test.js \
+            tests/unit/partner-cashout-operations-edge-coverage.test.js \
+            tests/unit/partner-cashout-strict-store-edge-coverage.test.js \
+            --runInBand --coverage=false
+
+      - name: Commit verified formatting and remove workflow
+        run: |
+          rm .github/workflows/pr1417-format-coverage-tests.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            tests/unit/partner-cashout-admin-enrichment-edge-coverage.test.js \
+            tests/unit/partner-cashout-operations-edge-coverage.test.js \
+            tests/unit/partner-cashout-strict-store-edge-coverage.test.js \
+            .github/workflows/pr1417-format-coverage-tests.yml
+          git commit -m "test(partner): format and verify cashout coverage suites"
+          git push origin HEAD:agent/partner-anti-abuse-pr3-cashout-ops
