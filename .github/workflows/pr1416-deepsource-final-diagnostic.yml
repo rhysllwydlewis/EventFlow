@@ -1,4 +1,4 @@
-name: PR 1416 final DeepSource diagnostic
+name: PR 1416 DeepSource issue enumeration
 
 on:
   pull_request:
@@ -7,62 +7,104 @@ on:
 
 permissions:
   contents: read
-  statuses: read
 
 jobs:
-  capture:
+  enumerate:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-    env:
-      GH_TOKEN: ${{ github.token }}
-      TARGET_SHA: ${{ github.event.pull_request.head.sha }}
+    timeout-minutes: 10
     steps:
-      - name: Capture DeepSource report
+      - name: Fetch every issue from the diagnosed DeepSource check
         shell: bash
+        env:
+          CHECK_ID: Q2hlY2s6eWxtZXJ3YXY=
+          REPORT_URL: https://app.deepsource.com/gh/rhysllwydlewis/EventFlow/run/4a6bc5de-70bd-468a-b6dc-bc3e1dc29bfe/javascript/
         run: |
           mkdir -p diagnostic
-          for attempt in $(seq 1 90); do
-            gh api "repos/${GITHUB_REPOSITORY}/commits/${TARGET_SHA}/status" > diagnostic/status.json
-            state=$(jq -r '.statuses[] | select(.context == "DeepSource: JavaScript") | .state' diagnostic/status.json | head -1)
-            target=$(jq -r '.statuses[] | select(.context == "DeepSource: JavaScript") | .target_url' diagnostic/status.json | head -1)
-            echo "attempt=$attempt state=$state target=$target"
-            if [[ -n "$target" && "$target" != "null" && "$state" != "pending" && -n "$state" ]]; then
-              break
-            fi
-            sleep 10
-          done
-          jq '.statuses[] | select(.context == "DeepSource: JavaScript")' diagnostic/status.json > diagnostic/deepsource-status.json
-          target=$(jq -r '.target_url' diagnostic/deepsource-status.json)
-          curl --fail-with-body --silent --show-error --location --dump-header diagnostic/headers.txt "$target" --output diagnostic/report.html
           python <<'PY'
-          import html
+          import http.cookiejar
           import json
-          import re
+          import os
+          import urllib.request
+          from collections import Counter, defaultdict
           from pathlib import Path
 
-          raw = Path('diagnostic/report.html').read_text(errors='replace')
-          plain = html.unescape(re.sub(r'<[^>]+>', ' ', raw))
-          plain = re.sub(r'\s+', ' ', plain)
-          Path('diagnostic/report.txt').write_text(plain)
+          cookie_jar = http.cookiejar.CookieJar()
+          opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cookie_jar))
+          opener.addheaders = [('User-Agent', 'EventFlow-PR1416-Diagnostic/1.0')]
+          opener.open(os.environ['REPORT_URL']).read()
 
-          codes = sorted(set(re.findall(r'JS-(?:R|C)?\d{4}|JS-\d{4}', raw)))
-          files = sorted(set(re.findall(r'(?:services|tests)/[A-Za-z0-9._/-]+\.js', raw)))
-          details = {
-            'codes': codes,
-            'files': files,
-            'report_bytes': len(raw),
+          query = '''
+          query EnumerateCheckIssues($id: ID!, $after: String) {
+            node(id: $id) {
+              ... on Check {
+                allIssues(first: 100, after: $after) {
+                  pageInfo { hasNextPage endCursor }
+                  edges {
+                    node {
+                      id path text shortcode category severity
+                      beginLine beginColumn endLine endColumn
+                    }
+                  }
+                }
+              }
+            }
           }
-          Path('diagnostic/summary.json').write_text(json.dumps(details, indent=2))
-          print(json.dumps(details, indent=2))
-          for keyword in ['critical', 'complexity', 'bug risk', 'anti-pattern', 'performance', 'security', 'style']:
-            for match in re.finditer(keyword, plain, flags=re.I):
-              start = max(0, match.start() - 600)
-              end = min(len(plain), match.end() + 1200)
-              print(f'\n--- {keyword} ---\n{plain[start:end]}')
+          '''
+
+          issues = []
+          after = None
+          while True:
+            body = json.dumps({
+              'query': query,
+              'variables': {'id': os.environ['CHECK_ID'], 'after': after},
+            }).encode()
+            request = urllib.request.Request(
+              'https://app.deepsource.com/graphql/',
+              data=body,
+              headers={
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'Origin': 'https://app.deepsource.com',
+                'Referer': os.environ['REPORT_URL'],
+              },
+              method='POST',
+            )
+            response = json.loads(opener.open(request).read())
+            if response.get('errors'):
+              raise RuntimeError(json.dumps(response['errors'], indent=2))
+            connection = response['data']['node']['allIssues']
+            issues.extend(edge['node'] for edge in connection['edges'])
+            page_info = connection['pageInfo']
+            if not page_info['hasNextPage']:
+              break
+            after = page_info['endCursor']
+
+          Path('diagnostic/issues.json').write_text(json.dumps(issues, indent=2))
+          by_code = Counter(issue['shortcode'] for issue in issues)
+          by_file = defaultdict(Counter)
+          for issue in issues:
+            by_file[issue['path']][issue['shortcode']] += 1
+
+          summary = {
+            'total': len(issues),
+            'by_code': dict(sorted(by_code.items())),
+            'by_file': {
+              path: dict(sorted(counts.items()))
+              for path, counts in sorted(by_file.items())
+            },
+          }
+          Path('diagnostic/summary.json').write_text(json.dumps(summary, indent=2))
+          print(json.dumps(summary, indent=2))
+          print('\nExact findings:')
+          for issue in issues:
+            print(
+              f"{issue['shortcode']} {issue['path']}:{issue['beginLine']} "
+              f"[{issue['severity']}] {issue['text']}"
+            )
           PY
 
       - uses: actions/upload-artifact@v4
         with:
-          name: pr1416-deepsource-final-diagnostic
+          name: pr1416-deepsource-all-issues
           path: diagnostic
           retention-days: 1
