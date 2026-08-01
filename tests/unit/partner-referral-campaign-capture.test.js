@@ -1,6 +1,7 @@
 'use strict';
 
 const mockDb = {
+  initializeDatabase: jest.fn(() => Promise.resolve('local')),
   updateOne: jest.fn(() => Promise.resolve({ modified: 1 })),
 };
 const mockInstall = jest.fn();
@@ -36,6 +37,7 @@ function createRes({ statusCode = 201 } = {}) {
 
 describe('partnerReferralCampaignCapture middleware', () => {
   beforeEach(() => {
+    mockDb.initializeDatabase.mockClear();
     mockDb.updateOne.mockClear();
   });
 
