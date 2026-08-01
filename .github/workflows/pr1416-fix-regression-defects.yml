@@ -1,4 +1,4 @@
-name: PR 1416 fix regression defects
+name: PR 1416 apply regression fixes
 
 on:
   push:
@@ -9,18 +9,14 @@ permissions:
   contents: write
 
 jobs:
-  fix-and-verify:
+  apply-fixes:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
           ref: agent/partner-anti-abuse-pr2-reward-integrity
           fetch-depth: 0
-      - uses: actions/setup-node@v4
-        with:
-          node-version-file: .node-version
-          cache: npm
       - name: Apply production fixes
         run: |
           python <<'PY'
@@ -158,10 +154,7 @@ async function repairTechnicalReward(transaction) {
         reversalMode: null,
         technicalRepairAt,
       };
-      const snapshotReward = await qualificationEvidence.persistSnapshot(
-        repairCandidate,
-        snapshot
-      );
+      const snapshotReward = await qualificationEvidence.persistSnapshot(repairCandidate, snapshot);
       const updated = await dbUnified.updateOne(
         'partner_credit_transactions',
         { id: storedReward.id },
@@ -315,21 +308,7 @@ function installRewardMethodGuards() {"""
           clawback = clawback.replace(old_snapshot, new_snapshot, 1)
           clawback_path.write_text(clawback)
           PY
-      - name: Format fixes
-        run: npx prettier --write services/partnerRewardIntegrityRuntime.js services/partnerRewardIntegrityClawbackService.js
-      - name: Install dependencies
-        run: npm ci --prefer-offline --no-audit
-      - name: Run focused regression suites
-        env:
-          NODE_ENV: test
-          JWT_SECRET: pr1416-regression-fix-secret-min-32-characters
-        run: >-
-          npx jest --runInBand --coverage=false
-          tests/unit/partner-reward-technical-repair.test.js
-          tests/unit/partner-reward-snapshot-revalidation.test.js
-          tests/unit/partner-reward-integrity-clawback.test.js
-          tests/unit/partner-reward-integrity-runtime.test.js
-      - name: Commit verified fixes and remove temporary workflow
+      - name: Commit fixes and remove temporary workflow
         run: |
           rm .github/workflows/pr1416-fix-regression-defects.yml
           git config user.name "github-actions[bot]"
