@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - agent/supplier-profile-trust-consistency
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: write
@@ -14,7 +17,7 @@ concurrency:
 
 jobs:
   patch-and-verify:
-    if: github.actor != 'github-actions[bot]' || contains(github.event.head_commit.message, 'trigger PR 1418 final fixes')
+    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
