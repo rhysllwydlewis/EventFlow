@@ -1,0 +1,87 @@
+name: PR1416 Rebase Content
+
+on:
+  push:
+    branches:
+      - agent/partner-anti-abuse-pr2-reward-integrity
+
+permissions:
+  contents: write
+
+env:
+  HUSKY: '0'
+
+jobs:
+  rebase-content:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout PR2 branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/partner-anti-abuse-pr2-reward-integrity
+          fetch-depth: 0
+
+      - name: Restore final PR1 files from main
+        run: |
+          git config user.name "EventFlow CI Maintainer"
+          git config user.email "actions@users.noreply.github.com"
+          git fetch origin main
+          cp package.json /tmp/pr2-package.json
+          git checkout origin/main -- \
+            .prettierignore \
+            docs/PARTNER_ANTI_ABUSE_PR1_VALIDATION.md \
+            docs/features/PEXELS_ADVANCED_FEATURES.md \
+            docs/guides/SW_API_CACHING_SECURITY.md \
+            docs/security.md \
+            e2e/auth.spec.js \
+            package-lock.json \
+            package.json \
+            public/assets/css/auth.css \
+            public/assets/js/pages/partner-init.js \
+            public/assets/js/vendor/altcha-widget.js \
+            public/assets/vendor/chart.umd.js \
+            routes/partner-registration-secure.js \
+            routes/wedding-websites.js \
+            services/partnerAntiAbuseService.js \
+            services/partnerRegistrationRiskService.js \
+            tests/unit/partner-abuse-admin-routes.test.js \
+            tests/unit/partner-abuse-appeals-route.test.js \
+            tests/unit/partner-registration-captcha.test.js \
+            tests/unit/partner-registration-final-review.test.js \
+            tests/unit/partner-registration-risk-advanced.test.js \
+            tests/unit/partner-registration-route-order.test.js \
+            tests/unit/supplier-profile-provisioning-hardening.test.js \
+            utils/database.js
+          node <<'NODE'
+          const fs = require('fs');
+          const finalPackage = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          const pr2Package = JSON.parse(fs.readFileSync('/tmp/pr2-package.json', 'utf8'));
+          finalPackage.scripts['test:smoke'] = pr2Package.scripts['test:smoke'];
+          fs.writeFileSync('package.json', `${JSON.stringify(finalPackage, null, 2)}\n`);
+          NODE
+
+      - name: Verify rebased PR2 content
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.node-version'
+          cache: npm
+
+      - name: Install and run PR2 smoke gate
+        env:
+          NODE_ENV: test
+          JWT_SECRET: test-secret-for-jest-min-32-characters-long
+        run: |
+          npm ci --prefer-offline --no-audit
+          npm run check:lockfile
+          npm run format:check
+          npm run lint
+          npm run test:smoke
+
+      - name: Commit clean PR2 content and remove workflow
+        run: |
+          git add -A
+          git rm .github/workflows/pr1416-rebase-content.yml
+          git diff --cached --check
+          git commit -m "chore(partner): rebase PR2 onto final PR1 content"
+          git push origin HEAD:agent/partner-anti-abuse-pr2-reward-integrity
