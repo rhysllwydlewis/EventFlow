@@ -1,0 +1,325 @@
+'use strict';
+
+const mockPartnerService = {
+  CREDIT_TYPES: {
+    REFERRAL_SIGNUP_BONUS: 'REFERRAL_SIGNUP_BONUS',
+    PACKAGE_BONUS: 'PACKAGE_BONUS',
+    FIRST_REVIEW_BONUS: 'FIRST_REVIEW_BONUS',
+    SUBSCRIPTION_BONUS: 'SUBSCRIPTION_BONUS',
+  },
+  REFERRAL_SIGNUP_BONUS: 5,
+  PACKAGE_BONUS: 10,
+  FIRST_REVIEW_BONUS: 15,
+  SUBSCRIPTION_BONUS: 100,
+  CREDIT_MATURITY_DAYS: 30,
+  awardReferralSignupBonus: jest.fn(async supplierUserId => ({
+    id: `signup_${supplierUserId}`,
+    createdAt: '2026-07-01T00:00:00.000Z',
+  })),
+  awardPackageBonus: jest.fn(async supplierUserId => ({
+    id: `package_${supplierUserId}`,
+    createdAt: '2026-07-01T00:00:00.000Z',
+  })),
+  awardFirstReviewBonus: jest.fn(async supplierUserId => ({
+    id: `review_${supplierUserId}`,
+    createdAt: '2026-07-01T00:00:00.000Z',
+  })),
+  awardSubscriptionBonus: jest.fn(async supplierUserId => ({
+    id: `subscription_${supplierUserId}`,
+    createdAt: '2026-07-01T00:00:00.000Z',
+  })),
+  recordReferral: jest.fn(async input => ({ id: 'ref_new', ...input })),
+};
+
+const mockCollections = {
+  partner_referrals: [],
+  partners: [],
+  partner_credit_transactions: [],
+};
+const mockDb = {
+  findOne: jest.fn(
+    async (collection, query) =>
+      (mockCollections[collection] || []).find(item =>
+        Object.entries(query || {}).every(([key, value]) => item[key] === value)
+      ) || null
+  ),
+  updateOne: jest.fn(async (collection, query, update) => {
+    const items = mockCollections[collection] || [];
+    let item = items.find(candidate =>
+      Object.entries(query || {}).every(([key, value]) => candidate[key] === value)
+    );
+    if (!item && collection === 'partner_credit_transactions') {
+      item = { id: query.id };
+      items.push(item);
+    }
+    if (!item) return null;
+    Object.assign(item, update.$set || update);
+    return item;
+  }),
+};
+const mockIntegrity = {
+  duplicateSupplierBusinessEvidence: jest.fn(async () => ({ duplicate: false })),
+  methodRewardEvidence: jest.fn(async () => ({
+    eligible: true,
+    packageId: 'pkg_1',
+    invoiceId: 'inv_1',
+  })),
+  canAwardCredit: jest.fn(async () => ({ eligible: true })),
+  recordIntegrityEvent: jest.fn(async () => ({ id: 'pri_1' })),
+  recordAttributionConflict: jest.fn(async () => ({ id: 'pri_conflict' })),
+};
+const mockCandidateSelection = {
+  selectRewardEvidence: jest.fn(async () => ({
+    eligible: true,
+    packageId: 'pkg_1',
+    invoiceId: 'inv_1',
+  })),
+};
+const mockSupplierEvidence = {
+  methodRewardEvidence: jest.fn(async () => ({ eligible: true })),
+};
+const mockAdvancedIntegrity = {
+  methodRewardEvidence: jest.fn(async () => ({ eligible: true })),
+  exposureDecision: jest.fn(async () => ({ eligible: true })),
+  maturityExtensionDays: jest.fn(async () => 0),
+};
+const mockExposureSafety = {
+  pendingExposureDecision: jest.fn(async () => ({ eligible: true })),
+};
+const mockStripeEvidence = {
+  subscriptionRewardEvidence: jest.fn(async () => ({ eligible: true })),
+};
+const mockQualificationEvidence = {
+  buildSnapshot: jest.fn(() => ({ version: 1 })),
+  persistSnapshot: jest.fn(async reward => reward),
+};
+const mockClawback = {
+  clawBackRewardTransaction: jest.fn(async () => ({ id: 'clawback_1' })),
+  revalidatePartnerRewards: jest.fn(async () => ({ checked: 0, clawedBack: 0 })),
+};
+const mockAwardLock = {
+  withPartnerAwardLock: jest.fn(async (_partnerId, award) => award()),
+};
+const mockIndexes = { ensureIndexes: jest.fn(async () => true) };
+
+jest.mock('../../db-unified', () => mockDb);
+jest.mock('../../services/partnerService', () => mockPartnerService);
+jest.mock('../../services/partnerRewardIntegrityService', () => mockIntegrity);
+jest.mock('../../services/partnerRewardCandidateSelectionService', () => mockCandidateSelection);
+jest.mock('../../services/partnerRewardSupplierEvidenceService', () => mockSupplierEvidence);
+jest.mock('../../services/partnerRewardIntegrityAdvancedService', () => mockAdvancedIntegrity);
+jest.mock('../../services/partnerRewardExposureSafetyService', () => mockExposureSafety);
+jest.mock('../../services/partnerRewardStripeEvidenceService', () => mockStripeEvidence);
+jest.mock(
+  '../../services/partnerRewardQualificationEvidenceService',
+  () => mockQualificationEvidence
+);
+jest.mock('../../services/partnerRewardIntegrityClawbackService', () => mockClawback);
+jest.mock('../../services/partnerRewardAwardLockService', () => mockAwardLock);
+jest.mock('../../services/partnerRewardIntegrityIndexService', () => mockIndexes);
+jest.mock('../../utils/logger', () => ({ info: jest.fn(), warn: jest.fn(), error: jest.fn() }));
+
+const runtime = require('../../services/partnerRewardIntegrityRuntime');
+
+beforeAll(() => runtime.install());
+beforeEach(() => {
+  Object.values(mockCollections).forEach(items => items.splice(0, items.length));
+  jest.clearAllMocks();
+  mockIntegrity.duplicateSupplierBusinessEvidence.mockResolvedValue({ duplicate: false });
+  mockIntegrity.methodRewardEvidence.mockResolvedValue({
+    eligible: true,
+    packageId: 'pkg_1',
+    invoiceId: 'inv_1',
+  });
+  mockIntegrity.canAwardCredit.mockResolvedValue({ eligible: true });
+  mockCandidateSelection.selectRewardEvidence.mockResolvedValue({
+    eligible: true,
+    packageId: 'pkg_1',
+    invoiceId: 'inv_1',
+  });
+  mockSupplierEvidence.methodRewardEvidence.mockResolvedValue({ eligible: true });
+  mockAdvancedIntegrity.methodRewardEvidence.mockResolvedValue({ eligible: true });
+  mockAdvancedIntegrity.exposureDecision.mockResolvedValue({ eligible: true });
+  mockAdvancedIntegrity.maturityExtensionDays.mockResolvedValue(0);
+  mockExposureSafety.pendingExposureDecision.mockResolvedValue({ eligible: true });
+  mockStripeEvidence.subscriptionRewardEvidence.mockResolvedValue({ eligible: true });
+  mockQualificationEvidence.buildSnapshot.mockReturnValue({ version: 1 });
+  mockQualificationEvidence.persistSnapshot.mockImplementation(async reward => reward);
+  mockAwardLock.withPartnerAwardLock.mockImplementation(async (_partnerId, award) => award());
+  mockIndexes.ensureIndexes.mockResolvedValue(true);
+});
+
+function seedReferral() {
+  mockCollections.partner_referrals.push({
+    id: 'ref_1',
+    partnerId: 'partner_1',
+    supplierUserId: 'supplier_1',
+  });
+  mockCollections.partners.push({ id: 'partner_1', userId: 'partner_user', status: 'active' });
+}
+
+test('allows a package reward only after every qualification and exposure gate passes', async () => {
+  seedReferral();
+
+  await expect(mockPartnerService.awardPackageBonus('supplier_1')).resolves.toMatchObject({
+    id: 'package_supplier_1',
+  });
+
+  expect(mockIndexes.ensureIndexes).toHaveBeenCalled();
+  expect(mockCandidateSelection.selectRewardEvidence).toHaveBeenCalledWith(
+    expect.objectContaining({ methodName: 'awardPackageBonus' })
+  );
+  expect(mockSupplierEvidence.methodRewardEvidence).toHaveBeenCalledWith({
+    supplierUserId: 'supplier_1',
+    methodName: 'awardPackageBonus',
+  });
+  expect(mockAdvancedIntegrity.methodRewardEvidence).toHaveBeenCalled();
+  expect(mockIntegrity.canAwardCredit).toHaveBeenCalled();
+  expect(mockAdvancedIntegrity.exposureDecision).toHaveBeenCalled();
+  expect(mockExposureSafety.pendingExposureDecision).toHaveBeenCalledWith({
+    partnerId: 'partner_1',
+    amount: 10,
+  });
+  expect(mockStripeEvidence.subscriptionRewardEvidence).not.toHaveBeenCalled();
+});
+
+test('withholds when supplier profile evidence is incomplete', async () => {
+  seedReferral();
+  mockSupplierEvidence.methodRewardEvidence.mockResolvedValueOnce({
+    eligible: false,
+    reason: 'SUPPLIER_PROFILE_EVIDENCE_INCOMPLETE',
+  });
+
+  await expect(mockPartnerService.awardReferralSignupBonus('supplier_1')).resolves.toBeNull();
+  expect(mockAdvancedIntegrity.methodRewardEvidence).not.toHaveBeenCalled();
+  expect(mockIntegrity.recordIntegrityEvent).toHaveBeenCalledWith(
+    expect.objectContaining({
+      reason: 'SUPPLIER_PROFILE_EVIDENCE_INCOMPLETE',
+      eventType: 'reward_withheld',
+    })
+  );
+});
+
+test('withholds when hard advanced evidence fails', async () => {
+  seedReferral();
+  mockAdvancedIntegrity.methodRewardEvidence.mockResolvedValueOnce({
+    eligible: false,
+    reason: 'NEAR_DUPLICATE_PACKAGE_CONTENT',
+  });
+
+  await expect(mockPartnerService.awardPackageBonus('supplier_1')).resolves.toBeNull();
+  expect(mockIntegrity.canAwardCredit).not.toHaveBeenCalled();
+});
+
+test('records a shared-network review signal but does not auto-block on that signal alone', async () => {
+  seedReferral();
+  mockAdvancedIntegrity.methodRewardEvidence.mockResolvedValueOnce({
+    eligible: false,
+    reason: 'REVIEW_RING_SHARED_IP',
+    evidence: { reviewerCount: 5 },
+  });
+
+  await expect(mockPartnerService.awardFirstReviewBonus('supplier_1')).resolves.toMatchObject({
+    id: 'review_supplier_1',
+  });
+  expect(mockIntegrity.recordIntegrityEvent).toHaveBeenCalledWith(
+    expect.objectContaining({
+      reason: 'REVIEW_RING_SHARED_IP',
+      eventType: 'reward_risk_signal',
+    })
+  );
+  expect(mockIntegrity.canAwardCredit).toHaveBeenCalled();
+});
+
+test('requires live Stripe payment evidence before a subscription reward', async () => {
+  seedReferral();
+  mockStripeEvidence.subscriptionRewardEvidence.mockResolvedValueOnce({
+    eligible: false,
+    reason: 'STRIPE_TEST_PAYMENT_NOT_ELIGIBLE',
+  });
+
+  await expect(mockPartnerService.awardSubscriptionBonus('supplier_1')).resolves.toBeNull();
+  expect(mockStripeEvidence.subscriptionRewardEvidence).toHaveBeenCalledWith('supplier_1', 'inv_1');
+  expect(mockIntegrity.canAwardCredit).not.toHaveBeenCalled();
+});
+
+test('withholds when a rolling cap is reached', async () => {
+  seedReferral();
+  mockIntegrity.canAwardCredit.mockResolvedValueOnce({
+    eligible: false,
+    reason: 'DAILY_REWARD_CAP_REACHED',
+  });
+
+  await expect(mockPartnerService.awardSubscriptionBonus('supplier_1')).resolves.toBeNull();
+  expect(mockAdvancedIntegrity.exposureDecision).not.toHaveBeenCalled();
+});
+
+test('withholds when a per-supplier or new-partner exposure cap is reached', async () => {
+  seedReferral();
+  mockAdvancedIntegrity.exposureDecision.mockResolvedValueOnce({
+    eligible: false,
+    reason: 'PER_SUPPLIER_REWARD_CAP_REACHED',
+  });
+
+  await expect(mockPartnerService.awardFirstReviewBonus('supplier_1')).resolves.toBeNull();
+  expect(mockExposureSafety.pendingExposureDecision).not.toHaveBeenCalled();
+});
+
+test('withholds when effective pending exposure includes too many unmatured points', async () => {
+  seedReferral();
+  mockExposureSafety.pendingExposureDecision.mockResolvedValueOnce({
+    eligible: false,
+    reason: 'PENDING_REWARD_EXPOSURE_CAP_REACHED',
+  });
+
+  await expect(mockPartnerService.awardPackageBonus('supplier_1')).resolves.toBeNull();
+  expect(mockIntegrity.recordIntegrityEvent).toHaveBeenCalledWith(
+    expect.objectContaining({ reason: 'PENDING_REWARD_EXPOSURE_CAP_REACHED' })
+  );
+});
+
+test('persists extended maturity when registration risk requires it', async () => {
+  seedReferral();
+  mockAdvancedIntegrity.maturityExtensionDays.mockResolvedValueOnce(30);
+
+  const reward = await mockPartnerService.awardPackageBonus('supplier_1');
+
+  expect(mockDb.updateOne).toHaveBeenCalledWith(
+    'partner_credit_transactions',
+    { id: 'package_supplier_1' },
+    { $set: expect.objectContaining({ maturityExtensionDays: 30, maturesAt: expect.any(String) }) }
+  );
+  expect(reward).toMatchObject({ maturityExtensionDays: 30 });
+});
+
+test('preserves first attribution and records attempted reassignment', async () => {
+  mockCollections.partner_referrals.push({
+    id: 'ref_existing',
+    partnerId: 'partner_original',
+    supplierUserId: 'supplier_1',
+  });
+
+  const result = await mockPartnerService.recordReferral({
+    partnerId: 'partner_attempted',
+    supplierUserId: 'supplier_1',
+  });
+
+  expect(result).toMatchObject({ id: 'ref_existing', partnerId: 'partner_original' });
+  expect(mockIntegrity.recordAttributionConflict).toHaveBeenCalledWith({
+    supplierUserId: 'supplier_1',
+    existingPartnerId: 'partner_original',
+    attemptedPartnerId: 'partner_attempted',
+  });
+});
+
+test('retries index initialization on later reward and revalidation activity', async () => {
+  seedReferral();
+  mockIndexes.ensureIndexes.mockRejectedValueOnce(new Error('startup database not ready'));
+
+  await mockPartnerService.awardPackageBonus('supplier_1');
+  mockIndexes.ensureIndexes.mockResolvedValue(true);
+  await runtime.revalidatePartnerRewards('partner_1');
+
+  expect(mockIndexes.ensureIndexes).toHaveBeenCalledTimes(2);
+  expect(mockClawback.revalidatePartnerRewards).toHaveBeenCalledWith('partner_1');
+});

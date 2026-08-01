@@ -1,0 +1,351 @@
+'use strict';
+
+const dbUnified = require('../db-unified');
+const logger = require('../utils/logger');
+const partnerService = require('./partnerService');
+const partnerAntiAbuse = require('./partnerAntiAbuseService');
+const baseIntegrity = require('./partnerRewardIntegrityService');
+const supplierEvidence = require('./partnerRewardSupplierEvidenceService');
+const advancedIntegrity = require('./partnerRewardIntegrityAdvancedService');
+const stripeEvidence = require('./partnerRewardStripeEvidenceService');
+const qualificationEvidence = require('./partnerRewardQualificationEvidenceService');
+
+const CLAWBACK_SUBTYPE = 'PARTNER_REWARD_INTEGRITY_CLAWBACK';
+const REVERSAL_MODE_PENDING = 'void_pending';
+const REVERSAL_MODE_MATURED = 'debit_matured';
+const MIN_REVALIDATION_DAYS = 90;
+
+const METHOD_BY_TYPE = Object.freeze({
+  REFERRAL_SIGNUP_BONUS: 'awardReferralSignupBonus',
+  PACKAGE_BONUS: 'awardPackageBonus',
+  FIRST_REVIEW_BONUS: 'awardFirstReviewBonus',
+  SUBSCRIPTION_BONUS: 'awardSubscriptionBonus',
+});
+
+const NON_CLAWBACK_REASONS = new Set([
+  'SUPPLIER_MIN_ACCOUNT_AGE_NOT_MET',
+  'PACKAGE_MIN_LIVE_PERIOD_NOT_MET',
+  'REVIEW_MODERATION_WINDOW_NOT_MET',
+  'SUBSCRIPTION_SETTLEMENT_WINDOW_NOT_MET',
+  'STRIPE_PAYMENT_EVIDENCE_UNAVAILABLE',
+  'STRIPE_PAYMENT_EVIDENCE_PERSIST_FAILED',
+  'REVIEW_RING_SHARED_DEVICE_NETWORK',
+  'REVIEW_RING_SHARED_IP',
+]);
+
+const effectiveRevalidationDays = () => {
+  return Math.max(
+    MIN_REVALIDATION_DAYS,
+    Number(advancedIntegrity.getConfig().revalidationDays || 0)
+  );
+};
+
+const isWithinRevalidationWindow = (transaction, now = Date.now()) => {
+  const createdAt = Date.parse(transaction?.createdAt);
+  if (!Number.isFinite(createdAt)) return false;
+  return now - createdAt <= effectiveRevalidationDays() * 86400000;
+};
+
+const isEffectivelyMature = (transaction, now = Date.now()) => {
+  const explicitMaturity = Date.parse(transaction?.maturesAt);
+  if (Number.isFinite(explicitMaturity)) return explicitMaturity <= now;
+  const createdAt = Date.parse(transaction?.createdAt);
+  if (!Number.isFinite(createdAt)) return false;
+  const maturityDays = Number(partnerService.CREDIT_MATURITY_DAYS || 30);
+  return createdAt <= now - maturityDays * 86400000;
+};
+
+const persistRewardReversal = async (transaction, { reason, reversalTxnId, reversalMode, now }) => {
+  const updatedReward = await dbUnified.updateOne(
+    'partner_credit_transactions',
+    { id: transaction.id },
+    {
+      $set: {
+        reversedAt: transaction.reversedAt || now,
+        reversalTxnId: reversalTxnId || null,
+        reversalReason: reason,
+        reversalMode,
+      },
+    }
+  );
+  if (!updatedReward) throw new Error('Original reward reversal marker did not persist');
+  return updatedReward;
+};
+
+const recordReversalEvent = async (transaction, reason, reversalMode, reversalTxnId = null) => {
+  return await baseIntegrity.recordIntegrityEvent({
+    partnerId: transaction.partnerId,
+    supplierUserId: transaction.supplierUserId,
+    rewardType: transaction.type,
+    reason,
+    eventType: 'reward_clawback',
+    evidence: {
+      originalRewardTxnId: transaction.id,
+      reversalTxnId,
+      reversalMode,
+    },
+  });
+};
+
+const voidPendingReward = async (transaction, reason) => {
+  const now = new Date().toISOString();
+  await persistRewardReversal(transaction, {
+    reason,
+    reversalTxnId: null,
+    reversalMode: REVERSAL_MODE_PENDING,
+    now,
+  });
+  await recordReversalEvent(transaction, reason, REVERSAL_MODE_PENDING, null);
+  logger.warn('[PARTNER-REWARD-INTEGRITY] Pending reward voided after evidence invalidation', {
+    partnerId: transaction.partnerId,
+    supplierUserId: transaction.supplierUserId,
+    rewardType: transaction.type,
+    originalRewardTxnId: transaction.id,
+    reason,
+  });
+  return {
+    id: null,
+    subtype: CLAWBACK_SUBTYPE,
+    reversalMode: REVERSAL_MODE_PENDING,
+    supplierUserId: transaction.supplierUserId,
+  };
+};
+
+const debitMaturedReward = async (transaction, reason, rewardAmount) => {
+  const externalRef = `reward-integrity:${transaction.id}`;
+  const existing = await dbUnified.findOne('partner_credit_transactions', {
+    type: partnerService.CREDIT_TYPES.REDEEM,
+    externalRef,
+  });
+  const debit =
+    existing ||
+    (await partnerService.debitPoints({
+      partnerId: transaction.partnerId,
+      amount: rewardAmount,
+      notes: `Partner reward integrity clawback: ${reason}`,
+      externalRef,
+    }));
+  if (!debit) throw new Error('Partner integrity clawback debit did not persist');
+
+  const now = new Date().toISOString();
+  const updatedDebit = await dbUnified.updateOne(
+    'partner_credit_transactions',
+    { id: debit.id },
+    {
+      $set: {
+        subtype: CLAWBACK_SUBTYPE,
+        supplierUserId: transaction.supplierUserId,
+        originalRewardTxnId: transaction.id,
+        originalRewardType: transaction.type,
+        integrityReason: reason,
+        reversalMode: REVERSAL_MODE_MATURED,
+      },
+    }
+  );
+  if (!updatedDebit) throw new Error('Partner integrity clawback audit fields did not persist');
+
+  await persistRewardReversal(transaction, {
+    reason,
+    reversalTxnId: debit.id,
+    reversalMode: REVERSAL_MODE_MATURED,
+    now,
+  });
+  await recordReversalEvent(transaction, reason, REVERSAL_MODE_MATURED, debit.id);
+
+  logger.warn('[PARTNER-REWARD-INTEGRITY] Mature reward clawed back after evidence invalidation', {
+    partnerId: transaction.partnerId,
+    supplierUserId: transaction.supplierUserId,
+    rewardType: transaction.type,
+    originalRewardTxnId: transaction.id,
+    reason,
+  });
+  return {
+    ...debit,
+    subtype: CLAWBACK_SUBTYPE,
+    reversalMode: REVERSAL_MODE_MATURED,
+    supplierUserId: transaction.supplierUserId,
+  };
+};
+
+const clawBackRewardTransaction = async (transaction, reason) => {
+  if (!transaction?.id || !transaction.partnerId || !transaction.supplierUserId) return null;
+  const rewardAmount = Math.abs(Number(transaction.amount));
+  if (!Number.isFinite(rewardAmount) || rewardAmount <= 0) {
+    const error = new Error('Partner integrity clawback reward amount is invalid');
+    error.code = 'PARTNER_REWARD_CLAWBACK_AMOUNT_INVALID';
+    throw error;
+  }
+
+  if (transaction.reversedAt && transaction.reversalMode === REVERSAL_MODE_PENDING) {
+    return {
+      id: null,
+      subtype: CLAWBACK_SUBTYPE,
+      reversalMode: REVERSAL_MODE_PENDING,
+      supplierUserId: transaction.supplierUserId,
+    };
+  }
+
+  if (!isEffectivelyMature(transaction)) return await voidPendingReward(transaction, reason);
+  return await debitMaturedReward(transaction, reason, rewardAmount);
+};
+
+const clawBackIfDurablyInvalid = async (transaction, decision) => {
+  if (decision.eligible || NON_CLAWBACK_REASONS.has(decision.reason)) return false;
+  await clawBackRewardTransaction(transaction, decision.reason);
+  return true;
+};
+
+const baseEvidenceFromSnapshot = transaction => {
+  const snapshot = transaction.qualificationEvidence || {};
+  return {
+    eligible: true,
+    packageId: snapshot.packageId || null,
+    reviewId: snapshot.reviewId || null,
+    invoiceId: snapshot.invoiceId || null,
+  };
+};
+
+const revalidateSnapshotReward = async (transaction, partner, methodName) => {
+  const snapshotDecision = await qualificationEvidence.revalidateSnapshot(
+    transaction,
+    partner.userId
+  );
+  if (snapshotDecision === null) return null;
+
+  // Re-run current identity and fraud controls without selecting a different
+  // package/review/invoice than the one that actually earned this reward.
+  const commonDecision = await partnerAntiAbuse.supplierRewardEligibility(
+    transaction.supplierUserId,
+    'awardReferralSignupBonus'
+  );
+  if (!commonDecision.eligible) return commonDecision;
+
+  const supplierDecision = await supplierEvidence.methodRewardEvidence({
+    supplierUserId: transaction.supplierUserId,
+    methodName,
+  });
+  if (!supplierDecision.eligible) return supplierDecision;
+
+  const duplicateBusiness = await baseIntegrity.duplicateSupplierBusinessEvidence(
+    transaction.supplierUserId
+  );
+  if (duplicateBusiness.duplicate) {
+    return {
+      eligible: false,
+      reason: 'DUPLICATE_SUPPLIER_BUSINESS_IDENTITY',
+      evidence: duplicateBusiness,
+    };
+  }
+
+  const advancedDecision = await advancedIntegrity.methodRewardEvidence({
+    supplierUserId: transaction.supplierUserId,
+    partnerId: transaction.partnerId,
+    partnerUserId: partner.userId,
+    methodName,
+    baseEvidence: baseEvidenceFromSnapshot(transaction),
+  });
+
+  const invalidDecisions = [snapshotDecision, advancedDecision].filter(
+    decision => !decision.eligible
+  );
+  return (
+    invalidDecisions.find(decision => !NON_CLAWBACK_REASONS.has(decision.reason)) ||
+    invalidDecisions[0] || { eligible: true }
+  );
+};
+
+const revalidateLegacyReward = async (transaction, partner, methodName) => {
+  const baseEvidence = await baseIntegrity.methodRewardEvidence({
+    supplierUserId: transaction.supplierUserId,
+    partnerId: transaction.partnerId,
+    partnerUserId: partner.userId,
+    methodName,
+  });
+  if (!baseEvidence.eligible) return baseEvidence;
+
+  const supplierDecision = await supplierEvidence.methodRewardEvidence({
+    supplierUserId: transaction.supplierUserId,
+    methodName,
+  });
+  if (!supplierDecision.eligible) return supplierDecision;
+
+  const advancedEvidence = await advancedIntegrity.methodRewardEvidence({
+    supplierUserId: transaction.supplierUserId,
+    partnerId: transaction.partnerId,
+    partnerUserId: partner.userId,
+    methodName,
+    baseEvidence,
+  });
+  if (!advancedEvidence.eligible) return advancedEvidence;
+
+  if (methodName === 'awardSubscriptionBonus') {
+    return stripeEvidence.subscriptionRewardEvidence(
+      transaction.supplierUserId,
+      baseEvidence.invoiceId
+    );
+  }
+  return { eligible: true };
+};
+
+const revalidatePartnerRewards = async partnerId => {
+  const [partner, transactions] = await Promise.all([
+    dbUnified.findOne('partners', { id: partnerId }),
+    dbUnified.find('partner_credit_transactions', { partnerId }),
+  ]);
+  if (!partner) return { checked: 0, clawedBack: 0 };
+
+  let checked = 0;
+  let clawedBack = 0;
+  const positiveRewards = (transactions || []).filter(
+    transaction =>
+      METHOD_BY_TYPE[transaction.type] &&
+      transaction.supplierUserId &&
+      Number(transaction.amount) > 0 &&
+      !transaction.reversedAt &&
+      isWithinRevalidationWindow(transaction)
+  );
+
+  for (const transaction of positiveRewards) {
+    checked += 1;
+    const methodName = METHOD_BY_TYPE[transaction.type];
+    try {
+      const snapshotDecision = await revalidateSnapshotReward(transaction, partner, methodName);
+      const decision =
+        snapshotDecision === null
+          ? await revalidateLegacyReward(transaction, partner, methodName)
+          : snapshotDecision;
+      if (await clawBackIfDurablyInvalid(transaction, decision)) clawedBack += 1;
+    } catch (error) {
+      logger.error('[PARTNER-REWARD-INTEGRITY] Reward revalidation failed', {
+        partnerId,
+        rewardTxnId: transaction.id,
+        error: error.message,
+      });
+      throw error;
+    }
+  }
+
+  return { checked, clawedBack };
+};
+
+module.exports = {
+  CLAWBACK_SUBTYPE,
+  REVERSAL_MODE_PENDING,
+  REVERSAL_MODE_MATURED,
+  MIN_REVALIDATION_DAYS,
+  METHOD_BY_TYPE,
+  clawBackRewardTransaction,
+  revalidatePartnerRewards,
+  _test: {
+    effectiveRevalidationDays,
+    isWithinRevalidationWindow,
+    isEffectivelyMature,
+    NON_CLAWBACK_REASONS,
+    clawBackIfDurablyInvalid,
+    voidPendingReward,
+    debitMaturedReward,
+    baseEvidenceFromSnapshot,
+    revalidateSnapshotReward,
+    revalidateLegacyReward,
+  },
+};
