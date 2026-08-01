@@ -1,10 +1,13 @@
-# Follow-up commit triggers this branch-scoped verifier after workflow registration.
+# Temporary verifier; deletes itself after both targeted tests pass.
 name: PR 1418 targeted test fixes
 
 on:
   push:
     branches:
       - agent/supplier-profile-trust-consistency
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: write
@@ -15,6 +18,7 @@ concurrency:
 
 jobs:
   patch-and-verify:
+    if: github.event_name == 'push' || github.head_ref == 'agent/supplier-profile-trust-consistency'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
