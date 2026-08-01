@@ -14,7 +14,7 @@ env:
 jobs:
   diagnostics:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
     steps:
       - name: Checkout full history
         uses: actions/checkout@v4
@@ -30,6 +30,120 @@ jobs:
       - name: Install dependencies
         run: npm ci --prefer-offline --no-audit
 
+      - name: Prepare root-cause fixes
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          test_path = Path('tests/unit/supplier-profile-provisioning-hardening.test.js')
+          text = test_path.read_text()
+          old = """describe('supplier registration provisioning integration', () => {
+            beforeEach(() => {
+              jest.resetModules();
+              mockLogger();
+            });
+          """
+          new = """describe('supplier registration provisioning integration', () => {
+            const originalPartnerAbuseHashSecret = process.env.PARTNER_ABUSE_HASH_SECRET;
+
+            beforeEach(() => {
+              jest.resetModules();
+              mockLogger();
+              process.env.PARTNER_ABUSE_HASH_SECRET = 'supplier-provisioning-risk-test-secret';
+            });
+
+            afterEach(() => {
+              if (originalPartnerAbuseHashSecret === undefined) {
+                delete process.env.PARTNER_ABUSE_HASH_SECRET;
+              } else {
+                process.env.PARTNER_ABUSE_HASH_SECRET = originalPartnerAbuseHashSecret;
+              }
+            });
+          """
+          assert old in text, 'supplier integration setup block not found'
+          text = text.replace(old, new, 1)
+
+          old = """      users: [],
+              suppliers: [],
+              settings: { features: { registration: true, supplierApplications: true } },
+          """
+          new = """      users: [],
+              suppliers: [],
+              partner_abuse_events: [],
+              partner_abuse_overrides: [],
+              partner_abuse_appeals: [],
+              settings: { features: { registration: true, supplierApplications: true } },
+          """
+          assert old in text, 'supplier integration data fixture not found'
+          text = text.replace(old, new, 1)
+
+          old = """      read: jest.fn(async collection => data[collection] || {}),
+              findOne: jest.fn(async (collection, filter) => {
+          """
+          new = """      read: jest.fn(async collection => data[collection] || {}),
+              findWithOptions: jest.fn(async (collection, query = {}, options = {}) => {
+                const rows = Array.isArray(data[collection]) ? data[collection] : [];
+                const matches = row =>
+                  Object.entries(query).every(([key, expected]) => {
+                    if (expected && typeof expected === 'object' && !Array.isArray(expected)) {
+                      if (Array.isArray(expected.$in)) return expected.$in.includes(row[key]);
+                      if (expected.$gte !== undefined) return row[key] >= expected.$gte;
+                      if (expected.$gt !== undefined) return row[key] > expected.$gt;
+                      if (expected.$exists !== undefined) {
+                        return expected.$exists
+                          ? Object.prototype.hasOwnProperty.call(row, key)
+                          : !Object.prototype.hasOwnProperty.call(row, key);
+                      }
+                    }
+                    return row[key] === expected;
+                  });
+                const results = rows.filter(matches);
+                const sortEntries = Object.entries(options.sort || {});
+                if (sortEntries.length) {
+                  const [field, direction] = sortEntries[0];
+                  results.sort((left, right) =>
+                    direction * String(left[field] || '').localeCompare(String(right[field] || ''))
+                  );
+                }
+                return results.slice(0, options.limit || results.length);
+              }),
+              findOne: jest.fn(async (collection, filter) => {
+          """
+          assert old in text, 'db fixture insertion point not found'
+          test_path.write_text(text.replace(old, new, 1))
+
+          e2e_path = Path('e2e/auth.spec.js')
+          text = e2e_path.read_text()
+          old = "const toggleButton = page.locator('.password-toggle').first();"
+          new = "const toggleButton = passwordInput.locator('xpath=..').locator('.password-toggle');"
+          assert old in text, 'password toggle locator not found'
+          e2e_path.write_text(text.replace(old, new, 1))
+
+          css_path = Path('public/assets/css/auth.css')
+          text = css_path.read_text()
+          old = """/* On the auth page anchor the toggle to the input height (44 px) so that
+             form-validation error messages that appear below the input cannot push
+             the toggle outside the input bounds by growing .auth-input-wrap. */
+          body.auth-page .auth-pw-wrap .password-toggle {
+            top: calc(44px / 2) !important; /* = auth-input height ÷ 2 */
+          }
+          """
+          new = """/* On the auth page anchor the toggle to the actual 42 px input height so that
+             validation messages or other layout changes cannot move it away from its input. */
+          body.auth-page .auth-pw-wrap {
+            min-height: 42px;
+          }
+
+          body.auth-page .auth-pw-wrap > .password-toggle {
+            top: 21px !important;
+            bottom: auto !important;
+            margin: 0 !important;
+          }
+          """
+          assert old in text, 'password toggle CSS block not found'
+          css_path.write_text(text.replace(old, new, 1))
+          PY
+
       - name: Produce exact Prettier outputs
         run: |
           npx prettier --write \
@@ -41,26 +155,37 @@ jobs:
             services/partnerRegistrationRiskService.js \
             tests/unit/partner-abuse-admin-routes.test.js \
             tests/unit/partner-registration-final-review.test.js \
-            tests/unit/partner-registration-secure.test.js
+            tests/unit/partner-registration-secure.test.js \
+            tests/unit/supplier-profile-provisioning-hardening.test.js \
+            e2e/auth.spec.js
 
-      - name: Generate changed-code coverage evidence
+      - name: Run focused supplier registration regression
         env:
           NODE_ENV: test
           JWT_SECRET: test-secret-for-jest-min-32-characters-long
-          COVERAGE_BASE_REF: origin/main
         run: |
-          set +e
-          npm run test:full -- --runInBand > pr1415-full-test.txt 2>&1
-          test_status=$?
-          npm run coverage:changed > pr1415-coverage-summary.txt 2>&1
-          coverage_status=$?
-          printf 'full_test_status=%s\ncoverage_status=%s\n' "$test_status" "$coverage_status" > pr1415-status.txt
-          exit 0
+          set -o pipefail
+          npx jest --runInBand --coverage=false tests/unit/supplier-profile-provisioning-hardening.test.js \
+            2>&1 | tee pr1415-focused-jest.txt
 
-      - name: Upload diagnostic evidence
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run focused mobile password-toggle regression
+        env:
+          NODE_ENV: test
+          JWT_SECRET: test-secret-for-jest-min-32-characters-long
+        run: |
+          set -o pipefail
+          npx playwright test e2e/auth.spec.js \
+            --grep "password toggle stays vertically centered on mobile before and after click" \
+            --reporter=line 2>&1 | tee pr1415-focused-e2e.txt
+
+      - name: Upload corrected files and evidence
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: pr1415-diagnostics
+          name: pr1415-corrected-files
           path: |
             docs/PARTNER_ANTI_ABUSE_PR1_VALIDATION.md
             routes/admin-partner-abuse.js
@@ -71,7 +196,12 @@ jobs:
             tests/unit/partner-abuse-admin-routes.test.js
             tests/unit/partner-registration-final-review.test.js
             tests/unit/partner-registration-secure.test.js
-            pr1415-full-test.txt
-            pr1415-coverage-summary.txt
-            pr1415-status.txt
+            tests/unit/supplier-profile-provisioning-hardening.test.js
+            e2e/auth.spec.js
+            public/assets/css/auth.css
+            pr1415-focused-jest.txt
+            pr1415-focused-e2e.txt
+            test-results
+            playwright-report
+          if-no-files-found: warn
           retention-days: 2
