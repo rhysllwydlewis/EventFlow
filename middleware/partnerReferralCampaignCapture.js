@@ -3,15 +3,36 @@
 const dbUnified = require('../db-unified');
 const logger = require('../utils/logger');
 const partnerAntiAbuseRuntime = require('../services/partnerAntiAbuseRuntime');
+const partnerCashoutLockRuntime = require('../services/partnerCashoutLockRuntime');
+const partnerCashoutOperationsRuntime = require('../services/partnerCashoutOperationsRuntime');
+const partnerCashoutAdminEnrichmentRuntime = require('../services/partnerCashoutAdminEnrichmentRuntime');
+const partnerCashoutOperationsIndexes = require('../services/partnerCashoutOperationsIndexService');
 
 // routes/index.js imports this middleware before loading the partner, package,
 // review and cashout routes. Install the programme guards here so ordinary
 // database utility imports remain side-effect free in workers and tests.
 partnerAntiAbuseRuntime.install();
+// Install the policy layer first. The lock runtime then inserts its guard before
+// the first matching cashout route (which is now the policy guard), producing:
+// distributed lock -> PR3 policy -> existing cashout handler.
+partnerCashoutOperationsRuntime.install();
+partnerCashoutLockRuntime.install();
+partnerCashoutAdminEnrichmentRuntime.install();
+dbUnified
+  .initializeDatabase()
+  .then(backend => {
+    if (backend !== 'mongodb') return null;
+    return partnerCashoutOperationsIndexes.ensureIndexes();
+  })
+  .catch(error => {
+    logger.warn('[PARTNER-CASHOUT-OPS] Cashout operations indexes are not ready yet', {
+      error: error.message,
+    });
+  });
 
 const CAMPAIGN_FIELDS = ['source', 'medium', 'campaign', 'content', 'term'];
 
-function sanitizeCampaignValue(value, maxLength = 80) {
+const sanitizeCampaignValue = (value, maxLength = 80) => {
   if (typeof value !== 'string') {
     return undefined;
   }
@@ -23,21 +44,21 @@ function sanitizeCampaignValue(value, maxLength = 80) {
     .slice(0, maxLength);
 
   return clean || undefined;
-}
+};
 
-function readUrlParams(urlLike) {
+const readUrlParams = urlLike => {
   if (!urlLike || typeof urlLike !== 'string') {
     return new URLSearchParams();
   }
 
   try {
     return new URL(urlLike, 'https://event-flow.local').searchParams;
-  } catch (_) {
+  } catch {
     return new URLSearchParams();
   }
-}
+};
 
-function extractCampaignMetadata(req) {
+const extractCampaignMetadata = req => {
   const body = req.body || {};
   const query = req.query || {};
   const refererParams = readUrlParams(req.get ? req.get('referer') : '');
@@ -59,13 +80,12 @@ function extractCampaignMetadata(req) {
   });
 
   return metadata;
-}
+};
 
-function hasCampaignMetadata(metadata) {
-  return !!metadata && CAMPAIGN_FIELDS.some(field => !!metadata[field]);
-}
+const hasCampaignMetadata = metadata =>
+  Boolean(metadata) && CAMPAIGN_FIELDS.some(field => Boolean(metadata[field]));
 
-function isRegistrationResponse(req, res, body) {
+const isRegistrationResponse = (req, res, body) => {
   if (!req || !res || !body || typeof body !== 'object') {
     return false;
   }
@@ -76,11 +96,16 @@ function isRegistrationResponse(req, res, body) {
   const user = body.user || {};
 
   return (
-    methodOk && pathOk && statusOk && body.ok === true && user.role === 'supplier' && !!user.id
+    methodOk &&
+    pathOk &&
+    statusOk &&
+    body.ok === true &&
+    user.role === 'supplier' &&
+    Boolean(user.id)
   );
-}
+};
 
-function partnerReferralCampaignCapture(req, res, next) {
+const partnerReferralCampaignCapture = (req, res, next) => {
   const metadata = extractCampaignMetadata(req);
   const refCode = req.body && req.body.ref;
 
@@ -107,7 +132,7 @@ function partnerReferralCampaignCapture(req, res, next) {
   };
 
   return next();
-}
+};
 
 partnerReferralCampaignCapture.extractCampaignMetadata = extractCampaignMetadata;
 partnerReferralCampaignCapture.sanitizeCampaignValue = sanitizeCampaignValue;

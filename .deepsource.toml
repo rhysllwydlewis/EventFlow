@@ -1,6 +1,7 @@
 version = 1
 
 exclude_patterns = [
+  "tests/**",
   "node_modules/**",
   "coverage/**",
   "test-audit/**",

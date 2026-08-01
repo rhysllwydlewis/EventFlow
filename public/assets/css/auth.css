@@ -1118,11 +1118,16 @@ body.auth-page .auth-card select.auth-input {
   pointer-events: auto;
 }
 
-/* On the auth page anchor the toggle to the input height (44 px) so that
-   form-validation error messages that appear below the input cannot push
-   the toggle outside the input bounds by growing .auth-input-wrap. */
-body.auth-page .auth-pw-wrap .password-toggle {
-  top: calc(44px / 2) !important; /* = auth-input height ÷ 2 */
+/* On the auth page anchor the toggle to the actual 42 px input height so that
+   validation messages or other layout changes cannot move it away from its input. */
+body.auth-page .auth-pw-wrap {
+  min-height: 42px;
+}
+
+body.auth-page .auth-pw-wrap > .password-toggle {
+  top: 21px !important;
+  bottom: auto !important;
+  margin: 0 !important;
 }
 
 .password-toggle:hover {

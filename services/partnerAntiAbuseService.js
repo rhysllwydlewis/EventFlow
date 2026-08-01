@@ -47,6 +47,120 @@ function emailDomain(email) {
   return value.includes('@') ? value.split('@').pop() : '';
 }
 
+function normalisePhone(value) {
+  let digits = String(value || '').replace(/\D/g, '');
+  if (digits.startsWith('00')) digits = digits.slice(2);
+  if (digits.startsWith('44') && digits.length >= 11) return digits;
+  if (digits.startsWith('0') && digits.length >= 10) return `44${digits.slice(1)}`;
+  return digits.length >= 7 ? digits : '';
+}
+
+function normalisePostcode(value) {
+  return String(value || '')
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, '');
+}
+
+function websiteHost(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  try {
+    const parsed = new URL(/^https?:\/\//i.test(raw) ? raw : `https://${raw}`);
+    return parsed.hostname.toLowerCase().replace(/^www\./, '');
+  } catch (_) {
+    return '';
+  }
+}
+
+function normaliseCompanyForSimilarity(value) {
+  const legalSuffixes = {
+    limited: 'ltd',
+    incorporated: 'inc',
+    corporation: 'corp',
+    company: 'co',
+  };
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/&/g, ' and ')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map(token => legalSuffixes[token] || token)
+    .join('');
+}
+
+function trigrams(value) {
+  const clean = `  ${normalise(value)}  `;
+  if (clean.length < 5) return new Set([clean]);
+  const result = new Set();
+  for (let index = 0; index <= clean.length - 3; index += 1)
+    result.add(clean.slice(index, index + 3));
+  return result;
+}
+
+function companySimilarity(left, right) {
+  if (!left || !right) return 0;
+  const a = trigrams(normaliseCompanyForSimilarity(left));
+  const b = trigrams(normaliseCompanyForSimilarity(right));
+  let overlap = 0;
+  for (const token of a) if (b.has(token)) overlap += 1;
+  return (2 * overlap) / (a.size + b.size);
+}
+
+function identityOverlap(left = {}, right = {}) {
+  const leftCompany = left.company || left.companyName || left.businessName;
+  const rightCompany = right.company || right.companyName || right.businessName;
+  const exactCompany = Boolean(
+    normalise(leftCompany) && normalise(leftCompany) === normalise(rightCompany)
+  );
+  const fuzzyCompany =
+    normalise(leftCompany).length >= 6 &&
+    normalise(rightCompany).length >= 6 &&
+    companySimilarity(leftCompany, rightCompany) >= 0.88;
+  const leftPhone = normalisePhone(left.phone || left.phoneNumber || left.contactPhone);
+  const rightPhone = normalisePhone(right.phone || right.phoneNumber || right.contactPhone);
+  const samePhone = Boolean(leftPhone && rightPhone && leftPhone === rightPhone);
+  const leftWebsite = websiteHost(left.website || left.websiteUrl || left.domain);
+  const rightWebsite = websiteHost(right.website || right.websiteUrl || right.domain);
+  const sameWebsite = Boolean(leftWebsite && rightWebsite && leftWebsite === rightWebsite);
+  const samePostcode = Boolean(
+    normalisePostcode(left.postcode || left.postalCode) &&
+    normalisePostcode(left.postcode || left.postalCode) ===
+      normalisePostcode(right.postcode || right.postalCode)
+  );
+  const leftCompanyNumber = normalise(
+    left.companyNumber || left.companiesHouseNumber || left.registrationNumber
+  );
+  const rightCompanyNumber = normalise(
+    right.companyNumber || right.companiesHouseNumber || right.registrationNumber
+  );
+  const sameCompanyNumber = Boolean(
+    leftCompanyNumber && rightCompanyNumber && leftCompanyNumber === rightCompanyNumber
+  );
+  const leftVat = normalise(left.vatNumber || left.vatRegistrationNumber);
+  const rightVat = normalise(right.vatNumber || right.vatRegistrationNumber);
+  const sameVatNumber = Boolean(leftVat && rightVat && leftVat === rightVat);
+  return {
+    strongMatch: Boolean(
+      exactCompany ||
+      samePhone ||
+      sameWebsite ||
+      sameCompanyNumber ||
+      sameVatNumber ||
+      (fuzzyCompany && samePostcode)
+    ),
+    exactCompany,
+    fuzzyCompany,
+    samePhone,
+    sameWebsite,
+    samePostcode,
+    sameCompanyNumber,
+    sameVatNumber,
+  };
+}
+
 function hoursBetween(earlier, later) {
   const start = new Date(earlier).getTime();
   const end = new Date(later).getTime();
@@ -188,6 +302,18 @@ async function supplierRewardEligibility(supplierUserId, methodName = 'awardRefe
     };
   }
 
+  const businessIdentity = identityOverlap(partnerUser, { ...supplier, ...approvedProfiles[0] });
+  if (businessIdentity.strongMatch) {
+    return {
+      eligible: false,
+      reason: 'POSSIBLE_SELF_REFERRAL',
+      supplier,
+      referral,
+      partner,
+      evidence: businessIdentity,
+    };
+  }
+
   if (methodName === 'awardPackageBonus') {
     const evidence = await packageRewardEvidence(supplierUserId);
     if (!evidence.eligible) return { ...evidence, supplier, referral, partner };
@@ -283,6 +409,18 @@ async function assessCashout({
     if (partnerUser.verified !== true) {
       addSignal(signals, 'PARTNER_EMAIL_UNVERIFIED', 50, 'Partner email is not verified.');
     }
+    if (['review', 'high'].includes(partnerUser.registrationRiskLevel)) {
+      addSignal(
+        signals,
+        'PARTNER_REGISTRATION_RISK',
+        partnerUser.registrationRiskLevel === 'high' ? 35 : 20,
+        'Partner registration history contains unresolved identity or network risk.',
+        {
+          riskLevel: partnerUser.registrationRiskLevel,
+          signalCodes: partnerUser.registrationRiskSignalCodes || [],
+        }
+      );
+    }
   }
 
   if (firstDeliveredCashout) {
@@ -301,16 +439,13 @@ async function assessCashout({
       'RAPID_FIRST_CASHOUT',
       35,
       'Cashout requested shortly after partner signup.',
-      {
-        partnerAgeHours: Math.round(partnerAgeHours * 10) / 10,
-      }
+      { partnerAgeHours: Math.round(partnerAgeHours * 10) / 10 }
     );
   }
   if (rewardTransactions.length > 0 && partnerReferrals.length === 0) {
     addSignal(signals, 'NO_REFERRAL_RECORDS', 40, 'Cashout rewards have no supporting referrals.');
   }
 
-  const partnerCompany = normalise(partnerUser?.company);
   const partnerDomain = emailDomain(partnerUser?.email);
   const supplierDomains = new Map();
   let unverifiedSuppliers = 0;
@@ -319,6 +454,8 @@ async function assessCashout({
   let rapidMilestones = 0;
   let weakPackageRewards = 0;
   let weakReviewRewards = 0;
+  let riskyRegistrationSuppliers = 0;
+  let riskyUnverifiedPhones = 0;
 
   for (const referral of supportingReferrals) {
     const supplierUser = (users || []).find(user => user.id === referral.supplierUserId);
@@ -333,15 +470,30 @@ async function assessCashout({
     if (supplierDomain) {
       supplierDomains.set(supplierDomain, (supplierDomains.get(supplierDomain) || 0) + 1);
     }
-    const supplierCompany = normalise(supplierUser?.company);
+    const supplierIdentity = identityOverlap(partnerUser || {}, {
+      ...(supplierUser || {}),
+      ...(approvedProfiles[0] || {}),
+    });
+    const registrationSignals = supplierUser?.registrationRiskSignalCodes || [];
     if (
       (partnerDomain &&
         supplierDomain &&
         partnerDomain === supplierDomain &&
         !PUBLIC_EMAIL_DOMAINS.has(partnerDomain)) ||
-      (partnerCompany && supplierCompany && partnerCompany === supplierCompany)
+      supplierIdentity.strongMatch ||
+      registrationSignals.includes('PARTNER_SUPPLIER_DEVICE_OVERLAP') ||
+      registrationSignals.includes('PARTNER_SUPPLIER_DEVICE_COOKIE_OVERLAP')
     ) {
       identityMatches += 1;
+    }
+    if (['review', 'high'].includes(supplierUser?.registrationRiskLevel)) {
+      riskyRegistrationSuppliers += 1;
+      if (
+        (supplierUser?.phone || supplierUser?.phoneNumber) &&
+        supplierUser?.phoneVerified !== true
+      ) {
+        riskyUnverifiedPhones += 1;
+      }
     }
 
     const supplierTxns = rewardTransactions.filter(
@@ -395,6 +547,24 @@ async function assessCashout({
       35,
       'Rewarded suppliers do not all have approved business profiles.',
       { count: unapprovedSupplierProfiles }
+    );
+  }
+  if (riskyRegistrationSuppliers > 0) {
+    addSignal(
+      signals,
+      'RISKY_SUPPLIER_REGISTRATION_HISTORY',
+      25,
+      'Rewarded suppliers include registrations with unresolved identity or network risk.',
+      { count: riskyRegistrationSuppliers }
+    );
+  }
+  if (riskyUnverifiedPhones > 0) {
+    addSignal(
+      signals,
+      'RISKY_SUPPLIER_PHONE_UNVERIFIED',
+      10,
+      'Risk-flagged supplier accounts include unverified supplied phone numbers.',
+      { count: riskyUnverifiedPhones }
     );
   }
   if (identityMatches > 0) {
@@ -480,6 +650,8 @@ async function assessCashout({
       rapidMilestoneCount: rapidMilestones,
       weakPackageRewardCount: weakPackageRewards,
       weakReviewRewardCount: weakReviewRewards,
+      riskyRegistrationSupplierCount: riskyRegistrationSuppliers,
+      riskyUnverifiedPhoneCount: riskyUnverifiedPhones,
     },
     assessedAt: new Date().toISOString(),
   };
@@ -526,4 +698,7 @@ module.exports = {
   normalise,
   isMeaningfulPackage,
   isIndependentVerifiedReview,
+  identityOverlap,
+  companySimilarity,
+  websiteHost,
 };

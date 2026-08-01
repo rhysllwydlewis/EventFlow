@@ -42,7 +42,6 @@ const savedRoutes = require('./saved');
 const supplierRoutes = require('./supplier');
 const supplierExportSafeRoutes = require('./supplier-export-safe');
 const supplierAdminRoutes = require('./supplier-admin');
-const supplierTrustAdminRoutes = require('./supplier-trust-admin');
 const supplierManagementRoutes = require('./supplier-management');
 const suppliersV2Routes = require('./suppliers-v2');
 const supplierProfileSafeRoutes = require('./supplier-profile-safe');
@@ -114,7 +113,13 @@ function mountRoutes(app, deps) {
   app.use('/api/public-calendar', publicCalendarRoutes); // Backward compatibility
 
   // Partner portal API routes (public partner signup + authenticated dashboard)
+  const securePartnerRegistrationRoutes = require('./partner-registration-secure');
+  const partnerAbuseAppealRoutes = require('./partner-abuse-appeals');
   const partnerRoutes = require('./partner');
+  app.use('/api/v1/partner', securePartnerRegistrationRoutes);
+  app.use('/api/partner', securePartnerRegistrationRoutes);
+  app.use('/api/v1/partner', partnerAbuseAppealRoutes);
+  app.use('/api/partner', partnerAbuseAppealRoutes);
   app.use('/api/v1/partner', partnerRoutes);
   app.use('/api/partner', partnerRoutes); // Backward compatibility
 
@@ -122,6 +127,11 @@ function mountRoutes(app, deps) {
   const adminPartnerRoutes = require('./admin-partner');
   app.use('/api/v1/admin/partners', adminPartnerRoutes);
   app.use('/api/admin/partners', adminPartnerRoutes); // Backward compatibility
+
+  // Partner identity/network risk review, overrides and appeals.
+  const adminPartnerAbuseRoutes = require('./admin-partner-abuse');
+  app.use('/api/v1/admin/partner-abuse', adminPartnerAbuseRoutes);
+  app.use('/api/admin/partner-abuse', adminPartnerAbuseRoutes);
 
   // Admin cashout request routes
   const adminCashoutRequestsRoutes = require('./admin-cashout-requests');
@@ -188,10 +198,6 @@ function mountRoutes(app, deps) {
   // for applications that consume routes/index.js without server.js's compatibility mounts.
   app.use('/api/v1/admin', supplierAdminRoutes);
   app.use('/api/admin', supplierAdminRoutes);
-  // Dedicated trust-credential mutations are isolated from generic badge awards so
-  // PLI/DBS/licence changes have an actor-attributed audit trail and structured status.
-  app.use('/api/v1/admin', supplierTrustAdminRoutes);
-  app.use('/api/admin', supplierTrustAdminRoutes);
   app.use('/api/v1/admin', adminRoutes);
   app.use('/api/admin', adminRoutes); // Backward compatibility
 
