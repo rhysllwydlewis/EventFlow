@@ -113,7 +113,13 @@ function mountRoutes(app, deps) {
   app.use('/api/public-calendar', publicCalendarRoutes); // Backward compatibility
 
   // Partner portal API routes (public partner signup + authenticated dashboard)
+  const securePartnerRegistrationRoutes = require('./partner-registration-secure');
+  const partnerAbuseAppealRoutes = require('./partner-abuse-appeals');
   const partnerRoutes = require('./partner');
+  app.use('/api/v1/partner', securePartnerRegistrationRoutes);
+  app.use('/api/partner', securePartnerRegistrationRoutes);
+  app.use('/api/v1/partner', partnerAbuseAppealRoutes);
+  app.use('/api/partner', partnerAbuseAppealRoutes);
   app.use('/api/v1/partner', partnerRoutes);
   app.use('/api/partner', partnerRoutes); // Backward compatibility
 
@@ -121,6 +127,11 @@ function mountRoutes(app, deps) {
   const adminPartnerRoutes = require('./admin-partner');
   app.use('/api/v1/admin/partners', adminPartnerRoutes);
   app.use('/api/admin/partners', adminPartnerRoutes); // Backward compatibility
+
+  // Partner identity/network risk review, overrides and appeals.
+  const adminPartnerAbuseRoutes = require('./admin-partner-abuse');
+  app.use('/api/v1/admin/partner-abuse', adminPartnerAbuseRoutes);
+  app.use('/api/admin/partner-abuse', adminPartnerAbuseRoutes);
 
   // Admin cashout request routes
   const adminCashoutRequestsRoutes = require('./admin-cashout-requests');

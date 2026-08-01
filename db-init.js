@@ -124,6 +124,46 @@ const ADDITIONAL_COLLECTIONS = [
     ],
   },
   {
+    name: 'partner_abuse_events',
+    indexes: [
+      { keys: { id: 1 }, options: { unique: true } },
+      { keys: { createdAt: -1 }, options: {} },
+      { keys: { outcome: 1, createdAt: -1 }, options: {} },
+      { keys: { expiresAtDate: 1 }, options: { expireAfterSeconds: 0 } },
+      { keys: { ipHash: 1, createdAt: -1 }, options: {} },
+      { keys: { subnetHash: 1, createdAt: -1 }, options: {} },
+      { keys: { browserHash: 1, createdAt: -1 }, options: {} },
+      { keys: { deviceNetworkHash: 1, createdAt: -1 }, options: {} },
+      { keys: { deviceCookieHash: 1, createdAt: -1 }, options: {} },
+      { keys: { canonicalEmailHash: 1, createdAt: -1 }, options: {} },
+      { keys: { referralCodeHash: 1, createdAt: -1 }, options: {} },
+      { keys: { phoneHash: 1, createdAt: -1 }, options: {} },
+      { keys: { websiteHash: 1, createdAt: -1 }, options: {} },
+      { keys: { companyNumberHash: 1, createdAt: -1 }, options: {} },
+      { keys: { vatNumberHash: 1, createdAt: -1 }, options: {} },
+      { keys: { companyPostcodeHash: 1, createdAt: -1 }, options: {} },
+      { keys: { companyAddressHash: 1, createdAt: -1 }, options: {} },
+    ],
+  },
+  {
+    name: 'partner_abuse_overrides',
+    indexes: [
+      { keys: { id: 1 }, options: { unique: true } },
+      { keys: { subjectHash: 1, scope: 1, createdAt: -1 }, options: {} },
+      { keys: { retentionExpiresAtDate: 1 }, options: { expireAfterSeconds: 0 } },
+      { keys: { createdAt: -1 }, options: {} },
+    ],
+  },
+  {
+    name: 'partner_abuse_appeals',
+    indexes: [
+      { keys: { id: 1 }, options: { unique: true } },
+      { keys: { status: 1, createdAt: -1 }, options: {} },
+      { keys: { emailIdentityHash: 1 }, options: {} },
+      { keys: { expiresAtDate: 1 }, options: { expireAfterSeconds: 0 } },
+    ],
+  },
+  {
     name: 'partner_fraud_assessments',
     indexes: [
       { keys: { id: 1 }, options: { unique: true } },
@@ -205,6 +245,9 @@ async function getDatabaseStats() {
       'partner_credit_transactions',
       'partner_cashout_requests',
       'partner_fraud_assessments',
+      'partner_abuse_events',
+      'partner_abuse_overrides',
+      'partner_abuse_appeals',
     ];
     const collectionStats = {};
     for (const collectionName of allCollections) {
