@@ -3,11 +3,26 @@
 const dbUnified = require('../db-unified');
 const logger = require('../utils/logger');
 const partnerAntiAbuseRuntime = require('../services/partnerAntiAbuseRuntime');
+const partnerCashoutLockRuntime = require('../services/partnerCashoutLockRuntime');
+const partnerCashoutOperationsRuntime = require('../services/partnerCashoutOperationsRuntime');
+const partnerCashoutAdminEnrichmentRuntime = require('../services/partnerCashoutAdminEnrichmentRuntime');
+const partnerCashoutOperationsIndexes = require('../services/partnerCashoutOperationsIndexService');
 
 // routes/index.js imports this middleware before loading the partner, package,
 // review and cashout routes. Install the programme guards here so ordinary
 // database utility imports remain side-effect free in workers and tests.
 partnerAntiAbuseRuntime.install();
+// Install the policy layer first. The lock runtime then inserts its guard before
+// the first matching cashout route (which is now the policy guard), producing:
+// distributed lock -> PR3 policy -> existing cashout handler.
+partnerCashoutOperationsRuntime.install();
+partnerCashoutLockRuntime.install();
+partnerCashoutAdminEnrichmentRuntime.install();
+partnerCashoutOperationsIndexes.ensureIndexes().catch(error => {
+  logger.warn('[PARTNER-CASHOUT-OPS] Cashout operations indexes are not ready yet', {
+    error: error.message,
+  });
+});
 
 const CAMPAIGN_FIELDS = ['source', 'medium', 'campaign', 'content', 'term'];
 
