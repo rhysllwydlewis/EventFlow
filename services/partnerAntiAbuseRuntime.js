@@ -34,7 +34,7 @@ const REWARD_TOTAL_FIELDS = Object.freeze({
   [partnerService.CREDIT_TYPES.FIRST_REVIEW_BONUS]: 'reviewBonusTotal',
 });
 
-async function reconcileEligibleRewards(partnerId) {
+const reconcileEligibleRewards = async partnerId => {
   const [referrals, rewardedTransactions] = await Promise.all([
     dbUnified.find('partner_referrals', { partnerId }),
     dbUnified.find('partner_credit_transactions', { partnerId }),
@@ -63,9 +63,9 @@ async function reconcileEligibleRewards(partnerId) {
       }
     }
   }
-}
+};
 
-function applyExtendedMaturity(balance) {
+const applyExtendedMaturity = balance => {
   if (!balance || !Array.isArray(balance.transactions)) return balance;
   const now = Date.now();
   const baseMaturityDays = Number(partnerService.CREDIT_MATURITY_DAYS || 30);
@@ -92,9 +92,9 @@ function applyExtendedMaturity(balance) {
     availableBalance: Math.max(0, Number(balance.availableBalance || 0) - deferred),
     maturingBalance: Number(balance.maturingBalance || 0) + deferred,
   };
-}
+};
 
-function applyRewardReversals(balance) {
+const applyRewardReversals = balance => {
   if (!balance || !Array.isArray(balance.transactions)) return balance;
   const reversedRewards = balance.transactions.filter(
     transaction =>
@@ -130,9 +130,9 @@ function applyRewardReversals(balance) {
   }
 
   return result;
-}
+};
 
-function installBalanceReconciliation() {
+const installBalanceReconciliation = () => {
   const originalGetBalance = partnerService.getBalance.bind(partnerService);
   partnerService.getBalance = async partnerId => {
     await partnerRewardIntegrityRuntime.revalidatePartnerRewards(partnerId);
@@ -140,9 +140,9 @@ function installBalanceReconciliation() {
     const baseBalance = await originalGetBalance(partnerId);
     return applyRewardReversals(applyExtendedMaturity(baseBalance));
   };
-}
+};
 
-function install() {
+const install = () => {
   if (installed) return;
   partnerAntiAbuse.installRewardGuards(partnerService);
   partnerRewardIntegrityRuntime.install();
@@ -151,7 +151,7 @@ function install() {
   logger.info(
     '[PARTNER-ANTI-ABUSE] Reward eligibility, integrity guards, revalidation and reconciliation installed'
   );
-}
+};
 
 module.exports = {
   install,
