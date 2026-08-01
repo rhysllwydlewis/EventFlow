@@ -17,21 +17,14 @@ jobs:
         shell: bash
         env:
           CHECK_ID: Q2hlY2s6eWxtZXJ3YXY=
-          REPORT_URL: https://app.deepsource.com/gh/rhysllwydlewis/EventFlow/run/4a6bc5de-70bd-468a-b6dc-bc3e1dc29bfe/javascript/
         run: |
           mkdir -p diagnostic
           python <<'PY'
-          import http.cookiejar
           import json
           import os
           import urllib.request
           from collections import Counter, defaultdict
           from pathlib import Path
-
-          cookie_jar = http.cookiejar.CookieJar()
-          opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cookie_jar))
-          opener.addheaders = [('User-Agent', 'EventFlow-PR1416-Diagnostic/1.0')]
-          opener.open(os.environ['REPORT_URL']).read()
 
           query = '''
           query EnumerateCheckIssues($id: ID!, $after: String) {
@@ -65,11 +58,11 @@ jobs:
                 'Content-Type': 'application/json',
                 'Accept': 'application/json',
                 'Origin': 'https://app.deepsource.com',
-                'Referer': os.environ['REPORT_URL'],
+                'User-Agent': 'EventFlow-PR1416-Diagnostic/1.0',
               },
               method='POST',
             )
-            response = json.loads(opener.open(request).read())
+            response = json.loads(urllib.request.urlopen(request).read())
             if response.get('errors'):
               raise RuntimeError(json.dumps(response['errors'], indent=2))
             connection = response['data']['node']['allIssues']
