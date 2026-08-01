@@ -1,0 +1,25 @@
+name: PR 1416 tree snapshot
+
+on:
+  push:
+    branches:
+      - agent/partner-anti-abuse-pr2-reward-integrity
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  tree:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/partner-anti-abuse-pr2-reward-integrity
+          fetch-depth: 0
+      - name: Print commit tree
+        run: |
+          echo "HEAD_SHA=$(git rev-parse HEAD)"
+          echo "TREE_SHA=$(git rev-parse 'HEAD^{tree}')"
