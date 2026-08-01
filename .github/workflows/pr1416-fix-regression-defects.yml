@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - agent/partner-anti-abuse-pr2-reward-integrity
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: write
@@ -14,6 +17,7 @@ concurrency:
 
 jobs:
   apply-and-verify:
+    if: github.event_name == 'push' || github.head_ref == 'agent/partner-anti-abuse-pr2-reward-integrity'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -22,8 +26,13 @@ jobs:
           ref: agent/partner-anti-abuse-pr2-reward-integrity
           fetch-depth: 0
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
       - name: Install dependencies
-        run: npm ci --ignore-scripts
+        run: npm ci
 
       - name: Apply regression fixes
         run: |
@@ -33,13 +42,18 @@ jobs:
           runtime_path = Path('services/partnerRewardIntegrityRuntime.js')
           runtime = runtime_path.read_text()
 
-          old_require = "const partnerService = require('./partnerService');\nconst integrity = require('./partnerRewardIntegrityService');"
-          new_require = "const partnerService = require('./partnerService');\nconst partnerAntiAbuse = require('./partnerAntiAbuseService');\nconst integrity = require('./partnerRewardIntegrityService');"
-          assert old_require in runtime, 'runtime require anchor missing'
-          runtime = runtime.replace(old_require, new_require, 1)
+          if "const partnerAntiAbuse = require('./partnerAntiAbuseService');" not in runtime:
+              anchor = "const partnerService = require('./partnerService');\n"
+              assert anchor in runtime, 'runtime require anchor missing'
+              runtime = runtime.replace(
+                  anchor,
+                  anchor + "const partnerAntiAbuse = require('./partnerAntiAbuseService');\n",
+                  1,
+              )
 
-          config_anchor = "});\n\nfunction ensureIndexesBestEffort() {"
-          config_insert = """});
+          if 'const METHOD_NAME_BY_TYPE' not in runtime:
+              anchor = "});\n\nfunction ensureIndexesBestEffort() {"
+              replacement = """});
 
 const METHOD_NAME_BY_TYPE = Object.freeze(
   Object.fromEntries(
@@ -53,11 +67,12 @@ const TECHNICAL_QUARANTINE_REASONS = new Set([
 ]);
 
 function ensureIndexesBestEffort() {"""
-          assert config_anchor in runtime, 'runtime config anchor missing'
-          runtime = runtime.replace(config_anchor, config_insert, 1)
+              assert anchor in runtime, 'runtime config anchor missing'
+              runtime = runtime.replace(anchor, replacement, 1)
 
-          guard_anchor = "function installRewardMethodGuards() {"
-          repair_code = r"""function isTechnicalQuarantinedReward(transaction) {
+          if 'async function repairTechnicalReward' not in runtime:
+              anchor = 'function installRewardMethodGuards() {'
+              repair = r"""function isTechnicalQuarantinedReward(transaction) {
   return Boolean(
     transaction?.id &&
       transaction.partnerId &&
@@ -208,15 +223,16 @@ async function repairTechnicalReward(transaction) {
 }
 
 function installRewardMethodGuards() {"""
-          assert guard_anchor in runtime, 'runtime guard anchor missing'
-          runtime = runtime.replace(guard_anchor, repair_code, 1)
+              assert anchor in runtime, 'runtime guard anchor missing'
+              runtime = runtime.replace(anchor, repair, 1)
 
-          old_exports = """module.exports = {
+          if 'repairTechnicalReward,' not in runtime:
+              anchor = """module.exports = {
   install,
   revalidatePartnerRewards,
   METHOD_CONFIG,
   SOFT_SIGNAL_REASONS,"""
-          new_exports = """module.exports = {
+              replacement = """module.exports = {
   install,
   revalidatePartnerRewards,
   repairTechnicalReward,
@@ -225,15 +241,17 @@ function installRewardMethodGuards() {"""
   METHOD_NAME_BY_TYPE,
   SOFT_SIGNAL_REASONS,
   TECHNICAL_QUARANTINE_REASONS,"""
-          assert old_exports in runtime, 'runtime export anchor missing'
-          runtime = runtime.replace(old_exports, new_exports, 1)
+              assert anchor in runtime, 'runtime export anchor missing'
+              runtime = runtime.replace(anchor, replacement, 1)
+
           runtime_path.write_text(runtime)
 
           clawback_path = Path('services/partnerRewardIntegrityClawbackService.js')
           clawback = clawback_path.read_text()
-          start = clawback.index('async function revalidateSnapshotReward(')
-          end = clawback.index('\n\nasync function revalidateLegacyReward', start)
-          new_snapshot = r"""async function revalidateSnapshotReward(transaction, partner, methodName) {
+          if 'const duplicateBusiness = await baseIntegrity.duplicateSupplierBusinessEvidence' not in clawback:
+              start = clawback.index('async function revalidateSnapshotReward(')
+              end = clawback.index('\n\nasync function revalidateLegacyReward', start)
+              replacement = r"""async function revalidateSnapshotReward(transaction, partner, methodName) {
   const snapshotDecision = await qualificationEvidence.revalidateSnapshot(
     transaction,
     partner.userId
@@ -282,19 +300,23 @@ function installRewardMethodGuards() {"""
     { eligible: true }
   );
 }"""
-          clawback = clawback[:start] + new_snapshot + clawback[end:]
-          clawback_path.write_text(clawback)
+              clawback = clawback[:start] + replacement + clawback[end:]
+              clawback_path.write_text(clawback)
           PY
 
       - name: Run targeted regression suites
-        run: |
-          npx jest tests/unit/partner-reward-technical-repair.test.js tests/unit/partner-reward-snapshot-revalidation.test.js --runInBand
+        run: >-
+          npx jest tests/unit/partner-reward-technical-repair.test.js
+          tests/unit/partner-reward-snapshot-revalidation.test.js --runInBand
 
-      - name: Commit verified fixes and remove repair workflow
+      - name: Commit verified source fixes
         run: |
-          rm .github/workflows/pr1416-fix-regression-defects.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add services/partnerRewardIntegrityRuntime.js services/partnerRewardIntegrityClawbackService.js .github/workflows/pr1416-fix-regression-defects.yml
+          git add services/partnerRewardIntegrityRuntime.js services/partnerRewardIntegrityClawbackService.js
+          if git diff --cached --quiet; then
+            echo "Source fixes already applied."
+            exit 0
+          fi
           git commit -m "fix(partner): repair quarantined rewards and prioritise durable fraud evidence"
           git push origin HEAD:agent/partner-anti-abuse-pr2-reward-integrity
