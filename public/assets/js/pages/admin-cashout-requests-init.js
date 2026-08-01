@@ -376,81 +376,128 @@
     }
   }
 
-  function openModal(id, items) {
-    const r = items.find(x => x.id === id);
-    if (!r) return;
-    _currentRequest = r;
+  function getModalElements() {
+    return {
+      overlay: document.getElementById('acr-modal-overlay'),
+      content: document.getElementById('acr-modal-content'),
+      statusSelect: document.getElementById('acr-modal-status-select'),
+      responseMsg: document.getElementById('acr-modal-response-msg'),
+      internalNotes: document.getElementById('acr-modal-internal-notes'),
+      deliveryWrap: document.getElementById('acr-delivery-details-wrap'),
+      statusMsg: document.getElementById('acr-modal-status-msg'),
+    };
+  }
 
-    const overlay = document.getElementById('acr-modal-overlay');
-    const content = document.getElementById('acr-modal-content');
-    const statusSelect = document.getElementById('acr-modal-status-select');
-    const responseMsg = document.getElementById('acr-modal-response-msg');
-    const internalNotes = document.getElementById('acr-modal-internal-notes');
-    const deliveryWrap = document.getElementById('acr-delivery-details-wrap');
-    const statusMsg = document.getElementById('acr-modal-status-msg');
+  function renderRequestOverview(r, partner) {
+    const partnerEmail = partner.email
+      ? `<div style="font-size:0.82rem;color:#6b7280;">${esc(partner.email)}</div>`
+      : '';
+    return `
+    <div class="acr-modal-field">
+      <span class="acr-modal-label">Request ID</span>
+      <span class="acr-modal-value" style="font-family:monospace;font-size:0.85rem;">${esc(r.id)}</span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+      <div class="acr-modal-field">
+        <span class="acr-modal-label">Partner</span>
+        <span class="acr-modal-value">${esc(partner.name || r.partnerId || '—')}</span>
+        ${partnerEmail}
+      </div>
+      <div class="acr-modal-field">
+        <span class="acr-modal-label">Method</span>
+        <span class="acr-modal-value">${esc(methodLabel(r.method))}</span>
+      </div>
+      <div class="acr-modal-field">
+        <span class="acr-modal-label">Amount</span>
+        <span class="acr-modal-value" style="font-size:1.3rem;font-weight:700;">£${esc(String(r.denominationGbp || '?'))}</span>
+      </div>
+      <div class="acr-modal-field">
+        <span class="acr-modal-label">Points held</span>
+        <span class="acr-modal-value">${esc(String(r.pointsHeld || '?'))} pts</span>
+      </div>
+      <div class="acr-modal-field">
+        <span class="acr-modal-label">Status</span>
+        <span class="acr-modal-value">${statusBadge(r.status)}</span>
+      </div>
+      <div class="acr-modal-field">
+        <span class="acr-modal-label">Submitted</span>
+        <span class="acr-modal-value" style="font-size:0.85rem;">${esc(fmtDate(r.createdAt))}</span>
+      </div>`;
+  }
 
-    const partner = r.partnerUser || {};
+  function renderRequestTimeline(r) {
+    const entries = [
+      r.approvedAt
+        ? `<div class="acr-modal-field"><span class="acr-modal-label">Approved</span><span class="acr-modal-value" style="font-size:0.85rem;">${esc(fmtDate(r.approvedAt))}</span></div>`
+        : '',
+      r.rejectedAt
+        ? `<div class="acr-modal-field"><span class="acr-modal-label">Rejected</span><span class="acr-modal-value" style="font-size:0.85rem;color:#dc2626;">${esc(fmtDate(r.rejectedAt))}</span></div>`
+        : '',
+      r.processingAt
+        ? `<div class="acr-modal-field"><span class="acr-modal-label">Processing since</span><span class="acr-modal-value" style="font-size:0.85rem;">${esc(fmtDate(r.processingAt))}</span></div>`
+        : '',
+      r.deliveredAt
+        ? `<div class="acr-modal-field"><span class="acr-modal-label">Delivered</span><span class="acr-modal-value" style="font-size:0.85rem;color:#059669;">${esc(fmtDate(r.deliveredAt))}</span></div>`
+        : '',
+    ];
+    return `${entries.filter(Boolean).join('')}</div>`;
+  }
+
+  function renderSafetyReview(r) {
     const identity = identityPresentation(r.cashoutIdentitySummary);
     const reconciliation = reconciliationPresentation(r.reconciliationSummary);
     const fraud = fraudPresentation(r.fraudSummary);
     const issueCodes = r.reconciliationSummary?.issueCodes || [];
-    content.innerHTML = `
-        <div class="acr-modal-field">
-          <span class="acr-modal-label">Request ID</span>
-          <span class="acr-modal-value" style="font-family:monospace;font-size:0.85rem;">${esc(r.id)}</span>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
-          <div class="acr-modal-field">
-            <span class="acr-modal-label">Partner</span>
-            <span class="acr-modal-value">${esc(partner.name || r.partnerId || '—')}</span>
-            ${partner.email ? `<div style="font-size:0.82rem;color:#6b7280;">${esc(partner.email)}</div>` : ''}
-          </div>
-          <div class="acr-modal-field">
-            <span class="acr-modal-label">Method</span>
-            <span class="acr-modal-value">${esc(methodLabel(r.method))}</span>
-          </div>
-          <div class="acr-modal-field">
-            <span class="acr-modal-label">Amount</span>
-            <span class="acr-modal-value" style="font-size:1.3rem;font-weight:700;">£${esc(String(r.denominationGbp || '?'))}</span>
-          </div>
-          <div class="acr-modal-field">
-            <span class="acr-modal-label">Points held</span>
-            <span class="acr-modal-value">${esc(String(r.pointsHeld || '?'))} pts</span>
-          </div>
-          <div class="acr-modal-field">
-            <span class="acr-modal-label">Status</span>
-            <span class="acr-modal-value">${statusBadge(r.status)}</span>
-          </div>
-          <div class="acr-modal-field">
-            <span class="acr-modal-label">Submitted</span>
-            <span class="acr-modal-value" style="font-size:0.85rem;">${esc(fmtDate(r.createdAt))}</span>
-          </div>
-          ${r.approvedAt ? `<div class="acr-modal-field"><span class="acr-modal-label">Approved</span><span class="acr-modal-value" style="font-size:0.85rem;">${esc(fmtDate(r.approvedAt))}</span></div>` : ''}
-          ${r.rejectedAt ? `<div class="acr-modal-field"><span class="acr-modal-label">Rejected</span><span class="acr-modal-value" style="font-size:0.85rem;color:#dc2626;">${esc(fmtDate(r.rejectedAt))}</span></div>` : ''}
-          ${r.processingAt ? `<div class="acr-modal-field"><span class="acr-modal-label">Processing since</span><span class="acr-modal-value" style="font-size:0.85rem;">${esc(fmtDate(r.processingAt))}</span></div>` : ''}
-          ${r.deliveredAt ? `<div class="acr-modal-field"><span class="acr-modal-label">Delivered</span><span class="acr-modal-value" style="font-size:0.85rem;color:#059669;">${esc(fmtDate(r.deliveredAt))}</span></div>` : ''}
-        </div>
-        <div style="border:1px solid #d1d5db;border-radius:12px;padding:.85rem;margin:1rem 0;background:#f9fafb;">
-          <div style="font-size:.78rem;font-weight:800;color:#374151;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.55rem;">Safety review</div>
-          <div style="display:flex;gap:.35rem;flex-wrap:wrap;margin-bottom:.65rem;">${safetyPill(identity.label, identity.tone)}${safetyPill(reconciliation.label, reconciliation.tone)}${safetyPill(fraud.label, fraud.tone)}</div>
-          <div style="font-size:.78rem;color:#6b7280;line-height:1.55;">
-            ${r.cashoutIdentitySummary?.reviewedAt ? `Identity reviewed ${esc(fmtDate(r.cashoutIdentitySummary.reviewedAt))}. ` : ''}
-            ${r.reconciliationSummary?.reconciledAt ? `Ledger checked ${esc(fmtDate(r.reconciliationSummary.reconciledAt))}. ` : ''}
-            ${issueCodes.length ? `Issues: ${esc(issueCodes.join(', '))}.` : ''}
-          </div>
-          <div style="display:flex;gap:.45rem;flex-wrap:wrap;margin-top:.7rem;">
-            <button type="button" class="ef-cta acr-action-btn" id="acr-identity-verify-btn">Verify identity</button>
-            <button type="button" class="ef-cta acr-action-btn acr-action-btn--danger" id="acr-identity-reject-btn">Reject identity</button>
-            <button type="button" class="ef-cta acr-action-btn" id="acr-reconcile-btn">Run ledger reconciliation</button>
-          </div>
-          <div style="font-size:.73rem;color:#6b7280;margin-top:.5rem;">Identity actions use the internal review note below as the required audit reason.</div>
-        </div>
-        ${r.partnerMessage ? `<div class="acr-modal-field"><span class="acr-modal-label">Partner message</span><div class="acr-modal-value" style="background:#f9fafb;padding:0.6rem;border-radius:8px;font-style:italic;">${esc(r.partnerMessage)}</div></div>` : ''}
-        ${r.adminResponseMessage ? `<div class="acr-modal-field"><span class="acr-modal-label">Current response message</span><div class="acr-modal-value" style="background:#f0fdf4;padding:0.6rem;border-radius:8px;">${esc(r.adminResponseMessage)}</div></div>` : ''}
-        ${r.adminInternalNotes ? `<div class="acr-modal-field"><span class="acr-modal-label">Current internal notes</span><div class="acr-modal-value" style="background:#fefce8;padding:0.6rem;border-radius:8px;">${esc(r.adminInternalNotes)}</div></div>` : ''}
-        ${r.deliveryDetails ? `<div class="acr-modal-field"><span class="acr-modal-label">Delivery details</span><div class="acr-modal-value" style="background:#f0fdf4;padding:0.6rem;border-radius:8px;font-family:monospace;font-size:0.85rem;">${esc(typeof r.deliveryDetails === 'object' ? JSON.stringify(r.deliveryDetails) : String(r.deliveryDetails))}</div></div>` : ''}
-      `;
+    const identityReview = r.cashoutIdentitySummary?.reviewedAt
+      ? `Identity reviewed ${esc(fmtDate(r.cashoutIdentitySummary.reviewedAt))}. `
+      : '';
+    const ledgerReview = r.reconciliationSummary?.reconciledAt
+      ? `Ledger checked ${esc(fmtDate(r.reconciliationSummary.reconciledAt))}. `
+      : '';
+    const issues = issueCodes.length ? `Issues: ${esc(issueCodes.join(', '))}.` : '';
+    return `
+    <div style="border:1px solid #d1d5db;border-radius:12px;padding:.85rem;margin:1rem 0;background:#f9fafb;">
+      <div style="font-size:.78rem;font-weight:800;color:#374151;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.55rem;">Safety review</div>
+      <div style="display:flex;gap:.35rem;flex-wrap:wrap;margin-bottom:.65rem;">${safetyPill(identity.label, identity.tone)}${safetyPill(reconciliation.label, reconciliation.tone)}${safetyPill(fraud.label, fraud.tone)}</div>
+      <div style="font-size:.78rem;color:#6b7280;line-height:1.55;">${identityReview}${ledgerReview}${issues}</div>
+      <div style="display:flex;gap:.45rem;flex-wrap:wrap;margin-top:.7rem;">
+        <button type="button" class="ef-cta acr-action-btn" id="acr-identity-verify-btn">Verify identity</button>
+        <button type="button" class="ef-cta acr-action-btn acr-action-btn--danger" id="acr-identity-reject-btn">Reject identity</button>
+        <button type="button" class="ef-cta acr-action-btn" id="acr-reconcile-btn">Run ledger reconciliation</button>
+      </div>
+      <div style="font-size:.73rem;color:#6b7280;margin-top:.5rem;">Identity actions use the internal review note below as the required audit reason.</div>
+    </div>`;
+  }
 
+  function renderOptionalRequestDetails(r) {
+    const deliveryDetails =
+      typeof r.deliveryDetails === 'object'
+        ? JSON.stringify(r.deliveryDetails)
+        : String(r.deliveryDetails || '');
+    return [
+      r.partnerMessage
+        ? `<div class="acr-modal-field"><span class="acr-modal-label">Partner message</span><div class="acr-modal-value" style="background:#f9fafb;padding:0.6rem;border-radius:8px;font-style:italic;">${esc(r.partnerMessage)}</div></div>`
+        : '',
+      r.adminResponseMessage
+        ? `<div class="acr-modal-field"><span class="acr-modal-label">Current response message</span><div class="acr-modal-value" style="background:#f0fdf4;padding:0.6rem;border-radius:8px;">${esc(r.adminResponseMessage)}</div></div>`
+        : '',
+      r.adminInternalNotes
+        ? `<div class="acr-modal-field"><span class="acr-modal-label">Current internal notes</span><div class="acr-modal-value" style="background:#fefce8;padding:0.6rem;border-radius:8px;">${esc(r.adminInternalNotes)}</div></div>`
+        : '',
+      r.deliveryDetails
+        ? `<div class="acr-modal-field"><span class="acr-modal-label">Delivery details</span><div class="acr-modal-value" style="background:#f0fdf4;padding:0.6rem;border-radius:8px;font-family:monospace;font-size:0.85rem;">${esc(deliveryDetails)}</div></div>`
+        : '',
+    ]
+      .filter(Boolean)
+      .join('');
+  }
+
+  function renderRequestDetails(r) {
+    const partner = r.partnerUser || {};
+    return `${renderRequestOverview(r, partner)}${renderRequestTimeline(r)}${renderSafetyReview(r)}${renderOptionalRequestDetails(r)}`;
+  }
+
+  function bindSafetyReviewActions() {
     document
       .getElementById('acr-identity-verify-btn')
       ?.addEventListener('click', () => setIdentityReview('verified'));
@@ -458,42 +505,54 @@
       .getElementById('acr-identity-reject-btn')
       ?.addEventListener('click', () => setIdentityReview('rejected'));
     document.getElementById('acr-reconcile-btn')?.addEventListener('click', runReconciliation);
+  }
 
-    if (responseMsg) responseMsg.value = r.adminResponseMessage || '';
-    if (internalNotes) internalNotes.value = r.adminInternalNotes || '';
-    if (statusSelect) statusSelect.value = '';
-    if (statusMsg) {
-      statusMsg.textContent = '';
-      statusMsg.className = 'acr-modal-status';
-    }
+  function toggleDeliveryFields(statusSelect, deliveryWrap) {
+    if (!deliveryWrap) return;
+    deliveryWrap.style.display = statusSelect?.value === 'delivered' ? 'block' : 'none';
+  }
 
-    function toggleDelivery() {
-      if (deliveryWrap)
-        deliveryWrap.style.display =
-          statusSelect && statusSelect.value === 'delivered' ? 'block' : 'none';
-    }
-    if (statusSelect) {
-      statusSelect.removeEventListener('change', toggleDelivery);
-      statusSelect.addEventListener('change', toggleDelivery);
-    }
+  function configureStatusOptions(statusSelect, requestStatus) {
+    if (!statusSelect) return;
+    const allowed = {
+      submitted: ['approved', 'rejected'],
+      approved: ['processing', 'rejected'],
+      processing: ['delivered', 'rejected'],
+      rejected: [],
+      delivered: [],
+    };
+    const options = allowed[requestStatus] || [];
+    Array.from(statusSelect.options).forEach(option => {
+      if (option.value) option.disabled = !options.includes(option.value);
+    });
+  }
 
-    if (statusSelect) {
-      const allowed = {
-        submitted: ['approved', 'rejected'],
-        approved: ['processing', 'rejected'],
-        processing: ['delivered', 'rejected'],
-        rejected: [],
-        delivered: [],
-      };
-      const opts = allowed[r.status] || [];
-      Array.from(statusSelect.options).forEach(opt => {
-        if (opt.value === '') return;
-        opt.disabled = !opts.includes(opt.value);
-      });
+  function resetModalFields(elements, request) {
+    if (elements.responseMsg) elements.responseMsg.value = request.adminResponseMessage || '';
+    if (elements.internalNotes) elements.internalNotes.value = request.adminInternalNotes || '';
+    if (elements.statusSelect) elements.statusSelect.value = '';
+    if (elements.statusMsg) {
+      elements.statusMsg.textContent = '';
+      elements.statusMsg.className = 'acr-modal-status';
     }
+    configureStatusOptions(elements.statusSelect, request.status);
+    if (elements.statusSelect) {
+      elements.statusSelect.onchange = () =>
+        toggleDeliveryFields(elements.statusSelect, elements.deliveryWrap);
+    }
+    toggleDeliveryFields(elements.statusSelect, elements.deliveryWrap);
+  }
 
-    overlay.style.display = 'flex';
-    overlay.focus && overlay.focus();
+  function openModal(id, items) {
+    const request = items.find(item => item.id === id);
+    if (!request) return;
+    _currentRequest = request;
+    const elements = getModalElements();
+    elements.content.innerHTML = renderRequestDetails(request);
+    bindSafetyReviewActions();
+    resetModalFields(elements, request);
+    elements.overlay.style.display = 'flex';
+    elements.overlay.focus?.();
   }
 
   function closeModal() {
@@ -504,75 +563,81 @@
 
   // ── Save ─────────────────────────────────────────────────────────────────
 
-  async function saveChanges() {
-    if (!_currentRequest) return;
-
+  function readModalUpdate() {
     const statusSelect = document.getElementById('acr-modal-status-select');
     const responseMsg = document.getElementById('acr-modal-response-msg');
     const internalNotes = document.getElementById('acr-modal-internal-notes');
     const deliveryRef = document.getElementById('acr-modal-delivery-ref');
-    const statusMsg = document.getElementById('acr-modal-status-msg');
-    const saveBtn = document.getElementById('acr-modal-save-btn');
+    return {
+      statusMsg: document.getElementById('acr-modal-status-msg'),
+      saveBtn: document.getElementById('acr-modal-save-btn'),
+      newStatus: statusSelect?.value || undefined,
+      adminResponseMessage: responseMsg?.value.trim() || undefined,
+      adminInternalNotes: internalNotes?.value.trim() || undefined,
+      deliveryRef: deliveryRef?.value.trim() || undefined,
+    };
+  }
 
-    const newStatus = (statusSelect && statusSelect.value) || undefined;
-    const adminResponseMessage = (responseMsg && responseMsg.value.trim()) || undefined;
-    const adminInternalNotes = (internalNotes && internalNotes.value.trim()) || undefined;
-    const deliveryRefVal = (deliveryRef && deliveryRef.value.trim()) || undefined;
+  function hasModalChanges(update) {
+    return Boolean(update.newStatus || update.adminResponseMessage || update.adminInternalNotes);
+  }
 
-    if (!newStatus && !adminResponseMessage && !adminInternalNotes) {
-      if (statusMsg) {
-        statusMsg.textContent = 'No changes to save.';
-        statusMsg.className = 'acr-modal-status';
-      }
+  function setModalStatus(statusMsg, message, tone = '') {
+    if (!statusMsg) return;
+    statusMsg.textContent = message;
+    statusMsg.className = `acr-modal-status${tone ? ` acr-modal-status--${tone}` : ''}`;
+  }
+
+  function setSaveButtonState(saveBtn, saving) {
+    if (!saveBtn) return;
+    saveBtn.disabled = saving;
+    saveBtn.textContent = saving ? 'Saving…' : '💾 Save changes';
+  }
+
+  function buildCashoutUpdateBody(update) {
+    const body = {};
+    if (update.newStatus) body.status = update.newStatus;
+    if (update.adminResponseMessage !== undefined)
+      body.adminResponseMessage = update.adminResponseMessage;
+    if (update.adminInternalNotes !== undefined)
+      body.adminInternalNotes = update.adminInternalNotes;
+    if (update.newStatus === 'delivered' && update.deliveryRef) {
+      body.deliveryDetails = { reference: update.deliveryRef };
+    }
+    return body;
+  }
+
+  function refreshAfterCashoutUpdate() {
+    closeModal();
+    loadRequests();
+    loadOperationsPanel();
+  }
+
+  async function saveChanges() {
+    if (!_currentRequest) return;
+    const update = readModalUpdate();
+    if (!hasModalChanges(update)) {
+      setModalStatus(update.statusMsg, 'No changes to save.');
       return;
     }
 
-    if (saveBtn) {
-      saveBtn.disabled = true;
-      saveBtn.textContent = 'Saving…';
-    }
-    if (statusMsg) {
-      statusMsg.textContent = '';
-      statusMsg.className = 'acr-modal-status';
-    }
-
+    setSaveButtonState(update.saveBtn, true);
+    setModalStatus(update.statusMsg, '');
     try {
-      const body = {};
-      if (newStatus) body.status = newStatus;
-      if (adminResponseMessage !== undefined) body.adminResponseMessage = adminResponseMessage;
-      if (adminInternalNotes !== undefined) body.adminInternalNotes = adminInternalNotes;
-      if (newStatus === 'delivered' && deliveryRefVal) {
-        body.deliveryDetails = { reference: deliveryRefVal };
-      }
-
       await apiWrite(
         `/api/v1/admin/cashout-requests/${encodeURIComponent(_currentRequest.id)}`,
         'PATCH',
-        body
+        buildCashoutUpdateBody(update)
       );
-
-      if (statusMsg) {
-        statusMsg.textContent = 'Saved successfully.';
-        statusMsg.className = 'acr-modal-status acr-modal-status--success';
-      }
+      setModalStatus(update.statusMsg, 'Saved successfully.', 'success');
       showToast('Cashout request updated.', 'success');
-
-      setTimeout(() => {
-        closeModal();
-        loadRequests();
-        loadOperationsPanel();
-      }, 800);
-    } catch (err) {
-      if (statusMsg) {
-        statusMsg.textContent = err.message || 'Failed to save.';
-        statusMsg.className = 'acr-modal-status acr-modal-status--error';
-      }
-      showToast(err.message || 'Failed to save', 'error');
+      setTimeout(refreshAfterCashoutUpdate, 800);
+    } catch (error) {
+      const message = error.message || 'Failed to save.';
+      setModalStatus(update.statusMsg, message, 'error');
+      showToast(message, 'error');
     } finally {
-      if (saveBtn) {
-        saveBtn.disabled = false;
-        saveBtn.textContent = '💾 Save changes';
-      }
+      setSaveButtonState(update.saveBtn, false);
     }
   }
 
