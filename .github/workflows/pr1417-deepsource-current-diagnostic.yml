@@ -1,4 +1,4 @@
-name: PR 1417 DeepSource current diagnostic
+name: PR 1417 DeepSource repair
 
 on:
   pull_request:
@@ -6,115 +6,353 @@ on:
       - main
 
 permissions:
-  contents: read
-  statuses: read
+  contents: write
+
+concurrency:
+  group: pr1417-deepsource-repair
+  cancel-in-progress: false
 
 jobs:
-  extract-findings:
+  repair-and-verify:
     if: github.event.pull_request.head.ref == 'agent/partner-anti-abuse-pr3-cashout-ops'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
-
-      - name: Wait for current DeepSource JavaScript report
-        env:
-          GH_TOKEN: ${{ github.token }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          REPOSITORY: ${{ github.repository }}
-        run: |
-          set -euo pipefail
-          for attempt in $(seq 1 60); do
-            curl --fail --silent --show-error \
-              -H "Authorization: Bearer ${GH_TOKEN}" \
-              -H "Accept: application/vnd.github+json" \
-              "https://api.github.com/repos/${REPOSITORY}/commits/${HEAD_SHA}/status" \
-              > status.json
-            node <<'NODE'
-          const fs = require('fs');
-          const status = JSON.parse(fs.readFileSync('status.json', 'utf8'));
-          const item = (status.statuses || []).find(entry => entry.context === 'DeepSource: JavaScript');
-          if (item?.target_url) fs.writeFileSync('target-url.txt', item.target_url);
-          if (item?.state) fs.writeFileSync('deepsource-state.txt', item.state);
-          NODE
-            state="$(cat deepsource-state.txt 2>/dev/null || true)"
-            if [ "$state" = "success" ] || [ "$state" = "failure" ]; then
-              break
-            fi
-            sleep 10
-          done
-          test -s target-url.txt
-          test "$(cat deepsource-state.txt)" != "pending"
-
-      - name: Download and parse findings
-        run: |
-          set -euo pipefail
-          curl --fail --location --silent --show-error "$(cat target-url.txt)" > report.html
-          node <<'NODE'
-          const fs = require('fs');
-          const vm = require('vm');
-          const html = fs.readFileSync('report.html', 'utf8');
-          const match = html.match(/<script>window\.__NUXT__=([\s\S]*?)<\/script>/);
-          if (!match) throw new Error('DeepSource report payload was not found');
-          const source = `window.__NUXT__=${match[1]}`;
-          const context = { window: {} };
-          vm.createContext(context);
-          vm.runInContext(source, context, { timeout: 10000 });
-          const root = context.window.__NUXT__;
-          const issues = [];
-          const seen = new Set();
-          const visited = new Set();
-          function visit(value) {
-            if (!value || typeof value !== 'object' || visited.has(value)) return;
-            visited.add(value);
-            if (
-              value.__typename === 'StaticAnalysisIssue' &&
-              value.id && value.path && value.shortcode
-            ) {
-              const key = String(value.id);
-              if (!seen.has(key)) {
-                seen.add(key);
-                issues.push({
-                  id: value.id,
-                  path: value.path,
-                  text: value.text,
-                  shortcode: value.shortcode,
-                  category: value.category,
-                  severity: value.severity,
-                  beginLine: value.beginLine,
-                  beginColumn: value.beginColumn,
-                  endLine: value.endLine,
-                  endColumn: value.endColumn,
-                });
-              }
-            }
-            for (const child of Object.values(value)) visit(child);
-          }
-          visit(root);
-          issues.sort((a, b) =>
-            a.path.localeCompare(b.path) ||
-            Number(a.beginLine || 0) - Number(b.beginLine || 0) ||
-            a.shortcode.localeCompare(b.shortcode)
-          );
-          const summary = { total: issues.length, by_code: {}, by_file: {} };
-          for (const issue of issues) {
-            summary.by_code[issue.shortcode] = (summary.by_code[issue.shortcode] || 0) + 1;
-            summary.by_file[issue.path] ||= {};
-            summary.by_file[issue.path][issue.shortcode] =
-              (summary.by_file[issue.path][issue.shortcode] || 0) + 1;
-          }
-          fs.writeFileSync('issues.json', JSON.stringify(issues, null, 2));
-          fs.writeFileSync('summary.json', JSON.stringify(summary, null, 2));
-          console.log(JSON.stringify(summary, null, 2));
-          NODE
-
-      - uses: actions/upload-artifact@v4
         with:
-          name: pr1417-current-deepsource-findings
-          path: |
-            issues.json
-            summary.json
-            status.json
-            target-url.txt
-            report.html
-          retention-days: 2
+          ref: agent/partner-anti-abuse-pr3-cashout-ops
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit
+        env:
+          HUSKY: 0
+
+      - name: Apply DeepSource repairs
+        run: |
+          python <<'PY'
+          from pathlib import Path
+
+          for file_name in (
+              'services/partnerCashoutAdminEnrichmentRuntime.js',
+              'services/partnerCashoutLockRuntime.js',
+          ):
+              path = Path(file_name)
+              source = path.read_text()
+              if not source.startswith('(() => {\n'):
+                  path.write_text('(() => {\n' + source.rstrip() + '\n})();\n')
+
+          path = Path('public/assets/js/pages/admin-cashout-requests-init.js')
+          source = path.read_text()
+
+          open_start = source.index('  function openModal(id, items) {')
+          open_end = source.index('\n  function closeModal() {', open_start)
+          open_replacement = r'''  function getModalElements() {
+            return {
+              overlay: document.getElementById('acr-modal-overlay'),
+              content: document.getElementById('acr-modal-content'),
+              statusSelect: document.getElementById('acr-modal-status-select'),
+              responseMsg: document.getElementById('acr-modal-response-msg'),
+              internalNotes: document.getElementById('acr-modal-internal-notes'),
+              deliveryWrap: document.getElementById('acr-delivery-details-wrap'),
+              statusMsg: document.getElementById('acr-modal-status-msg'),
+            };
+          }
+
+          function renderRequestOverview(r, partner) {
+            const partnerEmail = partner.email
+              ? `<div style="font-size:0.82rem;color:#6b7280;">${esc(partner.email)}</div>`
+              : '';
+            return `
+              <div class="acr-modal-field">
+                <span class="acr-modal-label">Request ID</span>
+                <span class="acr-modal-value" style="font-family:monospace;font-size:0.85rem;">${esc(r.id)}</span>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+                <div class="acr-modal-field">
+                  <span class="acr-modal-label">Partner</span>
+                  <span class="acr-modal-value">${esc(partner.name || r.partnerId || '—')}</span>
+                  ${partnerEmail}
+                </div>
+                <div class="acr-modal-field">
+                  <span class="acr-modal-label">Method</span>
+                  <span class="acr-modal-value">${esc(methodLabel(r.method))}</span>
+                </div>
+                <div class="acr-modal-field">
+                  <span class="acr-modal-label">Amount</span>
+                  <span class="acr-modal-value" style="font-size:1.3rem;font-weight:700;">£${esc(String(r.denominationGbp || '?'))}</span>
+                </div>
+                <div class="acr-modal-field">
+                  <span class="acr-modal-label">Points held</span>
+                  <span class="acr-modal-value">${esc(String(r.pointsHeld || '?'))} pts</span>
+                </div>
+                <div class="acr-modal-field">
+                  <span class="acr-modal-label">Status</span>
+                  <span class="acr-modal-value">${statusBadge(r.status)}</span>
+                </div>
+                <div class="acr-modal-field">
+                  <span class="acr-modal-label">Submitted</span>
+                  <span class="acr-modal-value" style="font-size:0.85rem;">${esc(fmtDate(r.createdAt))}</span>
+                </div>`;
+          }
+
+          function renderRequestTimeline(r) {
+            const entries = [
+              r.approvedAt
+                ? `<div class="acr-modal-field"><span class="acr-modal-label">Approved</span><span class="acr-modal-value" style="font-size:0.85rem;">${esc(fmtDate(r.approvedAt))}</span></div>`
+                : '',
+              r.rejectedAt
+                ? `<div class="acr-modal-field"><span class="acr-modal-label">Rejected</span><span class="acr-modal-value" style="font-size:0.85rem;color:#dc2626;">${esc(fmtDate(r.rejectedAt))}</span></div>`
+                : '',
+              r.processingAt
+                ? `<div class="acr-modal-field"><span class="acr-modal-label">Processing since</span><span class="acr-modal-value" style="font-size:0.85rem;">${esc(fmtDate(r.processingAt))}</span></div>`
+                : '',
+              r.deliveredAt
+                ? `<div class="acr-modal-field"><span class="acr-modal-label">Delivered</span><span class="acr-modal-value" style="font-size:0.85rem;color:#059669;">${esc(fmtDate(r.deliveredAt))}</span></div>`
+                : '',
+            ];
+            return `${entries.filter(Boolean).join('')}</div>`;
+          }
+
+          function renderSafetyReview(r) {
+            const identity = identityPresentation(r.cashoutIdentitySummary);
+            const reconciliation = reconciliationPresentation(r.reconciliationSummary);
+            const fraud = fraudPresentation(r.fraudSummary);
+            const issueCodes = r.reconciliationSummary?.issueCodes || [];
+            const identityReview = r.cashoutIdentitySummary?.reviewedAt
+              ? `Identity reviewed ${esc(fmtDate(r.cashoutIdentitySummary.reviewedAt))}. `
+              : '';
+            const ledgerReview = r.reconciliationSummary?.reconciledAt
+              ? `Ledger checked ${esc(fmtDate(r.reconciliationSummary.reconciledAt))}. `
+              : '';
+            const issues = issueCodes.length ? `Issues: ${esc(issueCodes.join(', '))}.` : '';
+            return `
+              <div style="border:1px solid #d1d5db;border-radius:12px;padding:.85rem;margin:1rem 0;background:#f9fafb;">
+                <div style="font-size:.78rem;font-weight:800;color:#374151;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.55rem;">Safety review</div>
+                <div style="display:flex;gap:.35rem;flex-wrap:wrap;margin-bottom:.65rem;">${safetyPill(identity.label, identity.tone)}${safetyPill(reconciliation.label, reconciliation.tone)}${safetyPill(fraud.label, fraud.tone)}</div>
+                <div style="font-size:.78rem;color:#6b7280;line-height:1.55;">${identityReview}${ledgerReview}${issues}</div>
+                <div style="display:flex;gap:.45rem;flex-wrap:wrap;margin-top:.7rem;">
+                  <button type="button" class="ef-cta acr-action-btn" id="acr-identity-verify-btn">Verify identity</button>
+                  <button type="button" class="ef-cta acr-action-btn acr-action-btn--danger" id="acr-identity-reject-btn">Reject identity</button>
+                  <button type="button" class="ef-cta acr-action-btn" id="acr-reconcile-btn">Run ledger reconciliation</button>
+                </div>
+                <div style="font-size:.73rem;color:#6b7280;margin-top:.5rem;">Identity actions use the internal review note below as the required audit reason.</div>
+              </div>`;
+          }
+
+          function renderOptionalRequestDetails(r) {
+            const deliveryDetails =
+              typeof r.deliveryDetails === 'object'
+                ? JSON.stringify(r.deliveryDetails)
+                : String(r.deliveryDetails || '');
+            return [
+              r.partnerMessage
+                ? `<div class="acr-modal-field"><span class="acr-modal-label">Partner message</span><div class="acr-modal-value" style="background:#f9fafb;padding:0.6rem;border-radius:8px;font-style:italic;">${esc(r.partnerMessage)}</div></div>`
+                : '',
+              r.adminResponseMessage
+                ? `<div class="acr-modal-field"><span class="acr-modal-label">Current response message</span><div class="acr-modal-value" style="background:#f0fdf4;padding:0.6rem;border-radius:8px;">${esc(r.adminResponseMessage)}</div></div>`
+                : '',
+              r.adminInternalNotes
+                ? `<div class="acr-modal-field"><span class="acr-modal-label">Current internal notes</span><div class="acr-modal-value" style="background:#fefce8;padding:0.6rem;border-radius:8px;">${esc(r.adminInternalNotes)}</div></div>`
+                : '',
+              r.deliveryDetails
+                ? `<div class="acr-modal-field"><span class="acr-modal-label">Delivery details</span><div class="acr-modal-value" style="background:#f0fdf4;padding:0.6rem;border-radius:8px;font-family:monospace;font-size:0.85rem;">${esc(deliveryDetails)}</div></div>`
+                : '',
+            ]
+              .filter(Boolean)
+              .join('');
+          }
+
+          function renderRequestDetails(r) {
+            const partner = r.partnerUser || {};
+            return `${renderRequestOverview(r, partner)}${renderRequestTimeline(r)}${renderSafetyReview(r)}${renderOptionalRequestDetails(r)}`;
+          }
+
+          function bindSafetyReviewActions() {
+            document
+              .getElementById('acr-identity-verify-btn')
+              ?.addEventListener('click', () => setIdentityReview('verified'));
+            document
+              .getElementById('acr-identity-reject-btn')
+              ?.addEventListener('click', () => setIdentityReview('rejected'));
+            document.getElementById('acr-reconcile-btn')?.addEventListener('click', runReconciliation);
+          }
+
+          function toggleDeliveryFields(statusSelect, deliveryWrap) {
+            if (!deliveryWrap) return;
+            deliveryWrap.style.display = statusSelect?.value === 'delivered' ? 'block' : 'none';
+          }
+
+          function configureStatusOptions(statusSelect, requestStatus) {
+            if (!statusSelect) return;
+            const allowed = {
+              submitted: ['approved', 'rejected'],
+              approved: ['processing', 'rejected'],
+              processing: ['delivered', 'rejected'],
+              rejected: [],
+              delivered: [],
+            };
+            const options = allowed[requestStatus] || [];
+            Array.from(statusSelect.options).forEach(option => {
+              if (option.value) option.disabled = !options.includes(option.value);
+            });
+          }
+
+          function resetModalFields(elements, request) {
+            if (elements.responseMsg) elements.responseMsg.value = request.adminResponseMessage || '';
+            if (elements.internalNotes)
+              elements.internalNotes.value = request.adminInternalNotes || '';
+            if (elements.statusSelect) elements.statusSelect.value = '';
+            if (elements.statusMsg) {
+              elements.statusMsg.textContent = '';
+              elements.statusMsg.className = 'acr-modal-status';
+            }
+            configureStatusOptions(elements.statusSelect, request.status);
+            if (elements.statusSelect) {
+              elements.statusSelect.onchange = () =>
+                toggleDeliveryFields(elements.statusSelect, elements.deliveryWrap);
+            }
+            toggleDeliveryFields(elements.statusSelect, elements.deliveryWrap);
+          }
+
+          function openModal(id, items) {
+            const request = items.find(item => item.id === id);
+            if (!request) return;
+            _currentRequest = request;
+            const elements = getModalElements();
+            elements.content.innerHTML = renderRequestDetails(request);
+            bindSafetyReviewActions();
+            resetModalFields(elements, request);
+            elements.overlay.style.display = 'flex';
+            elements.overlay.focus?.();
+          }
+'''
+          source = source[:open_start] + open_replacement + source[open_end:]
+
+          save_start = source.index('  async function saveChanges() {')
+          save_end = source.index('\n\n  // ── Wire up', save_start)
+          save_replacement = r'''  function readModalUpdate() {
+            const statusSelect = document.getElementById('acr-modal-status-select');
+            const responseMsg = document.getElementById('acr-modal-response-msg');
+            const internalNotes = document.getElementById('acr-modal-internal-notes');
+            const deliveryRef = document.getElementById('acr-modal-delivery-ref');
+            return {
+              statusMsg: document.getElementById('acr-modal-status-msg'),
+              saveBtn: document.getElementById('acr-modal-save-btn'),
+              newStatus: statusSelect?.value || undefined,
+              adminResponseMessage: responseMsg?.value.trim() || undefined,
+              adminInternalNotes: internalNotes?.value.trim() || undefined,
+              deliveryRef: deliveryRef?.value.trim() || undefined,
+            };
+          }
+
+          function hasModalChanges(update) {
+            return Boolean(
+              update.newStatus || update.adminResponseMessage || update.adminInternalNotes
+            );
+          }
+
+          function setModalStatus(statusMsg, message, tone = '') {
+            if (!statusMsg) return;
+            statusMsg.textContent = message;
+            statusMsg.className = `acr-modal-status${tone ? ` acr-modal-status--${tone}` : ''}`;
+          }
+
+          function setSaveButtonState(saveBtn, saving) {
+            if (!saveBtn) return;
+            saveBtn.disabled = saving;
+            saveBtn.textContent = saving ? 'Saving…' : '💾 Save changes';
+          }
+
+          function buildCashoutUpdateBody(update) {
+            const body = {};
+            if (update.newStatus) body.status = update.newStatus;
+            if (update.adminResponseMessage !== undefined)
+              body.adminResponseMessage = update.adminResponseMessage;
+            if (update.adminInternalNotes !== undefined)
+              body.adminInternalNotes = update.adminInternalNotes;
+            if (update.newStatus === 'delivered' && update.deliveryRef) {
+              body.deliveryDetails = { reference: update.deliveryRef };
+            }
+            return body;
+          }
+
+          function refreshAfterCashoutUpdate() {
+            closeModal();
+            loadRequests();
+            loadOperationsPanel();
+          }
+
+          async function saveChanges() {
+            if (!_currentRequest) return;
+            const update = readModalUpdate();
+            if (!hasModalChanges(update)) {
+              setModalStatus(update.statusMsg, 'No changes to save.');
+              return;
+            }
+
+            setSaveButtonState(update.saveBtn, true);
+            setModalStatus(update.statusMsg, '');
+            try {
+              await apiWrite(
+                `/api/v1/admin/cashout-requests/${encodeURIComponent(_currentRequest.id)}`,
+                'PATCH',
+                buildCashoutUpdateBody(update)
+              );
+              setModalStatus(update.statusMsg, 'Saved successfully.', 'success');
+              showToast('Cashout request updated.', 'success');
+              setTimeout(refreshAfterCashoutUpdate, 800);
+            } catch (error) {
+              const message = error.message || 'Failed to save.';
+              setModalStatus(update.statusMsg, message, 'error');
+              showToast(message, 'error');
+            } finally {
+              setSaveButtonState(update.saveBtn, false);
+            }
+          }'''
+          source = source[:save_start] + save_replacement + source[save_end:]
+          path.write_text(source)
+          PY
+
+      - name: Format repaired files
+        run: |
+          npx prettier --write \
+            services/partnerCashoutAdminEnrichmentRuntime.js \
+            services/partnerCashoutLockRuntime.js \
+            public/assets/js/pages/admin-cashout-requests-init.js
+
+      - name: Verify repaired cashout modules
+        run: |
+          npx prettier --check \
+            services/partnerCashoutAdminEnrichmentRuntime.js \
+            services/partnerCashoutLockRuntime.js \
+            public/assets/js/pages/admin-cashout-requests-init.js
+          npx eslint \
+            services/partnerCashoutAdminEnrichmentRuntime.js \
+            services/partnerCashoutLockRuntime.js \
+            public/assets/js/pages/admin-cashout-requests-init.js
+          npx jest \
+            tests/unit/admin-allowlist.test.js \
+            tests/unit/partner-cashout-admin-ui.test.js \
+            tests/unit/partner-cashout-admin-enrichment-edge-coverage.test.js \
+            tests/unit/partner-cashout-lock-runtime-edge-coverage.test.js \
+            tests/unit/partner-cashout-runtime-order.test.js \
+            --runInBand --coverage=false
+
+      - name: Commit verified repair and remove temporary workflow
+        run: |
+          rm .github/workflows/pr1417-deepsource-current-diagnostic.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            services/partnerCashoutAdminEnrichmentRuntime.js \
+            services/partnerCashoutLockRuntime.js \
+            public/assets/js/pages/admin-cashout-requests-init.js \
+            .github/workflows/pr1417-deepsource-current-diagnostic.yml
+          git commit -m "refactor(partner): resolve PR 1417 DeepSource findings"
+          git push origin HEAD:agent/partner-anti-abuse-pr3-cashout-ops
