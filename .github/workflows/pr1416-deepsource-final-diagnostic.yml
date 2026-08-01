@@ -40,14 +40,16 @@ jobs:
             raise RuntimeError('DeepSource did not provide a CSRF cookie')
 
           query = '''
-          query EnumerateCheckIssues($checkId: String!, $after: String) {
+          query EnumerateCheckIssues($checkId: ID!, $after: String) {
             check(checkId: $checkId) {
               allIssues(first: 15, after: $after) {
                 pageInfo { hasNextPage endCursor }
                 edges {
                   node {
-                    id path text shortcode category severity
-                    beginLine beginColumn endLine endColumn
+                    ... on StaticAnalysisIssue {
+                      id path text shortcode category severity
+                      beginLine beginColumn endLine endColumn
+                    }
                   }
                 }
               }
@@ -83,7 +85,9 @@ jobs:
             if response.get('errors'):
               raise RuntimeError(json.dumps(response['errors'], indent=2))
             connection = response['data']['check']['allIssues']
-            issues.extend(edge['node'] for edge in connection['edges'])
+            issues.extend(
+              edge['node'] for edge in connection['edges'] if edge.get('node', {}).get('shortcode')
+            )
             page_info = connection['pageInfo']
             if not page_info['hasNextPage']:
               break
