@@ -1,0 +1,37 @@
+name: PR 1416 service snapshot
+
+on:
+  push:
+    branches:
+      - agent/partner-anti-abuse-pr2-reward-integrity
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/partner-anti-abuse-pr2-reward-integrity
+          fetch-depth: 0
+      - name: Collect changed services
+        shell: bash
+        run: |
+          mkdir -p snapshot/services
+          while IFS= read -r file; do
+            mkdir -p "snapshot/$(dirname "$file")"
+            cp "$file" "snapshot/$file"
+          done < <(git diff --name-only origin/main...HEAD -- 'services/*.js')
+          git diff --name-only origin/main...HEAD -- 'services/*.js' > snapshot/files.txt
+          cat snapshot/files.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pr1416-service-snapshot
+          path: snapshot
+          retention-days: 1
