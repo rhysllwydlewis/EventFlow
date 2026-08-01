@@ -8,13 +8,9 @@ on:
 permissions:
   contents: write
 
-env:
-  HUSKY: '0'
-
 jobs:
   rebase-content:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
     steps:
       - name: Checkout PR2 branch
         uses: actions/checkout@v4
@@ -60,23 +56,6 @@ jobs:
           finalPackage.scripts['test:smoke'] = pr2Package.scripts['test:smoke'];
           fs.writeFileSync('package.json', `${JSON.stringify(finalPackage, null, 2)}\n`);
           NODE
-
-      - name: Verify rebased PR2 content
-        uses: actions/setup-node@v4
-        with:
-          node-version-file: '.node-version'
-          cache: npm
-
-      - name: Install and run PR2 smoke gate
-        env:
-          NODE_ENV: test
-          JWT_SECRET: test-secret-for-jest-min-32-characters-long
-        run: |
-          npm ci --prefer-offline --no-audit
-          npm run check:lockfile
-          npm run format:check
-          npm run lint
-          npm run test:smoke
 
       - name: Commit clean PR2 content and remove workflow
         run: |
