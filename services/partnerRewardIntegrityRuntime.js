@@ -264,11 +264,11 @@ async function awardInsideLock({
 function isTechnicalQuarantinedReward(transaction) {
   return Boolean(
     transaction?.id &&
-      transaction.partnerId &&
-      transaction.supplierUserId &&
-      transaction.reversedAt &&
-      transaction.reversalMode === 'void_pending' &&
-      TECHNICAL_QUARANTINE_REASONS.has(transaction.reversalReason)
+    transaction.partnerId &&
+    transaction.supplierUserId &&
+    transaction.reversedAt &&
+    transaction.reversalMode === 'void_pending' &&
+    TECHNICAL_QUARANTINE_REASONS.has(transaction.reversalReason)
   );
 }
 
@@ -401,10 +401,13 @@ async function repairTechnicalReward(transaction) {
     });
   } catch (error) {
     if (error.code === 'PARTNER_REWARD_AWARD_LOCK_TIMEOUT') {
-      logger.warn('[PARTNER-REWARD-INTEGRITY] Technical reward repair deferred because lock is busy', {
-        partnerId: partner.id,
-        rewardTxnId: transaction.id,
-      });
+      logger.warn(
+        '[PARTNER-REWARD-INTEGRITY] Technical reward repair deferred because lock is busy',
+        {
+          partnerId: partner.id,
+          rewardTxnId: transaction.id,
+        }
+      );
       return null;
     }
     throw error;

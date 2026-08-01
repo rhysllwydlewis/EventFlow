@@ -250,8 +250,7 @@ async function revalidateSnapshotReward(transaction, partner, methodName) {
   );
   return (
     invalidDecisions.find(decision => !NON_CLAWBACK_REASONS.has(decision.reason)) ||
-    invalidDecisions[0] ||
-    { eligible: true }
+    invalidDecisions[0] || { eligible: true }
   );
 }
 
