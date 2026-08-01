@@ -135,7 +135,7 @@ function Z(e) {
   }
 }
 function aa() {
-  for (var e = 0, t = P; ; ) {
+  for (var e = 0, t = P; ;) {
     if (t.nodeType === 8) {
       var r =
         /** @type {Comment} */
@@ -363,7 +363,7 @@ function Nt(e, t) {
 }
 function J(e, t = 1, r = !1) {
   let o = O ? P : e;
-  for (var l; t--; ) ((l = o), (o = /** @type {TemplateNode} */ /* @__PURE__ */ Be(o)));
+  for (var l; t--;) ((l = o), (o = /** @type {TemplateNode} */ /* @__PURE__ */ Be(o)));
   if (!O) return o;
   var a = o?.nodeType;
   if (r && a !== 3) {
@@ -431,7 +431,7 @@ function so(e) {
   }
 }
 function ca(e) {
-  for (var t = e.parent; t !== null; ) {
+  for (var t = e.parent; t !== null;) {
     if ((t.f & me) === 0)
       return (
         /** @type {Effect} */
@@ -575,13 +575,13 @@ function ho(e) {
 }
 function vo(e, t = !1) {
   var r = e.first;
-  for (e.first = e.last = null; r !== null; ) {
+  for (e.first = e.last = null; r !== null;) {
     var o = r.next;
     ((r.f & it) !== 0 ? (r.parent = null) : je(r, t), (r = o));
   }
 }
 function ga(e) {
-  for (var t = e.first; t !== null; ) {
+  for (var t = e.first; t !== null;) {
     var r = t.next;
     ((t.f & De) === 0 && je(t), (t = r));
   }
@@ -607,7 +607,7 @@ function je(e, t = !0) {
     (e.next = e.prev = e.teardown = e.ctx = e.deps = e.fn = e.nodes_start = e.nodes_end = null));
 }
 function go(e, t) {
-  for (; e !== null; ) {
+  for (; e !== null;) {
     var r = e === t ? null : /** @type {TemplateNode} */ /* @__PURE__ */ Be(e);
     (e.remove(), (e = r));
   }
@@ -638,7 +638,7 @@ function mo(e, t, r) {
   if ((e.f & wt) === 0) {
     if (((e.f ^= wt), e.transitions !== null))
       for (const s of e.transitions) (s.is_global || r) && t.push(s);
-    for (var o = e.first; o !== null; ) {
+    for (var o = e.first; o !== null;) {
       var l = o.next,
         a = (o.f & Ur) !== 0 || (o.f & De) !== 0;
       (mo(o, t, a ? r : !1), (o = l));
@@ -651,7 +651,7 @@ function On(e) {
 function _o(e, t) {
   if ((e.f & wt) !== 0) {
     ((e.f ^= wt), (e.f & le) === 0 && (e.f ^= le), Bt(e) && (_e(e, Ie), mr(e)));
-    for (var r = e.first; r !== null; ) {
+    for (var r = e.first; r !== null;) {
       var o = r.next,
         l = (r.f & Ur) !== 0 || (r.f & De) !== 0;
       (_o(r, l ? t : !1), (r = o));
@@ -754,7 +754,7 @@ function Bt(e) {
   return !1;
 }
 function wa(e, t) {
-  for (var r = t; r !== null; ) {
+  for (var r = t; r !== null;) {
     if ((r.f & ir) !== 0)
       try {
         r.fn(e);
@@ -910,7 +910,7 @@ function Ao() {
   var e = nt;
   try {
     var t = 0;
-    for (nt = !0; Ft.length > 0; ) {
+    for (nt = !0; Ft.length > 0;) {
       t++ > 1e3 && xa();
       var r = Ft,
         o = r.length;
@@ -945,7 +945,7 @@ function Ca(e) {
 }
 function mr(e) {
   lr || ((lr = !0), queueMicrotask(Ao));
-  for (var t = (sr = e); t.parent !== null; ) {
+  for (var t = (sr = e); t.parent !== null;) {
     t = t.parent;
     var r = t.f;
     if ((r & (it | De)) !== 0) {
@@ -956,7 +956,7 @@ function mr(e) {
   Ft.push(t);
 }
 function ka(e) {
-  for (var t = [], r = e; r !== null; ) {
+  for (var t = [], r = e; r !== null;) {
     var o = r.f,
       l = (o & (De | it)) !== 0,
       a = l && (o & le) !== 0;
@@ -976,12 +976,12 @@ function ka(e) {
       }
     }
     var c = r.parent;
-    for (r = r.next; r === null && c !== null; ) ((r = c.next), (c = c.parent));
+    for (r = r.next; r === null && c !== null;) ((r = c.next), (c = c.parent));
   }
   return t;
 }
 function E(e) {
-  for (var t; ; ) {
+  for (var t; ;) {
     if ((ba(), Ft.length === 0))
       return (
         /** @type {T} */
@@ -1258,7 +1258,7 @@ function Pt(e) {
       v = S;
     (Re(null), qe(null));
     try {
-      for (var _, w = []; a !== null; ) {
+      for (var _, w = []; a !== null;) {
         var F = a.assignedSlot || a.parentNode || /** @type {any} */ a.host || null;
         try {
           var M = a['__' + o];
@@ -1554,7 +1554,7 @@ function tt(e, t, r = !1, o = !1, l = !1) {
         ),
         r || o)
       )
-        for (; /* @__PURE__ */ ve(v); )
+        for (; /* @__PURE__ */ ve(v);)
           a.before(
             /** @type {Node} */
             /* @__PURE__ */ ve(v)
@@ -1579,7 +1579,7 @@ function Ma(e, t, r) {
     for (var l in r)
       if (r[l]) o = o ? o + ' ' + l : l;
       else if (o.length)
-        for (var a = l.length, s = 0; (s = o.indexOf(l, s)) >= 0; ) {
+        for (var a = l.length, s = 0; (s = o.indexOf(l, s)) >= 0;) {
           var c = s + a;
           (s === 0 || jn.includes(o[s - 1])) && (c === o.length || jn.includes(o[c]))
             ? (o = (s === 0 ? '' : o.substring(0, s)) + o.substring(c + 1))
@@ -1646,10 +1646,10 @@ function Fo(e) {
   return (
     /** @type {Record<string | symbol, unknown>} **/
     // @ts-expect-error
-    (e.__attributes ??= {
+    e.__attributes ??= {
       [Ua]: e.nodeName.includes('-'),
       [ja]: e.namespaceURI === ji,
-    })
+    }
   );
 }
 var Bn = /* @__PURE__ */ new Map();
@@ -1657,7 +1657,7 @@ function Ba(e) {
   var t = Bn.get(e.nodeName);
   if (t) return t;
   Bn.set(e.nodeName, (t = []));
-  for (var r, o = e, l = Element.prototype; l !== o; ) {
+  for (var r, o = e, l = Element.prototype; l !== o;) {
     r = Hi(o);
     for (var a in r) r[a].set && t.push(a);
     o = Xn(o);

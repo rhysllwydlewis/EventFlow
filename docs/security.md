@@ -82,9 +82,7 @@ if (process.env.ENABLE_API_DOCS === 'true') {
       challenge: true,
     }),
     swaggerUi.serve,
-    swaggerUi.setup(swaggerSpec, {
-      /* ... */
-    })
+    swaggerUi.setup(swaggerSpec, {/* ... */})
   );
 }
 ```
