@@ -1,9 +1,9 @@
 // skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
-function escapeHtml(s) {
-  if (!s) return '';
-  const d = document.createElement('div');
-  d.textContent = String(s);
-  return d.innerHTML;
+function escapeHtml(value) {
+  if (!value) return '';
+  const container = document.createElement('div');
+  container.textContent = String(value);
+  return container.innerHTML;
 }
 
 /**
@@ -37,10 +37,10 @@ function resolveSupplierTier(supplier) {
 export function renderTierIcon(supplier) {
   const tier = resolveSupplierTier(supplier);
   if (tier === 'pro_plus') {
-    return `<span class="tier-icon tier-icon-pro-plus" title="Pro Plus — Priority listing, unlimited packages, custom branding & homepage carousel" aria-label="Pro Plus">💎</span>`;
+    return '<span class="tier-icon tier-icon-pro-plus" title="Pro Plus — Priority listing, unlimited packages, custom branding & homepage carousel" aria-label="Pro Plus">💎</span>';
   }
   if (tier === 'pro') {
-    return `<span class="tier-icon tier-icon-pro" title="Pro — Priority listing, analytics & email support" aria-label="Pro">⭐</span>`;
+    return '<span class="tier-icon tier-icon-pro" title="Pro — Priority listing, analytics & email support" aria-label="Pro">⭐</span>';
   }
   return '';
 }
@@ -51,6 +51,7 @@ export function renderTierIcon(supplier) {
  * @param {Object} options - Rendering options
  * @returns {string} HTML string for badges
  */
+// skipcq: JS-R1005 -- Badge rendering intentionally centralises priority and compatibility rules.
 export function renderVerificationBadges(supplier, options = {}) {
   if (!supplier) {
     return '';
@@ -231,7 +232,7 @@ function formatVerificationDate(dateString) {
   }
   try {
     return new Date(dateString).toLocaleDateString('en-GB', { timeZone: 'Europe/London' });
-  } catch (e) {
+  } catch {
     return '';
   }
 }
@@ -346,7 +347,7 @@ export function hasVerificationBadges(supplier) {
     return false;
   }
 
-  return !!(
+  return Boolean(
     supplier.isFoundingSupplier ||
     supplier.isFounding ||
     supplier.founding ||
