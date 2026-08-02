@@ -1,9 +1,9 @@
 name: PR 1418 Format Export
 
 on:
-  push:
+  pull_request:
     branches:
-      - agent/supplier-profile-trust-consistency
+      - main
 
 permissions:
   contents: read
