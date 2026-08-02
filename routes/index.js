@@ -86,6 +86,7 @@ const telemetryRoutes = require('./telemetry');
  * @param {Object} app - Express app instance
  * @param {Object} deps - Dependencies to inject into routes
  */
+// skipcq: JS-R1005 -- Route ordering and middleware precedence are intentionally centralised here.
 const mountRoutes = (app, deps) => {
   // Public, crawlable supplier profiles with server-rendered metadata.
   // Mounted through the backend router so the existing supplier page body and CSS stay unchanged.

@@ -83,6 +83,7 @@ const auditLog = async params => {
  * @param {Function} getTargetInfo - Optional function to extract target type and ID from req
  * @returns {Function} Express middleware function
  */
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 function auditMiddleware(action, getTargetInfo = null) {
   return (req, res, next) => {
     // Store original res.json to intercept successful responses
@@ -158,6 +159,7 @@ function auditMiddleware(action, getTargetInfo = null) {
  * @param {number} filters.limit - Maximum number of results
  * @returns {Promise<Array>} Filtered audit log entries, sorted newest-first
  */
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 async function getAuditLogs(filters = {}) {
   const {
     adminId,

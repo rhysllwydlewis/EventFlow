@@ -12,6 +12,7 @@ const INTERNAL_TRUST_BADGE_IDS = new Set([
   'licence-verified',
 ]);
 
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 function text(value, max = 500) {
   if (value === null || value === undefined) {
     return '';
@@ -19,24 +20,29 @@ function text(value, max = 500) {
   return stripHtml(String(value)).trim().slice(0, max);
 }
 
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 function maybeText(value, max = 500) {
   const cleaned = text(value, max);
   return cleaned || null;
 }
 
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 function numberOrNull(value) {
   const n = Number(value);
   return Number.isFinite(n) ? n : null;
 }
 
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 function bool(value) {
   return value === true;
 }
 
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 function plainObject(value) {
   return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
 }
 
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 function safeImageUrl(value, max = DEFAULT_MAX_IMAGE_CHARS) {
   const cleaned = text(value, max);
   if (!cleaned) {
@@ -58,6 +64,7 @@ function safeImageUrl(value, max = DEFAULT_MAX_IMAGE_CHARS) {
   }
 }
 
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 function safeExternalUrl(value) {
   const cleaned = text(value, 500);
   if (!cleaned) {
@@ -71,11 +78,13 @@ function safeExternalUrl(value) {
   }
 }
 
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 function safePhone(value) {
   const cleaned = text(value, 60);
   return /^[+\d][\d\s().-]{5,}$/.test(cleaned) ? cleaned : '';
 }
 
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 function safeStringArray(items, maxItems = 12, maxLen = 120) {
   if (!Array.isArray(items)) {
     return [];
@@ -86,6 +95,7 @@ function safeStringArray(items, maxItems = 12, maxLen = 120) {
     .slice(0, maxItems);
 }
 
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 function safeSocialLinks(socialLinks = {}) {
   const source = plainObject(socialLinks);
   const allowed = ['facebook', 'instagram', 'twitter', 'linkedin', 'youtube', 'tiktok'];
@@ -98,6 +108,7 @@ function safeSocialLinks(socialLinks = {}) {
   }, {});
 }
 
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 function mergeSocialLinkSources(legacyValue, canonicalValue) {
   const legacy = plainObject(legacyValue);
   const canonical = plainObject(canonicalValue);
@@ -112,6 +123,7 @@ function mergeSocialLinkSources(legacyValue, canonicalValue) {
   return merged;
 }
 
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 function safeGalleryItems(source = {}) {
   const canonical = Array.isArray(source.photosGallery) ? source.photosGallery : [];
   const legacy = Array.isArray(source.images) ? source.images : [];
@@ -137,6 +149,7 @@ function safeGalleryItems(source = {}) {
   return safe;
 }
 
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 function safeVerifications(verifications = {}, fallbacks = {}) {
   const source = plainObject(verifications);
   const fallback = plainObject(fallbacks);
@@ -154,6 +167,7 @@ function safeVerifications(verifications = {}, fallbacks = {}) {
  * Structured trustVerifications are authoritative. Generic supplier badge APIs
  * cannot create a PLI/DBS/licence public trust claim by merely adding a badge ID.
  */
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 function safeTrustVerifications(trustVerifications = {}) {
   const source = plainObject(trustVerifications);
   return {
@@ -163,6 +177,7 @@ function safeTrustVerifications(trustVerifications = {}) {
   };
 }
 
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 function safeBadgeDetails(badges = []) {
   if (!Array.isArray(badges)) {
     return [];
@@ -181,6 +196,7 @@ function safeBadgeDetails(badges = []) {
     .slice(0, 24);
 }
 
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 function safePublicPackage(pkg = {}, resolveImage) {
   const source = pkg && typeof pkg === 'object' ? pkg : {};
   const image =
@@ -201,6 +217,7 @@ function safePublicPackage(pkg = {}, resolveImage) {
   };
 }
 
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 function safeTopPackages(packages = []) {
   if (!Array.isArray(packages)) {
     return [];
@@ -211,6 +228,7 @@ function safeTopPackages(packages = []) {
     .slice(0, 4);
 }
 
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 function safePublicSupplier(supplier = {}, extras = {}) {
   const source = supplier && typeof supplier === 'object' ? supplier : {};
   const extra = extras && typeof extras === 'object' ? extras : {};

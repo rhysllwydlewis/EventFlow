@@ -3,10 +3,12 @@
 const express = require('express');
 const request = require('supertest');
 
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 function getPath(target, path) {
   return path.split('.').reduce((value, key) => value?.[key], target);
 }
 
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 function setPath(target, path, value) {
   const keys = path.split('.');
   const finalKey = keys.pop();
@@ -19,6 +21,7 @@ function setPath(target, path, value) {
   parent[finalKey] = value;
 }
 
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 function unsetPath(target, path) {
   const keys = path.split('.');
   const finalKey = keys.pop();
@@ -28,10 +31,12 @@ function unsetPath(target, path) {
   }
 }
 
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 function matchesFilter(target, filter) {
   return Object.entries(filter).every(([path, value]) => getPath(target, path) === value);
 }
 
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 function applyUpdate(target, update) {
   for (const [path, value] of Object.entries(update.$set || {})) {
     setPath(target, path, value);

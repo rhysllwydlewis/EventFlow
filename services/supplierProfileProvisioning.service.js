@@ -5,12 +5,14 @@ const logger = require('../utils/logger');
 const { auditLog, AUDIT_ACTIONS } = require('../middleware/audit');
 const { VERIFICATION_STATES } = require('../utils/supplierVerificationStateMachine');
 
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 function emailLocalPart(email) {
   const raw = typeof email === 'string' ? email.trim() : '';
   const local = raw.split('@')[0];
   return local || 'Supplier';
 }
 
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 async function readSettingsFeatures() {
   try {
     const settings = await dbUnified.read('settings');
@@ -26,6 +28,7 @@ async function readSettingsFeatures() {
   }
 }
 
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 async function supplierApprovalDefaults(nowIso) {
   const features = await readSettingsFeatures();
   if (features.autoApproveSupplierVerification === true) {
@@ -49,6 +52,7 @@ async function supplierApprovalDefaults(nowIso) {
   };
 }
 
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 async function recordAutomaticApprovalAudit(supplier) {
   if (!supplier || supplier.approved !== true || supplier.approvedBy !== 'system') {
     return;
@@ -84,6 +88,7 @@ async function recordAutomaticApprovalAudit(supplier) {
   }
 }
 
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 function isDuplicateLikeError(error) {
   return Boolean(
     error &&
@@ -93,6 +98,7 @@ function isDuplicateLikeError(error) {
   );
 }
 
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 async function ensureSupplierProfileForUser(user, options = {}) {
   if (!user || user.role !== 'supplier') {
     return null;

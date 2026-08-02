@@ -119,6 +119,7 @@ let supplierAnalytics;
  * Initialize dependencies from server.js
  * @param {Object} deps - Dependencies object
  */
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 function initializeDependencies(deps) {
   if (!deps) {
     throw new Error('Supplier Management routes: dependencies object is required');
@@ -161,6 +162,7 @@ function initializeDependencies(deps) {
  * because they defer the actual middleware call to request time,
  * when dependencies are guaranteed to be initialized.
  */
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 function applyAuthRequired(req, res, next) {
   if (!authRequired) {
     return res.status(503).json({ error: 'Auth service not initialized' });
@@ -168,6 +170,7 @@ function applyAuthRequired(req, res, next) {
   return authRequired(req, res, next);
 }
 
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 function applyRoleRequired(role) {
   return (req, res, next) => {
     if (!roleRequired) {
@@ -177,6 +180,7 @@ function applyRoleRequired(role) {
   };
 }
 
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 function applyCsrfProtection(req, res, next) {
   if (!csrfProtection) {
     return res.status(503).json({ error: 'CSRF service not initialized' });
@@ -184,6 +188,7 @@ function applyCsrfProtection(req, res, next) {
   return csrfProtection(req, res, next);
 }
 
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 function applyWriteLimiter(req, res, next) {
   if (!writeLimiter) {
     return res.status(503).json({ error: 'Rate limiter not initialized' });
@@ -191,6 +196,7 @@ function applyWriteLimiter(req, res, next) {
   return writeLimiter(req, res, next);
 }
 
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 function applyRequireVerifiedUser(req, res, next) {
   if (!requireVerifiedUser) {
     return res.status(503).json({ error: 'Verification service not initialized' });

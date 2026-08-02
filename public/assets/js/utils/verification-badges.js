@@ -1,3 +1,4 @@
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 function escapeHtml(s) {
   if (!s) return '';
   const d = document.createElement('div');
@@ -17,6 +18,7 @@ function escapeHtml(s) {
  * @param {Object} supplier
  * @returns {'pro_plus'|'pro'|'free'}
  */
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 function resolveSupplierTier(supplier) {
   if (!supplier) {
     return 'free';
@@ -222,6 +224,7 @@ export function renderVerificationBadges(supplier, options = {}) {
  * @param {string} dateString - ISO date string
  * @returns {string} Formatted date (e.g., "15/01/2025")
  */
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 function formatVerificationDate(dateString) {
   if (!dateString) {
     return '';

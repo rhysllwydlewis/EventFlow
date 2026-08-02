@@ -135,6 +135,7 @@ const TRUST_BADGE_IDS = new Set([
   BADGE_DEFINITIONS.LICENCE_VERIFIED.id,
 ]);
 
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 function assertGenericBadgeMutationAllowed(badgeId) {
   if (TRUST_BADGE_IDS.has(badgeId)) {
     const error = new Error(
@@ -149,6 +150,7 @@ function assertGenericBadgeMutationAllowed(badgeId) {
  * Initialize default badges in the database if they don't exist
  * @returns {Promise<void>}
  */
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 async function initializeDefaultBadges() {
   try {
     const badges = await dbUnified.read('badges');
@@ -181,6 +183,7 @@ async function initializeDefaultBadges() {
  * @param {Object} stats - Additional stats (messages, reviews, etc.)
  * @returns {boolean}
  */
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 function meetsCriteria(supplier, criteria, stats = {}) {
   for (const [field, condition] of Object.entries(criteria)) {
     // Handle min thresholds
@@ -233,6 +236,7 @@ function meetsCriteria(supplier, criteria, stats = {}) {
  * @param {string} supplierId - Supplier ID
  * @returns {Promise<Object>}
  */
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 async function calculateSupplierStats(supplierId) {
   try {
     const messages = await dbUnified.read('messages');
@@ -324,6 +328,7 @@ async function calculateSupplierStats(supplierId) {
  * @param {string} supplierId - Supplier ID
  * @returns {Promise<Object>} - { awarded: [], revoked: [] }
  */
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 async function evaluateSupplierBadges(supplierId) {
   try {
     const suppliers = await dbUnified.read('suppliers');
@@ -386,6 +391,7 @@ async function evaluateSupplierBadges(supplierId) {
  * Evaluate badges for all suppliers
  * @returns {Promise<Object>} - Summary of results
  */
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 async function evaluateAllSupplierBadges() {
   try {
     const suppliers = await dbUnified.read('suppliers');
@@ -428,6 +434,7 @@ async function evaluateAllSupplierBadges() {
  * @param {string} awardedBy - User ID who awarded the badge
  * @returns {Promise<Object>}
  */
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 async function awardBadge(supplierId, badgeId, awardedBy) {
   try {
     assertGenericBadgeMutationAllowed(badgeId);
@@ -480,6 +487,7 @@ async function awardBadge(supplierId, badgeId, awardedBy) {
  * @param {string} revokedBy - User ID who revoked the badge
  * @returns {Promise<Object>}
  */
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 async function revokeBadge(supplierId, badgeId, revokedBy) {
   try {
     assertGenericBadgeMutationAllowed(badgeId);

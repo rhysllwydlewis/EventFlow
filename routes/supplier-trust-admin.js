@@ -31,10 +31,12 @@ const normaliseTrustVerifications = value => {
   return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
 };
 
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 function buildBadgeUpdate(badgeId, shouldContainBadge) {
   return shouldContainBadge ? { $addToSet: { badges: badgeId } } : { $pull: { badges: badgeId } };
 }
 
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 async function rollbackUnauditedTrustChange({
   supplierId,
   badgeId,
@@ -111,6 +113,7 @@ async function rollbackUnauditedTrustChange({
   }
 }
 
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 function buildTrustMutation(supplier, definition, badgeId, verified, now, actorId) {
   const originalBadges = Array.isArray(supplier.badges) ? supplier.badges : [];
   const originalTrust = normaliseTrustVerifications(supplier.trustVerifications);
@@ -146,6 +149,7 @@ function buildTrustMutation(supplier, definition, badgeId, verified, now, actorI
   };
 }
 
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 async function persistTrustMutation(supplierId, definition, badgeId, verified, actorId) {
   for (let attempt = 1; attempt <= MAX_WRITE_ATTEMPTS; attempt++) {
     const supplier = await dbUnified.findOne('suppliers', { id: supplierId });
@@ -185,6 +189,7 @@ async function persistTrustMutation(supplierId, definition, badgeId, verified, a
   return { status: 'retry_exhausted' };
 }
 
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 async function mutateTrustBadge(req, res, verified) {
   try {
     const { supplierId, badgeId } = req.params;
