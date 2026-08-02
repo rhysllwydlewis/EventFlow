@@ -63,9 +63,7 @@ function effectiveDescriptions(supplier) {
   };
 }
 
-function effectivePrice(supplier) {
-  return supplier.price_display || supplier.priceRange || '';
-}
+const effectivePrice = supplier => supplier.price_display || supplier.priceRange || '';
 
 function rankingReason(ranking, relevance) {
   const reasons = [];
@@ -115,17 +113,22 @@ async function searchSuppliers(rawQuery = {}) {
 
   const suppliersById = new Map((rawSuppliers || []).map(supplier => [supplier.id, supplier]));
   const packagesBySupplier = groupPackages(packages);
-  const validOwnerIds = new Set((users || []).map(user => user.id).filter(Boolean));
+  const validOwnerIds = users?.length
+    ? new Set(users.map(user => user.id).filter(Boolean))
+    : null;
   const searchMode = Boolean(normalized.q);
 
   let ranked = filteredResults
-    .map(projected => ({ ...(suppliersById.get(projected.id) || {}), ...projected }))
-    .filter(supplier => isPubliclyEligibleSupplier(supplier, validOwnerIds))
+    .map(projected => ({
+      projected,
+      supplier: { ...(suppliersById.get(projected.id) || {}), ...projected },
+    }))
+    .filter(({ supplier }) => isPubliclyEligibleSupplier(supplier, validOwnerIds))
     .filter(
-      supplier =>
+      ({ supplier }) =>
         normalized.minRating === undefined || effectiveRating(supplier) >= normalized.minRating
     )
-    .map(supplier => {
+    .map(({ supplier, projected }) => {
       const supplierPackages = packagesBySupplier.get(supplier.id) || [];
       const ranking = calculateSupplierRanking(supplier, supplierPackages, { searchMode });
       const relevance = searchMode
@@ -134,10 +137,10 @@ async function searchSuppliers(rawQuery = {}) {
       const finalRankingScore = searchMode
         ? calculateFinalSearchScore(ranking, relevance)
         : ranking.finalScore;
-      const descriptions = effectiveDescriptions(supplier);
+      const tier = effectiveSubscriptionTier(supplier);
       return {
-        ...supplier,
-        ...descriptions,
+        ...projected,
+        ...effectiveDescriptions(supplier),
         images: effectiveImages(supplier),
         price_display: effectivePrice(supplier),
         rating: effectiveRating(supplier),
@@ -146,8 +149,11 @@ async function searchSuppliers(rawQuery = {}) {
         verified: effectiveVerified(supplier),
         featured: effectiveFeatured(supplier),
         featuredSupplier: effectiveFeatured(supplier),
-        subscriptionTier: effectiveSubscriptionTier(supplier),
-        isPro: effectiveSubscriptionTier(supplier) !== 'free',
+        subscriptionTier: tier,
+        isPro: tier !== 'free',
+        // Public search results are eligible by definition. Omitting the raw
+        // approval flag prevents the card from confusing approval with verification.
+        approved: undefined,
         qualityScore: ranking.qualityScore,
         finalRankingScore,
         relevanceScore: finalRankingScore,
@@ -164,7 +170,8 @@ async function searchSuppliers(rawQuery = {}) {
   if (searchMode) ranked = ranked.filter(supplier => supplier.textRelevanceScore > 0);
 
   const hasDistance = ranked.some(supplier => Number.isFinite(supplier.distanceMiles));
-  const appliedSort = normalized.sortBy === 'distance' && !hasDistance ? 'relevance' : normalized.sortBy;
+  const appliedSort =
+    normalized.sortBy === 'distance' && !hasDistance ? 'relevance' : normalized.sortBy;
   ranked = sortResults(ranked, appliedSort, hasDistance);
 
   const total = ranked.length;
