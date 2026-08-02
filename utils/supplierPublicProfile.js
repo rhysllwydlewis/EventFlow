@@ -228,7 +228,7 @@ function safeTopPackages(packages = []) {
     .slice(0, 4);
 }
 
-// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
+// skipcq: JS-0067, JS-R1005 -- CommonJS module scope is intentional; this serializer remains centralised to preserve one fail-closed public contract.
 function safePublicSupplier(supplier = {}, extras = {}) {
   const source = supplier && typeof supplier === 'object' ? supplier : {};
   const extra = extras && typeof extras === 'object' ? extras : {};
