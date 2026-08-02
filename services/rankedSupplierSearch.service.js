@@ -103,19 +103,18 @@ function sortResults(results, sortBy, hasDistance) {
 async function searchSuppliers(rawQuery = {}) {
   const startedAt = Date.now();
   const normalized = baseSearchService.normalizeSupplierQuery(rawQuery);
-  const [{ results: filteredResults, metadata }, rawSuppliers, packages, users] =
-    await Promise.all([
+  const [{ results: filteredResults, metadata }, rawSuppliers, packages, users] = await Promise.all(
+    [
       collectFilteredSuppliers(rawQuery),
       dbUnified.read('suppliers'),
       dbUnified.read('packages'),
       dbUnified.read('users').catch(() => []),
-    ]);
+    ]
+  );
 
   const suppliersById = new Map((rawSuppliers || []).map(supplier => [supplier.id, supplier]));
   const packagesBySupplier = groupPackages(packages);
-  const validOwnerIds = users?.length
-    ? new Set(users.map(user => user.id).filter(Boolean))
-    : null;
+  const validOwnerIds = users?.length ? new Set(users.map(user => user.id).filter(Boolean)) : null;
   const searchMode = Boolean(normalized.q);
 
   let ranked = filteredResults
@@ -161,8 +160,7 @@ async function searchSuppliers(rawQuery = {}) {
         qualityBand: ranking.qualityBand,
         rankingVersion: RANKING_VERSION,
         rankingReason: rankingReason(ranking, relevance),
-        reviewConfidenceAdjustedRating:
-          ranking.breakdown.reviews.confidenceAdjustedRating,
+        reviewConfidenceAdjustedRating: ranking.breakdown.reviews.confidenceAdjustedRating,
         rankingImprovementCodes: ranking.missing,
       };
     });

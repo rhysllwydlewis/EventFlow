@@ -71,8 +71,7 @@ function effectiveImages(supplier) {
   return unique(candidates).filter(isUsableImage);
 }
 
-const effectiveRating = supplier =>
-  clamp(supplier.averageRating ?? supplier.rating ?? 0, 0, 5);
+const effectiveRating = supplier => clamp(supplier.averageRating ?? supplier.rating ?? 0, 0, 5);
 const effectiveReviewCount = supplier =>
   Math.max(0, Number(supplier.reviewCount ?? supplier.totalReviews ?? 0) || 0);
 const effectiveShortDescription = supplier =>
@@ -189,7 +188,8 @@ function calculatePackageQuality(packages) {
         .filter(Array.isArray)
         .flat()
         .some(value => cleanText(value).length >= 3)
-    ) || available.some(pkg => Number(pkg.maxGuests) > 0)
+    ) ||
+    available.some(pkg => Number(pkg.maxGuests) > 0)
   ) {
     score += 3;
   } else if (available.length) missing.push('package_missing_features');
@@ -202,7 +202,17 @@ function calculateReviewQuality(supplier) {
   const confidence = reviewCount ? Math.min(1, Math.log1p(reviewCount) / Math.log(11)) : 0;
   const ratingPoints = (rating / 5) * confidence * 15;
   const volumePoints =
-    reviewCount >= 10 ? 5 : reviewCount >= 7 ? 4 : reviewCount >= 4 ? 3 : reviewCount >= 2 ? 2 : reviewCount ? 1 : 0;
+    reviewCount >= 10
+      ? 5
+      : reviewCount >= 7
+        ? 4
+        : reviewCount >= 4
+          ? 3
+          : reviewCount >= 2
+            ? 2
+            : reviewCount
+              ? 1
+              : 0;
   return {
     score: round(ratingPoints + volumePoints),
     max: 20,
@@ -231,7 +241,10 @@ function calculateTrustQuality(supplier) {
     business,
     email,
     phone,
-    missing: [...(!verified ? ['not_verified'] : []), ...(!business ? ['business_not_verified'] : [])],
+    missing: [
+      ...(!verified ? ['not_verified'] : []),
+      ...(!business ? ['business_not_verified'] : []),
+    ],
   };
 }
 
@@ -270,7 +283,15 @@ function calculateAdjustments(supplier, qualityScore, packageCount, searchMode, 
 }
 
 const getQualityBand = score =>
-  score >= 80 ? 'excellent' : score >= 65 ? 'strong' : score >= 50 ? 'fair' : score >= 30 ? 'weak' : 'poor';
+  score >= 80
+    ? 'excellent'
+    : score >= 65
+      ? 'strong'
+      : score >= 50
+        ? 'fair'
+        : score >= 30
+          ? 'weak'
+          : 'poor';
 
 function calculateSupplierRanking(supplier, packages = [], options = {}) {
   const now = options.now instanceof Date ? options.now : new Date();
@@ -305,8 +326,13 @@ function calculateSupplierRanking(supplier, packages = [], options = {}) {
   };
 }
 
-const queryTokens = value =>
-  [...new Set(lowerText(value).split(/[^a-z0-9]+/).filter(word => word.length > 1))];
+const queryTokens = value => [
+  ...new Set(
+    lowerText(value)
+      .split(/[^a-z0-9]+/)
+      .filter(word => word.length > 1)
+  ),
+];
 function fieldMatch(value, tokens, phrase) {
   const haystack = lowerText(value);
   if (!haystack || !tokens.length) return 0;
@@ -332,23 +358,38 @@ function calculateSupplierRelevance(supplier, packages, query = {}) {
   const phrase = lowerText(query.q);
   const tokens = queryTokens(query.q);
   if (!tokens.length) return { score: 0 };
-  const name = Math.max(fieldMatch(supplier.name, tokens, phrase), fieldMatch(supplier.businessName, tokens, phrase));
+  const name = Math.max(
+    fieldMatch(supplier.name, tokens, phrase),
+    fieldMatch(supplier.businessName, tokens, phrase)
+  );
   const category = fieldMatch(supplier.category, tokens, phrase);
   const descriptions = Math.max(
     fieldMatch(effectiveShortDescription(supplier), tokens, phrase),
     fieldMatch(effectiveLongDescription(supplier), tokens, phrase) * 0.85,
     (supplier.tags || []).reduce((best, tag) => Math.max(best, fieldMatch(tag, tokens, phrase)), 0)
   );
-  const location = fieldMatch(`${supplier.location || ''} ${supplier.postcode || ''}`, tokens, phrase);
+  const location = fieldMatch(
+    `${supplier.location || ''} ${supplier.postcode || ''}`,
+    tokens,
+    phrase
+  );
   const packagesScore = packageMatch(packages, tokens, phrase);
   return {
-    score: round(clamp(name * 25 + category * 20 + location * 20 + descriptions * 15 + packagesScore * 20, 0, 100)),
+    score: round(
+      clamp(
+        name * 25 + category * 20 + location * 20 + descriptions * 15 + packagesScore * 20,
+        0,
+        100
+      )
+    ),
     components: { name, category, location, descriptions, packages: packagesScore },
   };
 }
 
 const calculateFinalSearchScore = (ranking, relevance) =>
-  round(clamp(relevance.score * 0.7 + ranking.qualityScore * 0.3 + ranking.adjustments.total, 0, 100));
+  round(
+    clamp(relevance.score * 0.7 + ranking.qualityScore * 0.3 + ranking.adjustments.total, 0, 100)
+  );
 
 function sortRankedSuppliers(results, sortBy, hasDistance) {
   return [...results].sort((a, b) => {
@@ -358,8 +399,10 @@ function sortRankedSuppliers(results, sortBy, hasDistance) {
         (b.reviewConfidenceAdjustedRating || 0) - (a.reviewConfidenceAdjustedRating || 0) ||
         (b.reviewCount || 0) - (a.reviewCount || 0);
     } else if (sortBy === 'reviews') difference = (b.reviewCount || 0) - (a.reviewCount || 0);
-    else if (sortBy === 'name') difference = String(a.name || '').localeCompare(String(b.name || ''));
-    else if (sortBy === 'newest') difference = new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+    else if (sortBy === 'name')
+      difference = String(a.name || '').localeCompare(String(b.name || ''));
+    else if (sortBy === 'newest')
+      difference = new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
     else if (sortBy === 'distance' && hasDistance) {
       difference = (a.distanceMiles ?? Infinity) - (b.distanceMiles ?? Infinity);
     } else difference = (b.finalRankingScore || 0) - (a.finalRankingScore || 0);

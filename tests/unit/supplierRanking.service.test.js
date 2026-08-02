@@ -29,8 +29,7 @@ function completeSupplier(overrides = {}) {
     postcode: 'CF10 1AA',
     profilePhotoUrl: '/uploads/suppliers/profile.jpg',
     coverImage: '/uploads/suppliers/cover.jpg',
-    description_short:
-      'Natural wedding and event photography throughout Cardiff and South Wales.',
+    description_short: 'Natural wedding and event photography throughout Cardiff and South Wales.',
     description_long:
       'We create relaxed, natural event photography for weddings, parties and corporate celebrations throughout South Wales. Every booking includes a planning call, professionally edited photographs and a secure online gallery for sharing with guests.',
     images: [
@@ -101,9 +100,13 @@ describe('supplierRanking.service', () => {
   });
 
   test('a complete Starter supplier outranks an incomplete Pro supplier', () => {
-    const complete = calculateSupplierRanking(completeSupplier({ subscriptionTier: 'free' }), completePackages(), {
-      now: NOW,
-    });
+    const complete = calculateSupplierRanking(
+      completeSupplier({ subscriptionTier: 'free' }),
+      completePackages(),
+      {
+        now: NOW,
+      }
+    );
     const incompletePro = calculateSupplierRanking(
       {
         id: 'sup_incomplete',
@@ -122,12 +125,20 @@ describe('supplierRanking.service', () => {
   });
 
   test('Pro and Pro Plus receive distinct, capped browse benefits', () => {
-    const starter = calculateSupplierRanking(completeSupplier({ subscriptionTier: 'free' }), completePackages(), {
-      now: NOW,
-    });
-    const pro = calculateSupplierRanking(completeSupplier({ subscriptionTier: 'pro' }), completePackages(), {
-      now: NOW,
-    });
+    const starter = calculateSupplierRanking(
+      completeSupplier({ subscriptionTier: 'free' }),
+      completePackages(),
+      {
+        now: NOW,
+      }
+    );
+    const pro = calculateSupplierRanking(
+      completeSupplier({ subscriptionTier: 'pro' }),
+      completePackages(),
+      {
+        now: NOW,
+      }
+    );
     const proPlus = calculateSupplierRanking(
       completeSupplier({ subscriptionTier: 'pro_plus' }),
       completePackages(),
@@ -143,7 +154,11 @@ describe('supplierRanking.service', () => {
 
   test('search-mode commercial adjustments are capped at five points', () => {
     const ranking = calculateSupplierRanking(
-      completeSupplier({ subscriptionTier: 'pro_plus', featured: true, createdAt: '2026-07-20T00:00:00.000Z' }),
+      completeSupplier({
+        subscriptionTier: 'pro_plus',
+        featured: true,
+        createdAt: '2026-07-20T00:00:00.000Z',
+      }),
       completePackages(),
       { now: NOW, searchMode: true }
     );
