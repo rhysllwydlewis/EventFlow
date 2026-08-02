@@ -1,0 +1,25 @@
+name: PR 1418 DeepSource Metric Export
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download DeepSource analysis detail
+        run: |
+          curl --fail --location --compressed \
+            --user-agent 'Mozilla/5.0' \
+            'https://app.deepsource.com/gh/rhysllwydlewis/EventFlow/run/72d8ded7-06fb-4deb-b465-30dc4c19f946/javascript/' \
+            --output deepsource-metric.html
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pr1418-deepsource-metric
+          path: deepsource-metric.html
+          if-no-files-found: error
