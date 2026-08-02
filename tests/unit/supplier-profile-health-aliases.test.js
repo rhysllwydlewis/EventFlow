@@ -11,6 +11,7 @@ const widgetSource = fs.readFileSync(
   'utf8'
 );
 
+// Regression coverage for canonical and legacy supplier-profile aliases.
 describe('supplier profile health aliases', () => {
   let widget;
 
