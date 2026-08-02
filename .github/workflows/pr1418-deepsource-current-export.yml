@@ -1,0 +1,25 @@
+name: PR 1418 DeepSource Current Export
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download current DeepSource analysis
+        run: |
+          curl --fail --location --compressed \
+            --user-agent 'Mozilla/5.0' \
+            'https://app.deepsource.com/gh/rhysllwydlewis/EventFlow/run/6d8b3fd3-8845-4837-92c6-7a87595f9c64/javascript/' \
+            --output deepsource-current.html
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pr1418-deepsource-current
+          path: deepsource-current.html
+          if-no-files-found: error
