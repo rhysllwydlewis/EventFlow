@@ -22,32 +22,14 @@ const { addPublicProfilePaths } = require('../utils/publicSupplierProfilePath');
 const searchAnalytics = require('../utils/searchAnalytics');
 const validator = require('validator');
 
-// Generate session ID for anonymous users
 function getSessionId(req) {
   return req.sessionID || req.cookies?.sessionId || `anon_${Date.now()}_${crypto.randomUUID()}`;
 }
 
-// ========================================
-
-// ========================================
-// CORE SEARCH ENDPOINTS
-// ========================================
-
-/**
- * GET /api/v2/search/suppliers
- * Advanced supplier search with weighted relevance
- *
- * Query normalization and sort validation are handled centrally by
- * searchService.normalizeSupplierQuery so this route only needs to
- * reject inputs that are structurally invalid before passing them on.
- */
 router.get('/suppliers', searchCacheMiddleware({ fixedTtl: null }), async (req, res) => {
   try {
-    // Pass raw query params — the service normalizes and validates them
     const rawResults = await searchService.searchSuppliers(req.query);
     const results = addPublicProfilePaths(rawResults);
-
-    // Track search for analytics (use normalized values from results)
     const user = await getUserFromCookie(req);
     searchAnalytics
       .trackSearch({
@@ -70,31 +52,16 @@ router.get('/suppliers', searchCacheMiddleware({ fixedTtl: null }), async (req, 
         cached: false,
       })
       .catch(err => logger.error('Failed to track search:', err));
-
-    res.json({
-      success: true,
-      data: results,
-      timestamp: new Date().toISOString(),
-    });
+    res.json({ success: true, data: results, timestamp: new Date().toISOString() });
   } catch (error) {
     logger.error('Supplier search error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to perform search',
-    });
+    res.status(500).json({ success: false, error: 'Failed to perform search' });
   }
 });
 
-/**
- * GET /api/v2/search/packages
- * Search packages across all suppliers
- */
 router.get('/packages', searchCacheMiddleware({ fixedTtl: 600 }), async (req, res) => {
   try {
-    // Pass raw query params — the service normalizes and validates them
     const results = await searchService.searchPackages(req.query);
-
-    // Track search
     const user = await getUserFromCookie(req);
     searchAnalytics
       .trackSearch({
@@ -114,40 +81,20 @@ router.get('/packages', searchCacheMiddleware({ fixedTtl: 600 }), async (req, re
         userAgent: req.headers['user-agent'],
       })
       .catch(err => logger.error('Failed to track search:', err));
-
-    res.json({
-      success: true,
-      data: results,
-      timestamp: new Date().toISOString(),
-    });
+    res.json({ success: true, data: results, timestamp: new Date().toISOString() });
   } catch (error) {
     logger.error('Package search error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to search packages',
-    });
+    res.status(500).json({ success: false, error: 'Failed to search packages' });
   }
 });
 
-/**
- * POST /api/v2/search/advanced
- * Advanced search with complex criteria
- */
 router.post('/advanced', async (req, res) => {
   try {
     const criteria = req.body;
-
-    // Validate criteria
     if (!criteria || typeof criteria !== 'object') {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid search criteria',
-      });
+      return res.status(400).json({ success: false, error: 'Invalid search criteria' });
     }
-
     const results = await searchService.advancedSearch(criteria);
-
-    // Track search
     const user = await getUserFromCookie(req);
     searchAnalytics
       .trackSearch({
@@ -168,48 +115,25 @@ router.post('/advanced', async (req, res) => {
         userAgent: req.headers['user-agent'],
       })
       .catch(err => logger.error('Failed to track search:', err));
-
-    res.json({
-      success: true,
-      data: results,
-      timestamp: new Date().toISOString(),
-    });
+    return res.json({ success: true, data: results, timestamp: new Date().toISOString() });
   } catch (error) {
     logger.error('Advanced search error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to perform advanced search',
-    });
+    return res.status(500).json({ success: false, error: 'Failed to perform advanced search' });
   }
 });
 
-// ========================================
-// SAVED SEARCHES & HISTORY
-// ========================================
-
-/**
- * POST /api/v2/search/saved
- * Save a search for quick access
- */
 router.post('/saved', authRequired, csrfProtection, async (req, res) => {
   try {
     const { name, criteria, description } = req.body;
-
     if (!name || !criteria) {
-      return res.status(400).json({
-        success: false,
-        error: 'Name and criteria are required',
-      });
+      return res.status(400).json({ success: false, error: 'Name and criteria are required' });
     }
-
-    // Validate name
     if (name.length < 3 || name.length > 100) {
       return res.status(400).json({
         success: false,
         error: 'Name must be between 3 and 100 characters',
       });
     }
-
     const savedSearch = {
       id: `saved_${Date.now()}_${crypto.randomUUID()}`,
       userId: req.user.id,
@@ -221,619 +145,330 @@ router.post('/saved', authRequired, csrfProtection, async (req, res) => {
       lastUsedAt: new Date().toISOString(),
       useCount: 0,
     };
-
     const searchInserted = await dbUnified.insertOne('savedSearches', savedSearch);
     if (!searchInserted) {
       logger.error('[SEARCH] insertOne failed', { searchId: savedSearch.id });
       return res.status(500).json({ error: 'Failed to save search. Please try again.' });
     }
-
-    res.json({
+    return res.json({
       success: true,
       data: { savedSearchId: savedSearch.id },
       message: 'Search saved successfully',
     });
   } catch (error) {
     logger.error('Save search error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to save search',
-    });
+    return res.status(500).json({ success: false, error: 'Failed to save search' });
   }
 });
 
-/**
- * GET /api/v2/search/saved
- * Get user's saved searches
- */
 router.get('/saved', authRequired, async (req, res) => {
   try {
     const allUserSearches = await dbUnified.find('savedSearches', { userId: req.user.id });
     const userSearches = allUserSearches.sort(
       (a, b) => new Date(b.lastUsedAt) - new Date(a.lastUsedAt)
     );
-
-    res.json({
-      success: true,
-      data: { searches: userSearches },
-    });
+    return res.json({ success: true, data: { searches: userSearches } });
   } catch (error) {
     logger.error('Get saved searches error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to retrieve saved searches',
-    });
+    return res.status(500).json({ success: false, error: 'Failed to retrieve saved searches' });
   }
 });
 
-/**
- * DELETE /api/v2/search/saved/:id
- * Delete a saved search
- */
 router.delete('/saved/:id', authRequired, csrfProtection, async (req, res) => {
   try {
-    const { id } = req.params;
-    const savedSearchToDelete = await dbUnified.findOne('savedSearches', {
-      id,
+    const savedSearch = await dbUnified.findOne('savedSearches', {
+      id: req.params.id,
       userId: req.user.id,
     });
-
-    if (!savedSearchToDelete) {
-      return res.status(404).json({
-        success: false,
-        error: 'Saved search not found',
-      });
+    if (!savedSearch) {
+      return res.status(404).json({ success: false, error: 'Saved search not found' });
     }
-
-    await dbUnified.deleteOne('savedSearches', { id });
-
-    res.json({
-      success: true,
-      message: 'Saved search deleted',
-    });
+    await dbUnified.deleteOne('savedSearches', { id: req.params.id });
+    return res.json({ success: true, message: 'Saved search deleted' });
   } catch (error) {
     logger.error('Delete saved search error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to delete saved search',
-    });
+    return res.status(500).json({ success: false, error: 'Failed to delete saved search' });
   }
 });
 
-/**
- * GET /api/v2/search/history
- * Get user's search history
- */
 router.get('/history', authRequired, async (req, res) => {
   try {
     const limit = Math.min(Number(req.query.limit) || 50, 100);
     const skip = Number(req.query.skip) || 0;
-
     const allHistory = await dbUnified.find('searchHistory', { userId: req.user.id });
-    const userHistory = allHistory
+    const history = allHistory
       .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
       .slice(skip, skip + limit);
-
-    res.json({
-      success: true,
-      data: {
-        history: userHistory,
-        total: allHistory.length,
-      },
-    });
+    return res.json({ success: true, data: { history, total: allHistory.length } });
   } catch (error) {
     logger.error('Get search history error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to retrieve search history',
-    });
+    return res.status(500).json({ success: false, error: 'Failed to retrieve search history' });
   }
 });
 
-// ========================================
-// SUGGESTIONS & AUTOCOMPLETE
-// ========================================
-
-/**
- * GET /api/v2/search/suggestions
- * Get autocomplete suggestions
- */
 router.get('/suggestions', searchCacheMiddleware({ fixedTtl: 3600 }), async (req, res) => {
   try {
     const q = req.query.q ? String(req.query.q).trim() : '';
-
     if (!q || q.length < 2) {
-      return res.json({
-        success: true,
-        data: { suggestions: [] },
-      });
+      return res.json({ success: true, data: { suggestions: [] } });
     }
-
     if (q.length > 100) {
-      return res.status(400).json({
-        success: false,
-        error: 'Query too long',
-      });
+      return res.status(400).json({ success: false, error: 'Query too long' });
     }
-
     const suggestions = await searchAnalytics.getAutocompleteSuggestions(q, 10);
-
-    res.json({
-      success: true,
-      data: { suggestions: [] },
-    });
+    return res.json({ success: true, data: { suggestions } });
   } catch (error) {
     logger.error('Suggestions error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to get suggestions',
-    });
+    return res.status(500).json({ success: false, error: 'Failed to get suggestions' });
   }
 });
 
-/**
- * GET /api/v2/search/trending
- * Get trending searches
- */
 router.get('/trending', searchCacheMiddleware({ fixedTtl: 600 }), async (req, res) => {
   try {
     const timeRange = req.query.timeRange || '24h';
     const limit = Math.min(Number(req.query.limit) || 20, 50);
-
     if (!['1h', '24h', '7d', '30d'].includes(timeRange)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid time range',
-      });
+      return res.status(400).json({ success: false, error: 'Invalid time range' });
     }
-
     const trending = await searchAnalytics.getTrendingSearches(timeRange, limit);
-
-    res.json({
-      success: true,
-      data: { trending, timeRange },
-    });
+    return res.json({ success: true, data: { trending, timeRange } });
   } catch (error) {
     logger.error('Trending searches error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to get trending searches',
-    });
+    return res.status(500).json({ success: false, error: 'Failed to get trending searches' });
   }
 });
 
-/**
- * GET /api/v2/search/popular-queries
- * Get popular search queries
- */
 router.get('/popular-queries', searchCacheMiddleware({ fixedTtl: 1800 }), async (req, res) => {
   try {
     const limit = Math.min(Number(req.query.limit) || 20, 50);
     const popular = await searchAnalytics.getPopularQueries(limit);
-
-    res.json({
-      success: true,
-      data: { queries: popular },
-    });
+    return res.json({ success: true, data: { queries: popular } });
   } catch (error) {
     logger.error('Popular queries error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to get popular queries',
-    });
+    return res.status(500).json({ success: false, error: 'Failed to get popular queries' });
   }
 });
 
-// ========================================
-// FILTERS & FACETS
-// ========================================
-
-/**
- * GET /api/v2/search/categories
- * Get all searchable categories
- */
-router.get('/categories', searchCacheMiddleware({ fixedTtl: 86400 }), async (req, res) => {
+router.get('/categories', searchCacheMiddleware({ fixedTtl: 86400 }), async (_req, res) => {
   try {
     const suppliers = await dbUnified.read('suppliers');
-    const categoryCounts = {};
-
+    const counts = {};
     suppliers
-      .filter(s => s.approved)
-      .forEach(s => {
-        if (s.category) {
-          categoryCounts[s.category] = (categoryCounts[s.category] || 0) + 1;
-        }
+      .filter(supplier => supplier.approved)
+      .forEach(supplier => {
+        if (supplier.category) counts[supplier.category] = (counts[supplier.category] || 0) + 1;
       });
-
-    const categories = Object.entries(categoryCounts)
+    const categories = Object.entries(counts)
       .map(([name, count]) => ({ name, count }))
       .sort((a, b) => b.count - a.count);
-
-    res.json({
-      success: true,
-      data: { categories },
-    });
+    return res.json({ success: true, data: { categories } });
   } catch (error) {
     logger.error('Get categories error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to get categories',
-    });
+    return res.status(500).json({ success: false, error: 'Failed to get categories' });
   }
 });
 
-/**
- * GET /api/v2/search/amenities
- * Get all filterable amenities
- */
-router.get('/amenities', searchCacheMiddleware({ fixedTtl: 86400 }), async (req, res) => {
+router.get('/amenities', searchCacheMiddleware({ fixedTtl: 86400 }), async (_req, res) => {
   try {
     const suppliers = await dbUnified.read('suppliers');
-    const amenityCounts = {};
-
+    const counts = {};
     suppliers
-      .filter(s => s.approved && s.amenities)
-      .forEach(s => {
-        s.amenities.forEach(amenity => {
-          amenityCounts[amenity] = (amenityCounts[amenity] || 0) + 1;
+      .filter(supplier => supplier.approved && supplier.amenities)
+      .forEach(supplier => {
+        supplier.amenities.forEach(amenity => {
+          counts[amenity] = (counts[amenity] || 0) + 1;
         });
       });
-
-    const amenities = Object.entries(amenityCounts)
+    const amenities = Object.entries(counts)
       .map(([name, count]) => ({ name, count }))
       .sort((a, b) => b.count - a.count);
-
-    res.json({
-      success: true,
-      data: { amenities },
-    });
+    return res.json({ success: true, data: { amenities } });
   } catch (error) {
     logger.error('Get amenities error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to get amenities',
-    });
+    return res.status(500).json({ success: false, error: 'Failed to get amenities' });
   }
 });
 
-/**
- * GET /api/v2/search/locations
- * Get popular locations
- */
-router.get('/locations', searchCacheMiddleware({ fixedTtl: 86400 }), async (req, res) => {
+router.get('/locations', searchCacheMiddleware({ fixedTtl: 86400 }), async (_req, res) => {
   try {
     const suppliers = await dbUnified.read('suppliers');
-    const locationCounts = {};
-
+    const counts = {};
     suppliers
-      .filter(s => s.approved && s.location)
-      .forEach(s => {
-        locationCounts[s.location] = (locationCounts[s.location] || 0) + 1;
+      .filter(supplier => supplier.approved && supplier.location)
+      .forEach(supplier => {
+        counts[supplier.location] = (counts[supplier.location] || 0) + 1;
       });
-
-    const locations = Object.entries(locationCounts)
+    const locations = Object.entries(counts)
       .map(([name, count]) => ({ name, count }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 50);
-
-    res.json({
-      success: true,
-      data: { locations },
-    });
+    return res.json({ success: true, data: { locations } });
   } catch (error) {
     logger.error('Get locations error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to get locations',
-    });
+    return res.status(500).json({ success: false, error: 'Failed to get locations' });
   }
 });
 
-// ========================================
-// ANALYTICS & INSIGHTS (Admin Only)
-// ========================================
-
-/**
- * GET /api/v2/search/analytics
- * Admin dashboard search analytics
- */
-router.get('/analytics', authRequired, roleRequired('admin'), async (req, res) => {
+router.get('/analytics', authRequired, roleRequired('admin'), async (_req, res) => {
   try {
-    const analytics = await searchAnalytics.getSearchAnalytics();
-
-    res.json({
-      success: true,
-      data: analytics,
-    });
+    return res.json({ success: true, data: await searchAnalytics.getSearchAnalytics() });
   } catch (error) {
     logger.error('Get analytics error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to get search analytics',
-    });
+    return res.status(500).json({ success: false, error: 'Failed to get search analytics' });
   }
 });
 
-/**
- * GET /api/v2/search/analytics/trends
- * Search trend analytics
- */
 router.get('/analytics/trends', authRequired, roleRequired('admin'), async (req, res) => {
   try {
     const timeRange = req.query.timeRange || '7d';
-    const trending = await searchAnalytics.getTrendingSearches(timeRange, 50);
-
-    res.json({
-      success: true,
-      data: { trends: trending, timeRange },
-    });
+    const trends = await searchAnalytics.getTrendingSearches(timeRange, 50);
+    return res.json({ success: true, data: { trends, timeRange } });
   } catch (error) {
     logger.error('Get trends error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to get trends',
-    });
+    return res.status(500).json({ success: false, error: 'Failed to get trends' });
   }
 });
 
-/**
- * GET /api/v2/search/analytics/user-behavior
- * User search behavior insights
- */
-router.get('/analytics/user-behavior', authRequired, roleRequired('admin'), async (req, res) => {
+router.get('/analytics/user-behavior', authRequired, roleRequired('admin'), async (_req, res) => {
   try {
-    const insights = await searchAnalytics.getUserBehaviorInsights();
-
-    res.json({
-      success: true,
-      data: insights,
-    });
+    return res.json({ success: true, data: await searchAnalytics.getUserBehaviorInsights() });
   } catch (error) {
     logger.error('Get user behavior error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to get user behavior insights',
     });
   }
 });
 
-// ========================================
-// PERFORMANCE & CACHE MANAGEMENT (Admin)
-// ========================================
-
-/**
- * GET /api/v2/search/performance
- * Search performance metrics
- */
-router.get('/performance', authRequired, roleRequired('admin'), async (req, res) => {
+router.get('/performance', authRequired, roleRequired('admin'), async (_req, res) => {
   try {
-    const cacheStats = await getCacheStats();
-    const analytics = await searchAnalytics.getSearchAnalytics();
-
-    res.json({
+    const [cache, analytics] = await Promise.all([
+      getCacheStats(),
+      searchAnalytics.getSearchAnalytics(),
+    ]);
+    return res.json({
       success: true,
-      data: {
-        cache: cacheStats,
-        performance: analytics.performance,
-        timestamp: new Date().toISOString(),
-      },
+      data: { cache, performance: analytics.performance, timestamp: new Date().toISOString() },
     });
   } catch (error) {
     logger.error('Get performance error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to get performance metrics',
-    });
+    return res.status(500).json({ success: false, error: 'Failed to get performance metrics' });
   }
 });
 
-/**
- * POST /api/v2/search/cache/clear
- * Clear search cache
- */
 router.post(
   '/cache/clear',
   authRequired,
   csrfProtection,
   roleRequired('admin'),
-  async (req, res) => {
+  async (_req, res) => {
     try {
       await clearSearchCache();
-
-      res.json({
+      return res.json({
         success: true,
         message: 'Search cache cleared successfully',
         timestamp: new Date().toISOString(),
       });
     } catch (error) {
       logger.error('Clear cache error:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Failed to clear cache',
-      });
+      return res.status(500).json({ success: false, error: 'Failed to clear cache' });
     }
   }
 );
 
-/**
- * GET /api/v2/search/cache/stats
- * Get cache statistics
- */
-router.get('/cache/stats', authRequired, roleRequired('admin'), async (req, res) => {
+router.get('/cache/stats', authRequired, roleRequired('admin'), async (_req, res) => {
   try {
-    const stats = await getCacheStats();
-
-    res.json({
+    return res.json({
       success: true,
-      data: stats,
+      data: await getCacheStats(),
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
     logger.error('Get cache stats error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to get cache statistics',
-    });
+    return res.status(500).json({ success: false, error: 'Failed to get cache statistics' });
   }
 });
 
-/**
- * GET /api/v2/search/similar/:supplierId
- * Get suppliers similar to a given supplier (Phase 2 discovery)
- */
 router.get('/similar/:supplierId', searchCacheMiddleware({ fixedTtl: 1800 }), async (req, res) => {
   try {
     const { supplierId } = req.params;
-
-    // Basic validation — supplierId must be a non-empty alphanumeric-ish string
     if (!supplierId || !/^[a-zA-Z0-9_-]{1,100}$/.test(supplierId)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid supplierId',
-      });
+      return res.status(400).json({ success: false, error: 'Invalid supplierId' });
     }
-
     const parsedLimit = parseInt(req.query.limit, 10);
     const limit = !isNaN(parsedLimit) && parsedLimit > 0 ? Math.min(parsedLimit, 12) : 6;
-
     const results = await searchService.getSimilarSuppliers(supplierId, limit);
-
     return res.json({
       success: true,
-      data: {
-        supplierId,
-        results,
-        count: results.length,
-      },
+      data: { supplierId, results, count: results.length },
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
     logger.error('Similar suppliers error:', error);
-    return res.status(500).json({
-      success: false,
-      error: 'Failed to get similar suppliers',
-    });
+    return res.status(500).json({ success: false, error: 'Failed to get similar suppliers' });
   }
 });
 
-/**
- * GET /api/v2/search/discovery
- * Curated discovery feed: featured, top-rated, and new arrivals (Phase 2)
- */
 router.get('/discovery', searchCacheMiddleware({ fixedTtl: 600 }), async (req, res) => {
   try {
-    const parsedFeaturedLimit = parseInt(req.query.featuredLimit, 10);
-    const parsedTopRatedLimit = parseInt(req.query.topRatedLimit, 10);
-    const parsedNewArrivalsLimit = parseInt(req.query.newArrivalsLimit, 10);
-
-    const options = {
-      featuredLimit:
-        !isNaN(parsedFeaturedLimit) && parsedFeaturedLimit > 0
-          ? Math.min(parsedFeaturedLimit, 12)
-          : 4,
-      topRatedLimit:
-        !isNaN(parsedTopRatedLimit) && parsedTopRatedLimit > 0
-          ? Math.min(parsedTopRatedLimit, 12)
-          : 6,
-      newArrivalsLimit:
-        !isNaN(parsedNewArrivalsLimit) && parsedNewArrivalsLimit > 0
-          ? Math.min(parsedNewArrivalsLimit, 12)
-          : 6,
+    const parseLimit = (value, fallback) => {
+      const parsed = parseInt(value, 10);
+      return !isNaN(parsed) && parsed > 0 ? Math.min(parsed, 12) : fallback;
     };
-
-    const feed = await searchService.getDiscoveryFeed(options);
-
-    res.json({
-      success: true,
-      data: feed,
-      timestamp: new Date().toISOString(),
+    const feed = await searchService.getDiscoveryFeed({
+      featuredLimit: parseLimit(req.query.featuredLimit, 4),
+      topRatedLimit: parseLimit(req.query.topRatedLimit, 6),
+      newArrivalsLimit: parseLimit(req.query.newArrivalsLimit, 6),
     });
+    return res.json({ success: true, data: feed, timestamp: new Date().toISOString() });
   } catch (error) {
     logger.error('Discovery feed error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to get discovery feed',
-    });
+    return res.status(500).json({ success: false, error: 'Failed to get discovery feed' });
   }
 });
 
-/**
- * GET /api/v2/search/personalized
- * Personalized discovery feed using user history and context signals (Phase 3)
- *
- * Query parameters:
- *   eventType  - Event type hint (e.g. "wedding", "corporate")
- *   location   - Location preference hint
- *   budget     - Price-tier preference (1–4)
- *   limit      - Max suppliers to return (default 12, max 24)
- */
 router.get('/personalized', searchCacheMiddleware({ fixedTtl: null }), async (req, res) => {
   try {
     const user = await getUserFromCookie(req);
-    const userId = user?.id || null;
-
     const parsedLimit = parseInt(req.query.limit, 10);
     const limit = !isNaN(parsedLimit) && parsedLimit > 0 ? Math.min(parsedLimit, 24) : 12;
-
     const parsedBudget = parseInt(req.query.budget, 10);
     const budget =
       !isNaN(parsedBudget) && parsedBudget >= 1 && parsedBudget <= 4 ? parsedBudget : undefined;
-
-    const context = {
-      eventType: req.query.eventType ? String(req.query.eventType).trim().slice(0, 100) : undefined,
-      location: req.query.location ? String(req.query.location).trim() : undefined,
-      budget,
-    };
-
-    const feed = await searchService.getPersonalizedFeed(userId, context, { limit });
-
-    return res.json({
-      success: true,
-      data: feed,
-      timestamp: new Date().toISOString(),
-    });
+    const feed = await searchService.getPersonalizedFeed(
+      user?.id || null,
+      {
+        eventType: req.query.eventType
+          ? String(req.query.eventType).trim().slice(0, 100)
+          : undefined,
+        location: req.query.location ? String(req.query.location).trim() : undefined,
+        budget,
+      },
+      { limit }
+    );
+    return res.json({ success: true, data: feed, timestamp: new Date().toISOString() });
   } catch (error) {
     logger.error('Personalized feed error:', error);
-    return res.status(500).json({
-      success: false,
-      error: 'Failed to get personalized feed',
-    });
+    return res.status(500).json({ success: false, error: 'Failed to get personalized feed' });
   }
 });
 
-/**
- * GET /api/v2/search/also-viewed/:supplierId
- * People-also-viewed recommendations for a supplier (Phase 3)
- *
- * Complements /similar/:supplierId with a different signal mix:
- * tag overlap + price proximity + location (category not required).
- */
 router.get(
   '/also-viewed/:supplierId',
   searchCacheMiddleware({ fixedTtl: 1800 }),
   async (req, res) => {
     try {
       const { supplierId } = req.params;
-
       if (!supplierId || !/^[a-zA-Z0-9_-]{1,100}$/.test(supplierId)) {
-        return res.status(400).json({
-          success: false,
-          error: 'Invalid supplierId',
-        });
+        return res.status(400).json({ success: false, error: 'Invalid supplierId' });
       }
-
       const parsedLimit = parseInt(req.query.limit, 10);
       const limit = !isNaN(parsedLimit) && parsedLimit > 0 ? Math.min(parsedLimit, 12) : 6;
-
       const results = await searchService.getPeopleAlsoViewed(supplierId, limit);
-
       return res.json({
         success: true,
-        data: {
-          supplierId,
-          results,
-          count: results.length,
-        },
+        data: { supplierId, results, count: results.length },
         timestamp: new Date().toISOString(),
       });
     } catch (error) {
