@@ -1,0 +1,28 @@
+name: PR 1418 Format Export
+
+on:
+  push:
+    branches:
+      - agent/supplier-profile-trust-consistency
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm ci --prefer-offline --no-audit
+        env:
+          HUSKY: 0
+      - run: npx prettier --write routes/supplier-trust-admin.js
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pr1418-formatted-source
+          path: routes/supplier-trust-admin.js
+          if-no-files-found: error
