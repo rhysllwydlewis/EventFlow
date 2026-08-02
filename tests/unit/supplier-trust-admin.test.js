@@ -3,6 +3,60 @@
 const express = require('express');
 const request = require('supertest');
 
+function getPath(target, path) {
+  return path.split('.').reduce((value, key) => value?.[key], target);
+}
+
+function setPath(target, path, value) {
+  const keys = path.split('.');
+  const finalKey = keys.pop();
+  const parent = keys.reduce((current, key) => {
+    if (!current[key] || typeof current[key] !== 'object') {
+      current[key] = {};
+    }
+    return current[key];
+  }, target);
+  parent[finalKey] = value;
+}
+
+function unsetPath(target, path) {
+  const keys = path.split('.');
+  const finalKey = keys.pop();
+  const parent = keys.reduce((current, key) => current?.[key], target);
+  if (parent) {
+    delete parent[finalKey];
+  }
+}
+
+function matchesFilter(target, filter) {
+  return Object.entries(filter).every(([path, value]) => getPath(target, path) === value);
+}
+
+function applyUpdate(target, update) {
+  for (const [path, value] of Object.entries(update.$set || {})) {
+    setPath(target, path, value);
+  }
+  for (const path of Object.keys(update.$unset || {})) {
+    unsetPath(target, path);
+  }
+  for (const [path, value] of Object.entries(update.$addToSet || {})) {
+    const current = getPath(target, path);
+    const values = Array.isArray(current) ? current : [];
+    if (!values.includes(value)) {
+      setPath(target, path, [...values, value]);
+    }
+  }
+  for (const [path, value] of Object.entries(update.$pull || {})) {
+    const current = getPath(target, path);
+    const values = Array.isArray(current) ? current : [];
+    setPath(
+      target,
+      path,
+      values.filter(item => item !== value)
+    );
+  }
+}
+
 describe('supplier trust admin routes', () => {
   let data;
   let auditLog;
@@ -18,8 +72,11 @@ describe('supplier trust admin routes', () => {
       trustVerifications: {},
     };
     auditLog = jest.fn(async () => ({ id: 'audit_1' }));
-    updateOne = jest.fn(async (_collection, _filter, update) => {
-      Object.assign(data, update.$set || {});
+    updateOne = jest.fn(async (_collection, filter, update) => {
+      if (!matchesFilter(data, filter)) {
+        return false;
+      }
+      applyUpdate(data, update);
       return true;
     });
 
@@ -120,7 +177,7 @@ describe('supplier trust admin routes', () => {
     );
   });
 
-  test('retries an optimistic trust write race before auditing the successful change', async () => {
+  test('retries a failed trust write before auditing the successful change', async () => {
     updateOne.mockImplementationOnce(async () => false);
 
     const res = await request(app())
@@ -153,10 +210,11 @@ describe('supplier trust admin routes', () => {
     data.badges = ['fast-responder'];
     data.trustVerifications = { dbs: { verified: false } };
     auditLog.mockResolvedValueOnce(null);
-    updateOne.mockImplementationOnce(async (_collection, _filter, update) => {
-      Object.assign(data, update.$set || {});
-      // Simulate a separate admin action landing before this request discovers
-      // that its audit record failed.
+    updateOne.mockImplementationOnce(async (_collection, filter, update) => {
+      if (!matchesFilter(data, filter)) {
+        return false;
+      }
+      applyUpdate(data, update);
       data.badges = [...data.badges, 'top-rated'];
       data.trustVerifications = {
         ...data.trustVerifications,
@@ -196,7 +254,7 @@ describe('supplier trust admin routes', () => {
 
     expect(res.status).toBe(503);
     expect(res.body.error).toMatch(/rollback could not be confirmed/i);
-    expect(updateOne).toHaveBeenCalledTimes(1);
+    expect(updateOne).toHaveBeenCalledTimes(2);
     expect(data.trustVerifications.publicLiability).toMatchObject({
       verified: true,
       verifiedAt: '2099-01-01T00:00:00.000Z',
@@ -204,7 +262,7 @@ describe('supplier trust admin routes', () => {
     });
   });
 
-  test('fails closed before auditing when trust persistence repeatedly loses the write race', async () => {
+  test('fails closed before auditing when trust persistence repeatedly fails', async () => {
     updateOne.mockResolvedValue(false);
 
     const res = await request(app())
@@ -212,7 +270,7 @@ describe('supplier trust admin routes', () => {
       .send({});
 
     expect(res.status).toBe(503);
-    expect(res.body.error).toMatch(/changed while saving/i);
+    expect(res.body.error).toMatch(/could not be saved/i);
     expect(updateOne).toHaveBeenCalledTimes(3);
     expect(auditLog).not.toHaveBeenCalled();
   });
