@@ -9,7 +9,12 @@ const dbUnified = require('../db-unified');
 const logger = require('./logger');
 
 /**
- * Badge type definitions with auto-award criteria
+ * Badge type definitions with auto-award criteria.
+ *
+ * Trust credentials (PLI / DBS / licence) are deliberately non-automatic.
+ * They can only be confirmed through the dedicated audited admin trust endpoint.
+ * Suppliers and generic badge mutation paths must never be able to self-assert
+ * these EventFlow trust claims.
  */
 const BADGE_DEFINITIONS = {
   FAST_RESPONDER: {
@@ -52,7 +57,7 @@ const BADGE_DEFINITIONS = {
     color: '#8B5CF6',
     autoAssign: true,
     autoAssignCriteria: {
-      completedEvents: { gt: 50 }, // Greater than 50
+      completedEvents: { gt: 50 }, // Greater than 50 events
     },
     displayOrder: 3,
   },
@@ -64,6 +69,39 @@ const BADGE_DEFINITIONS = {
     description: 'Verified supplier with confirmed business details',
     icon: '✓',
     color: '#10B981',
+    autoAssign: false,
+    displayOrder: 2,
+  },
+  PUBLIC_LIABILITY_VERIFIED: {
+    id: 'public-liability-verified',
+    name: 'Public Liability Insurance Verified',
+    slug: 'public-liability-verified',
+    type: 'verified',
+    description: 'Public liability insurance evidence has been reviewed by EventFlow',
+    icon: '🛡️',
+    color: '#0B8073',
+    autoAssign: false,
+    displayOrder: 2,
+  },
+  DBS_CHECKED: {
+    id: 'dbs-checked',
+    name: 'DBS Check Confirmed',
+    slug: 'dbs-checked',
+    type: 'verified',
+    description: 'DBS evidence has been confirmed by EventFlow',
+    icon: '✓',
+    color: '#0B8073',
+    autoAssign: false,
+    displayOrder: 2,
+  },
+  LICENCE_VERIFIED: {
+    id: 'licence-verified',
+    name: 'Licence Verified',
+    slug: 'licence-verified',
+    type: 'verified',
+    description: 'Relevant licence evidence has been reviewed by EventFlow',
+    icon: '✓',
+    color: '#0B8073',
     autoAssign: false,
     displayOrder: 2,
   },
@@ -91,10 +129,28 @@ const BADGE_DEFINITIONS = {
   },
 };
 
+const TRUST_BADGE_IDS = new Set([
+  BADGE_DEFINITIONS.PUBLIC_LIABILITY_VERIFIED.id,
+  BADGE_DEFINITIONS.DBS_CHECKED.id,
+  BADGE_DEFINITIONS.LICENCE_VERIFIED.id,
+]);
+
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
+function assertGenericBadgeMutationAllowed(badgeId) {
+  if (TRUST_BADGE_IDS.has(badgeId)) {
+    const error = new Error(
+      'Trust credential badges must be changed through the dedicated audited trust verification endpoint'
+    );
+    error.code = 'TRUST_BADGE_DEDICATED_ENDPOINT_REQUIRED';
+    throw error;
+  }
+}
+
 /**
  * Initialize default badges in the database if they don't exist
  * @returns {Promise<void>}
  */
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 async function initializeDefaultBadges() {
   try {
     const badges = await dbUnified.read('badges');
@@ -127,6 +183,7 @@ async function initializeDefaultBadges() {
  * @param {Object} stats - Additional stats (messages, reviews, etc.)
  * @returns {boolean}
  */
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 function meetsCriteria(supplier, criteria, stats = {}) {
   for (const [field, condition] of Object.entries(criteria)) {
     // Handle min thresholds
@@ -179,6 +236,7 @@ function meetsCriteria(supplier, criteria, stats = {}) {
  * @param {string} supplierId - Supplier ID
  * @returns {Promise<Object>}
  */
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 async function calculateSupplierStats(supplierId) {
   try {
     const messages = await dbUnified.read('messages');
@@ -270,6 +328,7 @@ async function calculateSupplierStats(supplierId) {
  * @param {string} supplierId - Supplier ID
  * @returns {Promise<Object>} - { awarded: [], revoked: [] }
  */
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 async function evaluateSupplierBadges(supplierId) {
   try {
     const suppliers = await dbUnified.read('suppliers');
@@ -283,7 +342,7 @@ async function evaluateSupplierBadges(supplierId) {
     const supplier = suppliers[supplierIndex];
     const stats = await calculateSupplierStats(supplierId);
 
-    // Get auto-assignable badges
+    // Get auto-assignable badges. Manual trust badges are never included here.
     const autoAssignBadges = badges.filter(b => b.autoAssign && b.active);
 
     // Initialize badges array if not exists
@@ -304,7 +363,6 @@ async function evaluateSupplierBadges(supplierId) {
         awarded.push(badge.id);
         logger.info(`✓ Awarded badge "${badge.name}" to supplier ${supplier.name}`);
       } else if (!meetsRequirements && hasBadge) {
-        // Revoke badge if no longer meets criteria
         supplier.badges = supplier.badges.filter(b => b !== badge.id);
         revoked.push(badge.id);
         logger.info(`✗ Revoked badge "${badge.name}" from supplier ${supplier.name}`);
@@ -333,6 +391,7 @@ async function evaluateSupplierBadges(supplierId) {
  * Evaluate badges for all suppliers
  * @returns {Promise<Object>} - Summary of results
  */
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 async function evaluateAllSupplierBadges() {
   try {
     const suppliers = await dbUnified.read('suppliers');
@@ -356,6 +415,11 @@ async function evaluateAllSupplierBadges() {
       }
     }
 
+    logger.info(
+      `Badge evaluation complete: ${results.evaluated}/${results.total} evaluated, ` +
+        `${results.awarded} awarded, ${results.revoked} revoked, ${results.errors} errors`
+    );
+
     return results;
   } catch (error) {
     logger.error('Error evaluating all supplier badges:', error);
@@ -363,10 +427,120 @@ async function evaluateAllSupplierBadges() {
   }
 }
 
+/**
+ * Manually award a badge to a supplier
+ * @param {string} supplierId - Supplier ID
+ * @param {string} badgeId - Badge ID
+ * @param {string} awardedBy - User ID who awarded the badge
+ * @returns {Promise<Object>}
+ */
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
+async function awardBadge(supplierId, badgeId, awardedBy) {
+  try {
+    assertGenericBadgeMutationAllowed(badgeId);
+
+    const suppliers = await dbUnified.read('suppliers');
+    const badges = await dbUnified.read('badges');
+
+    const supplier = suppliers.find(s => s.id === supplierId);
+    const badge = badges.find(b => b.id === badgeId);
+
+    if (!supplier) {
+      throw new Error('Supplier not found');
+    }
+    if (!badge) {
+      throw new Error('Badge not found');
+    }
+
+    if (!supplier.badges) {
+      supplier.badges = [];
+    }
+
+    if (!supplier.badges.includes(badgeId)) {
+      supplier.badges.push(badgeId);
+      await dbUnified.updateOne(
+        'suppliers',
+        { id: supplierId },
+        {
+          $set: { badges: supplier.badges },
+        }
+      );
+
+      logger.info(`✓ Manually awarded badge "${badge.name}" to supplier ${supplier.name}`, {
+        awardedBy,
+      });
+
+      return { success: true, badge };
+    }
+
+    return { success: false, reason: 'Badge already awarded' };
+  } catch (error) {
+    logger.error('Error manually awarding badge:', error);
+    throw error;
+  }
+}
+
+/**
+ * Manually revoke a badge from a supplier
+ * @param {string} supplierId - Supplier ID
+ * @param {string} badgeId - Badge ID
+ * @param {string} revokedBy - User ID who revoked the badge
+ * @returns {Promise<Object>}
+ */
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
+async function revokeBadge(supplierId, badgeId, revokedBy) {
+  try {
+    assertGenericBadgeMutationAllowed(badgeId);
+
+    const suppliers = await dbUnified.read('suppliers');
+    const badges = await dbUnified.read('badges');
+
+    const supplier = suppliers.find(s => s.id === supplierId);
+    const badge = badges.find(b => b.id === badgeId);
+
+    if (!supplier) {
+      throw new Error('Supplier not found');
+    }
+    if (!badge) {
+      throw new Error('Badge not found');
+    }
+
+    if (!supplier.badges) {
+      supplier.badges = [];
+    }
+
+    if (supplier.badges.includes(badgeId)) {
+      supplier.badges = supplier.badges.filter(id => id !== badgeId);
+      await dbUnified.updateOne(
+        'suppliers',
+        { id: supplierId },
+        {
+          $set: { badges: supplier.badges },
+        }
+      );
+
+      logger.info(`✗ Manually revoked badge "${badge.name}" from supplier ${supplier.name}`, {
+        revokedBy,
+      });
+
+      return { success: true, badge };
+    }
+
+    return { success: false, reason: 'Badge not currently awarded' };
+  } catch (error) {
+    logger.error('Error manually revoking badge:', error);
+    throw error;
+  }
+}
+
 module.exports = {
   BADGE_DEFINITIONS,
+  TRUST_BADGE_IDS,
   initializeDefaultBadges,
+  meetsCriteria,
+  calculateSupplierStats,
   evaluateSupplierBadges,
   evaluateAllSupplierBadges,
-  calculateSupplierStats,
+  awardBadge,
+  revokeBadge,
 };

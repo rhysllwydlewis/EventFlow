@@ -42,6 +42,7 @@ const savedRoutes = require('./saved');
 const supplierRoutes = require('./supplier');
 const supplierExportSafeRoutes = require('./supplier-export-safe');
 const supplierAdminRoutes = require('./supplier-admin');
+const supplierTrustAdminRoutes = require('./supplier-trust-admin');
 const supplierManagementRoutes = require('./supplier-management');
 const suppliersV2Routes = require('./suppliers-v2');
 const supplierProfileSafeRoutes = require('./supplier-profile-safe');
@@ -85,7 +86,8 @@ const telemetryRoutes = require('./telemetry');
  * @param {Object} app - Express app instance
  * @param {Object} deps - Dependencies to inject into routes
  */
-function mountRoutes(app, deps) {
+// skipcq: JS-R1005 -- Route ordering and middleware precedence are intentionally centralised here.
+const mountRoutes = (app, deps) => {
   // Public, crawlable supplier profiles with server-rendered metadata.
   // Mounted through the backend router so the existing supplier page body and CSS stay unchanged.
   if (deps && deps.dbUnified) {
@@ -198,6 +200,9 @@ function mountRoutes(app, deps) {
   // for applications that consume routes/index.js without server.js's compatibility mounts.
   app.use('/api/v1/admin', supplierAdminRoutes);
   app.use('/api/admin', supplierAdminRoutes);
+  // Dedicated trust-credential mutations use the audited structured trust path.
+  app.use('/api/v1/admin', supplierTrustAdminRoutes);
+  app.use('/api/admin', supplierTrustAdminRoutes);
   app.use('/api/v1/admin', adminRoutes);
   app.use('/api/admin', adminRoutes); // Backward compatibility
 
@@ -515,7 +520,7 @@ function mountRoutes(app, deps) {
   app.get('/conversation/:id', (req, res) =>
     res.redirect(301, `/messenger/?conversation=${encodeURIComponent(req.params.id)}`)
   );
-}
+};
 
 module.exports = {
   router,

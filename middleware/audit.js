@@ -22,43 +22,56 @@ const logger = require('../utils/logger');
  * @param {string} params.userAgent - User agent string
  * @returns {Promise<Object|null>} The created audit log entry or null on error
  */
+// skipcq: JS-0067 -- CommonJS module scope prevents this declaration becoming a browser global.
 async function auditLog(params) {
-  const {
-    adminId,
-    adminEmail,
-    action,
-    targetType,
-    targetId,
-    details = {},
-    ipAddress = null,
-    userAgent = null,
-  } = params;
-
-  const now = new Date().toISOString();
-  const logEntry = {
-    id: dbUnified.uid('audit'),
-    adminId,
-    adminEmail,
-    action,
-    targetType,
-    targetId,
-    details,
-    ipAddress,
-    userAgent,
-    timestamp: now,
-    createdAt: now,
-  };
-
+  let logEntry = null;
   try {
-    await dbUnified.insertOne('audit_logs', logEntry);
+    const {
+      adminId,
+      adminEmail,
+      action,
+      targetType,
+      targetId,
+      details = {},
+      ipAddress = null,
+      userAgent = null,
+    } = params || {};
+
+    const now = new Date().toISOString();
+    logEntry = {
+      id: dbUnified.uid('audit'),
+      adminId,
+      adminEmail,
+      action,
+      targetType,
+      targetId,
+      details,
+      ipAddress,
+      userAgent,
+      timestamp: now,
+      createdAt: now,
+    };
+
+    // dbUnified.insertOne normalises storage failures to null instead of throwing.
+    // Check the return value so callers that need fail-closed auditing can
+    // distinguish a durable audit record from a swallowed database failure.
+    const inserted = await dbUnified.insertOne('audit_logs', logEntry);
+    if (!inserted) {
+      logger.error('[AUDIT ERROR] Audit storage returned no persisted entry');
+      logger.error('[AUDIT ERROR] Failed log entry:', logEntry);
+      return null;
+    }
 
     logger.info(`[AUDIT] ${adminEmail} performed ${action} on ${targetType} ${targetId}`);
 
     return logEntry;
   } catch (error) {
-    // Log error but don't throw - audit logging should never break the main flow
+    // Audit logging is deliberately non-throwing. Fail-closed callers inspect the
+    // null return and can compensate/rollback their own state change.
     logger.error('[AUDIT ERROR] Failed to write audit log:', error.message);
-    logger.error('[AUDIT ERROR] Failed log entry:', logEntry);
+    if (logEntry) {
+      logger.error('[AUDIT ERROR] Failed log entry:', logEntry);
+    }
     return null;
   }
 }
@@ -71,6 +84,7 @@ async function auditLog(params) {
  * @param {Function} getTargetInfo - Optional function to extract target type and ID from req
  * @returns {Function} Express middleware function
  */
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 function auditMiddleware(action, getTargetInfo = null) {
   return (req, res, next) => {
     // Store original res.json to intercept successful responses
@@ -146,6 +160,7 @@ function auditMiddleware(action, getTargetInfo = null) {
  * @param {number} filters.limit - Maximum number of results
  * @returns {Promise<Array>} Filtered audit log entries, sorted newest-first
  */
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 async function getAuditLogs(filters = {}) {
   const {
     adminId,

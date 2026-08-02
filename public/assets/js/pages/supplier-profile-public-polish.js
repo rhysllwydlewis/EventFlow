@@ -68,6 +68,10 @@
       .sp-polish-safe-hidden {
         display: none !important;
       }
+
+      .sp-trust-item--credential .sp-trust-icon {
+        color: #0b8073;
+      }
     `;
     document.head.appendChild(style);
   }
@@ -170,18 +174,188 @@
       });
   }
 
+  function getSupplier() {
+    return window.__supplierData && typeof window.__supplierData === 'object'
+      ? window.__supplierData
+      : null;
+  }
+
+  function explicitEmailVerified(supplier) {
+    return Boolean(supplier?.emailVerified || supplier?.verifications?.email?.verified);
+  }
+
+  function profileApproved(supplier) {
+    return supplier?.profileApproved === true || supplier?.approved === true;
+  }
+
+  function trustCredentialVerified(supplier, key) {
+    return supplier?.trustVerifications?.[key]?.verified === true;
+  }
+
+  function syncHeroVerificationBadge() {
+    const supplier = getSupplier();
+    if (!supplier) return;
+
+    // The legacy renderer used `supplier.verified` as a fallback for email
+    // verification. Profile approval and email verification are different facts.
+    document.querySelectorAll('#hero-badges .badge-email-verified').forEach(badge => {
+      if (explicitEmailVerified(supplier)) {
+        if (badge.textContent !== 'Email verified') badge.textContent = 'Email verified';
+        badge.title = 'Email address verified';
+        badge.setAttribute('aria-label', 'Email verified');
+        return;
+      }
+      if (profileApproved(supplier)) {
+        if (badge.textContent !== 'Approved') badge.textContent = 'Approved';
+        badge.title = 'Supplier profile approved by EventFlow';
+        badge.setAttribute('aria-label', 'Profile approved');
+      } else {
+        badge.remove();
+      }
+    });
+  }
+
+  function buildTrustItem(label, credential = false) {
+    return `<div class="sp-trust-item${credential ? ' sp-trust-item--credential' : ''}"><span class="sp-trust-icon" aria-hidden="true">✓</span><span>${label}</span></div>`;
+  }
+
+  function renderTrustSafety() {
+    const supplier = getSupplier();
+    const container = document.getElementById('sp-sidebar-trust');
+    if (!supplier || !container) return;
+
+    const labels = [];
+    if (profileApproved(supplier)) labels.push(['Profile approved', false]);
+    if (explicitEmailVerified(supplier)) labels.push(['Email verified', false]);
+    if (supplier.phoneVerified || supplier.verifications?.phone?.verified) {
+      labels.push(['Phone verified', false]);
+    }
+    if (supplier.businessVerified || supplier.verifications?.business?.verified) {
+      labels.push(['Business verified', false]);
+    }
+    if (trustCredentialVerified(supplier, 'publicLiability')) {
+      labels.push(['Public liability insurance verified', true]);
+    }
+    if (trustCredentialVerified(supplier, 'dbs')) {
+      labels.push(['DBS check confirmed', true]);
+    }
+    if (trustCredentialVerified(supplier, 'licence')) {
+      labels.push(['Licence verified', true]);
+    }
+
+    // Deliberately do not promote supplier-entered `insurance` / `license`
+    // fields into EventFlow trust claims. Trust badges must be explicit or
+    // admin-confirmed facts.
+    const signature = JSON.stringify(labels);
+    if (labels.length === 0) {
+      if (container.dataset.trustSignature !== signature || container.innerHTML) {
+        container.innerHTML = '';
+        container.dataset.trustSignature = signature;
+      }
+      container.style.display = 'none';
+      return;
+    }
+
+    if (container.dataset.trustSignature !== signature) {
+      const items = labels.map(([label, credential]) => buildTrustItem(label, credential));
+      container.innerHTML = `
+        <div class="sp-trust-card">
+          <div class="sp-trust-card__title">Trust &amp; Safety</div>
+          <div class="sp-trust-list">${items.join('')}</div>
+        </div>
+      `;
+      container.dataset.trustSignature = signature;
+    }
+    container.style.display = '';
+  }
+
+  function syncRecognitionVerification() {
+    const supplier = getSupplier();
+    const section = document.getElementById('sp-section-badges');
+    if (!supplier || !section) return;
+
+    section.querySelectorAll('.badge-email-verified').forEach(badge => {
+      if (explicitEmailVerified(supplier)) return;
+      if (profileApproved(supplier)) {
+        if (badge.textContent !== 'Profile approved') badge.textContent = 'Profile approved';
+        badge.setAttribute('aria-label', 'Profile approved');
+      } else {
+        badge.remove();
+      }
+    });
+
+    const verificationRows = section.querySelectorAll('.sp-badges-row');
+    let verificationRow = null;
+    verificationRows.forEach(row => {
+      const label = row.previousElementSibling;
+      if (
+        label?.classList.contains('sp-badges-group-label') &&
+        /verification/i.test(label.textContent)
+      ) {
+        verificationRow = row;
+      }
+    });
+
+    const extra = [
+      ['publicLiability', 'PLI verified'],
+      ['dbs', 'DBS checked'],
+      ['licence', 'Licence verified'],
+    ];
+    const hasExtraVerification = extra.some(([key]) => trustCredentialVerified(supplier, key));
+    if (!verificationRow && hasExtraVerification) {
+      const card = section.querySelector('.sp-badges-section');
+      if (card) {
+        const label = document.createElement('p');
+        label.className = 'sp-badges-group-label';
+        label.textContent = 'Verification';
+        verificationRow = document.createElement('div');
+        verificationRow.className = 'sp-badges-row';
+        card.append(label, verificationRow);
+      }
+    }
+    if (!verificationRow) return;
+
+    extra.forEach(([key, label]) => {
+      const marker = `trust-${key}`;
+      const existing = verificationRow.querySelector(`[data-trust-badge="${marker}"]`);
+      if (trustCredentialVerified(supplier, key)) {
+        if (!existing) {
+          const badge = document.createElement('span');
+          badge.className = 'badge badge-business-verified';
+          badge.dataset.trustBadge = marker;
+          badge.textContent = label;
+          badge.setAttribute('aria-label', label);
+          verificationRow.appendChild(badge);
+        }
+      } else if (existing) {
+        existing.remove();
+      }
+    });
+  }
+
+  let runQueued = false;
   function run() {
-    injectStyles();
-    updatePreviewState();
-    hidePublicEmptyGallery();
-    deriveResponseCopy();
-    tidyUnsafeRenderedLinks();
-    tidyImages();
+    if (runQueued) return;
+    runQueued = true;
+    requestAnimationFrame(() => {
+      runQueued = false;
+      injectStyles();
+      updatePreviewState();
+      hidePublicEmptyGallery();
+      deriveResponseCopy();
+      tidyUnsafeRenderedLinks();
+      tidyImages();
+      syncHeroVerificationBadge();
+      renderTrustSafety();
+      syncRecognitionVerification();
+    });
   }
 
   const observer = new MutationObserver(run);
   observer.observe(document.body, { childList: true, subtree: true });
   window.setTimeout(() => observer.disconnect(), 45000);
+
+  window.addEventListener('sp:dataReady', run);
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', run);

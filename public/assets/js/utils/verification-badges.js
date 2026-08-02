@@ -1,8 +1,9 @@
-function escapeHtml(s) {
-  if (!s) return '';
-  const d = document.createElement('div');
-  d.textContent = String(s);
-  return d.innerHTML;
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
+function escapeHtml(value) {
+  if (!value) return '';
+  const container = document.createElement('div');
+  container.textContent = String(value);
+  return container.innerHTML;
 }
 
 /**
@@ -17,6 +18,7 @@ function escapeHtml(s) {
  * @param {Object} supplier
  * @returns {'pro_plus'|'pro'|'free'}
  */
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 function resolveSupplierTier(supplier) {
   if (!supplier) {
     return 'free';
@@ -35,10 +37,10 @@ function resolveSupplierTier(supplier) {
 export function renderTierIcon(supplier) {
   const tier = resolveSupplierTier(supplier);
   if (tier === 'pro_plus') {
-    return `<span class="tier-icon tier-icon-pro-plus" title="Pro Plus — Priority listing, unlimited packages, custom branding & homepage carousel" aria-label="Pro Plus">💎</span>`;
+    return '<span class="tier-icon tier-icon-pro-plus" title="Pro Plus — Priority listing, unlimited packages, custom branding & homepage carousel" aria-label="Pro Plus">💎</span>';
   }
   if (tier === 'pro') {
-    return `<span class="tier-icon tier-icon-pro" title="Pro — Priority listing, analytics & email support" aria-label="Pro">⭐</span>`;
+    return '<span class="tier-icon tier-icon-pro" title="Pro — Priority listing, analytics & email support" aria-label="Pro">⭐</span>';
   }
   return '';
 }
@@ -49,6 +51,7 @@ export function renderTierIcon(supplier) {
  * @param {Object} options - Rendering options
  * @returns {string} HTML string for badges
  */
+// skipcq: JS-R1005 -- Badge rendering intentionally centralises priority and compatibility rules.
 export function renderVerificationBadges(supplier, options = {}) {
   if (!supplier) {
     return '';
@@ -71,8 +74,8 @@ export function renderVerificationBadges(supplier, options = {}) {
       (supplier.badges.includes('founding') || supplier.badges.includes('founder')))
   ) {
     badges.push({
-      html: `<span class="badge badge-founding ${size === 'small' ? 'badge-sm' : ''}" 
-                   title="Founding Supplier - One of our first partners" 
+      html: `<span class="badge badge-founding ${size === 'small' ? 'badge-sm' : ''}"
+                   title="Founding Supplier - One of our first partners"
                    role="status"
                    aria-label="Founding supplier">
                Founding Supplier
@@ -85,8 +88,8 @@ export function renderVerificationBadges(supplier, options = {}) {
   const tier = resolveSupplierTier(supplier);
   if (tier === 'pro_plus') {
     badges.push({
-      html: `<span class="badge badge-pro-plus ${size === 'small' ? 'badge-sm' : ''}" 
-                   title="Pro Plus — Premium subscription" 
+      html: `<span class="badge badge-pro-plus ${size === 'small' ? 'badge-sm' : ''}"
+                   title="Pro Plus — Premium subscription"
                    role="status"
                    aria-label="Pro Plus subscriber">
                Pro Plus
@@ -95,8 +98,8 @@ export function renderVerificationBadges(supplier, options = {}) {
     });
   } else if (tier === 'pro') {
     badges.push({
-      html: `<span class="badge badge-pro ${size === 'small' ? 'badge-sm' : ''}" 
-                   title="Pro — Enhanced subscription" 
+      html: `<span class="badge badge-pro ${size === 'small' ? 'badge-sm' : ''}"
+                   title="Pro — Enhanced subscription"
                    role="status"
                    aria-label="Pro subscriber">
                Pro
@@ -109,8 +112,8 @@ export function renderVerificationBadges(supplier, options = {}) {
   // Priority 3a: Featured Badge (priority: 2 — rendered after tier)
   if (supplier.featured || supplier.featuredSupplier) {
     badges.push({
-      html: `<span class="badge badge-featured ${size === 'small' ? 'badge-sm' : ''}" 
-                   title="Featured Supplier" 
+      html: `<span class="badge badge-featured ${size === 'small' ? 'badge-sm' : ''}"
+                   title="Featured Supplier"
                    role="status"
                    aria-label="Featured supplier">
                Featured
@@ -137,13 +140,15 @@ export function renderVerificationBadges(supplier, options = {}) {
         EARNED_TYPE_CLASS[badge.id] || EARNED_TYPE_CLASS[badge.type] || 'badge-custom';
       // For custom badges (no CSS ::before icon), include badge.icon in text.
       // For standard badge types, CSS ::before handles the icon — omit it here.
-      const iconText = cssClass === 'badge-custom' && badge.icon ? `${badge.icon} ` : '';
+      const iconText =
+        cssClass === 'badge-custom' && badge.icon ? `${escapeHtml(badge.icon)} ` : '';
+      const safeName = escapeHtml(badge.name || 'Badge');
       badges.push({
-        html: `<span class="badge ${cssClass} ${size === 'small' ? 'badge-sm' : ''}" 
-                     title="${escapeHtml(badge.description || badge.name)}" 
+        html: `<span class="badge ${cssClass} ${size === 'small' ? 'badge-sm' : ''}"
+                     title="${escapeHtml(badge.description || badge.name)}"
                      role="status"
-                     aria-label="${escapeHtml(badge.name)}">
-                 ${iconText}${badge.name}
+                     aria-label="${safeName}">
+                 ${iconText}${safeName}
                </span>`,
         priority: 2,
       });
@@ -151,12 +156,14 @@ export function renderVerificationBadges(supplier, options = {}) {
   }
 
   // Priority 4: Verification Badges (priority: 3 — shown last)
-  // Email Verified
-  if (supplier.emailVerified || supplier.verifications?.email?.verified || supplier.verified) {
+  // Email verification is an explicit fact. `supplier.verified` historically means
+  // profile/business approval in several parts of EventFlow and must never be used
+  // as evidence that the email address itself was verified.
+  if (supplier.emailVerified || supplier.verifications?.email?.verified) {
     if (showAll) {
       badges.push({
-        html: `<span class="badge badge-email-verified ${size === 'small' ? 'badge-sm' : ''}" 
-                     title="Email address verified" 
+        html: `<span class="badge badge-email-verified ${size === 'small' ? 'badge-sm' : ''}"
+                     title="Email address verified"
                      role="status"
                      aria-label="Email verified">
                  <i class="fas fa-envelope-circle-check" aria-hidden="true"></i> Email
@@ -170,8 +177,8 @@ export function renderVerificationBadges(supplier, options = {}) {
   if (supplier.phoneVerified || supplier.verifications?.phone?.verified) {
     if (showAll) {
       badges.push({
-        html: `<span class="badge badge-phone-verified ${size === 'small' ? 'badge-sm' : ''}" 
-                     title="Phone number verified" 
+        html: `<span class="badge badge-phone-verified ${size === 'small' ? 'badge-sm' : ''}"
+                     title="Phone number verified"
                      role="status"
                      aria-label="Phone verified">
                  <i class="fas fa-phone-check" aria-hidden="true"></i> Phone
@@ -185,8 +192,8 @@ export function renderVerificationBadges(supplier, options = {}) {
   if (supplier.businessVerified || supplier.verifications?.business?.verified) {
     if (showAll) {
       badges.push({
-        html: `<span class="badge badge-business-verified ${size === 'small' ? 'badge-sm' : ''}" 
-                     title="Business documents verified" 
+        html: `<span class="badge badge-business-verified ${size === 'small' ? 'badge-sm' : ''}"
+                     title="Business documents verified"
                      role="status"
                      aria-label="Business verified">
                  <i class="fas fa-building-circle-check" aria-hidden="true"></i> Business
@@ -218,13 +225,14 @@ export function renderVerificationBadges(supplier, options = {}) {
  * @param {string} dateString - ISO date string
  * @returns {string} Formatted date (e.g., "15/01/2025")
  */
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 function formatVerificationDate(dateString) {
   if (!dateString) {
     return '';
   }
   try {
     return new Date(dateString).toLocaleDateString('en-GB', { timeZone: 'Europe/London' });
-  } catch (e) {
+  } catch {
     return '';
   }
 }
@@ -246,23 +254,26 @@ export function renderVerificationSection(supplier) {
     verifications.push({
       icon: '⭐',
       title: 'Founding Supplier',
-      description: 'Original member of the EventFlow platform since 2024',
+      description: 'Early supporter of the EventFlow platform',
       verified: true,
       class: 'founding',
     });
   }
 
   // Email Verification
-  const emailVerified =
-    supplier.emailVerified || supplier.verifications?.email?.verified || supplier.verified;
+  const emailVerified = supplier.emailVerified || supplier.verifications?.email?.verified;
   const emailDate = formatVerificationDate(
-    supplier.verifications?.email?.verifiedAt || supplier.createdAt
+    supplier.verifications?.email?.verifiedAt || supplier.emailVerifiedAt
   );
 
   verifications.push({
     icon: emailVerified ? '✓' : '○',
     title: 'Email Address',
-    description: emailVerified ? `Verified ${emailDate}` : 'Not yet verified',
+    description: emailVerified
+      ? emailDate
+        ? `Verified ${emailDate}`
+        : 'Verified'
+      : 'Not yet verified',
     verified: emailVerified,
     class: 'email',
   });
@@ -274,7 +285,11 @@ export function renderVerificationSection(supplier) {
   verifications.push({
     icon: phoneVerified ? '✓' : '○',
     title: 'Phone Number',
-    description: phoneVerified ? `Verified ${phoneDate}` : 'Not yet verified',
+    description: phoneVerified
+      ? phoneDate
+        ? `Verified ${phoneDate}`
+        : 'Verified'
+      : 'Not yet verified',
     verified: phoneVerified,
     class: 'phone',
   });
@@ -286,7 +301,11 @@ export function renderVerificationSection(supplier) {
   verifications.push({
     icon: businessVerified ? '✓' : '○',
     title: 'Business Documents',
-    description: businessVerified ? `Verified ${businessDate}` : 'Not yet verified',
+    description: businessVerified
+      ? businessDate
+        ? `Verified ${businessDate}`
+        : 'Verified'
+      : 'Not yet verified',
     verified: businessVerified,
     class: 'business',
   });
@@ -328,7 +347,7 @@ export function hasVerificationBadges(supplier) {
     return false;
   }
 
-  return !!(
+  return Boolean(
     supplier.isFoundingSupplier ||
     supplier.isFounding ||
     supplier.founding ||
@@ -354,7 +373,7 @@ export function getVerificationSummary(supplier) {
   }
 
   const checks = [
-    supplier.emailVerified || supplier.verifications?.email?.verified || supplier.verified,
+    supplier.emailVerified || supplier.verifications?.email?.verified,
     supplier.phoneVerified || supplier.verifications?.phone?.verified,
     supplier.businessVerified || supplier.verifications?.business?.verified,
   ];

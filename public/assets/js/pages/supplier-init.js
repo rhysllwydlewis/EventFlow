@@ -15,8 +15,11 @@
       if (!raw) {
         return '';
       }
+      // Public supplier media must use persisted URLs. Keep the browser-side
+      // boundary aligned with utils/supplierPublicProfile.js so a stale/legacy
+      // data URL can never be reintroduced by client sanitisation.
       if (DATA_IMAGE_RE.test(raw)) {
-        return raw;
+        return '';
       }
       try {
         const url = new URL(raw, window.location.origin);
@@ -70,6 +73,8 @@
       }
     };
 
+    const explicitVerified = value => value === true;
+
     const sanitiseSupplier = data => {
       if (!data || typeof data !== 'object') {
         return data;
@@ -96,6 +101,38 @@
             )
             .filter(Boolean)
         : [];
+
+      // Keep old public renderers fail-closed even if they are served from cache.
+      // Approval and email verification are separate facts; self-declared trust
+      // fields are never part of the public client contract.
+      const emailVerified =
+        explicitVerified(supplier.emailVerified) ||
+        explicitVerified(supplier.verifications?.email?.verified);
+      const phoneVerified =
+        explicitVerified(supplier.phoneVerified) ||
+        explicitVerified(supplier.verifications?.phone?.verified);
+      const businessVerified =
+        explicitVerified(supplier.businessVerified) ||
+        explicitVerified(supplier.verifications?.business?.verified);
+      supplier.emailVerified = emailVerified;
+      supplier.phoneVerified = phoneVerified;
+      supplier.businessVerified = businessVerified;
+      supplier.verified = emailVerified;
+      supplier.verifications = {
+        email: { verified: emailVerified },
+        phone: { verified: phoneVerified },
+        business: { verified: businessVerified },
+      };
+      supplier.trustVerifications = {
+        publicLiability: {
+          verified: explicitVerified(supplier.trustVerifications?.publicLiability?.verified),
+        },
+        dbs: { verified: explicitVerified(supplier.trustVerifications?.dbs?.verified) },
+        licence: { verified: explicitVerified(supplier.trustVerifications?.licence?.verified) },
+      };
+      delete supplier.insurance;
+      delete supplier.license;
+
       supplier.isPreview = isPreview || supplier.isPreview === true;
       return supplier;
     };
@@ -331,7 +368,7 @@
       }
       const script = document.createElement('script');
       script.id = 'supplier-profile-public-polish-script';
-      script.src = '/assets/js/pages/supplier-profile-public-polish.js?v=1.0.0';
+      script.src = '/assets/js/pages/supplier-profile-public-polish.js?v=2.0.0';
       script.defer = true;
       document.body.appendChild(script);
     };

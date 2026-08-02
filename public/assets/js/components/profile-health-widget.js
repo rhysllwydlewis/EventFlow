@@ -6,17 +6,80 @@
 (function () {
   'use strict';
 
+  function descriptionValue(supplier) {
+    return String(
+      supplier?.description_long ||
+        supplier?.description_short ||
+        supplier?.description ||
+        supplier?.blurb ||
+        ''
+    ).trim();
+  }
+
+  function galleryItemKey(item) {
+    if (typeof item === 'string') {
+      return item.trim();
+    }
+    if (!item || typeof item !== 'object') {
+      return '';
+    }
+    return String(
+      item.url || item.large || item.optimized || item.original || item.thumbnail || item.src || ''
+    ).trim();
+  }
+
+  function galleryItems(supplier) {
+    const canonical = Array.isArray(supplier?.photosGallery) ? supplier.photosGallery : [];
+    const legacy = Array.isArray(supplier?.images) ? supplier.images : [];
+    // Some migrated records have both schema generations populated. Compare their
+    // actual media URLs rather than object identity so the same photo cannot count twice.
+    return Array.from(new Set([...canonical, ...legacy].map(galleryItemKey).filter(Boolean)));
+  }
+
+  function socialLinks(supplier) {
+    const legacy =
+      supplier?.socials && typeof supplier.socials === 'object' && !Array.isArray(supplier.socials)
+        ? supplier.socials
+        : {};
+    const canonical =
+      supplier?.socialLinks &&
+      typeof supplier.socialLinks === 'object' &&
+      !Array.isArray(supplier.socialLinks)
+        ? supplier.socialLinks
+        : {};
+
+    // Preserve a populated legacy value when a migrated record contains an empty
+    // canonical key. Non-empty canonical values still take precedence.
+    const merged = { ...legacy };
+    Object.entries(canonical).forEach(([key, value]) => {
+      if (value) {
+        merged[key] = value;
+      } else if (!merged[key]) {
+        merged[key] = value;
+      }
+    });
+    return merged;
+  }
+
   /**
    * Weighted scoring criteria for profile health
    * Total: 100 points
+   *
+   * Checks use the canonical supplier fields plus supported legacy aliases so
+   * the dashboard does not mark populated profile content as missing.
    */
   const HEALTH_CRITERIA = [
-    { id: 'logo', label: 'Profile photo', weight: 10, check: s => !!s.logo },
+    {
+      id: 'logo',
+      label: 'Profile photo',
+      weight: 10,
+      check: s => Boolean(s.logo || s.profileImage || s.profilePhotoUrl || s.avatarUrl),
+    },
     {
       id: 'description',
       label: 'Description (100+ characters)',
       weight: 10,
-      check: s => s.description && s.description.length >= 100,
+      check: s => descriptionValue(s).length >= 100,
     },
     {
       id: 'contact',
@@ -28,20 +91,25 @@
       id: 'location',
       label: 'Location & postcode',
       weight: 10,
-      check: s => !!s.location && !!s.postcode,
+      check: s => Boolean(s.location) && Boolean(s.postcode || s.venuePostcode),
     },
-    { id: 'coverImage', label: 'Banner image', weight: 10, check: s => !!s.coverImage },
+    {
+      id: 'coverImage',
+      label: 'Banner image',
+      weight: 10,
+      check: s => Boolean(s.bannerUrl || s.coverImage),
+    },
     {
       id: 'gallery',
       label: 'Gallery (3+ images)',
       weight: 10,
-      check: s => Array.isArray(s.images) && s.images.length >= 3,
+      check: s => galleryItems(s).length >= 3,
     },
     {
       id: 'socials',
       label: 'Social media (2+ platforms)',
       weight: 10,
-      check: s => s.socials && Object.keys(s.socials).filter(k => s.socials[k]).length >= 2,
+      check: s => Object.values(socialLinks(s)).filter(Boolean).length >= 2,
     },
     { id: 'website', label: 'Website URL', weight: 5, check: s => !!s.website },
     {
@@ -70,7 +138,7 @@
     const incompleteItems = [];
 
     HEALTH_CRITERIA.forEach(criterion => {
-      const isComplete = criterion.check(supplier);
+      const isComplete = criterion.check(supplier || {});
       if (isComplete) {
         earnedPoints += criterion.weight;
         completedItems.push(criterion);
@@ -197,8 +265,8 @@
           ${scoreData.incompleteItems.map(item => renderChecklistItem(item, false)).join('')}
         </ul>
 
-        <button 
-          class="ef-cta health-cta" 
+        <button
+          class="ef-cta health-cta"
           data-href="/supplier/profile-customization"
           aria-label="Improve your profile to ${scoreData.percentage}%"
         >

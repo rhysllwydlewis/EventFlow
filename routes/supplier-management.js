@@ -10,6 +10,8 @@ const logger = require('../utils/logger');
 const catalogCache = require('../services/catalogCache');
 const { supplierApprovalDefaults } = require('../services/supplierProfileProvisioning.service');
 const { buildSupplierThemeMutation } = require('../utils/supplierTheme');
+const photoUpload = require('../photo-upload');
+const { auditLog, AUDIT_ACTIONS } = require('../middleware/audit');
 const router = express.Router();
 
 /**
@@ -31,6 +33,77 @@ const PATCH_FIELD_MAX_LENGTHS = {
   phone: 30,
 };
 
+const BANNER_DATA_URL_RE = /^data:image\/(png|jpe?g|webp|gif);base64,([a-z0-9+/]+={0,2})$/i;
+const MAX_BANNER_BYTES = 5 * 1024 * 1024;
+
+const decodeBannerDataUrl = value => {
+  const match = BANNER_DATA_URL_RE.exec(String(value || '').trim());
+  if (!match) {
+    const error = new Error('Banner image data is not a supported image');
+    error.name = 'ValidationError';
+    throw error;
+  }
+
+  const buffer = Buffer.from(match[2], 'base64');
+  if (!buffer.length) {
+    const error = new Error('Banner image is empty');
+    error.name = 'ValidationError';
+    throw error;
+  }
+  if (buffer.length > MAX_BANNER_BYTES) {
+    const error = new Error('Banner image is too large (maximum 5 MB)');
+    error.name = 'ValidationError';
+    throw error;
+  }
+
+  const subtype = match[1].toLowerCase();
+  const ext = subtype === 'jpeg' || subtype === 'jpg' ? 'jpg' : subtype;
+  return { buffer, filename: `supplier-banner.${ext}` };
+};
+
+const normaliseStoredBannerUrl = value => {
+  const raw = String(value || '').trim();
+  if (!raw) {
+    return '';
+  }
+  if (/^\/(api\/photos\/|uploads\/)/i.test(raw)) {
+    return raw.slice(0, 500);
+  }
+  try {
+    const parsed = new URL(raw);
+    if (parsed.protocol === 'https:' || parsed.protocol === 'http:') {
+      return parsed.href.slice(0, 500);
+    }
+  } catch {
+    // handled below
+  }
+  const error = new Error('Banner must be an uploaded image or a valid http/https image URL');
+  error.name = 'ValidationError';
+  throw error;
+};
+
+const buildBannerPatch = async rawValue => {
+  const raw = String(rawValue || '').trim();
+  if (!raw) {
+    return { bannerUrl: '', coverImage: '' };
+  }
+
+  if (/^data:image\//i.test(raw)) {
+    const { buffer, filename } = decodeBannerDataUrl(raw);
+    const images = await photoUpload.processAndSaveImage(buffer, filename, 'supplier');
+    const persistedUrl = images.optimized || images.large || images.original;
+    if (!persistedUrl) {
+      const error = new Error('Banner image could not be persisted');
+      error.name = 'ImageProcessingError';
+      throw error;
+    }
+    return { bannerUrl: persistedUrl, coverImage: persistedUrl };
+  }
+
+  const persistedUrl = normaliseStoredBannerUrl(raw);
+  return { bannerUrl: persistedUrl, coverImage: persistedUrl };
+};
+
 // Dependencies injected by server.js
 let dbUnified;
 let authRequired;
@@ -46,6 +119,7 @@ let supplierAnalytics;
  * Initialize dependencies from server.js
  * @param {Object} deps - Dependencies object
  */
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 function initializeDependencies(deps) {
   if (!deps) {
     throw new Error('Supplier Management routes: dependencies object is required');
@@ -88,6 +162,7 @@ function initializeDependencies(deps) {
  * because they defer the actual middleware call to request time,
  * when dependencies are guaranteed to be initialized.
  */
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 function applyAuthRequired(req, res, next) {
   if (!authRequired) {
     return res.status(503).json({ error: 'Auth service not initialized' });
@@ -95,6 +170,7 @@ function applyAuthRequired(req, res, next) {
   return authRequired(req, res, next);
 }
 
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 function applyRoleRequired(role) {
   return (req, res, next) => {
     if (!roleRequired) {
@@ -104,6 +180,7 @@ function applyRoleRequired(role) {
   };
 }
 
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 function applyCsrfProtection(req, res, next) {
   if (!csrfProtection) {
     return res.status(503).json({ error: 'CSRF service not initialized' });
@@ -111,6 +188,7 @@ function applyCsrfProtection(req, res, next) {
   return csrfProtection(req, res, next);
 }
 
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 function applyWriteLimiter(req, res, next) {
   if (!writeLimiter) {
     return res.status(503).json({ error: 'Rate limiter not initialized' });
@@ -118,6 +196,7 @@ function applyWriteLimiter(req, res, next) {
   return writeLimiter(req, res, next);
 }
 
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 function applyRequireVerifiedUser(req, res, next) {
   if (!requireVerifiedUser) {
     return res.status(503).json({ error: 'Verification service not initialized' });
@@ -215,6 +294,7 @@ router.post(
   applyRoleRequired('supplier'),
   applyRequireVerifiedUser,
   applyCsrfProtection,
+  // skipcq: JS-R1005 -- Existing create-route orchestration is regression-covered; decomposition is a separate refactor.
   async (req, res) => {
     const b = req.body || {};
     if (!b.name || !b.category) {
@@ -335,6 +415,39 @@ router.post(
         .status(500)
         .json({ error: 'Failed to create supplier profile. Please try again.' });
     }
+
+    // Auto-approved profiles previously skipped the verification audit trail,
+    // leaving admins with an approved record and no corresponding approval event.
+    if (s.approved === true && s.approvedBy === 'system') {
+      try {
+        const auditEntry = await auditLog({
+          adminId: 'system',
+          adminEmail: 'system',
+          action: AUDIT_ACTIONS.SUPPLIER_APPROVED,
+          targetType: 'supplier',
+          targetId: s.id,
+          details: {
+            name: s.name,
+            source: 'autoApproveSupplierVerification',
+            ownerUserId: s.ownerUserId,
+          },
+        });
+        if (!auditEntry) {
+          // Creation remains non-blocking by design, but do not silently treat an
+          // audit storage outage as a successfully recorded approval event.
+          logger.warn('Automatic supplier approval audit could not be persisted', {
+            supplierId: s.id,
+          });
+        }
+      } catch (auditError) {
+        // Profile creation must not fail solely because audit persistence is unavailable.
+        logger.warn('Failed to record automatic supplier approval audit event', {
+          supplierId: s.id,
+          error: auditError.message,
+        });
+      }
+    }
+
     logger.info('Supplier profile created', {
       supplierId: s.id,
       userId: req.user.id,
@@ -355,6 +468,7 @@ router.patch(
   applyRoleRequired('supplier'),
   applyRequireVerifiedUser,
   applyCsrfProtection,
+  // skipcq: JS-R1005 -- Existing update-route orchestration is regression-covered; decomposition is a separate refactor.
   async (req, res) => {
     const s = await dbUnified.findOne('suppliers', { id: req.params.id, ownerUserId: req.user.id });
     if (!s) {
@@ -389,7 +503,32 @@ router.patch(
       }
     }
 
+    // Banner uploads from the profile customiser arrive as data URLs. Persist
+    // those through the same validated MongoDB image pipeline used elsewhere,
+    // then store only the stable /api/photos/... URL on the supplier record.
+    // This fixes the previous behaviour where the data URL was truncated to 500
+    // characters and then intentionally rejected by the public profile serializer.
+    if (typeof b.bannerUrl === 'string') {
+      try {
+        Object.assign(supplierPatch, await buildBannerPatch(b.bannerUrl));
+      } catch (error) {
+        const status = error.name === 'ValidationError' ? 400 : 500;
+        logger.warn('Supplier banner update failed', {
+          supplierId: s.id,
+          name: error.name,
+          error: error.message,
+        });
+        return res.status(status).json({
+          error:
+            error.name === 'ValidationError' ? error.message : 'Failed to process banner image',
+        });
+      }
+    }
+
     for (const [k, maxLen] of Object.entries(PATCH_FIELD_MAX_LENGTHS)) {
+      if (k === 'bannerUrl') {
+        continue;
+      }
       if (typeof b[k] === 'string') {
         supplierPatch[k] = b[k].trim().substring(0, maxLen);
       }
@@ -463,7 +602,16 @@ router.patch(
     if (Object.keys(themeMutation.unset).length > 0) {
       update.$unset = themeMutation.unset;
     }
-    await dbUnified.updateOne('suppliers', { id: req.params.id }, update);
+    const persisted = await dbUnified.updateOne('suppliers', { id: req.params.id }, update);
+    if (!persisted) {
+      logger.error('Supplier profile update was not persisted', {
+        supplierId: s.id,
+        ownerUserId: req.user.id,
+      });
+      return res
+        .status(500)
+        .json({ error: 'Failed to update supplier profile. Please try again.' });
+    }
 
     // Bust catalog cache — profile edit means the supplier data may have changed
     catalogCache
