@@ -32,9 +32,7 @@ function normaliseTrustVerifications(value) {
 }
 
 function buildBadgeUpdate(badgeId, shouldContainBadge) {
-  return shouldContainBadge
-    ? { $addToSet: { badges: badgeId } }
-    : { $pull: { badges: badgeId } };
+  return shouldContainBadge ? { $addToSet: { badges: badgeId } } : { $pull: { badges: badgeId } };
 }
 
 async function rollbackUnauditedTrustChange({
