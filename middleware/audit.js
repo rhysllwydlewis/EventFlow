@@ -22,7 +22,8 @@ const logger = require('../utils/logger');
  * @param {string} params.userAgent - User agent string
  * @returns {Promise<Object|null>} The created audit log entry or null on error
  */
-const auditLog = async params => {
+// skipcq: JS-0067 -- CommonJS module scope prevents this declaration becoming a browser global.
+async function auditLog(params) {
   let logEntry = null;
   try {
     const {
@@ -73,7 +74,7 @@ const auditLog = async params => {
     }
     return null;
   }
-};
+}
 
 /**
  * Express middleware to automatically log admin actions
