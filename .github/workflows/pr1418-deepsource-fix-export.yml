@@ -6,13 +6,15 @@ on:
       - main
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   export:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: agent/supplier-profile-trust-consistency
       - uses: actions/setup-node@v4
         with:
           node-version-file: .node-version
@@ -28,7 +30,6 @@ jobs:
           function edit(path, transform) {
             const before = fs.readFileSync(path, 'utf8');
             const after = transform(before);
-            if (after === before) throw new Error(`No change made to ${path}`);
             fs.writeFileSync(path, after);
           }
 
@@ -45,7 +46,12 @@ jobs:
             'public/assets/js/pages/admin-suppliers-health-consistency.js',
             'public/assets/js/pages/admin-supplier-trust-consistency.js',
           ]) {
-            edit(path, source => `'use strict';\n\n${source.replace("  'use strict';\n\n", '')}`);
+            edit(path, source => {
+              const withoutInnerStrict = source.replace("  'use strict';\n\n", '');
+              return withoutInnerStrict.startsWith("'use strict';\n")
+                ? withoutInnerStrict
+                : `'use strict';\n\n${withoutInnerStrict}`;
+            });
           }
 
           edit('public/assets/js/pages/admin-suppliers-health-consistency.js', source =>
@@ -76,15 +82,21 @@ jobs:
             routes/index.js \
             routes/supplier-management.js \
             routes/supplier-trust-admin.js
-      - uses: actions/upload-artifact@v4
-        with:
-          name: pr1418-deepsource-fixed-source
-          path: |
-            middleware/audit.js
-            public/assets/js/components/profile-health-widget.js
-            public/assets/js/pages/admin-suppliers-health-consistency.js
-            public/assets/js/pages/admin-supplier-trust-consistency.js
-            routes/index.js
-            routes/supplier-management.js
+      - name: Commit corrections to the PR branch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add \
+            middleware/audit.js \
+            public/assets/js/components/profile-health-widget.js \
+            public/assets/js/pages/admin-suppliers-health-consistency.js \
+            public/assets/js/pages/admin-supplier-trust-consistency.js \
+            routes/index.js \
+            routes/supplier-management.js \
             routes/supplier-trust-admin.js
-          if-no-files-found: error
+          if git diff --cached --quiet; then
+            echo 'Corrections are already applied.'
+            exit 0
+          fi
+          git commit -m 'fix: clear DeepSource JavaScript findings'
+          git push origin HEAD:agent/supplier-profile-trust-consistency
