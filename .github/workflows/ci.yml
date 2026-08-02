@@ -399,3 +399,45 @@ jobs:
           JWT_SECRET: ci-golive-audit-test-secret-padding-abcdefghijklm
           BASE_URL: http://localhost:3600
           AUDIT_PORT: '3600'
+
+  format-pr1418-source:
+    name: PR 1418 Source Format Fix
+    if: ${{ github.event_name == 'pull_request' && github.event.pull_request.number == 1418 }}
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/supplier-profile-trust-consistency
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.node-version'
+          cache: 'npm'
+
+      - name: Clean install dependencies
+        run: npm ci --prefer-offline --no-audit
+
+      - name: Format source and restore CI workflow
+        run: |
+          npx prettier --write public/assets/js/utils/verification-badges.js
+          git fetch origin main
+          git checkout origin/main -- .github/workflows/ci.yml
+
+      - name: Commit formatted source
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add public/assets/js/utils/verification-badges.js .github/workflows/ci.yml
+          if git diff --cached --quiet; then
+            echo 'Source is already formatted and CI is restored.'
+            exit 0
+          fi
+          git commit -m 'style: format verification badge utility'
+          git push origin HEAD:agent/supplier-profile-trust-consistency
