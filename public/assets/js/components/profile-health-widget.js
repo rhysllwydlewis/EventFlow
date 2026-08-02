@@ -73,7 +73,7 @@
       id: 'logo',
       label: 'Profile photo',
       weight: 10,
-      check: s => !!(s.logo || s.profileImage || s.profilePhotoUrl || s.avatarUrl),
+      check: s => Boolean(s.logo || s.profileImage || s.profilePhotoUrl || s.avatarUrl),
     },
     {
       id: 'description',
@@ -91,13 +91,13 @@
       id: 'location',
       label: 'Location & postcode',
       weight: 10,
-      check: s => !!s.location && !!(s.postcode || s.venuePostcode),
+      check: s => Boolean(s.location) && Boolean(s.postcode || s.venuePostcode),
     },
     {
       id: 'coverImage',
       label: 'Banner image',
       weight: 10,
-      check: s => !!(s.bannerUrl || s.coverImage),
+      check: s => Boolean(s.bannerUrl || s.coverImage),
     },
     {
       id: 'gallery',

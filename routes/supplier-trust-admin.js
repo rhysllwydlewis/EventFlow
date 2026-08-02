@@ -27,9 +27,9 @@ const TRUST_BADGES = Object.freeze({
   },
 });
 
-function normaliseTrustVerifications(value) {
+const normaliseTrustVerifications = value => {
   return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
-}
+};
 
 function buildBadgeUpdate(badgeId, shouldContainBadge) {
   return shouldContainBadge ? { $addToSet: { badges: badgeId } } : { $pull: { badges: badgeId } };

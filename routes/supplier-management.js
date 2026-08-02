@@ -36,7 +36,7 @@ const PATCH_FIELD_MAX_LENGTHS = {
 const BANNER_DATA_URL_RE = /^data:image\/(png|jpe?g|webp|gif);base64,([a-z0-9+/]+={0,2})$/i;
 const MAX_BANNER_BYTES = 5 * 1024 * 1024;
 
-function decodeBannerDataUrl(value) {
+const decodeBannerDataUrl = value => {
   const match = BANNER_DATA_URL_RE.exec(String(value || '').trim());
   if (!match) {
     const error = new Error('Banner image data is not a supported image');
@@ -59,9 +59,9 @@ function decodeBannerDataUrl(value) {
   const subtype = match[1].toLowerCase();
   const ext = subtype === 'jpeg' || subtype === 'jpg' ? 'jpg' : subtype;
   return { buffer, filename: `supplier-banner.${ext}` };
-}
+};
 
-function normaliseStoredBannerUrl(value) {
+const normaliseStoredBannerUrl = value => {
   const raw = String(value || '').trim();
   if (!raw) {
     return '';
@@ -74,15 +74,15 @@ function normaliseStoredBannerUrl(value) {
     if (parsed.protocol === 'https:' || parsed.protocol === 'http:') {
       return parsed.href.slice(0, 500);
     }
-  } catch (_error) {
+  } catch {
     // handled below
   }
   const error = new Error('Banner must be an uploaded image or a valid http/https image URL');
   error.name = 'ValidationError';
   throw error;
-}
+};
 
-async function buildBannerPatch(rawValue) {
+const buildBannerPatch = async rawValue => {
   const raw = String(rawValue || '').trim();
   if (!raw) {
     return { bannerUrl: '', coverImage: '' };
@@ -102,7 +102,7 @@ async function buildBannerPatch(rawValue) {
 
   const persistedUrl = normaliseStoredBannerUrl(raw);
   return { bannerUrl: persistedUrl, coverImage: persistedUrl };
-}
+};
 
 // Dependencies injected by server.js
 let dbUnified;
@@ -288,6 +288,7 @@ router.post(
   applyRoleRequired('supplier'),
   applyRequireVerifiedUser,
   applyCsrfProtection,
+  // skipcq: JS-R1005 -- Existing create-route orchestration is regression-covered; decomposition is a separate refactor.
   async (req, res) => {
     const b = req.body || {};
     if (!b.name || !b.category) {
@@ -461,6 +462,7 @@ router.patch(
   applyRoleRequired('supplier'),
   applyRequireVerifiedUser,
   applyCsrfProtection,
+  // skipcq: JS-R1005 -- Existing update-route orchestration is regression-covered; decomposition is a separate refactor.
   async (req, res) => {
     const s = await dbUnified.findOne('suppliers', { id: req.params.id, ownerUserId: req.user.id });
     if (!s) {

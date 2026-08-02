@@ -1,6 +1,6 @@
-(function () {
-  'use strict';
+'use strict';
 
+(function () {
   if (!window.AdminShared) {
     return;
   }
@@ -93,7 +93,7 @@
     }
     try {
       return new URL(link.href, window.location.origin).searchParams.get('id') || '';
-    } catch (_error) {
+    } catch {
       return '';
     }
   }

@@ -86,7 +86,7 @@ const telemetryRoutes = require('./telemetry');
  * @param {Object} app - Express app instance
  * @param {Object} deps - Dependencies to inject into routes
  */
-function mountRoutes(app, deps) {
+const mountRoutes = (app, deps) => {
   // Public, crawlable supplier profiles with server-rendered metadata.
   // Mounted through the backend router so the existing supplier page body and CSS stay unchanged.
   if (deps && deps.dbUnified) {
@@ -519,7 +519,7 @@ function mountRoutes(app, deps) {
   app.get('/conversation/:id', (req, res) =>
     res.redirect(301, `/messenger/?conversation=${encodeURIComponent(req.params.id)}`)
   );
-}
+};
 
 module.exports = {
   router,

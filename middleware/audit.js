@@ -22,7 +22,7 @@ const logger = require('../utils/logger');
  * @param {string} params.userAgent - User agent string
  * @returns {Promise<Object|null>} The created audit log entry or null on error
  */
-async function auditLog(params) {
+const auditLog = async params => {
   let logEntry = null;
   try {
     const {
@@ -73,7 +73,7 @@ async function auditLog(params) {
     }
     return null;
   }
-}
+};
 
 /**
  * Express middleware to automatically log admin actions
