@@ -1,0 +1,28 @@
+name: PR 1418 DeepSource Latest Export
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download latest DeepSource review
+        run: |
+          curl --fail --location --compressed \
+            --user-agent 'Mozilla/5.0' \
+            'https://app.deepsource.com/gh/rhysllwydlewis/EventFlow/run/09c63802-1ac8-44fe-aa36-b449a94d7931/javascript/' \
+            --output deepsource-latest.html
+          grep -Eo 'https?[^" ]+|JS-[A-Z0-9-]+|issue[^" ]*' deepsource-latest.html > deepsource-latest-signals.txt || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pr1418-deepsource-latest
+          path: |
+            deepsource-latest.html
+            deepsource-latest-signals.txt
+          if-no-files-found: error
