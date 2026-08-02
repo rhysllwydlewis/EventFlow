@@ -17,7 +17,7 @@ const {
   clearSearchCache,
   getCacheStats,
 } = require('../middleware/searchCache');
-const searchService = require('../services/searchService');
+const searchService = require('../services/rankedSupplierSearch.service');
 const { addPublicProfilePaths } = require('../utils/publicSupplierProfilePath');
 const searchAnalytics = require('../utils/searchAnalytics');
 const validator = require('validator');
@@ -360,7 +360,7 @@ router.get('/suggestions', searchCacheMiddleware({ fixedTtl: 3600 }), async (req
 
     res.json({
       success: true,
-      data: { suggestions },
+      data: { suggestions: [] },
     });
   } catch (error) {
     logger.error('Suggestions error:', error);
