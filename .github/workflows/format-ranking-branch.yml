@@ -1,9 +1,12 @@
 name: Format ranking sources
 
 on:
-  push:
-    branches:
-      - feat/supplier-ranking-v1
+  pull_request:
+    paths:
+      - services/rankedSupplierSearch.service.js
+      - services/supplierRanking.service.js
+      - tests/unit/supplierRanking.service.test.js
+      - .github/workflows/format-ranking-branch.yml
 
 permissions:
   contents: read
