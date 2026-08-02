@@ -934,8 +934,10 @@ describe('routes/supplier-management.js — PATCH field max-length enforcement',
 
   it('applies .trim() and .substring() to each field in the PATCH loop', () => {
     const patchSection = content.slice(content.indexOf('PATCH /api/me/suppliers/:id'));
-    expect(patchSection.slice(0, 2000)).toContain('.trim()');
-    expect(patchSection.slice(0, 2000)).toContain('.substring(0, maxLen)');
+    const boundedStringLoop = patchSection.match(
+      /for \(const \[k, maxLen\][\s\S]*?supplierPatch\[k\] = b\[k\]\.trim\(\)\.substring\(0, maxLen\);/
+    );
+    expect(boundedStringLoop).toBeTruthy();
   });
 
   it('comment explains PATCH must never revoke approval', () => {
