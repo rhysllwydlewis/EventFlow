@@ -328,6 +328,7 @@ async function searchSuppliers(rawQuery = {}) {
 
 module.exports = {
   ...baseSearchService,
+  RANKING_VERSION,
   searchSuppliers,
   getCachedCollection,
   projectRankedSupplier,
