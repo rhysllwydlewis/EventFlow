@@ -1,0 +1,112 @@
+name: Apply final Google attribution quality fixes
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/pr-1426-route-quality.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pr-1426-route-quality
+  cancel-in-progress: false
+
+jobs:
+  apply-fixes:
+    if: github.event.pull_request.number == 1426
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: feat/signup-attribution-session-replay
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.node-version'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit
+        env:
+          HUSKY: '0'
+
+      - name: Refactor Google attribution guards
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('routes/google-redirect-auth.js')
+          source = path.read_text()
+
+          old_function = """function getGoogleSignupAttribution(state) {
+            if (!state || state.context !== 'signup' || !state.attribution) {
+              return null;
+            }
+            const properties = { conversionType: 'registration', signup_method: 'google' };
+            GOOGLE_ATTRIBUTION_KEYS.forEach(key => {
+              const value = state.attribution[key];
+          """
+          new_function = """function getGoogleSignupAttribution(state) {
+            const attribution = state?.attribution;
+            if (state?.context !== 'signup' || !attribution) {
+              return null;
+            }
+            const properties = { conversionType: 'registration', signup_method: 'google' };
+            GOOGLE_ATTRIBUTION_KEYS.forEach(key => {
+              const value = attribution[key];
+          """
+
+          replacements = [
+              (old_function, new_function, 'attribution state guard'),
+              (
+                  'const sessionId = cleanStateText(state && state.analyticsSessionId, 120);',
+                  'const sessionId = cleanStateText(state?.analyticsSessionId, 120);',
+                  'analytics session guard',
+              ),
+              (
+                  "if (!properties || !sessionId || !user || user.role === 'admin') {",
+                  "if (!properties || !sessionId || !user?.id || user.role === 'admin') {",
+                  'analytics user guard',
+              ),
+          ]
+
+          for old, new, label in replacements:
+              count = source.count(old)
+              if count != 1:
+                  raise SystemExit(f'{label}: expected exactly one match, found {count}')
+              source = source.replace(old, new, 1)
+
+          path.write_text(source)
+          PY
+
+      - name: Format and validate Google attribution
+        run: |
+          npx prettier --write routes/google-redirect-auth.js
+          npx prettier --check routes/google-redirect-auth.js
+          node --check routes/google-redirect-auth.js
+          npx eslint --rulesdir eslint-rules routes/google-redirect-auth.js
+          npx jest \
+            tests/integration/google-auth-route.test.js \
+            tests/integration/google-signup-attribution-route.test.js \
+            tests/unit/analytics-attribution-session-replay.test.js \
+            --runInBand --coverage=false
+        env:
+          HUSKY: '0'
+          NODE_ENV: test
+          JWT_SECRET: test-secret-key-for-ci-testing-only-min-32-chars
+
+      - name: Remove helper workflow and commit
+        run: |
+          rm .github/workflows/pr-1426-route-quality.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add routes/google-redirect-auth.js .github/workflows/pr-1426-route-quality.yml
+          git commit -m 'refactor: simplify Google attribution guards'
+          git push origin HEAD:feat/signup-attribution-session-replay
