@@ -1,10 +1,8 @@
 name: Apply PR 1426 DeepSource cleanup
 
-# This branch-only helper removes itself after applying the focused cleanup.
 on:
-  push:
-    branches:
-      - feat/signup-attribution-session-replay
+  pull_request:
+    branches: [main]
     paths:
       - '.github/workflows/pr-1426-deepsource-cleanup.yml'
 
@@ -17,6 +15,7 @@ concurrency:
 
 jobs:
   apply-cleanup:
+    if: github.event.pull_request.number == 1426
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
