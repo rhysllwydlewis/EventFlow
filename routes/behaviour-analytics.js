@@ -103,7 +103,7 @@ function getConfig() {
       uiHost,
       dashboardUrl: configuredDashboard || uiHost,
       sessionRecordingEnabled:
-        enabled && Boolean(projectKey) && envFlag('POSTHOG_SESSION_RECORDING_ENABLED', false),
+        enabled && Boolean(projectKey) && envFlag('POSTHOG_SESSION_RECORDING_ENABLED', true),
     },
   };
 }
@@ -379,6 +379,8 @@ router.get('/admin/status', authRequired, roleRequired('admin'), async (_req, re
           rawIpStored: false,
           rawUserAgentStored: false,
           queryStringsStored: false,
+          replayInputsMasked: true,
+          replaySensitivePagesExcluded: true,
         },
       },
     });

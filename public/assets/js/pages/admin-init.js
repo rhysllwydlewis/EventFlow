@@ -593,29 +593,24 @@
     // allUsers is no longer pre-loaded on the dashboard; Users Centre has the full list
     (function () {
       // Use pre-computed summary.newLast7 (allUsers no longer pre-loaded on dashboard)
-      const recentUsers = (typeof summary !== 'undefined' && summary && summary.newLast7) || 0;
-      const prevUsers = 0; // period-over-period not available from summary; defaults to 0
+      const recentUsers = Number(summary?.newLast7) || 0;
+      const previousUsers = Number(summary?.newPrevious7) || 0;
 
       const usersChangeEl = document.getElementById('totalUsersChange');
       if (usersChangeEl) {
-        if (prevUsers === 0 && recentUsers === 0) {
-          usersChangeEl.textContent = 'No change';
-          usersChangeEl.style.color = '';
-        } else if (prevUsers === 0) {
-          usersChangeEl.textContent = `+${recentUsers} this week`;
-          usersChangeEl.style.color = 'var(--color-success, #16a34a)';
+        usersChangeEl.title =
+          'Rolling seven-day signups compared with the immediately preceding seven days.';
+        if (previousUsers === 0) {
+          usersChangeEl.textContent = `${recentUsers} new · last 7 days`;
         } else {
-          const pct = Math.round(((recentUsers - prevUsers) / prevUsers) * 100);
-          if (pct > 0) {
-            usersChangeEl.textContent = `+${pct}% ↑`;
-            usersChangeEl.style.color = 'var(--color-success, #16a34a)';
-          } else if (pct < 0) {
-            usersChangeEl.textContent = `${pct}% ↓`;
-            usersChangeEl.style.color = 'var(--color-danger, #dc2626)';
-          } else {
-            usersChangeEl.textContent = 'No change';
-            usersChangeEl.style.color = '';
-          }
+          usersChangeEl.textContent = `${recentUsers} vs ${previousUsers} · prior 7 days`;
+        }
+        if (recentUsers > previousUsers) {
+          usersChangeEl.style.color = 'var(--color-success, #16a34a)';
+        } else if (recentUsers < previousUsers) {
+          usersChangeEl.style.color = 'var(--color-danger, #dc2626)';
+        } else {
+          usersChangeEl.style.color = '';
         }
       }
     })();

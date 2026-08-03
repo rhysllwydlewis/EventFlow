@@ -79,7 +79,7 @@ describe('analytics consent and privacy wiring', () => {
     expect(bridgeSource).toContain("window.addEventListener('pagehide', capturePostHogPageleave)");
     expect(bridgeSource).toContain("window.addEventListener('pageshow', handlePostHogPageShow)");
     expect(bridgeSource).toContain("transport: 'sendBeacon'");
-    expect(bridgeSource).toContain('event.persisted !== true');
+    expect(bridgeSource).toContain('event?.persisted !== true');
     expect(bridgeSource).toContain('capturedPostHogPageleave');
     expect(bridgeSource).toContain('capturedPostHogPage !== currentUrl');
     expect(bridgeSource).toContain('!hasAnalyticsConsent()');

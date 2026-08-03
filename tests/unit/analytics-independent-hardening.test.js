@@ -182,7 +182,8 @@ describe('independent analytics privacy hardening', () => {
       '/suppliers.html'
     );
 
-    expect(html).toContain('/assets/js/analytics-consent-upgrade.js?v=2');
+    expect(html).toContain('/assets/js/analytics-consent-upgrade.js?v=4');
+    expect(html).not.toContain('/assets/js/analytics-consent-upgrade.js?v=2');
     expect(html).not.toContain('/assets/js/analytics-consent-upgrade.js?v=1');
   });
 });

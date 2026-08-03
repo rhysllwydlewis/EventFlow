@@ -4,6 +4,8 @@
   const COOKIE_NAME = 'eventflow_cookie_consent';
   const EXPIRY_DAYS = 365;
   const FETCH_WRAPPED_FLAG = '__efAnalyticsSuccessObserver';
+  const ATTRIBUTION_KEY = 'ef_attribution_v1';
+  const ATTRIBUTION_TTL_MS = 90 * 24 * 60 * 60 * 1000;
   const POSTHOG_PAGEVIEW_POLL_MS = 200;
   const POSTHOG_PAGEVIEW_TIMEOUT_MS = 15 * 1000;
   const POSTHOG_EXCLUDED_PAGE_PREFIXES = [
@@ -24,6 +26,9 @@
     '/supplier/subscription',
     '/supplier/marketplace-new-listing',
   ];
+  const POSTHOG_PROVIDER_BLOCKED_PREFIXES = POSTHOG_EXCLUDED_PAGE_PREFIXES.filter(
+    prefix => prefix !== '/auth'
+  );
   const POSTHOG_URL_PROPERTY_KEYS = new Set([
     '$current_url',
     '$referrer',
@@ -33,14 +38,62 @@
     '$session_entry_current_url',
     '$session_entry_referrer',
   ]);
+  const SEARCH_HOSTS = [
+    'google.com',
+    'google.co.uk',
+    'bing.com',
+    'duckduckgo.com',
+    'search.yahoo.com',
+    'ecosia.org',
+  ];
+  const SOCIAL_HOSTS = [
+    'facebook.com',
+    'instagram.com',
+    'linkedin.com',
+    't.co',
+    'twitter.com',
+    'x.com',
+    'tiktok.com',
+    'pinterest.com',
+    'youtube.com',
+    'reddit.com',
+    'whatsapp.com',
+  ];
+  const SEARCH_SOURCE_TOKENS = new Set(['google', 'bing', 'duckduckgo', 'yahoo', 'ecosia']);
+  const SOCIAL_SOURCE_TOKENS = new Set([
+    'facebook',
+    'instagram',
+    'linkedin',
+    'twitter',
+    'x',
+    'tiktok',
+    'pinterest',
+    'youtube',
+    'reddit',
+    'whatsapp',
+  ]);
+  const PAID_SEARCH_CLICK_PARAMS = ['gclid', 'gbraid', 'wbraid', 'msclkid'];
+  const PAID_SOCIAL_CLICK_PARAMS = ['fbclid', 'ttclid', 'li_fat_id'];
 
   let capturedPostHogPage = '';
   let capturedPostHogPageleave = false;
   let posthogPageviewStartedAt = 0;
   let posthogPageviewTimer = null;
+  let authPostHogStarted = false;
+  let initialAttributionTouch = null;
 
   function currentPath() {
     return window.location.pathname || '/';
+  }
+
+  function isAuthPage() {
+    const pagePath = currentPath();
+    return (
+      pagePath === '/auth' ||
+      pagePath.startsWith('/auth/') ||
+      pagePath.startsWith('/auth-') ||
+      pagePath.startsWith('/auth.')
+    );
   }
 
   function pathMatches(prefixes) {
@@ -56,6 +109,10 @@
 
   function isSensitiveAnalyticsPage() {
     return pathMatches(POSTHOG_EXCLUDED_PAGE_PREFIXES);
+  }
+
+  function isProviderBlockedPage() {
+    return pathMatches(POSTHOG_PROVIDER_BLOCKED_PREFIXES);
   }
 
   function writeFullConsent() {
@@ -83,28 +140,24 @@
   }
 
   function closeConsentUi(target) {
-    const banner = target && target.closest ? target.closest('#cookie-consent-banner') : null;
-    if (banner && banner.parentNode) {
-      banner.parentNode.removeChild(banner);
-    }
+    const banner = target?.closest?.('#cookie-consent-banner');
+    banner?.parentNode?.removeChild?.(banner);
 
-    const dialog = target && target.closest ? target.closest('#cookie-prefs-dialog') : null;
-    if (dialog && dialog.parentNode) {
-      dialog.parentNode.removeChild(dialog);
-    }
-    if (dialog && document.body) {
-      document.body.classList.remove('cookie-prefs-open');
+    const dialog = target?.closest?.('#cookie-prefs-dialog');
+    dialog?.parentNode?.removeChild?.(dialog);
+    if (dialog) {
+      document.body?.classList.remove('cookie-prefs-open');
     }
   }
 
   function hasAnalyticsConsent() {
-    if (!window.CookieConsent || typeof window.CookieConsent.getConsent !== 'function') {
+    if (typeof window.CookieConsent?.getConsent !== 'function') {
       return false;
     }
     try {
       const consent = window.CookieConsent.getConsent();
-      return Boolean(consent && consent.analytics === true);
-    } catch (_error) {
+      return consent?.analytics === true;
+    } catch {
       return false;
     }
   }
@@ -118,6 +171,218 @@
       return value;
     }
     return value.split(/[?#]/, 1)[0];
+  }
+
+  function cleanAttributionValue(value, maxLength) {
+    const source = String(value || '');
+    let result = '';
+    for (let index = 0; index < source.length; index += 1) {
+      const code = source.charCodeAt(index);
+      result += code >= 32 && code !== 127 ? source[index] : ' ';
+    }
+    return result.trim().slice(0, maxLength || 120);
+  }
+
+  function safePath(value) {
+    try {
+      return new URL(value || '/', window.location.origin).pathname
+        .replace(/\/{2,}/g, '/')
+        .slice(0, 220);
+    } catch {
+      return '/';
+    }
+  }
+
+  function normalizedDomain(value) {
+    const raw = cleanAttributionValue(value, 300);
+    if (!raw || raw === 'direct' || raw === 'internal') {
+      return raw || 'direct';
+    }
+    try {
+      return new URL(raw.includes('://') ? raw : `https://${raw}`).hostname
+        .toLowerCase()
+        .replace(/^www\./, '')
+        .slice(0, 120);
+    } catch {
+      return 'direct';
+    }
+  }
+
+  function externalReferrerDomain() {
+    if (!document.referrer) {
+      return 'direct';
+    }
+    try {
+      const referrer = normalizedDomain(document.referrer);
+      const current = normalizedDomain(window.location.origin);
+      return referrer === current ? 'internal' : referrer;
+    } catch {
+      return 'direct';
+    }
+  }
+
+  function hostMatches(host, candidates) {
+    return candidates.some(candidate => host === candidate || host.endsWith(`.${candidate}`));
+  }
+
+  function classifyChannel(medium, source, referrer, signals = {}) {
+    const normalizedMedium = cleanAttributionValue(medium, 80).toLowerCase();
+    const sourceToken = cleanAttributionValue(source, 100).toLowerCase();
+    const normalizedSource = normalizedDomain(source);
+    const normalizedReferrer = normalizedDomain(referrer);
+
+    if (signals.paidSearch) {
+      return 'paid_search';
+    }
+    if (signals.paidSocial) {
+      return 'paid_social';
+    }
+    if (signals.partnerReference) {
+      return 'partner';
+    }
+    if (/^(cpc|ppc|paidsearch|paid_search|sem)$/.test(normalizedMedium)) {
+      return 'paid_search';
+    }
+    if (/^(paid_social|paidsocial)$/.test(normalizedMedium)) {
+      return 'paid_social';
+    }
+    if (/^(social|social-network|social_media)$/.test(normalizedMedium)) {
+      return 'organic_social';
+    }
+    if (/^(email|newsletter)$/.test(normalizedMedium)) {
+      return 'email';
+    }
+    if (/^(affiliate|partner)$/.test(normalizedMedium)) {
+      return 'partner';
+    }
+    if (/^(display|banner|cpm)$/.test(normalizedMedium)) {
+      return 'display';
+    }
+    if (/^(organic|seo)$/.test(normalizedMedium)) {
+      return 'organic_search';
+    }
+    if (normalizedMedium === 'referral') {
+      return 'referral';
+    }
+    if (
+      SEARCH_SOURCE_TOKENS.has(sourceToken) ||
+      hostMatches(normalizedSource, SEARCH_HOSTS) ||
+      hostMatches(normalizedReferrer, SEARCH_HOSTS)
+    ) {
+      return 'organic_search';
+    }
+    if (
+      SOCIAL_SOURCE_TOKENS.has(sourceToken) ||
+      hostMatches(normalizedSource, SOCIAL_HOSTS) ||
+      hostMatches(normalizedReferrer, SOCIAL_HOSTS)
+    ) {
+      return 'organic_social';
+    }
+    if (!['direct', 'internal'].includes(normalizedReferrer)) {
+      return 'referral';
+    }
+    return 'direct';
+  }
+
+  function buildAttributionTouch() {
+    const params = new URLSearchParams(window.location.search || '');
+    const utmSource = cleanAttributionValue(params.get('utm_source'), 100);
+    const utmMedium = cleanAttributionValue(params.get('utm_medium'), 80);
+    const partnerReference = cleanAttributionValue(params.get('ref') || params.get('partner'), 80);
+    const referrerDomain = externalReferrerDomain();
+    const signals = {
+      paidSearch: PAID_SEARCH_CLICK_PARAMS.some(key => params.has(key)),
+      paidSocial: PAID_SOCIAL_CLICK_PARAMS.some(key => params.has(key)),
+      partnerReference,
+    };
+    return {
+      channel: classifyChannel(utmMedium, utmSource, referrerDomain, signals),
+      referrerDomain,
+      landingPath: safePath(window.location.href),
+      utmSource,
+      utmMedium,
+      utmCampaign: cleanAttributionValue(params.get('utm_campaign'), 120),
+      partnerReference,
+      capturedAt: new Date().toISOString(),
+    };
+  }
+
+  function clearAttribution() {
+    initialAttributionTouch = null;
+    try {
+      window.localStorage.removeItem(ATTRIBUTION_KEY);
+    } catch {
+      // Storage cleanup is best-effort in restricted privacy modes.
+    }
+  }
+
+  function readAttribution() {
+    try {
+      const value = JSON.parse(window.localStorage.getItem(ATTRIBUTION_KEY) || 'null');
+      const capturedAt = Date.parse(value?.first?.capturedAt);
+      if (!capturedAt || Date.now() - capturedAt > ATTRIBUTION_TTL_MS) {
+        window.localStorage.removeItem(ATTRIBUTION_KEY);
+        return null;
+      }
+      return value;
+    } catch {
+      return null;
+    }
+  }
+
+  function captureAttribution() {
+    if (!hasAnalyticsConsent()) {
+      return readAttribution();
+    }
+
+    const next = buildAttributionTouch();
+    const existing = readAttribution();
+    const first = initialAttributionTouch || next;
+    const value = existing || { first, last: next };
+    if (
+      !existing ||
+      next.utmSource ||
+      next.utmMedium ||
+      next.utmCampaign ||
+      !['direct', 'internal'].includes(next.referrerDomain)
+    ) {
+      value.last = next;
+    }
+    value.updatedAt = next.capturedAt;
+
+    try {
+      window.localStorage.setItem(ATTRIBUTION_KEY, JSON.stringify(value));
+    } catch {
+      // Storage is best-effort in restricted privacy modes.
+    }
+    return value;
+  }
+
+  function attributionProperties() {
+    const value = captureAttribution();
+    if (!value) {
+      return { attribution_available: false };
+    }
+
+    const first = value.first || {};
+    const last = value.last || {};
+    return {
+      attribution_available: true,
+      first_channel: cleanAttributionValue(first.channel, 40),
+      first_referrer_domain: normalizedDomain(first.referrerDomain),
+      first_landing_path: safePath(first.landingPath),
+      first_utm_source: cleanAttributionValue(first.utmSource, 100),
+      first_utm_medium: cleanAttributionValue(first.utmMedium, 80),
+      first_utm_campaign: cleanAttributionValue(first.utmCampaign, 120),
+      first_partner_reference: cleanAttributionValue(first.partnerReference, 80),
+      last_channel: cleanAttributionValue(last.channel, 40),
+      last_referrer_domain: normalizedDomain(last.referrerDomain),
+      last_landing_path: safePath(last.landingPath),
+      last_utm_source: cleanAttributionValue(last.utmSource, 100),
+      last_utm_medium: cleanAttributionValue(last.utmMedium, 80),
+      last_utm_campaign: cleanAttributionValue(last.utmCampaign, 120),
+      last_partner_reference: cleanAttributionValue(last.partnerReference, 80),
+    };
   }
 
   function sanitizeUrlProperties(properties) {
@@ -144,7 +409,12 @@
   }
 
   function runBeforeSendHooks(hooks, event) {
-    const handlers = Array.isArray(hooks) ? hooks : typeof hooks === 'function' ? [hooks] : [];
+    let handlers = [];
+    if (Array.isArray(hooks)) {
+      handlers = hooks;
+    } else if (typeof hooks === 'function') {
+      handlers = [hooks];
+    }
     let result = event;
     handlers.forEach(handler => {
       if (result) {
@@ -161,11 +431,11 @@
       ...source,
       mask_personal_data_properties: true,
       disable_capture_url_hashes: true,
-      before_send: function (event) {
+      before_send: event => {
         let result = event;
         try {
           result = runBeforeSendHooks(existingBeforeSend, result);
-        } catch (_error) {
+        } catch {
           // A third-party hook must not bypass EventFlow's final privacy sanitiser.
         }
         return result ? sanitizePostHogEvent(result) : result;
@@ -175,9 +445,8 @@
 
   function installSensitivePageConsentGuard() {
     if (
-      !isSensitiveAnalyticsPage() ||
-      !window.CookieConsent ||
-      typeof window.CookieConsent.getConsent !== 'function' ||
+      !isProviderBlockedPage() ||
+      typeof window.CookieConsent?.getConsent !== 'function' ||
       window.CookieConsent.getConsent.__efSensitiveGuard
     ) {
       return;
@@ -193,16 +462,18 @@
   }
 
   function installPrivacyAwarePostHogStub() {
-    if (window.posthog && window.posthog.__SV) {
+    if (window.posthog?.__SV) {
       return;
     }
 
     (function (documentObject, posthog) {
-      if (posthog.__SV) return;
+      if (posthog.__SV) {
+        return;
+      }
       window.posthog = posthog;
       posthog._i = [];
       posthog.init = function (token, config, name) {
-        if (isSensitiveAnalyticsPage()) {
+        if (isProviderBlockedPage()) {
           return;
         }
 
@@ -238,7 +509,9 @@
         }
         instance.people = instance.people || [];
         const methods =
-          'init capture reset opt_in_capturing opt_out_capturing stopSessionRecording'.split(' ');
+          'init capture identify reset opt_in_capturing opt_out_capturing startSessionRecording stopSessionRecording'.split(
+            ' '
+          );
         methods.forEach(function (method) {
           addMethod(instance, method);
         });
@@ -256,7 +529,7 @@
   }
 
   function postHogIsInitialised() {
-    if (!window.posthog || typeof window.posthog.capture !== 'function') {
+    if (typeof window.posthog?.capture !== 'function') {
       return false;
     }
     if (window.posthog.__loaded) {
@@ -291,7 +564,7 @@
         { transport: 'sendBeacon' }
       );
       capturedPostHogPageleave = true;
-    } catch (_error) {
+    } catch {
       // Analytics delivery must never interfere with navigation or page shutdown.
     }
   }
@@ -313,10 +586,11 @@
         window.posthog.capture('$pageview', {
           $current_url: currentUrl,
           $pathname: currentPath(),
+          ...attributionProperties(),
         });
         capturedPostHogPage = currentUrl;
         capturedPostHogPageleave = false;
-      } catch (_error) {
+      } catch {
         // The polling timeout below permits a later retry.
       }
       clearPostHogPageviewTimer();
@@ -341,32 +615,40 @@
   }
 
   function handleAnalyticsConsentChange(event) {
-    if (event && event.detail && event.detail.analytics === true && !isSensitiveAnalyticsPage()) {
-      queuePostHogPageview();
+    if (event?.detail?.analytics === true) {
+      captureAttribution();
+      if (isAuthPage()) {
+        startAuthPostHog();
+      }
+      if (!isSensitiveAnalyticsPage()) {
+        queuePostHogPageview();
+      }
       return;
     }
     capturedPostHogPage = '';
     capturedPostHogPageleave = false;
+    authPostHogStarted = false;
     clearPostHogPageviewTimer();
+    clearAttribution();
   }
 
   function handlePostHogPageShow(event) {
-    if (!event || event.persisted !== true) {
+    if (event?.persisted !== true) {
       return;
     }
     capturedPostHogPageleave = false;
   }
 
   function upgradeConsentCopy(root) {
-    const scope = root && typeof root.querySelectorAll === 'function' ? root : document;
+    const scope = typeof root?.querySelectorAll === 'function' ? root : document;
     scope.querySelectorAll('.cookie-consent-message p').forEach(paragraph => {
-      if (paragraph.textContent && paragraph.textContent.includes('functional cookies')) {
+      if (paragraph.textContent?.includes('functional cookies')) {
         paragraph.textContent =
-          'We use essential cookies to make our site work. With your consent, we also use functional cookies to remember preferences and analytics cookies to understand page engagement and improve EventFlow. You can change these choices at any time.';
+          'We use essential cookies to make our site work. With your consent, analytics helps us understand visits, signup sources and improve EventFlow. You can change these choices at any time.';
       }
     });
     scope.querySelectorAll('.cookie-prefs-category-desc').forEach(description => {
-      if (description.textContent && description.textContent.includes('Currently unused')) {
+      if (description.textContent?.includes('Currently unused')) {
         description.textContent =
           'Help us understand page engagement, journeys and website performance. Analytics only runs after you consent.';
       }
@@ -379,14 +661,14 @@
     try {
       if (typeof input === 'string' || input instanceof URL) {
         url = new URL(input, window.location.href).pathname;
-      } else if (input && input.url) {
+      } else if (input?.url) {
         url = new URL(input.url, window.location.href).pathname;
         method = input.method || method;
       }
-    } catch (_error) {
+    } catch {
       url = '';
     }
-    if (options && options.method) {
+    if (options?.method) {
       method = options.method;
     }
     return { url, method: String(method || 'GET').toUpperCase() };
@@ -394,9 +676,15 @@
 
   function successfulEventFor(request) {
     if (request.method === 'POST' && /^\/api\/(?:v1\/)?auth\/register\/?$/.test(request.url)) {
+      const attribution = attributionProperties();
       return {
         event: 'registration_completed',
-        properties: { conversionType: 'registration', source: 'server_response' },
+        properties: {
+          conversionType: 'registration',
+          signup_method: 'email_password',
+          source: attribution.first_channel || 'unknown',
+          ...attribution,
+        },
       };
     }
     if (request.method === 'POST' && /^\/api\/(?:v1\/)?quote-requests\/?$/.test(request.url)) {
@@ -414,6 +702,27 @@
     return null;
   }
 
+  function identifyRegisteredUser(response) {
+    if (!response?.ok || typeof window.posthog?.identify !== 'function') {
+      return Promise.resolve(false);
+    }
+    return response
+      .clone()
+      .json()
+      .then(payload => {
+        const user = payload?.user;
+        if (!user?.id || user.role === 'admin') {
+          return false;
+        }
+        window.posthog.identify(String(user.id), {
+          role: cleanAttributionValue(user.role, 40) || 'customer',
+          signup_method: 'email_password',
+        });
+        return true;
+      })
+      .catch(() => false);
+  }
+
   function installSuccessfulConversionObserver() {
     if (typeof window.fetch !== 'function' || window.fetch[FETCH_WRAPPED_FLAG]) {
       return;
@@ -424,8 +733,16 @@
       const request = normalizedRequest(input, options);
       return originalFetch(input, options).then(response => {
         const conversion = response.ok ? successfulEventFor(request) : null;
-        if (conversion && window.EFAnalytics && typeof window.EFAnalytics.track === 'function') {
-          window.EFAnalytics.track(conversion.event, conversion.properties);
+        if (conversion && typeof window.EFAnalytics?.track === 'function') {
+          window.EFAnalytics.track(conversion.event, conversion.properties, { immediate: true });
+        }
+        if (
+          conversion?.event === 'registration_completed' &&
+          typeof window.posthog?.capture === 'function'
+        ) {
+          const captureRegistration = () =>
+            window.posthog.capture(conversion.event, conversion.properties);
+          identifyRegisteredUser(response).then(captureRegistration, captureRegistration);
         }
         return response;
       });
@@ -434,22 +751,57 @@
     window.fetch = wrappedFetch;
   }
 
+  function startAuthPostHog() {
+    if (authPostHogStarted || !hasAnalyticsConsent() || !isAuthPage()) {
+      return;
+    }
+    authPostHogStarted = true;
+    window
+      .fetch('/api/v1/analytics/behaviour/config', {
+        credentials: 'same-origin',
+        cache: 'no-store',
+        headers: { Accept: 'application/json' },
+      })
+      .then(response => (response.ok ? response.json() : null))
+      .then(config => {
+        const provider = config?.posthog;
+        if (!provider || !provider.enabled || !provider.projectKey) {
+          return;
+        }
+        window.posthog.init(provider.projectKey, {
+          api_host: provider.apiHost,
+          ui_host: provider.uiHost,
+          defaults: '2026-05-30',
+          autocapture: false,
+          capture_pageview: false,
+          capture_pageleave: false,
+          person_profiles: 'identified_only',
+          opt_out_capturing_by_default: true,
+          disable_session_recording: true,
+          session_recording: {
+            maskAllInputs: true,
+            maskTextSelector:
+              '.ph-sensitive, [data-analytics-sensitive], .message-content, .conversation-content, .email, #sensitive',
+          },
+        });
+        window.posthog.opt_in_capturing();
+      })
+      .catch(() => {
+        authPostHogStarted = false;
+      });
+  }
+
   installSensitivePageConsentGuard();
   installPrivacyAwarePostHogStub();
 
   document.addEventListener(
     'click',
     event => {
-      const target =
-        event.target && event.target.closest
-          ? event.target.closest('#cookie-consent-accept, #cookie-prefs-accept-all')
-          : null;
+      const target = event.target?.closest?.('#cookie-consent-accept, #cookie-prefs-accept-all');
       if (!target) {
         return;
       }
 
-      // The legacy consent component still writes analytics:false for Accept All.
-      // Stop that target listener and apply one canonical full-consent decision instead.
       event.preventDefault();
       event.stopImmediatePropagation();
       writeFullConsent();
@@ -462,9 +814,19 @@
   window.addEventListener('pagehide', capturePostHogPageleave);
   window.addEventListener('pageshow', handlePostHogPageShow);
 
+  window.EventFlowAttribution = {
+    capture: captureAttribution,
+    clear: clearAttribution,
+    get: readAttribution,
+    properties: attributionProperties,
+  };
+
   function init() {
     upgradeConsentCopy(document);
     installSuccessfulConversionObserver();
+    initialAttributionTouch = buildAttributionTouch();
+    captureAttribution();
+    startAuthPostHog();
     queuePostHogPageview();
     if (typeof MutationObserver !== 'function' || !document.body) {
       return;
@@ -472,7 +834,7 @@
     const observer = new MutationObserver(mutations => {
       mutations.forEach(mutation => {
         mutation.addedNodes.forEach(node => {
-          if (node && node.nodeType === 1) {
+          if (node?.nodeType === 1) {
             upgradeConsentCopy(node);
           }
         });

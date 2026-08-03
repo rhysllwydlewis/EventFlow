@@ -230,6 +230,347 @@ function buildAccountIssues(u, supplier, signupMethod, verificationMethod) {
 // Main service functions
 // ---------------------------------------------------------------------------
 
+function createRoleCounter() {
+  return { customer: 0, supplier: 0, admin: 0, owner: 0, other: 0 };
+}
+
+function createSignupCounter() {
+  return { google: 0, email_password: 0, admin_created: 0, owner: 0, unknown: 0 };
+}
+
+function createVerificationCounter() {
+  return {
+    google: 0,
+    email_link: 0,
+    admin: 0,
+    legacy: 0,
+    pending: 0,
+    unknown: 0,
+  };
+}
+
+function createHealthSummary() {
+  return {
+    emailPasswordPending: 0,
+    googleVerified: 0,
+    eventflowEmailVerified: 0,
+    adminCreated: 0,
+    ownerAccounts: 0,
+    unknownVerificationSource: 0,
+    verificationEmailFailures: 0,
+    verificationOutboxFallbacks: 0,
+    verificationBounces: 0,
+    lastNewSignupAt: null,
+    lastVerificationEmailAttemptAt: null,
+  };
+}
+
+function createUserStats() {
+  return {
+    byRole: createRoleCounter(),
+    bySignup: createSignupCounter(),
+    byVerification: createVerificationCounter(),
+    issueCount: 0,
+    suspendedCount: 0,
+    unverifiedCount: 0,
+    newLast7: 0,
+    newPrevious7: 0,
+    newLast7ByRole: createRoleCounter(),
+    newLast7BySignup: createSignupCounter(),
+    activeLast7: 0,
+    latestSignupAt: null,
+    health: createHealthSummary(),
+  };
+}
+
+function normaliseSummaryCollections(allUsers, allSuppliers, allPackages, allEmailLogs) {
+  return {
+    users: asArray(allUsers).filter(user => user && typeof user === 'object'),
+    suppliers: asArray(allSuppliers).filter(supplier => supplier && typeof supplier === 'object'),
+    packages: asArray(allPackages).filter(pkg => pkg && typeof pkg === 'object'),
+    emailLogs: asArray(allEmailLogs),
+  };
+}
+
+function buildSupplierOwnerIndex(suppliers) {
+  const supplierByOwner = {};
+  for (const supplier of suppliers) {
+    const ownerId = getSupplierOwnerId(supplier);
+    if (ownerId) {
+      supplierByOwner[String(ownerId)] = supplier;
+    }
+  }
+  return supplierByOwner;
+}
+
+function buildPackageCountIndex(packages) {
+  const packageCountBySupplier = {};
+  for (const pkg of packages) {
+    const supplierId = pkg.supplierId || pkg.supplier_id || pkg.supplier || pkg.ownerSupplierId;
+    if (supplierId) {
+      const key = String(supplierId);
+      packageCountBySupplier[key] = (packageCountBySupplier[key] || 0) + 1;
+    }
+  }
+  return packageCountBySupplier;
+}
+
+function incrementCounter(counter, key, fallbackKey) {
+  const resolvedKey = Object.prototype.hasOwnProperty.call(counter, key) ? key : fallbackKey;
+  counter[resolvedKey] += 1;
+}
+
+function updateVerificationHealth(health, user, provenance, signupMethod, verificationMethod) {
+  if (
+    (provenance.signupMethod === 'google' || signupMethod === 'google') &&
+    (provenance.verified || user.verified)
+  ) {
+    health.googleVerified += 1;
+  }
+  if (provenance.verificationMethod === 'eventflow_email' || verificationMethod === 'email_link') {
+    health.eventflowEmailVerified += 1;
+  }
+  if (provenance.verificationMethod === 'admin_created' || signupMethod === 'admin_created') {
+    health.adminCreated += 1;
+  }
+  if (
+    provenance.verificationMethod === 'owner_account' ||
+    signupMethod === 'owner' ||
+    user.isOwner
+  ) {
+    health.ownerAccounts += 1;
+  }
+  if (provenance.verificationMethod === 'unknown' || verificationMethod === 'unknown') {
+    health.unknownVerificationSource += 1;
+  }
+  if (
+    (provenance.emailDeliveryStatus === 'pending' || verificationMethod === 'pending') &&
+    signupMethod === 'email_password'
+  ) {
+    health.emailPasswordPending += 1;
+  }
+}
+
+function updateAccountStatusStats(stats, user, supplier, signupMethod, verificationMethod) {
+  if (!(user.verified || user.emailVerified)) {
+    stats.unverifiedCount += 1;
+  }
+  if (user.suspended) {
+    stats.suspendedCount += 1;
+  }
+  if (buildAccountIssues(user, supplier, signupMethod, verificationMethod).length > 0) {
+    stats.issueCount += 1;
+  }
+}
+
+function updateSignupWindowStats(stats, user, role, signupMethod, windows) {
+  const createdMs = Date.parse(user.createdAt || 0);
+  if (!createdMs || createdMs > windows.now) {
+    return;
+  }
+  if (createdMs > windows.sevenDaysAgo) {
+    stats.newLast7 += 1;
+    incrementCounter(stats.newLast7ByRole, role, 'other');
+    incrementCounter(stats.newLast7BySignup, signupMethod, 'unknown');
+    if (!stats.latestSignupAt || createdMs > Date.parse(stats.latestSignupAt || 0)) {
+      stats.latestSignupAt = safeDateIso(user.createdAt);
+    }
+    return;
+  }
+  if (createdMs > windows.fourteenDaysAgo) {
+    stats.newPrevious7 += 1;
+  }
+}
+
+function updateRecentActivityStats(stats, user, sevenDaysAgo) {
+  const loginMs = Date.parse(user.lastLoginAt || 0);
+  if (loginMs && loginMs > sevenDaysAgo) {
+    stats.activeLast7 += 1;
+  }
+}
+
+function aggregateUsers(users, emailLogs, supplierByOwner, windows) {
+  const stats = createUserStats();
+  for (const rawUser of users) {
+    const user = rawUser || {};
+    const userId = safeUserId(user);
+    const role = user.role || 'customer';
+    const provenance = verificationProvenance.summariseUser(user, emailLogs) || {};
+    const signupMethod = classifySignupMethod(user);
+    const verificationMethod = classifyVerificationMethod(user);
+    const supplier = userId ? supplierByOwner[String(userId)] || null : null;
+
+    incrementCounter(stats.byRole, role, 'other');
+    incrementCounter(stats.bySignup, signupMethod, 'unknown');
+    incrementCounter(stats.byVerification, verificationMethod, 'unknown');
+    updateVerificationHealth(stats.health, user, provenance, signupMethod, verificationMethod);
+    updateAccountStatusStats(stats, user, supplier, signupMethod, verificationMethod);
+    updateSignupWindowStats(stats, user, role, signupMethod, windows);
+    updateRecentActivityStats(stats, user, windows.sevenDaysAgo);
+  }
+  stats.health.lastNewSignupAt = stats.latestSignupAt;
+  return stats;
+}
+
+function isPendingSupplier(supplier) {
+  const status = supplier.approvalStatus || supplier.verificationStatus || supplier.status;
+  return !(supplier.approved === true || status === 'approved') && status !== 'rejected';
+}
+
+function isApprovedSupplier(supplier) {
+  return supplier.approved === true || supplier.approvalStatus === 'approved';
+}
+
+function supplierHasNoPackages(supplier, packageCountBySupplier) {
+  const supplierId = supplier.id || (supplier._id ? String(supplier._id) : undefined);
+  const directCount = Array.isArray(supplier.packages)
+    ? supplier.packages.length
+    : Number(supplier.packageCount || supplier.listingCount || 0);
+  const collectionCount = supplierId ? packageCountBySupplier[String(supplierId)] || 0 : 0;
+  return directCount + collectionCount === 0;
+}
+
+function buildSupplierStats(users, suppliers, supplierByOwner, packageCountBySupplier) {
+  const userIds = new Set(users.map(safeUserId).filter(Boolean).map(String));
+  const pendingSuppliers = suppliers.filter(isPendingSupplier).length;
+  const approvedSuppliers = suppliers.filter(isApprovedSupplier).length;
+  const incompleteProfiles = suppliers.filter(isProfileIncomplete).length;
+  const suppliersWithoutProfile = users.filter(
+    user =>
+      (user.role || 'customer') === 'supplier' && !supplierByOwner[String(safeUserId(user) || '')]
+  ).length;
+  const orphanedSuppliers = suppliers.filter(supplier => {
+    const ownerId = getSupplierOwnerId(supplier);
+    return ownerId && !userIds.has(String(ownerId));
+  }).length;
+  const withoutPackages = suppliers.filter(supplier =>
+    supplierHasNoPackages(supplier, packageCountBySupplier)
+  ).length;
+
+  return {
+    pendingSuppliers,
+    approvedSuppliers,
+    incompleteProfiles,
+    suppliersWithoutProfile,
+    orphanedSuppliers,
+    withoutPackages,
+    supplierLinkIssues: suppliersWithoutProfile + orphanedSuppliers,
+  };
+}
+
+function isVerificationEmailLog(log) {
+  const subject = String(log.subject || '').toLowerCase();
+  return (
+    log.template === 'verification' ||
+    (Array.isArray(log.tags) && log.tags.includes('verification')) ||
+    subject.includes('verify your email') ||
+    subject.includes('confirm your eventflow account')
+  );
+}
+
+function verificationLogTimestamp(log) {
+  return Date.parse(log.sentAt || log.createdAt || log.attemptedAt || 0);
+}
+
+function updateVerificationEmailHealth(health, emailLogs) {
+  const verificationLogs = emailLogs.filter(isVerificationEmailLog);
+  health.verificationEmailFailures = verificationLogs.filter(log => log.status === 'failed').length;
+  health.verificationOutboxFallbacks = verificationLogs.filter(
+    log => log.provider === 'outbox'
+  ).length;
+  health.verificationBounces = verificationLogs.filter(log => log.status === 'bounced').length;
+  const latestLog = verificationLogs
+    .slice()
+    .sort((a, b) => verificationLogTimestamp(b) - verificationLogTimestamp(a))[0];
+  health.lastVerificationEmailAttemptAt = safeDateIso(
+    latestLog && (latestLog.sentAt || latestLog.createdAt || latestLog.attemptedAt)
+  );
+}
+
+function buildSummaryResult(users, suppliers, userStats, supplierStats) {
+  const { health } = userStats;
+  const summary = {
+    totalUsers: users.length,
+    customers: userStats.byRole.customer,
+    suppliers: userStats.byRole.supplier,
+    admins: userStats.byRole.admin + userStats.byRole.owner,
+    newUsersLast7Days: userStats.newLast7,
+    newUsersPrevious7Days: userStats.newPrevious7,
+    recentlyActiveUsersLast7Days: userStats.activeLast7,
+    unverifiedUsers: userStats.unverifiedCount,
+    verificationIssues: userStats.issueCount,
+    pendingSupplierApprovals: supplierStats.pendingSuppliers,
+    supplierProfilesIncomplete: supplierStats.incompleteProfiles,
+    supplierLinkIssues: supplierStats.supplierLinkIssues,
+  };
+
+  const supplierHealth = {
+    totalSupplierUsers: userStats.byRole.supplier,
+    totalSupplierProfiles: suppliers.length,
+    approvedSuppliers: supplierStats.approvedSuppliers,
+    pendingSuppliers: supplierStats.pendingSuppliers,
+    incompleteProfiles: supplierStats.incompleteProfiles,
+    withoutPackages: supplierStats.withoutPackages,
+    linkIssues: supplierStats.supplierLinkIssues,
+  };
+
+  const actions = [
+    {
+      id: 'email-password-pending',
+      label: 'Review pending email/password accounts',
+      count: health.emailPasswordPending,
+      severity: health.emailPasswordPending > 0 ? 'warning' : 'info',
+      href: '/admin-users?verificationMethod=pending',
+    },
+    {
+      id: 'supplier-link-issues',
+      label: 'Resolve supplier link issues',
+      count: supplierStats.supplierLinkIssues,
+      severity: supplierStats.supplierLinkIssues > 0 ? 'critical' : 'info',
+      href: '/admin-suppliers',
+    },
+    {
+      id: 'verification-email-failures',
+      label: 'Check verification email delivery',
+      count: health.verificationEmailFailures + health.verificationBounces,
+      severity:
+        health.verificationEmailFailures + health.verificationBounces > 0 ? 'warning' : 'info',
+      href: '/admin-emails',
+    },
+  ];
+
+  return {
+    summary,
+    health,
+    supplierHealth,
+    actions,
+    generatedAt: new Date().toISOString(),
+    total: users.length,
+    byRole: userStats.byRole,
+    bySignup: userStats.bySignup,
+    byVerification: userStats.byVerification,
+    unverified: userStats.unverifiedCount,
+    suspended: userStats.suspendedCount,
+    issueCount: userStats.issueCount,
+    newLast7: userStats.newLast7,
+    newPrevious7: userStats.newPrevious7,
+    newLast7ByRole: userStats.newLast7ByRole,
+    newLast7BySignup: userStats.newLast7BySignup,
+    activeLast7: userStats.activeLast7,
+    latestSignupAt: userStats.latestSignupAt,
+    suppliers: {
+      total: suppliers.length,
+      pending: supplierStats.pendingSuppliers,
+      approved: supplierStats.approvedSuppliers,
+      suppliersWithoutProfile: supplierStats.suppliersWithoutProfile,
+      orphanedSuppliers: supplierStats.orphanedSuppliers,
+      incompleteProfiles: supplierStats.incompleteProfiles,
+      withoutPackages: supplierStats.withoutPackages,
+      linkIssues: supplierStats.supplierLinkIssues,
+    },
+  };
+}
+
 /**
  * Build a full summary of user and supplier counts.
  * Called by both /admin (dashboard) and /admin-users (Users Centre).
@@ -247,275 +588,36 @@ async function buildUserSummary() {
     ]);
 
     stage.name = 'normalise';
-    const users = asArray(allUsers).filter(user => user && typeof user === 'object');
-    const suppliers = asArray(allSuppliers).filter(
-      supplier => supplier && typeof supplier === 'object'
+    const { users, suppliers, packages, emailLogs } = normaliseSummaryCollections(
+      allUsers,
+      allSuppliers,
+      allPackages,
+      allEmailLogs
     );
-    const packages = asArray(allPackages).filter(pkg => pkg && typeof pkg === 'object');
-    const emailLogs = asArray(allEmailLogs);
-
-    const supplierByOwner = {};
-    for (const supplier of suppliers) {
-      const ownerId = getSupplierOwnerId(supplier);
-      if (ownerId) {
-        supplierByOwner[String(ownerId)] = supplier;
-      }
-    }
-
-    const userIds = new Set(users.map(safeUserId).filter(Boolean).map(String));
-    const packageCountBySupplier = {};
-    for (const pkg of packages) {
-      const supplierId = pkg.supplierId || pkg.supplier_id || pkg.supplier || pkg.ownerSupplierId;
-      if (supplierId) {
-        packageCountBySupplier[String(supplierId)] =
-          (packageCountBySupplier[String(supplierId)] || 0) + 1;
-      }
-    }
+    const supplierByOwner = buildSupplierOwnerIndex(suppliers);
+    const packageCountBySupplier = buildPackageCountIndex(packages);
     const now = Date.now();
-    const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;
-
-    const byRole = { customer: 0, supplier: 0, admin: 0, owner: 0, other: 0 };
-    const bySignup = { google: 0, email_password: 0, admin_created: 0, owner: 0, unknown: 0 };
-    const byVerification = {
-      google: 0,
-      email_link: 0,
-      admin: 0,
-      legacy: 0,
-      pending: 0,
-      unknown: 0,
-    };
-
-    let issueCount = 0;
-    let suspendedCount = 0;
-    let unverifiedCount = 0;
-    let newLast7 = 0;
-    let activeLast7 = 0;
-    let latestSignupAt = null;
-
-    const health = {
-      emailPasswordPending: 0,
-      googleVerified: 0,
-      eventflowEmailVerified: 0,
-      adminCreated: 0,
-      ownerAccounts: 0,
-      unknownVerificationSource: 0,
-      verificationEmailFailures: 0,
-      verificationOutboxFallbacks: 0,
-      verificationBounces: 0,
-      lastNewSignupAt: null,
-      lastVerificationEmailAttemptAt: null,
+    const windows = {
+      now,
+      sevenDaysAgo: now - 7 * 24 * 60 * 60 * 1000,
+      fourteenDaysAgo: now - 14 * 24 * 60 * 60 * 1000,
     };
 
     stage.name = 'users';
-    for (const rawUser of users) {
-      const user = rawUser || {};
-      const userId = safeUserId(user);
-      const role = user.role || 'customer';
-      if (Object.prototype.hasOwnProperty.call(byRole, role)) {
-        byRole[role]++;
-      } else {
-        byRole.other++;
-      }
-
-      const provenance = verificationProvenance.summariseUser(user, emailLogs) || {};
-      const signupMethod = classifySignupMethod(user);
-      const verificationMethod = classifyVerificationMethod(user);
-      bySignup[signupMethod] = (bySignup[signupMethod] || 0) + 1;
-      byVerification[verificationMethod] = (byVerification[verificationMethod] || 0) + 1;
-
-      if (provenance.signupMethod === 'google' || signupMethod === 'google') {
-        health.googleVerified += provenance.verified || user.verified ? 1 : 0;
-      }
-      if (
-        provenance.verificationMethod === 'eventflow_email' ||
-        verificationMethod === 'email_link'
-      ) {
-        health.eventflowEmailVerified++;
-      }
-      if (provenance.verificationMethod === 'admin_created' || signupMethod === 'admin_created') {
-        health.adminCreated++;
-      }
-      if (
-        provenance.verificationMethod === 'owner_account' ||
-        signupMethod === 'owner' ||
-        user.isOwner
-      ) {
-        health.ownerAccounts++;
-      }
-      if (provenance.verificationMethod === 'unknown' || verificationMethod === 'unknown') {
-        health.unknownVerificationSource++;
-      }
-      if (
-        (provenance.emailDeliveryStatus === 'pending' || verificationMethod === 'pending') &&
-        signupMethod === 'email_password'
-      ) {
-        health.emailPasswordPending++;
-      }
-
-      if (!(user.verified || user.emailVerified)) {
-        unverifiedCount++;
-      }
-      if (user.suspended) {
-        suspendedCount++;
-      }
-
-      const supplier = userId ? supplierByOwner[String(userId)] || null : null;
-      const issues = buildAccountIssues(user, supplier, signupMethod, verificationMethod);
-      if (issues.length > 0) {
-        issueCount++;
-      }
-
-      const createdMs = Date.parse(user.createdAt || 0);
-      if (createdMs && createdMs > sevenDaysAgo) {
-        newLast7++;
-        if (!latestSignupAt || createdMs > Date.parse(latestSignupAt || 0)) {
-          latestSignupAt = safeDateIso(user.createdAt);
-        }
-      }
-
-      const loginMs = Date.parse(user.lastLoginAt || 0);
-      if (loginMs && loginMs > sevenDaysAgo) {
-        activeLast7++;
-      }
-    }
+    const userStats = aggregateUsers(users, emailLogs, supplierByOwner, windows);
 
     stage.name = 'suppliers';
-    const pendingSuppliers = suppliers.filter(s => {
-      const status = s.approvalStatus || s.verificationStatus || s.status;
-      return !(s.approved === true || status === 'approved') && status !== 'rejected';
-    }).length;
-    const approvedSuppliers = suppliers.filter(
-      s => s.approved === true || s.approvalStatus === 'approved'
-    ).length;
-    const incompleteProfiles = suppliers.filter(isProfileIncomplete).length;
-    const suppliersWithoutProfile = users.filter(
-      u => (u.role || 'customer') === 'supplier' && !supplierByOwner[String(safeUserId(u) || '')]
-    ).length;
-    const orphanedSuppliers = suppliers.filter(s => {
-      const ownerId = getSupplierOwnerId(s);
-      return ownerId && !userIds.has(String(ownerId));
-    }).length;
-    const withoutPackages = suppliers.filter(s => {
-      const supplierId = s.id || (s._id ? String(s._id) : undefined);
-      const directCount = Array.isArray(s.packages)
-        ? s.packages.length
-        : Number(s.packageCount || s.listingCount || 0);
-      const packageCollectionCount = supplierId
-        ? packageCountBySupplier[String(supplierId)] || 0
-        : 0;
-      return directCount + packageCollectionCount === 0;
-    }).length;
-    const supplierLinkIssues = suppliersWithoutProfile + orphanedSuppliers;
+    const supplierStats = buildSupplierStats(
+      users,
+      suppliers,
+      supplierByOwner,
+      packageCountBySupplier
+    );
 
     stage.name = 'email_logs';
-    const verificationLogs = emailLogs.filter(log => {
-      const subject = String(log.subject || '').toLowerCase();
-      return (
-        log.template === 'verification' ||
-        (Array.isArray(log.tags) && log.tags.includes('verification')) ||
-        subject.includes('verify your email') ||
-        subject.includes('confirm your eventflow account')
-      );
-    });
-    health.verificationEmailFailures = verificationLogs.filter(
-      log => log.status === 'failed'
-    ).length;
-    health.verificationOutboxFallbacks = verificationLogs.filter(
-      log => log.provider === 'outbox'
-    ).length;
-    health.verificationBounces = verificationLogs.filter(log => log.status === 'bounced').length;
-    const sortedVerificationLogs = verificationLogs
-      .slice()
-      .sort(
-        (a, b) =>
-          Date.parse(b.sentAt || b.createdAt || b.attemptedAt || 0) -
-          Date.parse(a.sentAt || a.createdAt || a.attemptedAt || 0)
-      );
-    health.lastVerificationEmailAttemptAt = safeDateIso(
-      sortedVerificationLogs[0] &&
-        (sortedVerificationLogs[0].sentAt ||
-          sortedVerificationLogs[0].createdAt ||
-          sortedVerificationLogs[0].attemptedAt)
-    );
-    health.lastNewSignupAt = latestSignupAt;
+    updateVerificationEmailHealth(userStats.health, emailLogs);
 
-    const summary = {
-      totalUsers: users.length,
-      customers: byRole.customer,
-      suppliers: byRole.supplier,
-      admins: byRole.admin + byRole.owner,
-      newUsersLast7Days: newLast7,
-      recentlyActiveUsersLast7Days: activeLast7,
-      unverifiedUsers: unverifiedCount,
-      verificationIssues: issueCount,
-      pendingSupplierApprovals: pendingSuppliers,
-      supplierProfilesIncomplete: incompleteProfiles,
-      supplierLinkIssues,
-    };
-
-    const supplierHealth = {
-      totalSupplierUsers: byRole.supplier,
-      totalSupplierProfiles: suppliers.length,
-      approvedSuppliers,
-      pendingSuppliers,
-      incompleteProfiles,
-      withoutPackages,
-      linkIssues: supplierLinkIssues,
-    };
-
-    const actions = [
-      {
-        id: 'email-password-pending',
-        label: 'Review pending email/password accounts',
-        count: health.emailPasswordPending,
-        severity: health.emailPasswordPending > 0 ? 'warning' : 'info',
-        href: '/admin-users?verificationMethod=pending',
-      },
-      {
-        id: 'supplier-link-issues',
-        label: 'Resolve supplier link issues',
-        count: supplierLinkIssues,
-        severity: supplierLinkIssues > 0 ? 'critical' : 'info',
-        href: '/admin-suppliers',
-      },
-      {
-        id: 'verification-email-failures',
-        label: 'Check verification email delivery',
-        count: health.verificationEmailFailures + health.verificationBounces,
-        severity:
-          health.verificationEmailFailures + health.verificationBounces > 0 ? 'warning' : 'info',
-        href: '/admin-emails',
-      },
-    ];
-
-    return {
-      summary,
-      health,
-      supplierHealth,
-      actions,
-      generatedAt: new Date().toISOString(),
-      // Backward-compatible shape used by current dashboard and Users Centre.
-      total: users.length,
-      byRole,
-      bySignup,
-      byVerification,
-      unverified: unverifiedCount,
-      suspended: suspendedCount,
-      issueCount,
-      newLast7,
-      activeLast7,
-      latestSignupAt,
-      suppliers: {
-        total: suppliers.length,
-        pending: pendingSuppliers,
-        approved: approvedSuppliers,
-        suppliersWithoutProfile,
-        orphanedSuppliers,
-        incompleteProfiles,
-        withoutPackages,
-        linkIssues: supplierLinkIssues,
-      },
-    };
+    return buildSummaryResult(users, suppliers, userStats, supplierStats);
   } catch (err) {
     err.stage = err.stage || stage.name;
     logger.error('[adminUserSummary] Failed to build summary', {
