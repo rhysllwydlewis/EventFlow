@@ -65,6 +65,8 @@ The final quality pass fixes the mobile password-toggle geometry and makes keybo
 
 The production dependency override and lockfile pin `fast-uri` to the patched `3.1.5` line. The repository's production audit and clean-install checks verify the resolved tree before merge.
 
+The final static-analysis pass also removes unused Google-auth catch bindings and replaces the remaining manual null guards in the signup and admin KPI clients. Focused auth, attribution and admin tests validate those equivalent refactors before the full pull-request suite runs.
+
 ## Limitations
 
 Attribution only exists for visitors who accept analytics cookies. Withdrawing analytics consent removes the browser attribution record. Browser privacy tools, cleared storage and cross-device journeys can prevent a complete match. First-touch attribution should therefore be read alongside self-reported acquisition data where practical.
