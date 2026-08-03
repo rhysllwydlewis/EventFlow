@@ -32,6 +32,8 @@ To make the setting explicit while leaving replay enabled, set:
 POSTHOG_SESSION_RECORDING_ENABLED=true
 ```
 
+The injected analytics bridge asset is versioned, so returning visitors receive this attribution update instead of continuing to use a cached earlier script.
+
 ## Viewing signup sources in PostHog
 
 Create an insight using the `registration_completed` event and break it down by one of:
