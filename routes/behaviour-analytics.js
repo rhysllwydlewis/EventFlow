@@ -28,13 +28,17 @@ const summaryCache = new Map();
 
 function envFlag(name, fallback = false) {
   const raw = process.env[name];
-  if (raw === undefined || raw === null || raw === '') return fallback;
+  if (raw === undefined || raw === null || raw === '') {
+    return fallback;
+  }
   return ['1', 'true', 'yes', 'on'].includes(String(raw).trim().toLowerCase());
 }
 
 function clampInteger(value, fallback, minimum, maximum) {
   const parsed = Number.parseInt(value, 10);
-  if (!Number.isFinite(parsed)) return fallback;
+  if (!Number.isFinite(parsed)) {
+    return fallback;
+  }
   return Math.min(Math.max(parsed, minimum), maximum);
 }
 
@@ -47,9 +51,11 @@ const collectLimiter = rateLimit({
 });
 
 function safeHttpsOrigin(value, fallback = '') {
+  const raw = String(value || '').trim();
+  if (!raw) {
+    return fallback;
+  }
   try {
-    const raw = String(value || '').trim();
-    if (!raw) return fallback;
     const parsed = new URL(raw);
     return parsed.protocol === 'https:' ? parsed.origin : fallback;
   } catch (_error) {
@@ -58,11 +64,15 @@ function safeHttpsOrigin(value, fallback = '') {
 }
 
 function safeHttpsUrl(value, fallback = '') {
+  const raw = String(value || '').trim();
+  if (!raw) {
+    return fallback;
+  }
   try {
-    const raw = String(value || '').trim();
-    if (!raw) return fallback;
     const parsed = new URL(raw);
-    if (parsed.protocol !== 'https:') return fallback;
+    if (parsed.protocol !== 'https:') {
+      return fallback;
+    }
     parsed.hash = '';
     return parsed.toString();
   } catch (_error) {
@@ -74,9 +84,8 @@ function getConfig() {
   const projectKey = String(process.env.POSTHOG_PROJECT_KEY || '').trim();
   const apiHost = safeHttpsOrigin(process.env.POSTHOG_API_HOST, 'https://eu.i.posthog.com');
   const uiHost = safeHttpsOrigin(process.env.POSTHOG_UI_HOST, 'https://eu.posthog.com');
-  const dashboardUrl = safeHttpsUrl(process.env.POSTHOG_DASHBOARD_URL, '') || uiHost;
+  const configuredDashboard = safeHttpsUrl(process.env.POSTHOG_DASHBOARD_URL, '');
   const enabled = envFlag('BEHAVIOUR_ANALYTICS_ENABLED', true);
-  const posthogEnabled = enabled && Boolean(projectKey);
 
   return {
     enabled,
@@ -88,23 +97,28 @@ function getConfig() {
       730
     ),
     posthog: {
-      enabled: posthogEnabled,
+      enabled: enabled && Boolean(projectKey),
       projectKey,
       apiHost,
       uiHost,
-      dashboardUrl,
-      // Replay is privacy-masked and consent-gated in the browser. It is on by default,
-      // while POSTHOG_SESSION_RECORDING_ENABLED=false remains an explicit kill switch.
-      sessionRecordingEnabled: posthogEnabled && envFlag('POSTHOG_SESSION_RECORDING_ENABLED', true),
+      dashboardUrl: configuredDashboard || uiHost,
+      sessionRecordingEnabled:
+        enabled && Boolean(projectKey) && envFlag('POSTHOG_SESSION_RECORDING_ENABLED', true),
     },
   };
 }
 
 function isSameSiteRequest(req) {
   const secFetchSite = String(req.get('sec-fetch-site') || '').toLowerCase();
-  if (secFetchSite && !['same-origin', 'same-site', 'none'].includes(secFetchSite)) return false;
+  if (secFetchSite && !['same-origin', 'same-site', 'none'].includes(secFetchSite)) {
+    return false;
+  }
+
   const origin = req.get('origin');
-  if (!origin) return true;
+  if (!origin) {
+    return true;
+  }
+
   try {
     return new URL(origin).host === req.get('host');
   } catch (_error) {
@@ -113,12 +127,16 @@ function isSameSiteRequest(req) {
 }
 
 function readConsentCookie(req) {
-  const parsed =
+  const parsedCookie =
     req.cookies && typeof req.cookies[CONSENT_COOKIE_NAME] === 'string'
       ? req.cookies[CONSENT_COOKIE_NAME]
       : '';
-  if (parsed) return parsed;
-  const match = String(req.get('cookie') || '')
+  if (parsedCookie) {
+    return parsedCookie;
+  }
+
+  const cookieHeader = String(req.get('cookie') || '');
+  const match = cookieHeader
     .split(';')
     .map(part => part.trim())
     .find(part => part.startsWith(`${CONSENT_COOKIE_NAME}=`));
@@ -127,17 +145,24 @@ function readConsentCookie(req) {
 
 function hasAnalyticsConsentCookie(req) {
   const raw = readConsentCookie(req);
-  if (!raw) return false;
+  if (!raw) {
+    return false;
+  }
+
   const candidates = [raw];
   try {
     const decoded = decodeURIComponent(raw);
-    if (decoded !== raw) candidates.push(decoded);
+    if (decoded !== raw) {
+      candidates.push(decoded);
+    }
   } catch (_error) {
-    // Invalid encoding means no usable consent value.
+    // Invalid percent encoding is treated as no consent.
   }
+
   return candidates.some(candidate => {
     try {
-      return Boolean(JSON.parse(candidate)?.analytics === true);
+      const consent = JSON.parse(candidate);
+      return Boolean(consent && consent.analytics === true);
     } catch (_error) {
       return false;
     }
@@ -146,7 +171,9 @@ function hasAnalyticsConsentCookie(req) {
 
 function getRawBodySize(req) {
   const headerLength = Number.parseInt(req.get('content-length') || '0', 10);
-  if (Number.isFinite(headerLength) && headerLength > MAX_BODY_BYTES) return headerLength;
+  if (Number.isFinite(headerLength) && headerLength > MAX_BODY_BYTES) {
+    return headerLength;
+  }
   try {
     return Buffer.byteLength(JSON.stringify(req.body || {}), 'utf8');
   } catch (_error) {
@@ -155,7 +182,9 @@ function getRawBodySize(req) {
 }
 
 async function ensureAnalyticsIndexes() {
-  if (!db.isMongoAvailable()) return;
+  if (!db.isMongoAvailable()) {
+    return;
+  }
   if (!analyticsIndexPromise) {
     analyticsIndexPromise = db
       .getCollection(COLLECTION_NAME)
@@ -183,13 +212,17 @@ function clearSummaryCache() {
 async function removeExpiredEvents(retentionDays) {
   const cutoff = new Date(Date.now() - retentionDays * DAY_MS).toISOString();
   const removed = await dbUnified.deleteMany(COLLECTION_NAME, { timestamp: { $lt: cutoff } });
-  if (removed) clearSummaryCache();
+  if (removed) {
+    clearSummaryCache();
+  }
   return removed;
 }
 
 function scheduleRetentionCleanup(retentionDays) {
   const now = Date.now();
-  if (now - lastRetentionCleanupAt < RETENTION_CHECK_INTERVAL_MS) return;
+  if (now - lastRetentionCleanupAt < RETENTION_CHECK_INTERVAL_MS) {
+    return;
+  }
   lastRetentionCleanupAt = now;
   removeExpiredEvents(retentionDays).catch(error =>
     logger.debug('[behaviour-analytics] retention cleanup failed:', error.message)
@@ -208,11 +241,16 @@ async function loadAdminSummary(days, offsetDays) {
   const window = reportingWindow(days, offsetDays);
   const cacheKey = `${window.periodDays}:${window.offsetDays}`;
   const cached = summaryCache.get(cacheKey);
-  if (cached && Date.now() - cached.createdAt < SUMMARY_CACHE_TTL_MS) return cached.payload;
+  if (cached && Date.now() - cached.createdAt < SUMMARY_CACHE_TTL_MS) {
+    return cached.payload;
+  }
 
   await ensureAnalyticsIndexes();
   const events = await dbUnified.find(COLLECTION_NAME, {
-    timestamp: { $gte: window.start.toISOString(), $lt: window.end.toISOString() },
+    timestamp: {
+      $gte: window.start.toISOString(),
+      $lt: window.end.toISOString(),
+    },
   });
   const summary = buildSummary(events, window.periodDays, window.end);
   summary.decision = buildDecisionSummary(events, summary);
@@ -222,6 +260,7 @@ async function loadAdminSummary(days, offsetDays) {
     offsetDays: window.offsetDays,
     comparison: window.offsetDays > 0,
   };
+
   const payload = { success: true, summary };
   summaryCache.set(cacheKey, { createdAt: Date.now(), payload });
   return payload;
@@ -245,11 +284,14 @@ router.get('/config', (_req, res) => {
 
 router.post('/collect', collectLimiter, async (req, res) => {
   const config = getConfig();
-  if (!config.enabled) return res.status(202).json({ success: true, accepted: 0, disabled: true });
+  if (!config.enabled) {
+    return res.status(202).json({ success: true, accepted: 0, disabled: true });
+  }
   if (!isSameSiteRequest(req)) {
-    return res
-      .status(403)
-      .json({ success: false, error: 'Cross-site analytics requests are blocked' });
+    return res.status(403).json({
+      success: false,
+      error: 'Cross-site analytics requests are blocked',
+    });
   }
   if (getRawBodySize(req) > MAX_BODY_BYTES) {
     return res.status(413).json({ success: false, error: 'Analytics payload too large' });
@@ -258,11 +300,12 @@ router.post('/collect', collectLimiter, async (req, res) => {
     return res.status(400).json({ success: false, error: 'Analytics consent is required' });
   }
 
-  const incoming = Array.isArray(req.body.events)
-    ? req.body.events.slice(0, MAX_BATCH_SIZE)
-    : req.body.event
-      ? [req.body]
-      : [];
+  let incoming = [];
+  if (Array.isArray(req.body.events)) {
+    incoming = req.body.events.slice(0, MAX_BATCH_SIZE);
+  } else if (req.body.event) {
+    incoming = [req.body];
+  }
   if (incoming.length === 0) {
     return res.status(400).json({ success: false, error: 'No analytics events supplied' });
   }
@@ -274,6 +317,7 @@ router.post('/collect', collectLimiter, async (req, res) => {
     } catch (_error) {
       user = null;
     }
+
     if (user && user.role === 'admin') {
       return res.status(202).json({ success: true, accepted: 0, excluded: 'admin' });
     }
@@ -284,15 +328,21 @@ router.post('/collect', collectLimiter, async (req, res) => {
       hashSalt: process.env.ANALYTICS_HASH_SALT || process.env.JWT_SECRET,
     };
     const sanitized = incoming.map(item => sanitizeEvent(item, context)).filter(Boolean);
+
     let accepted = 0;
     for (const event of sanitized) {
-      if (await dbUnified.insertOne(COLLECTION_NAME, event)) accepted += 1;
+      const inserted = await dbUnified.insertOne(COLLECTION_NAME, event);
+      if (inserted) {
+        accepted += 1;
+      }
     }
+
     if (accepted > 0) {
       clearSummaryCache();
       ensureAnalyticsIndexes().catch(() => {});
       scheduleRetentionCleanup(config.retentionDays);
     }
+
     return res.status(202).json({ success: true, accepted });
   } catch (error) {
     logger.debug('[behaviour-analytics] collect failed:', error.message);
@@ -309,6 +359,7 @@ router.get('/admin/status', authRequired, roleRequired('admin'), async (_req, re
       dbUnified.findWithOptions(COLLECTION_NAME, {}, { limit: 1, sort: { timestamp: 1 } }),
       dbUnified.findWithOptions(COLLECTION_NAME, {}, { limit: 1, sort: { timestamp: -1 } }),
     ]);
+
     res.setHeader('Cache-Control', 'no-store, private');
     return res.json({
       success: true,
@@ -357,10 +408,8 @@ router.post(
   csrfProtection,
   async (_req, res) => {
     try {
-      return res.json({
-        success: true,
-        removed: await removeExpiredEvents(getConfig().retentionDays),
-      });
+      const removed = await removeExpiredEvents(getConfig().retentionDays);
+      return res.json({ success: true, removed });
     } catch (error) {
       logger.error('[behaviour-analytics] cleanup failed:', error.message);
       return res.status(500).json({ success: false, error: 'Failed to clean analytics events' });
