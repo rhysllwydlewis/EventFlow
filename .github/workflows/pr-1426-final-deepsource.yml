@@ -85,7 +85,7 @@ jobs:
               1,
               'attribution result guard',
           )
-          replace_exact(google_client, 'catch (_) {', 'catch {', 2, 'unused catch bindings')
+          replace_exact(google_client, 'catch (_) {', 'catch {', 5, 'unused catch bindings')
 
           admin_init = Path('public/assets/js/pages/admin-init.js')
           replace_exact(
