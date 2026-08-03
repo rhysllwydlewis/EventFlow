@@ -23,6 +23,16 @@
     '/supplier/subscription',
     '/supplier/marketplace-new-listing',
   ];
+  const CONSENT_GUARD_PATHS = SENSITIVE_PATHS.filter(prefix => prefix !== '/auth');
+  const POSTHOG_URL_KEYS = [
+    '$current_url',
+    '$referrer',
+    '$initial_current_url',
+    '$initial_referrer',
+    '$session_entry_url',
+    '$session_entry_current_url',
+    '$session_entry_referrer',
+  ];
   const SEARCH_HOSTS = [
     'google.com',
     'google.co.uk',
@@ -208,7 +218,7 @@
   function sanitizePostHogEvent(event) {
     const scrub = properties => {
       if (!properties || typeof properties !== 'object') return;
-      ['$current_url', '$referrer', '$initial_current_url', '$initial_referrer'].forEach(key => {
+      POSTHOG_URL_KEYS.forEach(key => {
         if (typeof properties[key] === 'string') {
           properties[key] = properties[key].split(/[?#]/, 1)[0];
         }
@@ -220,18 +230,61 @@
     return event;
   }
 
+  function runBeforeSendHooks(hooks, event) {
+    const handlers = Array.isArray(hooks) ? hooks : typeof hooks === 'function' ? [hooks] : [];
+    return handlers.reduce((result, handler) => (result ? handler(result) : result), event);
+  }
+
+  function privacyConfig(config) {
+    const source = config && typeof config === 'object' ? config : {};
+    const existingBeforeSend = source.before_send;
+    return {
+      ...source,
+      person_profiles: 'identified_only',
+      mask_personal_data_properties: true,
+      disable_capture_url_hashes: true,
+      before_send(event) {
+        let result = event;
+        try {
+          result = runBeforeSendHooks(existingBeforeSend, result);
+        } catch (_error) {
+          // Third-party hooks must not bypass the final sanitiser.
+        }
+        return result ? sanitizePostHogEvent(result) : result;
+      },
+    };
+  }
+
+  function installSensitivePageConsentGuard() {
+    if (
+      !pathMatches(CONSENT_GUARD_PATHS) ||
+      !window.CookieConsent ||
+      typeof window.CookieConsent.getConsent !== 'function' ||
+      window.CookieConsent.getConsent.__efSensitiveGuard
+    ) {
+      return;
+    }
+    const original = window.CookieConsent.getConsent.bind(window.CookieConsent);
+    const guarded = function () {
+      return { ...(original() || {}), essential: true, analytics: false };
+    };
+    guarded.__efSensitiveGuard = true;
+    window.CookieConsent.getConsent = guarded;
+  }
+
   function installPostHogStub() {
     if (window.posthog?.__SV) return;
     (function (doc, posthog) {
       window.posthog = posthog;
       posthog._i = [];
       posthog.init = function (token, config, name) {
-        if (posthog.__efInitQueued) return;
+        if (pathMatches(CONSENT_GUARD_PATHS) || posthog.__efInitQueued) return;
         posthog.__efInitQueued = true;
+        const safeConfig = privacyConfig(config);
         const script = doc.createElement('script');
         script.async = true;
         script.crossOrigin = 'anonymous';
-        script.src = `${config.api_host.replace('.i.posthog.com', '-assets.i.posthog.com')}/static/array.js`;
+        script.src = `${safeConfig.api_host.replace('.i.posthog.com', '-assets.i.posthog.com')}/static/array.js`;
         const firstScript = doc.getElementsByTagName('script')[0];
         firstScript.parentNode.insertBefore(script, firstScript);
         let instance = posthog;
@@ -245,7 +298,7 @@
               instance.push([method].concat(Array.prototype.slice.call(arguments)));
             };
           });
-        posthog._i.push([token, config, instanceName]);
+        posthog._i.push([token, safeConfig, instanceName]);
       };
       posthog.__SV = 1;
     })(document, window.posthog || []);
@@ -348,9 +401,9 @@
     let method = options?.method || 'GET';
     try {
       if (typeof input === 'string' || input instanceof URL) {
-        url = new URL(input, location.href).pathname;
+        url = new URL(input, window.location.href).pathname;
       } else if (input?.url) {
-        url = new URL(input.url, location.href).pathname;
+        url = new URL(input.url, window.location.href).pathname;
         method = input.method || method;
       }
     } catch (_error) {
@@ -408,7 +461,7 @@
       JSON.stringify({ v: 1, essential: true, functional: true, analytics: true })
     );
     const expires = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toUTCString();
-    const secure = location.protocol === 'https:' ? '; Secure' : '';
+    const secure = window.location.protocol === 'https:' ? '; Secure' : '';
     document.cookie = `${COOKIE_NAME}=${value}; expires=${expires}; path=/; SameSite=Lax${secure}`;
     window.dispatchEvent(
       new CustomEvent('cookieConsentChanged', {
@@ -427,6 +480,9 @@
     });
   }
 
+  installSensitivePageConsentGuard();
+  installPostHogStub();
+
   document.addEventListener(
     'click',
     event => {
@@ -435,7 +491,12 @@
         event.preventDefault();
         event.stopImmediatePropagation();
         writeFullConsent();
-        accept.closest('#cookie-consent-banner, #cookie-prefs-dialog')?.remove();
+        const banner = accept.closest('#cookie-consent-banner');
+        const dialog = accept.closest('#cookie-prefs-dialog');
+        if (banner?.parentNode) banner.parentNode.removeChild(banner);
+        else banner?.remove?.();
+        if (dialog?.parentNode) dialog.parentNode.removeChild(dialog);
+        else dialog?.remove?.();
       }
       if (event.target?.closest?.('#google-signup-button')) {
         try {
