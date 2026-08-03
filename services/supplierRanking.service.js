@@ -86,6 +86,9 @@ const effectiveFeatured = supplier =>
 
 function effectiveSubscriptionTier(supplier) {
   const tier = String(supplier.subscriptionTier || supplier.subscription?.tier || '').toLowerCase();
+  if (supplier.isPro === false) {
+    return 'free';
+  }
   if (['pro_plus', 'pro-plus', 'proplus'].includes(tier)) {
     return 'pro_plus';
   }
@@ -105,11 +108,10 @@ function isPubliclyEligibleSupplier(supplier, validOwnerIds = null) {
   ) {
     return false;
   }
-  return !(
-    supplier.ownerUserId &&
-    validOwnerIds instanceof Set &&
-    !validOwnerIds.has(supplier.ownerUserId)
-  );
+  if (validOwnerIds instanceof Set) {
+    return Boolean(supplier.ownerUserId && validOwnerIds.has(String(supplier.ownerUserId)));
+  }
+  return true;
 }
 
 const publicPackages = packages => (packages || []).filter(pkg => pkg && pkg.approved !== false);

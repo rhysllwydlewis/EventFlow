@@ -122,6 +122,7 @@ describe('supplierRanking service branches', () => {
     expect(effectiveSubscriptionTier({ subscription: { tier: 'proplus' } })).toBe('pro_plus');
     expect(effectiveSubscriptionTier({ isPro: true })).toBe('pro');
     expect(effectiveSubscriptionTier({ subscriptionTier: 'starter' })).toBe('free');
+    expect(effectiveSubscriptionTier({ subscriptionTier: 'pro', isPro: false })).toBe('free');
   });
 
   test('applies every public eligibility gate', () => {
@@ -142,7 +143,13 @@ describe('supplierRanking service branches', () => {
     expect(isPubliclyEligibleSupplier({ approved: true, ownerUserId: 'owner_1' }, owners)).toBe(
       true
     );
-    expect(isPubliclyEligibleSupplier({ approved: true }, owners)).toBe(true);
+    expect(isPubliclyEligibleSupplier({ approved: true }, owners)).toBe(false);
+    expect(
+      isPubliclyEligibleSupplier(
+        { approved: true, ownerUserId: { toString: () => 'owner_1' } },
+        owners
+      )
+    ).toBe(true);
   });
 
   test('scores profile image tiers and reports incomplete fields', () => {
