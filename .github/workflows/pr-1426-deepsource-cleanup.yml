@@ -45,8 +45,15 @@ jobs:
           path = Path('public/assets/js/analytics-consent-upgrade.js')
           source = path.read_text()
 
-          replacements = [
-              ('''  function closeConsentUi(target) {
+          def replace_once(old, new, label):
+              global source
+              count = source.count(old)
+              if count != 1:
+                  raise SystemExit(f'{label}: expected exactly one match, found {count}')
+              source = source.replace(old, new, 1)
+
+          replace_once(
+              """  function closeConsentUi(target) {
               const banner = target && target.closest ? target.closest('#cookie-consent-banner') : null;
               if (banner && banner.parentNode) {
                 banner.parentNode.removeChild(banner);
@@ -60,7 +67,8 @@ jobs:
                 document.body.classList.remove('cookie-prefs-open');
               }
             }
-          ''', '''  function closeConsentUi(target) {
+          """,
+              """  function closeConsentUi(target) {
               const banner = target?.closest?.('#cookie-consent-banner');
               banner?.remove();
 
@@ -70,17 +78,31 @@ jobs:
                 document.body?.classList.remove('cookie-prefs-open');
               }
             }
-          '''),
-              ('''    if (!window.CookieConsent || typeof window.CookieConsent.getConsent !== 'function') {
-          ''', '''    if (typeof window.CookieConsent?.getConsent !== 'function') {
-          '''),
-              ('''      return Boolean(consent && consent.analytics === true);
-          ''', '''      return consent?.analytics === true;
-          '''),
-              ('''  function runBeforeSendHooks(hooks, event) {
+          """,
+              'consent UI guards',
+          )
+
+          replace_once(
+              """    if (!window.CookieConsent || typeof window.CookieConsent.getConsent !== 'function') {
+          """,
+              """    if (typeof window.CookieConsent?.getConsent !== 'function') {
+          """,
+              'consent API guard',
+          )
+          replace_once(
+              """      return Boolean(consent && consent.analytics === true);
+          """,
+              """      return consent?.analytics === true;
+          """,
+              'consent value guard',
+          )
+
+          replace_once(
+              """  function runBeforeSendHooks(hooks, event) {
               const handlers = Array.isArray(hooks) ? hooks : typeof hooks === 'function' ? [hooks] : [];
               let result = event;
-          ''', '''  function runBeforeSendHooks(hooks, event) {
+          """,
+              """  function runBeforeSendHooks(hooks, event) {
               let handlers = [];
               if (Array.isArray(hooks)) {
                 handlers = hooks;
@@ -88,80 +110,92 @@ jobs:
                 handlers = [hooks];
               }
               let result = event;
-          '''),
-              ('''      !window.CookieConsent ||
+          """,
+              'before-send nested conditional',
+          )
+
+          replace_once(
+              """    if (
+              !isProviderBlockedPage() ||
+              !window.CookieConsent ||
               typeof window.CookieConsent.getConsent !== 'function' ||
-          ''', '''      typeof window.CookieConsent?.getConsent !== 'function' ||
-          '''),
-              ('''    if (window.posthog && window.posthog.__SV) {
-          ''', '''    if (window.posthog?.__SV) {
-          '''),
-              ('''  function postHogIsInitialised() {
+              window.CookieConsent.getConsent.__efSensitiveGuard
+            ) {
+          """,
+              """    if (
+              !isProviderBlockedPage() ||
+              typeof window.CookieConsent?.getConsent !== 'function' ||
+              window.CookieConsent.getConsent.__efSensitiveGuard
+            ) {
+          """,
+              'sensitive-page consent guard',
+          )
+
+          replacements = [
+              ("if (window.posthog && window.posthog.__SV) {", "if (window.posthog?.__SV) {", 'PostHog stub guard'),
+              (
+                  """  function postHogIsInitialised() {
               if (!window.posthog || typeof window.posthog.capture !== 'function') {
-          ''', '''  function postHogIsInitialised() {
+          """,
+                  """  function postHogIsInitialised() {
               if (typeof window.posthog?.capture !== 'function') {
-          '''),
-              ('''    if (event && event.detail && event.detail.analytics === true) {
-          ''', '''    if (event?.detail?.analytics === true) {
-          '''),
-              ('''    if (!event || event.persisted !== true) {
-          ''', '''    if (event?.persisted !== true) {
-          '''),
-              ('''    const scope = root && typeof root.querySelectorAll === 'function' ? root : document;
-          ''', '''    const scope = typeof root?.querySelectorAll === 'function' ? root : document;
-          '''),
-              ('''      if (paragraph.textContent && paragraph.textContent.includes('functional cookies')) {
-          ''', '''      if (paragraph.textContent?.includes('functional cookies')) {
-          '''),
-              ('''      if (description.textContent && description.textContent.includes('Currently unused')) {
-          ''', '''      if (description.textContent?.includes('Currently unused')) {
-          '''),
-              ('''      } else if (input && input.url) {
-          ''', '''      } else if (input?.url) {
-          '''),
-              ('''    if (options && options.method) {
-          ''', '''    if (options?.method) {
-          '''),
-              ('''      !response ||
+          """,
+                  'PostHog initialisation guard',
+              ),
+              ("if (event && event.detail && event.detail.analytics === true) {", "if (event?.detail?.analytics === true) {", 'consent change event guard'),
+              ("if (!event || event.persisted !== true) {", "if (event?.persisted !== true) {", 'pageshow event guard'),
+              ("const scope = root && typeof root.querySelectorAll === 'function' ? root : document;", "const scope = typeof root?.querySelectorAll === 'function' ? root : document;", 'query scope guard'),
+              ("if (paragraph.textContent && paragraph.textContent.includes('functional cookies')) {", "if (paragraph.textContent?.includes('functional cookies')) {", 'consent paragraph guard'),
+              ("if (description.textContent && description.textContent.includes('Currently unused')) {", "if (description.textContent?.includes('Currently unused')) {", 'consent description guard'),
+              ("} else if (input && input.url) {", "} else if (input?.url) {", 'request input guard'),
+              ("if (options && options.method) {", "if (options?.method) {", 'request options guard'),
+              (
+                  """    if (
+              !response ||
               !response.ok ||
               !window.posthog ||
               typeof window.posthog.identify !== 'function'
-          ''', '''      !response?.ok ||
-              typeof window.posthog?.identify !== 'function'
-          '''),
-              ('''        if (!user || !user.id || user.role === 'admin') {
-          ''', '''        if (!user?.id || user.role === 'admin') {
-          '''),
-              ('''        if (conversion && window.EFAnalytics && typeof window.EFAnalytics.track === 'function') {
-          ''', '''        if (conversion && typeof window.EFAnalytics?.track === 'function') {
-          '''),
-              ('''          conversion &&
-              conversion.event === 'registration_completed' &&
-              window.posthog &&
-              typeof window.posthog.capture === 'function'
-          ''', '''          conversion?.event === 'registration_completed' &&
-              typeof window.posthog?.capture === 'function'
-          '''),
-              ('''        const provider = config && config.posthog;
-          ''', '''        const provider = config?.posthog;
-          '''),
-              ('''      const target =
-                event.target && event.target.closest
-                  ? event.target.closest('#cookie-consent-accept, #cookie-prefs-accept-all')
-                  : null;
-          ''', '''      const target = event.target?.closest?.(
-                '#cookie-consent-accept, #cookie-prefs-accept-all'
-              );
-          '''),
-              ('''          if (node && node.nodeType === 1) {
-          ''', '''          if (node?.nodeType === 1) {
-          '''),
+            ) {
+          """,
+                  """    if (!response?.ok || typeof window.posthog?.identify !== 'function') {
+          """,
+                  'registration response guard',
+              ),
+              ("if (!user || !user.id || user.role === 'admin') {", "if (!user?.id || user.role === 'admin') {", 'registered user guard'),
+              ("if (conversion && window.EFAnalytics && typeof window.EFAnalytics.track === 'function') {", "if (conversion && typeof window.EFAnalytics?.track === 'function') {", 'first-party conversion guard'),
+              (
+                  """        if (
+                  conversion &&
+                  conversion.event === 'registration_completed' &&
+                  window.posthog &&
+                  typeof window.posthog.capture === 'function'
+                ) {
+          """,
+                  """        if (
+                  conversion?.event === 'registration_completed' &&
+                  typeof window.posthog?.capture === 'function'
+                ) {
+          """,
+                  'PostHog conversion guard',
+              ),
+              ("const provider = config && config.posthog;", "const provider = config?.posthog;", 'provider guard'),
+              (
+                  """      const target =
+                    event.target && event.target.closest
+                      ? event.target.closest('#cookie-consent-accept, #cookie-prefs-accept-all')
+                      : null;
+          """,
+                  """      const target = event.target?.closest?.(
+                    '#cookie-consent-accept, #cookie-prefs-accept-all'
+                  );
+          """,
+                  'click target guard',
+              ),
+              ("if (node && node.nodeType === 1) {", "if (node?.nodeType === 1) {", 'mutation node guard'),
           ]
 
-          for old, new in replacements:
-              if old not in source:
-                  raise SystemExit(f'Expected source pattern was not found:\n{old}')
-              source = source.replace(old, new)
+          for old, new, label in replacements:
+              replace_once(old, new, label)
 
           path.write_text(source)
           PY
