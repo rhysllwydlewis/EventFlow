@@ -42,120 +42,73 @@ jobs:
           python - <<'PY'
           from pathlib import Path
 
-          def replace_once(path, old, new, label):
+          def replace_exact(path, old, new, expected, label):
               source = path.read_text()
               count = source.count(old)
-              if count != 1:
-                  raise SystemExit(f'{label}: expected exactly one match, found {count}')
-              path.write_text(source.replace(old, new, 1))
+              if count != expected:
+                  raise SystemExit(f'{label}: expected {expected} match(es), found {count}')
+              path.write_text(source.replace(old, new))
 
           google_client = Path('public/assets/js/pages/auth-google-init.js')
-          replace_once(
+          replace_exact(
               google_client,
-              """  function getInputValue(id, maxLength) {
-            const el = document.getElementById(id);
-            return cleanValue(el && el.value, maxLength);
-          }
-
-          function getSelectedSignupRole() {
-            const roleInput = document.getElementById('reg-role');
-            if (roleInput && (roleInput.value === 'supplier' || roleInput.value === 'customer')) {
-              return roleInput.value;
-            }
-
-            const selectedRole = document.querySelector(
-              '.auth-role-picker [aria-checked=\"true\"][data-role], .role-toggle [aria-checked=\"true\"][data-role]'
-            );
-            return selectedRole && selectedRole.dataset.role === 'supplier' ? 'supplier' : 'customer';
-          }
-          """,
-              """  function getInputValue(id, maxLength) {
-            const el = document.getElementById(id);
-            return cleanValue(el?.value, maxLength);
-          }
-
-          function getSelectedSignupRole() {
-            const roleInput = document.getElementById('reg-role');
-            const selectedRoleValue = roleInput?.value;
-            if (selectedRoleValue === 'supplier' || selectedRoleValue === 'customer') {
-              return selectedRoleValue;
-            }
-
-            const selectedRole = document.querySelector(
-              '.auth-role-picker [aria-checked=\"true\"][data-role], .role-toggle [aria-checked=\"true\"][data-role]'
-            );
-            return selectedRole?.dataset.role === 'supplier' ? 'supplier' : 'customer';
-          }
-          """,
-              'Google signup field guards',
+              'return cleanValue(el && el.value, maxLength);',
+              'return cleanValue(el?.value, maxLength);',
+              1,
+              'input value guard',
           )
-          replace_once(
+          replace_exact(
               google_client,
-              """  function getConsentedAttributionState() {
-            try {
-              if (
-                !window.EventFlowAttribution ||
-                typeof window.EventFlowAttribution.properties !== 'function'
-              ) {
-                return null;
-              }
-              const attribution = window.EventFlowAttribution.properties();
-              return attribution && attribution.attribution_available === true ? attribution : null;
-            } catch (_) {
-              return null;
-            }
-          }
-
-          function getAnalyticsSessionId() {
-            try {
-              return cleanValue(window.sessionStorage.getItem('ef_analytics_session_id'), 120);
-            } catch (_) {
-              return '';
-            }
-          }
-          """,
-              """  function getConsentedAttributionState() {
-            try {
-              if (typeof window.EventFlowAttribution?.properties !== 'function') {
-                return null;
-              }
-              const attribution = window.EventFlowAttribution.properties();
-              return attribution?.attribution_available === true ? attribution : null;
-            } catch {
-              return null;
-            }
-          }
-
-          function getAnalyticsSessionId() {
-            try {
-              return cleanValue(window.sessionStorage.getItem('ef_analytics_session_id'), 120);
-            } catch {
-              return '';
-            }
-          }
-          """,
-              'Google attribution and storage guards',
+              "if (roleInput && (roleInput.value === 'supplier' || roleInput.value === 'customer')) {",
+              "if (roleInput?.value === 'supplier' || roleInput?.value === 'customer') {",
+              1,
+              'role input guard',
           )
+          replace_exact(
+              google_client,
+              "return selectedRole && selectedRole.dataset.role === 'supplier' ? 'supplier' : 'customer';",
+              "return selectedRole?.dataset.role === 'supplier' ? 'supplier' : 'customer';",
+              1,
+              'selected role guard',
+          )
+          replace_exact(
+              google_client,
+              "        !window.EventFlowAttribution ||\n        typeof window.EventFlowAttribution.properties !== 'function'",
+              "        typeof window.EventFlowAttribution?.properties !== 'function'",
+              1,
+              'attribution API guard',
+          )
+          replace_exact(
+              google_client,
+              'return attribution && attribution.attribution_available === true ? attribution : null;',
+              'return attribution?.attribution_available === true ? attribution : null;',
+              1,
+              'attribution result guard',
+          )
+          replace_exact(google_client, 'catch (_) {', 'catch {', 2, 'unused catch bindings')
 
           admin_init = Path('public/assets/js/pages/admin-init.js')
-          replace_once(
+          replace_exact(
               admin_init,
               'const recentUsers = Number(summary && summary.newLast7) || 0;',
               'const recentUsers = Number(summary?.newLast7) || 0;',
+              1,
               'current signup summary guard',
           )
-          replace_once(
+          replace_exact(
               admin_init,
               'const previousUsers = Number(summary && summary.newPrevious7) || 0;',
               'const previousUsers = Number(summary?.newPrevious7) || 0;',
+              1,
               'previous signup summary guard',
           )
 
           source_contract = Path('tests/unit/analytics-attribution-session-replay.test.js')
-          replace_once(
+          replace_exact(
               source_contract,
               "expect(adminDashboardSource).toContain('summary.newPrevious7');",
               "expect(adminDashboardSource).toContain('summary?.newPrevious7');",
+              1,
               'admin optional-chain source contract',
           )
           PY
