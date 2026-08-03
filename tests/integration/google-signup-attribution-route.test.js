@@ -71,71 +71,76 @@ describe('Google signup attribution persistence', () => {
     delete process.env.ANALYTICS_HASH_SALT;
   });
 
-  it('stores one privacy-safe first-party conversion after creating a consented Google signup', async () => {
-    const { app, inserted, updates } = buildApp();
-    const state = encodeState({
-      context: 'signup',
-      role: 'customer',
-      returnTo: '/dashboard/customer',
-      analyticsSessionId: 'analytics-session-google-signup',
-      attribution: {
-        attribution_available: true,
-        first_channel: 'organic_search',
-        first_referrer_domain: 'google.com',
-        first_landing_path: '/pricing',
-        first_utm_source: 'google',
-        first_utm_medium: 'organic',
-        first_utm_campaign: 'summer-launch',
-        last_channel: 'direct',
-        last_referrer_domain: 'direct',
-        ignored_private_value: 'must-not-be-stored',
-      },
-    });
+  it(
+    'stores one privacy-safe first-party conversion after creating a consented Google signup',
+    async () => {
+      const { app, inserted, updates } = buildApp();
+      const state = encodeState({
+        context: 'signup',
+        role: 'customer',
+        returnTo: '/dashboard/customer',
+        analyticsSessionId: 'analytics-session-google-signup',
+        attribution: {
+          attribution_available: true,
+          first_channel: 'organic_search',
+          first_referrer_domain: 'google.com',
+          first_landing_path: '/pricing',
+          first_utm_source: 'google',
+          first_utm_medium: 'organic',
+          first_utm_campaign: 'summer-launch',
+          last_channel: 'direct',
+          last_referrer_domain: 'direct',
+          ignored_private_value: 'must-not-be-stored',
+        },
+      });
 
-    const response = await request(app)
-      .post('/api/auth/callback/google')
-      .set('Cookie', ['g_csrf_token=csrf-token-123'])
-      .type('form')
-      .send({
-        credential: 'valid-google-id-token',
-        g_csrf_token: 'csrf-token-123',
-        state,
-      })
-      .expect(303);
+      const response = await request(app)
+        .post('/api/auth/callback/google')
+        .set('Cookie', ['g_csrf_token=csrf-token-123'])
+        .type('form')
+        .send({
+          credential: 'valid-google-id-token',
+          g_csrf_token: 'csrf-token-123',
+          state,
+        })
+        .expect(303);
 
-    expect(response.headers.location).toBe('/dashboard/customer');
-    expect(inserted).toHaveLength(2);
+      expect(response.headers.location).toBe('/dashboard/customer');
+      expect(inserted).toHaveLength(2);
 
-    const userInsert = inserted.find(entry => entry.collection === 'users');
-    expect(userInsert.document).toMatchObject({
-      email: 'attributed-user@gmail.com',
-      signupMethod: 'google',
-      role: 'customer',
-    });
+      const userInsert = inserted.find(entry => entry.collection === 'users');
+      expect(userInsert.document).toMatchObject({
+        email: 'attributed-user@gmail.com',
+        signupMethod: 'google',
+        role: 'customer',
+      });
 
-    const analyticsInsert = inserted.find(entry => entry.collection === 'behaviour_analytics_events');
-    expect(analyticsInsert.document).toMatchObject({
-      event: 'registration_completed',
-      pagePath: '/pricing',
-      referrerDomain: 'google.com',
-      userRole: 'customer',
-      properties: {
-        attribution_available: true,
-        conversionType: 'registration',
-        signup_method: 'google',
-        first_channel: 'organic_search',
-        first_referrer_domain: 'google.com',
-        first_landing_path: '/pricing',
-        first_utm_source: 'google',
-        first_utm_medium: 'organic',
-        first_utm_campaign: 'summer-launch',
-        last_channel: 'direct',
-        last_referrer_domain: 'direct',
-      },
-    });
-    expect(analyticsInsert.document.properties.ignored_private_value).toBeUndefined();
-    expect(analyticsInsert.document.sessionIdHash).toBeTruthy();
-    expect(analyticsInsert.document).not.toHaveProperty('sessionId');
-    expect(updates.some(entry => entry.collection === 'users')).toBe(true);
-  });
+      const analyticsInsert = inserted.find(
+        entry => entry.collection === 'behaviour_analytics_events'
+      );
+      expect(analyticsInsert.document).toMatchObject({
+        event: 'registration_completed',
+        pagePath: '/pricing',
+        referrerDomain: 'google.com',
+        userRole: 'customer',
+        properties: {
+          attribution_available: true,
+          conversionType: 'registration',
+          signup_method: 'google',
+          first_channel: 'organic_search',
+          first_referrer_domain: 'google.com',
+          first_landing_path: '/pricing',
+          first_utm_source: 'google',
+          first_utm_medium: 'organic',
+          first_utm_campaign: 'summer-launch',
+          last_channel: 'direct',
+          last_referrer_domain: 'direct',
+        },
+      });
+      expect(analyticsInsert.document.properties.ignored_private_value).toBeUndefined();
+      expect(analyticsInsert.document.sessionIdHash).toBeTruthy();
+      expect(analyticsInsert.document).not.toHaveProperty('sessionId');
+      expect(updates.some(entry => entry.collection === 'users')).toBe(true);
+    }
+  );
 });
