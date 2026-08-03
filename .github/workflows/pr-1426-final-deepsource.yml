@@ -52,27 +52,90 @@ jobs:
           google_client = Path('public/assets/js/pages/auth-google-init.js')
           replace_once(
               google_client,
-              """      if (
-                !window.EventFlowAttribution ||
-                typeof window.EventFlowAttribution.properties !== 'function'
-              ) {
+              """  function getInputValue(id, maxLength) {
+            const el = document.getElementById(id);
+            return cleanValue(el && el.value, maxLength);
+          }
+
+          function getSelectedSignupRole() {
+            const roleInput = document.getElementById('reg-role');
+            if (roleInput && (roleInput.value === 'supplier' || roleInput.value === 'customer')) {
+              return roleInput.value;
+            }
+
+            const selectedRole = document.querySelector(
+              '.auth-role-picker [aria-checked=\"true\"][data-role], .role-toggle [aria-checked=\"true\"][data-role]'
+            );
+            return selectedRole && selectedRole.dataset.role === 'supplier' ? 'supplier' : 'customer';
+          }
           """,
-              """      if (typeof window.EventFlowAttribution?.properties !== 'function') {
+              """  function getInputValue(id, maxLength) {
+            const el = document.getElementById(id);
+            return cleanValue(el?.value, maxLength);
+          }
+
+          function getSelectedSignupRole() {
+            const roleInput = document.getElementById('reg-role');
+            const selectedRoleValue = roleInput?.value;
+            if (selectedRoleValue === 'supplier' || selectedRoleValue === 'customer') {
+              return selectedRoleValue;
+            }
+
+            const selectedRole = document.querySelector(
+              '.auth-role-picker [aria-checked=\"true\"][data-role], .role-toggle [aria-checked=\"true\"][data-role]'
+            );
+            return selectedRole?.dataset.role === 'supplier' ? 'supplier' : 'customer';
+          }
           """,
-              'Google attribution API guard',
+              'Google signup field guards',
           )
           replace_once(
               google_client,
-              'return attribution && attribution.attribution_available === true ? attribution : null;',
-              'return attribution?.attribution_available === true ? attribution : null;',
-              'Google attribution result guard',
+              """  function getConsentedAttributionState() {
+            try {
+              if (
+                !window.EventFlowAttribution ||
+                typeof window.EventFlowAttribution.properties !== 'function'
+              ) {
+                return null;
+              }
+              const attribution = window.EventFlowAttribution.properties();
+              return attribution && attribution.attribution_available === true ? attribution : null;
+            } catch (_) {
+              return null;
+            }
+          }
+
+          function getAnalyticsSessionId() {
+            try {
+              return cleanValue(window.sessionStorage.getItem('ef_analytics_session_id'), 120);
+            } catch (_) {
+              return '';
+            }
+          }
+          """,
+              """  function getConsentedAttributionState() {
+            try {
+              if (typeof window.EventFlowAttribution?.properties !== 'function') {
+                return null;
+              }
+              const attribution = window.EventFlowAttribution.properties();
+              return attribution?.attribution_available === true ? attribution : null;
+            } catch {
+              return null;
+            }
+          }
+
+          function getAnalyticsSessionId() {
+            try {
+              return cleanValue(window.sessionStorage.getItem('ef_analytics_session_id'), 120);
+            } catch {
+              return '';
+            }
+          }
+          """,
+              'Google attribution and storage guards',
           )
-          source = google_client.read_text()
-          if source.count('catch (_) {') != 2:
-              raise SystemExit(
-                  f'Google client unused catches: expected 2, found {source.count("catch (_) {")}'
-              )
-          google_client.write_text(source.replace('catch (_) {', 'catch {'))
 
           admin_init = Path('public/assets/js/pages/admin-init.js')
           replace_once(
@@ -86,47 +149,6 @@ jobs:
               'const previousUsers = Number(summary && summary.newPrevious7) || 0;',
               'const previousUsers = Number(summary?.newPrevious7) || 0;',
               'previous signup summary guard',
-          )
-
-          google_route = Path('routes/google-redirect-auth.js')
-          replace_once(
-              google_route,
-              """function getGoogleSignupAttribution(state) {
-            if (!state || state.context !== 'signup' || !state.attribution) {
-              return null;
-            }
-            const properties = { conversionType: 'registration', signup_method: 'google' };
-            GOOGLE_ATTRIBUTION_KEYS.forEach(key => {
-              const value = state.attribution[key];
-          """,
-              """function getGoogleSignupAttribution(state) {
-            const attribution = state?.attribution;
-            if (state?.context !== 'signup' || !attribution) {
-              return null;
-            }
-            const properties = { conversionType: 'registration', signup_method: 'google' };
-            GOOGLE_ATTRIBUTION_KEYS.forEach(key => {
-              const value = attribution[key];
-          """,
-              'Google server attribution guard',
-          )
-          replace_once(
-              google_route,
-              'const sessionId = cleanStateText(state && state.analyticsSessionId, 120);',
-              'const sessionId = cleanStateText(state?.analyticsSessionId, 120);',
-              'Google analytics session guard',
-          )
-          replace_once(
-              google_route,
-              "if (!properties || !sessionId || !user || user.role === 'admin') {",
-              "if (!properties || !sessionId || !user?.id || user.role === 'admin') {",
-              'Google analytics user guard',
-          )
-          replace_once(
-              google_route,
-              'const state = decodeState(req.body && req.body.state);',
-              'const state = decodeState(req.body?.state);',
-              'Google callback state guard',
           )
 
           source_contract = Path('tests/unit/analytics-attribution-session-replay.test.js')
@@ -143,20 +165,16 @@ jobs:
           npx prettier --write \
             public/assets/js/pages/auth-google-init.js \
             public/assets/js/pages/admin-init.js \
-            routes/google-redirect-auth.js \
             tests/unit/analytics-attribution-session-replay.test.js
           npx prettier --check \
             public/assets/js/pages/auth-google-init.js \
             public/assets/js/pages/admin-init.js \
-            routes/google-redirect-auth.js \
             tests/unit/analytics-attribution-session-replay.test.js
           node --check public/assets/js/pages/auth-google-init.js
           node --check public/assets/js/pages/admin-init.js
-          node --check routes/google-redirect-auth.js
           npx eslint --rulesdir eslint-rules \
             public/assets/js/pages/auth-google-init.js \
-            public/assets/js/pages/admin-init.js \
-            routes/google-redirect-auth.js
+            public/assets/js/pages/admin-init.js
           npx jest \
             tests/unit/analytics-attribution-session-replay.test.js \
             tests/unit/google-auth-init-context.test.js \
@@ -177,7 +195,6 @@ jobs:
           git add \
             public/assets/js/pages/auth-google-init.js \
             public/assets/js/pages/admin-init.js \
-            routes/google-redirect-auth.js \
             tests/unit/analytics-attribution-session-replay.test.js \
             .github/workflows/pr-1426-final-deepsource.yml
           git commit -m 'refactor: clear remaining DeepSource findings'
