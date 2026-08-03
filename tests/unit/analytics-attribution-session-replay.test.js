@@ -83,7 +83,7 @@ describe('signup attribution and PostHog session replay', () => {
   });
 
   test('uses a real rolling seven-day comparison on the admin KPI', () => {
-    expect(adminDashboardSource).toContain('summary.newPrevious7');
+    expect(adminDashboardSource).toContain('summary?.newPrevious7');
     expect(adminDashboardSource).not.toContain('const prevUsers = 0');
     expect(adminDashboardSource).not.toContain('this week');
   });

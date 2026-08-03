@@ -593,8 +593,8 @@
     // allUsers is no longer pre-loaded on the dashboard; Users Centre has the full list
     (function () {
       // Use pre-computed summary.newLast7 (allUsers no longer pre-loaded on dashboard)
-      const recentUsers = Number(summary && summary.newLast7) || 0;
-      const previousUsers = Number(summary && summary.newPrevious7) || 0;
+      const recentUsers = Number(summary?.newLast7) || 0;
+      const previousUsers = Number(summary?.newPrevious7) || 0;
 
       const usersChangeEl = document.getElementById('totalUsersChange');
       if (usersChangeEl) {

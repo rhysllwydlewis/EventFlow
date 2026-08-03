@@ -76,7 +76,7 @@
         .replace(/\+/g, '-')
         .replace(/\//g, '_')
         .replace(/=+$/g, '');
-    } catch (_) {
+    } catch {
       return '';
     }
   }
@@ -103,19 +103,19 @@
 
   function getInputValue(id, maxLength) {
     const el = document.getElementById(id);
-    return cleanValue(el && el.value, maxLength);
+    return cleanValue(el?.value, maxLength);
   }
 
   function getSelectedSignupRole() {
     const roleInput = document.getElementById('reg-role');
-    if (roleInput && (roleInput.value === 'supplier' || roleInput.value === 'customer')) {
+    if (roleInput?.value === 'supplier' || roleInput?.value === 'customer') {
       return roleInput.value;
     }
 
     const selectedRole = document.querySelector(
       '.auth-role-picker [aria-checked="true"][data-role], .role-toggle [aria-checked="true"][data-role]'
     );
-    return selectedRole && selectedRole.dataset.role === 'supplier' ? 'supplier' : 'customer';
+    return selectedRole?.dataset.role === 'supplier' ? 'supplier' : 'customer';
   }
 
   function getSignupFormSnapshot() {
@@ -146,15 +146,12 @@
 
   function getConsentedAttributionState() {
     try {
-      if (
-        !window.EventFlowAttribution ||
-        typeof window.EventFlowAttribution.properties !== 'function'
-      ) {
+      if (typeof window.EventFlowAttribution?.properties !== 'function') {
         return null;
       }
       const attribution = window.EventFlowAttribution.properties();
-      return attribution && attribution.attribution_available === true ? attribution : null;
-    } catch (_) {
+      return attribution?.attribution_available === true ? attribution : null;
+    } catch {
       return null;
     }
   }
@@ -162,7 +159,7 @@
   function getAnalyticsSessionId() {
     try {
       return cleanValue(window.sessionStorage.getItem('ef_analytics_session_id'), 120);
-    } catch (_) {
+    } catch {
       return '';
     }
   }
@@ -405,7 +402,7 @@
         cache: 'no-store',
       });
       config = await res.json();
-    } catch (_) {
+    } catch {
       setGoogleButtonsBusy(false);
       setStatus('Google sign-in configuration could not be loaded.', 'error');
       return;
@@ -418,7 +415,7 @@
 
     try {
       await loadGoogleScript();
-    } catch (_) {
+    } catch {
       setGoogleButtonsBusy(false);
       setStatus('Google sign-in could not be loaded. Please refresh and try again.', 'error');
       return;
