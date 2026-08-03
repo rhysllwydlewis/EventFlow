@@ -9,10 +9,11 @@
   --efc-border: 1px solid rgba(15, 23, 42, 0.09);
   --efc-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px rgba(15, 23, 42, 0.05);
   --efc-muted: #5b6478;
-  --efc-accent: var(--color-primary, #6d28d9);
-  --efc-accent-soft: rgba(109, 40, 217, 0.08);
-  --efc-surface: #ffffff;
-  --efc-page: #f7f7fb;
+  /* Use EventFlow's own brand tokens so the community never looks bolted on. */
+  --efc-accent: var(--ef-primary, #0b8073);
+  --efc-accent-soft: rgba(11, 128, 115, 0.09);
+  --efc-surface: var(--ef-surface, #ffffff);
+  --efc-page: var(--ef-bg-muted, #f8fafb);
   --efc-gap: 1.25rem;
   background: var(--efc-page);
   color: #1a1f2e;
@@ -52,6 +53,16 @@
     grid-template-columns: minmax(0, 1fr) 320px;
     align-items: start;
   }
+
+  /* The sidebar scrolls with the page but never dictates page height, so a long
+     category list cannot leave a column of dead whitespace beside the feed. */
+  .efc-grid--sidebar > .efc-side {
+    position: sticky;
+    top: 1rem;
+    max-height: calc(100vh - 2rem);
+    overflow-y: auto;
+    scrollbar-width: thin;
+  }
 }
 
 .efc-section {
@@ -80,7 +91,7 @@
 /* ── Hero ──────────────────────────────────────────────────────────────── */
 
 .efc-hero {
-  background: linear-gradient(135deg, #efeaff 0%, #f7f7fb 60%);
+  background: linear-gradient(135deg, var(--ef-primary-light, #f2fbf9) 0%, var(--efc-page) 65%);
   border-bottom: var(--efc-border);
   padding: 2.5rem 0 2rem;
 }
@@ -91,10 +102,13 @@
   padding: 0 1rem;
 }
 
-.efc-hero h1 {
-  font-size: clamp(1.6rem, 3.5vw, 2.25rem);
+.efc-hero h1,
+.efc-shell h1 {
+  /* Deliberately restrained: large enough to anchor the page, small enough that
+     a long discussion title does not dominate the screen on mobile. */
+  font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem);
   margin: 0 0 0.5rem;
-  line-height: 1.2;
+  line-height: 1.25;
 }
 
 .efc-hero p {
@@ -164,7 +178,7 @@
 }
 
 .efc-discussion__title {
-  font-size: 1.0625rem;
+  font-size: 1.125rem;
   font-weight: 650;
   margin: 0 0 0.375rem;
   line-height: 1.35;
@@ -183,7 +197,7 @@
 .efc-discussion__excerpt {
   margin: 0 0 0.625rem;
   color: var(--efc-muted);
-  font-size: 0.9375rem;
+  font-size: 1rem;
 }
 
 .efc-meta {
@@ -261,7 +275,7 @@
   border: 1px solid #fde68a;
   background: #fffbeb;
   color: #713f12;
-  font-size: 0.9375rem;
+  font-size: 1rem;
 }
 
 .efc-notice--info {
@@ -550,7 +564,7 @@
 }
 
 .efc-side__card h2 {
-  font-size: 0.9375rem;
+  font-size: 1rem;
   margin: 0 0 0.625rem;
 }
 
@@ -561,6 +575,28 @@
   display: grid;
   gap: 0.5rem;
   font-size: 0.875rem;
+}
+
+/* Counted lists keep the label and its number on one line. Other sidebar lists
+   stack normally, so a long title is never squeezed into a narrow column. */
+.efc-side__list--counts li {
+  display: flex;
+  gap: 0.5rem;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.efc-side__list--counts li > .efc-meta {
+  flex: 0 0 auto;
+  font-variant-numeric: tabular-nums;
+}
+
+/* A long list is scrollable rather than stretching the sidebar past the main
+   column and leaving dead whitespace beside it. */
+.efc-side__list--scroll {
+  max-height: 20rem;
+  overflow-y: auto;
+  padding-right: 0.25rem;
 }
 
 /* ── EventFlow-native cards inside a thread ────────────────────────────── */

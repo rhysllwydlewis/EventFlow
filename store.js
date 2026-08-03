@@ -68,6 +68,23 @@ const files = {
   partner_cashout_requests: path.join(DATA_DIR, 'partner_cashout_requests.json'),
   support_tickets: path.join(DATA_DIR, 'support_tickets.json'),
   content: path.join(DATA_DIR, 'content.json'),
+  // EventFlow Community collections
+  community_categories: path.join(DATA_DIR, 'community_categories.json'),
+  community_discussions: path.join(DATA_DIR, 'community_discussions.json'),
+  community_replies: path.join(DATA_DIR, 'community_replies.json'),
+  community_reactions: path.join(DATA_DIR, 'community_reactions.json'),
+  community_bookmarks: path.join(DATA_DIR, 'community_bookmarks.json'),
+  community_follows: path.join(DATA_DIR, 'community_follows.json'),
+  community_reports: path.join(DATA_DIR, 'community_reports.json'),
+  community_moderation_actions: path.join(DATA_DIR, 'community_moderation_actions.json'),
+  community_appeals: path.join(DATA_DIR, 'community_appeals.json'),
+  community_user_stats: path.join(DATA_DIR, 'community_user_stats.json'),
+  community_views: path.join(DATA_DIR, 'community_views.json'),
+  community_drafts: path.join(DATA_DIR, 'community_drafts.json'),
+  community_settings: path.join(DATA_DIR, 'community_settings.json'),
+  community_poll_votes: path.join(DATA_DIR, 'community_poll_votes.json'),
+  community_canonical_links: path.join(DATA_DIR, 'community_canonical_links.json'),
+  community_restrictions: path.join(DATA_DIR, 'community_restrictions.json'),
 };
 
 function ensure() {

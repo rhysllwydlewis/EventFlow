@@ -26,18 +26,43 @@ const {
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /**
- * Domains that are never appropriate in an event-planning community. Matching is
- * on the registrable suffix, so `bet365.example.com` matches `bet365` patterns.
- * Operators can extend this at runtime through the admin blocklist.
+ * Tokens that are unambiguous anywhere in a hostname. Spam domains routinely
+ * bury the keyword mid-label (`bigcasino777.com`, `mega-casino.net`), so
+ * anchoring these to a label boundary would miss most real cases, and none of
+ * them plausibly appear in a legitimate event-supplier domain.
+ */
+const HIGH_RISK_DOMAIN_TOKENS = Object.freeze([
+  'casino',
+  'poker',
+  'roulette',
+  'blackjack',
+  'sportsbook',
+  'betting',
+  'gambl',
+  'porn',
+  'escort',
+  'camgirl',
+  'onlyfans',
+  'warez',
+  'keygen',
+  'nulled',
+  'torrent',
+  'kratom',
+]);
+
+/**
+ * Tokens that are only meaningful at a label boundary, because they otherwise
+ * appear inside ordinary words — `bet` in `betterevents.com`, `crack` in
+ * `crackerbarrel.com`, `slot` in `slotting.com`.
  */
 const HIGH_RISK_DOMAIN_PATTERNS = Object.freeze([
-  /(^|\.)bet[a-z0-9-]*\.(com|net|org|co|io|uk)$/i,
-  /(^|\.)casino[a-z0-9-]*\./i,
-  /(^|\.)poker[a-z0-9-]*\./i,
-  /(^|\.)slots?[a-z0-9-]*\./i,
-  /(^|\.)(porn|xxx|escort|camgirl|onlyfans)[a-z0-9-]*\./i,
-  /(^|\.)(crack|keygen|warez|torrent|nulled|apk-?download)[a-z0-9-]*\./i,
-  /(^|\.)(vape|ecig|kratom)[a-z0-9-]*\./i,
+  /(^|[.-])bet\d*[.-]/i,
+  /(^|[.-])bet\d*\.(com|net|org|co|io|uk)$/i,
+  /(^|[.-])slots?[.-]/i,
+  /(^|[.-])xxx[.-]?/i,
+  /(^|[.-])crack(ed)?[.-]/i,
+  /(^|[.-])apk-?downloads?[.-]?/i,
+  /(^|[.-])(vape|ecig)[.-]?/i,
   /\.(zip|review|country|gq|cf|tk|ml)$/i,
 ]);
 
@@ -135,6 +160,10 @@ function isBlockedDomain(domain, settings = {}) {
 
   const blocked = Array.isArray(settings.blockedDomains) ? settings.blockedDomains : [];
   if (blocked.some(entry => matchesDomain(host, entry))) {
+    return true;
+  }
+
+  if (HIGH_RISK_DOMAIN_TOKENS.some(token => host.includes(token))) {
     return true;
   }
 
@@ -673,6 +702,7 @@ module.exports = {
   assessContent,
   validateLength,
   detectPersonalInformation,
+  HIGH_RISK_DOMAIN_TOKENS,
   HIGH_RISK_DOMAIN_PATTERNS,
   PROMOTIONAL_PATTERNS,
 };

@@ -87,7 +87,11 @@
       )
       .join('');
 
+    // Categories with activity come first so the sidebar leads with the parts of
+    // the community that are actually alive, rather than an alphabetical wall.
     const categories = data.categories
+      .slice()
+      .sort((a, b) => b.discussionCount - a.discussionCount)
       .map(
         category =>
           `<li><a href="/community/category/${EFC.esc(category.slug)}">${EFC.esc(
@@ -167,11 +171,15 @@
             <p class="efc-meta">We publish what actually helps people, not member or online counts.</p>`,
             data.counts.discussions > 0
           )}
-          ${sideCard('Categories', `<ul class="efc-side__list">${categories}</ul>`, Boolean(categories))}
+          ${sideCard(
+            'Categories',
+            `<ul class="efc-side__list efc-side__list--counts efc-side__list--scroll">${categories}</ul>`,
+            Boolean(categories)
+          )}
           ${sideCard('Recent replies', `<ul class="efc-side__list">${recentReplies}</ul>`, Boolean(recentReplies))}
           ${sideCard('Most helpful members', `<ul class="efc-side__list">${helpful}</ul>`, Boolean(helpful))}
-          ${sideCard('Browse by event type', `<ul class="efc-side__list">${eventTypes}</ul>`, Boolean(eventTypes))}
-          ${sideCard('Browse by UK region', `<ul class="efc-side__list">${regions}</ul>`, Boolean(regions))}
+          ${sideCard('Browse by event type', `<ul class="efc-side__list efc-side__list--counts">${eventTypes}</ul>`, Boolean(eventTypes))}
+          ${sideCard('Browse by UK region', `<ul class="efc-side__list efc-side__list--counts">${regions}</ul>`, Boolean(regions))}
           <section class="efc-side__card">
             <h2>Before you post</h2>
             <ul class="efc-side__list">

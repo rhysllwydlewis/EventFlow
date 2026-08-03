@@ -38,7 +38,7 @@
         <header class="efc-card">
           <div class="efc-post__head">
             <img class="efc-avatar" src="${EFC.esc(
-              m.avatarUrl || '/assets/img/avatar-placeholder.svg'
+              m.avatarUrl || '/assets/images/default-avatar.svg'
             )}" alt="" width="40" height="40" />
             <div>
               <h1>${EFC.esc(m.displayName)}</h1>

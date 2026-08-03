@@ -85,7 +85,7 @@
     return `<article class="efc-post" aria-labelledby="efc-thread-title">
       <div class="efc-post__head">
         <img class="efc-avatar" src="${EFC.esc(
-          d.author.avatarUrl || '/assets/img/avatar-placeholder.svg'
+          d.author.avatarUrl || '/assets/images/default-avatar.svg'
         )}" alt="" width="40" height="40" loading="lazy" />
         <div>
           <p class="efc-meta">
@@ -219,7 +219,7 @@
     return `<article class="${classes.join(' ')}" id="reply-${EFC.esc(reply.id)}">
       <div class="efc-post__head">
         <img class="efc-avatar" src="${EFC.esc(
-          reply.author.avatarUrl || '/assets/img/avatar-placeholder.svg'
+          reply.author.avatarUrl || '/assets/images/default-avatar.svg'
         )}" alt="" width="40" height="40" loading="lazy" />
         <div>
           <p class="efc-meta">
@@ -361,7 +361,9 @@
             <ul class="efc-side__list">
               <li>Started ${EFC.esc(EFC.shortDate(d.createdAt))}</li>
               <li>Last activity ${EFC.esc(EFC.timeAgo(d.lastActivityAt))}</li>
-              <li>${d.replyCount} replies from ${d.participantCount} people</li>
+              <li>${d.replyCount} ${d.replyCount === 1 ? 'reply' : 'replies'} from ${
+                d.participantCount
+              } ${d.participantCount === 1 ? 'person' : 'people'}</li>
               ${d.solved ? '<li>Marked as solved</li>' : ''}
             </ul>
           </section>

@@ -68,7 +68,7 @@ function shell(page) {
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes" />
     <meta name="theme-color" content="#0B8073" />
     <script src="/assets/js/config/canonical-base.js"></script>
-    <!--COMMUNITY_HEAD-->
+${page.adminGuard ? '    <script src="/assets/js/dashboard-guard.js?v=17.0.2"></script>\n' : ''}    <!--COMMUNITY_HEAD-->
     <link rel="preload" href="/assets/css/tokens.css?v=${ASSET_VERSION}" as="style" />
     <link rel="preload" href="/assets/css/styles.css?v=${ASSET_VERSION}" as="style" />
     <link rel="stylesheet" href="/assets/css/tokens.css?v=${ASSET_VERSION}" />
@@ -184,10 +184,10 @@ const homeHero = hero(
         </div>`
 );
 
-const listBody = `        <div class="efc-section">
-          <button type="button" class="efc-action efc-filters-toggle" data-filters-toggle aria-expanded="true" aria-controls="efc-filters">Filters</button>
-          <div id="efc-filters-slot"></div>
-        </div>
+// The filter panel and its mobile toggle are rendered together by
+// community/discussions.js, so aria-controls never points at an element that
+// has not been created yet.
+const listBody = `        <div id="efc-filters-slot" class="efc-section"></div>
         <div id="efc-results" class="efc-section"></div>`;
 
 const pages = [
@@ -256,6 +256,9 @@ ${listBody}
   },
   {
     file: 'admin-community.html',
+    // The admin page carries the shared admin guard, like every other
+    // admin-*.html file, so an unauthenticated request never sees the shell.
+    adminGuard: true,
     body: `        <div id="efc-admin" class="efc-section"></div>`,
     scripts: ['/assets/js/community/admin.js'],
   },

@@ -97,7 +97,8 @@
       { key: 'unanswered', label: 'Unanswered' },
     ];
 
-    return `<form class="efc-filters" id="efc-filters" aria-label="Filter discussions">
+    return `<button type="button" class="efc-action efc-filters-toggle" data-filters-toggle aria-expanded="true" aria-controls="efc-filters">Filters</button>
+    <form class="efc-filters" id="efc-filters" aria-label="Filter discussions">
       <div class="efc-filters__grid">
         ${mode === 'category' ? '' : select('efc-filter-category', 'Category', categories, state.category || '')}
         ${select('efc-filter-eventType', 'Event type', eventTypes, state.eventType || '')}
