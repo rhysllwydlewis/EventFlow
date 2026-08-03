@@ -69,6 +69,8 @@ The final static-analysis pass also removes unused Google-auth catch bindings an
 
 The server-side Google attribution helper now derives one guarded attribution object and uses optional chaining for the analytics session and user identity checks. Both Google route integration suites and the dedicated attribution persistence test verify the refactor.
 
+The admin user summary now delegates user, supplier and verification-email aggregation to focused helpers. This preserves the dashboard and Users Centre response contract while keeping the main orchestration function below the static-analysis complexity threshold.
+
 ## Limitations
 
 Attribution only exists for visitors who accept analytics cookies. Withdrawing analytics consent removes the browser attribution record. Browser privacy tools, cleared storage and cross-device journeys can prevent a complete match. First-touch attribution should therefore be read alongside self-reported acquisition data where practical.
