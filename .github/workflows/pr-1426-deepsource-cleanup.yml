@@ -1,5 +1,6 @@
 name: Apply PR 1426 DeepSource cleanup
 
+# This branch-only helper removes itself after applying the focused cleanup.
 on:
   push:
     branches:
