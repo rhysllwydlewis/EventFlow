@@ -2,16 +2,17 @@
 
 ## What this change records
 
-After a visitor consents to analytics, EventFlow stores a privacy-safe 90-day first-touch and last-touch record in the browser. A completed registration is sent to PostHog with:
+After a visitor consents to analytics, EventFlow stores a privacy-safe 90-day first-touch and last-touch record in the browser. A completed email/password registration is sent to PostHog with:
 
-- signup method: email/password or Google
-- account role
+- signup method
 - first and last channel
 - first and last referring domain
 - first and last landing path
 - UTM source, medium and campaign when supplied
 
-The PostHog distinct ID is EventFlow's opaque internal user ID. Email addresses, names, passwords, form values and message content are not sent as identification properties.
+The PostHog distinct ID is EventFlow's opaque internal user ID. The account role is attached to the identified profile. Email addresses, names, passwords, form values and message content are not sent as identification properties.
+
+Google registration attribution is not included in this browser-side change because Google completes through a server redirect. It should be added separately by carrying the same attribution fields through the signed Google state and recording the conversion after account creation.
 
 ## Session replay
 
@@ -41,7 +42,8 @@ Create an insight using the `registration_completed` event and break it down by 
 - `first_utm_source`
 - `first_utm_campaign`
 - `signup_method`
-- `user_role`
+
+The identified profile also contains the EventFlow account `role`.
 
 For recordings, filter session recordings by the `registration_completed` event. The authentication page itself is intentionally not recorded, but the consented journey before registration can be replayed and the completed registration is attached to the identified EventFlow user.
 
