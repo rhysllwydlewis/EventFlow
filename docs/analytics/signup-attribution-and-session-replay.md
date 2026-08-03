@@ -57,6 +57,10 @@ The identified profile also contains the EventFlow account `role`.
 
 For recordings, filter session recordings by the `registration_completed` event. The authentication page itself is intentionally not recorded, but the consented journey before registration can be replayed and the completed registration is attached to the identified EventFlow user.
 
+## Validation
+
+The Google redirect integration test verifies that a newly created consented account produces one allow-listed, hashed first-party registration event while excluding unapproved state values. The broader suite also covers attribution sanitisation, consent withdrawal, replay configuration, rolling user comparisons and existing conversion compatibility.
+
 ## Limitations
 
 Attribution only exists for visitors who accept analytics cookies. Withdrawing analytics consent removes the browser attribution record. Browser privacy tools, cleared storage and cross-device journeys can prevent a complete match. First-touch attribution should therefore be read alongside self-reported acquisition data where practical.
