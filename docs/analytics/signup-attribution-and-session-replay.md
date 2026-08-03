@@ -63,6 +63,8 @@ The Google redirect integration test verifies that a newly created consented acc
 
 The final quality pass fixes the mobile password-toggle geometry and makes keyboard-tab E2E input target the focused tab directly, preventing icon-size drift and asynchronous focus races from obscuring genuine authentication regressions. It also replaces repeated manual null guards with optional chaining while preserving the consent UI's compatible parent-node removal behaviour.
 
+The production dependency override and lockfile pin `fast-uri` to the patched `3.1.5` line. The repository's production audit and clean-install checks verify the resolved tree before merge.
+
 ## Limitations
 
 Attribution only exists for visitors who accept analytics cookies. Withdrawing analytics consent removes the browser attribution record. Browser privacy tools, cleared storage and cross-device journeys can prevent a complete match. First-touch attribution should therefore be read alongside self-reported acquisition data where practical.
