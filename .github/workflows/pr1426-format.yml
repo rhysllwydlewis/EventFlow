@@ -1,0 +1,48 @@
+name: PR 1426 Format
+
+on:
+  push:
+    branches:
+      - feat/signup-attribution-session-replay
+
+permissions:
+  contents: write
+
+env:
+  HUSKY: '0'
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/signup-attribution-session-replay
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.node-version'
+          cache: npm
+
+      - run: npm ci --prefer-offline --no-audit
+
+      - name: Format changed files
+        run: >-
+          npx prettier --write
+          public/assets/js/analytics-consent-upgrade.js
+          routes/behaviour-analytics.js
+          tests/unit/analytics-attribution-session-replay.test.js
+          docs/analytics/signup-attribution-and-session-replay.md
+
+      - name: Commit formatting
+        run: |
+          if git diff --quiet; then
+            echo 'Formatting already clean.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add public/assets/js/analytics-consent-upgrade.js routes/behaviour-analytics.js tests/unit/analytics-attribution-session-replay.test.js docs/analytics/signup-attribution-and-session-replay.md
+          git commit -m 'style: format signup attribution changes'
+          git push origin HEAD:feat/signup-attribution-session-replay
