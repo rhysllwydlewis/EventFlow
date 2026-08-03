@@ -1,0 +1,597 @@
+name: PR 1426 final review pass
+
+on:
+  push:
+    branches:
+      - feat/signup-attribution-session-replay
+    paths:
+      - .github/workflows/pr1426-final-review-pass.yml
+
+permissions:
+  contents: write
+
+jobs:
+  final-review-pass:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: feat/signup-attribution-session-replay
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: npm
+
+      - name: Apply final review improvements
+        shell: bash
+        run: |
+          cat > /tmp/pr1426_final_patch.py <<'PY'
+          from pathlib import Path
+
+
+          def read(path):
+              return Path(path).read_text(encoding='utf-8')
+
+
+          def write(path, content):
+              Path(path).write_text(content, encoding='utf-8')
+
+
+          def replace_once(path, old, new):
+              content = read(path)
+              count = content.count(old)
+              if count != 1:
+                  raise RuntimeError(f'{path}: expected one match, found {count}: {old[:140]!r}')
+              write(path, content.replace(old, new, 1))
+
+
+          def insert_before(path, marker, addition):
+              content = read(path)
+              count = content.count(marker)
+              if count != 1:
+                  raise RuntimeError(f'{path}: expected one marker, found {count}: {marker[:140]!r}')
+              write(path, content.replace(marker, addition + marker, 1))
+
+
+          # Attribution precision and storage cleanup.
+          bridge = 'public/assets/js/analytics-consent-upgrade.js'
+          insert_before(
+              bridge,
+              '  function buildAttributionTouch() {\n',
+              "  function detectedPaidSource(params) {\n"
+              "    if (params.has('gclid') || params.has('gbraid') || params.has('wbraid')) {\n"
+              "      return 'google_ads';\n"
+              "    }\n"
+              "    if (params.has('msclkid')) {\n"
+              "      return 'microsoft_ads';\n"
+              "    }\n"
+              "    if (params.has('fbclid')) {\n"
+              "      return 'meta_ads';\n"
+              "    }\n"
+              "    if (params.has('ttclid')) {\n"
+              "      return 'tiktok_ads';\n"
+              "    }\n"
+              "    if (params.has('li_fat_id')) {\n"
+              "      return 'linkedin_ads';\n"
+              "    }\n"
+              "    return '';\n"
+              "  }\n\n",
+          )
+          replace_once(
+              bridge,
+              "    const utmSource = cleanAttributionValue(params.get('utm_source'), 100);\n",
+              "    const utmSource = cleanAttributionValue(\n"
+              "      params.get('utm_source') || detectedPaidSource(params),\n"
+              "      100\n"
+              "    );\n",
+          )
+          replace_once(
+              bridge,
+              "      next.utmCampaign ||\n      !['direct', 'internal'].includes(next.referrerDomain)\n",
+              "      next.utmCampaign ||\n"
+              "      next.partnerReference ||\n"
+              "      !['direct', 'internal'].includes(next.referrerDomain)\n",
+          )
+          replace_once(
+              bridge,
+              "    } catch (_error) {\n      return null;\n    }\n  }\n\n  function captureAttribution() {\n",
+              "    } catch (_error) {\n"
+              "      try {\n"
+              "        window.localStorage.removeItem(ATTRIBUTION_KEY);\n"
+              "      } catch (_cleanupError) {\n"
+              "        // Malformed storage cleanup is best-effort.\n"
+              "      }\n"
+              "      return null;\n"
+              "    }\n"
+              "  }\n\n"
+              "  function captureAttribution() {\n",
+          )
+
+          # Recent attributed registrations UI and responsive layout.
+          admin_behaviour = 'public/assets/js/pages/admin-behaviour-analytics.js'
+          replace_once(
+              admin_behaviour,
+              "  const STYLE_PATH = '/assets/css/admin-behaviour-analytics.css?v=2';\n",
+              "  const STYLE_PATH = '/assets/css/admin-behaviour-analytics.css?v=3';\n",
+          )
+          replace_once(
+              admin_behaviour,
+              '      <div class="behaviour-analytics-grid behaviour-analytics-grid--three">\n',
+              '      <div class="behaviour-analytics-grid behaviour-analytics-grid--four">\n',
+          )
+          replace_once(
+              admin_behaviour,
+              '<div id="baRegistrationChannels" class="behaviour-breakdown-list"><div class="behaviour-empty">Loading signup channels…</div></div>',
+              '<div id="baRegistrationChannels" class="behaviour-breakdown-list behaviour-breakdown-list--compact"><div class="behaviour-empty">Loading signup channels…</div></div>',
+          )
+          replace_once(
+              admin_behaviour,
+              '<div id="baRegistrationSources" class="behaviour-breakdown-list"><div class="behaviour-empty">Loading signup sources…</div></div>',
+              '<div id="baRegistrationSources" class="behaviour-breakdown-list behaviour-breakdown-list--compact"><div class="behaviour-empty">Loading signup sources…</div></div>',
+          )
+          insert_before(
+              admin_behaviour,
+              '      <article class="behaviour-analytics-card behaviour-recommendations-card">\n',
+              "      <article class=\"behaviour-analytics-card behaviour-page-card\">\n"
+              "        <div class=\"behaviour-analytics-card__header\">\n"
+              "          <div>\n"
+              "            <span class=\"behaviour-card-kicker\">Recent registrations</span>\n"
+              "            <h3>Latest attributed signup journeys</h3>\n"
+              "            <p>Privacy-safe source detail only; no names, email addresses or raw campaign click IDs.</p>\n"
+              "          </div>\n"
+              "        </div>\n"
+              "        <div class=\"behaviour-table-wrap\">\n"
+              "          <table class=\"behaviour-table behaviour-table--registrations\" aria-label=\"Recent attributed registrations\">\n"
+              "            <thead><tr><th>When</th><th>Channel</th><th>Source / campaign</th><th>Landing page</th><th>Method</th></tr></thead>\n"
+              "            <tbody id=\"baRegistrationsBody\"><tr><td colspan=\"5\" class=\"behaviour-empty\">Loading recent registrations…</td></tr></tbody>\n"
+              "          </table>\n"
+              "        </div>\n"
+              "      </article>\n\n",
+          )
+          insert_before(
+              admin_behaviour,
+              '  function renderRegistrationSources(registrations) {\n',
+              "  function renderRecentRegistrations(rows) {\n"
+              "    const body = document.getElementById('baRegistrationsBody');\n"
+              "    if (!body) return;\n"
+              "    const registrations = Array.isArray(rows) ? rows : [];\n"
+              "    body.innerHTML = registrations.length\n"
+              "      ? registrations\n"
+              "          .slice(0, 20)\n"
+              "          .map(item => {\n"
+              "            const source = item.campaign\n"
+              "              ? `${item.source || 'unknown'} · ${item.campaign}`\n"
+              "              : item.source || 'unknown';\n"
+              "            return `<tr>\n"
+              "              <td>${escapeHtml(formatDateTime(item.timestamp))}</td>\n"
+              "              <td>${escapeHtml(registrationLabel(item.channel))}</td>\n"
+              "              <td>${escapeHtml(source)}</td>\n"
+              "              <td><strong>${escapeHtml(item.landingPath || '/')}</strong></td>\n"
+              "              <td>${escapeHtml(registrationLabel(item.signupMethod))}</td>\n"
+              "            </tr>`;\n"
+              "          })\n"
+              "          .join('')\n"
+              "      : '<tr><td colspan=\"5\" class=\"behaviour-empty\">No attributed registrations for this period.</td></tr>';\n"
+              "  }\n\n",
+          )
+          replace_once(
+              admin_behaviour,
+              "    renderBreakdown(\n"
+              "      'baRegistrationSources',\n"
+              "      data.bySource,\n"
+              "      'No signup-source detail for this period.',\n"
+              "      key => (key === 'direct' ? 'Direct / unknown' : registrationLabel(key))\n"
+              "    );\n"
+              "  }\n",
+              "    renderBreakdown(\n"
+              "      'baRegistrationSources',\n"
+              "      data.bySource,\n"
+              "      'No signup-source detail for this period.',\n"
+              "      key => (key === 'direct' ? 'Direct / unknown' : registrationLabel(key))\n"
+              "    );\n"
+              "    renderRecentRegistrations(data.recent);\n"
+              "  }\n",
+          )
+          replace_once(
+              admin_behaviour,
+              "    const pages = document.getElementById('baPagesBody');\n"
+              "    if (pages) {\n"
+              "      pages.innerHTML = `<tr><td colspan=\"8\" class=\"behaviour-empty\">${escapeHtml(message)}</td></tr>`;\n"
+              "    }\n",
+              "    const pages = document.getElementById('baPagesBody');\n"
+              "    if (pages) {\n"
+              "      pages.innerHTML = `<tr><td colspan=\"8\" class=\"behaviour-empty\">${escapeHtml(message)}</td></tr>`;\n"
+              "    }\n"
+              "    const registrations = document.getElementById('baRegistrationsBody');\n"
+              "    if (registrations) {\n"
+              "      registrations.innerHTML = `<tr><td colspan=\"5\" class=\"behaviour-empty\">${escapeHtml(message)}</td></tr>`;\n"
+              "    }\n",
+          )
+
+          css = 'public/assets/css/admin-behaviour-analytics.css'
+          replace_once(
+              css,
+              ".behaviour-analytics-grid--three {\n  grid-template-columns: repeat(3, minmax(0, 1fr));\n}\n",
+              ".behaviour-analytics-grid--three {\n"
+              "  grid-template-columns: repeat(3, minmax(0, 1fr));\n"
+              "}\n\n"
+              ".behaviour-analytics-grid--four {\n"
+              "  grid-template-columns: repeat(4, minmax(0, 1fr));\n"
+              "}\n",
+          )
+          replace_once(
+              css,
+              ".behaviour-breakdown-list {\n  display: flex;\n  min-height: 205px;\n",
+              ".behaviour-breakdown-heading {\n"
+              "  margin: 0.85rem 1.1rem -0.3rem;\n"
+              "  color: #64748b;\n"
+              "  font-size: 0.65rem;\n"
+              "  font-weight: 800;\n"
+              "  letter-spacing: 0.055em;\n"
+              "  text-transform: uppercase;\n"
+              "}\n\n"
+              ".behaviour-breakdown-list {\n"
+              "  display: flex;\n"
+              "  min-height: 205px;\n",
+          )
+          insert_before(
+              css,
+              '.behaviour-breakdown-row {\n',
+              ".behaviour-breakdown-list--compact {\n"
+              "  min-height: 96px;\n"
+              "  gap: 0.55rem;\n"
+              "  padding-top: 0.7rem;\n"
+              "  padding-bottom: 0.8rem;\n"
+              "}\n\n",
+          )
+          insert_before(
+              css,
+              '.behaviour-recommendations {\n',
+              ".behaviour-table--registrations {\n"
+              "  min-width: 760px;\n"
+              "}\n\n"
+              ".behaviour-table--registrations th,\n"
+              ".behaviour-table--registrations td {\n"
+              "  text-align: left;\n"
+              "}\n\n"
+              ".behaviour-table--registrations td:nth-child(3),\n"
+              ".behaviour-table--registrations td:nth-child(4) {\n"
+              "  max-width: 300px;\n"
+              "  overflow: hidden;\n"
+              "  text-overflow: ellipsis;\n"
+              "}\n\n",
+          )
+          replace_once(
+              css,
+              "  .behaviour-analytics-grid--three {\n    grid-template-columns: repeat(2, minmax(0, 1fr));\n  }\n",
+              "  .behaviour-analytics-grid--three,\n"
+              "  .behaviour-analytics-grid--four {\n"
+              "    grid-template-columns: repeat(2, minmax(0, 1fr));\n"
+              "  }\n",
+          )
+          replace_once(
+              css,
+              "  .behaviour-analytics-grid--lead,\n  .behaviour-analytics-grid--three {\n    grid-template-columns: 1fr;\n  }\n",
+              "  .behaviour-analytics-grid--lead,\n"
+              "  .behaviour-analytics-grid--three,\n"
+              "  .behaviour-analytics-grid--four {\n"
+              "    grid-template-columns: 1fr;\n"
+              "  }\n",
+          )
+
+          # True recent-user drill-down and future-date hardening.
+          service = 'services/adminUserSummary.service.js'
+          replace_once(
+              service,
+              "      const loginMs = Date.parse(user.lastLoginAt || 0);\n"
+              "      if (loginMs && loginMs > sevenDaysAgo) {\n"
+              "        activeLast7++;\n"
+              "      }\n",
+              "      const loginMs = Date.parse(user.lastLoginAt || 0);\n"
+              "      if (loginMs && loginMs > sevenDaysAgo && loginMs <= now) {\n"
+              "        activeLast7++;\n"
+              "      }\n",
+          )
+          replace_once(
+              service,
+              " * @param {string} [opts.search] - Search name/email\n"
+              " * @param {number} [opts.page=1] - Page number\n",
+              " * @param {string} [opts.search] - Search name/email\n"
+              " * @param {number} [opts.createdWithinDays] - Rolling created-at window (1-365 days)\n"
+              " * @param {number} [opts.page=1] - Page number\n",
+          )
+          replace_once(
+              service,
+              "    issue,\n    search,\n    page = 1,\n",
+              "    issue,\n    search,\n    createdWithinDays: rawCreatedWithinDays,\n    page = 1,\n",
+          )
+          replace_once(
+              service,
+              "  const parsedPage = Number(page);\n"
+              "  const pageNum = Math.max(Number.isFinite(parsedPage) ? parsedPage : 1, 1);\n\n"
+              "  const [allUsers, allSuppliers, allEmailLogs] = await Promise.all([\n",
+              "  const parsedPage = Number(page);\n"
+              "  const pageNum = Math.max(Number.isFinite(parsedPage) ? parsedPage : 1, 1);\n"
+              "  const parsedCreatedWithinDays = Number(rawCreatedWithinDays);\n"
+              "  const createdWithinDays = Number.isFinite(parsedCreatedWithinDays)\n"
+              "    ? Math.min(Math.max(parsedCreatedWithinDays, 1), 365)\n"
+              "    : null;\n"
+              "  const now = Date.now();\n"
+              "  const createdCutoff = createdWithinDays\n"
+              "    ? now - createdWithinDays * 24 * 60 * 60 * 1000\n"
+              "    : null;\n\n"
+              "  const [allUsers, allSuppliers, allEmailLogs] = await Promise.all([\n",
+          )
+          replace_once(
+              service,
+              "      if (issue && !u.accountIssues.includes(issue)) {\n"
+              "        return false;\n"
+              "      }\n"
+              "      if (searchLower) {\n",
+              "      if (issue && !u.accountIssues.includes(issue)) {\n"
+              "        return false;\n"
+              "      }\n"
+              "      if (createdCutoff) {\n"
+              "        const createdMs = Date.parse(u.createdAt || 0);\n"
+              "        if (!createdMs || createdMs < createdCutoff || createdMs > now) {\n"
+              "          return false;\n"
+              "        }\n"
+              "      }\n"
+              "      if (searchLower) {\n",
+          )
+
+          route = 'routes/admin-user-management.js'
+          replace_once(
+              route,
+              " * Supports: role, signupMethod, verificationMethod, issue, search, page, limit.\n",
+              " * Supports: role, signupMethod, verificationMethod, issue, search, createdWithinDays, page, limit.\n",
+          )
+          replace_once(
+              route,
+              "    const { role, signupMethod, verificationMethod, issue, search, page, limit } = req.query;\n",
+              "    const {\n"
+              "      role,\n"
+              "      signupMethod,\n"
+              "      verificationMethod,\n"
+              "      issue,\n"
+              "      search,\n"
+              "      createdWithinDays,\n"
+              "      page,\n"
+              "      limit,\n"
+              "    } = req.query;\n",
+          )
+          replace_once(
+              route,
+              "      issue,\n      search,\n      page,\n",
+              "      issue,\n      search,\n      createdWithinDays,\n      page,\n",
+          )
+
+          users_init = 'public/assets/js/pages/admin-users-init.js'
+          replace_once(
+              users_init,
+              "  let currentTotal = 0;\n  let currentPages = 1;\n",
+              "  let currentTotal = 0;\n"
+              "  let currentPages = 1;\n"
+              "  let currentCreatedWithinDays = 0;\n",
+          )
+          replace_once(
+              users_init,
+              "      issue: ($('ucIssueFilter') || {}).value || '',\n    };\n",
+              "      issue: ($('ucIssueFilter') || {}).value || '',\n"
+              "      createdWithinDays: currentCreatedWithinDays || '',\n"
+              "    };\n",
+          )
+          replace_once(
+              users_init,
+              "      el.textContent = `${total.toLocaleString()} users · showing ${start.toLocaleString()}–${end.toLocaleString()} · page ${currentPage} of ${pages}`;\n",
+              "      const recentSuffix = currentCreatedWithinDays\n"
+              "        ? ` · created in the last ${currentCreatedWithinDays} days`\n"
+              "        : '';\n"
+              "      el.textContent = `${total.toLocaleString()} users · showing ${start.toLocaleString()}–${end.toLocaleString()} · page ${currentPage} of ${pages}${recentSuffix}`;\n",
+          )
+          replace_once(
+              users_init,
+              "    selectedUserIds.clear();\n    currentPage = 1;\n    applyFilters();\n",
+              "    selectedUserIds.clear();\n"
+              "    currentCreatedWithinDays = 0;\n"
+              "    currentPage = 1;\n"
+              "    applyFilters();\n",
+          )
+          replace_once(
+              users_init,
+              "    const page = Number(params.get('page'));\n"
+              "    currentPage = Number.isFinite(page) && page > 0 ? page : 1;\n",
+              "    const createdWithinDays = Number(params.get('createdWithinDays'));\n"
+              "    currentCreatedWithinDays =\n"
+              "      Number.isFinite(createdWithinDays) && createdWithinDays > 0\n"
+              "        ? Math.min(createdWithinDays, 365)\n"
+              "        : 0;\n"
+              "    const page = Number(params.get('page'));\n"
+              "    currentPage = Number.isFinite(page) && page > 0 ? page : 1;\n",
+          )
+
+          admin_init = 'public/assets/js/pages/admin-init.js'
+          replace_once(
+              admin_init,
+              "          healthRowsEl.innerHTML = [\n"
+              "            {\n"
+              "              label: 'Unverified (pending)',\n",
+              "          const recentBySignup = summary.newLast7BySignup || {};\n"
+              "          const recentMethods = [\n"
+              "            recentBySignup.email_password\n"
+              "              ? `${recentBySignup.email_password} email`\n"
+              "              : '',\n"
+              "            recentBySignup.google ? `${recentBySignup.google} Google` : '',\n"
+              "            recentBySignup.admin_created\n"
+              "              ? `${recentBySignup.admin_created} admin-created`\n"
+              "              : '',\n"
+              "          ].filter(Boolean);\n"
+              "          const recentValue = recentMethods.length\n"
+              "            ? `${summary.newLast7 || 0} · ${recentMethods.join(' / ')}`\n"
+              "            : summary.newLast7 || 0;\n"
+              "          healthRowsEl.innerHTML = [\n"
+              "            {\n"
+              "              label: 'New users · last 7 days',\n"
+              "              value: recentValue,\n"
+              "              href: '/admin-users?createdWithinDays=7',\n"
+              "              warn: false,\n"
+              "            },\n"
+              "            {\n"
+              "              label: 'Unverified (pending)',\n",
+          )
+
+          # Static and dynamic focused regression coverage for the final pass.
+          write(
+              'tests/unit/signup-attribution-review-pass.test.js',
+              "'use strict';\n\n"
+              "const fs = require('fs');\n"
+              "const path = require('path');\n\n"
+              "const ROOT = path.join(__dirname, '../..');\n"
+              "const read = relativePath => fs.readFileSync(path.join(ROOT, relativePath), 'utf8');\n\n"
+              "jest.mock('../../utils/logger', () => ({\n"
+              "  info: jest.fn(),\n"
+              "  warn: jest.fn(),\n"
+              "  error: jest.fn(),\n"
+              "  debug: jest.fn(),\n"
+              "}));\n"
+              "jest.mock('../../services/verificationProvenance.service', () => ({\n"
+              "  summariseUser: jest.fn(() => ({})),\n"
+              "}));\n"
+              "jest.mock('../../services/userProvenance.service', () => ({\n"
+              "  safeUserProvenance: jest.fn(() => ({})),\n"
+              "}));\n"
+              "jest.mock('../../services/emailLog.service', () => ({ COLLECTION: 'email_logs' }));\n"
+              "const mockDb = { read: jest.fn() };\n"
+              "jest.mock('../../db-unified', () => mockDb);\n\n"
+              "const { listUsers } = require('../../services/adminUserSummary.service');\n\n"
+              "describe('signup attribution final review pass', () => {\n"
+              "  beforeEach(() => {\n"
+              "    jest.clearAllMocks();\n"
+              "  });\n\n"
+              "  test('labels paid click sources without storing click identifiers', () => {\n"
+              "    const source = read('public/assets/js/analytics-consent-upgrade.js');\n"
+              "    expect(source).toContain(\"return 'google_ads'\");\n"
+              "    expect(source).toContain(\"return 'meta_ads'\");\n"
+              "    expect(source).toContain(\"return 'microsoft_ads'\");\n"
+              "    expect(source).not.toContain('params.get(\\\"gclid\\\")');\n"
+              "    expect(source).not.toContain(\"params.get('gclid')\");\n"
+              "  });\n\n"
+              "  test('adds a privacy-safe recent registration table and responsive four-card layout', () => {\n"
+              "    const script = read('public/assets/js/pages/admin-behaviour-analytics.js');\n"
+              "    const css = read('public/assets/css/admin-behaviour-analytics.css');\n"
+              "    expect(script).toContain('baRegistrationsBody');\n"
+              "    expect(script).toContain('renderRecentRegistrations(data.recent)');\n"
+              "    expect(script).toContain('admin-behaviour-analytics.css?v=3');\n"
+              "    expect(css).toContain('.behaviour-analytics-grid--four');\n"
+              "    expect(css).toContain('.behaviour-breakdown-list--compact');\n"
+              "  });\n\n"
+              "  test('filters Users Centre results to the requested rolling created-at window', async () => {\n"
+              "    const now = Date.now();\n"
+              "    mockDb.read.mockImplementation(async collection => {\n"
+              "      if (collection === 'users') {\n"
+              "        return [\n"
+              "          {\n"
+              "            id: 'recent',\n"
+              "            name: 'Recent',\n"
+              "            email: 'recent@example.com',\n"
+              "            role: 'customer',\n"
+              "            verified: true,\n"
+              "            passwordHash: 'hash',\n"
+              "            createdAt: new Date(now - 2 * 86400000).toISOString(),\n"
+              "          },\n"
+              "          {\n"
+              "            id: 'older',\n"
+              "            name: 'Older',\n"
+              "            email: 'older@example.com',\n"
+              "            role: 'customer',\n"
+              "            verified: true,\n"
+              "            passwordHash: 'hash',\n"
+              "            createdAt: new Date(now - 9 * 86400000).toISOString(),\n"
+              "          },\n"
+              "          {\n"
+              "            id: 'future',\n"
+              "            name: 'Future',\n"
+              "            email: 'future@example.com',\n"
+              "            role: 'customer',\n"
+              "            verified: true,\n"
+              "            passwordHash: 'hash',\n"
+              "            createdAt: new Date(now + 86400000).toISOString(),\n"
+              "          },\n"
+              "        ];\n"
+              "      }\n"
+              "      return [];\n"
+              "    });\n"
+              "    const result = await listUsers({ createdWithinDays: 7 });\n"
+              "    expect(result.items.map(user => user.id)).toEqual(['recent']);\n"
+              "  });\n\n"
+              "  test('wires the recent-user filter through the route and dashboard interfaces', () => {\n"
+              "    const route = read('routes/admin-user-management.js');\n"
+              "    const usersCentre = read('public/assets/js/pages/admin-users-init.js');\n"
+              "    const dashboard = read('public/assets/js/pages/admin-init.js');\n"
+              "    expect(route).toContain('createdWithinDays');\n"
+              "    expect(usersCentre).toContain('currentCreatedWithinDays');\n"
+              "    expect(dashboard).toContain('/admin-users?createdWithinDays=7');\n"
+              "  });\n"
+              "});\n",
+          )
+          PY
+          python /tmp/pr1426_final_patch.py
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit
+        env:
+          HUSKY: '0'
+
+      - name: Format changed files
+        run: >-
+          npx prettier --write
+          public/assets/js/analytics-consent-upgrade.js
+          public/assets/js/pages/admin-behaviour-analytics.js
+          public/assets/js/pages/admin-init.js
+          public/assets/js/pages/admin-users-init.js
+          public/assets/css/admin-behaviour-analytics.css
+          routes/admin-user-management.js
+          services/adminUserSummary.service.js
+          tests/unit/signup-attribution-review-pass.test.js
+
+      - name: Check JavaScript syntax
+        run: |
+          node --check public/assets/js/analytics-consent-upgrade.js
+          node --check public/assets/js/pages/admin-behaviour-analytics.js
+          node --check public/assets/js/pages/admin-init.js
+          node --check public/assets/js/pages/admin-users-init.js
+          node --check routes/admin-user-management.js
+          node --check services/adminUserSummary.service.js
+          node --check tests/unit/signup-attribution-review-pass.test.js
+
+      - name: Run focused regression tests
+        run: >-
+          npx jest
+          tests/unit/signup-attribution-review-pass.test.js
+          tests/unit/signup-attribution-summary.test.js
+          tests/unit/analytics-attribution-session-replay.test.js
+          tests/unit/analytics-independent-hardening.test.js
+          tests/unit/admin-user-systems.test.js
+          tests/unit/google-auth-init-context.test.js
+          --runInBand --coverage=false
+        env:
+          NODE_ENV: test
+          JWT_SECRET: test-secret-key-for-ci-testing-only-min-32-chars
+
+      - name: Commit final review pass
+        shell: bash
+        run: |
+          rm .github/workflows/pr1426-final-review-pass.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          git commit -m "fix: finish signup attribution review improvements"
+          git push origin HEAD:feat/signup-attribution-session-replay
