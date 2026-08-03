@@ -431,7 +431,7 @@
       ...source,
       mask_personal_data_properties: true,
       disable_capture_url_hashes: true,
-      before_send: function (event) {
+      before_send: event => {
         let result = event;
         try {
           result = runBeforeSendHooks(existingBeforeSend, result);
@@ -720,9 +720,7 @@
         });
         return true;
       })
-      .catch(function () {
-        return false;
-      });
+      .catch(() => false);
   }
 
   function installSuccessfulConversionObserver() {
@@ -788,7 +786,7 @@
         });
         window.posthog.opt_in_capturing();
       })
-      .catch(function () {
+      .catch(() => {
         authPostHogStarted = false;
       });
   }
