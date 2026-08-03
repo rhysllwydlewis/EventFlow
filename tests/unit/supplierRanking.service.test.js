@@ -200,14 +200,26 @@ describe('supplierRanking.service', () => {
     expect(effectiveVerified({ approved: true, verificationStatus: 'approved' })).toBe(true);
   });
 
-  test('excludes test, suspended and orphaned suppliers while retaining legacy approved records', () => {
+  test('excludes test, suspended, orphaned and ownerless suppliers while retaining valid-owner records', () => {
     const owners = new Set(['user_1']);
-    expect(isPubliclyEligibleSupplier({ approved: true }, owners)).toBe(true);
-    expect(isPubliclyEligibleSupplier({ approved: true, isTest: true }, owners)).toBe(false);
-    expect(isPubliclyEligibleSupplier({ approved: true, status: 'suspended' }, owners)).toBe(false);
+    expect(isPubliclyEligibleSupplier({ approved: true, ownerUserId: 'user_1' }, owners)).toBe(
+      true
+    );
+    expect(
+      isPubliclyEligibleSupplier({ approved: true, isTest: true, ownerUserId: 'user_1' }, owners)
+    ).toBe(false);
+    expect(
+      isPubliclyEligibleSupplier(
+        { approved: true, status: 'suspended', ownerUserId: 'user_1' },
+        owners
+      )
+    ).toBe(false);
     expect(
       isPubliclyEligibleSupplier({ approved: true, ownerUserId: 'missing_user' }, owners)
     ).toBe(false);
+    // No user collection was available when the record was written and it now
+    // has no owner at all — cannot be tied to an existing account, so excluded.
+    expect(isPubliclyEligibleSupplier({ approved: true }, owners)).toBe(false);
   });
 
   test('package text contributes to keyword relevance', () => {
