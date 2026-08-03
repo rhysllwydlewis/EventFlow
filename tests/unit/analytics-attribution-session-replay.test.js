@@ -6,7 +6,8 @@ const path = require('path');
 const read = relativePath => fs.readFileSync(path.join(__dirname, '../..', relativePath), 'utf8');
 
 describe('signup attribution and PostHog session replay', () => {
-  const browserSource = read('public/assets/js/analytics-consent-upgrade.js');
+  const bridgeSource = read('public/assets/js/analytics-consent-upgrade.js');
+  const replaySource = read('public/assets/js/behaviour-analytics.js');
   const routeSource = read('routes/behaviour-analytics.js');
 
   test('enables replay by default while retaining an explicit environment kill switch', () => {
@@ -16,41 +17,37 @@ describe('signup attribution and PostHog session replay', () => {
   });
 
   test('keeps replay consent-gated, masked and off on sensitive pages', () => {
-    expect(browserSource).toContain('hasAnalyticsConsent()');
-    expect(browserSource).toContain('maskAllInputs: true');
-    expect(browserSource).toContain('maskTextSelector:');
-    expect(browserSource).toContain('disable_session_recording: sensitive || !provider.sessionRecordingEnabled');
-    expect(browserSource).toContain("'/auth'");
-    expect(browserSource).toContain("'/payment'");
-    expect(browserSource).toContain("'/messages'");
+    expect(replaySource).toContain('hasAnalyticsConsent()');
+    expect(replaySource).toContain('maskAllInputs: true');
+    expect(replaySource).toContain('maskTextSelector:');
+    expect(replaySource).toContain('disable_session_recording: !replayAllowed');
+    expect(replaySource).toContain("'/auth'");
+    expect(replaySource).toContain("'/payment'");
+    expect(replaySource).toContain("'/messages'");
   });
 
-  test('creates identified-only PostHog profiles without sending email or names', () => {
-    expect(browserSource).toContain("person_profiles: 'identified_only'");
-    expect(browserSource).toContain('window.posthog.identify(String(user.id)');
-    expect(browserSource).not.toContain('person_profiles: \'never\'');
-    expect(browserSource).not.toMatch(/posthog\.identify\([^\n]*(email|name)/i);
+  test('identifies a completed email registration without sending email or names', () => {
+    expect(bridgeSource).toContain("person_profiles: 'identified_only'");
+    expect(bridgeSource).toContain('window.posthog.identify(String(user.id)');
+    expect(bridgeSource).not.toMatch(/posthog\.identify\([^\n]*(email|name)/i);
+    expect(bridgeSource).toContain('disable_session_recording: true');
   });
 
   test('captures first-touch, last-touch and campaign attribution', () => {
-    expect(browserSource).toContain("const ATTRIBUTION_KEY = 'ef_attribution_v1'");
-    expect(browserSource).toContain("params.get('utm_source')");
-    expect(browserSource).toContain("params.get('utm_medium')");
-    expect(browserSource).toContain("params.get('utm_campaign')");
-    expect(browserSource).toContain('first_channel');
-    expect(browserSource).toContain('first_referrer_domain');
-    expect(browserSource).toContain('first_landing_path');
-    expect(browserSource).toContain('last_channel');
+    expect(bridgeSource).toContain("const ATTRIBUTION_KEY = 'ef_attribution_v1'");
+    expect(bridgeSource).toContain("params.get('utm_source')");
+    expect(bridgeSource).toContain("params.get('utm_medium')");
+    expect(bridgeSource).toContain("params.get('utm_campaign')");
+    expect(bridgeSource).toContain('first_channel');
+    expect(bridgeSource).toContain('first_referrer_domain');
+    expect(bridgeSource).toContain('first_landing_path');
+    expect(bridgeSource).toContain('last_channel');
   });
 
-  test('attributes email and Google registrations to an identified conversion event', () => {
-    expect(browserSource).toContain("capturePostHog('registration_completed'");
-    expect(browserSource).toContain("signup_method: 'email_password'");
-    expect(browserSource).toContain("signup_method: 'google'");
-    expect(browserSource).toContain("const GOOGLE_SIGNUP_PENDING_KEY = 'ef_google_signup_pending'");
-  });
-
-  test('explicitly starts recordings on eligible pages', () => {
-    expect(browserSource).toContain('window.posthog.startSessionRecording?.()');
+  test('attributes successful email registrations to a PostHog conversion event', () => {
+    expect(bridgeSource).toContain("event: 'registration_completed'");
+    expect(bridgeSource).toContain("signup_method: 'email_password'");
+    expect(bridgeSource).toContain('window.posthog.capture(conversion.event, conversion.properties)');
+    expect(bridgeSource).toContain('response.ok ? successfulEventFor(request) : null');
   });
 });
