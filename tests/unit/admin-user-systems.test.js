@@ -282,6 +282,24 @@ describe('buildUserSummary', () => {
     expect(s.suppliers.suppliersWithoutProfile).toBe(0);
   });
 
+  test('compares the current rolling seven days with the preceding seven days', async () => {
+    const now = Date.now();
+    mockDb.read.mockImplementation(async col => {
+      if (col === 'users') {
+        return [
+          makeUser({ id: 'current', createdAt: new Date(now - 2 * 86400000).toISOString() }),
+          makeUser({ id: 'previous', createdAt: new Date(now - 10 * 86400000).toISOString() }),
+          makeUser({ id: 'future', createdAt: new Date(now + 86400000).toISOString() }),
+        ];
+      }
+      return [];
+    });
+    const s = await buildUserSummary();
+    expect(s.newLast7).toBe(1);
+    expect(s.newPrevious7).toBe(1);
+    expect(s.summary.newUsersPrevious7Days).toBe(1);
+  });
+
   test('handles empty collections gracefully', async () => {
     mockDb.read.mockResolvedValue([]);
     const s = await buildUserSummary();

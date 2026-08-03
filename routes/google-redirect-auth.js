@@ -12,6 +12,10 @@ const { getFeatureFlags } = require('../middleware/features');
 const domainAdmin = require('../middleware/domain-admin');
 const googleAuthService = require('../services/googleAuth.service');
 const userProvenance = require('../services/userProvenance.service');
+const {
+  COLLECTION_NAME: ANALYTICS_COLLECTION,
+  sanitizeEvent: sanitizeAnalyticsEvent,
+} = require('../utils/behaviourAnalytics');
 
 const router = express.Router();
 const parseGoogleFormPost = express.urlencoded({ extended: false, limit: '32kb' });
@@ -305,6 +309,72 @@ function buildGoogleUser(googleProfile, nowIso, signupState = {}) {
   };
 }
 
+const GOOGLE_ATTRIBUTION_KEYS = [
+  'attribution_available',
+  'first_channel',
+  'first_referrer_domain',
+  'first_landing_path',
+  'first_utm_source',
+  'first_utm_medium',
+  'first_utm_campaign',
+  'first_partner_reference',
+  'last_channel',
+  'last_referrer_domain',
+  'last_landing_path',
+  'last_utm_source',
+  'last_utm_medium',
+  'last_utm_campaign',
+  'last_partner_reference',
+];
+
+function getGoogleSignupAttribution(state) {
+  if (!state || state.context !== 'signup' || !state.attribution) {
+    return null;
+  }
+  const properties = { conversionType: 'registration', signup_method: 'google' };
+  GOOGLE_ATTRIBUTION_KEYS.forEach(key => {
+    const value = state.attribution[key];
+    if (typeof value === 'boolean' || typeof value === 'string') {
+      properties[key] = value;
+    }
+  });
+  return properties.attribution_available === true ? properties : null;
+}
+
+async function recordGoogleSignupAnalytics(user, state) {
+  const properties = getGoogleSignupAttribution(state);
+  const sessionId = cleanStateText(state && state.analyticsSessionId, 120);
+  if (!properties || !sessionId || !user || user.role === 'admin') {
+    return;
+  }
+  try {
+    const event = sanitizeAnalyticsEvent(
+      {
+        event: 'registration_completed',
+        sessionId,
+        pagePath: properties.first_landing_path || '/auth',
+        pageType: 'auth',
+        referrerDomain: properties.first_referrer_domain || 'direct',
+        deviceType: 'other',
+        timestamp: new Date().toISOString(),
+        properties,
+      },
+      {
+        userId: user.id,
+        userRole: user.role,
+        hashSalt: process.env.ANALYTICS_HASH_SALT || process.env.JWT_SECRET,
+      }
+    );
+    if (event) {
+      await dbUnified.insertOne(ANALYTICS_COLLECTION, event);
+    }
+  } catch (error) {
+    logger.warn('[GOOGLE REDIRECT LOGIN] Signup analytics recording failed', {
+      message: error.message,
+    });
+  }
+}
+
 async function findOrCreateGoogleUser(googleProfile, state = {}) {
   const users = await dbUnified.read('users');
   const email = String(googleProfile.email || '').toLowerCase();
@@ -371,7 +441,7 @@ async function findOrCreateGoogleUser(googleProfile, state = {}) {
     if (signupState.role === 'supplier') {
       await recordSupplierPartnerReferral(signupState.ref, user);
     }
-    return user;
+    return { ...user, __eventflowNewGoogleSignup: true };
   }
 
   if (user.verified === false) {
@@ -428,6 +498,9 @@ router.post('/callback/google', parseGoogleFormPost, async (req, res) => {
     const state = decodeState(req.body && req.body.state);
     const googleProfile = await googleAuthService.verifyGoogleCredential(credential);
     const user = await findOrCreateGoogleUser(googleProfile, state);
+    if (user.__eventflowNewGoogleSignup === true) {
+      await recordGoogleSignupAnalytics(user, state);
+    }
 
     if (user.twoFactorEnabled) {
       logger.info('[GOOGLE REDIRECT LOGIN] 2FA required; redirecting to auth');

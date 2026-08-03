@@ -59,15 +59,41 @@
     'reddit.com',
     'whatsapp.com',
   ];
+  const SEARCH_SOURCE_TOKENS = new Set(['google', 'bing', 'duckduckgo', 'yahoo', 'ecosia']);
+  const SOCIAL_SOURCE_TOKENS = new Set([
+    'facebook',
+    'instagram',
+    'linkedin',
+    'twitter',
+    'x',
+    'tiktok',
+    'pinterest',
+    'youtube',
+    'reddit',
+    'whatsapp',
+  ]);
+  const PAID_SEARCH_CLICK_PARAMS = ['gclid', 'gbraid', 'wbraid', 'msclkid'];
+  const PAID_SOCIAL_CLICK_PARAMS = ['fbclid', 'ttclid', 'li_fat_id'];
 
   let capturedPostHogPage = '';
   let capturedPostHogPageleave = false;
   let posthogPageviewStartedAt = 0;
   let posthogPageviewTimer = null;
   let authPostHogStarted = false;
+  let initialAttributionTouch = null;
 
   function currentPath() {
     return window.location.pathname || '/';
+  }
+
+  function isAuthPage() {
+    const pagePath = currentPath();
+    return (
+      pagePath === '/auth' ||
+      pagePath.startsWith('/auth/') ||
+      pagePath.startsWith('/auth-') ||
+      pagePath.startsWith('/auth.')
+    );
   }
 
   function pathMatches(prefixes) {
@@ -203,11 +229,21 @@
     return candidates.some(candidate => host === candidate || host.endsWith(`.${candidate}`));
   }
 
-  function classifyChannel(medium, source, referrer) {
+  function classifyChannel(medium, source, referrer, signals = {}) {
     const normalizedMedium = cleanAttributionValue(medium, 80).toLowerCase();
+    const sourceToken = cleanAttributionValue(source, 100).toLowerCase();
     const normalizedSource = normalizedDomain(source);
     const normalizedReferrer = normalizedDomain(referrer);
 
+    if (signals.paidSearch) {
+      return 'paid_search';
+    }
+    if (signals.paidSocial) {
+      return 'paid_social';
+    }
+    if (signals.partnerReference) {
+      return 'partner';
+    }
     if (/^(cpc|ppc|paidsearch|paid_search|sem)$/.test(normalizedMedium)) {
       return 'paid_search';
     }
@@ -233,12 +269,14 @@
       return 'referral';
     }
     if (
+      SEARCH_SOURCE_TOKENS.has(sourceToken) ||
       hostMatches(normalizedSource, SEARCH_HOSTS) ||
       hostMatches(normalizedReferrer, SEARCH_HOSTS)
     ) {
       return 'organic_search';
     }
     if (
+      SOCIAL_SOURCE_TOKENS.has(sourceToken) ||
       hostMatches(normalizedSource, SOCIAL_HOSTS) ||
       hostMatches(normalizedReferrer, SOCIAL_HOSTS)
     ) {
@@ -254,16 +292,32 @@
     const params = new URLSearchParams(window.location.search || '');
     const utmSource = cleanAttributionValue(params.get('utm_source'), 100);
     const utmMedium = cleanAttributionValue(params.get('utm_medium'), 80);
+    const partnerReference = cleanAttributionValue(params.get('ref') || params.get('partner'), 80);
     const referrerDomain = externalReferrerDomain();
+    const signals = {
+      paidSearch: PAID_SEARCH_CLICK_PARAMS.some(key => params.has(key)),
+      paidSocial: PAID_SOCIAL_CLICK_PARAMS.some(key => params.has(key)),
+      partnerReference,
+    };
     return {
-      channel: classifyChannel(utmMedium, utmSource, referrerDomain),
+      channel: classifyChannel(utmMedium, utmSource, referrerDomain, signals),
       referrerDomain,
       landingPath: safePath(window.location.href),
       utmSource,
       utmMedium,
       utmCampaign: cleanAttributionValue(params.get('utm_campaign'), 120),
+      partnerReference,
       capturedAt: new Date().toISOString(),
     };
+  }
+
+  function clearAttribution() {
+    initialAttributionTouch = null;
+    try {
+      window.localStorage.removeItem(ATTRIBUTION_KEY);
+    } catch (_error) {
+      // Storage cleanup is best-effort in restricted privacy modes.
+    }
   }
 
   function readAttribution() {
@@ -271,6 +325,7 @@
       const value = JSON.parse(window.localStorage.getItem(ATTRIBUTION_KEY) || 'null');
       const capturedAt = Date.parse(value && value.first && value.first.capturedAt);
       if (!capturedAt || Date.now() - capturedAt > ATTRIBUTION_TTL_MS) {
+        window.localStorage.removeItem(ATTRIBUTION_KEY);
         return null;
       }
       return value;
@@ -286,7 +341,8 @@
 
     const next = buildAttributionTouch();
     const existing = readAttribution();
-    const value = existing || { first: next, last: next };
+    const first = initialAttributionTouch || next;
+    const value = existing || { first, last: next };
     if (
       !existing ||
       next.utmSource ||
@@ -322,12 +378,14 @@
       first_utm_source: cleanAttributionValue(first.utmSource, 100),
       first_utm_medium: cleanAttributionValue(first.utmMedium, 80),
       first_utm_campaign: cleanAttributionValue(first.utmCampaign, 120),
+      first_partner_reference: cleanAttributionValue(first.partnerReference, 80),
       last_channel: cleanAttributionValue(last.channel, 40),
       last_referrer_domain: normalizedDomain(last.referrerDomain),
       last_landing_path: safePath(last.landingPath),
       last_utm_source: cleanAttributionValue(last.utmSource, 100),
       last_utm_medium: cleanAttributionValue(last.utmMedium, 80),
       last_utm_campaign: cleanAttributionValue(last.utmCampaign, 120),
+      last_partner_reference: cleanAttributionValue(last.partnerReference, 80),
     };
   }
 
@@ -559,7 +617,7 @@
   function handleAnalyticsConsentChange(event) {
     if (event && event.detail && event.detail.analytics === true) {
       captureAttribution();
-      if (currentPath() === '/auth' || currentPath().startsWith('/auth.')) {
+      if (isAuthPage()) {
         startAuthPostHog();
       }
       if (!isSensitiveAnalyticsPage()) {
@@ -569,7 +627,9 @@
     }
     capturedPostHogPage = '';
     capturedPostHogPageleave = false;
+    authPostHogStarted = false;
     clearPostHogPageviewTimer();
+    clearAttribution();
   }
 
   function handlePostHogPageShow(event) {
@@ -649,23 +709,24 @@
       !window.posthog ||
       typeof window.posthog.identify !== 'function'
     ) {
-      return;
+      return Promise.resolve(false);
     }
-    response
+    return response
       .clone()
       .json()
       .then(payload => {
         const user = payload && payload.user;
         if (!user || !user.id || user.role === 'admin') {
-          return;
+          return false;
         }
         window.posthog.identify(String(user.id), {
           role: cleanAttributionValue(user.role, 40) || 'customer',
           signup_method: 'email_password',
         });
+        return true;
       })
       .catch(function () {
-        // Registration conversion tracking does not depend on response parsing.
+        return false;
       });
   }
 
@@ -688,8 +749,9 @@
           window.posthog &&
           typeof window.posthog.capture === 'function'
         ) {
-          identifyRegisteredUser(response);
-          window.posthog.capture(conversion.event, conversion.properties);
+          const captureRegistration = () =>
+            window.posthog.capture(conversion.event, conversion.properties);
+          identifyRegisteredUser(response).then(captureRegistration, captureRegistration);
         }
         return response;
       });
@@ -699,11 +761,7 @@
   }
 
   function startAuthPostHog() {
-    if (
-      authPostHogStarted ||
-      !hasAnalyticsConsent() ||
-      !(currentPath() === '/auth' || currentPath().startsWith('/auth.'))
-    ) {
+    if (authPostHogStarted || !hasAnalyticsConsent() || !isAuthPage()) {
       return;
     }
     authPostHogStarted = true;
@@ -770,6 +828,7 @@
 
   window.EventFlowAttribution = {
     capture: captureAttribution,
+    clear: clearAttribution,
     get: readAttribution,
     properties: attributionProperties,
   };
@@ -777,6 +836,7 @@
   function init() {
     upgradeConsentCopy(document);
     installSuccessfulConversionObserver();
+    initialAttributionTouch = buildAttributionTouch();
     captureAttribution();
     startAuthPostHog();
     queuePostHogPageview();

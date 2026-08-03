@@ -144,6 +144,29 @@
     return snapshot;
   }
 
+  function getConsentedAttributionState() {
+    try {
+      if (
+        !window.EventFlowAttribution ||
+        typeof window.EventFlowAttribution.properties !== 'function'
+      ) {
+        return null;
+      }
+      const attribution = window.EventFlowAttribution.properties();
+      return attribution && attribution.attribution_available === true ? attribution : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function getAnalyticsSessionId() {
+    try {
+      return cleanValue(window.sessionStorage.getItem('ef_analytics_session_id'), 120);
+    } catch (_) {
+      return '';
+    }
+  }
+
   function getGoogleButtonState(context) {
     const params = new URLSearchParams(window.location.search);
     const normalizedContext = context === 'signup' ? 'signup' : 'signin';
@@ -155,6 +178,12 @@
 
     if (normalizedContext === 'signup') {
       Object.assign(state, getSignupFormSnapshot());
+      const attribution = getConsentedAttributionState();
+      const analyticsSessionId = getAnalyticsSessionId();
+      if (attribution && analyticsSessionId) {
+        state.attribution = attribution;
+        state.analyticsSessionId = analyticsSessionId;
+      }
       if (!state.returnTo) {
         state.returnTo = state.role === 'supplier' ? '/dashboard/supplier' : '/dashboard/customer';
       }

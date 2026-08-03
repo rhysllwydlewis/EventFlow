@@ -12,7 +12,7 @@ After a visitor consents to analytics, EventFlow stores a privacy-safe 90-day fi
 
 The PostHog distinct ID is EventFlow's opaque internal user ID. The account role is attached to the identified profile. Email addresses, names, passwords, form values and message content are not sent as identification properties.
 
-Google registration attribution is not included in this browser-side change because Google completes through a server redirect. It should be added separately by carrying the same attribution fields through the signed Google state and recording the conversion after account creation.
+For a new Google signup, the same consented attribution fields and opaque analytics session reference are carried through Google's signed redirect state. EventFlow then records a privacy-safe first-party `registration_completed` event after the account is created. Email/password registrations are also attached to the opaque EventFlow user in PostHog; Google registrations remain first-party-only in this change.
 
 ## Session replay
 
@@ -36,7 +36,7 @@ The injected analytics bridge asset is versioned, so returning visitors receive 
 
 ## Viewing signup sources in PostHog
 
-Create an insight using the `registration_completed` event and break it down by one of:
+The EventFlow admin behaviour dashboard now includes a **Where registrations came from** card using privacy-safe first-party events. In PostHog, create an insight using the `registration_completed` event and break it down by one of:
 
 - `first_channel`
 - `first_referrer_domain`
@@ -51,4 +51,4 @@ For recordings, filter session recordings by the `registration_completed` event.
 
 ## Limitations
 
-Attribution only exists for visitors who accept analytics cookies. Browser privacy tools, cleared storage and cross-device journeys can prevent a complete match. First-touch attribution should therefore be read alongside self-reported acquisition data where practical.
+Attribution only exists for visitors who accept analytics cookies. Withdrawing analytics consent removes the browser attribution record. Browser privacy tools, cleared storage and cross-device journeys can prevent a complete match. First-touch attribution should therefore be read alongside self-reported acquisition data where practical.

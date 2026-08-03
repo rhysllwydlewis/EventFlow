@@ -220,6 +220,16 @@
       <div class="behaviour-analytics-grid behaviour-analytics-grid--three">
         <article class="behaviour-analytics-card">
           <div class="behaviour-analytics-card__header">
+            <div><span class="behaviour-card-kicker">Signup acquisition</span><h3>Where registrations came from</h3><p>First-touch channel and source for consented completed registrations.</p></div>
+            <strong id="baRegistrationTotal" class="behaviour-card-metric">—</strong>
+          </div>
+          <h4 class="behaviour-breakdown-heading">Channels</h4>
+          <div id="baRegistrationChannels" class="behaviour-breakdown-list"><div class="behaviour-empty">Loading signup channels…</div></div>
+          <h4 class="behaviour-breakdown-heading">Sources</h4>
+          <div id="baRegistrationSources" class="behaviour-breakdown-list"><div class="behaviour-empty">Loading signup sources…</div></div>
+        </article>
+        <article class="behaviour-analytics-card">
+          <div class="behaviour-analytics-card__header">
             <div><span class="behaviour-card-kicker">Acquisition</span><h3>Traffic sources</h3><p>Entry source for each measured session.</p></div>
           </div>
           <div id="baReferrers" class="behaviour-breakdown-list"><div class="behaviour-empty">Loading sources…</div></div>
@@ -419,6 +429,29 @@
       : '<div class="behaviour-empty">No improvement signals were triggered for this period.</div>';
   }
 
+  function registrationLabel(value) {
+    return String(value || 'unknown')
+      .replace(/_/g, ' ')
+      .replace(/\b\w/g, char => char.toUpperCase());
+  }
+
+  function renderRegistrationSources(registrations) {
+    const data = registrations || {};
+    setText('baRegistrationTotal', `${formatNumber(data.total)} registrations`);
+    renderBreakdown(
+      'baRegistrationChannels',
+      data.byChannel,
+      'No attributed registrations for this period.',
+      registrationLabel
+    );
+    renderBreakdown(
+      'baRegistrationSources',
+      data.bySource,
+      'No signup-source detail for this period.',
+      key => (key === 'direct' ? 'Direct / unknown' : registrationLabel(key))
+    );
+  }
+
   function renderSummary(summary) {
     const totals = summary.totals || {};
     setText('baPageViews', formatNumber(totals.pageViews));
@@ -431,6 +464,7 @@
     renderTrend(summary.daily);
     renderPages(summary.pages);
     renderFunnel(summary.funnel);
+    renderRegistrationSources(summary.registrations);
     renderBreakdown(
       'baReferrers',
       summary.referrers,
@@ -492,13 +526,19 @@
     if (pages) {
       pages.innerHTML = `<tr><td colspan="8" class="behaviour-empty">${escapeHtml(message)}</td></tr>`;
     }
-    ['baTrend', 'baFunnel', 'baReferrers', 'baDevices', 'baEvents', 'baRecommendations'].forEach(
-      id => {
-        const element = document.getElementById(id);
-        if (element)
-          element.innerHTML = `<div class="behaviour-empty">${escapeHtml(message)}</div>`;
-      }
-    );
+    [
+      'baTrend',
+      'baFunnel',
+      'baRegistrationChannels',
+      'baRegistrationSources',
+      'baReferrers',
+      'baDevices',
+      'baEvents',
+      'baRecommendations',
+    ].forEach(id => {
+      const element = document.getElementById(id);
+      if (element) element.innerHTML = `<div class="behaviour-empty">${escapeHtml(message)}</div>`;
+    });
   }
 
   async function load() {

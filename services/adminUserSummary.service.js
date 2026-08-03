@@ -273,6 +273,7 @@ async function buildUserSummary() {
     }
     const now = Date.now();
     const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;
+    const fourteenDaysAgo = now - 14 * 24 * 60 * 60 * 1000;
 
     const byRole = { customer: 0, supplier: 0, admin: 0, owner: 0, other: 0 };
     const bySignup = { google: 0, email_password: 0, admin_created: 0, owner: 0, unknown: 0 };
@@ -289,6 +290,15 @@ async function buildUserSummary() {
     let suspendedCount = 0;
     let unverifiedCount = 0;
     let newLast7 = 0;
+    let newPrevious7 = 0;
+    const newLast7ByRole = { customer: 0, supplier: 0, admin: 0, owner: 0, other: 0 };
+    const newLast7BySignup = {
+      google: 0,
+      email_password: 0,
+      admin_created: 0,
+      owner: 0,
+      unknown: 0,
+    };
     let activeLast7 = 0;
     let latestSignupAt = null;
 
@@ -366,10 +376,19 @@ async function buildUserSummary() {
       }
 
       const createdMs = Date.parse(user.createdAt || 0);
-      if (createdMs && createdMs > sevenDaysAgo) {
-        newLast7++;
-        if (!latestSignupAt || createdMs > Date.parse(latestSignupAt || 0)) {
-          latestSignupAt = safeDateIso(user.createdAt);
+      if (createdMs && createdMs <= now) {
+        if (createdMs > sevenDaysAgo) {
+          newLast7++;
+          const roleKey = Object.prototype.hasOwnProperty.call(newLast7ByRole, role)
+            ? role
+            : 'other';
+          newLast7ByRole[roleKey]++;
+          newLast7BySignup[signupMethod] = (newLast7BySignup[signupMethod] || 0) + 1;
+          if (!latestSignupAt || createdMs > Date.parse(latestSignupAt || 0)) {
+            latestSignupAt = safeDateIso(user.createdAt);
+          }
+        } else if (createdMs > fourteenDaysAgo) {
+          newPrevious7++;
         }
       }
 
@@ -445,6 +464,7 @@ async function buildUserSummary() {
       suppliers: byRole.supplier,
       admins: byRole.admin + byRole.owner,
       newUsersLast7Days: newLast7,
+      newUsersPrevious7Days: newPrevious7,
       recentlyActiveUsersLast7Days: activeLast7,
       unverifiedUsers: unverifiedCount,
       verificationIssues: issueCount,
@@ -503,6 +523,9 @@ async function buildUserSummary() {
       suspended: suspendedCount,
       issueCount,
       newLast7,
+      newPrevious7,
+      newLast7ByRole,
+      newLast7BySignup,
       activeLast7,
       latestSignupAt,
       suppliers: {

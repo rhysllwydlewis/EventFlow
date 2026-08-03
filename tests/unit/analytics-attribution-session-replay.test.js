@@ -9,6 +9,11 @@ describe('signup attribution and PostHog session replay', () => {
   const bridgeSource = read('public/assets/js/analytics-consent-upgrade.js');
   const replaySource = read('public/assets/js/behaviour-analytics.js');
   const routeSource = read('routes/behaviour-analytics.js');
+  const behaviourUtilitySource = read('utils/behaviourAnalytics.js');
+  const googleClientSource = read('public/assets/js/pages/auth-google-init.js');
+  const googleServerSource = read('routes/google-redirect-auth.js');
+  const adminDashboardSource = read('public/assets/js/pages/admin-init.js');
+  const adminBehaviourSource = read('public/assets/js/pages/admin-behaviour-analytics.js');
 
   test('enables replay by default while retaining an explicit environment kill switch', () => {
     expect(routeSource).toContain("envFlag('POSTHOG_SESSION_RECORDING_ENABLED', true)");
@@ -51,5 +56,35 @@ describe('signup attribution and PostHog session replay', () => {
       'window.posthog.capture(conversion.event, conversion.properties)'
     );
     expect(bridgeSource).toContain('response.ok ? successfulEventFor(request) : null');
+    expect(bridgeSource).toContain(
+      'identifyRegisteredUser(response).then(captureRegistration, captureRegistration)'
+    );
+  });
+
+  test('clears stored attribution when analytics consent is withdrawn', () => {
+    expect(bridgeSource).toContain('function clearAttribution()');
+    expect(bridgeSource).toContain('window.localStorage.removeItem(ATTRIBUTION_KEY)');
+    expect(bridgeSource).toContain('authPostHogStarted = false');
+  });
+
+  test('retains attribution in first-party analytics and exposes a signup-source report', () => {
+    expect(behaviourUtilitySource).toContain("'first_channel'");
+    expect(behaviourUtilitySource).toContain("'signup_method'");
+    expect(behaviourUtilitySource).toContain('buildRegistrationSummary(events)');
+    expect(adminBehaviourSource).toContain('baRegistrationChannels');
+    expect(adminBehaviourSource).toContain('renderRegistrationSources(summary.registrations)');
+  });
+
+  test('carries consented attribution through a new Google signup', () => {
+    expect(googleClientSource).toContain('state.attribution = attribution');
+    expect(googleClientSource).toContain('state.analyticsSessionId = analyticsSessionId');
+    expect(googleServerSource).toContain("signup_method: 'google'");
+    expect(googleServerSource).toContain('recordGoogleSignupAnalytics(user, state)');
+  });
+
+  test('uses a real rolling seven-day comparison on the admin KPI', () => {
+    expect(adminDashboardSource).toContain('summary.newPrevious7');
+    expect(adminDashboardSource).not.toContain('const prevUsers = 0');
+    expect(adminDashboardSource).not.toContain('this week');
   });
 });

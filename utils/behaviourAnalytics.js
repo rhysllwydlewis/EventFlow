@@ -39,6 +39,7 @@ const ALLOWED_EVENTS = new Set([
 
 const ALLOWED_PROPERTY_KEYS = new Set([
   'activeSeconds',
+  'attribution_available',
   'category',
   'channel',
   'column',
@@ -47,11 +48,25 @@ const ALLOWED_PROPERTY_KEYS = new Set([
   'eventLabel',
   'filterName',
   'filterValue',
+  'first_channel',
+  'first_landing_path',
+  'first_partner_reference',
+  'first_referrer_domain',
+  'first_utm_campaign',
+  'first_utm_medium',
+  'first_utm_source',
   'formAction',
   'formId',
   'guideSlug',
   'itemId',
   'itemType',
+  'last_channel',
+  'last_landing_path',
+  'last_partner_reference',
+  'last_referrer_domain',
+  'last_utm_campaign',
+  'last_utm_medium',
+  'last_utm_source',
   'line',
   'linkText',
   'metricName',
@@ -64,6 +79,7 @@ const ALLOWED_PROPERTY_KEYS = new Set([
   'resultType',
   'resultsCount',
   'scrollDepth',
+  'signup_method',
   'source',
   'supplierId',
   'tocTarget',
@@ -194,6 +210,10 @@ function normalizePageType(value) {
   return cleaned && /^[a-z0-9_-]+$/i.test(cleaned) ? cleaned.toLowerCase() : 'other';
 }
 
+const ATTRIBUTION_PATH_KEYS = new Set(['first_landing_path', 'last_landing_path']);
+const ATTRIBUTION_DOMAIN_KEYS = new Set(['first_referrer_domain', 'last_referrer_domain']);
+const ATTRIBUTION_ENUM_KEYS = new Set(['first_channel', 'last_channel', 'signup_method']);
+
 function sanitizePropertyValue(key, value) {
   if (typeof value === 'boolean') {
     return value;
@@ -211,6 +231,17 @@ function sanitizePropertyValue(key, value) {
 
   if (typeof value !== 'string') {
     return null;
+  }
+
+  if (ATTRIBUTION_PATH_KEYS.has(key)) {
+    return normalizePagePath(value);
+  }
+  if (ATTRIBUTION_DOMAIN_KEYS.has(key)) {
+    return normalizeDomain(value);
+  }
+  if (ATTRIBUTION_ENUM_KEYS.has(key)) {
+    const cleaned = cleanString(value, 40);
+    return cleaned && /^[a-z0-9_-]+$/i.test(cleaned) ? cleaned.toLowerCase() : null;
   }
 
   const identifierKeys = ['itemId', 'resultId', 'supplierId', 'packageId', 'planId'];
@@ -328,6 +359,65 @@ function updateFunnelProgress(eventName, sessionKey, progressBySession, stageSes
     progressBySession.set(sessionKey, stageIndex);
     stageSessions[stageIndex].add(sessionKey);
   }
+}
+
+function topCounts(map, limit = 20) {
+  return Array.from(map.entries())
+    .map(([key, count]) => ({ key, count }))
+    .sort((left, right) => right.count - left.count || left.key.localeCompare(right.key))
+    .slice(0, limit);
+}
+
+function buildRegistrationSummary(events) {
+  const registrationEvents = events.filter(event => event.event === 'registration_completed');
+  const channels = new Map();
+  const sources = new Map();
+  const signupMethods = new Map();
+
+  registrationEvents.forEach(event => {
+    const properties = event.properties || {};
+    const channel = properties.first_channel || properties.channel || 'unknown';
+    const source =
+      properties.first_utm_source ||
+      properties.first_partner_reference ||
+      properties.first_referrer_domain ||
+      properties.source ||
+      'unknown';
+    const signupMethod = properties.signup_method || 'unknown';
+    channels.set(channel, (channels.get(channel) || 0) + 1);
+    sources.set(source, (sources.get(source) || 0) + 1);
+    signupMethods.set(signupMethod, (signupMethods.get(signupMethod) || 0) + 1);
+  });
+
+  const recent = registrationEvents
+    .slice()
+    .sort((left, right) => eventTime(right) - eventTime(left))
+    .slice(0, 20)
+    .map(event => {
+      const properties = event.properties || {};
+      return {
+        timestamp: event.timestamp,
+        channel: properties.first_channel || properties.channel || 'unknown',
+        source:
+          properties.first_utm_source ||
+          properties.first_partner_reference ||
+          properties.first_referrer_domain ||
+          properties.source ||
+          'unknown',
+        landingPath: properties.first_landing_path || event.pagePath || '/',
+        campaign: properties.first_utm_campaign || null,
+        signupMethod: properties.signup_method || 'unknown',
+        deviceType: event.deviceType || 'other',
+      };
+    });
+
+  return {
+    total: registrationEvents.length,
+    byChannel: topCounts(channels),
+    bySource: topCounts(sources),
+    bySignupMethod: topCounts(signupMethods),
+    recent,
+  };
 }
 
 function buildSummary(rawEvents, days = 30, now = new Date()) {
@@ -469,12 +559,6 @@ function buildSummary(rawEvents, days = 30, now = new Date()) {
     };
   });
 
-  const topCounts = map =>
-    Array.from(map.entries())
-      .map(([key, count]) => ({ key, count }))
-      .sort((left, right) => right.count - left.count)
-      .slice(0, 20);
-
   const recommendations = [];
   for (const page of pageRows) {
     if (page.views >= 5 && page.avgActiveSeconds < 12 && page.exitRate >= 50) {
@@ -544,6 +628,7 @@ function buildSummary(rawEvents, days = 30, now = new Date()) {
     devices: topCounts(deviceCounts),
     referrers: topCounts(referrerCounts),
     events: topCounts(eventCounts),
+    registrations: buildRegistrationSummary(events),
     daily: Array.from(daily.values())
       .map(row => ({
         date: row.date,
@@ -567,5 +652,6 @@ module.exports = {
   sanitizeProperties,
   sanitizeEvent,
   hashIdentifier,
+  buildRegistrationSummary,
   buildSummary,
 };
