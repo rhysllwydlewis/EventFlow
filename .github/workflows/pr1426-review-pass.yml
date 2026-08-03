@@ -1,0 +1,1147 @@
+name: PR 1426 review pass
+
+on:
+  push:
+    branches:
+      - feat/signup-attribution-session-replay
+    paths:
+      - .github/workflows/pr1426-review-pass.yml
+
+permissions:
+  contents: write
+
+jobs:
+  review-pass:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: feat/signup-attribution-session-replay
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: npm
+
+      - name: Apply review improvements
+        shell: bash
+        run: |
+          cat > /tmp/pr1426_patch.py <<'PY'
+          from pathlib import Path
+          
+          
+          def read(path):
+              return Path(path).read_text(encoding='utf-8')
+          
+          
+          def write(path, content):
+              Path(path).write_text(content, encoding='utf-8')
+          
+          
+          def replace_once(path, old, new):
+              content = read(path)
+              count = content.count(old)
+              if count != 1:
+                  raise RuntimeError(f'{path}: expected one match, found {count}: {old[:100]!r}')
+              write(path, content.replace(old, new, 1))
+          
+          
+          def insert_before(path, marker, addition):
+              content = read(path)
+              count = content.count(marker)
+              if count != 1:
+                  raise RuntimeError(f'{path}: expected one marker, found {count}: {marker[:100]!r}')
+              write(path, content.replace(marker, addition + marker, 1))
+          
+          
+          bridge = 'public/assets/js/analytics-consent-upgrade.js'
+          replace_once(
+              bridge,
+              "  let authPostHogStarted = false;\n",
+              "  let authPostHogStarted = false;\n  let initialAttributionTouch = null;\n",
+          )
+          replace_once(
+              bridge,
+              "  function currentPath() {\n    return window.location.pathname || '/';\n  }\n\n",
+              "  function currentPath() {\n    return window.location.pathname || '/';\n  }\n\n"
+              "  function isAuthPage() {\n"
+              "    const pagePath = currentPath();\n"
+              "    return (\n"
+              "      pagePath === '/auth' ||\n"
+              "      pagePath.startsWith('/auth/') ||\n"
+              "      pagePath.startsWith('/auth-') ||\n"
+              "      pagePath.startsWith('/auth.')\n"
+              "    );\n"
+              "  }\n\n",
+          )
+          replace_once(
+              bridge,
+              "  const SOCIAL_HOSTS = [\n    'facebook.com',\n    'instagram.com',\n    'linkedin.com',\n    't.co',\n    'twitter.com',\n    'x.com',\n    'tiktok.com',\n    'pinterest.com',\n    'youtube.com',\n    'reddit.com',\n    'whatsapp.com',\n  ];\n",
+              "  const SOCIAL_HOSTS = [\n"
+              "    'facebook.com',\n"
+              "    'instagram.com',\n"
+              "    'linkedin.com',\n"
+              "    't.co',\n"
+              "    'twitter.com',\n"
+              "    'x.com',\n"
+              "    'tiktok.com',\n"
+              "    'pinterest.com',\n"
+              "    'youtube.com',\n"
+              "    'reddit.com',\n"
+              "    'whatsapp.com',\n"
+              "  ];\n"
+              "  const SEARCH_SOURCE_TOKENS = new Set([\n"
+              "    'google',\n"
+              "    'bing',\n"
+              "    'duckduckgo',\n"
+              "    'yahoo',\n"
+              "    'ecosia',\n"
+              "  ]);\n"
+              "  const SOCIAL_SOURCE_TOKENS = new Set([\n"
+              "    'facebook',\n"
+              "    'instagram',\n"
+              "    'linkedin',\n"
+              "    'twitter',\n"
+              "    'x',\n"
+              "    'tiktok',\n"
+              "    'pinterest',\n"
+              "    'youtube',\n"
+              "    'reddit',\n"
+              "    'whatsapp',\n"
+              "  ]);\n"
+              "  const PAID_SEARCH_CLICK_PARAMS = ['gclid', 'gbraid', 'wbraid', 'msclkid'];\n"
+              "  const PAID_SOCIAL_CLICK_PARAMS = ['fbclid', 'ttclid', 'li_fat_id'];\n",
+          )
+          replace_once(
+              bridge,
+              "  function classifyChannel(medium, source, referrer) {\n"
+              "    const normalizedMedium = cleanAttributionValue(medium, 80).toLowerCase();\n"
+              "    const normalizedSource = normalizedDomain(source);\n"
+              "    const normalizedReferrer = normalizedDomain(referrer);\n\n"
+              "    if (/^(cpc|ppc|paidsearch|paid_search|sem)$/.test(normalizedMedium)) {\n"
+              "      return 'paid_search';\n"
+              "    }\n"
+              "    if (/^(paid_social|paidsocial)$/.test(normalizedMedium)) {\n"
+              "      return 'paid_social';\n"
+              "    }\n",
+              "  function classifyChannel(medium, source, referrer, signals = {}) {\n"
+              "    const normalizedMedium = cleanAttributionValue(medium, 80).toLowerCase();\n"
+              "    const sourceToken = cleanAttributionValue(source, 100).toLowerCase();\n"
+              "    const normalizedSource = normalizedDomain(source);\n"
+              "    const normalizedReferrer = normalizedDomain(referrer);\n\n"
+              "    if (signals.paidSearch) {\n"
+              "      return 'paid_search';\n"
+              "    }\n"
+              "    if (signals.paidSocial) {\n"
+              "      return 'paid_social';\n"
+              "    }\n"
+              "    if (signals.partnerReference) {\n"
+              "      return 'partner';\n"
+              "    }\n"
+              "    if (/^(cpc|ppc|paidsearch|paid_search|sem)$/.test(normalizedMedium)) {\n"
+              "      return 'paid_search';\n"
+              "    }\n"
+              "    if (/^(paid_social|paidsocial)$/.test(normalizedMedium)) {\n"
+              "      return 'paid_social';\n"
+              "    }\n",
+          )
+          replace_once(
+              bridge,
+              "    if (normalizedMedium === 'referral') {\n"
+              "      return 'referral';\n"
+              "    }\n"
+              "    if (\n"
+              "      hostMatches(normalizedSource, SEARCH_HOSTS) ||\n"
+              "      hostMatches(normalizedReferrer, SEARCH_HOSTS)\n"
+              "    ) {\n"
+              "      return 'organic_search';\n"
+              "    }\n"
+              "    if (\n"
+              "      hostMatches(normalizedSource, SOCIAL_HOSTS) ||\n"
+              "      hostMatches(normalizedReferrer, SOCIAL_HOSTS)\n"
+              "    ) {\n"
+              "      return 'organic_social';\n"
+              "    }\n",
+              "    if (normalizedMedium === 'referral') {\n"
+              "      return 'referral';\n"
+              "    }\n"
+              "    if (\n"
+              "      SEARCH_SOURCE_TOKENS.has(sourceToken) ||\n"
+              "      hostMatches(normalizedSource, SEARCH_HOSTS) ||\n"
+              "      hostMatches(normalizedReferrer, SEARCH_HOSTS)\n"
+              "    ) {\n"
+              "      return 'organic_search';\n"
+              "    }\n"
+              "    if (\n"
+              "      SOCIAL_SOURCE_TOKENS.has(sourceToken) ||\n"
+              "      hostMatches(normalizedSource, SOCIAL_HOSTS) ||\n"
+              "      hostMatches(normalizedReferrer, SOCIAL_HOSTS)\n"
+              "    ) {\n"
+              "      return 'organic_social';\n"
+              "    }\n",
+          )
+          replace_once(
+              bridge,
+              "  function buildAttributionTouch() {\n"
+              "    const params = new URLSearchParams(window.location.search || '');\n"
+              "    const utmSource = cleanAttributionValue(params.get('utm_source'), 100);\n"
+              "    const utmMedium = cleanAttributionValue(params.get('utm_medium'), 80);\n"
+              "    const referrerDomain = externalReferrerDomain();\n"
+              "    return {\n"
+              "      channel: classifyChannel(utmMedium, utmSource, referrerDomain),\n"
+              "      referrerDomain,\n"
+              "      landingPath: safePath(window.location.href),\n"
+              "      utmSource,\n"
+              "      utmMedium,\n"
+              "      utmCampaign: cleanAttributionValue(params.get('utm_campaign'), 120),\n"
+              "      capturedAt: new Date().toISOString(),\n"
+              "    };\n"
+              "  }\n\n",
+              "  function buildAttributionTouch() {\n"
+              "    const params = new URLSearchParams(window.location.search || '');\n"
+              "    const utmSource = cleanAttributionValue(params.get('utm_source'), 100);\n"
+              "    const utmMedium = cleanAttributionValue(params.get('utm_medium'), 80);\n"
+              "    const partnerReference = cleanAttributionValue(\n"
+              "      params.get('ref') || params.get('partner'),\n"
+              "      80\n"
+              "    );\n"
+              "    const referrerDomain = externalReferrerDomain();\n"
+              "    const signals = {\n"
+              "      paidSearch: PAID_SEARCH_CLICK_PARAMS.some(key => params.has(key)),\n"
+              "      paidSocial: PAID_SOCIAL_CLICK_PARAMS.some(key => params.has(key)),\n"
+              "      partnerReference,\n"
+              "    };\n"
+              "    return {\n"
+              "      channel: classifyChannel(utmMedium, utmSource, referrerDomain, signals),\n"
+              "      referrerDomain,\n"
+              "      landingPath: safePath(window.location.href),\n"
+              "      utmSource,\n"
+              "      utmMedium,\n"
+              "      utmCampaign: cleanAttributionValue(params.get('utm_campaign'), 120),\n"
+              "      partnerReference,\n"
+              "      capturedAt: new Date().toISOString(),\n"
+              "    };\n"
+              "  }\n\n",
+          )
+          replace_once(
+              bridge,
+              "  function readAttribution() {\n"
+              "    try {\n"
+              "      const value = JSON.parse(window.localStorage.getItem(ATTRIBUTION_KEY) || 'null');\n"
+              "      const capturedAt = Date.parse(value && value.first && value.first.capturedAt);\n"
+              "      if (!capturedAt || Date.now() - capturedAt > ATTRIBUTION_TTL_MS) {\n"
+              "        return null;\n"
+              "      }\n"
+              "      return value;\n"
+              "    } catch (_error) {\n"
+              "      return null;\n"
+              "    }\n"
+              "  }\n\n",
+              "  function clearAttribution() {\n"
+              "    initialAttributionTouch = null;\n"
+              "    try {\n"
+              "      window.localStorage.removeItem(ATTRIBUTION_KEY);\n"
+              "    } catch (_error) {\n"
+              "      // Storage cleanup is best-effort in restricted privacy modes.\n"
+              "    }\n"
+              "  }\n\n"
+              "  function readAttribution() {\n"
+              "    try {\n"
+              "      const value = JSON.parse(window.localStorage.getItem(ATTRIBUTION_KEY) || 'null');\n"
+              "      const capturedAt = Date.parse(value && value.first && value.first.capturedAt);\n"
+              "      if (!capturedAt || Date.now() - capturedAt > ATTRIBUTION_TTL_MS) {\n"
+              "        window.localStorage.removeItem(ATTRIBUTION_KEY);\n"
+              "        return null;\n"
+              "      }\n"
+              "      return value;\n"
+              "    } catch (_error) {\n"
+              "      return null;\n"
+              "    }\n"
+              "  }\n\n",
+          )
+          replace_once(
+              bridge,
+              "    const next = buildAttributionTouch();\n"
+              "    const existing = readAttribution();\n"
+              "    const value = existing || { first: next, last: next };\n",
+              "    const next = buildAttributionTouch();\n"
+              "    const existing = readAttribution();\n"
+              "    const first = initialAttributionTouch || next;\n"
+              "    const value = existing || { first, last: next };\n",
+          )
+          replace_once(
+              bridge,
+              "      first_utm_campaign: cleanAttributionValue(first.utmCampaign, 120),\n"
+              "      last_channel: cleanAttributionValue(last.channel, 40),\n",
+              "      first_utm_campaign: cleanAttributionValue(first.utmCampaign, 120),\n"
+              "      first_partner_reference: cleanAttributionValue(first.partnerReference, 80),\n"
+              "      last_channel: cleanAttributionValue(last.channel, 40),\n",
+          )
+          replace_once(
+              bridge,
+              "      last_utm_campaign: cleanAttributionValue(last.utmCampaign, 120),\n"
+              "    };\n",
+              "      last_utm_campaign: cleanAttributionValue(last.utmCampaign, 120),\n"
+              "      last_partner_reference: cleanAttributionValue(last.partnerReference, 80),\n"
+              "    };\n",
+          )
+          replace_once(
+              bridge,
+              "      if (currentPath() === '/auth' || currentPath().startsWith('/auth.')) {\n"
+              "        startAuthPostHog();\n"
+              "      }\n",
+              "      if (isAuthPage()) {\n"
+              "        startAuthPostHog();\n"
+              "      }\n",
+          )
+          replace_once(
+              bridge,
+              "    capturedPostHogPage = '';\n"
+              "    capturedPostHogPageleave = false;\n"
+              "    clearPostHogPageviewTimer();\n"
+              "  }\n\n",
+              "    capturedPostHogPage = '';\n"
+              "    capturedPostHogPageleave = false;\n"
+              "    authPostHogStarted = false;\n"
+              "    clearPostHogPageviewTimer();\n"
+              "    clearAttribution();\n"
+              "  }\n\n",
+          )
+          replace_once(
+              bridge,
+              "  function identifyRegisteredUser(response) {\n"
+              "    if (\n"
+              "      !response ||\n"
+              "      !response.ok ||\n"
+              "      !window.posthog ||\n"
+              "      typeof window.posthog.identify !== 'function'\n"
+              "    ) {\n"
+              "      return;\n"
+              "    }\n"
+              "    response\n"
+              "      .clone()\n"
+              "      .json()\n"
+              "      .then(payload => {\n"
+              "        const user = payload && payload.user;\n"
+              "        if (!user || !user.id || user.role === 'admin') {\n"
+              "          return;\n"
+              "        }\n"
+              "        window.posthog.identify(String(user.id), {\n"
+              "          role: cleanAttributionValue(user.role, 40) || 'customer',\n"
+              "          signup_method: 'email_password',\n"
+              "        });\n"
+              "      })\n"
+              "      .catch(function () {\n"
+              "        // Registration conversion tracking does not depend on response parsing.\n"
+              "      });\n"
+              "  }\n\n",
+              "  function identifyRegisteredUser(response) {\n"
+              "    if (\n"
+              "      !response ||\n"
+              "      !response.ok ||\n"
+              "      !window.posthog ||\n"
+              "      typeof window.posthog.identify !== 'function'\n"
+              "    ) {\n"
+              "      return Promise.resolve(false);\n"
+              "    }\n"
+              "    return response\n"
+              "      .clone()\n"
+              "      .json()\n"
+              "      .then(payload => {\n"
+              "        const user = payload && payload.user;\n"
+              "        if (!user || !user.id || user.role === 'admin') {\n"
+              "          return false;\n"
+              "        }\n"
+              "        window.posthog.identify(String(user.id), {\n"
+              "          role: cleanAttributionValue(user.role, 40) || 'customer',\n"
+              "          signup_method: 'email_password',\n"
+              "        });\n"
+              "        return true;\n"
+              "      })\n"
+              "      .catch(function () {\n"
+              "        return false;\n"
+              "      });\n"
+              "  }\n\n",
+          )
+          replace_once(
+              bridge,
+              "        if (\n"
+              "          conversion &&\n"
+              "          conversion.event === 'registration_completed' &&\n"
+              "          window.posthog &&\n"
+              "          typeof window.posthog.capture === 'function'\n"
+              "        ) {\n"
+              "          identifyRegisteredUser(response);\n"
+              "          window.posthog.capture(conversion.event, conversion.properties);\n"
+              "        }\n",
+              "        if (\n"
+              "          conversion &&\n"
+              "          conversion.event === 'registration_completed' &&\n"
+              "          window.posthog &&\n"
+              "          typeof window.posthog.capture === 'function'\n"
+              "        ) {\n"
+              "          const captureRegistration = () =>\n"
+              "            window.posthog.capture(conversion.event, conversion.properties);\n"
+              "          identifyRegisteredUser(response).then(captureRegistration, captureRegistration);\n"
+              "        }\n",
+          )
+          replace_once(
+              bridge,
+              "      !(currentPath() === '/auth' || currentPath().startsWith('/auth.'))\n",
+              "      !isAuthPage()\n",
+          )
+          replace_once(
+              bridge,
+              "  window.EventFlowAttribution = {\n"
+              "    capture: captureAttribution,\n"
+              "    get: readAttribution,\n"
+              "    properties: attributionProperties,\n"
+              "  };\n",
+              "  window.EventFlowAttribution = {\n"
+              "    capture: captureAttribution,\n"
+              "    clear: clearAttribution,\n"
+              "    get: readAttribution,\n"
+              "    properties: attributionProperties,\n"
+              "  };\n",
+          )
+          replace_once(
+              bridge,
+              "  function init() {\n"
+              "    upgradeConsentCopy(document);\n"
+              "    installSuccessfulConversionObserver();\n"
+              "    captureAttribution();\n",
+              "  function init() {\n"
+              "    upgradeConsentCopy(document);\n"
+              "    installSuccessfulConversionObserver();\n"
+              "    initialAttributionTouch = buildAttributionTouch();\n"
+              "    captureAttribution();\n",
+          )
+          
+          # First-party analytics: retain and report signup attribution.
+          behaviour = 'utils/behaviourAnalytics.js'
+          replace_once(
+              behaviour,
+              "  'activeSeconds',\n",
+              "  'activeSeconds',\n  'attribution_available',\n",
+          )
+          replace_once(
+              behaviour,
+              "  'filterValue',\n",
+              "  'filterValue',\n"
+              "  'first_channel',\n"
+              "  'first_landing_path',\n"
+              "  'first_partner_reference',\n"
+              "  'first_referrer_domain',\n"
+              "  'first_utm_campaign',\n"
+              "  'first_utm_medium',\n"
+              "  'first_utm_source',\n",
+          )
+          replace_once(
+              behaviour,
+              "  'line',\n",
+              "  'last_channel',\n"
+              "  'last_landing_path',\n"
+              "  'last_partner_reference',\n"
+              "  'last_referrer_domain',\n"
+              "  'last_utm_campaign',\n"
+              "  'last_utm_medium',\n"
+              "  'last_utm_source',\n"
+              "  'line',\n",
+          )
+          replace_once(
+              behaviour,
+              "  'scrollDepth',\n",
+              "  'scrollDepth',\n  'signup_method',\n",
+          )
+          replace_once(
+              behaviour,
+              "function sanitizePropertyValue(key, value) {\n",
+              "const ATTRIBUTION_PATH_KEYS = new Set(['first_landing_path', 'last_landing_path']);\n"
+              "const ATTRIBUTION_DOMAIN_KEYS = new Set([\n"
+              "  'first_referrer_domain',\n"
+              "  'last_referrer_domain',\n"
+              "]);\n"
+              "const ATTRIBUTION_ENUM_KEYS = new Set(['first_channel', 'last_channel', 'signup_method']);\n\n"
+              "function sanitizePropertyValue(key, value) {\n",
+          )
+          replace_once(
+              behaviour,
+              "  if (typeof value !== 'string') {\n"
+              "    return null;\n"
+              "  }\n\n"
+              "  const identifierKeys = ['itemId', 'resultId', 'supplierId', 'packageId', 'planId'];\n"
+              "  return cleanString(value, identifierKeys.includes(key) ? 120 : 160);\n",
+              "  if (typeof value !== 'string') {\n"
+              "    return null;\n"
+              "  }\n\n"
+              "  if (ATTRIBUTION_PATH_KEYS.has(key)) {\n"
+              "    return normalizePagePath(value);\n"
+              "  }\n"
+              "  if (ATTRIBUTION_DOMAIN_KEYS.has(key)) {\n"
+              "    return normalizeDomain(value);\n"
+              "  }\n"
+              "  if (ATTRIBUTION_ENUM_KEYS.has(key)) {\n"
+              "    const cleaned = cleanString(value, 40);\n"
+              "    return cleaned && /^[a-z0-9_-]+$/i.test(cleaned) ? cleaned.toLowerCase() : null;\n"
+              "  }\n\n"
+              "  const identifierKeys = ['itemId', 'resultId', 'supplierId', 'packageId', 'planId'];\n"
+              "  return cleanString(value, identifierKeys.includes(key) ? 120 : 160);\n",
+          )
+          insert_before(
+              behaviour,
+              "function buildSummary(rawEvents, days = 30, now = new Date()) {\n",
+              "function topCounts(map, limit = 20) {\n"
+              "  return Array.from(map.entries())\n"
+              "    .map(([key, count]) => ({ key, count }))\n"
+              "    .sort((left, right) => right.count - left.count || left.key.localeCompare(right.key))\n"
+              "    .slice(0, limit);\n"
+              "}\n\n"
+              "function buildRegistrationSummary(events) {\n"
+              "  const registrationEvents = events.filter(event => event.event === 'registration_completed');\n"
+              "  const channels = new Map();\n"
+              "  const sources = new Map();\n"
+              "  const signupMethods = new Map();\n\n"
+              "  registrationEvents.forEach(event => {\n"
+              "    const properties = event.properties || {};\n"
+              "    const channel = properties.first_channel || properties.channel || 'unknown';\n"
+              "    const source =\n"
+              "      properties.first_utm_source ||\n"
+              "      properties.first_partner_reference ||\n"
+              "      properties.first_referrer_domain ||\n"
+              "      properties.source ||\n"
+              "      'unknown';\n"
+              "    const signupMethod = properties.signup_method || 'unknown';\n"
+              "    channels.set(channel, (channels.get(channel) || 0) + 1);\n"
+              "    sources.set(source, (sources.get(source) || 0) + 1);\n"
+              "    signupMethods.set(signupMethod, (signupMethods.get(signupMethod) || 0) + 1);\n"
+              "  });\n\n"
+              "  const recent = registrationEvents\n"
+              "    .slice()\n"
+              "    .sort((left, right) => eventTime(right) - eventTime(left))\n"
+              "    .slice(0, 20)\n"
+              "    .map(event => {\n"
+              "      const properties = event.properties || {};\n"
+              "      return {\n"
+              "        timestamp: event.timestamp,\n"
+              "        channel: properties.first_channel || properties.channel || 'unknown',\n"
+              "        source:\n"
+              "          properties.first_utm_source ||\n"
+              "          properties.first_partner_reference ||\n"
+              "          properties.first_referrer_domain ||\n"
+              "          properties.source ||\n"
+              "          'unknown',\n"
+              "        landingPath: properties.first_landing_path || event.pagePath || '/',\n"
+              "        campaign: properties.first_utm_campaign || null,\n"
+              "        signupMethod: properties.signup_method || 'unknown',\n"
+              "        deviceType: event.deviceType || 'other',\n"
+              "      };\n"
+              "    });\n\n"
+              "  return {\n"
+              "    total: registrationEvents.length,\n"
+              "    byChannel: topCounts(channels),\n"
+              "    bySource: topCounts(sources),\n"
+              "    bySignupMethod: topCounts(signupMethods),\n"
+              "    recent,\n"
+              "  };\n"
+              "}\n\n",
+          )
+          replace_once(
+              behaviour,
+              "  const topCounts = map =>\n"
+              "    Array.from(map.entries())\n"
+              "      .map(([key, count]) => ({ key, count }))\n"
+              "      .sort((left, right) => right.count - left.count)\n"
+              "      .slice(0, 20);\n\n",
+              "",
+          )
+          replace_once(
+              behaviour,
+              "    events: topCounts(eventCounts),\n"
+              "    daily: Array.from(daily.values())\n",
+              "    events: topCounts(eventCounts),\n"
+              "    registrations: buildRegistrationSummary(events),\n"
+              "    daily: Array.from(daily.values())\n",
+          )
+          replace_once(
+              behaviour,
+              "  hashIdentifier,\n  buildSummary,\n};\n",
+              "  hashIdentifier,\n  buildRegistrationSummary,\n  buildSummary,\n};\n",
+          )
+          
+          # Add a signup acquisition card to the admin behaviour dashboard.
+          admin_behaviour = 'public/assets/js/pages/admin-behaviour-analytics.js'
+          replace_once(
+              admin_behaviour,
+              "      <div class=\"behaviour-analytics-grid behaviour-analytics-grid--three\">\n"
+              "        <article class=\"behaviour-analytics-card\">\n"
+              "          <div class=\"behaviour-analytics-card__header\">\n"
+              "            <div><span class=\"behaviour-card-kicker\">Acquisition</span><h3>Traffic sources</h3><p>Entry source for each measured session.</p></div>\n"
+              "          </div>\n"
+              "          <div id=\"baReferrers\" class=\"behaviour-breakdown-list\"><div class=\"behaviour-empty\">Loading sources…</div></div>\n"
+              "        </article>\n",
+              "      <div class=\"behaviour-analytics-grid behaviour-analytics-grid--three\">\n"
+              "        <article class=\"behaviour-analytics-card\">\n"
+              "          <div class=\"behaviour-analytics-card__header\">\n"
+              "            <div><span class=\"behaviour-card-kicker\">Signup acquisition</span><h3>Where registrations came from</h3><p>First-touch channel and source for consented completed registrations.</p></div>\n"
+              "            <strong id=\"baRegistrationTotal\" class=\"behaviour-card-metric\">—</strong>\n"
+              "          </div>\n"
+              "          <h4 class=\"behaviour-breakdown-heading\">Channels</h4>\n"
+              "          <div id=\"baRegistrationChannels\" class=\"behaviour-breakdown-list\"><div class=\"behaviour-empty\">Loading signup channels…</div></div>\n"
+              "          <h4 class=\"behaviour-breakdown-heading\">Sources</h4>\n"
+              "          <div id=\"baRegistrationSources\" class=\"behaviour-breakdown-list\"><div class=\"behaviour-empty\">Loading signup sources…</div></div>\n"
+              "        </article>\n"
+              "        <article class=\"behaviour-analytics-card\">\n"
+              "          <div class=\"behaviour-analytics-card__header\">\n"
+              "            <div><span class=\"behaviour-card-kicker\">Acquisition</span><h3>Traffic sources</h3><p>Entry source for each measured session.</p></div>\n"
+              "          </div>\n"
+              "          <div id=\"baReferrers\" class=\"behaviour-breakdown-list\"><div class=\"behaviour-empty\">Loading sources…</div></div>\n"
+              "        </article>\n",
+          )
+          insert_before(
+              admin_behaviour,
+              "  function renderSummary(summary) {\n",
+              "  function registrationLabel(value) {\n"
+              "    return String(value || 'unknown')\n"
+              "      .replace(/_/g, ' ')\n"
+              "      .replace(/\\b\\w/g, char => char.toUpperCase());\n"
+              "  }\n\n"
+              "  function renderRegistrationSources(registrations) {\n"
+              "    const data = registrations || {};\n"
+              "    setText('baRegistrationTotal', `${formatNumber(data.total)} registrations`);\n"
+              "    renderBreakdown(\n"
+              "      'baRegistrationChannels',\n"
+              "      data.byChannel,\n"
+              "      'No attributed registrations for this period.',\n"
+              "      registrationLabel\n"
+              "    );\n"
+              "    renderBreakdown(\n"
+              "      'baRegistrationSources',\n"
+              "      data.bySource,\n"
+              "      'No signup-source detail for this period.',\n"
+              "      key => (key === 'direct' ? 'Direct / unknown' : registrationLabel(key))\n"
+              "    );\n"
+              "  }\n\n",
+          )
+          replace_once(
+              admin_behaviour,
+              "    renderFunnel(summary.funnel);\n"
+              "    renderBreakdown(\n",
+              "    renderFunnel(summary.funnel);\n"
+              "    renderRegistrationSources(summary.registrations);\n"
+              "    renderBreakdown(\n",
+          )
+          replace_once(
+              admin_behaviour,
+              "    ['baTrend', 'baFunnel', 'baReferrers', 'baDevices', 'baEvents', 'baRecommendations'].forEach(\n",
+              "    [\n"
+              "      'baTrend',\n"
+              "      'baFunnel',\n"
+              "      'baRegistrationChannels',\n"
+              "      'baRegistrationSources',\n"
+              "      'baReferrers',\n"
+              "      'baDevices',\n"
+              "      'baEvents',\n"
+              "      'baRecommendations',\n"
+              "    ].forEach(\n",
+          )
+          
+          # Correct the dashboard's rolling seven-day comparison.
+          summary_service = 'services/adminUserSummary.service.js'
+          replace_once(
+              summary_service,
+              "    const now = Date.now();\n    const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;\n",
+              "    const now = Date.now();\n"
+              "    const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;\n"
+              "    const fourteenDaysAgo = now - 14 * 24 * 60 * 60 * 1000;\n",
+          )
+          replace_once(
+              summary_service,
+              "    let newLast7 = 0;\n    let activeLast7 = 0;\n",
+              "    let newLast7 = 0;\n"
+              "    let newPrevious7 = 0;\n"
+              "    const newLast7ByRole = { customer: 0, supplier: 0, admin: 0, owner: 0, other: 0 };\n"
+              "    const newLast7BySignup = {\n"
+              "      google: 0,\n"
+              "      email_password: 0,\n"
+              "      admin_created: 0,\n"
+              "      owner: 0,\n"
+              "      unknown: 0,\n"
+              "    };\n"
+              "    let activeLast7 = 0;\n",
+          )
+          replace_once(
+              summary_service,
+              "      const createdMs = Date.parse(user.createdAt || 0);\n"
+              "      if (createdMs && createdMs > sevenDaysAgo) {\n"
+              "        newLast7++;\n"
+              "        if (!latestSignupAt || createdMs > Date.parse(latestSignupAt || 0)) {\n"
+              "          latestSignupAt = safeDateIso(user.createdAt);\n"
+              "        }\n"
+              "      }\n",
+              "      const createdMs = Date.parse(user.createdAt || 0);\n"
+              "      if (createdMs && createdMs <= now) {\n"
+              "        if (createdMs > sevenDaysAgo) {\n"
+              "          newLast7++;\n"
+              "          const roleKey = Object.prototype.hasOwnProperty.call(newLast7ByRole, role)\n"
+              "            ? role\n"
+              "            : 'other';\n"
+              "          newLast7ByRole[roleKey]++;\n"
+              "          newLast7BySignup[signupMethod] = (newLast7BySignup[signupMethod] || 0) + 1;\n"
+              "          if (!latestSignupAt || createdMs > Date.parse(latestSignupAt || 0)) {\n"
+              "            latestSignupAt = safeDateIso(user.createdAt);\n"
+              "          }\n"
+              "        } else if (createdMs > fourteenDaysAgo) {\n"
+              "          newPrevious7++;\n"
+              "        }\n"
+              "      }\n",
+          )
+          replace_once(
+              summary_service,
+              "      newUsersLast7Days: newLast7,\n"
+              "      recentlyActiveUsersLast7Days: activeLast7,\n",
+              "      newUsersLast7Days: newLast7,\n"
+              "      newUsersPrevious7Days: newPrevious7,\n"
+              "      recentlyActiveUsersLast7Days: activeLast7,\n",
+          )
+          replace_once(
+              summary_service,
+              "      newLast7,\n      activeLast7,\n",
+              "      newLast7,\n"
+              "      newPrevious7,\n"
+              "      newLast7ByRole,\n"
+              "      newLast7BySignup,\n"
+              "      activeLast7,\n",
+          )
+          
+          admin_init = 'public/assets/js/pages/admin-init.js'
+          replace_once(
+              admin_init,
+              "      const recentUsers = (typeof summary !== 'undefined' && summary && summary.newLast7) || 0;\n"
+              "      const prevUsers = 0; // period-over-period not available from summary; defaults to 0\n\n"
+              "      const usersChangeEl = document.getElementById('totalUsersChange');\n"
+              "      if (usersChangeEl) {\n"
+              "        if (prevUsers === 0 && recentUsers === 0) {\n"
+              "          usersChangeEl.textContent = 'No change';\n"
+              "          usersChangeEl.style.color = '';\n"
+              "        } else if (prevUsers === 0) {\n"
+              "          usersChangeEl.textContent = `+${recentUsers} this week`;\n"
+              "          usersChangeEl.style.color = 'var(--color-success, #16a34a)';\n"
+              "        } else {\n"
+              "          const pct = Math.round(((recentUsers - prevUsers) / prevUsers) * 100);\n"
+              "          if (pct > 0) {\n"
+              "            usersChangeEl.textContent = `+${pct}% ↑`;\n"
+              "            usersChangeEl.style.color = 'var(--color-success, #16a34a)';\n"
+              "          } else if (pct < 0) {\n"
+              "            usersChangeEl.textContent = `${pct}% ↓`;\n"
+              "            usersChangeEl.style.color = 'var(--color-danger, #dc2626)';\n"
+              "          } else {\n"
+              "            usersChangeEl.textContent = 'No change';\n"
+              "            usersChangeEl.style.color = '';\n"
+              "          }\n"
+              "        }\n"
+              "      }\n",
+              "      const recentUsers = Number(summary && summary.newLast7) || 0;\n"
+              "      const previousUsers = Number(summary && summary.newPrevious7) || 0;\n\n"
+              "      const usersChangeEl = document.getElementById('totalUsersChange');\n"
+              "      if (usersChangeEl) {\n"
+              "        usersChangeEl.title =\n"
+              "          'Rolling seven-day signups compared with the immediately preceding seven days.';\n"
+              "        if (previousUsers === 0) {\n"
+              "          usersChangeEl.textContent = `${recentUsers} new · last 7 days`;\n"
+              "        } else {\n"
+              "          usersChangeEl.textContent = `${recentUsers} vs ${previousUsers} · prior 7 days`;\n"
+              "        }\n"
+              "        if (recentUsers > previousUsers) {\n"
+              "          usersChangeEl.style.color = 'var(--color-success, #16a34a)';\n"
+              "        } else if (recentUsers < previousUsers) {\n"
+              "          usersChangeEl.style.color = 'var(--color-danger, #dc2626)';\n"
+              "        } else {\n"
+              "          usersChangeEl.style.color = '';\n"
+              "        }\n"
+              "      }\n",
+          )
+          
+          # Carry consented attribution through Google redirect signup and store a first-party conversion.
+          google_client = 'public/assets/js/pages/auth-google-init.js'
+          insert_before(
+              google_client,
+              "  function getGoogleButtonState(context) {\n",
+              "  function getConsentedAttributionState() {\n"
+              "    try {\n"
+              "      if (\n"
+              "        !window.EventFlowAttribution ||\n"
+              "        typeof window.EventFlowAttribution.properties !== 'function'\n"
+              "      ) {\n"
+              "        return null;\n"
+              "      }\n"
+              "      const attribution = window.EventFlowAttribution.properties();\n"
+              "      return attribution && attribution.attribution_available === true ? attribution : null;\n"
+              "    } catch (_) {\n"
+              "      return null;\n"
+              "    }\n"
+              "  }\n\n"
+              "  function getAnalyticsSessionId() {\n"
+              "    try {\n"
+              "      return cleanValue(window.sessionStorage.getItem('ef_analytics_session_id'), 120);\n"
+              "    } catch (_) {\n"
+              "      return '';\n"
+              "    }\n"
+              "  }\n\n",
+          )
+          replace_once(
+              google_client,
+              "    if (normalizedContext === 'signup') {\n"
+              "      Object.assign(state, getSignupFormSnapshot());\n"
+              "      if (!state.returnTo) {\n"
+              "        state.returnTo = state.role === 'supplier' ? '/dashboard/supplier' : '/dashboard/customer';\n"
+              "      }\n"
+              "    }\n",
+              "    if (normalizedContext === 'signup') {\n"
+              "      Object.assign(state, getSignupFormSnapshot());\n"
+              "      const attribution = getConsentedAttributionState();\n"
+              "      const analyticsSessionId = getAnalyticsSessionId();\n"
+              "      if (attribution && analyticsSessionId) {\n"
+              "        state.attribution = attribution;\n"
+              "        state.analyticsSessionId = analyticsSessionId;\n"
+              "      }\n"
+              "      if (!state.returnTo) {\n"
+              "        state.returnTo = state.role === 'supplier' ? '/dashboard/supplier' : '/dashboard/customer';\n"
+              "      }\n"
+              "    }\n",
+          )
+          
+          google_server = 'routes/google-redirect-auth.js'
+          replace_once(
+              google_server,
+              "const userProvenance = require('../services/userProvenance.service');\n",
+              "const userProvenance = require('../services/userProvenance.service');\n"
+              "const {\n"
+              "  COLLECTION_NAME: ANALYTICS_COLLECTION,\n"
+              "  sanitizeEvent: sanitizeAnalyticsEvent,\n"
+              "} = require('../utils/behaviourAnalytics');\n",
+          )
+          insert_before(
+              google_server,
+              "async function findOrCreateGoogleUser(googleProfile, state = {}) {\n",
+              "const GOOGLE_ATTRIBUTION_KEYS = [\n"
+              "  'attribution_available',\n"
+              "  'first_channel',\n"
+              "  'first_referrer_domain',\n"
+              "  'first_landing_path',\n"
+              "  'first_utm_source',\n"
+              "  'first_utm_medium',\n"
+              "  'first_utm_campaign',\n"
+              "  'first_partner_reference',\n"
+              "  'last_channel',\n"
+              "  'last_referrer_domain',\n"
+              "  'last_landing_path',\n"
+              "  'last_utm_source',\n"
+              "  'last_utm_medium',\n"
+              "  'last_utm_campaign',\n"
+              "  'last_partner_reference',\n"
+              "];\n\n"
+              "function getGoogleSignupAttribution(state) {\n"
+              "  if (!state || state.context !== 'signup' || !state.attribution) {\n"
+              "    return null;\n"
+              "  }\n"
+              "  const properties = { conversionType: 'registration', signup_method: 'google' };\n"
+              "  GOOGLE_ATTRIBUTION_KEYS.forEach(key => {\n"
+              "    const value = state.attribution[key];\n"
+              "    if (typeof value === 'boolean' || typeof value === 'string') {\n"
+              "      properties[key] = value;\n"
+              "    }\n"
+              "  });\n"
+              "  return properties.attribution_available === true ? properties : null;\n"
+              "}\n\n"
+              "async function recordGoogleSignupAnalytics(user, state) {\n"
+              "  const properties = getGoogleSignupAttribution(state);\n"
+              "  const sessionId = cleanStateText(state && state.analyticsSessionId, 120);\n"
+              "  if (!properties || !sessionId || !user || user.role === 'admin') {\n"
+              "    return;\n"
+              "  }\n"
+              "  try {\n"
+              "    const event = sanitizeAnalyticsEvent(\n"
+              "      {\n"
+              "        event: 'registration_completed',\n"
+              "        sessionId,\n"
+              "        pagePath: properties.first_landing_path || '/auth',\n"
+              "        pageType: 'auth',\n"
+              "        referrerDomain: properties.first_referrer_domain || 'direct',\n"
+              "        deviceType: 'other',\n"
+              "        timestamp: new Date().toISOString(),\n"
+              "        properties,\n"
+              "      },\n"
+              "      {\n"
+              "        userId: user.id,\n"
+              "        userRole: user.role,\n"
+              "        hashSalt: process.env.ANALYTICS_HASH_SALT || process.env.JWT_SECRET,\n"
+              "      }\n"
+              "    );\n"
+              "    if (event) {\n"
+              "      await dbUnified.insertOne(ANALYTICS_COLLECTION, event);\n"
+              "    }\n"
+              "  } catch (error) {\n"
+              "    logger.warn('[GOOGLE REDIRECT LOGIN] Signup analytics recording failed', {\n"
+              "      message: error.message,\n"
+              "    });\n"
+              "  }\n"
+              "}\n\n",
+          )
+          replace_once(
+              google_server,
+              "    return user;\n  }\n\n  if (user.verified === false) {\n",
+              "    return { ...user, __eventflowNewGoogleSignup: true };\n  }\n\n  if (user.verified === false) {\n",
+          )
+          replace_once(
+              google_server,
+              "    const user = await findOrCreateGoogleUser(googleProfile, state);\n\n"
+              "    if (user.twoFactorEnabled) {\n",
+              "    const user = await findOrCreateGoogleUser(googleProfile, state);\n"
+              "    if (user.__eventflowNewGoogleSignup === true) {\n"
+              "      await recordGoogleSignupAnalytics(user, state);\n"
+              "    }\n\n"
+              "    if (user.twoFactorEnabled) {\n",
+          )
+          
+          # Cache bust the changed bridge again.
+          replace_once(
+              'utils/template-renderer.js',
+              '/assets/js/analytics-consent-upgrade.js?v=3',
+              '/assets/js/analytics-consent-upgrade.js?v=4',
+          )
+          replace_once(
+              'tests/unit/analytics-independent-hardening.test.js',
+              "/assets/js/analytics-consent-upgrade.js?v=3",
+              "/assets/js/analytics-consent-upgrade.js?v=4",
+          )
+          
+          # Strengthen focused tests.
+          attr_test = 'tests/unit/analytics-attribution-session-replay.test.js'
+          content = read(attr_test)
+          content = content.replace(
+              "  const routeSource = read('routes/behaviour-analytics.js');\n",
+              "  const routeSource = read('routes/behaviour-analytics.js');\n"
+              "  const behaviourUtilitySource = read('utils/behaviourAnalytics.js');\n"
+              "  const googleClientSource = read('public/assets/js/pages/auth-google-init.js');\n"
+              "  const googleServerSource = read('routes/google-redirect-auth.js');\n"
+              "  const adminDashboardSource = read('public/assets/js/pages/admin-init.js');\n"
+              "  const adminBehaviourSource = read('public/assets/js/pages/admin-behaviour-analytics.js');\n",
+              1,
+          )
+          content = content.replace(
+              "    expect(bridgeSource).toContain('response.ok ? successfulEventFor(request) : null');\n"
+              "  });\n"
+              "});\n",
+              "    expect(bridgeSource).toContain('response.ok ? successfulEventFor(request) : null');\n"
+              "    expect(bridgeSource).toContain(\n"
+              "      'identifyRegisteredUser(response).then(captureRegistration, captureRegistration)'\n"
+              "    );\n"
+              "  });\n\n"
+              "  test('clears stored attribution when analytics consent is withdrawn', () => {\n"
+              "    expect(bridgeSource).toContain('function clearAttribution()');\n"
+              "    expect(bridgeSource).toContain('window.localStorage.removeItem(ATTRIBUTION_KEY)');\n"
+              "    expect(bridgeSource).toContain('authPostHogStarted = false');\n"
+              "  });\n\n"
+              "  test('retains attribution in first-party analytics and exposes a signup-source report', () => {\n"
+              "    expect(behaviourUtilitySource).toContain(\"'first_channel'\");\n"
+              "    expect(behaviourUtilitySource).toContain(\"'signup_method'\");\n"
+              "    expect(behaviourUtilitySource).toContain('buildRegistrationSummary(events)');\n"
+              "    expect(adminBehaviourSource).toContain('baRegistrationChannels');\n"
+              "    expect(adminBehaviourSource).toContain('renderRegistrationSources(summary.registrations)');\n"
+              "  });\n\n"
+              "  test('carries consented attribution through a new Google signup', () => {\n"
+              "    expect(googleClientSource).toContain('state.attribution = attribution');\n"
+              "    expect(googleClientSource).toContain('state.analyticsSessionId = analyticsSessionId');\n"
+              "    expect(googleServerSource).toContain(\"signup_method: 'google'\");\n"
+              "    expect(googleServerSource).toContain('recordGoogleSignupAnalytics(user, state)');\n"
+              "  });\n\n"
+              "  test('uses a real rolling seven-day comparison on the admin KPI', () => {\n"
+              "    expect(adminDashboardSource).toContain('summary.newPrevious7');\n"
+              "    expect(adminDashboardSource).not.toContain('const prevUsers = 0');\n"
+              "    expect(adminDashboardSource).not.toContain('this week');\n"
+              "  });\n"
+              "});\n",
+              1,
+          )
+          write(attr_test, content)
+          
+          # Direct privacy-safe attribution summary tests.
+          write(
+              'tests/unit/signup-attribution-summary.test.js',
+              "'use strict';\n\n"
+              "const { sanitizeEvent, buildSummary } = require('../../utils/behaviourAnalytics');\n\n"
+              "describe('privacy-safe signup attribution summary', () => {\n"
+              "  const now = new Date('2026-08-03T12:00:00.000Z');\n\n"
+              "  function registration(overrides = {}) {\n"
+              "    return sanitizeEvent(\n"
+              "      {\n"
+              "        event: 'registration_completed',\n"
+              "        sessionId: overrides.sessionId || 'session-one',\n"
+              "        pagePath: '/auth?secret=removed',\n"
+              "        pageType: 'auth',\n"
+              "        referrerDomain: 'https://www.google.com/search?q=eventflow',\n"
+              "        deviceType: 'mobile',\n"
+              "        timestamp: overrides.timestamp || '2026-08-03T11:00:00.000Z',\n"
+              "        properties: {\n"
+              "          attribution_available: true,\n"
+              "          first_channel: 'organic_search',\n"
+              "          first_referrer_domain: 'https://www.google.com/search?q=private',\n"
+              "          first_landing_path: '/pricing?email=person@example.com',\n"
+              "          first_utm_source: 'google',\n"
+              "          first_utm_campaign: 'summer person@example.com',\n"
+              "          signup_method: overrides.signupMethod || 'email_password',\n"
+              "        },\n"
+              "      },\n"
+              "      {\n"
+              "        now,\n"
+              "        userId: 'usr-private',\n"
+              "        userRole: 'customer',\n"
+              "        hashSalt: 'test-salt',\n"
+              "      }\n"
+              "    );\n"
+              "  }\n\n"
+              "  test('retains approved attribution fields while removing URLs and personal data', () => {\n"
+              "    const event = registration();\n"
+              "    expect(event.properties).toMatchObject({\n"
+              "      attribution_available: true,\n"
+              "      first_channel: 'organic_search',\n"
+              "      first_referrer_domain: 'google.com',\n"
+              "      first_landing_path: '/pricing',\n"
+              "      first_utm_source: 'google',\n"
+              "      signup_method: 'email_password',\n"
+              "    });\n"
+              "    expect(event.properties.first_utm_campaign).toContain('[redacted-email]');\n"
+              "    expect(JSON.stringify(event)).not.toContain('person@example.com');\n"
+              "    expect(JSON.stringify(event)).not.toContain('usr-private');\n"
+              "  });\n\n"
+              "  test('builds channel, source and signup-method registration breakdowns', () => {\n"
+              "    const emailRegistration = registration();\n"
+              "    const googleRegistration = registration({\n"
+              "      sessionId: 'session-two',\n"
+              "      signupMethod: 'google',\n"
+              "      timestamp: '2026-08-03T11:30:00.000Z',\n"
+              "    });\n"
+              "    const summary = buildSummary([emailRegistration, googleRegistration], 7, now);\n"
+              "    expect(summary.registrations.total).toBe(2);\n"
+              "    expect(summary.registrations.byChannel).toEqual([\n"
+              "      { key: 'organic_search', count: 2 },\n"
+              "    ]);\n"
+              "    expect(summary.registrations.bySource).toEqual([{ key: 'google', count: 2 }]);\n"
+              "    expect(summary.registrations.bySignupMethod).toEqual([\n"
+              "      { key: 'email_password', count: 1 },\n"
+              "      { key: 'google', count: 1 },\n"
+              "    ]);\n"
+              "    expect(summary.registrations.recent[0]).toMatchObject({\n"
+              "      source: 'google',\n"
+              "      landingPath: '/pricing',\n"
+              "      signupMethod: 'google',\n"
+              "    });\n"
+              "  });\n"
+              "});\n",
+          )
+          
+          # Add a deterministic dashboard-window regression test.
+          admin_test = 'tests/unit/admin-user-systems.test.js'
+          insert_before(
+              admin_test,
+              "  test('handles empty collections gracefully', async () => {\n",
+              "  test('compares the current rolling seven days with the preceding seven days', async () => {\n"
+              "    const now = Date.now();\n"
+              "    mockDb.read.mockImplementation(async col => {\n"
+              "      if (col === 'users') {\n"
+              "        return [\n"
+              "          makeUser({ id: 'current', createdAt: new Date(now - 2 * 86400000).toISOString() }),\n"
+              "          makeUser({ id: 'previous', createdAt: new Date(now - 10 * 86400000).toISOString() }),\n"
+              "          makeUser({ id: 'future', createdAt: new Date(now + 86400000).toISOString() }),\n"
+              "        ];\n"
+              "      }\n"
+              "      return [];\n"
+              "    });\n"
+              "    const s = await buildUserSummary();\n"
+              "    expect(s.newLast7).toBe(1);\n"
+              "    expect(s.newPrevious7).toBe(1);\n"
+              "    expect(s.summary.newUsersPrevious7Days).toBe(1);\n"
+              "  });\n\n",
+          )
+          
+          # Update operator documentation to match the expanded pass.
+          doc = 'docs/analytics/signup-attribution-and-session-replay.md'
+          replace_once(
+              doc,
+              "Google registration attribution is not included in this browser-side change because Google completes through a server redirect. It should be added separately by carrying the same attribution fields through the signed Google state and recording the conversion after account creation.\n",
+              "For a new Google signup, the same consented attribution fields and opaque analytics session reference are carried through Google's signed redirect state. EventFlow then records a privacy-safe first-party `registration_completed` event after the account is created. Email/password registrations are also attached to the opaque EventFlow user in PostHog; Google registrations remain first-party-only in this change.\n",
+          )
+          replace_once(
+              doc,
+              "Create an insight using the `registration_completed` event and break it down by one of:\n",
+              "The EventFlow admin behaviour dashboard now includes a **Where registrations came from** card using privacy-safe first-party events. In PostHog, create an insight using the `registration_completed` event and break it down by one of:\n",
+          )
+          replace_once(
+              doc,
+              "Attribution only exists for visitors who accept analytics cookies. Browser privacy tools, cleared storage and cross-device journeys can prevent a complete match. First-touch attribution should therefore be read alongside self-reported acquisition data where practical.\n",
+              "Attribution only exists for visitors who accept analytics cookies. Withdrawing analytics consent removes the browser attribution record. Browser privacy tools, cleared storage and cross-device journeys can prevent a complete match. First-touch attribution should therefore be read alongside self-reported acquisition data where practical.\n",
+          )
+          PY
+          python /tmp/pr1426_patch.py
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit
+        env:
+          HUSKY: '0'
+
+      - name: Format changed sources
+        run: >-
+          npx prettier --write
+          public/assets/js/analytics-consent-upgrade.js
+          public/assets/js/pages/auth-google-init.js
+          public/assets/js/pages/admin-behaviour-analytics.js
+          public/assets/js/pages/admin-init.js
+          routes/google-redirect-auth.js
+          services/adminUserSummary.service.js
+          utils/behaviourAnalytics.js
+          utils/template-renderer.js
+          tests/unit/analytics-attribution-session-replay.test.js
+          tests/unit/analytics-independent-hardening.test.js
+          tests/unit/signup-attribution-summary.test.js
+          tests/unit/admin-user-systems.test.js
+          docs/analytics/signup-attribution-and-session-replay.md
+
+      - name: Check JavaScript syntax
+        run: |
+          node --check public/assets/js/analytics-consent-upgrade.js
+          node --check public/assets/js/pages/auth-google-init.js
+          node --check public/assets/js/pages/admin-behaviour-analytics.js
+          node --check public/assets/js/pages/admin-init.js
+          node --check routes/google-redirect-auth.js
+          node --check services/adminUserSummary.service.js
+          node --check utils/behaviourAnalytics.js
+
+      - name: Run focused regression tests
+        run: >-
+          npx jest
+          tests/unit/analytics-attribution-session-replay.test.js
+          tests/unit/analytics-independent-hardening.test.js
+          tests/unit/signup-attribution-summary.test.js
+          tests/unit/admin-user-systems.test.js
+          tests/unit/google-auth-init-context.test.js
+          --runInBand --coverage=false
+        env:
+          NODE_ENV: test
+          JWT_SECRET: test-secret-key-for-ci-testing-only-min-32-chars
+
+      - name: Commit review pass
+        shell: bash
+        run: |
+          rm .github/workflows/pr1426-review-pass.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          git commit -m "fix: complete signup attribution review pass"
+          git push origin HEAD:feat/signup-attribution-session-replay
