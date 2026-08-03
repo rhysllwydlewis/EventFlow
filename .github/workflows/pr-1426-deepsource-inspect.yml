@@ -1,0 +1,130 @@
+name: Inspect current PR 1426 DeepSource issue
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/pr-1426-deepsource-inspect.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pr-1426-deepsource-inspect
+  cancel-in-progress: false
+
+jobs:
+  inspect:
+    if: github.event.pull_request.number == 1426
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: feat/signup-attribution-session-replay
+          fetch-depth: 1
+
+      - name: Decode DeepSource page payload
+        env:
+          DEEPSOURCE_URL: https://app.deepsource.com/gh/rhysllwydlewis/EventFlow/run/c9442bd9-02fd-4b12-b1f2-f056fab8880c/javascript/
+        run: |
+          python - <<'PY'
+          import html
+          import json
+          import os
+          import re
+          import urllib.request
+
+          url = os.environ['DEEPSOURCE_URL']
+          with urllib.request.urlopen(url, timeout=30) as response:
+              page = response.read().decode('utf-8', errors='replace')
+
+          print('HTTP page bytes:', len(page))
+          decoded_page = html.unescape(page).replace('\\u002F', '/').replace('\\u003A', ':')
+
+          for pattern in ('JS-', 'Unexpected function', 'analytics-consent-upgrade.js', 'Documentation Coverage', 'External Dependencies'):
+              print(f'\n=== Raw contexts for {pattern!r} ===')
+              positions = [match.start() for match in re.finditer(re.escape(pattern), decoded_page)]
+              print('matches:', len(positions))
+              for position in positions[:20]:
+                  print(decoded_page[max(0, position - 500): position + 1000])
+                  print('\n---')
+
+          match = re.search(
+              r'<script[^>]+id="__NUXT_DATA__"[^>]*>(.*?)</script>',
+              page,
+              flags=re.DOTALL,
+          )
+          if not match:
+              raise SystemExit('Nuxt payload was not found')
+
+          payload = json.loads(html.unescape(match.group(1)))
+          print('\nPayload entries:', len(payload))
+
+          interesting = {}
+          for index, value in enumerate(payload):
+              if isinstance(value, str) and any(
+                  token in value
+                  for token in (
+                      'JS-',
+                      'Unexpected function',
+                      'analytics-consent-upgrade.js',
+                      'Documentation Coverage',
+                      'External Dependencies',
+                  )
+              ):
+                  interesting[index] = value
+                  print(f'STRING[{index}] = {value!r}')
+
+          target_indexes = set(interesting)
+
+          def contains_target(value, seen=None):
+              if seen is None:
+                  seen = set()
+              if isinstance(value, int):
+                  return value in target_indexes
+              if isinstance(value, list):
+                  return any(contains_target(item, seen) for item in value)
+              if isinstance(value, dict):
+                  return any(contains_target(item, seen) for item in value.values())
+              return False
+
+          def resolve(value, depth=0, seen=None):
+              if seen is None:
+                  seen = set()
+              if depth > 8:
+                  return '<max-depth>'
+              if isinstance(value, int) and 0 <= value < len(payload):
+                  if value in seen:
+                      return f'<cycle:{value}>'
+                  next_seen = set(seen)
+                  next_seen.add(value)
+                  return {'$ref': value, '$value': resolve(payload[value], depth + 1, next_seen)}
+              if isinstance(value, list):
+                  return [resolve(item, depth + 1, seen) for item in value]
+              if isinstance(value, dict):
+                  return {key: resolve(item, depth + 1, seen) for key, item in value.items()}
+              return value
+
+          print('\n=== Payload objects directly referencing interesting strings ===')
+          for index, value in enumerate(payload):
+              if isinstance(value, (dict, list)) and contains_target(value):
+                  print(f'OBJECT[{index}] raw = {value!r}')
+                  try:
+                      print(json.dumps(resolve(value), indent=2)[:12000])
+                  except Exception as error:
+                      print('resolve error:', error)
+                  print('---')
+          PY
+
+      - name: Remove inspection workflow
+        if: always()
+        run: |
+          rm .github/workflows/pr-1426-deepsource-inspect.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .github/workflows/pr-1426-deepsource-inspect.yml
+          git commit -m 'ci: remove DeepSource inspection workflow'
+          git push origin HEAD:feat/signup-attribution-session-replay
