@@ -1,0 +1,98 @@
+name: Apply PR 1426 function-expression fix
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/pr-1426-function-expression-fix.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pr-1426-function-expression-fix
+  cancel-in-progress: false
+
+jobs:
+  apply-fix:
+    if: github.event.pull_request.number == 1426
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: feat/signup-attribution-session-replay
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.node-version'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit
+        env:
+          HUSKY: '0'
+
+      - name: Replace introduced anonymous function expressions
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('public/assets/js/analytics-consent-upgrade.js')
+          source = path.read_text()
+
+          replacements = [
+              ('before_send: function (event) {', 'before_send: event => {', 1, 'before_send callback'),
+              (
+                  ".catch(function () {\n        return false;\n      });",
+                  '.catch(() => false);',
+                  1,
+                  'registration response fallback',
+              ),
+              (
+                  ".catch(function () {\n        authPostHogStarted = false;\n      });",
+                  ".catch(() => {\n        authPostHogStarted = false;\n      });",
+                  1,
+                  'auth PostHog fallback',
+              ),
+          ]
+
+          for old, new, expected, label in replacements:
+              count = source.count(old)
+              if count != expected:
+                  raise SystemExit(f'{label}: expected {expected} match, found {count}')
+              source = source.replace(old, new, expected)
+
+          path.write_text(source)
+          PY
+
+      - name: Format and validate analytics bridge
+        run: |
+          npx prettier --write public/assets/js/analytics-consent-upgrade.js
+          npx prettier --check public/assets/js/analytics-consent-upgrade.js
+          node --check public/assets/js/analytics-consent-upgrade.js
+          npx eslint --rulesdir eslint-rules public/assets/js/analytics-consent-upgrade.js
+          npx jest \
+            tests/unit/analytics-independent-hardening.test.js \
+            tests/unit/analytics-attribution-session-replay.test.js \
+            tests/unit/behaviour-analytics-integration.test.js \
+            --runInBand --coverage=false
+        env:
+          HUSKY: '0'
+          NODE_ENV: test
+          JWT_SECRET: test-secret-key-for-ci-testing-only-min-32-chars
+
+      - name: Remove helper workflow and commit
+        run: |
+          rm .github/workflows/pr-1426-function-expression-fix.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add \
+            public/assets/js/analytics-consent-upgrade.js \
+            .github/workflows/pr-1426-function-expression-fix.yml
+          git commit -m 'refactor: replace introduced anonymous callbacks'
+          git push origin HEAD:feat/signup-attribution-session-replay
