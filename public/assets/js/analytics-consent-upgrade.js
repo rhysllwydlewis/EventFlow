@@ -161,7 +161,7 @@
     try {
       const consent = window.CookieConsent.getConsent();
       return Boolean(consent && consent.analytics === true);
-    } catch (_error) {
+    } catch {
       return false;
     }
   }
@@ -192,7 +192,7 @@
       return new URL(value || '/', window.location.origin).pathname
         .replace(/\/{2,}/g, '/')
         .slice(0, 220);
-    } catch (_error) {
+    } catch {
       return '/';
     }
   }
@@ -207,7 +207,7 @@
         .toLowerCase()
         .replace(/^www\./, '')
         .slice(0, 120);
-    } catch (_error) {
+    } catch {
       return 'direct';
     }
   }
@@ -220,7 +220,7 @@
       const referrer = normalizedDomain(document.referrer);
       const current = normalizedDomain(window.location.origin);
       return referrer === current ? 'internal' : referrer;
-    } catch (_error) {
+    } catch {
       return 'direct';
     }
   }
@@ -315,7 +315,7 @@
     initialAttributionTouch = null;
     try {
       window.localStorage.removeItem(ATTRIBUTION_KEY);
-    } catch (_error) {
+    } catch {
       // Storage cleanup is best-effort in restricted privacy modes.
     }
   }
@@ -323,13 +323,13 @@
   function readAttribution() {
     try {
       const value = JSON.parse(window.localStorage.getItem(ATTRIBUTION_KEY) || 'null');
-      const capturedAt = Date.parse(value && value.first && value.first.capturedAt);
+      const capturedAt = Date.parse(value?.first?.capturedAt);
       if (!capturedAt || Date.now() - capturedAt > ATTRIBUTION_TTL_MS) {
         window.localStorage.removeItem(ATTRIBUTION_KEY);
         return null;
       }
       return value;
-    } catch (_error) {
+    } catch {
       return null;
     }
   }
@@ -356,7 +356,7 @@
 
     try {
       window.localStorage.setItem(ATTRIBUTION_KEY, JSON.stringify(value));
-    } catch (_error) {
+    } catch {
       // Storage is best-effort in restricted privacy modes.
     }
     return value;
@@ -434,7 +434,7 @@
         let result = event;
         try {
           result = runBeforeSendHooks(existingBeforeSend, result);
-        } catch (_error) {
+        } catch {
           // A third-party hook must not bypass EventFlow's final privacy sanitiser.
         }
         return result ? sanitizePostHogEvent(result) : result;
@@ -564,7 +564,7 @@
         { transport: 'sendBeacon' }
       );
       capturedPostHogPageleave = true;
-    } catch (_error) {
+    } catch {
       // Analytics delivery must never interfere with navigation or page shutdown.
     }
   }
@@ -590,7 +590,7 @@
         });
         capturedPostHogPage = currentUrl;
         capturedPostHogPageleave = false;
-      } catch (_error) {
+      } catch {
         // The polling timeout below permits a later retry.
       }
       clearPostHogPageviewTimer();
@@ -665,7 +665,7 @@
         url = new URL(input.url, window.location.href).pathname;
         method = input.method || method;
       }
-    } catch (_error) {
+    } catch {
       url = '';
     }
     if (options && options.method) {
@@ -715,7 +715,7 @@
       .clone()
       .json()
       .then(payload => {
-        const user = payload && payload.user;
+        const user = payload?.user;
         if (!user || !user.id || user.role === 'admin') {
           return false;
         }

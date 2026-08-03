@@ -1127,7 +1127,21 @@ body.auth-page .auth-pw-wrap {
 body.auth-page .auth-pw-wrap > .password-toggle {
   top: 21px !important;
   bottom: auto !important;
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  min-height: 32px !important;
   margin: 0 !important;
+  padding: 6px !important;
+  box-sizing: border-box;
+  line-height: 1;
+}
+
+body.auth-page .auth-pw-wrap > .password-toggle > svg {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
+  pointer-events: none;
 }
 
 .password-toggle:hover {

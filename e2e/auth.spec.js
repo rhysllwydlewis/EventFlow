@@ -69,17 +69,22 @@ test.describe('Authentication Flow', () => {
     await page.goto('/auth.html');
     await waitForAuthReady(page);
 
-    // Focus login tab and press ArrowRight to switch to create tab
-    await page.focus('#tab-signin');
-    await page.keyboard.press('ArrowRight');
+    const signinTab = page.locator('#tab-signin');
+    const createTab = page.locator('#tab-create');
 
-    await expect(page.locator('#tab-create')).toHaveAttribute('aria-selected', 'true');
+    // Send each key to the tab that owns focus. This keeps the test aligned
+    // with the ARIA tabs pattern even while third-party widgets initialise.
+    await signinTab.focus();
+    await signinTab.press('ArrowRight');
+
+    await expect(createTab).toHaveAttribute('aria-selected', 'true');
+    await expect(createTab).toBeFocused();
     await expect(page.locator('#panel-create')).toBeVisible();
 
-    // Press ArrowLeft to go back
-    await page.keyboard.press('ArrowLeft');
+    await createTab.press('ArrowLeft');
 
-    await expect(page.locator('#tab-signin')).toHaveAttribute('aria-selected', 'true');
+    await expect(signinTab).toHaveAttribute('aria-selected', 'true');
+    await expect(signinTab).toBeFocused();
     await expect(page.locator('#panel-signin')).toBeVisible();
   });
 
@@ -257,7 +262,14 @@ test.describe('Authentication Flow', () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/auth.html');
     await waitForAuthReady(page);
-    await page.waitForTimeout(500);
+
+    const rejectCookies = page.getByRole('button', {
+      name: 'Reject non-essential cookies',
+    });
+    if (await rejectCookies.isVisible().catch(() => false)) {
+      await rejectCookies.click();
+      await expect(rejectCookies).toBeHidden();
+    }
 
     const passwordInput = page.locator('#login-password');
     const toggleButton = passwordInput.locator('xpath=..').locator('.password-toggle');
