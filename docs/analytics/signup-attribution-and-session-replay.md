@@ -12,7 +12,15 @@ After a visitor consents to analytics, EventFlow stores a privacy-safe 90-day fi
 
 The PostHog distinct ID is EventFlow's opaque internal user ID. The account role is attached to the identified profile. Email addresses, names, passwords, form values and message content are not sent as identification properties.
 
-For a new Google signup, the same consented attribution fields and opaque analytics session reference are carried through Google's signed redirect state. EventFlow then records a privacy-safe first-party `registration_completed` event after the account is created. Email/password registrations are also attached to the opaque EventFlow user in PostHog; Google registrations remain first-party-only in this change.
+For a new Google signup, the same consented attribution fields and opaque analytics session reference are carried through the Google redirect state. EventFlow then records a privacy-safe first-party `registration_completed` event after the account is created. Email/password registrations are also attached to the opaque EventFlow user in PostHog; Google registrations remain first-party-only in this change.
+
+## Admin dashboard reporting
+
+The Total Users trend now uses a genuine rolling seven-day comparison: users created during the latest seven days are compared with those created during the immediately preceding seven days. It no longer treats the previous period as zero or describes the rolling window as a calendar week.
+
+The EventFlow admin behaviour dashboard includes a **Where registrations came from** card. It reports privacy-safe first-touch channel and source totals for consented completed registrations, without exposing names or email addresses.
+
+Attribution starts when this change is deployed. Existing historical registrations cannot be assigned a reliable source retrospectively.
 
 ## Session replay
 
@@ -36,7 +44,7 @@ The injected analytics bridge asset is versioned, so returning visitors receive 
 
 ## Viewing signup sources in PostHog
 
-The EventFlow admin behaviour dashboard now includes a **Where registrations came from** card using privacy-safe first-party events. In PostHog, create an insight using the `registration_completed` event and break it down by one of:
+Create an insight using the `registration_completed` event and break it down by one of:
 
 - `first_channel`
 - `first_referrer_domain`
