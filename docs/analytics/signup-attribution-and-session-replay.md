@@ -67,6 +67,8 @@ The production dependency override and lockfile pin `fast-uri` to the patched `3
 
 The final static-analysis pass also removes unused Google-auth catch bindings and replaces the remaining manual null guards in the signup and admin KPI clients. Focused auth, attribution and admin tests validate those equivalent refactors before the full pull-request suite runs.
 
+The server-side Google attribution helper now derives one guarded attribution object and uses optional chaining for the analytics session and user identity checks. Both Google route integration suites and the dedicated attribution persistence test verify the refactor.
+
 ## Limitations
 
 Attribution only exists for visitors who accept analytics cookies. Withdrawing analytics consent removes the browser attribution record. Browser privacy tools, cleared storage and cross-device journeys can prevent a complete match. First-touch attribution should therefore be read alongside self-reported acquisition data where practical.
