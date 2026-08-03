@@ -140,27 +140,23 @@
   }
 
   function closeConsentUi(target) {
-    const banner = target && target.closest ? target.closest('#cookie-consent-banner') : null;
-    if (banner && banner.parentNode) {
-      banner.parentNode.removeChild(banner);
-    }
+    const banner = target?.closest?.('#cookie-consent-banner');
+    banner?.parentNode?.removeChild?.(banner);
 
-    const dialog = target && target.closest ? target.closest('#cookie-prefs-dialog') : null;
-    if (dialog && dialog.parentNode) {
-      dialog.parentNode.removeChild(dialog);
-    }
-    if (dialog && document.body) {
-      document.body.classList.remove('cookie-prefs-open');
+    const dialog = target?.closest?.('#cookie-prefs-dialog');
+    dialog?.parentNode?.removeChild?.(dialog);
+    if (dialog) {
+      document.body?.classList.remove('cookie-prefs-open');
     }
   }
 
   function hasAnalyticsConsent() {
-    if (!window.CookieConsent || typeof window.CookieConsent.getConsent !== 'function') {
+    if (typeof window.CookieConsent?.getConsent !== 'function') {
       return false;
     }
     try {
       const consent = window.CookieConsent.getConsent();
-      return Boolean(consent && consent.analytics === true);
+      return consent?.analytics === true;
     } catch {
       return false;
     }
@@ -413,7 +409,12 @@
   }
 
   function runBeforeSendHooks(hooks, event) {
-    const handlers = Array.isArray(hooks) ? hooks : typeof hooks === 'function' ? [hooks] : [];
+    let handlers = [];
+    if (Array.isArray(hooks)) {
+      handlers = hooks;
+    } else if (typeof hooks === 'function') {
+      handlers = [hooks];
+    }
     let result = event;
     handlers.forEach(handler => {
       if (result) {
@@ -445,8 +446,7 @@
   function installSensitivePageConsentGuard() {
     if (
       !isProviderBlockedPage() ||
-      !window.CookieConsent ||
-      typeof window.CookieConsent.getConsent !== 'function' ||
+      typeof window.CookieConsent?.getConsent !== 'function' ||
       window.CookieConsent.getConsent.__efSensitiveGuard
     ) {
       return;
@@ -462,7 +462,7 @@
   }
 
   function installPrivacyAwarePostHogStub() {
-    if (window.posthog && window.posthog.__SV) {
+    if (window.posthog?.__SV) {
       return;
     }
 
@@ -529,7 +529,7 @@
   }
 
   function postHogIsInitialised() {
-    if (!window.posthog || typeof window.posthog.capture !== 'function') {
+    if (typeof window.posthog?.capture !== 'function') {
       return false;
     }
     if (window.posthog.__loaded) {
@@ -615,7 +615,7 @@
   }
 
   function handleAnalyticsConsentChange(event) {
-    if (event && event.detail && event.detail.analytics === true) {
+    if (event?.detail?.analytics === true) {
       captureAttribution();
       if (isAuthPage()) {
         startAuthPostHog();
@@ -633,22 +633,22 @@
   }
 
   function handlePostHogPageShow(event) {
-    if (!event || event.persisted !== true) {
+    if (event?.persisted !== true) {
       return;
     }
     capturedPostHogPageleave = false;
   }
 
   function upgradeConsentCopy(root) {
-    const scope = root && typeof root.querySelectorAll === 'function' ? root : document;
+    const scope = typeof root?.querySelectorAll === 'function' ? root : document;
     scope.querySelectorAll('.cookie-consent-message p').forEach(paragraph => {
-      if (paragraph.textContent && paragraph.textContent.includes('functional cookies')) {
+      if (paragraph.textContent?.includes('functional cookies')) {
         paragraph.textContent =
           'We use essential cookies to make our site work. With your consent, analytics helps us understand visits, signup sources and improve EventFlow. You can change these choices at any time.';
       }
     });
     scope.querySelectorAll('.cookie-prefs-category-desc').forEach(description => {
-      if (description.textContent && description.textContent.includes('Currently unused')) {
+      if (description.textContent?.includes('Currently unused')) {
         description.textContent =
           'Help us understand page engagement, journeys and website performance. Analytics only runs after you consent.';
       }
@@ -661,14 +661,14 @@
     try {
       if (typeof input === 'string' || input instanceof URL) {
         url = new URL(input, window.location.href).pathname;
-      } else if (input && input.url) {
+      } else if (input?.url) {
         url = new URL(input.url, window.location.href).pathname;
         method = input.method || method;
       }
     } catch {
       url = '';
     }
-    if (options && options.method) {
+    if (options?.method) {
       method = options.method;
     }
     return { url, method: String(method || 'GET').toUpperCase() };
@@ -703,12 +703,7 @@
   }
 
   function identifyRegisteredUser(response) {
-    if (
-      !response ||
-      !response.ok ||
-      !window.posthog ||
-      typeof window.posthog.identify !== 'function'
-    ) {
+    if (!response?.ok || typeof window.posthog?.identify !== 'function') {
       return Promise.resolve(false);
     }
     return response
@@ -716,7 +711,7 @@
       .json()
       .then(payload => {
         const user = payload?.user;
-        if (!user || !user.id || user.role === 'admin') {
+        if (!user?.id || user.role === 'admin') {
           return false;
         }
         window.posthog.identify(String(user.id), {
@@ -740,14 +735,12 @@
       const request = normalizedRequest(input, options);
       return originalFetch(input, options).then(response => {
         const conversion = response.ok ? successfulEventFor(request) : null;
-        if (conversion && window.EFAnalytics && typeof window.EFAnalytics.track === 'function') {
+        if (conversion && typeof window.EFAnalytics?.track === 'function') {
           window.EFAnalytics.track(conversion.event, conversion.properties, { immediate: true });
         }
         if (
-          conversion &&
-          conversion.event === 'registration_completed' &&
-          window.posthog &&
-          typeof window.posthog.capture === 'function'
+          conversion?.event === 'registration_completed' &&
+          typeof window.posthog?.capture === 'function'
         ) {
           const captureRegistration = () =>
             window.posthog.capture(conversion.event, conversion.properties);
@@ -773,7 +766,7 @@
       })
       .then(response => (response.ok ? response.json() : null))
       .then(config => {
-        const provider = config && config.posthog;
+        const provider = config?.posthog;
         if (!provider || !provider.enabled || !provider.projectKey) {
           return;
         }
@@ -806,10 +799,7 @@
   document.addEventListener(
     'click',
     event => {
-      const target =
-        event.target && event.target.closest
-          ? event.target.closest('#cookie-consent-accept, #cookie-prefs-accept-all')
-          : null;
+      const target = event.target?.closest?.('#cookie-consent-accept, #cookie-prefs-accept-all');
       if (!target) {
         return;
       }
@@ -846,7 +836,7 @@
     const observer = new MutationObserver(mutations => {
       mutations.forEach(mutation => {
         mutation.addedNodes.forEach(node => {
-          if (node && node.nodeType === 1) {
+          if (node?.nodeType === 1) {
             upgradeConsentCopy(node);
           }
         });
