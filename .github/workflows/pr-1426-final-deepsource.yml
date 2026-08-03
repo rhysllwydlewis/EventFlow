@@ -1,0 +1,184 @@
+name: Apply remaining PR 1426 DeepSource fixes
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/pr-1426-final-deepsource.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pr-1426-final-deepsource
+  cancel-in-progress: false
+
+jobs:
+  apply-fixes:
+    if: github.event.pull_request.number == 1426
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout fixed PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: feat/signup-attribution-session-replay
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.node-version'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit
+        env:
+          HUSKY: '0'
+
+      - name: Apply remaining analyzer fixes
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path, old, new, label):
+              source = path.read_text()
+              count = source.count(old)
+              if count != 1:
+                  raise SystemExit(f'{label}: expected exactly one match, found {count}')
+              path.write_text(source.replace(old, new, 1))
+
+          google_client = Path('public/assets/js/pages/auth-google-init.js')
+          replace_once(
+              google_client,
+              """      if (
+                !window.EventFlowAttribution ||
+                typeof window.EventFlowAttribution.properties !== 'function'
+              ) {
+          """,
+              """      if (typeof window.EventFlowAttribution?.properties !== 'function') {
+          """,
+              'Google attribution API guard',
+          )
+          replace_once(
+              google_client,
+              'return attribution && attribution.attribution_available === true ? attribution : null;',
+              'return attribution?.attribution_available === true ? attribution : null;',
+              'Google attribution result guard',
+          )
+          source = google_client.read_text()
+          if source.count('catch (_) {') != 2:
+              raise SystemExit(
+                  f'Google client unused catches: expected 2, found {source.count("catch (_) {")}'
+              )
+          google_client.write_text(source.replace('catch (_) {', 'catch {'))
+
+          admin_init = Path('public/assets/js/pages/admin-init.js')
+          replace_once(
+              admin_init,
+              'const recentUsers = Number(summary && summary.newLast7) || 0;',
+              'const recentUsers = Number(summary?.newLast7) || 0;',
+              'current signup summary guard',
+          )
+          replace_once(
+              admin_init,
+              'const previousUsers = Number(summary && summary.newPrevious7) || 0;',
+              'const previousUsers = Number(summary?.newPrevious7) || 0;',
+              'previous signup summary guard',
+          )
+
+          google_route = Path('routes/google-redirect-auth.js')
+          replace_once(
+              google_route,
+              """function getGoogleSignupAttribution(state) {
+            if (!state || state.context !== 'signup' || !state.attribution) {
+              return null;
+            }
+            const properties = { conversionType: 'registration', signup_method: 'google' };
+            GOOGLE_ATTRIBUTION_KEYS.forEach(key => {
+              const value = state.attribution[key];
+          """,
+              """function getGoogleSignupAttribution(state) {
+            const attribution = state?.attribution;
+            if (state?.context !== 'signup' || !attribution) {
+              return null;
+            }
+            const properties = { conversionType: 'registration', signup_method: 'google' };
+            GOOGLE_ATTRIBUTION_KEYS.forEach(key => {
+              const value = attribution[key];
+          """,
+              'Google server attribution guard',
+          )
+          replace_once(
+              google_route,
+              'const sessionId = cleanStateText(state && state.analyticsSessionId, 120);',
+              'const sessionId = cleanStateText(state?.analyticsSessionId, 120);',
+              'Google analytics session guard',
+          )
+          replace_once(
+              google_route,
+              "if (!properties || !sessionId || !user || user.role === 'admin') {",
+              "if (!properties || !sessionId || !user?.id || user.role === 'admin') {",
+              'Google analytics user guard',
+          )
+          replace_once(
+              google_route,
+              'const state = decodeState(req.body && req.body.state);',
+              'const state = decodeState(req.body?.state);',
+              'Google callback state guard',
+          )
+
+          source_contract = Path('tests/unit/analytics-attribution-session-replay.test.js')
+          replace_once(
+              source_contract,
+              "expect(adminDashboardSource).toContain('summary.newPrevious7');",
+              "expect(adminDashboardSource).toContain('summary?.newPrevious7');",
+              'admin optional-chain source contract',
+          )
+          PY
+
+      - name: Format and validate focused files
+        run: |
+          npx prettier --write \
+            public/assets/js/pages/auth-google-init.js \
+            public/assets/js/pages/admin-init.js \
+            routes/google-redirect-auth.js \
+            tests/unit/analytics-attribution-session-replay.test.js
+          npx prettier --check \
+            public/assets/js/pages/auth-google-init.js \
+            public/assets/js/pages/admin-init.js \
+            routes/google-redirect-auth.js \
+            tests/unit/analytics-attribution-session-replay.test.js
+          node --check public/assets/js/pages/auth-google-init.js
+          node --check public/assets/js/pages/admin-init.js
+          node --check routes/google-redirect-auth.js
+          npx eslint --rulesdir eslint-rules \
+            public/assets/js/pages/auth-google-init.js \
+            public/assets/js/pages/admin-init.js \
+            routes/google-redirect-auth.js
+          npx jest \
+            tests/unit/analytics-attribution-session-replay.test.js \
+            tests/unit/google-auth-init-context.test.js \
+            tests/integration/google-auth-route.test.js \
+            tests/integration/google-signup-attribution-route.test.js \
+            tests/unit/admin-user-systems.test.js \
+            --runInBand --coverage=false
+        env:
+          HUSKY: '0'
+          NODE_ENV: test
+          JWT_SECRET: test-secret-key-for-ci-testing-only-min-32-chars
+
+      - name: Remove helper workflow and commit
+        run: |
+          rm .github/workflows/pr-1426-final-deepsource.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add \
+            public/assets/js/pages/auth-google-init.js \
+            public/assets/js/pages/admin-init.js \
+            routes/google-redirect-auth.js \
+            tests/unit/analytics-attribution-session-replay.test.js \
+            .github/workflows/pr-1426-final-deepsource.yml
+          git commit -m 'refactor: clear remaining DeepSource findings'
+          git push origin HEAD:feat/signup-attribution-session-replay
