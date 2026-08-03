@@ -77,10 +77,10 @@ jobs:
           """,
               """  function closeConsentUi(target) {
               const banner = target?.closest?.('#cookie-consent-banner');
-              banner?.remove();
+              banner?.parentNode?.removeChild?.(banner);
 
               const dialog = target?.closest?.('#cookie-prefs-dialog');
-              dialog?.remove();
+              dialog?.parentNode?.removeChild?.(dialog);
               if (dialog) {
                 document.body?.classList.remove('cookie-prefs-open');
               }
