@@ -18,7 +18,7 @@ For a new Google signup, the same consented attribution fields and opaque analyt
 
 The Total Users trend now uses a genuine rolling seven-day comparison: users created during the latest seven days are compared with those created during the immediately preceding seven days. It no longer treats the previous period as zero or describes the rolling window as a calendar week.
 
-The EventFlow admin behaviour dashboard includes a **Where registrations came from** card. It reports privacy-safe first-touch channel and source totals for consented completed registrations, without exposing names or email addresses.
+The EventFlow admin behaviour dashboard includes a **Where registrations came from** card. It reports privacy-safe first-touch channel and source totals for consented completed registrations, without exposing names or email addresses. Read the card as an acquisition indicator rather than a complete census, because registrations without analytics consent are deliberately not attributed.
 
 Attribution starts when this change is deployed. Existing historical registrations cannot be assigned a reliable source retrospectively.
 
