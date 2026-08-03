@@ -643,7 +643,12 @@
   }
 
   function identifyRegisteredUser(response) {
-    if (!response || !response.ok || !window.posthog || typeof window.posthog.identify !== 'function') {
+    if (
+      !response ||
+      !response.ok ||
+      !window.posthog ||
+      typeof window.posthog.identify !== 'function'
+    ) {
       return;
     }
     response

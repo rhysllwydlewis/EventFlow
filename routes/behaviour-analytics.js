@@ -95,8 +95,7 @@ function getConfig() {
       dashboardUrl,
       // Replay is privacy-masked and consent-gated in the browser. It is on by default,
       // while POSTHOG_SESSION_RECORDING_ENABLED=false remains an explicit kill switch.
-      sessionRecordingEnabled:
-        posthogEnabled && envFlag('POSTHOG_SESSION_RECORDING_ENABLED', true),
+      sessionRecordingEnabled: posthogEnabled && envFlag('POSTHOG_SESSION_RECORDING_ENABLED', true),
     },
   };
 }
@@ -248,7 +247,9 @@ router.post('/collect', collectLimiter, async (req, res) => {
   const config = getConfig();
   if (!config.enabled) return res.status(202).json({ success: true, accepted: 0, disabled: true });
   if (!isSameSiteRequest(req)) {
-    return res.status(403).json({ success: false, error: 'Cross-site analytics requests are blocked' });
+    return res
+      .status(403)
+      .json({ success: false, error: 'Cross-site analytics requests are blocked' });
   }
   if (getRawBodySize(req) > MAX_BODY_BYTES) {
     return res.status(413).json({ success: false, error: 'Analytics payload too large' });
@@ -349,14 +350,23 @@ router.get('/admin/summary', authRequired, roleRequired('admin'), async (req, re
   }
 });
 
-router.post('/admin/cleanup', authRequired, roleRequired('admin'), csrfProtection, async (_req, res) => {
-  try {
-    return res.json({ success: true, removed: await removeExpiredEvents(getConfig().retentionDays) });
-  } catch (error) {
-    logger.error('[behaviour-analytics] cleanup failed:', error.message);
-    return res.status(500).json({ success: false, error: 'Failed to clean analytics events' });
+router.post(
+  '/admin/cleanup',
+  authRequired,
+  roleRequired('admin'),
+  csrfProtection,
+  async (_req, res) => {
+    try {
+      return res.json({
+        success: true,
+        removed: await removeExpiredEvents(getConfig().retentionDays),
+      });
+    } catch (error) {
+      logger.error('[behaviour-analytics] cleanup failed:', error.message);
+      return res.status(500).json({ success: false, error: 'Failed to clean analytics events' });
+    }
   }
-});
+);
 
 module.exports = router;
 module.exports._private = {

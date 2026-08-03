@@ -47,7 +47,9 @@ describe('signup attribution and PostHog session replay', () => {
   test('attributes successful email registrations to a PostHog conversion event', () => {
     expect(bridgeSource).toContain("event: 'registration_completed'");
     expect(bridgeSource).toContain("signup_method: 'email_password'");
-    expect(bridgeSource).toContain('window.posthog.capture(conversion.event, conversion.properties)');
+    expect(bridgeSource).toContain(
+      'window.posthog.capture(conversion.event, conversion.properties)'
+    );
     expect(bridgeSource).toContain('response.ok ? successfulEventFor(request) : null');
   });
 });
