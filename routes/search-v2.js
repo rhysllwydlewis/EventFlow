@@ -17,7 +17,7 @@ const {
   clearSearchCache,
   getCacheStats,
 } = require('../middleware/searchCache');
-const searchService = require('../services/searchService');
+const searchService = require('../services/rankedSupplierSearch.service');
 const { addPublicProfilePaths } = require('../utils/publicSupplierProfilePath');
 const searchAnalytics = require('../utils/searchAnalytics');
 const validator = require('validator');
