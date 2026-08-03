@@ -1,0 +1,678 @@
+/**
+ * EventFlow Community — moderation and anti-spam engine
+ *
+ * The functions here are deliberately pure and synchronous wherever possible so
+ * the rules can be unit tested without a database. The route layer supplies the
+ * account facts (age, verification, standing, recent posts) and this module
+ * decides what happens to a piece of content.
+ *
+ * The design targets the specific failure mode observed on comparable UK
+ * wedding forums: dormant threads revived years later by low-trust accounts
+ * posting promotional links. See
+ * docs/research/eventflow-community-hitched-audit.md.
+ */
+
+'use strict';
+
+const { sanitizeContent, stripHtml } = require('./contentSanitizer');
+const {
+  TRUST_TIERS,
+  TRUST_POLICY,
+  CONTENT_STATES,
+  FRESHNESS,
+  LIMITS,
+} = require('../models/CommunityContent');
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Domains that are never appropriate in an event-planning community. Matching is
+ * on the registrable suffix, so `bet365.example.com` matches `bet365` patterns.
+ * Operators can extend this at runtime through the admin blocklist.
+ */
+const HIGH_RISK_DOMAIN_PATTERNS = Object.freeze([
+  /(^|\.)bet[a-z0-9-]*\.(com|net|org|co|io|uk)$/i,
+  /(^|\.)casino[a-z0-9-]*\./i,
+  /(^|\.)poker[a-z0-9-]*\./i,
+  /(^|\.)slots?[a-z0-9-]*\./i,
+  /(^|\.)(porn|xxx|escort|camgirl|onlyfans)[a-z0-9-]*\./i,
+  /(^|\.)(crack|keygen|warez|torrent|nulled|apk-?download)[a-z0-9-]*\./i,
+  /(^|\.)(vape|ecig|kratom)[a-z0-9-]*\./i,
+  /\.(zip|review|country|gq|cf|tk|ml)$/i,
+]);
+
+/**
+ * Phrases typical of drive-by promotion rather than genuine advice. A single hit
+ * is not enough to block anything; the score is combined with link count,
+ * account trust and thread age before any decision is taken.
+ */
+const PROMOTIONAL_PATTERNS = Object.freeze([
+  /\bbuy\s+now\b/i,
+  /\bclick\s+here\b/i,
+  /\blimited\s+time\s+offer\b/i,
+  /\b(best|cheapest)\s+price\s+guaranteed\b/i,
+  /\bwhatsapp\s*(me|us)?\s*(on|at)?\s*\+?\d/i,
+  /\btelegram\s*[:@]/i,
+  /\bdm\s+me\s+for\s+(price|details|info)/i,
+  /\b(guaranteed|instant)\s+(win|profit|returns?)\b/i,
+  /\b(seo|backlink|traffic)\s+(services?|packages?)\b/i,
+  /\bearn\s+\p{Sc}?\d+\s*(per|a)\s*(day|week|month)\b/iu,
+  /\bcontact\s+us\s+on\s+\+?\d[\d\s-]{7,}/i,
+]);
+
+const UNSAFE_URL_SCHEMES = Object.freeze([
+  'javascript:',
+  'data:',
+  'vbscript:',
+  'file:',
+  'blob:',
+  'about:',
+]);
+
+const URL_PATTERN = /\bhttps?:\/\/[^\s<>"')]+/gi;
+const BARE_DOMAIN_PATTERN = /\b(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}\b/gi;
+
+// ─── Link handling ───────────────────────────────────────────────────────────
+
+/**
+ * Extract every http(s) URL from a block of text or HTML.
+ * @param {string} text Raw or sanitised content.
+ * @returns {string[]} URLs in order of appearance, duplicates preserved.
+ */
+function extractUrls(text) {
+  if (!text || typeof text !== 'string') {
+    return [];
+  }
+  return text.match(URL_PATTERN) || [];
+}
+
+/**
+ * Extract the hostname of a URL, lower-cased and without a leading `www.`.
+ * @param {string} url Candidate URL.
+ * @returns {string} Hostname, or an empty string when the URL cannot be parsed.
+ */
+function domainOf(url) {
+  try {
+    const parsed = new URL(String(url).trim());
+    return parsed.hostname.toLowerCase().replace(/^www\./, '');
+  } catch (_) {
+    return '';
+  }
+}
+
+/**
+ * Whether a URL uses a scheme we are willing to render.
+ * @param {string} url Candidate URL.
+ * @returns {boolean} True for http and https only.
+ */
+function isSafeUrl(url) {
+  const value = String(url || '')
+    .trim()
+    .toLowerCase();
+  if (UNSAFE_URL_SCHEMES.some(scheme => value.startsWith(scheme))) {
+    return false;
+  }
+  return /^https?:\/\//.test(value);
+}
+
+/**
+ * Decide whether a domain is blocked, using both the built-in high-risk
+ * patterns and the operator-managed blocklist.
+ * @param {string} domain Hostname to test.
+ * @param {Object} settings Community settings containing allow/block lists.
+ * @returns {boolean} True when the domain must not be linked.
+ */
+function isBlockedDomain(domain, settings = {}) {
+  const host = String(domain || '').toLowerCase();
+  if (!host) {
+    return false;
+  }
+
+  const allowed = Array.isArray(settings.allowedDomains) ? settings.allowedDomains : [];
+  if (allowed.some(entry => matchesDomain(host, entry))) {
+    return false;
+  }
+
+  const blocked = Array.isArray(settings.blockedDomains) ? settings.blockedDomains : [];
+  if (blocked.some(entry => matchesDomain(host, entry))) {
+    return true;
+  }
+
+  return HIGH_RISK_DOMAIN_PATTERNS.some(pattern => pattern.test(host));
+}
+
+/**
+ * Match a hostname against a configured domain entry, allowing subdomains.
+ * @param {string} host Hostname under test.
+ * @param {string} entry Configured domain.
+ * @returns {boolean} True when host is the entry or a subdomain of it.
+ */
+function matchesDomain(host, entry) {
+  const target = String(entry || '')
+    .toLowerCase()
+    .replace(/^www\./, '')
+    .trim();
+  if (!target) {
+    return false;
+  }
+  return host === target || host.endsWith(`.${target}`);
+}
+
+/**
+ * Rewrite anchors in sanitised HTML so external links can never be used to pass
+ * ranking signal, open a tab with window access, or leak a referrer. Links from
+ * accounts without link privileges are downgraded to plain text.
+ * @param {string} html Sanitised HTML body.
+ * @param {Object} options Behaviour switches.
+ * @param {boolean} options.clickable Whether external links stay clickable.
+ * @param {Object} options.settings Community settings for domain lists.
+ * @returns {string} HTML with safe anchors.
+ */
+function applyLinkPolicy(html, options = {}) {
+  const { clickable = true, settings = {} } = options;
+  if (!html || typeof html !== 'string') {
+    return '';
+  }
+
+  return html.replace(/<a\b([^>]*)>([\s\S]*?)<\/a>/gi, (match, attrs, inner) => {
+    const hrefMatch = /href\s*=\s*("([^"]*)"|'([^']*)')/i.exec(attrs);
+    const href = hrefMatch ? hrefMatch[2] || hrefMatch[3] || '' : '';
+    const text = inner || href;
+
+    if (!isSafeUrl(href)) {
+      return text;
+    }
+
+    const domain = domainOf(href);
+    const internal = isInternalDomain(domain, settings);
+
+    if (isBlockedDomain(domain, settings)) {
+      return stripHtml(text);
+    }
+
+    if (!clickable && !internal) {
+      // Show the destination as text so readers keep the information without the
+      // post gaining a clickable outbound link.
+      return `${stripHtml(text)} (${escapeAttribute(href)})`;
+    }
+
+    if (internal) {
+      return `<a href="${escapeAttribute(href)}">${text}</a>`;
+    }
+
+    return `<a href="${escapeAttribute(href)}" target="_blank" rel="ugc nofollow noopener noreferrer">${text}</a>`;
+  });
+}
+
+/**
+ * Whether a domain belongs to EventFlow itself.
+ * @param {string} domain Hostname.
+ * @param {Object} settings Community settings (unused today, kept for parity).
+ * @returns {boolean} True for EventFlow-owned hosts.
+ */
+function isInternalDomain(domain, settings = {}) {
+  void settings;
+  const host = String(domain || '').toLowerCase();
+  if (!host) {
+    return true; // relative link
+  }
+  return host === 'event-flow.co.uk' || host.endsWith('.event-flow.co.uk');
+}
+
+/**
+ * Escape a value for safe use inside a double-quoted HTML attribute.
+ * @param {string} value Raw value.
+ * @returns {string} Escaped value.
+ */
+function escapeAttribute(value) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+// ─── Body sanitisation ───────────────────────────────────────────────────────
+
+/**
+ * Turn an untrusted body into safe stored HTML plus a plain-text copy for
+ * search and duplicate detection. Arbitrary HTML is never stored.
+ * @param {string} raw Untrusted body from the composer.
+ * @param {Object} options Link policy options.
+ * @returns {{html: string, text: string, urls: string[]}} Prepared body.
+ */
+function prepareBody(raw, options = {}) {
+  const sanitised = sanitizeContent(String(raw || ''), false);
+  const withLinkPolicy = applyLinkPolicy(sanitised, options);
+  const text = stripHtml(withLinkPolicy).replace(/\s+/g, ' ').trim();
+  return { html: withLinkPolicy, text, urls: extractUrls(sanitised) };
+}
+
+// ─── Duplicate detection ─────────────────────────────────────────────────────
+
+/**
+ * Normalise text for comparison: lower-case, strip punctuation, collapse space.
+ * @param {string} text Input text.
+ * @returns {string} Normalised text.
+ */
+function normaliseForComparison(text) {
+  return String(text || '')
+    .toLowerCase()
+    .replace(/https?:\/\/\S+/g, ' ')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * Build a stable set of word trigrams used for near-duplicate comparison.
+ * @param {string} text Input text.
+ * @returns {Set<string>} Trigram set.
+ */
+function shingles(text) {
+  const words = normaliseForComparison(text).split(' ').filter(Boolean);
+  const set = new Set();
+  if (words.length < 3) {
+    words.forEach(word => set.add(word));
+    return set;
+  }
+  for (let i = 0; i + 2 < words.length; i += 1) {
+    set.add(`${words[i]} ${words[i + 1]} ${words[i + 2]}`);
+  }
+  return set;
+}
+
+/**
+ * Jaccard similarity between two blocks of text, in the range 0–1.
+ * @param {string} a First text.
+ * @param {string} b Second text.
+ * @returns {number} Similarity score.
+ */
+function similarity(a, b) {
+  const left = shingles(a);
+  const right = shingles(b);
+  if (left.size === 0 || right.size === 0) {
+    return 0;
+  }
+  let intersection = 0;
+  left.forEach(item => {
+    if (right.has(item)) {
+      intersection += 1;
+    }
+  });
+  const union = left.size + right.size - intersection;
+  return union === 0 ? 0 : intersection / union;
+}
+
+/**
+ * A short, stable fingerprint of a body, used to spot the exact same text being
+ * pasted across many threads without storing the text twice.
+ * @param {string} text Body text.
+ * @returns {string} Hex fingerprint.
+ */
+function fingerprint(text) {
+  const normalised = normaliseForComparison(text);
+  let h1 = 0x811c9dc5;
+  let h2 = 0x01000193;
+  for (let i = 0; i < normalised.length; i += 1) {
+    const code = normalised.charCodeAt(i);
+    h1 = Math.imul(h1 ^ code, 0x01000193) >>> 0;
+    h2 = Math.imul(h2 + code + i, 0x85ebca6b) >>> 0;
+  }
+  return `${h1.toString(16).padStart(8, '0')}${h2.toString(16).padStart(8, '0')}`;
+}
+
+// ─── Trust ───────────────────────────────────────────────────────────────────
+
+/**
+ * Derive a member's trust tier from authoritative account facts.
+ *
+ * Trust is never taken from the client and never influences supplier ranking.
+ * @param {Object} input Account facts.
+ * @param {Object} input.user User record (createdAt, verified, role).
+ * @param {Object} [input.stats] Community stats (posts, helpfulAnswers, upheldReports).
+ * @param {Object} [input.restriction] Active restriction, if any.
+ * @param {boolean} [input.isStaff] True for admins and community moderators.
+ * @param {Date} [input.now] Clock injection for tests.
+ * @returns {string} One of TRUST_TIERS.
+ */
+function computeTrustTier(input = {}) {
+  const { user = {}, stats = {}, restriction = null, isStaff = false, now = new Date() } = input;
+
+  if (isStaff) {
+    return TRUST_TIERS.STAFF;
+  }
+
+  if (restriction && restriction.active) {
+    return TRUST_TIERS.RESTRICTED;
+  }
+
+  if (!user.verified) {
+    return TRUST_TIERS.RESTRICTED;
+  }
+
+  const upheld = Number(stats.upheldReports || 0);
+  if (upheld >= 2) {
+    return TRUST_TIERS.RESTRICTED;
+  }
+
+  const createdAt = user.createdAt ? new Date(user.createdAt) : null;
+  const ageDays =
+    createdAt && !Number.isNaN(createdAt.getTime())
+      ? Math.floor((now.getTime() - createdAt.getTime()) / DAY_MS)
+      : 0;
+  const posts = Number(stats.discussions || 0) + Number(stats.replies || 0);
+  const helpful = Number(stats.helpfulAnswers || 0);
+
+  if (ageDays >= 90 && posts >= 40 && helpful >= 8 && upheld === 0) {
+    return TRUST_TIERS.TRUSTED;
+  }
+  if (ageDays >= 14 && posts >= 5 && upheld === 0) {
+    return TRUST_TIERS.ESTABLISHED;
+  }
+  return TRUST_TIERS.NEW;
+}
+
+/**
+ * Look up the posting policy attached to a trust tier.
+ * @param {string} tier Trust tier key.
+ * @returns {{maxLinks: number, linksClickable: boolean, requiresReview: boolean}} Policy.
+ */
+function policyFor(tier) {
+  return TRUST_POLICY[tier] || TRUST_POLICY[TRUST_TIERS.NEW];
+}
+
+// ─── Thread freshness ────────────────────────────────────────────────────────
+
+/**
+ * Classify a discussion by age so the UI can warn readers and the moderation
+ * engine can apply stricter rules to dormant threads.
+ * @param {Object} discussion Discussion document.
+ * @param {Date} [now] Clock injection for tests.
+ * @returns {{ageDays: number, dormantDays: number, isOld: boolean, isDormant: boolean, freshness: string}} Verdict.
+ */
+function assessFreshness(discussion = {}, now = new Date()) {
+  const created = discussion.createdAt ? new Date(discussion.createdAt) : null;
+  const lastActivity = discussion.lastActivityAt ? new Date(discussion.lastActivityAt) : created;
+
+  const ageDays =
+    created && !Number.isNaN(created.getTime())
+      ? Math.floor((now.getTime() - created.getTime()) / DAY_MS)
+      : 0;
+  const dormantDays =
+    lastActivity && !Number.isNaN(lastActivity.getTime())
+      ? Math.floor((now.getTime() - lastActivity.getTime()) / DAY_MS)
+      : ageDays;
+
+  let freshness = 'current';
+  if (dormantDays > FRESHNESS.CURRENT_ADVICE_DAYS) {
+    freshness = 'archive';
+  } else if (dormantDays <= FRESHNESS.RECENT_ADVICE_DAYS) {
+    freshness = 'recent';
+  }
+
+  return {
+    ageDays,
+    dormantDays,
+    isOld: ageDays >= FRESHNESS.OLD_THREAD_DAYS,
+    isDormant: dormantDays >= FRESHNESS.DORMANT_THREAD_DAYS,
+    freshness,
+  };
+}
+
+// ─── Content assessment ──────────────────────────────────────────────────────
+
+/**
+ * Score promotional language in a body.
+ * @param {string} text Plain-text body.
+ * @returns {string[]} Matched pattern descriptions.
+ */
+function detectPromotionalLanguage(text) {
+  const value = String(text || '');
+  return PROMOTIONAL_PATTERNS.filter(pattern => pattern.test(value)).map(pattern =>
+    pattern.source.slice(0, 40)
+  );
+}
+
+/**
+ * Count distinct external domains referenced by a body, including bare domains
+ * typed without a scheme (a common way to sidestep naive link counting).
+ * @param {string} text Plain-text body.
+ * @param {Object} settings Community settings.
+ * @returns {{domains: string[], blocked: string[]}} Domain summary.
+ */
+function summariseDomains(text, settings = {}) {
+  const value = String(text || '');
+  const found = new Set();
+
+  extractUrls(value).forEach(url => {
+    const domain = domainOf(url);
+    if (domain && !isInternalDomain(domain, settings)) {
+      found.add(domain);
+    }
+  });
+
+  (value.match(BARE_DOMAIN_PATTERN) || []).forEach(candidate => {
+    const domain = candidate.toLowerCase().replace(/^www\./, '');
+    if (!domain.includes('.')) {
+      return;
+    }
+    if (isInternalDomain(domain, settings)) {
+      return;
+    }
+    // Avoid treating sentence-ending words such as "e.g" or file names as hosts.
+    if (/^[a-z0-9-]+\.(js|css|png|jpg|jpeg|gif|svg|md|txt|pdf)$/i.test(domain)) {
+      return;
+    }
+    found.add(domain);
+  });
+
+  const domains = Array.from(found);
+  return { domains, blocked: domains.filter(domain => isBlockedDomain(domain, settings)) };
+}
+
+/**
+ * The core decision function. Given a prepared body and the surrounding
+ * context, decide whether content is published immediately, held for review or
+ * rejected outright.
+ *
+ * Signals are transparent and returned to the caller so moderators can see why
+ * a decision was taken. They are never exposed to the public API.
+ *
+ * @param {Object} input Assessment input.
+ * @param {string} input.text Plain-text body.
+ * @param {string} [input.title] Discussion title, when applicable.
+ * @param {string} input.trustTier Trust tier of the author.
+ * @param {Object} [input.settings] Community settings.
+ * @param {Object} [input.thread] Discussion being replied to, when applicable.
+ * @param {Array<{text: string, createdAt: string}>} [input.recentPosts] The
+ *   author's recent posts, newest first, for duplicate and velocity checks.
+ * @param {Date} [input.now] Clock injection for tests.
+ * @returns {{decision: string, state: string, signals: string[], score: number, linkPolicy: Object}} Verdict.
+ */
+// skipcq: JS-R1005 -- One readable decision table is clearer than several indirections.
+function assessContent(input = {}) {
+  const {
+    text = '',
+    title = '',
+    trustTier = TRUST_TIERS.NEW,
+    settings = {},
+    thread = null,
+    recentPosts = [],
+    now = new Date(),
+  } = input;
+
+  const policy = policyFor(trustTier);
+  const signals = [];
+  let score = 0;
+
+  const combined = `${title} ${text}`.trim();
+  const { domains, blocked } = summariseDomains(combined, settings);
+
+  if (blocked.length > 0) {
+    signals.push(`blocked_domain:${blocked.join(',')}`);
+    score += 100;
+  }
+
+  if (domains.length > policy.maxLinks) {
+    signals.push(`link_count:${domains.length}>${policy.maxLinks}`);
+    score += 40;
+  }
+
+  const promotional = detectPromotionalLanguage(combined);
+  if (promotional.length > 0) {
+    signals.push(`promotional_language:${promotional.length}`);
+    score += 15 * promotional.length;
+  }
+
+  const mentions = (combined.match(/@[a-z0-9_-]{3,}/gi) || []).length;
+  if (mentions > 5) {
+    signals.push(`excessive_mentions:${mentions}`);
+    score += 20;
+  }
+
+  // Near-duplicate of something the same author posted recently.
+  const duplicate = recentPosts.find(post => similarity(post.text || '', text) >= 0.85);
+  if (duplicate) {
+    signals.push('duplicate_content');
+    score += 50;
+  }
+
+  // Posting velocity — many posts in a short window from a low-trust account.
+  const hourAgo = now.getTime() - 60 * 60 * 1000;
+  const postsInLastHour = recentPosts.filter(post => {
+    const created = post.createdAt ? new Date(post.createdAt).getTime() : 0;
+    return created >= hourAgo;
+  }).length;
+  if (postsInLastHour >= 10 && trustTier === TRUST_TIERS.NEW) {
+    signals.push(`velocity:${postsInLastHour}`);
+    score += 25;
+  }
+
+  // The headline protection: a low-trust account replying to a dormant thread
+  // with any external link at all is held for review before public display.
+  if (thread) {
+    const freshness = assessFreshness(thread, now);
+    if (freshness.isDormant) {
+      signals.push(`dormant_thread:${freshness.dormantDays}d`);
+      const lowTrust = trustTier === TRUST_TIERS.NEW || trustTier === TRUST_TIERS.RESTRICTED;
+      if (lowTrust && domains.length > 0 && settings.quarantineLowTrustLinks !== false) {
+        signals.push('dormant_thread_link_from_low_trust');
+        score += 60;
+      } else if (lowTrust) {
+        score += 10;
+      }
+    }
+  }
+
+  if (trustTier === TRUST_TIERS.RESTRICTED) {
+    signals.push('restricted_account');
+    score += 45;
+  }
+
+  let decision = 'publish';
+  let state = CONTENT_STATES.PUBLISHED;
+
+  if (blocked.length > 0) {
+    decision = 'reject';
+    state = CONTENT_STATES.QUARANTINED;
+  } else if (score >= 45 || policy.requiresReview) {
+    decision = 'review';
+    state = CONTENT_STATES.QUARANTINED;
+  }
+
+  return {
+    decision,
+    state,
+    signals,
+    score,
+    linkPolicy: { clickable: policy.linksClickable, maxLinks: policy.maxLinks },
+    domains,
+  };
+}
+
+/**
+ * Validate a title and body against the published limits.
+ * @param {Object} input Candidate content.
+ * @param {string} [input.title] Title, for discussions.
+ * @param {string} input.text Plain-text body.
+ * @param {boolean} [input.isReply] Apply the shorter reply limits.
+ * @returns {{valid: boolean, errors: string[]}} Validation result.
+ */
+function validateLength(input = {}) {
+  const { title, text = '', isReply = false } = input;
+  const errors = [];
+
+  if (!isReply) {
+    const trimmedTitle = String(title || '').trim();
+    if (trimmedTitle.length < LIMITS.TITLE_MIN) {
+      errors.push(`Title must be at least ${LIMITS.TITLE_MIN} characters.`);
+    }
+    if (trimmedTitle.length > LIMITS.TITLE_MAX) {
+      errors.push(`Title must be ${LIMITS.TITLE_MAX} characters or fewer.`);
+    }
+  }
+
+  const min = isReply ? LIMITS.REPLY_MIN : LIMITS.BODY_MIN;
+  const max = isReply ? LIMITS.REPLY_MAX : LIMITS.BODY_MAX;
+  const length = String(text || '').trim().length;
+
+  if (length < min) {
+    errors.push(`Message must be at least ${min} characters.`);
+  }
+  if (length > max) {
+    errors.push(`Message must be ${max} characters or fewer.`);
+  }
+
+  return { valid: errors.length === 0, errors };
+}
+
+/**
+ * Detect personal information a member may not have meant to publish, so the
+ * composer can warn before posting and moderators can redact after the fact.
+ * @param {string} text Plain-text body.
+ * @returns {string[]} Kinds of personal data detected.
+ */
+function detectPersonalInformation(text) {
+  const value = String(text || '');
+  const found = [];
+
+  if (/\b[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}\b/i.test(value)) {
+    found.push('postcode');
+  }
+  if (/\b(?:0|\+44)\s?\d[\d\s-]{8,}\b/.test(value)) {
+    found.push('phone_number');
+  }
+  if (/\b[\w.+-]+@[\w-]+\.[\w.-]+\b/.test(value)) {
+    found.push('email_address');
+  }
+  if (/\b\d{2}-\d{2}-\d{2}\b/.test(value) || /\bsort\s*code\b/i.test(value)) {
+    found.push('bank_details');
+  }
+
+  return found;
+}
+
+module.exports = {
+  extractUrls,
+  domainOf,
+  isSafeUrl,
+  isBlockedDomain,
+  matchesDomain,
+  isInternalDomain,
+  applyLinkPolicy,
+  prepareBody,
+  normaliseForComparison,
+  similarity,
+  fingerprint,
+  computeTrustTier,
+  policyFor,
+  assessFreshness,
+  detectPromotionalLanguage,
+  summariseDomains,
+  assessContent,
+  validateLength,
+  detectPersonalInformation,
+  HIGH_RISK_DOMAIN_PATTERNS,
+  PROMOTIONAL_PATTERNS,
+};

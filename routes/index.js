@@ -80,6 +80,11 @@ const customerCalendarRoutes = require('./customer-calendar');
 const customerDashboardRoutes = require('./customer-dashboard');
 const emailUnsubscribeRoutes = require('./emailUnsubscribe');
 const telemetryRoutes = require('./telemetry');
+const communityRoutes = require('./community');
+const communityInteractionRoutes = require('./community-interactions');
+const communityDiscoveryRoutes = require('./community-discovery');
+const communityPageRoutes = require('./community-pages');
+const adminCommunityRoutes = require('./admin-community');
 
 /**
  * Mount all route modules
@@ -489,6 +494,18 @@ const mountRoutes = (app, deps) => {
   }
   app.use('/api/v1/admin', adminConfigRoutes);
   app.use('/api/admin', adminConfigRoutes);
+
+  // EventFlow Community. The three member-facing routers share one base path so
+  // the API reads as a single surface; the admin centre is mounted separately.
+  app.use('/api/v1/community', communityRoutes);
+  app.use('/api/v1/community', communityInteractionRoutes);
+  app.use('/api/v1/community', communityDiscoveryRoutes);
+  app.use('/api/v1/admin/community', adminCommunityRoutes);
+  // Community page routes are mounted earlier in server.js, before the static
+  // handlers, so that server-rendered content wins over the raw HTML shells.
+  // They are mounted here too for the test harness, which mounts only the API
+  // router stack; Express skips whichever registration matches second.
+  app.use(communityPageRoutes);
 
   require('../services/messenger-v4-lifecycle-patch');
   const messengerV4 = require('./messenger-v4');
