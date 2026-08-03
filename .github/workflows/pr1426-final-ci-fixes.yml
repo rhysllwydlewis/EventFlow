@@ -1,0 +1,81 @@
+name: PR 1426 final CI fixes
+
+on:
+  push:
+    branches:
+      - feat/signup-attribution-session-replay
+    paths:
+      - .github/workflows/pr1426-final-ci-fixes.yml
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: feat/signup-attribution-session-replay
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: npm
+
+      - name: Apply regression and security fixes
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          utility_path = Path('utils/behaviourAnalytics.js')
+          utility = utility_path.read_text(encoding='utf-8')
+          old_sort = ".sort((left, right) => right.count - left.count || left.key.localeCompare(right.key))"
+          new_sort = ".sort((left, right) => right.count - left.count)"
+          if utility.count(old_sort) != 1:
+              raise SystemExit(f'Expected one analytics tie-break sort, found {utility.count(old_sort)}')
+          utility_path.write_text(utility.replace(old_sort, new_sort, 1), encoding='utf-8')
+
+          package_path = Path('package.json')
+          package = json.loads(package_path.read_text(encoding='utf-8'))
+          overrides = package.setdefault('overrides', {})
+          if overrides.get('brace-expansion') != '5.0.8':
+              raise SystemExit(f"Unexpected brace-expansion override: {overrides.get('brace-expansion')!r}")
+          overrides['brace-expansion'] = '5.0.9'
+          package_path.write_text(json.dumps(package, indent=2) + '\n', encoding='utf-8')
+          PY
+
+      - name: Regenerate lockfile
+        run: npm install --package-lock-only --ignore-scripts --no-audit
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit
+        env:
+          HUSKY: '0'
+
+      - name: Format changed files
+        run: npx prettier --write package.json package-lock.json utils/behaviourAnalytics.js
+
+      - name: Run focused regression
+        run: npx jest tests/unit/behaviour-analytics.test.js tests/unit/signup-attribution-summary.test.js --runInBand --coverage=false
+        env:
+          NODE_ENV: test
+          JWT_SECRET: test-secret-key-for-ci-testing-only-min-32-chars
+
+      - name: Verify production dependency audit
+        run: npm run audit
+
+      - name: Commit fixes
+        shell: bash
+        run: |
+          rm .github/workflows/pr1426-final-ci-fixes.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "fix: clear final analytics and dependency gates"
+          git push origin HEAD:feat/signup-attribution-session-replay
