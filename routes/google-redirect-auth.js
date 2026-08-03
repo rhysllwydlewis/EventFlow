@@ -328,12 +328,13 @@ const GOOGLE_ATTRIBUTION_KEYS = [
 ];
 
 function getGoogleSignupAttribution(state) {
-  if (!state || state.context !== 'signup' || !state.attribution) {
+  const attribution = state?.attribution;
+  if (state?.context !== 'signup' || !attribution) {
     return null;
   }
   const properties = { conversionType: 'registration', signup_method: 'google' };
   GOOGLE_ATTRIBUTION_KEYS.forEach(key => {
-    const value = state.attribution[key];
+    const value = attribution[key];
     if (typeof value === 'boolean' || typeof value === 'string') {
       properties[key] = value;
     }
@@ -343,8 +344,8 @@ function getGoogleSignupAttribution(state) {
 
 async function recordGoogleSignupAnalytics(user, state) {
   const properties = getGoogleSignupAttribution(state);
-  const sessionId = cleanStateText(state && state.analyticsSessionId, 120);
-  if (!properties || !sessionId || !user || user.role === 'admin') {
+  const sessionId = cleanStateText(state?.analyticsSessionId, 120);
+  if (!properties || !sessionId || !user?.id || user.role === 'admin') {
     return;
   }
   try {
