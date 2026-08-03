@@ -59,18 +59,22 @@ jobs:
 
           package_path = Path('package.json')
           package = json.loads(package_path.read_text(encoding='utf-8'))
+          dependencies = package.setdefault('dependencies', {})
+          dependencies['brace-expansion'] = '5.0.9'
           overrides = package.setdefault('overrides', {})
-          if overrides.get('brace-expansion') != '5.0.8':
-              raise SystemExit(f"Unexpected brace-expansion override: {overrides.get('brace-expansion')!r}")
           overrides['brace-expansion'] = '5.0.9'
           package_path.write_text(json.dumps(package, indent=2) + '\n', encoding='utf-8')
           PY
 
-      - name: Regenerate lockfile
-        run: npm install --package-lock-only --ignore-scripts --no-audit
-
-      - name: Install dependencies
-        run: npm ci --prefer-offline --no-audit
+      - name: Resolve patched dependency
+        shell: bash
+        run: |
+          npm install brace-expansion@5.0.9 --save-exact --package-lock-only --ignore-scripts --no-audit
+          npm ci --prefer-offline --no-audit
+          installed="$(node -p "require('./node_modules/brace-expansion/package.json').version")"
+          echo "Installed brace-expansion version: ${installed}"
+          test "${installed}" = "5.0.9"
+          npm ls brace-expansion --all
 
       - name: Format changed files
         run: npx prettier --write package.json package-lock.json utils/behaviourAnalytics.js
