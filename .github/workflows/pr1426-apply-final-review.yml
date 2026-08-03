@@ -1,0 +1,82 @@
+name: PR 1426 apply final review
+
+on:
+  push:
+    branches:
+      - feat/signup-attribution-session-replay
+    paths:
+      - .github/workflows/pr1426-apply-final-review.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: feat/signup-attribution-session-replay
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: npm
+
+      - name: Extract and apply reviewed patch
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          workflow = Path('.github/workflows/pr1426-final-review-pass.yml').read_text(encoding='utf-8').splitlines()
+          marker = "          cat > /tmp/pr1426_final_patch.py <<'PY'"
+          start = workflow.index(marker) + 1
+          end = next(index for index in range(start, len(workflow)) if workflow[index].strip() == 'PY')
+          script_lines = []
+          for line in workflow[start:end]:
+              script_lines.append(line[10:] if line.startswith('          ') else line)
+          Path('/tmp/pr1426_final_patch.py').write_text('\n'.join(script_lines) + '\n', encoding='utf-8')
+          PY
+          python /tmp/pr1426_final_patch.py
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit
+        env:
+          HUSKY: '0'
+
+      - name: Format reviewed changes
+        run: >-
+          npx prettier --write
+          public/assets/js/analytics-consent-upgrade.js
+          public/assets/js/pages/admin-behaviour-analytics.js
+          public/assets/js/pages/admin-init.js
+          public/assets/js/pages/admin-users-init.js
+          public/assets/css/admin-behaviour-analytics.css
+          routes/admin-user-management.js
+          services/adminUserSummary.service.js
+          tests/unit/signup-attribution-review-pass.test.js
+
+      - name: Check JavaScript syntax
+        run: |
+          node --check public/assets/js/analytics-consent-upgrade.js
+          node --check public/assets/js/pages/admin-behaviour-analytics.js
+          node --check public/assets/js/pages/admin-init.js
+          node --check public/assets/js/pages/admin-users-init.js
+          node --check routes/admin-user-management.js
+          node --check services/adminUserSummary.service.js
+          node --check tests/unit/signup-attribution-review-pass.test.js
+
+      - name: Commit reviewed changes
+        shell: bash
+        run: |
+          rm .github/workflows/pr1426-final-review-pass.yml
+          rm .github/workflows/pr1426-apply-final-review.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "fix: finish signup attribution review improvements"
+          git push origin HEAD:feat/signup-attribution-session-replay
