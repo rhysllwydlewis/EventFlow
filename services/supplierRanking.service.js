@@ -23,6 +23,26 @@ const PLACEHOLDER_TEXT = new Set([
 ]);
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, Number(value) || 0));
+// Returns the value paired with the first threshold the input meets or exceeds
+// (tiers must be sorted highest-threshold-first). Avoids nested ternaries.
+function atLeast(value, tiers, fallback) {
+  for (const [threshold, result] of tiers) {
+    if (value >= threshold) {
+      return result;
+    }
+  }
+  return fallback;
+}
+// Returns the value paired with the first threshold the input is within
+// (tiers must be sorted lowest-threshold-first). Avoids nested ternaries.
+function atMost(value, tiers, fallback) {
+  for (const [threshold, result] of tiers) {
+    if (value <= threshold) {
+      return result;
+    }
+  }
+  return fallback;
+}
 const round = (value, places = 2) => {
   const factor = 10 ** places;
   return Math.round((Number(value) || 0) * factor) / factor;
@@ -159,13 +179,21 @@ function calculateProfileQuality(supplier) {
     [cleanText(effectivePriceRange(supplier)), 2, 'missing_price_range'],
   ];
   checks.forEach(([passes, points, code]) => {
-    if (passes) score += points;
-    else missing.push(code);
+    if (passes) {
+      score += points;
+    } else {
+      missing.push(code);
+    }
   });
-  if (images.length >= 4) score += 6;
-  else if (images.length >= 2) score += 4;
-  else if (images.length === 1) score += 2;
-  else missing.push('insufficient_gallery');
+  if (images.length >= 4) {
+    score += 6;
+  } else if (images.length >= 2) {
+    score += 4;
+  } else if (images.length === 1) {
+    score += 2;
+  } else {
+    missing.push('insufficient_gallery');
+  }
   return { score, max: 40, missing, imageCount: images.length };
 }
 
@@ -173,17 +201,32 @@ function calculatePackageQuality(packages) {
   const available = publicPackages(packages);
   let score = 0;
   const missing = [];
-  if (available.length) score += 6;
-  else missing.push('no_public_packages');
-  if (available.length >= 2) score += 2;
-  if (available.length >= 3) score += 2;
+  if (available.length) {
+    score += 6;
+  } else {
+    missing.push('no_public_packages');
+  }
+  if (available.length >= 2) {
+    score += 2;
+  }
+  if (available.length >= 3) {
+    score += 2;
+  }
   if (available.some(pkg => isMeaningfulText(pkg.description || pkg.description_short, 60))) {
     score += 4;
-  } else if (available.length) missing.push('package_description_too_short');
-  if (available.some(packageHasPrice)) score += 4;
-  else if (available.length) missing.push('package_missing_price');
-  if (available.some(pkg => Boolean(resolvedPackageImage(pkg)))) score += 4;
-  else if (available.length) missing.push('package_missing_image');
+  } else if (available.length) {
+    missing.push('package_description_too_short');
+  }
+  if (available.some(packageHasPrice)) {
+    score += 4;
+  } else if (available.length) {
+    missing.push('package_missing_price');
+  }
+  if (available.some(pkg => Boolean(resolvedPackageImage(pkg)))) {
+    score += 4;
+  } else if (available.length) {
+    missing.push('package_missing_image');
+  }
   if (
     available.some(pkg =>
       [pkg.features, pkg.inclusions, pkg.amenities]
@@ -194,7 +237,9 @@ function calculatePackageQuality(packages) {
     available.some(pkg => Number(pkg.maxGuests) > 0)
   ) {
     score += 3;
-  } else if (available.length) missing.push('package_missing_features');
+  } else if (available.length) {
+    missing.push('package_missing_features');
+  }
   return { score, max: 25, missing, packageCount: available.length };
 }
 
@@ -203,18 +248,17 @@ function calculateReviewQuality(supplier) {
   const reviewCount = effectiveReviewCount(supplier);
   const confidence = reviewCount ? Math.min(1, Math.log1p(reviewCount) / Math.log(11)) : 0;
   const ratingPoints = (rating / 5) * confidence * 15;
-  const volumePoints =
-    reviewCount >= 10
-      ? 5
-      : reviewCount >= 7
-        ? 4
-        : reviewCount >= 4
-          ? 3
-          : reviewCount >= 2
-            ? 2
-            : reviewCount
-              ? 1
-              : 0;
+  const volumePoints = atLeast(
+    reviewCount,
+    [
+      [10, 5],
+      [7, 4],
+      [4, 3],
+      [2, 2],
+      [1, 1],
+    ],
+    0
+  );
   return {
     score: round(ratingPoints + volumePoints),
     max: 20,
@@ -257,21 +301,39 @@ function calculateFreshnessQuality(supplier, packages, now = new Date()) {
     .map(value => new Date(value).getTime())
     .filter(Number.isFinite)
     .reduce((maximum, value) => Math.max(maximum, value), 0);
-  if (!latest) return { score: 0, max: 5, ageDays: null, missing: ['stale_profile'] };
+  if (!latest) {
+    return { score: 0, max: 5, ageDays: null, missing: ['stale_profile'] };
+  }
   const ageDays = Math.max(0, (now.getTime() - latest) / DAY_MS);
-  const score = ageDays <= 30 ? 5 : ageDays <= 90 ? 3 : ageDays <= 180 ? 1 : 0;
+  const score = atMost(
+    ageDays,
+    [
+      [30, 5],
+      [90, 3],
+      [180, 1],
+    ],
+    0
+  );
   return { score, max: 5, ageDays: Math.floor(ageDays), missing: score ? [] : ['stale_profile'] };
 }
 
 function calculateAdjustments(supplier, qualityScore, packageCount, searchMode, now) {
   const tier = effectiveSubscriptionTier(supplier);
-  const subscription = tier === 'pro_plus' ? 5 : tier === 'pro' ? 3 : 0;
+  const subscription = { pro_plus: 5, pro: 3 }[tier] || 0;
   const featured = effectiveFeatured(supplier) ? 3 : 0;
   let newSupplier = 0;
   const createdAt = new Date(supplier.createdAt).getTime();
   if (Number.isFinite(createdAt) && qualityScore >= 55 && packageCount > 0) {
     const ageDays = Math.max(0, (now.getTime() - createdAt) / DAY_MS);
-    newSupplier = ageDays <= 30 ? 3 : ageDays <= 45 ? 2 : ageDays <= 60 ? 1 : 0;
+    newSupplier = atMost(
+      ageDays,
+      [
+        [30, 3],
+        [45, 2],
+        [60, 1],
+      ],
+      0
+    );
   }
   const cap = searchMode ? 5 : 8;
   return {
@@ -285,15 +347,16 @@ function calculateAdjustments(supplier, qualityScore, packageCount, searchMode, 
 }
 
 const getQualityBand = score =>
-  score >= 80
-    ? 'excellent'
-    : score >= 65
-      ? 'strong'
-      : score >= 50
-        ? 'fair'
-        : score >= 30
-          ? 'weak'
-          : 'poor';
+  atLeast(
+    score,
+    [
+      [80, 'excellent'],
+      [65, 'strong'],
+      [50, 'fair'],
+      [30, 'weak'],
+    ],
+    'poor'
+  );
 
 function calculateSupplierRanking(supplier, packages = [], options = {}) {
   const now = options.now instanceof Date ? options.now : new Date();
@@ -337,11 +400,17 @@ const queryTokens = value => [
 ];
 function fieldMatch(value, tokens, phrase) {
   const haystack = lowerText(value);
-  if (!haystack || !tokens.length) return 0;
+  if (!haystack || !tokens.length) {
+    return 0;
+  }
   let score = tokens.filter(token => haystack.includes(token)).length / tokens.length;
-  if (haystack === phrase) score = 1;
-  else if (haystack.startsWith(phrase)) score = Math.max(score, 0.9);
-  else if (haystack.includes(phrase)) score = Math.max(score, 0.8);
+  if (haystack === phrase) {
+    score = 1;
+  } else if (haystack.startsWith(phrase)) {
+    score = Math.max(score, 0.9);
+  } else if (haystack.includes(phrase)) {
+    score = Math.max(score, 0.8);
+  }
   return clamp(score, 0, 1);
 }
 function packageMatch(packages, tokens, phrase) {
@@ -359,7 +428,9 @@ function packageMatch(packages, tokens, phrase) {
 function calculateSupplierRelevance(supplier, packages, query = {}) {
   const phrase = lowerText(query.q);
   const tokens = queryTokens(query.q);
-  if (!tokens.length) return { score: 0 };
+  if (!tokens.length) {
+    return { score: 0 };
+  }
   const name = Math.max(
     fieldMatch(supplier.name, tokens, phrase),
     fieldMatch(supplier.businessName, tokens, phrase)
@@ -400,14 +471,17 @@ function sortRankedSuppliers(results, sortBy, hasDistance) {
       difference =
         (b.reviewConfidenceAdjustedRating || 0) - (a.reviewConfidenceAdjustedRating || 0) ||
         (b.reviewCount || 0) - (a.reviewCount || 0);
-    } else if (sortBy === 'reviews') difference = (b.reviewCount || 0) - (a.reviewCount || 0);
-    else if (sortBy === 'name')
+    } else if (sortBy === 'reviews') {
+      difference = (b.reviewCount || 0) - (a.reviewCount || 0);
+    } else if (sortBy === 'name') {
       difference = String(a.name || '').localeCompare(String(b.name || ''));
-    else if (sortBy === 'newest')
+    } else if (sortBy === 'newest') {
       difference = new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
-    else if (sortBy === 'distance' && hasDistance) {
+    } else if (sortBy === 'distance' && hasDistance) {
       difference = (a.distanceMiles ?? Infinity) - (b.distanceMiles ?? Infinity);
-    } else difference = (b.finalRankingScore || 0) - (a.finalRankingScore || 0);
+    } else {
+      difference = (b.finalRankingScore || 0) - (a.finalRankingScore || 0);
+    }
     return (
       difference ||
       (b.qualityScore || 0) - (a.qualityScore || 0) ||
