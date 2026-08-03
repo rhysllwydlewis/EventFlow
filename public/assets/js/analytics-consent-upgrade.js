@@ -2,11 +2,14 @@
   'use strict';
 
   const COOKIE_NAME = 'eventflow_cookie_consent';
-  const ATTRIBUTION_KEY = 'ef_attribution_v1';
-  const GOOGLE_SIGNUP_PENDING_KEY = 'ef_google_signup_pending';
-  const ATTRIBUTION_TTL_MS = 90 * 24 * 60 * 60 * 1000;
+  const EXPIRY_DAYS = 365;
   const FETCH_WRAPPED_FLAG = '__efAnalyticsSuccessObserver';
-  const SENSITIVE_PATHS = [
+  const ATTRIBUTION_KEY = 'ef_attribution_v1';
+  const ATTRIBUTION_TTL_MS = 90 * 24 * 60 * 60 * 1000;
+  const POSTHOG_PAGEVIEW_POLL_MS = 200;
+  const POSTHOG_PAGEVIEW_TIMEOUT_MS = 15 * 1000;
+  const POSTHOG_EXCLUDED_PAGE_PREFIXES = [
+    '/admin',
     '/auth',
     '/verify',
     '/reset-password',
@@ -23,8 +26,10 @@
     '/supplier/subscription',
     '/supplier/marketplace-new-listing',
   ];
-  const CONSENT_GUARD_PATHS = SENSITIVE_PATHS.filter(prefix => prefix !== '/auth');
-  const POSTHOG_URL_KEYS = [
+  const POSTHOG_PROVIDER_BLOCKED_PREFIXES = POSTHOG_EXCLUDED_PAGE_PREFIXES.filter(
+    prefix => prefix !== '/auth'
+  );
+  const POSTHOG_URL_PROPERTY_KEYS = new Set([
     '$current_url',
     '$referrer',
     '$initial_current_url',
@@ -32,7 +37,7 @@
     '$session_entry_url',
     '$session_entry_current_url',
     '$session_entry_referrer',
-  ];
+  ]);
   const SEARCH_HOSTS = [
     'google.com',
     'google.co.uk',
@@ -55,34 +60,105 @@
     'whatsapp.com',
   ];
 
+  let capturedPostHogPage = '';
+  let capturedPostHogPageleave = false;
+  let posthogPageviewStartedAt = 0;
+  let posthogPageviewTimer = null;
+  let authPostHogStarted = false;
+
   function currentPath() {
     return window.location.pathname || '/';
   }
 
   function pathMatches(prefixes) {
-    const path = currentPath();
+    const pagePath = currentPath();
     return prefixes.some(
       prefix =>
-        path === prefix ||
-        path.startsWith(`${prefix}/`) ||
-        path.startsWith(`${prefix}-`) ||
-        path.startsWith(`${prefix}.`)
+        pagePath === prefix ||
+        pagePath.startsWith(`${prefix}/`) ||
+        pagePath.startsWith(`${prefix}-`) ||
+        pagePath.startsWith(`${prefix}.`)
     );
   }
 
+  function isSensitiveAnalyticsPage() {
+    return pathMatches(POSTHOG_EXCLUDED_PAGE_PREFIXES);
+  }
+
+  function isProviderBlockedPage() {
+    return pathMatches(POSTHOG_PROVIDER_BLOCKED_PREFIXES);
+  }
+
+  function writeFullConsent() {
+    const value = encodeURIComponent(
+      JSON.stringify({
+        v: 1,
+        essential: true,
+        functional: true,
+        analytics: true,
+      })
+    );
+    const expires = new Date(Date.now() + EXPIRY_DAYS * 24 * 60 * 60 * 1000).toUTCString();
+    const secure = window.location.protocol === 'https:' ? '; Secure' : '';
+    document.cookie = `${COOKIE_NAME}=${value}; expires=${expires}; path=/; SameSite=Lax${secure}`;
+    window.dispatchEvent(
+      new CustomEvent('cookieConsentChanged', {
+        detail: {
+          accepted: true,
+          essential: true,
+          functional: true,
+          analytics: true,
+        },
+      })
+    );
+  }
+
+  function closeConsentUi(target) {
+    const banner = target && target.closest ? target.closest('#cookie-consent-banner') : null;
+    if (banner && banner.parentNode) {
+      banner.parentNode.removeChild(banner);
+    }
+
+    const dialog = target && target.closest ? target.closest('#cookie-prefs-dialog') : null;
+    if (dialog && dialog.parentNode) {
+      dialog.parentNode.removeChild(dialog);
+    }
+    if (dialog && document.body) {
+      document.body.classList.remove('cookie-prefs-open');
+    }
+  }
+
   function hasAnalyticsConsent() {
+    if (!window.CookieConsent || typeof window.CookieConsent.getConsent !== 'function') {
+      return false;
+    }
     try {
-      return Boolean(window.CookieConsent?.getConsent?.()?.analytics === true);
+      const consent = window.CookieConsent.getConsent();
+      return Boolean(consent && consent.analytics === true);
     } catch (_error) {
       return false;
     }
   }
 
-  function clean(value, max = 160) {
-    return String(value || '')
-      .replace(/[\u0000-\u001f\u007f]/g, ' ')
-      .trim()
-      .slice(0, max);
+  function queryFreePageUrl() {
+    return `${window.location.origin}${currentPath()}`;
+  }
+
+  function stripQueryAndHash(value) {
+    if (typeof value !== 'string') {
+      return value;
+    }
+    return value.split(/[?#]/, 1)[0];
+  }
+
+  function cleanAttributionValue(value, maxLength) {
+    const source = String(value || '');
+    let result = '';
+    for (let index = 0; index < source.length; index += 1) {
+      const code = source.charCodeAt(index);
+      result += code >= 32 && code !== 127 ? source[index] : ' ';
+    }
+    return result.trim().slice(0, maxLength || 120);
   }
 
   function safePath(value) {
@@ -95,9 +171,11 @@
     }
   }
 
-  function domain(value) {
-    const raw = clean(value, 300);
-    if (!raw || raw === 'direct' || raw === 'internal') return raw || 'direct';
+  function normalizedDomain(value) {
+    const raw = cleanAttributionValue(value, 300);
+    if (!raw || raw === 'direct' || raw === 'internal') {
+      return raw || 'direct';
+    }
     try {
       return new URL(raw.includes('://') ? raw : `https://${raw}`).hostname
         .toLowerCase()
@@ -108,11 +186,13 @@
     }
   }
 
-  function externalReferrer() {
-    if (!document.referrer) return 'direct';
+  function externalReferrerDomain() {
+    if (!document.referrer) {
+      return 'direct';
+    }
     try {
-      const referrer = domain(document.referrer);
-      const current = domain(window.location.origin);
+      const referrer = normalizedDomain(document.referrer);
+      const current = normalizedDomain(window.location.origin);
       return referrer === current ? 'internal' : referrer;
     } catch (_error) {
       return 'direct';
@@ -124,46 +204,75 @@
   }
 
   function classifyChannel(medium, source, referrer) {
-    const m = clean(medium, 80).toLowerCase();
-    const s = domain(source);
-    const r = domain(referrer);
-    if (/^(cpc|ppc|paidsearch|paid_search|sem)$/.test(m)) return 'paid_search';
-    if (/^(paid_social|paidsocial)$/.test(m)) return 'paid_social';
-    if (/^(social|social-network|social_media)$/.test(m)) return 'organic_social';
-    if (/^(email|newsletter)$/.test(m)) return 'email';
-    if (/^(affiliate|partner)$/.test(m)) return 'partner';
-    if (/^(display|banner|cpm)$/.test(m)) return 'display';
-    if (/^(organic|seo)$/.test(m)) return 'organic_search';
-    if (m === 'referral') return 'referral';
-    if (hostMatches(s, SEARCH_HOSTS) || hostMatches(r, SEARCH_HOSTS)) return 'organic_search';
-    if (hostMatches(s, SOCIAL_HOSTS) || hostMatches(r, SOCIAL_HOSTS)) return 'organic_social';
-    if (!['direct', 'internal'].includes(r)) return 'referral';
+    const normalizedMedium = cleanAttributionValue(medium, 80).toLowerCase();
+    const normalizedSource = normalizedDomain(source);
+    const normalizedReferrer = normalizedDomain(referrer);
+
+    if (/^(cpc|ppc|paidsearch|paid_search|sem)$/.test(normalizedMedium)) {
+      return 'paid_search';
+    }
+    if (/^(paid_social|paidsocial)$/.test(normalizedMedium)) {
+      return 'paid_social';
+    }
+    if (/^(social|social-network|social_media)$/.test(normalizedMedium)) {
+      return 'organic_social';
+    }
+    if (/^(email|newsletter)$/.test(normalizedMedium)) {
+      return 'email';
+    }
+    if (/^(affiliate|partner)$/.test(normalizedMedium)) {
+      return 'partner';
+    }
+    if (/^(display|banner|cpm)$/.test(normalizedMedium)) {
+      return 'display';
+    }
+    if (/^(organic|seo)$/.test(normalizedMedium)) {
+      return 'organic_search';
+    }
+    if (normalizedMedium === 'referral') {
+      return 'referral';
+    }
+    if (
+      hostMatches(normalizedSource, SEARCH_HOSTS) ||
+      hostMatches(normalizedReferrer, SEARCH_HOSTS)
+    ) {
+      return 'organic_search';
+    }
+    if (
+      hostMatches(normalizedSource, SOCIAL_HOSTS) ||
+      hostMatches(normalizedReferrer, SOCIAL_HOSTS)
+    ) {
+      return 'organic_social';
+    }
+    if (!['direct', 'internal'].includes(normalizedReferrer)) {
+      return 'referral';
+    }
     return 'direct';
   }
 
-  function touch() {
+  function buildAttributionTouch() {
     const params = new URLSearchParams(window.location.search || '');
-    const utmSource = clean(params.get('utm_source'), 100);
-    const utmMedium = clean(params.get('utm_medium'), 80);
-    const referrerDomain = externalReferrer();
+    const utmSource = cleanAttributionValue(params.get('utm_source'), 100);
+    const utmMedium = cleanAttributionValue(params.get('utm_medium'), 80);
+    const referrerDomain = externalReferrerDomain();
     return {
       channel: classifyChannel(utmMedium, utmSource, referrerDomain),
       referrerDomain,
       landingPath: safePath(window.location.href),
       utmSource,
       utmMedium,
-      utmCampaign: clean(params.get('utm_campaign'), 120),
-      utmContent: clean(params.get('utm_content'), 120),
-      utmTerm: clean(params.get('utm_term'), 120),
+      utmCampaign: cleanAttributionValue(params.get('utm_campaign'), 120),
       capturedAt: new Date().toISOString(),
     };
   }
 
   function readAttribution() {
     try {
-      const value = JSON.parse(localStorage.getItem(ATTRIBUTION_KEY) || 'null');
-      const capturedAt = Date.parse(value?.first?.capturedAt || 0);
-      if (!capturedAt || Date.now() - capturedAt > ATTRIBUTION_TTL_MS) return null;
+      const value = JSON.parse(window.localStorage.getItem(ATTRIBUTION_KEY) || 'null');
+      const capturedAt = Date.parse(value && value.first && value.first.capturedAt);
+      if (!capturedAt || Date.now() - capturedAt > ATTRIBUTION_TTL_MS) {
+        return null;
+      }
       return value;
     } catch (_error) {
       return null;
@@ -171,8 +280,11 @@
   }
 
   function captureAttribution() {
-    if (!hasAnalyticsConsent()) return readAttribution();
-    const next = touch();
+    if (!hasAnalyticsConsent()) {
+      return readAttribution();
+    }
+
+    const next = buildAttributionTouch();
     const existing = readAttribution();
     const value = existing || { first: next, last: next };
     if (
@@ -185,8 +297,9 @@
       value.last = next;
     }
     value.updatedAt = next.capturedAt;
+
     try {
-      localStorage.setItem(ATTRIBUTION_KEY, JSON.stringify(value));
+      window.localStorage.setItem(ATTRIBUTION_KEY, JSON.stringify(value));
     } catch (_error) {
       // Storage is best-effort in restricted privacy modes.
     }
@@ -195,60 +308,76 @@
 
   function attributionProperties() {
     const value = captureAttribution();
-    if (!value) return { attribution_available: false };
+    if (!value) {
+      return { attribution_available: false };
+    }
+
     const first = value.first || {};
     const last = value.last || {};
     return {
       attribution_available: true,
-      first_channel: clean(first.channel, 40),
-      first_referrer_domain: domain(first.referrerDomain),
+      first_channel: cleanAttributionValue(first.channel, 40),
+      first_referrer_domain: normalizedDomain(first.referrerDomain),
       first_landing_path: safePath(first.landingPath),
-      first_utm_source: clean(first.utmSource, 100),
-      first_utm_medium: clean(first.utmMedium, 80),
-      first_utm_campaign: clean(first.utmCampaign, 120),
-      last_channel: clean(last.channel, 40),
-      last_referrer_domain: domain(last.referrerDomain),
+      first_utm_source: cleanAttributionValue(first.utmSource, 100),
+      first_utm_medium: cleanAttributionValue(first.utmMedium, 80),
+      first_utm_campaign: cleanAttributionValue(first.utmCampaign, 120),
+      last_channel: cleanAttributionValue(last.channel, 40),
+      last_referrer_domain: normalizedDomain(last.referrerDomain),
       last_landing_path: safePath(last.landingPath),
-      last_utm_source: clean(last.utmSource, 100),
-      last_utm_medium: clean(last.utmMedium, 80),
-      last_utm_campaign: clean(last.utmCampaign, 120),
+      last_utm_source: cleanAttributionValue(last.utmSource, 100),
+      last_utm_medium: cleanAttributionValue(last.utmMedium, 80),
+      last_utm_campaign: cleanAttributionValue(last.utmCampaign, 120),
     };
   }
 
+  function sanitizeUrlProperties(properties) {
+    if (!properties || typeof properties !== 'object' || Array.isArray(properties)) {
+      return properties;
+    }
+
+    Object.keys(properties).forEach(key => {
+      if (POSTHOG_URL_PROPERTY_KEYS.has(key)) {
+        properties[key] = stripQueryAndHash(properties[key]);
+      }
+    });
+    return properties;
+  }
+
   function sanitizePostHogEvent(event) {
-    const scrub = properties => {
-      if (!properties || typeof properties !== 'object') return;
-      POSTHOG_URL_KEYS.forEach(key => {
-        if (typeof properties[key] === 'string') {
-          properties[key] = properties[key].split(/[?#]/, 1)[0];
-        }
-      });
-    };
-    scrub(event?.properties);
-    scrub(event?.$set);
-    scrub(event?.$set_once);
+    if (!event || typeof event !== 'object') {
+      return event;
+    }
+    sanitizeUrlProperties(event.properties);
+    sanitizeUrlProperties(event.$set);
+    sanitizeUrlProperties(event.$set_once);
     return event;
   }
 
   function runBeforeSendHooks(hooks, event) {
     const handlers = Array.isArray(hooks) ? hooks : typeof hooks === 'function' ? [hooks] : [];
-    return handlers.reduce((result, handler) => (result ? handler(result) : result), event);
+    let result = event;
+    handlers.forEach(handler => {
+      if (result) {
+        result = handler(result);
+      }
+    });
+    return result;
   }
 
-  function privacyConfig(config) {
+  function withPostHogPrivacy(config) {
     const source = config && typeof config === 'object' ? config : {};
     const existingBeforeSend = source.before_send;
     return {
       ...source,
-      person_profiles: 'identified_only',
       mask_personal_data_properties: true,
       disable_capture_url_hashes: true,
-      before_send(event) {
+      before_send: function (event) {
         let result = event;
         try {
           result = runBeforeSendHooks(existingBeforeSend, result);
         } catch (_error) {
-          // Third-party hooks must not bypass the final sanitiser.
+          // A third-party hook must not bypass EventFlow's final privacy sanitiser.
         }
         return result ? sanitizePostHogEvent(result) : result;
       },
@@ -257,257 +386,382 @@
 
   function installSensitivePageConsentGuard() {
     if (
-      !pathMatches(CONSENT_GUARD_PATHS) ||
+      !isProviderBlockedPage() ||
       !window.CookieConsent ||
       typeof window.CookieConsent.getConsent !== 'function' ||
       window.CookieConsent.getConsent.__efSensitiveGuard
     ) {
       return;
     }
-    const original = window.CookieConsent.getConsent.bind(window.CookieConsent);
-    const guarded = function () {
-      return { ...(original() || {}), essential: true, analytics: false };
+
+    const originalGetConsent = window.CookieConsent.getConsent.bind(window.CookieConsent);
+    const guardedGetConsent = function () {
+      const consent = originalGetConsent() || {};
+      return { ...consent, essential: true, analytics: false };
     };
-    guarded.__efSensitiveGuard = true;
-    window.CookieConsent.getConsent = guarded;
+    guardedGetConsent.__efSensitiveGuard = true;
+    window.CookieConsent.getConsent = guardedGetConsent;
   }
 
-  function installPostHogStub() {
-    if (window.posthog?.__SV) return;
-    (function (doc, posthog) {
+  function installPrivacyAwarePostHogStub() {
+    if (window.posthog && window.posthog.__SV) {
+      return;
+    }
+
+    (function (documentObject, posthog) {
+      if (posthog.__SV) {
+        return;
+      }
       window.posthog = posthog;
       posthog._i = [];
       posthog.init = function (token, config, name) {
-        if (pathMatches(CONSENT_GUARD_PATHS) || posthog.__efInitQueued) return;
-        posthog.__efInitQueued = true;
-        const safeConfig = privacyConfig(config);
-        const script = doc.createElement('script');
-        script.async = true;
+        if (isProviderBlockedPage()) {
+          return;
+        }
+
+        function addMethod(target, method) {
+          const parts = method.split('.');
+          if (parts.length === 2) {
+            target = target[parts[0]];
+            method = parts[1];
+          }
+          target[method] = function () {
+            target.push([method].concat(Array.prototype.slice.call(arguments, 0)));
+          };
+        }
+
+        const privacyConfig = withPostHogPrivacy(config);
+        const script = documentObject.createElement('script');
+        script.type = 'text/javascript';
         script.crossOrigin = 'anonymous';
-        script.src = `${safeConfig.api_host.replace('.i.posthog.com', '-assets.i.posthog.com')}/static/array.js`;
-        const firstScript = doc.getElementsByTagName('script')[0];
+        script.async = true;
+        script.src = `${privacyConfig.api_host.replace(
+          '.i.posthog.com',
+          '-assets.i.posthog.com'
+        )}/static/array.js`;
+        const firstScript = documentObject.getElementsByTagName('script')[0];
         firstScript.parentNode.insertBefore(script, firstScript);
+
         let instance = posthog;
-        const instanceName = name || 'posthog';
-        if (name) instance = posthog[name] = [];
+        let instanceName = name;
+        if (instanceName !== undefined) {
+          instance = posthog[instanceName] = [];
+        } else {
+          instanceName = 'posthog';
+        }
         instance.people = instance.people || [];
-        'capture identify reset opt_in_capturing opt_out_capturing startSessionRecording stopSessionRecording'
-          .split(' ')
-          .forEach(method => {
-            instance[method] = function () {
-              instance.push([method].concat(Array.prototype.slice.call(arguments)));
-            };
-          });
-        posthog._i.push([token, safeConfig, instanceName]);
+        const methods =
+          'init capture identify reset opt_in_capturing opt_out_capturing startSessionRecording stopSessionRecording'.split(
+            ' '
+          );
+        methods.forEach(function (method) {
+          addMethod(instance, method);
+        });
+        posthog._i.push([token, privacyConfig, instanceName]);
       };
       posthog.__SV = 1;
     })(document, window.posthog || []);
   }
 
-  function identify(user, signupMethod) {
-    if (!user?.id || user.role === 'admin' || typeof window.posthog?.identify !== 'function') return;
-    window.posthog.identify(String(user.id), {
-      role: clean(user.role, 40) || 'customer',
-      signup_method: clean(signupMethod, 40) || undefined,
-    });
-  }
-
-  function capturePostHog(name, properties) {
-    if (!hasAnalyticsConsent() || typeof window.posthog?.capture !== 'function') return;
-    try {
-      window.posthog.capture(name, properties || {});
-    } catch (_error) {
-      // First-party analytics remains available if PostHog is blocked.
+  function clearPostHogPageviewTimer() {
+    if (posthogPageviewTimer) {
+      window.clearTimeout(posthogPageviewTimer);
+      posthogPageviewTimer = null;
     }
   }
 
-  async function initialisePostHog() {
-    if (!hasAnalyticsConsent() || currentPath().startsWith('/admin')) return false;
+  function postHogIsInitialised() {
+    if (!window.posthog || typeof window.posthog.capture !== 'function') {
+      return false;
+    }
+    if (window.posthog.__loaded) {
+      return true;
+    }
+    return Array.isArray(window.posthog._i) && window.posthog._i.length > 0;
+  }
+
+  function capturePostHogPageleave() {
+    if (
+      capturedPostHogPageleave ||
+      !capturedPostHogPage ||
+      !hasAnalyticsConsent() ||
+      isSensitiveAnalyticsPage() ||
+      !postHogIsInitialised()
+    ) {
+      return;
+    }
+
+    const currentUrl = queryFreePageUrl();
+    if (capturedPostHogPage !== currentUrl) {
+      return;
+    }
+
     try {
-      const response = await fetch('/api/v1/analytics/behaviour/config', {
-        credentials: 'same-origin',
-        cache: 'no-store',
-        headers: { Accept: 'application/json' },
-      });
-      const config = response.ok ? await response.json() : null;
-      const provider = config?.posthog;
-      if (!provider?.enabled || !provider.projectKey) return false;
-      installPostHogStub();
-      const sensitive = pathMatches(SENSITIVE_PATHS);
-      window.posthog.init(provider.projectKey, {
-        api_host: provider.apiHost,
-        ui_host: provider.uiHost,
-        defaults: '2026-05-30',
-        autocapture: false,
-        capture_pageview: false,
-        capture_pageleave: false,
-        person_profiles: 'identified_only',
-        mask_personal_data_properties: true,
-        disable_capture_url_hashes: true,
-        before_send: sanitizePostHogEvent,
-        opt_out_capturing_by_default: true,
-        disable_session_recording: sensitive || !provider.sessionRecordingEnabled,
-        session_recording: {
-          maskAllInputs: true,
-          maskTextSelector:
-            '.ph-sensitive, [data-analytics-sensitive], .message-content, .conversation-content, .email, #sensitive',
-          maskCapturedNetworkRequestFn: request => {
-            if (request?.name) request.name = request.name.split('?')[0];
-            return request;
-          },
+      window.posthog.capture(
+        '$pageleave',
+        {
+          $current_url: currentUrl,
+          $pathname: currentPath(),
         },
-      });
-      window.posthog.opt_in_capturing?.();
-      if (!sensitive && provider.sessionRecordingEnabled) window.posthog.startSessionRecording?.();
-      if (!sensitive) {
-        capturePostHog('$pageview', {
-          $current_url: `${window.location.origin}${currentPath()}`,
+        { transport: 'sendBeacon' }
+      );
+      capturedPostHogPageleave = true;
+    } catch (_error) {
+      // Analytics delivery must never interfere with navigation or page shutdown.
+    }
+  }
+
+  function tryCapturePostHogPageview() {
+    if (!hasAnalyticsConsent() || isSensitiveAnalyticsPage()) {
+      clearPostHogPageviewTimer();
+      return;
+    }
+
+    const currentUrl = queryFreePageUrl();
+    if (capturedPostHogPage === currentUrl) {
+      clearPostHogPageviewTimer();
+      return;
+    }
+
+    if (postHogIsInitialised()) {
+      try {
+        window.posthog.capture('$pageview', {
+          $current_url: currentUrl,
           $pathname: currentPath(),
           ...attributionProperties(),
         });
+        capturedPostHogPage = currentUrl;
+        capturedPostHogPageleave = false;
+      } catch (_error) {
+        // The polling timeout below permits a later retry.
       }
-      return true;
-    } catch (_error) {
-      return false;
+      clearPostHogPageviewTimer();
+      return;
     }
+
+    if (Date.now() - posthogPageviewStartedAt >= POSTHOG_PAGEVIEW_TIMEOUT_MS) {
+      clearPostHogPageviewTimer();
+      return;
+    }
+
+    posthogPageviewTimer = window.setTimeout(tryCapturePostHogPageview, POSTHOG_PAGEVIEW_POLL_MS);
   }
 
-  async function identifyCurrentUser() {
-    try {
-      const response = await fetch('/api/v1/auth/me', {
-        credentials: 'include',
-        cache: 'no-store',
-      });
-      const payload = response.ok ? await response.json() : null;
-      const user = payload?.user || null;
-      if (!user || user.role === 'admin') return;
-      identify(user);
-      if (sessionStorage.getItem(GOOGLE_SIGNUP_PENDING_KEY) === '1') {
-        capturePostHog('registration_completed', {
-          conversion_type: 'registration',
-          signup_method: 'google',
-          user_role: clean(user.role, 40),
-          ...attributionProperties(),
-        });
-        sessionStorage.removeItem(GOOGLE_SIGNUP_PENDING_KEY);
-      }
-    } catch (_error) {
-      // Anonymous users and blocked requests need no action.
+  function queuePostHogPageview() {
+    clearPostHogPageviewTimer();
+    if (!hasAnalyticsConsent() || isSensitiveAnalyticsPage()) {
+      return;
     }
+    posthogPageviewStartedAt = Date.now();
+    tryCapturePostHogPageview();
+  }
+
+  function handleAnalyticsConsentChange(event) {
+    if (event && event.detail && event.detail.analytics === true) {
+      captureAttribution();
+      if (currentPath() === '/auth' || currentPath().startsWith('/auth.')) {
+        startAuthPostHog();
+      }
+      if (!isSensitiveAnalyticsPage()) {
+        queuePostHogPageview();
+      }
+      return;
+    }
+    capturedPostHogPage = '';
+    capturedPostHogPageleave = false;
+    clearPostHogPageviewTimer();
+  }
+
+  function handlePostHogPageShow(event) {
+    if (!event || event.persisted !== true) {
+      return;
+    }
+    capturedPostHogPageleave = false;
+  }
+
+  function upgradeConsentCopy(root) {
+    const scope = root && typeof root.querySelectorAll === 'function' ? root : document;
+    scope.querySelectorAll('.cookie-consent-message p').forEach(paragraph => {
+      if (paragraph.textContent && paragraph.textContent.includes('functional cookies')) {
+        paragraph.textContent =
+          'We use essential cookies to make our site work. With your consent, analytics helps us understand visits, signup sources and improve EventFlow. You can change these choices at any time.';
+      }
+    });
+    scope.querySelectorAll('.cookie-prefs-category-desc').forEach(description => {
+      if (description.textContent && description.textContent.includes('Currently unused')) {
+        description.textContent =
+          'Help us understand page engagement, journeys and website performance. Analytics only runs after you consent.';
+      }
+    });
   }
 
   function normalizedRequest(input, options) {
     let url = '';
-    let method = options?.method || 'GET';
+    let method = 'GET';
     try {
       if (typeof input === 'string' || input instanceof URL) {
         url = new URL(input, window.location.href).pathname;
-      } else if (input?.url) {
+      } else if (input && input.url) {
         url = new URL(input.url, window.location.href).pathname;
         method = input.method || method;
       }
     } catch (_error) {
       url = '';
     }
-    return { url, method: String(method).toUpperCase() };
+    if (options && options.method) {
+      method = options.method;
+    }
+    return { url, method: String(method || 'GET').toUpperCase() };
   }
 
-  async function handleSuccess(request, response) {
-    if (!response?.ok) return;
-    const register =
-      request.method === 'POST' && /^\/api\/(?:v1\/)?auth\/register\/?$/.test(request.url);
-    const login =
-      request.method === 'POST' && /^\/api\/(?:v1\/)?auth\/login\/?$/.test(request.url);
-    if (!register && !login) return;
-    let payload = null;
-    try {
-      payload = await response.clone().json();
-    } catch (_error) {
+  function successfulEventFor(request) {
+    if (request.method === 'POST' && /^\/api\/(?:v1\/)?auth\/register\/?$/.test(request.url)) {
+      const attribution = attributionProperties();
+      return {
+        event: 'registration_completed',
+        properties: {
+          conversionType: 'registration',
+          signup_method: 'email_password',
+          source: attribution.first_channel || 'unknown',
+          ...attribution,
+        },
+      };
+    }
+    if (request.method === 'POST' && /^\/api\/(?:v1\/)?quote-requests\/?$/.test(request.url)) {
+      return {
+        event: 'quote_request_submitted',
+        properties: { conversionType: 'quote_request', source: 'server_response' },
+      };
+    }
+    if (request.method === 'POST' && /^\/api\/(?:v1\/)?me\/packages\/?$/.test(request.url)) {
+      return {
+        event: 'package_created',
+        properties: { conversionType: 'package_created', source: 'server_response' },
+      };
+    }
+    return null;
+  }
+
+  function identifyRegisteredUser(response) {
+    if (!response || !response.ok || !window.posthog || typeof window.posthog.identify !== 'function') {
       return;
     }
-    if (payload?.user) identify(payload.user, register ? 'email_password' : undefined);
-    if (register) {
-      const properties = {
-        conversion_type: 'registration',
-        signup_method: 'email_password',
-        user_role: clean(payload?.user?.role, 40) || 'customer',
-        ...attributionProperties(),
-      };
-      capturePostHog('registration_completed', properties);
-      window.EFAnalytics?.track?.('registration_completed', {
-        conversionType: 'registration',
-        source: properties.first_channel || 'unknown',
+    response
+      .clone()
+      .json()
+      .then(payload => {
+        const user = payload && payload.user;
+        if (!user || !user.id || user.role === 'admin') {
+          return;
+        }
+        window.posthog.identify(String(user.id), {
+          role: cleanAttributionValue(user.role, 40) || 'customer',
+          signup_method: 'email_password',
+        });
+      })
+      .catch(function () {
+        // Registration conversion tracking does not depend on response parsing.
       });
-      window.EFAnalytics?.flush?.();
-    }
   }
 
-  function installFetchObserver() {
-    if (typeof window.fetch !== 'function' || window.fetch[FETCH_WRAPPED_FLAG]) return;
-    const original = window.fetch.bind(window);
-    const wrapped = function (input, options) {
+  function installSuccessfulConversionObserver() {
+    if (typeof window.fetch !== 'function' || window.fetch[FETCH_WRAPPED_FLAG]) {
+      return;
+    }
+
+    const originalFetch = window.fetch.bind(window);
+    const wrappedFetch = function (input, options) {
       const request = normalizedRequest(input, options);
-      return original(input, options).then(response => {
-        handleSuccess(request, response).catch(() => {});
+      return originalFetch(input, options).then(response => {
+        const conversion = response.ok ? successfulEventFor(request) : null;
+        if (conversion && window.EFAnalytics && typeof window.EFAnalytics.track === 'function') {
+          window.EFAnalytics.track(conversion.event, conversion.properties, { immediate: true });
+        }
+        if (
+          conversion &&
+          conversion.event === 'registration_completed' &&
+          window.posthog &&
+          typeof window.posthog.capture === 'function'
+        ) {
+          identifyRegisteredUser(response);
+          window.posthog.capture(conversion.event, conversion.properties);
+        }
         return response;
       });
     };
-    wrapped[FETCH_WRAPPED_FLAG] = true;
-    window.fetch = wrapped;
+    wrappedFetch[FETCH_WRAPPED_FLAG] = true;
+    window.fetch = wrappedFetch;
   }
 
-  function writeFullConsent() {
-    const value = encodeURIComponent(
-      JSON.stringify({ v: 1, essential: true, functional: true, analytics: true })
-    );
-    const expires = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toUTCString();
-    const secure = window.location.protocol === 'https:' ? '; Secure' : '';
-    document.cookie = `${COOKIE_NAME}=${value}; expires=${expires}; path=/; SameSite=Lax${secure}`;
-    window.dispatchEvent(
-      new CustomEvent('cookieConsentChanged', {
-        detail: { accepted: true, essential: true, functional: true, analytics: true },
+  function startAuthPostHog() {
+    if (
+      authPostHogStarted ||
+      !hasAnalyticsConsent() ||
+      !(currentPath() === '/auth' || currentPath().startsWith('/auth.'))
+    ) {
+      return;
+    }
+    authPostHogStarted = true;
+    window
+      .fetch('/api/v1/analytics/behaviour/config', {
+        credentials: 'same-origin',
+        cache: 'no-store',
+        headers: { Accept: 'application/json' },
       })
-    );
-  }
-
-  function upgradeConsentCopy(root) {
-    const scope = root?.querySelectorAll ? root : document;
-    scope.querySelectorAll('.cookie-consent-message p').forEach(element => {
-      if (element.textContent?.includes('functional cookies')) {
-        element.textContent =
-          'We use essential cookies to make our site work. With your consent, analytics helps us understand visits, signup sources and improve EventFlow. You can change these choices at any time.';
-      }
-    });
+      .then(response => (response.ok ? response.json() : null))
+      .then(config => {
+        const provider = config && config.posthog;
+        if (!provider || !provider.enabled || !provider.projectKey) {
+          return;
+        }
+        window.posthog.init(provider.projectKey, {
+          api_host: provider.apiHost,
+          ui_host: provider.uiHost,
+          defaults: '2026-05-30',
+          autocapture: false,
+          capture_pageview: false,
+          capture_pageleave: false,
+          person_profiles: 'identified_only',
+          opt_out_capturing_by_default: true,
+          disable_session_recording: true,
+          session_recording: {
+            maskAllInputs: true,
+            maskTextSelector:
+              '.ph-sensitive, [data-analytics-sensitive], .message-content, .conversation-content, .email, #sensitive',
+          },
+        });
+        window.posthog.opt_in_capturing();
+      })
+      .catch(function () {
+        authPostHogStarted = false;
+      });
   }
 
   installSensitivePageConsentGuard();
-  installPostHogStub();
+  installPrivacyAwarePostHogStub();
 
   document.addEventListener(
     'click',
     event => {
-      const accept = event.target?.closest?.('#cookie-consent-accept, #cookie-prefs-accept-all');
-      if (accept) {
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        writeFullConsent();
-        const banner = accept.closest('#cookie-consent-banner');
-        const dialog = accept.closest('#cookie-prefs-dialog');
-        if (banner?.parentNode) banner.parentNode.removeChild(banner);
-        else banner?.remove?.();
-        if (dialog?.parentNode) dialog.parentNode.removeChild(dialog);
-        else dialog?.remove?.();
+      const target =
+        event.target && event.target.closest
+          ? event.target.closest('#cookie-consent-accept, #cookie-prefs-accept-all')
+          : null;
+      if (!target) {
+        return;
       }
-      if (event.target?.closest?.('#google-signup-button')) {
-        try {
-          sessionStorage.setItem(GOOGLE_SIGNUP_PENDING_KEY, '1');
-        } catch (_error) {
-          // Session attribution is best-effort.
-        }
-      }
+
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      writeFullConsent();
+      closeConsentUi(target);
     },
     true
   );
+
+  window.addEventListener('cookieConsentChanged', handleAnalyticsConsentChange);
+  window.addEventListener('pagehide', capturePostHogPageleave);
+  window.addEventListener('pageshow', handlePostHogPageShow);
 
   window.EventFlowAttribution = {
     capture: captureAttribution,
@@ -515,18 +769,30 @@
     properties: attributionProperties,
   };
 
-  function start() {
+  function init() {
     upgradeConsentCopy(document);
-    installFetchObserver();
+    installSuccessfulConversionObserver();
     captureAttribution();
-    initialisePostHog().then(identifyCurrentUser);
+    startAuthPostHog();
+    queuePostHogPageview();
+    if (typeof MutationObserver !== 'function' || !document.body) {
+      return;
+    }
+    const observer = new MutationObserver(mutations => {
+      mutations.forEach(mutation => {
+        mutation.addedNodes.forEach(node => {
+          if (node && node.nodeType === 1) {
+            upgradeConsentCopy(node);
+          }
+        });
+      });
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
   }
 
-  window.addEventListener('cookieConsentChanged', event => {
-    if (event.detail?.analytics === true) start();
-    else window.posthog?.opt_out_capturing?.();
-  });
-
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
-  else start();
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
 })();
