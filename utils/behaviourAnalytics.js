@@ -364,7 +364,7 @@ function updateFunnelProgress(eventName, sessionKey, progressBySession, stageSes
 function topCounts(map, limit = 20) {
   return Array.from(map.entries())
     .map(([key, count]) => ({ key, count }))
-    .sort((left, right) => right.count - left.count || left.key.localeCompare(right.key))
+    .sort((left, right) => right.count - left.count)
     .slice(0, limit);
 }
 
