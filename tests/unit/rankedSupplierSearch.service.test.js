@@ -48,12 +48,7 @@ function supplier(overrides = {}) {
     description_short: 'Natural wedding and event photography across Cardiff and South Wales.',
     description_long:
       'Relaxed wedding and event photography with planning support, professionally edited images and a private online gallery for every booking throughout South Wales.',
-    images: [
-      '/uploads/one.jpg',
-      '/uploads/two.jpg',
-      '/uploads/three.jpg',
-      '/uploads/four.jpg',
-    ],
+    images: ['/uploads/one.jpg', '/uploads/two.jpg', '/uploads/three.jpg', '/uploads/four.jpg'],
     tags: ['wedding', 'photography'],
     amenities: ['Planning call', 'Online gallery'],
     price_display: '££',
@@ -121,9 +116,7 @@ function normalizedQuery(raw = {}) {
   return {
     q: raw.q ? String(raw.q).trim() : '',
     minRating:
-      raw.minRating === undefined || raw.minRating === ''
-        ? undefined
-        : Number(raw.minRating),
+      raw.minRating === undefined || raw.minRating === '' ? undefined : Number(raw.minRating),
     sortBy: raw.sortBy || 'relevance',
     page: parsedPage,
     limit: parsedLimit,
@@ -143,9 +136,7 @@ describe('rankedSupplierSearch.service', () => {
     packages = [packageFor()];
     projectedSuppliers = rawSuppliers.map(item => project(item));
 
-    catalogCache.get.mockImplementation(async key =>
-      cache.has(key) ? cache.get(key) : null
-    );
+    catalogCache.get.mockImplementation(async key => (cache.has(key) ? cache.get(key) : null));
     catalogCache.set.mockImplementation(async (key, value) => {
       cache.set(key, value);
     });
@@ -306,7 +297,7 @@ describe('rankedSupplierSearch.service', () => {
 
     expect(result.results.map(item => item.id)).toEqual(['jazz_supplier']);
     expect(result.results[0].textRelevanceScore).toBeGreaterThan(0);
-    expect(result.results[0].rankingReason).toContain('Strong match');
+    expect(result.results[0].rankingReason).toContain('Packages available');
   });
 
   test('enforces rating and public eligibility after the established filters', async () => {

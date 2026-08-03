@@ -219,13 +219,7 @@ function rankSupplier(supplier, supplierPackages, normalized, searchMode) {
   };
 }
 
-function buildSafeFallback(
-  fallback,
-  suppliersById,
-  packagesBySupplier,
-  validOwnerIds,
-  normalized
-) {
+function buildSafeFallback(fallback, suppliersById, packagesBySupplier, validOwnerIds, normalized) {
   if (!fallback || !Array.isArray(fallback.suggestions)) return null;
 
   const suggestions = fallback.suggestions

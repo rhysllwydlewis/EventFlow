@@ -447,7 +447,7 @@ describe('Search V2 API Integration Tests', () => {
       expect(routeContent).toContain("require('../db-unified')");
       expect(routeContent).toContain("require('../middleware/auth')");
       expect(routeContent).toContain("require('../middleware/searchCache')");
-      expect(routeContent).toContain("require('../services/searchService')");
+      expect(routeContent).toContain("require('../services/rankedSupplierSearch.service')");
       expect(routeContent).toContain("require('../utils/searchAnalytics')");
       expect(routeContent).toContain("require('validator')");
     });

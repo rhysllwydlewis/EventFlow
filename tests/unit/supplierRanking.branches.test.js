@@ -45,15 +45,11 @@ function supplier(overrides = {}) {
     postcode: 'CF10 1AA',
     profilePhotoUrl: '/uploads/profile.jpg',
     coverImage: '/uploads/cover.jpg',
-    description_short: 'Natural event photography for weddings and celebrations throughout South Wales.',
+    description_short:
+      'Natural event photography for weddings and celebrations throughout South Wales.',
     description_long:
       'We provide natural event photography for weddings, private celebrations and corporate occasions throughout South Wales, with planning support, professional editing and a secure online gallery included with every booking.',
-    images: [
-      '/uploads/one.jpg',
-      '/uploads/two.jpg',
-      '/uploads/three.jpg',
-      '/uploads/four.jpg',
-    ],
+    images: ['/uploads/one.jpg', '/uploads/two.jpg', '/uploads/three.jpg', '/uploads/four.jpg'],
     tags: ['wedding', 'photography'],
     amenities: ['Planning call', 'Online gallery'],
     price_display: '££',
@@ -140,12 +136,12 @@ describe('supplierRanking service branches', () => {
     expect(
       isPubliclyEligibleSupplier({ approved: true, verificationStatus: 'rejected' }, owners)
     ).toBe(false);
-    expect(
-      isPubliclyEligibleSupplier({ approved: true, ownerUserId: 'missing' }, owners)
-    ).toBe(false);
-    expect(
-      isPubliclyEligibleSupplier({ approved: true, ownerUserId: 'owner_1' }, owners)
-    ).toBe(true);
+    expect(isPubliclyEligibleSupplier({ approved: true, ownerUserId: 'missing' }, owners)).toBe(
+      false
+    );
+    expect(isPubliclyEligibleSupplier({ approved: true, ownerUserId: 'owner_1' }, owners)).toBe(
+      true
+    );
     expect(isPubliclyEligibleSupplier({ approved: true }, owners)).toBe(true);
   });
 
@@ -323,10 +319,7 @@ describe('supplierRanking service branches', () => {
 
   test('clamps final search scores to the public 0-100 range', () => {
     expect(
-      calculateFinalSearchScore(
-        { qualityScore: 100, adjustments: { total: 8 } },
-        { score: 100 }
-      )
+      calculateFinalSearchScore({ qualityScore: 100, adjustments: { total: 8 } }, { score: 100 })
     ).toBe(100);
   });
 
