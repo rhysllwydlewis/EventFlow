@@ -464,30 +464,30 @@ const calculateFinalSearchScore = (ranking, relevance) =>
     clamp(relevance.score * 0.7 + ranking.qualityScore * 0.3 + ranking.adjustments.total, 0, 100)
   );
 
+const compareByRating = (a, b) =>
+  (b.reviewConfidenceAdjustedRating || 0) - (a.reviewConfidenceAdjustedRating || 0) ||
+  (b.reviewCount || 0) - (a.reviewCount || 0);
+const compareByReviews = (a, b) => (b.reviewCount || 0) - (a.reviewCount || 0);
+const compareByName = (a, b) => String(a.name || '').localeCompare(String(b.name || ''));
+const compareByNewest = (a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+const compareByDistance = (a, b) => (a.distanceMiles ?? Infinity) - (b.distanceMiles ?? Infinity);
+const compareByRanking = (a, b) => (b.finalRankingScore || 0) - (a.finalRankingScore || 0);
+const rankedSupplierComparators = {
+  rating: compareByRating,
+  reviews: compareByReviews,
+  name: compareByName,
+  newest: compareByNewest,
+};
+const rankedSupplierTieBreak = (a, b) =>
+  (b.qualityScore || 0) - (a.qualityScore || 0) ||
+  String(a.id || '').localeCompare(String(b.id || ''));
+
 function sortRankedSuppliers(results, sortBy, hasDistance) {
-  return [...results].sort((a, b) => {
-    let difference = 0;
-    if (sortBy === 'rating') {
-      difference =
-        (b.reviewConfidenceAdjustedRating || 0) - (a.reviewConfidenceAdjustedRating || 0) ||
-        (b.reviewCount || 0) - (a.reviewCount || 0);
-    } else if (sortBy === 'reviews') {
-      difference = (b.reviewCount || 0) - (a.reviewCount || 0);
-    } else if (sortBy === 'name') {
-      difference = String(a.name || '').localeCompare(String(b.name || ''));
-    } else if (sortBy === 'newest') {
-      difference = new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
-    } else if (sortBy === 'distance' && hasDistance) {
-      difference = (a.distanceMiles ?? Infinity) - (b.distanceMiles ?? Infinity);
-    } else {
-      difference = (b.finalRankingScore || 0) - (a.finalRankingScore || 0);
-    }
-    return (
-      difference ||
-      (b.qualityScore || 0) - (a.qualityScore || 0) ||
-      String(a.id || '').localeCompare(String(b.id || ''))
-    );
-  });
+  const compare =
+    sortBy === 'distance' && hasDistance
+      ? compareByDistance
+      : rankedSupplierComparators[sortBy] || compareByRanking;
+  return [...results].sort((a, b) => compare(a, b) || rankedSupplierTieBreak(a, b));
 }
 
 module.exports = {

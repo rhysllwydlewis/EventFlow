@@ -11,6 +11,7 @@
 const dbUnified = require('../db-unified');
 const catalogCache = require('./catalogCache');
 const baseSearchService = require('./searchService');
+const logger = require('../utils/logger');
 const {
   RANKING_VERSION,
   effectiveImages,
@@ -42,9 +43,13 @@ async function getCachedCollection(cacheKey, collectionName) {
 function groupPackages(packages) {
   const grouped = new Map();
   (packages || []).forEach(pkg => {
-    if (!pkg?.supplierId || pkg.approved === false) return;
+    if (!pkg?.supplierId || pkg.approved === false) {
+      return;
+    }
     const key = String(pkg.supplierId);
-    if (!grouped.has(key)) grouped.set(key, []);
+    if (!grouped.has(key)) {
+      grouped.set(key, []);
+    }
     grouped.get(key).push(pkg);
   });
   return grouped;
@@ -67,9 +72,10 @@ async function getValidOwnerIds() {
         .filter(Boolean)
         .map(id => String(id))
     );
-  } catch (_error) {
+  } catch (error) {
     // Owner validation must not take the public marketplace offline when the
     // user collection cannot be read. Eligibility remains strict otherwise.
+    logger.error('Failed to load valid owner IDs for ranked supplier search:', error);
     return null;
   }
 }
@@ -104,22 +110,39 @@ const effectivePrice = supplier => supplier.price_display || supplier.priceRange
 
 function rankingReason(ranking, relevance) {
   const reasons = [];
-  if (relevance?.score >= 65) reasons.push('Strong match');
-  if (ranking.breakdown.profile.score >= 32) reasons.push('Complete profile');
-  if (ranking.breakdown.packages.packageCount > 0) reasons.push('Packages available');
-  if (ranking.breakdown.reviews.reviewCount >= 3) reasons.push('Established reviews');
-  if (ranking.breakdown.trust.verified) reasons.push('Verified supplier');
-  if (ranking.adjustments.tier === 'pro_plus') reasons.push('Pro Plus');
-  else if (ranking.adjustments.tier === 'pro') reasons.push('Pro');
+  if (relevance?.score >= 65) {
+    reasons.push('Strong match');
+  }
+  if (ranking.breakdown.profile.score >= 32) {
+    reasons.push('Complete profile');
+  }
+  if (ranking.breakdown.packages.packageCount > 0) {
+    reasons.push('Packages available');
+  }
+  if (ranking.breakdown.reviews.reviewCount >= 3) {
+    reasons.push('Established reviews');
+  }
+  if (ranking.breakdown.trust.verified) {
+    reasons.push('Verified supplier');
+  }
+  if (ranking.adjustments.tier === 'pro_plus') {
+    reasons.push('Pro Plus');
+  } else if (ranking.adjustments.tier === 'pro') {
+    reasons.push('Pro');
+  }
   return reasons.slice(0, 3).join(' · ') || 'Supplier match';
 }
 
 function priceValue(supplier) {
   const value = String(supplier.startingPrice || supplier.price_display || '').trim();
-  if (!value) return null;
+  if (!value) {
+    return null;
+  }
 
   const numeric = Number(value.replace(/[^0-9.]/g, ''));
-  if (Number.isFinite(numeric) && numeric > 0) return numeric;
+  if (Number.isFinite(numeric) && numeric > 0) {
+    return numeric;
+  }
 
   const symbols = value.match(/[£$]/g);
   return symbols ? symbols.length : null;
@@ -133,7 +156,9 @@ function sortPriceResults(results, sortBy) {
     const aMissing = aPrice === null;
     const bMissing = bPrice === null;
 
-    if (aMissing !== bMissing) return aMissing ? 1 : -1;
+    if (aMissing !== bMissing) {
+      return aMissing ? 1 : -1;
+    }
 
     const difference = aMissing ? 0 : (aPrice - bPrice) * direction;
     return (
@@ -220,7 +245,9 @@ function rankSupplier(supplier, supplierPackages, normalized, searchMode) {
 }
 
 function buildSafeFallback(fallback, suppliersById, packagesBySupplier, validOwnerIds, normalized) {
-  if (!fallback || !Array.isArray(fallback.suggestions)) return null;
+  if (!fallback || !Array.isArray(fallback.suggestions)) {
+    return null;
+  }
 
   const suggestions = fallback.suggestions
     .map(projected => {
@@ -279,7 +306,9 @@ async function searchSuppliers(rawQuery = {}) {
       )
     );
 
-  if (searchMode) ranked = ranked.filter(supplier => supplier.textRelevanceScore > 0);
+  if (searchMode) {
+    ranked = ranked.filter(supplier => supplier.textRelevanceScore > 0);
+  }
 
   const hasDistance = ranked.some(supplier => Number.isFinite(supplier.distanceMiles));
   const appliedSort =
