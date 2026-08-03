@@ -40,6 +40,7 @@ jobs:
       - name: Remove remaining analytics anti-patterns
         run: |
           python - <<'PY'
+          import re
           from pathlib import Path
 
           path = Path('public/assets/js/analytics-consent-upgrade.js')
@@ -51,6 +52,12 @@ jobs:
               if count != 1:
                   raise SystemExit(f'{label}: expected exactly one match, found {count}')
               source = source.replace(old, new, 1)
+
+          def sub_once(pattern, replacement, label):
+              global source
+              source, count = re.subn(pattern, replacement, source, count=1, flags=re.MULTILINE)
+              if count != 1:
+                  raise SystemExit(f'{label}: expected exactly one match, found {count}')
 
           replace_once(
               """  function closeConsentUi(target) {
@@ -81,22 +88,16 @@ jobs:
           """,
               'consent UI guards',
           )
-
           replace_once(
-              """    if (!window.CookieConsent || typeof window.CookieConsent.getConsent !== 'function') {
-          """,
-              """    if (typeof window.CookieConsent?.getConsent !== 'function') {
-          """,
+              "if (!window.CookieConsent || typeof window.CookieConsent.getConsent !== 'function') {",
+              "if (typeof window.CookieConsent?.getConsent !== 'function') {",
               'consent API guard',
           )
           replace_once(
-              """      return Boolean(consent && consent.analytics === true);
-          """,
-              """      return consent?.analytics === true;
-          """,
+              'return Boolean(consent && consent.analytics === true);',
+              'return consent?.analytics === true;',
               'consent value guard',
           )
-
           replace_once(
               """  function runBeforeSendHooks(hooks, event) {
               const handlers = Array.isArray(hooks) ? hooks : typeof hooks === 'function' ? [hooks] : [];
@@ -113,35 +114,15 @@ jobs:
           """,
               'before-send nested conditional',
           )
-
           replace_once(
-              """    if (
-              !isProviderBlockedPage() ||
-              !window.CookieConsent ||
-              typeof window.CookieConsent.getConsent !== 'function' ||
-              window.CookieConsent.getConsent.__efSensitiveGuard
-            ) {
-          """,
-              """    if (
-              !isProviderBlockedPage() ||
-              typeof window.CookieConsent?.getConsent !== 'function' ||
-              window.CookieConsent.getConsent.__efSensitiveGuard
-            ) {
-          """,
+              "      !window.CookieConsent ||\n      typeof window.CookieConsent.getConsent !== 'function' ||",
+              "      typeof window.CookieConsent?.getConsent !== 'function' ||",
               'sensitive-page consent guard',
           )
 
-          replacements = [
+          simple_replacements = [
               ("if (window.posthog && window.posthog.__SV) {", "if (window.posthog?.__SV) {", 'PostHog stub guard'),
-              (
-                  """  function postHogIsInitialised() {
-              if (!window.posthog || typeof window.posthog.capture !== 'function') {
-          """,
-                  """  function postHogIsInitialised() {
-              if (typeof window.posthog?.capture !== 'function') {
-          """,
-                  'PostHog initialisation guard',
-              ),
+              ("if (!window.posthog || typeof window.posthog.capture !== 'function') {", "if (typeof window.posthog?.capture !== 'function') {", 'PostHog initialisation guard'),
               ("if (event && event.detail && event.detail.analytics === true) {", "if (event?.detail?.analytics === true) {", 'consent change event guard'),
               ("if (!event || event.persisted !== true) {", "if (event?.persisted !== true) {", 'pageshow event guard'),
               ("const scope = root && typeof root.querySelectorAll === 'function' ? root : document;", "const scope = typeof root?.querySelectorAll === 'function' ? root : document;", 'query scope guard'),
@@ -149,53 +130,29 @@ jobs:
               ("if (description.textContent && description.textContent.includes('Currently unused')) {", "if (description.textContent?.includes('Currently unused')) {", 'consent description guard'),
               ("} else if (input && input.url) {", "} else if (input?.url) {", 'request input guard'),
               ("if (options && options.method) {", "if (options?.method) {", 'request options guard'),
-              (
-                  """    if (
-              !response ||
-              !response.ok ||
-              !window.posthog ||
-              typeof window.posthog.identify !== 'function'
-            ) {
-          """,
-                  """    if (!response?.ok || typeof window.posthog?.identify !== 'function') {
-          """,
-                  'registration response guard',
-              ),
               ("if (!user || !user.id || user.role === 'admin') {", "if (!user?.id || user.role === 'admin') {", 'registered user guard'),
               ("if (conversion && window.EFAnalytics && typeof window.EFAnalytics.track === 'function') {", "if (conversion && typeof window.EFAnalytics?.track === 'function') {", 'first-party conversion guard'),
-              (
-                  """        if (
-                  conversion &&
-                  conversion.event === 'registration_completed' &&
-                  window.posthog &&
-                  typeof window.posthog.capture === 'function'
-                ) {
-          """,
-                  """        if (
-                  conversion?.event === 'registration_completed' &&
-                  typeof window.posthog?.capture === 'function'
-                ) {
-          """,
-                  'PostHog conversion guard',
-              ),
               ("const provider = config && config.posthog;", "const provider = config?.posthog;", 'provider guard'),
-              (
-                  """      const target =
-                    event.target && event.target.closest
-                      ? event.target.closest('#cookie-consent-accept, #cookie-prefs-accept-all')
-                      : null;
-          """,
-                  """      const target = event.target?.closest?.(
-                    '#cookie-consent-accept, #cookie-prefs-accept-all'
-                  );
-          """,
-                  'click target guard',
-              ),
               ("if (node && node.nodeType === 1) {", "if (node?.nodeType === 1) {", 'mutation node guard'),
           ]
-
-          for old, new, label in replacements:
+          for old, new, label in simple_replacements:
               replace_once(old, new, label)
+
+          sub_once(
+              r"if \(\s*!response \|\|\s*!response\.ok \|\|\s*!window\.posthog \|\|\s*typeof window\.posthog\.identify !== 'function'\s*\) \{",
+              "if (!response?.ok || typeof window.posthog?.identify !== 'function') {",
+              'registration response guard',
+          )
+          sub_once(
+              r"if \(\s*conversion &&\s*conversion\.event === 'registration_completed' &&\s*window\.posthog &&\s*typeof window\.posthog\.capture === 'function'\s*\) \{",
+              "if (\n          conversion?.event === 'registration_completed' &&\n          typeof window.posthog?.capture === 'function'\n        ) {",
+              'PostHog conversion guard',
+          )
+          sub_once(
+              r"const target =\s*event\.target && event\.target\.closest\s*\? event\.target\.closest\('#cookie-consent-accept, #cookie-prefs-accept-all'\)\s*: null;",
+              "const target = event.target?.closest?.(\n        '#cookie-consent-accept, #cookie-prefs-accept-all'\n      );",
+              'click target guard',
+          )
 
           path.write_text(source)
           PY
