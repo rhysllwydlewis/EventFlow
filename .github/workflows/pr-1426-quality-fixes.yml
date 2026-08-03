@@ -1,0 +1,178 @@
+name: Apply PR 1426 quality fixes
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/pr-1426-quality-fixes.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pr-1426-quality-fixes
+  cancel-in-progress: false
+
+jobs:
+  apply-fixes:
+    if: >-
+      github.event.pull_request.number == 1426 &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.node-version'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit
+        env:
+          HUSKY: '0'
+
+      - name: Apply focused fixes
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          analytics_path = Path('public/assets/js/analytics-consent-upgrade.js')
+          analytics = analytics_path.read_text()
+          unused_catches = analytics.count('catch (_error) {')
+          if unused_catches < 1:
+              raise SystemExit('Expected unused analytics catch bindings were not found')
+          analytics = analytics.replace('catch (_error) {', 'catch {')
+          replacements = {
+              'value && value.first && value.first.capturedAt': 'value?.first?.capturedAt',
+              'payload && payload.user': 'payload?.user',
+          }
+          for old, new in replacements.items():
+              if old not in analytics:
+                  raise SystemExit(f'Expected analytics expression not found: {old}')
+              analytics = analytics.replace(old, new)
+          analytics_path.write_text(analytics)
+
+          css_path = Path('public/assets/css/auth.css')
+          css = css_path.read_text()
+          old_css = '''body.auth-page .auth-pw-wrap > .password-toggle {
+            top: 21px !important;
+            bottom: auto !important;
+            margin: 0 !important;
+          }
+          '''
+          new_css = '''body.auth-page .auth-pw-wrap > .password-toggle {
+            top: 21px !important;
+            bottom: auto !important;
+            width: 32px !important;
+            height: 32px !important;
+            min-width: 32px !important;
+            min-height: 32px !important;
+            margin: 0 !important;
+            padding: 6px !important;
+            box-sizing: border-box;
+            line-height: 1;
+          }
+
+          body.auth-page .auth-pw-wrap > .password-toggle > svg {
+            width: 20px;
+            height: 20px;
+            flex: 0 0 20px;
+            pointer-events: none;
+          }
+          '''
+          if old_css not in css:
+              raise SystemExit('Expected auth password-toggle CSS block was not found')
+          css_path.write_text(css.replace(old_css, new_css))
+
+          e2e_path = Path('e2e/auth.spec.js')
+          e2e = e2e_path.read_text()
+          old_keyboard = '''    // Focus login tab and press ArrowRight to switch to create tab
+              await page.focus('#tab-signin');
+              await page.keyboard.press('ArrowRight');
+
+              await expect(page.locator('#tab-create')).toHaveAttribute('aria-selected', 'true');
+              await expect(page.locator('#panel-create')).toBeVisible();
+
+              // Press ArrowLeft to go back
+              await page.keyboard.press('ArrowLeft');
+
+              await expect(page.locator('#tab-signin')).toHaveAttribute('aria-selected', 'true');
+              await expect(page.locator('#panel-signin')).toBeVisible();
+          '''
+          new_keyboard = '''    const signinTab = page.locator('#tab-signin');
+              const createTab = page.locator('#tab-create');
+
+              // Send each key to the tab that owns focus. This keeps the test aligned
+              // with the ARIA tabs pattern even while third-party widgets initialise.
+              await signinTab.focus();
+              await signinTab.press('ArrowRight');
+
+              await expect(createTab).toHaveAttribute('aria-selected', 'true');
+              await expect(createTab).toBeFocused();
+              await expect(page.locator('#panel-create')).toBeVisible();
+
+              await createTab.press('ArrowLeft');
+
+              await expect(signinTab).toHaveAttribute('aria-selected', 'true');
+              await expect(signinTab).toBeFocused();
+              await expect(page.locator('#panel-signin')).toBeVisible();
+          '''
+          if old_keyboard not in e2e:
+              raise SystemExit('Expected keyboard navigation test block was not found')
+          e2e = e2e.replace(old_keyboard, new_keyboard)
+
+          old_ready = '''    await waitForAuthReady(page);
+              await page.waitForTimeout(500);
+
+              const passwordInput = page.locator('#login-password');
+          '''
+          new_ready = '''    await waitForAuthReady(page);
+
+              const rejectCookies = page.getByRole('button', {
+                name: 'Reject non-essential cookies',
+              });
+              if (await rejectCookies.isVisible().catch(() => false)) {
+                await rejectCookies.click();
+                await expect(rejectCookies).toBeHidden();
+              }
+
+              const passwordInput = page.locator('#login-password');
+          '''
+          if old_ready not in e2e:
+              raise SystemExit('Expected mobile password-toggle setup block was not found')
+          e2e_path.write_text(e2e.replace(old_ready, new_ready, 1))
+          PY
+
+      - name: Format and verify focused files
+        run: |
+          npx prettier --write \
+            public/assets/js/analytics-consent-upgrade.js \
+            public/assets/css/auth.css \
+            e2e/auth.spec.js
+          npx prettier --check \
+            public/assets/js/analytics-consent-upgrade.js \
+            public/assets/css/auth.css \
+            e2e/auth.spec.js
+          node --check public/assets/js/analytics-consent-upgrade.js
+          npx eslint --rulesdir eslint-rules public/assets/js/analytics-consent-upgrade.js
+
+      - name: Remove helper workflow and commit
+        run: |
+          rm .github/workflows/pr-1426-quality-fixes.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add \
+            public/assets/js/analytics-consent-upgrade.js \
+            public/assets/css/auth.css \
+            e2e/auth.spec.js \
+            .github/workflows/pr-1426-quality-fixes.yml
+          git commit -m 'fix: stabilise auth E2E and clear quality findings'
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
