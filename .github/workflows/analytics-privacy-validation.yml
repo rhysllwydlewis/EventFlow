@@ -59,17 +59,19 @@ jobs:
 
           package_path = Path('package.json')
           package = json.loads(package_path.read_text(encoding='utf-8'))
-          dependencies = package.setdefault('dependencies', {})
-          dependencies['brace-expansion'] = '5.0.9'
+          dependencies = package.get('dependencies', {})
+          dependencies.pop('brace-expansion', None)
           overrides = package.setdefault('overrides', {})
           overrides['brace-expansion'] = '5.0.9'
+          filelist_override = overrides.setdefault('filelist', {})
+          filelist_override['brace-expansion'] = '5.0.9'
           package_path.write_text(json.dumps(package, indent=2) + '\n', encoding='utf-8')
           PY
 
       - name: Resolve patched dependency
         shell: bash
         run: |
-          npm install brace-expansion@5.0.9 --save-exact --package-lock-only --ignore-scripts --no-audit
+          npm install --package-lock-only --ignore-scripts --no-audit
           npm ci --prefer-offline --no-audit
           installed="$(node -p "require('./node_modules/brace-expansion/package.json').version")"
           echo "Installed brace-expansion version: ${installed}"
