@@ -95,7 +95,67 @@ const UNSAFE_URL_SCHEMES = Object.freeze([
 ]);
 
 const URL_PATTERN = /\bhttps?:\/\/[^\s<>"')]+/gi;
-const BARE_DOMAIN_PATTERN = /\b(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}\b/gi;
+// Bare domains are found by tokenising rather than by one large expression.
+// A pattern of the shape /(?:label\.)+tld/ nests a quantifier inside a
+// quantifier, so a body such as "a.a.a.a…" thousands of labels long forces
+// catastrophic backtracking. This runs on every submitted post, where the body
+// is attacker-controlled and up to LIMITS.bodyMax characters, so the scan is
+// kept strictly linear: split on characters that cannot occur in a hostname,
+// then validate each candidate label by label.
+const NON_HOST_CHARACTERS = /[^a-z0-9.-]+/i;
+const MAX_LABEL_LENGTH = 63;
+
+/**
+ * Whether a single dot-separated segment is a legal hostname label.
+ * @param {string} label Candidate label, already lower-cased.
+ * @returns {boolean} True when the label could appear in a hostname.
+ */
+function isHostLabel(label) {
+  if (!label || label.length > MAX_LABEL_LENGTH) {
+    return false;
+  }
+  if (label.startsWith('-') || label.endsWith('-')) {
+    return false;
+  }
+  for (let index = 0; index < label.length; index += 1) {
+    const code = label.charCodeAt(index);
+    const isDigit = code >= 48 && code <= 57;
+    const isLetter = code >= 97 && code <= 122;
+    const isHyphen = code === 45;
+    if (!isDigit && !isLetter && !isHyphen) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
+ * Find bare domains (hosts typed without a scheme) in a block of text.
+ * @param {string} text Raw or sanitised content.
+ * @returns {string[]} Lower-cased hostnames in order of appearance.
+ */
+function extractBareDomains(text) {
+  const matches = [];
+  String(text || '')
+    .toLowerCase()
+    .split(NON_HOST_CHARACTERS)
+    .forEach(rawToken => {
+      const token = rawToken.replace(/^[.-]+/, '').replace(/[.-]+$/, '');
+      if (!token.includes('.')) {
+        return;
+      }
+      const labels = token.split('.');
+      if (labels.length < 2 || !labels.every(isHostLabel)) {
+        return;
+      }
+      const tld = labels[labels.length - 1];
+      if (tld.length < 2 || /[^a-z]/.test(tld)) {
+        return;
+      }
+      matches.push(token);
+    });
+  return matches;
+}
 
 // ─── Link handling ───────────────────────────────────────────────────────────
 
@@ -481,8 +541,8 @@ function summariseDomains(text, settings = {}) {
     }
   });
 
-  (value.match(BARE_DOMAIN_PATTERN) || []).forEach(candidate => {
-    const domain = candidate.toLowerCase().replace(/^www\./, '');
+  extractBareDomains(value).forEach(candidate => {
+    const domain = candidate.replace(/^www\./, '');
     if (!domain.includes('.')) {
       return;
     }
@@ -684,6 +744,7 @@ function detectPersonalInformation(text) {
 
 module.exports = {
   extractUrls,
+  extractBareDomains,
   domainOf,
   isSafeUrl,
   isBlockedDomain,

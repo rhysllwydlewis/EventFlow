@@ -257,6 +257,30 @@ describe('community moderation — domain summary', () => {
     const summary = moderation.summariseDomains('See https://event-flow.co.uk/guides for more');
     expect(summary.domains).toEqual([]);
   });
+
+  it('finds bare domains wherever punctuation surrounds them', () => {
+    const summary = moderation.summariseDomains(
+      '(marquees.example), "tents.example"; and www.chairs.example.'
+    );
+    expect(summary.domains).toEqual(
+      expect.arrayContaining(['marquees.example', 'tents.example', 'chairs.example'])
+    );
+  });
+
+  it('rejects tokens that are not hostnames', () => {
+    expect(moderation.extractBareDomains('e.g. the price is 3.5 or 10.00')).toEqual([]);
+    expect(moderation.extractBareDomains('double..dots.example')).toEqual([]);
+    expect(moderation.extractBareDomains(`${'a'.repeat(64)}.example`)).toEqual([]);
+  });
+
+  // A body is attacker-controlled and can reach the length limit, so domain
+  // detection must not be quadratic in the number of dot-separated labels.
+  it('scans a hostile chain of labels in linear time', () => {
+    const hostile = `${'a.'.repeat(5000)}!`;
+    const started = Date.now();
+    expect(moderation.summariseDomains(hostile).domains).toEqual([]);
+    expect(Date.now() - started).toBeLessThan(250);
+  });
 });
 
 describe('community moderation — content assessment', () => {
