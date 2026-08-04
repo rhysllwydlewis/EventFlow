@@ -141,8 +141,9 @@ router.get('/categories/:slug', publicReadLimiter, requireCommunityEnabled, asyn
     }
 
     const now = new Date();
-    const all = await loadPublicDiscussions();
-    const inCategory = all.filter(item => item.categorySlug === slug);
+    // The category is part of the URL, not the query string, so it is merged in
+    // to let the {state, categorySlug, lastActivityAt} index do the narrowing.
+    const inCategory = await loadPublicDiscussions({ ...req.query, category: slug }, now);
     const sort = SORT_OPTIONS.includes(req.query.sort) ? req.query.sort : 'latest-activity';
     const filtered = applyFilters(inCategory, req.query, now);
 
@@ -489,7 +490,7 @@ router.get('/discussions', publicReadLimiter, requireCommunityEnabled, async (re
     const now = new Date();
     const [categories, all] = await Promise.all([
       community.listCategories({ includeHidden: true }),
-      loadPublicDiscussions(),
+      loadPublicDiscussions(req.query, now),
     ]);
     const categoriesBySlug = new Map(categories.map(item => [item.slug, item]));
 

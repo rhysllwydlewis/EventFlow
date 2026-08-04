@@ -397,9 +397,7 @@ router.get('/community/category/:slug', publicReadLimiter, async (req, res, next
 
     const now = new Date();
     const page = Math.max(1, parseInt(req.query.page, 10) || 1);
-    const all = (await community.loadPublicDiscussions()).filter(
-      item => item.categorySlug === slug
-    );
+    const all = await community.loadPublicDiscussions({ category: slug }, now);
     const ordered = all.sort(community.comparatorFor('latest-activity', now));
     const cards = ordered
       .slice((page - 1) * 20, page * 20)
