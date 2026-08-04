@@ -4,12 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes">
   <meta name="theme-color" content="#0B8073">
-  
+
   <title>Pricing — EventFlow | Simple, Transparent Event Planning Pricing</title>
   <meta name="description" content="EventFlow pricing is simple: free for customers, transparent packages for suppliers. No hidden fees, no platform charges. See our pricing plans.">
   <link rel="canonical" href="https://event-flow.co.uk/pricing">
-  
-  <!-- Open Graph -->
+
   <meta property="og:title" content="Pricing — EventFlow | Simple, Transparent Event Planning Pricing">
   <meta property="og:description" content="EventFlow pricing is simple: free for customers, transparent packages for suppliers. No hidden fees, no platform charges.">
   <meta property="og:url" content="https://event-flow.co.uk/pricing">
@@ -17,739 +16,66 @@
   <meta property="og:image" content="https://event-flow.co.uk/assets/images/eventflow-og-image.png?v=2">
   <meta property="og:site_name" content="EventFlow">
 
-  <!-- Twitter -->
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:url" content="https://event-flow.co.uk/pricing" />
-  <meta name="twitter:title" content="Pricing — EventFlow | Simple, Transparent Event Planning Pricing" />
-  <meta name="twitter:description" content="EventFlow pricing is simple: free for customers, transparent packages for suppliers. No hidden fees, no platform charges." />
-  <meta name="twitter:image" content="https://event-flow.co.uk/assets/images/eventflow-og-image.png?v=2" />
-  
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Pricing — EventFlow | Simple, Transparent Event Planning Pricing">
+  <meta name="twitter:description" content="Simple supplier plans with no hidden fees or booking commission.">
+  <meta name="twitter:image" content="https://event-flow.co.uk/assets/images/eventflow-og-image.png?v=2">
+
   <link rel="preload" href="/assets/css/styles.css?v=18.3.0" as="style">
+  <link rel="preload" href="/assets/css/pricing-redesign.css?v=1.0.1" as="style">
   <link rel="stylesheet" href="/assets/css/styles.css?v=18.3.0">
   <link rel="stylesheet" href="/assets/css/eventflow-17.0.0.css?v=18.3.0">
   <link rel="stylesheet" href="/assets/css/utilities.css?v=18.3.0">
   <link rel="stylesheet" href="/assets/css/components.css?v=18.3.0">
-    <link rel="stylesheet" href="/assets/css/navbar.css?v=18.3.0" />
-    <link rel="icon" href="/favicon.ico" sizes="any">
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png">
-    <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-    <link rel="manifest" href="/site.webmanifest">
-  
-  <style>
-    .pricing-hero {
-      background: linear-gradient(135deg, #0B8073 0%, #086659 100%);
-      color: white;
-      padding: 5rem 0 4rem;
-      text-align: center;
-    }
-    
-    .pricing-hero h1 {
-      font-size: 2.75rem;
-      margin-bottom: 1rem;
-      font-weight: 800;
-      letter-spacing: -0.5px;
-    }
-    
-    .pricing-hero .subtitle {
-      font-size: 1.25rem;
-      opacity: 0.92;
-      max-width: 600px;
-      margin: 0 auto 1.5rem;
-      line-height: 1.6;
-    }
-
-    .pricing-hero-badges {
-      display: flex;
-      justify-content: center;
-      gap: 1rem;
-      flex-wrap: wrap;
-      margin-top: 0.5rem;
-    }
-
-    .pricing-hero-badge {
-      background: rgba(255,255,255,0.15);
-      border: 1px solid rgba(255,255,255,0.3);
-      color: white;
-      padding: 0.375rem 0.875rem;
-      border-radius: 20px;
-      font-size: 0.8125rem;
-      font-weight: 500;
-      backdrop-filter: blur(4px);
-    }
-    
-    .pricing-container {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 3.5rem 1.5rem;
-    }
-    
-    .pricing-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 1.5rem;
-      margin: 2.5rem 0;
-      align-items: start;
-    }
-    
-    .pricing-card {
-      background: white;
-      border-radius: 16px;
-      border: 2px solid #e5e7eb;
-      padding: 2rem;
-      position: relative;
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-    
-    .pricing-card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 16px 32px rgba(0,0,0,0.08);
-    }
-    
-    .pricing-card.featured {
-      border-color: #0B8073;
-      box-shadow: 0 8px 32px rgba(11, 128, 115, 0.18);
-      margin-top: -0.75rem;
-      padding-top: 2.5rem;
-    }
-
-    .pricing-card.featured:hover {
-      box-shadow: 0 20px 48px rgba(11, 128, 115, 0.22);
-    }
-    
-    .pricing-card.featured::before {
-      content: "MOST POPULAR";
-      position: absolute;
-      top: -13px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: linear-gradient(135deg, #0B8073, #0a6d61);
-      color: white;
-      padding: 0.25rem 1.25rem;
-      border-radius: 20px;
-      font-size: 0.6875rem;
-      font-weight: 700;
-      letter-spacing: 1px;
-      white-space: nowrap;
-    }
-    
-    .pricing-name {
-      font-size: 1.5rem;
-      font-weight: 700;
-      color: #111827;
-      margin-bottom: 1rem;
-    }
-    
-    .pricing-price {
-      font-size: 2.75rem;
-      font-weight: 800;
-      color: #0B8073;
-      margin-bottom: 0.25rem;
-      line-height: 1;
-    }
-    
-    .pricing-price span {
-      font-size: 1rem;
-      font-weight: 400;
-      color: #6b7280;
-    }
-    
-    .pricing-early-access-label {
-      display: inline-block;
-      background: linear-gradient(135deg, #0B8073, #0a6d61);
-      color: white;
-      padding: 0.25rem 0.875rem;
-      border-radius: 20px;
-      font-size: 0.6875rem;
-      font-weight: 700;
-      letter-spacing: 0.75px;
-      text-transform: uppercase;
-      margin-bottom: 0.875rem;
-    }
-
-    .pricing-early-access-desc {
-      color: #374151;
-      font-size: 0.875rem;
-      margin: 0.375rem 0 0.25rem;
-      line-height: 1.5;
-    }
-
-    .pricing-normally {
-      color: #9ca3af;
-      font-size: 0.875rem;
-      font-weight: 500;
-      margin: 0 0 0.75rem;
-      text-decoration: line-through;
-    }
-
-    .pricing-offer-terms {
-      font-size: 0.8125rem;
-      color: #6b7280;
-      margin: 0.875rem 0 0;
-      line-height: 1.6;
-      padding-top: 0.875rem;
-      border-top: 1px solid #f3f4f6;
-    }
-
-    .pricing-smallprint {
-      display: flex;
-      align-items: flex-start;
-      gap: 0.375rem;
-      font-size: 0.75rem;
-      color: #9ca3af;
-      margin-top: 0.625rem;
-      line-height: 1.5;
-    }
-
-    .pricing-info-icon {
-      flex-shrink: 0;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 1rem;
-      height: 1rem;
-      border-radius: 50%;
-      border: 1px solid #d1d5db;
-      font-size: 0.6875rem;
-      font-style: normal;
-      cursor: default;
-      margin-top: 0.125rem;
-      color: #6b7280;
-    }
-
-    .pricing-description {
-      color: #6b7280;
-      font-size: 0.875rem;
-      margin-bottom: 1.5rem;
-      line-height: 1.6;
-    }
-    
-    .pricing-features {
-      list-style: none;
-      padding: 0;
-      margin: 1.25rem 0;
-    }
-    
-    .pricing-features li {
-      padding: 0.625rem 0;
-      border-bottom: 1px solid #f3f4f6;
-      display: flex;
-      align-items: flex-start;
-      font-size: 0.875rem;
-      color: #374151;
-      gap: 0.625rem;
-    }
-    
-    .pricing-features li:last-child {
-      border-bottom: none;
-    }
-    
-    .pricing-features li::before {
-      content: "✓";
-      color: #0B8073;
-      font-weight: 700;
-      font-size: 1rem;
-      flex-shrink: 0;
-      margin-top: 0.0625rem;
-    }
-    
-    .pricing-cta {
-      display: block;
-      width: 100%;
-      padding: 0.9375rem 1.5rem;
-      background: #0B8073;
-      color: white;
-      border: none;
-      border-radius: 10px;
-      font-size: 1rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.2s, transform 0.15s;
-      text-align: center;
-      text-decoration: none;
-      margin-top: 1.5rem;
-      letter-spacing: 0.1px;
-    }
-    
-    .pricing-cta:hover {
-      background: #0a6d61;
-      transform: translateY(-1px);
-    }
-
-    .pricing-cta:active {
-      transform: translateY(0);
-    }
-    
-    .pricing-cta.secondary {
-      background: white;
-      color: #0B8073;
-      border: 2px solid #0B8073;
-    }
-    
-    .pricing-cta.secondary:hover {
-      background: #f0fdf9;
-      border-color: #0a6d61;
-    }
-    
-    .trust-footer {
-      background: #f9fafb;
-      border-radius: 12px;
-      padding: 2.5rem;
-      margin: 3rem 0;
-    }
-    
-    .trust-footer h3 {
-      font-size: 1.5rem;
-      font-weight: 700;
-      color: #111827;
-      margin-bottom: 1.5rem;
-      text-align: center;
-    }
-    
-    .trust-footer ul {
-      list-style: none;
-      padding: 0;
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 1rem;
-    }
-    
-    .trust-footer li {
-      padding: 0.75rem 0;
-      display: flex;
-      align-items: center;
-      font-size: 1rem;
-      color: #374151;
-    }
-    
-    .trust-footer li::before {
-      content: "✓";
-      color: #0B8073;
-      font-weight: 700;
-      font-size: 1.25rem;
-      margin-right: 0.75rem;
-    }
-    
-    .faq-section {
-      max-width: 800px;
-      margin: 3rem auto;
-      padding: 0 1rem;
-    }
-    
-    .faq-section h2 {
-      font-size: 2rem;
-      font-weight: 700;
-      color: #111827;
-      text-align: center;
-      margin-bottom: 2rem;
-    }
-    
-    .faq-item {
-      background: white;
-      border-radius: 8px;
-      padding: 1.5rem;
-      margin-bottom: 1rem;
-      border: 1px solid #e5e7eb;
-    }
-    
-    .faq-question {
-      font-size: 1.125rem;
-      font-weight: 600;
-      color: #111827;
-      margin-bottom: 0.75rem;
-    }
-    
-    .faq-answer {
-      color: #6b7280;
-      line-height: 1.7;
-    }
-    
-    .testimonials {
-      background: #f9fafb;
-      padding: 3rem 1rem;
-      margin: 3rem 0;
-    }
-    
-    .testimonials h3 {
-      font-size: 1.5rem;
-      font-weight: 700;
-      text-align: center;
-      margin-bottom: 2rem;
-    }
-    
-    .testimonials-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 1.5rem;
-      max-width: 1000px;
-      margin: 0 auto;
-    }
-    
-    .testimonial {
-      background: white;
-      padding: 1.5rem;
-      border-radius: 8px;
-      border: 1px solid #e5e7eb;
-    }
-    
-    .testimonial-text {
-      color: #374151;
-      font-style: italic;
-      margin-bottom: 1rem;
-      line-height: 1.6;
-    }
-    
-    .testimonial-author {
-      font-weight: 600;
-      color: #111827;
-      font-size: 0.875rem;
-    }
-    
-    .pricing-comparison {
-      margin: 4rem 0 3rem;
-    }
-    
-    .pricing-comparison h2 {
-      font-size: 2rem;
-      font-weight: 700;
-      color: #111827;
-      text-align: center;
-      margin-bottom: 2.5rem;
-    }
-    
-    .comparison-table-wrapper {
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-    }
-    
-    .comparison-table {
-      width: 100%;
-      border-collapse: separate;
-      border-spacing: 0;
-      background: white;
-      min-width: 800px;
-    }
-    
-    .comparison-table thead {
-      position: sticky;
-      top: 0;
-      z-index: 10;
-      background: white;
-    }
-    
-    .comparison-table th {
-      background: #f9fafb;
-      padding: 1.5rem 1rem;
-      text-align: center;
-      font-weight: 700;
-      font-size: 1.125rem;
-      color: #111827;
-      border-bottom: 2px solid #e5e7eb;
-      position: relative;
-    }
-    
-    .comparison-table th:first-child {
-      text-align: left;
-      border-top-left-radius: 12px;
-      width: 35%;
-    }
-    
-    .comparison-table th:last-child {
-      border-top-right-radius: 12px;
-    }
-    
-    .comparison-table th.popular {
-      background: #0B8073;
-      color: white;
-    }
-    
-    .comparison-table .badge {
-      display: inline-block;
-      background: #fbbf24;
-      color: #78350f;
-      padding: 0.25rem 0.75rem;
-      border-radius: 12px;
-      font-size: 0.75rem;
-      font-weight: 700;
-      margin-left: 0.5rem;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    
-    .comparison-table tbody tr {
-      border-bottom: 1px solid #f3f4f6;
-    }
-    
-    .comparison-table tbody tr:last-child td:first-child {
-      border-bottom-left-radius: 12px;
-    }
-    
-    .comparison-table tbody tr:last-child td:last-child {
-      border-bottom-right-radius: 12px;
-    }
-    
-    .comparison-table tbody tr:hover {
-      background: #f9fafb;
-    }
-    
-    .comparison-table td {
-      padding: 1.25rem 1rem;
-      text-align: center;
-      font-size: 0.875rem;
-      color: #374151;
-      vertical-align: middle;
-    }
-    
-    .comparison-table td:first-child {
-      text-align: left;
-      font-weight: 500;
-      color: #111827;
-    }
-    
-    .comparison-table .popular-col {
-      background: #f0fdfa;
-    }
-    
-    .comparison-table .checkmark {
-      color: #0B8073;
-      font-size: 1.25rem;
-      font-weight: 700;
-    }
-    
-    .comparison-table .value {
-      font-weight: 600;
-      color: #0B8073;
-    }
-    
-    .comparison-table .na {
-      color: #d1d5db;
-      font-size: 1.25rem;
-    }
-    
-    .tooltip {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 18px;
-      height: 18px;
-      margin-left: 0.5rem;
-      background: #e5e7eb;
-      color: #6b7280;
-      border-radius: 50%;
-      font-size: 0.75rem;
-      font-weight: 700;
-      cursor: help;
-      position: relative;
-      vertical-align: middle;
-      transition: background 0.2s;
-    }
-    
-    .tooltip:hover {
-      background: #0B8073;
-      color: white;
-    }
-    
-    .tooltip:hover::after {
-      content: attr(data-tip);
-      position: absolute;
-      bottom: calc(100% + 8px);
-      left: 50%;
-      transform: translateX(-50%);
-      background: #1f2937;
-      color: white;
-      padding: 0.5rem 0.75rem;
-      border-radius: 6px;
-      font-size: 0.875rem;
-      font-weight: 400;
-      white-space: nowrap;
-      z-index: 100;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-    }
-    
-    .tooltip:hover::before {
-      content: '';
-      position: absolute;
-      bottom: calc(100% + 2px);
-      left: 50%;
-      transform: translateX(-50%);
-      border: 6px solid transparent;
-      border-top-color: #1f2937;
-      z-index: 100;
-    }
-    
-    .feature-category {
-      background: #f3f4f6;
-      font-weight: 700;
-      color: #111827;
-      text-transform: uppercase;
-      font-size: 0.75rem;
-      letter-spacing: 0.5px;
-      padding: 0.75rem 1rem !important;
-    }
-    
-    .feature-category td {
-      padding: 0.75rem 1rem;
-    }
-    
-    @media (max-width: 900px) {
-      .pricing-grid {
-        grid-template-columns: 1fr;
-        max-width: 480px;
-        margin-left: auto;
-        margin-right: auto;
-      }
-      .pricing-card.featured {
-        margin-top: 0.75rem;
-      }
-    }
-
-    @media (max-width: 768px) {
-      .pricing-hero {
-        padding: 3.5rem 1rem 3rem;
-      }
-      .pricing-hero h1 {
-        font-size: 2rem;
-      }
-      .pricing-container {
-        padding: 2rem 1rem;
-      }
-      .trust-footer ul {
-        grid-template-columns: 1fr;
-      }
-      
-      .pricing-comparison h2 {
-        font-size: 1.5rem;
-        margin-bottom: 1.5rem;
-      }
-      
-      .comparison-table-wrapper {
-        border-radius: 8px;
-        margin: 0 -1rem;
-      }
-      
-      .comparison-table {
-        min-width: 700px;
-      }
-      
-      .comparison-table th,
-      .comparison-table td {
-        padding: 0.875rem 0.75rem;
-        font-size: 0.875rem;
-      }
-      
-      .comparison-table th:first-child,
-      .comparison-table td:first-child {
-        width: 40%;
-        padding-left: 1rem;
-      }
-      
-      .tooltip:hover::after {
-        white-space: normal;
-        max-width: 200px;
-        text-align: center;
-        left: auto;
-        right: 0;
-        transform: translateX(0);
-      }
-    }
-
-    /* Customer notice banner (shown when a customer is logged in) */
-    .pricing-customer-notice-inner {
-      background: #eff6ff;
-      border: 1px solid #bfdbfe;
-      border-radius: 12px;
-      padding: 1.25rem 1.5rem;
-      margin-bottom: 1.5rem;
-      display: flex;
-      gap: 1rem;
-      align-items: flex-start;
-    }
-    .pricing-customer-notice-icon {
-      font-size: 1.5rem;
-      line-height: 1;
-      flex-shrink: 0;
-    }
-    .pricing-customer-notice-title {
-      font-weight: 600;
-      color: #1e40af;
-      margin: 0 0 0.25rem;
-    }
-    .pricing-customer-notice-body {
-      color: #1e3a8a;
-      margin: 0;
-      font-size: 0.875rem;
-    }
-  </style>
+  <link rel="stylesheet" href="/assets/css/navbar.css?v=18.3.0">
+  <link id="pricing-redesign-styles" rel="stylesheet" href="/assets/css/pricing-redesign.css?v=1.0.1">
   <link rel="stylesheet" href="/assets/css/animations.css?v=18.3.0">
   <link rel="stylesheet" href="/assets/css/mobile-optimizations.css?v=18.3.0">
   <link rel="stylesheet" href="/assets/css/ui-ux-fixes.css?v=18.3.0">
   <link rel="stylesheet" href="/assets/css/p3-features.css?v=18.3.0">
   <link rel="stylesheet" href="/assets/css/eventflow-footer.css">
-  <!-- Structured Data: PriceSpecification schema for pricing page -->
+  <link rel="stylesheet" href="/assets/css/public-mobile-compact.css">
+
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
+
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
     "@type": "ItemList",
     "name": "EventFlow Pricing Plans",
-    "description": "Choose the right plan for your events business. Join EventFlow and reach thousands of couples and event planners across the UK.",
     "url": "https://event-flow.co.uk/pricing",
     "itemListElement": [
       {
         "@type": "ListItem",
         "position": 1,
-        "item": {
-          "@type": "Offer",
-          "name": "Starter Plan",
-          "description": "Perfect for new suppliers getting started on EventFlow",
-          "price": "0",
-          "priceCurrency": "GBP",
-          "priceSpecification": {
-            "@type": "UnitPriceSpecification",
-            "billingDuration": "P1M",
-            "unitText": "month"
-          },
-          "seller": {
-            "@type": "Organization",
-            "name": "EventFlow"
-          }
-        }
+        "item": { "@type": "Offer", "name": "Starter", "price": "0", "priceCurrency": "GBP" }
       },
       {
         "@type": "ListItem",
         "position": 2,
-        "item": {
-          "@type": "Offer",
-          "name": "Pro Plan",
-          "description": "For growing businesses that want more visibility and leads",
-          "priceCurrency": "GBP",
-          "seller": {
-            "@type": "Organization",
-            "name": "EventFlow"
-          }
-        }
+        "item": { "@type": "Offer", "name": "Professional", "price": "19", "priceCurrency": "GBP" }
+      },
+      {
+        "@type": "ListItem",
+        "position": 3,
+        "item": { "@type": "Offer", "name": "Professional Plus", "price": "159", "priceCurrency": "GBP" }
       }
     ]
   }
   </script>
-    <link rel="stylesheet" href="/assets/css/public-mobile-compact.css" />
 </head>
-<body>
-<!-- TOP NAVBAR - GOLD STANDARD REBUILD -->
+<body class="pricing-redesign">
 <header class="ef-header" role="banner">
   <div class="ef-container">
     <div class="ef-header-content">
-      <!-- Brand Logo - Enhanced Animated -->
       <a href="/" class="ef-brand" aria-label="EventFlow - Return to homepage">
-        <div class="ef-logo" aria-hidden="true">
-          <div class="ef-logo-inner"></div>
-        </div>
+        <div class="ef-logo" aria-hidden="true"><div class="ef-logo-inner"></div></div>
         <span class="ef-brand-text">EventFlow</span>
       </a>
 
-      <!-- Desktop Navigation -->
       <nav class="ef-nav-desktop" aria-label="Main navigation">
         <a href="/start" class="ef-nav-link">Plan</a>
         <a href="/suppliers" class="ef-nav-link">Suppliers</a>
@@ -757,54 +83,26 @@
         <a href="/marketplace" class="ef-nav-link">Marketplace</a>
         <a href="/community" class="ef-nav-link">Community</a>
         <a href="/guides" class="ef-nav-link">Guides</a>
-        <a href="/pricing" class="ef-nav-link">Pricing</a>
+        <a href="/pricing" class="ef-nav-link" aria-current="page">Pricing</a>
       </nav>
 
-      <!-- Actions -->
       <div class="ef-header-actions">
-        <!-- Notification Bell (hidden by default, shown when logged in) -->
-        <button 
-          id="ef-notification-btn" 
-          class="ef-icon-btn" 
-          type="button" 
-          aria-label="View notifications"
-          style="display: none;"
-        >
-          <svg class="ef-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+        <button id="ef-notification-btn" class="ef-icon-btn" type="button" aria-label="View notifications" style="display: none;">
+          <svg class="ef-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
           </svg>
           <span id="ef-notification-badge" class="ef-badge" style="display: none;"></span>
         </button>
-
-        <!-- Auth Button (Desktop) -->
-        <a href="/auth" id="ef-auth-link" class="ef-btn ef-btn-primary">
-          Log in
-        </a>
-
-        <!-- Dashboard Link (Desktop, hidden by default) -->
-        <a href="#" id="ef-dashboard-link" class="ef-nav-link" style="display: none;">
-          Dashboard
-        </a>
-
-        <!-- Mobile Menu Toggle -->
-        <button 
-          id="ef-mobile-toggle" 
-          class="ef-mobile-toggle" 
-          type="button"
-          aria-label="Toggle menu"
-          aria-expanded="false"
-          aria-controls="ef-mobile-menu"
-        >
-          <span class="ef-toggle-line"></span>
-          <span class="ef-toggle-line"></span>
-          <span class="ef-toggle-line"></span>
+        <a href="/auth" id="ef-auth-link" class="ef-btn ef-btn-primary">Log in</a>
+        <a href="#" id="ef-dashboard-link" class="ef-nav-link" style="display: none;">Dashboard</a>
+        <button id="ef-mobile-toggle" class="ef-mobile-toggle" type="button" aria-label="Toggle menu" aria-expanded="false" aria-controls="ef-mobile-menu">
+          <span class="ef-toggle-line"></span><span class="ef-toggle-line"></span><span class="ef-toggle-line"></span>
         </button>
       </div>
     </div>
   </div>
 
-  <!-- Mobile Menu -->
   <div id="ef-mobile-menu" class="ef-mobile-menu" role="dialog" aria-modal="true" aria-label="Mobile navigation">
     <nav class="ef-mobile-nav" aria-label="Primary navigation">
       <a href="/start" class="ef-mobile-link">Plan an Event</a>
@@ -813,9 +111,7 @@
       <a href="/marketplace" class="ef-mobile-link">Marketplace</a>
       <a href="/community" class="ef-mobile-link">Community</a>
       <a href="/guides" class="ef-mobile-link">Guides</a>
-      <a href="/pricing" class="ef-mobile-link">Pricing</a>
-      <a href="/for-suppliers" class="ef-mobile-link">For Suppliers</a>
-      <a href="/faq" class="ef-mobile-link">FAQ</a>
+      <a href="/pricing" class="ef-mobile-link" aria-current="page">Pricing</a>
       <div class="ef-mobile-divider"></div>
       <a href="/auth" id="ef-mobile-auth" class="ef-mobile-link ef-mobile-primary">Log in</a>
       <a href="#" id="ef-mobile-dashboard" class="ef-mobile-link" style="display: none;">Dashboard</a>
@@ -824,593 +120,164 @@
   </div>
 </header>
 
-    <!-- Notification Dropdown (Pre-rendered, shown/hidden by JS) -->
-    <div id="notification-dropdown" class="notification-dropdown" hidden aria-hidden="true" style="display: none;">
-      <div class="notification-header">
-        <h3>Notifications</h3>
-        <button class="notification-mark-all" id="notification-mark-all-read" type="button">
-          Mark all as read
-        </button>
-      </div>
-      <div class="notification-list"></div>
-      <div class="notification-footer">
-        <a href="/notifications" class="notification-view-all">View all</a>
-      </div>
-    </div>
+<div id="notification-dropdown" class="notification-dropdown" hidden aria-hidden="true">
+  <div class="notification-header">
+    <h2>Notifications</h2>
+    <button class="notification-mark-all" id="notification-mark-all-read" type="button">Mark all as read</button>
+  </div>
+  <div class="notification-list"></div>
+  <div class="notification-footer"><a href="/notifications" class="notification-view-all">View all</a></div>
+</div>
 
-
-<!-- Load auth state manager first -->
-<!-- PHASE 2: Error boundary (must load before other components) -->
 <script src="/assets/js/utils/global-error-handler.js" defer></script>
 <script src="/assets/js/utils/sentry-browser-init.js" defer></script>
-
-<!-- PHASE 3: Core components -->
 <script src="/assets/js/components/LoadingSpinner.js" defer></script>
-
-<!-- PHASE 4: Feature-specific -->
 <script src="/assets/js/utils/auth-state.js" defer></script>
-<!-- Burger menu - simple standalone implementation -->
 <script src="/assets/js/burger-menu.js" defer></script>
 <script src="/assets/js/navbar.js" defer></script>
 <script src="/assets/js/notifications.js" defer></script>
-
 <script src="/assets/js/components.js" defer></script>
 <script src="/assets/js/pricing.js" defer></script>
 
 <main id="main-content">
-  <section class="pricing-hero">
+  <section class="pricing-hero" aria-labelledby="pricing-heading">
     <div class="container">
-      <h1>Simple, transparent pricing for every supplier</h1>
-      <p class="subtitle">No hidden fees. No commission on bookings. Cancel anytime.</p>
-      <div class="pricing-hero-badges">
-        <span class="pricing-hero-badge">✓ No setup fees</span>
-        <span class="pricing-hero-badge">✓ Cancel anytime</span>
-        <span class="pricing-hero-badge">✓ Secure payments via Stripe</span>
+      <p class="pricing-eyebrow">Pricing</p>
+      <h1 id="pricing-heading">Simple, transparent pricing</h1>
+      <p class="subtitle">Choose the plan that fits your business. Upgrade or downgrade at any time.</p>
+      <div class="pricing-billing-toggle" role="group" aria-label="Choose billing frequency">
+        <span id="pricing-monthly-label" class="pricing-billing-label">Billed monthly</span>
+        <button id="pricing-billing-switch" class="pricing-billing-switch is-annual" type="button" role="switch" aria-checked="true" aria-labelledby="pricing-monthly-label pricing-annual-label">
+          <span class="pricing-billing-switch-thumb" aria-hidden="true"></span>
+        </button>
+        <span id="pricing-annual-label" class="pricing-billing-label is-active">Billed annually</span>
+        <span class="pricing-billing-saving">Save up to 19%</span>
       </div>
     </div>
   </section>
 
   <div class="pricing-container">
-    <!-- Customer notice: injected by pricing.js when a customer is logged in -->
-    <div id="pricing-customer-notice" style="display:none;"></div>
+    <div id="pricing-customer-notice" style="display: none;"></div>
+
     <div class="pricing-grid" id="pricing-grid">
-      
-      <!-- FREE TIER -->
-      <div class="pricing-card">
-        <h2 class="pricing-name">Starter</h2>
-        <div class="pricing-price">£0 <span>/month</span></div>
-        <p class="pricing-description">Perfect for getting started on EventFlow</p>
-        
-        <ul class="pricing-features">
-          <li>Basic supplier profile</li>
-          <li>Up to 5 photos</li>
-          <li>Receive enquiries</li>
-          <li>Standard listing in search</li>
-          <li>Email support</li>
-        </ul>
-        
-        <a href="/checkout?plan=starter" class="pricing-cta secondary">Get Started for Free</a>
-      </div>
+      <article class="pricing-card">
+        <div class="pricing-card-content">
+          <div class="pricing-card-heading">
+            <h2 class="pricing-name">Starter</h2>
+            <p class="pricing-description">Perfect for getting started on EventFlow.</p>
+          </div>
+          <div class="pricing-price-row"><span class="pricing-price">£0</span><span class="pricing-period">/month</span></div>
+          <ul class="pricing-features"><li>Basic supplier profile</li><li>Receive enquiries</li><li>Email support</li></ul>
+          <a href="/checkout?plan=starter&amp;billingInterval=year" class="pricing-cta secondary">Get Started for Free</a>
+        </div>
+      </article>
 
-      <!-- PRO TIER -->
-      <div class="pricing-card featured">
-        <div class="pricing-early-access-label">Early Access Offer</div>
-        <h2 class="pricing-name">Professional</h2>
-        <div class="pricing-price">£19 <span>/month</span></div>
-        <p class="pricing-early-access-desc">Early access pricing while EventFlow is in development.</p>
-        <p class="pricing-normally">Normally £69 / month</p>
-        <p class="pricing-description">For serious suppliers who want to grow their business</p>
-        
-        <ul class="pricing-features">
-          <li>Everything in Free</li>
-          <li>Unlimited photos</li>
-          <li>Lead quality scoring (High/Medium/Low)</li>
-          <li>Priority placement in search results</li>
-          <li>Email & phone verification badges</li>
-          <li>Response time tracking</li>
-          <li>Profile analytics dashboard</li>
-          <li>Priority support</li>
-        </ul>
-        
-        <a href="/checkout?plan=pro" class="pricing-cta">Get Started — £19/month</a>
-        <p class="pricing-offer-terms">Offer ends 31 December 2026. After this date, standard pricing applies. Cancel anytime.</p>
-        <p class="pricing-smallprint">
-          <span class="pricing-info-icon" title="Early Access pricing is available for subscriptions started before 31 December 2026. Standard pricing will apply from 1 January 2027.">i</span>
-          <small>Early Access pricing is available for subscriptions started before 31 December 2026. Standard pricing will apply from 1 January 2027.</small>
-        </p>
-      </div>
+      <article class="pricing-card featured">
+        <div class="pricing-popular-ribbon">Most Popular</div>
+        <div class="pricing-card-content">
+          <span class="pricing-early-access-label">Early Access Offer</span>
+          <div class="pricing-card-heading">
+            <h2 class="pricing-name">Professional</h2>
+            <p class="pricing-description">For serious suppliers who want to grow their business.</p>
+          </div>
+          <div class="pricing-price-row"><span class="pricing-price">£16</span><span class="pricing-period">/month</span></div>
+          <p class="pricing-billed-line">£192 billed annually</p>
+          <ul class="pricing-features"><li>Everything in Free</li><li>Unlimited photos</li><li>Priority placement</li></ul>
+          <a href="/checkout?plan=pro&amp;billingInterval=year" class="pricing-cta">Get Started — £192/year</a>
+        </div>
+      </article>
 
-      <!-- PROFESSIONAL PLUS TIER -->
-      <div class="pricing-card">
-        <h2 class="pricing-name">Professional Plus</h2>
-        <div class="pricing-price">£159 <span>/month</span></div>
-        <p class="pricing-description">Maximum visibility and premium features</p>
-        
-        <ul class="pricing-features">
-          <li>Everything in Pro</li>
-          <li>Homepage featured placement</li>
-          <li>Top of category pages</li>
-          <li>Business verification badge</li>
-          <li>Dedicated onboarding call</li>
-          <li>Monthly performance review</li>
-          <li>Export analytics to CSV</li>
-          <li>VIP support</li>
-        </ul>
-        
-        <a href="/checkout?plan=pro_plus" class="pricing-cta">Get Professional Plus</a>
-      </div>
+      <article class="pricing-card">
+        <div class="pricing-card-content">
+          <div class="pricing-card-heading">
+            <h2 class="pricing-name">Professional Plus</h2>
+            <p class="pricing-description">Maximum visibility and premium features.</p>
+          </div>
+          <div class="pricing-price-row"><span class="pricing-price">£129</span><span class="pricing-period">/month</span></div>
+          <p class="pricing-billed-line">£1,548 billed annually</p>
+          <ul class="pricing-features"><li>Everything in Professional</li><li>Featured placement</li><li>VIP support</li></ul>
+          <a href="/checkout?plan=pro_plus&amp;billingInterval=year" class="pricing-cta">Get Professional Plus</a>
+        </div>
+      </article>
     </div>
 
-    <!-- Feature Comparison Table -->
-    <section class="pricing-comparison">
-      <h2>Compare All Features</h2>
+    <div id="pricing-security-note" class="pricing-security-note">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+        <path d="M12 3 5.5 6v5.2c0 4.4 2.7 7.8 6.5 9.8 3.8-2 6.5-5.4 6.5-9.8V6L12 3Z"></path>
+        <path d="m9.4 12 1.7 1.7 3.6-3.8"></path>
+      </svg>
+      <span>Secure payments. Cancel anytime.</span>
+    </div>
+
+    <section class="pricing-comparison" aria-labelledby="comparison-heading">
+      <div class="pricing-section-heading">
+        <p class="pricing-eyebrow">Compare plans</p>
+        <h2 id="comparison-heading">Everything you need to choose</h2>
+      </div>
       <div class="comparison-table-wrapper" tabindex="0" aria-label="Pricing plan feature comparison">
         <table class="comparison-table">
-          <thead>
-            <tr>
-              <th>Feature</th>
-              <th>Free</th>
-              <th class="popular">Pro <span class="badge">Popular</span></th>
-              <th>Enterprise</th>
-            </tr>
-          </thead>
+          <thead><tr><th>Feature</th><th>Starter</th><th class="popular">Professional</th><th>Professional Plus</th></tr></thead>
           <tbody>
-            <!-- Profile & Visibility -->
-            <tr class="feature-category">
-              <td colspan="4">Profile & Visibility</td>
-            </tr>
-            <tr>
-              <td>
-                Supplier Profile
-                <span class="tooltip" data-tip="Your business page on EventFlow">ⓘ</span>
-              </td>
-              <td><span class="checkmark">✓</span></td>
-              <td class="popular-col"><span class="checkmark">✓</span></td>
-              <td><span class="checkmark">✓</span></td>
-            </tr>
-            <tr>
-              <td>
-                Photo Gallery
-                <span class="tooltip" data-tip="Upload portfolio photos to showcase your work">ⓘ</span>
-              </td>
-              <td><span class="value">5 photos</span></td>
-              <td class="popular-col"><span class="value">Unlimited</span></td>
-              <td><span class="value">Unlimited</span></td>
-            </tr>
-            <tr>
-              <td>
-                Package Listings
-                <span class="tooltip" data-tip="Create service packages for customers">ⓘ</span>
-              </td>
-              <td><span class="value">1 package</span></td>
-              <td class="popular-col"><span class="value">Unlimited</span></td>
-              <td><span class="value">Unlimited</span></td>
-            </tr>
-            <tr>
-              <td>
-                Standard Listing
-                <span class="tooltip" data-tip="Appear in supplier search results">ⓘ</span>
-              </td>
-              <td><span class="checkmark">✓</span></td>
-              <td class="popular-col"><span class="checkmark">✓</span></td>
-              <td><span class="checkmark">✓</span></td>
-            </tr>
-            <tr>
-              <td>
-                Priority Search Placement
-                <span class="tooltip" data-tip="Appear higher in search results">ⓘ</span>
-              </td>
-              <td><span class="na">—</span></td>
-              <td class="popular-col"><span class="checkmark">✓</span></td>
-              <td><span class="checkmark">✓</span></td>
-            </tr>
-            <tr>
-              <td>
-                Homepage Featured Placement
-                <span class="tooltip" data-tip="Featured on EventFlow homepage">ⓘ</span>
-              </td>
-              <td><span class="na">—</span></td>
-              <td class="popular-col"><span class="na">—</span></td>
-              <td><span class="checkmark">✓</span></td>
-            </tr>
-            <tr>
-              <td>
-                Top of Category Pages
-                <span class="tooltip" data-tip="Featured at top of your category">ⓘ</span>
-              </td>
-              <td><span class="na">—</span></td>
-              <td class="popular-col"><span class="na">—</span></td>
-              <td><span class="checkmark">✓</span></td>
-            </tr>
-
-            <!-- Trust & Verification -->
-            <tr class="feature-category">
-              <td colspan="4">Trust & Verification</td>
-            </tr>
-            <tr>
-              <td>
-                Email Verification Badge
-                <span class="tooltip" data-tip="Show verified email on your profile">ⓘ</span>
-              </td>
-              <td><span class="na">—</span></td>
-              <td class="popular-col"><span class="checkmark">✓</span></td>
-              <td><span class="checkmark">✓</span></td>
-            </tr>
-            <tr>
-              <td>
-                Phone Verification Badge
-                <span class="tooltip" data-tip="Show verified phone number on your profile">ⓘ</span>
-              </td>
-              <td><span class="na">—</span></td>
-              <td class="popular-col"><span class="checkmark">✓</span></td>
-              <td><span class="checkmark">✓</span></td>
-            </tr>
-            <tr>
-              <td>
-                Business Verification Badge
-                <span class="tooltip" data-tip="Official business registration verified">ⓘ</span>
-              </td>
-              <td><span class="na">—</span></td>
-              <td class="popular-col"><span class="na">—</span></td>
-              <td><span class="checkmark">✓</span></td>
-            </tr>
-            <tr>
-              <td>
-                Response Time Display
-                <span class="tooltip" data-tip="Show average response time to customers">ⓘ</span>
-              </td>
-              <td><span class="na">—</span></td>
-              <td class="popular-col"><span class="checkmark">✓</span></td>
-              <td><span class="checkmark">✓</span></td>
-            </tr>
-
-            <!-- Lead Management -->
-            <tr class="feature-category">
-              <td colspan="4">Lead Management</td>
-            </tr>
-            <tr>
-              <td>
-                Receive Enquiries
-                <span class="tooltip" data-tip="Get enquiries from potential customers">ⓘ</span>
-              </td>
-              <td><span class="checkmark">✓</span></td>
-              <td class="popular-col"><span class="checkmark">✓</span></td>
-              <td><span class="checkmark">✓</span></td>
-            </tr>
-            <tr>
-              <td>
-                Lead Quality Scoring
-                <span class="tooltip" data-tip="AI-powered High/Medium/Low quality ratings">ⓘ</span>
-              </td>
-              <td><span class="na">—</span></td>
-              <td class="popular-col"><span class="checkmark">✓</span></td>
-              <td><span class="checkmark">✓</span></td>
-            </tr>
-            <tr>
-              <td>
-                Response Time Tracking
-                <span class="tooltip" data-tip="Track how quickly you respond to enquiries">ⓘ</span>
-              </td>
-              <td><span class="na">—</span></td>
-              <td class="popular-col"><span class="checkmark">✓</span></td>
-              <td><span class="checkmark">✓</span></td>
-            </tr>
-            <tr>
-              <td>
-                Email Notifications
-                <span class="tooltip" data-tip="Get notified of new enquiries via email">ⓘ</span>
-              </td>
-              <td><span class="checkmark">✓</span></td>
-              <td class="popular-col"><span class="checkmark">✓</span></td>
-              <td><span class="checkmark">✓</span></td>
-            </tr>
-
-            <!-- Analytics & Insights -->
-            <tr class="feature-category">
-              <td colspan="4">Analytics & Insights</td>
-            </tr>
-            <tr>
-              <td>
-                Profile Views
-                <span class="tooltip" data-tip="See how many people viewed your profile">ⓘ</span>
-              </td>
-              <td><span class="value">Last 7 days</span></td>
-              <td class="popular-col"><span class="value">Last 90 days</span></td>
-              <td><span class="value">All time</span></td>
-            </tr>
-            <tr>
-              <td>
-                Enquiry Analytics
-                <span class="tooltip" data-tip="Track enquiry trends and conversion rates">ⓘ</span>
-              </td>
-              <td><span class="na">—</span></td>
-              <td class="popular-col"><span class="checkmark">✓</span></td>
-              <td><span class="checkmark">✓</span></td>
-            </tr>
-            <tr>
-              <td>
-                Search Performance
-                <span class="tooltip" data-tip="See how you rank in search results">ⓘ</span>
-              </td>
-              <td><span class="na">—</span></td>
-              <td class="popular-col"><span class="checkmark">✓</span></td>
-              <td><span class="checkmark">✓</span></td>
-            </tr>
-            <tr>
-              <td>
-                Export Analytics (CSV)
-                <span class="tooltip" data-tip="Download your data for analysis">ⓘ</span>
-              </td>
-              <td><span class="na">—</span></td>
-              <td class="popular-col"><span class="na">—</span></td>
-              <td><span class="checkmark">✓</span></td>
-            </tr>
-            <tr>
-              <td>
-                Monthly Performance Review
-                <span class="tooltip" data-tip="Personalized monthly insights report">ⓘ</span>
-              </td>
-              <td><span class="na">—</span></td>
-              <td class="popular-col"><span class="na">—</span></td>
-              <td><span class="checkmark">✓</span></td>
-            </tr>
-
-            <!-- Support -->
-            <tr class="feature-category">
-              <td colspan="4">Support</td>
-            </tr>
-            <tr>
-              <td>
-                Email Support
-                <span class="tooltip" data-tip="Get help via email">ⓘ</span>
-              </td>
-              <td><span class="value">48h response</span></td>
-              <td class="popular-col"><span class="value">24h response</span></td>
-              <td><span class="value">12h response</span></td>
-            </tr>
-            <tr>
-              <td>
-                Priority Support
-                <span class="tooltip" data-tip="Jump the queue for faster help">ⓘ</span>
-              </td>
-              <td><span class="na">—</span></td>
-              <td class="popular-col"><span class="checkmark">✓</span></td>
-              <td><span class="checkmark">✓</span></td>
-            </tr>
-            <tr>
-              <td>
-                Dedicated Onboarding Call
-                <span class="tooltip" data-tip="One-on-one setup assistance">ⓘ</span>
-              </td>
-              <td><span class="na">—</span></td>
-              <td class="popular-col"><span class="na">—</span></td>
-              <td><span class="checkmark">✓</span></td>
-            </tr>
-            <tr>
-              <td>
-                VIP Account Manager
-                <span class="tooltip" data-tip="Dedicated contact for your account">ⓘ</span>
-              </td>
-              <td><span class="na">—</span></td>
-              <td class="popular-col"><span class="na">—</span></td>
-              <td><span class="checkmark">✓</span></td>
-            </tr>
-
-            <!-- Platform Features -->
-            <tr class="feature-category">
-              <td colspan="4">Platform Features</td>
-            </tr>
-            <tr>
-              <td>
-                No Commission on Bookings
-                <span class="tooltip" data-tip="Keep 100% of your booking revenue">ⓘ</span>
-              </td>
-              <td><span class="checkmark">✓</span></td>
-              <td class="popular-col"><span class="checkmark">✓</span></td>
-              <td><span class="checkmark">✓</span></td>
-            </tr>
-            <tr>
-              <td>
-                Monthly Billing
-                <span class="tooltip" data-tip="No annual contracts, pay monthly">ⓘ</span>
-              </td>
-              <td><span class="checkmark">✓</span></td>
-              <td class="popular-col"><span class="checkmark">✓</span></td>
-              <td><span class="checkmark">✓</span></td>
-            </tr>
-            <tr>
-              <td>
-                Cancel Anytime
-                <span class="tooltip" data-tip="No long-term commitment required">ⓘ</span>
-              </td>
-              <td><span class="checkmark">✓</span></td>
-              <td class="popular-col"><span class="checkmark">✓</span></td>
-              <td><span class="checkmark">✓</span></td>
-            </tr>
-            <tr>
-              <td>
-                Data Export
-                <span class="tooltip" data-tip="Export your data anytime">ⓘ</span>
-              </td>
-              <td><span class="checkmark">✓</span></td>
-              <td class="popular-col"><span class="checkmark">✓</span></td>
-              <td><span class="checkmark">✓</span></td>
-            </tr>
+            <tr><td>Supplier profile</td><td>Included</td><td class="popular-col">Included</td><td>Included</td></tr>
+            <tr><td>Photo uploads</td><td>Up to 5</td><td class="popular-col">Unlimited</td><td>Unlimited</td></tr>
+            <tr><td>Search placement</td><td>Standard</td><td class="popular-col">Priority</td><td>Top placement</td></tr>
+            <tr><td>Verification badges</td><td>—</td><td class="popular-col">Email &amp; phone</td><td>Business verified</td></tr>
+            <tr><td>Analytics</td><td>—</td><td class="popular-col">Dashboard</td><td>Dashboard &amp; export</td></tr>
+            <tr><td>Support</td><td>Email</td><td class="popular-col">Priority</td><td>VIP</td></tr>
           </tbody>
         </table>
       </div>
     </section>
 
-    <!-- Trust Footer -->
-    <div class="trust-footer">
-      <h3>Our Promise</h3>
-      <ul>
-        <li>Monthly billing - no annual lock-ins</li>
-        <li>Cancel anytime with one click</li>
-        <li>Your data stays yours forever</li>
-        <li>No commission on bookings</li>
-        <li>First month satisfaction guarantee</li>
-      </ul>
-    </div>
-  </div>
-
-  <!-- Testimonials -->
-  <section class="testimonials">
-    <div class="container">
-      <h3>Trusted by suppliers across the UK</h3>
-      <div class="testimonials-grid">
-        <div class="testimonial">
-          <p class="testimonial-text">"EventFlow has transformed how we receive enquiries. The lead quality scoring means we spend time on serious clients."</p>
-          <p class="testimonial-author">— Sarah M., Wedding Photographer, London</p>
-        </div>
-        <div class="testimonial">
-          <p class="testimonial-text">"Simple pricing, no surprises. We upgraded to Pro and saw enquiries double in the first month."</p>
-          <p class="testimonial-author">— James W., The Willow Barn Venue</p>
-        </div>
-        <div class="testimonial">
-          <p class="testimonial-text">"Unlike other platforms, EventFlow doesn't take a cut of our bookings. That makes a huge difference to our bottom line."</p>
-          <p class="testimonial-author">— Rachel T., Artisan Catering Co.</p>
-        </div>
+    <section class="pricing-promise" aria-labelledby="promise-heading">
+      <div>
+        <p class="pricing-eyebrow">Our promise</p>
+        <h2 id="promise-heading">Straightforward from day one</h2>
       </div>
-    </div>
-  </section>
+      <ul>
+        <li>No setup fees</li>
+        <li>No commission on bookings</li>
+        <li>Upgrade or cancel whenever you need</li>
+      </ul>
+    </section>
 
-  <!-- FAQ Section -->
-  <section class="faq-section">
-    <h2>Frequently Asked Questions</h2>
-    
-    <div class="faq-item">
-      <h3 class="faq-question">What happens to my data if I cancel?</h3>
-      <p class="faq-answer">Your data is always yours. If you cancel, you can export all your enquiries, messages, and analytics. Your profile will revert to the Free plan, so you can continue receiving enquiries at any time.</p>
-    </div>
-    
-    <div class="faq-item">
-      <h3 class="faq-question">Can I downgrade or upgrade mid-month?</h3>
-      <p class="faq-answer">Yes! You can upgrade at any time and the changes take effect immediately. If you downgrade, the change will take effect at the end of your current billing period, and you'll receive a prorated credit.</p>
-    </div>
-    
-    <div class="faq-item">
-      <h3 class="faq-question">Do you take a commission on bookings?</h3>
-      <p class="faq-answer">No, never. Unlike other platforms that take 10-20% commission, EventFlow charges a simple monthly fee. All booking revenue is 100% yours.</p>
-    </div>
-    
-    <div class="faq-item">
-      <h3 class="faq-question">How do lead quality scores work?</h3>
-      <p class="faq-answer">Our algorithm analyzes each enquiry based on completeness (budget, guest count, event date), legitimacy (verified contact details, realistic timeline), and engagement (time spent on your profile). Each enquiry is scored as High, Medium, or Low quality to help you prioritize your time.</p>
-    </div>
-    
-    <div class="faq-item">
-      <h3 class="faq-question">What is the Early Access price for Pro?</h3>
-      <p class="faq-answer">During our Early Access period, the Professional plan is available at £19/month (normally £69/month). This price applies to subscriptions started before 31 December 2026. Standard pricing of £69/month will apply from 1 January 2027. Cancel anytime — no long-term commitment required.</p>
-    </div>
-    
-    <div class="faq-item">
-      <h3 class="faq-question">How does the business verification work?</h3>
-      <p class="faq-answer">Business verification (Featured plan only) requires uploading proof of business registration, insurance, or VAT certificate. Our team reviews within 48 hours, and once approved, you'll receive a "Business Verified" badge on your profile, building trust with customers.</p>
-    </div>
-    
-    <div class="faq-item">
-      <h3 class="faq-question">Is there a setup fee or contract?</h3>
-      <p class="faq-answer">No setup fees, no contracts. Pay monthly and cancel anytime. We believe in earning your business every month by delivering value, not locking you into long-term agreements.</p>
-    </div>
-  </section>
-
-  <!-- Final CTA -->
-  <section class="pricing-empty-state">
-    <div class="container" style="max-width: 600px;">
-      <h2 class="pricing-empty-icon">Ready to grow your business?</h2>
-      <p class="pricing-empty-text">Join EventFlow today and start receiving quality enquiries from customers looking for your services.</p>
-      <a href="/checkout?plan=starter" class="cta pricing-empty-cta ef-cta" id="pricing-bottom-cta">Get Started for Free</a>
-    </div>
-  </section>
+    <section class="pricing-faq" aria-labelledby="faq-heading">
+      <div class="pricing-section-heading">
+        <p class="pricing-eyebrow">Questions</p>
+        <h2 id="faq-heading">Frequently asked questions</h2>
+      </div>
+      <details><summary>Do you take commission on bookings?</summary><p>No. EventFlow uses clear subscription pricing, so your booking revenue remains yours.</p></details>
+      <details><summary>Can I change plan later?</summary><p>Yes. You can upgrade or downgrade as your business changes.</p></details>
+      <details><summary>What happens if I cancel?</summary><p>Your account returns to the free plan at the end of the current paid period.</p></details>
+    </section>
+  </div>
 </main>
 
-<!-- BOTTOM NAVBAR - GOLD STANDARD REBUILD (Mobile Only) -->
 <nav class="ef-bottom-nav" role="navigation" aria-label="Mobile bottom navigation">
-  <a href="/start" class="ef-bottom-link" aria-label="Plan your event">
-    <svg class="ef-bottom-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-      <path d="M12 20h9"/>
-      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
-    </svg>
-    <span class="ef-bottom-label">Plan</span>
-  </a>
-  
-  <a href="/suppliers" class="ef-bottom-link" aria-label="Browse suppliers">
-    <svg class="ef-bottom-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-      <circle cx="11" cy="11" r="8"/>
-      <path d="m21 21-4.35-4.35"/>
-    </svg>
-    <span class="ef-bottom-label">Suppliers</span>
-  </a>
-  
-  <a href="/guides" class="ef-bottom-link" aria-label="View guides">
-    <svg class="ef-bottom-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-    </svg>
-    <span class="ef-bottom-label">Guides</span>
-  </a>
-  
-  <!-- Dashboard with notification badge (shown when logged in, replaces Alerts) -->
-  <a href="#" id="ef-bottom-dashboard" class="ef-bottom-link" style="display: none;" aria-label="Go to dashboard">
-    <svg class="ef-bottom-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-      <rect x="3" y="3" width="7" height="7" rx="1"/>
-      <rect x="14" y="3" width="7" height="7" rx="1"/>
-      <rect x="14" y="14" width="7" height="7" rx="1"/>
-      <rect x="3" y="14" width="7" height="7" rx="1"/>
-    </svg>
-    <span class="ef-bottom-label">Dashboard</span>
-    <span id="ef-bottom-dashboard-badge" class="ef-badge" style="display: none;"></span>
-  </a>
-  
-  <!-- Alerts button (shown when logged out) -->
-  <a href="/guides" id="ef-bottom-alerts" class="ef-bottom-link" aria-label="View guides and alerts">
-    <svg class="ef-bottom-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-      <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-    </svg>
-    <span class="ef-bottom-label">Alerts</span>
-  </a>
-  
-  <button 
-    id="ef-bottom-menu" 
-    class="ef-cta ef-bottom-link" 
-    type="button"
-    aria-label="Open menu"
-    aria-expanded="false"
-    aria-controls="ef-mobile-menu"
-  >
-    <svg class="ef-bottom-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-      <line x1="3" y1="12" x2="21" y2="12"/>
-      <line x1="3" y1="6" x2="21" y2="6"/>
-      <line x1="3" y1="18" x2="21" y2="18"/>
-    </svg>
-  </button>
+  <a href="/start" class="ef-bottom-link" aria-label="Plan your event"><span class="ef-bottom-label">Plan</span></a>
+  <a href="/suppliers" class="ef-bottom-link" aria-label="Browse suppliers"><span class="ef-bottom-label">Suppliers</span></a>
+  <a href="/guides" class="ef-bottom-link" aria-label="View guides"><span class="ef-bottom-label">Guides</span></a>
+  <a href="#" id="ef-bottom-dashboard" class="ef-bottom-link" style="display: none;" aria-label="Go to dashboard"><span class="ef-bottom-label">Dashboard</span></a>
+  <a href="/guides" id="ef-bottom-alerts" class="ef-bottom-link" aria-label="View guides and alerts"><span class="ef-bottom-label">Alerts</span></a>
+  <button id="ef-bottom-menu" class="ef-cta ef-bottom-link" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="ef-mobile-menu"><span class="ef-bottom-label">Menu</span></button>
 </nav>
-
 
 <footer class="footer" role="contentinfo">
   <div class="container ef-footer-content">
-    <div>
-      <strong>EventFlow</strong><br /><span class="small">Event planning made simple.</span>
-    </div>
+    <div><strong>EventFlow</strong><br><span class="small">Event planning made simple.</span></div>
     <div class="version" id="ef-version-wrap" hidden aria-hidden="true">v<span id="ef-version-label"></span></div>
     <div class="small">
-      <a href="/community">Community</a> · <a href="/guides">Guides</a> · <a href="/marketplace">Marketplace</a> · <a href="/credits">Credits</a> ·
-      <a href="/contact">Contact</a> ·
-      <a href="/legal">Legal Hub</a> ·
+      <a href="/community">Community</a> · <a href="/guides">Guides</a> · <a href="/marketplace">Marketplace</a> ·
+      <a href="/contact">Contact</a> · <a href="/legal">Legal Hub</a> ·
       <button type="button" data-cookie-prefs>Cookie preferences</button>
     </div>
     <div class="footer-credit small">Operated by <a href="https://vexi.co.uk" target="_blank" rel="noopener noreferrer">VEXI</a></div>
   </div>
-  </footer>
+</footer>
 
 <script src="/assets/js/app.js" defer></script>
-
 <script src="/assets/js/billing-toggle.js" defer></script>
 <script src="/assets/js/keyboard-shortcuts.js" defer></script>
-
-<!-- JadeAssist Chat Widget -->
 <script src="/assets/js/vendor/jade-widget.js" defer></script>
 <script src="/assets/js/jadeassist-init.v2.js" defer></script>
 <script src="/assets/js/cookie-consent.js?v=2.0.0" defer></script>
