@@ -52,9 +52,16 @@
       return;
     }
     if (viewer.restriction) {
+      // The API already returns expiresAt. Telling someone they are restricted
+      // without saying until when reads as permanent, and is the first thing
+      // they would otherwise have to appeal to find out.
+      const until = viewer.restriction.expiresAt
+        ? `<p class="efc-meta">This lifts on ${EFC.esc(EFC.shortDate(viewer.restriction.expiresAt))}.</p>`
+        : '<p class="efc-meta">This restriction does not expire on its own.</p>';
       root.innerHTML = `<div class="efc-notice efc-notice--danger" role="alert">
         <h1>Posting is currently restricted</h1>
         <p>${EFC.esc(viewer.restriction.reason || 'A moderator has restricted your community access.')}</p>
+        ${until}
         <p><a href="/community/help#appeals">Appeal this decision</a></p>
       </div>`;
       return;

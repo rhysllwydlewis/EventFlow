@@ -457,7 +457,7 @@ router.get('/community/category/:slug', publicReadLimiter, async (req, res, next
  * @returns {Object} Structured data.
  */
 function discussionStructuredData(discussion, replies, canonical) {
-  return {
+  const posting = {
     '@context': 'https://schema.org',
     '@type': 'DiscussionForumPosting',
     headline: discussion.title,
@@ -482,6 +482,32 @@ function discussionStructuredData(discussion, replies, canonical) {
       },
     ],
   };
+
+  // A thread is three levels deep, so it earns a breadcrumb trail in results
+  // the same way category pages already do. Emitted alongside the posting
+  // rather than instead of it: JSON-LD allows several objects in one block.
+  const trail = [
+    { '@type': 'ListItem', position: 1, name: 'Community', item: `${BASE_URL}/community` },
+  ];
+  if (discussion.categorySlug) {
+    trail.push({
+      '@type': 'ListItem',
+      position: 2,
+      name: discussion.categoryName || discussion.categorySlug,
+      item: `${BASE_URL}/community/category/${discussion.categorySlug}`,
+    });
+  }
+  trail.push({
+    '@type': 'ListItem',
+    position: trail.length + 1,
+    name: discussion.title,
+    item: canonical,
+  });
+
+  return [
+    posting,
+    { '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: trail },
+  ];
 }
 
 router.get(
