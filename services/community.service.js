@@ -56,19 +56,45 @@ function createRecordId(prefix) {
 }
 
 /**
+ * Trim leading and trailing '-' characters from a string.
+ *
+ * CodeQL flags `.replace(/^-+|-+$/g, '')` (and the trailing-only variant
+ * below) as a possible polynomial regular expression on strings with many
+ * repetitions of '-'. Measured directly in this runtime both are linear —
+ * 5-8ms at 5,000,000 characters — so the alert does not describe an
+ * exploitable behaviour here. Rewritten anyway: a direct character scan
+ * carries no ambiguity for a static analyser to flag, and needs no
+ * re-verification if the engine ever changes.
+ * @param {string} value Candidate string.
+ * @returns {string} Value with leading/trailing '-' removed.
+ */
+function trimHyphens(value) {
+  let start = 0;
+  let end = value.length;
+  while (start < end && value.charAt(start) === '-') {
+    start += 1;
+  }
+  while (end > start && value.charAt(end - 1) === '-') {
+    end -= 1;
+  }
+  return value.slice(start, end);
+}
+
+/**
  * Build a readable URL slug from arbitrary text.
  * @param {string} input Source text.
  * @param {number} [maxLength] Maximum slug length.
  * @returns {string} Slug, or 'discussion' when nothing usable remains.
  */
 function slugify(input, maxLength = 80) {
-  const slug = stripHtml(String(input || ''))
-    .toLowerCase()
-    .replace(/['’]/g, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, maxLength)
-    .replace(/-+$/g, '');
+  const slug = trimHyphens(
+    trimHyphens(
+      stripHtml(String(input || ''))
+        .toLowerCase()
+        .replace(/['’]/g, '')
+        .replace(/[^a-z0-9]+/g, '-')
+    ).slice(0, maxLength)
+  );
   return slug || 'discussion';
 }
 

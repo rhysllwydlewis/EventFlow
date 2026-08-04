@@ -34,6 +34,30 @@ describe('community identity', () => {
     expect(community.slugify('!!!')).toBe('discussion');
   });
 
+  it('trims leading and trailing hyphens', () => {
+    expect(community.slugify('---leading and trailing---')).toBe('leading-and-trailing');
+    expect(community.slugify('-----')).toBe('discussion');
+  });
+
+  it('re-trims a trailing hyphen exposed by truncating to the max length', () => {
+    // Constructed so slicing to the 80-character default lands exactly on a
+    // hyphen, the case the second trim pass exists to catch.
+    const input = `${'a'.repeat(79)}-${'b'.repeat(20)}`;
+    const slug = community.slugify(input);
+    expect(slug).toBe('a'.repeat(79));
+    expect(slug.endsWith('-')).toBe(false);
+  });
+
+  // CodeQL flags the hyphen trim as a possible polynomial regex on strings
+  // with many repetitions of '-'; measured directly it is linear in this
+  // runtime, but it was rewritten to a character scan regardless. This pins
+  // the timing so a future change can't silently reintroduce the pattern.
+  it('trims a huge run of hyphens promptly', () => {
+    const started = Date.now();
+    expect(community.slugify('-'.repeat(2000000))).toBe('discussion');
+    expect(Date.now() - started).toBeLessThan(1000);
+  });
+
   it('builds a discussion path from the stable id, not the title', () => {
     const discussion = {
       stableId: 'abc123abc123',

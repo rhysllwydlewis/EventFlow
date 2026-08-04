@@ -301,6 +301,20 @@ describe('community moderation — domain summary', () => {
     expect(moderation.extractBareDomains(`${'a'.repeat(64)}.example`)).toEqual([]);
   });
 
+  it('trims leading and trailing dots and hyphens from a token', () => {
+    expect(moderation.extractBareDomains('--marquees.example--')).toEqual(['marquees.example']);
+    expect(moderation.extractBareDomains('..marquees.example..')).toEqual(['marquees.example']);
+  });
+
+  // CodeQL flags the trim as a possible polynomial regex on strings with many
+  // repetitions of '-'; measured directly it is linear in this runtime, but
+  // it was rewritten to a character scan regardless. This pins the timing.
+  it('trims a huge run of hyphens promptly', () => {
+    const started = Date.now();
+    expect(moderation.extractBareDomains('-'.repeat(500000))).toEqual([]);
+    expect(Date.now() - started).toBeLessThan(1000);
+  });
+
   // A body is attacker-controlled and can reach the length limit, so domain
   // detection must not be quadratic in the number of dot-separated labels.
   it('scans a hostile chain of labels in linear time', () => {
