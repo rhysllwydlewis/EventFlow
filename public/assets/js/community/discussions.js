@@ -75,8 +75,10 @@
     const categories = [{ key: '', label: 'All categories' }].concat(
       (meta.categories || []).map(item => ({ key: item.slug, label: item.name }))
     );
-    const eventTypes = [{ key: '', label: 'All event types' }].concat(meta.eventTypes);
-    const regions = [{ key: '', label: 'All of the UK' }].concat(meta.regions);
+    // The taxonomy is remote, so the panel is built from whatever actually
+    // arrived rather than assuming the shape of a payload it has not seen.
+    const eventTypes = [{ key: '', label: 'All event types' }].concat(meta.eventTypes || []);
+    const regions = [{ key: '', label: 'All of the UK' }].concat(meta.regions || []);
     const answers = [
       { key: 'all', label: 'Any' },
       { key: 'solved', label: 'Solved' },
@@ -319,6 +321,13 @@
     if (panel) {
       panel.innerHTML = filters();
       wireFilters();
+    }
+    // Put the query back in the box. Arriving from a link or a shared URL, a
+    // reader could see "2 results for marquee" above an empty search field and
+    // had to retype the term before they could narrow it.
+    const searchInput = document.getElementById('efc-search-input');
+    if (searchInput && state.q) {
+      searchInput.value = state.q;
     }
     await load();
   }

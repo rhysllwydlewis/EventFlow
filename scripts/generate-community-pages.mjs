@@ -126,8 +126,8 @@ ${mobileNav}
       </div>
     </header>
 
-${page.hero || ''}
     <main id="main-content">
+${page.hero || ''}
       <div class="efc-shell">
         <!-- Server-rendered content. Real, indexable HTML that works without
              JavaScript; the client scripts hide it once they have data. -->
@@ -187,8 +187,13 @@ const homeHero = hero(
 // The filter panel and its mobile toggle are rendered together by
 // community/discussions.js, so aria-controls never points at an element that
 // has not been created yet.
+// Each result is an h3, so the list needs an h2 above it or a screen-reader
+// user jumping by heading falls from the page title straight to a card.
 const listBody = `        <div id="efc-filters-slot" class="efc-section"></div>
-        <div id="efc-results" class="efc-section"></div>`;
+        <section class="efc-section" aria-labelledby="efc-results-heading">
+          <h2 id="efc-results-heading" class="efc-sr-only">Discussions</h2>
+          <div id="efc-results"></div>
+        </section>`;
 
 const pages = [
   {

@@ -70,7 +70,14 @@
         action: { href: '/community/discussions', label: 'Browse all discussions' },
       },
     };
-    return EFC.discussionList(data[activeTab] || [], empties[activeTab] || {});
+    // A featured discussion is already shown above at full width. Repeating it
+    // as the first row of the feed made the page look like it was stuttering.
+    // On a young community it may be the only thing there is, so de-duplicating
+    // never empties the feed.
+    const feed = data[activeTab] || [];
+    const featuredIds = new Set((data.featured || []).map(item => item.stableId));
+    const deduped = feed.filter(item => !featuredIds.has(item.stableId));
+    return EFC.discussionList(deduped.length ? deduped : feed, empties[activeTab] || {});
   }
 
   /**

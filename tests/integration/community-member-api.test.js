@@ -347,9 +347,25 @@ describe('the member’s own state', () => {
     expect(res.body.restriction.appealable).toBe(true);
   });
 
-  it('requires authentication', async () => {
+  // Every community page asks who is looking at it. Refusing an anonymous
+  // visitor made an ordinary logged-out visit produce a console error and a
+  // wasted round trip, so the endpoint reports the absence of a member instead.
+  it('tells an anonymous visitor that nobody is signed in', async () => {
     const res = await request(app).get('/api/v1/community/me');
-    expect(res.status).toBe(401);
+    expect(res.status).toBe(200);
+    expect(res.body.authenticated).toBe(false);
+  });
+
+  it('leaks no member state to an anonymous visitor', async () => {
+    const res = await request(app).get('/api/v1/community/me');
+    expect(Object.keys(res.body)).toEqual(['authenticated']);
+  });
+
+  it('marks a signed-in member as authenticated', async () => {
+    const res = await request(app).get('/api/v1/community/me').set('Cookie', cookie(member));
+    expect(res.status).toBe(200);
+    expect(res.body.authenticated).toBe(true);
+    expect(res.body.handle).toBeTruthy();
   });
 
   it('records the adult declaration', async () => {

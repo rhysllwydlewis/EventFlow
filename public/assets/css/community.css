@@ -175,6 +175,26 @@
   border-radius: var(--efc-radius);
   box-shadow: var(--efc-shadow);
   padding: 1rem 1.125rem;
+  /* Avatar beside the text: a column of faces gives the eye something to track
+     down a long list, which a wall of same-weight paragraphs does not. */
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.875rem;
+  align-items: start;
+}
+
+.efc-discussion__main {
+  min-width: 0;
+}
+
+/* An unanswered question is the one a reader can most usefully act on. */
+.efc-discussion--unanswered {
+  border-left: 3px solid var(--efc-accent);
+}
+
+.efc-discussion__cue {
+  color: var(--efc-accent);
+  font-weight: 600;
 }
 
 .efc-discussion__title {
@@ -198,6 +218,19 @@
   margin: 0 0 0.625rem;
   color: var(--efc-muted);
   font-size: 1rem;
+  /* Two lines, so cards keep a predictable rhythm however long the opening
+     post is. The full text is one click away and is never the only copy. */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+
+/* Counts sit on their own line so they stay together when the taxonomy above
+   them wraps, instead of leaving "Active 5 days ago" stranded by itself. */
+.efc-meta--stats {
+  margin-top: 0.25rem;
 }
 
 .efc-meta {
@@ -343,12 +376,18 @@
   flex-wrap: wrap;
 }
 
-.efc-filters-toggle {
+/* The toggle only exists to collapse the panel where there is no room for it.
+   It also carries .efc-action, which is declared later in this file and sets
+   `display: inline-flex`; at equal specificity that rule won, so the button
+   appeared on desktop above an already-open panel. Doubling the class keeps the
+   intent — hidden unless the viewport is narrow — independent of source order. */
+.efc-filters-toggle.efc-filters-toggle {
   display: none;
+  margin-bottom: 0.5rem;
 }
 
 @media (max-width: 767px) {
-  .efc-filters-toggle {
+  .efc-filters-toggle.efc-filters-toggle {
     display: inline-flex;
   }
   .efc-filters[hidden] {
@@ -413,6 +452,35 @@
   font-style: italic;
 }
 
+/* Arriving from a permalink, the reply you were sent to is marked so you can
+   see which one it was without counting down the page. */
+.efc-post--linked,
+.efc-post:target {
+  outline: 3px solid var(--efc-accent);
+  outline-offset: 2px;
+}
+
+.efc-permalink {
+  color: inherit;
+  text-decoration: none;
+}
+
+.efc-permalink:hover,
+.efc-permalink:focus-visible {
+  text-decoration: underline;
+}
+
+/* ── Thread status ─────────────────────────────────────────────────────── */
+
+.efc-thread-status {
+  margin: 0 0 1rem;
+  gap: 0.5rem 0.75rem;
+}
+
+.efc-jump {
+  font-weight: 600;
+}
+
 .efc-post__head {
   display: flex;
   gap: 0.75rem;
@@ -427,6 +495,21 @@
   object-fit: cover;
   background: var(--efc-accent-soft);
   flex: 0 0 auto;
+}
+
+/* Most members have no photo. An initial identifies them; a repeated grey
+   silhouette does not. The hue is derived from the handle and carries no
+   meaning, so nothing is lost when colour is unavailable. */
+.efc-avatar--initial {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1;
+  color: hsl(var(--efc-avatar-hue, 174) 45% 26%);
+  background: hsl(var(--efc-avatar-hue, 174) 58% 92%);
+  user-select: none;
 }
 
 .efc-post__body {

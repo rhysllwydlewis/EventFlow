@@ -47,6 +47,39 @@
   }
 
   /**
+   * Render the thread's status badges and, when there is one, a link straight
+   * to the answer.
+   *
+   * A card in a listing says "Solved" before you open it; before this the
+   * thread itself said so only in a sidebar list, and a reader arriving on a
+   * long solved thread had to scroll to find out which reply was the answer.
+   * @returns {string} HTML.
+   */
+  function renderThreadStatus() {
+    const d = payload.discussion;
+    const answer = (payload.replies || []).find(reply => reply.isHelpfulAnswer);
+    const official = (payload.replies || []).find(reply => reply.isOfficialAnswer);
+    const badges = [
+      d.solved ? '<span class="efc-badge efc-badge--solved">Solved</span>' : '',
+      official ? '<span class="efc-badge efc-badge--official">Official answer</span>' : '',
+      d.pinned ? '<span class="efc-badge">Pinned</span>' : '',
+      d.locked ? '<span class="efc-badge">Locked</span>' : '',
+    ].filter(Boolean);
+
+    const jumpTo = answer || official;
+    const jump = jumpTo
+      ? `<a class="efc-jump" href="#reply-${EFC.esc(jumpTo.id)}">Jump to the ${
+          answer ? 'helpful' : 'official'
+        } answer</a>`
+      : '';
+
+    if (!badges.length && !jump) {
+      return '';
+    }
+    return `<p class="efc-meta efc-thread-status">${badges.join(' ')}${jump}</p>`;
+  }
+
+  /**
    * Render the original post.
    * @returns {string} HTML.
    */
@@ -84,9 +117,7 @@
 
     return `<article class="efc-post" aria-labelledby="efc-thread-title">
       <div class="efc-post__head">
-        <img class="efc-avatar" src="${EFC.esc(
-          d.author.avatarUrl || '/assets/images/default-avatar.svg'
-        )}" alt="" width="40" height="40" loading="lazy" />
+        ${EFC.avatar(d.author, 40)}
         <div>
           <p class="efc-meta">
             <a href="/community/member/${EFC.esc(d.author.handle)}">${EFC.esc(
@@ -218,18 +249,18 @@
 
     return `<article class="${classes.join(' ')}" id="reply-${EFC.esc(reply.id)}">
       <div class="efc-post__head">
-        <img class="efc-avatar" src="${EFC.esc(
-          reply.author.avatarUrl || '/assets/images/default-avatar.svg'
-        )}" alt="" width="40" height="40" loading="lazy" />
+        ${EFC.avatar(reply.author, 40)}
         <div>
           <p class="efc-meta">
             <a href="/community/member/${EFC.esc(reply.author.handle)}">${EFC.esc(
               reply.author.displayName
             )}</a> ${EFC.authorBadges(reply.author)}
           </p>
-          <p class="efc-meta">${EFC.esc(EFC.shortDate(reply.createdAt))}${
-            reply.edited ? ` · edited ${EFC.esc(EFC.timeAgo(reply.editedAt))}` : ''
-          }</p>
+          <p class="efc-meta">
+            <a class="efc-permalink" href="#reply-${EFC.esc(reply.id)}">${EFC.esc(
+              EFC.shortDate(reply.createdAt)
+            )}</a>${reply.edited ? ` · edited ${EFC.esc(EFC.timeAgo(reply.editedAt))}` : ''}
+          </p>
         </div>
       </div>
       ${flags ? `<p class="efc-meta">${flags}</p>` : ''}
@@ -339,6 +370,7 @@
         <a href="/community/category/${EFC.esc(d.category.slug)}">${EFC.esc(d.category.name)}</a>
       </nav>
       <h1 id="efc-thread-title">${EFC.esc(d.title)}</h1>
+      ${renderThreadStatus()}
       ${freshnessNotice()}
       <div class="efc-grid efc-grid--sidebar">
         <div>
@@ -382,6 +414,29 @@
       ${reportDialog()}
     `;
     wire();
+    revealLinkedReply();
+  }
+
+  /**
+   * Bring a linked reply into view once the thread has rendered.
+   *
+   * Replies arrive from the API, so the browser resolves `#reply-…` against a
+   * document that does not contain it yet and a shared link lands at the top of
+   * the thread. Doing it here means a permalink works the way a reader expects.
+   * @returns {void} Nothing.
+   */
+  function revealLinkedReply() {
+    const hash = window.location.hash;
+    if (!hash.startsWith('#reply-')) {
+      return;
+    }
+    const target = document.getElementById(hash.slice(1));
+    if (!target) {
+      return;
+    }
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    target.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
+    target.classList.add('efc-post--linked');
   }
 
   /**

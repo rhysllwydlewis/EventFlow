@@ -85,15 +85,26 @@
 
     const response = await fetch(path.startsWith('/') ? path : `${API}/${path}`, init);
     let data = {};
+    let parsed = true;
     try {
       data = await response.json();
     } catch (_) {
       data = {};
+      parsed = false;
     }
     if (!response.ok) {
       const error = new Error(data.message || data.error || 'Something went wrong.');
       error.status = response.status;
       error.data = data;
+      throw error;
+    }
+    // A proxy interstitial, a maintenance page or an SPA fallback answers 200
+    // with HTML. Returning an empty object here read as a successful but empty
+    // payload, and callers then walked properties that were never there, so the
+    // whole view threw instead of showing its error state.
+    if (!parsed) {
+      const error = new Error('The community is unavailable right now. Please try again.');
+      error.status = response.status;
       throw error;
     }
     return data;
@@ -173,6 +184,32 @@
   }
 
   /**
+   * Render a member's avatar, falling back to their initial.
+   *
+   * Most members have no photo, and a page of identical grey silhouettes gives
+   * a reader nothing to navigate by. The initial is tinted deterministically
+   * from the handle, so the same person looks the same everywhere without the
+   * colour carrying any meaning of its own.
+   * @param {Object} author Public author card.
+   * @param {number} [size] Pixel size of the square avatar.
+   * @returns {string} HTML.
+   */
+  function avatar(author, size = 40) {
+    const person = author || {};
+    if (person.avatarUrl) {
+      return `<img class="efc-avatar" src="${esc(person.avatarUrl)}" alt="" width="${size}" height="${size}" loading="lazy" />`;
+    }
+    const name = String(person.displayName || person.handle || '?').trim();
+    const initial = name ? name.charAt(0).toUpperCase() : '?';
+    const seed = String(person.handle || name);
+    let hash = 0;
+    for (let index = 0; index < seed.length; index += 1) {
+      hash = (hash * 31 + seed.charCodeAt(index)) % 360;
+    }
+    return `<span class="efc-avatar efc-avatar--initial" style="--efc-avatar-hue:${hash}" aria-hidden="true">${esc(initial)}</span>`;
+  }
+
+  /**
    * Render one discussion card.
    * @param {Object} card Discussion card from the API.
    * @returns {string} HTML list item.
@@ -199,17 +236,29 @@
       card.regionLabel ? esc(card.regionLabel) : '',
     ].filter(Boolean);
 
-    return `<li class="efc-discussion">
-      <h3 class="efc-discussion__title"><a href="${esc(card.url)}">${esc(card.title)}</a></h3>
-      ${flags ? `<p class="efc-meta">${flags}</p>` : ''}
-      <p class="efc-discussion__excerpt">${esc(card.excerpt)}</p>
-      <p class="efc-meta">
-        <span>${esc(card.author.displayName)}</span>
-        ${context.map(item => `<span class="efc-meta__dot">${item}</span>`).join('')}
-        <span class="efc-meta__dot">${card.replyCount} ${card.replyCount === 1 ? 'reply' : 'replies'}</span>
-        <span class="efc-meta__dot">${card.uniqueViews} views</span>
-        <span class="efc-meta__dot">Active ${esc(timeAgo(card.lastActivityAt))}</span>
-      </p>
+    // A thread nobody has answered is the one a reader can most usefully act
+    // on, so it says so in words rather than leaving "0 replies" to be decoded.
+    const unanswered = !card.replyCount;
+    const replies = unanswered
+      ? '<span class="efc-discussion__cue">No replies yet</span>'
+      : `${card.replyCount} ${card.replyCount === 1 ? 'reply' : 'replies'}`;
+
+    return `<li class="efc-discussion${unanswered ? ' efc-discussion--unanswered' : ''}">
+      ${avatar(card.author, 40)}
+      <div class="efc-discussion__main">
+        <h3 class="efc-discussion__title"><a href="${esc(card.url)}">${esc(card.title)}</a></h3>
+        ${flags ? `<p class="efc-meta">${flags}</p>` : ''}
+        <p class="efc-discussion__excerpt">${esc(card.excerpt)}</p>
+        <p class="efc-meta">
+          <span>${esc(card.author.displayName)}</span>
+          ${context.map(item => `<span class="efc-meta__dot">${item}</span>`).join('')}
+        </p>
+        <p class="efc-meta efc-meta--stats">
+          <span>${replies}</span>
+          <span class="efc-meta__dot">${card.uniqueViews} views</span>
+          <span class="efc-meta__dot">Active ${esc(timeAgo(card.lastActivityAt))}</span>
+        </p>
+      </div>
     </li>`;
   }
 
@@ -380,7 +429,10 @@
    */
   async function me() {
     try {
-      return await api('me');
+      const viewer = await api('me');
+      // The endpoint answers anonymously rather than with 401, so an explicit
+      // `authenticated: false` is the logged-out signal callers expect as null.
+      return viewer && viewer.authenticated === false ? null : viewer;
     } catch (_) {
       return null;
     }
@@ -395,6 +447,7 @@
     timeAgo,
     shortDate,
     authorBadges,
+    avatar,
     discussionCard,
     discussionList,
     emptyState,

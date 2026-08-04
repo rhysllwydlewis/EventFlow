@@ -370,14 +370,22 @@ router.get('/members/:handle', publicReadLimiter, requireCommunityEnabled, async
  * The signed-in member's community state: handle, level, trust tier, any
  * restriction and their notification preferences.
  */
-router.get('/me', publicReadLimiter, requireCommunityEnabled, authRequired, async (req, res) => {
+router.get('/me', publicReadLimiter, requireCommunityEnabled, async (req, res) => {
   try {
+    // "Who is looking at this page?" is a public question, and every community
+    // page asks it on load. Answering a logged-out visitor with 401 turned an
+    // ordinary anonymous visit into a console error and a wasted round trip, so
+    // the endpoint reports the absence of a member rather than refusing.
+    if (!req.user || !req.user.id) {
+      return res.json({ authenticated: false });
+    }
     const user = req.dbUser || (await dbUnified.findOne('users', { id: req.user.id }));
     const context = req.viewer;
     const stats = context.stats || (await community.getUserStats(req.user.id));
     const level = community.computeLevel(stats, user || {});
 
     res.json({
+      authenticated: true,
       handle: (user && user.communityHandle) || community.deriveHandle(user || {}),
       displayName: (user && (user.communityDisplayName || user.displayName || user.name)) || null,
       level: level.key,

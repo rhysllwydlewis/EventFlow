@@ -76,6 +76,7 @@
       </div>
     </header>
 
+    <main id="main-content">
     <section class="efc-hero">
       <div class="efc-hero__inner">
         <h1>All discussions</h1>
@@ -85,13 +86,15 @@
     </section>
 
 
-    <main id="main-content">
       <div class="efc-shell">
         <!-- Server-rendered content. Real, indexable HTML that works without
              JavaScript; the client scripts hide it once they have data. -->
         <div id="efc-noscript"><!--COMMUNITY_CONTENT--></div>
         <div id="efc-discussions" data-mode="index">        <div id="efc-filters-slot" class="efc-section"></div>
-        <div id="efc-results" class="efc-section"></div></div>
+        <section class="efc-section" aria-labelledby="efc-results-heading">
+          <h2 id="efc-results-heading" class="efc-sr-only">Discussions</h2>
+          <div id="efc-results"></div>
+        </section></div>
       </div>
     </main>
 

@@ -70,6 +70,13 @@ test.describe('Community — logged-out browsing', () => {
     await page.getByRole('button', { name: 'Search' }).click();
     await expect(page).toHaveURL(/\/community\/search\?q=marquee\+hire/);
   });
+
+  test('the search page shows the query it is reporting results for', async ({ page }) => {
+    await page.goto('/community/search?q=marquee+hire');
+    await expect(page.getByRole('searchbox', { name: /search the community/i })).toHaveValue(
+      'marquee hire'
+    );
+  });
 });
 
 test.describe('Community — legacy URLs', () => {
@@ -134,6 +141,26 @@ test.describe('Community — responsive behaviour', () => {
 
     await page.setViewportSize(VIEWPORTS.desktop);
     await expect(page.locator('.ef-nav-desktop')).toBeVisible();
+  });
+
+  // The filter panel is always open where there is room for it. The toggle
+  // exists only to collapse it on a narrow screen, and once appeared on desktop
+  // above an already-open panel because .efc-action won on source order.
+  test('the filter toggle collapses the panel on mobile and is absent on desktop', async ({
+    page,
+  }) => {
+    await page.setViewportSize(VIEWPORTS.mobile);
+    await page.goto('/community/discussions');
+    const toggle = page.locator('[data-filters-toggle]');
+    await expect(toggle).toBeVisible();
+    await expect(page.locator('#efc-filters')).toBeHidden();
+    await toggle.click();
+    await expect(page.locator('#efc-filters')).toBeVisible();
+
+    await page.setViewportSize(VIEWPORTS.desktop);
+    await page.goto('/community/discussions');
+    await expect(page.locator('[data-filters-toggle]')).toBeHidden();
+    await expect(page.locator('#efc-filters')).toBeVisible();
   });
 });
 
