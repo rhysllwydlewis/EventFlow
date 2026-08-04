@@ -406,7 +406,8 @@ body.pricing-redesign .pricing-section-heading h2,
 body.pricing-redesign .pricing-promise h2 {
   margin: 0;
   color: #0b132b;
-  font-size: 1.875rem;
+  /* 28px, not 30px: 30 is not a step on the site's type scale. */
+  font-size: 1.75rem;
   line-height: 1.2;
 }
 
