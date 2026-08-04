@@ -24,6 +24,21 @@
     { key: 'settings', label: 'Settings' },
   ];
 
+  /**
+   * Labels and units for the dashboard metrics. Deriving these from the key
+   * alone produced "Active Contributors30 Days" and printed percentages and
+   * hour counts as bare numbers, so the ones that need a unit are named here.
+   */
+  const METRIC_LABELS = {
+    answeredPercentage: 'Discussions answered',
+    helpfulAnswerRate: 'Marked helpful',
+    medianHoursToFirstReply: 'Median time to first reply',
+    medianHoursToReportResolution: 'Median time to resolve a report',
+    activeContributors30Days: 'Active contributors (30 days)',
+  };
+  const PERCENT_METRICS = new Set(['answeredPercentage', 'helpfulAnswerRate']);
+  const HOUR_METRICS = new Set(['medianHoursToFirstReply', 'medianHoursToReportResolution']);
+
   let active = window.location.hash.replace('#', '') || 'dashboard';
 
   /**
@@ -63,10 +78,53 @@
     const rows = Object.entries(values)
       .map(
         ([key, value]) =>
-          `<li><strong>${EFC.esc(humanise(key))}:</strong> ${value === null ? 'no data yet' : EFC.esc(value)}</li>`
+          `<li><strong>${EFC.esc(METRIC_LABELS[key] || humanise(key))}:</strong> ${
+            value === null || value === undefined
+              ? 'no data yet'
+              : EFC.esc(formatMetric(key, value))
+          }</li>`
       )
       .join('');
     return `<section class="efc-side__card"><h2>${EFC.esc(title)}</h2><ul class="efc-side__list">${rows}</ul></section>`;
+  }
+
+  /**
+   * Give a metric its unit. A median of 8352 with no unit is unreadable, and
+   * a percentage shown as a bare integer reads as a count.
+   * @param {string} key Metric key.
+   * @param {number|string} value Raw value.
+   * @returns {string} Display value.
+   */
+  function formatMetric(key, value) {
+    if (PERCENT_METRICS.has(key)) {
+      return `${value}%`;
+    }
+    if (HOUR_METRICS.has(key)) {
+      return formatHours(value);
+    }
+    return String(value);
+  }
+
+  /**
+   * Render an hour count at a scale a moderator can act on.
+   * @param {number} hours Hours.
+   * @returns {string} Readable duration.
+   */
+  function formatHours(hours) {
+    const value = Number(hours);
+    if (!Number.isFinite(value)) {
+      return String(hours);
+    }
+    if (value < 1) {
+      const minutes = Math.max(1, Math.round(value * 60));
+      return `${minutes} ${minutes === 1 ? 'minute' : 'minutes'}`;
+    }
+    if (value < 48) {
+      const rounded = Math.round(value);
+      return `${rounded} ${rounded === 1 ? 'hour' : 'hours'}`;
+    }
+    const days = Math.round(value / 24);
+    return `${days} days`;
   }
 
   /**
@@ -75,10 +133,14 @@
    * @returns {string} Label.
    */
   function humanise(key) {
-    return key
-      .replace(/([A-Z])/g, ' $1')
-      .replace(/^./, char => char.toUpperCase())
-      .replace(/\bPercentage\b/, '%');
+    return (
+      key
+        .replace(/([A-Z])/g, ' $1')
+        // Without this a trailing figure runs into the previous word.
+        .replace(/([a-zA-Z])(\d)/g, '$1 $2')
+        .replace(/^./, char => char.toUpperCase())
+        .replace(/\bPercentage\b/, '%')
+    );
   }
 
   /**
