@@ -87,11 +87,67 @@ describe('content sanitizer — fallback path (DOMPurify unavailable)', () => {
     });
 
     it('removes the javascript: scheme prefix from an href', () => {
-      // Pre-existing behaviour, unchanged by this fix: only the "javascript:"
-      // token itself is removed, leaving the rest of the value as an
-      // attribute rather than an executable scheme.
+      // Only the "javascript:" token itself is removed, leaving the rest of
+      // the value as an attribute rather than an executable scheme.
       expect(sanitizer.sanitizeContent('<a href="javascript:alert(1)">x</a>')).toBe(
         '<a href="alert(1)">x</a>'
+      );
+    });
+
+    it('removes data: and vbscript: schemes too, not only javascript:', () => {
+      // CodeQL: "incomplete URL scheme check" — the previous version only
+      // handled javascript:.
+      expect(sanitizer.sanitizeContent('<a href="data:text/html,x">x</a>')).toBe(
+        '<a href="text/html,x">x</a>'
+      );
+      expect(sanitizer.sanitizeContent('<a href="vbscript:msgbox(1)">x</a>')).toBe(
+        '<a href="msgbox(1)">x</a>'
+      );
+    });
+
+    it('is case-insensitive about the scheme', () => {
+      expect(sanitizer.sanitizeContent('<a href="JaVaScRiPt:alert(1)">x</a>')).toBe(
+        '<a href="alert(1)">x</a>'
+      );
+    });
+
+    it('does not let a scheme reappear by deleting the text around it', () => {
+      // CodeQL: "incomplete multi-character sanitization". A single
+      // left-to-right replace pass removes the matched "javascript:" out of
+      // "java" + "javascript:" + "script:" and never re-examines the result,
+      // leaving "java" + "script:" touching — which spells "javascript:"
+      // again. Verified directly against the old code before this fix.
+      expect(sanitizer.sanitizeContent(`java${'javascript:'}script:`)).toBe('');
+      // Both "data:" occurrences (the original and the one the first removal
+      // exposes) are gone; "data" with no colon is safe residual text, not a
+      // reformed scheme.
+      expect(sanitizer.sanitizeContent(`data${'data:'}data:`)).toBe('data');
+    });
+
+    it('resolves a nested scheme fragment that only becomes dangerous after the outer one is removed', () => {
+      // "javadata:script:,alert(1)" has "data:" removed first, which joins
+      // "java" to "script:,alert(1)" and reforms "javascript:" — the fix
+      // must catch that newly-formed match too, not just the original one.
+      expect(sanitizer.sanitizeContent('<a href="javadata:script:,alert(1)">x</a>')).toBe(
+        '<a href=",alert(1)">x</a>'
+      );
+    });
+
+    it('leaves an ordinary mention of the word "javascript:" in prose alone otherwise', () => {
+      expect(sanitizer.sanitizeContent('plain paragraph about javascript: the language')).toBe(
+        'plain paragraph about  the language'
+      );
+    });
+
+    it('removes an unquoted event-handler value', () => {
+      expect(sanitizer.sanitizeContent('<a onclick=bad(1,2) href="x">x</a>')).toBe(
+        '<a href="x">x</a>'
+      );
+    });
+
+    it('does not mistake an ordinary word starting with "on" for an attribute', () => {
+      expect(sanitizer.sanitizeContent('<p>Meeting on Monday, contact us on 07700900123</p>')).toBe(
+        '<p>Meeting on Monday, contact us on 07700900123</p>'
       );
     });
 
@@ -123,6 +179,16 @@ describe('content sanitizer — fallback path (DOMPurify unavailable)', () => {
         sanitizer.sanitizeContent('<scripter>'.repeat(LIMIT / 5)),
       'alternating complete script, style and ordinary tags': () =>
         sanitizer.sanitizeContent('<script>a</script><style>b</style><b>c</b>'.repeat(LIMIT / 20)),
+      // CodeQL's exact adversarial shape for the on-attribute regex: strings
+      // starting with "on0=" and many repetitions of it. The old pattern's
+      // lazy `.*?` bound to a backreference, hunting for a closing quote that
+      // never arrives, took 20+ seconds on input this size.
+      'many "on0=" repetitions with no closing quote': () =>
+        sanitizer.sanitizeContent(' on0="'.repeat(LIMIT / 4)),
+      'a cascading scheme-fragment flood': () =>
+        sanitizer.sanitizeContent(
+          `${'java'.repeat(LIMIT / 4)}javascript:${'script:'.repeat(LIMIT / 7)}`
+        ),
     };
 
     Object.entries(cases).forEach(([description, run]) => {
