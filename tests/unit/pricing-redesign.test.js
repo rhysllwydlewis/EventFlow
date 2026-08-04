@@ -52,6 +52,15 @@ describe('pricing page redesign', () => {
     expect(checkoutScript).toContain('annualMonthlyPrice: 129');
   });
 
+  it('defers payment initialisation until an authenticated user starts checkout', () => {
+    const initBlock = checkoutScript.slice(checkoutScript.indexOf('async function init()'));
+
+    expect(initBlock).toContain('const authStatus = await checkAuth();');
+    expect(initBlock).not.toContain('initializeStripe().catch');
+    expect(checkoutScript).toContain('if (!stripe) {');
+    expect(checkoutScript).toContain('const initialized = await initializeStripe();');
+  });
+
   it('normalises the Starter checkout link to the free plan', () => {
     expect(checkoutScript).toContain("return value === 'starter' ? 'free' : value");
   });
