@@ -240,3 +240,124 @@ describe('server-rendered routing', () => {
     expect(res.status).toBe(404);
   });
 });
+
+describe('server-rendered pages — the rest of the surface', () => {
+  beforeEach(() => {
+    mockDb.seed('community_discussions', [discussion('published')]);
+  });
+
+  it('renders the community homepage with categories and recent discussions', async () => {
+    const res = await request(app).get('/community');
+    expect(res.status).toBe(200);
+    expect(res.text).toContain('EventFlow Community');
+    expect(res.text).toContain('Venues');
+    expect(res.text).toContain('A private planning question');
+    expect(res.text).toContain('CollectionPage');
+  });
+
+  it('serves the homepage at the .html address too', async () => {
+    const res = await request(app).get('/community.html');
+    expect(res.status).toBe(200);
+  });
+
+  it('renders a category page with breadcrumb structured data', async () => {
+    const res = await request(app).get('/community/category/venues');
+    expect(res.status).toBe(200);
+    expect(res.text).toContain('BreadcrumbList');
+    expect(res.text).toContain('Venues');
+  });
+
+  it('emits rel=next when a category has more than one page', async () => {
+    const many = Array.from({ length: 25 }, (unused, index) => ({
+      ...discussion('published'),
+      id: `d-${index}`,
+      stableId: `aaaabbbbcc${String(index).padStart(2, '0')}`,
+    }));
+    mockDb.seed('community_discussions', many);
+    const res = await request(app).get('/community/category/venues');
+    expect(res.text).toContain('rel="next"');
+
+    const second = await request(app).get('/community/category/venues?page=2');
+    expect(second.text).toContain('rel="prev"');
+  });
+
+  it('404s a hidden category', async () => {
+    mockDb.seed('community_categories', [
+      { id: 'c1', slug: 'venues', name: 'Venues', visible: false, archived: false, order: 1 },
+    ]);
+    const res = await request(app).get('/community/category/venues');
+    expect(res.status).toBe(404);
+  });
+
+  it('404s a category slug with unexpected characters', async () => {
+    const res = await request(app).get('/community/category/NOT_A_SLUG');
+    expect(res.status).toBe(404);
+  });
+
+  const simplePages = [
+    ['/community/discussions', 'All discussions'],
+    ['/community/new', 'Start a discussion'],
+    ['/community/search', 'Search'],
+    ['/community/saved', 'Saved discussions'],
+    ['/community/following', 'Following'],
+    ['/community/guidelines', 'Community guidelines'],
+    ['/community/help', 'Community help and appeals'],
+  ];
+
+  it.each(simplePages)('renders %s', async (path, heading) => {
+    const res = await request(app).get(path);
+    expect(res.status).toBe(200);
+    expect(res.text).toContain(heading);
+  });
+
+  const noindexPages = [
+    '/community/new',
+    '/community/search',
+    '/community/saved',
+    '/community/following',
+  ];
+
+  it.each(noindexPages)('marks %s noindex', async path => {
+    const res = await request(app).get(path);
+    expect(res.text).toContain('noindex');
+  });
+
+  const indexedPages = ['/community', '/community/discussions', '/community/guidelines'];
+
+  it.each(indexedPages)('leaves %s indexable', async path => {
+    const res = await request(app).get(path);
+    expect(res.text).not.toContain('name="robots"');
+  });
+
+  it('renders a member profile page', async () => {
+    const res = await request(app).get('/community/member/sam');
+    expect(res.status).toBe(200);
+    expect(res.text).toContain('og:type" content="profile"');
+  });
+
+  it('404s a member handle with unexpected characters', async () => {
+    const res = await request(app).get('/community/member/not-a-handle!');
+    expect(res.status).toBe(404);
+  });
+
+  it('renders the admin community page as noindex', async () => {
+    const res = await request(app).get('/admin/community');
+    expect(res.status).toBe(200);
+    expect(res.text).toContain('noindex');
+  });
+
+  it('takes every page offline when the community is disabled', async () => {
+    process.env.COMMUNITY_ENABLED = 'false';
+    community.invalidateSettingsCache();
+    try {
+      for (const path of ['/community', '/community/discussions', '/community/category/venues']) {
+        // eslint-disable-next-line no-await-in-loop -- sequential assertions read better here
+        const res = await request(app).get(path);
+        expect(res.status).toBe(404);
+      }
+    } finally {
+      delete process.env.COMMUNITY_ENABLED;
+      community.invalidateSettingsCache();
+    }
+  });
+});

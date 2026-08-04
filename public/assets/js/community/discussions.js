@@ -21,6 +21,8 @@
     root.dataset.category || decodeURIComponent(window.location.pathname.split('/').pop() || '');
   let meta = null;
   let state = EFC.queryState();
+  // `queryState` already returns a null-prototype object; keep that property
+  // when the state is reset.
 
   /**
    * Build the endpoint for the current mode and filter state.
@@ -262,7 +264,12 @@
     form.addEventListener('submit', event => {
       event.preventDefault();
       form.querySelectorAll('[data-filter]').forEach(control => {
-        state[control.dataset.filter] = control.value;
+        // Only keys the community understands are written, so a stray or
+        // crafted data-filter attribute cannot introduce an arbitrary property.
+        const key = control.dataset.filter;
+        if (EFC.ALLOWED_QUERY_KEYS.includes(key)) {
+          state[key] = control.value;
+        }
       });
       state.page = '1';
       EFC.setQueryState(state);
@@ -272,7 +279,7 @@
     const clear = form.querySelector('[data-clear]');
     if (clear) {
       clear.addEventListener('click', () => {
-        state = state.q ? { q: state.q } : {};
+        state = Object.assign(Object.create(null), state.q ? { q: state.q } : {});
         EFC.setQueryState(state);
         window.location.reload();
       });

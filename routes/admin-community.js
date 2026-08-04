@@ -900,60 +900,62 @@ router.patch(
       const current = await community.getSettings({ fresh: true });
       const update = { ...current };
 
-      const booleans = [
-        'enabled',
-        'requireVerifiedEmail',
-        'requireAdultDeclaration',
-        'quarantineLowTrustLinks',
-      ];
-      booleans.forEach(key => {
-        if (req.body[key] !== undefined) {
-          update[key] = Boolean(req.body[key]);
+      // Settings are read through explicit named accessors so a request can
+      // only ever reach the settings this endpoint is documented to change.
+      const applyBoolean = (key, value) => {
+        if (value !== undefined) {
+          update[key] = Boolean(value);
         }
-      });
+      };
+      applyBoolean('enabled', req.body.enabled);
+      applyBoolean('requireVerifiedEmail', req.body.requireVerifiedEmail);
+      applyBoolean('requireAdultDeclaration', req.body.requireAdultDeclaration);
+      applyBoolean('quarantineLowTrustLinks', req.body.quarantineLowTrustLinks);
 
-      const numbers = [
-        'autoArchiveDays',
-        'oldThreadWarningDays',
-        'dormantThreadReviewDays',
-        'maxDiscussionsPerDay',
-        'maxRepliesPerHour',
-        'minimumAgeYears',
-      ];
-      numbers.forEach(key => {
-        if (req.body[key] !== undefined && Number.isFinite(Number(req.body[key]))) {
-          update[key] = Number(req.body[key]);
+      const applyNumber = (key, value) => {
+        if (value !== undefined && Number.isFinite(Number(value))) {
+          update[key] = Number(value);
         }
-      });
+      };
+      applyNumber('autoArchiveDays', req.body.autoArchiveDays);
+      applyNumber('oldThreadWarningDays', req.body.oldThreadWarningDays);
+      applyNumber('dormantThreadReviewDays', req.body.dormantThreadReviewDays);
+      applyNumber('maxDiscussionsPerDay', req.body.maxDiscussionsPerDay);
+      applyNumber('maxRepliesPerHour', req.body.maxRepliesPerHour);
+      applyNumber('minimumAgeYears', req.body.minimumAgeYears);
 
-      ['blockedDomains', 'allowedDomains'].forEach(key => {
-        if (Array.isArray(req.body[key])) {
-          update[key] = req.body[key]
-            // Bound the input before any pattern runs: a hostname is never
-            // longer than 253 characters, and truncating first means a very
-            // long crafted string cannot drive backtracking.
-            .map(value =>
-              String(value || '')
-                .trim()
-                .toLowerCase()
-                .slice(0, 253)
-            )
-            .map(value => {
-              const withoutScheme = value.startsWith('https://')
-                ? value.slice(8)
-                : value.startsWith('http://')
-                  ? value.slice(7)
-                  : value;
-              const withoutWww = withoutScheme.startsWith('www.')
-                ? withoutScheme.slice(4)
-                : withoutScheme;
-              const slash = withoutWww.indexOf('/');
-              return slash === -1 ? withoutWww : withoutWww.slice(0, slash);
-            })
-            .filter(Boolean)
-            .slice(0, 2000);
+      const applyDomainList = (key, value) => {
+        if (!Array.isArray(value)) {
+          return;
         }
-      });
+        update[key] = value
+          // Bound the input before any pattern runs: a hostname is never longer
+          // than 253 characters, and truncating first means a very long crafted
+          // string cannot drive backtracking.
+          .map(entry =>
+            String(entry || '')
+              .trim()
+              .toLowerCase()
+              .slice(0, 253)
+          )
+          .map(entry => {
+            let host = entry;
+            if (host.startsWith('https://')) {
+              host = host.slice(8);
+            } else if (host.startsWith('http://')) {
+              host = host.slice(7);
+            }
+            if (host.startsWith('www.')) {
+              host = host.slice(4);
+            }
+            const slash = host.indexOf('/');
+            return slash === -1 ? host : host.slice(0, slash);
+          })
+          .filter(Boolean)
+          .slice(0, 2000);
+      };
+      applyDomainList('blockedDomains', req.body.blockedDomains);
+      applyDomainList('allowedDomains', req.body.allowedDomains);
 
       update.id = 'system';
       update.updatedAt = new Date().toISOString();

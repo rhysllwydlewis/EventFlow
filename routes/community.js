@@ -242,7 +242,10 @@ router.post(
         { id: category.id },
         { $inc: { followerCount: 1 } }
       );
-      res.json({ following: true, followerCount: Number(category.followerCount || 0) + 1 });
+      // Read the count back rather than computing it, so the response always
+      // reflects what was actually stored.
+      const updated = await dbUnified.findOne(COLLECTIONS.categories, { id: category.id });
+      res.json({ following: true, followerCount: Number((updated || {}).followerCount || 0) });
     } catch (error) {
       logger.error('Could not follow community category:', error);
       res.status(500).json({ error: 'Could not follow category' });
@@ -576,8 +579,14 @@ router.get(
           }),
         ]);
         (reactions || []).forEach(item => {
-          myReactions[item.targetId] = myReactions[item.targetId] || [];
-          myReactions[item.targetId].push(item.reaction);
+          // The key is a stored record id and the value a known reaction; both
+          // are shape-checked so nothing outside that vocabulary is written.
+          const target = String(item.targetId || '');
+          if (!/^[a-z]+_[a-f0-9]{6,64}$/.test(target) || !REACTION_KEYS.includes(item.reaction)) {
+            return;
+          }
+          myReactions[target] = myReactions[target] || [];
+          myReactions[target].push(item.reaction);
         });
         saved = Boolean(bookmark);
         following = Boolean(follow);

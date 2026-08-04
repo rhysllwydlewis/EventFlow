@@ -1118,3 +1118,483 @@ describe('community feature flag', () => {
     expect(res.status).toBe(404);
   });
 });
+
+describe('community homepage modules', () => {
+  /**
+   * Seed a richer set of discussions so every homepage module has content.
+   * @returns {void} Nothing.
+   */
+  function seedRichContent() {
+    mockDb.seed('community_discussions', [
+      discussionFixture({
+        featured: true,
+        attachments: [{ kind: 'image', url: '/uploads/marquee.jpg' }],
+        hasSupplierReply: true,
+        replyCount: 4,
+        uniqueViews: 300,
+        helpfulVotes: 5,
+        saveCount: 3,
+        participants: ['u-member', 'u-other', 'u-supplier'],
+        lastActivityAt: new Date().toISOString(),
+      }),
+      discussionFixture({
+        id: 'd-2',
+        stableId: 'ddddeeeeffff',
+        slug: 'unanswered-question',
+        title: 'An unanswered question about catering',
+        replyCount: 0,
+        eventType: 'corporate',
+        region: 'scotland',
+        featured: false,
+        hasSupplierReply: false,
+        createdAt: new Date().toISOString(),
+        lastActivityAt: new Date().toISOString(),
+      }),
+    ]);
+    mockDb.seed('community_replies', [
+      {
+        id: 'r-home',
+        discussionId: 'd-1',
+        discussionStableId: 'aaaabbbbcccc',
+        authorId: users.supplier.id,
+        author: { handle: 'brightblooms', displayName: 'Bright Blooms', isSupplier: true },
+        bodyHtml: '<p>Flooring makes the difference.</p>',
+        bodyText: 'Flooring makes the difference.',
+        state: 'published',
+        createdAt: new Date().toISOString(),
+        reactionCounts: { helpful: 2 },
+      },
+    ]);
+    mockDb.seed('community_user_stats', [
+      {
+        id: 'cs-1',
+        userId: users.other.id,
+        handle: 'alex',
+        displayName: 'Alex',
+        helpfulAnswers: 7,
+        level: 'regular',
+      },
+      { id: 'cs-2', userId: 'u-nohandle', helpfulAnswers: 4 },
+    ]);
+  }
+
+  it('populates featured, trending, photos and supplier contributions', async () => {
+    seedRichContent();
+    const res = await request(app).get('/api/v1/community/home');
+    expect(res.body.featured).toHaveLength(1);
+    expect(res.body.trending.length).toBeGreaterThan(0);
+    expect(res.body.recentPhotos).toHaveLength(1);
+    expect(res.body.supplierContributors).toHaveLength(1);
+    expect(res.body.recentReplies).toHaveLength(1);
+  });
+
+  it('lists only members who have a public handle among the helpful members', async () => {
+    seedRichContent();
+    const res = await request(app).get('/api/v1/community/home');
+    expect(res.body.helpfulMembers).toHaveLength(1);
+    expect(res.body.helpfulMembers[0].handle).toBe('alex');
+  });
+
+  it('counts event types and regions that are actually in use', async () => {
+    seedRichContent();
+    const res = await request(app).get('/api/v1/community/home');
+    const keys = res.body.eventTypes.map(item => item.key);
+    expect(keys).toEqual(expect.arrayContaining(['wedding', 'corporate']));
+    expect(res.body.regions.map(item => item.key)).toEqual(
+      expect.arrayContaining(['south-east', 'scotland'])
+    );
+  });
+
+  it('surfaces the unanswered queue', async () => {
+    seedRichContent();
+    const res = await request(app).get('/api/v1/community/home');
+    expect(res.body.unanswered).toHaveLength(1);
+    expect(res.body.unanswered[0].stableId).toBe('ddddeeeeffff');
+  });
+
+  it('builds an explained following feed for a signed-in member', async () => {
+    seedRichContent();
+    mockDb.seed('community_follows', [
+      { id: 'f-1', userId: users.member.id, targetType: 'category', targetId: 'cat-venues' },
+      { id: 'f-2', userId: users.member.id, targetType: 'discussion', targetId: 'd-2' },
+    ]);
+    const res = await request(app)
+      .get('/api/v1/community/home')
+      .set('Cookie', authCookie(users.member));
+    expect(res.body.following.items.length).toBeGreaterThan(0);
+    expect(res.body.following.followedCategories).toBe(1);
+    expect(res.body.following.followedDiscussions).toBe(1);
+    expect(res.body.following.explanation).toContain('Nothing here is paid placement');
+  });
+
+  it('returns an empty following feed rather than nothing when a member follows nothing', async () => {
+    const res = await request(app)
+      .get('/api/v1/community/home')
+      .set('Cookie', authCookie(users.member));
+    expect(res.body.following.items).toEqual([]);
+  });
+});
+
+describe('discussion index filters and sorting', () => {
+  beforeEach(() => {
+    mockDb.seed('community_discussions', [
+      discussionFixture(),
+      discussionFixture({
+        id: 'd-2',
+        stableId: 'ddddeeeeffff',
+        slug: 'second',
+        replyCount: 9,
+        uniqueViews: 500,
+        createdAt: '2026-07-15T00:00:00.000Z',
+        lastActivityAt: '2026-07-25T00:00:00.000Z',
+      }),
+    ]);
+  });
+
+  const sorts = ['latest-activity', 'newest', 'oldest', 'most-replies', 'most-viewed', 'popular'];
+
+  it.each(sorts)('accepts the %s sort', async sort => {
+    const res = await request(app).get(`/api/v1/community/discussions?sort=${sort}`);
+    expect(res.status).toBe(200);
+    expect(res.body.appliedSort).toBe(sort);
+  });
+
+  it('falls back to the default sort for an unknown value', async () => {
+    const res = await request(app).get('/api/v1/community/discussions?sort=chaos');
+    expect(res.body.appliedSort).toBe('latest-activity');
+  });
+
+  it('filters to unanswered discussions when sorting by unanswered', async () => {
+    mockDb.seed('community_discussions', [
+      discussionFixture({ replyCount: 3 }),
+      discussionFixture({ id: 'd-2', stableId: 'ddddeeeeffff', slug: 'second', replyCount: 0 }),
+    ]);
+    const res = await request(app).get('/api/v1/community/discussions?sort=unanswered');
+    expect(res.body.discussions).toHaveLength(1);
+  });
+
+  it('paginates', async () => {
+    const res = await request(app).get('/api/v1/community/discussions?limit=1&page=2');
+    expect(res.body.discussions).toHaveLength(1);
+    expect(res.body.pagination).toMatchObject({ page: 2, limit: 1, total: 2, totalPages: 2 });
+  });
+
+  it('filters by the days-since window', async () => {
+    const res = await request(app).get('/api/v1/community/discussions?since=1');
+    expect(res.body.discussions).toHaveLength(0);
+  });
+});
+
+describe('category landing payload', () => {
+  it('returns rules, contributors and the follow state', async () => {
+    mockDb.seed('community_categories', [
+      {
+        id: 'cat-venues',
+        slug: 'venues',
+        name: 'Venues',
+        description: 'Venues',
+        icon: '🏛️',
+        order: 10,
+        visible: true,
+        archived: false,
+        rules: 'Say where you are.',
+        marketplaceSafetyNotice: false,
+        followerCount: 2,
+      },
+    ]);
+    const res = await request(app).get('/api/v1/community/categories/venues');
+    expect(res.status).toBe(200);
+    expect(res.body.category.rules).toBe('Say where you are.');
+    expect(res.body.activeContributors[0].handle).toBe('sam');
+    expect(res.body.category.following).toBe(false);
+  });
+
+  it('sorts pinned discussions first', async () => {
+    mockDb.seed('community_discussions', [
+      discussionFixture({ lastActivityAt: '2026-07-30T00:00:00.000Z' }),
+      discussionFixture({
+        id: 'd-2',
+        stableId: 'ddddeeeeffff',
+        slug: 'pinned',
+        pinned: true,
+        lastActivityAt: '2026-07-01T00:00:00.000Z',
+      }),
+    ]);
+    const res = await request(app).get('/api/v1/community/categories/venues');
+    expect(res.body.discussions[0].pinned).toBe(true);
+  });
+
+  it('reports the follow state for a member who follows the category', async () => {
+    mockDb.seed('community_follows', [
+      { id: 'f-1', userId: users.member.id, targetType: 'category', targetId: 'cat-venues' },
+    ]);
+    const res = await request(app)
+      .get('/api/v1/community/categories/venues')
+      .set('Cookie', authCookie(users.member));
+    expect(res.body.category.following).toBe(true);
+  });
+
+  it('404s an unknown category', async () => {
+    const res = await request(app).get('/api/v1/community/categories/nope');
+    expect(res.status).toBe(404);
+  });
+
+  it('follows and unfollows a category, adjusting the count', async () => {
+    const followed = await request(app)
+      .post('/api/v1/community/categories/cat-venues/follow')
+      .set('Cookie', authCookie(users.member));
+    expect(followed.body.following).toBe(true);
+    expect(followed.body.followerCount).toBe(1);
+
+    // A repeat follow is a no-op rather than a second row.
+    await request(app)
+      .post('/api/v1/community/categories/cat-venues/follow')
+      .set('Cookie', authCookie(users.member));
+    expect(mockDb.all('community_follows')).toHaveLength(1);
+
+    const unfollowed = await request(app)
+      .delete('/api/v1/community/categories/cat-venues/follow')
+      .set('Cookie', authCookie(users.member));
+    expect(unfollowed.body.following).toBe(false);
+  });
+
+  it('404s a follow on an unknown category', async () => {
+    const res = await request(app)
+      .post('/api/v1/community/categories/nope/follow')
+      .set('Cookie', authCookie(users.member));
+    expect(res.status).toBe(404);
+  });
+
+  it('treats unfollowing something never followed as already done', async () => {
+    const res = await request(app)
+      .delete('/api/v1/community/categories/cat-venues/follow')
+      .set('Cookie', authCookie(users.member));
+    expect(res.body.following).toBe(false);
+  });
+});
+
+describe('discussion detail branches', () => {
+  it('reports the freshness of an old discussion and links a canonical replacement', async () => {
+    mockDb.seed('community_discussions', [
+      discussionFixture({
+        createdAt: '2019-01-01T00:00:00.000Z',
+        lastActivityAt: '2019-02-01T00:00:00.000Z',
+        supersededBy: 'd-2',
+      }),
+      discussionFixture({ id: 'd-2', stableId: 'ddddeeeeffff', slug: 'newer', title: 'Newer' }),
+    ]);
+    const res = await request(app).get('/api/v1/community/discussions/aaaabbbbcccc');
+    expect(res.body.freshness.isOld).toBe(true);
+    expect(res.body.discussion.canonicalDiscussion.title).toBe('Newer');
+  });
+
+  it('lists related discussions from the same category', async () => {
+    mockDb.seed('community_discussions', [
+      discussionFixture(),
+      discussionFixture({ id: 'd-2', stableId: 'ddddeeeeffff', slug: 'related', title: 'Related' }),
+    ]);
+    const res = await request(app).get('/api/v1/community/discussions/aaaabbbbcccc');
+    expect(res.body.related).toHaveLength(1);
+  });
+
+  it('reports the viewer state for a signed-in member', async () => {
+    mockDb.seed('community_bookmarks', [
+      { id: 'b-1', userId: users.member.id, discussionId: 'd-1' },
+    ]);
+    mockDb.seed('community_follows', [
+      { id: 'f-1', userId: users.member.id, targetType: 'discussion', targetId: 'd-1' },
+    ]);
+    const res = await request(app)
+      .get('/api/v1/community/discussions/aaaabbbbcccc')
+      .set('Cookie', authCookie(users.member));
+    expect(res.body.viewerState).toMatchObject({ saved: true, following: true, canReply: true });
+    expect(res.body.discussion.isOwn).toBe(true);
+  });
+
+  it('does not offer a reply action on a locked discussion', async () => {
+    mockDb.seed('community_discussions', [discussionFixture({ locked: true })]);
+    const res = await request(app)
+      .get('/api/v1/community/discussions/aaaabbbbcccc')
+      .set('Cookie', authCookie(users.member));
+    expect(res.body.viewerState.canReply).toBe(false);
+  });
+
+  it('keeps a removed reply in place without its body', async () => {
+    mockDb.seed('community_replies', [
+      {
+        id: 'r-1',
+        discussionId: 'd-1',
+        discussionStableId: 'aaaabbbbcccc',
+        authorId: users.other.id,
+        author: { handle: 'alex', displayName: 'Alex' },
+        bodyHtml: '<p>REMOVED-TEXT</p>',
+        bodyText: 'REMOVED-TEXT',
+        state: 'removed',
+        createdAt: '2026-07-10T00:00:00.000Z',
+      },
+    ]);
+    const res = await request(app).get('/api/v1/community/discussions/aaaabbbbcccc');
+    expect(res.body.replies).toHaveLength(1);
+    expect(res.body.replies[0].withdrawn).toBe(true);
+    expect(JSON.stringify(res.body)).not.toContain('REMOVED-TEXT');
+  });
+
+  it('can skip view tracking', async () => {
+    await request(app).get('/api/v1/community/discussions/aaaabbbbcccc?trackView=false');
+    expect(mockDb.all('community_views')).toHaveLength(0);
+  });
+
+  it('paginates replies', async () => {
+    const replies = Array.from({ length: 25 }, (unused, index) => ({
+      id: `r-${index}`,
+      discussionId: 'd-1',
+      discussionStableId: 'aaaabbbbcccc',
+      authorId: users.other.id,
+      author: { handle: 'alex', displayName: 'Alex' },
+      bodyHtml: '<p>Reply</p>',
+      bodyText: 'Reply',
+      state: 'published',
+      createdAt: new Date(Date.UTC(2026, 6, 1, index)).toISOString(),
+    }));
+    mockDb.seed('community_replies', replies);
+    const res = await request(app).get('/api/v1/community/discussions/aaaabbbbcccc?page=2');
+    expect(res.body.replies).toHaveLength(5);
+    expect(res.body.pagination.totalPages).toBe(2);
+  });
+});
+
+describe('structured discussion fields', () => {
+  const base = {
+    title: 'Recommendations for a caterer in Bristol',
+    category: 'venues',
+    body: 'We are hosting a charity dinner for 80 people and need a caterer who can do vegan menus.',
+  };
+
+  it('stores event type, region, month and tags', async () => {
+    const res = await request(app)
+      .post('/api/v1/community/discussions')
+      .set('Cookie', authCookie(users.member))
+      .send({
+        ...base,
+        eventType: 'charity',
+        region: 'south-west',
+        eventDate: '2027-03',
+        tags: ['catering', 'CATERING', 'vegan'],
+      });
+    expect(res.status).toBe(201);
+    const created = mockDb.all('community_discussions').find(item => item.id !== 'd-1');
+    expect(created.eventType).toBe('charity');
+    expect(created.eventDate).toBe('2027-03');
+    expect(created.tags).toEqual(['catering', 'vegan']);
+  });
+
+  it('rejects an exact event date, accepting month precision only', async () => {
+    const res = await request(app)
+      .post('/api/v1/community/discussions')
+      .set('Cookie', authCookie(users.member))
+      .send({ ...base, eventDate: '2027-03-14' });
+    expect(res.status).toBe(400);
+    expect(res.body.details.join(' ')).toContain('YYYY-MM');
+  });
+
+  it('rejects an unknown event type or region', async () => {
+    const res = await request(app)
+      .post('/api/v1/community/discussions')
+      .set('Cookie', authCookie(users.member))
+      .send({ ...base, eventType: 'moon-landing', region: 'atlantis' });
+    expect(res.status).toBe(400);
+    expect(res.body.details).toHaveLength(2);
+  });
+
+  it('accepts a poll with enough options', async () => {
+    const res = await request(app)
+      .post('/api/v1/community/discussions')
+      .set('Cookie', authCookie(users.member))
+      .send({ ...base, poll: { question: 'Buffet or plated?', options: ['Buffet', 'Plated'] } });
+    expect(res.status).toBe(201);
+    const created = mockDb.all('community_discussions').find(item => item.id !== 'd-1');
+    expect(created.poll.options).toHaveLength(2);
+  });
+
+  it('rejects a poll with too few options', async () => {
+    const res = await request(app)
+      .post('/api/v1/community/discussions')
+      .set('Cookie', authCookie(users.member))
+      .send({ ...base, poll: { question: 'Buffet or plated?', options: ['Buffet'] } });
+    expect(res.status).toBe(400);
+  });
+
+  it('stores a recommendation brief', async () => {
+    const res = await request(app)
+      .post('/api/v1/community/discussions')
+      .set('Cookie', authCookie(users.member))
+      .send({
+        ...base,
+        recommendationBrief: {
+          supplierCategory: 'Caterer',
+          budgetRange: '£2,000–£3,000',
+          guestCount: 80,
+        },
+      });
+    expect(res.status).toBe(201);
+    const created = mockDb.all('community_discussions').find(item => item.id !== 'd-1');
+    expect(created.recommendationBrief.guestCount).toBe(80);
+    expect(created.recommendationBrief.verifiedSuppliersMayReply).toBe(true);
+  });
+
+  it('enforces the daily discussion limit', async () => {
+    const today = new Date().toISOString();
+    mockDb.seed(
+      'community_discussions',
+      Array.from({ length: 10 }, (unused, index) => ({
+        ...discussionFixture({ id: `d-${index}`, stableId: `aaaabbbbcc${index}0` }),
+        createdAt: today,
+      }))
+    );
+    const res = await request(app)
+      .post('/api/v1/community/discussions')
+      .set('Cookie', authCookie(users.member))
+      .send(base);
+    expect(res.status).toBe(429);
+  });
+
+  it('refuses to edit a locked discussion', async () => {
+    mockDb.seed('community_discussions', [discussionFixture({ locked: true })]);
+    const res = await request(app)
+      .patch('/api/v1/community/discussions/d-1')
+      .set('Cookie', authCookie(users.member))
+      .send({ title: 'A new title for a locked discussion' });
+    expect(res.status).toBe(409);
+  });
+
+  it('404s an edit to an unknown discussion', async () => {
+    const res = await request(app)
+      .patch('/api/v1/community/discussions/nope')
+      .set('Cookie', authCookie(users.member))
+      .send({ title: 'Something else entirely' });
+    expect(res.status).toBe(404);
+  });
+
+  it('rejects an edit whose title is too short', async () => {
+    const res = await request(app)
+      .patch('/api/v1/community/discussions/d-1')
+      .set('Cookie', authCookie(users.member))
+      .send({ title: 'Hi' });
+    expect(res.status).toBe(400);
+  });
+
+  it('404s a withdrawal of an unknown discussion', async () => {
+    const res = await request(app)
+      .delete('/api/v1/community/discussions/nope')
+      .set('Cookie', authCookie(users.member));
+    expect(res.status).toBe(404);
+  });
+
+  it('lets a moderator withdraw someone else’s discussion', async () => {
+    const res = await request(app)
+      .delete('/api/v1/community/discussions/d-1')
+      .set('Cookie', authCookie(users.admin));
+    expect(res.status).toBe(200);
+    expect(mockDb.all('community_discussions')[0].removedBy).toBe('moderator');
+  });
+});

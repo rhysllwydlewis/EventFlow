@@ -307,6 +307,14 @@ router.get('/members/:handle', publicReadLimiter, requireCommunityEnabled, async
       (await community.listCategories({ includeHidden: true })).map(item => [item.slug, item])
     );
 
+    // The optional context fields come from the member's current profile rather
+    // than the copy denormalised onto an old post, so changing them updates the
+    // profile immediately instead of showing whatever was true when they last
+    // posted. Only values from the published vocabularies are ever shown.
+    const region = user && REGION_LABELS[user.communityRegion] ? user.communityRegion : null;
+    const eventType =
+      user && EVENT_TYPE_LABELS[user.communityEventType] ? user.communityEventType : null;
+
     res.json({
       member: {
         ...author,
@@ -315,8 +323,10 @@ router.get('/members/:handle', publicReadLimiter, requireCommunityEnabled, async
         bio:
           user && user.communityBio ? stripHtml(user.communityBio).slice(0, LIMITS.BIO_MAX) : null,
         memberSince: user && user.createdAt ? new Date(user.createdAt).toISOString() : null,
-        eventTypeLabel: author.eventType ? EVENT_TYPE_LABELS[author.eventType] : null,
-        regionLabel: author.region ? REGION_LABELS[author.region] : null,
+        region,
+        eventType,
+        eventTypeLabel: eventType ? EVENT_TYPE_LABELS[eventType] : null,
+        regionLabel: region ? REGION_LABELS[region] : null,
         supplierProfileUrl:
           author.isSupplier && author.supplierId ? `/supplier?id=${author.supplierId}` : null,
       },
