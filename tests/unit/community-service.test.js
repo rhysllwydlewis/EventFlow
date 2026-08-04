@@ -245,6 +245,73 @@ describe('community filters', () => {
     expect(community.applyFilters(discussions, { media: 'true' }, now)[0].id).toBe('2');
     expect(community.applyFilters(discussions, { tag: 'MARQUEE' }, now)[0].id).toBe('1');
   });
+
+  describe('database push-down', () => {
+    const dbUnified = require('../../db-unified');
+
+    it('always constrains to the public states', () => {
+      expect(community.discussionQueryFor()).toEqual({
+        state: { $in: expect.arrayContaining([CONTENT_STATES.PUBLISHED]) },
+      });
+    });
+
+    it('pushes down the indexed scalar filters', () => {
+      const filter = community.discussionQueryFor({
+        category: 'venues',
+        eventType: 'wedding',
+        region: 'scotland',
+        answer: 'supplier',
+      });
+      expect(filter.categorySlug).toBe('venues');
+      expect(filter.eventType).toBe('wedding');
+      expect(filter.region).toBe('scotland');
+      expect(filter.hasSupplierReply).toBe(true);
+    });
+
+    it('turns a "since" window into an ISO range on createdAt', () => {
+      const filter = community.discussionQueryFor({ since: '7' }, new Date('2026-08-04T00:00:00Z'));
+      expect(filter.createdAt).toEqual({ $gte: '2026-07-28T00:00:00.000Z' });
+    });
+
+    it('drops an unknown event type or region rather than filtering on it', () => {
+      // applyFilters ignores these, so the query must ignore them too or the two
+      // halves would disagree about what the filter means.
+      const filter = community.discussionQueryFor({ eventType: 'nonsense', region: 'atlantis' });
+      expect(filter.eventType).toBeUndefined();
+      expect(filter.region).toBeUndefined();
+    });
+
+    it('never pushes down a filter the local store evaluates differently', () => {
+      // db-unified's matchesFilter warns and then returns true for an operator
+      // it does not implement, and its $in compares a scalar rather than looking
+      // inside an array. Pushing any of these down would silently stop filtering
+      // on local storage, so they must stay in applyFilters.
+      const filter = community.discussionQueryFor({
+        tag: 'marquee',
+        media: 'true',
+        answer: 'solved',
+        freshness: 'archive',
+      });
+      expect(filter).toEqual({ state: { $in: expect.any(Array) } });
+      expect(Object.keys(filter)).toEqual(['state']);
+    });
+
+    it('still returns the same discussions as filtering in process', async () => {
+      // The push-down narrows what is loaded; applyFilters remains the authority.
+      dbUnified.find.mockResolvedValueOnce(discussions.filter(d => d.region === 'scotland'));
+      const loaded = await community.loadPublicDiscussions({ region: 'scotland' }, now);
+      expect(community.applyFilters(loaded, { region: 'scotland' }, now).map(d => d.id)).toEqual(
+        community.applyFilters(discussions, { region: 'scotland' }, now).map(d => d.id)
+      );
+    });
+
+    it('loads every public discussion when called with no query', async () => {
+      dbUnified.find.mockResolvedValueOnce(discussions);
+      await community.loadPublicDiscussions();
+      const [, filter] = dbUnified.find.mock.calls[dbUnified.find.mock.calls.length - 1];
+      expect(Object.keys(filter)).toEqual(['state']);
+    });
+  });
 });
 
 describe('community projections', () => {

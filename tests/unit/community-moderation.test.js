@@ -326,7 +326,9 @@ describe('community moderation — domain summary', () => {
 });
 
 describe('community moderation — hostile input cannot stall the event loop', () => {
-  const LIMIT = LIMITS.bodyMax || 20000;
+  // LIMITS.BODY_MAX, not bodyMax: the lower-case spelling silently fell through
+  // to the literal, so these sizes stopped tracking the real limit.
+  const LIMIT = LIMITS.BODY_MAX;
 
   // Every one of these was measured against the expression it targets before
   // the fix: the WhatsApp phrase ran for 20 seconds on 4,000 spaces, and the

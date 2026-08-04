@@ -397,9 +397,7 @@ router.get('/community/category/:slug', publicReadLimiter, async (req, res, next
 
     const now = new Date();
     const page = Math.max(1, parseInt(req.query.page, 10) || 1);
-    const all = (await community.loadPublicDiscussions()).filter(
-      item => item.categorySlug === slug
-    );
+    const all = await community.loadPublicDiscussions({ category: slug }, now);
     const ordered = all.sort(community.comparatorFor('latest-activity', now));
     const cards = ordered
       .slice((page - 1) * 20, page * 20)
@@ -459,7 +457,7 @@ router.get('/community/category/:slug', publicReadLimiter, async (req, res, next
  * @returns {Object} Structured data.
  */
 function discussionStructuredData(discussion, replies, canonical) {
-  return {
+  const posting = {
     '@context': 'https://schema.org',
     '@type': 'DiscussionForumPosting',
     headline: discussion.title,
@@ -484,6 +482,32 @@ function discussionStructuredData(discussion, replies, canonical) {
       },
     ],
   };
+
+  // A thread is three levels deep, so it earns a breadcrumb trail in results
+  // the same way category pages already do. Emitted alongside the posting
+  // rather than instead of it: JSON-LD allows several objects in one block.
+  const trail = [
+    { '@type': 'ListItem', position: 1, name: 'Community', item: `${BASE_URL}/community` },
+  ];
+  if (discussion.categorySlug) {
+    trail.push({
+      '@type': 'ListItem',
+      position: 2,
+      name: discussion.categoryName || discussion.categorySlug,
+      item: `${BASE_URL}/community/category/${discussion.categorySlug}`,
+    });
+  }
+  trail.push({
+    '@type': 'ListItem',
+    position: trail.length + 1,
+    name: discussion.title,
+    item: canonical,
+  });
+
+  return [
+    posting,
+    { '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: trail },
+  ];
 }
 
 router.get(

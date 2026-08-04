@@ -1642,7 +1642,9 @@
 }
 
 .cookie-consent-links a {
-  color: var(--accent, #13b6a2);
+  /* --accent on white is 2.54:1. These are the consent notice's policy links,
+     so they have to be legible: the darker brand step gives 6.4:1. */
+  color: var(--ef-primary-dark, #096b60);
   text-decoration: underline;
   transition: color 0.2s ease-out;
 }
@@ -1671,14 +1673,19 @@
 }
 
 .cookie-consent-accept {
+  /* White on --accent is 2.54:1. Darkening the label rather than the fill
+     reaches 7.35:1 — better than darkening the fill did — and keeps the brand
+     teal, so the button still reads as the primary action. */
   background: var(--accent, #13b6a2);
-  color: #fff;
+  color: var(--ef-text, #0b1220);
   border-color: var(--accent, #13b6a2);
 }
 
 .cookie-consent-accept:hover {
-  background: var(--ink, #0b8073);
-  border-color: var(--ink, #0b8073);
+  /* The hover fill has to stay light enough for the dark label: --ink would
+     drop it to 3.88:1. */
+  background: #0fa08e;
+  border-color: #0fa08e;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(19, 182, 162, 0.3);
 }

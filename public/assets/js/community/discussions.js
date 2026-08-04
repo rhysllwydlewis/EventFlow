@@ -212,6 +212,7 @@
       }
       renderResults(payload);
     } catch (error) {
+      EFC.hideFallback();
       if (list) {
         list.innerHTML = EFC.errorState('We could not load these discussions.');
         const retry = list.querySelector('[data-efc-retry]');

@@ -141,8 +141,12 @@ router.get('/categories/:slug', publicReadLimiter, requireCommunityEnabled, asyn
     }
 
     const now = new Date();
-    const all = await loadPublicDiscussions();
-    const inCategory = all.filter(item => item.categorySlug === slug);
+    // Only the category is pushed down, never the rest of the query. This set
+    // also feeds discussionCount and activeContributors, which describe the
+    // category itself and must not move when a visitor narrows by region or
+    // event type — the filtered total is reported separately as
+    // pagination.total.
+    const inCategory = await loadPublicDiscussions({ category: slug }, now);
     const sort = SORT_OPTIONS.includes(req.query.sort) ? req.query.sort : 'latest-activity';
     const filtered = applyFilters(inCategory, req.query, now);
 
@@ -489,7 +493,7 @@ router.get('/discussions', publicReadLimiter, requireCommunityEnabled, async (re
     const now = new Date();
     const [categories, all] = await Promise.all([
       community.listCategories({ includeHidden: true }),
-      loadPublicDiscussions(),
+      loadPublicDiscussions(req.query, now),
     ]);
     const categoriesBySlug = new Map(categories.map(item => [item.slug, item]));
 

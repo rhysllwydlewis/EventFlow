@@ -858,10 +858,75 @@ function canView(doc, viewer = null) {
  * Load every discussion the public may see.
  * @returns {Promise<Object[]>} Discussions in publicly visible states.
  */
-async function loadPublicDiscussions() {
-  const discussions = await dbUnified.find(COLLECTIONS.discussions, {
-    state: { $in: PUBLIC_STATES },
-  });
+/**
+ * Build the database filter for a public discussion listing.
+ *
+ * Only the filters that both back ends evaluate identically are pushed down.
+ * `dbUnified.matchesFilter` — the local-storage half of the abstraction —
+ * supports $in, $ne, $gt(e), $lt(e), $regex and $or, warns and then returns
+ * *true* for anything else, and its $in compares a scalar rather than matching
+ * inside an array. So an unsupported operator would silently stop filtering on
+ * local storage instead of failing loudly, and array membership would diverge
+ * between MongoDB and local storage.
+ *
+ * Everything pushed down here is a scalar equality or an ISO-string range, both
+ * of which behave the same either side. The array-valued filters (tag, media,
+ * official answers), the ones with awkward missing-field semantics (solved,
+ * unanswered) and the computed one (freshness) stay in `applyFilters`, which
+ * still re-checks every filter — this narrows what is loaded, it does not
+ * change what is returned.
+ * @param {Object} [query] Express query object.
+ * @param {Date} [now] Clock injection for tests.
+ * @returns {Object} Database filter.
+ */
+function discussionQueryFor(query = {}, now = new Date()) {
+  const filter = { state: { $in: PUBLIC_STATES } };
+
+  const category = String(query.category || '').trim();
+  if (category) {
+    filter.categorySlug = category;
+  }
+
+  const eventType = String(query.eventType || '').trim();
+  if (eventType && EVENT_TYPES.includes(eventType)) {
+    filter.eventType = eventType;
+  }
+
+  const region = String(query.region || '').trim();
+  if (region && REGIONS.includes(region)) {
+    filter.region = region;
+  }
+
+  // Only the supplier answer filter is a plain boolean. "solved", "unanswered"
+  // and "official" all hinge on a field being absent, which MongoDB and the
+  // local store disagree about, so they stay in applyFilters.
+  if (String(query.answer || '') === 'supplier') {
+    filter.hasSupplierReply = true;
+  }
+
+  const days = parseInt(String(query.since || ''), 10);
+  if (Number.isFinite(days) && days > 0) {
+    // createdAt is stored as an ISO-8601 string, which orders lexicographically
+    // in the same order it orders chronologically.
+    filter.createdAt = { $gte: new Date(now.getTime() - days * DAY_MS).toISOString() };
+  }
+
+  return filter;
+}
+
+/**
+ * Load the public discussions a listing needs.
+ *
+ * Called with no argument it returns every public discussion, as it always
+ * has. Passing the same query object that will be handed to `applyFilters`
+ * lets the indexed filters run in the database instead of over the whole
+ * collection.
+ * @param {Object} [query] Express query object.
+ * @param {Date} [now] Clock injection for tests.
+ * @returns {Promise<Object[]>} Discussions.
+ */
+async function loadPublicDiscussions(query, now) {
+  const discussions = await dbUnified.find(COLLECTIONS.discussions, discussionQueryFor(query, now));
   return discussions || [];
 }
 
@@ -1109,6 +1174,7 @@ module.exports = {
   canView,
   parsePagination,
   loadPublicDiscussions,
+  discussionQueryFor,
   applyFilters,
   buildAuthorCard,
   recentPostsFor,

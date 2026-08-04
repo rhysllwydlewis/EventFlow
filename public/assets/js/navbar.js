@@ -182,6 +182,12 @@
   function updateAuthUI(user) {
     state.user = user;
 
+    // The signed-in header carries a notifications button, "Log out" and
+    // "Dashboard" — roughly 190px more than the signed-out header — so the
+    // width at which the desktop nav still fits differs by auth state. Expose
+    // that state to CSS rather than letting the header overflow.
+    document.body.classList.toggle('ef-signed-in', Boolean(user));
+
     // Get bottom nav element
     const bottomNav = document.querySelector('.ef-bottom-nav');
 

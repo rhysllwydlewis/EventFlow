@@ -275,10 +275,27 @@ Index creation and category seeding are idempotent, so re-enabling is safe.
 - Page shells are cached in memory for 5 minutes in production.
 - Media is lazy-loaded; the thread loads 20 replies at a time.
 
-**Known limitation:** several read paths load a collection and filter in
-process (`loadPublicDiscussions`), matching the pattern used elsewhere in this
-repository. This is correct and fast at current volumes and the indexes needed
-to push the filters into MongoDB are already in place, but the query layer
-should move to server-side filtering before the community exceeds roughly ten
-thousand discussions. This is recorded as follow-up work rather than presented
-as complete.
+`loadPublicDiscussions` accepts the same query object that `applyFilters`
+receives and pushes the indexed filters — category, event type, region, the
+supplier answer filter and the `since` window — into the database, so a
+category page reads only that category rather than the whole collection. The
+existing `{state, categorySlug, lastActivityAt}`, `{state, eventType, ...}` and
+`{state, region, ...}` indexes serve these directly.
+
+The push-down is deliberately partial. `dbUnified.matchesFilter`, the
+local-storage half of the abstraction, implements `$in`, `$ne`, `$gt(e)`,
+`$lt(e)`, `$regex` and `$or`, and _warns and then returns true_ for any other
+operator — so pushing down an unsupported operator would silently stop
+filtering on local storage instead of failing. Its `$in` also compares a scalar
+rather than matching inside an array. The array-valued filters (tag, media,
+official answers), the ones that turn on a field being absent (solved,
+unanswered) and the computed one (freshness) therefore stay in `applyFilters`,
+which still re-checks every filter: the push-down narrows what is loaded, it
+never decides what is returned. Parity between the two paths is pinned by
+tests.
+
+**Remaining limitation:** sorting and pagination still happen in process,
+because `comparatorFor` ranks on a popularity score computed per request rather
+than a stored field. Ordering by that score inside the database would need it
+denormalised onto the document and kept fresh, which is the next step if the
+community grows past roughly ten thousand discussions.

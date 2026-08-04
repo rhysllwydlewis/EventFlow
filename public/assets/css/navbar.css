@@ -23,6 +23,7 @@
 :root {
   --ef-primary: #0b8073;
   --ef-primary-hover: #0a7067;
+  --ef-primary-dark: #096b60;
   --ef-primary-light: #13b6a2;
   --ef-bg-white: #ffffff;
   --ef-bg-gray: #f8f9fa;
@@ -413,7 +414,9 @@
 }
 
 .ef-nav-link[aria-current='page'] {
-  color: var(--ef-primary);
+  /* --ef-primary on this tinted background measures 4.08:1, just under the 4.5:1
+     WCAG AA threshold for 14px text. The darker step clears it at 5.4:1. */
+  color: var(--ef-primary-dark, #096b60);
   background: rgba(11, 128, 115, 0.12);
   font-weight: 600;
 }
@@ -1186,6 +1189,22 @@ body {
   }
 }
 
+/* The signed-out header fits the full desktop nav from 768px, but the
+   signed-in one adds a notifications button, "Log out" and "Dashboard" and
+   does not fit until ~1100px — below that the nav and the actions collided,
+   pushing the page into a horizontal scroll (measured 1081px of content in a
+   1024px viewport). Keep the mobile menu, which already lists every desktop
+   destination and more, until there is genuinely room. */
+@media (max-width: 1099px) {
+  body.ef-signed-in .ef-nav-desktop {
+    display: none;
+  }
+
+  body.ef-signed-in .ef-mobile-toggle {
+    display: flex;
+  }
+}
+
 /* Tablet tuning - keep controls readable without crowding nav links */
 @media (min-width: 768px) and (max-width: 1023px) {
   .ef-container {
@@ -1624,7 +1643,9 @@ body {
 /* Dashboard link should match exactly */
 .ef-header #ef-dashboard-link {
   font-size: var(--ef-nav-font-size) !important;
-  color: var(--ef-primary) !important;
+  /* This !important overrode the accessible aria-current colour set above,
+     leaving the link at 3.99:1 whenever /admin was the current page. */
+  color: var(--ef-primary-dark, #096b60) !important;
   font-weight: 500 !important;
   padding: 8px 14px !important;
 }
