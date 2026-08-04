@@ -1309,6 +1309,35 @@ describe('category landing payload', () => {
     expect(res.body.category.following).toBe(false);
   });
 
+  it('keeps category metadata independent of the listing filters', async () => {
+    // discussionCount and activeContributors describe the category itself, so a
+    // visitor narrowing by region must not shrink them — only pagination.total
+    // and the returned cards follow the filter. Pushing the whole query into the
+    // database once broke exactly this.
+    mockDb.seed('community_discussions', [
+      discussionFixture({ region: 'south-east' }),
+      discussionFixture({
+        id: 'd-2',
+        stableId: 'ddddeeeeffff',
+        slug: 'scottish-barn',
+        region: 'scotland',
+        author: { handle: 'robin', displayName: 'Robin', accountType: 'customer' },
+      }),
+    ]);
+
+    const unfiltered = await request(app).get('/api/v1/community/categories/venues');
+    expect(unfiltered.body.category.discussionCount).toBe(2);
+    expect(unfiltered.body.activeContributors).toHaveLength(2);
+
+    const filtered = await request(app).get('/api/v1/community/categories/venues?region=scotland');
+    expect(filtered.status).toBe(200);
+    expect(filtered.body.category.discussionCount).toBe(2);
+    expect(filtered.body.activeContributors).toHaveLength(2);
+    expect(filtered.body.pagination.total).toBe(1);
+    expect(filtered.body.discussions).toHaveLength(1);
+    expect(filtered.body.discussions[0].stableId).toBe('ddddeeeeffff');
+  });
+
   it('sorts pinned discussions first', async () => {
     mockDb.seed('community_discussions', [
       discussionFixture({ lastActivityAt: '2026-07-30T00:00:00.000Z' }),

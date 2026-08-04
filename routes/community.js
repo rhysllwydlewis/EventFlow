@@ -141,9 +141,12 @@ router.get('/categories/:slug', publicReadLimiter, requireCommunityEnabled, asyn
     }
 
     const now = new Date();
-    // The category is part of the URL, not the query string, so it is merged in
-    // to let the {state, categorySlug, lastActivityAt} index do the narrowing.
-    const inCategory = await loadPublicDiscussions({ ...req.query, category: slug }, now);
+    // Only the category is pushed down, never the rest of the query. This set
+    // also feeds discussionCount and activeContributors, which describe the
+    // category itself and must not move when a visitor narrows by region or
+    // event type — the filtered total is reported separately as
+    // pagination.total.
+    const inCategory = await loadPublicDiscussions({ category: slug }, now);
     const sort = SORT_OPTIONS.includes(req.query.sort) ? req.query.sort : 'latest-activity';
     const filtered = applyFilters(inCategory, req.query, now);
 
