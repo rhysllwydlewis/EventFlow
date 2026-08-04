@@ -1642,7 +1642,9 @@
 }
 
 .cookie-consent-links a {
-  color: var(--accent, #13b6a2);
+  /* --accent on white is 2.54:1. These are the consent notice's policy links,
+     so they have to be legible: the darker brand step gives 6.4:1. */
+  color: var(--ef-primary-dark, #096b60);
   text-decoration: underline;
   transition: color 0.2s ease-out;
 }
@@ -1671,9 +1673,11 @@
 }
 
 .cookie-consent-accept {
-  background: var(--accent, #13b6a2);
+  /* White on --accent is also 2.54:1; the darker fill keeps the button on-brand
+     while reaching 6.4:1. */
+  background: var(--ef-primary-dark, #096b60);
   color: #fff;
-  border-color: var(--accent, #13b6a2);
+  border-color: var(--ef-primary-dark, #096b60);
 }
 
 .cookie-consent-accept:hover {

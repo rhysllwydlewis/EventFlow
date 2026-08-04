@@ -185,7 +185,9 @@ main > .ef-footer-gradient-bridge:last-child,
   align-items: center;
   justify-content: center;
   padding: 0 1.4rem;
-  background: var(--ef-accent);
+  /* White on --ef-accent is 2.51:1. --ef-primary is the same brand family and
+     the colour used by primary buttons elsewhere, and reaches 4.8:1. */
+  background: var(--ef-primary, #0b8073);
   color: #fff;
   font: inherit;
   font-size: 1rem;
@@ -215,7 +217,8 @@ main > .ef-footer-gradient-bridge:last-child,
 
 .ef-nl-note {
   font-size: 0.75rem;
-  color: #85b5ae;
+  /* #85b5ae measured 2.27:1 on white. This keeps the teal tint at 4.6:1. */
+  color: #4f7d76;
   margin: 0;
 }
 

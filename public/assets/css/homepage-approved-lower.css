@@ -798,7 +798,9 @@ body.ef-approved-lower-home .ef-approved-home-footer .ef-nl-btn {
   min-height: 40px;
   border: 0;
   border-radius: 6px;
-  background: linear-gradient(135deg, var(--ef-approved-green), var(--ef-approved-green-bright));
+  /* The bright end of this gradient left white label text at 2.51:1. Both stops
+     now sit in the accessible range (4.8:1 and better) while keeping the sheen. */
+  background: linear-gradient(135deg, var(--ef-primary-dark, #096b60), var(--ef-approved-green));
   color: #fff;
   cursor: pointer;
   font-size: 12px;

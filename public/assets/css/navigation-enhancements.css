@@ -171,7 +171,9 @@
 /* Active state for desktop nav */
 .ef-nav-link[aria-current="page"] {
   background: rgba(11, 128, 115, 0.1);
-  color: var(--ef-primary, #0B8073);
+  /* Matches navbar.css: the plain brand teal falls just under WCAG AA on this
+     tinted background. */
+  color: var(--ef-primary-dark, #096b60);
   font-weight: 600;
 }
 

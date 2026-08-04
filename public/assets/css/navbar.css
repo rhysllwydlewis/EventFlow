@@ -23,6 +23,7 @@
 :root {
   --ef-primary: #0b8073;
   --ef-primary-hover: #0a7067;
+  --ef-primary-dark: #096b60;
   --ef-primary-light: #13b6a2;
   --ef-bg-white: #ffffff;
   --ef-bg-gray: #f8f9fa;
@@ -413,7 +414,9 @@
 }
 
 .ef-nav-link[aria-current='page'] {
-  color: var(--ef-primary);
+  /* --ef-primary on this tinted background measures 4.08:1, just under the 4.5:1
+     WCAG AA threshold for 14px text. The darker step clears it at 5.4:1. */
+  color: var(--ef-primary-dark, #096b60);
   background: rgba(11, 128, 115, 0.12);
   font-weight: 600;
 }

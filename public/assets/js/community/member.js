@@ -90,9 +90,13 @@
         </section>
       `;
     } catch (error) {
+      EFC.hideFallback();
       profileRoot.innerHTML =
         error.status === 404
-          ? EFC.emptyState('Member not found', 'This member has no public community activity.', {
+          ? // The API answers 404 both for an unknown handle and for a member who
+            // has simply never posted, so the copy must be true of both without
+            // asserting the account does not exist.
+            EFC.emptyState('Nothing to show yet', 'This member has no public community activity.', {
               href: '/community',
               label: 'Back to the community',
             })
@@ -119,6 +123,7 @@
         window.location.href = '/auth?next=/community/saved';
         return;
       }
+      EFC.hideFallback();
       savedRoot.innerHTML = EFC.errorState('We could not load your saved discussions.');
     }
   }
@@ -166,6 +171,7 @@
         window.location.href = '/auth?next=/community/following';
         return;
       }
+      EFC.hideFallback();
       followingRoot.innerHTML = EFC.errorState('We could not load what you follow.');
     }
   }

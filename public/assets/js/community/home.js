@@ -222,6 +222,9 @@
       EFC.hideFallback();
       render();
     } catch (error) {
+      // The no-JS fallback has been superseded either way: leaving it visible
+      // stacks stale server markup above the error message.
+      EFC.hideFallback();
       root.innerHTML = EFC.errorState(
         'We could not load the community just now. Your connection may be offline.'
       );

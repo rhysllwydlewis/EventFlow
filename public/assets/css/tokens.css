@@ -77,6 +77,9 @@
   /* Brand colors */
   --ef-primary: #0B8073;
   --ef-primary-hover: #097267;
+  /* Accessible step for brand-coloured text sitting on a tinted brand surface,
+     where --ef-primary itself measures ~4.1:1 and misses WCAG AA. */
+  --ef-primary-dark: #096B60;
   --ef-primary-light: #F2FBF9;
   --ef-accent: #13B6A2;
   --ef-accent-light: #E8FAF7;

@@ -385,6 +385,7 @@
         showCategoryRules();
       }
     } catch (error) {
+      EFC.hideFallback();
       root.innerHTML = EFC.errorState('We could not open the composer.');
     }
   }

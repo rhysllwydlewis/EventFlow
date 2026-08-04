@@ -12,6 +12,10 @@
   /* Use EventFlow's own brand tokens so the community never looks bolted on. */
   --efc-accent: var(--ef-primary, #0b8073);
   --efc-accent-soft: rgba(11, 128, 115, 0.09);
+  /* The brand teal clears 4.5:1 on white but not on --efc-accent-soft, which is
+     what selected tabs and pills sit on. Text on a tinted surface uses this
+     darker step so those states meet WCAG AA rather than landing at ~4.1:1. */
+  --efc-accent-strong: var(--ef-primary-dark, #096b60);
   --efc-surface: var(--ef-surface, #ffffff);
   --efc-page: var(--ef-bg-muted, #f8fafb);
   --efc-gap: 1.25rem;
@@ -422,7 +426,7 @@
 .efc-tab[aria-selected='true'] {
   background: var(--efc-accent-soft);
   border-color: var(--efc-accent);
-  color: var(--efc-accent);
+  color: var(--efc-accent-strong);
 }
 
 /* ── Thread ────────────────────────────────────────────────────────────── */

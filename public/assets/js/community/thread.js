@@ -702,6 +702,7 @@
       EFC.hideFallback();
       render();
     } catch (error) {
+      EFC.hideFallback();
       root.innerHTML = EFC.errorState('We could not load this discussion.');
       const retry = root.querySelector('[data-efc-retry]');
       if (retry) {
