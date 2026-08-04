@@ -18,6 +18,7 @@ const router = express.Router();
 const dbUnified = require('../db-unified');
 const logger = require('../utils/logger');
 const { apiLimiter, publicReadLimiter } = require('../middleware/rateLimits');
+const { getUserFromCookie } = require('../middleware/auth');
 const community = require('../services/community.service');
 const moderation = require('../services/communityModeration.service');
 const {
@@ -124,14 +125,47 @@ function applyContent(html, content) {
 }
 
 /**
+ * Resolve the viewer context for a server-rendered page.
+ *
+ * The page routes are mounted before the API stack, so they do not benefit from
+ * its `userExtractionMiddleware`. This reads the same signed cookie so that an
+ * author can still reach their own held content and a moderator can reach
+ * anything, while everyone else is refused.
+ * @param {Object} req Express request.
+ * @returns {Promise<Object>} Viewer context accepted by `community.canView`.
+ */
+async function viewerFor(req) {
+  const anonymous = { user: null, role: 'member' };
+  try {
+    const token = getUserFromCookie(req);
+    if (!token || !token.id) {
+      return anonymous;
+    }
+    const user = await dbUnified.findOne('users', { id: token.id });
+    if (!user) {
+      return anonymous;
+    }
+    return { user, role: community.communityRoleFor(user) };
+  } catch (error) {
+    logger.warn('Could not resolve the community page viewer:', error.message);
+    return anonymous;
+  }
+}
+
+/**
  * Send a rendered community page.
  * @param {Object} res Express response.
  * @param {string} html Final HTML.
  * @returns {void} Nothing.
  */
-function send(res, html) {
+function send(res, html, options = {}) {
   res.set('Content-Type', 'text/html; charset=utf-8');
-  res.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
+  // Anything a signed-in viewer can see but the public cannot must never reach a
+  // shared cache.
+  res.set(
+    'Cache-Control',
+    options.private ? 'private, no-store' : 'public, max-age=60, stale-while-revalidate=300'
+  );
   res.send(html);
 }
 
@@ -471,6 +505,15 @@ router.get(
         return next();
       }
 
+      // Authorisation, not just indexing. A quarantined, hidden, removed or
+      // draft discussion must be unreachable here exactly as it is on the API —
+      // otherwise anyone holding the stable id could read content moderation has
+      // taken down. `noindex` metadata alone is not an access control.
+      const viewer = await viewerFor(req);
+      if (!community.canView(discussion, viewer)) {
+        return next();
+      }
+
       const expectedSlug = discussion.slug || community.slugify(discussion.title);
       if (req.params.slug !== expectedSlug) {
         // The stable id is the identity; the slug is decoration, so an old or
@@ -562,7 +605,10 @@ router.get(
               : null,
           }),
           content
-        )
+        ),
+        // A non-public state here means the viewer is the author or a
+        // moderator, so the response is personal and must not be shared-cached.
+        { private: !isPublic }
       );
     } catch (error) {
       logger.error('Could not render a community discussion page:', error);

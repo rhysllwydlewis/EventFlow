@@ -513,6 +513,103 @@ describe('community ownership', () => {
   });
 });
 
+describe('community moderation on edit', () => {
+  it('blocks an edit that introduces a blocked domain into published content', async () => {
+    const res = await request(app)
+      .patch('/api/v1/community/discussions/d-1')
+      .set('Cookie', authCookie(users.member))
+      .send({ body: 'Actually the best deals are at https://top-casino-bonus.com these days.' });
+    expect(res.status).toBe(422);
+    expect(res.body.code).toBe('CONTENT_BLOCKED');
+    // The already-public body must be untouched.
+    expect(mockDb.all('community_discussions')[0].bodyHtml).toContain('marquee');
+    expect(mockDb.all('community_discussions')[0].state).toBe('published');
+  });
+
+  it('holds a published discussion for review when an edit scores high enough', async () => {
+    const res = await request(app)
+      .patch('/api/v1/community/discussions/d-1')
+      .set('Cookie', authCookie(users.member))
+      .send({
+        body: 'CLICK HERE to buy now, limited time offer, whatsapp me on +447700900000 today.',
+      });
+    expect(res.status).toBe(200);
+    expect(res.body.pendingReview).toBe(true);
+    expect(mockDb.all('community_discussions')[0].state).toBe('quarantined');
+  });
+
+  it('leaves an ordinary edit published', async () => {
+    const res = await request(app)
+      .patch('/api/v1/community/discussions/d-1')
+      .set('Cookie', authCookie(users.member))
+      .send({ body: 'Updating this: we have now booked and can share the final costs.' });
+    expect(res.status).toBe(200);
+    expect(res.body.pendingReview).toBe(false);
+    expect(mockDb.all('community_discussions')[0].state).toBe('published');
+  });
+
+  it('blocks a reply edit that introduces a blocked domain', async () => {
+    await request(app)
+      .post('/api/v1/community/discussions/aaaabbbbcccc/replies')
+      .set('Cookie', authCookie(users.other))
+      .send({ body: 'A perfectly ordinary reply about marquee sizes.' });
+    const created = mockDb.all('community_replies')[0];
+
+    const res = await request(app)
+      .patch(`/api/v1/community/replies/${created.id}`)
+      .set('Cookie', authCookie(users.other))
+      .send({ body: 'Edited to add https://mega-casino-wins.com for anyone interested.' });
+    expect(res.status).toBe(422);
+    expect(mockDb.all('community_replies')[0].bodyText).toContain('marquee');
+  });
+});
+
+describe('community member handles', () => {
+  it('never gives two members the same handle', async () => {
+    mockDb.seed('users', [
+      { ...users.member, communityHandle: undefined, displayName: 'Sam' },
+      {
+        ...users.other,
+        id: 'u-twin',
+        email: 'twin@example.com',
+        communityHandle: undefined,
+        displayName: 'Sam',
+      },
+    ]);
+
+    const first = await community.ensureHandle(mockDb.all('users')[0]);
+    const second = await community.ensureHandle(mockDb.all('users')[1]);
+
+    expect(first).not.toBe(second);
+    expect(first.toLowerCase()).toBe('sam');
+  });
+
+  it('persists the allocated handle so it is stable', async () => {
+    mockDb.seed('users', [{ ...users.member, communityHandle: undefined, displayName: 'Robin' }]);
+    const handle = await community.ensureHandle(mockDb.all('users')[0]);
+    expect(mockDb.all('users')[0].communityHandle).toBe(handle);
+    // A second call returns the stored handle rather than re-deriving it.
+    expect(await community.ensureHandle(mockDb.all('users')[0])).toBe(handle);
+  });
+});
+
+describe('community view records', () => {
+  it('stores the TTL expiry as a Date so MongoDB can expire it', async () => {
+    await request(app).get('/api/v1/community/discussions/aaaabbbbcccc');
+    const view = mockDb.all('community_views')[0];
+    expect(view).toBeDefined();
+    // A string here would be silently ignored by the TTL monitor.
+    expect(view.expiresAt).toBeInstanceOf(Date);
+    expect(view.viewedAt).toBeInstanceOf(Date);
+  });
+
+  it('does not store a raw IP address', async () => {
+    await request(app).get('/api/v1/community/discussions/aaaabbbbcccc');
+    const view = mockDb.all('community_views')[0];
+    expect(JSON.stringify(view)).not.toMatch(/\d+\.\d+\.\d+\.\d+/);
+  });
+});
+
 // ─── Replies ─────────────────────────────────────────────────────────────────
 
 describe('community replies', () => {

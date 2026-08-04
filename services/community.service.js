@@ -439,19 +439,21 @@ async function recordView(discussionId, req) {
     }
 
     const expiresAt = new Date(Date.now() + FRESHNESS.VIEW_DEDUPE_HOURS * 60 * 60 * 1000);
+    // `expiresAt` must be a BSON date: MongoDB's TTL monitor ignores strings, so
+    // storing an ISO string here would retain viewer keys indefinitely.
     if (existing) {
       await dbUnified.updateOne(
         COLLECTIONS.views,
         { discussionId, viewerKey: key },
-        { $set: { viewedAt: new Date().toISOString(), expiresAt: expiresAt.toISOString() } }
+        { $set: { viewedAt: new Date(), expiresAt } }
       );
     } else {
       await dbUnified.insertOne(COLLECTIONS.views, {
         id: createRecordId('cview'),
         discussionId,
         viewerKey: key,
-        viewedAt: new Date().toISOString(),
-        expiresAt: expiresAt.toISOString(),
+        viewedAt: new Date(),
+        expiresAt,
       });
     }
 
@@ -903,6 +905,41 @@ function applyFilters(discussions, query = {}, now = new Date()) {
 }
 
 /**
+ * Allocate a member's public handle once and persist it.
+ *
+ * Handles are the identity used by `/community/member/:handle`, the moderator
+ * member view and bulk reporting, so two members must never share one. The
+ * handle is derived from the display name, made unique against the handles
+ * already taken, and then stored on the user record so it is stable for the
+ * life of the account.
+ * @param {Object} user User record.
+ * @returns {Promise<string>} The member's unique public handle.
+ */
+async function ensureHandle(user) {
+  if (user.communityHandle) {
+    return user.communityHandle;
+  }
+
+  const existing = (await dbUnified.find('users', { communityHandle: { $type: 'string' } })) || [];
+  const taken = new Set(
+    existing
+      .map(item => item.communityHandle)
+      .filter(Boolean)
+      .map(value => String(value).toLowerCase())
+  );
+
+  const handle = deriveHandle(user, taken);
+  try {
+    await dbUnified.updateOne('users', { id: user.id }, { $set: { communityHandle: handle } });
+    // Keep the in-memory record in step so the rest of the request agrees.
+    user.communityHandle = handle;
+  } catch (error) {
+    logger.warn('Could not persist a community handle:', error.message);
+  }
+  return handle;
+}
+
+/**
  * Build the denormalised author card stored on a post.
  *
  * Only credentials EventFlow can actually prove are included. Nothing here
@@ -915,6 +952,7 @@ async function buildAuthorCard(user, context = {}) {
   const stats = context.stats || (await getUserStats(user.id));
   const level = computeLevel(stats, user);
   const role = context.role || communityRoleFor(user);
+  const handle = await ensureHandle(user);
 
   let supplier = null;
   if (user.role === 'supplier') {
@@ -931,7 +969,7 @@ async function buildAuthorCard(user, context = {}) {
   }
 
   return {
-    handle: user.communityHandle || deriveHandle(user),
+    handle,
     displayName:
       user.communityDisplayName ||
       user.displayName ||
@@ -1017,6 +1055,7 @@ module.exports = {
   slugify,
   discussionPath,
   deriveHandle,
+  ensureHandle,
   getSettings,
   invalidateSettingsCache,
   isCommunityEnabled,

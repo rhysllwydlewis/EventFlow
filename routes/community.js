@@ -557,7 +557,9 @@ router.get(
       const pageReplies = visible.slice((page - 1) * limit, page * limit);
 
       const viewerId = req.viewer.user ? req.viewer.user.id : null;
-      const myReactions = {};
+      // Null prototype: the keys are record ids, so this object is a plain map and
+      // must never expose or accept prototype members.
+      const myReactions = Object.create(null);
       let saved = false;
       let following = false;
       if (viewerId) {
@@ -926,11 +928,62 @@ router.patch(
         update.fingerprint = moderation.fingerprint(prepared.text);
       }
 
+      // Re-assess on edit. Otherwise a member could publish benign content and
+      // then edit blocked domains or promotion into a document that is already
+      // public — the moderation engine must see the text that will actually be
+      // served, not only the text that was first submitted.
+      const verdict = moderation.assessContent({
+        text: update.bodyText || discussion.bodyText,
+        title: update.title || discussion.title,
+        trustTier: req.viewer.trustTier,
+        settings,
+        recentPosts: await recentPostsFor(req.user.id),
+      });
+
+      if (verdict.decision === 'reject') {
+        await recordModerationAction({
+          action: 'quarantine',
+          targetType: 'discussion',
+          targetId: discussion.id,
+          reason: 'automated_block_on_edit',
+          signals: verdict.signals,
+        });
+        return res.status(422).json({
+          error: 'Edit blocked',
+          code: 'CONTENT_BLOCKED',
+          message:
+            'This edit links to a domain that is not allowed in the community. Remove the link and try again.',
+        });
+      }
+
+      update.riskScore = verdict.score;
+      update.riskSignals = verdict.signals;
+
+      if (verdict.decision === 'review' && discussion.state === CONTENT_STATES.PUBLISHED) {
+        update.state = CONTENT_STATES.QUARANTINED;
+      }
+
       await dbUnified.updateOne(COLLECTIONS.discussions, { id: discussion.id }, { $set: update });
+
+      if (update.state === CONTENT_STATES.QUARANTINED) {
+        await recordModerationAction({
+          action: 'quarantine',
+          targetType: 'discussion',
+          targetId: discussion.id,
+          reason: 'automated_review_on_edit',
+          signals: verdict.signals,
+        });
+      }
+
       const updated = await dbUnified.findOne(COLLECTIONS.discussions, { id: discussion.id });
       res.json({
         discussion: community.toDiscussionCard(updated),
         url: community.discussionPath(updated),
+        pendingReview: update.state === CONTENT_STATES.QUARANTINED,
+        message:
+          update.state === CONTENT_STATES.QUARANTINED
+            ? 'Your edit has been sent for a quick moderator check before it appears publicly.'
+            : 'Your discussion has been updated.',
       });
     } catch (error) {
       logger.error('Could not update community discussion:', error);

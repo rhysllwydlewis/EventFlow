@@ -1014,13 +1014,26 @@ const communityPatternPages = [
  * @param {Object} page Page definition.
  * @returns {void} Nothing.
  */
+function escapeCommunityHtml(value) {
+  return String(value === null || value === undefined ? '' : value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function sendCommunityShell(res, page) {
   const html = fs.readFileSync(path.join(PUBLIC_DIR, page.file), 'utf8');
+  // The route can come from the request path, so everything interpolated here
+  // is escaped — this mirrors routes/community-pages.js, which does the same.
+  const title = escapeCommunityHtml(page.title);
+  const canonical = escapeCommunityHtml(`https://event-flow.co.uk${page.route || '/community'}`);
   const head = [
-    `<title>${page.title} | EventFlow</title>`,
+    `<title>${title} | EventFlow</title>`,
     `<meta name="description" content="Ask questions, share experiences and get practical advice from people planning events and verified EventFlow suppliers." />`,
-    `<link rel="canonical" href="https://event-flow.co.uk${page.route || '/community'}" />`,
-    `<meta property="og:title" content="${page.title}" />`,
+    `<link rel="canonical" href="${canonical}" />`,
+    `<meta property="og:title" content="${title}" />`,
     page.noindex ? '<meta name="robots" content="noindex,follow" />' : '',
   ]
     .filter(Boolean)
@@ -1031,7 +1044,7 @@ function sendCommunityShell(res, page) {
     .send(
       html
         .replace('<!--COMMUNITY_HEAD-->', head)
-        .replace('<!--COMMUNITY_CONTENT-->', `<h1>${page.title}</h1>`)
+        .replace('<!--COMMUNITY_CONTENT-->', `<h1>${title}</h1>`)
     );
 }
 
@@ -1041,9 +1054,10 @@ communityPages.forEach(page => {
 });
 
 communityPatternPages.forEach(page => {
-  app.get(page.pattern, staticLimiter, (req, res) =>
-    sendCommunityShell(res, { ...page, route: req.path })
-  );
+  app.get(page.pattern, staticLimiter, (req, res) => {
+    const safeRoute = /^[a-zA-Z0-9/_-]{1,200}$/.test(req.path) ? req.path : '/community';
+    sendCommunityShell(res, { ...page, route: safeRoute });
+  });
 });
 
 ['/forum', '/forums', '/forum.html', '/forums.html'].forEach(legacy => {

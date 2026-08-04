@@ -11,6 +11,22 @@
 
   const API = '/api/v1/community';
 
+  /** The only query parameters the community reads from the URL. */
+  const ALLOWED_QUERY_KEYS = [
+    'q',
+    'page',
+    'limit',
+    'sort',
+    'category',
+    'eventType',
+    'region',
+    'tag',
+    'answer',
+    'freshness',
+    'media',
+    'since',
+  ];
+
   /**
    * Escape untrusted text for HTML interpolation.
    * @param {*} value Raw value.
@@ -309,9 +325,15 @@
    */
   function queryState() {
     const params = new URLSearchParams(window.location.search);
-    const state = {};
-    params.forEach((value, key) => {
-      state[key] = value;
+    // Only the parameters the community actually understands are read, and the
+    // object has a null prototype, so a crafted query string cannot reach
+    // Object.prototype or introduce a key the rest of the code will act on.
+    const state = Object.create(null);
+    ALLOWED_QUERY_KEYS.forEach(key => {
+      const value = params.get(key);
+      if (value !== null) {
+        state[key] = value;
+      }
     });
     return state;
   }
@@ -325,7 +347,8 @@
    */
   function setQueryState(state, replace = false) {
     const params = new URLSearchParams();
-    Object.entries(state).forEach(([key, value]) => {
+    ALLOWED_QUERY_KEYS.forEach(key => {
+      const value = state[key];
       if (value !== '' && value !== null && value !== undefined && value !== 'all') {
         params.set(key, value);
       }
@@ -368,6 +391,7 @@
     api,
     esc,
     csrfToken,
+    ALLOWED_QUERY_KEYS,
     timeAgo,
     shortDate,
     authorBadges,

@@ -329,22 +329,68 @@ router.patch(
         return res.status(400).json({ error: 'Validation failed', details: check.errors });
       }
 
+      // Re-assess on edit, for the same reason discussions do: a reply that is
+      // already public must not become a vector by being edited afterwards.
+      const discussion = await dbUnified.findOne(COLLECTIONS.discussions, {
+        id: reply.discussionId,
+      });
+      const verdict = moderation.assessContent({
+        text: prepared.text,
+        trustTier: req.viewer.trustTier,
+        settings,
+        thread: discussion,
+        recentPosts: await community.recentPostsFor(req.user.id),
+      });
+
+      if (verdict.decision === 'reject') {
+        await community.recordModerationAction({
+          action: 'quarantine',
+          targetType: 'reply',
+          targetId: reply.id,
+          reason: 'automated_block_on_edit',
+          signals: verdict.signals,
+        });
+        return res.status(422).json({
+          error: 'Edit blocked',
+          code: 'CONTENT_BLOCKED',
+          message:
+            'This edit links to a domain that is not allowed in the community. Remove the link and try again.',
+        });
+      }
+
       const now = new Date().toISOString();
-      await dbUnified.updateOne(
-        COLLECTIONS.replies,
-        { id: reply.id },
-        {
-          $set: {
-            bodyHtml: prepared.html,
-            bodyText: prepared.text,
-            fingerprint: moderation.fingerprint(prepared.text),
-            editedAt: now,
-            updatedAt: now,
-          },
-        }
-      );
+      const update = {
+        bodyHtml: prepared.html,
+        bodyText: prepared.text,
+        fingerprint: moderation.fingerprint(prepared.text),
+        editedAt: now,
+        updatedAt: now,
+        riskScore: verdict.score,
+        riskSignals: verdict.signals,
+      };
+
+      if (verdict.decision === 'review' && reply.state === CONTENT_STATES.PUBLISHED) {
+        update.state = CONTENT_STATES.QUARANTINED;
+      }
+
+      await dbUnified.updateOne(COLLECTIONS.replies, { id: reply.id }, { $set: update });
+
+      if (update.state === CONTENT_STATES.QUARANTINED) {
+        await community.recalculateDiscussionCounters(reply.discussionId);
+        await community.recordModerationAction({
+          action: 'quarantine',
+          targetType: 'reply',
+          targetId: reply.id,
+          reason: 'automated_review_on_edit',
+          signals: verdict.signals,
+        });
+      }
+
       const updated = await dbUnified.findOne(COLLECTIONS.replies, { id: reply.id });
-      res.json({ reply: community.toReplyView(updated, { viewerId: req.user.id }) });
+      res.json({
+        reply: community.toReplyView(updated, { viewerId: req.user.id }),
+        pendingReview: update.state === CONTENT_STATES.QUARANTINED,
+      });
     } catch (error) {
       logger.error('Could not update community reply:', error);
       res.status(500).json({ error: 'Could not update reply' });
@@ -411,8 +457,13 @@ router.delete(
  */
 async function recountReactions(targetId) {
   const reactions = (await dbUnified.find(COLLECTIONS.reactions, { targetId })) || [];
-  const counts = {};
+  // Null prototype, and only reactions from the published vocabulary are
+  // counted, so a stored value can never write a prototype member.
+  const counts = Object.create(null);
   reactions.forEach(item => {
+    if (!REACTION_KEYS.includes(item.reaction)) {
+      return;
+    }
     counts[item.reaction] = (counts[item.reaction] || 0) + 1;
   });
   await dbUnified.updateOne(

@@ -929,14 +929,27 @@ router.patch(
       ['blockedDomains', 'allowedDomains'].forEach(key => {
         if (Array.isArray(req.body[key])) {
           update[key] = req.body[key]
+            // Bound the input before any pattern runs: a hostname is never
+            // longer than 253 characters, and truncating first means a very
+            // long crafted string cannot drive backtracking.
             .map(value =>
               String(value || '')
                 .trim()
                 .toLowerCase()
-                .replace(/^https?:\/\//, '')
-                .replace(/^www\./, '')
-                .replace(/\/.*$/, '')
+                .slice(0, 253)
             )
+            .map(value => {
+              const withoutScheme = value.startsWith('https://')
+                ? value.slice(8)
+                : value.startsWith('http://')
+                  ? value.slice(7)
+                  : value;
+              const withoutWww = withoutScheme.startsWith('www.')
+                ? withoutScheme.slice(4)
+                : withoutScheme;
+              const slash = withoutWww.indexOf('/');
+              return slash === -1 ? withoutWww : withoutWww.slice(0, slash);
+            })
             .filter(Boolean)
             .slice(0, 2000);
         }
