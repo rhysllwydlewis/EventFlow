@@ -80,7 +80,6 @@ describe('Pricing and payment system fixes', () => {
 
     it('requires authentication (authRequired middleware)', () => {
       const src = readSrc('routes', 'subscriptions-v2.js');
-      // The route should include authRequired
       expect(src).toMatch(/create-checkout-session[\s\S]{0,200}authRequired/);
     });
 
@@ -137,23 +136,22 @@ describe('Pricing and payment system fixes', () => {
       expect(src).toContain('stripeConfig = config');
     });
 
-    it('sends canonical subscription plan identifiers instead of client-supplied Stripe prices', () => {
+    it('sends canonical subscription plan identifiers and the selected billing interval', () => {
       const src = readSrc('public', 'assets', 'js', 'checkout.js');
       expect(src).toContain("type: 'subscription'");
-      expect(src).toContain('planId: planKey');
-      expect(src).toContain(
-        "billingInterval: plan.interval || configuredPlan?.billingInterval || 'month'"
-      );
+      expect(src).toContain('const normalizedPlanKey = normalizePlanKey(planKey);');
+      expect(src).toContain('planId: normalizedPlanKey');
+      expect(src).toContain('const billingInterval =');
+      expect(src).toContain('billing.billingInterval');
+      expect(src).toContain('configuredPlan?.billingInterval');
+      expect(src).toContain('billingInterval,');
       expect(src).not.toContain('priceId: stripeConfig.proPriceId');
       expect(src).not.toContain("type: 'one_time'");
     });
 
     it('prefers data.url over sessionId for redirect', () => {
       const src = readSrc('public', 'assets', 'js', 'checkout.js');
-      // The redirect logic should check data.url first (in an if/else chain)
-      // Use a regex that matches the actual conditional pattern to avoid false positives from comments
       expect(src).toMatch(/if\s*\(data\.url\)\s*\{[^}]*window\.location\.href\s*=\s*data\.url/s);
-      // data.sessionId fallback must come after the data.url branch in the else clause
       const urlBranchIdx = src.search(/if\s*\(data\.url\)/);
       const sessionIdBranchIdx = src.search(/else if\s*\(data\.sessionId\)/);
       expect(urlBranchIdx).toBeGreaterThan(-1);
@@ -172,13 +170,11 @@ describe('Pricing and payment system fixes', () => {
     it('uses the v2 subscriptions endpoint for new checkout sessions', () => {
       const src = readSrc('public', 'supplier', 'js', 'subscription.js');
       expect(src).toContain('/api/v2/subscriptions/create-checkout-session');
-      // Should NOT use the old unversioned endpoint
       expect(src).not.toContain("fetch('/api/payments/create-checkout-session'");
     });
 
     it('does not fall back to one_time payment type', () => {
       const src = readSrc('public', 'supplier', 'js', 'subscription.js');
-      // The fallback one_time section should no longer exist
       expect(src).not.toContain('// Fallback to one-time payment');
     });
 
@@ -191,7 +187,6 @@ describe('Pricing and payment system fixes', () => {
   // Fix 4: pricing CTA handler uses redirect param (not returnTo) for post-login redirect
   describe('pricing.html: uses redirect param for post-login flow', () => {
     it('uses redirect= parameter (not returnTo=) when redirecting unauthenticated users', () => {
-      // The CTA handler lives in pricing.js (inline script was removed from pricing.html)
       const src = readSrc('public', 'assets', 'js', 'pricing.js');
       expect(src).toContain('redirect=');
       expect(src).not.toContain('returnTo=');
@@ -250,7 +245,6 @@ describe('Pricing and payment system fixes', () => {
   describe('app.js: redirect allowlist includes payment pages', () => {
     it('includes /pricing.html in supplier allowlist', () => {
       const src = readSrc('public', 'assets', 'js', 'app.js');
-      // Verify presence of pricing.html in the supplier section
       const supplierSection = src.slice(src.indexOf('supplier: ['), src.indexOf('customer: ['));
       expect(supplierSection).toContain("'/pricing.html'");
     });
