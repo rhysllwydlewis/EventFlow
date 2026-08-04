@@ -1189,6 +1189,22 @@ body {
   }
 }
 
+/* The signed-out header fits the full desktop nav from 768px, but the
+   signed-in one adds a notifications button, "Log out" and "Dashboard" and
+   does not fit until ~1100px — below that the nav and the actions collided,
+   pushing the page into a horizontal scroll (measured 1081px of content in a
+   1024px viewport). Keep the mobile menu, which already lists every desktop
+   destination and more, until there is genuinely room. */
+@media (max-width: 1099px) {
+  body.ef-signed-in .ef-nav-desktop {
+    display: none;
+  }
+
+  body.ef-signed-in .ef-mobile-toggle {
+    display: flex;
+  }
+}
+
 /* Tablet tuning - keep controls readable without crowding nav links */
 @media (min-width: 768px) and (max-width: 1023px) {
   .ef-container {
@@ -1627,7 +1643,9 @@ body {
 /* Dashboard link should match exactly */
 .ef-header #ef-dashboard-link {
   font-size: var(--ef-nav-font-size) !important;
-  color: var(--ef-primary) !important;
+  /* This !important overrode the accessible aria-current colour set above,
+     leaving the link at 3.99:1 whenever /admin was the current page. */
+  color: var(--ef-primary-dark, #096b60) !important;
   font-weight: 500 !important;
   padding: 8px 14px !important;
 }
