@@ -7,7 +7,6 @@
 (function () {
   'use strict';
 
-  const BILLING_STORAGE_KEY = 'eventflow-pricing-billing-period';
   const BILLING_MONTH = 'month';
   const BILLING_YEAR = 'year';
 
@@ -80,7 +79,9 @@
     },
   };
 
-  let activeBillingPeriod = BILLING_MONTH;
+  // Annual is deliberately the default because it is the promoted best-value view.
+  // A billingInterval/period URL parameter can still explicitly select monthly.
+  let activeBillingPeriod = BILLING_YEAR;
   let pricingAuthMode = 'unknown';
 
   function escapeHtml(value) {
@@ -156,6 +157,20 @@
       : '';
     const secondaryClass = plan.secondary ? ' secondary' : '';
     const features = plan.features.map(feature => `<li>${escapeHtml(feature)}</li>`).join('');
+    const initialAnnual = activeBillingPeriod === BILLING_YEAR;
+    const initialPrice = initialAnnual ? plan.annualMonthlyPrice : plan.monthlyPrice;
+    const initialBilledLine = initialAnnual
+      ? `£${formatMoney(plan.annualTotal)} billed annually`
+      : `£${formatMoney(plan.monthlyPrice)} billed monthly`;
+    const initialNormally =
+      initialAnnual && plan.monthlyPrice > 0
+        ? `Normally £${formatMoney(plan.monthlyPrice)}/month`
+        : '';
+    const initialSaving =
+      initialAnnual && plan.annualSaving > 0
+        ? `Save £${formatMoney(plan.annualSaving)} annually (${plan.annualDiscount}%)`
+        : '';
+    const initialCta = initialAnnual ? plan.ctaAnnual : plan.ctaMonthly;
 
     card.innerHTML = `
       ${popularRibbon}
@@ -167,22 +182,22 @@
         </div>
 
         <div class="pricing-price-row">
-          <span class="pricing-price" data-pricing-price>£${formatMoney(plan.monthlyPrice)}</span>
+          <span class="pricing-price" data-pricing-price>£${formatMoney(initialPrice)}</span>
           <span class="pricing-period">/month</span>
         </div>
-        <p class="pricing-billed-line" data-pricing-billed-line></p>
-        <p class="pricing-normally" data-pricing-normally hidden></p>
+        <p class="pricing-billed-line" data-pricing-billed-line>${escapeHtml(initialBilledLine)}</p>
+        <p class="pricing-normally" data-pricing-normally${initialNormally ? '' : ' hidden'}>${escapeHtml(initialNormally)}</p>
         ${earlyAccessDescription}
 
         <div class="pricing-card-divider" aria-hidden="true"></div>
         <ul class="pricing-features">${features}</ul>
 
         <a
-          href="/checkout?plan=${encodeURIComponent(plan.hrefPlan)}&billingInterval=${BILLING_MONTH}"
+          href="/checkout?plan=${encodeURIComponent(plan.hrefPlan)}&billingInterval=${activeBillingPeriod}"
           class="pricing-cta${secondaryClass}"
           data-pricing-plan="${escapeHtml(plan.hrefPlan)}"
-        >${escapeHtml(plan.ctaMonthly)}</a>
-        <p class="pricing-savings" data-pricing-savings hidden></p>
+        >${escapeHtml(initialCta)}</a>
+        <p class="pricing-savings" data-pricing-savings${initialSaving ? '' : ' hidden'}>${escapeHtml(initialSaving)}</p>
         ${offerTerms}
       </div>
     `;
@@ -200,18 +215,18 @@
       <h1>Simple, transparent pricing</h1>
       <p class="subtitle">Choose the plan that's right for your business.<br>Upgrade or downgrade at any time.</p>
       <div class="pricing-billing-toggle" role="group" aria-label="Choose billing frequency">
-        <span id="pricing-monthly-label" class="pricing-billing-label is-active">Billed monthly</span>
+        <span id="pricing-monthly-label" class="pricing-billing-label">Billed monthly</span>
         <button
           id="pricing-billing-switch"
-          class="pricing-billing-switch"
+          class="pricing-billing-switch is-annual"
           type="button"
           role="switch"
-          aria-checked="false"
+          aria-checked="true"
           aria-labelledby="pricing-monthly-label pricing-annual-label"
         >
           <span class="pricing-billing-switch-thumb" aria-hidden="true"></span>
         </button>
-        <span id="pricing-annual-label" class="pricing-billing-label">Billed annually</span>
+        <span id="pricing-annual-label" class="pricing-billing-label is-active">Billed annually</span>
         <span class="pricing-billing-saving">Save up to 19%</span>
       </div>
     `;
@@ -239,31 +254,13 @@
   function readInitialBillingPeriod() {
     const params = new URLSearchParams(window.location.search);
     const requested = params.get('billingInterval') || params.get('period');
-    if (requested === BILLING_YEAR || requested === 'annual') {
-      return BILLING_YEAR;
-    }
     if (requested === BILLING_MONTH || requested === 'monthly') {
       return BILLING_MONTH;
     }
-
-    try {
-      const stored = window.localStorage.getItem(BILLING_STORAGE_KEY);
-      if (stored === BILLING_YEAR || stored === BILLING_MONTH) {
-        return stored;
-      }
-    } catch (_error) {
-      // Storage can be unavailable in private or restricted browsing contexts.
+    if (requested === BILLING_YEAR || requested === 'annual') {
+      return BILLING_YEAR;
     }
-
-    return BILLING_MONTH;
-  }
-
-  function persistBillingPeriod(period) {
-    try {
-      window.localStorage.setItem(BILLING_STORAGE_KEY, period);
-    } catch (_error) {
-      // The toggle still works when storage is unavailable.
-    }
+    return BILLING_YEAR;
   }
 
   function updateCardBilling(card, period) {
@@ -324,8 +321,8 @@
     }
   }
 
-  function setBillingPeriod(period, options = {}) {
-    activeBillingPeriod = period === BILLING_YEAR ? BILLING_YEAR : BILLING_MONTH;
+  function setBillingPeriod(period) {
+    activeBillingPeriod = period === BILLING_MONTH ? BILLING_MONTH : BILLING_YEAR;
     const annual = activeBillingPeriod === BILLING_YEAR;
     const toggle = document.getElementById('pricing-billing-switch');
     const monthlyLabel = document.getElementById('pricing-monthly-label');
@@ -343,10 +340,6 @@
     document.querySelectorAll('.pricing-card[data-plan]').forEach(card => {
       updateCardBilling(card, activeBillingPeriod);
     });
-
-    if (options.persist !== false) {
-      persistBillingPeriod(activeBillingPeriod);
-    }
   }
 
   function attachBillingToggle() {
@@ -374,7 +367,7 @@
 
     renderSecurityNote();
     attachBillingToggle();
-    setBillingPeriod(readInitialBillingPeriod(), { persist: false });
+    setBillingPeriod(readInitialBillingPeriod());
   }
 
   async function checkAuthAndUpdateButtons() {
@@ -534,9 +527,9 @@
 
         const planId = checkoutUrl?.searchParams.get('plan');
         const billingInterval =
-          checkoutUrl?.searchParams.get('billingInterval') === BILLING_YEAR
-            ? BILLING_YEAR
-            : BILLING_MONTH;
+          checkoutUrl?.searchParams.get('billingInterval') === BILLING_MONTH
+            ? BILLING_MONTH
+            : BILLING_YEAR;
 
         if (!planId) {
           return;
@@ -613,7 +606,7 @@
         const url = new URL(originalHref, window.location.origin);
         const plan = url.searchParams.get('plan');
         const billingInterval =
-          url.searchParams.get('billingInterval') === BILLING_YEAR ? BILLING_YEAR : BILLING_MONTH;
+          url.searchParams.get('billingInterval') === BILLING_MONTH ? BILLING_MONTH : BILLING_YEAR;
 
         if (plan) {
           const redirect = `/pricing?plan=${encodeURIComponent(
