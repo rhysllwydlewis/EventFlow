@@ -797,6 +797,12 @@ app.get('/admin-cashout-requests', apiLimiter, (req, res, next) => {
 // Client-side dashboard-guard.js remains as a fallback, but server is primary enforcement
 app.use(adminPageProtectionMiddleware());
 
+// ---------- EventFlow Community Pages ----------
+// CRITICAL: Must come before templateMiddleware() and express.static() so the
+// community shells are served with their server-rendered content, metadata and
+// structured data rather than as raw HTML files with unfilled placeholders.
+app.use(require('./routes/community-pages'));
+
 // ---------- Template Rendering Middleware ----------
 // CRITICAL: Must come before express.static() to process HTML files with placeholders
 // Replaces {{PLACEHOLDER}} values in HTML files with dynamic content
@@ -1653,6 +1659,19 @@ async function startServer() {
         } catch (v4IndexError) {
           logger.warn('   ⚠️  Could not create Messenger v4 indexes:', v4IndexError.message);
           logger.warn('   Messenger queries may be slower until this is resolved');
+        }
+
+        // EventFlow Community indexes and the idempotent category seed. Seeding
+        // only ever adds missing categories — it never creates users, discussions
+        // or replies, so no synthetic content can reach production.
+        try {
+          await require('./services/communityIndexes.service').ensureIndexes();
+          const seedResult = await require('./services/community.service').seedCategories();
+          logger.info(
+            `   ✅ Community ready (${seedResult.created} categories seeded, ${seedResult.existing} already present)`
+          );
+        } catch (communityError) {
+          logger.warn('   ⚠️  Could not initialise the community:', communityError.message);
         }
 
         // Auto-migrate v1 threads and messages to MongoDB (if needed)

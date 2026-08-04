@@ -177,6 +177,15 @@ const REGISTRY = [
     badgeId: 'navBadgeExternalContacts',
   },
   {
+    route: '/admin-community',
+    htmlFile: 'admin-community',
+    label: 'Community',
+    icon: '💜',
+    category: 'moderation',
+    inNav: true,
+    desc: 'Community moderation, reports, categories and health',
+  },
+  {
     route: '/admin-reports',
     htmlFile: 'admin-reports',
     label: 'Reports',

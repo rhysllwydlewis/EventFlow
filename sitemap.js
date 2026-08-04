@@ -58,7 +58,9 @@ function validLastModifiedOrFallback(value, fallback = '') {
 function appendUrl(xmlParts, location, lastmod = '') {
   xmlParts.push('  <url>');
   xmlParts.push(`    <loc>${xmlEscape(location)}</loc>`);
-  if (lastmod) xmlParts.push(`    <lastmod>${xmlEscape(lastmod)}</lastmod>`);
+  if (lastmod) {
+    xmlParts.push(`    <lastmod>${xmlEscape(lastmod)}</lastmod>`);
+  }
   xmlParts.push('  </url>');
 }
 
@@ -95,6 +97,10 @@ async function generateSitemap(baseUrl) {
     '/marketplace',
     '/public-calendar',
     '/guides',
+    '/community',
+    '/community/discussions',
+    '/community/guidelines',
+    '/community/help',
     '/start',
     '/pricing',
     '/for-suppliers',
@@ -108,7 +114,9 @@ async function generateSitemap(baseUrl) {
   // Guides are repository-backed content and must remain available even when a
   // dynamic collection is temporarily unavailable.
   loadGuideEntries().forEach(({ slug, lastmod }) => {
-    if (!slug) return;
+    if (!slug) {
+      return;
+    }
     appendUrl(
       xmlParts,
       `${normalizedBaseUrl}/articles/${slug}`,
@@ -130,7 +138,9 @@ async function generateSitemap(baseUrl) {
     .sort((a, b) => String(a.id).localeCompare(String(b.id)))
     .forEach(supplier => {
       const slug = buildPublicSupplierSlug(supplier);
-      if (!slug) return;
+      if (!slug) {
+        return;
+      }
       appendUrl(
         xmlParts,
         `${normalizedBaseUrl}/supplier/${slug}`,
@@ -143,7 +153,9 @@ async function generateSitemap(baseUrl) {
     .sort((a, b) => String(a.id).localeCompare(String(b.id)))
     .forEach(pkg => {
       const slug = buildPublicPackageSlug(pkg);
-      if (!slug) return;
+      if (!slug) {
+        return;
+      }
       appendUrl(
         xmlParts,
         `${normalizedBaseUrl}/package/${slug}`,
@@ -157,13 +169,52 @@ async function generateSitemap(baseUrl) {
     .sort((a, b) => String(a.startDate).localeCompare(String(b.startDate)))
     .forEach(event => {
       const slug = buildPublicEventSlug(event);
-      if (!slug) return;
+      if (!slug) {
+        return;
+      }
       appendUrl(
         xmlParts,
         `${normalizedBaseUrl}/events/${slug}`,
         validLastModifiedOrFallback(
           event.updatedAt || event.publishedAt || event.modifiedAt || event.createdAt
         )
+      );
+    });
+
+  // Community categories and published discussions. Held, hidden, removed and
+  // superseded content is excluded so the sitemap never advertises a URL that
+  // returns a noindex page.
+  const [communityCategories, communityDiscussions] = await Promise.all([
+    readCollection('community_categories'),
+    readCollection('community_discussions'),
+  ]);
+
+  communityCategories
+    .filter(
+      category => category && category.slug && category.visible !== false && !category.archived
+    )
+    .sort((a, b) => String(a.slug).localeCompare(String(b.slug)))
+    .forEach(category => {
+      appendUrl(
+        xmlParts,
+        `${normalizedBaseUrl}/community/category/${category.slug}`,
+        validLastModifiedOrFallback(category.updatedAt || category.createdAt)
+      );
+    });
+
+  communityDiscussions
+    .filter(
+      discussion =>
+        discussion &&
+        discussion.stableId &&
+        (discussion.state === 'published' || discussion.state === 'archived')
+    )
+    .sort((a, b) => String(a.stableId).localeCompare(String(b.stableId)))
+    .forEach(discussion => {
+      appendUrl(
+        xmlParts,
+        `${normalizedBaseUrl}/community/discussion/${discussion.stableId}/${discussion.slug || 'discussion'}`,
+        validLastModifiedOrFallback(discussion.lastActivityAt || discussion.createdAt)
       );
     });
 

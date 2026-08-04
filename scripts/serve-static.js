@@ -10,6 +10,7 @@
  */
 
 const express = require('express');
+const fs = require('fs');
 const path = require('path');
 const rateLimit = require('express-rate-limit');
 
@@ -885,6 +886,7 @@ const adminPages = [
   'admin',
   'admin-analytics',
   'admin-audit',
+  'admin-community',
   'admin-content',
   'admin-content-dates',
   'admin-exports',
@@ -946,6 +948,120 @@ app.get('/articles/:slug', (req, res, next) => {
 app.get('/articles/:slug.html', (req, res) => {
   const qs = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
   res.redirect(301, `/articles/${req.params.slug}${qs}`);
+});
+
+// EventFlow Community pages. The real server renders these with live content
+// and metadata (see routes/community-pages.js). This static stand-in serves the
+// same shells with the placeholders replaced by static equivalents so the
+// browser suite can exercise navigation, layout and accessibility without a
+// database.
+const communityPages = [
+  { route: '/community', file: 'community.html', title: 'EventFlow Community' },
+  {
+    route: '/community/discussions',
+    file: 'community-discussions.html',
+    title: 'All discussions — EventFlow Community',
+  },
+  {
+    route: '/community/new',
+    file: 'community-new.html',
+    title: 'Start a discussion — EventFlow Community',
+    noindex: true,
+  },
+  {
+    route: '/community/search',
+    file: 'community-search.html',
+    title: 'Search — EventFlow Community',
+    noindex: true,
+  },
+  {
+    route: '/community/saved',
+    file: 'community-saved.html',
+    title: 'Saved discussions — EventFlow Community',
+    noindex: true,
+  },
+  {
+    route: '/community/following',
+    file: 'community-following.html',
+    title: 'Following — EventFlow Community',
+    noindex: true,
+  },
+  {
+    route: '/community/guidelines',
+    file: 'community-guidelines.html',
+    title: 'Community guidelines — EventFlow',
+  },
+  {
+    route: '/community/help',
+    file: 'community-help.html',
+    title: 'Community help and appeals — EventFlow',
+  },
+];
+
+const communityPatternPages = [
+  { pattern: '/community/category/:slug', file: 'community-category.html', title: 'Category' },
+  {
+    pattern: '/community/discussion/:stableId/:slug?',
+    file: 'community-discussion.html',
+    title: 'Discussion',
+  },
+  { pattern: '/community/member/:handle', file: 'community-member.html', title: 'Member' },
+];
+
+/**
+ * Serve a community shell with its placeholders filled in.
+ * @param {Object} res Express response.
+ * @param {Object} page Page definition.
+ * @returns {void} Nothing.
+ */
+function escapeCommunityHtml(value) {
+  return String(value === null || value === undefined ? '' : value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function sendCommunityShell(res, page) {
+  const html = fs.readFileSync(path.join(PUBLIC_DIR, page.file), 'utf8');
+  // The route can come from the request path, so everything interpolated here
+  // is escaped — this mirrors routes/community-pages.js, which does the same.
+  const title = escapeCommunityHtml(page.title);
+  const canonical = escapeCommunityHtml(`https://event-flow.co.uk${page.route || '/community'}`);
+  const head = [
+    `<title>${title} | EventFlow</title>`,
+    `<meta name="description" content="Ask questions, share experiences and get practical advice from people planning events and verified EventFlow suppliers." />`,
+    `<link rel="canonical" href="${canonical}" />`,
+    `<meta property="og:title" content="${title}" />`,
+    page.noindex ? '<meta name="robots" content="noindex,follow" />' : '',
+  ]
+    .filter(Boolean)
+    .join('\n    ');
+
+  res
+    .type('html')
+    .send(
+      html
+        .replace('<!--COMMUNITY_HEAD-->', head)
+        .replace('<!--COMMUNITY_CONTENT-->', `<h1>${title}</h1>`)
+    );
+}
+
+communityPages.forEach(page => {
+  app.get(page.route, staticLimiter, (req, res) => sendCommunityShell(res, page));
+  app.get(`${page.route}.html`, staticLimiter, (req, res) => res.redirect(301, page.route));
+});
+
+communityPatternPages.forEach(page => {
+  app.get(page.pattern, staticLimiter, (req, res) => {
+    const safeRoute = /^[a-zA-Z0-9/_-]{1,200}$/.test(req.path) ? req.path : '/community';
+    sendCommunityShell(res, { ...page, route: safeRoute });
+  });
+});
+
+['/forum', '/forums', '/forum.html', '/forums.html'].forEach(legacy => {
+  app.get(legacy, staticLimiter, (req, res) => res.redirect(301, '/community'));
 });
 
 // Serve static files from public directory
