@@ -8,7 +8,7 @@
 'use strict';
 
 const moderation = require('../../services/communityModeration.service');
-const { TRUST_TIERS, CONTENT_STATES } = require('../../models/CommunityContent');
+const { TRUST_TIERS, CONTENT_STATES, LIMITS } = require('../../models/CommunityContent');
 
 describe('community moderation — links', () => {
   it('extracts every http and https URL from a body', () => {
@@ -280,6 +280,68 @@ describe('community moderation — domain summary', () => {
     const started = Date.now();
     expect(moderation.summariseDomains(hostile).domains).toEqual([]);
     expect(Date.now() - started).toBeLessThan(250);
+  });
+});
+
+describe('community moderation — hostile input cannot stall the event loop', () => {
+  const LIMIT = LIMITS.bodyMax || 20000;
+
+  // Every one of these was measured against the expression it targets before
+  // the fix: the WhatsApp phrase ran for 20 seconds on 4,000 spaces, and the
+  // anchor rewriter took over 100ms on a body of unterminated "<a " and
+  // quadrupled each time the input doubled. Both ran on every submission.
+  const bodies = {
+    'promotional phrase followed by whitespace': `whatsapp${' '.repeat(LIMIT)}`,
+    'unterminated anchor openings': '<a '.repeat(Math.floor(LIMIT / 3)),
+    'anchors that are never closed': '<a x>'.repeat(Math.floor(LIMIT / 5)),
+    'a long chain of hostname labels': `${'a.'.repeat(LIMIT / 2)}!`,
+    'a run of dots': '.'.repeat(LIMIT),
+    'a run of hyphens': '-'.repeat(LIMIT),
+    'a run of whitespace': ' '.repeat(LIMIT),
+    'a run of digits': `0${'1 '.repeat(LIMIT / 2)}`,
+    'one enormous mention': `@${'a'.repeat(LIMIT)}`,
+    'a phone-like digit run': `contact us on 1${'1 '.repeat(LIMIT / 2)}`,
+    'an unterminated href': '<a href="'.repeat(Math.floor(LIMIT / 9)),
+    'a slash run inside an anchor': `whatsapp <a href="${'/'.repeat(LIMIT / 2)}">x`,
+  };
+
+  Object.entries(bodies).forEach(([description, body]) => {
+    it(`assesses ${description} promptly`, () => {
+      const started = Date.now();
+      const verdict = moderation.assessContent({
+        title: 'Hostile input',
+        body,
+        trustTier: TRUST_TIERS.NEW,
+        settings: {},
+        now: new Date(),
+      });
+      expect(verdict).toBeTruthy();
+      // Generous next to the ~2ms this actually takes, but far below the
+      // seconds a backtracking regression would cost.
+      expect(Date.now() - started).toBeLessThan(1000);
+    });
+  });
+});
+
+describe('community moderation — promotional phrases still match', () => {
+  it('recognises a WhatsApp number handover in its usual forms', () => {
+    [
+      'whatsapp me on +44 7700 900123',
+      'whatsapp us at 07700900123',
+      'whatsapp +447700900123',
+      'WhatsApp me 07700900123',
+      'whatsapp  me  on  +44123',
+    ].forEach(text => {
+      expect(moderation.detectPromotionalLanguage(text).length).toBeGreaterThan(0);
+    });
+  });
+
+  it('leaves ordinary mentions of WhatsApp alone', () => {
+    ['we used whatsapp to chat', 'is there a whatsapp group?', 'whatsapp me for a quote'].forEach(
+      text => {
+        expect(moderation.detectPromotionalLanguage(text)).toEqual([]);
+      }
+    );
   });
 });
 

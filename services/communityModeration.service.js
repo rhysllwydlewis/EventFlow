@@ -76,7 +76,12 @@ const PROMOTIONAL_PATTERNS = Object.freeze([
   /\bclick\s+here\b/i,
   /\blimited\s+time\s+offer\b/i,
   /\b(best|cheapest)\s+price\s+guaranteed\b/i,
-  /\bwhatsapp\s*(me|us)?\s*(on|at)?\s*\+?\d/i,
+  // Each optional group carries its own leading whitespace and requires a
+  // literal, so no two whitespace quantifiers are ever adjacent. Written as
+  // `\s*(me|us)?\s*(on|at)?\s*` this ran for 20 seconds on 4,000 spaces — the
+  // engine partitioned the run between three quantifiers, and a body of
+  // "whatsapp" plus whitespace would have hung the event loop outright.
+  /\bwhatsapp\b(?:\s*(?:me|us)\b)?(?:\s*(?:on|at)\b)?\s*\+?\d/i,
   /\btelegram\s*[:@]/i,
   /\bdm\s+me\s+for\s+(price|details|info)/i,
   /\b(guaranteed|instant)\s+(win|profit|returns?)\b/i,
@@ -257,40 +262,88 @@ function matchesDomain(host, entry) {
  * @param {Object} options.settings Community settings for domain lists.
  * @returns {string} HTML with safe anchors.
  */
+function rewriteAnchor(attrs, inner, clickable, settings) {
+  const hrefMatch = /href\s*=\s*("([^"]*)"|'([^']*)')/i.exec(attrs);
+  const href = hrefMatch ? hrefMatch[2] || hrefMatch[3] || '' : '';
+  const text = inner || href;
+
+  if (!isSafeUrl(href)) {
+    return text;
+  }
+
+  const domain = domainOf(href);
+  const internal = isInternalDomain(domain, settings);
+
+  if (isBlockedDomain(domain, settings)) {
+    return stripHtml(text);
+  }
+
+  if (!clickable && !internal) {
+    // Show the destination as text so readers keep the information without the
+    // post gaining a clickable outbound link.
+    return `${stripHtml(text)} (${escapeAttribute(href)})`;
+  }
+
+  if (internal) {
+    return `<a href="${escapeAttribute(href)}">${text}</a>`;
+  }
+
+  return `<a href="${escapeAttribute(href)}" target="_blank" rel="ugc nofollow noopener noreferrer">${text}</a>`;
+}
+
 function applyLinkPolicy(html, options = {}) {
   const { clickable = true, settings = {} } = options;
   if (!html || typeof html !== 'string') {
     return '';
   }
 
-  return html.replace(/<a\b([^>]*)>([\s\S]*?)<\/a>/gi, (match, attrs, inner) => {
-    const hrefMatch = /href\s*=\s*("([^"]*)"|'([^']*)')/i.exec(attrs);
-    const href = hrefMatch ? hrefMatch[2] || hrefMatch[3] || '' : '';
-    const text = inner || href;
+  // Anchors are located by scanning rather than by /<a\b([^>]*)>([\s\S]*?)<\/a>/.
+  // That expression is quadratic on a body the author controls: against a run of
+  // "<a " with no closing bracket, `[^>]*` runs to the end of the string and
+  // backtracks once per opening tag. Measured on the 20,000-character body limit
+  // it cost over 100ms of event-loop time for a single submission, and doubling
+  // the input quadrupled it. indexOf only moves forward, so this is linear.
+  //
+  // Bounding the quantifiers instead would have been worse than the disease: an
+  // anchor that failed to match would pass through unrewritten, which is exactly
+  // how an external link would escape the rel="ugc nofollow" policy.
+  const lower = html.toLowerCase();
+  let out = '';
+  let index = 0;
 
-    if (!isSafeUrl(href)) {
-      return text;
+  for (;;) {
+    const open = lower.indexOf('<a', index);
+    if (open === -1) {
+      break;
+    }
+    // `\b` in the original: "<abbr" is not an anchor, "<a " and "<a>" are.
+    if (/[a-z0-9]/.test(lower.charAt(open + 2))) {
+      out += html.slice(index, open + 2);
+      index = open + 2;
+      continue;
+    }
+    const tagEnd = html.indexOf('>', open + 2);
+    if (tagEnd === -1) {
+      break;
+    }
+    // The original matched `<\/a>` exactly, and its lazy inner group stopped at
+    // the first one; indexOf finds precisely that.
+    const close = lower.indexOf('</a>', tagEnd + 1);
+    if (close === -1) {
+      break;
     }
 
-    const domain = domainOf(href);
-    const internal = isInternalDomain(domain, settings);
+    out += html.slice(index, open);
+    out += rewriteAnchor(
+      html.slice(open + 2, tagEnd),
+      html.slice(tagEnd + 1, close),
+      clickable,
+      settings
+    );
+    index = close + 4;
+  }
 
-    if (isBlockedDomain(domain, settings)) {
-      return stripHtml(text);
-    }
-
-    if (!clickable && !internal) {
-      // Show the destination as text so readers keep the information without the
-      // post gaining a clickable outbound link.
-      return `${stripHtml(text)} (${escapeAttribute(href)})`;
-    }
-
-    if (internal) {
-      return `<a href="${escapeAttribute(href)}">${text}</a>`;
-    }
-
-    return `<a href="${escapeAttribute(href)}" target="_blank" rel="ugc nofollow noopener noreferrer">${text}</a>`;
-  });
+  return out + html.slice(index);
 }
 
 /**
