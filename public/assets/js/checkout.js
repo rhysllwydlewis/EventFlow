@@ -399,10 +399,6 @@
   }
 
   async function init() {
-    initializeStripe().catch(err => {
-      console.error('Stripe initialization failed:', err);
-    });
-
     const authStatus = await checkAuth();
     if (authStatus === true || authStatus === 'unauthenticated_free') {
       renderPricingCards();
