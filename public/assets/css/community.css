@@ -737,6 +737,19 @@
 
 /* ── Dialogs ───────────────────────────────────────────────────────────── */
 
+/* A browser without <dialog> support gives the element no user-agent style, so
+   it defaults to display: inline and the report form would sit in the page
+   permanently. This hides it when closed in every browser, and lets the
+   non-modal fallback in thread.js present it as a panel when opened. */
+.efc-dialog:not([open]) {
+  display: none;
+}
+
+.efc-dialog[open] {
+  margin: 1rem auto;
+  background: var(--efc-surface);
+}
+
 .efc-dialog {
   border: none;
   border-radius: var(--efc-radius);

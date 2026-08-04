@@ -616,6 +616,37 @@
    * Wire the report dialog.
    * @returns {void} Nothing.
    */
+  /**
+   * Open the report dialog.
+   *
+   * `<dialog>` reached Safari only in 15.4, and `showModal` is simply absent
+   * before that — calling it throws and leaves the report button dead. Reporting
+   * is a safety path, so it degrades to a non-modal open state rather than
+   * failing.
+   * @param {HTMLElement} dialog Dialog element.
+   * @returns {void} Nothing.
+   */
+  function openDialog(dialog) {
+    if (typeof dialog.showModal === 'function') {
+      dialog.showModal();
+      return;
+    }
+    dialog.setAttribute('open', '');
+  }
+
+  /**
+   * Close the report dialog, mirroring openDialog's fallback.
+   * @param {HTMLElement} dialog Dialog element.
+   * @returns {void} Nothing.
+   */
+  function closeDialog(dialog) {
+    if (typeof dialog.close === 'function') {
+      dialog.close();
+      return;
+    }
+    dialog.removeAttribute('open');
+  }
+
   function wireReport() {
     const dialog = document.getElementById('efc-report-dialog');
     const reasonSelect = document.getElementById('efc-report-reason');
@@ -637,11 +668,11 @@
     root.querySelectorAll('[data-report]').forEach(button => {
       button.addEventListener('click', () => {
         targetId = button.dataset.report;
-        dialog.showModal();
+        openDialog(dialog);
       });
     });
 
-    dialog.querySelector('[data-close]').addEventListener('click', () => dialog.close());
+    dialog.querySelector('[data-close]').addEventListener('click', () => closeDialog(dialog));
     dialog.querySelector('[data-submit-report]').addEventListener('click', async () => {
       try {
         const result = await EFC.api(`posts/${targetId}/report`, {
@@ -651,7 +682,7 @@
             detail: document.getElementById('efc-report-detail').value,
           },
         });
-        dialog.close();
+        closeDialog(dialog);
         EFC.announce(result.message);
       } catch (error) {
         EFC.announce(error.message, 'error');
