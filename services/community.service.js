@@ -552,6 +552,33 @@ function publicAuthor(author = {}) {
 }
 
 /**
+ * Pick the first usable image attachment for a card thumbnail.
+ *
+ * Discussions do not carry uploads yet — every published discussion currently
+ * has an empty `attachments` array — so this returns null in practice and the
+ * client falls back to a category tile. It is here so that card thumbnails
+ * light up on their own the day uploads land, rather than needing the view
+ * layer revisited. Only same-origin paths are accepted: a card thumbnail is
+ * not a place to start fetching arbitrary remote URLs.
+ * @param {Object[]} attachments Attachment records, possibly undefined.
+ * @returns {{url: string, alt: string}|null} Thumbnail descriptor or null.
+ */
+function firstImage(attachments) {
+  if (!Array.isArray(attachments)) {
+    return null;
+  }
+  const image = attachments.find(
+    item =>
+      item &&
+      item.kind === 'image' &&
+      typeof item.url === 'string' &&
+      item.url.startsWith('/') &&
+      !item.url.startsWith('//')
+  );
+  return image ? { url: image.url, alt: String(image.alt || '') } : null;
+}
+
+/**
  * Shape a discussion for a list view.
  * @param {Object} discussion Discussion document.
  * @param {Object} [options] View options.
@@ -589,6 +616,7 @@ function toDiscussionCard(discussion, options = {}) {
     ),
     hasSupplierReply: Boolean(discussion.hasSupplierReply),
     hasMedia: Boolean(Array.isArray(discussion.attachments) && discussion.attachments.length),
+    heroImage: firstImage(discussion.attachments),
     hasPoll: Boolean(discussion.poll),
     pinned: Boolean(discussion.pinned),
     featured: Boolean(discussion.featured),

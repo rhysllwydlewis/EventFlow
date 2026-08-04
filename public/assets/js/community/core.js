@@ -142,6 +142,99 @@
   }
 
   /**
+   * Format a count compactly: 1234 becomes "1.2k".
+   *
+   * Category tiles sit in a fixed-width strip, and a five-digit count wraps the
+   * label onto a second line and knocks the whole row out of alignment. Counts
+   * below a thousand are left exactly as they are — rounding "847" to "0.8k"
+   * would lose precision a reader can actually use.
+   * @param {number} value Raw count.
+   * @returns {string} Display string.
+   */
+  function compactCount(value) {
+    const count = Number(value);
+    if (!Number.isFinite(count) || count < 0) {
+      return '0';
+    }
+    if (count < 1000) {
+      return String(Math.round(count));
+    }
+    if (count < 1000000) {
+      const thousands = count / 1000;
+      // 9.95k would render as "10.0k", which is wider than the "9.9k" the
+      // strip is sized for, so anything that rounds up to a whole unit drops
+      // the decimal instead.
+      const rounded = Math.round(thousands * 10) / 10;
+      return rounded >= 1000 ? '1m' : `${rounded % 1 === 0 ? rounded : rounded.toFixed(1)}k`;
+    }
+    const millions = Math.round((count / 1000000) * 10) / 10;
+    return `${millions % 1 === 0 ? millions : millions.toFixed(1)}m`;
+  }
+
+  /**
+   * Line-art icon paths for the seeded categories, keyed by slug.
+   *
+   * Operators can create their own categories, and those carry an emoji rather
+   * than a slug this map knows, so `categoryIcon` falls back to the stored
+   * emoji instead of leaving a hole in the strip.
+   */
+  const CATEGORY_ICON_PATHS = Object.freeze({
+    'planning-and-budgets':
+      '<rect x="4" y="4" width="16" height="17" rx="2"/><path d="M9 2v4M15 2v4M4 10h16M8 15h4"/>',
+    venues: '<path d="M3 21h18M5 21V10l7-5 7 5v11M9 21v-6h6v6"/>',
+    'catering-and-cakes':
+      '<path d="M4 21h16v-6a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v6ZM12 7V3M8 11V8M16 11V8"/>',
+    'photography-and-video':
+      '<path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1Z"/><circle cx="12" cy="13" r="3.5"/>',
+    'entertainment-and-music':
+      '<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>',
+    'styling-decor-and-flowers':
+      '<circle cx="12" cy="9" r="2.5"/><path d="M12 6.5A2.75 2.75 0 1 1 14.5 9 2.75 2.75 0 1 1 12 11.5 2.75 2.75 0 1 1 9.5 9 2.75 2.75 0 1 1 12 6.5ZM12 12v9"/>',
+    'fashion-and-beauty': '<path d="M9 3h6l-1 4 4 6-6 8-6-8 4-6-1-4Z"/>',
+    'invitations-and-stationery':
+      '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>',
+    'event-websites-and-technology':
+      '<rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/>',
+    transport:
+      '<path d="M3 16V8a1 1 0 0 1 1-1h9l4 4h3a1 1 0 0 1 1 1v4"/><path d="M3 16h2M9 16h6M21 16h-2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/>',
+    'travel-and-accommodation':
+      '<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 13h18"/>',
+    'parties-and-pre-events': '<path d="M6 3h12l-5 8v7h3M11 18H8M11 18v-7"/>',
+    'etiquette-and-advice':
+      '<path d="M21 15a2 2 0 0 1-2 2H8l-4 4V5a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2Z"/><path d="M10 9h6M10 12h4"/>',
+    'accessibility-and-inclusive-events':
+      '<circle cx="12" cy="4.5" r="1.8"/><path d="M5 9h14M12 9v5M12 14l-3 7M12 14l3 7"/>',
+    'diy-and-inspiration':
+      '<path d="M12 3a6 6 0 0 0-3.5 10.9V17h7v-3.1A6 6 0 0 0 12 3Z"/><path d="M10 20h4"/>',
+    'recommendations-wanted':
+      '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5M11 8v3.5l2.2 1.3"/>',
+    'real-events': '<path d="M3 19V7l6-3 6 3 6-3v12l-6 3-6-3-6 3Z"/><path d="M9 4v12M15 7v12"/>',
+    'ask-verified-suppliers':
+      '<path d="M12 3 5 6v5.5c0 4 3 7.4 7 8.5 4-1.1 7-4.5 7-8.5V6Z"/><path d="m9.2 11.8 2 2 3.6-3.8"/>',
+    'marketplace-help-and-wanted': '<path d="M4 8h16l-1 12H5Z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/>',
+    'corporate-and-charity-events':
+      '<path d="M3 21h18M5 21V8h7v13M12 21V4h7v17"/><path d="M8 12h1M8 16h1M15 9h1M15 13h1M15 17h1"/>',
+    'feedback-to-eventflow':
+      '<path d="M7 14V9.5a3 3 0 0 1 3-3l1-3.5a2 2 0 0 1 2 2V8h4.5a2 2 0 0 1 2 2.3l-1 6A2 2 0 0 1 16.5 18H10Z"/><rect x="3" y="13" width="4" height="8" rx="1"/>',
+    'general-event-chat':
+      '<path d="M17 12a5 5 0 0 1-5 5H8l-4 3v-4.6A5 5 0 0 1 3 12V9a5 5 0 0 1 5-5h4a5 5 0 0 1 5 5Z"/><path d="M20 8a4 4 0 0 1 1 2.6V14a4 4 0 0 1-2 3.4"/>',
+  });
+
+  /**
+   * Render a category's icon.
+   * @param {Object} category Category with a slug and optional emoji icon.
+   * @returns {string} HTML, already escaped.
+   */
+  function categoryIcon(category) {
+    const item = category || {};
+    const paths = CATEGORY_ICON_PATHS[item.slug];
+    if (paths) {
+      return `<svg class="efc-caticon__glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;
+    }
+    return `<span class="efc-caticon__emoji" aria-hidden="true">${esc(item.icon || '💬')}</span>`;
+  }
+
+  /**
    * Format a timestamp as a plain UK date.
    * @param {string} value ISO timestamp.
    * @returns {string} Formatted date.
@@ -259,6 +352,47 @@
           <span class="efc-meta__dot">Active ${esc(timeAgo(card.lastActivityAt))}</span>
         </p>
       </div>
+    </li>`;
+  }
+
+  /**
+   * Render the compact preview card used by the homepage hero rails.
+   *
+   * This is a deliberately thinner view than `discussionCard`: it drops the
+   * excerpt, badges and view count, because the rails sit beside the hero and
+   * are there to show that the community is alive, not to be read in depth.
+   * The full card is still what the feed below uses.
+   * @param {Object} card Discussion card from the API.
+   * @returns {string} HTML list item.
+   */
+  function previewCard(card) {
+    const thumb = card.heroImage
+      ? `<img class="efc-preview__thumb" src="${esc(card.heroImage.url)}" alt="" width="56" height="56" loading="lazy" decoding="async" />`
+      : `<span class="efc-preview__thumb efc-preview__thumb--icon">${categoryIcon(card.category)}</span>`;
+
+    // "Active" here means a reply or the original post landed inside the last
+    // week. It is a real signal read from the data, not decoration: a card
+    // without it is simply quiet, and says so to a screen reader.
+    const weekMs = 7 * 24 * 60 * 60 * 1000;
+    const activeAt = new Date(card.lastActivityAt || card.createdAt).getTime();
+    const isActive = Number.isFinite(activeAt) && Date.now() - activeAt < weekMs;
+
+    return `<li class="efc-preview">
+      <a class="efc-preview__link" href="${esc(card.url)}">
+        ${thumb}
+        <span class="efc-preview__body">
+          <span class="efc-preview__title">${esc(card.title)}</span>
+          <span class="efc-preview__meta">${esc(card.author.displayName)}</span>
+          <span class="efc-preview__stats">
+            <span class="efc-preview__time">${esc(timeAgo(card.lastActivityAt || card.createdAt))}</span>
+            <span class="efc-preview__replies">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.5 9 9 0 0 1-3.9-.9L3 21l1.9-4.9A8.4 8.4 0 0 1 4 11.5 8.4 8.4 0 0 1 12.5 3 8.4 8.4 0 0 1 21 11.5Z"/></svg>
+              ${card.replyCount} ${card.replyCount === 1 ? 'reply' : 'replies'}
+            </span>
+          </span>
+        </span>
+        ${isActive ? '<span class="efc-preview__dot"><span class="efc-sr-only">Active this week</span></span>' : ''}
+      </a>
     </li>`;
   }
 
@@ -446,9 +580,13 @@
     ALLOWED_QUERY_KEYS,
     timeAgo,
     shortDate,
+    compactCount,
+    categoryIcon,
+    CATEGORY_ICON_PATHS,
     authorBadges,
     avatar,
     discussionCard,
+    previewCard,
     discussionList,
     emptyState,
     errorState,

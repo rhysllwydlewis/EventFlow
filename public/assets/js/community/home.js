@@ -27,6 +27,95 @@
   let activeTab = 'recentActivity';
 
   /**
+   * Fill the two preview rails that flank the hero.
+   *
+   * The left rail shows what has just happened and the right shows what is
+   * drawing people in, so the two sides say different things rather than
+   * repeating one list split in half. Anything already on the left is skipped
+   * on the right for the same reason.
+   * @returns {void} Nothing.
+   */
+  function renderRails() {
+    const left = document.getElementById('efc-rail-left');
+    const right = document.getElementById('efc-rail-right');
+    if (!left || !right) {
+      return;
+    }
+
+    const recent = (data.recentActivity || []).slice(0, 3);
+    const seen = new Set(recent.map(item => item.stableId));
+    const pool = (data.trending || []).concat(data.popular || [], data.recentDiscussions || []);
+    const highlights = [];
+    for (const item of pool) {
+      if (highlights.length === 3) {
+        break;
+      }
+      if (!seen.has(item.stableId)) {
+        seen.add(item.stableId);
+        highlights.push(item);
+      }
+    }
+
+    left.innerHTML = recent.map(EFC.previewCard).join('');
+    right.innerHTML = highlights.map(EFC.previewCard).join('');
+
+    // A young community may not have six discussions to show. An empty rail is
+    // removed rather than left as a gap, and its label goes with it so a
+    // screen reader is not offered a landmark with nothing inside.
+    [left, right].forEach(list => {
+      const rail = list.closest('.efc-rail');
+      if (rail) {
+        rail.hidden = list.children.length === 0;
+      }
+    });
+  }
+
+  /**
+   * Fill the category strip beneath the hero.
+   * @returns {void} Nothing.
+   */
+  function renderCategoryStrip() {
+    const strip = document.getElementById('efc-catstrip');
+    if (!strip) {
+      return;
+    }
+
+    // Busiest first: the strip is a way in, and leading with categories nobody
+    // has posted in yet sends a reader to a dead end.
+    const ordered = data.categories
+      .slice()
+      .sort((a, b) => b.discussionCount - a.discussionCount || a.name.localeCompare(b.name));
+
+    if (!ordered.length) {
+      strip.hidden = true;
+      return;
+    }
+
+    const chevron =
+      '<svg class="efc-cattile__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>';
+
+    const tiles = ordered
+      .map(category => {
+        const count = EFC.compactCount(category.discussionCount);
+        const noun = category.discussionCount === 1 ? 'discussion' : 'discussions';
+        return `<li class="efc-catstrip__item">
+          <a class="efc-cattile" href="/community/category/${EFC.esc(category.slug)}">
+            <span class="efc-caticon">${EFC.categoryIcon(category)}</span>
+            <span class="efc-cattile__text">
+              <span class="efc-cattile__name">${EFC.esc(category.name)}</span>
+              <span class="efc-cattile__count">${count} ${noun}</span>
+            </span>
+            ${chevron}
+          </a>
+        </li>`;
+      })
+      .join('');
+
+    strip.innerHTML = `<nav aria-label="Browse by category"><ul class="efc-catstrip__scroller">${tiles}</ul></nav>`;
+    strip.hidden = false;
+  }
+
+  /**
    * Render a sidebar card only when it has content.
    * @param {string} title Card heading.
    * @param {string} body Card HTML.
@@ -220,6 +309,8 @@
     try {
       data = await EFC.api('home');
       EFC.hideFallback();
+      renderRails();
+      renderCategoryStrip();
       render();
     } catch (error) {
       // The no-JS fallback has been superseded either way: leaving it visible

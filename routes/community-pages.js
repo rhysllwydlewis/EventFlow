@@ -244,18 +244,32 @@ router.get(['/community', '/community.html'], publicReadLimiter, async (req, res
         community.toDiscussionCard(item, { category: categoriesBySlug.get(item.categorySlug), now })
       );
 
+    const countsBySlug = new Map();
+    discussions.forEach(item => {
+      countsBySlug.set(item.categorySlug, (countsBySlug.get(item.categorySlug) || 0) + 1);
+    });
+
     const categoryList = categories
-      .map(
-        item =>
-          `<li><a href="/community/category/${escapeHtml(item.slug)}">${escapeHtml(
-            item.name
-          )}</a> — ${escapeHtml(item.description || '')}</li>`
+      .slice()
+      .sort(
+        (a, b) =>
+          (countsBySlug.get(b.slug) || 0) - (countsBySlug.get(a.slug) || 0) ||
+          a.name.localeCompare(b.name)
       )
+      .map(item => {
+        const count = countsBySlug.get(item.slug) || 0;
+        return `<li><a href="/community/category/${escapeHtml(item.slug)}">${escapeHtml(
+          item.name
+        )}</a> — ${escapeHtml(item.description || '')} (${count} ${
+          count === 1 ? 'discussion' : 'discussions'
+        })</li>`;
+      })
       .join('\n');
 
+    // No <h1> here: the shell already carries the page heading in the hero, and
+    // emitting a second one gave the page two competing top-level headings for
+    // as long as the fallback was on screen.
     const content = `
-      <h1>EventFlow Community</h1>
-      <p>Ask questions, share experiences and get practical advice from people planning events and verified EventFlow suppliers.</p>
       <h2>Categories</h2>
       <ul class="ef-community-list">${categoryList}</ul>
       <h2>Recent discussions</h2>
