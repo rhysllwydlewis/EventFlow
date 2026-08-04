@@ -376,15 +376,38 @@ function escapeAttribute(value) {
 
 // ─── Body sanitisation ───────────────────────────────────────────────────────
 
+// The published length limits (LIMITS.BODY_MAX, LIMITS.REPLY_MAX) are only
+// checked against the *sanitised* text, after sanitizeContent has already run
+// — every route validates length that way round, presumably so markup never
+// eats into a member's word count. That leaves raw input completely unbounded
+// going into the sanitiser itself. DOMPurify's underlying jsdom HTML parser is
+// not linear on adversarial markup: a body of many small alternating tags
+// measured at ~900ms at exactly LIMITS.BODY_MAX (20,000 characters, the app's
+// own declared ceiling) and 11.3 seconds at 160,000 characters — and the
+// global JSON body limit is 2MB, more than an order of magnitude larger
+// again, which would extrapolate to minutes. Truncating raw input to a
+// generous multiple of the eventual limit before it reaches the sanitiser
+// bounds the worst case to a small, fixed number of seconds regardless of how
+// large the attacker's payload is, without touching third-party parsing
+// internals. No legitimate post approaches this ratio of markup to text; the
+// residual ~1s floor even at the app's own content limit is the sanitiser's
+// baseline cost on this input shape and is not something a request-time
+// length check can remove.
+const RAW_INPUT_MULTIPLIER = 2;
+
 /**
  * Turn an untrusted body into safe stored HTML plus a plain-text copy for
  * search and duplicate detection. Arbitrary HTML is never stored.
  * @param {string} raw Untrusted body from the composer.
  * @param {Object} options Link policy options.
+ * @param {boolean} [options.isReply] Whether this is a reply body, which has
+ *   a shorter published limit than a discussion body.
  * @returns {{html: string, text: string, urls: string[]}} Prepared body.
  */
 function prepareBody(raw, options = {}) {
-  const sanitised = sanitizeContent(String(raw || ''), false);
+  const ceiling = (options.isReply ? LIMITS.REPLY_MAX : LIMITS.BODY_MAX) * RAW_INPUT_MULTIPLIER;
+  const bounded = String(raw || '').slice(0, ceiling);
+  const sanitised = sanitizeContent(bounded, false);
   const withLinkPolicy = applyLinkPolicy(sanitised, options);
   const text = stripHtml(withLinkPolicy).replace(/\s+/g, ' ').trim();
   return { html: withLinkPolicy, text, urls: extractUrls(sanitised) };

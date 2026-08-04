@@ -157,6 +157,7 @@ router.post(
       const prepared = moderation.prepareBody(req.body.body, {
         clickable: moderation.policyFor(context.trustTier).linksClickable,
         settings,
+        isReply: true,
       });
 
       const lengthCheck = moderation.validateLength({ text: prepared.text, isReply: true });
@@ -323,6 +324,7 @@ router.patch(
       const prepared = moderation.prepareBody(req.body.body, {
         clickable: moderation.policyFor(req.viewer.trustTier).linksClickable,
         settings,
+        isReply: true,
       });
       const check = moderation.validateLength({ text: prepared.text, isReply: true });
       if (!check.valid) {

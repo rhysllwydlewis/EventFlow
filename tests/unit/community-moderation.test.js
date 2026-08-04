@@ -110,6 +110,34 @@ describe('community moderation — body preparation', () => {
     const prepared = moderation.prepareBody('<p onclick="steal()">Hi there everyone</p>');
     expect(prepared.html).not.toContain('onclick');
   });
+
+  it('leaves a realistic long post untouched by the raw-input ceiling', () => {
+    const long = `<p>${'A detailed, first-hand account of the day. '.repeat(300)}</p>`;
+    const prepared = moderation.prepareBody(long);
+    // Within a character or two of the source text length — the ceiling only
+    // bites on content far larger than any legitimate post.
+    expect(prepared.text.length).toBeGreaterThan(long.length - 10);
+  });
+
+  // sanitizeContent's underlying HTML parser is not linear on adversarial
+  // markup (many small, alternating tags) — measured independently at ~900ms
+  // for content at exactly LIMITS.BODY_MAX and 11+ seconds at 8x that length.
+  // Every route validates length only *after* prepareBody has already run
+  // sanitizeContent, so nothing else stood between an oversized raw payload
+  // and an expensive parse. prepareBody now bounds the raw input itself.
+  it('bounds a hostile discussion body to a fixed time regardless of its size', () => {
+    const hostile = '<script>a</script><style>b</style><b>c</b>'.repeat(50000);
+    const started = Date.now();
+    moderation.prepareBody(hostile, { clickable: true, settings: {} });
+    expect(Date.now() - started).toBeLessThan(5000);
+  });
+
+  it('bounds a hostile reply body to a tighter fixed time, matching its shorter limit', () => {
+    const hostile = '<script>a</script><style>b</style><b>c</b>'.repeat(50000);
+    const started = Date.now();
+    moderation.prepareBody(hostile, { clickable: true, settings: {}, isReply: true });
+    expect(Date.now() - started).toBeLessThan(2000);
+  });
 });
 
 describe('community moderation — duplicate detection', () => {
