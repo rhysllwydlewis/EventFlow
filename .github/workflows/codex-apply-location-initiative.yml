@@ -1,0 +1,94 @@
+name: Apply UK City Initiative
+
+on:
+  push:
+    branches: [codex/uk-city-hub-and-spoke]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: codex-uk-city-apply
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout transport commit
+        uses: actions/checkout@v4
+        with:
+          ref: codex/uk-city-hub-and-spoke
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Verify and reconstruct implementation patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat .github/codex-transfer/part-{00..07} > /tmp/implementation.git.patch.gz.b64
+          base64 --decode /tmp/implementation.git.patch.gz.b64 > /tmp/implementation.git.patch.gz
+          echo '99d3e0c4d690fe8caab5c15d72ca6e676d81cfbbe659d9cdfff6e27f49754043  /tmp/implementation.git.patch.gz' | sha256sum --check --strict
+          gzip -dc /tmp/implementation.git.patch.gz > /tmp/implementation.git.patch
+          echo '6cd7d590d3263c8978c3f898c013a8c5cc4189607bd3e3fd99f0e9faaff243f4  /tmp/implementation.git.patch' | sha256sum --check --strict
+
+      - name: Apply in four reviewable commits
+        shell: bash
+        env:
+          BASE_SHA: bab9b96355404dcab78042b9be828d4cc047f977
+          BRANCH: codex/uk-city-hub-and-spoke
+        run: |
+          set -euo pipefail
+          git config user.name 'OpenAI Codex'
+          git config user.email 'codex@openai.com'
+          git reset --hard "$BASE_SHA"
+          git clean -fdx
+          git apply --3way /tmp/implementation.git.patch
+          git reset
+
+          git add -- \
+            data/uk-cities.json models/LocationPage.js models/index.js models/Supplier.js \
+            db-unified.js utils/database.js utils/geocoding.js \
+            services/locationRegistry.service.js services/supplierLocation.service.js \
+            services/supplierLocationMutation.service.js scripts/audit-supplier-locations.js \
+            scripts/report-location-opportunity.js routes/supplier-management.js \
+            public/dashboard-supplier.html public/assets/js/app.js package.json \
+            tests/helpers/locationFixtures.js tests/unit/location-registry.test.js \
+            tests/unit/supplier-location.test.js tests/unit/supplier-location-mutation.test.js \
+            tests/unit/supplier-location-migration.test.js
+          git diff --cached --check
+          git commit -m 'feat(locations): add city registry and supplier geography'
+
+          git add -- \
+            services/locationQualityGate.service.js services/locationPage.service.js \
+            services/locationSeo.service.js routes/public-locations-seo.js sitemap.js \
+            public/assets/css/location-pages.css public/assets/js/pages/location-pages.js \
+            public/index.html public/assets/js/components/eventflow-footer.js \
+            e2e/locations.spec.js e2e/backend-suite-classification.json \
+            routes/e2e-test-support.js tests/unit/location-quality-gate.test.js \
+            tests/unit/location-seo.test.js tests/integration/public-location-routes.test.js \
+            tests/integration/location-sitemap.test.js
+          git diff --cached --check
+          git commit -m 'feat(locations): add crawlable city hub and pages'
+
+          git add -- \
+            services/locationAnalytics.service.js routes/admin-location-pages.js \
+            public/admin-location-pages.html public/assets/css/admin-location-pages.css \
+            public/assets/js/pages/admin-location-pages.js \
+            public/assets/js/pages/location-attribution.js public/supplier.html \
+            config/adminRegistry.js public/assets/js/admin-navbar.js routes/index.js \
+            tests/unit/location-admin.test.js tests/unit/location-analytics.test.js
+          git diff --cached --check
+          git commit -m 'feat(locations): add admin publishing and analytics'
+
+          git add -- docs/locations docs/plans/uk-city-hub-and-spoke
+          git diff --cached --check
+          git commit -m 'docs(locations): add rollout operations and traceability'
+
+          test -z "$(git status --porcelain)"
+          test "$(git diff --name-only "$BASE_SHA"..HEAD | wc -l | tr -d ' ')" = '71'
+          git diff --check "$BASE_SHA"..HEAD
+          git diff --name-only "$BASE_SHA"..HEAD -- '*.js' | xargs -r -n1 node --check
+          git push --force-with-lease="refs/heads/${BRANCH}:${GITHUB_SHA}" origin "HEAD:refs/heads/${BRANCH}"
