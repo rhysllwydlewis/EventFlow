@@ -110,6 +110,22 @@ than fixing it silently.
       `window.__CSRF_TOKEN__`, but concurrent callers all miss the cache before
       the first response lands. Cache the in-flight promise, not just the
       resolved value. Minor — three requests, not a loop.
+- [ ] **Regenerate the `homepage` and `pricing` visual baselines.** Both are
+      marked `screenshotApproved: false` in
+      `tests/visual/visual-regression.spec.mjs`, which skips the pixel
+      comparison only — axe still runs on both. `homepage` shifted 4700→4704px
+      when the site-wide `hyphens: auto` rule was removed (a line now wraps
+      differently); `pricing` still depicts the pre-#1428 page and is roughly
+      twice the height CI renders. Both need `npm run test:visual:update` in an
+      environment that reproduces CI's rendering, the images reviewed, and the
+      flag removed. Deliberately not done from a development machine: a
+      baseline generated where text wraps even slightly differently fails on a
+      size mismatch regardless of pixel tolerance, so an unverifiable image is
+      worse than none.
+- [ ] The composer modal is wired to `/community` and `/community/discussions`.
+      Consider it for the category pages too, where "Start a discussion" could
+      preselect the category it was opened from — `openDialog` already reads
+      `?category=` off the link, so it is a markup change rather than new code.
 - [ ] The rails are populated from the `home` payload's `recentActivity`,
       `trending`, `popular` and `recentDiscussions` arrays. That is four
       arrays fetched to render six cards. Worth a dedicated slice in the
@@ -164,6 +180,27 @@ found and a tick when fixed, so nothing is quietly dropped.
       is the login gate on `/community/new`. Narrowed to
       `.efc-notice a:not(.btn)`.
 
+- [x] **Every unclassed checkbox and radio on the site rendered stretched.**
+      `styles.css` sets `width: 100%` on `input, select, textarea` for text-like
+      fields; a checkbox obeys it too, so the control filled its container while
+      the glyph stayed 13px and the browser painted that glyph centred in the
+      box. On `/community/new` the 18+ confirmation appeared to float alone in
+      the middle of its notice, nowhere near its own label. Fixed with a
+      carve-out restoring the intrinsic size. Verified against the previous file
+      that no page which already had its own override changes at all — including
+      every visual-baseline page — so the fix reaches only the pages that were
+      actually broken.
+- [x] **Regenerating the shells would have reverted the forum redesign.**
+      `scripts/generate-community-pages.mjs` still emitted the old `.efc-hero`
+      band for `community.html` long after the committed shell was rebuilt
+      around `.efc-stage`, and pinned one shared asset version over the
+      individually bumped ones. Running it replaced the 67-line hero with the
+      old 13-line band and silently downgraded four cache-busting queries.
+      Nothing failed; the only signal would have been someone noticing the
+      homepage had reverted. The template now carries the real hero and a
+      per-asset version map, reproduces all 12 committed shells byte-for-byte,
+      and has a `--check` mode that a unit test runs so drift fails loudly.
+
 ### Known gaps against the mockup
 
 Deliberate, and worth re-reading before someone "fixes" them:
@@ -214,13 +251,18 @@ pre-existing rather than introduced here.
 
 **Pre-existing failure, not ours and not fixed:**
 `tests/integration/pexels-collage-fallback.test.js` expects 404 when the
-`pexelsCollage` feature flag is off and gets 200. Two routers both register
-`GET /public/pexels-collage` — `routes/admin-homepage-collage-active.js:261`
-and `routes/admin.js:5478`. The one that wins reads a different flag
-(`collageWidget`) from the one the test sets. Confirmed by stashing this
-branch's changes and re-running: it fails identically. Left alone because
-picking a winner between two admin routes is a separate decision from a
-forum redesign, and guessing wrong would silently change admin behaviour.
+`pexelsCollage` feature flag is off and gets 200. Confirmed by stashing this
+branch's changes and re-running: it fails identically. Left alone for now.
+
+> **Correction (session 5).** The diagnosis above originally blamed a route
+> collision between `routes/admin-homepage-collage-active.js` and
+> `routes/admin.js`. That was wrong — the test mounts `routes/admin` directly,
+> so no collision applies. The real cause was that the endpoint is enabled by
+> `collageWidget.enabled === true || settings.features?.pexelsCollage === true`
+> (deliberate backward compatibility, and correct) while the test's
+> `beforeEach` managed only the legacy flag. It therefore passed on a clean
+> database and failed wherever a collage widget already existed. Fixed in
+> session 5 by making the test manage both flags. The route was not changed.
 
 Next: stage 4 — the sibling community pages (`/community/discussions`,
 `/community/search`, `/community/category/:slug`) still use the old
@@ -249,5 +291,133 @@ Two things checked and deliberately not changed:
   `/community/category/:slug` are the fallback heading sitting inside the
   `hidden` fallback after the client render replaced it. Verified not visible
   and not exposed to assistive technology, and the raw HTML has one.
+
+Next: unchanged — stage 4, the sibling pages' visual treatment.
+
+### 2026-08-05 — sessions 4 and 5 (pricing detour, PR #1432)
+
+The site owner redirected this branch onto `/pricing` after PR #1431 merged.
+The page had just been rebuilt by #1430 but did not match their render, so the
+work was: restyle it in the community design language, fix what was visibly
+broken, and surface the selling copy. All of it shipped in #1432, now merged.
+
+What changed:
+
+- **The billing toggle.** The track and thumb were geometrically wrong — the
+  switch element was carrying the track's own background and box-shadow at the
+  wrong height. The track is now a `::before` pseudo-element at a fixed 48×28,
+  with the thumb centred on it and translating 20px.
+- **Site-wide hyphenation removed.** `ui-ux-fixes.css` applied `hyphens: auto`
+  to a global `h1,h2,h3,h4,h5,h6,p,span,div,a,label` selector and again to
+  `.card` headings. That is what made the pricing text look broken, and it was
+  breaking words across every page on the site. `/pricing` alone had 33
+  hyphenation breaks; it now has zero, as does everywhere else.
+- **Merchandising copy surfaced.** The plans API already returned
+  `valueStatement` and `badge` for each plan and `pricing.js` fetched and then
+  discarded both. They now render.
+- **Four accessibility defects fixed**, found by sweeping every public page
+  with axe rather than only the pages this branch touched. All pre-existing:
+  three `aria-hidden` containers that still held focusable children (fixed
+  with `inert`), a searchbox carrying `aria-expanded` without a role that
+  permits it (critical — it is a combobox, and now says so), and the shared
+  bottom-nav label at 3.70:1 on a tinted bar. Guarded by
+  `tests/unit/aria-hidden-focus.test.js`, because the visual/a11y suite only
+  covers five baseline pages and a regression on `/suppliers` or the shared
+  nav would otherwise go unnoticed until someone swept again.
+- **The pexels-collage test made deterministic** — see the correction above.
+
+Verified: full `npm test` **8169 passing, 0 failing** — the first fully green
+run on this branch. Axe clean across 9 routes × 2 viewports. No horizontal
+overflow, no JavaScript errors. DeepSource grade A on all four categories.
+
+Two things left open and honestly so:
+
+- The two visual baselines above. Skipping the comparison is a stopgap, not a
+  fix, and the backlog item says what "done" looks like.
+- DeepSource JavaScript was red on #1430 on a dashboard-configured metric with
+  grade A and zero inline issues. A documentation-coverage hypothesis was
+  tested and **falsified**. #1430 is merged and the check is green on this
+  branch, so it is no longer blocking, but the cause was never established and
+  needs the owner's DeepSource dashboard if it recurs.
+
+Next: back to stage 4 — `/community/discussions` and `/community/search` still
+use the old `.efc-hero` band and look like a different site next to the
+redesigned homepage. That remains the largest open item.
+
+### 2026-08-05 — session 6 (the composer)
+
+The site owner reported that `/community/new` "looks bad" and asked whether it
+could be a widget opened from the community page rather than a whole page.
+
+**Why it looked bad.** One rule, and not a community one. `styles.css` styles
+every `input, select, textarea` at `width: 100%`, which is right for text
+fields and wrong for a checkbox: the control stretched to the full width of the
+notice while its glyph stayed 13px, and the browser painted that glyph centred
+in the resulting box. The 18+ confirmation therefore floated in the middle of
+its own notice, a long way from the label it belonged to. Measured at 1114px
+wide in the browser before the fix, 20px after. Every unclassed checkbox on the
+site had the same defect; most pages happened to carry their own override, so
+the composer was where it showed.
+
+Alongside that the page had no layout of its own — one flat column of controls
+at the full 1180px shell width, with the title input stretched right across the
+viewport. It is now capped at 46rem and grouped into two cards: what you are
+asking, then how people find it.
+
+**The modal.** "Start a discussion" now opens the composer over the page it was
+pressed on, on `/community` and `/community/discussions`. It is layered on top
+of the ordinary link rather than replacing it, which is the part worth
+preserving: `/community/new` is still a real page with a real URL, so a
+middle-click, a new tab, a bookmark, a browser without `<dialog>` and the
+`?next=/community/new` login redirect all still land somewhere that works. The
+same `composer.js` renders both surfaces — it takes a root element and a
+heading level, so the modal uses `h2` and the page keeps its `h1` rather than
+the page ending up with two.
+
+Details that needed deciding rather than defaulting:
+
+- Escape and the close button confirm before discarding typed content. Drafts
+  autosave every three seconds, but a modal that vanishes on a stray keypress
+  and takes the post with it is worse than one extra prompt.
+- Focus moves to the title field on open and returns to the button that opened
+  it on close.
+- Modified clicks (cmd, ctrl, shift, middle) are not intercepted — those mean
+  "open this somewhere else" and must stay ordinary navigation.
+- `?category=` is read from the link that was clicked, not the current page's
+  query string, which is what a category-page trigger would need.
+
+**Found along the way:** the page generator had drifted far enough to be
+dangerous — see the entry above. That was not part of the request and is the
+more serious of the two findings.
+
+**Caught in review (Codex, correct).** The dialog's `cancel` handler called
+`preventDefault()` only when the member _declined_ the confirmation. An accepted
+Escape therefore let the browser close the dialog natively, skipping
+`closeDialog()` altogether. Codex reported the stale contents and the missed
+focus path; the sharper consequence it did not name is that the autosave timer
+stayed armed, so **a draft of the content the member had just chosen to discard
+was saved about three seconds later**. Reproduced before the fix (one draft
+saved, form still in the DOM) and confirmed after (zero drafts, DOM cleared).
+The handler now always prevents the default and calls `closeDialog()`, which
+also clears both pending timers. Focus return was already working — the
+browser's native dialog restoration covered it — so that part of the report was
+correct in principle but not observable.
+
+**Found in my own review pass, before merge.** The dialog points
+`aria-labelledby` at `#efc-composer-title`, but only the signed-in form branch
+carried that id — so the signed-out, email-unverified and restricted composers
+left the reference dangling and the dialog had **no accessible name**. Measured
+across all four viewer states: three were unnamed. Notably **axe reported zero
+violations on all three**, because `aria-dialog-name` is tagged best-practice
+and the visual suite filters to `wcag2a/2aa/21a/21aa`. Every branch now carries
+the id, with `aria-label` as a fallback for the moment before the first render.
+The lesson worth keeping: testing the happy path of a component with four
+render branches proves very little.
+
+Verified: full `npm test` **8188 passing, 0 failing**. Axe clean on the page and
+on the modal at 1440 and 390. No horizontal overflow, no JavaScript errors, one
+`h1` on the page with the modal open. Checkbox geometry compared against the
+previous `styles.css` on seven pages including every visual baseline: identical
+everywhere, so no baseline needs regenerating.
 
 Next: unchanged — stage 4, the sibling pages' visual treatment.

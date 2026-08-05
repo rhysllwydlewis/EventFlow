@@ -36,6 +36,15 @@ h1{margin:0 0 6px;font-weight:900;letter-spacing:-.02em;font-size: clamp(28px, 4
 .pack-info .small{margin:0}
 .footer{padding:26px 0;border-top:1px solid var(--border);color:#6B737E;margin-top:24px}.version{font-size:12px;color:#98A2B3}
 input,select,textarea{width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:12px;background:#fff;font:inherit}
+/* The rule above is written for text-like fields. Applied to a checkbox or
+   radio it stretches the control to the full width of its container while the
+   glyph stays 13px, and the browser paints that glyph centred in the resulting
+   box — so the control appears detached from its own label, floating in the
+   middle of the row. Every checkbox on the site that does not carry a class of
+   its own was affected, including the 18+ confirmation on /community/new and
+   the checkboxes on /auth and /settings. Restore the intrinsic size; anything
+   that genuinely wants a sized control sets it with a more specific rule. */
+input[type="checkbox"],input[type="radio"]{width:auto;padding:0;border-radius:0}
 label{display:block;margin:8px 0 6px;font-weight:600;color:#1F2937}.form-row{position:relative;display:grid;gap:12px;grid-template-columns:1fr}.form-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:8px}
 .supplier-card{display:grid;grid-template-columns:120px 1fr;gap:14px;align-items:start}.supplier-card img{width:120px;height:90px;object-fit:cover;border-radius:10px}
 @media (max-width:900px){.hero-grid{grid-template-columns:1fr}.collage{grid-auto-rows:150px}}

@@ -3,23 +3,35 @@
  *
  * Controlled rich text only, with live duplicate suggestions, a personal-data
  * warning and category rules shown before anything is published.
+ *
+ * The composer renders into whatever element it is given, so the same code
+ * serves both surfaces: the standalone `/community/new` page, and a modal
+ * opened from a "Start a discussion" button elsewhere in the community. The
+ * page is the real thing — the modal is an enhancement layered on top of the
+ * ordinary link, so middle-clicking it, opening it in a new tab, or having no
+ * JavaScript at all still reaches a working form.
  */
 
 (function () {
   'use strict';
 
   const EFC = window.EFCommunity;
-  const root = document.getElementById('efc-composer');
-  if (!EFC || !root) {
+  if (!EFC) {
     return;
   }
 
+  const pageRoot = document.getElementById('efc-composer');
+
+  let root = null;
+  let headingTag = 'h1';
+  let onClose = null;
   let meta = null;
   let categories = [];
   let viewer = null;
   let suggestTimer = null;
   let draftTimer = null;
   let draftId = null;
+  let presetSearch = window.location.search;
 
   /**
    * Personal-information patterns mirrored from the server-side check so the
@@ -38,7 +50,7 @@
   function render() {
     if (!viewer) {
       root.innerHTML = `<div class="efc-notice efc-notice--info">
-        <h1>Start a discussion</h1>
+        <${headingTag} id="efc-composer-title">Start a discussion</${headingTag}>
         <p>You need an EventFlow account to post. Anyone can read the community.</p>
         <p><a class="btn btn-primary" href="/auth?next=/community/new">Log in or join</a></p>
       </div>`;
@@ -46,7 +58,7 @@
     }
     if (!viewer.emailVerified) {
       root.innerHTML = `<div class="efc-notice" role="alert">
-        <h1>Verify your email first</h1>
+        <${headingTag} id="efc-composer-title">Verify your email first</${headingTag}>
         <p>Check your inbox for the EventFlow verification link, then come back and post.</p>
       </div>`;
       return;
@@ -59,7 +71,7 @@
         ? `<p class="efc-meta">This lifts on ${EFC.esc(EFC.shortDate(viewer.restriction.expiresAt))}.</p>`
         : '<p class="efc-meta">This restriction does not expire on its own.</p>';
       root.innerHTML = `<div class="efc-notice efc-notice--danger" role="alert">
-        <h1>Posting is currently restricted</h1>
+        <${headingTag} id="efc-composer-title">Posting is currently restricted</${headingTag}>
         <p>${EFC.esc(viewer.restriction.reason || 'A moderator has restricted your community access.')}</p>
         ${until}
         <p><a href="/community/help#appeals">Appeal this decision</a></p>
@@ -85,73 +97,96 @@
       )
       .join('');
 
-    root.innerHTML = `
-      <h1>Start a discussion</h1>
-      <p class="efc-meta">Everything you post here is public. Do not include contact details, exact
-        addresses or anyone else's personal information.</p>
+    // In a dialog the cancel control has to dismiss the dialog rather than
+    // navigate away, or it would throw away the page the member started from.
+    const cancel = onClose
+      ? '<button type="button" class="efc-action" id="efc-composer-cancel">Cancel</button>'
+      : '<a class="efc-action" href="/community">Cancel</a>';
 
-      ${
-        !viewer.adultDeclared
-          ? `<div class="efc-notice" role="note" id="efc-adult">
-              <p><strong>EventFlow is an 18+ service.</strong></p>
-              <p><label><input type="checkbox" id="efc-adult-confirm" /> I confirm I am 18 or over.</label></p>
-            </div>`
-          : ''
-      }
+    root.innerHTML = `
+      <div class="efc-composer-head">
+        <${headingTag} id="efc-composer-title">Start a discussion</${headingTag}>
+        <p>Everything you post here is public. Do not include contact details, exact
+          addresses or anyone else's personal information.</p>
+      </div>
 
       <form class="efc-composer" id="efc-new-form" novalidate>
-        <div class="efc-field">
-          <label for="efc-title">Title</label>
-          <input id="efc-title" type="text" required minlength="8" maxlength="${meta.limits.titleMax}"
-            aria-describedby="efc-title-help" autocomplete="off" />
-          <p class="efc-meta" id="efc-title-help">Ask the question you actually want answered.</p>
+        ${
+          !viewer.adultDeclared
+            ? `<div class="efc-notice efc-notice--age" role="note" id="efc-adult">
+                <p class="efc-notice__title"><strong>EventFlow is an 18+ service.</strong></p>
+                <label class="efc-check" for="efc-adult-confirm">
+                  <input type="checkbox" id="efc-adult-confirm" />
+                  <span>I confirm I am 18 or over.</span>
+                </label>
+              </div>`
+            : ''
+        }
+
+        <div class="efc-composer-card">
+          <div class="efc-field">
+            <label for="efc-title">Title</label>
+            <input id="efc-title" type="text" required minlength="8" maxlength="${meta.limits.titleMax}"
+              aria-describedby="efc-title-help" autocomplete="off"
+              placeholder="e.g. Marquee hire in Kent for 120 guests — what should I budget?" />
+            <p class="efc-meta" id="efc-title-help">Ask the question you actually want answered.</p>
+          </div>
+
+          <div id="efc-suggestions" aria-live="polite"></div>
+
+          <div class="efc-field">
+            <label for="efc-body">Your message</label>
+            <textarea id="efc-body" required minlength="20" maxlength="${meta.limits.bodyMax}"
+              aria-describedby="efc-body-help"
+              placeholder="Give people the detail they need to answer well: what you are planning, when, roughly where, and what you have tried already."></textarea>
+            <div class="efc-field__foot">
+              <p class="efc-meta" id="efc-body-help">Plain text and simple formatting. Links are allowed
+                but are never followed by search engines.</p>
+              <p class="efc-charcount" id="efc-body-count" aria-live="polite"></p>
+            </div>
+          </div>
+
+          <div id="efc-privacy-warning" aria-live="polite"></div>
         </div>
 
-        <div id="efc-suggestions" aria-live="polite"></div>
+        <div class="efc-composer-card">
+          <p class="efc-composer-legend">Help the right people find it</p>
 
-        <div class="efc-composer__row">
-          <div class="efc-field">
-            <label for="efc-category">Category</label>
-            <select id="efc-category" required>${categoryOptions}</select>
+          <div class="efc-composer__row">
+            <div class="efc-field">
+              <label for="efc-category">Category</label>
+              <select id="efc-category" required>${categoryOptions}</select>
+            </div>
+            <div class="efc-field">
+              <label for="efc-event-type">Event type (optional)</label>
+              <select id="efc-event-type">${eventTypeOptions}</select>
+            </div>
+            <div class="efc-field">
+              <label for="efc-region">UK region (optional)</label>
+              <select id="efc-region">${regionOptions}</select>
+            </div>
+            <div class="efc-field">
+              <label for="efc-event-date">Event month (optional)</label>
+              <input id="efc-event-date" type="month" />
+            </div>
           </div>
+
+          <div id="efc-category-rules"></div>
+
           <div class="efc-field">
-            <label for="efc-event-type">Event type (optional)</label>
-            <select id="efc-event-type">${eventTypeOptions}</select>
-          </div>
-          <div class="efc-field">
-            <label for="efc-region">UK region (optional)</label>
-            <select id="efc-region">${regionOptions}</select>
-          </div>
-          <div class="efc-field">
-            <label for="efc-event-date">Event month (optional)</label>
-            <input id="efc-event-date" type="month" />
+            <label for="efc-tags">Tags (optional, comma separated)</label>
+            <input id="efc-tags" type="text" maxlength="200"
+              aria-describedby="efc-tags-help" placeholder="marquee, budget, kent" />
+            <p class="efc-meta" id="efc-tags-help">A few words other members might search for.</p>
           </div>
         </div>
 
-        <div id="efc-category-rules"></div>
-
-        <div class="efc-field">
-          <label for="efc-body">Your message</label>
-          <textarea id="efc-body" required minlength="20" maxlength="${meta.limits.bodyMax}"
-            aria-describedby="efc-body-help"></textarea>
-          <p class="efc-meta" id="efc-body-help">Plain text and simple formatting. Links are allowed but
-            are never followed by search engines.</p>
-          <p class="efc-charcount" id="efc-body-count" aria-live="polite"></p>
-        </div>
-
-        <div id="efc-privacy-warning" aria-live="polite"></div>
-
-        <div class="efc-field">
-          <label for="efc-tags">Tags (optional, comma separated)</label>
-          <input id="efc-tags" type="text" maxlength="200" />
-        </div>
-
-        <div class="efc-filters__actions">
+        <div class="efc-composer-actions">
           <button type="submit" class="btn btn-primary">Post discussion</button>
           <button type="button" class="efc-action" id="efc-save-draft">Save draft</button>
-          <a class="efc-action" href="/community">Cancel</a>
+          ${cancel}
+          <p class="efc-meta efc-composer-status" id="efc-draft-status" aria-live="polite"></p>
         </div>
-        <p class="efc-meta" id="efc-draft-status" aria-live="polite"></p>
       </form>
     `;
     wire();
@@ -186,6 +221,21 @@
 
     document.getElementById('efc-save-draft').addEventListener('click', () => saveDraft(true));
     form.addEventListener('submit', submit);
+
+    const cancel = document.getElementById('efc-composer-cancel');
+    if (cancel && onClose) {
+      cancel.addEventListener('click', () => onClose());
+    }
+  }
+
+  /**
+   * Whether the composer currently holds text the member has not posted.
+   * @returns {boolean} True when the title or body has content.
+   */
+  function hasUnsavedContent() {
+    const title = document.getElementById('efc-title');
+    const body = document.getElementById('efc-body');
+    return Boolean((title && title.value.trim()) || (body && body.value.trim()));
   }
 
   /**
@@ -368,7 +418,7 @@
   }
 
   /**
-   * Boot the composer.
+   * Load the composer's data and render it into the current root.
    * @returns {Promise<void>} Resolves when ready.
    */
   async function boot() {
@@ -382,10 +432,14 @@
       meta = metaPayload;
       categories = categoryPayload.categories;
       viewer = viewerPayload;
-      EFC.hideFallback();
+      if (root === pageRoot) {
+        // Only the standalone page has a server-rendered fallback of its own to
+        // replace. In a modal the page underneath owns its own content.
+        EFC.hideFallback();
+      }
       render();
 
-      const preselect = new URLSearchParams(window.location.search).get('category');
+      const preselect = new URLSearchParams(presetSearch).get('category');
       const select = document.getElementById('efc-category');
       if (preselect && select) {
         select.value = preselect;
@@ -397,5 +451,167 @@
     }
   }
 
-  boot();
+  /**
+   * Render the composer into an element.
+   * @param {HTMLElement} target Element to render into.
+   * @param {{heading?: string, onClose?: Function, search?: string}} [options]
+   *   Render options. `search` supplies the query string the composer reads its
+   *   `?category=` preselection from, which is the link's for a modal rather
+   *   than the current page's.
+   * @returns {Promise<void>} Resolves when the composer is on screen.
+   */
+  function mount(target, options) {
+    const settings = options || {};
+    root = target;
+    headingTag = settings.heading || 'h1';
+    onClose = typeof settings.onClose === 'function' ? settings.onClose : null;
+    presetSearch = settings.search || '';
+    draftId = null;
+    return boot();
+  }
+
+  /* ── Modal ─────────────────────────────────────────────────────────────
+     The dialog is built on demand rather than shipped in every page shell,
+     so a page only pays for it if someone actually opens the composer. */
+
+  let dialog = null;
+  let returnFocusTo = null;
+
+  /**
+   * Close the composer dialog and hand focus back to whatever opened it.
+   * @returns {void} Nothing.
+   */
+  function closeDialog() {
+    if (!dialog) {
+      return;
+    }
+    // Both timers are armed by typing. Left running they fire against a form
+    // that is no longer on screen — and the draft one would save a copy of the
+    // very content the member just chose to discard.
+    clearTimeout(draftTimer);
+    clearTimeout(suggestTimer);
+    dialog.close();
+    dialog.querySelector('.efc-dialog__scroll').innerHTML = '';
+    if (returnFocusTo && document.contains(returnFocusTo)) {
+      returnFocusTo.focus();
+    }
+    returnFocusTo = null;
+  }
+
+  /**
+   * Ask before discarding text the member has typed. Drafts autosave, but a
+   * modal that vanishes on a stray Escape and takes the post with it is worse
+   * than one extra confirmation.
+   * @returns {boolean} True when it is safe to close.
+   */
+  function confirmClose() {
+    if (!hasUnsavedContent()) {
+      return true;
+    }
+    return window.confirm(
+      'Close the composer? Anything you have not saved as a draft will be lost.'
+    );
+  }
+
+  /**
+   * Build the dialog element once.
+   * @returns {HTMLDialogElement} The dialog.
+   */
+  function ensureDialog() {
+    if (dialog) {
+      return dialog;
+    }
+    dialog = document.createElement('dialog');
+    dialog.className = 'efc-dialog efc-dialog--composer';
+    dialog.id = 'efc-composer-dialog';
+    // Every render branch emits a heading carrying this id. aria-label is the
+    // fallback for the moment before the first render lands, when the
+    // reference would otherwise dangle and leave the dialog unnamed.
+    dialog.setAttribute('aria-labelledby', 'efc-composer-title');
+    dialog.setAttribute('aria-label', 'Start a discussion');
+    dialog.innerHTML = `
+      <button type="button" class="efc-dialog__close" aria-label="Close the composer">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg>
+      </button>
+      <div class="efc-dialog__scroll"></div>`;
+
+    dialog.querySelector('.efc-dialog__close').addEventListener('click', () => {
+      if (confirmClose()) {
+        closeDialog();
+      }
+    });
+
+    // Escape fires `cancel` before the dialog closes, so this is the only place
+    // a keyboard dismissal can be intercepted. The default action is always
+    // prevented and closeDialog() called instead: letting the browser close the
+    // dialog natively skips the teardown, which would leave the discarded draft
+    // sitting in the DOM with its autosave timer still armed.
+    dialog.addEventListener('cancel', event => {
+      event.preventDefault();
+      if (confirmClose()) {
+        closeDialog();
+      }
+    });
+
+    document.body.appendChild(dialog);
+    return dialog;
+  }
+
+  /**
+   * Open the composer in a modal over the current page.
+   * @param {HTMLElement} [opener] Element to return focus to on close.
+   * @param {string} [search] Query string to read the category preselect from.
+   * @returns {void} Nothing.
+   */
+  function openDialog(opener, search) {
+    const element = ensureDialog();
+    returnFocusTo = opener || null;
+    element.showModal();
+    mount(element.querySelector('.efc-dialog__scroll'), {
+      heading: 'h2',
+      search: search || '',
+      onClose: () => {
+        if (confirmClose()) {
+          closeDialog();
+        }
+      },
+    }).then(() => {
+      const title = document.getElementById('efc-title');
+      if (title) {
+        title.focus();
+      }
+    });
+  }
+
+  /**
+   * Whether a click should be handled in-page rather than followed as a link.
+   * Modified clicks are the member deliberately asking for a new tab or window,
+   * and must keep working as ordinary navigation.
+   * @param {MouseEvent} event Click event.
+   * @returns {boolean} True when the modal should take over.
+   */
+  function isPlainClick(event) {
+    return (
+      event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey
+    );
+  }
+
+  window.EFCComposer = { mount, openDialog, closeDialog };
+
+  if (pageRoot) {
+    // The standalone /community/new page.
+    mount(pageRoot, { heading: 'h1', search: window.location.search });
+  } else if (typeof HTMLDialogElement === 'function' && HTMLDialogElement.prototype.showModal) {
+    // Anywhere else, upgrade the "Start a discussion" links to open the modal.
+    // Without <dialog> support the link is left alone and navigates as usual.
+    document.addEventListener('click', event => {
+      const link = event.target.closest('a[href^="/community/new"]');
+      if (!link || !isPlainClick(event)) {
+        return;
+      }
+      event.preventDefault();
+      openDialog(link, link.search);
+    });
+  }
 })();

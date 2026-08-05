@@ -1331,9 +1331,114 @@
 
 /* ── Composer ──────────────────────────────────────────────────────────── */
 
+/* The composer is a long form, so it is capped well short of the shell width.
+   A 1180px-wide text input gives no sense of how much you have written and
+   drags the eye back across the whole viewport on every line. */
+.efc-composer-head {
+  max-width: 46rem;
+  margin: 0 auto 1.25rem;
+}
+
+.efc-composer-head > :first-child {
+  margin-top: 0;
+}
+
+.efc-composer-head p {
+  margin: 0.375rem 0 0;
+  color: var(--efc-muted);
+}
+
 .efc-composer {
   display: grid;
   gap: 1rem;
+  max-width: 46rem;
+  margin: 0 auto;
+}
+
+.efc-composer-card {
+  display: grid;
+  gap: 1rem;
+  background: var(--efc-surface);
+  border: var(--efc-border);
+  border-radius: var(--efc-radius);
+  padding: 1.25rem;
+  box-shadow: var(--efc-shadow);
+}
+
+.efc-composer-legend {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--efc-muted);
+}
+
+/* The helper text and the character count share a line where there is room and
+   stack where there is not, so the count never pushes the hint out of view. */
+.efc-field__foot {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+
+.efc-field__foot p {
+  margin: 0;
+}
+
+.efc-composer-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.efc-composer-status {
+  margin: 0;
+  flex: 1 1 100%;
+}
+
+@media (min-width: 640px) {
+  .efc-composer-status {
+    flex: 1 1 auto;
+    text-align: right;
+  }
+}
+
+/* A checkbox and its label on one line. The site-wide `label { display: block }`
+   would otherwise drop the text below the control. */
+.efc-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.625rem;
+  margin: 0;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+/* 20px matches the minimum mobile-optimizations.css enforces on touch
+   viewports. Declaring both dimensions keeps the control square there, rather
+   than 20px wide against an 18px height. */
+.efc-check input[type='checkbox'] {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  min-height: 20px;
+  margin: 0;
+  accent-color: var(--efc-accent);
+  cursor: pointer;
+}
+
+.efc-notice--age {
+  display: grid;
+  gap: 0.625rem;
+}
+
+.efc-notice__title {
+  margin: 0;
 }
 
 .efc-composer__row {
@@ -1393,6 +1498,90 @@
   gap: 0.5rem;
   justify-content: flex-end;
   flex-wrap: wrap;
+}
+
+/* The composer modal. Wider than the report dialog because it holds the whole
+   form, and it scrolls internally so the action row is always reachable
+   without the page behind it moving. */
+.efc-dialog--composer {
+  max-width: 52rem;
+  width: calc(100% - 2rem);
+  max-height: min(90vh, 900px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+
+.efc-dialog--composer:not([open]) {
+  display: none;
+}
+
+.efc-dialog__scroll {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 1.5rem;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Inside the modal the composer is already in a bounded column, so it drops the
+   page's own centring and width cap and simply fills the dialog. */
+.efc-dialog--composer .efc-composer,
+.efc-dialog--composer .efc-composer-head {
+  max-width: none;
+}
+
+/* The card borders would double up against the dialog's own edge. */
+.efc-dialog--composer .efc-composer-card {
+  box-shadow: none;
+  background: #fff;
+}
+
+.efc-dialog__close {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: var(--efc-border);
+  border-radius: 999px;
+  background: #fff;
+  color: inherit;
+  cursor: pointer;
+}
+
+.efc-dialog__close svg {
+  width: 18px;
+  height: 18px;
+}
+
+.efc-dialog__close:hover {
+  background: var(--efc-accent-soft);
+}
+
+/* The heading has to clear the close button, which is positioned over it. */
+.efc-dialog--composer .efc-composer-head {
+  padding-right: 3rem;
+}
+
+@media (max-width: 640px) {
+  .efc-dialog--composer {
+    max-height: 100dvh;
+    height: 100dvh;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    border-radius: 0;
+  }
+
+  .efc-dialog__scroll {
+    padding: 1.25rem 1rem 2rem;
+  }
 }
 
 /* ── Visually hidden ───────────────────────────────────────────────────── */
