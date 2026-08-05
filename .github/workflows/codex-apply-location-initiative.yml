@@ -35,16 +35,31 @@ jobs:
           import hashlib
           import re
 
+          target = '99d3e0c4d690fe8caab5c15d72ca6e676d81cfbbe659d9cdfff6e27f49754043'
           parts = [Path(f'.github/codex-transfer/part-{index:02d}').read_bytes() for index in range(8)]
           cleaned = re.sub(rb'[^A-Za-z0-9+/]', b'', b''.join(parts))
           print(f'cleaned_base64_bytes={len(cleaned)} modulo={len(cleaned) % 4}')
-          padded = cleaned + (b'=' * ((-len(cleaned)) % 4))
-          decoded = base64.b64decode(padded, validate=True)
-          digest = hashlib.sha256(decoded).hexdigest()
-          print(f'decoded_gzip_bytes={len(decoded)} sha256={digest}')
-          if digest != '99d3e0c4d690fe8caab5c15d72ca6e676d81cfbbe659d9cdfff6e27f49754043':
-              raise SystemExit('decoded gzip checksum mismatch')
-          Path('/tmp/implementation.git.patch.gz').write_bytes(decoded)
+
+          candidates = []
+          if len(cleaned) == 118364:
+              candidates.append(('unaltered', cleaned))
+          elif len(cleaned) == 118365:
+              candidates.extend((f'delete-index-{index}', cleaned[:index] + cleaned[index + 1:]) for index in range(len(cleaned)))
+          else:
+              raise SystemExit(f'unexpected cleaned payload length: {len(cleaned)}')
+
+          for label, candidate in candidates:
+              try:
+                  decoded = base64.b64decode(candidate, validate=True)
+              except Exception:
+                  continue
+              digest = hashlib.sha256(decoded).hexdigest()
+              if digest == target:
+                  print(f'reconstruction={label} decoded_gzip_bytes={len(decoded)} sha256={digest}')
+                  Path('/tmp/implementation.git.patch.gz').write_bytes(decoded)
+                  break
+          else:
+              raise SystemExit('unable to reconstruct checksum-matching gzip payload')
           PY
           gzip -dc /tmp/implementation.git.patch.gz > /tmp/implementation.git.patch
           echo '6cd7d590d3263c8978c3f898c013a8c5cc4189607bd3e3fd99f0e9faaff243f4  /tmp/implementation.git.patch' | sha256sum --check --strict
