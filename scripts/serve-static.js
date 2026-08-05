@@ -1039,12 +1039,19 @@ function sendCommunityShell(res, page) {
     .filter(Boolean)
     .join('\n    ');
 
+  // Some shells carry their own <h1> in the page markup — the community
+  // homepage does, in its hero. Injecting another one here would give the page
+  // two competing top-level headings, so the fallback heading steps down to an
+  // <h2> in that case. routes/community-pages.js makes the same choice for the
+  // real server-rendered fallback.
+  const level = /<h1[\s>]/i.test(html) ? 'h2' : 'h1';
+
   res
     .type('html')
     .send(
       html
         .replace('<!--COMMUNITY_HEAD-->', head)
-        .replace('<!--COMMUNITY_CONTENT-->', `<h1>${title}</h1>`)
+        .replace('<!--COMMUNITY_CONTENT-->', `<${level}>${title}</${level}>`)
     );
 }
 

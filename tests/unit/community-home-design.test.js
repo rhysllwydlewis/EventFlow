@@ -207,6 +207,25 @@ describe('the community homepage shell', () => {
     expect(html).toMatch(/<div class="efc-stage__decor" aria-hidden="true">/);
   });
 
+  it('does not let the static server inject a second h1', () => {
+    // scripts/serve-static.js fills #efc-noscript for the browser suites. It
+    // used to hard-code <h1>${title}</h1>, which gave /community two top-level
+    // headings once the shell grew a hero heading of its own.
+    const serveStatic = fs.readFileSync(path.join(ROOT, 'scripts/serve-static.js'), 'utf8');
+    expect(serveStatic).not.toContain('`<h1>${title}</h1>`');
+    expect(serveStatic).toContain("/<h1[\\s>]/i.test(html) ? 'h2' : 'h1'");
+  });
+
+  it('serves the assets it changed under a fresh cache-busting version', () => {
+    // Static CSS/JS is cached for a week. Shipping this markup against the
+    // previously cached community.css leaves the hero unstyled, and against
+    // the previously cached home.js the rails and category strip never fill.
+    expect(html).toContain('community.css?v=18.4.0');
+    expect(html).toContain('community/core.js?v=18.4.0');
+    expect(html).toContain('community/home.js?v=18.4.0');
+    expect(html).toContain('mobile-optimizations.css?v=18.4.0');
+  });
+
   it('exempts the hero search button from the mobile full-width rule', () => {
     const mobile = fs.readFileSync(
       path.join(ROOT, 'public/assets/css/mobile-optimizations.css'),
