@@ -18,11 +18,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
       - name: Create source archive
-        run: tar --exclude=.git --exclude=node_modules -czf eventflow-source.tgz .
+        run: tar --exclude=.git --exclude=node_modules -czf ../eventflow-source.tgz .
       - name: Upload source archive
         uses: actions/upload-artifact@v4
         with:
           name: eventflow-source
-          path: eventflow-source.tgz
+          path: ../eventflow-source.tgz
           if-no-files-found: error
           retention-days: 1
