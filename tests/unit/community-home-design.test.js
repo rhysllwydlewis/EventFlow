@@ -238,6 +238,86 @@ describe('the community homepage shell', () => {
   });
 });
 
+describe('fallbackHeading', () => {
+  const { fallbackHeading } = require('../../routes/community-pages').__internal;
+
+  it('emits an h1 when the shell has no heading of its own', () => {
+    expect(fallbackHeading('<body><main></main></body>', 'All discussions')).toBe(
+      '<h1>All discussions</h1>'
+    );
+  });
+
+  it('steps down to h2 when the shell already carries an h1', () => {
+    // Otherwise the page ships two top-level headings — invisibly on shells
+    // whose script hides the fallback, and visibly on the fully static ones.
+    expect(fallbackHeading('<body><h1>All discussions</h1></body>', 'All discussions')).toBe(
+      '<h2>All discussions</h2>'
+    );
+  });
+
+  it('detects an h1 that carries attributes', () => {
+    expect(fallbackHeading('<h1 class="x" id="y">Hi</h1>', 'T')).toBe('<h2>T</h2>');
+  });
+
+  it('is not fooled by an element whose name merely starts with h1', () => {
+    expect(fallbackHeading('<h10>Not a heading</h10>', 'T')).toBe('<h1>T</h1>');
+  });
+
+  it('escapes the heading text', () => {
+    expect(fallbackHeading('', '<script>alert(1)</script>')).toBe(
+      '<h1>&lt;script&gt;alert(1)&lt;/script&gt;</h1>'
+    );
+  });
+
+  it('leaves no route emitting an unconditional h1 into the fallback', () => {
+    // The bug this guards against was reintroduced twice: once in the real
+    // route file and once in scripts/serve-static.js.
+    const source = fs.readFileSync(path.join(ROOT, 'routes/community-pages.js'), 'utf8');
+    const body = source.slice(source.indexOf('// ─── Redirects'));
+    expect(body).not.toMatch(/<h1>\$\{/);
+  });
+});
+
+describe('the all-discussions index', () => {
+  const source = fs.readFileSync(path.join(ROOT, 'routes/community-pages.js'), 'utf8');
+
+  it('is a real route rather than a bare shell', () => {
+    // It was previously a SIMPLE_PAGES entry whose entire no-JavaScript
+    // fallback was a heading, so the community's main index — and the target
+    // of the homepage's "Browse discussions" call to action — served no
+    // discussion links at all to a crawler that does not run JavaScript.
+    expect(source).toContain("router.get(['/community/discussions']");
+    const route = source.slice(source.indexOf("router.get(['/community/discussions']"));
+    expect(route).toContain('renderDiscussionList(cards)');
+    expect(route).toContain('loadPublicDiscussions()');
+  });
+
+  it('points rel=prev at the canonical URL rather than a ?page=1 duplicate', () => {
+    const route = source.slice(source.indexOf("router.get(['/community/discussions']"));
+    const prev = route.slice(route.indexOf('prev:'), route.indexOf('next:'));
+    expect(prev).toContain("page > 2 ? `?page=${page - 1}` : ''");
+  });
+
+  it('is no longer also registered as a simple shell', () => {
+    // Two handlers for one path would leave whichever registered first
+    // silently winning.
+    const simple = source.slice(source.indexOf('const SIMPLE_PAGES'));
+    expect(simple).not.toContain("'/community/discussions'");
+  });
+});
+
+describe('notice styling', () => {
+  const css = fs.readFileSync(path.join(ROOT, 'public/assets/css/community.css'), 'utf8');
+
+  it('does not force a notice colour onto buttons inside it', () => {
+    // `.efc-notice a` outranks `.btn-primary`, so the signed-out composer's
+    // "Log in or join" button inherited the info notice's indigo and rendered
+    // #3730a3 on teal — 2.05:1.
+    expect(css).toContain('.efc-notice a:not(.btn)');
+    expect(css).not.toMatch(/^\.efc-notice a \{/m);
+  });
+});
+
 describe('discussion card thumbnails', () => {
   const community = require('../../services/community.service');
 

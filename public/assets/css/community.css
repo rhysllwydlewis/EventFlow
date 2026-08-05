@@ -941,7 +941,12 @@
   color: #991b1b;
 }
 
-.efc-notice a {
+/* A plain link inside a notice takes the notice's own tone so it reads as part
+   of the message. A button must not: this selector outranks `.btn-primary`'s
+   own colour, so the "Log in or join" button in the signed-out composer prompt
+   inherited the info notice's indigo and rendered #3730a3 on the teal fill —
+   2.05:1, against a 4.5:1 requirement. */
+.efc-notice a:not(.btn) {
   color: inherit;
   font-weight: 600;
 }

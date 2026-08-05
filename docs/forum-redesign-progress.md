@@ -101,9 +101,15 @@ than fixing it silently.
 
 - [ ] Carry the hero treatment across to the sibling pages that still use the
       old `.efc-hero` band: `/community/discussions` and `/community/search`.
-      They look like a different site next to the new homepage.
+      They look like a different site next to the new homepage. **This is the
+      largest remaining item and the obvious next one.**
 - [ ] `/community/category/:slug` has no hero at all — decide whether it gets
       a scaled-down version of the stage.
+- [ ] `core.js` fetches `/api/v1/csrf-token` three times on a page that fires
+      several non-GET calls at once: `csrfToken()` caches the result in
+      `window.__CSRF_TOKEN__`, but concurrent callers all miss the cache before
+      the first response lands. Cache the in-flight promise, not just the
+      resolved value. Minor — three requests, not a loop.
 - [ ] The rails are populated from the `home` payload's `recentActivity`,
       `trending`, `popular` and `recentDiscussions` arrays. That is four
       arrays fetched to render six cards. Worth a dedicated slice in the
@@ -135,6 +141,28 @@ found and a tick when fixed, so nothing is quietly dropped.
 - [x] **Nine of the 22 seeded categories had no line icon** and fell back to
       emoji, so the strip mixed two icon styles. Caught by a test asserting
       the map covers every seed slug, not by eye.
+- [x] **`/community/discussions` served no discussion links without
+      JavaScript.** The community's main index — and where the homepage's
+      "Browse discussions" button sends people — was a `SIMPLE_PAGES` shell
+      whose entire fallback was `<h1>All discussions</h1>`. The homepage
+      rendered ten links and every category page rendered its own; this one
+      rendered zero, which defeats the crawlability the whole feature was
+      justified on. It is now a real route with a paginated server-rendered
+      list, `rel=prev`/`rel=next` and `BreadcrumbList` data.
+- [x] **Two visible `<h1>`s on `/community/guidelines` and
+      `/community/help`.** Those pages are fully static and load no view
+      script, so nothing ever hid the fallback: the injected heading rendered
+      directly above the shell's own, on screen, in production. The same
+      unconditional injection also shipped two `<h1>`s in the raw HTML of
+      `/community/discussions` and `/community/search`. Fixed centrally with
+      `fallbackHeading()`, which steps the fallback heading down to `<h2>`
+      when the shell already provides an `<h1>`.
+- [x] **The signed-out "Log in or join" button measured 2.05:1.**
+      `.efc-notice a { color: inherit }` outranks `.btn-primary`'s own
+      `color: white`, so the button in the composer's login prompt inherited
+      the info notice's indigo `#3730a3` and painted it on the teal fill. This
+      is the login gate on `/community/new`. Narrowed to
+      `.efc-notice a:not(.btn)`.
 
 ### Known gaps against the mockup
 
@@ -197,3 +225,29 @@ forum redesign, and guessing wrong would silently change admin behaviour.
 Next: stage 4 — the sibling community pages (`/community/discussions`,
 `/community/search`, `/community/category/:slug`) still use the old
 `.efc-hero` band and now look like a different site next to the homepage.
+
+### 2026-08-05 — session 3 (review pass)
+
+Swept every public community route at 1440 and 390 for axe violations,
+horizontal overflow, JavaScript errors and heading structure, rather than
+looking only at the pages this branch had touched. That turned up three real
+defects, all recorded above: the uncrawlable `/community/discussions` index,
+the two visible `<h1>`s on the guidelines and help pages, and the 2.05:1
+login button. **All three pre-date this branch.**
+
+The sweep now reports **zero axe violations on every public community route at
+both viewports**, one `<h1>` in the raw HTML of every page, and no horizontal
+overflow anywhere.
+
+Two things checked and deliberately not changed:
+
+- `/community/saved` never reaches Playwright's `networkidle`. Investigated:
+  85 requests, nothing repeating more than three times, no runaway poll. The
+  site holds a persistent notifications connection, so `networkidle` will
+  never fire. Not a defect; use `domcontentloaded` when testing that page.
+- The remaining `h1=2` counts on `/community/new` and
+  `/community/category/:slug` are the fallback heading sitting inside the
+  `hidden` fallback after the client render replaced it. Verified not visible
+  and not exposed to assistive technology, and the raw HTML has one.
+
+Next: unchanged — stage 4, the sibling pages' visual treatment.
