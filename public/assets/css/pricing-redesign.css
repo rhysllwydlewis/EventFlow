@@ -1064,3 +1064,67 @@ body.pricing-redesign .pricing-security-note {
     display: none;
   }
 }
+
+/* ── Billing switch geometry ───────────────────────────────────────────────
+   The switch declared a 48x28 pill, but a site-wide 44px minimum touch target
+   inflated it to 48x44. With `border-radius: 999px` that renders as a circle
+   rather than a pill, and the 22px thumb — pinned to `top: 3px` for a 28px
+   track — then sat high inside it, so the control read as a teal disc with a
+   white crescent instead of a toggle.
+
+   The 44px target is worth keeping, so the button stays 44px tall as the hit
+   area and the visible pill is drawn as a pseudo-element centred inside it.
+   ------------------------------------------------------------------------ */
+
+body.pricing-redesign .pricing-billing-switch {
+  width: 48px;
+  height: 44px;
+  background: transparent;
+  box-shadow: none;
+}
+
+body.pricing-redesign .pricing-billing-switch::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 48px;
+  height: 28px;
+  border-radius: 999px;
+  background: var(--pricing-teal);
+  box-shadow: inset 0 0 0 1px rgba(4, 79, 72, 0.16);
+  transform: translateY(-50%);
+  transition: background 180ms ease;
+}
+
+body.pricing-redesign .pricing-billing-switch:hover {
+  background: transparent;
+}
+
+body.pricing-redesign .pricing-billing-switch:hover::before {
+  background: var(--pricing-teal-dark);
+}
+
+/* Centred against the 44px button rather than offset from a 28px track. */
+body.pricing-redesign .pricing-billing-switch-thumb {
+  top: 50%;
+  left: 3px;
+  transform: translateY(-50%);
+}
+
+body.pricing-redesign .pricing-billing-switch.is-annual .pricing-billing-switch-thumb {
+  transform: translate(20px, -50%);
+}
+
+/* The value statement is the one line that says what the plan does for the
+   supplier rather than what it contains, so it is set apart from the
+   description above it and the feature list below. */
+body.pricing-redesign .pricing-value-statement {
+  margin: 0.75rem 0 0;
+  padding-left: 0.75rem;
+  border-left: 3px solid rgba(11, 128, 115, 0.35);
+  color: var(--pricing-ink);
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.45;
+}
