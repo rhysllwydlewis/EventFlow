@@ -87,7 +87,11 @@
 
 @media (max-width: 768px) {
   /* Full-width buttons on mobile */
-  .cta, .btn, button[type="submit"]:not(.ef-search-bar__button), input[type="submit"] {
+  /* A submit button that sits inside a search field is an icon, not a bar: made
+     full-width it swallows the input next to it. `.ef-search-bar__button` was
+     already excluded for this reason; the community hero's search is the same
+     shape and needs the same exemption. */
+  .cta, .btn, button[type="submit"]:not(.ef-search-bar__button):not(.efc-searchbtn), input[type="submit"] {
     width: 100%;
     min-height: 48px;
     font-size: 16px;

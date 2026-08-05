@@ -125,6 +125,29 @@ function applyContent(html, content) {
 }
 
 /**
+ * Render the heading that opens a page's server-rendered fallback.
+ *
+ * Some shells carry their own `<h1>` in a hero band and some do not, and the
+ * fallback is injected into all of them. Emitting an `<h1>` unconditionally
+ * gave every shell in the first group two top-level headings. On the shells
+ * whose client script hides the fallback that was invisible but still shipped
+ * two `<h1>`s to any crawler that does not run JavaScript; on the fully static
+ * pages — the guidelines and the help page, which load no view script and so
+ * never hide the fallback — both headings rendered on screen, one directly
+ * above the other.
+ *
+ * The heading steps down to `<h2>` when the shell already provides an `<h1>`,
+ * which keeps the fallback's own outline intact either way.
+ * @param {string} shell Shell HTML, before content injection.
+ * @param {string} text Heading text, escaped here.
+ * @returns {string} Heading HTML.
+ */
+function fallbackHeading(shell, text) {
+  const level = /<h1[\s>]/i.test(shell) ? 'h2' : 'h1';
+  return `<${level}>${escapeHtml(text)}</${level}>`;
+}
+
+/**
  * Resolve the viewer context for a server-rendered page.
  *
  * The page routes are mounted before the API stack, so they do not benefit from
@@ -244,18 +267,32 @@ router.get(['/community', '/community.html'], publicReadLimiter, async (req, res
         community.toDiscussionCard(item, { category: categoriesBySlug.get(item.categorySlug), now })
       );
 
+    const countsBySlug = new Map();
+    discussions.forEach(item => {
+      countsBySlug.set(item.categorySlug, (countsBySlug.get(item.categorySlug) || 0) + 1);
+    });
+
     const categoryList = categories
-      .map(
-        item =>
-          `<li><a href="/community/category/${escapeHtml(item.slug)}">${escapeHtml(
-            item.name
-          )}</a> — ${escapeHtml(item.description || '')}</li>`
+      .slice()
+      .sort(
+        (a, b) =>
+          (countsBySlug.get(b.slug) || 0) - (countsBySlug.get(a.slug) || 0) ||
+          a.name.localeCompare(b.name)
       )
+      .map(item => {
+        const count = countsBySlug.get(item.slug) || 0;
+        return `<li><a href="/community/category/${escapeHtml(item.slug)}">${escapeHtml(
+          item.name
+        )}</a> — ${escapeHtml(item.description || '')} (${count} ${
+          count === 1 ? 'discussion' : 'discussions'
+        })</li>`;
+      })
       .join('\n');
 
+    // No <h1> here: the shell already carries the page heading in the hero, and
+    // emitting a second one gave the page two competing top-level headings for
+    // as long as the fallback was on screen.
     const content = `
-      <h1>EventFlow Community</h1>
-      <p>Ask questions, share experiences and get practical advice from people planning events and verified EventFlow suppliers.</p>
       <h2>Categories</h2>
       <ul class="ef-community-list">${categoryList}</ul>
       <h2>Recent discussions</h2>
@@ -285,17 +322,102 @@ router.get(['/community', '/community.html'], publicReadLimiter, async (req, res
   }
 });
 
+// ─── All discussions ─────────────────────────────────────────────────────────
+
+/** Discussions listed per page on the server-rendered index. */
+const INDEX_PAGE_SIZE = 20;
+
+// This is the community's main index and the target of the homepage's "Browse
+// discussions" call to action, so it is the page a crawler is most likely to
+// follow into the forum. It used to be served as a simple shell whose entire
+// no-JavaScript fallback was `<h1>All discussions</h1>` — no discussion links
+// at all, while the homepage rendered ten and every category page rendered its
+// own. It now renders a real paginated list, like the category pages do.
+router.get(['/community/discussions'], publicReadLimiter, async (req, res, next) => {
+  try {
+    if (!(await community.isCommunityEnabled())) {
+      return next();
+    }
+    const shell = await readShell('community-discussions.html');
+    if (!shell) {
+      return next();
+    }
+
+    const now = new Date();
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const [categories, discussions] = await Promise.all([
+      community.listCategories(),
+      community.loadPublicDiscussions(),
+    ]);
+    const categoriesBySlug = new Map(categories.map(item => [item.slug, item]));
+    const ordered = discussions.slice().sort(community.comparatorFor('latest-activity', now));
+    const totalPages = Math.max(1, Math.ceil(ordered.length / INDEX_PAGE_SIZE));
+    const cards = ordered
+      .slice((page - 1) * INDEX_PAGE_SIZE, page * INDEX_PAGE_SIZE)
+      .map(item =>
+        community.toDiscussionCard(item, { category: categoriesBySlug.get(item.categorySlug), now })
+      );
+
+    // Page 2 and beyond are paginated slices of one list rather than pages in
+    // their own right, so they point their canonical at themselves and rely on
+    // rel=prev/next, exactly as the category pages do.
+    const canonical = `${BASE_URL}/community/discussions${page > 1 ? `?page=${page}` : ''}`;
+    const content = `
+      ${fallbackHeading(shell, 'All discussions')}
+      <p>Every published discussion in the EventFlow Community, most recently active first.</p>
+      ${renderDiscussionList(cards)}
+      <p class="ef-community-pagination">Page ${page} of ${totalPages}</p>
+    `;
+
+    return send(
+      res,
+      applyContent(
+        applyMeta(shell, {
+          title:
+            page > 1
+              ? `All discussions (page ${page}) — EventFlow Community`
+              : 'All discussions — EventFlow Community',
+          description:
+            'Browse every discussion in the EventFlow Community. Filter by category, event type, UK region, freshness and whether a question has been answered.',
+          canonical,
+          // Page one is the bare URL, not `?page=1`: pointing rel=prev at a
+          // second address for the same page would advertise a duplicate.
+          prev:
+            page > 1
+              ? `${BASE_URL}/community/discussions${page > 2 ? `?page=${page - 1}` : ''}`
+              : null,
+          next: page < totalPages ? `${BASE_URL}/community/discussions?page=${page + 1}` : null,
+          structuredData: {
+            '@context': 'https://schema.org',
+            '@type': 'BreadcrumbList',
+            itemListElement: [
+              {
+                '@type': 'ListItem',
+                position: 1,
+                name: 'Community',
+                item: `${BASE_URL}/community`,
+              },
+              {
+                '@type': 'ListItem',
+                position: 2,
+                name: 'All discussions',
+                item: `${BASE_URL}/community/discussions`,
+              },
+            ],
+          },
+        }),
+        content
+      )
+    );
+  } catch (error) {
+    logger.error('Could not render the community discussions index:', error);
+    return next();
+  }
+});
+
 // ─── Simple shells ───────────────────────────────────────────────────────────
 
 const SIMPLE_PAGES = [
-  {
-    routes: ['/community/discussions'],
-    file: 'community-discussions.html',
-    title: 'All discussions — EventFlow Community',
-    description:
-      'Browse every discussion in the EventFlow Community. Filter by category, event type, UK region, freshness and whether a question has been answered.',
-    canonical: '/community/discussions',
-  },
   {
     routes: ['/community/new'],
     file: 'community-new.html',
@@ -365,7 +487,7 @@ SIMPLE_PAGES.forEach(page => {
             canonical: `${BASE_URL}${page.canonical}`,
             noindex: page.noindex,
           }),
-          `<h1>${escapeHtml(page.title.split(' — ')[0])}</h1>`
+          fallbackHeading(shell, page.title.split(' — ')[0])
         )
       );
     } catch (error) {
@@ -406,7 +528,7 @@ router.get('/community/category/:slug', publicReadLimiter, async (req, res, next
 
     const canonical = `${BASE_URL}/community/category/${slug}${page > 1 ? `?page=${page}` : ''}`;
     const content = `
-      <h1>${escapeHtml(category.name)}</h1>
+      ${fallbackHeading(shell, category.name)}
       <p>${escapeHtml(category.description || '')}</p>
       ${renderDiscussionList(cards)}
       <p class="ef-community-pagination">Page ${page} of ${totalPages}</p>
@@ -602,7 +724,7 @@ router.get(
         <nav aria-label="Breadcrumb"><a href="/community">Community</a> › <a href="/community/category/${escapeHtml(
           discussion.categorySlug
         )}">${escapeHtml(discussion.categoryName || discussion.categorySlug)}</a></nav>
-        <h1>${escapeHtml(discussion.title)}</h1>
+        ${fallbackHeading(shell, discussion.title)}
         ${ageNotice}
         ${lockedNotice}
         <p class="ef-community-card__meta">Started by ${escapeHtml(
@@ -665,7 +787,7 @@ router.get('/community/member/:handle', publicReadLimiter, async (req, res, next
           canonical: `${BASE_URL}/community/member/${handle}`,
           ogType: 'profile',
         }),
-        `<h1>${escapeHtml(handle)}</h1><p>Community profile.</p>`
+        `${fallbackHeading(shell, handle)}<p>Community profile.</p>`
       )
     );
   } catch (error) {
@@ -696,4 +818,10 @@ router.get('/admin/community', apiLimiter, async (req, res, next) => {
 });
 
 module.exports = router;
-module.exports.__internal = { applyMeta, applyContent, renderDiscussionList, escapeHtml };
+module.exports.__internal = {
+  applyMeta,
+  applyContent,
+  renderDiscussionList,
+  escapeHtml,
+  fallbackHeading,
+};
