@@ -157,7 +157,7 @@ a.btn {
 .card h4 {
   word-wrap: break-word;
   overflow-wrap: break-word;
-  hyphens: auto;
+  /* No hyphenation here either — a hyphenated heading reads as a typo. */
 }
 
 .card p,
@@ -576,7 +576,13 @@ h1, h2, h3, h4, h5, h6,
 p, span, div, a, label {
   word-wrap: break-word;
   overflow-wrap: break-word;
-  hyphens: auto;
+  /* Deliberately no `hyphens: auto`. The rule above already prevents a long
+     word from overflowing its container, which is what this block is for.
+     `hyphens: auto` does something different: it breaks ordinary words at
+     syllable boundaries whenever a line is merely tight, so narrow columns
+     filled with normal prose came out as "receiv-ing", "better-quali-fied"
+     and "opportun-ities". That is a print convention for justified text, not
+     something to apply to every element on a UI. */
 }
 
 /* Prevent long URLs from breaking layout */

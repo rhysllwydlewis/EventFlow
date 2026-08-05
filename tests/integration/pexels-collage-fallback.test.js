@@ -33,19 +33,19 @@ describe('Pexels Collage Fallback Integration', () => {
     // Mount admin router at /api to match actual server setup
     app.use('/api', adminRouter);
 
-    // Enable Pexels collage feature flag
-    const settings = await dbUnified.read('settings');
-    if (!settings || typeof settings !== 'object') {
-      await dbUnified.write('settings', {
-        features: {
-          pexelsCollage: true,
-        },
-      });
-    } else {
-      settings.features = settings.features || {};
-      settings.features.pexelsCollage = true;
-      await dbUnified.write('settings', settings);
-    }
+    // The endpoint is enabled by EITHER the new collageWidget configuration or
+    // the legacy pexelsCollage feature flag — the `||` in the route is
+    // deliberate backward compatibility. This setup used to manage only the
+    // legacy flag, which meant every assertion here silently depended on
+    // whatever `collageWidget` happened to be in the database: on a clean
+    // store it is absent and the tests pass, but wherever a widget has been
+    // configured the "disabled" case stayed enabled and failed. Both switches
+    // are now set explicitly so the state under test is the state asserted.
+    const settings = (await dbUnified.read('settings')) || {};
+    settings.features = settings.features || {};
+    settings.features.pexelsCollage = true;
+    settings.collageWidget = { ...(settings.collageWidget || {}), enabled: true };
+    await dbUnified.write('settings', settings);
   });
 
   describe('GET /api/public/pexels-collage', () => {
@@ -116,7 +116,9 @@ describe('Pexels Collage Fallback Integration', () => {
       if (!settings || typeof settings !== 'object' || !settings.features) {
         throw new Error('Test setup failed: settings not initialized by beforeEach');
       }
+      // Both switches have to go off: either one on keeps the endpoint enabled.
       settings.features.pexelsCollage = false;
+      settings.collageWidget = { ...(settings.collageWidget || {}), enabled: false };
       await dbUnified.write('settings', settings);
 
       const response = await request(app).get('/api/public/pexels-collage?category=venues');
@@ -124,8 +126,9 @@ describe('Pexels Collage Fallback Integration', () => {
       expect(response.status).toBe(404);
       expect(response.body.error).toBe('Pexels collage feature is not enabled');
 
-      // Clean up: re-enable feature flag for other tests
+      // Clean up: re-enable both for other tests
       settings.features.pexelsCollage = true;
+      settings.collageWidget = { ...(settings.collageWidget || {}), enabled: true };
       await dbUnified.write('settings', settings);
     });
   });

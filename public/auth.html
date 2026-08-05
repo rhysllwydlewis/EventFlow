@@ -22,7 +22,7 @@
     <link rel="stylesheet" href="/assets/css/components.css?v=18.3.0" />
     <link rel="stylesheet" href="/assets/css/animations.css?v=18.3.0" />
     <link rel="stylesheet" href="/assets/css/mobile-optimizations.css?v=18.4.0" />
-    <link rel="stylesheet" href="/assets/css/ui-ux-fixes.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/ui-ux-fixes.css?v=18.4.0" />
     <link rel="stylesheet" href="/assets/css/navbar.css?v=18.3.0" />
     <link rel="stylesheet" href="/assets/css/p3-features.css?v=18.3.0" />
     <link rel="stylesheet" href="/assets/css/liquid-glass.css?v=18.3.0" />
@@ -185,7 +185,10 @@
 
       <div class="auth-split">
         <!-- Left panel: EventFlow branding visual (desktop only) -->
-        <div class="auth-split-left" aria-hidden="true">
+        <!-- inert as well as aria-hidden, for the same reason as the homepage
+             collage: focusable content inside an aria-hidden container is
+             reachable by keyboard but invisible to a screen reader. -->
+        <div class="auth-split-left" aria-hidden="true" inert>
           <!-- Pexels event photos — crossfading slideshow -->
           <div class="auth-panel-photos">
             <div class="auth-panel-photo auth-panel-photo--1"></div>

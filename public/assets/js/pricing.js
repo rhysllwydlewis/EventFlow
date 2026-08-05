@@ -84,7 +84,7 @@
     const stylesheet = document.createElement('link');
     stylesheet.id = 'pricing-redesign-styles';
     stylesheet.rel = 'stylesheet';
-    stylesheet.href = '/assets/css/pricing-redesign.css?v=2.0.0';
+    stylesheet.href = '/assets/css/pricing-redesign.css?v=2.1.0';
     document.head.appendChild(stylesheet);
   }
 
@@ -147,6 +147,68 @@
       features.innerHTML = presentation.highlights
         .map(feature => `<li>${escapeHtml(feature)}</li>`)
         .join('');
+    }
+
+    // `valueStatement` and `badge` are written in config/billingPlans.js and
+    // served by the plans endpoint, but nothing on the page was reading them,
+    // so the sharpest selling line each plan has was being fetched and thrown
+    // away. The value statement says what the plan does for the supplier,
+    // which the feature list does not.
+    setPlanValueStatement(card, presentation.valueStatement);
+    setPlanBadge(card, presentation.badge);
+  }
+
+  /**
+   * Show a plan's value statement beneath its description.
+   *
+   * The element is created on demand: the server-rendered first paint does not
+   * include it, and a plan with no statement should not leave an empty node.
+   * @param {HTMLElement} card Plan card element.
+   * @param {string} [statement] Value statement copy.
+   * @returns {void} Nothing.
+   */
+  function setPlanValueStatement(card, statement) {
+    const existing = card.querySelector('.pricing-value-statement');
+    if (!statement) {
+      if (existing) {
+        existing.remove();
+      }
+      return;
+    }
+    const node = existing || document.createElement('p');
+    node.className = 'pricing-value-statement';
+    node.textContent = statement;
+    if (!existing) {
+      const anchor = card.querySelector('.pricing-card-divider');
+      if (anchor) {
+        anchor.parentNode.insertBefore(node, anchor);
+      } else {
+        card.querySelector('.pricing-card-content').appendChild(node);
+      }
+    }
+  }
+
+  /**
+   * Show a plan's badge, reusing the early-access slot the markup already has.
+   * @param {HTMLElement} card Plan card element.
+   * @param {string} [badge] Badge copy.
+   * @returns {void} Nothing.
+   */
+  function setPlanBadge(card, badge) {
+    const existing = card.querySelector('.pricing-early-access-label');
+    if (!badge) {
+      return;
+    }
+    if (existing) {
+      existing.textContent = badge;
+      return;
+    }
+    const node = document.createElement('span');
+    node.className = 'pricing-early-access-label';
+    node.textContent = badge;
+    const content = card.querySelector('.pricing-card-content');
+    if (content) {
+      content.insertBefore(node, content.firstChild);
     }
   }
 
