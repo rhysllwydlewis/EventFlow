@@ -83,6 +83,37 @@ Coordinates are GeoJSON `[longitude, latitude]` everywhere, matching the rest of
 the platform. `source` and `confidence` are stored so a mapping can always be
 traced back to how it was made.
 
+#### Where `baseLocation` comes from
+
+`supplierLocation.deriveBaseLocation()` runs whenever a supplier creates or
+edits their profile, so a mapping is maintained by the platform rather than by
+the one-off backfill. Signals are tried in order of how far they can be trusted:
+
+| Order | Signal                                               | Source          | Confidence |
+| ----- | ---------------------------------------------------- | --------------- | ---------- |
+| 1     | `basePostcode`, `venuePostcode` or `postcode`        | postcode_lookup | high       |
+| 2     | `latitude`/`longitude` the platform already geocoded | postcode_lookup | high       |
+| 3     | Legacy `location` that is exactly a city name        | registry_name   | high       |
+| —     | Anything else                                        | —               | unmapped   |
+
+Nothing below that bar is guessed at. An unmapped supplier gets
+`locationMappingReviewRequired: true` and is absent from the city pages until a
+human resolves it, which is recoverable; a wrongly placed supplier is not. Two
+further rules protect existing decisions:
+
+- A `baseLocation` whose source is `admin_verified` is never overwritten by a
+  profile edit.
+- Re-derivation only runs when an edit actually changes `location`,
+  `basePostcode`, `venuePostcode` or the coordinates, so unrelated edits cost no
+  geocoder call and cannot disturb a good mapping.
+
+Suppliers set this themselves on the profile form: an optional base postcode
+(never shown publicly — only the city it falls in), a travel radius in miles and
+a "whole UK" checkbox, which the client translates into the `serviceAreas`
+shape. The API re-validates everything through `sanitiseServiceAreas()`:
+unknown cities, out-of-range radii and unrecognised types are dropped rather
+than stored as coverage the pages would not honour.
+
 ## Matching and ranking
 
 `services/supplierLocation.service.js` resolves a supplier against a city in a
@@ -200,6 +231,12 @@ Only high-confidence rows are written, and only under `--apply`. The legacy
 `location` string is never modified, so the migration is reversible: dropping the
 `baseLocation` field returns a record to its previous behaviour.
 
+The script and the live write path share `buildBaseLocationDocument()`, so a
+supplier mapped by the backfill and one mapped by their own profile edit end up
+with byte-identical structure. Suppliers the script leaves as `review_required`
+or `unmapped` are counted in the admin Location Pages summary, so the backlog
+stays visible after the migration report has been closed.
+
 ## Rollback
 
 - **A single page:** set its `status` to `draft` or `retired` through the admin
@@ -229,6 +266,7 @@ published city slug.
 | `tests/unit/location-sitemap.test.js`               | sitemap inclusion and automatic removal                                             |
 | `tests/unit/location-indexes.test.js`               | index manifest                                                                      |
 | `tests/unit/supplier-location-audit-script.test.js` | dry-run safety and apply behaviour                                                  |
+| `tests/unit/supplier-location-write-path.test.js`   | live derivation on profile create/edit, coverage validation, geocoder failure       |
 | `tests/integration/locations-pages.test.js`         | status codes, redirects, headers, escaping, module omission                         |
 | `tests/integration/admin-locations-api.test.js`     | access control, workflow, warnings, input limits                                    |
 | `e2e/locations.spec.js`                             | browser suite; requires `E2E_MODE=full` because the pages need real data            |

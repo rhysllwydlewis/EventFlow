@@ -107,7 +107,10 @@
     const query = filterEl && filterEl.value ? `?status=${encodeURIComponent(filterEl.value)}` : '';
     try {
       const data = await api(`/api/v1/admin/locations${query}`);
-      summaryEl.textContent = `${data.summary.total} cities · ${data.summary.published} published · ${data.summary.pilot} in pilot · ${data.summary.indexable} indexable`;
+      const unmapped = data.summary.unmappedSuppliers
+        ? ` · ${data.summary.unmappedSuppliers} suppliers not yet placed on a city`
+        : '';
+      summaryEl.textContent = `${data.summary.total} cities · ${data.summary.published} published · ${data.summary.pilot} in pilot · ${data.summary.indexable} indexable${unmapped}`;
       listEl.innerHTML = data.items.map(renderCard).join('');
     } catch (error) {
       summaryEl.textContent = `Could not load location pages: ${error.message}`;

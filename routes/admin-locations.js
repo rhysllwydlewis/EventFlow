@@ -19,6 +19,7 @@ const { csrfProtection } = require('../middleware/csrf');
 const { apiLimiter, writeLimiter } = require('../middleware/rateLimits');
 const registry = require('../services/locationRegistry.service');
 const locationPages = require('../services/locationPage.service');
+const supplierLocation = require('../services/supplierLocation.service');
 const { isPublicSupplier } = require('../services/publicSupplierSeo.service');
 const {
   COLLECTIONS,
@@ -270,6 +271,13 @@ router.get('/', apiLimiter, async (req, res) => {
           published: items.filter(item => item.status === PUBLICATION_STATES.published).length,
           indexable: items.filter(item => item.indexable).length,
           pilot: items.filter(item => item.status === PUBLICATION_STATES.pilot).length,
+          // Public suppliers the registry cannot place. Every one of these is a
+          // supplier missing from the city page they belong on, so the number
+          // belongs next to the pages rather than only in a migration report.
+          unmappedSuppliers: data.suppliers.filter(supplier => {
+            const base = supplierLocation.normaliseBaseLocation(supplier);
+            return !base || !base.citySlug;
+          }).length,
         },
       },
     });

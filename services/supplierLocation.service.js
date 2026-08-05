@@ -16,6 +16,7 @@
 'use strict';
 
 const registry = require('./locationRegistry.service');
+const geocoding = require('../utils/geocoding');
 const { isPublicSupplier, supplierDisplayName } = require('./publicSupplierSeo.service');
 const {
   AUDIT_STATUSES,
@@ -329,6 +330,166 @@ function normaliseServiceAreas(supplier) {
 }
 
 /**
+ * Build the `baseLocation` document a supplier record should carry.
+ * @param {Object} city Registry city.
+ * @param {Object} options `{point, postcode, source, confidence, mappedAt}`.
+ * @returns {Object} `baseLocation` document.
+ */
+function buildBaseLocationDocument(city, options = {}) {
+  const point = options.point || city.centre;
+  return {
+    displayName: `${city.name}, ${city.nation}`,
+    postcode: options.postcode || null,
+    citySlug: city.slug,
+    nation: city.nation,
+    coordinates: toGeoJsonPoint(point),
+    source: options.source || MAPPING_SOURCES.registryName,
+    confidence: options.confidence || CONFIDENCE.high,
+    mappedAt: options.mappedAt || new Date().toISOString(),
+  };
+}
+
+/**
+ * The first postcode a supplier record offers, in order of authority.
+ * @param {Object} supplier Supplier record.
+ * @returns {string|null} Postcode, or null.
+ */
+function supplierPostcode(supplier) {
+  const source = supplier && typeof supplier === 'object' ? supplier : {};
+  const candidate = source.basePostcode || source.venuePostcode || source.postcode;
+  return candidate ? String(candidate).trim() : null;
+}
+
+/**
+ * Derive the structured base location for a supplier record.
+ *
+ * This is the live counterpart to the migration script: the same rules, run
+ * whenever a supplier creates or edits their profile, so structured geography
+ * stays current instead of decaying back to free text after a one-off backfill.
+ *
+ * Signals are tried in order of how much they can be trusted — a postcode, then
+ * coordinates the platform already geocoded, then free text that is exactly a
+ * city name. Anything less certain returns null: an unmapped supplier is a
+ * supplier absent from a city page, which is always better than a wrong one.
+ * @param {Object} supplier Supplier record (or a merged create/patch payload).
+ * @param {Object} dependencies `{geocodePostcode, isValidUKPostcode, now}`.
+ * @returns {Promise<{baseLocation: Object, reason: string}|null>} Mapping, or null.
+ */
+async function deriveBaseLocation(supplier, dependencies = {}) {
+  const source = supplier && typeof supplier === 'object' ? supplier : {};
+  const geocodePostcode = dependencies.geocodePostcode || geocoding.geocodePostcode;
+  const isValidUKPostcode = dependencies.isValidUKPostcode || geocoding.isValidUKPostcode;
+  const mappedAt = dependencies.now || new Date().toISOString();
+
+  const postcode = supplierPostcode(source);
+  if (postcode && isValidUKPostcode(postcode)) {
+    const resolved = await registry.resolvePostcodeToCity(postcode, { geocodePostcode });
+    if (resolved) {
+      return {
+        baseLocation: buildBaseLocationDocument(resolved.city, {
+          point: {
+            latitude: resolved.coordinates.coordinates[1],
+            longitude: resolved.coordinates.coordinates[0],
+          },
+          postcode: resolved.postcode,
+          source: MAPPING_SOURCES.postcodeLookup,
+          confidence: CONFIDENCE.high,
+          mappedAt,
+        }),
+        reason: `postcode resolves to ${resolved.city.name} (${roundMiles(resolved.distanceMiles)} miles from the city centre)`,
+      };
+    }
+  }
+
+  // Venues are geocoded on save already; reuse that rather than call out again.
+  const point = readPoint(source);
+  if (point) {
+    const nearest = registry.nearestCity(point);
+    if (nearest) {
+      return {
+        baseLocation: buildBaseLocationDocument(nearest.city, {
+          point,
+          postcode: postcode || null,
+          source: MAPPING_SOURCES.postcodeLookup,
+          confidence: CONFIDENCE.high,
+          mappedAt,
+        }),
+        reason: `coordinates fall ${roundMiles(nearest.distanceMiles)} miles from ${nearest.city.name}`,
+      };
+    }
+  }
+
+  const classification = classifyLegacyLocation(source.location);
+  if (classification.status === AUDIT_STATUSES.highConfidence && classification.citySlug) {
+    const city = registry.getCity(classification.citySlug);
+    if (city) {
+      return {
+        baseLocation: buildBaseLocationDocument(city, {
+          source: MAPPING_SOURCES.registryName,
+          confidence: CONFIDENCE.high,
+          mappedAt,
+        }),
+        reason: classification.reason,
+      };
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Validate supplier-supplied coverage into a storable `serviceAreas` array.
+ *
+ * The read path (`normaliseServiceAreas`) is forgiving because it has to cope
+ * with whatever is already on disk. This is the write path, so it is strict:
+ * unknown cities, out-of-range radii and unrecognised types are dropped, and a
+ * supplier can never store coverage the pages would not honour.
+ * @param {*} value Raw `serviceAreas` from a request body.
+ * @returns {Object[]} Clean service areas.
+ */
+function sanitiseServiceAreas(value) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const areas = [];
+  const seenCities = new Set();
+  let hasRadius = false;
+  let hasNationwide = false;
+
+  for (const area of value.slice(0, 100)) {
+    if (!area || typeof area !== 'object') {
+      continue;
+    }
+    if (area.type === SERVICE_AREA_TYPES.city) {
+      const resolved = registry.resolveCity(area.slug);
+      if (resolved && !seenCities.has(resolved.city.slug)) {
+        seenCities.add(resolved.city.slug);
+        areas.push({ type: SERVICE_AREA_TYPES.city, slug: resolved.city.slug });
+      }
+      continue;
+    }
+    if (area.type === SERVICE_AREA_TYPES.radius && !hasRadius) {
+      const miles = Number(area.miles);
+      if (Number.isFinite(miles) && miles > 0) {
+        hasRadius = true;
+        areas.push({
+          type: SERVICE_AREA_TYPES.radius,
+          miles: Math.min(MAX_TRAVEL_RADIUS_MILES, Math.round(miles)),
+        });
+      }
+      continue;
+    }
+    if (area.type === SERVICE_AREA_TYPES.nationwide && !hasNationwide) {
+      hasNationwide = true;
+      areas.push({ type: SERVICE_AREA_TYPES.nationwide });
+    }
+  }
+
+  return areas;
+}
+
+/**
  * Whether a supplier may appear on any public location page.
  *
  * Reuses the platform's existing public-supplier rule and adds the exclusions
@@ -606,7 +767,9 @@ module.exports = {
   MAX_TIER_BOOST,
   MAX_TRAVEL_RADIUS_MILES,
   auditSupplierLocation,
+  buildBaseLocationDocument,
   classifyLegacyLocation,
+  deriveBaseLocation,
   isEligibleForLocationPages,
   matchSupplierToCity,
   normaliseBaseLocation,
@@ -616,6 +779,8 @@ module.exports = {
   relationshipLabel,
   resetMatcherCache,
   roundMiles,
+  sanitiseServiceAreas,
+  supplierPostcode,
   tierBoost,
   toGeoJsonPoint,
 };

@@ -744,6 +744,50 @@
                 </div>
               </div>
 
+              <fieldset class="form-row supplier-coverage">
+                <legend>Where you work</legend>
+                <p class="small form-help-text" id="sup-coverage-help">
+                  This decides which city pages you appear on, and how far away couples see that
+                  you are. Your postcode is never shown publicly — only the city it falls in.
+                </p>
+
+                <label for="sup-base-postcode">Base postcode</label>
+                <input
+                  id="sup-base-postcode"
+                  name="basePostcode"
+                  placeholder="e.g. CF10 1AA"
+                  maxlength="10"
+                  autocomplete="postal-code"
+                  aria-describedby="sup-coverage-help sup-base-postcode-error"
+                />
+                <p
+                  class="small form-error-text"
+                  id="sup-base-postcode-error"
+                  role="alert"
+                  aria-live="polite"
+                ></p>
+
+                <label for="sup-travel-radius">How far you travel (miles)</label>
+                <input
+                  id="sup-travel-radius"
+                  name="travelRadiusMiles"
+                  type="number"
+                  min="0"
+                  max="200"
+                  step="5"
+                  placeholder="e.g. 30"
+                  aria-describedby="sup-travel-radius-help"
+                />
+                <p class="small form-help-text" id="sup-travel-radius-help">
+                  Leave blank if you only work in your own city.
+                </p>
+
+                <label class="supplier-coverage-check">
+                  <input id="sup-travel-nationwide" name="travelNationwide" type="checkbox" />
+                  I cover the whole UK
+                </label>
+              </fieldset>
+
               <div class="form-row">
                 <label>Short description</label>
                 <input id="sup-short" name="description_short" maxlength="300" />
@@ -1704,6 +1748,7 @@
     <script src="/assets/js/components.js?v=18.3.0" defer></script>
     <script src="/assets/js/unread-badge-manager.js?v=18.3.0" defer></script>
     <script src="/assets/js/pages/dashboard-supplier-category.js" defer></script>
+    <script src="/assets/js/pages/dashboard-supplier-coverage.js" defer></script>
     <script src="/assets/js/pages/supplier-reviews-init.js" defer></script>
     <script type="module" src="/assets/js/supplier-tickets.js?v=18.3.0"></script>
     <script type="module" src="/assets/js/supplier-gallery.js?v=18.3.0"></script>

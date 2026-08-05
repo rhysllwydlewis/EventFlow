@@ -76,18 +76,20 @@ async function resolveByPostcode(row) {
  * @returns {Object} `baseLocation` document.
  */
 function buildBaseLocation(city, postcodeResult) {
-  return {
-    displayName: `${city.name}, ${city.nation}`,
+  const point =
+    postcodeResult && Array.isArray(postcodeResult.coordinates?.coordinates)
+      ? {
+          longitude: postcodeResult.coordinates.coordinates[0],
+          latitude: postcodeResult.coordinates.coordinates[1],
+        }
+      : null;
+
+  return supplierLocation.buildBaseLocationDocument(city, {
+    point,
     postcode: postcodeResult ? postcodeResult.postcode : null,
-    citySlug: city.slug,
-    nation: city.nation,
-    coordinates: postcodeResult
-      ? postcodeResult.coordinates
-      : { type: 'Point', coordinates: [city.centre.longitude, city.centre.latitude] },
     source: postcodeResult ? MAPPING_SOURCES.postcodeLookup : MAPPING_SOURCES.registryName,
     confidence: CONFIDENCE.high,
-    mappedAt: new Date().toISOString(),
-  };
+  });
 }
 
 /**

@@ -414,3 +414,44 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ============================================
+   Supplier coverage fieldset
+   Where a supplier works: the answer decides which city pages they
+   appear on, so the block is grouped and labelled rather than left as
+   three loose inputs among the rest of the profile form.
+   ============================================ */
+
+.supplier-coverage {
+  border: 1px solid var(--ef-border, #e5e7eb);
+  border-radius: 12px;
+  padding: 1rem 1.25rem 1.25rem;
+}
+
+.supplier-coverage legend {
+  font-weight: 600;
+  padding: 0 0.5rem;
+}
+
+.supplier-coverage label {
+  display: block;
+  margin-top: 0.75rem;
+}
+
+.supplier-coverage-check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  font-weight: 400;
+}
+
+.supplier-coverage-check input {
+  width: auto;
+  margin: 0;
+}
+
+.supplier-coverage input[type='number']:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
