@@ -6,6 +6,10 @@ scratchpad: a session that starts cold has nothing else to read.
 
 **Branch:** `claude/eventflow-community-forum-vgvvt0`
 
+**Merged so far:** #1431 (community homepage redesign), #1432 (pricing toggle,
+site-wide hyphenation, four a11y defects), #1433 (composer layout, modal,
+site-wide checkbox fix, generator drift guard).
+
 If you are picking this up cold, read the brief, then the backlog, then the last
 two or three session-log entries. The log is the answer to "where did I get to".
 
@@ -421,3 +425,19 @@ previous `styles.css` on seven pages including every visual baseline: identical
 everywhere, so no baseline needs regenerating.
 
 Next: unchanged — stage 4, the sibling pages' visual treatment.
+
+### 2026-08-05 — session 6 closed
+
+#1433 merged. Final CI: 28 of 29 checks green, the exception being
+`DeepSource: JavaScript`, which is red on a dashboard-configured metric with
+grade A and zero inline issues — the same condition as #1430, which was also
+merged. Two hypotheses were tested and falsified: it is not test coverage
+(no coverage upload exists in any workflow, so DeepSource holds no coverage
+data at all) and it is not documentation coverage or diff size (#1431 added 840
+non-test JS lines with 13 undocumented functions and passed, while #1430 at 387
+and #1433 at 415 failed). Naming the metric needs the site owner's DeepSource
+dashboard. **Do not push speculative fixes at it** — two attempts have now been
+made and both were wasted.
+
+All three visual jobs went green, which is the confirmation that the site-wide
+checkbox rule change moves no baseline.
