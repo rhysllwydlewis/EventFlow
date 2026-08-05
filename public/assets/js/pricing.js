@@ -84,7 +84,7 @@
     const stylesheet = document.createElement('link');
     stylesheet.id = 'pricing-redesign-styles';
     stylesheet.rel = 'stylesheet';
-    stylesheet.href = '/assets/css/pricing-redesign.css?v=2.0.0';
+    stylesheet.href = '/assets/css/pricing-redesign.css?v=2.1.0';
     document.head.appendChild(stylesheet);
   }
 
