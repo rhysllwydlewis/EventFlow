@@ -766,3 +766,301 @@ body.pricing-redesign .pricing-notice-banner--error {
     transition: none !important;
   }
 }
+
+/* ==========================================================================
+   Shared design language
+   Brings /pricing onto the same visual system as the community pages: a
+   tinted ground with soft brand blobs, glass surfaces, generous radii and
+   layered shadows instead of flat panels with hairline grey borders. Every
+   value here is matched to community.css so the two surfaces read as one
+   site rather than two.
+   ========================================================================== */
+
+body.pricing-redesign {
+  /* A single warm tint carries the whole page instead of one small radial
+     fading to flat grey, which left everything below the hero looking unlit. */
+  background:
+    radial-gradient(120% 70% at 50% 0%, #f0faf8 0%, rgba(240, 250, 248, 0) 55%),
+    linear-gradient(180deg, #f7fcfb 0%, #f8fafb 100%);
+  background-attachment: fixed;
+}
+
+/* ── Decorative ground ─────────────────────────────────────────────────── */
+
+body.pricing-redesign .pricing-hero {
+  position: relative;
+  isolation: isolate;
+}
+
+body.pricing-redesign .pricing-decor {
+  position: absolute;
+  inset: -2rem 0 -6rem;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+body.pricing-redesign .pricing-blob {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, rgba(19, 182, 162, 0.16), rgba(19, 182, 162, 0));
+}
+
+body.pricing-redesign .pricing-blob--a {
+  width: 620px;
+  height: 620px;
+  top: -300px;
+  left: -200px;
+}
+
+body.pricing-redesign .pricing-blob--b {
+  width: 520px;
+  height: 520px;
+  top: -220px;
+  right: -180px;
+}
+
+body.pricing-redesign .pricing-blob--c {
+  width: 420px;
+  height: 420px;
+  bottom: -280px;
+  left: 45%;
+}
+
+/* ── Hero as a glass card ──────────────────────────────────────────────── */
+
+body.pricing-redesign .pricing-hero .container {
+  padding: 2.25rem 2.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 18px 48px rgba(15, 23, 42, 0.07);
+}
+
+/* Progressive: the card is already legible on the 0.78 white fill, so the
+   blur is applied only where it is supported rather than propped up. */
+@supports (backdrop-filter: blur(8px)) or (-webkit-backdrop-filter: blur(8px)) {
+  body.pricing-redesign .pricing-hero .container {
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+  }
+}
+
+body.pricing-redesign .pricing-billing-toggle {
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 8px 20px rgba(15, 23, 42, 0.06);
+}
+
+/* ── Plan cards ────────────────────────────────────────────────────────── */
+
+body.pricing-redesign .pricing-card {
+  border: 1px solid rgba(15, 23, 42, 0.06) !important;
+  border-radius: 20px !important;
+  background: #fff !important;
+  /* Two-layer shadow: a tight contact shadow plus a wide soft one. A single
+     wide shadow reads as haze and leaves the card looking unanchored. */
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 12px 32px rgba(15, 23, 42, 0.07) !important;
+}
+
+body.pricing-redesign .pricing-card:hover {
+  border-color: rgba(11, 128, 115, 0.28) !important;
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 20px 44px rgba(15, 23, 42, 0.1) !important;
+}
+
+/* A ring rather than a 2px border: the border version shifted the card's
+   content box a pixel out of line with its neighbours. */
+body.pricing-redesign .pricing-card.featured {
+  border: 1px solid rgba(11, 128, 115, 0.28) !important;
+  background: linear-gradient(180deg, #f2fbf9 0%, #fff 22%) !important;
+  box-shadow:
+    0 0 0 2px var(--pricing-teal),
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 24px 56px rgba(11, 128, 115, 0.16) !important;
+}
+
+body.pricing-redesign .pricing-card.featured:hover {
+  box-shadow:
+    0 0 0 2px var(--pricing-teal),
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 30px 64px rgba(11, 128, 115, 0.2) !important;
+}
+
+/* The ribbon was a full-bleed square band across the card's top edge, which
+   fought the 20px radius. A floating pill sits with the rounded language. */
+body.pricing-redesign .pricing-popular-ribbon {
+  inset: 0.875rem 0 auto;
+  width: fit-content;
+  min-height: 0;
+  margin: 0 auto;
+  padding: 0.375rem 0.875rem;
+  border-radius: 999px;
+  box-shadow: 0 4px 12px rgba(11, 128, 115, 0.3);
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+}
+
+body.pricing-redesign .pricing-card.featured .pricing-card-content {
+  padding-top: 3.25rem;
+}
+
+body.pricing-redesign .pricing-card-content {
+  padding: 1.75rem;
+}
+
+/* ── Feature ticks ─────────────────────────────────────────────────────── */
+
+/* A bare ✓ in the text colour reads as punctuation. A tinted disc gives the
+   list the same rhythm as the community category icons. */
+body.pricing-redesign .pricing-features li {
+  padding-left: 1.875rem;
+}
+
+body.pricing-redesign .pricing-features li::before {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(11, 128, 115, 0.1);
+  /* 5.79:1 on the tinted disc. */
+  color: var(--pricing-teal-dark);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+/* "Normally £159/month" is real pricing information, struck through but still
+   meant to be read, so it has to meet AA like any other text. #7a8495 measured
+   3.78:1 on the card. This is 4.97:1 and still reads as secondary. The old
+   value was never reported by axe because the card was semi-transparent over a
+   gradient and the contrast could not be resolved; making the card opaque
+   surfaced a failure that was always there. */
+body.pricing-redesign .pricing-normally {
+  color: #667085 !important;
+}
+
+/* ── Calls to action ───────────────────────────────────────────────────── */
+
+body.pricing-redesign .pricing-cta {
+  /* The three plans have different numbers of features, so the buttons landed
+     at three different heights and the row read as unfinished. The cards are
+     already equal height, so pushing the button to the bottom of its own card
+     puts all three on one baseline. */
+  margin-top: auto !important;
+  min-height: 48px;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(11, 128, 115, 0.22);
+}
+
+/* The feature list must not absorb the free space itself, or the button stops
+   at the end of the list again. */
+body.pricing-redesign .pricing-features {
+  flex: 0 0 auto;
+}
+
+/* The saving line sits below the button and only two of the three plans have
+   one, so pushing the buttons to the bottom still left Starter's sitting lower
+   than its neighbours. Reserving the line on every card puts all three on one
+   baseline. `visibility: hidden` rather than removing `[hidden]`'s effect
+   outright: the element keeps its height but stays out of the accessibility
+   tree, so nothing announces an empty saving. */
+body.pricing-redesign .pricing-savings {
+  min-height: 1.75rem;
+}
+
+body.pricing-redesign .pricing-savings[hidden] {
+  display: block !important;
+  visibility: hidden;
+}
+
+body.pricing-redesign .pricing-cta.secondary {
+  box-shadow: none;
+}
+
+body.pricing-redesign .pricing-cta.secondary:hover {
+  background: rgba(11, 128, 115, 0.07) !important;
+}
+
+/* ── Supporting sections ───────────────────────────────────────────────── */
+
+/* These were flat bands running edge to edge, so the page lost all structure
+   below the plans. They now sit on the same card surface as everything else. */
+body.pricing-redesign .comparison-table-wrapper,
+body.pricing-redesign .pricing-promise,
+body.pricing-redesign .pricing-faq-list {
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  border-radius: 20px;
+  background: #fff;
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 12px 32px rgba(15, 23, 42, 0.06);
+}
+
+body.pricing-redesign .pricing-promise {
+  padding: 1.75rem;
+}
+
+body.pricing-redesign .pricing-faq-list {
+  padding: 0.5rem 1.25rem;
+}
+
+body.pricing-redesign .pricing-faq details {
+  border-bottom: 1px solid rgba(15, 23, 42, 0.07);
+}
+
+body.pricing-redesign .pricing-faq details:last-child {
+  border-bottom: 0;
+}
+
+body.pricing-redesign .pricing-security-note {
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.8);
+}
+
+/* ── Motion and forced colours ─────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  body.pricing-redesign .pricing-decor {
+    display: none;
+  }
+}
+
+@media (forced-colors: active) {
+  body.pricing-redesign .pricing-decor {
+    display: none;
+  }
+  body.pricing-redesign .pricing-card,
+  body.pricing-redesign .pricing-hero .container,
+  body.pricing-redesign .comparison-table-wrapper,
+  body.pricing-redesign .pricing-promise,
+  body.pricing-redesign .pricing-faq-list {
+    border: 1px solid CanvasText !important;
+    box-shadow: none !important;
+  }
+}
+
+/* The hero card's inner padding is too generous for a narrow screen, and the
+   blobs are drawn to a desktop composition. */
+@media (max-width: 700px) {
+  body.pricing-redesign .pricing-hero .container {
+    padding: 1.5rem 1.25rem;
+    border-radius: 20px;
+  }
+  body.pricing-redesign .pricing-card-content {
+    padding: 1.5rem 1.25rem;
+  }
+  body.pricing-redesign .pricing-blob--c {
+    display: none;
+  }
+}
