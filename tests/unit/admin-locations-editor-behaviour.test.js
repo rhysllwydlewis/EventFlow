@@ -100,6 +100,24 @@ describe('loading a record into the editor', () => {
     expect(value.after).toBe('80 / 70');
     expect(value.over).toBe(true);
   });
+
+  it('searches Pexels for the open city and keeps its attribution', () => {
+    const value = outcome('choosesACitySpecificPexelsPhoto');
+    expect(value.query).toBe('Cardiff Wales city skyline landmark');
+    expect(value.imageUrl).toContain('/photos/5743996/');
+    expect(value.alt).toBe('Cardiff Bay waterfront');
+    expect(value.credit).toBe('Balazs Bezeczky');
+    expect(value.sourceUrl).toBe('https://www.pexels.com/photo/cardiff-bay-5743996/');
+    expect(value.previewHidden).toBe(false);
+    expect(value.dirty).toBe('Unsaved changes');
+  });
+
+  it('clears Pexels attribution if an editor replaces the image URL manually', () => {
+    const value = outcome('clearsStaleAttributionWhenTheHeroUrlChanges');
+    expect(value.credit).toBe('');
+    expect(value.sourceUrl).toBe('');
+    expect(value.previewCredit).toBe('Hero image preview');
+  });
 });
 
 describe('repeatable rows', () => {

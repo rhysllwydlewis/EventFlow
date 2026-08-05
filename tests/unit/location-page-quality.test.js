@@ -64,6 +64,43 @@ describe('page record defaults', () => {
     expect(page.status).toBe(PUBLICATION_STATES.draft);
     expect(page.indexingRequested).toBe(false);
     expect(page.content.intro).toBe('');
+    expect(page.content.heroImageUrl).toContain('/photos/5743996/');
+    expect(page.content.heroImageAlt).toContain('Cardiff Bay');
+    expect(page.content.heroImageSourceUrl).toContain('pexels.com/photo/cardiff-bay');
+  });
+
+  it('keeps an editor-selected hero instead of replacing it with the curated default', () => {
+    const page = locationPages.normalisePageRecord(cardiff, {
+      content: {
+        heroImageUrl: 'https://cdn.example.com/editor-cardiff.jpg',
+        heroImageAlt: 'An editor-selected view of Cardiff',
+        heroImageCredit: 'Example Photographer',
+        heroImageSourceUrl: 'https://example.com/cardiff-photo',
+      },
+    });
+
+    expect(page.content).toEqual(
+      expect.objectContaining({
+        heroImageUrl: 'https://cdn.example.com/editor-cardiff.jpg',
+        heroImageAlt: 'An editor-selected view of Cardiff',
+        heroImageCredit: 'Example Photographer',
+        heroImageSourceUrl: 'https://example.com/cardiff-photo',
+      })
+    );
+  });
+
+  it('does not render unsafe stored image or attribution URLs', () => {
+    const page = locationPages.normalisePageRecord(cardiff, {
+      content: {
+        heroImageUrl: 'javascript:alert(1)',
+        heroImageCredit: 'Not the curated photographer',
+        heroImageSourceUrl: 'javascript:alert(2)',
+      },
+    });
+
+    expect(page.content.heroImageUrl).toContain('/photos/5743996/');
+    expect(page.content.heroImageCredit).toBe('Balazs Bezeczky');
+    expect(page.content.heroImageSourceUrl).toContain('pexels.com/photo/cardiff-bay');
   });
 
   it('rejects an unrecognised status rather than trusting it', () => {
@@ -195,6 +232,7 @@ describe('metadata', () => {
     expect(metadata.description.length).toBeLessThanOrEqual(160);
     expect(metadata.canonicalUrl).toBe('https://event-flow.co.uk/locations/cardiff');
     expect(metadata.heading).toBe('Event suppliers in Cardiff');
+    expect(metadata.imageUrl).toContain('/photos/5743996/');
   });
 
   it("prefers the editor's title and description", () => {

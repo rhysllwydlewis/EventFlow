@@ -14,6 +14,7 @@
 
 const registry = require('./locationRegistry.service');
 const supplierLocation = require('./supplierLocation.service');
+const locationHeroImages = require('./locationHeroImage.service');
 const {
   COLLECTIONS,
   CONTENT_REVIEW_MAX_AGE_DAYS,
@@ -26,6 +27,16 @@ const {
 } = require('../models/LocationContent');
 
 const DEFAULT_BASE_URL = 'https://event-flow.co.uk';
+
+/**
+ * Keep editorial image links limited to ordinary web URLs before rendering.
+ * @param {unknown} value Candidate URL.
+ * @returns {string|null} Safe URL or null.
+ */
+function normaliseWebUrl(value) {
+  const candidate = String(value || '').trim();
+  return /^https?:\/\//i.test(candidate) ? candidate : null;
+}
 
 /**
  * The stored editorial record for a city, with defaults applied.
@@ -42,6 +53,12 @@ function normalisePageRecord(city, stored) {
     ? record.status
     : PUBLICATION_STATES.draft;
   const content = record.content && typeof record.content === 'object' ? record.content : {};
+  const curatedHero = locationHeroImages.getCuratedHero(city);
+  const storedHeroImageUrl = normaliseWebUrl(content.heroImageUrl);
+  const heroImageUrl = storedHeroImageUrl || (curatedHero && curatedHero.url) || null;
+  const matchedHero = locationHeroImages.findCuratedHeroByUrl(heroImageUrl);
+  const storedHeroSourceUrl = normaliseWebUrl(content.heroImageSourceUrl);
+  const mayUseStoredAttribution = Boolean(storedHeroImageUrl);
 
   return {
     locationSlug: city.slug,
@@ -57,8 +74,18 @@ function normalisePageRecord(city, stored) {
       metaDescription: (record.seo && record.seo.metaDescription) || '',
     },
     content: {
-      heroImageUrl: content.heroImageUrl || null,
-      heroImageAlt: content.heroImageAlt || null,
+      heroImageUrl,
+      heroImageAlt: heroImageUrl
+        ? content.heroImageAlt || (matchedHero && matchedHero.alt) || `${city.name} cityscape`
+        : null,
+      heroImageCredit:
+        (mayUseStoredAttribution && content.heroImageCredit) ||
+        (matchedHero && matchedHero.credit) ||
+        null,
+      heroImageSourceUrl:
+        (mayUseStoredAttribution && storedHeroSourceUrl) ||
+        (matchedHero && matchedHero.sourceUrl) ||
+        null,
       intro: content.intro || '',
       planningSections: Array.isArray(content.planningSections)
         ? content.planningSections.slice(0, LIMITS.maxSections)
@@ -333,6 +360,7 @@ function buildCityMetadata(input) {
     description,
     canonicalUrl,
     heading: `Event suppliers in ${city.name}`,
+    imageUrl: (page && page.content.heroImageUrl) || null,
   };
 }
 

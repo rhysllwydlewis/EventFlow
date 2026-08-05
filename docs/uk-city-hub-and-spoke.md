@@ -49,6 +49,7 @@ Everything editorial or operational lives in MongoDB, keyed by registry slug:
 | `seo.title`, `seo.metaDescription`                          | Editor overrides for the generated metadata          |
 | `content.intro`, `content.planningSections`, `content.faqs` | Local copy                                           |
 | `content.heroImageUrl`, `content.heroImageAlt`              | Hero media                                           |
+| `content.heroImageCredit`, `content.heroImageSourceUrl`     | Hero attribution and source                          |
 | `lastReviewedAt`, `reviewedBy`                              | Human review record                                  |
 | `publishedAt`, `updatedAt`                                  | Timestamps used by the sitemap                       |
 
@@ -225,6 +226,11 @@ Planning sections and FAQs are repeatable, and can be added, reordered and
 removed; the array order is the order the page renders. The limits are read from
 the API response rather than duplicated in the client, so the counters can never
 promise more room than the server keeps.
+
+The hero editor opens the existing Pexels selector with a search derived from
+the current city and nation. Choosing a photo fills the image, alt text,
+photographer and Pexels source together; changing the image URL manually clears
+that attribution so it cannot be carried onto an unrelated image.
 
 Three rules shape the editor:
 

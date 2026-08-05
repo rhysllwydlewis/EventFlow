@@ -37,6 +37,12 @@
   /** Slug currently open in the editor, or null. */
   let editingSlug = null;
 
+  /** City currently open in the editor, or null. */
+  let editingCity = null;
+
+  /** URL whose attribution is currently held in the hidden hero fields. */
+  let attributedHeroUrl = '';
+
   /** Whether the editor holds changes that have not been saved. */
   let dirty = false;
 
@@ -47,6 +53,8 @@
   const SEO_DESCRIPTION_MAX = 160;
   const HERO_URL_MAX = 500;
   const HERO_ALT_MAX = 200;
+  const HERO_CREDIT_MAX = 160;
+  const HERO_SOURCE_URL_MAX = 500;
   const SOURCE_NAME_MAX = 120;
   const SOURCE_URL_MAX = 500;
   const SOURCE_DATE_MAX = 40;
@@ -296,10 +304,88 @@
     fieldEl.setAttribute('maxlength', String(max));
     const sync = () => {
       updateCounter(noteEl, fieldEl, max);
+      if (fieldEl.id === 'efl-hero-url' && fieldEl.value.trim() !== attributedHeroUrl) {
+        document.getElementById('efl-hero-credit').value = '';
+        document.getElementById('efl-hero-source-url').value = '';
+        attributedHeroUrl = '';
+      }
+      if (fieldEl.id === 'efl-hero-url' || fieldEl.id === 'efl-hero-alt') {
+        updateHeroPreview();
+      }
       setDirty(true);
     };
     fieldEl.addEventListener('input', sync);
     updateCounter(noteEl, fieldEl, max);
+  }
+
+  /**
+   * Reflect the selected hero and its Pexels credit in the editor.
+   * @returns {void} Nothing.
+   */
+  function updateHeroPreview() {
+    const previewEl = document.getElementById('efl-hero-picker-preview');
+    const imageEl = document.getElementById('efl-hero-picker-image');
+    const creditEl = document.getElementById('efl-hero-picker-credit');
+    const imageUrl = document.getElementById('efl-hero-url').value.trim();
+    const alt = document.getElementById('efl-hero-alt').value.trim();
+    const credit = document.getElementById('efl-hero-credit').value.trim();
+    const sourceUrl = document.getElementById('efl-hero-source-url').value.trim();
+
+    previewEl.hidden = !imageUrl;
+    if (!imageUrl) {
+      imageEl.removeAttribute('src');
+      imageEl.alt = '';
+      creditEl.replaceChildren();
+      return;
+    }
+
+    imageEl.src = imageUrl;
+    imageEl.alt = alt;
+    creditEl.replaceChildren();
+    if (credit && sourceUrl) {
+      const link = document.createElement('a');
+      link.href = sourceUrl;
+      link.target = '_blank';
+      link.rel = 'nofollow noopener';
+      link.textContent = `Photo by ${credit} on Pexels`;
+      creditEl.appendChild(link);
+    } else {
+      creditEl.textContent = credit ? `Photo by ${credit}` : 'Hero image preview';
+    }
+  }
+
+  /**
+   * Open Pexels with a city-specific search and apply the selected photo.
+   * @returns {void} Nothing.
+   */
+  function choosePexelsPhoto() {
+    const errorsEl = document.getElementById('efl-editor-errors');
+    if (!editingCity || typeof window.PexelsSelector !== 'function') {
+      errorsEl.textContent = 'The Pexels photo chooser is unavailable. Refresh and try again.';
+      return;
+    }
+
+    errorsEl.textContent = '';
+    const selector = new window.PexelsSelector();
+    const nation = editingCity.nation || 'United Kingdom';
+    selector.open(
+      (imageUrl, photo = {}) => {
+        document.getElementById('efl-hero-url').value = imageUrl;
+        document.getElementById('efl-hero-alt').value =
+          photo.alt || `${editingCity.name} cityscape`;
+        document.getElementById('efl-hero-credit').value = photo.photographer || 'Pexels';
+        document.getElementById('efl-hero-source-url').value = photo.url || '';
+        attributedHeroUrl = imageUrl;
+        updateCounter(
+          document.querySelector('[data-counter-for="efl-hero-url"]'),
+          document.getElementById('efl-hero-url'),
+          HERO_URL_MAX
+        );
+        updateHeroPreview();
+        setDirty(true);
+      },
+      { searchTerm: `${editingCity.name} ${nation} city skyline landmark` }
+    );
   }
 
   /**
@@ -415,6 +501,11 @@
       bindField(fieldEl, document.querySelector(`[data-counter-for="${id}"]`), max);
     });
 
+    document.getElementById('efl-hero-credit').value = content.heroImageCredit || '';
+    document.getElementById('efl-hero-source-url').value = content.heroImageSourceUrl || '';
+    attributedHeroUrl = content.heroImageUrl || '';
+    updateHeroPreview();
+
     const sectionsEl = document.getElementById('efl-sections');
     const faqsEl = document.getElementById('efl-faqs');
     sectionsEl.innerHTML = '';
@@ -464,6 +555,8 @@
       content: {
         heroImageUrl: document.getElementById('efl-hero-url').value.trim(),
         heroImageAlt: document.getElementById('efl-hero-alt').value.trim(),
+        heroImageCredit: document.getElementById('efl-hero-credit').value.trim(),
+        heroImageSourceUrl: document.getElementById('efl-hero-source-url').value.trim(),
         intro: document.getElementById('efl-intro').value.trim(),
         planningSections: sections,
         faqs,
@@ -490,6 +583,8 @@
     tooLong('Meta description', payload.seo.metaDescription, SEO_DESCRIPTION_MAX);
     tooLong('Hero image URL', payload.content.heroImageUrl, HERO_URL_MAX);
     tooLong('Hero image alt text', payload.content.heroImageAlt, HERO_ALT_MAX);
+    tooLong('Hero image credit', payload.content.heroImageCredit, HERO_CREDIT_MAX);
+    tooLong('Hero image source URL', payload.content.heroImageSourceUrl, HERO_SOURCE_URL_MAX);
     tooLong('Introduction', payload.content.intro, limits.introMaxLength);
 
     if (payload.content.heroImageUrl && !payload.content.heroImageAlt) {
@@ -497,6 +592,12 @@
     }
     if (payload.content.heroImageUrl && !/^https?:\/\//i.test(payload.content.heroImageUrl)) {
       blocking.push('The hero image URL must start with http:// or https://.');
+    }
+    if (
+      payload.content.heroImageSourceUrl &&
+      !/^https?:\/\//i.test(payload.content.heroImageSourceUrl)
+    ) {
+      blocking.push('The hero image source URL must start with http:// or https://.');
     }
 
     payload.content.planningSections.forEach((section, index) => {
@@ -546,6 +647,7 @@
         limits = { ...limits, ...record.limits };
       }
       editingSlug = record.slug;
+      editingCity = record;
       populateEditor(record);
       if (typeof dialogEl.showModal === 'function') {
         dialogEl.showModal();
@@ -572,6 +674,8 @@
       }
     }
     editingSlug = null;
+    editingCity = null;
+    attributedHeroUrl = '';
     setDirty(false);
     if (typeof dialogEl.close === 'function' && dialogEl.open) {
       dialogEl.close();
@@ -712,6 +816,8 @@
         addRow('efl-section-template', container, {}, SECTION_MAXIMA());
         renumber(container, 'Section', limits.maxSections);
         setDirty(true);
+      } else if (action === 'choose-pexels') {
+        choosePexelsPhoto();
       } else if (action === 'add-faq') {
         const container = document.getElementById('efl-faqs');
         if (container.children.length >= limits.maxFaqs) {

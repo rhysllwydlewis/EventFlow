@@ -174,8 +174,34 @@ describe('GET /locations/:citySlug', () => {
       '<link rel="canonical" href="https://event-flow.co.uk/locations/cardiff" />'
     );
     expect(response.text).toMatch(/<meta name="description" content="[^"]+" \/>/);
+    expect(response.text).toContain('/photos/5743996/pexels-photo-5743996.jpeg');
+    expect(response.text).toContain('alt="Cardiff Bay waterfront');
+    expect(response.text).toContain('Photo by');
+    expect(response.text).toContain('Balazs Bezeczky on Pexels');
+    expect(response.text).toContain(
+      '<meta property="og:image" content="https://images.pexels.com/'
+    );
+    expect(response.text).toContain(
+      '<meta name="twitter:image" content="https://images.pexels.com/'
+    );
     expect(response.text).toContain('BreadcrumbList');
     expect(response.text).toContain('aria-label="Breadcrumb"');
+  });
+
+  it('does not mislabel a non-Pexels editorial source as Pexels', async () => {
+    const record = pageRecord('cardiff');
+    record.content = {
+      ...record.content,
+      heroImageUrl: 'https://cdn.example.com/cardiff.jpg',
+      heroImageAlt: 'A local view of Cardiff',
+      heroImageCredit: 'City Photographer',
+      heroImageSourceUrl: 'https://example.com/cardiff-photo',
+    };
+    mockDb.seed('location_pages', [record]);
+
+    const response = await request(buildApp()).get('/locations/cardiff');
+    expect(response.text).toContain('>City Photographer</a>');
+    expect(response.text).not.toContain('City Photographer on Pexels');
   });
 
   it('links to supplier profiles with their relationship labels', async () => {

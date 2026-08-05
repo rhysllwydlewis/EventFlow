@@ -134,6 +134,11 @@ function applyMeta(html, meta) {
   if (meta.categorySlug) {
     tags.push(`<meta name="ef-category-slug" content="${escapeHtml(meta.categorySlug)}" />`);
   }
+  if (meta.imageUrl) {
+    const imageUrl = escapeHtml(meta.imageUrl);
+    tags.push(`<meta property="og:image" content="${imageUrl}" />`);
+    tags.push(`<meta name="twitter:image" content="${imageUrl}" />`);
+  }
   for (const data of meta.structuredData || []) {
     tags.push(`<script type="application/ld+json">${serializeJsonLd(data)}</script>`);
   }
@@ -469,6 +474,15 @@ function renderSupplierCard(entry) {
 function renderCityPage(model) {
   const { city, page, metadata, rankedSuppliers, categories, packages, events, nearby } = model;
   const sections = [];
+  const heroSourceSuffix = /^https?:\/\/(?:www\.)?pexels\.com\//i.test(
+    page.content.heroImageSourceUrl || ''
+  )
+    ? ' on Pexels'
+    : '';
+  const heroAttribution =
+    page.content.heroImageCredit && page.content.heroImageSourceUrl
+      ? `<p class="efl-hero__credit">Photo by <a href="${escapeHtml(page.content.heroImageSourceUrl)}" rel="nofollow noopener" target="_blank">${escapeHtml(page.content.heroImageCredit)}${heroSourceSuffix}</a></p>`
+      : '';
 
   const heroImage = page.content.heroImageUrl
     ? `<img class="efl-hero__media" src="${escapeHtml(page.content.heroImageUrl)}" alt="${escapeHtml(
@@ -477,7 +491,7 @@ function renderCityPage(model) {
     : '';
 
   const heroVisual = heroImage
-    ? `<div class="efl-hero__visual">${heroImage}<div class="efl-hero__image-note"><span aria-hidden="true">&#10003;</span><p><strong>Genuine local coverage</strong><small>Based here or happy to travel</small></p></div></div>`
+    ? `<div class="efl-hero__visual">${heroImage}${heroAttribution}<div class="efl-hero__image-note"><span aria-hidden="true">&#10003;</span><p><strong>Genuine local coverage</strong><small>Based here or happy to travel</small></p></div></div>`
     : `<div class="efl-hero__visual efl-hero__visual--placeholder" aria-hidden="true"><span class="efl-hero__map-pin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 10c0 5.5-8 12-8 12S4 15.5 4 10a8 8 0 1 1 16 0Z"></path><circle cx="12" cy="10" r="2.5"></circle></svg></span><strong>${escapeHtml(city.name)}</strong></div>`;
 
   sections.push(`<section class="efl-hero efl-hero--city">

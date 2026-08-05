@@ -127,6 +127,26 @@
   pointer-events: none;
 }
 
+.efl-hero__credit {
+  position: absolute;
+  z-index: 3;
+  bottom: 1.15rem;
+  left: 1.25rem;
+  margin: 0;
+  border-radius: 999px;
+  background: rgba(3, 37, 32, 0.7);
+  padding: 0.35rem 0.65rem;
+  color: rgba(255, 255, 255, 0.74);
+  font-size: 0.6rem;
+  backdrop-filter: blur(8px);
+}
+
+.efl-hero__credit a {
+  color: #fff;
+  text-decoration-color: rgba(255, 255, 255, 0.4);
+  text-underline-offset: 2px;
+}
+
 .efl-hero__image-note {
   position: absolute;
   z-index: 2;
@@ -819,6 +839,12 @@
     right: 0.9rem;
     bottom: 0.9rem;
     min-width: 210px;
+  }
+
+  .efl-hero__credit {
+    top: 0.75rem;
+    bottom: auto;
+    left: 0.75rem;
   }
 
   .efl-summary {

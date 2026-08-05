@@ -113,6 +113,8 @@ const QUALITY_PASS_SCORE = 60;
 const CONTENT_REVIEW_MAX_AGE_DAYS = 365;
 
 const LIMITS = {
+  heroCreditMaxLength: 160,
+  heroSourceUrlMaxLength: 500,
   introMaxLength: 1200,
   sectionBodyMaxLength: 4000,
   sectionTitleMaxLength: 120,

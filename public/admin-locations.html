@@ -119,6 +119,24 @@
             <input id="efl-hero-url" name="heroImageUrl" type="url" placeholder="https://…" />
             <p class="efl-field-note" data-counter-for="efl-hero-url"></p>
 
+            <p class="efl-actions">
+              <button
+                type="button"
+                class="efl-btn efl-btn--ghost"
+                data-editor-action="choose-pexels"
+              >
+                Choose a city photo from Pexels
+              </button>
+            </p>
+
+            <input id="efl-hero-credit" name="heroImageCredit" type="hidden" />
+            <input id="efl-hero-source-url" name="heroImageSourceUrl" type="hidden" />
+
+            <figure class="efl-hero-picker-preview" id="efl-hero-picker-preview" hidden>
+              <img id="efl-hero-picker-image" alt="" />
+              <figcaption id="efl-hero-picker-credit"></figcaption>
+            </figure>
+
             <label for="efl-hero-alt">Hero image alt text</label>
             <input id="efl-hero-alt" name="heroImageAlt" type="text" />
             <p class="efl-field-note" id="efl-hero-alt-note">
@@ -253,6 +271,7 @@
 
     <script src="/assets/js/utils/auth-state.js" defer></script>
     <script src="/assets/js/utils/csrf-token.js" defer></script>
-    <script src="/assets/js/pages/admin-locations.js?v=18.7.0" defer></script>
+    <script src="/assets/js/components/pexels-selector.js?v=18.8.0" defer></script>
+    <script src="/assets/js/pages/admin-locations.js?v=18.8.0" defer></script>
   </body>
 </html>

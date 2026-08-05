@@ -45,6 +45,17 @@ function cleanText(value, maxLength) {
 }
 
 /**
+ * Keep only an ordinary web URL for externally linked editorial metadata.
+ * @param {*} value Raw value.
+ * @param {number} maxLength Maximum length.
+ * @returns {string|null} Safe web URL or null.
+ */
+function cleanWebUrl(value, maxLength) {
+  const clean = cleanText(value, maxLength);
+  return /^https?:\/\//i.test(clean) ? clean : null;
+}
+
+/**
  * Validate and normalise editor-supplied planning sections.
  * @param {*} value Raw sections.
  * @returns {Object[]} Clean sections.
@@ -428,12 +439,20 @@ router.patch('/:slug', writeLimiter, csrfProtection, async (req, res) => {
       content: {
         heroImageUrl:
           body.content && body.content.heroImageUrl !== undefined
-            ? cleanText(body.content.heroImageUrl, 500) || null
+            ? cleanWebUrl(body.content.heroImageUrl, 500)
             : current.content.heroImageUrl,
         heroImageAlt:
           body.content && body.content.heroImageAlt !== undefined
             ? cleanText(body.content.heroImageAlt, 200) || null
             : current.content.heroImageAlt,
+        heroImageCredit:
+          body.content && body.content.heroImageCredit !== undefined
+            ? cleanText(body.content.heroImageCredit, LIMITS.heroCreditMaxLength) || null
+            : current.content.heroImageCredit,
+        heroImageSourceUrl:
+          body.content && body.content.heroImageSourceUrl !== undefined
+            ? cleanWebUrl(body.content.heroImageSourceUrl, LIMITS.heroSourceUrlMaxLength)
+            : current.content.heroImageSourceUrl,
         intro:
           body.content && body.content.intro !== undefined
             ? cleanText(body.content.intro, LIMITS.introMaxLength)

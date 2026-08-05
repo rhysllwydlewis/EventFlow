@@ -19,17 +19,24 @@ class PexelsSelector {
 
   /**
    * Open the selector dialog
-   * @param {Function} onSelectCallback - Called with selected image URL
+   * @param {Function} onSelectCallback - Called with the selected image URL and photo metadata
+   * @param {Object} [options] - Optional selector configuration
+   * @param {string} [options.searchTerm] - Search to run as soon as the selector opens
    */
-  open(onSelectCallback) {
+  open(onSelectCallback, options = {}) {
     this.selectionCallback = onSelectCallback;
     this.currentPageNum = 1;
     this.photosCache = [];
-    this.searchTerm = '';
+    this.searchTerm = String(options.searchTerm || '').trim();
 
     this.buildOverlay();
     this.attachEventHandlers();
-    this.fetchCuratedContent();
+    if (this.searchTerm) {
+      this.activeOverlay.querySelector('.search-field').value = this.searchTerm;
+      this.performSearch(this.searchTerm);
+    } else {
+      this.fetchCuratedContent();
+    }
   }
 
   buildOverlay() {
@@ -353,11 +360,11 @@ class PexelsSelector {
     // Event handlers
     selectButton.addEventListener('click', evt => {
       evt.stopPropagation();
-      this.handleSelection(largeUrl);
+      this.handleSelection(largeUrl, photo);
     });
 
     cardDiv.addEventListener('click', () => {
-      this.handleSelection(largeUrl);
+      this.handleSelection(largeUrl, photo);
     });
 
     // Hover effects
@@ -395,9 +402,9 @@ class PexelsSelector {
     }
   }
 
-  handleSelection(imageUrl) {
+  handleSelection(imageUrl, photo) {
     if (this.selectionCallback && typeof this.selectionCallback === 'function') {
-      this.selectionCallback(imageUrl);
+      this.selectionCallback(imageUrl, photo);
     }
     this.close();
   }

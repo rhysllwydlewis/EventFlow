@@ -390,6 +390,8 @@ describe('editorial saves and the workflow', () => {
           intro: 'A fresh introduction, written by a human who knows the city.',
           heroImageUrl: 'https://cdn.example.com/cardiff.jpg',
           heroImageAlt: 'Cardiff Bay at dusk',
+          heroImageCredit: 'Balazs Bezeczky',
+          heroImageSourceUrl: 'https://www.pexels.com/photo/cardiff-bay-5743996/',
           planningSections: [
             {
               title: 'Where to look first',
@@ -420,6 +422,8 @@ describe('editorial saves and the workflow', () => {
         content: {
           heroImageUrl: 'https://cdn.example.com/cardiff.jpg',
           heroImageAlt: 'Cardiff Bay at dusk',
+          heroImageCredit: 'Balazs Bezeczky',
+          heroImageSourceUrl: 'https://www.pexels.com/photo/cardiff-bay-5743996/',
           intro: 'Written locally.',
           planningSections: [
             {
@@ -441,6 +445,8 @@ describe('editorial saves and the workflow', () => {
     });
     expect(content.heroImageUrl).toBe('https://cdn.example.com/cardiff.jpg');
     expect(content.heroImageAlt).toBe('Cardiff Bay at dusk');
+    expect(content.heroImageCredit).toBe('Balazs Bezeczky');
+    expect(content.heroImageSourceUrl).toBe('https://www.pexels.com/photo/cardiff-bay-5743996/');
     expect(content.planningSections[0]).toEqual({
       title: 'Venues',
       body: 'Two paragraphs.\n\nThe second one.',
