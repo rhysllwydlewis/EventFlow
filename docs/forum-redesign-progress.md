@@ -110,6 +110,18 @@ than fixing it silently.
       `window.__CSRF_TOKEN__`, but concurrent callers all miss the cache before
       the first response lands. Cache the in-flight promise, not just the
       resolved value. Minor — three requests, not a loop.
+- [ ] **Regenerate the `homepage` and `pricing` visual baselines.** Both are
+      marked `screenshotApproved: false` in
+      `tests/visual/visual-regression.spec.mjs`, which skips the pixel
+      comparison only — axe still runs on both. `homepage` shifted 4700→4704px
+      when the site-wide `hyphens: auto` rule was removed (a line now wraps
+      differently); `pricing` still depicts the pre-#1428 page and is roughly
+      twice the height CI renders. Both need `npm run test:visual:update` in an
+      environment that reproduces CI's rendering, the images reviewed, and the
+      flag removed. Deliberately not done from a development machine: a
+      baseline generated where text wraps even slightly differently fails on a
+      size mismatch regardless of pixel tolerance, so an unverifiable image is
+      worse than none.
 - [ ] The rails are populated from the `home` payload's `recentActivity`,
       `trending`, `popular` and `recentDiscussions` arrays. That is four
       arrays fetched to render six cards. Worth a dedicated slice in the
@@ -214,13 +226,18 @@ pre-existing rather than introduced here.
 
 **Pre-existing failure, not ours and not fixed:**
 `tests/integration/pexels-collage-fallback.test.js` expects 404 when the
-`pexelsCollage` feature flag is off and gets 200. Two routers both register
-`GET /public/pexels-collage` — `routes/admin-homepage-collage-active.js:261`
-and `routes/admin.js:5478`. The one that wins reads a different flag
-(`collageWidget`) from the one the test sets. Confirmed by stashing this
-branch's changes and re-running: it fails identically. Left alone because
-picking a winner between two admin routes is a separate decision from a
-forum redesign, and guessing wrong would silently change admin behaviour.
+`pexelsCollage` feature flag is off and gets 200. Confirmed by stashing this
+branch's changes and re-running: it fails identically. Left alone for now.
+
+> **Correction (session 5).** The diagnosis above originally blamed a route
+> collision between `routes/admin-homepage-collage-active.js` and
+> `routes/admin.js`. That was wrong — the test mounts `routes/admin` directly,
+> so no collision applies. The real cause was that the endpoint is enabled by
+> `collageWidget.enabled === true || settings.features?.pexelsCollage === true`
+> (deliberate backward compatibility, and correct) while the test's
+> `beforeEach` managed only the legacy flag. It therefore passed on a clean
+> database and failed wherever a collage widget already existed. Fixed in
+> session 5 by making the test manage both flags. The route was not changed.
 
 Next: stage 4 — the sibling community pages (`/community/discussions`,
 `/community/search`, `/community/category/:slug`) still use the old
@@ -251,3 +268,53 @@ Two things checked and deliberately not changed:
   and not exposed to assistive technology, and the raw HTML has one.
 
 Next: unchanged — stage 4, the sibling pages' visual treatment.
+
+### 2026-08-05 — sessions 4 and 5 (pricing detour, PR #1432)
+
+The site owner redirected this branch onto `/pricing` after PR #1431 merged.
+The page had just been rebuilt by #1430 but did not match their render, so the
+work was: restyle it in the community design language, fix what was visibly
+broken, and surface the selling copy. All of it shipped in #1432, now merged.
+
+What changed:
+
+- **The billing toggle.** The track and thumb were geometrically wrong — the
+  switch element was carrying the track's own background and box-shadow at the
+  wrong height. The track is now a `::before` pseudo-element at a fixed 48×28,
+  with the thumb centred on it and translating 20px.
+- **Site-wide hyphenation removed.** `ui-ux-fixes.css` applied `hyphens: auto`
+  to a global `h1,h2,h3,h4,h5,h6,p,span,div,a,label` selector and again to
+  `.card` headings. That is what made the pricing text look broken, and it was
+  breaking words across every page on the site. `/pricing` alone had 33
+  hyphenation breaks; it now has zero, as does everywhere else.
+- **Merchandising copy surfaced.** The plans API already returned
+  `valueStatement` and `badge` for each plan and `pricing.js` fetched and then
+  discarded both. They now render.
+- **Four accessibility defects fixed**, found by sweeping every public page
+  with axe rather than only the pages this branch touched. All pre-existing:
+  three `aria-hidden` containers that still held focusable children (fixed
+  with `inert`), a searchbox carrying `aria-expanded` without a role that
+  permits it (critical — it is a combobox, and now says so), and the shared
+  bottom-nav label at 3.70:1 on a tinted bar. Guarded by
+  `tests/unit/aria-hidden-focus.test.js`, because the visual/a11y suite only
+  covers five baseline pages and a regression on `/suppliers` or the shared
+  nav would otherwise go unnoticed until someone swept again.
+- **The pexels-collage test made deterministic** — see the correction above.
+
+Verified: full `npm test` **8169 passing, 0 failing** — the first fully green
+run on this branch. Axe clean across 9 routes × 2 viewports. No horizontal
+overflow, no JavaScript errors. DeepSource grade A on all four categories.
+
+Two things left open and honestly so:
+
+- The two visual baselines above. Skipping the comparison is a stopgap, not a
+  fix, and the backlog item says what "done" looks like.
+- DeepSource JavaScript was red on #1430 on a dashboard-configured metric with
+  grade A and zero inline issues. A documentation-coverage hypothesis was
+  tested and **falsified**. #1430 is merged and the check is green on this
+  branch, so it is no longer blocking, but the cause was never established and
+  needs the owner's DeepSource dashboard if it recurs.
+
+Next: back to stage 4 — `/community/discussions` and `/community/search` still
+use the old `.efc-hero` band and look like a different site next to the
+redesigned homepage. That remains the largest open item.
