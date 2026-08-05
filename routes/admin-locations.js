@@ -266,6 +266,9 @@ router.get('/', apiLimiter, async (req, res) => {
       success: true,
       data: {
         items: filtered,
+        // The editor shows every field's real limit rather than a second copy
+        // of these numbers that can drift away from the ones the API enforces.
+        limits: LIMITS,
         summary: {
           total: items.length,
           published: items.filter(item => item.status === PUBLICATION_STATES.published).length,
@@ -301,11 +304,82 @@ router.get('/:slug', apiLimiter, async (req, res) => {
     const item = describeCity(resolved.city, data);
     return res.json({
       success: true,
-      data: { ...item, previewUrl: `/locations/${resolved.city.slug}` },
+      data: {
+        ...item,
+        limits: LIMITS,
+        // The public URL only works once the page is pilot or published; the
+        // draft preview works in every state, for admins only.
+        previewUrl: `/locations/${resolved.city.slug}`,
+        draftPreviewUrl: `/api/v1/admin/locations/${resolved.city.slug}/preview`,
+      },
     });
   } catch (error) {
     logger.error('Could not load a location page:', error);
     return res.status(500).json({ success: false, error: 'Failed to load location page' });
+  }
+});
+
+/**
+ * GET /api/v1/admin/locations/:slug/preview
+ *
+ * The city page exactly as it would render, in whatever state it is currently
+ * in. This exists so nobody has to promote a Draft page to Pilot — which makes
+ * it publicly reachable — merely to see what they have written. The response is
+ * admin-only, uncacheable and `noindex, nofollow`.
+ */
+router.get('/:slug/preview', apiLimiter, async (req, res) => {
+  try {
+    const resolved = registry.resolveCity(req.params.slug);
+    if (!resolved) {
+      return res.status(404).json({ success: false, error: 'Unknown city' });
+    }
+    const city = resolved.city;
+
+    const shell = await locationRoutes.readShell('location.html');
+    if (!shell) {
+      return res.status(500).json({ success: false, error: 'Page template is unavailable' });
+    }
+
+    const data = await locationRoutes.readLocationData();
+    const page = locationPages.normalisePageRecord(city, data.pageRecords.get(city.slug));
+    const model = locationPages.buildCityPageModel({
+      city,
+      page,
+      suppliers: data.suppliers,
+      validOwnerIds: data.validOwnerIds,
+      packages: data.packages,
+      events: data.events,
+      publishedSlugs: locationRoutes.publishedSlugs(data.pageRecords),
+      baseUrl: locationRoutes.BASE_URL,
+    });
+
+    const banner = `<div class="efl-preview-banner" role="status">
+      <strong>Admin preview</strong>
+      <span>This page is currently <em>${locationRoutes.escapeHtml(page.status)}</em>. ${
+        locationPages.isPubliclyVisible(page)
+          ? 'It is publicly reachable.'
+          : 'It is not reachable by the public — only admins can see this.'
+      } Nothing here is indexable.</span>
+    </div>`;
+
+    const html = locationRoutes.applyContent(
+      locationRoutes.applyMeta(shell, {
+        ...model.metadata,
+        indexable: false,
+        pageType: 'location_city_preview',
+        locationSlug: city.slug,
+        structuredData: [model.breadcrumbs],
+      }),
+      `${banner}${locationRoutes.renderCityPage(model)}`
+    );
+
+    res.set('Content-Type', 'text/html; charset=utf-8');
+    res.set('Cache-Control', 'no-store');
+    res.set('X-Robots-Tag', 'noindex, nofollow');
+    return res.send(html);
+  } catch (error) {
+    logger.error('Could not render a location page preview:', error);
+    return res.status(500).json({ success: false, error: 'Failed to render preview' });
   }
 });
 

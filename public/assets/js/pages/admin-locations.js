@@ -5,6 +5,10 @@
  * warnings, and lets an admin move a page through the workflow. The gate is
  * shown as the reasons a page is being held back, not just a score, so a
  * refusal to index is actionable.
+ *
+ * The editor is deliberately separate from the workflow buttons: saving copy
+ * sends nothing but `seo` and `content`, so writing a paragraph can never
+ * publish a page, request indexing or mark it reviewed by accident.
  */
 
 (function () {
@@ -13,10 +17,39 @@
   const listEl = document.getElementById('efl-admin-list');
   const summaryEl = document.getElementById('efl-admin-summary');
   const filterEl = document.getElementById('efl-admin-filter');
+  const dialogEl = document.getElementById('efl-editor');
 
   if (!listEl) {
     return;
   }
+
+  /** Field limits, replaced by the ones the API reports on first load. */
+  let limits = {
+    introMaxLength: 1200,
+    sectionBodyMaxLength: 4000,
+    sectionTitleMaxLength: 120,
+    faqQuestionMaxLength: 200,
+    faqAnswerMaxLength: 2000,
+    maxSections: 8,
+    maxFaqs: 10,
+  };
+
+  /** Slug currently open in the editor, or null. */
+  let editingSlug = null;
+
+  /** Whether the editor holds changes that have not been saved. */
+  let dirty = false;
+
+  /** Cached CSRF token, fetched once per page load. */
+  let csrfToken = null;
+
+  const SEO_TITLE_MAX = 70;
+  const SEO_DESCRIPTION_MAX = 160;
+  const HERO_URL_MAX = 500;
+  const HERO_ALT_MAX = 200;
+  const SOURCE_NAME_MAX = 120;
+  const SOURCE_URL_MAX = 500;
+  const SOURCE_DATE_MAX = 40;
 
   /**
    * Escape text for insertion into markup.
@@ -33,6 +66,79 @@
   }
 
   /**
+   * Ask the operator a yes/no question, in the page rather than in a browser
+   * dialog — admin screens here never use native `confirm`.
+   * @param {string} message Question to ask.
+   * @param {string} [confirmLabel] Label for the affirmative button.
+   * @returns {Promise<boolean>} True when confirmed.
+   */
+  function adminConfirm(message, confirmLabel) {
+    const dialog = document.getElementById('efl-confirm');
+    if (!dialog) {
+      return Promise.resolve(true);
+    }
+    document.getElementById('efl-confirm-message').textContent = message;
+    document.getElementById('efl-confirm-yes').textContent = confirmLabel || 'Confirm';
+
+    return new Promise(resolve => {
+      const finish = answer => {
+        dialog.removeEventListener('click', onClick);
+        dialog.removeEventListener('cancel', onCancel);
+        if (typeof dialog.close === 'function' && dialog.open) {
+          dialog.close();
+        } else {
+          dialog.removeAttribute('open');
+        }
+        resolve(answer);
+      };
+      const onClick = event => {
+        const button = event.target.closest('button[data-confirm]');
+        if (button) {
+          finish(button.getAttribute('data-confirm') === 'yes');
+        }
+      };
+      const onCancel = event => {
+        event.preventDefault();
+        finish(false);
+      };
+
+      dialog.addEventListener('click', onClick);
+      dialog.addEventListener('cancel', onCancel);
+      if (typeof dialog.showModal === 'function') {
+        dialog.showModal();
+      } else {
+        dialog.setAttribute('open', 'open');
+      }
+    });
+  }
+
+  /**
+   * The CSRF token for state-changing requests.
+   *
+   * The cookie is the source of truth, but it is only set once something has
+   * asked for it, so fall back to the endpoint that mints one.
+   * @returns {Promise<string>} Token, or an empty string.
+   */
+  async function getCsrfToken() {
+    if (csrfToken) {
+      return csrfToken;
+    }
+    const fromCookie = window.EventFlowCsrf ? window.EventFlowCsrf.get() : '';
+    if (fromCookie) {
+      csrfToken = fromCookie;
+      return csrfToken;
+    }
+    try {
+      const response = await fetch('/api/csrf-token', { credentials: 'same-origin' });
+      const payload = await response.json();
+      csrfToken = payload.csrfToken || payload.token || '';
+    } catch (error) {
+      csrfToken = '';
+    }
+    return csrfToken;
+  }
+
+  /**
    * Call the admin API.
    * @param {string} url Endpoint.
    * @param {Object} [options] Fetch options.
@@ -40,8 +146,8 @@
    */
   async function api(url, options = {}) {
     const headers = { 'Content-Type': 'application/json' };
-    if (options.method && options.method !== 'GET' && window.EventFlowCsrf) {
-      headers['X-CSRF-Token'] = window.EventFlowCsrf.get();
+    if (options.method && options.method !== 'GET') {
+      headers['X-CSRF-Token'] = await getCsrfToken();
     }
     const response = await fetch(url, {
       method: options.method || 'GET',
@@ -71,12 +177,34 @@
   }
 
   /**
+   * A one-line explanation of what a page's state means for the public.
+   * @param {Object} item Admin row.
+   * @returns {string} Explanation.
+   */
+  function describeState(item) {
+    if (item.status === 'pilot') {
+      return 'Pilot: publicly visible to anyone with the link, but noindex.';
+    }
+    if (item.status === 'published') {
+      return item.indexable
+        ? 'Published and indexable.'
+        : 'Published and public, but held back from search engines by the gate.';
+    }
+    return `${item.status}: not reachable by the public.`;
+  }
+
+  /**
    * Render one city card.
    * @param {Object} item Admin row.
    * @returns {string} Card HTML.
    */
   function renderCard(item) {
     const reviewed = item.lastReviewedAt ? String(item.lastReviewedAt).slice(0, 10) : 'never';
+    const publicPreview =
+      item.status === 'pilot' || item.status === 'published'
+        ? `<a class="efl-btn efl-btn--ghost" href="/locations/${escapeHtml(item.slug)}" target="_blank" rel="noopener">Public page</a>`
+        : '';
+
     return `<div class="efl-card" data-slug="${escapeHtml(item.slug)}">
       <h3>${escapeHtml(item.name)}</h3>
       <p class="efl-card__meta">
@@ -84,17 +212,20 @@
         <span>Score ${escapeHtml(item.gate.score)}/${escapeHtml(item.gate.passMark)}</span>
         <span>${item.indexable ? 'Indexable' : 'Not indexable'}</span>
       </p>
+      <p class="efl-note">${escapeHtml(describeState(item))}</p>
       <p>${escapeHtml(item.supplierCount)} suppliers · ${escapeHtml(item.categoryCount)} categories · reviewed ${escapeHtml(reviewed)}</p>
       ${renderDetails('Why it cannot be indexed', item.gate.blockers)}
       ${renderDetails('Editorial warnings', item.warnings)}
       <p class="efl-actions">
+        <button type="button" class="efl-btn efl-btn--solid" data-action="edit">Edit</button>
         <button type="button" class="efl-btn efl-btn--ghost" data-action="pilot">Pilot</button>
         <button type="button" class="efl-btn efl-btn--ghost" data-action="publish">Publish</button>
         <button type="button" class="efl-btn efl-btn--ghost" data-action="index">${
           item.indexingRequested ? 'Stop requesting indexing' : 'Request indexing'
         }</button>
         <button type="button" class="efl-btn efl-btn--ghost" data-action="review">Mark reviewed</button>
-        <a class="efl-btn efl-btn--ghost" href="/locations/${escapeHtml(item.slug)}">Preview</a>
+        <button type="button" class="efl-btn efl-btn--ghost" data-action="draft-preview">Preview draft</button>
+        ${publicPreview}
       </p>
     </div>`;
   }
@@ -107,6 +238,9 @@
     const query = filterEl && filterEl.value ? `?status=${encodeURIComponent(filterEl.value)}` : '';
     try {
       const data = await api(`/api/v1/admin/locations${query}`);
+      if (data.limits) {
+        limits = { ...limits, ...data.limits };
+      }
       const unmapped = data.summary.unmappedSuppliers
         ? ` · ${data.summary.unmappedSuppliers} suppliers not yet placed on a city`
         : '';
@@ -114,6 +248,370 @@
       listEl.innerHTML = data.items.map(renderCard).join('');
     } catch (error) {
       summaryEl.textContent = `Could not load location pages: ${error.message}`;
+    }
+  }
+
+  // ─── Editor ────────────────────────────────────────────────────────────────
+
+  /**
+   * Mark the editor as holding unsaved work.
+   * @param {boolean} value Whether there are unsaved changes.
+   * @returns {void} Nothing.
+   */
+  function setDirty(value) {
+    dirty = value;
+    const note = document.getElementById('efl-editor-dirty');
+    if (note) {
+      note.textContent = value ? 'Unsaved changes' : '';
+    }
+  }
+
+  /**
+   * Show a character counter beneath a field.
+   * @param {HTMLElement} noteEl Note element.
+   * @param {HTMLElement} fieldEl Field element.
+   * @param {number} max Maximum length.
+   * @returns {void} Nothing.
+   */
+  function updateCounter(noteEl, fieldEl, max) {
+    if (!noteEl || !fieldEl) {
+      return;
+    }
+    const length = fieldEl.value.length;
+    noteEl.textContent = `${length} / ${max}`;
+    noteEl.classList.toggle('efl-field-note--over', length > max);
+  }
+
+  /**
+   * Wire a field to its counter and to the dirty flag.
+   * @param {HTMLElement} fieldEl Field element.
+   * @param {HTMLElement} noteEl Note element.
+   * @param {number} max Maximum length.
+   * @returns {void} Nothing.
+   */
+  function bindField(fieldEl, noteEl, max) {
+    if (!fieldEl) {
+      return;
+    }
+    fieldEl.setAttribute('maxlength', String(max));
+    const sync = () => {
+      updateCounter(noteEl, fieldEl, max);
+      setDirty(true);
+    };
+    fieldEl.addEventListener('input', sync);
+    updateCounter(noteEl, fieldEl, max);
+  }
+
+  /**
+   * Renumber the "Section 1 of 8" labels after any add, move or remove.
+   * @param {HTMLElement} containerEl Repeatable container.
+   * @param {string} noun Singular noun for the label.
+   * @param {number} max Maximum entries allowed.
+   * @returns {void} Nothing.
+   */
+  function renumber(containerEl, noun, max) {
+    const items = [...containerEl.children];
+    items.forEach((item, index) => {
+      const label = item.querySelector('.efl-repeatable__label');
+      if (label) {
+        label.textContent = `${noun} ${index + 1} of ${items.length} (maximum ${max})`;
+      }
+      const up = item.querySelector('[data-move="up"]');
+      const down = item.querySelector('[data-move="down"]');
+      if (up) {
+        up.disabled = index === 0;
+      }
+      if (down) {
+        down.disabled = index === items.length - 1;
+      }
+    });
+  }
+
+  /**
+   * Add one repeatable row.
+   * @param {string} templateId Template element id.
+   * @param {HTMLElement} containerEl Container element.
+   * @param {Object} values Initial values keyed by `data-field`.
+   * @param {Object} maxima Maximum length per field.
+   * @returns {HTMLElement} The new row.
+   */
+  function addRow(templateId, containerEl, values, maxima) {
+    const template = document.getElementById(templateId);
+    const row = template.content.firstElementChild.cloneNode(true);
+
+    Object.keys(maxima).forEach(field => {
+      const fieldEl = row.querySelector(`[data-field="${field}"]`);
+      if (!fieldEl) {
+        return;
+      }
+      fieldEl.value = values[field] === null || values[field] === undefined ? '' : values[field];
+      bindField(fieldEl, row.querySelector(`[data-counter="${field}"]`), maxima[field]);
+    });
+
+    containerEl.appendChild(row);
+    return row;
+  }
+
+  const SECTION_MAXIMA = () => ({
+    title: limits.sectionTitleMaxLength,
+    body: limits.sectionBodyMaxLength,
+    sourceName: SOURCE_NAME_MAX,
+    sourceUrl: SOURCE_URL_MAX,
+    sourceDate: SOURCE_DATE_MAX,
+  });
+
+  const FAQ_MAXIMA = () => ({
+    question: limits.faqQuestionMaxLength,
+    answer: limits.faqAnswerMaxLength,
+  });
+
+  /**
+   * Read the repeatable rows back out of the DOM.
+   * @param {HTMLElement} containerEl Container element.
+   * @param {string[]} fields Field names.
+   * @returns {Object[]} Row values.
+   */
+  function readRows(containerEl, fields) {
+    return [...containerEl.children].map(row => {
+      const values = {};
+      fields.forEach(field => {
+        const fieldEl = row.querySelector(`[data-field="${field}"]`);
+        values[field] = fieldEl ? fieldEl.value.trim() : '';
+      });
+      return values;
+    });
+  }
+
+  /**
+   * Fill the editor with one city's record.
+   * @param {Object} record Admin row from the API.
+   * @returns {void} Nothing.
+   */
+  function populateEditor(record) {
+    document.getElementById('efl-editor-title').textContent = `Edit ${record.name}`;
+    document.getElementById('efl-editor-state').textContent =
+      `${describeState(record)} Saving content here does not change that.`;
+
+    const gateEl = document.getElementById('efl-editor-gate');
+    gateEl.innerHTML = `${renderDetails('Why it cannot be indexed', record.gate.blockers)}${renderDetails(
+      'Editorial warnings',
+      record.warnings
+    )}`;
+
+    const seo = record.seo || {};
+    const content = record.content || {};
+
+    const fields = [
+      ['efl-seo-title', seo.title, SEO_TITLE_MAX],
+      ['efl-seo-description', seo.metaDescription, SEO_DESCRIPTION_MAX],
+      ['efl-hero-url', content.heroImageUrl, HERO_URL_MAX],
+      ['efl-hero-alt', content.heroImageAlt, HERO_ALT_MAX],
+      ['efl-intro', content.intro, limits.introMaxLength],
+    ];
+
+    fields.forEach(([id, value, max]) => {
+      const fieldEl = document.getElementById(id);
+      fieldEl.value = value === null || value === undefined ? '' : value;
+      bindField(fieldEl, document.querySelector(`[data-counter-for="${id}"]`), max);
+    });
+
+    const sectionsEl = document.getElementById('efl-sections');
+    const faqsEl = document.getElementById('efl-faqs');
+    sectionsEl.innerHTML = '';
+    faqsEl.innerHTML = '';
+
+    (content.planningSections || []).forEach(section => {
+      addRow('efl-section-template', sectionsEl, section, SECTION_MAXIMA());
+    });
+    (content.faqs || []).forEach(faq => {
+      addRow('efl-faq-template', faqsEl, faq, FAQ_MAXIMA());
+    });
+
+    document.getElementById('efl-sections-note').textContent =
+      `Up to ${limits.maxSections} sections. A section needs both a title and a body to be saved.`;
+    document.getElementById('efl-faqs-note').textContent =
+      `Up to ${limits.maxFaqs} questions. A question needs both a question and an answer to be saved.`;
+
+    renumber(sectionsEl, 'Section', limits.maxSections);
+    renumber(faqsEl, 'Question', limits.maxFaqs);
+    document.getElementById('efl-editor-errors').textContent = '';
+    setDirty(false);
+  }
+
+  /**
+   * Build the PATCH body.
+   *
+   * Only `seo` and `content` are ever sent. Publication state, the indexing
+   * request and the reviewed stamp are the workflow buttons' business, and this
+   * form must not be able to move them.
+   * @returns {Object} PATCH body.
+   */
+  function collectPayload() {
+    const sections = readRows(document.getElementById('efl-sections'), [
+      'title',
+      'body',
+      'sourceName',
+      'sourceUrl',
+      'sourceDate',
+    ]);
+    const faqs = readRows(document.getElementById('efl-faqs'), ['question', 'answer']);
+
+    return {
+      seo: {
+        title: document.getElementById('efl-seo-title').value.trim(),
+        metaDescription: document.getElementById('efl-seo-description').value.trim(),
+      },
+      content: {
+        heroImageUrl: document.getElementById('efl-hero-url').value.trim(),
+        heroImageAlt: document.getElementById('efl-hero-alt').value.trim(),
+        intro: document.getElementById('efl-intro').value.trim(),
+        planningSections: sections,
+        faqs,
+      },
+    };
+  }
+
+  /**
+   * Problems that should stop or qualify a save.
+   * @param {Object} payload Collected payload.
+   * @returns {{blocking: string[], warnings: string[]}} Validation result.
+   */
+  function validate(payload) {
+    const blocking = [];
+    const warnings = [];
+
+    const tooLong = (label, value, max) => {
+      if (value && value.length > max) {
+        blocking.push(`${label} is ${value.length} characters; the limit is ${max}.`);
+      }
+    };
+
+    tooLong('Page title', payload.seo.title, SEO_TITLE_MAX);
+    tooLong('Meta description', payload.seo.metaDescription, SEO_DESCRIPTION_MAX);
+    tooLong('Hero image URL', payload.content.heroImageUrl, HERO_URL_MAX);
+    tooLong('Hero image alt text', payload.content.heroImageAlt, HERO_ALT_MAX);
+    tooLong('Introduction', payload.content.intro, limits.introMaxLength);
+
+    if (payload.content.heroImageUrl && !payload.content.heroImageAlt) {
+      blocking.push('A hero image needs alt text.');
+    }
+    if (payload.content.heroImageUrl && !/^https?:\/\//i.test(payload.content.heroImageUrl)) {
+      blocking.push('The hero image URL must start with http:// or https://.');
+    }
+
+    payload.content.planningSections.forEach((section, index) => {
+      const position = index + 1;
+      tooLong(`Section ${position} title`, section.title, limits.sectionTitleMaxLength);
+      tooLong(`Section ${position} body`, section.body, limits.sectionBodyMaxLength);
+      if (section.sourceUrl && !/^https?:\/\//i.test(section.sourceUrl)) {
+        blocking.push(`Section ${position} has a source URL that is not http:// or https://.`);
+      }
+      if (!section.title || !section.body) {
+        warnings.push(
+          `Section ${position} has no ${section.title ? 'body' : 'title'} and will be discarded.`
+        );
+      }
+    });
+
+    payload.content.faqs.forEach((faq, index) => {
+      const position = index + 1;
+      tooLong(`Question ${position}`, faq.question, limits.faqQuestionMaxLength);
+      tooLong(`Answer ${position}`, faq.answer, limits.faqAnswerMaxLength);
+      if (!faq.question || !faq.answer) {
+        warnings.push(
+          `Question ${position} has no ${faq.question ? 'answer' : 'question'} and will be discarded.`
+        );
+      }
+    });
+
+    if (payload.content.planningSections.length > limits.maxSections) {
+      blocking.push(`Only ${limits.maxSections} planning sections are kept; remove some first.`);
+    }
+    if (payload.content.faqs.length > limits.maxFaqs) {
+      blocking.push(`Only ${limits.maxFaqs} questions are kept; remove some first.`);
+    }
+
+    return { blocking, warnings };
+  }
+
+  /**
+   * Open the editor for one city.
+   * @param {string} slug City slug.
+   * @returns {Promise<void>} Resolves when open.
+   */
+  async function openEditor(slug) {
+    try {
+      const record = await api(`/api/v1/admin/locations/${encodeURIComponent(slug)}`);
+      if (record.limits) {
+        limits = { ...limits, ...record.limits };
+      }
+      editingSlug = record.slug;
+      populateEditor(record);
+      if (typeof dialogEl.showModal === 'function') {
+        dialogEl.showModal();
+      } else {
+        dialogEl.setAttribute('open', 'open');
+      }
+    } catch (error) {
+      summaryEl.textContent = `Could not open the editor: ${error.message}`;
+    }
+  }
+
+  /**
+   * Close the editor, asking first when there is unsaved work.
+   * @returns {Promise<void>} Resolves when closed, or when the close is refused.
+   */
+  async function closeEditor() {
+    if (dirty) {
+      const discard = await adminConfirm(
+        'Discard your unsaved changes to this page?',
+        'Discard changes'
+      );
+      if (!discard) {
+        return;
+      }
+    }
+    editingSlug = null;
+    setDirty(false);
+    if (typeof dialogEl.close === 'function' && dialogEl.open) {
+      dialogEl.close();
+    } else {
+      dialogEl.removeAttribute('open');
+    }
+  }
+
+  /**
+   * Save the editor's content.
+   * @returns {Promise<void>} Resolves when saved.
+   */
+  async function save() {
+    const errorsEl = document.getElementById('efl-editor-errors');
+    const payload = collectPayload();
+    const { blocking, warnings } = validate(payload);
+
+    if (blocking.length) {
+      errorsEl.textContent = blocking.join(' ');
+      return;
+    }
+    if (warnings.length) {
+      const proceed = await adminConfirm(`${warnings.join(' ')} Save anyway?`, 'Save anyway');
+      if (!proceed) {
+        return;
+      }
+    }
+
+    errorsEl.textContent = '';
+    try {
+      const record = await api(`/api/v1/admin/locations/${encodeURIComponent(editingSlug)}`, {
+        method: 'PATCH',
+        body: payload,
+      });
+      setDirty(false);
+      populateEditor({ ...record, limits });
+      summaryEl.textContent = `Saved ${record.name}.`;
+      await load();
+    } catch (error) {
+      errorsEl.textContent = `Save failed: ${error.message}`;
     }
   }
 
@@ -130,6 +628,20 @@
     }
     const slug = button.closest('[data-slug]').getAttribute('data-slug');
     const action = button.getAttribute('data-action');
+
+    if (action === 'edit') {
+      await openEditor(slug);
+      return;
+    }
+    if (action === 'draft-preview') {
+      window.open(
+        `/api/v1/admin/locations/${encodeURIComponent(slug)}/preview`,
+        '_blank',
+        'noopener'
+      );
+      return;
+    }
+
     const body =
       action === 'index'
         ? { indexingRequested: button.textContent.indexOf('Stop') === -1 }
@@ -147,6 +659,105 @@
     } finally {
       button.disabled = false;
     }
+  });
+
+  if (dialogEl) {
+    dialogEl.addEventListener('click', async event => {
+      const moveButton = event.target.closest('button[data-move]');
+      if (moveButton) {
+        const item = moveButton.closest('[data-repeat]');
+        const container = item.parentElement;
+        const direction = moveButton.getAttribute('data-move');
+        if (direction === 'up' && item.previousElementSibling) {
+          container.insertBefore(item, item.previousElementSibling);
+        } else if (direction === 'down' && item.nextElementSibling) {
+          container.insertBefore(item.nextElementSibling, item);
+        }
+        renumber(
+          container,
+          container.id === 'efl-sections' ? 'Section' : 'Question',
+          container.id === 'efl-sections' ? limits.maxSections : limits.maxFaqs
+        );
+        setDirty(true);
+        return;
+      }
+
+      const removeButton = event.target.closest('button[data-remove]');
+      if (removeButton) {
+        const item = removeButton.closest('[data-repeat]');
+        const container = item.parentElement;
+        item.remove();
+        renumber(
+          container,
+          container.id === 'efl-sections' ? 'Section' : 'Question',
+          container.id === 'efl-sections' ? limits.maxSections : limits.maxFaqs
+        );
+        setDirty(true);
+        return;
+      }
+
+      const actionButton = event.target.closest('button[data-editor-action]');
+      if (!actionButton) {
+        return;
+      }
+      const action = actionButton.getAttribute('data-editor-action');
+
+      if (action === 'add-section') {
+        const container = document.getElementById('efl-sections');
+        if (container.children.length >= limits.maxSections) {
+          document.getElementById('efl-editor-errors').textContent =
+            `Only ${limits.maxSections} planning sections are kept.`;
+          return;
+        }
+        addRow('efl-section-template', container, {}, SECTION_MAXIMA());
+        renumber(container, 'Section', limits.maxSections);
+        setDirty(true);
+      } else if (action === 'add-faq') {
+        const container = document.getElementById('efl-faqs');
+        if (container.children.length >= limits.maxFaqs) {
+          document.getElementById('efl-editor-errors').textContent =
+            `Only ${limits.maxFaqs} questions are kept.`;
+          return;
+        }
+        addRow('efl-faq-template', container, {}, FAQ_MAXIMA());
+        renumber(container, 'Question', limits.maxFaqs);
+        setDirty(true);
+      } else if (action === 'save') {
+        await save();
+      } else if (action === 'preview') {
+        // The preview renders what is stored, so offering it over unsaved work
+        // would show the editor something other than what they are looking at.
+        if (dirty) {
+          document.getElementById('efl-editor-errors').textContent =
+            'Save your changes first — the preview renders the saved page.';
+          return;
+        }
+        document.getElementById('efl-editor-errors').textContent = '';
+        window.open(
+          `/api/v1/admin/locations/${encodeURIComponent(editingSlug)}/preview`,
+          '_blank',
+          'noopener'
+        );
+      } else if (action === 'close') {
+        await closeEditor();
+      }
+    });
+
+    // Escape closes a native dialog without going through our handler, so the
+    // unsaved-changes question has to be asked here too.
+    dialogEl.addEventListener('cancel', event => {
+      event.preventDefault();
+      closeEditor();
+    });
+  }
+
+  window.addEventListener('beforeunload', event => {
+    if (!dirty) {
+      return undefined;
+    }
+    event.preventDefault();
+    event.returnValue = '';
+    return '';
   });
 
   if (filterEl) {
