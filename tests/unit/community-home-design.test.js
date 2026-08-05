@@ -220,10 +220,39 @@ describe('the community homepage shell', () => {
     // Static CSS/JS is cached for a week. Shipping this markup against the
     // previously cached community.css leaves the hero unstyled, and against
     // the previously cached home.js the rails and category strip never fill.
-    expect(html).toContain('community.css?v=18.4.0');
-    expect(html).toContain('community/core.js?v=18.4.0');
-    expect(html).toContain('community/home.js?v=18.4.0');
-    expect(html).toContain('mobile-optimizations.css?v=18.4.0');
+    //
+    // The versions are read from the generator's ASSET_VERSIONS map rather than
+    // pinned here. Pinned literals had to be edited on every bump, which made
+    // the test look like an obstacle to routine work instead of a guard; the
+    // real contract is that the shell and the template agree on one version.
+    const generator = fs.readFileSync(
+      path.join(ROOT, 'scripts/generate-community-pages.mjs'),
+      'utf8'
+    );
+    const map = generator.slice(
+      generator.indexOf('const ASSET_VERSIONS = {'),
+      generator.indexOf('};', generator.indexOf('const ASSET_VERSIONS = {'))
+    );
+
+    /**
+     * The version the generator pins an asset to.
+     * @param {string} assetPath Absolute asset path.
+     * @returns {string} Version string.
+     */
+    function pinned(assetPath) {
+      const match = map.match(new RegExp(`'${assetPath}':\\s*'([\\d.]+)'`));
+      expect(match).not.toBeNull();
+      return match[1];
+    }
+
+    for (const asset of [
+      '/assets/css/community.css',
+      '/assets/css/mobile-optimizations.css',
+      '/assets/js/community/core.js',
+      '/assets/js/community/home.js',
+    ]) {
+      expect(html).toContain(`${asset}?v=${pinned(asset)}`);
+    }
   });
 
   it('exempts the hero search button from the mobile full-width rule', () => {

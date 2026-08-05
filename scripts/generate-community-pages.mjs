@@ -10,7 +10,7 @@
  * Usage: node scripts/generate-community-pages.mjs
  */
 
-import { writeFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -18,6 +18,27 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const publicDir = path.join(here, '..', 'public');
 
 const ASSET_VERSION = '18.3.0';
+
+// Assets that have moved on independently of the shared version. Cache-busting
+// is per file, so pinning them here keeps a regeneration from silently reverting
+// a bumped query string back to the shared version and serving a stale asset.
+const ASSET_VERSIONS = {
+  '/assets/css/styles.css': '18.5.0',
+  '/assets/css/mobile-optimizations.css': '18.4.0',
+  '/assets/css/community.css': '18.5.0',
+  '/assets/js/community/core.js': '18.4.0',
+  '/assets/js/community/home.js': '18.4.0',
+  '/assets/js/community/composer.js': '18.5.0',
+};
+
+/**
+ * Version query for an asset path.
+ * @param {string} assetPath Absolute asset path.
+ * @returns {string} The version to use in the cache-busting query.
+ */
+function version(assetPath) {
+  return ASSET_VERSIONS[assetPath] || ASSET_VERSION;
+}
 
 const NAV_LINKS = [
   { href: '/start', label: 'Plan' },
@@ -58,7 +79,7 @@ function shell(page) {
   ).join('\n');
 
   const scripts = (page.scripts || [])
-    .map(src => `    <script src="${src}?v=${ASSET_VERSION}" defer></script>`)
+    .map(src => `    <script src="${src}?v=${version(src)}" defer></script>`)
     .join('\n');
 
   return `<!doctype html>
@@ -69,16 +90,16 @@ function shell(page) {
     <meta name="theme-color" content="#0B8073" />
     <script src="/assets/js/config/canonical-base.js"></script>
 ${page.adminGuard ? '    <script src="/assets/js/dashboard-guard.js?v=17.0.2"></script>\n' : ''}    <!--COMMUNITY_HEAD-->
-    <link rel="preload" href="/assets/css/tokens.css?v=${ASSET_VERSION}" as="style" />
-    <link rel="preload" href="/assets/css/styles.css?v=${ASSET_VERSION}" as="style" />
-    <link rel="stylesheet" href="/assets/css/tokens.css?v=${ASSET_VERSION}" />
-    <link rel="stylesheet" href="/assets/css/styles.css?v=${ASSET_VERSION}" />
-    <link rel="stylesheet" href="/assets/css/eventflow-17.0.0.css?v=${ASSET_VERSION}" />
-    <link rel="stylesheet" href="/assets/css/utilities.css?v=${ASSET_VERSION}" />
-    <link rel="stylesheet" href="/assets/css/components.css?v=${ASSET_VERSION}" />
-    <link rel="stylesheet" href="/assets/css/mobile-optimizations.css?v=${ASSET_VERSION}" />
-    <link rel="stylesheet" href="/assets/css/navbar.css?v=${ASSET_VERSION}" />
-    <link rel="stylesheet" href="/assets/css/community.css?v=${ASSET_VERSION}" />
+    <link rel="preload" href="/assets/css/tokens.css?v=${version('/assets/css/tokens.css')}" as="style" />
+    <link rel="preload" href="/assets/css/styles.css?v=${version('/assets/css/styles.css')}" as="style" />
+    <link rel="stylesheet" href="/assets/css/tokens.css?v=${version('/assets/css/tokens.css')}" />
+    <link rel="stylesheet" href="/assets/css/styles.css?v=${version('/assets/css/styles.css')}" />
+    <link rel="stylesheet" href="/assets/css/eventflow-17.0.0.css?v=${version('/assets/css/eventflow-17.0.0.css')}" />
+    <link rel="stylesheet" href="/assets/css/utilities.css?v=${version('/assets/css/utilities.css')}" />
+    <link rel="stylesheet" href="/assets/css/components.css?v=${version('/assets/css/components.css')}" />
+    <link rel="stylesheet" href="/assets/css/mobile-optimizations.css?v=${version('/assets/css/mobile-optimizations.css')}" />
+    <link rel="stylesheet" href="/assets/css/navbar.css?v=${version('/assets/css/navbar.css')}" />
+    <link rel="stylesheet" href="/assets/css/community.css?v=${version('/assets/css/community.css')}" />
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
@@ -152,7 +173,7 @@ ${page.body}
     <script src="/assets/js/utils/auth-state.js" defer></script>
     <script src="/assets/js/navbar.js" defer></script>
     <script src="/assets/js/cookie-consent.js?v=2.0.0" defer></script>
-    <script src="/assets/js/community/core.js?v=${ASSET_VERSION}" defer></script>
+    <script src="/assets/js/community/core.js?v=${version('/assets/js/community/core.js')}" defer></script>
 ${scripts}
   </body>
 </html>
@@ -169,20 +190,79 @@ const hero = (title, lead, actions = '') => `    <section class="efc-hero">
 
 `;
 
-const homeHero = hero(
-  'EventFlow Community',
-  'Ask questions, share experiences and get practical advice from people planning events and verified EventFlow suppliers.',
-  `<form class="efc-search" role="search" action="/community/search" method="GET">
-          <label class="efc-sr-only" for="efc-hero-search">Search the community</label>
-          <input id="efc-hero-search" type="search" name="q" placeholder="Search discussions, e.g. marquee hire in Kent" />
-          <button type="submit" class="btn btn-primary">Search</button>
-        </form>
-        <div class="efc-hero__actions">
-          <a class="btn btn-primary" href="/community/new">Start a discussion</a>
-          <a class="efc-action" href="/community/discussions">Browse all discussions</a>
-          <a class="efc-action" href="/community/guidelines">Community guidelines</a>
-        </div>`
-);
+// The community home page does not use the shared `hero()` band. Its hero is a
+// composed stage — a floating card between two preview rails, over a decorative
+// background — and it is reproduced here verbatim so that regenerating the
+// shells cannot quietly revert it to the old band.
+const homeHero = `    <section class="efc-stage">
+      <!-- Decoration only: soft brand blobs and the dashed lines that run from
+           the hero out to the preview rails. Hidden from assistive technology
+           and suppressed entirely under prefers-reduced-motion. -->
+      <div class="efc-stage__decor" aria-hidden="true">
+        <span class="efc-blob efc-blob--a"></span>
+        <span class="efc-blob efc-blob--b"></span>
+        <span class="efc-blob efc-blob--c"></span>
+        <svg class="efc-threads" viewBox="0 0 1440 620" preserveAspectRatio="none" focusable="false">
+          <path d="M416 235C386 275 386 330 416 372" />
+          <path d="M416 350C390 400 396 452 424 492" />
+          <path d="M1024 235C1054 275 1054 330 1024 372" />
+          <path d="M1024 350C1050 400 1044 452 1016 492" />
+        </svg>
+      </div>
+
+      <!-- The hero card comes first in the document even though it sits between
+           the two rails on a wide screen. The rails are secondary navigation;
+           making a keyboard or screen-reader user pass three preview cards
+           before reaching the h1 and the search field would be worse than the
+           mild visual/focus-order deviation this creates on desktop. -->
+      <div class="efc-stage__inner">
+        <div class="efc-stage__card">
+          <span class="efc-stage__badge" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" focusable="false">
+              <path d="M17 12a5 5 0 0 1-5 5H8l-4 3v-4.6A5 5 0 0 1 3 12V9a5 5 0 0 1 5-5h4a5 5 0 0 1 5 5Z" />
+              <path d="M20 8a4 4 0 0 1 1 2.6V14a4 4 0 0 1-2 3.4" />
+            </svg>
+          </span>
+          <h1>EventFlow Community</h1>
+          <p>Ask questions, share experiences and get practical advice from people planning events and trusted EventFlow suppliers.</p>
+          <form class="efc-stage__search" role="search" action="/community/search" method="GET">
+            <label class="efc-sr-only" for="efc-hero-search">Search the community</label>
+            <input id="efc-hero-search" type="search" name="q" placeholder="Search discussions, ideas or suppliers" />
+            <button type="submit" class="efc-searchbtn" aria-label="Search discussions">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" />
+              </svg>
+            </button>
+          </form>
+          <div class="efc-stage__actions">
+            <a class="efc-cta efc-cta--solid" href="/community/new">Start a discussion</a>
+            <a class="efc-cta efc-cta--ghost" href="/community/discussions">Browse discussions</a>
+          </div>
+        </div>
+
+        <nav class="efc-rail efc-rail--left" aria-label="Recent discussions">
+          <ul class="efc-rail__list" id="efc-rail-left"></ul>
+        </nav>
+
+        <nav class="efc-rail efc-rail--right" aria-label="Popular discussions">
+          <ul class="efc-rail__list" id="efc-rail-right"></ul>
+        </nav>
+      </div>
+
+      <div class="efc-catstrip" id="efc-catstrip" hidden></div>
+
+      <p class="efc-joinbar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M16 20v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 4 18.5V20" />
+          <circle cx="10" cy="8" r="3.2" />
+          <path d="M20 20v-1.5a3.5 3.5 0 0 0-2.6-3.4M15.6 5.2a3.2 3.2 0 0 1 0 5.6" />
+        </svg>
+        <span>Join thousands of event planners and suppliers sharing ideas every day.</span>
+        <a class="efc-joinbar__link" href="/community/guidelines">How it works</a>
+      </p>
+    </section>
+
+`;
 
 // The filter panel and its mobile toggle are rendered together by
 // community/discussions.js, so aria-controls never points at an element that
@@ -200,7 +280,10 @@ const pages = [
     file: 'community.html',
     hero: homeHero,
     body: `        <div id="efc-home" class="efc-section"></div>`,
-    scripts: ['/assets/js/community/home.js'],
+    // The composer is loaded here as well so "Start a discussion" can open as a
+    // modal over the page. It is an enhancement: without it the link still goes
+    // to /community/new.
+    scripts: ['/assets/js/community/home.js', '/assets/js/community/composer.js'],
   },
   {
     file: 'community-discussions.html',
@@ -210,7 +293,7 @@ const pages = [
       '<div class="efc-hero__actions"><a class="btn btn-primary" href="/community/new">Start a discussion</a></div>'
     ),
     body: `        <div id="efc-discussions" data-mode="index">${listBody}</div>`,
-    scripts: ['/assets/js/community/discussions.js'],
+    scripts: ['/assets/js/community/discussions.js', '/assets/js/community/composer.js'],
   },
   {
     file: 'community-category.html',
@@ -366,10 +449,48 @@ pages.push(
 );
 
 /**
- * Write every generated page to the public directory.
- * @returns {Promise<void>} Resolves when all files are written.
+ * Compare the generated output against what is committed, without writing.
+ *
+ * The committed shells are edited by hand more often than this script is run,
+ * and a template that has fallen behind them does not fail loudly — it quietly
+ * reverts the newer markup the next time someone regenerates. `--check` makes
+ * that drift a test failure instead of a surprise.
+ *
+ * @returns {Promise<string[]>} Files whose committed contents differ.
+ */
+async function drift() {
+  const stale = [];
+  await Promise.all(
+    pages.map(async page => {
+      const committed = await readFile(path.join(publicDir, page.file), 'utf8').catch(() => null);
+      if (committed !== shell(page)) {
+        stale.push(page.file);
+      }
+    })
+  );
+  return stale.sort();
+}
+
+/**
+ * Write every generated page to the public directory, or report drift when
+ * called with `--check`.
+ * @returns {Promise<void>} Resolves when finished.
  */
 async function main() {
+  if (process.argv.includes('--check')) {
+    const stale = await drift();
+    if (stale.length) {
+      process.stderr.write(
+        `The committed shells differ from this template:\n  ${stale.join('\n  ')}\n` +
+          'Either re-run this script and commit the result, or update the template to match.\n'
+      );
+      process.exitCode = 1;
+      return;
+    }
+    process.stdout.write(`All ${pages.length} community pages match the template\n`);
+    return;
+  }
+
   await Promise.all(
     pages.map(page => writeFile(path.join(publicDir, page.file), shell(page), 'utf8'))
   );

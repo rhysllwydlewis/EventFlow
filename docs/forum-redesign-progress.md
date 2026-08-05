@@ -122,6 +122,10 @@ than fixing it silently.
       baseline generated where text wraps even slightly differently fails on a
       size mismatch regardless of pixel tolerance, so an unverifiable image is
       worse than none.
+- [ ] The composer modal is wired to `/community` and `/community/discussions`.
+      Consider it for the category pages too, where "Start a discussion" could
+      preselect the category it was opened from — `openDialog` already reads
+      `?category=` off the link, so it is a markup change rather than new code.
 - [ ] The rails are populated from the `home` payload's `recentActivity`,
       `trending`, `popular` and `recentDiscussions` arrays. That is four
       arrays fetched to render six cards. Worth a dedicated slice in the
@@ -175,6 +179,27 @@ found and a tick when fixed, so nothing is quietly dropped.
       the info notice's indigo `#3730a3` and painted it on the teal fill. This
       is the login gate on `/community/new`. Narrowed to
       `.efc-notice a:not(.btn)`.
+
+- [x] **Every unclassed checkbox and radio on the site rendered stretched.**
+      `styles.css` sets `width: 100%` on `input, select, textarea` for text-like
+      fields; a checkbox obeys it too, so the control filled its container while
+      the glyph stayed 13px and the browser painted that glyph centred in the
+      box. On `/community/new` the 18+ confirmation appeared to float alone in
+      the middle of its notice, nowhere near its own label. Fixed with a
+      carve-out restoring the intrinsic size. Verified against the previous file
+      that no page which already had its own override changes at all — including
+      every visual-baseline page — so the fix reaches only the pages that were
+      actually broken.
+- [x] **Regenerating the shells would have reverted the forum redesign.**
+      `scripts/generate-community-pages.mjs` still emitted the old `.efc-hero`
+      band for `community.html` long after the committed shell was rebuilt
+      around `.efc-stage`, and pinned one shared asset version over the
+      individually bumped ones. Running it replaced the 67-line hero with the
+      old 13-line band and silently downgraded four cache-busting queries.
+      Nothing failed; the only signal would have been someone noticing the
+      homepage had reverted. The template now carries the real hero and a
+      per-asset version map, reproduces all 12 committed shells byte-for-byte,
+      and has a `--check` mode that a unit test runs so drift fails loudly.
 
 ### Known gaps against the mockup
 
@@ -318,3 +343,57 @@ Two things left open and honestly so:
 Next: back to stage 4 — `/community/discussions` and `/community/search` still
 use the old `.efc-hero` band and look like a different site next to the
 redesigned homepage. That remains the largest open item.
+
+### 2026-08-05 — session 6 (the composer)
+
+The site owner reported that `/community/new` "looks bad" and asked whether it
+could be a widget opened from the community page rather than a whole page.
+
+**Why it looked bad.** One rule, and not a community one. `styles.css` styles
+every `input, select, textarea` at `width: 100%`, which is right for text
+fields and wrong for a checkbox: the control stretched to the full width of the
+notice while its glyph stayed 13px, and the browser painted that glyph centred
+in the resulting box. The 18+ confirmation therefore floated in the middle of
+its own notice, a long way from the label it belonged to. Measured at 1114px
+wide in the browser before the fix, 20px after. Every unclassed checkbox on the
+site had the same defect; most pages happened to carry their own override, so
+the composer was where it showed.
+
+Alongside that the page had no layout of its own — one flat column of controls
+at the full 1180px shell width, with the title input stretched right across the
+viewport. It is now capped at 46rem and grouped into two cards: what you are
+asking, then how people find it.
+
+**The modal.** "Start a discussion" now opens the composer over the page it was
+pressed on, on `/community` and `/community/discussions`. It is layered on top
+of the ordinary link rather than replacing it, which is the part worth
+preserving: `/community/new` is still a real page with a real URL, so a
+middle-click, a new tab, a bookmark, a browser without `<dialog>` and the
+`?next=/community/new` login redirect all still land somewhere that works. The
+same `composer.js` renders both surfaces — it takes a root element and a
+heading level, so the modal uses `h2` and the page keeps its `h1` rather than
+the page ending up with two.
+
+Details that needed deciding rather than defaulting:
+
+- Escape and the close button confirm before discarding typed content. Drafts
+  autosave every three seconds, but a modal that vanishes on a stray keypress
+  and takes the post with it is worse than one extra prompt.
+- Focus moves to the title field on open and returns to the button that opened
+  it on close.
+- Modified clicks (cmd, ctrl, shift, middle) are not intercepted — those mean
+  "open this somewhere else" and must stay ordinary navigation.
+- `?category=` is read from the link that was clicked, not the current page's
+  query string, which is what a category-page trigger would need.
+
+**Found along the way:** the page generator had drifted far enough to be
+dangerous — see the entry above. That was not part of the request and is the
+more serious of the two findings.
+
+Verified: full `npm test` **8185 passing, 0 failing**. Axe clean on the page and
+on the modal at 1440 and 390. No horizontal overflow, no JavaScript errors, one
+`h1` on the page with the modal open. Checkbox geometry compared against the
+previous `styles.css` on seven pages including every visual baseline: identical
+everywhere, so no baseline needs regenerating.
+
+Next: unchanged — stage 4, the sibling pages' visual treatment.
