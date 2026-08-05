@@ -1,0 +1,364 @@
+/**
+ * EventFlow UK locations — hub and city pages
+ *
+ * Mobile-first. Every grid is a single column until there is room for more, and
+ * every list wraps rather than scrolling sideways, so no breakpoint produces
+ * horizontal overflow.
+ */
+
+.efl-main {
+  display: block;
+  padding: 0 0 4rem;
+}
+
+.efl-skip {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100;
+  padding: 0.75rem 1rem;
+  background: var(--ef-color-surface, #fff);
+  color: var(--ef-color-text, #12211f);
+}
+
+.efl-skip:focus {
+  left: 1rem;
+  top: 1rem;
+}
+
+.efl-container {
+  width: min(1160px, 100% - 2rem);
+  margin-inline: auto;
+}
+
+/* ── Breadcrumbs ─────────────────────────────────────────────────────────── */
+
+.efl-breadcrumbs {
+  padding: 1rem 0 0;
+  font-size: 0.875rem;
+}
+
+.efl-breadcrumbs ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.efl-breadcrumbs li + li::before {
+  content: '/';
+  margin-right: 0.5rem;
+  color: var(--ef-color-text-muted, #5d6b69);
+}
+
+.efl-breadcrumbs a {
+  color: var(--ef-color-text-muted, #5d6b69);
+}
+
+.efl-breadcrumbs [aria-current='page'] {
+  color: var(--ef-color-text, #12211f);
+  font-weight: 600;
+}
+
+/* ── Hero ────────────────────────────────────────────────────────────────── */
+
+.efl-hero {
+  padding: 2rem 0 1.5rem;
+}
+
+.efl-hero h1 {
+  margin: 0 0 0.75rem;
+  font-size: clamp(1.75rem, 4vw, 2.75rem);
+  line-height: 1.15;
+}
+
+.efl-hero__intro {
+  max-width: 62ch;
+  margin: 0 0 1.5rem;
+  color: var(--ef-color-text-muted, #5d6b69);
+  font-size: 1.125rem;
+}
+
+.efl-hero__media {
+  width: 100%;
+  height: auto;
+  margin-bottom: 1.5rem;
+  border-radius: 14px;
+  object-fit: cover;
+}
+
+.efl-search {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  max-width: 34rem;
+}
+
+.efl-search input[type='search'],
+.efl-search input[type='text'] {
+  flex: 1 1 14rem;
+  min-width: 0;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--ef-color-border, #d7e0de);
+  border-radius: 10px;
+  font-size: 1rem;
+}
+
+.efl-search button {
+  flex: 0 0 auto;
+  padding: 0.75rem 1.25rem;
+  border: 0;
+  border-radius: 10px;
+  background: var(--ef-color-primary, #0b8073);
+  color: #fff;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.efl-search button:hover {
+  background: var(--ef-color-primary-dark, #096b60);
+}
+
+/* ── Summary strip ───────────────────────────────────────────────────────── */
+
+.efl-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 0 0 2rem;
+  padding: 0;
+  list-style: none;
+}
+
+.efl-summary li {
+  flex: 1 1 8rem;
+  padding: 0.875rem 1rem;
+  border: 1px solid var(--ef-color-border, #d7e0de);
+  border-radius: 12px;
+  background: var(--ef-color-surface, #fff);
+}
+
+.efl-summary strong {
+  display: block;
+  font-size: 1.5rem;
+  line-height: 1.1;
+}
+
+.efl-summary span {
+  color: var(--ef-color-text-muted, #5d6b69);
+  font-size: 0.875rem;
+}
+
+/* ── Sections ────────────────────────────────────────────────────────────── */
+
+.efl-section {
+  margin: 0 0 2.5rem;
+}
+
+.efl-section > h2 {
+  margin: 0 0 1rem;
+  font-size: clamp(1.25rem, 2.5vw, 1.625rem);
+}
+
+.efl-section > h3 {
+  margin: 1.25rem 0 0.5rem;
+  font-size: 1.125rem;
+}
+
+.efl-prose p {
+  max-width: 70ch;
+  margin: 0 0 1rem;
+  line-height: 1.65;
+}
+
+/* ── Card grids ──────────────────────────────────────────────────────────── */
+
+.efl-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 34rem) {
+  .efl-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 60rem) {
+  .efl-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .efl-grid--compact {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.efl-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 1rem;
+  border: 1px solid var(--ef-color-border, #d7e0de);
+  border-radius: 12px;
+  background: var(--ef-color-surface, #fff);
+}
+
+.efl-card h3 {
+  margin: 0;
+  font-size: 1.125rem;
+  line-height: 1.3;
+}
+
+.efl-card p {
+  margin: 0;
+  color: var(--ef-color-text-muted, #5d6b69);
+  font-size: 0.875rem;
+}
+
+.efl-card a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.efl-card a:hover,
+.efl-card a:focus-visible {
+  text-decoration: underline;
+}
+
+.efl-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+}
+
+/* The relationship label is the page's promise to the visitor: it says why this
+   supplier is on this city's page. It is text, never colour alone. */
+.efl-relationship {
+  display: inline-block;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  background: var(--ef-color-primary-soft, #e5f3f1);
+  color: var(--ef-color-primary-dark, #096b60);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.efl-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.efl-chips a {
+  display: inline-block;
+  padding: 0.4rem 0.85rem;
+  border: 1px solid var(--ef-color-border, #d7e0de);
+  border-radius: 999px;
+  font-size: 0.875rem;
+  text-decoration: none;
+}
+
+.efl-chips a:hover,
+.efl-chips a:focus-visible {
+  border-color: var(--ef-color-primary, #0b8073);
+}
+
+/* ── Nation groups on the hub ────────────────────────────────────────────── */
+
+.efl-nation {
+  margin: 0 0 1.75rem;
+}
+
+.efl-nation h3 {
+  margin: 0 0 0.75rem;
+  font-size: 1.125rem;
+}
+
+/* ── FAQs ────────────────────────────────────────────────────────────────── */
+
+.efl-faq {
+  border-top: 1px solid var(--ef-color-border, #d7e0de);
+  padding: 1rem 0;
+}
+
+.efl-faq h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1.125rem;
+}
+
+.efl-faq p {
+  margin: 0;
+  max-width: 70ch;
+  line-height: 1.6;
+}
+
+/* ── Calls to action ─────────────────────────────────────────────────────── */
+
+.efl-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.efl-btn {
+  display: inline-block;
+  padding: 0.7rem 1.25rem;
+  border-radius: 10px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.efl-btn--solid {
+  background: var(--ef-color-primary, #0b8073);
+  color: #fff;
+}
+
+.efl-btn--ghost {
+  border: 1px solid var(--ef-color-border, #d7e0de);
+  color: inherit;
+}
+
+.efl-note {
+  margin: 0.75rem 0 0;
+  color: var(--ef-color-text-muted, #5d6b69);
+  font-size: 0.875rem;
+}
+
+/* Editors and admins see the pilot banner; it never ships on a published page. */
+.efl-pilot {
+  margin: 1rem 0;
+  padding: 0.75rem 1rem;
+  border: 1px dashed var(--ef-color-border, #d7e0de);
+  border-radius: 10px;
+  color: var(--ef-color-text-muted, #5d6b69);
+  font-size: 0.875rem;
+}
+
+:where(.efl a, .efl button, .efl input):focus-visible {
+  outline: 3px solid var(--ef-color-primary, #0b8073);
+  outline-offset: 2px;
+}
+
+.efl-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

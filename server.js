@@ -803,6 +803,12 @@ app.use(adminPageProtectionMiddleware());
 // structured data rather than as raw HTML files with unfilled placeholders.
 app.use(require('./routes/community-pages'));
 
+// ---------- EventFlow UK Location Pages ----------
+// Also before templateMiddleware() and express.static(): /locations and
+// /locations/:citySlug are server-rendered from the same shells, and serving
+// the raw files would ship unfilled placeholders to a crawler.
+app.use(require('./routes/locations'));
+
 // ---------- Template Rendering Middleware ----------
 // CRITICAL: Must come before express.static() to process HTML files with placeholders
 // Replaces {{PLACEHOLDER}} values in HTML files with dynamic content
@@ -1664,6 +1670,15 @@ async function startServer() {
         // EventFlow Community indexes and the idempotent category seed. Seeding
         // only ever adds missing categories — it never creates users, discussions
         // or replies, so no synthetic content can reach production.
+        // UK location page indexes. Kept separate from the community bootstrap
+        // so a failure in one does not hide the other.
+        try {
+          await require('./services/locationIndexes.service').ensureIndexes();
+          logger.info('   ✅ Location page indexes created');
+        } catch (locationIndexError) {
+          logger.warn('   ⚠️  Could not create location indexes:', locationIndexError.message);
+        }
+
         try {
           await require('./services/communityIndexes.service').ensureIndexes();
           const seedResult = await require('./services/community.service').seedCategories();

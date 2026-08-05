@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes" />
+    <meta name="theme-color" content="#0B8073" />
+    <title>Location pages — EventFlow admin</title>
+    <meta name="robots" content="noindex, nofollow" />
+    <script src="/assets/js/config/canonical-base.js"></script>
+    <script src="/assets/js/dashboard-guard.js?v=17.0.2"></script>
+    <link rel="preload" href="/assets/css/tokens.css?v=18.3.0" as="style" />
+    <link rel="preload" href="/assets/css/styles.css?v=18.5.0" as="style" />
+    <link rel="stylesheet" href="/assets/css/tokens.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/styles.css?v=18.5.0" />
+    <link rel="stylesheet" href="/assets/css/eventflow-17.0.0.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/utilities.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/components.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/mobile-optimizations.css?v=18.4.0" />
+    <link rel="stylesheet" href="/assets/css/navbar.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/locations.css?v=18.6.0" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+  </head>
+  <body class="efl">
+    <a class="efl-skip" href="#main-content">Skip to main content</a>
+
+    <header class="ef-header" role="banner">
+      <div class="ef-container">
+        <div class="ef-header-content">
+          <a href="/" class="ef-brand" aria-label="EventFlow - Return to homepage">
+            <div class="ef-logo" aria-hidden="true"><div class="ef-logo-inner"></div></div>
+            <span class="ef-brand-text">EventFlow</span>
+          </a>
+          <nav class="ef-nav-desktop" aria-label="Admin navigation">
+            <a href="/admin" class="ef-nav-link">Admin</a>
+            <a href="/admin-suppliers" class="ef-nav-link">Suppliers</a>
+            <a href="/admin-locations" class="ef-nav-link ef-nav-link--active">Locations</a>
+            <a href="/admin-content" class="ef-nav-link">Content</a>
+          </nav>
+        </div>
+      </div>
+    </header>
+
+    <main id="main-content" class="efl-main">
+      <div class="efl-container">
+        <h1>Location pages</h1>
+        <p class="efl-hero__intro">
+          Every city in the registry, with its publication state and the quality gate that decides
+          whether it can be indexed. Publishing a page makes it public; indexing additionally
+          requires the gate to pass.
+        </p>
+
+        <p class="efl-actions">
+          <label class="efl-sr-only" for="efl-admin-filter">Filter by state</label>
+          <select id="efl-admin-filter">
+            <option value="">All states</option>
+            <option value="draft">Draft</option>
+            <option value="review">In review</option>
+            <option value="pilot">Pilot</option>
+            <option value="published">Published</option>
+            <option value="retired">Retired</option>
+          </select>
+        </p>
+
+        <p id="efl-admin-summary" class="efl-note" role="status"></p>
+        <div id="efl-admin-list" class="efl-grid"></div>
+      </div>
+    </main>
+
+    <footer class="footer" role="contentinfo">
+      <div class="container ef-footer-content">
+        <div><strong>EventFlow</strong><br /><span class="small">Admin</span></div>
+      </div>
+    </footer>
+
+    <script src="/assets/js/utils/auth-state.js" defer></script>
+    <script src="/assets/js/pages/admin-locations.js?v=18.6.0" defer></script>
+  </body>
+</html>

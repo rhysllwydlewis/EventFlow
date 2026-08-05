@@ -85,6 +85,8 @@ const communityInteractionRoutes = require('./community-interactions');
 const communityDiscoveryRoutes = require('./community-discovery');
 const communityPageRoutes = require('./community-pages');
 const adminCommunityRoutes = require('./admin-community');
+const adminLocationRoutes = require('./admin-locations');
+const locationPageRoutes = require('./locations');
 
 /**
  * Mount all route modules
@@ -501,6 +503,12 @@ const mountRoutes = (app, deps) => {
   app.use('/api/v1/community', communityInteractionRoutes);
   app.use('/api/v1/community', communityDiscoveryRoutes);
   app.use('/api/v1/admin/community', adminCommunityRoutes);
+
+  // UK location pages. The admin API publishes them; the public page routes are
+  // mounted earlier in server.js, before the static handlers, and again here so
+  // the test harness — which mounts only this router stack — can reach them.
+  app.use('/api/v1/admin/locations', adminLocationRoutes);
+  app.use(locationPageRoutes);
   // Community page routes are mounted earlier in server.js, before the static
   // handlers, so that server-rendered content wins over the raw HTML shells.
   // They are mounted here too for the test harness, which mounts only the API
