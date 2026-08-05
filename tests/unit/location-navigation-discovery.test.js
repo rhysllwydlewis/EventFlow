@@ -25,6 +25,7 @@ describe('public location discovery', () => {
 
       expect(header).not.toMatch(/href=["']\/locations["']/i);
       expect(html).toMatch(/<footer[\s\S]*?href=["']\/locations["']/i);
+      expect(html).toContain('/assets/css/locations-public-refresh.css?v=1');
     }
   );
 
@@ -41,5 +42,8 @@ describe('public location discovery', () => {
     expect(locationSection[0]).toContain('action="/suppliers"');
     expect(locationSection[0]).toContain('href="/locations"');
     expect(locationSection[0]).toContain('name="location"');
+    expect(locationSection[0]).toContain('Where is your event?');
+    expect(locationSection[0]).toContain('Popular right now');
+    expect(homepage).toContain('/assets/css/homepage-locations-refresh.css?v=1');
   });
 });

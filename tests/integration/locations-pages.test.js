@@ -125,6 +125,9 @@ describe('GET /locations', () => {
     expect(response.status).toBe(200);
     expect(response.headers['content-type']).toMatch(/text\/html/);
     expect(response.text).toContain('<h1>Event suppliers across the UK</h1>');
+    expect(response.text).toContain('class="efl-hero efl-hero--hub"');
+    expect(response.text).toContain('class="efl-hub-visual"');
+    expect(response.text).toContain('class="efl-card efl-city-card"');
     expect(response.text).toContain('href="/locations/cardiff"');
     expect(response.text).toContain('href="/locations/newport"');
   });
@@ -164,6 +167,9 @@ describe('GET /locations/:citySlug', () => {
     const response = await request(buildApp()).get('/locations/cardiff');
     expect(response.status).toBe(200);
     expect(response.text).toContain('<h1>Event suppliers in Cardiff</h1>');
+    expect(response.text).toContain('class="efl-hero efl-hero--city"');
+    expect(response.text).toContain('class="efl-card__avatar"');
+    expect(response.text).toContain('class="efl-planning__grid"');
     expect(response.text).toContain(
       '<link rel="canonical" href="https://event-flow.co.uk/locations/cardiff" />'
     );

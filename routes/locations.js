@@ -330,10 +330,11 @@ function renderHub({ cities, counts }) {
             count > 0
               ? `<p class="efl-card__meta">${count} ${count === 1 ? 'supplier' : 'suppliers'}</p>`
               : '';
-          return `<li class="efl-card">
-            <h3><a href="/locations/${escapeHtml(city.slug)}">${escapeHtml(city.name)}</a></h3>
-            <p>${escapeHtml(city.region || city.nation)}</p>
-            ${meta}
+          return `<li class="efl-card efl-city-card">
+            <span class="efl-city-card__pin" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 10c0 5.5-8 12-8 12S4 15.5 4 10a8 8 0 1 1 16 0Z"></path><circle cx="12" cy="10" r="2.5"></circle></svg></span>
+            <div><h3><a href="/locations/${escapeHtml(city.slug)}">${escapeHtml(city.name)}</a></h3>
+            <p>${escapeHtml(city.region || city.nation)}</p>${meta}</div>
+            <span class="efl-city-card__arrow" aria-hidden="true">&#8594;</span>
           </li>`;
         })
         .join('\n');
@@ -356,14 +357,17 @@ function renderHub({ cities, counts }) {
     { name: 'UK locations', url: null },
   ])}
     <div class="efl-container">
-      <section class="efl-hero">
+      <section class="efl-hero efl-hero--hub">
+        <div class="efl-hero__copy"><span class="efl-hero__kicker"><span aria-hidden="true">&#9679;</span> Plan anywhere in the UK</span>
         <h1>Event suppliers across the UK</h1>
-        <p class="efl-hero__intro">Find event suppliers by city. Every page lists suppliers based in the city and those that travel to it, so you can see who genuinely covers your area before you get in touch.</p>
-        <form class="efl-search" role="search" action="/suppliers" method="GET">
+        <p class="efl-hero__intro">Find event suppliers by city. See who is based locally and who genuinely travels to your area before you get in touch.</p>
+        <form class="efl-search efl-search--hub" role="search" action="/suppliers" method="GET">
           <label class="efl-sr-only" for="efl-hub-search">Search by city or postcode</label>
+          <span class="efl-search__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 10c0 5.5-8 12-8 12S4 15.5 4 10a8 8 0 1 1 16 0Z"></path><circle cx="12" cy="10" r="2.5"></circle></svg></span>
           <input id="efl-hub-search" type="search" name="location" placeholder="Enter a city or postcode" autocomplete="address-level2" />
           <button type="submit">Search suppliers</button>
-        </form>
+        </form></div>
+        <div class="efl-hub-visual" aria-hidden="true"><span class="efl-hub-visual__orbit"></span><span class="efl-hub-visual__pin efl-hub-visual__pin--one"></span><span class="efl-hub-visual__pin efl-hub-visual__pin--two"></span><span class="efl-hub-visual__pin efl-hub-visual__pin--three"></span><p><strong>${cities.length}</strong><span>${cities.length === 1 ? 'city guide' : 'city guides'} ready to explore</span></p></div>
       </section>
       ${body}
       <section class="efl-section" aria-labelledby="efl-hub-cta">
@@ -428,18 +432,28 @@ function renderSupplierCard(entry) {
   const url = supplierPath(entry.supplier);
   const name = escapeHtml(entry.supplier.name || entry.supplier.businessName || 'Event supplier');
   const heading = url ? `<a href="${escapeHtml(url)}">${name}</a>` : name;
+  const initials = String(entry.supplier.name || entry.supplier.businessName || 'Event supplier')
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map(part => part.charAt(0).toUpperCase())
+    .join('');
   const category = entry.supplier.category
-    ? `<span>${escapeHtml(entry.supplier.category)}</span>`
+    ? `<p class="efl-card__category">${escapeHtml(entry.supplier.category)}</p>`
     : '';
   const summary = entry.supplier.approvedReviewSummary || {};
   const rating =
     Number(summary.averageRating) > 0 && Number(summary.reviewCount) > 0
-      ? `<span>${Number(summary.averageRating).toFixed(1)} from ${Number(summary.reviewCount)} reviews</span>`
+      ? `<span class="efl-card__rating"><span aria-hidden="true">&#9733;</span> ${Number(summary.averageRating).toFixed(1)} &middot; ${Number(summary.reviewCount)} reviews</span>`
       : '';
 
   return `<li class="efl-card" data-supplier-id="${escapeHtml(entry.supplier.id)}" data-relationship="${escapeHtml(entry.relationship)}">
-    <h3>${heading}</h3>
-    <p class="efl-card__meta"><span class="efl-relationship">${escapeHtml(entry.label)}</span>${category}${rating}</p>
+    <div class="efl-card__top">
+      <span class="efl-card__avatar" aria-hidden="true">${escapeHtml(initials || 'EF')}</span>
+      <span class="efl-card__arrow" aria-hidden="true">&#8599;</span>
+    </div>
+    <div class="efl-card__body">${category}<h3>${heading}</h3></div>
+    <p class="efl-card__meta"><span class="efl-relationship">${escapeHtml(entry.label)}</span>${rating}</p>
   </li>`;
 }
 
@@ -462,16 +476,25 @@ function renderCityPage(model) {
       )}" width="1160" height="420" loading="eager" decoding="async" />`
     : '';
 
-  sections.push(`<section class="efl-hero">
-    <h1>${escapeHtml(metadata.heading)}</h1>
-    ${heroImage}
-    ${page.content.intro ? `<p class="efl-hero__intro">${escapeHtml(page.content.intro)}</p>` : ''}
-    <form class="efl-search" role="search" action="/suppliers" method="GET">
-      <label class="efl-sr-only" for="efl-city-search">Search suppliers in ${escapeHtml(city.name)}</label>
-      <input id="efl-city-search" type="search" name="q" placeholder="What are you looking for?" />
-      <input type="hidden" name="location" value="${escapeHtml(city.name)}" />
-      <button type="submit">Search ${escapeHtml(city.name)}</button>
-    </form>
+  const heroVisual = heroImage
+    ? `<div class="efl-hero__visual">${heroImage}<div class="efl-hero__image-note"><span aria-hidden="true">&#10003;</span><p><strong>Genuine local coverage</strong><small>Based here or happy to travel</small></p></div></div>`
+    : `<div class="efl-hero__visual efl-hero__visual--placeholder" aria-hidden="true"><span class="efl-hero__map-pin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 10c0 5.5-8 12-8 12S4 15.5 4 10a8 8 0 1 1 16 0Z"></path><circle cx="12" cy="10" r="2.5"></circle></svg></span><strong>${escapeHtml(city.name)}</strong></div>`;
+
+  sections.push(`<section class="efl-hero efl-hero--city">
+    <div class="efl-hero__copy">
+      <span class="efl-hero__kicker"><span aria-hidden="true">&#9679;</span> Plan locally with EventFlow</span>
+      <h1>${escapeHtml(metadata.heading)}</h1>
+      ${page.content.intro ? `<p class="efl-hero__intro">${escapeHtml(page.content.intro)}</p>` : ''}
+      <form class="efl-search efl-search--city" role="search" action="/suppliers" method="GET">
+        <label class="efl-sr-only" for="efl-city-search">Search suppliers in ${escapeHtml(city.name)}</label>
+        <span class="efl-search__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path></svg></span>
+        <input id="efl-city-search" type="search" name="q" placeholder="Venue, caterer, photographer..." />
+        <input type="hidden" name="location" value="${escapeHtml(city.name)}" />
+        <button type="submit">Search suppliers</button>
+      </form>
+      <p class="efl-hero__trust"><span aria-hidden="true">&#10003;</span> Free to browse <span aria-hidden="true">&#183;</span> Message suppliers directly</p>
+    </div>
+    ${heroVisual}
   </section>`);
 
   if (rankedSuppliers.length) {
@@ -556,16 +579,18 @@ function renderCityPage(model) {
           section.sourceName && section.sourceUrl
             ? `<p class="efl-note">Source: <a href="${escapeHtml(section.sourceUrl)}" rel="nofollow noopener">${escapeHtml(section.sourceName)}</a>${section.sourceDate ? ` (${escapeHtml(section.sourceDate)})` : ''}</p>`
             : '';
-        return `<h3>${escapeHtml(section.title)}</h3>${String(section.body)
+        return `<article class="efl-planning__card"><span class="efl-planning__icon" aria-hidden="true">&#10022;</span><h3>${escapeHtml(section.title)}</h3>${String(
+          section.body
+        )
           .split(/\n{2,}/)
           .map(paragraph => `<p>${escapeHtml(paragraph.trim())}</p>`)
-          .join('')}${sourceNote}`;
+          .join('')}${sourceNote}</article>`;
       })
       .join('');
     if (blocks) {
-      sections.push(`<section class="efl-section efl-prose" aria-labelledby="efl-planning">
+      sections.push(`<section class="efl-section efl-prose efl-planning" aria-labelledby="efl-planning">
         <h2 id="efl-planning">Planning an event in ${escapeHtml(city.name)}</h2>
-        ${blocks}
+        <div class="efl-planning__grid">${blocks}</div>
       </section>`);
     }
   }
@@ -575,7 +600,7 @@ function renderCityPage(model) {
       .filter(faq => faq && faq.question && faq.answer)
       .map(
         faq =>
-          `<div class="efl-faq"><h3>${escapeHtml(faq.question)}</h3><p>${escapeHtml(faq.answer)}</p></div>`
+          `<div class="efl-faq"><span class="efl-faq__icon" aria-hidden="true">?</span><div><h3>${escapeHtml(faq.question)}</h3><p>${escapeHtml(faq.answer)}</p></div></div>`
       )
       .join('');
     if (faqs) {
@@ -599,9 +624,9 @@ function renderCityPage(model) {
     </section>`);
   }
 
-  sections.push(`<section class="efl-section" aria-labelledby="efl-next">
-    <h2 id="efl-next">Next steps</h2>
-    <p class="efl-prose">Shortlist the suppliers you like, message them through EventFlow and request quotes in one place.</p>
+  sections.push(`<section class="efl-section efl-next" aria-labelledby="efl-next">
+    <div><span class="efl-next__kicker">Ready when you are</span><h2 id="efl-next">Bring your ${escapeHtml(city.name)} event together</h2>
+    <p>Shortlist the suppliers you like, message them through EventFlow and request quotes in one place.</p></div>
     <p class="efl-actions">
       <a class="efl-btn efl-btn--solid" href="/suppliers?location=${encodeURIComponent(city.name)}">Browse ${escapeHtml(city.name)} suppliers</a>
       <a class="efl-btn efl-btn--ghost" href="/for-suppliers">List your business</a>
