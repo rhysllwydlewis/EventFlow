@@ -1,8 +1,9 @@
 name: Apply UK City Initiative
 
 on:
-  push:
-    branches: [codex/uk-city-hub-and-spoke]
+  pull_request:
+    branches: [main]
+    types: [opened, reopened, synchronize]
 
 permissions:
   contents: write
@@ -13,7 +14,7 @@ concurrency:
 
 jobs:
   apply:
-    if: github.actor != 'github-actions[bot]'
+    if: github.head_ref == 'codex/uk-city-hub-and-spoke' && github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -39,6 +40,7 @@ jobs:
         env:
           BASE_SHA: bab9b96355404dcab78042b9be828d4cc047f977
           BRANCH: codex/uk-city-hub-and-spoke
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           set -euo pipefail
           git config user.name 'OpenAI Codex'
@@ -91,4 +93,4 @@ jobs:
           test "$(git diff --name-only "$BASE_SHA"..HEAD | wc -l | tr -d ' ')" = '71'
           git diff --check "$BASE_SHA"..HEAD
           git diff --name-only "$BASE_SHA"..HEAD -- '*.js' | xargs -r -n1 node --check
-          git push --force-with-lease="refs/heads/${BRANCH}:${GITHUB_SHA}" origin "HEAD:refs/heads/${BRANCH}"
+          git push --force-with-lease="refs/heads/${BRANCH}:${HEAD_SHA}" origin "HEAD:refs/heads/${BRANCH}"
