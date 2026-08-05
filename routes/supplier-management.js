@@ -216,6 +216,41 @@ const LOCATION_INPUT_FIELDS = [
 ];
 
 /**
+ * Normalise location inputs for movement detection without changing what is stored.
+ * @param {string} field Location field name.
+ * @param {*} value Current or proposed value.
+ * @returns {string|number} Comparable value.
+ */
+function comparableLocationInput(field, value) {
+  if (field === 'latitude' || field === 'longitude') {
+    const number = Number(value);
+    return Number.isFinite(number) ? number : '';
+  }
+
+  const text = value === null || value === undefined ? '' : String(value).trim();
+  if (field === 'basePostcode' || field === 'venuePostcode') {
+    return text.replace(/\s+/g, '').toUpperCase();
+  }
+  return text.toLocaleLowerCase('en-GB');
+}
+
+/**
+ * Check whether a patch actually moves a supplier rather than merely repeating
+ * the full form's existing location values.
+ * @param {Object} current Stored supplier.
+ * @param {Object} patch Sanitised supplier patch.
+ * @returns {boolean} Whether structured geography must be re-derived.
+ */
+function hasLocationInputChanged(current, patch) {
+  return LOCATION_INPUT_FIELDS.some(
+    field =>
+      Object.prototype.hasOwnProperty.call(patch, field) &&
+      comparableLocationInput(field, patch[field]) !==
+        comparableLocationInput(field, current[field])
+  );
+}
+
+/**
  * Resolve a supplier record onto the UK city registry and record the outcome.
  *
  * Runs on create and on every edit that moves the supplier, so a profile's
@@ -549,15 +584,21 @@ router.patch(
     const supplierPatch = {};
 
     // If updating a Venues category supplier with venuePostcode
-    if (b.venuePostcode && s.category === 'Venues') {
-      if (!geocoding.isValidUKPostcode(b.venuePostcode)) {
+    const requestedVenuePostcode =
+      typeof b.venuePostcode === 'string' ? b.venuePostcode.trim().toUpperCase() : '';
+    const venuePostcodeChanged =
+      requestedVenuePostcode &&
+      comparableLocationInput('venuePostcode', requestedVenuePostcode) !==
+        comparableLocationInput('venuePostcode', s.venuePostcode);
+    if (venuePostcodeChanged && s.category === 'Venues') {
+      if (!geocoding.isValidUKPostcode(requestedVenuePostcode)) {
         return res.status(400).json({
           error: 'Invalid UK postcode format',
         });
       }
 
       // Update postcode and geocode
-      supplierPatch.venuePostcode = String(b.venuePostcode).trim().toUpperCase();
+      supplierPatch.venuePostcode = requestedVenuePostcode;
 
       try {
         const coords = await geocoding.geocodePostcode(supplierPatch.venuePostcode);
@@ -676,12 +717,24 @@ router.patch(
       supplierPatch.basePostcode = basePostcode || null;
     }
     if (b.serviceAreas !== undefined) {
-      supplierPatch.serviceAreas = supplierLocation.sanitiseServiceAreas(b.serviceAreas);
+      // The supplier dashboard can edit radius/nationwide coverage, but it has
+      // no controls for explicit city assignments. Retain those assignments so
+      // an ordinary profile save cannot remove an admin/API coverage decision.
+      const retainedCityAreas = supplierLocation
+        .sanitiseServiceAreas(s.serviceAreas)
+        .filter(area => area.type === 'city');
+      const requestedAreas = supplierLocation.sanitiseServiceAreas(b.serviceAreas);
+      const requestedCityAreas = requestedAreas.filter(area => area.type === 'city');
+      const requestedTravelAreas = requestedAreas.filter(area => area.type !== 'city');
+      supplierPatch.serviceAreas = supplierLocation.sanitiseServiceAreas([
+        ...(requestedCityAreas.length ? requestedCityAreas : retainedCityAreas),
+        ...requestedTravelAreas,
+      ]);
     }
 
     // Re-derive only when the supplier actually moved: a banner change should
     // not cost a geocoder call, and should not disturb an existing mapping.
-    if (LOCATION_INPUT_FIELDS.some(field => field in supplierPatch)) {
+    if (hasLocationInputChanged(s, supplierPatch)) {
       Object.assign(supplierPatch, await deriveSupplierGeography({ ...s, ...supplierPatch }));
     }
     // NOTE: do NOT touch approved here — supplier edits must never revoke approval.

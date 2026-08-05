@@ -346,6 +346,74 @@ describe('supplier profile routes', () => {
     expect(geocodePostcode).not.toHaveBeenCalled();
   });
 
+  it('does not re-derive unchanged location fields sent by the full dashboard form', async () => {
+    supplier.basePostcode = 'CF10 1AA';
+    supplier.baseLocation = { citySlug: 'cardiff', source: 'postcode_lookup', confidence: 'high' };
+    const unavailableLookup = jest.fn(async () => null);
+
+    const response = await request(app({ geocoding: { geocodePostcode: unavailableLookup } }))
+      .patch('/sup_1')
+      .send({
+        tagline: 'Now with more confetti',
+        location: 'Cardiff',
+        basePostcode: 'cf10 1aa',
+      });
+
+    expect(response.status).toBe(200);
+    expect(unavailableLookup).not.toHaveBeenCalled();
+    expect(supplier.baseLocation).toEqual({
+      citySlug: 'cardiff',
+      source: 'postcode_lookup',
+      confidence: 'high',
+    });
+  });
+
+  it('preserves explicit city coverage when the dashboard updates travel controls', async () => {
+    supplier.serviceAreas = [
+      { type: 'city', slug: 'cardiff' },
+      { type: 'radius', miles: 30 },
+    ];
+
+    const response = await request(app())
+      .patch('/sup_1')
+      .send({
+        serviceAreas: [{ type: 'radius', miles: 50 }, { type: 'nationwide' }],
+      });
+
+    expect(response.status).toBe(200);
+    expect(supplier.serviceAreas).toEqual([
+      { type: 'city', slug: 'cardiff' },
+      { type: 'radius', miles: 50 },
+      { type: 'nationwide' },
+    ]);
+  });
+
+  it('still accepts an explicit city coverage replacement from an API client', async () => {
+    supplier.serviceAreas = [{ type: 'city', slug: 'cardiff' }];
+
+    const response = await request(app())
+      .patch('/sup_1')
+      .send({ serviceAreas: [{ type: 'city', slug: 'bristol' }] });
+
+    expect(response.status).toBe(200);
+    expect(supplier.serviceAreas).toEqual([{ type: 'city', slug: 'bristol' }]);
+  });
+
+  it('does not geocode an unchanged venue postcode from a full form save', async () => {
+    supplier.category = 'Venues';
+    supplier.venuePostcode = 'CF10 1AA';
+    supplier.baseLocation = { citySlug: 'cardiff', source: 'postcode_lookup', confidence: 'high' };
+    const unavailableLookup = jest.fn(async () => null);
+
+    const response = await request(app({ geocoding: { geocodePostcode: unavailableLookup } }))
+      .patch('/sup_1')
+      .send({ venuePostcode: 'cf10 1aa', tagline: 'Same venue, new tagline' });
+
+    expect(response.status).toBe(200);
+    expect(unavailableLookup).not.toHaveBeenCalled();
+    expect(supplier.baseLocation.citySlug).toBe('cardiff');
+  });
+
   it('never overwrites a mapping an admin verified by hand', async () => {
     supplier.baseLocation = { citySlug: 'cardiff', source: 'admin_verified', confidence: 'high' };
     await request(app()).patch('/sup_1').send({ location: 'Bristol' });

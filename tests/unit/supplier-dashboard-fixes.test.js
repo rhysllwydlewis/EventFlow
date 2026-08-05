@@ -624,6 +624,22 @@ describe('Supplier form – website URL normalization', () => {
   });
 });
 
+describe('Supplier form – structured city coverage preservation', () => {
+  it('retains existing city service areas before serializing editable travel controls', () => {
+    const coverageStart = appJs.indexOf('function applyCoverageToPayload(payload)');
+    expect(coverageStart).toBeGreaterThan(-1);
+
+    const coverageBlock = appJs.slice(coverageStart, coverageStart + 1800);
+    const cityFilter = coverageBlock.indexOf("area.type === 'city'");
+    const payloadAssignment = coverageBlock.indexOf('payload.serviceAreas = serviceAreas');
+
+    expect(coverageBlock).toContain('cachedSuppliers.find');
+    expect(coverageBlock).toContain('currentEditingSupplierId');
+    expect(cityFilter).toBeGreaterThan(-1);
+    expect(payloadAssignment).toBeGreaterThan(cityFilter);
+  });
+});
+
 describe('Banner error state – ⚠ warning indicator consistency', () => {
   it('app.js adds photo-preview-item__image-wrap--error class on banner image load failure', () => {
     // The banner error handler must apply the same error class used by gallery errors

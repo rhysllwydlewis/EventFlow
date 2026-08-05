@@ -4252,7 +4252,14 @@ async function initDashSupplier() {
     const nationwideInput = document.getElementById('sup-travel-nationwide');
 
     if (radiusInput || nationwideInput) {
-      const serviceAreas = [];
+      const existingSupplier = cachedSuppliers.find(
+        supplier => supplier && supplier.id === currentEditingSupplierId
+      );
+      // Explicit city coverage is assigned outside this form. Preserve it while
+      // translating the radius/nationwide controls that suppliers can edit.
+      const serviceAreas = Array.isArray(existingSupplier?.serviceAreas)
+        ? existingSupplier.serviceAreas.filter(area => area && area.type === 'city')
+        : [];
       const radiusMiles = Number(payload.travelRadiusMiles);
       if (Number.isFinite(radiusMiles) && radiusMiles > 0) {
         serviceAreas.push({ type: 'radius', miles: Math.min(200, Math.round(radiusMiles)) });
