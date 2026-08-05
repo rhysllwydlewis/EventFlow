@@ -50,12 +50,22 @@
   let activeBillingPeriod = BILLING_YEAR;
   let pricingAuthMode = 'unknown';
 
+  /**
+   * Escape a value for safe interpolation into markup.
+   * @param {*} value Raw value; null and undefined become an empty string.
+   * @returns {string} Escaped text.
+   */
   function escapeHtml(value) {
     const node = document.createElement('div');
     node.textContent = value === null || value === undefined ? '' : String(value);
     return node.innerHTML;
   }
 
+  /**
+   * Format an amount as a whole-pound figure in UK grouping.
+   * @param {number} value Amount in pounds.
+   * @returns {string} Formatted number, without a currency symbol.
+   */
   function formatMoney(value) {
     return new Intl.NumberFormat('en-GB', {
       maximumFractionDigits: 0,
@@ -63,6 +73,10 @@
     }).format(value);
   }
 
+  /**
+   * Attach the redesign stylesheet once, if the page did not already ship it.
+   * @returns {void} Nothing.
+   */
   function ensureRedesignStylesheet() {
     if (document.getElementById('pricing-redesign-styles')) {
       return;
@@ -74,6 +88,13 @@
     document.head.appendChild(stylesheet);
   }
 
+  /**
+   * Read the billing period the visitor arrived with.
+   *
+   * Annual is the default, so a link that carries no interval — or an interval
+   * this page does not recognise — lands on the same view as a cold visit.
+   * @returns {string} `BILLING_MONTH` or `BILLING_YEAR`.
+   */
   function readInitialBillingPeriod() {
     const params = new URLSearchParams(window.location.search);
     const requested = params.get('billingInterval') || params.get('period');
@@ -83,6 +104,12 @@
     return BILLING_YEAR;
   }
 
+  /**
+   * Replace a card's server-rendered copy with canonical plan presentation.
+   * @param {string} planKey Plan key, matching `data-plan` on the card.
+   * @param {Object} presentation Presentation metadata from the plans endpoint.
+   * @returns {void} Nothing.
+   */
   function updateStaticPlanContent(planKey, presentation) {
     const plan = PLAN_CONFIG[planKey];
     const card = document.querySelector(`.pricing-card[data-plan="${planKey}"]`);
@@ -123,6 +150,14 @@
     }
   }
 
+  /**
+   * Refresh the cards from the canonical plan metadata.
+   *
+   * The markup already carries a complete first paint, so a failure here is
+   * silent by design: the visitor keeps the server-rendered prices rather than
+   * seeing the page empty itself out.
+   * @returns {Promise<void>} Resolves once the cards have been updated.
+   */
   async function hydrateCanonicalPlanPresentation() {
     try {
       const response = await fetch('/api/v2/subscriptions/plans', {
@@ -144,15 +179,37 @@
     }
   }
 
+  /**
+   * Build the checkout URL for a plan at a billing period.
+   * @param {Object} plan Plan configuration.
+   * @param {string} period Billing period.
+   * @returns {string} Checkout URL.
+   */
   function getDirectCheckoutHref(plan, period) {
     return `/checkout?plan=${encodeURIComponent(plan.hrefPlan)}&billingInterval=${period}`;
   }
 
+  /**
+   * Build the sign-in URL for a plan, returning to pricing afterwards.
+   *
+   * The chosen interval is carried through the round trip so a visitor who
+   * picked annual does not come back to a monthly page.
+   * @param {Object} plan Plan configuration.
+   * @param {string} period Billing period.
+   * @returns {string} Auth URL with an encoded redirect.
+   */
   function getAuthHref(plan, period) {
     const redirect = `/pricing?plan=${encodeURIComponent(plan.hrefPlan)}&billingInterval=${period}`;
     return `/auth?redirect=${encodeURIComponent(redirect)}`;
   }
 
+  /**
+   * Apply a billing period to one plan card: price, billed line, saving and
+   * the destination its call to action points at.
+   * @param {HTMLElement} card Plan card element.
+   * @param {string} period Billing period.
+   * @returns {void} Nothing.
+   */
   function updateCardBilling(card, period) {
     const planKey = card.dataset.plan;
     const plan = PLAN_CONFIG[planKey];
@@ -200,6 +257,11 @@
     }
   }
 
+  /**
+   * Switch the whole page to a billing period and reflect it in the toggle.
+   * @param {string} period Billing period; anything but monthly means annual.
+   * @returns {void} Nothing.
+   */
   function setBillingPeriod(period) {
     activeBillingPeriod = period === BILLING_MONTH ? BILLING_MONTH : BILLING_YEAR;
     const annual = activeBillingPeriod === BILLING_YEAR;
@@ -216,6 +278,10 @@
     });
   }
 
+  /**
+   * Wire the monthly/annual switch, guarding against double binding.
+   * @returns {void} Nothing.
+   */
   function attachBillingToggle() {
     const toggle = document.getElementById('pricing-billing-switch');
     if (!toggle || toggle.dataset.pricingToggleAttached) {
@@ -227,6 +293,14 @@
     });
   }
 
+  /**
+   * Resolve the tier a member is actually entitled to right now.
+   *
+   * An expired subscription reads as free: the stored tier alone would keep
+   * showing a lapsed member their old plan as current.
+   * @param {Object|null} user User record, or null when signed out.
+   * @returns {string} Tier key.
+   */
   function getActiveTier(user) {
     if (!user) {
       return 'free';
@@ -241,6 +315,10 @@
     return user.isPro ? 'pro' : 'free';
   }
 
+  /**
+   * Present the page to a signed-in customer, who does not buy supplier plans.
+   * @returns {void} Nothing.
+   */
   function updateButtonsForCustomer() {
     pricingAuthMode = 'customer';
     const notice = document.getElementById('pricing-customer-notice');
@@ -262,6 +340,11 @@
     });
   }
 
+  /**
+   * Mark a plan's button as the member's current plan and make it inert.
+   * @param {HTMLElement} button Call-to-action element.
+   * @returns {void} Nothing.
+   */
   function markAsCurrentPlan(button) {
     button.textContent = 'Your current plan';
     button.classList.remove('secondary');
@@ -271,6 +354,11 @@
     button.setAttribute('aria-disabled', 'true');
   }
 
+  /**
+   * Present the page to a signed-in supplier, flagging their current plan.
+   * @param {Object} user User record.
+   * @returns {void} Nothing.
+   */
   function updateButtonsForAuthenticatedUser(user) {
     pricingAuthMode = 'authenticated';
     const tier = getActiveTier(user);
@@ -283,11 +371,22 @@
     });
   }
 
+  /**
+   * Present the page to a signed-out visitor.
+   * @returns {void} Nothing.
+   */
   function updateButtonsForUnauthenticatedUser() {
     pricingAuthMode = 'unauthenticated';
     setBillingPeriod(activeBillingPeriod);
   }
 
+  /**
+   * Resolve the viewer and adjust the calls to action to match.
+   *
+   * A failure falls back to the signed-out presentation, which is the view
+   * that works for everyone.
+   * @returns {Promise<void>} Resolves once the buttons reflect the viewer.
+   */
   async function checkAuthAndUpdateButtons() {
     try {
       let user = null;
@@ -314,6 +413,10 @@
     }
   }
 
+  /**
+   * Bind checkout to each active call to action, guarding double binding.
+   * @returns {void} Nothing.
+   */
   function attachCheckoutHandlers() {
     const successUrl = `${window.location.origin}/dashboard/supplier?billing=success`;
     const cancelUrl = `${window.location.origin}/pricing?checkout=cancelled`;
@@ -382,6 +485,12 @@
     });
   }
 
+  /**
+   * Show a page-level notice.
+   * @param {string} message Message text.
+   * @param {string} variant One of 'amber', 'green' or 'red'.
+   * @returns {void} Nothing.
+   */
   function showBanner(message, variant) {
     const options = {
       amber: { className: 'pricing-notice-banner--info', background: '#9a6700' },
@@ -406,6 +515,11 @@
     banner.querySelector('[data-dismiss-pricing-banner]')?.addEventListener('click', dismiss);
   }
 
+  /**
+   * Report a cancelled checkout and strip the marker from the address bar so a
+   * refresh does not announce it again.
+   * @returns {void} Nothing.
+   */
   function handleCheckoutRedirectParams() {
     const params = new URLSearchParams(window.location.search);
     if (params.get('checkout') !== 'cancelled') {
@@ -417,6 +531,10 @@
     showBanner("No charge was made. You can subscribe whenever you're ready.", 'amber');
   }
 
+  /**
+   * Start the pricing page enhancements.
+   * @returns {void} Nothing.
+   */
   function init() {
     ensureRedesignStylesheet();
     document.body.classList.add('pricing-redesign');
