@@ -138,7 +138,11 @@ function applyMeta(html, meta) {
     tags.push(`<script type="application/ld+json">${serializeJsonLd(data)}</script>`);
   }
 
-  return html.replace('<!--LOCATIONS_HEAD-->', tags.join('\n    '));
+  // The replacement is a function, not a string: `String.replace` treats `$&`,
+  // `` $` `` and friends in a string replacement as back-references, and this
+  // content carries editor-written copy that may legitimately contain a `$`.
+  const block = tags.join('\n    ');
+  return html.replace('<!--LOCATIONS_HEAD-->', () => block);
 }
 
 /**
@@ -148,7 +152,7 @@ function applyMeta(html, meta) {
  * @returns {string} Combined HTML.
  */
 function applyContent(html, content) {
-  return html.replace('<!--LOCATIONS_CONTENT-->', content || '');
+  return html.replace('<!--LOCATIONS_CONTENT-->', () => content || '');
 }
 
 /**
@@ -700,7 +704,7 @@ router.get('/locations/:citySlug', publicReadLimiter, async (req, res, next) => 
 
 // ─── Reserved city-category route ────────────────────────────────────────────
 
-router.get('/locations/:citySlug/:categorySlug', publicReadLimiter, async (req, res, next) => {
+router.get('/locations/:citySlug/:categorySlug', publicReadLimiter, (req, res, next) => {
   // The URL shape is reserved so it cannot be claimed by anything else, but the
   // pages stay off until a combination earns its own launch.
   if (!categoryPagesEnabled()) {

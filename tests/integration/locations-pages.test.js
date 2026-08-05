@@ -255,6 +255,23 @@ describe('GET /locations/:citySlug', () => {
     expect(response.text).toContain('&lt;script&gt;');
   });
 
+  it('renders copy containing a dollar sign literally', async () => {
+    // `String.replace` with a string replacement treats `$&` and friends as
+    // back-references, which would splice the placeholder back into the page.
+    mockDb.seed('location_pages', [
+      pageRecord('cardiff', {
+        content: {
+          intro: 'Budgets here run $& upwards, per $` head.',
+          planningSections: [],
+          faqs: [],
+        },
+      }),
+    ]);
+    const response = await request(buildApp()).get('/locations/cardiff');
+    expect(response.text).toContain('Budgets here run $&amp; upwards, per $` head.');
+    expect(response.text).not.toContain('LOCATIONS_CONTENT');
+  });
+
   it('carries the analytics dimensions without any personal data', async () => {
     const response = await request(buildApp()).get('/locations/cardiff');
     expect(response.text).toContain('<meta name="ef-page-type" content="location_city" />');

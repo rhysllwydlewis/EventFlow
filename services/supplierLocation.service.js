@@ -239,24 +239,20 @@ function normaliseBaseLocation(supplier) {
 
   if (base) {
     const resolved = base.citySlug ? registry.resolveCity(base.citySlug) : null;
-    const point = readPoint(base.coordinates);
+    const city = resolved ? resolved.city : null;
+    // A supplier that gave a city but no coordinate is placed at the city
+    // centre, which is what the radius comparison would otherwise have no
+    // basis to do at all.
+    const point = readPoint(base.coordinates) || (city ? { ...city.centre } : null);
     return {
-      displayName:
-        base.displayName || (resolved ? `${resolved.city.name}, ${resolved.city.nation}` : null),
+      displayName: base.displayName || (city ? `${city.name}, ${city.nation}` : null),
       postcode: base.postcode || null,
-      citySlug: resolved ? resolved.city.slug : null,
-      nation: base.nation || (resolved ? resolved.city.nation : null),
-      coordinates:
-        toGeoJsonPoint(point) ||
-        (resolved
-          ? {
-              ...resolved.city.coordinates,
-              coordinates: [...resolved.city.coordinates.coordinates],
-            }
-          : null),
-      point: point || (resolved ? { ...resolved.city.centre } : null),
+      citySlug: city ? city.slug : null,
+      nation: base.nation || (city ? city.nation : null),
+      coordinates: toGeoJsonPoint(point),
+      point,
       source: base.source || MAPPING_SOURCES.supplierSelected,
-      confidence: base.confidence || (resolved ? CONFIDENCE.medium : CONFIDENCE.low),
+      confidence: base.confidence || (city ? CONFIDENCE.medium : CONFIDENCE.low),
       legacyLocation: source.location || null,
     };
   }
@@ -295,7 +291,7 @@ function normaliseServiceAreas(supplier) {
   const cities = new Set();
   const regions = new Set();
   let radiusMiles = DEFAULT_TRAVEL_RADIUS_MILES;
-  let nationwide = source.travelPolicy && source.travelPolicy.nationwide === true;
+  let nationwide = source.travelPolicy?.nationwide === true;
 
   for (const area of areas) {
     if (!area || typeof area !== 'object') {
@@ -572,7 +568,7 @@ function rankSuppliersForCity(suppliers, city, options = {}) {
 function auditSupplierLocation(supplier) {
   const base = normaliseBaseLocation(supplier);
   const coverage = normaliseServiceAreas(supplier);
-  const id = supplier && supplier.id ? String(supplier.id) : '';
+  const id = supplier?.id ? String(supplier.id) : '';
 
   if (base && base.citySlug) {
     return {
@@ -587,8 +583,8 @@ function auditSupplierLocation(supplier) {
     };
   }
 
-  const postcode = supplier && (supplier.postcode || supplier.basePostcode);
-  const classification = classifyLegacyLocation(supplier && supplier.location);
+  const postcode = supplier?.postcode || supplier?.basePostcode;
+  const classification = classifyLegacyLocation(supplier?.location);
 
   return {
     supplierId: id,
@@ -597,7 +593,7 @@ function auditSupplierLocation(supplier) {
     confidence:
       classification.status === AUDIT_STATUSES.highConfidence ? CONFIDENCE.high : CONFIDENCE.low,
     source: MAPPING_SOURCES.legacyText,
-    legacyLocation: supplier && supplier.location ? String(supplier.location) : null,
+    legacyLocation: supplier?.location ? String(supplier.location) : null,
     postcode: postcode ? String(postcode) : null,
     serviceCities: coverage.cities,
     matchedNames: classification.matchedNames,

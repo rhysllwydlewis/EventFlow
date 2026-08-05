@@ -158,7 +158,7 @@ function evaluateQualityGate(input) {
 
   const categories = new Set(
     rankedSuppliers
-      .map(entry => entry.supplier && entry.supplier.category)
+      .map(entry => entry.supplier?.category)
       .filter(Boolean)
       .map(String)
   );
@@ -300,7 +300,7 @@ function buildCityMetadata(input) {
 
   const topCategories = [];
   for (const entry of rankedSuppliers) {
-    const category = entry.supplier && entry.supplier.category;
+    const category = entry.supplier?.category;
     if (category && !topCategories.includes(category)) {
       topCategories.push(category);
     }
@@ -455,7 +455,7 @@ function indexableCities({ records, gateFor }) {
 function populatedCategories(rankedSuppliers) {
   const counts = new Map();
   for (const entry of rankedSuppliers || []) {
-    const name = entry.supplier && entry.supplier.category;
+    const name = entry.supplier?.category;
     if (!name) {
       continue;
     }
