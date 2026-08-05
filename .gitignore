@@ -152,6 +152,11 @@ data/*.json.tmp
 data/*.json.bak
 !data/.gitkeep
 
+# The UK city registry is reference data that ships with the code, not user
+# data: the location pages resolve every city slug through it, so it has to be
+# in the repository rather than in whatever a deployment happens to have on disk.
+!data/uk-cities.json
+
 # Preserve sample data for reference
 !data/sample/
 optimize-images.js

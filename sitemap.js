@@ -21,6 +21,9 @@ const {
   publicSupplierIds,
   validLastModified,
 } = require('./services/publicListingSeo.service');
+const locationPageService = require('./services/locationPage.service');
+const locationRegistry = require('./services/locationRegistry.service');
+const { PUBLICATION_STATES } = require('./models/LocationContent');
 
 /**
  * Load guide slugs from the static guides.json data file.
@@ -38,6 +41,68 @@ function loadGuideEntries() {
     }));
   } catch (err) {
     logger.error('sitemap: could not load guides.json:', err);
+    return [];
+  }
+}
+
+/**
+ * City pages that are genuinely published, index-requested and passing the
+ * quality gate, with the date their content was last changed.
+ *
+ * A page leaves the sitemap the moment any one of those stops being true: the
+ * sitemap is generated from the same gate the page itself uses, so it can never
+ * advertise a URL that returns `noindex`.
+ * @param {Object[]} suppliers Supplier records.
+ * @param {Object[]} users User records.
+ * @param {Object[]} packages Package records.
+ * @param {Object[]} events Public calendar event records.
+ * @returns {Promise<{slug: string, lastmod: string}[]>} Sitemap entries.
+ */
+async function loadIndexableCityEntries(suppliers, users, packages, events) {
+  try {
+    const rows = await readCollection('location_pages');
+    const records = new Map();
+    for (const row of rows) {
+      if (row && row.locationSlug) {
+        records.set(String(row.locationSlug), row);
+      }
+    }
+
+    const validOwnerIds = new Set((users || []).map(user => user?.id).filter(Boolean));
+    const eligibleSuppliers = (suppliers || []).filter(supplier =>
+      isPublicSupplier(supplier, validOwnerIds)
+    );
+    const publishedSlugs = new Set(
+      locationRegistry
+        .listCities()
+        .filter(
+          city =>
+            locationPageService.normalisePageRecord(city, records.get(city.slug)).status ===
+            PUBLICATION_STATES.published
+        )
+        .map(city => city.slug)
+    );
+
+    return locationPageService
+      .indexableCities({
+        records,
+        gateFor: (city, page) =>
+          locationPageService.buildCityPageModel({
+            city,
+            page,
+            suppliers: eligibleSuppliers,
+            validOwnerIds,
+            packages,
+            events,
+            publishedSlugs,
+          }).gate,
+      })
+      .map(({ city, page }) => ({
+        slug: city.slug,
+        lastmod: page.updatedAt || page.publishedAt || page.lastReviewedAt || '',
+      }));
+  } catch (error) {
+    logger.error('sitemap: could not evaluate location pages:', error);
     return [];
   }
 }
@@ -181,6 +246,23 @@ async function generateSitemap(baseUrl) {
       );
     });
 
+  // UK city pages. The hub is listed only when it has at least one published
+  // city to link to, so the sitemap never advertises an empty index page.
+  const cityEntries = await loadIndexableCityEntries(suppliers, users, packages, events);
+  if (cityEntries.length) {
+    appendUrl(xmlParts, `${normalizedBaseUrl}/locations`);
+    cityEntries
+      .slice()
+      .sort((a, b) => a.slug.localeCompare(b.slug))
+      .forEach(({ slug, lastmod }) => {
+        appendUrl(
+          xmlParts,
+          `${normalizedBaseUrl}/locations/${slug}`,
+          validLastModifiedOrFallback(lastmod)
+        );
+      });
+  }
+
   // Community categories and published discussions. Held, hidden, removed and
   // superseded content is excluded so the sitemap never advertises a URL that
   // returns a noindex page.
@@ -256,6 +338,7 @@ Crawl-delay: 1
 module.exports = {
   appendUrl,
   generateSitemap,
+  loadIndexableCityEntries,
   generateRobotsTxt,
   loadGuideEntries,
   readCollection,

@@ -186,6 +186,15 @@ const REGISTRY = [
     desc: 'Community moderation, reports, categories and health',
   },
   {
+    route: '/admin-locations',
+    htmlFile: 'admin-locations',
+    label: 'Locations',
+    icon: '📍',
+    category: 'content',
+    inNav: true,
+    desc: 'UK city pages: publication, indexing and editorial review',
+  },
+  {
     route: '/admin-reports',
     htmlFile: 'admin-reports',
     label: 'Reports',

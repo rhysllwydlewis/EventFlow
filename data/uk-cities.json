@@ -1,0 +1,582 @@
+[
+  {
+    "slug": "london",
+    "name": "London",
+    "alternateNames": ["Greater London", "Llundain"],
+    "nation": "England",
+    "region": "Greater London",
+    "centre": { "latitude": 51.5074, "longitude": -0.1278 },
+    "defaultServiceRadiusMiles": 20,
+    "nearbyLocationSlugs": ["reading", "brighton", "cambridge", "oxford"]
+  },
+  {
+    "slug": "birmingham",
+    "name": "Birmingham",
+    "alternateNames": ["Brum"],
+    "nation": "England",
+    "region": "West Midlands",
+    "centre": { "latitude": 52.4862, "longitude": -1.8904 },
+    "defaultServiceRadiusMiles": 25,
+    "nearbyLocationSlugs": ["coventry", "wolverhampton", "leicester", "nottingham"]
+  },
+  {
+    "slug": "manchester",
+    "name": "Manchester",
+    "alternateNames": [],
+    "nation": "England",
+    "region": "Greater Manchester",
+    "centre": { "latitude": 53.4808, "longitude": -2.2426 },
+    "defaultServiceRadiusMiles": 25,
+    "nearbyLocationSlugs": ["liverpool", "leeds", "sheffield", "chester"]
+  },
+  {
+    "slug": "leeds",
+    "name": "Leeds",
+    "alternateNames": [],
+    "nation": "England",
+    "region": "West Yorkshire",
+    "centre": { "latitude": 53.8008, "longitude": -1.5491 },
+    "defaultServiceRadiusMiles": 25,
+    "nearbyLocationSlugs": ["york", "sheffield", "manchester", "bradford"]
+  },
+  {
+    "slug": "bradford",
+    "name": "Bradford",
+    "alternateNames": [],
+    "nation": "England",
+    "region": "West Yorkshire",
+    "centre": { "latitude": 53.795, "longitude": -1.7594 },
+    "defaultServiceRadiusMiles": 20,
+    "nearbyLocationSlugs": ["leeds", "manchester", "york"]
+  },
+  {
+    "slug": "sheffield",
+    "name": "Sheffield",
+    "alternateNames": [],
+    "nation": "England",
+    "region": "South Yorkshire",
+    "centre": { "latitude": 53.3811, "longitude": -1.4701 },
+    "defaultServiceRadiusMiles": 25,
+    "nearbyLocationSlugs": ["leeds", "nottingham", "manchester", "derby"]
+  },
+  {
+    "slug": "liverpool",
+    "name": "Liverpool",
+    "alternateNames": [],
+    "nation": "England",
+    "region": "Merseyside",
+    "centre": { "latitude": 53.4084, "longitude": -2.9916 },
+    "defaultServiceRadiusMiles": 25,
+    "nearbyLocationSlugs": ["manchester", "chester", "preston"]
+  },
+  {
+    "slug": "bristol",
+    "name": "Bristol",
+    "alternateNames": [],
+    "nation": "England",
+    "region": "South West England",
+    "centre": { "latitude": 51.4545, "longitude": -2.5879 },
+    "defaultServiceRadiusMiles": 25,
+    "nearbyLocationSlugs": ["bath", "cardiff", "newport", "exeter"]
+  },
+  {
+    "slug": "bath",
+    "name": "Bath",
+    "alternateNames": [],
+    "nation": "England",
+    "region": "South West England",
+    "centre": { "latitude": 51.3811, "longitude": -2.359 },
+    "defaultServiceRadiusMiles": 20,
+    "nearbyLocationSlugs": ["bristol", "swindon", "cardiff"]
+  },
+  {
+    "slug": "newcastle-upon-tyne",
+    "name": "Newcastle upon Tyne",
+    "alternateNames": ["Newcastle"],
+    "nation": "England",
+    "region": "North East England",
+    "centre": { "latitude": 54.9783, "longitude": -1.6178 },
+    "defaultServiceRadiusMiles": 25,
+    "nearbyLocationSlugs": ["sunderland", "durham", "york"]
+  },
+  {
+    "slug": "sunderland",
+    "name": "Sunderland",
+    "alternateNames": [],
+    "nation": "England",
+    "region": "North East England",
+    "centre": { "latitude": 54.9069, "longitude": -1.3838 },
+    "defaultServiceRadiusMiles": 20,
+    "nearbyLocationSlugs": ["newcastle-upon-tyne", "durham"]
+  },
+  {
+    "slug": "durham",
+    "name": "Durham",
+    "alternateNames": [],
+    "nation": "England",
+    "region": "North East England",
+    "centre": { "latitude": 54.7761, "longitude": -1.5733 },
+    "defaultServiceRadiusMiles": 20,
+    "nearbyLocationSlugs": ["newcastle-upon-tyne", "sunderland"]
+  },
+  {
+    "slug": "nottingham",
+    "name": "Nottingham",
+    "alternateNames": [],
+    "nation": "England",
+    "region": "East Midlands",
+    "centre": { "latitude": 52.9548, "longitude": -1.1581 },
+    "defaultServiceRadiusMiles": 25,
+    "nearbyLocationSlugs": ["derby", "leicester", "sheffield"]
+  },
+  {
+    "slug": "derby",
+    "name": "Derby",
+    "alternateNames": [],
+    "nation": "England",
+    "region": "East Midlands",
+    "centre": { "latitude": 52.9226, "longitude": -1.4746 },
+    "defaultServiceRadiusMiles": 20,
+    "nearbyLocationSlugs": ["nottingham", "leicester", "sheffield"]
+  },
+  {
+    "slug": "leicester",
+    "name": "Leicester",
+    "alternateNames": [],
+    "nation": "England",
+    "region": "East Midlands",
+    "centre": { "latitude": 52.6369, "longitude": -1.1398 },
+    "defaultServiceRadiusMiles": 20,
+    "nearbyLocationSlugs": ["nottingham", "derby", "coventry"]
+  },
+  {
+    "slug": "coventry",
+    "name": "Coventry",
+    "alternateNames": [],
+    "nation": "England",
+    "region": "West Midlands",
+    "centre": { "latitude": 52.4068, "longitude": -1.5197 },
+    "defaultServiceRadiusMiles": 20,
+    "nearbyLocationSlugs": ["birmingham", "leicester", "wolverhampton"]
+  },
+  {
+    "slug": "wolverhampton",
+    "name": "Wolverhampton",
+    "alternateNames": [],
+    "nation": "England",
+    "region": "West Midlands",
+    "centre": { "latitude": 52.5862, "longitude": -2.1288 },
+    "defaultServiceRadiusMiles": 20,
+    "nearbyLocationSlugs": ["birmingham", "coventry", "stoke-on-trent"]
+  },
+  {
+    "slug": "stoke-on-trent",
+    "name": "Stoke-on-Trent",
+    "alternateNames": ["Stoke"],
+    "nation": "England",
+    "region": "Staffordshire",
+    "centre": { "latitude": 53.0027, "longitude": -2.1794 },
+    "defaultServiceRadiusMiles": 20,
+    "nearbyLocationSlugs": ["wolverhampton", "manchester", "chester"]
+  },
+  {
+    "slug": "chester",
+    "name": "Chester",
+    "alternateNames": [],
+    "nation": "England",
+    "region": "Cheshire",
+    "centre": { "latitude": 53.1934, "longitude": -2.8931 },
+    "defaultServiceRadiusMiles": 20,
+    "nearbyLocationSlugs": ["liverpool", "manchester", "stoke-on-trent"]
+  },
+  {
+    "slug": "preston",
+    "name": "Preston",
+    "alternateNames": [],
+    "nation": "England",
+    "region": "Lancashire",
+    "centre": { "latitude": 53.7632, "longitude": -2.7031 },
+    "defaultServiceRadiusMiles": 20,
+    "nearbyLocationSlugs": ["liverpool", "manchester", "lancaster"]
+  },
+  {
+    "slug": "lancaster",
+    "name": "Lancaster",
+    "alternateNames": [],
+    "nation": "England",
+    "region": "Lancashire",
+    "centre": { "latitude": 54.0466, "longitude": -2.8007 },
+    "defaultServiceRadiusMiles": 20,
+    "nearbyLocationSlugs": ["preston", "carlisle"]
+  },
+  {
+    "slug": "carlisle",
+    "name": "Carlisle",
+    "alternateNames": [],
+    "nation": "England",
+    "region": "Cumbria",
+    "centre": { "latitude": 54.8951, "longitude": -2.9382 },
+    "defaultServiceRadiusMiles": 25,
+    "nearbyLocationSlugs": ["lancaster", "newcastle-upon-tyne"]
+  },
+  {
+    "slug": "york",
+    "name": "York",
+    "alternateNames": [],
+    "nation": "England",
+    "region": "North Yorkshire",
+    "centre": { "latitude": 53.9591, "longitude": -1.0815 },
+    "defaultServiceRadiusMiles": 20,
+    "nearbyLocationSlugs": ["leeds", "hull", "bradford"]
+  },
+  {
+    "slug": "hull",
+    "name": "Hull",
+    "alternateNames": ["Kingston upon Hull"],
+    "nation": "England",
+    "region": "East Yorkshire",
+    "centre": { "latitude": 53.7676, "longitude": -0.3274 },
+    "defaultServiceRadiusMiles": 20,
+    "nearbyLocationSlugs": ["york", "leeds"]
+  },
+  {
+    "slug": "norwich",
+    "name": "Norwich",
+    "alternateNames": [],
+    "nation": "England",
+    "region": "Norfolk",
+    "centre": { "latitude": 52.6309, "longitude": 1.2974 },
+    "defaultServiceRadiusMiles": 25,
+    "nearbyLocationSlugs": ["cambridge", "ipswich"]
+  },
+  {
+    "slug": "ipswich",
+    "name": "Ipswich",
+    "alternateNames": [],
+    "nation": "England",
+    "region": "Suffolk",
+    "centre": { "latitude": 52.0567, "longitude": 1.1482 },
+    "defaultServiceRadiusMiles": 20,
+    "nearbyLocationSlugs": ["norwich", "cambridge", "colchester"]
+  },
+  {
+    "slug": "colchester",
+    "name": "Colchester",
+    "alternateNames": [],
+    "nation": "England",
+    "region": "Essex",
+    "centre": { "latitude": 51.8892, "longitude": 0.9042 },
+    "defaultServiceRadiusMiles": 20,
+    "nearbyLocationSlugs": ["ipswich", "chelmsford", "london"]
+  },
+  {
+    "slug": "chelmsford",
+    "name": "Chelmsford",
+    "alternateNames": [],
+    "nation": "England",
+    "region": "Essex",
+    "centre": { "latitude": 51.7356, "longitude": 0.4685 },
+    "defaultServiceRadiusMiles": 20,
+    "nearbyLocationSlugs": ["colchester", "london", "southend-on-sea"]
+  },
+  {
+    "slug": "southend-on-sea",
+    "name": "Southend-on-Sea",
+    "alternateNames": ["Southend"],
+    "nation": "England",
+    "region": "Essex",
+    "centre": { "latitude": 51.5378, "longitude": 0.7143 },
+    "defaultServiceRadiusMiles": 20,
+    "nearbyLocationSlugs": ["chelmsford", "london"]
+  },
+  {
+    "slug": "cambridge",
+    "name": "Cambridge",
+    "alternateNames": [],
+    "nation": "England",
+    "region": "Cambridgeshire",
+    "centre": { "latitude": 52.2053, "longitude": 0.1218 },
+    "defaultServiceRadiusMiles": 20,
+    "nearbyLocationSlugs": ["peterborough", "norwich", "london"]
+  },
+  {
+    "slug": "peterborough",
+    "name": "Peterborough",
+    "alternateNames": [],
+    "nation": "England",
+    "region": "Cambridgeshire",
+    "centre": { "latitude": 52.5695, "longitude": -0.2405 },
+    "defaultServiceRadiusMiles": 20,
+    "nearbyLocationSlugs": ["cambridge", "leicester", "nottingham"]
+  },
+  {
+    "slug": "oxford",
+    "name": "Oxford",
+    "alternateNames": [],
+    "nation": "England",
+    "region": "Oxfordshire",
+    "centre": { "latitude": 51.752, "longitude": -1.2577 },
+    "defaultServiceRadiusMiles": 20,
+    "nearbyLocationSlugs": ["reading", "swindon", "london"]
+  },
+  {
+    "slug": "reading",
+    "name": "Reading",
+    "alternateNames": [],
+    "nation": "England",
+    "region": "Berkshire",
+    "centre": { "latitude": 51.4543, "longitude": -0.9781 },
+    "defaultServiceRadiusMiles": 20,
+    "nearbyLocationSlugs": ["oxford", "southampton", "london"]
+  },
+  {
+    "slug": "swindon",
+    "name": "Swindon",
+    "alternateNames": [],
+    "nation": "England",
+    "region": "Wiltshire",
+    "centre": { "latitude": 51.5558, "longitude": -1.7797 },
+    "defaultServiceRadiusMiles": 20,
+    "nearbyLocationSlugs": ["oxford", "bath", "bristol"]
+  },
+  {
+    "slug": "southampton",
+    "name": "Southampton",
+    "alternateNames": [],
+    "nation": "England",
+    "region": "Hampshire",
+    "centre": { "latitude": 50.9097, "longitude": -1.4044 },
+    "defaultServiceRadiusMiles": 20,
+    "nearbyLocationSlugs": ["portsmouth", "bournemouth", "reading"]
+  },
+  {
+    "slug": "portsmouth",
+    "name": "Portsmouth",
+    "alternateNames": [],
+    "nation": "England",
+    "region": "Hampshire",
+    "centre": { "latitude": 50.8198, "longitude": -1.088 },
+    "defaultServiceRadiusMiles": 20,
+    "nearbyLocationSlugs": ["southampton", "brighton", "bournemouth"]
+  },
+  {
+    "slug": "bournemouth",
+    "name": "Bournemouth",
+    "alternateNames": [],
+    "nation": "England",
+    "region": "Dorset",
+    "centre": { "latitude": 50.7192, "longitude": -1.8808 },
+    "defaultServiceRadiusMiles": 20,
+    "nearbyLocationSlugs": ["southampton", "portsmouth", "exeter"]
+  },
+  {
+    "slug": "brighton",
+    "name": "Brighton",
+    "alternateNames": ["Brighton and Hove", "Brighton & Hove"],
+    "nation": "England",
+    "region": "East Sussex",
+    "centre": { "latitude": 50.8225, "longitude": -0.1372 },
+    "defaultServiceRadiusMiles": 20,
+    "nearbyLocationSlugs": ["london", "portsmouth", "canterbury"]
+  },
+  {
+    "slug": "canterbury",
+    "name": "Canterbury",
+    "alternateNames": [],
+    "nation": "England",
+    "region": "Kent",
+    "centre": { "latitude": 51.28, "longitude": 1.0789 },
+    "defaultServiceRadiusMiles": 20,
+    "nearbyLocationSlugs": ["brighton", "london"]
+  },
+  {
+    "slug": "exeter",
+    "name": "Exeter",
+    "alternateNames": [],
+    "nation": "England",
+    "region": "Devon",
+    "centre": { "latitude": 50.7184, "longitude": -3.5339 },
+    "defaultServiceRadiusMiles": 25,
+    "nearbyLocationSlugs": ["plymouth", "bristol", "bournemouth"]
+  },
+  {
+    "slug": "plymouth",
+    "name": "Plymouth",
+    "alternateNames": [],
+    "nation": "England",
+    "region": "Devon",
+    "centre": { "latitude": 50.3755, "longitude": -4.1427 },
+    "defaultServiceRadiusMiles": 25,
+    "nearbyLocationSlugs": ["exeter", "truro"]
+  },
+  {
+    "slug": "truro",
+    "name": "Truro",
+    "alternateNames": [],
+    "nation": "England",
+    "region": "Cornwall",
+    "centre": { "latitude": 50.2632, "longitude": -5.051 },
+    "defaultServiceRadiusMiles": 25,
+    "nearbyLocationSlugs": ["plymouth", "exeter"]
+  },
+  {
+    "slug": "cardiff",
+    "name": "Cardiff",
+    "alternateNames": ["Caerdydd"],
+    "nation": "Wales",
+    "region": "South Wales",
+    "centre": { "latitude": 51.4816, "longitude": -3.1791 },
+    "defaultServiceRadiusMiles": 25,
+    "nearbyLocationSlugs": ["newport", "swansea", "bristol"]
+  },
+  {
+    "slug": "swansea",
+    "name": "Swansea",
+    "alternateNames": ["Abertawe"],
+    "nation": "Wales",
+    "region": "South Wales",
+    "centre": { "latitude": 51.6214, "longitude": -3.9436 },
+    "defaultServiceRadiusMiles": 25,
+    "nearbyLocationSlugs": ["cardiff", "newport"]
+  },
+  {
+    "slug": "newport",
+    "name": "Newport",
+    "alternateNames": ["Casnewydd"],
+    "nation": "Wales",
+    "region": "South Wales",
+    "centre": { "latitude": 51.5842, "longitude": -2.9977 },
+    "defaultServiceRadiusMiles": 20,
+    "nearbyLocationSlugs": ["cardiff", "bristol", "swansea"]
+  },
+  {
+    "slug": "wrexham",
+    "name": "Wrexham",
+    "alternateNames": ["Wrecsam"],
+    "nation": "Wales",
+    "region": "North Wales",
+    "centre": { "latitude": 53.0466, "longitude": -2.9925 },
+    "defaultServiceRadiusMiles": 25,
+    "nearbyLocationSlugs": ["chester", "liverpool"]
+  },
+  {
+    "slug": "bangor",
+    "name": "Bangor",
+    "alternateNames": [],
+    "nation": "Wales",
+    "region": "North Wales",
+    "centre": { "latitude": 53.2274, "longitude": -4.1293 },
+    "defaultServiceRadiusMiles": 25,
+    "nearbyLocationSlugs": ["wrexham", "chester"]
+  },
+  {
+    "slug": "edinburgh",
+    "name": "Edinburgh",
+    "alternateNames": ["Dun Eideann"],
+    "nation": "Scotland",
+    "region": "Lothian",
+    "centre": { "latitude": 55.9533, "longitude": -3.1883 },
+    "defaultServiceRadiusMiles": 25,
+    "nearbyLocationSlugs": ["glasgow", "dundee", "stirling"]
+  },
+  {
+    "slug": "glasgow",
+    "name": "Glasgow",
+    "alternateNames": ["Glaschu"],
+    "nation": "Scotland",
+    "region": "Strathclyde",
+    "centre": { "latitude": 55.8642, "longitude": -4.2518 },
+    "defaultServiceRadiusMiles": 25,
+    "nearbyLocationSlugs": ["edinburgh", "stirling", "ayr"]
+  },
+  {
+    "slug": "stirling",
+    "name": "Stirling",
+    "alternateNames": [],
+    "nation": "Scotland",
+    "region": "Central Scotland",
+    "centre": { "latitude": 56.1165, "longitude": -3.9369 },
+    "defaultServiceRadiusMiles": 25,
+    "nearbyLocationSlugs": ["glasgow", "edinburgh", "perth"]
+  },
+  {
+    "slug": "perth",
+    "name": "Perth",
+    "alternateNames": [],
+    "nation": "Scotland",
+    "region": "Perthshire",
+    "centre": { "latitude": 56.3969, "longitude": -3.4368 },
+    "defaultServiceRadiusMiles": 25,
+    "nearbyLocationSlugs": ["dundee", "stirling"]
+  },
+  {
+    "slug": "dundee",
+    "name": "Dundee",
+    "alternateNames": [],
+    "nation": "Scotland",
+    "region": "Tayside",
+    "centre": { "latitude": 56.462, "longitude": -2.9707 },
+    "defaultServiceRadiusMiles": 25,
+    "nearbyLocationSlugs": ["perth", "aberdeen", "edinburgh"]
+  },
+  {
+    "slug": "aberdeen",
+    "name": "Aberdeen",
+    "alternateNames": [],
+    "nation": "Scotland",
+    "region": "Grampian",
+    "centre": { "latitude": 57.1497, "longitude": -2.0943 },
+    "defaultServiceRadiusMiles": 30,
+    "nearbyLocationSlugs": ["dundee", "inverness"]
+  },
+  {
+    "slug": "inverness",
+    "name": "Inverness",
+    "alternateNames": [],
+    "nation": "Scotland",
+    "region": "Highlands",
+    "centre": { "latitude": 57.4778, "longitude": -4.2247 },
+    "defaultServiceRadiusMiles": 35,
+    "nearbyLocationSlugs": ["aberdeen"]
+  },
+  {
+    "slug": "ayr",
+    "name": "Ayr",
+    "alternateNames": [],
+    "nation": "Scotland",
+    "region": "Ayrshire",
+    "centre": { "latitude": 55.4586, "longitude": -4.6292 },
+    "defaultServiceRadiusMiles": 25,
+    "nearbyLocationSlugs": ["glasgow"]
+  },
+  {
+    "slug": "belfast",
+    "name": "Belfast",
+    "alternateNames": ["Beal Feirste"],
+    "nation": "Northern Ireland",
+    "region": "County Antrim",
+    "centre": { "latitude": 54.5973, "longitude": -5.9301 },
+    "defaultServiceRadiusMiles": 25,
+    "nearbyLocationSlugs": ["lisburn", "londonderry"]
+  },
+  {
+    "slug": "lisburn",
+    "name": "Lisburn",
+    "alternateNames": [],
+    "nation": "Northern Ireland",
+    "region": "County Antrim",
+    "centre": { "latitude": 54.5162, "longitude": -6.058 },
+    "defaultServiceRadiusMiles": 20,
+    "nearbyLocationSlugs": ["belfast"]
+  },
+  {
+    "slug": "londonderry",
+    "name": "Londonderry",
+    "alternateNames": ["Derry"],
+    "nation": "Northern Ireland",
+    "region": "County Londonderry",
+    "centre": { "latitude": 54.9966, "longitude": -7.3086 },
+    "defaultServiceRadiusMiles": 25,
+    "nearbyLocationSlugs": ["belfast"]
+  }
+]

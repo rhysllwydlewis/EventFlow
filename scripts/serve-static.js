@@ -892,6 +892,7 @@ const adminPages = [
   'admin-exports',
   'admin-emails',
   'admin-homepage',
+  'admin-locations',
   'admin-marketplace',
   'admin-messenger',
   'admin-messenger-view',
