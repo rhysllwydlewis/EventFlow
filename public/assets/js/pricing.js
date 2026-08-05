@@ -64,7 +64,9 @@
   }
 
   function ensureRedesignStylesheet() {
-    if (document.getElementById('pricing-redesign-styles')) return;
+    if (document.getElementById('pricing-redesign-styles')) {
+      return;
+    }
     const stylesheet = document.createElement('link');
     stylesheet.id = 'pricing-redesign-styles';
     stylesheet.rel = 'stylesheet';
@@ -75,18 +77,24 @@
   function readInitialBillingPeriod() {
     const params = new URLSearchParams(window.location.search);
     const requested = params.get('billingInterval') || params.get('period');
-    if (requested === BILLING_MONTH || requested === 'monthly') return BILLING_MONTH;
+    if (requested === BILLING_MONTH || requested === 'monthly') {
+      return BILLING_MONTH;
+    }
     return BILLING_YEAR;
   }
 
   function updateStaticPlanContent(planKey, presentation) {
     const plan = PLAN_CONFIG[planKey];
     const card = document.querySelector(`.pricing-card[data-plan="${planKey}"]`);
-    if (!plan || !card || !presentation) return;
+    if (!plan || !card || !presentation) {
+      return;
+    }
 
     const monthly = presentation.pricing?.month;
     const yearly = presentation.pricing?.year;
-    if (monthly) plan.monthlyPrice = Number(monthly.monthlyEquivalent ?? plan.monthlyPrice);
+    if (monthly) {
+      plan.monthlyPrice = Number(monthly.monthlyEquivalent ?? plan.monthlyPrice);
+    }
     if (yearly) {
       plan.annualMonthlyPrice = Number(yearly.monthlyEquivalent ?? plan.annualMonthlyPrice);
       plan.annualTotal = Number(yearly.total ?? plan.annualTotal);
@@ -99,9 +107,15 @@
     const description = card.querySelector('.pricing-description');
     const audience = card.querySelector('.pricing-tier-label');
     const features = card.querySelector('.pricing-features');
-    if (name) name.textContent = plan.name;
-    if (description && presentation.description) description.textContent = presentation.description;
-    if (audience && presentation.audience) audience.textContent = presentation.audience;
+    if (name) {
+      name.textContent = plan.name;
+    }
+    if (description && presentation.description) {
+      description.textContent = presentation.description;
+    }
+    if (audience && presentation.audience) {
+      audience.textContent = presentation.audience;
+    }
     if (features && Array.isArray(presentation.highlights)) {
       features.innerHTML = presentation.highlights
         .map(feature => `<li>${escapeHtml(feature)}</li>`)
@@ -115,7 +129,9 @@
         credentials: 'same-origin',
         headers: { Accept: 'application/json' },
       });
-      if (!response.ok) return;
+      if (!response.ok) {
+        return;
+      }
       const payload = await response.json();
       const publicPlans = Array.isArray(payload.billing) ? payload.billing : [];
       const byId = new Map(publicPlans.map(plan => [plan.id, plan]));
@@ -133,16 +149,16 @@
   }
 
   function getAuthHref(plan, period) {
-    const redirect = `/pricing?plan=${encodeURIComponent(
-      plan.hrefPlan
-    )}&billingInterval=${period}`;
+    const redirect = `/pricing?plan=${encodeURIComponent(plan.hrefPlan)}&billingInterval=${period}`;
     return `/auth?redirect=${encodeURIComponent(redirect)}`;
   }
 
   function updateCardBilling(card, period) {
     const planKey = card.dataset.plan;
     const plan = PLAN_CONFIG[planKey];
-    if (!plan) return;
+    if (!plan) {
+      return;
+    }
 
     const annual = period === BILLING_YEAR;
     const price = annual ? plan.annualMonthlyPrice : plan.monthlyPrice;
@@ -152,7 +168,9 @@
     const savingsLine = card.querySelector('[data-pricing-savings]');
     const cta = card.querySelector('.pricing-cta');
 
-    if (priceElement) priceElement.textContent = `£${formatMoney(price)}`;
+    if (priceElement) {
+      priceElement.textContent = `£${formatMoney(price)}`;
+    }
     if (billedLine) {
       billedLine.textContent =
         planKey === 'starter'
@@ -200,7 +218,9 @@
 
   function attachBillingToggle() {
     const toggle = document.getElementById('pricing-billing-switch');
-    if (!toggle || toggle.dataset.pricingToggleAttached) return;
+    if (!toggle || toggle.dataset.pricingToggleAttached) {
+      return;
+    }
     toggle.dataset.pricingToggleAttached = 'true';
     toggle.addEventListener('click', () => {
       setBillingPeriod(activeBillingPeriod === BILLING_YEAR ? BILLING_MONTH : BILLING_YEAR);
@@ -208,10 +228,16 @@
   }
 
   function getActiveTier(user) {
-    if (!user) return 'free';
+    if (!user) {
+      return 'free';
+    }
     const expiry = user.proExpiresAt ? Date.parse(user.proExpiresAt) : null;
-    if (expiry !== null && !Number.isNaN(expiry) && expiry <= Date.now()) return 'free';
-    if (user.subscriptionTier && user.subscriptionTier !== 'free') return user.subscriptionTier;
+    if (expiry !== null && !Number.isNaN(expiry) && expiry <= Date.now()) {
+      return 'free';
+    }
+    if (user.subscriptionTier && user.subscriptionTier !== 'free') {
+      return user.subscriptionTier;
+    }
     return user.isPro ? 'pro' : 'free';
   }
 
@@ -251,7 +277,9 @@
     const tiers = { starter: 'free', pro: 'pro', pro_plus: 'pro_plus' };
     document.querySelectorAll('.pricing-card[data-plan]').forEach(card => {
       const button = card.querySelector('.pricing-cta');
-      if (button && tiers[card.dataset.plan] === tier) markAsCurrentPlan(button);
+      if (button && tiers[card.dataset.plan] === tier) {
+        markAsCurrentPlan(button);
+      }
     });
   }
 
@@ -273,8 +301,12 @@
           user = data.user || data;
         }
       }
-      if (!user) return updateButtonsForUnauthenticatedUser();
-      if (user.role === 'customer') return updateButtonsForCustomer();
+      if (!user) {
+        return updateButtonsForUnauthenticatedUser();
+      }
+      if (user.role === 'customer') {
+        return updateButtonsForCustomer();
+      }
       updateButtonsForAuthenticatedUser(user);
       attachCheckoutHandlers();
     } catch (_error) {
@@ -286,7 +318,9 @@
     const successUrl = `${window.location.origin}/dashboard/supplier?billing=success`;
     const cancelUrl = `${window.location.origin}/pricing?checkout=cancelled`;
     document.querySelectorAll('.pricing-cta').forEach(button => {
-      if (button.getAttribute('aria-disabled') === 'true' || button.dataset.checkoutHandler) return;
+      if (button.getAttribute('aria-disabled') === 'true' || button.dataset.checkoutHandler) {
+        return;
+      }
       button.dataset.checkoutHandler = 'attached';
       button.addEventListener('click', async function (event) {
         let checkoutUrl = null;
@@ -300,7 +334,9 @@
           checkoutUrl.searchParams.get('billingInterval') === BILLING_MONTH
             ? BILLING_MONTH
             : BILLING_YEAR;
-        if (!planId) return;
+        if (!planId) {
+          return;
+        }
 
         event.preventDefault();
         const originalText = this.textContent;
@@ -308,7 +344,9 @@
           this.setAttribute('aria-disabled', 'true');
           this.textContent = 'Opening secure checkout…';
           const csrfResponse = await fetch('/api/csrf-token', { credentials: 'include' });
-          if (!csrfResponse.ok) throw new Error('Failed to get CSRF token');
+          if (!csrfResponse.ok) {
+            throw new Error('Failed to get CSRF token');
+          }
           const csrfData = await csrfResponse.json();
           const csrfToken = csrfData.token || csrfData.csrfToken;
           const response = await fetch('/api/v2/subscriptions/create-checkout-session', {
@@ -319,17 +357,24 @@
           });
           if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.error || errorData.message || 'Failed to create checkout session');
+            throw new Error(
+              errorData.error || errorData.message || 'Failed to create checkout session'
+            );
           }
           const data = await response.json();
           const target = data.url || data.checkoutUrl;
-          if (!target) throw new Error('No checkout URL returned');
+          if (!target) {
+            throw new Error('No checkout URL returned');
+          }
           window.location.href = target;
         } catch (error) {
           console.error('Checkout error:', error);
           const message = error.message || 'Failed to start checkout. Please try again.';
-          if (window.showNotification) window.showNotification(message, 'error');
-          else window.alert(message);
+          if (window.showNotification) {
+            window.showNotification(message, 'error');
+          } else {
+            window.alert(message);
+          }
           this.removeAttribute('aria-disabled');
           this.textContent = originalText;
         }
@@ -349,7 +394,9 @@
     banner.id = 'pricing-status-banner';
     banner.setAttribute('role', 'status');
     banner.className = `pricing-notice-banner ${config.className}`;
-    if (config.background) banner.style.background = config.background;
+    if (config.background) {
+      banner.style.background = config.background;
+    }
     banner.innerHTML =
       `<span class="pricing-banner-msg">${escapeHtml(message)}</span>` +
       '<button type="button" data-dismiss-pricing-banner aria-label="Dismiss">×</button>';
@@ -361,7 +408,9 @@
 
   function handleCheckoutRedirectParams() {
     const params = new URLSearchParams(window.location.search);
-    if (params.get('checkout') !== 'cancelled') return;
+    if (params.get('checkout') !== 'cancelled') {
+      return;
+    }
     const clean = new URL(window.location.href);
     clean.searchParams.delete('checkout');
     window.history.replaceState({}, '', clean.toString());
@@ -379,6 +428,9 @@
     checkAuthAndUpdateButtons();
   }
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
-  else init();
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
 })();
