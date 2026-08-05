@@ -64,6 +64,7 @@ jest.mock('../../middleware/rateLimits', () => {
 jest.mock('../../middleware/csrf', () => ({ csrfProtection: (req, res, next) => next() }));
 
 const adminLocationRoutes = require('../../routes/admin-locations');
+const { LIMITS } = require('../../models/LocationContent');
 
 const admin = { id: 'admin-1', email: 'admin@example.com', role: 'admin' };
 const customer = { id: 'user-9', email: 'user@example.com', role: 'customer' };
@@ -345,5 +346,190 @@ describe('PATCH /api/v1/admin/locations/:slug', () => {
     expect(response.body.data.seo.title).toHaveLength(70);
     expect(response.body.data.content.intro).toBe('spaced out');
     expect(response.body.data.content.faqs).toEqual([{ question: 'Q', answer: 'A' }]);
+  });
+});
+
+describe('field limits', () => {
+  it('reports the limits the API enforces, so the editor cannot drift from them', async () => {
+    const list = await request(buildApp())
+      .get('/api/v1/admin/locations')
+      .set('Cookie', authCookie(admin));
+    const single = await request(buildApp())
+      .get('/api/v1/admin/locations/cardiff')
+      .set('Cookie', authCookie(admin));
+
+    expect(list.body.data.limits).toEqual(LIMITS);
+    expect(single.body.data.limits).toEqual(LIMITS);
+  });
+});
+
+describe('editorial saves and the workflow', () => {
+  /**
+   * Put Cardiff into a known published, indexing-requested, reviewed state.
+   * @param {Object} app Express app.
+   * @returns {Promise<Object>} The resulting record.
+   */
+  async function publishCardiff(app) {
+    const response = await request(app)
+      .patch('/api/v1/admin/locations/cardiff')
+      .set('Cookie', authCookie(admin))
+      .send({ status: 'published', indexingRequested: true, markReviewed: true });
+    return response.body.data;
+  }
+
+  it('leaves publication state, indexing and review alone when only content is sent', async () => {
+    const app = buildApp();
+    const before = await publishCardiff(app);
+
+    const after = await request(app)
+      .patch('/api/v1/admin/locations/cardiff')
+      .set('Cookie', authCookie(admin))
+      .send({
+        seo: { title: 'Event suppliers in Cardiff', metaDescription: 'Reviewed local guidance.' },
+        content: {
+          intro: 'A fresh introduction, written by a human who knows the city.',
+          heroImageUrl: 'https://cdn.example.com/cardiff.jpg',
+          heroImageAlt: 'Cardiff Bay at dusk',
+          planningSections: [
+            {
+              title: 'Where to look first',
+              body: 'Practical local guidance.',
+              sourceName: 'Cardiff Council',
+              sourceUrl: 'https://cardiff.gov.uk',
+              sourceDate: 'March 2026',
+            },
+          ],
+          faqs: [{ question: 'Do suppliers travel?', answer: 'Many do.' }],
+        },
+      });
+
+    expect(after.status).toBe(200);
+    expect(after.body.data.status).toBe('published');
+    expect(after.body.data.indexingRequested).toBe(true);
+    expect(after.body.data.lastReviewedAt).toBe(before.lastReviewedAt);
+    expect(after.body.data.reviewedBy).toBe(before.reviewedBy);
+    expect(after.body.data.publishedAt).toBe(before.publishedAt);
+  });
+
+  it('stores every editorial field the editor offers', async () => {
+    const response = await request(buildApp())
+      .patch('/api/v1/admin/locations/cardiff')
+      .set('Cookie', authCookie(admin))
+      .send({
+        seo: { title: 'Cardiff suppliers', metaDescription: 'What to know before you book.' },
+        content: {
+          heroImageUrl: 'https://cdn.example.com/cardiff.jpg',
+          heroImageAlt: 'Cardiff Bay at dusk',
+          intro: 'Written locally.',
+          planningSections: [
+            {
+              title: 'Venues',
+              body: 'Two paragraphs.\n\nThe second one.',
+              sourceName: 'Cardiff Council',
+              sourceUrl: 'https://cardiff.gov.uk',
+              sourceDate: 'March 2026',
+            },
+          ],
+          faqs: [{ question: 'How far ahead?', answer: 'Six months for a Saturday.' }],
+        },
+      });
+
+    const content = response.body.data.content;
+    expect(response.body.data.seo).toEqual({
+      title: 'Cardiff suppliers',
+      metaDescription: 'What to know before you book.',
+    });
+    expect(content.heroImageUrl).toBe('https://cdn.example.com/cardiff.jpg');
+    expect(content.heroImageAlt).toBe('Cardiff Bay at dusk');
+    expect(content.planningSections[0]).toEqual({
+      title: 'Venues',
+      body: 'Two paragraphs.\n\nThe second one.',
+      sourceName: 'Cardiff Council',
+      sourceUrl: 'https://cardiff.gov.uk',
+      sourceDate: 'March 2026',
+    });
+    expect(content.faqs).toEqual([
+      { question: 'How far ahead?', answer: 'Six months for a Saturday.' },
+    ]);
+  });
+
+  it('keeps the sections in the order the editor arranged them', async () => {
+    const response = await request(buildApp())
+      .patch('/api/v1/admin/locations/cardiff')
+      .set('Cookie', authCookie(admin))
+      .send({
+        content: {
+          planningSections: [
+            { title: 'Third', body: 'c' },
+            { title: 'First', body: 'a' },
+            { title: 'Second', body: 'b' },
+          ],
+        },
+      });
+
+    expect(response.body.data.content.planningSections.map(section => section.title)).toEqual([
+      'Third',
+      'First',
+      'Second',
+    ]);
+  });
+});
+
+describe('GET /api/v1/admin/locations/:slug/preview', () => {
+  it('renders a draft page without making it public', async () => {
+    const response = await request(buildApp())
+      .get('/api/v1/admin/locations/cardiff/preview')
+      .set('Cookie', authCookie(admin));
+
+    expect(response.status).toBe(200);
+    expect(response.headers['content-type']).toMatch(/text\/html/);
+    expect(response.headers['x-robots-tag']).toBe('noindex, nofollow');
+    expect(response.headers['cache-control']).toBe('no-store');
+    expect(response.text).toContain('<h1>Event suppliers in Cardiff</h1>');
+    expect(response.text).toContain('Admin preview');
+    expect(response.text).toContain('not reachable by the public');
+  });
+
+  it('never marks a preview indexable, even for a page that would pass the gate', async () => {
+    const app = buildApp();
+    await request(app)
+      .patch('/api/v1/admin/locations/cardiff')
+      .set('Cookie', authCookie(admin))
+      .send({ status: 'published', indexingRequested: true, markReviewed: true });
+
+    const response = await request(app)
+      .get('/api/v1/admin/locations/cardiff/preview')
+      .set('Cookie', authCookie(admin));
+
+    expect(response.headers['x-robots-tag']).toBe('noindex, nofollow');
+    expect(response.text).toContain('<meta name="robots" content="noindex,follow" />');
+  });
+
+  it('shows unsaved-state copy in the preview once content is saved', async () => {
+    const app = buildApp();
+    await request(app)
+      .patch('/api/v1/admin/locations/cardiff')
+      .set('Cookie', authCookie(admin))
+      .send({ content: { intro: 'A draft introduction nobody else can see yet.' } });
+
+    const response = await request(app)
+      .get('/api/v1/admin/locations/cardiff/preview')
+      .set('Cookie', authCookie(admin));
+
+    expect(response.text).toContain('A draft introduction nobody else can see yet.');
+  });
+
+  it('404s for an unknown city', async () => {
+    const response = await request(buildApp())
+      .get('/api/v1/admin/locations/atlantis/preview')
+      .set('Cookie', authCookie(admin));
+    expect(response.status).toBe(404);
+  });
+
+  it('refuses a non-admin', async () => {
+    const response = await request(buildApp())
+      .get('/api/v1/admin/locations/cardiff/preview')
+      .set('Cookie', authCookie(customer));
+    expect(response.status).toBe(403);
   });
 });

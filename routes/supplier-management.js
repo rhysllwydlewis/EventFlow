@@ -11,6 +11,8 @@ const catalogCache = require('../services/catalogCache');
 const { supplierApprovalDefaults } = require('../services/supplierProfileProvisioning.service');
 const { buildSupplierThemeMutation } = require('../utils/supplierTheme');
 const photoUpload = require('../photo-upload');
+const supplierLocation = require('../services/supplierLocation.service');
+const { MAPPING_SOURCES } = require('../models/LocationContent');
 const { auditLog, AUDIT_ACTIONS } = require('../middleware/audit');
 const router = express.Router();
 
@@ -204,6 +206,56 @@ function applyRequireVerifiedUser(req, res, next) {
   return requireVerifiedUser(req, res, next);
 }
 
+/** Fields that change where a supplier is, and so force a re-derivation. */
+const LOCATION_INPUT_FIELDS = [
+  'location',
+  'basePostcode',
+  'venuePostcode',
+  'latitude',
+  'longitude',
+];
+
+/**
+ * Resolve a supplier record onto the UK city registry and record the outcome.
+ *
+ * Runs on create and on every edit that moves the supplier, so a profile's
+ * structured geography is maintained by the platform rather than by a one-off
+ * backfill. When nothing maps confidently the supplier is flagged for review
+ * instead of guessed at — an unmapped supplier is missing from a city page,
+ * which is recoverable; a wrongly placed one is not.
+ * @param {Object} supplier Supplier record, or the merged result of a patch.
+ * @returns {Promise<Object>} `{baseLocation, locationMappingReviewRequired}`.
+ */
+async function deriveSupplierGeography(supplier) {
+  // An admin has already made a decision about this record by hand; a profile
+  // edit must not quietly undo it.
+  if (supplier.baseLocation && supplier.baseLocation.source === MAPPING_SOURCES.adminVerified) {
+    return {
+      baseLocation: supplier.baseLocation,
+      locationMappingReviewRequired: false,
+    };
+  }
+
+  try {
+    const derived = await supplierLocation.deriveBaseLocation(supplier, {
+      geocodePostcode: geocoding.geocodePostcode,
+      isValidUKPostcode: geocoding.isValidUKPostcode,
+    });
+    if (derived) {
+      return { baseLocation: derived.baseLocation, locationMappingReviewRequired: false };
+    }
+  } catch (error) {
+    // Postcodes.io being unavailable must never block a profile save.
+    logger.warn('Could not derive a supplier base location', {
+      supplierId: supplier.id,
+      error: error.message,
+    });
+    return { baseLocation: supplier.baseLocation || null, locationMappingReviewRequired: true };
+  }
+
+  return { baseLocation: null, locationMappingReviewRequired: true };
+}
+
 /**
  * GET /api/me/suppliers/:id/analytics
  * Get analytics for a specific supplier (owner only)
@@ -336,6 +388,16 @@ router.post(
       }
     }
 
+    // Suppliers outside the Venues category have no postcode of their own, so
+    // the location pages would otherwise only ever see their free text.
+    let basePostcode = null;
+    if (b.basePostcode) {
+      basePostcode = String(b.basePostcode).trim().toUpperCase();
+      if (!geocoding.isValidUKPostcode(basePostcode)) {
+        return res.status(400).json({ error: 'Invalid UK postcode format' });
+      }
+    }
+
     const amenities = (b.amenities ? String(b.amenities).split(',') : [])
       .map(x => x.trim())
       .filter(Boolean);
@@ -393,6 +455,15 @@ router.post(
         // Continue without coordinates - validation already passed
       }
     }
+
+    if (basePostcode) {
+      s.basePostcode = basePostcode;
+    }
+    const serviceAreas = supplierLocation.sanitiseServiceAreas(b.serviceAreas);
+    if (serviceAreas.length) {
+      s.serviceAreas = serviceAreas;
+    }
+    Object.assign(s, await deriveSupplierGeography(s));
 
     const suppInserted = await dbUnified.insertOne('suppliers', s);
     if (!suppInserted) {
@@ -595,6 +666,23 @@ router.patch(
     // eslint-disable-next-line eqeqeq
     if (b.maxGuests != null) {
       supplierPatch.maxGuests = parseInt(b.maxGuests, 10) || 0;
+    }
+
+    if (typeof b.basePostcode === 'string') {
+      const basePostcode = b.basePostcode.trim().toUpperCase();
+      if (basePostcode && !geocoding.isValidUKPostcode(basePostcode)) {
+        return res.status(400).json({ error: 'Invalid UK postcode format' });
+      }
+      supplierPatch.basePostcode = basePostcode || null;
+    }
+    if (b.serviceAreas !== undefined) {
+      supplierPatch.serviceAreas = supplierLocation.sanitiseServiceAreas(b.serviceAreas);
+    }
+
+    // Re-derive only when the supplier actually moved: a banner change should
+    // not cost a geocoder call, and should not disturb an existing mapping.
+    if (LOCATION_INPUT_FIELDS.some(field => field in supplierPatch)) {
+      Object.assign(supplierPatch, await deriveSupplierGeography({ ...s, ...supplierPatch }));
     }
     // NOTE: do NOT touch approved here — supplier edits must never revoke approval.
     supplierPatch.updatedAt = new Date().toISOString();

@@ -3645,6 +3645,24 @@ async function initDashSupplier() {
       supVenuePostcode.value = supplier.venuePostcode || '';
     }
 
+    // Coverage: the postcode as typed, and the travel policy read back out of
+    // the stored service areas so an edit never silently drops it.
+    const supBasePostcode = document.getElementById('sup-base-postcode');
+    const supTravelRadius = document.getElementById('sup-travel-radius');
+    const supNationwide = document.getElementById('sup-travel-nationwide');
+    const serviceAreas = Array.isArray(supplier.serviceAreas) ? supplier.serviceAreas : [];
+
+    if (supBasePostcode) {
+      supBasePostcode.value = supplier.basePostcode || '';
+    }
+    if (supTravelRadius) {
+      const radius = serviceAreas.find(area => area && area.type === 'radius');
+      supTravelRadius.value = radius && radius.miles ? radius.miles : '';
+    }
+    if (supNationwide) {
+      supNationwide.checked = serviceAreas.some(area => area && area.type === 'nationwide');
+    }
+
     // New customization fields
     const supBanner = document.getElementById('sup-banner');
     const supTagline = document.getElementById('sup-tagline');
@@ -4221,6 +4239,34 @@ async function initDashSupplier() {
     });
   }
 
+  /**
+   * Translate the coverage controls into the service-area shape the API stores.
+   *
+   * Suppliers are asked two plain questions — how far they travel, and whether
+   * they cover the whole UK — rather than being asked to think in service
+   * areas. The API re-validates whatever arrives, so this is only a translation.
+   * @param {Object} payload - Supplier payload, modified in place.
+   */
+  function applyCoverageToPayload(payload) {
+    const radiusInput = document.getElementById('sup-travel-radius');
+    const nationwideInput = document.getElementById('sup-travel-nationwide');
+
+    if (radiusInput || nationwideInput) {
+      const serviceAreas = [];
+      const radiusMiles = Number(payload.travelRadiusMiles);
+      if (Number.isFinite(radiusMiles) && radiusMiles > 0) {
+        serviceAreas.push({ type: 'radius', miles: Math.min(200, Math.round(radiusMiles)) });
+      }
+      if (nationwideInput && nationwideInput.checked) {
+        serviceAreas.push({ type: 'nationwide' });
+      }
+      payload.serviceAreas = serviceAreas;
+    }
+
+    delete payload.travelRadiusMiles;
+    delete payload.travelNationwide;
+  }
+
   function buildSupplierPayload(form) {
     const fd = new FormData(form);
     const payload = {};
@@ -4269,6 +4315,7 @@ async function initDashSupplier() {
       const ws = payload.website.trim();
       payload.website = ws && !/^https?:\/\//i.test(ws) ? `https://${ws}` : ws;
     }
+    applyCoverageToPayload(payload);
     return payload;
   }
 
@@ -4368,6 +4415,12 @@ async function initDashSupplier() {
       if (typeof window.validateVenuePostcode === 'function') {
         if (!window.validateVenuePostcode()) {
           return; // Stop submission if validation fails
+        }
+      }
+
+      if (typeof window.validateBasePostcode === 'function') {
+        if (!window.validateBasePostcode()) {
+          return;
         }
       }
 
@@ -5530,6 +5583,7 @@ async function editProfile(supplierId, options = {}) {
       if (supplier.venuePostcode) {
         setVal('sup-venue-postcode', supplier.venuePostcode);
       }
+      setVal('sup-base-postcode', supplier.basePostcode);
     }
 
     // Update form heading with truncated name if necessary

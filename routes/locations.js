@@ -722,10 +722,14 @@ router.get('/locations/:citySlug/:categorySlug', publicReadLimiter, (req, res, n
 
 module.exports = router;
 module.exports.__internal = {
+  BASE_URL,
   applyContent,
   applyMeta,
   categoryPagesEnabled,
   escapeHtml,
+  publishedSlugs,
+  readLocationData,
+  readShell,
   renderBreadcrumbs,
   renderCityPage,
   renderHub,

@@ -83,6 +83,37 @@ Coordinates are GeoJSON `[longitude, latitude]` everywhere, matching the rest of
 the platform. `source` and `confidence` are stored so a mapping can always be
 traced back to how it was made.
 
+#### Where `baseLocation` comes from
+
+`supplierLocation.deriveBaseLocation()` runs whenever a supplier creates or
+edits their profile, so a mapping is maintained by the platform rather than by
+the one-off backfill. Signals are tried in order of how far they can be trusted:
+
+| Order | Signal                                               | Source          | Confidence |
+| ----- | ---------------------------------------------------- | --------------- | ---------- |
+| 1     | `basePostcode`, `venuePostcode` or `postcode`        | postcode_lookup | high       |
+| 2     | `latitude`/`longitude` the platform already geocoded | postcode_lookup | high       |
+| 3     | Legacy `location` that is exactly a city name        | registry_name   | high       |
+| —     | Anything else                                        | —               | unmapped   |
+
+Nothing below that bar is guessed at. An unmapped supplier gets
+`locationMappingReviewRequired: true` and is absent from the city pages until a
+human resolves it, which is recoverable; a wrongly placed supplier is not. Two
+further rules protect existing decisions:
+
+- A `baseLocation` whose source is `admin_verified` is never overwritten by a
+  profile edit.
+- Re-derivation only runs when an edit actually changes `location`,
+  `basePostcode`, `venuePostcode` or the coordinates, so unrelated edits cost no
+  geocoder call and cannot disturb a good mapping.
+
+Suppliers set this themselves on the profile form: an optional base postcode
+(never shown publicly — only the city it falls in), a travel radius in miles and
+a "whole UK" checkbox, which the client translates into the `serviceAreas`
+shape. The API re-validates everything through `sanitiseServiceAreas()`:
+unknown cities, out-of-range radii and unrecognised types are dropped rather
+than stored as coverage the pages would not honour.
+
 ## Matching and ranking
 
 `services/supplierLocation.service.js` resolves a supplier against a city in a
@@ -175,13 +206,110 @@ fix.
 Workflow: `draft → review → pilot → published (noindex) → indexable → periodic
 review`.
 
+### The editor
+
+Each city card has an **Edit** action opening a per-city editor over
+`GET /api/v1/admin/locations/:slug` and `PATCH /api/v1/admin/locations/:slug`:
+
+| Field                                     | Limit                                            |
+| ----------------------------------------- | ------------------------------------------------ |
+| SEO title                                 | 70                                               |
+| Meta description                          | 160                                              |
+| Hero image URL / alt text                 | 500 / 200                                        |
+| Local introduction                        | `LIMITS.introMaxLength`                          |
+| Planning section title / body             | `sectionTitleMaxLength` / `sectionBodyMaxLength` |
+| Planning section source name / URL / date | 120 / 500 / 40                                   |
+| FAQ question / answer                     | `faqQuestionMaxLength` / `faqAnswerMaxLength`    |
+
+Planning sections and FAQs are repeatable, and can be added, reordered and
+removed; the array order is the order the page renders. The limits are read from
+the API response rather than duplicated in the client, so the counters can never
+promise more room than the server keeps.
+
+Three rules shape the editor:
+
+- **Saving copy sends `seo` and `content` and nothing else.** Publication state,
+  the indexing request and the reviewed stamp belong to the workflow buttons;
+  writing a paragraph cannot move any of them.
+- **Unsaved work is never lost silently.** Closing, pressing Escape, or leaving
+  the page with changes pending asks first, and the footer says "Unsaved
+  changes" while any are outstanding.
+- **A draft can be previewed without being published.**
+  `GET /api/v1/admin/locations/:slug/preview` renders the page exactly as it
+  would appear, in whatever state it is in, admin-only, `no-store` and
+  `noindex, nofollow`. Nobody has to promote a Draft to Pilot — which makes it
+  publicly reachable — just to read their own copy.
+
+Client-side validation blocks a save on an over-length field, a hero image with
+no alt text, and a hero or source URL that is not `http(s)`. It warns, and asks,
+before saving a section or FAQ that is missing half of its pair, because the API
+discards those rather than storing them half-written. The gate blockers and
+editorial warnings are shown inside the editor, so the reason a page is being
+held back is visible while the copy that would fix it is being written.
+
 ## Migrating supplier locations
 
+### The three production commands
+
+Run them in this order. Read the report between each one; nothing here is
+reversed for you.
+
 ```bash
-node scripts/audit-supplier-locations.js                  # dry run, prints a report
-node scripts/audit-supplier-locations.js --json audit.json
-node scripts/audit-supplier-locations.js --apply          # writes high-confidence mappings only
-node scripts/audit-supplier-locations.js --apply --limit 50
+# 1. Dry run — reads only, writes nothing, refuses to run if it is not
+#    talking to a healthy MongoDB.
+NODE_ENV=production node scripts/audit-supplier-locations.js \
+  --require-mongodb --json audit-dry-run.json
+
+# 2. Apply — writes high-confidence mappings only, verifies every one.
+NODE_ENV=production node scripts/audit-supplier-locations.js \
+  --require-mongodb --confirm-production --apply --json audit-apply.json
+
+# 3. Verify — the same dry run again. Every migrated record now reports
+#    already_mapped, and high_confidence has dropped by the number written.
+NODE_ENV=production node scripts/audit-supplier-locations.js \
+  --require-mongodb --json audit-verify.json
+```
+
+Check after step 2: `written` equals `verified`, and `failedWrites` is empty.
+Check after step 3: `counts.already_mapped` has risen by step 2's `written`, and
+`counts.high_confidence` has fallen by the same number. A second `--apply` is
+safe but should write nothing.
+
+### Exit codes
+
+| Code | Meaning                                                     |
+| ---- | ----------------------------------------------------------- |
+| 0    | Completed; no failed writes                                 |
+| 2    | Refused before touching anything — a precondition was unmet |
+| 3    | A write did not land; the run stopped at that record        |
+| 1    | Unhandled error                                             |
+
+### Safety rules the script enforces
+
+- **Explicit initialisation.** The database is initialised up front and the
+  active backend is named in the report and on stdout, rather than being
+  discovered implicitly on the first read — which is the moment it is too late
+  to refuse.
+- **`--require-mongodb`** exits non-zero unless the backend is MongoDB _and_ the
+  connection is healthy. Use it on every production invocation, dry runs
+  included, so a mis-set `MONGODB_URI` fails loudly instead of quietly auditing
+  a local file store.
+- **`--apply` always refuses** any backend but a healthy MongoDB, whether or not
+  `--require-mongodb` was passed.
+- **`NODE_ENV=production` additionally requires `--confirm-production`** before
+  `--apply` is accepted.
+- **Every write is checked and re-read.** `updateOne`'s return value is checked,
+  then the record is read back to confirm the mapping is present and the legacy
+  `location` string is unchanged. Only a verified write increments `written`.
+- **A failed write stops the run** with exit code 3 and a `failedWrites` entry,
+  rather than continuing and producing a report nobody can trust.
+- **Dry run remains the default.** `--apply` is the only way to write.
+
+### Other options
+
+```bash
+node scripts/audit-supplier-locations.js                  # local dry run, prints a report
+node scripts/audit-supplier-locations.js --limit 50       # audit the first 50 records
 ```
 
 The script classifies every supplier as `already_mapped`, `high_confidence`,
@@ -199,6 +327,12 @@ The script classifies every supplier as `already_mapped`, `high_confidence`,
 Only high-confidence rows are written, and only under `--apply`. The legacy
 `location` string is never modified, so the migration is reversible: dropping the
 `baseLocation` field returns a record to its previous behaviour.
+
+The script and the live write path share `buildBaseLocationDocument()`, so a
+supplier mapped by the backfill and one mapped by their own profile edit end up
+with byte-identical structure. Suppliers the script leaves as `review_required`
+or `unmapped` are counted in the admin Location Pages summary, so the backlog
+stays visible after the migration report has been closed.
 
 ## Rollback
 
@@ -221,17 +355,20 @@ published city slug.
 
 ## Tests
 
-| File                                                | Covers                                                                              |
-| --------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| `tests/unit/location-registry.test.js`              | slugs, aliases, validation, distance, postcode resolution                           |
-| `tests/unit/supplier-location-matching.test.js`     | legacy classification, service areas, relationship precedence, ranking, eligibility |
-| `tests/unit/location-page-quality.test.js`          | publication states, quality gate, metadata, structured data                         |
-| `tests/unit/location-sitemap.test.js`               | sitemap inclusion and automatic removal                                             |
-| `tests/unit/location-indexes.test.js`               | index manifest                                                                      |
-| `tests/unit/supplier-location-audit-script.test.js` | dry-run safety and apply behaviour                                                  |
-| `tests/integration/locations-pages.test.js`         | status codes, redirects, headers, escaping, module omission                         |
-| `tests/integration/admin-locations-api.test.js`     | access control, workflow, warnings, input limits                                    |
-| `e2e/locations.spec.js`                             | browser suite; requires `E2E_MODE=full` because the pages need real data            |
+| File                                                  | Covers                                                                              |
+| ----------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `tests/unit/location-registry.test.js`                | slugs, aliases, validation, distance, postcode resolution                           |
+| `tests/unit/supplier-location-matching.test.js`       | legacy classification, service areas, relationship precedence, ranking, eligibility |
+| `tests/unit/location-page-quality.test.js`            | publication states, quality gate, metadata, structured data                         |
+| `tests/unit/location-sitemap.test.js`                 | sitemap inclusion and automatic removal                                             |
+| `tests/unit/location-indexes.test.js`                 | index manifest                                                                      |
+| `tests/unit/supplier-location-audit-script.test.js`   | dry-run safety and apply behaviour                                                  |
+| `tests/unit/supplier-location-write-path.test.js`     | live derivation on profile create/edit, coverage validation, geocoder failure       |
+| `tests/unit/admin-locations-editor.test.js`           | editor markup, accessibility hooks, limits kept in step with the API                |
+| `tests/unit/admin-locations-editor-behaviour.test.js` | the editor driven through a real DOM: load, repeat, reorder, save, unsaved changes  |
+| `tests/integration/locations-pages.test.js`           | status codes, redirects, headers, escaping, module omission                         |
+| `tests/integration/admin-locations-api.test.js`       | access control, workflow, warnings, input limits                                    |
+| `e2e/locations.spec.js`                               | browser suite; requires `E2E_MODE=full` because the pages need real data            |
 
 ## What is deliberately not here
 
