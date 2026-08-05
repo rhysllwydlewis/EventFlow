@@ -544,7 +544,10 @@
             </div>
           </div>
           <div>
-            <div class="hero-collage" aria-hidden="true">
+            <!-- `inert` as well as aria-hidden: aria-hidden alone hides the collage from
+                 assistive technology but leaves its links in the tab order, so a keyboard
+                 user could focus something a screen reader never announces. -->
+            <div class="hero-collage" aria-hidden="true" inert>
               <!-- Row 1: Video (no label, spans 2 columns) -->
               <div class="hero-video-card">
                 <!-- Video autoplay is controlled by JavaScript based on prefers-reduced-motion -->

@@ -209,7 +209,7 @@
       <!-- Search bar — full width at top -->
       <div class="sp-filter-search-wrap sp-filter-search-wrap--top">
         <svg class="sp-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-        <input id="filterQuery" class="sp-filter-control sp-search-input" type="search" placeholder="Search suppliers by name, service or keyword…" aria-label="Search suppliers" autocomplete="off">
+        <input id="filterQuery" class="sp-filter-control sp-search-input" type="search" placeholder="Search suppliers by name, service or keyword…" aria-label="Search suppliers" autocomplete="off" role="combobox" aria-expanded="false" aria-haspopup="listbox">
       </div>
 
       <!-- Primary filters row
@@ -468,7 +468,7 @@
         Find venues near you on map
         <svg class="sp-map-toggle-caret" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
       </button>
-      <div id="sp-map-section" class="sp-map-section" aria-hidden="true">
+      <div id="sp-map-section" class="sp-map-section" aria-hidden="true" inert>
         <div class="sp-map-shell">
           <iframe
             id="venue-map"

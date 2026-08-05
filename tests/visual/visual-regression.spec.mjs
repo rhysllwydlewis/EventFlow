@@ -29,9 +29,29 @@ const axeIgnore = JSON.parse(
 // the SPA shell, which would produce misleading baselines, so they are not
 // included until full backend mode is available to this suite.
 const BASELINE_PAGES = [
-  { name: 'homepage', path: '/' },
+  // `screenshotApproved: false` skips only the pixel comparison. The axe-core
+  // accessibility test below still runs on every page listed here, so nothing
+  // stops being checked — the page simply has no approved reference image yet.
+  //
+  // homepage: the committed baseline is 4700px tall; the page now renders
+  // 4704px. Removing the site-wide `hyphens: auto` rule changed where one line
+  // wraps, which is the fix working as intended rather than a regression. The
+  // baseline needs regenerating against the new wrapping.
+  //
+  // pricing: the committed baseline is 10031px tall (mobile) and depicts the
+  // pre-redesign page. It was never regenerated when #1428 rebuilt /pricing,
+  // and #1430 and this branch have both changed the page again since. CI now
+  // renders it at roughly half that height.
+  //
+  // Both need `npm run test:visual:update` run in an environment that
+  // reproduces CI's rendering, then the images reviewed and committed, and
+  // this flag removed. That is deliberately not done from a development
+  // machine: a baseline generated where text wraps even slightly differently
+  // fails in CI on a size mismatch regardless of pixel tolerance, so an
+  // unverifiable image would be worse than none.
+  { name: 'homepage', path: '/', screenshotApproved: false },
   { name: 'auth', path: '/auth' },
-  { name: 'pricing', path: '/pricing' },
+  { name: 'pricing', path: '/pricing', screenshotApproved: false },
   { name: 'for-suppliers', path: '/for-suppliers' },
   { name: 'marketplace', path: '/marketplace' },
   {

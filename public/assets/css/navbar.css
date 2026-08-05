@@ -1042,6 +1042,13 @@ body.ef-menu-open {
 }
 
 .ef-bottom-label {
+  /* Not the shared --ef-text-gray (#6b7280). The bottom bar is translucent, so
+     on a tinted page like /marketplace the label sits on #cee6e3 rather than
+     white, where #6b7280 measures 3.70:1 at 11px. This is 5.78:1 on that tint
+     and 7.56:1 on white, so it passes wherever the bar happens to sit. Scoped
+     to the label rather than changed on the token, which is used far more
+     widely. */
+  color: #4b5563;
   font-size: 11px;
   font-weight: 500;
   text-align: center;
