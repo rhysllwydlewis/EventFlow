@@ -1,98 +1,71 @@
 /**
- * Pricing Page JavaScript
- * Handles the pricing redesign, billing-period toggle, authentication state,
- * and checkout CTA behaviour.
+ * EventFlow supplier pricing page enhancement.
+ * The HTML contains the complete first paint; this script hydrates canonical
+ * public pricing, switches billing periods, applies auth state and starts checkout.
  */
-
 (function () {
   'use strict';
 
   const BILLING_MONTH = 'month';
   const BILLING_YEAR = 'year';
-
   const PLAN_CONFIG = {
     starter: {
+      apiPlanId: 'free',
+      hrefPlan: 'starter',
       name: 'Starter',
-      description: 'Perfect for getting started on EventFlow.',
       monthlyPrice: 0,
       annualMonthlyPrice: 0,
       annualTotal: 0,
       annualSaving: 0,
       annualDiscount: 0,
-      features: [
-        'Basic supplier profile',
-        'Up to 5 photos',
-        'Receive enquiries',
-        'Standard listing in search',
-        'Email support',
-      ],
-      ctaMonthly: 'Get Started for Free',
-      ctaAnnual: 'Get Started for Free',
-      hrefPlan: 'starter',
-      secondary: true,
+      ctaMonthly: 'Create a free profile',
+      ctaAnnual: 'Create a free profile',
     },
     pro: {
+      apiPlanId: 'pro',
+      hrefPlan: 'pro',
       name: 'Professional',
-      description: 'For serious suppliers who want to grow their business.',
       monthlyPrice: 19,
       annualMonthlyPrice: 16,
       annualTotal: 192,
       annualSaving: 36,
       annualDiscount: 16,
-      features: [
-        'Everything in Free',
-        'Unlimited photos',
-        'Lead quality scoring (High/Medium/Low)',
-        'Priority placement in search results',
-        'Email & phone verification badges',
-        'Response time tracking',
-        'Profile analytics dashboard',
-        'Priority support',
-      ],
-      ctaMonthly: 'Get Started — £19/month',
-      ctaAnnual: 'Get Started — £192/year',
-      hrefPlan: 'pro',
-      featured: true,
-      earlyAccess: true,
+      ctaMonthly: 'Choose Professional — £19/month',
+      ctaAnnual: 'Choose Professional — £192/year',
     },
     pro_plus: {
+      apiPlanId: 'pro_plus',
+      hrefPlan: 'pro_plus',
       name: 'Professional Plus',
-      description: 'Maximum visibility and premium features.',
       monthlyPrice: 159,
       annualMonthlyPrice: 129,
       annualTotal: 1548,
       annualSaving: 360,
       annualDiscount: 19,
-      features: [
-        'Everything in Professional',
-        'Homepage featured placement',
-        'Top of category pages',
-        'Business verification badge',
-        'Dedicated onboarding call',
-        'Monthly performance review',
-        'Export analytics to CSV',
-        'VIP support',
-      ],
-      ctaMonthly: 'Get Professional Plus',
-      ctaAnnual: 'Get Professional Plus',
-      hrefPlan: 'pro_plus',
+      ctaMonthly: 'Choose Professional Plus — £159/month',
+      ctaAnnual: 'Choose Professional Plus — £1,548/year',
     },
   };
 
-  // Annual is deliberately the default because it is the promoted best-value view.
-  // A billingInterval/period URL parameter can still explicitly select monthly.
   let activeBillingPeriod = BILLING_YEAR;
   let pricingAuthMode = 'unknown';
 
+  /**
+   * Escape a value for safe interpolation into markup.
+   * @param {*} value Raw value; null and undefined become an empty string.
+   * @returns {string} Escaped text.
+   */
   function escapeHtml(value) {
-    if (value === null || value === undefined) {
-      return '';
-    }
     const node = document.createElement('div');
-    node.textContent = String(value);
+    node.textContent = value === null || value === undefined ? '' : String(value);
     return node.innerHTML;
   }
 
+  /**
+   * Format an amount as a whole-pound figure in UK grouping.
+   * @param {number} value Amount in pounds.
+   * @returns {string} Formatted number, without a currency symbol.
+   */
   function formatMoney(value) {
     return new Intl.NumberFormat('en-GB', {
       maximumFractionDigits: 0,
@@ -100,169 +73,143 @@
     }).format(value);
   }
 
+  /**
+   * Attach the redesign stylesheet once, if the page did not already ship it.
+   * @returns {void} Nothing.
+   */
   function ensureRedesignStylesheet() {
     if (document.getElementById('pricing-redesign-styles')) {
       return;
     }
-
     const stylesheet = document.createElement('link');
     stylesheet.id = 'pricing-redesign-styles';
     stylesheet.rel = 'stylesheet';
-    stylesheet.href = '/assets/css/pricing-redesign.css?v=1.0.0';
+    stylesheet.href = '/assets/css/pricing-redesign.css?v=2.0.0';
     document.head.appendChild(stylesheet);
   }
 
-  function getPlanKeyForCard(card, index) {
-    const link = card.querySelector('a[href*="plan="]');
-    if (link) {
-      try {
-        const plan = new URL(link.href, window.location.origin).searchParams.get('plan');
-        if (plan === 'starter' || plan === 'free') {
-          return 'starter';
-        }
-        if (plan === 'pro') {
-          return 'pro';
-        }
-        if (plan === 'pro_plus') {
-          return 'pro_plus';
-        }
-      } catch (_error) {
-        // Fall through to the stable card order below.
-      }
-    }
-
-    return ['starter', 'pro', 'pro_plus'][index] || null;
-  }
-
-  function renderCard(card, planKey) {
-    const plan = PLAN_CONFIG[planKey];
-    if (!plan) {
-      return;
-    }
-
-    card.dataset.plan = planKey;
-    card.classList.toggle('featured', Boolean(plan.featured));
-
-    const popularRibbon = plan.featured
-      ? '<div class="pricing-popular-ribbon">Most Popular</div>'
-      : '';
-    const earlyAccessLabel = plan.earlyAccess
-      ? '<span class="pricing-early-access-label">Early Access Offer</span>'
-      : '';
-    const earlyAccessDescription = plan.earlyAccess
-      ? '<p class="pricing-early-access-desc">Early access pricing while EventFlow is in development.</p>'
-      : '';
-    const offerTerms = plan.earlyAccess
-      ? '<p class="pricing-offer-terms">Offer ends 31 December 2026. After this date, standard pricing applies. Cancel anytime.</p>'
-      : '';
-    const secondaryClass = plan.secondary ? ' secondary' : '';
-    const features = plan.features.map(feature => `<li>${escapeHtml(feature)}</li>`).join('');
-    const initialAnnual = activeBillingPeriod === BILLING_YEAR;
-    const initialPrice = initialAnnual ? plan.annualMonthlyPrice : plan.monthlyPrice;
-    const initialBilledLine = initialAnnual
-      ? `£${formatMoney(plan.annualTotal)} billed annually`
-      : `£${formatMoney(plan.monthlyPrice)} billed monthly`;
-    const initialNormally =
-      initialAnnual && plan.monthlyPrice > 0
-        ? `Normally £${formatMoney(plan.monthlyPrice)}/month`
-        : '';
-    const initialSaving =
-      initialAnnual && plan.annualSaving > 0
-        ? `Save £${formatMoney(plan.annualSaving)} annually (${plan.annualDiscount}%)`
-        : '';
-    const initialCta = initialAnnual ? plan.ctaAnnual : plan.ctaMonthly;
-
-    card.innerHTML = `
-      ${popularRibbon}
-      <div class="pricing-card-content">
-        ${earlyAccessLabel}
-        <div class="pricing-card-heading">
-          <h2 class="pricing-name">${escapeHtml(plan.name)}</h2>
-          <p class="pricing-description">${escapeHtml(plan.description)}</p>
-        </div>
-
-        <div class="pricing-price-row">
-          <span class="pricing-price" data-pricing-price>£${formatMoney(initialPrice)}</span>
-          <span class="pricing-period">/month</span>
-        </div>
-        <p class="pricing-billed-line" data-pricing-billed-line>${escapeHtml(initialBilledLine)}</p>
-        <p class="pricing-normally" data-pricing-normally${initialNormally ? '' : ' hidden'}>${escapeHtml(initialNormally)}</p>
-        ${earlyAccessDescription}
-
-        <div class="pricing-card-divider" aria-hidden="true"></div>
-        <ul class="pricing-features">${features}</ul>
-
-        <a
-          href="/checkout?plan=${encodeURIComponent(plan.hrefPlan)}&billingInterval=${activeBillingPeriod}"
-          class="pricing-cta${secondaryClass}"
-          data-pricing-plan="${escapeHtml(plan.hrefPlan)}"
-        >${escapeHtml(initialCta)}</a>
-        <p class="pricing-savings" data-pricing-savings${initialSaving ? '' : ' hidden'}>${escapeHtml(initialSaving)}</p>
-        ${offerTerms}
-      </div>
-    `;
-  }
-
-  function renderHero() {
-    const hero = document.querySelector('.pricing-hero');
-    const heroInner = hero?.querySelector('.container');
-    if (!hero || !heroInner) {
-      return;
-    }
-
-    heroInner.innerHTML = `
-      <p class="pricing-eyebrow">Pricing</p>
-      <h1>Simple, transparent pricing</h1>
-      <p class="subtitle">Choose the plan that's right for your business.<br>Upgrade or downgrade at any time.</p>
-      <div class="pricing-billing-toggle" role="group" aria-label="Choose billing frequency">
-        <span id="pricing-monthly-label" class="pricing-billing-label">Billed monthly</span>
-        <button
-          id="pricing-billing-switch"
-          class="pricing-billing-switch is-annual"
-          type="button"
-          role="switch"
-          aria-checked="true"
-          aria-labelledby="pricing-monthly-label pricing-annual-label"
-        >
-          <span class="pricing-billing-switch-thumb" aria-hidden="true"></span>
-        </button>
-        <span id="pricing-annual-label" class="pricing-billing-label is-active">Billed annually</span>
-        <span class="pricing-billing-saving">Save up to 19%</span>
-      </div>
-    `;
-  }
-
-  function renderSecurityNote() {
-    const grid = document.getElementById('pricing-grid');
-    if (!grid || document.getElementById('pricing-security-note')) {
-      return;
-    }
-
-    const note = document.createElement('div');
-    note.id = 'pricing-security-note';
-    note.className = 'pricing-security-note';
-    note.innerHTML = `
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-        <path d="M12 3 5.5 6v5.2c0 4.4 2.7 7.8 6.5 9.8 3.8-2 6.5-5.4 6.5-9.8V6L12 3Z"></path>
-        <path d="m9.4 12 1.7 1.7 3.6-3.8"></path>
-      </svg>
-      <span>Secure payments. Cancel anytime.</span>
-    `;
-    grid.insertAdjacentElement('afterend', note);
-  }
-
+  /**
+   * Read the billing period the visitor arrived with.
+   *
+   * Annual is the default, so a link that carries no interval — or an interval
+   * this page does not recognise — lands on the same view as a cold visit.
+   * @returns {string} `BILLING_MONTH` or `BILLING_YEAR`.
+   */
   function readInitialBillingPeriod() {
     const params = new URLSearchParams(window.location.search);
     const requested = params.get('billingInterval') || params.get('period');
     if (requested === BILLING_MONTH || requested === 'monthly') {
       return BILLING_MONTH;
     }
-    if (requested === BILLING_YEAR || requested === 'annual') {
-      return BILLING_YEAR;
-    }
     return BILLING_YEAR;
   }
 
+  /**
+   * Replace a card's server-rendered copy with canonical plan presentation.
+   * @param {string} planKey Plan key, matching `data-plan` on the card.
+   * @param {Object} presentation Presentation metadata from the plans endpoint.
+   * @returns {void} Nothing.
+   */
+  function updateStaticPlanContent(planKey, presentation) {
+    const plan = PLAN_CONFIG[planKey];
+    const card = document.querySelector(`.pricing-card[data-plan="${planKey}"]`);
+    if (!plan || !card || !presentation) {
+      return;
+    }
+
+    const monthly = presentation.pricing?.month;
+    const yearly = presentation.pricing?.year;
+    if (monthly) {
+      plan.monthlyPrice = Number(monthly.monthlyEquivalent ?? plan.monthlyPrice);
+    }
+    if (yearly) {
+      plan.annualMonthlyPrice = Number(yearly.monthlyEquivalent ?? plan.annualMonthlyPrice);
+      plan.annualTotal = Number(yearly.total ?? plan.annualTotal);
+      plan.annualSaving = Number(yearly.saving ?? plan.annualSaving);
+      plan.annualDiscount = Number(yearly.discountPercent ?? plan.annualDiscount);
+    }
+
+    plan.name = presentation.marketingName || plan.name;
+    const name = card.querySelector('.pricing-name');
+    const description = card.querySelector('.pricing-description');
+    const audience = card.querySelector('.pricing-tier-label');
+    const features = card.querySelector('.pricing-features');
+    if (name) {
+      name.textContent = plan.name;
+    }
+    if (description && presentation.description) {
+      description.textContent = presentation.description;
+    }
+    if (audience && presentation.audience) {
+      audience.textContent = presentation.audience;
+    }
+    if (features && Array.isArray(presentation.highlights)) {
+      features.innerHTML = presentation.highlights
+        .map(feature => `<li>${escapeHtml(feature)}</li>`)
+        .join('');
+    }
+  }
+
+  /**
+   * Refresh the cards from the canonical plan metadata.
+   *
+   * The markup already carries a complete first paint, so a failure here is
+   * silent by design: the visitor keeps the server-rendered prices rather than
+   * seeing the page empty itself out.
+   * @returns {Promise<void>} Resolves once the cards have been updated.
+   */
+  async function hydrateCanonicalPlanPresentation() {
+    try {
+      const response = await fetch('/api/v2/subscriptions/plans', {
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json' },
+      });
+      if (!response.ok) {
+        return;
+      }
+      const payload = await response.json();
+      const publicPlans = Array.isArray(payload.billing) ? payload.billing : [];
+      const byId = new Map(publicPlans.map(plan => [plan.id, plan]));
+      Object.entries(PLAN_CONFIG).forEach(([key, plan]) => {
+        updateStaticPlanContent(key, byId.get(plan.apiPlanId)?.presentation);
+      });
+      setBillingPeriod(activeBillingPeriod);
+    } catch (_error) {
+      // Matching fallback prices and copy are already rendered in the HTML.
+    }
+  }
+
+  /**
+   * Build the checkout URL for a plan at a billing period.
+   * @param {Object} plan Plan configuration.
+   * @param {string} period Billing period.
+   * @returns {string} Checkout URL.
+   */
+  function getDirectCheckoutHref(plan, period) {
+    return `/checkout?plan=${encodeURIComponent(plan.hrefPlan)}&billingInterval=${period}`;
+  }
+
+  /**
+   * Build the sign-in URL for a plan, returning to pricing afterwards.
+   *
+   * The chosen interval is carried through the round trip so a visitor who
+   * picked annual does not come back to a monthly page.
+   * @param {Object} plan Plan configuration.
+   * @param {string} period Billing period.
+   * @returns {string} Auth URL with an encoded redirect.
+   */
+  function getAuthHref(plan, period) {
+    const redirect = `/pricing?plan=${encodeURIComponent(plan.hrefPlan)}&billingInterval=${period}`;
+    return `/auth?redirect=${encodeURIComponent(redirect)}`;
+  }
+
+  /**
+   * Apply a billing period to one plan card: price, billed line, saving and
+   * the destination its call to action points at.
+   * @param {HTMLElement} card Plan card element.
+   * @param {string} period Billing period.
+   * @returns {void} Nothing.
+   */
   function updateCardBilling(card, period) {
     const planKey = card.dataset.plan;
     const plan = PLAN_CONFIG[planKey];
@@ -281,157 +228,97 @@
     if (priceElement) {
       priceElement.textContent = `£${formatMoney(price)}`;
     }
-
     if (billedLine) {
-      billedLine.textContent = annual
-        ? `£${formatMoney(plan.annualTotal)} billed annually`
-        : `£${formatMoney(plan.monthlyPrice)} billed monthly`;
+      billedLine.textContent =
+        planKey === 'starter'
+          ? 'No card required'
+          : annual
+            ? `£${formatMoney(plan.annualTotal)} billed annually`
+            : 'Billed monthly';
     }
-
     if (normallyLine) {
-      const showNormally = annual && plan.monthlyPrice > 0;
-      normallyLine.hidden = !showNormally;
-      normallyLine.textContent = showNormally
-        ? `Normally £${formatMoney(plan.monthlyPrice)}/month`
-        : '';
+      const show = annual && plan.monthlyPrice > 0;
+      normallyLine.hidden = !show;
+      normallyLine.textContent = show ? `Normally £${formatMoney(plan.monthlyPrice)}/month` : '';
     }
-
     if (savingsLine) {
-      const showSaving = annual && plan.annualSaving > 0;
-      savingsLine.hidden = !showSaving;
-      savingsLine.textContent = showSaving
+      const show = annual && plan.annualSaving > 0;
+      savingsLine.hidden = !show;
+      savingsLine.textContent = show
         ? `Save £${formatMoney(plan.annualSaving)} annually (${plan.annualDiscount}%)`
         : '';
     }
-
     if (cta && cta.getAttribute('aria-disabled') !== 'true') {
       cta.textContent = annual ? plan.ctaAnnual : plan.ctaMonthly;
-      const directHref = `/checkout?plan=${encodeURIComponent(
-        plan.hrefPlan
-      )}&billingInterval=${period}`;
-
-      if (pricingAuthMode === 'unauthenticated') {
-        const redirect = `/pricing?plan=${encodeURIComponent(
-          plan.hrefPlan
-        )}&billingInterval=${period}`;
-        cta.setAttribute('href', `/auth?redirect=${encodeURIComponent(redirect)}`);
-      } else {
-        cta.setAttribute('href', directHref);
-      }
+      cta.href =
+        pricingAuthMode === 'unauthenticated'
+          ? getAuthHref(plan, period)
+          : getDirectCheckoutHref(plan, period);
     }
   }
 
+  /**
+   * Switch the whole page to a billing period and reflect it in the toggle.
+   * @param {string} period Billing period; anything but monthly means annual.
+   * @returns {void} Nothing.
+   */
   function setBillingPeriod(period) {
     activeBillingPeriod = period === BILLING_MONTH ? BILLING_MONTH : BILLING_YEAR;
     const annual = activeBillingPeriod === BILLING_YEAR;
     const toggle = document.getElementById('pricing-billing-switch');
-    const monthlyLabel = document.getElementById('pricing-monthly-label');
-    const annualLabel = document.getElementById('pricing-annual-label');
-
     document.body.dataset.pricingBilling = activeBillingPeriod;
-
     if (toggle) {
       toggle.setAttribute('aria-checked', String(annual));
       toggle.classList.toggle('is-annual', annual);
     }
-    monthlyLabel?.classList.toggle('is-active', !annual);
-    annualLabel?.classList.toggle('is-active', annual);
-
+    document.getElementById('pricing-monthly-label')?.classList.toggle('is-active', !annual);
+    document.getElementById('pricing-annual-label')?.classList.toggle('is-active', annual);
     document.querySelectorAll('.pricing-card[data-plan]').forEach(card => {
       updateCardBilling(card, activeBillingPeriod);
     });
   }
 
+  /**
+   * Wire the monthly/annual switch, guarding against double binding.
+   * @returns {void} Nothing.
+   */
   function attachBillingToggle() {
     const toggle = document.getElementById('pricing-billing-switch');
-    if (!toggle) {
+    if (!toggle || toggle.dataset.pricingToggleAttached) {
       return;
     }
-
+    toggle.dataset.pricingToggleAttached = 'true';
     toggle.addEventListener('click', () => {
       setBillingPeriod(activeBillingPeriod === BILLING_YEAR ? BILLING_MONTH : BILLING_YEAR);
     });
   }
 
-  function buildPricingRedesign() {
-    ensureRedesignStylesheet();
-    document.body.classList.add('pricing-redesign');
-    renderHero();
-
-    document.querySelectorAll('#pricing-grid .pricing-card').forEach((card, index) => {
-      const planKey = getPlanKeyForCard(card, index);
-      if (planKey) {
-        renderCard(card, planKey);
-      }
-    });
-
-    renderSecurityNote();
-    attachBillingToggle();
-    setBillingPeriod(readInitialBillingPeriod());
-  }
-
-  async function checkAuthAndUpdateButtons() {
-    try {
-      let user = null;
-
-      if (window.AuthStateManager) {
-        const authState = await window.AuthStateManager.init();
-        user = authState && authState.user;
-      } else {
-        const response = await fetch('/api/v1/auth/me', {
-          credentials: 'include',
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          user = data.user || data;
-        }
-      }
-
-      if (user) {
-        if (user.role === 'customer') {
-          updateButtonsForCustomer();
-        } else {
-          updateButtonsForAuthenticatedUser(user);
-          attachCheckoutHandlers();
-        }
-      } else {
-        updateButtonsForUnauthenticatedUser();
-      }
-    } catch (_error) {
-      updateButtonsForUnauthenticatedUser();
-    }
-  }
-
+  /**
+   * Resolve the tier a member is actually entitled to right now.
+   *
+   * An expired subscription reads as free: the stored tier alone would keep
+   * showing a lapsed member their old plan as current.
+   * @param {Object|null} user User record, or null when signed out.
+   * @returns {string} Tier key.
+   */
   function getActiveTier(user) {
     if (!user) {
       return 'free';
     }
-
-    const tier = user.subscriptionTier || 'free';
-    if (tier !== 'free') {
-      if (user.proExpiresAt) {
-        const expiryTime = Date.parse(user.proExpiresAt);
-        if (!Number.isNaN(expiryTime) && expiryTime <= Date.now()) {
-          return 'free';
-        }
-      }
-      return tier;
+    const expiry = user.proExpiresAt ? Date.parse(user.proExpiresAt) : null;
+    if (expiry !== null && !Number.isNaN(expiry) && expiry <= Date.now()) {
+      return 'free';
     }
-
-    if (user.isPro) {
-      if (user.proExpiresAt) {
-        const expiryTime = Date.parse(user.proExpiresAt);
-        if (!Number.isNaN(expiryTime) && expiryTime <= Date.now()) {
-          return 'free';
-        }
-      }
-      return 'pro';
+    if (user.subscriptionTier && user.subscriptionTier !== 'free') {
+      return user.subscriptionTier;
     }
-
-    return 'free';
+    return user.isPro ? 'pro' : 'free';
   }
 
+  /**
+   * Present the page to a signed-in customer, who does not buy supplier plans.
+   * @returns {void} Nothing.
+   */
   function updateButtonsForCustomer() {
     pricingAuthMode = 'customer';
     const notice = document.getElementById('pricing-customer-notice');
@@ -440,16 +327,12 @@
       notice.innerHTML =
         '<div class="pricing-customer-notice-inner">' +
         '<span class="pricing-customer-notice-icon" aria-hidden="true">ℹ️</span>' +
-        '<div>' +
-        '<p class="pricing-customer-notice-title">These plans are for suppliers only</p>' +
-        '<p class="pricing-customer-notice-body">As a customer, you already have full access to EventFlow at no cost — browse suppliers, send enquiries, and manage your event planning for free. Subscriptions unlock premium features for suppliers looking to grow their business on the platform.</p>' +
-        '</div>' +
-        '</div>';
+        '<div><p class="pricing-customer-notice-title">EventFlow is free for customers</p>' +
+        '<p class="pricing-customer-notice-body">These subscriptions are only for suppliers. You can continue planning events, finding suppliers and sending enquiries at no cost.</p></div></div>';
     }
-
-    document.querySelectorAll('.pricing-cta, #pricing-bottom-cta').forEach(button => {
-      button.textContent = 'For Suppliers Only';
-      button.style.opacity = '0.5';
+    document.querySelectorAll('.pricing-cta').forEach(button => {
+      button.textContent = 'Supplier plan';
+      button.style.opacity = '0.55';
       button.style.cursor = 'not-allowed';
       button.style.pointerEvents = 'none';
       button.setAttribute('aria-disabled', 'true');
@@ -457,135 +340,143 @@
     });
   }
 
+  /**
+   * Mark a plan's button as the member's current plan and make it inert.
+   * @param {HTMLElement} button Call-to-action element.
+   * @returns {void} Nothing.
+   */
   function markAsCurrentPlan(button) {
-    button.textContent = 'Your Current Plan';
+    button.textContent = 'Your current plan';
     button.classList.remove('secondary');
-    button.style.opacity = '0.6';
+    button.style.opacity = '0.65';
     button.style.cursor = 'default';
     button.style.pointerEvents = 'none';
     button.setAttribute('aria-disabled', 'true');
   }
 
-  function getPlanFromHref(button) {
-    const href = button.getAttribute('href');
-    if (!href) {
-      return null;
-    }
-
-    try {
-      return new URL(href, window.location.origin).searchParams.get('plan');
-    } catch (_error) {
-      return null;
-    }
-  }
-
+  /**
+   * Present the page to a signed-in supplier, flagging their current plan.
+   * @param {Object} user User record.
+   * @returns {void} Nothing.
+   */
   function updateButtonsForAuthenticatedUser(user) {
     pricingAuthMode = 'authenticated';
     const tier = getActiveTier(user);
-    const planTiers = {
-      starter: 'free',
-      free: 'free',
-      pro: 'pro',
-      pro_plus: 'pro_plus',
-    };
-
-    document.querySelectorAll('a[href*="/checkout?plan="]').forEach(button => {
-      const planKey = getPlanFromHref(button);
-      const planTier = planTiers[planKey] || planKey;
-      if (planTier === tier) {
+    const tiers = { starter: 'free', pro: 'pro', pro_plus: 'pro_plus' };
+    document.querySelectorAll('.pricing-card[data-plan]').forEach(card => {
+      const button = card.querySelector('.pricing-cta');
+      if (button && tiers[card.dataset.plan] === tier) {
         markAsCurrentPlan(button);
       }
     });
+  }
 
-    const bottomCta = document.getElementById('pricing-bottom-cta');
-    if (bottomCta && tier === 'free') {
-      markAsCurrentPlan(bottomCta);
-    } else if (bottomCta) {
-      bottomCta.style.display = 'none';
+  /**
+   * Present the page to a signed-out visitor.
+   * @returns {void} Nothing.
+   */
+  function updateButtonsForUnauthenticatedUser() {
+    pricingAuthMode = 'unauthenticated';
+    setBillingPeriod(activeBillingPeriod);
+  }
+
+  /**
+   * Resolve the viewer and adjust the calls to action to match.
+   *
+   * A failure falls back to the signed-out presentation, which is the view
+   * that works for everyone.
+   * @returns {Promise<void>} Resolves once the buttons reflect the viewer.
+   */
+  async function checkAuthAndUpdateButtons() {
+    try {
+      let user = null;
+      if (window.AuthStateManager) {
+        const state = await window.AuthStateManager.init();
+        user = state && state.user;
+      } else {
+        const response = await fetch('/api/v1/auth/me', { credentials: 'include' });
+        if (response.ok) {
+          const data = await response.json();
+          user = data.user || data;
+        }
+      }
+      if (!user) {
+        return updateButtonsForUnauthenticatedUser();
+      }
+      if (user.role === 'customer') {
+        return updateButtonsForCustomer();
+      }
+      updateButtonsForAuthenticatedUser(user);
+      attachCheckoutHandlers();
+    } catch (_error) {
+      updateButtonsForUnauthenticatedUser();
     }
   }
 
+  /**
+   * Bind checkout to each active call to action, guarding double binding.
+   * @returns {void} Nothing.
+   */
   function attachCheckoutHandlers() {
     const successUrl = `${window.location.origin}/dashboard/supplier?billing=success`;
     const cancelUrl = `${window.location.origin}/pricing?checkout=cancelled`;
-
     document.querySelectorAll('.pricing-cta').forEach(button => {
       if (button.getAttribute('aria-disabled') === 'true' || button.dataset.checkoutHandler) {
         return;
       }
-
       button.dataset.checkoutHandler = 'attached';
       button.addEventListener('click', async function (event) {
-        const href = this.getAttribute('href');
-        let checkoutUrl;
-
+        let checkoutUrl = null;
         try {
-          checkoutUrl = href ? new URL(href, window.location.origin) : null;
+          checkoutUrl = new URL(this.href, window.location.origin);
         } catch (_error) {
-          checkoutUrl = null;
+          return;
         }
-
-        const planId = checkoutUrl?.searchParams.get('plan');
+        const planId = checkoutUrl.searchParams.get('plan');
         const billingInterval =
-          checkoutUrl?.searchParams.get('billingInterval') === BILLING_MONTH
+          checkoutUrl.searchParams.get('billingInterval') === BILLING_MONTH
             ? BILLING_MONTH
             : BILLING_YEAR;
-
         if (!planId) {
           return;
         }
 
         event.preventDefault();
         const originalText = this.textContent;
-
         try {
           this.setAttribute('aria-disabled', 'true');
-          this.textContent = 'Processing...';
-
+          this.textContent = 'Opening secure checkout…';
           const csrfResponse = await fetch('/api/csrf-token', { credentials: 'include' });
           if (!csrfResponse.ok) {
             throw new Error('Failed to get CSRF token');
           }
           const csrfData = await csrfResponse.json();
           const csrfToken = csrfData.token || csrfData.csrfToken;
-
           const response = await fetch('/api/v2/subscriptions/create-checkout-session', {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-CSRF-Token': csrfToken,
-            },
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
             credentials: 'include',
-            body: JSON.stringify({
-              planId,
-              billingInterval,
-              successUrl,
-              cancelUrl,
-            }),
+            body: JSON.stringify({ planId, billingInterval, successUrl, cancelUrl }),
           });
-
           if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
             throw new Error(
               errorData.error || errorData.message || 'Failed to create checkout session'
             );
           }
-
           const data = await response.json();
-          if (data.url || data.checkoutUrl) {
-            window.location.href = data.url || data.checkoutUrl;
-          } else {
+          const target = data.url || data.checkoutUrl;
+          if (!target) {
             throw new Error('No checkout URL returned');
           }
+          window.location.href = target;
         } catch (error) {
           console.error('Checkout error:', error);
+          const message = error.message || 'Failed to start checkout. Please try again.';
           if (window.showNotification) {
-            window.showNotification(
-              error.message || 'Failed to start checkout. Please try again.',
-              'error'
-            );
+            window.showNotification(message, 'error');
           } else {
-            window.alert(error.message || 'Failed to start checkout. Please try again.');
+            window.alert(message);
           }
           this.removeAttribute('aria-disabled');
           this.textContent = originalText;
@@ -594,85 +485,64 @@
     });
   }
 
-  function updateButtonsForUnauthenticatedUser() {
-    pricingAuthMode = 'unauthenticated';
-    document.querySelectorAll('a[href*="/checkout?plan="]').forEach(button => {
-      const originalHref = button.getAttribute('href');
-      if (!originalHref) {
-        return;
-      }
-
-      try {
-        const url = new URL(originalHref, window.location.origin);
-        const plan = url.searchParams.get('plan');
-        const billingInterval =
-          url.searchParams.get('billingInterval') === BILLING_MONTH ? BILLING_MONTH : BILLING_YEAR;
-
-        if (plan) {
-          const redirect = `/pricing?plan=${encodeURIComponent(
-            plan
-          )}&billingInterval=${billingInterval}`;
-          button.setAttribute('href', `/auth?redirect=${encodeURIComponent(redirect)}`);
-        }
-      } catch (_error) {
-        // Leave malformed links unchanged rather than breaking the page.
-      }
-    });
-  }
-
+  /**
+   * Show a page-level notice.
+   * @param {string} message Message text.
+   * @param {string} variant One of 'amber', 'green' or 'red'.
+   * @returns {void} Nothing.
+   */
   function showBanner(message, variant) {
-    const variantConfig = {
-      amber: { className: 'pricing-notice-banner--info', background: '#f59e0b' },
+    const options = {
+      amber: { className: 'pricing-notice-banner--info', background: '#9a6700' },
       green: { className: 'pricing-notice-banner--success' },
       red: { className: 'pricing-notice-banner--error' },
     };
-    const config = variantConfig[variant] || variantConfig.amber;
-    const existing = document.getElementById('pricing-status-banner');
-    if (existing) {
-      existing.remove();
-    }
-
+    const config = options[variant] || options.amber;
+    document.getElementById('pricing-status-banner')?.remove();
     const banner = document.createElement('div');
     banner.id = 'pricing-status-banner';
     banner.setAttribute('role', 'status');
     banner.className = `pricing-notice-banner ${config.className}`;
-    banner.style.display = 'flex';
-    banner.style.alignItems = 'flex-start';
-    banner.style.gap = '0.625rem';
-    banner.style.lineHeight = '1.5';
     if (config.background) {
       banner.style.background = config.background;
     }
     banner.innerHTML =
       `<span class="pricing-banner-msg">${escapeHtml(message)}</span>` +
-      '<button data-dismiss-pricing-banner aria-label="Dismiss" ' +
-      'style="background:none;border:none;color:#fff;cursor:pointer;font-size:1.25rem;' +
-      'line-height:1;padding:0;margin-left:0.25rem;flex-shrink:0;">&#x00D7;</button>';
-
+      '<button type="button" data-dismiss-pricing-banner aria-label="Dismiss">×</button>';
     document.body.appendChild(banner);
-
-    const dismiss = () => {
-      if (banner.parentNode) {
-        banner.remove();
-      }
-    };
+    const dismiss = () => banner.remove();
     window.setTimeout(dismiss, 8000);
-    banner.querySelector('[data-dismiss-pricing-banner]').addEventListener('click', dismiss);
+    banner.querySelector('[data-dismiss-pricing-banner]')?.addEventListener('click', dismiss);
   }
 
+  /**
+   * Report a cancelled checkout and strip the marker from the address bar so a
+   * refresh does not announce it again.
+   * @returns {void} Nothing.
+   */
   function handleCheckoutRedirectParams() {
     const params = new URLSearchParams(window.location.search);
-    if (params.get('checkout') === 'cancelled') {
-      const clean = new URL(window.location.href);
-      clean.searchParams.delete('checkout');
-      window.history.replaceState({}, '', clean.toString());
-      showBanner("ℹ️ No charge was made. You can subscribe whenever you're ready.", 'amber');
+    if (params.get('checkout') !== 'cancelled') {
+      return;
     }
+    const clean = new URL(window.location.href);
+    clean.searchParams.delete('checkout');
+    window.history.replaceState({}, '', clean.toString());
+    showBanner("No charge was made. You can subscribe whenever you're ready.", 'amber');
   }
 
+  /**
+   * Start the pricing page enhancements.
+   * @returns {void} Nothing.
+   */
   function init() {
-    buildPricingRedesign();
+    ensureRedesignStylesheet();
+    document.body.classList.add('pricing-redesign');
+    activeBillingPeriod = readInitialBillingPeriod();
+    attachBillingToggle();
+    setBillingPeriod(activeBillingPeriod);
     handleCheckoutRedirectParams();
+    hydrateCanonicalPlanPresentation();
     checkAuthAndUpdateButtons();
   }
 

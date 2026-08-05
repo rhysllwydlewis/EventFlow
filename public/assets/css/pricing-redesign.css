@@ -1,72 +1,105 @@
-/* EventFlow pricing page redesign — compact, stable first-paint layout */
+/* EventFlow pricing — compact supplier pricing experience */
 
 body.pricing-redesign {
-  background: radial-gradient(circle at 50% 8%, rgba(11, 128, 115, 0.05), transparent 30rem), #fbfcfd;
-  color: #111827;
+  --pricing-ink: #0b132b;
+  --pricing-muted: #566176;
+  --pricing-line: #dfe7e7;
+  --pricing-soft: #eff9f7;
+  --pricing-teal: #0b8073;
+  --pricing-teal-dark: #096b60;
+  --pricing-shadow: 0 18px 50px rgba(15, 23, 42, 0.08);
+  background:
+    radial-gradient(circle at 50% 0, rgba(11, 128, 115, 0.08), transparent 30rem),
+    #f8fafb;
+  color: var(--pricing-ink);
+}
+
+body.pricing-redesign #main-content {
+  overflow: clip;
 }
 
 body.pricing-redesign .pricing-hero {
-  padding: 2.25rem 1rem 1.25rem !important;
+  padding: 2rem 1.5rem 1rem !important;
   background: transparent !important;
-  color: #0f172a !important;
-  text-align: center;
+  color: var(--pricing-ink) !important;
 }
 
 body.pricing-redesign .pricing-hero .container {
-  width: min(100%, 880px);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "eyebrow toggle"
+    "title toggle"
+    "subtitle toggle";
+  align-items: center;
+  gap: 0.375rem 2.5rem;
+  width: min(100%, 1160px);
   margin: 0 auto;
-  padding: 0;
+  padding: 1.75rem 2rem;
+  border: 1px solid rgba(11, 128, 115, 0.13);
+  border-radius: 18px;
+  background:
+    linear-gradient(120deg, rgba(255, 255, 255, 0.98), rgba(238, 249, 247, 0.92));
+  box-shadow: 0 14px 40px rgba(15, 23, 42, 0.06);
+  text-align: left;
 }
 
 body.pricing-redesign .pricing-eyebrow {
-  margin: 0 0 0.5rem;
-  color: #087f73;
+  grid-area: eyebrow;
+  margin: 0 0 0.25rem;
+  color: var(--pricing-teal-dark);
   font-size: 0.75rem;
   font-weight: 800;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.09em;
   line-height: 1.25;
   text-transform: uppercase;
 }
 
 body.pricing-redesign .pricing-hero h1 {
+  grid-area: title;
   margin: 0;
-  color: #0b132b;
-  font-size: clamp(2.25rem, 5vw, 3rem) !important;
+  color: var(--pricing-ink);
+  font-size: clamp(2rem, 4vw, 3rem) !important;
   font-weight: 800;
-  letter-spacing: -0.04em;
-  line-height: 1.05;
+  letter-spacing: -0.045em;
+  line-height: 1.04;
 }
 
 body.pricing-redesign .pricing-hero .subtitle {
-  max-width: 650px;
-  margin: 0.75rem auto 0 !important;
-  color: #46516b;
+  grid-area: subtitle;
+  max-width: 720px;
+  margin: 0.5rem 0 0 !important;
+  color: var(--pricing-muted);
   font-size: 1rem !important;
-  line-height: 1.5 !important;
+  line-height: 1.55 !important;
   opacity: 1 !important;
 }
 
 body.pricing-redesign .pricing-billing-toggle {
+  grid-area: toggle;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.75rem;
-  min-height: 44px;
-  margin-top: 1rem;
+  gap: 0.625rem;
+  min-height: 48px;
+  padding: 0.5rem 0.625rem 0.5rem 0.875rem;
+  border: 1px solid rgba(11, 128, 115, 0.14);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 7px 18px rgba(15, 23, 42, 0.05);
+  white-space: nowrap;
 }
 
 body.pricing-redesign .pricing-billing-label {
-  color: #5b6478;
+  color: #667085;
   font-size: 0.875rem;
-  font-weight: 500;
+  font-weight: 600;
   line-height: 1;
-  white-space: nowrap;
-  transition: color 160ms ease, font-weight 160ms ease;
+  transition: color 160ms ease;
 }
 
 body.pricing-redesign .pricing-billing-label.is-active {
-  color: #101828;
-  font-weight: 700;
+  color: var(--pricing-ink);
 }
 
 body.pricing-redesign .pricing-billing-switch {
@@ -76,14 +109,14 @@ body.pricing-redesign .pricing-billing-switch {
   padding: 0;
   border: 0;
   border-radius: 999px;
-  background: #0b8073;
-  box-shadow: inset 0 0 0 1px rgba(4, 79, 72, 0.14);
+  background: var(--pricing-teal);
+  box-shadow: inset 0 0 0 1px rgba(4, 79, 72, 0.16);
   cursor: pointer;
   flex: 0 0 auto;
 }
 
 body.pricing-redesign .pricing-billing-switch:hover {
-  background: #087467;
+  background: var(--pricing-teal-dark);
 }
 
 body.pricing-redesign .pricing-billing-switch:focus-visible {
@@ -99,7 +132,7 @@ body.pricing-redesign .pricing-billing-switch-thumb {
   height: 22px;
   border-radius: 50%;
   background: #fff;
-  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.22);
+  box-shadow: 0 2px 5px rgba(15, 23, 42, 0.22);
   transition: transform 180ms ease;
 }
 
@@ -110,33 +143,53 @@ body.pricing-redesign .pricing-billing-switch.is-annual .pricing-billing-switch-
 body.pricing-redesign .pricing-billing-saving,
 body.pricing-redesign .pricing-savings {
   border-radius: 999px;
-  background: #e7f8ee;
-  color: #08756a;
+  background: #e5f7ed;
+  color: var(--pricing-teal-dark);
   font-size: 0.75rem;
-  font-weight: 700;
-  line-height: 1;
+  font-weight: 800;
+  line-height: 1.2;
 }
 
 body.pricing-redesign .pricing-billing-saving {
   padding: 0.5rem 0.75rem;
-  white-space: nowrap;
 }
 
 body.pricing-redesign .pricing-container {
-  max-width: 1140px !important;
+  width: min(100%, 1210px);
   margin: 0 auto;
-  padding: 0.75rem 1.5rem 3rem !important;
+  padding: 1rem 1.5rem 4rem !important;
 }
 
 body.pricing-redesign #pricing-customer-notice[hidden] {
   display: none !important;
 }
 
+body.pricing-redesign .pricing-customer-notice-inner {
+  display: flex;
+  gap: 0.875rem;
+  margin-bottom: 1rem;
+  padding: 1rem 1.125rem;
+  border: 1px solid #b9ded8;
+  border-radius: 12px;
+  background: #edf9f7;
+  color: #24413d;
+}
+
+body.pricing-redesign .pricing-customer-notice-title {
+  margin: 0 0 0.25rem;
+  font-weight: 800;
+}
+
+body.pricing-redesign .pricing-customer-notice-body {
+  margin: 0;
+  line-height: 1.5;
+}
+
 body.pricing-redesign .pricing-grid {
   display: grid !important;
   grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
   align-items: stretch !important;
-  gap: 1.5rem !important;
+  gap: 1.25rem !important;
   margin: 0 !important;
 }
 
@@ -144,28 +197,28 @@ body.pricing-redesign .pricing-card {
   position: relative;
   display: flex;
   min-width: 0;
-  min-height: 590px;
+  min-height: 0;
   padding: 0 !important;
   overflow: hidden;
-  border: 1px solid #e2e7ec !important;
-  border-radius: 12px !important;
+  border: 1px solid var(--pricing-line) !important;
+  border-radius: 16px !important;
   background: rgba(255, 255, 255, 0.98) !important;
-  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06), 0 2px 7px rgba(15, 23, 42, 0.04) !important;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.055) !important;
   transform: none !important;
   transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease !important;
 }
 
 body.pricing-redesign .pricing-card:hover {
-  border-color: #cfd9dc !important;
-  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.08), 0 3px 9px rgba(15, 23, 42, 0.05) !important;
-  transform: translateY(-2px) !important;
+  border-color: #c6d6d4 !important;
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.09) !important;
+  transform: translateY(-3px) !important;
 }
 
 body.pricing-redesign .pricing-card.featured {
-  margin-top: -0.375rem !important;
-  min-height: 602px;
-  border-color: #0b8073 !important;
-  box-shadow: 0 16px 38px rgba(11, 128, 115, 0.12), 0 3px 9px rgba(15, 23, 42, 0.04) !important;
+  border: 2px solid var(--pricing-teal) !important;
+  background:
+    linear-gradient(180deg, rgba(239, 249, 247, 0.92), #fff 25%) !important;
+  box-shadow: 0 20px 50px rgba(11, 128, 115, 0.14) !important;
 }
 
 body.pricing-redesign .pricing-card.featured::before {
@@ -179,12 +232,12 @@ body.pricing-redesign .pricing-popular-ribbon {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 28px;
-  background: linear-gradient(90deg, #0b8073, #08776c);
+  min-height: 30px;
+  background: var(--pricing-teal);
   color: #fff;
   font-size: 0.75rem;
   font-weight: 800;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
   line-height: 1;
   text-transform: uppercase;
 }
@@ -195,7 +248,7 @@ body.pricing-redesign .pricing-card-content {
   flex-direction: column;
   width: 100%;
   min-width: 0;
-  padding: 1.75rem 1.75rem 1.5rem;
+  padding: 1.5rem;
 }
 
 body.pricing-redesign .pricing-card.featured .pricing-card-content {
@@ -203,12 +256,12 @@ body.pricing-redesign .pricing-card.featured .pricing-card-content {
 }
 
 body.pricing-redesign .pricing-early-access-label {
-  align-self: center;
-  margin: -0.125rem 0 0.75rem !important;
-  padding: 0.375rem 0.75rem !important;
-  border-radius: 6px !important;
-  background: #e8f8ed !important;
-  color: #087568 !important;
+  align-self: flex-start;
+  margin: 0 0 0.75rem !important;
+  padding: 0.375rem 0.625rem !important;
+  border-radius: 999px !important;
+  background: #e5f7ed !important;
+  color: var(--pricing-teal-dark) !important;
   font-size: 0.75rem !important;
   font-weight: 800 !important;
   line-height: 1 !important;
@@ -216,21 +269,30 @@ body.pricing-redesign .pricing-early-access-label {
 }
 
 body.pricing-redesign .pricing-card-heading {
-  min-height: 72px;
+  min-height: 94px;
+}
+
+body.pricing-redesign .pricing-tier-label {
+  display: block;
+  margin-bottom: 0.375rem;
+  color: #667085;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.3;
 }
 
 body.pricing-redesign .pricing-name {
   margin: 0 0 0.375rem !important;
-  color: #08786e !important;
+  color: var(--pricing-teal-dark) !important;
   font-size: 1.25rem !important;
   font-weight: 800 !important;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
   line-height: 1.2;
 }
 
 body.pricing-redesign .pricing-description {
   margin: 0 !important;
-  color: #4e5970 !important;
+  color: var(--pricing-muted) !important;
   font-size: 0.875rem !important;
   line-height: 1.5 !important;
 }
@@ -239,42 +301,46 @@ body.pricing-redesign .pricing-price-row {
   display: flex;
   align-items: baseline;
   gap: 0.375rem;
-  margin-top: 0.875rem;
+  margin-top: 0.75rem;
 }
 
 body.pricing-redesign .pricing-price {
   margin: 0 !important;
-  color: #0b132b !important;
-  font-size: 2.25rem !important;
+  color: var(--pricing-ink) !important;
+  font-size: 2.5rem !important;
   font-weight: 800 !important;
-  letter-spacing: -0.05em;
+  letter-spacing: -0.055em;
   line-height: 1 !important;
 }
 
-body.pricing-redesign .pricing-period,
+body.pricing-redesign .pricing-period {
+  color: #667085;
+  font-size: 0.8125rem !important;
+  font-weight: 600;
+}
+
 body.pricing-redesign .pricing-billed-line,
 body.pricing-redesign .pricing-normally,
 body.pricing-redesign .pricing-early-access-desc,
 body.pricing-redesign .pricing-offer-terms {
   font-size: 0.75rem !important;
-  line-height: 1.5 !important;
-}
-
-body.pricing-redesign .pricing-period {
-  color: #4e5970;
-  font-weight: 500;
+  line-height: 1.45 !important;
 }
 
 body.pricing-redesign .pricing-billed-line {
-  min-height: 1.125rem;
+  min-height: 1.1rem;
   margin: 0.375rem 0 0 !important;
-  color: #647087;
+  color: #667085;
+  font-weight: 600;
+}
+
+body.pricing-redesign .pricing-card[data-plan="starter"] .pricing-billed-line {
+  color: var(--pricing-teal-dark);
 }
 
 body.pricing-redesign .pricing-normally {
   margin: 0.125rem 0 0 !important;
-  color: #697387 !important;
-  font-weight: 500 !important;
+  color: #7a8495 !important;
   text-decoration: line-through;
 }
 
@@ -284,17 +350,19 @@ body.pricing-redesign .pricing-savings[hidden] {
 }
 
 body.pricing-redesign .pricing-early-access-desc {
-  margin: 0.375rem 0 0 !important;
-  color: #4e5970 !important;
+  margin: 0.25rem 0 0 !important;
+  color: #566176 !important;
 }
 
 body.pricing-redesign .pricing-card-divider {
   height: 1px;
   margin: 1rem 0 0.75rem;
-  background: #e8ecef;
+  background: #e9eeee;
 }
 
 body.pricing-redesign .pricing-features {
+  display: grid !important;
+  gap: 0.5rem;
   margin: 0 !important;
   padding: 0 !important;
   list-style: none;
@@ -303,23 +371,28 @@ body.pricing-redesign .pricing-features {
 body.pricing-redesign .pricing-features li {
   position: relative;
   display: block !important;
-  padding: 0.375rem 0 0.375rem 1.5rem !important;
+  padding: 0 0 0 1.375rem !important;
   border: 0 !important;
-  color: #253047 !important;
-  font-size: 0.875rem !important;
-  line-height: 1.35;
+  color: #263247 !important;
+  font-size: 0.8125rem !important;
+  line-height: 1.4;
 }
 
 body.pricing-redesign .pricing-features li::before {
-  content: '✓' !important;
+  content: "✓" !important;
   position: absolute;
-  top: 0.375rem;
-  left: 0.125rem;
+  top: 0;
+  left: 0;
   margin: 0 !important;
-  color: #0b8073 !important;
-  font-size: 0.875rem !important;
-  font-weight: 800;
-  line-height: 1;
+  color: var(--pricing-teal) !important;
+  font-size: 0.8125rem !important;
+  font-weight: 900;
+  line-height: 1.4;
+}
+
+/* The comparison table carries the exhaustive list; cards stay scannable. */
+body.pricing-redesign .pricing-features li:nth-child(n + 6) {
+  display: none !important;
 }
 
 body.pricing-redesign .pricing-cta {
@@ -327,16 +400,16 @@ body.pricing-redesign .pricing-cta {
   align-items: center;
   justify-content: center;
   width: 100%;
-  min-height: 44px;
-  margin: auto 0 0 !important;
+  min-height: 46px;
+  margin: 1.25rem 0 0 !important;
   padding: 0.75rem 0.875rem !important;
-  border: 1px solid #0b8073 !important;
-  border-radius: 8px !important;
-  background: linear-gradient(180deg, #0b887a, #08776c) !important;
+  border: 1px solid var(--pricing-teal) !important;
+  border-radius: 10px !important;
+  background: var(--pricing-teal) !important;
   color: #fff !important;
-  box-shadow: 0 3px 8px rgba(11, 128, 115, 0.14);
+  box-shadow: 0 6px 16px rgba(11, 128, 115, 0.17);
   font-size: 0.875rem !important;
-  font-weight: 700 !important;
+  font-weight: 800 !important;
   line-height: 1.2;
   text-align: center;
   text-decoration: none;
@@ -344,32 +417,37 @@ body.pricing-redesign .pricing-cta {
 }
 
 body.pricing-redesign .pricing-cta:hover {
-  border-color: #076f64 !important;
-  background: linear-gradient(180deg, #087d70, #066b61) !important;
-  box-shadow: 0 5px 12px rgba(11, 128, 115, 0.18);
+  border-color: var(--pricing-teal-dark) !important;
+  background: var(--pricing-teal-dark) !important;
+  box-shadow: 0 8px 20px rgba(11, 128, 115, 0.22);
   transform: translateY(-1px) !important;
+}
+
+body.pricing-redesign .pricing-cta:focus-visible {
+  outline: 3px solid rgba(11, 128, 115, 0.24);
+  outline-offset: 3px;
 }
 
 body.pricing-redesign .pricing-cta.secondary {
   background: #fff !important;
-  color: #08786e !important;
+  color: var(--pricing-teal-dark) !important;
   box-shadow: none;
 }
 
 body.pricing-redesign .pricing-cta.secondary:hover {
-  background: #f1fbf8 !important;
+  background: var(--pricing-soft) !important;
 }
 
 body.pricing-redesign .pricing-savings {
   align-self: center;
-  margin: 0.5rem 0 0 !important;
-  padding: 0.5rem 0.75rem;
+  margin: 0.625rem 0 0 !important;
+  padding: 0.375rem 0.625rem;
   text-align: center;
 }
 
 body.pricing-redesign .pricing-offer-terms {
-  margin: 0.625rem 0 0 !important;
-  color: #647087 !important;
+  margin: 0.5rem 0 0 !important;
+  color: #7a8495 !important;
   text-align: center;
 }
 
@@ -377,18 +455,23 @@ body.pricing-redesign .pricing-security-note {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-wrap: wrap;
   gap: 0.5rem;
   margin: 1.25rem 0 0;
-  color: #56627a;
-  font-size: 0.875rem;
-  font-weight: 500;
+  color: #5a6678;
+  font-size: 0.8125rem;
+  font-weight: 600;
 }
 
-body.pricing-redesign .pricing-security-note svg {
-  width: 20px;
-  height: 20px;
-  color: #536684;
-  flex: 0 0 auto;
+body.pricing-redesign .pricing-security-icon {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #dff5ef;
+  color: var(--pricing-teal-dark);
+  font-weight: 900;
 }
 
 body.pricing-redesign .pricing-comparison,
@@ -398,25 +481,36 @@ body.pricing-redesign .pricing-faq {
 }
 
 body.pricing-redesign .pricing-section-heading {
-  margin-bottom: 1.25rem;
+  max-width: 720px;
+  margin: 0 auto 1.25rem;
   text-align: center;
+}
+
+body.pricing-redesign .pricing-section-heading .pricing-eyebrow {
+  margin-bottom: 0.5rem;
 }
 
 body.pricing-redesign .pricing-section-heading h2,
 body.pricing-redesign .pricing-promise h2 {
   margin: 0;
-  color: #0b132b;
-  /* 28px, not 30px: 30 is not a step on the site's type scale. */
+  color: var(--pricing-ink);
   font-size: 1.75rem;
   line-height: 1.2;
 }
 
+body.pricing-redesign .pricing-section-heading > p:last-child,
+body.pricing-redesign .pricing-promise p {
+  margin: 0.5rem 0 0;
+  color: var(--pricing-muted);
+  line-height: 1.55;
+}
+
 body.pricing-redesign .comparison-table-wrapper {
   overflow-x: auto;
-  border: 1px solid #e2e7ec;
-  border-radius: 12px;
+  border: 1px solid var(--pricing-line);
+  border-radius: 16px;
   background: #fff;
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+  box-shadow: 0 12px 36px rgba(15, 23, 42, 0.06);
 }
 
 body.pricing-redesign .comparison-table {
@@ -427,39 +521,49 @@ body.pricing-redesign .comparison-table {
 
 body.pricing-redesign .comparison-table th,
 body.pricing-redesign .comparison-table td {
-  padding: 1rem;
-  border-bottom: 1px solid #edf0f2;
-  color: #374151;
-  font-size: 0.875rem;
+  padding: 0.875rem 1rem;
+  border-bottom: 1px solid #edf1f1;
+  color: #344054;
+  font-size: 0.8125rem;
   text-align: center;
 }
 
 body.pricing-redesign .comparison-table th:first-child,
 body.pricing-redesign .comparison-table td:first-child {
+  width: 34%;
   text-align: left;
 }
 
 body.pricing-redesign .comparison-table th {
-  background: #f7f9fa;
-  color: #111827;
-  font-size: 1rem;
-  font-weight: 700;
+  background: #f7f9f9;
+  color: var(--pricing-ink);
+  font-size: 0.875rem;
+  font-weight: 800;
 }
 
 body.pricing-redesign .comparison-table .popular,
 body.pricing-redesign .comparison-table .popular-col {
-  background: #effaf7;
+  background: #eff9f7;
+}
+
+body.pricing-redesign .comparison-table .popular {
+  color: var(--pricing-teal-dark);
+}
+
+body.pricing-redesign .comparison-table tbody tr:last-child td {
+  border-bottom: 0;
 }
 
 body.pricing-redesign .pricing-promise {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
   gap: 2rem;
-  padding: 2rem;
-  border: 1px solid #dce9e6;
-  border-radius: 12px;
-  background: #f1fbf8;
+  padding: 1.75rem 2rem;
+  border: 1px solid #cfe7e2;
+  border-radius: 16px;
+  background:
+    linear-gradient(120deg, #edf9f7, #f8fcfb);
 }
 
 body.pricing-redesign .pricing-promise ul {
@@ -467,119 +571,191 @@ body.pricing-redesign .pricing-promise ul {
   gap: 0.625rem;
   margin: 0;
   padding: 0;
-  color: #253047;
-  font-size: 0.875rem;
   list-style: none;
 }
 
+body.pricing-redesign .pricing-promise li {
+  position: relative;
+  padding-left: 1.375rem;
+  color: #344054;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
 body.pricing-redesign .pricing-promise li::before {
-  content: '✓';
-  margin-right: 0.5rem;
-  color: #0b8073;
-  font-weight: 800;
+  content: "✓";
+  position: absolute;
+  left: 0;
+  color: var(--pricing-teal);
+  font-weight: 900;
 }
 
 body.pricing-redesign .pricing-faq {
-  max-width: 780px;
+  max-width: 860px;
   margin-right: auto;
   margin-left: auto;
 }
 
+body.pricing-redesign .pricing-faq-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
 body.pricing-redesign .pricing-faq details {
-  margin-bottom: 0.75rem;
-  padding: 1rem 1.25rem;
-  border: 1px solid #e2e7ec;
-  border-radius: 10px;
+  border: 1px solid var(--pricing-line);
+  border-radius: 12px;
   background: #fff;
+  box-shadow: 0 5px 18px rgba(15, 23, 42, 0.035);
 }
 
 body.pricing-redesign .pricing-faq summary {
-  color: #111827;
-  font-size: 1rem;
-  font-weight: 700;
+  position: relative;
+  padding: 1rem 3rem 1rem 1.125rem;
+  color: var(--pricing-ink);
+  font-size: 0.875rem;
+  font-weight: 800;
   cursor: pointer;
+  list-style: none;
 }
 
-body.pricing-redesign .pricing-faq p {
-  margin: 0.75rem 0 0;
-  color: #56627a;
+body.pricing-redesign .pricing-faq summary::-webkit-details-marker {
+  display: none;
+}
+
+body.pricing-redesign .pricing-faq summary::after {
+  content: "+";
+  position: absolute;
+  top: 50%;
+  right: 1.125rem;
+  color: var(--pricing-teal-dark);
+  font-size: 1.25rem;
+  transform: translateY(-50%);
+}
+
+body.pricing-redesign .pricing-faq details[open] summary::after {
+  content: "−";
+}
+
+body.pricing-redesign .pricing-faq details p {
+  margin: 0;
+  padding: 0 1.125rem 1rem;
+  color: var(--pricing-muted);
   font-size: 0.875rem;
-  line-height: 1.6;
+  line-height: 1.55;
+}
+
+body.pricing-redesign .pricing-notice-banner {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 8500;
+  max-width: min(420px, calc(100vw - 2rem));
+  padding: 0.875rem 1rem;
+  border-radius: 12px;
+  color: #fff;
+  box-shadow: var(--pricing-shadow);
+}
+
+body.pricing-redesign .pricing-notice-banner--success {
+  background: var(--pricing-teal-dark);
+}
+
+body.pricing-redesign .pricing-notice-banner--error {
+  background: #b42318;
 }
 
 @media (max-width: 980px) {
-  body.pricing-redesign .pricing-container {
-    max-width: 720px !important;
+  body.pricing-redesign .pricing-hero .container {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "eyebrow"
+      "title"
+      "subtitle"
+      "toggle";
+  }
+
+  body.pricing-redesign .pricing-billing-toggle {
+    justify-self: start;
+    margin-top: 1rem;
   }
 
   body.pricing-redesign .pricing-grid {
     grid-template-columns: 1fr !important;
-    gap: 1rem !important;
-    max-width: 520px;
-    margin-inline: auto !important;
-  }
-
-  body.pricing-redesign .pricing-card,
-  body.pricing-redesign .pricing-card.featured {
-    min-height: auto;
-    margin-top: 0 !important;
+    max-width: 680px;
+    margin: 0 auto !important;
   }
 
   body.pricing-redesign .pricing-card-heading {
-    min-height: auto;
+    min-height: 0;
   }
 
   body.pricing-redesign .pricing-promise {
-    align-items: flex-start;
-    flex-direction: column;
+    grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 640px) {
   body.pricing-redesign .pricing-hero {
-    padding: 1.5rem 1rem 0.875rem !important;
+    padding: 1rem 0.75rem 0.5rem !important;
+  }
+
+  body.pricing-redesign .pricing-hero .container {
+    padding: 1.25rem;
+    border-radius: 14px;
   }
 
   body.pricing-redesign .pricing-hero h1 {
-    font-size: 2.25rem !important;
+    font-size: 2rem !important;
   }
 
   body.pricing-redesign .pricing-hero .subtitle {
-    max-width: 340px;
+    font-size: 0.875rem !important;
   }
 
   body.pricing-redesign .pricing-billing-toggle {
-    gap: 0.5rem;
-    margin-top: 0.75rem;
+    width: 100%;
+    justify-content: center;
+    flex-wrap: wrap;
+    border-radius: 12px;
   }
 
   body.pricing-redesign .pricing-billing-saving {
-    padding: 0.375rem 0.5rem;
+    width: 100%;
+    text-align: center;
   }
 
   body.pricing-redesign .pricing-container {
-    padding: 0.5rem 0.875rem 2rem !important;
+    padding: 0.75rem 0.75rem 3rem !important;
   }
 
   body.pricing-redesign .pricing-card-content {
-    padding: 1.5rem 1.25rem 1.25rem;
+    padding: 1.25rem;
   }
 
   body.pricing-redesign .pricing-card.featured .pricing-card-content {
-    padding-top: 2.5rem;
+    padding-top: 2.625rem;
   }
 
-  body.pricing-redesign .pricing-comparison {
+  body.pricing-redesign .pricing-features li:nth-child(n + 5) {
     display: none !important;
   }
 
+  body.pricing-redesign .pricing-security-note > span[aria-hidden="true"] {
+    display: none;
+  }
+
+  body.pricing-redesign .pricing-security-note {
+    flex-direction: column;
+  }
+
+  body.pricing-redesign .pricing-comparison,
   body.pricing-redesign .pricing-promise,
   body.pricing-redesign .pricing-faq {
     margin-top: 2.5rem;
   }
 
   body.pricing-redesign .pricing-promise {
-    padding: 1.5rem;
+    padding: 1.25rem;
   }
 }
 
@@ -588,5 +764,303 @@ body.pricing-redesign .pricing-faq p {
   body.pricing-redesign .pricing-cta,
   body.pricing-redesign .pricing-billing-switch-thumb {
     transition: none !important;
+  }
+}
+
+/* ==========================================================================
+   Shared design language
+   Brings /pricing onto the same visual system as the community pages: a
+   tinted ground with soft brand blobs, glass surfaces, generous radii and
+   layered shadows instead of flat panels with hairline grey borders. Every
+   value here is matched to community.css so the two surfaces read as one
+   site rather than two.
+   ========================================================================== */
+
+body.pricing-redesign {
+  /* A single warm tint carries the whole page instead of one small radial
+     fading to flat grey, which left everything below the hero looking unlit. */
+  background:
+    radial-gradient(120% 70% at 50% 0%, #f0faf8 0%, rgba(240, 250, 248, 0) 55%),
+    linear-gradient(180deg, #f7fcfb 0%, #f8fafb 100%);
+  background-attachment: fixed;
+}
+
+/* ── Decorative ground ─────────────────────────────────────────────────── */
+
+body.pricing-redesign .pricing-hero {
+  position: relative;
+  isolation: isolate;
+}
+
+body.pricing-redesign .pricing-decor {
+  position: absolute;
+  inset: -2rem 0 -6rem;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+body.pricing-redesign .pricing-blob {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, rgba(19, 182, 162, 0.16), rgba(19, 182, 162, 0));
+}
+
+body.pricing-redesign .pricing-blob--a {
+  width: 620px;
+  height: 620px;
+  top: -300px;
+  left: -200px;
+}
+
+body.pricing-redesign .pricing-blob--b {
+  width: 520px;
+  height: 520px;
+  top: -220px;
+  right: -180px;
+}
+
+body.pricing-redesign .pricing-blob--c {
+  width: 420px;
+  height: 420px;
+  bottom: -280px;
+  left: 45%;
+}
+
+/* ── Hero as a glass card ──────────────────────────────────────────────── */
+
+body.pricing-redesign .pricing-hero .container {
+  padding: 2.25rem 2.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 18px 48px rgba(15, 23, 42, 0.07);
+}
+
+/* Progressive: the card is already legible on the 0.78 white fill, so the
+   blur is applied only where it is supported rather than propped up. */
+@supports (backdrop-filter: blur(8px)) or (-webkit-backdrop-filter: blur(8px)) {
+  body.pricing-redesign .pricing-hero .container {
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+  }
+}
+
+body.pricing-redesign .pricing-billing-toggle {
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 8px 20px rgba(15, 23, 42, 0.06);
+}
+
+/* ── Plan cards ────────────────────────────────────────────────────────── */
+
+body.pricing-redesign .pricing-card {
+  border: 1px solid rgba(15, 23, 42, 0.06) !important;
+  border-radius: 20px !important;
+  background: #fff !important;
+  /* Two-layer shadow: a tight contact shadow plus a wide soft one. A single
+     wide shadow reads as haze and leaves the card looking unanchored. */
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 12px 32px rgba(15, 23, 42, 0.07) !important;
+}
+
+body.pricing-redesign .pricing-card:hover {
+  border-color: rgba(11, 128, 115, 0.28) !important;
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 20px 44px rgba(15, 23, 42, 0.1) !important;
+}
+
+/* A ring rather than a 2px border: the border version shifted the card's
+   content box a pixel out of line with its neighbours. */
+body.pricing-redesign .pricing-card.featured {
+  border: 1px solid rgba(11, 128, 115, 0.28) !important;
+  background: linear-gradient(180deg, #f2fbf9 0%, #fff 22%) !important;
+  box-shadow:
+    0 0 0 2px var(--pricing-teal),
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 24px 56px rgba(11, 128, 115, 0.16) !important;
+}
+
+body.pricing-redesign .pricing-card.featured:hover {
+  box-shadow:
+    0 0 0 2px var(--pricing-teal),
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 30px 64px rgba(11, 128, 115, 0.2) !important;
+}
+
+/* The ribbon was a full-bleed square band across the card's top edge, which
+   fought the 20px radius. A floating pill sits with the rounded language. */
+body.pricing-redesign .pricing-popular-ribbon {
+  inset: 0.875rem 0 auto;
+  width: fit-content;
+  min-height: 0;
+  margin: 0 auto;
+  padding: 0.375rem 0.875rem;
+  border-radius: 999px;
+  box-shadow: 0 4px 12px rgba(11, 128, 115, 0.3);
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+}
+
+body.pricing-redesign .pricing-card.featured .pricing-card-content {
+  padding-top: 3.25rem;
+}
+
+body.pricing-redesign .pricing-card-content {
+  padding: 1.75rem;
+}
+
+/* ── Feature ticks ─────────────────────────────────────────────────────── */
+
+/* A bare ✓ in the text colour reads as punctuation. A tinted disc gives the
+   list the same rhythm as the community category icons. */
+body.pricing-redesign .pricing-features li {
+  padding-left: 1.875rem;
+}
+
+body.pricing-redesign .pricing-features li::before {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(11, 128, 115, 0.1);
+  /* 5.79:1 on the tinted disc. */
+  color: var(--pricing-teal-dark);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+/* "Normally £159/month" is real pricing information, struck through but still
+   meant to be read, so it has to meet AA like any other text. #7a8495 measured
+   3.78:1 on the card. This is 4.97:1 and still reads as secondary. The old
+   value was never reported by axe because the card was semi-transparent over a
+   gradient and the contrast could not be resolved; making the card opaque
+   surfaced a failure that was always there. */
+body.pricing-redesign .pricing-normally {
+  color: #667085 !important;
+}
+
+/* ── Calls to action ───────────────────────────────────────────────────── */
+
+body.pricing-redesign .pricing-cta {
+  /* The three plans have different numbers of features, so the buttons landed
+     at three different heights and the row read as unfinished. The cards are
+     already equal height, so pushing the button to the bottom of its own card
+     puts all three on one baseline. */
+  margin-top: auto !important;
+  min-height: 48px;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(11, 128, 115, 0.22);
+}
+
+/* The feature list must not absorb the free space itself, or the button stops
+   at the end of the list again. */
+body.pricing-redesign .pricing-features {
+  flex: 0 0 auto;
+}
+
+/* The saving line sits below the button and only two of the three plans have
+   one, so pushing the buttons to the bottom still left Starter's sitting lower
+   than its neighbours. Reserving the line on every card puts all three on one
+   baseline. `visibility: hidden` rather than removing `[hidden]`'s effect
+   outright: the element keeps its height but stays out of the accessibility
+   tree, so nothing announces an empty saving. */
+body.pricing-redesign .pricing-savings {
+  min-height: 1.75rem;
+}
+
+body.pricing-redesign .pricing-savings[hidden] {
+  display: block !important;
+  visibility: hidden;
+}
+
+body.pricing-redesign .pricing-cta.secondary {
+  box-shadow: none;
+}
+
+body.pricing-redesign .pricing-cta.secondary:hover {
+  background: rgba(11, 128, 115, 0.07) !important;
+}
+
+/* ── Supporting sections ───────────────────────────────────────────────── */
+
+/* These were flat bands running edge to edge, so the page lost all structure
+   below the plans. They now sit on the same card surface as everything else. */
+body.pricing-redesign .comparison-table-wrapper,
+body.pricing-redesign .pricing-promise,
+body.pricing-redesign .pricing-faq-list {
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  border-radius: 20px;
+  background: #fff;
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 12px 32px rgba(15, 23, 42, 0.06);
+}
+
+body.pricing-redesign .pricing-promise {
+  padding: 1.75rem;
+}
+
+body.pricing-redesign .pricing-faq-list {
+  padding: 0.5rem 1.25rem;
+}
+
+body.pricing-redesign .pricing-faq details {
+  border-bottom: 1px solid rgba(15, 23, 42, 0.07);
+}
+
+body.pricing-redesign .pricing-faq details:last-child {
+  border-bottom: 0;
+}
+
+body.pricing-redesign .pricing-security-note {
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.8);
+}
+
+/* ── Motion and forced colours ─────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  body.pricing-redesign .pricing-decor {
+    display: none;
+  }
+}
+
+@media (forced-colors: active) {
+  body.pricing-redesign .pricing-decor {
+    display: none;
+  }
+  body.pricing-redesign .pricing-card,
+  body.pricing-redesign .pricing-hero .container,
+  body.pricing-redesign .comparison-table-wrapper,
+  body.pricing-redesign .pricing-promise,
+  body.pricing-redesign .pricing-faq-list {
+    border: 1px solid CanvasText !important;
+    box-shadow: none !important;
+  }
+}
+
+/* The hero card's inner padding is too generous for a narrow screen, and the
+   blobs are drawn to a desktop composition. */
+@media (max-width: 700px) {
+  body.pricing-redesign .pricing-hero .container {
+    padding: 1.5rem 1.25rem;
+    border-radius: 20px;
+  }
+  body.pricing-redesign .pricing-card-content {
+    padding: 1.5rem 1.25rem;
+  }
+  body.pricing-redesign .pricing-blob--c {
+    display: none;
   }
 }
