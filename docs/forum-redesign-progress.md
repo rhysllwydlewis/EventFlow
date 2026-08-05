@@ -390,6 +390,19 @@ Details that needed deciding rather than defaulting:
 dangerous — see the entry above. That was not part of the request and is the
 more serious of the two findings.
 
+**Caught in review (Codex, correct).** The dialog's `cancel` handler called
+`preventDefault()` only when the member _declined_ the confirmation. An accepted
+Escape therefore let the browser close the dialog natively, skipping
+`closeDialog()` altogether. Codex reported the stale contents and the missed
+focus path; the sharper consequence it did not name is that the autosave timer
+stayed armed, so **a draft of the content the member had just chosen to discard
+was saved about three seconds later**. Reproduced before the fix (one draft
+saved, form still in the DOM) and confirmed after (zero drafts, DOM cleared).
+The handler now always prevents the default and calls `closeDialog()`, which
+also clears both pending timers. Focus return was already working — the
+browser's native dialog restoration covered it — so that part of the report was
+correct in principle but not observable.
+
 Verified: full `npm test` **8185 passing, 0 failing**. Axe clean on the page and
 on the modal at 1440 and 390. No horizontal overflow, no JavaScript errors, one
 `h1` on the page with the modal open. Checkbox geometry compared against the

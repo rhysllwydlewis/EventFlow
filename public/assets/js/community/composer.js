@@ -485,6 +485,11 @@
     if (!dialog) {
       return;
     }
+    // Both timers are armed by typing. Left running they fire against a form
+    // that is no longer on screen — and the draft one would save a copy of the
+    // very content the member just chose to discard.
+    clearTimeout(draftTimer);
+    clearTimeout(suggestTimer);
     dialog.close();
     dialog.querySelector('.efc-dialog__scroll').innerHTML = '';
     if (returnFocusTo && document.contains(returnFocusTo)) {
@@ -533,11 +538,15 @@
       }
     });
 
-    // Escape fires `cancel` before the dialog closes, so this is the only
-    // place the confirmation can intercept a keyboard dismissal.
+    // Escape fires `cancel` before the dialog closes, so this is the only place
+    // a keyboard dismissal can be intercepted. The default action is always
+    // prevented and closeDialog() called instead: letting the browser close the
+    // dialog natively skips the teardown, which would leave the discarded draft
+    // sitting in the DOM with its autosave timer still armed.
     dialog.addEventListener('cancel', event => {
-      if (!confirmClose()) {
-        event.preventDefault();
+      event.preventDefault();
+      if (confirmClose()) {
+        closeDialog();
       }
     });
 

@@ -111,8 +111,29 @@ describe('the modal is an enhancement over a working link', () => {
     // `cancel` fires before the dialog closes, and is the only place a
     // keyboard dismissal can be intercepted.
     expect(js).toContain("dialog.addEventListener('cancel'");
-    expect(js).toContain('event.preventDefault()');
     expect(js).toContain('function hasUnsavedContent');
+  });
+
+  it('tears the dialog down on Escape rather than letting the browser close it', () => {
+    // Caught in review. The handler used to preventDefault only when the
+    // member declined the confirmation, so an accepted Escape let the browser
+    // close the dialog natively and skipped closeDialog() entirely. The
+    // discarded form stayed in the DOM with its autosave timer still armed —
+    // measured: one draft was saved ~3s after the member chose to discard.
+    const handler = js.slice(js.indexOf("dialog.addEventListener('cancel'"));
+    const body = handler.slice(0, handler.indexOf('});'));
+    // preventDefault must be unconditional, so it cannot sit inside an if.
+    expect(body).toMatch(/cancel',\s*event => \{\s*event\.preventDefault\(\);/);
+    expect(body).toContain('closeDialog()');
+  });
+
+  it('cancels pending timers when the dialog closes', () => {
+    const close = js.slice(js.indexOf('function closeDialog'));
+    const body = close.slice(0, close.indexOf('\n  }'));
+    expect(body).toContain('clearTimeout(draftTimer)');
+    expect(body).toContain('clearTimeout(suggestTimer)');
+    // Ordered before close() so nothing can fire against a hidden form.
+    expect(body.indexOf('clearTimeout(draftTimer)')).toBeLessThan(body.indexOf('dialog.close()'));
   });
 
   it('returns focus to whatever opened it', () => {
