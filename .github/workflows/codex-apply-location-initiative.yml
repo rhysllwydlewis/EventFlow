@@ -29,9 +29,23 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cat .github/codex-transfer/part-{00..07} | tr -cd 'A-Za-z0-9+/=' > /tmp/implementation.git.patch.gz.b64
-          base64 --decode /tmp/implementation.git.patch.gz.b64 > /tmp/implementation.git.patch.gz
-          echo '99d3e0c4d690fe8caab5c15d72ca6e676d81cfbbe659d9cdfff6e27f49754043  /tmp/implementation.git.patch.gz' | sha256sum --check --strict
+          python - <<'PY'
+          from pathlib import Path
+          import base64
+          import hashlib
+          import re
+
+          parts = [Path(f'.github/codex-transfer/part-{index:02d}').read_bytes() for index in range(8)]
+          cleaned = re.sub(rb'[^A-Za-z0-9+/]', b'', b''.join(parts))
+          print(f'cleaned_base64_bytes={len(cleaned)} modulo={len(cleaned) % 4}')
+          padded = cleaned + (b'=' * ((-len(cleaned)) % 4))
+          decoded = base64.b64decode(padded, validate=True)
+          digest = hashlib.sha256(decoded).hexdigest()
+          print(f'decoded_gzip_bytes={len(decoded)} sha256={digest}')
+          if digest != '99d3e0c4d690fe8caab5c15d72ca6e676d81cfbbe659d9cdfff6e27f49754043':
+              raise SystemExit('decoded gzip checksum mismatch')
+          Path('/tmp/implementation.git.patch.gz').write_bytes(decoded)
+          PY
           gzip -dc /tmp/implementation.git.patch.gz > /tmp/implementation.git.patch
           echo '6cd7d590d3263c8978c3f898c013a8c5cc4189607bd3e3fd99f0e9faaff243f4  /tmp/implementation.git.patch' | sha256sum --check --strict
 
