@@ -28,7 +28,7 @@ const ASSET_VERSIONS = {
   '/assets/css/community.css': '18.5.0',
   '/assets/js/community/core.js': '18.4.0',
   '/assets/js/community/home.js': '18.4.0',
-  '/assets/js/community/composer.js': '18.5.1',
+  '/assets/js/community/composer.js': '18.5.2',
 };
 
 /**

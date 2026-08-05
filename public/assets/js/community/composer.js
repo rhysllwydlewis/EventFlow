@@ -50,7 +50,7 @@
   function render() {
     if (!viewer) {
       root.innerHTML = `<div class="efc-notice efc-notice--info">
-        <${headingTag}>Start a discussion</${headingTag}>
+        <${headingTag} id="efc-composer-title">Start a discussion</${headingTag}>
         <p>You need an EventFlow account to post. Anyone can read the community.</p>
         <p><a class="btn btn-primary" href="/auth?next=/community/new">Log in or join</a></p>
       </div>`;
@@ -58,7 +58,7 @@
     }
     if (!viewer.emailVerified) {
       root.innerHTML = `<div class="efc-notice" role="alert">
-        <${headingTag}>Verify your email first</${headingTag}>
+        <${headingTag} id="efc-composer-title">Verify your email first</${headingTag}>
         <p>Check your inbox for the EventFlow verification link, then come back and post.</p>
       </div>`;
       return;
@@ -71,7 +71,7 @@
         ? `<p class="efc-meta">This lifts on ${EFC.esc(EFC.shortDate(viewer.restriction.expiresAt))}.</p>`
         : '<p class="efc-meta">This restriction does not expire on its own.</p>';
       root.innerHTML = `<div class="efc-notice efc-notice--danger" role="alert">
-        <${headingTag}>Posting is currently restricted</${headingTag}>
+        <${headingTag} id="efc-composer-title">Posting is currently restricted</${headingTag}>
         <p>${EFC.esc(viewer.restriction.reason || 'A moderator has restricted your community access.')}</p>
         ${until}
         <p><a href="/community/help#appeals">Appeal this decision</a></p>
@@ -524,7 +524,11 @@
     dialog = document.createElement('dialog');
     dialog.className = 'efc-dialog efc-dialog--composer';
     dialog.id = 'efc-composer-dialog';
+    // Every render branch emits a heading carrying this id. aria-label is the
+    // fallback for the moment before the first render lands, when the
+    // reference would otherwise dangle and leave the dialog unnamed.
     dialog.setAttribute('aria-labelledby', 'efc-composer-title');
+    dialog.setAttribute('aria-label', 'Start a discussion');
     dialog.innerHTML = `
       <button type="button" class="efc-dialog__close" aria-label="Close the composer">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"

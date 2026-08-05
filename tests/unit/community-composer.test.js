@@ -141,6 +141,23 @@ describe('the modal is an enhancement over a working link', () => {
     expect(js).toContain('returnFocusTo.focus()');
   });
 
+  it('names the dialog in every render branch, not just the signed-in one', () => {
+    // The dialog points aria-labelledby at #efc-composer-title. Only the main
+    // form carried that id, so the signed-out, unverified and restricted
+    // composers left the reference dangling and the dialog unnamed.
+    //
+    // axe does not catch this: `aria-dialog-name` is tagged best-practice, and
+    // the visual suite filters to wcag2a/2aa/21a/21aa. Measured on all four
+    // viewer states — three were unnamed and axe reported zero violations.
+    const headings = js.match(/<\$\{headingTag\}[^>]*>/g) || [];
+    expect(headings.length).toBeGreaterThanOrEqual(4);
+    for (const heading of headings) {
+      expect(heading).toContain('id="efc-composer-title"');
+    }
+    // aria-label covers the skeleton, before the first heading exists.
+    expect(js).toContain("dialog.setAttribute('aria-label', 'Start a discussion')");
+  });
+
   it('reads the category preselect from the link, not the current page', () => {
     // /community/new?category=venues opened as a modal from /community would
     // otherwise read /community's own (empty) query string.

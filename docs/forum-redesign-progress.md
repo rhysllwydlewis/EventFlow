@@ -403,7 +403,18 @@ also clears both pending timers. Focus return was already working — the
 browser's native dialog restoration covered it — so that part of the report was
 correct in principle but not observable.
 
-Verified: full `npm test` **8185 passing, 0 failing**. Axe clean on the page and
+**Found in my own review pass, before merge.** The dialog points
+`aria-labelledby` at `#efc-composer-title`, but only the signed-in form branch
+carried that id — so the signed-out, email-unverified and restricted composers
+left the reference dangling and the dialog had **no accessible name**. Measured
+across all four viewer states: three were unnamed. Notably **axe reported zero
+violations on all three**, because `aria-dialog-name` is tagged best-practice
+and the visual suite filters to `wcag2a/2aa/21a/21aa`. Every branch now carries
+the id, with `aria-label` as a fallback for the moment before the first render.
+The lesson worth keeping: testing the happy path of a component with four
+render branches proves very little.
+
+Verified: full `npm test` **8188 passing, 0 failing**. Axe clean on the page and
 on the modal at 1440 and 390. No horizontal overflow, no JavaScript errors, one
 `h1` on the page with the modal open. Checkbox geometry compared against the
 previous `styles.css` on seven pages including every visual baseline: identical
