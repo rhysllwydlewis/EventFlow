@@ -294,7 +294,7 @@
       }
     </style>
     <link rel="stylesheet" href="/assets/css/eventflow-footer.css">
-    <link rel="stylesheet" href="/assets/css/homepage-approved-lower.css?v=3">
+    <link rel="stylesheet" href="/assets/css/homepage-approved-lower.css?v=4">
     <link rel="stylesheet" href="/assets/css/public-mobile-compact.css" />
 </head>
   <body>
@@ -888,6 +888,55 @@
               <p class="ef-card__text">
                 Create a free account to save your plan and start conversations with suppliers.
               </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Location discovery stays off the crowded navbar and is promoted here instead. -->
+      <section class="ef-home-locations" aria-labelledby="home-locations-title">
+        <div class="container">
+          <div class="ef-home-locations__panel">
+            <div class="ef-home-locations__copy">
+              <span class="ef-home-locations__kicker">Plan locally</span>
+              <h2 id="home-locations-title">Find event suppliers near you</h2>
+              <p>
+                Explore venues, caterers, photographers and more from suppliers based in or
+                travelling to your part of the UK.
+              </p>
+              <form class="ef-home-locations__search" action="/suppliers" method="get" role="search">
+                <label for="home-location-search">City or postcode</label>
+                <div class="ef-home-locations__search-row">
+                  <span class="ef-home-locations__pin" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M20 10c0 5.5-8 12-8 12S4 15.5 4 10a8 8 0 1 1 16 0Z"></path>
+                      <circle cx="12" cy="10" r="2.5"></circle>
+                    </svg>
+                  </span>
+                  <input
+                    id="home-location-search"
+                    name="location"
+                    type="search"
+                    placeholder="e.g. Cardiff or CF10"
+                    autocomplete="postal-code"
+                  />
+                  <button type="submit">Find suppliers</button>
+                </div>
+              </form>
+              <a class="ef-home-locations__all" href="/locations">
+                Browse all UK locations
+                <span aria-hidden="true">&rarr;</span>
+              </a>
+            </div>
+
+            <div class="ef-home-locations__explore" aria-label="Popular location searches">
+              <p>Popular searches</p>
+              <div class="ef-home-locations__city-grid">
+                <a href="/suppliers?location=London"><strong>London</strong><span>Greater London</span></a>
+                <a href="/suppliers?location=Cardiff"><strong>Cardiff</strong><span>South Wales</span></a>
+                <a href="/suppliers?location=Manchester"><strong>Manchester</strong><span>North West</span></a>
+                <a href="/suppliers?location=Birmingham"><strong>Birmingham</strong><span>West Midlands</span></a>
+              </div>
             </div>
           </div>
         </div>
