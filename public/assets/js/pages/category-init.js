@@ -1,226 +1,98 @@
 /**
- * Category page initialization script.
- * Loads category details and packages for a category slug and uses the shared
- * skeleton lifecycle for loading, empty and retryable error states.
+ * Category page initialization script
+ * Loads category details and packages for a given category slug
  */
 
+// Set page identifier
 window.__EF_PAGE__ = 'category';
 
-const SKELETON_LOADER_URL = '/assets/js/utils/skeleton-loader.js';
-const CATEGORY_NOT_FOUND = 'Category not found';
+document.addEventListener('DOMContentLoaded', () => {
+  // Get category slug from URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const slug = urlParams.get('slug');
 
-/**
- * Return only same-origin or HTTP(S) image URLs.
- * @param {*} url Candidate image URL.
- * @returns {string} A safe URL or an empty string.
- */
-function sanitizeUrl(url) {
-  const value = String(url ?? '').trim();
-  return /^https?:\/\//i.test(value) || value.startsWith('/') ? value : '';
-}
-
-/**
- * Convert an unknown caught value into user-safe fallback copy.
- * @param {*} error Caught value.
- * @returns {string} Normalized error message.
- */
-function getErrorMessage(error) {
-  return error instanceof Error && error.message ? error.message : 'Unable to load category';
-}
-
-/**
- * Render the initial title, description, hero and package placeholders.
- * @param {Object} elements Required category page elements.
- * @param {Object} skeletons Shared skeleton-loader module.
- * @returns {void}
- */
-function setInitialLoadingState(elements, skeletons) {
-  const { title, description, hero, packagesContainer } = elements;
-  title.setAttribute('aria-busy', 'true');
-  title.innerHTML =
-    '<span class="skeleton skeleton-title" style="width:min(280px,70vw)" aria-hidden="true"></span><span class="sr-only">Loading category</span>';
-  description.innerHTML =
-    '<span class="skeleton skeleton-text skeleton-text-medium" aria-hidden="true"></span>';
-  hero.setAttribute('aria-busy', 'true');
-  hero.innerHTML =
-    '<div class="skeleton skeleton-media skeleton-media--event" aria-hidden="true"></div>';
-  skeletons.showSkeleton(packagesContainer, 'packageCard', { count: 6 });
-}
-
-/**
- * Remove loading semantics after a terminal page state is rendered.
- * @param {Object} elements Required category page elements.
- * @returns {void}
- */
-function clearLoadingAttributes(elements) {
-  const { title, hero, packagesContainer } = elements;
-  title.removeAttribute('aria-busy');
-  hero.removeAttribute('aria-busy');
-  packagesContainer.removeAttribute('aria-busy');
-  packagesContainer.removeAttribute('data-skeleton-state');
-}
-
-/**
- * Render the optional category hero without interpolating untrusted HTML.
- * @param {HTMLElement} hero Hero mount.
- * @param {Object} category Category view model.
- * @returns {void}
- */
-function renderCategoryHero(hero, category) {
-  const heroImage = sanitizeUrl(category.heroImage);
-  hero.replaceChildren();
-  if (!heroImage) {
+  if (!slug) {
+    document.getElementById('category-title').textContent = 'Category not found';
+    document.getElementById('package-list-container').innerHTML =
+      '<div class="package-empty-state"><p>Invalid category. <a href="/">Return home</a></p></div>';
     return;
   }
 
-  const wrapper = document.createElement('div');
-  wrapper.className = 'category-hero-img-wrap';
+  // Load category and packages
+  fetch(`/api/v1/categories/${slug}`)
+    .then(res => {
+      if (!res.ok) {
+        throw new Error('Category not found');
+      }
+      return res.json();
+    })
+    .then(data => {
+      const { category, packages } = data;
 
-  const image = document.createElement('img');
-  image.src = heroImage;
-  image.alt = String(category.name || 'Category');
-  image.className = 'category-hero-img';
+      // Update page title and metadata
+      document.title = `${category.name} — EventFlow`;
+      document.getElementById('category-title').textContent = category.name;
+      document.getElementById('category-description').textContent = category.description || '';
+      document.getElementById('breadcrumb-category').textContent = category.name;
 
-  const overlay = document.createElement('div');
-  overlay.className = 'category-hero-overlay';
+      // Helper function to escape HTML
+      function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text || '';
+        return div.innerHTML;
+      }
 
-  const heading = document.createElement('h1');
-  heading.className = 'category-hero-title';
-  heading.textContent = [category.icon, category.name].filter(Boolean).join(' ');
+      // Helper function to sanitize URLs - only allow http/https
+      function sanitizeUrl(url) {
+        if (!url) {
+          return '';
+        }
+        const urlStr = String(url).trim();
+        // Only allow http and https URLs, reject everything else
+        if (!/^https?:\/\//i.test(urlStr)) {
+          // If it doesn't start with http/https, check if it's a relative URL
+          if (!urlStr.startsWith('/')) {
+            return '';
+          }
+          // Allow relative URLs (start with /)
+          return escapeHtml(urlStr);
+        }
+        return escapeHtml(urlStr);
+      }
 
-  overlay.appendChild(heading);
-  wrapper.append(image, overlay);
-  hero.appendChild(wrapper);
-}
+      // Show hero image if available
+      if (category.heroImage) {
+        const heroSection = document.getElementById('category-hero-section');
+        const heroImage = sanitizeUrl(category.heroImage);
+        const categoryName = escapeHtml(category.name);
+        const categoryIcon = escapeHtml(category.icon || '');
 
-/**
- * Render the terminal state used when the URL has no category slug.
- * @param {Object} elements Required category page elements.
- * @param {Object} skeletons Shared skeleton-loader module.
- * @returns {void}
- */
-function renderMissingCategory(elements, skeletons) {
-  const { title, description, breadcrumb, hero, packagesContainer } = elements;
-  title.textContent = CATEGORY_NOT_FOUND;
-  description.textContent = '';
-  breadcrumb.textContent = CATEGORY_NOT_FOUND;
-  hero.replaceChildren();
-  clearLoadingAttributes(elements);
-  skeletons.showEmptyState(packagesContainer, {
-    icon: '📦',
-    title: CATEGORY_NOT_FOUND,
-    description: 'The category link is incomplete or no longer available.',
-    actionText: 'Return home',
-    actionHref: '/',
-  });
-}
+        heroSection.innerHTML = `
+          <div class="category-hero-img-wrap">
+            <img src="${escapeHtml(heroImage)}" alt="${escapeHtml(categoryName)}" 
+                 class="category-hero-img">
+            <div class="category-hero-overlay">
+              <h1 class="category-hero-title">${escapeHtml(categoryIcon)} ${escapeHtml(categoryName)}</h1>
+            </div>
+          </div>
+        `;
+      }
 
-/**
- * Render a retryable request or component-load failure.
- * @param {Object} elements Required category page elements.
- * @param {Object} skeletons Shared skeleton-loader module.
- * @param {*} error Caught value.
- * @returns {void}
- */
-function renderLoadFailure(elements, skeletons, error) {
-  const { title, description, hero, packagesContainer } = elements;
-  const message = getErrorMessage(error);
-  const missing = message === CATEGORY_NOT_FOUND;
-
-  title.textContent = missing ? CATEGORY_NOT_FOUND : 'Unable to load category';
-  description.textContent = '';
-  hero.replaceChildren();
-  clearLoadingAttributes(elements);
-  skeletons.showErrorState(packagesContainer, {
-    title: missing ? CATEGORY_NOT_FOUND : 'Unable to load packages',
-    description: missing
-      ? 'This category may have been renamed or removed.'
-      : 'Please check your connection and try again.',
-    actionText: 'Try again',
-    onAction: initCategoryPage,
-  });
-}
-
-/**
- * Load and render the category payload.
- * @returns {Promise<void>} Resolves after a success, empty or error state renders.
- */
-async function initCategoryPage() {
-  const elements = {
-    title: document.getElementById('category-title'),
-    description: document.getElementById('category-description'),
-    breadcrumb: document.getElementById('breadcrumb-category'),
-    hero: document.getElementById('category-hero-section'),
-    packagesContainer: document.getElementById('package-list-container'),
-  };
-
-  if (Object.values(elements).some(element => !element)) {
-    return;
-  }
-
-  let skeletons;
-  try {
-    skeletons = await import(SKELETON_LOADER_URL);
-    setInitialLoadingState(elements, skeletons);
-
-    if (skeletons.isSkeletonDebugMode()) {
-      return;
-    }
-
-    const slug = new URLSearchParams(window.location.search).get('slug');
-    if (!slug) {
-      renderMissingCategory(elements, skeletons);
-      return;
-    }
-
-    const response = await fetch(`/api/v1/categories/${encodeURIComponent(slug)}`, {
-      credentials: 'include',
-      headers: { Accept: 'application/json' },
+      // Display packages
+      if (typeof PackageList !== 'undefined') {
+        const packageList = new PackageList('package-list-container', {
+          sortFeaturedFirst: true,
+        });
+        packageList.setPackages(packages || []);
+      } else {
+        document.getElementById('package-list-container').innerHTML =
+          '<p>Unable to load packages. Please refresh the page.</p>';
+      }
+    })
+    .catch(error => {
+      console.error('Error loading category:', error);
+      document.getElementById('category-title').textContent = 'Category not found';
+      document.getElementById('package-list-container').innerHTML =
+        '<div class="package-empty-state"><p>This category could not be found. <a href="/">Return home</a></p></div>';
     });
-    if (!response.ok) {
-      throw new Error(response.status === 404 ? CATEGORY_NOT_FOUND : 'Unable to load category');
-    }
-
-    const data = await response.json();
-    const category = data?.category || {};
-    const packages = Array.isArray(data?.packages) ? data.packages : [];
-    const categoryName = String(category.name || 'Category');
-
-    document.title = `${categoryName} — EventFlow`;
-    elements.title.textContent = categoryName;
-    elements.description.textContent = String(category.description || '');
-    elements.breadcrumb.textContent = categoryName;
-    renderCategoryHero(elements.hero, category);
-    clearLoadingAttributes(elements);
-    elements.packagesContainer.replaceChildren();
-
-    const PackageListConstructor = window.PackageList;
-    if (typeof PackageListConstructor !== 'function') {
-      throw new Error('Package list component unavailable');
-    }
-
-    const packageList = new PackageListConstructor('package-list-container', {
-      sortFeaturedFirst: true,
-    });
-    packageList.setPackages(packages);
-  } catch (error) {
-    if (skeletons) {
-      renderLoadFailure(elements, skeletons, error);
-      return;
-    }
-
-    elements.title.textContent = 'Unable to load category';
-    elements.description.textContent = 'Please refresh the page and try again.';
-    elements.hero.replaceChildren();
-    clearLoadingAttributes(elements);
-    elements.packagesContainer.textContent = 'Unable to load packages. Please refresh the page.';
-  }
-}
-
-document.addEventListener(
-  'DOMContentLoaded',
-  () => {
-    void initCategoryPage();
-  },
-  { once: true }
-);
+});
