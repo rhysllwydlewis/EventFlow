@@ -1,169 +1,342 @@
 /**
- * Skeleton Loader Utilities
- * Helper functions to generate skeleton loading states
+ * EventFlow skeleton loader utilities.
+ *
+ * This module is the canonical source for loading, empty and error states.
+ * It intentionally preserves the legacy named exports while adding reusable
+ * page-shaped presets and a deterministic `?skeletonDebug=1` inspection mode.
  */
 
-/**
- * Generate skeleton for supplier card
- * @returns {string} HTML string for skeleton
- */
-export function getSupplierCardSkeleton() {
+const DEFAULT_COUNT = 3;
+const MAX_COUNT = 12;
+
+function resolveContainer(container) {
+  return typeof container === 'string' ? document.querySelector(container) : container;
+}
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function escapeAttribute(value) {
+  return escapeHtml(value).replace(/`/g, '&#96;');
+}
+
+function normaliseCount(value, fallback = DEFAULT_COUNT) {
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isFinite(parsed)) {
+    return fallback;
+  }
+  return Math.min(MAX_COUNT, Math.max(1, parsed));
+}
+
+function repeatMarkup(count, renderer) {
+  return Array.from({ length: normaliseCount(count) }, (_, index) => renderer(index)).join('');
+}
+
+function line(width = 'long', extraClass = '') {
+  return `<span class="skeleton skeleton-text skeleton-text-${width} ${extraClass}" aria-hidden="true"></span>`;
+}
+
+function supplierCardSkeleton() {
   return `
-    <div class="skeleton-supplier-card-full">
+    <article class="skeleton-card skeleton-supplier-card-full" aria-hidden="true">
       <div class="skeleton-supplier-header">
-        <div class="skeleton skeleton-avatar-large"></div>
-        <div class="skeleton-supplier-content" style="flex: 1;">
-          <div class="skeleton skeleton-title"></div>
-          <div class="skeleton skeleton-text skeleton-text-medium"></div>
+        <span class="skeleton skeleton-avatar-large"></span>
+        <div class="skeleton-supplier-content">
+          <span class="skeleton skeleton-title"></span>
+          ${line('medium')}
         </div>
       </div>
-      <div class="skeleton skeleton-text skeleton-text-long"></div>
-      <div class="skeleton skeleton-text skeleton-text-medium"></div>
+      ${line('long')}
+      ${line('medium')}
       <div class="skeleton-supplier-meta">
-        <div class="skeleton skeleton-text skeleton-text-short"></div>
-        <div class="skeleton skeleton-text skeleton-text-short"></div>
-        <div class="skeleton skeleton-text skeleton-text-short"></div>
+        ${line('short')}${line('short')}${line('short')}
       </div>
-    </div>
-  `;
-}
-
-/**
- * Generate skeleton for multiple supplier cards
- * @param {number} count - Number of skeleton cards
- * @returns {string} HTML string for skeletons
- */
-export function getSupplierCardSkeletons(count = 3) {
-  return Array(count)
-    .fill(null)
-    .map(() => getSupplierCardSkeleton())
-    .join('');
-}
-
-/**
- * Generate skeleton for list item (e.g., message thread)
- * @returns {string} HTML string for skeleton
- */
-export function getListItemSkeleton() {
-  return `
-    <div class="skeleton-list-item">
-      <div class="skeleton skeleton-avatar"></div>
-      <div style="flex: 1;">
-        <div class="skeleton skeleton-text skeleton-text-medium" style="margin-bottom: 0.25rem;"></div>
-        <div class="skeleton skeleton-text skeleton-text-short"></div>
+      <div class="skeleton-actions-row">
+        <span class="skeleton skeleton-button"></span>
+        <span class="skeleton skeleton-button"></span>
       </div>
-      <div class="skeleton skeleton-text" style="width: 80px; height: 0.875rem;"></div>
-    </div>
-  `;
+    </article>`;
 }
 
-/**
- * Generate skeleton for multiple list items
- * @param {number} count - Number of skeleton items
- * @returns {string} HTML string for skeletons
- */
-export function getListItemSkeletons(count = 5) {
-  return `<div>${Array(count)
-    .fill(null)
-    .map(() => getListItemSkeleton())
-    .join('')}</div>`;
-}
-
-/**
- * Generate skeleton for search result
- * @returns {string} HTML string for skeleton
- */
-export function getSearchResultSkeleton() {
+function packageCardSkeleton() {
   return `
-    <div class="skeleton-search-result">
-      <div class="skeleton skeleton-search-image"></div>
-      <div class="skeleton-search-content">
-        <div class="skeleton skeleton-title"></div>
-        <div class="skeleton skeleton-text skeleton-text-long"></div>
-        <div class="skeleton skeleton-text skeleton-text-medium"></div>
-        <div style="display: flex; gap: 0.5rem; margin-top: 0.75rem;">
-          <div class="skeleton skeleton-text" style="width: 80px; height: 1.5rem;"></div>
-          <div class="skeleton skeleton-text" style="width: 100px; height: 1.5rem;"></div>
+    <article class="skeleton-card skeleton-package-card" aria-hidden="true">
+      <span class="skeleton skeleton-media skeleton-media--package"></span>
+      <div class="skeleton-card-body">
+        <span class="skeleton skeleton-pill"></span>
+        <span class="skeleton skeleton-title"></span>
+        ${line('long')}
+        ${line('medium')}
+        <div class="skeleton-card-footer">
+          ${line('short')}
+          <span class="skeleton skeleton-button skeleton-button--compact"></span>
         </div>
       </div>
-    </div>
-  `;
+    </article>`;
 }
 
-/**
- * Generate skeleton for multiple search results
- * @param {number} count - Number of skeleton results
- * @returns {string} HTML string for skeletons
- */
-export function getSearchResultSkeletons(count = 5) {
-  return Array(count)
-    .fill(null)
-    .map(() => getSearchResultSkeleton())
-    .join('');
-}
-
-/**
- * Generate skeleton for dashboard stat card
- * @returns {string} HTML string for skeleton
- */
-export function getStatCardSkeleton() {
+function eventCardSkeleton() {
   return `
-    <div class="skeleton-stat-card">
-      <div class="skeleton skeleton-stat-number"></div>
-      <div class="skeleton skeleton-stat-label"></div>
-    </div>
-  `;
-}
-
-/**
- * Generate skeleton for multiple stat cards
- * @param {number} count - Number of skeleton cards
- * @returns {string} HTML string for skeletons
- */
-export function getStatCardSkeletons(count = 4) {
-  return `<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
-    ${Array(count)
-      .fill(null)
-      .map(() => getStatCardSkeleton())
-      .join('')}
-  </div>`;
-}
-
-/**
- * Show loading state with skeleton
- * @param {HTMLElement|string} container - Container element or selector
- * @param {string} skeletonHtml - Skeleton HTML to show
- */
-export function showSkeleton(container, skeletonHtml) {
-  const element = typeof container === 'string' ? document.querySelector(container) : container;
-  if (element) {
-    element.innerHTML = skeletonHtml;
-  }
-}
-
-/**
- * Show loading spinner
- * @param {HTMLElement|string} container - Container element or selector
- * @param {string} message - Loading message (optional)
- */
-export function showLoadingSpinner(container, message = 'Loading...') {
-  const element = typeof container === 'string' ? document.querySelector(container) : container;
-  if (element) {
-    element.innerHTML = `
-      <div class="loading-container">
-        <div class="loading-spinner"></div>
-        <div class="loading-text">${message}</div>
+    <article class="skeleton-card skeleton-event-card" aria-hidden="true">
+      <span class="skeleton skeleton-media skeleton-media--event"></span>
+      <div class="skeleton-card-body">
+        <span class="skeleton skeleton-pill"></span>
+        <span class="skeleton skeleton-title"></span>
+        ${line('long')}
+        ${line('medium')}
+        ${line('short')}
+        <div class="skeleton-actions-row">
+          <span class="skeleton skeleton-button skeleton-button--compact"></span>
+          <span class="skeleton skeleton-button skeleton-button--compact"></span>
+        </div>
       </div>
-    `;
+    </article>`;
+}
+
+function guideCardSkeleton() {
+  return `
+    <article class="skeleton-card skeleton-guide-card" aria-hidden="true">
+      <span class="skeleton skeleton-media skeleton-media--guide"></span>
+      <div class="skeleton-card-body">
+        <span class="skeleton skeleton-pill"></span>
+        <span class="skeleton skeleton-title"></span>
+        ${line('long')}
+        ${line('medium')}
+      </div>
+    </article>`;
+}
+
+function galleryTileSkeleton() {
+  return `
+    <article class="skeleton-card skeleton-gallery-tile" aria-hidden="true">
+      <span class="skeleton skeleton-media skeleton-media--gallery"></span>
+      <div class="skeleton-gallery-actions">
+        <span class="skeleton skeleton-button skeleton-button--compact"></span>
+        <span class="skeleton skeleton-button skeleton-button--compact"></span>
+      </div>
+    </article>`;
+}
+
+function listItemSkeleton() {
+  return `
+    <div class="skeleton-list-item" aria-hidden="true">
+      <span class="skeleton skeleton-avatar"></span>
+      <div class="skeleton-list-copy">
+        ${line('medium')}
+        ${line('short')}
+      </div>
+      <span class="skeleton skeleton-meta-chip"></span>
+    </div>`;
+}
+
+function ticketRowSkeleton() {
+  return `
+    <div class="skeleton-list-item skeleton-ticket-row" aria-hidden="true">
+      <div class="skeleton-list-copy">
+        ${line('medium')}
+        ${line('long')}
+        ${line('short')}
+      </div>
+      <span class="skeleton skeleton-pill"></span>
+    </div>`;
+}
+
+function statCardSkeleton() {
+  return `
+    <article class="skeleton-stat-card" aria-hidden="true">
+      <span class="skeleton skeleton-stat-icon"></span>
+      <div>
+        <span class="skeleton skeleton-stat-number"></span>
+        <span class="skeleton skeleton-stat-label"></span>
+      </div>
+    </article>`;
+}
+
+function tableRowSkeleton(columns = 6) {
+  const safeColumns = Math.min(12, Math.max(1, Number.parseInt(columns, 10) || 6));
+  return `<tr class="skeleton-table-row" aria-hidden="true">${repeatMarkup(
+    safeColumns,
+    () => `<td><span class="skeleton skeleton-table-cell"></span></td>`
+  )}</tr>`;
+}
+
+function supplierProfileSkeleton() {
+  return `
+    <div class="skeleton-profile-page" aria-hidden="true">
+      <section class="skeleton skeleton-profile-hero"></section>
+      <div class="skeleton-profile-identity">
+        <span class="skeleton skeleton-avatar-large skeleton-profile-avatar"></span>
+        <div>${line('medium', 'skeleton-profile-title')}${line('short')}</div>
+      </div>
+      <div class="skeleton-profile-grid">
+        <div class="skeleton-profile-main">
+          <section class="skeleton-card">${line('medium')}${line('long')}${line('long')}${line('short')}</section>
+          <section class="skeleton-gallery-grid">${repeatMarkup(4, galleryTileSkeleton)}</section>
+          <section class="skeleton-grid skeleton-grid--packages">${repeatMarkup(2, packageCardSkeleton)}</section>
+        </div>
+        <aside class="skeleton-card skeleton-profile-sidebar">${line('medium')}${line('long')}${line('short')}<span class="skeleton skeleton-button"></span></aside>
+      </div>
+    </div>`;
+}
+
+export const skeletonPresets = Object.freeze({
+  supplierCard: supplierCardSkeleton,
+  packageCard: packageCardSkeleton,
+  eventCard: eventCardSkeleton,
+  guideCard: guideCardSkeleton,
+  galleryTile: galleryTileSkeleton,
+  listItem: listItemSkeleton,
+  conversationRow: listItemSkeleton,
+  ticketRow: ticketRowSkeleton,
+  statCard: statCardSkeleton,
+  dashboardKpi: statCardSkeleton,
+  tableRow: tableRowSkeleton,
+  supplierProfile: supplierProfileSkeleton,
+});
+
+/**
+ * Return true when the deterministic skeleton inspection mode is active.
+ */
+export function isSkeletonDebugMode() {
+  try {
+    return new URLSearchParams(window.location.search).get('skeletonDebug') === '1';
+  } catch (_) {
+    return false;
   }
 }
 
 /**
- * Show empty state
- * @param {HTMLElement|string} container - Container element or selector
- * @param {object} options - Empty state options
+ * Add a root class that allows CSS to visibly identify held skeleton states.
  */
+export function initialiseSkeletonDebugMode() {
+  if (typeof document !== 'undefined' && isSkeletonDebugMode()) {
+    document.documentElement.classList.add('skeleton-debug');
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Generate one or more placeholders from a named preset.
+ */
+export function getSkeleton(type, count = DEFAULT_COUNT, options = {}) {
+  const renderer = skeletonPresets[type];
+  if (!renderer) {
+    throw new Error(`Unknown skeleton preset: ${type}`);
+  }
+  if (type === 'supplierProfile') {
+    return renderer(options);
+  }
+  if (type === 'tableRow') {
+    return repeatMarkup(count, () => renderer(options.columns));
+  }
+  return repeatMarkup(count, renderer);
+}
+
+// Legacy named helpers retained for existing imports.
+export function getSupplierCardSkeleton() {
+  return supplierCardSkeleton();
+}
+
+export function getSupplierCardSkeletons(count = DEFAULT_COUNT) {
+  return getSkeleton('supplierCard', count);
+}
+
+export function getListItemSkeleton() {
+  return listItemSkeleton();
+}
+
+export function getListItemSkeletons(count = 5) {
+  return `<div class="skeleton-list">${getSkeleton('listItem', count)}</div>`;
+}
+
+export function getSearchResultSkeleton() {
+  return eventCardSkeleton();
+}
+
+export function getSearchResultSkeletons(count = 5) {
+  return getSkeleton('eventCard', count);
+}
+
+export function getStatCardSkeleton() {
+  return statCardSkeleton();
+}
+
+export function getStatCardSkeletons(count = 4) {
+  return `<div class="skeleton-stats-grid">${getSkeleton('statCard', count)}</div>`;
+}
+
+/**
+ * Show a skeleton state. The second argument may be a preset name or legacy
+ * HTML string. Named presets are preferred for new code.
+ */
+export function showSkeleton(container, typeOrHtml, options = {}) {
+  const element = resolveContainer(container);
+  if (!element) {
+    return false;
+  }
+
+  const isPreset = typeof typeOrHtml === 'string' && Boolean(skeletonPresets[typeOrHtml]);
+  const markup = isPreset
+    ? getSkeleton(typeOrHtml, options.count || DEFAULT_COUNT, options)
+    : String(typeOrHtml || getSkeleton('listItem', options.count || DEFAULT_COUNT));
+
+  element.setAttribute('aria-busy', 'true');
+  element.setAttribute('data-skeleton-state', 'loading');
+  element.innerHTML = options.wrap === false ? markup : `<div class="${escapeAttribute(options.className || 'skeleton-grid')}">${markup}</div>`;
+  return true;
+}
+
+/**
+ * Replace a loading region with real markup unless debug mode is holding it.
+ */
+export function replaceSkeleton(container, html) {
+  const element = resolveContainer(container);
+  if (!element || isSkeletonDebugMode()) {
+    return false;
+  }
+  element.innerHTML = String(html ?? '');
+  element.removeAttribute('aria-busy');
+  element.removeAttribute('data-skeleton-state');
+  return true;
+}
+
+/**
+ * Clear a loading region unless debug mode is holding it.
+ */
+export function clearSkeleton(container) {
+  return replaceSkeleton(container, '');
+}
+
+/**
+ * Legacy spinner helper. Prefer a page-shaped skeleton for primary content.
+ */
+export function showLoadingSpinner(container, message = 'Loading…') {
+  const element = resolveContainer(container);
+  if (!element) {
+    return false;
+  }
+  element.setAttribute('aria-busy', 'true');
+  element.innerHTML = `
+    <div class="loading-container" role="status">
+      <div class="loading-spinner" aria-hidden="true"></div>
+      <div class="loading-text">${escapeHtml(message)}</div>
+    </div>`;
+  return true;
+}
+
 export function showEmptyState(container, options = {}) {
+  const element = resolveContainer(container);
+  if (!element || isSkeletonDebugMode()) {
+    return false;
+  }
+
   const {
     icon = '📭',
     title = 'Nothing here yet',
@@ -171,75 +344,79 @@ export function showEmptyState(container, options = {}) {
     actionText = '',
     actionHref = '',
   } = options;
+  const actionHtml = actionText
+    ? `<a href="${escapeAttribute(actionHref || '#')}" class="empty-state-action">${escapeHtml(actionText)}</a>`
+    : '';
 
-  const element = typeof container === 'string' ? document.querySelector(container) : container;
-  if (element) {
-    const actionHtml = actionText
-      ? `<a href="${actionHref}" class="empty-state-action">${actionText}</a>`
-      : '';
-
-    element.innerHTML = `
-      <div class="empty-state">
-        <div class="empty-state-icon">${icon}</div>
-        <div class="empty-state-title">${title}</div>
-        ${description ? `<div class="empty-state-description">${description}</div>` : ''}
-        ${actionHtml}
-      </div>
-    `;
-  }
+  element.innerHTML = `
+    <div class="empty-state" role="status">
+      <div class="empty-state-icon" aria-hidden="true">${escapeHtml(icon)}</div>
+      <div class="empty-state-title">${escapeHtml(title)}</div>
+      ${description ? `<div class="empty-state-description">${escapeHtml(description)}</div>` : ''}
+      ${actionHtml}
+    </div>`;
+  element.removeAttribute('aria-busy');
+  element.removeAttribute('data-skeleton-state');
+  return true;
 }
 
-/**
- * Show error state
- * @param {HTMLElement|string} container - Container element or selector
- * @param {object} options - Error state options
- */
 export function showErrorState(container, options = {}) {
+  const element = resolveContainer(container);
+  if (!element || isSkeletonDebugMode()) {
+    return false;
+  }
+
   const {
     icon = '⚠️',
     title = 'Something went wrong',
     description = 'Please try again later.',
-    actionText = 'Try Again',
+    actionText = 'Try again',
     onAction = null,
   } = options;
+  const actionHtml = actionText
+    ? `<button class="ef-cta error-state-action" type="button" data-skeleton-retry>${escapeHtml(actionText)}</button>`
+    : '';
 
-  const element = typeof container === 'string' ? document.querySelector(container) : container;
-  if (element) {
-    element.innerHTML = `
-      <div class="error-state">
-        <div class="error-state-icon">${icon}</div>
-        <div class="error-state-title">${title}</div>
-        <div class="error-state-description">${description}</div>
-        ${actionText ? `<button class="ef-cta error-state-action" id="error-action-btn">${actionText}</button>` : ''}
-      </div>
-    `;
+  element.innerHTML = `
+    <div class="error-state" role="alert">
+      <div class="error-state-icon" aria-hidden="true">${escapeHtml(icon)}</div>
+      <div class="error-state-title">${escapeHtml(title)}</div>
+      <div class="error-state-description">${escapeHtml(description)}</div>
+      ${actionHtml}
+    </div>`;
+  element.removeAttribute('aria-busy');
+  element.removeAttribute('data-skeleton-state');
 
-    if (onAction && actionText) {
-      const actionBtn = element.querySelector('#error-action-btn');
-      if (actionBtn) {
-        actionBtn.addEventListener('click', onAction);
-      }
-    }
+  if (typeof onAction === 'function') {
+    element.querySelector('[data-skeleton-retry]')?.addEventListener('click', onAction, { once: true });
   }
+  return true;
 }
 
-/**
- * Ensure skeleton CSS is loaded
- */
 export function loadSkeletonCSS() {
-  if (!document.getElementById('skeleton-css')) {
-    const link = document.createElement('link');
-    link.id = 'skeleton-css';
-    link.rel = 'stylesheet';
-    link.href = '/assets/css/skeleton.css';
-    document.head.appendChild(link);
+  if (typeof document === 'undefined' || document.getElementById('skeleton-css')) {
+    return;
   }
+  const existing = Array.from(document.querySelectorAll('link[rel="stylesheet"]')).find(link =>
+    /\/assets\/css\/skeleton\.css(?:\?|$)/.test(link.getAttribute('href') || '')
+  );
+  if (existing) {
+    existing.id = existing.id || 'skeleton-css';
+    return;
+  }
+  const link = document.createElement('link');
+  link.id = 'skeleton-css';
+  link.rel = 'stylesheet';
+  link.href = '/assets/css/skeleton.css?v=2.0.0';
+  document.head.appendChild(link);
 }
 
-// Auto-load CSS when module is imported
 loadSkeletonCSS();
+initialiseSkeletonDebugMode();
 
 export default {
+  skeletonPresets,
+  getSkeleton,
   getSupplierCardSkeleton,
   getSupplierCardSkeletons,
   getListItemSkeleton,
@@ -249,8 +426,12 @@ export default {
   getStatCardSkeleton,
   getStatCardSkeletons,
   showSkeleton,
+  replaceSkeleton,
+  clearSkeleton,
   showLoadingSpinner,
   showEmptyState,
   showErrorState,
+  isSkeletonDebugMode,
+  initialiseSkeletonDebugMode,
   loadSkeletonCSS,
 };
