@@ -220,7 +220,13 @@ describe('city hero defaults', () => {
     await heroImages.resolveAutomaticHero(registry.getCity('bath'), { pexels });
 
     expect(warn).toHaveBeenCalled();
-    expect(warn.mock.calls[0][0]).not.toContain('\n');
+    // The message itself is a constant, and the two tainted values travel as
+    // metadata — neither may carry a line break into the log.
+    const [message, meta] = warn.mock.calls[0];
+    expect(message).toBe('Could not resolve a Pexels location hero');
+    expect(meta.citySlug).toBe('bath');
+    expect(meta.error).not.toContain('\n');
+    expect(meta.error).toContain('boom');
     warn.mockRestore();
   });
 });

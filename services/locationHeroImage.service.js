@@ -259,9 +259,12 @@ async function resolveAutomaticHero(city, options = {}) {
     // The slug reaches this line from the request path and the message from an
     // external API, so both are stripped to a safe alphabet before they are
     // written: a newline in a log line lets an attacker forge log entries.
-    logger.warn(
-      `Could not resolve a Pexels location hero for ${forLog(city.slug, 64)}: ${forLog(error.message, 200)}`
-    );
+    // They are passed as structured metadata rather than interpolated into the
+    // message so the line the log writes is a constant, whatever they contain.
+    logger.warn('Could not resolve a Pexels location hero', {
+      citySlug: forLog(city.slug, 64),
+      error: forLog(error.message, 200),
+    });
   }
   return null;
 }
