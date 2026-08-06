@@ -59,4 +59,32 @@ describe('skeleton surface compatibility layers', () => {
     expect(css).toContain('@keyframes public-calendar-skeleton-shimmer');
     expect(css).toContain('@media (prefers-reduced-motion: reduce)');
   });
+
+  it('preserves supplier-profile commercial rules behind its loading entry point', () => {
+    const entry = read('public/assets/css/supplier-profile-commercial-polish.css');
+    const base = read('public/assets/css/supplier-profile-commercial-base.css');
+    expect(entry).toContain("@import url('/assets/css/skeleton.css?v=2.0.0')");
+    expect(entry).toContain(
+      "@import url('/assets/css/supplier-profile-commercial-base.css?v=20.3.1')"
+    );
+    expect(base).toContain('body.sp-profile-page .sp-page');
+    expect(base).toContain('.sp-page-grid');
+  });
+
+  it('fills renderer-owned supplier-profile mounts while data is unresolved', () => {
+    const css = read('public/assets/css/supplier-profile-commercial-polish.css');
+    expect(css).toContain('#sp-section-gallery:empty::before');
+    expect(css).toContain('#supplier-package-cards-root:empty::before');
+    expect(css).toContain('#sp-section-reviews:empty::before');
+    expect(css).toContain('#sp-sidebar-enquiry:empty');
+    expect(css).toContain('#sp-sidebar-trust:empty');
+    expect(css).toContain('#sp-sidebar-details:empty');
+  });
+
+  it('retains renderer-owned valid empty outcomes for supplier gallery and packages', () => {
+    const profileRenderer = read('public/assets/js/supplier-profile.js');
+    const packageRenderer = read('public/assets/js/supplier-profile-packages-v2.js');
+    expect(profileRenderer).toContain("container.style.display = 'none'");
+    expect(packageRenderer).toContain('setPackagesSectionVisible(root, false)');
+  });
 });
