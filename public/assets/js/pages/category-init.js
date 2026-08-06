@@ -6,123 +6,179 @@
 
 window.__EF_PAGE__ = 'category';
 
-function escapeHtml(text) {
+const SKELETON_LOADER_URL = '/assets/js/utils/skeleton-loader.js';
+const CATEGORY_NOT_FOUND = 'Category not found';
+
+function escapeHtml(value) {
   const div = document.createElement('div');
-  div.textContent = text || '';
+  div.textContent = String(value ?? '');
   return div.innerHTML;
 }
 
 function sanitizeUrl(url) {
-  if (!url) {
-    return '';
+  const value = String(url ?? '').trim();
+  return /^https?:\/\//i.test(value) || value.startsWith('/') ? value : '';
+}
+
+function getErrorMessage(error) {
+  return error instanceof Error && error.message ? error.message : 'Unable to load category';
+}
+
+function setInitialLoadingState(elements, skeletons) {
+  const { title, description, hero, packagesContainer } = elements;
+  title.setAttribute('aria-busy', 'true');
+  title.innerHTML =
+    '<span class="skeleton skeleton-title" style="width:min(280px,70vw)" aria-hidden="true"></span><span class="sr-only">Loading category</span>';
+  description.innerHTML =
+    '<span class="skeleton skeleton-text skeleton-text-medium" aria-hidden="true"></span>';
+  hero.setAttribute('aria-busy', 'true');
+  hero.innerHTML =
+    '<div class="skeleton skeleton-media skeleton-media--event" aria-hidden="true"></div>';
+  skeletons.showSkeleton(packagesContainer, 'packageCard', { count: 6 });
+}
+
+function clearLoadingAttributes(elements) {
+  const { title, hero, packagesContainer } = elements;
+  title.removeAttribute('aria-busy');
+  hero.removeAttribute('aria-busy');
+  packagesContainer.removeAttribute('aria-busy');
+  packagesContainer.removeAttribute('data-skeleton-state');
+}
+
+function renderCategoryHero(hero, category) {
+  const heroImage = sanitizeUrl(category.heroImage);
+  hero.replaceChildren();
+  if (!heroImage) {
+    return;
   }
-  const value = String(url).trim();
-  if (/^https?:\/\//i.test(value) || value.startsWith('/')) {
-    return value;
-  }
-  return '';
+
+  const wrapper = document.createElement('div');
+  wrapper.className = 'category-hero-img-wrap';
+
+  const image = document.createElement('img');
+  image.src = heroImage;
+  image.alt = String(category.name || 'Category');
+  image.className = 'category-hero-img';
+
+  const overlay = document.createElement('div');
+  overlay.className = 'category-hero-overlay';
+
+  const heading = document.createElement('h1');
+  heading.className = 'category-hero-title';
+  heading.textContent = [category.icon, category.name].filter(Boolean).join(' ');
+
+  overlay.appendChild(heading);
+  wrapper.append(image, overlay);
+  hero.appendChild(wrapper);
+}
+
+function renderMissingCategory(elements, skeletons, description) {
+  const { title, breadcrumb, hero, packagesContainer } = elements;
+  title.textContent = CATEGORY_NOT_FOUND;
+  breadcrumb.textContent = CATEGORY_NOT_FOUND;
+  description.textContent = '';
+  hero.replaceChildren();
+  clearLoadingAttributes(elements);
+  skeletons.showEmptyState(packagesContainer, {
+    icon: '📦',
+    title: CATEGORY_NOT_FOUND,
+    description: 'The category link is incomplete or no longer available.',
+    actionText: 'Return home',
+    actionHref: '/',
+  });
+}
+
+function renderLoadFailure(elements, skeletons, error) {
+  const { title, description, hero, packagesContainer } = elements;
+  const message = getErrorMessage(error);
+  const missing = message === CATEGORY_NOT_FOUND;
+
+  console.error('Error loading category:', error);
+  title.textContent = missing ? CATEGORY_NOT_FOUND : 'Unable to load category';
+  description.textContent = '';
+  hero.replaceChildren();
+  clearLoadingAttributes(elements);
+  skeletons.showErrorState(packagesContainer, {
+    title: missing ? CATEGORY_NOT_FOUND : 'Unable to load packages',
+    description: missing
+      ? 'This category may have been renamed or removed.'
+      : 'Please check your connection and try again.',
+    actionText: 'Try again',
+    onAction: initCategoryPage,
+  });
 }
 
 async function initCategoryPage() {
-  const title = document.getElementById('category-title');
-  const description = document.getElementById('category-description');
-  const breadcrumb = document.getElementById('breadcrumb-category');
-  const hero = document.getElementById('category-hero-section');
-  const packagesContainer = document.getElementById('package-list-container');
-  if (!title || !description || !breadcrumb || !hero || !packagesContainer) {
+  const elements = {
+    title: document.getElementById('category-title'),
+    description: document.getElementById('category-description'),
+    breadcrumb: document.getElementById('breadcrumb-category'),
+    hero: document.getElementById('category-hero-section'),
+    packagesContainer: document.getElementById('package-list-container'),
+  };
+
+  if (Object.values(elements).some(element => !element)) {
     return;
   }
 
-  const skeletons = await import('/assets/js/utils/skeleton-loader.js');
-  title.setAttribute('aria-busy', 'true');
-  title.innerHTML = '<span class="skeleton skeleton-title" style="width:min(280px,70vw)" aria-hidden="true"></span><span class="sr-only">Loading category</span>';
-  description.innerHTML = '<span class="skeleton skeleton-text skeleton-text-medium" aria-hidden="true"></span>';
-  hero.setAttribute('aria-busy', 'true');
-  hero.innerHTML = '<div class="skeleton skeleton-media skeleton-media--event" aria-hidden="true"></div>';
-  skeletons.showSkeleton(packagesContainer, 'packageCard', { count: 6 });
-
-  if (skeletons.isSkeletonDebugMode()) {
-    return;
-  }
-
-  const slug = new URLSearchParams(window.location.search).get('slug');
-  if (!slug) {
-    title.textContent = 'Category not found';
-    title.removeAttribute('aria-busy');
-    description.textContent = '';
-    breadcrumb.textContent = 'Category not found';
-    hero.innerHTML = '';
-    hero.removeAttribute('aria-busy');
-    skeletons.showEmptyState(packagesContainer, {
-      icon: '📦',
-      title: 'Category not found',
-      description: 'The category link is incomplete or no longer available.',
-      actionText: 'Return home',
-      actionHref: '/',
-    });
-    return;
-  }
-
+  let skeletons;
   try {
+    skeletons = await import(SKELETON_LOADER_URL);
+    setInitialLoadingState(elements, skeletons);
+
+    if (skeletons.isSkeletonDebugMode()) {
+      return;
+    }
+
+    const slug = new URLSearchParams(window.location.search).get('slug');
+    if (!slug) {
+      renderMissingCategory(elements, skeletons, elements.description);
+      return;
+    }
+
     const response = await fetch(`/api/v1/categories/${encodeURIComponent(slug)}`, {
       credentials: 'include',
       headers: { Accept: 'application/json' },
     });
     if (!response.ok) {
-      throw new Error(response.status === 404 ? 'Category not found' : 'Unable to load category');
+      throw new Error(response.status === 404 ? CATEGORY_NOT_FOUND : 'Unable to load category');
     }
 
     const data = await response.json();
-    const category = data.category || {};
-    const packages = Array.isArray(data.packages) ? data.packages : [];
+    const category = data?.category || {};
+    const packages = Array.isArray(data?.packages) ? data.packages : [];
+    const categoryName = String(category.name || 'Category');
 
-    document.title = `${category.name || 'Category'} — EventFlow`;
-    title.textContent = category.name || 'Category';
-    title.removeAttribute('aria-busy');
-    description.textContent = category.description || '';
-    breadcrumb.textContent = category.name || 'Category';
+    document.title = `${categoryName} — EventFlow`;
+    elements.title.textContent = categoryName;
+    elements.description.textContent = String(category.description || '');
+    elements.breadcrumb.textContent = categoryName;
+    renderCategoryHero(elements.hero, category);
+    clearLoadingAttributes(elements);
+    elements.packagesContainer.replaceChildren();
 
-    const heroImage = sanitizeUrl(category.heroImage);
-    if (heroImage) {
-      hero.innerHTML = `
-        <div class="category-hero-img-wrap">
-          <img src="${escapeHtml(heroImage)}" alt="${escapeHtml(category.name || 'Category')}" class="category-hero-img">
-          <div class="category-hero-overlay">
-            <h1 class="category-hero-title">${escapeHtml(category.icon || '')} ${escapeHtml(category.name || '')}</h1>
-          </div>
-        </div>`;
-    } else {
-      hero.innerHTML = '';
-    }
-    hero.removeAttribute('aria-busy');
-
-    packagesContainer.removeAttribute('aria-busy');
-    packagesContainer.removeAttribute('data-skeleton-state');
-    packagesContainer.innerHTML = '';
-
-    if (typeof PackageList !== 'undefined') {
-      const packageList = new PackageList('package-list-container', { sortFeaturedFirst: true });
-      packageList.setPackages(packages);
-    } else {
+    const PackageListConstructor = window.PackageList;
+    if (typeof PackageListConstructor !== 'function') {
       throw new Error('Package list component unavailable');
     }
-  } catch (error) {
-    console.error('Error loading category:', error);
-    title.textContent = error.message === 'Category not found' ? 'Category not found' : 'Unable to load category';
-    title.removeAttribute('aria-busy');
-    description.textContent = '';
-    hero.innerHTML = '';
-    hero.removeAttribute('aria-busy');
-    skeletons.showErrorState(packagesContainer, {
-      title: error.message === 'Category not found' ? 'Category not found' : 'Unable to load packages',
-      description:
-        error.message === 'Category not found'
-          ? 'This category may have been renamed or removed.'
-          : 'Please check your connection and try again.',
-      actionText: 'Try again',
-      onAction: initCategoryPage,
+
+    const packageList = new PackageListConstructor('package-list-container', {
+      sortFeaturedFirst: true,
     });
+    packageList.setPackages(packages);
+  } catch (error) {
+    if (skeletons) {
+      renderLoadFailure(elements, skeletons, error);
+      return;
+    }
+
+    console.error('Unable to initialize category loading state:', error);
+    elements.title.textContent = 'Unable to load category';
+    elements.description.textContent = 'Please refresh the page and try again.';
+    elements.hero.replaceChildren();
+    clearLoadingAttributes(elements);
+    elements.packagesContainer.textContent = 'Unable to load packages. Please refresh the page.';
   }
 }
 
-document.addEventListener('DOMContentLoaded', initCategoryPage);
+document.addEventListener('DOMContentLoaded', initCategoryPage, { once: true });
