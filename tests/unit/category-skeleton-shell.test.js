@@ -25,11 +25,12 @@ describe('category page initial skeleton shell', () => {
     expect(categoryHtml).not.toContain('<h1 id="category-title">Loading...</h1>');
   });
 
-  it('hides an unresolved hero shell after the category title resolves without a hero image', () => {
+  it('hides unresolved hero and description placeholders after the category title resolves', () => {
     expect(categoryHtml).toContain('body:has(#category-title:not(:has(.skeleton)))');
     expect(categoryHtml).toContain(
       '.category-hero-shell:not(:has(.category-hero-img-wrap))'
     );
+    expect(categoryHtml).toContain('#category-description:has(.skeleton)');
     expect(categoryHtml).toContain('display: none');
   });
 
