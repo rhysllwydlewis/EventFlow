@@ -7,12 +7,20 @@
  */
 
 :root {
-  --skeleton-base: color-mix(in srgb, var(--ef-border, #dbe4ea) 72%, #f8fafc);
-  --skeleton-highlight: color-mix(in srgb, var(--ef-surface, #ffffff) 88%, #eef4f7);
+  /* Static fallbacks keep the loader usable in browsers without color-mix(). */
+  --skeleton-base: #e5ebef;
+  --skeleton-highlight: #f7f9fa;
   --skeleton-surface: var(--ef-surface, #ffffff);
   --skeleton-border: var(--ef-border, #e2e8f0);
   --skeleton-radius: var(--radius, 14px);
   --skeleton-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+}
+
+@supports (color: color-mix(in srgb, #000 50%, #fff)) {
+  :root {
+    --skeleton-base: color-mix(in srgb, var(--ef-border, #dbe4ea) 72%, #f8fafc);
+    --skeleton-highlight: color-mix(in srgb, var(--ef-surface, #ffffff) 88%, #eef4f7);
+  }
 }
 
 @keyframes ef-skeleton-shimmer {
@@ -41,6 +49,7 @@
 }
 
 [data-skeleton-state='loading'] {
+  position: relative;
   min-height: 1px;
 }
 
@@ -379,6 +388,120 @@ html.skeleton-debug [data-skeleton-state='loading']::before {
 .skeleton-event-detail__side { padding: 1rem; }
 .skeleton-event-detail__side { min-height: 190px; }
 
+/* Supplier profile gallery parity. Existing profile CSS already owns the hero,
+   packages, reviews and sidebar loaders; only the gallery mount was missing. */
+html:not([data-sp-theme-ready='true']) body.sp-profile-page #sp-section-gallery:empty {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(180px, 0.55fr);
+  gap: 0.75rem;
+  min-height: 300px;
+}
+
+html:not([data-sp-theme-ready='true']) body.sp-profile-page #sp-section-gallery:empty::before,
+html:not([data-sp-theme-ready='true']) body.sp-profile-page #sp-section-gallery:empty::after {
+  content: '';
+  display: block;
+  min-height: 300px;
+  border: 1px solid var(--skeleton-border);
+  border-radius: 14px;
+  background: linear-gradient(
+    90deg,
+    var(--skeleton-base) 20%,
+    var(--skeleton-highlight) 42%,
+    var(--skeleton-base) 64%
+  );
+  background-size: 220% 100%;
+  animation: ef-skeleton-shimmer 1.35s linear infinite;
+}
+
+/* Dashboard widget-shaped placeholders. These selectors are intentionally more
+   specific than the legacy dashboard .skeleton rule loaded later. */
+.customer-dashboard-page #customer-event-countdown > .skeleton:only-child {
+  min-height: 108px;
+  height: auto !important;
+  border: 1px solid var(--skeleton-border);
+  border-radius: 16px !important;
+  background:
+    linear-gradient(var(--skeleton-base), var(--skeleton-base)) 24px 22px / 28% 14px no-repeat,
+    linear-gradient(var(--skeleton-base), var(--skeleton-base)) 24px 48px / 52% 24px no-repeat,
+    linear-gradient(var(--skeleton-base), var(--skeleton-base)) 24px 86px / calc(100% - 48px) 8px no-repeat,
+    var(--skeleton-surface);
+  animation: none;
+  box-shadow: var(--skeleton-shadow);
+}
+
+.customer-dashboard-page #customer-budget-kpis:has(> .skeleton:only-child) {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.875rem;
+}
+
+.customer-dashboard-page #customer-budget-kpis:has(> .skeleton:only-child)::before,
+.customer-dashboard-page #customer-budget-kpis:has(> .skeleton:only-child)::after,
+.customer-dashboard-page #customer-budget-kpis > .skeleton:only-child {
+  content: '';
+  display: block;
+  box-sizing: border-box;
+  min-height: 92px;
+  height: auto !important;
+  margin: 0;
+  border: 1px solid var(--skeleton-border);
+  border-radius: 14px !important;
+  background:
+    linear-gradient(var(--skeleton-base), var(--skeleton-base)) 18px 18px / 38% 12px no-repeat,
+    linear-gradient(var(--skeleton-base), var(--skeleton-base)) 18px 46px / 54% 24px no-repeat,
+    var(--skeleton-surface);
+  animation: none;
+  box-shadow: var(--skeleton-shadow);
+}
+
+.customer-dashboard-page #customer-milestones-widget > .skeleton:only-child {
+  min-height: 218px;
+  height: auto !important;
+  border: 1px solid var(--skeleton-border);
+  border-radius: 16px !important;
+  background:
+    linear-gradient(var(--skeleton-base), var(--skeleton-base)) 24px 22px / 34% 18px no-repeat,
+    radial-gradient(circle at 32px 72px, var(--skeleton-base) 0 8px, transparent 9px),
+    linear-gradient(var(--skeleton-base), var(--skeleton-base)) 54px 66px / 62% 13px no-repeat,
+    radial-gradient(circle at 32px 112px, var(--skeleton-base) 0 8px, transparent 9px),
+    linear-gradient(var(--skeleton-base), var(--skeleton-base)) 54px 106px / 48% 13px no-repeat,
+    radial-gradient(circle at 32px 152px, var(--skeleton-base) 0 8px, transparent 9px),
+    linear-gradient(var(--skeleton-base), var(--skeleton-base)) 54px 146px / 70% 13px no-repeat,
+    radial-gradient(circle at 32px 192px, var(--skeleton-base) 0 8px, transparent 9px),
+    linear-gradient(var(--skeleton-base), var(--skeleton-base)) 54px 186px / 56% 13px no-repeat,
+    var(--skeleton-surface);
+  animation: none;
+  box-shadow: var(--skeleton-shadow);
+}
+
+.supplier-dashboard-page #supplier-kpi-grid > .skeleton {
+  min-height: 110px;
+  height: auto !important;
+  border: 1px solid var(--skeleton-border);
+  border-radius: 16px !important;
+  background:
+    linear-gradient(var(--skeleton-base), var(--skeleton-base)) 18px 18px / 34% 12px no-repeat,
+    linear-gradient(var(--skeleton-base), var(--skeleton-base)) 18px 46px / 46% 28px no-repeat,
+    linear-gradient(var(--skeleton-base), var(--skeleton-base)) 18px 88px / 64% 10px no-repeat,
+    var(--skeleton-surface);
+  animation: none;
+  box-shadow: var(--skeleton-shadow);
+}
+
+.supplier-dashboard-page #supplier-availability-widget > .skeleton:only-child {
+  min-height: 132px;
+  height: auto !important;
+  border: 1px solid var(--skeleton-border);
+  border-radius: 12px !important;
+  background:
+    linear-gradient(var(--skeleton-base), var(--skeleton-base)) 18px 18px / 32% 14px no-repeat,
+    repeating-linear-gradient(90deg, var(--skeleton-base) 0 22px, transparent 22px 30px) 18px 52px / calc(100% - 36px) 30px no-repeat,
+    linear-gradient(var(--skeleton-base), var(--skeleton-base)) 18px 102px / 58% 12px no-repeat,
+    var(--skeleton-surface);
+  animation: none;
+}
+
 .loading-container {
   padding: 2rem;
   text-align: center;
@@ -447,6 +570,20 @@ html.skeleton-debug [data-skeleton-state='loading']::before {
   .skeleton-profile-grid,
   .skeleton-event-detail { grid-template-columns: 1fr; }
   .skeleton-event-detail__media { min-height: 200px; }
+
+  html:not([data-sp-theme-ready='true']) body.sp-profile-page #sp-section-gallery:empty {
+    grid-template-columns: 1fr;
+  }
+
+  html:not([data-sp-theme-ready='true']) body.sp-profile-page #sp-section-gallery:empty::after {
+    display: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .customer-dashboard-page #customer-budget-kpis:has(> .skeleton:only-child) {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 480px) {
@@ -456,22 +593,14 @@ html.skeleton-debug [data-skeleton-state='loading']::before {
   .skeleton-profile-grid { width: min(100% - 1rem, 1180px); }
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --skeleton-base: #243443;
-    --skeleton-highlight: #33495b;
-    --skeleton-surface: var(--ef-surface, #17232d);
-    --skeleton-border: #334155;
-    --skeleton-shadow: none;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .skeleton,
   .skeleton-line,
   .skeleton-table-cell,
   .skeleton-grid > .skeleton-card:empty::before,
   .skeleton-container > .skeleton-card:empty::before,
+  html:not([data-sp-theme-ready='true']) body.sp-profile-page #sp-section-gallery:empty::before,
+  html:not([data-sp-theme-ready='true']) body.sp-profile-page #sp-section-gallery:empty::after,
   .loading-spinner {
     animation: none !important;
   }
