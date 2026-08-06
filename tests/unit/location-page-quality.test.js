@@ -348,6 +348,9 @@ describe('page model', () => {
     expect(model.packages).toEqual([]);
     expect(model.nearby).toEqual([]);
     expect(model.indexable).toBe(false);
+    // Nothing true can be said about a city with no suppliers yet, so no
+    // introduction is invented for it either.
+    expect(model.page.content.intro).toBe('');
   });
 
   it('links only to nearby cities whose pages are published', () => {
@@ -385,6 +388,67 @@ describe('page model', () => {
     });
     expect(model.packages.map(pkg => pkg.id)).toEqual(['pkg-1']);
     expect(model.events).toEqual([]);
+  });
+});
+
+describe('automatic introduction', () => {
+  it('states real supplier and category counts, never an invented claim', () => {
+    const composed = locationPages.composeAutomaticIntro(cardiff, {
+      rankedSuppliers: strongSuppliers,
+      categories: locationPages.populatedCategories(strongSuppliers),
+      packageCount: 2,
+    });
+    expect(composed).toContain('8');
+    expect(composed).toContain('Cardiff');
+    expect(composed).toMatch(/Venues|Catering|Photography|Entertainment/);
+  });
+
+  it('never fabricates local knowledge about a city with no suppliers', () => {
+    expect(locationPages.composeAutomaticIntro(cardiff, { rankedSuppliers: [] })).toBe('');
+  });
+
+  it('picks the same phrasing for a city on every call, but not the same phrasing for every city', () => {
+    const first = locationPages.composeAutomaticIntro(cardiff, {
+      rankedSuppliers: strongSuppliers,
+      categories: locationPages.populatedCategories(strongSuppliers),
+    });
+    const second = locationPages.composeAutomaticIntro(cardiff, {
+      rankedSuppliers: strongSuppliers,
+      categories: locationPages.populatedCategories(strongSuppliers),
+    });
+    expect(second).toBe(first);
+
+    const bristol = registry.getCity('bristol');
+    const otherCity = locationPages.composeAutomaticIntro(bristol, {
+      rankedSuppliers: strongSuppliers,
+      categories: locationPages.populatedCategories(strongSuppliers),
+    });
+    expect(otherCity).toContain('Bristol');
+  });
+
+  it('feeds the composed introduction into the quality gate and the rendered metadata', () => {
+    const owners = new Set(['user-1']);
+    const suppliers = strongSuppliers.map(entry => ({
+      id: entry.supplier.id,
+      name: entry.supplier.name,
+      category: entry.supplier.category,
+      approved: true,
+      ownerUserId: 'user-1',
+      baseLocation: { citySlug: 'cardiff' },
+    }));
+    const model = locationPages.buildCityPageModel({
+      city: cardiff,
+      page: locationPages.normalisePageRecord(
+        cardiff,
+        strongRecord({ content: { intro: '', planningSections: [], faqs: [] } })
+      ),
+      suppliers,
+      validOwnerIds: owners,
+    });
+    expect(model.page.content.intro).toBeTruthy();
+    expect(model.page.content.intro).toContain('Cardiff');
+    expect(model.gate.blockers).not.toContain('page has no local introduction');
+    expect(model.metadata.description).toBeTruthy();
   });
 });
 

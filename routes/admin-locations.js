@@ -183,6 +183,7 @@ function describeCity(city, data) {
     region: city.region,
     alternateNames: city.alternateNames,
     status: page.status,
+    managedBy: page.managedBy,
     indexingRequested: page.indexingRequested,
     indexable: model.indexable,
     publishedAt: page.publishedAt,
@@ -440,6 +441,11 @@ router.patch('/:slug', writeLimiter, csrfProtection, async (req, res) => {
     const next = {
       locationSlug: city.slug,
       status: body.status !== undefined ? body.status : current.status,
+      // Any save through this endpoint is a human decision, so the city stops
+      // being eligible for the auto-publish job from this point on, even if
+      // it was published automatically before, and even if this save only
+      // touches unrelated fields.
+      managedBy: 'admin',
       indexingRequested:
         body.indexingRequested !== undefined
           ? body.indexingRequested === true

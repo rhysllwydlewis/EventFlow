@@ -78,6 +78,10 @@ function normalisePageRecord(city, stored) {
     // Indexing is opt-in and additionally gated on quality, so flipping this
     // flag alone can never index a thin page.
     indexingRequested: record.indexingRequested === true,
+    // 'automation' once the auto-publish job has claimed a never-touched
+    // city, 'admin' once a human has ever saved it through the editor, null
+    // for a city nobody has acted on yet.
+    managedBy: record.managedBy === 'automation' ? 'automation' : record.managedBy ? 'admin' : null,
     publishedAt: record.publishedAt || null,
     lastReviewedAt: record.lastReviewedAt || null,
     reviewedBy: record.reviewedBy || null,
@@ -506,7 +510,112 @@ function populatedCategories(rankedSuppliers) {
 }
 
 /**
+ * The Nth deterministic choice from a small set, keyed by a city slug.
+ *
+ * The same city always lands on the same choice — a repeat visitor, a search
+ * engine re-crawling the page and the quality gate all see stable text — while
+ * different cities land on different phrasing, so 58 automatically composed
+ * pages do not read as one paragraph with the city name swapped in.
+ * @param {string} slug City slug.
+ * @param {number} count Number of choices.
+ * @returns {number} Index in `[0, count)`.
+ */
+function stableChoice(slug, count) {
+  let hash = 0;
+  for (let index = 0; index < slug.length; index += 1) {
+    hash = (hash * 31 + slug.charCodeAt(index)) >>> 0;
+  }
+  return hash % count;
+}
+
+/**
+ * Join category names into readable prose, e.g. "catering, photography and DJs".
+ * @param {{name: string}[]} categories Populated categories, most common first.
+ * @returns {string} Category phrase.
+ */
+function categoryPhrase(categories) {
+  const names = (categories || []).slice(0, 3).map(entry => entry.name);
+  if (!names.length) {
+    return 'a range of event services';
+  }
+  if (names.length === 1) {
+    return names[0];
+  }
+  return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+}
+
+/**
+ * Phrasings for an automatically composed introduction, each built only from
+ * real, current numbers — never an invented local claim.
+ */
+const AUTOMATIC_INTRO_TEMPLATES = [
+  ({ city, supplierCount, supplierNoun, categories, packageCount }) =>
+    `EventFlow lists ${supplierCount} ${supplierNoun} covering ${categoryPhrase(categories)} in ${city.name}${
+      packageCount
+        ? `, with ${packageCount} ${packageCount === 1 ? 'package' : 'packages'} you can book directly`
+        : ''
+    }. Compare profiles and message suppliers through EventFlow.`,
+  ({ city, supplierCount, supplierNoun, categories }) =>
+    `Looking for event suppliers in ${city.name}? EventFlow currently lists ${supplierCount} ${supplierNoun}, spanning ${categoryPhrase(
+      categories
+    )}. Browse profiles and get in touch directly.`,
+  ({ city, supplierCount, supplierNoun, categories, packageCount }) =>
+    `${city.name} has ${supplierCount} event ${supplierNoun} on EventFlow, covering ${categoryPhrase(categories)}${
+      packageCount
+        ? ` and ${packageCount} ready-made ${packageCount === 1 ? 'package' : 'packages'}`
+        : ''
+    }. See who is based locally and who travels to your event.`,
+  ({ city, supplierCount, supplierNoun, categories }) =>
+    `Planning an event in ${city.name}? EventFlow connects you with ${supplierCount} ${supplierNoun} covering ${categoryPhrase(
+      categories
+    )}, each contactable directly through the platform.`,
+];
+
+/**
+ * Compose a factual introduction from a city's real inventory, for pages an
+ * editor has not written local copy for.
+ *
+ * This exists so a city page never needs a human to type anything before it
+ * can be genuinely useful: the paragraph only ever states counts and
+ * categories that are true right now, recomputed on every request, so it can
+ * never go stale the way stored copy would. A city with no suppliers yet gets
+ * no introduction at all — there is nothing true to say — the same way the
+ * page already omits its packages or events sections when there are none.
+ * @param {Object} city Registry city record.
+ * @param {Object} input Real inventory for the city.
+ * @param {Object[]} input.rankedSuppliers Ranked supplier entries.
+ * @param {{name: string}[]} input.categories Populated categories.
+ * @param {number} input.packageCount Genuine packages on the page.
+ * @returns {string} Composed introduction, or an empty string.
+ */
+function composeAutomaticIntro(
+  city,
+  { rankedSuppliers = [], categories = [], packageCount = 0 } = {}
+) {
+  const supplierCount = rankedSuppliers.length;
+  if (!supplierCount) {
+    return '';
+  }
+  const template =
+    AUTOMATIC_INTRO_TEMPLATES[stableChoice(city.slug, AUTOMATIC_INTRO_TEMPLATES.length)];
+  return template({
+    city,
+    supplierCount,
+    supplierNoun: supplierCount === 1 ? 'supplier' : 'suppliers',
+    categories,
+    packageCount,
+  });
+}
+
+/**
  * Assemble everything a city page needs to render.
+ *
+ * When an editor has not written a local introduction, one is composed live
+ * from the city's real inventory rather than left blank: see
+ * `composeAutomaticIntro`. That effective copy — never the stored record
+ * itself — is what feeds the quality gate, the metadata and the rendered
+ * page, so a city with genuine coverage does not sit blocked on a "no local
+ * introduction" gate finding purely for lack of editorial time.
  * @param {Object} input Inputs.
  * @returns {Object} Page model.
  */
@@ -529,6 +638,7 @@ function buildCityPageModel(input) {
     limit: LIMITS.maxSuppliersPerPage,
   });
   const supplierIds = new Set(rankedSuppliers.map(entry => String(entry.supplier.id)));
+  const categories = populatedCategories(rankedSuppliers);
 
   const cityPackages = (packages || []).filter(
     pkg => pkg && supplierIds.has(String(pkg.supplierId))
@@ -540,9 +650,25 @@ function buildCityPageModel(input) {
     .nearbyCities(city.slug, nearbyCity => publishedSlugs.has(nearbyCity.slug))
     .slice(0, LIMITS.maxNearbyLinks);
 
+  const effectivePage =
+    page && !page.content.intro
+      ? {
+          ...page,
+          content: {
+            ...page.content,
+            intro:
+              composeAutomaticIntro(city, {
+                rankedSuppliers,
+                categories,
+                packageCount: cityPackages.length,
+              }) || page.content.intro,
+          },
+        }
+      : page;
+
   const gate = evaluateQualityGate({
     city,
-    page,
+    page: effectivePage,
     rankedSuppliers,
     packageCount: cityPackages.length,
     eventCount: cityEvents.length,
@@ -551,16 +677,16 @@ function buildCityPageModel(input) {
     now,
   });
 
-  const metadata = buildCityMetadata({ city, page, rankedSuppliers, baseUrl });
+  const metadata = buildCityMetadata({ city, page: effectivePage, rankedSuppliers, baseUrl });
 
   return {
     city,
-    page,
+    page: effectivePage,
     metadata,
     gate,
     indexable: isIndexable(gate),
     rankedSuppliers,
-    categories: populatedCategories(rankedSuppliers),
+    categories,
     packages: cityPackages,
     events: cityEvents,
     nearby,
@@ -575,6 +701,7 @@ module.exports = {
   buildCityMetadata,
   buildCityPageModel,
   buildCollectionStructuredData,
+  composeAutomaticIntro,
   evaluateQualityGate,
   indexableCities,
   isIndexable,

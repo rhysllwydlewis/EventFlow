@@ -427,6 +427,47 @@ router.get(['/locations', '/locations.html'], publicReadLimiter, async (req, res
   }
 });
 
+/**
+ * GET /api/v1/locations/featured
+ *
+ * The published cities with the most current supplier coverage, for the
+ * homepage's "explore by city" shortcuts. This exists so that section never
+ * hardcodes a city name: a city can only appear here once it is actually
+ * published, so the link it produces can never be a dead end.
+ */
+router.get('/api/v1/locations/featured', publicReadLimiter, async (req, res) => {
+  try {
+    const data = await readLocationData();
+    const published = publishedSlugs(data.pageRecords);
+    const limit = Math.min(12, Math.max(1, Number.parseInt(req.query.limit, 10) || 4));
+
+    const featured = registry
+      .listCities()
+      .filter(city => published.has(city.slug))
+      .map(city => ({
+        city,
+        supplierCount: supplierLocation.rankSuppliersForCity(data.suppliers, city, {
+          validOwnerIds: data.validOwnerIds,
+        }).length,
+      }))
+      .filter(entry => entry.supplierCount > 0)
+      .sort((a, b) => b.supplierCount - a.supplierCount || a.city.name.localeCompare(b.city.name))
+      .slice(0, limit)
+      .map(entry => ({
+        slug: entry.city.slug,
+        name: entry.city.name,
+        region: entry.city.region || entry.city.nation,
+        supplierCount: entry.supplierCount,
+      }));
+
+    res.set('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=300');
+    return res.json({ success: true, data: { cities: featured } });
+  } catch (error) {
+    logger.error('Could not list featured locations:', error);
+    return res.status(500).json({ success: false, error: 'Failed to list featured locations' });
+  }
+});
+
 // ─── City page ───────────────────────────────────────────────────────────────
 
 /**

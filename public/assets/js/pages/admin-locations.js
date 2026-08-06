@@ -219,6 +219,7 @@
         <span class="efl-relationship">${escapeHtml(item.status)}</span>
         <span>Score ${escapeHtml(item.gate.score)}/${escapeHtml(item.gate.passMark)}</span>
         <span>${item.indexable ? 'Indexable' : 'Not indexable'}</span>
+        ${item.managedBy === 'automation' ? '<span title="Published automatically once it had real supplier coverage. Saving here hands it to you.">Auto-published</span>' : ''}
       </p>
       <p class="efl-note">${escapeHtml(describeState(item))}</p>
       <p>${escapeHtml(item.supplierCount)} suppliers · ${escapeHtml(item.categoryCount)} categories · reviewed ${escapeHtml(reviewed)}</p>

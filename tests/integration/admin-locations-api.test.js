@@ -263,7 +263,11 @@ describe('PATCH /api/v1/admin/locations/:slug', () => {
 
     expect(response.body.data.status).toBe('published');
     expect(response.body.data.indexable).toBe(false);
-    expect(response.body.data.gate.blockers).toContain('page has no local introduction');
+    // Real inventory earns the page an automatically composed introduction, so
+    // the human-review signal is the blocker left standing: indexing still
+    // needs a person to have looked at the page, not just real suppliers on it.
+    expect(response.body.data.gate.blockers).toContain('page has never been reviewed by a human');
+    expect(response.body.data.gate.blockers).not.toContain('page has no local introduction');
   });
 
   it('reaches indexable once content, review and inventory are all in place', async () => {
