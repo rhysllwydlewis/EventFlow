@@ -1,6 +1,6 @@
 /**
- * Date Management Service
- * Automates legal document and guide date management using git history
+ * Policy Review and Content Date Service
+ * Uses git history for review reminders and article diagnostics only.
  */
 
 'use strict';
@@ -10,6 +10,7 @@ const path = require('path');
 const schedule = require('node-schedule');
 const fs = require('fs');
 const crypto = require('crypto');
+const { POLICY_METADATA, getPublicPolicyMetadata } = require('../config/policyMetadata');
 
 class DateManagementService {
   /**
@@ -21,14 +22,9 @@ class DateManagementService {
     this.logger = logger;
     this.scheduledJob = null;
 
-    // Paths to track for legal document changes
-    this.legalPaths = [
-      'public/terms.html',
-      'public/privacy.html',
-      'public/legal.html',
-      'public/cookies.html',
-      'public/acceptable-use.html',
-    ];
+    // Policy dates are reviewed metadata. Git is used only to flag source files
+    // changed after their recorded review date; it never supplies public dates.
+    this.legalPaths = [...new Set(Object.values(POLICY_METADATA).map(item => item.sourcePath))];
 
     // Paths to track for guides/articles
     this.guidePaths = ['public/guides', 'docs'];
@@ -126,51 +122,55 @@ class DateManagementService {
   }
 
   /**
-   * Check if legal content has changed since last config update
+   * Check if legal content has changed since its recorded review
    * @returns {Promise<Object>} Change detection result
    */
   async hasLegalContentChanged() {
     try {
-      // Get config module (fresh require to get latest values)
-      delete require.cache[require.resolve('../config/content-config.js')];
-      const { getConfig } = require('../config/content-config.js');
-      const config = getConfig();
+      const bySourcePath = new Map();
+      Object.entries(POLICY_METADATA).forEach(([policyId, metadata]) => {
+        const entry = bySourcePath.get(metadata.sourcePath) || {
+          sourcePath: metadata.sourcePath,
+          policyIds: [],
+          lastReviewed: metadata.lastReviewed,
+        };
+        entry.policyIds.push(policyId);
+        if (metadata.lastReviewed < entry.lastReviewed) {
+          entry.lastReviewed = metadata.lastReviewed;
+        }
+        bySourcePath.set(metadata.sourcePath, entry);
+      });
 
-      // Get most recent commit date for legal files
-      const gitDate = this.getMostRecentCommitDate(this.legalPaths);
+      const files = [...bySourcePath.values()].map(entry => {
+        const gitDate = this.getLastCommitDate(entry.sourcePath);
+        const gitDateIso = gitDate ? gitDate.toISOString().slice(0, 10) : null;
+        return {
+          ...entry,
+          gitDate: gitDateIso,
+          gitDateFormatted: gitDate ? this.formatLegalDate(gitDate) : null,
+          needsReview: Boolean(gitDateIso && gitDateIso > entry.lastReviewed),
+        };
+      });
+      const available = files.filter(file => file.gitDate);
+      const changedFiles = files.filter(file => file.needsReview);
 
-      if (!gitDate) {
-        this.logger.warn('Could not determine git date for legal files');
+      if (available.length === 0) {
+        this.logger.warn('Could not determine git dates for policy files');
         return {
           changed: false,
-          reason: 'No git history available',
+          reason: 'No git history available; displayed policy dates are unchanged',
+          files,
         };
       }
-
-      // Parse current config date
-      const configDateStr = config.dates.legalLastUpdated;
-      const configDate = this.parseConfigDate(configDateStr);
-
-      if (!configDate) {
-        this.logger.warn('Could not parse config date:', configDateStr);
-        return {
-          changed: true,
-          reason: 'Config date invalid',
-          gitDate: this.formatLegalDate(gitDate),
-          configDate: configDateStr,
-        };
-      }
-
-      // Check if git date is more recent than config date
-      const changed = gitDate > configDate;
 
       return {
-        changed,
-        reason: changed ? 'Content modified since last update' : 'Content up to date',
-        gitDate: this.formatLegalDate(gitDate),
-        configDate: configDateStr,
-        gitDateRaw: gitDate,
-        configDateRaw: configDate,
+        changed: changedFiles.length > 0,
+        reason:
+          changedFiles.length > 0
+            ? `${changedFiles.length} policy source file(s) changed after review`
+            : 'No policy source files changed after their recorded review',
+        files,
+        changedFiles,
       };
     } catch (error) {
       this.logger.error('Error checking legal content changes:', error);
@@ -224,113 +224,17 @@ class DateManagementService {
   }
 
   /**
-   * Update legal dates in config file
-   * @param {Object} options - Update options
-   * @returns {Promise<Object>} Update result
+   * Runtime mutation is deliberately disabled. A policy date is changed in the
+   * reviewed metadata file in the same commit as the policy wording.
+   * @returns {Promise<Object>} Refusal result
    */
-  async updateLegalDates(options = {}) {
-    try {
-      const { lastUpdated, effectiveDate, manual = false, userId = 'system' } = options;
-
-      // Validate dates if provided (defense in depth)
-      if (lastUpdated && typeof lastUpdated !== 'string') {
-        throw new Error('lastUpdated must be a string (e.g., "February 2026")');
-      }
-      if (effectiveDate && typeof effectiveDate !== 'string') {
-        throw new Error('effectiveDate must be a string (e.g., "February 2026")');
-      }
-
-      // Additional validation: ensure format is safe (defense in depth)
-      // Even though routes validate, we validate again to prevent injection
-      const datePattern =
-        /^(January|February|March|April|May|June|July|August|September|October|November|December) \d{4}$/;
-      if (lastUpdated && !datePattern.test(lastUpdated)) {
-        throw new Error('Invalid date format for lastUpdated (must be "Month YYYY")');
-      }
-      if (effectiveDate && !datePattern.test(effectiveDate)) {
-        throw new Error('Invalid date format for effectiveDate (must be "Month YYYY")');
-      }
-
-      // Read current config file
-      const configPath = path.resolve(__dirname, '../config/content-config.js');
-      let configContent = fs.readFileSync(configPath, 'utf8');
-
-      // Update dates
-      if (lastUpdated) {
-        configContent = configContent.replace(
-          /legalLastUpdated:\s*['"][^'"]*['"]/,
-          `legalLastUpdated: '${lastUpdated}'`
-        );
-      }
-
-      if (effectiveDate) {
-        configContent = configContent.replace(
-          /legalEffectiveDate:\s*['"][^'"]*['"]/,
-          `legalEffectiveDate: '${effectiveDate}'`
-        );
-      }
-
-      // Update last check timestamp
-      const now = new Date().toISOString();
-      const lastCheckPattern = /lastAutoCheck:\s*[^,]*/;
-      if (configContent.match(lastCheckPattern)) {
-        configContent = configContent.replace(lastCheckPattern, `lastAutoCheck: '${now}'`);
-      }
-
-      // Update manual update timestamp if manual
-      if (manual) {
-        const lastManualPattern = /lastManualUpdate:\s*[^,]*/;
-        if (configContent.match(lastManualPattern)) {
-          configContent = configContent.replace(lastManualPattern, `lastManualUpdate: '${now}'`);
-        }
-      }
-
-      // Write updated config
-      fs.writeFileSync(configPath, configContent, 'utf8');
-
-      // Clear require cache
-      delete require.cache[require.resolve('../config/content-config.js')];
-
-      this.logger.info('Legal dates updated', {
-        lastUpdated,
-        effectiveDate,
-        manual,
-        userId,
-      });
-
-      // Create audit log entry
-      if (this.dbUnified) {
-        try {
-          await this.dbUnified.insertOne('audit_logs', {
-            id: `audit_${Date.now()}_${crypto.randomBytes(6).toString('hex')}`,
-            userId,
-            action: manual ? 'MANUAL_DATE_UPDATE' : 'AUTO_DATE_UPDATE',
-            details: {
-              lastUpdated,
-              effectiveDate,
-            },
-            timestamp: now,
-            ipAddress: 'system',
-          });
-        } catch (auditError) {
-          this.logger.error('Failed to create audit log:', auditError);
-        }
-      }
-
-      return {
-        success: true,
-        lastUpdated,
-        effectiveDate,
-        manual,
-        timestamp: now,
-      };
-    } catch (error) {
-      this.logger.error('Error updating legal dates:', error);
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
+  async updateLegalDates() {
+    return {
+      success: false,
+      code: 'POLICY_METADATA_REVIEW_REQUIRED',
+      error:
+        'Policy dates are version-controlled review metadata and cannot be changed at runtime.',
+    };
   }
 
   /**
@@ -374,7 +278,7 @@ class DateManagementService {
   }
 
   /**
-   * Perform monthly automated check and update if needed
+   * Perform a monthly review check without changing public policy metadata.
    * @param {Object} [options] - Execution context
    * @param {'scheduler'|'manual'} [options.trigger='scheduler'] - Execution source
    * @param {string} [options.userId='system'] - Actor for manual audit attribution
@@ -382,18 +286,18 @@ class DateManagementService {
    */
   async performMonthlyCheck({ trigger = 'scheduler', userId = 'system' } = {}) {
     try {
-      this.logger.info('Starting monthly date check');
+      this.logger.info('Starting monthly policy review check');
 
-      // Check if auto-update is enabled
+      // The legacy config key now controls review reminders only.
       delete require.cache[require.resolve('../config/content-config.js')];
       const { getConfig } = require('../config/content-config.js');
       const config = getConfig();
 
       if (config.dates.autoUpdateEnabled === false) {
-        this.logger.info('Auto-update is disabled, skipping');
+        this.logger.info('Policy review reminders are disabled, skipping');
         return {
           performed: false,
-          reason: 'Auto-update disabled',
+          reason: 'Policy review reminders disabled',
         };
       }
 
@@ -409,31 +313,21 @@ class DateManagementService {
         };
       }
 
-      // Update dates
-      const manual = trigger === 'manual';
-      const updateResult = await this.updateLegalDates({
-        lastUpdated: changeCheck.gitDate,
-        effectiveDate: changeCheck.gitDate,
-        manual,
-        userId: manual ? userId : 'system',
+      await this.notifyAdmins({
+        type: 'REVIEW_REQUIRED',
+        trigger,
+        requestedBy: trigger === 'manual' ? userId : 'system',
+        changedFiles: changeCheck.changedFiles,
+        timestamp: new Date().toISOString(),
       });
 
-      if (updateResult.success) {
-        // Notify admins
-        await this.notifyAdmins({
-          type: manual ? 'MANUAL_UPDATE' : 'AUTO_UPDATE',
-          previousDate: changeCheck.configDate,
-          newDate: changeCheck.gitDate,
-          timestamp: new Date().toISOString(),
-        });
-
-        this.logger.info('Monthly date update completed successfully');
-      }
+      this.logger.info('Policy review reminder sent; public dates were not changed');
 
       return {
-        performed: updateResult.success,
+        performed: true,
+        notified: true,
+        datesChanged: false,
         ...changeCheck,
-        ...updateResult,
       };
     } catch (error) {
       this.logger.error('Error performing monthly check:', error);
@@ -445,7 +339,7 @@ class DateManagementService {
   }
 
   /**
-   * Schedule monthly automated updates
+   * Schedule monthly review reminders
    * Runs on the 1st of each month at 2:00 AM
    */
   scheduleMonthlyUpdate() {
@@ -458,11 +352,11 @@ class DateManagementService {
       // Schedule for 1st of month at 2:00 AM
       // Rule: '0 2 1 * *' = minute 0, hour 2, day 1, every month, any day of week
       this.scheduledJob = schedule.scheduleJob('0 2 1 * *', async () => {
-        this.logger.info('Scheduled date check triggered');
+        this.logger.info('Scheduled policy review check triggered');
         await this.performMonthlyCheck();
       });
 
-      this.logger.info('Monthly date update scheduled for 1st of each month at 2:00 AM');
+      this.logger.info('Monthly policy review check scheduled for 1st of each month at 2:00 AM');
 
       return {
         scheduled: true,
@@ -470,7 +364,7 @@ class DateManagementService {
         nextRun: this.scheduledJob.nextInvocation(),
       };
     } catch (error) {
-      this.logger.error('Error scheduling monthly update:', error);
+      this.logger.error('Error scheduling monthly policy review check:', error);
       return {
         scheduled: false,
         error: error.message,
@@ -485,14 +379,14 @@ class DateManagementService {
     if (this.scheduledJob) {
       this.scheduledJob.cancel();
       this.scheduledJob = null;
-      this.logger.info('Scheduled date updates cancelled');
+      this.logger.info('Scheduled policy review checks cancelled');
       return { cancelled: true };
     }
     return { cancelled: false, reason: 'No scheduled job found' };
   }
 
   /**
-   * Notify admins of date updates
+   * Notify admins that a policy review is required
    * @param {Object} updateInfo - Update information
    */
   async notifyAdmins(updateInfo) {
@@ -506,10 +400,10 @@ class DateManagementService {
         return;
       }
 
-      const message =
-        updateInfo.type === 'AUTO_UPDATE'
-          ? `Legal document dates automatically updated from ${updateInfo.previousDate} to ${updateInfo.newDate}`
-          : `Legal document dates manually updated`;
+      const changedCount = Array.isArray(updateInfo.changedFiles)
+        ? updateInfo.changedFiles.length
+        : 0;
+      const message = `${changedCount} policy source file(s) changed after their recorded review date. Review the wording and update config/policyMetadata.js in the same version-controlled change if needed. Public dates have not been changed.`;
 
       await Promise.all(
         admins.map(admin =>
@@ -517,7 +411,7 @@ class DateManagementService {
             id: `notif_${Date.now()}_${crypto.randomBytes(6).toString('hex')}`,
             userId: admin.id,
             type: 'system',
-            title: 'Legal Document Dates Updated',
+            title: 'Legal Policy Review Required',
             message,
             data: updateInfo,
             read: false,
@@ -545,6 +439,7 @@ class DateManagementService {
       nextRun: this.scheduledJob ? this.scheduledJob.nextInvocation() : null,
       legalPaths: this.legalPaths,
       guidePaths: this.guidePaths,
+      policies: getPublicPolicyMetadata(),
     };
   }
 }

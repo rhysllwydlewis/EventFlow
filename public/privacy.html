@@ -166,10 +166,12 @@
         <h1>Privacy Notice</h1>
         <div class="card" style="max-width: 900px; margin: 0 auto">
           <p class="small" style="color: #667085">
-            <strong>Last updated:</strong> {{LEGAL_LAST_UPDATED}}
+            <strong>Last materially updated:</strong> {{POLICY_PRIVACY_LAST_UPDATED}}
           </p>
           <p class="small" style="color: #667085">
-            <strong>Effective date:</strong> {{LEGAL_EFFECTIVE_DATE}}
+            <strong>Effective date:</strong> {{POLICY_PRIVACY_EFFECTIVE_DATE}} ·
+            <strong>Last reviewed:</strong> {{POLICY_PRIVACY_LAST_REVIEWED}} ·
+            <strong>Version:</strong> {{POLICY_PRIVACY_VERSION}}
           </p>
 
           <p>
@@ -244,7 +246,8 @@
               details
             </li>
             <li>
-              <strong>Location Data:</strong> Business address, service areas, geographic coverage
+              <strong>Location Data:</strong> Business or venue address and postcode, derived base
+              city or coordinates, service areas, travel radius and geographic coverage
             </li>
             <li>
               <strong>Commercial Data:</strong> Packages offered, pricing information, availability
@@ -374,6 +377,45 @@
             marketplace transactions and do not handle money transfers.
           </p>
 
+          <h3 class="h5">2.8 Community Data</h3>
+          <p>When you use the EventFlow Community, we collect and derive:</p>
+          <ul>
+            <li>
+              <strong>Public Profile Data:</strong> A public handle, display name and avatar, plus
+              any optional biography, broad UK region or event type you choose to provide
+            </li>
+            <li>
+              <strong>Public Content:</strong> Discussions, replies, tags, reactions, polls and
+              their edit and activity dates
+            </li>
+            <li>
+              <strong>Personal Organisation Data:</strong> Drafts, bookmarks, follows, muted items
+              and Community notification preferences
+            </li>
+            <li>
+              <strong>Safety and Moderation Data:</strong> Reports, report details, content
+              snapshots, moderation actions and reasons, restrictions, appeals, risk signals and
+              audit records
+            </li>
+            <li>
+              <strong>Community Statistics:</strong> Post and reply counts, helpful reactions,
+              upheld reports, contribution levels and other service-integrity measures
+            </li>
+            <li>
+              <strong>View De-duplication:</strong> For signed-in members, a user identifier; for
+              other visitors, a short pseudonymous value derived from IP address and user-agent.
+              The underlying IP address and user-agent are not stored in the Community view record,
+              and the de-duplication record expires after 24 hours
+            </li>
+          </ul>
+          <p>
+            Published Community profiles, discussions and replies are public and may be found
+            through EventFlow search or indexed by external search engines. Community posts accept
+            only a broad region and month-level event date; they do not collect an exact venue,
+            address or postcode as structured Community fields. Members should still avoid placing
+            personal or confidential information in free-text content.
+          </p>
+
           <h2 class="h4">3. Legal Basis for Processing</h2>
           <p>
             We process your personal data under the following lawful bases as defined by the UK
@@ -419,6 +461,14 @@
             <li>Enabling event planning tools and features</li>
             <li>Facilitating connections between customers and suppliers</li>
             <li>Processing and displaying supplier profiles and portfolios</li>
+            <li>
+              Matching suppliers to UK city and location pages using their base location, service
+              areas, travel radius or nationwide coverage
+            </li>
+            <li>
+              Operating public Community profiles, discussions, replies, discovery, moderation,
+              reporting and appeals
+            </li>
             <li>
               Operating the marketplace platform (listing display, search, user communication)
             </li>
@@ -624,6 +674,21 @@
                 <td style="padding: 12px">Until account deletion</td>
                 <td style="padding: 12px">Buyer-seller communication and dispute resolution</td>
               </tr>
+              <tr style="border-bottom: 1px solid #e7eaf0">
+                <td style="padding: 12px">Community view de-duplication records</td>
+                <td style="padding: 12px">24 hours</td>
+                <td style="padding: 12px">Preventing repeat views from inflating public counts</td>
+              </tr>
+              <tr style="border-bottom: 1px solid #e7eaf0">
+                <td style="padding: 12px">Published Community content and profile data</td>
+                <td style="padding: 12px">While published or until withdrawn</td>
+                <td style="padding: 12px">Providing the Community and preserving conversation context</td>
+              </tr>
+              <tr style="border-bottom: 1px solid #e7eaf0">
+                <td style="padding: 12px">Withdrawn Community content, reports, appeals and moderation records</td>
+                <td style="padding: 12px">Kept while needed for safety, complaint handling, legal obligations or legal claims</td>
+                <td style="padding: 12px">Reviewing decisions, detecting repeated abuse and meeting legal duties</td>
+              </tr>
               <tr>
                 <td style="padding: 12px">Data export files</td>
                 <td style="padding: 12px">Immediate deletion recommended</td>
@@ -647,7 +712,7 @@
               configured for EU regions
             </li>
             <li>
-              <strong>SendGrid</strong> – Alternative email delivery provider (GDPR-compliant)
+              <strong>SendGrid</strong> – Alternative email delivery provider where configured
             </li>
             <li>
               <strong>Custom SMTP Servers</strong> – Optional custom email server configuration
@@ -657,8 +722,7 @@
             <strong>Data Shared:</strong> Email address, name, email content<br />
             <strong>Purpose:</strong> Account verification, password resets, notifications,
             marketing (with consent)<br />
-            <strong>Safeguards:</strong> Data Processing Agreements in place, GDPR-compliant
-            providers
+            <strong>Safeguards:</strong> The operator must maintain appropriate processor and transfer terms for each provider used in production
           </p>
 
           <h3 class="h5">7.2 Cloud Storage Providers</h3>
@@ -689,35 +753,73 @@
             backups
           </p>
 
+          <h3 class="h5">7.4 Location and Media Services</h3>
+          <ul>
+            <li>
+              <strong>Postcodes.io:</strong> We may send a supplier or venue postcode to the
+              Postcodes.io service to derive coordinates and a city mapping. We use that result for
+              supplier search, service-area matching and UK location pages.
+            </li>
+            <li>
+              <strong>Pexels:</strong> We use Pexels to source and deliver licensed imagery,
+              including images for UK city pages. When an image is loaded from a Pexels domain,
+              Pexels may receive ordinary web-request data such as IP address, browser information,
+              the requested image URL and referring page.
+            </li>
+          </ul>
+          <p>
+            City-page searches sent to Pexels contain a city or region description, not the
+            visitor's search text or account details. Please see the relevant provider's privacy
+            information for its own processing.
+          </p>
+
+          <h3 class="h5">7.5 Analytics and Service Reliability</h3>
+          <ul>
+            <li>
+              <strong>PostHog:</strong> If you consent to analytics, PostHog may process
+              privacy-minimised page, journey, attribution, conversion and performance events. If
+              enabled, it may also provide masked session replay on non-sensitive pages. Inputs are
+              masked, captured URLs have query strings removed, and replay is blocked on sensitive
+              areas such as messages, payments, dashboards and settings.
+            </li>
+            <li>
+              <strong>Sentry:</strong> Where configured, Sentry processes error reports and sampled
+              performance traces so that we can diagnose faults and protect the reliability and
+              security of the Services. Authentication cookies and authorisation headers are removed
+              from server error events before they are sent.
+            </li>
+          </ul>
+          <p>
+            <strong>Data involved:</strong> page path without query strings, event and performance
+            data, acquisition source, opaque session or user identifiers, device/browser details and
+            diagnostic error context. The providers may receive an IP address as part of an ordinary
+            network request. We do not intentionally send passwords, form values or message content
+            to PostHog. Sentry error context can vary with the fault, so access is restricted and
+            reports should not be used to submit sensitive information.
+          </p>
+
           <h2 class="h4">8. International Data Transfers</h2>
           <p>
-            EventFlow stores and processes data primarily within the European Union and United
-            Kingdom. However, some data may be transferred internationally as detailed below:
+            The location of processing depends on the hosting region and third-party services
+            configured for the live deployment. Some providers operate in, or make support and
+            infrastructure available from, countries outside the UK.
           </p>
 
           <h3 class="h5">8.1 Data Storage Locations</h3>
-          <p><strong>Primary Data Storage:</strong></p>
+          <p><strong>Application data:</strong></p>
           <ul>
-            <li><strong>EU Region:</strong> Amazon Web Services (AWS) EU-West-1 (Ireland)</li>
             <li>
-              <strong>Data Type:</strong> User accounts, event data, marketplace listings, messages
+              User accounts, event data, listings, Community content and messages are stored in the
+              database and storage services selected by EventFlow's deployment configuration.
             </li>
-            <li><strong>Location:</strong> European Union (Ireland)</li>
-            <li><strong>Compliance:</strong> Full GDPR and UK GDPR compliance</li>
+            <li>The operator must confirm and document the production regions before launch and when a provider changes.</li>
           </ul>
 
           <h3 class="h5">8.2 Countries Data May Be Transferred To</h3>
           <p>Your personal data may be transferred to the following locations:</p>
           <ul>
-            <li><strong>United Kingdom:</strong> Adequate protection (UK-EU adequacy decision)</li>
-            <li>
-              <strong>European Union Member States:</strong> Within EU/EEA, no additional safeguards
-              required
-            </li>
-            <li>
-              <strong>United States:</strong> For specific third-party services (see safeguards
-              below)
-            </li>
+            <li><strong>United Kingdom and EEA:</strong> Depending on the selected hosting and service region</li>
+            <li><strong>United States and other countries:</strong> Where a configured provider processes or supports the service from there</li>
           </ul>
 
           <h3 class="h5">8.3 Third-Party Service Locations</h3>
@@ -729,8 +831,8 @@
             </tr>
             <tr>
               <td style="padding: 12px; border: 1px solid #e7eaf0">AWS (Database & Storage)</td>
-              <td style="padding: 12px; border: 1px solid #e7eaf0">EU (Ireland)</td>
-              <td style="padding: 12px; border: 1px solid #e7eaf0">Within EU - No transfer</td>
+              <td style="padding: 12px; border: 1px solid #e7eaf0">Configured hosting region</td>
+              <td style="padding: 12px; border: 1px solid #e7eaf0">Provider contract and applicable transfer mechanism</td>
             </tr>
             <tr style="background: #f9fafb">
               <td style="padding: 12px; border: 1px solid #e7eaf0">Stripe (Payments)</td>
@@ -744,41 +846,47 @@
             </tr>
             <tr style="background: #f9fafb">
               <td style="padding: 12px; border: 1px solid #e7eaf0">Pexels (Stock Images)</td>
-              <td style="padding: 12px; border: 1px solid #e7eaf0">Germany</td>
-              <td style="padding: 12px; border: 1px solid #e7eaf0">Within EU - No transfer</td>
+              <td style="padding: 12px; border: 1px solid #e7eaf0">Provider infrastructure</td>
+              <td style="padding: 12px; border: 1px solid #e7eaf0">Ordinary browser requests; provider privacy terms</td>
+            </tr>
+            <tr>
+              <td style="padding: 12px; border: 1px solid #e7eaf0">PostHog (Consented Analytics)</td>
+              <td style="padding: 12px; border: 1px solid #e7eaf0">Configured PostHog region (EU host by default)</td>
+              <td style="padding: 12px; border: 1px solid #e7eaf0">Consent, privacy controls, provider contract and applicable transfer mechanism</td>
+            </tr>
+            <tr style="background: #f9fafb">
+              <td style="padding: 12px; border: 1px solid #e7eaf0">Sentry (Diagnostics)</td>
+              <td style="padding: 12px; border: 1px solid #e7eaf0">Configured Sentry project region</td>
+              <td style="padding: 12px; border: 1px solid #e7eaf0">Event filtering, provider contract and applicable transfer mechanism</td>
             </tr>
           </table>
 
           <h3 class="h5" style="margin-top: 24px">8.4 Safeguards for International Transfers</h3>
-          <p>When we transfer data outside the UK/EU, we ensure appropriate safeguards:</p>
+          <p>Where restricted transfers occur, EventFlow must use a lawful transfer mechanism and assess the safeguards appropriate to the provider and destination. Depending on the transfer, this may include:</p>
 
           <p><strong>Standard Contractual Clauses (SCCs):</strong></p>
           <ul>
-            <li>We use EU Commission-approved Standard Contractual Clauses (SCCs)</li>
-            <li>SCCs are legally binding contracts ensuring GDPR-level protection</li>
-            <li>Updated to new SCCs adopted June 2021</li>
-            <li>Include supplementary measures as required by Schrems II decision</li>
+            <li>the UK International Data Transfer Agreement or UK Addendum;</li>
+            <li>EU Standard Contractual Clauses where EU GDPR applies; and</li>
+            <li>supplementary contractual, organisational or technical measures where appropriate.</li>
           </ul>
 
-          <p><strong>UK-EU Adequacy Decision:</strong></p>
+          <p><strong>Adequacy regulations or decisions:</strong></p>
           <ul>
-            <li>UK has adequacy decision from EU (renewed June 2025)</li>
-            <li>Data transfers between UK and EU require no additional safeguards</li>
-            <li>Both jurisdictions maintain equivalent data protection standards</li>
+            <li>An applicable adequacy regulation or decision may permit a transfer without a separate contractual transfer mechanism.</li>
+            <li>The operator must verify that the relevant decision is current and covers the destination and processing.</li>
           </ul>
 
           <p><strong>US Data Privacy Framework:</strong></p>
           <ul>
-            <li>For US-based processors certified under EU-US Data Privacy Framework</li>
-            <li>Framework provides adequate protection for EU-US transfers</li>
-            <li>Applies to companies like Stripe who maintain certification</li>
-            <li>Combined with SCCs for additional protection</li>
+            <li>A provider's current certification may be relevant where the applicable framework covers the transfer.</li>
+            <li>Certification and scope must be checked rather than assumed from the provider's name.</li>
           </ul>
 
           <p><strong>Additional Technical & Organizational Safeguards:</strong></p>
           <ul>
             <li>
-              <strong>Encryption:</strong> Data encrypted in transit (TLS 1.3) and at rest (AES-256)
+              <strong>Encryption:</strong> Appropriate encryption in transit and at rest where supported by the configured service
             </li>
             <li>
               <strong>Access Controls:</strong> Strict access controls and authentication
@@ -788,10 +896,9 @@
               <strong>Data Minimization:</strong> Only transfer data that is strictly necessary
             </li>
             <li>
-              <strong>Contractual Protections:</strong> Data Processing Agreements with all
-              processors
+              <strong>Contractual Protections:</strong> Appropriate processor and transfer terms
             </li>
-            <li><strong>Regular Audits:</strong> Compliance audits and security assessments</li>
+            <li><strong>Review:</strong> Periodic review of providers, regions and safeguards</li>
             <li>
               <strong>Incident Response:</strong> Procedures for breach notification and remediation
             </li>
@@ -802,11 +909,7 @@
           <ul>
             <li>Request information about international transfers of your data</li>
             <li>Obtain copies of safeguards (e.g., SCCs) protecting your data</li>
-            <li>Object to transfers if you believe safeguards are inadequate</li>
-            <li>
-              Request that your data is not transferred to specific countries (where technically
-              feasible)
-            </li>
+            <li>Raise a concern about a transfer and exercise any applicable data-protection right</li>
           </ul>
 
           <p>To exercise these rights, contact us at {{ADMIN_EMAIL}}.</p>
@@ -835,15 +938,25 @@
               <strong>Functional — UI Settings:</strong> Stored in localStorage to remember
               interface preferences (expanded folders, notification settings)
             </li>
-            <li><strong>Analytics:</strong> Currently unused — disabled by default</li>
+            <li>
+              <strong>Analytics:</strong> With consent, EventFlow and PostHog use cookies or similar
+              storage for privacy-minimised analytics and, where enabled, masked session replay on
+              non-sensitive pages
+            </li>
+            <li>
+              <strong>Attribution:</strong> A first-touch and last-touch acquisition record may be
+              stored in localStorage for up to 90 days; an opaque analytics session identifier may be
+              stored in sessionStorage for the browser session
+            </li>
             <li>
               <strong>Cookie Consent:</strong> Records your cookie consent preferences (essential,
               always stored)
             </li>
           </ul>
           <p class="small" style="color: #667085">
-            If you withdraw or reject functional consent, all optional localStorage data is cleared
-            from your browser immediately.
+            Analytics does not start unless you consent. If you withdraw analytics consent, further
+            collection stops and EventFlow's browser attribution record is removed. If you withdraw
+            or reject functional consent, EventFlow clears the functional preferences it controls.
           </p>
 
           <h3 class="h5">9.3 Managing Cookies</h3>
@@ -868,7 +981,7 @@
           <p>
             <strong>How to exercise:</strong> Email
             <a href="mailto:admin@event-flow.co.uk">admin@event-flow.co.uk</a> with your request<br />
-            <strong>Response time:</strong> Within 30 days<br />
+            <strong>Response time:</strong> Without undue delay and normally within one calendar month<br />
             <strong>Format:</strong> JSON or CSV export of your data
           </p>
 
@@ -943,8 +1056,8 @@
           <p>
             To exercise any of these rights, please contact us at
             <a href="mailto:admin@event-flow.co.uk">admin@event-flow.co.uk</a>. We may ask you to
-            verify your identity before processing your request. We will respond to your request
-            within 30 days, or notify you if we need additional time.
+            verify your identity before processing your request. We will respond without undue delay
+            and normally within one calendar month, or notify you if a lawful extension applies.
           </p>
 
           <p>
@@ -1114,7 +1227,7 @@
 
           <p class="small" style="color: #667085">
             <em
-              >This Privacy Notice is effective as of {{LEGAL_EFFECTIVE_DATE}}. VEXI is committed to
+              >This Privacy Notice is effective as of {{POLICY_PRIVACY_EFFECTIVE_DATE}}. VEXI is committed to
               transparency and protecting your privacy rights under UK data protection law. For
               questions or to exercise your rights, contact
               <a href="mailto:{{ADMIN_EMAIL}}">{{ADMIN_EMAIL}}</a>.</em

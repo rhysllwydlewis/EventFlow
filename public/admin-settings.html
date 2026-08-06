@@ -562,7 +562,7 @@
     <!-- Content Management -->
     <div class="card">
       <h2>Content Management</h2>
-      <p class="small" style="color:#667085;margin-bottom:24px;">Update legal document dates and company information. Changes apply to all HTML pages using placeholders.</p>
+      <p class="small" style="color:#667085;margin-bottom:24px;">Policy dates are reviewed, per-policy metadata. Update <code>config/policyMetadata.js</code> in the same pull request as the policy wording; runtime overrides are disabled. Use <a href="/admin-content?tab=legalDates">Policy Reviews</a> to check for source changes.</p>
       
       <div style="max-width: 600px;">
         <div style="margin-bottom: 24px;">
@@ -571,10 +571,10 @@
             type="text" 
             id="legalLastUpdated" 
             class="form-control" 
-            placeholder="e.g., January 2026"
-            value="January 2026"
+            value="{{POLICY_LEGAL_HUB_LAST_UPDATED}}"
+            disabled
           >
-          <p class="small" style="color:#667085;margin-top:4px;">Used in {{LEGAL_LAST_UPDATED}} placeholder</p>
+          <p class="small" style="color:#667085;margin-top:4px;">Legal Hub material-update date; individual policies have separate metadata.</p>
         </div>
 
         <div style="margin-bottom: 24px;">
@@ -583,15 +583,15 @@
             type="text" 
             id="legalEffectiveDate" 
             class="form-control" 
-            placeholder="e.g., January 2026"
-            value="January 2026"
+            value="{{POLICY_LEGAL_HUB_EFFECTIVE_DATE}}"
+            disabled
           >
-          <p class="small" style="color:#667085;margin-top:4px;">Used in {{LEGAL_EFFECTIVE_DATE}} placeholder</p>
+          <p class="small" style="color:#667085;margin-top:4px;">Legal Hub effective date; individual policies have separate metadata.</p>
         </div>
 
         <div style="display:flex;gap:12px;align-items:center;">
-          <button type="button" id="saveContentBtn" class="ef-cta btn btn-primary">
-            Save Content Changes
+          <button type="button" id="saveContentBtn" class="ef-cta btn btn-primary" disabled>
+            Version-Controlled Metadata
           </button>
           <span id="contentSaveStatus" class="small" style="color:#667085;"></span>
         </div>
@@ -615,12 +615,12 @@
                 <td style="padding:8px;"><span id="currentYear">2026</span> (auto-updates)</td>
               </tr>
               <tr style="border-bottom:1px solid #E7EAF0;">
-                <td style="padding:8px;"><code>{{LEGAL_LAST_UPDATED}}</code></td>
-                <td style="padding:8px;"><span id="displayLegalLastUpdated">January 2026</span></td>
+                <td style="padding:8px;">Legal Hub material update</td>
+                <td style="padding:8px;"><span id="displayLegalLastUpdated">{{POLICY_LEGAL_HUB_LAST_UPDATED}}</span></td>
               </tr>
               <tr style="border-bottom:1px solid #E7EAF0;">
-                <td style="padding:8px;"><code>{{LEGAL_EFFECTIVE_DATE}}</code></td>
-                <td style="padding:8px;"><span id="displayLegalEffectiveDate">January 2026</span></td>
+                <td style="padding:8px;">Legal Hub effective date</td>
+                <td style="padding:8px;"><span id="displayLegalEffectiveDate">{{POLICY_LEGAL_HUB_EFFECTIVE_DATE}}</span></td>
               </tr>
               <tr>
                 <td style="padding:8px;"><code>{{ADMIN_EMAIL}}</code></td>

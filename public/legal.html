@@ -279,7 +279,7 @@
 
 <main id="main-content" class='section'>
   <div class='container' style="max-width: 1200px;">
-    <span class="last-updated">Last Updated: {{LEGAL_LAST_UPDATED}}</span>
+    <span class="last-updated">Last materially updated: {{POLICY_LEGAL_HUB_LAST_UPDATED}} · Last reviewed: {{POLICY_LEGAL_HUB_LAST_REVIEWED}} · Version {{POLICY_LEGAL_HUB_VERSION}}</span>
     <h1>Legal Hub</h1>
     <p style="font-size: 1.125rem; color: #667085; margin-bottom: 32px;">All EventFlow legal documents, policies, and guidelines in one place. Navigate using the menu below.</p>
 
@@ -332,6 +332,8 @@
           <ul>
             <li><a href="/terms">Full Terms of Use</a> - Complete terms document</li>
             <li><a href="/privacy">Full Privacy Notice</a> - Detailed privacy policy</li>
+            <li><a href="/community/guidelines">Community Guidelines</a> - Rules for public discussions, replies and profiles</li>
+            <li><a href="/community/help">Community Help and Appeals</a> - Reporting and moderation appeals</li>
             <li><a href="/data-rights">Data Subject Rights</a> - Exercise your GDPR rights</li>
           </ul>
         </section>
@@ -341,9 +343,9 @@
           <h2>📋 Terms of Use Summary</h2>
           <div class="legal-metadata" style="margin-bottom: 1.5rem; padding: 1rem; background: #f9fafb; border-left: 3px solid #0B8073; border-radius: 4px;">
             <p class="small" style="margin: 0; color: #6b7280;">
-              <strong>Last Updated:</strong> 11 June 2026 | 
-              <strong>Version:</strong> 1.0 | 
-              <a href="#changelog" style="color: #0B8073;">View Changelog</a>
+              <strong>Last materially updated:</strong> {{POLICY_TERMS_LAST_UPDATED}} |
+              <strong>Last reviewed:</strong> {{POLICY_TERMS_LAST_REVIEWED}} |
+              <strong>Version:</strong> {{POLICY_TERMS_VERSION}}
             </p>
           </div>
           <p>Our Terms of Use govern your use of EventFlow services. Key points include:</p>
@@ -363,9 +365,9 @@
           <h2>🔒 Privacy Notice Summary</h2>
           <div class="legal-metadata" style="margin-bottom: 1.5rem; padding: 1rem; background: #f9fafb; border-left: 3px solid #0B8073; border-radius: 4px;">
             <p class="small" style="margin: 0; color: #6b7280;">
-              <strong>Last Updated:</strong> 11 June 2026 | 
-              <strong>Version:</strong> 1.0 | 
-              <a href="#changelog" style="color: #0B8073;">View Changelog</a>
+              <strong>Last materially updated:</strong> {{POLICY_PRIVACY_LAST_UPDATED}} |
+              <strong>Last reviewed:</strong> {{POLICY_PRIVACY_LAST_REVIEWED}} |
+              <strong>Version:</strong> {{POLICY_PRIVACY_VERSION}}
             </p>
           </div>
           <p>We take your privacy seriously. Our Privacy Notice explains:</p>
@@ -385,9 +387,9 @@
           <h2>🍪 Cookie Policy</h2>
           <div class="legal-metadata" style="margin-bottom: 1.5rem; padding: 1rem; background: #f9fafb; border-left: 3px solid #0B8073; border-radius: 4px;">
             <p class="small" style="margin: 0; color: #6b7280;">
-              <strong>Last Updated:</strong> 11 June 2026 | 
-              <strong>Version:</strong> 1.0 | 
-              <a href="#changelog" style="color: #0B8073;">View Changelog</a>
+              <strong>Last materially updated:</strong> {{POLICY_COOKIE_POLICY_LAST_UPDATED}} |
+              <strong>Last reviewed:</strong> {{POLICY_COOKIE_POLICY_LAST_REVIEWED}} |
+              <strong>Version:</strong> {{POLICY_COOKIE_POLICY_VERSION}}
             </p>
           </div>
           <p>EventFlow uses cookies to provide and improve our services.</p>
@@ -409,8 +411,11 @@
 
           <h4 class="h6" style="margin-top:1rem;">Analytics Cookies (With Your Consent)</h4>
           <ul>
-            <li>Currently unused — disabled by default.</li>
+            <li><strong>EventFlow analytics:</strong> Records privacy-minimised page, journey, conversion and performance events. First-party analytics events are normally retained for 90 days, subject to deployment configuration.</li>
+            <li><strong>PostHog:</strong> May record consented page views, attribution and masked session replays on non-sensitive pages. Form inputs are masked, query strings are removed from captured URLs and recording is blocked on areas such as messages, payments, dashboards and settings.</li>
+            <li><strong>Attribution storage:</strong> A first-touch and last-touch acquisition record may be stored in localStorage for up to 90 days. An opaque analytics session identifier may be stored for the browser session.</li>
           </ul>
+          <p class="small" style="color:#667085;">Analytics does not start unless you consent. Withdrawing consent stops further analytics collection and removes EventFlow's browser attribution record. PostHog may use cookies or similar browser storage as part of the consented service.</p>
 
           <h3 class="h5" style="margin-top:1.25rem;">Managing Your Cookie Preferences</h3>
           <p>You can manage or withdraw your consent at any time — not just on your first visit. Use the button below or the <strong>Cookie preferences</strong> link in the site footer.</p>
@@ -432,19 +437,19 @@
             <li><strong>Browser Settings:</strong> Control cookies via your browser</li>
           </ul>
 
-          <p><strong>Third-Party Cookies:</strong> We do not use third-party tracking or advertising cookies.</p>
+          <p><strong>Third-party analytics:</strong> We do not use advertising cookies. If you consent to analytics, PostHog processes analytics data for us. Ordinary web requests to PostHog may disclose technical data such as an IP address and browser information even though EventFlow's own behaviour-event store excludes raw IP addresses and raw user-agent strings.</p>
 
-          <p class="small" style="color:#667085; margin-top: 16px;"><em>This policy complies with UK PECR 2003 and UK GDPR.</em></p>
+          <p class="small" style="color:#667085; margin-top: 16px;"><em>This notice is intended to explain our use of cookies and similar technologies. It should be reviewed against the live production configuration and is not a substitute for legal advice.</em></p>
         </section>
 
         <!-- GDPR & Data Rights -->
         <section id="gdpr" class="legal-section">
-          <h2>🛡️ GDPR Compliance & Your Rights</h2>
+          <h2>🛡️ Data Protection & Your Rights</h2>
           <div class="legal-metadata" style="margin-bottom: 1.5rem; padding: 1rem; background: #f9fafb; border-left: 3px solid #0B8073; border-radius: 4px;">
             <p class="small" style="margin: 0; color: #6b7280;">
-              <strong>Last Updated:</strong> 11 June 2026 | 
-              <strong>Version:</strong> 1.0 | 
-              <a href="#changelog" style="color: #0B8073;">View Changelog</a>
+              <strong>Last materially updated:</strong> {{POLICY_PRIVACY_LAST_UPDATED}} |
+              <strong>Last reviewed:</strong> {{POLICY_PRIVACY_LAST_REVIEWED}} |
+              <strong>Version:</strong> {{POLICY_PRIVACY_VERSION}}
             </p>
           </div>
           <p>Under UK GDPR, you have the following rights regarding your personal data:</p>
@@ -479,13 +484,14 @@
             <p><strong>How:</strong> Unsubscribe from emails or update Settings</p>
           </div>
           
-          <p><strong>Response Time:</strong> We respond to all requests within 30 days.</p>
+          <p><strong>Response Time:</strong> We respond without undue delay and normally within one calendar month. Where the law permits an extension, we will explain the reason and timing.</p>
           <p><a href="/data-rights" class="cta">Detailed GDPR Rights Guide →</a></p>
         </section>
 
         <!-- Acceptable Use Policy -->
         <section id="acceptable-use" class="legal-section">
           <h2>✓ Acceptable Use Policy</h2>
+          <p class="small" style="color:#667085;"><strong>Last materially updated:</strong> {{POLICY_ACCEPTABLE_USE_LAST_UPDATED}} | <strong>Last reviewed:</strong> {{POLICY_ACCEPTABLE_USE_LAST_REVIEWED}} | <strong>Version:</strong> {{POLICY_ACCEPTABLE_USE_VERSION}}</p>
           <p>To maintain a safe and respectful community, users must not:</p>
           
           <h3 class="h5">Prohibited Activities</h3>
@@ -525,6 +531,7 @@
         <!-- Copyright Policy -->
         <section id="copyright" class="legal-section">
           <h2>© Copyright & Intellectual Property</h2>
+          <p class="small" style="color:#667085;"><strong>Last materially updated:</strong> {{POLICY_COPYRIGHT_LAST_UPDATED}} | <strong>Last reviewed:</strong> {{POLICY_COPYRIGHT_LAST_REVIEWED}} | <strong>Version:</strong> {{POLICY_COPYRIGHT_VERSION}}</p>
           
           <h3 class="h5">Our Content</h3>
           <p>All content on Event Flow (text, graphics, logos, designs) is owned by VEXI or our licensors and protected by:</p>
@@ -554,12 +561,13 @@
             <li>Confirm good faith belief of infringement</li>
           </ol>
           
-          <p>We will review and respond within 7-14 days.</p>
+          <p>We will review a sufficiently detailed notice as soon as reasonably practicable. Timing depends on the complexity, evidence and any legal steps required.</p>
         </section>
 
         <!-- Supplier Terms -->
         <section id="supplier-terms" class="legal-section">
           <h2>🤝 Supplier-Specific Terms</h2>
+          <p class="small" style="color:#667085;"><strong>Last materially updated:</strong> {{POLICY_SUPPLIER_TERMS_LAST_UPDATED}} | <strong>Last reviewed:</strong> {{POLICY_SUPPLIER_TERMS_LAST_REVIEWED}} | <strong>Version:</strong> {{POLICY_SUPPLIER_TERMS_VERSION}}</p>
           <p>If you are a supplier listing services on EventFlow, additional terms apply:</p>
           
           <h3 class="h5">Listing Requirements</h3>
@@ -567,6 +575,7 @@
             <li>Provide accurate business information</li>
             <li>Use real photos of your work</li>
             <li>Keep pricing and availability up to date</li>
+            <li>Keep your base location, venue postcode, service areas, travel radius and nationwide coverage accurate</li>
             <li>Respond to inquiries promptly</li>
             <li>Have valid business licenses and insurance</li>
           </ul>
@@ -655,6 +664,7 @@
         <!-- Marketplace Terms -->
         <section id="marketplace-terms" class="legal-section">
           <h2>🛒 Marketplace Terms</h2>
+          <p class="small" style="color:#667085;"><strong>Last materially updated:</strong> {{POLICY_MARKETPLACE_TERMS_LAST_UPDATED}} | <strong>Last reviewed:</strong> {{POLICY_MARKETPLACE_TERMS_LAST_REVIEWED}} | <strong>Version:</strong> {{POLICY_MARKETPLACE_TERMS_VERSION}}</p>
           <p>The EventFlow Marketplace is a peer-to-peer platform for buying and selling physical event-related items. These terms apply to all marketplace users (buyers and sellers).</p>
           
           <h3 class="h5">Marketplace Overview</h3>
@@ -786,15 +796,15 @@
             </li>
           </ul>
           
-          <h4 style="margin-top: 16px; margin-bottom: 8px;"><strong>Step 3: Platform Investigation (7-14 Days)</strong></h4>
+          <h4 style="margin-top: 16px; margin-bottom: 8px;"><strong>Step 3: Platform Review</strong></h4>
           <p>EventFlow will conduct a thorough investigation:</p>
           <ul>
-            <li><strong>Acknowledgment:</strong> Within 24 hours of receiving dispute report</li>
+            <li><strong>Acknowledgment:</strong> Sent when reasonably practicable after receiving a sufficiently detailed report</li>
             <li><strong>Evidence Review:</strong> Examination of all submitted documentation</li>
             <li><strong>Both Parties Contacted:</strong> Each party has opportunity to provide their account</li>
             <li><strong>Policy Review:</strong> Check if marketplace terms were violated</li>
-            <li><strong>Investigation Timeline:</strong> 7-14 days depending on complexity</li>
-            <li><strong>Updates Provided:</strong> Regular status updates during investigation</li>
+            <li><strong>Review Timeline:</strong> Depends on complexity, evidence and whether the parties respond</li>
+            <li><strong>Updates Provided:</strong> Status updates where appropriate and supported by the dispute process</li>
           </ul>
           
           <h4 style="margin-top: 16px; margin-bottom: 8px;"><strong>Step 4: Possible Outcomes</strong></h4>
@@ -876,15 +886,15 @@
             </tr>
             <tr style="background: #F9FAFB;">
               <td style="padding: 12px; border: 1px solid #E7EAF0;">Platform dispute report acknowledgment</td>
-              <td style="padding: 12px; border: 1px solid #E7EAF0;">Within 24 hours</td>
+              <td style="padding: 12px; border: 1px solid #E7EAF0;">As soon as reasonably practicable</td>
             </tr>
             <tr>
               <td style="padding: 12px; border: 1px solid #E7EAF0;">Platform investigation</td>
-              <td style="padding: 12px; border: 1px solid #E7EAF0;">7-14 days</td>
+              <td style="padding: 12px; border: 1px solid #E7EAF0;">Depends on complexity and evidence</td>
             </tr>
             <tr style="background: #F9FAFB;">
               <td style="padding: 12px; border: 1px solid #E7EAF0;">Investigation outcome communicated</td>
-              <td style="padding: 12px; border: 1px solid #E7EAF0;">Within 2 business days of conclusion</td>
+              <td style="padding: 12px; border: 1px solid #E7EAF0;">When reasonably practicable after conclusion</td>
             </tr>
           </table>
           
@@ -961,7 +971,11 @@
         <!-- Community Guidelines -->
         <section id="community" class="legal-section">
           <h2>👥 Community Guidelines</h2>
-          <p>EventFlow is a community of event planners and suppliers. We expect everyone to:</p>
+          <p class="small" style="color:#667085;"><strong>Last materially updated:</strong> {{POLICY_COMMUNITY_GUIDELINES_LAST_UPDATED}} | <strong>Last reviewed:</strong> {{POLICY_COMMUNITY_GUIDELINES_LAST_REVIEWED}} | <strong>Version:</strong> {{POLICY_COMMUNITY_GUIDELINES_VERSION}}</p>
+          <p>The EventFlow Community is a public forum for event planners and suppliers. Published
+            handles, profiles, discussions and replies may be searchable on EventFlow and indexed
+            by external search engines. Community advice is user-generated and should not be
+            treated as professional advice or as verified by EventFlow.</p>
           
           <h3 class="h5">Be Respectful</h3>
           <ul>
@@ -984,18 +998,29 @@
             <li>Protect your personal information</li>
             <li>Don't share sensitive data publicly</li>
             <li>Report suspicious behavior</li>
-            <li>Use secure payment methods</li>
+            <li>Do not publish another person's private information without permission</li>
           </ul>
           
-          <h3 class="h5">Reviews & Ratings</h3>
+          <h3 class="h5">Content and rights</h3>
           <ul>
-            <li>Reviews must be based on genuine experiences</li>
-            <li>Be fair and constructive in criticism</li>
-            <li>Don't review competitors or write fake reviews</li>
-            <li>Focus on service quality, not personal attacks</li>
+            <li>You keep ownership of content you create</li>
+            <li>You give EventFlow the limited licence in the Terms to host, display, search, format and moderate it</li>
+            <li>You must have the rights and permissions needed to post text, images or other material</li>
+            <li>You can edit or withdraw your content, subject to limited safety, appeal, legal and backup retention</li>
           </ul>
+
+          <h3 class="h5">Moderation and enforcement</h3>
+          <p>Automated safety and anti-spam checks may reject blocked links or hold content for a
+            human decision. Moderators may warn members, restrict links or posting, redact, hide,
+            remove, lock or archive content, and senior moderators may suspend accounts. We do not
+            use silent shadow bans: held content is shown to its author as awaiting review.</p>
+
+          <h3 class="h5">Reports and appeals</h3>
+          <p>Use the report control on a post, or the <a href="#illegal-content">illegal-content
+            route</a> for suspected unlawful material. Eligible moderation decisions can be
+            appealed. See <a href="/community/help">Community Help and Appeals</a> for the process.</p>
           
-          <p><strong>Report Issues:</strong> If you see behavior that violates these guidelines, email {{ABUSE_EMAIL}}</p>
+          <p><a href="/community/guidelines" class="cta">Read the full Community Guidelines â†’</a></p>
         </section>
 
         <!-- Accessibility Statement -->
@@ -1036,7 +1061,7 @@
           <p><strong>Email:</strong> {{ADMIN_EMAIL}}<br>
           <strong>Subject:</strong> "Accessibility Feedback"</p>
           
-          <p>We will respond within 7 days and work to address the issue.</p>
+          <p>We will review accessibility feedback and respond as soon as reasonably practicable.</p>
         </section>
 
         <!-- Security Policy -->
@@ -1068,7 +1093,7 @@
             <li>Email {{ADMIN_EMAIL}} with "Security Issue"</li>
             <li>Describe the vulnerability in detail</li>
             <li>Do not publicly disclose before we can address it</li>
-            <li>We will respond within 48 hours</li>
+            <li>We will assess the report as soon as reasonably practicable, prioritising credible high-risk issues</li>
           </ol>
           
           <h3 class="h5">Data Breach Response</h3>
@@ -1258,8 +1283,8 @@
             <ol>
               <li><strong>Email:</strong> {{ADMIN_EMAIL}} with subject "Formal Complaint"</li>
               <li><strong>Include:</strong> Detailed description, evidence, desired resolution</li>
-              <li><strong>Response Time:</strong> We will acknowledge within 48 hours</li>
-              <li><strong>Investigation:</strong> Full response within 14 days</li>
+              <li><strong>Response Time:</strong> We will acknowledge and review the complaint as soon as reasonably practicable</li>
+              <li><strong>Investigation:</strong> Timing depends on the issue, evidence and any third-party input required</li>
               <li><strong>Escalation:</strong> If unsatisfied, you may contact the ICO (for data protection issues) or pursue ADR</li>
             </ol>
             
@@ -1332,8 +1357,8 @@
             
             <h3 class="h5" style="margin-top: 24px;">Our Response Process</h3>
             <ul>
-              <li><strong>Acknowledgment:</strong> Within 24 hours of receipt</li>
-              <li><strong>Investigation:</strong> Immediate review for serious violations (CSAM, terrorism); 24-48 hours for other reports</li>
+              <li><strong>Triage:</strong> Reports are prioritised according to apparent severity, urgency and the information available</li>
+              <li><strong>Investigation:</strong> We may review the content, account history, relevant context and any evidence supplied</li>
               <li><strong>Action Taken:</strong>
                 <ul>
                   <li>Immediate removal of clearly illegal content</li>
@@ -1343,7 +1368,7 @@
                   <li>Communication with reporter about outcome (where appropriate)</li>
                 </ul>
               </li>
-              <li><strong>Follow-up:</strong> Update within 7 days on actions taken</li>
+              <li><strong>Follow-up:</strong> Where appropriate, we will tell the reporter about the outcome, subject to privacy, safety and legal restrictions</li>
             </ul>
             
             <h3 class="h5" style="margin-top: 24px;">Reporting to Authorities</h3>
@@ -1358,14 +1383,14 @@
             
             <h3 class="h5" style="margin-top: 24px;">Protection for Reporters</h3>
             <ul>
-              <li>Your identity will be kept confidential</li>
+              <li>We limit access to reporter information and handle it under our Privacy Notice, but may disclose it where necessary or required by law</li>
               <li>We do not tolerate retaliation against reporters</li>
               <li>Good faith reports will never result in penalties</li>
               <li>Malicious false reports may result in account restrictions</li>
             </ul>
             
-            <h3 class="h5" style="margin-top: 24px;">Digital Services Act (DSA) Compliance</h3>
-            <p>In accordance with the Digital Services Act, EventFlow maintains:</p>
+            <h3 class="h5" style="margin-top: 24px;">Reporting and Moderation Controls</h3>
+            <p>EventFlow provides controls intended to support applicable intermediary and online-safety responsibilities, including:</p>
             <ul>
               <li>Clear reporting mechanisms for illegal content</li>
               <li>Transparent decision-making processes</li>
@@ -1377,7 +1402,7 @@
           
           <div class="notice" style="margin-top: 24px; padding: 20px; background: #DC2626; color: white; border-radius: 8px;">
             <p style="margin: 0; font-weight: 600; font-size: 1.125rem;">📧 Report Illegal Content: <a href="mailto:{{ABUSE_EMAIL}}" style="color: white; text-decoration: underline;">{{ABUSE_EMAIL}}</a></p>
-            <p style="margin: 8px 0 0 0;">We respond to all reports within 24-48 hours</p>
+            <p style="margin: 8px 0 0 0;">Urgent reports are prioritised; other reports are handled as soon as reasonably practicable</p>
           </div>
         </section>
 
@@ -1483,13 +1508,7 @@
             </ul>
             
             <h3 class="h5" style="margin-top: 24px;">Registration Requirements</h3>
-            <p>When creating an account, users must:</p>
-            <ol>
-              <li><strong>Confirm Age:</strong> Check "I confirm I am 18 years of age or older"</li>
-              <li><strong>Accurate Information:</strong> Provide truthful date of birth</li>
-              <li><strong>Accept Terms:</strong> Acknowledge age restriction in Terms of Use</li>
-              <li><strong>Parent/Guardian Consent:</strong> NOT applicable - no accounts for users under 18</li>
-            </ol>
+            <p>Users must be at least 18 years old to use EventFlow. Before a member can publish in the Community, the service requires an 18-or-over self-declaration. This is a declaration, not identity or age verification, and EventFlow does not currently ask every account holder for a date of birth.</p>
             
             <h3 class="h5" style="margin-top: 24px;">Age-Restricted Items on Marketplace</h3>
             <p>Additional age restrictions apply to certain marketplace items:</p>
@@ -1505,10 +1524,9 @@
             <h3 class="h5" style="margin-top: 24px;">Age Verification Process</h3>
             <p>Current verification measures:</p>
             <ul>
-              <li><strong>Self-Declaration:</strong> Users confirm age at registration</li>
-              <li><strong>Email Verification:</strong> Valid email address required</li>
-              <li><strong>Behavioral Monitoring:</strong> Automated systems flag suspicious underage activity</li>
-              <li><strong>Manual Review:</strong> Accounts flagged for age concerns are manually reviewed</li>
+              <li><strong>Community Self-Declaration:</strong> Members must confirm they are 18 or over before posting</li>
+              <li><strong>Reporting:</strong> Community members can report a suspected underage user</li>
+              <li><strong>Moderation:</strong> Moderators can review reports and restrict Community access or accounts where appropriate</li>
             </ul>
             
             <p>Future enhancements under consideration:</p>
@@ -1519,21 +1537,14 @@
             </ul>
             
             <h3 class="h5" style="margin-top: 24px;">Enforcement & Consequences</h3>
-            <p>If we discover a user is under 18:</p>
-            <ol>
-              <li><strong>Immediate Account Suspension:</strong> Account access is immediately disabled</li>
-              <li><strong>Transaction Review:</strong> Any active transactions are reviewed and may be cancelled</li>
-              <li><strong>Permanent Ban:</strong> User is permanently banned from creating future accounts</li>
-              <li><strong>Notification:</strong> Parent/guardian contacted if contact information available</li>
-              <li><strong>Data Deletion:</strong> Personal data deleted in accordance with GDPR (right to erasure)</li>
-            </ol>
+            <p>If we reasonably believe a user is under 18, we may restrict Community posting, suspend or close the account, review affected activity, and take other proportionate safety steps. Personal data is handled under the Privacy Notice, including applicable retention and erasure rules.</p>
             
             <h3 class="h5" style="margin-top: 24px;">Reporting Underage Users</h3>
             <p>If you believe a user is under 18:</p>
             <ul>
               <li><strong>Email:</strong> {{ABUSE_EMAIL}} with subject "Underage User Report"</li>
               <li><strong>Include:</strong> Username, evidence (if available), reason for concern</li>
-              <li><strong>Investigation:</strong> We will investigate within 24 hours</li>
+              <li><strong>Investigation:</strong> Reports are prioritised according to the apparent risk and information available</li>
               <li><strong>Action:</strong> Appropriate action taken based on findings</li>
             </ul>
             
@@ -1546,19 +1557,18 @@
               <li>Use parental control software to restrict access</li>
             </ul>
             
-            <h3 class="h5" style="margin-top: 24px;">Online Safety Act Compliance</h3>
-            <p>EventFlow complies with the UK Online Safety Act by:</p>
+            <h3 class="h5" style="margin-top: 24px;">Age and Online-Safety Measures</h3>
+            <p>EventFlow uses the following measures as part of its approach to age restrictions and online safety:</p>
             <ul>
-              <li>Implementing age assurance measures</li>
-              <li>Restricting access to age-appropriate users</li>
-              <li>Monitoring for underage access attempts</li>
-              <li>Providing clear age restriction information</li>
-              <li>Removing underage users promptly when identified</li>
+              <li>An 18+ rule and self-declaration before Community posting</li>
+              <li>Reporting routes for suspected underage use and harmful or illegal content</li>
+              <li>Moderation, Community restrictions and account action where appropriate</li>
+              <li>Published Community Guidelines, reasons for moderation decisions and an appeal route</li>
             </ul>
           </div>
           
           <div class="notice" style="margin-top: 24px; padding: 16px; background: #FFE6E6; border-left: 4px solid #DC2626; border-radius: 8px;">
-            <p><strong>Zero Tolerance:</strong> EventFlow has zero tolerance for underage users. Creating an account with false age information is a breach of our Terms of Use and will result in permanent account termination.</p>
+            <p><strong>18+ service:</strong> A false adult declaration breaches our Terms. EventFlow may suspend or close an account after considering the available information, safety risk and applicable law.</p>
           </div>
         </section>
 
@@ -1636,7 +1646,7 @@
     <!-- Bottom Notice -->
     <div class="card" style="margin-top: 48px; background: #F9FAFB; text-align: center;">
       <p><strong>Important:</strong> These legal documents are regularly updated to reflect changes in our services and applicable laws. We recommend reviewing them periodically.</p>
-      <p class="small" style="margin-top: 12px; color: #667085;">Last Updated: {{LEGAL_LAST_UPDATED}} | Effective Date: {{LEGAL_EFFECTIVE_DATE}}</p>
+      <p class="small" style="margin-top: 12px; color: #667085;">Last materially updated: {{POLICY_LEGAL_HUB_LAST_UPDATED}} | Effective date: {{POLICY_LEGAL_HUB_EFFECTIVE_DATE}} | Last reviewed: {{POLICY_LEGAL_HUB_LAST_REVIEWED}} | Version: {{POLICY_LEGAL_HUB_VERSION}}</p>
     </div>
 
   </div>

@@ -118,7 +118,9 @@
 
     modal.querySelector('#closeQnModal').addEventListener('click', () => modal.remove());
     modal.addEventListener('click', e => {
-      if (e.target === modal) modal.remove();
+      if (e.target === modal) {
+        modal.remove();
+      }
     });
 
     modal.querySelector('#quickNotifyForm').addEventListener('submit', async e => {
@@ -378,7 +380,9 @@
 
     modal.querySelector('#closeNotifyModal').addEventListener('click', () => modal.remove());
     modal.addEventListener('click', e => {
-      if (e.target === modal) modal.remove();
+      if (e.target === modal) {
+        modal.remove();
+      }
     });
 
     modal.querySelector('#confirmNotifyBtn').addEventListener('click', async () => {
@@ -683,19 +687,20 @@
         }
 
         document.getElementById('cdStatusContent').innerHTML = `
-          <div class="info-row"><span class="info-label">Automated Updates</span>
+          <div class="info-row"><span class="info-label">Review Reminders</span>
             <span class="status-badge ${data.config.autoUpdateEnabled ? 'enabled' : 'disabled'}">
               ${data.config.autoUpdateEnabled ? 'Enabled' : 'Disabled'}</span></div>
-          <div class="info-row"><span class="info-label">Content Status</span>
+          <div class="info-row"><span class="info-label">Review Status</span>
             <span class="status-badge ${data.changeCheck.changed ? 'changed' : 'uptodate'}">${data.changeCheck.reason}</span></div>
           <div class="info-row"><span class="info-label">Next Scheduled Check</span>
             <span class="info-value">${data.status.nextRun ? new Date(data.status.nextRun).toLocaleString() : 'Not scheduled'}</span></div>`;
 
-        document.getElementById('cdCurrentDatesContent').innerHTML = `
-          <div class="info-row"><span class="info-label">Last Updated</span><span class="info-value">${data.config.legalLastUpdated}</span></div>
-          <div class="info-row"><span class="info-label">Effective Date</span><span class="info-value">${data.config.legalEffectiveDate}</span></div>
-          ${data.changeCheck.gitDate ? `<div class="info-row"><span class="info-label">Git Detected Date</span><span class="info-value">${data.changeCheck.gitDate}</span></div>` : ''}
-          ${data.config.lastAutoCheck ? `<div class="info-row"><span class="info-label">Last Auto Check</span><span class="info-value">${new Date(data.config.lastAutoCheck).toLocaleString()}</span></div>` : ''}`;
+        document.getElementById('cdCurrentDatesContent').innerHTML = (data.policies || [])
+          .map(
+            policy =>
+              `<div class="info-row"><span class="info-label">${AdminShared.escapeHtml(policy.title)}</span><span class="info-value">Updated ${AdminShared.escapeHtml(policy.lastMaterialUpdateFormatted)} · reviewed ${AdminShared.escapeHtml(policy.lastReviewedFormatted)} · v${AdminShared.escapeHtml(policy.version)}</span></div>`
+          )
+          .join('');
 
         const toggle = document.getElementById('cdAutoUpdateToggle');
         if (toggle) {
@@ -740,43 +745,6 @@
       }
     }
 
-    const form = document.getElementById('cdUpdateDatesForm');
-    if (form) {
-      form.addEventListener('submit', async e => {
-        e.preventDefault();
-        const lastUpdated = document.getElementById('cdLastUpdated').value.trim();
-        const effectiveDate = document.getElementById('cdEffectiveDate').value.trim();
-        if (!lastUpdated && !effectiveDate) {
-          AdminShared.showToast('Please provide at least one date', 'warning');
-          return;
-        }
-        const btn = document.getElementById('cdUpdateBtn');
-        btn.disabled = true;
-        btn.textContent = 'Updating...';
-        try {
-          const res = await fetch('/api/admin/content-dates', {
-            method: 'POST',
-            credentials: 'include',
-            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCSRFToken() },
-            body: JSON.stringify({ lastUpdated, effectiveDate }),
-          });
-          const data = await res.json();
-          if (!res.ok || !data.success) {
-            throw new Error(data.message || data.error || 'Update failed');
-          }
-          AdminShared.showToast('✅ Dates updated successfully!', 'success');
-          document.getElementById('cdLastUpdated').value = '';
-          document.getElementById('cdEffectiveDate').value = '';
-          await loadContentDates();
-        } catch (err) {
-          AdminShared.showToast(`Failed: ${err.message}`, 'error');
-        } finally {
-          btn.disabled = false;
-          btn.textContent = 'Update Dates';
-        }
-      });
-    }
-
     const checkBtn = document.getElementById('cdCheckNowBtn');
     if (checkBtn) {
       checkBtn.addEventListener('click', async () => {
@@ -798,7 +766,7 @@
           AdminShared.showToast(`Failed: ${err.message}`, 'error');
         } finally {
           checkBtn.disabled = false;
-          checkBtn.textContent = 'Check for Updates Now';
+          checkBtn.textContent = 'Check for Changes Since Review';
         }
       });
     }

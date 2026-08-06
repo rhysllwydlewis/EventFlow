@@ -1873,7 +1873,8 @@ async function startServer() {
           const DateManagementService = require('./services/dateManagementService');
           const dateService = new DateManagementService(dbUnified, logger);
 
-          // Schedule monthly automated checks
+          // Schedule monthly review reminders. These checks never change the
+          // dates shown on a policy.
           const scheduleResult = dateService.scheduleMonthlyUpdate();
 
           // Make available to routes via app.locals

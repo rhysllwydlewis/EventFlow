@@ -5937,6 +5937,17 @@ router.put(
   authRequired,
   roleRequired('admin'),
   async (req, res) => {
+    // Policy dates are editorial metadata committed with the reviewed wording.
+    // Runtime file mutation is unreliable in deployed images and can make an
+    // unchanged policy look newly updated.
+    if (req.body && ('legalLastUpdated' in req.body || 'legalEffectiveDate' in req.body)) {
+      return res.status(409).json({
+        success: false,
+        error: 'Policy dates require a reviewed code change',
+        message:
+          'Update config/policyMetadata.js in the same pull request as the reviewed policy wording. Runtime date changes are disabled.',
+      });
+    }
     try {
       const { legalLastUpdated, legalEffectiveDate } = req.body;
 
@@ -6581,10 +6592,12 @@ router.get('/content-dates', authRequired, roleRequired('admin'), async (req, re
 
     // Get service status
     const status = dateService.getStatus();
+    const { getPublicPolicyMetadata } = require('../config/policyMetadata');
 
     res.json({
       success: true,
       config: config.dates,
+      policies: getPublicPolicyMetadata(),
       changeCheck,
       status,
       timestamp: new Date().toISOString(),
@@ -6609,6 +6622,14 @@ router.post(
   roleRequired('admin'),
   csrfProtection,
   async (req, res) => {
+    if (req.body && ('lastUpdated' in req.body || 'effectiveDate' in req.body)) {
+      return res.status(409).json({
+        success: false,
+        error: 'Policy dates require a reviewed code change',
+        message:
+          'Update config/policyMetadata.js in the same pull request as the reviewed policy wording. Runtime date changes are disabled.',
+      });
+    }
     try {
       const dateService = req.app.locals.dateService;
 
@@ -6729,7 +6750,7 @@ router.get('/content-dates/articles', authRequired, roleRequired('admin'), async
 
 /**
  * POST /api/admin/content-dates/schedule
- * Enable/disable automated monthly updates
+ * Enable/disable automated monthly policy review reminders
  */
 router.post(
   '/content-dates/schedule',
@@ -6782,7 +6803,7 @@ router.post(
       auditLog({
         adminId: req.user.id,
         adminEmail: req.user.email,
-        action: enabled ? 'ENABLE_AUTO_DATES' : 'DISABLE_AUTO_DATES',
+        action: enabled ? 'ENABLE_POLICY_REVIEW_REMINDERS' : 'DISABLE_POLICY_REVIEW_REMINDERS',
         targetType: 'content_dates',
         targetId: 'automation',
         details: { enabled },
@@ -6790,7 +6811,7 @@ router.post(
 
       res.json({
         success: true,
-        message: `Automated updates ${enabled ? 'enabled' : 'disabled'} successfully`,
+        message: `Policy review reminders ${enabled ? 'enabled' : 'disabled'} successfully`,
         enabled,
         schedule: scheduleResult,
       });
@@ -6905,9 +6926,9 @@ router.post(
 
       res.json({
         success: true,
-        message: result.performed
-          ? 'Date check completed and dates updated'
-          : 'Date check completed, no update needed',
+        message: result.changed
+          ? 'Review check completed; policy review is required and public dates were not changed'
+          : 'Review check completed; no policy source files changed after review',
         result,
       });
     } catch (error) {

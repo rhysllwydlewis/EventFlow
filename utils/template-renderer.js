@@ -565,7 +565,9 @@ async function getFile(filePath, requestPath, req) {
   const stats = await fs.stat(filePath);
   const mtime = stats.mtime.getTime();
   const configPath = path.join(__dirname, '..', 'config', 'content-config.js');
+  const policyMetadataPath = path.join(__dirname, '..', 'config', 'policyMetadata.js');
   let configMtime = 0;
+  let policyMetadataMtime = 0;
 
   try {
     const configStats = await fs.stat(configPath);
@@ -574,8 +576,15 @@ async function getFile(filePath, requestPath, req) {
     // Config file doesn't exist or can't be read - use 0
   }
 
+  try {
+    const policyMetadataStats = await fs.stat(policyMetadataPath);
+    policyMetadataMtime = policyMetadataStats.mtime.getTime();
+  } catch (err) {
+    // Policy metadata file doesn't exist or can't be read - use 0
+  }
+
   const authBucket = isAnonymousRequest(req) ? 'anon' : 'auth';
-  const cacheKey = `${filePath}:${configMtime}:${authBucket}`;
+  const cacheKey = `${filePath}:${configMtime}:${policyMetadataMtime}:${authBucket}`;
 
   if (cachingEnabled && templateCache.has(cacheKey)) {
     const cached = templateCache.get(cacheKey);
