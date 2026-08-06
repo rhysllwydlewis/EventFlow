@@ -97,14 +97,13 @@ function renderCategoryHero(hero, category) {
  * Render the terminal state used when the URL has no category slug.
  * @param {Object} elements Required category page elements.
  * @param {Object} skeletons Shared skeleton-loader module.
- * @param {HTMLElement} description Description element.
  * @returns {void}
  */
-function renderMissingCategory(elements, skeletons, description) {
-  const { title, breadcrumb, hero, packagesContainer } = elements;
+function renderMissingCategory(elements, skeletons) {
+  const { title, description, breadcrumb, hero, packagesContainer } = elements;
   title.textContent = CATEGORY_NOT_FOUND;
-  breadcrumb.textContent = CATEGORY_NOT_FOUND;
   description.textContent = '';
+  breadcrumb.textContent = CATEGORY_NOT_FOUND;
   hero.replaceChildren();
   clearLoadingAttributes(elements);
   skeletons.showEmptyState(packagesContainer, {
@@ -128,7 +127,6 @@ function renderLoadFailure(elements, skeletons, error) {
   const message = getErrorMessage(error);
   const missing = message === CATEGORY_NOT_FOUND;
 
-  console.error('Error loading category:', error);
   title.textContent = missing ? CATEGORY_NOT_FOUND : 'Unable to load category';
   description.textContent = '';
   hero.replaceChildren();
@@ -171,7 +169,7 @@ async function initCategoryPage() {
 
     const slug = new URLSearchParams(window.location.search).get('slug');
     if (!slug) {
-      renderMissingCategory(elements, skeletons, elements.description);
+      renderMissingCategory(elements, skeletons);
       return;
     }
 
@@ -211,7 +209,6 @@ async function initCategoryPage() {
       return;
     }
 
-    console.error('Unable to initialize category loading state:', error);
     elements.title.textContent = 'Unable to load category';
     elements.description.textContent = 'Please refresh the page and try again.';
     elements.hero.replaceChildren();
