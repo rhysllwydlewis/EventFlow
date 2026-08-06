@@ -28,6 +28,12 @@
   <link rel="stylesheet" href="/assets/css/ui-ux-fixes.css?v=18.4.0">
     <link rel="stylesheet" href="/assets/css/navbar.css?v=18.3.0" />
     <link rel="stylesheet" href="/assets/css/public-mobile-compact.css" />
+  <style>
+    body:has(#category-title:not(:has(.skeleton)))
+      .category-hero-shell:not(:has(.category-hero-img-wrap)) {
+      display: none;
+    }
+  </style>
 </head>
 <body>
 <!-- TOP NAVBAR - GOLD STANDARD REBUILD -->
@@ -139,9 +145,9 @@
 <script src="/assets/js/notifications.js" defer></script>
 
 <main id="main-content">
-  <section class="section section--muted">
+  <section class="section section--muted category-hero-shell">
     <div class="container">
-      <div id="category-hero-section" aria-busy="true">
+      <div id="category-hero-section">
         <div class="skeleton skeleton-media skeleton-media--event" aria-hidden="true"></div>
       </div>
     </div>
@@ -153,12 +159,12 @@
         <a href="/" class="category-breadcrumb-link">Home</a> / 
         <span id="breadcrumb-category">Category</span>
       </div>
-      <h1 id="category-title" aria-busy="true">
+      <h1 id="category-title" role="status">
         <span class="skeleton skeleton-title" style="width:min(280px,70vw)" aria-hidden="true"></span>
         <span class="sr-only">Loading category</span>
       </h1>
       <p id="category-description" class="lead"><span class="skeleton skeleton-text skeleton-text-medium" aria-hidden="true"></span></p>
-      <div id="package-list-container" aria-busy="true" data-skeleton-state="loading">
+      <div id="package-list-container">
         <div class="skeleton-grid">
           <article class="skeleton-card skeleton-package-card" aria-hidden="true"><span class="skeleton skeleton-media skeleton-media--package"></span><div class="skeleton-card-body"><span class="skeleton skeleton-pill"></span><span class="skeleton skeleton-title"></span><span class="skeleton skeleton-text skeleton-text-long"></span><span class="skeleton skeleton-text skeleton-text-medium"></span></div></article>
           <article class="skeleton-card skeleton-package-card" aria-hidden="true"><span class="skeleton skeleton-media skeleton-media--package"></span><div class="skeleton-card-body"><span class="skeleton skeleton-pill"></span><span class="skeleton skeleton-title"></span><span class="skeleton skeleton-text skeleton-text-long"></span><span class="skeleton skeleton-text skeleton-text-medium"></span></div></article>
@@ -191,7 +197,6 @@
 <script src="/assets/js/utils/package-image-resolver.js"></script>
 <script src="/assets/js/components/package-list.js"></script>
 <script src="/assets/js/pages/category-init.js"></script>
-<script src="/assets/js/pages/category-skeleton-lifecycle.js"></script>
 <script src="/assets/js/components/footer-nav.js" defer></script>
 <script src="/assets/js/cookie-consent.js?v=2.0.0" defer></script>
 
