@@ -435,12 +435,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function loadGuides() {
     try {
-      const [baseGuides, eventflowPack] = await Promise.all([
-        fetchJson('/assets/data/guides.json', true),
-        fetchJson('/assets/data/guides-eventflow-pack.json', false),
-      ]);
+      const baseGuides = await fetchJson('/assets/data/guides.json', true);
       const byHref = new Map();
-      [...baseGuides, ...eventflowPack].forEach(guide => {
+      baseGuides.forEach(guide => {
         if (guide && (guide.href || guide.link)) {
           byHref.set(guide.href || guide.link, guide);
         }

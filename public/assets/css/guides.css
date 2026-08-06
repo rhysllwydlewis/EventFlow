@@ -2890,6 +2890,36 @@ article .card table tr:last-child td {
   }
 }
 
+.article-freshness {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  margin: 0 0 1.25rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid rgba(11, 128, 115, 0.2);
+  border-radius: 0.75rem;
+  background: rgba(11, 128, 115, 0.06);
+  color: #355a55;
+  font-size: 0.875rem;
+}
+
+.article-freshness span + span::before {
+  content: '•';
+  margin-right: 1rem;
+  color: #0b8073;
+}
+
+@media (max-width: 640px) {
+  .article-freshness {
+    display: grid;
+    gap: 0.35rem;
+  }
+
+  .article-freshness span + span::before {
+    content: none;
+  }
+}
+
 /* Guide SEO/UX enhancement components */
 .guide-card__badges {
   align-items: center;

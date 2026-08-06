@@ -16,6 +16,13 @@ function logger() {
 }
 
 describe('policy review date management', () => {
+  it('reports unknown rather than up to date when deployment git evidence is unavailable', () => {
+    const service = new DateManagementService(null, logger());
+    service.getLastCommitDate = jest.fn(() => null);
+    const result = service.hasLegalContentChanged();
+    expect(result).toEqual(expect.objectContaining({ changed: false, evidenceAvailable: false }));
+    expect(result.reason).toContain('unknown');
+  });
   it('compares source changes to reviewed dates by calendar day', () => {
     const service = new DateManagementService(null, logger());
     service.getLastCommitDate = jest.fn(() => new Date('2026-08-06T23:59:59.000Z'));

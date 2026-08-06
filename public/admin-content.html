@@ -201,6 +201,24 @@
     <!-- Legal Dates Tab -->
     <div id="legalDates" class="tab-content">
       <div class="card info-card">
+        <div class="flex-between-mb">
+          <div>
+            <h2>Review Queue</h2>
+            <p class="small">Complete the monthly article check and policy-impact triage here. Completing a task records evidence but never changes publication, material-update or legal-policy dates.</p>
+          </div>
+          <button type="button" class="ef-cta btn btn-secondary" id="reviewQueueRunBtn">Check for this month's tasks</button>
+        </div>
+        <div id="reviewQueueContent"><p class="small">Loading review tasks...</p></div>
+        <div class="info-row">
+          <span class="info-label">Email review digest</span>
+          <label class="switch">
+            <input type="checkbox" id="reviewEmailDigestToggle">
+            <span class="slider round"></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="card info-card">
         <h2>🔄 Policy Review Status</h2>
         <div id="cdStatusContent">
           <p class="small">Loading...</p>
@@ -222,7 +240,7 @@
 
       <div class="card info-card">
         <h2>⚙️ Review Reminder Settings</h2>
-        <p class="small">Enable or disable monthly policy review checks (runs on the 1st of each month at 2:00 AM). Checks notify administrators and never change public dates.</p>
+        <p class="small">Enable or disable automated review reminders, queue creation and policy source diagnostics. These checks never change public dates.</p>
         <div style="display:flex;gap:0.5rem;align-items:center;">
           <label class="switch">
             <input type="checkbox" id="cdAutoUpdateToggle">

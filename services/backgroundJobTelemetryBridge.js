@@ -146,11 +146,16 @@ function buildDateManagementTelemetry(
 ) {
   const validResult = Boolean(result && typeof result === 'object' && !Array.isArray(result));
   const failed = !validResult || Boolean(result && (result.error || result.success === false));
-  const disabled = validResult && result.reason === 'Auto-update disabled';
+  const disabled =
+    validResult &&
+    (result.reason === 'Policy review reminders disabled' ||
+      result.reason === 'Auto-update disabled');
   const limited =
     validResult &&
     !failed &&
-    (result.reason === 'No git history available' || result.reason === 'Error checking changes');
+    (result.evidenceAvailable === false ||
+      String(result.reason || '').startsWith('No git history available') ||
+      result.reason === 'Error checking changes');
 
   return {
     jobKey: telemetry.JOB_KEYS.DATE_MANAGEMENT,

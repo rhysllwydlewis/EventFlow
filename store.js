@@ -42,6 +42,8 @@ const files = {
   invoices: path.join(DATA_DIR, 'invoices.json'),
   bookings: path.join(DATA_DIR, 'bookings.json'),
   notifications: path.join(DATA_DIR, 'notifications.json'),
+  content_review_tasks: path.join(DATA_DIR, 'content_review_tasks.json'),
+  content_review_settings: path.join(DATA_DIR, 'content_review_settings.json'),
   supplierAnalytics: path.join(DATA_DIR, 'supplierAnalytics.json'),
   // The city page editorial records. Without this the location pages throw on
   // every read under local file storage, so the whole section is undevelopable
