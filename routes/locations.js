@@ -24,6 +24,7 @@ const { publicReadLimiter } = require('../middleware/rateLimits');
 const registry = require('../services/locationRegistry.service');
 const locationHeroImages = require('../services/locationHeroImage.service');
 const locationPages = require('../services/locationPage.service');
+const locationGuides = require('../services/locationGuides.service');
 const supplierLocation = require('../services/supplierLocation.service');
 const {
   buildPublicSupplierSlug,
@@ -514,7 +515,8 @@ function renderSupplierCard(entry) {
  */
 // skipcq: JS-R1005 -- The page is a flat sequence of independent modules.
 function renderCityPage(model) {
-  const { city, page, metadata, rankedSuppliers, categories, packages, events, nearby } = model;
+  const { city, page, metadata, rankedSuppliers, categories, packages, events, nearby, guides } =
+    model;
   const sections = [];
   const heroIsPexels = /^https?:\/\/(?:www\.)?pexels\.com\//i.test(
     page.content.heroImageSourceUrl || ''
@@ -652,6 +654,21 @@ function renderCityPage(model) {
     }
   }
 
+  if (guides && guides.length) {
+    const items = guides
+      .map(
+        guide => `<li class="efl-card">
+          <h3><a href="${escapeHtml(guide.href)}">${escapeHtml(guide.title)}</a></h3>
+          ${guide.excerpt ? `<p>${escapeHtml(guide.excerpt)}</p>` : ''}
+        </li>`
+      )
+      .join('');
+    sections.push(`<section class="efl-section" aria-labelledby="efl-guides">
+      <h2 id="efl-guides">Helpful planning guides</h2>
+      <ul class="efl-grid">${items}</ul>
+    </section>`);
+  }
+
   if (page.content.faqs.length) {
     const faqs = page.content.faqs
       .filter(faq => faq && faq.question && faq.answer)
@@ -753,6 +770,7 @@ router.get('/locations/:citySlug', publicReadLimiter, async (req, res, next) => 
       publishedSlugs: publishedSlugs(data.pageRecords),
       baseUrl: BASE_URL,
     });
+    model.guides = locationGuides.relatedGuides(model.categories);
 
     const structuredData = [model.breadcrumbs];
     if (model.indexable) {

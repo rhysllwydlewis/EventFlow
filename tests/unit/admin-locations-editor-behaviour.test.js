@@ -112,6 +112,23 @@ describe('loading a record into the editor', () => {
     expect(value.dirty).toBe('Unsaved changes');
   });
 
+  it('shows no automatic-introduction note once a human has written one', () => {
+    expect(outcome('showsNoAutomaticIntroNoteWhenOneHasBeenWritten').hidden).toBe(true);
+  });
+
+  it('tells an editor that a blank city is not actually blank to visitors', () => {
+    const value = outcome('showsTheAutomaticIntroNoteForACityWithNothingWritten');
+    expect(value.hidden).toBe(false);
+    expect(value.note).toContain('generated automatically from real supplier data');
+    expect(value.note).toContain('EventFlow lists 8 suppliers');
+  });
+
+  it('hides the automatic-introduction note the moment an editor starts typing', () => {
+    const value = outcome('hidesTheAutomaticIntroNoteOnceAnEditorStartsTyping');
+    expect(value.before).toBe(false);
+    expect(value.after).toBe(true);
+  });
+
   it('defaults a new city to the automatic hero source', () => {
     const value = outcome('defaultsToAutomaticHeroSource');
     expect(value.auto).toBe(true);

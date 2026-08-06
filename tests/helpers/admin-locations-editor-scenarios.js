@@ -628,6 +628,60 @@ const scenarios = {
     return { question, patched: Boolean(patchCall(context)) };
   },
 
+  async showsNoAutomaticIntroNoteWhenOneHasBeenWritten() {
+    const context = await boot();
+    await openEditor(context);
+    return { hidden: context.document.getElementById('efl-intro-automatic-note').hidden };
+  },
+
+  async showsTheAutomaticIntroNoteForACityWithNothingWritten() {
+    const context = await boot({
+      item: record({
+        content: {
+          heroImageUrl: null,
+          heroImageAlt: null,
+          heroImageCredit: null,
+          heroImageSourceUrl: null,
+          intro: '',
+          planningSections: [],
+          faqs: [],
+        },
+        automaticIntro:
+          'EventFlow lists 8 suppliers covering Venues, Catering and Photography in Cardiff.',
+      }),
+    });
+    await openEditor(context);
+    return {
+      hidden: context.document.getElementById('efl-intro-automatic-note').hidden,
+      note: context.document.getElementById('efl-intro-automatic-note').textContent,
+    };
+  },
+
+  async hidesTheAutomaticIntroNoteOnceAnEditorStartsTyping() {
+    const context = await boot({
+      item: record({
+        content: {
+          heroImageUrl: null,
+          heroImageAlt: null,
+          heroImageCredit: null,
+          heroImageSourceUrl: null,
+          intro: '',
+          planningSections: [],
+          faqs: [],
+        },
+        automaticIntro:
+          'EventFlow lists 8 suppliers covering Venues, Catering and Photography in Cardiff.',
+      }),
+    });
+    await openEditor(context);
+    const before = context.document.getElementById('efl-intro-automatic-note').hidden;
+    type(context.window, context.document.getElementById('efl-intro'), 'Their own words.');
+    return {
+      before,
+      after: context.document.getElementById('efl-intro-automatic-note').hidden,
+    };
+  },
+
   async countsCharactersAgainstTheLimit() {
     const context = await boot();
     await openEditor(context);

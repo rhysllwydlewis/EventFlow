@@ -236,6 +236,17 @@ describe('GET /locations/:citySlug', () => {
     expect(response.text).toContain('aria-label="Breadcrumb"');
   });
 
+  it('links to helpful planning guides relevant to the suppliers actually on the page', async () => {
+    const response = await request(buildApp()).get('/locations/cardiff');
+    expect(response.text).toContain('id="efl-guides"');
+    expect(response.text).toContain('Helpful planning guides');
+  });
+
+  it('omits the guides module for a city with no supplier categories yet', async () => {
+    const response = await request(buildApp()).get('/locations/newport');
+    expect(response.text).not.toContain('id="efl-guides"');
+  });
+
   it('does not mislabel a non-Pexels editorial source as Pexels', async () => {
     const record = pageRecord('cardiff');
     record.content = {

@@ -43,6 +43,9 @@
   /** URL whose attribution is currently held in the hidden hero fields. */
   let attributedHeroUrl = '';
 
+  /** The live-composed introduction for the city currently open, if any. */
+  let currentAutomaticIntro = '';
+
   /** Whether the editor holds changes that have not been saved. */
   let dirty = false;
 
@@ -313,6 +316,9 @@
       if (fieldEl.id === 'efl-hero-url' || fieldEl.id === 'efl-hero-alt') {
         updateHeroPreview();
       }
+      if (fieldEl.id === 'efl-intro') {
+        updateAutomaticIntroNote(currentAutomaticIntro);
+      }
       setDirty(true);
     };
     fieldEl.addEventListener('input', sync);
@@ -373,6 +379,23 @@
       heroSource() === 'custom'
         ? 'This city shows the image below. If it is ever removed or fails to load, the page falls back to the named-city placeholder.'
         : 'This city shows a curated or automatically resolved Pexels photo, refreshed on its own. Any image saved below is kept but not shown until you switch to Custom image.';
+  }
+
+  /**
+   * Show, when relevant, that a city with no written introduction is not
+   * actually blank to visitors — an automatic one is composed from real
+   * supplier data. Hidden the moment the field holds anything a human wrote.
+   * @param {string|null} automaticIntro The live-composed introduction, if any.
+   * @returns {void} Nothing.
+   */
+  function updateAutomaticIntroNote(automaticIntro) {
+    const noteEl = document.getElementById('efl-intro-automatic-note');
+    const introEl = document.getElementById('efl-intro');
+    const show = Boolean(automaticIntro) && !introEl.value.trim();
+    noteEl.hidden = !show;
+    if (show) {
+      noteEl.textContent = `No introduction has been written. Visitors currently see this, generated automatically from real supplier data: "${automaticIntro}"`;
+    }
   }
 
   /**
@@ -572,6 +595,9 @@
       bindField(fieldEl, document.querySelector(`[data-counter-for="${id}"]`), max);
     });
 
+    currentAutomaticIntro = record.automaticIntro || '';
+    updateAutomaticIntroNote(currentAutomaticIntro);
+
     document.getElementById('efl-hero-credit').value = content.heroImageCredit || '';
     document.getElementById('efl-hero-source-url').value = content.heroImageSourceUrl || '';
     attributedHeroUrl = content.heroImageUrl || '';
@@ -758,6 +784,7 @@
     editingSlug = null;
     editingCity = null;
     attributedHeroUrl = '';
+    currentAutomaticIntro = '';
     setDirty(false);
     if (typeof dialogEl.close === 'function' && dialogEl.open) {
       dialogEl.close();

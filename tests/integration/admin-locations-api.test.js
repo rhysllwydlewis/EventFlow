@@ -187,6 +187,34 @@ describe('GET /api/v1/admin/locations/:slug', () => {
       .set('Cookie', authCookie(admin));
     expect(response.status).toBe(404);
   });
+
+  it('surfaces the automatic introduction when no editor has written one', async () => {
+    const response = await request(buildApp())
+      .get('/api/v1/admin/locations/cardiff')
+      .set('Cookie', authCookie(admin));
+    expect(response.body.data.content.intro).toBe('');
+    expect(response.body.data.automaticIntro).toContain('Cardiff');
+    expect(response.body.data.automaticIntro).toContain('8');
+  });
+
+  it('has no automatic introduction to show once an editor has written one', async () => {
+    await request(buildApp())
+      .patch('/api/v1/admin/locations/cardiff')
+      .set('Cookie', authCookie(admin))
+      .send({ content: { intro: 'A human-written introduction.' } });
+
+    const response = await request(buildApp())
+      .get('/api/v1/admin/locations/cardiff')
+      .set('Cookie', authCookie(admin));
+    expect(response.body.data.automaticIntro).toBeNull();
+  });
+
+  it('has no automatic introduction for a city with no suppliers yet', async () => {
+    const response = await request(buildApp())
+      .get('/api/v1/admin/locations/bristol')
+      .set('Cookie', authCookie(admin));
+    expect(response.body.data.automaticIntro).toBeNull();
+  });
 });
 
 describe('PATCH /api/v1/admin/locations/:slug', () => {

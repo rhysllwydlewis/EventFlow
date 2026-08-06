@@ -2,7 +2,10 @@
 <html lang="en-GB">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes"
+    />
     <meta name="theme-color" content="#0B8073" />
     <title>Location pages — EventFlow admin</title>
     <meta name="robots" content="noindex, nofollow" />
@@ -65,7 +68,9 @@
         </p>
 
         <ul class="efl-legend">
-          <li><strong>Draft / In review / Retired</strong> — not reachable by the public at all.</li>
+          <li>
+            <strong>Draft / In review / Retired</strong> — not reachable by the public at all.
+          </li>
           <li>
             <strong>Pilot</strong> — publicly visible to anyone with the URL, but sent
             <code>noindex</code> so search engines leave it alone.
@@ -169,6 +174,7 @@
 
           <fieldset class="efl-fieldset">
             <legend>Local introduction</legend>
+            <p class="efl-field-note" id="efl-intro-automatic-note" hidden></p>
             <label class="efl-sr-only" for="efl-intro">Local introduction</label>
             <textarea id="efl-intro" name="intro" rows="5"></textarea>
             <p class="efl-field-note" data-counter-for="efl-intro"></p>
@@ -217,7 +223,12 @@
     <dialog id="efl-confirm" class="efl-confirm" aria-labelledby="efl-confirm-message">
       <p id="efl-confirm-message"></p>
       <p class="efl-actions">
-        <button type="button" class="efl-btn efl-btn--solid" data-confirm="yes" id="efl-confirm-yes">
+        <button
+          type="button"
+          class="efl-btn efl-btn--solid"
+          data-confirm="yes"
+          id="efl-confirm-yes"
+        >
           Confirm
         </button>
         <button type="button" class="efl-btn efl-btn--ghost" data-confirm="no">Cancel</button>
@@ -229,7 +240,12 @@
         <div class="efl-repeatable__bar">
           <span class="efl-repeatable__label"></span>
           <span class="efl-repeatable__controls">
-            <button type="button" class="efl-btn efl-btn--ghost" data-move="up" aria-label="Move up">
+            <button
+              type="button"
+              class="efl-btn efl-btn--ghost"
+              data-move="up"
+              aria-label="Move up"
+            >
               ↑
             </button>
             <button
@@ -249,8 +265,12 @@
         <p class="efl-field-note" data-counter="body"></p>
         <div class="efl-repeatable__grid">
           <label>Source name <input type="text" data-field="sourceName" /></label>
-          <label>Source URL <input type="url" data-field="sourceUrl" placeholder="https://…" /></label>
-          <label>Source date <input type="text" data-field="sourceDate" placeholder="March 2026" /></label>
+          <label
+            >Source URL <input type="url" data-field="sourceUrl" placeholder="https://…"
+          /></label>
+          <label
+            >Source date <input type="text" data-field="sourceDate" placeholder="March 2026"
+          /></label>
         </div>
         <p class="efl-field-note">
           Quote a figure and you must name its source — the editorial warnings will flag it
@@ -264,7 +284,12 @@
         <div class="efl-repeatable__bar">
           <span class="efl-repeatable__label"></span>
           <span class="efl-repeatable__controls">
-            <button type="button" class="efl-btn efl-btn--ghost" data-move="up" aria-label="Move up">
+            <button
+              type="button"
+              class="efl-btn efl-btn--ghost"
+              data-move="up"
+              aria-label="Move up"
+            >
               ↑
             </button>
             <button
