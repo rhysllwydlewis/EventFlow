@@ -22,7 +22,7 @@ This change establishes one canonical skeleton contract and fixes the clearest l
 
 ### Compatibility consolidation
 
-- `loading-skeleton.css` delegates to the canonical stylesheet while preserving legacy wrappers used by Guides and older homepage code.
+- `loading-skeleton.css` preserves the existing homepage skeleton dimensions and animation behaviour, while adding the missing `skeleton-grid` and empty-card contract required by Guides.
 - `marketplace-skeleton.css` retains Marketplace-specific layout classes while using canonical skeleton tokens and motion behaviour.
 - Existing supplier-profile and dashboard stylesheets remain in their original files. Scoped additions in the canonical stylesheet fill only the missing supplier gallery state and reshape existing dashboard placeholders.
 - Existing pages using `.skeleton`, `.skeleton-text`, `.skeleton-card`, `.skeleton-list-item` and related classes inherit the improved shared styling without requiring a flag-day renderer rewrite.
@@ -31,7 +31,7 @@ This change establishes one canonical skeleton contract and fixes the clearest l
 
 - **Category/package route:** initial HTML reserves title, hero and package-card layout before JavaScript runs, removing the loading-word and blank-results flash. A small lifecycle companion observes the existing renderer, clears stale hero placeholders, and removes loading semantics after success, missing-category and error outcomes.
 - **Event detail:** initial HTML reserves the hero, media, content, action and organiser layout instead of displaying raw loading text.
-- **Guides:** the legacy `skeleton-grid` and empty `skeleton-card` markup now participates in the canonical layout contract.
+- **Guides:** the legacy `skeleton-grid` and empty `skeleton-card` markup now has a complete image-and-copy placeholder shape without changing homepage skeleton dimensions.
 - **Marketplace:** existing card markup remains, but its separate shimmer, colour and motion implementation is removed.
 - **Public supplier profile:** the missing gallery placeholder is added while the existing package, review, hero and sidebar loading contract remains untouched.
 - **Customer dashboard:** countdown, budget KPI and milestone placeholders now reflect their final widget hierarchy.
