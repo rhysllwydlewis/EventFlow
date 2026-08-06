@@ -85,4 +85,4 @@ Use `?skeletonDebug=1` on routes that import the shared utility to hold their lo
 
 ## Validation gate
 
-Before merging, the current pull-request head must have EventFlow's GitHub Actions workflows attached and completed. Passing external DeepSource and GitGuardian checks does not replace the repository's clean-install, ESLint, formatting, smoke, full-regression, security and build-verification jobs.
+Before merging, the current pull-request head must have EventFlow's GitHub Actions workflows attached and completed. Passing external DeepSource and GitGuardian checks does not replace the repository's clean-install, ESLint, formatting, smoke, full-regression, security and build-verification jobs. The pull request must remain unmerged until this gate is satisfied.
