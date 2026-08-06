@@ -30,7 +30,9 @@
     <link rel="stylesheet" href="/assets/css/public-mobile-compact.css" />
   <style>
     body:has(#category-title:not(:has(.skeleton)))
-      .category-hero-shell:not(:has(.category-hero-img-wrap)) {
+      .category-hero-shell:not(:has(.category-hero-img-wrap)),
+    body:has(#category-title:not(:has(.skeleton)))
+      #category-description:has(.skeleton) {
       display: none;
     }
   </style>
