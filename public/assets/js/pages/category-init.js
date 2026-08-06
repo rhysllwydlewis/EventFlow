@@ -220,4 +220,10 @@ async function initCategoryPage() {
   }
 }
 
-document.addEventListener('DOMContentLoaded', initCategoryPage, { once: true });
+document.addEventListener(
+  'DOMContentLoaded',
+  () => {
+    void initCategoryPage();
+  },
+  { once: true }
+);
