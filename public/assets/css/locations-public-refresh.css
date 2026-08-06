@@ -166,6 +166,10 @@
   text-underline-offset: 2px;
 }
 
+.efl-hero__credit-source--short {
+  display: none;
+}
+
 .efl-hero__image-note {
   position: absolute;
   z-index: 2;
@@ -211,6 +215,10 @@
   margin-top: 0.1rem;
   color: #667b76;
   font-size: 0.6875rem;
+}
+
+.efl-coverage-label--short {
+  display: none;
 }
 
 .efl-hero__visual--placeholder {
@@ -296,6 +304,10 @@
   padding: 0 1rem;
   font-size: 0.75rem;
   font-weight: 750;
+}
+
+.efl-search-label--short {
+  display: none;
 }
 
 .efl-hero__trust {
@@ -809,17 +821,18 @@
 
 @media (max-width: 620px) {
   .efl-container {
-    width: min(100% - 24px, 1140px);
+    width: min(100% - 20px, 1140px);
   }
 
   .efl-breadcrumbs {
-    padding-top: 1rem;
+    padding-top: 0.75rem;
+    font-size: 0.6875rem;
   }
 
   .efl-hero {
-    margin-top: 0.8rem;
-    margin-bottom: 2.1rem;
-    border-radius: 20px;
+    margin-top: 0.55rem;
+    margin-bottom: 1.6rem;
+    border-radius: 16px;
   }
 
   .efl-hero--city,
@@ -828,95 +841,369 @@
   }
 
   .efl-hero__copy {
-    padding: 1.45rem 1.15rem;
+    padding: 1rem;
+  }
+
+  .efl-hero__kicker {
+    margin-bottom: 0.5rem;
+    font-size: 0.6875rem;
   }
 
   .efl-hero h1 {
-    font-size: clamp(1.9rem, 10vw, 2.55rem);
-    line-height: 1.04;
+    font-size: clamp(1.75rem, 9vw, 2.25rem);
+    line-height: 1.03;
   }
 
   .efl-hero__intro {
-    margin: 0.8rem 0 1rem;
-    font-size: 0.8125rem;
-    line-height: 1.5;
+    margin: 0.6rem 0 0.75rem;
+    font-size: 0.75rem;
+    line-height: 1.45;
   }
 
   .efl-search--city,
   .efl-search--hub {
-    grid-template-columns: 34px minmax(0, 1fr);
+    grid-template-columns: 30px minmax(0, 1fr);
+    border-radius: 10px;
+    padding: 4px;
+  }
+
+  .efl-search__icon svg {
+    width: 17px;
+    height: 17px;
+  }
+
+  .efl-search--city input[type='search'],
+  .efl-search--hub input[type='search'] {
+    min-height: 38px;
+    padding: 0.4rem 0.25rem;
+    font-size: 0.75rem;
   }
 
   .efl-search--city button,
   .efl-search--hub button {
     grid-column: 1 / -1;
     width: 100%;
+    min-height: 38px;
+    padding-inline: 0.75rem;
+    font-size: 0.6875rem;
   }
 
   .efl-hero__trust {
     flex-wrap: wrap;
-    line-height: 1.5;
+    margin-top: 0.55rem;
+    font-size: 0.6875rem;
+    line-height: 1.35;
   }
 
   .efl-hero__visual,
   .efl-hub-visual {
-    min-height: 210px;
+    min-height: 190px;
+    height: 190px;
   }
 
   .efl-hero__image-note {
-    right: 0.9rem;
-    bottom: 0.9rem;
-    min-width: 190px;
+    right: 0.55rem;
+    bottom: 0.55rem;
+    grid-template-columns: 22px minmax(0, 1fr);
+    gap: 0.35rem;
+    min-width: 0;
+    max-width: 140px;
+    border-radius: 8px;
+    padding: 0.4rem 0.5rem;
+  }
+
+  .efl-hero__image-note > span {
+    width: 22px;
+    height: 22px;
+    font-size: 0.6875rem;
+  }
+
+  .efl-hero__image-note strong {
+    font-size: 0.6875rem;
+    line-height: 1.15;
+  }
+
+  .efl-hero__image-note small {
+    display: none;
+  }
+
+  .efl-coverage-label--long {
+    display: none;
+  }
+
+  .efl-coverage-label--short {
+    display: inline;
   }
 
   .efl-hero__credit {
-    top: 0.75rem;
+    top: 0.55rem;
     bottom: auto;
-    left: 0.75rem;
+    left: 0.55rem;
+    max-width: calc(100% - 1.1rem);
+    border-radius: 7px;
+    padding: 0.3rem 0.45rem;
+    font-size: 0.6875rem;
+    line-height: 1.25;
+    white-space: nowrap;
+  }
+
+  .efl-hero__credit-prefix,
+  .efl-hero__credit-source--long {
+    display: none;
+  }
+
+  .efl-hero__credit-source--short {
+    display: inline;
+  }
+
+  .efl-hero__credit a {
+    display: inline;
+    min-height: 0;
+    padding: 0;
+    line-height: inherit;
+  }
+
+  .efl-hero__credit a::after {
+    position: absolute;
+    inset: -8px;
+    content: '';
+  }
+
+  .efl-search-label--long {
+    display: none;
+  }
+
+  .efl-search-label--short {
+    display: inline;
   }
 
   .efl-summary {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    width: calc(100% - 1.2rem);
-    margin-top: -2.2rem;
-    margin-bottom: 2.2rem;
+    grid-template-columns: repeat(auto-fit, minmax(78px, 1fr));
+    width: calc(100% - 1rem);
+    margin-top: -1.8rem;
+    margin-bottom: 1.65rem;
+    border-radius: 13px;
   }
 
   .efl-summary li {
-    min-height: 74px;
+    min-height: 62px;
     border-right: 1px solid #e4efec;
-    border-bottom: 1px solid #e4efec;
-    padding: 0.85rem;
+    border-bottom: 0;
+    padding: 0.6rem;
   }
 
-  .efl-summary li:nth-child(even) {
+  .efl-summary li:last-child {
     border-right: 0;
   }
 
+  .efl-summary strong {
+    font-size: 1.25rem;
+  }
+
+  .efl-summary span {
+    margin-top: 0.2rem;
+    font-size: 0.6875rem;
+    line-height: 1.2;
+  }
+
   .efl-section {
-    margin-bottom: 2.25rem;
+    margin-bottom: 1.75rem;
+  }
+
+  .efl-section > h2 {
+    margin-bottom: 0.75rem;
+    font-size: clamp(1.25rem, 6vw, 1.5rem);
+    line-height: 1.15;
+  }
+
+  .efl-section > h2::after {
+    margin-top: 0.35rem;
+  }
+
+  .efl-chips {
+    gap: 0.4rem;
+  }
+
+  .efl-chips a {
+    padding: 0.45rem 0.65rem;
+    font-size: 0.6875rem;
+  }
+
+  .efl-grid {
+    gap: 0.65rem;
   }
 
   .efl-planning__grid {
     grid-template-columns: 1fr;
+    gap: 0.65rem;
   }
 
   .efl-card {
-    min-height: 160px;
+    min-height: 132px;
+    gap: 0.6rem;
+    border-radius: 14px;
+    padding: 0.8rem;
+  }
+
+  .efl-card__avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    font-size: 0.6875rem;
+  }
+
+  .efl-card__arrow,
+  .efl-city-card__arrow {
+    width: 26px;
+    height: 26px;
+    font-size: 0.6875rem;
+  }
+
+  .efl-card__category {
+    margin-bottom: 0.3rem;
+  }
+
+  .efl-card h3 {
+    font-size: 0.875rem;
+    line-height: 1.25;
+  }
+
+  .efl-card__meta {
+    gap: 0.35rem;
+    padding-top: 0.55rem;
+  }
+
+  .efl-relationship {
+    padding: 0.25rem 0.45rem;
+  }
+
+  section[aria-labelledby='efl-packages'] .efl-card,
+  section[aria-labelledby='efl-events'] .efl-card {
+    min-height: 76px;
+    justify-content: flex-start;
+  }
+
+  .efl-planning__card {
+    border-radius: 14px;
+    padding: 0.9rem;
+  }
+
+  .efl-planning__icon {
+    width: 30px;
+    height: 30px;
+    margin-bottom: 0.55rem;
+    border-radius: 9px;
+  }
+
+  .efl-planning__card h3 {
+    margin-bottom: 0.3rem;
+    font-size: 0.875rem;
+  }
+
+  .efl-planning__card p {
+    margin-bottom: 0.4rem;
+    font-size: 0.75rem;
+    line-height: 1.45;
+  }
+
+  .efl-faq {
+    grid-template-columns: 30px minmax(0, 1fr);
+    gap: 0.6rem;
+    margin-bottom: 0.4rem;
+    border-radius: 12px;
+    padding: 0.75rem;
+  }
+
+  .efl-faq__icon {
+    width: 30px;
+    height: 30px;
+  }
+
+  .efl-faq p {
+    margin-top: 0.2rem;
+    font-size: 0.75rem;
+    line-height: 1.45;
+  }
+
+  .efl-city-card {
+    min-height: 74px;
+    gap: 0.65rem;
+    padding: 0.7rem;
+  }
+
+  .efl-city-card__pin {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
   }
 
   .efl-next {
-    border-radius: 18px;
-    padding: 1.35rem;
+    gap: 0.9rem;
+    border-radius: 14px;
+    padding: 1rem;
+  }
+
+  .efl-next h2 {
+    margin: 0.4rem 0 0.55rem;
+    font-size: clamp(1.25rem, 6vw, 1.5rem);
+    line-height: 1.2;
+  }
+
+  .efl-next p {
+    font-size: 0.75rem;
+    line-height: 1.5;
   }
 
   .efl-next .efl-actions {
     flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
   }
 
   .efl-next .efl-btn {
     width: 100%;
+    padding: 0.6rem 0.75rem;
+    font-size: 0.75rem;
     text-align: center;
+  }
+
+  .efl-note {
+    margin-top: 0.55rem;
+    font-size: 0.6875rem;
+  }
+
+  .efl .footer {
+    padding: 1.5rem 0;
+  }
+
+  .efl .ef-footer-content {
+    gap: 0.75rem;
+    font-size: 0.75rem;
+    line-height: 1.45;
+  }
+}
+
+@media (min-width: 360px) and (max-width: 620px) {
+  .efl-search--city,
+  .efl-search--hub {
+    grid-template-columns: 30px minmax(0, 1fr) auto;
+  }
+
+  .efl-search--city button,
+  .efl-search--hub button {
+    grid-column: auto;
+    width: auto;
+  }
+
+  section[aria-labelledby='efl-suppliers'] .efl-grid,
+  section[aria-labelledby='efl-packages'] .efl-grid,
+  section[aria-labelledby='efl-events'] .efl-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  section[aria-labelledby='efl-suppliers'] .efl-card {
+    min-height: 158px;
+    padding: 0.75rem;
   }
 }
 

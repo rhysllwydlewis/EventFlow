@@ -198,7 +198,8 @@ describe('GET /locations/:citySlug', () => {
     expect(response.text).toContain('/photos/5743996/pexels-photo-5743996.jpeg');
     expect(response.text).toContain('alt="Cardiff Bay waterfront');
     expect(response.text).toContain('Photo by');
-    expect(response.text).toContain('Balazs Bezeczky on Pexels');
+    expect(response.text).toContain('Balazs Bezeczky');
+    expect(response.text).toContain(' on Pexels');
     expect(response.text).toContain(
       '<meta property="og:image" content="https://images.pexels.com/'
     );
@@ -249,7 +250,8 @@ describe('GET /locations/:citySlug', () => {
     expect(response.status).toBe(200);
     expect(response.text).toContain('images.pexels.com/photos/456/london-456.jpeg');
     expect(response.text).toContain('alt="London skyline beside the River Thames"');
-    expect(response.text).toContain('London Photographer on Pexels');
+    expect(response.text).toContain('London Photographer');
+    expect(response.text).toContain(' on Pexels');
     expect(response.text).toContain('<meta property="og:image"');
   });
 

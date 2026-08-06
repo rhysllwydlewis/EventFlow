@@ -371,7 +371,7 @@ function renderHub({ cities, counts }) {
           <label class="efl-sr-only" for="efl-hub-search">Search by city or postcode</label>
           <span class="efl-search__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 10c0 5.5-8 12-8 12S4 15.5 4 10a8 8 0 1 1 16 0Z"></path><circle cx="12" cy="10" r="2.5"></circle></svg></span>
           <input id="efl-hub-search" type="search" name="location" placeholder="Enter a city or postcode" autocomplete="address-level2" />
-          <button type="submit">Search suppliers</button>
+          <button type="submit"><span class="efl-search-label--long">Search suppliers</span><span class="efl-search-label--short">Search</span></button>
         </form></div>
         <div class="efl-hub-visual" aria-hidden="true"><span class="efl-hub-visual__orbit"></span><span class="efl-hub-visual__pin efl-hub-visual__pin--one"></span><span class="efl-hub-visual__pin efl-hub-visual__pin--two"></span><span class="efl-hub-visual__pin efl-hub-visual__pin--three"></span><p><strong>${cities.length}</strong><span>${cities.length === 1 ? 'city guide' : 'city guides'} ready to explore</span></p></div>
       </section>
@@ -475,14 +475,15 @@ function renderSupplierCard(entry) {
 function renderCityPage(model) {
   const { city, page, metadata, rankedSuppliers, categories, packages, events, nearby } = model;
   const sections = [];
-  const heroSourceSuffix = /^https?:\/\/(?:www\.)?pexels\.com\//i.test(
+  const heroIsPexels = /^https?:\/\/(?:www\.)?pexels\.com\//i.test(
     page.content.heroImageSourceUrl || ''
-  )
-    ? ' on Pexels'
+  );
+  const heroSourceSuffix = heroIsPexels
+    ? '<span class="efl-hero__credit-source--long"> on Pexels</span><span class="efl-hero__credit-source--short"> &middot; Pexels</span>'
     : '';
   const heroAttribution =
     page.content.heroImageCredit && page.content.heroImageSourceUrl
-      ? `<p class="efl-hero__credit">Photo by <a href="${escapeHtml(page.content.heroImageSourceUrl)}" rel="nofollow noopener" target="_blank">${escapeHtml(page.content.heroImageCredit)}${heroSourceSuffix}</a></p>`
+      ? `<p class="efl-hero__credit"><span class="efl-hero__credit-prefix">Photo by </span><a href="${escapeHtml(page.content.heroImageSourceUrl)}" rel="nofollow noopener" target="_blank">${escapeHtml(page.content.heroImageCredit)}${heroSourceSuffix}</a></p>`
       : '';
 
   const heroImage = page.content.heroImageUrl
@@ -492,7 +493,7 @@ function renderCityPage(model) {
     : '';
 
   const heroVisual = heroImage
-    ? `<div class="efl-hero__visual" data-city-name="${escapeHtml(city.name)}">${heroImage}${heroAttribution}<div class="efl-hero__image-note"><span aria-hidden="true">&#10003;</span><p><strong>Genuine local coverage</strong><small>Based here or happy to travel</small></p></div></div>`
+    ? `<div class="efl-hero__visual" data-city-name="${escapeHtml(city.name)}">${heroImage}${heroAttribution}<div class="efl-hero__image-note"><span aria-hidden="true">&#10003;</span><p><strong><span class="efl-coverage-label--long">Genuine local coverage</span><span class="efl-coverage-label--short">Local coverage</span></strong><small>Based here or happy to travel</small></p></div></div>`
     : `<div class="efl-hero__visual efl-hero__visual--placeholder" aria-hidden="true"><span class="efl-hero__map-pin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 10c0 5.5-8 12-8 12S4 15.5 4 10a8 8 0 1 1 16 0Z"></path><circle cx="12" cy="10" r="2.5"></circle></svg></span><strong>${escapeHtml(city.name)}</strong></div>`;
 
   sections.push(`<section class="efl-hero efl-hero--city">
@@ -505,7 +506,7 @@ function renderCityPage(model) {
         <span class="efl-search__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path></svg></span>
         <input id="efl-city-search" type="search" name="q" placeholder="Venue, caterer, photographer..." />
         <input type="hidden" name="location" value="${escapeHtml(city.name)}" />
-        <button type="submit">Search suppliers</button>
+        <button type="submit"><span class="efl-search-label--long">Search suppliers</span><span class="efl-search-label--short">Search</span></button>
       </form>
       <p class="efl-hero__trust"><span aria-hidden="true">&#10003;</span> Free to browse <span aria-hidden="true">&#183;</span> Message suppliers directly</p>
     </div>
