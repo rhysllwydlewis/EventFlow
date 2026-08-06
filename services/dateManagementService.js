@@ -229,6 +229,9 @@ class DateManagementService {
    * @returns {Object} Refusal result
    */
   updateLegalDates() {
+    this.logger.warn(
+      'Blocked runtime policy-date update; edit config/policyMetadata.js in a reviewed change'
+    );
     return {
       success: false,
       code: 'POLICY_METADATA_REVIEW_REQUIRED',
