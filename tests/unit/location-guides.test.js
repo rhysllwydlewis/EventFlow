@@ -4,6 +4,7 @@
 
 'use strict';
 
+const fs = require('fs');
 const { relatedGuides, resetGuidesCache } = require('../../services/locationGuides.service');
 
 beforeEach(() => {
@@ -42,5 +43,72 @@ describe('relatedGuides', () => {
     guides.forEach(guide => {
       expect(guide.href).toMatch(/^\/[a-zA-Z0-9/_-]*$/);
     });
+  });
+});
+
+describe('city-pinned guides', () => {
+  let readFileSyncSpy;
+
+  const catalogue = [
+    {
+      id: 'generic-venues',
+      title: 'Generic Venues Guide',
+      category: 'Venues',
+      href: '/articles/generic-venues',
+      excerpt: 'Applies everywhere.',
+      featured: true,
+      featuredOrder: 1,
+    },
+    {
+      id: 'cardiff-venues',
+      title: 'Wedding Venues in Cardiff',
+      category: 'Venues',
+      cities: ['cardiff'],
+      href: '/articles/cardiff-venues',
+      excerpt: 'Written specifically for Cardiff.',
+    },
+    {
+      id: 'bristol-venues',
+      title: 'Wedding Venues in Bristol',
+      category: 'Venues',
+      cities: ['bristol'],
+      href: '/articles/bristol-venues',
+      excerpt: 'Written specifically for Bristol.',
+    },
+  ];
+
+  beforeEach(() => {
+    resetGuidesCache();
+    readFileSyncSpy = jest.spyOn(fs, 'readFileSync').mockImplementation(filePath => {
+      if (String(filePath).endsWith('guides.json')) {
+        return JSON.stringify(catalogue);
+      }
+      return JSON.stringify([]);
+    });
+  });
+
+  afterEach(() => {
+    readFileSyncSpy.mockRestore();
+    resetGuidesCache();
+  });
+
+  it('puts a guide written specifically for this city ahead of category-matched ones', () => {
+    const guides = relatedGuides([{ name: 'Venues' }], 'cardiff');
+    expect(guides[0].title).toBe('Wedding Venues in Cardiff');
+  });
+
+  it('never shows a guide pinned to a different city, even on a matching category', () => {
+    const guides = relatedGuides([{ name: 'Venues' }], 'cardiff');
+    expect(guides.map(guide => guide.title)).not.toContain('Wedding Venues in Bristol');
+  });
+
+  it('still shows the generic, city-agnostic guide alongside the pinned one', () => {
+    const guides = relatedGuides([{ name: 'Venues' }], 'cardiff');
+    expect(guides.map(guide => guide.title)).toContain('Generic Venues Guide');
+  });
+
+  it('a city-agnostic request never surfaces a guide pinned to a specific city', () => {
+    const guides = relatedGuides([{ name: 'Venues' }]);
+    expect(guides.map(guide => guide.title)).toEqual(['Generic Venues Guide']);
   });
 });

@@ -770,7 +770,7 @@ router.get('/locations/:citySlug', publicReadLimiter, async (req, res, next) => 
       publishedSlugs: publishedSlugs(data.pageRecords),
       baseUrl: BASE_URL,
     });
-    model.guides = locationGuides.relatedGuides(model.categories);
+    model.guides = locationGuides.relatedGuides(model.categories, city.slug);
 
     const structuredData = [model.breadcrumbs];
     if (model.indexable) {

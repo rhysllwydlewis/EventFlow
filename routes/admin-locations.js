@@ -378,7 +378,7 @@ router.get('/:slug/preview', apiLimiter, async (req, res) => {
       publishedSlugs: locationRoutes.publishedSlugs(data.pageRecords),
       baseUrl: locationRoutes.BASE_URL,
     });
-    model.guides = locationGuides.relatedGuides(model.categories);
+    model.guides = locationGuides.relatedGuides(model.categories, city.slug);
 
     const banner = `<div class="efl-preview-banner" role="status">
       <strong>Admin preview</strong>
