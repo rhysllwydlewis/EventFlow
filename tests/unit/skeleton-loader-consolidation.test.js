@@ -74,14 +74,18 @@ describe('legacy skeleton compatibility', () => {
   const compatibilityCss = read('public/assets/css/loading-skeleton.css');
   const guides = read('public/guides.html');
 
-  it('routes the old stylesheet through the canonical implementation', () => {
-    expect(compatibilityCss).toContain("@import url('/assets/css/skeleton.css?v=2.0.0')");
+  it('preserves the established homepage skeleton dimensions', () => {
+    expect(compatibilityCss).toContain('.skeleton-container,\n.skeleton-grid');
+    expect(compatibilityCss).toContain('height: 200px');
+    expect(compatibilityCss).toContain('margin: 2rem 0');
+    expect(compatibilityCss).not.toContain("@import url('/assets/css/skeleton.css");
   });
 
-  it('supports the Guides legacy skeleton-grid markup', () => {
+  it('supports the Guides legacy skeleton-grid and empty-card markup', () => {
     expect(guides).toContain('class="skeleton-grid"');
     expect(guides).toContain('loading-skeleton.css');
-    expect(compatibilityCss).toContain('.skeleton-grid');
+    expect(compatibilityCss).toContain('.skeleton-grid > .skeleton-card:empty::before');
+    expect(compatibilityCss).toContain('.skeleton-grid > .skeleton-card:empty::after');
   });
 });
 
@@ -94,5 +98,6 @@ describe('priority public route migration', () => {
     expect(eventDetail).toContain('skeleton-event-detail__media');
     expect(eventDetail).not.toContain('Loading event…');
     expect(eventDetail).not.toContain('<div class="event-body">Loading…</div>');
+    expect(eventDetail).not.toContain('id="event-panel" role="status"');
   });
 });
