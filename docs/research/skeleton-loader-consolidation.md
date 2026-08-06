@@ -16,7 +16,7 @@ This change establishes one canonical skeleton contract and fixes the clearest b
 - Named presets cover supplier cards, package cards, event cards, guide cards, gallery tiles, conversations, tickets, KPIs, tables and supplier-profile layouts.
 - Loading regions set `aria-busy` and a deterministic state attribute, then clear those attributes on success, empty or error states.
 - User-facing empty and error copy is escaped.
-- `?skeletonDebug=1` holds shared loaders on screen for desktop and mobile visual inspection.
+- `?skeletonDebug=1` holds shared-loader states on screen for desktop and mobile visual inspection.
 
 ### Compatibility consolidation
 
@@ -27,7 +27,7 @@ This change establishes one canonical skeleton contract and fixes the clearest b
 
 ### Priority page fixes
 
-- **Category/package route:** initial HTML and runtime render title, hero and package-card placeholders, with distinct missing-category and retryable error states. The legacy loading-word flash is removed.
+- **Category/package route:** the initial HTML now reserves title, hero and package-card layout before JavaScript runs, removing the legacy loading-word and blank-results flash. Its existing category data and error renderer remains unchanged.
 - **Event detail:** the initial HTML reserves the real hero, media, content, action and organiser layout instead of displaying raw loading text.
 - **Guides:** the legacy `skeleton-grid` and empty `skeleton-card` markup now participates in the canonical layout contract.
 - **Marketplace:** existing card markup remains, but its separate shimmer, colour and motion implementation is removed.
@@ -61,7 +61,7 @@ Community homepage/list/member pages, support detail modals and several admin ta
 
 ## Manual QA
 
-Use `?skeletonDebug=1` on a route that imports the shared utility to hold its loading state. Check:
+Use `?skeletonDebug=1` on routes that import the shared utility to hold their loading state. Check:
 
 - desktop, tablet and mobile widths;
 - no unexpected horizontal scrolling;
@@ -69,7 +69,7 @@ Use `?skeletonDebug=1` on a route that imports the shared utility to hold its lo
 - no interactive controls appear usable while loading;
 - reduced-motion mode removes shimmer;
 - empty and error states clear loading semantics;
-- category retry performs a fresh request;
+- the category shell shows no raw loading word or blank package area before JavaScript runs;
 - event detail does not show raw loading copy;
 - Guides and Marketplace retain their existing grid behaviour;
 - Gallery shows tile placeholders rather than a centred spinner;
