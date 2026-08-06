@@ -77,9 +77,15 @@ function findCuratedHeroByUrl(url) {
  * @returns {string} Log-safe text.
  */
 function forLog(value, maxLength) {
-  return String(value === null || value === undefined ? '' : value)
-    .replace(/[^a-z0-9 ._:/-]/gi, '')
-    .slice(0, maxLength);
+  return (
+    String(value === null || value === undefined ? '' : value)
+      // The line break is removed first and on its own. Forging a log entry
+      // needs a newline, so that is the property worth stating explicitly
+      // rather than leaving it implied by the allowlist below.
+      .replace(/[\r\n]/g, ' ')
+      .replace(/[^a-z0-9 ._:/-]/gi, '')
+      .slice(0, maxLength)
+  );
 }
 
 /**
