@@ -2,6 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { JSDOM } = require('jsdom');
 
 const root = path.join(__dirname, '../..');
 const categoryHtml = fs.readFileSync(path.join(root, 'public/category.html'), 'utf8');
@@ -9,6 +10,27 @@ const lifecycle = fs.readFileSync(
   path.join(root, 'public/assets/js/pages/category-skeleton-lifecycle.js'),
   'utf8'
 );
+
+function createCategoryDom() {
+  return new JSDOM(
+    `<!doctype html><html><body>
+      <div id="category-hero-section" aria-busy="true">
+        <div class="skeleton skeleton-media"></div>
+      </div>
+      <h1 id="category-title" aria-busy="true"><span class="skeleton"></span></h1>
+      <div id="package-list-container" aria-busy="true" data-skeleton-state="loading">
+        <div class="skeleton-grid"><div class="skeleton"></div></div>
+      </div>
+    </body></html>`,
+    { runScripts: 'outside-only', url: 'https://event-flow.co.uk/category?slug=venues' }
+  );
+}
+
+async function initialiseLifecycle(dom) {
+  dom.window.eval(lifecycle);
+  dom.window.document.dispatchEvent(new dom.window.Event('DOMContentLoaded'));
+  await new Promise(resolve => dom.window.setTimeout(resolve, 0));
+}
 
 describe('category page initial skeleton shell', () => {
   it('loads the canonical skeleton stylesheet before the initial page paint', () => {
@@ -35,16 +57,46 @@ describe('category page initial skeleton shell', () => {
     expect(lifecycleIndex).toBeGreaterThan(rendererIndex);
   });
 
-  it('clears stale hero and accessibility loading state after a terminal result', () => {
-    expect(lifecycle).toContain("elements.hero.replaceChildren()");
-    expect(lifecycle).toContain("removeAttribute('aria-busy')");
-    expect(lifecycle).toContain("removeAttribute('data-skeleton-state')");
-    expect(lifecycle).toContain(".category-hero-img-wrap");
+  it('clears a stale hero and loading semantics when a category has no hero image', async () => {
+    const dom = createCategoryDom();
+    await initialiseLifecycle(dom);
+
+    const { document } = dom.window;
+    document.getElementById('category-title').textContent = 'Venues';
+    document.getElementById('package-list-container').innerHTML =
+      '<div class="package-list-grid"></div>';
+    await new Promise(resolve => dom.window.setTimeout(resolve, 0));
+
+    const hero = document.getElementById('category-hero-section');
+    expect(hero.childElementCount).toBe(0);
+    expect(hero.hasAttribute('aria-busy')).toBe(false);
+    expect(document.getElementById('category-title').hasAttribute('aria-busy')).toBe(false);
+    expect(document.getElementById('package-list-container').hasAttribute('aria-busy')).toBe(
+      false
+    );
+    expect(
+      document.getElementById('package-list-container').hasAttribute('data-skeleton-state')
+    ).toBe(false);
+
+    dom.window.close();
   });
 
-  it('observes the legacy renderer and disconnects after title and packages resolve', () => {
-    expect(lifecycle).toContain('new MutationObserver');
-    expect(lifecycle).toContain('titleResolved && packagesResolved');
-    expect(lifecycle).toContain('observer.disconnect()');
+  it('preserves a real category hero while clearing loading semantics', async () => {
+    const dom = createCategoryDom();
+    await initialiseLifecycle(dom);
+
+    const { document } = dom.window;
+    document.getElementById('category-title').textContent = 'Photography';
+    document.getElementById('category-hero-section').innerHTML =
+      '<div class="category-hero-img-wrap"><img src="/hero.jpg" alt="Photography"></div>';
+    document.getElementById('package-list-container').innerHTML =
+      '<div class="package-list-grid"></div>';
+    await new Promise(resolve => dom.window.setTimeout(resolve, 0));
+
+    const hero = document.getElementById('category-hero-section');
+    expect(hero.querySelector('.category-hero-img-wrap')).not.toBeNull();
+    expect(hero.hasAttribute('aria-busy')).toBe(false);
+
+    dom.window.close();
   });
 });
