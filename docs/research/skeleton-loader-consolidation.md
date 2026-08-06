@@ -4,13 +4,15 @@
 
 EventFlow had several overlapping loading systems with different class names, animation definitions, dimensions and accessibility behaviour. That made page loaders drift away from the layouts they represented and left some routes showing raw loading text, generic slabs or blank content regions.
 
-This change establishes one canonical skeleton contract and fixes the clearest broken or mismatched routes without hiding useful server-rendered content or changing page data flows.
+This change establishes one canonical skeleton contract and fixes the clearest low-risk defects without hiding useful server-rendered content or replacing established page renderers.
 
 ## Implemented in this PR
 
 ### Canonical shared system
 
 - `public/assets/css/skeleton.css` is the shared visual source for skeleton colours, shimmer, dimensions, responsive behaviour and reduced-motion handling.
+- Static colour fallbacks are defined before `color-mix()` enhancement so older browsers retain visible placeholders.
+- EventFlow remains light-theme-only; skeleton colours do not switch independently from the application when the operating system prefers dark mode.
 - `public/assets/js/utils/skeleton-loader.js` is the shared lifecycle and markup source for new loaders.
 - Existing named utility exports remain available so current imports do not break during migration.
 - Named presets cover supplier cards, package cards, event cards, guide cards, gallery tiles, conversations, tickets, KPIs, tables and supplier-profile layouts.
@@ -21,23 +23,25 @@ This change establishes one canonical skeleton contract and fixes the clearest b
 ### Compatibility consolidation
 
 - `loading-skeleton.css` delegates to the canonical stylesheet while preserving legacy wrappers used by Guides and older homepage code.
-- `marketplace-skeleton.css` delegates animation, colour and motion behaviour to the canonical stylesheet while preserving Marketplace-specific layout classes.
-- Gallery, Calendar, supplier-profile commercial polish and dashboard overhaul retain their established rules in base stylesheets, while their public entry stylesheets add canonical loading treatment.
+- `marketplace-skeleton.css` retains Marketplace-specific layout classes while using canonical skeleton tokens and motion behaviour.
+- Existing supplier-profile and dashboard stylesheets remain in their original files. Scoped additions in the canonical stylesheet fill only the missing supplier gallery state and reshape existing dashboard placeholders.
 - Existing pages using `.skeleton`, `.skeleton-text`, `.skeleton-card`, `.skeleton-list-item` and related classes inherit the improved shared styling without requiring a flag-day renderer rewrite.
 
 ### Priority page fixes
 
-- **Category/package route:** the initial HTML now reserves title, hero and package-card layout before JavaScript runs, removing the legacy loading-word and blank-results flash. Its existing category data and error renderer remains unchanged.
-- **Event detail:** the initial HTML reserves the real hero, media, content, action and organiser layout instead of displaying raw loading text.
+- **Category/package route:** initial HTML reserves title, hero and package-card layout before JavaScript runs, removing the loading-word and blank-results flash. A small lifecycle companion observes the existing renderer, clears stale hero placeholders, and removes loading semantics after success, missing-category and error outcomes.
+- **Event detail:** initial HTML reserves the hero, media, content, action and organiser layout instead of displaying raw loading text.
 - **Guides:** the legacy `skeleton-grid` and empty `skeleton-card` markup now participates in the canonical layout contract.
 - **Marketplace:** existing card markup remains, but its separate shimmer, colour and motion implementation is removed.
-- **Gallery manager:** the centred spinner now presents as four responsive gallery-tile placeholders without changing upload or photo-management JavaScript.
-- **Public calendar:** generic grey blocks now present as event-card-shaped placeholders with media, category/title and metadata regions.
-- **Public supplier profile:** gallery, package, review, enquiry, trust and details mounts reserve their rendered layout. Existing renderer logic continues to hide valid empty gallery/package sections.
-- **Customer dashboard:** countdown, budget KPIs and milestones now show widget-shaped loading states.
-- **Supplier dashboard:** KPI and availability loading states now contain the hierarchy of the rendered widgets rather than plain rectangles.
+- **Public supplier profile:** the missing gallery placeholder is added while the existing package, review, hero and sidebar loading contract remains untouched.
+- **Customer dashboard:** countdown, budget KPI and milestone placeholders now reflect their final widget hierarchy.
+- **Supplier dashboard:** KPI and availability placeholders now reflect their final widget hierarchy.
 
 ## Deliberate exclusions
+
+### Gallery manager and public calendar
+
+The audit identified the Gallery spinner and public-calendar slabs as outdated. An initial implementation replaced their complete stylesheet entry points to add small loading overrides. Pre-merge review found that approach introduced unnecessary import waterfalls and a much larger regression surface, so those changes were removed from this PR. They should be migrated through focused page-level changes with browser visual coverage.
 
 ### Community discussion threads
 
@@ -45,7 +49,7 @@ Discussion threads retain useful server-rendered content while client enhancemen
 
 ### Remaining focused migrations
 
-Community homepage/list/member pages, support detail modals and several admin tables still contain page-specific or generic placeholder markup. They benefit from canonical base classes where those are already used, but complete renderer migration is left for focused follow-up work.
+Community homepage/list/member pages, support detail modals and several admin tables still contain page-specific or generic placeholder markup. Complete renderer migration is left for focused follow-up work.
 
 ### Dormant components
 
@@ -53,11 +57,13 @@ Community homepage/list/member pages, support detail modals and several admin ta
 
 ## Follow-up priority
 
-1. Add Community-specific featured, discussion-row, profile and sidebar presets while preserving server-rendered thread content.
-2. Adopt shared table-row and modal presets across admin pages.
-3. Convert support ticket detail modals to the shared ticket and conversation presets.
-4. Verify and remove dormant skeleton implementations.
-5. Add browser visual snapshots for the most important held skeleton states.
+1. Replace the Gallery manager spinner with renderer-owned gallery-tile placeholders.
+2. Upgrade public-calendar placeholders without routing unrelated admin calendar styles through a new entry point.
+3. Add Community-specific featured, discussion-row, profile and sidebar presets while preserving server-rendered thread content.
+4. Adopt shared table-row and modal presets across admin pages.
+5. Convert support ticket detail modals to the shared ticket and conversation presets.
+6. Verify and remove dormant skeleton implementations.
+7. Add browser visual snapshots for the most important held skeleton states.
 
 ## Manual QA
 
@@ -70,9 +76,8 @@ Use `?skeletonDebug=1` on routes that import the shared utility to hold their lo
 - reduced-motion mode removes shimmer;
 - empty and error states clear loading semantics;
 - the category shell shows no raw loading word or blank package area before JavaScript runs;
+- category results with no hero image do not retain a hero skeleton;
 - event detail does not show raw loading copy;
 - Guides and Marketplace retain their existing grid behaviour;
-- Gallery shows tile placeholders rather than a centred spinner;
-- public-calendar placeholders match the event-card grid;
-- supplier-profile sections disappear correctly for valid empty results;
-- customer and supplier dashboard loaders do not alter the final widget layouts.
+- supplier-profile gallery loading disappears for valid empty results;
+- customer and supplier dashboard loaders do not alter final widget layouts.
