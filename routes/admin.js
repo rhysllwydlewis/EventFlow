@@ -6456,6 +6456,7 @@ router.get('/content-dates', authRequired, roleRequired('admin'), async (req, re
     // Get current config
     const { getConfig } = require('../config/content-config.js');
     const config = getConfig();
+    const reviewSettings = await require('../services/contentReviewTask.service').getSettings();
 
     // Get change detection info
     const changeCheck = await dateService.hasLegalContentChanged();
@@ -6466,7 +6467,7 @@ router.get('/content-dates', authRequired, roleRequired('admin'), async (req, re
 
     res.json({
       success: true,
-      config: config.dates,
+      config: { ...config.dates, autoUpdateEnabled: reviewSettings.enabled },
       policies: getPublicPolicyMetadata(),
       changeCheck,
       status,
@@ -6561,19 +6562,7 @@ router.post(
         });
       }
 
-      // Update config file
-      const configPath = require('path').resolve(__dirname, '../config/content-config.js');
-      let configContent = require('fs').readFileSync(configPath, 'utf8');
-
-      configContent = configContent.replace(
-        /autoUpdateEnabled:\s*(?:true|false)/,
-        `autoUpdateEnabled: ${enabled}`
-      );
-
-      require('fs').writeFileSync(configPath, configContent, 'utf8');
-
-      // Clear require cache
-      delete require.cache[require.resolve('../config/content-config.js')];
+      await require('../services/contentReviewTask.service').updateSettings({ enabled }, req.user);
 
       // Restart or stop scheduler based on enabled state
       let scheduleResult;
@@ -6634,6 +6623,7 @@ router.get(
       // Get service config and status
       const { getConfig } = require('../config/content-config');
       const config = getConfig();
+      const reviewSettings = await require('../services/contentReviewTask.service').getSettings();
       const changeCheck = await dateService.hasLegalContentChanged();
 
       // Test if config file is writable
@@ -6650,11 +6640,11 @@ router.get(
         success: true,
         health: {
           serviceLoaded: !!dateService,
-          autoUpdateEnabled: config.dates.autoUpdateEnabled,
+          autoUpdateEnabled: reviewSettings.enabled,
           lastAutoCheck: config.dates.lastAutoCheck,
           lastManualUpdate: config.dates.lastManualUpdate,
-          gitAvailable: changeCheck.reason !== 'No git history available',
-          contentUpToDate: !changeCheck.changed,
+          gitAvailable: changeCheck.evidenceAvailable !== false,
+          contentUpToDate: changeCheck.evidenceAvailable === false ? null : !changeCheck.changed,
           configWritable: configWritable,
           currentDates: {
             legalLastUpdated: config.dates.legalLastUpdated,

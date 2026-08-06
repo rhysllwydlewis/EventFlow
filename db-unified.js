@@ -191,6 +191,11 @@ async function createIndexes() {
     await notificationsCollection.createIndex({ id: 1 }, { unique: true }); // dedup $in lookups
     await notificationsCollection.createIndex({ userId: 1, createdAt: -1 });
     await notificationsCollection.createIndex({ read: 1 });
+    const contentReviewTasksCollection = mongodb.collection('content_review_tasks');
+    await contentReviewTasksCollection.createIndex({ id: 1 }, { unique: true });
+    await contentReviewTasksCollection.createIndex({ status: 1, dueAt: 1 });
+    await contentReviewTasksCollection.createIndex({ type: 1, period: -1 });
+    await mongodb.collection('content_review_settings').createIndex({ id: 1 }, { unique: true });
     const supplierAnalyticsCollection = mongodb.collection('supplierAnalytics');
     await supplierAnalyticsCollection.createIndex({ supplierId: 1 }, { unique: true });
     const reviewVotesCollection = mongodb.collection('reviewVotes');

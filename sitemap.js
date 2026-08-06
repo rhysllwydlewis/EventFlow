@@ -37,7 +37,7 @@ function loadGuideEntries() {
     const guides = JSON.parse(raw);
     return guides.map(g => ({
       slug: (g.href || '').replace('/articles/', ''),
-      lastmod: g.lastUpdated || g.publishedDate || null,
+      lastmod: g.lastMaterialUpdate || g.lastUpdated || g.publishedDate || null,
     }));
   } catch (err) {
     logger.error('sitemap: could not load guides.json:', err);

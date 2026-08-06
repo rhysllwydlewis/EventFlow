@@ -745,6 +745,86 @@
       }
     }
 
+    const outcomeLabels = {
+      no_change: 'No change required',
+      content_update_required: 'Content update required',
+      policy_update_required: 'Policy update required',
+      operational_change_required: 'Operational change required',
+      solicitor_review_required: 'Solicitor review required',
+    };
+
+    async function loadReviewQueue() {
+      const data = await AdminShared.api('/api/admin/content-reviews');
+      const el = document.getElementById('reviewQueueContent');
+      const tasks = data.tasks || [];
+      const active = tasks.filter(task => task.status !== 'completed');
+      el.innerHTML = active.length
+        ? active
+            .map(
+              task => `<div class="announcement-item" data-review-task="${AdminShared.escapeHtml(task.id)}">
+            <div class="flex-between-mb"><strong>${AdminShared.escapeHtml(task.title)}</strong><span class="status-badge changed">${AdminShared.escapeHtml(task.status.replace('_', ' '))}</span></div>
+            <p class="small">${AdminShared.escapeHtml(task.description)}</p>
+            <label>Outcome
+              <select data-review-outcome>
+                <option value="">Select an outcome</option>
+                ${Object.entries(outcomeLabels)
+                  .map(([value, label]) => `<option value="${value}">${label}</option>`)
+                  .join('')}
+              </select>
+            </label>
+            <label>Review note <textarea rows="2" maxlength="4000" data-review-note placeholder="Record what you checked and why"></textarea></label>
+            <div class="action-buttons"><button type="button" class="ef-cta btn btn-primary" data-review-complete>Complete review</button></div>
+          </div>`
+            )
+            .join('')
+        : '<p class="small">No open review tasks. Completed reviews remain in the audit record.</p>';
+      document.getElementById('reviewEmailDigestToggle').checked = Boolean(
+        data.settings?.emailDigestEnabled
+      );
+      el.querySelectorAll('[data-review-complete]').forEach(button =>
+        button.addEventListener('click', async () => {
+          const card = button.closest('[data-review-task]');
+          const outcome = card.querySelector('[data-review-outcome]').value;
+          if (!outcome) {
+            return AdminShared.showToast('Choose a review outcome first', 'error');
+          }
+          button.disabled = true;
+          try {
+            await AdminShared.api(
+              `/api/admin/content-reviews/${encodeURIComponent(card.dataset.reviewTask)}`,
+              'PATCH',
+              {
+                status: 'completed',
+                outcome,
+                note: card.querySelector('[data-review-note]').value,
+              }
+            );
+            AdminShared.showToast('Review recorded', 'success');
+            await loadReviewQueue();
+          } catch (error) {
+            AdminShared.showToast(`Failed: ${error.message}`, 'error');
+            button.disabled = false;
+          }
+        })
+      );
+    }
+
+    document.getElementById('reviewQueueRunBtn')?.addEventListener('click', async () => {
+      await AdminShared.api('/api/admin/content-reviews/run', 'POST');
+      await loadReviewQueue();
+    });
+    document.getElementById('reviewEmailDigestToggle')?.addEventListener('change', async event => {
+      try {
+        await AdminShared.api('/api/admin/content-reviews/settings', 'PUT', {
+          emailDigestEnabled: event.target.checked,
+        });
+        AdminShared.showToast('Review email preference saved', 'success');
+      } catch (error) {
+        event.target.checked = !event.target.checked;
+        AdminShared.showToast(`Failed: ${error.message}`, 'error');
+      }
+    });
+
     const checkBtn = document.getElementById('cdCheckNowBtn');
     if (checkBtn) {
       checkBtn.addEventListener('click', async () => {
@@ -804,7 +884,13 @@
       legalDatesTabBtn.addEventListener('click', () => {
         loadContentDates();
         loadArticleDates();
+        loadReviewQueue();
       });
+    }
+    if (new URLSearchParams(window.location.search).get('tab') === 'legalDates') {
+      loadContentDates();
+      loadArticleDates();
+      loadReviewQueue();
     }
   })();
 

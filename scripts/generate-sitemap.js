@@ -37,9 +37,12 @@ const STATIC_PAGES = [
 ];
 
 function formatDate(value) {
-  const date = value ? new Date(value) : new Date();
+  if (!value) {
+    return '';
+  }
+  const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
-    return new Date().toISOString().split('T')[0];
+    return '';
   }
   return date.toISOString().split('T')[0];
 }
@@ -55,7 +58,8 @@ function xmlEscape(value) {
 
 function generateUrlEntry(url, changefreq = 'monthly', priority = '0.5', lastmod = null) {
   const fullUrl = `${BASE_URL}${url}`;
-  return `  <url>\n    <loc>${xmlEscape(fullUrl)}</loc>\n    <lastmod>${formatDate(lastmod)}</lastmod>\n    <changefreq>${changefreq}</changefreq>\n    <priority>${priority}</priority>\n  </url>`;
+  const lastmodLine = formatDate(lastmod) ? `\n    <lastmod>${formatDate(lastmod)}</lastmod>` : '';
+  return `  <url>\n    <loc>${xmlEscape(fullUrl)}</loc>${lastmodLine}\n    <changefreq>${changefreq}</changefreq>\n    <priority>${priority}</priority>\n  </url>`;
 }
 
 function loadGuidePages() {
@@ -66,13 +70,12 @@ function loadGuidePages() {
       url: guide.href,
       changefreq: 'monthly',
       priority: '0.7',
-      lastmod: guide.lastUpdated || guide.publishedDate,
+      lastmod: guide.lastMaterialUpdate || guide.lastUpdated || guide.publishedDate,
     }));
 }
 
 function generateSitemap() {
-  const now = new Date();
-  const pages = [...STATIC_PAGES.map(page => ({ ...page, lastmod: now })), ...loadGuidePages()];
+  const pages = [...STATIC_PAGES, ...loadGuidePages()];
 
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${pages
     .map(page => generateUrlEntry(page.url, page.changefreq, page.priority, page.lastmod))

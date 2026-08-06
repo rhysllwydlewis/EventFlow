@@ -597,11 +597,9 @@ app.get('/articles/:slug', (req, res, next) => {
   if (!/^[a-z0-9-]+$/i.test(slug)) {
     return next();
   }
-  res.sendFile(path.join(__dirname, 'public', 'articles', `${slug}.html`), err => {
-    if (err) {
-      next();
-    }
-  });
+  // The template middleware below renders canonical publication, material
+  // update and current editorial-check dates before serving the file.
+  return next();
 });
 app.get('/articles/:slug.html', (req, res) => {
   const qs = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
@@ -1031,6 +1029,13 @@ mountDeprecatedApiAlias(
   '/api/admin/notifications',
   '/api/v1/admin/notifications',
   adminNotificationsRoutes
+);
+const adminContentReviewRoutes = require('./routes/admin-content-reviews');
+app.use('/api/v1/admin/content-reviews', adminContentReviewRoutes);
+mountDeprecatedApiAlias(
+  '/api/admin/content-reviews',
+  '/api/v1/admin/content-reviews',
+  adminContentReviewRoutes
 );
 
 // External contacts ingestion (server-to-server from VEXI, Chlo, etc.)
@@ -1891,6 +1896,20 @@ function startServer() {
             dateServiceError.message
           );
           logger.warn('   Date automation features will not be available');
+        }
+
+        // This persistent queue must still start when git-based policy
+        // diagnostics are unavailable in the deployed image.
+        try {
+          const contentReviewSchedule = require('./services/contentReviewScheduler').start();
+          logger.info(
+            `   ✅ Persistent content review task checks scheduled: ${contentReviewSchedule.scheduled ? 'Yes' : 'No'}`
+          );
+        } catch (contentReviewError) {
+          logger.warn(
+            '   Persistent content review task checks failed to initialize:',
+            contentReviewError.message
+          );
         }
 
         // 4d. Initialize System Check Scheduler

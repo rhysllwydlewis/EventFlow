@@ -9,8 +9,10 @@ const { spawnSync } = require('child_process');
 const path = require('path');
 const schedule = require('node-schedule');
 const fs = require('fs');
-const crypto = require('crypto');
 const { POLICY_METADATA, getPublicPolicyMetadata } = require('../config/policyMetadata');
+const { loadArticleMetadata, formatDate } = require('./articleMetadata.service');
+const { notifyAdmins } = require('./notifyAdmins.service');
+const reviewTasks = require('./contentReviewTask.service');
 
 class DateManagementService {
   /**
@@ -158,13 +160,16 @@ class DateManagementService {
         this.logger.warn('Could not determine git dates for policy files');
         return {
           changed: false,
-          reason: 'No git history available; displayed policy dates are unchanged',
+          evidenceAvailable: false,
+          reason:
+            'Policy source history is unavailable in this deployment; review status is unknown',
           files,
         };
       }
 
       return {
         changed: changedFiles.length > 0,
+        evidenceAvailable: true,
         reason:
           changedFiles.length > 0
             ? `${changedFiles.length} policy source file(s) changed after review`
@@ -176,6 +181,7 @@ class DateManagementService {
       this.logger.error('Error checking legal content changes:', error);
       return {
         changed: false,
+        evidenceAvailable: false,
         reason: 'Error checking changes',
         error: error.message,
       };
@@ -241,39 +247,19 @@ class DateManagementService {
   }
 
   /**
-   * Get article dates from git history
+   * Get reviewed article dates from the canonical article catalogue
    * @returns {Promise<Array>} Array of articles with dates
    */
   async getArticleDates() {
     try {
-      const articles = [];
-
-      // Get all HTML files in guides directory
-      const guidesDir = path.resolve(__dirname, '../public/guides');
-      if (fs.existsSync(guidesDir)) {
-        const files = fs.readdirSync(guidesDir);
-
-        for (const file of files) {
-          if (file.endsWith('.html')) {
-            const filePath = path.join('public/guides', file);
-            const date = this.getLastCommitDate(filePath);
-
-            if (date) {
-              articles.push({
-                path: filePath,
-                name: file.replace('.html', '').replace(/-/g, ' '),
-                lastModified: date.toISOString(),
-                lastModifiedFormatted: this.formatLegalDate(date),
-              });
-            }
-          }
-        }
-      }
-
-      // Sort by most recent first
-      articles.sort((a, b) => new Date(b.lastModified) - new Date(a.lastModified));
-
-      return articles;
+      return loadArticleMetadata()
+        .map(article => ({
+          path: `public/articles/${article.slug}.html`,
+          name: article.title,
+          lastModified: article.lastMaterialUpdate,
+          lastModifiedFormatted: formatDate(article.lastMaterialUpdate),
+        }))
+        .sort((a, b) => b.lastModified.localeCompare(a.lastModified));
     } catch (error) {
       this.logger.error('Error getting article dates:', error);
       return [];
@@ -295,8 +281,9 @@ class DateManagementService {
       delete require.cache[require.resolve('../config/content-config.js')];
       const { getConfig } = require('../config/content-config.js');
       const config = getConfig();
+      const settings = await reviewTasks.getSettings();
 
-      if (config.dates.autoUpdateEnabled === false) {
+      if (config.dates.autoUpdateEnabled === false || settings.enabled === false) {
         this.logger.info('Policy review reminders are disabled, skipping');
         return {
           performed: false,
@@ -306,6 +293,10 @@ class DateManagementService {
 
       // Check if content has changed
       const changeCheck = await this.hasLegalContentChanged();
+
+      if (changeCheck.evidenceAvailable === false) {
+        return { performed: false, evidenceAvailable: false, ...changeCheck };
+      }
 
       if (!changeCheck.changed) {
         this.logger.info('No legal content changes detected');
@@ -394,37 +385,22 @@ class DateManagementService {
    */
   async notifyAdmins(updateInfo) {
     try {
-      // Create notification for all admins
-      const users = await this.dbUnified.read('users');
-      const admins = users.filter(u => u.role === 'admin');
-
-      if (admins.length === 0) {
-        this.logger.warn('No admin users found for notification');
-        return;
-      }
-
       const changedCount = Array.isArray(updateInfo.changedFiles)
         ? updateInfo.changedFiles.length
         : 0;
       const message = `${changedCount} policy source file(s) changed after their recorded review date. Review the wording and update config/policyMetadata.js in the same version-controlled change if needed. Public dates have not been changed.`;
 
-      await Promise.all(
-        admins.map(admin =>
-          this.dbUnified.insertOne('notifications', {
-            id: `notif_${Date.now()}_${crypto.randomBytes(6).toString('hex')}`,
-            userId: admin.id,
-            type: 'system',
-            title: 'Legal Policy Review Required',
-            message,
-            data: updateInfo,
-            read: false,
-            createdAt: new Date().toISOString(),
-          })
-        )
-      );
+      await notifyAdmins({
+        type: 'reminder',
+        title: 'Legal Policy Review Required',
+        message,
+        actionUrl: '/admin-content?tab=legalDates',
+        actionText: 'Review policies',
+        priority: 'high',
+        metadata: updateInfo,
+      });
 
       this.logger.info('Admin notifications sent', {
-        count: admins.length,
         type: updateInfo.type,
       });
     } catch (error) {

@@ -10,6 +10,7 @@ const logger = require('./logger');
 const fs = require('fs').promises;
 const { getPlaceholders } = require('../config/content-config');
 const { getActiveHomepageVersion, normaliseHomepageVersion } = require('./homepage-manager');
+const { renderArticleDates } = require('../services/articleMetadata.service');
 
 const templateCache = new Map();
 const ANONYMOUS_SANITIZER_COMMENT = '<!-- eventflow-anonymous-sanitizer: active -->';
@@ -638,6 +639,10 @@ function templateMiddleware() {
     try {
       const { content } = await getFile(filePath, requestPath, req);
       let responseContent = content;
+      const articleMatch = originalRequestPath.match(/^\/articles\/([^/?#]+)(?:\.html)?$/);
+      if (articleMatch) {
+        responseContent = renderArticleDates(responseContent, articleMatch[1]);
+      }
       if (isHomepageV2Preview || isHomepageV2VariantRoot) {
         responseContent = buildHomepageV2Preview(responseContent);
       }

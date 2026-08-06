@@ -233,10 +233,7 @@ describe('excerpt length', () => {
 
 describe('registry consistency of the real catalogue', () => {
   it('never pins a guide to a city slug the registry does not recognise', () => {
-    const guides = [
-      ...require('../../public/assets/data/guides.json'),
-      ...require('../../public/assets/data/guides-eventflow-pack.json'),
-    ];
+    const guides = require('../../public/assets/data/guides.json');
     const unknownPins = guides
       .filter(guide => Array.isArray(guide.cities))
       .flatMap(guide => guide.cities.filter(slug => !registry.getCity(slug)));

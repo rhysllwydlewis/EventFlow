@@ -26,34 +26,27 @@ const path = require('path');
 const logger = require('../utils/logger');
 
 const DATA_DIR = path.join(__dirname, '..', 'public', 'assets', 'data');
-// Both files back the public /guides hub; a guide added to either one should
-// be just as eligible for a city page as the other.
-const GUIDES_PATHS = [
-  path.join(DATA_DIR, 'guides.json'),
-  path.join(DATA_DIR, 'guides-eventflow-pack.json'),
-];
+const GUIDES_PATH = path.join(DATA_DIR, 'guides.json');
 const MAX_GUIDES = 3;
 const MAX_EXCERPT_LENGTH = 200;
 
 let cachedGuides = null;
 
 /**
- * Read and parse the published guides catalogues, once per process.
+ * Read and parse the canonical published guides catalogue, once per process.
  * @returns {Object[]} Guides, or an empty array if none could be read.
  */
 function loadGuides() {
   if (cachedGuides) {
     return cachedGuides;
   }
-  cachedGuides = GUIDES_PATHS.flatMap(guidesPath => {
-    try {
-      const parsed = JSON.parse(fs.readFileSync(guidesPath, 'utf8'));
-      return Array.isArray(parsed) ? parsed : [];
-    } catch (error) {
-      logger.warn(`Could not read the guides catalogue at ${guidesPath}:`, error.message);
-      return [];
-    }
-  });
+  try {
+    const parsed = JSON.parse(fs.readFileSync(GUIDES_PATH, 'utf8'));
+    cachedGuides = Array.isArray(parsed) ? parsed : [];
+  } catch (error) {
+    logger.warn(`Could not read the guides catalogue at ${GUIDES_PATH}:`, error.message);
+    cachedGuides = [];
+  }
   return cachedGuides;
 }
 
