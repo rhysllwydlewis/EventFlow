@@ -1,120 +1,48 @@
-/* Loading Skeleton Component CSS - Issue 6 Fix */
+/*
+ * Legacy skeleton compatibility layer.
+ *
+ * Older pages import this file directly. Keep that contract, but delegate all
+ * visual primitives to the canonical skeleton system so the two implementations
+ * cannot drift again.
+ */
+@import url('/assets/css/skeleton.css?v=2.0.0');
 
-.skeleton-container {
+.skeleton-container,
+.skeleton-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 1.5rem;
-  margin: 2rem 0;
-}
-
-.skeleton-card {
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  overflow: hidden;
-  animation: skeleton-pulse 1.5s ease-in-out infinite;
-}
-
-.skeleton-image {
   width: 100%;
-  height: 200px;
-  background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
-  background-size: 200% 100%;
-  animation: skeleton-shimmer 1.5s infinite;
+  margin: 1.5rem 0;
+}
+
+/* Guides currently renders empty .skeleton-card elements. The canonical file
+   supplies the image-and-copy shape through pseudo-elements; this alias makes
+   the legacy .skeleton-grid wrapper participate in the same contract. */
+.skeleton-grid > .skeleton-card,
+.skeleton-container > .skeleton-card {
+  margin: 0;
 }
 
 .skeleton-content {
   padding: 1rem;
 }
 
-.skeleton-text {
-  height: 16px;
-  margin-bottom: 12px;
-  background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
-  background-size: 200% 100%;
-  animation: skeleton-shimmer 1.5s infinite;
-  border-radius: 4px;
-}
-
-.skeleton-title {
-  width: 70%;
-  height: 20px;
-  margin-bottom: 16px;
-}
-
 .skeleton-short {
-  width: 40%;
+  width: 42%;
 }
 
-.skeleton-list-item {
-  display: flex;
-  gap: 1rem;
-  padding: 1rem;
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  margin-bottom: 1rem;
-}
-
-.skeleton-avatar {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  flex-shrink: 0;
-  background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
-  background-size: 200% 100%;
-  animation: skeleton-shimmer 1.5s infinite;
-}
-
-@keyframes skeleton-shimmer {
-  0% { 
-    background-position: 200% 0; 
-  }
-  100% { 
-    background-position: -200% 0; 
-  }
-}
-
-@keyframes skeleton-pulse {
-  0%, 100% { 
-    opacity: 1; 
-  }
-  50% { 
-    opacity: 0.7; 
-  }
-}
-
-@keyframes fadeOut {
-  from {
-    opacity: 1;
-  }
-  to {
-    opacity: 0;
-  }
-}
-
-/* Dark theme support */
-
-/* Responsive adjustments */
 @media (max-width: 768px) {
-  .skeleton-container {
+  .skeleton-container,
+  .skeleton-grid {
     grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
     gap: 1rem;
   }
 }
 
 @media (max-width: 480px) {
-  .skeleton-container {
+  .skeleton-container,
+  .skeleton-grid {
     grid-template-columns: 1fr;
-  }
-}
-
-/* Reduce animation for users who prefer reduced motion */
-@media (prefers-reduced-motion: reduce) {
-  .skeleton-card,
-  .skeleton-image,
-  .skeleton-text,
-  .skeleton-avatar {
-    animation: none;
   }
 }
