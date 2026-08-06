@@ -53,12 +53,16 @@ function normalisePageRecord(city, stored) {
     ? record.status
     : PUBLICATION_STATES.draft;
   const content = record.content && typeof record.content === 'object' ? record.content : {};
-  const curatedHero = locationHeroImages.getCuratedHero(city);
-  const storedHeroImageUrl = normaliseWebUrl(content.heroImageUrl);
-  const heroImageUrl = storedHeroImageUrl || (curatedHero && curatedHero.url) || null;
+  // Only an image an editor actually chose is ever rendered. The curated list
+  // is offered to them as a suggestion in the admin editor instead of being
+  // injected here: an implicit hero cannot be removed (clearing the field would
+  // just bring it back), and it would put a photograph on a public page, under
+  // alt text asserting what it depicts, that nobody on the team had approved.
+  const heroImageUrl = normaliseWebUrl(content.heroImageUrl);
+  // A curated photo carries its own attribution, so choosing one in the editor
+  // does not require re-typing the photographer's credit.
   const matchedHero = locationHeroImages.findCuratedHeroByUrl(heroImageUrl);
   const storedHeroSourceUrl = normaliseWebUrl(content.heroImageSourceUrl);
-  const mayUseStoredAttribution = Boolean(storedHeroImageUrl);
 
   return {
     locationSlug: city.slug,
@@ -78,14 +82,12 @@ function normalisePageRecord(city, stored) {
       heroImageAlt: heroImageUrl
         ? content.heroImageAlt || (matchedHero && matchedHero.alt) || `${city.name} cityscape`
         : null,
-      heroImageCredit:
-        (mayUseStoredAttribution && content.heroImageCredit) ||
-        (matchedHero && matchedHero.credit) ||
-        null,
-      heroImageSourceUrl:
-        (mayUseStoredAttribution && storedHeroSourceUrl) ||
-        (matchedHero && matchedHero.sourceUrl) ||
-        null,
+      heroImageCredit: heroImageUrl
+        ? content.heroImageCredit || (matchedHero && matchedHero.credit) || null
+        : null,
+      heroImageSourceUrl: heroImageUrl
+        ? storedHeroSourceUrl || (matchedHero && matchedHero.sourceUrl) || null
+        : null,
       intro: content.intro || '',
       planningSections: Array.isArray(content.planningSections)
         ? content.planningSections.slice(0, LIMITS.maxSections)

@@ -20,6 +20,7 @@ const { apiLimiter, writeLimiter } = require('../middleware/rateLimits');
 const registry = require('../services/locationRegistry.service');
 const locationPages = require('../services/locationPage.service');
 const supplierLocation = require('../services/supplierLocation.service');
+const locationHeroImages = require('../services/locationHeroImage.service');
 const { isPublicSupplier } = require('../services/publicSupplierSeo.service');
 const {
   COLLECTIONS,
@@ -318,6 +319,10 @@ router.get('/:slug', apiLimiter, async (req, res) => {
       data: {
         ...item,
         limits: LIMITS,
+        // A pre-cleared photograph for this city, offered for one-click use.
+        // It is only ever a suggestion: nothing reaches a public page until an
+        // editor has accepted it and saved.
+        suggestedHero: locationHeroImages.getCuratedHero(resolved.city),
         // The public URL only works once the page is pilot or published; the
         // draft preview works in every state, for admins only.
         previewUrl: `/locations/${resolved.city.slug}`,

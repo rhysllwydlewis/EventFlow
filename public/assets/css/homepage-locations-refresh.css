@@ -140,7 +140,7 @@ body.ef-approved-lower-home .ef-home-locations__promise {
 
 body.ef-approved-lower-home .ef-home-locations__search-copy > span {
   color: #8ce8d8;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 850;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -215,7 +215,7 @@ body.ef-approved-lower-home .ef-home-locations__promise {
   align-items: center;
   margin: 14px 0 0;
   color: rgba(255, 255, 255, 0.6);
-  font-size: 10px;
+  font-size: 11px;
 }
 
 body.ef-approved-lower-home .ef-home-locations__promise span:first-child {
@@ -244,13 +244,13 @@ body.ef-approved-lower-home .ef-home-locations__explore-heading {
 body.ef-approved-lower-home .ef-home-locations__explore-heading p {
   margin: 0;
   color: #10231f;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 850;
 }
 
 body.ef-approved-lower-home .ef-home-locations__explore-heading > span {
   color: #778a85;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 750;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -295,7 +295,7 @@ body.ef-approved-lower-home .ef-home-locations__city-pin {
   border-radius: 12px;
   background: #e4f6f1;
   color: #0b8073;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 900;
 }
 
@@ -313,7 +313,7 @@ body.ef-approved-lower-home .ef-home-locations__city-grid strong {
 body.ef-approved-lower-home .ef-home-locations__city-grid small {
   margin-top: 4px;
   color: #778a85;
-  font-size: 10px;
+  font-size: 11px;
 }
 
 body.ef-approved-lower-home .ef-home-locations__city-grid b {
@@ -324,7 +324,7 @@ body.ef-approved-lower-home .ef-home-locations__city-grid b {
   border: 1px solid #deebe8;
   border-radius: 50%;
   color: #0b8073;
-  font-size: 10px;
+  font-size: 11px;
 }
 
 body.ef-approved-lower-home .ef-home-locations :where(a, button, input):focus-visible {
@@ -388,4 +388,11 @@ body.ef-approved-lower-home .ef-home-locations :where(a, button, input):focus-vi
   body.ef-approved-lower-home .ef-home-locations__city-grid a:hover {
     transform: none;
   }
+}
+
+/* The city chip holds a map pin rather than a rank numeral: the four cities
+   are a fixed editorial list, not a measured popularity chart. */
+body.ef-approved-lower-home .ef-home-locations__city-pin svg {
+  width: 18px;
+  height: 18px;
 }

@@ -491,7 +491,7 @@ function renderCityPage(model) {
     : '';
 
   const heroVisual = heroImage
-    ? `<div class="efl-hero__visual">${heroImage}${heroAttribution}<div class="efl-hero__image-note"><span aria-hidden="true">&#10003;</span><p><strong>Genuine local coverage</strong><small>Based here or happy to travel</small></p></div></div>`
+    ? `<div class="efl-hero__visual" data-city-name="${escapeHtml(city.name)}">${heroImage}${heroAttribution}<div class="efl-hero__image-note"><span aria-hidden="true">&#10003;</span><p><strong>Genuine local coverage</strong><small>Based here or happy to travel</small></p></div></div>`
     : `<div class="efl-hero__visual efl-hero__visual--placeholder" aria-hidden="true"><span class="efl-hero__map-pin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 10c0 5.5-8 12-8 12S4 15.5 4 10a8 8 0 1 1 16 0Z"></path><circle cx="12" cy="10" r="2.5"></circle></svg></span><strong>${escapeHtml(city.name)}</strong></div>`;
 
   sections.push(`<section class="efl-hero efl-hero--city">

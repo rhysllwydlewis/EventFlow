@@ -25,7 +25,7 @@
 .efl-breadcrumbs {
   padding-top: 1.35rem;
   color: #667b76;
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   font-weight: 650;
 }
 
@@ -77,14 +77,14 @@
   align-items: center;
   margin-bottom: 1.1rem;
   color: #8ce8d8;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 850;
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
 .efl-hero__kicker > span {
-  font-size: 0.55rem;
+  font-size: 0.6875rem;
 }
 
 .efl-hero h1 {
@@ -101,7 +101,7 @@
   max-width: 58ch;
   margin: 1.4rem 0 1.7rem;
   color: rgba(255, 255, 255, 0.78);
-  font-size: 0.98rem;
+  font-size: 1rem;
   line-height: 1.65;
 }
 
@@ -137,7 +137,7 @@
   background: rgba(3, 37, 32, 0.7);
   padding: 0.35rem 0.65rem;
   color: rgba(255, 255, 255, 0.74);
-  font-size: 0.6rem;
+  font-size: 0.6875rem;
   backdrop-filter: blur(8px);
 }
 
@@ -185,13 +185,13 @@
 }
 
 .efl-hero__image-note strong {
-  font-size: 0.78rem;
+  font-size: 0.75rem;
 }
 
 .efl-hero__image-note small {
   margin-top: 0.1rem;
   color: #667b76;
-  font-size: 0.66rem;
+  font-size: 0.6875rem;
 }
 
 .efl-hero__visual--placeholder {
@@ -266,7 +266,7 @@
   background: transparent;
   padding: 0.55rem 0.4rem;
   color: #173a33;
-  font-size: 0.85rem;
+  font-size: 0.875rem;
 }
 
 .efl-search--city button,
@@ -275,7 +275,7 @@
   border-radius: 9px;
   background: #0b8073;
   padding: 0 1rem;
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   font-weight: 800;
 }
 
@@ -285,7 +285,7 @@
   align-items: center;
   margin: 1rem 0 0;
   color: rgba(255, 255, 255, 0.66);
-  font-size: 0.7rem;
+  font-size: 0.6875rem;
 }
 
 .efl-hero__trust span:first-child {
@@ -324,7 +324,7 @@
 
 .efl-summary strong {
   color: #0b8073;
-  font-size: 1.65rem;
+  font-size: 1.75rem;
   font-weight: 850;
   letter-spacing: -0.04em;
 }
@@ -333,7 +333,7 @@
   display: block;
   margin-top: 0.3rem;
   color: #647873;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
 }
 
 .efl-section {
@@ -369,7 +369,7 @@
   box-shadow: 0 8px 20px rgba(18, 72, 63, 0.06);
   padding: 0.65rem 1rem;
   color: #17483f;
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   font-weight: 700;
   transition:
     border-color 160ms ease,
@@ -425,7 +425,7 @@
   border-radius: 14px;
   background: linear-gradient(145deg, #e1f6f1, #c8ede5);
   color: #087367;
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
   font-weight: 850;
   letter-spacing: 0.03em;
 }
@@ -439,13 +439,13 @@
   border: 1px solid #e0ece9;
   border-radius: 50%;
   color: #0b8073;
-  font-size: 0.85rem;
+  font-size: 0.875rem;
 }
 
 .efl-card__category {
   margin: 0 0 0.45rem;
   color: #71827e;
-  font-size: 0.68rem;
+  font-size: 0.6875rem;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -453,7 +453,7 @@
 
 .efl-card h3 {
   color: #10231f;
-  font-size: 1.05rem;
+  font-size: 1rem;
   font-weight: 800;
   letter-spacing: -0.02em;
 }
@@ -475,13 +475,13 @@
   background: #e5f6f2;
   padding: 0.35rem 0.6rem;
   color: #087367;
-  font-size: 0.65rem;
+  font-size: 0.6875rem;
   font-weight: 800;
 }
 
 .efl-card__rating {
   color: #667b76;
-  font-size: 0.67rem;
+  font-size: 0.6875rem;
 }
 
 .efl-card__rating > span {
@@ -525,7 +525,7 @@
 .efl-planning__card p {
   margin-bottom: 0.65rem;
   color: #637570;
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
   line-height: 1.65;
 }
 
@@ -554,12 +554,12 @@
 
 .efl-faq h3 {
   color: #143b33;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
 }
 
 .efl-faq p {
   color: #637570;
-  font-size: 0.8rem;
+  font-size: 0.8125rem;
 }
 
 .efl-next {
@@ -579,7 +579,7 @@
 
 .efl-next__kicker {
   color: #8ce8d8;
-  font-size: 0.68rem;
+  font-size: 0.6875rem;
   font-weight: 850;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -600,7 +600,7 @@
   max-width: 62ch;
   margin: 0;
   color: rgba(255, 255, 255, 0.73);
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
 }
 
 .efl-next .efl-actions {
@@ -689,14 +689,14 @@
 }
 
 .efl-hub-visual strong {
-  font-size: 1.7rem;
+  font-size: 1.75rem;
   line-height: 1;
 }
 
 .efl-hub-visual span {
   margin-top: 0.3rem;
   color: rgba(255, 255, 255, 0.7);
-  font-size: 0.7rem;
+  font-size: 0.6875rem;
 }
 
 .efl-nation {
@@ -741,7 +741,7 @@
 }
 
 .efl-city-card p {
-  font-size: 0.7rem;
+  font-size: 0.6875rem;
 }
 
 .efl-city-card .efl-card__meta {
@@ -811,7 +811,7 @@
 
   .efl-hero__intro {
     margin: 1rem 0 1.25rem;
-    font-size: 0.86rem;
+    font-size: 0.875rem;
   }
 
   .efl-search--city,

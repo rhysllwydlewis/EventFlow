@@ -164,6 +164,15 @@ describe('GET /locations', () => {
 
 describe('GET /locations/:citySlug', () => {
   it('returns 200 for a published city with full metadata', async () => {
+    // The hero is set explicitly, because an editor choosing one is the only
+    // way a photograph reaches a public page.
+    const curated = require('../../services/locationHeroImage.service').getCuratedHero('cardiff');
+    const record = pageRecord('cardiff');
+    mockDb.seed('location_pages', [
+      { ...record, content: { ...record.content, heroImageUrl: curated.url } },
+      pageRecord('newport'),
+    ]);
+
     const response = await request(buildApp()).get('/locations/cardiff');
     expect(response.status).toBe(200);
     expect(response.text).toContain('<h1>Event suppliers in Cardiff</h1>');

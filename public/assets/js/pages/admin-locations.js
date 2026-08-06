@@ -355,6 +355,51 @@
   }
 
   /**
+   * Offer the pre-cleared photograph for this city, when there is one.
+   *
+   * The suggestion is never applied on the editor's behalf: a photo only
+   * reaches a public page once somebody has looked at it and saved.
+   * @param {Object|null} suggestion Curated hero, when the city has one.
+   * @returns {void} Nothing.
+   */
+  function showHeroSuggestion(suggestion) {
+    const button = document.getElementById('efl-hero-suggested');
+    const note = document.getElementById('efl-hero-suggested-note');
+    const alreadyChosen =
+      suggestion && document.getElementById('efl-hero-url').value.trim() === suggestion.url;
+
+    button.hidden = !suggestion || alreadyChosen;
+    note.hidden = button.hidden;
+    if (!button.hidden) {
+      note.textContent = `Suggested: ${suggestion.alt} — photo by ${suggestion.credit} on Pexels. Check it looks right before you save.`;
+    }
+  }
+
+  /**
+   * Apply the suggested photograph to the hero fields.
+   * @returns {void} Nothing.
+   */
+  function useSuggestedHero() {
+    const suggestion = editingCity && editingCity.suggestedHero;
+    if (!suggestion) {
+      return;
+    }
+    document.getElementById('efl-hero-url').value = suggestion.url;
+    document.getElementById('efl-hero-alt').value = suggestion.alt;
+    document.getElementById('efl-hero-credit').value = suggestion.credit;
+    document.getElementById('efl-hero-source-url').value = suggestion.sourceUrl;
+    attributedHeroUrl = suggestion.url;
+    updateCounter(
+      document.querySelector('[data-counter-for="efl-hero-url"]'),
+      document.getElementById('efl-hero-url'),
+      HERO_URL_MAX
+    );
+    updateHeroPreview();
+    showHeroSuggestion(suggestion);
+    setDirty(true);
+  }
+
+  /**
    * Open Pexels with a city-specific search and apply the selected photo.
    * @returns {void} Nothing.
    */
@@ -505,6 +550,7 @@
     document.getElementById('efl-hero-source-url').value = content.heroImageSourceUrl || '';
     attributedHeroUrl = content.heroImageUrl || '';
     updateHeroPreview();
+    showHeroSuggestion(record.suggestedHero || null);
 
     const sectionsEl = document.getElementById('efl-sections');
     const faqsEl = document.getElementById('efl-faqs');
@@ -818,6 +864,8 @@
         setDirty(true);
       } else if (action === 'choose-pexels') {
         choosePexelsPhoto();
+      } else if (action === 'use-suggested-hero') {
+        useSuggestedHero();
       } else if (action === 'add-faq') {
         const container = document.getElementById('efl-faqs');
         if (container.children.length >= limits.maxFaqs) {

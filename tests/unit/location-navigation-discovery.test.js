@@ -43,7 +43,10 @@ describe('public location discovery', () => {
     expect(locationSection[0]).toContain('href="/locations"');
     expect(locationSection[0]).toContain('name="location"');
     expect(locationSection[0]).toContain('Where is your event?');
-    expect(locationSection[0]).toContain('Popular right now');
+    // The city list is a fixed editorial selection, so it must not be labelled
+    // as a live popularity ranking — nothing here measures popularity.
+    expect(locationSection[0]).toContain('Major UK cities');
+    expect(locationSection[0]).not.toContain('Popular right now');
     expect(homepage).toContain('/assets/css/homepage-locations-refresh.css?v=1');
   });
 });
