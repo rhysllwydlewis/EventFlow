@@ -786,7 +786,8 @@
           const card = button.closest('[data-review-task]');
           const outcome = card.querySelector('[data-review-outcome]').value;
           if (!outcome) {
-            return AdminShared.showToast('Choose a review outcome first', 'error');
+            AdminShared.showToast('Choose a review outcome first', 'error');
+            return;
           }
           button.disabled = true;
           try {

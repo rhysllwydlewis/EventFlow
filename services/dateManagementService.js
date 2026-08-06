@@ -248,9 +248,9 @@ class DateManagementService {
 
   /**
    * Get reviewed article dates from the canonical article catalogue
-   * @returns {Promise<Array>} Array of articles with dates
+   * @returns {Array} Articles with reviewed dates
    */
-  async getArticleDates() {
+  getArticleDates() {
     try {
       return loadArticleMetadata()
         .map(article => ({

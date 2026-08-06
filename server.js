@@ -1404,6 +1404,22 @@ function initializeWebSocketV2(db) {
   }
 }
 
+function startContentReviewScheduler() {
+  // This persistent queue must still start when git-based policy diagnostics
+  // are unavailable in the deployed image.
+  try {
+    const contentReviewSchedule = require('./services/contentReviewScheduler').start();
+    logger.info(
+      `   ✅ Persistent content review task checks scheduled: ${contentReviewSchedule.scheduled ? 'Yes' : 'No'}`
+    );
+  } catch (contentReviewError) {
+    logger.warn(
+      '   Persistent content review task checks failed to initialize:',
+      contentReviewError.message
+    );
+  }
+}
+
 /**
  * Initialize all services and start the server
  * This ensures proper startup and health checks before accepting requests
@@ -1898,19 +1914,7 @@ function startServer() {
           logger.warn('   Date automation features will not be available');
         }
 
-        // This persistent queue must still start when git-based policy
-        // diagnostics are unavailable in the deployed image.
-        try {
-          const contentReviewSchedule = require('./services/contentReviewScheduler').start();
-          logger.info(
-            `   ✅ Persistent content review task checks scheduled: ${contentReviewSchedule.scheduled ? 'Yes' : 'No'}`
-          );
-        } catch (contentReviewError) {
-          logger.warn(
-            '   Persistent content review task checks failed to initialize:',
-            contentReviewError.message
-          );
-        }
+        startContentReviewScheduler();
 
         // 4d. Initialize System Check Scheduler
         logger.info('');
