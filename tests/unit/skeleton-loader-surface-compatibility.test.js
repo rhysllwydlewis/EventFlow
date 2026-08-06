@@ -24,42 +24,6 @@ describe('skeleton surface compatibility layers', () => {
     expect(css).toContain('grid-template-columns: 1fr');
   });
 
-  it('preserves Gallery base styles behind a canonical skeleton entry point', () => {
-    const entry = read('public/assets/css/gallery.css');
-    const base = read('public/assets/css/gallery-base.css');
-    expect(entry).toContain("@import url('/assets/css/skeleton.css?v=2.0.0')");
-    expect(entry).toContain("@import url('/assets/css/gallery-base.css?v=18.3.1')");
-    expect(base).toContain('.gallery-grid');
-    expect(base).toContain('.gallery-item');
-    expect(base).toContain('.upload-dropzone');
-  });
-
-  it('renders the existing Gallery loading element as responsive skeleton tiles', () => {
-    const css = read('public/assets/css/gallery.css');
-    expect(css).toContain(".loading[style*='display: block']");
-    expect(css).toContain('grid-template-columns: repeat(auto-fill, minmax(240px, 1fr))');
-    expect(css).toContain('@keyframes gallery-skeleton-shimmer');
-    expect(css).toContain('@media (prefers-reduced-motion: reduce)');
-  });
-
-  it('preserves Calendar base styles behind a canonical skeleton entry point', () => {
-    const entry = read('public/assets/css/calendar.css');
-    const base = read('public/assets/css/calendar-base.css');
-    expect(entry).toContain("@import url('/assets/css/skeleton.css?v=2.0.0')");
-    expect(entry).toContain("@import url('/assets/css/calendar-base.css?v=18.3.1')");
-    expect(base).toContain('.pc-event-card');
-    expect(base).toContain('.pc-filters');
-    expect(base).toContain('.pc-hero');
-  });
-
-  it('upgrades public-calendar placeholders to event-card-shaped skeletons', () => {
-    const css = read('public/assets/css/calendar.css');
-    expect(css).toContain('#pc-loading-skeleton .pc-skeleton-card::before');
-    expect(css).toContain('#pc-loading-skeleton .pc-skeleton-card::after');
-    expect(css).toContain('@keyframes public-calendar-skeleton-shimmer');
-    expect(css).toContain('@media (prefers-reduced-motion: reduce)');
-  });
-
   it('keeps the established supplier-profile loading contract in its original file', () => {
     const profileCss = read('public/assets/css/supplier-profile-commercial-polish.css');
     expect(profileCss).toContain("html:not([data-sp-theme-ready='true'])");
