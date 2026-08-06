@@ -67,6 +67,22 @@ function findCuratedHeroByUrl(url) {
 }
 
 /**
+ * Reduce a value to characters that cannot forge a log entry.
+ *
+ * Anything reaching the log here has travelled through a request path or an
+ * external API response, and a newline in a log line is enough to fabricate a
+ * separate entry, so the alphabet is restricted rather than merely escaped.
+ * @param {unknown} value Candidate value.
+ * @param {number} maxLength Maximum characters to keep.
+ * @returns {string} Log-safe text.
+ */
+function forLog(value, maxLength) {
+  return String(value === null || value === undefined ? '' : value)
+    .replace(/[^a-z0-9 ._:/-]/gi, '')
+    .slice(0, maxLength);
+}
+
+/**
  * Build a disambiguated Pexels query for any registered UK city.
  * @param {Object} city Registry city record.
  * @returns {string} Search query.
@@ -93,6 +109,31 @@ function comparableText(value) {
     .replace(/[^a-z0-9]+/gi, ' ')
     .trim()
     .toLowerCase();
+}
+
+/**
+ * Whether a Pexels result actually says it is of this place.
+ *
+ * A search for "Bath Somerset England United Kingdom city landmark" will still
+ * return results when Pexels holds no photograph of Bath, and the top one is
+ * then simply the most popular landscape photo of somewhere else. Publishing
+ * that as the city's hero — under alt text the page presents as this city —
+ * would be inventing local evidence, which is the one thing these pages exist
+ * to avoid. So an automatic photo has to name the city or its region in its own
+ * metadata; anything less falls back to the named-city placeholder.
+ * @param {Object} photo Pexels photo.
+ * @param {Object} city Registry city record.
+ * @returns {boolean} True when the result names the place.
+ */
+function photoNamesPlace(photo, city) {
+  const corpus = comparableText(`${(photo && photo.alt) || ''} ${(photo && photo.url) || ''}`);
+  if (!corpus) {
+    return false;
+  }
+  const names = [city.name, ...(city.alternateNames || []), city.region]
+    .map(comparableText)
+    .filter(Boolean);
+  return names.some(name => corpus.includes(name));
 }
 
 /**
@@ -198,7 +239,7 @@ async function resolveAutomaticHero(city, options = {}) {
     });
     const candidates = (result.photos || [])
       .map((photo, index) => ({ hero: heroFromPhoto(photo, city), photo, index }))
-      .filter(candidate => candidate.hero)
+      .filter(candidate => candidate.hero && photoNamesPlace(candidate.photo, city))
       .sort(
         (left, right) =>
           scorePhoto(right.photo, city, right.index) - scorePhoto(left.photo, city, left.index)
@@ -209,7 +250,12 @@ async function resolveAutomaticHero(city, options = {}) {
       return { ...hero };
     }
   } catch (error) {
-    logger.warn(`Could not resolve a Pexels location hero for ${city.slug}: ${error.message}`);
+    // The slug reaches this line from the request path and the message from an
+    // external API, so both are stripped to a safe alphabet before they are
+    // written: a newline in a log line lets an attacker forge log entries.
+    logger.warn(
+      `Could not resolve a Pexels location hero for ${forLog(city.slug, 64)}: ${forLog(error.message, 200)}`
+    );
   }
   return null;
 }

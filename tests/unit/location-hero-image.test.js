@@ -153,4 +153,74 @@ describe('city hero defaults', () => {
     ).resolves.toBe(page);
     expect(pexels.searchPhotos).not.toHaveBeenCalled();
   });
+  it('declines a photograph that does not say it is of this city', async () => {
+    // Pexels always returns something. A popular landscape photo of nowhere in
+    // particular must not become Bath's hero just because the search ran.
+    heroImages.resetAutomaticHeroCache();
+    const pexels = {
+      isConfigured: () => true,
+      searchPhotos: async () => ({
+        photos: [
+          {
+            src: { landscape: 'https://images.pexels.com/photos/900/x.jpeg' },
+            url: 'https://www.pexels.com/photo/a-quiet-street-900/',
+            alt: 'A quiet street with parked cars',
+            photographer: 'Someone',
+            width: 1600,
+            height: 900,
+          },
+        ],
+      }),
+    };
+    const page = { content: { heroImageUrl: null } };
+
+    await expect(
+      heroImages.resolvePageHero(registry.getCity('bath'), page, { pexels })
+    ).resolves.toBe(page);
+  });
+
+  it('accepts a photograph whose own description names the city', async () => {
+    heroImages.resetAutomaticHeroCache();
+    const pexels = {
+      isConfigured: () => true,
+      searchPhotos: async () => ({
+        photos: [
+          {
+            src: { landscape: 'https://images.pexels.com/photos/901/x.jpeg' },
+            url: 'https://www.pexels.com/photo/roman-baths-901/',
+            alt: 'The Roman Baths in Bath, England',
+            photographer: 'Someone',
+            width: 1600,
+            height: 900,
+          },
+        ],
+      }),
+    };
+
+    const resolved = await heroImages.resolvePageHero(
+      registry.getCity('bath'),
+      { content: { heroImageUrl: null } },
+      { pexels }
+    );
+    expect(resolved.content.heroImageUrl).toContain('/photos/901/');
+    expect(resolved.content.heroImageAlt).toBe('The Roman Baths in Bath, England');
+  });
+
+  it('keeps a newline out of the log when a lookup fails', async () => {
+    heroImages.resetAutomaticHeroCache();
+    const logger = require('../../utils/logger');
+    const warn = jest.spyOn(logger, 'warn').mockImplementation(() => {});
+    const pexels = {
+      isConfigured: () => true,
+      searchPhotos: async () => {
+        throw new Error('boom\nWARN forged log entry');
+      },
+    };
+
+    await heroImages.resolveAutomaticHero(registry.getCity('bath'), { pexels });
+
+    expect(warn).toHaveBeenCalled();
+    expect(warn.mock.calls[0][0]).not.toContain('\n');
+    warn.mockRestore();
+  });
 });
