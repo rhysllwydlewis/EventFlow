@@ -9,21 +9,31 @@ window.__EF_PAGE__ = 'category';
 const SKELETON_LOADER_URL = '/assets/js/utils/skeleton-loader.js';
 const CATEGORY_NOT_FOUND = 'Category not found';
 
-function escapeHtml(value) {
-  const div = document.createElement('div');
-  div.textContent = String(value ?? '');
-  return div.innerHTML;
-}
-
+/**
+ * Return only same-origin or HTTP(S) image URLs.
+ * @param {*} url Candidate image URL.
+ * @returns {string} A safe URL or an empty string.
+ */
 function sanitizeUrl(url) {
   const value = String(url ?? '').trim();
   return /^https?:\/\//i.test(value) || value.startsWith('/') ? value : '';
 }
 
+/**
+ * Convert an unknown caught value into user-safe fallback copy.
+ * @param {*} error Caught value.
+ * @returns {string} Normalized error message.
+ */
 function getErrorMessage(error) {
   return error instanceof Error && error.message ? error.message : 'Unable to load category';
 }
 
+/**
+ * Render the initial title, description, hero and package placeholders.
+ * @param {Object} elements Required category page elements.
+ * @param {Object} skeletons Shared skeleton-loader module.
+ * @returns {void}
+ */
 function setInitialLoadingState(elements, skeletons) {
   const { title, description, hero, packagesContainer } = elements;
   title.setAttribute('aria-busy', 'true');
@@ -37,6 +47,11 @@ function setInitialLoadingState(elements, skeletons) {
   skeletons.showSkeleton(packagesContainer, 'packageCard', { count: 6 });
 }
 
+/**
+ * Remove loading semantics after a terminal page state is rendered.
+ * @param {Object} elements Required category page elements.
+ * @returns {void}
+ */
 function clearLoadingAttributes(elements) {
   const { title, hero, packagesContainer } = elements;
   title.removeAttribute('aria-busy');
@@ -45,6 +60,12 @@ function clearLoadingAttributes(elements) {
   packagesContainer.removeAttribute('data-skeleton-state');
 }
 
+/**
+ * Render the optional category hero without interpolating untrusted HTML.
+ * @param {HTMLElement} hero Hero mount.
+ * @param {Object} category Category view model.
+ * @returns {void}
+ */
 function renderCategoryHero(hero, category) {
   const heroImage = sanitizeUrl(category.heroImage);
   hero.replaceChildren();
@@ -72,6 +93,13 @@ function renderCategoryHero(hero, category) {
   hero.appendChild(wrapper);
 }
 
+/**
+ * Render the terminal state used when the URL has no category slug.
+ * @param {Object} elements Required category page elements.
+ * @param {Object} skeletons Shared skeleton-loader module.
+ * @param {HTMLElement} description Description element.
+ * @returns {void}
+ */
 function renderMissingCategory(elements, skeletons, description) {
   const { title, breadcrumb, hero, packagesContainer } = elements;
   title.textContent = CATEGORY_NOT_FOUND;
@@ -88,6 +116,13 @@ function renderMissingCategory(elements, skeletons, description) {
   });
 }
 
+/**
+ * Render a retryable request or component-load failure.
+ * @param {Object} elements Required category page elements.
+ * @param {Object} skeletons Shared skeleton-loader module.
+ * @param {*} error Caught value.
+ * @returns {void}
+ */
 function renderLoadFailure(elements, skeletons, error) {
   const { title, description, hero, packagesContainer } = elements;
   const message = getErrorMessage(error);
@@ -108,6 +143,10 @@ function renderLoadFailure(elements, skeletons, error) {
   });
 }
 
+/**
+ * Load and render the category payload.
+ * @returns {Promise<void>} Resolves after a success, empty or error state renders.
+ */
 async function initCategoryPage() {
   const elements = {
     title: document.getElementById('category-title'),
