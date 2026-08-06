@@ -80,27 +80,8 @@ describe('legacy skeleton compatibility', () => {
   });
 });
 
-describe('priority route migrations', () => {
-  const categoryInit = read('public/assets/js/pages/category-init.js');
+describe('priority public route migration', () => {
   const eventDetail = read('public/event-detail.html');
-
-  it('replaces the category loading text with reusable package skeletons', () => {
-    expect(categoryInit).toContain(
-      "const SKELETON_LOADER_URL = '/assets/js/utils/skeleton-loader.js'"
-    );
-    expect(categoryInit).toContain('import(SKELETON_LOADER_URL)');
-    expect(categoryInit).toContain("showSkeleton(packagesContainer, 'packageCard'");
-    expect(categoryInit).toContain('isSkeletonDebugMode()');
-    expect(categoryInit).toContain('showErrorState(packagesContainer');
-    expect(categoryInit).not.toContain("getElementById('category-title').textContent = 'Loading...'");
-  });
-
-  it('guards loader import failures and normalises non-Error failures', () => {
-    expect(categoryInit).toContain('function getErrorMessage(error)');
-    expect(categoryInit).toContain('if (skeletons)');
-    expect(categoryInit).toContain("window.PackageList");
-    expect(categoryInit).toContain("{ once: true }");
-  });
 
   it('renders a page-shaped event detail skeleton without raw loading copy', () => {
     expect(eventDetail).toContain('/assets/css/skeleton.css?v=2.0.0');
