@@ -270,19 +270,37 @@ async function resolveAutomaticHero(city, options = {}) {
 }
 
 /**
- * Add an automatic hero only when the page has no stored or curated image.
+ * Add an automatic hero unless an editor has pinned a custom image.
+ *
+ * A city defaults to `auto`, so the resolver keeps refreshing its photograph
+ * the way every city did before this toggle existed. Switching a city to
+ * `custom` pins whatever image an editor has stored — including a broken or
+ * momentarily empty one — deliberately: that is the point of the toggle, and
+ * silently falling back to Pexels the instant a custom URL is unreachable
+ * would defeat it. A `custom` city with nothing stored yet still gets the
+ * automatic photo, since there is no pinned image to show instead.
  * @param {Object} city Registry city record.
  * @param {Object} page Normalised location page.
  * @param {Object} [options] Resolver dependencies.
  * @returns {Promise<Object>} Page with its effective hero.
  */
 async function resolvePageHero(city, page, options = {}) {
-  if (!page || (page.content && page.content.heroImageUrl)) {
+  if (!page) {
+    return page;
+  }
+  const isCustom = page.content && page.content.heroSource === 'custom';
+  if (isCustom && page.content.heroImageUrl) {
     return page;
   }
   const hero = await resolveAutomaticHero(city, options);
   if (!hero) {
-    return page;
+    // Auto mode never renders a stale custom image left over from a previous
+    // toggle: with no fresh automatic photo either, the page falls through to
+    // the named-city placeholder rather than showing an image the editor did
+    // not choose for this mode.
+    return page.content && page.content.heroImageUrl
+      ? { ...page, content: { ...page.content, heroImageUrl: null } }
+      : page;
   }
   return {
     ...page,

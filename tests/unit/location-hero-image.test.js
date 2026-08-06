@@ -129,9 +129,10 @@ describe('city hero defaults', () => {
     expect(hero.url).toContain('/photos/2/');
   });
 
-  it('never replaces a stored editorial hero', async () => {
+  it('never replaces a stored editorial hero once a city is switched to custom', async () => {
     const page = {
       content: {
+        heroSource: 'custom',
         heroImageUrl: 'https://cdn.example.com/london.jpg',
         heroImageAlt: 'Editor choice',
       },
@@ -142,6 +143,73 @@ describe('city hero defaults', () => {
       heroImages.resolvePageHero(registry.getCity('london'), page, { pexels })
     ).resolves.toBe(page);
     expect(pexels.searchPhotos).not.toHaveBeenCalled();
+  });
+
+  it('resolves the automatic hero for a stored image left in auto mode', async () => {
+    const page = {
+      content: {
+        heroSource: 'auto',
+        heroImageUrl: 'https://cdn.example.com/stale-custom.jpg',
+        heroImageAlt: 'Stale custom choice',
+      },
+    };
+    const pexels = {
+      isConfigured: jest.fn(() => true),
+      searchPhotos: jest.fn().mockResolvedValue({
+        photos: [
+          pexelsPhoto({
+            id: 901,
+            alt: 'The Roman Baths in Bath, England',
+            url: 'https://www.pexels.com/photo/roman-baths-901/',
+            src: { landscape: 'https://images.pexels.com/photos/901/photo-901.jpeg' },
+          }),
+        ],
+      }),
+    };
+
+    const resolved = await heroImages.resolvePageHero(registry.getCity('bath'), page, { pexels });
+    expect(resolved.content.heroImageUrl).toContain('/photos/901/');
+    expect(resolved.content.heroImageAlt).toBe('The Roman Baths in Bath, England');
+  });
+
+  it('falls back to the placeholder when auto mode has a stale custom image and no automatic result', async () => {
+    const page = {
+      content: {
+        heroSource: 'auto',
+        heroImageUrl: 'https://cdn.example.com/stale-custom.jpg',
+        heroImageAlt: 'Stale custom choice',
+      },
+    };
+    const pexels = { isConfigured: jest.fn(() => false), searchPhotos: jest.fn() };
+
+    const resolved = await heroImages.resolvePageHero(registry.getCity('bath'), page, { pexels });
+    expect(resolved.content.heroImageUrl).toBeNull();
+    expect(pexels.searchPhotos).not.toHaveBeenCalled();
+  });
+
+  it('resolves the automatic hero when custom mode is selected but no image is stored', async () => {
+    const page = {
+      content: {
+        heroSource: 'custom',
+        heroImageUrl: null,
+      },
+    };
+    const pexels = {
+      isConfigured: jest.fn(() => true),
+      searchPhotos: jest.fn().mockResolvedValue({
+        photos: [
+          pexelsPhoto({
+            id: 901,
+            alt: 'The Roman Baths in Bath, England',
+            url: 'https://www.pexels.com/photo/roman-baths-901/',
+            src: { landscape: 'https://images.pexels.com/photos/901/photo-901.jpeg' },
+          }),
+        ],
+      }),
+    };
+
+    const resolved = await heroImages.resolvePageHero(registry.getCity('bath'), page, { pexels });
+    expect(resolved.content.heroImageUrl).toContain('/photos/901/');
   });
 
   it('fails closed when Pexels is not configured', async () => {

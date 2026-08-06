@@ -115,6 +115,18 @@
           <fieldset class="efl-fieldset">
             <legend>Hero</legend>
 
+            <div class="efl-hero-source" role="radiogroup" aria-label="Hero image source">
+              <label>
+                <input type="radio" name="heroSource" id="efl-hero-source-auto" value="auto" />
+                Automatic (Pexels)
+              </label>
+              <label>
+                <input type="radio" name="heroSource" id="efl-hero-source-custom" value="custom" />
+                Custom image
+              </label>
+            </div>
+            <p class="efl-field-note" id="efl-hero-source-note"></p>
+
             <label for="efl-hero-url">Hero image URL</label>
             <input id="efl-hero-url" name="heroImageUrl" type="url" placeholder="https://…" />
             <p class="efl-field-note" data-counter-for="efl-hero-url"></p>

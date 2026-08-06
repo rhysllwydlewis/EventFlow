@@ -112,6 +112,35 @@ describe('loading a record into the editor', () => {
     expect(value.dirty).toBe('Unsaved changes');
   });
 
+  it('defaults a new city to the automatic hero source', () => {
+    const value = outcome('defaultsToAutomaticHeroSource');
+    expect(value.auto).toBe(true);
+    expect(value.custom).toBe(false);
+    expect(value.note).toMatch(/curated or automatically resolved/);
+  });
+
+  it('loads a city already switched to a custom hero source', () => {
+    const value = outcome('loadsAStoredCustomHeroSource');
+    expect(value.auto).toBe(false);
+    expect(value.custom).toBe(true);
+  });
+
+  it('switches a city to the custom hero source when a Pexels photo is chosen', () => {
+    const value = outcome('choosingAPexelsPhotoSwitchesToCustom');
+    expect(value.before).toBe(false);
+    expect(value.after).toBe(true);
+  });
+
+  it('saves the selected hero source alongside the image', () => {
+    expect(outcome('savesTheChosenHeroSource').heroSource).toBe('custom');
+  });
+
+  it('warns, but does not block, saving custom mode with no image set', () => {
+    const value = outcome('warnsWhenCustomIsSelectedWithNoImage');
+    expect(value.question).toMatch(/automatic photo will show instead/);
+    expect(value.patched).toBe(true);
+  });
+
   it('clears Pexels attribution if an editor replaces the image URL manually', () => {
     const value = outcome('clearsStaleAttributionWhenTheHeroUrlChanges');
     expect(value.credit).toBe('');

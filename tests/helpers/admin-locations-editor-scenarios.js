@@ -555,6 +555,79 @@ const scenarios = {
     return { opened: context.opened };
   },
 
+  async defaultsToAutomaticHeroSource() {
+    const context = await boot();
+    await openEditor(context);
+    return {
+      auto: context.document.getElementById('efl-hero-source-auto').checked,
+      custom: context.document.getElementById('efl-hero-source-custom').checked,
+      note: context.document.getElementById('efl-hero-source-note').textContent,
+    };
+  },
+
+  async loadsAStoredCustomHeroSource() {
+    const context = await boot({
+      item: record({
+        content: {
+          heroSource: 'custom',
+          heroImageUrl: 'https://cdn.example.com/cardiff.jpg',
+          heroImageAlt: 'Cardiff Bay at dusk',
+          heroImageCredit: null,
+          heroImageSourceUrl: null,
+          intro: 'An existing introduction.',
+          planningSections: [],
+          faqs: [],
+        },
+      }),
+    });
+    await openEditor(context);
+    return {
+      auto: context.document.getElementById('efl-hero-source-auto').checked,
+      custom: context.document.getElementById('efl-hero-source-custom').checked,
+    };
+  },
+
+  async choosingAPexelsPhotoSwitchesToCustom() {
+    const context = await boot();
+    await openEditor(context);
+    const before = context.document.getElementById('efl-hero-source-custom').checked;
+    await click(
+      context.window,
+      context.document.querySelector('[data-editor-action="choose-pexels"]')
+    );
+    return {
+      before,
+      after: context.document.getElementById('efl-hero-source-custom').checked,
+    };
+  },
+
+  async savesTheChosenHeroSource() {
+    const context = await boot();
+    await openEditor(context);
+    await click(context.window, context.document.getElementById('efl-hero-source-custom'));
+    type(
+      context.window,
+      context.document.getElementById('efl-hero-url'),
+      'https://cdn.example.com/cardiff.jpg'
+    );
+    type(context.window, context.document.getElementById('efl-hero-alt'), 'Cardiff Bay at dusk');
+    await click(context.window, context.document.querySelector('[data-editor-action="save"]'));
+
+    return { heroSource: patchCall(context).body.content.heroSource };
+  },
+
+  async warnsWhenCustomIsSelectedWithNoImage() {
+    const context = await boot();
+    await openEditor(context);
+    await click(context.window, context.document.getElementById('efl-hero-source-custom'));
+    await click(context.window, context.document.querySelector('[data-editor-action="save"]'));
+
+    const question = pendingQuestion(context);
+    await answer(context, true);
+
+    return { question, patched: Boolean(patchCall(context)) };
+  },
+
   async countsCharactersAgainstTheLimit() {
     const context = await boot();
     await openEditor(context);

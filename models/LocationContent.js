@@ -93,6 +93,20 @@ const SERVICE_AREA_TYPES = {
 };
 
 /**
+ * How a city page's hero image is chosen. `auto` is the default: the curated
+ * or Pexels-resolved photograph for the city, refreshed automatically. An
+ * editor switches a city to `custom` to pin their own uploaded or linked
+ * image instead; switching back to `auto` hands the city back to automatic
+ * resolution without discarding the custom image they had stored.
+ */
+const HERO_SOURCES = {
+  auto: 'auto',
+  custom: 'custom',
+};
+
+const HERO_SOURCE_VALUES = Object.values(HERO_SOURCES);
+
+/**
  * Indexability quality gate. The score is a weighted sum of independently
  * verifiable signals rather than a hard-coded "six suppliers, three
  * categories" rule, so the bar can be tuned per deployment without a code
@@ -131,6 +145,8 @@ module.exports = {
   COLLECTIONS,
   CONFIDENCE,
   CONTENT_REVIEW_MAX_AGE_DAYS,
+  HERO_SOURCES,
+  HERO_SOURCE_VALUES,
   LIMITS,
   MAPPING_SOURCES,
   PUBLICATION_STATES,

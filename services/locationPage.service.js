@@ -18,6 +18,8 @@ const locationHeroImages = require('./locationHeroImage.service');
 const {
   COLLECTIONS,
   CONTENT_REVIEW_MAX_AGE_DAYS,
+  HERO_SOURCES,
+  HERO_SOURCE_VALUES,
   LIMITS,
   PUBLICATION_STATES,
   PUBLICATION_STATE_VALUES,
@@ -63,6 +65,12 @@ function normalisePageRecord(city, stored) {
   // does not require re-typing the photographer's credit.
   const matchedHero = locationHeroImages.findCuratedHeroByUrl(heroImageUrl);
   const storedHeroSourceUrl = normaliseWebUrl(content.heroImageSourceUrl);
+  // Auto is the default so every existing page keeps its current behaviour —
+  // an editor opts a city into a pinned custom image, rather than every city
+  // silently losing its automatic photo the day this field was introduced.
+  const heroSource = HERO_SOURCE_VALUES.includes(content.heroSource)
+    ? content.heroSource
+    : HERO_SOURCES.auto;
 
   return {
     locationSlug: city.slug,
@@ -78,6 +86,7 @@ function normalisePageRecord(city, stored) {
       metaDescription: (record.seo && record.seo.metaDescription) || '',
     },
     content: {
+      heroSource,
       heroImageUrl,
       heroImageAlt: heroImageUrl
         ? content.heroImageAlt || (matchedHero && matchedHero.alt) || `${city.name} cityscape`

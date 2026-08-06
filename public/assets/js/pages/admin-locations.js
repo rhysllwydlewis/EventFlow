@@ -355,6 +355,26 @@
   }
 
   /**
+   * Which hero-source radio is currently checked.
+   * @returns {string} 'auto' or 'custom'.
+   */
+  function heroSource() {
+    return document.getElementById('efl-hero-source-custom').checked ? 'custom' : 'auto';
+  }
+
+  /**
+   * Reflect the selected hero source in the note beneath the toggle.
+   * @returns {void} Nothing.
+   */
+  function updateHeroSourceNote() {
+    const noteEl = document.getElementById('efl-hero-source-note');
+    noteEl.textContent =
+      heroSource() === 'custom'
+        ? 'This city shows the image below. If it is ever removed or fails to load, the page falls back to the named-city placeholder.'
+        : 'This city shows a curated or automatically resolved Pexels photo, refreshed on its own. Any image saved below is kept but not shown until you switch to Custom image.';
+  }
+
+  /**
    * Offer the pre-cleared photograph for this city, when there is one.
    *
    * The suggestion is never applied on the editor's behalf: a photo only
@@ -389,6 +409,9 @@
     document.getElementById('efl-hero-credit').value = suggestion.credit;
     document.getElementById('efl-hero-source-url').value = suggestion.sourceUrl;
     attributedHeroUrl = suggestion.url;
+    // Applying a specific photo only means something if it is actually shown.
+    document.getElementById('efl-hero-source-custom').checked = true;
+    updateHeroSourceNote();
     updateCounter(
       document.querySelector('[data-counter-for="efl-hero-url"]'),
       document.getElementById('efl-hero-url'),
@@ -421,6 +444,8 @@
         document.getElementById('efl-hero-credit').value = photo.photographer || 'Pexels';
         document.getElementById('efl-hero-source-url').value = photo.url || '';
         attributedHeroUrl = imageUrl;
+        document.getElementById('efl-hero-source-custom').checked = true;
+        updateHeroSourceNote();
         updateCounter(
           document.querySelector('[data-counter-for="efl-hero-url"]'),
           document.getElementById('efl-hero-url'),
@@ -549,6 +574,10 @@
     document.getElementById('efl-hero-credit').value = content.heroImageCredit || '';
     document.getElementById('efl-hero-source-url').value = content.heroImageSourceUrl || '';
     attributedHeroUrl = content.heroImageUrl || '';
+    const isCustomHero = content.heroSource === 'custom';
+    document.getElementById('efl-hero-source-auto').checked = !isCustomHero;
+    document.getElementById('efl-hero-source-custom').checked = isCustomHero;
+    updateHeroSourceNote();
     updateHeroPreview();
     showHeroSuggestion(record.suggestedHero || null);
 
@@ -599,6 +628,7 @@
         metaDescription: document.getElementById('efl-seo-description').value.trim(),
       },
       content: {
+        heroSource: heroSource(),
         heroImageUrl: document.getElementById('efl-hero-url').value.trim(),
         heroImageAlt: document.getElementById('efl-hero-alt').value.trim(),
         heroImageCredit: document.getElementById('efl-hero-credit').value.trim(),
@@ -635,6 +665,11 @@
 
     if (payload.content.heroImageUrl && !payload.content.heroImageAlt) {
       blocking.push('A hero image needs alt text.');
+    }
+    if (payload.content.heroSource === 'custom' && !payload.content.heroImageUrl) {
+      warnings.push(
+        'Custom image is selected but no image URL is set, so the automatic photo will show instead.'
+      );
     }
     if (payload.content.heroImageUrl && !/^https?:\/\//i.test(payload.content.heroImageUrl)) {
       blocking.push('The hero image URL must start with http:// or https://.');
@@ -812,6 +847,13 @@
   });
 
   if (dialogEl) {
+    dialogEl.addEventListener('change', event => {
+      if (event.target && event.target.name === 'heroSource') {
+        updateHeroSourceNote();
+        setDirty(true);
+      }
+    });
+
     dialogEl.addEventListener('click', async event => {
       const moveButton = event.target.closest('button[data-move]');
       if (moveButton) {

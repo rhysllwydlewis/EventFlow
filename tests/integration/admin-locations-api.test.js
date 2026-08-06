@@ -216,6 +216,45 @@ describe('PATCH /api/v1/admin/locations/:slug', () => {
     expect(mockDb.all('location_pages')).toEqual([]);
   });
 
+  it('rejects an unrecognised hero source', async () => {
+    const response = await request(buildApp())
+      .patch('/api/v1/admin/locations/cardiff')
+      .set('Cookie', authCookie(admin))
+      .send({ content: { heroSource: 'manual-upload' } });
+    expect(response.status).toBe(400);
+    expect(mockDb.all('location_pages')).toEqual([]);
+  });
+
+  it('defaults a new page to the automatic hero source', async () => {
+    const response = await request(buildApp())
+      .patch('/api/v1/admin/locations/cardiff')
+      .set('Cookie', authCookie(admin))
+      .send({ content: { intro: 'A short local introduction.' } });
+    expect(response.body.data.content.heroSource).toBe('auto');
+  });
+
+  it('saves and preserves an explicit custom hero source across an unrelated edit', async () => {
+    const app = buildApp();
+    const first = await request(app)
+      .patch('/api/v1/admin/locations/cardiff')
+      .set('Cookie', authCookie(admin))
+      .send({
+        content: {
+          heroSource: 'custom',
+          heroImageUrl: 'https://cdn.example.com/cardiff.jpg',
+          heroImageAlt: 'Cardiff Bay at dusk',
+        },
+      });
+    expect(first.body.data.content.heroSource).toBe('custom');
+
+    const second = await request(app)
+      .patch('/api/v1/admin/locations/cardiff')
+      .set('Cookie', authCookie(admin))
+      .send({ content: { intro: 'A short local introduction.' } });
+    expect(second.body.data.content.heroSource).toBe('custom');
+    expect(second.body.data.content.heroImageUrl).toBe('https://cdn.example.com/cardiff.jpg');
+  });
+
   it('does not make a page indexable on the publish flag alone', async () => {
     const response = await request(buildApp())
       .patch('/api/v1/admin/locations/cardiff')

@@ -24,6 +24,8 @@ const supplierLocation = require('../services/supplierLocation.service');
 const { isPublicSupplier } = require('../services/publicSupplierSeo.service');
 const {
   COLLECTIONS,
+  HERO_SOURCES,
+  HERO_SOURCE_VALUES,
   LIMITS,
   PUBLICATION_STATES,
   PUBLICATION_STATE_VALUES,
@@ -419,6 +421,16 @@ router.patch('/:slug', writeLimiter, csrfProtection, async (req, res) => {
         error: `status must be one of ${PUBLICATION_STATE_VALUES.join(', ')}`,
       });
     }
+    if (
+      body.content &&
+      body.content.heroSource !== undefined &&
+      !HERO_SOURCE_VALUES.includes(body.content.heroSource)
+    ) {
+      return res.status(400).json({
+        success: false,
+        error: `content.heroSource must be one of ${HERO_SOURCE_VALUES.join(', ')}`,
+      });
+    }
 
     const records = await locationPages.loadPageRecords(dbUnified);
     const existing = records.get(city.slug) || null;
@@ -443,6 +455,10 @@ router.patch('/:slug', writeLimiter, csrfProtection, async (req, res) => {
             : current.seo.metaDescription,
       },
       content: {
+        heroSource:
+          body.content && body.content.heroSource !== undefined
+            ? body.content.heroSource
+            : current.content.heroSource || HERO_SOURCES.auto,
         heroImageUrl:
           body.content && body.content.heroImageUrl !== undefined
             ? cleanWebUrl(body.content.heroImageUrl, 500)

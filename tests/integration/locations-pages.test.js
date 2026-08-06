@@ -214,6 +214,7 @@ describe('GET /locations/:citySlug', () => {
     const record = pageRecord('cardiff');
     record.content = {
       ...record.content,
+      heroSource: 'custom',
       heroImageUrl: 'https://cdn.example.com/cardiff.jpg',
       heroImageAlt: 'A local view of Cardiff',
       heroImageCredit: 'City Photographer',
