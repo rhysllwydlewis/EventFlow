@@ -5,6 +5,7 @@
 
 'use strict';
 const logger = require('../utils/logger.js');
+const { POLICY_METADATA, formatPolicyDate, getPolicyPlaceholders } = require('./policyMetadata.js');
 
 /**
  * Get current year (for copyright and current date references)
@@ -22,14 +23,15 @@ const contentConfig = {
   dates: {
     currentYear: getCurrentYear(),
     copyrightYear: getCurrentYear(),
-    // Legal document dates - update these when legal docs are revised
-    legalLastUpdated: 'June 2026',
-    legalEffectiveDate: 'January 2026',
+    // Legacy summary fields for admin/API compatibility. Public legal pages use
+    // the per-policy metadata in config/policyMetadata.js.
+    legalLastUpdated: formatPolicyDate(POLICY_METADATA.legalHub.lastMaterialUpdate),
+    legalEffectiveDate: formatPolicyDate(POLICY_METADATA.legalHub.effectiveFrom),
     // Sitemap last modification date
     sitemapLastMod: new Date().toISOString().split('T')[0], // YYYY-MM-DD format
 
-    // Automation fields for date management service
-    autoUpdateEnabled: true, // Enable/disable automated monthly updates
+    // Monthly checks are review reminders only. They never change policy dates.
+    autoUpdateEnabled: true,
     lastAutoCheck: null, // Last time automated check ran
     lastManualUpdate: null, // Last time admin manually updated dates
   },
@@ -116,6 +118,7 @@ const contentConfig = {
  */
 function getPlaceholders() {
   return {
+    ...getPolicyPlaceholders(),
     // Date placeholders
     CURRENT_YEAR: contentConfig.dates.currentYear.toString(),
     COPYRIGHT_YEAR: contentConfig.dates.copyrightYear.toString(),
@@ -158,18 +161,13 @@ function getPlaceholders() {
 }
 
 /**
- * Update legal document dates
- * @param {string} lastUpdated - Last updated date (e.g., "January 2026")
- * @param {string} effectiveDate - Effective date (e.g., "January 2026")
+ * Runtime policy-date mutation is intentionally disabled. Policy metadata must
+ * be reviewed and committed with the policy wording.
  */
-function updateLegalDates(lastUpdated, effectiveDate) {
-  if (lastUpdated) {
-    contentConfig.dates.legalLastUpdated = lastUpdated;
-  }
-  if (effectiveDate) {
-    contentConfig.dates.legalEffectiveDate = effectiveDate;
-  }
-  contentConfig.version.lastContentUpdate = new Date().toISOString();
+function updateLegalDates() {
+  throw new Error(
+    'Policy dates are version-controlled in config/policyMetadata.js and cannot be changed at runtime.'
+  );
 }
 
 /**

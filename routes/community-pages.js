@@ -21,6 +21,7 @@ const { apiLimiter, publicReadLimiter } = require('../middleware/rateLimits');
 const { getUserFromCookie } = require('../middleware/auth');
 const community = require('../services/community.service');
 const moderation = require('../services/communityModeration.service');
+const { replacePlaceholders } = require('../utils/template-renderer');
 const {
   COLLECTIONS,
   NOINDEX_STATES,
@@ -61,7 +62,7 @@ async function readShell(fileName) {
     return cached.html;
   }
   try {
-    const html = await fs.readFile(path.join(PUBLIC_DIR, fileName), 'utf8');
+    const html = replacePlaceholders(await fs.readFile(path.join(PUBLIC_DIR, fileName), 'utf8'));
     shellCache.set(fileName, { html, expiresAt: Date.now() + SHELL_CACHE_MS });
     return html;
   } catch (error) {

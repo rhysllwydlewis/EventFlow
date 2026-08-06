@@ -125,7 +125,7 @@
       <button class="ef-cta tab-button" data-tab="announcements">Announcements</button>
       <button class="ef-cta tab-button" data-tab="faqs">FAQs</button>
       <button class="ef-cta tab-button" data-tab="featured">Featured Packages</button>
-      <button class="ef-cta tab-button" data-tab="legalDates">Legal Dates</button>
+      <button class="ef-cta tab-button" data-tab="legalDates">Policy Reviews</button>
     </div>
     
     <!-- Homepage Content Tab -->
@@ -201,41 +201,28 @@
     <!-- Legal Dates Tab -->
     <div id="legalDates" class="tab-content">
       <div class="card info-card">
-        <h2>🔄 Automation Status</h2>
+        <h2>🔄 Policy Review Status</h2>
         <div id="cdStatusContent">
           <p class="small">Loading...</p>
         </div>
       </div>
 
       <div class="card info-card">
-        <h2>📆 Current Legal Document Dates</h2>
+        <h2>📆 Current Policy Metadata</h2>
         <div id="cdCurrentDatesContent">
           <p class="small">Loading...</p>
         </div>
       </div>
 
       <div class="card info-card">
-        <h2>✏️ Manual Update</h2>
-        <p class="small">Manually override the legal document dates. Format: "Month YYYY" (e.g., "February 2026")</p>
-        <form id="cdUpdateDatesForm" action="#">
-          <div class="form-row">
-            <label for="cdLastUpdated">Last Updated Date</label>
-            <input type="text" id="cdLastUpdated" placeholder="e.g., February 2026">
-          </div>
-          <div class="form-row">
-            <label for="cdEffectiveDate">Effective Date</label>
-            <input type="text" id="cdEffectiveDate" placeholder="e.g., February 2026">
-          </div>
-          <div class="action-buttons">
-            <button type="submit" class="ef-cta btn btn-primary" id="cdUpdateBtn">Update Dates</button>
-            <button type="button" class="ef-cta btn btn-secondary" id="cdCheckNowBtn">Check for Updates Now</button>
-          </div>
-        </form>
+        <h2>✏️ Updating Policy Metadata</h2>
+        <p class="small">Policy dates are version-controlled in <code>config/policyMetadata.js</code> and must change in the same reviewed pull request as the policy wording. Runtime overrides are disabled.</p>
+        <button type="button" class="ef-cta btn btn-secondary" id="cdCheckNowBtn">Check for Changes Since Review</button>
       </div>
 
       <div class="card info-card">
-        <h2>⚙️ Automation Settings</h2>
-        <p class="small">Enable or disable automated monthly date checks (runs on 1st of each month at 2:00 AM)</p>
+        <h2>⚙️ Review Reminder Settings</h2>
+        <p class="small">Enable or disable monthly policy review checks (runs on the 1st of each month at 2:00 AM). Checks notify administrators and never change public dates.</p>
         <div style="display:flex;gap:0.5rem;align-items:center;">
           <label class="switch">
             <input type="checkbox" id="cdAutoUpdateToggle">

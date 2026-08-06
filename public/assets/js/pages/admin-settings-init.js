@@ -1088,57 +1088,6 @@
     // Initialize change listeners for feature flags
     initFeatureFlagChangeListeners();
 
-    // Content Management Save Handler
-    const saveContentBtn = document.getElementById('saveContentBtn');
-    if (saveContentBtn) {
-      saveContentBtn.addEventListener('click', async () => {
-        const legalLastUpdated = document.getElementById('legalLastUpdated').value.trim();
-        const legalEffectiveDate = document.getElementById('legalEffectiveDate').value.trim();
-        const statusEl = document.getElementById('contentSaveStatus');
-        const alertEl = document.getElementById('contentManagementAlert');
-
-        if (!legalLastUpdated || !legalEffectiveDate) {
-          if (statusEl) {
-            statusEl.textContent = '❌ Both fields are required';
-            statusEl.style.color = '#DC2626';
-          }
-          return;
-        }
-
-        await AdminShared.safeAction(
-          saveContentBtn,
-          async () => {
-            const data = {
-              legalLastUpdated,
-              legalEffectiveDate,
-            };
-
-            const result = await AdminShared.adminFetchWithTimeout('/api/admin/content-config', {
-              method: 'PUT',
-              body: data,
-              timeout: 10000,
-            });
-
-            // Update display values
-            document.getElementById('displayLegalLastUpdated').textContent = legalLastUpdated;
-            document.getElementById('displayLegalEffectiveDate').textContent = legalEffectiveDate;
-
-            // Show info alert about server restart
-            if (alertEl) {
-              alertEl.style.display = 'block';
-            }
-
-            return result;
-          },
-          {
-            loadingText: 'Saving...',
-            successMessage: 'Content configuration saved (server restart required)',
-            errorMessage: 'Failed to save content configuration',
-          }
-        );
-      });
-    }
-
     // Now load settings in parallel
     await Promise.all([
       loadSiteConfig(),
