@@ -2,36 +2,11 @@
 
 const fs = require('fs');
 const path = require('path');
-const vm = require('vm');
-const { JSDOM } = require('jsdom');
 
-const root = path.join(__dirname, '../..');
-const categoryHtml = fs.readFileSync(path.join(root, 'public/category.html'), 'utf8');
-const lifecycle = fs.readFileSync(
-  path.join(root, 'public/assets/js/pages/category-skeleton-lifecycle.js'),
+const categoryHtml = fs.readFileSync(
+  path.join(__dirname, '../../public/category.html'),
   'utf8'
 );
-
-function createCategoryDom() {
-  return new JSDOM(
-    `<!doctype html><html><body>
-      <div id="category-hero-section" aria-busy="true">
-        <div class="skeleton skeleton-media"></div>
-      </div>
-      <h1 id="category-title" aria-busy="true"><span class="skeleton"></span></h1>
-      <div id="package-list-container" aria-busy="true" data-skeleton-state="loading">
-        <div class="skeleton-grid"><div class="skeleton"></div></div>
-      </div>
-    </body></html>`,
-    { runScripts: 'outside-only', url: 'https://event-flow.co.uk/category?slug=venues' }
-  );
-}
-
-async function initialiseLifecycle(dom) {
-  vm.runInContext(lifecycle, dom.getInternalVMContext());
-  dom.window.document.dispatchEvent(new dom.window.Event('DOMContentLoaded'));
-  await new Promise(resolve => dom.window.setTimeout(resolve, 0));
-}
 
 describe('category page initial skeleton shell', () => {
   it('loads the canonical skeleton stylesheet before the initial page paint', () => {
@@ -39,9 +14,10 @@ describe('category page initial skeleton shell', () => {
   });
 
   it('reserves hero, title, description and package-card layout in HTML', () => {
-    expect(categoryHtml).toContain('id="category-hero-section" aria-busy="true"');
-    expect(categoryHtml).toContain('id="category-title" aria-busy="true"');
-    expect(categoryHtml).toContain('id="package-list-container" aria-busy="true"');
+    expect(categoryHtml).toContain('class="section section--muted category-hero-shell"');
+    expect(categoryHtml).toContain('id="category-hero-section"');
+    expect(categoryHtml).toContain('id="category-title" role="status"');
+    expect(categoryHtml).toContain('id="package-list-container"');
     expect(categoryHtml).toContain('skeleton-package-card');
   });
 
@@ -49,55 +25,22 @@ describe('category page initial skeleton shell', () => {
     expect(categoryHtml).not.toContain('<h1 id="category-title">Loading...</h1>');
   });
 
-  it('loads the lifecycle companion after the existing category renderer', () => {
-    const rendererIndex = categoryHtml.indexOf('/assets/js/pages/category-init.js');
-    const lifecycleIndex = categoryHtml.indexOf(
-      '/assets/js/pages/category-skeleton-lifecycle.js'
+  it('hides an unresolved hero shell after the category title resolves without a hero image', () => {
+    expect(categoryHtml).toContain('body:has(#category-title:not(:has(.skeleton)))');
+    expect(categoryHtml).toContain(
+      '.category-hero-shell:not(:has(.category-hero-img-wrap))'
     );
-    expect(rendererIndex).toBeGreaterThan(-1);
-    expect(lifecycleIndex).toBeGreaterThan(rendererIndex);
+    expect(categoryHtml).toContain('display: none');
   });
 
-  it('clears a stale hero and loading semantics when a category has no hero image', async () => {
-    const dom = createCategoryDom();
-    await initialiseLifecycle(dom);
-
-    const { document } = dom.window;
-    document.getElementById('category-title').textContent = 'Venues';
-    document.getElementById('package-list-container').innerHTML =
-      '<div class="package-list-grid"></div>';
-    await new Promise(resolve => dom.window.setTimeout(resolve, 0));
-
-    const hero = document.getElementById('category-hero-section');
-    expect(hero.childElementCount).toBe(0);
-    expect(hero.hasAttribute('aria-busy')).toBe(false);
-    expect(document.getElementById('category-title').hasAttribute('aria-busy')).toBe(false);
-    expect(document.getElementById('package-list-container').hasAttribute('aria-busy')).toBe(
-      false
-    );
-    expect(
-      document.getElementById('package-list-container').hasAttribute('data-skeleton-state')
-    ).toBe(false);
-
-    dom.window.close();
+  it('does not leave stale loading-state attributes that the legacy renderer cannot clear', () => {
+    expect(categoryHtml).not.toContain('id="category-hero-section" aria-busy="true"');
+    expect(categoryHtml).not.toContain('id="category-title" aria-busy="true"');
+    expect(categoryHtml).not.toContain('data-skeleton-state="loading"');
   });
 
-  it('preserves a real category hero while clearing loading semantics', async () => {
-    const dom = createCategoryDom();
-    await initialiseLifecycle(dom);
-
-    const { document } = dom.window;
-    document.getElementById('category-title').textContent = 'Photography';
-    document.getElementById('category-hero-section').innerHTML =
-      '<div class="category-hero-img-wrap"><img src="/hero.jpg" alt="Photography"></div>';
-    document.getElementById('package-list-container').innerHTML =
-      '<div class="package-list-grid"></div>';
-    await new Promise(resolve => dom.window.setTimeout(resolve, 0));
-
-    const hero = document.getElementById('category-hero-section');
-    expect(hero.querySelector('.category-hero-img-wrap')).not.toBeNull();
-    expect(hero.hasAttribute('aria-busy')).toBe(false);
-
-    dom.window.close();
+  it('does not add a separate lifecycle script beside the existing category renderer', () => {
+    expect(categoryHtml).toContain('/assets/js/pages/category-init.js');
+    expect(categoryHtml).not.toContain('/assets/js/pages/category-skeleton-lifecycle.js');
   });
 });
