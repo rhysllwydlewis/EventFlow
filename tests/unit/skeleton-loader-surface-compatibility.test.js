@@ -41,4 +41,22 @@ describe('skeleton surface compatibility layers', () => {
     expect(css).toContain('@keyframes gallery-skeleton-shimmer');
     expect(css).toContain('@media (prefers-reduced-motion: reduce)');
   });
+
+  it('preserves Calendar base styles behind a canonical skeleton entry point', () => {
+    const entry = read('public/assets/css/calendar.css');
+    const base = read('public/assets/css/calendar-base.css');
+    expect(entry).toContain("@import url('/assets/css/skeleton.css?v=2.0.0')");
+    expect(entry).toContain("@import url('/assets/css/calendar-base.css?v=18.3.1')");
+    expect(base).toContain('.pc-event-card');
+    expect(base).toContain('.pc-filters');
+    expect(base).toContain('.pc-hero');
+  });
+
+  it('upgrades public-calendar placeholders to event-card-shaped skeletons', () => {
+    const css = read('public/assets/css/calendar.css');
+    expect(css).toContain('#pc-loading-skeleton .pc-skeleton-card::before');
+    expect(css).toContain('#pc-loading-skeleton .pc-skeleton-card::after');
+    expect(css).toContain('@keyframes public-calendar-skeleton-shimmer');
+    expect(css).toContain('@media (prefers-reduced-motion: reduce)');
+  });
 });
