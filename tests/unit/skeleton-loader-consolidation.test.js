@@ -41,6 +41,7 @@ describe('canonical skeleton loader contract', () => {
     expect(loader).toContain("get('skeletonDebug') === '1'");
     expect(loader).toContain("document.documentElement.classList.add('skeleton-debug')");
     expect(css).toContain('html.skeleton-debug');
+    expect(css).toContain("[data-skeleton-state='loading'] {\n  position: relative;");
   });
 
   it('sets and clears accessible loading state attributes', () => {
@@ -57,11 +58,15 @@ describe('canonical skeleton loader contract', () => {
     expect(loader).not.toContain('id="error-action-btn"');
   });
 
-  it('respects reduced motion and supplies dark-compatible tokens', () => {
+  it('has colour fallbacks, progressive enhancement and reduced motion', () => {
+    expect(css).toContain('--skeleton-base: #e5ebef');
+    expect(css).toContain('--skeleton-highlight: #f7f9fa');
+    expect(css).toContain('@supports (color: color-mix');
     expect(css).toContain('@media (prefers-reduced-motion: reduce)');
-    expect(css).toContain('@media (prefers-color-scheme: dark)');
-    expect(css).toContain('--skeleton-base');
-    expect(css).toContain('--skeleton-highlight');
+  });
+
+  it('does not override EventFlow light mode from the operating-system preference', () => {
+    expect(css).not.toContain('@media (prefers-color-scheme: dark)');
   });
 });
 
