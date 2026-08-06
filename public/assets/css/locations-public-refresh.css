@@ -235,7 +235,9 @@
     #087367;
 }
 
-.efl-hero__visual--placeholder strong {
+/* Direct child only: this positions the placeholder's own city name, and as a
+   descendant selector it also captured the coverage badge's label. */
+.efl-hero__visual--placeholder > strong {
   position: absolute;
   bottom: 2rem;
   font-size: 1.25rem;

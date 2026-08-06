@@ -93,10 +93,14 @@
         return;
       }
       visual.classList.add('efl-hero__visual--placeholder');
-      const credit = visual.querySelector('.efl-hero__credit');
-      if (credit) {
-        credit.remove();
-      }
+      // Everything that belonged to the photograph goes with it, so the result
+      // is the same markup the server renders for a city that has no hero at
+      // all. Leaving the coverage note behind put its label under the
+      // placeholder's own `strong` rule, which absolutely positions it — the
+      // label then escaped its badge and was clipped at the screen edge.
+      visual
+        .querySelectorAll('.efl-hero__credit, .efl-hero__image-note')
+        .forEach(el => el.remove());
       // Rebuild the same pin-and-city-name treatment the server renders for a
       // city that has no hero at all.
       const pin = document.createElement('span');

@@ -504,7 +504,7 @@ function renderCityPage(model) {
       <form class="efl-search efl-search--city" role="search" action="/suppliers" method="GET">
         <label class="efl-sr-only" for="efl-city-search">Search suppliers in ${escapeHtml(city.name)}</label>
         <span class="efl-search__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path></svg></span>
-        <input id="efl-city-search" type="search" name="q" placeholder="Venue, caterer, photographer..." />
+        <input id="efl-city-search" type="search" name="q" placeholder="Venue, caterer, DJ&hellip;" />
         <input type="hidden" name="location" value="${escapeHtml(city.name)}" />
         <button type="submit"><span class="efl-search-label--long">Search suppliers</span><span class="efl-search-label--short">Search</span></button>
       </form>
