@@ -2,6 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const vm = require('vm');
 const { JSDOM } = require('jsdom');
 
 const root = path.join(__dirname, '../..');
@@ -27,7 +28,7 @@ function createCategoryDom() {
 }
 
 async function initialiseLifecycle(dom) {
-  dom.window.eval(lifecycle);
+  vm.runInContext(lifecycle, dom.getInternalVMContext());
   dom.window.document.dispatchEvent(new dom.window.Event('DOMContentLoaded'));
   await new Promise(resolve => dom.window.setTimeout(resolve, 0));
 }
