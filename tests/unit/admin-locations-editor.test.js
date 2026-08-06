@@ -26,6 +26,8 @@ describe('editor markup', () => {
       'efl-seo-title',
       'efl-seo-description',
       'efl-hero-url',
+      'efl-hero-credit',
+      'efl-hero-source-url',
       'efl-hero-alt',
       'efl-intro',
     ];
@@ -65,6 +67,12 @@ describe('editor markup', () => {
 
   it('loads the CSRF helper the save path needs', () => {
     expect(html).toContain('/assets/js/utils/csrf-token.js');
+  });
+
+  it('loads the Pexels chooser and offers it from the hero fieldset', () => {
+    expect(html).toContain('/assets/js/components/pexels-selector.js');
+    expect(html).toContain('data-editor-action="choose-pexels"');
+    expect(html).toContain('id="efl-hero-picker-preview"');
   });
 
   it('keeps the existing workflow controls', () => {
@@ -132,6 +140,11 @@ describe('editor script', () => {
     expect(script).toContain('A hero image needs alt text.');
   });
 
+  it('pre-searches Pexels using the city and nation', () => {
+    expect(script).toContain('new window.PexelsSelector()');
+    expect(script).toContain('`${editingCity.name} ${nation} city skyline landmark`');
+  });
+
   it('escapes everything it injects as markup', () => {
     expect(script).toContain('function escapeHtml(');
     // Card fields all go through escapeHtml; the only raw interpolation is the
@@ -142,9 +155,13 @@ describe('editor script', () => {
 
 describe('editor styles', () => {
   it('styles the dialog, fieldsets and repeatable rows', () => {
-    ['.efl-editor', '.efl-fieldset', '.efl-repeatable__item', '.efl-preview-banner'].forEach(
-      selector => expect(css).toContain(selector)
-    );
+    [
+      '.efl-editor',
+      '.efl-fieldset',
+      '.efl-repeatable__item',
+      '.efl-preview-banner',
+      '.efl-hero-picker-preview',
+    ].forEach(selector => expect(css).toContain(selector));
   });
 
   it('stays within the viewport on a phone', () => {

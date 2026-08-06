@@ -49,6 +49,7 @@ Everything editorial or operational lives in MongoDB, keyed by registry slug:
 | `seo.title`, `seo.metaDescription`                          | Editor overrides for the generated metadata          |
 | `content.intro`, `content.planningSections`, `content.faqs` | Local copy                                           |
 | `content.heroImageUrl`, `content.heroImageAlt`              | Hero media                                           |
+| `content.heroImageCredit`, `content.heroImageSourceUrl`     | Hero attribution and source                          |
 | `lastReviewedAt`, `reviewedBy`                              | Human review record                                  |
 | `publishedAt`, `updatedAt`                                  | Timestamps used by the sitemap                       |
 
@@ -225,6 +226,19 @@ Planning sections and FAQs are repeatable, and can be added, reordered and
 removed; the array order is the order the page renders. The limits are read from
 the API response rather than duplicated in the client, so the counters can never
 promise more room than the server keeps.
+
+The hero editor opens the existing Pexels selector with a search derived from
+the current city and nation. Choosing a photo fills the image, alt text,
+photographer and Pexels source together; changing the image URL manually clears
+that attribution so it cannot be carried onto an unrelated image.
+
+Public pages without an editor-selected image use the same integration
+automatically. Every city in the registry gets a disambiguated city, region and
+nation search, with landscape results ranked for explicit geographic matches and
+cached for 24 hours. Cardiff, Bristol and Newport retain reviewed fixed defaults;
+an editor-selected image always takes precedence for every city. If Pexels is not
+configured or does not return a safe result, the page keeps its named-city
+placeholder rather than showing an unrelated photograph.
 
 Three rules shape the editor:
 

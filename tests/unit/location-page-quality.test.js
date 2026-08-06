@@ -64,6 +64,64 @@ describe('page record defaults', () => {
     expect(page.status).toBe(PUBLICATION_STATES.draft);
     expect(page.indexingRequested).toBe(false);
     expect(page.content.intro).toBe('');
+    // No hero until an editor has chosen one. A curated photo is offered as a
+    // suggestion in the admin editor, never injected onto a public page.
+    expect(page.content.heroImageUrl).toBeNull();
+    expect(page.content.heroImageAlt).toBeNull();
+    expect(page.content.heroImageSourceUrl).toBeNull();
+  });
+
+  it('lets an editor remove a hero image and have it stay removed', () => {
+    const page = locationPages.normalisePageRecord(cardiff, {
+      content: { heroImageUrl: '', heroImageAlt: '' },
+    });
+    expect(page.content.heroImageUrl).toBeNull();
+    expect(page.content.heroImageCredit).toBeNull();
+  });
+
+  it('attaches the curated attribution when an editor picks the curated photo', () => {
+    const curated = require('../../services/locationHeroImage.service').getCuratedHero('cardiff');
+    const page = locationPages.normalisePageRecord(cardiff, {
+      content: { heroImageUrl: curated.url },
+    });
+
+    expect(page.content.heroImageAlt).toBe(curated.alt);
+    expect(page.content.heroImageCredit).toBe(curated.credit);
+    expect(page.content.heroImageSourceUrl).toBe(curated.sourceUrl);
+  });
+
+  it('keeps an editor-selected hero instead of replacing it with the curated default', () => {
+    const page = locationPages.normalisePageRecord(cardiff, {
+      content: {
+        heroImageUrl: 'https://cdn.example.com/editor-cardiff.jpg',
+        heroImageAlt: 'An editor-selected view of Cardiff',
+        heroImageCredit: 'Example Photographer',
+        heroImageSourceUrl: 'https://example.com/cardiff-photo',
+      },
+    });
+
+    expect(page.content).toEqual(
+      expect.objectContaining({
+        heroImageUrl: 'https://cdn.example.com/editor-cardiff.jpg',
+        heroImageAlt: 'An editor-selected view of Cardiff',
+        heroImageCredit: 'Example Photographer',
+        heroImageSourceUrl: 'https://example.com/cardiff-photo',
+      })
+    );
+  });
+
+  it('does not render unsafe stored image or attribution URLs', () => {
+    const page = locationPages.normalisePageRecord(cardiff, {
+      content: {
+        heroImageUrl: 'javascript:alert(1)',
+        heroImageCredit: 'Not the curated photographer',
+        heroImageSourceUrl: 'javascript:alert(2)',
+      },
+    });
+
+    expect(page.content.heroImageUrl).toBeNull();
+    expect(page.content.heroImageCredit).toBeNull();
+    expect(page.content.heroImageSourceUrl).toBeNull();
   });
 
   it('rejects an unrecognised status rather than trusting it', () => {
@@ -195,6 +253,20 @@ describe('metadata', () => {
     expect(metadata.description.length).toBeLessThanOrEqual(160);
     expect(metadata.canonicalUrl).toBe('https://event-flow.co.uk/locations/cardiff');
     expect(metadata.heading).toBe('Event suppliers in Cardiff');
+    // No hero chosen, so nothing to share as an og:image.
+    expect(metadata.imageUrl).toBeNull();
+  });
+
+  it('shares the hero an editor chose as the social image', () => {
+    const metadata = locationPages.buildCityMetadata({
+      city: cardiff,
+      page: locationPages.normalisePageRecord(cardiff, {
+        content: { heroImageUrl: 'https://cdn.example.com/cardiff.jpg' },
+      }),
+      rankedSuppliers: strongSuppliers,
+      baseUrl: 'https://event-flow.co.uk',
+    });
+    expect(metadata.imageUrl).toBe('https://cdn.example.com/cardiff.jpg');
   });
 
   it("prefers the editor's title and description", () => {

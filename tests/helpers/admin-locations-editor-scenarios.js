@@ -33,6 +33,7 @@ function record(overrides = {}) {
   return {
     slug: 'cardiff',
     name: 'Cardiff',
+    nation: 'Wales',
     status: 'draft',
     indexingRequested: false,
     indexable: false,
@@ -47,6 +48,8 @@ function record(overrides = {}) {
     content: {
       heroImageUrl: null,
       heroImageAlt: null,
+      heroImageCredit: null,
+      heroImageSourceUrl: null,
       intro: 'An existing introduction.',
       planningSections: [
         { title: 'First', body: 'a', sourceName: null, sourceUrl: null, sourceDate: null },
@@ -69,6 +72,7 @@ async function boot(options = {}) {
   const confirmations = [];
   const alerts = [];
   const opened = [];
+  const pexelsSearches = [];
 
   const dom = new JSDOM(pageHtml, {
     url: 'https://event-flow.co.uk/admin-locations',
@@ -88,6 +92,16 @@ async function boot(options = {}) {
     return null;
   };
   window.EventFlowCsrf = { get: () => 'csrf-token' };
+  window.PexelsSelector = class PexelsSelectorStub {
+    open(callback, selectorOptions) {
+      pexelsSearches.push(selectorOptions.searchTerm);
+      callback('https://images.pexels.com/photos/5743996/pexels-photo-5743996.jpeg', {
+        alt: 'Cardiff Bay waterfront',
+        photographer: 'Balazs Bezeczky',
+        url: 'https://www.pexels.com/photo/cardiff-bay-5743996/',
+      });
+    }
+  };
 
   window.fetch = async (url, init = {}) => {
     calls.push({
@@ -119,7 +133,15 @@ async function boot(options = {}) {
   window.eval(script);
   await settle(window);
 
-  return { document: window.document, window, calls, confirmations, alerts, opened };
+  return {
+    document: window.document,
+    window,
+    calls,
+    confirmations,
+    alerts,
+    opened,
+    pexelsSearches,
+  };
 }
 
 /**
@@ -360,6 +382,45 @@ const scenarios = {
     return { content: patchCall(context).body.content };
   },
 
+  async choosesACitySpecificPexelsPhoto() {
+    const context = await boot();
+    await openEditor(context);
+    await click(
+      context.window,
+      context.document.querySelector('[data-editor-action="choose-pexels"]')
+    );
+
+    return {
+      query: context.pexelsSearches[0],
+      imageUrl: context.document.getElementById('efl-hero-url').value,
+      alt: context.document.getElementById('efl-hero-alt').value,
+      credit: context.document.getElementById('efl-hero-credit').value,
+      sourceUrl: context.document.getElementById('efl-hero-source-url').value,
+      previewHidden: context.document.getElementById('efl-hero-picker-preview').hidden,
+      dirty: context.document.getElementById('efl-editor-dirty').textContent,
+    };
+  },
+
+  async clearsStaleAttributionWhenTheHeroUrlChanges() {
+    const context = await boot();
+    await openEditor(context);
+    await click(
+      context.window,
+      context.document.querySelector('[data-editor-action="choose-pexels"]')
+    );
+    type(
+      context.window,
+      context.document.getElementById('efl-hero-url'),
+      'https://cdn.example.com/different-cardiff.jpg'
+    );
+
+    return {
+      credit: context.document.getElementById('efl-hero-credit').value,
+      sourceUrl: context.document.getElementById('efl-hero-source-url').value,
+      previewCredit: context.document.getElementById('efl-hero-picker-credit').textContent,
+    };
+  },
+
   async blocksHeroWithoutAltText() {
     const context = await boot();
     await openEditor(context);
@@ -492,6 +553,79 @@ const scenarios = {
     const context = await boot();
     await click(context.window, context.document.querySelector('[data-action="draft-preview"]'));
     return { opened: context.opened };
+  },
+
+  async defaultsToAutomaticHeroSource() {
+    const context = await boot();
+    await openEditor(context);
+    return {
+      auto: context.document.getElementById('efl-hero-source-auto').checked,
+      custom: context.document.getElementById('efl-hero-source-custom').checked,
+      note: context.document.getElementById('efl-hero-source-note').textContent,
+    };
+  },
+
+  async loadsAStoredCustomHeroSource() {
+    const context = await boot({
+      item: record({
+        content: {
+          heroSource: 'custom',
+          heroImageUrl: 'https://cdn.example.com/cardiff.jpg',
+          heroImageAlt: 'Cardiff Bay at dusk',
+          heroImageCredit: null,
+          heroImageSourceUrl: null,
+          intro: 'An existing introduction.',
+          planningSections: [],
+          faqs: [],
+        },
+      }),
+    });
+    await openEditor(context);
+    return {
+      auto: context.document.getElementById('efl-hero-source-auto').checked,
+      custom: context.document.getElementById('efl-hero-source-custom').checked,
+    };
+  },
+
+  async choosingAPexelsPhotoSwitchesToCustom() {
+    const context = await boot();
+    await openEditor(context);
+    const before = context.document.getElementById('efl-hero-source-custom').checked;
+    await click(
+      context.window,
+      context.document.querySelector('[data-editor-action="choose-pexels"]')
+    );
+    return {
+      before,
+      after: context.document.getElementById('efl-hero-source-custom').checked,
+    };
+  },
+
+  async savesTheChosenHeroSource() {
+    const context = await boot();
+    await openEditor(context);
+    await click(context.window, context.document.getElementById('efl-hero-source-custom'));
+    type(
+      context.window,
+      context.document.getElementById('efl-hero-url'),
+      'https://cdn.example.com/cardiff.jpg'
+    );
+    type(context.window, context.document.getElementById('efl-hero-alt'), 'Cardiff Bay at dusk');
+    await click(context.window, context.document.querySelector('[data-editor-action="save"]'));
+
+    return { heroSource: patchCall(context).body.content.heroSource };
+  },
+
+  async warnsWhenCustomIsSelectedWithNoImage() {
+    const context = await boot();
+    await openEditor(context);
+    await click(context.window, context.document.getElementById('efl-hero-source-custom'));
+    await click(context.window, context.document.querySelector('[data-editor-action="save"]'));
+
+    const question = pendingQuestion(context);
+    await answer(context, true);
+
+    return { question, patched: Boolean(patchCall(context)) };
   },
 
   async countsCharactersAgainstTheLimit() {

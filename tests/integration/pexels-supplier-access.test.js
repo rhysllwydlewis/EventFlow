@@ -101,7 +101,7 @@ describe('Pexels Supplier Access', () => {
     });
 
     it('should have open method with callback parameter', () => {
-      expect(pexelsSelectorContent).toContain('open(onSelectCallback)');
+      expect(pexelsSelectorContent).toContain('open(onSelectCallback, options = {})');
       expect(pexelsSelectorContent).toContain('this.selectionCallback = onSelectCallback');
     });
 

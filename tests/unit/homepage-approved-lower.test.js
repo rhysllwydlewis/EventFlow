@@ -16,9 +16,12 @@ describe('approved homepage lower-section implementation', () => {
   const stylesheet = fs.readFileSync(stylesheetPath, 'utf8');
 
   test('is wired directly into the production homepage with cache-busted assets', () => {
-    expect(index).toContain('/assets/css/homepage-approved-lower.css?v=3');
-    expect(index).toContain('/assets/js/pages/homepage-approved-lower.js?v=3');
-    expect(index).toContain('/assets/js/components/eventflow-footer.js?v=3');
+    // The version is deliberately not pinned: these files are edited, and a
+    // returning visitor must be served the new bytes. What matters is that each
+    // asset is wired in and carries a cache-busting version at all.
+    expect(index).toMatch(/\/assets\/css\/homepage-approved-lower\.css\?v=\d+/);
+    expect(index).toMatch(/\/assets\/js\/pages\/homepage-approved-lower\.js\?v=\d+/);
+    expect(index).toMatch(/\/assets\/js\/components\/eventflow-footer\.js\?v=\d+/);
   });
 
   test('targets the production homepage rather than the home-v2 preview', () => {

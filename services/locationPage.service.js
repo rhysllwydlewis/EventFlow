@@ -14,9 +14,12 @@
 
 const registry = require('./locationRegistry.service');
 const supplierLocation = require('./supplierLocation.service');
+const locationHeroImages = require('./locationHeroImage.service');
 const {
   COLLECTIONS,
   CONTENT_REVIEW_MAX_AGE_DAYS,
+  HERO_SOURCES,
+  HERO_SOURCE_VALUES,
   LIMITS,
   PUBLICATION_STATES,
   PUBLICATION_STATE_VALUES,
@@ -26,6 +29,16 @@ const {
 } = require('../models/LocationContent');
 
 const DEFAULT_BASE_URL = 'https://event-flow.co.uk';
+
+/**
+ * Keep editorial image links limited to ordinary web URLs before rendering.
+ * @param {unknown} value Candidate URL.
+ * @returns {string|null} Safe URL or null.
+ */
+function normaliseWebUrl(value) {
+  const candidate = String(value || '').trim();
+  return /^https?:\/\//i.test(candidate) ? candidate : null;
+}
 
 /**
  * The stored editorial record for a city, with defaults applied.
@@ -42,6 +55,22 @@ function normalisePageRecord(city, stored) {
     ? record.status
     : PUBLICATION_STATES.draft;
   const content = record.content && typeof record.content === 'object' ? record.content : {};
+  // Only an image an editor actually chose is ever rendered. The curated list
+  // is offered to them as a suggestion in the admin editor instead of being
+  // injected here: an implicit hero cannot be removed (clearing the field would
+  // just bring it back), and it would put a photograph on a public page, under
+  // alt text asserting what it depicts, that nobody on the team had approved.
+  const heroImageUrl = normaliseWebUrl(content.heroImageUrl);
+  // A curated photo carries its own attribution, so choosing one in the editor
+  // does not require re-typing the photographer's credit.
+  const matchedHero = locationHeroImages.findCuratedHeroByUrl(heroImageUrl);
+  const storedHeroSourceUrl = normaliseWebUrl(content.heroImageSourceUrl);
+  // Auto is the default so every existing page keeps its current behaviour —
+  // an editor opts a city into a pinned custom image, rather than every city
+  // silently losing its automatic photo the day this field was introduced.
+  const heroSource = HERO_SOURCE_VALUES.includes(content.heroSource)
+    ? content.heroSource
+    : HERO_SOURCES.auto;
 
   return {
     locationSlug: city.slug,
@@ -57,8 +86,17 @@ function normalisePageRecord(city, stored) {
       metaDescription: (record.seo && record.seo.metaDescription) || '',
     },
     content: {
-      heroImageUrl: content.heroImageUrl || null,
-      heroImageAlt: content.heroImageAlt || null,
+      heroSource,
+      heroImageUrl,
+      heroImageAlt: heroImageUrl
+        ? content.heroImageAlt || (matchedHero && matchedHero.alt) || `${city.name} cityscape`
+        : null,
+      heroImageCredit: heroImageUrl
+        ? content.heroImageCredit || (matchedHero && matchedHero.credit) || null
+        : null,
+      heroImageSourceUrl: heroImageUrl
+        ? storedHeroSourceUrl || (matchedHero && matchedHero.sourceUrl) || null
+        : null,
       intro: content.intro || '',
       planningSections: Array.isArray(content.planningSections)
         ? content.planningSections.slice(0, LIMITS.maxSections)
@@ -333,6 +371,7 @@ function buildCityMetadata(input) {
     description,
     canonicalUrl,
     heading: `Event suppliers in ${city.name}`,
+    imageUrl: (page && page.content.heroImageUrl) || null,
   };
 }
 

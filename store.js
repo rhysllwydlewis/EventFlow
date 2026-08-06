@@ -43,6 +43,10 @@ const files = {
   bookings: path.join(DATA_DIR, 'bookings.json'),
   notifications: path.join(DATA_DIR, 'notifications.json'),
   supplierAnalytics: path.join(DATA_DIR, 'supplierAnalytics.json'),
+  // The city page editorial records. Without this the location pages throw on
+  // every read under local file storage, so the whole section is undevelopable
+  // outside a MongoDB deployment.
+  location_pages: path.join(DATA_DIR, 'location_pages.json'),
   reviewVotes: path.join(DATA_DIR, 'reviewVotes.json'),
   reviewModerations: path.join(DATA_DIR, 'reviewModerations.json'),
   popularSearches: path.join(DATA_DIR, 'popularSearches.json'),

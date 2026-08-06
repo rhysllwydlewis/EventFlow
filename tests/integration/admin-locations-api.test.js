@@ -216,6 +216,45 @@ describe('PATCH /api/v1/admin/locations/:slug', () => {
     expect(mockDb.all('location_pages')).toEqual([]);
   });
 
+  it('rejects an unrecognised hero source', async () => {
+    const response = await request(buildApp())
+      .patch('/api/v1/admin/locations/cardiff')
+      .set('Cookie', authCookie(admin))
+      .send({ content: { heroSource: 'manual-upload' } });
+    expect(response.status).toBe(400);
+    expect(mockDb.all('location_pages')).toEqual([]);
+  });
+
+  it('defaults a new page to the automatic hero source', async () => {
+    const response = await request(buildApp())
+      .patch('/api/v1/admin/locations/cardiff')
+      .set('Cookie', authCookie(admin))
+      .send({ content: { intro: 'A short local introduction.' } });
+    expect(response.body.data.content.heroSource).toBe('auto');
+  });
+
+  it('saves and preserves an explicit custom hero source across an unrelated edit', async () => {
+    const app = buildApp();
+    const first = await request(app)
+      .patch('/api/v1/admin/locations/cardiff')
+      .set('Cookie', authCookie(admin))
+      .send({
+        content: {
+          heroSource: 'custom',
+          heroImageUrl: 'https://cdn.example.com/cardiff.jpg',
+          heroImageAlt: 'Cardiff Bay at dusk',
+        },
+      });
+    expect(first.body.data.content.heroSource).toBe('custom');
+
+    const second = await request(app)
+      .patch('/api/v1/admin/locations/cardiff')
+      .set('Cookie', authCookie(admin))
+      .send({ content: { intro: 'A short local introduction.' } });
+    expect(second.body.data.content.heroSource).toBe('custom');
+    expect(second.body.data.content.heroImageUrl).toBe('https://cdn.example.com/cardiff.jpg');
+  });
+
   it('does not make a page indexable on the publish flag alone', async () => {
     const response = await request(buildApp())
       .patch('/api/v1/admin/locations/cardiff')
@@ -390,6 +429,8 @@ describe('editorial saves and the workflow', () => {
           intro: 'A fresh introduction, written by a human who knows the city.',
           heroImageUrl: 'https://cdn.example.com/cardiff.jpg',
           heroImageAlt: 'Cardiff Bay at dusk',
+          heroImageCredit: 'Balazs Bezeczky',
+          heroImageSourceUrl: 'https://www.pexels.com/photo/cardiff-bay-5743996/',
           planningSections: [
             {
               title: 'Where to look first',
@@ -420,6 +461,8 @@ describe('editorial saves and the workflow', () => {
         content: {
           heroImageUrl: 'https://cdn.example.com/cardiff.jpg',
           heroImageAlt: 'Cardiff Bay at dusk',
+          heroImageCredit: 'Balazs Bezeczky',
+          heroImageSourceUrl: 'https://www.pexels.com/photo/cardiff-bay-5743996/',
           intro: 'Written locally.',
           planningSections: [
             {
@@ -441,6 +484,8 @@ describe('editorial saves and the workflow', () => {
     });
     expect(content.heroImageUrl).toBe('https://cdn.example.com/cardiff.jpg');
     expect(content.heroImageAlt).toBe('Cardiff Bay at dusk');
+    expect(content.heroImageCredit).toBe('Balazs Bezeczky');
+    expect(content.heroImageSourceUrl).toBe('https://www.pexels.com/photo/cardiff-bay-5743996/');
     expect(content.planningSections[0]).toEqual({
       title: 'Venues',
       body: 'Two paragraphs.\n\nThe second one.',

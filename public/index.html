@@ -294,7 +294,8 @@
       }
     </style>
     <link rel="stylesheet" href="/assets/css/eventflow-footer.css">
-    <link rel="stylesheet" href="/assets/css/homepage-approved-lower.css?v=3">
+    <link rel="stylesheet" href="/assets/css/homepage-approved-lower.css?v=4">
+    <link rel="stylesheet" href="/assets/css/homepage-locations-refresh.css?v=1">
     <link rel="stylesheet" href="/assets/css/public-mobile-compact.css" />
 </head>
   <body>
@@ -888,6 +889,63 @@
               <p class="ef-card__text">
                 Create a free account to save your plan and start conversations with suppliers.
               </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Location discovery stays off the crowded navbar and is promoted here instead. -->
+      <section class="ef-home-locations" aria-labelledby="home-locations-title">
+        <div class="container">
+          <div class="ef-home-locations__heading">
+            <div>
+              <span class="ef-home-locations__kicker">Plan by place</span>
+              <h2 id="home-locations-title">Find event suppliers near you</h2>
+              <p>Local knowledge, brilliant suppliers and fewer tabs open.</p>
+            </div>
+            <a class="ef-home-locations__all" href="/locations">
+              Explore all UK locations <span aria-hidden="true">&rarr;</span>
+            </a>
+          </div>
+
+          <div class="ef-home-locations__panel">
+            <form class="ef-home-locations__search-card" action="/suppliers" method="get" role="search">
+              <span class="ef-home-locations__pin" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                  <path d="M20 10c0 5.5-8 12-8 12S4 15.5 4 10a8 8 0 1 1 16 0Z"></path>
+                  <circle cx="12" cy="10" r="2.5"></circle>
+                </svg>
+              </span>
+              <div class="ef-home-locations__search-copy">
+                <span>Start with your location</span>
+                <h3>Where is your event?</h3>
+                <p>Search venues and suppliers based in—or travelling to—your area.</p>
+              </div>
+              <label for="home-location-search">City or postcode</label>
+              <div class="ef-home-locations__search-row">
+                <input
+                  id="home-location-search"
+                  name="location"
+                  type="search"
+                  placeholder="e.g. Cardiff or CF10"
+                  autocomplete="postal-code"
+                />
+                <button type="submit">Show local suppliers</button>
+              </div>
+              <p class="ef-home-locations__promise"><span aria-hidden="true">&#10003;</span> Free to browse <span aria-hidden="true">&#183;</span> Contact suppliers directly</p>
+            </form>
+
+            <div class="ef-home-locations__explore" aria-label="Popular location searches">
+              <div class="ef-home-locations__explore-heading">
+                <p>Major UK cities</p>
+                <span>Explore by city</span>
+              </div>
+              <div class="ef-home-locations__city-grid">
+                <a href="/suppliers?location=London"><span class="ef-home-locations__city-pin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M20 10c0 5.5-8 12-8 12S4 15.5 4 10a8 8 0 1 1 16 0Z"></path><circle cx="12" cy="10" r="2.5"></circle></svg></span><span><strong>London</strong><small>Greater London</small></span><b aria-hidden="true">&#8599;</b></a>
+                <a href="/suppliers?location=Cardiff"><span class="ef-home-locations__city-pin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M20 10c0 5.5-8 12-8 12S4 15.5 4 10a8 8 0 1 1 16 0Z"></path><circle cx="12" cy="10" r="2.5"></circle></svg></span><span><strong>Cardiff</strong><small>South Wales</small></span><b aria-hidden="true">&#8599;</b></a>
+                <a href="/suppliers?location=Manchester"><span class="ef-home-locations__city-pin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M20 10c0 5.5-8 12-8 12S4 15.5 4 10a8 8 0 1 1 16 0Z"></path><circle cx="12" cy="10" r="2.5"></circle></svg></span><span><strong>Manchester</strong><small>North West</small></span><b aria-hidden="true">&#8599;</b></a>
+                <a href="/suppliers?location=Birmingham"><span class="ef-home-locations__city-pin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M20 10c0 5.5-8 12-8 12S4 15.5 4 10a8 8 0 1 1 16 0Z"></path><circle cx="12" cy="10" r="2.5"></circle></svg></span><span><strong>Birmingham</strong><small>West Midlands</small></span><b aria-hidden="true">&#8599;</b></a>
+              </div>
             </div>
           </div>
         </div>

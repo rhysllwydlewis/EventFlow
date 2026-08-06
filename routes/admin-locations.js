@@ -18,11 +18,14 @@ const { authRequired, roleRequired, userExtractionMiddleware } = require('../mid
 const { csrfProtection } = require('../middleware/csrf');
 const { apiLimiter, writeLimiter } = require('../middleware/rateLimits');
 const registry = require('../services/locationRegistry.service');
+const locationHeroImages = require('../services/locationHeroImage.service');
 const locationPages = require('../services/locationPage.service');
 const supplierLocation = require('../services/supplierLocation.service');
 const { isPublicSupplier } = require('../services/publicSupplierSeo.service');
 const {
   COLLECTIONS,
+  HERO_SOURCES,
+  HERO_SOURCE_VALUES,
   LIMITS,
   PUBLICATION_STATES,
   PUBLICATION_STATE_VALUES,
@@ -42,6 +45,17 @@ function cleanText(value, maxLength) {
     .replace(/\s+/g, ' ')
     .trim()
     .slice(0, maxLength);
+}
+
+/**
+ * Keep only an ordinary web URL for externally linked editorial metadata.
+ * @param {*} value Raw value.
+ * @param {number} maxLength Maximum length.
+ * @returns {string|null} Safe web URL or null.
+ */
+function cleanWebUrl(value, maxLength) {
+  const clean = cleanText(value, maxLength);
+  return /^https?:\/\//i.test(clean) ? clean : null;
 }
 
 /**
@@ -307,6 +321,10 @@ router.get('/:slug', apiLimiter, async (req, res) => {
       data: {
         ...item,
         limits: LIMITS,
+        // A pre-cleared photograph for this city, offered for one-click use.
+        // It is only ever a suggestion: nothing reaches a public page until an
+        // editor has accepted it and saved.
+        suggestedHero: locationHeroImages.getCuratedHero(resolved.city),
         // The public URL only works once the page is pilot or published; the
         // draft preview works in every state, for admins only.
         previewUrl: `/locations/${resolved.city.slug}`,
@@ -341,7 +359,8 @@ router.get('/:slug/preview', apiLimiter, async (req, res) => {
     }
 
     const data = await locationRoutes.readLocationData();
-    const page = locationPages.normalisePageRecord(city, data.pageRecords.get(city.slug));
+    let page = locationPages.normalisePageRecord(city, data.pageRecords.get(city.slug));
+    page = await locationHeroImages.resolvePageHero(city, page);
     const model = locationPages.buildCityPageModel({
       city,
       page,
@@ -402,6 +421,16 @@ router.patch('/:slug', writeLimiter, csrfProtection, async (req, res) => {
         error: `status must be one of ${PUBLICATION_STATE_VALUES.join(', ')}`,
       });
     }
+    if (
+      body.content &&
+      body.content.heroSource !== undefined &&
+      !HERO_SOURCE_VALUES.includes(body.content.heroSource)
+    ) {
+      return res.status(400).json({
+        success: false,
+        error: `content.heroSource must be one of ${HERO_SOURCE_VALUES.join(', ')}`,
+      });
+    }
 
     const records = await locationPages.loadPageRecords(dbUnified);
     const existing = records.get(city.slug) || null;
@@ -426,14 +455,26 @@ router.patch('/:slug', writeLimiter, csrfProtection, async (req, res) => {
             : current.seo.metaDescription,
       },
       content: {
+        heroSource:
+          body.content && body.content.heroSource !== undefined
+            ? body.content.heroSource
+            : current.content.heroSource || HERO_SOURCES.auto,
         heroImageUrl:
           body.content && body.content.heroImageUrl !== undefined
-            ? cleanText(body.content.heroImageUrl, 500) || null
+            ? cleanWebUrl(body.content.heroImageUrl, 500)
             : current.content.heroImageUrl,
         heroImageAlt:
           body.content && body.content.heroImageAlt !== undefined
             ? cleanText(body.content.heroImageAlt, 200) || null
             : current.content.heroImageAlt,
+        heroImageCredit:
+          body.content && body.content.heroImageCredit !== undefined
+            ? cleanText(body.content.heroImageCredit, LIMITS.heroCreditMaxLength) || null
+            : current.content.heroImageCredit,
+        heroImageSourceUrl:
+          body.content && body.content.heroImageSourceUrl !== undefined
+            ? cleanWebUrl(body.content.heroImageSourceUrl, LIMITS.heroSourceUrlMaxLength)
+            : current.content.heroImageSourceUrl,
         intro:
           body.content && body.content.intro !== undefined
             ? cleanText(body.content.intro, LIMITS.introMaxLength)
