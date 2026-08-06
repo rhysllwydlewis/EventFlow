@@ -232,6 +232,14 @@ the current city and nation. Choosing a photo fills the image, alt text,
 photographer and Pexels source together; changing the image URL manually clears
 that attribution so it cannot be carried onto an unrelated image.
 
+Public pages without an editor-selected image use the same integration
+automatically. Every city in the registry gets a disambiguated city, region and
+nation search, with landscape results ranked for explicit geographic matches and
+cached for 24 hours. Cardiff, Bristol and Newport retain reviewed fixed defaults;
+an editor-selected image always takes precedence for every city. If Pexels is not
+configured or does not return a safe result, the page keeps its named-city
+placeholder rather than showing an unrelated photograph.
+
 Three rules shape the editor:
 
 - **Saving copy sends `seo` and `content` and nothing else.** Publication state,

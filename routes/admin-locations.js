@@ -18,9 +18,9 @@ const { authRequired, roleRequired, userExtractionMiddleware } = require('../mid
 const { csrfProtection } = require('../middleware/csrf');
 const { apiLimiter, writeLimiter } = require('../middleware/rateLimits');
 const registry = require('../services/locationRegistry.service');
+const locationHeroImages = require('../services/locationHeroImage.service');
 const locationPages = require('../services/locationPage.service');
 const supplierLocation = require('../services/supplierLocation.service');
-const locationHeroImages = require('../services/locationHeroImage.service');
 const { isPublicSupplier } = require('../services/publicSupplierSeo.service');
 const {
   COLLECTIONS,
@@ -357,7 +357,8 @@ router.get('/:slug/preview', apiLimiter, async (req, res) => {
     }
 
     const data = await locationRoutes.readLocationData();
-    const page = locationPages.normalisePageRecord(city, data.pageRecords.get(city.slug));
+    let page = locationPages.normalisePageRecord(city, data.pageRecords.get(city.slug));
+    page = await locationHeroImages.resolvePageHero(city, page);
     const model = locationPages.buildCityPageModel({
       city,
       page,

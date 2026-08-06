@@ -1,14 +1,19 @@
 /**
- * Curated Pexels photography for the first public location pages.
+ * City-specific Pexels photography for public location pages.
  *
- * A stored editorial image always wins. These entries are safe defaults for a
- * city that has not yet had a hero selected in the location editor, so public
- * pages never fall back to an unrelated generic event photograph.
+ * A stored editorial image always wins. Reviewed entries cover cities where a
+ * known photo is already available; every other registry city is resolved from
+ * a precise city, region and nation search through the existing Pexels service.
  */
 
 'use strict';
 
+const logger = require('../utils/logger');
+const { getPexelsService } = require('../utils/pexels-service');
+
 const IMAGE_PARAMS = 'auto=compress&cs=tinysrgb&w=1600&h=1100&fit=crop';
+const AUTO_HERO_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const autoHeroCache = new Map();
 
 const CITY_HEROES = Object.freeze({
   cardiff: Object.freeze({
@@ -61,8 +66,194 @@ function findCuratedHeroByUrl(url) {
   return null;
 }
 
+/**
+ * Build a disambiguated Pexels query for any registered UK city.
+ * @param {Object} city Registry city record.
+ * @returns {string} Search query.
+ */
+function buildCitySearchQuery(city) {
+  return [
+    city && city.name,
+    city && city.region,
+    city && city.nation,
+    'United Kingdom city landmark',
+  ]
+    .filter(Boolean)
+    .join(' ');
+}
+
+/**
+ * Normalise text for geographic relevance scoring.
+ * @param {unknown} value Candidate text.
+ * @returns {string} Comparable text.
+ */
+function comparableText(value) {
+  return String(value || '')
+    .normalize('NFKD')
+    .replace(/[^a-z0-9]+/gi, ' ')
+    .trim()
+    .toLowerCase();
+}
+
+/**
+ * Prefer results whose Pexels description explicitly names the city or region.
+ * API result order remains the final tie-breaker because it reflects the full
+ * city-specific search query.
+ * @param {Object} photo Pexels photo.
+ * @param {Object} city Registry city record.
+ * @param {number} index Original result position.
+ * @returns {number} Relevance score.
+ */
+function scorePhoto(photo, city, index) {
+  const corpus = comparableText(`${photo.alt || ''} ${photo.url || ''}`);
+  const names = [city.name, ...(city.alternateNames || [])].map(comparableText).filter(Boolean);
+  let score = Math.max(0, 20 - index);
+  if (names.some(name => corpus.includes(name))) {
+    score += 100;
+  }
+  if (city.region && corpus.includes(comparableText(city.region))) {
+    score += 25;
+  }
+  if (city.nation && corpus.includes(comparableText(city.nation))) {
+    score += 10;
+  }
+  if (Number(photo.width) > Number(photo.height)) {
+    score += 5;
+  }
+  return score;
+}
+
+/**
+ * Keep only Pexels-owned photo and image URLs.
+ * @param {unknown} value Candidate URL.
+ * @param {string[]} allowedHosts Exact allowed hosts.
+ * @returns {URL|null} Parsed safe URL.
+ */
+function pexelsUrl(value, allowedHosts) {
+  try {
+    const parsed = new URL(String(value || ''));
+    return parsed.protocol === 'https:' && allowedHosts.includes(parsed.hostname) ? parsed : null;
+  } catch (_error) {
+    return null;
+  }
+}
+
+/**
+ * Convert one Pexels API result to the location-page hero contract.
+ * @param {Object} photo Pexels photo.
+ * @param {Object} city Registry city record.
+ * @returns {Object|null} Hero or null for an unsafe/incomplete response.
+ */
+function heroFromPhoto(photo, city) {
+  const image = pexelsUrl(
+    photo &&
+      photo.src &&
+      (photo.src.landscape || photo.src.large2x || photo.src.large || photo.src.original),
+    ['images.pexels.com']
+  );
+  const source = pexelsUrl(photo && photo.url, ['www.pexels.com', 'pexels.com']);
+  if (!image || !source) {
+    return null;
+  }
+  image.search = IMAGE_PARAMS;
+  return {
+    url: image.toString(),
+    alt: String((photo && photo.alt) || `${city.name} city landmark`).trim(),
+    credit: String((photo && photo.photographer) || 'Pexels').trim(),
+    sourceUrl: source.toString(),
+  };
+}
+
+/**
+ * Resolve an automatic Pexels hero for any registered city.
+ * @param {Object} city Registry city record.
+ * @param {Object} [options] Test/runtime dependencies.
+ * @param {Object} [options.pexels] Pexels service.
+ * @param {number} [options.now] Current timestamp.
+ * @returns {Promise<Object|null>} Resolved hero or null when Pexels is unavailable.
+ */
+async function resolveAutomaticHero(city, options = {}) {
+  if (!city || !city.slug) {
+    return null;
+  }
+  const curated = getCuratedHero(city);
+  if (curated) {
+    return curated;
+  }
+  const now = Number.isFinite(options.now) ? options.now : Date.now();
+  const cached = autoHeroCache.get(city.slug);
+  if (cached && now < cached.expiresAt) {
+    return { ...cached.hero };
+  }
+
+  const pexels = options.pexels || getPexelsService();
+  if (!pexels || !pexels.isConfigured()) {
+    return null;
+  }
+
+  try {
+    const result = await pexels.searchPhotos(buildCitySearchQuery(city), 12, 1, {
+      orientation: 'landscape',
+      size: 'large',
+    });
+    const candidates = (result.photos || [])
+      .map((photo, index) => ({ hero: heroFromPhoto(photo, city), photo, index }))
+      .filter(candidate => candidate.hero)
+      .sort(
+        (left, right) =>
+          scorePhoto(right.photo, city, right.index) - scorePhoto(left.photo, city, left.index)
+      );
+    const hero = candidates.length ? candidates[0].hero : null;
+    if (hero) {
+      autoHeroCache.set(city.slug, { hero, expiresAt: now + AUTO_HERO_CACHE_TTL_MS });
+      return { ...hero };
+    }
+  } catch (error) {
+    logger.warn(`Could not resolve a Pexels location hero for ${city.slug}: ${error.message}`);
+  }
+  return null;
+}
+
+/**
+ * Add an automatic hero only when the page has no stored or curated image.
+ * @param {Object} city Registry city record.
+ * @param {Object} page Normalised location page.
+ * @param {Object} [options] Resolver dependencies.
+ * @returns {Promise<Object>} Page with its effective hero.
+ */
+async function resolvePageHero(city, page, options = {}) {
+  if (!page || (page.content && page.content.heroImageUrl)) {
+    return page;
+  }
+  const hero = await resolveAutomaticHero(city, options);
+  if (!hero) {
+    return page;
+  }
+  return {
+    ...page,
+    content: {
+      ...page.content,
+      heroImageUrl: hero.url,
+      heroImageAlt: hero.alt,
+      heroImageCredit: hero.credit,
+      heroImageSourceUrl: hero.sourceUrl,
+    },
+  };
+}
+
+/** Clear automatic results after tests or configuration changes. */
+function resetAutomaticHeroCache() {
+  autoHeroCache.clear();
+}
+
 module.exports = {
   CITY_HEROES,
+  buildCitySearchQuery,
   findCuratedHeroByUrl,
   getCuratedHero,
+  heroFromPhoto,
+  resetAutomaticHeroCache,
+  resolveAutomaticHero,
+  resolvePageHero,
+  scorePhoto,
 };

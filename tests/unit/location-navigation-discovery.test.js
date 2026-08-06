@@ -25,7 +25,7 @@ describe('public location discovery', () => {
 
       expect(header).not.toMatch(/href=["']\/locations["']/i);
       expect(html).toMatch(/<footer[\s\S]*?href=["']\/locations["']/i);
-      expect(html).toContain('/assets/css/locations-public-refresh.css?v=1');
+      expect(html).toContain('/assets/css/locations-public-refresh.css?v=2');
     }
   );
 

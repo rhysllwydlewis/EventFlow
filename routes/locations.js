@@ -22,6 +22,7 @@ const dbUnified = require('../db-unified');
 const logger = require('../utils/logger');
 const { publicReadLimiter } = require('../middleware/rateLimits');
 const registry = require('../services/locationRegistry.service');
+const locationHeroImages = require('../services/locationHeroImage.service');
 const locationPages = require('../services/locationPage.service');
 const supplierLocation = require('../services/supplierLocation.service');
 const {
@@ -687,7 +688,7 @@ router.get('/locations/:citySlug', publicReadLimiter, async (req, res, next) => 
     }
 
     const data = await readLocationData();
-    const page = locationPages.normalisePageRecord(city, data.pageRecords.get(city.slug));
+    let page = locationPages.normalisePageRecord(city, data.pageRecords.get(city.slug));
 
     // Draft, in-review and retired pages do not exist as far as the public is
     // concerned. Returning 404 keeps unfinished work out of the index entirely.
@@ -695,6 +696,10 @@ router.get('/locations/:citySlug', publicReadLimiter, async (req, res, next) => 
       res.set('X-Robots-Tag', 'noindex, follow');
       return next();
     }
+
+    // Stored editorial media wins; otherwise every registry city gets a
+    // server-rendered, cached result from its disambiguated Pexels search.
+    page = await locationHeroImages.resolvePageHero(city, page);
 
     const model = locationPages.buildCityPageModel({
       city,

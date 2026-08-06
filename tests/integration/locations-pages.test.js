@@ -11,6 +11,11 @@ process.env.JWT_SECRET =
 const express = require('express');
 const request = require('supertest');
 
+const mockPexelsService = {
+  isConfigured: jest.fn(() => false),
+  searchPhotos: jest.fn(),
+};
+
 const store = new Map();
 
 const mockDb = {
@@ -38,7 +43,11 @@ jest.mock('../../middleware/rateLimits', () => {
   const passthrough = (req, res, next) => next();
   return { apiLimiter: passthrough, publicReadLimiter: passthrough, writeLimiter: passthrough };
 });
+jest.mock('../../utils/pexels-service', () => ({
+  getPexelsService: () => mockPexelsService,
+}));
 
+const locationHeroImages = require('../../services/locationHeroImage.service');
 const locationRoutes = require('../../routes/locations');
 
 /**
@@ -110,6 +119,9 @@ const strongInventory = [
 
 beforeEach(() => {
   mockDb.reset();
+  mockPexelsService.isConfigured.mockReturnValue(false);
+  mockPexelsService.searchPhotos.mockReset();
+  locationHeroImages.resetAutomaticHeroCache();
   locationRoutes.__internal.resetLocationDataCache();
   mockDb.seed('users', [{ id: 'user-1', email: 'owner@example.com' }]);
   mockDb.seed('suppliers', strongInventory);
@@ -211,6 +223,34 @@ describe('GET /locations/:citySlug', () => {
     const response = await request(buildApp()).get('/locations/cardiff');
     expect(response.text).toContain('>City Photographer</a>');
     expect(response.text).not.toContain('City Photographer on Pexels');
+  });
+
+  it('server-renders a city-specific Pexels hero for an uncurated registry city', async () => {
+    mockPexelsService.isConfigured.mockReturnValue(true);
+    mockPexelsService.searchPhotos.mockResolvedValue({
+      photos: [
+        {
+          id: 456,
+          width: 1800,
+          height: 1200,
+          url: 'https://www.pexels.com/photo/london-river-skyline-456/',
+          photographer: 'London Photographer',
+          alt: 'London skyline beside the River Thames',
+          src: {
+            landscape: 'https://images.pexels.com/photos/456/london-456.jpeg?w=1200',
+          },
+        },
+      ],
+    });
+    mockDb.seed('location_pages', [pageRecord('london')]);
+
+    const response = await request(buildApp()).get('/locations/london');
+
+    expect(response.status).toBe(200);
+    expect(response.text).toContain('images.pexels.com/photos/456/london-456.jpeg');
+    expect(response.text).toContain('alt="London skyline beside the River Thames"');
+    expect(response.text).toContain('London Photographer on Pexels');
+    expect(response.text).toContain('<meta property="og:image"');
   });
 
   it('links to supplier profiles with their relationship labels', async () => {

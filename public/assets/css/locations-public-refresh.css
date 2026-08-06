@@ -16,10 +16,29 @@
 .efl-main {
   overflow: hidden;
   padding-bottom: 0;
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
+  letter-spacing: -0.005em;
 }
 
 .efl-container {
-  width: min(1180px, calc(100% - 40px));
+  width: min(1140px, calc(100% - 40px));
+}
+
+.efl :where(h1, h2, h3) {
+  overflow-wrap: anywhere;
+  text-align: left;
+  text-wrap: balance;
+}
+
+.efl :where(p, li) {
+  text-wrap: pretty;
 }
 
 .efl-breadcrumbs {
@@ -44,15 +63,15 @@
 
 .efl-hero {
   position: relative;
-  margin: 1.2rem 0 3.3rem;
-  border-radius: 28px;
+  margin: 1rem 0 2.6rem;
+  border-radius: 24px;
 }
 
 .efl-hero--city,
 .efl-hero--hub {
   display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(360px, 0.95fr);
-  min-height: 470px;
+  grid-template-columns: minmax(0, 0.94fr) minmax(380px, 1.06fr);
+  min-height: 410px;
   align-items: stretch;
   overflow: hidden;
   background:
@@ -68,17 +87,17 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: clamp(2.4rem, 5vw, 4.4rem);
+  padding: clamp(2rem, 4vw, 3.1rem);
 }
 
 .efl-hero__kicker {
   display: inline-flex;
   gap: 0.55rem;
   align-items: center;
-  margin-bottom: 1.1rem;
+  margin-bottom: 0.8rem;
   color: #8ce8d8;
   font-size: 0.75rem;
-  font-weight: 850;
+  font-weight: 750;
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
@@ -88,26 +107,26 @@
 }
 
 .efl-hero h1 {
-  max-width: 680px;
+  max-width: 600px;
   margin: 0;
   color: #fff;
-  font-size: clamp(2.45rem, 5vw, 4.35rem);
-  font-weight: 850;
-  letter-spacing: -0.055em;
-  line-height: 0.98;
+  font-size: clamp(2.25rem, 4.2vw, 3.65rem);
+  font-weight: 780;
+  letter-spacing: -0.045em;
+  line-height: 1.03;
 }
 
 .efl-hero__intro {
-  max-width: 58ch;
-  margin: 1.4rem 0 1.7rem;
+  max-width: 50ch;
+  margin: 1rem 0 1.25rem;
   color: rgba(255, 255, 255, 0.78);
-  font-size: 1rem;
-  line-height: 1.65;
+  font-size: 0.875rem;
+  line-height: 1.52;
 }
 
 .efl-hero__visual {
   position: relative;
-  min-height: 470px;
+  min-height: 410px;
   overflow: hidden;
 }
 
@@ -150,26 +169,26 @@
 .efl-hero__image-note {
   position: absolute;
   z-index: 2;
-  right: 1.35rem;
-  bottom: 1.35rem;
+  right: 1rem;
+  bottom: 1rem;
   display: grid;
-  grid-template-columns: 36px 1fr;
-  gap: 0.75rem;
+  grid-template-columns: 32px 1fr;
+  gap: 0.6rem;
   align-items: center;
-  min-width: 230px;
+  min-width: 205px;
   border: 1px solid rgba(255, 255, 255, 0.5);
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.92);
   box-shadow: 0 15px 35px rgba(7, 44, 39, 0.2);
-  padding: 0.8rem 1rem;
+  padding: 0.65rem 0.8rem;
   color: #13372f;
   backdrop-filter: blur(12px);
 }
 
 .efl-hero__image-note > span {
   display: grid;
-  width: 34px;
-  height: 34px;
+  width: 30px;
+  height: 30px;
   place-items: center;
   border-radius: 50%;
   background: #dff7f1;
@@ -239,7 +258,7 @@
   grid-template-columns: 40px minmax(0, 1fr) auto;
   gap: 0;
   align-items: center;
-  width: min(100%, 620px);
+  width: min(100%, 540px);
   border: 1px solid rgba(255, 255, 255, 0.22);
   border-radius: 13px;
   background: #fff;
@@ -260,7 +279,7 @@
 
 .efl-search--city input[type='search'],
 .efl-search--hub input[type='search'] {
-  min-height: 44px;
+  min-height: 42px;
   border: 0;
   outline: 0;
   background: transparent;
@@ -271,19 +290,19 @@
 
 .efl-search--city button,
 .efl-search--hub button {
-  min-height: 44px;
+  min-height: 42px;
   border-radius: 9px;
   background: #0b8073;
   padding: 0 1rem;
   font-size: 0.75rem;
-  font-weight: 800;
+  font-weight: 750;
 }
 
 .efl-hero__trust {
   display: flex;
   gap: 0.55rem;
   align-items: center;
-  margin: 1rem 0 0;
+  margin: 0.75rem 0 0;
   color: rgba(255, 255, 255, 0.66);
   font-size: 0.6875rem;
 }
@@ -299,8 +318,8 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 0;
-  width: calc(100% - 3.5rem);
-  margin: -5.4rem auto 3.5rem;
+  width: calc(100% - 3rem);
+  margin: -3.4rem auto 2.7rem;
   overflow: hidden;
   border: 1px solid rgba(11, 128, 115, 0.12);
   border-radius: 17px;
@@ -310,12 +329,12 @@
 }
 
 .efl-summary li {
-  min-height: 96px;
+  min-height: 78px;
   border: 0;
   border-right: 1px solid #e4efec;
   border-radius: 0;
   background: transparent;
-  padding: 1.35rem 1.55rem;
+  padding: 1rem 1.2rem;
 }
 
 .efl-summary li:last-child {
@@ -324,8 +343,8 @@
 
 .efl-summary strong {
   color: #0b8073;
-  font-size: 1.75rem;
-  font-weight: 850;
+  font-size: 1.5rem;
+  font-weight: 780;
   letter-spacing: -0.04em;
 }
 
@@ -337,15 +356,15 @@
 }
 
 .efl-section {
-  margin-bottom: 4rem;
+  margin-bottom: 2.8rem;
 }
 
 .efl-section > h2 {
   position: relative;
-  margin-bottom: 1.35rem;
+  margin-bottom: 1rem;
   color: #10231f;
-  font-size: clamp(1.55rem, 3vw, 2rem);
-  font-weight: 820;
+  font-size: clamp(1.4rem, 2.5vw, 1.75rem);
+  font-weight: 760;
   letter-spacing: -0.035em;
 }
 
@@ -353,21 +372,21 @@
   display: block;
   width: 38px;
   height: 3px;
-  margin-top: 0.7rem;
+  margin-top: 0.5rem;
   border-radius: 99px;
   background: #1ab49e;
   content: '';
 }
 
 .efl-chips {
-  gap: 0.7rem;
+  gap: 0.55rem;
 }
 
 .efl-chips a {
   border-color: rgba(11, 128, 115, 0.14);
   background: #fff;
   box-shadow: 0 8px 20px rgba(18, 72, 63, 0.06);
-  padding: 0.65rem 1rem;
+  padding: 0.55rem 0.85rem;
   color: #17483f;
   font-size: 0.75rem;
   font-weight: 700;
@@ -386,19 +405,19 @@
 }
 
 .efl-grid {
-  gap: 1rem;
+  gap: 0.85rem;
 }
 
 .efl-card {
   position: relative;
-  min-height: 210px;
+  min-height: 170px;
   justify-content: space-between;
-  gap: 1.2rem;
+  gap: 0.85rem;
   border: 1px solid rgba(11, 128, 115, 0.1);
   border-radius: 17px;
   background: #fff;
   box-shadow: 0 12px 32px rgba(18, 72, 63, 0.07);
-  padding: 1.4rem;
+  padding: 1.1rem;
   transition:
     border-color 180ms ease,
     box-shadow 180ms ease,
@@ -419,14 +438,14 @@
 
 .efl-card__avatar {
   display: grid;
-  width: 48px;
-  height: 48px;
+  width: 42px;
+  height: 42px;
   place-items: center;
   border-radius: 14px;
   background: linear-gradient(145deg, #e1f6f1, #c8ede5);
   color: #087367;
   font-size: 0.8125rem;
-  font-weight: 850;
+  font-weight: 780;
   letter-spacing: 0.03em;
 }
 
@@ -454,7 +473,7 @@
 .efl-card h3 {
   color: #10231f;
   font-size: 1rem;
-  font-weight: 800;
+  font-weight: 750;
   letter-spacing: -0.02em;
 }
 
@@ -467,7 +486,7 @@
 .efl-card__meta {
   align-items: center;
   justify-content: space-between;
-  padding-top: 1rem;
+  padding-top: 0.75rem;
   border-top: 1px solid #edf3f1;
 }
 
@@ -492,7 +511,7 @@
 .efl-planning__grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1rem;
+  gap: 0.85rem;
 }
 
 .efl-planning__card {
@@ -502,14 +521,14 @@
   border-radius: 18px;
   background: #fff;
   box-shadow: 0 12px 32px rgba(18, 72, 63, 0.06);
-  padding: 1.6rem;
+  padding: 1.25rem;
 }
 
 .efl-planning__icon {
   display: grid;
-  width: 38px;
-  height: 38px;
-  margin-bottom: 1rem;
+  width: 34px;
+  height: 34px;
+  margin-bottom: 0.75rem;
   place-items: center;
   border-radius: 12px;
   background: #e5f6f2;
@@ -517,28 +536,30 @@
 }
 
 .efl-planning__card h3 {
-  margin: 0 0 0.65rem;
+  margin: 0 0 0.45rem;
   color: #143b33;
   font-size: 1rem;
+  font-weight: 750;
+  line-height: 1.25;
 }
 
 .efl-planning__card p {
   margin-bottom: 0.65rem;
   color: #637570;
   font-size: 0.8125rem;
-  line-height: 1.65;
+  line-height: 1.55;
 }
 
 .efl-faq {
   display: grid;
   grid-template-columns: 38px minmax(0, 1fr);
-  gap: 1rem;
+  gap: 0.8rem;
   align-items: start;
-  margin-bottom: 0.65rem;
+  margin-bottom: 0.55rem;
   border: 1px solid #e3edeb;
   border-radius: 14px;
   background: #fff;
-  padding: 1.15rem 1.25rem;
+  padding: 0.9rem 1rem;
 }
 
 .efl-faq__icon {
@@ -549,38 +570,42 @@
   border-radius: 50%;
   background: #e5f6f2;
   color: #0b8073;
-  font-weight: 850;
+  font-weight: 780;
 }
 
 .efl-faq h3 {
   color: #143b33;
   font-size: 0.875rem;
+  font-weight: 750;
+  line-height: 1.3;
 }
 
 .efl-faq p {
+  margin-top: 0.3rem;
   color: #637570;
   font-size: 0.8125rem;
+  line-height: 1.5;
 }
 
 .efl-next {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 2rem;
+  gap: 1.25rem;
   align-items: center;
   overflow: hidden;
-  border-radius: 22px;
+  border-radius: 18px;
   background:
     radial-gradient(circle at 92% 20%, rgba(77, 210, 186, 0.22), transparent 28%),
     linear-gradient(135deg, #073f38, #087367);
   box-shadow: 0 24px 55px rgba(7, 77, 68, 0.18);
-  padding: clamp(2rem, 4vw, 3.2rem);
+  padding: clamp(1.5rem, 3vw, 2.2rem);
   color: #fff;
 }
 
 .efl-next__kicker {
   color: #8ce8d8;
   font-size: 0.6875rem;
-  font-weight: 850;
+  font-weight: 750;
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
@@ -588,7 +613,7 @@
 .efl-next h2 {
   margin: 0.55rem 0 0.7rem;
   color: #fff;
-  font-size: clamp(1.6rem, 3vw, 2.35rem);
+  font-size: clamp(1.45rem, 2.7vw, 1.9rem);
   letter-spacing: -0.04em;
 }
 
@@ -623,7 +648,7 @@
 
 .efl-hub-visual {
   position: relative;
-  min-height: 470px;
+  min-height: 410px;
   overflow: hidden;
   background:
     linear-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px),
@@ -700,14 +725,14 @@
 }
 
 .efl-nation {
-  margin-bottom: 2.7rem;
+  margin-bottom: 2rem;
 }
 
 .efl-nation h3 {
   margin-bottom: 1rem;
   color: #55706a;
   font-size: 0.75rem;
-  font-weight: 850;
+  font-weight: 780;
   letter-spacing: 0.11em;
   text-transform: uppercase;
 }
@@ -717,8 +742,8 @@
   grid-template-columns: 40px minmax(0, 1fr) 30px;
   gap: 0.9rem;
   align-items: center;
-  min-height: 104px;
-  padding: 1.15rem;
+  min-height: 88px;
+  padding: 0.9rem;
 }
 
 .efl-city-card__pin {
@@ -774,7 +799,7 @@
 
   .efl-hero__visual,
   .efl-hub-visual {
-    min-height: 300px;
+    min-height: 270px;
   }
 
   .efl-next {
@@ -784,7 +809,7 @@
 
 @media (max-width: 620px) {
   .efl-container {
-    width: min(100% - 24px, 1180px);
+    width: min(100% - 24px, 1140px);
   }
 
   .efl-breadcrumbs {
@@ -793,6 +818,7 @@
 
   .efl-hero {
     margin-top: 0.8rem;
+    margin-bottom: 2.1rem;
     border-radius: 20px;
   }
 
@@ -802,16 +828,18 @@
   }
 
   .efl-hero__copy {
-    padding: 2rem 1.25rem;
+    padding: 1.45rem 1.15rem;
   }
 
   .efl-hero h1 {
-    font-size: clamp(2.15rem, 12vw, 3rem);
+    font-size: clamp(1.9rem, 10vw, 2.55rem);
+    line-height: 1.04;
   }
 
   .efl-hero__intro {
-    margin: 1rem 0 1.25rem;
-    font-size: 0.875rem;
+    margin: 0.8rem 0 1rem;
+    font-size: 0.8125rem;
+    line-height: 1.5;
   }
 
   .efl-search--city,
@@ -832,13 +860,13 @@
 
   .efl-hero__visual,
   .efl-hub-visual {
-    min-height: 235px;
+    min-height: 210px;
   }
 
   .efl-hero__image-note {
     right: 0.9rem;
     bottom: 0.9rem;
-    min-width: 210px;
+    min-width: 190px;
   }
 
   .efl-hero__credit {
@@ -850,14 +878,15 @@
   .efl-summary {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     width: calc(100% - 1.2rem);
-    margin-top: -2.8rem;
+    margin-top: -2.2rem;
+    margin-bottom: 2.2rem;
   }
 
   .efl-summary li {
-    min-height: 86px;
+    min-height: 74px;
     border-right: 1px solid #e4efec;
     border-bottom: 1px solid #e4efec;
-    padding: 1rem;
+    padding: 0.85rem;
   }
 
   .efl-summary li:nth-child(even) {
@@ -865,7 +894,7 @@
   }
 
   .efl-section {
-    margin-bottom: 3rem;
+    margin-bottom: 2.25rem;
   }
 
   .efl-planning__grid {
@@ -873,12 +902,12 @@
   }
 
   .efl-card {
-    min-height: 190px;
+    min-height: 160px;
   }
 
   .efl-next {
     border-radius: 18px;
-    padding: 1.6rem;
+    padding: 1.35rem;
   }
 
   .efl-next .efl-actions {
