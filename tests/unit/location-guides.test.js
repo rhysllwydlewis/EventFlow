@@ -5,7 +5,14 @@
 'use strict';
 
 const fs = require('fs');
+const registry = require('../../services/locationRegistry.service');
 const { relatedGuides, resetGuidesCache } = require('../../services/locationGuides.service');
+
+// Forces the registry to read its own data file and cache the result before
+// any test in this file mocks fs.readFileSync for the guides catalogue —
+// otherwise a later registry.listCities() call would be intercepted too and
+// silently see zero cities.
+const ALL_CITY_SLUGS = registry.listCities().map(city => city.slug);
 
 beforeEach(() => {
   resetGuidesCache();
@@ -110,5 +117,129 @@ describe('city-pinned guides', () => {
   it('a city-agnostic request never surfaces a guide pinned to a specific city', () => {
     const guides = relatedGuides([{ name: 'Venues' }]);
     expect(guides.map(guide => guide.title)).toEqual(['Generic Venues Guide']);
+  });
+});
+
+describe('reachability of every generic guide, not just the featured three', () => {
+  let readFileSyncSpy;
+
+  // Ten generic guides, only the first three flagged featured — mirrors the
+  // real catalogue's shape (three featured guides from file 1, everything
+  // else, including all of file 2, unflagged).
+  const generic = Array.from({ length: 10 }, (_unused, index) => ({
+    id: `guide-${index}`,
+    title: `Guide ${index}`,
+    category: 'Nonexistent Category',
+    href: `/articles/guide-${index}`,
+    excerpt: `Excerpt ${index}.`,
+    featured: index < 3,
+    featuredOrder: index < 3 ? index + 1 : undefined,
+  }));
+
+  beforeEach(() => {
+    resetGuidesCache();
+    readFileSyncSpy = jest.spyOn(fs, 'readFileSync').mockImplementation(filePath => {
+      if (String(filePath).endsWith('guides.json')) {
+        return JSON.stringify(generic);
+      }
+      return JSON.stringify([]);
+    });
+  });
+
+  afterEach(() => {
+    readFileSyncSpy.mockRestore();
+    resetGuidesCache();
+  });
+
+  it('lets a non-featured guide win a slot for at least one city, not just the fixed featured three', () => {
+    const nonFeaturedTitles = new Set(generic.slice(3).map(guide => guide.title));
+    const surfaced = ALL_CITY_SLUGS.some(slug =>
+      relatedGuides([{ name: 'Elsewhere' }], slug).some(guide => nonFeaturedTitles.has(guide.title))
+    );
+    expect(surfaced).toBe(true);
+  });
+
+  it('gives the same city the same selection on every call', () => {
+    const first = relatedGuides([{ name: 'Elsewhere' }], 'cardiff').map(guide => guide.title);
+    const second = relatedGuides([{ name: 'Elsewhere' }], 'cardiff').map(guide => guide.title);
+    expect(second).toEqual(first);
+  });
+
+  it('never returns more than three guides', () => {
+    const guides = relatedGuides([{ name: 'Elsewhere' }], 'london');
+    expect(guides.length).toBeLessThanOrEqual(3);
+  });
+});
+
+describe('a malformed or unreadable catalogue', () => {
+  let readFileSyncSpy;
+
+  afterEach(() => {
+    readFileSyncSpy.mockRestore();
+    resetGuidesCache();
+  });
+
+  it('fails closed rather than throwing when a catalogue file cannot be read', () => {
+    resetGuidesCache();
+    readFileSyncSpy = jest.spyOn(fs, 'readFileSync').mockImplementation(() => {
+      throw new Error('ENOENT: no such file');
+    });
+    expect(() => relatedGuides([{ name: 'Venues' }], 'cardiff')).not.toThrow();
+    expect(relatedGuides([{ name: 'Venues' }], 'cardiff')).toEqual([]);
+  });
+
+  it('fails closed rather than throwing on invalid JSON', () => {
+    resetGuidesCache();
+    readFileSyncSpy = jest.spyOn(fs, 'readFileSync').mockReturnValue('not valid json {{{');
+    expect(() => relatedGuides([{ name: 'Venues' }], 'cardiff')).not.toThrow();
+    expect(relatedGuides([{ name: 'Venues' }], 'cardiff')).toEqual([]);
+  });
+});
+
+describe('excerpt length', () => {
+  let readFileSyncSpy;
+
+  afterEach(() => {
+    readFileSyncSpy.mockRestore();
+    resetGuidesCache();
+  });
+
+  it('truncates a long excerpt on a whole word, with an ellipsis', () => {
+    resetGuidesCache();
+    const longExcerpt = 'word '.repeat(80).trim();
+    readFileSyncSpy = jest.spyOn(fs, 'readFileSync').mockImplementation(filePath => {
+      if (String(filePath).endsWith('guides.json')) {
+        return JSON.stringify([
+          {
+            id: 'long-excerpt',
+            title: 'Guide With A Long Excerpt',
+            category: 'Venues',
+            href: '/articles/long-excerpt',
+            excerpt: longExcerpt,
+            featured: true,
+            featuredOrder: 1,
+          },
+        ]);
+      }
+      return JSON.stringify([]);
+    });
+
+    const [guide] = relatedGuides([{ name: 'Venues' }], 'cardiff');
+    expect(guide.excerpt.length).toBeLessThanOrEqual(200);
+    expect(guide.excerpt.endsWith('…')).toBe(true);
+    expect(guide.excerpt).not.toMatch(/\s…$/);
+  });
+});
+
+describe('registry consistency of the real catalogue', () => {
+  it('never pins a guide to a city slug the registry does not recognise', () => {
+    const guides = [
+      ...require('../../public/assets/data/guides.json'),
+      ...require('../../public/assets/data/guides-eventflow-pack.json'),
+    ];
+    const unknownPins = guides
+      .filter(guide => Array.isArray(guide.cities))
+      .flatMap(guide => guide.cities.filter(slug => !registry.getCity(slug)));
+    expect(unknownPins).toEqual([]);
   });
 });

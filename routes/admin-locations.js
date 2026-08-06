@@ -204,6 +204,9 @@ function describeCity(city, data) {
     packageCount: model.packages.length,
     eventCount: model.events.length,
     nearbyPublished: model.nearby.map(nearby => nearby.slug),
+    // The guides a visitor sees on this city today, so an editor can check
+    // what is actually showing without leaving the list for the preview.
+    guides: locationGuides.relatedGuides(model.categories, city.slug),
     warnings: buildWarnings(city, page, model, data),
   };
 }

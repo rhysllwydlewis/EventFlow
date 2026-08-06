@@ -228,6 +228,10 @@
       <p>${escapeHtml(item.supplierCount)} suppliers · ${escapeHtml(item.categoryCount)} categories · reviewed ${escapeHtml(reviewed)}</p>
       ${renderDetails('Why it cannot be indexed', item.gate.blockers)}
       ${renderDetails('Editorial warnings', item.warnings)}
+      ${renderDetails(
+        'Guides shown on this page',
+        (item.guides || []).map(guide => guide.title)
+      )}
       <p class="efl-actions">
         <button type="button" class="efl-btn efl-btn--solid" data-action="edit">Edit</button>
         <button type="button" class="efl-btn efl-btn--ghost" data-action="pilot">Pilot</button>
