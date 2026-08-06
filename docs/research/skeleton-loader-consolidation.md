@@ -2,7 +2,7 @@
 
 ## Purpose
 
-EventFlow had several overlapping loading systems with different class names, animation definitions, dimensions and accessibility behaviour. That made page loaders drift away from the layouts they represented and left some routes showing raw loading text or blank content regions.
+EventFlow had several overlapping loading systems with different class names, animation definitions, dimensions and accessibility behaviour. That made page loaders drift away from the layouts they represented and left some routes showing raw loading text, generic slabs or blank content regions.
 
 This change establishes one canonical skeleton contract and fixes the clearest broken or mismatched routes without hiding useful server-rendered content or turning the work into a full dashboard redesign.
 
@@ -10,25 +10,29 @@ This change establishes one canonical skeleton contract and fixes the clearest b
 
 ### Canonical shared system
 
-- `public/assets/css/skeleton.css` is the single visual source for skeleton colours, shimmer, dimensions, responsive behaviour and reduced-motion handling.
-- `public/assets/js/utils/skeleton-loader.js` is the single lifecycle and markup source for new loaders.
+- `public/assets/css/skeleton.css` is the shared visual source for skeleton colours, shimmer, dimensions, responsive behaviour and reduced-motion handling.
+- `public/assets/js/utils/skeleton-loader.js` is the shared lifecycle and markup source for new loaders.
 - Existing named utility exports remain available so current imports do not break during migration.
-- Named presets now cover supplier cards, package cards, event cards, guide cards, gallery tiles, conversations, tickets, KPIs, tables and supplier-profile layouts.
+- Named presets cover supplier cards, package cards, event cards, guide cards, gallery tiles, conversations, tickets, KPIs, tables and supplier-profile layouts.
 - Loading regions set `aria-busy` and a deterministic state attribute, then clear those attributes on success, empty or error states.
 - User-facing empty and error copy is escaped.
 - `?skeletonDebug=1` holds shared loaders on screen for desktop and mobile visual inspection.
 
 ### Compatibility consolidation
 
-- `loading-skeleton.css` now delegates to the canonical stylesheet while preserving legacy wrappers used by Guides and older homepage code.
-- `marketplace-skeleton.css` now delegates animation, colour and motion behaviour to the canonical stylesheet while preserving Marketplace-specific layout classes.
-- Existing dashboards and supplier pages that already use `.skeleton`, `.skeleton-text`, `.skeleton-card`, `.skeleton-list-item` and related classes inherit the improved shared styling without requiring simultaneous renderer rewrites.
+- `loading-skeleton.css` delegates to the canonical stylesheet while preserving legacy wrappers used by Guides and older homepage code.
+- `marketplace-skeleton.css` delegates animation, colour and motion behaviour to the canonical stylesheet while preserving Marketplace-specific layout classes.
+- Gallery and Calendar keep their established page styles in `gallery-base.css` and `calendar-base.css`, while their public entry stylesheets add canonical loading treatment.
+- Existing dashboards and supplier pages using `.skeleton`, `.skeleton-text`, `.skeleton-card`, `.skeleton-list-item` and related classes inherit the improved shared styling without requiring simultaneous renderer rewrites.
 
 ### Priority page fixes
 
-- The category/package route no longer exposes a raw loading heading with a blank results area. It now renders title, hero and package-card placeholders and has distinct missing-category and retryable error states.
-- The event-detail route no longer displays `Loading event…` and a plain `Loading…` body. Its initial HTML now reserves the real hero, media, content, action and organiser layout.
+- The category/package route no longer exposes a raw loading heading with a blank results area. Its initial HTML and runtime now render title, hero and package-card placeholders, with distinct missing-category and retryable error states.
+- The event-detail route no longer displays `Loading event…` and a plain `Loading…` body. Its initial HTML reserves the real hero, media, content, action and organiser layout.
 - The Guides loader mismatch is resolved by making its legacy `skeleton-grid` and empty `skeleton-card` markup participate in the canonical layout contract.
+- Marketplace retains its existing card markup but no longer owns a separate shimmer and motion system.
+- The Gallery manager's centred spinner now presents as four responsive gallery-tile placeholders without changing upload or photo-management JavaScript.
+- The public calendar's generic grey blocks now present as event-card-shaped placeholders with media, category/title and metadata regions.
 
 ## Deliberate exclusions
 
@@ -38,7 +42,7 @@ Discussion threads retain useful server-rendered content while client enhancemen
 
 ### Full renderer migrations
 
-The supplier profile, customer dashboard, supplier dashboard, Community homepage/list/member pages, public calendar, gallery manager, support modals and admin tables still contain page-specific or generic placeholder markup. Their current placeholders benefit from the canonical styling where class names overlap, but converting every renderer to named presets is left for focused follow-up work.
+The supplier profile, customer dashboard, supplier dashboard, Community homepage/list/member pages, support modals and several admin tables still contain page-specific or generic placeholder markup. Their current placeholders benefit from the canonical styling where class names overlap, but converting every renderer to named presets is left for focused follow-up work.
 
 This boundary keeps the current PR reviewable and reduces the risk of mixing loading-state work with unrelated layout or data-flow changes.
 
@@ -50,11 +54,10 @@ This boundary keeps the current PR reviewable and reduces the risk of mixing loa
 
 1. Complete the public supplier-profile page skeleton: hero media, avatar, gallery, packages, reviews and sidebar.
 2. Replace customer and supplier dashboard rectangles with widget-shaped KPI, calendar, budget, availability, conversation and ticket presets.
-3. Replace the gallery manager spinner with responsive gallery-tile placeholders.
-4. Upgrade public-calendar placeholders to match event-card image, metadata and actions.
-5. Add Community-specific featured, discussion-row, profile and sidebar presets while preserving server-rendered thread content.
-6. Adopt shared table-row and modal presets across admin pages.
-7. Verify and remove dormant skeleton implementations.
+3. Add Community-specific featured, discussion-row, profile and sidebar presets while preserving server-rendered thread content.
+4. Adopt shared table-row and modal presets across admin pages.
+5. Convert support ticket lists and detail modals to the shared ticket and conversation presets.
+6. Verify and remove dormant skeleton implementations.
 
 ## Manual QA
 
@@ -68,4 +71,6 @@ Use `?skeletonDebug=1` on a route that imports the shared utility to hold its lo
 - empty and error states clear loading semantics;
 - category retry performs a fresh request;
 - event detail does not show raw loading copy;
-- Guides and Marketplace retain their existing grid behaviour.
+- Guides and Marketplace retain their existing grid behaviour;
+- Gallery shows tile placeholders rather than a centred spinner;
+- public-calendar placeholders match the event-card grid.
