@@ -73,4 +73,14 @@ describe('reviewed policy metadata', () => {
     });
     expect(source).not.toContain('href="#changelog"');
   });
+
+  it('keeps the processor and storage inventory aligned with the implementation', () => {
+    const privacy = fs.readFileSync(path.join(ROOT, 'public/privacy.html'), 'utf8');
+
+    expect(privacy).toContain('<strong>Postmark:</strong>');
+    expect(privacy).toContain('<strong>MongoDB:</strong>');
+    expect(privacy).toContain('<strong>Google Identity Services:</strong>');
+    expect(privacy).not.toMatch(/AWS S3|AWS SES|SendGrid|Custom SMTP Servers/);
+    expect(privacy).not.toContain('TLS 1.3');
+  });
 });

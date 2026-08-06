@@ -572,14 +572,14 @@ async function getFile(filePath, requestPath, req) {
   try {
     const configStats = await fs.stat(configPath);
     configMtime = configStats.mtime.getTime();
-  } catch (err) {
+  } catch {
     // Config file doesn't exist or can't be read - use 0
   }
 
   try {
     const policyMetadataStats = await fs.stat(policyMetadataPath);
     policyMetadataMtime = policyMetadataStats.mtime.getTime();
-  } catch (err) {
+  } catch {
     // Policy metadata file doesn't exist or can't be read - use 0
   }
 

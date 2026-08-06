@@ -123,9 +123,9 @@ class DateManagementService {
 
   /**
    * Check if legal content has changed since its recorded review
-   * @returns {Promise<Object>} Change detection result
+   * @returns {Object} Change detection result
    */
-  async hasLegalContentChanged() {
+  hasLegalContentChanged() {
     try {
       const bySourcePath = new Map();
       Object.entries(POLICY_METADATA).forEach(([policyId, metadata]) => {
@@ -226,9 +226,9 @@ class DateManagementService {
   /**
    * Runtime mutation is deliberately disabled. A policy date is changed in the
    * reviewed metadata file in the same commit as the policy wording.
-   * @returns {Promise<Object>} Refusal result
+   * @returns {Object} Refusal result
    */
-  async updateLegalDates() {
+  updateLegalDates() {
     return {
       success: false,
       code: 'POLICY_METADATA_REVIEW_REQUIRED',

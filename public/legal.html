@@ -1462,17 +1462,17 @@
             <ul>
               <li><strong>Under Consideration:</strong> Stripe Connect, Escrow services</li>
               <li><strong>Benefits:</strong> Secure payment processing, buyer/seller protection, automated refunds</li>
-              <li><strong>PCI DSS Compliance:</strong> Any future payment processing will be PCI DSS Level 1 compliant</li>
+              <li><strong>Compliance Review:</strong> Any future marketplace payment flow would require a separate security, privacy and legal review before launch</li>
               <li><strong>Timeline:</strong> To be announced - users will be notified of any changes</li>
             </ul>
             
             <h3 class="h5" style="margin-top: 24px;">Subscription & Service Payments</h3>
             <p>For EventFlow subscriptions and premium features:</p>
             <ul>
-              <li><strong>Payment Processor:</strong> Stripe (PCI DSS Level 1 certified)</li>
+              <li><strong>Payment Processor:</strong> Stripe</li>
               <li><strong>Data Security:</strong> EventFlow does NOT store payment card details</li>
-              <li><strong>Encryption:</strong> All payment data transmitted using TLS 1.3 encryption</li>
-              <li><strong>Compliance:</strong> Full PCI DSS compliance via Stripe</li>
+              <li><strong>Platform Records:</strong> EventFlow stores Stripe customer, subscription, checkout and invoice references needed to administer subscriptions</li>
+              <li><strong>Transmission:</strong> Payment information is sent to Stripe over an encrypted connection</li>
             </ul>
             
             <h3 class="h5" style="margin-top: 24px;">Reporting Payment Issues</h3>
@@ -1641,7 +1641,6 @@
       </div>
 
       </div>
-    </div>
 
     <!-- Bottom Notice -->
     <div class="card" style="margin-top: 48px; background: #F9FAFB; text-align: center;">
@@ -1678,4 +1677,3 @@
 <script src="/assets/js/components/eventflow-footer.js" defer></script>
 </body>
 </html>
-

@@ -1404,7 +1404,7 @@ function initializeWebSocketV2(db) {
  * This ensures proper startup and health checks before accepting requests
  * Includes 30 second startup timeout to prevent hanging
  */
-async function startServer() {
+function startServer() {
   // Set startup timeout to prevent hanging
   const startupTimeout = setTimeout(() => {
     logger.error('');
@@ -2049,11 +2049,7 @@ module.exports = app;
 
 // Only start the server if this file is run directly (not imported by tests)
 if (require.main === module) {
-  startServer().catch(error => {
-    logger.error('Fatal error during startup:', error);
-    sentry.captureException(error);
-    process.exit(1);
-  });
+  startServer();
 }
 
 // Global error handlers

@@ -353,8 +353,8 @@
               category, condition, availability status
             </li>
             <li>
-              <strong>Item Photos:</strong> Images you upload for marketplace listings (stored
-              securely in AWS S3 cloud storage)
+              <strong>Item Photos:</strong> Images you upload for marketplace listings (stored in
+              dedicated MongoDB collections alongside the listing records)
             </li>
             <li>
               <strong>Transaction Data:</strong> Listing status (active, sold, removed, expired),
@@ -507,16 +507,14 @@
           <h2 class="h4">5. Data Storage and Security</h2>
 
           <h3 class="h5">5.1 Storage Infrastructure</h3>
-          <p>Your data is stored using secure, professional-grade infrastructure:</p>
+          <p>
+            The application is designed to use a configured MongoDB deployment for persistent
+            production data:
+          </p>
           <ul>
-            <li><strong>Primary Database:</strong> MongoDB Atlas (cloud-based database service)</li>
-            <li>
-              <strong>Photo Storage:</strong> AWS S3 (Amazon Web Services Simple Storage Service)
-            </li>
-            <li>
-              <strong>Data Location:</strong> Data centers located in the European Union and United
-              Kingdom
-            </li>
+            <li><strong>Application Data:</strong> Accounts, listings, messages and service records are stored in MongoDB.</li>
+            <li><strong>Uploaded Media:</strong> Processed supplier, profile and marketplace images are stored in MongoDB collections.</li>
+            <li><strong>Hosting Region:</strong> The operator selects the production provider and region. The live region must be confirmed against the deployment configuration and provider agreement.</li>
           </ul>
 
           <h3 class="h5">5.2 Security Measures</h3>
@@ -551,31 +549,29 @@
           <ul>
             <li>Passwords never stored in plain text</li>
             <li>Sensitive data excluded from data exports</li>
-            <li>Database encryption at rest</li>
-            <li>Secure backup procedures</li>
+            <li>Provider encryption and backup controls where enabled for the live deployment</li>
           </ul>
 
           <h3 class="h5">5.3 Payment Security</h3>
           <p><strong>Subscription & Service Payments:</strong></p>
           <ul>
-            <li><strong>Payment Processor:</strong> Stripe (PCI DSS Level 1 Service Provider)</li>
+            <li><strong>Payment Processor:</strong> Stripe</li>
             <li>
               <strong>Data Handling:</strong> EventFlow does NOT store or process payment card
               details directly
             </li>
             <li>
-              <strong>Tokenization:</strong> Card details tokenized by Stripe; only secure tokens
-              stored in our system
+              <strong>Platform Records:</strong> We store Stripe customer, subscription, checkout
+              and invoice references needed to administer the subscription, rather than full card
+              details
             </li>
             <li>
-              <strong>Encryption:</strong> All payment data transmitted using TLS 1.3 encryption
+              <strong>Transmission:</strong> Payment information is sent to Stripe over an encrypted
+              connection
             </li>
             <li>
-              <strong>PCI DSS Compliance:</strong> Stripe maintains full PCI DSS Level 1 compliance
-            </li>
-            <li>
-              <strong>3D Secure:</strong> Strong Customer Authentication (SCA) for EU/UK
-              transactions
+              <strong>Authentication:</strong> Stripe may apply 3D Secure or Strong Customer
+              Authentication where required for a transaction
             </li>
           </ul>
 
@@ -697,61 +693,55 @@
             </tbody>
           </table>
 
-          <h2 class="h4">7. Third-Party Data Processors</h2>
+          <h2 class="h4">7. Third-Party Services</h2>
           <p>
-            We engage trusted third-party service providers to help us deliver our Services. These
-            processors have access to your personal data only to perform specific tasks on our
-            behalf and are obligated to protect your data:
+            We use third-party services to operate EventFlow. Depending on the service and context,
+            a provider may act as our processor or as an independent controller under its own
+            privacy information. Only providers enabled in the live deployment process data.
           </p>
 
-          <h3 class="h5">7.1 Email Service Providers</h3>
-          <p>We use email service providers to send transactional and marketing emails:</p>
+          <h3 class="h5">7.1 Email Delivery</h3>
           <ul>
             <li>
-              <strong>AWS SES (Amazon Simple Email Service)</strong> – Email delivery service
-              configured for EU regions
-            </li>
-            <li>
-              <strong>SendGrid</strong> – Alternative email delivery provider where configured
-            </li>
-            <li>
-              <strong>Custom SMTP Servers</strong> – Optional custom email server configuration
+              <strong>Postmark:</strong> Transactional email delivery for verification, password
+              resets, service notifications and support messages. Marketing messages are sent only
+              where the applicable permission or other lawful basis exists.
             </li>
           </ul>
           <p>
-            <strong>Data Shared:</strong> Email address, name, email content<br />
-            <strong>Purpose:</strong> Account verification, password resets, notifications,
-            marketing (with consent)<br />
-            <strong>Safeguards:</strong> The operator must maintain appropriate processor and transfer terms for each provider used in production
+            <strong>Data involved:</strong> Email address, name, message content and delivery
+            metadata. In local development, email may instead be written to a local outbox and is
+            not sent to Postmark.
           </p>
 
-          <h3 class="h5">7.2 Cloud Storage Providers</h3>
+          <h3 class="h5">7.2 Database and Uploaded Media</h3>
           <ul>
             <li>
-              <strong>AWS S3 (Amazon Simple Storage Service)</strong> – Secure photo and file
-              storage (including marketplace listing photos)
+              <strong>MongoDB:</strong> The production database stores application records and
+              processed image data. The specific MongoDB hosting arrangement and region depend on
+              the live deployment.
             </li>
           </ul>
           <p>
-            <strong>Data Shared:</strong> Uploaded photos and media files (supplier portfolios,
-            marketplace listings)<br />
-            <strong>Region:</strong> Configurable (EU/UK regions available)<br />
-            <strong>Safeguards:</strong> Encryption at rest and in transit, access controls<br />
-            <strong>Marketplace Photos:</strong> AWS S3 stores all marketplace listing photos
-            uploaded by sellers. Photos are deleted when listings are removed or users request
-            deletion.
+            <strong>Data involved:</strong> User and supplier records, messages, Community and
+            marketplace records, audit information, and processed supplier, profile and marketplace
+            images.
           </p>
 
-          <h3 class="h5">7.3 Database Providers</h3>
+          <h3 class="h5">7.3 Payments and Sign-in</h3>
           <ul>
-            <li><strong>MongoDB Atlas</strong> – Production database hosting</li>
+            <li>
+              <strong>Stripe:</strong> Processes supplier subscription checkout, billing and
+              payment events. EventFlow receives the account and transaction references needed to
+              manage the subscription.
+            </li>
+            <li>
+              <strong>Google Identity Services:</strong> If you choose Google sign-in, Google
+              provides a verified account identifier and profile information such as email address,
+              name and profile image. Google also receives information needed to complete the
+              sign-in request.
+            </li>
           </ul>
-          <p>
-            <strong>Data Shared:</strong> All user data stored in the platform<br />
-            <strong>Region:</strong> Configurable (EU/UK regions recommended)<br />
-            <strong>Safeguards:</strong> Encryption at rest and in transit, access controls, regular
-            backups
-          </p>
 
           <h3 class="h5">7.4 Location and Media Services</h3>
           <ul>
@@ -830,19 +820,29 @@
               <th style="padding: 12px; text-align: left; border: 1px solid #e7eaf0">Safeguards</th>
             </tr>
             <tr>
-              <td style="padding: 12px; border: 1px solid #e7eaf0">AWS (Database & Storage)</td>
-              <td style="padding: 12px; border: 1px solid #e7eaf0">Configured hosting region</td>
-              <td style="padding: 12px; border: 1px solid #e7eaf0">Provider contract and applicable transfer mechanism</td>
+              <td style="padding: 12px; border: 1px solid #e7eaf0">MongoDB (Database & Media)</td>
+              <td style="padding: 12px; border: 1px solid #e7eaf0">Operator-selected hosting region</td>
+              <td style="padding: 12px; border: 1px solid #e7eaf0">Provider agreement and applicable transfer mechanism</td>
             </tr>
             <tr style="background: #f9fafb">
               <td style="padding: 12px; border: 1px solid #e7eaf0">Stripe (Payments)</td>
-              <td style="padding: 12px; border: 1px solid #e7eaf0">US/EU</td>
-              <td style="padding: 12px; border: 1px solid #e7eaf0">SCCs, Data Privacy Framework</td>
+              <td style="padding: 12px; border: 1px solid #e7eaf0">Provider infrastructure and support locations</td>
+              <td style="padding: 12px; border: 1px solid #e7eaf0">Provider agreement and applicable transfer mechanism</td>
             </tr>
             <tr>
               <td style="padding: 12px; border: 1px solid #e7eaf0">Postmark (Email)</td>
-              <td style="padding: 12px; border: 1px solid #e7eaf0">US</td>
-              <td style="padding: 12px; border: 1px solid #e7eaf0">SCCs, DPA</td>
+              <td style="padding: 12px; border: 1px solid #e7eaf0">Provider infrastructure and support locations</td>
+              <td style="padding: 12px; border: 1px solid #e7eaf0">Provider agreement and applicable transfer mechanism</td>
+            </tr>
+            <tr style="background: #f9fafb">
+              <td style="padding: 12px; border: 1px solid #e7eaf0">Google (Optional Sign-in)</td>
+              <td style="padding: 12px; border: 1px solid #e7eaf0">Provider infrastructure and support locations</td>
+              <td style="padding: 12px; border: 1px solid #e7eaf0">User choice, provider terms and applicable transfer mechanism</td>
+            </tr>
+            <tr>
+              <td style="padding: 12px; border: 1px solid #e7eaf0">Postcodes.io (Location Lookup)</td>
+              <td style="padding: 12px; border: 1px solid #e7eaf0">Provider infrastructure</td>
+              <td style="padding: 12px; border: 1px solid #e7eaf0">Limited postcode query and provider terms</td>
             </tr>
             <tr style="background: #f9fafb">
               <td style="padding: 12px; border: 1px solid #e7eaf0">Pexels (Stock Images)</td>

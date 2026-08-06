@@ -562,44 +562,10 @@
     <!-- Content Management -->
     <div class="card">
       <h2>Content Management</h2>
-      <p class="small" style="color:#667085;margin-bottom:24px;">Policy dates are reviewed, per-policy metadata. Update <code>config/policyMetadata.js</code> in the same pull request as the policy wording; runtime overrides are disabled. Use <a href="/admin-content?tab=legalDates">Policy Reviews</a> to check for source changes.</p>
+      <p class="small" style="color:#667085;margin-bottom:16px;">Policy dates are reviewed, per-policy metadata. Update <code>config/policyMetadata.js</code> in the same pull request as the policy wording; runtime overrides are disabled.</p>
+      <p><a class="ef-cta btn btn-primary" href="/admin-content?tab=legalDates">Open Policy Reviews</a></p>
       
       <div style="max-width: 600px;">
-        <div style="margin-bottom: 24px;">
-          <label for="legalLastUpdated" class="form-label">Legal Last Updated</label>
-          <input 
-            type="text" 
-            id="legalLastUpdated" 
-            class="form-control" 
-            value="{{POLICY_LEGAL_HUB_LAST_UPDATED}}"
-            disabled
-          >
-          <p class="small" style="color:#667085;margin-top:4px;">Legal Hub material-update date; individual policies have separate metadata.</p>
-        </div>
-
-        <div style="margin-bottom: 24px;">
-          <label for="legalEffectiveDate" class="form-label">Legal Effective Date</label>
-          <input 
-            type="text" 
-            id="legalEffectiveDate" 
-            class="form-control" 
-            value="{{POLICY_LEGAL_HUB_EFFECTIVE_DATE}}"
-            disabled
-          >
-          <p class="small" style="color:#667085;margin-top:4px;">Legal Hub effective date; individual policies have separate metadata.</p>
-        </div>
-
-        <div style="display:flex;gap:12px;align-items:center;">
-          <button type="button" id="saveContentBtn" class="ef-cta btn btn-primary" disabled>
-            Version-Controlled Metadata
-          </button>
-          <span id="contentSaveStatus" class="small" style="color:#667085;"></span>
-        </div>
-
-        <div id="contentManagementAlert" class="alert alert-info" style="margin-top:16px;display:none;">
-          <strong>Success!</strong> Changes have been applied and will be visible on the next page load. You may need to refresh pages in your browser.
-        </div>
-
         <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid #E7EAF0;">
           <h3 class="h5">Current Placeholders</h3>
           <table style="width:100%;font-size:0.875rem;">
