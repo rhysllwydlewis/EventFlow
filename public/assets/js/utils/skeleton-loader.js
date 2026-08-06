@@ -9,10 +9,20 @@
 const DEFAULT_COUNT = 3;
 const MAX_COUNT = 12;
 
+/**
+ * Resolve a selector or return an existing container element.
+ * @param {string|HTMLElement|null} container Selector or element.
+ * @returns {HTMLElement|null} Resolved element.
+ */
 function resolveContainer(container) {
   return typeof container === 'string' ? document.querySelector(container) : container;
 }
 
+/**
+ * Escape text before interpolation into trusted application-owned markup.
+ * @param {*} value Value to escape.
+ * @returns {string} HTML-safe text.
+ */
 function escapeHtml(value) {
   return String(value ?? '')
     .replace(/&/g, '&amp;')
@@ -22,26 +32,61 @@ function escapeHtml(value) {
     .replace(/'/g, '&#39;');
 }
 
+/**
+ * Escape a value for use inside a quoted HTML attribute.
+ * @param {*} value Value to escape.
+ * @returns {string} Attribute-safe text.
+ */
 function escapeAttribute(value) {
   return escapeHtml(value).replace(/`/g, '&#96;');
 }
 
+/**
+ * Clamp a requested placeholder count to a safe rendering range.
+ * @param {*} value Requested count.
+ * @param {number} fallback Fallback count.
+ * @returns {number} Normalized count between one and MAX_COUNT.
+ */
 function normaliseCount(value, fallback = DEFAULT_COUNT) {
   const parsed = Number.parseInt(value, 10);
-  if (!Number.isFinite(parsed)) {
+  if (Number.isNaN(parsed)) {
     return fallback;
   }
   return Math.min(MAX_COUNT, Math.max(1, parsed));
 }
 
+/**
+ * Repeat trusted placeholder markup a bounded number of times.
+ * @param {*} count Requested count.
+ * @param {Function} renderer Markup factory.
+ * @returns {string} Concatenated markup.
+ */
 function repeatMarkup(count, renderer) {
-  return Array.from({ length: normaliseCount(count) }, (_, index) => renderer(index)).join('');
+  return Array.from({ length: normaliseCount(count) }, () => renderer()).join('');
 }
 
+/**
+ * Render one text-line placeholder.
+ * @param {string} width Width modifier.
+ * @param {string} extraClass Optional additional class.
+ * @returns {string} Placeholder markup.
+ */
 function line(width = 'long', extraClass = '') {
-  return `<span class="skeleton skeleton-text skeleton-text-${width} ${extraClass}" aria-hidden="true"></span>`;
+  const className = [
+    'skeleton',
+    'skeleton-text',
+    `skeleton-text-${width}`,
+    extraClass,
+  ]
+    .filter(Boolean)
+    .join(' ');
+  return `<span class="${className}" aria-hidden="true"></span>`;
 }
 
+/**
+ * Render a supplier-card placeholder matching the public results layout.
+ * @returns {string} Placeholder markup.
+ */
 function supplierCardSkeleton() {
   return `
     <article class="skeleton-card skeleton-supplier-card-full" aria-hidden="true">
@@ -64,6 +109,10 @@ function supplierCardSkeleton() {
     </article>`;
 }
 
+/**
+ * Render a package-card placeholder.
+ * @returns {string} Placeholder markup.
+ */
 function packageCardSkeleton() {
   return `
     <article class="skeleton-card skeleton-package-card" aria-hidden="true">
@@ -81,6 +130,10 @@ function packageCardSkeleton() {
     </article>`;
 }
 
+/**
+ * Render an event-card placeholder.
+ * @returns {string} Placeholder markup.
+ */
 function eventCardSkeleton() {
   return `
     <article class="skeleton-card skeleton-event-card" aria-hidden="true">
@@ -99,6 +152,10 @@ function eventCardSkeleton() {
     </article>`;
 }
 
+/**
+ * Render a guide-card placeholder.
+ * @returns {string} Placeholder markup.
+ */
 function guideCardSkeleton() {
   return `
     <article class="skeleton-card skeleton-guide-card" aria-hidden="true">
@@ -112,6 +169,10 @@ function guideCardSkeleton() {
     </article>`;
 }
 
+/**
+ * Render a gallery-tile placeholder.
+ * @returns {string} Placeholder markup.
+ */
 function galleryTileSkeleton() {
   return `
     <article class="skeleton-card skeleton-gallery-tile" aria-hidden="true">
@@ -123,6 +184,10 @@ function galleryTileSkeleton() {
     </article>`;
 }
 
+/**
+ * Render a generic list or conversation row placeholder.
+ * @returns {string} Placeholder markup.
+ */
 function listItemSkeleton() {
   return `
     <div class="skeleton-list-item" aria-hidden="true">
@@ -135,6 +200,10 @@ function listItemSkeleton() {
     </div>`;
 }
 
+/**
+ * Render a support-ticket row placeholder.
+ * @returns {string} Placeholder markup.
+ */
 function ticketRowSkeleton() {
   return `
     <div class="skeleton-list-item skeleton-ticket-row" aria-hidden="true">
@@ -147,6 +216,10 @@ function ticketRowSkeleton() {
     </div>`;
 }
 
+/**
+ * Render a dashboard statistic placeholder.
+ * @returns {string} Placeholder markup.
+ */
 function statCardSkeleton() {
   return `
     <article class="skeleton-stat-card" aria-hidden="true">
@@ -158,14 +231,26 @@ function statCardSkeleton() {
     </article>`;
 }
 
+/**
+ * Render a table-row placeholder with a bounded number of columns.
+ * @param {*} columns Requested column count.
+ * @returns {string} Placeholder markup.
+ */
 function tableRowSkeleton(columns = 6) {
-  const safeColumns = Math.min(12, Math.max(1, Number.parseInt(columns, 10) || 6));
+  const parsedColumns = Number.parseInt(columns, 10);
+  const safeColumns = Number.isNaN(parsedColumns)
+    ? 6
+    : Math.min(12, Math.max(1, parsedColumns));
   return `<tr class="skeleton-table-row" aria-hidden="true">${repeatMarkup(
     safeColumns,
-    () => `<td><span class="skeleton skeleton-table-cell"></span></td>`
+    () => '<td><span class="skeleton skeleton-table-cell"></span></td>'
   )}</tr>`;
 }
 
+/**
+ * Render a complete supplier-profile page placeholder.
+ * @returns {string} Placeholder markup.
+ */
 function supplierProfileSkeleton() {
   return `
     <div class="skeleton-profile-page" aria-hidden="true">
@@ -202,17 +287,18 @@ export const skeletonPresets = Object.freeze({
 
 /**
  * Return true when the deterministic skeleton inspection mode is active.
+ * @returns {boolean} Whether debug mode is active.
  */
 export function isSkeletonDebugMode() {
-  try {
-    return new URLSearchParams(window.location.search).get('skeletonDebug') === '1';
-  } catch (_) {
+  if (typeof window === 'undefined') {
     return false;
   }
+  return new URLSearchParams(window.location.search).get('skeletonDebug') === '1';
 }
 
 /**
  * Add a root class that allows CSS to visibly identify held skeleton states.
+ * @returns {boolean} Whether the debug class was added.
  */
 export function initialiseSkeletonDebugMode() {
   if (typeof document !== 'undefined' && isSkeletonDebugMode()) {
@@ -224,6 +310,10 @@ export function initialiseSkeletonDebugMode() {
 
 /**
  * Generate one or more placeholders from a named preset.
+ * @param {string} type Preset name.
+ * @param {*} count Requested placeholder count.
+ * @param {Object} options Preset options.
+ * @returns {string} Placeholder markup.
  */
 export function getSkeleton(type, count = DEFAULT_COUNT, options = {}) {
   const renderer = skeletonPresets[type];
@@ -231,7 +321,7 @@ export function getSkeleton(type, count = DEFAULT_COUNT, options = {}) {
     throw new Error(`Unknown skeleton preset: ${type}`);
   }
   if (type === 'supplierProfile') {
-    return renderer(options);
+    return renderer();
   }
   if (type === 'tableRow') {
     return repeatMarkup(count, () => renderer(options.columns));
@@ -239,42 +329,81 @@ export function getSkeleton(type, count = DEFAULT_COUNT, options = {}) {
   return repeatMarkup(count, renderer);
 }
 
-// Legacy named helpers retained for existing imports.
+/**
+ * Return one legacy supplier-card placeholder.
+ * @returns {string} Placeholder markup.
+ */
 export function getSupplierCardSkeleton() {
   return supplierCardSkeleton();
 }
 
+/**
+ * Return multiple legacy supplier-card placeholders.
+ * @param {*} count Requested count.
+ * @returns {string} Placeholder markup.
+ */
 export function getSupplierCardSkeletons(count = DEFAULT_COUNT) {
   return getSkeleton('supplierCard', count);
 }
 
+/**
+ * Return one legacy list-item placeholder.
+ * @returns {string} Placeholder markup.
+ */
 export function getListItemSkeleton() {
   return listItemSkeleton();
 }
 
+/**
+ * Return multiple legacy list-item placeholders.
+ * @param {*} count Requested count.
+ * @returns {string} Placeholder markup.
+ */
 export function getListItemSkeletons(count = 5) {
   return `<div class="skeleton-list">${getSkeleton('listItem', count)}</div>`;
 }
 
+/**
+ * Return one legacy search-result placeholder.
+ * @returns {string} Placeholder markup.
+ */
 export function getSearchResultSkeleton() {
   return eventCardSkeleton();
 }
 
+/**
+ * Return multiple legacy search-result placeholders.
+ * @param {*} count Requested count.
+ * @returns {string} Placeholder markup.
+ */
 export function getSearchResultSkeletons(count = 5) {
   return getSkeleton('eventCard', count);
 }
 
+/**
+ * Return one legacy statistic placeholder.
+ * @returns {string} Placeholder markup.
+ */
 export function getStatCardSkeleton() {
   return statCardSkeleton();
 }
 
+/**
+ * Return multiple legacy statistic placeholders.
+ * @param {*} count Requested count.
+ * @returns {string} Placeholder markup.
+ */
 export function getStatCardSkeletons(count = 4) {
   return `<div class="skeleton-stats-grid">${getSkeleton('statCard', count)}</div>`;
 }
 
 /**
- * Show a skeleton state. The second argument may be a preset name or legacy
- * HTML string. Named presets are preferred for new code.
+ * Show a skeleton state. The second argument may be a preset name or trusted
+ * legacy HTML string. Named presets are preferred for new code.
+ * @param {string|HTMLElement} container Target container.
+ * @param {string} typeOrHtml Preset name or trusted application markup.
+ * @param {Object} options Rendering options.
+ * @returns {boolean} Whether the state was rendered.
  */
 export function showSkeleton(container, typeOrHtml, options = {}) {
   const element = resolveContainer(container);
@@ -282,19 +411,26 @@ export function showSkeleton(container, typeOrHtml, options = {}) {
     return false;
   }
 
+  const requestedCount = options.count ?? DEFAULT_COUNT;
   const isPreset = typeof typeOrHtml === 'string' && Boolean(skeletonPresets[typeOrHtml]);
   const markup = isPreset
-    ? getSkeleton(typeOrHtml, options.count || DEFAULT_COUNT, options)
-    : String(typeOrHtml || getSkeleton('listItem', options.count || DEFAULT_COUNT));
+    ? getSkeleton(typeOrHtml, requestedCount, options)
+    : String(typeOrHtml || getSkeleton('listItem', requestedCount));
 
   element.setAttribute('aria-busy', 'true');
   element.setAttribute('data-skeleton-state', 'loading');
-  element.innerHTML = options.wrap === false ? markup : `<div class="${escapeAttribute(options.className || 'skeleton-grid')}">${markup}</div>`;
+  element.innerHTML =
+    options.wrap === false
+      ? markup
+      : `<div class="${escapeAttribute(options.className || 'skeleton-grid')}">${markup}</div>`;
   return true;
 }
 
 /**
  * Replace a loading region with real markup unless debug mode is holding it.
+ * @param {string|HTMLElement} container Target container.
+ * @param {*} html Trusted application-owned markup.
+ * @returns {boolean} Whether the content was replaced.
  */
 export function replaceSkeleton(container, html) {
   const element = resolveContainer(container);
@@ -309,13 +445,18 @@ export function replaceSkeleton(container, html) {
 
 /**
  * Clear a loading region unless debug mode is holding it.
+ * @param {string|HTMLElement} container Target container.
+ * @returns {boolean} Whether the region was cleared.
  */
 export function clearSkeleton(container) {
   return replaceSkeleton(container, '');
 }
 
 /**
- * Legacy spinner helper. Prefer a page-shaped skeleton for primary content.
+ * Show the legacy spinner fallback for non-layout-critical content.
+ * @param {string|HTMLElement} container Target container.
+ * @param {string} message Loading copy.
+ * @returns {boolean} Whether the spinner was rendered.
  */
 export function showLoadingSpinner(container, message = 'Loading…') {
   const element = resolveContainer(container);
@@ -331,6 +472,12 @@ export function showLoadingSpinner(container, message = 'Loading…') {
   return true;
 }
 
+/**
+ * Render a terminal empty state and clear loading semantics.
+ * @param {string|HTMLElement} container Target container.
+ * @param {Object} options Empty-state options.
+ * @returns {boolean} Whether the state was rendered.
+ */
 export function showEmptyState(container, options = {}) {
   const element = resolveContainer(container);
   if (!element || isSkeletonDebugMode()) {
@@ -360,6 +507,12 @@ export function showEmptyState(container, options = {}) {
   return true;
 }
 
+/**
+ * Render a terminal retryable error state and clear loading semantics.
+ * @param {string|HTMLElement} container Target container.
+ * @param {Object} options Error-state options.
+ * @returns {boolean} Whether the state was rendered.
+ */
 export function showErrorState(container, options = {}) {
   const element = resolveContainer(container);
   if (!element || isSkeletonDebugMode()) {
@@ -388,11 +541,16 @@ export function showErrorState(container, options = {}) {
   element.removeAttribute('data-skeleton-state');
 
   if (typeof onAction === 'function') {
-    element.querySelector('[data-skeleton-retry]')?.addEventListener('click', onAction, { once: true });
+    const retryButton = element.querySelector('[data-skeleton-retry]');
+    retryButton?.addEventListener('click', onAction, { once: true });
   }
   return true;
 }
 
+/**
+ * Load the canonical stylesheet once for module consumers that omit a link tag.
+ * @returns {void}
+ */
 export function loadSkeletonCSS() {
   if (typeof document === 'undefined' || document.getElementById('skeleton-css')) {
     return;
@@ -401,7 +559,9 @@ export function loadSkeletonCSS() {
     /\/assets\/css\/skeleton\.css(?:\?|$)/.test(link.getAttribute('href') || '')
   );
   if (existing) {
-    existing.id = existing.id || 'skeleton-css';
+    if (!existing.id) {
+      existing.id = 'skeleton-css';
+    }
     return;
   }
   const link = document.createElement('link');
