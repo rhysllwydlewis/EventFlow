@@ -82,3 +82,7 @@ Use `?skeletonDebug=1` on routes that import the shared utility to hold their lo
 - Guides and Marketplace retain their existing grid behaviour;
 - supplier-profile gallery loading disappears for valid empty results;
 - customer and supplier dashboard loaders do not alter final widget layouts.
+
+## Validation gate
+
+Before merging, the current pull-request head must have EventFlow's GitHub Actions workflows attached and completed. Passing external DeepSource and GitGuardian checks does not replace the repository's clean-install, ESLint, formatting, smoke, full-regression, security and build-verification jobs.
