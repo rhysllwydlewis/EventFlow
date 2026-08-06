@@ -187,6 +187,34 @@ describe('GET /api/v1/admin/locations/:slug', () => {
       .set('Cookie', authCookie(admin));
     expect(response.status).toBe(404);
   });
+
+  it('surfaces the automatic introduction when no editor has written one', async () => {
+    const response = await request(buildApp())
+      .get('/api/v1/admin/locations/cardiff')
+      .set('Cookie', authCookie(admin));
+    expect(response.body.data.content.intro).toBe('');
+    expect(response.body.data.automaticIntro).toContain('Cardiff');
+    expect(response.body.data.automaticIntro).toContain('8');
+  });
+
+  it('has no automatic introduction to show once an editor has written one', async () => {
+    await request(buildApp())
+      .patch('/api/v1/admin/locations/cardiff')
+      .set('Cookie', authCookie(admin))
+      .send({ content: { intro: 'A human-written introduction.' } });
+
+    const response = await request(buildApp())
+      .get('/api/v1/admin/locations/cardiff')
+      .set('Cookie', authCookie(admin));
+    expect(response.body.data.automaticIntro).toBeNull();
+  });
+
+  it('has no automatic introduction for a city with no suppliers yet', async () => {
+    const response = await request(buildApp())
+      .get('/api/v1/admin/locations/bristol')
+      .set('Cookie', authCookie(admin));
+    expect(response.body.data.automaticIntro).toBeNull();
+  });
 });
 
 describe('PATCH /api/v1/admin/locations/:slug', () => {
@@ -263,7 +291,11 @@ describe('PATCH /api/v1/admin/locations/:slug', () => {
 
     expect(response.body.data.status).toBe('published');
     expect(response.body.data.indexable).toBe(false);
-    expect(response.body.data.gate.blockers).toContain('page has no local introduction');
+    // Real inventory earns the page an automatically composed introduction, so
+    // the human-review signal is the blocker left standing: indexing still
+    // needs a person to have looked at the page, not just real suppliers on it.
+    expect(response.body.data.gate.blockers).toContain('page has never been reviewed by a human');
+    expect(response.body.data.gate.blockers).not.toContain('page has no local introduction');
   });
 
   it('reaches indexable once content, review and inventory are all in place', async () => {

@@ -174,6 +174,32 @@ describe('GET /locations', () => {
   });
 });
 
+describe('GET /api/v1/locations/featured', () => {
+  it('lists only published cities with real supplier coverage, most-covered first', async () => {
+    const response = await request(buildApp()).get('/api/v1/locations/featured');
+    expect(response.status).toBe(200);
+    expect(response.body.success).toBe(true);
+    const slugs = response.body.data.cities.map(city => city.slug);
+    // Newport is published but has no seeded suppliers, so it earns no place —
+    // a homepage shortcut that leads to an empty city is worse than none.
+    expect(slugs).toEqual(['cardiff']);
+    expect(response.body.data.cities[0]).toEqual(
+      expect.objectContaining({ slug: 'cardiff', name: 'Cardiff', supplierCount: 8 })
+    );
+  });
+
+  it('never lists a draft city, however much coverage it has', async () => {
+    mockDb.seed('location_pages', [pageRecord('cardiff', { status: 'draft' })]);
+    const response = await request(buildApp()).get('/api/v1/locations/featured');
+    expect(response.body.data.cities).toEqual([]);
+  });
+
+  it('caps the list at the requested limit, itself capped at 12', async () => {
+    const response = await request(buildApp()).get('/api/v1/locations/featured?limit=1');
+    expect(response.body.data.cities).toHaveLength(1);
+  });
+});
+
 describe('GET /locations/:citySlug', () => {
   it('returns 200 for a published city with full metadata', async () => {
     // The hero is set explicitly, because an editor choosing one is the only
@@ -208,6 +234,17 @@ describe('GET /locations/:citySlug', () => {
     );
     expect(response.text).toContain('BreadcrumbList');
     expect(response.text).toContain('aria-label="Breadcrumb"');
+  });
+
+  it('links to helpful planning guides relevant to the suppliers actually on the page', async () => {
+    const response = await request(buildApp()).get('/locations/cardiff');
+    expect(response.text).toContain('id="efl-guides"');
+    expect(response.text).toContain('Helpful planning guides');
+  });
+
+  it('omits the guides module for a city with no supplier categories yet', async () => {
+    const response = await request(buildApp()).get('/locations/newport');
+    expect(response.text).not.toContain('id="efl-guides"');
   });
 
   it('does not mislabel a non-Pexels editorial source as Pexels', async () => {

@@ -24,6 +24,7 @@ const { publicReadLimiter } = require('../middleware/rateLimits');
 const registry = require('../services/locationRegistry.service');
 const locationHeroImages = require('../services/locationHeroImage.service');
 const locationPages = require('../services/locationPage.service');
+const locationGuides = require('../services/locationGuides.service');
 const supplierLocation = require('../services/supplierLocation.service');
 const {
   buildPublicSupplierSlug,
@@ -427,6 +428,47 @@ router.get(['/locations', '/locations.html'], publicReadLimiter, async (req, res
   }
 });
 
+/**
+ * GET /api/v1/locations/featured
+ *
+ * The published cities with the most current supplier coverage, for the
+ * homepage's "explore by city" shortcuts. This exists so that section never
+ * hardcodes a city name: a city can only appear here once it is actually
+ * published, so the link it produces can never be a dead end.
+ */
+router.get('/api/v1/locations/featured', publicReadLimiter, async (req, res) => {
+  try {
+    const data = await readLocationData();
+    const published = publishedSlugs(data.pageRecords);
+    const limit = Math.min(12, Math.max(1, Number.parseInt(req.query.limit, 10) || 4));
+
+    const featured = registry
+      .listCities()
+      .filter(city => published.has(city.slug))
+      .map(city => ({
+        city,
+        supplierCount: supplierLocation.rankSuppliersForCity(data.suppliers, city, {
+          validOwnerIds: data.validOwnerIds,
+        }).length,
+      }))
+      .filter(entry => entry.supplierCount > 0)
+      .sort((a, b) => b.supplierCount - a.supplierCount || a.city.name.localeCompare(b.city.name))
+      .slice(0, limit)
+      .map(entry => ({
+        slug: entry.city.slug,
+        name: entry.city.name,
+        region: entry.city.region || entry.city.nation,
+        supplierCount: entry.supplierCount,
+      }));
+
+    res.set('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=300');
+    return res.json({ success: true, data: { cities: featured } });
+  } catch (error) {
+    logger.error('Could not list featured locations:', error);
+    return res.status(500).json({ success: false, error: 'Failed to list featured locations' });
+  }
+});
+
 // ─── City page ───────────────────────────────────────────────────────────────
 
 /**
@@ -473,7 +515,8 @@ function renderSupplierCard(entry) {
  */
 // skipcq: JS-R1005 -- The page is a flat sequence of independent modules.
 function renderCityPage(model) {
-  const { city, page, metadata, rankedSuppliers, categories, packages, events, nearby } = model;
+  const { city, page, metadata, rankedSuppliers, categories, packages, events, nearby, guides } =
+    model;
   const sections = [];
   const heroIsPexels = /^https?:\/\/(?:www\.)?pexels\.com\//i.test(
     page.content.heroImageSourceUrl || ''
@@ -611,6 +654,21 @@ function renderCityPage(model) {
     }
   }
 
+  if (guides && guides.length) {
+    const items = guides
+      .map(
+        guide => `<li class="efl-card">
+          <h3><a href="${escapeHtml(guide.href)}">${escapeHtml(guide.title)}</a></h3>
+          ${guide.excerpt ? `<p>${escapeHtml(guide.excerpt)}</p>` : ''}
+        </li>`
+      )
+      .join('');
+    sections.push(`<section class="efl-section" aria-labelledby="efl-guides">
+      <h2 id="efl-guides">Helpful planning guides</h2>
+      <ul class="efl-grid">${items}</ul>
+    </section>`);
+  }
+
   if (page.content.faqs.length) {
     const faqs = page.content.faqs
       .filter(faq => faq && faq.question && faq.answer)
@@ -712,6 +770,7 @@ router.get('/locations/:citySlug', publicReadLimiter, async (req, res, next) => 
       publishedSlugs: publishedSlugs(data.pageRecords),
       baseUrl: BASE_URL,
     });
+    model.guides = locationGuides.relatedGuides(model.categories);
 
     const structuredData = [model.breadcrumbs];
     if (model.indexable) {

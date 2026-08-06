@@ -1935,6 +1935,16 @@ async function startServer() {
           logger.warn('   ⚠️  Action Prompt Scheduler failed to initialize:', apErr.message);
           logger.warn('   Automated action-prompt emails will not run');
         }
+
+        // 4f. Initialize Location Auto-Publish Scheduler
+        try {
+          require('./services/locationAutoPublish.service').logSchedulerStartup();
+        } catch (lapErr) {
+          logger.warn(
+            '   ⚠️  Location Auto-Publish Scheduler failed to initialize:',
+            lapErr.message
+          );
+        }
       } catch (error) {
         logger.error('');
         logger.error('='.repeat(70));

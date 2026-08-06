@@ -20,6 +20,7 @@ const { apiLimiter, writeLimiter } = require('../middleware/rateLimits');
 const registry = require('../services/locationRegistry.service');
 const locationHeroImages = require('../services/locationHeroImage.service');
 const locationPages = require('../services/locationPage.service');
+const locationGuides = require('../services/locationGuides.service');
 const supplierLocation = require('../services/supplierLocation.service');
 const { isPublicSupplier } = require('../services/publicSupplierSeo.service');
 const {
@@ -183,6 +184,7 @@ function describeCity(city, data) {
     region: city.region,
     alternateNames: city.alternateNames,
     status: page.status,
+    managedBy: page.managedBy,
     indexingRequested: page.indexingRequested,
     indexable: model.indexable,
     publishedAt: page.publishedAt,
@@ -190,6 +192,11 @@ function describeCity(city, data) {
     reviewedBy: page.reviewedBy,
     seo: page.seo,
     content: page.content,
+    // Nobody has written an introduction, but the page is not blank: visitors
+    // currently see this, composed live from real supplier data. Surfaced so
+    // the editor does not mistake a genuinely automatic page for an empty one.
+    automaticIntro:
+      !page.content.intro && model.page.content.intro ? model.page.content.intro : null,
     metadata: model.metadata,
     gate: model.gate,
     supplierCount: model.rankedSuppliers.length,
@@ -371,6 +378,7 @@ router.get('/:slug/preview', apiLimiter, async (req, res) => {
       publishedSlugs: locationRoutes.publishedSlugs(data.pageRecords),
       baseUrl: locationRoutes.BASE_URL,
     });
+    model.guides = locationGuides.relatedGuides(model.categories);
 
     const banner = `<div class="efl-preview-banner" role="status">
       <strong>Admin preview</strong>
@@ -440,6 +448,11 @@ router.patch('/:slug', writeLimiter, csrfProtection, async (req, res) => {
     const next = {
       locationSlug: city.slug,
       status: body.status !== undefined ? body.status : current.status,
+      // Any save through this endpoint is a human decision, so the city stops
+      // being eligible for the auto-publish job from this point on, even if
+      // it was published automatically before, and even if this save only
+      // touches unrelated fields.
+      managedBy: 'admin',
       indexingRequested:
         body.indexingRequested !== undefined
           ? body.indexingRequested === true

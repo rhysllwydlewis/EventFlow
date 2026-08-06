@@ -16,6 +16,7 @@ const JOB_KEYS = Object.freeze({
   DATE_MANAGEMENT: 'date-management',
   BADGE_EVALUATION: 'badge-evaluation',
   REVIEW_REQUEST_MAINTENANCE: 'review-request-maintenance',
+  LOCATION_AUTO_PUBLISH: 'location-auto-publish',
 });
 
 function envEnabled(name, defaultValue) {
@@ -191,6 +192,20 @@ function getDefinitions(now = new Date()) {
       expectedIntervalMs: 60 * 60 * 1000,
       staleAfterMs: 3 * 60 * 60 * 1000,
       legacyTelemetry: 'reviewRequests.expiredAt (activity only)',
+      legacyFreshnessReliable: false,
+    },
+    {
+      key: JOB_KEYS.LOCATION_AUTO_PUBLISH,
+      name: 'Location page auto-publish',
+      description:
+        'Publishes a UK city page once it has real supplier coverage, without touching any city an admin has already set.',
+      source: 'services/locationAutoPublish.service.js',
+      schedule: process.env.LOCATION_AUTO_PUBLISH_CRON || '30 3 * * *',
+      scheduleSource: process.env.LOCATION_AUTO_PUBLISH_CRON ? 'environment' : 'default',
+      enabled: envEnabled('LOCATION_AUTO_PUBLISH_ENABLED', production),
+      expectedIntervalMs: 24 * 60 * 60 * 1000,
+      staleAfterMs: 36 * 60 * 60 * 1000,
+      legacyTelemetry: null,
       legacyFreshnessReliable: false,
     },
   ].map(definition => ({ ...definition, registeredAt: toIso(now) }));
