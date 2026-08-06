@@ -29,7 +29,7 @@ This change establishes one canonical skeleton contract and fixes the clearest l
 
 ### Priority page fixes
 
-- **Category/package route:** initial HTML reserves title, hero and package-card layout before JavaScript runs, removing the loading-word and blank-results flash. A small lifecycle companion observes the existing renderer, clears stale hero placeholders, and removes loading semantics after success, missing-category and error outcomes.
+- **Category/package route:** initial HTML reserves title, hero and package-card layout before JavaScript runs, removing the loading-word and blank-results flash. A scoped `:has()` state hides the hero shell after the existing renderer resolves a category without a hero image, so no additional production JavaScript or stale loading attributes are required.
 - **Event detail:** initial HTML reserves the hero, media, content, action and organiser layout instead of displaying raw loading text.
 - **Guides:** the legacy `skeleton-grid` and empty `skeleton-card` markup now has a complete image-and-copy placeholder shape without changing homepage skeleton dimensions.
 - **Marketplace:** existing card markup remains, but its separate shimmer, colour and motion implementation is removed.
@@ -64,6 +64,7 @@ Community homepage/list/member pages, support detail modals and several admin ta
 5. Convert support ticket detail modals to the shared ticket and conversation presets.
 6. Verify and remove dormant skeleton implementations.
 7. Add browser visual snapshots for the most important held skeleton states.
+8. Centralise skeleton asset-version references so secondary cosmetic updates cannot remain browser-cached for a week.
 
 ## Manual QA
 
