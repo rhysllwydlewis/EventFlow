@@ -108,7 +108,7 @@
     cell.innerHTML = `
       <span
         class="health-score-badge"
-        title="Admin quality score: ${score}% (${tone.label}). Uses canonical profile fields, response rate, reviews, bookings and photos."
+        title="Quality Score: ${score}% (${tone.label}). Blends profile completeness with response rate, reviews, bookings and photos — not the supplier's own Profile Health completeness score."
         style="display:inline-block;"
       >
         <span style="display:inline-block;padding:4px 12px;border-radius:12px;font-weight:600;font-size:14px;color:${tone.color};background:${tone.background};">

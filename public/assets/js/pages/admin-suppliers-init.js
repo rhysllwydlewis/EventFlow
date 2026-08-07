@@ -195,7 +195,8 @@
           ${score}%
         </span>
         <div class="health-score-tooltip" style="display: none; position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.9); color: white; padding: 12px; border-radius: 8px; white-space: nowrap; z-index: 1000; margin-bottom: 8px; min-width: 250px;">
-          <div style="font-weight: 600; margin-bottom: 8px;">Health Score: ${score}% (${label})</div>
+          <div style="font-weight: 600; margin-bottom: 8px;">Quality Score: ${score}% (${label})</div>
+          <div style="font-size: 11px; margin-bottom: 8px; color: rgba(255,255,255,0.7);">Blends profile completeness with activity (response rate, reviews, bookings). Not the same as the supplier's own Profile Health completeness score.</div>
           ${breakdownHtml}
         </div>
       </div>
@@ -734,7 +735,7 @@
       'Approved',
       'Verification',
       'Subscription',
-      'Health Score',
+      'Quality Score',
       'Tags',
     ];
     const rows = data.map(s => [
