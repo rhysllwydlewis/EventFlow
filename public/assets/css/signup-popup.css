@@ -1,0 +1,76 @@
+/* Sign-up popup — layered on top of the shared .modal-overlay/.modal
+   component (components.css) rather than redefining the glass card. */
+.signup-popup-modal {
+  max-width: 420px;
+}
+
+/* Sit above the cookie-consent banner (z-index: 9999 in components.css) so
+   the two fixed overlays never fight for the same strip of a short mobile
+   viewport — the popup wins focus while open, banner is still there after. */
+.signup-popup-overlay {
+  z-index: 10000;
+}
+
+/* .modal-close carries the shared .ef-cta class, which styles.css forces to
+   width:100% below 600px for real CTA buttons — override back to a fixed
+   icon-button size so the close X doesn't balloon into a full-width pill. */
+.signup-popup-overlay .modal-close {
+  width: 30px !important;
+  height: 30px !important;
+  padding: 0 !important;
+  flex: none;
+}
+
+.signup-popup-overlay .modal-body {
+  text-align: center;
+}
+
+.signup-popup-overlay .modal-body p {
+  margin: 0;
+  color: var(--muted, #667085);
+  font-size: 14.5px;
+  line-height: 1.55;
+}
+
+.signup-popup-overlay .modal-footer {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  background: transparent;
+  border-top: none;
+  padding-top: 0;
+}
+
+/* Confirm button ("Log in / create account") — full-width primary CTA, shown first */
+.signup-popup-overlay .modal-footer .cta:not(.ghost) {
+  order: 1;
+  width: 100%;
+  padding: 13px 18px;
+  border-radius: var(--radius, 14px);
+}
+
+/* Cancel button ("Not now") — de-emphasised text link below the CTA */
+.signup-popup-overlay .modal-footer .cta.ghost {
+  order: 2;
+  background: none;
+  border: none;
+  box-shadow: none;
+  color: var(--muted, #667085);
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  padding: 4px;
+}
+
+.signup-popup-overlay .modal-footer .cta.ghost:hover {
+  background: none;
+  color: var(--text, #0b1220);
+  transform: none;
+  box-shadow: none;
+}
+
+@media (max-width: 480px) {
+  .signup-popup-modal {
+    max-width: 100%;
+  }
+}

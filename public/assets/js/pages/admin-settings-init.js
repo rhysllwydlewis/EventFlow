@@ -738,6 +738,48 @@
     );
   });
 
+  // Load sign-up popup settings
+  async function loadSignupPopup() {
+    try {
+      const signupPopup = await AdminShared.adminFetch('/api/admin/settings/signup-popup', {
+        method: 'GET',
+      });
+      document.getElementById('signupPopupEnabled').checked = signupPopup.enabled || false;
+      document.getElementById('signupPopupDelay').value = Number.isInteger(signupPopup.delaySeconds)
+        ? signupPopup.delaySeconds
+        : 5;
+    } catch (err) {
+      AdminShared.debugError('Failed to load signup popup settings:', err);
+    }
+  }
+
+  // Save sign-up popup settings
+  document.getElementById('saveSignupPopup').addEventListener('click', async () => {
+    const delayValue = parseInt(document.getElementById('signupPopupDelay').value, 10);
+    const data = {
+      enabled: document.getElementById('signupPopupEnabled').checked,
+      delaySeconds: Number.isInteger(delayValue) && delayValue >= 0 ? delayValue : 5,
+    };
+
+    const saveBtn = document.getElementById('saveSignupPopup');
+    await AdminShared.safeAction(
+      saveBtn,
+      async () => {
+        const result = await AdminShared.adminFetch('/api/admin/settings/signup-popup', {
+          method: 'PUT',
+          body: data,
+        });
+        await loadSignupPopup();
+        return result;
+      },
+      {
+        loadingText: 'Saving...',
+        successMessage: 'Sign-up popup settings updated',
+        errorMessage: 'Failed to update sign-up popup settings',
+      }
+    );
+  });
+
   // Load system info
   async function loadSystemInfo() {
     try {
@@ -996,6 +1038,7 @@
       loadSiteConfig(),
       loadFeatureFlags(),
       loadMaintenanceMode(),
+      loadSignupPopup(),
       loadSystemInfo(),
       loadAuditLogs(),
       loadDatabaseHealth(),
