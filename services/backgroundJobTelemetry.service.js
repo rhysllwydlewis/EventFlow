@@ -17,6 +17,7 @@ const JOB_KEYS = Object.freeze({
   BADGE_EVALUATION: 'badge-evaluation',
   REVIEW_REQUEST_MAINTENANCE: 'review-request-maintenance',
   LOCATION_AUTO_PUBLISH: 'location-auto-publish',
+  COMMUNITY_DIGEST: 'community-digest',
 });
 
 function envEnabled(name, defaultValue) {
@@ -203,6 +204,20 @@ function getDefinitions(now = new Date()) {
       schedule: process.env.LOCATION_AUTO_PUBLISH_CRON || '30 3 * * *',
       scheduleSource: process.env.LOCATION_AUTO_PUBLISH_CRON ? 'environment' : 'default',
       enabled: envEnabled('LOCATION_AUTO_PUBLISH_ENABLED', production),
+      expectedIntervalMs: 24 * 60 * 60 * 1000,
+      staleAfterMs: 36 * 60 * 60 * 1000,
+      legacyTelemetry: null,
+      legacyFreshnessReliable: false,
+    },
+    {
+      key: JOB_KEYS.COMMUNITY_DIGEST,
+      name: 'Community digest emails',
+      description:
+        'Sends new-discussion digest emails to members opted into daily or weekly notifications.',
+      source: 'services/communityDigest.service.js',
+      schedule: process.env.COMMUNITY_DIGEST_DAILY_CRON || '0 8 * * *',
+      scheduleSource: process.env.COMMUNITY_DIGEST_DAILY_CRON ? 'environment' : 'default',
+      enabled: envEnabled('COMMUNITY_DIGEST_ENABLED', production),
       expectedIntervalMs: 24 * 60 * 60 * 1000,
       staleAfterMs: 36 * 60 * 60 * 1000,
       legacyTelemetry: null,

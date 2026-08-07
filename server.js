@@ -1969,6 +1969,13 @@ function startServer() {
             lapErr.message
           );
         }
+
+        // 4g. Initialize Community Digest Scheduler
+        try {
+          require('./services/communityDigest.service').logSchedulerStartup();
+        } catch (cdErr) {
+          logger.warn('   ⚠️  Community Digest Scheduler failed to initialize:', cdErr.message);
+        }
       } catch (error) {
         logger.error('');
         logger.error('='.repeat(70));
