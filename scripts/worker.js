@@ -3,9 +3,12 @@
 const dbUnified = require('../db-unified');
 const mongoDb = require('../db');
 const postmark = require('../utils/postmark');
-const { setQueueContext, shutdownQueues } = require('../services/queue');
+const { setQueueContext, shutdownQueues, startWorkerHeartbeat } = require('../services/queue');
 const { startNotificationWorker } = require('../services/queue/workers/notification.worker');
 const { startEmailWorker } = require('../services/queue/workers/email.worker');
+const { startNotificationFanoutReconciler } = require('../services/notificationFanout.service');
+
+let stopFanoutReconciler = null;
 
 function assertWorkerEnv() {
   if (process.env.NODE_ENV === 'production' && !process.env.REDIS_URL) {
@@ -29,11 +32,15 @@ async function start() {
   setQueueContext({ db, postmark, logger: console });
   startNotificationWorker();
   startEmailWorker();
+  stopFanoutReconciler = await startNotificationFanoutReconciler({ db, logger: console });
+  // Advertise readiness only after workers and durable recovery are initialized.
+  await startWorkerHeartbeat();
   console.info('[queue] workers started');
 }
 
 async function shutdown(signal) {
   console.info(`[queue] shutting down (${signal})`);
+  stopFanoutReconciler?.();
   await shutdownQueues().catch(() => {});
   process.exit(0);
 }

@@ -11,6 +11,12 @@ const { NOTIFICATION_TYPES, NOTIFICATION_PRIORITIES } = require('../models/index
 
 // Use crypto.randomUUID() instead of uuid package
 const uuidv4 = () => crypto.randomUUID();
+const notificationIdForMessage = (messageId, recipientUserId) =>
+  `message-${crypto
+    .createHash('sha256')
+    .update(`${messageId}:${recipientUserId}`)
+    .digest('hex')
+    .slice(0, 32)}`;
 
 const VALID_TYPES = new Set(NOTIFICATION_TYPES);
 const VALID_PRIORITIES = new Set(NOTIFICATION_PRIORITIES);
@@ -68,7 +74,7 @@ class NotificationService {
   async create(data) {
     _assertValidEnums(data);
     const notification = {
-      id: uuidv4(),
+      id: data.id || uuidv4(),
       userId: data.userId,
       type: data.type || NotificationType.SYSTEM,
       title: data.title,
@@ -88,7 +94,17 @@ class NotificationService {
       updatedAt: new Date().toISOString(),
     };
 
-    await this.collection.insertOne(notification);
+    try {
+      await this.collection.insertOne(notification);
+    } catch (error) {
+      if (data.id && (error?.code === 11000 || /duplicate key/i.test(error?.message || ''))) {
+        const existing = await this.collection.findOne({ id: data.id });
+        if (existing) {
+          return existing;
+        }
+      }
+      throw error;
+    }
 
     // Send real-time notification if WebSocket is available and user is online
     if (this.websocketServer && this.websocketServer.isUserOnline(data.userId)) {
@@ -351,12 +367,19 @@ class NotificationService {
   /**
    * Create notification for new message
    */
-  async notifyNewMessage(recipientUserId, senderName, threadId, messagePreview = null) {
+  async notifyNewMessage(
+    recipientUserId,
+    senderName,
+    threadId,
+    messagePreview = null,
+    { messageId = null } = {}
+  ) {
     const messageText = messagePreview
       ? `${senderName}: ${messagePreview}`
       : `${senderName} sent you a message`;
 
     return await this.create({
+      ...(messageId ? { id: notificationIdForMessage(messageId, recipientUserId) } : {}),
       userId: recipientUserId,
       type: NotificationType.MESSAGE,
       title: 'New Message',
@@ -368,6 +391,7 @@ class NotificationService {
         threadId,
         senderName,
         messagePreview: messagePreview || '',
+        ...(messageId ? { messageId: String(messageId) } : {}),
       },
     });
   }

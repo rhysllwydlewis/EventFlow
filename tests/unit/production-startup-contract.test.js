@@ -21,20 +21,20 @@ describe('production startup contract', () => {
     }
   });
 
-  test('Railway and Docker use the same proven Node preload path', () => {
+  test('Railway and Docker run preflight before the proven Node preload path', () => {
     const railway = JSON.parse(read('railway.json'));
     const dockerfile = read('Dockerfile');
     const preload = read('services/deploymentMetadataPreload.js');
 
     expect(railway.deploy.startCommand).toBe(
-      'node -r ./services/deploymentMetadataPreload.js server.js'
+      "sh -c 'node scripts/preflight.mjs && exec node -r ./services/deploymentMetadataPreload.js server.js'"
     );
-    expect(railway.deploy.healthcheckPath).toBe('/api/health');
+    expect(railway.deploy.healthcheckPath).toBe('/api/ready');
     expect(railway.deploy.healthcheckTimeout).toBeGreaterThanOrEqual(120);
     expect(dockerfile).toContain(
-      'CMD ["node", "-r", "./services/deploymentMetadataPreload.js", "server.js"]'
+      'CMD ["sh", "-c", "node scripts/preflight.mjs && exec node -r ./services/deploymentMetadataPreload.js server.js"]'
     );
-    expect(railway.deploy.startCommand).not.toContain('&&');
+    expect(railway.deploy.startCommand).toContain('node scripts/preflight.mjs && exec node');
     expect(preload).toContain("require('./backgroundJobTelemetryBridge')");
   });
 

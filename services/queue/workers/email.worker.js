@@ -5,7 +5,7 @@ const { createWorker, getQueueContext } = require('../index');
 async function processEmailJob(job) {
   const { db, logger = console, postmark } = getQueueContext();
   if (!db || !postmark || typeof postmark.sendMail !== 'function') {
-    return;
+    throw new Error('[queue] email job cannot run: worker context unavailable');
   }
   const data = job.data || {};
   const recipient = await db.collection('users').findOne({ id: data.recipientId });

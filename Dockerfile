@@ -47,4 +47,4 @@ HEALTHCHECK --interval=10s --timeout=5s --start-period=10s --retries=3 \
 # deploymentMetadataPreload preserves the established telemetry preload contract:
 # node -r ./services/backgroundJobTelemetryBridge.js server.js
 # Metadata is launched in a detached child and cannot block the server process.
-CMD ["node", "-r", "./services/deploymentMetadataPreload.js", "server.js"]
+CMD ["sh", "-c", "node scripts/preflight.mjs && exec node -r ./services/deploymentMetadataPreload.js server.js"]
