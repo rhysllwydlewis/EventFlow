@@ -58,9 +58,14 @@ async function startServer(env = 'development') {
       `${colors.blue}Starting server in ${env} mode on port ${tryPort}...${colors.reset}`
     );
 
-    const serverProcess = spawn('node', ['server.js'], {
+    // Production app startup intentionally requires live infrastructure. Use a
+    // minimal server for that mode so this package script verifies the real
+    // security middleware without weakening production configuration guards.
+    const serverScript =
+      env === 'production' ? 'scripts/security-header-test-server.js' : 'server.js';
+    const serverProcess = spawn(process.execPath, [serverScript], {
       cwd: process.cwd(),
-      env: serverEnv,
+      env: { ...serverEnv, SECURITY_HEADERS_MODE: env },
       stdio: ['ignore', 'pipe', 'pipe'],
     });
 
@@ -243,7 +248,7 @@ async function testEndpoint(path, mode = 'development') {
   console.log(`\n${colors.blue}Testing ${path}...${colors.reset}`);
 
   const result = await fetchHeaders(path);
-  const { headers, isHttps } = result;
+  const { headers } = result;
 
   const checks = [];
 
@@ -307,37 +312,23 @@ async function testEndpoint(path, mode = 'development') {
     checks.push({ name: 'X-Powered-By Removal', status: 'fail', error: err.message });
   }
 
-  // Check HSTS based on mode and protocol
+  // Helmet emits HSTS for production configuration. Browsers enforce it only
+  // over HTTPS, but the local middleware contract can still require the header.
   if (mode === 'production') {
-    if (isHttps) {
-      // HTTPS response - HSTS should be present
-      try {
-        const hsts = headers['strict-transport-security'];
-        if (!hsts) {
-          throw new Error('HSTS header missing in production mode (HTTPS response)');
-        }
-        if (!hsts.includes('max-age=31536000')) {
-          throw new Error('HSTS should include max-age=31536000');
-        }
-        if (!hsts.toLowerCase().includes('includesubdomains')) {
-          throw new Error('HSTS should include includeSubDomains');
-        }
-        checks.push({ name: 'HSTS (Production)', status: 'pass' });
-      } catch (err) {
-        checks.push({ name: 'HSTS (Production)', status: 'fail', error: err.message });
+    try {
+      const hsts = headers['strict-transport-security'];
+      if (!hsts) {
+        throw new Error('HSTS header missing in production mode');
       }
-    } else {
-      // HTTP response - HSTS check is skipped, but document it
-      console.log(
-        `  ${colors.yellow}⚠${colors.reset} HSTS check skipped (HTTP response, not HTTPS)`
-      );
-      console.log(
-        `  ${colors.yellow}  To verify HSTS in production, test against HTTPS endpoint:${colors.reset}`
-      );
-      console.log(
-        `  ${colors.yellow}  curl -I https://event-flow.co.uk/ | grep -i strict-transport-security${colors.reset}`
-      );
-      checks.push({ name: 'HSTS (Production - Skipped)', status: 'pass' });
+      if (!hsts.includes('max-age=31536000')) {
+        throw new Error('HSTS should include max-age=31536000');
+      }
+      if (!hsts.toLowerCase().includes('includesubdomains')) {
+        throw new Error('HSTS should include includeSubDomains');
+      }
+      checks.push({ name: 'HSTS (Production)', status: 'pass' });
+    } catch (err) {
+      checks.push({ name: 'HSTS (Production)', status: 'fail', error: err.message });
     }
   } else {
     // Development mode - HSTS should be absent
@@ -406,14 +397,14 @@ async function testMode(mode) {
 async function main() {
   // Check Node.js version compatibility
   const nodeMajorVersion = parseInt(process.version.slice(1).split('.')[0], 10);
-  if (nodeMajorVersion >= 22) {
+  if (nodeMajorVersion !== 22) {
     console.error(`${colors.red}✗ Unsupported Node.js version: ${process.version}${colors.reset}`);
-    console.error(`${colors.red}  This project requires Node.js 20.x LTS.${colors.reset}`);
+    console.error(`${colors.red}  This project requires Node.js 22.x.${colors.reset}`);
     console.error(
-      `${colors.red}  Node 22+ may cause "Bus error" crashes due to sharp compatibility.${colors.reset}`
+      `${colors.red}  Use the version pinned in .node-version for local and CI parity.${colors.reset}`
     );
     console.error(
-      `${colors.red}  Please install Node 20 LTS: nvm install 20 && nvm use 20${colors.reset}`
+      `${colors.red}  Install it with your Node version manager, then rerun this check.${colors.reset}`
     );
     process.exit(1);
   }

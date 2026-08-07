@@ -36,13 +36,14 @@ ENV PORT=3000
 # This Dockerfile is for production deployments only.
 # NODE_ENV is set at build time; override via Railway/Docker environment variables if needed.
 ENV NODE_ENV=production
+ENV EVENTFLOW_PROCESS_TYPE=web
 
 # Expose the port for documentation purposes
 EXPOSE 3000
 
-# Add health check - Railway will use this to determine if the app is ready
+# Web and worker processes each expose /api/ready for their own delivery dependencies.
 HEALTHCHECK --interval=10s --timeout=5s --start-period=10s --retries=3 \
-  CMD sh -c 'curl -f http://localhost:${PORT:-3000}/api/health || exit 1'
+  CMD sh -c 'curl -fsS http://localhost:${PORT:-3000}/api/ready || exit 1'
 
 # deploymentMetadataPreload preserves the established telemetry preload contract:
 # node -r ./services/backgroundJobTelemetryBridge.js server.js

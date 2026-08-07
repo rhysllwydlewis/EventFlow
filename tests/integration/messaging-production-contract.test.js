@@ -20,7 +20,10 @@ describe('messaging production delivery contract', () => {
 
   it('requires queue and worker health before readiness succeeds', () => {
     const system = read('routes/system.js');
+    const dockerfile = read('Dockerfile');
     expect(read('railway.json')).toContain('"healthcheckPath": "/api/ready"');
+    expect(dockerfile).toContain('/api/ready');
+    expect(dockerfile).toContain('EVENTFLOW_PROCESS_TYPE');
     expect(system).toContain("missingCritical.push('REDIS_URL')");
     expect(system).toContain('const queueHealth = await getQueueHealth()');
     expect(system).toContain("reason: 'Messaging delivery unavailable'");
@@ -30,5 +33,18 @@ describe('messaging production delivery contract', () => {
     const worker = read('scripts/worker.js');
     expect(worker).toContain('await startWorkerHeartbeat()');
     expect(worker).toContain('await startNotificationFanoutReconciler');
+    expect(worker).toContain("'POSTMARK_API_KEY'");
+    expect(worker).toContain('BASE_URL must use HTTPS');
+    expect(worker).toContain('await startHealthServer()');
+    expect(read('railway.worker.json')).toContain('"EVENTFLOW_PROCESS_TYPE": "worker"');
+    expect(read('railway.worker.json')).toContain('"healthcheckPath": "/api/ready"');
+  });
+
+  it('requires the real email provider and isolates shared Redis environments', () => {
+    const preflight = read('scripts/preflight.mjs');
+    const envExample = read('.env.example');
+    expect(preflight).toContain("key: 'POSTMARK_API_KEY'");
+    expect(preflight).toContain('EVENTFLOW_QUEUE_NAMESPACE');
+    expect(envExample).toContain('EVENTFLOW_QUEUE_NAMESPACE=');
   });
 });

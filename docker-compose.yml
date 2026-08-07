@@ -94,6 +94,7 @@ services:
       BASE_URL: http://localhost:3000
       EMAIL_ENABLED: false
       REDIS_URL: redis://redis:6379
+      EVENTFLOW_PROCESS_TYPE: worker
     volumes:
       - .:/app
       - /app/node_modules

@@ -34,6 +34,7 @@ describe('production startup contract', () => {
     expect(dockerfile).toContain(
       'CMD ["sh", "-c", "node scripts/preflight.mjs && exec node -r ./services/deploymentMetadataPreload.js server.js"]'
     );
+    expect(dockerfile).toContain('curl -fsS http://localhost:${PORT:-3000}/api/ready');
     expect(railway.deploy.startCommand).toContain('node scripts/preflight.mjs && exec node');
     expect(preload).toContain("require('./backgroundJobTelemetryBridge')");
   });

@@ -4,7 +4,7 @@ This guide explains how to run tests and linting for the EventFlow project.
 
 ## Prerequisites
 
-- Node.js 20.x or higher
+- Node.js 22.x (use the exact version in `.node-version`)
 - npm (comes with Node.js)
 
 ## Installation
@@ -148,7 +148,7 @@ git commit --no-verify
 
 ### Tests failing locally but passing in CI (or vice versa)
 
-- Ensure you're using Node.js 20.x
+- Ensure you're using the Node.js 22.x version pinned in `.node-version`
 - Run `npm ci` to ensure dependencies match CI environment
 - Check that environment variables are set correctly
 

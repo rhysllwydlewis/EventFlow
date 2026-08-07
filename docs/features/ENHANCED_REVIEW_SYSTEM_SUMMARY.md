@@ -308,7 +308,7 @@ While the implementation is complete, potential future enhancements could includ
 
 ### Prerequisites
 
-- Node.js 20.x or higher
+- Node.js 22.x (see `.node-version`)
 - MongoDB (optional, falls back to local storage)
 - Existing EventFlow infrastructure
 

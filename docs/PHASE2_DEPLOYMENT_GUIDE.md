@@ -16,7 +16,7 @@
 
 ### Prerequisites
 
-- [ ] Node.js 20.x LTS installed
+- [ ] Node.js 22.x from `.node-version` installed
 - [ ] MongoDB 6.0+ running
 - [ ] Sufficient disk space (estimate 20% increase)
 - [ ] Database backup completed

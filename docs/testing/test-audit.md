@@ -20,7 +20,7 @@ All modes continue after failures. Raw logs are written under `test-audit/logs/`
 
 ## GitHub Actions
 
-Use the manual **EventFlow Test Audit** workflow from the Actions tab. It checks out the repository, installs Node 20 dependencies, installs Chromium for Playwright, runs `npm run test:audit:full`, and uploads the entire `test-audit` folder as an artifact with `if: always()`.
+Use the manual **EventFlow Test Audit** workflow from the Actions tab. It checks out the repository, installs the Node 22.x version pinned in `.node-version`, installs Chromium for Playwright, runs `npm run test:audit:full`, and uploads the entire `test-audit` folder as an artifact with `if: always()`.
 
 This workflow is diagnostic only. It does not deploy, does not change Railway, and is not a required deployment gate.
 

@@ -10,23 +10,47 @@ async function processEmailJob(job) {
   const data = job.data || {};
   const recipient = await db.collection('users').findOne({ id: data.recipientId });
   if (!recipient?.email) {
-    return;
+    logger.info('[queue] message email skipped', {
+      recipientId: data.recipientId,
+      messageId: data.messageId,
+      reason: 'recipient_email_unavailable',
+    });
+    return { status: 'skipped', reason: 'recipient_email_unavailable' };
   }
-  const safeSenderName = String(data.senderName || 'Someone')
-    .replace(/[\r\n]/g, ' ')
-    .trim();
+  if (recipient.notify_account === false) {
+    logger.info('[queue] message email skipped', {
+      recipientId: data.recipientId,
+      messageId: data.messageId,
+      reason: 'account_email_opt_out',
+    });
+    return { status: 'skipped', reason: 'account_email_opt_out' };
+  }
+  const safeSenderName =
+    String(data.senderName || 'Someone')
+      .replace(/[\r\n]/g, ' ')
+      .trim()
+      .slice(0, 120) || 'Someone';
   const safeContextTitle = String(data.contextTitle || '')
     .replace(/[\r\n]/g, ' ')
-    .trim();
+    .trim()
+    .slice(0, 120);
   const contextInfo = safeContextTitle ? ` (Re: ${safeContextTitle})` : '';
+  const subject = `New message from ${safeSenderName}${contextInfo}`.slice(0, 200);
+  const baseUrl = String(process.env.BASE_URL || 'https://event-flow.co.uk').replace(/\/+$/, '');
+  const conversationId = encodeURIComponent(String(data.conversationId || ''));
 
   await postmark.sendMail({
     to: recipient.email,
-    subject: `New message from ${safeSenderName}${contextInfo}`,
-    text: `${safeSenderName} sent you a message:\n\n"${String(data.preview || '').substring(0, 200)}"\n\nView conversation: ${process.env.BASE_URL || 'https://event-flow.co.uk'}/messenger/?conversation=${data.conversationId}`,
+    subject,
+    text: `${safeSenderName} sent you a message:\n\n"${String(data.preview || '').substring(0, 200)}"\n\nView conversation: ${baseUrl}/messenger/?conversation=${conversationId}`,
     from: postmark.FROM_NOREPLY,
+    tags: ['messenger-v4', 'transactional'],
+    messageStream: 'outbound',
+    // Never let a production worker treat the local outbox fallback as delivery.
+    criticalDelivery: true,
   });
   logger.info('[queue] email sent', { recipientId: data.recipientId, messageId: data.messageId });
+  return { status: 'sent' };
 }
 
 function startEmailWorker() {

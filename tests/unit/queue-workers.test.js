@@ -84,14 +84,22 @@ describe('notification queue worker', () => {
 describe('email queue worker', () => {
   const sendMail = jest.fn(async () => ({}));
   const logger = { info: jest.fn() };
+  const findRecipient = jest.fn(async () => ({
+    email: 'recipient@example.test',
+    notify_account: true,
+  }));
   const db = {
     collection: jest.fn(() => ({
-      findOne: jest.fn(async () => ({ email: 'recipient@example.test' })),
+      findOne: findRecipient,
     })),
   };
 
   beforeEach(() => {
     jest.clearAllMocks();
+    findRecipient.mockResolvedValue({
+      email: 'recipient@example.test',
+      notify_account: true,
+    });
   });
 
   it('rejects missing context and sends with a complete worker context', async () => {
@@ -103,19 +111,70 @@ describe('email queue worker', () => {
       logger,
       postmark: { sendMail, FROM_NOREPLY: 'noreply@example.test' },
     });
-    await processEmailJob({
-      data: {
-        messageId: 'm1',
-        conversationId: 'c1',
-        recipientId: 'u2',
-        senderName: 'Alice',
-        preview: 'Hello',
-      },
-    });
+    await expect(
+      processEmailJob({
+        data: {
+          messageId: 'm1',
+          conversationId: 'c1&unexpected=true',
+          recipientId: 'u2',
+          senderName: 'Alice\r\nInjected',
+          preview: 'Hello',
+          contextTitle: 'V'.repeat(300),
+        },
+      })
+    ).resolves.toEqual({ status: 'sent' });
 
     expect(sendMail).toHaveBeenCalledWith(
-      expect.objectContaining({ to: 'recipient@example.test', from: 'noreply@example.test' })
+      expect.objectContaining({
+        to: 'recipient@example.test',
+        from: 'noreply@example.test',
+        criticalDelivery: true,
+        tags: ['messenger-v4', 'transactional'],
+        messageStream: 'outbound',
+        subject: expect.not.stringContaining('\n'),
+        text: expect.stringContaining('conversation=c1%26unexpected%3Dtrue'),
+      })
     );
+    expect(sendMail.mock.calls[0][0].subject.length).toBeLessThanOrEqual(200);
     expect(startEmailWorker()).toEqual({ processor: processEmailJob });
+  });
+
+  it('honours account email preferences without acknowledging a provider delivery', async () => {
+    findRecipient.mockResolvedValueOnce({
+      email: 'recipient@example.test',
+      notify_account: false,
+    });
+    mockGetQueueContext.mockReturnValueOnce({
+      db,
+      logger,
+      postmark: { sendMail, FROM_NOREPLY: 'noreply@example.test' },
+    });
+
+    await expect(
+      processEmailJob({
+        data: { messageId: 'm1', conversationId: 'c1', recipientId: 'u2' },
+      })
+    ).resolves.toEqual({ status: 'skipped', reason: 'account_email_opt_out' });
+    expect(sendMail).not.toHaveBeenCalled();
+  });
+
+  it('skips recipients that no longer have an email address', async () => {
+    findRecipient.mockResolvedValueOnce({ notify_account: true });
+    mockGetQueueContext.mockReturnValueOnce({
+      db,
+      logger,
+      postmark: { sendMail, FROM_NOREPLY: 'noreply@example.test' },
+    });
+
+    await expect(
+      processEmailJob({
+        data: {
+          messageId: 'm1',
+          conversationId: 'c1',
+          recipientId: 'u2',
+        },
+      })
+    ).resolves.toEqual({ status: 'skipped', reason: 'recipient_email_unavailable' });
+    expect(sendMail).not.toHaveBeenCalled();
   });
 });

@@ -31,6 +31,7 @@ describe('scripts/preflight.mjs', () => {
     MONGODB_URI: 'mongodb://localhost/test',
     BASE_URL: 'https://example.com',
     REDIS_URL: 'redis://127.0.0.1:6379',
+    POSTMARK_API_KEY: 'test-postmark-token',
     REGISTERED_OFFICE: '123 Example Street, London',
     BUSINESS_PHONE: '+44 20 7946 0000',
     BUSINESS_ADDRESS_LINE1: '123 Example Street',
@@ -114,5 +115,25 @@ describe('scripts/preflight.mjs', () => {
     });
     expect(result.status).toBe(1);
     expect(result.stderr).toMatch(/REDIS_URL/);
+  });
+
+  it('exits 1 in production when POSTMARK_API_KEY is missing', () => {
+    const result = runPreflight({
+      ...baseProductionEnv,
+      POSTMARK_API_KEY: '',
+      COMPANY_NUMBER: '12345678',
+    });
+    expect(result.status).toBe(1);
+    expect(result.stderr).toMatch(/POSTMARK_API_KEY/);
+  });
+
+  it('rejects an unsafe production queue namespace', () => {
+    const result = runPreflight({
+      ...baseProductionEnv,
+      COMPANY_NUMBER: '12345678',
+      EVENTFLOW_QUEUE_NAMESPACE: 'eventflow production with spaces',
+    });
+    expect(result.status).toBe(1);
+    expect(result.stderr).toMatch(/EVENTFLOW_QUEUE_NAMESPACE/);
   });
 });

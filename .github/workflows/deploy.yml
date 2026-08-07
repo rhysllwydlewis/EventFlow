@@ -197,6 +197,7 @@ jobs:
           MONGODB_URI: mongodb://127.0.0.1:27017/eventflow_preflight
           BASE_URL: https://event-flow.co.uk
           REDIS_URL: redis://127.0.0.1:6379
+          POSTMARK_API_KEY: ci-preflight-postmark-token-not-for-runtime-use
           COMPANY_NUMBER: '12345678'
           REGISTERED_OFFICE: 123 Preflight Street, London
           BUSINESS_PHONE: +44 20 0000 0000

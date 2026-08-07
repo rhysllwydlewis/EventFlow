@@ -219,9 +219,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version-file: '.node-version'
       - run: npm ci
       - run: npm test
       - name: Upload coverage

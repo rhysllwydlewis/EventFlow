@@ -6,6 +6,7 @@ const { enqueueNotificationJob } = require('./queue');
 const DEFAULT_RECONCILE_INTERVAL_MS = 30_000;
 const DEFAULT_RETRY_DELAY_MS = 60_000;
 const DEFAULT_LEASE_MS = 30_000;
+const DEFAULT_QUEUED_RECOVERY_MS = 5 * 60_000;
 const DEFAULT_BATCH_SIZE = 100;
 
 function toObjectId(id) {
@@ -33,7 +34,7 @@ async function markFanoutQueued(messagesCollection, messageId, now = new Date())
     {
       _id: toObjectId(messageId),
       // A fast worker may already have completed the job before add() returns.
-      // Never regress a terminal processed/failed state back to queued.
+      // Only the producer's pending/reconciling states may become queued.
       'notificationFanout.status': { $in: ['pending', 'reconciling'] },
     },
     {
@@ -53,7 +54,11 @@ async function markFanoutQueued(messagesCollection, messageId, now = new Date())
 
 async function markFanoutProcessed(messagesCollection, messageId, now = new Date()) {
   await messagesCollection.updateOne(
-    { _id: toObjectId(messageId) },
+    {
+      _id: toObjectId(messageId),
+      // Competing enqueue/reconcile callbacks must not regress terminal success.
+      'notificationFanout.status': { $nin: ['processed', 'not_required'] },
+    },
     {
       $set: {
         'notificationFanout.status': 'processed',
@@ -76,7 +81,11 @@ async function markFanoutFailed(
   { now = new Date(), retryDelayMs = DEFAULT_RETRY_DELAY_MS } = {}
 ) {
   await messagesCollection.updateOne(
-    { _id: toObjectId(messageId) },
+    {
+      _id: toObjectId(messageId),
+      // A late failure callback must not overwrite a successful competing run.
+      'notificationFanout.status': { $nin: ['processed', 'not_required'] },
+    },
     {
       $set: {
         'notificationFanout.status': 'failed',
@@ -113,6 +122,7 @@ async function reconcileNotificationFanout({
   }
   const messages = db.collection('chat_messages_v4');
   const conversations = db.collection('conversations_v4');
+  const queuedRecoveryCutoff = new Date(now.getTime() - DEFAULT_QUEUED_RECOVERY_MS);
   const candidates = await messages
     .find({
       $or: [
@@ -123,6 +133,12 @@ async function reconcileNotificationFanout({
         {
           'notificationFanout.status': 'reconciling',
           'notificationFanout.leaseUntil': { $lte: now },
+        },
+        {
+          // Redis is a durable queue only when persistence/eviction settings hold.
+          // Re-submit old queued markers so a lost Redis job cannot strand a message.
+          'notificationFanout.status': 'queued',
+          'notificationFanout.queuedAt': { $not: { $gt: queuedRecoveryCutoff } },
         },
       ],
     })
@@ -136,10 +152,17 @@ async function reconcileNotificationFanout({
       {
         _id: candidate._id,
         $or: [
-          { 'notificationFanout.status': { $in: ['pending', 'failed'] } },
+          {
+            'notificationFanout.status': { $in: ['pending', 'failed'] },
+            'notificationFanout.nextRetryAt': { $not: { $gt: now } },
+          },
           {
             'notificationFanout.status': 'reconciling',
             'notificationFanout.leaseUntil': { $lte: now },
+          },
+          {
+            'notificationFanout.status': 'queued',
+            'notificationFanout.queuedAt': { $not: { $gt: queuedRecoveryCutoff } },
           },
         ],
       },
@@ -203,17 +226,44 @@ async function startNotificationFanoutReconciler({
     },
     { name: 'messenger_notification_fanout_recovery' }
   );
+  await messages.createIndex(
+    {
+      'notificationFanout.status': 1,
+      'notificationFanout.queuedAt': 1,
+      createdAt: 1,
+    },
+    { name: 'messenger_notification_fanout_queued_recovery' }
+  );
 
-  const run = () =>
-    reconcileNotificationFanout({ db, logger }).catch(error => {
+  let stopped = false;
+  let timer = null;
+  let activeRun = null;
+  const run = async ({ initial = false } = {}) => {
+    activeRun = reconcileNotificationFanout({ db, logger });
+    try {
+      await activeRun;
+    } catch (error) {
       logger.error('[queue] notification fan-out reconciliation run failed', {
         error: sanitizeFanoutError(error),
       });
-    });
-  await run();
-  const timer = setInterval(run, intervalMs);
-  timer.unref?.();
-  return () => clearInterval(timer);
+      if (initial) {
+        stopped = true;
+        throw error;
+      }
+    } finally {
+      activeRun = null;
+      if (!stopped) {
+        timer = setTimeout(run, intervalMs);
+        timer.unref?.();
+      }
+    }
+  };
+  await run({ initial: true });
+  return async () => {
+    stopped = true;
+    clearTimeout(timer);
+    await activeRun?.catch(() => {});
+  };
 }
 
 module.exports = {

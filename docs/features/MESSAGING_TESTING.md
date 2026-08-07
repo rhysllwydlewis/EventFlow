@@ -589,9 +589,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version-file: '.node-version'
 
       - name: Install dependencies
         run: npm ci

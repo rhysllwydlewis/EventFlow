@@ -8,6 +8,7 @@ const {
   markFanoutProcessed,
   markFanoutFailed,
   reconcileNotificationFanout,
+  startNotificationFanoutReconciler,
   sanitizeFanoutError,
 } = require('../../services/notificationFanout.service');
 
@@ -69,6 +70,16 @@ describe('notification fan-out durability', () => {
     expect(
       updates.some(([, update]) => update.$set?.['notificationFanout.status'] === 'queued')
     ).toBe(true);
+    expect(messages.findOneAndUpdate.mock.calls[0][0]).toEqual(
+      expect.objectContaining({
+        $or: expect.arrayContaining([
+          expect.objectContaining({
+            'notificationFanout.status': { $in: ['pending', 'failed'] },
+            'notificationFanout.nextRetryAt': expect.any(Object),
+          }),
+        ]),
+      })
+    );
   });
 
   it('redacts Redis credentials from persisted errors', () => {
@@ -104,14 +115,20 @@ describe('notification fan-out durability', () => {
 
     expect(updateOne).toHaveBeenNthCalledWith(
       1,
-      { _id: messageId },
+      {
+        _id: messageId,
+        'notificationFanout.status': { $nin: ['processed', 'not_required'] },
+      },
       expect.objectContaining({
         $set: expect.objectContaining({ 'notificationFanout.status': 'processed' }),
       })
     );
     expect(updateOne).toHaveBeenNthCalledWith(
       2,
-      { _id: messageId },
+      {
+        _id: messageId,
+        'notificationFanout.status': { $nin: ['processed', 'not_required'] },
+      },
       expect.objectContaining({
         $set: expect.objectContaining({
           'notificationFanout.status': 'failed',
@@ -119,6 +136,82 @@ describe('notification fan-out durability', () => {
         }),
         $inc: { 'notificationFanout.attempts': 1 },
       })
+    );
+  });
+
+  it('recovers stale queued markers that may have lost their Redis job', async () => {
+    const now = new Date('2026-08-07T12:00:00.000Z');
+    const message = {
+      _id: new ObjectId(),
+      conversationId: new ObjectId(),
+      content: 'Hello',
+      notificationFanout: {
+        status: 'queued',
+        queuedAt: new Date('2026-08-07T11:50:00.000Z'),
+        recipientIds: ['u2'],
+      },
+    };
+    const messages = {
+      find: jest.fn(() => ({
+        sort: () => ({ limit: () => ({ toArray: async () => [message] }) }),
+      })),
+      findOneAndUpdate: jest.fn(async () => ({
+        ...message,
+        notificationFanout: { ...message.notificationFanout, status: 'reconciling' },
+      })),
+      updateOne: jest.fn(async () => ({ modifiedCount: 1 })),
+    };
+    const conversations = { findOne: jest.fn(async () => null) };
+    const db = {
+      collection: jest.fn(name => (name === 'chat_messages_v4' ? messages : conversations)),
+    };
+    const enqueue = jest.fn(async () => ({}));
+
+    await expect(reconcileNotificationFanout({ db, enqueue, now })).resolves.toMatchObject({
+      queued: 1,
+    });
+    expect(messages.find).toHaveBeenCalledWith(
+      expect.objectContaining({
+        $or: expect.arrayContaining([
+          expect.objectContaining({ 'notificationFanout.status': 'queued' }),
+        ]),
+      })
+    );
+    expect(messages.findOneAndUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        $or: expect.arrayContaining([
+          expect.objectContaining({ 'notificationFanout.status': 'queued' }),
+        ]),
+      }),
+      expect.any(Object),
+      { returnDocument: 'after' }
+    );
+    expect(enqueue).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not advertise a reconciler after its initial recovery scan fails', async () => {
+    const createIndex = jest.fn(async () => ({}));
+    const db = {
+      collection: jest.fn(() => ({
+        createIndex,
+        find: jest.fn(() => {
+          throw new Error('database unavailable');
+        }),
+      })),
+    };
+    const logger = { error: jest.fn() };
+
+    await expect(startNotificationFanoutReconciler({ db, logger })).rejects.toThrow(
+      'database unavailable'
+    );
+    expect(createIndex).toHaveBeenCalled();
+    expect(createIndex).toHaveBeenCalledWith(
+      expect.objectContaining({ 'notificationFanout.queuedAt': 1 }),
+      { name: 'messenger_notification_fanout_queued_recovery' }
+    );
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.stringContaining('reconciliation run failed'),
+      expect.objectContaining({ error: 'database unavailable' })
     );
   });
 
