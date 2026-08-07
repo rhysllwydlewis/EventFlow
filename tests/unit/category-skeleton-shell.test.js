@@ -3,14 +3,11 @@
 const fs = require('fs');
 const path = require('path');
 
-const categoryHtml = fs.readFileSync(
-  path.join(__dirname, '../../public/category.html'),
-  'utf8'
-);
+const categoryHtml = fs.readFileSync(path.join(__dirname, '../../public/category.html'), 'utf8');
 
 describe('category page initial skeleton shell', () => {
   it('loads the canonical skeleton stylesheet before the initial page paint', () => {
-    expect(categoryHtml).toContain('/assets/css/skeleton.css?v=2.0.0');
+    expect(categoryHtml).toContain('/assets/css/skeleton.css?v=2.0.1');
   });
 
   it('reserves hero, title, description and package-card layout in HTML', () => {
@@ -27,9 +24,7 @@ describe('category page initial skeleton shell', () => {
 
   it('hides unresolved hero and description placeholders after the category title resolves', () => {
     expect(categoryHtml).toContain('body:has(#category-title:not(:has(.skeleton)))');
-    expect(categoryHtml).toContain(
-      '.category-hero-shell:not(:has(.category-hero-img-wrap))'
-    );
+    expect(categoryHtml).toContain('.category-hero-shell:not(:has(.category-hero-img-wrap))');
     expect(categoryHtml).toContain('#category-description:has(.skeleton)');
     expect(categoryHtml).toContain('display: none');
   });

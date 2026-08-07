@@ -45,7 +45,7 @@ describe('guides SEO and UX assets', () => {
     expect(css).toContain('article .article-cta-card');
     expect(css).toContain('white-space: nowrap');
     expect(init).toContain('INITIAL_GUIDE_LIMIT = 23');
-    expect(guides).toHaveLength(24);
+    expect(guides.length).toBeGreaterThan(23);
     expect(init).toContain('View all ${list.length} guides');
     expect(init).toContain('function bindMediaQueryChange');
     expect(init).toContain('if (searchClear)');

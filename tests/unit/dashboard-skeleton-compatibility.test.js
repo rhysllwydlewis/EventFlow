@@ -10,6 +10,11 @@ describe('dashboard skeleton compatibility layer', () => {
   const dashboardCss = read('public/assets/css/dashboard-overhaul.css');
   const skeletonCss = read('public/assets/css/skeleton.css');
 
+  it('loads the repaired canonical stylesheet cache key on both dashboards', () => {
+    expect(read('public/dashboard-customer.html')).toContain('/assets/css/skeleton.css?v=2.0.1');
+    expect(read('public/dashboard-supplier.html')).toContain('/assets/css/skeleton.css?v=2.0.1');
+  });
+
   it('keeps the existing dashboard overhaul in its original stylesheet', () => {
     expect(dashboardCss).toContain('.supplier-dashboard-page');
     expect(dashboardCss).toContain('.customer-dashboard-page');

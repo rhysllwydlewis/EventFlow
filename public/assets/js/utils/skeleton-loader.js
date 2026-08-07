@@ -72,12 +72,7 @@ function repeatMarkup(count, renderer) {
  * @returns {string} Placeholder markup.
  */
 function line(width = 'long', extraClass = '') {
-  const className = [
-    'skeleton',
-    'skeleton-text',
-    `skeleton-text-${width}`,
-    extraClass,
-  ]
+  const className = ['skeleton', 'skeleton-text', `skeleton-text-${width}`, extraClass]
     .filter(Boolean)
     .join(' ');
   return `<span class="${className}" aria-hidden="true"></span>`;
@@ -238,9 +233,7 @@ function statCardSkeleton() {
  */
 function tableRowSkeleton(columns = 6) {
   const parsedColumns = Number.parseInt(columns, 10);
-  const safeColumns = Number.isNaN(parsedColumns)
-    ? 6
-    : Math.min(12, Math.max(1, parsedColumns));
+  const safeColumns = Number.isNaN(parsedColumns) ? 6 : Math.min(12, Math.max(1, parsedColumns));
   return `<tr class="skeleton-table-row" aria-hidden="true">${repeatMarkup(
     safeColumns,
     () => '<td><span class="skeleton skeleton-table-cell"></span></td>'
@@ -567,7 +560,7 @@ export function loadSkeletonCSS() {
   const link = document.createElement('link');
   link.id = 'skeleton-css';
   link.rel = 'stylesheet';
-  link.href = '/assets/css/skeleton.css?v=2.0.0';
+  link.href = '/assets/css/skeleton.css?v=2.0.1';
   document.head.appendChild(link);
 }
 

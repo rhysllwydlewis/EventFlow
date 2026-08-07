@@ -529,8 +529,8 @@ html:not([data-sp-theme-ready='true']) body.sp-profile-page #sp-section-gallery:
 
 .empty-state { color: #64748b; }
 .empty-state-icon { font-size: 3rem; margin-bottom: 0.8rem; opacity: 0.65; }
-.empty-state-title { color: #334155; font-size: 1.2rem; font-weight: 700; margin-bottom: 0.45rem; }
-.empty-state-description { max-width: 430px; margin: 0 auto 1.25rem; font-size: 0.9rem; }
+.empty-state-title { color: #334155; font-size: 1.25rem; font-weight: 700; margin-bottom: 0.45rem; }
+.empty-state-description { max-width: 430px; margin: 0 auto 1.25rem; font-size: 0.875rem; }
 .empty-state-action {
   display: inline-flex;
   padding: 0.7rem 1.2rem;
@@ -547,8 +547,8 @@ html:not([data-sp-theme-ready='true']) body.sp-profile-page #sp-section-gallery:
   border: 1px solid #fecaca;
 }
 .error-state-icon { font-size: 2.4rem; margin-bottom: 0.75rem; }
-.error-state-title { font-size: 1.15rem; font-weight: 700; margin-bottom: 0.4rem; }
-.error-state-description { margin-bottom: 1.2rem; font-size: 0.9rem; }
+.error-state-title { font-size: 1.125rem; font-weight: 700; margin-bottom: 0.4rem; }
+.error-state-description { margin-bottom: 1.2rem; font-size: 0.875rem; }
 .error-state-action {
   padding: 0.6rem 1rem;
   color: #991b1b;
@@ -595,6 +595,7 @@ html:not([data-sp-theme-ready='true']) body.sp-profile-page #sp-section-gallery:
 
 @media (prefers-reduced-motion: reduce) {
   .skeleton,
+  .skeleton-card,
   .skeleton-line,
   .skeleton-table-cell,
   .skeleton-grid > .skeleton-card:empty::before,
