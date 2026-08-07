@@ -193,6 +193,7 @@ const REGISTRY = [
     category: 'content',
     inNav: true,
     desc: 'UK city pages: publication, indexing and editorial review',
+    badgeId: 'navBadgeLocations',
   },
   {
     route: '/admin-reports',

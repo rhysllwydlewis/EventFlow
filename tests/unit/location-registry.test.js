@@ -35,6 +35,16 @@ describe('city registry loading', () => {
     const slugs = registry.listCities().map(city => city.slug);
     expect(new Set(slugs).size).toBe(slugs.length);
   });
+
+  it('includes Scarborough, previously missing from the registry', () => {
+    const scarborough = registry.getCity('scarborough');
+    expect(scarborough).toBeTruthy();
+    expect(scarborough.name).toBe('Scarborough');
+    expect(scarborough.nation).toBe('England');
+    // Reachable from York's "nearby areas" module, not just standalone.
+    const york = registry.getCity('york');
+    expect(york.nearbyLocationSlugs).toContain('scarborough');
+  });
 });
 
 describe('slug normalisation', () => {

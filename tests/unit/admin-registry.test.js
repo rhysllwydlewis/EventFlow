@@ -226,4 +226,28 @@ describe('admin-navbar.js NAV_ITEMS', () => {
   it('includes renderNavMount function', () => {
     expect(navbarSrc).toContain('renderNavMount');
   });
+
+  // Regression guard: config/adminRegistry.js is the documented single
+  // source of truth for which pages should appear in navigation, but
+  // NAV_ITEMS above is a hand-maintained browser-side copy of it (see the
+  // "Update config/adminRegistry.js first; then mirror inNav=true entries
+  // here" comment in admin-navbar.js). That mirror previously drifted out
+  // of sync — four registry pages with inNav:true (admin-locations,
+  // admin-community, admin-external-contacts, admin-cashout-requests) were
+  // missing from NAV_ITEMS, making them unreachable from the admin nav,
+  // Quick Nav panel, and command palette even though the registry said
+  // they should be linked. This test fails the moment that happens again.
+  it('every inNav:true registry route has a matching NAV_ITEMS href', () => {
+    const navItemsMatch = navbarSrc.match(/(?:var|const) NAV_ITEMS\s*=\s*\[([\s\S]*?)\n {2}\];/);
+    expect(navItemsMatch).not.toBeNull();
+
+    const mirrorHrefs = new Set(
+      Array.from(navItemsMatch[1].matchAll(/href:\s*'([^']+)'/g)).map(m => m[1])
+    );
+
+    const registryNavRoutes = getNavItems().map(page => page.route);
+    const missing = registryNavRoutes.filter(route => !mirrorHrefs.has(route));
+
+    expect(missing).toEqual([]);
+  });
 });

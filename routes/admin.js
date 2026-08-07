@@ -28,6 +28,8 @@ const { FROM_SUPPORT: POSTMARK_FROM_SUPPORT_ADDR } = postmark;
 const { VERIFICATION_STATES } = require('../utils/supplierVerificationStateMachine');
 const { sanitiseText } = require('../utils/sanitise');
 const { runActionPrompts, notifyCronChanged } = require('../services/actionPromptScheduler');
+const locationRegistry = require('../services/locationRegistry.service');
+const locationPageService = require('../services/locationPage.service');
 
 const router = express.Router();
 
@@ -2463,6 +2465,20 @@ router.get('/badge-counts', authRequired, roleRequired('admin'), async (req, res
       t => t.status === 'open' || t.status === 'in_progress'
     ).length;
 
+    // Cities the nightly auto-publish job made live with nobody having looked
+    // at them since — the closest thing this endpoint can do to the alert
+    // that job never sent when it fired.
+    let pendingLocationsReview = 0;
+    try {
+      const locationRecords = await locationPageService.loadPageRecords(dbUnified);
+      pendingLocationsReview = locationRegistry.listCities().filter(city => {
+        const record = locationRecords.get(city.slug);
+        return Boolean(record) && record.managedBy === 'automation' && !record.lastReviewedAt;
+      }).length;
+    } catch (locationError) {
+      logger.error('Error counting locations needing review:', locationError);
+    }
+
     res.json({
       pending: {
         suppliers: pendingSuppliers,
@@ -2472,6 +2488,7 @@ router.get('/badge-counts', authRequired, roleRequired('admin'), async (req, res
         reports: pendingReports,
         tickets: openTickets,
         publicCalendarRequests: pendingCalendarRequests,
+        locations: pendingLocationsReview,
       },
       totals: {
         suppliers: totalSuppliers,
@@ -2495,6 +2512,7 @@ router.get('/badge-counts', authRequired, roleRequired('admin'), async (req, res
         reports: 0,
         tickets: 0,
         publicCalendarRequests: 0,
+        locations: 0,
       },
       totals: {
         suppliers: 0,

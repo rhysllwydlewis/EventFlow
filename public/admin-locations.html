@@ -65,6 +65,10 @@
             <option value="published">Published</option>
             <option value="retired">Retired</option>
           </select>
+          <label class="efl-checkbox-label">
+            <input type="checkbox" id="efl-admin-needs-review" />
+            Needs review only — auto-published, never checked by a human
+          </label>
         </p>
 
         <ul class="efl-legend">
@@ -82,6 +86,10 @@
         </ul>
 
         <p id="efl-admin-summary" class="efl-note" role="status"></p>
+        <details id="efl-unmapped-suppliers" class="efl-note" hidden>
+          <summary>Suppliers not placed on any city page</summary>
+          <ul id="efl-unmapped-suppliers-list"></ul>
+        </details>
         <div id="efl-admin-list" class="efl-grid"></div>
       </div>
     </main>

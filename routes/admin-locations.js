@@ -22,7 +22,7 @@ const locationHeroImages = require('../services/locationHeroImage.service');
 const locationPages = require('../services/locationPage.service');
 const locationGuides = require('../services/locationGuides.service');
 const supplierLocation = require('../services/supplierLocation.service');
-const { isPublicSupplier } = require('../services/publicSupplierSeo.service');
+const { isPublicSupplier, supplierDisplayName } = require('../services/publicSupplierSeo.service');
 const {
   COLLECTIONS,
   HERO_SOURCES,
@@ -185,6 +185,10 @@ function describeCity(city, data) {
     alternateNames: city.alternateNames,
     status: page.status,
     managedBy: page.managedBy,
+    // A city automation published and a human has never looked at since —
+    // the thing an admin currently has to find by eye, scrolling the whole
+    // list and checking each row's "Auto-published" tag one at a time.
+    needsReview: page.managedBy === 'automation' && !page.lastReviewedAt,
     indexingRequested: page.indexingRequested,
     indexable: model.indexable,
     publishedAt: page.publishedAt,
@@ -284,7 +288,35 @@ router.get('/', apiLimiter, async (req, res) => {
     const data = await loadGateInputs();
     const items = registry.listCities().map(city => describeCity(city, data));
     const status = String(req.query.status || '').trim();
-    const filtered = status ? items.filter(item => item.status === status) : items;
+    const managedBy = String(req.query.managedBy || '').trim();
+    const needsReviewOnly = String(req.query.needsReview || '').trim() === 'true';
+
+    let filtered = status ? items.filter(item => item.status === status) : items;
+    if (managedBy) {
+      filtered = filtered.filter(item => (item.managedBy || 'unmanaged') === managedBy);
+    }
+    if (needsReviewOnly) {
+      filtered = filtered.filter(item => item.needsReview);
+    }
+
+    // Public suppliers the registry cannot place. Every one of these is a
+    // supplier missing from the city page they belong on, so the list
+    // belongs next to the pages rather than only in a migration report — an
+    // admin previously had no way to see who these suppliers even were
+    // without a direct database query.
+    const unmappedSuppliers = data.suppliers
+      .map(supplier => {
+        const base = supplierLocation.normaliseBaseLocation(supplier);
+        if (base && base.citySlug) {
+          return null;
+        }
+        return {
+          id: supplier.id,
+          name: supplierDisplayName(supplier) || 'Unnamed supplier',
+          rawLocation: (base && base.displayName) || supplier.location || null,
+        };
+      })
+      .filter(Boolean);
 
     return res.json({
       success: true,
@@ -298,13 +330,9 @@ router.get('/', apiLimiter, async (req, res) => {
           published: items.filter(item => item.status === PUBLICATION_STATES.published).length,
           indexable: items.filter(item => item.indexable).length,
           pilot: items.filter(item => item.status === PUBLICATION_STATES.pilot).length,
-          // Public suppliers the registry cannot place. Every one of these is a
-          // supplier missing from the city page they belong on, so the number
-          // belongs next to the pages rather than only in a migration report.
-          unmappedSuppliers: data.suppliers.filter(supplier => {
-            const base = supplierLocation.normaliseBaseLocation(supplier);
-            return !base || !base.citySlug;
-          }).length,
+          needsReview: items.filter(item => item.needsReview).length,
+          unmappedSuppliers: unmappedSuppliers.length,
+          unmappedSupplierList: unmappedSuppliers.slice(0, 100),
         },
       },
     });
