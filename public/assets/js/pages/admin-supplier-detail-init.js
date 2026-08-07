@@ -113,7 +113,7 @@
       </div>
       ${supplierData.verificationNotes ? `<div class="supplier-meta-item"><strong>Verification Notes:</strong> ${AdminShared.escapeHtml(supplierData.verificationNotes)}</div>` : ''}
       <div class="supplier-meta-item">
-        <strong>Health Score:</strong> ${supplierData.healthScore || 0}/100
+        <strong>Quality Score:</strong> ${supplierData.healthScore || 0}/100
       </div>
       <div class="supplier-meta-item">
         <strong>Pro Plan:</strong> ${AdminShared.escapeHtml(supplierData.proPlan || 'None')}

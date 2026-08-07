@@ -90,7 +90,9 @@
 
   function findInfoValue(containerId, labelText) {
     const container = document.getElementById(containerId);
-    if (!container) return null;
+    if (!container) {
+      return null;
+    }
     const field = Array.from(container.querySelectorAll('.info-field')).find(
       item =>
         item.querySelector('label')?.textContent?.trim().toLowerCase() === labelText.toLowerCase()
@@ -99,7 +101,9 @@
   }
 
   function updateExistingAdminFields() {
-    if (!supplier) return;
+    if (!supplier) {
+      return;
+    }
 
     const descriptionValue = findInfoValue('businessInfo', 'Description');
     const description = canonicalDescription(supplier) || 'No description';
@@ -110,10 +114,10 @@
     const health = calculateAdminHealth(supplier);
     document.querySelectorAll('#supplierMeta .supplier-meta-item').forEach(item => {
       const strong = item.querySelector('strong');
-      if (strong?.textContent?.trim() === 'Health Score:') {
-        const expected = `Health Score: ${health}/100`;
+      if (strong?.textContent?.trim() === 'Quality Score:') {
+        const expected = `Quality Score: ${health}/100`;
         if (item.textContent.replace(/\s+/g, ' ').trim() !== expected) {
-          item.innerHTML = `<strong>Health Score:</strong> ${health}/100`;
+          item.innerHTML = `<strong>Quality Score:</strong> ${health}/100`;
         }
       }
     });
@@ -176,11 +180,15 @@
 
   function getOrCreateTrustCard() {
     let card = document.getElementById('adminSupplierTrustSafety');
-    if (card) return card;
+    if (card) {
+      return card;
+    }
 
     const contactInfo = document.getElementById('contactInfo');
     const contactCard = contactInfo?.closest('.info-card');
-    if (!contactCard) return null;
+    if (!contactCard) {
+      return null;
+    }
 
     card = document.createElement('div');
     card.className = 'info-card';
@@ -190,9 +198,13 @@
   }
 
   function renderTrustCard() {
-    if (!supplier) return;
+    if (!supplier) {
+      return;
+    }
     const card = getOrCreateTrustCard();
-    if (!card) return;
+    if (!card) {
+      return;
+    }
 
     const banner = bannerState(supplier);
     // Public directory visibility is controlled by approved === true. Keep this
@@ -280,7 +292,9 @@
     const badgeId = button.dataset.trustBadge;
     const action = button.dataset.trustAction;
     const config = TRUST_BADGES.find(item => item.id === badgeId);
-    if (!config || !supplier) return;
+    if (!config || !supplier) {
+      return;
+    }
 
     const awarding = action === 'award';
     const confirmed = await AdminShared.showConfirmModal({
@@ -291,7 +305,9 @@
       confirmText: awarding ? 'Confirm verified' : 'Remove',
       cancelText: 'Cancel',
     });
-    if (!confirmed) return;
+    if (!confirmed) {
+      return;
+    }
 
     button.disabled = true;
     try {
@@ -322,7 +338,9 @@
   }
 
   function applyConsistency() {
-    if (applying || !supplier) return;
+    if (applying || !supplier) {
+      return;
+    }
     applying = true;
     try {
       updateExistingAdminFields();
