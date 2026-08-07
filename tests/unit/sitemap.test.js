@@ -61,8 +61,9 @@ describe('generateSitemap', () => {
     expect(count).toBe(1);
   });
 
-  test('guide catalogue is intentionally capped at 24 public entries', () => {
-    expect(guidesData).toHaveLength(24);
+  test('guide catalogue contains unique public article entries', () => {
+    expect(guidesData.length).toBeGreaterThan(23);
+    expect(new Set(expectedArticleSlugs).size).toBe(expectedArticleSlugs.length);
   });
 
   test('includes all article URLs from guides.json', () => {

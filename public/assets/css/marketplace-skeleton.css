@@ -2,8 +2,9 @@
  * Marketplace compatibility layer for the canonical EventFlow skeleton system.
  * The marketplace keeps its existing class names while sharing animation,
  * colours, reduced-motion behaviour and responsive tokens with other pages.
+ * marketplace.html loads the canonical stylesheet first, avoiding a duplicate
+ * render-blocking request from this compatibility layer.
  */
-@import url('/assets/css/skeleton.css?v=2.0.0');
 
 .marketplace-skeleton {
   display: grid;
@@ -19,6 +20,19 @@
   border: 1px solid var(--skeleton-border);
   border-radius: var(--skeleton-radius);
   box-shadow: var(--skeleton-shadow);
+  animation: none;
+}
+
+.marketplace-skeleton-card .skeleton-image,
+.marketplace-skeleton-card .skeleton-text {
+  background: linear-gradient(
+    90deg,
+    var(--skeleton-base) 20%,
+    var(--skeleton-highlight) 42%,
+    var(--skeleton-base) 64%
+  );
+  background-size: 220% 100%;
+  animation: ef-skeleton-shimmer 1.35s linear infinite;
 }
 
 .marketplace-skeleton-card .skeleton-image {
@@ -50,5 +64,13 @@
 @media (max-width: 480px) {
   .marketplace-skeleton {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marketplace-skeleton-card,
+  .marketplace-skeleton-card .skeleton-image,
+  .marketplace-skeleton-card .skeleton-text {
+    animation: none !important;
   }
 }

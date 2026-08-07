@@ -157,7 +157,8 @@ describe('background job trigger attribution', () => {
     expect(admin).toContain('userId: req.user.id || req.user.email');
     expect(supplierAdmin).toContain("evaluateAllSupplierBadges({ trigger: 'manual' })");
     expect(scheduler).toContain('getSupplierActionItems({ telemetryTrigger: trigger })');
-    expect(dateService).toContain("const manual = trigger === 'manual'");
-    expect(dateService).toContain("type: manual ? 'MANUAL_UPDATE' : 'AUTO_UPDATE'");
+    expect(dateService).toContain("requestedBy: trigger === 'manual' ? userId : 'system'");
+    expect(dateService).toContain('trigger,');
+    expect(dateService).not.toContain("type: manual ? 'MANUAL_UPDATE' : 'AUTO_UPDATE'");
   });
 });

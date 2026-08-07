@@ -354,6 +354,10 @@ ${listBody}
 
 const guidelines = `        <article class="efc-card efc-section">
           <h1>Community guidelines</h1>
+          <p class="small"><strong>Last materially updated:</strong>
+            {{POLICY_COMMUNITY_GUIDELINES_LAST_UPDATED}} · <strong>Last reviewed:</strong>
+            {{POLICY_COMMUNITY_GUIDELINES_LAST_REVIEWED}} · <strong>Version:</strong>
+            {{POLICY_COMMUNITY_GUIDELINES_VERSION}}</p>
           <p>The EventFlow Community is for people planning events and the suppliers who work on
             them. These guidelines apply to every discussion, reply and profile.</p>
 
@@ -369,10 +373,25 @@ const guidelines = `        <article class="efc-card efc-section">
           <ul>
             <li>Spam, drive-by promotion, SEO link-dropping and affiliate spam.</li>
             <li>Harassment, hate, threats and content that targets a person.</li>
-            <li>Sexual content, gambling, illegal goods and anything unlawful.</li>
+            <li>Sexual or exploitative content, illegal goods, instructions for serious wrongdoing
+              and anything else unlawful.</li>
             <li>Other people's personal information, including photographs of guests who have not agreed.</li>
             <li>Impersonating EventFlow staff, a supplier or another member.</li>
+            <li>Copyright-infringing content, malware, scams, manipulated engagement or malicious
+              false reports.</li>
           </ul>
+
+          <h2>Public posts and your rights</h2>
+          <p>Published profiles, discussions and replies are public and may appear in EventFlow
+            search and external search engines. Do not post confidential information, private
+            messages, exact addresses, guest details or somebody else's personal data without their
+            permission.</p>
+          <p>You keep ownership of content you create. By posting it, you give EventFlow the limited
+            licence described in our <a href="/terms">Terms</a> so we can host, display, search,
+            format and moderate it. You can edit or withdraw your own content. A withdrawn post may
+            leave a labelled placeholder so the surrounding conversation remains understandable,
+            and limited copies may be retained for safety, appeals, legal compliance or backups as
+            explained in our <a href="/privacy">Privacy notice</a>.</p>
 
           <h2>Supplier code of conduct</h2>
           <p>Approved EventFlow suppliers are welcome and their badge is based only on facts we can
@@ -396,15 +415,30 @@ const guidelines = `        <article class="efc-card efc-section">
           <p>EventFlow is an 18+ service and you must confirm you are 18 or over before posting.</p>
 
           <h2>Moderation</h2>
-          <p>We hide, remove, lock or archive content that breaks these guidelines, and we tell the
-            author what happened. We do not use silent shadow bans. Every decision can be
+          <p>Automated safety and anti-spam checks may reject a blocked link or hold a post for a
+            person to review. A hold is not a final decision and the author can see that the post is
+            awaiting review. We do not use silent shadow bans.</p>
+          <p>Depending on the circumstances, we may warn a member, restrict links or posting, hide,
+            redact, remove, lock or archive content, or suspend an account. We normally tell the
+            affected member what happened and why. Eligible decisions can be
             <a href="/community/help#appeals">appealed</a>.</p>
+
+          <h2>Reporting content</h2>
+          <p>Use the report control on a discussion or reply if it may break these guidelines. You
+            can report suspected illegal content through the
+            <a href="/legal#illegal-content">Legal Hub</a>, including without a Community account.
+            Reports should be made in good faith. The reporter is told the outcome where the product
+            supports it, but not confidential details about action taken against another member.</p>
           <p>See also our <a href="/terms">Terms</a>, <a href="/privacy">Privacy notice</a> and
             <a href="/legal">Legal hub</a>.</p>
         </article>`;
 
 const help = `        <article class="efc-card efc-section">
           <h1>Community help</h1>
+          <p class="small"><strong>Last materially updated:</strong>
+            {{POLICY_COMMUNITY_HELP_LAST_UPDATED}} · <strong>Last reviewed:</strong>
+            {{POLICY_COMMUNITY_HELP_LAST_REVIEWED}} · <strong>Version:</strong>
+            {{POLICY_COMMUNITY_HELP_VERSION}}</p>
 
           <h2 id="reporting">Reporting content</h2>
           <p>Every discussion and reply has a <strong>Report</strong> button. Choose the closest

@@ -9,9 +9,17 @@ const read = relativePath => fs.readFileSync(path.join(root, relativePath), 'utf
 describe('skeleton surface compatibility layers', () => {
   it('routes Marketplace placeholders through the canonical skeleton stylesheet', () => {
     const css = read('public/assets/css/marketplace-skeleton.css');
-    expect(css).toContain("@import url('/assets/css/skeleton.css?v=2.0.0')");
+    const page = read('public/marketplace.html');
+    expect(page).toContain('/assets/css/skeleton.css?v=2.0.1');
+    expect(page).toContain('/assets/css/marketplace-skeleton.css?v=2.0.1');
+    expect(page.indexOf('/assets/css/skeleton.css')).toBeLessThan(
+      page.indexOf('/assets/css/marketplace-skeleton.css')
+    );
+    expect(css).not.toContain('@import');
     expect(css).toContain('var(--skeleton-surface)');
     expect(css).toContain('var(--skeleton-border)');
+    expect(css).toContain('var(--skeleton-highlight)');
+    expect(css).toContain('animation: ef-skeleton-shimmer 1.35s linear infinite');
     expect(css).toContain('.marketplace-skeleton-card .skeleton-image');
     expect(css).not.toContain('@keyframes skeleton-pulse');
     expect(css).not.toContain('@keyframes skeleton-shimmer');
@@ -24,6 +32,41 @@ describe('skeleton surface compatibility layers', () => {
     expect(css).toContain('grid-template-columns: 1fr');
   });
 
+  it('stops every Marketplace placeholder animation for reduced motion', () => {
+    const css = read('public/assets/css/marketplace-skeleton.css');
+    const renderer = read('public/assets/js/marketplace.js');
+    expect(renderer).toContain('class="marketplace-skeleton-card"');
+    expect(renderer).toContain('class="skeleton-image"');
+    expect(renderer).toContain('class="skeleton-text skeleton-title"');
+    expect(css).toContain('@media (prefers-reduced-motion: reduce)');
+    expect(css).toContain('.marketplace-skeleton-card .skeleton-image,');
+    expect(css).toContain('.marketplace-skeleton-card .skeleton-text {');
+    expect(css).toContain('animation: none !important');
+  });
+
+  it('busts caches for every stylesheet changed by the consolidation', () => {
+    const canonicalConsumers = [
+      'public/category.html',
+      'public/dashboard-customer.html',
+      'public/dashboard-supplier.html',
+      'public/event-detail.html',
+      'public/marketplace.html',
+      'public/supplier.html',
+      'public/suppliers.html',
+    ];
+    const legacyConsumers = ['public/guides.html', 'public/home-v2.html', 'public/index.html'];
+
+    canonicalConsumers.forEach(file =>
+      expect(read(file)).toContain('/assets/css/skeleton.css?v=2.0.1')
+    );
+    legacyConsumers.forEach(file =>
+      expect(read(file)).toContain('/assets/css/loading-skeleton.css?v=2.0.1')
+    );
+    expect(read('public/assets/js/utils/skeleton-loader.js')).toContain(
+      "link.href = '/assets/css/skeleton.css?v=2.0.1'"
+    );
+  });
+
   it('keeps the established supplier-profile loading contract in its original file', () => {
     const profileCss = read('public/assets/css/supplier-profile-commercial-polish.css');
     expect(profileCss).toContain("html:not([data-sp-theme-ready='true'])");
@@ -31,6 +74,11 @@ describe('skeleton surface compatibility layers', () => {
     expect(profileCss).toContain('#sp-section-reviews:empty::before');
     expect(profileCss).toContain('#sp-sidebar-enquiry:empty::before');
     expect(profileCss).not.toContain('supplier-profile-commercial-base.css');
+  });
+
+  it('keeps supplier profile icon actions inside the mobile loading viewport', () => {
+    const profileTheme = read('public/assets/css/supplier-profile-theme.css');
+    expect(profileTheme).toMatch(/#btn-save,\s*#btn-share\s*\{[^}]*min-width:\s*42px !important;/);
   });
 
   it('adds only the missing supplier gallery placeholder through the shared stylesheet', () => {

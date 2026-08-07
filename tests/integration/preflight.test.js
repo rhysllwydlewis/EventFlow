@@ -94,7 +94,7 @@ describe('scripts/preflight.mjs', () => {
   it('exits 1 in production when COMPANY_NUMBER is unset (content-config fallback would be used)', () => {
     const result = runPreflight(baseProductionEnv);
     expect(result.status).toBe(1);
-    expect(result.stderr).toMatch(/config\/content-config\.js/);
+    expect(result.stderr).toMatch(/config[\\/]content-config\.js/);
     expect(result.stderr).toMatch(/COMPANY_NUMBER/);
   });
 

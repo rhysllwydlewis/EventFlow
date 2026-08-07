@@ -38,6 +38,15 @@ describe('production startup contract', () => {
     expect(preload).toContain("require('./backgroundJobTelemetryBridge')");
   });
 
+  test('the production image removes the build-only npm CLI from the runtime image', () => {
+    const dockerfile = read('Dockerfile');
+
+    expect(dockerfile).toContain('RUN npm ci --omit=dev --ignore-scripts --no-audit');
+    expect(dockerfile).toContain('rm -rf /usr/local/lib/node_modules/npm');
+    expect(dockerfile).toContain('rm -f /usr/local/bin/npm /usr/local/bin/npx');
+    expect(dockerfile.indexOf('npm ci')).toBeLessThan(dockerfile.indexOf('rm -rf'));
+  });
+
   test('metadata launch failure is non-fatal and detached from server startup', () => {
     jest.resetModules();
     const { launchDeploymentMetadata } = require('../../services/deploymentMetadataPreload');
