@@ -34,6 +34,9 @@ const REFERENCED_TEMPLATES = [
   'newsletter-welcome',
   'notification',
   'support-ticket-reply',
+  'contact-enquiry-reply',
+  'review-request',
+  'new-message',
   'partner-welcome',
   'password-reset',
   'password-reset-confirmation',
@@ -540,12 +543,30 @@ describe('Email preview registry, preheaders and plain text', () => {
     'subscription-payment-failed',
     'subscription-activated',
     'subscription-cancelled',
+    'subscription-upgraded',
+    'subscription-downgrade-scheduled',
+    'subscription-renewal-reminder',
+    'subscription-trial-ending',
+    'contact-enquiry-reply',
+    'review-request',
+    'new-message',
   ])('%s has clean plain-text output', name => {
     const detail = registry.getTemplateDetails(name);
     const text = registry.renderPlainTextTemplate(name, detail.sampleData);
     expect(text.length).toBeGreaterThan(40);
     expect(text).not.toMatch(/<[^>]+>/);
     expect(text).not.toMatch(/\{\{[^}]+\}\}/);
+  });
+
+  test('new-message plain text has a space before the context suffix', () => {
+    const text = registry.renderPlainTextTemplate('new-message', {
+      senderName: 'Jordan Lee',
+      contextSuffix: ' about "Wedding catering enquiry"',
+      previewHtml: 'Hi there',
+      conversationUrl: 'https://event-flow.co.uk/messenger/?conversation=c1',
+    });
+    expect(text).toContain('Jordan Lee sent you a message about "Wedding catering enquiry":');
+    expect(text).not.toContain('messageabout');
   });
 
   test('preheader is injected into rendered HTML and no placeholder remains', () => {

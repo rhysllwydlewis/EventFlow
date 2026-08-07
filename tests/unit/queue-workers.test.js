@@ -133,8 +133,16 @@ describe('email queue worker', () => {
         messageStream: 'outbound',
         subject: expect.not.stringContaining('\n'),
         text: expect.stringContaining('conversation=c1%26unexpected%3Dtrue'),
+        template: 'new-message',
+        templateData: expect.objectContaining({
+          senderName: expect.stringContaining('Alice'),
+          contextSuffix: expect.stringContaining('V'),
+          previewHtml: 'Hello',
+          conversationUrl: expect.stringContaining('conversation=c1%26unexpected%3Dtrue'),
+        }),
       })
     );
+    expect(sendMail.mock.calls[0][0].templateData.senderName).not.toMatch(/[\r\n]/);
     expect(sendMail.mock.calls[0][0].subject.length).toBeLessThanOrEqual(200);
     expect(startEmailWorker()).toEqual({ processor: processEmailJob });
   });

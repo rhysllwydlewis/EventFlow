@@ -533,15 +533,17 @@ function renderPlainTextTemplate(name, data = {}) {
         `This link expires in ${merged.expiresInDays} days.`
       );
       break;
-    case 'new-message':
+    case 'new-message': {
+      const contextText = merged.contextSuffix ? ` ${stripHtml(merged.contextSuffix)}` : '';
       lines.push(
-        `${merged.senderName} sent you a message${stripHtml(merged.contextSuffix || '')}:`,
+        `${merged.senderName} sent you a message${contextText}:`,
         '',
         `"${stripHtml(merged.previewHtml)}"`,
         '',
         `View conversation: ${merged.conversationUrl}`
       );
       break;
+    }
     case 'marketing':
       lines.push(
         merged.title,
