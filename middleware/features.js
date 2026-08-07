@@ -8,6 +8,21 @@
 const dbUnified = require('../db-unified');
 const logger = require('../utils/logger');
 
+const CORE_FEATURE_FLAGS = Object.freeze([
+  'registration',
+  'supplierApplications',
+  'reviews',
+  'photoUploads',
+  'supportTickets',
+]);
+
+function enforceCoreFeatureFlags(features = {}) {
+  return CORE_FEATURE_FLAGS.reduce(
+    (safeFeatures, featureName) => ({ ...safeFeatures, [featureName]: true }),
+    { ...features }
+  );
+}
+
 const FAIL_CLOSED_FEATURES = new Set([
   'marketplaceAvailability',
   'quoteBooking',
@@ -21,7 +36,7 @@ const FAIL_CLOSED_FEATURES = new Set([
 async function getFeatureFlags() {
   try {
     const settings = (await dbUnified.read('settings')) || {};
-    const features = settings.features || {};
+    const features = enforceCoreFeatureFlags(settings.features || {});
     const quoteBooking = features.quoteBooking === true;
 
     return {
@@ -90,6 +105,8 @@ function featureRequired(featureName) {
 }
 
 module.exports = {
+  CORE_FEATURE_FLAGS,
+  enforceCoreFeatureFlags,
   featureRequired,
   getFeatureFlags,
 };

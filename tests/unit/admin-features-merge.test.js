@@ -79,7 +79,7 @@ describe('PUT /api/admin/settings/features — partial-update merge behavior', (
     jest.clearAllMocks();
     mockStoredSettings = {
       features: {
-        registration: false, // an admin deliberately disabled this
+        registration: false, // stale legacy data should be repaired on the next save
         supplierApplications: true,
         reviews: true,
         photoUploads: true,
@@ -112,10 +112,25 @@ describe('PUT /api/admin/settings/features — partial-update merge behavior', (
     expect(saved.autoApproveReviews).toBe(true);
 
     // Everything else — set by other pages/admins — must survive untouched.
-    expect(saved.registration).toBe(false);
+    expect(saved.registration).toBe(true);
     expect(saved.requirePackageApproval).toBe(true);
     expect(saved.photoAutoApprove).toBe(false);
     expect(saved.autoApproveSupplierVerification).toBe(true);
+  });
+
+  it('rejects attempts to disable core platform features', async () => {
+    const app = buildApp();
+
+    const res = await request(app)
+      .put('/api/admin/settings/features')
+      .send({ registration: false, reviews: false });
+
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({
+      error: 'Core platform features are permanently enabled',
+      code: 'CORE_FEATURE_LOCKED_ON',
+      fields: ['registration', 'reviews'],
+    });
   });
 
   it('does not reset photoAutoApprove/autoApproveReviews/autoApproveSupplierVerification when Admin Settings saves its own 11 flags', async () => {
