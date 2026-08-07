@@ -30,7 +30,33 @@ describe('Sign-up Popup Settings Integration', () => {
   });
 
   describe('GET /api/public/signup-popup', () => {
-    it('returns the configured enabled flag and delay', async () => {
+    it('returns the configured mode/enabled flag and delay for popup mode', async () => {
+      const settings = (await dbUnified.read('settings')) || {};
+      await dbUnified.write('settings', {
+        ...settings,
+        signupPopup: { mode: 'popup', delaySeconds: 8 },
+      });
+
+      const response = await request(app).get('/api/public/signup-popup');
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({ mode: 'popup', enabled: true, delaySeconds: 8 });
+    });
+
+    it('returns the configured mode/enabled flag and delay for banner mode', async () => {
+      const settings = (await dbUnified.read('settings')) || {};
+      await dbUnified.write('settings', {
+        ...settings,
+        signupPopup: { mode: 'banner', delaySeconds: 8 },
+      });
+
+      const response = await request(app).get('/api/public/signup-popup');
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({ mode: 'banner', enabled: true, delaySeconds: 8 });
+    });
+
+    it('migrates a legacy enabled:true record (predating the banner mode) to popup', async () => {
       const settings = (await dbUnified.read('settings')) || {};
       await dbUnified.write('settings', {
         ...settings,
@@ -40,7 +66,7 @@ describe('Sign-up Popup Settings Integration', () => {
       const response = await request(app).get('/api/public/signup-popup');
 
       expect(response.status).toBe(200);
-      expect(response.body).toEqual({ enabled: true, delaySeconds: 8 });
+      expect(response.body).toEqual({ mode: 'popup', enabled: true, delaySeconds: 8 });
     });
 
     it('defaults to disabled with a 5 second delay when no signupPopup setting exists', async () => {
@@ -51,7 +77,7 @@ describe('Sign-up Popup Settings Integration', () => {
       const response = await request(app).get('/api/public/signup-popup');
 
       expect(response.status).toBe(200);
-      expect(response.body).toEqual({ enabled: false, delaySeconds: 5 });
+      expect(response.body).toEqual({ mode: 'disabled', enabled: false, delaySeconds: 5 });
     });
 
     it('never leaks admin metadata such as updatedBy', async () => {
@@ -59,7 +85,7 @@ describe('Sign-up Popup Settings Integration', () => {
       await dbUnified.write('settings', {
         ...settings,
         signupPopup: {
-          enabled: true,
+          mode: 'popup',
           delaySeconds: 3,
           updatedAt: '2026-01-01T00:00:00.000Z',
           updatedBy: 'admin@example.com',
@@ -68,7 +94,7 @@ describe('Sign-up Popup Settings Integration', () => {
 
       const response = await request(app).get('/api/public/signup-popup');
 
-      expect(response.body).toEqual({ enabled: true, delaySeconds: 3 });
+      expect(response.body).toEqual({ mode: 'popup', enabled: true, delaySeconds: 3 });
       expect(response.body.updatedBy).toBeUndefined();
     });
 
@@ -81,6 +107,7 @@ describe('Sign-up Popup Settings Integration', () => {
         const response = await request(app).get('/api/public/signup-popup');
 
         expect(response.status).toBe(200);
+        expect(response.body.mode).toBe('disabled');
         expect(response.body.enabled).toBe(false);
       } finally {
         spy.mockRestore();
@@ -91,13 +118,13 @@ describe('Sign-up Popup Settings Integration', () => {
       const settings = (await dbUnified.read('settings')) || {};
       await dbUnified.write('settings', {
         ...settings,
-        signupPopup: { enabled: true, delaySeconds: 'soon' },
+        signupPopup: { mode: 'popup', delaySeconds: 'soon' },
       });
 
       const response = await request(app).get('/api/public/signup-popup');
 
       expect(response.status).toBe(200);
-      expect(response.body).toEqual({ enabled: true, delaySeconds: 5 });
+      expect(response.body).toEqual({ mode: 'popup', enabled: true, delaySeconds: 5 });
     });
   });
 });
