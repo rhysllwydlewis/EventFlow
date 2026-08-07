@@ -848,14 +848,16 @@ router.get('/dashboard-summary', authRequired, async (req, res) => {
       healthScore: 0,
       isApproved: false,
       completionFlags: {
-        hasPhotos: false,
-        hasBanner: false,
-        hasTagline: false,
-        hasHighlights: false,
-        hasSocialLinks: false,
+        hasLogo: false,
         hasDescription: false,
+        hasContact: false,
         hasLocation: false,
-        hasPrice: false,
+        hasCoverImage: false,
+        hasGallery: false,
+        hasSocialLinks: false,
+        hasWebsite: false,
+        hasBusinessHours: false,
+        hasFaqs: false,
       },
     };
     try {
