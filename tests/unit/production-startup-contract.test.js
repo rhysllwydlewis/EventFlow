@@ -21,21 +21,24 @@ describe('production startup contract', () => {
     }
   });
 
-  test('Railway and Docker run preflight before the proven Node preload path', () => {
+  test('Railway and Docker run preflight before the production supervisor', () => {
     const railway = JSON.parse(read('railway.json'));
     const dockerfile = read('Dockerfile');
+    const supervisor = read('scripts/start-production.js');
     const preload = read('services/deploymentMetadataPreload.js');
 
     expect(railway.deploy.startCommand).toBe(
-      "sh -c 'node scripts/preflight.mjs && exec node -r ./services/deploymentMetadataPreload.js server.js'"
+      "sh -c 'node scripts/preflight.mjs && exec node scripts/start-production.js'"
     );
     expect(railway.deploy.healthcheckPath).toBe('/api/ready');
     expect(railway.deploy.healthcheckTimeout).toBeGreaterThanOrEqual(120);
     expect(dockerfile).toContain(
-      'CMD ["sh", "-c", "node scripts/preflight.mjs && exec node -r ./services/deploymentMetadataPreload.js server.js"]'
+      'CMD ["sh", "-c", "node scripts/preflight.mjs && exec node scripts/start-production.js"]'
     );
     expect(dockerfile).toContain('curl -fsS http://localhost:${PORT:-3000}/api/ready');
-    expect(railway.deploy.startCommand).toContain('node scripts/preflight.mjs && exec node');
+    expect(supervisor).toContain("['-r', './services/deploymentMetadataPreload.js', 'server.js']");
+    expect(supervisor).toContain("['scripts/worker.js']");
+    expect(supervisor).toContain("EVENTFLOW_PROCESS_TYPE: 'worker'");
     expect(preload).toContain("require('./backgroundJobTelemetryBridge')");
   });
 
@@ -46,6 +49,17 @@ describe('production startup contract', () => {
     expect(dockerfile).toContain('rm -rf /usr/local/lib/node_modules/npm');
     expect(dockerfile).toContain('rm -f /usr/local/bin/npm /usr/local/bin/npx');
     expect(dockerfile.indexOf('npm ci')).toBeLessThan(dockerfile.indexOf('rm -rf'));
+  });
+
+  test('the worker health server cannot contend with the public web port', () => {
+    jest.resetModules();
+    const { workerHealthPort } = require('../../scripts/start-production');
+
+    expect(workerHealthPort({ PORT: '3000' })).toBe('3001');
+    expect(workerHealthPort({ PORT: '3000', EVENTFLOW_WORKER_HEALTH_PORT: '4000' })).toBe('4000');
+    expect(() => workerHealthPort({ PORT: '3000', EVENTFLOW_WORKER_HEALTH_PORT: '3000' })).toThrow(
+      /distinct from PORT/
+    );
   });
 
   test('metadata launch failure is non-fatal and detached from server startup', () => {
