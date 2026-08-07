@@ -624,6 +624,7 @@ router.get(
           ...community.toDiscussionCard(discussion, { category, now }),
           body: discussion.bodyHtml,
           attachments: discussion.attachments || [],
+          mentions: discussion.mentions || [],
           poll: discussion.poll || null,
           editedAt: discussion.editedAt || null,
           archived: discussion.state === CONTENT_STATES.ARCHIVED,
@@ -897,6 +898,9 @@ router.post(
       const author = await buildAuthorCard(req.dbUser, context);
       const stableId = community.createStableId();
       const now = new Date().toISOString();
+      const mentions = await community.resolveMentions(prepared.text, {
+        excludeUserId: req.user.id,
+      });
 
       const discussion = {
         id: community.createRecordId('cdisc'),
@@ -913,6 +917,7 @@ router.post(
         authorTrustTier: context.trustTier,
         categorySlug: category.slug,
         categoryName: category.name,
+        mentions,
         ...structured.values,
         state: verdict.state,
         pinned: false,
@@ -948,6 +953,14 @@ router.post(
           targetId: discussion.id,
           reason: 'automated_review',
           signals: verdict.signals,
+        });
+      } else if (mentions.length > 0) {
+        await community.notifyMentionedUsers({
+          mentions,
+          postId: discussion.id,
+          title: discussion.title,
+          actionUrl: community.discussionPath(discussion),
+          mentionedByName: author.displayName,
         });
       }
 

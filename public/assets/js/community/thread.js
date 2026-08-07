@@ -139,7 +139,7 @@
       }
       ${d.moderatorNotice ? `<div class="efc-notice" role="note">${EFC.esc(d.moderatorNotice)}</div>` : ''}
       ${brief}
-      <div class="efc-post__body">${d.body || ''}</div>
+      <div class="efc-post__body" data-mentions="${EFC.esc(JSON.stringify((d.mentions || []).map(m => m.handle)))}">${d.body || ''}</div>
       ${images}
       ${poll}
       <p class="efc-meta">
@@ -292,7 +292,7 @@
       ${flags ? `<p class="efc-meta">${flags}</p>` : ''}
       ${disclosure}
       ${quote}
-      <div class="efc-post__body">${reply.body || ''}</div>
+      <div class="efc-post__body" data-mentions="${EFC.esc(JSON.stringify((reply.mentions || []).map(m => m.handle)))}">${reply.body || ''}</div>
       <div class="efc-post__actions">
         <button type="button" class="efc-action" data-react="${EFC.esc(reply.id)}" aria-pressed="${(
           payload.myReactions[reply.id] || []
@@ -440,7 +440,82 @@
       ${reportDialog()}
     `;
     wire();
+    linkifyMentions();
     revealLinkedReply();
+  }
+
+  /**
+   * Turn @handle text into a profile link, but only for handles the server
+   * already resolved to a real member for this specific post (via its
+   * `data-mentions` list) — never for arbitrary "@word" text a reader typed.
+   *
+   * Operates on real DOM text nodes rather than the HTML string, so it can
+   * never corrupt markup or attributes the way a regex replace on innerHTML
+   * could (e.g. an "@word" inside a link's href).
+   * @param {HTMLElement} container A `.efc-post__body` element with a
+   *   `data-mentions` JSON array of lower-case handles.
+   * @returns {void} Nothing.
+   */
+  function linkifyMentionsIn(container) {
+    let handles;
+    try {
+      handles = JSON.parse(container.dataset.mentions || '[]');
+    } catch (_) {
+      handles = [];
+    }
+    if (!Array.isArray(handles) || handles.length === 0) {
+      return;
+    }
+    const handleSet = new Set(handles.map(h => String(h).toLowerCase()));
+    const pattern = /@([a-z0-9_-]{3,30})\b/gi;
+
+    const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null);
+    const textNodes = [];
+    let node = walker.nextNode();
+    while (node) {
+      textNodes.push(node);
+      node = walker.nextNode();
+    }
+
+    textNodes.forEach(textNode => {
+      const text = textNode.textContent;
+      pattern.lastIndex = 0;
+      if (!pattern.test(text)) {
+        return;
+      }
+      pattern.lastIndex = 0;
+      const frag = document.createDocumentFragment();
+      let lastIndex = 0;
+      let match = pattern.exec(text);
+      let replaced = false;
+      while (match) {
+        const handle = match[1].toLowerCase();
+        if (handleSet.has(handle)) {
+          frag.appendChild(document.createTextNode(text.slice(lastIndex, match.index)));
+          const link = document.createElement('a');
+          link.className = 'efc-mention';
+          link.href = `/community/member/${encodeURIComponent(handle)}`;
+          link.textContent = `@${match[1]}`;
+          frag.appendChild(link);
+          lastIndex = match.index + match[0].length;
+          replaced = true;
+        }
+        match = pattern.exec(text);
+      }
+      if (!replaced) {
+        return;
+      }
+      frag.appendChild(document.createTextNode(text.slice(lastIndex)));
+      textNode.parentNode.replaceChild(frag, textNode);
+    });
+  }
+
+  /**
+   * Linkify @mentions in every post body currently on the page.
+   * @returns {void} Nothing.
+   */
+  function linkifyMentions() {
+    root.querySelectorAll('[data-mentions]').forEach(linkifyMentionsIn);
   }
 
   /**

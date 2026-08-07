@@ -1134,6 +1134,17 @@
   text-decoration: underline;
 }
 
+.efc-mention {
+  color: var(--efc-accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.efc-mention:hover,
+.efc-mention:focus-visible {
+  text-decoration: underline;
+}
+
 /* ── Thread status ─────────────────────────────────────────────────────── */
 
 .efc-thread-status {

@@ -1616,6 +1616,63 @@ describe('structured discussion fields', () => {
     });
   });
 
+  describe('@mentions', () => {
+    it('resolves a real handle and notifies them', async () => {
+      const res = await request(app)
+        .post('/api/v1/community/discussions')
+        .set('Cookie', authCookie(users.member))
+        .send({ ...base, body: `${base.body} Worth asking @alex, they know this area well.` });
+      expect(res.status).toBe(201);
+
+      const created = mockDb.all('community_discussions').find(item => item.id !== 'd-1');
+      expect(created.mentions).toEqual([
+        { userId: users.other.id, handle: 'alex', displayName: 'Alex' },
+      ]);
+
+      const notification = mockDb
+        .all('notifications')
+        .find(item => item.userId === users.other.id && item.type === 'community_mention');
+      expect(notification).toBeDefined();
+      expect(notification.title).toContain('Sam mentioned you');
+    });
+
+    it('ignores a mention of a handle nobody has', async () => {
+      const res = await request(app)
+        .post('/api/v1/community/discussions')
+        .set('Cookie', authCookie(users.member))
+        .send({ ...base, body: `${base.body} Ask @totallymadeupnobody for advice.` });
+      expect(res.status).toBe(201);
+      const created = mockDb.all('community_discussions').find(item => item.id !== 'd-1');
+      expect(created.mentions).toEqual([]);
+      expect(mockDb.all('notifications')).toHaveLength(0);
+    });
+
+    it('never mentions (or notifies) the author of their own post', async () => {
+      const res = await request(app)
+        .post('/api/v1/community/discussions')
+        .set('Cookie', authCookie(users.member))
+        .send({ ...base, body: `${base.body} As @sam I can confirm this myself.` });
+      expect(res.status).toBe(201);
+      const created = mockDb.all('community_discussions').find(item => item.id !== 'd-1');
+      expect(created.mentions).toEqual([]);
+      expect(mockDb.all('notifications')).toHaveLength(0);
+    });
+
+    it('mentions in a reply notify the mentioned member with a link to the reply', async () => {
+      const res = await request(app)
+        .post('/api/v1/community/discussions/aaaabbbbcccc/replies')
+        .set('Cookie', authCookie(users.other))
+        .send({ body: 'I agree with @sam on this, they always give great advice.' });
+      expect(res.status).toBe(201);
+
+      const notification = mockDb
+        .all('notifications')
+        .find(item => item.userId === users.member.id && item.type === 'community_mention');
+      expect(notification).toBeDefined();
+      expect(notification.actionUrl).toContain(`#reply-${res.body.reply.id}`);
+    });
+  });
+
   it('stores a recommendation brief', async () => {
     const res = await request(app)
       .post('/api/v1/community/discussions')
