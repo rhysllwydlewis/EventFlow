@@ -477,6 +477,11 @@
   background: linear-gradient(135deg, #fef3c7, #ffffff);
 }
 
+.stat-box-green {
+  border-color: #10b981;
+  background: linear-gradient(135deg, #d1fae5, #ffffff);
+}
+
 .stat-box h4 {
   font-size: 2rem;
   font-weight: 700;
@@ -491,6 +496,100 @@
   color: #6b7280;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+}
+
+/* Info popover on stat boxes (Quality Score / Profile Health explainers) */
+.stat-box {
+  position: relative;
+}
+
+.stat-info-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: rgba(107, 114, 128, 0.18);
+  color: #4b5563;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.stat-info-btn:hover,
+.stat-info-btn[aria-expanded='true'] {
+  background: #0b8073;
+  color: #fff;
+}
+
+.stat-info-popover {
+  display: none;
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 280px;
+  max-width: calc(100vw - 2rem);
+  background: #111827;
+  color: #f3f4f6;
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
+  text-align: left;
+  font-size: 0.8rem;
+  font-weight: 400;
+  line-height: 1.45;
+  text-transform: none;
+  letter-spacing: normal;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.25);
+  z-index: 20;
+}
+
+.stat-info-popover.is-open {
+  display: block;
+}
+
+.stat-info-popover p {
+  margin: 0 0 0.5rem;
+  color: #f3f4f6;
+  font-size: 0.8rem;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: normal;
+  display: block;
+}
+
+.stat-info-popover p:last-child {
+  margin-bottom: 0;
+}
+
+.stat-info-popover ul {
+  margin: 0.35rem 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.25rem;
+}
+
+.stat-info-popover li {
+  font-size: 0.76rem;
+}
+
+.stat-info-popover li.is-complete {
+  color: #6ee7b7;
+}
+
+.stat-info-popover li.is-incomplete {
+  color: #fca5a5;
 }
 
 /* Package & Photo Items */

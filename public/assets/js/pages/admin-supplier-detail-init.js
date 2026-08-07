@@ -120,6 +120,7 @@
       </div>
     `;
     document.getElementById('supplierMeta').innerHTML = metaHtml;
+    renderProfileHealth();
 
     // Update button visibility based on current verification state
     const stateForButtons =
@@ -329,6 +330,81 @@
       .getElementById('calOverrideNull')
       .addEventListener('click', () => setCalendarOverride(null));
   }
+
+  /**
+   * Render the "Profile Health" stat box: the supplier's own completeness
+   * percentage (same formula as their dashboard's Profile Health card),
+   * plus a per-item checklist in its info popover so support staff can see
+   * exactly what's missing without switching accounts.
+   */
+  function renderProfileHealth() {
+    const scoreEl = document.getElementById('profileHealthScore');
+    const checklistEl = document.getElementById('profileHealthChecklist');
+    if (!scoreEl || !checklistEl || !supplierData) {
+      return;
+    }
+
+    if (!window.ProfileHealthWidget || typeof window.ProfileHealthWidget.calculate !== 'function') {
+      scoreEl.textContent = '—';
+      checklistEl.innerHTML = '';
+      return;
+    }
+
+    const scoreData = window.ProfileHealthWidget.calculate(supplierData);
+    scoreEl.textContent = `${scoreData.percentage}%`;
+
+    const items = [
+      ...scoreData.completedItems.map(item => ({ ...item, complete: true })),
+      ...scoreData.incompleteItems.map(item => ({ ...item, complete: false })),
+    ];
+    checklistEl.innerHTML = items
+      .map(
+        item =>
+          `<li class="${item.complete ? 'is-complete' : 'is-incomplete'}">${item.complete ? '✓' : '✗'} ${AdminShared.escapeHtml(item.label)} (${item.weight}pts)</li>`
+      )
+      .join('');
+  }
+
+  /**
+   * Wire the (i) info buttons on the Analytics stat boxes to their popovers.
+   * Click toggles the matching popover, only one open at a time; Escape or a
+   * click outside any popover closes whichever is open.
+   */
+  function setupStatInfoPopovers() {
+    const buttons = Array.from(document.querySelectorAll('.stat-info-btn'));
+
+    function closeAll(except) {
+      buttons.forEach(btn => {
+        if (btn === except) {
+          return;
+        }
+        btn.setAttribute('aria-expanded', 'false');
+        document.getElementById(btn.getAttribute('aria-controls'))?.classList.remove('is-open');
+      });
+    }
+
+    buttons.forEach(btn => {
+      const popover = document.getElementById(btn.getAttribute('aria-controls'));
+      if (!popover) {
+        return;
+      }
+      btn.addEventListener('click', event => {
+        event.stopPropagation();
+        const isOpen = btn.getAttribute('aria-expanded') === 'true';
+        closeAll(isOpen ? null : btn);
+        btn.setAttribute('aria-expanded', String(!isOpen));
+        popover.classList.toggle('is-open', !isOpen);
+      });
+    });
+
+    document.addEventListener('click', () => closeAll(null));
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape') {
+        closeAll(null);
+      }
+    });
+  }
+  setupStatInfoPopovers();
 
   async function loadPackages() {
     try {
