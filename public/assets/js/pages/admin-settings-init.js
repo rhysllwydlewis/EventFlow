@@ -738,7 +738,11 @@
     );
   });
 
-  // Load sign-up popup settings
+  /**
+   * Load the homepage sign-up popup settings into the form.
+   *
+   * @returns {Promise<void>}
+   */
   async function loadSignupPopup() {
     try {
       const signupPopup = await AdminShared.adminFetch('/api/admin/settings/signup-popup', {
