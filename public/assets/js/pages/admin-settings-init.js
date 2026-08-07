@@ -1,6 +1,4 @@
 (function () {
-  let currentEmailTemplate = null;
-
   // Load site configuration
   async function loadSiteConfig() {
     try {
@@ -740,134 +738,6 @@
     );
   });
 
-  // Email template buttons
-  document.querySelectorAll('[data-template]').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      const templateName = btn.dataset.template;
-      currentEmailTemplate = templateName;
-
-      try {
-        const template = await AdminShared.adminFetch(
-          `/api/admin/settings/email-templates/${templateName}`,
-          { method: 'GET' }
-        );
-        document.getElementById('emailSubject').value = template.subject || '';
-        document.getElementById('emailBody').value = template.body || '';
-        document.getElementById('emailTemplateEditor').style.display = 'block';
-      } catch (err) {
-        AdminShared.showToast(`Failed to load template: ${err.message}`, 'error');
-      }
-    });
-  });
-
-  // Save email template
-  document.getElementById('saveEmailTemplate').addEventListener('click', async () => {
-    if (!currentEmailTemplate) {
-      return;
-    }
-
-    const data = {
-      subject: document.getElementById('emailSubject').value,
-      body: document.getElementById('emailBody').value,
-    };
-
-    const saveBtn = document.getElementById('saveEmailTemplate');
-    await AdminShared.safeAction(
-      saveBtn,
-      async () => {
-        return await AdminShared.adminFetch(
-          `/api/admin/settings/email-templates/${currentEmailTemplate}`,
-          {
-            method: 'PUT',
-            body: data,
-          }
-        );
-      },
-      {
-        loadingText: 'Saving...',
-        successMessage: 'Email template saved',
-        errorMessage: 'Failed to save template',
-      }
-    );
-  });
-
-  // Preview email
-  document.getElementById('previewEmail').addEventListener('click', () => {
-    const subject = document.getElementById('emailSubject').value;
-    const body = document.getElementById('emailBody').value;
-
-    // Create safe HTML content
-    const safeSubject = AdminShared.escapeHtml(subject);
-    const safeBody = AdminShared.escapeHtml(body).replace(/\n/g, '<br>');
-
-    const preview = window.open('', '_blank');
-    if (preview) {
-      preview.document.write(`
-        <html>
-          <head>
-            <script src="/assets/js/dashboard-guard.js?v=17.0.2"></script>
-            <title>${safeSubject}</title>
-            <script src="/assets/js/admin-navbar.js" defer></script>
-            <link rel="stylesheet" href="/assets/css/mobile-optimizations.css">
-            <link rel="stylesheet" href="/assets/css/ui-ux-fixes.css">
-          </head>
-          <body style="font-family:sans-serif;padding:2rem;" class="has-admin-navbar admin">
-            <h2>Subject: ${safeSubject}</h2>
-            <hr>
-            <div>${safeBody}</div>
-            <script src="/assets/js/cookie-consent.js" defer></script>
-          </body>
-        </html>
-      `);
-      preview.document.close();
-    }
-  });
-
-  // Reset email
-  document.getElementById('resetEmail').addEventListener('click', async () => {
-    if (!currentEmailTemplate) {
-      return;
-    }
-
-    const confirmed = await AdminShared.showConfirmModal({
-      title: 'Reset Template?',
-      message: 'Reset this template to default? Your changes will be lost.',
-      confirmText: 'Reset',
-      cancelText: 'Cancel',
-      type: 'warning',
-    });
-
-    if (!confirmed) {
-      return;
-    }
-
-    const resetBtn = document.getElementById('resetEmail');
-    await AdminShared.safeAction(
-      resetBtn,
-      async () => {
-        await AdminShared.adminFetch(
-          `/api/admin/settings/email-templates/${currentEmailTemplate}/reset`,
-          { method: 'POST' }
-        );
-
-        // Reload template
-        const template = await AdminShared.adminFetch(
-          `/api/admin/settings/email-templates/${currentEmailTemplate}`,
-          { method: 'GET' }
-        );
-        document.getElementById('emailSubject').value = template.subject || '';
-        document.getElementById('emailBody').value = template.body || '';
-
-        return template;
-      },
-      {
-        loadingText: 'Resetting...',
-        successMessage: 'Template reset to default',
-        errorMessage: 'Failed to reset template',
-      }
-    );
-  });
-
   // Load system info
   async function loadSystemInfo() {
     try {
@@ -903,7 +773,17 @@
       container.innerHTML = logs
         .map(log => {
           const date = new Date(log.timestamp || log.createdAt);
-          const actionLabel = log.action.replace(/_/g, ' ').toLowerCase();
+          const actionLabel = AdminShared.escapeHtml(
+            String(log.action || '')
+              .replace(/_/g, ' ')
+              .toLowerCase()
+          );
+          const adminEmail = AdminShared.escapeHtml(log.adminEmail || 'Unknown');
+          // log.details can contain admin-supplied free text (e.g. email
+          // template subject, site tagline) — never inject it unescaped.
+          const detailsText = log.details
+            ? AdminShared.escapeHtml(JSON.stringify(log.details).substring(0, 100))
+            : '';
           return `
           <div style="padding: 0.75rem; border-bottom: 1px solid #eee; font-size: 0.9rem;">
             <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
@@ -911,12 +791,12 @@
               <span style="color: #999;">${date.toLocaleString()}</span>
             </div>
             <div style="color: #666;">
-              by ${log.adminEmail || 'Unknown'}
+              by ${adminEmail}
             </div>
             ${
-              log.details
+              detailsText
                 ? `<div style="color: #999; font-size: 0.85rem; margin-top: 0.25rem;">
-              ${JSON.stringify(log.details).substring(0, 100)}...
+              ${detailsText}...
             </div>`
                 : ''
             }
@@ -964,7 +844,14 @@
 
       backendEl.textContent =
         status.dbType === 'mongodb' ? 'MongoDB (Primary)' : 'Local Files (Fallback)';
-      lastOpEl.textContent = new Date().toLocaleString();
+
+      const metrics = status.queryMetrics;
+      if (metrics && metrics.totalQueries > 0) {
+        const slowNote = metrics.slowQueries > 0 ? `, ${metrics.slowQueries} slow` : '';
+        lastOpEl.textContent = `${metrics.totalQueries.toLocaleString()} queries — avg ${metrics.avgQueryTimeMs}ms${slowNote}`;
+      } else {
+        lastOpEl.textContent = 'No queries recorded yet this session';
+      }
     } catch (err) {
       AdminShared.debugError('Failed to load database health:', err);
       const statusEl = document.getElementById('dbConnectionStatus');
@@ -1028,9 +915,12 @@
       const text = await file.text();
       const data = JSON.parse(text);
 
+      const importsMaintenanceOn = Boolean(data.maintenance && data.maintenance.enabled);
       const confirmed = await AdminShared.showConfirmModal({
         title: 'Import Settings?',
-        message: 'This will overwrite your current settings. Are you sure you want to continue?',
+        message: importsMaintenanceOn
+          ? 'This will overwrite your current settings AND enable maintenance mode, taking the site offline for non-admins. Are you sure you want to continue?'
+          : 'This will overwrite your current settings. Are you sure you want to continue?',
         confirmText: 'Import',
         cancelText: 'Cancel',
         type: 'warning',
@@ -1057,8 +947,12 @@
         });
       }
 
-      // Import maintenance settings (only if import data has maintenance disabled)
-      if (data.maintenance && !data.maintenance.enabled) {
+      // Import maintenance settings — the confirmation above already warned
+      // the admin explicitly if this would enable maintenance mode, so it's
+      // safe to apply the imported value as-is (previously this silently
+      // dropped the maintenance section whenever it was enabled, with no
+      // indication to the admin that part of their import was skipped).
+      if (data.maintenance) {
         await AdminShared.adminFetch('/api/admin/settings/maintenance', {
           method: 'PUT',
           body: data.maintenance,
@@ -1084,6 +978,15 @@
   async function initializeSettings() {
     // Fetch CSRF token first
     await AdminShared.fetchCSRFToken();
+
+    if (!window.__CSRF_TOKEN__) {
+      // Every save button on this page stays permanently disabled without a
+      // token — the admin needs to know why, not just see a greyed-out button.
+      AdminShared.showToast(
+        'Could not verify your session (CSRF token unavailable). Save buttons will stay disabled — try refreshing the page.',
+        'error'
+      );
+    }
 
     // Initialize change listeners for feature flags
     initFeatureFlagChangeListeners();
@@ -1164,15 +1067,16 @@
         } else {
           let html = '<div style="display: flex; flex-direction: column; gap: 0.5rem;">';
           data.backups.forEach(backup => {
+            const safeFilename = AdminShared.escapeHtml(backup.filename);
             html += `
                 <div style="padding: 0.75rem; border: 1px solid #e5e7eb; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;">
                   <div>
-                    <strong>${backup.filename}</strong>
+                    <strong>${safeFilename}</strong>
                     <div class="small" style="color: #6b7280;">
                       ${new Date(backup.createdAt).toLocaleString()} • ${(backup.size / 1024).toFixed(2)} KB
                     </div>
                   </div>
-                  <button class="ef-cta btn btn-sm btn-secondary restore-backup-btn" data-filename="${backup.filename}">
+                  <button class="ef-cta btn btn-sm btn-secondary restore-backup-btn" data-filename="${safeFilename}">
                     Restore
                   </button>
                 </div>
@@ -1490,6 +1394,56 @@
   });
 
   loadEmailAutoSettings();
+
+  // Surface whether the recurring cron job is actually alive. Previously
+  // there was no way to tell from this page whether the scheduler had ever
+  // fired — a dead/crashed scheduler looked identical to a healthy one that
+  // just hadn't hit its next run yet. This reuses the existing background-job
+  // telemetry endpoint (also used by the admin-debug page) rather than
+  // building a second monitoring system.
+  async function loadSchedulerHealth() {
+    const el = document.getElementById('emailAutoSchedulerHealth');
+    if (!el) {
+      return;
+    }
+    try {
+      const data = await AdminShared.adminFetch('/api/admin/background-jobs?limit=1', {
+        method: 'GET',
+      });
+      const job = (data.jobs || []).find(j => j.key === 'action-prompts');
+      if (!job) {
+        el.style.display = 'none';
+        return;
+      }
+
+      const styles = {
+        healthy: { bg: '#f0fdf4', color: '#166534', label: '● Scheduler running' },
+        warning: { bg: '#fffbeb', color: '#92400e', label: '● Scheduler needs attention' },
+        overdue: { bg: '#fffbeb', color: '#92400e', label: '● Scheduler overdue' },
+        failed: { bg: '#fef2f2', color: '#991b1b', label: '● Scheduler failed' },
+      };
+      const style = styles[job.health] || {
+        bg: '#f8fafc',
+        color: '#475569',
+        label: `● Scheduler: ${job.health || 'unknown'}`,
+      };
+
+      el.style.display = 'block';
+      el.style.background = style.bg;
+      el.style.color = style.color;
+      const nextRunText = job.nextRun
+        ? `next run ${new Date(job.nextRun).toLocaleString()}`
+        : 'no next run scheduled';
+      el.innerHTML = `<strong>${AdminShared.escapeHtml(style.label)}</strong> — cron "${AdminShared.escapeHtml(job.schedule || '?')}", ${AdminShared.escapeHtml(nextRunText)}`;
+    } catch (err) {
+      AdminShared.debugError('Failed to load scheduler health:', err);
+      el.style.display = 'block';
+      el.style.background = '#f8fafc';
+      el.style.color = '#64748b';
+      el.textContent = 'Could not check scheduler status.';
+    }
+  }
+  loadSchedulerHealth();
 })();
 
 // ── Run History ───────────────────────────────────────────────────────────
@@ -1513,8 +1467,16 @@
         const cappedBadge = r.cappedByLimit
           ? '<span style="display:inline-block;padding:0.1rem 0.4rem;border-radius:9999px;background:#fef3c7;color:#92400e;font-size:0.7rem;font-weight:600;">CAPPED</span>'
           : '';
+        // trigger distinguishes an automatic cron-fired run from a manual
+        // "Send Now" click — without this an admin can't tell whether the
+        // scheduler has ever actually fired on its own.
+        const isManual = r.trigger === 'manual';
+        const triggerBadge = isManual
+          ? '<span style="display:inline-block;padding:0.1rem 0.5rem;border-radius:9999px;background:#e0e7ff;color:#3730a3;font-size:0.7rem;font-weight:600;">MANUAL</span>'
+          : '<span style="display:inline-block;padding:0.1rem 0.5rem;border-radius:9999px;background:#dcfce7;color:#166534;font-size:0.7rem;font-weight:600;">SCHEDULED</span>';
         return `<tr>
           <td style="padding:0.4rem 0.5rem;font-size:0.8rem;white-space:nowrap;">${dt}</td>
+          <td style="padding:0.4rem 0.5rem;">${triggerBadge}</td>
           <td style="padding:0.4rem 0.5rem;text-align:right;">${r.scanned ?? '-'}</td>
           <td style="padding:0.4rem 0.5rem;text-align:right;font-weight:600;color:#059669;">${r.sent ?? '-'}</td>
           <td style="padding:0.4rem 0.5rem;text-align:right;">${r.skippedCadence ?? '-'}</td>
@@ -1530,6 +1492,7 @@
           <thead>
             <tr style="background:#f8fafc;border-bottom:2px solid #e2e8f0;">
               <th style="padding:0.4rem 0.5rem;text-align:left;font-weight:600;">Finished At</th>
+              <th style="padding:0.4rem 0.5rem;text-align:left;font-weight:600;">Trigger</th>
               <th style="padding:0.4rem 0.5rem;text-align:right;font-weight:600;">Scanned</th>
               <th style="padding:0.4rem 0.5rem;text-align:right;font-weight:600;">Sent</th>
               <th style="padding:0.4rem 0.5rem;text-align:right;font-weight:600;">Skipped</th>

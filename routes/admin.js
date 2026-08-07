@@ -104,12 +104,18 @@ async function getNotificationService(req) {
  */
 router.get('/db-status', authRequired, roleRequired('admin'), (_req, res) => {
   const status = dbUnified.getDatabaseStatus();
+  const metrics = dbUnified.getQueryMetrics();
   res.json({
     dbType: status.type,
     initialized: status.state === 'completed',
     state: status.state,
     connected: status.connected,
     error: status.error,
+    queryMetrics: {
+      totalQueries: metrics.totalQueries,
+      avgQueryTimeMs: Math.round(metrics.avgQueryTime * 100) / 100,
+      slowQueries: metrics.slowQueries,
+    },
   });
 });
 
@@ -3412,21 +3418,41 @@ router.put(
         }
       }
 
+      // IMPORTANT: this endpoint is called with partial payloads from several
+      // pages (e.g. admin-reviews-init.js sends only { autoApproveReviews }),
+      // as well as the full 11-flag payload from admin-settings. Merge onto
+      // the existing stored flags rather than replacing wholesale, or a
+      // partial save from any one page silently resets every flag it didn't
+      // send back to hardcoded defaults.
+      const existing = settings.features || {};
+      const merge = (incoming, existingValue, fallback) =>
+        incoming !== undefined ? incoming : existingValue !== undefined ? existingValue : fallback;
+
       const newFeatures = {
-        registration: registration !== false,
-        supplierApplications: supplierApplications !== false,
-        reviews: reviews !== false,
-        photoUploads: photoUploads !== false,
-        supportTickets: supportTickets !== false,
-        pexelsCollage: pexelsCollage === true,
-        requirePackageApproval: requirePackageApproval === true,
-        requirePublicCalendarApproval: requirePublicCalendarApproval === true,
-        photoAutoApprove: photoAutoApprove !== false,
-        autoApproveReviews: autoApproveReviews !== false,
-        autoApproveSupplierVerification: autoApproveSupplierVerification === true,
-        marketplaceAvailability: marketplaceAvailability === true,
-        quoteBooking: quoteBooking === true,
-        bookingPayments: bookingPayments === true,
+        registration: merge(registration, existing.registration, true) !== false,
+        supplierApplications:
+          merge(supplierApplications, existing.supplierApplications, true) !== false,
+        reviews: merge(reviews, existing.reviews, true) !== false,
+        photoUploads: merge(photoUploads, existing.photoUploads, true) !== false,
+        supportTickets: merge(supportTickets, existing.supportTickets, true) !== false,
+        pexelsCollage: merge(pexelsCollage, existing.pexelsCollage, false) === true,
+        requirePackageApproval:
+          merge(requirePackageApproval, existing.requirePackageApproval, false) === true,
+        requirePublicCalendarApproval:
+          merge(requirePublicCalendarApproval, existing.requirePublicCalendarApproval, false) ===
+          true,
+        photoAutoApprove: merge(photoAutoApprove, existing.photoAutoApprove, true) !== false,
+        autoApproveReviews: merge(autoApproveReviews, existing.autoApproveReviews, true) !== false,
+        autoApproveSupplierVerification:
+          merge(
+            autoApproveSupplierVerification,
+            existing.autoApproveSupplierVerification,
+            false
+          ) === true,
+        marketplaceAvailability:
+          merge(marketplaceAvailability, existing.marketplaceAvailability, false) === true,
+        quoteBooking: merge(quoteBooking, existing.quoteBooking, false) === true,
+        bookingPayments: merge(bookingPayments, existing.bookingPayments, false) === true,
         updatedAt: new Date().toISOString(),
         updatedBy: req.user.email,
       };
@@ -3471,9 +3497,16 @@ router.put(
       // When auto-approve is being enabled, immediately approve all suppliers
       // that are currently awaiting review (pending_review) or are unapproved.
       // This prevents existing suppliers from remaining stuck in a pending state
-      // after the admin flips the switch.
+      // after the admin flips the switch. Only run this on the false→true
+      // transition — now that saves correctly preserve unrelated flags
+      // (see the merge() above), autoApproveSupplierVerification can stay
+      // true across many unrelated saves, and this would otherwise rescan
+      // the entire suppliers table on every single one of them.
       let bulkAutoApproved = 0;
-      if (newFeatures.autoApproveSupplierVerification === true) {
+      if (
+        newFeatures.autoApproveSupplierVerification === true &&
+        existing.autoApproveSupplierVerification !== true
+      ) {
         try {
           const { VERIFICATION_STATES } = require('../utils/supplierVerificationStateMachine');
           const pendingSuppliers = await dbUnified.find('suppliers', {
@@ -3615,6 +3648,25 @@ router.put(
       }
       if (cron !== undefined && typeof cron !== 'string') {
         return res.status(400).json({ error: 'cron must be a string' });
+      }
+      if (cron !== undefined) {
+        // node-schedule silently returns null for an unparseable expression
+        // instead of throwing, so validate with a real (never-fired) job.
+        // eslint-disable-next-line global-require
+        const schedule = require('node-schedule');
+        let probeJob = null;
+        try {
+          probeJob = schedule.scheduleJob(cron, () => {});
+        } catch (_scheduleErr) {
+          probeJob = null;
+        }
+        if (probeJob) {
+          probeJob.cancel();
+        } else {
+          return res.status(400).json({
+            error: `Invalid cron expression: "${cron}". Expected a standard 5-field cron string, e.g. "0 9 * * *".`,
+          });
+        }
       }
       if (promptTypes !== undefined && typeof promptTypes !== 'object') {
         return res.status(400).json({ error: 'promptTypes must be an object' });
@@ -3999,139 +4051,6 @@ router.put('/settings/maintenance', authRequired, roleRequired('admin'), csrfPro
 );
 
 /**
- * GET /api/admin/settings/email-templates/:name
- * Get email template
- */
-router.get(
-  '/settings/email-templates/:name',
-  authRequired,
-  roleRequired('admin'),
-  async (req, res) => {
-    try {
-      const settings = (await dbUnified.read('settings')) || {};
-      const emailTemplates = settings.emailTemplates || {};
-
-      const defaultTemplates = {
-        welcome: {
-          subject: 'Welcome to EventFlow!',
-          body: "Hi {{name}},\n\nWelcome to EventFlow! We're excited to help you plan your perfect event.\n\nBest regards,\nThe EventFlow Team",
-        },
-        verification: {
-          subject: 'Verify your email address',
-          body: 'Hi {{name}},\n\nPlease verify your email address by clicking the link below:\n\n{{verificationLink}}\n\nBest regards,\nThe EventFlow Team',
-        },
-        'password-reset': {
-          subject: 'Reset your password',
-          body: "Hi {{name}},\n\nYou requested a password reset. Click the link below to reset your password:\n\n{{resetLink}}\n\nIf you didn't request this, please ignore this email.\n\nBest regards,\nThe EventFlow Team",
-        },
-        'ticket-response': {
-          subject: 'New response to your support ticket',
-          body: 'Hi {{name}},\n\nYou have received a new response to your support ticket #{{ticketId}}.\n\n{{response}}\n\nBest regards,\nThe EventFlow Team',
-        },
-      };
-
-      const template = emailTemplates[req.params.name] || defaultTemplates[req.params.name];
-
-      if (!template) {
-        return res.status(404).json({ error: 'Template not found' });
-      }
-
-      res.json(template);
-    } catch (error) {
-      logger.error('Error reading email template:', error);
-      res.status(500).json({ error: 'Failed to read settings' });
-    }
-  }
-);
-
-/**
- * PUT /api/admin/settings/email-templates/:name
- * Update email template
- */
-router.put(
-  '/settings/email-templates/:name',
-  authRequired,
-  roleRequired('admin'),
-  csrfProtection,
-  async (req, res) => {
-    try {
-      const { subject, body } = req.body;
-
-      if (!subject || !body) {
-        return res.status(400).json({ error: 'Subject and body are required' });
-      }
-
-      const settings = (await dbUnified.read('settings')) || {};
-      if (!settings.emailTemplates) {
-        settings.emailTemplates = {};
-      }
-
-      settings.emailTemplates[req.params.name] = {
-        subject,
-        body,
-        updatedAt: new Date().toISOString(),
-        updatedBy: req.user.email,
-      };
-
-      // Write and verify to ensure persistence
-      const result = await dbUnified.writeAndVerify('settings', settings);
-
-      auditLog({
-        adminId: req.user.id,
-        adminEmail: req.user.email,
-        action: 'EMAIL_TEMPLATE_UPDATED',
-        targetType: 'email-template',
-        targetId: req.params.name,
-        details: { subject },
-      });
-
-      // Return verified data from database
-      res.json({ success: true, template: result.data.emailTemplates[req.params.name] });
-    } catch (error) {
-      logger.error('Error updating email template:', error);
-      res.status(500).json({ error: 'Failed to update settings' });
-    }
-  }
-);
-
-/**
- * POST /api/admin/settings/email-templates/:name/reset
- * Reset email template to default
- */
-router.post(
-  '/settings/email-templates/:name/reset',
-  authRequired,
-  roleRequired('admin'),
-  csrfProtection,
-  async (req, res) => {
-    try {
-      const settings = (await dbUnified.read('settings')) || {};
-      if (!settings.emailTemplates) {
-        settings.emailTemplates = {};
-      }
-
-      // Remove the custom template, will fall back to default
-      delete settings.emailTemplates[req.params.name];
-      await dbUnified.writeAndVerify('settings', settings);
-
-      auditLog({
-        adminId: req.user.id,
-        adminEmail: req.user.email,
-        action: 'EMAIL_TEMPLATE_RESET',
-        targetType: 'email-template',
-        targetId: req.params.name,
-        details: {},
-      });
-
-      res.json({ success: true, message: 'Template reset to default' });
-    } catch (error) {
-      logger.error('Error resetting email template:', error);
-      res.status(500).json({ error: 'Failed to reset template' });
-    }
-  }
-);
-
-/**
  * GET /api/admin/settings/system-info
  * Get system information
  */
@@ -4141,10 +4060,14 @@ router.get('/settings/system-info', authRequired, roleRequired('admin'), (req, r
   const minutes = Math.floor((uptime % 3600) / 60);
   const uptimeStr = `${hours}h ${minutes}m`;
 
+  const dbStatus = dbUnified.getDatabaseStatus();
+  const databaseLabel = dbStatus.type === 'mongodb' ? 'MongoDB' : 'Local File Store';
+
   res.json({
-    version: 'v17.0.0',
+    // eslint-disable-next-line global-require
+    version: `v${require('../package.json').version}`,
     environment: process.env.NODE_ENV || 'production',
-    database: 'JSON File Store',
+    database: databaseLabel,
     uptime: uptimeStr,
   });
 });
