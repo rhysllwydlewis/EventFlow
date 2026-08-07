@@ -165,3 +165,54 @@ describe('PUT /api/admin/settings/features — partial-update merge behavior', (
     expect(mockFind).toHaveBeenCalledWith('suppliers', expect.any(Object));
   });
 });
+
+describe('GET /api/admin/db-status — real query metrics instead of a fake "now" timestamp', () => {
+  it('returns real query performance metrics from db-unified', async () => {
+    const app = buildApp();
+    const res = await request(app).get('/api/admin/db-status');
+
+    expect(res.status).toBe(200);
+    expect(res.body.dbType).toBe('local');
+    expect(res.body.queryMetrics).toEqual({
+      totalQueries: 0,
+      avgQueryTimeMs: 0,
+      slowQueries: 0,
+    });
+  });
+});
+
+describe('GET /api/admin/settings/system-info — real version instead of a hardcoded stale string', () => {
+  it('reads the version from package.json and the live DB backend type', async () => {
+    const app = buildApp();
+    const res = await request(app).get('/api/admin/settings/system-info');
+
+    const { version: pkgVersion } = require('../../package.json');
+    expect(res.status).toBe(200);
+    expect(res.body.version).toBe(`v${pkgVersion}`);
+    expect(res.body.database).toBe('Local File Store');
+  });
+});
+
+describe('PUT /api/admin/settings/email-automation — cron expression validation', () => {
+  it('rejects an unparseable cron expression with a 400', async () => {
+    const app = buildApp();
+    const res = await request(app)
+      .put('/api/admin/settings/email-automation')
+      .send({ cron: 'not a real cron expression' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/Invalid cron expression/);
+    // Nothing should have been persisted.
+    expect(mockStoredSettings.emailAutomation).toBeUndefined();
+  });
+
+  it('accepts a valid cron expression', async () => {
+    const app = buildApp();
+    const res = await request(app)
+      .put('/api/admin/settings/email-automation')
+      .send({ cron: '0 9 * * *', enabled: true });
+
+    expect(res.status).toBe(200);
+    expect(mockStoredSettings.emailAutomation.actionPrompts.cron).toBe('0 9 * * *');
+  });
+});
