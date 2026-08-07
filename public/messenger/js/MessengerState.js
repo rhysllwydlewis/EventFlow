@@ -13,6 +13,7 @@ class MessengerState {
     this.messages = new Map(); // conversationId → messages[]
     this.typingUsers = new Map(); // conversationId → Set of userIds
     this.presenceMap = new Map(); // userId → { state, lastSeen }
+    this.blockedUserIds = new Set(); // userIds the current user has blocked
     this.unreadCount = 0;
     this.filters = {
       active: 'all', // all, unread, pinned, archived
@@ -216,6 +217,18 @@ class MessengerState {
   }
 
   /**
+   * Replace the set of users the current user has blocked.
+   */
+  setBlockedUsers(userIds) {
+    this.blockedUserIds = new Set((userIds || []).map(String));
+    this.emit('blockedUsersChanged', this.blockedUserIds);
+  }
+
+  isUserBlocked(userId) {
+    return this.blockedUserIds.has(String(userId));
+  }
+
+  /**
    * Set unread count
    */
   setUnreadCount(count) {
@@ -307,6 +320,7 @@ class MessengerState {
     this.messages.clear();
     this.typingUsers.clear();
     this.presenceMap.clear();
+    this.blockedUserIds.clear();
     this.unreadCount = 0;
     this.filters = {
       active: 'all',

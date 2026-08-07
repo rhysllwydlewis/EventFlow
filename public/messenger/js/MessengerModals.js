@@ -212,6 +212,98 @@ class MessengerModals {
   }
 
   /**
+   * Show a report-reason prompt. Resolves to { reason, details } or null if
+   * cancelled. `reason` matches the values routes/reports.js accepts.
+   */
+  static async showReportPrompt(title) {
+    return new Promise(resolve => {
+      const modal = document.createElement('div');
+      modal.className = 'messenger-modal messenger-modal--edit';
+      modal.setAttribute('role', 'dialog');
+      modal.setAttribute('aria-modal', 'true');
+      modal.setAttribute('aria-labelledby', 'reportModalTitle');
+
+      modal.innerHTML = `
+        <div class="messenger-modal__overlay"></div>
+        <div class="messenger-modal__content">
+          <header class="messenger-modal__header">
+            <h2 id="reportModalTitle">${MessengerModals.escapeHtml(title)}</h2>
+            <button class="ef-cta messenger-modal__close" aria-label="Close">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </header>
+          <div class="messenger-modal__body">
+            <label for="reportReasonSelect" style="display:block;margin-bottom:6px;font-weight:600">Reason</label>
+            <select id="reportReasonSelect" class="messenger-modal__textarea" style="height:auto;margin-bottom:12px">
+              <option value="spam">Spam</option>
+              <option value="harassment">Harassment</option>
+              <option value="inappropriate_content">Inappropriate content</option>
+              <option value="false_information">False information</option>
+              <option value="other">Other</option>
+            </select>
+            <label for="reportDetailsInput" style="display:block;margin-bottom:6px;font-weight:600">Details (optional)</label>
+            <textarea
+              class="messenger-modal__textarea"
+              id="reportDetailsInput"
+              rows="3"
+              placeholder="Anything else that would help us review this..."
+              aria-label="Report details"
+            ></textarea>
+            <div class="messenger-modal__actions">
+              <button class="ef-cta messenger-modal__button messenger-modal__button--secondary" id="cancelReport">
+                Cancel
+              </button>
+              <button class="ef-cta messenger-modal__button messenger-modal__button--primary" id="submitReport">
+                Submit report
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(modal);
+
+      const reasonSelect = modal.querySelector('#reportReasonSelect');
+      const detailsInput = modal.querySelector('#reportDetailsInput');
+      const submitBtn = modal.querySelector('#submitReport');
+      const cancelBtn = modal.querySelector('#cancelReport');
+      const closeBtn = modal.querySelector('.messenger-modal__close');
+      const overlay = modal.querySelector('.messenger-modal__overlay');
+
+      const submit = () => {
+        cleanup();
+        resolve({ reason: reasonSelect.value, details: detailsInput.value.trim() });
+      };
+      const cancel = () => {
+        cleanup();
+        resolve(null);
+      };
+
+      submitBtn.addEventListener('click', submit);
+      cancelBtn.addEventListener('click', cancel);
+      closeBtn.addEventListener('click', cancel);
+      overlay.addEventListener('click', cancel);
+      modal.addEventListener('keydown', e => {
+        if (e.key === 'Escape') {
+          cancel();
+        }
+      });
+
+      function cleanup() {
+        modal.remove();
+      }
+
+      modal.style.display = 'flex';
+      requestAnimationFrame(() => {
+        modal.classList.add('messenger-modal--visible');
+      });
+    });
+  }
+
+  /**
    * Show confirmation dialog
    */
   static async showConfirm(title, message, confirmText = 'Confirm', cancelText = 'Cancel') {

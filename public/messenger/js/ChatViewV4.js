@@ -98,6 +98,12 @@ class ChatViewV4 {
           <button class="ef-cta messenger-v4__action-button" id="v4MarkUnreadBtn" aria-label="Mark as unread" title="Mark as unread">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
           </button>
+          <button class="ef-cta messenger-v4__action-button" id="v4ReportUserBtn" aria-label="Report user" title="Report user" style="display:none">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+          </button>
+          <button class="ef-cta messenger-v4__action-button" id="v4BlockUserBtn" aria-label="Block user" title="Block user" data-blocked="false" style="display:none">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+          </button>
         </div>
       </div>
 
@@ -204,6 +210,24 @@ class ChatViewV4 {
     });
     this.container.querySelector('#v4BackBtn').addEventListener('click', () => {
       window.dispatchEvent(new CustomEvent('messenger:mobile-back'));
+    });
+    this.container.querySelector('#v4ReportUserBtn').addEventListener('click', () => {
+      if (this.otherUserId) {
+        window.dispatchEvent(
+          new CustomEvent('messenger:report-user', { detail: { userId: this.otherUserId } })
+        );
+      }
+    });
+    this.container.querySelector('#v4BlockUserBtn').addEventListener('click', () => {
+      if (this.otherUserId) {
+        const btn = this.container.querySelector('#v4BlockUserBtn');
+        const isBlocked = btn.dataset.blocked === 'true';
+        window.dispatchEvent(
+          new CustomEvent(isBlocked ? 'messenger:unblock-user' : 'messenger:block-user', {
+            detail: { userId: this.otherUserId },
+          })
+        );
+      }
     });
     this.container.querySelector('#v4ParticipantsBtn').addEventListener('click', () => {
       this._toggleParticipantsDrawer(true);
@@ -549,6 +573,20 @@ class ChatViewV4 {
     const isGroup = (conv.participants || []).length > 2;
     const other = conv.participants?.find(p => p.userId !== uid) || {};
     const isOnline = this.state.getPresence(other.userId)?.state === 'online';
+    this.otherUserId = !isGroup ? other.userId || null : null;
+
+    const reportBtn = this.container.querySelector('#v4ReportUserBtn');
+    const blockBtn = this.container.querySelector('#v4BlockUserBtn');
+    if (reportBtn) {
+      reportBtn.style.display = this.otherUserId ? '' : 'none';
+    }
+    if (blockBtn) {
+      const isBlocked = this.otherUserId ? this.state.isUserBlocked(this.otherUserId) : false;
+      blockBtn.style.display = this.otherUserId ? '' : 'none';
+      blockBtn.dataset.blocked = String(isBlocked);
+      blockBtn.title = isBlocked ? 'Unblock user' : 'Block user';
+      blockBtn.setAttribute('aria-label', isBlocked ? 'Unblock user' : 'Block user');
+    }
 
     const headerAvatarEl = this.container.querySelector('.messenger-v4__chat-header-avatar');
     const headerName = _cv4SafeName(other.displayName, 'U');
@@ -905,7 +943,10 @@ class ChatViewV4 {
              <svg class="messenger-v4__menu-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
              Delete
            </button>`
-               : ''
+               : `<button class="ef-cta messenger-v4__context-menu-item messenger-v4__context-menu-item--danger" data-action="report" data-id="${this.escape(messageId)}">
+             <svg class="messenger-v4__menu-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+             Report
+           </button>`
            }
          </div>`;
 
@@ -988,6 +1029,16 @@ class ChatViewV4 {
           new CustomEvent('messenger:react-message', { detail: { messageId, emoji: null } })
         );
         break;
+      case 'report': {
+        const msgs = this.state ? this.state.getMessages(this.conversationId) : [];
+        const msg = msgs.find(m => String(m._id) === messageId);
+        window.dispatchEvent(
+          new CustomEvent('messenger:report-message', {
+            detail: { messageId, senderId: msg ? msg.senderId : null },
+          })
+        );
+        break;
+      }
       default:
         break;
     }

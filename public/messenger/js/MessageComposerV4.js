@@ -397,6 +397,9 @@ class MessageComposerV4 {
     if (/spam/i.test(msg) || code === 'SPAM_DETECTED') {
       return 'Your message was flagged. Please review the content and try again.';
     }
+    if (code === 'MESSENGER_BLOCKED' || /because of a block/i.test(msg)) {
+      return 'This message could not be delivered.';
+    }
     if (err?.name === 'TypeError' || /network|fetch/i.test(msg)) {
       return 'Network error. Please check your connection and try again.';
     }

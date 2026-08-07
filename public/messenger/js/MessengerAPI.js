@@ -475,6 +475,53 @@ class MessengerAPI {
       body: JSON.stringify({ isTyping }),
     });
   }
+
+  /**
+   * List the users the current user has blocked.
+   */
+  async getBlockedUsers() {
+    return this.request('/blocked');
+  }
+
+  /**
+   * Block a user. Blocks are bidirectional in effect — the two users can
+   * no longer message each other once blocked.
+   */
+  async blockUser(userId, reason = '') {
+    return this.request('/block', {
+      method: 'POST',
+      body: JSON.stringify({ userId, reason }),
+    });
+  }
+
+  async unblockUser(userId) {
+    return this.request(`/block/${encodeURIComponent(userId)}`, {
+      method: 'DELETE',
+    });
+  }
+
+  /**
+   * Submit a report against a user or a specific message, via the shared
+   * site-wide reporting endpoint (not scoped to /api/v4/messenger).
+   */
+  async reportContent(type, targetId, reason, details = '') {
+    const response = await fetch('/api/v1/reports', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': this.getCsrfToken(),
+      },
+      body: JSON.stringify({ type, targetId, reason, details }),
+    });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const error = new Error(body.error || 'Failed to submit report');
+      error.status = response.status;
+      throw error;
+    }
+    return body;
+  }
 }
 
 // Export for use in other modules

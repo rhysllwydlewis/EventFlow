@@ -13,6 +13,13 @@ class MessengerSocket {
     this.reconnectAttempts = 0;
     this.maxReconnectAttempts = 5;
     this.reconnectDelay = 1000;
+    // Socket.IO stops retrying on its own once reconnectionAttempts is
+    // exhausted. This timer drives a slower, indefinite fallback retry loop
+    // so a dropped connection recovers on its own instead of requiring a
+    // manual page refresh.
+    this._fallbackRetryTimer = null;
+    this._fallbackRetryDelayMs = 15000;
+    this._maxFallbackRetryDelayMs = 60000;
   }
 
   /**
@@ -42,6 +49,7 @@ class MessengerSocket {
     this.socket.on('connect', () => {
       this.isConnected = true;
       this.reconnectAttempts = 0;
+      this._clearFallbackRetry();
 
       // Authenticate
       this.socket.emit('auth', { userId });
@@ -130,12 +138,58 @@ class MessengerSocket {
       this.reconnectAttempts++;
 
       if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-        console.warn('Max reconnection attempts reached');
-        // Socket.IO will continue trying with exponential backoff
-        // For additional resilience, implement HTTP polling in MessengerApp
+        console.warn('Max reconnection attempts reached — starting fallback retry loop');
         window.dispatchEvent(new CustomEvent('messenger:connection-failed'));
+        this._scheduleFallbackRetry();
       }
     });
+  }
+
+  /**
+   * Socket.IO's built-in reconnection gives up after `maxReconnectAttempts`.
+   * This keeps trying at a slower, capped-backoff pace until it succeeds —
+   * `connect` clears the timer via _clearFallbackRetry(). Safe to call
+   * repeatedly; only one timer is ever pending.
+   */
+  _scheduleFallbackRetry() {
+    if (this._fallbackRetryTimer) {
+      return;
+    }
+    this._fallbackRetryTimer = setTimeout(() => {
+      this._fallbackRetryTimer = null;
+      if (this.socket && !this.isConnected) {
+        this.socket.connect();
+      }
+      // Back off up to the cap so a prolonged outage doesn't hammer the server.
+      this._fallbackRetryDelayMs = Math.min(
+        this._fallbackRetryDelayMs * 1.5,
+        this._maxFallbackRetryDelayMs
+      );
+      if (this.socket && !this.isConnected) {
+        this._scheduleFallbackRetry();
+      }
+    }, this._fallbackRetryDelayMs);
+  }
+
+  _clearFallbackRetry() {
+    if (this._fallbackRetryTimer) {
+      clearTimeout(this._fallbackRetryTimer);
+      this._fallbackRetryTimer = null;
+    }
+    this._fallbackRetryDelayMs = 15000;
+  }
+
+  /**
+   * Manual reconnect — used by the "Retry now" affordance on the
+   * connection-failed banner. Resets the attempt/backoff counters and
+   * immediately tries again rather than waiting for the next fallback tick.
+   */
+  manualReconnect() {
+    this._clearFallbackRetry();
+    this.reconnectAttempts = 0;
+    if (this.socket) {
+      this.socket.connect();
+    }
   }
 
   /**
@@ -175,6 +229,7 @@ class MessengerSocket {
    * Disconnect
    */
   disconnect() {
+    this._clearFallbackRetry();
     if (this.socket) {
       this.socket.disconnect();
       this.socket = null;
