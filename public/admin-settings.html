@@ -538,7 +538,7 @@
       <div class="form-row">
         <label id="signupPopupModeLabel">Mode</label>
         <div class="signup-popup-mode-toggle" role="radiogroup" aria-labelledby="signupPopupModeLabel">
-          <button type="button" class="signup-popup-mode-btn" data-mode="disabled" aria-pressed="false">Disabled</button>
+          <button type="button" class="signup-popup-mode-btn is-selected" data-mode="disabled" aria-pressed="true">Disabled</button>
           <button type="button" class="signup-popup-mode-btn" data-mode="popup" aria-pressed="false">Popup</button>
           <button type="button" class="signup-popup-mode-btn" data-mode="banner" aria-pressed="false">Banner</button>
         </div>
@@ -564,7 +564,7 @@
           font-size:0.85rem; cursor:pointer; transition:background 0.15s,color 0.15s,border-color 0.15s;
         }
         .signup-popup-mode-btn:hover { border-color:#98a2b3; }
-        .signup-popup-mode-btn[aria-pressed="true"] {
+        .signup-popup-mode-btn[aria-pressed="true"], .signup-popup-mode-btn.is-selected {
           background:#0b8073; border-color:#0b8073; color:#fff;
         }
       </style>
@@ -651,7 +651,8 @@
   </footer>
 
 <script src="/assets/js/admin-shared.js?v=18.3.0"></script>
-<script src="/assets/js/pages/admin-settings-init.js?v=18.3.1" defer></script>
+<script src="/assets/js/pages/admin-settings-init.js?v=18.3.2" defer></script>
+<script src="/assets/js/pages/admin-signup-popup-init.js?v=1.0.0" defer></script>
 
 <script src="/assets/js/cookie-consent.js?v=2.0.0" defer></script>
 </body>

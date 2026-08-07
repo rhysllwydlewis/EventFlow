@@ -11,14 +11,20 @@ const path = require('path');
 
 const ADMIN_ROUTES = path.join(__dirname, '../../routes/admin.js');
 const SETTINGS_INIT = path.join(__dirname, '../../public/assets/js/pages/admin-settings-init.js');
+const SIGNUP_POPUP_INIT = path.join(
+  __dirname,
+  '../../public/assets/js/pages/admin-signup-popup-init.js'
+);
 const SETTINGS_HTML = path.join(__dirname, '../../public/admin-settings.html');
 
 let adminContent;
 let settingsInitContent;
+let signupPopupInitContent;
 
 beforeAll(() => {
   adminContent = fs.readFileSync(ADMIN_ROUTES, 'utf8');
   settingsInitContent = fs.readFileSync(SETTINGS_INIT, 'utf8');
+  signupPopupInitContent = fs.readFileSync(SIGNUP_POPUP_INIT, 'utf8');
 });
 
 describe('Admin Settings — Route Structure (GET endpoints)', () => {
@@ -244,10 +250,11 @@ describe('Admin Settings — Sign-up Popup', () => {
     expect(settingsHtmlContent).toContain('id="signupPopupDelay"');
   });
 
-  it('admin-settings-init.js loads and saves the sign-up popup settings', () => {
-    expect(settingsInitContent).toContain('/api/admin/settings/signup-popup');
-    expect(settingsInitContent).toContain('loadSignupPopup');
-    expect(settingsInitContent).toContain("document.getElementById('saveSignupPopup')");
+  it('loads the sign-up popup controls from an isolated cache-busted script', () => {
+    expect(settingsHtmlContent).toContain('/assets/js/pages/admin-signup-popup-init.js?v=1.0.0');
+    expect(signupPopupInitContent).toContain('/api/admin/settings/signup-popup');
+    expect(signupPopupInitContent).toContain('loadSettings');
+    expect(signupPopupInitContent).toContain("document.getElementById('saveSignupPopup')");
   });
 });
 
@@ -348,7 +355,7 @@ describe('Admin Settings — Availability and Booking Feature Flags', () => {
     ]) {
       expect(html).toMatch(new RegExp(`id="${id}"[^>]*data-locked-on[^>]*checked[^>]*disabled`));
     }
-    expect(html).toContain('/assets/js/pages/admin-settings-init.js?v=18.3.1');
+    expect(html).toContain('/assets/js/pages/admin-settings-init.js?v=18.3.2');
     expect(settingsInitContent).toContain('const LOCKED_ON_FEATURE_IDS = new Set([');
   });
 
