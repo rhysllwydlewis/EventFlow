@@ -2,6 +2,15 @@
 
 const { createWorker, getQueueContext } = require('../index');
 
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 async function processEmailJob(job) {
   const { db, logger = console, postmark } = getQueueContext();
   if (!db || !postmark || typeof postmark.sendMail !== 'function') {
@@ -38,11 +47,22 @@ async function processEmailJob(job) {
   const subject = `New message from ${safeSenderName}${contextInfo}`.slice(0, 200);
   const baseUrl = String(process.env.BASE_URL || 'https://event-flow.co.uk').replace(/\/+$/, '');
   const conversationId = encodeURIComponent(String(data.conversationId || ''));
+  const preview = String(data.preview || '').substring(0, 200);
+  const conversationUrl = `${baseUrl}/messenger/?conversation=${conversationId}`;
 
   await postmark.sendMail({
     to: recipient.email,
     subject,
-    text: `${safeSenderName} sent you a message:\n\n"${String(data.preview || '').substring(0, 200)}"\n\nView conversation: ${baseUrl}/messenger/?conversation=${conversationId}`,
+    template: 'new-message',
+    templateData: {
+      senderName: safeSenderName,
+      // contextSuffix is a plain (non-raw) template key, so loadEmailTemplate
+      // escapes it itself — do not pre-escape here or it will be double-escaped.
+      contextSuffix: safeContextTitle ? ` about "${safeContextTitle}"` : '',
+      previewHtml: escapeHtml(preview).replace(/\n/g, '<br>') || '&nbsp;',
+      conversationUrl,
+    },
+    text: `${safeSenderName} sent you a message:\n\n"${preview}"\n\nView conversation: ${conversationUrl}`,
     from: postmark.FROM_NOREPLY,
     tags: ['messenger-v4', 'transactional'],
     messageStream: 'outbound',

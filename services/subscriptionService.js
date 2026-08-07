@@ -14,6 +14,54 @@ const {
   PLAN_FEATURES,
 } = require('../models/Subscription');
 const logger = require('../utils/logger');
+const postmark = require('../utils/postmark');
+
+// Human-readable feature bullets per plan, for the upgrade/downgrade
+// confirmation emails. Kept local (rather than importing from
+// webhooks/stripeWebhookHandler.js) to avoid a circular require — that file
+// already requires this service.
+const PLAN_EMAIL_FEATURES = {
+  free: '<li>Basic messaging</li><li>Standard listing</li>',
+  pro: '<li>Unlimited messaging</li><li>Advanced analytics</li><li>Priority listing</li><li>Priority support</li>',
+  pro_plus:
+    '<li>Unlimited messaging</li><li>Advanced analytics</li><li>Priority listing</li>' +
+    '<li>Priority support</li><li>Custom branding</li><li>Homepage carousel</li>',
+};
+
+/**
+ * Best-effort plan-change confirmation email. Never throws — a failure here
+ * must not roll back or block the plan change itself.
+ * @param {string} userId
+ * @param {'upgraded'|'downgrade-scheduled'} kind
+ * @param {Object} templateData
+ */
+async function sendPlanChangeEmail(userId, kind, templateData) {
+  try {
+    const users = await dbUnified.read('users');
+    const user = users.find(u => u.id === userId);
+    if (!user?.email) {
+      return;
+    }
+    const template =
+      kind === 'upgraded' ? 'subscription-upgraded' : 'subscription-downgrade-scheduled';
+    const subject =
+      kind === 'upgraded'
+        ? 'Your EventFlow plan has been upgraded'
+        : 'Your EventFlow plan change has been scheduled';
+    await postmark.sendMail({
+      to: user.email,
+      subject,
+      template,
+      templateData: { name: user.name || 'there', ...templateData },
+      from: postmark.FROM_BILLING,
+      tags: [template, 'transactional'],
+      messageStream: 'outbound',
+    });
+    logger.info(`Subscription ${kind} email sent to ${user.email}`);
+  } catch (err) {
+    logger.error(`Failed to send subscription ${kind} email:`, err.message);
+  }
+}
 
 function isFuture(value) {
   if (!value) {
@@ -304,12 +352,28 @@ async function upgradeSubscription(subscriptionId, newPlan, { skipStripe = false
     await processSubscriptionPlanChange(subscription, newPlan);
   }
 
-  return updateSubscription(subscriptionId, {
+  const updated = await updateSubscription(subscriptionId, {
     plan: newPlan,
     status: 'active',
     pendingPlan: null,
     cancelAtPeriodEnd: false,
   });
+
+  const newPlanFeatures = getPlanFeatures(newPlan);
+  await sendPlanChangeEmail(subscription.userId, 'upgraded', {
+    previousPlan: getPlanFeatures(subscription.plan).name,
+    newPlan: newPlanFeatures.name,
+    effectiveDate: new Date().toLocaleDateString('en-GB', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    }),
+    amount: newPlanFeatures.price.toFixed(2),
+    billingCycle: newPlanFeatures.interval === 'year' ? 'yearly' : 'monthly',
+    features: PLAN_EMAIL_FEATURES[newPlan] || PLAN_EMAIL_FEATURES.free,
+  });
+
+  return updated;
 }
 
 async function downgradeSubscription(subscriptionId, newPlan, { skipStripe = false } = {}) {
@@ -332,7 +396,30 @@ async function downgradeSubscription(subscriptionId, newPlan, { skipStripe = fal
     await processSubscriptionPlanChange(subscription, newPlan);
   }
 
-  return updateSubscription(subscriptionId, { pendingPlan: newPlan, cancelAtPeriodEnd: true });
+  const updated = await updateSubscription(subscriptionId, {
+    pendingPlan: newPlan,
+    cancelAtPeriodEnd: true,
+  });
+
+  const currentPlanFeatures = getPlanFeatures(subscription.plan);
+  const newPlanFeatures = getPlanFeatures(newPlan);
+  const effectiveDate = subscription.currentPeriodEnd
+    ? new Date(subscription.currentPeriodEnd).toLocaleDateString('en-GB', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      })
+    : 'the end of your current billing period';
+  await sendPlanChangeEmail(subscription.userId, 'downgrade-scheduled', {
+    currentPlan: currentPlanFeatures.name,
+    newPlan: newPlanFeatures.name,
+    currentAmount: currentPlanFeatures.price.toFixed(2),
+    newAmount: newPlanFeatures.price.toFixed(2),
+    billingCycle: currentPlanFeatures.interval === 'year' ? 'yearly' : 'monthly',
+    effectiveDate,
+  });
+
+  return updated;
 }
 
 async function applyPendingPlan(subscriptionId) {

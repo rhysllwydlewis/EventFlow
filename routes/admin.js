@@ -4323,7 +4323,7 @@ router.post(
       if (ticket.senderEmail) {
         const baseUrl =
           process.env.BASE_URL || process.env.APP_BASE_URL || 'https://event-flow.co.uk';
-        const ticketUrl = `${baseUrl}/support`;
+        const ticketUrl = `${baseUrl.replace(/\/$/, '')}/tickets/${encodeURIComponent(ticket.id)}`;
         const senderName = ticket.senderName || 'there';
         const subjectText = ticket.subject || 'your support ticket';
 
@@ -4336,15 +4336,31 @@ router.post(
             .replace(/"/g, '&quot;')
             .replace(/'/g, '&#039;');
 
-        const safeSenderName = escapeHtml(senderName);
-        const safeSubjectText = escapeHtml(subjectText);
-        const safeMessage = escapeHtml(message).replace(/\n/g, '<br>');
+        const safeLineBreakHtml = str =>
+          escapeHtml(str)
+            .split(/\r?\n/)
+            .map(line => (line.trim() ? line : '&nbsp;'))
+            .join('<br>');
 
         try {
+          // Use the same branded support-ticket-reply template as the
+          // customer-facing /api/tickets/:id/reply endpoint (routes/tickets.js)
+          // — this endpoint previously sent a bare, unbranded inline-HTML
+          // email instead, even though it's the one the live admin ticket
+          // UI (admin-tickets.html) actually calls.
           await postmark.sendMail({
             to: ticket.senderEmail,
             from: process.env.POSTMARK_FROM_SUPPORT || process.env.POSTMARK_FROM,
-            subject: `Re: ${subjectText}`,
+            subject: `Reply to your EventFlow support ticket: ${subjectText}`,
+            template: 'support-ticket-reply',
+            templateData: {
+              name: senderName,
+              ticketSubject: subjectText,
+              replyMessageHtml: safeLineBreakHtml(message),
+              ticketUrl,
+              supportEmail: process.env.POSTMARK_FROM_SUPPORT || process.env.POSTMARK_FROM,
+              preheader: 'The EventFlow Support Team has replied to your ticket.',
+            },
             text: [
               `Hi ${senderName},`,
               '',
@@ -4358,15 +4374,6 @@ router.post(
               '',
               '— The EventFlow Support Team',
             ].join('\n'),
-            html: `
-              <p>Hi ${safeSenderName},</p>
-              <p>You have received a reply to your support ticket: <strong>${safeSubjectText}</strong></p>
-              <blockquote style="border-left:3px solid #0B8073;padding:0.5rem 1rem;margin:1rem 0;background:#f0fdfa;border-radius:4px;">
-                ${safeMessage}
-              </blockquote>
-              <p><a href="${ticketUrl}" style="display:inline-block;padding:10px 20px;background:linear-gradient(135deg,#0B8073,#13B6A2);color:#fff;border-radius:8px;text-decoration:none;font-weight:600;">View your ticket</a></p>
-              <p style="color:#6b7280;font-size:0.875rem;">— The EventFlow Support Team</p>
-            `,
             messageStream: 'outbound',
           });
           logger.info(
@@ -4548,15 +4555,22 @@ router.post(
             .replace(/"/g, '&quot;')
             .replace(/'/g, '&#039;');
 
-        const safeName = escapeHtml(senderName);
-        const safeSubject = escapeHtml(subjectText);
         const safeMessage = escapeHtml(message).replace(/\n/g, '<br>');
 
         try {
+          // Uses the branded contact-enquiry-reply template instead of bare
+          // inline HTML (see docs/EMAIL_TEMPLATES.md for the template list).
           await postmark.sendMail({
             to: enquiry.senderEmail,
             from: POSTMARK_FROM_SUPPORT_ADDR,
             subject: `Re: ${subjectText}`,
+            template: 'contact-enquiry-reply',
+            templateData: {
+              name: senderName,
+              enquirySubject: subjectText,
+              replyMessageHtml: safeMessage,
+              supportEmail: POSTMARK_FROM_SUPPORT_ADDR,
+            },
             text: [
               `Hi ${senderName},`,
               '',
@@ -4569,15 +4583,6 @@ router.post(
               '',
               '— The EventFlow Team',
             ].join('\n'),
-            html: `
-              <p>Hi ${safeName},</p>
-              <p>Thank you for contacting EventFlow. We have a reply to your enquiry: <strong>${safeSubject}</strong></p>
-              <blockquote style="border-left:3px solid #0B8073;padding:0.5rem 1rem;margin:1rem 0;background:#f0fdfa;border-radius:4px;">
-                ${safeMessage}
-              </blockquote>
-              <p>If you have further questions, feel free to <a href="${baseUrl}/contact">contact us again</a>.</p>
-              <p style="color:#6b7280;font-size:0.875rem;">— The EventFlow Team</p>
-            `,
             messageStream: 'outbound',
           });
           logger.info(

@@ -175,6 +175,8 @@ const RAW_HTML_TEMPLATE_KEYS = new Set([
   'notesSection',
   'ctaSection',
   'replyMessageHtml',
+  'trialRow',
+  'previewHtml',
 ]);
 
 function buildHiddenPreheader(preheader) {

@@ -1,6 +1,6 @@
 # EventFlow Email Templates
 
-> **Last updated:** June 2026 — see `email-templates/` directory for the live files.
+> **Last updated:** August 2026 — see `email-templates/` directory for the live files.
 
 EventFlow uses local HTML templates rendered server-side and delivered via Postmark.
 No Postmark-hosted templates are used — all templates live in `email-templates/`.
@@ -20,17 +20,23 @@ No Postmark-hosted templates are used — all templates live in `email-templates
 | `notification.html`                     | Generic transactional notification     | `utils/postmark.js` (sendNotificationEmail)            | `{{name}}`, `{{title}}`, `{{message}}`, `{{ctaSection}}` (optional — built server-side; pass `actionUrl` + `actionText` to `sendNotificationEmail()` options)          |
 | `marketing.html`                        | Admin marketing campaigns              | `routes/admin-campaigns.js`                            | `{{name}}`, `{{title}}`, `{{message}}`, `{{unsubscribeLink}}`                                                                                                          |
 | `action-prompts.html`                   | Supplier action reminder emails        | `routes/admin.js`, `services/actionPromptScheduler.js` | `{{actionsHtml}}`, `{{name}}`, `{{unsubscribeSection}}`                                                                                                                |
-| `newsletter-confirm.html`               | Newsletter double opt-in               | `routes/newsletter.js`                                 | `{{name}}`, `{{confirmLink}}`                                                                                                                                          |
-| `newsletter-welcome.html`               | Newsletter welcome                     | `routes/newsletter.js`                                 | `{{name}}`                                                                                                                                                             |
+| `newsletter-confirm.html`               | Newsletter double opt-in               | `routes/newsletter.js`                                 | `{{confirmLink}}`                                                                                                                                                      |
+| `newsletter-welcome.html`               | Newsletter welcome                     | `routes/newsletter.js`                                 | `{{unsubscribeLink}}`                                                                                                                                                  |
 | `partner-welcome.html`                  | Partner programme welcome              | `routes/partner.js`                                    | `{{name}}`, `{{refCode}}`, `{{refLink}}`, `{{dashboardLink}}`                                                                                                          |
 | `supplier-verification-status.html`     | Supplier approval/rejection/suspension | `routes/supplier-admin.js`                             | `{{name}}`, `{{statusTitle}}`, `{{statusMessage}}`, `{{notesSection}}`, `{{dashboardUrl}}`, `{{supportEmail}}`, `{{headerGradient}}`, `{{ctaGradient}}`, `{{ctaText}}` |
-| `subscription-activated.html`           | Subscription started                   | `webhooks/stripeWebhookHandler.js`                     | `{{name}}`, `{{planName}}`, `{{dashboardUrl}}`                                                                                                                         |
-| `subscription-cancelled.html`           | Subscription cancelled                 | `webhooks/stripeWebhookHandler.js`                     | `{{name}}`, `{{dashboardUrl}}`                                                                                                                                         |
-| `subscription-upgraded.html`            | Plan upgraded                          | `webhooks/stripeWebhookHandler.js`                     | `{{name}}`, `{{planName}}`, `{{dashboardUrl}}`                                                                                                                         |
-| `subscription-downgrade-scheduled.html` | Downgrade scheduled                    | `webhooks/stripeWebhookHandler.js`                     | `{{name}}`, `{{planName}}`, `{{effectiveDate}}`                                                                                                                        |
-| `subscription-payment-failed.html`      | Payment failure                        | `webhooks/stripeWebhookHandler.js`                     | `{{name}}`, `{{retryDate}}`, `{{billingUrl}}`                                                                                                                          |
-| `subscription-renewal-reminder.html`    | Renewal reminder                       | `webhooks/stripeWebhookHandler.js`                     | `{{name}}`, `{{renewalDate}}`, `{{dashboardUrl}}`                                                                                                                      |
-| `subscription-trial-ending.html`        | Trial ending soon                      | `webhooks/stripeWebhookHandler.js`                     | `{{name}}`, `{{trialEndDate}}`, `{{dashboardUrl}}`                                                                                                                     |
+| `support-ticket-reply.html`             | Support ticket reply                   | `routes/tickets.js`, `routes/admin.js`                 | `{{name}}`, `{{ticketSubject}}`, `{{replyMessageHtml}}`, `{{ticketUrl}}`, `{{supportEmail}}`, `{{preheader}}`                                                          |
+| `contact-enquiry-reply.html`            | Contact form enquiry reply             | `routes/admin.js`                                      | `{{name}}`, `{{enquirySubject}}`, `{{replyMessageHtml}}`, `{{supportEmail}}`                                                                                           |
+| `review-request.html`                   | Customer review request                | `routes/review-requests.js`                            | `{{name}}`, `{{supplierName}}`, `{{reviewLink}}`, `{{expiresInDays}}`                                                                                                  |
+| `new-message.html`                      | Real-time messenger notification       | `services/queue/workers/email.worker.js`               | `{{senderName}}`, `{{contextSuffix}}`, `{{previewHtml}}`, `{{conversationUrl}}`                                                                                        |
+| `subscription-activated.html`           | Subscription started                   | `webhooks/stripeWebhookHandler.js`                     | `{{name}}`, `{{planName}}`, `{{status}}`, `{{trialRow}}`, `{{renewalDate}}`, `{{amount}}`, `{{billingCycle}}`, `{{features}}`                                          |
+| `subscription-cancelled.html`           | Subscription cancelled                 | `webhooks/stripeWebhookHandler.js`                     | `{{name}}`, `{{planName}}`, `{{endDate}}`                                                                                                                              |
+| `subscription-upgraded.html`            | Plan upgraded                          | `services/subscriptionService.js`                      | `{{name}}`, `{{previousPlan}}`, `{{newPlan}}`, `{{effectiveDate}}`, `{{amount}}`, `{{billingCycle}}`, `{{features}}`                                                   |
+| `subscription-downgrade-scheduled.html` | Downgrade scheduled                    | `services/subscriptionService.js`                      | `{{name}}`, `{{currentPlan}}`, `{{newPlan}}`, `{{currentAmount}}`, `{{newAmount}}`, `{{billingCycle}}`, `{{effectiveDate}}`                                            |
+| `subscription-payment-failed.html`      | Payment failure                        | `webhooks/stripeWebhookHandler.js`                     | `{{name}}`, `{{planName}}`, `{{amount}}`, `{{attemptDate}}`, `{{gracePeriodEnd}}`                                                                                      |
+| `subscription-renewal-reminder.html`    | Renewal reminder                       | `webhooks/stripeWebhookHandler.js`                     | `{{name}}`, `{{planName}}`, `{{daysUntilRenewal}}`, `{{renewalDate}}`, `{{amount}}`, `{{autoRenew}}`, `{{renewalMessage}}`, `{{ctaText}}`                              |
+| `subscription-trial-ending.html`        | Trial ending soon                      | `webhooks/stripeWebhookHandler.js`                     | `{{name}}`, `{{planName}}`, `{{trialDays}}`, `{{daysLeft}}`, `{{trialEndDate}}`, `{{amount}}`, `{{billingCycle}}`                                                      |
+
+**Note:** `{{amount}}` and its variants (`currentAmount`, `newAmount`) are always bare number strings (e.g. `"29.00"`) — every billing template's own markup prepends the `£` symbol. Never pass a pre-formatted `"£29.00"` string.
 
 ---
 
@@ -51,7 +57,7 @@ Templates are loaded by `loadEmailTemplate(templateName, data)` in `utils/postma
 1. Reads `email-templates/<name>.html` from disk.
 2. Replaces `{{variableName}}` tokens with values from the `data` object.
 3. **HTML-escapes** all values by default (prevents XSS from user input).
-4. **Allows raw HTML** for a specific set of keys: `message`, `html`, `features`, `actionsHtml`, `unsubscribeSection`, `notesSection`, `ctaSection`.
+4. **Allows raw HTML** for a specific set of keys: `message`, `html`, `features`, `actionsHtml`, `unsubscribeSection`, `notesSection`, `ctaSection`, `replyMessageHtml`, `trialRow`, `previewHtml`.
    - `ctaSection`: CTA button block for notification emails — built by `sendNotificationEmail()` only when `actionUrl` and `actionText` are both provided, preventing empty `href=""` anchors.
 5. Appends `{{year}}` → current year, `{{baseUrl}}` → `APP_BASE_URL` env var.
 6. Clears any remaining unresolved `{{...}}` tokens so placeholders never appear in sent emails.
@@ -69,6 +75,9 @@ The loader HTML-escapes all template variables by default. However, a small set 
 | `unsubscribeSection` | Action prompt builder                                          | Always backend-constructed                                                       |
 | `notesSection`       | `routes/supplier-admin.js`                                     | Admin notes are `escapeHtml()`-escaped before wrapping                           |
 | `ctaSection`         | `utils/postmark.js` (sendNotificationEmail)                    | Only constructed when both `actionUrl` (http/https) and `actionText` are present |
+| `replyMessageHtml`   | `routes/tickets.js`, `routes/admin.js`                         | Reply text is `escapeHtml()`-escaped and line-break-converted before wrapping    |
+| `trialRow`           | `webhooks/stripeWebhookHandler.js`                             | Backend-constructed `<tr>` markup, or empty string when there is no trial        |
+| `previewHtml`        | `services/queue/workers/email.worker.js`                       | Message preview is `escapeHtml()`-escaped before wrapping                        |
 
 **Never** pass unescaped user input to any of these keys.
 
@@ -233,15 +242,18 @@ Campaign safety rules:
 
 `utils/postmark.js` exposes `RAW_HTML_TEMPLATE_KEYS` for the small set of placeholders that can intentionally render HTML. Do not add keys unless there is no safer structured alternative.
 
-| Key                  | Constructed by                                      | Safety expectation                                     |
-| -------------------- | --------------------------------------------------- | ------------------------------------------------------ |
-| `message`            | `routes/admin-campaigns.js`, `sendMarketingEmail()` | Admin campaign HTML is sanitised; CTA text is escaped. |
-| `html`               | Explicit callers only                               | Must already be validated/sanitised by the caller.     |
-| `features`           | Subscription builders                               | Backend-controlled markup only.                        |
-| `actionsHtml`        | Action prompt services                              | Backend-controlled markup only.                        |
-| `unsubscribeSection` | Action prompt and campaign helpers                  | Backend-generated links only.                          |
-| `notesSection`       | Supplier verification status builders               | Notes must be escaped before wrapping.                 |
-| `ctaSection`         | `sendNotificationEmail()`                           | Backend-generated only when URL and text are present.  |
+| Key                  | Constructed by                                      | Safety expectation                                      |
+| -------------------- | --------------------------------------------------- | ------------------------------------------------------- |
+| `message`            | `routes/admin-campaigns.js`, `sendMarketingEmail()` | Admin campaign HTML is sanitised; CTA text is escaped.  |
+| `html`               | Explicit callers only                               | Must already be validated/sanitised by the caller.      |
+| `features`           | Subscription builders                               | Backend-controlled markup only.                         |
+| `actionsHtml`        | Action prompt services                              | Backend-controlled markup only.                         |
+| `unsubscribeSection` | Action prompt and campaign helpers                  | Backend-generated links only.                           |
+| `notesSection`       | Supplier verification status builders               | Notes must be escaped before wrapping.                  |
+| `ctaSection`         | `sendNotificationEmail()`                           | Backend-generated only when URL and text are present.   |
+| `replyMessageHtml`   | Ticket/enquiry reply routes                         | Reply text is escaped and line-break-converted first.   |
+| `trialRow`           | `webhooks/stripeWebhookHandler.js`                  | Backend-constructed markup, empty string when no trial. |
+| `previewHtml`        | `services/queue/workers/email.worker.js`            | Message preview is escaped before wrapping.             |
 
 ## Visual review checklist
 

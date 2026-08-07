@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex">
+  <title>Unsubscribe — EventFlow</title>
+  <link rel="stylesheet" href="/assets/css/styles.css">
+  <style>
+    .unsub-page {
+      max-width: 480px;
+      margin: 100px auto;
+      text-align: center;
+      padding: 40px 20px;
+    }
+    .unsub-icon {
+      font-size: 56px;
+      margin-bottom: 24px;
+    }
+    h1 {
+      color: #111827;
+      font-size: 28px;
+      margin-bottom: 16px;
+      font-weight: 700;
+    }
+    .lead {
+      font-size: 16px;
+      color: #6b7280;
+      margin-bottom: 32px;
+      line-height: 1.6;
+    }
+    .email-field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      text-align: left;
+      margin-bottom: 24px;
+    }
+    .email-field label {
+      font-size: 13px;
+      font-weight: 600;
+      color: #374151;
+    }
+    .email-field input {
+      padding: 12px 14px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 15px;
+    }
+    .cta {
+      display: inline-block;
+      width: 100%;
+      background: var(--ink, #0B8073);
+      color: white;
+      padding: 14px 32px;
+      text-decoration: none;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    .cta:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .result {
+      margin-top: 20px;
+      padding: 14px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      display: none;
+    }
+    .result.success {
+      display: block;
+      background: #f0fdf4;
+      border: 1px solid #86efac;
+      color: #065f46;
+    }
+    .result.error {
+      display: block;
+      background: #fef2f2;
+      border: 1px solid #fca5a5;
+      color: #991b1b;
+    }
+  </style>
+</head>
+<body>
+  <div class="unsub-page">
+    <div class="unsub-icon">✉️</div>
+    <h1>Unsubscribe from the newsletter</h1>
+    <p class="lead" id="leadText">Confirm below and we'll stop sending you EventFlow newsletter emails.</p>
+
+    <form id="unsubForm">
+      <div class="email-field">
+        <label for="emailInput">Email address</label>
+        <input type="email" id="emailInput" required placeholder="you@example.com">
+      </div>
+      <button type="submit" class="cta" id="submitBtn">Unsubscribe</button>
+    </form>
+
+    <div class="result" id="result"></div>
+  </div>
+
+  <script>
+    (function () {
+      const params = new URLSearchParams(window.location.search);
+      const prefillEmail = params.get('email') || '';
+      const emailInput = document.getElementById('emailInput');
+      if (prefillEmail) {
+        emailInput.value = prefillEmail;
+      }
+
+      const form = document.getElementById('unsubForm');
+      const btn = document.getElementById('submitBtn');
+      const result = document.getElementById('result');
+
+      form.addEventListener('submit', async function (e) {
+        e.preventDefault();
+        const email = emailInput.value.trim();
+        if (!email) {
+          return;
+        }
+        btn.disabled = true;
+        btn.textContent = 'Unsubscribing…';
+        result.className = 'result';
+        result.textContent = '';
+
+        try {
+          const res = await fetch('/api/newsletter/unsubscribe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: email }),
+          });
+          const data = await res.json();
+          if (res.ok) {
+            result.className = 'result success';
+            result.textContent = data.message || "You've been unsubscribed.";
+            form.style.display = 'none';
+          } else {
+            result.className = 'result error';
+            result.textContent = data.error || 'Something went wrong. Please try again.';
+            btn.disabled = false;
+            btn.textContent = 'Unsubscribe';
+          }
+        } catch (err) {
+          result.className = 'result error';
+          result.textContent = 'Network error. Please try again.';
+          btn.disabled = false;
+          btn.textContent = 'Unsubscribe';
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

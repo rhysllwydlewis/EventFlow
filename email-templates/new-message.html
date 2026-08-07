@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Password Changed - EventFlow</title>
+  <title>New message on EventFlow</title>
 </head>
 <body style="margin:0;padding:0;background-color:#EBF7F5;font-family:Inter,system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#EBF7F5;">
@@ -27,26 +27,23 @@
           <!-- ── Body ────────────────────────────────────────── -->
           <tr>
             <td style="background-color:#ffffff;padding:40px 40px 32px;">
-              <p style="margin:0 0 16px;font-size:36px;text-align:center;">✅</p>
-              <h1 style="margin:0 0 20px;font-size:22px;font-weight:700;color:#0B1220;line-height:1.35;text-align:center;">Password successfully changed</h1>
-              <p style="margin:0 0 16px;font-size:15px;color:#334155;line-height:1.75;">Hi {{name}},</p>
-              <p style="margin:0 0 8px;font-size:15px;color:#334155;line-height:1.75;">Your EventFlow password was successfully changed. You can now log in with your new password.</p>
-              <p style="margin:0 0 28px;font-size:13px;color:#667085;line-height:1.6;">Changed at {{resetTime}}. If that wasn't you, see the notice below.</p>
+              <h1 style="margin:0 0 20px;font-size:22px;font-weight:700;color:#0B1220;line-height:1.35;">You have a new message</h1>
+              <p style="margin:0 0 24px;font-size:15px;color:#334155;line-height:1.75;"><strong>{{senderName}}</strong> sent you a message{{contextSuffix}}:</p>
 
-              <!-- CTA button -->
+              <!-- Message preview -->
               <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:28px;">
                 <tr>
-                  <td align="center">
-                    <a href="{{baseUrl}}/auth" style="display:inline-block;padding:15px 40px;background:linear-gradient(135deg,#0B8073,#13B6A2);color:#ffffff;text-decoration:none;border-radius:10px;font-weight:700;font-size:15px;letter-spacing:0.2px;">Log In Now</a>
+                  <td style="background-color:#F2FBF9;border:1px solid #D9F0EC;border-left:4px solid #0B8073;border-radius:0 10px 10px 0;padding:18px 20px;">
+                    <div style="font-size:15px;line-height:1.75;color:#334155;">{{previewHtml}}</div>
                   </td>
                 </tr>
               </table>
 
-              <!-- Warning -->
+              <!-- CTA button -->
               <table width="100%" cellpadding="0" cellspacing="0" border="0">
                 <tr>
-                  <td style="background-color:#FFFBEB;border-left:4px solid #F59E0B;border-radius:0 8px 8px 0;padding:14px 18px;">
-                    <p style="margin:0;font-size:13px;color:#78350F;line-height:1.6;"><strong>⚠️ Didn't make this change?</strong> Contact our support team immediately at <a href="mailto:support@event-flow.co.uk" style="color:#0B8073;text-decoration:none;">support@event-flow.co.uk</a> — your account security is our priority.</p>
+                  <td align="center">
+                    <a href="{{conversationUrl}}" style="display:inline-block;padding:15px 40px;background:linear-gradient(135deg,#0B8073,#13B6A2);color:#ffffff;text-decoration:none;border-radius:10px;font-weight:700;font-size:15px;letter-spacing:0.2px;">Reply</a>
                   </td>
                 </tr>
               </table>
@@ -56,6 +53,7 @@
           <!-- ── Footer ───────────────────────────────────────── -->
           <tr>
             <td style="background-color:#F2FBF9;padding:24px 40px;text-align:center;border-top:1px solid #D9F0EC;">
+              <p style="margin:0 0 8px;font-size:13px;color:#667085;">Manage your notification preferences in <a href="{{baseUrl}}/settings/notifications" style="color:#0B8073;text-decoration:none;font-weight:600;">account settings</a>.</p>
               <p style="margin:0 0 8px;font-size:13px;color:#667085;">© 2025–{{year}} EventFlow. All rights reserved. &nbsp;·&nbsp; Operated by VEXI</p>
               <p style="margin:0 0 8px;font-size:12px;color:#98A2B3;">
                 <a href="{{baseUrl}}/privacy" style="color:#0B8073;text-decoration:none;">Privacy Policy</a>

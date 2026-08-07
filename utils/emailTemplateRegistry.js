@@ -27,6 +27,7 @@ const PREHEADERS = {
   'welcome-supplier': 'Complete your supplier profile and prepare to receive enquiries.',
   marketing: 'See the latest EventFlow updates and planning improvements.',
   notification: 'You have a new EventFlow account update.',
+  'new-message': 'You have a new message on EventFlow.',
   'action-prompts': 'Review the supplier profile improvements recommended by EventFlow.',
   'newsletter-confirm': 'Confirm your subscription to receive EventFlow updates.',
   'newsletter-welcome': 'You are subscribed to EventFlow updates.',
@@ -40,6 +41,9 @@ const PREHEADERS = {
     'Please update your payment method to keep your supplier features active.',
   'subscription-renewal-reminder': 'Your supplier subscription renewal is coming up.',
   'subscription-trial-ending': 'Your supplier subscription trial is ending soon.',
+  'support-ticket-reply': 'The EventFlow Support Team has replied to your ticket.',
+  'contact-enquiry-reply': 'EventFlow has replied to your enquiry.',
+  'review-request': 'You have been invited to share your experience on EventFlow.',
 };
 
 const META = {
@@ -81,7 +85,12 @@ const META = {
   notification: {
     category: 'account',
     purpose: 'Transactional account notification',
-    variables: ['name', 'title', 'message', 'preferencesLink', 'ctaSection'],
+    variables: ['name', 'title', 'message', 'ctaSection'],
+  },
+  'new-message': {
+    category: 'account',
+    purpose: 'New messenger message notification',
+    variables: ['senderName', 'contextSuffix', 'previewHtml', 'conversationUrl'],
   },
   'support-ticket-reply': {
     category: 'account',
@@ -95,27 +104,30 @@ const META = {
       'preheader',
     ],
   },
+  'contact-enquiry-reply': {
+    category: 'account',
+    purpose: 'Contact form enquiry reply',
+    variables: ['name', 'enquirySubject', 'replyMessageHtml', 'supportEmail'],
+  },
+  'review-request': {
+    category: 'supplier',
+    purpose: 'Customer review request sent on behalf of a supplier',
+    variables: ['name', 'supplierName', 'reviewLink', 'expiresInDays'],
+  },
   'action-prompts': {
     category: 'supplier',
     purpose: 'Supplier profile action prompt digest',
-    variables: [
-      'name',
-      'summaryHtml',
-      'actionsHtml',
-      'loginUrl',
-      'managePrefsUrl',
-      'unsubscribeSection',
-    ],
+    variables: ['name', 'actionsHtml', 'loginUrl', 'managePrefsUrl', 'unsubscribeSection'],
   },
   'newsletter-confirm': {
     category: 'marketing',
     purpose: 'Newsletter double opt-in confirmation',
-    variables: ['name', 'confirmLink'],
+    variables: ['confirmLink'],
   },
   'newsletter-welcome': {
     category: 'marketing',
     purpose: 'Newsletter welcome',
-    variables: ['name', 'unsubscribeLink'],
+    variables: ['unsubscribeLink'],
   },
   'partner-welcome': {
     category: 'partner',
@@ -140,22 +152,47 @@ const META = {
   'subscription-activated': {
     category: 'billing',
     purpose: 'Subscription activation confirmation',
-    variables: ['name', 'planName', 'amount', 'billingCycle', 'nextBillingDate'],
+    variables: [
+      'name',
+      'planName',
+      'status',
+      'trialRow',
+      'renewalDate',
+      'amount',
+      'billingCycle',
+      'features',
+    ],
   },
   'subscription-cancelled': {
     category: 'billing',
     purpose: 'Subscription cancellation confirmation',
-    variables: ['name', 'planName', 'accessEndDate'],
+    variables: ['name', 'planName', 'endDate'],
   },
   'subscription-upgraded': {
     category: 'billing',
     purpose: 'Subscription upgrade confirmation',
-    variables: ['name', 'oldPlanName', 'newPlanName', 'amount', 'nextBillingDate'],
+    variables: [
+      'name',
+      'previousPlan',
+      'newPlan',
+      'effectiveDate',
+      'amount',
+      'billingCycle',
+      'features',
+    ],
   },
   'subscription-downgrade-scheduled': {
     category: 'billing',
     purpose: 'Scheduled subscription downgrade confirmation',
-    variables: ['name', 'currentPlanName', 'newPlanName', 'effectiveDate'],
+    variables: [
+      'name',
+      'currentPlan',
+      'newPlan',
+      'currentAmount',
+      'newAmount',
+      'billingCycle',
+      'effectiveDate',
+    ],
   },
   'subscription-payment-failed': {
     category: 'billing',
@@ -165,12 +202,29 @@ const META = {
   'subscription-renewal-reminder': {
     category: 'billing',
     purpose: 'Upcoming subscription renewal reminder',
-    variables: ['name', 'planName', 'amount', 'renewalDate'],
+    variables: [
+      'name',
+      'planName',
+      'daysUntilRenewal',
+      'renewalDate',
+      'amount',
+      'autoRenew',
+      'renewalMessage',
+      'ctaText',
+    ],
   },
   'subscription-trial-ending': {
     category: 'billing',
     purpose: 'Subscription trial ending reminder',
-    variables: ['name', 'planName', 'trialEndDate'],
+    variables: [
+      'name',
+      'planName',
+      'trialDays',
+      'daysLeft',
+      'trialEndDate',
+      'amount',
+      'billingCycle',
+    ],
   },
 };
 
@@ -221,7 +275,7 @@ function buildSampleData(name) {
       confirmLink: `${APP_BASE_URL}/api/newsletter/confirm?token=preview-token`,
     },
     'newsletter-welcome': {
-      unsubscribeLink: `${APP_BASE_URL}/api/newsletter/unsubscribe?email=preview%40example.com&token=preview-token`,
+      unsubscribeLink: `${APP_BASE_URL}/newsletter/unsubscribe?email=preview%40example.com`,
     },
     'partner-welcome': {
       refCode: 'EVENTFLOW25',
@@ -238,36 +292,82 @@ function buildSampleData(name) {
       ctaGradient: 'linear-gradient(135deg,#059669,#10B981)',
       ctaText: 'Open Supplier Dashboard',
     },
+    // NOTE: `amount` is always a bare number string (e.g. "29.00") in every
+    // billing template below — each template's own markup prepends the "£"
+    // symbol (`£{{amount}}`), matching exactly how webhooks/stripeWebhookHandler.js
+    // calls (unitAmount / 100).toFixed(2). Including "£" here double-renders it.
     'subscription-activated': {
       planName: 'Professional',
-      amount: '£29.00',
+      status: 'Active',
+      trialRow: '',
+      renewalDate: '12 April 2026',
+      amount: '29.00',
       billingCycle: 'monthly',
-      nextBillingDate: '12 April 2026',
+      features:
+        '<li>Unlimited messaging</li><li>Advanced analytics</li><li>Priority listing</li><li>Priority support</li>',
     },
-    'subscription-cancelled': { planName: 'Professional', accessEndDate: '12 April 2026' },
+    'subscription-cancelled': {
+      planName: 'Professional',
+      endDate: '12 April 2026',
+    },
     'subscription-upgraded': {
-      oldPlanName: 'Starter',
-      newPlanName: 'Professional',
-      amount: '£29.00',
-      nextBillingDate: '12 April 2026',
+      previousPlan: 'Starter',
+      newPlan: 'Professional',
+      effectiveDate: '12 March 2026',
+      amount: '29.00',
+      billingCycle: 'monthly',
+      features: '<li>Unlimited packages</li><li>Priority placement</li>',
     },
     'subscription-downgrade-scheduled': {
-      currentPlanName: 'Professional',
-      newPlanName: 'Starter',
+      currentPlan: 'Professional',
+      newPlan: 'Starter',
+      currentAmount: '29.00',
+      newAmount: '9.00',
+      billingCycle: 'monthly',
       effectiveDate: '12 April 2026',
     },
     'subscription-payment-failed': {
       planName: 'Professional',
-      amount: '£29.00',
+      amount: '29.00',
       attemptDate: '12 March 2026',
       gracePeriodEnd: '19 March 2026',
     },
     'subscription-renewal-reminder': {
       planName: 'Professional',
-      amount: '£29.00',
+      daysUntilRenewal: '3',
       renewalDate: '12 April 2026',
+      amount: '29.00',
+      autoRenew: 'Enabled',
+      renewalMessage: 'Your subscription will renew automatically.',
+      ctaText: 'Manage Subscription',
     },
-    'subscription-trial-ending': { planName: 'Professional', trialEndDate: '19 March 2026' },
+    'subscription-trial-ending': {
+      planName: 'Professional',
+      trialDays: '14',
+      daysLeft: '3',
+      trialEndDate: '19 March 2026',
+      amount: '29.00',
+      billingCycle: 'monthly',
+    },
+    'new-message': {
+      senderName: 'Jordan Lee',
+      contextSuffix: ' about "Wedding catering enquiry"',
+      previewHtml:
+        'Hi! Just checking if you have availability for a 120-guest wedding in June — could you send over a quote?',
+      conversationUrl: `${APP_BASE_URL}/messenger/?conversation=preview-convo-id`,
+    },
+    'contact-enquiry-reply': {
+      name: 'Jordan Lee',
+      enquirySubject: 'Question about listing a venue',
+      replyMessageHtml:
+        '<p>Thanks for reaching out — venues can list for free during our launch period.</p><p>Let us know if you have any other questions!</p>',
+      supportEmail: SUPPORT_EMAIL,
+    },
+    'review-request': {
+      supplierName: 'Bloom & Co Florists',
+      reviewLink: `${APP_BASE_URL}/review-request/preview-token`,
+      expiresInDays: '14',
+    },
   };
   return { ...common, ...(samples[name] || {}) };
 }
@@ -411,6 +511,39 @@ function renderPlainTextTemplate(name, data = {}) {
         `The EventFlow Support Team — ${merged.supportEmail || SUPPORT_EMAIL}`
       );
       break;
+    case 'contact-enquiry-reply':
+      lines.push(
+        'We’ve replied to your enquiry.',
+        '',
+        `Enquiry: ${merged.enquirySubject}`,
+        '',
+        stripHtml(merged.replyMessageHtml),
+        '',
+        `Contact us again: ${APP_BASE_URL}/contact`,
+        '',
+        `The EventFlow Team — ${merged.supportEmail || SUPPORT_EMAIL}`
+      );
+      break;
+    case 'review-request':
+      lines.push(
+        `${merged.supplierName} invited you to leave a review on EventFlow.`,
+        '',
+        `Leave a review: ${merged.reviewLink}`,
+        '',
+        `This link expires in ${merged.expiresInDays} days.`
+      );
+      break;
+    case 'new-message': {
+      const contextText = merged.contextSuffix ? ` ${stripHtml(merged.contextSuffix)}` : '';
+      lines.push(
+        `${merged.senderName} sent you a message${contextText}:`,
+        '',
+        `"${stripHtml(merged.previewHtml)}"`,
+        '',
+        `View conversation: ${merged.conversationUrl}`
+      );
+      break;
+    }
     case 'marketing':
       lines.push(
         merged.title,
