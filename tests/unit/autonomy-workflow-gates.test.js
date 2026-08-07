@@ -60,6 +60,8 @@ describe('autonomous quality workflow contracts', () => {
     expect(audit).toMatch(mongoPin);
     expect(supplyChain).toMatch(/aquasecurity\/trivy-action@[0-9a-f]{40}/i);
     expect(supplyChain).toMatch(/anchore\/sbom-action@[0-9a-f]{40}/i);
+    expect(supplyChain).toMatch(/severity: CRITICAL,HIGH/);
+    expect(supplyChain).toMatch(/limit-severities-for-sarif: true/);
   });
 
   test('deployment validation waits for the exact intended commit and readiness', () => {
