@@ -191,6 +191,7 @@ html[data-sp-hero-mode='theme'] .hero-media.sp-hero-media--fallback.sp-hero-use-
 #btn-save,
 #btn-share {
   width: 42px;
+  min-width: 42px !important;
   padding: 0 !important;
 }
 

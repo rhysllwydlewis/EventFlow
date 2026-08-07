@@ -395,7 +395,7 @@ class AuthService {
     const founderLaunchTs = process.env.FOUNDER_LAUNCH_TS || '2026-01-01T00:00:00Z';
     const founderLaunchDate = new Date(founderLaunchTs);
     const founderEndDate = new Date(founderLaunchDate);
-    founderEndDate.setMonth(founderEndDate.getMonth() + 6);
+    founderEndDate.setUTCMonth(founderEndDate.getUTCMonth() + 6);
 
     const now = new Date();
     const badges = [];

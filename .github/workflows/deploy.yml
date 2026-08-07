@@ -251,4 +251,5 @@ jobs:
     needs: [precheck]
     if: needs.precheck.outputs.should_deploy != 'true'
     steps:
-      - run: echo "Deploy skipped: ${{ needs.precheck.outputs.reason }}"
+      - run: |
+          echo "Deploy skipped: ${{ needs.precheck.outputs.reason }}"
