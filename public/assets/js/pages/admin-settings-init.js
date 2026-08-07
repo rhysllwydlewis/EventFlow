@@ -751,80 +751,6 @@
     );
   });
 
-  /**
-   * Load the homepage sign-up popup settings into the form.
-   *
-   * @returns {Promise<void>}
-   */
-  const SIGNUP_POPUP_MODES = ['disabled', 'popup', 'banner'];
-
-  /**
-   * Reflect the selected mode onto the segmented control's pressed state and
-   * the hidden input the save handler reads from.
-   *
-   * @param {string} mode - one of SIGNUP_POPUP_MODES
-   * @returns {void}
-   */
-  function setSignupPopupMode(mode) {
-    const resolved = SIGNUP_POPUP_MODES.includes(mode) ? mode : 'disabled';
-    document.getElementById('signupPopupMode').value = resolved;
-    document.querySelectorAll('.signup-popup-mode-btn').forEach(btn => {
-      btn.setAttribute('aria-pressed', String(btn.dataset.mode === resolved));
-    });
-  }
-
-  document.querySelectorAll('.signup-popup-mode-btn').forEach(btn => {
-    btn.addEventListener('click', () => setSignupPopupMode(btn.dataset.mode));
-  });
-
-  async function loadSignupPopup() {
-    try {
-      const signupPopup = await AdminShared.adminFetch('/api/admin/settings/signup-popup', {
-        method: 'GET',
-      });
-      setSignupPopupMode(signupPopup.mode);
-      document.getElementById('signupPopupDelay').value = Number.isInteger(signupPopup.delaySeconds)
-        ? signupPopup.delaySeconds
-        : 5;
-    } catch (err) {
-      AdminShared.debugError('Failed to load signup popup settings:', err);
-    }
-  }
-
-  // Save sign-up popup settings
-  document.getElementById('saveSignupPopup').addEventListener('click', async () => {
-    const rawDelay = document.getElementById('signupPopupDelay').value.trim();
-    const delayValue = Number(rawDelay);
-
-    if (rawDelay === '' || !Number.isInteger(delayValue) || delayValue < 0 || delayValue > 300) {
-      AdminShared.showToast('Delay must be a whole number of seconds between 0 and 300', 'error');
-      return;
-    }
-
-    const data = {
-      mode: document.getElementById('signupPopupMode').value,
-      delaySeconds: delayValue,
-    };
-
-    const saveBtn = document.getElementById('saveSignupPopup');
-    await AdminShared.safeAction(
-      saveBtn,
-      async () => {
-        const result = await AdminShared.adminFetch('/api/admin/settings/signup-popup', {
-          method: 'PUT',
-          body: data,
-        });
-        await loadSignupPopup();
-        return result;
-      },
-      {
-        loadingText: 'Saving...',
-        successMessage: 'Sign-up popup settings updated',
-        errorMessage: 'Failed to update sign-up popup settings',
-      }
-    );
-  });
-
   // Load system info
   async function loadSystemInfo() {
     try {
@@ -1083,7 +1009,6 @@
       loadSiteConfig(),
       loadFeatureFlags(),
       loadMaintenanceMode(),
-      loadSignupPopup(),
       loadSystemInfo(),
       loadAuditLogs(),
       loadDatabaseHealth(),
