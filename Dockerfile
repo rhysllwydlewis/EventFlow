@@ -45,7 +45,6 @@ EXPOSE 3000
 HEALTHCHECK --interval=10s --timeout=5s --start-period=10s --retries=3 \
   CMD sh -c 'curl -fsS http://localhost:${PORT:-3000}/api/ready || exit 1'
 
-# deploymentMetadataPreload preserves the established telemetry preload contract:
-# node -r ./services/backgroundJobTelemetryBridge.js server.js
-# Metadata is launched in a detached child and cannot block the server process.
-CMD ["sh", "-c", "node scripts/preflight.mjs && exec node -r ./services/deploymentMetadataPreload.js server.js"]
+# The production supervisor runs both the web server and the messaging workers.
+# /api/ready intentionally stays unavailable until the worker heartbeat is live.
+CMD ["sh", "-c", "node scripts/preflight.mjs && exec node scripts/start-production.js"]

@@ -5,7 +5,7 @@
     "dockerfilePath": "Dockerfile"
   },
   "deploy": {
-    "startCommand": "sh -c 'node scripts/preflight.mjs && exec node -r ./services/deploymentMetadataPreload.js server.js'",
+    "startCommand": "sh -c 'node scripts/preflight.mjs && exec node scripts/start-production.js'",
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 3,
     "healthcheckPath": "/api/ready",
