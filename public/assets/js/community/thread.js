@@ -114,6 +114,7 @@
       : '';
 
     const poll = d.poll ? renderPoll(d.poll) : '';
+    const images = renderAttachments(d.attachments);
 
     return `<article class="efc-post" aria-labelledby="efc-thread-title">
       <div class="efc-post__head">
@@ -139,6 +140,7 @@
       ${d.moderatorNotice ? `<div class="efc-notice" role="note">${EFC.esc(d.moderatorNotice)}</div>` : ''}
       ${brief}
       <div class="efc-post__body">${d.body || ''}</div>
+      ${images}
       ${poll}
       <p class="efc-meta">
         ${d.replyCount} ${d.replyCount === 1 ? 'reply' : 'replies'}
@@ -161,6 +163,30 @@
         }
       </div>
     </article>`;
+  }
+
+  /**
+   * Render image attachments as a lightbox-free thumbnail grid. Only
+   * same-origin `/uploads/community/...` URLs are ever stored for these, so
+   * no extra sanitisation is needed beyond the usual HTML escaping.
+   * @param {Object[]} [attachments] Attachment records.
+   * @returns {string} HTML, or an empty string when there is nothing to show.
+   */
+  function renderAttachments(attachments) {
+    const images = Array.isArray(attachments)
+      ? attachments.filter(item => item && item.kind === 'image' && item.url)
+      : [];
+    if (!images.length) {
+      return '';
+    }
+    return `<div class="efc-post__attachments">${images
+      .map(
+        item =>
+          `<a href="${EFC.esc(item.url)}" target="_blank" rel="noopener noreferrer">
+            <img src="${EFC.esc(item.url)}" alt="${EFC.esc(item.alt || '')}" loading="lazy" />
+          </a>`
+      )
+      .join('')}</div>`;
   }
 
   /**

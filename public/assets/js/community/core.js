@@ -558,6 +558,31 @@
   }
 
   /**
+   * Upload an image attachment for a discussion draft. Returns the stored
+   * attachment descriptor ({ kind: 'image', url, alt }) which the composer
+   * includes verbatim in the discussion's `attachments` array on submit.
+   * @param {File} file Image file selected by the member.
+   * @returns {Promise<Object>} Attachment descriptor.
+   */
+  async function uploadAttachment(file) {
+    const formData = new FormData();
+    formData.append('image', file);
+    const response = await fetch(`${API}/attachments`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'X-CSRF-Token': await csrfToken() },
+      body: formData,
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const error = new Error(data.error || 'Could not upload image.');
+      error.status = response.status;
+      throw error;
+    }
+    return data.attachment;
+  }
+
+  /**
    * Fetch the signed-in member's community state, or null when logged out.
    * @returns {Promise<Object|null>} Member state.
    */
@@ -597,6 +622,7 @@
     setQueryState,
     hideFallback,
     me,
+    uploadAttachment,
   };
 
   document.dispatchEvent(new CustomEvent('efcommunity:ready'));

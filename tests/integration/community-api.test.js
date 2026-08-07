@@ -113,6 +113,7 @@ jest.mock('../../middleware/rateLimits', () => {
     searchLimiter: passthrough,
     publicReadLimiter: passthrough,
     authLimiter: passthrough,
+    uploadLimiter: passthrough,
   };
 });
 
@@ -1553,6 +1554,68 @@ describe('structured discussion fields', () => {
     expect(res.status).toBe(400);
   });
 
+  describe('attachments', () => {
+    it('accepts a valid own-uploaded attachment reference', async () => {
+      const res = await request(app)
+        .post('/api/v1/community/discussions')
+        .set('Cookie', authCookie(users.member))
+        .send({
+          ...base,
+          attachments: [
+            {
+              kind: 'image',
+              url: '/uploads/community/11111111-1111-4111-8111-111111111111.jpg',
+              alt: 'A marquee',
+            },
+          ],
+        });
+      expect(res.status).toBe(201);
+      const created = mockDb.all('community_discussions').find(item => item.id !== 'd-1');
+      expect(created.attachments).toEqual([
+        {
+          kind: 'image',
+          url: '/uploads/community/11111111-1111-4111-8111-111111111111.jpg',
+          alt: 'A marquee',
+        },
+      ]);
+    });
+
+    it('silently drops an attachment pointing outside the upload endpoint', async () => {
+      const res = await request(app)
+        .post('/api/v1/community/discussions')
+        .set('Cookie', authCookie(users.member))
+        .send({
+          ...base,
+          attachments: [{ kind: 'image', url: 'https://evil.example.com/x.jpg' }],
+        });
+      expect(res.status).toBe(201);
+      const created = mockDb.all('community_discussions').find(item => item.id !== 'd-1');
+      expect(created.attachments).toEqual([]);
+    });
+
+    it('rejects more than the maximum number of attachments', async () => {
+      const attachments = Array.from({ length: 9 }, (_, i) => ({
+        kind: 'image',
+        url: `/uploads/community/${String(i).padStart(8, '0')}-1111-4111-8111-111111111111.jpg`,
+      }));
+      const res = await request(app)
+        .post('/api/v1/community/discussions')
+        .set('Cookie', authCookie(users.member))
+        .send({ ...base, attachments });
+      expect(res.status).toBe(400);
+    });
+
+    it('defaults to an empty attachments array when none are supplied', async () => {
+      const res = await request(app)
+        .post('/api/v1/community/discussions')
+        .set('Cookie', authCookie(users.member))
+        .send(base);
+      expect(res.status).toBe(201);
+      const created = mockDb.all('community_discussions').find(item => item.id !== 'd-1');
+      expect(created.attachments).toEqual([]);
+    });
+  });
+
   it('stores a recommendation brief', async () => {
     const res = await request(app)
       .post('/api/v1/community/discussions')
@@ -1625,5 +1688,57 @@ describe('structured discussion fields', () => {
       .set('Cookie', authCookie(users.admin));
     expect(res.status).toBe(200);
     expect(mockDb.all('community_discussions')[0].removedBy).toBe('moderator');
+  });
+});
+
+describe('POST /api/v1/community/attachments', () => {
+  // Minimal valid PNG signature bytes — enough for the magic-byte sniff in
+  // utils/messengerAttachmentValidation.js to identify it as image/png.
+  const pngBytes = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+
+  it('rejects an anonymous upload', async () => {
+    const res = await request(app)
+      .post('/api/v1/community/attachments')
+      .attach('image', pngBytes, 'photo.png');
+    expect(res.status).toBe(401);
+  });
+
+  it('uploads a valid image and returns a same-origin descriptor', async () => {
+    const res = await request(app)
+      .post('/api/v1/community/attachments')
+      .set('Cookie', authCookie(users.member))
+      .attach('image', pngBytes, 'photo.png');
+    expect(res.status).toBe(201);
+    expect(res.body.attachment.kind).toBe('image');
+    expect(res.body.attachment.url).toMatch(/^\/uploads\/community\/[\w-]+\.png$/);
+  });
+
+  it('rejects a file whose content does not match its declared type', async () => {
+    const res = await request(app)
+      .post('/api/v1/community/attachments')
+      .set('Cookie', authCookie(users.member))
+      .attach('image', Buffer.from('not actually an image'), {
+        filename: 'photo.png',
+        contentType: 'image/png',
+      });
+    expect(res.status).toBe(400);
+  });
+
+  it('rejects a non-image file', async () => {
+    const res = await request(app)
+      .post('/api/v1/community/attachments')
+      .set('Cookie', authCookie(users.member))
+      .attach('image', Buffer.from('%PDF-1.7\n'), {
+        filename: 'doc.pdf',
+        contentType: 'application/pdf',
+      });
+    expect(res.status).toBe(400);
+  });
+
+  it('requires a file', async () => {
+    const res = await request(app)
+      .post('/api/v1/community/attachments')
+      .set('Cookie', authCookie(users.member));
+    expect(res.status).toBe(400);
   });
 });

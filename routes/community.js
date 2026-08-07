@@ -11,6 +11,11 @@
 const express = require('express');
 const router = express.Router();
 
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs').promises;
+const crypto = require('crypto');
+
 const dbUnified = require('../db-unified');
 const logger = require('../utils/logger');
 const {
@@ -19,7 +24,7 @@ const {
   requireVerifiedUser,
 } = require('../middleware/auth');
 const { csrfProtection } = require('../middleware/csrf');
-const { writeLimiter, publicReadLimiter } = require('../middleware/rateLimits');
+const { writeLimiter, publicReadLimiter, uploadLimiter } = require('../middleware/rateLimits');
 const {
   requireCommunityEnabled,
   attachViewer,
@@ -29,6 +34,7 @@ const {
 const community = require('../services/community.service');
 const moderation = require('../services/communityModeration.service');
 const { stripHtml } = require('../services/contentSanitizer');
+const { validateMessengerAttachment } = require('../utils/messengerAttachmentValidation');
 const {
   COLLECTIONS,
   CONTENT_STATES,
@@ -78,6 +84,7 @@ router.get('/meta', publicReadLimiter, requireCommunityEnabled, (req, res) => {
       bodyMax: LIMITS.BODY_MAX,
       replyMax: LIMITS.REPLY_MAX,
       tagsMax: LIMITS.TAGS_MAX,
+      attachmentsMax: LIMITS.ATTACHMENTS_MAX,
     },
   });
 });
@@ -699,6 +706,28 @@ function normaliseStructuredFields(body) {
     .slice(0, LIMITS.TAGS_MAX);
   values.tags = Array.from(new Set(cleanTags));
 
+  // Attachments are uploaded up-front via POST /attachments, which returns
+  // the same-origin /uploads/community/... URL used here. Only references to
+  // that endpoint's own output are accepted — arbitrary URLs are rejected so
+  // this can never be used to make the server display third-party images.
+  const rawAttachments = Array.isArray(body.attachments) ? body.attachments : [];
+  if (rawAttachments.length > LIMITS.ATTACHMENTS_MAX) {
+    errors.push(`You can attach up to ${LIMITS.ATTACHMENTS_MAX} images.`);
+  }
+  values.attachments = rawAttachments.slice(0, LIMITS.ATTACHMENTS_MAX).reduce((acc, item) => {
+    const url = item && typeof item.url === 'string' ? item.url.trim() : '';
+    if (item && item.kind === 'image' && /^\/uploads\/community\/[a-f0-9-]+\.\w+$/i.test(url)) {
+      acc.push({
+        kind: 'image',
+        url,
+        alt: stripHtml(String(item.alt || ''))
+          .trim()
+          .slice(0, 200),
+      });
+    }
+    return acc;
+  }, []);
+
   if (body.poll && typeof body.poll === 'object') {
     const question = stripHtml(String(body.poll.question || '')).trim();
     const options = Array.isArray(body.poll.options) ? body.poll.options : [];
@@ -735,6 +764,61 @@ function normaliseStructuredFields(body) {
 
   return { errors, values };
 }
+
+// ─── Attachments ─────────────────────────────────────────────────────────────
+
+const attachmentUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024, files: 1 },
+});
+
+/**
+ * POST /api/v1/community/attachments
+ * Upload a single image to attach to a discussion draft. The composer calls
+ * this as each image is selected, then includes the returned descriptor in
+ * the discussion's `attachments` array on submit.
+ */
+router.post(
+  '/attachments',
+  requireCommunityEnabled,
+  authRequired,
+  requireVerifiedUser,
+  requireAdultDeclaration,
+  requirePostingRights,
+  csrfProtection,
+  uploadLimiter,
+  attachmentUpload.single('image'),
+  async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: 'No image supplied' });
+      }
+
+      const validation = validateMessengerAttachment(req.file);
+      if (!validation.ok || !validation.mimetype.startsWith('image/')) {
+        return res.status(400).json({
+          error: validation.ok ? 'Only image attachments are supported' : validation.reason,
+        });
+      }
+
+      const uploadsDir = path.join(__dirname, '..', 'uploads', 'community');
+      await fs.mkdir(uploadsDir, { recursive: true });
+      const filename = `${crypto.randomUUID()}${validation.extension}`;
+      await fs.writeFile(path.join(uploadsDir, filename), req.file.buffer);
+
+      res.status(201).json({
+        attachment: {
+          kind: 'image',
+          url: `/uploads/community/${filename}`,
+          alt: '',
+        },
+      });
+    } catch (error) {
+      logger.error('Could not upload community attachment:', error);
+      res.status(500).json({ error: 'Could not upload image' });
+    }
+  }
+);
 
 /**
  * POST /api/v1/community/discussions
@@ -830,7 +914,6 @@ router.post(
         categorySlug: category.slug,
         categoryName: category.name,
         ...structured.values,
-        attachments: [],
         state: verdict.state,
         pinned: false,
         featured: false,
