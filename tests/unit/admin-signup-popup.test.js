@@ -53,6 +53,7 @@ jest.mock('../../db-unified', () => ({
 
 const express = require('express');
 const request = require('supertest');
+const dbUnified = require('../../db-unified');
 
 function buildApp() {
   const adminRoutes = require('../../routes/admin');
@@ -83,6 +84,16 @@ describe('GET /api/admin/settings/signup-popup', () => {
     expect(res.status).toBe(200);
     expect(res.body.enabled).toBe(true);
     expect(res.body.delaySeconds).toBe(12);
+  });
+
+  it('reports a 500 rather than leaking the underlying storage error', async () => {
+    dbUnified.read.mockRejectedValueOnce(new Error('mongo exploded'));
+
+    const res = await request(buildApp()).get('/api/admin/settings/signup-popup');
+
+    expect(res.status).toBe(500);
+    expect(res.body).toEqual({ error: 'Failed to read settings' });
+    expect(JSON.stringify(res.body)).not.toContain('mongo exploded');
   });
 });
 
@@ -144,6 +155,18 @@ describe('PUT /api/admin/settings/signup-popup', () => {
 
     expect(res.status).toBe(400);
     expect(mockStoredSettings.signupPopup).toBeUndefined();
+  });
+
+  it('reports a 500 rather than leaking the underlying storage error', async () => {
+    dbUnified.writeAndVerify.mockRejectedValueOnce(new Error('disk full'));
+
+    const res = await request(buildApp())
+      .put('/api/admin/settings/signup-popup')
+      .send({ enabled: true, delaySeconds: 5 });
+
+    expect(res.status).toBe(500);
+    expect(res.body).toEqual({ error: 'Failed to update settings' });
+    expect(JSON.stringify(res.body)).not.toContain('disk full');
   });
 
   it('leaves unrelated settings keys intact (read-modify-write on the shared singleton)', async () => {

@@ -72,6 +72,21 @@ describe('Sign-up Popup Settings Integration', () => {
       expect(response.body.updatedBy).toBeUndefined();
     });
 
+    it('fails closed when the settings read throws, so a storage blip cannot force the popup onto every visitor', async () => {
+      const spy = jest
+        .spyOn(dbUnified, 'read')
+        .mockRejectedValueOnce(new Error('settings unavailable'));
+
+      try {
+        const response = await request(app).get('/api/public/signup-popup');
+
+        expect(response.status).toBe(200);
+        expect(response.body.enabled).toBe(false);
+      } finally {
+        spy.mockRestore();
+      }
+    });
+
     it('falls back to a non-blocking default when delaySeconds is not a whole number', async () => {
       const settings = (await dbUnified.read('settings')) || {};
       await dbUnified.write('settings', {
