@@ -61,6 +61,13 @@
   let featureFlagsLoaded = false;
   let originalFeatureFlags = {};
   let isSavingFeatureFlags = false;
+  const LOCKED_ON_FEATURE_IDS = new Set([
+    'featureRegistration',
+    'featureSupplierApply',
+    'featureReviews',
+    'featurePhotoUploads',
+    'featureSupportTickets',
+  ]);
 
   // Update feature flags status UI
   function updateFeatureFlagsStatus(status, text) {
@@ -95,7 +102,13 @@
     checkboxes.forEach(id => {
       const checkbox = document.getElementById(id);
       if (checkbox) {
-        checkbox.disabled = !enabled;
+        if (LOCKED_ON_FEATURE_IDS.has(id)) {
+          checkbox.checked = true;
+          checkbox.disabled = true;
+          checkbox.setAttribute('aria-disabled', 'true');
+        } else {
+          checkbox.disabled = !enabled;
+        }
       }
     });
   }
@@ -113,11 +126,11 @@
     };
 
     const current = {
-      registration: getCheckboxValue('featureRegistration'),
-      supplierApplications: getCheckboxValue('featureSupplierApply'),
-      reviews: getCheckboxValue('featureReviews'),
-      photoUploads: getCheckboxValue('featurePhotoUploads'),
-      supportTickets: getCheckboxValue('featureSupportTickets'),
+      registration: true,
+      supplierApplications: true,
+      reviews: true,
+      photoUploads: true,
+      supportTickets: true,
       pexelsCollage: getCheckboxValue('featurePexelsCollage'),
       requirePackageApproval: getCheckboxValue('featureRequirePackageApproval'),
       requirePublicCalendarApproval: getCheckboxValue('featureRequirePublicCalendarApproval'),
@@ -163,11 +176,11 @@
 
       // Store original values
       originalFeatureFlags = {
-        registration: flags.registration !== false,
-        supplierApplications: flags.supplierApplications !== false,
-        reviews: flags.reviews !== false,
-        photoUploads: flags.photoUploads !== false,
-        supportTickets: flags.supportTickets !== false,
+        registration: true,
+        supplierApplications: true,
+        reviews: true,
+        photoUploads: true,
+        supportTickets: true,
         pexelsCollage: flags.pexelsCollage === true,
         requirePackageApproval: flags.requirePackageApproval === true,
         requirePublicCalendarApproval: flags.requirePublicCalendarApproval === true,
@@ -277,8 +290,8 @@
       return el ? el.checked : false;
     };
 
-    const registrationChecked = getCheckboxValue('featureRegistration');
-    const reviewsChecked = getCheckboxValue('featureReviews');
+    const registrationChecked = true;
+    const reviewsChecked = true;
 
     // Confirmation dialog for disabling critical features
     if (!registrationChecked || !reviewsChecked) {
@@ -313,10 +326,10 @@
 
     const data = {
       registration: registrationChecked,
-      supplierApplications: getCheckboxValue('featureSupplierApply'),
+      supplierApplications: true,
       reviews: reviewsChecked,
-      photoUploads: getCheckboxValue('featurePhotoUploads'),
-      supportTickets: getCheckboxValue('featureSupportTickets'),
+      photoUploads: true,
+      supportTickets: true,
       pexelsCollage: getCheckboxValue('featurePexelsCollage'),
       requirePackageApproval: getCheckboxValue('featureRequirePackageApproval'),
       requirePublicCalendarApproval: getCheckboxValue('featureRequirePublicCalendarApproval'),

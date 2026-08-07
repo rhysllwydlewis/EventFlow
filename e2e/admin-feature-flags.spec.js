@@ -2,8 +2,6 @@ import { test, expect } from '@playwright/test';
 import {
   cleanupBackendFixtures,
   createRunId,
-  E2E_HEADERS,
-  getCsrfToken,
   loginAs,
   putWithCsrf,
   seedBackendFixtures,
@@ -27,23 +25,6 @@ function writableFlags(flags) {
   return Object.fromEntries(FLAG_KEYS.map(key => [key, flags[key] === true]));
 }
 
-async function blockedRegistration(page, role) {
-  const csrfToken = await getCsrfToken(page);
-  return page.request.post('/api/auth/register', {
-    headers: { ...E2E_HEADERS, 'x-csrf-token': csrfToken },
-    data: {
-      firstName: 'Blocked',
-      lastName: 'Registration',
-      email: `blocked-${role}-${Date.now()}@example.test`,
-      password: 'StrongPassword123!',
-      role,
-      company: role === 'supplier' ? 'Blocked Supplier Ltd' : undefined,
-      location: 'Cardiff',
-      termsAccepted: true,
-    },
-  });
-}
-
 test.describe('Admin feature flags against the real backend @backend', () => {
   test.describe.configure({ mode: 'serial' });
 
@@ -63,9 +44,7 @@ test.describe('Admin feature flags against the real backend @backend', () => {
     expect(response.status()).toBe(401);
   });
 
-  test('persists critical toggles, enforces them, and restores the original state', async ({
-    page,
-  }) => {
+  test('rejects attempts to disable locked core features', async ({ page }) => {
     await loginAs(page, fixtures.users.admin);
 
     const originalResponse = await page.request.get('/api/admin/settings/features');
@@ -73,42 +52,23 @@ test.describe('Admin feature flags against the real backend @backend', () => {
     const original = await originalResponse.json();
     const baseline = writableFlags(original);
 
-    try {
-      const registrationOff = await putWithCsrf(page, '/api/admin/settings/features', {
-        ...baseline,
-        registration: false,
-      });
-      expect(registrationOff.ok()).toBe(true);
+    const registrationOff = await putWithCsrf(page, '/api/admin/settings/features', {
+      ...baseline,
+      registration: false,
+      supplierApplications: false,
+    });
+    expect(registrationOff.status()).toBe(400);
+    await expect(registrationOff.json()).resolves.toMatchObject({
+      code: 'CORE_FEATURE_LOCKED_ON',
+      fields: ['registration', 'supplierApplications'],
+    });
 
-      const customerAttempt = await blockedRegistration(page, 'customer');
-      expect(customerAttempt.status()).toBe(503);
-      await expect(customerAttempt.json()).resolves.toMatchObject({
-        feature: 'registration',
-      });
-
-      const registrationOn = await putWithCsrf(page, '/api/admin/settings/features', {
-        ...baseline,
-        registration: true,
-        supplierApplications: false,
-      });
-      expect(registrationOn.ok()).toBe(true);
-
-      const supplierAttempt = await blockedRegistration(page, 'supplier');
-      expect(supplierAttempt.status()).toBe(503);
-      await expect(supplierAttempt.json()).resolves.toMatchObject({
-        feature: 'supplierApplications',
-      });
-
-      const persisted = await page.request.get('/api/admin/settings/features');
-      expect(persisted.ok()).toBe(true);
-      await expect(persisted.json()).resolves.toMatchObject({
-        registration: true,
-        supplierApplications: false,
-      });
-    } finally {
-      const restored = await putWithCsrf(page, '/api/admin/settings/features', baseline);
-      expect(restored.ok()).toBe(true);
-    }
+    const persisted = await page.request.get('/api/admin/settings/features');
+    expect(persisted.ok()).toBe(true);
+    await expect(persisted.json()).resolves.toMatchObject({
+      registration: true,
+      supplierApplications: true,
+    });
   });
 
   test('renders the current server state in the admin settings UI', async ({ page }) => {
@@ -117,14 +77,12 @@ test.describe('Admin feature flags against the real backend @backend', () => {
     const flags = await flagsResponse.json();
 
     await page.goto('/admin-settings');
-    await expect(page.locator('#featureRegistration')).toBeEnabled();
-    await expect(page.locator('#featureSupplierApply')).toBeEnabled();
-    expect(await page.locator('#featureRegistration').isChecked()).toBe(
-      flags.registration !== false
-    );
-    expect(await page.locator('#featureSupplierApply').isChecked()).toBe(
-      flags.supplierApplications !== false
-    );
+    await expect(page.locator('#featureRegistration')).toBeDisabled();
+    await expect(page.locator('#featureSupplierApply')).toBeDisabled();
+    await expect(page.locator('#featureRegistration')).toBeChecked();
+    await expect(page.locator('#featureSupplierApply')).toBeChecked();
+    expect(flags.registration).toBe(true);
+    expect(flags.supplierApplications).toBe(true);
     await expect(page.locator('#saveFeatureFlags')).toBeDisabled();
   });
 });

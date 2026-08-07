@@ -161,9 +161,9 @@ describe('Admin Settings — requirePackageApproval Feature Flag', () => {
   });
 
   it('PUT /settings/features validates and persists requirePackageApproval', () => {
-    const putIdx = adminContent.indexOf("router.put(\n  '/settings/features'");
-    expect(putIdx).not.toBe(-1);
-    const block = adminContent.substring(putIdx, putIdx + 3000);
+    const match = adminContent.match(/router\.put\(\s*['"]\/settings\/features['"]/);
+    expect(match).not.toBeNull();
+    const block = adminContent.substring(match.index, match.index + 3000);
     expect(block).toContain('requirePackageApproval');
   });
 
@@ -301,11 +301,6 @@ describe('Admin Settings — Availability and Booking Feature Flags', () => {
     expect(adminContent).toContain('const merge = (incoming, existingValue, fallback) =>');
     const normalized = adminContent.replace(/\s+/g, ' ');
     for (const flag of [
-      'registration',
-      'supplierApplications',
-      'reviews',
-      'photoUploads',
-      'supportTickets',
       'pexelsCollage',
       'requirePackageApproval',
       'requirePublicCalendarApproval',
@@ -317,6 +312,15 @@ describe('Admin Settings — Availability and Booking Feature Flags', () => {
       'bookingPayments',
     ]) {
       expect(normalized).toMatch(new RegExp(`merge\\(\\s*${flag},\\s*existing\\.${flag}`));
+    }
+    for (const flag of [
+      'registration',
+      'supplierApplications',
+      'reviews',
+      'photoUploads',
+      'supportTickets',
+    ]) {
+      expect(normalized).toContain(`${flag}: true`);
     }
     // Guard against the old bug pattern reappearing: a bare `newFeatures`
     // object built only from destructured request-body variables with no
@@ -330,6 +334,22 @@ describe('Admin Settings — Availability and Booking Feature Flags', () => {
     expect(fs.readFileSync(SETTINGS_HTML, 'utf8')).toContain('id="featureMarketplaceAvailability"');
     expect(fs.readFileSync(SETTINGS_HTML, 'utf8')).toContain('id="featureQuoteBooking"');
     expect(fs.readFileSync(SETTINGS_HTML, 'utf8')).toContain('id="featureBookingPayments"');
+  });
+
+  it('renders core features checked and locked with a fresh client cache key', () => {
+    const html = fs.readFileSync(SETTINGS_HTML, 'utf8');
+
+    for (const id of [
+      'featureRegistration',
+      'featureSupplierApply',
+      'featureReviews',
+      'featurePhotoUploads',
+      'featureSupportTickets',
+    ]) {
+      expect(html).toMatch(new RegExp(`id="${id}"[^>]*data-locked-on[^>]*checked[^>]*disabled`));
+    }
+    expect(html).toContain('/assets/js/pages/admin-settings-init.js?v=18.3.1');
+    expect(settingsInitContent).toContain('const LOCKED_ON_FEATURE_IDS = new Set([');
   });
 
   it('admin-settings-init.js loads and saves rollout toggles', () => {

@@ -43,7 +43,7 @@ describe('Feature Flag Enforcement Integration', () => {
       }
     });
 
-    it('should return 503 when registration feature is disabled', async () => {
+    it('should keep registration enabled when stale settings contain false', async () => {
       // Create endpoint with feature flag
       app.post('/api/auth/register', featureRequired('registration'), (req, res) => {
         res.json({ success: true, message: 'Registration successful' });
@@ -61,9 +61,8 @@ describe('Feature Flag Enforcement Integration', () => {
         .post('/api/auth/register')
         .send({ email: 'test@example.com', password: 'Test123!' });
 
-      expect(response.status).toBe(503);
-      expect(response.body.error).toBe('Feature temporarily unavailable');
-      expect(response.body.feature).toBe('registration');
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
 
       // Restore original function
       dbUnified.read = originalRead;
@@ -84,7 +83,7 @@ describe('Feature Flag Enforcement Integration', () => {
       expect(response.body.success).toBe(true);
     });
 
-    it('should return 503 when reviews feature is disabled', async () => {
+    it('should keep reviews enabled when stale settings contain false', async () => {
       app.post('/api/reviews', featureRequired('reviews'), (req, res) => {
         res.json({ success: true, message: 'Review submitted' });
       });
@@ -101,9 +100,8 @@ describe('Feature Flag Enforcement Integration', () => {
         .post('/api/reviews')
         .send({ rating: 5, comment: 'Great!' });
 
-      expect(response.status).toBe(503);
-      expect(response.body.error).toBe('Feature temporarily unavailable');
-      expect(response.body.feature).toBe('reviews');
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
 
       // Restore original function
       dbUnified.read = originalRead;
@@ -111,7 +109,7 @@ describe('Feature Flag Enforcement Integration', () => {
   });
 
   describe('Photo uploads endpoint with feature flag', () => {
-    it('should return 503 when photoUploads feature is disabled', async () => {
+    it('should keep photo uploads enabled when stale settings contain false', async () => {
       app.post('/api/photos/upload', featureRequired('photoUploads'), (req, res) => {
         res.json({ success: true, message: 'Photo uploaded' });
       });
@@ -126,9 +124,8 @@ describe('Feature Flag Enforcement Integration', () => {
 
       const response = await request(app).post('/api/photos/upload').send({});
 
-      expect(response.status).toBe(503);
-      expect(response.body.error).toBe('Feature temporarily unavailable');
-      expect(response.body.feature).toBe('photoUploads');
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
 
       // Restore original function
       dbUnified.read = originalRead;
@@ -136,7 +133,7 @@ describe('Feature Flag Enforcement Integration', () => {
   });
 
   describe('Support tickets endpoint with feature flag', () => {
-    it('should return 503 when supportTickets feature is disabled', async () => {
+    it('should keep support tickets enabled when stale settings contain false', async () => {
       app.post('/api/tickets', featureRequired('supportTickets'), (req, res) => {
         res.json({ success: true, message: 'Ticket created' });
       });
@@ -153,9 +150,8 @@ describe('Feature Flag Enforcement Integration', () => {
         .post('/api/tickets')
         .send({ subject: 'Help', message: 'Need assistance' });
 
-      expect(response.status).toBe(503);
-      expect(response.body.error).toBe('Feature temporarily unavailable');
-      expect(response.body.feature).toBe('supportTickets');
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
 
       // Restore original function
       dbUnified.read = originalRead;
@@ -163,7 +159,7 @@ describe('Feature Flag Enforcement Integration', () => {
   });
 
   describe('Supplier applications with feature flag', () => {
-    it('should return 503 when supplierApplications feature is disabled', async () => {
+    it('should keep supplier applications enabled when stale settings contain false', async () => {
       app.post('/api/auth/register', featureRequired('supplierApplications'), (req, res) => {
         res.json({ success: true, message: 'Supplier registered' });
       });
@@ -180,9 +176,8 @@ describe('Feature Flag Enforcement Integration', () => {
         .post('/api/auth/register')
         .send({ email: 'supplier@example.com', role: 'supplier' });
 
-      expect(response.status).toBe(503);
-      expect(response.body.error).toBe('Feature temporarily unavailable');
-      expect(response.body.feature).toBe('supplierApplications');
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
 
       // Restore original function
       dbUnified.read = originalRead;

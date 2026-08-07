@@ -32,7 +32,7 @@ describe('Feature Flag Middleware', () => {
       });
     });
 
-    it('returns configured flags and prevents booking payments without quote booking', async () => {
+    it('locks core flags on and prevents booking payments without quote booking', async () => {
       dbUnified.read.mockResolvedValue({
         features: {
           registration: false,
@@ -50,11 +50,11 @@ describe('Feature Flag Middleware', () => {
       const flags = await getFeatureFlags();
 
       expect(flags).toMatchObject({
-        registration: false,
+        registration: true,
         supplierApplications: true,
-        reviews: false,
+        reviews: true,
         photoUploads: true,
-        supportTickets: false,
+        supportTickets: true,
         pexelsCollage: true,
         marketplaceAvailability: true,
         quoteBooking: false,
@@ -111,18 +111,13 @@ describe('Feature Flag Middleware', () => {
       expect(res.status).not.toHaveBeenCalled();
     });
 
-    it('returns 503 when an existing feature is disabled', async () => {
+    it('keeps a core feature available when stale settings contain false', async () => {
       dbUnified.read.mockResolvedValue({ features: { registration: false } });
 
       await featureRequired('registration')(req, res, next);
 
-      expect(res.status).toHaveBeenCalledWith(503);
-      expect(res.json).toHaveBeenCalledWith({
-        error: 'Feature temporarily unavailable',
-        message: 'The registration feature is currently disabled. Please try again later.',
-        feature: 'registration',
-      });
-      expect(next).not.toHaveBeenCalled();
+      expect(next).toHaveBeenCalledTimes(1);
+      expect(res.status).not.toHaveBeenCalled();
     });
 
     it.each(['marketplaceAvailability', 'quoteBooking', 'bookingPayments'])(

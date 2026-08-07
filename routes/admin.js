@@ -16,6 +16,7 @@ const { authRequired, roleRequired } = require('../middleware/auth');
 const { auditLog, AUDIT_ACTIONS } = require('../middleware/audit');
 const { csrfProtection } = require('../middleware/csrf');
 const { writeLimiter, apiLimiter } = require('../middleware/rateLimits');
+const { CORE_FEATURE_FLAGS, enforceCoreFeatureFlags } = require('../middleware/features');
 const dbUnified = require('../db-unified');
 const mongoDb = require('../db');
 const NotificationService = require('../services/notification.service');
@@ -3318,16 +3319,18 @@ router.put(
 router.get('/settings/features', authRequired, roleRequired('admin'), async (req, res) => {
   try {
     const settings = (await dbUnified.read('settings')) || {};
-    const features = settings.features || {
-      registration: true,
-      supplierApplications: true,
-      reviews: true,
-      photoUploads: true,
-      supportTickets: true,
-      pexelsCollage: false,
-      requirePackageApproval: false,
-      requirePublicCalendarApproval: false,
-    };
+    const features = enforceCoreFeatureFlags(
+      settings.features || {
+        registration: true,
+        supplierApplications: true,
+        reviews: true,
+        photoUploads: true,
+        supportTickets: true,
+        pexelsCollage: false,
+        requirePackageApproval: false,
+        requirePublicCalendarApproval: false,
+      }
+    );
 
     // Ensure metadata fields are included in response
     // If they don't exist (older data), keep them undefined so frontend can handle gracefully
@@ -3374,11 +3377,6 @@ router.put(
 
     try {
       const {
-        registration,
-        supplierApplications,
-        reviews,
-        photoUploads,
-        supportTickets,
         pexelsCollage,
         requirePackageApproval,
         requirePublicCalendarApproval,
@@ -3436,6 +3434,15 @@ router.put(
         }
       }
 
+      const requestedCoreDisables = CORE_FEATURE_FLAGS.filter(flag => req.body[flag] === false);
+      if (requestedCoreDisables.length > 0) {
+        return res.status(400).json({
+          error: 'Core platform features are permanently enabled',
+          code: 'CORE_FEATURE_LOCKED_ON',
+          fields: requestedCoreDisables,
+        });
+      }
+
       // IMPORTANT: this endpoint is called with partial payloads from several
       // pages (e.g. admin-reviews-init.js sends only { autoApproveReviews }),
       // as well as the full 11-flag payload from admin-settings. Merge onto
@@ -3447,12 +3454,11 @@ router.put(
         incoming !== undefined ? incoming : existingValue !== undefined ? existingValue : fallback;
 
       const newFeatures = {
-        registration: merge(registration, existing.registration, true) !== false,
-        supplierApplications:
-          merge(supplierApplications, existing.supplierApplications, true) !== false,
-        reviews: merge(reviews, existing.reviews, true) !== false,
-        photoUploads: merge(photoUploads, existing.photoUploads, true) !== false,
-        supportTickets: merge(supportTickets, existing.supportTickets, true) !== false,
+        registration: true,
+        supplierApplications: true,
+        reviews: true,
+        photoUploads: true,
+        supportTickets: true,
         pexelsCollage: merge(pexelsCollage, existing.pexelsCollage, false) === true,
         requirePackageApproval:
           merge(requirePackageApproval, existing.requirePackageApproval, false) === true,
@@ -4189,7 +4195,7 @@ router.get('/settings/system-info', authRequired, roleRequired('admin'), (req, r
 router.get('/public/features', async (req, res) => {
   try {
     const settings = (await dbUnified.read('settings')) || {};
-    const features = settings.features || {};
+    const features = enforceCoreFeatureFlags(settings.features || {});
 
     res.json({
       registration: features.registration !== false,

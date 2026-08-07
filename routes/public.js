@@ -13,6 +13,7 @@ const crypto = require('crypto');
 const dbUnified = require('../db-unified');
 const { csrfProtection } = require('../middleware/csrf');
 const { writeLimiter, apiLimiter } = require('../middleware/rateLimits');
+const { enforceCoreFeatureFlags } = require('../middleware/features');
 const {
   buildHomepageManager,
   getHomepageCollageWidget,
@@ -403,7 +404,7 @@ router.get('/features', async (req, res) => {
   try {
     res.set('Cache-Control', 'no-store, private');
     const settings = (await dbUnified.read('settings')) || {};
-    const features = settings.features || {};
+    const features = enforceCoreFeatureFlags(settings.features || {});
     res.json({
       registration: features.registration !== false,
       supplierApplications: features.supplierApplications !== false,
