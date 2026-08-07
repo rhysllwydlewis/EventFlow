@@ -457,6 +457,11 @@
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
 }
 
+/* Don't let the hover-lift fight the open info popover's own position. */
+.stat-box:has(.stat-info-popover.is-open):hover {
+  transform: none;
+}
+
 .stat-box-purple {
   border-color: #9333ea;
   background: linear-gradient(135deg, #f3e8ff, #ffffff);
@@ -731,6 +736,14 @@
 
   .stats-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Centering on a narrow stat box can push the popover past the viewport
+     edge on 2-column mobile layouts; anchor left instead of centering. */
+  .stat-info-popover {
+    left: 0;
+    transform: none;
+    width: min(280px, calc(100vw - 3rem));
   }
 }
 

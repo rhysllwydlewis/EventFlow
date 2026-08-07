@@ -373,13 +373,17 @@
   function setupStatInfoPopovers() {
     const buttons = Array.from(document.querySelectorAll('.stat-info-btn'));
 
-    function closeAll(except) {
+    function closeAll(except, { refocus } = {}) {
       buttons.forEach(btn => {
         if (btn === except) {
           return;
         }
+        const wasOpen = btn.getAttribute('aria-expanded') === 'true';
         btn.setAttribute('aria-expanded', 'false');
         document.getElementById(btn.getAttribute('aria-controls'))?.classList.remove('is-open');
+        if (wasOpen && refocus) {
+          btn.focus();
+        }
       });
     }
 
@@ -395,12 +399,15 @@
         btn.setAttribute('aria-expanded', String(!isOpen));
         popover.classList.toggle('is-open', !isOpen);
       });
+      // Clicking inside the popover itself (selecting text, etc.) must not
+      // count as an "outside click" and close it.
+      popover.addEventListener('click', event => event.stopPropagation());
     });
 
     document.addEventListener('click', () => closeAll(null));
     document.addEventListener('keydown', event => {
       if (event.key === 'Escape') {
-        closeAll(null);
+        closeAll(null, { refocus: true });
       }
     });
   }

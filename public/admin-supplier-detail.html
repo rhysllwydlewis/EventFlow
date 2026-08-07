@@ -150,7 +150,7 @@
               Quality Score
               <button type="button" class="stat-info-btn" id="qualityScoreInfoBtn" aria-expanded="false" aria-controls="qualityScoreInfoPopover" aria-label="What does Quality Score mean?">i</button>
             </p>
-            <div class="stat-info-popover" id="qualityScoreInfoPopover" role="tooltip">
+            <div class="stat-info-popover" id="qualityScoreInfoPopover" role="region" aria-label="What Quality Score means">
               <p><strong>What this is:</strong> an internal admin-only quality signal. It blends profile completeness (30%) with response rate (25%), review rating (20%), booking count (15%) and photo count (10%).</p>
               <p><strong>Why it can look low:</strong> 70% of it depends on activity — enquiries answered, reviews received, bookings made. A brand-new supplier with a fully complete profile but no activity yet will score low here. That's expected, not a fault with the profile.</p>
               <p>See <strong>Profile Health</strong> alongside it for completeness alone — the same number the supplier sees on their own dashboard.</p>
@@ -162,7 +162,7 @@
               Profile Health
               <button type="button" class="stat-info-btn" id="profileHealthInfoBtn" aria-expanded="false" aria-controls="profileHealthInfoPopover" aria-label="What does Profile Health mean?">i</button>
             </p>
-            <div class="stat-info-popover" id="profileHealthInfoPopover" role="tooltip">
+            <div class="stat-info-popover" id="profileHealthInfoPopover" role="region" aria-label="What Profile Health means">
               <p><strong>What this is:</strong> profile completeness only — exactly the percentage this supplier sees on their own dashboard's "Profile Health" card. It does not factor in bookings, reviews or response rate.</p>
               <p id="profileHealthChecklistIntro">For this supplier:</p>
               <ul id="profileHealthChecklist"></ul>

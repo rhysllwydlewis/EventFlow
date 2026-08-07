@@ -87,4 +87,27 @@ describe('Admin supplier detail — stat box info popovers', () => {
     expect(fnBody).toContain("addEventListener('click', () => closeAll(null))");
     expect(fnBody).toContain("setAttribute('aria-expanded'");
   });
+
+  it('does not treat a click inside an open popover as an outside click', () => {
+    const fnBody = initContent.slice(
+      initContent.indexOf('function setupStatInfoPopovers()'),
+      initContent.indexOf('setupStatInfoPopovers();')
+    );
+    expect(fnBody).toContain('popover.addEventListener');
+    expect(fnBody).toMatch(
+      /popover\.addEventListener\('click',\s*event\s*=>\s*event\.stopPropagation\(\)\)/
+    );
+  });
+
+  it('returns focus to the trigger button when closed via Escape', () => {
+    const fnBody = initContent.slice(initContent.indexOf('function setupStatInfoPopovers()'));
+    expect(fnBody).toContain('refocus: true');
+    expect(fnBody).toContain('btn.focus()');
+  });
+
+  it('uses a disclosure region rather than a hover-only tooltip role, since the panel holds interactive/rich content', () => {
+    expect(htmlContent).not.toContain('role="tooltip"');
+    expect(htmlContent).toMatch(/id="qualityScoreInfoPopover"[^>]*role="region"/);
+    expect(htmlContent).toMatch(/id="profileHealthInfoPopover"[^>]*role="region"/);
+  });
 });
