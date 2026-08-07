@@ -82,7 +82,7 @@
             <div class="small">Allow new users to register</div>
           </div>
           <label class="toggle-switch">
-            <input type="checkbox" id="featureRegistration">
+            <input type="checkbox" id="featureRegistration" aria-label="User Registration — Allow new users to register">
             <span class="toggle-slider"></span>
           </label>
         </div>
@@ -93,7 +93,7 @@
             <div class="small">Allow suppliers to apply to join</div>
           </div>
           <label class="toggle-switch">
-            <input type="checkbox" id="featureSupplierApply">
+            <input type="checkbox" id="featureSupplierApply" aria-label="Supplier Applications — Allow suppliers to apply to join">
             <span class="toggle-slider"></span>
           </label>
         </div>
@@ -104,7 +104,7 @@
             <div class="small">Allow customers to leave reviews</div>
           </div>
           <label class="toggle-switch">
-            <input type="checkbox" id="featureReviews">
+            <input type="checkbox" id="featureReviews" aria-label="Package Reviews — Allow customers to leave reviews">
             <span class="toggle-slider"></span>
           </label>
         </div>
@@ -115,7 +115,7 @@
             <div class="small">Allow suppliers to upload photos</div>
           </div>
           <label class="toggle-switch">
-            <input type="checkbox" id="featurePhotoUploads">
+            <input type="checkbox" id="featurePhotoUploads" aria-label="Photo Uploads — Allow suppliers to upload photos">
             <span class="toggle-slider"></span>
           </label>
         </div>
@@ -126,7 +126,7 @@
             <div class="small">Allow users to create support tickets</div>
           </div>
           <label class="toggle-switch">
-            <input type="checkbox" id="featureSupportTickets">
+            <input type="checkbox" id="featureSupportTickets" aria-label="Support Tickets — Allow users to create support tickets">
             <span class="toggle-slider"></span>
           </label>
         </div>
@@ -137,7 +137,7 @@
             <div class="small">When enabled, new packages require admin approval before being visible</div>
           </div>
           <label class="toggle-switch">
-            <input type="checkbox" id="featureRequirePackageApproval">
+            <input type="checkbox" id="featureRequirePackageApproval" aria-label="Require Package Approval — New packages require admin approval before being visible">
             <span class="toggle-slider"></span>
           </label>
         </div>
@@ -148,7 +148,7 @@
             <div class="small">When enabled, new supplier calendar events go to pending review instead of publishing automatically</div>
           </div>
           <label class="toggle-switch">
-            <input type="checkbox" id="featureRequirePublicCalendarApproval">
+            <input type="checkbox" id="featureRequirePublicCalendarApproval" aria-label="Require Public Event Approval — New supplier calendar events go to pending review instead of publishing automatically">
             <span class="toggle-slider"></span>
           </label>
         </div>
@@ -161,7 +161,7 @@
             <div class="small">Enable date, postcode, radius and availability-aware supplier search when the rollout is ready</div>
           </div>
           <label class="toggle-switch">
-            <input type="checkbox" id="featureMarketplaceAvailability">
+            <input type="checkbox" id="featureMarketplaceAvailability" aria-label="Marketplace Availability — Enable date, postcode, radius and availability-aware supplier search">
             <span class="toggle-slider"></span>
           </label>
         </div>
@@ -172,7 +172,7 @@
             <div class="small">Enable structured quote-to-booking journeys for controlled accounts</div>
           </div>
           <label class="toggle-switch">
-            <input type="checkbox" id="featureQuoteBooking">
+            <input type="checkbox" id="featureQuoteBooking" aria-label="Quote Booking — Enable structured quote-to-booking journeys for controlled accounts">
             <span class="toggle-slider"></span>
           </label>
         </div>
@@ -183,7 +183,7 @@
             <div class="small">Enable booking deposit collection only after Stripe booking-payment verification</div>
           </div>
           <label class="toggle-switch">
-            <input type="checkbox" id="featureBookingPayments">
+            <input type="checkbox" id="featureBookingPayments" aria-label="Booking Payments — Enable booking deposit collection after Stripe verification">
             <span class="toggle-slider"></span>
           </label>
         </div>
@@ -197,7 +197,7 @@
             </div>
           </div>
           <label class="toggle-switch">
-            <input type="checkbox" id="featurePexelsCollage">
+            <input type="checkbox" id="featurePexelsCollage" aria-label="Pexels Dynamic Collage — Enable cycling Pexels photos on homepage hero collage (legacy)">
             <span class="toggle-slider"></span>
           </label>
         </div>
@@ -247,6 +247,8 @@
       </div>
       <p class="small">Automatically remind suppliers of outstanding actions (missing packages, incomplete profile, missing photos). Only verified suppliers with the setting enabled will receive these emails. The system is <strong>disabled by default</strong> to prevent accidental bulk sends.</p>
 
+      <div id="emailAutoSchedulerHealth" style="margin-bottom:0.75rem;padding:0.6rem 0.875rem;border-radius:8px;font-size:0.82rem;display:none;"></div>
+
       <div id="emailAutomationStatus" class="feature-flags-status" style="display: none;">
         <strong>Status:</strong> <span id="emailAutomationStatusText">Loading...</span>
       </div>
@@ -258,7 +260,7 @@
             <div class="small">Master switch — when off, no automated reminders are sent</div>
           </div>
           <label class="toggle-switch">
-            <input type="checkbox" id="emailAutoEnabled">
+            <input type="checkbox" id="emailAutoEnabled" aria-label="Enable Action-Prompt Emails — master switch, when off no automated reminders are sent">
             <span class="toggle-slider"></span>
           </label>
         </div>
@@ -270,7 +272,7 @@
               <div class="small">Email suppliers who have not created any packages</div>
             </div>
             <label class="toggle-switch">
-              <input type="checkbox" id="emailAutoMissingPackages">
+              <input type="checkbox" id="emailAutoMissingPackages" aria-label="Remind: Missing Packages — Email suppliers who have not created any packages">
               <span class="toggle-slider"></span>
             </label>
           </div>
@@ -281,7 +283,7 @@
               <div class="small">Email suppliers whose profiles are missing required fields</div>
             </div>
             <label class="toggle-switch">
-              <input type="checkbox" id="emailAutoIncompleteProfile">
+              <input type="checkbox" id="emailAutoIncompleteProfile" aria-label="Remind: Incomplete Profile — Email suppliers whose profiles are missing required fields">
               <span class="toggle-slider"></span>
             </label>
           </div>
@@ -292,7 +294,7 @@
               <div class="small">Email suppliers who haven't uploaded any photos to their listing</div>
             </div>
             <label class="toggle-switch">
-              <input type="checkbox" id="emailAutoMissingPhotos">
+              <input type="checkbox" id="emailAutoMissingPhotos" aria-label="Remind: Missing Photos — Email suppliers who haven't uploaded any photos">
               <span class="toggle-slider"></span>
             </label>
           </div>
@@ -435,12 +437,12 @@
       
       <div class="feature-item">
         <div>
-          <strong>Last Operation</strong>
+          <strong>Query Performance</strong>
           <div class="small" id="dbLastOperation">-</div>
         </div>
       </div>
     </div>
-    
+
     <!-- Settings Export/Import -->
     <div class="card">
       <h2>Settings Backup</h2>
@@ -496,7 +498,7 @@
           <div class="small">Put the site in maintenance mode</div>
         </div>
         <label class="toggle-switch">
-          <input type="checkbox" id="maintenanceMode">
+          <input type="checkbox" id="maintenanceMode" aria-label="Maintenance Mode — Put the site in maintenance mode">
           <span class="toggle-slider"></span>
         </label>
       </div>
@@ -528,41 +530,13 @@
       <button class="ef-cta btn btn-danger" id="saveMaintenanceMode">Update Maintenance Mode</button>
     </div>
     
-    <!-- Email Templates -->
-    <div class="card">
-      <h2>Email Templates</h2>
-      <p class="small">Customize email templates sent to users.</p>
-      
-      <div style="display:flex;gap:0.5rem;margin-bottom:1rem;flex-wrap:wrap;">
-        <button class="ef-cta btn btn-secondary" data-template="welcome">Welcome Email</button>
-        <button class="ef-cta btn btn-secondary" data-template="verification">Email Verification</button>
-        <button class="ef-cta btn btn-secondary" data-template="password-reset">Password Reset</button>
-        <button class="ef-cta btn btn-secondary" data-template="ticket-response">Ticket Response</button>
-      </div>
-      
-      <div id="emailTemplateEditor" class="hidden">
-        <div class="form-row">
-          <label for="emailSubject">Subject</label>
-          <input type="text" id="emailSubject">
-        </div>
-        
-        <div class="form-row">
-          <label for="emailBody">Body</label>
-          <textarea id="emailBody" rows="10"></textarea>
-        </div>
-        
-        <div class="flex-gap">
-          <button class="ef-cta btn btn-primary" id="saveEmailTemplate">Save Template</button>
-          <button class="ef-cta btn btn-secondary" id="previewEmail">Preview</button>
-          <button class="ef-cta btn btn-secondary" id="resetEmail">Reset to Default</button>
-        </div>
-      </div>
-    </div>
-    
     <!-- Content Management -->
     <div class="card">
-      <h2>Content Management</h2>
-      <p class="small" style="color:#667085;margin-bottom:16px;">Policy dates are reviewed, per-policy metadata. Update <code>config/policyMetadata.js</code> in the same pull request as the policy wording; runtime overrides are disabled.</p>
+      <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.25rem;flex-wrap:wrap;">
+        <h2 style="margin:0;">Content Management</h2>
+        <span style="display:inline-block;padding:0.15rem 0.55rem;border-radius:9999px;background:#f1f5f9;color:#475569;font-size:0.72rem;font-weight:700;letter-spacing:0.03em;text-transform:uppercase;">Read-only reference</span>
+      </div>
+      <p class="small" style="color:#667085;margin-bottom:16px;">Policy dates are version-controlled, per-policy metadata — this table cannot be edited here. Update <code>config/policyMetadata.js</code> in the same pull request as the policy wording; runtime overrides are intentionally disabled to prevent a date implying a policy changed when the wording didn't.</p>
       <p><a class="ef-cta btn btn-primary" href="/admin-content?tab=legalDates">Open Policy Reviews</a></p>
       
       <div style="max-width: 600px;">

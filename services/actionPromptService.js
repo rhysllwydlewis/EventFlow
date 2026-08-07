@@ -363,8 +363,15 @@ async function clearCadenceState(user) {
  *
  * @returns {Promise<Array>} Array of { user, supplier, report }
  *   where report = { outstanding, completed, ragStatus, completionPercent }
+ *
+ * @param {Object} [opts]
+ * @param {boolean} [opts.ignoreGlobalEnabled=false] - Skip the master-enable gate.
+ *   Used by dry runs so an admin can preview what *would* send while the
+ *   automation is still switched off — a dry run never calls the mail
+ *   provider (see sendActionPromptEmail's dryRun branch), so bypassing the
+ *   gate here cannot cause a real send.
  */
-async function getSupplierActionItems() {
+async function getSupplierActionItems({ ignoreGlobalEnabled = false } = {}) {
   const [settings, users, suppliers, packages] = await Promise.all([
     dbUnified.read('settings'),
     dbUnified.read('users'),
@@ -376,7 +383,7 @@ async function getSupplierActionItems() {
 
   // Check master enable flag — must be explicitly true to prevent accidental sends
   const automationEnabled = globalSettings.emailAutomation?.actionPrompts?.enabled === true;
-  if (!automationEnabled) {
+  if (!automationEnabled && !ignoreGlobalEnabled) {
     logger.info('[ActionPrompts] Global auto action prompts disabled — skipping');
     return [];
   }

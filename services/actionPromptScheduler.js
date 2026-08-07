@@ -410,7 +410,10 @@ async function runActionPrompts({ dryRun = false, limit, trigger = 'scheduler' }
   const sampleRecipients = [];
 
   try {
-    const items = await getSupplierActionItems({ telemetryTrigger: trigger });
+    const items = await getSupplierActionItems({
+      telemetryTrigger: trigger,
+      ignoreGlobalEnabled: dryRun,
+    });
     scanned = items.length;
 
     const now = new Date();

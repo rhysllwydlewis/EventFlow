@@ -237,9 +237,45 @@ describe('Admin Settings — Availability and Booking Feature Flags', () => {
     expect(adminContent).toContain("'marketplaceAvailability'");
     expect(adminContent).toContain("'quoteBooking'");
     expect(adminContent).toContain("'bookingPayments'");
-    expect(adminContent).toContain('marketplaceAvailability: marketplaceAvailability === true');
-    expect(adminContent).toContain('quoteBooking: quoteBooking === true');
-    expect(adminContent).toContain('bookingPayments: bookingPayments === true');
+    expect(adminContent).toContain(
+      'merge(marketplaceAvailability, existing.marketplaceAvailability, false)'
+    );
+    expect(adminContent).toContain('merge(quoteBooking, existing.quoteBooking, false)');
+    expect(adminContent).toContain('merge(bookingPayments, existing.bookingPayments, false)');
+  });
+
+  it('PUT /settings/features merges onto existing flags instead of overwriting (regression: partial saves from other admin pages must not reset unrelated flags)', () => {
+    // admin-reviews-init.js / admin-photos-init.js / admin-suppliers-init.js
+    // each PUT only their own single flag to this same endpoint — the
+    // handler must read `settings.features` first and fall back to the
+    // existing stored value for anything not present in the request body.
+    expect(adminContent).toContain('const existing = settings.features || {};');
+    expect(adminContent).toContain('const merge = (incoming, existingValue, fallback) =>');
+    const normalized = adminContent.replace(/\s+/g, ' ');
+    for (const flag of [
+      'registration',
+      'supplierApplications',
+      'reviews',
+      'photoUploads',
+      'supportTickets',
+      'pexelsCollage',
+      'requirePackageApproval',
+      'requirePublicCalendarApproval',
+      'photoAutoApprove',
+      'autoApproveReviews',
+      'autoApproveSupplierVerification',
+      'marketplaceAvailability',
+      'quoteBooking',
+      'bookingPayments',
+    ]) {
+      expect(normalized).toMatch(new RegExp(`merge\\(\\s*${flag},\\s*existing\\.${flag}`));
+    }
+    // Guard against the old bug pattern reappearing: a bare `newFeatures`
+    // object built only from destructured request-body variables with no
+    // reference to `existing`.
+    expect(adminContent).not.toMatch(
+      /const newFeatures = \{\s*registration: registration !== false,/
+    );
   });
 
   it('admin-settings.html exposes rollout toggles without enabling them by default', () => {
