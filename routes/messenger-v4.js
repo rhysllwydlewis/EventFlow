@@ -11,7 +11,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs').promises;
 const crypto = require('crypto');
-const { writeLimiter } = require('../middleware/rateLimits');
+const { writeLimiter, messengerReadLimiter } = require('../middleware/rateLimits');
 const MessengerV4Service = require('../services/messenger-v4.service');
 const { CONVERSATION_V4_TYPES, CONVERSATION_CONTEXT_TYPES } = require('../models/ConversationV4');
 const NotificationService = require('../services/notification.service');
@@ -506,7 +506,7 @@ router.post(
  * GET /api/v4/messenger/conversations
  * List conversations for the authenticated user
  */
-router.get('/conversations', applyAuthRequired, async (req, res) => {
+router.get('/conversations', applyAuthRequired, messengerReadLimiter, async (req, res) => {
   try {
     const userId = req.user.id;
     const { unread, pinned, archived, search, status, limit = 50, skip = 0 } = req.query;
@@ -557,7 +557,7 @@ router.get('/conversations', applyAuthRequired, async (req, res) => {
  * GET /api/v4/messenger/conversations/:id
  * Get a specific conversation
  */
-router.get('/conversations/:id', applyAuthRequired, async (req, res) => {
+router.get('/conversations/:id', applyAuthRequired, messengerReadLimiter, async (req, res) => {
   try {
     const { id } = req.params;
     if (!isValidObjectId(id)) {
@@ -846,51 +846,56 @@ router.post(
  * GET /api/v4/messenger/conversations/:id/messages
  * Get messages for a conversation (cursor-paginated)
  */
-router.get('/conversations/:id/messages', applyAuthRequired, async (req, res) => {
-  try {
-    const { id: conversationId } = req.params;
-    if (!isValidObjectId(conversationId)) {
-      return res.status(400).json({ error: 'Invalid conversation ID' });
-    }
-    const userId = req.user.id;
-    const { cursor, limit = 50, sinceSeq } = req.query;
-
-    // Validate cursor format before it reaches service-level new ObjectId()
-    if (cursor && !isValidObjectId(cursor)) {
-      return res.status(400).json({ error: 'Invalid cursor' });
-    }
-
-    // sinceSeq: non-negative integer string.  When present, the service
-    // returns forward-in-time messages for gap reconciliation.
-    let parsedSinceSeq = null;
-    if (sinceSeq !== undefined) {
-      const n = Number(sinceSeq);
-      if (!Number.isFinite(n) || n < 0 || !Number.isInteger(n)) {
-        return res.status(400).json({ error: 'Invalid sinceSeq' });
+router.get(
+  '/conversations/:id/messages',
+  applyAuthRequired,
+  messengerReadLimiter,
+  async (req, res) => {
+    try {
+      const { id: conversationId } = req.params;
+      if (!isValidObjectId(conversationId)) {
+        return res.status(400).json({ error: 'Invalid conversation ID' });
       }
-      parsedSinceSeq = n;
+      const userId = req.user.id;
+      const { cursor, limit = 50, sinceSeq } = req.query;
+
+      // Validate cursor format before it reaches service-level new ObjectId()
+      if (cursor && !isValidObjectId(cursor)) {
+        return res.status(400).json({ error: 'Invalid cursor' });
+      }
+
+      // sinceSeq: non-negative integer string.  When present, the service
+      // returns forward-in-time messages for gap reconciliation.
+      let parsedSinceSeq = null;
+      if (sinceSeq !== undefined) {
+        const n = Number(sinceSeq);
+        if (!Number.isFinite(n) || n < 0 || !Number.isInteger(n)) {
+          return res.status(400).json({ error: 'Invalid sinceSeq' });
+        }
+        parsedSinceSeq = n;
+      }
+
+      const result = await (
+        await getMessengerService()
+      ).getMessages(conversationId, userId, {
+        cursor,
+        limit: Math.min(Math.max(parseInt(limit, 10) || 50, 1), 100),
+        sinceSeq: parsedSinceSeq,
+      });
+
+      res.json({
+        success: true,
+        ...result,
+      });
+    } catch (error) {
+      logger.error('Error fetching messages:', error);
+      const msg = error.message || '';
+      res.status(messengerErrorStatus(msg)).json({
+        error: msg || 'Failed to fetch messages',
+      });
     }
-
-    const result = await (
-      await getMessengerService()
-    ).getMessages(conversationId, userId, {
-      cursor,
-      limit: Math.min(Math.max(parseInt(limit, 10) || 50, 1), 100),
-      sinceSeq: parsedSinceSeq,
-    });
-
-    res.json({
-      success: true,
-      ...result,
-    });
-  } catch (error) {
-    logger.error('Error fetching messages:', error);
-    const msg = error.message || '';
-    res.status(messengerErrorStatus(msg)).json({
-      error: msg || 'Failed to fetch messages',
-    });
   }
-});
+);
 
 /**
  * PATCH /api/v4/messenger/messages/:id
@@ -1057,7 +1062,7 @@ router.post(
  * GET /api/v4/messenger/unread-count
  * Get total unread message count for badge
  */
-router.get('/unread-count', applyAuthRequired, async (req, res) => {
+router.get('/unread-count', applyAuthRequired, messengerReadLimiter, async (req, res) => {
   try {
     const userId = req.user.id;
     const unreadCount = await (await getMessengerService()).getUnreadCount(userId);
@@ -1078,7 +1083,7 @@ router.get('/unread-count', applyAuthRequired, async (req, res) => {
  * GET /api/v4/messenger/contacts
  * Search for contactable users
  */
-router.get('/contacts', applyAuthRequired, async (req, res) => {
+router.get('/contacts', applyAuthRequired, messengerReadLimiter, async (req, res) => {
   try {
     const userId = req.user.id;
     const { q: query, role, mode, limit = 20 } = req.query;
@@ -1112,13 +1117,78 @@ router.get('/contacts', applyAuthRequired, async (req, res) => {
 });
 
 /**
+ * GET /api/v4/messenger/blocked
+ * List the users the current user has blocked.
+ */
+router.get('/blocked', applyAuthRequired, messengerReadLimiter, async (req, res) => {
+  try {
+    const blocked = await (await getMessengerService()).getBlockedUsers(req.user.id);
+    res.json({ success: true, blocked });
+  } catch (error) {
+    logger.error('Error listing blocked users:', error);
+    res.status(500).json({ error: 'Failed to list blocked users' });
+  }
+});
+
+/**
+ * POST /api/v4/messenger/block
+ * Block another user. Blocked messages/conversation attempts are rejected in
+ * both directions (see MessengerV4Service#isBlockedEitherWay).
+ */
+router.post('/block', applyAuthRequired, applyCsrfProtection, writeLimiter, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const blockedUserId = typeof req.body.userId === 'string' ? req.body.userId.trim() : '';
+    const reason = typeof req.body.reason === 'string' ? req.body.reason.substring(0, 500) : '';
+
+    if (!blockedUserId) {
+      return res.status(400).json({ error: 'userId is required' });
+    }
+    if (blockedUserId === userId) {
+      return res.status(400).json({ error: 'Cannot block yourself' });
+    }
+
+    const block = await (await getMessengerService()).blockUser(userId, blockedUserId, reason);
+    res.json({ success: true, block: { userId: block.blockedUserId, reason: block.reason } });
+  } catch (error) {
+    logger.error('Error blocking user:', error);
+    const msg = error.message || '';
+    res.status(msg.includes('Validation failed') ? 400 : 500).json({
+      error: msg.includes('Validation failed') ? msg : 'Failed to block user',
+    });
+  }
+});
+
+/**
+ * DELETE /api/v4/messenger/block/:userId
+ * Unblock a previously blocked user.
+ */
+router.delete(
+  '/block/:userId',
+  applyAuthRequired,
+  applyCsrfProtection,
+  writeLimiter,
+  async (req, res) => {
+    try {
+      const removed = await (
+        await getMessengerService()
+      ).unblockUser(req.user.id, req.params.userId);
+      res.json({ success: true, removed });
+    } catch (error) {
+      logger.error('Error unblocking user:', error);
+      res.status(500).json({ error: 'Failed to unblock user' });
+    }
+  }
+);
+
+/**
  * GET /api/v4/messenger/search
  * Full-text search across all user messages.
  * Optional `conversationId` query param scopes the search to a single
  * conversation (the caller must be a participant; otherwise the conversation
  * is silently excluded by the service layer's participant filter).
  */
-router.get('/search', applyAuthRequired, async (req, res) => {
+router.get('/search', applyAuthRequired, messengerReadLimiter, async (req, res) => {
   try {
     const userId = req.user.id;
     const { q: query, limit = 50, conversationId } = req.query;
@@ -1351,7 +1421,7 @@ router.post(
  * List all conversations (admin only).
  * Query params: limit, skip, search, status
  */
-router.get('/admin/conversations', applyAuthRequired, async (req, res) => {
+router.get('/admin/conversations', applyAuthRequired, messengerReadLimiter, async (req, res) => {
   try {
     // Admin role check
     if (!req.user || req.user.role !== 'admin') {

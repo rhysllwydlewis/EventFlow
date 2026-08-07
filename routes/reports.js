@@ -6,6 +6,7 @@
 'use strict';
 
 const express = require('express');
+const { ObjectId } = require('mongodb');
 const logger = require('../utils/logger');
 const { uid } = require('../store');
 const dbUnified = require('../db-unified');
@@ -77,6 +78,13 @@ router.post('/', authRequired, csrfProtection, reportLimiter, async (req, res) =
     case 'message':
       targetData = await dbUnified.findOne('messages', { id: targetId });
       targetExists = !!targetData;
+      // Legacy messages are keyed by a string `id`; messenger v4 messages
+      // live in a separate collection keyed by a Mongo ObjectId. Fall back
+      // to that lookup so v4 chat messages can be reported too.
+      if (!targetExists && /^[0-9a-f]{24}$/i.test(targetId)) {
+        targetData = await dbUnified.findOne('chat_messages_v4', { _id: new ObjectId(targetId) });
+        targetExists = !!targetData;
+      }
       break;
     case 'user':
       targetData = await dbUnified.findOne('users', { id: targetId });

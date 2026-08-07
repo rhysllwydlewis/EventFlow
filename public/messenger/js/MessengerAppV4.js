@@ -126,6 +126,7 @@ class MessengerAppV4 {
 
       // 4. Load initial conversation list
       await this._loadConversations();
+      this._loadBlockedUsers();
 
       // 5. Handle deep links (?conversation=X, ?new=1, ?contact=userId)
       this.handleDeepLink();
@@ -364,6 +365,7 @@ class MessengerAppV4 {
     });
 
     window.addEventListener('messenger:connected', async () => {
+      this._hideGlobalError();
       const prev = this.recon?.getState();
       if (prev === 'DISCONNECTED') {
         this.recon?.transition('RECONNECTING');
@@ -411,6 +413,28 @@ class MessengerAppV4 {
       } else {
         window.showToast('Could not subscribe to live updates for this conversation.', 'error');
       }
+    });
+
+    // Report/block from chat header or per-message context menu
+    window.addEventListener('messenger:report-user', async e => {
+      const { userId } = e.detail || {};
+      await this._reportContent('user', userId, 'Report this user');
+    });
+    window.addEventListener('messenger:report-message', async e => {
+      const { messageId, senderId } = e.detail || {};
+      if (messageId) {
+        await this._reportContent('message', messageId, 'Report this message');
+      } else if (senderId) {
+        await this._reportContent('user', senderId, 'Report this user');
+      }
+    });
+    window.addEventListener('messenger:block-user', async e => {
+      const { userId } = e.detail || {};
+      await this._blockUser(userId);
+    });
+    window.addEventListener('messenger:unblock-user', async e => {
+      const { userId } = e.detail || {};
+      await this._unblockUser(userId);
     });
 
     // Pin/archive from list or chat header
@@ -833,11 +857,12 @@ class MessengerAppV4 {
       }
     });
 
-    // WebSocket connection permanently failed — show UI error
+    // WebSocket connection failed after its normal retry budget — the socket
+    // client keeps retrying slowly in the background (see MessengerSocket's
+    // fallback retry loop), but also offer a manual retry so the user isn't
+    // stuck waiting on a timer.
     window.addEventListener('messenger:connection-failed', () => {
-      this._showGlobalError(
-        'Connection lost. Real-time updates are paused — please refresh to reconnect.'
-      );
+      this._showConnectionFailedBanner();
     });
 
     // ---- Message action events (from context menu) ----
@@ -1331,6 +1356,99 @@ class MessengerAppV4 {
     }
   }
 
+  async _loadBlockedUsers() {
+    try {
+      const data = await this.api.getBlockedUsers();
+      const blocked = Array.isArray(data?.blocked) ? data.blocked : [];
+      this.state.setBlockedUsers(blocked.map(b => b.userId));
+    } catch (err) {
+      console.error('[MessengerAppV4] Failed to load blocked users:', err);
+    }
+  }
+
+  async _blockUser(userId) {
+    if (!userId) {
+      return;
+    }
+    let confirmed = true;
+    if (window.MessengerModals?.showConfirm) {
+      confirmed = await window.MessengerModals.showConfirm(
+        'Block this user?',
+        'You will no longer be able to send or receive messages with this user.',
+        'Block',
+        'Cancel'
+      );
+    }
+    if (!confirmed) {
+      return;
+    }
+    try {
+      await this.api.blockUser(userId);
+      this.state.blockedUserIds.add(String(userId));
+      this.state.emit('blockedUsersChanged', this.state.blockedUserIds);
+      const conv =
+        this._activeConversationId &&
+        this.state.conversations.find(c => c._id === this._activeConversationId);
+      if (conv && this.chatView?._renderHeader) {
+        this.chatView._renderHeader(conv);
+      }
+      if (typeof window.showToast === 'function') {
+        window.showToast('User blocked.', 'success');
+      }
+    } catch (err) {
+      console.error('[MessengerAppV4] Block failed:', err);
+      if (typeof window.showToast === 'function') {
+        window.showToast('Failed to block user. Please try again.', 'error');
+      }
+    }
+  }
+
+  async _unblockUser(userId) {
+    if (!userId) {
+      return;
+    }
+    try {
+      await this.api.unblockUser(userId);
+      this.state.blockedUserIds.delete(String(userId));
+      this.state.emit('blockedUsersChanged', this.state.blockedUserIds);
+      const conv =
+        this._activeConversationId &&
+        this.state.conversations.find(c => c._id === this._activeConversationId);
+      if (conv && this.chatView?._renderHeader) {
+        this.chatView._renderHeader(conv);
+      }
+      if (typeof window.showToast === 'function') {
+        window.showToast('User unblocked.', 'success');
+      }
+    } catch (err) {
+      console.error('[MessengerAppV4] Unblock failed:', err);
+      if (typeof window.showToast === 'function') {
+        window.showToast('Failed to unblock user. Please try again.', 'error');
+      }
+    }
+  }
+
+  async _reportContent(type, targetId, promptTitle) {
+    if (!targetId || !window.MessengerModals?.showReportPrompt) {
+      return;
+    }
+    const result = await window.MessengerModals.showReportPrompt(promptTitle);
+    if (!result || !result.reason) {
+      return;
+    }
+    try {
+      await this.api.reportContent(type, targetId, result.reason, result.details);
+      if (typeof window.showToast === 'function') {
+        window.showToast('Thank you — our team will review this report.', 'success');
+      }
+    } catch (err) {
+      console.error('[MessengerAppV4] Report failed:', err);
+      if (typeof window.showToast === 'function') {
+        window.showToast(err.message || 'Failed to submit report. Please try again.', 'error');
+      }
+    }
+  }
+
   async _editMessage(messageId) {
     try {
       // Use MessengerModals if available; fall back to a simple prompt
@@ -1533,6 +1651,50 @@ class MessengerAppV4 {
     } else {
       console.error('[MessengerAppV4]', msg);
     }
+  }
+
+  _hideGlobalError() {
+    const el = document.querySelector('[data-v4="global-error"]');
+    if (el) {
+      el.style.display = 'none';
+      el.innerHTML = '';
+    }
+  }
+
+  /**
+   * Connection-failed banner with a manual retry affordance, so the user
+   * isn't stuck waiting on MessengerSocket's slow background retry timer.
+   */
+  _showConnectionFailedBanner() {
+    const el = document.querySelector('[data-v4="global-error"]');
+    if (!el) {
+      console.error(
+        '[MessengerAppV4] Connection lost. Real-time updates are paused — please refresh to reconnect.'
+      );
+      return;
+    }
+    el.innerHTML = '';
+    const text = document.createElement('span');
+    text.textContent = 'Connection lost. Real-time updates are paused. ';
+    const retryBtn = document.createElement('button');
+    retryBtn.type = 'button';
+    retryBtn.className = 'ef-cta';
+    retryBtn.textContent = 'Retry now';
+    retryBtn.style.marginLeft = '8px';
+    retryBtn.addEventListener('click', () => {
+      retryBtn.disabled = true;
+      retryBtn.textContent = 'Retrying…';
+      this.socket?.manualReconnect();
+      // Re-enable in case the retry itself fails to reconnect quickly;
+      // a successful reconnect hides the whole banner via _hideGlobalError().
+      setTimeout(() => {
+        retryBtn.disabled = false;
+        retryBtn.textContent = 'Retry now';
+      }, 5000);
+    });
+    el.appendChild(text);
+    el.appendChild(retryBtn);
+    el.style.display = 'block';
   }
 
   _lastSeenSeqKey(conversationId) {

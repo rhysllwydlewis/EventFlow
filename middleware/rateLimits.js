@@ -34,9 +34,13 @@ function isPhotoAssetRequest(req) {
 }
 
 function isPublicCalendarReadRequest(req) {
-  if (req.method !== 'GET') return false;
+  if (req.method !== 'GET') {
+    return false;
+  }
   const requestPath = getRequestPath(req);
-  if (!PUBLIC_CALENDAR_EVENTS_PATH_PATTERN.test(requestPath)) return false;
+  if (!PUBLIC_CALENDAR_EVENTS_PATH_PATTERN.test(requestPath)) {
+    return false;
+  }
   return !/\/events\/saved\/?$/.test(requestPath);
 }
 
@@ -159,6 +163,22 @@ const notificationLimiter = rateLimit({
 });
 
 /**
+ * Rate limit for authenticated messenger read endpoints (conversation/message
+ * listing, unread counts, contacts, search). These were previously open to
+ * unlimited polling by any logged-in user, unlike every write route on the
+ * same router. 120 requests/minute comfortably covers normal UI polling
+ * while capping scripted abuse.
+ */
+const messengerReadLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 120,
+  message: 'Too many requests, please try again shortly.',
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: isBackendE2ERequest,
+});
+
+/**
  * Rate limit for public photo asset delivery.
  *
  * Browser image loads must not share the strict general API limiter: one homepage
@@ -271,6 +291,7 @@ module.exports = {
   uploadLimiter,
   searchLimiter,
   notificationLimiter,
+  messengerReadLimiter,
   apiLimiter,
   publicReadLimiter,
   photoAssetLimiter,

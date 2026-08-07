@@ -219,6 +219,9 @@ router.post(
 
       const author = await community.buildAuthorCard(req.dbUser, context);
       const now = new Date().toISOString();
+      const mentions = await community.resolveMentions(prepared.text, {
+        excludeUserId: req.user.id,
+      });
 
       // A supplier replying in a thread that names their own business must be
       // disclosed. The disclosure is derived from authoritative supplier data,
@@ -249,6 +252,7 @@ router.post(
         authorTrustTier: context.trustTier,
         bodyHtml: prepared.html,
         bodyText: prepared.text,
+        mentions,
         fingerprint: moderation.fingerprint(prepared.text),
         quotedReplyId,
         quotedExcerpt,
@@ -279,6 +283,15 @@ router.post(
         });
       } else {
         await notifyDiscussionFollowers({ discussion, reply, actorId: req.user.id });
+        if (mentions.length > 0) {
+          await community.notifyMentionedUsers({
+            mentions,
+            postId: reply.id,
+            title: discussion.title,
+            actionUrl: `${community.discussionPath(discussion)}#reply-${reply.id}`,
+            mentionedByName: author.displayName,
+          });
+        }
       }
 
       res.status(201).json({

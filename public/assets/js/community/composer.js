@@ -32,6 +32,8 @@
   let draftTimer = null;
   let draftId = null;
   let presetSearch = window.location.search;
+  /** Uploaded image descriptors ({ kind: 'image', url, alt }) for the draft in progress. */
+  let attachments = [];
 
   /**
    * Personal-information patterns mirrored from the server-side check so the
@@ -147,6 +149,18 @@
           </div>
 
           <div id="efc-privacy-warning" aria-live="polite"></div>
+
+          <div class="efc-field">
+            <label for="efc-attachments">Photos (optional)</label>
+            <input
+              id="efc-attachments"
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              multiple
+            />
+            <p class="efc-meta">Up to ${meta.limits.attachmentsMax} images.</p>
+            <div id="efc-attachments-preview" class="efc-attachments-preview"></div>
+          </div>
         </div>
 
         <div class="efc-composer-card">
@@ -221,6 +235,14 @@
 
     document.getElementById('efc-save-draft').addEventListener('click', () => saveDraft(true));
     form.addEventListener('submit', submit);
+
+    const attachmentsInput = document.getElementById('efc-attachments');
+    if (attachmentsInput) {
+      attachmentsInput.addEventListener('change', () =>
+        handleAttachmentSelection(attachmentsInput)
+      );
+    }
+    renderAttachmentsPreview();
 
     const cancel = document.getElementById('efc-composer-cancel');
     if (cancel && onClose) {
@@ -320,6 +342,68 @@
   }
 
   /**
+   * Upload each newly-selected image, appending it to `attachments` as it
+   * completes. Uploads run one at a time so the preview grid fills in the
+   * order the member picked the files.
+   * @param {HTMLInputElement} input The file input that changed.
+   * @returns {Promise<void>} Resolves once every selected file has settled.
+   */
+  async function handleAttachmentSelection(input) {
+    const files = Array.from(input.files || []);
+    input.value = '';
+    if (!files.length) {
+      return;
+    }
+    const remaining = meta.limits.attachmentsMax - attachments.length;
+    if (remaining <= 0) {
+      EFC.announce(`You can attach up to ${meta.limits.attachmentsMax} images.`, 'error');
+      return;
+    }
+    const toUpload = files.slice(0, remaining);
+    if (files.length > toUpload.length) {
+      EFC.announce(
+        `Only the first ${toUpload.length} image(s) were added — the limit is ${meta.limits.attachmentsMax}.`,
+        'error'
+      );
+    }
+    for (const file of toUpload) {
+      try {
+        const attachment = await EFC.uploadAttachment(file);
+        attachments.push(attachment);
+        renderAttachmentsPreview();
+      } catch (error) {
+        EFC.announce(error.message || 'Could not upload that image.', 'error');
+      }
+    }
+  }
+
+  /**
+   * Redraw the attachment preview grid from the current `attachments` state.
+   * @returns {void} Nothing.
+   */
+  function renderAttachmentsPreview() {
+    const target = document.getElementById('efc-attachments-preview');
+    if (!target) {
+      return;
+    }
+    target.innerHTML = attachments
+      .map(
+        (item, index) => `
+        <div class="efc-attachment-thumb">
+          <img src="${EFC.esc(item.url)}" alt="${EFC.esc(item.alt || '')}" loading="lazy" />
+          <button type="button" class="efc-attachment-remove" data-index="${index}" aria-label="Remove this image">×</button>
+        </div>`
+      )
+      .join('');
+    target.querySelectorAll('.efc-attachment-remove').forEach(btn => {
+      btn.addEventListener('click', () => {
+        attachments.splice(Number(btn.dataset.index), 1);
+        renderAttachmentsPreview();
+      });
+    });
+  }
+
+  /**
    * Debounce a draft save.
    * @returns {void} Nothing.
    */
@@ -398,12 +482,14 @@
           region: document.getElementById('efc-region').value,
           eventDate: document.getElementById('efc-event-date').value,
           tags,
+          attachments,
         },
       });
 
       if (draftId) {
         await EFC.api(`me/drafts/${draftId}`, { method: 'DELETE' }).catch(() => {});
       }
+      attachments = [];
       EFC.announce(result.message);
       window.location.href = result.url;
     } catch (error) {
@@ -467,6 +553,7 @@
     onClose = typeof settings.onClose === 'function' ? settings.onClose : null;
     presetSearch = settings.search || '';
     draftId = null;
+    attachments = [];
     return boot();
   }
 

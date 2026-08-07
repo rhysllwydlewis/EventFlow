@@ -633,6 +633,81 @@ function toDiscussionCard(discussion, options = {}) {
   };
 }
 
+// ─── @mentions ───────────────────────────────────────────────────────────────
+
+const MENTION_PATTERN = /@([a-z0-9_-]{3,30})\b/gi;
+const MENTIONS_MAX = 10;
+
+/**
+ * Pull the distinct @handles referenced in a plain-text post body.
+ * @param {string} text Plain-text body (post-sanitisation).
+ * @returns {string[]} Lower-cased handles, deduplicated, capped at MENTIONS_MAX.
+ */
+function extractMentionedHandles(text) {
+  const handles = new Set();
+  for (const match of String(text || '').matchAll(MENTION_PATTERN)) {
+    handles.add(match[1].toLowerCase());
+    if (handles.size >= MENTIONS_MAX) {
+      break;
+    }
+  }
+  return Array.from(handles);
+}
+
+/**
+ * Resolve @handles in a post body to real members, snapshotting the fields a
+ * client needs to render a mention link (same denormalisation pattern as
+ * `author` on discussions/replies — a mention should still read sensibly even
+ * if the mentioned member later renames their handle).
+ * @param {string} text Plain-text body.
+ * @param {Object} [options]
+ * @param {string} [options.excludeUserId] Never mention the post's own author.
+ * @returns {Promise<{userId: string, handle: string, displayName: string}[]>} Resolved mentions.
+ */
+async function resolveMentions(text, options = {}) {
+  const handles = extractMentionedHandles(text);
+  if (handles.length === 0) {
+    return [];
+  }
+  const users = await dbUnified.find('users', { communityHandle: { $in: handles } });
+  return (users || [])
+    .filter(user => user && user.id !== options.excludeUserId)
+    .map(user => ({
+      userId: user.id,
+      handle: user.communityHandle,
+      displayName:
+        user.communityDisplayName || user.displayName || user.name || user.communityHandle,
+    }));
+}
+
+/**
+ * Notify each resolved mention, deterministically-keyed so a retry cannot
+ * double-notify the same person for the same post.
+ * @param {Object} input
+ * @param {{userId: string, handle: string}[]} input.mentions From resolveMentions().
+ * @param {string} input.postId Discussion or reply id (unique per collection).
+ * @param {string} input.title Discussion title, for the notification headline.
+ * @param {string} input.actionUrl Where the notification should link.
+ * @param {string} input.mentionedByName Display name of whoever wrote the mention.
+ * @returns {Promise<void>} Resolves once every notification has been attempted.
+ */
+async function notifyMentionedUsers({ mentions, postId, title, actionUrl, mentionedByName }) {
+  await Promise.all(
+    (mentions || []).map(mention =>
+      createNotification({
+        id: `cnotif_mention_${postId}_${mention.userId}`,
+        userId: mention.userId,
+        type: 'community_mention',
+        title: `${mentionedByName} mentioned you`,
+        message: title,
+        actionUrl,
+        icon: '📣',
+        metadata: { postId },
+      })
+    )
+  );
+}
+
 /**
  * Shape a reply for public display. Withdrawn content keeps its position in the
  * conversation but never leaks its body.
@@ -649,6 +724,7 @@ function toReplyView(reply, options = {}) {
     discussionId: reply.discussionStableId,
     author: publicAuthor(reply.author),
     body: withdrawn ? null : reply.bodyHtml || '',
+    mentions: withdrawn ? [] : reply.mentions || [],
     withdrawn,
     withdrawnReason: withdrawn ? reply.moderationPublicReason || 'Removed by moderators' : null,
     quotedReplyId: reply.quotedReplyId || null,
@@ -1207,5 +1283,8 @@ module.exports = {
   buildAuthorCard,
   recentPostsFor,
   recordModerationAction,
+  extractMentionedHandles,
+  resolveMentions,
+  notifyMentionedUsers,
   MODERATION_ONLY_FIELDS,
 };

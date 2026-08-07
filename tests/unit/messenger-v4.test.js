@@ -423,6 +423,14 @@ function createInMemoryDb() {
         }
         return { deletedCount: before - getCol(name).length, acknowledged: true };
       },
+      async deleteOne(filter) {
+        const idx = getCol(name).findIndex(doc => matchesQuery(doc, filter));
+        if (idx === -1) {
+          return { deletedCount: 0, acknowledged: true };
+        }
+        getCol(name).splice(idx, 1);
+        return { deletedCount: 1, acknowledged: true };
+      },
       async countDocuments(query) {
         return getCol(name).filter(doc => matchesQuery(doc, query || {})).length;
       },
@@ -1752,6 +1760,85 @@ describe('MessengerV4Service', () => {
           service.getMessages(conversation._id.toString(), 'user3', { sinceSeq: 0 })
         ).rejects.toThrow(/not found|access denied/);
       });
+    });
+  });
+
+  describe('blocking', () => {
+    it('blockUser creates a block and is idempotent', async () => {
+      const block = await service.blockUser('user1', 'user2', 'harassment');
+      expect(block.userId).toBe('user1');
+      expect(block.blockedUserId).toBe('user2');
+
+      const again = await service.blockUser('user1', 'user2', 'harassment');
+      expect(again.blockedUserId).toBe('user2');
+
+      const all = await db.collection('blockedUsers').find({ userId: 'user1' }).toArray();
+      expect(all).toHaveLength(1);
+    });
+
+    it('blockUser rejects blocking yourself', async () => {
+      await expect(service.blockUser('user1', 'user1')).rejects.toThrow('Validation failed');
+    });
+
+    it('unblockUser removes a block and reports whether one existed', async () => {
+      await service.blockUser('user1', 'user2');
+      const removed = await service.unblockUser('user1', 'user2');
+      expect(removed).toBe(true);
+
+      const removedAgain = await service.unblockUser('user1', 'user2');
+      expect(removedAgain).toBe(false);
+    });
+
+    it('getBlockedUsers returns hydrated display names', async () => {
+      await service.blockUser('user1', 'user2', 'spam');
+      const blocked = await service.getBlockedUsers('user1');
+      expect(blocked).toHaveLength(1);
+      expect(blocked[0]).toMatchObject({
+        userId: 'user2',
+        displayName: 'Bob Smith',
+        reason: 'spam',
+      });
+    });
+
+    it('isBlockedEitherWay is true regardless of which side blocked', async () => {
+      await service.blockUser('user1', 'user2');
+      expect(await service.isBlockedEitherWay('user1', 'user2')).toBe(true);
+      expect(await service.isBlockedEitherWay('user2', 'user1')).toBe(true);
+      expect(await service.isBlockedEitherWay('user1', 'user3')).toBe(false);
+    });
+
+    it('sendMessage rejects once the recipient has blocked the sender', async () => {
+      const conversation = await service.createConversation({
+        type: 'direct',
+        participants: [
+          { userId: 'user1', displayName: 'Alice', role: 'customer' },
+          { userId: 'user2', displayName: 'Bob', role: 'supplier' },
+        ],
+      });
+      await service.blockUser('user2', 'user1');
+
+      await expect(
+        service.sendMessage(conversation._id.toString(), {
+          senderId: 'user1',
+          senderName: 'Alice',
+          content: 'hello?',
+        })
+      ).rejects.toThrow('block');
+    });
+
+    it('createConversation rejects starting a new direct chat with a blocked user', async () => {
+      await service.blockUser('user2', 'user1');
+
+      await expect(
+        service.createConversation({
+          type: 'direct',
+          creatorUserId: 'user1',
+          participants: [
+            { userId: 'user1', displayName: 'Alice', role: 'customer' },
+            { userId: 'user2', displayName: 'Bob', role: 'supplier' },
+          ],
+        })
+      ).rejects.toThrow('block');
     });
   });
 });

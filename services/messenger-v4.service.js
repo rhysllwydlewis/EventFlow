@@ -7,6 +7,7 @@
 
 const { ObjectId } = require('mongodb');
 const { validateConversation, validateMessage } = require('../models/ConversationV4');
+const { validateBlockedUser, createBlockedUser } = require('../models/BlockedUser');
 const contentSanitizer = require('./contentSanitizer');
 const spamDetection = require('./spamDetection');
 const { getMessagingLimitsForTier } = require('../config/messagingLimits');
@@ -81,6 +82,7 @@ class MessengerV4Service {
     // power gap-detection / reconciliation on the client.  One document per
     // conversation: { _id: <conversationId>, seq: <int> }.
     this.countersCollection = db.collection('conversation_counters');
+    this.blockedUsersCollection = db.collection('blockedUsers');
     this.transactionsEnabled = process.env.MONGO_REPLICA_SET === 'true';
     this.mongoClient = db.client || db.s?.client || null;
     if (!this.transactionsEnabled && !MessengerV4Service._txnWarningLogged) {
@@ -333,6 +335,16 @@ class MessengerV4Service {
 
     // Deduplicate: Check if conversation already exists between same participants
     const participantIds = conversationData.participants.map(p => p.userId).sort();
+
+    if (creatorUserId && conversationData.type === 'direct' && participantIds.length === 2) {
+      const otherId = participantIds.find(id => id !== creatorUserId);
+      if (otherId && (await this.isBlockedEitherWay(creatorUserId, otherId))) {
+        const error = new Error('This conversation could not be started because of a block');
+        error.statusCode = 403;
+        error.code = 'MESSENGER_BLOCKED';
+        throw error;
+      }
+    }
 
     // For direct conversations, check if one already exists
     if (conversationData.type === 'direct' && participantIds.length === 2) {
@@ -694,6 +706,24 @@ class MessengerV4Service {
 
     if (!conversation) {
       throw new Error('Conversation not found or sender is not a participant');
+    }
+
+    if (conversation.type === 'direct') {
+      const otherParticipant = conversation.participants.find(
+        p => p.userId !== messageData.senderId
+      );
+      if (otherParticipant) {
+        const blocked = await this.isBlockedEitherWay(
+          messageData.senderId,
+          otherParticipant.userId
+        );
+        if (blocked) {
+          const error = new Error('This message could not be delivered because of a block');
+          error.statusCode = 403;
+          error.code = 'MESSENGER_BLOCKED';
+          throw error;
+        }
+      }
     }
 
     // Idempotency: if the client supplied a clientMessageId, short-circuit on
@@ -1352,6 +1382,63 @@ class MessengerV4Service {
     });
 
     return totalUnread;
+  }
+
+  /**
+   * Block a user. Blocking is one-directional in storage but checked in both
+   * directions by isBlocked()/isBlockedEitherWay(), so a block always stops
+   * messages flowing either way between the two users.
+   */
+  async blockUser(userId, blockedUserId, reason) {
+    const errors = validateBlockedUser({ userId, blockedUserId });
+    if (errors) {
+      throw new Error(`Validation failed: ${errors.join(', ')}`);
+    }
+
+    const existing = await this.blockedUsersCollection.findOne({ userId, blockedUserId });
+    if (existing) {
+      return existing;
+    }
+
+    const block = createBlockedUser({ userId, blockedUserId, reason });
+    await this.blockedUsersCollection.insertOne(block);
+    this.logger.info('User blocked', { userId, blockedUserId });
+    return block;
+  }
+
+  async unblockUser(userId, blockedUserId) {
+    const result = await this.blockedUsersCollection.deleteOne({ userId, blockedUserId });
+    return result.deletedCount > 0;
+  }
+
+  async getBlockedUsers(userId) {
+    const blocks = await this.blockedUsersCollection
+      .find({ userId })
+      .sort({ createdAt: -1 })
+      .toArray();
+    if (blocks.length === 0) {
+      return [];
+    }
+    const userMap = await this._getUserMapByIds(blocks.map(b => b.blockedUserId));
+    return blocks.map(block => ({
+      userId: block.blockedUserId,
+      displayName: MessengerV4Service._displayNameFromUser(userMap.get(block.blockedUserId) || {}),
+      reason: block.reason || '',
+      createdAt: block.createdAt,
+    }));
+  }
+
+  /**
+   * True if either user has blocked the other.
+   */
+  async isBlockedEitherWay(userIdA, userIdB) {
+    const block = await this.blockedUsersCollection.findOne({
+      $or: [
+        { userId: userIdA, blockedUserId: userIdB },
+        { userId: userIdB, blockedUserId: userIdA },
+      ],
+    });
+    return Boolean(block);
   }
 
   /**
