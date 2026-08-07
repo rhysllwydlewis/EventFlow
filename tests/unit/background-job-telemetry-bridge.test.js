@@ -391,6 +391,14 @@ describe('background job telemetry bridge', () => {
       fs.readFileSync(path.join(repositoryRoot, 'package.json'), 'utf8')
     );
     const dockerfile = fs.readFileSync(path.join(repositoryRoot, 'Dockerfile'), 'utf8');
+    const productionSupervisor = fs.readFileSync(
+      path.join(repositoryRoot, 'scripts/start-production.js'),
+      'utf8'
+    );
+    const deploymentPreload = fs.readFileSync(
+      path.join(repositoryRoot, 'services/deploymentMetadataPreload.js'),
+      'utf8'
+    );
     const storeSource = fs.readFileSync(path.join(repositoryRoot, 'store.js'), 'utf8');
 
     expect(packageJson.scripts.dev).toContain('-r ./services/backgroundJobTelemetryBridge.js');
@@ -398,8 +406,9 @@ describe('background job telemetry bridge', () => {
     expect(packageJson.scripts['audit:orphan-supplier-data']).toBe(
       'node scripts/audit-orphaned-supplier-data.js'
     );
-    expect(dockerfile).toContain('-r');
-    expect(dockerfile).toContain('./services/backgroundJobTelemetryBridge.js');
+    expect(dockerfile).toContain('scripts/start-production.js');
+    expect(productionSupervisor).toContain('./services/deploymentMetadataPreload.js');
+    expect(deploymentPreload).toContain("require('./backgroundJobTelemetryBridge')");
     expect(storeSource).toContain("system_checks: path.join(DATA_DIR, 'system_checks.json')");
     expect(storeSource).toContain(
       "background_job_runs: path.join(DATA_DIR, 'background_job_runs.json')"
