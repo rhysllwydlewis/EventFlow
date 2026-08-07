@@ -7,7 +7,7 @@ describe('Founder Badge Logic', () => {
   function shouldReceiveFounderBadge(createdAt, launchTimestamp) {
     const launchDate = new Date(launchTimestamp);
     const founderEndDate = new Date(launchDate);
-    founderEndDate.setMonth(founderEndDate.getMonth() + 6); // 6 months from launch
+    founderEndDate.setUTCMonth(founderEndDate.getUTCMonth() + 6); // 6 months from launch
 
     const userCreatedDate = new Date(createdAt);
     return userCreatedDate <= founderEndDate;
@@ -117,7 +117,7 @@ describe('Founder Badge Logic', () => {
     it('should calculate correct 6-month end date', () => {
       const launchDate = new Date('2026-01-01T00:00:00Z');
       const endDate = new Date(launchDate);
-      endDate.setMonth(endDate.getMonth() + 6);
+      endDate.setUTCMonth(endDate.getUTCMonth() + 6);
 
       expect(endDate.getUTCFullYear()).toBe(2026);
       expect(endDate.getUTCMonth()).toBe(6); // July (0-indexed)
@@ -127,7 +127,7 @@ describe('Founder Badge Logic', () => {
     it('should handle year overflow when adding 6 months', () => {
       const launchDate = new Date('2026-08-01T00:00:00Z');
       const endDate = new Date(launchDate);
-      endDate.setMonth(endDate.getMonth() + 6);
+      endDate.setUTCMonth(endDate.getUTCMonth() + 6);
 
       expect(endDate.getUTCFullYear()).toBe(2027);
       expect(endDate.getUTCMonth()).toBe(1); // February (0-indexed)
