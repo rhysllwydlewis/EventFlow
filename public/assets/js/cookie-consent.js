@@ -23,7 +23,8 @@
  *   theme, ef_expanded_folders, marketplaceLocation,
  *   jadeassist-teaser-dismissed, ef_onboarding_dismissed,
  *   ef_supplier_welcome_dismissed, eventflow_onboarding_new,
- *   ef_notification_sound_enabled, ef_notification_volume
+ *   ef_notification_sound_enabled, ef_notification_volume,
+ *   ef_tour_completed, ef_signup_popup_dismissed
  */
 
 (function () {
@@ -47,6 +48,7 @@
     'ef_notification_sound_enabled',
     'ef_notification_volume',
     'ef_tour_completed',
+    'ef_signup_popup_dismissed',
   ];
 
   // ─── Cookie helpers ────────────────────────────────────────────────────────
@@ -275,7 +277,9 @@
     // Focus first interactive element for keyboard users
     requestAnimationFrame(() => {
       const firstBtn = banner.querySelector('button, [href]');
-      if (firstBtn) firstBtn.focus();
+      if (firstBtn) {
+        firstBtn.focus();
+      }
     });
 
     setTimeout(() => {

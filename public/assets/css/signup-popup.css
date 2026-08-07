@@ -1,0 +1,165 @@
+/* Sign-up popup — layered on top of the shared .modal-overlay/.modal
+   component (components.css) rather than redefining the glass card.
+   This is a marketing interstitial, not a utility dialog, so the header
+   and footer rules are relaxed into a single centred surface. */
+
+.signup-popup-modal {
+  max-width: 400px;
+  border-radius: var(--ef-radius-xl, 20px);
+  text-align: center;
+}
+
+/* Sit above the cookie-consent banner (z-index: 9999 in components.css) so
+   the two fixed overlays never fight for the same strip of a short mobile
+   viewport — the popup wins focus while open, the banner is still there after. */
+.signup-popup-overlay {
+  z-index: 10000;
+}
+
+/* ---------- Header: badge + heading, no divider ---------- */
+
+.signup-popup-overlay .modal-header {
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--ef-space-4, 16px);
+  border-bottom: none;
+  padding: var(--ef-space-6, 32px) var(--ef-space-5, 24px) 0;
+}
+
+.signup-popup-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: var(--ef-radius-full, 9999px);
+  background: var(--ef-gradient-primary, linear-gradient(135deg, #0b8073 0%, #13b6a2 100%));
+  box-shadow: 0 8px 20px rgba(11, 128, 115, 0.35);
+  color: #fff;
+}
+
+.signup-popup-badge svg {
+  width: 24px;
+  height: 24px;
+}
+
+.signup-popup-overlay .modal-title {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  line-height: var(--ef-leading-snug, 1.375);
+  text-wrap: balance;
+}
+
+/* ---------- Close button: true top-right corner ----------
+   .modal-close also carries the shared .ef-cta class, whose sitewide rules in
+   styles.css (border-radius/padding/font-size !important, plus width:100%
+   under 600px) would otherwise stretch it into a full-width pill. */
+.signup-popup-overlay .modal-close {
+  position: absolute;
+  top: var(--ef-space-3, 12px);
+  right: var(--ef-space-3, 12px);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px !important;
+  height: 32px !important;
+  padding: 0 !important;
+  border-radius: var(--ef-radius-full, 9999px) !important;
+  flex: none;
+}
+
+.signup-popup-overlay .modal-close svg {
+  width: 15px;
+  height: 15px;
+}
+
+/* ---------- Body ---------- */
+
+.signup-popup-overlay .modal-body {
+  padding: var(--ef-space-3, 12px) var(--ef-space-5, 24px) 0;
+  overflow: visible;
+}
+
+.signup-popup-overlay .modal-body p {
+  margin: 0;
+  color: var(--muted, #667085);
+  font-size: 14px;
+  line-height: var(--ef-leading-normal, 1.5);
+  text-wrap: balance;
+}
+
+/* ---------- Footer: stacked CTA, then a quiet dismiss ---------- */
+
+.signup-popup-overlay .modal-footer {
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--ef-space-3, 12px);
+  background: transparent;
+  border-top: none;
+  padding: var(--ef-space-5, 24px);
+}
+
+/* styles.css adds margin-top:6px to .cta below 600px, which would stack on
+   top of the flex gap and break the footer's spacing rhythm on mobile. */
+.signup-popup-overlay .modal-footer .cta {
+  margin-top: 0;
+}
+
+/* Confirm ("Log in / create account") — the one loud element on the card */
+.signup-popup-overlay .modal-footer .cta:not(.ghost) {
+  order: 1;
+  width: 100%;
+  padding: 13px 18px !important;
+  border-radius: var(--radius, 14px) !important;
+  background: var(--ef-gradient-primary, linear-gradient(135deg, #0b8073 0%, #13b6a2 100%));
+  box-shadow: 0 6px 18px rgba(11, 128, 115, 0.35);
+}
+
+.signup-popup-overlay .modal-footer .cta:not(.ghost):hover {
+  box-shadow: 0 8px 22px rgba(11, 128, 115, 0.45);
+}
+
+/* Cancel ("Not now") — a text link, deliberately not a second button */
+.signup-popup-overlay .modal-footer .cta.ghost {
+  order: 2;
+  background: none;
+  border: none;
+  box-shadow: none;
+  color: var(--muted, #667085);
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  padding: var(--ef-space-1, 4px) !important;
+}
+
+.signup-popup-overlay .modal-footer .cta.ghost:hover {
+  background: none;
+  color: var(--text, #0b1220);
+  transform: none;
+  box-shadow: none;
+}
+
+@media (max-width: 480px) {
+  .signup-popup-modal {
+    max-width: 100%;
+  }
+
+  .signup-popup-overlay .modal-header {
+    padding-top: var(--ef-space-5, 24px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .signup-popup-modal,
+  .signup-popup-overlay .modal-close,
+  .signup-popup-overlay .modal-footer .cta {
+    transition: none;
+  }
+
+  .signup-popup-overlay .modal-close:hover {
+    transform: none;
+  }
+}

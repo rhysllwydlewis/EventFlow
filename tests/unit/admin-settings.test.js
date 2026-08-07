@@ -203,6 +203,51 @@ describe('Admin Settings — requirePublicCalendarApproval Feature Flag', () => 
   });
 });
 
+describe('Admin Settings — Sign-up Popup', () => {
+  let settingsHtmlContent;
+  beforeAll(() => {
+    settingsHtmlContent = fs.readFileSync(SETTINGS_HTML, 'utf8');
+  });
+
+  it('GET /settings/signup-popup route exists and requires authRequired and roleRequired', () => {
+    const match = adminContent.match(/router\.get\(['"]\/settings\/signup-popup['"][^)]*\)/s);
+    expect(match).toBeTruthy();
+    expect(match[0]).toContain('authRequired');
+    expect(match[0]).toContain("roleRequired('admin')");
+  });
+
+  it('PUT /settings/signup-popup has csrfProtection', () => {
+    expect(adminContent).toContain("router.put('/settings/signup-popup'");
+    const idx = adminContent.indexOf("router.put('/settings/signup-popup'");
+    const block = adminContent.substring(idx, idx + 400);
+    expect(block).toContain('csrfProtection');
+  });
+
+  it('PUT /settings/signup-popup validates delaySeconds is a whole number', () => {
+    const idx = adminContent.indexOf("router.put('/settings/signup-popup'");
+    const block = adminContent.substring(idx, idx + 1200);
+    expect(block).toContain('Number.isInteger(parsedDelay)');
+  });
+
+  it('PUT /settings/signup-popup uses auditLog for change tracking', () => {
+    const idx = adminContent.indexOf("router.put('/settings/signup-popup'");
+    const block = adminContent.substring(idx, idx + 1500);
+    expect(block).toContain('auditLog');
+    expect(block).toContain('SIGNUP_POPUP_UPDATED');
+  });
+
+  it('admin-settings.html has signupPopupEnabled toggle and signupPopupDelay field', () => {
+    expect(settingsHtmlContent).toContain('id="signupPopupEnabled"');
+    expect(settingsHtmlContent).toContain('id="signupPopupDelay"');
+  });
+
+  it('admin-settings-init.js loads and saves the sign-up popup settings', () => {
+    expect(settingsInitContent).toContain('/api/admin/settings/signup-popup');
+    expect(settingsInitContent).toContain('loadSignupPopup');
+    expect(settingsInitContent).toContain("document.getElementById('saveSignupPopup')");
+  });
+});
+
 describe('Supplier Packages — Auto-Approval Behaviour', () => {
   let packagesContent;
   beforeAll(() => {

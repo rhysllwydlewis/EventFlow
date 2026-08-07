@@ -738,6 +738,59 @@
     );
   });
 
+  /**
+   * Load the homepage sign-up popup settings into the form.
+   *
+   * @returns {Promise<void>}
+   */
+  async function loadSignupPopup() {
+    try {
+      const signupPopup = await AdminShared.adminFetch('/api/admin/settings/signup-popup', {
+        method: 'GET',
+      });
+      document.getElementById('signupPopupEnabled').checked = signupPopup.enabled || false;
+      document.getElementById('signupPopupDelay').value = Number.isInteger(signupPopup.delaySeconds)
+        ? signupPopup.delaySeconds
+        : 5;
+    } catch (err) {
+      AdminShared.debugError('Failed to load signup popup settings:', err);
+    }
+  }
+
+  // Save sign-up popup settings
+  document.getElementById('saveSignupPopup').addEventListener('click', async () => {
+    const rawDelay = document.getElementById('signupPopupDelay').value.trim();
+    const delayValue = Number(rawDelay);
+
+    if (rawDelay === '' || !Number.isInteger(delayValue) || delayValue < 0 || delayValue > 300) {
+      AdminShared.showToast('Delay must be a whole number of seconds between 0 and 300', 'error');
+      return;
+    }
+
+    const data = {
+      enabled: document.getElementById('signupPopupEnabled').checked,
+      delaySeconds: delayValue,
+    };
+
+    const saveBtn = document.getElementById('saveSignupPopup');
+    await AdminShared.safeAction(
+      saveBtn,
+      async () => {
+        const result = await AdminShared.adminFetch('/api/admin/settings/signup-popup', {
+          method: 'PUT',
+          body: data,
+        });
+        await loadSignupPopup();
+        return result;
+      },
+      {
+        loadingText: 'Saving...',
+        successMessage: 'Sign-up popup settings updated',
+        errorMessage: 'Failed to update sign-up popup settings',
+      }
+    );
+  });
+
   // Load system info
   async function loadSystemInfo() {
     try {
@@ -996,6 +1049,7 @@
       loadSiteConfig(),
       loadFeatureFlags(),
       loadMaintenanceMode(),
+      loadSignupPopup(),
       loadSystemInfo(),
       loadAuditLogs(),
       loadDatabaseHealth(),

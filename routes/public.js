@@ -272,6 +272,23 @@ router.get('/homepage-settings', async (req, res) => {
   }
 });
 
+router.get('/signup-popup', async (req, res) => {
+  try {
+    res.set('Cache-Control', 'no-store, private');
+    const settings = (await dbUnified.read('settings')) || {};
+    const signupPopup = settings.signupPopup || {};
+
+    res.json({
+      enabled: signupPopup.enabled === true,
+      delaySeconds: Number.isInteger(signupPopup.delaySeconds) ? signupPopup.delaySeconds : 5,
+    });
+  } catch (error) {
+    logger.error('Error reading signup popup settings:', error.message);
+    // Fail closed on error so a settings-read failure can't force the popup onto every visitor
+    res.status(200).json({ enabled: false, delaySeconds: 5 });
+  }
+});
+
 router.get('/homepage-video', apiLimiter, async (req, res) => {
   try {
     res.set('Cache-Control', 'no-store, private');

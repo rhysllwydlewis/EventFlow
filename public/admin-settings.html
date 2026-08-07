@@ -529,7 +529,34 @@
       
       <button class="ef-cta btn btn-danger" id="saveMaintenanceMode">Update Maintenance Mode</button>
     </div>
-    
+
+    <!-- Sign-up Popup -->
+    <div class="card">
+      <h2 style="margin:0 0 0.25rem;">Sign-up Popup</h2>
+      <p class="small" style="margin-bottom:1rem;">Show a one-time sign-up prompt to signed-out visitors on the homepage.</p>
+
+      <div class="feature-item">
+        <div>
+          <strong>Enable sign-up popup</strong>
+          <div class="small">Show the popup after the homepage finishes loading</div>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="signupPopupEnabled" aria-label="Enable sign-up popup">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <div class="form-row" style="margin-top:1rem;">
+        <label for="signupPopupDelay">Delay before showing (seconds)</label>
+        <input type="number" id="signupPopupDelay" min="0" max="300" step="1" value="5">
+        <div class="small" style="margin-top:0.5rem;color:#667;">
+          Whole number of seconds after the homepage loads before the popup appears.
+        </div>
+      </div>
+
+      <button class="ef-cta btn btn-primary" id="saveSignupPopup">Save Sign-up Popup Settings</button>
+    </div>
+
     <!-- Content Management -->
     <div class="card">
       <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.25rem;flex-wrap:wrap;">

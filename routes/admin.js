@@ -4069,6 +4069,67 @@ router.put('/settings/maintenance', authRequired, roleRequired('admin'), csrfPro
 );
 
 /**
+ * GET /api/admin/settings/signup-popup
+ * Get homepage sign-up popup settings
+ */
+router.get('/settings/signup-popup', authRequired, roleRequired('admin'), async (req, res) => {
+  try {
+    const settings = (await dbUnified.read('settings')) || {};
+    const signupPopup = settings.signupPopup || { enabled: false, delaySeconds: 5 };
+    res.json(signupPopup);
+  } catch (error) {
+    logger.error('Error reading signup popup settings:', error);
+    res.status(500).json({ error: 'Failed to read settings' });
+  }
+});
+
+/**
+ * PUT /api/admin/settings/signup-popup
+ * Update homepage sign-up popup settings
+ */
+// prettier-ignore
+router.put('/settings/signup-popup', authRequired, roleRequired('admin'), csrfProtection, writeLimiter, async (req, res) => {
+    try {
+      const { enabled, delaySeconds } = req.body;
+
+      const parsedDelay = Number(delaySeconds);
+      if (!Number.isInteger(parsedDelay) || parsedDelay < 0 || parsedDelay > 300) {
+        return res
+          .status(400)
+          .json({ error: 'delaySeconds must be a whole number between 0 and 300' });
+      }
+
+      const settings = (await dbUnified.read('settings')) || {};
+
+      settings.signupPopup = {
+        enabled: enabled === true,
+        delaySeconds: parsedDelay,
+        updatedAt: new Date().toISOString(),
+        updatedBy: req.user.email,
+      };
+
+      // Write and verify to ensure persistence
+      const result = await dbUnified.writeAndVerify('settings', settings);
+
+      auditLog({
+        adminId: req.user.id,
+        adminEmail: req.user.email,
+        action: 'SIGNUP_POPUP_UPDATED',
+        targetType: 'signupPopup',
+        targetId: null,
+        details: { enabled: settings.signupPopup.enabled, delaySeconds: parsedDelay },
+      });
+
+      // Return verified data from database
+      res.json({ success: true, signupPopup: result.data.signupPopup });
+    } catch (error) {
+      logger.error('Error updating signup popup settings:', error);
+      res.status(500).json({ error: 'Failed to update settings' });
+    }
+  }
+);
+
+/**
  * GET /api/admin/settings/system-info
  * Get system information
  */
