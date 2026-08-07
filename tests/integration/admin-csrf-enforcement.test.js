@@ -150,11 +150,12 @@ describe('CSRF Enforcement — Settings Routes', () => {
   });
 
   it('PUT /settings/features has csrfProtection', () => {
-    // The PUT handler string exists at a different position than GET
-    expect(adminContent).toContain("'/settings/features'");
-    const getIdx = adminContent.indexOf("router.get('/settings/features'");
-    // Search for csrfProtection in a wider window that covers the PUT handler below
-    const block = adminContent.substring(getIdx + 100, getIdx + 2000);
+    // Locate the PUT handler itself (not the GET handler above it) so this
+    // assertion doesn't depend on the byte distance between the two, which
+    // drifts whenever unrelated code is added/removed between them.
+    const putIdx = adminContent.indexOf("router.put(\n  '/settings/features'");
+    expect(putIdx).toBeGreaterThan(-1);
+    const block = adminContent.substring(putIdx, putIdx + 300);
     expect(block).toContain('csrfProtection');
   });
 
