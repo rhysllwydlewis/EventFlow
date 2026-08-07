@@ -168,7 +168,7 @@ async function getQueueHealth({ force = false, requireWorker = IS_PRODUCTION } =
     return health;
   }
 
-  let health;
+  let health = unavailableHealth('redis_unreachable');
   try {
     initQueues();
     await withTimeout(redis.ping());
@@ -339,9 +339,19 @@ async function shutdownQueues() {
     workerHeartbeatTimer = null;
   }
   if (redis && !USE_STUB) {
-    await redis.zrem(WORKER_HEARTBEAT_KEY, WORKER_INSTANCE_ID).catch(() => {});
+    await redis.zrem(WORKER_HEARTBEAT_KEY, WORKER_INSTANCE_ID).catch(error => {
+      context.logger?.warn?.('[queue] failed to remove worker heartbeat during shutdown', {
+        error: error.message,
+      });
+    });
   }
-  await Promise.all(workers.map(w => w.close().catch(() => {})));
+  await Promise.all(
+    workers.map(w =>
+      w.close().catch(error => {
+        context.logger?.warn?.('[queue] failed to close worker cleanly', { error: error.message });
+      })
+    )
+  );
   workers.length = 0;
   workerStates.clear();
   await Promise.all([notificationsQueue?.close?.(), emailQueue?.close?.()]);

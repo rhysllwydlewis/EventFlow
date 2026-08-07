@@ -44,12 +44,10 @@ function startHealthServer({ port = Number(process.env.PORT || 3000) } = {}) {
       return;
     }
 
-    let queueHealth;
-    try {
-      queueHealth = await getQueueHealth({ force: true, requireWorker: false });
-    } catch {
-      queueHealth = { ready: false, reason: 'queue_probe_failed' };
-    }
+    const queueHealth = await getQueueHealth({ force: true, requireWorker: false }).catch(() => ({
+      ready: false,
+      reason: 'queue_probe_failed',
+    }));
     const consumersReady = isWorkerFleetReady();
     const ready = consumersReady && queueHealth.ready;
     res.writeHead(ready ? 200 : 503, {
@@ -122,7 +120,7 @@ if (require.main === module) {
 
   start().catch(err => {
     console.error('[queue] worker startup failed', err);
-    process.exit(1);
+    throw err;
   });
 }
 

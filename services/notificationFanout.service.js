@@ -262,7 +262,14 @@ async function startNotificationFanoutReconciler({
   return async () => {
     stopped = true;
     clearTimeout(timer);
-    await activeRun?.catch(() => {});
+    await activeRun?.catch(error => {
+      logger.warn(
+        '[queue] waiting for notification fan-out reconciliation failed during shutdown',
+        {
+          error: sanitizeFanoutError(error),
+        }
+      );
+    });
   };
 }
 
