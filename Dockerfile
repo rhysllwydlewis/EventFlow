@@ -1,10 +1,6 @@
 # Use the exact supported Node 22 release used by local development and CI.
 FROM node:22.23.1-alpine
 
-# The base image's bundled npm can lag behind security fixes even when Node is
-# pinned. Keep the global CLI fixed too because it remains in the runtime image.
-RUN npm install --global npm@12.0.2 && npm cache clean --force
-
 # Install curl for healthcheck
 RUN apk add --no-cache curl
 
@@ -15,6 +11,10 @@ WORKDIR /app
 COPY package*.json ./
 # Skip lifecycle scripts (like husky prepare) during production install.
 RUN npm ci --omit=dev --ignore-scripts --no-audit
+# npm is only a build-time installer. Do not retain its CLI dependency tree in
+# the runtime image, where it adds attack surface without serving the app.
+RUN rm -rf /usr/local/lib/node_modules/npm \
+  && rm -f /usr/local/bin/npm /usr/local/bin/npx
 
 # Bundle app source
 COPY . .
