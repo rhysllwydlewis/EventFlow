@@ -1,17 +1,33 @@
 /**
  * Homepage sign-up popup.
  * Reads the admin-controlled delay/enabled flag, then shows the shared
- * Modal component (components.js) once per browser session.
+ * Modal component (components.js) to signed-out visitors. Dismissing it is
+ * remembered until the visitor clears functional storage.
  */
 (function () {
   'use strict';
 
   const STORAGE_KEY = 'ef_signup_popup_dismissed';
   const SETTINGS_URL = '/api/v1/public/signup-popup';
+  const TITLE_ID = 'ef-signup-popup-title';
 
+  const BADGE_ICON =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    '<path d="M20 21a8 8 0 1 0-16 0"/><circle cx="12" cy="7" r="4"/></svg>';
+
+  const CLOSE_ICON =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" ' +
+    'stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>';
+
+  // localStorage, not sessionStorage: auth-state.js calls a blanket
+  // sessionStorage.clear() every time /auth/me returns 401 — i.e. on every
+  // page load for the signed-out visitors this popup targets — which would
+  // wipe the flag and re-nag them on each view. This matches the existing
+  // ef_onboarding_dismissed convention in app.js.
   function alreadyDismissed() {
     try {
-      return sessionStorage.getItem(STORAGE_KEY) === '1';
+      return localStorage.getItem(STORAGE_KEY) === '1';
     } catch (_) {
       return false;
     }
@@ -19,9 +35,46 @@
 
   function markDismissed() {
     try {
-      sessionStorage.setItem(STORAGE_KEY, '1');
+      localStorage.setItem(STORAGE_KEY, '1');
     } catch (_) {
-      /* sessionStorage unavailable (e.g. private mode) — nothing to persist */
+      /* localStorage unavailable (e.g. private mode) — nothing to persist */
+    }
+  }
+
+  // The popup pitches creating an account, so it must never reach someone who
+  // already has one. Treat an unavailable/failed auth check as signed out —
+  // the homepage is public, so that is the common case.
+  async function isSignedIn() {
+    const auth = window.AuthStateManager;
+    if (!auth || typeof auth.init !== 'function') {
+      return false;
+    }
+    try {
+      await auth.init();
+      return auth.isAuthenticated();
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function decorate(modal) {
+    const header = modal.modal.querySelector('.modal-header');
+    const title = modal.modal.querySelector('.modal-title');
+    const closeBtn = modal.modal.querySelector('.modal-close');
+
+    if (title) {
+      title.id = TITLE_ID;
+      modal.overlay.setAttribute('aria-labelledby', TITLE_ID);
+    }
+    if (closeBtn) {
+      closeBtn.innerHTML = CLOSE_ICON;
+    }
+    if (header) {
+      const badge = document.createElement('div');
+      badge.className = 'signup-popup-badge';
+      badge.setAttribute('aria-hidden', 'true');
+      badge.innerHTML = BADGE_ICON;
+      header.prepend(badge);
     }
   }
 
@@ -54,29 +107,36 @@
     modal.show();
     modal.overlay.classList.add('signup-popup-overlay');
     modal.modal.classList.add('signup-popup-modal');
+    decorate(modal);
   }
 
-  function init() {
+  async function init() {
     if (alreadyDismissed()) {
       return;
     }
 
-    fetch(SETTINGS_URL, { credentials: 'same-origin' })
-      .then(res => (res.ok ? res.json() : null))
-      .then(data => {
-        if (!data || data.enabled !== true) {
-          return;
+    try {
+      const res = await fetch(SETTINGS_URL, { credentials: 'same-origin' });
+      if (!res.ok) {
+        return;
+      }
+      const data = await res.json();
+      if (!data || data.enabled !== true) {
+        return;
+      }
+      if (await isSignedIn()) {
+        return;
+      }
+
+      const delayMs = Math.max(0, Number(data.delaySeconds) || 0) * 1000;
+      setTimeout(() => {
+        if (!alreadyDismissed()) {
+          showPopup();
         }
-        const delayMs = Math.max(0, Number(data.delaySeconds) || 0) * 1000;
-        setTimeout(() => {
-          if (!alreadyDismissed()) {
-            showPopup();
-          }
-        }, delayMs);
-      })
-      .catch(() => {
-        /* Popup is non-critical — fail silently rather than surfacing a network error */
-      });
+      }, delayMs);
+    } catch (_) {
+      /* Popup is non-critical — fail silently rather than surfacing a network error */
+    }
   }
 
   if (document.readyState === 'loading') {

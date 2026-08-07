@@ -755,10 +755,17 @@
 
   // Save sign-up popup settings
   document.getElementById('saveSignupPopup').addEventListener('click', async () => {
-    const delayValue = parseInt(document.getElementById('signupPopupDelay').value, 10);
+    const rawDelay = document.getElementById('signupPopupDelay').value.trim();
+    const delayValue = Number(rawDelay);
+
+    if (rawDelay === '' || !Number.isInteger(delayValue) || delayValue < 0 || delayValue > 300) {
+      AdminShared.showToast('Delay must be a whole number of seconds between 0 and 300', 'error');
+      return;
+    }
+
     const data = {
       enabled: document.getElementById('signupPopupEnabled').checked,
-      delaySeconds: Number.isInteger(delayValue) && delayValue >= 0 ? delayValue : 5,
+      delaySeconds: delayValue,
     };
 
     const saveBtn = document.getElementById('saveSignupPopup');
