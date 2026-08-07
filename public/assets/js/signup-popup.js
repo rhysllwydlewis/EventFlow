@@ -1,8 +1,9 @@
 /**
- * Homepage sign-up popup.
- * Reads the admin-controlled delay/enabled flag, then shows the shared
- * Modal component (components.js) to signed-out visitors. Dismissing it is
- * remembered until the visitor clears functional storage.
+ * Homepage sign-up popup / banner.
+ * Reads the admin-controlled mode (disabled/popup/banner) and delay, then
+ * shows either the shared Modal component (components.js) or a compact
+ * bottom banner to signed-out visitors. Dismissing either is remembered
+ * until the visitor clears functional storage.
  */
 (function () {
   'use strict';
@@ -10,6 +11,7 @@
   const STORAGE_KEY = 'ef_signup_popup_dismissed';
   const SETTINGS_URL = '/api/v1/public/signup-popup';
   const TITLE_ID = 'ef-signup-popup-title';
+  const BANNER_ID = 'ef-signup-banner';
 
   const BADGE_ICON =
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
@@ -142,9 +144,54 @@
   }
 
   /**
-   * Read the admin setting and, when the popup applies to this visitor,
-   * schedule it for the configured delay. Silent on any failure — the popup is
-   * non-critical and must never surface an error on the homepage.
+   * Build and show the compact banner variant: the same pitch and CTA as the
+   * popup, but as a slim, dismissible bar anchored to the bottom of the
+   * viewport instead of a blocking dialog.
+   *
+   * @returns {void}
+   */
+  function showBanner() {
+    if (alreadyDismissed() || document.getElementById(BANNER_ID)) {
+      return;
+    }
+
+    const banner = document.createElement('div');
+    banner.id = BANNER_ID;
+    banner.className = 'signup-banner';
+    banner.setAttribute('role', 'complementary');
+    banner.setAttribute('aria-labelledby', TITLE_ID);
+    banner.innerHTML = `
+      <div class="signup-banner-inner">
+        <div class="signup-banner-badge" aria-hidden="true">${BADGE_ICON}</div>
+        <div class="signup-banner-text">
+          <strong id="${TITLE_ID}">Join to get the full experience</strong>
+          <span>Save favourites, message suppliers directly and track your planning.</span>
+        </div>
+        <div class="signup-banner-actions">
+          <button type="button" class="cta signup-banner-cta">Log in / create account</button>
+          <button type="button" class="signup-banner-close" aria-label="Dismiss">${CLOSE_ICON}</button>
+        </div>
+      </div>`;
+
+    function dismiss() {
+      markDismissed();
+      banner.remove();
+    }
+
+    banner.querySelector('.signup-banner-cta').addEventListener('click', () => {
+      window.location.href = '/auth';
+    });
+    banner.querySelector('.signup-banner-close').addEventListener('click', dismiss);
+
+    document.body.appendChild(banner);
+    requestAnimationFrame(() => banner.classList.add('signup-banner-visible'));
+  }
+
+  /**
+   * Read the admin setting and, when the popup/banner applies to this
+   * visitor, schedule it for the configured delay. Silent on any failure —
+   * this feature is non-critical and must never surface an error on the
+   * homepage.
    *
    * @returns {Promise<void>}
    */
@@ -159,21 +206,22 @@
         return;
       }
       const data = await res.json();
-      if (!data || data.enabled !== true) {
+      if (!data || (data.mode !== 'popup' && data.mode !== 'banner')) {
         return;
       }
       if (await isSignedIn()) {
         return;
       }
 
+      const render = data.mode === 'banner' ? showBanner : showPopup;
       const delayMs = Math.max(0, Number(data.delaySeconds) || 0) * 1000;
       setTimeout(() => {
         if (!alreadyDismissed()) {
-          showPopup();
+          render();
         }
       }, delayMs);
     } catch (_) {
-      /* Popup is non-critical — fail silently rather than surfacing a network error */
+      /* Non-critical — fail silently rather than surfacing a network error */
     }
   }
 

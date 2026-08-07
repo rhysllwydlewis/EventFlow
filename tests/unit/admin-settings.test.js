@@ -236,8 +236,11 @@ describe('Admin Settings — Sign-up Popup', () => {
     expect(block).toContain('SIGNUP_POPUP_UPDATED');
   });
 
-  it('admin-settings.html has signupPopupEnabled toggle and signupPopupDelay field', () => {
-    expect(settingsHtmlContent).toContain('id="signupPopupEnabled"');
+  it('admin-settings.html has the three-way mode toggle and signupPopupDelay field', () => {
+    expect(settingsHtmlContent).toContain('id="signupPopupMode"');
+    expect(settingsHtmlContent).toContain('data-mode="disabled"');
+    expect(settingsHtmlContent).toContain('data-mode="popup"');
+    expect(settingsHtmlContent).toContain('data-mode="banner"');
     expect(settingsHtmlContent).toContain('id="signupPopupDelay"');
   });
 

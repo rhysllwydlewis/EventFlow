@@ -73,17 +73,35 @@ describe('GET /api/admin/settings/signup-popup', () => {
     const res = await request(buildApp()).get('/api/admin/settings/signup-popup');
 
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ enabled: false, delaySeconds: 5 });
+    expect(res.body).toEqual({ mode: 'disabled', enabled: false, delaySeconds: 5 });
   });
 
   it('returns the stored settings once saved', async () => {
-    mockStoredSettings = { signupPopup: { enabled: true, delaySeconds: 12 } };
+    mockStoredSettings = { signupPopup: { mode: 'popup', delaySeconds: 12 } };
 
     const res = await request(buildApp()).get('/api/admin/settings/signup-popup');
 
     expect(res.status).toBe(200);
+    expect(res.body.mode).toBe('popup');
     expect(res.body.enabled).toBe(true);
     expect(res.body.delaySeconds).toBe(12);
+  });
+
+  it('returns the banner mode once saved', async () => {
+    mockStoredSettings = { signupPopup: { mode: 'banner', delaySeconds: 3 } };
+
+    const res = await request(buildApp()).get('/api/admin/settings/signup-popup');
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ mode: 'banner', enabled: true, delaySeconds: 3 });
+  });
+
+  it('migrates a legacy enabled:true record (predating the banner mode) to popup', async () => {
+    mockStoredSettings = { signupPopup: { enabled: true, delaySeconds: 8 } };
+
+    const res = await request(buildApp()).get('/api/admin/settings/signup-popup');
+
+    expect(res.body).toEqual({ mode: 'popup', enabled: true, delaySeconds: 8 });
   });
 
   it('reports a 500 rather than leaking the underlying storage error', async () => {
@@ -103,40 +121,66 @@ describe('PUT /api/admin/settings/signup-popup', () => {
     mockStoredSettings = {};
   });
 
-  it('persists the toggle and delay', async () => {
+  it('persists the mode and delay', async () => {
     const res = await request(buildApp())
       .put('/api/admin/settings/signup-popup')
-      .send({ enabled: true, delaySeconds: 8 });
+      .send({ mode: 'popup', delaySeconds: 8 });
 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
+    expect(mockStoredSettings.signupPopup.mode).toBe('popup');
     expect(mockStoredSettings.signupPopup.enabled).toBe(true);
     expect(mockStoredSettings.signupPopup.delaySeconds).toBe(8);
     expect(mockStoredSettings.signupPopup.updatedBy).toBe('admin@example.com');
   });
 
+  it('persists the banner mode', async () => {
+    const res = await request(buildApp())
+      .put('/api/admin/settings/signup-popup')
+      .send({ mode: 'banner', delaySeconds: 5 });
+
+    expect(res.status).toBe(200);
+    expect(mockStoredSettings.signupPopup.mode).toBe('banner');
+    expect(mockStoredSettings.signupPopup.enabled).toBe(true);
+  });
+
+  it('persists disabled with enabled derived as false', async () => {
+    const res = await request(buildApp())
+      .put('/api/admin/settings/signup-popup')
+      .send({ mode: 'disabled', delaySeconds: 5 });
+
+    expect(res.status).toBe(200);
+    expect(mockStoredSettings.signupPopup.mode).toBe('disabled');
+    expect(mockStoredSettings.signupPopup.enabled).toBe(false);
+  });
+
   it('records an audit entry', async () => {
     await request(buildApp())
       .put('/api/admin/settings/signup-popup')
-      .send({ enabled: true, delaySeconds: 5 });
+      .send({ mode: 'popup', delaySeconds: 5 });
 
     expect(mockAuditLog).toHaveBeenCalledWith(
       expect.objectContaining({ action: 'SIGNUP_POPUP_UPDATED' })
     );
   });
 
-  it('coerces a truthy non-boolean to a strict false rather than enabling the popup', async () => {
-    await request(buildApp())
+  it.each([
+    ['an unknown mode', 'always'],
+    ['a missing mode', undefined],
+    ['a legacy boolean instead of a mode', true],
+  ])('rejects %s with a 400 and leaves the stored settings untouched', async (_label, value) => {
+    const res = await request(buildApp())
       .put('/api/admin/settings/signup-popup')
-      .send({ enabled: 'yes', delaySeconds: 5 });
+      .send({ mode: value, delaySeconds: 5 });
 
-    expect(mockStoredSettings.signupPopup.enabled).toBe(false);
+    expect(res.status).toBe(400);
+    expect(mockStoredSettings.signupPopup).toBeUndefined();
   });
 
   it('accepts a zero-second delay', async () => {
     const res = await request(buildApp())
       .put('/api/admin/settings/signup-popup')
-      .send({ enabled: true, delaySeconds: 0 });
+      .send({ mode: 'popup', delaySeconds: 0 });
 
     expect(res.status).toBe(200);
     expect(mockStoredSettings.signupPopup.delaySeconds).toBe(0);
@@ -151,7 +195,7 @@ describe('PUT /api/admin/settings/signup-popup', () => {
   ])('rejects %s with a 400 and leaves the stored settings untouched', async (_label, value) => {
     const res = await request(buildApp())
       .put('/api/admin/settings/signup-popup')
-      .send({ enabled: true, delaySeconds: value });
+      .send({ mode: 'popup', delaySeconds: value });
 
     expect(res.status).toBe(400);
     expect(mockStoredSettings.signupPopup).toBeUndefined();
@@ -162,7 +206,7 @@ describe('PUT /api/admin/settings/signup-popup', () => {
 
     const res = await request(buildApp())
       .put('/api/admin/settings/signup-popup')
-      .send({ enabled: true, delaySeconds: 5 });
+      .send({ mode: 'popup', delaySeconds: 5 });
 
     expect(res.status).toBe(500);
     expect(res.body).toEqual({ error: 'Failed to update settings' });
@@ -177,7 +221,7 @@ describe('PUT /api/admin/settings/signup-popup', () => {
 
     await request(buildApp())
       .put('/api/admin/settings/signup-popup')
-      .send({ enabled: true, delaySeconds: 5 });
+      .send({ mode: 'popup', delaySeconds: 5 });
 
     expect(mockStoredSettings.maintenance).toEqual({ enabled: true, message: 'Back soon' });
     expect(mockStoredSettings.features).toEqual({ registration: false });

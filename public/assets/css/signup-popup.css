@@ -163,3 +163,153 @@
     transform: none;
   }
 }
+
+/* ---------- Compact banner variant ----------
+   Same pitch/CTA as the popup, but a slim non-blocking bar instead of a
+   dialog. Sits above the cookie-consent banner (z-index: 9999) at a lower
+   layer than the popup overlay (10000) since the two never show together. */
+
+.signup-banner {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9998;
+  transform: translateY(100%);
+  transition: transform 0.3s ease;
+  background: var(--card, #fff);
+  border-top: 1px solid var(--border, #e4e7ec);
+  box-shadow: 0 -8px 24px rgba(16, 24, 40, 0.12);
+}
+
+.signup-banner.signup-banner-visible {
+  transform: translateY(0);
+}
+
+.signup-banner-inner {
+  max-width: 960px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: var(--ef-space-4, 16px);
+  padding: var(--ef-space-3, 12px) var(--ef-space-5, 24px);
+}
+
+.signup-banner-badge {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--ef-radius-full, 9999px);
+  background: var(--ef-gradient-primary, linear-gradient(135deg, #0b8073 0%, #13b6a2 100%));
+  color: #fff;
+}
+
+.signup-banner-badge svg {
+  width: 18px;
+  height: 18px;
+}
+
+.signup-banner-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.signup-banner-text strong {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text, #0b1220);
+}
+
+.signup-banner-text span {
+  font-size: 13px;
+  color: var(--muted, #667085);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.signup-banner-actions {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--ef-space-2, 8px);
+}
+
+.signup-banner-cta {
+  padding: 9px 16px !important;
+  border-radius: var(--radius, 14px) !important;
+  background: var(--ef-gradient-primary, linear-gradient(135deg, #0b8073 0%, #13b6a2 100%));
+  box-shadow: 0 6px 18px rgba(11, 128, 115, 0.35);
+  font-size: 13px !important;
+  white-space: nowrap;
+}
+
+.signup-banner-close {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: none;
+  border-radius: var(--ef-radius-full, 9999px);
+  background: transparent;
+  color: var(--muted, #667085);
+  cursor: pointer;
+}
+
+.signup-banner-close:hover {
+  background: var(--surface-2, #f2f4f7);
+  color: var(--text, #0b1220);
+}
+
+.signup-banner-close svg {
+  width: 14px;
+  height: 14px;
+}
+
+@media (max-width: 640px) {
+  .signup-banner-inner {
+    flex-wrap: wrap;
+    padding: var(--ef-space-3, 12px) var(--ef-space-4, 16px);
+  }
+
+  .signup-banner-text {
+    order: 1;
+    flex: 1 1 100%;
+  }
+
+  .signup-banner-text span {
+    white-space: normal;
+  }
+
+  .signup-banner-badge {
+    order: 0;
+  }
+
+  .signup-banner-close {
+    order: 2;
+  }
+
+  .signup-banner-actions {
+    order: 3;
+    flex: 1 1 100%;
+  }
+
+  .signup-banner-cta {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .signup-banner {
+    transition: none;
+  }
+}

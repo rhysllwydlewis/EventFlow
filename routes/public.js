@@ -272,20 +272,30 @@ router.get('/homepage-settings', async (req, res) => {
   }
 });
 
+const SIGNUP_POPUP_MODES = ['disabled', 'popup', 'banner'];
+
 router.get('/signup-popup', async (req, res) => {
   try {
     res.set('Cache-Control', 'no-store, private');
     const settings = (await dbUnified.read('settings')) || {};
     const signupPopup = settings.signupPopup || {};
 
+    // Legacy records only had a boolean `enabled`, which predates the banner
+    // mode and maps to the popup presentation.
+    let mode = SIGNUP_POPUP_MODES.includes(signupPopup.mode) ? signupPopup.mode : null;
+    if (!mode) {
+      mode = signupPopup.enabled === true ? 'popup' : 'disabled';
+    }
+
     res.json({
-      enabled: signupPopup.enabled === true,
+      mode,
+      enabled: mode !== 'disabled',
       delaySeconds: Number.isInteger(signupPopup.delaySeconds) ? signupPopup.delaySeconds : 5,
     });
   } catch (error) {
     logger.error('Error reading signup popup settings:', error.message);
     // Fail closed on error so a settings-read failure can't force the popup onto every visitor
-    res.status(200).json({ enabled: false, delaySeconds: 5 });
+    res.status(200).json({ mode: 'disabled', enabled: false, delaySeconds: 5 });
   }
 });
 

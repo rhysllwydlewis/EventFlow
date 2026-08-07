@@ -67,8 +67,8 @@ describe('Sign-up popup — targeting', () => {
     expect(popupJs).toContain('if (await isSignedIn())');
   });
 
-  it('only shows when the admin setting is explicitly enabled', () => {
-    expect(popupJs).toContain('data.enabled !== true');
+  it('only shows when the admin setting is popup or banner mode', () => {
+    expect(popupJs).toContain("data.mode !== 'popup' && data.mode !== 'banner'");
     expect(popupJs).toContain('/api/v1/public/signup-popup');
   });
 
@@ -106,6 +106,33 @@ describe('Sign-up popup — homepage wiring', () => {
     expect(indexHtml.indexOf('/assets/js/components.js')).toBeLessThan(
       indexHtml.indexOf('/assets/js/signup-popup.js')
     );
+  });
+});
+
+describe('Sign-up popup — banner mode', () => {
+  it('defines a showBanner path distinct from the popup dialog', () => {
+    expect(popupJs).toContain('function showBanner()');
+    expect(popupJs).toContain("data.mode === 'banner' ? showBanner : showPopup");
+  });
+
+  it('dismissing the banner marks it dismissed the same way as the popup', () => {
+    const block = popupJs.slice(popupJs.indexOf('function showBanner()'));
+    expect(block).toContain('markDismissed()');
+  });
+
+  it('sends the banner CTA to the real auth route', () => {
+    const block = popupJs.slice(popupJs.indexOf('function showBanner()'));
+    expect(block).toContain("window.location.href = '/auth'");
+  });
+
+  it('styles the banner as a fixed, dismissible bottom bar below the popup overlay layer', () => {
+    expect(popupCss).toMatch(/\.signup-banner\s*\{[^}]*position:\s*fixed/);
+    expect(popupCss).toMatch(/\.signup-banner\s*\{[^}]*z-index:\s*9998/);
+  });
+
+  it('respects prefers-reduced-motion for the banner slide-in', () => {
+    const block = popupCss.slice(popupCss.lastIndexOf('prefers-reduced-motion'));
+    expect(block).toContain('.signup-banner');
   });
 });
 

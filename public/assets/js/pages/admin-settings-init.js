@@ -743,12 +743,33 @@
    *
    * @returns {Promise<void>}
    */
+  const SIGNUP_POPUP_MODES = ['disabled', 'popup', 'banner'];
+
+  /**
+   * Reflect the selected mode onto the segmented control's pressed state and
+   * the hidden input the save handler reads from.
+   *
+   * @param {string} mode - one of SIGNUP_POPUP_MODES
+   * @returns {void}
+   */
+  function setSignupPopupMode(mode) {
+    const resolved = SIGNUP_POPUP_MODES.includes(mode) ? mode : 'disabled';
+    document.getElementById('signupPopupMode').value = resolved;
+    document.querySelectorAll('.signup-popup-mode-btn').forEach(btn => {
+      btn.setAttribute('aria-pressed', String(btn.dataset.mode === resolved));
+    });
+  }
+
+  document.querySelectorAll('.signup-popup-mode-btn').forEach(btn => {
+    btn.addEventListener('click', () => setSignupPopupMode(btn.dataset.mode));
+  });
+
   async function loadSignupPopup() {
     try {
       const signupPopup = await AdminShared.adminFetch('/api/admin/settings/signup-popup', {
         method: 'GET',
       });
-      document.getElementById('signupPopupEnabled').checked = signupPopup.enabled || false;
+      setSignupPopupMode(signupPopup.mode);
       document.getElementById('signupPopupDelay').value = Number.isInteger(signupPopup.delaySeconds)
         ? signupPopup.delaySeconds
         : 5;
@@ -768,7 +789,7 @@
     }
 
     const data = {
-      enabled: document.getElementById('signupPopupEnabled').checked,
+      mode: document.getElementById('signupPopupMode').value,
       delaySeconds: delayValue,
     };
 

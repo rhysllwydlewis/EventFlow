@@ -4072,11 +4072,32 @@ router.put('/settings/maintenance', authRequired, roleRequired('admin'), csrfPro
  * GET /api/admin/settings/signup-popup
  * Get homepage sign-up popup settings
  */
+const SIGNUP_POPUP_MODES = ['disabled', 'popup', 'banner'];
+
+/**
+ * Normalize a stored/legacy signup popup record to the current { mode, enabled, delaySeconds } shape.
+ * Pre-three-way-toggle records only had a boolean `enabled`, which maps to the 'popup' mode.
+ *
+ * @param {Object} signupPopup - raw settings.signupPopup record (may be undefined)
+ * @returns {{mode: string, enabled: boolean, delaySeconds: number}}
+ */
+function normalizeSignupPopup(signupPopup) {
+  const record = signupPopup || {};
+  let mode = SIGNUP_POPUP_MODES.includes(record.mode) ? record.mode : null;
+  if (!mode) {
+    mode = record.enabled === true ? 'popup' : 'disabled';
+  }
+  return {
+    mode,
+    enabled: mode !== 'disabled',
+    delaySeconds: Number.isInteger(record.delaySeconds) ? record.delaySeconds : 5,
+  };
+}
+
 router.get('/settings/signup-popup', authRequired, roleRequired('admin'), async (req, res) => {
   try {
     const settings = (await dbUnified.read('settings')) || {};
-    const signupPopup = settings.signupPopup || { enabled: false, delaySeconds: 5 };
-    res.json(signupPopup);
+    res.json(normalizeSignupPopup(settings.signupPopup));
   } catch (error) {
     logger.error('Error reading signup popup settings:', error);
     res.status(500).json({ error: 'Failed to read settings' });
@@ -4090,7 +4111,13 @@ router.get('/settings/signup-popup', authRequired, roleRequired('admin'), async 
 // prettier-ignore
 router.put('/settings/signup-popup', authRequired, roleRequired('admin'), csrfProtection, writeLimiter, async (req, res) => {
     try {
-      const { enabled, delaySeconds } = req.body;
+      const { mode, delaySeconds } = req.body;
+
+      if (!SIGNUP_POPUP_MODES.includes(mode)) {
+        return res
+          .status(400)
+          .json({ error: `mode must be one of: ${SIGNUP_POPUP_MODES.join(', ')}` });
+      }
 
       const parsedDelay = Number(delaySeconds);
       if (!Number.isInteger(parsedDelay) || parsedDelay < 0 || parsedDelay > 300) {
@@ -4102,7 +4129,8 @@ router.put('/settings/signup-popup', authRequired, roleRequired('admin'), csrfPr
       const settings = (await dbUnified.read('settings')) || {};
 
       settings.signupPopup = {
-        enabled: enabled === true,
+        mode,
+        enabled: mode !== 'disabled',
         delaySeconds: parsedDelay,
         updatedAt: new Date().toISOString(),
         updatedBy: req.user.email,
@@ -4117,7 +4145,7 @@ router.put('/settings/signup-popup', authRequired, roleRequired('admin'), csrfPr
         action: 'SIGNUP_POPUP_UPDATED',
         targetType: 'signupPopup',
         targetId: null,
-        details: { enabled: settings.signupPopup.enabled, delaySeconds: parsedDelay },
+        details: { mode, enabled: settings.signupPopup.enabled, delaySeconds: parsedDelay },
       });
 
       // Return verified data from database
