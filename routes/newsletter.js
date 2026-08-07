@@ -197,12 +197,15 @@ router.get('/confirm', async (req, res) => {
 
     // Send optional welcome email
     try {
+      const baseUrl =
+        process.env.APP_BASE_URL || process.env.BASE_URL || 'https://event-flow.co.uk';
       await postmark.sendMail({
         to: subscriber.email,
         subject: 'Welcome to EventFlow!',
         template: 'newsletter-welcome',
         templateData: {
           email: subscriber.email,
+          unsubscribeLink: `${baseUrl}/newsletter/unsubscribe?email=${encodeURIComponent(subscriber.email)}`,
         },
         from: postmark.FROM_INFO,
         messageStream: 'outbound',

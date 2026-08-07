@@ -358,10 +358,14 @@ describe('Postmark — Admin Email Flows (route contract)', () => {
   it('admin ticket reply email XSS-escapes user content before embedding in HTML', () => {
     const replyIdx = adminContent.indexOf('/tickets/:id/reply');
     const block = adminContent.substring(replyIdx, replyIdx + 4000);
+    // Uses the shared support-ticket-reply template — the reply body goes
+    // through safeLineBreakHtml (escapeHtml + <br> conversion) before being
+    // passed as replyMessageHtml, one of postmark.js's RAW_HTML_TEMPLATE_KEYS
+    // (pre-escaped content that bypasses the template engine's own escaping).
     expect(block).toContain('escapeHtml');
-    // Uses local escapeHtml helper to build safe names and messages
-    expect(block).toMatch(/safeSenderName|safeName/);
-    expect(block).toContain('safeMessage');
+    expect(block).toContain('safeLineBreakHtml');
+    expect(block).toContain("template: 'support-ticket-reply'");
+    expect(block).toContain('replyMessageHtml: safeLineBreakHtml(message)');
   });
 
   it('admin contact enquiry reply sends email to senderEmail (non-blocking best-effort)', () => {
@@ -378,6 +382,8 @@ describe('Postmark — Admin Email Flows (route contract)', () => {
     const block = adminContent.substring(enquiryIdx, enquiryIdx + 4000);
     expect(block).toContain('escapeHtml');
     expect(block).toContain('safeMessage');
+    expect(block).toContain("template: 'contact-enquiry-reply'");
+    expect(block).toContain('replyMessageHtml: safeMessage');
   });
 
   it('admin routes require postmark utility at top level', () => {

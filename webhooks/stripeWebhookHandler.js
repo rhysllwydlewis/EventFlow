@@ -422,6 +422,16 @@ async function handleSubscriptionCreated(stripeSubscription) {
 
       const status = trialEnd ? 'Trial' : 'Active';
       const features = PLAN_EMAIL_FEATURES[plan] || PLAN_EMAIL_FEATURES.free;
+      // Only show a "Trial period" row when there actually was one — showing
+      // "Trial period: 0 days" on a direct paid activation reads as if a
+      // trial existed and already ran out, which is confusing.
+      const trialRow =
+        trialDaysCount > 0
+          ? `<tr>
+                        <td style="padding:9px 0;font-size:14px;color:#667085;border-bottom:1px solid #E7EAF0;">Trial period</td>
+                        <td style="padding:9px 0;font-size:14px;color:#0B1220;font-weight:600;text-align:right;border-bottom:1px solid #E7EAF0;">${trialDaysCount} days</td>
+                      </tr>`
+          : '';
 
       await postmark.sendMail({
         to: user.email,
@@ -431,7 +441,7 @@ async function handleSubscriptionCreated(stripeSubscription) {
           name: user.name || 'there',
           planName: formatPlanName(plan),
           status,
-          trialDays: trialDaysCount > 0 ? String(trialDaysCount) : '0',
+          trialRow,
           renewalDate,
           amount,
           billingCycle: billingInterval,
