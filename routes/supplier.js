@@ -864,45 +864,76 @@ router.get('/dashboard-summary', authRequired, async (req, res) => {
       const profileCount = supplierProfiles.length;
       const topProfile = supplier; // primary profile already found above via findOne
 
-      const hasDescription = !!(topProfile.description_short || '').trim();
-      const hasLocation = !!(topProfile.location || '').trim();
-      const hasPhotos =
-        Array.isArray(topProfile.photosGallery) && topProfile.photosGallery.length >= 3;
-      const hasBanner = !!(topProfile.bannerUrl || '').trim();
-      const hasTagline = !!(topProfile.tagline || '').trim();
-      const hasHighlights =
-        Array.isArray(topProfile.highlights) && topProfile.highlights.length >= 2;
-      const hasSocialLinks =
-        topProfile.socialLinks &&
-        typeof topProfile.socialLinks === 'object' &&
-        Object.values(topProfile.socialLinks).some(v => v && String(v).trim());
-      const hasPrice = !!(topProfile.startingPrice || topProfile.price_range || topProfile.price);
+      // Mirrors ProfileHealthWidget's client-side calculation (public/assets/js/components/
+      // profile-health-widget.js) so the "profile health is low" alert on this dashboard
+      // fires (or doesn't) in agreement with the percentage the supplier actually sees on
+      // the "Profile Health" card, rather than a separate, disagreeing formula.
+      const galleryCount = new Set(
+        [
+          ...(Array.isArray(topProfile.photosGallery) ? topProfile.photosGallery : []),
+          ...(Array.isArray(topProfile.images) ? topProfile.images : []),
+        ]
+          .map(item =>
+            typeof item === 'string'
+              ? item.trim()
+              : String(
+                  item?.url ||
+                    item?.large ||
+                    item?.optimized ||
+                    item?.original ||
+                    item?.thumbnail ||
+                    item?.src ||
+                    ''
+                ).trim()
+          )
+          .filter(Boolean)
+      ).size;
+      const socialLinkCount = Object.values({
+        ...(topProfile.socials && typeof topProfile.socials === 'object' ? topProfile.socials : {}),
+        ...(topProfile.socialLinks && typeof topProfile.socialLinks === 'object'
+          ? topProfile.socialLinks
+          : {}),
+      }).filter(Boolean).length;
 
-      let healthScore = 0;
-      if (hasDescription) {
-        healthScore += 20;
-      }
-      if (hasLocation) {
-        healthScore += 15;
-      }
-      if (hasPhotos) {
-        healthScore += 20;
-      }
-      if (hasBanner) {
-        healthScore += 10;
-      }
-      if (hasTagline) {
-        healthScore += 10;
-      }
-      if (hasHighlights) {
-        healthScore += 10;
-      }
-      if (hasSocialLinks) {
-        healthScore += 10;
-      }
-      if (hasPrice) {
-        healthScore += 5;
-      }
+      const hasLogo = !!(
+        topProfile.logo ||
+        topProfile.profileImage ||
+        topProfile.profilePhotoUrl ||
+        topProfile.avatarUrl
+      );
+      const hasDescription =
+        String(
+          topProfile.description_long ||
+            topProfile.description_short ||
+            topProfile.description ||
+            topProfile.blurb ||
+            ''
+        ).trim().length >= 100;
+      const hasContact = !!(topProfile.email && topProfile.phone);
+      const hasLocation = !!(
+        (topProfile.location || '').trim() &&
+        (topProfile.postcode || topProfile.venuePostcode || '').toString().trim()
+      );
+      const hasCoverImage = !!(topProfile.bannerUrl || topProfile.coverImage);
+      const hasGallery = galleryCount >= 3;
+      const hasSocialLinks = socialLinkCount >= 2;
+      const hasWebsite = !!topProfile.website;
+      const hasBusinessHours = !!(
+        topProfile.businessHours && Object.keys(topProfile.businessHours).length > 0
+      );
+      const hasFaqs = Array.isArray(topProfile.faqs) && topProfile.faqs.length >= 3;
+
+      const healthScore =
+        (hasLogo ? 10 : 0) +
+        (hasDescription ? 10 : 0) +
+        (hasContact ? 10 : 0) +
+        (hasLocation ? 10 : 0) +
+        (hasCoverImage ? 10 : 0) +
+        (hasGallery ? 10 : 0) +
+        (hasSocialLinks ? 10 : 0) +
+        (hasWebsite ? 5 : 0) +
+        (hasBusinessHours ? 10 : 0) +
+        (hasFaqs ? 15 : 0);
 
       profileData = {
         hasProfile: profileCount > 0,
@@ -912,14 +943,16 @@ router.get('/dashboard-summary', authRequired, async (req, res) => {
         healthScore,
         isApproved: !!(topProfile.approved || topProfile.verified),
         completionFlags: {
-          hasPhotos,
-          hasBanner,
-          hasTagline,
-          hasHighlights,
-          hasSocialLinks,
+          hasLogo,
           hasDescription,
+          hasContact,
           hasLocation,
-          hasPrice,
+          hasCoverImage,
+          hasGallery,
+          hasSocialLinks,
+          hasWebsite,
+          hasBusinessHours,
+          hasFaqs,
         },
       };
     } catch (err) {

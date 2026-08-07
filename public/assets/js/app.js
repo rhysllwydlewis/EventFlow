@@ -3259,7 +3259,11 @@ async function initDashSupplier() {
             tierLabel = 'Starter';
           }
 
-          // Calculate profile completeness checklist with safe property access
+          // Profile completeness checklist shown under each listing card. The score itself
+          // reuses ProfileHealthWidget's calculation (the same one shown on the "Profile
+          // Health" card further down this dashboard) so the two never disagree for the
+          // same supplier. This checklist only controls which "improve your profile" items
+          // are surfaced per-card; package creation stays as a dashboard-specific nudge.
           const hasPhotos =
             s.photosGallery && Array.isArray(s.photosGallery) && s.photosGallery.length > 0;
           const hasDescription =
@@ -3292,9 +3296,16 @@ async function initDashSupplier() {
             },
             { label: 'Business Description', complete: hasDescription, targetField: 'sup-long' },
           ];
-          const completedCount = checklistItems.filter(item => item.complete).length;
-          // Health score: 0-100 based on checklist completion across all checklist items.
-          const checklistScore = Math.round((completedCount / checklistItems.length) * 100);
+          // Health score: same formula as the "Profile Health" card (ProfileHealthWidget),
+          // falling back to this checklist's own completion ratio only if that shared
+          // component failed to load.
+          const checklistScore =
+            window.ProfileHealthWidget && typeof window.ProfileHealthWidget.calculate === 'function'
+              ? window.ProfileHealthWidget.calculate(s).percentage
+              : Math.round(
+                  (checklistItems.filter(item => item.complete).length / checklistItems.length) *
+                    100
+                );
 
           // Safe access to all fields with defaults — escape all user-supplied values to prevent XSS
           const supplierId = String(s.id || '').replace(/"/g, '&quot;');
