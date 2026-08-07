@@ -1,6 +1,10 @@
 # Use the exact supported Node 22 release used by local development and CI.
 FROM node:22.23.1-alpine
 
+# The base image's bundled npm can lag behind security fixes even when Node is
+# pinned. Keep the global CLI fixed too because it remains in the runtime image.
+RUN npm install --global npm@12.0.2 && npm cache clean --force
+
 # Install curl for healthcheck
 RUN apk add --no-cache curl
 

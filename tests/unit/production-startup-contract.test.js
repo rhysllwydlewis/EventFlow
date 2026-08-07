@@ -38,6 +38,13 @@ describe('production startup contract', () => {
     expect(preload).toContain("require('./backgroundJobTelemetryBridge')");
   });
 
+  test('the production image replaces the base image npm with the security-patched release', () => {
+    const dockerfile = read('Dockerfile');
+
+    expect(dockerfile).toContain('RUN npm install --global npm@12.0.2');
+    expect(dockerfile).toContain('npm cache clean --force');
+  });
+
   test('metadata launch failure is non-fatal and detached from server startup', () => {
     jest.resetModules();
     const { launchDeploymentMetadata } = require('../../services/deploymentMetadataPreload');
