@@ -37,6 +37,7 @@ const {
   renderDigest,
   sendCommunityDigests,
   scheduleCommunityDigest,
+  logSchedulerStartup,
   MAX_DISCUSSIONS_IN_DIGEST,
 } = require('../../services/communityDigest.service');
 
@@ -143,23 +144,21 @@ describe('sendCommunityDigests', () => {
   it('emails only verified members whose preference matches the cadence', async () => {
     const sendMail = jest.fn().mockResolvedValue({});
     const db = {
-      read: jest
-        .fn()
-        .mockResolvedValue([
-          user({ id: 'daily-1', email: 'a@example.com' }),
-          user({
-            id: 'weekly-1',
-            email: 'b@example.com',
-            communityNotificationPreferences: { email: 'weekly' },
-          }),
-          user({
-            id: 'none-1',
-            email: 'c@example.com',
-            communityNotificationPreferences: { email: 'none' },
-          }),
-          user({ id: 'unverified-1', email: 'd@example.com', verified: false }),
-          { id: 'no-prefs', email: 'e@example.com', verified: true },
-        ]),
+      read: jest.fn().mockResolvedValue([
+        user({ id: 'daily-1', email: 'a@example.com' }),
+        user({
+          id: 'weekly-1',
+          email: 'b@example.com',
+          communityNotificationPreferences: { email: 'weekly' },
+        }),
+        user({
+          id: 'none-1',
+          email: 'c@example.com',
+          communityNotificationPreferences: { email: 'none' },
+        }),
+        user({ id: 'unverified-1', email: 'd@example.com', verified: false }),
+        { id: 'no-prefs', email: 'e@example.com', verified: true },
+      ]),
     };
 
     const result = await sendCommunityDigests({
@@ -235,5 +234,102 @@ describe('scheduleCommunityDigest', () => {
 
     expect(result.scheduled).toBe(true);
     expect(scheduleModule.scheduleJob).toHaveBeenCalledTimes(2);
+  });
+
+  it('reports failure when node-schedule rejects the cron expression', () => {
+    process.env.COMMUNITY_DIGEST_ENABLED = 'true';
+    const scheduleModule = { scheduleJob: jest.fn().mockReturnValue(null) };
+
+    const result = scheduleCommunityDigest({ log, scheduleModule });
+
+    expect(result.scheduled).toBe(false);
+    expect(log.error).toHaveBeenCalledWith(
+      '[community-digest] Invalid cron expression(s)',
+      expect.any(Object)
+    );
+  });
+
+  it('runs the scheduled job body, recording success telemetry', async () => {
+    process.env.COMMUNITY_DIGEST_ENABLED = 'true';
+    community.loadPublicDiscussions.mockReset().mockResolvedValue([
+      {
+        title: 'Fresh',
+        url: '/community/discussion/fresh',
+        category: { name: 'General' },
+        replyCount: 0,
+        lastActivityAt: new Date().toISOString(),
+      },
+    ]);
+    const db = { read: jest.fn().mockResolvedValue([]) };
+    const capturedJobs = [];
+    const scheduleModule = {
+      scheduleJob: jest.fn((cronExpr, fn) => {
+        capturedJobs.push(fn);
+        return { nextInvocation: () => new Date() };
+      }),
+    };
+
+    scheduleCommunityDigest({ db, log, scheduleModule });
+    const [dailyJob] = capturedJobs;
+    await dailyJob();
+
+    expect(log.info).toHaveBeenCalledWith(expect.stringContaining('[community-digest] Sent'));
+  });
+
+  it('records a failed run rather than throwing when sendCommunityDigests errors', async () => {
+    process.env.COMMUNITY_DIGEST_ENABLED = 'true';
+    community.loadPublicDiscussions.mockReset().mockRejectedValue(new Error('db exploded'));
+    const db = { read: jest.fn().mockResolvedValue([]) };
+    const capturedJobs = [];
+    const scheduleModule = {
+      scheduleJob: jest.fn((cronExpr, fn) => {
+        capturedJobs.push(fn);
+        return { nextInvocation: () => new Date() };
+      }),
+    };
+
+    scheduleCommunityDigest({ db, log, scheduleModule });
+    const [dailyJob] = capturedJobs;
+    await expect(dailyJob()).resolves.toBeUndefined();
+
+    expect(log.error).toHaveBeenCalledWith(
+      expect.stringContaining('Scheduled daily run failed'),
+      'db exploded'
+    );
+  });
+});
+
+describe('logSchedulerStartup', () => {
+  const log = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
+  const originalEnabled = process.env.COMMUNITY_DIGEST_ENABLED;
+
+  afterEach(() => {
+    if (originalEnabled === undefined) {
+      delete process.env.COMMUNITY_DIGEST_ENABLED;
+    } else {
+      process.env.COMMUNITY_DIGEST_ENABLED = originalEnabled;
+    }
+    log.info.mockClear();
+  });
+
+  it('logs the daily and weekly cron when scheduling succeeds', () => {
+    process.env.COMMUNITY_DIGEST_ENABLED = 'true';
+    const scheduleModule = {
+      scheduleJob: jest.fn().mockReturnValue({ nextInvocation: () => new Date() }),
+    };
+
+    const result = logSchedulerStartup({ log, scheduleModule });
+
+    expect(result.scheduled).toBe(true);
+    expect(log.info).toHaveBeenCalledWith('   ✅ Community digest scheduled');
+  });
+
+  it('logs that the scheduler is disabled rather than throwing', () => {
+    process.env.COMMUNITY_DIGEST_ENABLED = 'false';
+
+    const result = logSchedulerStartup({ log });
+
+    expect(result.scheduled).toBe(false);
+    expect(log.info).toHaveBeenCalledWith('   ℹ️  Community digest scheduler disabled');
   });
 });

@@ -157,3 +157,39 @@ describe('Messenger v4 block routes', () => {
     expect(listRes.body.blocked).toEqual([]);
   });
 });
+
+describe('Messenger v4 block routes — error handling', () => {
+  function buildBrokenApp(currentUserId) {
+    const brokenCollection = {
+      findOne: () => Promise.reject(new Error('db unavailable')),
+      find: () => ({
+        sort: () => ({
+          toArray: () => Promise.reject(new Error('db unavailable')),
+        }),
+      }),
+      insertOne: () => Promise.reject(new Error('db unavailable')),
+      deleteOne: () => Promise.reject(new Error('db unavailable')),
+      createIndex: () => Promise.resolve('ok'),
+    };
+    const brokenDb = { collection: () => brokenCollection };
+    return buildApp(brokenDb, currentUserId);
+  }
+
+  it('GET /blocked returns 500 rather than crashing when the database is unavailable', async () => {
+    const app = buildBrokenApp('user1');
+    const res = await request(app).get('/api/v4/messenger/blocked');
+    expect(res.status).toBe(500);
+  });
+
+  it('POST /block returns 500 rather than crashing when the database is unavailable', async () => {
+    const app = buildBrokenApp('user1');
+    const res = await request(app).post('/api/v4/messenger/block').send({ userId: 'user2' });
+    expect(res.status).toBe(500);
+  });
+
+  it('DELETE /block/:userId returns 500 rather than crashing when the database is unavailable', async () => {
+    const app = buildBrokenApp('user1');
+    const res = await request(app).delete('/api/v4/messenger/block/user2');
+    expect(res.status).toBe(500);
+  });
+});

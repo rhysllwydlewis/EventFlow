@@ -1781,6 +1781,22 @@ describe('POST /api/v1/community/attachments', () => {
     expect(res.status).toBe(400);
   });
 
+  it('returns 500 rather than crashing when the upload cannot be written to disk', async () => {
+    const mkdirSpy = jest
+      .spyOn(require('fs').promises, 'mkdir')
+      .mockRejectedValueOnce(new Error('disk full'));
+    try {
+      const res = await request(app)
+        .post('/api/v1/community/attachments')
+        .set('Cookie', authCookie(users.member))
+        .attach('image', pngBytes, 'photo.png');
+      expect(res.status).toBe(500);
+      expect(res.body.error).toBe('Could not upload image');
+    } finally {
+      mkdirSpy.mockRestore();
+    }
+  });
+
   it('rejects a non-image file', async () => {
     const res = await request(app)
       .post('/api/v1/community/attachments')
