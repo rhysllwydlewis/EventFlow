@@ -70,7 +70,7 @@ describe('city hero defaults', () => {
       .listCities()
       .map(city => [city, heroImages.buildCitySearchQuery(city)]);
 
-    expect(queries).toHaveLength(58);
+    expect(queries).toHaveLength(59);
     queries.forEach(([city, query]) => {
       expect(query).toContain(city.name);
       expect(query).toContain(city.nation);

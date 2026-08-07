@@ -112,6 +112,21 @@
       badgeId: 'openTicketsBadge',
     },
     {
+      href: '/admin-external-contacts',
+      icon: '📩',
+      label: 'External Contacts',
+      group: 'moderation',
+      desc: 'Enquiries from VEXI, Chlo and other integrated sites',
+      badgeId: 'navBadgeExternalContacts',
+    },
+    {
+      href: '/admin-community',
+      icon: '💜',
+      label: 'Community',
+      group: 'moderation',
+      desc: 'Community moderation, reports, categories and health',
+    },
+    {
       href: '/admin-reports',
       icon: '📈',
       label: 'Reports',
@@ -125,6 +140,21 @@
       label: 'Messages',
       group: 'moderation',
       desc: 'Conversation moderation',
+    },
+    {
+      href: '/admin-cashout-requests',
+      icon: '💸',
+      label: 'Cashout Requests',
+      group: 'moderation',
+      desc: 'Partner cashout requests — approve, process and deliver',
+    },
+    {
+      href: '/admin-locations',
+      icon: '📍',
+      label: 'Locations',
+      group: 'content',
+      desc: 'UK city pages: publication, indexing and editorial review',
+      badgeId: 'navBadgeLocations',
     },
     {
       href: '/admin-payments',
@@ -961,6 +991,18 @@
             openTicketsBadge.style.display = 'none';
           }
         }
+
+        // Locations badge (auto-published cities never reviewed by a human)
+        const locationsBadge = document.getElementById('navBadgeLocations');
+        if (locationsBadge) {
+          const count = pending.locations || 0;
+          if (count > 0) {
+            locationsBadge.textContent = count;
+            locationsBadge.style.display = 'flex';
+          } else {
+            locationsBadge.style.display = 'none';
+          }
+        }
       })
       .catch(error => {
         console.error('Failed to fetch badge counts:', error);
@@ -1224,7 +1266,7 @@
       // ── Mobile / narrow tablet ────────────────────────────────────────────
       // Pin the panel to viewport edges with 12 px clearance on each side.
       panel.style.position   = 'fixed';
-      panel.style.top        = top + 'px';
+      panel.style.top        = `${top  }px`;
       panel.style.left       = '12px';
       panel.style.right      = '12px';
       panel.style.width      = 'auto';
@@ -1242,10 +1284,10 @@
       rightEdge      = leftEdge + PANEL_W;
 
       panel.style.position   = 'fixed';
-      panel.style.top        = top + 'px';
-      panel.style.left       = leftEdge + 'px';
+      panel.style.top        = `${top  }px`;
+      panel.style.left       = `${leftEdge  }px`;
       panel.style.right      = '';
-      panel.style.width      = PANEL_W + 'px';
+      panel.style.width      = `${PANEL_W  }px`;
       panel.style.maxWidth   = 'calc(100vw - 24px)';
       panel.style.boxSizing  = 'border-box';
     }

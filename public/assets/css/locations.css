@@ -308,8 +308,35 @@
 .efl-actions {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 0.75rem;
   margin-top: 1rem;
+}
+
+.efl-checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--ef-color-text-muted, #5d6b69);
+  cursor: pointer;
+}
+
+.efl-checkbox-label input[type='checkbox'] {
+  cursor: pointer;
+}
+
+.efl-badge {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.efl-badge--warn {
+  background: #fef3c7;
+  color: #92400e;
 }
 
 .efl-btn {

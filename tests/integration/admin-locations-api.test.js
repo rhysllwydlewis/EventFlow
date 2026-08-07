@@ -162,6 +162,101 @@ describe('GET /api/v1/admin/locations', () => {
     expect(response.body.data.items).toEqual([]);
     expect(response.body.data.summary.total).toBeGreaterThan(20);
   });
+
+  it('includes scarborough now that it is in the city registry', async () => {
+    const response = await request(buildApp())
+      .get('/api/v1/admin/locations')
+      .set('Cookie', authCookie(admin));
+    const scarborough = response.body.data.items.find(item => item.slug === 'scarborough');
+    expect(scarborough).toBeTruthy();
+    expect(scarborough.region).toBe('North Yorkshire');
+  });
+
+  describe('auto-published city review queue', () => {
+    beforeEach(() => {
+      mockDb.seed('location_pages', [
+        {
+          locationSlug: 'cardiff',
+          status: 'published',
+          managedBy: 'automation',
+          lastReviewedAt: null,
+        },
+        {
+          locationSlug: 'swansea',
+          status: 'published',
+          managedBy: 'automation',
+          lastReviewedAt: '2026-01-01T00:00:00.000Z',
+        },
+        {
+          locationSlug: 'newport',
+          status: 'published',
+          managedBy: 'admin',
+          lastReviewedAt: null,
+        },
+      ]);
+    });
+
+    it('flags an auto-published, never-reviewed city as needing review', async () => {
+      const response = await request(buildApp())
+        .get('/api/v1/admin/locations')
+        .set('Cookie', authCookie(admin));
+      const cardiff = response.body.data.items.find(item => item.slug === 'cardiff');
+      const swansea = response.body.data.items.find(item => item.slug === 'swansea');
+      const newport = response.body.data.items.find(item => item.slug === 'newport');
+
+      expect(cardiff.needsReview).toBe(true);
+      // Auto-published but already reviewed by a human — not in the queue.
+      expect(swansea.needsReview).toBe(false);
+      // Admin-managed and never marked reviewed, but never auto-published —
+      // not automation's queue.
+      expect(newport.needsReview).toBe(false);
+    });
+
+    it('filters to only cities needing review', async () => {
+      const response = await request(buildApp())
+        .get('/api/v1/admin/locations?needsReview=true')
+        .set('Cookie', authCookie(admin));
+      expect(response.body.data.items.map(item => item.slug)).toEqual(['cardiff']);
+      expect(response.body.data.summary.needsReview).toBe(1);
+    });
+
+    it('filters by managedBy', async () => {
+      const response = await request(buildApp())
+        .get('/api/v1/admin/locations?managedBy=automation')
+        .set('Cookie', authCookie(admin));
+      const slugs = response.body.data.items.map(item => item.slug).sort();
+      expect(slugs).toEqual(['cardiff', 'swansea']);
+    });
+  });
+
+  describe('unmapped suppliers', () => {
+    it('lists suppliers the registry cannot place, by name', async () => {
+      mockDb.seed('suppliers', [
+        supplier('s1', 'Venues'),
+        {
+          id: 's-unmapped',
+          name: 'Scarborough Sound & Light',
+          category: 'Entertainment',
+          approved: true,
+          ownerUserId: 'user-1',
+          location: 'Scarborough seafront',
+        },
+      ]);
+
+      const response = await request(buildApp())
+        .get('/api/v1/admin/locations')
+        .set('Cookie', authCookie(admin));
+
+      expect(response.body.data.summary.unmappedSuppliers).toBe(1);
+      expect(response.body.data.summary.unmappedSupplierList).toEqual([
+        {
+          id: 's-unmapped',
+          name: 'Scarborough Sound & Light',
+          rawLocation: 'Scarborough seafront',
+        },
+      ]);
+    });
+  });
 });
 
 describe('GET /api/v1/admin/locations/:slug', () => {

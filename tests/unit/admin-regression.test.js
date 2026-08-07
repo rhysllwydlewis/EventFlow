@@ -81,7 +81,7 @@ describe('Admin Regression — Empty-State Table Rendering', () => {
   it('badge-counts error path returns zeroed pending counts', () => {
     // When badge-counts fails it should still return a structured response
     const idx = adminContent.indexOf("router.get('/badge-counts'");
-    const section = adminContent.substring(idx, idx + 3000);
+    const section = adminContent.substring(idx, idx + 4500);
     expect(section).toContain('suppliers: 0');
     expect(section).toContain('packages: 0');
     expect(section).toContain('photos: 0');

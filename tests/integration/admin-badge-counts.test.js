@@ -27,7 +27,7 @@ describe('Admin Badge Counts Endpoint', () => {
     it('should return pending counts structure', () => {
       const badgeCountsSection = adminRoutesContent.substring(
         adminRoutesContent.indexOf('GET /api/admin/badge-counts'),
-        adminRoutesContent.indexOf('GET /api/admin/badge-counts') + 3000
+        adminRoutesContent.indexOf('GET /api/admin/badge-counts') + 4500
       );
 
       expect(badgeCountsSection).toContain('pending:');
@@ -41,7 +41,7 @@ describe('Admin Badge Counts Endpoint', () => {
     it('should return totals structure', () => {
       const badgeCountsSection = adminRoutesContent.substring(
         adminRoutesContent.indexOf('GET /api/admin/badge-counts'),
-        adminRoutesContent.indexOf('GET /api/admin/badge-counts') + 3000
+        adminRoutesContent.indexOf('GET /api/admin/badge-counts') + 4500
       );
 
       expect(badgeCountsSection).toContain('totals');
@@ -50,7 +50,7 @@ describe('Admin Badge Counts Endpoint', () => {
     it('should use dbUnified for data access', () => {
       const badgeCountsSection = adminRoutesContent.substring(
         adminRoutesContent.indexOf('GET /api/admin/badge-counts'),
-        adminRoutesContent.indexOf('GET /api/admin/badge-counts') + 3000
+        adminRoutesContent.indexOf('GET /api/admin/badge-counts') + 4500
       );
 
       expect(badgeCountsSection).toContain('dbUnified.read');
@@ -59,7 +59,7 @@ describe('Admin Badge Counts Endpoint', () => {
     it('should count pending suppliers', () => {
       const badgeCountsSection = adminRoutesContent.substring(
         adminRoutesContent.indexOf('GET /api/admin/badge-counts'),
-        adminRoutesContent.indexOf('GET /api/admin/badge-counts') + 3000
+        adminRoutesContent.indexOf('GET /api/admin/badge-counts') + 4500
       );
 
       expect(badgeCountsSection).toContain('pendingSuppliers');
@@ -69,7 +69,7 @@ describe('Admin Badge Counts Endpoint', () => {
     it('should count pending packages', () => {
       const badgeCountsSection = adminRoutesContent.substring(
         adminRoutesContent.indexOf('GET /api/admin/badge-counts'),
-        adminRoutesContent.indexOf('GET /api/admin/badge-counts') + 3000
+        adminRoutesContent.indexOf('GET /api/admin/badge-counts') + 4500
       );
 
       expect(badgeCountsSection).toContain('pendingPackages');
@@ -79,7 +79,7 @@ describe('Admin Badge Counts Endpoint', () => {
     it('should count pending photos from galleries', () => {
       const badgeCountsSection = adminRoutesContent.substring(
         adminRoutesContent.indexOf('GET /api/admin/badge-counts'),
-        adminRoutesContent.indexOf('GET /api/admin/badge-counts') + 3000
+        adminRoutesContent.indexOf('GET /api/admin/badge-counts') + 4500
       );
 
       expect(badgeCountsSection).toContain('pendingPhotos');
@@ -89,7 +89,7 @@ describe('Admin Badge Counts Endpoint', () => {
     it('should count pending/flagged reviews', () => {
       const badgeCountsSection = adminRoutesContent.substring(
         adminRoutesContent.indexOf('GET /api/admin/badge-counts'),
-        adminRoutesContent.indexOf('GET /api/admin/badge-counts') + 3000
+        adminRoutesContent.indexOf('GET /api/admin/badge-counts') + 4500
       );
 
       expect(badgeCountsSection).toContain('pendingReviews');
@@ -100,16 +100,27 @@ describe('Admin Badge Counts Endpoint', () => {
     it('should count pending reports', () => {
       const badgeCountsSection = adminRoutesContent.substring(
         adminRoutesContent.indexOf('GET /api/admin/badge-counts'),
-        adminRoutesContent.indexOf('GET /api/admin/badge-counts') + 3000
+        adminRoutesContent.indexOf('GET /api/admin/badge-counts') + 4500
       );
 
       expect(badgeCountsSection).toContain('pendingReports');
     });
 
+    it('should count auto-published locations awaiting review', () => {
+      const badgeCountsSection = adminRoutesContent.substring(
+        adminRoutesContent.indexOf('GET /api/admin/badge-counts'),
+        adminRoutesContent.indexOf('GET /api/admin/badge-counts') + 4500
+      );
+
+      expect(badgeCountsSection).toContain('pendingLocationsReview');
+      expect(badgeCountsSection).toContain("managedBy === 'automation'");
+      expect(badgeCountsSection).toContain('locations: pendingLocationsReview');
+    });
+
     it('should handle errors gracefully', () => {
       const badgeCountsSection = adminRoutesContent.substring(
         adminRoutesContent.indexOf('GET /api/admin/badge-counts'),
-        adminRoutesContent.indexOf('GET /api/admin/badge-counts') + 3000
+        adminRoutesContent.indexOf('GET /api/admin/badge-counts') + 4500
       );
 
       expect(badgeCountsSection).toContain('catch');
@@ -147,10 +158,15 @@ describe('Admin Badge Counts Endpoint', () => {
       expect(adminNavbarContent).toContain('pending.reports');
     });
 
+    it('should handle locations-needing-review badge', () => {
+      expect(adminNavbarContent).toContain('navBadgeLocations');
+      expect(adminNavbarContent).toContain('pending.locations');
+    });
+
     it('should display errors to user', () => {
       const updateBadgeCountsSection = adminNavbarContent.substring(
         adminNavbarContent.indexOf('function updateBadgeCounts'),
-        adminNavbarContent.indexOf('function updateBadgeCounts') + 4000
+        adminNavbarContent.indexOf('function updateBadgeCounts') + 5500
       );
 
       expect(updateBadgeCountsSection).toContain('catch');
@@ -161,7 +177,7 @@ describe('Admin Badge Counts Endpoint', () => {
     it('should hide badges when count is zero', () => {
       const updateBadgeCountsSection = adminNavbarContent.substring(
         adminNavbarContent.indexOf('function updateBadgeCounts'),
-        adminNavbarContent.indexOf('function updateBadgeCounts') + 4000
+        adminNavbarContent.indexOf('function updateBadgeCounts') + 5500
       );
 
       expect(updateBadgeCountsSection).toContain("style.display = 'none'");
@@ -170,7 +186,7 @@ describe('Admin Badge Counts Endpoint', () => {
     it('should show badges when count is greater than zero', () => {
       const updateBadgeCountsSection = adminNavbarContent.substring(
         adminNavbarContent.indexOf('function updateBadgeCounts'),
-        adminNavbarContent.indexOf('function updateBadgeCounts') + 4000
+        adminNavbarContent.indexOf('function updateBadgeCounts') + 5500
       );
 
       expect(updateBadgeCountsSection).toContain("style.display = 'flex'");
@@ -179,7 +195,7 @@ describe('Admin Badge Counts Endpoint', () => {
     it('should handle HTTP errors with status code', () => {
       const updateBadgeCountsSection = adminNavbarContent.substring(
         adminNavbarContent.indexOf('function updateBadgeCounts'),
-        adminNavbarContent.indexOf('function updateBadgeCounts') + 4000
+        adminNavbarContent.indexOf('function updateBadgeCounts') + 5500
       );
 
       expect(updateBadgeCountsSection).toContain('response.status');
@@ -189,7 +205,7 @@ describe('Admin Badge Counts Endpoint', () => {
     it('should check for error in response data', () => {
       const updateBadgeCountsSection = adminNavbarContent.substring(
         adminNavbarContent.indexOf('function updateBadgeCounts'),
-        adminNavbarContent.indexOf('function updateBadgeCounts') + 4000
+        adminNavbarContent.indexOf('function updateBadgeCounts') + 5500
       );
 
       expect(updateBadgeCountsSection).toContain('data.error');

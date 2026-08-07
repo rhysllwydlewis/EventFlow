@@ -17,6 +17,9 @@
   const listEl = document.getElementById('efl-admin-list');
   const summaryEl = document.getElementById('efl-admin-summary');
   const filterEl = document.getElementById('efl-admin-filter');
+  const needsReviewEl = document.getElementById('efl-admin-needs-review');
+  const unmappedDetailsEl = document.getElementById('efl-unmapped-suppliers');
+  const unmappedListEl = document.getElementById('efl-unmapped-suppliers-list');
   const dialogEl = document.getElementById('efl-editor');
 
   if (!listEl) {
@@ -223,6 +226,7 @@
         <span>Score ${escapeHtml(item.gate.score)}/${escapeHtml(item.gate.passMark)}</span>
         <span>${item.indexable ? 'Indexable' : 'Not indexable'}</span>
         ${item.managedBy === 'automation' ? '<span title="Published automatically once it had real supplier coverage. Saving here hands it to you.">Auto-published</span>' : ''}
+        ${item.needsReview ? '<span class="efl-badge efl-badge--warn" title="Auto-published and no human has reviewed it yet">Needs review</span>' : ''}
       </p>
       <p class="efl-note">${escapeHtml(describeState(item))}</p>
       <p>${escapeHtml(item.supplierCount)} suppliers · ${escapeHtml(item.categoryCount)} categories · reviewed ${escapeHtml(reviewed)}</p>
@@ -251,20 +255,57 @@
    * @returns {Promise<void>} Resolves when rendered.
    */
   async function load() {
-    const query = filterEl && filterEl.value ? `?status=${encodeURIComponent(filterEl.value)}` : '';
+    const params = new URLSearchParams();
+    if (filterEl && filterEl.value) {
+      params.set('status', filterEl.value);
+    }
+    if (needsReviewEl && needsReviewEl.checked) {
+      params.set('needsReview', 'true');
+    }
+    const query = params.toString() ? `?${params.toString()}` : '';
     try {
       const data = await api(`/api/v1/admin/locations${query}`);
       if (data.limits) {
         limits = { ...limits, ...data.limits };
       }
+      const needsReview = data.summary.needsReview
+        ? ` · ${data.summary.needsReview} need review`
+        : '';
       const unmapped = data.summary.unmappedSuppliers
         ? ` · ${data.summary.unmappedSuppliers} suppliers not yet placed on a city`
         : '';
-      summaryEl.textContent = `${data.summary.total} cities · ${data.summary.published} published · ${data.summary.pilot} in pilot · ${data.summary.indexable} indexable${unmapped}`;
+      summaryEl.textContent = `${data.summary.total} cities · ${data.summary.published} published · ${data.summary.pilot} in pilot · ${data.summary.indexable} indexable${needsReview}${unmapped}`;
       listEl.innerHTML = data.items.map(renderCard).join('');
+      renderUnmappedSuppliers(data.summary.unmappedSupplierList || []);
     } catch (error) {
       summaryEl.textContent = `Could not load location pages: ${error.message}`;
     }
+  }
+
+  /**
+   * Show the suppliers the registry could not place on any city page, so an
+   * admin can see who they are without a database query.
+   * @param {Object[]} suppliers Unmapped supplier summaries.
+   * @returns {void} Nothing.
+   */
+  function renderUnmappedSuppliers(suppliers) {
+    if (!unmappedDetailsEl || !unmappedListEl) {
+      return;
+    }
+    if (!suppliers.length) {
+      unmappedDetailsEl.hidden = true;
+      unmappedListEl.innerHTML = '';
+      return;
+    }
+    unmappedDetailsEl.hidden = false;
+    unmappedListEl.innerHTML = suppliers
+      .map(
+        supplier =>
+          `<li><strong>${escapeHtml(supplier.name)}</strong>${
+            supplier.rawLocation ? ` — "${escapeHtml(supplier.rawLocation)}"` : ''
+          }</li>`
+      )
+      .join('');
   }
 
   // ─── Editor ────────────────────────────────────────────────────────────────
@@ -990,6 +1031,9 @@
 
   if (filterEl) {
     filterEl.addEventListener('change', load);
+  }
+  if (needsReviewEl) {
+    needsReviewEl.addEventListener('change', load);
   }
 
   load();
