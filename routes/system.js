@@ -8,6 +8,7 @@
 const express = require('express');
 const { apiLimiter } = require('../middleware/rateLimits');
 const { getStripeKeyMode } = require('../utils/config');
+const { getQueueHealth } = require('../services/queue');
 const router = express.Router();
 
 // These will be injected by server.js during route mounting
@@ -154,11 +155,47 @@ function getProductionGuardrails() {
   if (!baseUrl || baseUrl.includes('localhost')) {
     missingCritical.push('BASE_URL');
   }
+  if (!process.env.REDIS_URL) {
+    missingCritical.push('REDIS_URL');
+  }
 
   return {
     enabled: true,
     missingCritical,
   };
+}
+
+function publicQueueHealth(queueHealth) {
+  return {
+    ready: queueHealth.ready === true,
+    mode: queueHealth.mode,
+    producer: queueHealth.producer,
+    worker: queueHealth.worker,
+    workerHeartbeatAgeMs: queueHealth.workerHeartbeatAgeMs,
+    reason: queueHealth.reason,
+  };
+}
+
+async function appendMessagingQueueHealth(response) {
+  try {
+    const queueHealth = await getQueueHealth();
+    response.services.messagingQueue = publicQueueHealth(queueHealth);
+    if (process.env.NODE_ENV === 'production' && !queueHealth.ready) {
+      response.status = 'degraded';
+    }
+  } catch {
+    response.services.messagingQueue = {
+      ready: false,
+      mode: 'unknown',
+      producer: 'unavailable',
+      worker: 'unavailable',
+      workerHeartbeatAgeMs: null,
+      reason: 'health_check_failed',
+    };
+    if (process.env.NODE_ENV === 'production') {
+      response.status = 'degraded';
+    }
+  }
 }
 
 /**
@@ -375,6 +412,8 @@ router.get('/health', applyHealthCheckLimiter, async (_req, res) => {
 
   response.integrations = getIntegrationStatus();
 
+  await appendMessagingQueueHealth(response);
+
   const guardrails = getProductionGuardrails();
   response.guardrails = guardrails;
   if (guardrails.enabled && guardrails.missingCritical.length > 0) {
@@ -391,7 +430,7 @@ router.get('/health', applyHealthCheckLimiter, async (_req, res) => {
 /**
  * GET /api/ready
  * Readiness probe for Kubernetes/Railway
- * Returns 200 only if MongoDB is connected
+ * Returns 200 only if MongoDB and the required messaging queue/worker are ready
  * NOTE: Contains internal debug info - should NOT be cached
  */
 router.get('/ready', applyHealthCheckLimiter, async (_req, res) => {
@@ -445,7 +484,29 @@ router.get('/ready', applyHealthCheckLimiter, async (_req, res) => {
     });
   }
 
-  // MongoDB is connected, server is ready
+  const queueHealth = await getQueueHealth().catch(() => ({
+    ready: false,
+    mode: 'unknown',
+    producer: 'unavailable',
+    worker: 'unavailable',
+    workerHeartbeatAgeMs: null,
+    reason: 'health_check_failed',
+  }));
+  if (!queueHealth.ready) {
+    return res.status(503).json({
+      status: 'not_ready',
+      timestamp,
+      reason: 'Messaging delivery unavailable',
+      services: {
+        server: 'running',
+        mongodb: 'connected',
+        activeBackend: 'mongodb',
+        messagingQueue: publicQueueHealth(queueHealth),
+      },
+    });
+  }
+
+  // MongoDB, queue producer and queue worker are ready.
   return res.status(200).json({
     status: 'ready',
     timestamp,
@@ -453,6 +514,7 @@ router.get('/ready', applyHealthCheckLimiter, async (_req, res) => {
       server: 'running',
       mongodb: 'connected',
       activeBackend: 'mongodb',
+      messagingQueue: publicQueueHealth(queueHealth),
     },
     message: 'All systems operational',
   });

@@ -60,7 +60,8 @@ npm run test:headers
   - [ ] `MONGODB_DB_NAME=eventflow`
   - [ ] `BASE_URL` (production domain, e.g. `https://event-flow.co.uk`)
   - [ ] `REDIS_URL` (required for BullMQ messenger queue + worker in production)
-  - [ ] `POSTMARK_API_KEY` (for email delivery)
+  - [ ] `EVENTFLOW_QUEUE_NAMESPACE` (unique per deployed environment if Redis is shared)
+  - [ ] `POSTMARK_API_KEY` (required for production messenger email delivery)
   - [ ] `POSTMARK_FROM` (verified sender email)
   - [ ] `STRIPE_SECRET_KEY` (live mode)
   - [ ] `STRIPE_PUBLISHABLE_KEY` (live mode)
@@ -96,8 +97,11 @@ npm run test:headers
   - [ ] Persistence configured
   - [ ] Memory limits set
   - [ ] Eviction policy defined
+  - [ ] Queue keys excluded from eviction, or a no-eviction policy is used
   - [ ] Worker service deployed with `node scripts/worker.js`
-  - [ ] Worker logs show queue workers started
+  - [ ] Worker uses `EVENTFLOW_PROCESS_TYPE=worker`
+  - [ ] Worker logs show both queue consumers and recovery reconciler started
+  - [ ] Web `/api/ready` returns 200 and reports a fresh worker heartbeat
 
 ### Security Configuration
 

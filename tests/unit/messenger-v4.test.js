@@ -15,6 +15,11 @@ jest.mock('../../services/contentSanitizer', () => ({
     typeof content === 'string' ? content.replace(/</g, '&lt;').replace(/>/g, '&gt;') : content
   ),
 }));
+// Keep service-unit tests independent from the in-process queue fallback. Queue
+// delivery and recovery are covered by their own focused test suites.
+jest.mock('../../services/queue', () => ({
+  enqueueNotificationJob: jest.fn().mockImplementation(() => new Promise(() => {})),
+}));
 
 const MessengerV4Service = require('../../services/messenger-v4.service');
 const { MongoClient, ObjectId } = require('mongodb');
@@ -786,6 +791,11 @@ describe('MessengerV4Service', () => {
       expect(message.content).toBe('Hello Bob!');
       expect(message.senderId).toBe('user1');
       expect(message.type).toBe('text');
+      expect(message.notificationFanout).toMatchObject({
+        status: 'pending',
+        recipientIds: ['user2'],
+        attempts: 0,
+      });
     });
 
     it('should update conversation lastMessage', async () => {

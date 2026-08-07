@@ -71,10 +71,12 @@ describe('Notification service consolidation', () => {
     expect(emailWorkerSrc).toContain("replace(/[\\r\\n]/g, ' ')");
   });
 
-  it('queue jobs use messageId-based idempotent job IDs', () => {
+  it('queue jobs use deterministic BullMQ-safe message and recipient IDs', () => {
     const queueSrc = read('services/queue/index.js');
-    expect(queueSrc).toContain('jobId: `message:${job.messageId}`');
-    expect(queueSrc).toContain('jobId: `message:${job.messageId}:recipient:${job.recipientId}`');
+    expect(queueSrc).toContain('jobId: notificationJobId(job.messageId)');
+    expect(queueSrc).toContain('jobId: emailJobId(job.messageId, job.recipientId)');
+    expect(queueSrc).toContain("return stableJobId('message', [messageId])");
+    expect(queueSrc).toContain("return stableJobId('message-email', [messageId, recipientId])");
   });
 
   it('notifyNewMessage actionUrl points to /messenger/ (not legacy /messages.html)', () => {

@@ -144,7 +144,7 @@ jobs:
       - name: Clean install dependencies
         run: npm ci --prefer-offline --no-audit
       - name: Audit production dependencies
-        run: npm audit --omit=dev
+        run: npm run audit
 
   deploy:
     name: Deploy to ${{ github.event.inputs.environment || 'production' }}
@@ -189,10 +189,21 @@ jobs:
       - name: Clean install dependencies
         run: npm ci --prefer-offline --no-audit
 
-      - name: Run production preflight
+      - name: Validate production preflight contract
         run: npm run preflight
         env:
           NODE_ENV: production
+          JWT_SECRET: ci-preflight-secret-padding-not-for-runtime-use
+          MONGODB_URI: mongodb://127.0.0.1:27017/eventflow_preflight
+          BASE_URL: https://event-flow.co.uk
+          REDIS_URL: redis://127.0.0.1:6379
+          POSTMARK_API_KEY: ci-preflight-postmark-token-not-for-runtime-use
+          COMPANY_NUMBER: '12345678'
+          REGISTERED_OFFICE: 123 Preflight Street, London
+          BUSINESS_PHONE: +44 20 0000 0000
+          BUSINESS_ADDRESS_LINE1: 123 Preflight Street
+          BUSINESS_CITY: London
+          BUSINESS_POSTCODE: SW1A 1AA
 
       - name: Wait for the intended commit to reach Railway
         shell: bash
@@ -230,9 +241,20 @@ jobs:
             exit 1
           fi
 
-          ready_code="$(curl -sS -o /dev/null -w '%{http_code}' "$ready_url" || true)"
+          ready_code=''
+          ready_body=''
+          for attempt in {1..20}; do
+            ready_body="$(curl -sS "$ready_url" || true)"
+            ready_code="$(curl -sS -o /dev/null -w '%{http_code}' "$ready_url" || true)"
+            if [[ "$ready_code" == "200" ]]; then
+              break
+            fi
+            echo "Waiting for database, Redis producer and worker readiness ($attempt/20; status=$ready_code)"
+            sleep 3
+          done
           if [[ "$ready_code" != "200" ]]; then
             echo "::error::Readiness endpoint failed (status=$ready_code, url=$ready_url)"
+            echo "Readiness response: ${ready_body:-unavailable}"
             exit 1
           fi
 

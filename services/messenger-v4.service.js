@@ -11,6 +11,65 @@ const contentSanitizer = require('./contentSanitizer');
 const spamDetection = require('./spamDetection');
 const { getMessagingLimitsForTier } = require('../config/messagingLimits');
 const { enqueueNotificationJob } = require('./queue');
+const {
+  createFanoutState,
+  markFanoutQueued,
+  markFanoutFailed,
+  buildFanoutPayload,
+  sanitizeFanoutError,
+} = require('./notificationFanout.service');
+
+function enqueueMessageNotificationFanout({ messagesCollection, logger, message, conversation }) {
+  if (message.notificationFanout.recipientIds.length === 0) {
+    return;
+  }
+
+  enqueueNotificationJob(buildFanoutPayload(message, conversation.context?.referenceTitle || ''))
+    .then(() => markFanoutQueued(messagesCollection, message._id))
+    .catch(async error => {
+      await markFanoutFailed(messagesCollection, message._id, error).catch(markError => {
+        logger.error('[messenger-v4] Failed to persist notification fan-out failure', {
+          error: sanitizeFanoutError(markError),
+          messageId: String(message._id),
+        });
+      });
+      logger.error('[messenger-v4] Failed to enqueue notification job', {
+        error: sanitizeFanoutError(error),
+        messageId: String(message._id),
+      });
+    });
+}
+
+async function autoUnarchiveRecipients({
+  conversationsCollection,
+  logger,
+  conversation,
+  conversationId,
+  senderId,
+}) {
+  const userIds = conversation.participants
+    .filter(participant => participant.userId !== senderId && participant.isArchived === true)
+    .map(participant => participant.userId);
+  if (userIds.length === 0) {
+    return userIds;
+  }
+
+  try {
+    // Target participants by userId rather than array index so concurrent
+    // participant changes cannot make this update affect the wrong record.
+    await conversationsCollection.updateOne(
+      { _id: new ObjectId(conversationId) },
+      { $set: { 'participants.$[p].isArchived': false } },
+      { arrayFilters: [{ 'p.userId': { $in: [...new Set(userIds)] } }] }
+    );
+  } catch (error) {
+    logger.error('[messenger-v4] Failed to auto-unarchive recipients', {
+      error: error.message,
+      conversationId: String(conversationId),
+    });
+  }
+  return userIds;
+}
 
 class MessengerV4Service {
   constructor(db, logger) {
@@ -723,6 +782,9 @@ class MessengerV4Service {
         };
       }
     }
+    const notificationRecipients = conversation.participants
+      .filter(p => p.userId !== messageData.senderId && !p.isMuted)
+      .map(p => p.userId);
     const message = {
       conversationId: new ObjectId(conversationId),
       senderId: messageData.senderId,
@@ -754,6 +816,7 @@ class MessengerV4Service {
       // Optional client-supplied dedupe key.  Null when absent so the unique
       // partial index only enforces uniqueness on present values.
       clientMessageId: clientMessageId,
+      notificationFanout: createFanoutState(notificationRecipients, now),
       editedAt: null,
       isDeleted: false,
       createdAt: now,
@@ -834,51 +897,21 @@ class MessengerV4Service {
       senderId: messageData.senderId,
     });
 
-    const recipients = conversation.participants
-      .filter(p => p.userId !== messageData.senderId && !p.isMuted)
-      .map(p => p.userId);
-    enqueueNotificationJob({
-      messageId: String(message._id),
-      conversationId: String(conversationId),
-      recipients,
-      senderName: messageData.senderName,
-      preview: (sanitizedContent || '').substring(0, 200),
-      contextTitle: conversation.context?.referenceTitle || '',
-    }).catch(error => {
-      this.logger.error('[messenger-v4] Failed to enqueue notification job', {
-        error: error.message,
-        messageId: String(message._id),
-      });
+    enqueueMessageNotificationFanout({
+      messagesCollection: this.messagesCollection,
+      logger: this.logger,
+      message,
+      conversation,
     });
 
-    // Auto-unarchive any recipients who had previously archived this conversation.
-    // A new incoming message should surface the conversation back in their main inbox
-    // without requiring them to manually browse the archive.
-    const autoUnarchivedUserIds = [];
-    const unarchivedUserIdSet = new Set();
-    conversation.participants.forEach(p => {
-      if (p.userId !== messageData.senderId && p.isArchived === true) {
-        unarchivedUserIdSet.add(p.userId);
-        autoUnarchivedUserIds.push(p.userId);
-      }
+    // A new incoming message should surface an archived conversation again.
+    const autoUnarchivedUserIds = await autoUnarchiveRecipients({
+      conversationsCollection: this.conversationsCollection,
+      logger: this.logger,
+      conversation,
+      conversationId,
+      senderId: messageData.senderId,
     });
-    if (unarchivedUserIdSet.size > 0) {
-      // Use arrayFilters with the positional filtered operator so the update
-      // targets each participant by userId, not by array index, which makes it
-      // safe under concurrent modifications to the participants array.
-      await this.conversationsCollection
-        .updateOne(
-          { _id: new ObjectId(conversationId) },
-          { $set: { 'participants.$[p].isArchived': false } },
-          { arrayFilters: [{ 'p.userId': { $in: Array.from(unarchivedUserIdSet) } }] }
-        )
-        .catch(err => {
-          this.logger.error('[messenger-v4] Failed to auto-unarchive recipients', {
-            error: err.message,
-            conversationId: String(conversationId),
-          });
-        });
-    }
 
     // Expose the list of auto-unarchived user IDs to the route layer so it
     // can emit conversation-updated WebSocket events to those users.

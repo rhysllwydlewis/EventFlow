@@ -470,7 +470,7 @@ Successfully implemented a comprehensive Role-Based Access Control (RBAC) system
 
 ### Prerequisites
 
-- Node.js 20+
+- Node.js 22.x (see `.node-version`)
 - MongoDB (optional, falls back to local storage)
 - Environment variables configured
 

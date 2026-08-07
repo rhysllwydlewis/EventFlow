@@ -382,7 +382,7 @@ See `docs/CLOUDFLARE_SETUP.md` for setup instructions (coming soon).
 
 #### Prerequisites
 
-- Node.js 20 LTS (v20.x) and npm — Node 22+ is not supported due to sharp compatibility
+- Node.js 22.x and npm (use the exact version pinned in `.node-version`)
 - **Optional:** MongoDB 6.0+ (local or Atlas) for production deployments
 
 **Note:** EventFlow uses file-based JSON storage by default for zero-configuration setup. MongoDB is available for production use - see [MONGODB_SETUP.md](.github/docs/MONGODB_SETUP.md).
@@ -437,7 +437,7 @@ See [DOCKER_GUIDE.md](DOCKER_GUIDE.md) for details.
 
 #### Prerequisites
 
-- ✅ Node.js 20 LTS (v20.x) — **Node 22+ is not supported** (sharp may crash with "Bus error")
+- ✅ Node.js 22.x (use the exact version pinned in `.node-version`)
 - ✅ **MongoDB Atlas account (free tier available)** ← Most important!
 - ✅ Deployment platform account (Railway, Heroku, etc.)
 
@@ -457,10 +457,10 @@ See [DOCKER_GUIDE.md](DOCKER_GUIDE.md) for details.
    NODE_ENV=production
    BASE_URL=https://yourdomain.com
    REDIS_URL=redis://default:password@redis-host:6379
-
-   # Recommended (optional)
-   EMAIL_ENABLED=true
    POSTMARK_API_KEY=your-server-token
+
+   # Recommended
+   EMAIL_ENABLED=true
    POSTMARK_FROM=admin@yourdomain.com
    ```
 
@@ -472,12 +472,13 @@ See [DOCKER_GUIDE.md](DOCKER_GUIDE.md) for details.
    node scripts/worker.js
    ```
 
-   - `Procfile` already defines `worker: node scripts/worker.js`
+   - `Procfile` already defines the worker process and its health-check mode
    - Railway users should deploy a second service with `railway.worker.json`
-   - In production, worker startup fails fast when `REDIS_URL` is missing
+   - In production, worker startup fails fast unless MongoDB, Redis, HTTPS `BASE_URL`, and Postmark are ready
+   - If deployments share Redis, set a unique `EVENTFLOW_QUEUE_NAMESPACE` for each environment
 
-5. **Verify it works** - Visit `https://yourdomain.com/api/health`
-   - Should show `"databaseStatus": "connected"`
+5. **Verify it works** - Visit `https://yourdomain.com/api/ready`
+   - It should return 200 and show both queue producer and worker delivery as ready
 
 #### Troubleshooting 502 Errors
 

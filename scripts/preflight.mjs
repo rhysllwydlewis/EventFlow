@@ -57,6 +57,12 @@ const REQUIRED_IN_PRODUCTION_SUBSYSTEMS = [
       'Messenger v4 BullMQ notification/email workers require a real Redis ' +
       '— the in-process queue stub refuses to start in production.',
   },
+  {
+    key: 'POSTMARK_API_KEY',
+    reason:
+      'Messenger message email is a production delivery path; workers must ' +
+      'not acknowledge the local outbox fallback as external delivery.',
+  },
 ];
 
 // Known bad defaults that must never be used in production.
@@ -93,6 +99,13 @@ for (const { key, reason } of REQUIRED_IN_PRODUCTION_SUBSYSTEMS) {
   if (!val || val.trim() === '') {
     (IS_PRODUCTION ? fail : warn)(`Required env var ${key} is missing or empty — ${reason}`);
   }
+}
+
+const queueNamespace = String(process.env.EVENTFLOW_QUEUE_NAMESPACE || '').trim();
+if (queueNamespace && !/^[a-zA-Z0-9:_-]{1,80}$/.test(queueNamespace)) {
+  (IS_PRODUCTION ? fail : warn)(
+    'EVENTFLOW_QUEUE_NAMESPACE must be 1-80 letters, digits, colons, underscores, or hyphens'
+  );
 }
 
 for (const key of LENGTH_CHECKED) {
@@ -136,7 +149,13 @@ if (fs.existsSync(contentConfigPath)) {
     const matches = [...raw.matchAll(fallbackRegex)];
     const checkedEnvVars = new Set();
 
-    for (const [, envVar, singleQuotedPlaceholder, doubleQuotedPlaceholder, templatePlaceholder] of matches) {
+    for (const [
+      ,
+      envVar,
+      singleQuotedPlaceholder,
+      doubleQuotedPlaceholder,
+      templatePlaceholder,
+    ] of matches) {
       if (checkedEnvVars.has(envVar)) {
         continue;
       }
