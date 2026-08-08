@@ -190,6 +190,20 @@ describe('computeActions', () => {
     expect(photo.severity).toBe('amber');
   });
 
+  it('does not return missingPhotos when supplier has photos only under the legacy images alias', () => {
+    const legacyPhotosSupplier = makeSupplier({
+      photosGallery: [],
+      images: ['legacy-a.jpg', 'legacy-b.jpg'],
+    });
+    const actions = computeActions(
+      legacyPhotosSupplier,
+      [makePackage()],
+      makeSettings(),
+      makeUser()
+    );
+    expect(actions.some(a => a.key === 'missingPhotos')).toBe(false);
+  });
+
   it('does not return missingPhotos when supplier has photos', () => {
     const actions = computeActions(makeSupplier(), [makePackage()], makeSettings(), makeUser());
     expect(actions.some(a => a.key === 'missingPhotos')).toBe(false);

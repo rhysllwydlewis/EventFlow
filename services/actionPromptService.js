@@ -104,6 +104,23 @@ function missingProfileFields(supplier) {
 }
 
 /**
+ * Whether a supplier has at least one gallery photo, merging the canonical
+ * photosGallery array with the legacy images array so a photo stored under
+ * either schema generation counts — mirrors the same union used by
+ * profile-health-widget.js and routes/supplier.js's dashboard-summary/
+ * performance-tips. Without this, a supplier with photos only under the
+ * legacy alias would be nagged with "add photos" emails they don't need.
+ *
+ * @param {Object} supplier - Supplier document
+ * @returns {boolean} true if at least one gallery photo exists under either field
+ */
+function hasGalleryPhotos(supplier) {
+  const canonical = Array.isArray(supplier.photosGallery) ? supplier.photosGallery : [];
+  const legacy = Array.isArray(supplier.images) ? supplier.images : [];
+  return canonical.length > 0 || legacy.length > 0;
+}
+
+/**
  * Compute outstanding action items for a single supplier.
  * Returns only outstanding (incomplete) actions — filtered by global settings and user prefs.
  *
@@ -152,7 +169,7 @@ function computeActions(supplier, packages, settings, user) {
   // 3. Missing photos (AMBER — behind global and user toggles)
   const globalMissingPhotos = promptTypes.missingPhotos !== false;
   const userMissingPhotosPref = userPrefs.missingPhotos !== false;
-  const hasPhotos = Array.isArray(supplier.photosGallery) && supplier.photosGallery.length > 0;
+  const hasPhotos = hasGalleryPhotos(supplier);
   if (globalMissingPhotos && userMissingPhotosPref && !hasPhotos) {
     actions.push({
       key: 'missingPhotos',
@@ -230,7 +247,7 @@ function computeFullReport(supplier, packages, settings, user) {
   // 3. Photos (behind global and user toggles)
   const globalMissingPhotos = promptTypes.missingPhotos !== false;
   const userMissingPhotosPref = userPrefs.missingPhotos !== false;
-  const hasPhotos = Array.isArray(supplier.photosGallery) && supplier.photosGallery.length > 0;
+  const hasPhotos = hasGalleryPhotos(supplier);
   if (!hasPhotos) {
     if (globalMissingPhotos && userMissingPhotosPref) {
       outstanding.push({
@@ -465,6 +482,7 @@ module.exports = {
   updateCadenceState,
   REQUIRED_PROFILE_FIELDS,
   missingProfileFields,
+  hasGalleryPhotos,
   DAILY_SENDS_BEFORE_WEEKLY,
   WEEKLY_SENDS_BEFORE_MONTHLY,
   DAILY_INTERVAL_MS,

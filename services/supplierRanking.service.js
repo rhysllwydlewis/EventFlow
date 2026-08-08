@@ -8,6 +8,7 @@
 'use strict';
 
 const { isPlaceholderImage, resolvePackageImage } = require('../utils/packageImageUtils');
+const { supplierPostcode } = require('./supplierLocation.service');
 
 const RANKING_VERSION = 'supplier-ranking-v1';
 const DAY_MS = 86400000;
@@ -99,10 +100,10 @@ const effectiveShortDescription = supplier =>
 const effectiveLongDescription = supplier =>
   supplier.description_long || supplier.description || '';
 const effectivePriceRange = supplier => supplier.price_display || supplier.priceRange || '';
-// The dashboard's postcode input saves to basePostcode (or venuePostcode for
-// the Venues category) — no supplier-facing form has ever written a literal
-// `postcode` field. Same fix as profile-health-widget.js / routes/supplier.js.
-const effectivePostcode = supplier => supplier.basePostcode || supplier.venuePostcode || '';
+// Reuses supplierLocation.service.js's canonical basePostcode/venuePostcode
+// resolution instead of a second copy, so the two can't drift apart again —
+// see that module's supplierPostcode() for why bare `postcode` isn't checked.
+const effectivePostcode = supplier => supplierPostcode(supplier) || '';
 const effectiveVerified = supplier =>
   supplier.verified === true || supplier.verificationStatus === 'approved';
 const effectiveFeatured = supplier =>
