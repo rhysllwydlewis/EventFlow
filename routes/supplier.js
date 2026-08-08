@@ -164,8 +164,14 @@ router.get('/analytics', authRequired, async (req, res) => {
 
     const supplierId = supplier.id;
 
-    // Get analytics window from query parameter, default to 7 days, max 365 days
-    const days = Math.min(parseInt(req.query.days) || 7, 365);
+    // How far back this supplier may look is a plan entitlement: every tier
+    // sees its own analytics, the paid plans see more history. Without this
+    // the pricing page was selling "profile analytics" as a paid feature that
+    // free suppliers already had in full.
+    const subscriptionService = require('../services/subscriptionService');
+    const windowDays = await subscriptionService.getAnalyticsWindowDays(userId);
+    const requestedDays = parseInt(req.query.days, 10) || 7;
+    const days = Math.min(requestedDays, windowDays);
 
     // Use supplierAnalytics utility for real tracked data
     const supplierAnalytics = require('../utils/supplierAnalytics');
@@ -174,6 +180,9 @@ router.get('/analytics', authRequired, async (req, res) => {
     res.json({
       success: true,
       analytics,
+      // Surfaced so the dashboard can say why a longer window came back short
+      // rather than silently showing less than was asked for.
+      window: { days, maxDays: windowDays, requestedDays },
     });
   } catch (error) {
     logger.error('Error fetching analytics:', error);

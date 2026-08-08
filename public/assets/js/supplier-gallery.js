@@ -8,6 +8,9 @@ const isDevelopment =
 import supplierPhotoUpload from './supplier-photo-upload.js';
 import supplierManager from './supplier-manager.js';
 
+/** Photo allowance for the free tier, used until the real one has loaded. */
+const DEFAULT_PHOTO_LIMIT = 10;
+
 class SupplierGalleryManager {
   constructor() {
     this.currentSupplierId = null;
@@ -15,7 +18,37 @@ class SupplierGalleryManager {
     this.pendingUploads = [];
     this._dragSrc = null;
     this._filePickerInput = null;
+    // Every plan used to be capped here at the free tier's ten photos, which
+    // made "unlimited photos" on a paid plan a promise the product did not
+    // keep. The real allowance comes from the subscription endpoint; the
+    // server enforces it too, so this is presentation rather than a gate.
+    this.maxPhotos = DEFAULT_PHOTO_LIMIT;
+    this.loadPhotoLimit();
     this.init();
+  }
+
+  /**
+   * Read the viewer's photo allowance from their subscription.
+   *
+   * A failure leaves the free-tier default in place: the upload route applies
+   * the real limit either way, so the worst case is a paid supplier being
+   * told to upload in smaller batches.
+   * @returns {Promise<void>} Nothing.
+   */
+  async loadPhotoLimit() {
+    try {
+      const response = await fetch('/api/v2/subscriptions/me', { credentials: 'include' });
+      if (!response.ok) {
+        return;
+      }
+      const data = await response.json();
+      const limit = data?.limits?.maxPhotos;
+      if (Number.isFinite(limit)) {
+        this.maxPhotos = limit;
+      }
+    } catch (_error) {
+      // Keep the default; the server is the authority.
+    }
   }
 
   async ensureCsrfToken() {
@@ -137,11 +170,11 @@ class SupplierGalleryManager {
 
     const fileArray = Array.from(files);
 
-    // Validate number of photos
+    // Validate number of photos against the viewer's plan allowance.
     const currentPhotoCount = this.uploadedPhotos.length + this.pendingUploads.length;
-    const maxPhotos = 10;
+    const maxPhotos = this.maxPhotos;
 
-    if (currentPhotoCount + fileArray.length > maxPhotos) {
+    if (maxPhotos !== -1 && currentPhotoCount + fileArray.length > maxPhotos) {
       // Use Toast if available, fallback to alert
       if (typeof Toast !== 'undefined') {
         Toast.warning(

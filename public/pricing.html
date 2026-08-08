@@ -23,13 +23,13 @@
   <meta name="twitter:image" content="https://event-flow.co.uk/assets/images/eventflow-og-image.png?v=3">
 
   <link rel="preload" href="/assets/css/styles.css?v=18.5.0" as="style">
-  <link rel="preload" href="/assets/css/pricing-redesign.css?v=2.1.0" as="style">
+  <link rel="preload" href="/assets/css/pricing-redesign.css?v=3.0.0" as="style">
   <link rel="stylesheet" href="/assets/css/styles.css?v=18.5.0">
   <link rel="stylesheet" href="/assets/css/eventflow-17.0.0.css?v=18.3.0">
   <link rel="stylesheet" href="/assets/css/utilities.css?v=18.3.0">
   <link rel="stylesheet" href="/assets/css/components.css?v=18.3.0">
   <link rel="stylesheet" href="/assets/css/navbar.css?v=18.3.0">
-  <link id="pricing-redesign-styles" rel="stylesheet" href="/assets/css/pricing-redesign.css?v=2.1.0">
+  <link id="pricing-redesign-styles" rel="stylesheet" href="/assets/css/pricing-redesign.css?v=3.0.0">
   <link rel="stylesheet" href="/assets/css/animations.css?v=18.3.0">
   <link rel="stylesheet" href="/assets/css/mobile-optimizations.css?v=18.4.0">
   <link rel="stylesheet" href="/assets/css/ui-ux-fixes.css?v=18.4.0">
@@ -143,28 +143,20 @@
 <script src="/assets/js/navbar.js" defer></script>
 <script src="/assets/js/notifications.js" defer></script>
 <script src="/assets/js/components.js" defer></script>
-<script src="/assets/js/pricing.js?v=2.1.0" defer></script>
+<script src="/assets/js/pricing.js?v=3.0.0" defer></script>
 
 <main id="main-content">
   <section class="pricing-hero" aria-labelledby="pricing-heading">
-    <!-- Decoration only: the same soft brand blobs the community pages use, so
-         the two surfaces read as one design system. Hidden from assistive
-         technology and dropped entirely under prefers-reduced-motion. -->
-    <div class="pricing-decor" aria-hidden="true">
-      <span class="pricing-blob pricing-blob--a"></span>
-      <span class="pricing-blob pricing-blob--b"></span>
-      <span class="pricing-blob pricing-blob--c"></span>
-    </div>
     <div class="container">
       <p class="pricing-eyebrow">Supplier pricing</p>
-      <h1 id="pricing-heading">Simple plans. Serious growth.</h1>
-      <p class="subtitle">Start free, then upgrade when you want more visibility, insight and support. Customers use EventFlow for free.</p>
-      <div class="pricing-billing-toggle" role="group" aria-label="Choose billing frequency">
-        <span id="pricing-monthly-label" class="pricing-billing-label">Monthly</span>
-        <button id="pricing-billing-switch" class="pricing-billing-switch is-annual" type="button" role="switch" aria-checked="true" aria-labelledby="pricing-monthly-label pricing-annual-label">
+      <h1 id="pricing-heading">Get found by people already planning</h1>
+      <p class="subtitle">Every plan puts your business in front of customers searching EventFlow. Paid plans decide how early they find you and how much they know before they get in touch.</p>
+      <div class="pricing-billing-toggle">
+        <button id="pricing-billing-switch" class="pricing-billing-switch is-annual" type="button" role="switch" aria-checked="true" aria-label="Pay annually instead of monthly">
           <span class="pricing-billing-switch-thumb" aria-hidden="true"></span>
+          <span id="pricing-monthly-label" class="pricing-billing-label">Monthly</span>
+          <span id="pricing-annual-label" class="pricing-billing-label is-active">Annual</span>
         </button>
-        <span id="pricing-annual-label" class="pricing-billing-label is-active">Annual</span>
         <span class="pricing-billing-saving">Save up to 19%</span>
       </div>
     </div>
@@ -176,85 +168,103 @@
     <div class="pricing-grid" id="pricing-grid">
       <article class="pricing-card" data-plan="starter">
         <div class="pricing-card-content">
-          <span class="pricing-early-access-label">Free forever</span>
           <div class="pricing-card-heading">
-            <span class="pricing-tier-label">Start here</span>
-            <h2 class="pricing-name">Starter</h2>
-            <p class="pricing-description">A polished supplier presence with the essentials included.</p>
+            <div class="pricing-name-row">
+              <h2 class="pricing-name">Starter</h2>
+            </div>
+            <span class="pricing-tier-label">For new or occasional suppliers</span>
+            <p class="pricing-description">Everything you need to be found by customers and take enquiries.</p>
+            <div class="pricing-price-block">
+              <div class="pricing-price-row"><span class="pricing-price" data-pricing-price>&pound;0</span><span class="pricing-period">per month</span></div>
+              <p class="pricing-billed-line" data-pricing-billed-line>No card required</p>
+              <p class="pricing-normally" data-pricing-normally hidden></p>
+            </div>
           </div>
-          <div class="pricing-price-row"><span class="pricing-price" data-pricing-price>£0</span><span class="pricing-period">/month</span></div>
-          <p class="pricing-billed-line" data-pricing-billed-line>No card required</p>
-          <p class="pricing-normally" data-pricing-normally hidden></p>
-          <p class="pricing-value-statement">Be present where customers are planning and begin building your profile.</p>
-          <div class="pricing-card-divider" aria-hidden="true"></div>
-          <ul class="pricing-features">
-            <li>Basic supplier profile</li>
-            <li>Up to 5 photos</li>
-            <li>Receive customer enquiries</li>
-            <li>Standard search placement</li>
-            <li>Email support</li>
-          </ul>
-          <a href="/checkout?plan=starter&amp;billingInterval=year" class="pricing-cta secondary" data-pricing-plan="starter">Create a free profile</a>
-          <p class="pricing-savings" data-pricing-savings hidden></p>
+          <div class="pricing-card-actions">
+            <a href="/auth?redirect=%2Fpricing%3Fplan%3Dstarter" class="pricing-cta secondary" data-pricing-plan="starter">Create a free profile</a>
+            <p class="pricing-savings" data-pricing-savings hidden></p>
+          </div>
+          <div class="pricing-card-features">
+            <p class="pricing-inherits">What you get</p>
+            <ul class="pricing-features">
+              <li><span class="pricing-feature-name">Public supplier profile</span><span class="pricing-feature-why">A page on EventFlow with your services, photos and contact details.</span></li>
+              <li><span class="pricing-feature-name">Up to 3 package listings</span><span class="pricing-feature-why">Publish set packages with prices so customers can see what you offer.</span></li>
+              <li><span class="pricing-feature-name">Up to 10 portfolio photos</span><span class="pricing-feature-why">Show your work on your profile.</span></li>
+              <li><span class="pricing-feature-name">Up to 10 enquiry replies a day</span><span class="pricing-feature-why">Answer the enquiries that come in, at no cost.</span></li>
+              <li><span class="pricing-feature-name">Standard search placement</span><span class="pricing-feature-why">Appear in results when customers browse your category and area.</span></li>
+              <li><span class="pricing-feature-name">7 days of profile analytics</span><span class="pricing-feature-why">See who viewed your profile this week.</span></li>
+            </ul>
+            <p class="pricing-upsell">Upgrade when a daily reply cap or three package listings starts holding you back.</p>
+          </div>
         </div>
       </article>
 
       <article class="pricing-card featured" data-plan="pro">
-        <div class="pricing-popular-ribbon">Most popular</div>
         <div class="pricing-card-content">
-          <span class="pricing-early-access-label">Early access price</span>
           <div class="pricing-card-heading">
-            <span class="pricing-tier-label">Best for growing suppliers</span>
-            <h2 class="pricing-name">Professional</h2>
-            <p class="pricing-description">More visibility, stronger trust signals and useful performance insight.</p>
+            <div class="pricing-name-row">
+              <h2 class="pricing-name">Professional</h2>
+              <span class="pricing-early-access-label">Most popular</span>
+            </div>
+            <span class="pricing-tier-label">For growing suppliers taking regular bookings</span>
+            <p class="pricing-description">Be found sooner, earn trust earlier and know which enquiries are worth your time.</p>
+            <div class="pricing-price-block">
+              <div class="pricing-price-row"><span class="pricing-price" data-pricing-price>&pound;16</span><span class="pricing-period">per month</span></div>
+              <p class="pricing-billed-line" data-pricing-billed-line>&pound;192 billed annually</p>
+              <p class="pricing-normally" data-pricing-normally>Normally &pound;19 per month</p>
+            </div>
           </div>
-          <div class="pricing-price-row"><span class="pricing-price" data-pricing-price>£16</span><span class="pricing-period">/month</span></div>
-          <p class="pricing-billed-line" data-pricing-billed-line>£192 billed annually</p>
-          <p class="pricing-normally" data-pricing-normally>Normally £19/month</p>
-          <p class="pricing-early-access-desc">Early access pricing while EventFlow is in development.</p>
-          <p class="pricing-value-statement">Be found sooner, earn trust before the first message and understand which leads deserve your time.</p>
-          <div class="pricing-card-divider" aria-hidden="true"></div>
-          <ul class="pricing-features">
-            <li>Everything in Starter</li>
-            <li>Unlimited photos</li>
-            <li>Lead quality scoring</li>
-            <li>Priority search placement</li>
-            <li>Email and phone verification</li>
-            <li>Response-time tracking</li>
-            <li>Profile analytics dashboard</li>
-            <li>Priority support</li>
-          </ul>
-          <a href="/checkout?plan=pro&amp;billingInterval=year" class="pricing-cta" data-pricing-plan="pro">Choose Professional — £192/year</a>
-          <p class="pricing-savings" data-pricing-savings>Save £36 annually (16%)</p>
-          <p class="pricing-offer-terms">Early access offer ends 31 December 2026. Cancel anytime.</p>
+          <div class="pricing-card-actions">
+            <a href="/checkout?plan=pro&amp;billingInterval=year" class="pricing-cta" data-pricing-plan="pro">Choose Professional</a>
+            <p class="pricing-savings" data-pricing-savings>Save &pound;36 a year</p>
+          </div>
+          <div class="pricing-card-features">
+            <p class="pricing-inherits">Everything in Starter, plus</p>
+            <ul class="pricing-features">
+              <li><span class="pricing-feature-name">Higher search placement</span><span class="pricing-feature-why">A ranking boost that lifts you above Starter suppliers in your categories and areas.</span></li>
+              <li><span class="pricing-feature-name">Up to 50 package listings</span><span class="pricing-feature-why">Publish your full range instead of a handful.</span></li>
+              <li><span class="pricing-feature-name">Up to 500 portfolio photos</span><span class="pricing-feature-why">Show every side of your work.</span></li>
+              <li><span class="pricing-feature-name">Unlimited enquiry replies</span><span class="pricing-feature-why">Never leave an enquiry waiting because you have hit a daily cap.</span></li>
+              <li><span class="pricing-feature-name">Longer messages</span><span class="pricing-feature-why">Up to 5,000 characters, so a full quote fits in one reply.</span></li>
+              <li><span class="pricing-feature-name">90 days of profile analytics</span><span class="pricing-feature-why">See what draws interest across a season, not just a week.</span></li>
+              <li><span class="pricing-feature-name">Priority support</span><span class="pricing-feature-why">Your questions go to the front of the queue.</span></li>
+            </ul>
+            <p class="pricing-upsell">Move to Plus for homepage placement and a monthly review of what is working.</p>
+          </div>
         </div>
       </article>
 
       <article class="pricing-card" data-plan="pro_plus">
         <div class="pricing-card-content">
-          <span class="pricing-early-access-label">Maximum exposure</span>
           <div class="pricing-card-heading">
-            <span class="pricing-tier-label">Maximum exposure</span>
-            <h2 class="pricing-name">Professional Plus</h2>
-            <p class="pricing-description">Premium placement and hands-on support for established businesses.</p>
+            <div class="pricing-name-row">
+              <h2 class="pricing-name">Professional Plus</h2>
+            </div>
+            <span class="pricing-tier-label">For established suppliers with capacity to fill</span>
+            <p class="pricing-description">Take the most valuable positions on EventFlow, with hands-on help to use them.</p>
+            <div class="pricing-price-block">
+              <div class="pricing-price-row"><span class="pricing-price" data-pricing-price>&pound;129</span><span class="pricing-period">per month</span></div>
+              <p class="pricing-billed-line" data-pricing-billed-line>&pound;1,548 billed annually</p>
+              <p class="pricing-normally" data-pricing-normally>Normally &pound;159 per month</p>
+            </div>
           </div>
-          <div class="pricing-price-row"><span class="pricing-price" data-pricing-price>£129</span><span class="pricing-period">/month</span></div>
-          <p class="pricing-billed-line" data-pricing-billed-line>£1,548 billed annually</p>
-          <p class="pricing-normally" data-pricing-normally>Normally £159/month</p>
-          <p class="pricing-value-statement">Lead the most valuable discovery positions and get structured support to improve performance.</p>
-          <div class="pricing-card-divider" aria-hidden="true"></div>
-          <ul class="pricing-features">
-            <li>Everything in Professional</li>
-            <li>Homepage featured placement</li>
-            <li>Top of category pages</li>
-            <li>Business verification badge</li>
-            <li>Dedicated onboarding call</li>
-            <li>Monthly performance review</li>
-            <li>Analytics export</li>
-            <li>VIP support</li>
-          </ul>
-          <a href="/checkout?plan=pro_plus&amp;billingInterval=year" class="pricing-cta" data-pricing-plan="pro_plus">Choose Professional Plus</a>
-          <p class="pricing-savings" data-pricing-savings>Save £360 annually (19%)</p>
+          <div class="pricing-card-actions">
+            <a href="/checkout?plan=pro_plus&amp;billingInterval=year" class="pricing-cta" data-pricing-plan="pro_plus">Choose Professional Plus</a>
+            <p class="pricing-savings" data-pricing-savings>Save &pound;360 a year</p>
+          </div>
+          <div class="pricing-card-features">
+            <p class="pricing-inherits">Everything in Professional, plus</p>
+            <ul class="pricing-features">
+              <li><span class="pricing-feature-name">Homepage featured placement</span><span class="pricing-feature-why">Your packages appear on the EventFlow homepage, in front of customers before they start searching.</span></li>
+              <li><span class="pricing-feature-name">Top search placement</span><span class="pricing-feature-why">The strongest ranking boost EventFlow gives, above Professional profiles.</span></li>
+              <li><span class="pricing-feature-name">Unlimited package listings</span><span class="pricing-feature-why">No cap on how much of your range you publish.</span></li>
+              <li><span class="pricing-feature-name">Unlimited portfolio photos</span><span class="pricing-feature-why">A complete portfolio, however large it gets.</span></li>
+              <li><span class="pricing-feature-name">A full year of profile analytics</span><span class="pricing-feature-why">Compare this season against last.</span></li>
+              <li><span class="pricing-feature-name">Dedicated onboarding call</span><span class="pricing-feature-why">We build your profile with you so it works from day one.</span></li>
+              <li><span class="pricing-feature-name">Monthly performance review</span><span class="pricing-feature-why">A monthly read on what is working and what to change.</span></li>
+              <li><span class="pricing-feature-name">VIP support</span><span class="pricing-feature-why">A direct line to the team.</span></li>
+            </ul>
+          </div>
         </div>
       </article>
     </div>
@@ -268,24 +278,58 @@
       <span>Cancel anytime</span>
     </div>
 
+    <p class="pricing-offer-terms">Early access pricing applies while EventFlow is in development and ends 31 December 2026. Prices shown exclude VAT where applicable.</p>
+
     <section class="pricing-comparison" aria-labelledby="comparison-heading">
       <div class="pricing-section-heading">
         <p class="pricing-eyebrow">Compare plans</p>
-        <h2 id="comparison-heading">Choose with confidence</h2>
-        <p>Every plan gives you a genuine EventFlow presence. Paid plans help more customers find and trust you.</p>
+        <h2 id="comparison-heading">Every difference between the plans</h2>
+        <p>Nothing hidden and nothing withheld. If a row says a plan includes something, that is what the platform gives you.</p>
       </div>
       <div class="comparison-table-wrapper" tabindex="0" aria-label="Pricing plan feature comparison">
         <table class="comparison-table">
           <thead>
-            <tr><th>Feature</th><th>Starter</th><th class="popular">Professional</th><th>Professional Plus</th></tr>
+            <tr>
+              <th scope="col">Feature</th>
+              <th scope="col">Starter</th>
+              <th scope="col" class="popular">Professional</th>
+              <th scope="col">Professional Plus</th>
+            </tr>
           </thead>
           <tbody>
-            <tr><td>Supplier profile</td><td>Included</td><td class="popular-col">Included</td><td>Included</td></tr>
-            <tr><td>Photo uploads</td><td>Up to 5</td><td class="popular-col">Unlimited</td><td>Unlimited</td></tr>
-            <tr><td>Search placement</td><td>Standard</td><td class="popular-col">Priority</td><td>Top placement</td></tr>
-            <tr><td>Verification</td><td>—</td><td class="popular-col">Email and phone</td><td>Business verified</td></tr>
-            <tr><td>Analytics</td><td>—</td><td class="popular-col">Dashboard</td><td>Dashboard and export</td></tr>
-            <tr><td>Support</td><td>Email</td><td class="popular-col">Priority</td><td>VIP</td></tr>
+            <tr class="comparison-price-row">
+              <th scope="row">Price</th>
+              <td data-comparison-price="starter">Free</td>
+              <td class="popular-col" data-comparison-price="pro">&pound;192/year</td>
+              <td data-comparison-price="pro_plus">&pound;1,548/year</td>
+            </tr>
+
+            <tr class="comparison-group"><th colspan="4" scope="colgroup">Getting found</th></tr>
+            <tr><th scope="row">Search placement</th><td>Standard</td><td class="popular-col comparison-yes">Boosted</td><td class="comparison-yes">Highest boost</td></tr>
+            <tr><th scope="row">Homepage featured placement</th><td class="comparison-no">&mdash;</td><td class="popular-col comparison-no">&mdash;</td><td class="comparison-yes">Included</td></tr>
+            <tr><th scope="row">Public supplier profile</th><td>Included</td><td class="popular-col">Included</td><td>Included</td></tr>
+
+            <tr class="comparison-group"><th colspan="4" scope="colgroup">What you can publish</th></tr>
+            <tr><th scope="row">Package listings</th><td>3</td><td class="popular-col comparison-yes">50</td><td class="comparison-yes">Unlimited</td></tr>
+            <tr><th scope="row">Portfolio photos</th><td>10</td><td class="popular-col comparison-yes">500</td><td class="comparison-yes">Unlimited</td></tr>
+
+            <tr class="comparison-group"><th colspan="4" scope="colgroup">Talking to customers</th></tr>
+            <tr><th scope="row">Enquiry replies a day</th><td>10</td><td class="popular-col comparison-yes">Unlimited</td><td class="comparison-yes">Unlimited</td></tr>
+            <tr><th scope="row">Conversations started a day</th><td>30</td><td class="popular-col comparison-yes">Unlimited</td><td class="comparison-yes">Unlimited</td></tr>
+            <tr><th scope="row">Message length</th><td>500 characters</td><td class="popular-col comparison-yes">5,000</td><td class="comparison-yes">10,000</td></tr>
+
+            <tr class="comparison-group"><th colspan="4" scope="colgroup">Understanding performance</th></tr>
+            <tr><th scope="row">Profile analytics history</th><td>7 days</td><td class="popular-col comparison-yes">90 days</td><td class="comparison-yes">1 year</td></tr>
+            <tr><th scope="row">Monthly performance review</th><td class="comparison-no">&mdash;</td><td class="popular-col comparison-no">&mdash;</td><td class="comparison-yes">Included</td></tr>
+
+            <tr class="comparison-group"><th colspan="4" scope="colgroup">Included on every plan</th></tr>
+            <tr><th scope="row">Customer enquiries</th><td>Included</td><td class="popular-col">Included</td><td>Included</td></tr>
+            <tr><th scope="row">Email and phone verification</th><td>Included</td><td class="popular-col">Included</td><td>Included</td></tr>
+            <tr><th scope="row">Response-time tracking</th><td>Included</td><td class="popular-col">Included</td><td>Included</td></tr>
+
+            <tr class="comparison-group"><th colspan="4" scope="colgroup">Help when you need it</th></tr>
+            <tr><th scope="row">Support</th><td>Email</td><td class="popular-col comparison-yes">Priority</td><td class="comparison-yes">VIP</td></tr>
+            <tr><th scope="row">Dedicated onboarding call</th><td class="comparison-no">&mdash;</td><td class="popular-col comparison-no">&mdash;</td><td class="comparison-yes">Included</td></tr>
           </tbody>
         </table>
       </div>

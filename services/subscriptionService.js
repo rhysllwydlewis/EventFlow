@@ -490,6 +490,49 @@ async function getUserFeatures(userId) {
   return getPlanFeatures(await getFallbackUserTier(userId));
 }
 
+/**
+ * Resolve a numeric allowance from the plan matrix for a user.
+ *
+ * The matrix uses -1 for "no limit". Callers get that back unchanged so they
+ * can decide what unlimited means for them, rather than this guessing with a
+ * sentinel of its own.
+ * @param {string} userId Owner of the resource being limited.
+ * @param {string} feature Feature key in `PLAN_FEATURES[tier].features`.
+ * @param {number} fallback Value to use when the plan does not define one.
+ * @returns {Promise<number>} The allowance, or -1 for unlimited.
+ */
+async function getNumericAllowance(userId, feature, fallback) {
+  const features = await getUserFeatures(userId);
+  const limit = features?.features?.[feature];
+  return Number.isFinite(limit) ? limit : fallback;
+}
+
+/**
+ * How many gallery photos a supplier's owner may publish.
+ *
+ * The uploader used to cap everyone at ten regardless of plan, which made
+ * "unlimited photos" on Professional a promise the product did not keep. The
+ * allowance now comes from the same matrix that gates package listings.
+ * @param {string} ownerUserId Supplier's owner.
+ * @returns {Promise<number>} Photo allowance, or -1 for unlimited.
+ */
+async function getPhotoAllowance(ownerUserId) {
+  return getNumericAllowance(ownerUserId, 'maxPhotos', 10);
+}
+
+/**
+ * How far back a supplier may look in their profile analytics.
+ *
+ * Every tier can see their analytics; the paid plans see more history. That
+ * is what makes the analytics row on the pricing page a real difference
+ * rather than something free suppliers already had in full.
+ * @param {string} ownerUserId Supplier's owner.
+ * @returns {Promise<number>} Window in days.
+ */
+async function getAnalyticsWindowDays(ownerUserId) {
+  return getNumericAllowance(ownerUserId, 'analyticsWindowDays', 7);
+}
+
 async function enforceActivePackageLimit(userId) {
   const features = await getUserFeatures(userId);
   const maxPackages = features.features.maxPackages;
@@ -602,6 +645,9 @@ module.exports = {
   cancelSubscription,
   checkFeatureAccess,
   getUserFeatures,
+  getNumericAllowance,
+  getPhotoAllowance,
+  getAnalyticsWindowDays,
   enforceActivePackageLimit,
   addBillingRecord,
   updateBillingDates,

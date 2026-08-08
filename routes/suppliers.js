@@ -154,6 +154,26 @@ function isFeaturedPackage(pkg) {
 }
 
 /**
+ * Narrow a set of suppliers to those whose plan buys homepage featuring.
+ *
+ * Homepage placement is sold as part of Professional Plus, but it was only
+ * ever driven by an editorial `featured` flag someone had to set by hand, so
+ * the benefit was not actually delivered by subscribing. Editorial featuring
+ * still works on top of this, and the entitlement is re-resolved on each cache
+ * refresh so a lapsed subscription drops out on its own.
+ *
+ * @param {Array<Object>} suppliers Candidate suppliers.
+ * @returns {Promise<Set<string>>} IDs of suppliers entitled to featuring.
+ */
+async function planFeaturedSupplierIds(suppliers) {
+  const { supplierPlanTier } = require('../utils/helpers');
+  const entries = await Promise.all(
+    suppliers.map(async supplier => [supplier.id, await supplierPlanTier(supplier)])
+  );
+  return new Set(entries.filter(([, tier]) => tier === 'pro_plus').map(([id]) => id));
+}
+
+/**
  * Image resolution helpers — imported from the shared utils/packageImageUtils.js
  * module so that all API endpoints use the same resolution logic as the client-side
  * package-image-resolver.js.
@@ -535,14 +555,41 @@ router.get('/packages/featured', async (_req, res) => {
     if (dbType === 'mongodb') {
       // For MongoDB, try to use findWithOptions for efficient query
       // Get featured packages with approved=true and featured=true
-      const packages = await dbUnified.findWithOptions(
-        'packages',
-        {
-          approved: true,
-          $or: [{ featured: true }, { isFeatured: true }],
-        },
-        { limit: 6, sort: { createdAt: -1 } }
-      );
+      // Editorially featured packages, plus the packages of suppliers whose
+      // plan includes homepage placement. Over-fetched because the plan side
+      // can only be resolved once the suppliers are known.
+      const [flagged, recent] = await Promise.all([
+        dbUnified.findWithOptions(
+          'packages',
+          {
+            approved: true,
+            $or: [{ featured: true }, { isFeatured: true }],
+          },
+          { limit: 6, sort: { createdAt: -1 } }
+        ),
+        dbUnified.findWithOptions(
+          'packages',
+          { approved: true },
+          { limit: 60, sort: { createdAt: -1 } }
+        ),
+      ]);
+
+      const recentSupplierIds = [...new Set(recent.map(p => p.supplierId))];
+      const recentSuppliers = (
+        await Promise.all(recentSupplierIds.map(id => dbUnified.findOne('suppliers', { id })))
+      ).filter(Boolean);
+      const planFeatured = await planFeaturedSupplierIds(recentSuppliers);
+
+      const seen = new Set();
+      const packages = [...flagged, ...recent.filter(p => planFeatured.has(p.supplierId))]
+        .filter(pkg => {
+          if (seen.has(pkg.id)) {
+            return false;
+          }
+          seen.add(pkg.id);
+          return true;
+        })
+        .slice(0, 6);
 
       // Get supplier names for the packages — filter out orphaned suppliers
       const supplierIds = [...new Set(packages.map(p => p.supplierId))];
@@ -574,8 +621,15 @@ router.get('/packages/featured', async (_req, res) => {
           .map(s => [s.id, s])
       );
 
+      const planFeatured = await planFeaturedSupplierIds([...suppliersMap.values()]);
+
       items = packages
-        .filter(p => p.approved && isFeaturedPackage(p) && suppliersMap.has(p.supplierId))
+        .filter(
+          p =>
+            p.approved &&
+            (isFeaturedPackage(p) || planFeatured.has(p.supplierId)) &&
+            suppliersMap.has(p.supplierId)
+        )
         .slice(0, 6)
         .map(pkg => {
           const supplier = suppliersMap.get(pkg.supplierId);

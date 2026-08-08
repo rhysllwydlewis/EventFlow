@@ -73,6 +73,53 @@ async function supplierIsProActive(userIdOrSupplier) {
 }
 
 /**
+ * Resolve which plan tier a supplier is actually entitled to right now.
+ *
+ * `supplierIsProActive` answers "is this supplier paying for anything", which
+ * is not enough where a benefit belongs to the top plan alone. This applies
+ * the same liveness rules and returns the tier itself.
+ *
+ * @param {Object|string} userIdOrSupplier Supplier record or owner user ID.
+ * @returns {Promise<string>} 'free', 'pro' or 'pro_plus'.
+ */
+async function supplierPlanTier(userIdOrSupplier) {
+  try {
+    const isSupplierObj = userIdOrSupplier && typeof userIdOrSupplier === 'object';
+    const userId = isSupplierObj ? userIdOrSupplier?.ownerUserId : userIdOrSupplier;
+    if (!userId) {
+      return 'free';
+    }
+
+    const subscriptionService = require('../services/subscriptionService');
+    const subscription = await subscriptionService.getSubscriptionByUserId(userId);
+    if (subscription) {
+      if (!subscriptionService.isLiveEntitlement(subscription)) {
+        return 'free';
+      }
+      return subscription.plan === 'pro_plus' || subscription.plan === 'pro'
+        ? subscription.plan
+        : 'free';
+    }
+
+    // Admin-granted tiers live on the supplier document; the same expiry rules
+    // apply, otherwise a lapsed grant keeps its benefits forever.
+    if (isSupplierObj && (await supplierIsProActive(userIdOrSupplier))) {
+      const tier = String(
+        userIdOrSupplier.subscriptionTier || userIdOrSupplier.subscription?.tier || ''
+      )
+        .toLowerCase()
+        .replace(/[\s-]/g, '_');
+      return tier === 'pro_plus' ? 'pro_plus' : 'pro';
+    }
+
+    return 'free';
+  } catch (error) {
+    logger.error('Error resolving supplier plan tier:', error);
+    return 'free';
+  }
+}
+
+/**
  * Ensure directory exists
  * @param {string} dir - Directory path
  */
@@ -204,6 +251,7 @@ function stripHtml(str) {
 module.exports = {
   generateUid,
   supplierIsProActive,
+  supplierPlanTier,
   ensureDir,
   loadEmailTemplate,
   formatDate,
