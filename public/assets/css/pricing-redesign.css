@@ -133,7 +133,7 @@ body.pricing-redesign .pricing-billing-switch-thumb {
   width: calc(50% - 3px);
   height: calc(100% - 6px);
   border-radius: 999px;
-  background: var(--p-teal);
+  background: var(--p-teal) !important;
   transition: transform 200ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
