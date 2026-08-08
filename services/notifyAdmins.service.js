@@ -59,6 +59,10 @@ async function notifyAdmins(payload, websocketServer = null) {
         actionUrl: payload.actionUrl || null,
         actionText: payload.actionText || 'View',
         priority: payload.priority || 'normal',
+        // Tagged so the customer/supplier-facing bell (routes/notifications.js)
+        // can exclude admin-only items even though it shares the same
+        // collection and is keyed by the same userId.
+        category: payload.category || 'admin',
         metadata: payload.metadata || {},
       }))
     );

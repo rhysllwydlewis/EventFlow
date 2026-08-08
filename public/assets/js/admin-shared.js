@@ -883,7 +883,7 @@ const AdminShared = (function () {
 
       const elements = {
         newUsersCount: counts.newUsers || 0,
-        pendingPhotosCount: counts.pendingPhotos || 0,
+        pendingPhotosCount: (counts.pending && counts.pending.photos) || 0,
         openTicketsCount: counts.openTickets || 0,
       };
 
@@ -1821,9 +1821,15 @@ const AdminShared = (function () {
    * @returns {string} HTML string
    */
   function getRoleBadge(role) {
-    if (role === 'admin') return '<span class="badge badge-admin">🛡️ Admin</span>';
-    if (role === 'supplier') return '<span class="badge badge-supplier-account">🏪 Supplier</span>';
-    if (role === 'partner') return '<span class="badge badge-partner">🤝 Partner</span>';
+    if (role === 'admin') {
+      return '<span class="badge badge-admin">🛡️ Admin</span>';
+    }
+    if (role === 'supplier') {
+      return '<span class="badge badge-supplier-account">🏪 Supplier</span>';
+    }
+    if (role === 'partner') {
+      return '<span class="badge badge-partner">🤝 Partner</span>';
+    }
     return '<span class="badge badge-customer">🎉 Customer</span>';
   }
 

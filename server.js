@@ -1420,6 +1420,22 @@ function startContentReviewScheduler() {
   }
 }
 
+function startNotificationCleanupScheduler() {
+  // Nothing else prunes the notifications collection, so without this job
+  // fire-and-forget senders (e.g. notifyAdmins) grow it forever.
+  try {
+    const notificationCleanupSchedule = require('./services/notificationCleanupScheduler').start();
+    logger.info(
+      `   ✅ Notification cleanup scheduled: ${notificationCleanupSchedule.scheduled ? 'Yes' : 'No'}`
+    );
+  } catch (notificationCleanupError) {
+    logger.warn(
+      '   Notification cleanup scheduler failed to initialize:',
+      notificationCleanupError.message
+    );
+  }
+}
+
 /**
  * Initialize all services and start the server
  * This ensures proper startup and health checks before accepting requests
@@ -1915,6 +1931,7 @@ function startServer() {
         }
 
         startContentReviewScheduler();
+        startNotificationCleanupScheduler();
 
         // 4d. Initialize System Check Scheduler
         logger.info('');

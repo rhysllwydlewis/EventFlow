@@ -214,7 +214,7 @@
     updateBadges(counts) {
       const badges = {
         newUsersCount: counts.newUsers || 0,
-        pendingPhotosCount: counts.pendingPhotos || 0,
+        pendingPhotosCount: (counts.pending && counts.pending.photos) || 0,
         openTicketsCount: counts.openTickets || 0,
       };
 

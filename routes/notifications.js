@@ -23,14 +23,24 @@ let csrfProtection;
 const MAX_NOTIFICATION_LIMIT = 100;
 const MAX_NOTIFICATION_SKIP = 10000;
 
+// Notifications created via notifyAdmins.service.js are tagged with this
+// category. They power the separate admin dashboard bell (routes/admin-notifications.js)
+// and must not also surface in the ordinary customer/supplier bell, even for
+// admin users, since both query the same collection by the same userId.
+const ADMIN_ONLY_CATEGORIES = ['admin'];
+
 function clampInteger(value, fallback, min, max) {
   const parsed = Number.parseInt(value, 10);
-  if (!Number.isFinite(parsed)) return fallback;
+  if (!Number.isFinite(parsed)) {
+    return fallback;
+  }
   return Math.min(max, Math.max(min, parsed));
 }
 
 function normaliseOptionalEnum(value, allowedValues) {
-  if (value === undefined || value === null || value === '') return null;
+  if (value === undefined || value === null || value === '') {
+    return null;
+  }
   return allowedValues.includes(value) ? value : null;
 }
 
@@ -151,6 +161,7 @@ router.get('/', notificationLimiter, applyAuthRequired, async (req, res) => {
       unreadOnly: unreadOnly === 'true',
       type,
       priority,
+      excludeCategories: ADMIN_ONLY_CATEGORIES,
     });
 
     res.json(result);
@@ -167,7 +178,9 @@ router.get('/unread-count', notificationLimiter, applyAuthRequired, async (req, 
   try {
     const notificationService = await getNotificationService();
     const userId = req.user.id;
-    const count = await notificationService.getUnreadCount(userId);
+    const count = await notificationService.getUnreadCount(userId, {
+      excludeCategories: ADMIN_ONLY_CATEGORIES,
+    });
 
     res.json({ count });
   } catch (error) {

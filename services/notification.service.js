@@ -169,7 +169,14 @@ class NotificationService {
    * @returns {Promise<Object>} Notifications and metadata
    */
   async getForUser(userId, options = {}) {
-    const { limit = 50, skip = 0, unreadOnly = false, type = null, priority = null } = options;
+    const {
+      limit = 50,
+      skip = 0,
+      unreadOnly = false,
+      type = null,
+      priority = null,
+      excludeCategories = null,
+    } = options;
 
     const conditions = [
       { userId },
@@ -189,6 +196,10 @@ class NotificationService {
       conditions.push({ priority });
     }
 
+    if (Array.isArray(excludeCategories) && excludeCategories.length) {
+      conditions.push({ category: { $nin: excludeCategories } });
+    }
+
     const query = { $and: conditions };
 
     const unreadQuery = {
@@ -197,6 +208,9 @@ class NotificationService {
         { isDismissed: { $ne: true } },
         { isRead: false },
         { $or: this._buildExpiryFilter() },
+        ...(Array.isArray(excludeCategories) && excludeCategories.length
+          ? [{ category: { $nin: excludeCategories } }]
+          : []),
       ],
     };
 
@@ -310,13 +324,17 @@ class NotificationService {
    * @param {string} userId - User ID
    * @returns {Promise<number>} Unread count
    */
-  async getUnreadCount(userId) {
+  async getUnreadCount(userId, options = {}) {
+    const { excludeCategories = null } = options;
     return await this.collection.countDocuments({
       $and: [
         { userId },
         { isRead: false },
         { isDismissed: { $ne: true } },
         { $or: this._buildExpiryFilter() },
+        ...(Array.isArray(excludeCategories) && excludeCategories.length
+          ? [{ category: { $nin: excludeCategories } }]
+          : []),
       ],
     });
   }
@@ -329,6 +347,31 @@ class NotificationService {
     const now = new Date().toISOString();
     const result = await this.collection.deleteMany({
       expiresAt: { $lte: now },
+    });
+
+    return result.deletedCount;
+  }
+
+  /**
+   * Clean up old notifications that have no explicit expiresAt.
+   * Read notifications are pruned after readRetentionDays; unread ones
+   * (which nothing else clears) are pruned after maxAgeDays so the
+   * collection can't grow forever from fire-and-forget senders like
+   * notifyAdmins that never set expiresAt.
+   * @param {Object} [options]
+   * @param {number} [options.readRetentionDays=30]
+   * @param {number} [options.maxAgeDays=180]
+   * @returns {Promise<number>} Number of notifications deleted
+   */
+  async cleanupStale({ readRetentionDays = 30, maxAgeDays = 180 } = {}) {
+    const readCutoff = new Date(Date.now() - readRetentionDays * 86400000).toISOString();
+    const ageCutoff = new Date(Date.now() - maxAgeDays * 86400000).toISOString();
+
+    const result = await this.collection.deleteMany({
+      $or: [
+        { isRead: true, readAt: { $ne: null, $lte: readCutoff } },
+        { createdAt: { $lte: ageCutoff } },
+      ],
     });
 
     return result.deletedCount;

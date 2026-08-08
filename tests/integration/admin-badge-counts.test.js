@@ -73,17 +73,23 @@ describe('Admin Badge Counts Endpoint', () => {
       );
 
       expect(badgeCountsSection).toContain('pendingPackages');
-      expect(badgeCountsSection).toContain('!p.approved');
+      expect(badgeCountsSection).toContain("dbUnified.count('packages', { approved: false })");
     });
 
-    it('should count pending photos from galleries', () => {
+    it('should count pending photos the same way the photos moderation page does', () => {
       const badgeCountsSection = adminRoutesContent.substring(
         adminRoutesContent.indexOf('GET /api/admin/badge-counts'),
         adminRoutesContent.indexOf('GET /api/admin/badge-counts') + 4500
       );
 
+      // Must mirror GET /api/admin/photos/pending exactly: same 'photos'
+      // collection, same status:'pending' filter, same photoAutoApprove gate.
+      // (Counting unapproved supplier/package gallery entries here previously
+      // disagreed with what the moderation page actually lists.)
       expect(badgeCountsSection).toContain('pendingPhotos');
-      expect(badgeCountsSection).toContain('photosGallery');
+      expect(badgeCountsSection).toContain('photoAutoApprove');
+      expect(badgeCountsSection).toContain("dbUnified.read('photos')");
+      expect(badgeCountsSection).toContain("p.status === 'pending'");
     });
 
     it('should count pending/flagged reviews', () => {
