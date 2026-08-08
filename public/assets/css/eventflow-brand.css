@@ -19,9 +19,18 @@
   gap: 10px;
 }
 
+/* The supplied mark has a white rounded tile. Give that tile a quiet edge so it
+   remains legible on the white header instead of reducing visually to a tiny EF
+   monogram. The artwork itself remains unchanged. */
 .ef-logo {
   width: 44px;
   height: 44px;
+  flex: 0 0 44px;
+  overflow: hidden;
+  border: 1px solid rgba(11, 128, 115, 0.16);
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 1px 4px rgba(11, 128, 115, 0.1);
 }
 
 .ef-logo::before,
@@ -62,11 +71,14 @@
   animation: none !important;
 }
 
-/* The compact mobile header intentionally uses the standalone mark only. */
+/* The compact mobile header intentionally uses the standalone mark only. Keep
+   an explicit flex-basis/minimum so later mobile rules cannot collapse it. */
 @media (max-width: 767px) {
-  .ef-logo {
-    width: 42px;
-    height: 42px;
+  .ef-header .ef-brand .ef-logo {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    flex: 0 0 44px !important;
   }
 
   .ef-brand-text {
@@ -100,6 +112,30 @@
   color: transparent !important;
   font-size: 0 !important;
   line-height: 0 !important;
+}
+
+/* A smaller set of pages still render the older `.footer .ef-footer-content`
+   shell instead of the JS-enhanced premium footer. Use the same supplied
+   wordmark there so auth, verification and other legacy-shell pages do not
+   fall back to a text-only EventFlow logo. */
+.footer[role='contentinfo'] .ef-footer-content > div:first-child > strong {
+  display: inline-block;
+  width: 170px;
+  height: 38px;
+  padding: 4px 8px;
+  border-radius: 10px;
+  background: #ffffff var(--eventflow-brand-wordmark) center / contain no-repeat;
+  color: transparent !important;
+  font-size: 0 !important;
+  line-height: 0 !important;
+  vertical-align: middle;
+}
+
+@media (max-width: 767px) {
+  .footer[role='contentinfo'] .ef-footer-content > div:first-child > strong {
+    width: 154px;
+    height: 34px;
+  }
 }
 
 /* --------------------------------------------------------------------------
