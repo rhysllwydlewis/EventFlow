@@ -71,6 +71,29 @@
   animation: none !important;
 }
 
+/* Below 900px the visual lockup is mark-only. Keep the EventFlow text in the
+   accessibility tree rather than using display:none: several older shared
+   headers rely on this span as the home link's accessible name. */
+@media (max-width: 899px) {
+  .ef-brand-text {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    max-width: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    clip-path: inset(50%) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+    background: none !important;
+    flex: 0 0 1px !important;
+    font-size: 1px !important;
+    line-height: 1px !important;
+  }
+}
+
 /* Navbar space is tight between the phone layout and a true desktop. The old
    generated wordmark occupied materially less width than the supplied artwork,
    so keep the full mark without letting it force navigation into horizontal
@@ -78,14 +101,6 @@
 @media (min-width: 768px) and (max-width: 899px) {
   .ef-brand {
     gap: 0;
-  }
-
-  .ef-brand-text {
-    display: none !important;
-    width: 0 !important;
-    height: 0 !important;
-    max-width: 0 !important;
-    flex-basis: 0 !important;
   }
 }
 
@@ -110,13 +125,6 @@
     height: 44px !important;
     min-width: 44px !important;
     flex: 0 0 44px !important;
-  }
-
-  .ef-brand-text {
-    display: none !important;
-    width: 0 !important;
-    height: 0 !important;
-    max-width: 0 !important;
   }
 }
 
