@@ -19,9 +19,9 @@
   gap: 10px;
 }
 
-/* The supplied mark has a white rounded tile. Give that tile a quiet edge so it
-   remains legible on the white header instead of reducing visually to a tiny EF
-   monogram. The artwork itself remains unchanged. */
+/* The standalone mark is intentionally transparent and tightly cropped. The
+   header owns its white tile, which keeps the EF monogram legible on a white
+   navbar while allowing the same asset to be reused on other backgrounds. */
 .ef-logo {
   width: 44px;
   height: 44px;
@@ -172,12 +172,12 @@
 /* --------------------------------------------------------------------------
    Authentication brand panel
    The existing text remains in the DOM for accessibility; these rules replace
-   only the visual treatment with the supplied standalone assets.
+   only the visual treatment with the standalone assets.
    -------------------------------------------------------------------------- */
 
 .auth-brand-logo-mark {
-  border: 0 !important;
-  background: transparent var(--eventflow-brand-mark) center / contain no-repeat !important;
+  border: 1px solid rgba(255, 255, 255, 0.7) !important;
+  background: #ffffff var(--eventflow-brand-mark) center / 78% auto no-repeat !important;
   color: transparent !important;
   font-size: 0 !important;
   text-indent: -9999px;
