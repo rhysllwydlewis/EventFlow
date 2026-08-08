@@ -395,7 +395,7 @@ body.pricing-redesign .pricing-name-row {
 body.pricing-redesign .pricing-name {
   margin: 0 !important;
   color: var(--pricing-teal-dark) !important;
-  font-size: 1.25rem !important;
+  font-size: 1.125rem !important;
   font-weight: 800 !important;
   letter-spacing: -0.025em;
   line-height: 1.2;
@@ -407,13 +407,13 @@ body.pricing-redesign .pricing-name {
 body.pricing-redesign .pricing-early-access-label {
   flex: 0 0 auto;
   margin: 0 !important;
-  padding: 0.3125rem 0.5625rem !important;
+  padding: 0.3125rem 0.5rem !important;
   border-radius: 999px !important;
   background: #e5f7ed !important;
   color: var(--pricing-teal-dark) !important;
-  font-size: 0.625rem !important;
+  font-size: 0.6875rem !important;
   font-weight: 800 !important;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.02em;
   line-height: 1 !important;
   text-transform: uppercase;
   white-space: nowrap;
@@ -592,7 +592,7 @@ body.pricing-redesign .pricing-cta {
   background: var(--pricing-teal) !important;
   color: #fff !important;
   box-shadow: 0 4px 12px rgba(11, 128, 115, 0.22);
-  font-size: 0.9375rem !important;
+  font-size: 1rem !important;
   font-weight: 700 !important;
   line-height: 1.2;
   text-align: center;
@@ -863,7 +863,7 @@ body.pricing-redesign .comparison-table thead .popular {
 body.pricing-redesign .comparison-table .comparison-price-row td,
 body.pricing-redesign .comparison-table .comparison-price-row th {
   color: var(--pricing-ink);
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
   font-weight: 800;
 }
 
@@ -927,7 +927,7 @@ body.pricing-redesign .pricing-faq summary {
   position: relative;
   padding: 1rem 3rem 1rem 0.25rem;
   color: var(--pricing-ink);
-  font-size: 0.9375rem;
+  font-size: 1rem;
   font-weight: 700;
   cursor: pointer;
   list-style: none;
@@ -1063,7 +1063,7 @@ body.pricing-redesign .pricing-notice-banner--error {
   }
 
   body.pricing-redesign .pricing-hero .subtitle {
-    font-size: 0.9375rem !important;
+    font-size: 0.875rem !important;
   }
 
   body.pricing-redesign .pricing-billing-toggle {
