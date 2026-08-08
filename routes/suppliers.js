@@ -349,8 +349,11 @@ router.get('/suppliers', async (req, res) => {
  */
 router.get('/suppliers/showcase', async (req, res) => {
   try {
+    // The hero shows six at a time and pages through several sets, so the cap
+    // is high enough to fill those pages in one request rather than refetching
+    // on every rotation.
     const requested = Number.parseInt(req.query.limit, 10);
-    const limit = Math.min(Math.max(Number.isFinite(requested) ? requested : 5, 1), 12);
+    const limit = Math.min(Math.max(Number.isFinite(requested) ? requested : 6, 1), 36);
 
     const users = await dbUnified.read('users');
     const validUserIds = new Set(users.map(u => u.id).filter(Boolean));

@@ -231,6 +231,64 @@ describe('pricing page rebuild', () => {
     expect(pricingPage).toContain('aria-label="Pay annually instead of monthly"');
   });
 
+  describe('the supplier photo strip', () => {
+    it('pages through sets rather than refetching on every rotation', () => {
+      expect(pricingScript).toContain('const SHOWCASE_PAGE_SIZE = 6');
+      expect(pricingScript).toContain('const SHOWCASE_MAX_PAGES = 4');
+      // One request covers every page the hero will show.
+      expect(pricingScript).toContain('const wanted = SHOWCASE_PAGE_SIZE * SHOWCASE_MAX_PAGES');
+      expect(pricingScript).toContain('limit=${wanted}');
+    });
+
+    it('only builds whole pages', () => {
+      // A trailing set of one or two photos beside four empty slots reads as a
+      // partial load rather than a design.
+      expect(pricingScript).toContain(
+        'Math.max(1, Math.floor(suppliers.length / SHOWCASE_PAGE_SIZE))'
+      );
+    });
+
+    it('only claims there are more suppliers when the endpoint says so', () => {
+      expect(pricingScript).toContain('more.hidden = !(Number(payload.total) > pages[0].length)');
+      expect(pricingPage).toContain('id="pricing-proof-more"');
+      // Hidden in the served markup, so it can never flash a claim that the
+      // request then fails to support.
+      expect(pricingPage).toMatch(/id="pricing-proof-more"[^>]*\shidden/);
+      // "Many More" split over two lines is a visual device; screen readers
+      // get the sentence instead, so they learn the same fact.
+      expect(pricingPage).toContain('<span class="sr-only">And many more suppliers</span>');
+    });
+
+    it('keeps the sets reachable without waiting for the rotation', () => {
+      // Under reduced motion nothing rotates, so the dots are the only way to
+      // see the other sets — they have to be real buttons, not decoration.
+      expect(pricingScript).toContain("dot.type = 'button'");
+      expect(pricingScript).toContain("dot.setAttribute('aria-current', 'true')");
+      expect(pricingScript).toContain('Show supplier set ${i + 1} of ${pages.length}');
+      expect(pricingScript).toContain("matchMedia?.('(prefers-reduced-motion: reduce)')");
+    });
+
+    it('pauses the rotation while the strip is hovered or focused', () => {
+      // Swapping a photo out from under someone reading it is worse than a
+      // strip that sits still.
+      expect(pricingScript).toContain("host.addEventListener('mouseenter', stop)");
+      expect(pricingScript).toContain("host.addEventListener('focusin', stop)");
+    });
+
+    it('sizes the discs so the row survives a narrow phone', () => {
+      // Six discs plus the "Many More" label on one row at 320px; a fixed
+      // width either wraps or pushes the label out of its own circle.
+      expect(pricingStyles).toContain('width: clamp(2.625rem, 12vw, 4rem)');
+    });
+
+    it('gives the paging dots a real tap target without inflating the dot', () => {
+      // Page-level `button { min-width: 44px }` rules would otherwise render
+      // each dot as a disc the size of an avatar.
+      expect(pricingStyles).toContain('max-width: 0.5rem !important');
+      expect(pricingStyles).toContain('.pricing-proof-dot::before');
+    });
+  });
+
   describe('the "Unlimited" footnote', () => {
     // "Unlimited" is true of the daily cap and false of the hourly one. The
     // asterisk is what makes the claim honest, so it has to stay attached to
