@@ -3821,6 +3821,7 @@ router.post(
   '/email-automation/action-prompts/preview',
   authRequired,
   roleRequired('admin'),
+  csrfProtection,
   apiLimiter,
   async (req, res) => {
     try {
@@ -6228,6 +6229,13 @@ router.post(
 
       if (!filename) {
         return res.status(400).json({ error: 'Filename is required' });
+      }
+
+      // Security: only accept filenames this endpoint itself would have
+      // generated (backup-<timestamp>.json) — rejects path traversal
+      // (e.g. "../../.env") and any other attempt to read arbitrary files.
+      if (typeof filename !== 'string' || !/^backup-[\w-]+\.json$/.test(filename)) {
+        return res.status(400).json({ error: 'Invalid filename' });
       }
 
       const backupsDir = path.join(__dirname, '..', 'backups');
