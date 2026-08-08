@@ -23,6 +23,16 @@
     return d.innerHTML;
   }
 
+  // Blocks javascript:/data:/vbscript: hrefs — esc() only HTML-entity-encodes,
+  // it doesn't stop a dangerous URL scheme from still executing on click.
+  function safeHref(url) {
+    const value = String(url || '').trim();
+    if (!value || /^(javascript|data|vbscript):/i.test(value)) {
+      return '#';
+    }
+    return esc(value);
+  }
+
   function fmtDate(value) {
     if (!value) {
       return '—';
@@ -231,7 +241,7 @@
         const checked = selectedUserIds.has(user.id) ? 'checked' : '';
         const hasProfile = Boolean(user.supplierProfile);
         const supplierLink = hasProfile
-          ? `<a href="${esc(user.supplierProfile.profileUrl)}" class="btn btn-ghost btn-xs" style="white-space:nowrap;">Supplier</a>`
+          ? `<a href="${safeHref(user.supplierProfile.profileUrl)}" class="btn btn-ghost btn-xs" style="white-space:nowrap;">Supplier</a>`
           : user.role === 'supplier'
             ? `<button type="button" class="btn btn-warning btn-xs" style="white-space:nowrap;" data-provision-profile="${userId}" title="Create missing supplier profile">⚠️ Provision</button>`
             : '';
@@ -499,7 +509,9 @@
       confirmText: 'Create profile',
       type: 'warning',
     });
-    if (!ok) return;
+    if (!ok) {
+      return;
+    }
     try {
       await AdminShared.adminFetch(
         `/api/admin/users/${encodeURIComponent(userId)}/provision-supplier-profile`,
@@ -520,7 +532,9 @@
       confirmText: 'Fix all',
       type: 'warning',
     });
-    if (!ok) return;
+    if (!ok) {
+      return;
+    }
     try {
       const data = await AdminShared.adminFetch(
         '/api/admin/users/bulk-provision-supplier-profiles',

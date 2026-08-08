@@ -1420,6 +1420,22 @@ function startContentReviewScheduler() {
   }
 }
 
+function startNotificationCleanupScheduler() {
+  // Nothing else prunes the notifications collection, so without this job
+  // fire-and-forget senders (e.g. notifyAdmins) grow it forever.
+  try {
+    const notificationCleanupSchedule = require('./services/notificationCleanupScheduler').start();
+    logger.info(
+      `   ✅ Notification cleanup scheduled: ${notificationCleanupSchedule.scheduled ? 'Yes' : 'No'}`
+    );
+  } catch (notificationCleanupError) {
+    logger.warn(
+      '   Notification cleanup scheduler failed to initialize:',
+      notificationCleanupError.message
+    );
+  }
+}
+
 /**
  * Initialize all services and start the server
  * This ensures proper startup and health checks before accepting requests
@@ -1915,6 +1931,7 @@ function startServer() {
         }
 
         startContentReviewScheduler();
+        startNotificationCleanupScheduler();
 
         // 4d. Initialize System Check Scheduler
         logger.info('');
@@ -2076,6 +2093,9 @@ function startServer() {
 
 // Export the app for testing (without starting the server)
 module.exports = app;
+// Also expose selected startup helpers so tests can exercise their
+// try/catch and logging paths without invoking the full startServer() flow.
+module.exports.startNotificationCleanupScheduler = startNotificationCleanupScheduler;
 
 // Only start the server if this file is run directly (not imported by tests)
 if (require.main === module) {

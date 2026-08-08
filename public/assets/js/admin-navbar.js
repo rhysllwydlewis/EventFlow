@@ -1003,6 +1003,18 @@
             locationsBadge.style.display = 'none';
           }
         }
+
+        // External contacts badge (new, unactioned enquiries)
+        const externalContactsBadge = document.getElementById('navBadgeExternalContacts');
+        if (externalContactsBadge) {
+          const count = pending.externalContacts || 0;
+          if (count > 0) {
+            externalContactsBadge.textContent = count;
+            externalContactsBadge.style.display = 'flex';
+          } else {
+            externalContactsBadge.style.display = 'none';
+          }
+        }
       })
       .catch(error => {
         console.error('Failed to fetch badge counts:', error);

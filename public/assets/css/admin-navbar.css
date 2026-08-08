@@ -1200,9 +1200,10 @@ body.admin {
   margin: 0;
 }
 
-/* Ensure hidden attribute works for tiles and groups (author flex overrides UA) */
+/* Ensure hidden attribute works for tiles, groups and badges (author flex/other rules override UA) */
 .admin-qnav-tile[hidden],
-.admin-qnav-group[hidden] {
+.admin-qnav-group[hidden],
+.admin-qnav-tile-badge[hidden] {
   display: none !important;
 }
 

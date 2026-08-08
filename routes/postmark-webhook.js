@@ -47,7 +47,16 @@ function basicAuthValid(req) {
   }
   const user = decoded.slice(0, separator);
   const pass = decoded.slice(separator + 1);
-  return user === process.env.POSTMARK_WEBHOOK_USER && pass === process.env.POSTMARK_WEBHOOK_PASS;
+  return (
+    timingSafeStringEqual(user, process.env.POSTMARK_WEBHOOK_USER) &&
+    timingSafeStringEqual(pass, process.env.POSTMARK_WEBHOOK_PASS)
+  );
+}
+
+function timingSafeStringEqual(a, b) {
+  const bufA = Buffer.from(String(a));
+  const bufB = Buffer.from(String(b));
+  return bufA.length === bufB.length && crypto.timingSafeEqual(bufA, bufB);
 }
 
 function normalizePostmarkPayload(payload = {}) {

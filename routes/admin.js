@@ -2431,10 +2431,15 @@ router.get('/badge-counts', authRequired, roleRequired('admin'), async (req, res
       totalPackages,
       totalReviews,
       totalReports,
+      pendingExternalContacts,
     ] = await Promise.all([
       dbUnified.count('suppliers', { approved: false }),
       dbUnified.count('packages', { approved: false }),
-      dbUnified.count('reviews', { $or: [{ status: 'pending' }, { flagged: true }] }),
+      // Matches the flagged-queue filter used by the Reviews moderation page
+      // (routes/reviews.js getFlaggedReviews): flagged AND not yet approved.
+      // Counting plain status:'pending' here previously inflated this badge
+      // relative to what the moderation list actually shows.
+      dbUnified.count('reviews', { flagged: true, approved: { $ne: true } }),
       dbUnified.count('reports', { status: 'pending' }),
       dbUnified.count('public_calendar_publisher_requests', { status: 'pending' }),
       dbUnified.count('public_calendar_events'),
@@ -2442,24 +2447,23 @@ router.get('/badge-counts', authRequired, roleRequired('admin'), async (req, res
       dbUnified.count('packages'),
       dbUnified.count('reviews'),
       dbUnified.count('reports'),
+      // Matches the "new" status filter the External Contacts admin page
+      // defaults to (routes/admin-external-contacts.js), and reads the same
+      // external_contacts collection the page itself lists from.
+      dbUnified.count('external_contacts', { status: 'new' }),
     ]);
 
     // pendingSuppliers = suppliers where !s.approved
     // pendingReviews includes status 'pending' and flagged reviews
-    // Note: pendingPhotos requires special handling since photos are nested
+    // pendingPhotos mirrors GET /api/admin/photos/pending exactly (same
+    // 'photos' collection, same status filter, same photoAutoApprove gate)
+    // so the badge count never disagrees with what that page shows.
     let pendingPhotos = 0;
-    const suppliers = await dbUnified.read('suppliers');
-    const packages = await dbUnified.read('packages');
-    suppliers.forEach(s => {
-      if (s.photosGallery && Array.isArray(s.photosGallery)) {
-        pendingPhotos += s.photosGallery.filter(p => !p.approved).length;
-      }
-    });
-    packages.forEach(pkg => {
-      if (pkg.gallery && Array.isArray(pkg.gallery)) {
-        pendingPhotos += pkg.gallery.filter(p => !p.approved).length;
-      }
-    });
+    const settings = (await dbUnified.read('settings')) || {};
+    if ((settings.features || {}).photoAutoApprove === false) {
+      const photos = await dbUnified.read('photos');
+      pendingPhotos = photos.filter(p => p.status === 'pending').length;
+    }
 
     const allTickets = await dbUnified.read('tickets');
     const openTickets = allTickets.filter(
@@ -2490,6 +2494,7 @@ router.get('/badge-counts', authRequired, roleRequired('admin'), async (req, res
         tickets: openTickets,
         publicCalendarRequests: pendingCalendarRequests,
         locations: pendingLocationsReview,
+        externalContacts: pendingExternalContacts,
       },
       totals: {
         suppliers: totalSuppliers,
@@ -2514,6 +2519,7 @@ router.get('/badge-counts', authRequired, roleRequired('admin'), async (req, res
         tickets: 0,
         publicCalendarRequests: 0,
         locations: 0,
+        externalContacts: 0,
       },
       totals: {
         suppliers: 0,
@@ -3815,6 +3821,7 @@ router.post(
   '/email-automation/action-prompts/preview',
   authRequired,
   roleRequired('admin'),
+  csrfProtection,
   apiLimiter,
   async (req, res) => {
     try {
@@ -6222,6 +6229,13 @@ router.post(
 
       if (!filename) {
         return res.status(400).json({ error: 'Filename is required' });
+      }
+
+      // Security: only accept filenames this endpoint itself would have
+      // generated (backup-<timestamp>.json) — rejects path traversal
+      // (e.g. "../../.env") and any other attempt to read arbitrary files.
+      if (typeof filename !== 'string' || !/^backup-[\w-]+\.json$/.test(filename)) {
+        return res.status(400).json({ error: 'Invalid filename' });
       }
 
       const backupsDir = path.join(__dirname, '..', 'backups');
