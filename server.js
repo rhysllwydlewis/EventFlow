@@ -2093,6 +2093,9 @@ function startServer() {
 
 // Export the app for testing (without starting the server)
 module.exports = app;
+// Also expose selected startup helpers so tests can exercise their
+// try/catch and logging paths without invoking the full startServer() flow.
+module.exports.startNotificationCleanupScheduler = startNotificationCleanupScheduler;
 
 // Only start the server if this file is run directly (not imported by tests)
 if (require.main === module) {
