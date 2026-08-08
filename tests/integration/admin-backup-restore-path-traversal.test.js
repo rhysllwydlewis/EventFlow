@@ -50,17 +50,21 @@ function createApp() {
 
 describe('POST /api/admin/backup/restore — filename validation', () => {
   let app;
+  let secretDir;
   let secretFile;
 
   beforeAll(() => {
     // A file outside the backups directory that a traversal attempt could
-    // try to read if the guard were missing.
-    secretFile = path.join(os.tmpdir(), `eventflow-secret-${Date.now()}.json`);
-    fs.writeFileSync(secretFile, JSON.stringify({ data: { users: [] } }));
+    // try to read if the guard were missing. Created in a securely-generated,
+    // process-private temp directory (not a predictably-named file directly
+    // in the shared OS temp dir).
+    secretDir = fs.mkdtempSync(path.join(os.tmpdir(), 'eventflow-secret-'));
+    secretFile = path.join(secretDir, 'secret.json');
+    fs.writeFileSync(secretFile, JSON.stringify({ data: { users: [] } }), { mode: 0o600 });
   });
 
   afterAll(() => {
-    fs.rmSync(secretFile, { force: true });
+    fs.rmSync(secretDir, { recursive: true, force: true });
   });
 
   beforeEach(() => {
