@@ -174,7 +174,7 @@ function safeBaseUrl(value) {
 function safeImageUrl(value, baseUrl = DEFAULT_BASE_URL) {
   const raw = String(value || '').trim();
   if (!raw) {
-    return `${safeBaseUrl(baseUrl)}/assets/images/eventflow-og-image.png?v=2`;
+    return `${safeBaseUrl(baseUrl)}/assets/images/eventflow-og-image.png?v=3`;
   }
   try {
     const parsed = new URL(raw, safeBaseUrl(baseUrl));
@@ -183,7 +183,7 @@ function safeImageUrl(value, baseUrl = DEFAULT_BASE_URL) {
     }
     return parsed.href;
   } catch (_error) {
-    return `${safeBaseUrl(baseUrl)}/assets/images/eventflow-og-image.png?v=2`;
+    return `${safeBaseUrl(baseUrl)}/assets/images/eventflow-og-image.png?v=3`;
   }
 }
 

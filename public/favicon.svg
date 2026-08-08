@@ -1,13 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="EventFlow">
-  <!-- Solid teal background — no gradient, no shadow, no filter; renders cleanly at any size -->
-  <rect width="64" height="64" rx="14" fill="#0B8073"/>
-  <!-- "E" — bold white paths, readable at 16px -->
-  <rect x="10" y="13" width="6"  height="38" fill="#fff"/>
-  <rect x="10" y="13" width="21" height="7"  fill="#fff"/>
-  <rect x="10" y="28" width="16" height="7"  fill="#fff"/>
-  <rect x="10" y="44" width="21" height="7"  fill="#fff"/>
-  <!-- "F" — bold white paths -->
-  <rect x="35" y="13" width="6"  height="38" fill="#fff"/>
-  <rect x="35" y="13" width="19" height="7"  fill="#fff"/>
-  <rect x="35" y="28" width="14" height="7"  fill="#fff"/>
+  <title>EventFlow</title>
+  <rect width="64" height="64" rx="15" fill="#FFFFFF"/>
+  <g fill="#0B8073" ><g transform="translate(11.686,44.350) scale(0.03300,-0.03300)"><path d="M21 700H541L551 502H533Q491 603 445.0 640.5Q399 678 310 678H275V369H309Q356 369 388.0 404.5Q420 440 433 500H448V204H431Q413 279 382.5 311.0Q352 343 299 343H275V22H313Q405 22 469.5 77.0Q534 132 558 218H578L570 0H21V22H80V678H21Z"/></g><g transform="translate(32.778,44.350) scale(0.03300,-0.03300)"><path d="M21 700H541L551 492H533Q496 600 447.5 639.0Q399 678 303 678H275V353H320Q368 353 400.0 388.0Q432 423 444 484H459V188H442Q426 263 397.5 295.0Q369 327 320 327H275V22H399V0H21V22H80V678H21Z"/></g></g>
 </svg>

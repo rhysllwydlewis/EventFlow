@@ -14,7 +14,7 @@ describe('public listing template cleanup', () => {
       title: 'Cardiff Wedding Fair | EventFlow',
       description: 'Meet local wedding suppliers in Cardiff.',
       canonicalUrl: 'https://event-flow.co.uk/events/cardiff-wedding-fair-12345678',
-      image: 'https://event-flow.co.uk/assets/images/eventflow-og-image.png?v=2',
+      image: 'https://event-flow.co.uk/assets/images/eventflow-og-image.png?v=3',
       structuredData: {
         '@context': 'https://schema.org',
         '@type': 'Event',
