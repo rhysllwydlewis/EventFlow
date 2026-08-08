@@ -30,8 +30,14 @@
 const dbUnified = require('../db-unified');
 const logger = require('../utils/logger');
 
-// Required supplier profile fields for "complete profile" check
-const REQUIRED_PROFILE_FIELDS = ['name', 'description_short', 'location'];
+// Required supplier profile fields for "complete profile" check.
+// 'postcode' is a virtual entry — see missingProfileFields() — the dashboard
+// never writes a field literally named `postcode`; it saves to `basePostcode`
+// (or `venuePostcode` for the Venues category). Postcode matters here because
+// it drives real search/discovery matching (supplierLocation.service.js), not
+// just profile cosmetics — a supplier with a location but no postcode won't
+// surface correctly in radius-based search.
+const REQUIRED_PROFILE_FIELDS = ['name', 'description_short', 'location', 'postcode'];
 
 // Cadence thresholds
 const DAILY_SENDS_BEFORE_WEEKLY = 7;
@@ -60,7 +66,7 @@ const ACTION_DEFINITIONS = {
     severity: 'amber',
     title: 'Complete your supplier profile',
     description:
-      'Fill in your profile details — name, description, and location — so customers can discover and trust your business.',
+      'Fill in your profile details — name, description, location and postcode — so customers can discover and trust your business, and find you in local search.',
     ctaText: 'Update Profile',
   },
   missingPhotos: {
@@ -78,6 +84,41 @@ const COMPLETE_LABELS = {
   profileComplete: 'Profile details complete',
   hasPhotos: 'Photos uploaded',
 };
+
+/**
+ * Which of REQUIRED_PROFILE_FIELDS are missing on this supplier. Postcode is
+ * checked specially since it isn't stored under its own name — mirrors the
+ * same basePostcode/venuePostcode check in routes/supplier.js and
+ * profile-health-widget.js so all three agree on what "has a postcode" means.
+ *
+ * @param {Object} supplier - Supplier document
+ * @returns {string[]} Field names (or 'postcode') that are missing
+ */
+function missingProfileFields(supplier) {
+  return REQUIRED_PROFILE_FIELDS.filter(field => {
+    if (field === 'postcode') {
+      return !String(supplier.basePostcode || supplier.venuePostcode || '').trim();
+    }
+    return !supplier[field] || String(supplier[field]).trim() === '';
+  });
+}
+
+/**
+ * Whether a supplier has at least one gallery photo, merging the canonical
+ * photosGallery array with the legacy images array so a photo stored under
+ * either schema generation counts — mirrors the same union used by
+ * profile-health-widget.js and routes/supplier.js's dashboard-summary/
+ * performance-tips. Without this, a supplier with photos only under the
+ * legacy alias would be nagged with "add photos" emails they don't need.
+ *
+ * @param {Object} supplier - Supplier document
+ * @returns {boolean} true if at least one gallery photo exists under either field
+ */
+function hasGalleryPhotos(supplier) {
+  const canonical = Array.isArray(supplier.photosGallery) ? supplier.photosGallery : [];
+  const legacy = Array.isArray(supplier.images) ? supplier.images : [];
+  return canonical.length > 0 || legacy.length > 0;
+}
 
 /**
  * Compute outstanding action items for a single supplier.
@@ -114,9 +155,7 @@ function computeActions(supplier, packages, settings, user) {
   const globalIncompleteProfile = promptTypes.incompleteProfile !== false;
   const userIncompleteProfilePref = userPrefs.incompleteProfile !== false;
   if (globalIncompleteProfile && userIncompleteProfilePref) {
-    const missingFields = REQUIRED_PROFILE_FIELDS.filter(
-      field => !supplier[field] || String(supplier[field]).trim() === ''
-    );
+    const missingFields = missingProfileFields(supplier);
     if (missingFields.length > 0) {
       actions.push({
         key: 'incompleteProfile',
@@ -130,7 +169,7 @@ function computeActions(supplier, packages, settings, user) {
   // 3. Missing photos (AMBER — behind global and user toggles)
   const globalMissingPhotos = promptTypes.missingPhotos !== false;
   const userMissingPhotosPref = userPrefs.missingPhotos !== false;
-  const hasPhotos = Array.isArray(supplier.photosGallery) && supplier.photosGallery.length > 0;
+  const hasPhotos = hasGalleryPhotos(supplier);
   if (globalMissingPhotos && userMissingPhotosPref && !hasPhotos) {
     actions.push({
       key: 'missingPhotos',
@@ -186,9 +225,7 @@ function computeFullReport(supplier, packages, settings, user) {
   // 2. Profile completeness
   const globalIncompleteProfile = promptTypes.incompleteProfile !== false;
   const userIncompleteProfilePref = userPrefs.incompleteProfile !== false;
-  const missingFields = REQUIRED_PROFILE_FIELDS.filter(
-    field => !supplier[field] || String(supplier[field]).trim() === ''
-  );
+  const missingFields = missingProfileFields(supplier);
   if (missingFields.length > 0) {
     if (globalIncompleteProfile && userIncompleteProfilePref) {
       outstanding.push({
@@ -210,7 +247,7 @@ function computeFullReport(supplier, packages, settings, user) {
   // 3. Photos (behind global and user toggles)
   const globalMissingPhotos = promptTypes.missingPhotos !== false;
   const userMissingPhotosPref = userPrefs.missingPhotos !== false;
-  const hasPhotos = Array.isArray(supplier.photosGallery) && supplier.photosGallery.length > 0;
+  const hasPhotos = hasGalleryPhotos(supplier);
   if (!hasPhotos) {
     if (globalMissingPhotos && userMissingPhotosPref) {
       outstanding.push({
@@ -444,6 +481,8 @@ module.exports = {
   clearCadenceState,
   updateCadenceState,
   REQUIRED_PROFILE_FIELDS,
+  missingProfileFields,
+  hasGalleryPhotos,
   DAILY_SENDS_BEFORE_WEEKLY,
   WEEKLY_SENDS_BEFORE_MONTHLY,
   DAILY_INTERVAL_MS,

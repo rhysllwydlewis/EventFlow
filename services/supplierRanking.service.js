@@ -8,6 +8,7 @@
 'use strict';
 
 const { isPlaceholderImage, resolvePackageImage } = require('../utils/packageImageUtils');
+const { supplierPostcode } = require('./supplierLocation.service');
 
 const RANKING_VERSION = 'supplier-ranking-v1';
 const DAY_MS = 86400000;
@@ -99,6 +100,10 @@ const effectiveShortDescription = supplier =>
 const effectiveLongDescription = supplier =>
   supplier.description_long || supplier.description || '';
 const effectivePriceRange = supplier => supplier.price_display || supplier.priceRange || '';
+// Reuses supplierLocation.service.js's canonical basePostcode/venuePostcode
+// resolution instead of a second copy, so the two can't drift apart again —
+// see that module's supplierPostcode() for why bare `postcode` isn't checked.
+const effectivePostcode = supplier => supplierPostcode(supplier) || '';
 const effectiveVerified = supplier =>
   supplier.verified === true || supplier.verificationStatus === 'approved';
 const effectiveFeatured = supplier =>
@@ -159,7 +164,7 @@ function calculateProfileQuality(supplier) {
   const checks = [
     [cleanText(supplier.name || supplier.businessName), 2, 'missing_name'],
     [cleanText(supplier.category), 2, 'missing_category'],
-    [cleanText(supplier.location || supplier.postcode), 2, 'missing_location'],
+    [cleanText(supplier.location || effectivePostcode(supplier)), 2, 'missing_location'],
     [
       [supplier.profilePhotoUrl, supplier.displayAvatarUrl, supplier.avatarUrl, supplier.logo].some(
         isUsableImage
@@ -442,7 +447,7 @@ function calculateSupplierRelevance(supplier, packages, query = {}) {
     (supplier.tags || []).reduce((best, tag) => Math.max(best, fieldMatch(tag, tokens, phrase)), 0)
   );
   const location = fieldMatch(
-    `${supplier.location || ''} ${supplier.postcode || ''}`,
+    `${supplier.location || ''} ${effectivePostcode(supplier)}`,
     tokens,
     phrase
   );

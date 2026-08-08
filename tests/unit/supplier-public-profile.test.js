@@ -167,4 +167,43 @@ describe('supplier public profile safety helpers', () => {
       themeColor: null,
     });
   });
+
+  // The dashboard promises "your postcode is never shown publicly — only the
+  // city it falls in" for travelling suppliers. Only venuePostcode (a real,
+  // visitable venue address) is meant to be public here.
+  test("never exposes a travelling supplier's basePostcode publicly, even though it is set", () => {
+    const payload = safePublicSupplier({
+      id: 'sup_1',
+      name: 'Travelling Caterer',
+      location: 'Cardiff',
+      basePostcode: 'CF10 1AA',
+    });
+
+    expect(payload.location).toBe('Cardiff');
+    expect(payload.postcode).toBeNull();
+    expect(JSON.stringify(payload)).not.toContain('CF10');
+  });
+
+  test('exposes venuePostcode publicly, since a venue is a real visitable address', () => {
+    const payload = safePublicSupplier({
+      id: 'sup_2',
+      name: 'Riverside Venue',
+      category: 'Venues',
+      location: 'Cardiff',
+      venuePostcode: 'CF10 1AA',
+    });
+
+    expect(payload.postcode).toBe('CF10 1AA');
+  });
+
+  test('does not fall back to a bare `postcode` field, which no supplier-facing form writes', () => {
+    const payload = safePublicSupplier({
+      id: 'sup_3',
+      name: 'Legacy Record',
+      location: 'Cardiff',
+      postcode: 'CF10 1AA',
+    });
+
+    expect(payload.postcode).toBeNull();
+  });
 });

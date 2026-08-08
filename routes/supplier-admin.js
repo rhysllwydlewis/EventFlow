@@ -1337,8 +1337,11 @@ router.get(
 
       const user = allUsers.find(u => u.id === supplier.ownerUserId);
       const actionPromptSettings = settings?.emailAutomation?.actionPrompts || {};
-      const { computeFullReport, evaluateCadence, REQUIRED_PROFILE_FIELDS } =
-        getActionPromptService();
+      const {
+        computeFullReport,
+        evaluateCadence,
+        missingProfileFields: computeMissingProfileFields,
+      } = getActionPromptService();
 
       // Global state
       const globalEnabled = actionPromptSettings.enabled === true;
@@ -1405,9 +1408,7 @@ router.get(
       }
 
       // Profile completeness detail
-      const missingProfileFields = REQUIRED_PROFILE_FIELDS.filter(
-        f => !supplier[f] || String(supplier[f]).trim() === ''
-      );
+      const missingProfileFields = computeMissingProfileFields(supplier);
 
       // Last run info (global)
       const lastRun = actionPromptSettings.lastRun || null;

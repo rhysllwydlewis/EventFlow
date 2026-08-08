@@ -27,6 +27,55 @@ const MAX_ANALYTICS_WINDOW_DAYS = 90;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 /**
+ * Count of a supplier's unique gallery photos, merging the canonical
+ * photosGallery array with the legacy images array so a photo stored under
+ * either schema generation counts once. Shared by dashboard-summary and
+ * performance-tips so "do you have enough photos" can't drift between them.
+ *
+ * @param {Object} supplier - Supplier document
+ * @returns {number} Unique photo count
+ */
+function supplierGalleryCount(supplier) {
+  return new Set(
+    [
+      ...(Array.isArray(supplier.photosGallery) ? supplier.photosGallery : []),
+      ...(Array.isArray(supplier.images) ? supplier.images : []),
+    ]
+      .map(item =>
+        typeof item === 'string'
+          ? item.trim()
+          : String(
+              item?.url ||
+                item?.large ||
+                item?.optimized ||
+                item?.original ||
+                item?.thumbnail ||
+                item?.src ||
+                ''
+            ).trim()
+      )
+      .filter(Boolean)
+  ).size;
+}
+
+/**
+ * Count of a supplier's populated social platforms, merging the canonical
+ * socialLinks object with the legacy socials object so a link stored under
+ * either schema generation counts once.
+ *
+ * @param {Object} supplier - Supplier document
+ * @returns {number} Populated social-platform count
+ */
+function supplierSocialLinkCount(supplier) {
+  return Object.values({
+    ...(supplier.socials && typeof supplier.socials === 'object' ? supplier.socials : {}),
+    ...(supplier.socialLinks && typeof supplier.socialLinks === 'object'
+      ? supplier.socialLinks
+      : {}),
+  }).filter(Boolean).length;
+}
+
+/**
  * POST /api/supplier/trial/activate
  * Activate free trial for supplier
  */
@@ -867,32 +916,8 @@ router.get('/dashboard-summary', authRequired, async (req, res) => {
       // profile-health-widget.js) so the "profile health is low" alert on this dashboard
       // fires (or doesn't) in agreement with the percentage the supplier actually sees on
       // the "Profile Health" card, rather than a separate, disagreeing formula.
-      const galleryCount = new Set(
-        [
-          ...(Array.isArray(topProfile.photosGallery) ? topProfile.photosGallery : []),
-          ...(Array.isArray(topProfile.images) ? topProfile.images : []),
-        ]
-          .map(item =>
-            typeof item === 'string'
-              ? item.trim()
-              : String(
-                  item?.url ||
-                    item?.large ||
-                    item?.optimized ||
-                    item?.original ||
-                    item?.thumbnail ||
-                    item?.src ||
-                    ''
-                ).trim()
-          )
-          .filter(Boolean)
-      ).size;
-      const socialLinkCount = Object.values({
-        ...(topProfile.socials && typeof topProfile.socials === 'object' ? topProfile.socials : {}),
-        ...(topProfile.socialLinks && typeof topProfile.socialLinks === 'object'
-          ? topProfile.socialLinks
-          : {}),
-      }).filter(Boolean).length;
+      const galleryCount = supplierGalleryCount(topProfile);
+      const socialLinkCount = supplierSocialLinkCount(topProfile);
 
       const hasLogo = !!(
         topProfile.logo ||
@@ -1240,7 +1265,7 @@ router.get('/performance-tips', authRequired, async (req, res) => {
         action: { label: 'Edit Profile', href: '#toggle-profile-form' },
       });
     }
-    if (!Array.isArray(supplier.photosGallery) || supplier.photosGallery.length < 3) {
+    if (supplierGalleryCount(supplier) < 3) {
       tips.push({
         id: 'add-photos',
         priority: 2,
@@ -1284,7 +1309,7 @@ router.get('/performance-tips', authRequired, async (req, res) => {
         action: { label: 'Edit Profile', href: '#toggle-profile-form' },
       });
     }
-    if (!supplier.socialLinks || !Object.values(supplier.socialLinks || {}).some(v => v)) {
+    if (supplierSocialLinkCount(supplier) === 0) {
       tips.push({
         id: 'social-links',
         priority: 6,

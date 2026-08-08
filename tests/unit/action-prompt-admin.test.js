@@ -84,6 +84,17 @@ describe('Action Prompt Admin — supplier-admin.js endpoint declarations', () =
     expect(src).toContain('debugSummary');
   });
 
+  it('diagnostics computes missing profile fields via the shared helper, not its own inline field check', () => {
+    // Regression guard: this endpoint used to filter REQUIRED_PROFILE_FIELDS
+    // with `!supplier[f]`, which would always report "postcode" as missing
+    // since postcode is stored as basePostcode/venuePostcode, not a literal
+    // `postcode` field. Delegating to actionPromptService's own helper keeps
+    // this endpoint's diagnosis in sync with what actually gates the emails.
+    expect(src).toContain('missingProfileFields: computeMissingProfileFields');
+    expect(src).toContain('computeMissingProfileFields(supplier)');
+    expect(src).not.toMatch(/REQUIRED_PROFILE_FIELDS\.filter/);
+  });
+
   it('diagnostics returns warnings array', () => {
     expect(src).toContain('warnings');
     expect(src).toContain('UNSUBSCRIBE_SECRET');
@@ -262,6 +273,7 @@ describe('Action Prompt Admin — diagnostics logic', () => {
       name: 'Test Supplier',
       description_short: 'A description',
       location: 'London',
+      basePostcode: 'SW1A 1AA',
       photosGallery: ['photo1.jpg'],
       ...overrides,
     };

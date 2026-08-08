@@ -275,7 +275,12 @@ function safePublicSupplier(supplier = {}, extras = {}) {
     name: maybeText(source.name || source.businessName, 140) || 'Supplier',
     category: maybeText(source.category, 100),
     location: maybeText(source.location, 180),
-    postcode: maybeText(source.postcode || source.venuePostcode, 32),
+    // Deliberately does NOT fall back to basePostcode: the dashboard promises
+    // "your postcode is never shown publicly — only the city it falls in"
+    // for travelling suppliers. Only venuePostcode (a venue's real, visitable
+    // address) is meant to be public here. `source.postcode` is not a field
+    // any supplier-facing form writes — do not "fix" this to basePostcode.
+    postcode: maybeText(source.venuePostcode, 32),
     tagline: maybeText(source.tagline, 220),
     description: maybeText(
       source.description_long || source.description_short || source.description || source.blurb,
