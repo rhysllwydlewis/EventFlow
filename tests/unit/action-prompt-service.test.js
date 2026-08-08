@@ -44,6 +44,7 @@ function makeSupplier(overrides = {}) {
     name: 'Test Supplier',
     description_short: 'A great supplier',
     location: 'London',
+    basePostcode: 'SW1A 1AA',
     email: 'supplier@test.com',
     photosGallery: [{ url: '/img/1.jpg' }], // has photos by default
     ...overrides,
@@ -102,6 +103,27 @@ describe('computeActions', () => {
   it('does not return incompleteProfile when all required fields present', () => {
     const actions = computeActions(makeSupplier(), [makePackage()], makeSettings(), makeUser());
     expect(actions.some(a => a.key === 'incompleteProfile')).toBe(false);
+  });
+
+  // Postcode drives real search/discovery matching (supplierLocation.service.js),
+  // not just profile cosmetics, so a supplier with a location but no postcode
+  // should keep getting nudged same as a missing name or description.
+  it('returns incompleteProfile when location is set but postcode is missing', () => {
+    const incompleteSupplier = makeSupplier({ basePostcode: undefined });
+    const actions = computeActions(incompleteSupplier, [makePackage()], makeSettings(), makeUser());
+    expect(actions.some(a => a.key === 'incompleteProfile')).toBe(true);
+  });
+
+  it('accepts venuePostcode as satisfying the postcode requirement', () => {
+    const supplier = makeSupplier({ basePostcode: undefined, venuePostcode: 'CF10 1AA' });
+    const actions = computeActions(supplier, [makePackage()], makeSettings(), makeUser());
+    expect(actions.some(a => a.key === 'incompleteProfile')).toBe(false);
+  });
+
+  it('does not accept a bare `postcode` field, since no supplier-facing form ever writes one', () => {
+    const supplier = makeSupplier({ basePostcode: undefined, postcode: 'CF10 1AA' });
+    const actions = computeActions(supplier, [makePackage()], makeSettings(), makeUser());
+    expect(actions.some(a => a.key === 'incompleteProfile')).toBe(true);
   });
 
   it('returns both actions when supplier has 0 packages and incomplete profile', () => {
