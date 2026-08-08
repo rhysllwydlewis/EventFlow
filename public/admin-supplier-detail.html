@@ -144,9 +144,29 @@
             <h4 id="avgRating">0.0</h4>
             <p>Average Rating</p>
           </div>
-          <div class="stat-box stat-box-orange" title="Blends profile completeness with response rate, reviews, bookings and photos — not the same as the supplier's own Profile Health completeness score.">
+          <div class="stat-box stat-box-orange">
             <h4 id="healthScore">0</h4>
-            <p>Quality Score</p>
+            <p>
+              Quality Score
+              <button type="button" class="stat-info-btn" id="qualityScoreInfoBtn" aria-expanded="false" aria-controls="qualityScoreInfoPopover" aria-label="What does Quality Score mean?">i</button>
+            </p>
+            <div class="stat-info-popover" id="qualityScoreInfoPopover" role="region" aria-label="What Quality Score means">
+              <p><strong>What this is:</strong> an internal admin-only quality signal. It blends profile completeness (30%) with response rate (25%), review rating (20%), booking count (15%) and photo count (10%).</p>
+              <p><strong>Why it can look low:</strong> 70% of it depends on activity — enquiries answered, reviews received, bookings made. A brand-new supplier with a fully complete profile but no activity yet will score low here. That's expected, not a fault with the profile.</p>
+              <p>See <strong>Profile Health</strong> alongside it for completeness alone — the same number the supplier sees on their own dashboard.</p>
+            </div>
+          </div>
+          <div class="stat-box stat-box-green">
+            <h4 id="profileHealthScore">0%</h4>
+            <p>
+              Profile Health
+              <button type="button" class="stat-info-btn" id="profileHealthInfoBtn" aria-expanded="false" aria-controls="profileHealthInfoPopover" aria-label="What does Profile Health mean?">i</button>
+            </p>
+            <div class="stat-info-popover" id="profileHealthInfoPopover" role="region" aria-label="What Profile Health means">
+              <p><strong>What this is:</strong> profile completeness only — exactly the percentage this supplier sees on their own dashboard's "Profile Health" card. It does not factor in bookings, reviews or response rate.</p>
+              <p id="profileHealthChecklistIntro">For this supplier:</p>
+              <ul id="profileHealthChecklist"></ul>
+            </div>
           </div>
         </div>
       </div>
@@ -201,6 +221,7 @@
 <script src="/assets/js/notification-dispatcher.js" defer></script>
 <!-- Note: global-error-handler.js already loaded in head -->
 <script src="/assets/js/admin-features.js" defer></script>
+<script src="/assets/js/components/profile-health-widget.js?v=18.3.0" defer></script>
 <script src="/assets/js/pages/admin-supplier-detail-init.js?v=18.3.0" defer></script>
 <script src="/assets/js/pages/admin-supplier-trust-consistency.js?v=2.0.0" defer></script>
 <script src="/assets/js/cookie-consent.js?v=2.0.0" defer></script>

@@ -370,26 +370,26 @@ describe('RBAC Permission System', () => {
       expect(duration).toBeLessThan(100);
     });
 
-    it('should benefit from caching on repeated calls', () => {
-      // First call (no cache)
-      const startTime1 = Date.now();
-      getUserPermissions(adminUser);
-      const duration1 = Date.now() - startTime1;
-
-      // Clear and measure again
+    it('should serve repeated calls from the cache rather than recomputing', () => {
+      // Wall-clock timing comparisons between two near-instantaneous calls
+      // are dominated by millisecond quantization and CI scheduler/GC jitter
+      // (flaky under load — see git history), not by whether the cache was
+      // actually used. Assert the cache's real, observable effect instead:
+      // a cached result keeps reflecting the role it was computed for even
+      // after the user object's role changes, until the cache is cleared.
       clearPermissionCache();
-      const startTime2 = Date.now();
-      getUserPermissions(adminUser);
-      const duration2 = Date.now() - startTime2;
+      const user = { id: 'usr_cache_behaviour_test', email: 'cache@example.com', role: 'admin' };
 
-      // Subsequent cached call
-      const startTime3 = Date.now();
-      getUserPermissions(adminUser);
-      const duration3 = Date.now() - startTime3;
+      const firstCall = getUserPermissions(user);
+      expect(getPermissionCacheStats().size).toBeGreaterThan(0);
 
-      // Cached call should be faster
-      expect(duration3).toBeLessThanOrEqual(duration1);
-      expect(duration3).toBeLessThanOrEqual(duration2);
+      user.role = 'moderator';
+      const secondCall = getUserPermissions(user);
+      expect(secondCall).toEqual(firstCall);
+
+      clearPermissionCache();
+      const thirdCall = getUserPermissions(user);
+      expect(thirdCall).not.toEqual(firstCall);
     });
   });
 });
