@@ -92,6 +92,8 @@
   const SHOWCASE_COUNT = 5;
   /** How long each event word holds before the next one fades in. */
   const ROTATOR_INTERVAL_MS = 3200;
+  /** Footnote defining what "Unlimited" means, for asterisked claims. */
+  const UNLIMITED_FOOTNOTE_ID = 'pricing-unlimited-footnote';
 
   /**
    * Derive initials the way the public supplier profile does, so a supplier
@@ -303,6 +305,12 @@
     nameEl.className = 'pricing-feature-name';
     nameEl.textContent = name;
     item.appendChild(nameEl);
+    // A bare asterisk is announced as punctuation and sends nobody anywhere.
+    // Pointing the item at the footnote means the qualification is read out
+    // with the claim, which is the only reason the asterisk is there.
+    if (name.endsWith('*')) {
+      item.setAttribute('aria-describedby', UNLIMITED_FOOTNOTE_ID);
+    }
     if (why) {
       const whyEl = document.createElement('span');
       whyEl.className = 'pricing-feature-why';

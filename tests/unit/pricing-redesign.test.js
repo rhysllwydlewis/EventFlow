@@ -264,6 +264,21 @@ describe('pricing page rebuild', () => {
       );
     });
 
+    it('points every asterisked claim at the footnote for screen readers', () => {
+      // A bare "*" is announced as punctuation, so the qualification would be
+      // visual-only without this — which is the failure mode the asterisk was
+      // supposed to fix.
+      expect(pricingPage).toContain('<p class="pricing-footnote" id="pricing-unlimited-footnote">');
+      // Static markup: the card claim plus all four messaging table cells.
+      expect(pricingPage.match(/aria-describedby="pricing-unlimited-footnote"/g)).toHaveLength(5);
+      // And the same association survives hydration from the plans endpoint,
+      // which rebuilds the feature list from scratch.
+      expect(pricingScript).toContain("const UNLIMITED_FOOTNOTE_ID = 'pricing-unlimited-footnote'");
+      expect(pricingScript).toContain(
+        "item.setAttribute('aria-describedby', UNLIMITED_FOOTNOTE_ID)"
+      );
+    });
+
     it('does not asterisk the allowances that genuinely have no ceiling', () => {
       // Packages and photos are -1 in the entitlement matrix and are not
       // rate-limited anywhere, so qualifying them would invent a limit.
