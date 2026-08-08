@@ -6,6 +6,10 @@
  * health is low" dashboard alert agrees with the percentage the supplier
  * actually sees on their Profile Health card, rather than a separate,
  * disagreeing formula.
+ *
+ * Deliberately excludes phone/business hours/FAQs from the criteria — see
+ * the comment above HEALTH_CRITERIA in profile-health-widget.js — since no
+ * supplier-facing page has ever exposed an input for them.
  */
 
 jest.mock('../../utils/logger', () => ({
@@ -60,13 +64,11 @@ const FULLY_COMPLETE_SUPPLIER = {
   email: 'complete@example.com',
   phone: '01234 567890',
   location: 'Cardiff',
-  postcode: 'CF10 1AA',
+  basePostcode: 'CF10 1AA',
   bannerUrl: 'https://example.com/banner.jpg',
   photosGallery: ['a.jpg', 'b.jpg', 'c.jpg'],
   socialLinks: { instagram: 'https://instagram.com/x', facebook: 'https://facebook.com/x' },
   website: 'https://example.com',
-  businessHours: { mon: '9-5' },
-  faqs: ['q1', 'q2', 'q3'],
 };
 
 const EMPTY_SUPPLIER = {
@@ -91,14 +93,11 @@ describe('GET /api/v1/supplier/dashboard-summary — profile.healthScore', () =>
     expect(res.body.profile.completionFlags).toEqual({
       hasLogo: true,
       hasDescription: true,
-      hasContact: true,
       hasLocation: true,
       hasCoverImage: true,
       hasGallery: true,
       hasSocialLinks: true,
       hasWebsite: true,
-      hasBusinessHours: true,
-      hasFaqs: true,
     });
   });
 
@@ -110,11 +109,32 @@ describe('GET /api/v1/supplier/dashboard-summary — profile.healthScore', () =>
     expect(res.body.profile.healthScore).toBe(0);
   });
 
-  it('requires both location and postcode for the location criterion', async () => {
+  it('does not penalise the profile for missing phone/business hours/FAQs, which no supplier UI can set', async () => {
+    mockDb.findOne.mockResolvedValue(FULLY_COMPLETE_SUPPLIER);
+    const res = await request(buildApp()).get('/api/v1/supplier/dashboard-summary');
+
+    expect(res.body.profile.completionFlags.hasContact).toBeUndefined();
+    expect(res.body.profile.completionFlags.hasBusinessHours).toBeUndefined();
+    expect(res.body.profile.completionFlags.hasFaqs).toBeUndefined();
+  });
+
+  it('credits the location criterion for basePostcode — the field the dashboard postcode input actually saves to', async () => {
     mockDb.findOne.mockResolvedValue({
       ...EMPTY_SUPPLIER,
       location: 'Cardiff',
-      // postcode intentionally omitted
+      basePostcode: 'CF10 1AA',
+    });
+    const res = await request(buildApp()).get('/api/v1/supplier/dashboard-summary');
+
+    expect(res.body.profile.completionFlags.hasLocation).toBe(true);
+    expect(res.body.profile.healthScore).toBe(15);
+  });
+
+  it('does not credit the location criterion for a bare `postcode` field, since no form ever writes one', async () => {
+    mockDb.findOne.mockResolvedValue({
+      ...EMPTY_SUPPLIER,
+      location: 'Cardiff',
+      postcode: 'CF10 1AA',
     });
     const res = await request(buildApp()).get('/api/v1/supplier/dashboard-summary');
 
@@ -122,7 +142,19 @@ describe('GET /api/v1/supplier/dashboard-summary — profile.healthScore', () =>
     expect(res.body.profile.healthScore).toBe(0);
   });
 
-  it('counts a legacy images array towards the gallery criterion (10 pts)', async () => {
+  it('requires both location and a postcode for the location criterion', async () => {
+    mockDb.findOne.mockResolvedValue({
+      ...EMPTY_SUPPLIER,
+      location: 'Cardiff',
+      // basePostcode intentionally omitted
+    });
+    const res = await request(buildApp()).get('/api/v1/supplier/dashboard-summary');
+
+    expect(res.body.profile.completionFlags.hasLocation).toBe(false);
+    expect(res.body.profile.healthScore).toBe(0);
+  });
+
+  it('counts a legacy images array towards the gallery criterion (15 pts)', async () => {
     mockDb.findOne.mockResolvedValue({
       ...EMPTY_SUPPLIER,
       images: ['legacy-a.jpg', 'legacy-b.jpg', 'legacy-c.jpg'],
@@ -130,10 +162,10 @@ describe('GET /api/v1/supplier/dashboard-summary — profile.healthScore', () =>
     const res = await request(buildApp()).get('/api/v1/supplier/dashboard-summary');
 
     expect(res.body.profile.completionFlags.hasGallery).toBe(true);
-    expect(res.body.profile.healthScore).toBe(10);
+    expect(res.body.profile.healthScore).toBe(15);
   });
 
-  it('counts a legacy socials object towards the social-links criterion (10 pts)', async () => {
+  it('counts a legacy socials object towards the social-links criterion (15 pts)', async () => {
     mockDb.findOne.mockResolvedValue({
       ...EMPTY_SUPPLIER,
       socials: { twitter: 'https://twitter.com/x', tiktok: 'https://tiktok.com/@x' },
@@ -141,14 +173,14 @@ describe('GET /api/v1/supplier/dashboard-summary — profile.healthScore', () =>
     const res = await request(buildApp()).get('/api/v1/supplier/dashboard-summary');
 
     expect(res.body.profile.completionFlags.hasSocialLinks).toBe(true);
-    expect(res.body.profile.healthScore).toBe(10);
+    expect(res.body.profile.healthScore).toBe(15);
   });
 
-  it('requires 3+ FAQs for the FAQ criterion (15 pts, the highest single weight)', async () => {
-    mockDb.findOne.mockResolvedValue({ ...EMPTY_SUPPLIER, faqs: ['only-one'] });
+  it('credits the website criterion at its 10pt weight', async () => {
+    mockDb.findOne.mockResolvedValue({ ...EMPTY_SUPPLIER, website: 'https://example.com' });
     const res = await request(buildApp()).get('/api/v1/supplier/dashboard-summary');
 
-    expect(res.body.profile.completionFlags.hasFaqs).toBe(false);
-    expect(res.body.profile.healthScore).toBe(0);
+    expect(res.body.profile.completionFlags.hasWebsite).toBe(true);
+    expect(res.body.profile.healthScore).toBe(10);
   });
 });

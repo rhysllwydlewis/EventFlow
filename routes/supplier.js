@@ -850,14 +850,11 @@ router.get('/dashboard-summary', authRequired, async (req, res) => {
       completionFlags: {
         hasLogo: false,
         hasDescription: false,
-        hasContact: false,
         hasLocation: false,
         hasCoverImage: false,
         hasGallery: false,
         hasSocialLinks: false,
         hasWebsite: false,
-        hasBusinessHours: false,
-        hasFaqs: false,
       },
     };
     try {
@@ -911,31 +908,26 @@ router.get('/dashboard-summary', authRequired, async (req, res) => {
             topProfile.blurb ||
             ''
         ).trim().length >= 100;
-      const hasContact = !!(topProfile.email && topProfile.phone);
+      // basePostcode is what the dashboard's postcode input actually saves to
+      // (sup-base-postcode); venuePostcode is the Venues-category alternative.
+      // Plain `postcode` isn't written anywhere by any supplier-facing form.
       const hasLocation = !!(
         (topProfile.location || '').trim() &&
-        (topProfile.postcode || topProfile.venuePostcode || '').toString().trim()
+        (topProfile.basePostcode || topProfile.venuePostcode || '').toString().trim()
       );
       const hasCoverImage = !!(topProfile.bannerUrl || topProfile.coverImage);
       const hasGallery = galleryCount >= 3;
       const hasSocialLinks = socialLinkCount >= 2;
       const hasWebsite = !!topProfile.website;
-      const hasBusinessHours = !!(
-        topProfile.businessHours && Object.keys(topProfile.businessHours).length > 0
-      );
-      const hasFaqs = Array.isArray(topProfile.faqs) && topProfile.faqs.length >= 3;
 
       const healthScore =
-        (hasLogo ? 10 : 0) +
-        (hasDescription ? 10 : 0) +
-        (hasContact ? 10 : 0) +
-        (hasLocation ? 10 : 0) +
-        (hasCoverImage ? 10 : 0) +
-        (hasGallery ? 10 : 0) +
-        (hasSocialLinks ? 10 : 0) +
-        (hasWebsite ? 5 : 0) +
-        (hasBusinessHours ? 10 : 0) +
-        (hasFaqs ? 15 : 0);
+        (hasLogo ? 15 : 0) +
+        (hasDescription ? 15 : 0) +
+        (hasLocation ? 15 : 0) +
+        (hasCoverImage ? 15 : 0) +
+        (hasGallery ? 15 : 0) +
+        (hasSocialLinks ? 15 : 0) +
+        (hasWebsite ? 10 : 0);
 
       profileData = {
         hasProfile: profileCount > 0,
@@ -947,14 +939,11 @@ router.get('/dashboard-summary', authRequired, async (req, res) => {
         completionFlags: {
           hasLogo,
           hasDescription,
-          hasContact,
           hasLocation,
           hasCoverImage,
           hasGallery,
           hasSocialLinks,
           hasWebsite,
-          hasBusinessHours,
-          hasFaqs,
         },
       };
     } catch (err) {
