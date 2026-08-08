@@ -152,10 +152,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Compact Trust-Led Pricing Hero**: replaced the centred 720px marketing hero with a shallow strip above the plans
   - Headline is now "Join suppliers already on EventFlow." and the introductory paragraph is gone. The plan panel starts roughly 120px higher on a laptop, so a supplier sees prices without scrolling
-  - New social-proof strip: five suppliers drawn at random per page view from the same population the public listing shows, as overlapping avatars followed by a "Many more" disc. No filtering on category, completeness, photo, plan or ranking — it is meant to be a genuine sample. Suppliers without a photo fall back to initials the way the public profile does, rather than being skipped
+  - New social-proof strip: five suppliers drawn at random per page view from the same population the public listing shows, as overlapping avatars. No filtering on category, completeness, photo, plan or ranking — it is meant to be a genuine sample. Suppliers without a photo fall back to initials the way the public profile does, rather than being skipped. That there are more than five is said in the caption under the strip, and only when the endpoint reports a larger total
   - New `GET /api/suppliers/showcase`, returning only id, name, category and resolved photo. The listing endpoint could answer this but returns the whole population and resolves a subscription tier per supplier, which is a lot of work and payload for five avatars on a page whose load time is measured
   - Subtle rotating event word ("big day", "big night", "awards night", "company event", "celebration") so the page reads as an events platform rather than a wedding one. The phrases share one grid cell so the line cannot reflow, the rotator is hidden from assistive technology in favour of a static sentence naming them all, and it settles on one phrase under `prefers-reduced-motion`
   - Mobile stacks headline, then the supplier strip, then the billing control
+
+- **Qualified the "Unlimited" Claims on `/pricing`**: unlimited enquiry replies and conversations now carry an asterisk pointing at a footnote under the plan cards
+  - "Unlimited" was true of the daily cap and silent about the hourly one. `config/messagingLimits.js` applies a fair-use ceiling of 500 messages an hour on Professional and 1,000 on Professional Plus; the footnote now states both
+  - The asterisk is applied only where a ceiling exists. Unlimited package listings and portfolio photos are `-1` in the entitlement matrix and rate-limited nowhere, so qualifying them would invent a limit that is not there
+  - `tests/unit/pricing-redesign.test.js` now pins the footnote text to the numbers in `config/messagingLimits.js`, and fails if an unqualified "Unlimited" reappears in either messaging row of the comparison table
+
+- **Behavioural Tests for the Plan Entitlement Helpers**: new `tests/unit/plan-entitlement-enforcement.test.js`
+  - The photo allowance, analytics history window and plan-tier resolution previously had only source-string assertions, which pass whether or not the function returns the right answer
+  - 22 tests covering each tier's allowance, a lapsed subscription falling back to free, expired and unexpired admin-granted tiers, the `-1` unlimited sentinel passing through untranslated, the Professional/Professional Plus boundary that homepage placement depends on, unknown legacy plan names, and a failing data layer resolving to free rather than throwing
 
 - **Pricing Page Visual Overhaul**: Second pass on `/pricing`, replacing decoration with structure and making the page argue for the plans
   - Removed the decorative layer entirely — the gradient ground, blurred brand blobs, frosted-glass hero, layered drop shadows and the teal glow around the featured plan. With every element emphasised there was no hierarchy left; structure now comes from hairlines and space

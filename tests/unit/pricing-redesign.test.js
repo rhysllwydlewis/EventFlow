@@ -230,4 +230,49 @@ describe('pricing page rebuild', () => {
     expect(pricingPage).toContain('aria-checked="true"');
     expect(pricingPage).toContain('aria-label="Pay annually instead of monthly"');
   });
+
+  describe('the "Unlimited" footnote', () => {
+    // "Unlimited" is true of the daily cap and false of the hourly one. The
+    // asterisk is what makes the claim honest, so it has to stay attached to
+    // every unqualified use of the word, and the footnote has to keep quoting
+    // the ceilings the messenger actually enforces.
+    const { MESSAGE_LIMITS } = require('../../config/messagingLimits');
+
+    it('marks every unlimited messaging claim with the footnote reference', () => {
+      // Cards.
+      expect(pricingPage).toContain('Unlimited enquiry replies*');
+      expect(PLAN_PRESENTATION.pro.highlights.join('\n')).toContain('Unlimited enquiry replies*');
+      // Comparison table: both messaging rows, both paid columns.
+      const messagingRows = pricingPage
+        .split('\n')
+        .filter(line => /Enquiry replies a day|Conversations started a day/.test(line));
+      expect(messagingRows).toHaveLength(2);
+      messagingRows.forEach(row => {
+        expect(row.match(/Unlimited\*/g)).toHaveLength(2);
+        expect(row).not.toMatch(/Unlimited(?!\*)/);
+      });
+    });
+
+    it('quotes the hourly ceilings the messenger actually enforces', () => {
+      const footnote = pricingPage.match(/<p class="pricing-footnote"[\s\S]*?<\/p>/);
+      expect(footnote).not.toBeNull();
+      const text = footnote[0];
+      expect(text).toContain('no daily limit');
+      expect(text).toContain(`${MESSAGE_LIMITS.pro.messagesPerHour} messages an hour`);
+      expect(text).toContain(
+        `${MESSAGE_LIMITS.pro_plus.messagesPerHour.toLocaleString('en-GB')} an hour`
+      );
+    });
+
+    it('does not asterisk the allowances that genuinely have no ceiling', () => {
+      // Packages and photos are -1 in the entitlement matrix and are not
+      // rate-limited anywhere, so qualifying them would invent a limit.
+      expect(PLAN_FEATURES.pro_plus.features.maxPackages).toBe(-1);
+      expect(PLAN_FEATURES.pro_plus.features.maxPhotos).toBe(-1);
+      expect(pricingPage).toContain('Unlimited package listings</span>');
+      expect(pricingPage).toContain('Unlimited portfolio photos</span>');
+      expect(pricingPage).not.toContain('Unlimited package listings*');
+      expect(pricingPage).not.toContain('Unlimited portfolio photos*');
+    });
+  });
 });

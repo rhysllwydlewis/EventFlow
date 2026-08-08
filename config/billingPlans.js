@@ -86,7 +86,9 @@ const PLAN_PRESENTATION = {
       'Higher search placement — a ranking boost that lifts you above Starter suppliers in your categories and areas',
       'Up to 50 package listings — publish your full range instead of a handful',
       'Up to 500 portfolio photos — show every side of your work',
-      'Unlimited enquiry replies — never leave an enquiry waiting because you have hit a daily cap',
+      // The asterisk points at the fair-use footnote under the cards: there is
+      // no daily cap, but there is an hourly anti-abuse ceiling.
+      'Unlimited enquiry replies* — never leave an enquiry waiting because you have hit a daily cap',
       'Longer messages — up to 5,000 characters, so a full quote fits in one reply',
       '90 days of profile analytics — see what draws interest across a season, not just a week',
       'Priority support — your questions go to the front of the queue',

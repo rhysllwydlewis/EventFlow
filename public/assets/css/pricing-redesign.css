@@ -726,6 +726,22 @@ body.pricing-redesign .pricing-security-icon {
   display: none;
 }
 
+/* Defines the asterisk on the "Unlimited" claims. Set at the same size as the
+   other terms below the cards — small, but not so small it reads as something
+   the page is hoping you skip. */
+body.pricing-redesign .pricing-footnote {
+  width: min(100%, 46rem);
+  margin: 1rem auto 0;
+  color: var(--p-muted);
+  font-size: 0.75rem;
+  line-height: 1.5;
+  text-align: center;
+}
+body.pricing-redesign .pricing-footnote strong {
+  color: var(--p-ink-2);
+  font-weight: 600;
+}
+
 body.pricing-redesign .pricing-offer-terms {
   margin: 0.625rem 0 0;
   color: var(--p-muted);
