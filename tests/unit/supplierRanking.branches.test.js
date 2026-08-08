@@ -42,7 +42,7 @@ function supplier(overrides = {}) {
     name: 'South Wales Event Photography',
     category: 'Photography',
     location: 'Cardiff',
-    postcode: 'CF10 1AA',
+    basePostcode: 'CF10 1AA',
     profilePhotoUrl: '/uploads/profile.jpg',
     coverImage: '/uploads/cover.jpg',
     description_short:
@@ -168,6 +168,22 @@ describe('supplierRanking service branches', () => {
     expect(one.imageCount).toBe(1);
     expect(two.score).toBeGreaterThan(one.score);
     expect(four.score).toBe(40);
+  });
+
+  // Regression: the location-quality check used to fall back to
+  // supplier.postcode, a field no supplier-facing form ever writes. A
+  // supplier with no free-text location but a real basePostcode should
+  // still pass — they're not actually missing a location signal.
+  test('the location-quality check falls back to basePostcode/venuePostcode, not the unused bare postcode field', () => {
+    const withBasePostcodeOnly = calculateProfileQuality(
+      supplier({ location: undefined, basePostcode: 'CF10 1AA' })
+    );
+    expect(withBasePostcodeOnly.missing).not.toContain('missing_location');
+
+    const withNeitherLocationNorPostcode = calculateProfileQuality(
+      supplier({ location: undefined, basePostcode: undefined })
+    );
+    expect(withNeitherLocationNorPostcode.missing).toContain('missing_location');
   });
 
   test('scores package count, descriptions, prices, images, features and capacity', () => {
@@ -322,6 +338,30 @@ describe('supplierRanking service branches', () => {
     expect(location.components.location).toBeGreaterThan(0);
     expect(packageResult.components.packages).toBeGreaterThan(0);
     expect(calculateSupplierRelevance(supplier(), [], { q: 'a' })).toEqual({ score: 0 });
+  });
+
+  // Regression: the location field-match used to read supplier.postcode, a
+  // field no supplier-facing form ever writes (postcode is saved to
+  // basePostcode, or venuePostcode for the Venues category). A customer
+  // searching by postcode alone — no city name in the query — would never
+  // match, even for a supplier who'd correctly filled theirs in.
+  test('matches on basePostcode alone, with no city name in the query', () => {
+    const byPostcodeOnly = calculateSupplierRelevance(supplier(), [], { q: 'cf10' });
+    expect(byPostcodeOnly.components.location).toBeGreaterThan(0);
+
+    const byVenuePostcode = calculateSupplierRelevance(
+      supplier({ basePostcode: undefined, venuePostcode: 'CF10 1AA' }),
+      [],
+      { q: 'cf10' }
+    );
+    expect(byVenuePostcode.components.location).toBeGreaterThan(0);
+
+    const withoutAnyPostcode = calculateSupplierRelevance(
+      supplier({ basePostcode: undefined }),
+      [],
+      { q: 'cf10' }
+    );
+    expect(withoutAnyPostcode.components.location).toBe(0);
   });
 
   test('clamps final search scores to the public 0-100 range', () => {

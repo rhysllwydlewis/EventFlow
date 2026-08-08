@@ -26,7 +26,7 @@ function completeSupplier(overrides = {}) {
     name: 'Cardiff Celebration Photography',
     category: 'Photography',
     location: 'Cardiff',
-    postcode: 'CF10 1AA',
+    basePostcode: 'CF10 1AA',
     profilePhotoUrl: '/uploads/suppliers/profile.jpg',
     coverImage: '/uploads/suppliers/cover.jpg',
     description_short: 'Natural wedding and event photography throughout Cardiff and South Wales.',

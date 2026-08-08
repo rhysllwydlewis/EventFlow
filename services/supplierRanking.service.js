@@ -99,6 +99,10 @@ const effectiveShortDescription = supplier =>
 const effectiveLongDescription = supplier =>
   supplier.description_long || supplier.description || '';
 const effectivePriceRange = supplier => supplier.price_display || supplier.priceRange || '';
+// The dashboard's postcode input saves to basePostcode (or venuePostcode for
+// the Venues category) — no supplier-facing form has ever written a literal
+// `postcode` field. Same fix as profile-health-widget.js / routes/supplier.js.
+const effectivePostcode = supplier => supplier.basePostcode || supplier.venuePostcode || '';
 const effectiveVerified = supplier =>
   supplier.verified === true || supplier.verificationStatus === 'approved';
 const effectiveFeatured = supplier =>
@@ -159,7 +163,7 @@ function calculateProfileQuality(supplier) {
   const checks = [
     [cleanText(supplier.name || supplier.businessName), 2, 'missing_name'],
     [cleanText(supplier.category), 2, 'missing_category'],
-    [cleanText(supplier.location || supplier.postcode), 2, 'missing_location'],
+    [cleanText(supplier.location || effectivePostcode(supplier)), 2, 'missing_location'],
     [
       [supplier.profilePhotoUrl, supplier.displayAvatarUrl, supplier.avatarUrl, supplier.logo].some(
         isUsableImage
@@ -442,7 +446,7 @@ function calculateSupplierRelevance(supplier, packages, query = {}) {
     (supplier.tags || []).reduce((best, tag) => Math.max(best, fieldMatch(tag, tokens, phrase)), 0)
   );
   const location = fieldMatch(
-    `${supplier.location || ''} ${supplier.postcode || ''}`,
+    `${supplier.location || ''} ${effectivePostcode(supplier)}`,
     tokens,
     phrase
   );
