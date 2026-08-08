@@ -1,65 +1,71 @@
 /**
  * EventFlow supplier pricing page enhancement.
- * The HTML contains the complete first paint; this script hydrates canonical
- * public pricing, switches billing periods, applies auth state and starts checkout.
+ *
+ * The HTML ships a complete first paint. This script hydrates the canonical
+ * plan presentation from the billing registry, switches billing periods,
+ * applies the viewer's auth state and starts Stripe checkout.
+ *
+ * Every price the page shows — card price, billed line, saving, comparison
+ * table — is derived from one plan record, so the figures cannot drift apart
+ * when the registry changes.
  */
 (function () {
   'use strict';
 
   const BILLING_MONTH = 'month';
   const BILLING_YEAR = 'year';
+
+  /**
+   * Fallback plan data, matching the server-rendered first paint. The plans
+   * endpoint overwrites these; they are what the page falls back to when the
+   * request fails.
+   */
   const PLAN_CONFIG = {
     starter: {
       apiPlanId: 'free',
       hrefPlan: 'starter',
       name: 'Starter',
+      /* The free plan has no Stripe price, so its button is a plain link
+         rather than a checkout trigger. */
+      checkout: false,
       monthlyPrice: 0,
       annualMonthlyPrice: 0,
       annualTotal: 0,
       annualSaving: 0,
       annualDiscount: 0,
-      ctaMonthly: 'Create a free profile',
-      ctaAnnual: 'Create a free profile',
+      cta: 'Create a free profile',
     },
     pro: {
       apiPlanId: 'pro',
       hrefPlan: 'pro',
       name: 'Professional',
+      checkout: true,
       monthlyPrice: 19,
       annualMonthlyPrice: 16,
       annualTotal: 192,
       annualSaving: 36,
       annualDiscount: 16,
-      ctaMonthly: 'Choose Professional — £19/month',
-      ctaAnnual: 'Choose Professional — £192/year',
+      cta: 'Choose Professional',
     },
     pro_plus: {
       apiPlanId: 'pro_plus',
       hrefPlan: 'pro_plus',
       name: 'Professional Plus',
+      checkout: true,
       monthlyPrice: 159,
       annualMonthlyPrice: 129,
       annualTotal: 1548,
       annualSaving: 360,
       annualDiscount: 19,
-      ctaMonthly: 'Choose Professional Plus — £159/month',
-      ctaAnnual: 'Choose Professional Plus — £1,548/year',
+      cta: 'Choose Professional Plus',
     },
   };
 
+  /** Where a signed-in supplier manages the plan they already have. */
+  const SUPPLIER_DASHBOARD = '/dashboard/supplier';
+
   let activeBillingPeriod = BILLING_YEAR;
   let pricingAuthMode = 'unknown';
-
-  /**
-   * Escape a value for safe interpolation into markup.
-   * @param {*} value Raw value; null and undefined become an empty string.
-   * @returns {string} Escaped text.
-   */
-  function escapeHtml(value) {
-    const node = document.createElement('div');
-    node.textContent = value === null || value === undefined ? '' : String(value);
-    return node.innerHTML;
-  }
 
   /**
    * Format an amount as a whole-pound figure in UK grouping.
@@ -70,7 +76,16 @@
     return new Intl.NumberFormat('en-GB', {
       maximumFractionDigits: 0,
       minimumFractionDigits: 0,
-    }).format(value);
+    }).format(Number.isFinite(value) ? value : 0);
+  }
+
+  /**
+   * Format an amount as pounds sterling.
+   * @param {number} value Amount in pounds.
+   * @returns {string} e.g. `£1,548`.
+   */
+  function money(value) {
+    return `£${formatMoney(value)}`;
   }
 
   /**
@@ -84,7 +99,7 @@
     const stylesheet = document.createElement('link');
     stylesheet.id = 'pricing-redesign-styles';
     stylesheet.rel = 'stylesheet';
-    stylesheet.href = '/assets/css/pricing-redesign.css?v=2.1.0';
+    stylesheet.href = '/assets/css/pricing-redesign.css?v=3.0.0';
     document.head.appendChild(stylesheet);
   }
 
@@ -105,7 +120,26 @@
   }
 
   /**
+   * Reduce a merchandising highlight to the feature it names.
+   *
+   * The registry writes highlights as "Feature — why it matters". The full
+   * sentence wraps to two or three lines in a card column, which turns the
+   * feature list into prose; the comparison table below carries the detail.
+   * @param {string} highlight Highlight copy from the plans endpoint.
+   * @returns {string} The feature label.
+   */
+  function toFeatureLabel(highlight) {
+    return String(highlight)
+      .split(/\s+[—–]\s+/)[0]
+      .trim();
+  }
+
+  /**
    * Replace a card's server-rendered copy with canonical plan presentation.
+   *
+   * Elements are updated in place and never added or removed: the three cards
+   * share one row grid, so a card with an extra or missing block would drop
+   * out of alignment with its neighbours.
    * @param {string} planKey Plan key, matching `data-plan` on the card.
    * @param {Object} presentation Presentation metadata from the plans endpoint.
    * @returns {void} Nothing.
@@ -130,85 +164,39 @@
     }
 
     plan.name = presentation.marketingName || plan.name;
-    const name = card.querySelector('.pricing-name');
-    const description = card.querySelector('.pricing-description');
-    const audience = card.querySelector('.pricing-tier-label');
+    plan.cta = presentation.cta || plan.cta;
+
+    setText(card.querySelector('.pricing-name'), plan.name);
+    setText(card.querySelector('.pricing-description'), presentation.description);
+    setText(card.querySelector('.pricing-tier-label'), presentation.audience);
+    setText(card.querySelector('.pricing-early-access-label'), presentation.badge);
+    // `valueStatement` is the one line that says what the plan does for the
+    // supplier rather than what it contains, so it is worth showing even
+    // though the feature list already lists the contents.
+    setText(card.querySelector('.pricing-value-statement'), presentation.valueStatement);
+
     const features = card.querySelector('.pricing-features');
-    if (name) {
-      name.textContent = plan.name;
-    }
-    if (description && presentation.description) {
-      description.textContent = presentation.description;
-    }
-    if (audience && presentation.audience) {
-      audience.textContent = presentation.audience;
-    }
-    if (features && Array.isArray(presentation.highlights)) {
-      features.innerHTML = presentation.highlights
-        .map(feature => `<li>${escapeHtml(feature)}</li>`)
-        .join('');
-    }
-
-    // `valueStatement` and `badge` are written in config/billingPlans.js and
-    // served by the plans endpoint, but nothing on the page was reading them,
-    // so the sharpest selling line each plan has was being fetched and thrown
-    // away. The value statement says what the plan does for the supplier,
-    // which the feature list does not.
-    setPlanValueStatement(card, presentation.valueStatement);
-    setPlanBadge(card, presentation.badge);
-  }
-
-  /**
-   * Show a plan's value statement beneath its description.
-   *
-   * The element is created on demand: the server-rendered first paint does not
-   * include it, and a plan with no statement should not leave an empty node.
-   * @param {HTMLElement} card Plan card element.
-   * @param {string} [statement] Value statement copy.
-   * @returns {void} Nothing.
-   */
-  function setPlanValueStatement(card, statement) {
-    const existing = card.querySelector('.pricing-value-statement');
-    if (!statement) {
-      if (existing) {
-        existing.remove();
-      }
-      return;
-    }
-    const node = existing || document.createElement('p');
-    node.className = 'pricing-value-statement';
-    node.textContent = statement;
-    if (!existing) {
-      const anchor = card.querySelector('.pricing-card-divider');
-      if (anchor) {
-        anchor.parentNode.insertBefore(node, anchor);
-      } else {
-        card.querySelector('.pricing-card-content').appendChild(node);
-      }
+    if (features && Array.isArray(presentation.highlights) && presentation.highlights.length) {
+      features.replaceChildren(
+        ...presentation.highlights.map(highlight => {
+          const item = document.createElement('li');
+          item.textContent = toFeatureLabel(highlight);
+          return item;
+        })
+      );
     }
   }
 
   /**
-   * Show a plan's badge, reusing the early-access slot the markup already has.
-   * @param {HTMLElement} card Plan card element.
-   * @param {string} [badge] Badge copy.
+   * Write text into an element, leaving the server-rendered copy alone when
+   * the endpoint has nothing to say.
+   * @param {HTMLElement|null} element Target element.
+   * @param {string} [value] Replacement text.
    * @returns {void} Nothing.
    */
-  function setPlanBadge(card, badge) {
-    const existing = card.querySelector('.pricing-early-access-label');
-    if (!badge) {
-      return;
-    }
-    if (existing) {
-      existing.textContent = badge;
-      return;
-    }
-    const node = document.createElement('span');
-    node.className = 'pricing-early-access-label';
-    node.textContent = badge;
-    const content = card.querySelector('.pricing-card-content');
-    if (content) {
-      content.insertBefore(node, content.firstChild);
+  function setText(element, value) {
+    if (element && value) {
+      element.textContent = value;
     }
   }
 
@@ -233,36 +221,61 @@
       const publicPlans = Array.isArray(payload.billing) ? payload.billing : [];
       const byId = new Map(publicPlans.map(plan => [plan.id, plan]));
       Object.entries(PLAN_CONFIG).forEach(([key, plan]) => {
-        updateStaticPlanContent(key, byId.get(plan.apiPlanId)?.presentation);
+        const record = byId.get(plan.apiPlanId);
+        if (record && typeof record.checkout === 'boolean') {
+          plan.checkout = record.checkout;
+        }
+        updateStaticPlanContent(key, record?.presentation);
       });
       setBillingPeriod(activeBillingPeriod);
+      // A plan the registry has just marked purchasable needs its handler.
+      if (pricingAuthMode === 'authenticated') {
+        attachCheckoutHandlers();
+      }
     } catch (_error) {
       // Matching fallback prices and copy are already rendered in the HTML.
     }
   }
 
   /**
-   * Build the checkout URL for a plan at a billing period.
+   * Build the destination for a plan's call to action at a billing period.
+   *
+   * A signed-out visitor is sent to sign in first, carrying the plan and
+   * interval they picked so they come back to the same view. The free plan
+   * has nothing to buy, so a supplier who already has it goes straight to
+   * the dashboard rather than through checkout.
    * @param {Object} plan Plan configuration.
    * @param {string} period Billing period.
-   * @returns {string} Checkout URL.
+   * @returns {string} Destination URL.
    */
-  function getDirectCheckoutHref(plan, period) {
+  function getCtaHref(plan, period) {
+    if (pricingAuthMode === 'unauthenticated') {
+      const redirect = plan.checkout
+        ? `/pricing?plan=${encodeURIComponent(plan.hrefPlan)}&billingInterval=${period}`
+        : `/pricing?plan=${encodeURIComponent(plan.hrefPlan)}`;
+      return `/auth?redirect=${encodeURIComponent(redirect)}`;
+    }
+    if (!plan.checkout) {
+      return SUPPLIER_DASHBOARD;
+    }
     return `/checkout?plan=${encodeURIComponent(plan.hrefPlan)}&billingInterval=${period}`;
   }
 
   /**
-   * Build the sign-in URL for a plan, returning to pricing afterwards.
+   * Label a plan's call to action for the viewer.
    *
-   * The chosen interval is carried through the round trip so a visitor who
-   * picked annual does not come back to a monthly page.
+   * "Create a free profile" is only true for someone who has not got one. A
+   * signed-in supplier looking at the free plan already has a profile — for
+   * them the free card is where their subscription lands if they cancel, so
+   * it points at the dashboard and says so.
    * @param {Object} plan Plan configuration.
-   * @param {string} period Billing period.
-   * @returns {string} Auth URL with an encoded redirect.
+   * @returns {string} Button label.
    */
-  function getAuthHref(plan, period) {
-    const redirect = `/pricing?plan=${encodeURIComponent(plan.hrefPlan)}&billingInterval=${period}`;
-    return `/auth?redirect=${encodeURIComponent(redirect)}`;
+  function getCtaLabel(plan) {
+    if (!plan.checkout && pricingAuthMode === 'authenticated') {
+      return 'Manage your plan';
+    }
+    return plan.cta;
   }
 
   /**
@@ -280,6 +293,7 @@
     }
 
     const annual = period === BILLING_YEAR;
+    const paid = plan.monthlyPrice > 0;
     const price = annual ? plan.annualMonthlyPrice : plan.monthlyPrice;
     const priceElement = card.querySelector('[data-pricing-price]');
     const billedLine = card.querySelector('[data-pricing-billed-line]');
@@ -288,35 +302,61 @@
     const cta = card.querySelector('.pricing-cta');
 
     if (priceElement) {
-      priceElement.textContent = `£${formatMoney(price)}`;
+      priceElement.textContent = money(price);
     }
     if (billedLine) {
-      billedLine.textContent =
-        planKey === 'starter'
-          ? 'No card required'
-          : annual
-            ? `£${formatMoney(plan.annualTotal)} billed annually`
-            : 'Billed monthly';
+      if (!paid) {
+        billedLine.textContent = 'No card required';
+      } else {
+        billedLine.textContent = annual
+          ? `${money(plan.annualTotal)} billed annually`
+          : `${money(plan.monthlyPrice)} billed monthly`;
+      }
     }
     if (normallyLine) {
-      const show = annual && plan.monthlyPrice > 0;
+      // Only meaningful where the annual rate undercuts the monthly one.
+      const show = annual && paid && plan.annualMonthlyPrice < plan.monthlyPrice;
       normallyLine.hidden = !show;
-      normallyLine.textContent = show ? `Normally £${formatMoney(plan.monthlyPrice)}/month` : '';
+      normallyLine.textContent = show ? `Normally ${money(plan.monthlyPrice)}/month` : '';
     }
     if (savingsLine) {
       const show = annual && plan.annualSaving > 0;
       savingsLine.hidden = !show;
       savingsLine.textContent = show
-        ? `Save £${formatMoney(plan.annualSaving)} annually (${plan.annualDiscount}%)`
+        ? `Save ${money(plan.annualSaving)} a year (${plan.annualDiscount}%)`
         : '';
     }
     if (cta && cta.getAttribute('aria-disabled') !== 'true') {
-      cta.textContent = annual ? plan.ctaAnnual : plan.ctaMonthly;
-      cta.href =
-        pricingAuthMode === 'unauthenticated'
-          ? getAuthHref(plan, period)
-          : getDirectCheckoutHref(plan, period);
+      cta.textContent = getCtaLabel(plan);
+      // Until the viewer is known the server-rendered destination stands:
+      // guessing here would briefly aim a signed-out visitor at checkout, or
+      // a signed-in supplier at the sign-in page.
+      if (pricingAuthMode !== 'unknown') {
+        cta.href = getCtaHref(plan, period);
+      }
     }
+  }
+
+  /**
+   * Keep the comparison table's price row on the same figures as the cards.
+   * @param {string} period Billing period.
+   * @returns {void} Nothing.
+   */
+  function updateComparisonPrices(period) {
+    const annual = period === BILLING_YEAR;
+    document.querySelectorAll('[data-comparison-price]').forEach(cell => {
+      const plan = PLAN_CONFIG[cell.dataset.comparisonPrice];
+      if (!plan) {
+        return;
+      }
+      if (plan.monthlyPrice <= 0) {
+        cell.textContent = 'Free';
+        return;
+      }
+      cell.textContent = annual
+        ? `${money(plan.annualTotal)}/year`
+        : `${money(plan.monthlyPrice)}/month`;
+    });
   }
 
   /**
@@ -338,6 +378,7 @@
     document.querySelectorAll('.pricing-card[data-plan]').forEach(card => {
       updateCardBilling(card, activeBillingPeriod);
     });
+    updateComparisonPrices(activeBillingPeriod);
   }
 
   /**
@@ -378,6 +419,30 @@
   }
 
   /**
+   * Make a call to action inert, keeping the styling in the stylesheet rather
+   * than as inline attributes so the state survives a later re-render.
+   * @param {HTMLElement} button Call-to-action element.
+   * @param {string} label Replacement label.
+   * @param {string} [variant] Extra class describing the reason.
+   * @returns {void} Nothing.
+   */
+  function makeInert(button, label, variant) {
+    button.textContent = label;
+    button.classList.remove('secondary');
+    button.classList.add('is-inert');
+    if (variant) {
+      button.classList.add(variant);
+    }
+    button.setAttribute('aria-disabled', 'true');
+    // Dropping `href` is what makes the link inert, but it also drops it out
+    // of the tab order, so the state is never announced. `tabindex` puts it
+    // back without making it activatable.
+    button.setAttribute('role', 'link');
+    button.setAttribute('tabindex', '0');
+    button.removeAttribute('href');
+  }
+
+  /**
    * Present the page to a signed-in customer, who does not buy supplier plans.
    * @returns {void} Nothing.
    */
@@ -385,35 +450,41 @@
     pricingAuthMode = 'customer';
     const notice = document.getElementById('pricing-customer-notice');
     if (notice) {
+      notice.hidden = false;
       notice.style.display = '';
-      notice.innerHTML =
-        '<div class="pricing-customer-notice-inner">' +
-        '<span class="pricing-customer-notice-icon" aria-hidden="true">ℹ️</span>' +
-        '<div><p class="pricing-customer-notice-title">EventFlow is free for customers</p>' +
-        '<p class="pricing-customer-notice-body">These subscriptions are only for suppliers. You can continue planning events, finding suppliers and sending enquiries at no cost.</p></div></div>';
+      notice.replaceChildren(buildCustomerNotice());
     }
     document.querySelectorAll('.pricing-cta').forEach(button => {
-      button.textContent = 'Supplier plan';
-      button.style.opacity = '0.55';
-      button.style.cursor = 'not-allowed';
-      button.style.pointerEvents = 'none';
-      button.setAttribute('aria-disabled', 'true');
-      button.removeAttribute('href');
+      makeInert(button, 'Supplier plan');
     });
   }
 
   /**
-   * Mark a plan's button as the member's current plan and make it inert.
-   * @param {HTMLElement} button Call-to-action element.
-   * @returns {void} Nothing.
+   * Build the "EventFlow is free for customers" notice.
+   * @returns {HTMLElement} Notice element.
    */
-  function markAsCurrentPlan(button) {
-    button.textContent = 'Your current plan';
-    button.classList.remove('secondary');
-    button.style.opacity = '0.65';
-    button.style.cursor = 'default';
-    button.style.pointerEvents = 'none';
-    button.setAttribute('aria-disabled', 'true');
+  function buildCustomerNotice() {
+    const inner = document.createElement('div');
+    inner.className = 'pricing-customer-notice-inner';
+
+    const icon = document.createElement('span');
+    icon.className = 'pricing-customer-notice-icon';
+    icon.setAttribute('aria-hidden', 'true');
+    icon.textContent = 'ℹ️';
+
+    const title = document.createElement('p');
+    title.className = 'pricing-customer-notice-title';
+    title.textContent = 'EventFlow is free for customers';
+
+    const body = document.createElement('p');
+    body.className = 'pricing-customer-notice-body';
+    body.textContent =
+      'These subscriptions are only for suppliers. You can continue planning events, finding suppliers and sending enquiries at no cost.';
+
+    const text = document.createElement('div');
+    text.append(title, body);
+    inner.append(icon, text);
+    return inner;
   }
 
   /**
@@ -425,10 +496,11 @@
     pricingAuthMode = 'authenticated';
     const tier = getActiveTier(user);
     const tiers = { starter: 'free', pro: 'pro', pro_plus: 'pro_plus' };
+    setBillingPeriod(activeBillingPeriod);
     document.querySelectorAll('.pricing-card[data-plan]').forEach(card => {
       const button = card.querySelector('.pricing-cta');
       if (button && tiers[card.dataset.plan] === tier) {
-        markAsCurrentPlan(button);
+        makeInert(button, 'Your current plan', 'is-current');
       }
     });
   }
@@ -476,13 +548,21 @@
   }
 
   /**
-   * Bind checkout to each active call to action, guarding double binding.
+   * Bind checkout to each purchasable call to action, guarding double binding.
+   *
+   * Plans with no Stripe price are skipped: posting one to the checkout
+   * endpoint only to be redirected back is a round trip with nothing at the
+   * end of it.
    * @returns {void} Nothing.
    */
   function attachCheckoutHandlers() {
-    const successUrl = `${window.location.origin}/dashboard/supplier?billing=success`;
+    const successUrl = `${window.location.origin}${SUPPLIER_DASHBOARD}?billing=success`;
     const cancelUrl = `${window.location.origin}/pricing?checkout=cancelled`;
-    document.querySelectorAll('.pricing-cta').forEach(button => {
+    document.querySelectorAll('.pricing-cta[data-pricing-plan]').forEach(button => {
+      const plan = PLAN_CONFIG[button.dataset.pricingPlan];
+      if (!plan || !plan.checkout) {
+        return;
+      }
       if (button.getAttribute('aria-disabled') === 'true' || button.dataset.checkoutHandler) {
         return;
       }
@@ -554,27 +634,32 @@
    * @returns {void} Nothing.
    */
   function showBanner(message, variant) {
-    const options = {
-      amber: { className: 'pricing-notice-banner--info', background: '#9a6700' },
-      green: { className: 'pricing-notice-banner--success' },
-      red: { className: 'pricing-notice-banner--error' },
+    const classNames = {
+      amber: 'pricing-notice-banner--info',
+      green: 'pricing-notice-banner--success',
+      red: 'pricing-notice-banner--error',
     };
-    const config = options[variant] || options.amber;
     document.getElementById('pricing-status-banner')?.remove();
     const banner = document.createElement('div');
     banner.id = 'pricing-status-banner';
     banner.setAttribute('role', 'status');
-    banner.className = `pricing-notice-banner ${config.className}`;
-    if (config.background) {
-      banner.style.background = config.background;
-    }
-    banner.innerHTML =
-      `<span class="pricing-banner-msg">${escapeHtml(message)}</span>` +
-      '<button type="button" data-dismiss-pricing-banner aria-label="Dismiss">×</button>';
+    banner.className = `pricing-notice-banner ${classNames[variant] || classNames.amber}`;
+
+    const text = document.createElement('span');
+    text.className = 'pricing-banner-msg';
+    text.textContent = message;
+
+    const dismissButton = document.createElement('button');
+    dismissButton.type = 'button';
+    dismissButton.setAttribute('aria-label', 'Dismiss');
+    dismissButton.textContent = '×';
+
+    banner.append(text, dismissButton);
     document.body.appendChild(banner);
+
     const dismiss = () => banner.remove();
     window.setTimeout(dismiss, 8000);
-    banner.querySelector('[data-dismiss-pricing-banner]')?.addEventListener('click', dismiss);
+    dismissButton.addEventListener('click', dismiss);
   }
 
   /**
@@ -595,17 +680,21 @@
 
   /**
    * Start the pricing page enhancements.
-   * @returns {void} Nothing.
+   *
+   * Auth is resolved before the plan copy is hydrated so the calls to action
+   * are only ever written once, with the viewer already known: hydrating
+   * first would briefly point a signed-out visitor's button at checkout.
+   * @returns {Promise<void>} Resolves once the page is hydrated.
    */
-  function init() {
+  async function init() {
     ensureRedesignStylesheet();
     document.body.classList.add('pricing-redesign');
     activeBillingPeriod = readInitialBillingPeriod();
     attachBillingToggle();
     setBillingPeriod(activeBillingPeriod);
     handleCheckoutRedirectParams();
-    hydrateCanonicalPlanPresentation();
-    checkAuthAndUpdateButtons();
+    await checkAuthAndUpdateButtons();
+    await hydrateCanonicalPlanPresentation();
   }
 
   if (document.readyState === 'loading') {

@@ -88,7 +88,9 @@ const PLAN_PRESENTATION = {
     marketingName: 'Professional Plus',
     description: 'Secure EventFlow’s strongest placement and receive hands-on growth support.',
     audience: 'For established, high-capacity suppliers',
-    badge: 'Maximum exposure',
+    // Kept short: the pricing card sets this beside the plan name, and
+    // "Professional Plus" plus a longer badge does not fit on one line.
+    badge: 'Max exposure',
     featured: false,
     cta: 'Choose Professional Plus',
     valueStatement:

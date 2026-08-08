@@ -150,6 +150,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Pricing Page Layout and Logic**: Rebuilt `/pricing` so the three plan columns line up and the figures on it come from one source
+  - `pricing-redesign.css` was three stacked layers of overrides fighting each other; it is now a single pass. The plan cards subgrid onto one row track list, so heading, price, value line, feature list and button share a baseline across all three columns whatever the copy length — previously every card laid out independently and nothing lined up
+  - Fixed the single-column fallback shrinking the call-to-action buttons to their text and pushing them off-centre
+  - The "Most popular" pill now straddles the featured card's top edge instead of taking a band out of it, so that column no longer needs extra padding that knocked it out of alignment
+  - The billing switch now reads grey when monthly and teal when annual; it was teal in both states, so it never showed which side was selected
+  - Feature lists show every listed feature instead of hiding everything past the fifth, and hydrated highlights are reduced to the feature they name rather than a full sentence per bullet
+  - Call-to-action labels no longer carry hard-coded prices, which went stale as soon as the billing registry changed since only the price element was hydrated
+  - The comparison table gained a price row that follows the monthly/annual switch, plus `scope` on its header cells
+  - The free plan no longer posts a Stripe checkout session only to be redirected back, and a signed-in supplier sees "Manage your plan" rather than "Create a free profile"
+  - Auth state is resolved before plan copy is hydrated, so a signed-out visitor's button is never briefly aimed at checkout
+  - Disabled call-to-action states are styled from the stylesheet rather than inline, and stay in the tab order so `aria-disabled` is announced
+  - The billing switch is labelled "Pay annually" instead of being labelled by both side labels, which made screen readers announce "Monthly Annual switch"
 - **Search Sorting**: Rating sort now uses live review data instead of stale supplier field
 - **MOP_UP Items**: Addressed all items from MOP_UP_REVIEW_COMPREHENSIVE.md
 
