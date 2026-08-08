@@ -151,10 +151,9 @@
       <div class="pricing-hero-copy">
         <p class="pricing-eyebrow">Supplier pricing</p>
         <h1 id="pricing-heading">Join suppliers already on EventFlow.</h1>
-        <p class="subtitle">
-          <span aria-hidden="true">Be part of the next <span class="pricing-rotator" id="pricing-rotator"><span class="pricing-rotator-item is-active">big day</span><span class="pricing-rotator-item">big night</span><span class="pricing-rotator-item">awards night</span><span class="pricing-rotator-item">company event</span><span class="pricing-rotator-item">celebration</span></span></span>
-          <span class="sr-only">Be part of the next big day, big night, awards night, company event or celebration</span>
-        </p>
+        <!-- The categories EventFlow actually lists, so the line says what the
+             platform is rather than describing an ambition. -->
+        <p class="subtitle">From venues to caterers, photographers, entertainment and florists.</p>
       </div>
 
       <div class="pricing-billing-toggle">
@@ -166,12 +165,21 @@
         <span class="pricing-billing-saving">Save up to 19%</span>
       </div>
 
-      <!-- Five suppliers picked at random per page view. Server-rendered as an
-           empty strip and filled by pricing.js; the placeholders below hold the
-           space so nothing moves when the avatars arrive. -->
+      <!-- Suppliers picked at random per page view and shown six at a time.
+           Rendered empty and filled by pricing.js; it stays hidden until it has
+           something real to show, so a failed request leaves the hero looking
+           deliberate rather than broken. -->
       <div class="pricing-hero-proof" id="pricing-hero-proof" hidden>
-        <ul class="pricing-proof-strip" id="pricing-proof-strip" aria-label="Suppliers listed on EventFlow"></ul>
+        <div class="pricing-proof-track">
+          <ul class="pricing-proof-strip" id="pricing-proof-strip" aria-label="Suppliers listed on EventFlow"></ul>
+          <!-- Not aria-hidden: "there are more than these" is information, and
+               the caption underneath does not carry it. -->
+          <span class="pricing-proof-more" id="pricing-proof-more" hidden><span aria-hidden="true"><span class="pricing-proof-more-line">Many</span><span class="pricing-proof-more-line">More</span></span><span class="sr-only">And many more suppliers</span></span>
+        </div>
         <p class="pricing-proof-note" id="pricing-proof-note"></p>
+        <!-- A group of buttons, not a tablist: there is no tabpanel here, and
+             role="tab" without one misdescribes the control. -->
+        <div class="pricing-proof-dots" id="pricing-proof-dots" role="group" aria-label="Show more suppliers" hidden></div>
       </div>
     </div>
   </section>

@@ -88,10 +88,12 @@
     return `£${formatMoney(value)}`;
   }
 
-  /** How many suppliers the hero's social-proof strip shows. */
-  const SHOWCASE_COUNT = 5;
-  /** How long each event word holds before the next one fades in. */
-  const ROTATOR_INTERVAL_MS = 3200;
+  /** How many supplier photos the hero shows at once. */
+  const SHOWCASE_PAGE_SIZE = 6;
+  /** Most sets the hero will page through, so the dots stay countable. */
+  const SHOWCASE_MAX_PAGES = 4;
+  /** How long a set of supplier photos holds before the next fades in. */
+  const SHOWCASE_INTERVAL_MS = 4200;
   /** Footnote defining what "Unlimited" means, for asterisked claims. */
   const UNLIMITED_FOOTNOTE_ID = 'pricing-unlimited-footnote';
 
@@ -161,24 +163,28 @@
   }
 
   /**
-   * Fill the hero's social-proof strip with a random sample of suppliers.
+   * Fill the hero with supplier profile photos, paged six at a time.
    *
-   * The sample is drawn once per page view and left alone: a strip that kept
-   * reshuffling while someone read the prices would be a distraction. The
-   * strip stays hidden until it has something to show, so a failed request
-   * leaves the hero looking deliberate rather than broken.
+   * The suppliers are drawn at random per page view and then held: the strip
+   * pages through fixed sets rather than reshuffling, so someone reading the
+   * prices is not watching the photos churn. It stays hidden until it has
+   * something real to show, so a failed request leaves the hero looking
+   * deliberate rather than broken.
    * @returns {Promise<void>} Resolves once the strip is populated.
    */
   async function renderSupplierProof() {
     const container = document.getElementById('pricing-hero-proof');
     const strip = document.getElementById('pricing-proof-strip');
     const note = document.getElementById('pricing-proof-note');
+    const more = document.getElementById('pricing-proof-more');
+    const dots = document.getElementById('pricing-proof-dots');
     if (!container || !strip) {
       return;
     }
 
     try {
-      const response = await fetch(`/api/suppliers/showcase?limit=${SHOWCASE_COUNT}`, {
+      const wanted = SHOWCASE_PAGE_SIZE * SHOWCASE_MAX_PAGES;
+      const response = await fetch(`/api/suppliers/showcase?limit=${wanted}`, {
         headers: { Accept: 'application/json' },
       });
       if (!response.ok) {
@@ -190,51 +196,135 @@
         return;
       }
 
-      strip.replaceChildren(...suppliers.map(buildProofItem));
-
-      // "There are more than these" belongs in the caption, not in a sixth
-      // disc: two words crammed into a 44px circle read as a rendering fault
-      // on a phone. Only said when it is actually true.
-      if (note) {
-        note.textContent =
-          Number(payload.total) > suppliers.length
-            ? 'Just a few of the suppliers already on EventFlow'
-            : 'Suppliers already listed on EventFlow';
+      // Only whole pages: a final set of one or two photos beside four empty
+      // slots looks like something failed to load.
+      const pageCount = Math.max(1, Math.floor(suppliers.length / SHOWCASE_PAGE_SIZE));
+      const pages = [];
+      for (let i = 0; i < pageCount; i += 1) {
+        pages.push(suppliers.slice(i * SHOWCASE_PAGE_SIZE, (i + 1) * SHOWCASE_PAGE_SIZE));
       }
+      // Fewer suppliers than a full page: show what there is rather than none.
+      if (pages.length === 1 && suppliers.length < SHOWCASE_PAGE_SIZE) {
+        pages[0] = suppliers;
+      }
+
+      renderProofPage(strip, pages[0]);
+
+      if (more) {
+        // Only claim there are more when the endpoint says so.
+        more.hidden = !(Number(payload.total) > pages[0].length);
+      }
+      if (note) {
+        note.textContent = 'Real suppliers already listed on EventFlow';
+      }
+
       container.hidden = false;
+      startProofPaging({ strip, dots, pages });
     } catch (_error) {
       // The strip is social proof, not function. Leaving it hidden is fine.
     }
   }
 
   /**
-   * Cycle the event word in the hero line.
-   *
-   * The phrases are stacked in one grid cell so the line never reflows, and
-   * the whole rotator is hidden from assistive technology in favour of a
-   * static sentence listing every phrase. Under reduced motion it settles on
-   * the first phrase and stops.
+   * Swap the strip to one set of suppliers.
+   * @param {HTMLElement} strip Strip element.
+   * @param {Array<Object>} page Suppliers to show.
    * @returns {void} Nothing.
    */
-  function startEventRotator() {
-    const rotator = document.getElementById('pricing-rotator');
-    if (!rotator) {
-      return;
-    }
-    const items = Array.from(rotator.querySelectorAll('.pricing-rotator-item'));
-    if (items.length < 2) {
-      return;
-    }
-    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+  function renderProofPage(strip, page) {
+    strip.replaceChildren(...page.map(buildProofItem));
+  }
+
+  /**
+   * Page the strip through its sets, with dots to jump between them.
+   *
+   * The dots are real buttons, so the sets are reachable without waiting for
+   * the rotation — which matters under reduced motion, where nothing rotates
+   * on its own. Rotation also pauses while the strip is hovered or focused,
+   * so it cannot swap a photo out from under someone looking at it.
+   * @param {Object} refs Strip, dots container and the pages to cycle.
+   * @returns {void} Nothing.
+   */
+  function startProofPaging({ strip, dots, pages }) {
+    if (pages.length < 2) {
       return;
     }
 
     let index = 0;
-    window.setInterval(() => {
-      items[index].classList.remove('is-active');
-      index = (index + 1) % items.length;
-      items[index].classList.add('is-active');
-    }, ROTATOR_INTERVAL_MS);
+    let timer = null;
+
+    const buttons = pages.map((_page, i) => {
+      const dot = document.createElement('button');
+      dot.type = 'button';
+      dot.className = `pricing-proof-dot${i === 0 ? ' is-active' : ''}`;
+      // aria-current marks the set on show; aria-selected belongs to tabs.
+      if (i === 0) {
+        dot.setAttribute('aria-current', 'true');
+      }
+      dot.setAttribute('aria-label', `Show supplier set ${i + 1} of ${pages.length}`);
+      dot.addEventListener('click', () => {
+        stop();
+        show(i);
+      });
+      return dot;
+    });
+
+    if (dots) {
+      dots.replaceChildren(...buttons);
+      dots.hidden = false;
+    }
+
+    /**
+     * Show one set and mark its dot.
+     * @param {number} next Index of the set to show.
+     * @returns {void} Nothing.
+     */
+    function show(next) {
+      index = next;
+      strip.classList.add('is-swapping');
+      window.setTimeout(() => {
+        renderProofPage(strip, pages[index]);
+        strip.classList.remove('is-swapping');
+      }, 200);
+      buttons.forEach((dot, i) => {
+        dot.classList.toggle('is-active', i === index);
+        if (i === index) {
+          dot.setAttribute('aria-current', 'true');
+        } else {
+          dot.removeAttribute('aria-current');
+        }
+      });
+    }
+
+    /**
+     * Stop the rotation.
+     * @returns {void} Nothing.
+     */
+    function stop() {
+      if (timer !== null) {
+        window.clearInterval(timer);
+        timer = null;
+      }
+    }
+
+    /**
+     * Start the rotation, unless the visitor asked for reduced motion.
+     * @returns {void} Nothing.
+     */
+    function start() {
+      if (timer !== null || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+        return;
+      }
+      timer = window.setInterval(() => show((index + 1) % pages.length), SHOWCASE_INTERVAL_MS);
+    }
+
+    const host = strip.closest('.pricing-hero-proof') || strip;
+    host.addEventListener('mouseenter', stop);
+    host.addEventListener('mouseleave', start);
+    host.addEventListener('focusin', stop);
+    host.addEventListener('focusout', start);
+
+    start();
   }
 
   /**
@@ -874,7 +964,6 @@
     attachBillingToggle();
     setBillingPeriod(activeBillingPeriod);
     handleCheckoutRedirectParams();
-    startEventRotator();
     // Independent of the plan data, and not worth delaying the prices for.
     renderSupplierProof();
     await checkAuthAndUpdateButtons();

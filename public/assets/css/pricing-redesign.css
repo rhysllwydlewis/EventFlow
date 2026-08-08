@@ -54,11 +54,14 @@ body.pricing-redesign .pricing-container {
    below the fold on a laptop for no gain. */
 
 body.pricing-redesign .pricing-hero {
-  padding: 2rem 1.5rem 1.5rem !important;
+  padding: 1.25rem 1.5rem 1rem !important;
   background: transparent !important;
   color: var(--p-ink) !important;
 }
 
+/* The hero sits in its own bordered panel, matching the plan panel below it,
+   so the page reads as two related surfaces rather than loose copy floating
+   above a card. */
 body.pricing-redesign .pricing-hero .container {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -66,10 +69,13 @@ body.pricing-redesign .pricing-hero .container {
     "copy  proof"
     "toggle proof";
   align-items: center;
-  gap: 1.25rem 3rem;
+  gap: 1rem 2.5rem;
   width: min(100%, 1120px);
   margin: 0 auto;
-  padding: 0;
+  padding: 1.5rem 2rem;
+  border: 1px solid var(--p-line);
+  border-radius: 16px;
+  background: var(--p-surface);
   text-align: left;
 }
 
@@ -81,6 +87,10 @@ body.pricing-redesign .pricing-hero .pricing-billing-toggle {
   grid-area: toggle;
   align-self: start;
   justify-self: start;
+  /* The grid gap owns the space above the toggle now. The margin below is a
+     leftover from when this followed the copy in normal flow, and it was
+     stacking with the gap. */
+  margin-top: 0;
 }
 
 body.pricing-redesign .pricing-hero-proof {
@@ -98,10 +108,10 @@ body.pricing-redesign .pricing-eyebrow {
 }
 
 body.pricing-redesign .pricing-hero h1 {
-  max-width: 18ch;
-  margin: 0.625rem 0 0;
+  max-width: 20ch;
+  margin: 0.375rem 0 0;
   color: var(--p-ink);
-  font-size: clamp(1.75rem, 3.2vw, 2.5rem) !important;
+  font-size: clamp(1.5rem, 2.6vw, 2.25rem) !important;
   font-weight: 700;
   letter-spacing: -0.03em;
   line-height: 1.1;
@@ -109,7 +119,7 @@ body.pricing-redesign .pricing-hero h1 {
 }
 
 body.pricing-redesign .pricing-hero .subtitle {
-  margin: 0.5rem 0 0 !important;
+  margin: 0.375rem 0 0 !important;
   color: var(--p-ink-2);
   font-size: 1rem !important;
   font-weight: 400;
@@ -117,48 +127,26 @@ body.pricing-redesign .pricing-hero .subtitle {
   opacity: 1 !important;
 }
 
-/* ── Rotating event word ──────────────────────────────────────────────────
-   All the phrases occupy one grid cell, so the wrapper is as wide as the
-   longest and the line cannot reflow when the word changes. The visible text
-   is hidden from assistive technology and the full list is read instead, so
-   the sentence still makes sense with no animation at all. */
-
-body.pricing-redesign .pricing-rotator {
-  display: inline-grid;
-  vertical-align: bottom;
-  text-align: left;
-}
-
-body.pricing-redesign .pricing-rotator-item {
-  grid-area: 1 / 1;
-  color: var(--p-teal-dark);
-  font-weight: 600;
-  opacity: 0;
-  transform: translateY(0.3em);
-  transition:
-    opacity 420ms ease,
-    transform 420ms ease;
-}
-
-body.pricing-redesign .pricing-rotator-item.is-active {
-  opacity: 1;
-  transform: none;
-}
-
 /* ── Supplier social proof ────────────────────────────────────────────────
-   Overlapping circles: five suppliers picked at random per page view, with the
-   caption underneath carrying the fact that there are more. Sized so the strip
-   reads as social proof without competing with the plans below it. */
+   A row of supplier profile photos, paged six at a time, with a "Many More"
+   disc closing the row. These are real profile photos pulled from the supplier
+   records — the whole point of the strip is that these are the suppliers you
+   would be joining, so nothing here is decorative imagery. */
 
 body.pricing-redesign .pricing-hero-proof {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.625rem;
+  gap: 0.5rem;
 }
 
 body.pricing-redesign .pricing-hero-proof[hidden] {
   display: none;
+}
+
+body.pricing-redesign .pricing-proof-track {
+  display: flex;
+  align-items: center;
 }
 
 body.pricing-redesign .pricing-proof-strip {
@@ -169,29 +157,23 @@ body.pricing-redesign .pricing-proof-strip {
   list-style: none;
 }
 
+/* Scales with the viewport so six discs plus the "Many More" label always sit
+   on one row, down to a 320px phone, without the label outgrowing its circle. */
 body.pricing-redesign .pricing-proof-item {
   position: relative;
-  width: 3.5rem;
-  height: 3.5rem;
+  width: clamp(2.5rem, 10.5vw, 3.5rem);
+  height: clamp(2.5rem, 10.5vw, 3.5rem);
+  /* Set as the page swaps sets; a photo that pops in reads as a glitch. */
+  opacity: 1;
+  transition: opacity 320ms ease;
+}
+
+body.pricing-redesign .pricing-proof-strip.is-swapping .pricing-proof-item {
+  opacity: 0;
 }
 
 body.pricing-redesign .pricing-proof-item + .pricing-proof-item {
-  margin-left: -0.5rem;
-}
-
-/* Each disc sits above the one before it, so the ring of the circle on the
-   right is what separates the pair. */
-body.pricing-redesign .pricing-proof-item:nth-child(2) {
-  z-index: 2;
-}
-body.pricing-redesign .pricing-proof-item:nth-child(3) {
-  z-index: 3;
-}
-body.pricing-redesign .pricing-proof-item:nth-child(4) {
-  z-index: 4;
-}
-body.pricing-redesign .pricing-proof-item:nth-child(5) {
-  z-index: 5;
+  margin-left: -0.375rem;
 }
 
 body.pricing-redesign .pricing-proof-avatar {
@@ -202,12 +184,12 @@ body.pricing-redesign .pricing-proof-avatar {
   overflow: hidden;
   /* A solid ring in the page colour rather than a shadow: at this overlap a
      blurred edge reads as the circles merging into each other. */
-  border: 3px solid var(--p-paper);
+  border: 3px solid var(--p-surface);
   border-radius: 50%;
   background: var(--p-tint);
-  box-shadow: inset 0 0 0 1px rgba(11, 128, 115, 0.18);
+  box-shadow: 0 1px 3px rgba(13, 22, 24, 0.1);
   color: var(--p-teal-dark);
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
   font-weight: 600;
   letter-spacing: 0.02em;
   text-decoration: none;
@@ -221,11 +203,105 @@ body.pricing-redesign .pricing-proof-avatar img {
   background: var(--p-tint);
 }
 
+/* Closes the row rather than joining it: same diameter, no photo, and a tint
+   fill so it reads as a label instead of a supplier with a blank profile. */
+body.pricing-redesign .pricing-proof-more {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: clamp(2.5rem, 10.5vw, 3.5rem);
+  height: clamp(2.5rem, 10.5vw, 3.5rem);
+  margin-left: -0.375rem;
+  border: 3px solid var(--p-surface);
+  border-radius: 50%;
+  background: var(--p-tint);
+  color: var(--p-teal-dark);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.15;
+  text-align: center;
+}
+
+body.pricing-redesign .pricing-proof-more-line {
+  display: block;
+}
+
+body.pricing-redesign .pricing-proof-more[hidden] {
+  display: none;
+}
+
 body.pricing-redesign .pricing-proof-note {
   margin: 0;
   color: var(--p-muted);
   font-size: 0.8125rem;
   text-align: center;
+}
+
+/* ── Paging dots ──────────────────────────────────────────────────────────
+   Only rendered when there is more than one set to show. Each is a real
+   button, so the sets are reachable without waiting for the rotation. */
+
+body.pricing-redesign .pricing-proof-dots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* 8px dot + 16px gap = a 24px pitch, which the tap targets tile against. */
+  gap: 1rem;
+}
+
+body.pricing-redesign .pricing-proof-dots[hidden] {
+  display: none;
+}
+
+/* Clamp both axes so the page-level `button { min-height/min-width: 44px }`
+   rules cannot inflate the dot into a disc; the ::before below carries the
+   44x44 touch target, the same approach card-collapse.css uses. */
+body.pricing-redesign .pricing-proof-dot {
+  position: relative;
+  width: 0.5rem !important;
+  height: 0.5rem !important;
+  min-width: 0.5rem !important;
+  max-width: 0.5rem !important;
+  min-height: 0.5rem !important;
+  max-height: 0.5rem !important;
+  flex: none;
+  padding: 0 !important;
+  overflow: visible;
+  border: 0;
+  border-radius: 50%;
+  background: var(--p-line-strong);
+  cursor: pointer;
+  transition:
+    background 200ms ease,
+    transform 200ms ease;
+}
+
+/* Touch target, invisible: the dot itself is far below the minimum tap size.
+   24px square against a 24px pitch (8px dot + 16px gap), so the targets tile
+   exactly — WCAG 2.5.8 is met without adjacent dots stealing each other's
+   taps, which a 44px box at this spacing would do. */
+body.pricing-redesign .pricing-proof-dot::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 24px;
+  height: 24px;
+  transform: translate(-50%, -50%);
+}
+
+body.pricing-redesign .pricing-proof-dot:hover {
+  background: var(--p-muted);
+}
+
+body.pricing-redesign .pricing-proof-dot.is-active {
+  background: var(--p-teal);
+  transform: scale(1.15);
+}
+
+body.pricing-redesign .pricing-proof-dot:focus-visible {
+  outline: 2px solid var(--p-teal);
+  outline-offset: 3px;
 }
 
 /* ── Billing control ──────────────────────────────────────────────────────
@@ -1037,6 +1113,8 @@ body.pricing-redesign .pricing-notice-banner--error {
       "proof"
       "toggle";
     justify-items: center;
+    gap: 0.875rem;
+    padding: 1.25rem 1rem;
     text-align: center;
   }
 
@@ -1044,8 +1122,12 @@ body.pricing-redesign .pricing-notice-banner--error {
     justify-self: center;
   }
 
+  /* The measure cap is kept, but the box it creates has to be centred too —
+     left-aligned inside a centred column it sat 90px off centre while every
+     other element lined up, which read as the whole hero being lopsided. */
   body.pricing-redesign .pricing-hero h1 {
     max-width: 22ch;
+    margin-inline: auto;
   }
 
   body.pricing-redesign .pricing-grid {
@@ -1090,12 +1172,56 @@ body.pricing-redesign .pricing-notice-banner--error {
 
 @media (max-width: 640px) {
   body.pricing-redesign .pricing-hero {
-    padding: 1.5rem 1.25rem 1.25rem !important;
+    padding: 0.75rem 0.75rem 0.5rem !important;
   }
 
-  body.pricing-redesign .pricing-proof-item {
-    width: 2.75rem;
-    height: 2.75rem;
+  /* The panel already carries the vertical rhythm on a phone; the strip and
+     its caption do not need as much air as they get on a wide screen. */
+  body.pricing-redesign .pricing-hero-proof {
+    gap: 0.375rem;
+  }
+
+  body.pricing-redesign .pricing-hero .subtitle {
+    font-size: 0.875rem !important;
+  }
+
+  /* 24px holds the headline to two lines at 390px. The desktop size wrapped it
+     to three, which cost more height than it bought emphasis. */
+  body.pricing-redesign .pricing-hero h1 {
+    font-size: 1.5rem !important;
+  }
+
+  /* The switch and its saving line stack on a phone, so the gap between them
+     is pure height. */
+  body.pricing-redesign .pricing-billing-toggle {
+    gap: 0.5rem !important;
+  }
+
+  body.pricing-redesign .pricing-proof-more {
+    font-size: 0.6875rem;
+  }
+
+  /* Two stacked words only clear the ring by a hair at this diameter, which
+     reads as a rendering fault. The disc drops to one word; the sr-only
+     sentence beside it still carries the full meaning. */
+  body.pricing-redesign .pricing-proof-more-line:first-child {
+    display: none;
+  }
+
+  body.pricing-redesign .pricing-proof-avatar {
+    border-width: 2px;
+    font-size: 0.75rem;
+  }
+
+  body.pricing-redesign .pricing-proof-more {
+    border-width: 2px;
+  }
+
+  /* Balancing the line evenly reads well at three or four words a line and
+     badly at two, which is what this headline gets on a phone. */
+  body.pricing-redesign .pricing-hero h1 {
+    max-width: none;
+    text-wrap: pretty;
   }
 
   body.pricing-redesign .pricing-container {

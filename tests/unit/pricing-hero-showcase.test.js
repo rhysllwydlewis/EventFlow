@@ -83,9 +83,11 @@ describe('GET /api/suppliers/showcase', () => {
     app = buildApp();
   });
 
-  it('returns five suppliers by default', async () => {
+  it('returns one page of suppliers by default', async () => {
+    // The hero shows six at a time; the default matches so a caller that wants
+    // a single row does not have to know the page size.
     const res = await request(app).get('/api/suppliers/showcase').expect(200);
-    expect(res.body.items).toHaveLength(5);
+    expect(res.body.items).toHaveLength(6);
   });
 
   it('never repeats a supplier within one sample', async () => {
@@ -160,7 +162,43 @@ describe('GET /api/suppliers/showcase', () => {
     expect(tooFew.body.items).toHaveLength(1);
 
     const nonsense = await request(app).get('/api/suppliers/showcase?limit=abc').expect(200);
-    expect(nonsense.body.items).toHaveLength(5);
+    expect(nonsense.body.items).toHaveLength(6);
+  });
+
+  it('serves several pages in one request but caps the ceiling', async () => {
+    // The hero asks for four pages of six up front rather than refetching on
+    // every rotation, so the cap has to clear 24 — and still stop somewhere,
+    // since this is a hero decoration and not a listing endpoint.
+    const many = Array.from({ length: 60 }, (_, i) => ({
+      id: `bulk-${i}`,
+      name: `Bulk Supplier ${i}`,
+      approved: true,
+    }));
+    suppliersRouter.initializeDependencies({
+      dbUnified: {
+        read: async collection => (collection === 'suppliers' ? many : []),
+        findOne: async () => null,
+        getDatabaseType: () => 'local',
+      },
+      authRequired: (_req, _res, next) => next(),
+      roleRequired: () => (_req, _res, next) => next(),
+      supplierAnalytics: { trackEvent: async () => {} },
+      getUserFromCookie: async () => null,
+      supplierIsProActive: async () => false,
+      logger: { info() {}, warn() {}, error() {} },
+    });
+    const bulkApp = express();
+    bulkApp.use('/api', suppliersRouter);
+
+    const fourPages = await request(bulkApp).get('/api/suppliers/showcase?limit=24').expect(200);
+    expect(fourPages.body.items).toHaveLength(24);
+    expect(new Set(fourPages.body.items.map(i => i.id)).size).toBe(24);
+
+    const ceiling = await request(bulkApp).get('/api/suppliers/showcase?limit=999').expect(200);
+    expect(ceiling.body.items).toHaveLength(36);
+
+    // Restore the shared fixture for any test that runs after this one.
+    app = buildApp();
   });
 
   it('hides the strip rather than breaking the page when the read fails', async () => {
