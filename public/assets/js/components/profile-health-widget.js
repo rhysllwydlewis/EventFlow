@@ -67,63 +67,55 @@
    *
    * Checks use the canonical supplier fields plus supported legacy aliases so
    * the dashboard does not mark populated profile content as missing.
+   *
+   * Deliberately excludes phone/business hours/FAQs: those fields exist in
+   * the data model but no supplier-facing page has ever exposed an input for
+   * them, so scoring against them penalised every supplier for something
+   * they had no way to fix. Re-add a criterion here once real UI exists for
+   * it — don't just check the field is theoretically settable via the API.
    */
   const HEALTH_CRITERIA = [
     {
       id: 'logo',
       label: 'Profile photo',
-      weight: 10,
+      weight: 15,
       check: s => Boolean(s.logo || s.profileImage || s.profilePhotoUrl || s.avatarUrl),
     },
     {
       id: 'description',
       label: 'Description (100+ characters)',
-      weight: 10,
+      weight: 15,
       check: s => descriptionValue(s).length >= 100,
-    },
-    {
-      id: 'contact',
-      label: 'Contact info complete',
-      weight: 10,
-      check: s => !!s.email && !!s.phone,
     },
     {
       id: 'location',
       label: 'Location & postcode',
-      weight: 10,
-      check: s => Boolean(s.location) && Boolean(s.postcode || s.venuePostcode),
+      weight: 15,
+      // basePostcode is the field the dashboard's postcode input actually
+      // saves to (see sup-base-postcode in dashboard-supplier.html);
+      // venuePostcode is the Venues-category-only alternative. Plain
+      // `postcode` isn't written anywhere by any supplier-facing form.
+      check: s => Boolean(s.location) && Boolean(s.basePostcode || s.venuePostcode),
     },
     {
       id: 'coverImage',
       label: 'Banner image',
-      weight: 10,
+      weight: 15,
       check: s => Boolean(s.bannerUrl || s.coverImage),
     },
     {
       id: 'gallery',
       label: 'Gallery (3+ images)',
-      weight: 10,
+      weight: 15,
       check: s => galleryItems(s).length >= 3,
     },
     {
       id: 'socials',
       label: 'Social media (2+ platforms)',
-      weight: 10,
+      weight: 15,
       check: s => Object.values(socialLinks(s)).filter(Boolean).length >= 2,
     },
-    { id: 'website', label: 'Website URL', weight: 5, check: s => !!s.website },
-    {
-      id: 'businessHours',
-      label: 'Business hours',
-      weight: 10,
-      check: s => s.businessHours && Object.keys(s.businessHours).length > 0,
-    },
-    {
-      id: 'faqs',
-      label: 'FAQ section (3+ questions)',
-      weight: 15,
-      check: s => Array.isArray(s.faqs) && s.faqs.length >= 3,
-    },
+    { id: 'website', label: 'Website URL', weight: 10, check: s => !!s.website },
   ];
 
   /**
