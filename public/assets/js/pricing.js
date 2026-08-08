@@ -190,19 +190,14 @@
 
       strip.replaceChildren(...suppliers.map(buildProofItem));
 
-      // Only claim there are more when there actually are.
-      if (Number(payload.total) > suppliers.length) {
-        const more = document.createElement('li');
-        more.className = 'pricing-proof-item pricing-proof-more';
-        const label = document.createElement('span');
-        label.className = 'pricing-proof-avatar';
-        label.textContent = 'Many more';
-        more.appendChild(label);
-        strip.appendChild(more);
-      }
-
+      // "There are more than these" belongs in the caption, not in a sixth
+      // disc: two words crammed into a 44px circle read as a rendering fault
+      // on a phone. Only said when it is actually true.
       if (note) {
-        note.textContent = 'Suppliers already listed on EventFlow';
+        note.textContent =
+          Number(payload.total) > suppliers.length
+            ? 'Just a few of the suppliers already on EventFlow'
+            : 'Suppliers already listed on EventFlow';
       }
       container.hidden = false;
     } catch (_error) {

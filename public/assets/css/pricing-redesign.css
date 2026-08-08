@@ -146,9 +146,9 @@ body.pricing-redesign .pricing-rotator-item.is-active {
 }
 
 /* ── Supplier social proof ────────────────────────────────────────────────
-   Overlapping circles: five suppliers picked at random per page view, then a
-   "Many more" disc. Sized so the strip reads as social proof without
-   competing with the plans below it. */
+   Overlapping circles: five suppliers picked at random per page view, with the
+   caption underneath carrying the fact that there are more. Sized so the strip
+   reads as social proof without competing with the plans below it. */
 
 body.pricing-redesign .pricing-hero-proof {
   display: flex;
@@ -193,9 +193,6 @@ body.pricing-redesign .pricing-proof-item:nth-child(4) {
 body.pricing-redesign .pricing-proof-item:nth-child(5) {
   z-index: 5;
 }
-body.pricing-redesign .pricing-proof-item:nth-child(6) {
-  z-index: 6;
-}
 
 body.pricing-redesign .pricing-proof-avatar {
   display: grid;
@@ -222,16 +219,6 @@ body.pricing-redesign .pricing-proof-avatar img {
   object-fit: cover;
   /* Holds the box before the image decodes, so the strip does not jump. */
   background: var(--p-tint);
-}
-
-body.pricing-redesign .pricing-proof-more .pricing-proof-avatar {
-  background: var(--p-surface);
-  box-shadow: inset 0 0 0 1px var(--p-line-strong);
-  color: var(--p-ink-2);
-  font-size: 0.6875rem;
-  font-weight: 600;
-  line-height: 1.15;
-  text-align: center;
 }
 
 body.pricing-redesign .pricing-proof-note {
@@ -1093,10 +1080,6 @@ body.pricing-redesign .pricing-notice-banner--error {
   body.pricing-redesign .pricing-proof-item {
     width: 2.75rem;
     height: 2.75rem;
-  }
-
-  body.pricing-redesign .pricing-proof-more .pricing-proof-avatar {
-    font-size: 0.6875rem;
   }
 
   body.pricing-redesign .pricing-container {
