@@ -120,7 +120,7 @@ function safeHttpUrl(value, baseUrl = DEFAULT_BASE_URL) {
 function safeImageUrl(value, baseUrl = DEFAULT_BASE_URL) {
   return (
     safeHttpUrl(value, baseUrl) ||
-    `${safeBaseUrl(baseUrl)}/assets/images/eventflow-og-image.png?v=2`
+    `${safeBaseUrl(baseUrl)}/assets/images/eventflow-og-image.png?v=3`
   );
 }
 
