@@ -6,6 +6,22 @@
 (function () {
   'use strict';
 
+  // Load the visible website brand separately from favicon/PWA/search assets.
+  // This keeps the supplied mark and supplied wordmark as independent assets.
+  function ensureBrandStyles() {
+    if (document.querySelector('link[data-eventflow-brand]')) {
+      return;
+    }
+
+    const brandStyles = document.createElement('link');
+    brandStyles.rel = 'stylesheet';
+    brandStyles.href = '/assets/css/eventflow-brand.css?v=1.0.0';
+    brandStyles.dataset.eventflowBrand = 'true';
+    document.head.appendChild(brandStyles);
+  }
+
+  ensureBrandStyles();
+
   // Debug flag - set to false to disable console logs
   const DEBUG = false;
 
