@@ -157,6 +157,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - The "Many More" disc returns, sized with `clamp()` so six discs plus the label stay on one row down to a 320px phone rather than the label overflowing its circle. Shown only when the endpoint reports a larger total, and carrying an `sr-only` sentence so the fact reaches screen readers
   - Paging dots keep an 8px visual size against the page-level `button { min-width: 44px }` rules, with a 24px `::before` tap target tiled against a 24px pitch — WCAG 2.5.8 without adjacent dots stealing each other's taps
   - `GET /api/suppliers/showcase` default raised to 6 and its ceiling to 36, so all four pages arrive in one request instead of refetching on every rotation
+  - Compaction pass: smaller discs, a 36px headline in place of 40px, tighter panel padding and grid gaps, and a `margin-top` on the billing toggle left over from before it was a grid item — it stacked with the row gap and left 20px of dead space. The hero is now shorter than the version it replaces on both breakpoints despite carrying a panel, an extra photo and a paging control
+  - Fixed the headline sitting 90px left of centre between 641px and 980px: the hero stacks and centres there, but the headline's `max-width` measure cap creates a block that is left-aligned by default, so the text was centred inside a box that was not
 
 - **Compact Trust-Led Pricing Hero**: replaced the centred 720px marketing hero with a shallow strip above the plans
   - Headline is now "Join suppliers already on EventFlow." and the introductory paragraph is gone. The plan panel starts roughly 120px higher on a laptop, so a supplier sees prices without scrolling

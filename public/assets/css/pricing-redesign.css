@@ -54,7 +54,7 @@ body.pricing-redesign .pricing-container {
    below the fold on a laptop for no gain. */
 
 body.pricing-redesign .pricing-hero {
-  padding: 2rem 1.5rem 1.5rem !important;
+  padding: 1.25rem 1.5rem 1rem !important;
   background: transparent !important;
   color: var(--p-ink) !important;
 }
@@ -69,10 +69,10 @@ body.pricing-redesign .pricing-hero .container {
     "copy  proof"
     "toggle proof";
   align-items: center;
-  gap: 1.25rem 3rem;
+  gap: 1rem 2.5rem;
   width: min(100%, 1120px);
   margin: 0 auto;
-  padding: 2rem 2.25rem;
+  padding: 1.5rem 2rem;
   border: 1px solid var(--p-line);
   border-radius: 16px;
   background: var(--p-surface);
@@ -87,6 +87,10 @@ body.pricing-redesign .pricing-hero .pricing-billing-toggle {
   grid-area: toggle;
   align-self: start;
   justify-self: start;
+  /* The grid gap owns the space above the toggle now. The margin below is a
+     leftover from when this followed the copy in normal flow, and it was
+     stacking with the gap. */
+  margin-top: 0;
 }
 
 body.pricing-redesign .pricing-hero-proof {
@@ -104,10 +108,10 @@ body.pricing-redesign .pricing-eyebrow {
 }
 
 body.pricing-redesign .pricing-hero h1 {
-  max-width: 18ch;
-  margin: 0.625rem 0 0;
+  max-width: 20ch;
+  margin: 0.375rem 0 0;
   color: var(--p-ink);
-  font-size: clamp(1.75rem, 3.2vw, 2.5rem) !important;
+  font-size: clamp(1.5rem, 2.6vw, 2.25rem) !important;
   font-weight: 700;
   letter-spacing: -0.03em;
   line-height: 1.1;
@@ -115,7 +119,7 @@ body.pricing-redesign .pricing-hero h1 {
 }
 
 body.pricing-redesign .pricing-hero .subtitle {
-  margin: 0.5rem 0 0 !important;
+  margin: 0.375rem 0 0 !important;
   color: var(--p-ink-2);
   font-size: 1rem !important;
   font-weight: 400;
@@ -133,7 +137,7 @@ body.pricing-redesign .pricing-hero-proof {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 
 body.pricing-redesign .pricing-hero-proof[hidden] {
@@ -157,8 +161,8 @@ body.pricing-redesign .pricing-proof-strip {
    on one row, down to a 320px phone, without the label outgrowing its circle. */
 body.pricing-redesign .pricing-proof-item {
   position: relative;
-  width: clamp(2.625rem, 12vw, 4rem);
-  height: clamp(2.625rem, 12vw, 4rem);
+  width: clamp(2.5rem, 10.5vw, 3.5rem);
+  height: clamp(2.5rem, 10.5vw, 3.5rem);
   /* Set as the page swaps sets; a photo that pops in reads as a glitch. */
   opacity: 1;
   transition: opacity 320ms ease;
@@ -205,8 +209,8 @@ body.pricing-redesign .pricing-proof-more {
   display: grid;
   flex: none;
   place-items: center;
-  width: clamp(2.625rem, 12vw, 4rem);
-  height: clamp(2.625rem, 12vw, 4rem);
+  width: clamp(2.5rem, 10.5vw, 3.5rem);
+  height: clamp(2.5rem, 10.5vw, 3.5rem);
   margin-left: -0.375rem;
   border: 3px solid var(--p-surface);
   border-radius: 50%;
@@ -218,6 +222,10 @@ body.pricing-redesign .pricing-proof-more {
   text-align: center;
 }
 
+body.pricing-redesign .pricing-proof-more-line {
+  display: block;
+}
+
 body.pricing-redesign .pricing-proof-more[hidden] {
   display: none;
 }
@@ -225,7 +233,7 @@ body.pricing-redesign .pricing-proof-more[hidden] {
 body.pricing-redesign .pricing-proof-note {
   margin: 0;
   color: var(--p-muted);
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   text-align: center;
 }
 
@@ -1105,8 +1113,8 @@ body.pricing-redesign .pricing-notice-banner--error {
       "proof"
       "toggle";
     justify-items: center;
-    gap: 1rem;
-    padding: 1.5rem 1.25rem;
+    gap: 0.875rem;
+    padding: 1.25rem 1rem;
     text-align: center;
   }
 
@@ -1114,8 +1122,12 @@ body.pricing-redesign .pricing-notice-banner--error {
     justify-self: center;
   }
 
+  /* The measure cap is kept, but the box it creates has to be centred too —
+     left-aligned inside a centred column it sat 90px off centre while every
+     other element lined up, which read as the whole hero being lopsided. */
   body.pricing-redesign .pricing-hero h1 {
     max-width: 22ch;
+    margin-inline: auto;
   }
 
   body.pricing-redesign .pricing-grid {
@@ -1160,21 +1172,40 @@ body.pricing-redesign .pricing-notice-banner--error {
 
 @media (max-width: 640px) {
   body.pricing-redesign .pricing-hero {
-    padding: 1rem 1rem 0.75rem !important;
+    padding: 0.75rem 0.75rem 0.5rem !important;
   }
 
   /* The panel already carries the vertical rhythm on a phone; the strip and
      its caption do not need as much air as they get on a wide screen. */
   body.pricing-redesign .pricing-hero-proof {
-    gap: 0.5rem;
+    gap: 0.375rem;
   }
 
   body.pricing-redesign .pricing-hero .subtitle {
     font-size: 0.875rem !important;
   }
 
+  /* 24px holds the headline to two lines at 390px. The desktop size wrapped it
+     to three, which cost more height than it bought emphasis. */
+  body.pricing-redesign .pricing-hero h1 {
+    font-size: 1.5rem !important;
+  }
+
+  /* The switch and its saving line stack on a phone, so the gap between them
+     is pure height. */
+  body.pricing-redesign .pricing-billing-toggle {
+    gap: 0.5rem !important;
+  }
+
   body.pricing-redesign .pricing-proof-more {
     font-size: 0.6875rem;
+  }
+
+  /* Two stacked words only clear the ring by a hair at this diameter, which
+     reads as a rendering fault. The disc drops to one word; the sr-only
+     sentence beside it still carries the full meaning. */
+  body.pricing-redesign .pricing-proof-more-line:first-child {
+    display: none;
   }
 
   body.pricing-redesign .pricing-proof-avatar {

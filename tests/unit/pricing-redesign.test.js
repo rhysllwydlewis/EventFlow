@@ -276,9 +276,30 @@ describe('pricing page rebuild', () => {
     });
 
     it('sizes the discs so the row survives a narrow phone', () => {
-      // Six discs plus the "Many More" label on one row at 320px; a fixed
-      // width either wraps or pushes the label out of its own circle.
-      expect(pricingStyles).toContain('width: clamp(2.625rem, 12vw, 4rem)');
+      // Six discs plus the label on one row at 320px; a fixed width either
+      // wraps the row or pushes the label out of its own circle. The floor
+      // also has to keep the label clear of the ring.
+      expect(pricingStyles).toContain('width: clamp(2.5rem, 10.5vw, 3.5rem)');
+      // Two stacked words do not clear the ring at the small end, so the disc
+      // drops to one word there while the sr-only sentence stays whole.
+      expect(pricingStyles).toContain('.pricing-proof-more-line:first-child');
+      expect(pricingPage).toContain('class="pricing-proof-more-line"');
+    });
+
+    it('centres the headline box, not just the text inside it', () => {
+      // Below 980px the hero stacks and centres. The headline keeps a measure
+      // cap, and a capped block is left-aligned by default — so the text
+      // centred inside a box that sat 90px left of everything else.
+      expect(pricingStyles).toMatch(/max-width: 22ch;\s*margin-inline: auto;/);
+    });
+
+    it('lets the grid own the space above the billing toggle', () => {
+      // The toggle carries a margin-top from when it followed the copy in
+      // normal flow; inside the grid that stacked with the row gap and left
+      // 20px of dead space on a phone.
+      expect(pricingStyles).toMatch(
+        /\.pricing-hero \.pricing-billing-toggle \{[^}]*margin-top: 0;/
+      );
     });
 
     it('gives the paging dots a real tap target without inflating the dot', () => {
