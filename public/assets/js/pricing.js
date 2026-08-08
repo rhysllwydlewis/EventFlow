@@ -120,18 +120,49 @@
   }
 
   /**
-   * Reduce a merchandising highlight to the feature it names.
+   * Split a merchandising highlight into its feature and its benefit.
    *
-   * The registry writes highlights as "Feature — why it matters". The full
-   * sentence wraps to two or three lines in a card column, which turns the
-   * feature list into prose; the comparison table below carries the detail.
+   * The registry writes highlights as "Feature — what it does for you". The
+   * card sets the first half as the feature and the second beneath it, because
+   * a feature name on its own does not tell a supplier whether the plan is
+   * worth paying for.
    * @param {string} highlight Highlight copy from the plans endpoint.
-   * @returns {string} The feature label.
+   * @returns {{name: string, why: string}} The two halves; `why` may be empty.
    */
-  function toFeatureLabel(highlight) {
-    return String(highlight)
-      .split(/\s+[—–]\s+/)[0]
-      .trim();
+  function splitHighlight(highlight) {
+    const text = String(highlight);
+    const match = text.match(/^(.*?)\s+[—–]\s+(.*)$/);
+    if (!match) {
+      return { name: text.trim(), why: '' };
+    }
+    const why = match[2].trim();
+    return {
+      name: match[1].trim(),
+      // The registry writes the benefit as a lower-case clause; on the card it
+      // is set as its own sentence.
+      why: why ? why.charAt(0).toUpperCase() + why.slice(1).replace(/\.?$/, '.') : '',
+    };
+  }
+
+  /**
+   * Build one feature list item: the feature, then what it does for you.
+   * @param {string} highlight Highlight copy from the plans endpoint.
+   * @returns {HTMLLIElement} List item.
+   */
+  function buildFeatureItem(highlight) {
+    const { name, why } = splitHighlight(highlight);
+    const item = document.createElement('li');
+    const nameEl = document.createElement('span');
+    nameEl.className = 'pricing-feature-name';
+    nameEl.textContent = name;
+    item.appendChild(nameEl);
+    if (why) {
+      const whyEl = document.createElement('span');
+      whyEl.className = 'pricing-feature-why';
+      whyEl.textContent = why;
+      item.appendChild(whyEl);
+    }
+    return item;
   }
 
   /**
@@ -174,16 +205,12 @@
     // supplier rather than what it contains, so it is worth showing even
     // though the feature list already lists the contents.
     setText(card.querySelector('.pricing-value-statement'), presentation.valueStatement);
+    // Only the plans that have somewhere to upgrade to carry this element.
+    setText(card.querySelector('.pricing-upsell'), presentation.upgradePrompt);
 
     const features = card.querySelector('.pricing-features');
     if (features && Array.isArray(presentation.highlights) && presentation.highlights.length) {
-      features.replaceChildren(
-        ...presentation.highlights.map(highlight => {
-          const item = document.createElement('li');
-          item.textContent = toFeatureLabel(highlight);
-          return item;
-        })
-      );
+      features.replaceChildren(...presentation.highlights.map(buildFeatureItem));
     }
   }
 
@@ -317,14 +344,13 @@
       // Only meaningful where the annual rate undercuts the monthly one.
       const show = annual && paid && plan.annualMonthlyPrice < plan.monthlyPrice;
       normallyLine.hidden = !show;
-      normallyLine.textContent = show ? `Normally ${money(plan.monthlyPrice)}/month` : '';
+      normallyLine.textContent = show ? `Normally ${money(plan.monthlyPrice)} per month` : '';
     }
     if (savingsLine) {
       const show = annual && plan.annualSaving > 0;
       savingsLine.hidden = !show;
-      savingsLine.textContent = show
-        ? `Save ${money(plan.annualSaving)} a year (${plan.annualDiscount}%)`
-        : '';
+      // The percentage is already stated once, beside the billing control.
+      savingsLine.textContent = show ? `Save ${money(plan.annualSaving)} a year` : '';
     }
     if (cta && cta.getAttribute('aria-disabled') !== 'true') {
       cta.textContent = getCtaLabel(plan);

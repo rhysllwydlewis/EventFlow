@@ -39,20 +39,28 @@ const PLAN_DEFINITIONS = {
 const PLAN_PRESENTATION = {
   free: {
     marketingName: 'Starter',
-    description: 'Establish your EventFlow presence and start receiving enquiries at no cost.',
+    description: 'Everything you need to be found by customers and take enquiries.',
     audience: 'For new or occasional suppliers',
     badge: 'Free forever',
     featured: false,
     cta: 'Create a free profile',
     valueStatement: 'Be present where customers are planning and begin building your profile.',
     upgradePrompt:
-      'Upgrade when you want more portfolio space, stronger trust signals and better search visibility.',
+      'Upgrade when you want more package listings, stronger trust signals and better search visibility.',
+    // Each highlight is "what it is — what it does for you". The second half
+    // is what the pricing page shows beneath the feature name, so it has to
+    // read as a benefit rather than a restatement.
+    //
+    // Every claim here is one the platform actually delivers. Package limits
+    // in particular are enforced in routes/packages.js and unwound on
+    // downgrade by subscriptionService, so they are a real difference between
+    // the plans rather than a marketing line.
     highlights: [
-      'Public supplier profile — give customers a place to discover your business',
-      'Up to 5 portfolio photos — show a snapshot of your best work',
-      'Customer enquiries — start conversations directly through EventFlow',
-      'Standard search placement — appear in relevant supplier results',
-      'Email support — get help with the essentials',
+      'Public supplier profile — a page on EventFlow with your services, photos and contact details',
+      'Up to 3 package listings — publish set packages with prices so customers can see what you offer',
+      'Customer enquiries — receive and answer enquiries through EventFlow at no cost',
+      'Standard search placement — appear in results when customers browse your category and area',
+      'Email support — help with setting up and running your profile',
     ],
     pricing: {
       month: { monthlyEquivalent: 0, total: 0, saving: 0, discountPercent: 0 },
@@ -61,9 +69,13 @@ const PLAN_PRESENTATION = {
   },
   pro: {
     marketingName: 'Professional',
-    description: 'Turn more profile views into credible, better-qualified opportunities.',
-    audience: 'Best value for growing suppliers',
-    badge: 'Early access price',
+    description:
+      'Be found sooner, earn trust earlier and know which enquiries are worth your time.',
+    audience: 'For growing suppliers taking regular bookings',
+    // The pricing page shows one marker, on the recommended plan only. The
+    // early-access fact is carried by the struck-through standard price and
+    // the terms line beneath the plans, so it does not need the badge too.
+    badge: 'Most popular',
     featured: true,
     cta: 'Choose Professional',
     valueStatement:
@@ -71,13 +83,13 @@ const PLAN_PRESENTATION = {
     upgradePrompt:
       'Move to Plus when premium positions and hands-on performance support can create more value.',
     highlights: [
-      'Priority search placement — appear above Starter profiles',
-      'Unlimited photos — present a complete, persuasive portfolio',
-      'Email and phone verification — reduce doubt before customers enquire',
-      'Lead quality scoring — focus first on the strongest opportunities',
-      'Response-time tracking — demonstrate reliable customer service',
-      'Profile analytics — see what customers view and what drives interest',
-      'Priority support — get faster help when your business needs it',
+      'Priority search placement — your profile sits above Starter suppliers in your categories and areas',
+      'Up to 50 package listings — publish your full range instead of a handful',
+      'Email and phone verification — a verified badge that tells customers you are real and contactable',
+      'Lead quality scoring — every enquiry scored on budget, detail and legitimacy so you answer the best first',
+      'Response-time tracking — your typical reply speed shown on your profile, turning fast replies into a selling point',
+      'Profile analytics — who viewed your profile, what they opened and which packages drew interest',
+      'Priority support — your questions go to the front of the queue',
     ],
     pricing: {
       month: { monthlyEquivalent: 19, total: 19, saving: 0, discountPercent: 0 },
@@ -86,11 +98,9 @@ const PLAN_PRESENTATION = {
   },
   pro_plus: {
     marketingName: 'Professional Plus',
-    description: 'Secure EventFlow’s strongest placement and receive hands-on growth support.',
-    audience: 'For established, high-capacity suppliers',
-    // Kept short: the pricing card sets this beside the plan name, and
-    // "Professional Plus" plus a longer badge does not fit on one line.
-    badge: 'Max exposure',
+    description: 'Take the most valuable positions on EventFlow, with hands-on help to use them.',
+    audience: 'For established suppliers with capacity to fill',
+    badge: 'Maximum exposure',
     featured: false,
     cta: 'Choose Professional Plus',
     valueStatement:
@@ -98,13 +108,13 @@ const PLAN_PRESENTATION = {
     upgradePrompt:
       'Designed for established suppliers with the capacity and booking value to benefit from premium exposure.',
     highlights: [
-      'Homepage featured placement — reach customers before they begin searching',
-      'Top of category pages — lead the results that matter most to your business',
-      'Business verification badge — display EventFlow’s strongest trust signal',
-      'Dedicated onboarding call — build the right premium setup from the start',
-      'Monthly performance review — identify opportunities to improve results',
-      'Analytics export — report on and share your EventFlow performance',
-      'VIP support — receive the highest level of assistance',
+      'Homepage featured placement — your business appears on the EventFlow homepage, before customers start searching',
+      'Top of category pages — the first supplier customers see, above Professional profiles',
+      'Unlimited package listings — no cap on how much of your range you publish',
+      'Business verification badge — our strongest trust signal, shown once we have checked your business details',
+      'Dedicated onboarding call — we build your profile with you so it works from day one',
+      'Monthly performance review — a monthly read on what is working and what to change',
+      'VIP support — a direct line to the team',
     ],
     pricing: {
       month: { monthlyEquivalent: 159, total: 159, saving: 0, discountPercent: 0 },

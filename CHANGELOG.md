@@ -150,6 +150,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Pricing Page Visual Overhaul**: Second pass on `/pricing`, replacing decoration with structure and making the page argue for the plans
+  - Removed the decorative layer entirely — the gradient ground, blurred brand blobs, frosted-glass hero, layered drop shadows and the teal glow around the featured plan. With every element emphasised there was no hierarchy left; structure now comes from hairlines and space
+  - The three plans read as one panel divided by rules rather than three floating cards, and the recommended plan is marked by a tint and a label instead of a ring, a gradient and a glow
+  - Call to action moved up beside the price, so the buttons line up because the column heads share a shape rather than because a grid forces them to
+  - Every feature now carries a line saying what it does for the supplier, not just what it is called — a feature name alone does not answer the only question the page exists to answer
+  - Renders the `upgradePrompt` copy the plans endpoint has served since it was built and nothing had ever displayed
+  - Comparison table grouped by what a supplier is buying (getting found, what you can publish, earning trust, handling enquiries, understanding performance, support) instead of a flat list
+  - Billing control is a segmented control naming both options rather than an iOS switch whose state had to be inferred from a thumb position
+  - Weight, size and colour pulled back to the site scale; the accent is now used only for the primary button, the recommended column and the feature ticks
+- **Pricing Claims Matched to Enforced Entitlements**: The page was advertising allowances the platform does not grant
+  - Removed "Unlimited photos" from Professional. `supplier-gallery.js` and `supplier-photo-upload.js` cap every tier at ten photos regardless of plan, so this was a claim the product did not honour on a paid plan. The comparison table now states ten across all three
+  - Added package listings (3 / 50 / unlimited) to the cards and the table. These limits are genuinely enforced in `routes/packages.js` and unwound on downgrade by `subscriptionService`, and were the clearest real difference between the plans — the page had never mentioned them
+  - Added a regression test pinning the marketing copy to `PLAN_FEATURES` so the two cannot drift apart again
 - **Pricing Page Layout and Logic**: Rebuilt `/pricing` so the three plan columns line up and the figures on it come from one source
   - `pricing-redesign.css` was three stacked layers of overrides fighting each other; it is now a single pass. The plan cards subgrid onto one row track list, so heading, price, value line, feature list and button share a baseline across all three columns whatever the copy length — previously every card laid out independently and nothing lined up
   - Fixed the single-column fallback shrinking the call-to-action buttons to their text and pushing them off-centre

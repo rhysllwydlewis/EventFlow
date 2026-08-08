@@ -1,260 +1,177 @@
 /* ==========================================================================
    EventFlow — supplier pricing
    --------------------------------------------------------------------------
-   One stylesheet, one pass. The previous version had grown three stacked
-   layers of overrides that fought each other, which is why the plan cards
-   never lined up: every card laid itself out independently, so the price,
-   the feature list and the button landed at a different height in each
-   column.
+   The previous version leaned on decoration to carry the page: a gradient
+   ground, blurred brand blobs, a frosted-glass hero, layered drop shadows, a
+   teal glow around the featured plan and weight 800 on almost everything.
+   With every element shouting there was no hierarchy left, and the page did
+   not look like the rest of EventFlow.
 
-   The layout here is driven by a single grid. `.pricing-grid` owns the row
-   track list; each card subgrids onto it, so every row — heading, price,
-   value line, features, actions — shares one baseline across all three
-   columns no matter how long the copy in any one card turns out to be. A
-   flex fallback with reserved heights covers browsers without subgrid.
+   This version spends nothing on effects. Structure comes from hairlines and
+   space, emphasis from weight and one accent used sparingly, and the plans
+   read as a single considered object rather than three floating cards.
+
+   The plan columns share one panel divided by rules. Their heads have a fixed
+   shape — name, audience, price, billing, button — so the buttons line up
+   because the structure is uniform, not because a grid is forcing them to.
+   Feature lists hang below and are free to run to whatever length the plan
+   needs.
    ========================================================================== */
 
 body.pricing-redesign {
-  --pricing-ink: #0b132b;
-  --pricing-muted: #566176;
-  --pricing-soft-ink: #667085;
-  --pricing-line: rgba(15, 23, 42, 0.08);
-  --pricing-soft: #eff9f7;
-  --pricing-teal: #0b8073;
-  --pricing-teal-dark: #096b60;
-  --pricing-radius: 20px;
-  --pricing-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 12px 32px rgba(15, 23, 42, 0.07);
-  --pricing-shadow-lift: 0 1px 2px rgba(15, 23, 42, 0.04), 0 20px 44px rgba(15, 23, 42, 0.1);
+  --p-ink: #0d1618;
+  --p-ink-2: #3c4d50;
+  /* 5.2:1 on white — this carries the benefit copy, so it has to be readable
+     rather than merely present. */
+  --p-muted: #637578;
+  --p-line: #e4e9e9;
+  --p-line-strong: #d2dadb;
+  --p-paper: #f7f9f9;
+  --p-surface: #ffffff;
+  --p-teal: #0b8073;
+  --p-teal-dark: #075f55;
+  --p-tint: #f4faf9;
 
-  background:
-    radial-gradient(120% 70% at 50% 0%, #f0faf8 0%, rgba(240, 250, 248, 0) 55%),
-    linear-gradient(180deg, #f7fcfb 0%, #f8fafb 100%);
-  background-attachment: fixed;
-  color: var(--pricing-ink);
+  background: var(--p-paper);
+  color: var(--p-ink);
 }
 
 body.pricing-redesign #main-content {
   overflow: clip;
 }
 
+body.pricing-redesign .pricing-container {
+  width: min(100%, 1120px);
+  margin: 0 auto;
+  padding: 0 1.5rem 5rem !important;
+}
+
 /* ── Hero ─────────────────────────────────────────────────────────────────
-   Centred rather than split. The split version reserved a whole right-hand
-   column for a 300px toggle, so two thirds of the hero card was empty. */
+   No card, no blur, no blobs. The headline sits on the page ground and the
+   billing control sits directly beneath it, where the eye already is on its
+   way to the plans. */
 
 body.pricing-redesign .pricing-hero {
-  position: relative;
-  isolation: isolate;
-  padding: 2.5rem 1.5rem 1.5rem !important;
+  padding: 4rem 1.5rem 2.5rem !important;
   background: transparent !important;
-  color: var(--pricing-ink) !important;
+  color: var(--p-ink) !important;
 }
 
 body.pricing-redesign .pricing-hero .container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: min(100%, 1210px);
+  width: min(100%, 720px);
   margin: 0 auto;
-  padding: 2.5rem 2rem;
-  border: 1px solid rgba(255, 255, 255, 0.9);
-  border-radius: 24px;
-  background: rgba(255, 255, 255, 0.78);
-  box-shadow:
-    0 1px 2px rgba(15, 23, 42, 0.04),
-    0 18px 48px rgba(15, 23, 42, 0.07);
+  padding: 0;
   text-align: center;
-}
-
-/* The card is legible on the 0.78 white fill on its own, so the blur is an
-   enhancement rather than something the contrast depends on. */
-@supports (backdrop-filter: blur(8px)) or (-webkit-backdrop-filter: blur(8px)) {
-  body.pricing-redesign .pricing-hero .container {
-    -webkit-backdrop-filter: blur(10px);
-    backdrop-filter: blur(10px);
-  }
 }
 
 body.pricing-redesign .pricing-eyebrow {
   margin: 0;
-  color: var(--pricing-teal-dark);
-  font-size: 0.75rem;
-  font-weight: 800;
-  letter-spacing: 0.09em;
-  line-height: 1.25;
+  color: var(--p-teal-dark);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  line-height: 1.2;
   text-transform: uppercase;
 }
 
 body.pricing-redesign .pricing-hero h1 {
-  max-width: 18ch;
-  margin: 0.625rem 0 0;
-  color: var(--pricing-ink);
-  font-size: clamp(2rem, 4vw, 3rem) !important;
-  font-weight: 800;
-  letter-spacing: -0.045em;
-  line-height: 1.06;
+  margin: 0.875rem 0 0;
+  color: var(--p-ink);
+  font-size: clamp(2rem, 4.4vw, 3.25rem) !important;
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1.05;
   text-wrap: balance;
 }
 
 body.pricing-redesign .pricing-hero .subtitle {
-  max-width: 60ch;
-  margin: 0.75rem 0 0 !important;
-  color: var(--pricing-muted);
+  max-width: 34rem;
+  margin: 1rem auto 0 !important;
+  color: var(--p-ink-2);
   font-size: 1rem !important;
-  line-height: 1.55 !important;
+  font-weight: 400;
+  line-height: 1.6 !important;
   opacity: 1 !important;
   text-wrap: pretty;
 }
 
-/* ── Decorative ground ───────────────────────────────────────────────────── */
-
-body.pricing-redesign .pricing-decor {
-  position: absolute;
-  inset: -2rem 0 -6rem;
-  z-index: -1;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-body.pricing-redesign .pricing-blob {
-  position: absolute;
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, rgba(19, 182, 162, 0.16), rgba(19, 182, 162, 0));
-}
-
-body.pricing-redesign .pricing-blob--a {
-  width: 620px;
-  height: 620px;
-  top: -300px;
-  left: -200px;
-}
-
-body.pricing-redesign .pricing-blob--b {
-  width: 520px;
-  height: 520px;
-  top: -220px;
-  right: -180px;
-}
-
-body.pricing-redesign .pricing-blob--c {
-  width: 420px;
-  height: 420px;
-  bottom: -280px;
-  left: 45%;
-}
-
-/* ── Billing switch ───────────────────────────────────────────────────────
-   The button is 48×44 so it clears the site-wide 44px touch minimum without
-   a later rule inflating it; the visible 48×28 pill is drawn as a centred
-   pseudo-element inside that hit area. */
+/* ── Billing control ──────────────────────────────────────────────────────
+   A segmented control rather than an iOS switch. Both options are named and
+   the selected one is visibly filled, so there is no state to infer from a
+   20px thumb position. */
 
 body.pricing-redesign .pricing-billing-toggle {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 0.625rem;
-  margin-top: 1.5rem;
-  padding: 0.375rem 0.5rem 0.375rem 1rem;
-  border: 1px solid rgba(11, 128, 115, 0.14);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.92);
-  box-shadow:
-    0 1px 2px rgba(15, 23, 42, 0.04),
-    0 8px 20px rgba(15, 23, 42, 0.06);
-  white-space: nowrap;
-}
-
-body.pricing-redesign .pricing-billing-label {
-  color: var(--pricing-soft-ink);
-  font-size: 0.875rem;
-  font-weight: 600;
-  line-height: 1;
-  transition: color 160ms ease;
-}
-
-body.pricing-redesign .pricing-billing-label.is-active {
-  color: var(--pricing-ink);
+  gap: 0.75rem;
+  margin-top: 2rem;
 }
 
 body.pricing-redesign .pricing-billing-switch {
   position: relative;
-  flex: 0 0 auto;
-  width: 48px;
-  height: 44px;
-  padding: 0;
-  border: 0;
-  background: transparent;
+  display: inline-flex;
+  align-items: stretch;
+  padding: 3px;
+  border: 1px solid var(--p-line-strong);
+  border-radius: 999px;
+  background: var(--p-surface);
   cursor: pointer;
 }
 
-body.pricing-redesign .pricing-billing-switch::before {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: 0;
-  width: 48px;
-  height: 28px;
-  border-radius: 999px;
-  background: #98a2b3;
-  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.12);
-  transform: translateY(-50%);
-  transition: background 180ms ease;
-}
-
-/* The track only reads as "on" when annual is selected — previously it was
-   teal in both states, so the control never showed which side was active. */
-body.pricing-redesign .pricing-billing-switch.is-annual::before {
-  background: var(--pricing-teal);
-  box-shadow: inset 0 0 0 1px rgba(4, 79, 72, 0.16);
-}
-
-body.pricing-redesign .pricing-billing-switch:hover::before {
-  background: #7c8798;
-}
-
-body.pricing-redesign .pricing-billing-switch.is-annual:hover::before {
-  background: var(--pricing-teal-dark);
-}
-
 body.pricing-redesign .pricing-billing-switch:focus-visible {
-  outline: 3px solid rgba(11, 128, 115, 0.25);
+  outline: 3px solid rgba(11, 128, 115, 0.35);
   outline-offset: 2px;
-  border-radius: 999px;
 }
 
+/* The moving fill. Two equal segments, so the selected one is exactly half
+   the track minus the padding. */
 body.pricing-redesign .pricing-billing-switch-thumb {
   position: absolute;
-  top: 50%;
+  top: 3px;
   left: 3px;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 2px 5px rgba(15, 23, 42, 0.22);
-  transform: translateY(-50%);
-  transition: transform 180ms ease;
+  z-index: 0;
+  width: calc(50% - 3px);
+  height: calc(100% - 6px);
+  border-radius: 999px;
+  background: var(--p-ink);
+  transition: transform 200ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 body.pricing-redesign .pricing-billing-switch.is-annual .pricing-billing-switch-thumb {
-  transform: translate(20px, -50%);
+  transform: translateX(100%);
+}
+
+body.pricing-redesign .pricing-billing-label {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex: 1 1 50%;
+  align-items: center;
+  justify-content: center;
+  min-width: 6.5rem;
+  min-height: 38px;
+  padding: 0 1rem;
+  color: var(--p-ink-2);
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  transition: color 200ms ease;
+}
+
+body.pricing-redesign .pricing-billing-label.is-active {
+  color: #fff;
+  font-weight: 600;
 }
 
 body.pricing-redesign .pricing-billing-saving {
-  padding: 0.4375rem 0.75rem;
-  border-radius: 999px;
-  background: #e5f7ed;
-  color: var(--pricing-teal-dark);
-  font-size: 0.75rem;
-  font-weight: 800;
-  line-height: 1.2;
+  color: var(--p-teal-dark);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
-/* ── Page container ──────────────────────────────────────────────────────── */
-
-body.pricing-redesign .pricing-container {
-  width: min(100%, 1210px);
-  margin: 0 auto;
-  padding: 1.5rem 1.5rem 4rem !important;
-}
+/* ── Customer notice ──────────────────────────────────────────────────────── */
 
 body.pricing-redesign #pricing-customer-notice[hidden] {
   display: none !important;
@@ -262,108 +179,68 @@ body.pricing-redesign #pricing-customer-notice[hidden] {
 
 body.pricing-redesign .pricing-customer-notice-inner {
   display: flex;
-  gap: 0.875rem;
+  gap: 0.75rem;
   margin-bottom: 1.5rem;
   padding: 1rem 1.125rem;
-  border: 1px solid #b9ded8;
-  border-radius: 14px;
-  background: #edf9f7;
-  color: #24413d;
+  border: 1px solid var(--p-line);
+  border-left: 3px solid var(--p-teal);
+  border-radius: 10px;
+  background: var(--p-surface);
+  color: var(--p-ink-2);
 }
 
 body.pricing-redesign .pricing-customer-notice-title {
   margin: 0 0 0.25rem;
-  font-weight: 800;
+  color: var(--p-ink);
+  font-size: 1rem;
+  font-weight: 600;
 }
 
 body.pricing-redesign .pricing-customer-notice-body {
   margin: 0;
-  line-height: 1.5;
+  font-size: 0.875rem;
+  line-height: 1.6;
 }
 
-/* ── Plan grid ────────────────────────────────────────────────────────────
-   The row track list lives here so the cards can subgrid onto it. `1fr` on
-   the features row is what absorbs the slack in the shorter cards, which
-   keeps every button on one baseline. */
+/* ── The plan panel ───────────────────────────────────────────────────────
+   One surface, three columns, hairline rules between them. */
 
 body.pricing-redesign .pricing-grid {
   display: grid !important;
   grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-  /* heading · price · value · inherits · features · actions */
-  grid-template-rows: auto auto auto auto 1fr auto;
   align-items: stretch !important;
-  gap: 1.25rem !important;
-  /* Room for the "Most popular" pill, which straddles the card's top edge. */
-  margin: 0.75rem 0 0 !important;
+  gap: 0 !important;
+  margin: 0 !important;
+  overflow: hidden;
+  border: 1px solid var(--p-line);
+  border-radius: 16px;
+  background: var(--p-surface);
 }
 
 body.pricing-redesign .pricing-card {
   position: relative;
   display: flex;
   min-width: 0;
-  min-height: 0;
   padding: 0 !important;
-  border: 1px solid var(--pricing-line) !important;
-  border-radius: var(--pricing-radius) !important;
-  background: #fff !important;
-  /* A tight contact shadow plus a wide soft one: a single wide shadow reads
-     as haze and leaves the card looking unanchored. */
-  box-shadow: var(--pricing-shadow) !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
   transform: none !important;
-  transition:
-    border-color 180ms ease,
-    box-shadow 180ms ease,
-    transform 180ms ease !important;
 }
 
-body.pricing-redesign .pricing-card:hover {
-  border-color: rgba(11, 128, 115, 0.28) !important;
-  box-shadow: var(--pricing-shadow-lift) !important;
-  transform: translateY(-3px) !important;
+body.pricing-redesign .pricing-card + .pricing-card {
+  border-left: 1px solid var(--p-line) !important;
 }
 
-/* A ring rather than a thicker border: a 2px border would shift this card's
-   content box a pixel out of line with its neighbours. */
+/* The recommended plan is marked by a tint and a label, not by a coloured
+   ring, a gradient and a glow. */
 body.pricing-redesign .pricing-card.featured {
-  border-color: rgba(11, 128, 115, 0.28) !important;
-  background: linear-gradient(180deg, #f2fbf9 0%, #fff 22%) !important;
-  box-shadow:
-    0 0 0 2px var(--pricing-teal),
-    0 1px 2px rgba(15, 23, 42, 0.04),
-    0 24px 56px rgba(11, 128, 115, 0.16) !important;
-}
-
-body.pricing-redesign .pricing-card.featured:hover {
-  box-shadow:
-    0 0 0 2px var(--pricing-teal),
-    0 1px 2px rgba(15, 23, 42, 0.04),
-    0 30px 64px rgba(11, 128, 115, 0.2) !important;
+  background: var(--p-tint) !important;
 }
 
 body.pricing-redesign .pricing-card.featured::before {
   content: none !important;
-}
-
-/* Straddles the top edge instead of eating a band of the card, so the
-   featured column needs no extra top padding and stays row-aligned with the
-   other two. */
-body.pricing-redesign .pricing-popular-ribbon {
-  position: absolute;
-  top: 0;
-  left: 50%;
-  z-index: 2;
-  padding: 0.375rem 0.875rem;
-  border-radius: 999px;
-  background: var(--pricing-teal);
-  box-shadow: 0 4px 12px rgba(11, 128, 115, 0.3);
-  color: #fff;
-  font-size: 0.6875rem;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  line-height: 1;
-  text-transform: uppercase;
-  white-space: nowrap;
-  transform: translate(-50%, -50%);
 }
 
 body.pricing-redesign .pricing-card-content {
@@ -372,71 +249,68 @@ body.pricing-redesign .pricing-card-content {
   flex-direction: column;
   width: 100%;
   min-width: 0;
-  padding: 1.75rem;
+  padding: 0;
 }
 
-/* ── Card: heading ───────────────────────────────────────────────────────── */
+/* ── Column head ──────────────────────────────────────────────────────────
+   Fixed shape across all three plans, which is what keeps the prices and the
+   buttons on one line without any grid trickery. */
 
 body.pricing-redesign .pricing-card-heading {
-  min-height: 0;
+  padding: 1.75rem 1.75rem 0;
 }
 
 body.pricing-redesign .pricing-name-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 0.5rem 0.625rem;
+  gap: 0.75rem;
+  min-height: 1.75rem;
 }
 
-/* `nowrap` keeps "Professional Plus" on one line: without it flex shrinks the
-   heading to fit the badge beside it and breaks the plan name in two. When
-   the pair genuinely does not fit, the badge wraps instead. */
 body.pricing-redesign .pricing-name {
   margin: 0 !important;
-  color: var(--pricing-teal-dark) !important;
-  font-size: 1.125rem !important;
-  font-weight: 800 !important;
-  letter-spacing: -0.025em;
-  line-height: 1.2;
-  white-space: nowrap;
+  color: var(--p-ink) !important;
+  font-size: 1.25rem !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.015em;
+  line-height: 1.3;
 }
 
-/* Sits beside the plan name rather than stacked above it: as its own line it
-   was a fourth block of text before the price. */
 body.pricing-redesign .pricing-early-access-label {
   flex: 0 0 auto;
   margin: 0 !important;
-  padding: 0.3125rem 0.5rem !important;
+  padding: 0.25rem 0.5rem !important;
+  border: 1px solid rgba(11, 128, 115, 0.25) !important;
   border-radius: 999px !important;
-  background: #e5f7ed !important;
-  color: var(--pricing-teal-dark) !important;
+  background: transparent !important;
+  color: var(--p-teal-dark) !important;
   font-size: 0.6875rem !important;
-  font-weight: 800 !important;
-  letter-spacing: 0.02em;
-  line-height: 1 !important;
-  text-transform: uppercase;
+  font-weight: 600 !important;
+  letter-spacing: 0.01em;
+  line-height: 1.3 !important;
+  text-transform: none;
   white-space: nowrap;
 }
 
+/* Two lines are reserved so a longer audience line in one column cannot drop
+   that column's price below its neighbours'. */
 body.pricing-redesign .pricing-tier-label {
   display: block;
-  margin-top: 0.375rem;
-  color: var(--pricing-soft-ink);
-  font-size: 0.75rem;
-  font-weight: 700;
-  line-height: 1.35;
+  min-height: 2.625rem;
+  margin-top: 0.5rem;
+  color: var(--p-muted);
+  font-size: 0.8125rem;
+  font-weight: 400;
+  line-height: 1.4;
 }
 
+/* The plan description repeats what the audience line and the feature list
+   already say, so it is not rendered on the card. It is still served by the
+   plans endpoint for other surfaces. */
 body.pricing-redesign .pricing-description {
-  margin: 0.5rem 0 0 !important;
-  color: var(--pricing-muted) !important;
-  font-size: 0.875rem !important;
-  line-height: 1.5 !important;
-  text-wrap: pretty;
+  display: none !important;
 }
-
-/* ── Card: price ─────────────────────────────────────────────────────────── */
 
 body.pricing-redesign .pricing-price-block {
   padding-top: 1.25rem;
@@ -445,98 +319,171 @@ body.pricing-redesign .pricing-price-block {
 body.pricing-redesign .pricing-price-row {
   display: flex;
   align-items: baseline;
-  gap: 0.375rem;
+  gap: 0.4rem;
 }
 
 body.pricing-redesign .pricing-price {
   margin: 0 !important;
-  color: var(--pricing-ink) !important;
+  color: var(--p-ink) !important;
   font-size: 2.75rem !important;
-  font-weight: 800 !important;
-  letter-spacing: -0.055em;
+  font-weight: 700 !important;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.04em;
   line-height: 1 !important;
 }
 
 body.pricing-redesign .pricing-period {
-  color: var(--pricing-soft-ink);
+  color: var(--p-muted);
   font-size: 0.8125rem !important;
-  font-weight: 600;
+  font-weight: 400;
 }
 
 body.pricing-redesign .pricing-billed-line,
 body.pricing-redesign .pricing-normally {
-  font-size: 0.75rem !important;
-  line-height: 1.45 !important;
+  font-size: 0.8125rem !important;
+  line-height: 1.4 !important;
 }
 
 body.pricing-redesign .pricing-billed-line {
-  margin: 0.5rem 0 0 !important;
-  color: var(--pricing-soft-ink);
-  font-weight: 600;
+  margin: 0.625rem 0 0 !important;
+  color: var(--p-ink-2);
+  font-weight: 500;
 }
 
-body.pricing-redesign .pricing-card[data-plan="starter"] .pricing-billed-line {
-  color: var(--pricing-teal-dark);
-}
-
-/* "Normally £159/month" is real pricing information — struck through but
-   still meant to be read — so it has to meet AA like any other text.
-   #667085 measures 4.97:1 on the card and still reads as secondary. */
 body.pricing-redesign .pricing-normally {
+  /* The line is empty on the plans and periods with no discount, and an empty
+     block collapses to nothing however it is hidden — which drops that
+     column's button and its feature rule a line above its neighbours'. The
+     reserved height is what keeps the three heads identical. */
+  min-height: 1.1875rem;
   margin: 0.1875rem 0 0 !important;
-  color: var(--pricing-soft-ink) !important;
+  color: var(--p-muted) !important;
+  font-weight: 400;
   text-decoration: line-through;
 }
 
-/* The line is only present on the discounted plans and only in annual mode,
-   so its space is reserved on every card: without that the price block is a
-   different height per column and drags the rows below it out of line. */
 body.pricing-redesign .pricing-normally[hidden] {
   display: block !important;
   visibility: hidden;
 }
 
-/* ── Card: value statement ───────────────────────────────────────────────── */
-
-/* The one line that says what the plan does for the supplier rather than
-   what it contains. Quiet emphasis; the heavy left rule it used to carry
-   made it compete with the price directly above it. */
 body.pricing-redesign .pricing-value-statement {
-  margin: 1rem 0 0 !important;
-  padding: 0.6875rem 0.875rem;
-  border-radius: 12px;
-  background: rgba(11, 128, 115, 0.06);
-  color: #22303f;
-  font-size: 0.8125rem !important;
-  font-weight: 600;
-  line-height: 1.45 !important;
-  text-wrap: pretty;
+  display: none !important;
 }
 
-/* ── Card: features ──────────────────────────────────────────────────────── */
+/* ── Call to action ───────────────────────────────────────────────────────── */
+
+body.pricing-redesign .pricing-card-actions {
+  padding: 1.25rem 1.75rem 1.5rem;
+}
+
+body.pricing-redesign .pricing-cta {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 44px;
+  margin: 0 !important;
+  padding: 0.6875rem 1rem !important;
+  border: 1px solid var(--p-teal) !important;
+  border-radius: 8px !important;
+  background: var(--p-teal) !important;
+  color: #fff !important;
+  box-shadow: none !important;
+  font-size: 0.875rem !important;
+  font-weight: 600 !important;
+  line-height: 1.3;
+  text-align: center;
+  text-decoration: none;
+  transform: none !important;
+  transition:
+    background 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease;
+}
+
+body.pricing-redesign .pricing-cta:hover {
+  border-color: var(--p-teal-dark) !important;
+  background: var(--p-teal-dark) !important;
+  transform: none !important;
+}
+
+body.pricing-redesign .pricing-cta:focus-visible {
+  outline: 3px solid rgba(11, 128, 115, 0.35);
+  outline-offset: 2px;
+}
+
+body.pricing-redesign .pricing-cta.secondary {
+  border-color: var(--p-line-strong) !important;
+  background: var(--p-surface) !important;
+  color: var(--p-ink) !important;
+}
+
+body.pricing-redesign .pricing-cta.secondary:hover {
+  border-color: var(--p-ink-2) !important;
+  background: var(--p-surface) !important;
+  color: var(--p-ink) !important;
+}
+
+body.pricing-redesign .pricing-cta.is-inert,
+body.pricing-redesign .pricing-cta[aria-disabled="true"] {
+  border-color: var(--p-line) !important;
+  background: var(--p-paper) !important;
+  color: var(--p-muted) !important;
+  cursor: default;
+  pointer-events: none;
+}
+
+body.pricing-redesign .pricing-cta.is-current {
+  border-color: rgba(11, 128, 115, 0.3) !important;
+  background: var(--p-tint) !important;
+  color: var(--p-teal-dark) !important;
+}
+
+body.pricing-redesign .pricing-savings {
+  display: block;
+  min-height: 1.25rem;
+  margin: 0.625rem 0 0 !important;
+  padding: 0;
+  background: none;
+  color: var(--p-teal-dark);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  text-align: center;
+}
+
+body.pricing-redesign .pricing-savings[hidden] {
+  display: block !important;
+  visibility: hidden;
+}
+
+/* ── Feature list ─────────────────────────────────────────────────────────
+   Each line is the feature and, beneath it, what it does for the supplier.
+   The second line is the whole point of the section: a name on its own tells
+   a supplier nothing about whether £16 a month is worth it. */
 
 body.pricing-redesign .pricing-card-features {
-  margin-top: 1.25rem;
-  padding-top: 1.25rem;
-  border-top: 1px solid #edf1f1;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  padding: 1.5rem 1.75rem 2rem;
+  border-top: 1px solid var(--p-line);
 }
 
 body.pricing-redesign .pricing-inherits {
-  margin: 0 0 0.75rem !important;
-  color: var(--pricing-ink);
-  font-size: 0.75rem;
-  font-weight: 800;
-  letter-spacing: 0.03em;
+  margin: 0 0 1.125rem !important;
+  color: var(--p-ink);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
 body.pricing-redesign .pricing-features {
   display: grid !important;
-  /* The list sits in the flexible track, so without this the shortest card
-     stretches its own rows to fill the slack and its ticks drift out of step
-     with the columns beside it. */
+  flex: 0 0 auto;
   align-content: start;
-  gap: 0.5rem;
+  gap: 1.125rem;
   margin: 0 !important;
   padding: 0 !important;
   list-style: none;
@@ -545,326 +492,239 @@ body.pricing-redesign .pricing-features {
 body.pricing-redesign .pricing-features li {
   position: relative;
   display: block !important;
-  padding: 0 0 0 1.75rem !important;
+  padding: 0 0 0 1.5rem !important;
   border: 0 !important;
-  color: #263247 !important;
-  font-size: 0.8125rem !important;
+  color: var(--p-ink) !important;
+  font-size: 0.875rem !important;
   line-height: 1.45;
 }
 
-/* A bare ✓ in the text colour reads as punctuation; a tinted disc gives the
-   list a rhythm. 5.79:1 on the tint. */
+/* A hairline tick rather than a filled disc: at this density a row of tinted
+   circles becomes the loudest thing in the column. */
 body.pricing-redesign .pricing-features li::before {
-  content: "✓" !important;
+  content: "" !important;
   position: absolute;
-  top: -1px;
-  left: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
+  top: 0.42em;
+  left: 0.0625rem;
+  width: 0.5rem;
+  height: 0.3rem;
   margin: 0 !important;
-  border-radius: 50%;
-  background: rgba(11, 128, 115, 0.1);
-  color: var(--pricing-teal-dark) !important;
-  font-size: 0.6875rem !important;
-  font-weight: 700;
-  line-height: 1;
+  border-left: 1.5px solid var(--p-teal);
+  border-bottom: 1.5px solid var(--p-teal);
+  transform: rotate(-45deg);
 }
 
-/* ── Card: actions ───────────────────────────────────────────────────────── */
-
-body.pricing-redesign .pricing-card-actions {
-  margin-top: 1.5rem;
-}
-
-body.pricing-redesign .pricing-cta {
-  display: flex !important;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  min-height: 48px;
-  margin: 0 !important;
-  padding: 0.75rem 1rem !important;
-  border: 1px solid var(--pricing-teal) !important;
-  border-radius: 12px !important;
-  background: var(--pricing-teal) !important;
-  color: #fff !important;
-  box-shadow: 0 4px 12px rgba(11, 128, 115, 0.22);
-  font-size: 1rem !important;
-  font-weight: 700 !important;
-  line-height: 1.2;
-  text-align: center;
-  text-decoration: none;
-  transform: none !important;
-  transition:
-    background 160ms ease,
-    border-color 160ms ease,
-    box-shadow 160ms ease,
-    transform 160ms ease;
-}
-
-body.pricing-redesign .pricing-cta:hover {
-  border-color: var(--pricing-teal-dark) !important;
-  background: var(--pricing-teal-dark) !important;
-  box-shadow: 0 8px 20px rgba(11, 128, 115, 0.26);
-  transform: translateY(-1px) !important;
-}
-
-body.pricing-redesign .pricing-cta:focus-visible {
-  outline: 3px solid rgba(11, 128, 115, 0.24);
-  outline-offset: 3px;
-}
-
-body.pricing-redesign .pricing-cta.secondary {
-  background: #fff !important;
-  color: var(--pricing-teal-dark) !important;
-  box-shadow: none;
-}
-
-body.pricing-redesign .pricing-cta.secondary:hover {
-  background: rgba(11, 128, 115, 0.07) !important;
-  color: var(--pricing-teal-dark) !important;
-}
-
-/* Inert states are styled, not inline-styled from script, so the disabled
-   look stays in one place and survives a re-render. */
-body.pricing-redesign .pricing-cta.is-inert,
-body.pricing-redesign .pricing-cta[aria-disabled="true"] {
-  border-color: #d6dce5 !important;
-  background: #f2f4f7 !important;
-  box-shadow: none;
-  color: #5a6678 !important;
-  cursor: default;
-  pointer-events: none;
-  transform: none !important;
-}
-
-body.pricing-redesign .pricing-cta.is-current {
-  border-color: rgba(11, 128, 115, 0.3) !important;
-  background: var(--pricing-soft) !important;
-  color: var(--pricing-teal-dark) !important;
-}
-
-body.pricing-redesign .pricing-savings {
+body.pricing-redesign .pricing-feature-name {
   display: block;
-  min-height: 1.75rem;
-  margin: 0.625rem auto 0 !important;
-  padding: 0.375rem 0.625rem;
-  border-radius: 999px;
-  background: #e5f7ed;
-  color: var(--pricing-teal-dark);
-  font-size: 0.75rem;
-  font-weight: 800;
-  line-height: 1.2;
-  text-align: center;
-  width: fit-content;
+  font-weight: 500;
 }
 
-/* Only two of the three plans carry a saving, so the line keeps its height
-   on every card — otherwise the buttons come off one baseline again.
-   `visibility` rather than dropping `[hidden]`: the space is reserved but
-   nothing announces an empty saving. */
-body.pricing-redesign .pricing-savings[hidden] {
-  display: block !important;
-  visibility: hidden;
+body.pricing-redesign .pricing-feature-why {
+  display: block;
+  margin-top: 0.1875rem;
+  color: var(--p-muted);
+  font-size: 0.8125rem;
+  font-weight: 400;
+  line-height: 1.5;
+  text-wrap: pretty;
 }
 
-/* ── Subgrid alignment ────────────────────────────────────────────────────
-   Each card takes the whole column and hands `.pricing-grid`'s row tracks
-   down to its own content, so heading / price / value / features / actions
-   share a baseline across all three columns whatever the copy length. Both
-   levels carry identical padding and border, so the offset each applies to
-   the tracks is identical too. */
+/* The registry has written an upgrade prompt for each plan since the plans
+   endpoint was built, and nothing had ever rendered it. It is the one line
+   that helps a supplier work out which plan is theirs, so it sits at the foot
+   of the column, pushed down to meet the panel's bottom edge. The top plan has
+   nowhere to upgrade to and carries no prompt. */
+body.pricing-redesign .pricing-upsell {
+  margin: 1.75rem 0 0;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--p-line);
+  color: var(--p-muted);
+  font-size: 0.8125rem;
+  line-height: 1.55;
+  text-wrap: pretty;
+}
+
+body.pricing-redesign .pricing-card-features .pricing-upsell {
+  margin-top: auto;
+}
+
+/* ── Row alignment ────────────────────────────────────────────────────────
+   The uniform head shape gets the three columns within a pixel of each other,
+   but only within a pixel: the reserved "Normally" line and the live one
+   resolve to fractionally different heights, which puts a visible jog in the
+   rule that runs across all three columns.
+
+   Handing the panel's row tracks down to each column removes the difference
+   by construction. Both levels carry no padding or border of their own, so
+   the tracks land in exactly the same place in every column. */
 
 @supports (grid-template-rows: subgrid) {
+  body.pricing-redesign .pricing-grid {
+    /* head · actions · features */
+    grid-template-rows: auto auto 1fr;
+  }
+
   body.pricing-redesign .pricing-card,
   body.pricing-redesign .pricing-card-content {
     display: grid;
     grid-row: 1 / -1;
     grid-template-rows: subgrid;
   }
-
-  body.pricing-redesign .pricing-card-content {
-    align-content: start;
-  }
-
-  /* The "Everything in …, plus" line wraps to two lines in a narrow column,
-     which would push that card's list a line below its neighbours'. Giving
-     the block its own two tracks keeps the lists themselves aligned. */
-  body.pricing-redesign .pricing-card-features {
-    display: grid;
-    grid-row: span 2;
-    grid-template-rows: subgrid;
-  }
-
-  /* The tracks now provide the separation, so the per-block top spacing that
-     the flex fallback relies on is removed. */
-  body.pricing-redesign .pricing-price-block,
-  body.pricing-redesign .pricing-card-features,
-  body.pricing-redesign .pricing-card-actions {
-    padding-top: 1.25rem;
-    margin-top: 0;
-  }
-
-  body.pricing-redesign .pricing-value-statement {
-    margin-top: 1rem !important;
-  }
-
-  body.pricing-redesign .pricing-card-actions {
-    align-self: end;
-  }
 }
 
-/* Without subgrid the cards fall back to flex; the button is pushed to the
-   bottom of its own card so the row still reads as finished. */
-@supports not (grid-template-rows: subgrid) {
-  body.pricing-redesign .pricing-card-actions {
-    margin-top: auto;
-    padding-top: 1.5rem;
-  }
-}
-
-/* ── Reassurance strip ───────────────────────────────────────────────────── */
+/* ── Reassurance line ─────────────────────────────────────────────────────── */
 
 body.pricing-redesign .pricing-security-note {
   display: flex;
   align-items: center;
   justify-content: center;
   flex-wrap: wrap;
-  gap: 0.5rem;
-  width: fit-content;
-  max-width: 100%;
-  margin: 1.75rem auto 0;
-  padding: 0.5rem 1.125rem;
-  border: 1px solid var(--pricing-line);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.8);
-  color: #5a6678;
+  gap: 0.375rem 0.875rem;
+  margin: 1.5rem 0 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--p-muted);
   font-size: 0.8125rem;
-  font-weight: 600;
+  font-weight: 400;
 }
 
 body.pricing-redesign .pricing-security-icon {
-  display: grid;
-  place-items: center;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: #dff5ef;
-  color: var(--pricing-teal-dark);
-  font-weight: 900;
+  display: none;
 }
 
 body.pricing-redesign .pricing-offer-terms {
-  margin: 0.75rem 0 0;
-  color: var(--pricing-soft-ink);
+  margin: 0.625rem 0 0;
+  color: var(--p-muted);
   font-size: 0.75rem;
   line-height: 1.5;
   text-align: center;
 }
 
-/* ── Supporting sections ─────────────────────────────────────────────────── */
+/* ── Section furniture ────────────────────────────────────────────────────── */
 
 body.pricing-redesign .pricing-comparison,
 body.pricing-redesign .pricing-promise,
 body.pricing-redesign .pricing-faq {
-  margin-top: 3.5rem;
+  margin-top: 5rem;
 }
 
 body.pricing-redesign .pricing-section-heading {
-  max-width: 720px;
-  margin: 0 auto 1.5rem;
-  text-align: center;
+  max-width: 44rem;
+  margin: 0 0 1.75rem;
 }
 
 body.pricing-redesign .pricing-section-heading .pricing-eyebrow {
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.625rem;
 }
 
 body.pricing-redesign .pricing-section-heading h2,
 body.pricing-redesign .pricing-promise h2 {
   margin: 0;
-  color: var(--pricing-ink);
+  color: var(--p-ink);
   font-size: 1.75rem;
-  letter-spacing: -0.02em;
+  font-weight: 700;
+  letter-spacing: -0.025em;
   line-height: 1.2;
 }
 
 body.pricing-redesign .pricing-section-heading > p:last-child,
 body.pricing-redesign .pricing-promise p {
-  margin: 0.5rem 0 0;
-  color: var(--pricing-muted);
-  line-height: 1.55;
+  max-width: 40rem;
+  margin: 0.625rem 0 0;
+  color: var(--p-ink-2);
+  font-size: 1rem;
+  line-height: 1.6;
   text-wrap: pretty;
 }
 
-body.pricing-redesign .comparison-table-wrapper,
-body.pricing-redesign .pricing-promise,
-body.pricing-redesign .pricing-faq-list {
-  border: 1px solid var(--pricing-line);
-  border-radius: var(--pricing-radius);
-  background: #fff;
-  box-shadow: var(--pricing-shadow);
-}
+/* ── Comparison table ─────────────────────────────────────────────────────
+   Grouped by what the supplier is actually buying. A flat list of twelve rows
+   is a specification; grouped rows are an argument. */
 
 body.pricing-redesign .comparison-table-wrapper {
   overflow-x: auto;
+  border: 1px solid var(--p-line);
+  border-radius: 16px;
+  background: var(--p-surface);
 }
 
 body.pricing-redesign .comparison-table-wrapper:focus-visible {
-  outline: 3px solid rgba(11, 128, 115, 0.24);
+  outline: 3px solid rgba(11, 128, 115, 0.35);
   outline-offset: 2px;
 }
 
 body.pricing-redesign .comparison-table {
   width: 100%;
-  min-width: 720px;
+  min-width: 44rem;
   border-collapse: collapse;
 }
 
 body.pricing-redesign .comparison-table th,
 body.pricing-redesign .comparison-table td {
-  padding: 0.875rem 1rem;
-  border-bottom: 1px solid #edf1f1;
-  color: #344054;
-  font-size: 0.8125rem;
+  padding: 0.8125rem 1rem;
+  border-bottom: 1px solid var(--p-line);
+  color: var(--p-ink-2);
+  font-size: 0.875rem;
+  font-weight: 400;
   text-align: center;
+  vertical-align: middle;
 }
 
 body.pricing-redesign .comparison-table th:first-child,
 body.pricing-redesign .comparison-table td:first-child {
   width: 34%;
-  color: var(--pricing-ink);
-  font-weight: 600;
+  color: var(--p-ink);
+  font-weight: 400;
   text-align: left;
 }
 
 body.pricing-redesign .comparison-table thead th {
-  background: #f7f9f9;
-  color: var(--pricing-ink);
+  padding-top: 1.125rem;
+  padding-bottom: 1.125rem;
+  color: var(--p-ink);
   font-size: 0.875rem;
-  font-weight: 800;
+  font-weight: 600;
 }
 
+body.pricing-redesign .comparison-table thead th.popular {
+  color: var(--p-teal-dark);
+}
+
+/* The recommended column is tinted the whole way down, which ties the table
+   back to the plan panel above it. */
 body.pricing-redesign .comparison-table .popular,
 body.pricing-redesign .comparison-table .popular-col {
-  background: #eff9f7;
+  background: var(--p-tint);
 }
 
-body.pricing-redesign .comparison-table thead .popular {
-  background: #e2f4f1;
-  color: var(--pricing-teal-dark);
+body.pricing-redesign .comparison-group th {
+  padding-top: 1.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--p-line-strong);
+  color: var(--p-ink) !important;
+  font-size: 0.6875rem !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.1em;
+  text-align: left;
+  text-transform: uppercase;
 }
 
-/* The price row restates the cards' headline figure, so it follows the
-   billing switch rather than sitting at a fixed number. */
-body.pricing-redesign .comparison-table .comparison-price-row td,
-body.pricing-redesign .comparison-table .comparison-price-row th {
-  color: var(--pricing-ink);
-  font-size: 0.875rem;
-  font-weight: 800;
+body.pricing-redesign .comparison-price-row td,
+body.pricing-redesign .comparison-price-row th {
+  color: var(--p-ink);
+  font-size: 1rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+body.pricing-redesign .comparison-yes {
+  color: var(--p-teal-dark);
+  font-weight: 500;
+}
+
+body.pricing-redesign .comparison-no {
+  color: #9aa8aa;
 }
 
 body.pricing-redesign .comparison-table tbody tr:last-child td,
@@ -872,18 +732,21 @@ body.pricing-redesign .comparison-table tbody tr:last-child th {
   border-bottom: 0;
 }
 
+/* ── Promise ──────────────────────────────────────────────────────────────── */
+
 body.pricing-redesign .pricing-promise {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 2rem;
-  padding: 1.75rem;
-  background: linear-gradient(120deg, #edf9f7, #f8fcfb);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 2.5rem;
+  padding: 2rem 0 0;
+  border-top: 1px solid var(--p-line);
+  background: none;
 }
 
 body.pricing-redesign .pricing-promise ul {
   display: grid;
-  gap: 0.625rem;
+  align-content: start;
+  gap: 0.875rem;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -892,43 +755,44 @@ body.pricing-redesign .pricing-promise ul {
 body.pricing-redesign .pricing-promise li {
   position: relative;
   padding-left: 1.5rem;
-  color: #344054;
+  color: var(--p-ink);
   font-size: 0.875rem;
-  font-weight: 600;
+  font-weight: 400;
+  line-height: 1.5;
 }
 
 body.pricing-redesign .pricing-promise li::before {
-  content: "✓";
+  content: "";
   position: absolute;
-  left: 0;
-  color: var(--pricing-teal);
-  font-weight: 900;
+  top: 0.45em;
+  left: 0.0625rem;
+  width: 0.5rem;
+  height: 0.3rem;
+  border-left: 1.5px solid var(--p-teal);
+  border-bottom: 1.5px solid var(--p-teal);
+  transform: rotate(-45deg);
 }
 
+/* ── FAQ ──────────────────────────────────────────────────────────────────── */
+
 body.pricing-redesign .pricing-faq {
-  max-width: 860px;
-  margin-right: auto;
-  margin-left: auto;
+  max-width: 46rem;
 }
 
 body.pricing-redesign .pricing-faq-list {
-  padding: 0.25rem 1.25rem;
+  border-top: 1px solid var(--p-line);
 }
 
 body.pricing-redesign .pricing-faq details {
-  border-bottom: 1px solid rgba(15, 23, 42, 0.07);
-}
-
-body.pricing-redesign .pricing-faq details:last-child {
-  border-bottom: 0;
+  border-bottom: 1px solid var(--p-line);
 }
 
 body.pricing-redesign .pricing-faq summary {
   position: relative;
-  padding: 1rem 3rem 1rem 0.25rem;
-  color: var(--pricing-ink);
+  padding: 1.25rem 3rem 1.25rem 0;
+  color: var(--p-ink);
   font-size: 1rem;
-  font-weight: 700;
+  font-weight: 500;
   cursor: pointer;
   list-style: none;
 }
@@ -938,34 +802,40 @@ body.pricing-redesign .pricing-faq summary::-webkit-details-marker {
 }
 
 body.pricing-redesign .pricing-faq summary:focus-visible {
-  outline: 3px solid rgba(11, 128, 115, 0.24);
+  outline: 3px solid rgba(11, 128, 115, 0.35);
   outline-offset: -2px;
-  border-radius: 8px;
+  border-radius: 6px;
 }
 
+/* A rotating chevron rather than a +/− swap: the glyph swap made the row
+   twitch as the two characters have different widths. */
 body.pricing-redesign .pricing-faq summary::after {
-  content: "+";
+  content: "";
   position: absolute;
   top: 50%;
-  right: 0.75rem;
-  color: var(--pricing-teal-dark);
-  font-size: 1.25rem;
-  transform: translateY(-50%);
+  right: 0.5rem;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-right: 1.5px solid var(--p-muted);
+  border-bottom: 1.5px solid var(--p-muted);
+  transform: translateY(-70%) rotate(45deg);
+  transition: transform 180ms ease;
 }
 
 body.pricing-redesign .pricing-faq details[open] summary::after {
-  content: "−";
+  transform: translateY(-20%) rotate(-135deg);
 }
 
 body.pricing-redesign .pricing-faq details p {
+  max-width: 40rem;
   margin: 0;
-  padding: 0 3rem 1rem 0.25rem;
-  color: var(--pricing-muted);
-  font-size: 0.875rem;
-  line-height: 1.55;
+  padding: 0 3rem 1.25rem 0;
+  color: var(--p-ink-2);
+  font-size: 1rem;
+  line-height: 1.65;
 }
 
-/* ── Status banner ───────────────────────────────────────────────────────── */
+/* ── Status banner ────────────────────────────────────────────────────────── */
 
 body.pricing-redesign .pricing-notice-banner {
   position: fixed;
@@ -975,11 +845,11 @@ body.pricing-redesign .pricing-notice-banner {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  max-width: min(420px, calc(100vw - 2rem));
+  max-width: min(26rem, calc(100vw - 2rem));
   padding: 0.875rem 1rem;
-  border-radius: 12px;
+  border-radius: 10px;
   color: #fff;
-  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.18);
+  box-shadow: 0 10px 30px rgba(13, 22, 24, 0.18);
   font-size: 0.875rem;
 }
 
@@ -995,167 +865,128 @@ body.pricing-redesign .pricing-notice-banner button {
 }
 
 body.pricing-redesign .pricing-notice-banner--info {
-  background: #9a6700;
+  background: #8a5a00;
 }
 
 body.pricing-redesign .pricing-notice-banner--success {
-  background: var(--pricing-teal-dark);
+  background: var(--p-teal-dark);
 }
 
 body.pricing-redesign .pricing-notice-banner--error {
-  background: #b42318;
+  background: #a4271c;
 }
 
-/* ── Responsive ──────────────────────────────────────────────────────────── */
+/* ── Responsive ───────────────────────────────────────────────────────────── */
 
 @media (max-width: 980px) {
   body.pricing-redesign .pricing-grid {
     grid-template-columns: 1fr !important;
-    grid-template-rows: none;
-    max-width: 640px;
-    margin: 0.75rem auto 0 !important;
+    max-width: 34rem;
+    margin: 0 auto !important;
   }
 
-  /* One column means there is nothing left to align across, and a single
-     shared track list would stretch every card to the tallest content. Every
-     subgrid-only declaration is unwound here — `align-self: end` in
-     particular becomes a cross-axis rule once the card is a column flexbox,
-     which would shrink the button to its text and push it to one side. */
+  body.pricing-redesign .pricing-card + .pricing-card {
+    border-top: 1px solid var(--p-line) !important;
+    border-left: 0 !important;
+  }
+
+  /* One column: there is nothing left to align across, and a shared track
+     list would stretch every plan to the tallest one's height. */
   @supports (grid-template-rows: subgrid) {
+    body.pricing-redesign .pricing-grid {
+      grid-template-rows: none;
+    }
+
     body.pricing-redesign .pricing-card,
-    body.pricing-redesign .pricing-card-content,
-    body.pricing-redesign .pricing-card-features {
+    body.pricing-redesign .pricing-card-content {
       display: flex;
       grid-row: auto;
       grid-template-rows: none;
     }
 
-    body.pricing-redesign .pricing-card-content,
-    body.pricing-redesign .pricing-card-features {
+    body.pricing-redesign .pricing-card-content {
       flex-direction: column;
     }
+  }
 
-    body.pricing-redesign .pricing-card-actions {
-      align-self: auto;
-      margin-top: auto;
-      padding-top: 1.5rem;
-    }
+  body.pricing-redesign .pricing-tier-label {
+    min-height: 0;
   }
 
   body.pricing-redesign .pricing-promise {
     grid-template-columns: 1fr;
-    gap: 1.25rem;
+    gap: 1.5rem;
   }
 }
 
 @media (max-width: 640px) {
   body.pricing-redesign .pricing-hero {
-    padding: 1.5rem 0.75rem 0.5rem !important;
-  }
-
-  body.pricing-redesign .pricing-hero .container {
-    padding: 1.75rem 1.25rem;
-    border-radius: 20px;
-  }
-
-  body.pricing-redesign .pricing-hero h1 {
-    font-size: 2rem !important;
-  }
-
-  body.pricing-redesign .pricing-hero .subtitle {
-    font-size: 0.875rem !important;
-  }
-
-  body.pricing-redesign .pricing-billing-toggle {
-    gap: 0.5rem;
-    margin-top: 1.25rem;
-    padding: 0.3125rem 0.4375rem 0.3125rem 0.75rem;
-  }
-
-  body.pricing-redesign .pricing-billing-label {
-    font-size: 0.8125rem;
-  }
-
-  body.pricing-redesign .pricing-billing-saving {
-    padding: 0.4375rem 0.5rem;
-    font-size: 0.6875rem;
+    padding: 2.5rem 1.25rem 1.75rem !important;
   }
 
   body.pricing-redesign .pricing-container {
-    padding: 1rem 0.875rem 3rem !important;
+    padding: 0 1rem 3.5rem !important;
   }
 
-  body.pricing-redesign .pricing-card-content {
-    padding: 1.5rem 1.25rem;
+  body.pricing-redesign .pricing-billing-toggle {
+    flex-direction: column;
+    gap: 0.75rem;
+    width: 100%;
+  }
+
+  body.pricing-redesign .pricing-billing-switch {
+    width: 100%;
+    max-width: 20rem;
+  }
+
+  body.pricing-redesign .pricing-card-heading {
+    padding: 1.5rem 1.25rem 0;
+  }
+
+  body.pricing-redesign .pricing-card-actions {
+    padding: 1.25rem 1.25rem 1.5rem;
+  }
+
+  body.pricing-redesign .pricing-card-features {
+    padding: 1.5rem 1.25rem 1.75rem;
   }
 
   body.pricing-redesign .pricing-price {
     font-size: 2.5rem !important;
   }
 
-  body.pricing-redesign .pricing-security-note {
-    flex-direction: column;
-    width: 100%;
-    border-radius: 16px;
-  }
-
-  body.pricing-redesign .pricing-security-note > span[aria-hidden="true"]:not(.pricing-security-icon) {
-    display: none;
-  }
-
   body.pricing-redesign .pricing-comparison,
   body.pricing-redesign .pricing-promise,
   body.pricing-redesign .pricing-faq {
-    margin-top: 2.5rem;
+    margin-top: 3.5rem;
   }
 
   body.pricing-redesign .pricing-section-heading h2,
   body.pricing-redesign .pricing-promise h2 {
     font-size: 1.5rem;
   }
-
-  body.pricing-redesign .pricing-promise {
-    padding: 1.25rem;
-  }
-}
-
-/* The hero blobs are drawn to a desktop composition. */
-@media (max-width: 700px) {
-  body.pricing-redesign .pricing-blob--c {
-    display: none;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  body.pricing-redesign .pricing-decor {
-    display: none;
-  }
-
-  body.pricing-redesign .pricing-card,
+  body.pricing-redesign .pricing-billing-switch-thumb,
+  body.pricing-redesign .pricing-billing-label,
   body.pricing-redesign .pricing-cta,
-  body.pricing-redesign .pricing-billing-switch::before,
-  body.pricing-redesign .pricing-billing-switch-thumb {
+  body.pricing-redesign .pricing-faq summary::after {
     transition: none !important;
-  }
-
-  body.pricing-redesign .pricing-card:hover,
-  body.pricing-redesign .pricing-cta:hover {
-    transform: none !important;
   }
 }
 
 @media (forced-colors: active) {
-  body.pricing-redesign .pricing-decor {
-    display: none;
+  body.pricing-redesign .pricing-grid,
+  body.pricing-redesign .comparison-table-wrapper {
+    border: 1px solid CanvasText !important;
   }
 
-  body.pricing-redesign .pricing-card,
-  body.pricing-redesign .pricing-hero .container,
-  body.pricing-redesign .comparison-table-wrapper,
-  body.pricing-redesign .pricing-promise,
-  body.pricing-redesign .pricing-faq-list,
-  body.pricing-redesign .pricing-security-note {
-    border: 1px solid CanvasText !important;
-    box-shadow: none !important;
+  body.pricing-redesign .pricing-card + .pricing-card {
+    border-left-color: CanvasText !important;
+  }
+
+  body.pricing-redesign .pricing-billing-switch-thumb {
+    background: Highlight;
   }
 }
