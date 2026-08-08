@@ -234,6 +234,11 @@ router.post(
 router.get('/me', authRequired, async (req, res) => {
   const subscription = await subscriptionService.getSubscriptionByUserId(req.user.id);
   const entitlementActive = subscriptionService.isLiveEntitlement(subscription);
+  // The browser needs the viewer's allowances to show the right limits in the
+  // gallery and elsewhere. Without this every client hard-codes its own
+  // ceiling, which is how the uploader ended up capping paid plans at the
+  // free tier's ten photos.
+  const features = await subscriptionService.getUserFeatures(req.user.id);
   res.json({
     success: true,
     subscription,
@@ -244,6 +249,7 @@ router.get('/me', authRequired, async (req, res) => {
       : null,
     cancelAtPeriodEnd: subscription?.cancelAtPeriodEnd ?? false,
     status: subscription?.status || 'free',
+    limits: features?.features || {},
   });
 });
 

@@ -123,7 +123,7 @@ describe('pricing page rebuild', () => {
   it('groups the comparison table by what a supplier is actually buying', () => {
     expect(pricingPage).toContain('comparison-group');
     expect(pricingPage).toContain('Getting found');
-    expect(pricingPage).toContain('Earning trust');
+    expect(pricingPage).toContain('Talking to customers');
     expect(pricingPage).toContain('scope="row"');
   });
 
@@ -139,20 +139,87 @@ describe('pricing page rebuild', () => {
     expect(PLAN_PRESENTATION.free.highlights.join(' ')).toContain('Up to 3 package listings');
     expect(PLAN_PRESENTATION.pro.highlights.join(' ')).toContain('Up to 50 package listings');
     expect(PLAN_PRESENTATION.pro_plus.highlights.join(' ')).toContain('Unlimited package listings');
-
-    expect(pricingPage).toContain('Up to 3 package listings');
-    expect(pricingPage).toContain('Up to 50 package listings');
-    expect(pricingPage).toContain('Unlimited package listings');
   });
 
-  it('does not claim photo allowances the uploader does not grant', () => {
-    // supplier-gallery.js and supplier-photo-upload.js cap every tier at ten
-    // photos regardless of plan, so "unlimited photos" on a paid plan was a
-    // claim the product did not honour.
+  it('promises only the photo allowances the upload route enforces', () => {
+    // The uploader used to cap every tier at ten photos whatever the plan
+    // said, which made "unlimited photos" on Professional false. The
+    // allowance now comes from the matrix and routes/photos.js applies it.
+    expect(PLAN_FEATURES.free.features.maxPhotos).toBe(10);
+    expect(PLAN_FEATURES.pro.features.maxPhotos).toBe(500);
+    expect(PLAN_FEATURES.pro_plus.features.maxPhotos).toBe(-1);
+
+    const photos = readAsset('routes/photos.js');
+    expect(photos).toContain('checkPhotoAllowance');
+    expect(photos).toContain('PHOTO_LIMIT_REACHED');
+    // Both upload paths are guarded, not just the single-file one.
+    expect(photos.match(/await checkPhotoAllowance\(/g)).toHaveLength(2);
+
+    // The browser reads its allowance rather than carrying its own ceiling.
     const gallery = readAsset('public/assets/js/supplier-gallery.js');
-    expect(gallery).toContain('const maxPhotos = 10');
-    expect(pricingPage).not.toContain('Unlimited photos');
-    expect(PLAN_PRESENTATION.pro.highlights.join(' ')).not.toContain('Unlimited photos');
+    expect(gallery).toContain('/api/v2/subscriptions/me');
+    expect(gallery).not.toMatch(/const maxPhotos = \d+/);
+
+    expect(pricingPage).toContain('Up to 10 portfolio photos');
+    expect(pricingPage).toContain('Up to 500 portfolio photos');
+    expect(pricingPage).toContain('Unlimited portfolio photos');
+  });
+
+  it('promises only the messaging allowances config/messagingLimits.js enforces', () => {
+    const { getMessagingLimitsForTier } = require('../../config/messagingLimits');
+    const free = getMessagingLimitsForTier('free');
+    const pro = getMessagingLimitsForTier('pro');
+    const plus = getMessagingLimitsForTier('pro_plus');
+
+    expect(free.messagesPerDay).toBe(10);
+    expect(pro.messagesPerDay).toBe(-1);
+    expect(plus.messagesPerDay).toBe(-1);
+    expect(free.maxMessageLength).toBe(500);
+    expect(pro.maxMessageLength).toBe(5000);
+    expect(plus.maxMessageLength).toBe(10000);
+
+    expect(pricingPage).toContain('Up to 10 enquiry replies a day');
+    expect(pricingPage).toContain('Unlimited enquiry replies');
+    expect(pricingPage).toContain('5,000 characters');
+    expect(pricingPage).toContain('500 characters');
+    expect(pricingPage).toContain('10,000');
+  });
+
+  it('promises only the analytics history the supplier route allows', () => {
+    expect(PLAN_FEATURES.free.features.analyticsWindowDays).toBe(7);
+    expect(PLAN_FEATURES.pro.features.analyticsWindowDays).toBe(90);
+    expect(PLAN_FEATURES.pro_plus.features.analyticsWindowDays).toBe(365);
+
+    const supplierRoute = readAsset('routes/supplier.js');
+    expect(supplierRoute).toContain('getAnalyticsWindowDays');
+    expect(supplierRoute).toContain('Math.min(requestedDays, windowDays)');
+
+    expect(pricingPage).toContain('7 days of profile analytics');
+    expect(pricingPage).toContain('90 days of profile analytics');
+    expect(pricingPage).toContain('A full year of profile analytics');
+  });
+
+  it('delivers the homepage placement Professional Plus is sold', () => {
+    // Homepage featuring was driven only by an editorial flag someone had to
+    // set by hand, so subscribing did not actually buy the benefit.
+    expect(readAsset('routes/suppliers.js')).toContain('planFeaturedSupplierIds');
+    expect(readAsset('utils/helpers.js')).toContain('async function supplierPlanTier');
+    expect(PLAN_PRESENTATION.pro_plus.highlights.join(' ')).toContain(
+      'Homepage featured placement'
+    );
+    expect(PLAN_PRESENTATION.pro.highlights.join(' ')).not.toContain('Homepage featured');
+  });
+
+  it('does not sell ungated features as though they were paid', () => {
+    // Verification and response-time tracking apply to every supplier, so
+    // listing them under Professional implied a difference that is not there.
+    ['Email and phone verification', 'Response-time tracking'].forEach(claim => {
+      expect(PLAN_PRESENTATION.pro.highlights.join(' ')).not.toContain(claim);
+      expect(PLAN_PRESENTATION.pro_plus.highlights.join(' ')).not.toContain(claim);
+    });
+    // They are still shown, in the row that says every plan includes them.
+    expect(pricingPage).toContain('Included on every plan');
+    expect(pricingPage).toContain('Response-time tracking');
   });
 
   it('retains responsive and accessible interactions', () => {

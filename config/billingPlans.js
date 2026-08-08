@@ -46,7 +46,7 @@ const PLAN_PRESENTATION = {
     cta: 'Create a free profile',
     valueStatement: 'Be present where customers are planning and begin building your profile.',
     upgradePrompt:
-      'Upgrade when you want more package listings, stronger trust signals and better search visibility.',
+      'Upgrade when a daily reply cap or three package listings starts holding you back.',
     // Each highlight is "what it is — what it does for you". The second half
     // is what the pricing page shows beneath the feature name, so it has to
     // read as a benefit rather than a restatement.
@@ -58,9 +58,10 @@ const PLAN_PRESENTATION = {
     highlights: [
       'Public supplier profile — a page on EventFlow with your services, photos and contact details',
       'Up to 3 package listings — publish set packages with prices so customers can see what you offer',
-      'Customer enquiries — receive and answer enquiries through EventFlow at no cost',
+      'Up to 10 portfolio photos — show your work on your profile',
+      'Up to 10 enquiry replies a day — answer the enquiries that come in, at no cost',
       'Standard search placement — appear in results when customers browse your category and area',
-      'Email support — help with setting up and running your profile',
+      '7 days of profile analytics — see who viewed your profile this week',
     ],
     pricing: {
       month: { monthlyEquivalent: 0, total: 0, saving: 0, discountPercent: 0 },
@@ -80,15 +81,14 @@ const PLAN_PRESENTATION = {
     cta: 'Choose Professional',
     valueStatement:
       'Be found sooner, earn trust before the first message and understand which leads deserve your time.',
-    upgradePrompt:
-      'Move to Plus when premium positions and hands-on performance support can create more value.',
+    upgradePrompt: 'Move to Plus for homepage placement and a monthly review of what is working.',
     highlights: [
-      'Priority search placement — your profile sits above Starter suppliers in your categories and areas',
+      'Higher search placement — a ranking boost that lifts you above Starter suppliers in your categories and areas',
       'Up to 50 package listings — publish your full range instead of a handful',
-      'Email and phone verification — a verified badge that tells customers you are real and contactable',
-      'Lead quality scoring — every enquiry scored on budget, detail and legitimacy so you answer the best first',
-      'Response-time tracking — your typical reply speed shown on your profile, turning fast replies into a selling point',
-      'Profile analytics — who viewed your profile, what they opened and which packages drew interest',
+      'Up to 500 portfolio photos — show every side of your work',
+      'Unlimited enquiry replies — never leave an enquiry waiting because you have hit a daily cap',
+      'Longer messages — up to 5,000 characters, so a full quote fits in one reply',
+      '90 days of profile analytics — see what draws interest across a season, not just a week',
       'Priority support — your questions go to the front of the queue',
     ],
     pricing: {
@@ -108,10 +108,11 @@ const PLAN_PRESENTATION = {
     upgradePrompt:
       'Designed for established suppliers with the capacity and booking value to benefit from premium exposure.',
     highlights: [
-      'Homepage featured placement — your business appears on the EventFlow homepage, before customers start searching',
-      'Top of category pages — the first supplier customers see, above Professional profiles',
+      'Homepage featured placement — your packages appear on the EventFlow homepage, in front of customers before they start searching',
+      'Top search placement — the strongest ranking boost EventFlow gives, above Professional profiles',
       'Unlimited package listings — no cap on how much of your range you publish',
-      'Business verification badge — our strongest trust signal, shown once we have checked your business details',
+      'Unlimited portfolio photos — a complete portfolio, however large it gets',
+      'A full year of profile analytics — compare this season against last',
       'Dedicated onboarding call — we build your profile with you so it works from day one',
       'Monthly performance review — a monthly read on what is working and what to change',
       'VIP support — a direct line to the team',

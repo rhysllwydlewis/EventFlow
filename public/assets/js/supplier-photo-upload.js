@@ -11,7 +11,10 @@ const isDevelopment =
 class SupplierPhotoUpload {
   constructor() {
     this.uploadedPhotos = [];
-    this.maxPhotos = 10;
+    // No photo count here: the allowance is per plan, resolved by the gallery
+    // from /api/v2/subscriptions/me and enforced by the upload route. A second
+    // hard-coded ceiling in this module is how every tier ended up capped at
+    // the free tier's ten.
     this.maxFileSize = 5 * 1024 * 1024; // 5MB
     this.compressionQuality = 0.85; // 85% quality
     this.maxImageWidth = 1920;

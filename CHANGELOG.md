@@ -159,8 +159,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Comparison table grouped by what a supplier is buying (getting found, what you can publish, earning trust, handling enquiries, understanding performance, support) instead of a flat list
   - Billing control is a segmented control naming both options rather than an iOS switch whose state had to be inferred from a thumb position
   - Weight, size and colour pulled back to the site scale; the accent is now used only for the primary button, the recommended column and the feature ticks
+- **Per-Plan Photo Allowances Are Now Enforced**: `maxPhotos` (10 / 500 / unlimited) had never been wired to anything
+  - `routes/photos.js` now rejects gallery uploads past the owner's allowance on both the single and batch paths, returning `PHOTO_LIMIT_REACHED` with the limit and current count. The allowance resolves from the supplier's owner, so an admin uploading on someone's behalf gets that supplier's limit
+  - `supplier-gallery.js` reads the allowance from `/api/v2/subscriptions/me` instead of hard-coding ten for every tier, and the dead `maxPhotos` field on `supplier-photo-upload.js` is gone
+  - `GET /api/v2/subscriptions/me` now returns the viewer's `limits`, so clients stop inventing their own ceilings
+- **Supplier Analytics History Is Now a Plan Entitlement**: added `analyticsWindowDays` (7 / 90 / 365) to the plan matrix
+  - `GET /api/supplier/analytics` clamps the requested window to the plan's, and returns a `window` object so the dashboard can explain a shortened range. Nothing is taken away from free — its default was already seven days
+- **Homepage Featured Placement Is Now Delivered by Subscribing**: it was driven only by an editorial `featured` flag someone had to set by hand, so buying Professional Plus did not actually buy the benefit
+  - `GET /api/packages/featured` now includes packages from suppliers whose plan carries homepage placement, alongside editorially featured ones. The entitlement is re-resolved on each cache refresh, so a lapsed subscription drops out on its own
+  - New `supplierPlanTier()` helper in `utils/helpers.js` resolves a supplier's live tier, where `supplierIsProActive()` could only answer "paying for anything"
+- **Messaging Allowances Surfaced on the Pricing Page**: `config/messagingLimits.js` has always enforced 10 replies a day and 500-character messages on free against unlimited replies and 5,000 / 10,000 characters on the paid plans. None of it was ever advertised, despite being one of the strongest differences between the plans
 - **Pricing Claims Matched to Enforced Entitlements**: The page was advertising allowances the platform does not grant
-  - Removed "Unlimited photos" from Professional. `supplier-gallery.js` and `supplier-photo-upload.js` cap every tier at ten photos regardless of plan, so this was a claim the product did not honour on a paid plan. The comparison table now states ten across all three
+  - "Unlimited photos" on Professional was false: every tier was capped at ten regardless of plan. Rather than drop the claim, the allowance is now enforced (see above) and the page states 10 / 500 / unlimited
+  - Stopped selling email and phone verification and response-time tracking as Professional features. Neither is tier-gated — every supplier has both — so listing them under a paid plan implied a difference that is not there. They now appear in an "Included on every plan" group
+  - Softened "Top of category pages — the first supplier customers see" to describe a ranking boost. `supplierRanking.service.js` gives Professional +3 and Plus +5 against a cap of 5 in search, which lifts a profile but does not guarantee the top slot
   - Added package listings (3 / 50 / unlimited) to the cards and the table. These limits are genuinely enforced in `routes/packages.js` and unwound on downgrade by `subscriptionService`, and were the clearest real difference between the plans — the page had never mentioned them
   - Added a regression test pinning the marketing copy to `PLAN_FEATURES` so the two cannot drift apart again
 - **Pricing Page Layout and Logic**: Rebuilt `/pricing` so the three plan columns line up and the figures on it come from one source
