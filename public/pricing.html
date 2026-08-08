@@ -148,9 +148,15 @@
 <main id="main-content">
   <section class="pricing-hero" aria-labelledby="pricing-heading">
     <div class="container">
-      <p class="pricing-eyebrow">Supplier pricing</p>
-      <h1 id="pricing-heading">Get found by people already planning</h1>
-      <p class="subtitle">Every plan puts your business in front of customers searching EventFlow. Paid plans decide how early they find you and how much they know before they get in touch.</p>
+      <div class="pricing-hero-copy">
+        <p class="pricing-eyebrow">Supplier pricing</p>
+        <h1 id="pricing-heading">Join suppliers already on EventFlow.</h1>
+        <p class="subtitle">
+          <span aria-hidden="true">Be part of the next <span class="pricing-rotator" id="pricing-rotator"><span class="pricing-rotator-item is-active">big day</span><span class="pricing-rotator-item">big night</span><span class="pricing-rotator-item">awards night</span><span class="pricing-rotator-item">company event</span><span class="pricing-rotator-item">celebration</span></span></span>
+          <span class="sr-only">Be part of the next big day, big night, awards night, company event or celebration</span>
+        </p>
+      </div>
+
       <div class="pricing-billing-toggle">
         <button id="pricing-billing-switch" class="pricing-billing-switch is-annual" type="button" role="switch" aria-checked="true" aria-label="Pay annually instead of monthly">
           <span class="pricing-billing-switch-thumb" aria-hidden="true"></span>
@@ -158,6 +164,14 @@
           <span id="pricing-annual-label" class="pricing-billing-label is-active">Annual</span>
         </button>
         <span class="pricing-billing-saving">Save up to 19%</span>
+      </div>
+
+      <!-- Five suppliers picked at random per page view. Server-rendered as an
+           empty strip and filled by pricing.js; the placeholders below hold the
+           space so nothing moves when the avatars arrive. -->
+      <div class="pricing-hero-proof" id="pricing-hero-proof" hidden>
+        <ul class="pricing-proof-strip" id="pricing-proof-strip" aria-label="Suppliers listed on EventFlow"></ul>
+        <p class="pricing-proof-note" id="pricing-proof-note"></p>
       </div>
     </div>
   </section>

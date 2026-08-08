@@ -150,6 +150,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Compact Trust-Led Pricing Hero**: replaced the centred 720px marketing hero with a shallow strip above the plans
+  - Headline is now "Join suppliers already on EventFlow." and the introductory paragraph is gone. The plan panel starts roughly 120px higher on a laptop, so a supplier sees prices without scrolling
+  - New social-proof strip: five suppliers drawn at random per page view from the same population the public listing shows, as overlapping avatars followed by a "Many more" disc. No filtering on category, completeness, photo, plan or ranking — it is meant to be a genuine sample. Suppliers without a photo fall back to initials the way the public profile does, rather than being skipped
+  - New `GET /api/suppliers/showcase`, returning only id, name, category and resolved photo. The listing endpoint could answer this but returns the whole population and resolves a subscription tier per supplier, which is a lot of work and payload for five avatars on a page whose load time is measured
+  - Subtle rotating event word ("big day", "big night", "awards night", "company event", "celebration") so the page reads as an events platform rather than a wedding one. The phrases share one grid cell so the line cannot reflow, the rotator is hidden from assistive technology in favour of a static sentence naming them all, and it settles on one phrase under `prefers-reduced-motion`
+  - Mobile stacks headline, then the supplier strip, then the billing control
+
 - **Pricing Page Visual Overhaul**: Second pass on `/pricing`, replacing decoration with structure and making the page argue for the plans
   - Removed the decorative layer entirely — the gradient ground, blurred brand blobs, frosted-glass hero, layered drop shadows and the teal glow around the featured plan. With every element emphasised there was no hierarchy left; structure now comes from hairlines and space
   - The three plans read as one panel divided by rules rather than three floating cards, and the recommended plan is marked by a tint and a label instead of a ring, a gradient and a glow

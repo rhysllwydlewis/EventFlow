@@ -47,21 +47,44 @@ body.pricing-redesign .pricing-container {
 }
 
 /* ── Hero ─────────────────────────────────────────────────────────────────
-   No card, no blur, no blobs. The headline sits on the page ground and the
-   billing control sits directly beneath it, where the eye already is on its
-   way to the plans. */
+   A compact strip above the plans rather than a marketing hero: copy and the
+   billing control on one side, a sample of real suppliers on the other, and
+   the plan panel starting almost immediately below. The previous version was
+   a centred 720px column with a paragraph of prose, which pushed the prices
+   below the fold on a laptop for no gain. */
 
 body.pricing-redesign .pricing-hero {
-  padding: 4rem 1.5rem 2.5rem !important;
+  padding: 2rem 1.5rem 1.5rem !important;
   background: transparent !important;
   color: var(--p-ink) !important;
 }
 
 body.pricing-redesign .pricing-hero .container {
-  width: min(100%, 720px);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "copy  proof"
+    "toggle proof";
+  align-items: center;
+  gap: 1.25rem 3rem;
+  width: min(100%, 1120px);
   margin: 0 auto;
   padding: 0;
-  text-align: center;
+  text-align: left;
+}
+
+body.pricing-redesign .pricing-hero-copy {
+  grid-area: copy;
+}
+
+body.pricing-redesign .pricing-hero .pricing-billing-toggle {
+  grid-area: toggle;
+  align-self: start;
+  justify-self: start;
+}
+
+body.pricing-redesign .pricing-hero-proof {
+  grid-area: proof;
 }
 
 body.pricing-redesign .pricing-eyebrow {
@@ -75,24 +98,147 @@ body.pricing-redesign .pricing-eyebrow {
 }
 
 body.pricing-redesign .pricing-hero h1 {
-  margin: 0.875rem 0 0;
+  max-width: 18ch;
+  margin: 0.625rem 0 0;
   color: var(--p-ink);
-  font-size: clamp(2rem, 4.4vw, 3.25rem) !important;
+  font-size: clamp(1.75rem, 3.2vw, 2.5rem) !important;
   font-weight: 700;
-  letter-spacing: -0.035em;
-  line-height: 1.05;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
   text-wrap: balance;
 }
 
 body.pricing-redesign .pricing-hero .subtitle {
-  max-width: 34rem;
-  margin: 1rem auto 0 !important;
+  margin: 0.5rem 0 0 !important;
   color: var(--p-ink-2);
   font-size: 1rem !important;
   font-weight: 400;
-  line-height: 1.6 !important;
+  line-height: 1.5 !important;
   opacity: 1 !important;
-  text-wrap: pretty;
+}
+
+/* ── Rotating event word ──────────────────────────────────────────────────
+   All the phrases occupy one grid cell, so the wrapper is as wide as the
+   longest and the line cannot reflow when the word changes. The visible text
+   is hidden from assistive technology and the full list is read instead, so
+   the sentence still makes sense with no animation at all. */
+
+body.pricing-redesign .pricing-rotator {
+  display: inline-grid;
+  vertical-align: bottom;
+  text-align: left;
+}
+
+body.pricing-redesign .pricing-rotator-item {
+  grid-area: 1 / 1;
+  color: var(--p-teal-dark);
+  font-weight: 600;
+  opacity: 0;
+  transform: translateY(0.3em);
+  transition:
+    opacity 420ms ease,
+    transform 420ms ease;
+}
+
+body.pricing-redesign .pricing-rotator-item.is-active {
+  opacity: 1;
+  transform: none;
+}
+
+/* ── Supplier social proof ────────────────────────────────────────────────
+   Overlapping circles: five suppliers picked at random per page view, then a
+   "Many more" disc. Sized so the strip reads as social proof without
+   competing with the plans below it. */
+
+body.pricing-redesign .pricing-hero-proof {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+body.pricing-redesign .pricing-hero-proof[hidden] {
+  display: none;
+}
+
+body.pricing-redesign .pricing-proof-strip {
+  display: flex;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+body.pricing-redesign .pricing-proof-item {
+  position: relative;
+  width: 3.5rem;
+  height: 3.5rem;
+}
+
+body.pricing-redesign .pricing-proof-item + .pricing-proof-item {
+  margin-left: -0.5rem;
+}
+
+/* Each disc sits above the one before it, so the ring of the circle on the
+   right is what separates the pair. */
+body.pricing-redesign .pricing-proof-item:nth-child(2) {
+  z-index: 2;
+}
+body.pricing-redesign .pricing-proof-item:nth-child(3) {
+  z-index: 3;
+}
+body.pricing-redesign .pricing-proof-item:nth-child(4) {
+  z-index: 4;
+}
+body.pricing-redesign .pricing-proof-item:nth-child(5) {
+  z-index: 5;
+}
+body.pricing-redesign .pricing-proof-item:nth-child(6) {
+  z-index: 6;
+}
+
+body.pricing-redesign .pricing-proof-avatar {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  /* A solid ring in the page colour rather than a shadow: at this overlap a
+     blurred edge reads as the circles merging into each other. */
+  border: 3px solid var(--p-paper);
+  border-radius: 50%;
+  background: var(--p-tint);
+  box-shadow: inset 0 0 0 1px rgba(11, 128, 115, 0.18);
+  color: var(--p-teal-dark);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+}
+
+body.pricing-redesign .pricing-proof-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* Holds the box before the image decodes, so the strip does not jump. */
+  background: var(--p-tint);
+}
+
+body.pricing-redesign .pricing-proof-more .pricing-proof-avatar {
+  background: var(--p-surface);
+  box-shadow: inset 0 0 0 1px var(--p-line-strong);
+  color: var(--p-ink-2);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1.15;
+  text-align: center;
+}
+
+body.pricing-redesign .pricing-proof-note {
+  margin: 0;
+  color: var(--p-muted);
+  font-size: 0.8125rem;
+  text-align: center;
 }
 
 /* ── Billing control ──────────────────────────────────────────────────────
@@ -104,7 +250,7 @@ body.pricing-redesign .pricing-billing-toggle {
   display: inline-flex;
   align-items: center;
   gap: 0.75rem;
-  margin-top: 2rem;
+  margin-top: 1.25rem;
 }
 
 body.pricing-redesign .pricing-billing-switch {
@@ -879,6 +1025,26 @@ body.pricing-redesign .pricing-notice-banner--error {
 /* ── Responsive ───────────────────────────────────────────────────────────── */
 
 @media (max-width: 980px) {
+  /* One column, and the supplier strip moves above the billing control so a
+     phone shows the headline, then the proof, then the prices. */
+  body.pricing-redesign .pricing-hero .container {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "copy"
+      "proof"
+      "toggle";
+    justify-items: center;
+    text-align: center;
+  }
+
+  body.pricing-redesign .pricing-hero .pricing-billing-toggle {
+    justify-self: center;
+  }
+
+  body.pricing-redesign .pricing-hero h1 {
+    max-width: 22ch;
+  }
+
   body.pricing-redesign .pricing-grid {
     grid-template-columns: 1fr !important;
     max-width: 34rem;
@@ -921,7 +1087,16 @@ body.pricing-redesign .pricing-notice-banner--error {
 
 @media (max-width: 640px) {
   body.pricing-redesign .pricing-hero {
-    padding: 2.5rem 1.25rem 1.75rem !important;
+    padding: 1.5rem 1.25rem 1.25rem !important;
+  }
+
+  body.pricing-redesign .pricing-proof-item {
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+
+  body.pricing-redesign .pricing-proof-more .pricing-proof-avatar {
+    font-size: 0.6875rem;
   }
 
   body.pricing-redesign .pricing-container {
@@ -968,6 +1143,11 @@ body.pricing-redesign .pricing-notice-banner--error {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  body.pricing-redesign .pricing-rotator-item {
+    transition: none !important;
+    transform: none !important;
+  }
+
   body.pricing-redesign .pricing-billing-switch-thumb,
   body.pricing-redesign .pricing-billing-label,
   body.pricing-redesign .pricing-cta,

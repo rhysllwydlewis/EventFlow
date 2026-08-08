@@ -88,6 +88,158 @@
     return `£${formatMoney(value)}`;
   }
 
+  /** How many suppliers the hero's social-proof strip shows. */
+  const SHOWCASE_COUNT = 5;
+  /** How long each event word holds before the next one fades in. */
+  const ROTATOR_INTERVAL_MS = 3200;
+
+  /**
+   * Derive initials the way the public supplier profile does, so a supplier
+   * with no photo looks the same here as everywhere else on EventFlow.
+   * @param {string} name Business name.
+   * @returns {string} One or two initials.
+   */
+  function getInitials(name) {
+    const words = String(name || '')
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean);
+    if (words.length === 0) {
+      return '?';
+    }
+    if (words.length === 1) {
+      return words[0].charAt(0).toUpperCase();
+    }
+    return `${words[0].charAt(0)}${words[words.length - 1].charAt(0)}`.toUpperCase();
+  }
+
+  /**
+   * Build one circle in the social-proof strip.
+   *
+   * The image is only attached when the supplier has one; otherwise the
+   * initials stand on their own, which is the existing fallback rather than a
+   * placeholder invented for this page. A supplier is never skipped for having
+   * no photo — the point of the strip is that these are a real sample.
+   * @param {Object} supplier Supplier summary from the showcase endpoint.
+   * @returns {HTMLLIElement} List item.
+   */
+  function buildProofItem(supplier) {
+    const item = document.createElement('li');
+    item.className = 'pricing-proof-item';
+
+    const avatar = document.createElement('span');
+    avatar.className = 'pricing-proof-avatar';
+
+    if (supplier.profilePhotoUrl) {
+      const img = document.createElement('img');
+      img.alt = supplier.name || 'EventFlow supplier';
+      img.loading = 'lazy';
+      img.decoding = 'async';
+      img.width = 52;
+      img.height = 52;
+      // Bound before `src` is assigned: a URL that fails from cache can error
+      // before a listener attached afterwards would ever hear it, leaving a
+      // broken-image glyph in the strip.
+      img.addEventListener('error', () => {
+        img.remove();
+        avatar.textContent = getInitials(supplier.name);
+        avatar.setAttribute('role', 'img');
+        avatar.setAttribute('aria-label', supplier.name || 'EventFlow supplier');
+      });
+      img.src = supplier.profilePhotoUrl;
+      avatar.appendChild(img);
+    } else {
+      avatar.textContent = getInitials(supplier.name);
+      avatar.setAttribute('role', 'img');
+      avatar.setAttribute('aria-label', supplier.name || 'EventFlow supplier');
+    }
+
+    item.appendChild(avatar);
+    return item;
+  }
+
+  /**
+   * Fill the hero's social-proof strip with a random sample of suppliers.
+   *
+   * The sample is drawn once per page view and left alone: a strip that kept
+   * reshuffling while someone read the prices would be a distraction. The
+   * strip stays hidden until it has something to show, so a failed request
+   * leaves the hero looking deliberate rather than broken.
+   * @returns {Promise<void>} Resolves once the strip is populated.
+   */
+  async function renderSupplierProof() {
+    const container = document.getElementById('pricing-hero-proof');
+    const strip = document.getElementById('pricing-proof-strip');
+    const note = document.getElementById('pricing-proof-note');
+    if (!container || !strip) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/suppliers/showcase?limit=${SHOWCASE_COUNT}`, {
+        headers: { Accept: 'application/json' },
+      });
+      if (!response.ok) {
+        return;
+      }
+      const payload = await response.json();
+      const suppliers = Array.isArray(payload.items) ? payload.items : [];
+      if (!suppliers.length) {
+        return;
+      }
+
+      strip.replaceChildren(...suppliers.map(buildProofItem));
+
+      // Only claim there are more when there actually are.
+      if (Number(payload.total) > suppliers.length) {
+        const more = document.createElement('li');
+        more.className = 'pricing-proof-item pricing-proof-more';
+        const label = document.createElement('span');
+        label.className = 'pricing-proof-avatar';
+        label.textContent = 'Many more';
+        more.appendChild(label);
+        strip.appendChild(more);
+      }
+
+      if (note) {
+        note.textContent = 'Suppliers already listed on EventFlow';
+      }
+      container.hidden = false;
+    } catch (_error) {
+      // The strip is social proof, not function. Leaving it hidden is fine.
+    }
+  }
+
+  /**
+   * Cycle the event word in the hero line.
+   *
+   * The phrases are stacked in one grid cell so the line never reflows, and
+   * the whole rotator is hidden from assistive technology in favour of a
+   * static sentence listing every phrase. Under reduced motion it settles on
+   * the first phrase and stops.
+   * @returns {void} Nothing.
+   */
+  function startEventRotator() {
+    const rotator = document.getElementById('pricing-rotator');
+    if (!rotator) {
+      return;
+    }
+    const items = Array.from(rotator.querySelectorAll('.pricing-rotator-item'));
+    if (items.length < 2) {
+      return;
+    }
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+      return;
+    }
+
+    let index = 0;
+    window.setInterval(() => {
+      items[index].classList.remove('is-active');
+      index = (index + 1) % items.length;
+      items[index].classList.add('is-active');
+    }, ROTATOR_INTERVAL_MS);
+  }
+
   /**
    * Attach the redesign stylesheet once, if the page did not already ship it.
    * @returns {void} Nothing.
@@ -719,6 +871,9 @@
     attachBillingToggle();
     setBillingPeriod(activeBillingPeriod);
     handleCheckoutRedirectParams();
+    startEventRotator();
+    // Independent of the plan data, and not worth delaying the prices for.
+    renderSupplierProof();
     await checkAuthAndUpdateButtons();
     await hydrateCanonicalPlanPresentation();
   }
