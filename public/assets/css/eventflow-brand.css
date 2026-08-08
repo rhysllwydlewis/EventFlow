@@ -146,10 +146,10 @@
 }
 
 /* A smaller set of pages still render the older `.footer .ef-footer-content`
-   shell instead of the JS-enhanced premium footer. Use the same supplied
-   wordmark there so auth, verification and other legacy-shell pages do not
-   fall back to a text-only EventFlow logo. */
-.footer[role='contentinfo'] .ef-footer-content > div:first-child > strong {
+   shell instead of the JS-enhanced premium footer. The contentinfo role is not
+   present on every legacy page, so target the actual footer structure rather
+   than making the visual identity depend on optional ARIA markup. */
+.footer .ef-footer-content > div:first-child > strong {
   display: inline-block;
   width: 170px;
   height: 38px;
@@ -163,7 +163,7 @@
 }
 
 @media (max-width: 767px) {
-  .footer[role='contentinfo'] .ef-footer-content > div:first-child > strong {
+  .footer .ef-footer-content > div:first-child > strong {
     width: 154px;
     height: 34px;
   }
