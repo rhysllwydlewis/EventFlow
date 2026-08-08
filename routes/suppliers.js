@@ -329,6 +329,68 @@ router.get('/suppliers', async (req, res) => {
  * GET /api/suppliers/:id
  * Get supplier details by ID
  */
+/**
+ * GET /api/suppliers/showcase
+ *
+ * A small random sample of publicly visible suppliers, for the social proof
+ * strip on the pricing hero.
+ *
+ * The listing endpoint could answer this, but it returns the whole supplier
+ * population and resolves an effective subscription tier for each one. That is
+ * a lot of work and a lot of payload for five avatars on a page whose load
+ * time is measured, so this returns only what the strip renders.
+ *
+ * Eligibility matches the public listing — approved, and not orphaned by a
+ * deleted owner account. Nothing else is filtered: these are meant to be a
+ * genuine sample rather than a curated set, so suppliers without a photo are
+ * included and fall back to initials in the client.
+ *
+ * Declared before `/suppliers/:id` so the path is not read as an ID.
+ */
+router.get('/suppliers/showcase', async (req, res) => {
+  try {
+    const requested = Number.parseInt(req.query.limit, 10);
+    const limit = Math.min(Math.max(Number.isFinite(requested) ? requested : 5, 1), 12);
+
+    const users = await dbUnified.read('users');
+    const validUserIds = new Set(users.map(u => u.id).filter(Boolean));
+    const usersById = new Map(users.filter(u => u && u.id).map(u => [u.id, u]));
+
+    const eligible = (await dbUnified.read('suppliers')).filter(
+      s => s && s.approved && (!s.ownerUserId || validUserIds.has(s.ownerUserId))
+    );
+
+    // Partial Fisher-Yates: only shuffles as far as we need, and cannot pick
+    // the same supplier twice.
+    const pool = [...eligible];
+    const take = Math.min(limit, pool.length);
+    for (let i = 0; i < take; i += 1) {
+      const j = i + Math.floor(Math.random() * (pool.length - i));
+      [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+
+    const items = pool.slice(0, take).map(supplier => {
+      const ownerUser = supplier.ownerUserId ? usersById.get(supplier.ownerUserId) : null;
+      const hydrated = hydrateSupplierProfilePhoto(supplier, ownerUser);
+      return {
+        id: hydrated.id,
+        name: hydrated.name || null,
+        category: hydrated.category || null,
+        // Null when the supplier has no usable image; the client falls back to
+        // initials the same way the public profile does.
+        profilePhotoUrl: hydrated.profilePhotoUrl || null,
+      };
+    });
+
+    res.json({ items, total: eligible.length });
+  } catch (error) {
+    logger.error('Error fetching supplier showcase:', error);
+    // The hero is decorative social proof: an empty list hides the strip
+    // rather than breaking the pricing page.
+    res.status(200).json({ items: [], total: 0 });
+  }
+});
+
 router.get('/suppliers/:id', async (req, res) => {
   try {
     const suppliers = await dbUnified.read('suppliers');

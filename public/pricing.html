@@ -148,9 +148,15 @@
 <main id="main-content">
   <section class="pricing-hero" aria-labelledby="pricing-heading">
     <div class="container">
-      <p class="pricing-eyebrow">Supplier pricing</p>
-      <h1 id="pricing-heading">Get found by people already planning</h1>
-      <p class="subtitle">Every plan puts your business in front of customers searching EventFlow. Paid plans decide how early they find you and how much they know before they get in touch.</p>
+      <div class="pricing-hero-copy">
+        <p class="pricing-eyebrow">Supplier pricing</p>
+        <h1 id="pricing-heading">Join suppliers already on EventFlow.</h1>
+        <p class="subtitle">
+          <span aria-hidden="true">Be part of the next <span class="pricing-rotator" id="pricing-rotator"><span class="pricing-rotator-item is-active">big day</span><span class="pricing-rotator-item">big night</span><span class="pricing-rotator-item">awards night</span><span class="pricing-rotator-item">company event</span><span class="pricing-rotator-item">celebration</span></span></span>
+          <span class="sr-only">Be part of the next big day, big night, awards night, company event or celebration</span>
+        </p>
+      </div>
+
       <div class="pricing-billing-toggle">
         <button id="pricing-billing-switch" class="pricing-billing-switch is-annual" type="button" role="switch" aria-checked="true" aria-label="Pay annually instead of monthly">
           <span class="pricing-billing-switch-thumb" aria-hidden="true"></span>
@@ -158,6 +164,14 @@
           <span id="pricing-annual-label" class="pricing-billing-label is-active">Annual</span>
         </button>
         <span class="pricing-billing-saving">Save up to 19%</span>
+      </div>
+
+      <!-- Five suppliers picked at random per page view. Server-rendered as an
+           empty strip and filled by pricing.js; the placeholders below hold the
+           space so nothing moves when the avatars arrive. -->
+      <div class="pricing-hero-proof" id="pricing-hero-proof" hidden>
+        <ul class="pricing-proof-strip" id="pricing-proof-strip" aria-label="Suppliers listed on EventFlow"></ul>
+        <p class="pricing-proof-note" id="pricing-proof-note"></p>
       </div>
     </div>
   </section>
@@ -224,7 +238,7 @@
               <li><span class="pricing-feature-name">Higher search placement</span><span class="pricing-feature-why">A ranking boost that lifts you above Starter suppliers in your categories and areas.</span></li>
               <li><span class="pricing-feature-name">Up to 50 package listings</span><span class="pricing-feature-why">Publish your full range instead of a handful.</span></li>
               <li><span class="pricing-feature-name">Up to 500 portfolio photos</span><span class="pricing-feature-why">Show every side of your work.</span></li>
-              <li><span class="pricing-feature-name">Unlimited enquiry replies</span><span class="pricing-feature-why">Never leave an enquiry waiting because you have hit a daily cap.</span></li>
+              <li aria-describedby="pricing-unlimited-footnote"><span class="pricing-feature-name">Unlimited enquiry replies*</span><span class="pricing-feature-why">Never leave an enquiry waiting because you have hit a daily cap.</span></li>
               <li><span class="pricing-feature-name">Longer messages</span><span class="pricing-feature-why">Up to 5,000 characters, so a full quote fits in one reply.</span></li>
               <li><span class="pricing-feature-name">90 days of profile analytics</span><span class="pricing-feature-why">See what draws interest across a season, not just a week.</span></li>
               <li><span class="pricing-feature-name">Priority support</span><span class="pricing-feature-why">Your questions go to the front of the queue.</span></li>
@@ -278,6 +292,13 @@
       <span>Cancel anytime</span>
     </div>
 
+    <!-- What the asterisk on the "Unlimited" claims means. Kept next to the
+         cards rather than buried in the FAQ: a cap you only discover after
+         subscribing is the kind of claim this page is meant to avoid. -->
+    <p class="pricing-footnote" id="pricing-unlimited-footnote">
+      <span aria-hidden="true">*</span> <strong>Unlimited</strong> means no daily limit. A fair-use ceiling of 500 messages an hour on Professional and 1,000 an hour on Professional Plus keeps the messenger stable for everyone; ordinary use does not reach it. Unlimited package listings and portfolio photos have no cap of any kind.
+    </p>
+
     <p class="pricing-offer-terms">Early access pricing applies while EventFlow is in development and ends 31 December 2026. Prices shown exclude VAT where applicable.</p>
 
     <section class="pricing-comparison" aria-labelledby="comparison-heading">
@@ -314,8 +335,8 @@
             <tr><th scope="row">Portfolio photos</th><td>10</td><td class="popular-col comparison-yes">500</td><td class="comparison-yes">Unlimited</td></tr>
 
             <tr class="comparison-group"><th colspan="4" scope="colgroup">Talking to customers</th></tr>
-            <tr><th scope="row">Enquiry replies a day</th><td>10</td><td class="popular-col comparison-yes">Unlimited</td><td class="comparison-yes">Unlimited</td></tr>
-            <tr><th scope="row">Conversations started a day</th><td>30</td><td class="popular-col comparison-yes">Unlimited</td><td class="comparison-yes">Unlimited</td></tr>
+            <tr><th scope="row">Enquiry replies a day</th><td>10</td><td class="popular-col comparison-yes" aria-describedby="pricing-unlimited-footnote">Unlimited*</td><td class="comparison-yes" aria-describedby="pricing-unlimited-footnote">Unlimited*</td></tr>
+            <tr><th scope="row">Conversations started a day</th><td>30</td><td class="popular-col comparison-yes" aria-describedby="pricing-unlimited-footnote">Unlimited*</td><td class="comparison-yes" aria-describedby="pricing-unlimited-footnote">Unlimited*</td></tr>
             <tr><th scope="row">Message length</th><td>500 characters</td><td class="popular-col comparison-yes">5,000</td><td class="comparison-yes">10,000</td></tr>
 
             <tr class="comparison-group"><th colspan="4" scope="colgroup">Understanding performance</th></tr>
