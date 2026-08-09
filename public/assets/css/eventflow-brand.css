@@ -19,18 +19,12 @@
   gap: 10px;
 }
 
-/* The standalone mark is intentionally transparent and tightly cropped. The
-   header owns its white tile, which keeps the EF monogram legible on a white
-   navbar while allowing the same asset to be reused on other backgrounds. */
-.ef-logo {
-  width: 44px;
-  height: 44px;
-  flex: 0 0 44px;
-  overflow: hidden;
-  border: 1px solid rgba(11, 128, 115, 0.16);
-  border-radius: 14px;
-  background: #ffffff;
-  box-shadow: 0 1px 4px rgba(11, 128, 115, 0.1);
+/* The header lockup is the wordmark on its own. The EF tile sat immediately
+   beside a wordmark that already reads "EventFlow", so it said the same thing
+   twice and added a white plate to a white navbar. The mark asset is still
+   used where a square lockup is genuinely needed (favicon, auth panel). */
+.ef-brand .ef-logo {
+  display: none !important;
 }
 
 .ef-logo::before,
@@ -71,42 +65,31 @@
   animation: none !important;
 }
 
-/* Below 900px the visual lockup is mark-only. Keep the EventFlow text in the
-   accessibility tree rather than using display:none: several older shared
-   headers rely on this span as the home link's accessible name. */
+/* The wordmark is the only brand element now, so it stays visible all the way
+   down — it just gets smaller. It was previously hidden below 900px because
+   the mark carried the lockup there. */
 @media (max-width: 899px) {
   .ef-brand-text {
-    position: absolute !important;
-    width: 1px !important;
-    height: 1px !important;
-    max-width: 1px !important;
-    padding: 0 !important;
-    margin: -1px !important;
-    overflow: hidden !important;
-    clip: rect(0, 0, 0, 0) !important;
-    clip-path: inset(50%) !important;
-    white-space: nowrap !important;
-    border: 0 !important;
-    background: none !important;
-    flex: 0 0 1px !important;
+    flex: 0 0 132px;
+    width: 132px;
+    height: 32px;
+    max-width: 132px !important;
   }
 }
 
-/* Navbar space is tight between the phone layout and a true desktop. The old
-   generated wordmark occupied materially less width than the supplied artwork,
-   so keep the full mark without letting it force navigation into horizontal
-   overflow at the existing 768px desktop-nav breakpoint. */
-@media (min-width: 768px) and (max-width: 899px) {
-  .ef-brand {
-    gap: 0;
+@media (max-width: 400px) {
+  .ef-brand-text {
+    flex: 0 0 116px;
+    width: 116px;
+    height: 28px;
+    max-width: 116px !important;
   }
 }
 
+/* Navbar space is tight between the phone layout and a true desktop, so the
+   wordmark steps down rather than pushing navigation into horizontal overflow
+   at the existing 768px desktop-nav breakpoint. */
 @media (min-width: 900px) and (max-width: 1023px) {
-  .ef-brand {
-    gap: 8px;
-  }
-
   .ef-brand-text {
     width: 118px;
     height: 32px;
@@ -115,29 +98,19 @@
   }
 }
 
-/* The compact mobile header intentionally uses the standalone mark only. Keep
-   an explicit flex-basis/minimum so later mobile rules cannot collapse it. */
-@media (max-width: 767px) {
-  .ef-header .ef-brand .ef-logo {
-    width: 44px !important;
-    height: 44px !important;
-    min-width: 44px !important;
-    flex: 0 0 44px !important;
-  }
-}
-
 /* --------------------------------------------------------------------------
    Public footer
-   The footer is dark, so the supplied teal wordmark sits on a simple white
-   plate rather than being recoloured into a different logo variant.
+   The footer is dark. The wordmark is a single flat colour, so it is rendered
+   white with a filter and sits directly on the footer — a white plate behind a
+   logo reads as an unstyled image pasted onto the design, and it was the only
+   opaque rectangle anywhere in the footer.
    -------------------------------------------------------------------------- */
 
 .ef-footer-premium .ef-brand-logo {
   display: inline-flex;
   align-items: center;
-  padding: 7px 10px;
-  border-radius: 12px;
-  background: #ffffff;
+  padding: 0;
+  background: transparent;
   text-decoration: none;
 }
 
@@ -146,6 +119,9 @@
   width: 190px;
   height: 42px;
   background: transparent var(--eventflow-brand-wordmark) center / contain no-repeat;
+  /* The artwork is one flat teal; flattening to black then inverting gives a
+     clean white without shipping a second asset that could drift from it. */
+  filter: brightness(0) invert(1);
   color: transparent !important;
   font-size: 0 !important;
   line-height: 0 !important;
@@ -155,13 +131,15 @@
    shell instead of the JS-enhanced premium footer. The contentinfo role is not
    present on every legacy page, so target the actual footer structure rather
    than making the visual identity depend on optional ARIA markup. */
+/* This shell renders on a white footer, so the wordmark keeps its own teal and
+   is NOT inverted like the dark premium footer above. The white plate goes
+   either way: on white it was invisible, and it would be wrong anywhere else. */
 .footer .ef-footer-content > div:first-child > strong {
   display: inline-block;
   width: 170px;
   height: 38px;
-  padding: 4px 8px;
-  border-radius: 10px;
-  background: #ffffff var(--eventflow-brand-wordmark) center / contain no-repeat;
+  padding: 0;
+  background: transparent var(--eventflow-brand-wordmark) center / contain no-repeat;
   color: transparent !important;
   font-size: 0 !important;
   line-height: 0 !important;
