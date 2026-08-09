@@ -305,7 +305,7 @@
    * @returns {Promise<void>} Resolves when rendered.
    */
   async function load() {
-    root.innerHTML = EFC.skeleton(4);
+    root.innerHTML = EFC.skeleton(4, 'page');
     try {
       data = await EFC.api('home');
       EFC.hideFallback();

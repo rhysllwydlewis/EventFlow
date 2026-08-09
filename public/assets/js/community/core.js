@@ -432,12 +432,40 @@
   /**
    * Render a loading skeleton.
    * @param {number} [rows] Number of placeholder rows.
+   * @param {string} [shape] Layout to match: 'row' (default list rows),
+   *   'profile' (avatar + name header above rows), 'sidebar' (stacked cards)
+   *   or 'page' (two-column feed + sidebar, matching `.efc-grid--sidebar`).
    * @returns {string} HTML.
    */
-  function skeleton(rows = 3) {
-    return `<div class="efc-skeleton" aria-hidden="true">${'<div class="efc-skeleton__row"></div>'.repeat(
-      rows
-    )}</div>`;
+  function skeleton(rows = 3, shape = 'row') {
+    const row = () => '<div class="efc-skeleton__row"></div>';
+    const card = () => '<div class="efc-skeleton__card"></div>';
+
+    if (shape === 'profile') {
+      return `<div class="efc-skeleton efc-skeleton--profile" aria-hidden="true">
+        <div class="efc-skeleton__head">
+          <span class="efc-skeleton__avatar"></span>
+          <div class="efc-skeleton__lines">
+            <span class="efc-skeleton__bar efc-skeleton__bar--title"></span>
+            <span class="efc-skeleton__bar efc-skeleton__bar--short"></span>
+          </div>
+        </div>
+        ${row().repeat(rows)}
+      </div>`;
+    }
+
+    if (shape === 'sidebar') {
+      return `<div class="efc-skeleton efc-skeleton__sidebar" aria-hidden="true">${card().repeat(rows)}</div>`;
+    }
+
+    if (shape === 'page') {
+      return `<div class="efc-skeleton--page" aria-hidden="true">
+        <div class="efc-skeleton efc-skeleton__main">${row().repeat(rows)}</div>
+        <div class="efc-skeleton efc-skeleton__sidebar">${card().repeat(3)}</div>
+      </div>`;
+    }
+
+    return `<div class="efc-skeleton" aria-hidden="true">${row().repeat(rows)}</div>`;
   }
 
   /**
