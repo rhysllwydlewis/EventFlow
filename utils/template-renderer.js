@@ -436,7 +436,11 @@ function sanitiseGuides(content) {
       // (which only removes `.guide-card` elements), so they sat there as
       // permanently visible grey placeholders once the real cards loaded.
       // Matching the nested cards explicitly keeps the replacement balanced.
-      /<div class="skeleton-grid" id="guides-loading"[^>]*>(?:\s*<div class="skeleton-card"><\/div>\s*)*<\/div>/i,
+      // Whitespace is only optional *after* each card (not before, too) so
+      // the repeated group can't re-partition the same run of whitespace
+      // across iterations — that double-sided optionality is what makes
+      // `(\s*x\s*)*` shapes vulnerable to catastrophic backtracking.
+      /<div class="skeleton-grid" id="guides-loading"[^>]*>(?:<div class="skeleton-card"><\/div>\s*)*<\/div>/i,
       '<div class="skeleton-grid" id="guides-loading" hidden aria-hidden="true"></div>'
     )
     .replace(
