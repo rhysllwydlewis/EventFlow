@@ -69,6 +69,11 @@ describe('editor markup', () => {
     expect(html).toContain('/assets/js/utils/csrf-token.js');
   });
 
+  it('loads the shared EventFlow brand layer used by its public-style header and footer', () => {
+    expect(html).toContain('/assets/css/eventflow-brand.css');
+    expect(html).toContain('data-eventflow-brand="true"');
+  });
+
   it('loads the Pexels chooser and offers it from the hero fieldset', () => {
     expect(html).toContain('/assets/js/components/pexels-selector.js');
     expect(html).toContain('data-editor-action="choose-pexels"');

@@ -1,0 +1,214 @@
+/**
+ * EventFlow public website brand assets.
+ *
+ * Keep the visible website identity separate from favicon/PWA/schema/BIMI assets.
+ * The mark and wordmark are independent files so each surface can use the
+ * appropriate version without compositing a new logo image.
+ */
+
+:root {
+  --eventflow-brand-mark: url('/assets/brand/eventflow-mark.svg');
+  --eventflow-brand-wordmark: url('/assets/brand/eventflow-wordmark.svg');
+}
+
+/* --------------------------------------------------------------------------
+   Primary public navbar
+   -------------------------------------------------------------------------- */
+
+.ef-brand {
+  gap: 10px;
+}
+
+/* The standalone mark is intentionally transparent and tightly cropped. The
+   header owns its white tile, which keeps the EF monogram legible on a white
+   navbar while allowing the same asset to be reused on other backgrounds. */
+.ef-logo {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  overflow: hidden;
+  border: 1px solid rgba(11, 128, 115, 0.16);
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 1px 4px rgba(11, 128, 115, 0.1);
+}
+
+.ef-logo::before,
+.ef-logo::after,
+.ef-logo-inner::before,
+.ef-logo-inner::after {
+  content: none !important;
+  display: none !important;
+}
+
+.ef-logo-inner,
+.ef-brand:hover .ef-logo-inner {
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+  background: transparent var(--eventflow-brand-mark) center / contain no-repeat !important;
+  box-shadow: none !important;
+  filter: none !important;
+  transform: none !important;
+  animation: none !important;
+  overflow: visible;
+}
+
+.ef-brand-text {
+  display: block;
+  flex: 0 0 168px;
+  width: 168px;
+  height: 40px;
+  max-width: 168px !important;
+  margin: 0 !important;
+  background: transparent var(--eventflow-brand-wordmark) center / contain no-repeat !important;
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
+  font-size: 0 !important;
+  line-height: 0 !important;
+  letter-spacing: 0 !important;
+  opacity: 1 !important;
+  animation: none !important;
+}
+
+/* Below 900px the visual lockup is mark-only. Keep the EventFlow text in the
+   accessibility tree rather than using display:none: several older shared
+   headers rely on this span as the home link's accessible name. */
+@media (max-width: 899px) {
+  .ef-brand-text {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    max-width: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    clip-path: inset(50%) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+    background: none !important;
+    flex: 0 0 1px !important;
+  }
+}
+
+/* Navbar space is tight between the phone layout and a true desktop. The old
+   generated wordmark occupied materially less width than the supplied artwork,
+   so keep the full mark without letting it force navigation into horizontal
+   overflow at the existing 768px desktop-nav breakpoint. */
+@media (min-width: 768px) and (max-width: 899px) {
+  .ef-brand {
+    gap: 0;
+  }
+}
+
+@media (min-width: 900px) and (max-width: 1023px) {
+  .ef-brand {
+    gap: 8px;
+  }
+
+  .ef-brand-text {
+    width: 118px;
+    height: 32px;
+    max-width: 118px !important;
+    flex: 0 0 118px;
+  }
+}
+
+/* The compact mobile header intentionally uses the standalone mark only. Keep
+   an explicit flex-basis/minimum so later mobile rules cannot collapse it. */
+@media (max-width: 767px) {
+  .ef-header .ef-brand .ef-logo {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    flex: 0 0 44px !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Public footer
+   The footer is dark, so the supplied teal wordmark sits on a simple white
+   plate rather than being recoloured into a different logo variant.
+   -------------------------------------------------------------------------- */
+
+.ef-footer-premium .ef-brand-logo {
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 10px;
+  border-radius: 12px;
+  background: #ffffff;
+  text-decoration: none;
+}
+
+.ef-footer-premium .ef-brand-logo-name {
+  display: block;
+  width: 190px;
+  height: 42px;
+  background: transparent var(--eventflow-brand-wordmark) center / contain no-repeat;
+  color: transparent !important;
+  font-size: 0 !important;
+  line-height: 0 !important;
+}
+
+/* A smaller set of pages still render the older `.footer .ef-footer-content`
+   shell instead of the JS-enhanced premium footer. The contentinfo role is not
+   present on every legacy page, so target the actual footer structure rather
+   than making the visual identity depend on optional ARIA markup. */
+.footer .ef-footer-content > div:first-child > strong {
+  display: inline-block;
+  width: 170px;
+  height: 38px;
+  padding: 4px 8px;
+  border-radius: 10px;
+  background: #ffffff var(--eventflow-brand-wordmark) center / contain no-repeat;
+  color: transparent !important;
+  font-size: 0 !important;
+  line-height: 0 !important;
+  vertical-align: middle;
+}
+
+@media (max-width: 767px) {
+  .footer .ef-footer-content > div:first-child > strong {
+    width: 154px;
+    height: 34px;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Authentication brand panel
+   The existing text remains in the DOM for accessibility; these rules replace
+   only the visual treatment with the standalone assets.
+   -------------------------------------------------------------------------- */
+
+.auth-brand-logo-mark {
+  border: 1px solid rgba(255, 255, 255, 0.7) !important;
+  background: #ffffff var(--eventflow-brand-mark) center / 78% auto no-repeat !important;
+  color: transparent !important;
+  font-size: 0 !important;
+  text-indent: -9999px;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18) !important;
+}
+
+.auth-brand-heading {
+  width: 238px;
+  height: 58px;
+  margin: 0 auto 0.5rem !important;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.94) var(--eventflow-brand-wordmark) center / 90% auto no-repeat;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12);
+  color: transparent !important;
+  font-size: 0 !important;
+  line-height: 0 !important;
+  text-shadow: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ef-logo-inner,
+  .ef-brand-text {
+    animation: none !important;
+    transition: none !important;
+  }
+}
