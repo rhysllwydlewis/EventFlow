@@ -1196,6 +1196,23 @@ body {
   }
 }
 
+/* Eight nav links plus the auth actions do not fit below 1024px. Measured
+   signed-out on the homepage, the actions ran 71px past the right edge of the
+   header at 768px, 67px at 900px and 50px at 1024px — the "Sign up" button was
+   partly off screen. The wordmark brand costs another ~90px over the old
+   square tile, so the band only got tighter. Keep the mobile menu until there
+   is genuinely room, exactly as the signed-in header below already does; it
+   lists every desktop destination, so nothing becomes unreachable. */
+@media (max-width: 1023px) {
+  .ef-nav-desktop {
+    display: none;
+  }
+
+  .ef-mobile-toggle {
+    display: flex;
+  }
+}
+
 /* The signed-out header fits the full desktop nav from 768px, but the
    signed-in one adds a notifications button, "Log out" and "Dashboard" and
    does not fit until ~1100px — below that the nav and the actions collided,
@@ -1488,22 +1505,36 @@ body {
    Added to ensure menu is visible above all overlays
    ======================================== */
 
-@media (max-width: 768px) {
+/* This block is what actually makes the menu a full-height sheet, and it has
+   to cover every width where the hamburger can be opened — up to 1023px
+   signed-out and 1099px signed-in — not just phones.
+
+   `.ef-header` carries `backdrop-filter`, which makes it the containing block
+   for its `position: fixed` descendants. So the menu's `bottom: 0` resolves
+   against the *header*, not the viewport: without the explicit height below it
+   computed to 8px, and the menu opened as a sliver with its links spilling out
+   over a dimmed page. Phones never showed it because this rule caught them. */
+@media (max-width: 1099px) {
   /* Force menu to be visible when open - highest specificity */
   #ef-mobile-menu.open {
+    /* Distance from the top of the header to the top of the menu. Same reason
+       as above: it is measured inside the header, so it is the header's own
+       height rather than an offset from the top of the page. */
+    --ef-menu-offset: var(--ef-header-height, 64px);
+
     display: block !important;
     opacity: 1 !important;
     visibility: visible !important;
     pointer-events: auto !important;
     z-index: var(--ef-z-menu) !important; /* Above overlay and header */
     position: fixed !important;
-    top: var(--ef-header-height, 64px) !important;
+    top: var(--ef-menu-offset) !important;
     left: 0 !important;
     right: 0 !important;
     bottom: 0 !important;
     width: 100% !important;
-    height: calc(100vh - var(--ef-header-height, 64px)) !important;
-    max-height: calc(100vh - var(--ef-header-height, 64px)) !important;
+    height: calc(100vh - var(--ef-menu-offset)) !important;
+    max-height: calc(100vh - var(--ef-menu-offset)) !important;
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch !important;
     transform: none !important;
@@ -1513,6 +1544,25 @@ body {
   /* Ensure backdrop is below menu */
   body.ef-menu-open::before {
     z-index: var(--ef-z-backdrop) !important;
+  }
+
+  /* `backdrop-filter` makes the header its own stacking context, so the menu
+     paints at the header's level no matter what z-index the menu itself
+     carries. From 768px the header sits at 1000, below the 1998 backdrop, so
+     the dimming covered the open menu completely. Scoped to the open state so
+     nothing about the header's normal layering changes. */
+  body.ef-menu-open .ef-header {
+    z-index: var(--ef-z-header);
+  }
+}
+
+/* From 768px the header content is 72px tall rather than 64px, so the menu has
+   to start 8px lower or it tucks under the header's bottom edge. Only the menu
+   offset moves; `--ef-header-height` itself is left alone because other pages
+   size their own top padding from it. */
+@media (min-width: 768px) and (max-width: 1099px) {
+  #ef-mobile-menu.open {
+    --ef-menu-offset: 72px;
   }
 }
 

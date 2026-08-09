@@ -48,8 +48,16 @@
   overflow: visible;
 }
 
+/* `!important` because several page stylesheets hide the brand text on small
+   screens — navbar.css below 768px, customer-dashboard-polish.css below 768px,
+   home-v3-mobile.css. Every one of them was written when the EF tile carried
+   the lockup on mobile and the text was a redundant second copy of it. The
+   tile is gone, so those rules now leave `.ef-brand` an empty link with no
+   brand in it at all. Losing the cascade race is also possible on pages that
+   link this file themselves (admin-locations.html) rather than letting
+   navbar.js append it last, so pin the value rather than relying on order. */
 .ef-brand-text {
-  display: block;
+  display: block !important;
   flex: 0 0 168px;
   width: 168px;
   height: 40px;
@@ -67,8 +75,14 @@
 
 /* The wordmark is the only brand element now, so it stays visible all the way
    down — it just gets smaller. It was previously hidden below 900px because
-   the mark carried the lockup there. */
-@media (max-width: 899px) {
+   the mark carried the lockup there.
+
+   Below 1024px navbar.css hands the navigation over to the hamburger, so the
+   header is just brand + actions + toggle and there is room to spare. The step
+   runs on to 1099px because 1024–1099 is the tightest width that does show the
+   full nav: at the full 168px the actions ran up to 11px past the edge of the
+   header. It is also where the signed-in header stops hiding its own nav. */
+@media (max-width: 1099px) {
   .ef-brand-text {
     flex: 0 0 132px;
     width: 132px;
@@ -83,18 +97,6 @@
     width: 116px;
     height: 28px;
     max-width: 116px !important;
-  }
-}
-
-/* Navbar space is tight between the phone layout and a true desktop, so the
-   wordmark steps down rather than pushing navigation into horizontal overflow
-   at the existing 768px desktop-nav breakpoint. */
-@media (min-width: 900px) and (max-width: 1023px) {
-  .ef-brand-text {
-    width: 118px;
-    height: 32px;
-    max-width: 118px !important;
-    flex: 0 0 118px;
   }
 }
 
