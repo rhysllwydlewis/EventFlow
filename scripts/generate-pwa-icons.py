@@ -34,15 +34,27 @@ SIZES = [
     ('favicon-32x32.png',     32,  False),
     ('favicon-48x48.png',     48,  False),
     ('favicon-96x96.png',     96,  False),
+    ('favicon-144x144.png',   144, False),
+    ('mstile-150x150.png',    150, False),
     ('apple-touch-icon.png',  180, False),
     ('icon-192.png',          192, False),
     ('icon-512.png',          512, False),
     ('icon-maskable-512.png', 512, True),
 ]
 
+# iOS ignores transparency on home-screen icons (older versions render it
+# black), so apple-touch-icon.png is flattened onto white and saved without
+# an alpha channel — every other size keeps the transparent rounded corners.
+FLATTEN_TO_WHITE = {'apple-touch-icon.png'}
+
 for filename, size, maskable in SIZES:
     img = render(size, maskable)
-    img.save(os.path.join(ROOT, filename), 'PNG', optimize=True)
+    if filename in FLATTEN_TO_WHITE:
+        flat = Image.new('RGB', img.size, (255, 255, 255))
+        flat.paste(img, (0, 0), img)
+        flat.save(os.path.join(ROOT, filename), 'PNG', optimize=True)
+    else:
+        img.save(os.path.join(ROOT, filename), 'PNG', optimize=True)
     print(f'  {filename}: {size}x{size} {"(maskable)" if maskable else ""}')
 
 # Multi-size ICO — built manually to guarantee 3 layers
