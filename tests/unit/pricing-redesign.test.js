@@ -248,6 +248,17 @@ describe('pricing page rebuild', () => {
       );
     });
 
+    it('closes the hero to one centred column when the strip is given up on', () => {
+      // Hiding the strip left the copy stranded beside an empty half-panel,
+      // which is what a shadowed endpoint looked like in production. The
+      // class is only applied on the failure paths, so it cannot shift the
+      // layout while the photos are still arriving.
+      expect(pricingScript).toContain('const giveUp = ');
+      expect(pricingScript).toMatch(/classList\.add\('is-proofless'\)/);
+      expect(pricingScript.match(/giveUp\(\);/g)).toHaveLength(3);
+      expect(pricingStyles).toContain('.pricing-hero .container.is-proofless');
+    });
+
     it('only claims there are more suppliers when the endpoint says so', () => {
       expect(pricingScript).toContain('more.hidden = !(Number(payload.total) > pages[0].length)');
       expect(pricingPage).toContain('id="pricing-proof-more"');
