@@ -428,7 +428,15 @@ function sanitisePublicCalendar(content) {
 function sanitiseGuides(content) {
   return content
     .replace(
-      /<div class="skeleton-grid" id="guides-loading"[^>]*>[\s\S]*?<\/div>/i,
+      // The non-greedy `[\s\S]*?` used to stop at the *first* `</div>` it found,
+      // which closed the first nested `.skeleton-card` rather than the
+      // `.skeleton-grid` wrapper itself. That left the remaining
+      // `.skeleton-card` placeholders as orphaned siblings in `#guides-grid` —
+      // never hidden by this sanitizer and never touched by guides-init.js
+      // (which only removes `.guide-card` elements), so they sat there as
+      // permanently visible grey placeholders once the real cards loaded.
+      // Matching the nested cards explicitly keeps the replacement balanced.
+      /<div class="skeleton-grid" id="guides-loading"[^>]*>(?:\s*<div class="skeleton-card"><\/div>\s*)*<\/div>/i,
       '<div class="skeleton-grid" id="guides-loading" hidden aria-hidden="true"></div>'
     )
     .replace(

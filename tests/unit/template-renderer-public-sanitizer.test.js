@@ -50,7 +50,9 @@ describe('anonymous public template sanitiser', () => {
 
   test('removes contradictory guides loading and empty states from anonymous source', () => {
     const html = `
-      <div class="skeleton-grid" id="guides-loading" aria-label="Loading guides" role="status"><div class="skeleton-card"></div></div>
+      <div class="guides-grid" id="guides-grid" aria-live="polite" aria-atomic="false">
+        <div class="skeleton-grid" id="guides-loading" aria-label="Loading guides" role="status"><div class="skeleton-card"></div><div class="skeleton-card"></div><div class="skeleton-card"></div></div>
+      </div>
       <ul class="guides-nojs-list"><li><a href="/articles/example">Example guide</a></li></ul>
       <div class="guides-empty" id="guides-empty"><h3>No guides found</h3><p id="guides-empty-msg">Try adjusting your search.</p><button>Reset filters</button></div>
       Discover vetted photographers, caterers, venues, and more near you.
@@ -59,5 +61,18 @@ describe('anonymous public template sanitiser', () => {
     expect(cleaned).not.toMatch(/Loading guides|No guides found|Try adjusting your search/i);
     expect(cleaned).toContain('guides-nojs-list');
     expect(cleaned).toContain('Discover photographers, caterers, venues and more near you.');
+    // Regression guard: a non-greedy regex that doesn't account for the three
+    // nested `.skeleton-card` placeholders used to strip only the wrapper's
+    // opening tag through the first nested card, leaving the other two
+    // `.skeleton-card` divs as permanently visible orphans in `#guides-grid`.
+    expect(cleaned).not.toContain('skeleton-card');
+    expect(cleaned).toContain(
+      '<div class="skeleton-grid" id="guides-loading" hidden aria-hidden="true"></div>'
+    );
+    // The replacement must stay balanced — no stray closing tag left over
+    // from consuming only part of the original nested structure.
+    expect(cleaned).toContain(
+      '<div class="skeleton-grid" id="guides-loading" hidden aria-hidden="true"></div>\n      </div>'
+    );
   });
 });
