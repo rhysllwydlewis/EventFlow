@@ -14,6 +14,24 @@ const path = require('path');
 const readAsset = relativePath =>
   fs.readFileSync(path.resolve(__dirname, '../..', relativePath), 'utf8');
 
+/**
+ * Every `.html` file under `public/`, recursively.
+ * @param {string} dir Directory to walk.
+ * @returns {string[]} Absolute paths.
+ */
+function listHtmlFiles(dir) {
+  const out = [];
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      out.push(...listHtmlFiles(full));
+    } else if (entry.name.endsWith('.html')) {
+      out.push(full);
+    }
+  }
+  return out;
+}
+
 describe('brand lockup', () => {
   let brandStyles;
   let navbarStyles;
@@ -158,5 +176,39 @@ describe('brand lockup', () => {
       expect(rule).not.toContain('invert');
       expect(rule).toContain('background: transparent');
     });
+  });
+
+  describe('brand stylesheet is linked, not only injected', () => {
+    // navbar.js also appends this stylesheet at runtime as a fallback, but
+    // that path runs after `defer`red scripts execute — well after the
+    // browser's first paint. A page that relied on it alone painted the
+    // default navbar.css lockup (the gradient "EF" tile, gradient-text
+    // "EventFlow") and then visibly swapped to the real wordmark a few hundred
+    // milliseconds later once the injected stylesheet loaded. A direct
+    // `<link>` in `<head>` is render-blocking, so the browser holds first
+    // paint until it's ready and the swap is never visible. Every page that
+    // renders `.ef-brand` needs that link in its own markup.
+    const publicDir = path.resolve(__dirname, '../../public');
+    const pagesWithBrand = listHtmlFiles(publicDir)
+      .map(full => ({
+        full,
+        rel: path.relative(publicDir, full),
+        html: fs.readFileSync(full, 'utf8'),
+      }))
+      .filter(({ html }) => html.includes('class="ef-brand"') || html.includes("class='ef-brand'"));
+
+    it('found pages to check', () => {
+      // A regression in the file walk (wrong directory, wrong marker) would
+      // otherwise make every case below vacuously pass.
+      expect(pagesWithBrand.length).toBeGreaterThan(50);
+    });
+
+    it.each(pagesWithBrand.map(({ rel }) => [rel]))(
+      '%s links eventflow-brand.css directly',
+      rel => {
+        const { html } = pagesWithBrand.find(p => p.rel === rel);
+        expect(html).toMatch(/data-eventflow-brand=(["'])true\1/);
+      }
+    );
   });
 });

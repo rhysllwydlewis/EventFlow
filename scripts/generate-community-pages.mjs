@@ -99,6 +99,7 @@ ${page.adminGuard ? '    <script src="/assets/js/dashboard-guard.js?v=17.0.2"></
     <link rel="stylesheet" href="/assets/css/components.css?v=${version('/assets/css/components.css')}" />
     <link rel="stylesheet" href="/assets/css/mobile-optimizations.css?v=${version('/assets/css/mobile-optimizations.css')}" />
     <link rel="stylesheet" href="/assets/css/navbar.css?v=${version('/assets/css/navbar.css')}" />
+    <link rel="stylesheet" href="/assets/css/eventflow-brand.css?v=1.0.0" data-eventflow-brand="true" />
     <link rel="stylesheet" href="/assets/css/community.css?v=${version('/assets/css/community.css')}" />
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
