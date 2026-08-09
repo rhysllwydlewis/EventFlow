@@ -2217,9 +2217,11 @@ select.partner-modal-input option {
 
 /* ─── Landing: fix overflow + improve hero layout ─────────────────────────── */
 
-.partner-hero-inner {
-  max-width: 1080px;
-  grid-template-columns: 1.15fr 1fr;
+@media (min-width: 769px) {
+  .partner-hero-inner {
+    max-width: 1080px;
+    grid-template-columns: 1.15fr 1fr;
+  }
 }
 
 /* CRITICAL: without min-width:0, grid children can overflow their tracks */
