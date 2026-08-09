@@ -79,6 +79,27 @@ body.pricing-redesign .pricing-hero .container {
   text-align: left;
 }
 
+/* Set by pricing.js only when the supplier strip is given up on. The hero
+   closes to one centred column so it reads as a deliberate compact hero
+   rather than copy stranded beside an empty half-panel. */
+body.pricing-redesign .pricing-hero .container.is-proofless {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    'copy'
+    'toggle';
+  justify-items: center;
+  text-align: center;
+}
+
+body.pricing-redesign .pricing-hero .container.is-proofless h1 {
+  max-width: 22ch;
+  margin-inline: auto;
+}
+
+body.pricing-redesign .pricing-hero .container.is-proofless .pricing-billing-toggle {
+  justify-self: center;
+}
+
 body.pricing-redesign .pricing-hero-copy {
   grid-area: copy;
 }

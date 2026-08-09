@@ -150,6 +150,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Pricing Hero Supplier Strip Was Unreachable in Production**: `GET /api/suppliers/showcase` returned 404 and the hero silently rendered without its supplier photos
+  - `routes/supplier-profile-safe.js` declares `/suppliers/:id` and `routes/index.js` mounts it at `/api` _before_ `routes/suppliers.js`. It answered 404 for any id it could not find, so `/api/suppliers/showcase` was read as an id lookup and never reached its own handler. Declaring the showcase route ahead of `/suppliers/:id` was necessary but not sufficient — the collision was with a different router mounted earlier
+  - That router now calls `next()` when no supplier carries the id, handing the path to later routers instead of claiming it. A supplier that exists but may not be read still 404s; unmatched ids still 404, just from the last router to see them. Applied to `/suppliers/:id` and `/suppliers/:id/packages`
+  - New `tests/integration/suppliers-route-mount-order.test.js` mounts both routers in the order `routes/index.js` uses. The existing showcase tests mounted `routes/suppliers.js` on a bare app, which proved the handler worked but not that a request could reach it — every one of them passed while the endpoint was dead in production
+  - The hero now closes to a single centred column when the strip cannot be filled, instead of leaving the copy stranded beside an empty half-panel. Applied only on the failure paths, so it cannot shift the layout while photos are still arriving
+
 - **Pricing Hero — Supplier Photo Carousel**: the hero's supplier strip now shows six profile photos at a time and pages through up to four sets
   - The photos are supplier profile photos resolved through `hydrateSupplierProfilePhoto()`, falling back to initials for suppliers who have not uploaded one — the same images and the same fallback as the public listing, not decorative imagery
   - Paging dots below the strip, as real buttons: rotation pauses on hover and focus, does not auto-start under `prefers-reduced-motion`, and the dots remain usable so every set is reachable without waiting

@@ -74,6 +74,16 @@ router.get('/suppliers/:id', async (req, res, next) => {
       return next();
     }
     const supplier = await dbUnified.findOne('suppliers', { id: req.params.id });
+    // No supplier carries this id, so this router has nothing to say about the
+    // request — hand it on rather than answering 404. This router is mounted
+    // ahead of routes/suppliers.js, so answering here made every sibling path
+    // under /api/suppliers unreachable: `/api/suppliers/showcase` was read as
+    // an id lookup and 404'd before it could match its own route. A supplier
+    // that exists but may not be read still 404s below; only unmatched ids
+    // fall through, and the last router to see them answers 404 the same way.
+    if (!supplier) {
+      return next();
+    }
     if (!canRead(req, supplier)) {
       return res.status(404).json({ error: 'Supplier not found' });
     }
@@ -115,6 +125,16 @@ router.get('/suppliers/:id/packages', async (req, res, next) => {
       return next();
     }
     const supplier = await dbUnified.findOne('suppliers', { id: req.params.id });
+    // No supplier carries this id, so this router has nothing to say about the
+    // request — hand it on rather than answering 404. This router is mounted
+    // ahead of routes/suppliers.js, so answering here made every sibling path
+    // under /api/suppliers unreachable: `/api/suppliers/showcase` was read as
+    // an id lookup and 404'd before it could match its own route. A supplier
+    // that exists but may not be read still 404s below; only unmatched ids
+    // fall through, and the last router to see them answers 404 the same way.
+    if (!supplier) {
+      return next();
+    }
     if (!canRead(req, supplier)) {
       return res.status(404).json({ error: 'Supplier not found' });
     }

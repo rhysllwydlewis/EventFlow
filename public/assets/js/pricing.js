@@ -182,17 +182,27 @@
       return;
     }
 
+    // Applied only when the strip is given up on, so the hero closes to a
+    // single centred column instead of leaving the copy stranded beside an
+    // empty half-panel. Never applied on the happy path, so it cannot shift
+    // the layout while the photos are still arriving.
+    const giveUp = () => {
+      document.querySelector('.pricing-hero .container')?.classList.add('is-proofless');
+    };
+
     try {
       const wanted = SHOWCASE_PAGE_SIZE * SHOWCASE_MAX_PAGES;
       const response = await fetch(`/api/suppliers/showcase?limit=${wanted}`, {
         headers: { Accept: 'application/json' },
       });
       if (!response.ok) {
+        giveUp();
         return;
       }
       const payload = await response.json();
       const suppliers = Array.isArray(payload.items) ? payload.items : [];
       if (!suppliers.length) {
+        giveUp();
         return;
       }
 
@@ -221,7 +231,9 @@
       container.hidden = false;
       startProofPaging({ strip, dots, pages });
     } catch (_error) {
-      // The strip is social proof, not function. Leaving it hidden is fine.
+      // The strip is social proof, not function. Hiding it is fine; the hero
+      // just has to still look deliberate without it.
+      giveUp();
     }
   }
 
