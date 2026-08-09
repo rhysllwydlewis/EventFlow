@@ -166,6 +166,9 @@ DEPLOYMENT_NOTES.md
 
 # Playwright test results
 playwright-report/
+# The visual config writes its HTML report here; running the suite locally
+# otherwise leaves a few hundred generated files staged for commit.
+visual-report/
 test-results/
 test-navbar-auth.js
 test-settings-persistence.js

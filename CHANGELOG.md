@@ -150,6 +150,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Brand Lockup — Header Wordmark Only, Transparent Footer Logo**: follow-up to the branding refresh
+  - The header showed the EF tile immediately beside a wordmark that already reads "EventFlow", and put a white plate on a white navbar. The tile is gone; the header is the wordmark alone
+  - The wordmark now stays visible at every width. It was clipped to 1px below 900px because the mark carried the lockup on small screens — with the mark removed that would have left no brand at all on a phone. It steps down 168px → 132px → 116px instead
+  - The dark premium footer no longer sits the logo on a white plate. The wordmark is one flat teal, so it is rendered white with `filter: brightness(0) invert(1)` rather than shipping a second asset that could drift from the first
+  - The legacy `.footer` shell is deliberately **not** inverted: that footer is white, so inverting would have rendered a white wordmark on a white ground. Its white plate is dropped either way — invisible on white, wrong anywhere else. `tests/unit/brand-lockup.test.js` pins both treatments and the difference between them
+  - Regenerated the two visual baselines that moved beyond tolerance (`for-suppliers-mobile`, `marketplace-mobile`); the rest were unaffected or are `screenshotApproved: false`
+
 - **Pricing Hero Supplier Strip Was Unreachable in Production**: `GET /api/suppliers/showcase` returned 404 and the hero silently rendered without its supplier photos
   - `routes/supplier-profile-safe.js` declares `/suppliers/:id` and `routes/index.js` mounts it at `/api` _before_ `routes/suppliers.js`. It answered 404 for any id it could not find, so `/api/suppliers/showcase` was read as an id lookup and never reached its own handler. Declaring the showcase route ahead of `/suppliers/:id` was necessary but not sufficient — the collision was with a different router mounted earlier
   - That router now calls `next()` when no supplier carries the id, handing the path to later routers instead of claiming it. A supplier that exists but may not be read still 404s; unmatched ids still 404, just from the last router to see them. Applied to `/suppliers/:id` and `/suppliers/:id/packages`
