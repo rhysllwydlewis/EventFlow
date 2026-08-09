@@ -587,14 +587,20 @@
 
   // ── Load events ───────────────────────────────────────────────────────────
   async function loadEvents() {
-    // Show loading skeleton
-    const skeleton = document.getElementById('pc-loading-skeleton');
-    if (skeleton) {
-      skeleton.style.display = '';
-    }
+    // Show loading skeleton. `#pc-loading-skeleton` lives inside
+    // `#pc-events-list`, so clearing the list's innerHTML on every load (as
+    // opposed to only the first one) deleted the skeleton node itself —
+    // after that, later filter/pagination reloads showed a blank list with
+    // no loading state at all. Rebuilding the markup here keeps a skeleton
+    // node present for every load, not just the pre-hydration paint.
     const list = document.getElementById('pc-events-list');
     if (list) {
-      list.innerHTML = '';
+      list.innerHTML = `
+        <div class="pc-skeleton-grid" id="pc-loading-skeleton">
+          <div class="pc-skeleton-card"></div>
+          <div class="pc-skeleton-card"></div>
+          <div class="pc-skeleton-card"></div>
+        </div>`;
     }
 
     try {
@@ -612,9 +618,6 @@
       renderEvents(data.events || []);
       renderPagination();
     } catch (err) {
-      if (skeleton) {
-        skeleton.style.display = 'none';
-      }
       if (list) {
         list.innerHTML =
           '<p style="color:#dc2626;padding:2rem;text-align:center;">Failed to load events. Please try again.</p>';

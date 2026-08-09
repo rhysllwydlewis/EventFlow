@@ -1359,6 +1359,15 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
       heroTitle.textContent = 'Supplier Not Found';
     }
 
+    // The breadcrumb only clears its skeleton from renderHeroSection() on the
+    // success path, so a failed load otherwise leaves its shimmer running
+    // forever with no supplier name to fill it in.
+    const breadcrumbName = document.getElementById('breadcrumb-supplier-name');
+    if (breadcrumbName) {
+      breadcrumbName.removeAttribute('aria-busy');
+      breadcrumbName.textContent = 'Supplier not found';
+    }
+
     const aboutSection = document.getElementById('sp-section-about');
     if (aboutSection) {
       aboutSection.innerHTML = `
