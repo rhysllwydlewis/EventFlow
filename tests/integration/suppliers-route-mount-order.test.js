@@ -44,11 +44,18 @@ function buildApp() {
         }
         return [];
       },
+      find: async () => [],
       findOne: async (collection, filter) => {
         if (collection !== 'suppliers') {
           return null;
         }
-        return SUPPLIERS.find(s => s.id === filter.id) || null;
+        const supplier = SUPPLIERS.find(s => s.id === filter.id) || null;
+        // routes/suppliers.js asks for `{ id, approved: true }`; honour the
+        // filter so the fallthrough behaves as it does in the real app.
+        if (supplier && filter.approved === true && !supplier.approved) {
+          return null;
+        }
+        return supplier;
       },
       getDatabaseType: () => 'local',
     },
@@ -94,6 +101,18 @@ describe('routers mounted under /api in routes/index.js order', () => {
     // Falling through means a later router answers, but the caller sees the
     // same status and body as before.
     const res = await request(app).get('/api/suppliers/no-such-supplier').expect(404);
+    expect(res.body.error).toBe('Supplier not found');
+  });
+
+  it('serves a real supplier the packages sub-path', async () => {
+    const res = await request(app).get('/api/suppliers/sup-1/packages').expect(200);
+    expect(res.body).toBeDefined();
+  });
+
+  it('falls through the packages sub-path for an id no supplier carries', async () => {
+    // The same guard, on the sub-path. Without it a future
+    // `/api/suppliers/<word>/packages` endpoint would be shadowed the same way.
+    const res = await request(app).get('/api/suppliers/no-such-supplier/packages').expect(404);
     expect(res.body.error).toBe('Supplier not found');
   });
 
