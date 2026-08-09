@@ -1319,8 +1319,86 @@
   }
 }
 
+/* Page-load skeleton mirrors `.efc-grid--sidebar` so the community homepage
+   does not collapse to a single narrow column while loading, then jump wide
+   once the real two-column layout renders. */
+.efc-skeleton--page {
+  display: grid;
+  gap: var(--efc-gap);
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 1024px) {
+  .efc-skeleton--page {
+    grid-template-columns: minmax(0, 1fr) 320px;
+    align-items: start;
+  }
+}
+
+.efc-skeleton__main,
+.efc-skeleton__sidebar {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.efc-skeleton__card {
+  height: 132px;
+  border-radius: var(--efc-radius);
+  background: linear-gradient(90deg, #eef1f6 25%, #f6f8fb 37%, #eef1f6 63%);
+  background-size: 400% 100%;
+  animation: efc-shimmer 1.4s ease infinite;
+}
+
+.efc-skeleton--profile .efc-skeleton__head {
+  display: flex;
+  gap: 0.875rem;
+  align-items: center;
+  background: var(--efc-surface);
+  border: var(--efc-border);
+  border-radius: var(--efc-radius);
+  box-shadow: var(--efc-shadow);
+  padding: 1.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.efc-skeleton__avatar {
+  flex-shrink: 0;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(90deg, #eef1f6 25%, #f6f8fb 37%, #eef1f6 63%);
+  background-size: 400% 100%;
+  animation: efc-shimmer 1.4s ease infinite;
+}
+
+.efc-skeleton__lines {
+  flex: 1;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.efc-skeleton__bar {
+  height: 14px;
+  border-radius: 7px;
+  background: linear-gradient(90deg, #eef1f6 25%, #f6f8fb 37%, #eef1f6 63%);
+  background-size: 400% 100%;
+  animation: efc-shimmer 1.4s ease infinite;
+}
+
+.efc-skeleton__bar--title {
+  width: 45%;
+  height: 18px;
+}
+
+.efc-skeleton__bar--short {
+  width: 30%;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .efc-skeleton__row {
+  .efc-skeleton__row,
+  .efc-skeleton__card,
+  .efc-skeleton__avatar,
+  .efc-skeleton__bar {
     animation: none;
   }
   * {

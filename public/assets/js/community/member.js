@@ -24,7 +24,7 @@
     const handle =
       profileRoot.dataset.handle ||
       decodeURIComponent(window.location.pathname.split('/').pop() || '');
-    profileRoot.innerHTML = EFC.skeleton(2);
+    profileRoot.innerHTML = EFC.skeleton(2, 'profile');
     try {
       const data = await EFC.api(`members/${encodeURIComponent(handle)}`);
       EFC.hideFallback();
