@@ -17,15 +17,15 @@ labels.
 
 Two things in the reference are genuinely new:
 
-| Element | Exists on V1? | Action |
-| --- | --- | --- |
-| `Community` nav link | **Yes** — `index.html:325` (desktop) and `:381` (mobile) | Port to V2 |
-| `Community` hero CTA (3rd button) | **No** | Build it |
+| Element                           | Exists on V1?                                            | Action     |
+| --------------------------------- | -------------------------------------------------------- | ---------- |
+| `Community` nav link              | **Yes** — `index.html:325` (desktop) and `:381` (mobile) | Port to V2 |
+| `Community` hero CTA (3rd button) | **No**                                                   | Build it   |
 
 Small differences between the reference image and the live V1 render (organic blob collage shapes,
 line icons on the quick tags and collage labels, a shortened one-line subcopy, a
 `Search suppliers, packages, venues…` placeholder) are **out of scope for this PR** — decision:
-*port V1 exactly now, raise mock polish as a follow-up*.
+_port V1 exactly now, raise mock polish as a follow-up_.
 
 **Scope decision: header + hero only.** Everything below the hero on `home-v2.html` (trust strip,
 featured/spotlight packages, category panel, dashboard preview, marketplace, guides, how-it-works,
@@ -40,7 +40,7 @@ Rendered from the real serving path (static server + the `home-v2-navbar-parity`
 renderer injects):
 
 - **Header** — EF gradient tile + bold `EventFlow` text; nav is `Plan · Suppliers · Events ·
-  Marketplace · Guides · Pricing` (`For suppliers` is hidden by CSS, **Community is absent**);
+Marketplace · Guides · Pricing` (`For suppliers` is hidden by CSS, **Community is absent**);
   auth pill reads `Sign in` in the HTML and is rewritten to `Log in` at runtime by
   `home-v2-navbar-parity.js:148`.
 - **Hero** — a completely different design: serif `Plan your event in one place`, an
@@ -56,6 +56,7 @@ So this is a full hero replacement plus a brand swap — not a tweak.
 ## 3. Architecture constraints discovered (read before touching anything)
 
 ### 3.1 `home-v2.css` is shared with homepage V3 — do not edit it
+
 `utils/template-renderer.js:43-54` builds V3 as **`index.html` + `home-v2.css` + `home-v3*.css` +
 an injected `hv2-*` hero**. Most rules in `public/assets/css/home-v2.css` are unscoped
 (`.hv2-hero`, `.hv2-search`, `.hv2-hero__lead`, …), so **any edit there silently restyles V3**.
@@ -69,7 +70,9 @@ than `hv2-*`, the shared hero rules simply stop matching on V2 and keep working 
 CSS edit is required.**
 
 ### 3.2 How V2 is served
+
 `utils/template-renderer.js`:
+
 - `/home-v2`, `/home-v2.html`, `/home-v2-preview`, `/home-v2-preview.html` → `public/home-v2.html`,
   plus `home-v2-white-fade-page` body class, plus injected `home-v2-navbar-parity.css?v=1` and
   `home-v2-navbar-parity.js?v=1`, plus `X-Robots-Tag: noindex, nofollow` and a `robots` meta.
@@ -79,6 +82,7 @@ CSS edit is required.**
 Anything added to `home-v2.html` therefore also ships on `/` the moment V2 is activated.
 
 ### 3.3 `home-v2.js` is compiled from TypeScript
+
 `src/homepages/home-v2.ts` → `public/assets/js/pages/home-v2.js` via
 `npm run build:homepages` (`tsc -p tsconfig.homepages.json` + prettier). **Never hand-edit the
 compiled file.**
@@ -90,6 +94,7 @@ network cost. Leaving it alone means no rebuild, no `?v=` bump on `home-v2.js`, 
 tests that assert those versions (§7.1).
 
 ### 3.4 CSP
+
 `middleware/security.js:73` sets `scriptSrcAttr: 'none'` — **no inline handlers**; all behaviour
 must live in external JS. Inline `style` attributes and `https:` images are allowed, so the ported
 markup is compliant as-is.
@@ -108,13 +113,13 @@ into the task list below (§5.2, §5.3).
 
 ### Which V1 stylesheets are safe to load into V2
 
-| Stylesheet | Verdict | Reason |
-| --- | --- | --- |
-| `hero-modern.css` | **Load it** | Selector inventory is entirely `.hero-*`, `.ef-fade-up/.ef-float`, `.sr-only`, `.home-featured-section`, `.home-trust-section` + one `:root` block of `--hero-*`/`--collage-*` tokens. None of those classes exist elsewhere in `home-v2.html`. Also carries `.sr-only` (needed by the search-bar labels) and the `efFadeUp`/`efFloat` entrance animations. |
-| `ef-search-bar.css` | **Load it** | Fully self-contained: every `var()` it uses is a `--search-bar-*` / `--search-btn-*` token it defines itself. Zero generic selectors. |
-| `eventflow-brand.css` | **Load it** | Only `.ef-brand`, `.ef-logo*`, `.ef-brand-text`; supplies the wordmark SVG lockup seen in the reference. |
-| `modern-landing.css` | **Do NOT load** | Restyles `html`, `.ef-section`, `.ef-card`, `.container`, `.card` globally with `!important`. Its ~15 hero rules get transplanted into the scoped bridge file instead. |
-| `styles.css`, `design-system.css`, `tokens.css`, `animations.css`, `mobile-optimizations.css` | **Do NOT load** | Global base layers that would restyle V2's lower sections. Only the specific values V1's hero reads from them get copied into the bridge file. |
+| Stylesheet                                                                                    | Verdict         | Reason                                                                                                                                                                                                                                                                                                                                                      |
+| --------------------------------------------------------------------------------------------- | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `hero-modern.css`                                                                             | **Load it**     | Selector inventory is entirely `.hero-*`, `.ef-fade-up/.ef-float`, `.sr-only`, `.home-featured-section`, `.home-trust-section` + one `:root` block of `--hero-*`/`--collage-*` tokens. None of those classes exist elsewhere in `home-v2.html`. Also carries `.sr-only` (needed by the search-bar labels) and the `efFadeUp`/`efFloat` entrance animations. |
+| `ef-search-bar.css`                                                                           | **Load it**     | Fully self-contained: every `var()` it uses is a `--search-bar-*` / `--search-btn-*` token it defines itself. Zero generic selectors.                                                                                                                                                                                                                       |
+| `eventflow-brand.css`                                                                         | **Load it**     | Only `.ef-brand`, `.ef-logo*`, `.ef-brand-text`; supplies the wordmark SVG lockup seen in the reference.                                                                                                                                                                                                                                                    |
+| `modern-landing.css`                                                                          | **Do NOT load** | Restyles `html`, `.ef-section`, `.ef-card`, `.container`, `.card` globally with `!important`. Its ~15 hero rules get transplanted into the scoped bridge file instead.                                                                                                                                                                                      |
+| `styles.css`, `design-system.css`, `tokens.css`, `animations.css`, `mobile-optimizations.css` | **Do NOT load** | Global base layers that would restyle V2's lower sections. Only the specific values V1's hero reads from them get copied into the bridge file.                                                                                                                                                                                                              |
 
 Verified no conflicts: `.container`, `.hero*` and `.sr-only` appear in **none** of `home-v2.css`,
 `home-v2-parity.css`, `home-v2-navbar-parity.css`, `error-boundary.css`, `loading-skeleton.css`.
@@ -126,6 +131,7 @@ Verified no conflicts: `.container`, `.hero*` and `.sr-only` appear in **none** 
 ### 5.1 `public/home-v2.html`
 
 **a. Brand → V1 wordmark**
+
 ```html
 <!-- from -->
 <a class="hv2-brand" href="/" aria-label="EventFlow home">
@@ -154,26 +160,31 @@ three-span `h1` + `hero-highlight-bg`, `hero-modern-subcopy`, the `ef-search-bar
 and `hero-collage-credit`). Keep the `aria-hidden` + `inert` pair on the collage.
 
 **e. Community CTA** — third button in `.hero-modern-ctas`, after `Browse suppliers`:
+
 ```html
 <a href="/community" class="hero-cta-base hero-cta-secondary">Community</a>
 ```
 
 **f. Head additions** (after the existing `home-v2-parity.css` link):
+
 ```html
 <link rel="stylesheet" href="/assets/css/hero-modern.css?v=18.3.0" />
 <link rel="stylesheet" href="/assets/css/ef-search-bar.css?v=18.3.0" />
 <link rel="stylesheet" href="/assets/css/eventflow-brand.css?v=1.0.0" />
 <link rel="stylesheet" href="/assets/css/home-v2-hero-parity.css?v=1" />
 ```
+
 Preload `hero-modern.css` and `ef-search-bar.css` alongside the existing preloads — they are
 render-blocking for the largest contentful element.
 
 **g. Script additions** (before the Jade widget scripts):
+
 ```html
 <script src="/assets/js/ef-search-bar.js" defer></script>
 <script src="/assets/js/collage/hero-collage.js?v=1" defer></script>
 <script src="/assets/js/pages/home-v2-hero.js?v=1" defer></script>
 ```
+
 `ef-search-bar.js` is the existing V1 wiring — it handles submit (with the empty-query guard and the
 `search_performed` analytics beacon), quick-tag clicks, ⌘/Ctrl-K focus, and single-row tag
 balancing. `home-v2-hero.js` is a ~15-line bootstrap that calls the shared collage module (§5.4).
@@ -202,7 +213,7 @@ needed.
    `--modern-shadow-large`, `--gradient-mesh-1: rgba(11,128,115,0.12)`,
    `--gradient-mesh-2: rgba(19,182,162,0.10)`, `--gradient-mesh-3: rgba(16,185,129,0.12)`,
    `--gradient-mesh-4: rgba(11,128,115,0.08)`.
-   *(The prototype guessed these and produced a visibly bluer hero — copy the real values.)*
+   _(The prototype guessed these and produced a visibly bluer hero — copy the real values.)_
 4. **Transplanted `modern-landing.css` hero rules** (lines 183-450), scoped and with the
    `!important` flags dropped (they only existed to beat `hero-modern.css` in the global cascade;
    the `.home-v2-page` prefix wins on specificity): `.hero-modern` mesh background + padding,
@@ -237,19 +248,19 @@ collage subsystem gets lifted out.
 **Move to `public/assets/js/collage/hero-collage.js` (new, ~2,100 lines, pure move — no behaviour
 change):**
 
-| Group | Functions | Lines |
-| --- | --- | --- |
-| Shared utils | `calculateSuccessRate`, `detectConnectionSpeed`, `isDebugEnabled`, `isDevelopmentEnvironment` | 21-84, 635-683 |
-| Image helpers | `supportsWebP`, `getConnectionAwareQuality`, `getOptimalPexelsImageSize`, `generateSrcset` | 684-802 |
-| Frame lifecycle | `setupCollageResizeOptimization`, `setupLazyLoadingForCollage` | 803-875 |
-| Entry point | `loadHeroCollageImages` (fetches `/api/v1/public/homepage-settings`, 5s `AbortController`) | 876-1023 |
-| Constants + state | `PEXELS_*`, `WATCHDOG_*`, `pexelsCollageIntervalId`, `COLLAGE_FALLBACK_GRADIENTS` | 1024-1052 |
-| URL guards + swap | `validateUploadUrl`, `validatePexelsUrl`, `restoreDefaultImage`, `displayPexelsImage`, `restoreFrameDefault` | 1053-1191 |
-| Legacy path | `initPexelsCollage` | 1192-1501 |
-| Video card | `loadHeroVideoWithRetry`, `initHeroVideo` (still live — called from `initCollageWidget:2085` even though `.hero-video-card` is `display:none`) | 1502-1982 |
-| Widget path | `initCollageWidget`, `removePictureSourceElements`, `addCacheBuster`, `loadMediaIntoFrame`, `cycleWidgetMedia` | 1983-2965 |
-| Cycling + credits | `cleanupPexelsCollage`, `cyclePexelsImages`, `removeCreatorCredit`, `addCreatorCredit` | 2966-3181 |
-| Enhancements | `initCollageErrorHandlers`, `initParallaxCollage` | 3794-3853 |
+| Group             | Functions                                                                                                                                      | Lines          |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
+| Shared utils      | `calculateSuccessRate`, `detectConnectionSpeed`, `isDebugEnabled`, `isDevelopmentEnvironment`                                                  | 21-84, 635-683 |
+| Image helpers     | `supportsWebP`, `getConnectionAwareQuality`, `getOptimalPexelsImageSize`, `generateSrcset`                                                     | 684-802        |
+| Frame lifecycle   | `setupCollageResizeOptimization`, `setupLazyLoadingForCollage`                                                                                 | 803-875        |
+| Entry point       | `loadHeroCollageImages` (fetches `/api/v1/public/homepage-settings`, 5s `AbortController`)                                                     | 876-1023       |
+| Constants + state | `PEXELS_*`, `WATCHDOG_*`, `pexelsCollageIntervalId`, `COLLAGE_FALLBACK_GRADIENTS`                                                              | 1024-1052      |
+| URL guards + swap | `validateUploadUrl`, `validatePexelsUrl`, `restoreDefaultImage`, `displayPexelsImage`, `restoreFrameDefault`                                   | 1053-1191      |
+| Legacy path       | `initPexelsCollage`                                                                                                                            | 1192-1501      |
+| Video card        | `loadHeroVideoWithRetry`, `initHeroVideo` (still live — called from `initCollageWidget:2085` even though `.hero-video-card` is `display:none`) | 1502-1982      |
+| Widget path       | `initCollageWidget`, `removePictureSourceElements`, `addCacheBuster`, `loadMediaIntoFrame`, `cycleWidgetMedia`                                 | 1983-2965      |
+| Cycling + credits | `cleanupPexelsCollage`, `cyclePexelsImages`, `removeCreatorCredit`, `addCreatorCredit`                                                         | 2966-3181      |
+| Enhancements      | `initCollageErrorHandlers`, `initParallaxCollage`                                                                                              | 3794-3853      |
 
 Wrap in an IIFE exposing `window.EFHeroCollage = { load, cleanup, initErrorHandlers, initParallax }`.
 The module already fetches `/api/pexels/*` directly and has **no dependency on
@@ -269,10 +280,11 @@ the `beforeunload` cleanup at `:352` with `window.EFHeroCollage.*` calls.
 `EFHeroCollage.load()`, `initErrorHandlers()`, `initParallax()` on `DOMContentLoaded` and register
 the same `beforeunload` cleanup.
 
-*Risk control:* do this as a **verbatim move in its own commit** with no edits, so the diff reviews
+_Risk control:_ do this as a **verbatim move in its own commit** with no edits, so the diff reviews
 as a relocation and any V1 regression bisects cleanly.
 
 ### 5.5 Docs
+
 Update `docs/home-v2-preview.md` — the "Files added/changed" and QA checklist sections still describe
 the original V2 preview.
 
@@ -280,21 +292,21 @@ the original V2 preview.
 
 ## 6. Full change inventory
 
-| File | Type | Notes |
-| --- | --- | --- |
-| `public/home-v2.html` | edit | brand, Community ×2, `Log in`, hero swap, 4 CSS links, 3 script tags |
-| `public/assets/css/home-v2-hero-parity.css` | **new** | scoped bridge layer |
-| `public/assets/css/home-v2-navbar-parity.css` | edit | gutter fix, brand-mark cleanup |
-| `public/assets/js/collage/hero-collage.js` | **new** | extracted collage module |
-| `public/assets/js/pages/home-v2-hero.js` | **new** | V2 collage bootstrap |
-| `public/assets/js/pages/home-init.js` | edit | remove moved code, delegate |
-| `public/index.html` | edit | one `<script>` line |
-| `utils/template-renderer.js` | edit | navbar-parity `?v=1` → `?v=2` |
-| `docs/home-v2-preview.md` | edit | refresh |
-| `tests/unit/home-v2-hero-parity.test.js` | **new** | markup + drift guard |
-| `tests/unit/hero-collage-module.test.js` | **new** | module contract |
-| `e2e/home-v2-hero.spec.js` | **new** | behaviour |
-| `tests/visual/visual-regression.spec.mjs` | edit | add `/home-v2-preview` |
+| File                                          | Type    | Notes                                                                |
+| --------------------------------------------- | ------- | -------------------------------------------------------------------- |
+| `public/home-v2.html`                         | edit    | brand, Community ×2, `Log in`, hero swap, 4 CSS links, 3 script tags |
+| `public/assets/css/home-v2-hero-parity.css`   | **new** | scoped bridge layer                                                  |
+| `public/assets/css/home-v2-navbar-parity.css` | edit    | gutter fix, brand-mark cleanup                                       |
+| `public/assets/js/collage/hero-collage.js`    | **new** | extracted collage module                                             |
+| `public/assets/js/pages/home-v2-hero.js`      | **new** | V2 collage bootstrap                                                 |
+| `public/assets/js/pages/home-init.js`         | edit    | remove moved code, delegate                                          |
+| `public/index.html`                           | edit    | one `<script>` line                                                  |
+| `utils/template-renderer.js`                  | edit    | navbar-parity `?v=1` → `?v=2`                                        |
+| `docs/home-v2-preview.md`                     | edit    | refresh                                                              |
+| `tests/unit/home-v2-hero-parity.test.js`      | **new** | markup + drift guard                                                 |
+| `tests/unit/hero-collage-module.test.js`      | **new** | module contract                                                      |
+| `e2e/home-v2-hero.spec.js`                    | **new** | behaviour                                                            |
+| `tests/visual/visual-regression.spec.mjs`     | edit    | add `/home-v2-preview`                                               |
 
 **Not touched:** `public/assets/css/home-v2.css` (shared with V3), `src/homepages/home-v2.ts`,
 `public/assets/js/pages/home-v2.js`, `public/assets/js/pages/home-v2-parity.js`,
@@ -305,6 +317,7 @@ the original V2 preview.
 ## 7. Test plan
 
 ### 7.1 Existing tests that could break
+
 - `tests/integration/anonymous-public-render-path.test.js:72-93` asserts the literal strings
   `/assets/css/home-v2.css?v=11`, `/assets/js/pages/home-v2.js?v=11`,
   `/assets/js/utils/pexels-client.js?v=5`. **None of those three files change**, so these pass
@@ -320,6 +333,7 @@ the original V2 preview.
   not the hero. Unaffected.
 
 ### 7.2 New coverage
+
 - **`tests/unit/home-v2-hero-parity.test.js`** — assert `home-v2.html` contains `hero hero-modern`,
   `ef-search-bar__form`, `ef-quick-tags`, `hero-collage`, `href="/community"` in both navs and in
   `.hero-modern-ctas`, and that `hv2-hero` / `hv2-search` / `hv2-popular` are gone. Plus a **drift
@@ -343,6 +357,7 @@ the original V2 preview.
   `pexels` and `uploads` source modes.
 
 ### 7.3 Commands
+
 ```
 npm run lint
 npx jest tests/unit/home-v2-hero-parity.test.js tests/unit/hero-collage-module.test.js \
@@ -354,6 +369,7 @@ npm run typecheck:homepages  # no-op guard: home-v2.ts unchanged
 ```
 
 ### 7.4 Manual QA
+
 Desktop 1920/1680/1440/1280, tablet 1024/834, mobile 430/390/360/320. Check: header gutter matches
 V1 at every width; the ≥1024px two-column hero collapses to one column below 1024; quick tags stay
 on one row (`ef-search-bar.js` trims trailing tags) and hide below 640px; the three CTAs wrap
@@ -364,14 +380,14 @@ skips the collage; signed-in state still swaps the auth pill, notification bell 
 
 ## 8. Risks
 
-| # | Risk | Mitigation |
-| --- | --- | --- |
-| R1 | Editing `home-v2.css` breaks homepage V3 | Plan requires **zero** edits to it; V3 renders from `index.html` + `hv2-*` classes we no longer use on V2. Verify `/home-v3-preview` before and after. |
-| R2 | Collage extraction regresses the live V1 homepage | Verbatim move in an isolated commit; keep every `window.__collage*` global; `/` visual baseline + manual widget check in both source modes. |
-| R3 | Loading V1 stylesheets bleeds into V2's lower sections | Only `hero-modern.css`, `ef-search-bar.css` and `eventflow-brand.css` are loaded — selector inventories confirmed namespaced. `modern-landing.css` is transplanted, not loaded. Diff full-page screenshots above **and** below the fold. |
-| R4 | Two search implementations coexist on the page | The old `.hv2-search` form is removed with the hero, so `ef-search-bar.js` has exactly one `.ef-search-bar__form` to bind. |
-| R5 | Cached CSS/JS after deploy | `?v=` on every new asset; bump `home-v2-navbar-parity` to `?v=2` in the renderer. |
-| R6 | Activating V2 at `/` exposes an unfinished hero | Ships behind the existing admin homepage-manager switch; `/home-v2-preview` stays noindexed for review. |
+| #   | Risk                                                   | Mitigation                                                                                                                                                                                                                               |
+| --- | ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R1  | Editing `home-v2.css` breaks homepage V3               | Plan requires **zero** edits to it; V3 renders from `index.html` + `hv2-*` classes we no longer use on V2. Verify `/home-v3-preview` before and after.                                                                                   |
+| R2  | Collage extraction regresses the live V1 homepage      | Verbatim move in an isolated commit; keep every `window.__collage*` global; `/` visual baseline + manual widget check in both source modes.                                                                                              |
+| R3  | Loading V1 stylesheets bleeds into V2's lower sections | Only `hero-modern.css`, `ef-search-bar.css` and `eventflow-brand.css` are loaded — selector inventories confirmed namespaced. `modern-landing.css` is transplanted, not loaded. Diff full-page screenshots above **and** below the fold. |
+| R4  | Two search implementations coexist on the page         | The old `.hv2-search` form is removed with the hero, so `ef-search-bar.js` has exactly one `.ef-search-bar__form` to bind.                                                                                                               |
+| R5  | Cached CSS/JS after deploy                             | `?v=` on every new asset; bump `home-v2-navbar-parity` to `?v=2` in the renderer.                                                                                                                                                        |
+| R6  | Activating V2 at `/` exposes an unfinished hero        | Ships behind the existing admin homepage-manager switch; `/home-v2-preview` stays noindexed for review.                                                                                                                                  |
 
 ---
 
