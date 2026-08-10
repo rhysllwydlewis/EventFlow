@@ -46,9 +46,10 @@
    * @returns {string} Anchor HTML.
    */
   function renderCity(city) {
-    const meta = Number.isFinite(city.supplierCount) && city.supplierCount > 0
-      ? `${city.supplierCount.toLocaleString()} supplier${city.supplierCount === 1 ? '' : 's'}`
-      : city.region || '';
+    const meta =
+      Number.isFinite(city.supplierCount) && city.supplierCount > 0
+        ? `${city.supplierCount.toLocaleString()} supplier${city.supplierCount === 1 ? '' : 's'}`
+        : city.region || '';
     return `<a href="/locations/${encodeURIComponent(city.slug)}"><span class="ef-home-locations__city-pin">${PIN_SVG}</span><span><strong>${escapeHtml(
       city.name
     )}</strong><small>${escapeHtml(meta)}</small></span><b aria-hidden="true">&#8599;</b></a>`;
