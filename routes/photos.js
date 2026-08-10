@@ -30,7 +30,13 @@ const suppliersRouter = require('./suppliers');
 async function checkPhotoAllowance(supplier, incoming) {
   const subscriptionService = require('../services/subscriptionService');
   const limit = await subscriptionService.getPhotoAllowance(supplier.ownerUserId);
-  const current = Array.isArray(supplier.photosGallery) ? supplier.photosGallery.length : 0;
+  // Photos hidden by a downgrade (subscriptionService.enforcePhotoGalleryLimit)
+  // don't count toward the allowance, the same way a paused package doesn't
+  // count toward the active package limit — otherwise a supplier who
+  // downgraded could never upload again until manually deleting old photos.
+  const current = Array.isArray(supplier.photosGallery)
+    ? supplier.photosGallery.filter(p => !p?.hiddenByPlanLimit).length
+    : 0;
   if (limit === -1) {
     return { allowed: true, limit, current };
   }
@@ -1559,3 +1565,4 @@ router.get('/photos/:id', apiLimiter, async (req, res) => {
 
 module.exports = router;
 module.exports.initializeDependencies = initializeDependencies;
+module.exports.checkPhotoAllowance = checkPhotoAllowance;

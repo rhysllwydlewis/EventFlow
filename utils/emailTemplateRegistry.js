@@ -197,7 +197,7 @@ const META = {
   'subscription-payment-failed': {
     category: 'billing',
     purpose: 'Failed payment action required',
-    variables: ['name', 'planName', 'amount', 'attemptDate', 'gracePeriodEnd'],
+    variables: ['name', 'planName', 'amount', 'attemptDate', 'nextRetryDate'],
   },
   'subscription-renewal-reminder': {
     category: 'billing',
@@ -330,7 +330,7 @@ function buildSampleData(name) {
       planName: 'Professional',
       amount: '29.00',
       attemptDate: '12 March 2026',
-      gracePeriodEnd: '19 March 2026',
+      nextRetryDate: '19 March 2026',
     },
     'subscription-renewal-reminder': {
       planName: 'Professional',
@@ -573,7 +573,7 @@ function renderPlainTextTemplate(name, data = {}) {
       lines.push(
         `We could not collect ${merged.amount} for your ${merged.planName} supplier subscription on ${merged.attemptDate}.`,
         '',
-        `Please update your payment method by ${merged.gracePeriodEnd} to keep your supplier features active.`,
+        `Your premium features are paused. Update your payment method to restore them straight away — we'll also automatically retry the charge on ${merged.nextRetryDate}.`,
         '',
         `Manage billing: ${APP_BASE_URL}/supplier/subscription`,
         '',

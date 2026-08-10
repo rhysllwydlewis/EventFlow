@@ -277,9 +277,15 @@ async function handleInvoicePaymentFailed(invoice) {
       `Payment failed for user ${user.email}: Invoice ${invoice.id}, Amount: ${invoice.amount_due / 100} ${invoice.currency.toUpperCase()}`
     );
 
-    // Send payment failed email using the subscription-payment-failed template
+    // Send payment failed email using the subscription-payment-failed
+    // template. Entitlement is already gone by the time this sends —
+    // subscriptionService.updateSubscription's status:'past_due' write above
+    // makes isLiveEntitlement() false immediately, no grace window. The
+    // "nextRetryDate" below is genuinely informative (Stripe really will
+    // retry then), but must not be framed as a deadline before access is
+    // lost — it's already lost.
     try {
-      const gracePeriodEnd = invoice.next_payment_attempt
+      const nextRetryDate = invoice.next_payment_attempt
         ? new Date(invoice.next_payment_attempt * 1000).toLocaleDateString('en-GB', {
             day: 'numeric',
             month: 'long',
@@ -304,7 +310,7 @@ async function handleInvoicePaymentFailed(invoice) {
             month: 'long',
             year: 'numeric',
           }),
-          gracePeriodEnd,
+          nextRetryDate,
         },
         from: postmark.FROM_BILLING,
         tags: ['payment-failed', 'transactional'],

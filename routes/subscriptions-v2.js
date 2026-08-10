@@ -33,6 +33,7 @@ try {
 
 const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || '';
 const ALLOWED_TRIAL_DAYS = Number(process.env.STRIPE_SUBSCRIPTION_TRIAL_DAYS || 0);
+const AUTOMATIC_TAX_ENABLED = process.env.STRIPE_AUTOMATIC_TAX_ENABLED === 'true';
 
 // Legacy pricing contract retained for old pricing-page checks; checkout uses the
 // canonical billing registry, where starter/free do not have Stripe prices.
@@ -88,6 +89,29 @@ function assertDowngrade(currentPlan, newPlan) {
     err.statusCode = 400;
     throw err;
   }
+}
+
+/**
+ * True when a user already has a live, paid subscription that a new
+ * Checkout Session (or a fresh direct subscription) would duplicate rather
+ * than replace. Used to stop an existing subscriber from creating a second,
+ * independently-billed Stripe subscription — Checkout has no knowledge of
+ * an existing subscription on its own, so nothing else would catch this.
+ *
+ * Deliberately keys off isLiveEntitlement + plan !== 'free' rather than
+ * `status !== 'canceled'`: a subscription record that downgraded to free
+ * (see webhooks/stripeWebhookHandler.js handleSubscriptionDeleted) ends up
+ * with status 'active' and plan 'free', not 'canceled' — that user has no
+ * live paid subscription and must be allowed to check out again.
+ * @param {Object|null} existingSub
+ * @returns {boolean}
+ */
+function hasLiveConflictingSubscription(existingSub) {
+  return !!(
+    existingSub &&
+    existingSub.plan !== 'free' &&
+    subscriptionService.isLiveEntitlement(existingSub)
+  );
 }
 
 /**
@@ -266,6 +290,15 @@ router.post(
         });
       }
 
+      const existingSub = await subscriptionService.getSubscriptionByUserId(req.user.id);
+      if (hasLiveConflictingSubscription(existingSub)) {
+        return res.status(400).json({
+          error:
+            'You already have an active subscription. Use upgrade or downgrade on your subscription page instead of checking out again.',
+          code: 'SUBSCRIPTION_ALREADY_EXISTS',
+        });
+      }
+
       const customer = await paymentService.getOrCreateStripeCustomer(req.user);
       const successUrl = normaliseReturnUrl(
         req.body?.successUrl,
@@ -278,20 +311,41 @@ router.post(
         planId: resolved.planId,
         billingInterval: resolved.billingInterval,
       };
-      const session = await stripe.checkout.sessions.create(
-        {
-          customer: customer.id,
-          client_reference_id: req.user.id,
-          mode: 'subscription',
-          line_items: [{ price: resolved.priceId, quantity: 1 }],
-          allow_promotion_codes: true,
-          success_url: successUrl,
-          cancel_url: cancelUrl,
-          metadata,
-          subscription_data: { metadata },
-        },
-        { idempotencyKey: `checkout:${req.user.id}:${resolved.planId}:${resolved.billingInterval}` }
-      );
+      // STRIPE_SUBSCRIPTION_TRIAL_DAYS is 0 (no trial) by default — see
+      // .env.example. First-time subscribers only: this deliberately does
+      // NOT implement per-customer trial-abuse prevention beyond that (e.g.
+      // blocking a new card fingerprint that already used a trial on a
+      // different account) — worth adding before relying on this at volume.
+      const subscriptionData = { metadata };
+      if (ALLOWED_TRIAL_DAYS > 0) {
+        const priorSubscriptions = await subscriptionService.listSubscriptions({
+          userId: req.user.id,
+        });
+        if (priorSubscriptions.length === 0) {
+          subscriptionData.trial_period_days = ALLOWED_TRIAL_DAYS;
+        }
+      }
+      const sessionConfig = {
+        customer: customer.id,
+        client_reference_id: req.user.id,
+        mode: 'subscription',
+        line_items: [{ price: resolved.priceId, quantity: 1 }],
+        allow_promotion_codes: true,
+        success_url: successUrl,
+        cancel_url: cancelUrl,
+        metadata,
+        subscription_data: subscriptionData,
+      };
+      // Off by default (STRIPE_AUTOMATIC_TAX_ENABLED unset) — flip on only
+      // once Stripe Tax registrations are configured for the business in
+      // the Stripe dashboard; enabling this without them causes Checkout to
+      // error. See .env.example.
+      if (AUTOMATIC_TAX_ENABLED) {
+        sessionConfig.automatic_tax = { enabled: true };
+      }
+      const session = await stripe.checkout.sessions.create(sessionConfig, {
+        idempotencyKey: `checkout:${req.user.id}:${resolved.planId}:${resolved.billingInterval}`,
+      });
 
       const existingPayments = await dbUnified.read('payments');
       if (
@@ -450,7 +504,7 @@ router.post(
       }
 
       const existingSub = await subscriptionService.getSubscriptionByUserId(req.user.id);
-      if (existingSub && existingSub.status !== 'canceled') {
+      if (hasLiveConflictingSubscription(existingSub)) {
         return res.status(400).json({ error: 'Subscription already exists' });
       }
 

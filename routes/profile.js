@@ -462,6 +462,16 @@ router.delete('/', writeLimiter, authRequired, csrfProtection, async (req, res) 
 
     const userId = user.id;
 
+    // Cancel any live Stripe subscription first. Without this, a paying
+    // supplier who deletes their account keeps being billed indefinitely
+    // with no dashboard or Billing Portal link left to cancel it themselves.
+    try {
+      const subscriptionService = require('../services/subscriptionService');
+      await subscriptionService.cancelSubscriptionForAccountDeletion(userId);
+    } catch (subErr) {
+      logger.warn('Could not cancel subscription during account deletion:', subErr);
+    }
+
     // Delete associated supplier profiles first
     try {
       const userSuppliers = await dbUnified.find('suppliers', { ownerUserId: userId });

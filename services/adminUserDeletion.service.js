@@ -316,6 +316,17 @@ async function deleteUserAndOwnedData(userOrUserId, actor, options = {}) {
   const targetId = userIdOf(user);
 
   try {
+    // Cancel any live Stripe subscription first. Without this, deleting a
+    // paying supplier's account leaves Stripe billing a user record that no
+    // longer exists, with nobody left to notice or self-serve a cancellation.
+    try {
+      const subscriptionService = require('./subscriptionService');
+      await subscriptionService.cancelSubscriptionForAccountDeletion(targetId);
+    } catch (subErr) {
+      summary.errors.push(`subscription:${subErr.message}`);
+      logger.warn(`Could not cancel subscription for user ${targetId}:`, subErr);
+    }
+
     mergeSummaries(summary, await cleanupSupplierOwnedDataForUser(user, options));
 
     try {

@@ -651,6 +651,26 @@ router.patch(
     if (themeMutation.error) {
       return res.status(400).json({ error: themeMutation.error });
     }
+    // Custom theme colours are the Professional Plus "custom branding"
+    // entitlement (models/Subscription.js customBranding: true only on
+    // pro_plus) — only gate a fresh request to *set* custom mode; an
+    // existing custom theme already on the record is left alone by
+    // buildSupplierThemeMutation whenever the request doesn't touch theme
+    // fields, so this never strips branding a supplier already has.
+    if (themeMutation.set.themeMode === 'custom') {
+      const hasCustomBranding = await subscriptionService.checkFeatureAccess(
+        req.user.id,
+        'customBranding'
+      );
+      if (!hasCustomBranding) {
+        return res.status(403).json({
+          error: 'Custom theme colours require a Professional Plus subscription.',
+          code: 'FEATURE_REQUIRES_UPGRADE',
+          feature: 'customBranding',
+          upgradeUrl: '/supplier/subscription',
+        });
+      }
+    }
     Object.assign(supplierPatch, themeMutation.set);
 
     // Handle array fields

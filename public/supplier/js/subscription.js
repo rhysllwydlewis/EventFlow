@@ -350,11 +350,31 @@ function setBillingPeriod(period) {
 }
 
 /**
- * Render a persistent banner when a downgrade is scheduled for the next billing period.
+ * Render a persistent banner when a downgrade is scheduled for the next
+ * billing period, or — higher priority — when the last payment failed.
+ *
+ * A failed payment drops entitlement to free immediately (see
+ * webhooks/stripeWebhookHandler.js handleInvoicePaymentFailed), so without
+ * this the page just showed the plan cards with nothing selected, giving no
+ * indication the supplier lost access because a card was declined.
  */
 async function renderDowngradeBanner() {
   const bannerContainer = document.getElementById('current-subscription-status');
   if (!bannerContainer) {
+    return;
+  }
+
+  if (currentSubscription?.status === 'past_due') {
+    const planName = planByTier(currentSubscription.plan)?.name || currentSubscription.plan;
+    bannerContainer.innerHTML = `
+      <div class="pricing-account-banner pricing-account-banner--danger" role="status" aria-live="polite">
+        <span class="pricing-account-banner__icon" aria-hidden="true">⚠️</span>
+        <div class="pricing-account-banner__body">
+          <p class="pricing-account-banner__title">Payment failed</p>
+          <p class="pricing-account-banner__message">Your last payment for ${escapeHtml(planName)} didn't go through, so premium features are paused. Update your payment method below to restore them — we'll also retry the charge automatically.</p>
+        </div>
+      </div>
+    `;
     return;
   }
 

@@ -29,14 +29,14 @@
             <td style="background-color:#ffffff;padding:40px 40px 32px;">
               <h1 style="margin:0 0 20px;font-size:22px;font-weight:700;color:#0B1220;line-height:1.35;">Payment failed</h1>
               <p style="margin:0 0 16px;font-size:15px;color:#334155;line-height:1.75;">Hi {{name}},</p>
-              <p style="margin:0 0 24px;font-size:15px;color:#334155;line-height:1.75;">We were unable to process your payment for your <strong>{{planName}}</strong> subscription. Please update your payment method to keep your account active.</p>
+              <p style="margin:0 0 24px;font-size:15px;color:#334155;line-height:1.75;">We were unable to process your payment for your <strong>{{planName}}</strong> subscription, so your account has already reverted to Starter access. Update your payment method to restore {{planName}} straight away.</p>
 
               <!-- Urgent notice -->
               <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px;">
                 <tr>
                   <td style="background-color:#FEF2F2;border-left:4px solid #EF4444;border-radius:0 8px 8px 0;padding:14px 18px;">
                     <p style="margin:0 0 4px;font-size:13px;font-weight:700;color:#7F1D1D;">Action required: Update your payment method</p>
-                    <p style="margin:0;font-size:13px;color:#7F1D1D;line-height:1.6;">To avoid losing access to premium features, please update your payment details before your grace period ends.</p>
+                    <p style="margin:0;font-size:13px;color:#7F1D1D;line-height:1.6;">Your premium features are paused right now. Update your card to restore them immediately — we'll also automatically retry the charge on {{nextRetryDate}}, so updating first means you won't need to do anything else.</p>
                   </td>
                 </tr>
               </table>
@@ -60,8 +60,8 @@
                         <td style="padding:9px 0;font-size:14px;color:#0B1220;font-weight:600;text-align:right;border-bottom:1px solid #E7EAF0;">{{attemptDate}}</td>
                       </tr>
                       <tr>
-                        <td style="padding:9px 0;font-size:14px;color:#667085;">Grace period ends</td>
-                        <td style="padding:9px 0;font-size:14px;color:#EF4444;font-weight:700;text-align:right;">{{gracePeriodEnd}}</td>
+                        <td style="padding:9px 0;font-size:14px;color:#667085;">Next automatic retry</td>
+                        <td style="padding:9px 0;font-size:14px;color:#EF4444;font-weight:700;text-align:right;">{{nextRetryDate}}</td>
                       </tr>
                     </table>
                   </td>

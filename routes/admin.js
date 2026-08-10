@@ -22,6 +22,10 @@ const mongoDb = require('../db');
 const NotificationService = require('../services/notification.service');
 const { normalizeTicketRecord } = require('../utils/ticketNormalization');
 const { PRIORITY_RANK } = require('../utils/tierPriority');
+const {
+  buildSupplierProGrantUpdate,
+  buildSupplierProRevokeUpdate,
+} = require('../utils/supplierProGrant');
 const { PLACEHOLDER_PACKAGE_IMAGE } = require('../utils/constants');
 const photoUpload = require('../photo-upload');
 const postmark = require('../utils/postmark');
@@ -1145,7 +1149,10 @@ router.post(
 
 /**
  * POST /api/admin/suppliers/:id/pro
- * Manage supplier Pro subscription
+ * Manage supplier Pro subscription. Writes the same complete field set as
+ * routes/supplier-admin.js's identical endpoint and
+ * routes/admin-user-management.js's /suppliers/:id/subscription — see
+ * utils/supplierProGrant.js for why that consistency matters.
  */
 router.post(
   '/suppliers/:id/pro',
@@ -1154,7 +1161,7 @@ router.post(
   csrfProtection,
   async (req, res) => {
     try {
-      const { mode, duration } = req.body || {};
+      const { mode, duration, tier } = req.body || {};
       const all = await dbUnified.read('suppliers');
       const i = all.findIndex(s => s.id === req.params.id);
       if (i < 0) {
@@ -1163,10 +1170,10 @@ router.post(
 
       const s = all[i];
       const now = Date.now();
+      let updates;
 
       if (mode === 'cancel') {
-        s.isPro = false;
-        s.proExpiresAt = null;
+        updates = buildSupplierProRevokeUpdate({ revokedBy: req.user.id });
       } else if (mode === 'duration') {
         let ms = 0;
         switch (duration) {
@@ -1185,11 +1192,16 @@ router.post(
           default:
             return res.status(400).json({ error: 'Invalid duration' });
         }
-        s.isPro = true;
-        s.proExpiresAt = new Date(now + ms).toISOString();
+        updates = buildSupplierProGrantUpdate({
+          tier: tier === 'pro_plus' ? 'pro_plus' : 'pro',
+          expiresAt: new Date(now + ms).toISOString(),
+          grantedBy: req.user.id,
+        });
       } else {
         return res.status(400).json({ error: 'Invalid mode' });
       }
+
+      Object.assign(s, updates);
 
       // Optionally mirror Pro flag to the owning user, if present.
       try {
@@ -1201,11 +1213,7 @@ router.post(
       }
 
       all[i] = s;
-      await dbUnified.updateOne(
-        'suppliers',
-        { id: req.params.id },
-        { $set: { isPro: s.isPro, proExpiresAt: s.proExpiresAt } }
-      );
+      await dbUnified.updateOne('suppliers', { id: req.params.id }, { $set: updates });
 
       const active = supplierIsProActiveFn ? await supplierIsProActiveFn(s) : s.isPro;
       res.json({
@@ -4752,6 +4760,91 @@ router.get('/payments', authRequired, roleRequired('admin'), async (_req, res) =
     res.status(500).json({ error: 'Failed to load payments' });
   }
 });
+
+/**
+ * POST /api/admin/payments/:id/refund
+ * Issue a Stripe refund for a payment record. paymentService.processRefund
+ * already existed but was never called from any route — this is the first
+ * way to actually issue a refund from the product rather than the Stripe
+ * dashboard directly.
+ */
+router.post(
+  '/payments/:id/refund',
+  authRequired,
+  roleRequired('admin'),
+  csrfProtection,
+  async (req, res) => {
+    if (!STRIPE_ENABLED || !stripe) {
+      return res.status(503).json({ error: 'Stripe is not configured' });
+    }
+    try {
+      const payment = await dbUnified.findOne('payments', { id: req.params.id });
+      if (!payment) {
+        return res.status(404).json({ error: 'Payment not found' });
+      }
+      if (!payment.stripePaymentId) {
+        return res.status(400).json({ error: 'Payment has no associated Stripe payment intent' });
+      }
+      if (payment.status === 'refunded') {
+        return res.status(400).json({ error: 'Payment has already been refunded' });
+      }
+
+      const { amount, reason } = req.body || {};
+      const refundReason = reason || 'requested_by_customer';
+      const paymentService = require('../services/paymentService');
+      const refund = await paymentService.processRefund(
+        payment.stripePaymentId,
+        amount || null,
+        refundReason
+      );
+
+      await dbUnified.updateOne(
+        'payments',
+        { id: payment.id },
+        {
+          $set: {
+            status: 'refunded',
+            metadata: {
+              ...payment.metadata,
+              refundId: refund.id,
+              refundAmount: refund.amount / 100,
+              refundReason,
+              refundedBy: req.user.id,
+              refundedAt: new Date().toISOString(),
+            },
+            updatedAt: new Date().toISOString(),
+          },
+        }
+      );
+
+      await auditLog({
+        action: AUDIT_ACTIONS.PAYMENT_REFUNDED || 'payment_refunded',
+        userId: req.user.id,
+        targetId: payment.id,
+        details: {
+          paymentUserId: payment.userId,
+          amount: refund.amount / 100,
+          currency: refund.currency,
+          reason: refundReason,
+        },
+      });
+
+      res.json({
+        ok: true,
+        refund: {
+          id: refund.id,
+          amount: refund.amount / 100,
+          currency: refund.currency,
+          status: refund.status,
+        },
+      });
+    } catch (error) {
+      logger.error('Error processing refund:', error);
+      const statusCode = error.type === 'StripeInvalidRequestError' ? 400 : 500;
+      res.status(statusCode).json({ error: 'Failed to process refund', message: error.message });
+    }
+  }
+);
 
 /**
  * GET /api/admin/stripe-analytics

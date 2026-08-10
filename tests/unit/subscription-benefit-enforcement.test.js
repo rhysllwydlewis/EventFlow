@@ -606,6 +606,24 @@ describe('resolveEffectiveTier', () => {
     const { tier } = await resolveEffectiveTier('usr-1');
     expect(tier).toBe('pro');
   });
+
+  it('honours indefinite lower-tier access after a downgrade schedule deleted the Stripe subscription', async () => {
+    // handleSubscriptionDeleted's pending-downgrade branch leaves the local
+    // record with status:'active', no stripeSubscriptionId, no
+    // currentPeriodEnd — subscriptionService.isLiveEntitlement treats that
+    // as live. This middleware used to hand-roll its own liveness check that
+    // lacked this branch and would have wrongly denied it as free.
+    mockSubscriptions.push({
+      id: 'sub-1',
+      userId: 'usr-1',
+      plan: 'pro',
+      status: 'active',
+      stripeSubscriptionId: null,
+      currentPeriodEnd: null,
+    });
+    const { tier } = await resolveEffectiveTier('usr-1');
+    expect(tier).toBe('pro');
+  });
 });
 
 // ── 9. refreshUserEntitlements — never grants a tier the user hasn't paid for ──

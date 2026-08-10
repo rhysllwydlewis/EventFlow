@@ -234,6 +234,22 @@ describe('Payment Service Unit Tests', () => {
       // pro_plus should NOT be merged into pro bucket
       expect(mrr.byPlan.pro).not.toBeCloseTo(178, 2);
     });
+
+    it('should normalise annual subscriptions to their monthly-equivalent, not the flat monthly price', async () => {
+      mockSubscriptions = [
+        { status: 'active', plan: 'pro_plus', billingInterval: 'year' },
+        { status: 'active', plan: 'pro', billingInterval: 'year' },
+        { status: 'active', plan: 'pro', billingInterval: 'month' },
+      ];
+      const mrr = await paymentService.calculateMRR();
+
+      // config/billingPlans.js PLAN_PRESENTATION: pro_plus year monthlyEquivalent
+      // is £129 (not the £159 monthly sticker price); pro year monthlyEquivalent
+      // is £16 (not £19). The monthly pro subscriber still counts at £19.
+      expect(mrr.byPlan.pro_plus).toBeCloseTo(129, 2);
+      expect(mrr.byPlan.pro).toBeCloseTo(16 + 19, 2);
+      expect(mrr.totalMRR).toBeCloseTo(129 + 16 + 19, 2);
+    });
   });
 
   describe('calculateChurnRate', () => {

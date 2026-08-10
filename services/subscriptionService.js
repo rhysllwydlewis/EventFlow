@@ -470,6 +470,11 @@ async function applyPendingPlan(subscriptionId) {
   } catch (err) {
     logger.error('applyPendingPlan: enforceActivePackageLimit failed:', err);
   }
+  try {
+    await enforcePhotoGalleryLimit(subscription.userId);
+  } catch (err) {
+    logger.error('applyPendingPlan: enforcePhotoGalleryLimit failed:', err);
+  }
   return updated;
 }
 
@@ -495,8 +500,66 @@ async function cancelSubscription(subscriptionId, reason = null, immediately = f
     } catch (err) {
       logger.error('cancelSubscription: enforceActivePackageLimit failed:', err);
     }
+    try {
+      await enforcePhotoGalleryLimit(subscription.userId);
+    } catch (err) {
+      logger.error('cancelSubscription: enforcePhotoGalleryLimit failed:', err);
+    }
   }
   return updated;
+}
+
+/**
+ * Cancel a user's live Stripe subscription and mark it canceled locally.
+ *
+ * Account deletion must not leave a Stripe subscription billing someone who
+ * no longer has an account, a dashboard, or a Billing Portal link to cancel
+ * it themselves — see routes/profile.js (self-service delete) and
+ * services/adminUserDeletion.service.js (admin-driven delete), both of which
+ * call this before removing the user record.
+ *
+ * Cancels immediately rather than at period end: the account (and any
+ * remaining service period the customer could still use) is being deleted
+ * right now, so there is nothing left to run out the period for.
+ *
+ * Best-effort by design — a Stripe API failure is logged loudly (so it can
+ * be caught and cancelled manually from the Stripe dashboard) but does not
+ * throw, so a billing hiccup never blocks someone from deleting their own
+ * account.
+ * @param {string} userId
+ * @returns {Promise<void>}
+ */
+async function cancelSubscriptionForAccountDeletion(userId) {
+  const subscription = await getSubscriptionByUserId(userId);
+  if (!subscription || subscription.status === 'canceled') {
+    return;
+  }
+
+  if (subscription.stripeSubscriptionId) {
+    try {
+      const paymentService = require('./paymentService');
+      if (paymentService.STRIPE_ENABLED) {
+        await paymentService.cancelStripeSubscription(subscription.stripeSubscriptionId, true);
+      }
+    } catch (err) {
+      logger.error(
+        `cancelSubscriptionForAccountDeletion: Stripe cancellation FAILED for user ${userId}, ` +
+          `subscription ${subscription.stripeSubscriptionId} — MANUAL CANCELLATION REQUIRED in ` +
+          `the Stripe dashboard:`,
+        err.message
+      );
+    }
+  }
+
+  try {
+    await cancelSubscription(subscription.id, 'Account deleted', true);
+  } catch (err) {
+    logger.error(
+      `cancelSubscriptionForAccountDeletion: failed to update local subscription record for ` +
+        `user ${userId}:`,
+      err.message
+    );
+  }
 }
 
 async function getFallbackUserTier(userId) {
@@ -631,12 +694,80 @@ async function enforceActivePackageLimit(userId) {
   return pausedIds;
 }
 
+/**
+ * Hide a supplier's oldest gallery photos beyond the plan's photo allowance
+ * from public view, mirroring enforceActivePackageLimit's pattern exactly
+ * (same oldest-first ordering, same "flag rather than delete" approach, same
+ * call sites) — a downgrade or cancellation must retroactively enforce
+ * "up to N photos" the same way it already does for packages, or a
+ * Professional Plus supplier's public gallery keeps showing hundreds of
+ * photos on Starter with nothing to stop it.
+ *
+ * Unlike packages, photos live as an array field directly on each supplier
+ * document rather than their own collection, so this hides per-supplier
+ * (matching how the upload allowance is already checked per-supplier in
+ * routes/photos.js checkPhotoAllowance) rather than across a shared
+ * collection. Hidden photos are never deleted — only flagged
+ * hiddenByPlanLimit so an upgrade or manual gallery cleanup can be reflected
+ * without losing the original upload. Hidden photos also stop counting
+ * toward the allowance for new uploads, the same way a paused package
+ * doesn't count toward the active package limit.
+ * @param {string} userId
+ * @returns {Promise<string[]>} IDs of suppliers whose gallery was changed.
+ */
+async function enforcePhotoGalleryLimit(userId) {
+  const maxPhotos = await getPhotoAllowance(userId);
+  if (maxPhotos === -1) {
+    return [];
+  }
+
+  const mySuppliers = await dbUnified.find('suppliers', { ownerUserId: userId });
+  const changedSupplierIds = [];
+
+  for (const supplier of mySuppliers) {
+    const gallery = Array.isArray(supplier.photosGallery) ? supplier.photosGallery : [];
+    const visible = gallery.filter(p => !p?.hiddenByPlanLimit);
+    if (visible.length <= maxPhotos) {
+      continue;
+    }
+
+    const sortedVisible = [...visible].sort((a, b) => {
+      const aTime = a?.uploadedAt ? new Date(a.uploadedAt).getTime() : 0;
+      const bTime = b?.uploadedAt ? new Date(b.uploadedAt).getTime() : 0;
+      return aTime - bTime;
+    });
+    const toHide = new Set(sortedVisible.slice(0, sortedVisible.length - maxPhotos));
+
+    const updatedGallery = gallery.map(photo =>
+      toHide.has(photo) ? { ...photo, hiddenByPlanLimit: true } : photo
+    );
+
+    await dbUnified.updateOne(
+      'suppliers',
+      { id: supplier.id },
+      { $set: { photosGallery: updatedGallery } }
+    );
+    changedSupplierIds.push(supplier.id);
+  }
+
+  return changedSupplierIds;
+}
+
 async function addBillingRecord(subscriptionId, billingRecord) {
   const subscription = await getSubscription(subscriptionId);
   if (!subscription) {
     throw new Error('Subscription not found');
   }
   const billingHistory = subscription.billingHistory || [];
+  // Idempotency: if a webhook handler fails partway through after this step
+  // already ran, Stripe retries the whole event from the top. Without this
+  // check, the retry would push a second line item for the same invoice.
+  if (
+    billingRecord.invoiceId &&
+    billingHistory.some(record => record.invoiceId === billingRecord.invoiceId)
+  ) {
+    return subscription;
+  }
   billingHistory.push({
     invoiceId: billingRecord.invoiceId,
     amount: billingRecord.amount,
@@ -704,13 +835,16 @@ module.exports = {
   downgradeSubscription,
   applyPendingPlan,
   cancelSubscription,
+  cancelSubscriptionForAccountDeletion,
   checkFeatureAccess,
+  getFallbackUserTier,
   refreshUserEntitlements,
   getUserFeatures,
   getNumericAllowance,
   getPhotoAllowance,
   getAnalyticsWindowDays,
   enforceActivePackageLimit,
+  enforcePhotoGalleryLimit,
   addBillingRecord,
   updateBillingDates,
   isInTrial,

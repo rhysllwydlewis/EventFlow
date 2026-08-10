@@ -153,6 +153,46 @@ describe('admin supplier maintenance hardening', () => {
     expect(userDeleteOrder).toBeGreaterThan(supplierDeleteOrder);
   });
 
+  test('admin-driven deletion cancels the user Stripe subscription before deleting the user', async () => {
+    const db = buildDb({
+      users: [{ id: 'usr_supplier', role: 'supplier', email: 'supplier@example.com' }],
+      suppliers: [{ id: 'sup_1', ownerUserId: 'usr_supplier', approved: true }],
+    });
+    jest.doMock('../../db-unified', () => db);
+    jest.doMock('../../routes/suppliers', () => ({ invalidatePackageCaches: jest.fn() }));
+    const cancelSubscriptionForAccountDeletion = jest.fn(async () => {});
+    jest.doMock('../../services/subscriptionService', () => ({
+      cancelSubscriptionForAccountDeletion,
+    }));
+    const { deleteUserAndOwnedData } = require('../../services/adminUserDeletion.service');
+
+    const summary = await deleteUserAndOwnedData('usr_supplier', { id: 'admin_1', role: 'admin' });
+
+    expect(cancelSubscriptionForAccountDeletion).toHaveBeenCalledWith('usr_supplier');
+    expect(summary.deletedUser).toBe(true);
+    expect(db.data.users).toHaveLength(0);
+  });
+
+  test('admin-driven deletion still proceeds if Stripe cancellation fails', async () => {
+    const db = buildDb({
+      users: [{ id: 'usr_supplier', role: 'supplier', email: 'supplier@example.com' }],
+      suppliers: [],
+    });
+    jest.doMock('../../db-unified', () => db);
+    jest.doMock('../../routes/suppliers', () => ({ invalidatePackageCaches: jest.fn() }));
+    jest.doMock('../../services/subscriptionService', () => ({
+      cancelSubscriptionForAccountDeletion: jest.fn(async () => {
+        throw new Error('Stripe unreachable');
+      }),
+    }));
+    const { deleteUserAndOwnedData } = require('../../services/adminUserDeletion.service');
+
+    const summary = await deleteUserAndOwnedData('usr_supplier', { id: 'admin_1', role: 'admin' });
+
+    expect(summary.deletedUser).toBe(true);
+    expect(summary.errors.some(e => e.includes('subscription:'))).toBe(true);
+  });
+
   test('orphan audit dry-run detects orphan supplier/package and preserves legacy unowned suppliers', async () => {
     const db = buildDb({
       users: [{ id: 'usr_live' }],

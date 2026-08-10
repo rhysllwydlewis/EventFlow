@@ -115,6 +115,16 @@ router.get('/health', (req, res) => {
   });
 });
 
+/**
+ * LEGACY — not called by the current UI. Both /pricing and
+ * /supplier/subscription use POST /api/v2/subscriptions/create-checkout-session
+ * exclusively (see routes/subscriptions-v2.js), which has no intro-pricing
+ * coupon support. This route's STRIPE_PRO_INTRO_COUPON_ID branch is
+ * unreachable in practice; kept alive (rather than deleted) because it has
+ * its own dedicated test coverage (tests/unit/intro-pricing.test.js,
+ * tests/integration/pricing-payment-fixes.test.js) and re-implementing
+ * intro pricing in the v2 route is a real feature decision, not a bug fix.
+ */
 router.post(
   '/create-checkout-session',
   authRequired,

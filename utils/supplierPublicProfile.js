@@ -125,7 +125,14 @@ function mergeSocialLinkSources(legacyValue, canonicalValue) {
 
 // skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 function safeGalleryItems(source = {}) {
-  const canonical = Array.isArray(source.photosGallery) ? source.photosGallery : [];
+  // Photos beyond the owner's current plan allowance are hidden (not
+  // deleted) by subscriptionService.enforcePhotoGalleryLimit on downgrade —
+  // the public profile must honour that the same way it already limits
+  // active packages, or "up to N photos" stops being a real difference
+  // between plans.
+  const canonical = (Array.isArray(source.photosGallery) ? source.photosGallery : []).filter(
+    item => !(item && typeof item === 'object' && item.hiddenByPlanLimit)
+  );
   const legacy = Array.isArray(source.images) ? source.images : [];
   const seen = new Set();
   const safe = [];
