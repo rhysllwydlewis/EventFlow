@@ -90,6 +90,82 @@ function assertDowngrade(currentPlan, newPlan) {
   }
 }
 
+/**
+ * Schedule a downgrade between two PAID plans via a Stripe Subscription
+ * Schedule, so Stripe keeps billing the subscription throughout.
+ *
+ * This deliberately does NOT use `cancel_at_period_end`: that schedules the
+ * whole Stripe subscription for cancellation at renewal rather than a price
+ * swap. Combined with our webhook's "apply pendingPlan on delete" handling,
+ * that used to hand the customer the lower paid tier for free, forever, once
+ * the subscription was gone (stripeSubscriptionId became null, which also
+ * made the /upgrade route skip Stripe entirely on any later re-upgrade). A
+ * schedule instead runs the current price until the period ends and then
+ * hands the subscription off to the lower price, continuing normal billing.
+ * @param {Object} subscription - Our local subscription record
+ * @param {{planId: string, priceId: string, billingInterval: string}} resolved - Target plan
+ * @returns {Promise<string>} The Stripe subscription schedule ID
+ */
+async function scheduleDowngradeToLowerPaidPlan(subscription, resolved) {
+  const remote = await stripe.subscriptions.retrieve(subscription.stripeSubscriptionId);
+  const currentItem = remote.items?.data?.[0];
+  if (!currentItem) {
+    const err = new Error('Stripe subscription has no price item');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const existingScheduleId = subscription.metadata?.stripeScheduleId || null;
+  const schedule = existingScheduleId
+    ? await stripe.subscriptionSchedules.retrieve(existingScheduleId)
+    : await stripe.subscriptionSchedules.create({
+        from_subscription: subscription.stripeSubscriptionId,
+      });
+  const currentPhase = schedule.phases[0];
+
+  const updatedSchedule = await stripe.subscriptionSchedules.update(
+    schedule.id,
+    {
+      end_behavior: 'release',
+      phases: [
+        {
+          items: [{ price: currentItem.price.id, quantity: currentItem.quantity || 1 }],
+          start_date: currentPhase.start_date,
+          end_date: currentPhase.end_date,
+          proration_behavior: 'none',
+          metadata: {
+            planId: subscription.plan,
+            billingInterval: subscription.billingInterval || 'month',
+          },
+        },
+        {
+          items: [{ price: resolved.priceId, quantity: 1 }],
+          proration_behavior: 'none',
+          metadata: { planId: resolved.planId, billingInterval: resolved.billingInterval },
+        },
+      ],
+    },
+    { idempotencyKey: `sub-schedule:${subscription.id}:${resolved.planId}` }
+  );
+
+  return updatedSchedule.id;
+}
+
+/**
+ * Release an active downgrade schedule so the subscription goes back to
+ * being billed directly — used when the customer upgrades again before a
+ * scheduled downgrade has taken effect.
+ * @param {string} scheduleId
+ */
+async function releaseDowngradeSchedule(scheduleId) {
+  try {
+    await stripe.subscriptionSchedules.release(scheduleId);
+  } catch (err) {
+    // Already released, completed, or canceled server-side — nothing to undo.
+    logger.warn('Failed to release subscription schedule (continuing):', err.message);
+  }
+}
+
 async function audit(req, action, sub, details = {}) {
   try {
     await createAuditLog({
@@ -358,6 +434,17 @@ router.post(
       }
 
       if (subscription.stripeSubscriptionId) {
+        // A pending downgrade schedule takes over management of the Stripe
+        // subscription, so it must be released before we can update the
+        // subscription's price directly again.
+        const scheduleId = subscription.metadata?.stripeScheduleId || null;
+        if (scheduleId) {
+          await releaseDowngradeSchedule(scheduleId);
+          await subscriptionService.updateSubscription(subscription.id, {
+            metadata: { ...subscription.metadata, stripeScheduleId: null },
+          });
+        }
+
         const remote = await stripe.subscriptions.retrieve(subscription.stripeSubscriptionId);
         const itemId = remote.items?.data?.[0]?.id;
         if (!itemId) {
@@ -423,20 +510,36 @@ router.post(
         return res.status(400).json({ error: 'Invalid downgrade plan' });
       }
       assertDowngrade(subscription.plan, resolved.planId);
+      if (resolved.planId !== 'free' && !resolved.priceId) {
+        return res.status(503).json({
+          error: 'Payment processing is not currently available. Please contact support.',
+        });
+      }
 
       if (subscription.stripeSubscriptionId) {
-        await stripe.subscriptions.update(
-          subscription.stripeSubscriptionId,
-          {
-            cancel_at_period_end: true,
-            metadata: {
-              planId: subscription.plan,
-              billingInterval: subscription.billingInterval || 'month',
-              downgrade_to: resolved.planId,
+        if (resolved.planId === 'free') {
+          // Downgrading to free ends billing entirely, so cancelling the
+          // Stripe subscription at period end is correct here.
+          await stripe.subscriptions.update(
+            subscription.stripeSubscriptionId,
+            {
+              cancel_at_period_end: true,
+              metadata: {
+                planId: subscription.plan,
+                billingInterval: subscription.billingInterval || 'month',
+                downgrade_to: resolved.planId,
+              },
             },
-          },
-          { idempotencyKey: `sub-downgrade:${subscription.id}:${resolved.planId}` }
-        );
+            { idempotencyKey: `sub-downgrade:${subscription.id}:${resolved.planId}` }
+          );
+        } else {
+          // Downgrading between two paid plans must keep Stripe billing the
+          // subscription — see scheduleDowngradeToLowerPaidPlan for why.
+          const scheduleId = await scheduleDowngradeToLowerPaidPlan(subscription, resolved);
+          await subscriptionService.updateSubscription(subscription.id, {
+            metadata: { ...subscription.metadata, stripeScheduleId: scheduleId },
+          });
+        }
       }
 
       const updated = await subscriptionService.downgradeSubscription(

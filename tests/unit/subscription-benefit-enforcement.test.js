@@ -607,3 +607,57 @@ describe('resolveEffectiveTier', () => {
     expect(tier).toBe('pro');
   });
 });
+
+// ── 9. refreshUserEntitlements — never grants a tier the user hasn't paid for ──
+
+describe('subscriptionService.refreshUserEntitlements', () => {
+  it('reports free and writes nothing when the user has no subscription record', async () => {
+    const tier = await subscriptionService.refreshUserEntitlements('usr-1');
+    expect(tier).toBe('free');
+    expect(dbUnified.updateOne).not.toHaveBeenCalled();
+  });
+
+  it('mirrors a genuinely live paid subscription onto the user record', async () => {
+    mockSubscriptions.push({
+      id: 'sub-1',
+      userId: 'usr-1',
+      plan: 'pro_plus',
+      status: 'active',
+      currentPeriodEnd: futureDate(30),
+    });
+    const tier = await subscriptionService.refreshUserEntitlements('usr-1');
+    expect(tier).toBe('pro_plus');
+    expect(dbUnified.updateOne).toHaveBeenCalledWith(
+      'users',
+      { id: 'usr-1' },
+      expect.objectContaining({
+        $set: expect.objectContaining({ subscriptionTier: 'pro_plus', isPro: true }),
+      })
+    );
+  });
+
+  it('does not grant Pro for an expired subscription — this is the fix for the free-upgrade bug', async () => {
+    mockSubscriptions.push({
+      id: 'sub-1',
+      userId: 'usr-1',
+      plan: 'pro',
+      status: 'active',
+      currentPeriodEnd: pastDate(5),
+    });
+    const tier = await subscriptionService.refreshUserEntitlements('usr-1');
+    expect(tier).toBe('free');
+    expect(dbUnified.updateOne).toHaveBeenCalledWith(
+      'users',
+      { id: 'usr-1' },
+      expect.objectContaining({
+        $set: expect.objectContaining({ subscriptionTier: 'free', isPro: false }),
+      })
+    );
+  });
+
+  it('falls back to user.subscriptionTier when there is no subscription table record', async () => {
+    mockUsers = [{ id: 'usr-1', subscriptionTier: 'pro', proExpiresAt: futureDate(10) }];
+    const tier = await subscriptionService.refreshUserEntitlements('usr-1');
+    expect(tier).toBe('pro');
+  });
+});

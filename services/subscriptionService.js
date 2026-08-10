@@ -10,11 +10,42 @@ const store = require('../store');
 const {
   getPlanFeatures,
   hasFeature,
-  getAllPlans,
+  getAllPlans: getAllPlansRaw,
   PLAN_FEATURES,
 } = require('../models/Subscription');
+const { PLAN_PRESENTATION } = require('../config/billingPlans');
 const logger = require('../utils/logger');
 const postmark = require('../utils/postmark');
+
+/**
+ * Price actually charged for a plan, sourced from config/billingPlans.js —
+ * the single canonical, customer-facing source of pricing (it also drives
+ * /pricing and checkout). Used anywhere a real amount is shown to the
+ * customer (confirmation emails, the plans API) so that figure can never
+ * drift from what Stripe actually bills.
+ * @param {string} plan - 'free' | 'pro' | 'pro_plus'
+ * @param {string} [billingInterval] - 'month' | 'year'
+ * @returns {number} Price in pounds
+ */
+function getCanonicalPlanPrice(plan, billingInterval = 'month') {
+  const presentation = PLAN_PRESENTATION[plan];
+  const interval = billingInterval === 'year' ? 'year' : 'month';
+  const canonical = presentation?.pricing?.[interval]?.total;
+  return Number.isFinite(canonical) ? canonical : getPlanFeatures(plan).price;
+}
+
+/**
+ * getAllPlans, with price/interval corrected to the canonical values from
+ * config/billingPlans.js rather than the hand-synced figures in
+ * models/Subscription.js PLAN_FEATURES.
+ * @returns {Array} Plan configurations
+ */
+function getAllPlans() {
+  return getAllPlansRaw().map(plan => ({
+    ...plan,
+    price: getCanonicalPlanPrice(plan.id, 'month'),
+  }));
+}
 
 // Human-readable feature bullets per plan, for the upgrade/downgrade
 // confirmation emails. Kept local (rather than importing from
@@ -368,8 +399,8 @@ async function upgradeSubscription(subscriptionId, newPlan, { skipStripe = false
       month: 'long',
       year: 'numeric',
     }),
-    amount: newPlanFeatures.price.toFixed(2),
-    billingCycle: newPlanFeatures.interval === 'year' ? 'yearly' : 'monthly',
+    amount: getCanonicalPlanPrice(newPlan, subscription.billingInterval).toFixed(2),
+    billingCycle: subscription.billingInterval === 'year' ? 'yearly' : 'monthly',
     features: PLAN_EMAIL_FEATURES[newPlan] || PLAN_EMAIL_FEATURES.free,
   });
 
@@ -413,9 +444,11 @@ async function downgradeSubscription(subscriptionId, newPlan, { skipStripe = fal
   await sendPlanChangeEmail(subscription.userId, 'downgrade-scheduled', {
     currentPlan: currentPlanFeatures.name,
     newPlan: newPlanFeatures.name,
-    currentAmount: currentPlanFeatures.price.toFixed(2),
-    newAmount: newPlanFeatures.price.toFixed(2),
-    billingCycle: currentPlanFeatures.interval === 'year' ? 'yearly' : 'monthly',
+    currentAmount: getCanonicalPlanPrice(subscription.plan, subscription.billingInterval).toFixed(
+      2
+    ),
+    newAmount: getCanonicalPlanPrice(newPlan, subscription.billingInterval).toFixed(2),
+    billingCycle: subscription.billingInterval === 'year' ? 'yearly' : 'monthly',
     effectiveDate,
   });
 
@@ -472,6 +505,34 @@ async function getFallbackUserTier(userId) {
     return user.subscriptionTier;
   }
   return 'free';
+}
+
+/**
+ * Re-derive isPro/subscriptionTier/proExpiresAt for a user (and every
+ * supplier they own) from their actual subscription record.
+ *
+ * This exists so callers that want to reflect a subscription right after
+ * checkout — before the Stripe webhook has necessarily landed — have a safe
+ * way to do it: it only ever mirrors what `subscriptions` already says is
+ * true, it never fabricates or grants a tier of its own accord. If no
+ * subscription record exists yet, the user's current state is left
+ * untouched rather than guessed at.
+ * @param {string} userId
+ * @returns {Promise<string>} The tier now reflected on the user record.
+ */
+async function refreshUserEntitlements(userId) {
+  const subscription = await getSubscriptionByUserId(userId);
+  if (!subscription) {
+    return getFallbackUserTier(userId);
+  }
+  const live = isLiveEntitlement(subscription);
+  const tier = live ? subscription.plan : 'free';
+  await persistUserSubscriptionState(userId, {
+    subscriptionTier: tier,
+    isPro: live && subscription.plan !== 'free',
+    proExpiresAt: live ? subscription.currentPeriodEnd || subscription.trialEnd || null : null,
+  });
+  return tier;
 }
 
 async function checkFeatureAccess(userId, feature) {
@@ -644,6 +705,7 @@ module.exports = {
   applyPendingPlan,
   cancelSubscription,
   checkFeatureAccess,
+  refreshUserEntitlements,
   getUserFeatures,
   getNumericAllowance,
   getPhotoAllowance,

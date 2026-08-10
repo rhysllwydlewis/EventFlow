@@ -204,11 +204,12 @@ describe('Payment Service Unit Tests', () => {
     it('should calculate monthly recurring revenue', async () => {
       const mrr = await paymentService.calculateMRR();
 
-      // pro: 29.99 * 2 = 59.98, pro_plus: 59.00, free: 0
-      expect(mrr.totalMRR).toBeCloseTo(118.98, 2);
+      // pro: 19 * 2 = 38, pro_plus: 159, free: 0 — these must match the real
+      // Stripe prices in config/billingPlans.js, not a separate guess.
+      expect(mrr.totalMRR).toBeCloseTo(197, 2);
       expect(mrr.activeSubscriptions).toBe(4); // active + trialing
-      expect(mrr.byPlan.pro).toBeCloseTo(59.98, 2);
-      expect(mrr.byPlan.pro_plus).toBeCloseTo(59.0, 2);
+      expect(mrr.byPlan.pro).toBeCloseTo(38, 2);
+      expect(mrr.byPlan.pro_plus).toBeCloseTo(159, 2);
     });
 
     it('should exclude canceled subscriptions from MRR', async () => {
@@ -216,7 +217,7 @@ describe('Payment Service Unit Tests', () => {
 
       // canceled pro_plus subscription should not be in active MRR total
       // byPlan for pro_plus counts only the active/trialing ones
-      expect(mrr.byPlan.pro_plus).toBeCloseTo(59.0, 2); // only 1 active pro_plus
+      expect(mrr.byPlan.pro_plus).toBeCloseTo(159, 2); // only 1 active pro_plus
     });
 
     it('should use correct price for pro_plus (not pro price)', async () => {
@@ -226,12 +227,12 @@ describe('Payment Service Unit Tests', () => {
       ];
       const mrr = await paymentService.calculateMRR();
 
-      // pro_plus: 59.00, pro: 29.99 — total 88.99
-      expect(mrr.totalMRR).toBeCloseTo(88.99, 2);
-      expect(mrr.byPlan.pro_plus).toBeCloseTo(59.0, 2);
-      expect(mrr.byPlan.pro).toBeCloseTo(29.99, 2);
+      // pro_plus: 159, pro: 19 — total 178
+      expect(mrr.totalMRR).toBeCloseTo(178, 2);
+      expect(mrr.byPlan.pro_plus).toBeCloseTo(159, 2);
+      expect(mrr.byPlan.pro).toBeCloseTo(19, 2);
       // pro_plus should NOT be merged into pro bucket
-      expect(mrr.byPlan.pro).not.toBeCloseTo(88.99, 2);
+      expect(mrr.byPlan.pro).not.toBeCloseTo(178, 2);
     });
   });
 

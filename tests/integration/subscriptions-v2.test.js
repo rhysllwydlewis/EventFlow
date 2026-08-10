@@ -379,7 +379,7 @@ describe('Subscription Service Integration Tests', () => {
       const features = await subscriptionService.getUserFeatures('usr-1');
 
       expect(features.name).toBe('Professional');
-      expect(features.price).toBe(29.99);
+      expect(features.price).toBe(19);
       expect(features.features.maxSuppliers).toBe(10);
       expect(features.features.apiAccess).toBe(true);
     });

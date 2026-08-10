@@ -10,7 +10,12 @@ const isDevelopment =
 // Error display timeout constant (10 seconds)
 const ERROR_DISPLAY_TIMEOUT = 10000;
 
-// Subscription plans — exactly 3: Starter, Pro, Pro Plus
+// Subscription plans — exactly 3: Starter, Pro, Pro Plus.
+// price/features below are fallback values only, used if loadCanonicalPlans()
+// can't reach the server. They must match config/billingPlans.js — the
+// canonical, Stripe-backed source that also drives /pricing — since this page
+// previously hardcoded stale figures (Pro Plus shown at £199 while Stripe
+// actually charged £159) that nothing kept in sync.
 const PLANS = {
   starter: {
     id: 'starter',
@@ -28,11 +33,8 @@ const PLANS = {
     id: 'pro',
     name: 'Pro',
     tier: 'pro',
-    price: 19.0,
+    price: 19,
     trialDays: 14,
-    earlyAccess: true,
-    normallyPrice: 69.0,
-    earlyAccessEndDate: '31 December 2026',
     features: [
       'Pro badge on profile',
       'Priority listing in search results',
@@ -45,7 +47,7 @@ const PLANS = {
     id: 'pro_plus',
     name: 'Pro Plus',
     tier: 'pro_plus',
-    price: 199.0,
+    price: 159,
     trialDays: 14,
     features: [
       'Pro Plus badge on profile',
@@ -56,6 +58,36 @@ const PLANS = {
     ],
   },
 };
+
+/**
+ * Refresh PLANS' price from the canonical plans API — the same
+ * /api/v2/subscriptions/plans "billing" data the /pricing page hydrates
+ * from. Only price is synced (the confirmed bug: this page showed £199 for
+ * Pro Plus while Stripe actually charges £159); the short bullet list below
+ * stays hand-written for this page's tighter card layout rather than
+ * swapping in /pricing's longer marketing sentences. Failure is non-fatal:
+ * the fallback figures above stay in place.
+ */
+async function loadCanonicalPlans() {
+  try {
+    const response = await fetch('/api/v2/subscriptions/plans', { credentials: 'include' });
+    if (!response.ok) {
+      return;
+    }
+    const data = await response.json();
+    const byTier = new Map((data.billing || []).map(entry => [entry.tier, entry]));
+    Object.values(PLANS).forEach(plan => {
+      const monthlyTotal = byTier.get(plan.tier)?.presentation?.pricing?.month?.total;
+      if (Number.isFinite(monthlyTotal)) {
+        plan.price = monthlyTotal;
+      }
+    });
+  } catch (error) {
+    if (isDevelopment) {
+      console.warn('[Subscription] Could not load canonical plan pricing:', error.message);
+    }
+  }
+}
 
 // Plan hierarchy for determining upgrade vs downgrade direction
 const PLAN_HIERARCHY = ['free', 'pro', 'pro_plus'];
@@ -124,8 +156,8 @@ async function initSubscriptionPage() {
       }
     }
 
-    // Load current subscription record
-    await loadSubscriptionStatus();
+    // Load current subscription record and canonical pricing in parallel
+    await Promise.all([loadSubscriptionStatus(), loadCanonicalPlans()]);
 
     // Render pending downgrade banner (if applicable)
     await renderDowngradeBanner();
@@ -398,14 +430,7 @@ function renderSubscriptionPlans() {
           <div class="price">
             ${plan.price === 0 ? '<span class="price-free">Free</span>' : `£${plan.price.toFixed(2)}<span class="period">/month</span>`}
           </div>
-          ${
-            plan.earlyAccess
-              ? `
-            <div class="early-access-label">Early Access Pricing</div>
-            <div class="price-note price-note--strikethrough">Normally £${plan.normallyPrice}/month</div>
-          `
-              : ''
-          }
+          ${plan.tier !== 'free' ? '<div class="early-access-label">Early Access Pricing</div>' : ''}
           <ul class="features">
             ${plan.features.map(feature => `<li>${feature}</li>`).join('')}
           </ul>
@@ -419,6 +444,10 @@ function renderSubscriptionPlans() {
     <div class="pricing-grid">
       ${plansHtml}
     </div>
+    <p class="small pricing-terms-note">
+      Early access pricing applies while EventFlow is in development and ends 31 December 2026.
+      Prices shown exclude VAT where applicable.
+    </p>
   `;
 
   // Attach click handlers (CSP-compliant, no inline onclick)

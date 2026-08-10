@@ -14,6 +14,7 @@ const photoUpload = require('../photo-upload');
 const supplierLocation = require('../services/supplierLocation.service');
 const { MAPPING_SOURCES } = require('../models/LocationContent');
 const { auditLog, AUDIT_ACTIONS } = require('../middleware/audit');
+const subscriptionService = require('../services/subscriptionService');
 const router = express.Router();
 
 /**
@@ -767,7 +768,15 @@ router.patch(
 
 /**
  * POST /api/me/subscription/upgrade
- * Mark all suppliers owned by the current user as Pro
+ *
+ * Re-sync the caller's Pro status (and every supplier they own) from their
+ * actual subscription record. The dashboard calls this right after a
+ * successful Stripe checkout redirect so the UI can reflect Pro immediately
+ * rather than waiting on the webhook — but it never grants a tier itself.
+ * subscriptionService.refreshUserEntitlements only ever mirrors what the
+ * `subscriptions` collection already says is true (previously this endpoint
+ * unconditionally set isPro=true with no payment check at all, which let any
+ * authenticated supplier grant themselves Pro for free).
  */
 router.post(
   '/subscription/upgrade',
@@ -775,31 +784,8 @@ router.post(
   applyRoleRequired('supplier'),
   applyCsrfProtection,
   async (req, res) => {
-    const ownedSuppliers = await dbUnified.find('suppliers', { ownerUserId: req.user.id });
-    let changed = 0;
-    const proUpdatePromises = [];
-    ownedSuppliers.forEach(s => {
-      if (!s.isPro) {
-        proUpdatePromises.push(
-          dbUnified.updateOne('suppliers', { id: s.id }, { $set: { isPro: true } })
-        );
-        changed += 1;
-      }
-    });
-    await Promise.all(proUpdatePromises);
-
-    // Optionally also mirror this onto the user record if present
-    try {
-      await dbUnified.updateOne(
-        'users',
-        { id: req.user.id },
-        { $set: { isPro: true, subscriptionTier: 'pro' } }
-      );
-    } catch (_e) {
-      // ignore if users store is not present
-    }
-
-    res.json({ ok: true, updatedSuppliers: changed });
+    const tier = await subscriptionService.refreshUserEntitlements(req.user.id);
+    res.json({ ok: true, tier });
   }
 );
 

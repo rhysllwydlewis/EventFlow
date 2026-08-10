@@ -127,6 +127,15 @@ const subscriptionSchema = {
  * Supported tiers: free, pro, pro_plus.
  * The basic and enterprise tiers are no longer active; unknown tiers fall back to free.
  */
+// NOTE — price/interval below must match config/billingPlans.js
+// PLAN_PRESENTATION[*].pricing.month.total exactly. That file is the
+// canonical, customer-facing source for pricing (it drives /pricing and the
+// checkout flow) and cannot be imported here without a circular require
+// (billingPlans.js already requires this file for PLAN_FEATURES/TIER_LEVELS),
+// so these are kept in sync by hand. They feed the subscription-plans API
+// response and the upgrade/downgrade confirmation emails — a mismatch here
+// means a customer's email states a different amount than what Stripe
+// actually billed them.
 const PLAN_FEATURES = {
   free: {
     name: 'Free',
@@ -151,7 +160,7 @@ const PLAN_FEATURES = {
   },
   pro: {
     name: 'Professional',
-    price: 29.99,
+    price: 19,
     interval: 'month',
     features: {
       maxSuppliers: 10,
@@ -171,7 +180,7 @@ const PLAN_FEATURES = {
   },
   pro_plus: {
     name: 'Professional Plus',
-    price: 59.0,
+    price: 159,
     interval: 'month',
     features: {
       maxSuppliers: -1, // unlimited

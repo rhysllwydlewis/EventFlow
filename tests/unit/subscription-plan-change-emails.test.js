@@ -66,6 +66,9 @@ describe('Subscription plan-change confirmation emails', () => {
     expect(call.templateData.previousPlan).toBe('Professional');
     expect(call.templateData.newPlan).toBe('Professional Plus');
     expect(call.templateData.amount).not.toMatch(/£/); // template adds its own £
+    // Must match config/billingPlans.js — the price Stripe actually charges —
+    // not models/Subscription.js's older, disconnected PLAN_FEATURES figure.
+    expect(call.templateData.amount).toBe('159.00');
   });
 
   it('downgradeSubscription sends a subscription-downgrade-scheduled email', async () => {
@@ -78,6 +81,9 @@ describe('Subscription plan-change confirmation emails', () => {
     expect(call.templateData.currentPlan).toBe('Professional');
     expect(call.templateData.newPlan).toBe('Free');
     expect(call.templateData.effectiveDate).toContain('2026');
+    // Must match config/billingPlans.js's real Stripe price for Professional.
+    expect(call.templateData.currentAmount).toBe('19.00');
+    expect(call.templateData.newAmount).toBe('0.00');
   });
 
   it('a failed email send does not block the plan change itself', async () => {
