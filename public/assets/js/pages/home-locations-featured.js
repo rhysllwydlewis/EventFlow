@@ -40,17 +40,22 @@
 
   /**
    * Build one city link, in the same markup the static fallback already used.
+   * The supplier count is real, live data — it is what turns "Manchester"
+   * from a bare place name into a reason to click.
    * @param {Object} city Featured city.
    * @returns {string} Anchor HTML.
    */
   function renderCity(city) {
+    const meta = Number.isFinite(city.supplierCount) && city.supplierCount > 0
+      ? `${city.supplierCount.toLocaleString()} supplier${city.supplierCount === 1 ? '' : 's'}`
+      : city.region || '';
     return `<a href="/locations/${encodeURIComponent(city.slug)}"><span class="ef-home-locations__city-pin">${PIN_SVG}</span><span><strong>${escapeHtml(
       city.name
-    )}</strong><small>${escapeHtml(city.region || '')}</small></span><b aria-hidden="true">&#8599;</b></a>`;
+    )}</strong><small>${escapeHtml(meta)}</small></span><b aria-hidden="true">&#8599;</b></a>`;
   }
 
   window
-    .fetch('/api/v1/locations/featured?limit=4', { credentials: 'same-origin' })
+    .fetch('/api/v1/locations/featured?limit=6', { credentials: 'same-origin' })
     .then(response => (response.ok ? response.json() : null))
     .then(payload => {
       const cities = payload && payload.success && payload.data && payload.data.cities;

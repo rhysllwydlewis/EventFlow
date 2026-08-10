@@ -723,9 +723,15 @@
      report itself as already scrolled and show a "scroll left" button on a
      strip nobody has touched yet. */
   scroll-padding-inline: 0.75rem;
-  /* Reserve the scrollbar's space so the strip does not jump by a few pixels
-     when the list becomes long enough to scroll. */
-  scrollbar-width: thin;
+  /* The round nav buttons plus the edge scrims are already the strip's scroll
+     affordance; a second, native scrollbar under them just doubles up on the
+     same message. Hide it rather than reserve space for it. */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.efc-catstrip__scroller::-webkit-scrollbar {
+  display: none;
 }
 
 @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
