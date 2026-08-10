@@ -2,26 +2,17 @@
 
 const subscriptionService = require('../services/subscriptionService');
 const logger = require('../utils/logger');
-const dbUnified = require('../db-unified');
 const { TIER_LEVELS } = require('../models/Subscription');
 
+// This middleware is not currently imported by any route (verified by
+// repo-wide grep) — kept for whichever route wires it up next. Its fallback
+// used to duplicate subscriptionService.isLiveEntitlement's logic by hand
+// (reading user.subscriptionTier/proExpiresAt directly) rather than reusing
+// it, which had drifted out of sync with the canonical rule used everywhere
+// else. Delegating to isLiveEntitlement keeps this middleware correct
+// automatically if that rule ever changes again.
 function isSubscriptionLive(subscription) {
-  if (!subscription) {
-    return false;
-  }
-  if (subscription.status !== 'active' && subscription.status !== 'trialing') {
-    return false;
-  }
-  if (subscription.plan === 'free') {
-    return true;
-  }
-  if (subscription.currentPeriodEnd && new Date(subscription.currentPeriodEnd) > new Date()) {
-    return true;
-  }
-  if (subscription.trialEnd && new Date(subscription.trialEnd) > new Date()) {
-    return true;
-  }
-  return false;
+  return subscriptionService.isLiveEntitlement(subscription);
 }
 
 async function resolveEffectiveTier(userId) {
@@ -32,14 +23,11 @@ async function resolveEffectiveTier(userId) {
     }
     return { tier: 'free', subscription: null };
   }
-  const users = await dbUnified.read('users');
-  const user = users.find(u => u.id === userId);
-  if (user && user.subscriptionTier && user.subscriptionTier !== 'free') {
-    if (user.proExpiresAt && new Date(user.proExpiresAt) > new Date()) {
-      return { tier: user.subscriptionTier, subscription: null };
-    }
-  }
-  return { tier: 'free', subscription: null };
+  // No subscriptions-collection record at all — defer to
+  // subscriptionService's own fallback rule instead of re-deriving the
+  // user.subscriptionTier/proExpiresAt expiry check by hand here.
+  const tier = await subscriptionService.getFallbackUserTier(userId);
+  return { tier, subscription: null };
 }
 
 function requireSubscription(minTier = 'free') {

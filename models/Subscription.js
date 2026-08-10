@@ -136,6 +136,20 @@ const subscriptionSchema = {
 // response and the upgrade/downgrade confirmation emails — a mismatch here
 // means a customer's email states a different amount than what Stripe
 // actually billed them.
+// maxSuppliers, maxBookings, and apiAccess are carried here for forward
+// compatibility but are NOT enforced anywhere in the app today:
+//   - maxSuppliers: every supplier-creation path hard-caps every account to
+//     exactly one supplier profile regardless of plan (see the explicit
+//     "strictly 1:1 with user account" contract on POST /api/me/suppliers).
+//     Raising this per-plan would be a real multi-supplier-account feature,
+//     not a bug fix — the 1:1 assumption is baked into ownership lookups
+//     throughout the codebase.
+//   - maxBookings: there is no bookings collection or booking-creation route
+//     in this codebase to cap.
+//   - apiAccess: there is no supplier-facing API/API-key system to gate.
+// None of the three are currently advertised on /pricing. Leave them as
+// documented-but-inert until the underlying feature exists, rather than
+// enforcing a limit nothing actually promises.
 const PLAN_FEATURES = {
   free: {
     name: 'Free',

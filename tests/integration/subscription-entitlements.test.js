@@ -575,6 +575,52 @@ describe('6. Expired / past_due / payment_failed — entitlements removed', () =
     const sub = mockSubscriptions.find(s => s.id === subId);
     expect(sub.status).toBe('past_due');
   });
+
+  it('handleInvoicePaymentFailed sends honest copy — entitlement is already gone, not "before a grace period ends"', async () => {
+    const postmark = require('../../utils/postmark');
+    postmark.sendMail.mockClear();
+
+    mockSubscriptions.find(s => s.id === subId).currentPeriodEnd = futureDate(10);
+    mockSubscriptions.find(s => s.id === subId).status = 'active';
+    dbUnified.read.mockImplementation(async collection => {
+      if (collection === 'subscriptions') {
+        return [...mockSubscriptions];
+      }
+      if (collection === 'users') {
+        return [...mockUsers];
+      }
+      if (collection === 'webhook_events') {
+        return [...mockWebhookEvents];
+      }
+      return [];
+    });
+
+    const invoice = {
+      id: 'in_fail2',
+      subscription: 'sub_e',
+      amount_due: 2999,
+      currency: 'gbp',
+      next_payment_attempt: Math.floor(Date.now() / 1000) + 3 * 86_400,
+      lines: { data: [] },
+    };
+
+    await handleInvoicePaymentFailed(invoice);
+
+    // Entitlement is gone immediately — no grace window before this happens.
+    const { tier } = await resolveEffectiveTier('usr-1');
+    expect(tier).toBe('free');
+
+    // The email must describe that immediate reality, not a future deadline
+    // ("gracePeriodEnd") before access is lost.
+    expect(postmark.sendMail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        template: 'subscription-payment-failed',
+        templateData: expect.objectContaining({ nextRetryDate: expect.any(String) }),
+      })
+    );
+    const call = postmark.sendMail.mock.calls[0][0];
+    expect(call.templateData.gracePeriodEnd).toBeUndefined();
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

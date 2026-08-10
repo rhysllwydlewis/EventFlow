@@ -104,6 +104,52 @@ describe('resolveSupplierTierFromRecord', () => {
   it('returns "free" when isPro is false and no subscription', () => {
     expect(resolveSupplierTierFromRecord({ isPro: false })).toBe('free');
   });
+
+  it('returns "free" for a supplier.subscription object whose endDate has passed, even with status active', () => {
+    const supplier = {
+      subscription: {
+        tier: 'pro_plus',
+        status: 'active',
+        endDate: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+      },
+    };
+    expect(resolveSupplierTierFromRecord(supplier)).toBe('free');
+  });
+
+  it('honours a supplier.subscription object whose endDate is still in the future', () => {
+    const supplier = {
+      subscription: {
+        tier: 'pro_plus',
+        status: 'active',
+        endDate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+      },
+    };
+    expect(resolveSupplierTierFromRecord(supplier)).toBe('pro_plus');
+  });
+
+  it('returns "free" once a lapsed admin comp grant (subscriptionTier + proExpiresAt) has expired', () => {
+    const supplier = {
+      subscriptionTier: 'pro_plus',
+      proExpiresAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+    };
+    expect(resolveSupplierTierFromRecord(supplier)).toBe('free');
+  });
+
+  it('returns "free" once a lapsed legacy isPro grant has expired', () => {
+    const supplier = {
+      isPro: true,
+      proExpiresAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+    };
+    expect(resolveSupplierTierFromRecord(supplier)).toBe('free');
+  });
+
+  it('still honours isPro/subscriptionTier while proExpiresAt is in the future', () => {
+    const future = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    expect(resolveSupplierTierFromRecord({ isPro: true, proExpiresAt: future })).toBe('pro');
+    expect(
+      resolveSupplierTierFromRecord({ subscriptionTier: 'pro_plus', proExpiresAt: future })
+    ).toBe('pro_plus');
+  });
 });
 
 describe('deriveTicketPriority', () => {

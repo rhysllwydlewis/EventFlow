@@ -356,16 +356,23 @@ async function handleFailedPayment(subscriptionId, invoice) {
  */
 async function calculateMRR() {
   const subscriptions = await dbUnified.read('subscriptions');
-  const { PLAN_FEATURES } = require('../models/Subscription');
+  const { PLAN_PRESENTATION } = require('../config/billingPlans');
 
   let totalMRR = 0;
   const mrrByPlan = {};
 
   subscriptions.forEach(sub => {
     if (sub.status === 'active' || sub.status === 'trialing') {
-      const planPrice = PLAN_FEATURES[sub.plan]?.price || 0;
-      totalMRR += planPrice;
-      mrrByPlan[sub.plan] = (mrrByPlan[sub.plan] || 0) + planPrice;
+      // Normalise to a monthly-equivalent: an annual subscriber pays the
+      // discounted yearly total, not the flat monthly sticker price, so
+      // counting them at the monthly rate overstates MRR (e.g. a £1,548/yr
+      // Pro Plus subscriber is £129/mo, not £159/mo).
+      const interval = sub.billingInterval === 'year' ? 'year' : 'month';
+      const pricing = PLAN_PRESENTATION[sub.plan]?.pricing?.[interval];
+      const monthlyEquivalent =
+        interval === 'year' ? (pricing?.monthlyEquivalent ?? 0) : (pricing?.total ?? 0);
+      totalMRR += monthlyEquivalent;
+      mrrByPlan[sub.plan] = (mrrByPlan[sub.plan] || 0) + monthlyEquivalent;
     }
   });
 

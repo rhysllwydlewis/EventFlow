@@ -10,8 +10,10 @@ jest.mock('../../services/catalogCache', () => ({
   invalidate: jest.fn(() => Promise.resolve()),
 }));
 
-function createApp(existingSupplier) {
+function createApp(existingSupplier, { hasCustomBranding = true } = {}) {
   jest.resetModules();
+  const checkFeatureAccess = jest.fn(async () => hasCustomBranding);
+  jest.doMock('../../services/subscriptionService', () => ({ checkFeatureAccess }));
   const catalogCache = require('../../services/catalogCache');
   const router = require('../../routes/supplier-management');
   const dbUnified = {
@@ -40,7 +42,7 @@ function createApp(existingSupplier) {
   const app = express();
   app.use(express.json());
   app.use('/api/me/suppliers', router);
-  return { app, dbUnified, catalogCache };
+  return { app, dbUnified, catalogCache, checkFeatureAccess };
 }
 
 describe('supplier theme PATCH route', () => {
@@ -112,5 +114,53 @@ describe('supplier theme PATCH route', () => {
       .send({ themeMode: 'preset', heroPreset: 'not-real' })
       .expect(400);
     expect(dbUnified.updateOne).not.toHaveBeenCalled();
+  });
+
+  test('rejects setting a custom theme colour without the customBranding entitlement', async () => {
+    const existing = { id: 'sup_4', ownerUserId: 'user_4', approved: true };
+    const { app, dbUnified, checkFeatureAccess } = createApp(existing, {
+      hasCustomBranding: false,
+    });
+    const response = await request(app)
+      .patch('/api/me/suppliers/sup_4')
+      .send({ themeMode: 'custom', themeColor: '#FF00FF' })
+      .expect(403);
+
+    expect(response.body.code).toBe('FEATURE_REQUIRES_UPGRADE');
+    expect(checkFeatureAccess).toHaveBeenCalledWith('user_4', 'customBranding');
+    expect(dbUnified.updateOne).not.toHaveBeenCalled();
+  });
+
+  test('allows setting a custom theme colour with the customBranding entitlement', async () => {
+    const existing = { id: 'sup_5', ownerUserId: 'user_5', approved: true };
+    const { app, dbUnified } = createApp(existing, { hasCustomBranding: true });
+    const response = await request(app)
+      .patch('/api/me/suppliers/sup_5')
+      .send({ themeMode: 'custom', themeColor: '#FF00FF' })
+      .expect(200);
+
+    expect(response.body.supplier.themeMode).toBe('custom');
+    expect(dbUnified.updateOne).toHaveBeenCalledWith(
+      'suppliers',
+      { id: 'sup_5' },
+      expect.objectContaining({ $set: expect.objectContaining({ themeColor: '#FF00FF' }) })
+    );
+  });
+
+  test('does not re-check the entitlement for an unrelated PATCH that leaves an existing custom theme untouched', async () => {
+    const existing = {
+      id: 'sup_6',
+      ownerUserId: 'user_6',
+      approved: true,
+      themeMode: 'custom',
+      themeColor: '#00FFAA',
+    };
+    const { app, checkFeatureAccess } = createApp(existing, { hasCustomBranding: false });
+    await request(app)
+      .patch('/api/me/suppliers/sup_6')
+      .send({ tagline: 'Now booking for 2027' })
+      .expect(200);
+
+    expect(checkFeatureAccess).not.toHaveBeenCalled();
   });
 });

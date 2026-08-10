@@ -499,6 +499,59 @@ async function cancelSubscription(subscriptionId, reason = null, immediately = f
   return updated;
 }
 
+/**
+ * Cancel a user's live Stripe subscription and mark it canceled locally.
+ *
+ * Account deletion must not leave a Stripe subscription billing someone who
+ * no longer has an account, a dashboard, or a Billing Portal link to cancel
+ * it themselves — see routes/profile.js (self-service delete) and
+ * services/adminUserDeletion.service.js (admin-driven delete), both of which
+ * call this before removing the user record.
+ *
+ * Cancels immediately rather than at period end: the account (and any
+ * remaining service period the customer could still use) is being deleted
+ * right now, so there is nothing left to run out the period for.
+ *
+ * Best-effort by design — a Stripe API failure is logged loudly (so it can
+ * be caught and cancelled manually from the Stripe dashboard) but does not
+ * throw, so a billing hiccup never blocks someone from deleting their own
+ * account.
+ * @param {string} userId
+ * @returns {Promise<void>}
+ */
+async function cancelSubscriptionForAccountDeletion(userId) {
+  const subscription = await getSubscriptionByUserId(userId);
+  if (!subscription || subscription.status === 'canceled') {
+    return;
+  }
+
+  if (subscription.stripeSubscriptionId) {
+    try {
+      const paymentService = require('./paymentService');
+      if (paymentService.STRIPE_ENABLED) {
+        await paymentService.cancelStripeSubscription(subscription.stripeSubscriptionId, true);
+      }
+    } catch (err) {
+      logger.error(
+        `cancelSubscriptionForAccountDeletion: Stripe cancellation FAILED for user ${userId}, ` +
+          `subscription ${subscription.stripeSubscriptionId} — MANUAL CANCELLATION REQUIRED in ` +
+          `the Stripe dashboard:`,
+        err.message
+      );
+    }
+  }
+
+  try {
+    await cancelSubscription(subscription.id, 'Account deleted', true);
+  } catch (err) {
+    logger.error(
+      `cancelSubscriptionForAccountDeletion: failed to update local subscription record for ` +
+        `user ${userId}:`,
+      err.message
+    );
+  }
+}
+
 async function getFallbackUserTier(userId) {
   const user = await dbUnified.findOne('users', { id: userId });
   if (user?.subscriptionTier && user.subscriptionTier !== 'free' && isFuture(user.proExpiresAt)) {
@@ -637,6 +690,15 @@ async function addBillingRecord(subscriptionId, billingRecord) {
     throw new Error('Subscription not found');
   }
   const billingHistory = subscription.billingHistory || [];
+  // Idempotency: if a webhook handler fails partway through after this step
+  // already ran, Stripe retries the whole event from the top. Without this
+  // check, the retry would push a second line item for the same invoice.
+  if (
+    billingRecord.invoiceId &&
+    billingHistory.some(record => record.invoiceId === billingRecord.invoiceId)
+  ) {
+    return subscription;
+  }
   billingHistory.push({
     invoiceId: billingRecord.invoiceId,
     amount: billingRecord.amount,
@@ -704,7 +766,9 @@ module.exports = {
   downgradeSubscription,
   applyPendingPlan,
   cancelSubscription,
+  cancelSubscriptionForAccountDeletion,
   checkFeatureAccess,
+  getFallbackUserTier,
   refreshUserEntitlements,
   getUserFeatures,
   getNumericAllowance,

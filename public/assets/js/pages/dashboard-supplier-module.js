@@ -812,6 +812,33 @@ async function displaySubscriptionStatus() {
       }
     }
 
+    // A failed payment drops entitlement (and therefore user.subscriptionTier)
+    // to 'free' immediately — see webhooks/stripeWebhookHandler.js
+    // handleInvoicePaymentFailed. Without this check that state renders
+    // identically to "never subscribed", with no indication the supplier
+    // lost access because a card was declined rather than by choice.
+    if (subscriptionRecord?.status === 'past_due') {
+      const pastDuePlanLabel =
+        TIER_LABELS[subscriptionRecord.plan] || subscriptionRecord.plan || 'your plan';
+      container.innerHTML = `
+        <div class="sd-subscription-past-due">
+          <div class="sd-subscription-past-due__plan-row">
+            <span class="sd-subscription-past-due__badge">⚠️ Payment failed</span>
+          </div>
+          <p class="sd-subscription-past-due__message">Your last payment for <strong>${pastDuePlanLabel}</strong> didn't go through, so premium features are paused. Update your payment method to restore them — we'll also retry the charge automatically.</p>
+          <div class="sd-subscription-manage-row">
+            <button type="button" id="sd-subscription-billing-btn-past-due" class="sd-subscription-manage-btn sd-subscription-manage-btn--billing">Update payment method</button>
+            <a href="/supplier/subscription" class="sd-subscription-manage-btn">View subscription →</a>
+          </div>
+        </div>
+      `;
+      document
+        .getElementById('sd-subscription-billing-btn-past-due')
+        ?.addEventListener('click', handleManageBillingClick);
+      await updatePackageLimitDisplay();
+      return;
+    }
+
     if (currentTier !== 'free') {
       const planLabel = TIER_LABELS[currentTier] || currentTier;
       const cancelAtPeriodEnd = !!subscriptionRecord?.cancelAtPeriodEnd;

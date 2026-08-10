@@ -57,11 +57,19 @@ function tierDisplayLabel(tier) {
  * Resolve the subscription tier for a supplier from their stored record.
  *
  * Looks for:
- *   1. supplier.subscription.tier (most authoritative)
- *   2. supplier.subscriptionTier (denormalised fallback)
- *   3. supplier.isPro boolean (legacy fallback)
+ *   1. supplier.subscription.tier (most authoritative), gated on
+ *      supplier.subscription.endDate not having passed
+ *   2. supplier.subscriptionTier (denormalised fallback) and the legacy
+ *      supplier.isPro boolean, both gated on supplier.proExpiresAt not
+ *      having passed — subscriptionService.persistUserSubscriptionState
+ *      always writes those two fields together, so a lapsed grant whose
+ *      proExpiresAt is in the past must not still read as live here.
  *
- * Returns 'free' if no active paid subscription is found.
+ * Returns 'free' if no currently-live paid subscription is found. Without
+ * the expiry checks, a lapsed admin comp grant (see routes/admin.js and
+ * routes/admin-user-management.js /suppliers/:id/pro|subscription) would
+ * keep this supplier's support tickets at urgent/high priority forever,
+ * since nothing else ever flips these stored fields back on its own.
  *
  * @param {object} supplier - Raw supplier record from the database.
  * @returns {'free'|'pro'|'pro_plus'}
@@ -71,11 +79,17 @@ function resolveSupplierTierFromRecord(supplier) {
     return 'free';
   }
 
+  const now = Date.now();
+
   // Check subscription object (primary source)
   const sub = supplier.subscription;
   if (sub && sub.tier) {
     const status = sub.status;
-    if (status === 'active' || status === 'trial' || status === 'trialing') {
+    const subscriptionNotExpired = !sub.endDate || new Date(sub.endDate).getTime() > now;
+    if (
+      (status === 'active' || status === 'trial' || status === 'trialing') &&
+      subscriptionNotExpired
+    ) {
       const tier = sub.tier;
       if (tier === 'pro_plus') {
         return 'pro_plus';
@@ -87,18 +101,22 @@ function resolveSupplierTierFromRecord(supplier) {
     // expired / cancelled → fall through
   }
 
-  // Denormalised subscriptionTier field
-  const direct = supplier.subscriptionTier;
-  if (direct === 'pro_plus') {
-    return 'pro_plus';
-  }
-  if (direct === 'pro') {
-    return 'pro';
-  }
+  const proGrantNotExpired =
+    !supplier.proExpiresAt || new Date(supplier.proExpiresAt).getTime() > now;
+  if (proGrantNotExpired) {
+    // Denormalised subscriptionTier field
+    const direct = supplier.subscriptionTier;
+    if (direct === 'pro_plus') {
+      return 'pro_plus';
+    }
+    if (direct === 'pro') {
+      return 'pro';
+    }
 
-  // Legacy isPro boolean
-  if (supplier.isPro === true) {
-    return 'pro';
+    // Legacy isPro boolean
+    if (supplier.isPro === true) {
+      return 'pro';
+    }
   }
 
   return 'free';

@@ -76,6 +76,13 @@ body.pricing-redesign .pricing-account-banner__warning {
   font-weight: 500;
 }
 
+/* ── Payment-failed banner — same shape, red rather than amber ───────────── */
+
+body.pricing-redesign .pricing-account-banner--danger {
+  border-left-color: #dc2626;
+  background: #fef2f2;
+}
+
 /* ── Inline alerts ────────────────────────────────────────────────────────── */
 
 body.pricing-redesign .pricing-alert {

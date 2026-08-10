@@ -91,6 +91,29 @@ function assertDowngrade(currentPlan, newPlan) {
 }
 
 /**
+ * True when a user already has a live, paid subscription that a new
+ * Checkout Session (or a fresh direct subscription) would duplicate rather
+ * than replace. Used to stop an existing subscriber from creating a second,
+ * independently-billed Stripe subscription — Checkout has no knowledge of
+ * an existing subscription on its own, so nothing else would catch this.
+ *
+ * Deliberately keys off isLiveEntitlement + plan !== 'free' rather than
+ * `status !== 'canceled'`: a subscription record that downgraded to free
+ * (see webhooks/stripeWebhookHandler.js handleSubscriptionDeleted) ends up
+ * with status 'active' and plan 'free', not 'canceled' — that user has no
+ * live paid subscription and must be allowed to check out again.
+ * @param {Object|null} existingSub
+ * @returns {boolean}
+ */
+function hasLiveConflictingSubscription(existingSub) {
+  return !!(
+    existingSub &&
+    existingSub.plan !== 'free' &&
+    subscriptionService.isLiveEntitlement(existingSub)
+  );
+}
+
+/**
  * Schedule a downgrade between two PAID plans via a Stripe Subscription
  * Schedule, so Stripe keeps billing the subscription throughout.
  *
@@ -263,6 +286,15 @@ router.post(
       if (!resolved.priceId) {
         return res.status(503).json({
           error: 'Payment processing is not currently available. Please contact support.',
+        });
+      }
+
+      const existingSub = await subscriptionService.getSubscriptionByUserId(req.user.id);
+      if (hasLiveConflictingSubscription(existingSub)) {
+        return res.status(400).json({
+          error:
+            'You already have an active subscription. Use upgrade or downgrade on your subscription page instead of checking out again.',
+          code: 'SUBSCRIPTION_ALREADY_EXISTS',
         });
       }
 
@@ -450,7 +482,7 @@ router.post(
       }
 
       const existingSub = await subscriptionService.getSubscriptionByUserId(req.user.id);
-      if (existingSub && existingSub.status !== 'canceled') {
+      if (hasLiveConflictingSubscription(existingSub)) {
         return res.status(400).json({ error: 'Subscription already exists' });
       }
 
