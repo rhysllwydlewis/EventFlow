@@ -18,9 +18,49 @@
   --efc-accent-strong: var(--ef-primary-dark, #096b60);
   --efc-surface: var(--ef-surface, #ffffff);
   --efc-page: var(--ef-bg-muted, #f8fafb);
+  /* Community's own pale brand tint, deliberately NOT --ef-primary-light.
+     That global is declared four different ways across the site's stylesheets
+     — a pale #F2FBF9 in tokens.css, a saturated #13B6A2 in navbar.css and in
+     home-v2-navbar-parity.css, #0C9688 in design-tokens.css — and navbar.css
+     loads after tokens.css on every community page, so the pale value never
+     won here. The list and category hero was written for the pale tint (its
+     own literal fallback said so) but painted a saturated teal slab instead,
+     which dropped its body copy to 2.84:1 — under the 4.5:1 AA minimum.
+     Scoping the tint locally means this cannot be changed out from under the
+     component by a stylesheet that knows nothing about it. */
+  --efc-tint: #f2fbf9;
   --efc-gap: 1.25rem;
+  /* Liquid-glass surface tokens: translucent panes over the page's brand-tinted
+     background rather than flat white cards. Kept as tokens, not a class
+     applied via HTML, so every surface below opts in through its own rule and
+     a browser without backdrop-filter support still gets a legible, near-solid
+     card — see the @supports block beside each surface that uses these. */
+  --efc-glass-bg: rgba(255, 255, 255, 0.66);
+  --efc-glass-bg-strong: rgba(255, 255, 255, 0.8);
+  --efc-glass-border: 1px solid rgba(255, 255, 255, 0.85);
+  --efc-glass-blur: blur(20px) saturate(160%);
+  --efc-glass-blur-sm: blur(12px) saturate(150%);
+  /* The inset highlight is what reads as "glass" rather than "translucent
+     plastic": a thin light line along the top edge, as if catching light. */
+  --efc-glass-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.75), 0 1px 2px rgba(15, 23, 42, 0.05),
+    0 20px 44px rgba(15, 23, 42, 0.09);
+  --efc-glass-shadow-sm:
+    inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 1px 2px rgba(15, 23, 42, 0.05),
+    0 10px 24px rgba(15, 23, 42, 0.07);
   background: var(--efc-page);
   color: #1a1f2e;
+}
+
+/* Fallback for browsers without backdrop-filter: an opaque-enough surface
+   still separates from the page without relying on blur to hide what's under
+   it. Applied per-surface below rather than globally, since some elements
+   (badges, inputs) intentionally stay solid regardless of glass support. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .efc {
+    --efc-glass-bg: var(--efc-surface);
+    --efc-glass-bg-strong: var(--efc-surface);
+  }
 }
 
 /* ── Skip link ─────────────────────────────────────────────────────────── */
@@ -58,14 +98,19 @@
     align-items: start;
   }
 
-  /* The sidebar scrolls with the page but never dictates page height, so a long
-     category list cannot leave a column of dead whitespace beside the feed. */
+  /* Sticky to the BOTTOM edge, and deliberately not its own scroll container.
+     Pinning the top of a column that is taller than the viewport makes its
+     lower half unreachable: it stops moving while the page keeps going, so the
+     last cards can only be found by discovering a second, nested scrollbar.
+     Here that hid 1068px of 1936px — more than half the sidebar, including the
+     guidelines card that is supposed to be read before posting.
+     Sticking the bottom edge instead lets the whole column scroll past
+     normally and only then pins it, so every card is reachable with the page
+     scroll alone and nothing is ever sliced mid-item. */
   .efc-grid--sidebar > .efc-side {
     position: sticky;
-    top: 1rem;
-    max-height: calc(100vh - 2rem);
-    overflow-y: auto;
-    scrollbar-width: thin;
+    top: auto;
+    bottom: 1rem;
   }
 }
 
@@ -214,20 +259,18 @@
   text-align: center;
   padding: 2.5rem 1.5rem;
   border-radius: 24px;
-  background: rgba(255, 255, 255, 0.78);
-  border: 1px solid rgba(255, 255, 255, 0.9);
-  box-shadow:
-    0 1px 2px rgba(15, 23, 42, 0.04),
-    0 18px 48px rgba(15, 23, 42, 0.07);
+  background: var(--efc-glass-bg-strong);
+  border: var(--efc-glass-border);
+  box-shadow: var(--efc-glass-shadow);
 }
 
 /* backdrop-filter is progressive: without it the card is still legible on the
-   0.78 white fill, so it is applied only where supported rather than being
-   propped up with a fallback. */
+   glass-bg-strong fill (near-opaque white without support), so it is applied
+   only where supported rather than being propped up with a fallback. */
 @supports (backdrop-filter: blur(8px)) or (-webkit-backdrop-filter: blur(8px)) {
   .efc-stage__card {
-    -webkit-backdrop-filter: blur(10px);
-    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: var(--efc-glass-blur);
+    backdrop-filter: var(--efc-glass-blur);
   }
 }
 
@@ -376,6 +419,9 @@
 }
 
 .efc-cta--ghost {
+  /* Solid white, not the translucent glass token: this button sits on the
+     already-translucent hero card, and stacking two glass layers here
+     softened the border past the point of reading as a button. */
   background: #fff;
   border-color: rgba(11, 128, 115, 0.35);
   /* --efc-accent-strong rather than --efc-accent: 6.40:1 against white. */
@@ -407,21 +453,33 @@
   gap: 0.875rem;
 }
 
-/* Below the flanking breakpoint the two rails sit under the hero as one
-   ordinary set of cards, two across where there is room for it. */
-@media (min-width: 640px) and (max-width: 1199px) {
-  .efc-rail__list {
+/* Below the flanking breakpoint the two rails sit under the hero. Each rail
+   keeps its own single column and the two sit side by side, rather than each
+   rail becoming a two-across grid of its own: a rail holds three cards, and
+   three cards in a two-column grid leave an empty cell punched through the
+   middle of the layout. Side-by-side columns stay full whatever the count. */
+@media (min-width: 768px) and (max-width: 1199px) {
+  .efc-stage__inner {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.5rem;
+  }
+  .efc-stage__card {
+    grid-column: 1 / -1;
   }
 }
 
 .efc-preview {
-  background: #fff;
-  border: var(--efc-border);
+  background: var(--efc-glass-bg);
+  border: var(--efc-glass-border);
   border-radius: 16px;
-  box-shadow:
-    0 1px 2px rgba(15, 23, 42, 0.04),
-    0 10px 24px rgba(15, 23, 42, 0.06);
+  box-shadow: var(--efc-glass-shadow-sm);
+}
+
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .efc-preview {
+    -webkit-backdrop-filter: var(--efc-glass-blur-sm);
+    backdrop-filter: var(--efc-glass-blur-sm);
+  }
 }
 
 /* The staggered inset is what makes the rails read as floating around the hero
@@ -545,19 +603,106 @@
 }
 
 /* A site can have far more categories than fit on one row, and a strip that
-   simply ends at the edge reads as the whole list. The fade says there is more
-   to the right. It is pointer-transparent so it never eats a click, and it is
-   only ever a hint — the same categories are listed in full in the sidebar. */
-.efc-catstrip::after {
-  content: '';
+   simply ends at the edge reads as the whole list rather than a scrollable one.
+   Each edge carries a scrim that fades the sliced tile out into the strip's own
+   surface, with a real scroll button sitting on top of it.
+
+   Two earlier attempts were worse and are worth recording: a white-on-white
+   scrim over tiles that are already near-white was invisible, and a decorative
+   chevron badge on a see-through scrim landed directly on top of the next
+   tile's live text, which reads as a rendering fault. The scrim therefore
+   fades to near-opaque — its job is to hide the cut edge cleanly — and the
+   button, not the gradient, is what signals that the strip scrolls. */
+.efc-catstrip__edge {
   position: absolute;
   top: 0.75rem;
   bottom: 0.75rem;
-  right: 1rem;
-  width: 3rem;
-  border-radius: 0 20px 20px 0;
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.92));
+  width: 5rem;
+  display: flex;
+  align-items: center;
+  /* The scrim must never swallow a click meant for a tile; only the button
+     inside it is interactive. */
   pointer-events: none;
+  z-index: 1;
+}
+
+.efc-catstrip__edge[hidden] {
+  display: none;
+}
+
+.efc-catstrip__edge--start {
+  left: 1rem;
+  justify-content: flex-start;
+  border-radius: 20px 0 0 20px;
+  background: linear-gradient(270deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.97) 62%);
+}
+
+.efc-catstrip__edge--end {
+  right: 1rem;
+  justify-content: flex-end;
+  border-radius: 0 20px 20px 0;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.97) 62%);
+}
+
+.efc-catstrip__nav {
+  pointer-events: auto;
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  background: var(--efc-accent);
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(11, 128, 115, 0.35);
+  transition:
+    background-color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.efc-catstrip__nav svg {
+  width: 17px;
+  height: 17px;
+}
+
+.efc-catstrip__nav:hover {
+  background: var(--efc-accent-strong);
+  transform: scale(1.06);
+}
+
+.efc-catstrip__nav:focus-visible {
+  outline: 3px solid var(--efc-accent-strong);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .efc-catstrip__nav {
+    transition: none;
+  }
+  .efc-catstrip__nav:hover {
+    transform: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .efc-catstrip__edge {
+    background: none;
+  }
+  .efc-catstrip__nav {
+    border: 2px solid #1a1f2e;
+  }
+}
+
+@media (forced-colors: active) {
+  .efc-catstrip__edge {
+    background: none;
+  }
+  .efc-catstrip__nav {
+    border: 1px solid ButtonText;
+  }
 }
 
 .efc-catstrip__scroller {
@@ -566,17 +711,28 @@
   display: flex;
   gap: 0.5rem;
   padding: 0.75rem;
-  background: rgba(255, 255, 255, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.9);
+  background: var(--efc-glass-bg-strong);
+  border: var(--efc-glass-border);
   border-radius: 20px;
-  box-shadow:
-    0 1px 2px rgba(15, 23, 42, 0.04),
-    0 12px 32px rgba(15, 23, 42, 0.06);
+  box-shadow: var(--efc-glass-shadow-sm);
   overflow-x: auto;
   scroll-snap-type: x proximity;
+  /* Match the scroller's own padding, so a tile's snap position lines up with
+     where the tile is actually drawn. Without this the first tile snaps to
+     scrollLeft: 12px at rest rather than 0, which is enough to make the strip
+     report itself as already scrolled and show a "scroll left" button on a
+     strip nobody has touched yet. */
+  scroll-padding-inline: 0.75rem;
   /* Reserve the scrollbar's space so the strip does not jump by a few pixels
      when the list becomes long enough to scroll. */
   scrollbar-width: thin;
+}
+
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .efc-catstrip__scroller {
+    -webkit-backdrop-filter: var(--efc-glass-blur);
+    backdrop-filter: var(--efc-glass-blur);
+  }
 }
 
 .efc-catstrip__item {
@@ -704,7 +860,13 @@
   }
   .efc-stage__card,
   .efc-preview,
-  .efc-catstrip__scroller {
+  .efc-catstrip__scroller,
+  .efc-discussion,
+  .efc-post,
+  .efc-side__card,
+  .efc-action,
+  .efc-reaction,
+  .efc-tab {
     border: 1px solid CanvasText;
   }
   .efc-preview__dot {
@@ -715,7 +877,7 @@
 /* ── Hero ──────────────────────────────────────────────────────────────── */
 
 .efc-hero {
-  background: linear-gradient(135deg, var(--ef-primary-light, #f2fbf9) 0%, var(--efc-page) 65%);
+  background: linear-gradient(135deg, var(--efc-tint) 0%, var(--efc-page) 65%);
   border-bottom: var(--efc-border);
   padding: 2.5rem 0 2rem;
 }
@@ -794,21 +956,70 @@
 }
 
 .efc-discussion {
-  background: var(--efc-surface);
-  border: var(--efc-border);
+  background: var(--efc-glass-bg-strong);
+  border: var(--efc-glass-border);
   border-radius: var(--efc-radius);
-  box-shadow: var(--efc-shadow);
+  box-shadow: var(--efc-glass-shadow-sm);
   padding: 1rem 1.125rem;
   /* Avatar beside the text: a column of faces gives the eye something to track
      down a long list, which a wall of same-weight paragraphs does not. */
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 0.875rem;
   align-items: start;
+  transition:
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
+}
+
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .efc-discussion {
+    -webkit-backdrop-filter: var(--efc-glass-blur-sm);
+    backdrop-filter: var(--efc-glass-blur-sm);
+  }
+}
+
+@media (hover: hover) {
+  .efc-discussion:hover {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.75),
+      0 1px 2px rgba(15, 23, 42, 0.05),
+      0 16px 32px rgba(15, 23, 42, 0.1);
+    transform: translateY(-1px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .efc-discussion {
+    transition: none;
+  }
+  .efc-discussion:hover {
+    transform: none;
+  }
 }
 
 .efc-discussion__main {
   min-width: 0;
+}
+
+/* A card whose discussion actually has a photo attachment shows it here, the
+   same signal previewCard already gives the hero rails. A long list of cards
+   with identical avatar-only left edges reads as flatter and less alive than
+   the community actually is. Cards without a photo simply keep the two-column
+   layout: this column collapses to nothing rather than leaving a gap. */
+.efc-discussion__thumb {
+  grid-column: 3;
+  width: 84px;
+  height: 84px;
+  border-radius: 12px;
+  object-fit: cover;
+  background: var(--efc-accent-soft);
+}
+
+@media (max-width: 639px) {
+  .efc-discussion__thumb {
+    display: none;
+  }
 }
 
 /* An unanswered question is the one a reader can most usefully act on. */
@@ -868,9 +1079,34 @@
   margin: 0;
 }
 
-.efc-meta__dot::before {
+/* The separator hangs off the END of the item before it, not the start of the
+   item it precedes. `.efc-meta` is a wrapping flex row, so a leading separator
+   becomes the first thing on every wrapped line — on a 390px thread header
+   that produced lines literally beginning "· Corporate event". Trailing the
+   previous item instead means a separator can only ever finish a line, which
+   reads as a continuation rather than a typo.
+
+   `:has()` is what makes this possible without touching the markup: style the
+   element that is followed by a separator item. Where it is unsupported no
+   separator renders at all and the row falls back to its flex `gap`, which is
+   still perfectly legible — never a misplaced glyph. */
+.efc-meta > *:has(+ .efc-meta__dot)::after {
   content: '·';
-  margin-right: 0.5rem;
+  margin-left: 0.75rem;
+}
+
+/* On a narrow screen this row wraps whatever we do — a post header carries a
+   date, a category, an event type and a region — so a separator can only ever
+   dangle at the end of a line instead of sitting between two items, which is
+   what it is for. Below the tablet breakpoint the spacing does the separating
+   on its own and the glyphs are dropped entirely. */
+@media (max-width: 767px) {
+  .efc-meta {
+    column-gap: 1rem;
+  }
+  .efc-meta > *:has(+ .efc-meta__dot)::after {
+    content: none;
+  }
 }
 
 /* ── Badges and flags ──────────────────────────────────────────────────── */
@@ -884,7 +1120,20 @@
   font-size: 0.75rem;
   font-weight: 600;
   border: 1px solid transparent;
-  white-space: nowrap;
+  /* Deliberately not `nowrap`, and capped at the container width. Badge text is
+     not always the short label this component was designed around — an operator
+     can name a category anything, and the official-answer badge used to carry a
+     whole verification sentence. A badge that cannot wrap widens its parent
+     instead, which pushed the whole thread page sideways on a 390px screen.
+     Short labels are unaffected: they never reach the cap in the first place. */
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+/* Metadata that qualifies a badge without being part of its label. */
+.efc-verified {
+  font-size: 0.75rem;
+  color: var(--efc-muted);
 }
 
 .efc-badge--solved {
@@ -1081,12 +1330,23 @@
   min-height: 44px;
   padding: 0.5rem 0.875rem;
   border-radius: 999px;
-  border: var(--efc-border);
-  background: #fff;
+  border: var(--efc-glass-border);
+  background: var(--efc-glass-bg-strong);
   font-size: 0.875rem;
   font-weight: 600;
   color: #334155;
   cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .efc-tab {
+    -webkit-backdrop-filter: var(--efc-glass-blur-sm);
+    backdrop-filter: var(--efc-glass-blur-sm);
+  }
 }
 
 .efc-tab[aria-selected='true'] {
@@ -1098,28 +1358,51 @@
 /* ── Thread ────────────────────────────────────────────────────────────── */
 
 .efc-post {
-  background: var(--efc-surface);
-  border: var(--efc-border);
+  background: var(--efc-glass-bg-strong);
+  border: var(--efc-glass-border);
   border-radius: var(--efc-radius);
-  box-shadow: var(--efc-shadow);
+  box-shadow: var(--efc-glass-shadow-sm);
   padding: 1.125rem;
   margin-bottom: 0.75rem;
 }
 
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .efc-post {
+    -webkit-backdrop-filter: var(--efc-glass-blur-sm);
+    backdrop-filter: var(--efc-glass-blur-sm);
+  }
+}
+
+/* The helpful/official rings stay as their own colour rather than tinting the
+   glass itself: a tinted blur over an arbitrary photo or code block in the
+   post body would wash it out, where a ring only touches the card's edge. */
 .efc-post--answer {
   border-color: #b8e6cd;
-  box-shadow: 0 0 0 2px #e7f7ef inset;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.75),
+    0 0 0 2px #e7f7ef inset,
+    0 10px 24px rgba(15, 23, 42, 0.07);
 }
 
 .efc-post--official {
   border-color: #c7d2fe;
-  box-shadow: 0 0 0 2px #eef2ff inset;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.75),
+    0 0 0 2px #eef2ff inset,
+    0 10px 24px rgba(15, 23, 42, 0.07);
 }
 
 .efc-post--withdrawn {
   background: #f8fafc;
   color: var(--efc-muted);
   font-style: italic;
+}
+
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .efc-post--withdrawn {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
 }
 
 /* Arriving from a permalink, the reply you were sent to is marked so you can
@@ -1241,18 +1524,89 @@
   gap: 0.375rem;
   padding: 0.375rem 0.75rem;
   border-radius: 8px;
-  border: var(--efc-border);
-  background: #fff;
+  border: var(--efc-glass-border);
+  background: var(--efc-glass-bg-strong);
   font-size: 0.8125rem;
   font-weight: 600;
   color: #334155;
   cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .efc-action {
+    -webkit-backdrop-filter: var(--efc-glass-blur-sm);
+    backdrop-filter: var(--efc-glass-blur-sm);
+  }
+}
+
+.efc-action:hover {
+  border-color: var(--efc-accent);
 }
 
 .efc-action[aria-pressed='true'] {
   background: var(--efc-accent-soft);
   border-color: var(--efc-accent);
-  color: var(--efc-accent);
+  color: var(--efc-accent-strong);
+}
+
+/* ── Reactions ─────────────────────────────────────────────────────────── */
+
+.efc-reactions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  margin-top: 0.875rem;
+}
+
+.efc-reaction {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0.625rem;
+  border-radius: 999px;
+  border: var(--efc-glass-border);
+  background: var(--efc-glass-bg-strong);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: #334155;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.1s ease;
+}
+
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .efc-reaction {
+    -webkit-backdrop-filter: var(--efc-glass-blur-sm);
+    backdrop-filter: var(--efc-glass-blur-sm);
+  }
+}
+
+.efc-reaction:hover {
+  border-color: var(--efc-accent);
+  transform: translateY(-1px);
+}
+
+.efc-reaction[aria-pressed='true'] {
+  background: var(--efc-accent-soft);
+  border-color: var(--efc-accent);
+  color: var(--efc-accent-strong);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .efc-reaction {
+    transition: none;
+  }
+  .efc-reaction:hover {
+    transform: none;
+  }
 }
 
 .efc-disclosure {
@@ -1414,11 +1768,18 @@
 }
 
 .efc-side__card {
-  background: var(--efc-surface);
-  border: var(--efc-border);
+  background: var(--efc-glass-bg-strong);
+  border: var(--efc-glass-border);
   border-radius: var(--efc-radius);
-  box-shadow: var(--efc-shadow);
+  box-shadow: var(--efc-glass-shadow-sm);
   padding: 1rem 1.125rem;
+}
+
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .efc-side__card {
+    -webkit-backdrop-filter: var(--efc-glass-blur-sm);
+    backdrop-filter: var(--efc-glass-blur-sm);
+  }
 }
 
 .efc-side__card h2 {
@@ -1636,7 +1997,18 @@
 }
 
 .efc-dialog::backdrop {
-  background: rgba(15, 23, 42, 0.5);
+  background: rgba(15, 23, 42, 0.44);
+}
+
+/* The dialog itself stays solid — a form is not a place to reduce legibility
+   for a look. The frosted glass moves here instead, to the scrim behind it:
+   the page blurs, the sheet in front of it stays crisp, matching how
+   Liquid-Glass sheet presentations actually work. */
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .efc-dialog::backdrop {
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+  }
 }
 
 .efc-dialog__body {
@@ -1807,5 +2179,12 @@
   .efc {
     --efc-muted: #333b4d;
     --efc-border: 1px solid #1a1f2e;
+    /* Someone asking for more contrast does not want their cards blurred and
+       see-through: collapse the glass tokens to solid, sharp-edged surfaces. */
+    --efc-glass-bg: var(--efc-surface);
+    --efc-glass-bg-strong: var(--efc-surface);
+    --efc-glass-border: 1px solid #1a1f2e;
+    --efc-glass-blur: none;
+    --efc-glass-blur-sm: none;
   }
 }

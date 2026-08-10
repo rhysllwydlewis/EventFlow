@@ -44,7 +44,7 @@
               <h1>${EFC.esc(m.displayName)}</h1>
               <p class="efc-meta">@${EFC.esc(m.handle)} ${EFC.authorBadges(m)}</p>
               <p class="efc-meta">
-                ${m.memberSince ? `Member since ${EFC.esc(EFC.shortDate(m.memberSince))}` : ''}
+                ${m.memberSince ? `<span>Member since ${EFC.esc(EFC.shortDate(m.memberSince))}</span>` : ''}
                 ${context.map(item => `<span class="efc-meta__dot">${item}</span>`).join('')}
               </p>
             </div>

@@ -111,8 +111,72 @@
       })
       .join('');
 
-    strip.innerHTML = `<nav aria-label="Browse by category"><ul class="efc-catstrip__scroller">${tiles}</ul></nav>`;
+    // The nav buttons are a pointer affordance layered over a scroller that is
+    // already fully reachable without them: every tile is a link, so tabbing
+    // scrolls the strip natively, and the same categories are listed in the
+    // sidebar. They are therefore hidden from assistive technology and taken
+    // out of the tab order rather than announced as controls that duplicate
+    // navigation a screen-reader user already has.
+    const navButton = (dir, label, path) =>
+      `<div class="efc-catstrip__edge efc-catstrip__edge--${dir}" data-edge="${dir}" hidden>
+        <button type="button" class="efc-catstrip__nav" data-scroll="${dir}" tabindex="-1" aria-hidden="true" title="${label}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${path}"/></svg>
+        </button>
+      </div>`;
+
+    strip.innerHTML = `<nav aria-label="Browse by category"><ul class="efc-catstrip__scroller">${tiles}</ul></nav>${navButton(
+      'start',
+      'Scroll categories left',
+      'm15 6-6 6 6 6'
+    )}${navButton('end', 'Scroll categories right', 'm9 6 6 6-6 6')}`;
     strip.hidden = false;
+    wireCategoryStrip(strip);
+  }
+
+  /**
+   * Make the category strip's edge buttons scroll it, and show each one only
+   * while there is actually something to scroll to in that direction.
+   * @param {HTMLElement} strip The `#efc-catstrip` container.
+   * @returns {void} Nothing.
+   */
+  function wireCategoryStrip(strip) {
+    const scroller = strip.querySelector('.efc-catstrip__scroller');
+    const startEdge = strip.querySelector('[data-edge="start"]');
+    const endEdge = strip.querySelector('[data-edge="end"]');
+    if (!scroller || !startEdge || !endEdge) {
+      return;
+    }
+
+    /**
+     * Show or hide each edge from the scroller's current position.
+     * @returns {void} Nothing.
+     */
+    function sync() {
+      // A sub-pixel gap is not "more content": rounding at some zoom levels
+      // leaves a fraction of a pixel and would otherwise strand a button that
+      // scrolls nowhere.
+      const remaining = scroller.scrollWidth - scroller.clientWidth - scroller.scrollLeft;
+      startEdge.hidden = scroller.scrollLeft <= 1;
+      endEdge.hidden = remaining <= 1;
+    }
+
+    strip.querySelectorAll('[data-scroll]').forEach(button => {
+      button.addEventListener('click', () => {
+        const direction = button.dataset.scroll === 'start' ? -1 : 1;
+        const reduced =
+          window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        // Just under a full width, so the tile at the edge stays partly in view
+        // and the reader keeps their place instead of jumping to a fresh set.
+        scroller.scrollBy({
+          left: direction * scroller.clientWidth * 0.8,
+          behavior: reduced ? 'auto' : 'smooth',
+        });
+      });
+    });
+
+    scroller.addEventListener('scroll', sync, { passive: true });
+    window.addEventListener('resize', sync);
+    sync();
   }
 
   /**

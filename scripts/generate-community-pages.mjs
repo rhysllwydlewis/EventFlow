@@ -25,9 +25,18 @@ const ASSET_VERSION = '18.3.0';
 const ASSET_VERSIONS = {
   '/assets/css/styles.css': '18.5.0',
   '/assets/css/mobile-optimizations.css': '18.4.0',
-  '/assets/css/community.css': '18.5.0',
-  '/assets/js/community/core.js': '18.4.0',
-  '/assets/js/community/home.js': '18.4.0',
+  // 18.6.0: the glass surface tokens, the sidebar and rail layout fixes, the
+  // hero tint that repairs its contrast, the category strip's scroll buttons,
+  // the four-way reactions and the metadata separator rules all ship together.
+  // Static CSS/JS is served `public, max-age=604800`, so a returning visitor
+  // holds the previous copy for up to a week: without a new query string they
+  // would keep the old stylesheet against this markup and see, for example,
+  // the strip's scroll buttons with none of the styling that positions them.
+  '/assets/css/community.css': '18.6.0',
+  '/assets/js/community/core.js': '18.6.0',
+  '/assets/js/community/home.js': '18.6.0',
+  '/assets/js/community/thread.js': '18.6.0',
+  '/assets/js/community/member.js': '18.6.0',
   '/assets/js/community/composer.js': '18.5.2',
 };
 
