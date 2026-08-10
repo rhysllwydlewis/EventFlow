@@ -89,8 +89,17 @@
 
     <link rel="preload" href="/assets/css/home-v2.css?v=11" as="style" />
     <link rel="preload" href="/assets/css/home-v2-parity.css?v=4" as="style" />
+    <link rel="preload" href="/assets/css/hero-modern.css?v=18.3.0" as="style" />
+    <link rel="preload" href="/assets/css/ef-search-bar.css?v=18.3.0" as="style" />
     <link rel="stylesheet" href="/assets/css/home-v2.css?v=11" />
     <link rel="stylesheet" href="/assets/css/home-v2-parity.css?v=4" />
+    <!-- Hero parity with the V1 homepage. hero-modern.css and ef-search-bar.css are
+         fully namespaced so they drop in cleanly; home-v2-hero-parity.css carries the
+         scoped rules the V1 hero would otherwise inherit from global stylesheets. -->
+    <link rel="stylesheet" href="/assets/css/hero-modern.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/ef-search-bar.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/eventflow-brand.css?v=1.0.0" data-eventflow-brand="true" />
+    <link rel="stylesheet" href="/assets/css/home-v2-hero-parity.css?v=1" />
     <link rel="stylesheet" href="/assets/css/error-boundary.css?v=18.3.0" />
     <link rel="stylesheet" href="/assets/css/loading-skeleton.css?v=2.0.1" />
     <link rel="icon" href="/favicon.ico" sizes="any" />
@@ -108,11 +117,8 @@
     <a class="hv2-skip" href="#main-content">Skip to main content</a>
 
     <header class="hv2-header" role="banner">
-      <a class="hv2-brand" href="/" aria-label="EventFlow home">
-        <span class="hv2-brand__mark" aria-hidden="true">
-          <span></span><span></span>
-        </span>
-        <span>EventFlow</span>
+      <a class="hv2-brand ef-brand" href="/" aria-label="EventFlow home">
+        <span class="ef-brand-text">EventFlow</span>
       </a>
 
       <nav class="hv2-nav" aria-label="Primary navigation">
@@ -140,7 +146,7 @@
           </svg>
           <span id="hv2-notification-badge" class="hv2-badge-dot" aria-hidden="true"></span>
         </button>
-        <a id="hv2-auth-link" class="hv2-button hv2-button--ghost hv2-auth-link" href="/auth">Sign in</a>
+        <a id="hv2-auth-link" class="hv2-button hv2-button--ghost hv2-auth-link" href="/auth">Log in</a>
         <a class="hv2-button hv2-button--ghost hv2-dashboard-link" href="/dashboard" data-hv2-dashboard-link>Dashboard</a>
         <a class="hv2-button hv2-button--solid" href="/start">Start planning</a>
         <button
@@ -181,77 +187,196 @@
     </div>
 
     <main id="main-content">
-      <section class="hv2-hero" aria-labelledby="hv2-title">
-        <div class="hv2-hero__image" aria-hidden="true"></div>
-        <div class="hv2-hero__shade" aria-hidden="true"></div>
+      <section class="hero hero-modern">
+        <div class="hero-bg-gradient"></div>
+        <div class="hero-blob hero-blob-1 ef-float"></div>
+        <div class="hero-blob hero-blob-2 ef-float slow"></div>
+        <div class="hero-grid-texture"></div>
 
-        <div class="hv2-shell hv2-hero__content">
-          <div class="hv2-hero__copy">
-            <p class="hv2-eyebrow">UK event planning marketplace</p>
-            <h1 id="hv2-title">Plan your event in one place</h1>
-            <p class="hv2-hero__lead">
-              Find venues, suppliers and packages, then keep your budget, messages and checklist
-              together.
+        <div class="container hero-grid">
+          <div class="relative hero-content-inner">
+            <!-- Headline -->
+            <h1 class="ef-fade-up delay-2">
+              <span class="hero-line-1">Everything you need</span>
+              <span class="hero-line-2">to organise an event</span>
+              <span class="hero-highlight-text">
+                In one place
+                <span class="hero-highlight-bg"></span>
+              </span>
+            </h1>
+
+            <!-- Subcopy -->
+            <p class="hero-modern-subcopy ef-fade-up delay-3">
+              Find venues, catering, entertainment and more. Add options to your plan instantly,
+              message suppliers when you're ready, and keep budgets, notes and decisions together.
             </p>
 
-            <form class="hv2-search" action="/suppliers" method="GET" aria-label="Search suppliers">
-              <input type="hidden" name="category" id="hv2-category" />
-
-              <label class="hv2-search__field">
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <rect x="4" y="5" width="16" height="15" rx="2"></rect>
-                  <path d="M8 3v4M16 3v4M4 10h16"></path>
-                </svg>
-                <span>
-                  <strong>Event type</strong>
-                  <select name="eventType" id="hv2-event-type">
-                    <option value="">e.g. Wedding</option>
-                    <option value="wedding">Wedding</option>
-                    <option value="corporate">Corporate</option>
-                    <option value="party">Party</option>
-                    <option value="celebration">Celebration</option>
+            <!-- New Unified Search Component -->
+            <div class="ef-search-bar" role="search">
+              <form class="ef-search-bar__form" action="/suppliers" method="GET">
+                
+                <!-- Category Selector -->
+                <div class="ef-search-bar__segment ef-search-bar__segment--category">
+                  <label for="ef-search-category" class="sr-only">Category</label>
+                  <select id="ef-search-category" name="category" class="ef-search-bar__select">
+                    <option value="">All categories</option>
+                    <option value="Venues">Venues</option>
+                    <option value="Catering">Catering</option>
+                    <option value="Photography">Photography</option>
+                    <option value="Videography">Videography</option>
+                    <option value="Entertainment">Entertainment</option>
+                    <option value="Music/DJ">Music/DJ</option>
+                    <option value="Florist">Florist</option>
+                    <option value="Decor">Decor</option>
+                    <option value="Transport">Transport</option>
+                    <option value="Cake">Cake</option>
+                    <option value="Stationery">Stationery</option>
+                    <option value="Hair &amp; Makeup">Hair &amp; Makeup</option>
+                    <option value="Beauty">Beauty</option>
+                    <option value="Bridalwear">Bridalwear</option>
+                    <option value="Jewellery">Jewellery</option>
+                    <option value="Celebrant">Celebrant</option>
+                    <option value="Event Planner">Event Planner</option>
+                    <option value="Wedding Fayre">Wedding Fayre</option>
+                    <option value="Planning">Planning</option>
+                    <option value="Other">Other</option>
                   </select>
-                </span>
-              </label>
+                  <svg class="ef-search-bar__select-icon" aria-hidden="true" width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd"/>
+                  </svg>
+                </div>
 
-              <label class="hv2-search__field">
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M12 21s7-6.1 7-12a7 7 0 1 0-14 0c0 5.9 7 12 7 12Z"></path>
-                  <circle cx="12" cy="9" r="2.5"></circle>
-                </svg>
-                <span>
-                  <strong>Location</strong>
-                  <input
-                    id="hv2-location"
-                    name="location"
-                    type="search"
-                    placeholder="e.g. London"
-                    autocomplete="postal-code"
+                <!-- Divider -->
+                <div class="ef-search-bar__divider" aria-hidden="true"></div>
+
+                <!-- Search Input -->
+                <div class="ef-search-bar__segment ef-search-bar__segment--input">
+                  <svg class="ef-search-bar__input-icon" aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"/>
+                    <path d="m21 21-4.35-4.35"/>
+                  </svg>
+                  <label for="ef-search-input" class="sr-only">Search</label>
+                  <input 
+                    type="search" 
+                    id="ef-search-input" 
+                    name="q" 
+                    class="ef-search-bar__input"
+                    placeholder="Search suppliers, packages..."
+                    autocomplete="off"
+                    autocapitalize="off"
+                    spellcheck="false"
                   />
-                </span>
-              </label>
+                </div>
 
-              <label class="hv2-search__field hv2-search__field--wide">
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <circle cx="11" cy="11" r="7"></circle>
-                  <path d="m16.5 16.5 4 4"></path>
+                <!-- Submit Button -->
+                <button type="submit" class="ef-search-bar__button" aria-label="Search">
+                  <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <circle cx="11" cy="11" r="8"/>
+                    <path d="m21 21-4.35-4.35"/>
+                  </svg>
+                </button>
+
+              </form>
+            </div>
+
+            <!-- Quick Search Tags -->
+            <div class="ef-quick-tags" role="group" aria-label="Popular searches">
+              <button type="button" class="ef-cta ef-quick-tags__tag" data-search="london venues">
+                London venues
+              </button>
+              <button type="button" class="ef-cta ef-quick-tags__tag" data-search="canapés drinks">
+                Canapés & drinks
+              </button>
+              <button type="button" class="ef-cta ef-quick-tags__tag" data-search="dj packages">
+                DJ packages
+              </button>
+              <button type="button" class="ef-cta ef-quick-tags__tag" data-search="corporate">
+                Corporate
+              </button>
+            </div>
+
+            <!-- CTAs -->
+            <div class="hero-modern-ctas">
+              <a
+                href="/start"
+                class="hero-cta-base hero-cta-primary"
+              >
+                <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M5 12h14m-7-7 7 7-7 7"/>
                 </svg>
-                <span>
-                  <strong>Supplier or keyword</strong>
-                  <input id="hv2-keyword" name="q" type="search" placeholder="e.g. Photographer" />
-                </span>
-              </label>
-
-              <button class="hv2-search__button" type="submit">Search suppliers</button>
-
-              <div class="hv2-popular" aria-label="Popular searches">
-                <span>Popular searches:</span>
-                <button type="button" data-category="Venues" data-location="London">London venues</button>
-                <button type="button" data-category="Photography">Wedding photographers</button>
-                <button type="button" data-category="Catering">Corporate catering</button>
-                <button type="button" data-category="Music/DJ">DJs near me</button>
+                Start planning
+              </a>
+              <a
+                href="/suppliers"
+                class="hero-cta-base hero-cta-secondary"
+              >
+                Browse suppliers
+              </a>
+            </div>
+          </div>
+          <div>
+            <!-- `inert` as well as aria-hidden: aria-hidden alone hides the collage from
+                 assistive technology but leaves its links in the tab order, so a keyboard
+                 user could focus something a screen reader never announces. -->
+            <div class="hero-collage" aria-hidden="true" inert>
+              <!-- Row 1: Video (no label, spans 2 columns) -->
+              <div class="hero-video-card">
+                <!-- Video autoplay is controlled by JavaScript based on prefers-reduced-motion -->
+                <video id="hero-pexels-video" muted loop playsinline preload="metadata"
+                       poster="/assets/images/hero-video-poster.jpg"
+                       width="800" height="450">
+                  <source src="" type="video/mp4" id="hero-video-source">
+                  Your browser does not support the video tag.
+                </video>
+                <span class="hero-video-credit" id="hero-video-credit">Video by Pexels</span>
               </div>
-            </form>
+              
+              <!-- Row 2: Venues + Catering -->
+              <a href="/category?slug=venues" class="hero-collage-card" data-category="venues">
+                <img src="/assets/images/collage-venue.jpg" alt="Venues" id="collage-venues" 
+                     width="400" height="300" loading="eager" fetchpriority="high" decoding="async"
+                     sizes="(max-width: 768px) 48vw, 25vw">
+                <span class="hero-collage-label">
+                  <span class="hero-collage-icon">🏛️</span>
+                  Venues
+                </span>
+                <span class="hero-collage-credit" id="credit-venues"></span>
+              </a>
+              
+              <a href="/category?slug=catering" class="hero-collage-card" data-category="catering">
+                <img src="/assets/images/collage-catering.jpg" alt="Catering" id="collage-catering"
+                     width="400" height="300" loading="eager" fetchpriority="auto" decoding="async"
+                     sizes="(max-width: 768px) 48vw, 25vw">
+                <span class="hero-collage-label">
+                  <span class="hero-collage-icon">🍽️</span>
+                  Catering
+                </span>
+                <span class="hero-collage-credit" id="credit-catering"></span>
+              </a>
+              
+              <!-- Row 3: Entertainment + Photography -->
+              <a href="/category?slug=entertainment" class="hero-collage-card" data-category="entertainment">
+                <img src="/assets/images/collage-entertainment.jpg" alt="Entertainment" id="collage-entertainment"
+                     width="400" height="300" loading="eager" fetchpriority="auto" decoding="async"
+                     sizes="(max-width: 768px) 48vw, 25vw">
+                <span class="hero-collage-label">
+                  <span class="hero-collage-icon">🎤</span>
+                  Entertainment
+                </span>
+                <span class="hero-collage-credit" id="credit-entertainment"></span>
+              </a>
+              
+              <a href="/category?slug=photography" class="hero-collage-card" data-category="photography">
+                <img src="/assets/images/collage-photography.jpg" alt="Photography" id="collage-photography"
+                     width="400" height="300" loading="eager" fetchpriority="auto" decoding="async"
+                     sizes="(max-width: 768px) 48vw, 25vw">
+                <span class="hero-collage-label">
+                  <span class="hero-collage-icon">📸</span>
+                  Photography
+                </span>
+                <span class="hero-collage-credit" id="credit-photography"></span>
+              </a>
+            </div>
           </div>
         </div>
       </section>
@@ -566,6 +691,11 @@
     <script src="/assets/js/utils/pexels-client.js?v=5" defer></script>
     <script src="/assets/js/pages/home-v2.js?v=11" defer></script>
     <script src="/assets/js/pages/home-v2-parity.js?v=2" defer></script>
+    <!-- V1 hero wiring: search submit, quick tags and the shared collage module.
+         hero-collage.js must load before home-v2-hero.js, which calls window.EFHeroCollage. -->
+    <script src="/assets/js/ef-search-bar.js?v=18.3.0" defer></script>
+    <script src="/assets/js/collage/hero-collage.js?v=1" defer></script>
+    <script src="/assets/js/pages/home-v2-hero.js?v=1" defer></script>
     <script src="/assets/js/vendor/jade-widget.js" defer></script>
     <script src="/assets/js/jadeassist-init.v2.js" defer></script>
   </body>

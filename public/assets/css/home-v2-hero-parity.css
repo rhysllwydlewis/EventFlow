@@ -1,0 +1,287 @@
+/**
+ * Homepage V2 hero parity bridge.
+ *
+ * The V2 hero is the V1 hero: `home-v2.html` carries the same markup and loads
+ * the same `hero-modern.css` and `ef-search-bar.css`. Those two files are fully
+ * namespaced, so they drop into V2 cleanly. The rest of the V1 hero's
+ * appearance comes from global layers V2 must NOT load — `styles.css` supplies
+ * the base `.container`/`.hero-grid`, `design-system.css` and
+ * `modern-landing.css` supply tokens, and `modern-landing.css` overrides the
+ * hero typography, mesh background and collage chrome. Loading any of them
+ * would restyle V2's own sections below the hero.
+ *
+ * So the handful of rules and tokens the hero actually reads from those files
+ * are transplanted here, scoped to `.home-v2-page`. The `!important` flags in
+ * the originals only existed to win the global cascade against
+ * `hero-modern.css`; the `.home-v2-page` prefix already outranks it, so they
+ * are dropped.
+ *
+ * Keep this file in sync when the V1 hero changes — `tests/unit/home-v2-hero-parity.test.js`
+ * guards the markup, but not these values.
+ */
+
+/* --------------------------------------------------------------------------
+   Tokens
+   `design-system.css` :root — used by hero-modern.css
+   -------------------------------------------------------------------------- */
+.home-v2-page {
+  --space-2: 8px;
+  --space-3: 12px;
+  --hero-cta-size: clamp(14px, 0.8vw + 11px, 15px);
+  --glass-bg-light: rgba(255, 255, 255, 0.72);
+  --glass-border: rgba(255, 255, 255, 0.35);
+  --glass-shadow-soft: 0 4px 24px -4px rgba(0, 0, 0, 0.08);
+  --glass-shadow-medium: 0 8px 32px -8px rgba(0, 0, 0, 0.12);
+  --gradient-primary: linear-gradient(135deg, #10b981 0%, #059669 50%, #047857 100%);
+  --gradient-primary-hover: linear-gradient(135deg, #059669 0%, #047857 50%, #065f46 100%);
+
+  /* `modern-landing.css` :root */
+  --modern-primary: #0b8073;
+  --modern-primary-light: #13b6a2;
+  --modern-gray-500: #64748b;
+  --modern-gray-700: #334155;
+  --modern-gray-900: #0f172a;
+  --modern-radius-lg: 24px;
+  --modern-shadow-soft:
+    0 2px 8px rgba(15, 23, 42, 0.04), 0 8px 24px rgba(15, 23, 42, 0.06);
+  --modern-shadow-large:
+    0 8px 24px rgba(15, 23, 42, 0.12), 0 24px 48px rgba(15, 23, 42, 0.12);
+  --gradient-mesh-1: rgba(11, 128, 115, 0.12);
+  --gradient-mesh-2: rgba(19, 182, 162, 0.1);
+  --gradient-mesh-3: rgba(16, 185, 129, 0.12);
+  --gradient-mesh-4: rgba(11, 128, 115, 0.08);
+}
+
+/* --------------------------------------------------------------------------
+   Layout primitives
+   `styles.css` — the only rules the hero inherits from it.
+   `hero-modern.css` caps the hero container at 1320px and supplies the
+   >=1024px two-column override on top of this base.
+   -------------------------------------------------------------------------- */
+.home-v2-page .hero-modern .container {
+  width: min(1480px, 94%);
+  margin-inline: auto;
+}
+
+.home-v2-page .hero-modern .hero-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 24px;
+  align-items: center;
+}
+
+@media (max-width: 900px) {
+  .home-v2-page .hero-modern .hero-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Hero surface — `modern-landing.css`
+   -------------------------------------------------------------------------- */
+.home-v2-page .hero-modern {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%);
+  padding: clamp(20px, 3vw, 36px) 0;
+}
+
+@media (min-width: 1024px) {
+  .home-v2-page .hero-modern {
+    padding: clamp(24px, 3vw, 40px) 0 clamp(20px, 2.5vw, 36px);
+  }
+}
+
+.home-v2-page .hero-modern::before {
+  content: '';
+  position: absolute;
+  top: -20%;
+  right: -10%;
+  width: 60%;
+  height: 80%;
+  background: radial-gradient(
+    circle at center,
+    var(--gradient-mesh-1) 0%,
+    var(--gradient-mesh-2) 35%,
+    transparent 70%
+  );
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.8;
+  animation: hv2-float-mesh 20s ease-in-out infinite;
+  pointer-events: none;
+  will-change: transform;
+  transform: translateZ(0);
+}
+
+.home-v2-page .hero-modern::after {
+  content: '';
+  position: absolute;
+  bottom: -15%;
+  left: -10%;
+  width: 50%;
+  height: 70%;
+  background: radial-gradient(
+    circle at center,
+    var(--gradient-mesh-3) 0%,
+    var(--gradient-mesh-4) 40%,
+    transparent 70%
+  );
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.7;
+  animation: hv2-float-mesh 25s ease-in-out infinite reverse;
+  pointer-events: none;
+  will-change: transform;
+  transform: translateZ(0);
+}
+
+@keyframes hv2-float-mesh {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  25% {
+    transform: translate(-5%, 5%) scale(1.05);
+  }
+  50% {
+    transform: translate(5%, -5%) scale(0.95);
+  }
+  75% {
+    transform: translate(-3%, 3%) scale(1.02);
+  }
+}
+
+.home-v2-page .hero-blob {
+  filter: blur(90px);
+  opacity: 0.6;
+  mix-blend-mode: overlay;
+}
+
+.home-v2-page .hero-blob-1 {
+  background: linear-gradient(135deg, rgba(11, 128, 115, 0.3), rgba(19, 182, 162, 0.25));
+  animation: hv2-pulse-blob 15s ease-in-out infinite;
+}
+
+.home-v2-page .hero-blob-2 {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.3), rgba(11, 128, 115, 0.2));
+  animation: hv2-pulse-blob 18s ease-in-out infinite 2s;
+}
+
+@keyframes hv2-pulse-blob {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 0.8;
+  }
+}
+
+.home-v2-page .hero-grid-texture {
+  opacity: 0.04;
+  background-image: radial-gradient(circle at 1px 1px, var(--modern-gray-900) 1px, transparent 0);
+  background-size: 24px 24px;
+}
+
+/* --------------------------------------------------------------------------
+   Hero typography — `modern-landing.css`
+   -------------------------------------------------------------------------- */
+.home-v2-page .hero-modern h1 {
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 1.1;
+  color: var(--modern-gray-900);
+  margin-bottom: 0;
+}
+
+.home-v2-page .hero-line-1,
+.home-v2-page .hero-line-2 {
+  display: block;
+  background: linear-gradient(135deg, var(--modern-gray-900) 0%, var(--modern-gray-700) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.home-v2-page .hero-highlight-text {
+  position: relative;
+  display: inline-block;
+  font-weight: 900;
+  background: linear-gradient(135deg, var(--modern-primary) 0%, var(--modern-primary-light) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  z-index: 1;
+}
+
+.home-v2-page .hero-highlight-bg {
+  position: absolute;
+  right: -4px;
+  bottom: 8px;
+  left: -4px;
+  height: 12px;
+  background: linear-gradient(90deg, rgba(11, 128, 115, 0.15), rgba(19, 182, 162, 0.15));
+  border-radius: 4px;
+  z-index: -1;
+}
+
+.home-v2-page .hero-modern-subcopy {
+  max-width: 600px;
+  margin-bottom: 0;
+  color: var(--modern-gray-500);
+  font-size: clamp(1rem, 2vw, 1.25rem);
+  font-weight: 400;
+  line-height: 1.6;
+}
+
+/* --------------------------------------------------------------------------
+   Collage chrome — `modern-landing.css`
+   -------------------------------------------------------------------------- */
+.home-v2-page .hero-collage-card {
+  overflow: hidden;
+  border: 1px solid rgba(226, 232, 240, 0.5);
+  border-radius: var(--modern-radius-lg);
+  box-shadow: var(--modern-shadow-soft);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.home-v2-page .hero-collage-card:hover {
+  transform: translateY(-6px) scale(1.02);
+  border-color: rgba(11, 128, 115, 0.3);
+  box-shadow: var(--modern-shadow-large);
+}
+
+.home-v2-page .hero-collage-label {
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow:
+    0 2px 8px rgba(15, 23, 42, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  padding: 8px 16px;
+  font-weight: 600;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* --------------------------------------------------------------------------
+   V2 seam
+   The V2 sections below the hero open on their own background; `hero-modern`
+   ends on #E2E8F0, so soften the join rather than leaving a hard edge.
+   -------------------------------------------------------------------------- */
+.home-v2-page .hero-modern + .hv2-trust-strip {
+  border-top: 1px solid rgba(11, 128, 115, 0.08);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-v2-page .hero-modern::before,
+  .home-v2-page .hero-modern::after,
+  .home-v2-page .hero-blob,
+  .home-v2-page .hero-collage-card {
+    animation: none;
+    transition: none;
+  }
+}
