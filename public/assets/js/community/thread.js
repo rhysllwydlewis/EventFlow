@@ -137,7 +137,7 @@
             )}</a> ${EFC.authorBadges(d.author)}
           </p>
           <p class="efc-meta">
-            Posted ${EFC.esc(EFC.shortDate(d.createdAt))}
+            <span>Posted ${EFC.esc(EFC.shortDate(d.createdAt))}</span>
             ${d.editedAt ? `<span class="efc-meta__dot">edited ${EFC.esc(EFC.timeAgo(d.editedAt))}</span>` : ''}
             ${context.map(item => `<span class="efc-meta__dot">${item}</span>`).join('')}
           </p>
@@ -154,7 +154,7 @@
       ${images}
       ${poll}
       <p class="efc-meta">
-        ${d.replyCount} ${d.replyCount === 1 ? 'reply' : 'replies'}
+        <span>${d.replyCount} ${d.replyCount === 1 ? 'reply' : 'replies'}</span>
         <span class="efc-meta__dot">${d.uniqueViews} views</span>
         <span class="efc-meta__dot">${d.participantCount} taking part</span>
       </p>
@@ -248,12 +248,18 @@
       reply.isHelpfulAnswer
         ? '<span class="efc-badge efc-badge--solved">Helpful answer</span>'
         : '',
+      // The verification date is metadata about the badge, not part of its
+      // label, so it sits beside the pill as muted text rather than inside it.
+      // A pill is a status at a glance; a whole sentence in one is neither
+      // glanceable nor able to wrap where the space is tight.
       reply.isOfficialAnswer
-        ? `<span class="efc-badge efc-badge--official">Official EventFlow answer${
+        ? `<span class="efc-badge efc-badge--official">Official EventFlow answer</span>${
             reply.officialAnswerVerifiedAt
-              ? ` · last verified ${EFC.esc(EFC.shortDate(reply.officialAnswerVerifiedAt))}`
+              ? `<span class="efc-verified">Last verified ${EFC.esc(
+                  EFC.shortDate(reply.officialAnswerVerifiedAt)
+                )}</span>`
               : ''
-          }</span>`
+          }`
         : '',
       reply.pendingReview
         ? '<span class="efc-badge efc-badge--pending">Awaiting review</span>'

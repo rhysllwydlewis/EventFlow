@@ -59,6 +59,17 @@ const BASELINE_PAGES = [
     path: '/test-notifications.html',
     screenshotApproved: false,
   },
+  // Community had no axe coverage at all until now. Only the two pages whose
+  // content is genuinely static are listed: they render in full under the
+  // static server and are therefore audited for real.
+  //
+  // The data-driven community pages (/community, /community/discussions,
+  // /community/category/:slug, a thread) are deliberately NOT here. Without a
+  // backend they render their error state, so an axe pass would be auditing a
+  // "could not load" notice and reporting healthy coverage the suite does not
+  // actually have. They belong in a backend-backed job instead.
+  { name: 'community-guidelines', path: '/community/guidelines', screenshotApproved: false },
+  { name: 'community-help', path: '/community/help', screenshotApproved: false },
 ];
 
 /**
