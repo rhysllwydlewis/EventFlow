@@ -285,8 +285,20 @@ body.ef-approved-lower-home .ef-home-locations__explore-heading > span {
 
 body.ef-approved-lower-home .ef-home-locations__city-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  /* Two columns by default: the explore panel only has half the section's
+     width (it shares the row with the search card), so a card here is
+     narrower than the section width suggests. Three columns only once the
+     section itself is wide enough that each card still has room for a
+     name like "Manchester" plus live text like "1,234 suppliers"
+     alongside the fixed-width pin and arrow. */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
+}
+
+@media (min-width: 1200px) {
+  body.ef-approved-lower-home .ef-home-locations__city-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 body.ef-approved-lower-home .ef-home-locations__city-grid a {
@@ -389,10 +401,6 @@ body.ef-approved-lower-home .ef-home-locations :where(a, button, input):focus-vi
 
   body.ef-approved-lower-home .ef-home-locations__search-card {
     min-height: 0;
-  }
-
-  body.ef-approved-lower-home .ef-home-locations__city-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
