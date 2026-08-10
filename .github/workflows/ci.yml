@@ -25,10 +25,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version-file: '.node-version'
           cache: 'npm'
@@ -47,10 +47,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version-file: '.node-version'
           cache: 'npm'
@@ -65,7 +65,7 @@ jobs:
 
       - name: Upload ESLint diagnostics
         if: steps.eslint.outcome == 'failure'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: eslint-report
           path: eslint-report.json
@@ -84,10 +84,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version-file: '.node-version'
           cache: 'npm'
@@ -102,7 +102,7 @@ jobs:
 
       - name: Upload formatting diagnostics
         if: steps.formatting.outcome == 'failure'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: prettier-report
           path: prettier-report.txt
@@ -121,10 +121,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version-file: '.node-version'
           cache: 'npm'
@@ -146,10 +146,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version-file: '.node-version'
           cache: 'npm'
@@ -164,7 +164,7 @@ jobs:
 
       - name: Upload homepage type-check diagnostics
         if: steps.typecheck.outcome == 'failure'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: homepage-typecheck-report
           path: homepage-typecheck.log
@@ -185,7 +185,7 @@ jobs:
 
       - name: Upload regenerated homepage assets
         if: always() && steps.homepage-assets.outcome == 'failure'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: regenerated-homepage-assets
           path: |
@@ -207,10 +207,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version-file: '.node-version'
           cache: 'npm'
@@ -227,7 +227,7 @@ jobs:
 
       - name: Upload full regression diagnostics
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: full-regression-results-ci
           path: |
@@ -242,7 +242,7 @@ jobs:
         run: echo "::error::The full regression suite failed. Download full-regression-results-ci for the exact failing suites and assertions."
 
       - name: Upload coverage reports
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v7
         if: always()
         with:
           files: ./coverage/lcov.info
@@ -256,10 +256,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version-file: '.node-version'
           cache: 'npm'
@@ -309,10 +309,10 @@ jobs:
           fi
 
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version-file: '.node-version'
           cache: 'npm'
@@ -381,10 +381,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version-file: '.node-version'
           cache: 'npm'

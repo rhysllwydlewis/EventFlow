@@ -76,7 +76,7 @@ jobs:
 
       - name: Checkout target commit
         if: steps.evaluate.outputs.should_deploy == 'true'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: ${{ steps.evaluate.outputs.target_ref }}
           fetch-depth: 2
@@ -132,10 +132,10 @@ jobs:
     needs: [precheck]
     if: needs.precheck.outputs.should_deploy == 'true'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ needs.precheck.outputs.target_ref }}
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version-file: '.node-version'
           cache: npm
@@ -159,10 +159,10 @@ jobs:
       RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
       EXPECTED_SHA: ${{ needs.precheck.outputs.target_ref }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ needs.precheck.outputs.target_ref }}
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version-file: '.node-version'
           cache: npm
