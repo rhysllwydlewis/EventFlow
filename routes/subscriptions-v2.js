@@ -328,6 +328,48 @@ router.post(
   }
 );
 
+/**
+ * Best-effort lookup of the card behind a subscription, for display only
+ * (e.g. "Visa ····4242" on the dashboard). Checks the subscription's own
+ * default payment method first, then falls back to the customer's default —
+ * either can be the one actually charged depending on how it was set up.
+ * Never throws: a display nicety failing must not break /me.
+ * @param {string|null} stripeCustomerId
+ * @param {string|null} stripeSubscriptionId
+ * @returns {Promise<{brand: string, last4: string}|null>}
+ */
+async function getPaymentMethodSummary(stripeCustomerId, stripeSubscriptionId) {
+  if (!stripeCustomerId || !STRIPE_ENABLED || !stripe) {
+    return null;
+  }
+  try {
+    let paymentMethodId = null;
+    if (stripeSubscriptionId) {
+      const sub = await stripe.subscriptions.retrieve(stripeSubscriptionId);
+      paymentMethodId =
+        typeof sub.default_payment_method === 'string'
+          ? sub.default_payment_method
+          : sub.default_payment_method?.id || null;
+    }
+    if (!paymentMethodId) {
+      const customer = await stripe.customers.retrieve(stripeCustomerId);
+      const defaultPm = customer.invoice_settings?.default_payment_method;
+      paymentMethodId = typeof defaultPm === 'string' ? defaultPm : defaultPm?.id || null;
+    }
+    if (!paymentMethodId) {
+      return null;
+    }
+    const paymentMethod = await stripe.paymentMethods.retrieve(paymentMethodId);
+    if (paymentMethod.type !== 'card' || !paymentMethod.card) {
+      return null;
+    }
+    return { brand: paymentMethod.card.brand, last4: paymentMethod.card.last4 };
+  } catch (error) {
+    logger.warn('Failed to fetch payment method summary:', error.message);
+    return null;
+  }
+}
+
 router.get('/me', authRequired, async (req, res) => {
   const subscription = await subscriptionService.getSubscriptionByUserId(req.user.id);
   const entitlementActive = subscriptionService.isLiveEntitlement(subscription);
@@ -336,6 +378,12 @@ router.get('/me', authRequired, async (req, res) => {
   // ceiling, which is how the uploader ended up capping paid plans at the
   // free tier's ten photos.
   const features = await subscriptionService.getUserFeatures(req.user.id);
+  const paymentMethod = subscription
+    ? await getPaymentMethodSummary(
+        subscription.stripeCustomerId,
+        subscription.stripeSubscriptionId
+      )
+    : null;
   res.json({
     success: true,
     subscription,
@@ -347,7 +395,34 @@ router.get('/me', authRequired, async (req, res) => {
     cancelAtPeriodEnd: subscription?.cancelAtPeriodEnd ?? false,
     status: subscription?.status || 'free',
     limits: features?.features || {},
+    paymentMethodBrand: paymentMethod?.brand || null,
+    paymentMethodLast4: paymentMethod?.last4 || null,
   });
+});
+
+/**
+ * Preview of the subscription's next invoice — used to show "Next payment"
+ * on the dashboard. Best-effort: any failure (Stripe unconfigured, no
+ * subscription, API error) resolves to upcomingInvoice: null rather than an
+ * error response, since the caller already treats this as optional.
+ */
+router.get('/upcoming-invoice', authRequired, async (req, res) => {
+  const subscription = await subscriptionService.getSubscriptionByUserId(req.user.id);
+  if (!subscription?.stripeSubscriptionId || !STRIPE_ENABLED || !stripe) {
+    return res.json({ success: true, upcomingInvoice: null });
+  }
+  try {
+    const preview = await stripe.invoices.createPreview({
+      subscription: subscription.stripeSubscriptionId,
+    });
+    return res.json({
+      success: true,
+      upcomingInvoice: { amount: preview.amount_due, currency: preview.currency },
+    });
+  } catch (error) {
+    logger.warn('Failed to fetch upcoming invoice:', error.message);
+    return res.json({ success: true, upcomingInvoice: null });
+  }
 });
 
 router.post(
