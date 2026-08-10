@@ -23,8 +23,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version-file: '.node-version'
           cache: npm
@@ -52,7 +52,7 @@ jobs:
 
       - name: Upload resilience evidence
         if: always() && steps.target.outputs.available == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: staging-resilience-report
           path: reports/load
@@ -61,7 +61,7 @@ jobs:
 
       - name: Create or update staging regression issue
         if: failure() && steps.target.outputs.available == 'true'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const title = '[automation] Staging resilience thresholds failing';
@@ -83,7 +83,7 @@ jobs:
 
       - name: Close recovered staging regression issue
         if: success() && steps.target.outputs.available == 'true'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const title = '[automation] Staging resilience thresholds failing';

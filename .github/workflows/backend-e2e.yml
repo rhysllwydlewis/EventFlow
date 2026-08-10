@@ -46,17 +46,17 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version-file: '.node-version'
           cache: npm
 
       - name: Start MongoDB replica set
         # supercharge/mongodb-github-action v1.12.0
-        uses: supercharge/mongodb-github-action@90004df786821b6308fb02299e5835d0dae05d0d
+        uses: supercharge/mongodb-github-action@315db7fe45ac2880b7758f1933e6e5d59afd5e94
         with:
           mongodb-version: '7.0'
           mongodb-replica-set: rs0
@@ -84,7 +84,7 @@ jobs:
 
       - name: Upload backend machine results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: backend-e2e-machine-results
           path: |
@@ -96,7 +96,7 @@ jobs:
 
       - name: Upload bounded backend diagnostics
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: backend-e2e-diagnostics
           path: |
