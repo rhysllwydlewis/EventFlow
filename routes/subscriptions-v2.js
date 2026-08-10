@@ -134,6 +134,7 @@ async function scheduleDowngradeToLowerPaidPlan(subscription, resolved) {
           end_date: currentPhase.end_date,
           proration_behavior: 'none',
           metadata: {
+            ...remote.metadata,
             planId: subscription.plan,
             billingInterval: subscription.billingInterval || 'month',
           },
@@ -141,7 +142,11 @@ async function scheduleDowngradeToLowerPaidPlan(subscription, resolved) {
         {
           items: [{ price: resolved.priceId, quantity: 1 }],
           proration_behavior: 'none',
-          metadata: { planId: resolved.planId, billingInterval: resolved.billingInterval },
+          metadata: {
+            ...remote.metadata,
+            planId: resolved.planId,
+            billingInterval: resolved.billingInterval,
+          },
         },
       ],
     },
@@ -547,6 +552,7 @@ router.post(
             cancel_at_period_end: false,
             proration_behavior: 'create_prorations',
             metadata: {
+              ...remote.metadata,
               planId: resolved.planId,
               billingInterval: resolved.billingInterval,
               downgrade_to: '',
@@ -617,11 +623,13 @@ router.post(
 
           // Downgrading to free ends billing entirely, so cancelling the
           // Stripe subscription at period end is correct here.
+          const remote = await stripe.subscriptions.retrieve(subscription.stripeSubscriptionId);
           await stripe.subscriptions.update(
             subscription.stripeSubscriptionId,
             {
               cancel_at_period_end: true,
               metadata: {
+                ...remote.metadata,
                 planId: subscription.plan,
                 billingInterval: subscription.billingInterval || 'month',
                 downgrade_to: resolved.planId,

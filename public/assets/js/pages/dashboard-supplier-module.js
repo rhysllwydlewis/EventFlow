@@ -867,9 +867,14 @@ async function displaySubscriptionStatus() {
            </div>`
         : '';
 
-      // Next payment amount (from most recent payment record)
+      // Next payment amount (from most recent payment record). A downgrade to
+      // a lower PAID plan still bills going forward (just at the new price),
+      // so only a true end-of-billing (no pendingPlan, or pendingPlan free)
+      // should hide this row — not every cancelAtPeriodEnd flag.
+      const pendingPlan = subscriptionRecord?.pendingPlan;
+      const billingEnds = cancelAtPeriodEnd && (!pendingPlan || pendingPlan === 'free');
       const amountHtml =
-        paymentAmount && !cancelAtPeriodEnd
+        paymentAmount && !billingEnds
           ? `<div class="sd-subscription-active__detail-row">
               <span class="sd-subscription-active__detail-label">Next payment</span>
               <span class="sd-subscription-active__detail-value">${new Intl.NumberFormat('en-GB', { style: 'currency', currency: paymentCurrency.toUpperCase() }).format(paymentAmount / 100)}</span>
@@ -911,7 +916,6 @@ async function displaySubscriptionStatus() {
       let renewalNotice = '';
       if (endRaw) {
         const endDate = new Date(endRaw).toLocaleDateString('en-GB', dateFormat);
-        const pendingPlan = subscriptionRecord?.pendingPlan;
         if (cancelAtPeriodEnd && pendingPlan) {
           const pendingPlanLabel = TIER_LABELS[pendingPlan] || pendingPlan;
           renewalNotice = `<p class="sd-subscription-active__renewal-notice sd-subscription-active__renewal-notice--cancel">📋 Downgrades to ${pendingPlanLabel} on ${endDate}</p>`;
@@ -949,7 +953,7 @@ async function displaySubscriptionStatus() {
           </div>
           <ul class="sd-subscription-limits">
             <li>✓ 1 supplier profile</li>
-            <li>✓ 2 packages</li>
+            <li>✓ 3 packages</li>
             <li>✓ Basic analytics</li>
             <li class="sd-subscription-limits__locked">🔒 Priority visibility</li>
             <li class="sd-subscription-limits__locked">🔒 Unlimited packages</li>

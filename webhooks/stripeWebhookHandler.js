@@ -801,14 +801,31 @@ async function handleInvoiceUpcoming(invoice) {
     year: 'numeric',
   });
 
-  const autoRenew = subscription.cancelAtPeriodEnd ? 'Disabled' : 'Enabled';
-  const renewalMessage = subscription.cancelAtPeriodEnd
-    ? 'Your subscription is set to cancel at the end of the current period. Reactivate to keep your premium access.'
-    : `Your ${formatPlanName(subscription.plan)} subscription will automatically renew on ${formattedRenewalDate}.`;
+  // A downgrade to a lower PAID plan (pendingPlan set, not 'free') still bills
+  // going forward at the new price — cancelAtPeriodEnd there does not mean the
+  // subscription is ending, so it must not trigger the "reactivate" wording.
+  const isEndingCompletely =
+    subscription.cancelAtPeriodEnd &&
+    (!subscription.pendingPlan || subscription.pendingPlan === 'free');
+  const isDowngradingToPaidPlan =
+    subscription.cancelAtPeriodEnd &&
+    subscription.pendingPlan &&
+    subscription.pendingPlan !== 'free';
 
-  const ctaText = subscription.cancelAtPeriodEnd
-    ? 'Reactivate Subscription'
-    : 'Manage Subscription';
+  const autoRenew = isEndingCompletely ? 'Disabled' : 'Enabled';
+  let renewalMessage;
+  let ctaText;
+  if (isEndingCompletely) {
+    renewalMessage =
+      'Your subscription is set to cancel at the end of the current period. Reactivate to keep your premium access.';
+    ctaText = 'Reactivate Subscription';
+  } else if (isDowngradingToPaidPlan) {
+    renewalMessage = `Your plan will change to ${formatPlanName(subscription.pendingPlan)} on ${formattedRenewalDate} and continue billing at the new plan's price.`;
+    ctaText = 'Manage Subscription';
+  } else {
+    renewalMessage = `Your ${formatPlanName(subscription.plan)} subscription will automatically renew on ${formattedRenewalDate}.`;
+    ctaText = 'Manage Subscription';
+  }
 
   try {
     await postmark.sendMail({

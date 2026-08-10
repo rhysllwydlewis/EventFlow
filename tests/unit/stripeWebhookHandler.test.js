@@ -196,3 +196,108 @@ describe('Stripe Webhook Handler — partner bonus gating on invoice.payment_suc
     expect(partnerServiceMock.awardSubscriptionBonus).not.toHaveBeenCalled();
   });
 });
+
+describe('Stripe Webhook Handler — handleInvoiceUpcoming renewal wording', () => {
+  // A downgrade to a lower PAID plan sets cancelAtPeriodEnd=true on our local
+  // record even though Stripe keeps billing the subscription at the new
+  // price (see routes/subscriptions-v2.js scheduleDowngradeToLowerPaidPlan).
+  // The renewal-reminder email must not tell that customer their subscription
+  // is "set to cancel" — only a real end of billing (no pendingPlan, or a
+  // downgrade to free) should say that.
+  // eslint-disable-next-line global-require
+  const { handleInvoiceUpcoming } = require('../../webhooks/stripeWebhookHandler');
+  // eslint-disable-next-line global-require
+  const subscriptionServiceMock = require('../../services/subscriptionService');
+  // eslint-disable-next-line global-require
+  const dbUnifiedMock = require('../../db-unified');
+  // eslint-disable-next-line global-require
+  const postmarkMock = require('../../utils/postmark');
+
+  const makeUpcomingInvoice = (overrides = {}) => ({
+    id: 'in_upcoming_1',
+    subscription: 'sub_test001',
+    amount_due: 1900,
+    currency: 'gbp',
+    period_end: Math.floor(Date.now() / 1000) + 5 * 86400,
+    ...overrides,
+  });
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    dbUnifiedMock.read.mockImplementation(async collection => {
+      if (collection === 'users') {
+        return [{ id: 'usr_supplier_001', email: 'supplier@example.com', name: 'Sam' }];
+      }
+      return [];
+    });
+  });
+
+  it('does not say "set to cancel" when a lower-paid-plan downgrade is pending (billing continues)', async () => {
+    subscriptionServiceMock.getSubscriptionByStripeId.mockResolvedValue({
+      id: 'sub_int_001',
+      userId: 'usr_supplier_001',
+      plan: 'pro_plus',
+      pendingPlan: 'pro',
+      cancelAtPeriodEnd: true,
+    });
+
+    await handleInvoiceUpcoming(makeUpcomingInvoice());
+
+    expect(postmarkMock.sendMail).toHaveBeenCalledTimes(1);
+    const { templateData } = postmarkMock.sendMail.mock.calls[0][0];
+    expect(templateData.autoRenew).toBe('Enabled');
+    expect(templateData.renewalMessage).not.toMatch(/set to cancel/i);
+    expect(templateData.renewalMessage).toMatch(/change to Pro/);
+    expect(templateData.ctaText).toBe('Manage Subscription');
+  });
+
+  it('still says "set to cancel" for a true cancellation (no pendingPlan)', async () => {
+    subscriptionServiceMock.getSubscriptionByStripeId.mockResolvedValue({
+      id: 'sub_int_001',
+      userId: 'usr_supplier_001',
+      plan: 'pro',
+      pendingPlan: null,
+      cancelAtPeriodEnd: true,
+    });
+
+    await handleInvoiceUpcoming(makeUpcomingInvoice());
+
+    const { templateData } = postmarkMock.sendMail.mock.calls[0][0];
+    expect(templateData.autoRenew).toBe('Disabled');
+    expect(templateData.renewalMessage).toMatch(/set to cancel/i);
+    expect(templateData.ctaText).toBe('Reactivate Subscription');
+  });
+
+  it('still says "set to cancel" for a downgrade to free (real end of billing)', async () => {
+    subscriptionServiceMock.getSubscriptionByStripeId.mockResolvedValue({
+      id: 'sub_int_001',
+      userId: 'usr_supplier_001',
+      plan: 'pro',
+      pendingPlan: 'free',
+      cancelAtPeriodEnd: true,
+    });
+
+    await handleInvoiceUpcoming(makeUpcomingInvoice());
+
+    const { templateData } = postmarkMock.sendMail.mock.calls[0][0];
+    expect(templateData.autoRenew).toBe('Disabled');
+    expect(templateData.ctaText).toBe('Reactivate Subscription');
+  });
+
+  it('renews as normal when no downgrade is pending', async () => {
+    subscriptionServiceMock.getSubscriptionByStripeId.mockResolvedValue({
+      id: 'sub_int_001',
+      userId: 'usr_supplier_001',
+      plan: 'pro',
+      pendingPlan: null,
+      cancelAtPeriodEnd: false,
+    });
+
+    await handleInvoiceUpcoming(makeUpcomingInvoice());
+
+    const { templateData } = postmarkMock.sendMail.mock.calls[0][0];
+    expect(templateData.autoRenew).toBe('Enabled');
+    expect(templateData.renewalMessage).toMatch(/will automatically renew/);
+    expect(templateData.ctaText).toBe('Manage Subscription');
+  });
+});
