@@ -160,9 +160,12 @@ describe('Homepage Hero Customization Tests', () => {
     });
   });
 
+  // The collage and hero-video implementation moved out of pages/home-init.js
+  // into collage/hero-collage.js so homepage V2 could share it. The assertions
+  // below follow the code to its new home.
   describe('Frontend Implementation', () => {
     it('should pass heroVideo config to initHeroVideo', () => {
-      const jsContent = fs.readFileSync('public/assets/js/pages/home-init.js', 'utf8');
+      const jsContent = fs.readFileSync('public/assets/js/collage/hero-collage.js', 'utf8');
 
       expect(jsContent).toContain('async function initHeroVideo(');
       expect(jsContent).toContain('heroVideoConfig.enabled');
@@ -173,7 +176,7 @@ describe('Homepage Hero Customization Tests', () => {
     });
 
     it('should implement mobile optimizations', () => {
-      const jsContent = fs.readFileSync('public/assets/js/pages/home-init.js', 'utf8');
+      const jsContent = fs.readFileSync('public/assets/js/collage/hero-collage.js', 'utf8');
 
       expect(jsContent).toContain('mobileOptimizations');
       expect(jsContent).toContain('isMobile');
@@ -182,13 +185,13 @@ describe('Homepage Hero Customization Tests', () => {
     });
 
     it('should use named constants for magic numbers', () => {
-      const jsContent = fs.readFileSync('public/assets/js/pages/home-init.js', 'utf8');
+      const jsContent = fs.readFileSync('public/assets/js/collage/hero-collage.js', 'utf8');
 
       expect(jsContent).toContain('MOBILE_TRANSITION_MULTIPLIER');
     });
 
     it('should handle video quality preferences', () => {
-      const jsContent = fs.readFileSync('public/assets/js/pages/home-init.js', 'utf8');
+      const jsContent = fs.readFileSync('public/assets/js/collage/hero-collage.js', 'utf8');
 
       expect(jsContent).toContain('qualityPreference');
       expect(jsContent).toContain('heroVideoConfig.quality');
@@ -222,7 +225,7 @@ describe('Homepage Hero Customization Tests', () => {
 
   describe('Code Quality', () => {
     it('should have no duplicate filtering logic', () => {
-      const jsContent = fs.readFileSync('public/assets/js/pages/home-init.js', 'utf8');
+      const jsContent = fs.readFileSync('public/assets/js/collage/hero-collage.js', 'utf8');
 
       const filterMatches = jsContent.match(
         /\.filter\(f => f\.quality === 'hd' \|\| f\.quality === 'sd'\)/g
@@ -232,7 +235,7 @@ describe('Homepage Hero Customization Tests', () => {
     });
 
     it('should have clear sort logic for SD preference', () => {
-      const jsContent = fs.readFileSync('public/assets/js/pages/home-init.js', 'utf8');
+      const jsContent = fs.readFileSync('public/assets/js/collage/hero-collage.js', 'utf8');
 
       expect(jsContent).toContain("(a.quality === 'sd') ? -1 : (b.quality === 'sd') ? 1 : 0");
     });

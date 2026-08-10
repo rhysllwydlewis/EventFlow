@@ -268,6 +268,32 @@
 }
 
 /* --------------------------------------------------------------------------
+   Three CTAs
+   hero-modern.css sizes the CTA row for V1's two buttons: below 480px it puts
+   them in a single `flex: 1` row. V2 has a third (Community), which overflowed
+   that row and clipped the labels. Let it wrap to 2 + 1 instead.
+   -------------------------------------------------------------------------- */
+@media (max-width: 479px) {
+  .home-v2-page .hero-modern-ctas {
+    flex-wrap: wrap;
+  }
+
+  .home-v2-page .hero-modern-ctas .hero-cta-base {
+    flex: 1 1 calc(50% - 4px);
+    min-width: calc(50% - 4px);
+  }
+}
+
+@media (max-width: 320px) {
+  /* hero-modern.css already stacks the row here; keep the third button full
+     width with the other two rather than re-introducing the 50% basis. */
+  .home-v2-page .hero-modern-ctas .hero-cta-base {
+    flex: none;
+    min-width: 0;
+  }
+}
+
+/* --------------------------------------------------------------------------
    V2 seam
    The V2 sections below the hero open on their own background; `hero-modern`
    ends on #E2E8F0, so soften the join rather than leaving a hard edge.

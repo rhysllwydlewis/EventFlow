@@ -191,6 +191,15 @@ body.home-v2-page {
   background: var(--ef-primary);
 }
 
+/* home-v2.css hands the navigation over to the hamburger below 1180px, but the
+   `.home-v2-page .hv2-nav` rule above outranks its `.hv2-nav { display: none }`
+   on specificity — so between 960px and 1180px the page showed the full nav and
+   the hamburger at the same time. This file owns the handover breakpoint (960px,
+   below), so keep the button hidden until then. */
+.home-v2-page .hv2-header .hv2-menu {
+  display: none;
+}
+
 .home-v2-page .hv2-notification-dropdown {
   position: fixed;
   top: calc(var(--ef-header-height) + 12px);
