@@ -547,17 +547,42 @@
 /* A site can have far more categories than fit on one row, and a strip that
    simply ends at the edge reads as the whole list. The fade says there is more
    to the right. It is pointer-transparent so it never eats a click, and it is
-   only ever a hint — the same categories are listed in full in the sidebar. */
+   only ever a hint — the same categories are listed in full in the sidebar.
+   A white-on-white fade over tiles that are already near-white is invisible
+   in practice, so this reads from a visible brand tint rather than plain
+   white, and a chevron badge backs it up for anyone who doesn't register a
+   gradient as "more content" at all. */
 .efc-catstrip::after {
   content: '';
   position: absolute;
   top: 0.75rem;
   bottom: 0.75rem;
   right: 1rem;
-  width: 3rem;
+  width: 4rem;
   border-radius: 0 20px 20px 0;
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.92));
+  background: linear-gradient(90deg, rgba(11, 128, 115, 0), rgba(255, 255, 255, 0.55) 65%, rgba(11, 128, 115, 0.16));
   pointer-events: none;
+}
+
+.efc-catstrip::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: 1.5rem;
+  width: 28px;
+  height: 28px;
+  transform: translateY(-50%);
+  border-radius: 50%;
+  background: var(--efc-accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 6 6 6-6 6'/%3E%3C/svg%3E") center / 14px no-repeat;
+  box-shadow: 0 2px 6px rgba(11, 128, 115, 0.35);
+  pointer-events: none;
+  z-index: 1;
+}
+
+@media (prefers-contrast: more) {
+  .efc-catstrip::before {
+    display: none;
+  }
 }
 
 .efc-catstrip__scroller {
@@ -802,13 +827,33 @@
   /* Avatar beside the text: a column of faces gives the eye something to track
      down a long list, which a wall of same-weight paragraphs does not. */
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 0.875rem;
   align-items: start;
 }
 
 .efc-discussion__main {
   min-width: 0;
+}
+
+/* A card whose discussion actually has a photo attachment shows it here, the
+   same signal previewCard already gives the hero rails. A long list of cards
+   with identical avatar-only left edges reads as flatter and less alive than
+   the community actually is. Cards without a photo simply keep the two-column
+   layout: this column collapses to nothing rather than leaving a gap. */
+.efc-discussion__thumb {
+  grid-column: 3;
+  width: 84px;
+  height: 84px;
+  border-radius: 12px;
+  object-fit: cover;
+  background: var(--efc-accent-soft);
+}
+
+@media (max-width: 639px) {
+  .efc-discussion__thumb {
+    display: none;
+  }
 }
 
 /* An unanswered question is the one a reader can most usefully act on. */

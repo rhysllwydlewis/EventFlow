@@ -336,6 +336,14 @@
       ? '<span class="efc-discussion__cue">No replies yet</span>'
       : `${card.replyCount} ${card.replyCount === 1 ? 'reply' : 'replies'}`;
 
+    // Same signal previewCard already uses for the hero rails: a discussion
+    // with a genuine photo attachment shows it. Cards without one render no
+    // thumbnail at all rather than a placeholder, matching the rest of the
+    // page's rule against decorative empty boxes.
+    const thumb = card.heroImage
+      ? `<img class="efc-discussion__thumb" src="${esc(card.heroImage.url)}" alt="" width="84" height="84" loading="lazy" decoding="async" />`
+      : '';
+
     return `<li class="efc-discussion${unanswered ? ' efc-discussion--unanswered' : ''}">
       ${avatar(card.author, 40)}
       <div class="efc-discussion__main">
@@ -352,6 +360,7 @@
           <span class="efc-meta__dot">Active ${esc(timeAgo(card.lastActivityAt))}</span>
         </p>
       </div>
+      ${thumb}
     </li>`;
   }
 
