@@ -18,6 +18,17 @@
   const stableId = root.dataset.stableId || window.location.pathname.split('/')[3] || '';
   let payload = null;
   let viewer = null;
+
+  // Mirrors models/CommunityContent.js REACTIONS. Only "helpful" counts toward
+  // reputation server-side; the other three are appreciation only, and the
+  // server already accepts and counts all four — this list is what was
+  // missing to actually offer them.
+  const REACTIONS = [
+    { key: 'helpful', emoji: '👍', label: 'Helpful' },
+    { key: 'thanks', emoji: '🙏', label: 'Thanks' },
+    { key: 'congratulations', emoji: '🎉', label: 'Congratulations' },
+    { key: 'support', emoji: '💜', label: 'Support' },
+  ];
   let page = Number(new URLSearchParams(window.location.search).get('page') || 1);
 
   /**
@@ -293,14 +304,18 @@
       ${disclosure}
       ${quote}
       <div class="efc-post__body" data-mentions="${EFC.esc(JSON.stringify((reply.mentions || []).map(m => m.handle)))}">${reply.body || ''}</div>
+      <div class="efc-reactions" role="group" aria-label="React to this reply">
+        ${REACTIONS.map(item => {
+          const mine = (payload.myReactions[reply.id] || []).includes(item.key);
+          const count = Number((reply.reactions || {})[item.key] || 0);
+          return `<button type="button" class="efc-reaction" data-react="${EFC.esc(reply.id)}" data-reaction="${item.key}" aria-pressed="${mine}">
+            <span aria-hidden="true">${item.emoji}</span>
+            <span>${count}</span>
+            <span class="efc-sr-only">${item.label}${count === 1 ? ', 1 member' : `, ${count} members`}</span>
+          </button>`;
+        }).join('')}
+      </div>
       <div class="efc-post__actions">
-        <button type="button" class="efc-action" data-react="${EFC.esc(reply.id)}" aria-pressed="${(
-          payload.myReactions[reply.id] || []
-        ).includes(
-          'helpful'
-        )}">👍 Helpful <span aria-hidden="true">(${reply.helpfulVotes})</span><span class="efc-sr-only">${
-          reply.helpfulVotes
-        } members found this helpful</span></button>
         <button type="button" class="efc-action" data-quote="${EFC.esc(reply.id)}">Quote</button>
         ${canSolve}
         ${canOfficial}
@@ -579,12 +594,13 @@
     root.querySelectorAll('[data-react]').forEach(button => {
       button.addEventListener('click', async () => {
         const pressed = button.getAttribute('aria-pressed') === 'true';
+        const reaction = button.dataset.reaction || 'helpful';
         try {
           await EFC.api(
             pressed
-              ? `posts/${button.dataset.react}/reactions/helpful`
+              ? `posts/${button.dataset.react}/reactions/${reaction}`
               : `posts/${button.dataset.react}/reactions`,
-            pressed ? { method: 'DELETE' } : { method: 'POST', body: { reaction: 'helpful' } }
+            pressed ? { method: 'DELETE' } : { method: 'POST', body: { reaction } }
           );
           await load();
         } catch (error) {

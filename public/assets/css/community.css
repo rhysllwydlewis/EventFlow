@@ -19,8 +19,37 @@
   --efc-surface: var(--ef-surface, #ffffff);
   --efc-page: var(--ef-bg-muted, #f8fafb);
   --efc-gap: 1.25rem;
+  /* Liquid-glass surface tokens: translucent panes over the page's brand-tinted
+     background rather than flat white cards. Kept as tokens, not a class
+     applied via HTML, so every surface below opts in through its own rule and
+     a browser without backdrop-filter support still gets a legible, near-solid
+     card — see the @supports block beside each surface that uses these. */
+  --efc-glass-bg: rgba(255, 255, 255, 0.66);
+  --efc-glass-bg-strong: rgba(255, 255, 255, 0.8);
+  --efc-glass-border: 1px solid rgba(255, 255, 255, 0.85);
+  --efc-glass-blur: blur(20px) saturate(160%);
+  --efc-glass-blur-sm: blur(12px) saturate(150%);
+  /* The inset highlight is what reads as "glass" rather than "translucent
+     plastic": a thin light line along the top edge, as if catching light. */
+  --efc-glass-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.75), 0 1px 2px rgba(15, 23, 42, 0.05),
+    0 20px 44px rgba(15, 23, 42, 0.09);
+  --efc-glass-shadow-sm:
+    inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 1px 2px rgba(15, 23, 42, 0.05),
+    0 10px 24px rgba(15, 23, 42, 0.07);
   background: var(--efc-page);
   color: #1a1f2e;
+}
+
+/* Fallback for browsers without backdrop-filter: an opaque-enough surface
+   still separates from the page without relying on blur to hide what's under
+   it. Applied per-surface below rather than globally, since some elements
+   (badges, inputs) intentionally stay solid regardless of glass support. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .efc {
+    --efc-glass-bg: var(--efc-surface);
+    --efc-glass-bg-strong: var(--efc-surface);
+  }
 }
 
 /* ── Skip link ─────────────────────────────────────────────────────────── */
@@ -214,20 +243,18 @@
   text-align: center;
   padding: 2.5rem 1.5rem;
   border-radius: 24px;
-  background: rgba(255, 255, 255, 0.78);
-  border: 1px solid rgba(255, 255, 255, 0.9);
-  box-shadow:
-    0 1px 2px rgba(15, 23, 42, 0.04),
-    0 18px 48px rgba(15, 23, 42, 0.07);
+  background: var(--efc-glass-bg-strong);
+  border: var(--efc-glass-border);
+  box-shadow: var(--efc-glass-shadow);
 }
 
 /* backdrop-filter is progressive: without it the card is still legible on the
-   0.78 white fill, so it is applied only where supported rather than being
-   propped up with a fallback. */
+   glass-bg-strong fill (near-opaque white without support), so it is applied
+   only where supported rather than being propped up with a fallback. */
 @supports (backdrop-filter: blur(8px)) or (-webkit-backdrop-filter: blur(8px)) {
   .efc-stage__card {
-    -webkit-backdrop-filter: blur(10px);
-    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: var(--efc-glass-blur);
+    backdrop-filter: var(--efc-glass-blur);
   }
 }
 
@@ -376,6 +403,9 @@
 }
 
 .efc-cta--ghost {
+  /* Solid white, not the translucent glass token: this button sits on the
+     already-translucent hero card, and stacking two glass layers here
+     softened the border past the point of reading as a button. */
   background: #fff;
   border-color: rgba(11, 128, 115, 0.35);
   /* --efc-accent-strong rather than --efc-accent: 6.40:1 against white. */
@@ -416,12 +446,17 @@
 }
 
 .efc-preview {
-  background: #fff;
-  border: var(--efc-border);
+  background: var(--efc-glass-bg);
+  border: var(--efc-glass-border);
   border-radius: 16px;
-  box-shadow:
-    0 1px 2px rgba(15, 23, 42, 0.04),
-    0 10px 24px rgba(15, 23, 42, 0.06);
+  box-shadow: var(--efc-glass-shadow-sm);
+}
+
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .efc-preview {
+    -webkit-backdrop-filter: var(--efc-glass-blur-sm);
+    backdrop-filter: var(--efc-glass-blur-sm);
+  }
 }
 
 /* The staggered inset is what makes the rails read as floating around the hero
@@ -560,7 +595,12 @@
   right: 1rem;
   width: 4rem;
   border-radius: 0 20px 20px 0;
-  background: linear-gradient(90deg, rgba(11, 128, 115, 0), rgba(255, 255, 255, 0.55) 65%, rgba(11, 128, 115, 0.16));
+  background: linear-gradient(
+    90deg,
+    rgba(11, 128, 115, 0),
+    rgba(255, 255, 255, 0.55) 65%,
+    rgba(11, 128, 115, 0.16)
+  );
   pointer-events: none;
 }
 
@@ -573,7 +613,9 @@
   height: 28px;
   transform: translateY(-50%);
   border-radius: 50%;
-  background: var(--efc-accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 6 6 6-6 6'/%3E%3C/svg%3E") center / 14px no-repeat;
+  background: var(--efc-accent)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 6 6 6-6 6'/%3E%3C/svg%3E")
+    center / 14px no-repeat;
   box-shadow: 0 2px 6px rgba(11, 128, 115, 0.35);
   pointer-events: none;
   z-index: 1;
@@ -591,17 +633,22 @@
   display: flex;
   gap: 0.5rem;
   padding: 0.75rem;
-  background: rgba(255, 255, 255, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.9);
+  background: var(--efc-glass-bg-strong);
+  border: var(--efc-glass-border);
   border-radius: 20px;
-  box-shadow:
-    0 1px 2px rgba(15, 23, 42, 0.04),
-    0 12px 32px rgba(15, 23, 42, 0.06);
+  box-shadow: var(--efc-glass-shadow-sm);
   overflow-x: auto;
   scroll-snap-type: x proximity;
   /* Reserve the scrollbar's space so the strip does not jump by a few pixels
      when the list becomes long enough to scroll. */
   scrollbar-width: thin;
+}
+
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .efc-catstrip__scroller {
+    -webkit-backdrop-filter: var(--efc-glass-blur);
+    backdrop-filter: var(--efc-glass-blur);
+  }
 }
 
 .efc-catstrip__item {
@@ -729,7 +776,13 @@
   }
   .efc-stage__card,
   .efc-preview,
-  .efc-catstrip__scroller {
+  .efc-catstrip__scroller,
+  .efc-discussion,
+  .efc-post,
+  .efc-side__card,
+  .efc-action,
+  .efc-reaction,
+  .efc-tab {
     border: 1px solid CanvasText;
   }
   .efc-preview__dot {
@@ -819,10 +872,10 @@
 }
 
 .efc-discussion {
-  background: var(--efc-surface);
-  border: var(--efc-border);
+  background: var(--efc-glass-bg-strong);
+  border: var(--efc-glass-border);
   border-radius: var(--efc-radius);
-  box-shadow: var(--efc-shadow);
+  box-shadow: var(--efc-glass-shadow-sm);
   padding: 1rem 1.125rem;
   /* Avatar beside the text: a column of faces gives the eye something to track
      down a long list, which a wall of same-weight paragraphs does not. */
@@ -830,6 +883,35 @@
   grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 0.875rem;
   align-items: start;
+  transition:
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
+}
+
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .efc-discussion {
+    -webkit-backdrop-filter: var(--efc-glass-blur-sm);
+    backdrop-filter: var(--efc-glass-blur-sm);
+  }
+}
+
+@media (hover: hover) {
+  .efc-discussion:hover {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.75),
+      0 1px 2px rgba(15, 23, 42, 0.05),
+      0 16px 32px rgba(15, 23, 42, 0.1);
+    transform: translateY(-1px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .efc-discussion {
+    transition: none;
+  }
+  .efc-discussion:hover {
+    transform: none;
+  }
 }
 
 .efc-discussion__main {
@@ -1126,12 +1208,23 @@
   min-height: 44px;
   padding: 0.5rem 0.875rem;
   border-radius: 999px;
-  border: var(--efc-border);
-  background: #fff;
+  border: var(--efc-glass-border);
+  background: var(--efc-glass-bg-strong);
   font-size: 0.875rem;
   font-weight: 600;
   color: #334155;
   cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .efc-tab {
+    -webkit-backdrop-filter: var(--efc-glass-blur-sm);
+    backdrop-filter: var(--efc-glass-blur-sm);
+  }
 }
 
 .efc-tab[aria-selected='true'] {
@@ -1143,28 +1236,51 @@
 /* ── Thread ────────────────────────────────────────────────────────────── */
 
 .efc-post {
-  background: var(--efc-surface);
-  border: var(--efc-border);
+  background: var(--efc-glass-bg-strong);
+  border: var(--efc-glass-border);
   border-radius: var(--efc-radius);
-  box-shadow: var(--efc-shadow);
+  box-shadow: var(--efc-glass-shadow-sm);
   padding: 1.125rem;
   margin-bottom: 0.75rem;
 }
 
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .efc-post {
+    -webkit-backdrop-filter: var(--efc-glass-blur-sm);
+    backdrop-filter: var(--efc-glass-blur-sm);
+  }
+}
+
+/* The helpful/official rings stay as their own colour rather than tinting the
+   glass itself: a tinted blur over an arbitrary photo or code block in the
+   post body would wash it out, where a ring only touches the card's edge. */
 .efc-post--answer {
   border-color: #b8e6cd;
-  box-shadow: 0 0 0 2px #e7f7ef inset;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.75),
+    0 0 0 2px #e7f7ef inset,
+    0 10px 24px rgba(15, 23, 42, 0.07);
 }
 
 .efc-post--official {
   border-color: #c7d2fe;
-  box-shadow: 0 0 0 2px #eef2ff inset;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.75),
+    0 0 0 2px #eef2ff inset,
+    0 10px 24px rgba(15, 23, 42, 0.07);
 }
 
 .efc-post--withdrawn {
   background: #f8fafc;
   color: var(--efc-muted);
   font-style: italic;
+}
+
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .efc-post--withdrawn {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
 }
 
 /* Arriving from a permalink, the reply you were sent to is marked so you can
@@ -1286,18 +1402,89 @@
   gap: 0.375rem;
   padding: 0.375rem 0.75rem;
   border-radius: 8px;
-  border: var(--efc-border);
-  background: #fff;
+  border: var(--efc-glass-border);
+  background: var(--efc-glass-bg-strong);
   font-size: 0.8125rem;
   font-weight: 600;
   color: #334155;
   cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .efc-action {
+    -webkit-backdrop-filter: var(--efc-glass-blur-sm);
+    backdrop-filter: var(--efc-glass-blur-sm);
+  }
+}
+
+.efc-action:hover {
+  border-color: var(--efc-accent);
 }
 
 .efc-action[aria-pressed='true'] {
   background: var(--efc-accent-soft);
   border-color: var(--efc-accent);
-  color: var(--efc-accent);
+  color: var(--efc-accent-strong);
+}
+
+/* ── Reactions ─────────────────────────────────────────────────────────── */
+
+.efc-reactions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  margin-top: 0.875rem;
+}
+
+.efc-reaction {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0.625rem;
+  border-radius: 999px;
+  border: var(--efc-glass-border);
+  background: var(--efc-glass-bg-strong);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: #334155;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.1s ease;
+}
+
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .efc-reaction {
+    -webkit-backdrop-filter: var(--efc-glass-blur-sm);
+    backdrop-filter: var(--efc-glass-blur-sm);
+  }
+}
+
+.efc-reaction:hover {
+  border-color: var(--efc-accent);
+  transform: translateY(-1px);
+}
+
+.efc-reaction[aria-pressed='true'] {
+  background: var(--efc-accent-soft);
+  border-color: var(--efc-accent);
+  color: var(--efc-accent-strong);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .efc-reaction {
+    transition: none;
+  }
+  .efc-reaction:hover {
+    transform: none;
+  }
 }
 
 .efc-disclosure {
@@ -1459,11 +1646,18 @@
 }
 
 .efc-side__card {
-  background: var(--efc-surface);
-  border: var(--efc-border);
+  background: var(--efc-glass-bg-strong);
+  border: var(--efc-glass-border);
   border-radius: var(--efc-radius);
-  box-shadow: var(--efc-shadow);
+  box-shadow: var(--efc-glass-shadow-sm);
   padding: 1rem 1.125rem;
+}
+
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .efc-side__card {
+    -webkit-backdrop-filter: var(--efc-glass-blur-sm);
+    backdrop-filter: var(--efc-glass-blur-sm);
+  }
 }
 
 .efc-side__card h2 {
@@ -1681,7 +1875,18 @@
 }
 
 .efc-dialog::backdrop {
-  background: rgba(15, 23, 42, 0.5);
+  background: rgba(15, 23, 42, 0.44);
+}
+
+/* The dialog itself stays solid — a form is not a place to reduce legibility
+   for a look. The frosted glass moves here instead, to the scrim behind it:
+   the page blurs, the sheet in front of it stays crisp, matching how
+   Liquid-Glass sheet presentations actually work. */
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .efc-dialog::backdrop {
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+  }
 }
 
 .efc-dialog__body {
@@ -1852,5 +2057,12 @@
   .efc {
     --efc-muted: #333b4d;
     --efc-border: 1px solid #1a1f2e;
+    /* Someone asking for more contrast does not want their cards blurred and
+       see-through: collapse the glass tokens to solid, sharp-edged surfaces. */
+    --efc-glass-bg: var(--efc-surface);
+    --efc-glass-bg-strong: var(--efc-surface);
+    --efc-glass-border: 1px solid #1a1f2e;
+    --efc-glass-blur: none;
+    --efc-glass-blur-sm: none;
   }
 }
