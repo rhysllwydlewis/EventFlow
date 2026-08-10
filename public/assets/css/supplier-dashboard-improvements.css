@@ -6920,6 +6920,12 @@ body:not(.supplier-dashboard-page) .section > .container {
   color: var(--ef-text-muted, #6b7280);
   margin: 0;
 }
+.sd-subscription-manage-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.625rem;
+  align-items: center;
+}
 .sd-subscription-manage-btn {
   display: inline-flex;
   align-items: center;
@@ -6937,6 +6943,22 @@ body:not(.supplier-dashboard-page) .section > .container {
 }
 .sd-subscription-manage-btn:hover {
   background: rgba(124, 58, 237, 0.14);
+}
+/* Secondary action alongside "Manage subscription" — opens the Stripe
+   billing portal directly (payment method, invoices) without leaving the
+   dashboard, rather than only ever linking out to the full plans page. */
+.sd-subscription-manage-btn--billing {
+  background: transparent;
+  color: var(--ef-text-muted, #6b7280);
+  border-color: rgba(11, 128, 115, 0.25);
+}
+.sd-subscription-manage-btn--billing:hover {
+  background: rgba(11, 128, 115, 0.08);
+  color: #0b8073;
+}
+.sd-subscription-manage-btn--billing:disabled {
+  cursor: default;
+  opacity: 0.6;
 }
 
 /* Subscription detail rows */
