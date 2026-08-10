@@ -196,6 +196,39 @@ describe('POST /:id/downgrade — paid-to-paid uses a Subscription Schedule, not
     expect(mockStripe.subscriptionSchedules.create).not.toHaveBeenCalled();
   });
 
+  test('releases an existing downgrade schedule before switching the target to free', async () => {
+    // e.g. the customer scheduled pro_plus -> pro, then changed their mind
+    // and downgraded to free instead, while the pro schedule was still
+    // pending. The subscription is still schedule-managed at that point, so
+    // cancel_at_period_end must not be set directly without releasing it
+    // first.
+    mockSubscriptionService.getSubscription.mockResolvedValue({
+      id: 'sub_3',
+      userId: 'user_1',
+      plan: 'pro_plus',
+      stripeSubscriptionId: 'sub_stripe_3',
+      billingInterval: 'month',
+      metadata: { stripeScheduleId: 'sched_pending' },
+    });
+
+    const app = buildApp({ id: 'user_1', email: 'a@b.com' });
+    await request(app)
+      .post('/api/v2/subscriptions/sub_3/downgrade')
+      .send({ planId: 'free' })
+      .expect(200);
+
+    expect(mockStripe.subscriptionSchedules.release).toHaveBeenCalledWith('sched_pending');
+    expect(mockSubscriptionService.updateSubscription).toHaveBeenCalledWith(
+      'sub_3',
+      expect.objectContaining({ metadata: expect.objectContaining({ stripeScheduleId: null }) })
+    );
+    expect(mockStripe.subscriptions.update).toHaveBeenCalledWith(
+      'sub_stripe_3',
+      expect.objectContaining({ cancel_at_period_end: true }),
+      expect.anything()
+    );
+  });
+
   test('returns 503 rather than scheduling with a missing Stripe price', async () => {
     delete process.env.STRIPE_PRO_PRICE_ID;
     mockSubscriptionService.getSubscription.mockResolvedValue({

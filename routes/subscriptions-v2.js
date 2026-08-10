@@ -166,6 +166,27 @@ async function releaseDowngradeSchedule(scheduleId) {
   }
 }
 
+/**
+ * If this subscription currently has a downgrade schedule attached, release
+ * it and clear the local reference. Must run before ANY direct
+ * stripe.subscriptions.update() call on a subscription that might be
+ * schedule-managed — Stripe subscriptions under an active schedule reject or
+ * ignore direct price/cancellation edits, since the schedule is meant to own
+ * those transitions. Covers both re-upgrading and changing a scheduled
+ * paid-to-paid downgrade to a downgrade-to-free instead.
+ * @param {Object} subscription - Our local subscription record
+ */
+async function releaseExistingScheduleIfAny(subscription) {
+  const scheduleId = subscription.metadata?.stripeScheduleId || null;
+  if (!scheduleId) {
+    return;
+  }
+  await releaseDowngradeSchedule(scheduleId);
+  await subscriptionService.updateSubscription(subscription.id, {
+    metadata: { ...subscription.metadata, stripeScheduleId: null },
+  });
+}
+
 async function audit(req, action, sub, details = {}) {
   try {
     await createAuditLog({
@@ -437,13 +458,7 @@ router.post(
         // A pending downgrade schedule takes over management of the Stripe
         // subscription, so it must be released before we can update the
         // subscription's price directly again.
-        const scheduleId = subscription.metadata?.stripeScheduleId || null;
-        if (scheduleId) {
-          await releaseDowngradeSchedule(scheduleId);
-          await subscriptionService.updateSubscription(subscription.id, {
-            metadata: { ...subscription.metadata, stripeScheduleId: null },
-          });
-        }
+        await releaseExistingScheduleIfAny(subscription);
 
         const remote = await stripe.subscriptions.retrieve(subscription.stripeSubscriptionId);
         const itemId = remote.items?.data?.[0]?.id;
@@ -518,6 +533,13 @@ router.post(
 
       if (subscription.stripeSubscriptionId) {
         if (resolved.planId === 'free') {
+          // A prior paid-to-paid downgrade may have left a schedule owning
+          // this subscription (e.g. scheduled pro_plus->pro, then changed
+          // their mind to downgrade to free instead) — release it first, or
+          // the direct cancel_at_period_end update below would conflict with
+          // the schedule's own management of the subscription.
+          await releaseExistingScheduleIfAny(subscription);
+
           // Downgrading to free ends billing entirely, so cancelling the
           // Stripe subscription at period end is correct here.
           await stripe.subscriptions.update(
