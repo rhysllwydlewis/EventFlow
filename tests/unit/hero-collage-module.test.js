@@ -100,11 +100,16 @@ describe('shared hero collage module', () => {
     expect(validatePexelsUrl('https://www.pexels.com/@someone')).toBe(
       'https://www.pexels.com/@someone'
     );
+    expect(validatePexelsUrl('https://pexels.com/@someone')).toBe('https://pexels.com/@someone');
     expect(validatePexelsUrl('javascript:alert(1)')).toBe('https://www.pexels.com');
     expect(validatePexelsUrl('http://www.pexels.com/@someone')).toBe('https://www.pexels.com');
     expect(validatePexelsUrl('https://pexels.com.evil.test/@someone')).toBe(
       'https://www.pexels.com'
     );
+    // The host must match the apex or a subdomain of it, not merely end with
+    // the string — `evilpexels.com` does.
+    expect(validatePexelsUrl('https://evilpexels.com/@someone')).toBe('https://www.pexels.com');
+    expect(validatePexelsUrl('https://notpexels.com/@someone')).toBe('https://www.pexels.com');
     expect(validatePexelsUrl(null)).toBe('https://www.pexels.com');
   });
 

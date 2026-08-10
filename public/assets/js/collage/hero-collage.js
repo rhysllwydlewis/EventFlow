@@ -509,7 +509,13 @@ function validatePexelsUrl(url) {
   }
   try {
     const urlObj = new URL(url);
-    if (urlObj.protocol === 'https:' && urlObj.hostname.endsWith('pexels.com')) {
+    // Match the host, not a suffix of it: `endsWith('pexels.com')` also accepts
+    // `evilpexels.com`, so an attacker-chosen host could become the credit
+    // link's href. Compare the apex exactly and require a dot before it for
+    // subdomains.
+    const { hostname } = urlObj;
+    const isPexelsHost = hostname === 'pexels.com' || hostname.endsWith('.pexels.com');
+    if (urlObj.protocol === 'https:' && isPexelsHost) {
       return url;
     }
   } catch (e) {

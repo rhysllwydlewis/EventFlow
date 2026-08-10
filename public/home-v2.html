@@ -403,8 +403,16 @@
         </section>
       </noscript>
 
-      <section class="hv2-trust-strip" aria-label="EventFlow benefits">
-        <div class="hv2-shell hv2-trust-strip__grid hv2-trust-strip__grid--four">
+      <section class="hv2-trust-strip">
+        <!-- The strip scrolls horizontally (see home-v2-parity.css). A scrollable
+             region with no focusable content is unreachable by keyboard, so the
+             scroller itself is focusable and carries the accessible name. -->
+        <div
+          class="hv2-shell hv2-trust-strip__grid hv2-trust-strip__grid--four"
+          role="group"
+          aria-label="EventFlow benefits"
+          tabindex="0"
+        >
           <article>
             <span aria-hidden="true">&pound;</span>
             <div>

@@ -287,12 +287,15 @@ describe('auth-helpers.js – no debug noise', () => {
   });
 });
 
-describe('home-init.js – no unconditional debug noise', () => {
+// The collage subsystem, including this startup log, moved out of
+// pages/home-init.js into collage/hero-collage.js so homepage V2 could share
+// it. The debug-noise contract follows the code.
+describe('hero-collage.js – no unconditional debug noise', () => {
   let content;
 
   beforeAll(() => {
     content = fs.readFileSync(
-      path.join(__dirname, '../../public/assets/js/pages/home-init.js'),
+      path.join(__dirname, '../../public/assets/js/collage/hero-collage.js'),
       'utf8'
     );
   });
