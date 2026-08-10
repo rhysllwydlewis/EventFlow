@@ -32,7 +32,11 @@ const ASSET_VERSIONS = {
   // holds the previous copy for up to a week: without a new query string they
   // would keep the old stylesheet against this markup and see, for example,
   // the strip's scroll buttons with none of the styling that positions them.
-  '/assets/css/community.css': '18.6.0',
+  // 18.6.1: the category strip's native scrollbar is hidden now that the
+  // scroll buttons and edge scrim already carry that affordance; without a
+  // bump a returning visitor keeps last week's cached copy, which still
+  // shows both.
+  '/assets/css/community.css': '18.6.1',
   '/assets/js/community/core.js': '18.6.0',
   '/assets/js/community/home.js': '18.6.0',
   '/assets/js/community/thread.js': '18.6.0',

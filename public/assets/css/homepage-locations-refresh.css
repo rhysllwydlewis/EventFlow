@@ -43,28 +43,55 @@ body.ef-approved-lower-home .ef-home-locations__heading p {
   font-size: 14px;
 }
 
-body.ef-approved-lower-home .ef-home-locations__all {
+body.ef-approved-lower-home .ef-home-locations__all--button {
   display: inline-flex;
   flex: 0 0 auto;
   gap: 9px;
   align-items: center;
   margin: 0 0 4px;
-  border-bottom: 1px solid rgba(11, 128, 115, 0.35);
-  padding-bottom: 4px;
+  border: 1px solid rgba(11, 128, 115, 0.22);
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 10px 24px rgba(18, 72, 63, 0.08);
+  padding: 11px 20px;
   color: #0b8073;
   font-size: 13px;
   font-weight: 850;
   text-decoration: none;
+  transition:
+    transform 170ms ease,
+    box-shadow 170ms ease,
+    background-color 170ms ease;
 }
 
-body.ef-approved-lower-home .ef-home-locations__all:hover {
-  border-color: #0b8073;
+body.ef-approved-lower-home .ef-home-locations__all--button span {
+  transition: transform 170ms ease;
+}
+
+body.ef-approved-lower-home .ef-home-locations__all--button:hover {
+  background: #0b8073;
+  box-shadow: 0 14px 30px rgba(18, 72, 63, 0.16);
+  color: #fff;
   text-decoration: none;
+  transform: translateY(-2px);
+}
+
+body.ef-approved-lower-home .ef-home-locations__all--button:hover span {
+  transform: translateX(3px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.ef-approved-lower-home .ef-home-locations__all--button,
+  body.ef-approved-lower-home .ef-home-locations__all--button:hover,
+  body.ef-approved-lower-home .ef-home-locations__all--button span {
+    transition: none;
+    transform: none;
+  }
 }
 
 body.ef-approved-lower-home .ef-home-locations__panel {
   display: grid;
-  grid-template-columns: minmax(340px, 0.86fr) minmax(0, 1.14fr);
+  grid-template-columns: minmax(320px, 0.74fr) minmax(0, 1.26fr);
   gap: 18px;
   overflow: visible;
   border-radius: 0;
@@ -258,20 +285,34 @@ body.ef-approved-lower-home .ef-home-locations__explore-heading > span {
 
 body.ef-approved-lower-home .ef-home-locations__city-grid {
   display: grid;
+  /* Two columns by default: the explore panel only has half the section's
+     width (it shares the row with the search card), so a card here is
+     narrower than the section width suggests. Three columns only once the
+     section itself is wide enough that each card still has room for a
+     name like "Manchester" plus live text like "1,234 suppliers"
+     alongside the fixed-width pin and arrow. */
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
 }
 
+@media (min-width: 1200px) {
+  body.ef-approved-lower-home .ef-home-locations__city-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
 body.ef-approved-lower-home .ef-home-locations__city-grid a {
+  position: relative;
   display: grid;
   grid-template-columns: 39px minmax(0, 1fr) 26px;
   gap: 12px;
   align-items: center;
-  min-height: 128px;
+  overflow: hidden;
+  min-height: 108px;
   border: 1px solid #e2eeeb;
   border-radius: 15px;
   background: #f9fcfb;
-  padding: 17px;
+  padding: 16px;
   color: #10231f;
   text-decoration: none;
   transition:
@@ -280,11 +321,27 @@ body.ef-approved-lower-home .ef-home-locations__city-grid a {
     transform 170ms ease;
 }
 
+body.ef-approved-lower-home .ef-home-locations__city-grid a::before {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(90deg, #13b6a2, #0b8073);
+  content: '';
+  opacity: 0;
+  transition: opacity 170ms ease;
+}
+
 body.ef-approved-lower-home .ef-home-locations__city-grid a:hover {
   border-color: rgba(11, 128, 115, 0.3);
   background: #fff;
   box-shadow: 0 15px 30px rgba(18, 72, 63, 0.1);
   transform: translateY(-3px);
+}
+
+body.ef-approved-lower-home .ef-home-locations__city-grid a:hover::before {
+  opacity: 1;
 }
 
 body.ef-approved-lower-home .ef-home-locations__city-pin {
@@ -312,8 +369,9 @@ body.ef-approved-lower-home .ef-home-locations__city-grid strong {
 
 body.ef-approved-lower-home .ef-home-locations__city-grid small {
   margin-top: 4px;
-  color: #778a85;
+  color: #0b8073;
   font-size: 11px;
+  font-weight: 700;
 }
 
 body.ef-approved-lower-home .ef-home-locations__city-grid b {
