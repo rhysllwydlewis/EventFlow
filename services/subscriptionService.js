@@ -470,6 +470,11 @@ async function applyPendingPlan(subscriptionId) {
   } catch (err) {
     logger.error('applyPendingPlan: enforceActivePackageLimit failed:', err);
   }
+  try {
+    await enforcePhotoGalleryLimit(subscription.userId);
+  } catch (err) {
+    logger.error('applyPendingPlan: enforcePhotoGalleryLimit failed:', err);
+  }
   return updated;
 }
 
@@ -494,6 +499,11 @@ async function cancelSubscription(subscriptionId, reason = null, immediately = f
       await enforceActivePackageLimit(subscription.userId);
     } catch (err) {
       logger.error('cancelSubscription: enforceActivePackageLimit failed:', err);
+    }
+    try {
+      await enforcePhotoGalleryLimit(subscription.userId);
+    } catch (err) {
+      logger.error('cancelSubscription: enforcePhotoGalleryLimit failed:', err);
     }
   }
   return updated;
@@ -684,6 +694,65 @@ async function enforceActivePackageLimit(userId) {
   return pausedIds;
 }
 
+/**
+ * Hide a supplier's oldest gallery photos beyond the plan's photo allowance
+ * from public view, mirroring enforceActivePackageLimit's pattern exactly
+ * (same oldest-first ordering, same "flag rather than delete" approach, same
+ * call sites) — a downgrade or cancellation must retroactively enforce
+ * "up to N photos" the same way it already does for packages, or a
+ * Professional Plus supplier's public gallery keeps showing hundreds of
+ * photos on Starter with nothing to stop it.
+ *
+ * Unlike packages, photos live as an array field directly on each supplier
+ * document rather than their own collection, so this hides per-supplier
+ * (matching how the upload allowance is already checked per-supplier in
+ * routes/photos.js checkPhotoAllowance) rather than across a shared
+ * collection. Hidden photos are never deleted — only flagged
+ * hiddenByPlanLimit so an upgrade or manual gallery cleanup can be reflected
+ * without losing the original upload. Hidden photos also stop counting
+ * toward the allowance for new uploads, the same way a paused package
+ * doesn't count toward the active package limit.
+ * @param {string} userId
+ * @returns {Promise<string[]>} IDs of suppliers whose gallery was changed.
+ */
+async function enforcePhotoGalleryLimit(userId) {
+  const maxPhotos = await getPhotoAllowance(userId);
+  if (maxPhotos === -1) {
+    return [];
+  }
+
+  const mySuppliers = await dbUnified.find('suppliers', { ownerUserId: userId });
+  const changedSupplierIds = [];
+
+  for (const supplier of mySuppliers) {
+    const gallery = Array.isArray(supplier.photosGallery) ? supplier.photosGallery : [];
+    const visible = gallery.filter(p => !p?.hiddenByPlanLimit);
+    if (visible.length <= maxPhotos) {
+      continue;
+    }
+
+    const sortedVisible = [...visible].sort((a, b) => {
+      const aTime = a?.uploadedAt ? new Date(a.uploadedAt).getTime() : 0;
+      const bTime = b?.uploadedAt ? new Date(b.uploadedAt).getTime() : 0;
+      return aTime - bTime;
+    });
+    const toHide = new Set(sortedVisible.slice(0, sortedVisible.length - maxPhotos));
+
+    const updatedGallery = gallery.map(photo =>
+      toHide.has(photo) ? { ...photo, hiddenByPlanLimit: true } : photo
+    );
+
+    await dbUnified.updateOne(
+      'suppliers',
+      { id: supplier.id },
+      { $set: { photosGallery: updatedGallery } }
+    );
+    changedSupplierIds.push(supplier.id);
+  }
+
+  return changedSupplierIds;
+}
+
 async function addBillingRecord(subscriptionId, billingRecord) {
   const subscription = await getSubscription(subscriptionId);
   if (!subscription) {
@@ -775,6 +844,7 @@ module.exports = {
   getPhotoAllowance,
   getAnalyticsWindowDays,
   enforceActivePackageLimit,
+  enforcePhotoGalleryLimit,
   addBillingRecord,
   updateBillingDates,
   isInTrial,

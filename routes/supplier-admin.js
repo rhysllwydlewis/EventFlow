@@ -17,6 +17,10 @@ const {
 } = require('../utils/supplierVerificationStateMachine');
 const catalogCache = require('../services/catalogCache');
 const { sanitiseText } = require('../utils/sanitise');
+const {
+  buildSupplierProGrantUpdate,
+  buildSupplierProRevokeUpdate,
+} = require('../utils/supplierProGrant');
 const router = express.Router();
 let dbUnified;
 let authRequired;
@@ -595,7 +599,10 @@ router.get(
 
 /**
  * POST /api/admin/suppliers/:id/pro
- * Manage Pro status (cancel or set duration)
+ * Manage Pro status (cancel or set duration). Writes the same complete
+ * field set as routes/admin.js's identical endpoint and
+ * routes/admin-user-management.js's /suppliers/:id/subscription — see
+ * utils/supplierProGrant.js for why that consistency matters.
  */
 router.post(
   '/suppliers/:id/pro',
@@ -604,7 +611,7 @@ router.post(
   applyCsrfProtection,
   async (req, res) => {
     try {
-      const { mode, duration } = req.body || {};
+      const { mode, duration, tier } = req.body || {};
       const all = await dbUnified.read('suppliers');
       const s = all.find(sup => sup.id === req.params.id);
       if (!s) {
@@ -612,11 +619,10 @@ router.post(
       }
 
       const now = Date.now();
-      const proUpdates = {};
+      let proUpdates;
 
       if (mode === 'cancel') {
-        proUpdates.isPro = false;
-        proUpdates.proExpiresAt = null;
+        proUpdates = buildSupplierProRevokeUpdate({ revokedBy: req.user.id });
       } else if (mode === 'duration') {
         let ms = 0;
         switch (duration) {
@@ -635,8 +641,11 @@ router.post(
           default:
             return res.status(400).json({ error: 'Invalid duration' });
         }
-        proUpdates.isPro = true;
-        proUpdates.proExpiresAt = new Date(now + ms).toISOString();
+        proUpdates = buildSupplierProGrantUpdate({
+          tier: tier === 'pro_plus' ? 'pro_plus' : 'pro',
+          expiresAt: new Date(now + ms).toISOString(),
+          grantedBy: req.user.id,
+        });
       } else {
         return res.status(400).json({ error: 'Invalid mode' });
       }

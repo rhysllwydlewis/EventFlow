@@ -33,6 +33,7 @@ try {
 
 const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || '';
 const ALLOWED_TRIAL_DAYS = Number(process.env.STRIPE_SUBSCRIPTION_TRIAL_DAYS || 0);
+const AUTOMATIC_TAX_ENABLED = process.env.STRIPE_AUTOMATIC_TAX_ENABLED === 'true';
 
 // Legacy pricing contract retained for old pricing-page checks; checkout uses the
 // canonical billing registry, where starter/free do not have Stripe prices.
@@ -310,20 +311,41 @@ router.post(
         planId: resolved.planId,
         billingInterval: resolved.billingInterval,
       };
-      const session = await stripe.checkout.sessions.create(
-        {
-          customer: customer.id,
-          client_reference_id: req.user.id,
-          mode: 'subscription',
-          line_items: [{ price: resolved.priceId, quantity: 1 }],
-          allow_promotion_codes: true,
-          success_url: successUrl,
-          cancel_url: cancelUrl,
-          metadata,
-          subscription_data: { metadata },
-        },
-        { idempotencyKey: `checkout:${req.user.id}:${resolved.planId}:${resolved.billingInterval}` }
-      );
+      // STRIPE_SUBSCRIPTION_TRIAL_DAYS is 0 (no trial) by default — see
+      // .env.example. First-time subscribers only: this deliberately does
+      // NOT implement per-customer trial-abuse prevention beyond that (e.g.
+      // blocking a new card fingerprint that already used a trial on a
+      // different account) — worth adding before relying on this at volume.
+      const subscriptionData = { metadata };
+      if (ALLOWED_TRIAL_DAYS > 0) {
+        const priorSubscriptions = await subscriptionService.listSubscriptions({
+          userId: req.user.id,
+        });
+        if (priorSubscriptions.length === 0) {
+          subscriptionData.trial_period_days = ALLOWED_TRIAL_DAYS;
+        }
+      }
+      const sessionConfig = {
+        customer: customer.id,
+        client_reference_id: req.user.id,
+        mode: 'subscription',
+        line_items: [{ price: resolved.priceId, quantity: 1 }],
+        allow_promotion_codes: true,
+        success_url: successUrl,
+        cancel_url: cancelUrl,
+        metadata,
+        subscription_data: subscriptionData,
+      };
+      // Off by default (STRIPE_AUTOMATIC_TAX_ENABLED unset) — flip on only
+      // once Stripe Tax registrations are configured for the business in
+      // the Stripe dashboard; enabling this without them causes Checkout to
+      // error. See .env.example.
+      if (AUTOMATIC_TAX_ENABLED) {
+        sessionConfig.automatic_tax = { enabled: true };
+      }
+      const session = await stripe.checkout.sessions.create(sessionConfig, {
+        idempotencyKey: `checkout:${req.user.id}:${resolved.planId}:${resolved.billingInterval}`,
+      });
 
       const existingPayments = await dbUnified.read('payments');
       if (

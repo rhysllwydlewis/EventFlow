@@ -22,6 +22,10 @@ const userProvenance = require('../services/userProvenance.service');
 const adminUserSummary = require('../services/adminUserSummary.service');
 const { ensureSupplierProfileForUser } = require('../services/supplierProfileProvisioning.service');
 const {
+  buildSupplierProGrantUpdate,
+  buildSupplierProRevokeUpdate,
+} = require('../utils/supplierProGrant');
+const {
   deleteUserAndOwnedData,
   mergeSummaries,
   emptySummary,
@@ -1295,39 +1299,34 @@ router.post(
       }
 
       const supplier = suppliers[supplierIndex];
-      const now = new Date().toISOString();
       const expiryDate = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
 
-      // Update subscription
-      supplier.subscription = {
-        tier: tier,
-        status: 'active',
-        startDate: now,
-        endDate: expiryDate,
+      // Same field set routes/admin.js and routes/supplier-admin.js's
+      // /suppliers/:id/pro write — see utils/supplierProGrant.js.
+      const updates = buildSupplierProGrantUpdate({
+        tier,
+        expiresAt: expiryDate,
         grantedBy: req.user.id,
-        grantedAt: now,
-        autoRenew: false,
-      };
-      supplier.updatedAt = now;
+      });
+      Object.assign(supplier, updates);
 
-      // Backward compatibility
-      supplier.isPro = true;
-      supplier.proPlan = tier === 'pro_plus' ? 'Pro+' : 'Pro';
-      supplier.proPlanExpiry = expiryDate;
+      await dbUnified.updateOne('suppliers', { id: supplier.id }, { $set: updates });
 
-      await dbUnified.updateOne(
-        'suppliers',
-        { id: supplier.id },
-        {
-          $set: {
-            subscription: supplier.subscription,
-            updatedAt: supplier.updatedAt,
-            isPro: supplier.isPro,
-            proPlan: supplier.proPlan,
-            proPlanExpiry: supplier.proPlanExpiry,
-          },
+      // Mirror Pro flag to the owning user, if present — previously this
+      // route was the one place among the three admin comp-grant endpoints
+      // that didn't, so routes/profile.js and routes/auth.js's /me response
+      // could disagree with what was actually granted here.
+      try {
+        if (supplier.ownerUserId) {
+          await dbUnified.updateOne(
+            'users',
+            { id: supplier.ownerUserId },
+            { $set: { isPro: true } }
+          );
         }
-      );
+      } catch (_e) {
+        // ignore errors from user store
+      }
 
       // Create audit log with specific action
       auditLog({
@@ -1378,35 +1377,27 @@ router.delete(
       }
 
       const supplier = suppliers[supplierIndex];
-      const now = new Date().toISOString();
 
-      // Remove subscription
-      supplier.subscription = {
-        tier: 'free',
-        status: 'cancelled',
-        cancelledAt: now,
-        cancelledBy: req.user.id,
-      };
-      supplier.updatedAt = now;
+      // Same field set routes/admin.js and routes/supplier-admin.js's
+      // /suppliers/:id/pro (mode: cancel) write — see utils/supplierProGrant.js.
+      const updates = buildSupplierProRevokeUpdate({ revokedBy: req.user.id });
+      Object.assign(supplier, updates);
 
-      // Backward compatibility
-      supplier.isPro = false;
-      supplier.proPlan = null;
-      supplier.proPlanExpiry = null;
+      await dbUnified.updateOne('suppliers', { id: supplier.id }, { $set: updates });
 
-      await dbUnified.updateOne(
-        'suppliers',
-        { id: supplier.id },
-        {
-          $set: {
-            subscription: supplier.subscription,
-            updatedAt: supplier.updatedAt,
-            isPro: supplier.isPro,
-            proPlan: supplier.proPlan,
-            proPlanExpiry: supplier.proPlanExpiry,
-          },
+      // Mirror to the owning user, if present — see the matching comment on
+      // the POST handler above for why this route didn't used to.
+      try {
+        if (supplier.ownerUserId) {
+          await dbUnified.updateOne(
+            'users',
+            { id: supplier.ownerUserId },
+            { $set: { isPro: false } }
+          );
         }
-      );
+      } catch (_e) {
+        // ignore errors from user store
+      }
 
       // Create audit log with specific action
       auditLog({

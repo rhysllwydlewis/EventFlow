@@ -807,4 +807,175 @@ describe('Subscription Service Integration Tests', () => {
       expect(active).toHaveLength(3);
     });
   });
+
+  describe('enforcePhotoGalleryLimit', () => {
+    let mockSuppliers;
+
+    function makePhoto(id, uploadedAt) {
+      return { url: `/photo-${id}.jpg`, uploadedAt, approved: true };
+    }
+
+    beforeEach(() => {
+      mockSuppliers = [{ id: 'sup-1', ownerUserId: 'usr-1', photosGallery: [] }];
+
+      dbUnified.find.mockImplementation(async (collection, filter) => {
+        const applyFilter = arr => {
+          if (typeof filter === 'function') {
+            return arr.filter(filter);
+          }
+          return arr.filter(item =>
+            Object.keys(filter).every(k => {
+              const val = filter[k];
+              if (val && typeof val === 'object' && val.$in !== undefined) {
+                return Array.isArray(val.$in) && val.$in.includes(item[k]);
+              }
+              if (val && typeof val === 'object' && val.$ne !== undefined) {
+                return item[k] !== val.$ne;
+              }
+              return item[k] === val;
+            })
+          );
+        };
+        if (collection === 'suppliers') {
+          return applyFilter([...mockSuppliers]);
+        }
+        if (collection === 'subscriptions') {
+          return applyFilter([...mockSubscriptions]);
+        }
+        if (collection === 'users') {
+          return applyFilter([...mockUsers]);
+        }
+        return [];
+      });
+
+      dbUnified.updateOne.mockImplementation(async (collection, filter, update) => {
+        if (collection === 'suppliers' && update.$set) {
+          const idx = mockSuppliers.findIndex(s => s.id === filter.id);
+          if (idx >= 0) {
+            mockSuppliers[idx] = { ...mockSuppliers[idx], ...update.$set };
+          }
+        }
+        if (collection === 'users' && update.$set) {
+          const idx = mockUsers.findIndex(u => u.id === filter.id);
+          if (idx >= 0) {
+            mockUsers[idx] = { ...mockUsers[idx], ...update.$set };
+          }
+        }
+        if (collection === 'subscriptions' && update.$set) {
+          const idx = mockSubscriptions.findIndex(s =>
+            Object.keys(filter).every(k => s[k] === filter[k])
+          );
+          if (idx >= 0) {
+            mockSubscriptions[idx] = { ...mockSubscriptions[idx], ...update.$set };
+          }
+        }
+      });
+    });
+
+    it('does not hide any photos when the gallery is within the plan allowance', async () => {
+      // Free plan: 10 photos; supplier has 3
+      mockSuppliers[0].photosGallery = [
+        makePhoto(1, '2024-01-01T00:00:00Z'),
+        makePhoto(2, '2024-01-02T00:00:00Z'),
+        makePhoto(3, '2024-01-03T00:00:00Z'),
+      ];
+
+      const changed = await subscriptionService.enforcePhotoGalleryLimit('usr-1');
+      expect(changed).toHaveLength(0);
+      expect(mockSuppliers[0].photosGallery.every(p => !p.hiddenByPlanLimit)).toBe(true);
+    });
+
+    it('hides the oldest photos over the limit on downgrade, keeping the newest visible', async () => {
+      // Free plan limit is 10; supplier has 12 photos
+      mockSuppliers[0].photosGallery = Array.from({ length: 12 }, (_, i) =>
+        makePhoto(i + 1, `2024-01-${String(i + 1).padStart(2, '0')}T00:00:00Z`)
+      );
+
+      const changed = await subscriptionService.enforcePhotoGalleryLimit('usr-1');
+      expect(changed).toEqual(['sup-1']);
+
+      const gallery = mockSuppliers[0].photosGallery;
+      const hidden = gallery.filter(p => p.hiddenByPlanLimit);
+      const visible = gallery.filter(p => !p.hiddenByPlanLimit);
+      expect(hidden).toHaveLength(2);
+      expect(visible).toHaveLength(10);
+      // The two oldest (photo-1, photo-2) should be the ones hidden.
+      expect(hidden.map(p => p.url).sort()).toEqual(['/photo-1.jpg', '/photo-2.jpg']);
+      // Nothing is deleted — hidden photos are still in the array.
+      expect(gallery).toHaveLength(12);
+    });
+
+    it('does not re-hide photos that are already hidden', async () => {
+      mockSuppliers[0].photosGallery = [
+        { ...makePhoto(1, '2024-01-01T00:00:00Z'), hiddenByPlanLimit: true },
+        { ...makePhoto(2, '2024-01-02T00:00:00Z'), hiddenByPlanLimit: true },
+        ...Array.from({ length: 10 }, (_, i) =>
+          makePhoto(i + 3, `2024-02-${String(i + 1).padStart(2, '0')}T00:00:00Z`)
+        ),
+      ];
+
+      const changed = await subscriptionService.enforcePhotoGalleryLimit('usr-1');
+      expect(changed).toHaveLength(0);
+    });
+
+    it('returns an empty array for an unlimited plan (pro_plus)', async () => {
+      mockSubscriptions = [
+        {
+          id: 'sub-pp',
+          userId: 'usr-1',
+          plan: 'pro_plus',
+          status: 'active',
+          currentPeriodEnd: new Date(Date.now() + 86400000).toISOString(),
+        },
+      ];
+      mockSuppliers[0].photosGallery = Array.from({ length: 50 }, (_, i) =>
+        makePhoto(i + 1, `2024-01-01T00:00:00Z`)
+      );
+
+      const changed = await subscriptionService.enforcePhotoGalleryLimit('usr-1');
+      expect(changed).toHaveLength(0);
+    });
+
+    it('applyPendingPlan hides overflow photos alongside pausing overflow packages', async () => {
+      mockSubscriptions = [
+        {
+          id: 'sub-pending',
+          userId: 'usr-1',
+          plan: 'pro',
+          status: 'active',
+          pendingPlan: 'free',
+          cancelAtPeriodEnd: true,
+          currentPeriodEnd: new Date(Date.now() + 86400000).toISOString(),
+        },
+      ];
+      mockSuppliers[0].photosGallery = Array.from({ length: 12 }, (_, i) =>
+        makePhoto(i + 1, `2024-01-${String(i + 1).padStart(2, '0')}T00:00:00Z`)
+      );
+
+      await subscriptionService.applyPendingPlan('sub-pending');
+
+      const visible = mockSuppliers[0].photosGallery.filter(p => !p.hiddenByPlanLimit);
+      expect(visible).toHaveLength(10);
+    });
+
+    it('cancelSubscription immediately hides overflow photos alongside pausing overflow packages', async () => {
+      mockSubscriptions = [
+        {
+          id: 'sub-cancel',
+          userId: 'usr-1',
+          plan: 'pro',
+          status: 'active',
+          currentPeriodEnd: new Date(Date.now() + 86400000).toISOString(),
+        },
+      ];
+      mockSuppliers[0].photosGallery = Array.from({ length: 12 }, (_, i) =>
+        makePhoto(i + 1, `2024-01-${String(i + 1).padStart(2, '0')}T00:00:00Z`)
+      );
+
+      await subscriptionService.cancelSubscription('sub-cancel', 'test', true);
+
+      const visible = mockSuppliers[0].photosGallery.filter(p => !p.hiddenByPlanLimit);
+      expect(visible).toHaveLength(10);
+    });
+  });
 });

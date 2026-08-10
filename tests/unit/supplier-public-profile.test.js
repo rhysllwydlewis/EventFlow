@@ -206,4 +206,25 @@ describe('supplier public profile safety helpers', () => {
 
     expect(payload.postcode).toBeNull();
   });
+
+  test('excludes photos hidden by a plan downgrade from the public gallery', () => {
+    // subscriptionService.enforcePhotoGalleryLimit flags overflow photos with
+    // hiddenByPlanLimit rather than deleting them — the public profile must
+    // not show them, or "up to N photos" stops being a real plan difference.
+    const payload = safePublicSupplier({
+      id: 'sup_4',
+      name: 'Downgraded Supplier',
+      photosGallery: [
+        { url: 'https://example.com/photos/visible-1.jpg' },
+        { url: 'https://example.com/photos/visible-2.jpg' },
+        { url: 'https://example.com/photos/hidden-1.jpg', hiddenByPlanLimit: true },
+        { url: 'https://example.com/photos/hidden-2.jpg', hiddenByPlanLimit: true },
+      ],
+    });
+
+    expect(payload.photosGallery).toEqual([
+      'https://example.com/photos/visible-1.jpg',
+      'https://example.com/photos/visible-2.jpg',
+    ]);
+  });
 });
