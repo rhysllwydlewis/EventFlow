@@ -1,0 +1,158 @@
+/* ==========================================================================
+   EventFlow — supplier subscription management
+   --------------------------------------------------------------------------
+   This page reuses pricing-redesign.css for the plan cards, comparison
+   table and FAQ verbatim — it is the same visual system as /pricing, not a
+   lookalike, so the two can never drift apart the way the old
+   subscription.css did. This file adds only the handful of pieces unique to
+   an account-management context: the breadcrumb back to the dashboard, the
+   downgrade-pending banner, inline alerts, the per-card "renews on"/"cancels
+   on" notice, and the support block. It relies on the CSS custom properties
+   pricing-redesign.css sets on body.pricing-redesign (--p-ink, --p-teal,
+   --p-line, etc.) so the two stylesheets always agree on colour.
+   ========================================================================== */
+
+body.pricing-redesign .supplier-breadcrumb {
+  width: min(100%, 1120px);
+  margin: 0 auto;
+  padding: 1.5rem 1.5rem 0;
+}
+
+body.pricing-redesign .supplier-breadcrumb-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  color: var(--p-ink-2);
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+body.pricing-redesign .supplier-breadcrumb-link:hover {
+  color: var(--p-teal-dark);
+  text-decoration: underline;
+}
+
+/* ── Downgrade-pending banner ─────────────────────────────────────────────
+   Same left-accent-border pattern as .pricing-customer-notice-inner, in
+   amber rather than teal — this is a heads-up, not neutral information. */
+
+body.pricing-redesign .pricing-account-banner {
+  display: flex;
+  gap: 0.75rem;
+  width: min(100%, 1120px);
+  margin: 0 auto 1.5rem;
+  padding: 1rem 1.125rem;
+  border: 1px solid var(--p-line);
+  border-left: 3px solid #b5750a;
+  border-radius: 10px;
+  background: #fdf8ef;
+}
+
+body.pricing-redesign .pricing-account-banner__icon {
+  flex: 0 0 auto;
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+body.pricing-redesign .pricing-account-banner__title {
+  margin: 0 0 0.25rem;
+  color: var(--p-ink);
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+body.pricing-redesign .pricing-account-banner__message,
+body.pricing-redesign .pricing-account-banner__warning {
+  margin: 0;
+  color: var(--p-ink-2);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+body.pricing-redesign .pricing-account-banner__warning {
+  margin-top: 0.5rem;
+  color: #8a5a00;
+  font-weight: 500;
+}
+
+/* ── Inline alerts ────────────────────────────────────────────────────────── */
+
+body.pricing-redesign .pricing-alert {
+  width: min(100%, 1120px);
+  margin: 0 auto 1.5rem;
+  padding: 0.875rem 1.125rem;
+  border: 1px solid var(--p-line);
+  border-radius: 10px;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+body.pricing-redesign .pricing-alert[hidden] {
+  display: none;
+}
+
+body.pricing-redesign .pricing-alert--error {
+  border-color: rgba(164, 39, 28, 0.3);
+  background: #fdf2f1;
+  color: #a4271c;
+}
+
+body.pricing-redesign .pricing-alert--success {
+  border-color: rgba(11, 128, 115, 0.3);
+  background: var(--p-tint);
+  color: var(--p-teal-dark);
+}
+
+/* ── Per-card account notice (renews / cancels / downgrades on) ──────────── */
+
+body.pricing-redesign .pricing-account-notice {
+  margin: 0.75rem 0 0;
+  padding: 0;
+  color: var(--p-ink-2);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.4;
+  text-align: center;
+}
+
+body.pricing-redesign .pricing-account-notice[hidden] {
+  display: none;
+}
+
+body.pricing-redesign .pricing-account-notice--warning {
+  color: #8a5a00;
+}
+
+/* ── Support block ────────────────────────────────────────────────────────── */
+
+body.pricing-redesign .pricing-support {
+  margin-top: 5rem;
+  padding: 2rem;
+  border: 1px solid var(--p-line);
+  border-radius: 16px;
+  background: var(--p-surface);
+  text-align: center;
+}
+
+body.pricing-redesign .pricing-support h2 {
+  margin: 0 0 0.5rem;
+  color: var(--p-ink);
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+body.pricing-redesign .pricing-support p {
+  max-width: 32rem;
+  margin: 0 auto 1.25rem;
+  color: var(--p-ink-2);
+  font-size: 0.9375rem;
+  line-height: 1.6;
+}
+
+body.pricing-redesign .pricing-support .pricing-cta {
+  display: inline-flex !important;
+  width: auto;
+  min-width: 12rem;
+  margin: 0 auto !important;
+}

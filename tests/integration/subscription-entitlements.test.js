@@ -367,6 +367,55 @@ describe('3. Downgrade — current entitlements preserved until period end', () 
     expect(sub.plan).toBe('pro');
     expect(sub.pendingPlan).toBeNull();
   });
+
+  it('applies a scheduled downgrade once the Subscription Schedule flips to its second phase', async () => {
+    // Downgrade routed through a Subscription Schedule (routes/subscriptions-v2.js
+    // scheduleDowngradeToLowerPaidPlan) never sets cancel_at_period_end on the
+    // Stripe subscription — the schedule owns the transition instead, and it
+    // surfaces here as the subscription's metadata.planId flipping to the
+    // pending plan.
+    await subscriptionService.downgradeSubscription(subId, 'pro');
+    await subscriptionService.updateSubscription(subId, {
+      metadata: { stripeScheduleId: 'sched_1' },
+    });
+
+    const stripeEvent = makeStripeSubscription({
+      id: 'sub_d',
+      cancel_at_period_end: false,
+      metadata: { planId: 'pro' }, // phase 2 has taken over
+    });
+    await handleSubscriptionUpdated(stripeEvent);
+
+    const sub = mockSubscriptions.find(s => s.id === subId);
+    expect(sub.plan).toBe('pro');
+    expect(sub.pendingPlan).toBeNull();
+    expect(sub.cancelAtPeriodEnd).toBe(false);
+    expect(sub.metadata.stripeScheduleId).toBeNull();
+  });
+
+  it('does not clear the pending-downgrade banner while the schedule is still on its first phase', async () => {
+    await subscriptionService.downgradeSubscription(subId, 'pro');
+    await subscriptionService.updateSubscription(subId, {
+      metadata: { stripeScheduleId: 'sched_1' },
+    });
+
+    // Stripe fires customer.subscription.updated for all sorts of reasons
+    // while phase 1 (the current, higher-tier price) is still active —
+    // metadata still shows the current plan, and cancel_at_period_end on the
+    // subscription itself is always false for a schedule-driven downgrade.
+    const stripeEvent = makeStripeSubscription({
+      id: 'sub_d',
+      cancel_at_period_end: false,
+      metadata: { planId: 'pro_plus' },
+    });
+    await handleSubscriptionUpdated(stripeEvent);
+
+    const sub = mockSubscriptions.find(s => s.id === subId);
+    expect(sub.plan).toBe('pro_plus');
+    expect(sub.pendingPlan).toBe('pro');
+    // Must still read as "downgrade pending" for the dashboard banner.
+    expect(sub.cancelAtPeriodEnd).toBe(true);
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

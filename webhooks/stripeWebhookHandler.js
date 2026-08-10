@@ -475,10 +475,7 @@ async function handleSubscriptionUpdated(stripeSubscription) {
   // Update subscription status and dates
   const periodStart = timestampToIso(stripeSubscription.current_period_start);
   const periodEnd = timestampToIso(stripeSubscription.current_period_end);
-  const updates = {
-    status: stripeSubscription.status,
-    cancelAtPeriodEnd: Boolean(stripeSubscription.cancel_at_period_end),
-  };
+  const updates = { status: stripeSubscription.status };
   if (periodStart) {
     updates.currentPeriodStart = periodStart;
   }
@@ -503,35 +500,65 @@ async function handleSubscriptionUpdated(stripeSubscription) {
     updates.canceledAt = timestampToIso(stripeSubscription.canceled_at);
   }
 
-  // When a billing period renews (Stripe clears cancel_at_period_end) and a downgrade
-  // was scheduled locally, apply the pending plan now.
-  // We check both the Stripe flag (now false = period renewed) AND the local flag
-  // (was true = we set it during the downgrade) to avoid applying a pendingPlan if
-  // cancel_at_period_end happened to be false for an unrelated reason.
-  if (
+  // Detect an explicit plan change pushed via Stripe metadata — this is how
+  // both a downgrade Subscription Schedule's second phase (see
+  // routes/subscriptions-v2.js scheduleDowngradeToLowerPaidPlan) and a direct
+  // admin/manual metadata edit surface here. Prefer metadata.planId
+  // (canonical) then planName/nickname as fallback.
+  const planIdentifier =
+    stripeSubscription.metadata?.planId ||
+    stripeSubscription.metadata?.planName ||
+    stripeSubscription.items?.data?.[0]?.price?.nickname ||
+    '';
+  const metadataPlan = planIdentifier ? resolvePlanTier(planIdentifier) : null;
+
+  const hasActiveDowngradeSchedule = Boolean(
+    subscription.pendingPlan && subscription.metadata?.stripeScheduleId
+  );
+
+  if (subscription.pendingPlan && metadataPlan === subscription.pendingPlan) {
+    // The downgrade schedule's second phase has taken effect: Stripe swapped
+    // to the new (lower) price and updated the subscription's metadata to
+    // match. The subscription itself was never cancelled, so billing carries
+    // on uninterrupted at the new price from here.
+    updates.plan = subscription.pendingPlan;
+    updates.pendingPlan = null;
+    updates.cancelAtPeriodEnd = false;
+    updates.metadata = { ...subscription.metadata, stripeScheduleId: null };
+    logger.info(
+      `Applying scheduled downgrade for subscription ${subscription.id}: ` +
+        `${subscription.plan} → ${subscription.pendingPlan}`
+    );
+  } else if (
+    !hasActiveDowngradeSchedule &&
     subscription.cancelAtPeriodEnd &&
     !stripeSubscription.cancel_at_period_end &&
     subscription.pendingPlan
   ) {
+    // Legacy path: a downgrade-to-free whose cancellation got lifted before
+    // it took effect (e.g. reactivated from the Stripe dashboard). Excluded
+    // whenever a downgrade schedule is active — cancel_at_period_end on the
+    // subscription itself is always false in that flow (the schedule, not a
+    // cancellation, is what's pending), so this branch would otherwise fire
+    // on every update event and apply the downgrade before phase 2 arrives.
     updates.plan = subscription.pendingPlan;
     updates.pendingPlan = null;
+    updates.cancelAtPeriodEnd = false;
     logger.info(
       `Applying pending downgrade for subscription ${subscription.id}: ` +
         `${subscription.plan} → ${subscription.pendingPlan}`
     );
   } else {
-    // Detect an explicit plan change pushed via Stripe metadata (e.g. admin override)
-    // Prefer metadata.planId (canonical) then planName/nickname as fallback
-    const planIdentifier =
-      stripeSubscription.metadata?.planId ||
-      stripeSubscription.metadata?.planName ||
-      stripeSubscription.items?.data?.[0]?.price?.nickname ||
-      '';
-    if (planIdentifier) {
-      const newPlan = resolvePlanTier(planIdentifier);
-      if (newPlan && newPlan !== subscription.plan && !subscription.pendingPlan) {
-        updates.plan = newPlan;
-      }
+    // Not a pending downgrade taking effect. Mirror Stripe's cancellation
+    // flag as usual — except while a downgrade schedule is actively pending,
+    // where the underlying subscription's own cancel_at_period_end is always
+    // false (the schedule, not cancellation, is what's pending) and mirroring
+    // it here would blank out the "downgrade scheduled" banner prematurely.
+    if (!hasActiveDowngradeSchedule) {
+      updates.cancelAtPeriodEnd = Boolean(stripeSubscription.cancel_at_period_end);
+    }
+    if (metadataPlan && metadataPlan !== subscription.plan && !subscription.pendingPlan) {
+      updates.plan = metadataPlan;
     }
   }
 
@@ -774,14 +801,31 @@ async function handleInvoiceUpcoming(invoice) {
     year: 'numeric',
   });
 
-  const autoRenew = subscription.cancelAtPeriodEnd ? 'Disabled' : 'Enabled';
-  const renewalMessage = subscription.cancelAtPeriodEnd
-    ? 'Your subscription is set to cancel at the end of the current period. Reactivate to keep your premium access.'
-    : `Your ${formatPlanName(subscription.plan)} subscription will automatically renew on ${formattedRenewalDate}.`;
+  // A downgrade to a lower PAID plan (pendingPlan set, not 'free') still bills
+  // going forward at the new price — cancelAtPeriodEnd there does not mean the
+  // subscription is ending, so it must not trigger the "reactivate" wording.
+  const isEndingCompletely =
+    subscription.cancelAtPeriodEnd &&
+    (!subscription.pendingPlan || subscription.pendingPlan === 'free');
+  const isDowngradingToPaidPlan =
+    subscription.cancelAtPeriodEnd &&
+    subscription.pendingPlan &&
+    subscription.pendingPlan !== 'free';
 
-  const ctaText = subscription.cancelAtPeriodEnd
-    ? 'Reactivate Subscription'
-    : 'Manage Subscription';
+  const autoRenew = isEndingCompletely ? 'Disabled' : 'Enabled';
+  let renewalMessage;
+  let ctaText;
+  if (isEndingCompletely) {
+    renewalMessage =
+      'Your subscription is set to cancel at the end of the current period. Reactivate to keep your premium access.';
+    ctaText = 'Reactivate Subscription';
+  } else if (isDowngradingToPaidPlan) {
+    renewalMessage = `Your plan will change to ${formatPlanName(subscription.pendingPlan)} on ${formattedRenewalDate} and continue billing at the new plan's price.`;
+    ctaText = 'Manage Subscription';
+  } else {
+    renewalMessage = `Your ${formatPlanName(subscription.plan)} subscription will automatically renew on ${formattedRenewalDate}.`;
+    ctaText = 'Manage Subscription';
+  }
 
   try {
     await postmark.sendMail({

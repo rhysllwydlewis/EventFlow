@@ -1,6 +1,14 @@
 /**
  * Subscription Management for EventFlow Suppliers
- * Handles subscription plan selection and Stripe integration
+ *
+ * Renders the same plan cards, pricing and billing toggle as /pricing (the
+ * canonical presentation data comes from the same /api/v2/subscriptions/plans
+ * endpoint pricing.js reads), then layers account-management state on top:
+ * current-plan detection, upgrade/downgrade through the v2 subscription
+ * endpoints instead of checkout, a manage-billing portal button, and the
+ * downgrade-pending banner. Keeping this page on the same markup/CSS as
+ * pricing.html (rather than a hand-styled lookalike) is what stops the two
+ * from drifting apart the way the previous design did.
  */
 
 // Debug logging is only enabled in local development environments
@@ -10,50 +18,47 @@ const isDevelopment =
 // Error display timeout constant (10 seconds)
 const ERROR_DISPLAY_TIMEOUT = 10000;
 
-// Subscription plans — exactly 3: Starter, Pro, Pro Plus
+const BILLING_MONTH = 'month';
+const BILLING_YEAR = 'year';
+
+// Fallback plan data, matching the server-rendered first paint. The plans
+// endpoint (loadCanonicalPlans) overwrites the price fields; this is what the
+// page falls back to if that request fails.
 const PLANS = {
   starter: {
     id: 'starter',
+    apiPlanId: 'free',
     name: 'Starter',
     tier: 'free',
-    price: 0,
-    features: [
-      '1 supplier profile',
-      'Up to 3 active packages',
-      'Basic enquiry inbox',
-      'Standard listing position',
-    ],
+    checkout: false,
+    monthlyPrice: 0,
+    annualMonthlyPrice: 0,
+    annualTotal: 0,
+    annualSaving: 0,
   },
   pro: {
     id: 'pro',
+    apiPlanId: 'pro',
     name: 'Pro',
     tier: 'pro',
-    price: 19.0,
+    checkout: true,
+    monthlyPrice: 19,
+    annualMonthlyPrice: 16,
+    annualTotal: 192,
+    annualSaving: 36,
     trialDays: 14,
-    earlyAccess: true,
-    normallyPrice: 69.0,
-    earlyAccessEndDate: '31 December 2026',
-    features: [
-      'Pro badge on profile',
-      'Priority listing in search results',
-      'Unlimited packages',
-      'Advanced analytics',
-      'Email support',
-    ],
   },
   pro_plus: {
     id: 'pro_plus',
+    apiPlanId: 'pro_plus',
     name: 'Pro Plus',
     tier: 'pro_plus',
-    price: 199.0,
+    checkout: true,
+    monthlyPrice: 159,
+    annualMonthlyPrice: 129,
+    annualTotal: 1548,
+    annualSaving: 360,
     trialDays: 14,
-    features: [
-      'Pro Plus badge on profile',
-      'All Pro features included',
-      'Priority phone support',
-      'Custom branding options',
-      'Featured in homepage carousel',
-    ],
   },
 };
 
@@ -68,6 +73,16 @@ const planByTier = tier => Object.values(PLANS).find(p => p.tier === tier);
 
 let currentUser = null;
 let currentSubscription = null; // from /api/v2/subscriptions/me
+let activeBillingPeriod = BILLING_MONTH;
+
+/**
+ * Format an amount as pounds sterling, no decimals.
+ * @param {number} value Amount in pounds.
+ * @returns {string} e.g. `£159`.
+ */
+function money(value) {
+  return `£${new Intl.NumberFormat('en-GB', { maximumFractionDigits: 0 }).format(Number.isFinite(value) ? value : 0)}`;
+}
 
 /**
  * Initialize subscription page
@@ -124,17 +139,20 @@ async function initSubscriptionPage() {
       }
     }
 
-    // Load current subscription record
-    await loadSubscriptionStatus();
+    attachBillingToggle();
+
+    // Load current subscription record and canonical pricing in parallel
+    await Promise.all([loadSubscriptionStatus(), loadCanonicalPlans()]);
+
+    // Default the toggle to whatever the supplier is actually billed on,
+    // rather than always opening on monthly.
+    if (currentSubscription?.billingInterval === BILLING_YEAR) {
+      activeBillingPeriod = BILLING_YEAR;
+    }
+    setBillingPeriod(activeBillingPeriod);
 
     // Render pending downgrade banner (if applicable)
-    await renderDowngradeBanner();
-
-    // Render plans
-    renderSubscriptionPlans();
-
-    // Set up legacy billing portal button (if present)
-    setupBillingPortal();
+    renderDowngradeBanner();
 
     if (isDevelopment) {
       console.log('[Subscription] Initialization complete');
@@ -204,7 +222,6 @@ async function checkAuth() {
 
 /**
  * Load user's current subscription from the canonical v2 endpoint.
- * Also supplements with billing details from the payments API.
  */
 async function loadSubscriptionStatus() {
   try {
@@ -233,6 +250,103 @@ async function loadSubscriptionStatus() {
     }
     // Non-fatal — fall back to subscriptionTier from auth/me
   }
+}
+
+/**
+ * Refresh PLANS' price/audience/features from the canonical plans API — the
+ * same /api/v2/subscriptions/plans "billing" data /pricing hydrates from.
+ * Failure is non-fatal: the fallback figures above stay in place.
+ */
+async function loadCanonicalPlans() {
+  try {
+    const response = await fetch('/api/v2/subscriptions/plans', { credentials: 'include' });
+    if (!response.ok) {
+      return;
+    }
+    const data = await response.json();
+    const byTier = new Map((data.billing || []).map(entry => [entry.tier, entry]));
+    Object.values(PLANS).forEach(plan => {
+      const presentation = byTier.get(plan.tier)?.presentation;
+      if (!presentation) {
+        return;
+      }
+      const monthly = presentation.pricing?.month;
+      const yearly = presentation.pricing?.year;
+      if (monthly && Number.isFinite(monthly.monthlyEquivalent)) {
+        plan.monthlyPrice = monthly.monthlyEquivalent;
+      }
+      if (yearly) {
+        if (Number.isFinite(yearly.monthlyEquivalent)) {
+          plan.annualMonthlyPrice = yearly.monthlyEquivalent;
+        }
+        if (Number.isFinite(yearly.total)) {
+          plan.annualTotal = yearly.total;
+        }
+        if (Number.isFinite(yearly.saving)) {
+          plan.annualSaving = yearly.saving;
+        }
+      }
+      if (presentation.audience) {
+        const el = document.querySelector(
+          `.pricing-card[data-plan="${plan.id}"] .pricing-tier-label`
+        );
+        if (el) {
+          el.textContent = presentation.audience;
+        }
+      }
+      if (Array.isArray(presentation.highlights) && presentation.highlights.length) {
+        const list = document.querySelector(
+          `.pricing-card[data-plan="${plan.id}"] .pricing-features`
+        );
+        if (list) {
+          list.innerHTML = presentation.highlights
+            .map(highlight => {
+              const match = String(highlight).match(/^(.*?)\s+[—–]\s+(.*)$/);
+              const name = match ? match[1].trim() : highlight;
+              const why = match ? match[2].trim() : '';
+              return `<li><span class="pricing-feature-name">${escapeHtml(name)}</span>${why ? `<span class="pricing-feature-why">${escapeHtml(why.charAt(0).toUpperCase() + why.slice(1).replace(/\.?$/, '.'))}</span>` : ''}</li>`;
+            })
+            .join('');
+        }
+      }
+    });
+    setBillingPeriod(activeBillingPeriod);
+  } catch (error) {
+    if (isDevelopment) {
+      console.warn('[Subscription] Could not load canonical plan pricing:', error.message);
+    }
+  }
+}
+
+/**
+ * Wire the monthly/annual switch, guarding against double binding.
+ */
+function attachBillingToggle() {
+  const toggle = document.getElementById('pricing-billing-switch');
+  if (!toggle || toggle.dataset.pricingToggleAttached) {
+    return;
+  }
+  toggle.dataset.pricingToggleAttached = 'true';
+  toggle.addEventListener('click', () => {
+    setBillingPeriod(activeBillingPeriod === BILLING_YEAR ? BILLING_MONTH : BILLING_YEAR);
+  });
+}
+
+/**
+ * Switch the whole page to a billing period and re-render every card.
+ * @param {string} period BILLING_MONTH or BILLING_YEAR
+ */
+function setBillingPeriod(period) {
+  activeBillingPeriod = period === BILLING_YEAR ? BILLING_YEAR : BILLING_MONTH;
+  const annual = activeBillingPeriod === BILLING_YEAR;
+  const toggle = document.getElementById('pricing-billing-switch');
+  if (toggle) {
+    toggle.setAttribute('aria-checked', String(annual));
+    toggle.classList.toggle('is-annual', annual);
+  }
+  document.getElementById('pricing-monthly-label')?.classList.toggle('is-active', !annual);
+  document.getElementById('pricing-annual-label')?.classList.toggle('is-active', annual);
+  renderSubscriptionPlans();
 }
 
 /**
@@ -275,7 +389,7 @@ async function renderDowngradeBanner() {
         const activeCount = (pkgData.items || []).filter(p => !p.paused).length;
         const willPause = Math.max(0, activeCount - targetMax);
         if (willPause > 0) {
-          pauseWarningHtml = `<p class="downgrade-banner__warning">⚠️ When the downgrade takes effect, ${willPause} active package${willPause === 1 ? '' : 's'} will be automatically paused to stay within the ${pendingPlanName} plan limit of ${targetMax} active packages.</p>`;
+          pauseWarningHtml = `<p class="pricing-account-banner__warning">⚠️ When the downgrade takes effect, ${willPause} active package${willPause === 1 ? '' : 's'} will be automatically paused to stay within the ${escapeHtml(pendingPlanName)} plan limit of ${targetMax} active packages.</p>`;
         }
       }
     } catch (_) {
@@ -284,11 +398,11 @@ async function renderDowngradeBanner() {
   }
 
   bannerContainer.innerHTML = `
-    <div class="downgrade-banner" role="status" aria-live="polite">
-      <span class="downgrade-banner__icon" aria-hidden="true">📋</span>
-      <div class="downgrade-banner__body">
-        <p class="downgrade-banner__title">Downgrade to ${pendingPlanName} scheduled</p>
-        <p class="downgrade-banner__message">Your ${currentPlanName} plan remains active until ${dateStr}. You can upgrade at any time.</p>
+    <div class="pricing-account-banner" role="status" aria-live="polite">
+      <span class="pricing-account-banner__icon" aria-hidden="true">📋</span>
+      <div class="pricing-account-banner__body">
+        <p class="pricing-account-banner__title">Downgrade to ${escapeHtml(pendingPlanName)} scheduled</p>
+        <p class="pricing-account-banner__message">Your ${escapeHtml(currentPlanName)} plan remains active until ${dateStr}. You can upgrade at any time.</p>
         ${pauseWarningHtml}
       </div>
     </div>
@@ -296,144 +410,153 @@ async function renderDowngradeBanner() {
 }
 
 /**
- * Render subscription plans
+ * Render subscription plan cards: canonical pricing + management state
+ * (current plan / upgrade / downgrade / manage billing) for the current period.
  */
 function renderSubscriptionPlans() {
-  const plansContainer = document.getElementById('subscription-plans');
-  if (!plansContainer) {
-    return;
-  }
-
-  const DATE_FORMAT_OPTIONS = { day: 'numeric', month: 'long', year: 'numeric' };
   const currentTier = currentUser?.subscriptionTier || 'free';
-  const currentHierarchyIndex = PLAN_HIERARCHY.indexOf(currentTier);
+  const currentIndex = PLAN_HIERARCHY.indexOf(currentTier);
+  const annual = activeBillingPeriod === BILLING_YEAR;
 
-  const plansHtml = Object.values(PLANS)
-    .map(plan => {
-      const isCurrentPlan = plan.tier === currentTier;
-      const planHierarchyIndex = PLAN_HIERARCHY.indexOf(plan.tier);
-      const isUpgrade = planHierarchyIndex > currentHierarchyIndex;
-      const isDowngrade = planHierarchyIndex < currentHierarchyIndex;
-      const isFeatured = plan.tier === 'pro_plus';
+  Object.values(PLANS).forEach(plan => {
+    const card = document.querySelector(`.pricing-card[data-plan="${plan.id}"]`);
+    if (!card) {
+      return;
+    }
 
-      let actionHtml = '';
-      if (isCurrentPlan) {
-        // Current plan — show indicator + manage button if paid
-        let manageHtml = '';
-        if (currentSubscription && plan.tier !== 'free') {
-          const periodEnd = currentSubscription.currentPeriodEnd;
-          const periodEndStr = periodEnd
-            ? new Date(periodEnd).toLocaleDateString('en-GB', DATE_FORMAT_OPTIONS)
-            : null;
-          const pendingTier = currentSubscription.pendingPlan;
-          const pendingPlanName = pendingTier ? planByTier(pendingTier)?.name || pendingTier : null;
-          const cancelNotice =
-            currentSubscription.cancelAtPeriodEnd && periodEndStr
-              ? pendingPlanName
-                ? `<p class="card-cancellation-notice">📋 Downgrades to ${pendingPlanName} on ${periodEndStr}</p>`
-                : `<p class="card-cancellation-notice">⚠️ Cancels on ${periodEndStr}</p>`
-              : '';
-          const renewalNotice =
-            !currentSubscription.cancelAtPeriodEnd && periodEndStr
-              ? `<p class="card-renewal-notice">Renews ${periodEndStr}</p>`
-              : '';
-          manageHtml = `
-            <button class="ef-cta btn-manage">Manage Subscription</button>
-            ${cancelNotice}
-            ${renewalNotice}
-          `;
-        }
-        actionHtml = `
-          <div class="plan-action">
-            <div class="current-plan-indicator">✓ Current Plan</div>
-            ${manageHtml}
-          </div>
-        `;
-      } else if (plan.tier === 'free') {
-        // Downgrade to Starter (cancel paid subscription)
-        actionHtml = `
-          <div class="plan-action">
-            <button class="ef-cta btn-downgrade"
-                    data-plan-id="${plan.id}">
-              Downgrade to Starter
-            </button>
-          </div>
-        `;
-      } else if (isUpgrade) {
-        const label = currentTier === 'free' ? `Start Free Trial` : `Upgrade to ${plan.name}`;
-        actionHtml = `
-          <div class="plan-action">
-            <button class="ef-cta btn-select"
-                    data-plan-id="${plan.id}">
-              ${label}
-            </button>
-            ${plan.trialDays && currentTier === 'free' ? `<p class="trial-note">${plan.trialDays}-day free trial</p>` : ''}
-          </div>
-        `;
-      } else if (isDowngrade) {
-        actionHtml = `
-          <div class="plan-action">
-            <button class="ef-cta btn-downgrade"
-                    data-plan-id="${plan.id}">
-              Downgrade to ${plan.name}
-            </button>
-          </div>
-        `;
-      } else {
-        // Fallback
-        actionHtml = `
-          <div class="plan-action">
-            <button class="ef-cta btn-select"
-                    data-plan-id="${plan.id}">
-              Select Plan
-            </button>
-          </div>
-        `;
-      }
+    const paid = plan.monthlyPrice > 0;
+    const price = annual ? plan.annualMonthlyPrice : plan.monthlyPrice;
+    const priceEl = card.querySelector('[data-pricing-price]');
+    const billedLine = card.querySelector('[data-pricing-billed-line]');
+    const normallyLine = card.querySelector('[data-pricing-normally]');
+    const savingsLine = card.querySelector('[data-pricing-savings]');
+    const cta = card.querySelector('.pricing-cta');
+    const notice = card.querySelector('[data-pricing-account-notice]');
 
-      return `
-        <div class="pricing-card ${isFeatured ? 'featured' : ''} ${isCurrentPlan ? 'current' : ''}">
-          ${isCurrentPlan ? '<div class="current-plan-badge">Current Plan</div>' : isFeatured ? '<div class="popular-badge">PREMIUM</div>' : ''}
-          <h3>${plan.name}</h3>
-          <div class="price">
-            ${plan.price === 0 ? '<span class="price-free">Free</span>' : `£${plan.price.toFixed(2)}<span class="period">/month</span>`}
-          </div>
-          ${
-            plan.earlyAccess
-              ? `
-            <div class="early-access-label">Early Access Pricing</div>
-            <div class="price-note price-note--strikethrough">Normally £${plan.normallyPrice}/month</div>
-          `
-              : ''
-          }
-          <ul class="features">
-            ${plan.features.map(feature => `<li>${feature}</li>`).join('')}
-          </ul>
-          ${actionHtml}
-        </div>
-      `;
-    })
-    .join('');
+    if (priceEl) {
+      priceEl.textContent = paid ? money(price) : 'Free';
+    }
+    if (billedLine) {
+      billedLine.textContent = !paid
+        ? 'No card required'
+        : annual
+          ? `${money(plan.annualTotal)} billed annually`
+          : `${money(plan.monthlyPrice)} billed monthly`;
+    }
+    if (normallyLine) {
+      const show = annual && paid && plan.annualMonthlyPrice < plan.monthlyPrice;
+      normallyLine.hidden = !show;
+      normallyLine.textContent = show ? `Normally ${money(plan.monthlyPrice)} per month` : '';
+    }
+    if (savingsLine) {
+      const show = annual && plan.annualSaving > 0;
+      savingsLine.hidden = !show;
+      savingsLine.textContent = show ? `Save ${money(plan.annualSaving)} a year` : '';
+    }
 
-  plansContainer.innerHTML = `
-    <div class="pricing-grid">
-      ${plansHtml}
-    </div>
-  `;
-
-  // Attach click handlers (CSP-compliant, no inline onclick)
-  plansContainer.querySelectorAll('button[data-plan-id]').forEach(btn => {
-    btn.addEventListener('click', () => handleSubscribe(btn.dataset.planId));
-  });
-  plansContainer.querySelectorAll('.btn-manage').forEach(btn => {
-    btn.addEventListener('click', e => openBillingPortal(e));
+    applyCardState(card, cta, notice, plan, currentTier, currentIndex);
   });
 }
 
 /**
- * Handle subscription button click (new subscription, upgrade, or downgrade)
+ * Set a card's call-to-action label, click behaviour and account notice,
+ * based on how this plan relates to the supplier's current tier.
+ * @param {HTMLElement} card
+ * @param {HTMLElement|null} cta
+ * @param {HTMLElement|null} notice
+ * @param {Object} plan
+ * @param {string} currentTier
+ * @param {number} currentIndex
  */
-async function handleSubscribe(planId) {
+function applyCardState(card, cta, notice, plan, currentTier, currentIndex) {
+  if (!cta) {
+    return;
+  }
+  // Reset to a fresh, clickable link each render — re-renders happen on
+  // every billing-period toggle, so stale disabled/handler state must not
+  // carry over from a previous pass.
+  cta.classList.remove('is-inert', 'is-current', 'secondary');
+  cta.removeAttribute('aria-disabled');
+  cta.setAttribute('href', '#');
+  if (notice) {
+    notice.hidden = true;
+    notice.textContent = '';
+    notice.classList.remove('pricing-account-notice--warning');
+  }
+
+  const planIndex = PLAN_HIERARCHY.indexOf(plan.tier);
+  const isCurrent = plan.tier === currentTier;
+
+  if (isCurrent) {
+    if (plan.tier === 'free') {
+      cta.textContent = '✓ Current Plan';
+      cta.classList.add('is-inert', 'is-current');
+      cta.setAttribute('aria-disabled', 'true');
+      cta.removeAttribute('href');
+    } else {
+      cta.textContent = 'Manage Billing';
+      cta.dataset.action = 'manage-billing';
+      if (notice && currentSubscription?.currentPeriodEnd) {
+        const dateStr = new Date(currentSubscription.currentPeriodEnd).toLocaleDateString('en-GB', {
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric',
+        });
+        const pendingPlan = currentSubscription.pendingPlan;
+        if (currentSubscription.cancelAtPeriodEnd && pendingPlan) {
+          notice.textContent = `📋 Downgrades to ${planByTier(pendingPlan)?.name || pendingPlan} on ${dateStr}`;
+          notice.classList.add('pricing-account-notice--warning');
+        } else if (currentSubscription.cancelAtPeriodEnd) {
+          notice.textContent = `⚠️ Cancels on ${dateStr}`;
+          notice.classList.add('pricing-account-notice--warning');
+        } else {
+          notice.textContent = `Renews ${dateStr}`;
+        }
+        notice.hidden = false;
+      }
+    }
+    return;
+  }
+
+  if (planIndex > currentIndex) {
+    // Upgrade target
+    cta.textContent =
+      currentTier === 'free' && plan.trialDays && !currentSubscription?.id
+        ? 'Start Free Trial'
+        : `Upgrade to ${plan.name}`;
+    cta.dataset.action = 'upgrade';
+    cta.dataset.planId = plan.id;
+  } else {
+    // Downgrade target
+    cta.textContent = plan.tier === 'free' ? 'Downgrade to Starter' : `Downgrade to ${plan.name}`;
+    cta.classList.add('secondary');
+    cta.dataset.action = 'downgrade';
+    cta.dataset.planId = plan.id;
+  }
+}
+
+// Attach a single delegated click handler once — cards are re-rendered in
+// place (never replaced), so this only needs to run once at load.
+document.addEventListener('click', event => {
+  const cta = event.target.closest('.pricing-cta[data-action]');
+  if (!cta || cta.getAttribute('aria-disabled') === 'true') {
+    return;
+  }
+  event.preventDefault();
+  const action = cta.dataset.action;
+  if (action === 'manage-billing') {
+    openBillingPortal(event);
+  } else if (action === 'upgrade' || action === 'downgrade') {
+    handleSubscribe(cta.dataset.planId, cta);
+  }
+});
+
+/**
+ * Handle subscription button click (new subscription, upgrade, or downgrade)
+ * @param {string} planId
+ * @param {HTMLElement} button
+ */
+async function handleSubscribe(planId, button) {
   if (isDevelopment) {
     console.log('[Subscription] Handle subscribe clicked for plan:', planId);
   }
@@ -445,21 +568,20 @@ async function handleSubscribe(planId) {
   }
 
   const currentTier = currentUser?.subscriptionTier || 'free';
+  const billingInterval = activeBillingPeriod;
 
-  // Guard: prevent selecting the same plan
   if (plan.tier === currentTier) {
     showError(`You are already on the ${plan.name} plan.`);
     return;
   }
 
-  const button = document.querySelector(`button[data-plan-id="${planId}"]`);
+  const originalText = button?.textContent;
   if (button) {
-    button.disabled = true;
+    button.setAttribute('aria-disabled', 'true');
     button.textContent = 'Processing…';
   }
 
   try {
-    // Fetch CSRF token
     let csrfToken = window.__CSRF_TOKEN__ || '';
     if (!csrfToken) {
       try {
@@ -474,9 +596,7 @@ async function handleSubscribe(planId) {
       }
     }
 
-    const headers = {
-      'Content-Type': 'application/json',
-    };
+    const headers = { 'Content-Type': 'application/json' };
     if (csrfToken) {
       headers['X-CSRF-Token'] = csrfToken;
     }
@@ -484,7 +604,6 @@ async function handleSubscribe(planId) {
     // ── Downgrade to Starter (free) ───────────────────────────────────────────
     if (plan.tier === 'free') {
       if (!currentSubscription?.id) {
-        // Already on free, just redirect
         window.location.href = '/dashboard/supplier';
         return;
       }
@@ -492,7 +611,7 @@ async function handleSubscribe(planId) {
         method: 'POST',
         headers,
         credentials: 'include',
-        body: JSON.stringify({ newPlan: 'free' }),
+        body: JSON.stringify({ newPlan: 'free', billingInterval }),
       });
       const data = await response.json();
       if (!response.ok) {
@@ -502,61 +621,57 @@ async function handleSubscribe(planId) {
         'Downgrade to Starter scheduled. Your current plan remains active until the end of your billing period.'
       );
       await loadSubscriptionStatus();
-      await renderDowngradeBanner();
+      renderDowngradeBanner();
       renderSubscriptionPlans();
       return;
     }
 
-    // ── Upgrade from paid plan to higher paid plan ────────────────────────────
+    // ── Change between two paid plans while already subscribed ───────────────
     if (currentTier !== 'free' && currentSubscription?.id) {
       const currentIdx = PLAN_HIERARCHY.indexOf(currentTier);
       const newIdx = PLAN_HIERARCHY.indexOf(plan.tier);
 
       if (newIdx > currentIdx) {
-        // Upgrade
         const response = await fetch(`/api/v2/subscriptions/${currentSubscription.id}/upgrade`, {
           method: 'POST',
           headers,
           credentials: 'include',
-          body: JSON.stringify({ newPlan: plan.tier }),
+          body: JSON.stringify({ newPlan: plan.tier, billingInterval }),
         });
         const data = await response.json();
         if (!response.ok) {
           throw new Error(data.message || data.error || 'Failed to upgrade subscription');
         }
         showSuccess(`Successfully upgraded to ${plan.name}!`);
-        // Re-fetch auth to pick up new tier
         const refreshed = await checkAuth();
         if (refreshed) {
           currentUser = refreshed;
         }
         await loadSubscriptionStatus();
-        await renderDowngradeBanner();
-        renderSubscriptionPlans();
-        return;
-      } else {
-        // Downgrade from paid to lower paid plan
-        const response = await fetch(`/api/v2/subscriptions/${currentSubscription.id}/downgrade`, {
-          method: 'POST',
-          headers,
-          credentials: 'include',
-          body: JSON.stringify({ newPlan: plan.tier }),
-        });
-        const data = await response.json();
-        if (!response.ok) {
-          throw new Error(data.message || data.error || 'Failed to schedule downgrade');
-        }
-        showSuccess(
-          `Downgrade to ${plan.name} scheduled. Your current plan remains active until the end of your billing period.`
-        );
-        await loadSubscriptionStatus();
-        await renderDowngradeBanner();
+        renderDowngradeBanner();
         renderSubscriptionPlans();
         return;
       }
+      const response = await fetch(`/api/v2/subscriptions/${currentSubscription.id}/downgrade`, {
+        method: 'POST',
+        headers,
+        credentials: 'include',
+        body: JSON.stringify({ newPlan: plan.tier, billingInterval }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || data.error || 'Failed to schedule downgrade');
+      }
+      showSuccess(
+        `Downgrade to ${plan.name} scheduled. Your current plan remains active until the end of your billing period.`
+      );
+      await loadSubscriptionStatus();
+      renderDowngradeBanner();
+      renderSubscriptionPlans();
+      return;
     }
 
-    // ── New subscription (from Starter/free) ─────────────────────────────────
+    // ── New subscription (from Starter/free, or no subscription record yet) ──
     const successUrl = `${window.location.origin}/supplier/subscription?billing=success`;
     const response = await fetch('/api/v2/subscriptions/create-checkout-session', {
       method: 'POST',
@@ -564,6 +679,7 @@ async function handleSubscribe(planId) {
       credentials: 'include',
       body: JSON.stringify({
         planId: plan.id,
+        billingInterval,
         successUrl,
         cancelUrl: `${window.location.origin}/supplier/subscription?billing=cancelled`,
       }),
@@ -585,29 +701,9 @@ async function handleSubscribe(planId) {
     showError(error.message || 'Failed to process subscription request. Please try again.');
 
     if (button) {
-      button.disabled = false;
-      // Restore original button label
-      const plan = PLANS[planId];
-      const currentTier = currentUser?.subscriptionTier || 'free';
-      const currentIdx = PLAN_HIERARCHY.indexOf(currentTier);
-      const planIdx = PLAN_HIERARCHY.indexOf(plan?.tier || 'free');
-      button.textContent =
-        planIdx > currentIdx
-          ? currentTier === 'free'
-            ? 'Start Free Trial'
-            : `Upgrade to ${plan.name}`
-          : `Downgrade to ${plan.name}`;
+      button.removeAttribute('aria-disabled');
+      button.textContent = originalText;
     }
-  }
-}
-
-/**
- * Set up billing portal
- */
-function setupBillingPortal() {
-  const manageBillingBtn = document.getElementById('manage-billing-btn');
-  if (manageBillingBtn) {
-    manageBillingBtn.addEventListener('click', openBillingPortal);
   }
 }
 
@@ -615,12 +711,14 @@ function setupBillingPortal() {
  * Open Stripe billing portal
  */
 async function openBillingPortal(event) {
+  const button = event?.target?.closest('.pricing-cta');
+  const originalText = button?.textContent;
   try {
-    const button = event.target;
-    button.disabled = true;
-    button.textContent = 'Loading…';
+    if (button) {
+      button.setAttribute('aria-disabled', 'true');
+      button.textContent = 'Loading…';
+    }
 
-    // Fetch CSRF token
     let csrfToken = window.__CSRF_TOKEN__ || '';
     if (!csrfToken) {
       try {
@@ -635,9 +733,7 @@ async function openBillingPortal(event) {
       }
     }
 
-    const portalHeaders = {
-      'Content-Type': 'application/json',
-    };
+    const portalHeaders = { 'Content-Type': 'application/json' };
     if (csrfToken) {
       portalHeaders['X-CSRF-Token'] = csrfToken;
     }
@@ -646,9 +742,7 @@ async function openBillingPortal(event) {
       method: 'POST',
       headers: portalHeaders,
       credentials: 'include',
-      body: JSON.stringify({
-        returnUrl: window.location.href,
-      }),
+      body: JSON.stringify({ returnUrl: window.location.href }),
     });
 
     const data = await response.json();
@@ -666,9 +760,9 @@ async function openBillingPortal(event) {
     console.error('[Subscription] Billing portal error:', error);
     showError(error.message || 'Failed to open billing portal. Please try again.');
 
-    if (event && event.target) {
-      event.target.disabled = false;
-      event.target.textContent = 'Manage Subscription';
+    if (button) {
+      button.removeAttribute('aria-disabled');
+      button.textContent = originalText;
     }
   }
 }
@@ -679,14 +773,11 @@ async function openBillingPortal(event) {
 function showError(message) {
   const errorContainer = document.getElementById('error-message');
   if (errorContainer) {
-    errorContainer.innerHTML = `
-      <div class="alert alert-error alert-error-styled"><strong>Error:</strong> ${escapeHtml(message)}
-      </div>
-    `;
-    errorContainer.style.display = 'block';
+    errorContainer.textContent = message;
+    errorContainer.hidden = false;
     errorContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
     setTimeout(() => {
-      errorContainer.style.display = 'none';
+      errorContainer.hidden = true;
     }, ERROR_DISPLAY_TIMEOUT);
   } else {
     alert(message);
@@ -696,23 +787,30 @@ function showError(message) {
 /**
  * Show success message
  */
-// eslint-disable-next-line no-unused-vars
 function showSuccess(message) {
   const successContainer = document.getElementById('success-message');
   if (successContainer) {
-    successContainer.innerHTML = `
-      <div class="alert alert-success">${escapeHtml(message)}
-      </div>
-    `;
-    successContainer.style.display = 'block';
+    successContainer.textContent = message;
+    successContainer.hidden = false;
     successContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
     setTimeout(() => {
-      successContainer.style.display = 'none';
+      successContainer.hidden = true;
     }, ERROR_DISPLAY_TIMEOUT);
   }
 }
 
-// Make functions available globally
+/**
+ * Minimal HTML escaping for text interpolated into innerHTML.
+ * @param {string} value
+ * @returns {string}
+ */
+function escapeHtml(value) {
+  const div = document.createElement('div');
+  div.textContent = String(value === null || value === undefined ? '' : value);
+  return div.innerHTML;
+}
+
+// Make functions available globally (used by inline handlers elsewhere, if any)
 window.handleSubscribe = handleSubscribe;
 window.openBillingPortal = openBillingPortal;
 

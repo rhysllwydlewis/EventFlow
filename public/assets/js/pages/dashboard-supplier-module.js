@@ -867,9 +867,14 @@ async function displaySubscriptionStatus() {
            </div>`
         : '';
 
-      // Next payment amount (from most recent payment record)
+      // Next payment amount (from most recent payment record). A downgrade to
+      // a lower PAID plan still bills going forward (just at the new price),
+      // so only a true end-of-billing (no pendingPlan, or pendingPlan free)
+      // should hide this row — not every cancelAtPeriodEnd flag.
+      const pendingPlan = subscriptionRecord?.pendingPlan;
+      const billingEnds = cancelAtPeriodEnd && (!pendingPlan || pendingPlan === 'free');
       const amountHtml =
-        paymentAmount && !cancelAtPeriodEnd
+        paymentAmount && !billingEnds
           ? `<div class="sd-subscription-active__detail-row">
               <span class="sd-subscription-active__detail-label">Next payment</span>
               <span class="sd-subscription-active__detail-value">${new Intl.NumberFormat('en-GB', { style: 'currency', currency: paymentCurrency.toUpperCase() }).format(paymentAmount / 100)}</span>
@@ -911,7 +916,6 @@ async function displaySubscriptionStatus() {
       let renewalNotice = '';
       if (endRaw) {
         const endDate = new Date(endRaw).toLocaleDateString('en-GB', dateFormat);
-        const pendingPlan = subscriptionRecord?.pendingPlan;
         if (cancelAtPeriodEnd && pendingPlan) {
           const pendingPlanLabel = TIER_LABELS[pendingPlan] || pendingPlan;
           renewalNotice = `<p class="sd-subscription-active__renewal-notice sd-subscription-active__renewal-notice--cancel">📋 Downgrades to ${pendingPlanLabel} on ${endDate}</p>`;
@@ -931,9 +935,15 @@ async function displaySubscriptionStatus() {
           </div>
           ${detailsHtml}
           ${renewalNotice}
-          <a href="/supplier/subscription" class="sd-subscription-manage-btn">Manage subscription →</a>
+          <div class="sd-subscription-manage-row">
+            <a href="/supplier/subscription" class="sd-subscription-manage-btn">Manage subscription →</a>
+            <button type="button" id="sd-subscription-billing-btn" class="sd-subscription-manage-btn sd-subscription-manage-btn--billing">Manage billing</button>
+          </div>
         </div>
       `;
+      document
+        .getElementById('sd-subscription-billing-btn')
+        ?.addEventListener('click', handleManageBillingClick);
     } else {
       container.innerHTML = `
         <div class="sd-subscription-free">
@@ -943,7 +953,7 @@ async function displaySubscriptionStatus() {
           </div>
           <ul class="sd-subscription-limits">
             <li>✓ 1 supplier profile</li>
-            <li>✓ 2 packages</li>
+            <li>✓ 3 packages</li>
             <li>✓ Basic analytics</li>
             <li class="sd-subscription-limits__locked">🔒 Priority visibility</li>
             <li class="sd-subscription-limits__locked">🔒 Unlimited packages</li>
@@ -963,6 +973,53 @@ async function displaySubscriptionStatus() {
         <p class="small">Unable to load subscription status.</p>
         <a href="/supplier/subscription" class="btn btn-secondary subscription-action-btn">View Subscription</a>
       `;
+  }
+}
+
+/**
+ * Open the Stripe billing portal directly from the dashboard card — lets a
+ * supplier update their payment method, view invoices, or cancel without
+ * leaving the dashboard for the full plans page.
+ * @param {MouseEvent} event
+ */
+async function handleManageBillingClick(event) {
+  const button = event.currentTarget;
+  const originalText = button.textContent;
+  button.disabled = true;
+  button.textContent = 'Loading…';
+
+  try {
+    let csrfToken = window.__CSRF_TOKEN__ || '';
+    if (!csrfToken) {
+      const csrfResp = await fetch('/api/v1/csrf-token', { credentials: 'include' });
+      if (csrfResp.ok) {
+        const csrfData = await csrfResp.json();
+        csrfToken = csrfData.csrfToken || csrfData.token || '';
+        window.__CSRF_TOKEN__ = csrfToken;
+      }
+    }
+
+    const response = await fetch('/api/payments/create-portal-session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+      credentials: 'include',
+      body: JSON.stringify({ returnUrl: window.location.href }),
+    });
+    const data = await response.json();
+    if (!response.ok || !data.url) {
+      throw new Error(data.error || 'Failed to open billing portal');
+    }
+    window.location.href = data.url;
+  } catch (error) {
+    console.error('Error opening billing portal:', error);
+    const message = error.message || 'Failed to open billing portal. Please try again.';
+    if (typeof showToast === 'function') {
+      showToast(message, 'error');
+    } else {
+      alert(message);
+    }
+    button.disabled = false;
+    button.textContent = originalText;
   }
 }
 

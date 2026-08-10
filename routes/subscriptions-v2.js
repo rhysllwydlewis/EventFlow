@@ -90,6 +90,108 @@ function assertDowngrade(currentPlan, newPlan) {
   }
 }
 
+/**
+ * Schedule a downgrade between two PAID plans via a Stripe Subscription
+ * Schedule, so Stripe keeps billing the subscription throughout.
+ *
+ * This deliberately does NOT use `cancel_at_period_end`: that schedules the
+ * whole Stripe subscription for cancellation at renewal rather than a price
+ * swap. Combined with our webhook's "apply pendingPlan on delete" handling,
+ * that used to hand the customer the lower paid tier for free, forever, once
+ * the subscription was gone (stripeSubscriptionId became null, which also
+ * made the /upgrade route skip Stripe entirely on any later re-upgrade). A
+ * schedule instead runs the current price until the period ends and then
+ * hands the subscription off to the lower price, continuing normal billing.
+ * @param {Object} subscription - Our local subscription record
+ * @param {{planId: string, priceId: string, billingInterval: string}} resolved - Target plan
+ * @returns {Promise<string>} The Stripe subscription schedule ID
+ */
+async function scheduleDowngradeToLowerPaidPlan(subscription, resolved) {
+  const remote = await stripe.subscriptions.retrieve(subscription.stripeSubscriptionId);
+  const currentItem = remote.items?.data?.[0];
+  if (!currentItem) {
+    const err = new Error('Stripe subscription has no price item');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const existingScheduleId = subscription.metadata?.stripeScheduleId || null;
+  const schedule = existingScheduleId
+    ? await stripe.subscriptionSchedules.retrieve(existingScheduleId)
+    : await stripe.subscriptionSchedules.create({
+        from_subscription: subscription.stripeSubscriptionId,
+      });
+  const currentPhase = schedule.phases[0];
+
+  const updatedSchedule = await stripe.subscriptionSchedules.update(
+    schedule.id,
+    {
+      end_behavior: 'release',
+      phases: [
+        {
+          items: [{ price: currentItem.price.id, quantity: currentItem.quantity || 1 }],
+          start_date: currentPhase.start_date,
+          end_date: currentPhase.end_date,
+          proration_behavior: 'none',
+          metadata: {
+            ...remote.metadata,
+            planId: subscription.plan,
+            billingInterval: subscription.billingInterval || 'month',
+          },
+        },
+        {
+          items: [{ price: resolved.priceId, quantity: 1 }],
+          proration_behavior: 'none',
+          metadata: {
+            ...remote.metadata,
+            planId: resolved.planId,
+            billingInterval: resolved.billingInterval,
+          },
+        },
+      ],
+    },
+    { idempotencyKey: `sub-schedule:${subscription.id}:${resolved.planId}` }
+  );
+
+  return updatedSchedule.id;
+}
+
+/**
+ * Release an active downgrade schedule so the subscription goes back to
+ * being billed directly — used when the customer upgrades again before a
+ * scheduled downgrade has taken effect.
+ * @param {string} scheduleId
+ */
+async function releaseDowngradeSchedule(scheduleId) {
+  try {
+    await stripe.subscriptionSchedules.release(scheduleId);
+  } catch (err) {
+    // Already released, completed, or canceled server-side — nothing to undo.
+    logger.warn('Failed to release subscription schedule (continuing):', err.message);
+  }
+}
+
+/**
+ * If this subscription currently has a downgrade schedule attached, release
+ * it and clear the local reference. Must run before ANY direct
+ * stripe.subscriptions.update() call on a subscription that might be
+ * schedule-managed — Stripe subscriptions under an active schedule reject or
+ * ignore direct price/cancellation edits, since the schedule is meant to own
+ * those transitions. Covers both re-upgrading and changing a scheduled
+ * paid-to-paid downgrade to a downgrade-to-free instead.
+ * @param {Object} subscription - Our local subscription record
+ */
+async function releaseExistingScheduleIfAny(subscription) {
+  const scheduleId = subscription.metadata?.stripeScheduleId || null;
+  if (!scheduleId) {
+    return;
+  }
+  await releaseDowngradeSchedule(scheduleId);
+  await subscriptionService.updateSubscription(subscription.id, {
+    metadata: { ...subscription.metadata, stripeScheduleId: null },
+  });
+}
+
 async function audit(req, action, sub, details = {}) {
   try {
     await createAuditLog({
@@ -231,6 +333,48 @@ router.post(
   }
 );
 
+/**
+ * Best-effort lookup of the card behind a subscription, for display only
+ * (e.g. "Visa ····4242" on the dashboard). Checks the subscription's own
+ * default payment method first, then falls back to the customer's default —
+ * either can be the one actually charged depending on how it was set up.
+ * Never throws: a display nicety failing must not break /me.
+ * @param {string|null} stripeCustomerId
+ * @param {string|null} stripeSubscriptionId
+ * @returns {Promise<{brand: string, last4: string}|null>}
+ */
+async function getPaymentMethodSummary(stripeCustomerId, stripeSubscriptionId) {
+  if (!stripeCustomerId || !STRIPE_ENABLED || !stripe) {
+    return null;
+  }
+  try {
+    let paymentMethodId = null;
+    if (stripeSubscriptionId) {
+      const sub = await stripe.subscriptions.retrieve(stripeSubscriptionId);
+      paymentMethodId =
+        typeof sub.default_payment_method === 'string'
+          ? sub.default_payment_method
+          : sub.default_payment_method?.id || null;
+    }
+    if (!paymentMethodId) {
+      const customer = await stripe.customers.retrieve(stripeCustomerId);
+      const defaultPm = customer.invoice_settings?.default_payment_method;
+      paymentMethodId = typeof defaultPm === 'string' ? defaultPm : defaultPm?.id || null;
+    }
+    if (!paymentMethodId) {
+      return null;
+    }
+    const paymentMethod = await stripe.paymentMethods.retrieve(paymentMethodId);
+    if (paymentMethod.type !== 'card' || !paymentMethod.card) {
+      return null;
+    }
+    return { brand: paymentMethod.card.brand, last4: paymentMethod.card.last4 };
+  } catch (error) {
+    logger.warn('Failed to fetch payment method summary:', error.message);
+    return null;
+  }
+}
+
 router.get('/me', authRequired, async (req, res) => {
   const subscription = await subscriptionService.getSubscriptionByUserId(req.user.id);
   const entitlementActive = subscriptionService.isLiveEntitlement(subscription);
@@ -239,6 +383,12 @@ router.get('/me', authRequired, async (req, res) => {
   // ceiling, which is how the uploader ended up capping paid plans at the
   // free tier's ten photos.
   const features = await subscriptionService.getUserFeatures(req.user.id);
+  const paymentMethod = subscription
+    ? await getPaymentMethodSummary(
+        subscription.stripeCustomerId,
+        subscription.stripeSubscriptionId
+      )
+    : null;
   res.json({
     success: true,
     subscription,
@@ -250,7 +400,34 @@ router.get('/me', authRequired, async (req, res) => {
     cancelAtPeriodEnd: subscription?.cancelAtPeriodEnd ?? false,
     status: subscription?.status || 'free',
     limits: features?.features || {},
+    paymentMethodBrand: paymentMethod?.brand || null,
+    paymentMethodLast4: paymentMethod?.last4 || null,
   });
+});
+
+/**
+ * Preview of the subscription's next invoice — used to show "Next payment"
+ * on the dashboard. Best-effort: any failure (Stripe unconfigured, no
+ * subscription, API error) resolves to upcomingInvoice: null rather than an
+ * error response, since the caller already treats this as optional.
+ */
+router.get('/upcoming-invoice', authRequired, async (req, res) => {
+  const subscription = await subscriptionService.getSubscriptionByUserId(req.user.id);
+  if (!subscription?.stripeSubscriptionId || !STRIPE_ENABLED || !stripe) {
+    return res.json({ success: true, upcomingInvoice: null });
+  }
+  try {
+    const preview = await stripe.invoices.createPreview({
+      subscription: subscription.stripeSubscriptionId,
+    });
+    return res.json({
+      success: true,
+      upcomingInvoice: { amount: preview.amount_due, currency: preview.currency },
+    });
+  } catch (error) {
+    logger.warn('Failed to fetch upcoming invoice:', error.message);
+    return res.json({ success: true, upcomingInvoice: null });
+  }
 });
 
 router.post(
@@ -358,6 +535,11 @@ router.post(
       }
 
       if (subscription.stripeSubscriptionId) {
+        // A pending downgrade schedule takes over management of the Stripe
+        // subscription, so it must be released before we can update the
+        // subscription's price directly again.
+        await releaseExistingScheduleIfAny(subscription);
+
         const remote = await stripe.subscriptions.retrieve(subscription.stripeSubscriptionId);
         const itemId = remote.items?.data?.[0]?.id;
         if (!itemId) {
@@ -370,6 +552,7 @@ router.post(
             cancel_at_period_end: false,
             proration_behavior: 'create_prorations',
             metadata: {
+              ...remote.metadata,
               planId: resolved.planId,
               billingInterval: resolved.billingInterval,
               downgrade_to: '',
@@ -423,20 +606,45 @@ router.post(
         return res.status(400).json({ error: 'Invalid downgrade plan' });
       }
       assertDowngrade(subscription.plan, resolved.planId);
+      if (resolved.planId !== 'free' && !resolved.priceId) {
+        return res.status(503).json({
+          error: 'Payment processing is not currently available. Please contact support.',
+        });
+      }
 
       if (subscription.stripeSubscriptionId) {
-        await stripe.subscriptions.update(
-          subscription.stripeSubscriptionId,
-          {
-            cancel_at_period_end: true,
-            metadata: {
-              planId: subscription.plan,
-              billingInterval: subscription.billingInterval || 'month',
-              downgrade_to: resolved.planId,
+        if (resolved.planId === 'free') {
+          // A prior paid-to-paid downgrade may have left a schedule owning
+          // this subscription (e.g. scheduled pro_plus->pro, then changed
+          // their mind to downgrade to free instead) — release it first, or
+          // the direct cancel_at_period_end update below would conflict with
+          // the schedule's own management of the subscription.
+          await releaseExistingScheduleIfAny(subscription);
+
+          // Downgrading to free ends billing entirely, so cancelling the
+          // Stripe subscription at period end is correct here.
+          const remote = await stripe.subscriptions.retrieve(subscription.stripeSubscriptionId);
+          await stripe.subscriptions.update(
+            subscription.stripeSubscriptionId,
+            {
+              cancel_at_period_end: true,
+              metadata: {
+                ...remote.metadata,
+                planId: subscription.plan,
+                billingInterval: subscription.billingInterval || 'month',
+                downgrade_to: resolved.planId,
+              },
             },
-          },
-          { idempotencyKey: `sub-downgrade:${subscription.id}:${resolved.planId}` }
-        );
+            { idempotencyKey: `sub-downgrade:${subscription.id}:${resolved.planId}` }
+          );
+        } else {
+          // Downgrading between two paid plans must keep Stripe billing the
+          // subscription — see scheduleDowngradeToLowerPaidPlan for why.
+          const scheduleId = await scheduleDowngradeToLowerPaidPlan(subscription, resolved);
+          await subscriptionService.updateSubscription(subscription.id, {
+            metadata: { ...subscription.metadata, stripeScheduleId: scheduleId },
+          });
+        }
       }
 
       const updated = await subscriptionService.downgradeSubscription(

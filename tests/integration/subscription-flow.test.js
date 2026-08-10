@@ -321,11 +321,12 @@ describe('Complete Subscription Flow Integration', () => {
     it('should calculate MRR correctly', async () => {
       const mrr = await paymentService.calculateMRR();
 
-      // Free: 0, Pro: 29.99, Pro Plus: 59.00 = 88.99
-      expect(mrr.totalMRR).toBeCloseTo(88.99, 2);
+      // Free: 0, Pro: 19, Pro Plus: 159 = 178 — these must match the real
+      // Stripe prices in config/billingPlans.js, not a separate guess.
+      expect(mrr.totalMRR).toBeCloseTo(178, 2);
       expect(mrr.activeSubscriptions).toBe(3);
-      expect(mrr.byPlan.pro).toBe(29.99);
-      expect(mrr.byPlan.pro_plus).toBe(59.0);
+      expect(mrr.byPlan.pro).toBe(19);
+      expect(mrr.byPlan.pro_plus).toBe(159);
     });
 
     it('should list subscriptions with filters', async () => {

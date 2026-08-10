@@ -5,16 +5,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Subscription Management — EventFlow</title>
     <meta name="description" content="Manage your EventFlow Pro subscription and upgrade your supplier profile" />
-    
-    <!-- Stylesheets -->
-    <link rel="stylesheet" href="/assets/css/styles.css?v=18.4.0" />
-    <link rel="stylesheet" href="/assets/css/components.css?v=18.4.0" />
-    <link rel="stylesheet" href="/assets/css/navbar.css?v=18.4.0" /><link rel="stylesheet" href="/assets/css/eventflow-brand.css?v=1.0.0" data-eventflow-brand="true" />
-    <link rel="stylesheet" href="/assets/css/liquid-glass.css?v=18.4.0" />
-    <link rel="stylesheet" href="/assets/css/supplier-dashboard-improvements.css?v=18.4.0" />
-    <link rel="stylesheet" href="css/subscription.css?v=18.4.0" />
+
+    <!-- Same stylesheet set as /pricing (styles.css through pricing-redesign.css), so this
+         page is the pricing page's visual system, not a lookalike of it. subscription-account.css
+         adds only the handful of pieces unique to account management (breadcrumb, downgrade
+         banner, alerts, per-card renewal notice, support block). -->
+    <link rel="stylesheet" href="/assets/css/styles.css?v=18.5.0" />
+    <link rel="stylesheet" href="/assets/css/eventflow-17.0.0.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/utilities.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/components.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/navbar.css?v=18.3.0" /><link rel="stylesheet" href="/assets/css/eventflow-brand.css?v=1.0.0" data-eventflow-brand="true" />
+    <link id="pricing-redesign-styles" rel="stylesheet" href="/assets/css/pricing-redesign.css?v=3.0.0" />
+    <link rel="stylesheet" href="/assets/css/animations.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/mobile-optimizations.css?v=18.4.0" />
+    <link rel="stylesheet" href="/assets/css/ui-ux-fixes.css?v=18.4.0" />
+    <link rel="stylesheet" href="/assets/css/p3-features.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/eventflow-footer.css" />
+    <link rel="stylesheet" href="/assets/css/public-mobile-compact.css" />
+    <link rel="stylesheet" href="css/subscription-account.css?v=1.0.0" />
   </head>
-  <body>
+  <body class="pricing-redesign">
 <!-- Header -->
     <!-- TOP NAVBAR - GOLD STANDARD REBUILD -->
 <header class="ef-header" role="banner">
@@ -39,10 +49,10 @@
       <!-- Actions -->
       <div class="ef-header-actions">
         <!-- Notification Bell (hidden by default, shown when logged in) -->
-        <button 
-          id="ef-notification-btn" 
-          class="ef-icon-btn" 
-          type="button" 
+        <button
+          id="ef-notification-btn"
+          class="ef-icon-btn"
+          type="button"
           aria-label="View notifications"
           style="display: none;"
         >
@@ -64,9 +74,9 @@
         </a>
 
         <!-- Mobile Menu Toggle -->
-        <button 
-          id="ef-mobile-toggle" 
-          class="ef-mobile-toggle" 
+        <button
+          id="ef-mobile-toggle"
+          class="ef-mobile-toggle"
           type="button"
           aria-label="Toggle menu"
           aria-expanded="false"
@@ -116,100 +126,177 @@
     <script src="/assets/js/navbar.js" defer></script>
 
     <!-- Main Content -->
-    <main id="main-content" class="section">
-      <div class="container subscription-page">
-        <!-- Breadcrumb Navigation -->
-        <nav aria-label="Breadcrumb" class="supplier-breadcrumb" style="margin-bottom: 1.5rem;">
-          <a href="/dashboard/supplier" class="supplier-breadcrumb-link">← Back to Dashboard</a>
-        </nav>
+    <main id="main-content">
+      <nav aria-label="Breadcrumb" class="supplier-breadcrumb">
+        <a href="/dashboard/supplier" class="supplier-breadcrumb-link">← Back to Dashboard</a>
+      </nav>
 
-        <!-- Header -->
-        <div class="subscription-header">
-          <h1>Subscription Plans</h1>
-          <p>
-            Upgrade your supplier profile to unlock premium features, boost your visibility,
-            and grow your business with EventFlow Pro.
-          </p>
+      <section class="pricing-hero" aria-labelledby="subscription-heading">
+        <div class="container is-proofless">
+          <div class="pricing-hero-copy">
+            <p class="pricing-eyebrow">Your subscription</p>
+            <h1 id="subscription-heading">Manage your EventFlow plan.</h1>
+            <p class="subtitle">Upgrade, downgrade or manage billing — the same plans and prices as everyone sees on <a href="/pricing">Pricing</a>.</p>
+          </div>
+
+          <div class="pricing-billing-toggle">
+            <button id="pricing-billing-switch" class="pricing-billing-switch" type="button" role="switch" aria-checked="false" aria-label="Pay annually instead of monthly">
+              <span class="pricing-billing-switch-thumb" aria-hidden="true"></span>
+              <span id="pricing-monthly-label" class="pricing-billing-label is-active">Monthly</span>
+              <span id="pricing-annual-label" class="pricing-billing-label">Annual</span>
+            </button>
+            <span class="pricing-billing-saving">Save up to 19%</span>
+          </div>
         </div>
+      </section>
 
-        <!-- Current Subscription Status -->
+      <div class="pricing-container">
+        <!-- Downgrade-pending banner -->
         <div id="current-subscription-status"></div>
-        
+
         <!-- Error/Success Messages -->
-        <div id="error-message" class="alert-message error"></div>
-        <div id="success-message" class="alert-message success"></div>
+        <div id="error-message" class="pricing-alert pricing-alert--error" hidden></div>
+        <div id="success-message" class="pricing-alert pricing-alert--success" hidden></div>
 
         <!-- Subscription Plans -->
-        <div id="subscription-plans"></div>
+        <div class="pricing-grid" id="subscription-plans">
+          <article class="pricing-card" data-plan="starter">
+            <div class="pricing-card-content">
+              <div class="pricing-card-heading">
+                <div class="pricing-name-row">
+                  <h2 class="pricing-name">Starter</h2>
+                </div>
+                <span class="pricing-tier-label">For new or occasional suppliers</span>
+                <div class="pricing-price-block">
+                  <div class="pricing-price-row"><span class="pricing-price" data-pricing-price>&pound;0</span><span class="pricing-period">per month</span></div>
+                  <p class="pricing-billed-line" data-pricing-billed-line>No card required</p>
+                </div>
+              </div>
+              <div class="pricing-card-actions">
+                <a href="#" class="pricing-cta secondary" data-pricing-plan="starter">Downgrade to Starter</a>
+                <p class="pricing-account-notice" data-pricing-account-notice hidden></p>
+              </div>
+              <div class="pricing-card-features">
+                <p class="pricing-inherits">What you get</p>
+                <ul class="pricing-features">
+                  <li><span class="pricing-feature-name">Public supplier profile</span><span class="pricing-feature-why">A page on EventFlow with your services, photos and contact details.</span></li>
+                  <li><span class="pricing-feature-name">Up to 3 package listings</span><span class="pricing-feature-why">Publish set packages with prices so customers can see what you offer.</span></li>
+                  <li><span class="pricing-feature-name">Up to 10 portfolio photos</span><span class="pricing-feature-why">Show your work on your profile.</span></li>
+                  <li><span class="pricing-feature-name">Standard search placement</span><span class="pricing-feature-why">Appear in results when customers browse your category and area.</span></li>
+                </ul>
+              </div>
+            </div>
+          </article>
 
-        <!-- Additional Information -->
-        <div class="subscription-faq-card">
-          <h3>Frequently Asked Questions</h3>
-          
-          <details class="faq-item">
-            <summary class="faq-question">
-              What happens during the free trial?
-            </summary>
-            <p class="faq-answer">
-              During your free trial, you'll have full access to all features of your chosen plan.
-              You won't be charged until the trial period ends. You can cancel anytime during the trial
-              with no charge.
-            </p>
-          </details>
+          <article class="pricing-card featured" data-plan="pro">
+            <div class="pricing-card-content">
+              <div class="pricing-card-heading">
+                <div class="pricing-name-row">
+                  <h2 class="pricing-name">Professional</h2>
+                  <span class="pricing-early-access-label">Most popular</span>
+                </div>
+                <span class="pricing-tier-label">For growing suppliers taking regular bookings</span>
+                <div class="pricing-price-block">
+                  <div class="pricing-price-row"><span class="pricing-price" data-pricing-price>&pound;19</span><span class="pricing-period">per month</span></div>
+                  <p class="pricing-billed-line" data-pricing-billed-line>&pound;19 billed monthly</p>
+                  <p class="pricing-normally" data-pricing-normally hidden></p>
+                </div>
+              </div>
+              <div class="pricing-card-actions">
+                <a href="#" class="pricing-cta" data-pricing-plan="pro">Start Free Trial</a>
+                <p class="pricing-savings" data-pricing-savings hidden></p>
+                <p class="pricing-account-notice" data-pricing-account-notice hidden></p>
+              </div>
+              <div class="pricing-card-features">
+                <p class="pricing-inherits">Everything in Starter, plus</p>
+                <ul class="pricing-features">
+                  <li><span class="pricing-feature-name">Higher search placement</span><span class="pricing-feature-why">A ranking boost that lifts you above Starter suppliers in your categories and areas.</span></li>
+                  <li><span class="pricing-feature-name">Up to 50 package listings</span><span class="pricing-feature-why">Publish your full range instead of a handful.</span></li>
+                  <li><span class="pricing-feature-name">Up to 500 portfolio photos</span><span class="pricing-feature-why">Show every side of your work.</span></li>
+                  <li><span class="pricing-feature-name">Advanced analytics</span><span class="pricing-feature-why">See what draws interest across a season, not just a week.</span></li>
+                  <li><span class="pricing-feature-name">Priority support</span><span class="pricing-feature-why">Your questions go to the front of the queue.</span></li>
+                </ul>
+              </div>
+            </div>
+          </article>
 
-          <details class="faq-item">
-            <summary class="faq-question">
-              Can I change my plan later?
-            </summary>
-            <p class="faq-answer">
-              Yes! You can upgrade or downgrade your plan at any time. When you change plans,
-              we'll calculate a pro-rated amount based on your current billing cycle.
-            </p>
-          </details>
-
-          <details class="faq-item">
-            <summary class="faq-question">
-              How do I cancel my subscription?
-            </summary>
-            <p class="faq-answer">
-              You can cancel your subscription at any time from this page or your dashboard.
-              You'll continue to have access to premium features until the end of your current
-              billing period.
-            </p>
-          </details>
-
-          <details class="faq-item">
-            <summary class="faq-question">
-              What payment methods do you accept?
-            </summary>
-            <p class="faq-answer">
-              We accept payments through Stripe, which supports all major credit and debit cards,
-              Apple Pay, and more. Stripe provides secure, fast checkout with
-              industry-leading security.
-            </p>
-          </details>
-
-          <details class="faq-item">
-            <summary class="faq-question">
-              Is my payment information secure?
-            </summary>
-            <p class="faq-answer">
-              Yes, absolutely. All payments are processed securely through Stripe, which uses
-              industry-standard encryption and PCI-DSS Level 1 certification. We never store
-              your payment information on our servers - all card data is handled by Stripe.
-            </p>
-          </details>
+          <article class="pricing-card" data-plan="pro_plus">
+            <div class="pricing-card-content">
+              <div class="pricing-card-heading">
+                <div class="pricing-name-row">
+                  <h2 class="pricing-name">Professional Plus</h2>
+                </div>
+                <span class="pricing-tier-label">For established suppliers with capacity to fill</span>
+                <div class="pricing-price-block">
+                  <div class="pricing-price-row"><span class="pricing-price" data-pricing-price>&pound;159</span><span class="pricing-period">per month</span></div>
+                  <p class="pricing-billed-line" data-pricing-billed-line>&pound;159 billed monthly</p>
+                  <p class="pricing-normally" data-pricing-normally hidden></p>
+                </div>
+              </div>
+              <div class="pricing-card-actions">
+                <a href="#" class="pricing-cta" data-pricing-plan="pro_plus">Start Free Trial</a>
+                <p class="pricing-savings" data-pricing-savings hidden></p>
+                <p class="pricing-account-notice" data-pricing-account-notice hidden></p>
+              </div>
+              <div class="pricing-card-features">
+                <p class="pricing-inherits">Everything in Professional, plus</p>
+                <ul class="pricing-features">
+                  <li><span class="pricing-feature-name">Homepage featured placement</span><span class="pricing-feature-why">Your packages appear on the EventFlow homepage, in front of customers before they start searching.</span></li>
+                  <li><span class="pricing-feature-name">Unlimited package listings</span><span class="pricing-feature-why">No cap on how much of your range you publish.</span></li>
+                  <li><span class="pricing-feature-name">Unlimited portfolio photos</span><span class="pricing-feature-why">A complete portfolio, however large it gets.</span></li>
+                  <li><span class="pricing-feature-name">Custom branding</span><span class="pricing-feature-why">Carry your own look across your profile.</span></li>
+                  <li><span class="pricing-feature-name">VIP support</span><span class="pricing-feature-why">A direct line to the team.</span></li>
+                </ul>
+              </div>
+            </div>
+          </article>
         </div>
 
+        <div class="pricing-security-note">
+          <span>No setup fees</span>
+          <span aria-hidden="true">•</span>
+          <span>No booking commission</span>
+          <span aria-hidden="true">•</span>
+          <span>Cancel anytime</span>
+        </div>
+
+        <p class="pricing-offer-terms">Early access pricing applies while EventFlow is in development and ends 31 December 2026. Prices shown exclude VAT where applicable.</p>
+
+        <!-- FAQ -->
+        <section class="pricing-faq" aria-labelledby="subscription-faq-heading">
+          <div class="pricing-section-heading">
+            <p class="pricing-eyebrow">Questions</p>
+            <h2 id="subscription-faq-heading">Frequently asked questions</h2>
+          </div>
+          <div class="pricing-faq-list">
+            <details>
+              <summary>What happens during the free trial?</summary>
+              <p>During your free trial, you'll have full access to all features of your chosen plan. You won't be charged until the trial period ends. You can cancel anytime during the trial with no charge.</p>
+            </details>
+            <details>
+              <summary>Can I change my plan later?</summary>
+              <p>Yes. You can upgrade or downgrade your plan at any time. Upgrades apply immediately with a pro-rated charge; downgrades take effect at the end of your current billing period, so you keep what you've already paid for.</p>
+            </details>
+            <details>
+              <summary>How do I cancel my subscription?</summary>
+              <p>You can cancel from this page at any time. You'll continue to have access to premium features until the end of your current billing period.</p>
+            </details>
+            <details>
+              <summary>What payment methods do you accept?</summary>
+              <p>We accept payments through Stripe, which supports all major credit and debit cards, Apple Pay, and more.</p>
+            </details>
+            <details>
+              <summary>Is my payment information secure?</summary>
+              <p>Yes. All payments are processed securely through Stripe, which uses industry-standard encryption and PCI-DSS Level 1 certification. We never store your payment information on our servers.</p>
+            </details>
+          </div>
+        </section>
+
         <!-- Support -->
-        <div class="subscription-support-card">
-          <h3>Need Help?</h3>
-          <p class="small">
-            Have questions about our subscription plans? Contact our support team.
-          </p>
-          <a href="/contact" class="cta subscription-support-cta">
-            Contact Support
-          </a>
+        <div class="pricing-support">
+          <h2>Need help?</h2>
+          <p>Have questions about our subscription plans? Contact our support team.</p>
+          <a href="/contact" class="pricing-cta">Contact Support</a>
         </div>
       </div>
     </main>
@@ -240,10 +327,9 @@
     <script src="/assets/js/components/footer-nav.js" defer></script>
     <script src="/assets/js/cookie-consent.js?v=2.0.0" defer></script>
     <script src="js/subscription.js"></script>
-  
+
 <!-- JadeAssist Chat Widget -->
 <script src="/assets/js/vendor/jade-widget.js" defer></script>
 <script src="/assets/js/jadeassist-init.v2.js" defer></script>
 </body>
 </html>
-

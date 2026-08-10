@@ -3296,16 +3296,14 @@ async function initDashSupplier() {
             },
             { label: 'Business Description', complete: hasDescription, targetField: 'sup-long' },
           ];
+          const completedCount = checklistItems.filter(item => item.complete).length;
           // Health score: same formula as the "Profile Health" card (ProfileHealthWidget),
           // falling back to this checklist's own completion ratio only if that shared
           // component failed to load.
           const checklistScore =
             window.ProfileHealthWidget && typeof window.ProfileHealthWidget.calculate === 'function'
               ? window.ProfileHealthWidget.calculate(s).percentage
-              : Math.round(
-                  (checklistItems.filter(item => item.complete).length / checklistItems.length) *
-                    100
-                );
+              : Math.round((completedCount / checklistItems.length) * 100);
 
           // Safe access to all fields with defaults — escape all user-supplied values to prevent XSS
           const supplierId = String(s.id || '').replace(/"/g, '&quot;');

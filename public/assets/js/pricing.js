@@ -63,9 +63,22 @@
 
   /** Where a signed-in supplier manages the plan they already have. */
   const SUPPLIER_DASHBOARD = '/dashboard/supplier';
+  /** Where an existing subscriber changes plan or billing — never checkout,
+   * see hasLiveSubscription below for why. */
+  const SUPPLIER_SUBSCRIPTION_PAGE = '/supplier/subscription';
 
   let activeBillingPeriod = BILLING_YEAR;
   let pricingAuthMode = 'unknown';
+  /**
+   * Whether the signed-in supplier already has a live, paid Stripe
+   * subscription. When true, every card's call to action must route to the
+   * subscription management page instead of checkout: Stripe Checkout has no
+   * knowledge of an existing subscription, so posting a second checkout
+   * session for a different tier would create a second Stripe subscription
+   * and double-bill the supplier rather than upgrading/downgrading the one
+   * they already have.
+   */
+  let hasLiveSubscription = false;
 
   /**
    * Format an amount as a whole-pound figure in UK grouping.
@@ -539,6 +552,12 @@
         : `/pricing?plan=${encodeURIComponent(plan.hrefPlan)}`;
       return `/auth?redirect=${encodeURIComponent(redirect)}`;
     }
+    // Already subscribed: every other card is a change to that existing
+    // subscription, not a new purchase, so it goes to the management page
+    // rather than checkout (see hasLiveSubscription).
+    if (hasLiveSubscription) {
+      return SUPPLIER_SUBSCRIPTION_PAGE;
+    }
     if (!plan.checkout) {
       return SUPPLIER_DASHBOARD;
     }
@@ -556,6 +575,9 @@
    * @returns {string} Button label.
    */
   function getCtaLabel(plan) {
+    if (hasLiveSubscription) {
+      return plan.checkout ? `Switch to ${plan.name}` : 'Manage your plan';
+    }
     if (!plan.checkout && pricingAuthMode === 'authenticated') {
       return 'Manage your plan';
     }
@@ -798,6 +820,28 @@
   }
 
   /**
+   * Find out whether the signed-in supplier already has a live, paid
+   * subscription — the canonical /me endpoint (not the auth record, which
+   * only carries a denormalised tier) is what upgrade/downgrade also key
+   * off, so this stays consistent with what those endpoints will actually do.
+   * @returns {Promise<void>} Resolves once hasLiveSubscription is current.
+   */
+  async function checkLiveSubscription() {
+    try {
+      const response = await fetch('/api/v2/subscriptions/me', { credentials: 'include' });
+      if (!response.ok) {
+        return;
+      }
+      const data = await response.json();
+      hasLiveSubscription = Boolean(data.plan && data.plan !== 'free' && data.subscription?.id);
+    } catch (_error) {
+      // Leave hasLiveSubscription at its default (false) — worst case a
+      // subscriber briefly sees checkout-styled buttons rather than the
+      // reverse, which is the direction that matters for correctness.
+    }
+  }
+
+  /**
    * Resolve the viewer and adjust the calls to action to match.
    *
    * A failure falls back to the signed-out presentation, which is the view
@@ -823,6 +867,7 @@
       if (user.role === 'customer') {
         return updateButtonsForCustomer();
       }
+      await checkLiveSubscription();
       updateButtonsForAuthenticatedUser(user);
       attachCheckoutHandlers();
     } catch (_error) {
@@ -839,6 +884,13 @@
    * @returns {void} Nothing.
    */
   function attachCheckoutHandlers() {
+    // An existing subscriber's cards already point at the subscription
+    // management page (see getCtaHref) and must navigate there normally —
+    // intercepting the click and posting to checkout here would create a
+    // second Stripe subscription alongside the one they already have.
+    if (hasLiveSubscription) {
+      return;
+    }
     const successUrl = `${window.location.origin}${SUPPLIER_DASHBOARD}?billing=success`;
     const cancelUrl = `${window.location.origin}/pricing?checkout=cancelled`;
     document.querySelectorAll('.pricing-cta[data-pricing-plan]').forEach(button => {
