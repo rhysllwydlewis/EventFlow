@@ -113,9 +113,11 @@
 }
 
 @media (min-width: 1024px) {
+  /* Compact: the hero is the fold, so the wash carries as little dead space
+     above and below the content as it can without crowding the header. */
   .home-v2-page .hero-modern {
-    padding: calc(var(--hv2-header-height) + clamp(24px, 2vw, 34px)) 0
-      clamp(28px, 3.4vw, 56px);
+    padding: calc(var(--hv2-header-height) + clamp(14px, 1.1vw, 20px)) 0
+      clamp(18px, 1.9vw, 32px);
   }
 }
 
@@ -182,9 +184,9 @@
    combination of border and border-radius produces — a border thins as it
    curves. So the span carries an SVG path instead and this only sizes it. */
 .home-v2-page .hero-modern h1 .hero-highlight-bg {
-  right: -19%;
+  right: -13.5%;
   bottom: -18px;
-  left: -19%;
+  left: -13.5%;
   height: 18px;
   border: 0;
   border-radius: 0;
@@ -437,9 +439,11 @@
 
 /* Between 1024px and the design's full width the hero column is narrower than
    the design's, so the search bar, chip, tags and CTAs tighten up to stay on
-   one row. The three CTAs at full size need a 670px column, which the
-   `min(1580px, 93%)` container only reaches at about 1520px. */
-@media (min-width: 1024px) and (max-width: 1519px) {
+   one row. Measured: the three CTAs at full size occupy 713px, and the column
+   is `(93vw - 4vw) / 2`, so they only fit from about 1602px up — below that
+   Community was dropping onto a second row and adding 76px to the hero. The
+   boundary sits at 1619px to keep a margin over that crossover. */
+@media (min-width: 1024px) and (max-width: 1619px) {
   .home-v2-page .ef-search-bar {
     --search-bar-height: 72px;
     --search-bar-radius: 24px;
@@ -471,6 +475,21 @@
   }
 }
 
+/* Even tightened, the three CTAs need 514px and the column is only 456px at
+   1024 — so on the smallest two-column widths they wrapped onto a second row
+   and took the hero with them. This is the last step down that keeps them on
+   one line. */
+@media (min-width: 1024px) and (max-width: 1154px) {
+  .home-v2-page .hero-modern-ctas {
+    gap: 8px;
+  }
+
+  .home-v2-page .hero-cta-base {
+    padding: 0 12px;
+    font-size: 13px;
+  }
+}
+
 /* --------------------------------------------------------------------------
    Collage — overlapping organic shapes
    Below 1024px `hero-modern.css` stacks the hero and lays the collage out as a
@@ -494,10 +513,14 @@
   display: none;
 }
 
-/* The credit is a dark pill with its own padding, so an unfilled one paints a
-   small grey box in the corner of every card. It only has content once the
-   collage loads Pexels media. */
-.home-v2-page .hero-collage-credit:empty {
+/* No creator credit on the collage. The Pexels licence does not require
+   attribution, and the design has nothing in the corner of the cards — an
+   unfilled `.hero-collage-credit` also paints a small grey box, since it is a
+   dark pill with its own padding. `.pexels-credit` is the one the collage
+   module builds at runtime once media loads; V2 does not carry V1's inline
+   styles for it, so it would render as raw text over the photograph. */
+.home-v2-page .hero-collage-credit,
+.home-v2-page .hero-collage .pexels-credit {
   display: none;
 }
 
@@ -533,9 +556,9 @@
   .home-v2-page .hero-collage .hero-collage-card {
     position: absolute;
     aspect-ratio: auto;
-    /* The mask lives on the image and on the white backing below, not on the
-       card, so the backing can sit outside the card's own edge. Both of the
-       shared clipping rules have to come off for that to be visible. */
+    /* The mask lives on the card's media and on the white backing below, not
+       on the card, so the backing can sit outside the card's own edge. Both of
+       the shared clipping rules have to come off for that to be visible. */
     overflow: visible;
     contain: layout style;
     background: transparent;
@@ -544,6 +567,16 @@
        filter that follows the silhouette. Kept very soft. */
     box-shadow: none;
     filter: drop-shadow(0 10px 22px rgba(15, 23, 42, 0.1));
+  }
+
+  /* The mask, and everything it applies to. Each card names its own shape in
+     `--hv2-mask` and this applies it in one place — the collage swaps an
+     `<img>` for a `<video>` whenever the admin widget serves a clip, so a rule
+     that only named `img` left video cards as bare rectangles. */
+  .home-v2-page .hero-collage .hero-collage-card::before,
+  .home-v2-page .hero-collage .hero-collage-card img,
+  .home-v2-page .hero-collage .hero-collage-card video {
+    clip-path: var(--hv2-mask);
   }
 
   /* The white separator: the same mask, on a box 3px larger on every side, so
@@ -556,19 +589,23 @@
     background: #fff;
   }
 
-  .home-v2-page .hero-collage .hero-collage-card img {
+  .home-v2-page .hero-collage .hero-collage-card img,
+  .home-v2-page .hero-collage .hero-collage-card video {
     z-index: 1;
   }
 
-  /* The image is clipped in its own coordinate space, so a hover zoom would
-     scale the mask with it and break out of the white edge. The collage is
-     `inert`, so nothing is lost. */
+  /* Media is clipped in its own coordinate space, so a hover zoom would scale
+     the mask with it and break out of the white edge. The collage is `inert`,
+     so nothing is lost. */
   .home-v2-page .hero-collage .hero-collage-card:hover img,
-  .home-v2-page .hero-collage .hero-collage-card:focus img {
+  .home-v2-page .hero-collage .hero-collage-card:focus img,
+  .home-v2-page .hero-collage .hero-collage-card:hover video,
+  .home-v2-page .hero-collage .hero-collage-card:focus video {
     transform: none;
   }
 
   .home-v2-page .hero-collage-card[data-category='venues'] {
+    --hv2-mask: url(#hv2-mask-venues);
     top: 0;
     left: 0;
     z-index: 1;
@@ -576,12 +613,8 @@
     height: 74.96%;
   }
 
-  .home-v2-page .hero-collage-card[data-category='venues']::before,
-  .home-v2-page .hero-collage-card[data-category='venues'] img {
-    clip-path: url(#hv2-mask-venues);
-  }
-
   .home-v2-page .hero-collage-card[data-category='catering'] {
+    --hv2-mask: url(#hv2-mask-catering);
     top: 3.64%;
     left: 62.35%;
     z-index: 3;
@@ -589,12 +622,8 @@
     height: 39.3%;
   }
 
-  .home-v2-page .hero-collage-card[data-category='catering']::before,
-  .home-v2-page .hero-collage-card[data-category='catering'] img {
-    clip-path: url(#hv2-mask-catering);
-  }
-
   .home-v2-page .hero-collage-card[data-category='entertainment'] {
+    --hv2-mask: url(#hv2-mask-entertainment);
     top: 54.78%;
     left: 3.3%;
     z-index: 4;
@@ -602,12 +631,8 @@
     height: 43.1%;
   }
 
-  .home-v2-page .hero-collage-card[data-category='entertainment']::before,
-  .home-v2-page .hero-collage-card[data-category='entertainment'] img {
-    clip-path: url(#hv2-mask-entertainment);
-  }
-
   .home-v2-page .hero-collage-card[data-category='photography'] {
+    --hv2-mask: url(#hv2-mask-photography);
     top: 53.72%;
     left: 59.05%;
     z-index: 4;
@@ -615,12 +640,7 @@
     height: 46.28%;
   }
 
-  .home-v2-page .hero-collage-card[data-category='photography']::before,
-  .home-v2-page .hero-collage-card[data-category='photography'] img {
-    clip-path: url(#hv2-mask-photography);
-  }
-
-  /* Curved edges eat into the corners, so the label and credit move inwards. */
+  /* Curved edges eat into the corners, so the label moves inwards. */
   .home-v2-page .hero-collage-label {
     bottom: clamp(12px, 11%, 40px);
     left: clamp(12px, 9%, 40px);
@@ -629,13 +649,8 @@
   /* The feature card's bottom-left corner is under the Entertainment card, so
      its label sits just above that edge. */
   .home-v2-page .hero-collage-card[data-category='venues'] .hero-collage-label {
-    bottom: 30%;
-    left: 7%;
-  }
-
-  .home-v2-page .hero-collage-credit {
-    right: clamp(10px, 9%, 40px);
-    bottom: clamp(10px, 11%, 40px);
+    bottom: 42%;
+    left: 9%;
   }
 }
 
