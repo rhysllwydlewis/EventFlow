@@ -107,7 +107,7 @@ describe('homepage V2 hero design layer', () => {
 
     for (const category of ['venues', 'catering', 'entertainment', 'photography']) {
       expect(designCss).toContain(`.hero-collage-card[data-category='${category}']`);
-      expect(designCss).toContain(`clip-path: url(#hv2-mask-${category})`);
+      expect(designCss).toContain(`--hv2-mask: url(#hv2-mask-${category})`);
 
       // The mask lives in the markup, in objectBoundingBox units so it scales
       // with whatever size the card ends up at.
@@ -182,12 +182,40 @@ describe('homepage V2 hero design layer', () => {
     // Both the shared rules that would clip it away have to be lifted.
     expect(designCss).toContain('overflow: visible');
     expect(designCss).toMatch(/contain: layout style;/);
+  });
 
-    for (const category of ['venues', 'catering', 'entertainment', 'photography']) {
-      expect(designCss).toContain(
-        `.home-v2-page .hero-collage-card[data-category='${category}']::before,`
-      );
-    }
+  test('the mask reaches video as well as images', () => {
+    // The collage swaps a card's `<img>` for a `<video>` whenever the admin
+    // widget serves a clip, so a rule that only named `img` left video cards
+    // as bare rectangles sitting on top of a masked white backing.
+    const masked = designCss.match(
+      /((?:\s*\.home-v2-page \.hero-collage \.hero-collage-card[^,{]*,)+[^{]*)\{\s*clip-path: var\(--hv2-mask\);/
+    );
+
+    expect(masked).toBeTruthy();
+    expect(masked[1]).toContain('::before');
+    expect(masked[1]).toContain(' img');
+    expect(masked[1]).toContain(' video');
+
+    // And the hover zoom stays off both, since scaling a clipped element
+    // scales its clip with it.
+    const hover = designCss.match(
+      /((?:[^{}]*:hover[^{}]*|[^{}]*:focus[^{}]*),?)+\{\s*transform: none;/
+    );
+    expect(hover).toBeTruthy();
+    expect(hover[0]).toContain('video');
+  });
+
+  test('the collage carries no creator credit', () => {
+    // Two of them: the static pill in the markup, and the one the collage
+    // module builds at runtime. V2 does not carry V1's inline styles for
+    // `.pexels-credit`, so an uncaught one renders as raw text over the photo.
+    const hidden = designCss.match(
+      /\.home-v2-page \.hero-collage-credit,\s*\.home-v2-page \.hero-collage \.pexels-credit \{([^}]*)\}/
+    );
+
+    expect(hidden).toBeTruthy();
+    expect(hidden[1]).toContain('display: none');
   });
 
   test('each collage image advertises the width its own card actually gets', () => {
