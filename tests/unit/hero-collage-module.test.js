@@ -113,6 +113,43 @@ describe('shared hero collage module', () => {
     expect(validatePexelsUrl(null)).toBe('https://www.pexels.com');
   });
 
+  test('image resolution is measured from the frame, not assumed to be 25vw', () => {
+    // Homepage V2 gives its feature collage card roughly twice the width of
+    // the others. The old fixed `25vw` under-resolved it: at 1680px it asked
+    // for a 420px slot to fill a 606px card, so a 2x display got a 940px
+    // Pexels image where it needed ~1200px.
+    const sandbox = loadModule();
+    sandbox.window.innerWidth = 1680;
+    sandbox.window.devicePixelRatio = 2;
+
+    const frame = width => ({ getBoundingClientRect: () => ({ width }) });
+
+    expect(sandbox.collageSlotSizes(frame(606))) // V2 feature card
+      .toBe('37vw');
+    expect(sandbox.collageSlotSizes(frame(292))).toBe('18vw');
+
+    // Unmeasurable frames keep the previous viewport estimate rather than
+    // emitting a nonsense width.
+    expect(sandbox.collageSlotSizes(frame(0))).toBe('(max-width: 768px) 48vw, 25vw');
+    expect(sandbox.collageSlotSizes(null)).toBe('(max-width: 768px) 48vw, 25vw');
+
+    const src = {
+      tiny: 't',
+      small: 's',
+      medium: 'm',
+      large: 'l',
+      large2x: 'xl',
+    };
+
+    // 606 CSS px at DPR 2 needs 1212px — the `large` (1880w) rendition.
+    expect(sandbox.getOptimalPexelsImageSize(src, 606)).toBe('l');
+    // The small cards are served by `medium` (940w), as before.
+    expect(sandbox.getOptimalPexelsImageSize(src, 292)).toBe('m');
+    // With no measurement the viewport estimate still applies: 25% of 1680 at
+    // DPR 2 is 840px.
+    expect(sandbox.getOptimalPexelsImageSize(src)).toBe('m');
+  });
+
   test('the dependency between the module and home-init.js runs one way only', () => {
     const moduleFunctions = topLevelFunctions(moduleSource);
     const homeInitFunctions = topLevelFunctions(homeInitSource);

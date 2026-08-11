@@ -156,12 +156,57 @@ function getConnectionAwareQuality() {
   return 'high';
 }
 
+/** `sizes` to fall back on when a frame has not been laid out yet. */
+const COLLAGE_ESTIMATED_SIZES = '(max-width: 768px) 48vw, 25vw';
+
 /**
- * Get optimal Pexels image size based on viewport and device pixel ratio
+ * Rendered CSS width of a collage frame.
+ *
+ * The frames are not all the same size. Homepage V2 gives its feature card
+ * roughly twice the width of the others, so anything choosing an image
+ * resolution has to measure rather than assume every frame is 25vw.
+ *
+ * @param {Element|null} element - Frame or the image inside it
+ * @returns {number} Width in CSS pixels, or 0 when it cannot be measured
+ */
+function measureCollageSlotWidth(element) {
+  if (!element || typeof element.getBoundingClientRect !== 'function') {
+    return 0;
+  }
+
+  const { width } = element.getBoundingClientRect();
+  return Number.isFinite(width) && width > 0 ? width : 0;
+}
+
+/**
+ * `sizes` for a collage image, from its own rendered width.
+ *
+ * Expressed in `vw` rather than `px` so it still holds after a resize — the
+ * collage is laid out in percentages, so a frame keeps its share of the
+ * viewport.
+ *
+ * @param {Element|null} element - Frame or the image inside it
+ * @returns {string}
+ */
+function collageSlotSizes(element) {
+  const width = measureCollageSlotWidth(element);
+  const viewportWidth = window.innerWidth;
+
+  if (width <= 0 || !viewportWidth) {
+    return COLLAGE_ESTIMATED_SIZES;
+  }
+
+  return `${Math.min(100, Math.ceil((width / viewportWidth) * 100))}vw`;
+}
+
+/**
+ * Get optimal Pexels image size based on the target frame and device pixel ratio
  * @param {Object} photoSrc - Pexels photo.src object
+ * @param {number} [slotWidth] - Measured frame width in CSS pixels. Falls back
+ *   to the viewport estimate when the frame has not been laid out.
  * @returns {string} Optimal image URL
  */
-function getOptimalPexelsImageSize(photoSrc) {
+function getOptimalPexelsImageSize(photoSrc, slotWidth = 0) {
   if (!photoSrc) {
     return null;
   }
@@ -171,7 +216,8 @@ function getOptimalPexelsImageSize(photoSrc) {
 
   // Calculate effective width needed (accounting for DPR)
   // Collage frames are typically 40-50% of viewport width on mobile
-  const frameWidth = viewportWidth <= 768 ? viewportWidth * 0.48 : viewportWidth * 0.25;
+  const estimatedWidth = viewportWidth <= 768 ? viewportWidth * 0.48 : viewportWidth * 0.25;
+  const frameWidth = slotWidth > 0 ? slotWidth : estimatedWidth;
   const effectiveWidth = frameWidth * dpr;
 
   // Network-aware quality adjustment
@@ -593,9 +639,9 @@ function displayPexelsImage(imgElement, frame, imageData, category) {
   if (imageData.srcset) {
     imgElement.srcset = imageData.srcset;
 
-    // Add sizes attribute for optimal image selection
-    // Mobile: ~48% of viewport (2-column), Tablet+: ~25% of viewport
-    imgElement.sizes = '(max-width: 768px) 48vw, 25vw';
+    // Add sizes attribute for optimal image selection, measured from the frame
+    // the image actually occupies rather than assumed.
+    imgElement.sizes = collageSlotSizes(frame || imgElement);
   }
 
   // Add decoding="async" for better performance
@@ -753,6 +799,11 @@ async function initPexelsCollage(settings) {
         }
 
         if (data.photos && Array.isArray(data.photos) && data.photos.length > 0) {
+          // Measure the frame this category lands in: the frames are not all
+          // the same width, so the viewport estimate would under-resolve the
+          // larger ones.
+          const slotWidth = measureCollageSlotWidth(collageFrames[categoryMapping[category]]);
+
           // Validate and map photo data with null safety
           imageCache[category] = data.photos
             .filter(photo => {
@@ -766,7 +817,10 @@ async function initPexelsCollage(settings) {
               );
             })
             .map(photo => ({
-              url: getOptimalPexelsImageSize(photo.src) || photo.src.large || photo.src.original,
+              url:
+                getOptimalPexelsImageSize(photo.src, slotWidth) ||
+                photo.src.large ||
+                photo.src.original,
               srcset: generateSrcset(photo.src),
               photographer: String(photo.photographer),
               photographerUrl: validatePexelsUrl(photo.photographer_url),
@@ -1664,11 +1718,19 @@ async function initCollageWidget(widgetConfig) {
           // Combine photos and videos into media array
           const allMedia = [];
 
+          // Measure the frame this category lands in: the frames are not all
+          // the same width, so the viewport estimate would under-resolve the
+          // larger ones.
+          const slotWidth = measureCollageSlotWidth(collageFrames[categoryMapping[category]]);
+
           if (data.photos && Array.isArray(data.photos) && data.photos.length > 0) {
             const photos = data.photos
               .filter(photo => photo && photo.src && photo.photographer)
               .map(photo => ({
-                url: getOptimalPexelsImageSize(photo.src) || photo.src.large || photo.src.original,
+                url:
+                  getOptimalPexelsImageSize(photo.src, slotWidth) ||
+                  photo.src.large ||
+                  photo.src.original,
                 srcset: generateSrcset(photo.src),
                 type: 'photo',
                 photographer: String(photo.photographer),
@@ -2099,7 +2161,7 @@ async function loadMediaIntoFrame(
         // Apply srcset if available for responsive images
         if (media.srcset) {
           mediaElement.srcset = media.srcset;
-          mediaElement.sizes = '(max-width: 768px) 48vw, 25vw';
+          mediaElement.sizes = collageSlotSizes(frame || mediaElement);
         }
 
         // Add decoding="async" for better performance
@@ -2139,7 +2201,7 @@ async function loadMediaIntoFrame(
         // Apply srcset if available for responsive images
         if (media.srcset) {
           mediaElement.srcset = media.srcset;
-          mediaElement.sizes = '(max-width: 768px) 48vw, 25vw';
+          mediaElement.sizes = collageSlotSizes(frame || mediaElement);
         }
 
         // Add decoding="async" for better performance

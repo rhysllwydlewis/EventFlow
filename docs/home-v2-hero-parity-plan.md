@@ -409,10 +409,13 @@ review.
 
 ## 10. Deferred follow-ups
 
-1. **Mock polish** — organic blob/squircle collage shapes, teal line icons on the four quick tags and
-   the `All categories` select, line-icon collage labels replacing the emoji, the shortened one-line
-   subcopy, and the `Search suppliers, packages, venues…` placeholder. These are design changes to
-   V1's hero and, once applied to the shared markup, would land on **both** homepages.
+1. ~~**Mock polish**~~ — **done, V2-only.** Organic blob/squircle collage shapes, teal line icons on
+   the four quick tags and the `All categories` select, line-icon collage labels replacing the emoji,
+   the shortened one-line subcopy and the `Search suppliers, packages, venues…` placeholder all
+   landed in `public/assets/css/home-v2-hero-design.css` plus the V2 markup. The two heroes diverge
+   deliberately: the design layer is scoped to `.home-v2-page` and no shared stylesheet was edited,
+   so V1 and V3 keep the old hero. The markup drift guard that would have failed on this was
+   replaced by a shared-hooks test — see `docs/home-v2-preview.md`.
 2. **Prune dead code in `src/homepages/home-v2.ts`** — the Pexels hero-image rotation, popular-search
    and search-state handlers are inert once the old hero is gone. Removing them means a
    `build:homepages` run, a `home-v2.js` `?v=` bump and matching updates to

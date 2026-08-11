@@ -100,6 +100,7 @@
     <link rel="stylesheet" href="/assets/css/ef-search-bar.css?v=18.3.0" />
     <link rel="stylesheet" href="/assets/css/eventflow-brand.css?v=1.0.0" data-eventflow-brand="true" />
     <link rel="stylesheet" href="/assets/css/home-v2-hero-parity.css?v=1" />
+    <link rel="stylesheet" href="/assets/css/home-v2-hero-design.css?v=1" />
     <link rel="stylesheet" href="/assets/css/error-boundary.css?v=18.3.0" />
     <link rel="stylesheet" href="/assets/css/loading-skeleton.css?v=2.0.1" />
     <link rel="icon" href="/favicon.ico" sizes="any" />
@@ -209,8 +210,7 @@
 
             <!-- Subcopy -->
             <p class="hero-modern-subcopy ef-fade-up delay-3">
-              Find venues, catering, entertainment and more. Add options to your plan instantly,
-              message suppliers when you're ready, and keep budgets, notes and decisions together.
+              Find venues, catering, entertainment and more.
             </p>
 
             <!-- New Unified Search Component -->
@@ -219,6 +219,12 @@
                 
                 <!-- Category Selector -->
                 <div class="ef-search-bar__segment ef-search-bar__segment--category">
+                  <svg class="hv2-search-category-icon" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                    <circle cx="7" cy="7" r="2.5"/>
+                    <circle cx="17" cy="7" r="2.5"/>
+                    <circle cx="7" cy="17" r="2.5"/>
+                    <circle cx="17" cy="17" r="2.5"/>
+                  </svg>
                   <label for="ef-search-category" class="sr-only">Category</label>
                   <select id="ef-search-category" name="category" class="ef-search-bar__select">
                     <option value="">All categories</option>
@@ -263,7 +269,7 @@
                     id="ef-search-input" 
                     name="q" 
                     class="ef-search-bar__input"
-                    placeholder="Search suppliers, packages..."
+                    placeholder="Search suppliers, packages, venues…"
                     autocomplete="off"
                     autocapitalize="off"
                     spellcheck="false"
@@ -284,15 +290,35 @@
             <!-- Quick Search Tags -->
             <div class="ef-quick-tags" role="group" aria-label="Popular searches">
               <button type="button" class="ef-cta ef-quick-tags__tag" data-search="london venues">
+                <svg class="hv2-quick-tag-icon" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 21s7-5.6 7-11a7 7 0 1 0-14 0c0 5.4 7 11 7 11Z"/>
+                  <circle cx="12" cy="10" r="2.6"/>
+                </svg>
                 London venues
               </button>
               <button type="button" class="ef-cta ef-quick-tags__tag" data-search="canapés drinks">
+                <svg class="hv2-quick-tag-icon" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M6 3v6a2.5 2.5 0 0 0 5 0V3"/>
+                  <path d="M8.5 9v12"/>
+                  <path d="M17.5 3c-1.4 1.6-2 3.4-2 5.6 0 1.7.7 2.6 2 2.6s2-.9 2-2.6c0-2.2-.6-4-2-5.6Z"/>
+                  <path d="M17.5 11.2V21"/>
+                </svg>
                 Canapés & drinks
               </button>
               <button type="button" class="ef-cta ef-quick-tags__tag" data-search="dj packages">
+                <svg class="hv2-quick-tag-icon" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M4 14v-2a8 8 0 0 1 16 0v2"/>
+                  <path d="M4 14h2.4A1.6 1.6 0 0 1 8 15.6v2.8A1.6 1.6 0 0 1 6.4 20H6a2 2 0 0 1-2-2v-4Z"/>
+                  <path d="M20 14h-2.4a1.6 1.6 0 0 0-1.6 1.6v2.8A1.6 1.6 0 0 0 17.6 20h.4a2 2 0 0 0 2-2v-4Z"/>
+                </svg>
                 DJ packages
               </button>
               <button type="button" class="ef-cta ef-quick-tags__tag" data-search="corporate">
+                <svg class="hv2-quick-tag-icon" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="7.5" width="18" height="12.5" rx="2.5"/>
+                  <path d="M9 7.5V6a1.5 1.5 0 0 1 1.5-1.5h3A1.5 1.5 0 0 1 15 6v1.5"/>
+                  <path d="M3 12.5h18"/>
+                </svg>
                 Corporate
               </button>
             </div>
@@ -341,45 +367,70 @@
               
               <!-- Row 2: Venues + Catering -->
               <a href="/category?slug=venues" class="hero-collage-card" data-category="venues">
-                <img src="/assets/images/collage-venue.jpg" alt="Venues" id="collage-venues" 
+                <img src="/assets/images/collage-venue.jpg" alt="Venues" id="collage-venues"
                      width="400" height="300" loading="eager" fetchpriority="high" decoding="async"
-                     sizes="(max-width: 768px) 48vw, 25vw">
+                     sizes="(max-width: 1023px) 46vw, (max-width: 1699px) 36vw, 612px">
                 <span class="hero-collage-label">
-                  <span class="hero-collage-icon">🏛️</span>
+                  <span class="hero-collage-icon">
+                    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M12 3 3 7.8V10h18V7.8L12 3Z"/>
+                      <path d="M6 10v7M10 10v7M14 10v7M18 10v7"/>
+                      <path d="M3.5 20.5h17"/>
+                    </svg>
+                  </span>
                   Venues
                 </span>
                 <span class="hero-collage-credit" id="credit-venues"></span>
               </a>
-              
+
               <a href="/category?slug=catering" class="hero-collage-card" data-category="catering">
                 <img src="/assets/images/collage-catering.jpg" alt="Catering" id="collage-catering"
                      width="400" height="300" loading="eager" fetchpriority="auto" decoding="async"
-                     sizes="(max-width: 768px) 48vw, 25vw">
+                     sizes="(max-width: 1023px) 46vw, (max-width: 1699px) 18vw, 295px">
                 <span class="hero-collage-label">
-                  <span class="hero-collage-icon">🍽️</span>
+                  <span class="hero-collage-icon">
+                    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M6 3v6a2.5 2.5 0 0 0 5 0V3"/>
+                      <path d="M8.5 9v12"/>
+                      <path d="M17.5 3c-1.4 1.6-2 3.4-2 5.6 0 1.7.7 2.6 2 2.6s2-.9 2-2.6c0-2.2-.6-4-2-5.6Z"/>
+                      <path d="M17.5 11.2V21"/>
+                    </svg>
+                  </span>
                   Catering
                 </span>
                 <span class="hero-collage-credit" id="credit-catering"></span>
               </a>
-              
+
               <!-- Row 3: Entertainment + Photography -->
               <a href="/category?slug=entertainment" class="hero-collage-card" data-category="entertainment">
                 <img src="/assets/images/collage-entertainment.jpg" alt="Entertainment" id="collage-entertainment"
                      width="400" height="300" loading="eager" fetchpriority="auto" decoding="async"
-                     sizes="(max-width: 768px) 48vw, 25vw">
+                     sizes="(max-width: 1023px) 46vw, (max-width: 1699px) 19vw, 310px">
                 <span class="hero-collage-label">
-                  <span class="hero-collage-icon">🎤</span>
+                  <span class="hero-collage-icon">
+                    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M9.5 18V6.2l10-2v11.6"/>
+                      <circle cx="7" cy="18" r="2.5"/>
+                      <circle cx="17" cy="15.8" r="2.5"/>
+                    </svg>
+                  </span>
                   Entertainment
                 </span>
                 <span class="hero-collage-credit" id="credit-entertainment"></span>
               </a>
-              
+
               <a href="/category?slug=photography" class="hero-collage-card" data-category="photography">
                 <img src="/assets/images/collage-photography.jpg" alt="Photography" id="collage-photography"
                      width="400" height="300" loading="eager" fetchpriority="auto" decoding="async"
-                     sizes="(max-width: 768px) 48vw, 25vw">
+                     sizes="(max-width: 1023px) 46vw, (max-width: 1699px) 20vw, 340px">
                 <span class="hero-collage-label">
-                  <span class="hero-collage-icon">📸</span>
+                  <span class="hero-collage-icon">
+                    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="3" y="7" width="18" height="13" rx="3"/>
+                      <circle cx="12" cy="13.5" r="3.4"/>
+                      <path d="M9 7l1.2-2.5h3.6L15 7"/>
+                    </svg>
+                  </span>
                   Photography
                 </span>
                 <span class="hero-collage-credit" id="credit-photography"></span>
@@ -710,7 +761,7 @@
     <!-- V1 hero wiring: search submit, quick tags and the shared collage module.
          hero-collage.js must load before home-v2-hero.js, which calls window.EFHeroCollage. -->
     <script src="/assets/js/ef-search-bar.js?v=18.3.0" defer></script>
-    <script src="/assets/js/collage/hero-collage.js?v=1" defer></script>
+    <script src="/assets/js/collage/hero-collage.js?v=2" defer></script>
     <script src="/assets/js/pages/home-v2-hero.js?v=1" defer></script>
     <script src="/assets/js/vendor/jade-widget.js" defer></script>
     <script src="/assets/js/jadeassist-init.v2.js" defer></script>

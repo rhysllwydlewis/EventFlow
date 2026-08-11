@@ -50,10 +50,10 @@ const BASELINE_PAGES = [
   // fails in CI on a size mismatch regardless of pixel tolerance, so an
   // unverifiable image would be worse than none.
   { name: 'homepage', path: '/', screenshotApproved: false },
-  // home-v2-preview shares its hero with the homepage above. It had no visual
-  // or axe coverage at all, which is how the two drifted apart in the first
-  // place. Screenshots are unapproved until baselines are generated in an
-  // environment that reproduces CI's rendering; the axe scan runs regardless.
+  // home-v2-preview now carries its own hero design rather than the homepage's,
+  // so it needs coverage in its own right. Screenshots are unapproved until
+  // baselines are generated in an environment that reproduces CI's rendering;
+  // the axe scan runs regardless.
   { name: 'home-v2-preview', path: '/home-v2-preview', screenshotApproved: false },
   { name: 'auth', path: '/auth' },
   { name: 'pricing', path: '/pricing', screenshotApproved: false },
