@@ -98,7 +98,7 @@
    columns, rather than the 1320px container `hero-modern.css` caps it at.
    -------------------------------------------------------------------------- */
 .home-v2-page .hero-modern .container {
-  width: min(1580px, 93%);
+  width: min(1585px, 94.5%);
   max-width: none;
   padding-left: 0;
   padding-right: 0;

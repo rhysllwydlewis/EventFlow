@@ -192,7 +192,7 @@ body.home-v2-page {
 }
 
 /* From the hero's two-column breakpoint up, the header follows the hero design:
-   it lines up with the hero's `min(1580px, 93%)` container rather than V1's
+   it lines up with the hero's `min(1585px, 94.5%)` container rather than V1's
    1280px one — so the wordmark sits over the search bar's left edge and the
    auth pill over the collage's right — and it is taller, with larger type.
    Below 1024px the V1-aligned header above still applies. */
@@ -208,13 +208,13 @@ body.home-v2-page {
   }
 }
 
-/* Align the header with the hero's `min(1580px, 93%)` container rather than
+/* Align the header with the hero's `min(1585px, 94.5%)` container rather than
    V1's 1280px one, so the wordmark sits over the search bar's left edge and
    the auth pill over the collage's right. Not below 1280px: the wider gutter
    costs the seven nav links about 30px they do not have to spare there. */
 @media (min-width: 1280px) {
   .home-v2-page .hv2-header {
-    padding-inline: max(20px, calc((100% - min(1580px, 93%)) / 2));
+    padding-inline: max(20px, calc((100% - min(1585px, 94.5%)) / 2));
   }
 }
 

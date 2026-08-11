@@ -260,7 +260,7 @@ describe('homepage V2 hero design layer', () => {
 
     // Both also have to resolve to the same gutter, or the wordmark stops
     // sitting over the search bar's left edge.
-    const container = 'min(1580px, 93%)';
+    const container = 'min(1585px, 94.5%)';
     expect(designCss).toContain(`width: ${container}`);
     expect(navbarCss).toContain(`calc((100% - ${container}) / 2)`);
   });
