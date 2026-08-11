@@ -505,7 +505,7 @@
   .home-v2-page .hero-collage {
     display: block;
     position: relative;
-    aspect-ratio: 1.05 / 1;
+    aspect-ratio: 1.136 / 1;
     min-height: 0;
     height: auto;
     /* `paint` containment would clip the outline curves below. */
@@ -541,35 +541,35 @@
     top: 0;
     left: 0;
     z-index: 1;
-    width: 81%;
-    height: 67%;
+    width: 88.7%;
+    height: 57.2%;
     clip-path: url(#hv2-mask-venues);
   }
 
   .home-v2-page .hero-collage-card[data-category='catering'] {
-    top: 4%;
-    left: 61%;
+    top: 5.9%;
+    left: 64.7%;
     z-index: 3;
-    width: 39%;
-    height: 42%;
+    width: 34.3%;
+    height: 39.5%;
     clip-path: url(#hv2-mask-catering);
   }
 
   .home-v2-page .hero-collage-card[data-category='entertainment'] {
-    top: 51%;
-    left: 2%;
+    top: 54.6%;
+    left: 2.9%;
     z-index: 3;
-    width: 41%;
-    height: 41%;
+    width: 44%;
+    height: 45%;
     clip-path: url(#hv2-mask-entertainment);
   }
 
   .home-v2-page .hero-collage-card[data-category='photography'] {
-    top: 58%;
-    left: 55%;
+    top: 54%;
+    left: 58.3%;
     z-index: 2;
-    width: 45%;
-    height: 42%;
+    width: 41.4%;
+    height: 45.6%;
     clip-path: url(#hv2-mask-photography);
   }
 
