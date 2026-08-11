@@ -775,20 +775,8 @@
   font-weight: 800;
 }
 
-.home-v2-page .hv2-header .hv2-brand__mark {
-  width: 40px;
-  height: 40px;
-  border-radius: 14px;
-  background: linear-gradient(130deg, #0b8073 0%, #10b981 46%, #34d399 100%);
-  box-shadow:
-    0 6px 18px rgba(11, 128, 115, 0.36),
-    inset 0 1px 1px rgba(255, 255, 255, 0.45),
-    inset 0 -2px 3px rgba(11, 18, 32, 0.2);
-}
-
-.home-v2-page .hv2-header .hv2-brand__mark span {
-  display: none;
-}
+/* The header brand is now the wordmark lockup — the EF tile it used to paint
+   here is gone. The teardrop mark rules above still serve the footer brand. */
 
 .home-v2-page .hv2-hero {
   min-height: clamp(660px, 76vh, 840px);

@@ -17,7 +17,13 @@ const rateLimit = require('express-rate-limit');
 const app = express();
 const PORT = process.env.PORT || 4173;
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
-const { getFile, setHtmlNoStoreHeaders, appendVaryHeader } = require('../utils/template-renderer');
+const {
+  getFile,
+  setHtmlNoStoreHeaders,
+  appendVaryHeader,
+  buildHomepageV2Preview,
+  addPreviewRobotsMeta,
+} = require('../utils/template-renderer');
 
 async function sendRenderedHtml(req, res, fileName) {
   const requestPath = `/${fileName}`;
@@ -31,6 +37,27 @@ async function sendRenderedHtml(req, res, fileName) {
   );
   appendVaryHeader(res, 'Cookie');
   res.type('html').send(content);
+}
+
+/**
+ * Homepage V2 preview, mirroring templateMiddleware: the navbar parity layer
+ * is injected at serve time rather than living in the file, so serving
+ * home-v2.html straight off disk produces a page the real server never sends.
+ * Without this the preview paths fell through to the `*` handler and quietly
+ * returned the V1 homepage, which would have made any V2 suite a no-op.
+ */
+async function sendHomepageV2Preview(req, res) {
+  const filePath = path.join(PUBLIC_DIR, 'home-v2.html');
+  const { content } = await getFile(filePath, '/home-v2.html', req);
+  setHtmlNoStoreHeaders(res);
+  res.setHeader('X-EventFlow-Template-Renderer', 'active-static');
+  res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+  res.setHeader(
+    'X-EventFlow-Public-Sanitizer',
+    req.user ? 'skipped-authenticated' : 'anonymous-v2'
+  );
+  appendVaryHeader(res, 'Cookie');
+  res.type('html').send(addPreviewRobotsMeta(buildHomepageV2Preview(content)));
 }
 
 // Basic rate limiter — limits abusive hammering of the test server
@@ -575,6 +602,12 @@ app.get('/', (req, res, next) => {
 
 app.get('/index.html', (req, res) => {
   res.redirect(301, '/');
+});
+
+['/home-v2', '/home-v2.html', '/home-v2-preview', '/home-v2-preview.html'].forEach(previewPath => {
+  app.get(previewPath, (req, res, next) => {
+    sendHomepageV2Preview(req, res).catch(next);
+  });
 });
 
 app.get('/marketplace', (req, res, next) => {
