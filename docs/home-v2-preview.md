@@ -66,12 +66,50 @@ card takes its own `clipPath` in `objectBoundingBox` units (the four `#hv2-mask-
 `home-v2.html`) so the silhouettes scale with the box; `border-radius` cannot express them
 because it only ever draws four elliptical quadrants.
 
-The mask sits on the card's `img` and on a `::before` inset by `-3px`, not on the card
+The boxes above are measured; the silhouettes are traced. Catering, entertainment and
+photography are superellipses — a straight run along each edge joined by large, unequal
+corner arcs — generated from per-corner radii of roughly 0.3 of each side. The feature card
+is the exception: in the design it has almost no straight edge, so its corner radii run to
+0.5 and it reads as an organic blob with a shoulder about 37% across the top and its widest
+point about 42% down the left. Radii that make the other three read correctly make the
+feature card read as a rounded rectangle, which is the single most visible way to get this
+composition wrong.
+
+The mask sits on the card's media and on a `::before` inset by `-3px`, not on the card
 itself, so the white backing can follow the same contour 3px outside the image and read as
 a separator. That means `overflow` and paint containment have to come off the card, and the
 depth moves from `box-shadow` (which a clipped subject drops) to a soft `drop-shadow()`
 filter. The numbers and the separator are pinned by `tests/unit/home-v2-hero-design.test.js`
 and, at runtime, by `e2e/home-v2-hero.spec.js`.
+
+Each card names its own shape in `--hv2-mask` and one rule applies it to `::before`, `img`
+**and** `video`. The collage swaps a card's `<img>` for a `<video>` whenever the admin
+widget serves a clip, copying the image's (empty) class list over, so anything that only
+names `img` leaves video cards as bare rectangles on top of a masked white backing.
+
+The collage carries no creator credit. `.hero-collage-credit` is the static pill in the
+markup; `.pexels-credit` is the one the collage module appends at runtime, and V2 does not
+carry V1's inline styles for it, so an uncaught one renders as raw text over the photograph.
+Both are hidden on V2. The Pexels licence does not require attribution.
+
+### Hero height
+
+The hero is the fold, so its height is deliberate rather than incidental. Whichever column
+is taller sets the row, and on desktop that is usually the collage, whose height follows its
+width through the aspect ratio.
+
+That puts a floor under how short the hero can be without shrinking the collage — and
+shrinking the collage costs the design's proportions, since it is 757 of the reference's 1672. So the height comes out of the padding above and below the content instead, and out
+of the CTA row below. The design's own hero is 941px tall at 1672; this one is 794px with
+the same proportions.
+
+The CTA row is the trap. Three CTAs at full size occupy 713px against a column of
+`(93vw - 4vw) / 2`, so they only fit from about 1602px up; below that Community wraps onto
+a second row and adds 76px. Hence two tightening bands — 1024–1619px, and a further step at
+1024–1154px where even the tightened row needs more than the column has. `e2e/home-v2-hero.spec.js`
+measures the row at six widths and fails on a wrap; it disables transitions first, because
+the CTAs animate `all` for 0.3s and a measurement taken straight after a resize reads the
+old size.
 
 ### Parity bridge
 
