@@ -184,26 +184,38 @@ describe('homepage V2 hero design layer', () => {
     expect(designCss).toMatch(/contain: layout style;/);
   });
 
+  // Pulls the selector list immediately before a declaration, by walking
+  // plain string indices rather than a regex — a `(repeated-group)+` pattern
+  // over a shared character class is exactly the shape that gives a regex
+  // engine exponential backtracking to do when the input doesn't match.
+  function selectorsBefore(css, declaration) {
+    const declarationIndex = css.indexOf(declaration);
+    if (declarationIndex === -1) return null;
+    const selectorStart = css.lastIndexOf('}', declarationIndex) + 1;
+    const braceIndex = css.indexOf('{', selectorStart);
+    if (braceIndex === -1 || braceIndex > declarationIndex) return null;
+    return css.slice(selectorStart, braceIndex);
+  }
+
   test('the mask reaches video as well as images', () => {
     // The collage swaps a card's `<img>` for a `<video>` whenever the admin
     // widget serves a clip, so a rule that only named `img` left video cards
     // as bare rectangles sitting on top of a masked white backing.
-    const masked = designCss.match(
-      /((?:\s*\.home-v2-page \.hero-collage \.hero-collage-card[^,{]*,)+[^{]*)\{\s*clip-path: var\(--hv2-mask\);/
-    );
+    const maskedSelectors = selectorsBefore(designCss, 'clip-path: var(--hv2-mask);');
 
-    expect(masked).toBeTruthy();
-    expect(masked[1]).toContain('::before');
-    expect(masked[1]).toContain(' img');
-    expect(masked[1]).toContain(' video');
+    expect(maskedSelectors).toBeTruthy();
+    expect(maskedSelectors).toContain('::before');
+    expect(maskedSelectors).toContain(' img');
+    expect(maskedSelectors).toContain(' video');
 
     // And the hover zoom stays off both, since scaling a clipped element
     // scales its clip with it.
-    const hover = designCss.match(
-      /((?:[^{}]*:hover[^{}]*|[^{}]*:focus[^{}]*),?)+\{\s*transform: none;/
-    );
-    expect(hover).toBeTruthy();
-    expect(hover[0]).toContain('video');
+    const hoverSelectors = selectorsBefore(designCss, 'transform: none;');
+
+    expect(hoverSelectors).toBeTruthy();
+    expect(hoverSelectors).toContain(':hover');
+    expect(hoverSelectors).toContain(':focus');
+    expect(hoverSelectors).toContain('video');
   });
 
   test('the collage carries no creator credit', () => {
