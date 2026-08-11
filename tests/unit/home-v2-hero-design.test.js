@@ -24,6 +24,10 @@ const designCss = fs.readFileSync(
   path.join(ROOT, 'public/assets/css/home-v2-hero-design.css'),
   'utf8'
 );
+const navbarCss = fs.readFileSync(
+  path.join(ROOT, 'public/assets/css/home-v2-navbar-parity.css'),
+  'utf8'
+);
 const heroModernCss = fs.readFileSync(path.join(ROOT, 'public/assets/css/hero-modern.css'), 'utf8');
 const searchBarCss = fs.readFileSync(
   path.join(ROOT, 'public/assets/css/ef-search-bar.css'),
@@ -126,6 +130,22 @@ describe('homepage V2 hero design layer', () => {
     // The feature card asks for the largest slot of the four.
     const declaredVw = sizes.map(value => Number(value.match(/(\d+)vw,/g)[1].match(/\d+/)[0]));
     expect(Math.max(...declaredVw)).toBe(declaredVw[0]);
+  });
+
+  test('the header and the hero agree on the header height and the container', () => {
+    // The hero is pulled up by exactly the header's height so its wash runs
+    // behind the header with no seam. The navbar layer owns that height and
+    // the design layer consumes it — if the two drift the hero jumps.
+    expect(navbarCss).toContain('--hv2-header-height: 96px');
+    expect(navbarCss).toContain('min-height: var(--hv2-header-height)');
+    expect(designCss).toContain('calc(var(--hv2-header-height) * -1)');
+    expect(designCss).toContain('calc(var(--hv2-header-height) + ');
+
+    // Both also have to resolve to the same gutter, or the wordmark stops
+    // sitting over the search bar's left edge.
+    const container = 'min(1580px, 93%)';
+    expect(designCss).toContain(`width: ${container}`);
+    expect(navbarCss).toContain(`calc((100% - ${container}) / 2)`);
   });
 
   test('V1 keeps the emoji labels and the long subcopy', () => {
