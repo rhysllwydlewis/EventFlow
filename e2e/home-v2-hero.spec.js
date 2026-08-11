@@ -93,19 +93,29 @@ test.describe('homepage V2 hero', () => {
       ['venues', 'catering', 'entertainment', 'photography'].map(category => {
         const card = document.querySelector(`.hero-collage-card[data-category="${category}"]`);
         const style = getComputedStyle(card);
-        return { position: style.position, radius: style.borderTopLeftRadius };
+        return {
+          position: style.position,
+          clipPath: style.clipPath,
+          // `clip-path` discards `box-shadow`, so depth has to come from a filter.
+          filter: style.filter,
+          maskExists: Boolean(
+            document.querySelector(`#hv2-mask-${category} path`)?.getAttribute('d')
+          ),
+        };
       })
     );
 
     for (const shape of shapes) {
       expect(shape.position).toBe('absolute');
-      // Percentage radii resolve to a two-value `x y` pair, which is what makes
-      // the corners organic rather than circular.
-      expect(shape.radius.trim().split(/\s+/)).toHaveLength(2);
+      // `border-radius` can only draw four elliptical quadrants; the design's
+      // silhouettes need a real path.
+      expect(shape.clipPath).toMatch(/^url\(/);
+      expect(shape.maskExists).toBe(true);
+      expect(shape.filter).toContain('drop-shadow');
     }
 
-    // Four distinct shapes, not one repeated.
-    expect(new Set(shapes.map(shape => shape.radius)).size).toBe(4);
+    // Four distinct masks, not one repeated.
+    expect(new Set(shapes.map(shape => shape.clipPath)).size).toBe(4);
   });
 
   test('the quick tags carry decorative icons that stay out of the accessible name', async ({

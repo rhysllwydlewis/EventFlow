@@ -28,12 +28,16 @@
   --hv2-teal-soft: rgba(11, 128, 115, 0.12);
 
   /* The subcopy and the search placeholder share one accent blue. */
-  --hv2-hero-blue: #3a6ea5;
+  --hv2-hero-blue: #33639a;
   --hv2-hero-blue-muted: #5b86b3;
 
   /* Where the hero wash starts. The header borrows it so the two meet without
      a seam. */
-  --hv2-hero-wash-start: #f2fafb;
+  --hv2-hero-wash-start: #fbfeff;
+
+  /* Near-black rather than the shared slate — the design's headline carries
+     more weight than `--modern-gray-900`'s blue cast gives it. */
+  --hv2-headline: #0d1117;
 }
 
 /* --------------------------------------------------------------------------
@@ -73,11 +77,14 @@
    a soft mint wash with the grid barely there.
    -------------------------------------------------------------------------- */
 .home-v2-page .hero-modern {
+  /* Near-white through the headline, with the mint only gathering towards the
+     bottom and right. */
   background: linear-gradient(
     135deg,
     var(--hv2-hero-wash-start) 0%,
-    #e9f5f5 55%,
-    #e2f1ef 100%
+    #f7fdfd 42%,
+    #ecf7f5 78%,
+    #e4f2f0 100%
   );
 }
 
@@ -156,7 +163,7 @@
 .home-v2-page .hero-line-1,
 .home-v2-page .hero-line-2 {
   background: none;
-  color: var(--modern-gray-900);
+  color: var(--hv2-headline);
   -webkit-text-fill-color: currentColor;
 }
 
@@ -170,22 +177,28 @@
   -webkit-text-fill-color: currentColor;
 }
 
-/* The drawn underline: a thick teal stroke that lifts a little at both ends.
-   The shared rule paints a flat translucent bar behind the text instead.
-   The corner radii are in px, not the usual 50%: a percentage horizontal
-   radius curves the whole length, which thins the border to nothing at the
-   ends. Keeping the curve to the last 60px leaves the stroke full weight
-   across the middle, which is what the design shows. The box also has to be
-   taller than the vertical radius or the browser scales the bow away. */
+/* The drawn underline. The shared rule paints a flat translucent bar; the
+   design's stroke thickens through the middle and lifts at both ends, which no
+   combination of border and border-radius produces — a border thins as it
+   curves. So the span carries an SVG path instead and this only sizes it. */
 .home-v2-page .hero-modern h1 .hero-highlight-bg {
   right: -19%;
-  bottom: -14px;
+  bottom: -18px;
   left: -19%;
-  height: 14px;
+  height: 18px;
   border: 0;
-  border-bottom: 7px solid var(--hv2-teal);
-  border-radius: 0 0 60px 60px / 0 0 9px 9px;
+  border-radius: 0;
   background: none;
+}
+
+.home-v2-page .hero-highlight-bg svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.home-v2-page .hero-highlight-bg path {
+  fill: var(--hv2-teal);
 }
 
 .home-v2-page .hero-modern-subcopy {
@@ -406,7 +419,7 @@
 }
 
 .home-v2-page .hero-cta-secondary {
-  border: 1.5px solid rgba(11, 128, 115, 0.45);
+  border: 1.5px solid rgba(11, 128, 115, 0.7);
   background: rgba(255, 255, 255, 0.9);
   color: var(--hv2-teal);
   box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
@@ -462,11 +475,23 @@
    Collage — overlapping organic shapes
    Below 1024px `hero-modern.css` stacks the hero and lays the collage out as a
    2x2 grid; that stays. From 1024px up the four cards are placed absolutely so
-   they can overlap the way the design does, and each takes its own blob radius.
+   they can overlap the way the design does, and each takes its own mask.
    -------------------------------------------------------------------------- */
 .home-v2-page .hero-collage-card {
   border: 0;
   box-shadow: 0 18px 44px rgba(15, 23, 42, 0.14);
+}
+
+/* The mask defs carry no geometry of their own. */
+.home-v2-page .hv2-collage-defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+.home-v2-page .hv2-collage-trace {
+  display: none;
 }
 
 /* The credit is a dark pill with its own padding, so an unfilled one paints a
@@ -487,35 +512,29 @@
     contain: layout style;
   }
 
-  /* Two hairline curves tracing the composition, as in the design. */
-  .home-v2-page .hero-collage::before,
-  .home-v2-page .hero-collage::after {
-    content: '';
+  /* The hairlines that trace the composition. Faint and irregular rather than
+     the arcs a bordered ellipse would give. */
+  .home-v2-page .hv2-collage-trace {
+    display: block;
     position: absolute;
     z-index: 0;
-    border: 1.5px solid rgba(11, 128, 115, 0.1);
+    inset: -8% -6% -6% -8%;
+    width: auto;
+    height: auto;
+    fill: none;
+    stroke: rgba(11, 128, 115, 0.11);
+    stroke-width: 0.14;
+    stroke-linecap: round;
     pointer-events: none;
-  }
-
-  .home-v2-page .hero-collage::before {
-    top: -5%;
-    left: -7%;
-    width: 76%;
-    height: 74%;
-    border-radius: 48% 38% 38% 30% / 52% 50% 30% 42%;
-  }
-
-  .home-v2-page .hero-collage::after {
-    right: -4%;
-    bottom: -2%;
-    width: 54%;
-    height: 52%;
-    border-radius: 46% 32% 38% 46% / 34% 46% 38% 48%;
   }
 
   .home-v2-page .hero-collage .hero-collage-card {
     position: absolute;
     aspect-ratio: auto;
+    /* `clip-path` discards `box-shadow`, so the shadow moves to a filter that
+       follows the mask's own edge. */
+    box-shadow: none;
+    filter: drop-shadow(0 16px 30px rgba(15, 23, 42, 0.18));
   }
 
   .home-v2-page .hero-collage-card[data-category='venues'] {
@@ -524,7 +543,7 @@
     z-index: 1;
     width: 81%;
     height: 67%;
-    border-radius: 48% 38% 38% 30% / 52% 50% 30% 42%;
+    clip-path: url(#hv2-mask-venues);
   }
 
   .home-v2-page .hero-collage-card[data-category='catering'] {
@@ -533,7 +552,7 @@
     z-index: 3;
     width: 39%;
     height: 42%;
-    border-radius: 32% 26% 30% 28% / 28% 32% 26% 30%;
+    clip-path: url(#hv2-mask-catering);
   }
 
   .home-v2-page .hero-collage-card[data-category='entertainment'] {
@@ -542,7 +561,7 @@
     z-index: 3;
     width: 41%;
     height: 41%;
-    border-radius: 28% 32% 26% 30% / 32% 28% 30% 26%;
+    clip-path: url(#hv2-mask-entertainment);
   }
 
   .home-v2-page .hero-collage-card[data-category='photography'] {
@@ -551,7 +570,7 @@
     z-index: 2;
     width: 45%;
     height: 42%;
-    border-radius: 46% 32% 38% 46% / 34% 46% 38% 48%;
+    clip-path: url(#hv2-mask-photography);
   }
 
   /* Curved edges eat into the corners, so the label and credit move inwards. */

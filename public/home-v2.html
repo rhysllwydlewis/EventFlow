@@ -100,7 +100,7 @@
     <link rel="stylesheet" href="/assets/css/ef-search-bar.css?v=18.3.0" />
     <link rel="stylesheet" href="/assets/css/eventflow-brand.css?v=1.0.0" data-eventflow-brand="true" />
     <link rel="stylesheet" href="/assets/css/home-v2-hero-parity.css?v=1" />
-    <link rel="stylesheet" href="/assets/css/home-v2-hero-design.css?v=2" />
+    <link rel="stylesheet" href="/assets/css/home-v2-hero-design.css?v=3" />
     <link rel="stylesheet" href="/assets/css/error-boundary.css?v=18.3.0" />
     <link rel="stylesheet" href="/assets/css/loading-skeleton.css?v=2.0.1" />
     <link rel="icon" href="/favicon.ico" sizes="any" />
@@ -204,7 +204,14 @@
               <span class="hero-line-2">to organise an event</span>
               <span class="hero-highlight-text">
                 In one place
-                <span class="hero-highlight-bg"></span>
+                <!-- The underline is a drawn stroke, not a bar: it thickens through
+                     the middle and lifts at both ends. `preserveAspectRatio="none"`
+                     lets it span whatever the line measures. -->
+                <span class="hero-highlight-bg">
+                  <svg viewBox="0 0 300 18" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+                    <path d="M3,3.6 C70,6.4 140,7.4 178,7.3 C224,7.1 268,5.9 297,4.0 L297,11.0 C268,13.4 224,15.0 178,15.2 C140,15.4 70,14.2 3,10.9 Z"/>
+                  </svg>
+                </span>
               </span>
             </h1>
 
@@ -353,6 +360,33 @@
                  assistive technology but leaves its links in the tab order, so a keyboard
                  user could focus something a screen reader never announces. -->
             <div class="hero-collage" aria-hidden="true" inert>
+              <!-- Four organic masks, one per card. `objectBoundingBox` units
+                   scale them to whatever size each card ends up, so they hold
+                   across breakpoints. `border-radius` cannot express these:
+                   it only ever draws four elliptical quadrants. -->
+              <svg class="hv2-collage-defs" width="0" height="0" aria-hidden="true" focusable="false">
+                <defs>
+                  <clipPath id="hv2-mask-venues" clipPathUnits="objectBoundingBox">
+                    <path d="M0.46,0 C0.70,0 0.87,0.06 0.95,0.20 C1,0.31 1,0.47 0.98,0.62 C0.95,0.80 0.86,0.93 0.70,0.98 C0.54,1 0.34,0.99 0.20,0.92 C0.06,0.84 0,0.68 0,0.50 C0,0.30 0.06,0.13 0.19,0.05 C0.27,0.01 0.36,0 0.46,0 Z"/>
+                  </clipPath>
+                  <clipPath id="hv2-mask-catering" clipPathUnits="objectBoundingBox">
+                    <path d="M0.34,0.02 C0.55,0 0.76,0.01 0.88,0.09 C0.98,0.17 1,0.34 1,0.52 C1,0.72 0.97,0.88 0.85,0.96 C0.72,1 0.50,1 0.31,0.98 C0.13,0.95 0.02,0.83 0,0.63 C0,0.44 0.02,0.22 0.12,0.10 C0.18,0.04 0.26,0.03 0.34,0.02 Z"/>
+                  </clipPath>
+                  <clipPath id="hv2-mask-entertainment" clipPathUnits="objectBoundingBox">
+                    <path d="M0.30,0.01 C0.52,0 0.74,0.02 0.87,0.12 C0.99,0.22 1,0.40 0.99,0.58 C0.97,0.78 0.90,0.93 0.74,0.98 C0.56,1 0.34,0.99 0.19,0.92 C0.05,0.84 0,0.66 0.01,0.46 C0.02,0.27 0.10,0.10 0.24,0.03 C0.26,0.02 0.28,0.01 0.30,0.01 Z"/>
+                  </clipPath>
+                  <clipPath id="hv2-mask-photography" clipPathUnits="objectBoundingBox">
+                    <path d="M0.42,0 C0.66,0 0.85,0.05 0.94,0.19 C1,0.30 1,0.46 0.99,0.62 C0.96,0.81 0.85,0.95 0.66,0.99 C0.46,1 0.26,0.97 0.13,0.87 C0.02,0.78 0,0.61 0.01,0.43 C0.03,0.25 0.12,0.09 0.28,0.03 C0.32,0.01 0.37,0 0.42,0 Z"/>
+                  </clipPath>
+                </defs>
+              </svg>
+
+              <!-- Two flowing hairlines tracing the composition. -->
+              <svg class="hv2-collage-trace" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+                <path d="M6,52 C3,30 17,11 40,6"/>
+                <path d="M97,57 C100,78 89,94 68,99"/>
+              </svg>
+
               <!-- Row 1: Video (no label, spans 2 columns) -->
               <div class="hero-video-card">
                 <!-- Video autoplay is controlled by JavaScript based on prefers-reduced-motion -->

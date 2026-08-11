@@ -102,15 +102,34 @@ describe('homepage V2 hero design layer', () => {
     }
   });
 
-  test('each collage card gets its own shape from the design layer', () => {
+  test('each collage card gets its own organic mask', () => {
+    const paths = new Set();
+
     for (const category of ['venues', 'catering', 'entertainment', 'photography']) {
       expect(designCss).toContain(`.hero-collage-card[data-category='${category}']`);
+      expect(designCss).toContain(`clip-path: url(#hv2-mask-${category})`);
+
+      // The mask lives in the markup, in objectBoundingBox units so it scales
+      // with whatever size the card ends up at.
+      const clipPath = homeV2Html.match(
+        new RegExp(`<clipPath id="hv2-mask-${category}"[^>]*>\\s*<path d="([^"]+)"`)
+      );
+      expect(clipPath).toBeTruthy();
+      expect(homeV2Html).toContain(
+        `<clipPath id="hv2-mask-${category}" clipPathUnits="objectBoundingBox">`
+      );
+      paths.add(clipPath[1]);
     }
 
+    // Four distinct silhouettes, not one shape reused.
+    expect(paths.size).toBe(4);
+
     // The overlapping layout only applies from the two-column breakpoint up;
-    // below it `hero-modern.css` keeps its 2x2 grid.
+    // below it `hero-modern.css` keeps its 2x2 grid and the cards fall back to
+    // a plain radius.
     expect(designCss).toMatch(/@media \(min-width: 1024px\)/);
     expect(designCss).toContain('position: absolute');
+    expect(designCss).toMatch(/@media \(max-width: 1023px\)[\s\S]*?border-radius: 28px/);
   });
 
   test('each collage image advertises the width its own card actually gets', () => {
