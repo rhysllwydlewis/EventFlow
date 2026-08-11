@@ -1,7 +1,8 @@
 # EventFlow Homepage V2 Preview
 
-Homepage V2 is a hidden alternative homepage. It shares its header and hero with the live V1
-homepage and keeps its own lower sections.
+Homepage V2 is a hidden alternative homepage. It shares its header with the live V1 homepage,
+carries its own hero design on top of V1's hero markup and plumbing, and keeps its own lower
+sections.
 
 ## Preview route
 
@@ -28,13 +29,29 @@ and `HOMEPAGE_VARIANT=v1` or removing the variable rolls back.
 Only switch after screenshots, mobile checks, analytics expectations and SEO checks have
 been reviewed.
 
-## Hero parity with V1
+## Hero
 
-The header and hero are V1's, markup for markup — same wordmark lockup, same headline and
-underline, same unified search bar, same quick tags, same 2×2 category collage. V2 adds a
-Community link to both navigations and a third Community hero CTA.
+The header is V1's — same wordmark lockup, same nav — plus a Community link in both
+navigations. The hero started as V1's markup and now carries its own design:
 
-Two constraints govern how that was done:
+- a wider, near-even two-column layout;
+- a centred headline with a drawn teal underline under "In one place";
+- a one-line subcopy in the accent blue;
+- the category selector as a bordered chip with a grid glyph, and `Search suppliers,
+packages, venues…` as the placeholder;
+- teal line icons on the four quick tags and on the four collage labels, replacing the emoji;
+- flat teal CTAs with outlined secondaries, including the third Community CTA;
+- an overlapping organic collage — four blob/squircle cards instead of the 2×2 grid —
+  from 1024px up, falling back to the shared grid below that.
+
+That design lives in `public/assets/css/home-v2-hero-design.css`, layered on top of the
+parity bridge below. It is **V2-only**: every rule is scoped to `.home-v2-page`, and no
+shared stylesheet was edited, so V1 and V3 are untouched.
+
+### Parity bridge
+
+Two constraints govern how the hero was brought over in the first place, and they still
+hold:
 
 - **`home-v2.css` must not be edited.** The template renderer builds homepage V3 from
   `index.html` plus `home-v2.css`, and most of that file's rules are unscoped, so a change
@@ -47,8 +64,10 @@ Two constraints govern how that was done:
   `.container` globally — so the hero rules and tokens V1 inherits from them are
   transplanted into `public/assets/css/home-v2-hero-parity.css`, scoped to `.home-v2-page`.
 
-`tests/unit/home-v2-hero-parity.test.js` enforces both, and carries a drift guard that fails
-if the two heroes diverge by anything other than the Community CTA.
+`tests/unit/home-v2-hero-parity.test.js` enforces both. Because the two heroes now diverge by
+design, it no longer diffs their markup — instead it pins the ids and class names both pages'
+shared scripts look up. `tests/unit/home-v2-hero-design.test.js` guards the design layer's
+scoping and the markup it styles, and asserts V1 still has its own copy and emoji.
 
 ## Hero collage
 
@@ -67,6 +86,7 @@ credits, lazy loading, the stall watchdog and the hidden hero video card, and ex
 | `public/assets/css/home-v2-parity.css`        | V2-only overrides                                          |
 | `public/assets/css/home-v2-navbar-parity.css` | V2 header; injected by the renderer                        |
 | `public/assets/css/home-v2-hero-parity.css`   | Scoped bridge for the ported V1 hero                       |
+| `public/assets/css/home-v2-hero-design.css`   | V2-only hero design, layered over the bridge               |
 | `public/assets/js/pages/home-v2.js`           | Compiled from `src/homepages/home-v2.ts` — never hand-edit |
 | `public/assets/js/pages/home-v2-parity.js`    | Lower-section data wiring                                  |
 | `public/assets/js/pages/home-v2-hero.js`      | Collage bootstrap                                          |
@@ -80,7 +100,11 @@ credits, lazy loading, the stall watchdog and the hidden hero video card, and ex
 - `/home-v2-preview` and `/home-v2-preview.html` serve the V2 homepage.
 - Preview URLs are noindexed.
 - `HOMEPAGE_VARIANT=v2` serves V2 at `/`.
-- The hero matches V1 at 1920, 1680, 1440, 1280, 1024, 834, 430, 390, 360 and 320px.
+- The hero holds up at 1920, 1680, 1440, 1280, 1024, 834, 430, 390, 360 and 320px: the quick
+  tags drop trailing pills rather than truncating labels, the search value never runs under
+  the submit button, and the collage keeps its aspect ratio.
+- The collage is four organic shapes from 1024px up and the shared 2×2 grid below it.
+- `/` still shows V1's hero — emoji collage labels, long subcopy, no chip icons.
 - Search submits to `/suppliers` with `q` and/or `category`; an empty search does not navigate.
 - Quick tags fill the search and submit.
 - Hero CTAs point at `/start`, `/suppliers` and `/community`; the CTA row wraps below 480px.

@@ -1,9 +1,12 @@
 'use strict';
 
 /**
- * Homepage V2's hero is the V1 hero. These tests guard the two things that
- * silently rot: the markup drifting apart between the two pages, and the
- * V1-only stylesheets/scripts the ported markup needs going missing.
+ * Homepage V2's hero started as a copy of V1's and now carries its own design
+ * on top (see `home-v2-hero-design.test.js`). What the two pages still share is
+ * the plumbing: `hero-modern.css`, `ef-search-bar.css` and the collage module
+ * all key off the same class names and element ids. These tests guard that
+ * shared contract — the V1-only stylesheets and scripts the markup needs, the
+ * hooks the collage JS looks up, and the global layers V2 must not load.
  */
 
 const fs = require('fs');
@@ -29,6 +32,25 @@ function normalise(markup) {
   return markup.replace(/\s+/g, ' ').trim();
 }
 
+/** Hooks the shared collage module and search bar script look up by name. */
+const SHARED_HERO_HOOKS = [
+  'id="hero-pexels-video"',
+  'id="hero-video-source"',
+  'id="hero-video-credit"',
+  'class="hero-video-card"',
+  'id="collage-venues"',
+  'id="collage-catering"',
+  'id="collage-entertainment"',
+  'id="collage-photography"',
+  'id="credit-venues"',
+  'id="credit-catering"',
+  'id="credit-entertainment"',
+  'id="credit-photography"',
+  'class="ef-search-bar__form"',
+  'class="ef-search-bar__input"',
+  'class="ef-search-bar__select"',
+];
+
 describe('homepage V2 hero parity with V1', () => {
   test('V2 renders the V1 hero markup, not the retired hv2 hero', () => {
     expect(homeV2Html).toContain('<section class="hero hero-modern">');
@@ -44,21 +66,27 @@ describe('homepage V2 hero parity with V1', () => {
     expect(homeV2Html).not.toContain('hv2-popular');
   });
 
-  test('the hero markup has not drifted from V1 beyond the Community CTA', () => {
+  test('both heroes still expose every hook the shared hero scripts look up', () => {
+    // The two heroes no longer match — V2 carries its own design. What has to
+    // stay identical is the set of ids and class names `hero-collage.js`,
+    // `home-v2-hero.js` and `ef-search-bar.js` query, because both pages drive
+    // the same modules.
     const v1Hero = extractHero(indexHtml);
     const v2Hero = extractHero(homeV2Html);
 
     expect(v1Hero).toBeTruthy();
     expect(v2Hero).toBeTruthy();
 
-    // V2's only sanctioned addition is the Community CTA. Strip it and the two
-    // heroes must be byte-identical once whitespace is normalised, so a future
-    // edit to V1's hero cannot silently leave V2 behind.
-    const v2WithoutCommunity = normalise(v2Hero)
-      .replace(/<a href="\/community"[^>]*>\s*Community\s*<\/a>\s*/, '')
-      .trim();
+    for (const hook of SHARED_HERO_HOOKS) {
+      expect(normalise(v1Hero)).toContain(hook);
+      expect(normalise(v2Hero)).toContain(hook);
+    }
 
-    expect(v2WithoutCommunity).toBe(normalise(v1Hero));
+    // Every collage card keeps its category, which is how the widget maps
+    // admin-configured media onto frames — and how the V2 design places them.
+    for (const category of ['venues', 'catering', 'entertainment', 'photography']) {
+      expect(v2Hero).toContain(`data-category="${category}"`);
+    }
   });
 
   test('V2 loads the stylesheets and scripts the ported hero depends on', () => {
@@ -66,6 +94,7 @@ describe('homepage V2 hero parity with V1', () => {
     expect(homeV2Html).toMatch(/\/assets\/css\/ef-search-bar\.css\?v=/);
     expect(homeV2Html).toMatch(/\/assets\/css\/eventflow-brand\.css\?v=/);
     expect(homeV2Html).toMatch(/\/assets\/css\/home-v2-hero-parity\.css\?v=/);
+    expect(homeV2Html).toMatch(/\/assets\/css\/home-v2-hero-design\.css\?v=/);
     expect(homeV2Html).toMatch(/\/assets\/js\/ef-search-bar\.js\?v=/);
     expect(homeV2Html).toMatch(/\/assets\/js\/collage\/hero-collage\.js\?v=/);
     expect(homeV2Html).toMatch(/\/assets\/js\/pages\/home-v2-hero\.js\?v=/);
