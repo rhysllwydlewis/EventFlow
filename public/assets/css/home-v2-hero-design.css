@@ -502,10 +502,12 @@
 }
 
 @media (min-width: 1024px) {
+  /* 757 x 659 in the design's own coordinates; every card below is a
+     percentage of that box, so the whole composition scales as one. */
   .home-v2-page .hero-collage {
     display: block;
     position: relative;
-    aspect-ratio: 1.136 / 1;
+    aspect-ratio: 757 / 659;
     min-height: 0;
     height: auto;
     /* `paint` containment would clip the outline curves below. */
@@ -522,8 +524,8 @@
     width: auto;
     height: auto;
     fill: none;
-    stroke: rgba(11, 128, 115, 0.11);
-    stroke-width: 0.14;
+    stroke: rgba(11, 128, 115, 0.09);
+    stroke-width: 0.13;
     stroke-linecap: round;
     pointer-events: none;
   }
@@ -531,45 +533,90 @@
   .home-v2-page .hero-collage .hero-collage-card {
     position: absolute;
     aspect-ratio: auto;
-    /* `clip-path` discards `box-shadow`, so the shadow moves to a filter that
-       follows the mask's own edge. */
+    /* The mask lives on the image and on the white backing below, not on the
+       card, so the backing can sit outside the card's own edge. Both of the
+       shared clipping rules have to come off for that to be visible. */
+    overflow: visible;
+    contain: layout style;
+    background: transparent;
+    border-radius: 0;
+    /* A clipped subject drops its `box-shadow`, so the depth comes from a
+       filter that follows the silhouette. Kept very soft. */
     box-shadow: none;
-    filter: drop-shadow(0 16px 30px rgba(15, 23, 42, 0.18));
+    filter: drop-shadow(0 10px 22px rgba(15, 23, 42, 0.1));
+  }
+
+  /* The white separator: the same mask, on a box 3px larger on every side, so
+     the white follows the exact contour instead of a rectangular border. */
+  .home-v2-page .hero-collage .hero-collage-card::before {
+    content: '';
+    position: absolute;
+    z-index: 0;
+    inset: -3px;
+    background: #fff;
+  }
+
+  .home-v2-page .hero-collage .hero-collage-card img {
+    z-index: 1;
+  }
+
+  /* The image is clipped in its own coordinate space, so a hover zoom would
+     scale the mask with it and break out of the white edge. The collage is
+     `inert`, so nothing is lost. */
+  .home-v2-page .hero-collage .hero-collage-card:hover img,
+  .home-v2-page .hero-collage .hero-collage-card:focus img {
+    transform: none;
   }
 
   .home-v2-page .hero-collage-card[data-category='venues'] {
     top: 0;
     left: 0;
     z-index: 1;
-    width: 88.7%;
-    height: 57.2%;
+    width: 85.2%;
+    height: 74.96%;
+  }
+
+  .home-v2-page .hero-collage-card[data-category='venues']::before,
+  .home-v2-page .hero-collage-card[data-category='venues'] img {
     clip-path: url(#hv2-mask-venues);
   }
 
   .home-v2-page .hero-collage-card[data-category='catering'] {
-    top: 5.9%;
-    left: 64.7%;
+    top: 3.64%;
+    left: 62.35%;
     z-index: 3;
-    width: 34.3%;
-    height: 39.5%;
+    width: 37.65%;
+    height: 39.3%;
+  }
+
+  .home-v2-page .hero-collage-card[data-category='catering']::before,
+  .home-v2-page .hero-collage-card[data-category='catering'] img {
     clip-path: url(#hv2-mask-catering);
   }
 
   .home-v2-page .hero-collage-card[data-category='entertainment'] {
-    top: 54.6%;
-    left: 2.9%;
-    z-index: 3;
-    width: 44%;
-    height: 45%;
+    top: 54.78%;
+    left: 3.3%;
+    z-index: 4;
+    width: 40.16%;
+    height: 43.1%;
+  }
+
+  .home-v2-page .hero-collage-card[data-category='entertainment']::before,
+  .home-v2-page .hero-collage-card[data-category='entertainment'] img {
     clip-path: url(#hv2-mask-entertainment);
   }
 
   .home-v2-page .hero-collage-card[data-category='photography'] {
-    top: 54%;
-    left: 58.3%;
-    z-index: 2;
-    width: 41.4%;
-    height: 45.6%;
+    top: 53.72%;
+    left: 59.05%;
+    z-index: 4;
+    width: 40.82%;
+    height: 46.28%;
+  }
+
+  .home-v2-page .hero-collage-card[data-category='photography']::before,
+  .home-v2-page .hero-collage-card[data-category='photography'] img {
     clip-path: url(#hv2-mask-photography);
   }
 
@@ -579,11 +626,11 @@
     left: clamp(12px, 9%, 40px);
   }
 
-  /* The feature card's own bottom-left is under the Entertainment card, so its
-     label sits higher — where the design puts it. */
+  /* The feature card's bottom-left corner is under the Entertainment card, so
+     its label sits just above that edge. */
   .home-v2-page .hero-collage-card[data-category='venues'] .hero-collage-label {
-    bottom: 38%;
-    left: 8%;
+    bottom: 30%;
+    left: 7%;
   }
 
   .home-v2-page .hero-collage-credit {
@@ -600,11 +647,16 @@
   }
 }
 
+/* Secondary to the photography: compact, on a translucent light background.
+   The translucency is on the background colour rather than on the element, so
+   the label text and its icon stay fully opaque. */
 .home-v2-page .hero-collage-label {
-  gap: 8px;
-  padding: 9px 17px;
-  color: #0f172a;
-  font-size: 14px;
+  gap: 7px;
+  padding: 6px 13px;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.1);
+  color: #000;
+  font-size: 13px;
 }
 
 .home-v2-page .hero-collage-icon {

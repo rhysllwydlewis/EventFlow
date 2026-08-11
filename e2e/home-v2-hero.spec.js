@@ -95,8 +95,13 @@ test.describe('homepage V2 hero', () => {
         const style = getComputedStyle(card);
         return {
           position: style.position,
-          clipPath: style.clipPath,
-          // `clip-path` discards `box-shadow`, so depth has to come from a filter.
+          // The mask is on the image and on the white backing rather than on
+          // the card, so the backing can sit outside the card's own edge.
+          clipPath: getComputedStyle(card.querySelector('img')).clipPath,
+          separator: getComputedStyle(card, '::before').clipPath,
+          separatorColour: getComputedStyle(card, '::before').backgroundColor,
+          // A clipped subject drops its `box-shadow`, so depth has to come
+          // from a filter.
           filter: style.filter,
           maskExists: Boolean(
             document.querySelector(`#hv2-mask-${category} path`)?.getAttribute('d')
@@ -112,10 +117,64 @@ test.describe('homepage V2 hero', () => {
       expect(shape.clipPath).toMatch(/^url\(/);
       expect(shape.maskExists).toBe(true);
       expect(shape.filter).toContain('drop-shadow');
+      // The separator follows the same contour, so it reads as an outline of
+      // the shape rather than a rectangle behind it.
+      expect(shape.separator).toBe(shape.clipPath);
+      expect(shape.separatorColour).toBe('rgb(255, 255, 255)');
     }
 
     // Four distinct masks, not one repeated.
     expect(new Set(shapes.map(shape => shape.clipPath)).size).toBe(4);
+  });
+
+  test('the collage keeps the measured geometry of the design', async ({ page }) => {
+    await page.setViewportSize({ width: 1672, height: 941 });
+
+    // The design measures 757 x 659 with the cards at fixed percentages of
+    // that box, overlapping. Assert the ratios rather than pixels so this
+    // holds at whatever width the column ends up.
+    const layout = await page.evaluate(() => {
+      const box = document.querySelector('.hero-collage').getBoundingClientRect();
+      const of = category => {
+        const rect = document
+          .querySelector(`.hero-collage-card[data-category="${category}"]`)
+          .getBoundingClientRect();
+        return {
+          left: ((rect.x - box.x) / box.width) * 100,
+          top: ((rect.y - box.y) / box.height) * 100,
+          width: (rect.width / box.width) * 100,
+          height: (rect.height / box.height) * 100,
+        };
+      };
+      return {
+        ratio: box.width / box.height,
+        venues: of('venues'),
+        catering: of('catering'),
+        entertainment: of('entertainment'),
+        photography: of('photography'),
+      };
+    });
+
+    expect(layout.ratio).toBeCloseTo(757 / 659, 2);
+
+    const expected = {
+      venues: { left: 0, top: 0, width: 85.2, height: 74.96 },
+      catering: { left: 62.35, top: 3.64, width: 37.65, height: 39.3 },
+      entertainment: { left: 3.3, top: 54.78, width: 40.16, height: 43.1 },
+      photography: { left: 59.05, top: 53.72, width: 40.82, height: 46.28 },
+    };
+
+    for (const [category, box] of Object.entries(expected)) {
+      for (const [edge, value] of Object.entries(box)) {
+        expect(layout[category][edge]).toBeCloseTo(value, 0);
+      }
+    }
+
+    // The overlaps are the composition: catering and photography sit over the
+    // feature card, entertainment over its lower left. A grid would not.
+    expect(expected.catering.left).toBeLessThan(expected.venues.width);
+    expect(expected.entertainment.top).toBeLessThan(expected.venues.height);
+    expect(expected.photography.left).toBeLessThan(expected.venues.width);
   });
 
   test('the quick tags carry decorative icons that stay out of the accessible name', async ({
