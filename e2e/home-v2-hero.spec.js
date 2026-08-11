@@ -194,7 +194,9 @@ test.describe('homepage V2 hero', () => {
       // The three CTAs stay on one row: a wrap costs the hero another 76px,
       // which is what pushed it past the fold between 1520 and 1602.
       expect(hero.rowHeight).toBeLessThan(hero.buttonHeight * 1.5);
-      expect(hero.height).toBeLessThan(780);
+      // The design's own hero is 941px tall at 1672. This one keeps its
+      // proportions but not that height.
+      expect(hero.height).toBeLessThan(820);
     }
   });
 

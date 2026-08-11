@@ -132,9 +132,8 @@
     font-size: clamp(38px, 3.9vw, 60px);
     /* The design sets the three lines much further apart than the shared 1.1
        — they read as three separate statements rather than one wrapped
-       sentence. Pulled back from 1.4 to keep the hero inside the fold: three
-       lines at this size are where the height goes. */
-    line-height: 1.28;
+       sentence. */
+    line-height: 1.4;
     text-align: center;
   }
 
@@ -149,7 +148,7 @@
      rather than set `gap` directly — `hero-modern.css` applies the gap through
      `.hero-modern .hero-grid > div:first-child`, which outranks a class pair. */
   .home-v2-page {
-    --hero-stack-gap: 22px;
+    --hero-stack-gap: 32px;
   }
 
   /* `hero-modern.css` stretches the collage column to the row height. Once the
@@ -185,9 +184,9 @@
    combination of border and border-radius produces — a border thins as it
    curves. So the span carries an SVG path instead and this only sizes it. */
 .home-v2-page .hero-modern h1 .hero-highlight-bg {
-  right: -19%;
+  right: -13.5%;
   bottom: -18px;
-  left: -19%;
+  left: -13.5%;
   height: 18px;
   border: 0;
   border-radius: 0;
@@ -532,12 +531,6 @@
     display: block;
     position: relative;
     aspect-ratio: 757 / 659;
-    /* At the design's own width the collage is the tallest thing in the hero,
-       and its height follows its width through the aspect ratio. Capping the
-       width against the viewport is what actually shortens the hero; 42vw
-       holds the design's proportion to within a few per cent. */
-    width: min(100%, 42vw);
-    margin-inline: auto;
     min-height: 0;
     height: auto;
     /* `paint` containment would clip the outline curves below. */
@@ -656,8 +649,8 @@
   /* The feature card's bottom-left corner is under the Entertainment card, so
      its label sits just above that edge. */
   .home-v2-page .hero-collage-card[data-category='venues'] .hero-collage-label {
-    bottom: 30%;
-    left: 7%;
+    bottom: 42%;
+    left: 9%;
   }
 }
 

@@ -66,6 +66,15 @@ card takes its own `clipPath` in `objectBoundingBox` units (the four `#hv2-mask-
 `home-v2.html`) so the silhouettes scale with the box; `border-radius` cannot express them
 because it only ever draws four elliptical quadrants.
 
+The boxes above are measured; the silhouettes are traced. Catering, entertainment and
+photography are superellipses — a straight run along each edge joined by large, unequal
+corner arcs — generated from per-corner radii of roughly 0.3 of each side. The feature card
+is the exception: in the design it has almost no straight edge, so its corner radii run to
+0.5 and it reads as an organic blob with a shoulder about 37% across the top and its widest
+point about 42% down the left. Radii that make the other three read correctly make the
+feature card read as a rounded rectangle, which is the single most visible way to get this
+composition wrong.
+
 The mask sits on the card's media and on a `::before` inset by `-3px`, not on the card
 itself, so the white backing can follow the same contour 3px outside the image and read as
 a separator. That means `overflow` and paint containment have to come off the card, and the
@@ -85,10 +94,14 @@ Both are hidden on V2. The Pexels licence does not require attribution.
 
 ### Hero height
 
-The hero is the fold, so its height is deliberate rather than incidental. Three things set
-it: the padding above and below the content, the `--hero-stack-gap` between the headline,
-search, tags and CTAs, and the collage — whose height follows its width through the aspect
-ratio, so it is capped at `42vw`. Whichever column is taller sets the row.
+The hero is the fold, so its height is deliberate rather than incidental. Whichever column
+is taller sets the row, and on desktop that is usually the collage, whose height follows its
+width through the aspect ratio.
+
+That puts a floor under how short the hero can be without shrinking the collage — and
+shrinking the collage costs the design's proportions, since it is 757 of the reference's 1672. So the height comes out of the padding above and below the content instead, and out
+of the CTA row below. The design's own hero is 941px tall at 1672; this one is 794px with
+the same proportions.
 
 The CTA row is the trap. Three CTAs at full size occupy 713px against a column of
 `(93vw - 4vw) / 2`, so they only fit from about 1602px up; below that Community wraps onto
