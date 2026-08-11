@@ -109,6 +109,25 @@ describe('homepage V2 hero design layer', () => {
     expect(designCss).toContain('position: absolute');
   });
 
+  test('each collage image advertises the width its own card actually gets', () => {
+    const hero = extractHero(homeV2Html);
+
+    // The four cards are no longer the same size, so they cannot share V1's
+    // single `25vw` slot — the feature card is roughly twice the others and
+    // would be served an under-resolved image on high-DPI displays.
+    const sizes = Array.from(hero.matchAll(/sizes="([^"]+)"/g), match => match[1]);
+
+    expect(sizes).toHaveLength(4);
+    expect(new Set(sizes).size).toBe(4);
+    for (const value of sizes) {
+      expect(value).toMatch(/^\(max-width: 1023px\) 46vw, \(max-width: 1699px\) \d+vw, \d+px$/);
+    }
+
+    // The feature card asks for the largest slot of the four.
+    const declaredVw = sizes.map(value => Number(value.match(/(\d+)vw,/g)[1].match(/\d+/)[0]));
+    expect(Math.max(...declaredVw)).toBe(declaredVw[0]);
+  });
+
   test('V1 keeps the emoji labels and the long subcopy', () => {
     // The design is V2-only. If someone applies it to V1 too, this is the test
     // that should be deleted deliberately rather than the divergence
