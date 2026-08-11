@@ -236,6 +236,19 @@ body.home-v2-page {
     font-size: 16px;
   }
 
+  /* The design's nav sits much closer to the headline's weight than the shared
+     mid-grey. */
+  .home-v2-page .hv2-nav a {
+    color: #334155;
+  }
+
+  /* A flat pill, not the shared gradient-and-glow. */
+  .home-v2-page .hv2-header .hv2-auth-link {
+    border-radius: 10px;
+    background: var(--ef-primary);
+    box-shadow: 0 4px 12px rgba(11, 128, 115, 0.22);
+  }
+
   .home-v2-page .hv2-nav a {
     padding: 10px 18px;
   }

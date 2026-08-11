@@ -160,24 +160,31 @@
   -webkit-text-fill-color: currentColor;
 }
 
-.home-v2-page .hero-highlight-text {
+/* `hero-modern.css` reaches these through `.hero-modern h1 .hero-highlight-*`,
+   which outranks a plain class pair — so these have to match its shape to win
+   the colour and the underline geometry. */
+.home-v2-page .hero-modern h1 .hero-highlight-text {
   margin-top: 10px;
   background: none;
   color: var(--hv2-teal);
   -webkit-text-fill-color: currentColor;
 }
 
-/* The drawn underline: a thick teal stroke that lifts at both ends. The
-   shared rule paints a translucent bar behind the text — this replaces it
-   with the curve from the design. */
-.home-v2-page .hero-highlight-bg {
+/* The drawn underline: a thick teal stroke that lifts a little at both ends.
+   The shared rule paints a flat translucent bar behind the text instead.
+   The corner radii are in px, not the usual 50%: a percentage horizontal
+   radius curves the whole length, which thins the border to nothing at the
+   ends. Keeping the curve to the last 60px leaves the stroke full weight
+   across the middle, which is what the design shows. The box also has to be
+   taller than the vertical radius or the browser scales the bow away. */
+.home-v2-page .hero-modern h1 .hero-highlight-bg {
   right: -19%;
-  bottom: -12px;
+  bottom: -14px;
   left: -19%;
-  height: 22px;
+  height: 14px;
   border: 0;
   border-bottom: 7px solid var(--hv2-teal);
-  border-radius: 0 0 50% 50% / 0 0 22px 22px;
+  border-radius: 0 0 60px 60px / 0 0 9px 9px;
   background: none;
 }
 
@@ -226,7 +233,7 @@
   min-width: 200px;
   height: calc(var(--search-bar-height) - (var(--search-bar-padding) * 2));
   border: 1.5px solid rgba(15, 23, 42, 0.1);
-  border-radius: var(--search-bar-inner-radius);
+  border-radius: 16px;
   background: #fff;
 }
 
@@ -280,8 +287,18 @@
 }
 
 .home-v2-page .ef-search-bar__button {
+  border-radius: 16px;
   background: var(--hv2-teal);
+  /* `ef-search-bar.css` runs an infinite `efSearchBtnGlow` animation on this
+     button, and an animated box-shadow beats any static declaration — so the
+     emerald pulse showed through instead of the design's flat teal. */
+  animation: none;
   box-shadow: 0 4px 14px rgba(11, 128, 115, 0.28);
+}
+
+/* The sweep highlight belongs to the glossy shared button, not this one. */
+.home-v2-page .ef-search-bar__button::before {
+  display: none;
 }
 
 .home-v2-page .ef-search-bar__button:hover {
@@ -370,6 +387,10 @@
 
 .home-v2-page .hero-cta-primary {
   background: var(--hv2-teal);
+  /* `home-v2.css` colours every link on the page with `.home-v2-page a`, which
+     outranks `hero-modern.css`'s `.hero-cta-primary { color: white }` — so the
+     primary CTA was rendering near-black on teal. */
+  color: #fff;
   box-shadow: 0 6px 18px rgba(11, 128, 115, 0.25);
 }
 
@@ -448,6 +469,13 @@
   box-shadow: 0 18px 44px rgba(15, 23, 42, 0.14);
 }
 
+/* The credit is a dark pill with its own padding, so an unfilled one paints a
+   small grey box in the corner of every card. It only has content once the
+   collage loads Pexels media. */
+.home-v2-page .hero-collage-credit:empty {
+  display: none;
+}
+
 @media (min-width: 1024px) {
   .home-v2-page .hero-collage {
     display: block;
@@ -474,7 +502,7 @@
     left: -7%;
     width: 76%;
     height: 74%;
-    border-radius: 46% 34% 40% 30% / 38% 44% 30% 46%;
+    border-radius: 48% 38% 38% 30% / 52% 50% 30% 42%;
   }
 
   .home-v2-page .hero-collage::after {
@@ -482,7 +510,7 @@
     bottom: -2%;
     width: 54%;
     height: 52%;
-    border-radius: 42% 30% 36% 44% / 30% 40% 34% 42%;
+    border-radius: 46% 32% 38% 46% / 34% 46% 38% 48%;
   }
 
   .home-v2-page .hero-collage .hero-collage-card {
@@ -496,7 +524,7 @@
     z-index: 1;
     width: 81%;
     height: 67%;
-    border-radius: 46% 34% 40% 30% / 38% 44% 30% 46%;
+    border-radius: 48% 38% 38% 30% / 52% 50% 30% 42%;
   }
 
   .home-v2-page .hero-collage-card[data-category='catering'] {
@@ -523,7 +551,7 @@
     z-index: 2;
     width: 45%;
     height: 42%;
-    border-radius: 42% 30% 36% 44% / 30% 40% 34% 42%;
+    border-radius: 46% 32% 38% 46% / 34% 46% 38% 48%;
   }
 
   /* Curved edges eat into the corners, so the label and credit move inwards. */

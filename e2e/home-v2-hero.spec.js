@@ -120,6 +120,36 @@ test.describe('homepage V2 hero', () => {
     await expect(tags.first()).toHaveAccessibleName('London venues');
   });
 
+  test('the design layer wins the properties the shared stylesheets also set', async ({ page }) => {
+    // Every one of these was a silent specificity loss: `hero-modern.css`
+    // reaches the highlight through `.hero-modern h1 .hero-highlight-*`,
+    // `home-v2.css` colours all links through `.home-v2-page a`, and
+    // `ef-search-bar.css` animates the submit button's shadow — and an
+    // animation beats any static declaration. Source-text assertions cannot
+    // catch these, so read the computed values.
+    await page.setViewportSize({ width: 1440, height: 900 });
+
+    const computed = await page.evaluate(() => {
+      const read = (selector, property) =>
+        getComputedStyle(document.querySelector(selector))[property];
+      return {
+        primaryCta: read('.hero-cta-primary', 'color'),
+        highlight: read('.hero-highlight-text', 'color'),
+        underlineHeight: read('.hero-highlight-bg', 'height'),
+        searchButtonAnimation: read('.ef-search-bar__button', 'animationName'),
+        emptyCredit: read('.hero-collage-credit', 'display'),
+      };
+    });
+
+    expect(computed.primaryCta).toBe('rgb(255, 255, 255)');
+    expect(computed.highlight).toBe('rgb(11, 128, 115)');
+    // The shared rule leaves a 10px bar; the design's bowed stroke is taller.
+    expect(parseFloat(computed.underlineHeight)).toBeGreaterThan(10);
+    expect(computed.searchButtonAnimation).toBe('none');
+    // Credits only have text once the collage loads Pexels media.
+    expect(computed.emptyCredit).toBe('none');
+  });
+
   test('the decorative collage stays out of the keyboard tab order', async ({ page }) => {
     const collage = page.locator('.hero-collage');
     await expect(collage).toHaveAttribute('aria-hidden', 'true');
