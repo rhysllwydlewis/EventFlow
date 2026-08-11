@@ -28,8 +28,16 @@
   --hv2-teal-soft: rgba(11, 128, 115, 0.12);
 
   /* The subcopy and the search placeholder share one accent blue. */
-  --hv2-hero-blue: #3a6ea5;
+  --hv2-hero-blue: #33639a;
   --hv2-hero-blue-muted: #5b86b3;
+
+  /* Where the hero wash starts. The header borrows it so the two meet without
+     a seam. */
+  --hv2-hero-wash-start: #fbfeff;
+
+  /* Near-black rather than the shared slate — the design's headline carries
+     more weight than `--modern-gray-900`'s blue cast gives it. */
+  --hv2-headline: #0d1117;
 }
 
 /* --------------------------------------------------------------------------
@@ -40,13 +48,48 @@
    -------------------------------------------------------------------------- */
 .home-v2-page .hv2-header:not(.is-scrolled) {
   border-bottom-color: transparent;
-  /* The first stop of the hero's own gradient, so the two meet without a
-     seam. A transparent header would show the body's ivory instead, which
-     the sections further down the page need. */
-  background: #f8fafc;
+  /* The first stop of the hero's own gradient. Below the two-column
+     breakpoint the header keeps its own surface; from 1024px up the hero is
+     pulled underneath it and this goes transparent. */
+  background: var(--hv2-hero-wash-start);
   box-shadow: none;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
+}
+
+@media (min-width: 1024px) {
+  /* A flat colour cannot meet a 135deg gradient without a seam — it matches at
+     the top left and drifts across the width. So run the hero's own wash
+     behind the header instead. The header stays sticky and above the hero on
+     z-index, and takes its solid surface back once `.is-scrolled` lands. */
+  .home-v2-page .hv2-header:not(.is-scrolled) {
+    background: transparent;
+  }
+
+  .home-v2-page .hero-modern {
+    margin-top: calc(var(--hv2-header-height) * -1);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Hero surface
+   The shared hero sits on a cool grey ramp under a dotted grid. The design is
+   a soft mint wash with the grid barely there.
+   -------------------------------------------------------------------------- */
+.home-v2-page .hero-modern {
+  /* Near-white through the headline, with the mint only gathering towards the
+     bottom and right. */
+  background: linear-gradient(
+    135deg,
+    var(--hv2-hero-wash-start) 0%,
+    #f7fdfd 42%,
+    #ecf7f5 78%,
+    #e4f2f0 100%
+  );
+}
+
+.home-v2-page .hero-grid-texture {
+  opacity: 0.015;
 }
 
 /* --------------------------------------------------------------------------
@@ -71,7 +114,8 @@
 
 @media (min-width: 1024px) {
   .home-v2-page .hero-modern {
-    padding: clamp(28px, 3.4vw, 56px) 0 clamp(28px, 3.4vw, 56px);
+    padding: calc(var(--hv2-header-height) + clamp(24px, 2vw, 34px)) 0
+      clamp(28px, 3.4vw, 56px);
   }
 }
 
@@ -84,6 +128,10 @@
     align-items: center;
     max-width: none;
     font-size: clamp(38px, 3.9vw, 60px);
+    /* The design sets the three lines much further apart than the shared 1.1
+       — they read as three separate statements rather than one wrapped
+       sentence. */
+    line-height: 1.4;
     text-align: center;
   }
 
@@ -115,29 +163,42 @@
 .home-v2-page .hero-line-1,
 .home-v2-page .hero-line-2 {
   background: none;
-  color: var(--modern-gray-900);
+  color: var(--hv2-headline);
   -webkit-text-fill-color: currentColor;
 }
 
-.home-v2-page .hero-highlight-text {
+/* `hero-modern.css` reaches these through `.hero-modern h1 .hero-highlight-*`,
+   which outranks a plain class pair — so these have to match its shape to win
+   the colour and the underline geometry. */
+.home-v2-page .hero-modern h1 .hero-highlight-text {
   margin-top: 10px;
   background: none;
   color: var(--hv2-teal);
   -webkit-text-fill-color: currentColor;
 }
 
-/* The drawn underline: a thick teal stroke that lifts at both ends. The
-   shared rule paints a translucent bar behind the text — this replaces it
-   with the curve from the design. */
-.home-v2-page .hero-highlight-bg {
-  right: -15%;
-  bottom: -12px;
-  left: -15%;
-  height: 22px;
+/* The drawn underline. The shared rule paints a flat translucent bar; the
+   design's stroke thickens through the middle and lifts at both ends, which no
+   combination of border and border-radius produces — a border thins as it
+   curves. So the span carries an SVG path instead and this only sizes it. */
+.home-v2-page .hero-modern h1 .hero-highlight-bg {
+  right: -19%;
+  bottom: -18px;
+  left: -19%;
+  height: 18px;
   border: 0;
-  border-bottom: 7px solid var(--hv2-teal);
-  border-radius: 0 0 50% 50% / 0 0 22px 22px;
+  border-radius: 0;
   background: none;
+}
+
+.home-v2-page .hero-highlight-bg svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.home-v2-page .hero-highlight-bg path {
+  fill: var(--hv2-teal);
 }
 
 .home-v2-page .hero-modern-subcopy {
@@ -153,14 +214,14 @@
    bordered chip with a grid glyph.
    -------------------------------------------------------------------------- */
 .home-v2-page .ef-search-bar {
-  --search-bar-height: 72px;
+  --search-bar-height: 88px;
   --search-bar-padding: 10px;
-  --search-bar-radius: 24px;
-  --search-bar-inner-radius: 16px;
+  --search-bar-radius: 28px;
+  --search-bar-inner-radius: 18px;
   --search-bar-bg: rgba(255, 255, 255, 0.94);
   --search-bar-bg-hover: rgba(255, 255, 255, 0.98);
   --search-bar-border: rgba(255, 255, 255, 0.9);
-  --search-btn-size: 52px;
+  --search-btn-size: 68px;
   --search-btn-bg: var(--hv2-teal);
   --search-btn-bg-hover: var(--hv2-teal-strong);
   --search-btn-glow: rgba(11, 128, 115, 0.35);
@@ -185,7 +246,7 @@
   min-width: 200px;
   height: calc(var(--search-bar-height) - (var(--search-bar-padding) * 2));
   border: 1.5px solid rgba(15, 23, 42, 0.1);
-  border-radius: var(--search-bar-inner-radius);
+  border-radius: 16px;
   background: #fff;
 }
 
@@ -239,8 +300,18 @@
 }
 
 .home-v2-page .ef-search-bar__button {
+  border-radius: 16px;
   background: var(--hv2-teal);
+  /* `ef-search-bar.css` runs an infinite `efSearchBtnGlow` animation on this
+     button, and an animated box-shadow beats any static declaration — so the
+     emerald pulse showed through instead of the design's flat teal. */
+  animation: none;
   box-shadow: 0 4px 14px rgba(11, 128, 115, 0.28);
+}
+
+/* The sweep highlight belongs to the glossy shared button, not this one. */
+.home-v2-page .ef-search-bar__button::before {
+  display: none;
 }
 
 .home-v2-page .ef-search-bar__button:hover {
@@ -269,7 +340,7 @@
    Quick tags — pills with teal line icons
    -------------------------------------------------------------------------- */
 .home-v2-page .ef-quick-tags {
-  gap: 12px;
+  gap: 20px;
   margin-top: 0;
   justify-content: flex-start;
 }
@@ -321,14 +392,18 @@
 }
 
 .home-v2-page .hero-cta-base {
-  height: 56px;
-  padding: 0 32px;
+  height: 60px;
+  padding: 0 44px;
   border-radius: 14px;
   font-size: 16px;
 }
 
 .home-v2-page .hero-cta-primary {
   background: var(--hv2-teal);
+  /* `home-v2.css` colours every link on the page with `.home-v2-page a`, which
+     outranks `hero-modern.css`'s `.hero-cta-primary { color: white }` — so the
+     primary CTA was rendering near-black on teal. */
+  color: #fff;
   box-shadow: 0 6px 18px rgba(11, 128, 115, 0.25);
 }
 
@@ -344,7 +419,7 @@
 }
 
 .home-v2-page .hero-cta-secondary {
-  border: 1.5px solid rgba(11, 128, 115, 0.45);
+  border: 1.5px solid rgba(11, 128, 115, 0.7);
   background: rgba(255, 255, 255, 0.9);
   color: var(--hv2-teal);
   box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
@@ -361,8 +436,16 @@
 }
 
 /* Between 1024px and the design's full width the hero column is narrower than
-   the mock's, so the chip, tags and CTAs tighten up to stay on one row. */
-@media (min-width: 1024px) and (max-width: 1439px) {
+   the design's, so the search bar, chip, tags and CTAs tighten up to stay on
+   one row. The three CTAs at full size need a 670px column, which the
+   `min(1580px, 93%)` container only reaches at about 1520px. */
+@media (min-width: 1024px) and (max-width: 1519px) {
+  .home-v2-page .ef-search-bar {
+    --search-bar-height: 72px;
+    --search-bar-radius: 24px;
+    --search-btn-size: 56px;
+  }
+
   .home-v2-page .ef-search-bar__segment--category {
     padding-left: 38px;
     min-width: 152px;
@@ -392,89 +475,149 @@
    Collage — overlapping organic shapes
    Below 1024px `hero-modern.css` stacks the hero and lays the collage out as a
    2x2 grid; that stays. From 1024px up the four cards are placed absolutely so
-   they can overlap the way the design does, and each takes its own blob radius.
+   they can overlap the way the design does, and each takes its own mask.
    -------------------------------------------------------------------------- */
 .home-v2-page .hero-collage-card {
   border: 0;
   box-shadow: 0 18px 44px rgba(15, 23, 42, 0.14);
 }
 
+/* The mask defs carry no geometry of their own. */
+.home-v2-page .hv2-collage-defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+.home-v2-page .hv2-collage-trace {
+  display: none;
+}
+
+/* The credit is a dark pill with its own padding, so an unfilled one paints a
+   small grey box in the corner of every card. It only has content once the
+   collage loads Pexels media. */
+.home-v2-page .hero-collage-credit:empty {
+  display: none;
+}
+
 @media (min-width: 1024px) {
+  /* 757 x 659 in the design's own coordinates; every card below is a
+     percentage of that box, so the whole composition scales as one. */
   .home-v2-page .hero-collage {
     display: block;
     position: relative;
-    aspect-ratio: 1.05 / 1;
+    aspect-ratio: 757 / 659;
     min-height: 0;
     height: auto;
     /* `paint` containment would clip the outline curves below. */
     contain: layout style;
   }
 
-  /* Two hairline curves tracing the composition, as in the design. */
-  .home-v2-page .hero-collage::before,
-  .home-v2-page .hero-collage::after {
-    content: '';
+  /* The hairlines that trace the composition. Faint and irregular rather than
+     the arcs a bordered ellipse would give. */
+  .home-v2-page .hv2-collage-trace {
+    display: block;
     position: absolute;
     z-index: 0;
-    border: 1.5px solid rgba(11, 128, 115, 0.1);
+    inset: -8% -6% -6% -8%;
+    width: auto;
+    height: auto;
+    fill: none;
+    stroke: rgba(11, 128, 115, 0.09);
+    stroke-width: 0.13;
+    stroke-linecap: round;
     pointer-events: none;
-  }
-
-  .home-v2-page .hero-collage::before {
-    top: -5%;
-    left: -7%;
-    width: 76%;
-    height: 74%;
-    border-radius: 46% 34% 40% 30% / 38% 44% 30% 46%;
-  }
-
-  .home-v2-page .hero-collage::after {
-    right: -4%;
-    bottom: -2%;
-    width: 54%;
-    height: 52%;
-    border-radius: 42% 30% 36% 44% / 30% 40% 34% 42%;
   }
 
   .home-v2-page .hero-collage .hero-collage-card {
     position: absolute;
     aspect-ratio: auto;
+    /* The mask lives on the image and on the white backing below, not on the
+       card, so the backing can sit outside the card's own edge. Both of the
+       shared clipping rules have to come off for that to be visible. */
+    overflow: visible;
+    contain: layout style;
+    background: transparent;
+    border-radius: 0;
+    /* A clipped subject drops its `box-shadow`, so the depth comes from a
+       filter that follows the silhouette. Kept very soft. */
+    box-shadow: none;
+    filter: drop-shadow(0 10px 22px rgba(15, 23, 42, 0.1));
+  }
+
+  /* The white separator: the same mask, on a box 3px larger on every side, so
+     the white follows the exact contour instead of a rectangular border. */
+  .home-v2-page .hero-collage .hero-collage-card::before {
+    content: '';
+    position: absolute;
+    z-index: 0;
+    inset: -3px;
+    background: #fff;
+  }
+
+  .home-v2-page .hero-collage .hero-collage-card img {
+    z-index: 1;
+  }
+
+  /* The image is clipped in its own coordinate space, so a hover zoom would
+     scale the mask with it and break out of the white edge. The collage is
+     `inert`, so nothing is lost. */
+  .home-v2-page .hero-collage .hero-collage-card:hover img,
+  .home-v2-page .hero-collage .hero-collage-card:focus img {
+    transform: none;
   }
 
   .home-v2-page .hero-collage-card[data-category='venues'] {
     top: 0;
     left: 0;
     z-index: 1;
-    width: 81%;
-    height: 67%;
-    border-radius: 46% 34% 40% 30% / 38% 44% 30% 46%;
+    width: 85.2%;
+    height: 74.96%;
+  }
+
+  .home-v2-page .hero-collage-card[data-category='venues']::before,
+  .home-v2-page .hero-collage-card[data-category='venues'] img {
+    clip-path: url(#hv2-mask-venues);
   }
 
   .home-v2-page .hero-collage-card[data-category='catering'] {
-    top: 4%;
-    left: 61%;
+    top: 3.64%;
+    left: 62.35%;
     z-index: 3;
-    width: 39%;
-    height: 42%;
-    border-radius: 32% 26% 30% 28% / 28% 32% 26% 30%;
+    width: 37.65%;
+    height: 39.3%;
+  }
+
+  .home-v2-page .hero-collage-card[data-category='catering']::before,
+  .home-v2-page .hero-collage-card[data-category='catering'] img {
+    clip-path: url(#hv2-mask-catering);
   }
 
   .home-v2-page .hero-collage-card[data-category='entertainment'] {
-    top: 51%;
-    left: 2%;
-    z-index: 3;
-    width: 41%;
-    height: 41%;
-    border-radius: 28% 32% 26% 30% / 32% 28% 30% 26%;
+    top: 54.78%;
+    left: 3.3%;
+    z-index: 4;
+    width: 40.16%;
+    height: 43.1%;
+  }
+
+  .home-v2-page .hero-collage-card[data-category='entertainment']::before,
+  .home-v2-page .hero-collage-card[data-category='entertainment'] img {
+    clip-path: url(#hv2-mask-entertainment);
   }
 
   .home-v2-page .hero-collage-card[data-category='photography'] {
-    top: 58%;
-    left: 55%;
-    z-index: 2;
-    width: 45%;
-    height: 42%;
-    border-radius: 42% 30% 36% 44% / 30% 40% 34% 42%;
+    top: 53.72%;
+    left: 59.05%;
+    z-index: 4;
+    width: 40.82%;
+    height: 46.28%;
+  }
+
+  .home-v2-page .hero-collage-card[data-category='photography']::before,
+  .home-v2-page .hero-collage-card[data-category='photography'] img {
+    clip-path: url(#hv2-mask-photography);
   }
 
   /* Curved edges eat into the corners, so the label and credit move inwards. */
@@ -483,11 +626,11 @@
     left: clamp(12px, 9%, 40px);
   }
 
-  /* The feature card's own bottom-left is under the Entertainment card, so its
-     label sits higher — where the design puts it. */
+  /* The feature card's bottom-left corner is under the Entertainment card, so
+     its label sits just above that edge. */
   .home-v2-page .hero-collage-card[data-category='venues'] .hero-collage-label {
-    bottom: 38%;
-    left: 8%;
+    bottom: 30%;
+    left: 7%;
   }
 
   .home-v2-page .hero-collage-credit {
@@ -504,11 +647,16 @@
   }
 }
 
+/* Secondary to the photography: compact, on a translucent light background.
+   The translucency is on the background colour rather than on the element, so
+   the label text and its icon stay fully opaque. */
 .home-v2-page .hero-collage-label {
-  gap: 8px;
-  padding: 9px 17px;
-  color: #0f172a;
-  font-size: 14px;
+  gap: 7px;
+  padding: 6px 13px;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.1);
+  color: #000;
+  font-size: 13px;
 }
 
 .home-v2-page .hero-collage-icon {

@@ -100,7 +100,7 @@
     <link rel="stylesheet" href="/assets/css/ef-search-bar.css?v=18.3.0" />
     <link rel="stylesheet" href="/assets/css/eventflow-brand.css?v=1.0.0" data-eventflow-brand="true" />
     <link rel="stylesheet" href="/assets/css/home-v2-hero-parity.css?v=1" />
-    <link rel="stylesheet" href="/assets/css/home-v2-hero-design.css?v=1" />
+    <link rel="stylesheet" href="/assets/css/home-v2-hero-design.css?v=5" />
     <link rel="stylesheet" href="/assets/css/error-boundary.css?v=18.3.0" />
     <link rel="stylesheet" href="/assets/css/loading-skeleton.css?v=2.0.1" />
     <link rel="icon" href="/favicon.ico" sizes="any" />
@@ -204,7 +204,14 @@
               <span class="hero-line-2">to organise an event</span>
               <span class="hero-highlight-text">
                 In one place
-                <span class="hero-highlight-bg"></span>
+                <!-- The underline is a drawn stroke, not a bar: it thickens through
+                     the middle and lifts at both ends. `preserveAspectRatio="none"`
+                     lets it span whatever the line measures. -->
+                <span class="hero-highlight-bg">
+                  <svg viewBox="0 0 300 18" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+                    <path d="M3,3.6 C70,6.4 140,7.4 178,7.3 C224,7.1 268,5.9 297,4.0 L297,11.0 C268,13.4 224,15.0 178,15.2 C140,15.4 70,14.2 3,10.9 Z"/>
+                  </svg>
+                </span>
               </span>
             </h1>
 
@@ -353,6 +360,36 @@
                  assistive technology but leaves its links in the tab order, so a keyboard
                  user could focus something a screen reader never announces. -->
             <div class="hero-collage" aria-hidden="true" inert>
+              <!-- Four organic masks, one per card. `objectBoundingBox` units
+                   scale them to whatever size each card ends up, so they hold
+                   across breakpoints. `border-radius` cannot express these:
+                   it only ever draws four elliptical quadrants. -->
+              <svg class="hv2-collage-defs" width="0" height="0" aria-hidden="true" focusable="false">
+                <defs>
+                  <clipPath id="hv2-mask-venues" clipPathUnits="objectBoundingBox">
+                    <path d="M .23,.025 C .39,-.005 .61,.005 .73,.08 C .84,.15 .93,.23 .97,.34 C 1,.45 .995,.61 .95,.71 C .89,.83 .77,.91 .62,.95 C .47,1 .30,.985 .18,.91 C .08,.84 .025,.72 .01,.58 C -.005,.43 .025,.27 .09,.17 C .13,.10 .17,.055 .23,.025 Z"/>
+                  </clipPath>
+                  <clipPath id="hv2-mask-catering" clipPathUnits="objectBoundingBox">
+                    <path d="M .27,.025 C .44,-.005 .64,.015 .77,.07 C .90,.12 .98,.23 .995,.37 C 1,.51 .965,.66 .90,.77 C .83,.89 .72,.97 .59,.985 C .43,.995 .25,.965 .13,.89 C .035,.83 -.005,.72 .01,.59 C .015,.44 .05,.27 .12,.16 C .16,.09 .21,.045 .27,.025 Z"/>
+                  </clipPath>
+                  <clipPath id="hv2-mask-entertainment" clipPathUnits="objectBoundingBox">
+                    <path d="M .28,.025 C .42,-.01 .62,-.005 .75,.035 C .87,.075 .94,.16 .965,.29 C .99,.43 1,.61 .965,.75 C .94,.87 .86,.95 .73,.975 C .58,1 .39,.995 .26,.955 C .14,.915 .075,.82 .045,.69 C .015,.55 -.005,.37 .025,.24 C .055,.12 .15,.055 .28,.025 Z"/>
+                  </clipPath>
+                  <clipPath id="hv2-mask-photography" clipPathUnits="objectBoundingBox">
+                    <path d="M .25,.02 C .40,-.005 .61,.005 .74,.055 C .88,.105 .965,.21 .99,.35 C 1,.49 .985,.65 .94,.77 C .895,.89 .79,.965 .65,.99 C .50,1 .33,.985 .21,.94 C .09,.895 .03,.80 .015,.67 C -.005,.52 .01,.34 .055,.22 C .095,.11 .16,.045 .25,.02 Z"/>
+                  </clipPath>
+                </defs>
+              </svg>
+
+              <!-- Flowing hairlines behind the composition. Irregular on
+                   purpose: a constant-radius arc reads as a circle outline,
+                   which the design does not have. -->
+              <svg class="hv2-collage-trace" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+                <path d="M4,58 C-1,36 6,17 21,7 C33,-1 49,-2 62,3"/>
+                <path d="M99,49 C102,66 98,82 88,92 C79,101 66,104 55,101"/>
+                <path d="M13,96 C25,101 41,100 52,93"/>
+              </svg>
+
               <!-- Row 1: Video (no label, spans 2 columns) -->
               <div class="hero-video-card">
                 <!-- Video autoplay is controlled by JavaScript based on prefers-reduced-motion -->
@@ -369,7 +406,7 @@
               <a href="/category?slug=venues" class="hero-collage-card" data-category="venues">
                 <img src="/assets/images/collage-venue.jpg" alt="Venues" id="collage-venues"
                      width="400" height="300" loading="eager" fetchpriority="high" decoding="async"
-                     sizes="(max-width: 1023px) 46vw, (max-width: 1699px) 36vw, 612px">
+                     sizes="(max-width: 1023px) 46vw, (max-width: 1699px) 38vw, 644px">
                 <span class="hero-collage-label">
                   <span class="hero-collage-icon">
                     <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -386,7 +423,7 @@
               <a href="/category?slug=catering" class="hero-collage-card" data-category="catering">
                 <img src="/assets/images/collage-catering.jpg" alt="Catering" id="collage-catering"
                      width="400" height="300" loading="eager" fetchpriority="auto" decoding="async"
-                     sizes="(max-width: 1023px) 46vw, (max-width: 1699px) 18vw, 295px">
+                     sizes="(max-width: 1023px) 46vw, (max-width: 1699px) 17vw, 285px">
                 <span class="hero-collage-label">
                   <span class="hero-collage-icon">
                     <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -405,7 +442,7 @@
               <a href="/category?slug=entertainment" class="hero-collage-card" data-category="entertainment">
                 <img src="/assets/images/collage-entertainment.jpg" alt="Entertainment" id="collage-entertainment"
                      width="400" height="300" loading="eager" fetchpriority="auto" decoding="async"
-                     sizes="(max-width: 1023px) 46vw, (max-width: 1699px) 19vw, 310px">
+                     sizes="(max-width: 1023px) 46vw, (max-width: 1699px) 18vw, 304px">
                 <span class="hero-collage-label">
                   <span class="hero-collage-icon">
                     <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -422,7 +459,7 @@
               <a href="/category?slug=photography" class="hero-collage-card" data-category="photography">
                 <img src="/assets/images/collage-photography.jpg" alt="Photography" id="collage-photography"
                      width="400" height="300" loading="eager" fetchpriority="auto" decoding="async"
-                     sizes="(max-width: 1023px) 46vw, (max-width: 1699px) 20vw, 340px">
+                     sizes="(max-width: 1023px) 46vw, (max-width: 1699px) 19vw, 309px">
                 <span class="hero-collage-label">
                   <span class="hero-collage-icon">
                     <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">

@@ -24,6 +24,10 @@ const designCss = fs.readFileSync(
   path.join(ROOT, 'public/assets/css/home-v2-hero-design.css'),
   'utf8'
 );
+const navbarCss = fs.readFileSync(
+  path.join(ROOT, 'public/assets/css/home-v2-navbar-parity.css'),
+  'utf8'
+);
 const heroModernCss = fs.readFileSync(path.join(ROOT, 'public/assets/css/hero-modern.css'), 'utf8');
 const searchBarCss = fs.readFileSync(
   path.join(ROOT, 'public/assets/css/ef-search-bar.css'),
@@ -98,15 +102,92 @@ describe('homepage V2 hero design layer', () => {
     }
   });
 
-  test('each collage card gets its own shape from the design layer', () => {
+  test('each collage card gets its own organic mask', () => {
+    const paths = new Set();
+
     for (const category of ['venues', 'catering', 'entertainment', 'photography']) {
       expect(designCss).toContain(`.hero-collage-card[data-category='${category}']`);
+      expect(designCss).toContain(`clip-path: url(#hv2-mask-${category})`);
+
+      // The mask lives in the markup, in objectBoundingBox units so it scales
+      // with whatever size the card ends up at.
+      const clipPath = homeV2Html.match(
+        new RegExp(`<clipPath id="hv2-mask-${category}"[^>]*>\\s*<path d="([^"]+)"`)
+      );
+      expect(clipPath).toBeTruthy();
+      expect(homeV2Html).toContain(
+        `<clipPath id="hv2-mask-${category}" clipPathUnits="objectBoundingBox">`
+      );
+      paths.add(clipPath[1]);
     }
 
+    // Four distinct silhouettes, not one shape reused.
+    expect(paths.size).toBe(4);
+
     // The overlapping layout only applies from the two-column breakpoint up;
-    // below it `hero-modern.css` keeps its 2x2 grid.
+    // below it `hero-modern.css` keeps its 2x2 grid and the cards fall back to
+    // a plain radius.
     expect(designCss).toMatch(/@media \(min-width: 1024px\)/);
     expect(designCss).toContain('position: absolute');
+    expect(designCss).toMatch(/@media \(max-width: 1023px\)[\s\S]*?border-radius: 28px/);
+  });
+
+  test('the collage cards sit on the geometry measured from the design', () => {
+    // The design measures 757 x 659, with each card a fixed percentage of that
+    // box. Keeping the numbers here means a nudge to one card cannot quietly
+    // pull the composition off the measurements.
+    expect(designCss).toContain('aspect-ratio: 757 / 659');
+
+    const boxes = {
+      venues: ['top: 0;', 'left: 0;', 'width: 85.2%;', 'height: 74.96%;', 'z-index: 1;'],
+      catering: ['top: 3.64%;', 'left: 62.35%;', 'width: 37.65%;', 'height: 39.3%;', 'z-index: 3;'],
+      entertainment: [
+        'top: 54.78%;',
+        'left: 3.3%;',
+        'width: 40.16%;',
+        'height: 43.1%;',
+        'z-index: 4;',
+      ],
+      photography: [
+        'top: 53.72%;',
+        'left: 59.05%;',
+        'width: 40.82%;',
+        'height: 46.28%;',
+        'z-index: 4;',
+      ],
+    };
+
+    for (const [category, declarations] of Object.entries(boxes)) {
+      const block = designCss.match(
+        new RegExp(`\\.hero-collage-card\\[data-category='${category}'\\] \\{([^}]*)\\}`)
+      );
+      expect(block).toBeTruthy();
+      for (const declaration of declarations) {
+        expect(block[1]).toContain(declaration);
+      }
+    }
+  });
+
+  test('the white separator follows each mask rather than a rectangle', () => {
+    // A `border` would draw around the card's box, which the mask has already
+    // cut away from. The separator is the same mask on a box 3px larger.
+    const backing = designCss.match(
+      /\.home-v2-page \.hero-collage \.hero-collage-card::before \{([^}]*)\}/
+    );
+
+    expect(backing).toBeTruthy();
+    expect(backing[1]).toContain('inset: -3px');
+    expect(backing[1]).toContain('background: #fff');
+
+    // Both the shared rules that would clip it away have to be lifted.
+    expect(designCss).toContain('overflow: visible');
+    expect(designCss).toMatch(/contain: layout style;/);
+
+    for (const category of ['venues', 'catering', 'entertainment', 'photography']) {
+      expect(designCss).toContain(
+        `.home-v2-page .hero-collage-card[data-category='${category}']::before,`
+      );
+    }
   });
 
   test('each collage image advertises the width its own card actually gets', () => {
@@ -126,6 +207,22 @@ describe('homepage V2 hero design layer', () => {
     // The feature card asks for the largest slot of the four.
     const declaredVw = sizes.map(value => Number(value.match(/(\d+)vw,/g)[1].match(/\d+/)[0]));
     expect(Math.max(...declaredVw)).toBe(declaredVw[0]);
+  });
+
+  test('the header and the hero agree on the header height and the container', () => {
+    // The hero is pulled up by exactly the header's height so its wash runs
+    // behind the header with no seam. The navbar layer owns that height and
+    // the design layer consumes it — if the two drift the hero jumps.
+    expect(navbarCss).toContain('--hv2-header-height: 96px');
+    expect(navbarCss).toContain('min-height: var(--hv2-header-height)');
+    expect(designCss).toContain('calc(var(--hv2-header-height) * -1)');
+    expect(designCss).toContain('calc(var(--hv2-header-height) + ');
+
+    // Both also have to resolve to the same gutter, or the wordmark stops
+    // sitting over the search bar's left edge.
+    const container = 'min(1580px, 93%)';
+    expect(designCss).toContain(`width: ${container}`);
+    expect(navbarCss).toContain(`calc((100% - ${container}) / 2)`);
   });
 
   test('V1 keeps the emoji labels and the long subcopy', () => {

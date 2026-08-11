@@ -48,6 +48,31 @@ That design lives in `public/assets/css/home-v2-hero-design.css`, layered on top
 parity bridge below. It is **V2-only**: every rule is scoped to `.home-v2-page`, and no
 shared stylesheet was edited, so V1 and V3 are untouched.
 
+### Collage geometry
+
+The collage is not eyeballed. It is a 757 × 659 box (`aspect-ratio: 757 / 659`) measured
+from the design, with each card a fixed percentage of it:
+
+| Card          | Left   | Top    | Width  | Height | z   |
+| ------------- | ------ | ------ | ------ | ------ | --- |
+| Venues        | 0%     | 0%     | 85.2%  | 74.96% | 1   |
+| Catering      | 62.35% | 3.64%  | 37.65% | 39.3%  | 3   |
+| Entertainment | 3.3%   | 54.78% | 40.16% | 43.1%  | 4   |
+| Photography   | 59.05% | 53.72% | 40.82% | 46.28% | 4   |
+
+The overlaps are the composition — catering and photography sit over the feature card,
+entertainment over its lower left — so this must not be flattened back into a grid. Each
+card takes its own `clipPath` in `objectBoundingBox` units (the four `#hv2-mask-*` defs in
+`home-v2.html`) so the silhouettes scale with the box; `border-radius` cannot express them
+because it only ever draws four elliptical quadrants.
+
+The mask sits on the card's `img` and on a `::before` inset by `-3px`, not on the card
+itself, so the white backing can follow the same contour 3px outside the image and read as
+a separator. That means `overflow` and paint containment have to come off the card, and the
+depth moves from `box-shadow` (which a clipped subject drops) to a soft `drop-shadow()`
+filter. The numbers and the separator are pinned by `tests/unit/home-v2-hero-design.test.js`
+and, at runtime, by `e2e/home-v2-hero.spec.js`.
+
 ### Parity bridge
 
 Two constraints govern how the hero was brought over in the first place, and they still

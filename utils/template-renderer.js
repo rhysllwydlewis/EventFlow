@@ -36,8 +36,8 @@ const HOMEPAGE_V3_PREVIEW_PATHS = new Set([
   '/home-v3-preview.html',
 ]);
 const HOMEPAGE_V2_NAVBAR_PARITY_STYLES = [
-  '    <link rel="preload" href="/assets/css/home-v2-navbar-parity.css?v=2" as="style" />',
-  '    <link rel="stylesheet" href="/assets/css/home-v2-navbar-parity.css?v=2" />',
+  '    <link rel="preload" href="/assets/css/home-v2-navbar-parity.css?v=3" as="style" />',
+  '    <link rel="stylesheet" href="/assets/css/home-v2-navbar-parity.css?v=3" />',
 ].join('\n');
 const HOMEPAGE_V2_NAVBAR_PARITY_SCRIPT =
   '    <script src="/assets/js/pages/home-v2-navbar-parity.js?v=1" defer></script>';
