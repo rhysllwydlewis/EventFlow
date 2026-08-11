@@ -127,6 +127,79 @@ test.describe('homepage V2 hero', () => {
     expect(new Set(shapes.map(shape => shape.clipPath)).size).toBe(4);
   });
 
+  test('a card that loads a video is masked like one that loads a photo', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+
+    // The collage replaces a card's `<img>` with a `<video>` whenever the admin
+    // widget serves a clip, carrying the image's class list over — which is
+    // empty. A mask hung off `img` therefore left video cards as rectangles on
+    // top of a masked white backing.
+    const clips = await page.evaluate(() => {
+      const card = document.querySelector('.hero-collage-card[data-category="venues"]');
+      const video = document.createElement('video');
+      video.muted = true;
+      card.appendChild(video);
+      const result = {
+        video: getComputedStyle(video).clipPath,
+        image: getComputedStyle(card.querySelector('img')).clipPath,
+      };
+      video.remove();
+      return result;
+    });
+
+    expect(clips.video).toMatch(/^url\(/);
+    expect(clips.video).toBe(clips.image);
+  });
+
+  test('the collage carries no creator credit', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+
+    // `.pexels-credit` is built by the collage module once media loads. V2 does
+    // not carry V1's inline styles for it, so an uncaught one renders as raw
+    // text over the photograph.
+    const display = await page.evaluate(() => {
+      const card = document.querySelector('.hero-collage-card[data-category="venues"]');
+      const credit = document.createElement('div');
+      credit.className = 'pexels-credit';
+      credit.textContent = 'Photo by Someone';
+      card.appendChild(credit);
+      const value = getComputedStyle(credit).display;
+      credit.remove();
+      return value;
+    });
+
+    expect(display).toBe('none');
+  });
+
+  test('the hero and its CTA row fit the fold on a laptop', async ({ page }) => {
+    // The CTAs carry a 0.3s transition on `all`, so a measurement taken right
+    // after a resize catches them at their old size and reads a wrap that is
+    // not there once it settles.
+    await page.addStyleTag({ content: '*, *::before, *::after { transition: none !important; }' });
+
+    for (const width of [1672, 1620, 1541, 1440, 1280, 1024]) {
+      await page.setViewportSize({ width, height: 900 });
+
+      const hero = await page.evaluate(() => {
+        const section = document.querySelector('.hero-modern');
+        const row = document.querySelector('.hero-modern-ctas');
+        const buttons = Array.from(row.children);
+        return {
+          height: section.getBoundingClientRect().height,
+          rowHeight: row.getBoundingClientRect().height,
+          buttonHeight: buttons[0].getBoundingClientRect().height,
+        };
+      });
+
+      // The three CTAs stay on one row: a wrap costs the hero another 76px,
+      // which is what pushed it past the fold between 1520 and 1602.
+      expect(hero.rowHeight).toBeLessThan(hero.buttonHeight * 1.5);
+      // The design's own hero is 941px tall at 1672. This one keeps its
+      // proportions but not that height.
+      expect(hero.height).toBeLessThan(820);
+    }
+  });
+
   test('the collage keeps the measured geometry of the design', async ({ page }) => {
     await page.setViewportSize({ width: 1672, height: 941 });
 
