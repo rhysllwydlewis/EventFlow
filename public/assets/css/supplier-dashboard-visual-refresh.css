@@ -100,8 +100,8 @@
   }
 
   body.supplier-dashboard-page .dashboard-stat-card__label {
-    font-size: 9.5px;
-    line-height: 1.2;
+    font-size: 11px;
+    line-height: 1.15;
     letter-spacing: 0.02em;
   }
 
@@ -202,7 +202,7 @@
   }
 
   .supplier-dashboard-page .ef-bottom-label {
-    font-size: 10px;
+    font-size: 11px;
     letter-spacing: -0.02em;
   }
 }
