@@ -2,14 +2,8 @@ const fs = require('fs');
 const path = require('path');
 
 const root = path.resolve(__dirname, '../..');
-const heroJs = fs.readFileSync(
-  path.join(root, 'public/assets/js/pages/home-v2-hero.js'),
-  'utf8'
-);
-const traceSource = fs.readFileSync(
-  path.join(root, 'docs/assets/hero-collage-blob.py'),
-  'utf8'
-);
+const heroJs = fs.readFileSync(path.join(root, 'public/assets/js/pages/home-v2-hero.js'), 'utf8');
+const traceSource = fs.readFileSync(path.join(root, 'docs/assets/hero-collage-blob.py'), 'utf8');
 
 const names = ['venues', 'catering', 'entertainment', 'photography'];
 
