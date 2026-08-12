@@ -226,6 +226,9 @@ capabilities and the linked `suppliers` doc, not historical data.
 
 ### 3.1 UX flow
 
+Full visual/CSS spec (exact classes, tokens, motion, responsive behaviour) is
+in §9 — this subsection covers the functional flow only.
+
 **New "Account Type" section in `/settings`**, below Account Information:
 
 - Shows current type (`Customer` / `Supplier`) with a short explanation of what
@@ -475,6 +478,9 @@ of that afterthought rather than fixing it.
 
 ### 5.3 Design
 
+Visual/CSS spec for the modal, badges, and colours referenced below is in
+§9.3 — this subsection covers the functional design only.
+
 - **Reuse the same `services/accountTypeConversion.service.js`** designed in
   §4.1 for both entry points — an admin conversion is the same state
   transition with two differences: (a) no `supplierApplications` feature-flag
@@ -656,7 +662,272 @@ Following existing repo conventions:
 
 ---
 
-## 9. Summary of files a future PR will likely touch
+## 9. Visual design & responsive specification
+
+Requested explicitly: this needs to look genuinely on-brand and premium, not
+generic placeholder styling, and needs to work across devices. Rather than
+prescribe a new visual language, everything below is built from **components
+that already exist and already ship on the exact pages being modified** —
+verified directly against the CSS actually loaded on `/settings`,
+`/admin-user-detail`, and `/admin-supplier-detail`, not against the design
+token files that turned out not to be loaded there (see §9.1).
+
+### 9.1 Design-token reality check (read this before writing any CSS)
+
+The repo has *three* token stylesheets (`design-tokens.css`, `tokens.css`,
+`design-system.css`, each with a differently-prefixed `--ef-*` variable set)
+and a fourth, admin-specific one (`admin-tokens.css`, `--admin-*`). **None of
+them are loaded on the four pages this feature touches:**
+
+- `public/settings.html` and `public/auth.html` load `styles.css` first,
+  which defines its *own*, different `:root` block
+  (`public/assets/css/styles.css:2`, redefined again at line 721) — this is
+  the actual live token set on these pages:
+  ```css
+  --bg:#fff; --text:#0B1220; --muted:#667085; --ink:#0B8073; --accent:#13B6A2;
+  --border:#E7EAF0; --shadow:0 4px 12px rgba(0,0,0,0.08); --radius:14px; --max:1480px
+  ```
+- `public/admin-user-detail.html` and `public/admin-supplier-detail.html`
+  don't `<link>` `admin-tokens.css` either — they load `styles.css` +
+  `admin.css` + `admin-enhanced.css` + `admin-navbar.css` (plus
+  `admin-cards.css`/`admin-supplier-detail.css`). `var(--admin-*)` is
+  undefined there; in practice almost nothing in the admin CSS/JS references
+  those variables anyway — colours are hardcoded hex throughout, and they
+  happen to match the token values (`#ef4444` danger, `#f59e0b` warning,
+  `#3b82f6` info, `#10b981` success, `#0B8073`/`#13B6A2` brand).
+
+**Practical rule for implementation: write the hex values / `--ink`,
+`--accent`, `--border`, `--radius`, `--shadow` variables from `styles.css`
+directly (customer side), or the matching raw hex (admin side) — do not
+reference `--ef-*` or `--admin-*` custom properties on these four pages, they
+will resolve to nothing.**
+
+**Dark mode: not applicable, skip entirely.** `public/assets/css/dark-mode.css`
+is an explicit no-op stub (`/* Dark mode has been disabled — EventFlow uses
+light theme only. */`), and there are zero `prefers-color-scheme` or
+`data-theme` rules anywhere in `public/assets/css/*.css` or on either target
+page. Building light-theme-only, matching every other section on both pages,
+is correct — not a shortcut.
+
+### 9.2 Customer-facing: the new "Account Type" section (`/settings`)
+
+- **Card wrapper**: plain `<div class="card">` + `<h2 class="settings-section-title">`,
+  identical structure to the existing "Account Information" and "Change
+  Password" cards, inserted between them in DOM order — not a new visual
+  component, the same card rhythm the page already has.
+- **Current-type indicator**: a small status chip using the teal-glass
+  treatment from `.badge-verified` (`public/assets/css/badges.css`) reading
+  "Currently: Customer" / "Currently: Supplier". **Do not** reuse
+  `.badge-pro`'s amber gradient for this — that gradient already has an
+  established, different meaning elsewhere in the app (a paid Pro
+  subscription tier), and borrowing it for "any supplier account" would
+  visually overclaim something that isn't true.
+- **Role picker — the premium element**: reuse `auth.html`'s `.role-pill` /
+  `.auth-role-option` radiogroup **verbatim** (markup + CSS, copied into
+  `settings.css` since `auth.css`'s scoped variables like
+  `--auth-teal-border` aren't loaded on `/settings`) — this is the *exact*
+  customer-vs-supplier choice the user already saw at signup, so reusing it
+  here (rather than inventing a new selector) is also a recognition win, not
+  just a styling shortcut. Wrap it in a scaled-down version of
+  `.auth-signup-choice`'s glass card
+  (`public/assets/css/auth.css:861-876` — dual radial-gradient teal glow +
+  linear gradient background, `border-radius:22px`, layered shadow) instead
+  of dropping the pills flat on the plain card background. `auth.html`
+  already renders this identical decision at elevated visual weight
+  elsewhere in the app — reusing that exact treatment here is the most
+  direct, lowest-risk way to make this section read as premium rather than
+  bolted-on, without inventing new visual language.
+  ```css
+  /* auth.css:1401-1443 — copy into settings.css */
+  .role-pill, .auth-role-option {
+    flex: 1; display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+    padding: 9px 13px; border: 1.5px solid rgba(11,128,115,0.2); border-radius: 10px;
+    background: rgba(255,255,255,0.6); font-size: 0.875rem; font-weight: 500;
+    color: #374151; cursor: pointer; transition: all 0.2s ease;
+  }
+  .role-pill.is-active, .auth-role-option--active {
+    border-color: #0b8073; background: rgba(11,128,115,0.1); color: #0b8073; font-weight: 600;
+  }
+  ```
+  **One open call to flag for design sign-off, not to resolve silently**: the
+  pill uses emoji icons (🎉/🏪); the rest of `/settings` uses inline stroke
+  SVG icons (24×24, `stroke="currentColor"`). Recommendation: keep the emoji
+  here specifically, for continuity with the identical signup-time choice —
+  but this is a genuine visual-consistency trade-off worth a design nod, not
+  a default to make unilaterally.
+- **Supplier-specific fields** (company, category, location, phone), shown
+  inline below the pill only when "Supplier" is selected: use the page's
+  plain global input treatment (the one the Account Information form above
+  already uses — `input,select,textarea{padding:12px 14px;border:1px solid
+  var(--border);border-radius:12px}` from `styles.css:38`), not
+  `.settings-input` (which today is scoped to the delete-modal's email
+  field only) — so the new fields feel continuous with the form immediately
+  above them, not a visually distinct sub-component. Category as a
+  `<select>` populated from `Supplier.VALID_CATEGORIES`.
+- **Primary CTA** (customer→supplier, the safe/promotional direction): a
+  filled teal `.cta`/`.ef-cta` button — the same CTA treatment used for
+  "Save Changes" directly above it in the Account Information card.
+- **Downgrade trigger** (supplier→customer): `.settings-sm-btn--danger`
+  (outline red, `border-color:#ef4444;color:#ef4444` —
+  `settings.css:113`), the page's existing idiom for "risky action trigger"
+  already used in the Danger Zone card — visually de-emphasized relative to
+  the primary CTA, signalling "available but not the encouraged path"
+  without needing new copy to explain that.
+- **Confirmation modal for downgrade**: clone `#delete-account-modal`'s
+  exact structure and classes
+  (`.settings-delete-overlay`/`-card`/`-header`/`-body`,
+  `.settings-footer-actions`, `settings.html:586-683` /
+  `settings.css:150-169`) — new IDs, new copy, same family, so it reads as
+  native to this page rather than a different modal system appearing out of
+  nowhere. Consider echoing step 2 of the delete modal's pattern (retype
+  your email to proceed) with a lighter equivalent for downgrade — e.g. type
+  "CONVERT" or your business name — rather than a plain OK/Cancel, matching
+  the amount of friction the page already applies to its other
+  irreversible-ish action.
+  - **Premium polish, specifically**: the delete modal, as built today, has
+    **zero entrance animation** — it's a flat `display:none` → `display:flex`
+    toggle (`settings.css:151-157`). Layer the `components.css` `.modal`
+    entrance treatment on top of the cloned markup: backdrop
+    `backdrop-filter: blur(24px) saturate(200%)` fading in over
+    `opacity 0.3s`, card `transform: scale(0.94) translateY(8px) → scale(1)
+    translateY(0)` via `transition: transform 0.3s cubic-bezier(0.34, 1.56,
+    0.64, 1)` (`components.css:4-100`). This is the single highest-leverage,
+    lowest-risk change available to make the new modal read as more premium
+    than its nearest sibling on this exact page, without introducing a new
+    visual system — it borrows a treatment the codebase already has, just
+    not on this particular modal yet.
+- **Status/info framing**: reuse the existing green tint already established
+  by the supplier callout (`#f0fdf4` bg / `#bbf7d0` border / `#166534` text,
+  `settings.html:384`) for "you're currently X, here's what changes" copy;
+  use the amber verification-banner tint (`#fffbeb` / `#fcd34d` / `#78350f`,
+  matching `customer-dashboard-improvements.css`'s email-verify banner) for
+  a specific caution note if one's needed (e.g. "your listing will be
+  paused while you're a customer").
+- **Cascade gotcha to flag for whoever implements this**: `styles.css`'s
+  "Modern cards" rule forces every `.card`'s `border`/`background` with
+  `!important`. If the new card needs a custom border or tint (e.g. a
+  subtle teal wash framing the "become a supplier" direction), it needs the
+  same `!important`-scoped override pattern `settings.css` already uses for
+  `.settings-danger-zone-box` (`settings.css:134-142`) — a plain new class
+  alone will silently get overridden back to the default white card.
+
+### 9.3 Admin: "Change Account Type" control (`/admin-user-detail`)
+
+- **Current-role display**: replace the raw `<select id="userRole">`
+  (`admin-user-detail-init.js:216-223`) with the existing role-badge
+  markup already produced by `getRoleBadge()`/`roleBadge()` in this same
+  file (`.badge.badge-admin` / `.badge-customer` / `.badge-supplier-account`,
+  `admin-enhanced.css:1445-1478`), placed in the page's existing `.ud-badges`
+  row alongside the "Suspended" badge — reusing the exact badge component
+  already rendered elsewhere on this same page, not a new one.
+- **Trigger**: a "Change Account Type…" button in the existing
+  `.action-buttons` row (`admin-user-detail-init.js:236-242`), styled like
+  its siblings (`ef-cta btn btn-secondary`, matching Reset Password /
+  Suspend User) so it doesn't visually stand out as a foreign addition.
+- **Modal implementation — use the `Modal` class, not `AdminShared.showInputModal`**:
+  `admin-user-detail.html` already loads `components.js`, so the `Modal`
+  class (`public/assets/js/components.js:20`, CSS `components.css:4-100`) is
+  available — and it's the **only** option here with real `<select>`
+  support, since `AdminShared.showInputModal` only renders `text`/`textarea`
+  inputs (confirmed by reading the full function body — there is no
+  `type:'select'` branch). This is exactly the pattern `revokeAdmin()`
+  already uses in `public/assets/js/pages/admin-init.js:1295-1370` for
+  "pick a new role in a modal" — replicate it directly:
+  ```js
+  const content = document.createElement('div');
+  content.innerHTML = `
+    <p>Change this account's type.</p>
+    <div style="margin-top:1rem;">
+      <label style="display:block;margin-bottom:4px;font-weight:600;">New account type</label>
+      <select id="account-type-target" style="width:100%;padding:8px;border:1px solid #d4d4d8;border-radius:4px;">
+        <option value="customer">Customer</option>
+        <option value="supplier">Supplier</option>
+      </select>
+    </div>`;
+  const modal = new Modal({ title: 'Change Account Type', content, confirmText: 'Continue', cancelText: 'Cancel', onConfirm: ... });
+  modal.show();
+  ```
+  `Modal` renders the panel's nicest-looking chrome available on this page
+  (blurred glass overlay `rgba(15,23,42,.45)` + `backdrop-filter:
+  blur(12px)`, glass card `rgba(255,255,255,.92)`, `border-radius:16px`,
+  layered shadow) — a genuine precedent for "premium" already in production
+  use for essentially the same interaction, not something to build from
+  scratch.
+- When the target is `supplier`, extend the same modal `content` block with
+  the supplier-info fields (company/category/location), styled with the
+  plain admin `input{}`/`select{}` rule already defined in `admin.css`
+  (`padding:6px 8px;border-radius:4px;border:1px solid #d4d4d8`) — no new
+  input styling needed.
+- When the target is `customer` and a supplier profile exists, prepend a
+  warning line to the modal content in the admin danger colour
+  (`color:#ef4444;font-weight:600`), phrased like the existing
+  `deleteUser()` supplier-warning sentence
+  (`admin-user-detail-init.js:364-367`: *"This will delete the user,
+  supplier profile, packages and public listing data."*) adapted to
+  *suspend* rather than delete — same voice, same visual weight, no new
+  component.
+- **Feedback**: `AdminShared.showToast(message, 'success' | 'error')` —
+  matches exactly what every other action on this page already does
+  (`deleteUser`, `toggleSuspend`, `resetPassword`). Do **not** reach for
+  `AdminShared.showEnhancedToast` (the fuller bottom-right, left-border-accent
+  variant) — its CSS isn't wired up as a script include on this page, so it
+  would look inconsistent with the plain top-right toasts every neighbouring
+  action already produces.
+- **Supplier Detail page** (§5.2's promoted link + status banner): style the
+  "owner is no longer a supplier" banner with the admin warning palette
+  already established for verification notices (`#fef3c7` background /
+  `#f59e0b` border / `#92400e` text) rather than inventing new colours.
+
+### 9.4 Responsive behaviour (both sides)
+
+- **Customer settings**: no bespoke breakpoints needed. `.card`/`.form-row`/
+  `.cta` are already responsive at the site's established 768px/640px/480px
+  cascade (`styles.css`, `ui-ux-fixes.css`,
+  `signed-in-mobile-fixes.css`), and the reused role-pill component ships
+  its own `@media (max-width:640px){flex-direction:column; width:100%
+  !important}` stacking rule (`auth.css:1794-1798`) — it already goes
+  full-width-stacked on phone without extra work. On mobile, `.card` corner
+  radius is normalized to 12px automatically by the existing
+  `signed-in-mobile-fixes.css` patch (site-wide, applies to any `.card`).
+  One thing to verify in manual QA rather than assume: the page reserves a
+  fixed bottom tab bar on ≤768px (`.ef-bottom-nav`, glassmorphic, ~64px)
+  that the existing delete-modal doesn't currently account for either —
+  confirm the new confirmation modal isn't clipped or overlapped by it on a
+  real phone viewport.
+- **Admin**: the panel is not desktop-only — it already has substantial
+  phone/tablet coverage (16 `@media` blocks in `admin-enhanced.css` alone,
+  plus a panel-wide `mobile-optimizations.css` patch that generically
+  targets `.modal`/`.modal-content` at `max-width:768px`). Build the new
+  modal at percentage width, mirroring the `Modal`/`AdminShared` convention
+  already in use (`width:90%; max-width:500px`), and it inherits that
+  coverage for free — nothing new to design here, just confirm in QA on a
+  tablet-width viewport since that's plausibly how support staff check
+  things on the move.
+
+### 9.5 Motion (the concrete answer to "premium")
+
+- **Site-wide micro-interaction standard**: ~150–200ms `ease` for
+  hover/focus states (buttons, toggles) — already built into the reused
+  role-pill and `.settings-sm-btn`/`.settings-primary-btn` hover rules, no
+  new work needed there.
+- **Larger-surface standard**: ~300ms `cubic-bezier(0.4, 0, 0.2, 1)` for
+  overlays/menus — the same curve the mobile nav slide-in already uses
+  (`admin-navbar.css`/`navbar.css`).
+- The one deliberate addition this plan calls for on both target modals is
+  the `components.css` `.modal` entrance treatment described in §9.2 and
+  §9.3 (spring-scale + backdrop blur fade) — the single most direct lever
+  available for the "premium" ask, because it's an existing, already-shipped
+  treatment being applied to two modals that currently lack it, not a new
+  animation system.
+- Every new transition/animation is automatically covered by the site's
+  blanket `prefers-reduced-motion` rule (`animations.css`, universal
+  selector) — no extra accessibility work needed, provided the new
+  transitions use standard CSS `transition`/`animation` properties rather
+  than JS-driven motion (which the blanket rule wouldn't catch).
+
+---
+
+## 10. Summary of files a future PR will likely touch
 
 ```
 NEW    services/accountTypeConversion.service.js
@@ -670,7 +941,13 @@ EDIT   routes/admin-user-management.js               (new admin endpoint; remove
 EDIT   services/supplierProfileProvisioning.service.js
 EDIT   models/index.js
 EDIT   public/settings.html
+EDIT   public/assets/css/settings.css                (§9.2: role-pill + glass-card + modal-entrance rules — copied/adapted from auth.css and components.css, since neither is loaded on /settings)
 EDIT   public/assets/js/pages/settings-init.js
-EDIT   public/assets/js/pages/admin-user-detail-init.js   (replace bare role <select> with guarded action + modal)
-EDIT   public/assets/js/pages/admin-supplier-detail-init.js  (promote linked-user link; add owner-status banner)
+EDIT   public/assets/js/pages/admin-user-detail-init.js   (replace bare role <select> with guarded action + Modal-based picker, §9.3)
+EDIT   public/assets/js/pages/admin-supplier-detail-init.js  (promote linked-user link; add owner-status banner, §9.3)
 ```
+
+No new CSS file is needed on the admin side — §9.3's modal, badges, and
+colours are all produced by classes/hex values `admin-user-detail-init.js`
+and its already-loaded stylesheets (`admin.css`, `admin-enhanced.css`,
+`components.css`) already ship.
