@@ -95,20 +95,29 @@ function buildDb(seed = {}) {
 describe('admin supplier maintenance hardening', () => {
   beforeEach(() => jest.resetModules());
 
-  test('admin creation and role update routes provision supplier profiles', () => {
+  test('admin creation routes provision supplier profiles', () => {
+    const adminV2 = fs.readFileSync(path.join(__dirname, '../../routes/admin-v2.js'), 'utf8');
+    expect(adminV2).toContain("adminUpdates.role === 'supplier'");
+    expect(adminV2).toContain('SUPPLIER_PROFILE_PROVISIONING_FAILED');
+  });
+
+  test('admin role changes go through the dedicated account-type endpoint, not the generic edit-user PUT', () => {
+    // See docs/ACCOUNT_TYPE_CONVERSION_PLAN.md §5.3: the generic PUT /users/:id
+    // "edit any field" endpoint used to accept a raw `role` field and only ever
+    // handled customer->supplier correctly (supplier->customer silently left
+    // the linked listing live). Role changes now go exclusively through
+    // POST /users/:id/account-type, backed by the shared
+    // accountTypeConversion service, which handles both directions correctly.
     const adminUsers = fs.readFileSync(
       path.join(__dirname, '../../routes/admin-user-management.js'),
       'utf8'
     );
-    const adminV2 = fs.readFileSync(path.join(__dirname, '../../routes/admin-v2.js'), 'utf8');
-    expect(adminUsers).toContain('ensureSupplierProfileForUser(user)');
-    expect(adminUsers).toContain("setFields.role === 'supplier'");
-    expect(adminUsers).toContain(
-      'Failed to provision supplier profile for role change to supplier.'
-    );
-    expect(adminUsers).toContain('$set: { role: user.role');
-    expect(adminV2).toContain("adminUpdates.role === 'supplier'");
-    expect(adminV2).toContain('SUPPLIER_PROFILE_PROVISIONING_FAILED');
+    expect(adminUsers).toContain("'/users/:id/account-type'");
+    expect(adminUsers).toContain('accountTypeConversion.convertToSupplier');
+    expect(adminUsers).toContain('accountTypeConversion.convertToCustomer');
+    // Regression guard: the generic endpoint must not read or apply a role field.
+    expect(adminUsers).toContain('const { name, email, verified, marketingOptIn } = req.body;');
+    expect(adminUsers).not.toContain('setFields.role');
   });
 
   test('shared deletion service deletes supplier public data before user record', async () => {

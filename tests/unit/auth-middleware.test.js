@@ -401,6 +401,34 @@ describe('Auth Middleware', () => {
     });
   });
 
+  describe('authRequired role freshness (account-type conversion)', () => {
+    // Regression test for docs/ACCOUNT_TYPE_CONVERSION_PLAN.md §2.6: role must
+    // come from the freshly-read DB user, not the (possibly stale, up to 7
+    // days old) JWT claim — otherwise a role conversion doesn't take effect
+    // until the user's token expires or they log out and back in.
+    it('populates req.user.role from the DB, not a stale JWT role claim', async () => {
+      const dbUnified = require('../../db-unified');
+      dbUnified.findOne.mockResolvedValueOnce({
+        id: '123',
+        email: 'test@example.com',
+        role: 'supplier', // DB says supplier — the account was converted after the JWT was issued
+        name: 'Test User',
+      });
+
+      const payload = { id: '123', email: 'test@example.com', role: 'customer' }; // stale JWT claim
+      const token = jwt.sign(payload, JWT_SECRET);
+
+      const req = { cookies: { token } };
+      const res = { status: jest.fn().mockReturnThis(), json: jest.fn() };
+      const next = jest.fn();
+
+      await authRequired(req, res, next);
+
+      expect(req.user.role).toBe('supplier');
+      expect(next).toHaveBeenCalled();
+    });
+  });
+
   describe('roleRequired', () => {
     it('should allow access for matching role', () => {
       const middleware = roleRequired('admin');

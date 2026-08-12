@@ -21,6 +21,7 @@ const verificationProvenance = require('../services/verificationProvenance.servi
 const userProvenance = require('../services/userProvenance.service');
 const adminUserSummary = require('../services/adminUserSummary.service');
 const { ensureSupplierProfileForUser } = require('../services/supplierProfileProvisioning.service');
+const accountTypeConversion = require('../services/accountTypeConversion.service');
 const {
   buildSupplierProGrantUpdate,
   buildSupplierProRevokeUpdate,
@@ -1886,7 +1887,13 @@ router.put(
  */
 router.put('/users/:id', authRequired, roleRequired('admin'), csrfProtection, async (req, res) => {
   const { id } = req.params;
-  const { name, email, role, verified, marketingOptIn } = req.body;
+  const { name, email, verified, marketingOptIn } = req.body;
+  // Note: `role` is deliberately not accepted here. Account-type changes go
+  // through POST /users/:id/account-type (the shared accountTypeConversion
+  // service), which handles supplier-profile provisioning/suspension and audit
+  // logging correctly for both directions — this generic endpoint used to
+  // accept a raw `role` field but only ever handled customer->supplier
+  // correctly, silently leaving a live listing behind on supplier->customer.
 
   const user = await dbUnified.findOne('users', { id });
 
@@ -1939,9 +1946,6 @@ router.put('/users/:id', authRequired, roleRequired('admin'), csrfProtection, as
   if (email !== undefined) {
     setFields.email = email;
   }
-  if (role !== undefined) {
-    setFields.role = role;
-  }
   if (verified !== undefined) {
     setFields.verified = verified;
     if (verified === true && user.verified !== true) {
@@ -1966,28 +1970,6 @@ router.put('/users/:id', authRequired, roleRequired('admin'), csrfProtection, as
 
   await dbUnified.updateOne('users', { id }, { $set: setFields });
 
-  let supplierProfile = null;
-  if (user.role !== 'supplier' && setFields.role === 'supplier') {
-    try {
-      supplierProfile = await ensureSupplierProfileForUser({ ...user, ...setFields });
-    } catch (provisionErr) {
-      await dbUnified.updateOne(
-        'users',
-        { id },
-        { $set: { role: user.role, updatedAt: new Date().toISOString() } }
-      );
-      logger.error('[ADMIN] supplier profile provisioning failed after role change', {
-        userId: user.id,
-        previousRole: user.role,
-        error: provisionErr.message,
-      });
-      return res.status(500).json({
-        error: 'Failed to provision supplier profile for role change to supplier.',
-        code: 'SUPPLIER_PROFILE_PROVISIONING_FAILED',
-      });
-    }
-  }
-
   // Create audit log
   auditLog({
     adminId: req.user.id,
@@ -2003,12 +1985,87 @@ router.put('/users/:id', authRequired, roleRequired('admin'), csrfProtection, as
         ? setFields.verifiedBy.type
         : user.verifiedBy?.type || null,
       adminActorId: req.user.id,
-      supplierProfileId: supplierProfile && supplierProfile.id,
     },
   });
 
-  res.json({ success: true, user: { ...user, ...setFields }, supplierProfile });
+  res.json({ success: true, user: { ...user, ...setFields } });
 });
+
+/**
+ * POST /api/admin/users/:id/account-type
+ * Admin-initiated customer<->supplier conversion, for support cases where the
+ * user can't/won't do it themselves. Uses the same shared service as the
+ * self-service endpoint (POST /api/v1/me/settings/account-type) so both
+ * directions get correct supplier-profile provisioning/suspension and a
+ * dedicated, filterable USER_ROLE_CHANGED audit entry — unlike the old raw
+ * `role` field on PUT /users/:id, which never handled supplier->customer.
+ * No feature-flag gate, anti-abuse guard, or cooldown: an admin acting on a
+ * support request isn't the scenario those exist for, and may need to fix a
+ * mistake immediately, possibly repeatedly during one support conversation.
+ */
+router.post(
+  '/users/:id/account-type',
+  authRequired,
+  roleRequired('admin'),
+  csrfProtection,
+  async (req, res) => {
+    const { id } = req.params;
+    const { targetRole, supplierInfo } = req.body || {};
+
+    if (targetRole !== 'customer' && targetRole !== 'supplier') {
+      return res.status(400).json({ error: 'targetRole must be "customer" or "supplier"' });
+    }
+
+    const user = await dbUnified.findOne('users', { id });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const isOwner = domainAdmin.isOwnerEmail(user.email) || user.isOwner;
+    if (isOwner) {
+      return res.status(403).json({
+        error: 'Cannot modify owner account',
+        code: 'OWNER_ACCOUNT_PROTECTED',
+      });
+    }
+
+    try {
+      const actor = { type: 'admin', id: req.user.id, email: req.user.email };
+      const result =
+        targetRole === 'supplier'
+          ? await accountTypeConversion.convertToSupplier(user, { supplierInfo, actor })
+          : await accountTypeConversion.convertToCustomer(user, { actor });
+
+      res.json({
+        success: true,
+        user: { id: user.id, email: user.email, role: result.role },
+        previousRole: result.previousRole,
+        supplierSuspended: result.supplierSuspended || false,
+      });
+    } catch (error) {
+      if (error instanceof accountTypeConversion.AccountTypeConversionError) {
+        const statusByCode = {
+          NOT_FOUND: 404,
+          ADMIN_ROLE_PROTECTED: 403,
+          ALREADY_TARGET_ROLE: 409,
+          VALIDATION_ERROR: 400,
+          SUPPLIER_PROFILE_PROVISIONING_FAILED: 500,
+          SUPPLIER_SUSPEND_FAILED: 500,
+          UPDATE_FAILED: 500,
+        };
+        return res
+          .status(statusByCode[error.code] || 400)
+          .json({ error: error.message, code: error.code });
+      }
+      logger.error('[ADMIN] account-type conversion failed', {
+        userId: id,
+        targetRole,
+        error: error.message,
+      });
+      res.status(500).json({ error: 'Failed to convert account type' });
+    }
+  }
+);
 
 /**
  * DELETE /api/admin/users/:id
@@ -2566,7 +2623,17 @@ router.get('/users/:id', authRequired, roleRequired('admin'), async (req, res) =
   }
 
   const verificationLogs = await verificationProvenance.readVerificationLogs();
-  res.json(sanitizeAdminUser(user, verificationLogs));
+  const sanitized = sanitizeAdminUser(user, verificationLogs);
+
+  // Single-user fetch, so an extra lookup here is cheap (unlike the bulk list
+  // endpoints above, which intentionally don't do this per row). Without it,
+  // the User Detail page can't tell whether a supplier-role user already has a
+  // linked profile and always shows "Provision Profile", even when one exists.
+  if (user.role === 'supplier') {
+    sanitized.supplierProfile = await dbUnified.findOne('suppliers', { ownerUserId: user.id });
+  }
+
+  res.json(sanitized);
 });
 
 /**

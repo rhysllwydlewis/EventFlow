@@ -103,6 +103,14 @@ const VALIDATION_RULES = {
  * @property {string} status - Profile status ('draft' | 'published' | 'suspended'), default 'draft'
  * @property {string} slug - SEO-friendly URL slug (unique)
  * @property {string|null} publishedAt - ISO timestamp when profile was published
+ * @property {string|null} suspendedAt - ISO timestamp when the profile was suspended
+ * @property {string|null} suspendedBy - User/admin ID who suspended the profile
+ * @property {string|null} suspendedReason - Free-form reason, or one of the account-type-conversion
+ *   conventions this service and services/accountTypeConversion.service.js recognise:
+ *   'owner_converted_to_customer' (self-service) / 'admin_converted_owner_to_customer' (admin-initiated).
+ *   A profile suspended for either of those reasons is reactivated (not left dangling) if the owner
+ *   converts back to supplier — see services/supplierProfileProvisioning.service.js.
+ * @property {string|null} reactivatedAt - ISO timestamp when a conversion-suspended profile was reactivated
  *
  * SEO & Social
  * @property {string} metaDescription - Custom meta description (max 300 chars)

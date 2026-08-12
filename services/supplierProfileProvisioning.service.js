@@ -98,6 +98,52 @@ function isDuplicateLikeError(error) {
   );
 }
 
+// A profile suspended by an account-type conversion (as opposed to an admin
+// verification-workflow suspension) carries this marker so re-converting
+// customer -> supplier reactivates it instead of leaving it dangling.
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
+function isConversionSuspension(supplier) {
+  return (
+    supplier &&
+    supplier.status === 'suspended' &&
+    typeof supplier.suspendedReason === 'string' &&
+    supplier.suspendedReason.endsWith('converted_to_customer')
+  );
+}
+
+// skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
+async function reactivateConversionSuspendedProfile(supplier) {
+  const nowIso = new Date().toISOString();
+  // Route back through pending_review rather than restoring `approved: true`
+  // silently — a previously-approved business gets a fresh look before going
+  // live again, consistent with "changed profile -> re-review" elsewhere.
+  const updates = {
+    status: 'draft',
+    verificationStatus: VERIFICATION_STATES.PENDING_REVIEW,
+    approved: false,
+    verified: false,
+    reactivatedAt: nowIso,
+    updatedAt: nowIso,
+  };
+
+  const reactivated = await dbUnified.updateOne(
+    'suppliers',
+    { id: supplier.id },
+    { $set: updates, $unset: { suspendedAt: '', suspendedBy: '', suspendedReason: '' } }
+  );
+  if (!reactivated) {
+    // dbUnified.updateOne normalises write failures to false. Without this
+    // check, the findOne below would silently return the still-suspended
+    // profile and the caller (convertToSupplier) would report success while
+    // the listing stays suspended — with no way to retry since the user is
+    // already 'supplier' at that point.
+    throw new Error(`Failed to reactivate suspended supplier profile ${supplier.id}`);
+  }
+
+  const refreshed = await dbUnified.findOne('suppliers', { id: supplier.id });
+  return refreshed || { ...supplier, ...updates };
+}
+
 // skipcq: JS-0067 -- CommonJS module scope prevents these declarations becoming browser globals.
 async function ensureSupplierProfileForUser(user, options = {}) {
   if (!user || user.role !== 'supplier') {
@@ -110,6 +156,9 @@ async function ensureSupplierProfileForUser(user, options = {}) {
 
   const existing = await dbUnified.findOne('suppliers', { ownerUserId: user.id });
   if (existing) {
+    if (isConversionSuspension(existing)) {
+      return reactivateConversionSuspendedProfile(existing);
+    }
     return existing;
   }
 
