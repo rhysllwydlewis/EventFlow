@@ -985,25 +985,33 @@ router.get('/dashboard-summary', authRequired, async (req, res) => {
     }
 
     // --- Packages ---
-    let packagesData = { total: 0, active: 0, draft: 0 };
+    // "Active" here means live for customers: not paused by the supplier and not
+    // withheld pending admin approval. This is the single source of truth for every
+    // package count the supplier dashboard renders (hero stat card and KPI grid both
+    // read it from this response) so the page can never show two different numbers
+    // for the same metric.
+    let packagesData = { total: 0, active: 0, draft: 0, paused: 0 };
     try {
       const supplierPackages = await dbUnified.find('packages', { supplierId });
-      // Count active and draft in a single pass to avoid iterating twice
+      // Classify in a single pass to avoid iterating multiple times
       const counts = supplierPackages.reduce(
         (acc, p) => {
-          if (p.approved === false) {
+          if (p.paused === true) {
+            acc.paused++;
+          } else if (p.approved === false) {
             acc.draft++;
           } else {
             acc.active++;
           }
           return acc;
         },
-        { active: 0, draft: 0 }
+        { active: 0, draft: 0, paused: 0 }
       );
       packagesData = {
         total: supplierPackages.length,
         active: counts.active,
         draft: counts.draft,
+        paused: counts.paused,
       };
     } catch (err) {
       logger.error('dashboard-summary: packages sub-query failed:', err);
