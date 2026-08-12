@@ -1,0 +1,296 @@
+/* ==========================================================================
+   Supplier dashboard — visual refresh
+   --------------------------------------------------------------------------
+   Loaded last for the supplier dashboard, so these rules settle the cascade
+   without needing !important against the older dashboard stylesheets.
+
+   Scoped to .supplier-dashboard-page throughout: several of the classes below
+   (.ef-bottom-nav, .sd-section-divider) are shared with other dashboards, and
+   this pass is deliberately limited to the supplier one.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. Action chips keep their labels on mobile
+   --------------------------------------------------------------------------
+   dashboard-mobile.css hides the chip text below 480px, leaving six unlabelled
+   icons — a coin, a bar chart and a question mark are not guessable, and touch
+   devices have no hover to fall back on. Restore the labels and let the row
+   wrap to two lines instead, which costs one row of height and removes the
+   guesswork.
+   -------------------------------------------------------------------------- */
+@media (max-width: 480px) {
+  body.supplier-dashboard-page .dashboard-action-chip {
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px 4px;
+    min-height: 60px;
+    justify-content: center;
+    /* The chip was a single nowrap/ellipsis line when the label was hidden.
+       Now that the label shows and wraps, that clipping truncates it instead. */
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+  }
+
+  body.supplier-dashboard-page .dashboard-action-chip > span {
+    display: block;
+    width: 100%;
+    max-width: none;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+    text-align: center;
+    /* Wrap between words only. Breaking inside one turns "Messages" into
+       "Message / s", which is worse than the label overflowing would be. */
+    white-space: normal;
+    overflow-wrap: normal;
+    word-break: keep-all;
+    hyphens: none;
+    overflow: visible;
+    text-overflow: clip;
+  }
+
+  body.supplier-dashboard-page .dashboard-action-chip svg {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   1b. Hero stat cards stay on one row on phones
+   --------------------------------------------------------------------------
+   dashboard-mobile.css narrowed these from 3 columns to 2 (≤480px) and then to
+   1 (≤430px) in successive passes. At one card per row the three stats alone
+   run ~350px, which pushed the whole hero to 853px on a 390×844 phone — the
+   entire viewport, with every quick action below the fold.
+
+   Put them back on a single row and let the card carry only what reads at that
+   size: icon, number, label. The trend arrow, "LIVE" pill and "No reviews yet"
+   caption are decoration next to the number, and they were what forced the
+   height in the first place.
+   -------------------------------------------------------------------------- */
+@media (max-width: 430px) {
+  body.supplier-dashboard-page .dashboard-hero__stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  body.supplier-dashboard-page .dashboard-stat-card {
+    padding: 10px 6px;
+    min-height: 0;
+    gap: 3px;
+    align-items: flex-start;
+  }
+
+  body.supplier-dashboard-page .dashboard-stat-card__icon {
+    width: 26px;
+    height: 26px;
+    border-radius: 7px;
+  }
+
+  body.supplier-dashboard-page .dashboard-stat-card__icon svg {
+    width: 15px;
+    height: 15px;
+  }
+
+  body.supplier-dashboard-page .dashboard-stat-card__value {
+    font-size: 20px;
+    line-height: 1.05;
+  }
+
+  body.supplier-dashboard-page .dashboard-stat-card__label {
+    font-size: 9.5px;
+    line-height: 1.2;
+    letter-spacing: 0.02em;
+  }
+
+  /* Secondary flourishes: the number already carries the meaning here. */
+  body.supplier-dashboard-page .dashboard-stat-card__badge,
+  body.supplier-dashboard-page .dashboard-stat-card__trend,
+  body.supplier-dashboard-page .dashboard-stat-card__stars {
+    display: none;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   2. Section navigation pills
+   --------------------------------------------------------------------------
+   The pill row scrolls horizontally once it runs out of room (from ~360px
+   down), but nothing on screen said so — the last pill was simply cut off.
+   Add a right-hand fade that disappears at the end of the scroll, and mark
+   the one pill that leaves the page instead of scrolling in-page.
+   -------------------------------------------------------------------------- */
+.supplier-dashboard-page .dashboard-mobile-nav {
+  position: relative;
+}
+
+.supplier-dashboard-page .dashboard-mobile-nav::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 32px;
+  pointer-events: none;
+  background: linear-gradient(to right, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.95));
+  opacity: 1;
+  transition: opacity 0.2s ease;
+}
+
+/* JS adds this class when the row is scrolled to the end (or doesn't overflow) */
+.supplier-dashboard-page .dashboard-mobile-nav.is-scroll-end::after,
+.supplier-dashboard-page .dashboard-mobile-nav.is-not-overflowing::after {
+  opacity: 0;
+}
+
+.supplier-dashboard-page .mobile-nav-pills {
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+}
+
+.supplier-dashboard-page .mobile-nav-pills::-webkit-scrollbar {
+  display: none;
+}
+
+/* The Settings pill navigates to /settings while its siblings scroll to a
+   section on this page. Mark it so the difference is visible before the tap. */
+.supplier-dashboard-page .mobile-nav-pill[data-href] {
+  position: relative;
+}
+
+.supplier-dashboard-page .mobile-nav-pill[data-href] .pill-icon::after {
+  content: '';
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 5px;
+  height: 5px;
+  border-top: 1.5px solid currentColor;
+  border-right: 1.5px solid currentColor;
+  transform: rotate(45deg);
+  opacity: 0.65;
+}
+
+/* --------------------------------------------------------------------------
+   3. Fixed bottom nav clearance
+   --------------------------------------------------------------------------
+   navbar.css reserves a flat 76px of body padding for the fixed bottom nav.
+   The bar itself is `padding: 10px 4px max(12px, env(safe-area-inset-bottom))`
+   plus its content, so on a device with a home indicator (34px inset) it grows
+   past 76px and clips the end of the page. Make the reservation track the
+   inset the bar actually uses.
+   -------------------------------------------------------------------------- */
+@media (max-width: 768px) {
+  body.supplier-dashboard-page {
+    padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* Bottom-nav labels were truncating ("Dashbo…") at 320px. */
+@media (max-width: 360px) {
+  .supplier-dashboard-page .ef-bottom-nav {
+    gap: 0;
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .supplier-dashboard-page .ef-bottom-link {
+    padding-left: 2px;
+    padding-right: 2px;
+    min-width: 0;
+  }
+
+  .supplier-dashboard-page .ef-bottom-label {
+    font-size: 10px;
+    letter-spacing: -0.02em;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   4. Chart empty state
+   --------------------------------------------------------------------------
+   Replaces the flat zero line a brand-new supplier used to get.
+   -------------------------------------------------------------------------- */
+.supplier-dashboard-page .sd-chart-empty {
+  min-height: 220px;
+  justify-content: center;
+  border: 1px dashed rgba(148, 163, 184, 0.45);
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(248, 250, 252, 0.6), rgba(248, 250, 252, 0));
+  margin-top: 12px;
+}
+
+.supplier-dashboard-page .sd-chart-empty .sd-empty-state__icon {
+  color: #94a3b8;
+  opacity: 0.9;
+}
+
+.supplier-dashboard-page .sd-chart-empty .sd-empty-state__desc {
+  max-width: 42ch;
+}
+
+/* --------------------------------------------------------------------------
+   5. Toast placement
+   --------------------------------------------------------------------------
+   Toasts are bottom-right and were landing on top of "Create Package" and the
+   Messages search field. Lift them clear of the fixed bottom nav on mobile and
+   keep them off the scroll-to-top button on desktop.
+   -------------------------------------------------------------------------- */
+.supplier-dashboard-page .ef-toast-container {
+  bottom: 88px;
+  right: 16px;
+  max-width: min(360px, calc(100vw - 32px));
+  z-index: 950;
+}
+
+@media (max-width: 768px) {
+  .supplier-dashboard-page .ef-toast-container {
+    bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+    left: 12px;
+    right: 12px;
+    max-width: none;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   6. Section dividers
+   --------------------------------------------------------------------------
+   With the page regrouped into six labelled sections, the dividers carry more
+   of the page's structure than they used to. Give them enough space to read as
+   the start of a new group rather than a caption on the card above.
+   -------------------------------------------------------------------------- */
+.supplier-dashboard-page .sd-section-divider {
+  margin-top: 34px;
+  margin-bottom: 14px;
+}
+
+.supplier-dashboard-page .sd-section-divider:first-of-type {
+  margin-top: 24px;
+}
+
+@media (max-width: 768px) {
+  .supplier-dashboard-page .sd-section-divider {
+    margin-top: 26px;
+    margin-bottom: 10px;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   7. Package card consistency
+   --------------------------------------------------------------------------
+   Cards in a row were ending at different heights depending on whether they
+   carried a price badge, a status badge or neither, so the action buttons sat
+   at three different heights. Pin the actions to the bottom of every card.
+   -------------------------------------------------------------------------- */
+.supplier-dashboard-page .sd-package-card,
+.supplier-dashboard-page .package-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.supplier-dashboard-page .sd-package-card > .card-actions,
+.supplier-dashboard-page .package-card > .card-actions,
+.supplier-dashboard-page .sd-package-card__actions {
+  margin-top: auto;
+}

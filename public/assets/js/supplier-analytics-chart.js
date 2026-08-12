@@ -221,12 +221,40 @@ export async function createPerformanceChart(containerId, viewsData, enquiriesDa
 
   const canvasId = `${containerId}-canvas`;
 
-  const html = `
+  const periodRow = `
     <div class="sd-chart-period-row">
       <button class="chart-period-btn active" data-period="7">7 Days</button>
       <button class="chart-period-btn" data-period="30">30 Days</button>
       <button class="chart-period-btn" data-period="90">90 Days</button>
     </div>
+  `;
+
+  // A supplier with no traffic yet would otherwise get a flat line pinned to zero,
+  // which reads as a broken chart rather than "nothing has happened yet". Show an
+  // empty state that says so and points at the thing that actually drives views.
+  const hasAnyData = [...viewsData, ...enquiriesData].some(n => Number(n) > 0);
+  if (!hasAnyData) {
+    container.innerHTML = `
+      ${periodRow}
+      <div class="sd-empty-state sd-chart-empty">
+        <div class="sd-empty-state__icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="40" height="40">
+            <path d="M3 3v18h18"/>
+            <path d="m7 14 3-4 4 2 5-6"/>
+          </svg>
+        </div>
+        <h4 class="sd-empty-state__title">No activity to chart yet</h4>
+        <p class="sd-empty-state__desc">
+          Profile views and enquiries will appear here as customers find you. A complete
+          profile with photos is the fastest way to start showing up in search.
+        </p>
+      </div>
+    `;
+    return null;
+  }
+
+  const html = `
+    ${periodRow}
     <div class="chart-container" style="position: relative; height: 300px;">
       <canvas id="${canvasId}"></canvas>
     </div>

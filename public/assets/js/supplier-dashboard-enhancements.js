@@ -155,6 +155,26 @@
       nav.appendChild(indicator);
     }
 
+    // The pill row scrolls horizontally on narrow screens, where the last pills
+    // sit off-screen with nothing to suggest there is more to reach. The wrapper
+    // paints a fade on its right edge; toggle it off when there is nothing left
+    // to scroll to, so the affordance only appears when it means something.
+    const navWrapper = nav.closest('.dashboard-mobile-nav');
+    const updateScrollAffordance = () => {
+      if (!navWrapper) {
+        return;
+      }
+      const overflowing = nav.scrollWidth > nav.clientWidth + 2;
+      // Sub-pixel widths mean scrollLeft rarely lands exactly on the maximum.
+      const atEnd = nav.scrollLeft + nav.clientWidth >= nav.scrollWidth - 2;
+      navWrapper.classList.toggle('is-not-overflowing', !overflowing);
+      navWrapper.classList.toggle('is-scroll-end', overflowing && atEnd);
+    };
+
+    nav.addEventListener('scroll', updateScrollAffordance, { passive: true });
+    window.addEventListener('resize', updateScrollAffordance, { passive: true });
+    updateScrollAffordance();
+
     const moveIndicator = pill => {
       const rect = pill.getBoundingClientRect();
       const navRect = nav.getBoundingClientRect();
