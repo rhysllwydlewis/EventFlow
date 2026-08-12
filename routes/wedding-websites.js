@@ -755,12 +755,9 @@ router.post('/public/wedding-websites/:slug/rsvp', writeLimiter, async (req, res
     return res.status(400).json({ error: 'Please provide a valid email.' });
   }
   const attending = req.body.attending;
-  if (!(
-    attending === true ||
-    attending === false ||
-    attending === 'true' ||
-    attending === 'false'
-  )) {
+  if (
+    !(attending === true || attending === false || attending === 'true' || attending === 'false')
+  ) {
     return res.status(400).json({ error: 'Invalid RSVP status.' });
   }
   const isAttending = attending === true || attending === 'true';

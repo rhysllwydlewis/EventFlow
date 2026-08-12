@@ -318,7 +318,9 @@ GET /api/pexels/metrics
 ```json
 {
   "success": true,
-  "metrics": {/* metrics object */},
+  "metrics": {
+    /* metrics object */
+  },
   "timestamp": "2026-01-15T09:00:00.000Z"
 }
 ```
