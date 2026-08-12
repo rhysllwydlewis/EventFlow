@@ -294,3 +294,36 @@
 .supplier-dashboard-page .sd-package-card__actions {
   margin-top: auto;
 }
+
+.supplier-dashboard-page .package-card .package-card-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.supplier-dashboard-page .package-card .card-actions {
+  margin-top: auto;
+}
+
+/* Price is data; "Featured", "Awaiting review" and "Paused" are status. The
+   price chip is a deliberate teal gradient (supplier-dashboard-v3-polish.css)
+   and stays that way — but "Featured" was a bare .badge rendering in almost the
+   same teal, so the first pill on a card read as its price and turned out to be
+   a status. Status badges get their own colours; teal now means price only. */
+body.supplier-dashboard-page .package-card .badge.badge-featured {
+  background: linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%);
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 0.75rem;
+  padding: 4px 10px;
+  border-radius: 999px;
+  letter-spacing: 0.01em;
+}
+
+/* View is disabled when a package has no public page. Keep the row's shape but
+   make it unmistakably inert. */
+.supplier-dashboard-page .package-card .card-action-btn[disabled] {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: auto;
+}
