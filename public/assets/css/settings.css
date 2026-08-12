@@ -298,16 +298,6 @@
   .settings-account-type-fields { animation: none; }
 }
 
-.settings-account-type-caution {
-  margin-top: 0.75rem;
-  padding: 0.75rem 1rem;
-  background: #fffbeb;
-  border: 1px solid #fcd34d;
-  border-radius: 8px;
-  font-size: 0.8125rem;
-  color: #78350f;
-}
-
 /* Downgrade confirmation modal reuses components.css's .modal/.modal-overlay
    (Modal class in components.js) for the premium blur+spring-scale entrance
    the flat #delete-account-modal doesn't have — just adding the type-CONVERT
