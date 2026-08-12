@@ -3,7 +3,9 @@
 > Planning document only. No functional code has been changed. This is the design
 > for a future PR that lets a signed-in user self-serve convert their account
 > between `customer` and `supplier` from Account Settings — e.g. the reported case
-> of a user who meant to sign up as a supplier but accidentally chose "customer".
+> of a user who meant to sign up as a supplier but accidentally chose "customer" —
+> **and** gives admins an equivalent, properly guarded conversion action for
+> support cases, replacing today's unguarded role dropdown (§5).
 
 ---
 
@@ -19,7 +21,10 @@ are:
 
 This plan adds a self-service "Account Type" section to `/settings` that lets a
 `customer` become a `supplier` (and vice versa), reusing as much of the existing
-supplier-provisioning and verification machinery as possible.
+supplier-provisioning and verification machinery as possible — plus a matching
+admin-side capability (§5), since support will need to do this on a user's
+behalf, and the investigation below found that even today's admin tooling
+doesn't handle the `supplier → customer` direction correctly.
 
 ---
 
@@ -137,7 +142,7 @@ documents without the new fields remain valid.
   - **Conclusion: today, no code path fully and correctly handles
     `supplier → customer` — not even the admin ones.** This is a real,
     pre-existing gap, not just something new the self-service feature needs
-    to solve. It strengthens the case in §9 for a single shared
+    to solve. It strengthens the case in §5 for a single shared
     `accountTypeConversion.service.js` used by *both* the new self-service
     endpoint and a new/refactored admin action, rather than admin reusing the
     raw `PUT /api/admin/users/:id` body-field approach as-is.
@@ -200,13 +205,13 @@ is reissued. The ones that need explicit design attention for this plan:
 | --- | --- | --- |
 | Referral/partner risk scoring | `routes/auth.js:444-458, 489-495` | Currently only runs at registration; a converted-to-supplier user skips it entirely unless we deliberately invoke the equivalent check |
 | Anti-abuse | `middleware` used as `supplierRegistrationRiskGuard` | Same as above — designed for the register endpoint, needs a decision on whether/how to apply to conversion |
-| Pro subscription / billing | `models/Supplier.js` (`isPro`, `stripeCustomerId`, `subscriptionStatus`) | A paying supplier converting to customer has a live Stripe subscription attached to the supplier doc, not the user — needs explicit handling (see §6) |
+| Pro subscription / billing | `models/Supplier.js` (`isPro`, `stripeCustomerId`, `subscriptionStatus`) | A paying supplier converting to customer has a live Stripe subscription attached to the supplier doc, not the user — needs explicit handling (see §7) |
 | Badges | `BADGE_TYPES` (`founder, pro, pro-plus, verified, featured, custom`) on `users.badges` | Some badges are supplier-earned (`verified`, `pro`); converting away from supplier should not silently keep a `verified` badge that no longer means anything |
 | Messenger | `routes/messenger-v4.js:429`, `services/messenger-v4.service.js:1531-1536` | Displays participant role/label in conversations — cosmetic, but should reflect the new role going forward |
 | Community | `services/community.service.js:1153-1187` | Role affects badge/label rendering (`isOfficial`, moderator flags) on posts — cosmetic, same as messenger |
 | Dashboard redirects | `routes/dashboard.js:22-35`, `public/assets/js/pages/dashboard-redirect.js` | Both server- and client-side redirect logic branch on `role` — both need the refreshed role to avoid bouncing a converted user to the wrong dashboard |
 | `GET /api/v1/auth/me` | `routes/auth.js:1779` onward | Already conditionally fetches the `suppliers` row and returns `supplierApproved` only when `role === 'supplier'` — natural place to also surface "eligible to convert" / cooldown-remaining metadata for the Settings UI |
-| Admin dashboards | `services/adminUserSummary.service.js`, `/admin-users` | Already counts `byRole` and filters by role — will naturally reflect conversions once `role` changes; self-service conversions should be visible/auditable to admins (see §7) via the shared `USER_ROLE_CHANGED` audit action |
+| Admin dashboards | `services/adminUserSummary.service.js`, `/admin-users` | Already counts `byRole` and filters by role — will naturally reflect conversions once `role` changes; self-service conversions should be visible/auditable to admins (see §5) via the shared `USER_ROLE_CHANGED` audit action |
 | Admin RBAC cache | `middleware/permissions.js` (`PermissionCache`, 5-min in-memory, keyed by `user.id`) | This is for the separate owner/admin/moderator/support RBAC layer, not customer/supplier — shouldn't need invalidation for this feature, but flagged here as the pattern to check for "is there a role-keyed cache we're forgetting" during implementation |
 
 Bookings/enquiries/reviews were checked and are **not** role-gated by
@@ -262,7 +267,7 @@ silently going straight back to `approved`).
 
 ### 3.3 What "switch to customer" means for existing supplier data
 
-Decision needed (flagged as an open question in §8), but the recommended
+Decision needed (flagged as an open question in §7), but the recommended
 default: **suspend, don't delete.**
 
 - `suppliers.status` → `suspended` (a value the schema already supports,
@@ -274,7 +279,7 @@ default: **suspend, don't delete.**
   the customers who sent them (existing `NOTIFICATION_TYPES` already includes
   `system`/`update`, reusable for this).
 - Active Pro subscription: must be explicitly handled, not silently left
-  running against a suspended profile (see §6, open question).
+  running against a suspended profile (see §7, open question).
 
 ---
 
@@ -321,7 +326,7 @@ new `router.post('/account-type', ...)` there resolves to:
   rather than trying to force it through `featureRequired()`. Consider
   whether a separate `accountTypeSelfConversion` kill switch is warranted for
   an admin to disable the *conversion feature* independently of new-supplier
-  signups — see §6.
+  signups — see §7.
 - Body: `{ targetRole: 'supplier' | 'customer', supplierInfo?: {...} }`.
 - Explicitly rejects `targetRole === 'admin'` and rejects conversion *from*
   `admin` — admin role changes stay admin-only via the existing
@@ -339,7 +344,7 @@ new `router.post('/account-type', ...)` there resolves to:
 | File | Change |
 | --- | --- |
 | `services/accountTypeConversion.service.js` | **New** |
-| `routes/settings.js` | New `POST /api/settings/account-type` endpoint |
+| `routes/settings.js` | New `POST /account-type` (resolves to `POST /api/v1/me/settings/account-type`) |
 | `services/supplierProfileProvisioning.service.js` | Extend to support reactivating a `suspended`-by-conversion profile instead of only "create or return as-is" |
 | `models/index.js` | Add `previousRole`, `lastAccountTypeChangeAt` to the `users` `$jsonSchema` (additive, non-breaking; `USER_ROLE_CHANGED` audit action already exists, no new `AUDIT_ACTIONS` entry needed) |
 | `models/Supplier.js` | Document the "suspended by self-conversion" convention if we track a reason (e.g. `suspendedReason: 'owner_converted_to_customer'`) |
@@ -350,7 +355,186 @@ new `router.post('/account-type', ...)` there resolves to:
 
 ---
 
-## 5. Testing plan
+## 5. Admin-side conversion capability
+
+Requested explicitly: admins need the same customer↔supplier conversion
+capability, for support cases where the user can't/won't do it themselves.
+This isn't additive complexity bolted on top of the self-service feature —
+**a working admin path is a prerequisite**, because the current admin tooling
+already lets a role slip into an inconsistent state and this plan should fix
+that at the same time, not leave it as a second gap.
+
+### 5.1 What already exists (verified directly in the code)
+
+- The admin **User Detail** page already has a raw role `<select>` —
+  `public/assets/js/pages/admin-user-detail-init.js:216-223` — inside the
+  generic "Edit User" form (`#editUserForm`, alongside Name/Email/Verified/
+  Marketing-opt-in). Changing it and clicking "Save Changes" calls
+  `saveUserChanges()` (submits to `PUT /api/admin/users/:id`) with **no
+  confirmation, no dedicated warning, and no distinct audit trail** — the
+  role change is silently bundled into whatever else was edited in the form
+  and logged as the generic `action: 'user_edited'`
+  (`routes/admin-user-management.js:1995`), not the more specific
+  `AUDIT_ACTIONS.USER_ROLE_CHANGED` that the (separate, admin-privilege-only)
+  grant/revoke-admin endpoints already use.
+- **Confirmed independently (matches §2.3's finding from the self-service
+  side): `PUT /api/admin/users/:id` only handles customer→supplier.** Reading
+  the full handler (`routes/admin-user-management.js:1930-1989`): when
+  `role` flips **to** `supplier`, it calls `ensureSupplierProfileForUser()`
+  with rollback-on-failure. When `role` flips **away from** `supplier` (to
+  `customer` or `admin`), **nothing happens to the `suppliers` doc** — no
+  suspension, no unpublishing, no ownership note. An admin can silently
+  leave a fully live, publicly-listed supplier profile owned by an account
+  that no longer has the supplier role. This is a real, currently-shippable
+  bug in existing admin tooling, not just a gap for the new feature to avoid
+  repeating.
+- **A second, related bug**: `GET /api/admin/users/:id` — via
+  `sanitizeAdminUser()` (`routes/admin-user-management.js:40-55`) — never
+  returns a `supplierProfile` field. But `admin-user-detail-init.js`'s
+  `renderUserDetails()` checks `user.supplierProfile` to decide whether to
+  show a "Supplier Profile →" link or a "⚠️ Provision Profile" button. Only
+  the newer `GET /users/:id/detail` endpoint (via
+  `adminUserSummary.service.js`'s `getUserDetail()`) actually populates
+  `supplierProfile`. Net effect: **today, every supplier-role user on this
+  page shows "⚠️ Provision Profile", even ones who already have a profile** —
+  the page can't currently tell an admin whether a role-supplier user has a
+  real linked supplier record. This needs fixing regardless of the
+  conversion feature, and matters directly for it: an admin deciding whether
+  to convert someone needs accurate linkage state on screen.
+- The **Admin Supplier Detail** page (`admin-supplier-detail-init.js`) has
+  almost no awareness of the owning user at all. The Overview tab (the
+  default landing tab) shows business/contact fields only — no `ownerUserId`,
+  no role, no link. The only place a link to the user record appears is
+  buried three clicks deep, inside the **Action Prompts** tab's diagnostics
+  panel (`admin-supplier-detail-init.js:1188-1204`), which is really there
+  for a different purpose (email-preference diagnostics) and happens to
+  include a `View User Detail →` link as a side effect.
+- Reusable UI building blocks already in `public/assets/js/admin-shared.js`
+  fit this feature much better than a bare `<select>`:
+  - `AdminShared.showConfirmModal()` (line 418) — already used for
+    `deleteUser()` (`admin-user-detail-init.js:361-386`), which **already
+    has the exact warning pattern this feature needs**: it appends
+    `' This will delete the user, supplier profile, packages and public
+    listing data.'` to the confirmation message when `user.role ===
+    'supplier'`. A "convert to customer" confirmation should say the
+    equivalent thing about *suspending* rather than deleting.
+  - `AdminShared.showInputModal()` (line 616) — used throughout
+    `admin-supplier-detail-init.js` for approve/reject/request-changes/
+    suspend/verify, each with a required or optional reason field.
+  - A **select-in-modal role picker precedent already exists**:
+    `revokeAdmin()` in `public/assets/js/pages/admin-init.js:1295-1370`
+    builds a `<select id="revoke-admin-role">` with customer/supplier
+    options inside a modal, validated against
+    `AdminShared.validateRole(value, ['customer', 'supplier'])` — this is
+    the shape to copy for a "change account type" modal, not the bare form
+    `<select>`.
+  - `VALID_USER_ROLES = ['customer', 'supplier', 'admin']`
+    (`routes/admin-user-management.js:37`) already exists server-side for
+    validation and should be reused rather than re-declared.
+- `config/adminRegistry.js` is a flat page registry
+  (`REGISTRY` array, `route/htmlFile/label/icon/category/inNav`). Both
+  `admin-user-detail` and `admin-supplier-detail` are already registered
+  with `inNav: false` (accessed via query-string links). Adding a control to
+  an **existing** page requires no registry change; a **new** top-level admin
+  page would. The project has already stated a preference for evolving
+  existing pages over adding new ones for exactly this kind of feature
+  (`docs/ADMIN_USER_SYSTEMS_AUDIT.md`, "Why not Option B (new top-level
+  page)?" — nav clutter without added clarity).
+
+### 5.2 Where the control belongs: User Detail (primary), Supplier Detail (reflects it)
+
+Weighing the two candidates directly:
+
+| | Admin User Detail | Admin Supplier Detail |
+| --- | --- | --- |
+| Already has *a* role control | Yes (unsafe, unguarded `<select>`) | No |
+| Natural point for "this account is now a customer/supplier" | Yes — it's the account record | No — it's the business-profile record |
+| Handles the case with no supplier profile yet (customer→supplier) | Yes — user always exists | N/A — nothing to view until conversion happens |
+| Handles the case with no user context | N/A | Would need to fetch the user anyway |
+| Existing confirm-modal precedent to build on | Yes (`deleteUser`'s supplier warning) | Partial (approve/reject/suspend reason modals) |
+
+**Recommendation: the control lives on Admin User Detail**, replacing the
+current bare `<select>` + bundled-save with a dedicated action, because the
+account type is fundamentally a property of the *user* record, and that page
+already has the closest working precedent (the delete-user supplier warning).
+**Admin Supplier Detail does not get a duplicate control** — instead:
+- Promote the existing "View User Detail →" link out of the buried Action
+  Prompts tab onto the main Overview tab (it's presently only reachable via
+  `admin-supplier-detail-init.js:1196`, which the audit doc's own QA
+  checklist assumed was a prominent "linked user panel" — it isn't, today).
+- Show a passive status banner when the owning user's role no longer matches
+  (e.g. "⚠ Owner account is no longer a supplier — this listing is
+  suspended"), sourced from the same shared service, so an admin looking at
+  the supplier side understands *why* a listing went dark without needing to
+  separately go find and interpret the user record.
+
+This mirrors §5.1's own evidence: Supplier Detail's current user-awareness is
+an afterthought bolted onto an unrelated diagnostics tab, not a real "linked
+account" panel — building the primary action there would be building on top
+of that afterthought rather than fixing it.
+
+### 5.3 Design
+
+- **Reuse the same `services/accountTypeConversion.service.js`** designed in
+  §4.1 for both entry points — an admin conversion is the same state
+  transition with two differences: (a) no `supplierApplications` feature-flag
+  gate and no `supplierRegistrationRiskGuard` (an admin acting on a support
+  request isn't the anti-abuse scenario those exist for), and (b) no cooldown
+  (an admin may need to fix a mistake immediately, possibly repeatedly during
+  a single support conversation). The service functions should accept an
+  `actor: { type: 'self' | 'admin', id }` parameter so validation/audit
+  behaviour can branch on it without duplicating the core transaction logic.
+- **New admin endpoint**, not a reused generic `PUT /api/admin/users/:id`
+  body field: `POST /api/admin/users/:id/account-type` (`{ targetRole,
+  supplierInfo? }`), `roleRequired('admin')` + `csrfProtection`, calling the
+  shared service and logging `AUDIT_ACTIONS.USER_ROLE_CHANGED` with
+  `previousRole`/`newRole`/`adminActorId` — matching the convention the
+  grant/revoke-admin endpoints already use, instead of the generic
+  `user_edited` action the current `PUT /:id` role field produces. This also
+  finally gives admin-initiated customer↔supplier changes a dedicated,
+  filterable audit trail, which they don't have today.
+- **Remove `role` from the generic `PUT /api/admin/users/:id` edit-user
+  payload** (or make it a no-op there) once the dedicated endpoint exists, so
+  there's exactly one code path that can change a user's account type and it
+  always goes through the shared service — no way to bypass the
+  supplier-profile handling by editing the bare form field.
+- **Frontend**: replace the `<select id="userRole">` block
+  (`admin-user-detail-init.js:216-223`) with a read-only role badge plus a
+  "Change Account Type…" button, opening a modal built from
+  `AdminShared.showInputModal()` (or a small custom modal) containing: current
+  role, target role picker (reusing the `revokeAdmin()` select-in-modal
+  pattern and `VALID_USER_ROLES`), the supplier-info fields when targeting
+  `supplier`, and — when targeting `customer` and a supplier profile exists —
+  the same kind of explicit consequence warning `deleteUser()` already shows
+  (adapted from "will delete" to "will suspend the supplier profile,
+  packages and public listing").
+- **Fix the `supplierProfile` propagation bug** (§5.1) as part of this work:
+  either switch `admin-user-detail-init.js` to call `GET
+  /users/:id/detail` (which already returns `supplierProfile` via
+  `adminUserSummary.service.js`) instead of the plain `GET /users/:id`, or
+  add `supplierProfile` to `sanitizeAdminUser()`'s output. Needed regardless
+  of this feature, but the conversion UI depends on it being accurate.
+- Unlike the self-service flow, an admin-initiated conversion does **not**
+  need to reissue the *admin's own* session — it changes someone else's
+  account. But if that user has an active session, their existing JWT will
+  still carry the stale role for up to 7 days (§2.6's finding applies here
+  too) — call this out explicitly in the confirmation modal copy ("the user
+  may need to log out and back in, or their session will refresh within a
+  browser reload of a fresh page load that re-verifies the DB role") since
+  there's no server-push mechanism to invalidate their cookie early.
+
+### 5.4 Touch points (admin-side, additive to §4.3)
+
+| File | Change |
+| --- | --- |
+| `routes/admin-user-management.js` | New `POST /users/:id/account-type` endpoint using the shared service; remove/no-op the `role` field handling inside `PUT /users/:id` (lines 1942-1944, 1970-1989); add `supplierProfile` to `sanitizeAdminUser()` or switch the detail page to the `/detail` endpoint |
+| `public/assets/js/pages/admin-user-detail-init.js` | Replace the `<select id="userRole">` block (216-223) and its bundled handling in `saveUserChanges()` with a dedicated "Change Account Type…" action + modal |
+| `public/assets/js/pages/admin-supplier-detail-init.js` | Promote the "View User Detail →" link (currently only at line ~1196, Action Prompts tab) onto the Overview tab; add a passive "owner is no longer a supplier" banner when applicable |
+| `middleware/audit-actions.js` | No new entry needed — reuse the existing `USER_ROLE_CHANGED` (line 20) |
+
+---
+
+## 6. Testing plan
 
 Following existing repo conventions:
 
@@ -379,6 +563,16 @@ Following existing repo conventions:
   `tests/unit/supplier-profile-provisioning-hardening.test.js` to confirm the
   admin-initiated role-change path (which now shares the reactivation logic)
   is unaffected.
+- **Admin-side** (§5): new `tests/unit/admin-account-type-conversion.test.js`
+  covering the new `POST /users/:id/account-type` endpoint — admin-only
+  (403 for non-admin), no feature-flag/cooldown/risk-guard gating (unlike the
+  self-service path), correct `USER_ROLE_CHANGED` audit entry with
+  `adminActorId`, and the supplier→customer suspension path actually
+  suspending the `suppliers` doc (regression-testing the bug found in §5.1,
+  since today's `PUT /:id` silently doesn't). Also add a regression test
+  asserting `PUT /api/admin/users/:id` no longer changes `role` (or 400s if
+  a `role` field is present) once it's removed from that generic endpoint,
+  so a future edit can't silently reopen the old bypass.
 - **E2E** (`e2e/`): new `account-type-conversion.spec.js` (naming to match
   `e2e/customer-enquiry-flow.spec.js`, `e2e/auth.spec.js`) covering:
   customer converts to supplier via the Settings UI, fills the required
@@ -399,7 +593,7 @@ Following existing repo conventions:
 
 ---
 
-## 6. Open questions (need a product decision before implementation)
+## 7. Open questions (need a product decision before implementation)
 
 1. **Active Pro subscription on downgrade.** If a supplier with an active paid
    subscription (`suppliers.isPro`, `stripeCustomerId`) converts to customer,
@@ -430,32 +624,53 @@ Following existing repo conventions:
    gating the customer→supplier conversion direction, or introduce a
    dedicated flag so support/product can disable self-service conversion
    independently of new-signup supplier applications?
+7. **Admin override scope (§5).** Should an admin be able to bypass the
+   30-day self-service cooldown *and* re-trigger it (i.e. does an
+   admin-initiated conversion reset the user's own cooldown timer, or run
+   independently of it)? Recommendation: admin conversions run independently
+   and don't consume/reset the user's self-service cooldown, so a support fix
+   doesn't lock the user out of converting again themselves later.
+8. **Generic `PUT /api/admin/users/:id` role field (§5.3).** Removing `role`
+   from that endpoint's accepted body is the safer long-term fix (single code
+   path), but is a breaking change for any other internal caller of that
+   endpoint that currently sets `role` — worth a quick audit of callers
+   before committing to removal vs. leaving it as a deprecated/no-op field.
 
 ---
 
-## 7. Suggested phasing
+## 8. Suggested phasing
 
-1. Backend: service + route + reuse of `ensureSupplierProfileForUser` +
-   reactivation support + audit logging + unit/integration tests.
-2. Frontend: Settings UI (both directions) + e2e tests.
-3. Downgrade edge cases: subscription handling, badge handling, pending
-   enquiry notices (depends on answers to §6).
-4. Docs: new `docs/ACCOUNT_TYPE_CONVERSION.md` (user/support-facing,
+1. Backend: shared `accountTypeConversion.service.js` + self-service route +
+   reuse of `ensureSupplierProfileForUser` + reactivation support + audit
+   logging + unit/integration tests.
+2. Backend: admin route (§5.3) on the same shared service, `supplierProfile`
+   propagation fix (§5.1), removal of the `role` field from the generic
+   `PUT /api/admin/users/:id` payload.
+3. Frontend: self-service Settings UI (both directions) + e2e tests.
+4. Frontend: admin "Change Account Type…" control on User Detail (§5.2) +
+   Supplier Detail link promotion/status banner + admin e2e coverage.
+5. Downgrade edge cases: subscription handling, badge handling, pending
+   enquiry notices (depends on answers to §7).
+6. Docs: new `docs/ACCOUNT_TYPE_CONVERSION.md` (user/support-facing,
    analogous to `docs/supplier-verification.md`) once behaviour is final.
 
 ---
 
-## 8. Summary of files a future PR will likely touch
+## 9. Summary of files a future PR will likely touch
 
 ```
 NEW    services/accountTypeConversion.service.js
 NEW    tests/unit/account-type-conversion.test.js
+NEW    tests/unit/admin-account-type-conversion.test.js
 NEW    tests/integration/account-type-conversion-route.test.js
 NEW    e2e/account-type-conversion.spec.js
 NEW    docs/ACCOUNT_TYPE_CONVERSION.md              (post-implementation, user-facing)
 EDIT   routes/settings.js
+EDIT   routes/admin-user-management.js               (new admin endpoint; remove `role` handling from PUT /:id; fix supplierProfile propagation)
 EDIT   services/supplierProfileProvisioning.service.js
 EDIT   models/index.js
 EDIT   public/settings.html
-EDIT   public/assets/js/pages/settings-init.js       (or equivalent settings page script)
+EDIT   public/assets/js/pages/settings-init.js
+EDIT   public/assets/js/pages/admin-user-detail-init.js   (replace bare role <select> with guarded action + modal)
+EDIT   public/assets/js/pages/admin-supplier-detail-init.js  (promote linked-user link; add owner-status banner)
 ```
