@@ -570,17 +570,15 @@
   }
 
   /*
-   * The original implementation referenced four SVG clipPaths in the page.
-   * Their control points were numerically different, but in practice three of
-   * them collapsed visually into near-identical rounded rectangles. Keep the
-   * legacy clipPath variable for compatibility/tests, but use explicit 100x100
-   * SVG masks here: the silhouette is now part of this design layer and scales
-   * deterministically with each Pexels image/video box.
+   * The page's inline clipPaths are retained as a broad compatibility clip,
+   * while the explicit 100x100 mask below carries the traced silhouette. This
+   * keeps the existing image/video path contract intact and gives WebKit the
+   * prefixed mask it needs. The mask is intentionally the tighter of the two.
    */
   .home-v2-page .hero-collage .hero-collage-card::before,
   .home-v2-page .hero-collage .hero-collage-card img,
   .home-v2-page .hero-collage .hero-collage-card video {
-    clip-path: none;
+    clip-path: var(--hv2-mask);
     -webkit-mask-image: var(--hv2-mask-image);
     mask-image: var(--hv2-mask-image);
     -webkit-mask-size: 100% 100%;
@@ -617,14 +615,13 @@
   }
 
   /*
-   * These data-URI masks are deliberately different silhouettes, traced as
-   * soft asymmetric pebbles rather than random blobs. The numbers are in a
-   * 100x100 viewBox, so there is no browser-specific objectBoundingBox path
-   * interpretation and no dependence on the source image dimensions.
+   * Each silhouette was checked against the approved render at its measured
+   * card aspect ratio, rather than as a square. The cards share a visual family
+   * but deliberately do not share one border-radius/squircle geometry.
    */
   .home-v2-page .hero-collage-card[data-category='venues'] {
     --hv2-mask: url(#hv2-mask-venues);
-    --hv2-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cpath fill='black' d='M23 2.5 C39 -0.5 61 0.5 73 8 C84 15 93 23 97 34 C100 45 99.5 61 95 71 C89 83 77 91 62 95 C47 100 30 98.5 18 91 C8 84 2.5 72 1 58 C-0.5 43 2.5 27 9 17 C13 10 17 5.5 23 2.5 Z'/%3E%3C/svg%3E");
+    --hv2-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cpath fill='black' d='M36 0 C54 -2 72 1 82 8 C94 17 100 31 100 47 C100 62 95 73 88 82 C78 92 62 98 46 100 C31 100 17 95 9 85 C2 76 -1 63 0 50 C0 36 5 24 14 15 C20 8 28 3 36 0 Z'/%3E%3C/svg%3E");
     top: 0;
     left: 0;
     z-index: 1;
@@ -634,7 +631,7 @@
 
   .home-v2-page .hero-collage-card[data-category='catering'] {
     --hv2-mask: url(#hv2-mask-catering);
-    --hv2-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cpath fill='black' d='M27 2.5 C44 -0.5 64 1.5 77 7 C90 12 98 23 99.5 37 C100 51 96.5 66 90 77 C83 89 72 97 59 98.5 C43 99.5 25 96.5 13 89 C3.5 83 -0.5 72 1 59 C1.5 44 5 27 12 16 C16 9 21 4.5 27 2.5 Z'/%3E%3C/svg%3E");
+    --hv2-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cpath fill='black' d='M22 0 C40 -2 60 2 76 10 C90 17 98 30 100 43 C100 57 95 71 86 82 C80 90 75 96 70 100 C59 100 43 98 32 94 C17 92 7 85 2 75 C-2 66 0 56 3 46 C7 34 11 24 15 15 C17 8 19 3 22 0 Z'/%3E%3C/svg%3E");
     top: 3.64%;
     left: 62.35%;
     z-index: 3;
@@ -644,7 +641,7 @@
 
   .home-v2-page .hero-collage-card[data-category='entertainment'] {
     --hv2-mask: url(#hv2-mask-entertainment);
-    --hv2-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cpath fill='black' d='M28 2.5 C42 -1 62 -0.5 75 3.5 C87 7.5 94 16 96.5 29 C99 43 100 61 96.5 75 C94 87 86 95 73 97.5 C58 100 39 99.5 26 95.5 C14 91.5 7.5 82 4.5 69 C1.5 55 -0.5 37 2.5 24 C5.5 12 15 5.5 28 2.5 Z'/%3E%3C/svg%3E");
+    --hv2-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cpath fill='black' d='M17 6 C36 1 58 -2 73 2 C88 6 96 18 99 33 C102 49 99 66 93 79 C87 90 76 97 62 99 C48 102 34 100 25 96 C13 91 8 80 4 67 C1 57 -1 48 0 40 C0 29 1 23 6 16 C9 11 12 8 17 6 Z'/%3E%3C/svg%3E");
     top: 54.78%;
     left: 3.3%;
     z-index: 4;
@@ -654,7 +651,7 @@
 
   .home-v2-page .hero-collage-card[data-category='photography'] {
     --hv2-mask: url(#hv2-mask-photography);
-    --hv2-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cpath fill='black' d='M25 2 C40 -0.5 61 0.5 74 5.5 C88 10.5 96.5 21 99 35 C100 49 98.5 65 94 77 C89.5 89 79 96.5 65 99 C50 100 33 98.5 21 94 C9 89.5 3 80 1.5 67 C-0.5 52 1 34 5.5 22 C9.5 11 16 4.5 25 2 Z'/%3E%3C/svg%3E");
+    --hv2-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cpath fill='black' d='M18 0 C38 -2 60 0 74 6 C88 12 97 24 100 39 C102 54 98 70 90 82 C83 93 70 99 55 100 C40 101 26 98 17 92 C7 85 3 74 1 60 C-1 44 0 30 5 19 C8 10 12 4 18 0 Z'/%3E%3C/svg%3E");
     top: 53.72%;
     left: 59.05%;
     z-index: 4;
