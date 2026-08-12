@@ -2,8 +2,14 @@ const fs = require('fs');
 const path = require('path');
 
 const root = path.resolve(__dirname, '../..');
-const heroJs = fs.readFileSync(path.join(root, 'public/assets/js/pages/home-v2-hero.js'), 'utf8');
-const traceSource = fs.readFileSync(path.join(root, 'docs/assets/hero-collage-blob.py'), 'utf8');
+const heroJs = fs.readFileSync(
+  path.join(root, 'public/assets/js/pages/home-v2-hero.js'),
+  'utf8'
+);
+const traceSource = fs.readFileSync(
+  path.join(root, 'docs/assets/hero-collage-blob.py'),
+  'utf8'
+);
 
 const names = ['venues', 'catering', 'entertainment', 'photography'];
 
@@ -53,14 +59,14 @@ function extractTraceMask(name) {
 }
 
 function coordinates(d) {
-  return [...d.matchAll(/(-?\d*\.?\d+),(-?\d*\.?\d+)/g)].map((match) => [
+  return [...d.matchAll(/(-?\d*\.?\d+),(-?\d*\.?\d+)/g)].map(match => [
     Number(match[1]),
     Number(match[2]),
   ]);
 }
 
 describe('Homepage V2 approved-render collage masks', () => {
-  test.each(names)('%s uses the checked-in reference trace', (name) => {
+  test.each(names)('%s uses the checked-in reference trace', name => {
     const runtime = extractJsMask(name);
     const source = extractTraceMask(name);
 
