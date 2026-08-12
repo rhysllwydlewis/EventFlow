@@ -7,20 +7,49 @@ const traceSource = fs.readFileSync(path.join(root, 'docs/assets/hero-collage-bl
 
 const names = ['venues', 'catering', 'entertainment', 'photography'];
 
+function quotedValueAfter(source, marker, quote) {
+  const markerIndex = source.indexOf(marker);
+  if (markerIndex === -1) {
+    return null;
+  }
+
+  const valueStart = source.indexOf(quote, markerIndex + marker.length);
+  if (valueStart === -1) {
+    return null;
+  }
+
+  const valueEnd = source.indexOf(quote, valueStart + 1);
+  if (valueEnd === -1) {
+    return null;
+  }
+
+  return source.slice(valueStart + 1, valueEnd);
+}
+
 function extractJsMask(name) {
-  const match = heroJs.match(new RegExp(`${name}:\\s*\\n?\\s*'([^']+)'`));
-  if (!match) {
+  const mask = quotedValueAfter(heroJs, `${name}:`, "'");
+  if (!mask) {
     throw new Error(`Missing ${name} reference mask in home-v2-hero.js`);
   }
-  return match[1];
+  return mask;
 }
 
 function extractTraceMask(name) {
-  const match = traceSource.match(new RegExp(`"${name}":\\s*"([^"]+)"`));
-  if (!match) {
+  // Include the opening quote in the marker so the earlier REFERENCE card
+  // metadata entry (`"venues": { ... }`) cannot be mistaken for MASKS data.
+  const marker = `"${name}": "`;
+  const markerIndex = traceSource.indexOf(marker);
+  if (markerIndex === -1) {
     throw new Error(`Missing ${name} reference mask in hero-collage-blob.py`);
   }
-  return match[1];
+
+  const valueStart = markerIndex + marker.length;
+  const valueEnd = traceSource.indexOf('"', valueStart);
+  if (valueEnd === -1) {
+    throw new Error(`Unterminated ${name} reference mask in hero-collage-blob.py`);
+  }
+
+  return traceSource.slice(valueStart, valueEnd);
 }
 
 function coordinates(d) {
