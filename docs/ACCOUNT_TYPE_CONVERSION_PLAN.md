@@ -333,22 +333,50 @@ default: **suspend, don't delete.**
     `approvedAt`/`approvedBy` appropriately), not just flip `status`** —
     `approved: false` is what actually hides the listing across nearly
     every consumer-facing surface, `status: 'suspended'` alone would not.
-    Setting both (`approved: false` **and** `status: 'suspended'`) is the
-    correct combination: it satisfies every filter found, including
-    `supplier.service.js`'s stricter check, and keeps the verification
-    state machine's own `suspended` status semantically accurate for admin
-    tooling.
-  - **Must also call `catalogCache.invalidate()`** after the update —
-    `services/catalogCache.js`'s own doc comment states it must be called
-    "whenever a supplier is created, updated, approved, rejected, or
-    suspended," and `services/adminUserDeletion.service.js:110` is the
-    existing precedent for calling it as part of an account-lifecycle
-    change. (Note in passing, not this feature's problem to fix: grepping
-    for `catalogCache.invalidate` turned up no call from
-    `routes/supplier-admin.js`'s own suspend/approve/reject endpoints
-    either — suggesting the _existing_ admin suspend flow may already have
-    the same staleness gap. Worth a heads-up to whoever picks this up, but
-    out of scope here.)
+  - **There is an existing admin endpoint that already does almost exactly
+    this — reuse its logic rather than reinventing it**: an earlier pass of
+    this plan incorrectly claimed `routes/supplier-admin.js`'s own
+    suspend/approve/reject endpoints don't call `catalogCache.invalidate()`
+    either. They do — every one of them
+    (`routes/supplier-admin.js` lines ~320, ~393, ~462, ~532, ~670, ~750).
+    In particular, `POST /suppliers/:id/suspend`
+    (`routes/supplier-admin.js:~480-536`) is the closest existing precedent
+    for the whole downgrade operation, not just the cache-invalidation
+    piece — it already sets:
+    ```js
+    const updates = {
+      verificationStatus: VERIFICATION_STATES.SUSPENDED,
+      verified: false,
+      approved: false,
+      verificationNotes: reason,
+      suspendedAt: now,
+      suspendedBy: req.user.id,
+      updatedAt: now,
+    };
+    ```
+    then writes an audit log entry, sends a "suspended" notification email,
+    and calls `catalogCache.invalidate()` — the complete recipe this
+    section was independently re-deriving. **The conversion service should
+    call this same update logic (or a shared helper extracted from it)**,
+    adapted to look the supplier up by `ownerUserId` instead of an
+    admin-supplied `:id`, rather than writing a parallel implementation.
+  - **Two distinct fields both happen to have a `'suspended'` value — don't
+    conflate them.** `verificationStatus` (`unverified | pending_review |
+approved | rejected | suspended | needs_changes`,
+    `docs/supplier-verification.md`) is the admin verification state
+    machine — this is the field the existing suspend endpoint above sets.
+    `status` (`draft | published | suspended`, `Supplier.VALID_STATUSES`)
+    is a _separate_, simpler publishing-workflow field that the suspend
+    endpoint above does **not** touch, but which still needs to move away
+    from `'published'` for `supplier.service.js`'s stricter
+    `status === 'published' && approved === true` check to correctly
+    exclude the listing. **The full, correct set for the conversion's
+    downgrade path is four fields**: `approved: false`, `verified: false`,
+    `verificationStatus: 'suspended'` (mirroring the existing endpoint
+    exactly) **and** `status: 'suspended'` (the one field that endpoint
+    doesn't set, but which this plan's own research found is still needed
+    for `supplier.service.js`'s surface) — plus the same
+    `catalogCache.invalidate()` call the existing endpoint already makes.
   - On **reactivation** (§3.2), the reverse applies: don't blindly restore
     `approved: true` — route back through `pending_review` (as already
     recommended in §3.2) and let the normal verification-approval flow set
@@ -457,7 +485,7 @@ null)` — reading `role`, not `targetRole`. Two concrete adjustments are
      submitted registration form field.
   - **Also must call `completeRegistrationRisk(req, userId)`
     (`partnerRegistrationRiskService.js:1003-1010`) on success**, exactly
-    as `routes/auth.js:462` does after a successful registration — using
+    as `routes/auth.js:446` does after a successful registration — using
     the _existing_ user's id (this isn't user creation, it's a role
     change on an existing account). Skipping this isn't just an omission:
     the guard's own `res.once('finish', ...)` handler
@@ -1115,16 +1143,33 @@ blur(12px)`, glass card `rgba(255,255,255,.92)`, `border-radius:16px`,
   actually render here, not the inline-styled fallback further down in
   `showToast`'s body. Those render via the shared `.toast-container`/`.toast`
   classes, which get their final appearance from whichever loaded
-  stylesheet wins the cascade for those class names — and since
-  `admin-enhanced.css` (bottom-right, `border-left:4px solid`, per-type
-  icon/colour, `admin-enhanced.css:2050-2129`) is `<link>`ed _after_
-  `components.css` (plain top-right, no left border) in this page's
-  `<head>`, `admin-enhanced.css`'s rules win. **Net effect: `showToast` on
-  this page already renders with the fuller bottom-right, left-border-accent
-  treatment — the same visual result `showEnhancedToast` would produce.**
-  There's no meaningful visual difference to choose between here; use
-  `showToast` simply because it's the call every neighbouring action on
-  this page already makes, not because it looks plainer (it doesn't).
+  stylesheet wins the cascade — and since `admin-enhanced.css`
+  (`admin-enhanced.css:2050-2129`) is `<link>`ed _after_ `components.css`
+  in this page's `<head>`, its bottom-right positioning wins over
+  `components.css`'s top-right rule. **But the per-type left-border colour
+  does not actually apply — worth getting right, not glossing over**:
+  `Toast.show()` (`components.js:183`) sets `toast.className =
+  \`toast toast-${type}\``(e.g.`"toast toast-success"`), while
+  `admin-enhanced.css`'s colour rules are the _compound_ selectors
+  `.toast.success`/`.toast.error`/etc. (`admin-enhanced.css:2073-2086`) —
+  requiring a literal `success`class on the element, which never exists
+  (only`toast-success`does), so those colour rules never match. The
+  unconditional`.toast { border-left: 4px solid; }`(line 2070, no colour
+  specified) still applies, rendering a plain uncoloured border rather than
+  a colour-coded accent. The icon _does_ still get the right colour, but via
+  a different, correctly-matching selector in`components.css`
+  (`.toast-success .toast-icon`, a descendant selector that only needs
+  `.toast-success`to exist anywhere as an ancestor class, not compounded
+  with`.toast`). **Net effect: `showToast`on this page renders
+  bottom-right with a correctly-coloured icon but an uncoloured left
+  border** — closer to`showEnhancedToast`'s intended look than a plain
+  flat toast, but not identical to it. Still use `showToast`(it's what
+  every neighbouring action on this page already calls), just don't
+  describe the result as fully matching`showEnhancedToast`'s styling —
+  it's a pre-existing CSS bug in the admin panel (a compound selector that
+  doesn't match the class the JS actually generates), not something this
+  feature needs to fix, but also not something to mischaracterize as
+  working.
 - **Supplier Detail page** (§5.2's promoted link + status banner): style the
   "owner is no longer a supplier" banner with the admin warning palette
   already established for verification notices (`#fef3c7` background /
