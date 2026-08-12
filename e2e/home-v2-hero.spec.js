@@ -221,6 +221,8 @@ test.describe('homepage V2 hero', () => {
       };
       return {
         ratio: box.width / box.height,
+        width: box.width,
+        height: box.height,
         venues: of('venues'),
         catering: of('catering'),
         entertainment: of('entertainment'),
@@ -229,6 +231,15 @@ test.describe('homepage V2 hero', () => {
     });
 
     expect(layout.ratio).toBeCloseTo(757 / 659, 2);
+
+    // At the design's own viewport the collage is not just the right shape but
+    // the right size: 757 x 659. That falls out of the container width and the
+    // column gap, so it silently drifts if either is changed for another
+    // reason — which is how it spent a while rendering 13px narrow.
+    expect(layout.width).toBeGreaterThan(750);
+    expect(layout.width).toBeLessThan(765);
+    expect(layout.height).toBeGreaterThan(652);
+    expect(layout.height).toBeLessThan(667);
 
     const expected = {
       venues: { left: 0, top: 0, width: 85.2, height: 74.96 },

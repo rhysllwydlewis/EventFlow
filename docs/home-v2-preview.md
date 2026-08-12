@@ -51,7 +51,10 @@ shared stylesheet was edited, so V1 and V3 are untouched.
 ### Collage geometry
 
 The collage is not eyeballed. It is a 757 × 659 box (`aspect-ratio: 757 / 659`) measured
-from the design, with each card a fixed percentage of it:
+from the design, with each card a fixed percentage of it. It is also that size in absolute
+terms at the design's own 1672px viewport, which is why the hero container is
+`min(1585px, 94.5%)`: two equal columns plus the `4vw` gap have to add up to the design's
+frame, and a narrower container renders the whole composition a few per cent small.
 
 | Card          | Left   | Top    | Width  | Height | z   |
 | ------------- | ------ | ------ | ------ | ------ | --- |
@@ -66,14 +69,29 @@ card takes its own `clipPath` in `objectBoundingBox` units (the four `#hv2-mask-
 `home-v2.html`) so the silhouettes scale with the box; `border-radius` cannot express them
 because it only ever draws four elliptical quadrants.
 
-The boxes above are measured; the silhouettes are traced. Catering, entertainment and
-photography are superellipses — a straight run along each edge joined by large, unequal
-corner arcs — generated from per-corner radii of roughly 0.3 of each side. The feature card
-is the exception: in the design it has almost no straight edge, so its corner radii run to
-0.5 and it reads as an organic blob with a shoulder about 37% across the top and its widest
-point about 42% down the left. Radii that make the other three read correctly make the
-feature card read as a rounded rectangle, which is the single most visible way to get this
-composition wrong.
+The boxes above are measured; the silhouettes are Lame curves. A shape built from four
+corner arcs — the `border-radius` model — can only be an ellipse or a rounded rectangle,
+because the arcs are elliptical: enlarging them until the straight edges disappear turns the
+whole shape into an ellipse. The design's blobs are neither. They are _fuller_ than an
+ellipse with no straight edge anywhere, which is a superellipse:
+
+    |x/a|^n + |y/b|^n = 1
+
+`n = 2` is an ellipse, large `n` is a rectangle, and the design lives in between. The
+generator is `docs/assets/hero-collage-blob.py`; each shape is four quadrants, each with its own
+`n`, sampled and joined with Catmull-Rom into cubic Béziers. Two knobs do all the work:
+
+- **`n` — fullness.** Catering, entertainment and photography sit around `4.0`–`4.2`, which
+  reads as a squircle. The feature card sits at `2.8`–`3.0`, fuller than an ellipse but
+  clearly organic.
+- **`cx`, `cy` — where the extremes fall.** The top and bottom of the shape sit at `x = cx`,
+  the left and right at `y = cy`. The three small cards are near-centred; the feature card
+  is `0.40 / 0.45`, which puts its shoulder left of centre and its widest point above centre,
+  and that asymmetry is what stops it reading as a lozenge.
+
+Earlier passes tried this with corner radii and had to choose between the three small cards
+reading as rounded rectangles or the feature card reading as an oval. Both were wrong, and
+the feature card is the one that shows it.
 
 The mask sits on the card's media and on a `::before` inset by `-3px`, not on the card
 itself, so the white backing can follow the same contour 3px outside the image and read as
