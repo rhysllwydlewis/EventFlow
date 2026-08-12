@@ -197,3 +197,134 @@
   .settings-spinner { animation: none; opacity: 0.6; }
 }
 
+/* ===========================================
+   ACCOUNT TYPE SECTION
+   =========================================== */
+
+.settings-account-type-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #ccfbf1 0%, #99f6e4 100%);
+  color: #134e4a;
+  border: 1px solid #14b8a6;
+  box-shadow: 0 1px 3px rgba(20, 184, 166, 0.2);
+}
+
+/* Scaled-down version of auth.css's .auth-signup-choice glass treatment, so
+   the customer->supplier picker reads as a continuation of the same premium
+   choice the user already saw at signup, not a flat card. auth.css itself
+   isn't loaded on /settings, so this is copied rather than referenced. */
+.settings-role-glow {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 8% 0%, rgba(19, 182, 162, 0.2), transparent 28%),
+    radial-gradient(circle at 100% 12%, rgba(11, 128, 115, 0.12), transparent 30%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.78), rgba(240, 253, 250, 0.56));
+  border: 1px solid rgba(11, 128, 115, 0.18);
+  border-radius: 18px;
+  box-shadow: 0 14px 34px rgba(11, 128, 115, 0.09), inset 0 1px 0 rgba(255, 255, 255, 0.88);
+  padding: 1.125rem;
+  margin-top: 0.875rem;
+}
+
+.settings-role-picker {
+  display: flex;
+  gap: 0.625rem;
+}
+
+/* auth.css:1401-1443 — copied verbatim, since auth.css isn't loaded here. */
+.role-pill,
+.auth-role-option {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 9px 13px;
+  border: 1.5px solid rgba(11, 128, 115, 0.2);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.6);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: auto !important;
+  margin-top: 0 !important;
+  text-align: center;
+}
+.role-pill:hover,
+.auth-role-option:hover {
+  border-color: rgba(11, 128, 115, 0.5);
+  background: rgba(11, 128, 115, 0.06);
+  color: #0b8073;
+}
+.role-pill.is-active,
+.auth-role-option.auth-role-option--active {
+  border-color: #0b8073;
+  background: rgba(11, 128, 115, 0.1);
+  color: #0b8073;
+  font-weight: 600;
+}
+.role-pill:focus-visible,
+.auth-role-option:focus-visible {
+  outline: 2px solid #0b8073;
+  outline-offset: 2px;
+}
+
+@media (max-width: 640px) {
+  .settings-role-picker { flex-direction: column; gap: 0.5rem; }
+  .role-pill, .auth-role-option { width: 100% !important; text-align: center; }
+}
+
+.settings-account-type-fields {
+  margin-top: 1rem;
+  animation: settingsSupplierFieldsReveal 0.24s ease both;
+}
+
+@keyframes settingsSupplierFieldsReveal {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .settings-account-type-fields { animation: none; }
+}
+
+.settings-account-type-caution {
+  margin-top: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  color: #78350f;
+}
+
+/* Downgrade confirmation modal reuses components.css's .modal/.modal-overlay
+   (Modal class in components.js) for the premium blur+spring-scale entrance
+   the flat #delete-account-modal doesn't have — just adding the type-CONVERT
+   input styling this feature-specific modal body needs. */
+.settings-convert-confirm-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.625rem 0.875rem;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-family: inherit;
+  margin-top: 0.5rem;
+}
+.settings-convert-confirm-input:focus {
+  outline: none;
+  border-color: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
+}
+

@@ -214,12 +214,15 @@
             <input type="email" id="userEmail" value="${esc(user.email || '')}" required>
           </div>
           <div class="form-row">
-            <label for="userRole">Role</label>
-            <select id="userRole">
-              <option value="customer" ${user.role === 'customer' ? 'selected' : ''}>Customer</option>
-              <option value="supplier" ${user.role === 'supplier' ? 'selected' : ''}>Supplier</option>
-              <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Admin</option>
-            </select>
+            <label>Account Type</label>
+            <div style="display:flex;align-items:center;gap:0.75rem;">
+              ${roleBadge(user.role)}
+              ${
+                user.role === 'admin'
+                  ? ''
+                  : '<button type="button" class="ef-cta btn btn-secondary btn-sm" id="changeAccountTypeBtn">Change Account Type…</button>'
+              }
+            </div>
           </div>
           <div class="form-row">
             <label>
@@ -277,22 +280,19 @@
       .getElementById('suspendUserBtn')
       .addEventListener('click', () => toggleSuspend(userId, user.suspended));
     document.getElementById('deleteUserBtn').addEventListener('click', () => deleteUser(user));
+
+    const changeAccountTypeBtn = document.getElementById('changeAccountTypeBtn');
+    if (changeAccountTypeBtn) {
+      changeAccountTypeBtn.addEventListener('click', () => openAccountTypeModal(user));
+    }
   }
 
   // ── Actions ────────────────────────────────────────────────────────────────
   async function saveUserChanges(id) {
-    const data = {
-      name: document.getElementById('userName').value.trim(),
-      email: document.getElementById('userEmail').value.trim(),
-      role: document.getElementById('userRole').value,
-      verified: document.getElementById('userVerified').checked,
-      marketingOptIn: document.getElementById('userMarketingOptIn').checked,
-    };
     try {
       const data = {
-        name: document.getElementById('userName').value,
-        email: document.getElementById('userEmail').value,
-        role: document.getElementById('userRole').value,
+        name: document.getElementById('userName').value.trim(),
+        email: document.getElementById('userEmail').value.trim(),
         verified: document.getElementById('userVerified').checked,
         marketingOptIn: document.getElementById('userMarketingOptIn').checked,
       };
@@ -383,6 +383,72 @@
     } catch (err) {
       AdminShared.showToast(`Failed: ${err.message}`, 'error');
     }
+  }
+
+  // Change Account Type modal — uses the Modal class (components.js), the only
+  // option on this page with real <select> support (AdminShared.showInputModal
+  // only renders text/textarea). Mirrors revokeAdmin()'s select-in-modal
+  // pattern in admin-init.js. Calls the shared accountTypeConversion service
+  // via POST /api/admin/users/:id/account-type, not the generic PUT /:id
+  // (which no longer accepts a role field at all).
+  async function openAccountTypeModal(user) {
+    if (typeof Modal === 'undefined') {
+      AdminShared.showToast('Unable to open the account type dialog (Modal unavailable)', 'error');
+      return;
+    }
+
+    const otherRole = user.role === 'supplier' ? 'customer' : 'supplier';
+    const content = document.createElement('div');
+    content.innerHTML = `
+      <p>Change this account's type.</p>
+      <div style="margin-top:1rem;">
+        <label style="display:block;margin-bottom:4px;font-weight:600;">New account type</label>
+        <select id="account-type-target" style="width:100%;padding:8px;border:1px solid #d4d4d8;border-radius:4px;">
+          <option value="customer" ${otherRole === 'customer' ? 'selected' : ''}>Customer</option>
+          <option value="supplier" ${otherRole === 'supplier' ? 'selected' : ''}>Supplier</option>
+        </select>
+      </div>
+      <div id="account-type-supplier-fields" style="margin-top:0.75rem;${otherRole === 'supplier' ? '' : 'display:none;'}">
+        <label style="display:block;margin-bottom:4px;font-weight:600;">Company / business name</label>
+        <input type="text" id="account-type-company" value="${esc(user.company || '')}" style="width:100%;padding:8px;border:1px solid #d4d4d8;border-radius:4px;">
+      </div>
+      ${
+        user.role === 'supplier'
+          ? '<p id="account-type-downgrade-warning" style="margin-top:0.75rem;color:#ef4444;font-weight:600;">This will suspend the user\'s supplier profile, packages and public listing — they can switch back later to reactivate it.</p>'
+          : '<p id="account-type-downgrade-warning" style="display:none;margin-top:0.75rem;color:#ef4444;font-weight:600;">This will suspend the user\'s supplier profile, packages and public listing — they can switch back later to reactivate it.</p>'
+      }
+    `;
+
+    const select = content.querySelector('#account-type-target');
+    const supplierFields = content.querySelector('#account-type-supplier-fields');
+    const downgradeWarning = content.querySelector('#account-type-downgrade-warning');
+    select.addEventListener('change', () => {
+      const toSupplier = select.value === 'supplier';
+      supplierFields.style.display = toSupplier ? 'block' : 'none';
+      downgradeWarning.style.display = toSupplier ? 'none' : 'block';
+    });
+
+    const modal = new Modal({
+      title: 'Change Account Type',
+      content,
+      confirmText: 'Continue',
+      cancelText: 'Cancel',
+      onConfirm: async () => {
+        const targetRole = content.querySelector('#account-type-target').value;
+        const company = content.querySelector('#account-type-company')?.value.trim();
+        try {
+          await AdminShared.api(`/api/admin/users/${encodedUserId}/account-type`, 'POST', {
+            targetRole,
+            supplierInfo: targetRole === 'supplier' ? { company } : undefined,
+          });
+          AdminShared.showToast(`Account type changed to ${targetRole}`, 'success');
+          await loadUserDetails();
+        } catch (err) {
+          AdminShared.showToast(`Failed to change account type: ${err.message}`, 'error');
+        }
+      },
+    });
+    modal.show();
   }
 
   async function provisionSupplierProfile(userId) {

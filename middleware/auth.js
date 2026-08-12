@@ -195,11 +195,16 @@ async function authRequired(req, res, next) {
       });
     }
 
-    // Attach only minimal user object to prevent stale data
+    // Attach only minimal user object to prevent stale data.
+    // role comes from the freshly-read dbUser, not the JWT claim (u.role) — the
+    // JWT is signed at login and can be up to 7 days stale. Reading role from
+    // the DB here (already fetched above) means an account-type conversion
+    // takes effect on the very next request, not just the next login. See
+    // docs/ACCOUNT_TYPE_CONVERSION_PLAN.md §2.6.
     req.user = {
       id: u.id,
       email: u.email,
-      role: u.role,
+      role: dbUser.role,
       name: dbUser.name || null,
       firstName: dbUser.firstName || null,
       displayName: dbUser.displayName || null,

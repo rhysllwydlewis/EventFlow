@@ -393,6 +393,90 @@
   </form>
 </div>
 
+<!-- Account Type Card -->
+<div class="card" style="margin-top:1.5rem;display:none;" id="account-type-card">
+  <h2 class="settings-section-title">Account Type</h2>
+  <p class="settings-card-text">Your account type controls what you can do on EventFlow — browse and book as a customer, or list your business as a supplier.</p>
+
+  <div class="settings-row-sm">
+    <span id="account-type-badge" class="settings-account-type-badge">Currently: Customer</span>
+  </div>
+
+  <p id="account-type-cooldown-note" class="settings-micro-hint" style="display:none;"></p>
+
+  <!-- Customer → Supplier -->
+  <div id="account-type-become-supplier" style="display:none;">
+    <div class="settings-role-glow">
+      <div class="settings-role-picker" role="group" aria-label="Switch account type">
+        <button type="button" class="role-pill is-active" id="account-type-pill-customer" aria-pressed="true">🎉 Stay a Customer</button>
+        <button type="button" class="role-pill" id="account-type-pill-supplier" aria-pressed="false">🏪 Become a Supplier</button>
+      </div>
+
+      <div id="account-type-supplier-fields" class="settings-account-type-fields" style="display:none;">
+        <div class="form-row">
+          <label for="at-company">Business / Company Name</label>
+          <input type="text" id="at-company" maxlength="100" placeholder="Your business name" autocomplete="organization">
+        </div>
+        <div class="form-row settings-grid">
+          <div>
+            <label for="at-category">Category</label>
+            <select id="at-category" name="category">
+              <option value="">Choose a category…</option>
+              <option>Venues</option>
+              <option>Catering</option>
+              <option>Photography</option>
+              <option>Videography</option>
+              <option>Entertainment</option>
+              <option>Music/DJ</option>
+              <option>Florist</option>
+              <option>Decor</option>
+              <option>Transport</option>
+              <option>Cake</option>
+              <option>Stationery</option>
+              <option>Hair &amp; Makeup</option>
+              <option>Beauty</option>
+              <option>Bridalwear</option>
+              <option>Jewellery</option>
+              <option>Celebrant</option>
+              <option>Event Planner</option>
+              <option>Wedding Fayre</option>
+              <option>Planning</option>
+              <option>Other</option>
+            </select>
+          </div>
+          <div>
+            <label for="at-location">Location <span class="settings-sub-label">(optional)</span></label>
+            <input type="text" id="at-location" maxlength="200" placeholder="London, UK" autocomplete="address-level2">
+          </div>
+        </div>
+        <p class="settings-info-box">You'll be moved to your new Supplier Dashboard to finish setting up your listing and submit it for review — your customer account stays exactly as it is otherwise.</p>
+        <div class="form-actions">
+          <button class="cta" type="button" id="account-type-supplier-submit">Switch to a supplier account</button>
+          <span id="account-type-supplier-status" style="font-size:0.875rem;" role="status" aria-live="polite"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Supplier → Customer -->
+  <div id="account-type-become-customer" style="display:none;margin-top:0.875rem;">
+    <div class="settings-space-between">
+      <div>
+        <p class="settings-item-title">Switch to a customer account</p>
+        <p class="settings-item-desc">Your supplier listing will be paused (not deleted) while you're a customer. You can switch back later to reactivate it.</p>
+      </div>
+      <button type="button" id="account-type-customer-trigger"
+        class="settings-sm-btn settings-sm-btn--danger"
+        aria-label="Switch to a customer account">
+        Switch to a customer account
+      </button>
+    </div>
+    <span id="account-type-customer-status" style="font-size:0.875rem;" role="status" aria-live="polite"></span>
+  </div>
+</div>
+
+<!-- Downgrade confirmation modal is built with the Modal class (components.js) at runtime -->
+
 <!-- Notification Preferences Card -->
 <div class="card" style="margin-top:1.5rem;">
   <h2 class="settings-section-heading">Notification Preferences</h2>

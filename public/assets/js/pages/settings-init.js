@@ -83,6 +83,8 @@ async function loadProfile() {
     // Notification
     document.getElementById('notify').checked = user.notify !== false;
 
+    renderAccountType(user);
+
     // Show supplier dashboard callout for supplier accounts
     if (user.role === 'supplier') {
       const callout = document.getElementById('supplier-profile-callout');
@@ -738,4 +740,204 @@ loadNotificationSettings();
 
   // Close modal on Escape key
   // Escape key handled by _escapeHandler (registered on modal open)
+})();
+
+// ===== ACCOUNT TYPE (customer <-> supplier self-service conversion) =====
+function renderAccountType(user) {
+  const card = document.getElementById('account-type-card');
+  if (!card) {
+    return;
+  }
+  // Admin accounts don't go through this flow — the card stays hidden.
+  if (user.role === 'admin') {
+    card.style.display = 'none';
+    return;
+  }
+  card.style.display = 'block';
+
+  const badge = document.getElementById('account-type-badge');
+  const becomeSupplier = document.getElementById('account-type-become-supplier');
+  const becomeCustomer = document.getElementById('account-type-become-customer');
+
+  if (user.role === 'supplier') {
+    if (badge) {
+      badge.textContent = 'Currently: Supplier';
+    }
+    if (becomeSupplier) {
+      becomeSupplier.style.display = 'none';
+    }
+    if (becomeCustomer) {
+      becomeCustomer.style.display = 'block';
+    }
+  } else {
+    if (badge) {
+      badge.textContent = 'Currently: Customer';
+    }
+    if (becomeSupplier) {
+      becomeSupplier.style.display = 'block';
+    }
+    if (becomeCustomer) {
+      becomeCustomer.style.display = 'none';
+    }
+    const companyInput = document.getElementById('at-company');
+    if (companyInput && !companyInput.value && user.company) {
+      companyInput.value = user.company;
+    }
+    const locationInput = document.getElementById('at-location');
+    if (locationInput && !locationInput.value && user.location) {
+      locationInput.value = user.location;
+    }
+  }
+}
+
+(function () {
+  const pillCustomer = document.getElementById('account-type-pill-customer');
+  const pillSupplier = document.getElementById('account-type-pill-supplier');
+  const supplierFields = document.getElementById('account-type-supplier-fields');
+  const supplierSubmitBtn = document.getElementById('account-type-supplier-submit');
+  const customerTriggerBtn = document.getElementById('account-type-customer-trigger');
+
+  function setActivePill(active, inactive) {
+    active.classList.add('is-active');
+    active.setAttribute('aria-pressed', 'true');
+    inactive.classList.remove('is-active');
+    inactive.setAttribute('aria-pressed', 'false');
+  }
+
+  if (pillCustomer && pillSupplier && supplierFields) {
+    pillCustomer.addEventListener('click', () => {
+      setActivePill(pillCustomer, pillSupplier);
+      supplierFields.style.display = 'none';
+    });
+    pillSupplier.addEventListener('click', () => {
+      setActivePill(pillSupplier, pillCustomer);
+      supplierFields.style.display = 'block';
+    });
+  }
+
+  async function submitAccountTypeConversion(targetRole, supplierInfo) {
+    const statusEl = document.getElementById(
+      targetRole === 'supplier' ? 'account-type-supplier-status' : 'account-type-customer-status'
+    );
+    const btn = targetRole === 'supplier' ? supplierSubmitBtn : customerTriggerBtn;
+
+    if (statusEl) {
+      statusEl.textContent = '';
+      statusEl.style.color = '';
+    }
+    if (btn) {
+      btn.disabled = true;
+    }
+
+    try {
+      const resp = await fetch('/api/v1/me/settings/account-type', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': window.__CSRF_TOKEN__ || '',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ targetRole, supplierInfo }),
+      });
+      const data = await resp.json();
+      if (!resp.ok) {
+        let message = data.error || 'Failed to change account type';
+        if (data.code === 'COOLDOWN_ACTIVE' && data.retryAfterDays) {
+          message = `You can change your account type again in ${data.retryAfterDays} day(s).`;
+        }
+        throw new Error(message);
+      }
+
+      if (statusEl) {
+        statusEl.textContent = '✓ Account type updated — redirecting…';
+        statusEl.style.color = '#10b981';
+      }
+      if (typeof Toast !== 'undefined') {
+        Toast.success('Account type updated');
+      }
+      setTimeout(() => {
+        window.location.href = data.redirect || '/settings';
+      }, 900);
+    } catch (err) {
+      console.error('Account type conversion error:', err);
+      if (statusEl) {
+        statusEl.textContent = `✗ ${err.message}`;
+        statusEl.style.color = '#ef4444';
+      }
+      if (typeof Toast !== 'undefined') {
+        Toast.error(err.message);
+      }
+      if (btn) {
+        btn.disabled = false;
+      }
+    }
+  }
+
+  if (supplierSubmitBtn) {
+    supplierSubmitBtn.addEventListener('click', () => {
+      const company = document.getElementById('at-company').value.trim();
+      const category = document.getElementById('at-category').value;
+      const location = document.getElementById('at-location').value.trim();
+      const statusEl = document.getElementById('account-type-supplier-status');
+
+      if (!company) {
+        if (statusEl) {
+          statusEl.textContent = '✗ Business/company name is required';
+          statusEl.style.color = '#ef4444';
+        }
+        document.getElementById('at-company').focus();
+        return;
+      }
+
+      submitAccountTypeConversion('supplier', { company, category, location });
+    });
+  }
+
+  function openDowngradeConfirmModal() {
+    if (typeof Modal === 'undefined') {
+      // components.js failed to load — fail safe to a plain confirm() rather than silently doing nothing.
+      if (window.confirm('Switch to a customer account? Your supplier listing will be paused.')) {
+        submitAccountTypeConversion('customer');
+      }
+      return;
+    }
+
+    const content = document.createElement('div');
+    content.innerHTML = `
+      <p class="settings-body-text">Switching to a customer account will:</p>
+      <ul class="settings-danger-list" style="margin:0.5rem 0 0.75rem;">
+        <li>Pause your supplier listing — it stops appearing in search and the marketplace</li>
+        <li>Cancel any active Pro subscription</li>
+        <li>Keep your business data — switching back to supplier later reactivates it, pending a quick re-review</li>
+      </ul>
+      <label for="account-type-convert-confirm" class="settings-body-text" style="font-weight:600;display:block;">
+        Type <strong>CONVERT</strong> to confirm
+      </label>
+      <input type="text" id="account-type-convert-confirm" class="settings-convert-confirm-input" autocomplete="off" placeholder="CONVERT">
+    `;
+
+    const modal = new Modal({
+      title: 'Switch to a customer account',
+      content,
+      confirmText: 'Switch to Customer',
+      cancelText: 'Keep Supplier Account',
+      onConfirm: () => {
+        const typed = (document.getElementById('account-type-convert-confirm')?.value || '')
+          .trim()
+          .toUpperCase();
+        if (typed !== 'CONVERT') {
+          if (typeof Toast !== 'undefined') {
+            Toast.error('Please type CONVERT to confirm — try again.');
+          }
+          return;
+        }
+        submitAccountTypeConversion('customer');
+      },
+    });
+    modal.show();
+  }
+
+  if (customerTriggerBtn) {
+    customerTriggerBtn.addEventListener('click', openDowngradeConfirmModal);
+  }
 })();

@@ -144,6 +144,15 @@ const userSchema = {
           items: { bsonType: 'string' },
           description: 'Badge IDs awarded to this user',
         },
+        previousRole: {
+          enum: [...USER_ROLES],
+          description: 'Role held immediately before the most recent role change',
+        },
+        lastAccountTypeChangeAt: {
+          bsonType: 'string',
+          description:
+            'Timestamp of the most recent customer<->supplier conversion (self or admin-initiated); drives the self-service cooldown',
+        },
       },
     },
   },
