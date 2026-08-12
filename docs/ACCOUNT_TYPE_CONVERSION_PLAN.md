@@ -90,10 +90,16 @@ documents without the new fields remain valid.
   `ownerUserId`, otherwise creates a `draft`, `profileComplete: false` one with
   safe defaults and correct verification defaults (auto-approve vs
   `unverified`, per the `autoApproveSupplierVerification` setting).
-- Already used in **four** call sites: registration (`routes/auth.js`), and
-  **three places in `routes/admin-user-management.js`** where an admin changes
-  a user's role to `supplier` (lines ~374, ~1970, ~2364) — including rollback of
-  the role change if provisioning fails.
+- Already used in **six** call sites total: registration (`routes/auth.js:462`),
+  three places in `routes/admin-user-management.js` where an admin changes a
+  user's role to `supplier` (lines 376, 1972, 2365 — each with rollback of the
+  role change if provisioning fails), and two admin *repair* tools — a
+  single-user re-provision action (line 2594) and a bulk backfill loop over
+  all `role: 'supplier'` users missing a `suppliers` doc (line 2639). Those
+  last two are a useful operational precedent: if the new conversion flow
+  ever leaves a supplier user without a profile (e.g. a crash mid-transaction),
+  this existing bulk-repair tool already fixes it — no new tooling needed
+  there.
 - This means an *admin-initiated* role-change-to-supplier flow already exists
   and is tested (`tests/unit/supplier-profile-provisioning-hardening.test.js`,
   `tests/unit/admin-supplier-maintenance.test.js`). We should reuse this
@@ -103,18 +109,44 @@ documents without the new fields remain valid.
   never touches the `suppliers` doc, so it would be left dangling (still
   `published`/live in the marketplace) if the raw admin PATCH endpoint is used
   today with no supplier-side cleanup at all.
-- A second admin endpoint, `POST /api/admin/users/:id/revoke-admin`
-  (`routes/admin-user-management.js:2310-2417`), already tracks a
-  **`previousRole` field** when changing a user's role (line ~2353). We should
-  align with this existing convention (`previousRole` on the user doc) rather
-  than inventing a separate history array, unless we specifically need a full
-  multi-conversion audit trail (see §4.3).
-- Both existing admin role-change endpoints already call
-  `auditLog({ action: AUDIT_ACTIONS.USER_ROLE_CHANGED, ... })`
-  (`middleware/audit.js`) — the self-service flow should emit the same
-  `USER_ROLE_CHANGED` action (with an `initiatedBy: 'self'` detail) rather than
-  a bespoke action type, so admin activity views don't need to know about two
-  parallel logging schemes.
+- **Correction after re-verifying against the code directly** (an earlier pass
+  of this plan over-generalized this): there are actually **two different**
+  admin role-change code paths, with different behaviour, and only one of
+  them is a real precedent for a clean customer↔supplier converter:
+  - `PUT /api/admin/users/:id` (`routes/admin-user-management.js:1887-2011`,
+    the general admin "edit user" form) accepts an arbitrary `role` field in
+    its body. Going `!== 'supplier' → 'supplier'` provisions the `suppliers`
+    doc via `ensureSupplierProfileForUser`, with rollback on failure
+    (lines 1970-1989) — but its audit entry uses the **generic**
+    `action: 'user_edited'` (line 1995), not a role-specific action, and
+    **going `supplier → customer` through this endpoint does nothing to the
+    `suppliers` doc at all** — it's just silently left `published`/live. This
+    is the "edit any field" endpoint, not a dedicated conversion tool.
+  - `POST /api/admin/users/:id/grant-admin` and
+    `POST /api/admin/users/:id/revoke-admin`
+    (`routes/admin-user-management.js:2230-2305` and `2310-2417`) are
+    specifically for admin-privilege grant/revoke, **not** a general
+    customer↔supplier tool — but they *do* set the pattern worth reusing:
+    they stamp `previousRole` onto the user doc (lines 2271, 2353) and log
+    `auditLog({ action: AUDIT_ACTIONS.USER_ROLE_CHANGED, ... })`
+    (`middleware/audit-actions.js:20`, used at lines 2284 and 2396) — a
+    dedicated, filterable audit action that the generic `user_edited` action
+    doesn't give admins. `revoke-admin`'s `newRole: 'supplier'` branch also
+    calls `ensureSupplierProfileForUser` with the same rollback pattern, but
+    (same gap) its `newRole: 'customer'` branch does not touch `suppliers`.
+  - **Conclusion: today, no code path fully and correctly handles
+    `supplier → customer` — not even the admin ones.** This is a real,
+    pre-existing gap, not just something new the self-service feature needs
+    to solve. It strengthens the case in §9 for a single shared
+    `accountTypeConversion.service.js` used by *both* the new self-service
+    endpoint and a new/refactored admin action, rather than admin reusing the
+    raw `PUT /api/admin/users/:id` body-field approach as-is.
+- We should align with the `previousRole` field convention (rather than
+  inventing a separate history array) and use `AUDIT_ACTIONS.USER_ROLE_CHANGED`
+  (rather than generic `user_edited`) for both the self-service and the new
+  admin conversion action, so all customer↔supplier conversions — regardless
+  of who initiated them — show up consistently in admin activity views
+  (detail: `{ initiatedBy: 'self' | 'admin', adminActorId?, from, to }`).
 - `routes/profile.js`'s **`DELETE /` (full account deletion)** handler
   (lines 440-517) is the closest existing precedent for unwinding a supplier
   account: it calls `subscriptionService.cancelSubscriptionForAccountDeletion()`
@@ -274,14 +306,22 @@ Single place owning the conversion transaction:
 
 ### 4.2 New route(s) — extend `routes/settings.js` (or new `routes/account-type.js`)
 
-`POST /api/settings/account-type`
+`routes/settings.js` is mounted at `/api/v1/me/settings` (`server.js:840`), so a
+new `router.post('/account-type', ...)` there resolves to:
+
+`POST /api/v1/me/settings/account-type`
 
 - Middleware: `authRequired`, `csrfProtection`, `writeLimiter` (or a
-  dedicated, stricter limiter given the sensitivity), `featureRequired`
-  against a flag (reuse `supplierApplications` for the customer→supplier
-  direction; consider whether a separate `accountTypeSelfConversion` kill
-  switch is warranted for an admin to disable the *feature* independently of
-  new-supplier-signups — see §6).
+  dedicated, stricter limiter given the sensitivity). For the feature flag:
+  note that `supplierApplications` is **not** gated via the generic
+  `featureRequired()` factory — it's a manual conditional check inline in the
+  route chain (`routes/auth.js:215-229`: `if (req.body.role === 'supplier') { const features = await getFeatureFlags(); if (!features.supplierApplications) return 503; }`),
+  because it only applies when the target role is `supplier`. The conversion
+  route should copy that same inline pattern (checking `req.body.targetRole`)
+  rather than trying to force it through `featureRequired()`. Consider
+  whether a separate `accountTypeSelfConversion` kill switch is warranted for
+  an admin to disable the *conversion feature* independently of new-supplier
+  signups — see §6.
 - Body: `{ targetRole: 'supplier' | 'customer', supplierInfo?: {...} }`.
 - Explicitly rejects `targetRole === 'admin'` and rejects conversion *from*
   `admin` — admin role changes stay admin-only via the existing
@@ -345,6 +385,17 @@ Following existing repo conventions:
   business fields, lands on the supplier dashboard, unverified; supplier
   converts to customer, sees the confirmation modal with consequences, and
   loses supplier nav/routes after confirming.
+- **Accessibility**: the repo runs an automated axe-core/WCAG 2.1 AA gate
+  (`docs/A11Y_TESTING.md`, `tests/visual/visual-regression.spec.mjs`), but
+  `/settings` is explicitly **excluded** from that baseline suite today
+  because it's auth-gated (comment at
+  `tests/visual/visual-regression.spec.mjs:27-30`: auth-gated pages "silently
+  redirect... until full backend mode is available to this suite"). That
+  means the new conversion section/modal gets **no automated a11y coverage**
+  — plan for a manual WCAG 2.1 AA pass (keyboard navigation through the
+  form/modal, focus trapping, `aria-live` status messages matching the
+  existing `role="status"` pattern already used elsewhere on this page) as
+  part of PR review, not CI.
 
 ---
 
