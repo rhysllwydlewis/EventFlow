@@ -65,9 +65,12 @@ documents without the new fields remain valid.
   radiogroup with `data-role="customer"` / `data-role="supplier"` pills writing
   into a hidden `role` input, and a `#supplier-fields` block (company, job
   title, website, 4 social links) shown/hidden by
-  `public/assets/js/pages/auth-form-init.js` / `auth-init.js`. This is the
-  component to crib from for the new Settings conversion form, rather than
-  building the field set from scratch.
+  `public/assets/js/pages/auth-init.js:117`
+  (`getElementById('supplier-fields')`) — **not** `auth-form-init.js`, which
+  only wires up login-form validation and has no role/supplier logic at all
+  despite the similar filename. This is the component to crib from for the
+  new Settings conversion form, rather than building the field set from
+  scratch.
 - **Category is _not_ collected at signup today** — new suppliers default to
   `category: 'Other'` (`supplierProfileProvisioning.service.js:127`) and set
   it later from the supplier dashboard. The conversion flow should decide
@@ -92,9 +95,16 @@ documents without the new fields remain valid.
 `ensureSupplierProfileForUser(user)`:
 
 - Idempotent — returns the existing `suppliers` doc if one already exists for
-  `ownerUserId`, otherwise creates a `draft`, `profileComplete: false` one with
-  safe defaults and correct verification defaults (auto-approve vs
-  `unverified`, per the `autoApproveSupplierVerification` setting).
+  `ownerUserId`, otherwise creates one with `profileComplete: false` and
+  correct verification defaults (auto-approve vs `unverified`, per the
+  `autoApproveSupplierVerification` setting). **Correction**: it does not
+  actually write a `status` field at all — the inserted document has no
+  `status` (not literally `'draft'`); a separate creation path,
+  `services/supplier.service.js:162` (`status: data.status || 'draft'`),
+  is the one that defaults a missing `status` to `'draft'`. Worth knowing
+  since §3.2/§3.3 below talk about setting/resetting `status` explicitly —
+  the conversion service should set it explicitly rather than relying on
+  this function's defaults for it.
 - Already used in **six** call sites total: registration (`routes/auth.js:462`),
   three places in `routes/admin-user-management.js` where an admin changes a
   user's role to `supplier` (lines 376, 1972, 2365 — each with rollback of the
@@ -129,7 +139,7 @@ documents without the new fields remain valid.
     is the "edit any field" endpoint, not a dedicated conversion tool.
   - `POST /api/admin/users/:id/grant-admin` and
     `POST /api/admin/users/:id/revoke-admin`
-    (`routes/admin-user-management.js:2230-2305` and `2310-2417`) are
+    (`routes/admin-user-management.js:2246-2305` and `2310-2417`) are
     specifically for admin-privilege grant/revoke, **not** a general
     customer↔supplier tool — but they _do_ set the pattern worth reusing:
     they stamp `previousRole` onto the user doc (lines 2271, 2353) and log
@@ -174,9 +184,12 @@ auto-approved per the same setting used at signup) and goes through the same
 ### 2.5 Settings page (`public/settings.html`, `routes/settings.js`, `routes/profile.js`)
 
 - `routes/settings.js` currently only handles notification preferences
-  (`GET/POST /api/me/settings`) — no account-type logic today.
-- `routes/profile.js` handles profile field edits (`PUT /api/profile`), avatar
-  upload/delete, and account deletion — again, no role logic.
+  (`GET/POST /api/v1/me/settings`, per the actual mount in `server.js:840`
+  — corrected here for consistency with §4.2, which already had the right
+  path) — no account-type logic today.
+- `routes/profile.js` handles profile field edits (`PUT /api/v1/profile`,
+  `server.js:1097`), avatar upload/delete, and account deletion — again, no
+  role logic.
 - `public/settings.html` **already conditionally shows a supplier callout**
   (`#supplier-profile-callout`, line 384) that just links suppliers to
   `/dashboard/supplier` for business-profile edits — there's no UI today for
@@ -230,18 +243,18 @@ conversion UI's modal copy tells them.
 route guards (`roleRequired('supplier')`) that will just work once the token
 is reissued. The ones that need explicit design attention for this plan:
 
-| Area                          | File                                                                                   | Why it matters                                                                                                                                                                                                                                             |
-| ----------------------------- | -------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Referral/partner risk scoring | `routes/auth.js:444-458, 489-495`                                                      | Currently only runs at registration; a converted-to-supplier user skips it entirely unless we deliberately invoke the equivalent check                                                                                                                     |
-| Anti-abuse                    | `middleware` used as `supplierRegistrationRiskGuard`                                   | Same as above — designed for the register endpoint, needs a decision on whether/how to apply to conversion                                                                                                                                                 |
-| Pro subscription / billing    | `models/Supplier.js` (`isPro`, `stripeCustomerId`, `subscriptionStatus`)               | A paying supplier converting to customer has a live Stripe subscription attached to the supplier doc, not the user — needs explicit handling (see §7)                                                                                                      |
-| Badges                        | `BADGE_TYPES` (`founder, pro, pro-plus, verified, featured, custom`) on `users.badges` | Some badges are supplier-earned (`verified`, `pro`); converting away from supplier should not silently keep a `verified` badge that no longer means anything                                                                                               |
-| Messenger                     | `routes/messenger-v4.js:429`, `services/messenger-v4.service.js:1531-1536`             | Displays participant role/label in conversations — cosmetic, but should reflect the new role going forward                                                                                                                                                 |
-| Community                     | `services/community.service.js:1153-1187`                                              | Role affects badge/label rendering (`isOfficial`, moderator flags) on posts — cosmetic, same as messenger                                                                                                                                                  |
-| Dashboard redirects           | `routes/dashboard.js:22-35`, `public/assets/js/pages/dashboard-redirect.js`            | Both server- and client-side redirect logic branch on `role` — both need the refreshed role to avoid bouncing a converted user to the wrong dashboard                                                                                                      |
-| `GET /api/v1/auth/me`         | `routes/auth.js:1779` onward                                                           | Already conditionally fetches the `suppliers` row and returns `supplierApproved` only when `role === 'supplier'` — natural place to also surface "eligible to convert" / cooldown-remaining metadata for the Settings UI                                   |
-| Admin dashboards              | `services/adminUserSummary.service.js`, `/admin-users`                                 | Already counts `byRole` and filters by role — will naturally reflect conversions once `role` changes; self-service conversions should be visible/auditable to admins (see §5) via the shared `USER_ROLE_CHANGED` audit action                              |
-| Admin RBAC cache              | `middleware/permissions.js` (`PermissionCache`, 5-min in-memory, keyed by `user.id`)   | This is for the separate owner/admin/moderator/support RBAC layer, not customer/supplier — shouldn't need invalidation for this feature, but flagged here as the pattern to check for "is there a role-keyed cache we're forgetting" during implementation |
+| Area                          | File                                                                                                                                                                                                                                                                                                                        | Why it matters                                                                                                                                                                                                                                             |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Referral/partner risk scoring | `routes/auth.js:444-458, 489-495`                                                                                                                                                                                                                                                                                           | Currently only runs at registration; a converted-to-supplier user skips it entirely unless we deliberately invoke the equivalent check                                                                                                                     |
+| Anti-abuse                    | `middleware` used as `supplierRegistrationRiskGuard`                                                                                                                                                                                                                                                                        | Same as above — designed for the register endpoint, needs a decision on whether/how to apply to conversion                                                                                                                                                 |
+| Pro subscription / billing    | `models/Supplier.js` (`isPro`, `stripeCustomerId`, `subscriptionStatus`)                                                                                                                                                                                                                                                    | A paying supplier converting to customer has a live Stripe subscription attached to the supplier doc, not the user — needs explicit handling (see §7)                                                                                                      |
+| Badges                        | `BADGE_TYPES` (`founder, pro, pro-plus, verified, featured, custom`) on `users.badges`                                                                                                                                                                                                                                      | Some badges are supplier-earned (`verified`, `pro`); converting away from supplier should not silently keep a `verified` badge that no longer means anything                                                                                               |
+| Messenger                     | `routes/messenger-v4.js:421` (role stamped onto conversation participants: `role: user.role \|\| 'customer'`), and `routes/messenger-v4.js:429` (a functional branch — reuses/creates a direct conversation when a supplier starts a "generic new message" to a non-supplier), `services/messenger-v4.service.js:1531-1536` | Not purely cosmetic in one spot — the conversation-reuse logic at line 429 keys off the participant's role at message-send time, so a role that changes mid-conversation affects behaviour, not just a displayed label                                     |
+| Community                     | `services/community.service.js:1153-1187`                                                                                                                                                                                                                                                                                   | Role affects badge/label rendering (`isOfficial`, moderator flags) on posts — cosmetic, same as messenger                                                                                                                                                  |
+| Dashboard redirects           | `routes/dashboard.js:22-35`, `public/assets/js/pages/dashboard-redirect.js`                                                                                                                                                                                                                                                 | Both server- and client-side redirect logic branch on `role` — both need the refreshed role to avoid bouncing a converted user to the wrong dashboard                                                                                                      |
+| `GET /api/v1/auth/me`         | `routes/auth.js:1779` onward                                                                                                                                                                                                                                                                                                | Already conditionally fetches the `suppliers` row and returns `supplierApproved` only when `role === 'supplier'` — natural place to also surface "eligible to convert" / cooldown-remaining metadata for the Settings UI                                   |
+| Admin dashboards              | `services/adminUserSummary.service.js`, `/admin-users`                                                                                                                                                                                                                                                                      | Already counts `byRole` and filters by role — will naturally reflect conversions once `role` changes; self-service conversions should be visible/auditable to admins (see §5) via the shared `USER_ROLE_CHANGED` audit action                              |
+| Admin RBAC cache              | `middleware/permissions.js` (`PermissionCache`, 5-min in-memory, keyed by `user.id`)                                                                                                                                                                                                                                        | This is for the separate owner/admin/moderator/support RBAC layer, not customer/supplier — shouldn't need invalidation for this feature, but flagged here as the pattern to check for "is there a role-keyed cache we're forgetting" during implementation |
 
 Bookings/enquiries/reviews were checked and are **not** role-gated by
 `user.role` directly — they key off supplier/customer IDs on the
@@ -540,7 +553,7 @@ listing data.'` to the confirmation message when `user.role ===
     `admin-supplier-detail-init.js` for approve/reject/request-changes/
     suspend/verify, each with a required or optional reason field.
   - A **select-in-modal role picker precedent already exists**:
-    `revokeAdmin()` in `public/assets/js/pages/admin-init.js:1295-1370`
+    `revokeAdmin()` in `public/assets/js/pages/admin-init.js:1295-1394`
     builds a `<select id="revoke-admin-role">` with customer/supplier
     options inside a modal, validated against
     `AdminShared.validateRole(value, ['customer', 'supplier'])` — this is
@@ -813,15 +826,19 @@ token files that turned out not to be loaded there (see §9.1).
 
 ### 9.1 Design-token reality check (read this before writing any CSS)
 
-The repo has _three_ token stylesheets (`design-tokens.css`, `tokens.css`,
-`design-system.css`, each with a differently-prefixed `--ef-*` variable set)
-and a fourth, admin-specific one (`admin-tokens.css`, `--admin-*`). **None of
-them are loaded on the four pages this feature touches:**
+The repo has _three_ token stylesheets that each define their own
+`--ef-*`-prefixed variable set (`design-tokens.css`, `tokens.css`,
+`design-system.css` — confusingly, not the same values as each other despite
+sharing a prefix) plus a fourth, admin-specific one (`admin-tokens.css`,
+`--admin-*`). **Which of these actually apply differs per page — this is not
+a blanket "none of them are loaded" situation** (an earlier pass of this plan
+stated it that way and was wrong for two of the four pages):
 
 - `public/settings.html` and `public/auth.html` load `styles.css` first,
   which defines its _own_, different `:root` block
-  (`public/assets/css/styles.css:2`, redefined again at line 721) — this is
-  the actual live token set on these pages:
+  (`public/assets/css/styles.css:2`, redefined again at line 721), and
+  **none** of the four token stylesheets above are `<link>`ed on either page
+  — this is the actual live token set here:
   ```css
   --bg: #fff;
   --text: #0b1220;
@@ -833,20 +850,46 @@ them are loaded on the four pages this feature touches:**
   --radius: 14px;
   --max: 1480px;
   ```
-- `public/admin-user-detail.html` and `public/admin-supplier-detail.html`
-  don't `<link>` `admin-tokens.css` either — they load `styles.css` +
-  `admin.css` + `admin-enhanced.css` + `admin-navbar.css` (plus
-  `admin-cards.css`/`admin-supplier-detail.css`). `var(--admin-*)` is
-  undefined there; in practice almost nothing in the admin CSS/JS references
-  those variables anyway — colours are hardcoded hex throughout, and they
-  happen to match the token values (`#ef4444` danger, `#f59e0b` warning,
-  `#3b82f6` info, `#10b981` success, `#0B8073`/`#13B6A2` brand).
+  On these two pages: write the hex values / `--ink`/`--accent`/`--border`/
+  `--radius`/`--shadow` from `styles.css` directly — `--ef-*` custom
+  properties are genuinely undefined here.
+- `public/admin-user-detail.html` and `public/admin-supplier-detail.html` are
+  **different**: they don't `<link>` `admin-tokens.css` (`--admin-*` is
+  correctly undefined there), but they **do** `<link>` `tokens.css`
+  (`admin-user-detail.html:9`, `admin-supplier-detail.html:16`) — a real,
+  separate `--ef-*` token file (distinct from `design-tokens.css`, despite
+  the shared prefix) that **is** live on both admin pages, alongside
+  `styles.css` + `admin.css` + `admin-enhanced.css` + `admin-navbar.css`
+  (plus `admin-cards.css`/`admin-supplier-detail.css`). Its relevant values:
+  ```css
+  --ef-primary: #0b8073;
+  --ef-primary-hover: #097267;
+  --ef-success: #10b981;
+  --ef-warning: #f59e0b;
+  --ef-error: #ef4444;
+  --ef-info: #3b82f6;
+  --ef-radius-sm: 6px;
+  --ef-radius-md: 10px;
+  --ef-radius-lg: 14px;
+  --ef-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --ef-shadow-lg: 0 10px 30px rgba(15, 23, 42, 0.1);
+  --ef-gradient-primary: linear-gradient(135deg, var(--ef-primary) 0%, var(--ef-accent) 100%);
+  ```
+  In practice almost nothing in the _existing_ admin CSS/JS actually
+  references these variables — colours are hardcoded hex throughout the
+  files this plan touches, and happen to match the token values exactly —
+  so §9.3's guidance to write raw hex remains the _lower-risk, consistent-
+  with-neighbours_ choice for this feature specifically. But it's worth
+  knowing `var(--ef-primary)` etc. would genuinely resolve correctly on
+  these two pages if a future cleanup wanted to move toward tokens; it is
+  not the undefined-variable trap that `--admin-*` is here.
 
 **Practical rule for implementation: write the hex values / `--ink`,
 `--accent`, `--border`, `--radius`, `--shadow` variables from `styles.css`
-directly (customer side), or the matching raw hex (admin side) — do not
-reference `--ef-*` or `--admin-*` custom properties on these four pages, they
-will resolve to nothing.**
+directly (customer side), or the matching raw hex (admin side, for
+consistency with this feature's neighbouring code) — do not reference
+`--admin-*` custom properties anywhere, or `--ef-*` on the customer side;
+those specific combinations will resolve to nothing.**
 
 **Dark mode: not applicable, skip entirely.** `public/assets/css/dark-mode.css`
 is an explicit no-op stub (`/* Dark mode has been disabled — EventFlow uses
@@ -883,6 +926,10 @@ is correct — not a shortcut.
   elsewhere in the app — reusing that exact treatment here is the most
   direct, lowest-risk way to make this section read as premium rather than
   bolted-on, without inventing new visual language.
+  The full rule set to actually copy (`auth.css:1401-1443` —
+  the block below abbreviates the earlier summary, which dropped the
+  hover/focus-visible states and the width-override needed for the
+  `styles.css` global `button{width:100%}` reset):
   ```css
   /* auth.css:1401-1443 — copy into settings.css */
   .role-pill,
@@ -901,13 +948,29 @@ is correct — not a shortcut.
     color: #374151;
     cursor: pointer;
     transition: all 0.2s ease;
+    /* overrides styles.css's global button{width:100%;margin-top:6px} reset */
+    width: auto !important;
+    margin-top: 0 !important;
+    text-align: center;
+  }
+  .role-pill:hover,
+  .auth-role-option:hover {
+    border-color: rgba(11, 128, 115, 0.5);
+    background: rgba(11, 128, 115, 0.06);
+    color: #0b8073;
   }
   .role-pill.is-active,
+  .auth-role-option.auth-role-option--active,
   .auth-role-option--active {
     border-color: #0b8073;
     background: rgba(11, 128, 115, 0.1);
     color: #0b8073;
     font-weight: 600;
+  }
+  .role-pill:focus-visible,
+  .auth-role-option:focus-visible {
+    outline: 2px solid #0b8073;
+    outline-offset: 2px;
   }
   ```
   **One open call to flag for design sign-off, not to resolve silently**: the
@@ -947,16 +1010,20 @@ var(--border);border-radius:12px}` from `styles.css:38`), not
   irreversible-ish action.
   - **Premium polish, specifically**: the delete modal, as built today, has
     **zero entrance animation** — it's a flat `display:none` → `display:flex`
-    toggle (`settings.css:151-157`). Layer the `components.css` `.modal`
-    entrance treatment on top of the cloned markup: backdrop
-    `backdrop-filter: blur(24px) saturate(200%)` fading in over
-    `opacity 0.3s`, card `transform: scale(0.94) translateY(8px) → scale(1)
-translateY(0)` via `transition: transform 0.3s cubic-bezier(0.34, 1.56,
-0.64, 1)` (`components.css:4-100`). This is the single highest-leverage,
-    lowest-risk change available to make the new modal read as more premium
-    than its nearest sibling on this exact page, without introducing a new
-    visual system — it borrows a treatment the codebase already has, just
-    not on this particular modal yet.
+    toggle (`settings.css:151-157`). Layer the `components.css` treatment on
+    top of the cloned markup: the **backdrop** (`.modal-overlay`,
+    `components.css:4-20`) uses `backdrop-filter: blur(12px) saturate(160%)`
+    fading in over `opacity 0.3s`; the **card itself** (`.modal`,
+    `components.css:27-45`) uses the stronger `blur(24px) saturate(200%)`
+    plus the entrance transform: `transform: scale(0.94) translateY(8px) →
+scale(1) translateY(0)` via `transition: transform 0.3s
+cubic-bezier(0.34, 1.56, 0.64, 1)` (two different blur strengths for two
+    different layers — don't apply the card's stronger blur to the backdrop
+    or vice versa). This is the single highest-leverage, lowest-risk change
+    available to make the new modal read as more premium than its nearest
+    sibling on this exact page, without introducing a new visual system —
+    it borrows a treatment the codebase already has, just not on this
+    particular modal yet.
 - **Status/info framing**: reuse the existing green tint already established
   by the supplier callout (`#f0fdf4` bg / `#bbf7d0` border / `#166534` text,
   `settings.html:384`) for "you're currently X, here's what changes" copy;
@@ -982,9 +1049,13 @@ translateY(0)` via `transition: transform 0.3s cubic-bezier(0.34, 1.56,
   row alongside the "Suspended" badge — reusing the exact badge component
   already rendered elsewhere on this same page, not a new one.
 - **Trigger**: a "Change Account Type…" button in the existing
-  `.action-buttons` row (`admin-user-detail-init.js:236-242`), styled like
-  its siblings (`ef-cta btn btn-secondary`, matching Reset Password /
-  Suspend User) so it doesn't visually stand out as a foreign addition.
+  `.action-buttons` row (`admin-user-detail-init.js:236-242`), styled
+  `ef-cta btn btn-secondary` — matching **Reset Password**
+  (`resetPasswordBtn`) and **Resend Verification Email**, not "Suspend
+  User" (that one is actually `btn-danger`, same as Delete User). Changing
+  account type is a significant action but not inherently destructive the
+  way suspend/delete are, so the secondary (not danger) button style is the
+  right visual register — it just needed the right precedent cited.
 - **Modal implementation — use the `Modal` class, not `AdminShared.showInputModal`**:
   `admin-user-detail.html` already loads `components.js`, so the `Modal`
   class (`public/assets/js/components.js:20`, CSS `components.css:4-100`) is
@@ -992,7 +1063,7 @@ translateY(0)` via `transition: transform 0.3s cubic-bezier(0.34, 1.56,
   support, since `AdminShared.showInputModal` only renders `text`/`textarea`
   inputs (confirmed by reading the full function body — there is no
   `type:'select'` branch). This is exactly the pattern `revokeAdmin()`
-  already uses in `public/assets/js/pages/admin-init.js:1295-1370` for
+  already uses in `public/assets/js/pages/admin-init.js:1295-1394` for
   "pick a new role in a modal" — replicate it directly:
   ```js
   const content = document.createElement('div');
@@ -1016,9 +1087,12 @@ blur(12px)`, glass card `rgba(255,255,255,.92)`, `border-radius:16px`,
   scratch.
 - When the target is `supplier`, extend the same modal `content` block with
   the supplier-info fields (company/category/location), styled with the
-  plain admin `input{}`/`select{}` rule already defined in `admin.css`
-  (`padding:6px 8px;border-radius:4px;border:1px solid #d4d4d8`) — no new
-  input styling needed.
+  plain admin input/select rules already defined in `admin.css`:
+  `select{}` is a bare tag selector (`admin.css:112`), but the input rule is
+  the attribute selector `input[type="text"]{}` (`admin.css:95`) — so any
+  new `<input>` markup needs an explicit `type="text"` attribute, or it
+  won't pick up the existing styling
+  (`padding:6px 8px;border-radius:4px;border:1px solid #d4d4d8`) at all.
 - When the target is `customer` and a supplier profile exists, prepend a
   warning line to the modal content in the admin danger colour
   (`color:#ef4444;font-weight:600`), phrased like the existing
@@ -1027,13 +1101,30 @@ blur(12px)`, glass card `rgba(255,255,255,.92)`, `border-radius:16px`,
   supplier profile, packages and public listing data."_) adapted to
   _suspend_ rather than delete — same voice, same visual weight, no new
   component.
-- **Feedback**: `AdminShared.showToast(message, 'success' | 'error')` —
-  matches exactly what every other action on this page already does
-  (`deleteUser`, `toggleSuspend`, `resetPassword`). Do **not** reach for
-  `AdminShared.showEnhancedToast` (the fuller bottom-right, left-border-accent
-  variant) — its CSS isn't wired up as a script include on this page, so it
-  would look inconsistent with the plain top-right toasts every neighbouring
-  action already produces.
+- **Feedback**: `AdminShared.showToast(message, 'success' | 'error' |
+'warning')` — matches exactly what every other action on this page already
+  does (`deleteUser`, `toggleSuspend`, `resetPassword`). **Correction to an
+  earlier pass of this plan**, which assumed `showToast` always falls back
+  to a plain, flat, top-right toast on this page: it doesn't. `showToast`
+  (`admin-shared.js:368-373`) checks `typeof Toast !== 'undefined'` first
+  and, if so, delegates to `Toast[type](message)` — and a `class Toast`
+  **is** defined in `public/assets/js/components.js:160` (the same file
+  that supplies the `Modal` class used above), which
+  `admin-user-detail.html` already loads. So `Toast.success`/`.error`/
+  `.warning`/`.info` (static methods at `components.js:235-247`) are what
+  actually render here, not the inline-styled fallback further down in
+  `showToast`'s body. Those render via the shared `.toast-container`/`.toast`
+  classes, which get their final appearance from whichever loaded
+  stylesheet wins the cascade for those class names — and since
+  `admin-enhanced.css` (bottom-right, `border-left:4px solid`, per-type
+  icon/colour, `admin-enhanced.css:2050-2129`) is `<link>`ed _after_
+  `components.css` (plain top-right, no left border) in this page's
+  `<head>`, `admin-enhanced.css`'s rules win. **Net effect: `showToast` on
+  this page already renders with the fuller bottom-right, left-border-accent
+  treatment — the same visual result `showEnhancedToast` would produce.**
+  There's no meaningful visual difference to choose between here; use
+  `showToast` simply because it's the call every neighbouring action on
+  this page already makes, not because it looks plainer (it doesn't).
 - **Supplier Detail page** (§5.2's promoted link + status banner): style the
   "owner is no longer a supplier" banner with the admin warning palette
   already established for verification notices (`#fef3c7` background /
@@ -1045,9 +1136,13 @@ blur(12px)`, glass card `rgba(255,255,255,.92)`, `border-radius:16px`,
   `.cta` are already responsive at the site's established 768px/640px/480px
   cascade (`styles.css`, `ui-ux-fixes.css`,
   `signed-in-mobile-fixes.css`), and the reused role-pill component ships
-  its own `@media (max-width:640px){flex-direction:column; width:100%
-!important}` stacking rule (`auth.css:1794-1798`) — it already goes
-  full-width-stacked on phone without extra work. On mobile, `.card` corner
+  its own `@media (max-width:640px)` stacking rule spread across two
+  adjacent selectors in `auth.css:1788-1798` — `.role-toggle,
+.auth-role-picker{flex-direction:column;gap:.5rem}` (the wrapper) plus
+  `.role-pill, .auth-role-option{width:100% !important;text-align:center}`
+  (the pills themselves) — it already goes full-width-stacked on phone
+  without extra work, just make sure both rules get copied together, not
+  only one. On mobile, `.card` corner
   radius is normalized to 12px automatically by the existing
   `signed-in-mobile-fixes.css` patch (site-wide, applies to any `.card`).
   One thing to verify in manual QA rather than assume: the page reserves a
