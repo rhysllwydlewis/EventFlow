@@ -156,6 +156,69 @@ describe('POST /api/v1/me/settings/account-type (self-service)', () => {
     expect(setAuthCookie).toHaveBeenCalled();
   });
 
+  it('reissues the cookie as session-only (remember:false), never silently escalating persistence', async () => {
+    const { app } = loadApp({
+      dbSeed: { users: [{ id: 'usr_1', role: 'customer', email: 'usr@example.com' }] },
+    });
+    authState.user = { id: 'usr_1', email: 'usr@example.com', role: 'customer' };
+    const { setAuthCookie } = require('../../middleware/auth');
+
+    await request(app)
+      .post('/api/v1/me/settings/account-type')
+      .send({ targetRole: 'supplier', supplierInfo: { company: 'Acme Events' } });
+
+    expect(setAuthCookie).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.any(String),
+      expect.objectContaining({ remember: false })
+    );
+  });
+
+  it('binds the risk-guard email to the authenticated user, ignoring a spoofed body email', async () => {
+    const dbUnified = makeDbUnified({
+      users: [{ id: 'usr_1', role: 'customer', email: 'real-owner@example.com' }],
+    });
+    jest.doMock('../../db-unified', () => dbUnified);
+    jest.doMock('../../middleware/features', () => ({
+      getFeatureFlags: jest.fn(async () => ({ supplierApplications: true })),
+    }));
+    jest.doMock('../../services/catalogCache', () => ({
+      invalidate: jest.fn(async () => undefined),
+    }));
+    jest.doMock('../../services/subscriptionService', () => ({
+      cancelSubscriptionForAccountDeletion: jest.fn(async () => undefined),
+    }));
+
+    let capturedEmail;
+    jest.doMock('../../services/partnerRegistrationRiskService', () => ({
+      registrationRiskGuard: () => (req, _res, next) => {
+        capturedEmail = req.body.email;
+        next();
+      },
+      completeRegistrationRisk: jest.fn(async () => null),
+    }));
+
+    const settingsRouter = require('../../routes/settings');
+    const app = express();
+    app.use(express.json());
+    app.use('/api/v1/me/settings', settingsRouter);
+
+    authState.user = { id: 'usr_1', email: 'real-owner@example.com', role: 'customer' };
+
+    await request(app)
+      .post('/api/v1/me/settings/account-type')
+      .send({
+        targetRole: 'supplier',
+        supplierInfo: { company: 'Acme Events' },
+        email: 'attacker-controlled@evil.example',
+      });
+
+    // Must reflect the authenticated session's email, not the submitted body value —
+    // otherwise an attacker-controlled email would be what the anti-abuse risk
+    // guard hashes and assesses instead of the account actually being upgraded.
+    expect(capturedEmail).toBe('real-owner@example.com');
+  });
+
   it('rejects a customer->supplier conversion without a company name', async () => {
     const { app } = loadApp({
       dbSeed: { users: [{ id: 'usr_1', role: 'customer', email: 'usr@example.com' }] },

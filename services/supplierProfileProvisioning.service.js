@@ -126,11 +126,19 @@ async function reactivateConversionSuspendedProfile(supplier) {
     updatedAt: nowIso,
   };
 
-  await dbUnified.updateOne(
+  const reactivated = await dbUnified.updateOne(
     'suppliers',
     { id: supplier.id },
     { $set: updates, $unset: { suspendedAt: '', suspendedBy: '', suspendedReason: '' } }
   );
+  if (!reactivated) {
+    // dbUnified.updateOne normalises write failures to false. Without this
+    // check, the findOne below would silently return the still-suspended
+    // profile and the caller (convertToSupplier) would report success while
+    // the listing stays suspended — with no way to retry since the user is
+    // already 'supplier' at that point.
+    throw new Error(`Failed to reactivate suspended supplier profile ${supplier.id}`);
+  }
 
   const refreshed = await dbUnified.findOne('suppliers', { id: supplier.id });
   return refreshed || { ...supplier, ...updates };

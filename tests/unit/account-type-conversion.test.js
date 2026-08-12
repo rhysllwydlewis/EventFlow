@@ -183,6 +183,98 @@ describe('accountTypeConversion.service', () => {
       ).rejects.toMatchObject({ code: 'ADMIN_ROLE_PROTECTED' });
     });
 
+    it('does not write lastAccountTypeChangeAt for an admin-initiated conversion', async () => {
+      // An admin-initiated conversion must not start/reset the user's own
+      // self-service cooldown — otherwise a support fix would lock the user
+      // out of converting themselves again for 30 days.
+      const dbUnified = makeDbUnified({
+        users: [{ id: 'usr_1', role: 'customer', email: 'usr@example.com' }],
+      });
+      const service = loadService(dbUnified);
+
+      await service.convertToSupplier(dbUnified.data.users[0], {
+        supplierInfo: { company: 'Acme' },
+        actor: actorAdmin,
+      });
+
+      expect(dbUnified.data.users[0].role).toBe('supplier');
+      expect(dbUnified.data.users[0].lastAccountTypeChangeAt).toBeUndefined();
+      expect(dbUnified.data.users[0].previousRole).toBe('customer');
+    });
+
+    it('restores prior previousRole/lastAccountTypeChangeAt (not unset) when provisioning fails after a previous conversion', async () => {
+      const priorChangeAt = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString(); // 60 days ago, outside cooldown
+      const dbUnified = makeDbUnified({
+        users: [
+          {
+            id: 'usr_1',
+            role: 'customer',
+            email: 'usr@example.com',
+            previousRole: 'supplier', // this user converted supplier -> customer once before
+            lastAccountTypeChangeAt: priorChangeAt,
+          },
+        ],
+      });
+      dbUnified.insertOne = jest.fn(async () => null);
+      dbUnified.findOne = jest.fn(async (collection, filter) => {
+        if (collection === 'suppliers') {
+          return null;
+        }
+        return (dbUnified.data[collection] || []).find(row => matches(row, filter)) || null;
+      });
+      const service = loadService(dbUnified);
+
+      await expect(
+        service.convertToSupplier(dbUnified.data.users[0], {
+          supplierInfo: { company: 'Acme Events' },
+          actor: actorSelf,
+        })
+      ).rejects.toMatchObject({ code: 'SUPPLIER_PROFILE_PROVISIONING_FAILED' });
+
+      expect(dbUnified.data.users[0].role).toBe('customer');
+      // Must restore the pre-attempt values, not wipe this user's real history.
+      expect(dbUnified.data.users[0].previousRole).toBe('supplier');
+      expect(dbUnified.data.users[0].lastAccountTypeChangeAt).toBe(priorChangeAt);
+    });
+
+    it('propagates a supplier-profile reactivation failure as a provisioning failure and rolls back the role', async () => {
+      const dbUnified = makeDbUnified({
+        users: [{ id: 'usr_1', role: 'customer', email: 'usr@example.com' }],
+        suppliers: [
+          {
+            id: 'sup_1',
+            ownerUserId: 'usr_1',
+            name: 'Acme Events',
+            status: 'suspended',
+            verificationStatus: 'suspended',
+            approved: false,
+            verified: false,
+            suspendedReason: 'owner_converted_to_customer',
+          },
+        ],
+      });
+      const originalUpdateOne = dbUnified.updateOne;
+      dbUnified.updateOne = jest.fn(async (collection, filter, update) => {
+        if (collection === 'suppliers') {
+          // Simulate a transient write failure during reactivation.
+          return false;
+        }
+        return originalUpdateOne(collection, filter, update);
+      });
+      const service = loadService(dbUnified);
+
+      await expect(
+        service.convertToSupplier(dbUnified.data.users[0], {
+          supplierInfo: { company: 'Acme Events' },
+          actor: actorSelf,
+        })
+      ).rejects.toMatchObject({ code: 'SUPPLIER_PROFILE_PROVISIONING_FAILED' });
+
+      // Must not silently succeed with a still-suspended listing.
+      expect(dbUnified.data.users[0].role).toBe('customer');
+      expect(dbUnified.data.suppliers[0].status).toBe('suspended');
+    });
+
     it('enforces the self-service cooldown but not the admin path', async () => {
       const recentChange = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(); // 1 day ago
       const dbUnified = makeDbUnified({
@@ -275,6 +367,45 @@ describe('accountTypeConversion.service', () => {
       ).rejects.toMatchObject({ code: 'SUPPLIER_SUSPEND_FAILED' });
 
       expect(dbUnified.data.users[0].role).toBe('supplier');
+    });
+
+    it('restores prior previousRole/lastAccountTypeChangeAt (not unset) when the suspend write fails after a previous conversion', async () => {
+      const priorChangeAt = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString();
+      const dbUnified = makeDbUnified({
+        users: [
+          supplierUser({
+            previousRole: 'customer', // converted customer -> supplier once before
+            lastAccountTypeChangeAt: priorChangeAt,
+          }),
+        ],
+        suppliers: [{ id: 'sup_2', ownerUserId: 'usr_2', status: 'published', approved: true }],
+      });
+      const originalUpdateOne = dbUnified.updateOne;
+      dbUnified.updateOne = jest.fn(async (collection, filter, update) => {
+        if (collection === 'suppliers') {
+          return false;
+        }
+        return originalUpdateOne(collection, filter, update);
+      });
+      const service = loadService(dbUnified);
+
+      await expect(
+        service.convertToCustomer(dbUnified.data.users[0], { actor: actorSelf })
+      ).rejects.toMatchObject({ code: 'SUPPLIER_SUSPEND_FAILED' });
+
+      expect(dbUnified.data.users[0].role).toBe('supplier');
+      expect(dbUnified.data.users[0].previousRole).toBe('customer');
+      expect(dbUnified.data.users[0].lastAccountTypeChangeAt).toBe(priorChangeAt);
+    });
+
+    it('does not write lastAccountTypeChangeAt for an admin-initiated downgrade', async () => {
+      const dbUnified = makeDbUnified({ users: [supplierUser()] });
+      const service = loadService(dbUnified);
+
+      await service.convertToCustomer(dbUnified.data.users[0], { actor: actorAdmin });
+
+      expect(dbUnified.data.users[0].role).toBe('customer');
+      expect(dbUnified.data.users[0].lastAccountTypeChangeAt).toBeUndefined();
     });
 
     it('does not require a linked supplier profile to exist', async () => {

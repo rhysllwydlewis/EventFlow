@@ -56,6 +56,39 @@ function assertActor(actor) {
   }
 }
 
+// Builds a $set/$unset pair that restores a user's role plus their exact
+// pre-attempt previousRole/lastAccountTypeChangeAt, for use when a rollback
+// needs to undo a role change. Restoring (rather than always unsetting) is
+// required so that a user who already had conversion history/an active
+// self-service cooldown before this attempt doesn't have it erased by a
+// failed attempt — an admin or self retry immediately after a transient
+// failure must still respect whatever cooldown/history predated it.
+//
+// Takes the prior values as explicit params (captured by the caller before
+// any write) rather than re-reading them off the `user` object at rollback
+// time — db-unified's non-Mongo store mode can hand back the very same
+// object reference across reads, so re-reading post-mutation risks quietly
+// restoring the just-written values instead of the real pre-attempt ones.
+function rollbackFieldsUpdate(role, priorPreviousRole, priorLastAccountTypeChangeAt) {
+  const setFields = { role, updatedAt: new Date().toISOString() };
+  const unsetFields = {};
+  if (priorPreviousRole !== undefined) {
+    setFields.previousRole = priorPreviousRole;
+  } else {
+    unsetFields.previousRole = '';
+  }
+  if (priorLastAccountTypeChangeAt !== undefined) {
+    setFields.lastAccountTypeChangeAt = priorLastAccountTypeChangeAt;
+  } else {
+    unsetFields.lastAccountTypeChangeAt = '';
+  }
+  const update = { $set: setFields };
+  if (Object.keys(unsetFields).length) {
+    update.$unset = unsetFields;
+  }
+  return update;
+}
+
 /**
  * Convert a `customer` user to `supplier`.
  * @param {Object} user - Full user document (must be role 'customer')
@@ -98,14 +131,24 @@ async function convertToSupplier(user, { supplierInfo = {}, actor } = {}) {
   }
 
   const previousRole = user.role;
+  const priorPreviousRole = user.previousRole;
+  const priorLastAccountTypeChangeAt = user.lastAccountTypeChangeAt;
   const now = new Date().toISOString();
 
   const setFields = {
     role: 'supplier',
     previousRole,
-    lastAccountTypeChangeAt: now,
     updatedAt: now,
   };
+  // Only a self-service conversion should start/consume the 30-day
+  // self-service cooldown. An admin-initiated conversion must not write this
+  // field at all — otherwise every support-initiated fix would silently
+  // reset the user's own cooldown and lock them out of converting
+  // themselves again afterward (the plan's admin path is meant to run
+  // independently of the self-service cooldown, not interact with it).
+  if (actor.type === 'self') {
+    setFields.lastAccountTypeChangeAt = now;
+  }
   if (company) {
     setFields.company = company.slice(0, 100);
   }
@@ -128,10 +171,7 @@ async function convertToSupplier(user, { supplierInfo = {}, actor } = {}) {
     await dbUnified.updateOne(
       'users',
       { id: user.id },
-      {
-        $set: { role: previousRole, updatedAt: new Date().toISOString() },
-        $unset: { previousRole: '', lastAccountTypeChangeAt: '' },
-      }
+      rollbackFieldsUpdate(previousRole, priorPreviousRole, priorLastAccountTypeChangeAt)
     );
     logger.error('[ACCOUNT-TYPE] supplier profile provisioning failed; role change rolled back', {
       userId: user.id,
@@ -202,20 +242,22 @@ async function convertToCustomer(user, { actor } = {}) {
   }
 
   const previousRole = user.role;
+  const priorPreviousRole = user.previousRole;
+  const priorLastAccountTypeChangeAt = user.lastAccountTypeChangeAt;
   const now = new Date().toISOString();
 
-  const roleUpdated = await dbUnified.updateOne(
-    'users',
-    { id: user.id },
-    {
-      $set: {
-        role: 'customer',
-        previousRole,
-        lastAccountTypeChangeAt: now,
-        updatedAt: now,
-      },
-    }
-  );
+  const setFields = {
+    role: 'customer',
+    previousRole,
+    updatedAt: now,
+  };
+  // See the matching comment in convertToSupplier: admin-initiated
+  // conversions must not touch the self-service cooldown timer.
+  if (actor.type === 'self') {
+    setFields.lastAccountTypeChangeAt = now;
+  }
+
+  const roleUpdated = await dbUnified.updateOne('users', { id: user.id }, { $set: setFields });
   if (!roleUpdated) {
     throw new AccountTypeConversionError('UPDATE_FAILED', 'Failed to update account role');
   }
@@ -248,7 +290,7 @@ async function convertToCustomer(user, { actor } = {}) {
       await dbUnified.updateOne(
         'users',
         { id: user.id },
-        { $set: { role: previousRole, updatedAt: new Date().toISOString() } }
+        rollbackFieldsUpdate(previousRole, priorPreviousRole, priorLastAccountTypeChangeAt)
       );
       logger.error('[ACCOUNT-TYPE] supplier suspend failed; role change rolled back', {
         userId: user.id,

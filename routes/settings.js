@@ -138,10 +138,14 @@ router.post(
   authRequired,
   csrfProtection,
   (req, res, next) => {
-    // The risk guard reads req.body.email directly; a conversion's identity
-    // comes from the session, not a submitted form field.
+    // The risk guard reads req.body.email directly and hashes/assesses it for
+    // velocity and reputation checks. Overwrite unconditionally — a fallback
+    // (`|| req.user.email`) would let an authenticated caller submit an
+    // arbitrary email in the body and have the guard assess that identity
+    // instead of the account actually being upgraded, evading the checks
+    // that identity is supposed to be scored against.
     req.body = req.body || {};
-    req.body.email = req.body.email || req.user.email;
+    req.body.email = req.user.email;
     next();
   },
   async (req, res, next) => {
@@ -200,10 +204,17 @@ router.post(
 
       // Reissue the auth cookie so req.user.role (and dashboard redirects) reflect
       // the new role immediately, without forcing a logout/login.
+      // remember is deliberately false: the JWT payload itself carries no record
+      // of whether the caller's original login was "remember me" or session-only
+      // (routes/auth.js signs every token with the same 7d expiresIn regardless),
+      // so there's no reliable signal here for what the caller originally chose.
+      // Defaulting to session-only only ever narrows the cookie's lifetime versus
+      // what they had — never silently upgrades a session-only cookie to a
+      // persistent one, which is the direction that would be a security problem.
       const token = jwt.sign({ id: user.id, email: user.email, role: result.role }, JWT_SECRET, {
         expiresIn: '7d',
       });
-      setAuthCookie(res, token, { remember: true });
+      setAuthCookie(res, token, { remember: false });
 
       res.json({
         ok: true,
