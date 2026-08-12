@@ -195,6 +195,35 @@ must re-issue the auth cookie/JWT (same call as login) so `roleRequired()`
 middleware, `/dashboard` redirects (`routes/dashboard.js:22-35`), and the
 navbar all see the new role immediately, without forcing a logout/login.
 
+**This only fixes it for the person doing the converting.** For an
+_admin_-initiated conversion, the reissued cookie belongs to the admin, not
+the target user — the target user's own existing JWT (if they have an active
+session) still carries the pre-conversion role for up to 7 days, and there's
+no server-side mechanism here to force it to refresh early or to invalidate
+it. Two options, not mutually exclusive:
+
+1. **Authorize from the fresh DB role instead of the JWT claim** — the
+   simplest fix, and importantly not new work: `authRequired`
+   (`middleware/auth.js:184-185`) already does `const dbUser = await
+dbUnified.findOne('users', { id: u.id })` on _every_ request — the fresh
+   role is already being fetched, just discarded. Changing
+   `middleware/auth.js:202` from `role: u.role` (JWT) to `role: dbUser.role`
+   (fresh DB read) fixes both the self-service and the admin-initiated case
+   uniformly, at zero extra query cost, without any token
+   revocation/versioning scheme. This is the recommended primary fix.
+2. **Reissue the cookie on the _next_ authenticated request** — even with
+   fix 1 in place, reissuing a fresh cookie (matching the new role) the next
+   time the converted user's browser makes an authenticated request keeps
+   the JWT payload itself from drifting out of sync with the DB
+   indefinitely over a long-lived session; worth doing as a belt-and-braces
+   measure, but not load-bearing for correctness once fix 1 is in place.
+
+Fix 1 is the one this plan treats as required (see §5.3 for how it resolves
+the admin-conversion case specifically) — without it, a downgraded supplier
+retains supplier-route access and an upgraded customer stays denied until
+their token naturally expires or they log out, regardless of what the
+conversion UI's modal copy tells them.
+
 ### 2.7 Where `role` is read elsewhere (blast radius)
 
 `user.role === 'supplier' | 'customer'` checks exist in 34 files. Most are
@@ -273,9 +302,45 @@ silently going straight back to `approved`).
 Decision needed (flagged as an open question in §7), but the recommended
 default: **suspend, don't delete.**
 
-- `suppliers.status` → `suspended` (a value the schema already supports,
-  `Supplier.VALID_STATUSES`), which already removes the listing from public
-  marketplace/search per existing status-based query filters.
+- **Correction after verifying the actual public-listing gates** (an earlier
+  pass of this plan assumed `status` alone would suffice — it does not):
+  visibility across the codebase is gated inconsistently, and `status` is
+  the _minority_ gate, not the dominant one:
+  - `services/searchService.js:335` (`/api/search`, `/api/v1/search` — the
+    primary discovery surface) filters **only** on `s.approved`, never
+    `s.status`. Setting `status: 'suspended'` alone would leave an approved
+    listing fully visible and searchable here.
+  - The bulk of `routes/suppliers.js` (supplier directory, packages,
+    profile visibility, similar suppliers, personalization) and
+    `routes/marketplace.js:115` likewise filter on `s.approved` only.
+  - `services/supplier.service.js:451-453,580-581` is the one path that
+    genuinely does require both: `s.status === 'published' && s.approved
+=== true`.
+  - **Conclusion: the conversion must set `approved: false` (and record
+    `approvedAt`/`approvedBy` appropriately), not just flip `status`** —
+    `approved: false` is what actually hides the listing across nearly
+    every consumer-facing surface, `status: 'suspended'` alone would not.
+    Setting both (`approved: false` **and** `status: 'suspended'`) is the
+    correct combination: it satisfies every filter found, including
+    `supplier.service.js`'s stricter check, and keeps the verification
+    state machine's own `suspended` status semantically accurate for admin
+    tooling.
+  - **Must also call `catalogCache.invalidate()`** after the update —
+    `services/catalogCache.js`'s own doc comment states it must be called
+    "whenever a supplier is created, updated, approved, rejected, or
+    suspended," and `services/adminUserDeletion.service.js:110` is the
+    existing precedent for calling it as part of an account-lifecycle
+    change. (Note in passing, not this feature's problem to fix: grepping
+    for `catalogCache.invalidate` turned up no call from
+    `routes/supplier-admin.js`'s own suspend/approve/reject endpoints
+    either — suggesting the _existing_ admin suspend flow may already have
+    the same staleness gap. Worth a heads-up to whoever picks this up, but
+    out of scope here.)
+  - On **reactivation** (§3.2), the reverse applies: don't blindly restore
+    `approved: true` — route back through `pending_review` (as already
+    recommended in §3.2) and let the normal verification-approval flow set
+    `approved` again, rather than the conversion service silently
+    re-approving a previously-approved listing.
 - Existing bookings/enquiries/reviews tied to the supplier profile are
   untouched (historical).
 - Any **pending** enquiries/quote requests should surface a clear notice to
@@ -300,6 +365,21 @@ Single place owning the conversion transaction:
 - `convertToCustomer(user)` — updates `users.role`, suspends the linked
   `suppliers` doc, writes an audit trail entry. Returns enough detail for the
   route layer to warn about (e.g.) an active subscription.
+  - **Needs the same rollback discipline as `convertToSupplier`, not less**:
+    `db-unified.js` has no transaction/session support (confirmed — no
+    `startSession`/multi-document-transaction API anywhere in it), so the
+    two writes (`users.role` update, then `suppliers` suspend update) are
+    independent, non-atomic operations. If the role write succeeds and the
+    supplier-suspend write then fails or returns no document, the account
+    is left as a `customer` whose `suppliers` doc is still `approved`/live
+    — the exact inconsistency this whole feature exists to prevent, just
+    approached from the other direction. `convertToCustomer` must revert
+    `users.role` back to `supplier` on a failed suspend, mirroring
+    `convertToSupplier`'s existing rollback-on-provisioning-failure
+    pattern (and the admin precedent at
+    `routes/admin-user-management.js:1970-1989`) exactly — this needs to
+    be a stated requirement and a tested code path, not an implicit
+    assumption.
 - Both set `previousRole` on the user doc (aligning with the existing
   convention from `POST /api/admin/users/:id/revoke-admin`, rather than
   inventing a parallel field), and call the existing `auditLog()` helper
@@ -338,23 +418,58 @@ new `router.post('/account-type', ...)` there resolves to:
   `generateToken`/cookie-setting call used by `POST /register` and
   `POST /login` in `routes/auth.js`, and returns the new role + redirect
   target so the frontend can navigate without a full logout/login.
-- Reuses `supplierRegistrationRiskGuard` for the customer→supplier direction
-  so this can't be used as a side door around the anti-abuse checks that
-  apply to normal supplier signup.
+- **Correction after reading the guard's actual implementation** (an earlier
+  pass of this plan said "reuse `supplierRegistrationRiskGuard`" as if it
+  were a drop-in — it needs adaptation, not a bare reuse):
+  `registrationRiskGuard({ roleResolver })`
+  (`services/partnerRegistrationRiskService.js:951-1001`) resolves the role
+  via the injected `roleResolver`, but internally still reads
+  `req.body?.email` and `req.body?.ref` directly (hardcoded field names,
+  not configurable) for the risk assessment
+  (`assessRegistration({ req, email: req.body?.email, role: resolvedRole,
+refCode: req.body?.ref })`, line 959-962). The registration route's own
+  instance (`routes/auth.js:43-45`) is configured with
+  `roleResolver: req => (req.body?.role === 'supplier' ? 'supplier' :
+null)` — reading `role`, not `targetRole`. Two concrete adjustments are
+  needed, not zero:
+  1. **A separate guard instance** for this route, with its own
+     `roleResolver: req => (req.body?.targetRole === 'supplier' ?
+'supplier' : null)` — the existing instance would never fire for this
+     route's body shape.
+  2. **The acting user's email must land in `req.body.email`** before the
+     guard runs (e.g. the route handler sets
+     `req.body.email = req.body.email || req.user.email` ahead of the
+     guard middleware), since the guard reads that field directly and a
+     self-service conversion's identity comes from the session, not a
+     submitted registration form field.
+  - **Also must call `completeRegistrationRisk(req, userId)`
+    (`partnerRegistrationRiskService.js:1003-1010`) on success**, exactly
+    as `routes/auth.js:462` does after a successful registration — using
+    the _existing_ user's id (this isn't user creation, it's a role
+    change on an existing account). Skipping this isn't just an omission:
+    the guard's own `res.once('finish', ...)` handler
+    (lines 979-988) auto-records the attempt as outcome
+    `'completed_without_user'` if `completeRegistrationRisk` was never
+    called, and that outcome is explicitly excluded from the
+    velocity/repeat-abuse checks the risk service otherwise runs on
+    `'created'` outcomes — so a successful conversion that skips this call
+    would silently fall outside the abuse-detection signal, defeating the
+    reason for reusing the guard at all.
 
 ### 4.3 Touch points to update
 
-| File                                                    | Change                                                                                                                                                                                    |
-| ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `services/accountTypeConversion.service.js`             | **New**                                                                                                                                                                                   |
-| `routes/settings.js`                                    | New `POST /account-type` (resolves to `POST /api/v1/me/settings/account-type`)                                                                                                            |
-| `services/supplierProfileProvisioning.service.js`       | Extend to support reactivating a `suspended`-by-conversion profile instead of only "create or return as-is"                                                                               |
-| `models/index.js`                                       | Add `previousRole`, `lastAccountTypeChangeAt` to the `users` `$jsonSchema` (additive, non-breaking; `USER_ROLE_CHANGED` audit action already exists, no new `AUDIT_ACTIONS` entry needed) |
-| `models/Supplier.js`                                    | Document the "suspended by self-conversion" convention if we track a reason (e.g. `suspendedReason: 'owner_converted_to_customer'`)                                                       |
-| `public/settings.html`                                  | New "Account Type" section markup (reusing the field set from `public/auth.html`'s `#supplier-fields` block)                                                                              |
-| `public/assets/js/pages/settings-init.js`               | Conversion form, validation, confirmation modal, session refresh after success                                                                                                            |
-| `public/assets/js/pages/dashboard-redirect.js`          | No logic change expected (already redirects on `role`), but must be exercised in QA/e2e immediately after a conversion to confirm it picks up the refreshed cookie                        |
-| `services/adminUserSummary.service.js` / `/admin-users` | No functional change expected, but self-service conversions should already show up via existing `byRole` counts and audit log — verify in QA                                              |
+| File                                                    | Change                                                                                                                                                                                                                                                                                          |
+| ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `services/accountTypeConversion.service.js`             | **New**                                                                                                                                                                                                                                                                                         |
+| `middleware/auth.js`                                    | **Required, not optional** — line 202: change `role: u.role` (JWT claim) to `role: dbUser.role` (already-fetched fresh DB value) in `authRequired`, per §2.6 fix 1. Without this, neither the self-service nor the admin conversion path is actually correct within the token's 7-day lifetime. |
+| `routes/settings.js`                                    | New `POST /account-type` (resolves to `POST /api/v1/me/settings/account-type`)                                                                                                                                                                                                                  |
+| `services/supplierProfileProvisioning.service.js`       | Extend to support reactivating a `suspended`-by-conversion profile instead of only "create or return as-is"                                                                                                                                                                                     |
+| `models/index.js`                                       | Add `previousRole`, `lastAccountTypeChangeAt` to the `users` `$jsonSchema` (additive, non-breaking; `USER_ROLE_CHANGED` audit action already exists, no new `AUDIT_ACTIONS` entry needed)                                                                                                       |
+| `models/Supplier.js`                                    | Document the "suspended by self-conversion" convention if we track a reason (e.g. `suspendedReason: 'owner_converted_to_customer'`)                                                                                                                                                             |
+| `public/settings.html`                                  | New "Account Type" section markup (reusing the field set from `public/auth.html`'s `#supplier-fields` block)                                                                                                                                                                                    |
+| `public/assets/js/pages/settings-init.js`               | Conversion form, validation, confirmation modal, session refresh after success                                                                                                                                                                                                                  |
+| `public/assets/js/pages/dashboard-redirect.js`          | No logic change expected (already redirects on `role`), but must be exercised in QA/e2e immediately after a conversion to confirm it picks up the refreshed cookie                                                                                                                              |
+| `services/adminUserSummary.service.js` / `/admin-users` | No functional change expected, but self-service conversions should already show up via existing `byRole` counts and audit log — verify in QA                                                                                                                                                    |
 
 ---
 
@@ -523,12 +638,18 @@ supplierInfo? }`), `roleRequired('admin')` + `csrfProtection`, calling the
   of this feature, but the conversion UI depends on it being accurate.
 - Unlike the self-service flow, an admin-initiated conversion does **not**
   need to reissue the _admin's own_ session — it changes someone else's
-  account. But if that user has an active session, their existing JWT will
-  still carry the stale role for up to 7 days (§2.6's finding applies here
-  too) — call this out explicitly in the confirmation modal copy ("the user
-  may need to log out and back in, or their session will refresh within a
-  browser reload of a fresh page load that re-verifies the DB role") since
-  there's no server-push mechanism to invalidate their cookie early.
+  account, and the admin has no way to reissue a cookie the target user's
+  browser holds. This is exactly the case §2.6's fix 1 exists for: with
+  `middleware/auth.js:202` reading `role` from the fresh `dbUser` lookup
+  instead of the JWT claim, the target user's _very next_ authenticated
+  request after the admin's change is correctly authorized — no waiting for
+  logout, token expiry, or a lucky page reload. **Modal copy alone
+  ("the user may need to log out and back in") is not sufficient on its
+  own** — without §2.6's fix 1, a downgraded supplier would keep
+  supplier-route access and an upgraded customer would stay denied for up
+  to 7 days regardless of what the modal says, so treat that fix as a
+  prerequisite for shipping the admin conversion action, not an optional
+  hardening step.
 
 ### 5.4 Touch points (admin-side, additive to §4.3)
 
@@ -549,7 +670,18 @@ Following existing repo conventions:
   style of `tests/unit/supplier-profile-provisioning-hardening.test.js` —
   idempotency, rollback-on-provisioning-failure, cooldown enforcement, audit
   log calls, rejection of `admin` as a source/target role, reactivation of a
-  suspended profile.
+  suspended profile. Also, specifically (from §3.3/§4.1's corrections):
+  `convertToCustomer` sets both `approved: false` **and** `status:
+'suspended'` (not `status` alone), calls `catalogCache.invalidate()`, and
+  rolls `users.role` back if the supplier-suspend write fails; a supplier
+  reactivated via `convertToSupplier` after a prior downgrade does **not**
+  come back `approved: true` automatically — it re-enters `pending_review`.
+- **`middleware/auth.js` regression test** (§2.6 fix 1): assert
+  `authRequired` populates `req.user.role` from the freshly-read `dbUser`,
+  not the JWT payload — construct a request with a JWT carrying a stale role
+  and a DB user with a different current role, and assert `req.user.role`
+  matches the DB, not the token. This is the test that would have caught
+  the original design gap and is the one guarding against it regressing.
 - **Integration** (`tests/integration/`): new
   `account-type-conversion-route.test.js` mirroring
   `tests/integration/auth-account-security.test.js` and, more directly,
@@ -559,7 +691,13 @@ Following existing repo conventions:
   its own subscription-cancellation and cascade-cleanup behaviour) — auth
   required, CSRF required, feature-flag gating (`supplierApplications` off →
   503), rate limiting, cookie reissued with new role claim, `suppliers` doc
-  created/suspended/reactivated as expected.
+  created/suspended/reactivated as expected. Also (from §4.2's correction):
+  assert the route's own `registrationRiskGuard` instance actually fires for
+  a `targetRole: 'supplier'` body (not just `role`), that `req.body.email`
+  gets populated from `req.user.email` before the guard runs, and that
+  `completeRegistrationRisk(req, userId)` is called on success — assert via
+  a spy/mock that the risk event is recorded with outcome `'created'`, not
+  left to fall through to `'completed_without_user'`.
 - **Schema drift guard**: `previousRole` reuses the existing `USER_ROLES` enum
   values, so no new enum is introduced — but re-run
   `tests/integration/schema-enum-drift.test.js` to confirm the new
@@ -959,9 +1097,11 @@ NEW    tests/unit/admin-account-type-conversion.test.js
 NEW    tests/integration/account-type-conversion-route.test.js
 NEW    e2e/account-type-conversion.spec.js
 NEW    docs/ACCOUNT_TYPE_CONVERSION.md              (post-implementation, user-facing)
+EDIT   middleware/auth.js                            (required: authRequired must read role from the fresh DB user, not the JWT claim — §2.6/§5.3)
 EDIT   routes/settings.js
 EDIT   routes/admin-user-management.js               (new admin endpoint; remove `role` handling from PUT /:id; fix supplierProfile propagation)
 EDIT   services/supplierProfileProvisioning.service.js
+EDIT   services/catalogCache.js                       (no code change expected — just confirm `invalidate()` is called after every approved/status change made by the conversion service, §3.3)
 EDIT   models/index.js
 EDIT   public/settings.html
 EDIT   public/assets/css/settings.css                (§9.2: role-pill + glass-card + modal-entrance rules — copied/adapted from auth.css and components.css, since neither is loaded on /settings)
