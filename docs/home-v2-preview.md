@@ -69,29 +69,27 @@ card takes its own `clipPath` in `objectBoundingBox` units (the four `#hv2-mask-
 `home-v2.html`) so the silhouettes scale with the box; `border-radius` cannot express them
 because it only ever draws four elliptical quadrants.
 
-The boxes above are measured; the silhouettes are Lame curves. A shape built from four
-corner arcs — the `border-radius` model — can only be an ellipse or a rounded rectangle,
-because the arcs are elliptical: enlarging them until the straight edges disappear turns the
-whole shape into an ellipse. The design's blobs are neither. They are _fuller_ than an
-ellipse with no straight edge anywhere, which is a superellipse:
+The **approved 1672 × 941 render is the source of truth for the silhouettes**. Do not
+regenerate the masks from border radii, squircles, superellipses, Lamé curves or another
+convenient mathematical family. Those approaches were tried repeatedly and could match the
+bounding boxes while still producing visibly different shapes.
 
-    |x/a|^n + |y/b|^n = 1
+The three foreground cards — Catering, Entertainment and Photography — are reference traces
+of the visible raster edges, normalised into 64-point `objectBoundingBox` paths. At their
+roughly 285–309px rendered widths that sampling is sub-pixel smooth while retaining the
+small asymmetries that make the reference look organic rather than generated. Venue is
+partly hidden behind the foreground cards, so its visible top and left contour is traced and
+the obscured right/bottom contour is smoothly continued behind the cards. The checked-in
+source data and reference measurements live in `docs/assets/hero-collage-blob.py` despite
+the historical filename; it is now a fixed trace source, **not** a blob generator.
 
-`n = 2` is an ellipse, large `n` is a rectangle, and the design lives in between. The
-generator is `docs/assets/hero-collage-blob.py`; each shape is four quadrants, each with its own
-`n`, sampled and joined with Catmull-Rom into cubic Béziers. Two knobs do all the work:
-
-- **`n` — fullness.** Catering, entertainment and photography sit around `4.0`–`4.2`, which
-  reads as a squircle. The feature card sits at `2.8`–`3.0`, fuller than an ellipse but
-  clearly organic.
-- **`cx`, `cy` — where the extremes fall.** The top and bottom of the shape sit at `x = cx`,
-  the left and right at `y = cy`. The three small cards are near-centred; the feature card
-  is `0.40 / 0.45`, which puts its shoulder left of centre and its widest point above centre,
-  and that asymmetry is what stops it reading as a lozenge.
-
-Earlier passes tried this with corner radii and had to choose between the three small cards
-reading as rounded rectangles or the feature card reading as an oval. Both were wrong, and
-the feature card is the one that shows it.
+`public/assets/js/pages/home-v2-hero.js` applies those checked-in paths to the existing
+in-document SVG defs before `DOMContentLoaded` and before the shared collage module starts
+loading or cycling media. Keeping the defs in-document means the existing `url(#hv2-mask-*)`
+CSS continues to clip both `<img>` and admin-supplied `<video>` media, as well as the white
+separator backing. `tests/unit/home-v2-hero-reference-masks.test.js` pins the runtime paths to
+the checked-in trace source so a later pass cannot silently replace them with another shape
+formula.
 
 The mask sits on the card's media and on a `::before` inset by `-3px`, not on the card
 itself, so the white backing can follow the same contour 3px outside the image and read as
@@ -170,7 +168,7 @@ credits, lazy loading, the stall watchdog and the hidden hero video card, and ex
 | `public/assets/css/home-v2-hero-design.css`   | V2-only hero design, layered over the bridge               |
 | `public/assets/js/pages/home-v2.js`           | Compiled from `src/homepages/home-v2.ts` — never hand-edit |
 | `public/assets/js/pages/home-v2-parity.js`    | Lower-section data wiring                                  |
-| `public/assets/js/pages/home-v2-hero.js`      | Collage bootstrap                                          |
+| `public/assets/js/pages/home-v2-hero.js`      | Collage bootstrap + approved-render mask application       |
 | `public/assets/js/collage/hero-collage.js`    | Shared collage module                                      |
 | `utils/template-renderer.js`                  | Preview routing, navbar parity injection, noindex          |
 | `scripts/serve-static.js`                     | Mirrors the preview routes for E2E and visual runs         |
