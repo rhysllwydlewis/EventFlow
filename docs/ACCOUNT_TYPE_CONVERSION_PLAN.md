@@ -1151,7 +1151,7 @@ blur(12px)`, glass card `rgba(255,255,255,.92)`, `border-radius:16px`,
   `Toast.show()` (`components.js:183`) sets `toast.className =
   \`toast toast-${type}\``(e.g.`"toast toast-success"`), while
   `admin-enhanced.css`'s colour rules are the _compound_ selectors
-  `.toast.success`/`.toast.error`/etc. (`admin-enhanced.css:2073-2086`) —
+  `.toast.success`/`.toast.error`/etc. (`admin-enhanced.css:2073-2087`) —
   requiring a literal `success`class on the element, which never exists
   (only`toast-success`does), so those colour rules never match. The
   unconditional`.toast { border-left: 4px solid; }`(line 2070, no colour
