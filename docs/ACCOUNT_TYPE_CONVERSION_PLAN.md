@@ -1148,24 +1148,24 @@ blur(12px)`, glass card `rgba(255,255,255,.92)`, `border-radius:16px`,
   in this page's `<head>`, its bottom-right positioning wins over
   `components.css`'s top-right rule. **But the per-type left-border colour
   does not actually apply — worth getting right, not glossing over**:
-  `Toast.show()` (`components.js:183`) sets `toast.className =
-  \`toast toast-${type}\``(e.g.`"toast toast-success"`), while
+  `Toast.show()` (`components.js:183`) sets the class to
+  `` `toast toast-${type}` `` (e.g. `"toast toast-success"`), while
   `admin-enhanced.css`'s colour rules are the _compound_ selectors
   `.toast.success`/`.toast.error`/etc. (`admin-enhanced.css:2073-2087`) —
-  requiring a literal `success`class on the element, which never exists
-  (only`toast-success`does), so those colour rules never match. The
-  unconditional`.toast { border-left: 4px solid; }`(line 2070, no colour
+  requiring a literal `success` class on the element, which never exists
+  (only `toast-success` does), so those colour rules never match. The
+  unconditional `.toast { border-left: 4px solid; }` (line 2070, no colour
   specified) still applies, rendering a plain uncoloured border rather than
   a colour-coded accent. The icon _does_ still get the right colour, but via
-  a different, correctly-matching selector in`components.css`
+  a different, correctly-matching selector in `components.css`
   (`.toast-success .toast-icon`, a descendant selector that only needs
-  `.toast-success`to exist anywhere as an ancestor class, not compounded
-  with`.toast`). **Net effect: `showToast`on this page renders
+  `.toast-success` to exist anywhere as an ancestor class, not compounded
+  with `.toast`). **Net effect: `showToast` on this page renders
   bottom-right with a correctly-coloured icon but an uncoloured left
-  border** — closer to`showEnhancedToast`'s intended look than a plain
-  flat toast, but not identical to it. Still use `showToast`(it's what
+  border** — closer to `showEnhancedToast`'s intended look than a plain
+  flat toast, but not identical to it. Still use `showToast` (it's what
   every neighbouring action on this page already calls), just don't
-  describe the result as fully matching`showEnhancedToast`'s styling —
+  describe the result as fully matching `showEnhancedToast`'s styling —
   it's a pre-existing CSS bug in the admin panel (a compound selector that
   doesn't match the class the JS actually generates), not something this
   feature needs to fix, but also not something to mischaracterize as
