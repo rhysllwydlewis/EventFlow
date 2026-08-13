@@ -33,6 +33,19 @@ const ringSource = fs.readFileSync(
   path.join(root, 'public/assets/js/components/profile-health-widget.js'),
   'utf8'
 );
+const analyticsSource = fs.readFileSync(
+  path.join(root, 'public/assets/js/supplier-analytics-chart.js'),
+  'utf8'
+);
+
+const performanceChartStart = analyticsSource.indexOf(
+  'export async function createPerformanceChart'
+);
+const performanceChartEnd = analyticsSource.indexOf(
+  '/**\n * Fetch analytics data for a specific period',
+  performanceChartStart
+);
+const performanceChartSource = analyticsSource.slice(performanceChartStart, performanceChartEnd);
 
 describe('the legacy KPI grid duplicate is removed', () => {
   it('no longer has a #supplier-kpi-grid container in the page', () => {
@@ -90,5 +103,35 @@ describe('the Profile Health ring does not draw a stray dot at 0%', () => {
 
   it('the background circle is unconditional so the ring is still visible at 0%', () => {
     expect(ringSource).toContain('class="progress-ring-background"');
+  });
+});
+
+describe('analytics period controls remain usable when the initial period is empty', () => {
+  it('keeps both the chart canvas and empty state available instead of returning early', () => {
+    expect(performanceChartStart).toBeGreaterThanOrEqual(0);
+    expect(performanceChartEnd).toBeGreaterThan(performanceChartStart);
+    expect(performanceChartSource).toContain('class="chart-container"');
+    expect(performanceChartSource).toContain('class="sd-empty-state sd-chart-empty"');
+    expect(performanceChartSource).toContain('await createAnalyticsChart(canvasId, chartData)');
+    expect(performanceChartSource).not.toMatch(/if \(!hasAnyData\)[\s\S]*?return null;/);
+  });
+
+  it('wires the 7/30/90-day buttons before returning the chart instance', () => {
+    const controlsIndex = performanceChartSource.indexOf(
+      "container.querySelectorAll('.chart-period-btn')"
+    );
+    const returnIndex = performanceChartSource.lastIndexOf('return chart;');
+    expect(controlsIndex).toBeGreaterThanOrEqual(0);
+    expect(returnIndex).toBeGreaterThan(controlsIndex);
+    expect(performanceChartSource).toContain('fetchAnalyticsData(period)');
+  });
+
+  it('switches between the empty state and the same live chart as period data changes', () => {
+    expect(performanceChartSource).toContain('chartContainer.hidden = !currentHasData');
+    expect(performanceChartSource).toContain('emptyState.hidden = currentHasData');
+    expect(performanceChartSource).toContain('chart.data.labels = newData.labels');
+    expect(performanceChartSource).toContain('chart.data.datasets[0].data = newData.views');
+    expect(performanceChartSource).toContain('chart.data.datasets[1].data = newData.enquiries');
+    expect(performanceChartSource).toContain("chart.update('active')");
   });
 });
