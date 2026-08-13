@@ -5,7 +5,7 @@ const path = require('path');
 
 const css = fs.readFileSync(
   path.join(__dirname, '../../public/assets/css/supplier-dashboard-visual-refresh.css'),
-  'utf8'
+  'utf8',
 );
 
 describe('supplier dashboard section navigation layout', () => {
@@ -25,8 +25,7 @@ describe('supplier dashboard section navigation layout', () => {
   });
 
   it('disables the old absolutely positioned Settings icon marker', () => {
-    const selector =
-      '.supplier-dashboard-page .mobile-nav-pill[data-href] .pill-icon::after {';
+    const selector = '.supplier-dashboard-page .mobile-nav-pill[data-href] .pill-icon::after {';
     const finalRuleStart = css.lastIndexOf(selector);
     const finalRuleEnd = css.indexOf('}', finalRuleStart);
     const finalRule = css.slice(finalRuleStart, finalRuleEnd + 1);
