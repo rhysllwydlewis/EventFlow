@@ -1678,9 +1678,11 @@ body {
     right: 16px;
     left: 16px;
     max-width: none;
-    /* Clear the fixed bottom nav (and the home indicator below it) so the
-       notice never covers whatever control sits at the bottom of the page. */
-    bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+    /* Clear the fixed bottom nav, the home indicator below it, and the
+       circular .back-to-top button (bottom: 5rem/4.5rem, up to 44px tall)
+       that also floats in this corner — 84px alone cleared the nav but the
+       taller toast still landed on top of the button. */
+    bottom: calc(140px + env(safe-area-inset-bottom, 0px));
   }
 }
 

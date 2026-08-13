@@ -6277,6 +6277,13 @@ body:not(.supplier-dashboard-page) .section > .container {
   box-shadow: 0 2px 6px rgba(107, 114, 128, 0.3);
 }
 
+/* Pause/unpause carry an icon plus a visible label — Edit/View/Delete beside
+   them are text-only, and an icon with no label wasn't self-explanatory. */
+.card-action-btn.pause-btn,
+.card-action-btn.unpause-btn {
+  gap: 4px;
+}
+
 /* Pause button in supplier package cards */
 .card-action-btn.pause-btn {
   background: rgba(107, 114, 128, 0.12);

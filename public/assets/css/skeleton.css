@@ -475,20 +475,6 @@ html:not([data-sp-theme-ready='true']) body.sp-profile-page #sp-section-gallery:
   box-shadow: var(--skeleton-shadow);
 }
 
-.supplier-dashboard-page #supplier-kpi-grid > .skeleton {
-  min-height: 110px;
-  height: auto !important;
-  border: 1px solid var(--skeleton-border);
-  border-radius: 16px !important;
-  background:
-    linear-gradient(var(--skeleton-base), var(--skeleton-base)) 18px 18px / 34% 12px no-repeat,
-    linear-gradient(var(--skeleton-base), var(--skeleton-base)) 18px 46px / 46% 28px no-repeat,
-    linear-gradient(var(--skeleton-base), var(--skeleton-base)) 18px 88px / 64% 10px no-repeat,
-    var(--skeleton-surface);
-  animation: none;
-  box-shadow: var(--skeleton-shadow);
-}
-
 .supplier-dashboard-page #supplier-availability-widget > .skeleton:only-child {
   min-height: 132px;
   height: auto !important;

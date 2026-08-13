@@ -3949,7 +3949,7 @@ async function initDashSupplier() {
             approved && slug
               ? `<a href="/package?slug=${slug}" target="_blank" class="card-action-btn view-btn">View</a>`
               : `<button type="button" class="ef-cta card-action-btn view-btn" disabled aria-disabled="true" title="${viewUnavailableReason}">View</button>`;
-          const pauseBtn = `<button type="button" class="ef-cta card-action-btn ${paused ? 'unpause-btn' : 'pause-btn'}" data-action="${paused ? 'unpause-package' : 'pause-package'}" data-package-id="${packageId}" title="${paused ? 'Unpause' : 'Pause'}" aria-label="${paused ? 'Unpause package' : 'Pause package'}">${paused ? '<svg width="10" height="11" viewBox="0 0 10 11" fill="currentColor" aria-hidden="true"><polygon points="0,0 10,5.5 0,11"/></svg>' : '<svg width="10" height="11" viewBox="0 0 10 11" fill="currentColor" aria-hidden="true"><rect x="0" y="0" width="3.5" height="11" rx="0.75"/><rect x="6.5" y="0" width="3.5" height="11" rx="0.75"/></svg>'}</button>`;
+          const pauseBtn = `<button type="button" class="ef-cta card-action-btn ${paused ? 'unpause-btn' : 'pause-btn'}" data-action="${paused ? 'unpause-package' : 'pause-package'}" data-package-id="${packageId}" aria-label="${paused ? 'Unpause package' : 'Pause package'}">${paused ? '<svg width="10" height="11" viewBox="0 0 10 11" fill="currentColor" aria-hidden="true"><polygon points="0,0 10,5.5 0,11"/></svg> Resume' : '<svg width="10" height="11" viewBox="0 0 10 11" fill="currentColor" aria-hidden="true"><rect x="0" y="0" width="3.5" height="11" rx="0.75"/><rect x="6.5" y="0" width="3.5" height="11" rx="0.75"/></svg> Pause'}</button>`;
 
           return `<div class="card package-card${paused ? ' package-card--paused' : ''}" data-package-id="${packageId}">
       <img src="${image}" alt="${title} image" data-fallback-src="/assets/images/package-placeholder.svg">
@@ -7322,10 +7322,10 @@ async function adminCharts() {
 }
 
 // Supplier onboarding checklist visual (client side)
-function renderSupplierChecklist(wrapper, supplierCount, packageCount) {
+function renderSupplierChecklist(wrapper, supplierCount, packageCount, supplierApproved) {
   const steps = [
     { name: 'Create a supplier profile', done: supplierCount > 0 },
-    { name: 'Get approved by admin', done: false }, // can't know client-side; show informational
+    { name: 'Get approved by admin', done: supplierApproved },
     { name: 'Add at least one package', done: packageCount > 0 },
   ];
   wrapper.innerHTML = `
@@ -7344,7 +7344,16 @@ function renderSupplierChecklist(wrapper, supplierCount, packageCount) {
       </div>
     </div>
     <div class="sd-card-body">
-      ${steps.map(s => `<div class="small">${s.done ? '✅' : '⬜️'} ${s.name}</div>`).join('')}
+      <ul class="health-checklist">
+        ${steps
+          .map(
+            s => `<li class="health-checklist-item ${s.done ? 'completed' : 'incomplete'}">
+          <span class="health-checklist-icon" aria-label="${s.done ? 'Completed' : 'Incomplete'}">${s.done ? '✓' : '○'}</span>
+          <span class="health-checklist-text">${escapeHtml(s.name)}</span>
+        </li>`
+          )
+          .join('')}
+      </ul>
     </div>`;
 }
 
@@ -7363,10 +7372,17 @@ document.addEventListener('DOMContentLoaded', () => {
           credentials: 'include',
         });
         const mp = await pk.json();
+        const supplierItems = ms.items || [];
+        const supplierApproved = supplierItems.some(s => s.approved === true);
         const box = document.createElement('div');
         box.className = 'card sd-card supplier-dashboard-card';
         document.querySelector('main .container').appendChild(box);
-        renderSupplierChecklist(box, (ms.items || []).length, (mp.items || []).length);
+        renderSupplierChecklist(
+          box,
+          supplierItems.length,
+          (mp.items || []).length,
+          supplierApproved
+        );
       } catch (e) {
         /* Ignore checklist render errors */
       }
