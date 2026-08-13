@@ -297,20 +297,11 @@
     errorDiv.setAttribute('role', 'status');
     errorDiv.textContent = message;
     errorDiv.title = 'Dismiss';
-    errorDiv.style.cssText = `
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      background: rgba(180, 83, 9, 0.95);
-      color: white;
-      padding: 12px 16px;
-      border-radius: 8px;
-      font-size: 14px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-      z-index: 10000;
-      max-width: 300px;
-      cursor: pointer;
-    `;
+    // Styling lives in components.css (.ws-error-message). It used to be set
+    // inline here, which pinned the notice to bottom:20px on every viewport —
+    // directly on top of the fixed mobile bottom nav and whatever primary
+    // control sat above it. A class lets the stylesheet move it out of the way
+    // per breakpoint; inline styles could never carry a media query.
     errorDiv.onclick = hideWebSocketError;
     window.clearTimeout(showWebSocketError.timer);
     showWebSocketError.timer = window.setTimeout(hideWebSocketError, 8000);

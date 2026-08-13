@@ -9,6 +9,14 @@
   display: none;
 }
 
+/* ─── Bulk expand/collapse ──────────────────────────────────────── */
+/* Hidden on desktop for the same reason as the per-card button: above
+   BREAKPOINT every card renders fully expanded with no toggle at all, so a
+   control for bulk-toggling something that doesn't exist would be dead UI. */
+.card-collapse-bulk-actions {
+  display: none;
+}
+
 /* ─── Throb breadcrumb keyframe ──────────────────────────────────── */
 /* Runs 3 × 1.5 s ≈ 4.5 s on initial page-load to hint expandability.
    Box-shadow only — no transform so it doesn't conflict with the
@@ -33,6 +41,47 @@
 
 /* ─── Mobile / tablet (≤ 1024px) ────────────────────────────────── */
 @media (max-width: 1024px) {
+  .card-collapse-bulk-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    margin: 0 2px 4px;
+  }
+
+  .card-collapse-bulk-btn {
+    background: none;
+    border: none;
+    /* Vertical padding brings the tap target to ~44px without inflating the
+       button's visible footprint — same WCAG 2.5.8 target-size goal
+       .card-collapse-btn serves with its ::before pseudo-element instead. */
+    padding: 12px 4px;
+    margin: -12px -4px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    color: #0b8073;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+  }
+
+  .card-collapse-bulk-btn:hover,
+  .card-collapse-bulk-btn:focus-visible {
+    text-decoration: underline;
+  }
+
+  .card-collapse-bulk-btn:focus-visible {
+    outline: 2px solid rgba(11, 128, 115, 0.5);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  .card-collapse-bulk-sep {
+    color: #cbd5e1;
+    font-size: 13px;
+  }
 
   /* Positioning context for the absolute-positioned button.
      overflow: visible ensures the card does not clip the absolutely-positioned

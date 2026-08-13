@@ -3373,8 +3373,18 @@ async function initDashSupplier() {
             </span>
           </div>
         </div>
-        <!-- Health score ring (right column) -->
-        <div class="spc-ring" aria-label="Health score" aria-live="polite" data-computed-score="${checklistScore}">
+        <!-- Health score ring (right column). This is a weighted richness score (logo,
+             description length, photos, socials, website — see ProfileHealthWidget) and
+             is deliberately a different number from the setup checklist beside it, which
+             just counts finished tasks. The title/aria-label say so, since the two used
+             to read as disagreeing claims about the same thing with nothing to explain why. -->
+        <div
+          class="spc-ring"
+          aria-label="Health score: how complete your profile content is — separate from the setup checklist"
+          title="How complete your profile content is (photos, description, links). Separate from the setup checklist below."
+          aria-live="polite"
+          data-computed-score="${checklistScore}"
+        >
           <div class="spc-ring-circle">
             <svg class="spc-ring-svg" viewBox="0 0 80 80" fill="none" aria-hidden="true">
               <circle class="spc-ring-track" cx="40" cy="40" r="32"/>
@@ -3414,7 +3424,7 @@ async function initDashSupplier() {
               <span class="spc-checklist-title">Profile Setup Checklist</span>
               <span class="spc-checklist-count">${completedCount} / ${checklistItems.length}</span>
             </div>
-            <p class="spc-checklist-subtitle">Complete all steps to improve your profile visibility</p>
+            <p class="spc-checklist-subtitle">Setup tasks to complete — a separate count from the Health Score above, which scores how rich your content is</p>
           </div>
         </div>
         <div class="spc-checklist-steps" role="list">
@@ -3929,17 +3939,23 @@ async function initDashSupplier() {
           const priceBadgeHtml = priceDisplay
             ? `<span class="badge pkg-price-badge">${escapeHtml(priceDisplay)}</span>`
             : '';
+          // A package with no public page still gets a View control, disabled and
+          // explaining itself. Dropping the button entirely left one card in the
+          // row a button short, with nothing to say why it could not be viewed.
+          const viewUnavailableReason = !approved
+            ? 'This package has no public page yet — it is awaiting admin approval'
+            : 'This package has no public page yet';
           const viewBtn =
             approved && slug
               ? `<a href="/package?slug=${slug}" target="_blank" class="card-action-btn view-btn">View</a>`
-              : '';
+              : `<button type="button" class="ef-cta card-action-btn view-btn" disabled aria-disabled="true" title="${viewUnavailableReason}">View</button>`;
           const pauseBtn = `<button type="button" class="ef-cta card-action-btn ${paused ? 'unpause-btn' : 'pause-btn'}" data-action="${paused ? 'unpause-package' : 'pause-package'}" data-package-id="${packageId}" title="${paused ? 'Unpause' : 'Pause'}" aria-label="${paused ? 'Unpause package' : 'Pause package'}">${paused ? '<svg width="10" height="11" viewBox="0 0 10 11" fill="currentColor" aria-hidden="true"><polygon points="0,0 10,5.5 0,11"/></svg>' : '<svg width="10" height="11" viewBox="0 0 10 11" fill="currentColor" aria-hidden="true"><rect x="0" y="0" width="3.5" height="11" rx="0.75"/><rect x="6.5" y="0" width="3.5" height="11" rx="0.75"/></svg>'}</button>`;
 
           return `<div class="card package-card${paused ? ' package-card--paused' : ''}" data-package-id="${packageId}">
       <img src="${image}" alt="${title} image" data-fallback-src="/assets/images/package-placeholder.svg">
       <div class="package-card-content">
         <h3>${title}</h3>
-        <div class="small">${priceBadgeHtml} ${featured ? '<span class="badge">Featured</span>' : ''} ${approvalBadge} ${pausedBadge}</div>
+        <div class="small">${priceBadgeHtml} ${featured ? '<span class="badge badge-featured">Featured</span>' : ''} ${approvalBadge} ${pausedBadge}</div>
         <p class="small">${description}</p>
         <div class="card-actions">
           <button type="button" class="ef-cta card-action-btn edit-btn" data-action="edit-package" data-package-id="${packageId}">Edit</button>

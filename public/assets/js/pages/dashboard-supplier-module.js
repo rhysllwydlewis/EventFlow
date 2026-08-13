@@ -310,22 +310,14 @@ async function initSupplierDashboardWidgets() {
       quickStatEnquiries.textContent = String(totalEnquiries);
     }
 
-    // Update active packages stat card — fetch from /api/me/packages and count non-paused packages
+    // Update active packages stat card. This reads the same dashboard-summary payload
+    // the KPI grid renders from, rather than counting /api/me/packages separately —
+    // the two used to apply different definitions of "active" and disagreed on screen.
     const quickStatPackages = document.getElementById('quick-stat-packages');
     if (quickStatPackages) {
-      try {
-        const pkgsResp = await fetch('/api/me/packages', { credentials: 'include' });
-        if (pkgsResp.ok) {
-          const pkgsData = await pkgsResp.json();
-          const allPackages = pkgsData?.items ?? [];
-          // Active = not paused
-          const activeCount = allPackages.filter(p => !p.paused).length;
-          quickStatPackages.setAttribute('data-target', String(activeCount));
-          quickStatPackages.textContent = String(activeCount);
-        }
-      } catch (_err) {
-        // Leave at 0 on failure — do not crash the dashboard
-      }
+      const activeCount = summaryData?.packages?.active ?? 0;
+      quickStatPackages.setAttribute('data-target', String(activeCount));
+      quickStatPackages.textContent = String(activeCount);
     }
 
     // Update rating stat card from review summary

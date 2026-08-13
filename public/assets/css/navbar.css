@@ -1639,12 +1639,18 @@ body {
   }
 }
 
-/* WebSocket error message */
+/* WebSocket error message.
+   Real-time updates are a progressive enhancement — notifications still work
+   without the socket — so this is amber, not the red of a genuine failure.
+   (notifications.js used to set that colour inline, which also pinned the
+   notice to bottom:20px on every viewport and put it on top of the fixed
+   mobile bottom nav. Positioning belongs here, where it can vary per
+   breakpoint.) */
 .ws-error-message {
   position: fixed;
   bottom: 20px;
   right: 20px;
-  background: rgba(239, 68, 68, 0.95);
+  background: rgba(180, 83, 9, 0.95);
   color: white;
   padding: 12px 16px;
   border-radius: 8px;
@@ -1652,6 +1658,7 @@ body {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   z-index: 10000;
   max-width: 300px;
+  cursor: pointer;
   animation: toast-slide-in 0.3s ease-out;
 }
 
@@ -1671,6 +1678,9 @@ body {
     right: 16px;
     left: 16px;
     max-width: none;
+    /* Clear the fixed bottom nav (and the home indicator below it) so the
+       notice never covers whatever control sits at the bottom of the page. */
+    bottom: calc(84px + env(safe-area-inset-bottom, 0px));
   }
 }
 
