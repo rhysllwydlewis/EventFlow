@@ -236,7 +236,7 @@
           <div class="profile-health-icon" aria-hidden="true">💪</div>
           <div class="profile-health-title-wrapper">
             <h2 id="health-widget-title">Profile Health</h2>
-            <p>Complete your profile to increase visibility</p>
+            <p>How rich your profile content is — separate from the setup checklist above</p>
           </div>
         </div>
 

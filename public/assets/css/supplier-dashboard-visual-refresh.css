@@ -254,6 +254,23 @@
 }
 
 /* --------------------------------------------------------------------------
+   5b. Profile Health: one header, not two
+   --------------------------------------------------------------------------
+   The "Profile Health" card already gets a title, icon and subtitle from the
+   .sd-card-header chrome every card on this page uses — the same row that
+   carries the collapse control. ProfileHealthWidget's own render then adds a
+   second icon+title+subtitle immediately inside it, so the card said
+   "Profile Health" twice with two different explanations of what the number
+   means. Hide the widget's internal header on this page only: the shared
+   component also renders on admin-supplier-detail.html without the
+   .sd-card-header wrapper, where its own header is the only one and must
+   stay.
+   -------------------------------------------------------------------------- */
+.supplier-dashboard-page #profile-completeness-widget .profile-health-header {
+  display: none;
+}
+
+/* --------------------------------------------------------------------------
    6. Section dividers
    --------------------------------------------------------------------------
    With the page regrouped into six labelled sections, the dividers carry more

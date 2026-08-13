@@ -3373,8 +3373,18 @@ async function initDashSupplier() {
             </span>
           </div>
         </div>
-        <!-- Health score ring (right column) -->
-        <div class="spc-ring" aria-label="Health score" aria-live="polite" data-computed-score="${checklistScore}">
+        <!-- Health score ring (right column). This is a weighted richness score (logo,
+             description length, photos, socials, website — see ProfileHealthWidget) and
+             is deliberately a different number from the setup checklist beside it, which
+             just counts finished tasks. The title/aria-label say so, since the two used
+             to read as disagreeing claims about the same thing with nothing to explain why. -->
+        <div
+          class="spc-ring"
+          aria-label="Health score: how complete your profile content is — separate from the setup checklist"
+          title="How complete your profile content is (photos, description, links). Separate from the setup checklist below."
+          aria-live="polite"
+          data-computed-score="${checklistScore}"
+        >
           <div class="spc-ring-circle">
             <svg class="spc-ring-svg" viewBox="0 0 80 80" fill="none" aria-hidden="true">
               <circle class="spc-ring-track" cx="40" cy="40" r="32"/>
@@ -3414,7 +3424,7 @@ async function initDashSupplier() {
               <span class="spc-checklist-title">Profile Setup Checklist</span>
               <span class="spc-checklist-count">${completedCount} / ${checklistItems.length}</span>
             </div>
-            <p class="spc-checklist-subtitle">Complete all steps to improve your profile visibility</p>
+            <p class="spc-checklist-subtitle">Setup tasks to complete — a separate count from the Health Score above, which scores how rich your content is</p>
           </div>
         </div>
         <div class="spc-checklist-steps" role="list">
