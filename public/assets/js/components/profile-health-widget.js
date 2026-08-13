@@ -177,6 +177,19 @@
     const radius = 45;
     const circumference = 2 * Math.PI * radius;
     const offset = circumference - (percentage / 100) * circumference;
+    // stroke-linecap:round draws a small round cap at the arc's start even when
+    // its length is zero, so a 0% score still shows a stray coloured dot. Only
+    // draw the progress circle once there is an actual arc to show.
+    const progressCircle =
+      percentage > 0
+        ? `<circle
+          class="progress-ring-progress health-${percentage >= 80 ? 'excellent' : percentage >= 60 ? 'good' : 'poor'}"
+          cx="60"
+          cy="60"
+          r="${radius}"
+          style="stroke: ${color}; stroke-dashoffset: ${offset};"
+        />`
+        : '';
 
     return `
       <svg class="progress-ring" width="120" height="120" aria-hidden="true">
@@ -186,13 +199,7 @@
           cy="60"
           r="${radius}"
         />
-        <circle
-          class="progress-ring-progress health-${percentage >= 80 ? 'excellent' : percentage >= 60 ? 'good' : 'poor'}"
-          cx="60"
-          cy="60"
-          r="${radius}"
-          style="stroke: ${color}; stroke-dashoffset: ${offset};"
-        />
+        ${progressCircle}
       </svg>
     `;
   }

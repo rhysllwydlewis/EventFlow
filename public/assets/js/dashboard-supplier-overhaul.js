@@ -88,103 +88,6 @@
     return response;
   }
 
-  function animateCounter(el, target, duration = 1200) {
-    if (!el || isNaN(target)) {
-      return;
-    }
-    const start = Date.now();
-    const step = () => {
-      const pct = Math.min((Date.now() - start) / duration, 1);
-      const eased = 1 - Math.pow(1 - pct, 3);
-      el.textContent = Math.round(target * eased).toLocaleString();
-      if (pct < 1) {
-        requestAnimationFrame(step);
-      }
-    };
-    requestAnimationFrame(step);
-  }
-
-  function trendBadge(value) {
-    if (value === null || value === undefined) {
-      return '';
-    } // eslint-disable-line no-eq-null
-    const cls = value > 0 ? 'up' : value < 0 ? 'down' : 'flat';
-    const arrow = value > 0 ? '↑' : value < 0 ? '↓' : '→';
-    const label = value === 0 ? 'Steady' : `${Math.abs(value)}% vs last period`;
-    return `<span class="kpi-card__trend kpi-card__trend--${cls}">${arrow} ${label}</span>`;
-  }
-
-  /* ── KPI Grid ── */
-  function renderKpiGrid(data) {
-    const container = document.getElementById('supplier-kpi-grid');
-    if (!container) {
-      return;
-    }
-
-    const { analytics = {}, packages = {}, messages = {}, reviews = {} } = data;
-    const cards = [
-      {
-        cls: 'blue',
-        label: 'Profile Views',
-        value: analytics.totalViews ?? 0,
-        trend: analytics.viewsTrend,
-        icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`,
-      },
-      {
-        cls: 'green',
-        label: 'New Enquiries',
-        value: analytics.totalEnquiries ?? 0,
-        trend: analytics.enquiriesTrend,
-        icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`,
-      },
-      {
-        cls: 'teal',
-        label: 'Active Packages',
-        value: packages.active ?? 0,
-        icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/></svg>`,
-      },
-      {
-        cls: 'amber',
-        label: 'Unread Messages',
-        value: messages.unread ?? 0,
-        icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>`,
-      },
-      {
-        cls: 'purple',
-        label: 'Avg. Rating',
-        value: reviews.averageRating ? reviews.averageRating.toFixed(1) : '—',
-        isText: true,
-        icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`,
-      },
-      {
-        cls: 'red',
-        label: 'Total Reviews',
-        value: reviews.total ?? 0,
-        icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>`,
-      },
-    ];
-
-    container.className = 'kpi-grid';
-    container.innerHTML = cards
-      .map(
-        c => `
-      <div class="kpi-card kpi-card--${c.cls}">
-        <div class="kpi-card__icon">${c.icon}</div>
-        <div class="kpi-card__value" ${c.isText ? '' : `data-animated data-target="${c.value}"`}>${c.isText ? esc(c.value) : '0'}</div>
-        <div class="kpi-card__label">${esc(c.label)}</div>
-        ${c.trend !== null && c.trend !== undefined ? trendBadge(c.trend) : ''}
-      </div>
-    `
-      )
-      .join('');
-
-    // Animate numeric counters
-    container.querySelectorAll('[data-animated]').forEach(el => {
-      const target = parseFloat(el.dataset.target) || 0;
-      animateCounter(el, target);
-    });
-  }
-
   /* ── Availability Widget ── */
   function renderAvailabilityWidget(availability) {
     const container = document.getElementById('supplier-availability-widget');
@@ -193,12 +96,17 @@
     }
 
     const { status = 'available', blockedDates = [], notes = '' } = availability;
+    const statusLabel =
+      status === 'limited' ? 'Limited' : status === 'unavailable' ? 'Unavailable' : 'Available';
     container.className = 'availability-widget';
+    // The enclosing card already has an "Availability Status" heading, so this
+    // inner title repeated it verbatim. Show the current status instead — it's
+    // the one piece of information the heading above doesn't already give.
     container.innerHTML = `
       <div class="availability-widget__header">
         <span class="availability-widget__title">
           <span class="availability-dot availability-dot--${esc(status)}" aria-hidden="true"></span>
-          Availability Status
+          ${esc(statusLabel)}
         </span>
         <div class="availability-status-selector" role="group" aria-label="Set availability status">
           <button class="availability-btn ${status === 'available' ? 'active' : ''}" data-status="available" type="button">Available</button>
@@ -223,6 +131,16 @@
         const dot = container.querySelector('.availability-dot');
         if (dot) {
           dot.className = `availability-dot availability-dot--${currentStatus}`;
+        }
+        const title = container.querySelector('.availability-widget__title');
+        if (title) {
+          const label =
+            currentStatus === 'limited'
+              ? 'Limited'
+              : currentStatus === 'unavailable'
+                ? 'Unavailable'
+                : 'Available';
+          title.lastChild.textContent = ` ${label}`;
         }
       });
     });
@@ -589,17 +507,15 @@
   /* ── Init ── */
   async function init() {
     try {
-      // Fire all 3 requests in parallel — none depends on the others
-      const [summaryRes, availRes, tipsRes] = await Promise.allSettled([
-        fetch('/api/v1/supplier/dashboard-summary?days=30', { credentials: 'include' }),
+      // Fire both requests in parallel — neither depends on the other.
+      // (A third dashboard-summary request used to live here to feed a KPI
+      // grid, but dashboard-supplier-module.js already renders that same
+      // data into #supplier-stats-grid — the two stacked directly on top of
+      // each other, duplicating several tiles. Removed the redundant one.)
+      const [availRes, tipsRes] = await Promise.allSettled([
         fetch('/api/v1/supplier/availability', { credentials: 'include' }),
         fetch('/api/v1/supplier/performance-tips', { credentials: 'include' }),
       ]);
-
-      if (summaryRes.status === 'fulfilled' && summaryRes.value.ok) {
-        const data = await summaryRes.value.json();
-        renderKpiGrid(data);
-      }
 
       if (availRes.status === 'fulfilled' && availRes.value.ok) {
         const { availability } = await availRes.value.json();

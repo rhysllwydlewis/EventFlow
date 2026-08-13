@@ -29,8 +29,10 @@ describe('dashboard skeleton compatibility layer', () => {
     expect(skeletonCss).toContain('#customer-milestones-widget > .skeleton:only-child');
   });
 
-  it('adds internal hierarchy to supplier KPI and availability placeholders', () => {
-    expect(skeletonCss).toContain('#supplier-kpi-grid > .skeleton');
+  it('adds internal hierarchy to the supplier availability placeholder', () => {
+    // #supplier-kpi-grid was removed with the legacy KPI grid it skeletoned for
+    // (dashboard-supplier-overhaul.js's renderKpiGrid duplicated #supplier-stats-grid,
+    // which dashboard-supplier-module.js already renders from the same data).
     expect(skeletonCss).toContain('#supplier-availability-widget > .skeleton:only-child');
   });
 });
