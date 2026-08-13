@@ -323,11 +323,16 @@
     const initiallyCollapsed =
       storedPref === undefined ? card.dataset.defaultExpanded !== 'true' : storedPref === true;
 
+    // Chevron rest state (0deg) points down, rotating 180deg to point up when
+    // active — the same convention .accordion-icon and .article-toc's <summary>
+    // marker already use elsewhere on the site (down = closed, up = open). This
+    // used to be inverted here specifically, which read as backwards next to
+    // every other disclosure control on the page.
     if (!initiallyCollapsed) {
       card.classList.remove('card--collapsed');
       btn.setAttribute('aria-expanded', 'true');
       btn.setAttribute('aria-label', 'Collapse card');
-      btn.style.rotate = '0deg';
+      btn.style.rotate = '180deg';
       wrapper.style.maxHeight = '';
       wrapper.style.opacity = '';
       wrapper.style.display = '';
@@ -335,7 +340,7 @@
       card.classList.add('card--collapsed');
       btn.setAttribute('aria-expanded', 'false');
       btn.setAttribute('aria-label', 'Expand card');
-      btn.style.rotate = '180deg';
+      btn.style.rotate = '0deg';
       wrapper.style.maxHeight = '0';
       wrapper.style.opacity = '0';
       wrapper.style.display = 'none';
@@ -352,7 +357,7 @@
       const collapsed = card.classList.toggle('card--collapsed');
       btn.setAttribute('aria-expanded', String(!collapsed));
       btn.setAttribute('aria-label', collapsed ? 'Expand card' : 'Collapse card');
-      btn.style.rotate = collapsed ? '180deg' : '0deg';
+      btn.style.rotate = collapsed ? '0deg' : '180deg';
 
       if (!collapsed) {
         delete btn.dataset.throb;
@@ -390,6 +395,38 @@
       initCard(card, _cardCounter++, state);
     });
   }
+
+  // Drives every visible card to the same state by clicking its existing
+  // toggle button when needed, rather than duplicating the collapse/expand/
+  // persist logic — one code path stays the source of truth for what
+  // "collapsed" means for a card.
+  function setAllCollapsed(collapsed) {
+    document.querySelectorAll('.card-collapsible').forEach(card => {
+      const isCollapsed = card.classList.contains('card--collapsed');
+      if (isCollapsed === collapsed) {
+        return;
+      }
+      const btn = card.querySelector(':scope > .card-collapse-btn');
+      if (btn) {
+        btn.click();
+      }
+    });
+  }
+
+  function initBulkActions() {
+    const container = document.querySelector('.card-collapse-bulk-actions');
+    if (!container || container.dataset.bound === 'true') {
+      return;
+    }
+    container.dataset.bound = 'true';
+    container.querySelectorAll('[data-bulk-action]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        setAllCollapsed(btn.dataset.bulkAction === 'collapse');
+      });
+    });
+  }
+
+  window.cardCollapseSetAll = setAllCollapsed;
 
   function teardownAllCards() {
     document.querySelectorAll('.card-collapsible').forEach(card => {
@@ -488,6 +525,7 @@
 
   function bootstrap() {
     initAllCards();
+    initBulkActions();
     observeDynamicCards();
     window.addEventListener('resize', onResize);
   }

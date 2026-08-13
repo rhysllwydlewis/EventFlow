@@ -606,6 +606,15 @@
             </div>
           </div>
         </section>
+        <!-- Bulk expand/collapse for the 17 cards below. Hidden on desktop by
+             card-collapse.css, where the per-card toggle itself doesn't render
+             (the collapse feature only activates <=1024px). -->
+        <div class="card-collapse-bulk-actions" data-test="card-collapse-bulk-actions">
+          <button type="button" class="card-collapse-bulk-btn" data-bulk-action="expand">Expand all</button>
+          <span class="card-collapse-bulk-sep" aria-hidden="true">·</span>
+          <button type="button" class="card-collapse-bulk-btn" data-bulk-action="collapse">Collapse all</button>
+        </div>
+
         <!-- Section Divider -->
         <div class="sd-section-divider" role="separator" aria-hidden="true">
           <span class="sd-section-divider__label">Profile Management</span>
