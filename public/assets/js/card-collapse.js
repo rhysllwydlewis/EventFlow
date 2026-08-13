@@ -313,7 +313,17 @@
 
     card.insertBefore(btn, card.firstChild);
 
-    if (state[id] === false) {
+    // Priority cards (data-default-expanded="true") start open on a page the
+    // user hasn't touched yet, so the highest-priority content on a
+    // task-ordered page isn't hidden behind a tap on first visit — collapsing
+    // every card equally would undo the point of ordering them by priority.
+    // A stored preference always wins over the default, in either direction:
+    // true = the user collapsed it, false = the user expanded it.
+    const storedPref = state[id];
+    const initiallyCollapsed =
+      storedPref === undefined ? card.dataset.defaultExpanded !== 'true' : storedPref === true;
+
+    if (!initiallyCollapsed) {
       card.classList.remove('card--collapsed');
       btn.setAttribute('aria-expanded', 'true');
       btn.setAttribute('aria-label', 'Collapse card');
@@ -358,12 +368,10 @@
         expandWrapper(wrapper, onDone);
       }
 
+      // Store the choice explicitly in both directions now that "no entry"
+      // no longer means "collapsed" for every card — some default open.
       const current = loadState();
-      if (collapsed) {
-        delete current[id];
-      } else {
-        current[id] = false;
-      }
+      current[id] = collapsed;
       saveState(current);
     };
 
