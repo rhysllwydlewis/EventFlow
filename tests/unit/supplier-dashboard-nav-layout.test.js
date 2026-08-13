@@ -5,7 +5,7 @@ const path = require('path');
 
 const css = fs.readFileSync(
   path.join(__dirname, '../../public/assets/css/supplier-dashboard-visual-refresh.css'),
-  'utf8',
+  'utf8'
 );
 
 describe('supplier dashboard section navigation layout', () => {
