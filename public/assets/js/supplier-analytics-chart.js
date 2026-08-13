@@ -220,6 +220,9 @@ export async function createPerformanceChart(containerId, viewsData, enquiriesDa
   }
 
   const canvasId = `${containerId}-canvas`;
+  const hasActivity = (views, enquiries) =>
+    [...(views || []), ...(enquiries || [])].some(n => Number(n) > 0);
+  let currentHasData = hasActivity(viewsData, enquiriesData);
 
   const periodRow = `
     <div class="sd-chart-period-row">
@@ -229,38 +232,31 @@ export async function createPerformanceChart(containerId, viewsData, enquiriesDa
     </div>
   `;
 
-  // A supplier with no traffic yet would otherwise get a flat line pinned to zero,
-  // which reads as a broken chart rather than "nothing has happened yet". Show an
-  // empty state that says so and points at the thing that actually drives views.
-  const hasAnyData = [...viewsData, ...enquiriesData].some(n => Number(n) > 0);
-  if (!hasAnyData) {
-    container.innerHTML = `
-      ${periodRow}
-      <div class="sd-empty-state sd-chart-empty">
-        <div class="sd-empty-state__icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="40" height="40">
-            <path d="M3 3v18h18"/>
-            <path d="m7 14 3-4 4 2 5-6"/>
-          </svg>
-        </div>
-        <h4 class="sd-empty-state__title">No activity to chart yet</h4>
-        <p class="sd-empty-state__desc">
-          Profile views and enquiries will appear here as customers find you. A complete
-          profile with photos is the fastest way to start showing up in search.
-        </p>
-      </div>
-    `;
-    return null;
-  }
-
-  const html = `
+  // Always keep a real Chart instance behind the widget, even when the selected
+  // period has no activity. The old early return rendered the period controls but
+  // never attached their handlers, so a supplier with no 7-day activity could not
+  // switch to 30/90 days where older activity might exist. Keeping one chart alive
+  // also preserves the instance held by dashboard-supplier-module.js for real-time
+  // updates instead of replacing it whenever the selected period changes.
+  container.innerHTML = `
     ${periodRow}
-    <div class="chart-container" style="position: relative; height: 300px;">
+    <div class="chart-container" style="position: relative; height: 300px;" ${currentHasData ? '' : 'hidden'}>
       <canvas id="${canvasId}"></canvas>
     </div>
+    <div class="sd-empty-state sd-chart-empty" ${currentHasData ? 'hidden' : ''}>
+      <div class="sd-empty-state__icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="40" height="40">
+          <path d="M3 3v18h18"/>
+          <path d="m7 14 3-4 4 2 5-6"/>
+        </svg>
+      </div>
+      <h4 class="sd-empty-state__title">No activity to chart yet</h4>
+      <p class="sd-empty-state__desc">
+        Profile views and enquiries will appear here as customers find you. A complete
+        profile with photos is the fastest way to start showing up in search.
+      </p>
+    </div>
   `;
-
-  container.innerHTML = html;
 
   // Create gradient for views
   const canvas = document.getElementById(canvasId);
@@ -308,8 +304,31 @@ export async function createPerformanceChart(containerId, viewsData, enquiriesDa
   };
 
   const chart = await createAnalyticsChart(canvasId, chartData);
+  const chartContainer = container.querySelector('.chart-container');
+  const emptyState = container.querySelector('.sd-chart-empty');
 
-  // Add period selector functionality
+  const showSelectedPeriod = newData => {
+    if (!newData) {
+      return;
+    }
+
+    currentHasData = hasActivity(newData.views, newData.enquiries);
+    if (chartContainer) {
+      chartContainer.hidden = !currentHasData;
+    }
+    if (emptyState) {
+      emptyState.hidden = currentHasData;
+    }
+
+    if (chart) {
+      chart.data.labels = newData.labels;
+      chart.data.datasets[0].data = newData.views;
+      chart.data.datasets[1].data = newData.enquiries;
+      chart.update('active');
+    }
+  };
+
+  // Add period selector functionality even when the initially selected period is empty.
   const periodButtons = container.querySelectorAll('.chart-period-btn');
   periodButtons.forEach(btn => {
     btn.addEventListener('click', async () => {
@@ -325,18 +344,9 @@ export async function createPerformanceChart(containerId, viewsData, enquiriesDa
       btn.style.borderColor = 'transparent';
       btn.style.color = 'white';
 
-      const period = parseInt(btn.dataset.period);
-
-      // Fetch new data for the selected period
-      // This would be replaced with actual API call
+      const period = parseInt(btn.dataset.period, 10);
       const newData = await fetchAnalyticsData(period);
-
-      if (chart && newData) {
-        chart.data.labels = newData.labels;
-        chart.data.datasets[0].data = newData.views;
-        chart.data.datasets[1].data = newData.enquiries;
-        chart.update('active');
-      }
+      showSelectedPeriod(newData);
     });
   });
 
