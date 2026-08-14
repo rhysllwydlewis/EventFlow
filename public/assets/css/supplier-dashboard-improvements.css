@@ -5338,9 +5338,18 @@ html {
    padding to collapsible form containers (.form-section-collapsible).
    ------------------------------------------ */
 
-/* All .section divs that are direct children of an .sd-card */
-.sd-card > .section,
-.sd-card > .sd-card-body {
+/* .section divs living inside an .sd-card.
+   These used to be matched with the direct-child combinator (.sd-card > .section),
+   which card-collapse.js quietly broke: it wraps every collapsible card's body in
+   a .card-body-collapsible div at runtime, so .section stops being a *direct*
+   child of .sd-card. The override then no longer matched, the global
+   `.section { min-height: 100vh }` rule (further up this file) won instead, and
+   any card whose real content was shorter than the viewport — chiefly the empty
+   states, e.g. "No packages yet" — rendered with several hundred px of dead
+   space below it. Using a descendant combinator keeps the override matching
+   regardless of that wrapper. IDs are unique, so scoping is unaffected. */
+.sd-card .section,
+.sd-card .sd-card-body {
   /* Override the global `.section { min-height: 100vh; background: gradient; }`
      that was intended for the full-page #main-content wrapper only.
      Card content areas must be naturally sized to their content. */
@@ -5350,12 +5359,12 @@ html {
 }
 
 /* Specific named sections in the supplier dashboard */
-.sd-card > #my-suppliers,
-.sd-card > #my-packages,
-.sd-card > #tickets-sup,
-.sd-card > #lead-quality-breakdown,
-.sd-card > #supplier-subscription-card,
-.sd-card > #supplier-reviews-section {
+.sd-card #my-suppliers,
+.sd-card #my-packages,
+.sd-card #tickets-sup,
+.sd-card #lead-quality-breakdown,
+.sd-card #supplier-subscription-card,
+.sd-card #supplier-reviews-section {
   min-height: 0 !important;
   background: none !important;
   padding: 1rem 1.5rem;
@@ -5372,20 +5381,20 @@ html {
   grid-column: 1 / -1;
 }
 
-/* sd-two-col children too */
-.sd-two-col > .sd-card > .section {
+/* sd-two-col children too — descendant combinator for the same reason as above */
+.sd-two-col > .sd-card .section {
   min-height: 0 !important;
   background: none !important;
   padding: 1rem 1.5rem;
 }
 
 /* The availability section has its own padding via .sd-availability-section */
-.sd-card > .sd-availability-section {
+.sd-card .sd-availability-section {
   padding: 0;
 }
 
 /* Collapsible form sections have their own internal spacing */
-.sd-card > .form-section-collapsible {
+.sd-card .form-section-collapsible {
   padding: 1.25rem 1.5rem;
 }
 

@@ -123,7 +123,7 @@
     if (firstEmail) {
       return firstEmail.split('@')[0] || firstEmail;
     }
-    return 'Unknown';
+    return 'Customer';
   }
 
   function getCsrfToken() {
