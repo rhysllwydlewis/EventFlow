@@ -248,9 +248,13 @@ function initialize(dependencies) {
       : () => dependencies.wsServer || null;
   postmark = dependencies.postmark;
   logger = dependencies.logger;
-  getDbInstance().then(dbInstance => {
-    setQueueContext({ db: dbInstance, logger, postmark });
-  });
+  getDbInstance()
+    .then(dbInstance => {
+      setQueueContext({ db: dbInstance, logger, postmark });
+    })
+    .catch(err => {
+      logger.error('Failed to initialize messenger queue context', err);
+    });
 
   // Service will be initialized lazily on first request
   _messengerServicePromise = null;

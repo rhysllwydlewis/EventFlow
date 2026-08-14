@@ -344,3 +344,46 @@ body.supplier-dashboard-page .package-card .badge.badge-featured {
   cursor: not-allowed;
   pointer-events: auto;
 }
+
+/* --------------------------------------------------------------------------
+   8. Sticky section-nav layout integrity
+   --------------------------------------------------------------------------
+   supplier-dashboard-improvements.css defines this bar as sticky with a
+   header-height top offset. Section 2 above previously changed it to relative
+   only to provide a containing block for the scroll fade, but left the inherited
+   top offset intact. Relative positioning therefore shifted the bar down by
+   64px without moving its flow box, producing both the blank gap below the
+   header and the overlap across the upgrade ribbon. Sticky positioning already
+   establishes a containing block, so keep the intended sticky layout here.
+   -------------------------------------------------------------------------- */
+.supplier-dashboard-page .dashboard-mobile-nav {
+  position: sticky;
+  top: var(--ef-header-height, 64px);
+  z-index: 12;
+}
+
+/* dashboard-mobile.css intentionally uses top: 0 !important below 768px to
+   account for its body padding strategy; that mobile override continues to win. */
+
+/* Keep the Settings navigation marker inside the pill. The previous marker was
+   absolutely positioned from the icon pseudo-element against the whole button,
+   which could make it look detached from the Settings control. */
+.supplier-dashboard-page .mobile-nav-pill[data-href] .pill-icon::after {
+  content: none;
+}
+
+@media (min-width: 1024px) {
+  .supplier-dashboard-page .mobile-nav-pill[data-href]::after {
+    content: '›';
+    position: static;
+    display: inline-block;
+    width: auto;
+    height: auto;
+    margin-left: 0;
+    border: 0;
+    font-size: 12px;
+    line-height: 1;
+    opacity: 0.55;
+    transform: translateY(-1px);
+  }
+}
