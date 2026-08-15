@@ -35,7 +35,18 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnEarnings = document.querySelector('[data-action="view-earnings"]');
   if (btnEarnings) {
     btnEarnings.addEventListener('click', () => {
-      showEarningsComingSoon();
+      const earningsSection = document.getElementById('earnings-overview');
+      if (!earningsSection) {
+        showEarningsComingSoon();
+        return;
+      }
+      // Match view-stats/get-help: land the supplier on the real section
+      // instead of only popping a toast with no way to see it in context.
+      const collapseBtn = earningsSection.querySelector(':scope > .card-collapse-btn');
+      if (collapseBtn && collapseBtn.getAttribute('aria-expanded') === 'false') {
+        collapseBtn.click();
+      }
+      earningsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
   }
   const btnStats = document.querySelector('[data-action="view-stats"]');

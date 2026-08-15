@@ -811,6 +811,13 @@ body.supplier-dashboard-page #supplier-stats-grid .stat-label {
    shared file, since the same widget also renders on admin-supplier-detail. */
 body.supplier-dashboard-page .profile-health-widget {
   padding: 0;
+  /* The widget's own header (icon + "Profile Health" title) is hidden below
+     because this page already renders that title in the card's own header
+     bar. Zeroing the widget's padding entirely (as the flat-surface design
+     otherwise calls for) then left the progress ring with no top clearance
+     at all beyond the card's own 1rem section padding — it rendered flush
+     against the top edge, cramped and easy to mistake for clipped. */
+  padding-top: 1rem;
   background: none;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;

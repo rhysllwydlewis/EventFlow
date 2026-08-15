@@ -828,7 +828,9 @@ body.supplier-dashboard-page .supplier-cta-section {
 #my-suppliers,
 #my-packages,
 #threads-sup,
-#tickets-sup {
+#tickets-sup,
+#profile-completeness-widget,
+#earnings-overview {
   scroll-margin-top: calc(var(--ef-header-height, 64px) + 92px);
 }
 
@@ -6264,15 +6266,20 @@ body:not(.supplier-dashboard-page) .section > .container {
   }
 }
 
-/* Badge for packages awaiting admin approval */
+/* Badge for packages awaiting admin approval.
+   Deliberately not amber: the profile-health warning and the "level up
+   your plan" upsell banner elsewhere on this same dashboard both use
+   #f59e0b, so an amber badge here reads as a warning rather than a
+   neutral, expected moderation state. Blue is used nowhere else on this
+   page as a status color. */
 .badge-pending {
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
   color: #fff;
   border-radius: 999px;
   padding: 2px 8px;
   font-size: 0.75rem;
   font-weight: 600;
-  box-shadow: 0 2px 6px rgba(245, 158, 11, 0.3);
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.3);
 }
 
 /* Paused badge in supplier package cards */
