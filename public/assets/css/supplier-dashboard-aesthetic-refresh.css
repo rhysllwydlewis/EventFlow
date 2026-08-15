@@ -1,0 +1,1081 @@
+/* ==========================================================================
+   Supplier dashboard — aesthetic refresh
+   --------------------------------------------------------------------------
+   A cohesive visual pass over every card on the supplier dashboard: hero,
+   profile, packages, messages, availability, stats, analytics, reviews,
+   performance tips, calendar, subscription and tickets.
+
+   Design language: minimal and restrained — neutral surfaces, quiet 1px
+   borders instead of drop shadows, one accent colour used sparingly, and
+   typography carrying the hierarchy instead of gradients or decoration.
+   No gradient fills, no glow shadows, no blurred background blobs.
+
+   Scoped entirely to `body.supplier-dashboard-page` and loaded last in
+   dashboard-supplier.html, after supplier-dashboard-visual-refresh.css, so
+   it settles the cascade without `!important` (except the two spots noted
+   inline, where the base stylesheet already uses `!important` itself).
+   Styling only — no markup, class, id or data-attribute here is removed or
+   renamed, so every existing behaviour (collapse/expand, form toggles, JS
+   hooks, tests) keeps working.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   0. Foundations — palette, card surface, section header, buttons, badges
+   -------------------------------------------------------------------------- */
+body.supplier-dashboard-page {
+  --sd-canvas: #f7f8fa;
+  --sd-ink: #12151a;
+  --sd-ink-soft: #454c5b;
+  --sd-muted: #767d8c;
+  --sd-border: #e3e5ea;
+  --sd-border-soft: #edeef2;
+  --sd-surface: #ffffff;
+  --sd-accent: #0b8073;
+  --sd-accent-dark: #086b60;
+  --sd-accent-soft: rgba(11, 128, 115, 0.08);
+  --sd-radius-card: 12px;
+  --sd-radius-md: 10px;
+  --sd-radius-sm: 8px;
+  --sd-shadow-hover: 0 1px 2px rgba(16, 24, 40, 0.04), 0 4px 10px -6px rgba(16, 24, 40, 0.08);
+  background: var(--sd-canvas);
+}
+
+body.supplier-dashboard-page main#main-content {
+  background: var(--sd-canvas);
+}
+
+body.supplier-dashboard-page .container {
+  max-width: 1280px;
+}
+
+/* Card surface — applies to every `.sd-card` regardless of which section it's in.
+   Definition comes from a 1px border, not a shadow; the shadow only appears
+   on hover, as a hint of lift rather than permanent decoration. */
+body.supplier-dashboard-page .sd-card,
+body.supplier-dashboard-page section.sd-card {
+  background: var(--sd-surface);
+  border: 1px solid var(--sd-border);
+  border-radius: var(--sd-radius-card);
+  box-shadow: none;
+  overflow: hidden;
+  transition: border-color 200ms ease, box-shadow 200ms ease;
+}
+
+body.supplier-dashboard-page .sd-card:hover {
+  border-color: #d6d9e0;
+}
+
+/* Card header — plain surface, one bottom rule, no tinted wash. The only
+   colour signal left is the small icon chip, which carries the existing
+   per-section colour coding (teal/indigo/blue/amber/rose/sky/emerald/red)
+   as a quiet flat tint — enough to scan by by, without shouting. */
+body.supplier-dashboard-page .sd-card-header {
+  padding: 20px 24px;
+  gap: 16px;
+  background: var(--sd-surface);
+  border-bottom: 1px solid var(--sd-border-soft);
+}
+
+body.supplier-dashboard-page .sd-card-header::before {
+  content: none;
+}
+
+body.supplier-dashboard-page .sd-card-header__icon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--sd-radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: none;
+  color: var(--sd-accent);
+  background: var(--sd-accent-soft);
+}
+
+body.supplier-dashboard-page .sd-card-header__icon svg { width: 18px; height: 18px; }
+
+body.supplier-dashboard-page .sd-card-header__icon--indigo { background: rgba(99, 102, 241, 0.1); color: #6366f1; }
+body.supplier-dashboard-page .sd-card-header__icon--blue { background: rgba(59, 130, 246, 0.1); color: #3b82f6; }
+body.supplier-dashboard-page .sd-card-header__icon--amber { background: rgba(245, 158, 11, 0.12); color: #b45309; }
+body.supplier-dashboard-page .sd-card-header__icon--rose { background: rgba(225, 29, 72, 0.1); color: #e11d48; }
+body.supplier-dashboard-page .sd-card-header__icon--sky { background: rgba(14, 165, 233, 0.1); color: #0ea5e9; }
+body.supplier-dashboard-page .sd-card-header__icon--emerald { background: rgba(16, 185, 129, 0.1); color: #0d9668; }
+body.supplier-dashboard-page .sd-card-header__icon--red { background: rgba(239, 68, 68, 0.1); color: #dc2626; }
+body.supplier-dashboard-page .sd-card-header__icon--teal { background: var(--sd-accent-soft); color: var(--sd-accent); }
+
+body.supplier-dashboard-page .sd-card-header__heading {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.005em;
+  color: var(--sd-ink);
+}
+
+body.supplier-dashboard-page .sd-card-header__subtitle {
+  color: var(--sd-muted);
+  font-size: 13px;
+  margin-top: 2px;
+}
+
+/* Buttons — one shared system for the whole dashboard. Existing
+   .cta/.ef-cta/.card-action-btn/.glass-btn classes keep their JS hooks;
+   this only changes paint. Solid ink or accent fill for primary actions,
+   a plain bordered button for everything else — no gradients, no drop
+   shadows, a crisp 8px radius rather than a full pill. */
+body.supplier-dashboard-page .cta,
+body.supplier-dashboard-page .ef-cta,
+body.supplier-dashboard-page button.cta,
+body.supplier-dashboard-page .form-toggle-btn,
+body.supplier-dashboard-page .glass-btn {
+  border-radius: var(--sd-radius-sm);
+  font-weight: 600;
+  letter-spacing: 0;
+  transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+
+body.supplier-dashboard-page .cta:not(.secondary):not(.card-action-btn),
+body.supplier-dashboard-page button.cta:not(.secondary),
+body.supplier-dashboard-page .form-toggle-btn,
+body.supplier-dashboard-page .glass-btn--primary {
+  background: var(--sd-accent);
+  border: 1px solid var(--sd-accent);
+  color: #fff;
+  box-shadow: none;
+}
+
+body.supplier-dashboard-page .cta:not(.secondary):not(.card-action-btn):hover,
+body.supplier-dashboard-page button.cta:not(.secondary):hover,
+body.supplier-dashboard-page .form-toggle-btn:hover,
+body.supplier-dashboard-page .glass-btn--primary:hover {
+  background: var(--sd-accent-dark);
+  border-color: var(--sd-accent-dark);
+}
+
+body.supplier-dashboard-page .cta.secondary,
+body.supplier-dashboard-page button.cta.secondary {
+  background: #fff;
+  border: 1px solid var(--sd-border);
+  color: var(--sd-ink-soft);
+}
+
+body.supplier-dashboard-page .cta.secondary:hover,
+body.supplier-dashboard-page button.cta.secondary:hover {
+  border-color: #c7cbd4;
+  background: var(--sd-canvas);
+}
+
+/* Messenger/calendar "retry" buttons on their error-fallback states: both
+   rely on stylesheets this page never loads (customer-dashboard-improvements
+   .css for one, nothing at all for the other), so they render with the
+   browser's bare default button chrome. Same secondary-button treatment as
+   everywhere else on the page, scoped narrowly to these two classes. */
+body.supplier-dashboard-page .mwv4__retry-btn,
+body.supplier-dashboard-page .cal-fallback-empty__retry {
+  background: #fff;
+  border: 1px solid var(--sd-border);
+  color: var(--sd-ink-soft);
+  box-shadow: none;
+  border-radius: var(--sd-radius-sm);
+}
+
+body.supplier-dashboard-page .mwv4__retry-btn:hover,
+body.supplier-dashboard-page .cal-fallback-empty__retry:hover {
+  border-color: #c7cbd4;
+  background: var(--sd-canvas);
+}
+
+/* Badges/pills — soft tint + coloured text (no solid fill, no gradient,
+   no shadow), the same "soft badge" treatment used by Linear/Notion/GitHub
+   labels. Existing badge/status colour classes elsewhere on the page keep
+   whatever colour they already carry; this only softens the paint. */
+body.supplier-dashboard-page .badge,
+body.supplier-dashboard-page .ef-badge {
+  border-radius: 999px;
+  font-weight: 600;
+  letter-spacing: 0;
+  box-shadow: none;
+}
+
+/* Section dividers between the six page groups ("Profile Management",
+   "Packages & Services", ...) — a small label and a quiet rule, nothing
+   decorative. */
+body.supplier-dashboard-page .sd-section-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+body.supplier-dashboard-page .sd-section-divider::before {
+  content: none;
+}
+
+body.supplier-dashboard-page .sd-section-divider::after {
+  content: '';
+  flex: 1 1 auto;
+  height: 1px;
+  background: var(--sd-border);
+}
+
+body.supplier-dashboard-page .sd-section-divider__label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--sd-muted);
+  white-space: nowrap;
+}
+
+/* --------------------------------------------------------------------------
+   1. Hero — the welcome section
+   -------------------------------------------------------------------------- */
+body.supplier-dashboard-page .dashboard-hero {
+  border-radius: var(--sd-radius-card);
+  border: 1px solid var(--sd-border);
+  box-shadow: none;
+  overflow: hidden;
+}
+
+/* Suppress the decorative gradient mesh / dot grid / blurred blobs this card
+   shipped with — a flat, near-white surface reads as considered; a colourful
+   background wash reads as a template. */
+body.supplier-dashboard-page .dashboard-hero__bg {
+  background: #fbfcfc;
+}
+
+body.supplier-dashboard-page .dashboard-hero__gradient,
+body.supplier-dashboard-page .dashboard-hero__grid,
+body.supplier-dashboard-page .dashboard-hero__blob--1,
+body.supplier-dashboard-page .dashboard-hero__blob--2 {
+  display: none;
+}
+
+body.supplier-dashboard-page .dashboard-hero__content {
+  padding: 32px 34px 28px;
+}
+
+body.supplier-dashboard-page .dashboard-hero__greeting {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--sd-muted);
+}
+
+body.supplier-dashboard-page .dashboard-hero__title {
+  margin-top: 6px;
+}
+
+body.supplier-dashboard-page .dashboard-hero__title-main {
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--sd-ink);
+  line-height: 1.15;
+}
+
+body.supplier-dashboard-page .dashboard-hero__title-highlight {
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  color: var(--sd-accent);
+  background: none;
+  -webkit-text-fill-color: currentColor;
+}
+
+body.supplier-dashboard-page .dashboard-hero__subtitle {
+  color: var(--sd-muted);
+  font-size: 14px;
+  max-width: 46ch;
+  margin-top: 6px;
+}
+
+body.supplier-dashboard-page .dashboard-hero__stats {
+  gap: 12px;
+}
+
+body.supplier-dashboard-page .dashboard-stat-card {
+  background: var(--sd-surface);
+  border: 1px solid var(--sd-border);
+  border-radius: var(--sd-radius-md);
+  box-shadow: none;
+  transition: border-color 200ms ease;
+}
+
+body.supplier-dashboard-page .dashboard-stat-card::before {
+  content: none;
+}
+
+body.supplier-dashboard-page .dashboard-stat-card:hover {
+  border-color: #c7cbd4;
+}
+
+body.supplier-dashboard-page .dashboard-stat-card__icon {
+  border-radius: var(--sd-radius-sm);
+  box-shadow: none;
+  background: var(--sd-accent-soft);
+  color: var(--sd-accent);
+}
+
+body.supplier-dashboard-page .dashboard-stat-card--secondary .dashboard-stat-card__icon {
+  background: rgba(99, 102, 241, 0.1);
+  color: #6366f1;
+}
+
+body.supplier-dashboard-page .dashboard-stat-card--accent .dashboard-stat-card__icon {
+  background: rgba(245, 158, 11, 0.12);
+  color: #b45309;
+}
+
+body.supplier-dashboard-page .dashboard-stat-card__value {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--sd-ink);
+}
+
+body.supplier-dashboard-page .dashboard-stat-card__label {
+  color: var(--sd-muted);
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+body.supplier-dashboard-page .dashboard-stat-card__badge {
+  background: var(--sd-accent-soft);
+  color: var(--sd-accent-dark);
+  box-shadow: none;
+}
+
+body.supplier-dashboard-page .dashboard-hero__actions {
+  margin-top: 20px;
+  gap: 8px;
+  border-top-color: var(--sd-border-soft);
+}
+
+body.supplier-dashboard-page .dashboard-action-chip {
+  background: #fff;
+  border: 1px solid var(--sd-border);
+  border-radius: var(--sd-radius-sm);
+  font-weight: 600;
+  color: var(--sd-ink-soft);
+  box-shadow: none;
+  transition: border-color 150ms ease, background 150ms ease, color 150ms ease;
+}
+
+body.supplier-dashboard-page .dashboard-action-chip:hover {
+  border-color: #c7cbd4;
+  background: var(--sd-canvas);
+}
+
+body.supplier-dashboard-page .dashboard-action-chip--primary {
+  background: var(--sd-accent);
+  border-color: var(--sd-accent);
+  color: #fff;
+  box-shadow: none;
+}
+
+body.supplier-dashboard-page .dashboard-action-chip--primary:hover {
+  background: var(--sd-accent-dark);
+  border-color: var(--sd-accent-dark);
+  color: #fff;
+}
+
+body.supplier-dashboard-page .dashboard-hero__tip {
+  margin-top: 14px;
+  background: #fffaf0;
+  border: 1px solid var(--sd-border-soft);
+  border-left: 3px solid #f59e0b;
+  border-radius: var(--sd-radius-sm);
+  color: var(--sd-ink-soft);
+  box-shadow: none;
+}
+
+/* --------------------------------------------------------------------------
+   2. Profile card (spc-*)
+   -------------------------------------------------------------------------- */
+body.supplier-dashboard-page .spc-root {
+  border: none;
+  box-shadow: none;
+  padding: 24px;
+}
+
+body.supplier-dashboard-page .spc-avatar-col {
+  box-shadow: 0 0 0 3px #fff, 0 0 0 4px var(--sd-border);
+}
+
+body.supplier-dashboard-page .spc-camera-btn {
+  box-shadow: none;
+  border: 1px solid var(--sd-border);
+}
+
+body.supplier-dashboard-page .spc-name {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--sd-ink);
+}
+
+body.supplier-dashboard-page .spc-badge {
+  border-radius: 999px;
+  font-weight: 600;
+  padding: 3px 10px;
+  box-shadow: none;
+}
+
+body.supplier-dashboard-page .spc-badge--tier {
+  background: rgba(245, 158, 11, 0.12);
+  color: #b45309;
+}
+
+body.supplier-dashboard-page .spc-badge--approved {
+  background: rgba(13, 150, 104, 0.1);
+  color: #0d9668;
+}
+
+body.supplier-dashboard-page .spc-category-chip {
+  background: var(--sd-accent-soft);
+  color: var(--sd-accent-dark);
+  border-radius: 999px;
+  font-weight: 600;
+  padding: 3px 10px;
+}
+
+body.supplier-dashboard-page .spc-ring-track {
+  stroke: var(--sd-border-soft);
+}
+
+body.supplier-dashboard-page .spc-ring-score {
+  font-weight: 700;
+  color: var(--sd-ink);
+}
+
+body.supplier-dashboard-page .spc-ring-label {
+  color: var(--sd-muted);
+  font-weight: 600;
+}
+
+/* .spc-actions renders as a seamless 3-cell segmented bar (each cell
+   width:100% !important, border-radius:0 !important, divided by
+   border-right, all set !important in supplier-dashboard-improvements.css).
+   Restyle its colours with matching !important instead of fighting that
+   layout — a plain bordered frame, with the middle "Edit Profile" cell as
+   the one filled, primary action. */
+body.supplier-dashboard-page .spc-actions {
+  margin-top: 18px;
+  border-radius: var(--sd-radius-md) !important;
+  border: 1px solid var(--sd-border) !important;
+  overflow: hidden;
+  box-shadow: none;
+}
+
+body.supplier-dashboard-page .spc-action-btn {
+  background: #fff !important;
+  color: var(--sd-ink-soft) !important;
+  font-weight: 600 !important;
+  border-right-color: var(--sd-border) !important;
+  transition: background 150ms ease, color 150ms ease !important;
+}
+
+body.supplier-dashboard-page .spc-action-btn:hover {
+  background: var(--sd-canvas) !important;
+  color: var(--sd-ink) !important;
+}
+
+body.supplier-dashboard-page .spc-action-btn--edit {
+  background: var(--sd-accent) !important;
+  color: #fff !important;
+}
+
+body.supplier-dashboard-page .spc-action-btn--edit:hover {
+  background: var(--sd-accent-dark) !important;
+  color: #fff !important;
+}
+
+body.supplier-dashboard-page .spc-checklist-card {
+  background: var(--sd-canvas);
+  border: 1px solid var(--sd-border-soft);
+  border-radius: var(--sd-radius-md);
+  margin-top: 16px;
+  padding: 16px;
+}
+
+body.supplier-dashboard-page .spc-checklist-big-icon {
+  background: #fff;
+  border: 1px solid var(--sd-border);
+  color: var(--sd-muted);
+  border-radius: var(--sd-radius-sm);
+}
+
+body.supplier-dashboard-page .spc-checklist-big-icon--complete {
+  background: rgba(13, 150, 104, 0.1);
+  border-color: transparent;
+  color: #0d9668;
+}
+
+body.supplier-dashboard-page .spc-checklist-title {
+  font-weight: 700;
+  color: var(--sd-ink);
+}
+
+body.supplier-dashboard-page .spc-checklist-count {
+  background: #fff;
+  border: 1px solid var(--sd-border);
+  color: var(--sd-ink-soft);
+  border-radius: 999px;
+  font-weight: 700;
+  padding: 2px 9px;
+}
+
+body.supplier-dashboard-page .spc-checklist-steps {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 14px;
+}
+
+body.supplier-dashboard-page .spc-checklist-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+  padding: 12px 8px;
+  border-radius: var(--sd-radius-sm);
+  border: 1px solid var(--sd-border-soft);
+  background: #fff;
+  transition: border-color 150ms ease;
+}
+
+body.supplier-dashboard-page .spc-checklist-step:hover {
+  border-color: var(--sd-border);
+}
+
+body.supplier-dashboard-page .spc-checklist-step-circle {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--sd-canvas);
+  color: var(--sd-muted);
+  font-weight: 700;
+}
+
+body.supplier-dashboard-page .spc-checklist-step--complete {
+  border-color: rgba(13, 150, 104, 0.25);
+  background: rgba(13, 150, 104, 0.04);
+}
+
+body.supplier-dashboard-page .spc-checklist-step--complete .spc-checklist-step-circle {
+  background: rgba(13, 150, 104, 0.12);
+  color: #0d9668;
+}
+
+body.supplier-dashboard-page .spc-checklist-step--milestone {
+  border-color: rgba(11, 128, 115, 0.3);
+  background: var(--sd-accent-soft);
+}
+
+body.supplier-dashboard-page .spc-checklist-step-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--sd-ink-soft);
+  line-height: 1.25;
+}
+
+/* --------------------------------------------------------------------------
+   3. Packages
+   -------------------------------------------------------------------------- */
+body.supplier-dashboard-page #my-packages {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 18px;
+}
+
+body.supplier-dashboard-page .package-card {
+  border: 1px solid var(--sd-border);
+  border-radius: var(--sd-radius-md);
+  box-shadow: none;
+  overflow: hidden;
+  transition: border-color 200ms ease;
+  padding: 0;
+}
+
+body.supplier-dashboard-page .package-card:hover {
+  border-color: #c7cbd4;
+}
+
+body.supplier-dashboard-page .package-card > img {
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  border-radius: 0;
+  /* Overrides supplier-dashboard-v3-polish.css's teal gradient placeholder
+     background and tinted border-bottom under every package photo. */
+  border-bottom: 1px solid var(--sd-border);
+  background: var(--sd-border-soft);
+}
+
+body.supplier-dashboard-page .package-card-content {
+  padding: 14px 16px 16px;
+}
+
+body.supplier-dashboard-page .package-card-content h3 {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--sd-ink);
+  letter-spacing: -0.005em;
+}
+
+body.supplier-dashboard-page .package-card--paused {
+  opacity: 0.7;
+}
+
+body.supplier-dashboard-page .card-actions {
+  gap: 6px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--sd-border-soft);
+}
+
+/* dashboard-mobile.css only grids the 4-button action row up to 768px; on
+   this page's own 2-column package grid, cards are still narrow enough at
+   tablet widths (769-1024px) for a plain flex row to overflow the card —
+   the Delete button was rendering half outside the card border. */
+@media (min-width: 769px) and (max-width: 1024px) {
+  body.supplier-dashboard-page .card-actions {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  body.supplier-dashboard-page .card-action-btn:only-child {
+    grid-column: span 2;
+  }
+
+  body.supplier-dashboard-page .card-actions > .card-action-btn:last-child:nth-child(3) {
+    grid-column: span 2;
+  }
+}
+
+body.supplier-dashboard-page .card-action-btn {
+  border-radius: var(--sd-radius-sm);
+  font-weight: 600;
+  font-size: 12px;
+  padding: 6px 10px;
+  border: 1px solid var(--sd-border);
+  background: #fff;
+  color: var(--sd-ink-soft);
+  transition: border-color 150ms ease, color 150ms ease, background 150ms ease;
+}
+
+body.supplier-dashboard-page .card-action-btn.edit-btn:hover { border-color: var(--sd-accent); color: var(--sd-accent-dark); }
+body.supplier-dashboard-page .card-action-btn.view-btn:hover { border-color: #3b82f6; color: #1d4ed8; }
+body.supplier-dashboard-page .card-action-btn.pause-btn:hover,
+body.supplier-dashboard-page .card-action-btn.unpause-btn:hover { border-color: #b45309; color: #b45309; }
+body.supplier-dashboard-page .card-action-btn.delete-btn {
+  border-color: var(--sd-border);
+  color: #dc2626;
+}
+body.supplier-dashboard-page .card-action-btn.delete-btn:hover {
+  background: #fef2f2;
+  border-color: #dc2626;
+  color: #dc2626;
+}
+
+/* --------------------------------------------------------------------------
+   4. Messages, Availability
+   -------------------------------------------------------------------------- */
+body.supplier-dashboard-page .supplier-unread-badge {
+  border-radius: 999px;
+  font-weight: 700;
+  box-shadow: none;
+}
+
+body.supplier-dashboard-page .sd-messages-toolbar__search,
+body.supplier-dashboard-page .sd-messages-toolbar__select {
+  border-radius: var(--sd-radius-sm);
+  border: 1px solid var(--sd-border);
+}
+
+body.supplier-dashboard-page .sd-messages-toolbar__search:focus,
+body.supplier-dashboard-page .sd-messages-toolbar__select:focus {
+  border-color: var(--sd-accent);
+  outline: none;
+  box-shadow: 0 0 0 3px var(--sd-accent-soft);
+}
+
+body.supplier-dashboard-page .sd-lqs-bar {
+  background: var(--sd-canvas);
+  border-radius: var(--sd-radius-sm);
+  padding: 10px 14px;
+}
+
+body.supplier-dashboard-page [id^="sup-cal-add-event"],
+body.supplier-dashboard-page .supplier-availability-toggle,
+body.supplier-dashboard-page #supplier-availability-widget button {
+  border-radius: var(--sd-radius-sm);
+}
+
+/* --------------------------------------------------------------------------
+   5. Stats grid, performance chart, funnel/response, earnings/lead quality
+   -------------------------------------------------------------------------- */
+/* #supplier-stats-grid itself is left alone — createStatsGrid() (dashboard-
+   widgets.js) renders a single `.dashboard-grid` child with its own inline
+   `display:grid` + `grid-template-columns:repeat(auto-fit,minmax(200px,1fr))`,
+   so styling the outer element here would just turn that one child into a
+   single grid cell. Style the actual tiles instead. */
+body.supplier-dashboard-page #supplier-stats-grid .stat-widget {
+  background: var(--sd-surface);
+  border: 1px solid var(--sd-border);
+  border-radius: var(--sd-radius-md);
+  box-shadow: none;
+  transition: border-color 200ms ease;
+}
+
+body.supplier-dashboard-page #supplier-stats-grid .stat-widget:hover {
+  border-color: #c7cbd4;
+}
+
+/* Each stat's icon chip is rendered with an inline `style="background: linear-
+   gradient(...)"` (dashboard-widgets.js), so overriding the gradient needs
+   !important — nothing else here can win against an inline style. Colour
+   keyed off the widget's own [data-color] so "Profile Views" stays blue-ish,
+   "Response Rate" stays amber, etc., just as a quiet tint instead of a loud
+   gradient chip. */
+body.supplier-dashboard-page #supplier-stats-grid .icon-with-gradient {
+  border-radius: var(--sd-radius-sm);
+  box-shadow: none;
+  background: var(--sd-accent-soft) !important;
+  color: var(--sd-accent);
+}
+
+body.supplier-dashboard-page #supplier-stats-grid .stat-widget[data-color='blue'] .icon-with-gradient {
+  background: rgba(59, 130, 246, 0.1) !important;
+  color: #3b82f6;
+}
+
+body.supplier-dashboard-page #supplier-stats-grid .stat-widget[data-color='green'] .icon-with-gradient {
+  background: rgba(16, 185, 129, 0.1) !important;
+  color: #0d9668;
+}
+
+body.supplier-dashboard-page #supplier-stats-grid .stat-widget[data-color='amber'] .icon-with-gradient {
+  background: rgba(245, 158, 11, 0.12) !important;
+  color: #b45309;
+}
+
+body.supplier-dashboard-page #supplier-stats-grid .stat-widget[data-color='purple'] .icon-with-gradient {
+  background: rgba(99, 102, 241, 0.1) !important;
+  color: #6366f1;
+}
+
+/* Infinite pulsing glow reads as loud/decorative against the rest of this
+   page's quiet surfaces — and never stops on its own. */
+body.supplier-dashboard-page #supplier-stats-grid .icon-with-gradient.pulse {
+  animation: none;
+}
+
+body.supplier-dashboard-page #supplier-stats-grid .stat-number {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--sd-ink);
+}
+
+body.supplier-dashboard-page #supplier-stats-grid .stat-label {
+  color: var(--sd-muted);
+  font-weight: 600;
+}
+
+/* Profile Health widget (profile-health.css) is a standalone component with
+   its own glass-card styling — gradient surface, blurred backdrop, gradient
+   icon and gradient CTA button — none of which matches the flat surfaces
+   used everywhere else on this page. Flattened here rather than in the
+   shared file, since the same widget also renders on admin-supplier-detail. */
+body.supplier-dashboard-page .profile-health-widget {
+  padding: 0;
+  background: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: none;
+  box-shadow: none;
+  margin-top: 0;
+}
+
+body.supplier-dashboard-page .profile-health-icon {
+  background: var(--sd-accent-soft);
+  color: var(--sd-accent);
+  box-shadow: none;
+}
+
+body.supplier-dashboard-page .health-cta {
+  background: var(--sd-accent);
+  box-shadow: none;
+  transition: background-color 150ms ease;
+}
+
+body.supplier-dashboard-page .health-cta:hover {
+  background: var(--sd-accent-dark);
+  transform: none;
+  box-shadow: none;
+}
+
+body.supplier-dashboard-page .health-cta:active {
+  transform: none;
+}
+
+body.supplier-dashboard-page .sd-chart-empty {
+  border-radius: var(--sd-radius-md);
+}
+
+body.supplier-dashboard-page #roi-date-range,
+body.supplier-dashboard-page select {
+  border-radius: var(--sd-radius-sm);
+}
+
+body.supplier-dashboard-page .ef-stat-card {
+  background: var(--sd-canvas);
+  border-radius: var(--sd-radius-sm);
+  border: 1px solid var(--sd-border);
+}
+
+body.supplier-dashboard-page .ef-badge-warning {
+  border-radius: 999px;
+  font-weight: 700;
+  box-shadow: none;
+  background: rgba(245, 158, 11, 0.12);
+  color: #b45309;
+}
+
+/* "Next Steps" priority badges ("Recommended") — solid fills everywhere
+   else on the page, so soften these the same way. */
+body.supplier-dashboard-page .sd-next-steps__badge--amber,
+body.supplier-dashboard-page .sd-next-steps__badge--warning {
+  background: rgba(245, 158, 11, 0.14);
+  color: #92400e;
+}
+
+body.supplier-dashboard-page .sd-next-steps__badge--red {
+  background: rgba(220, 38, 38, 0.1);
+  color: #991b1b;
+}
+
+/* --------------------------------------------------------------------------
+   6. Reviews
+   -------------------------------------------------------------------------- */
+/* #supplier-reviews-section carries an ID selector in supplier-dashboard-
+   improvements.css, which outranks any class-only selector regardless of
+   source order — match it here to actually neutralise the amber wash. */
+#supplier-reviews-section.sr-summary,
+#supplier-reviews-section .sr-summary {
+  background: var(--sd-canvas);
+  border: 1px solid var(--sd-border);
+  border-radius: var(--sd-radius-md);
+}
+
+#supplier-reviews-section .sr-big-rating {
+  font-weight: 700;
+  color: var(--sd-ink);
+}
+
+#supplier-reviews-section .sr-total-count,
+#supplier-reviews-section .sr-dist-label {
+  color: var(--sd-muted);
+}
+
+#supplier-reviews-section .sr-dist-track {
+  background: var(--sd-border-soft);
+}
+
+#supplier-reviews-section .sr-dist-count {
+  color: var(--sd-ink-soft);
+}
+
+body.supplier-dashboard-page .sr-review-item,
+body.supplier-dashboard-page [class*="review-card"] {
+  border: 1px solid var(--sd-border);
+  border-radius: var(--sd-radius-sm);
+  transition: border-color 200ms ease;
+}
+
+body.supplier-dashboard-page .sr-review-item:hover {
+  border-color: #c7cbd4;
+}
+
+body.supplier-dashboard-page .sd-reviews-placeholder__hero {
+  background: var(--sd-canvas);
+  border-radius: var(--sd-radius-md);
+}
+
+body.supplier-dashboard-page .sd-reviews-stat-card {
+  background: #fff;
+  border: 1px solid var(--sd-border);
+  border-radius: var(--sd-radius-sm);
+}
+
+body.supplier-dashboard-page .sd-reviews-cta-btn--primary {
+  border-radius: var(--sd-radius-sm);
+}
+
+/* --------------------------------------------------------------------------
+   7. Performance tips
+   -------------------------------------------------------------------------- */
+body.supplier-dashboard-page #supplier-perf-tips > div {
+  border: 1px solid var(--sd-border);
+  border-radius: var(--sd-radius-sm);
+  transition: border-color 200ms ease;
+}
+
+body.supplier-dashboard-page #supplier-perf-tips > div:hover {
+  border-color: var(--sd-accent);
+}
+
+/* --------------------------------------------------------------------------
+   8. Calendar — wrapper chrome + a light FullCalendar skin
+   -------------------------------------------------------------------------- */
+body.supplier-dashboard-page .supplier-calendar-legend {
+  gap: 14px;
+  background: var(--sd-canvas);
+  border-radius: var(--sd-radius-sm);
+  padding: 10px 14px;
+}
+
+body.supplier-dashboard-page .cal-legend-dot {
+  box-shadow: none;
+}
+
+body.supplier-dashboard-page .supplier-calendar-add-btn {
+  border-radius: var(--sd-radius-sm);
+}
+
+body.supplier-dashboard-page .supplier-calendar-viewport .fc {
+  --fc-border-color: var(--sd-border);
+  --fc-button-bg-color: var(--sd-accent);
+  --fc-button-border-color: var(--sd-accent);
+  --fc-button-hover-bg-color: var(--sd-accent-dark);
+  --fc-button-hover-border-color: var(--sd-accent-dark);
+  --fc-button-active-bg-color: var(--sd-accent-dark);
+  --fc-today-bg-color: var(--sd-accent-soft);
+  font-family: inherit;
+}
+
+body.supplier-dashboard-page .supplier-calendar-viewport .fc .fc-button {
+  border-radius: var(--sd-radius-sm);
+  font-weight: 600;
+  text-transform: capitalize;
+  box-shadow: none;
+}
+
+body.supplier-dashboard-page .supplier-calendar-viewport .fc .fc-toolbar-title {
+  font-weight: 700;
+  color: var(--sd-ink);
+}
+
+/* --------------------------------------------------------------------------
+   9. Subscription, Tickets
+   -------------------------------------------------------------------------- */
+body.supplier-dashboard-page .sd-subscription-active__badge,
+body.supplier-dashboard-page [class*="subscription-badge"] {
+  border-radius: 999px;
+  font-weight: 700;
+  box-shadow: none;
+}
+
+/* Tier badges default to solid purple/amber gradients — soften to the same
+   flat tint-plus-text "soft badge" every other status pill on this page
+   uses, instead of a shiny gradient fill. */
+body.supplier-dashboard-page .sd-subscription-active__badge--pro {
+  background: rgba(124, 58, 237, 0.1);
+  color: #6d28d9;
+}
+
+body.supplier-dashboard-page .sd-subscription-active__badge--pro_plus {
+  background: rgba(217, 119, 6, 0.12);
+  color: #b45309;
+}
+
+body.supplier-dashboard-page .sd-subscription-active__detail-row {
+  border-radius: var(--sd-radius-sm);
+}
+
+/* "Manage subscription" / "Manage billing" are actions, not status — follow
+   the page's ordinary secondary-button treatment rather than keeping the
+   purple tint that only makes sense on the tier badge next to it. */
+body.supplier-dashboard-page .sd-subscription-manage-btn {
+  border-radius: var(--sd-radius-sm);
+  font-weight: 600;
+  background: #fff;
+  color: var(--sd-ink-soft);
+  border: 1px solid var(--sd-border);
+}
+
+body.supplier-dashboard-page .sd-subscription-manage-btn:hover {
+  background: var(--sd-canvas);
+  border-color: #c7cbd4;
+}
+
+body.supplier-dashboard-page .sd-ticket-create-btn {
+  border-radius: var(--sd-radius-sm);
+}
+
+body.supplier-dashboard-page .ticket-item,
+body.supplier-dashboard-page .supplier-ticket-item {
+  border: 1px solid var(--sd-border);
+  border-radius: var(--sd-radius-sm);
+  transition: border-color 200ms ease;
+}
+
+body.supplier-dashboard-page .ticket-item:hover,
+body.supplier-dashboard-page .supplier-ticket-item:hover {
+  border-color: #c7cbd4;
+}
+
+body.supplier-dashboard-page .sd-empty-state {
+  border-radius: var(--sd-radius-md);
+  background: var(--sd-canvas);
+  border: 1px dashed var(--sd-border);
+}
+
+/* --------------------------------------------------------------------------
+   10. Responsive tuning
+   -------------------------------------------------------------------------- */
+@media (max-width: 1024px) {
+  body.supplier-dashboard-page .spc-checklist-steps {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  body.supplier-dashboard-page .dashboard-hero__content {
+    padding: 20px 18px 20px;
+  }
+
+  body.supplier-dashboard-page .dashboard-hero__title-main,
+  body.supplier-dashboard-page .dashboard-hero__title-highlight {
+    font-size: 24px;
+  }
+
+  body.supplier-dashboard-page .spc-root {
+    padding: 18px;
+  }
+
+  body.supplier-dashboard-page #my-packages {
+    grid-template-columns: 1fr;
+  }
+
+  /* dashboard-mobile.css already forces a plain white hero card with solid
+     navy heading text at this width ("clean white card on mobile") — which
+     is exactly the flat, undecorated treatment this file uses at every
+     other breakpoint too, so nothing needs overriding here. */
+  body.supplier-dashboard-page .dashboard-hero__tip {
+    border-radius: var(--sd-radius-sm);
+  }
+}
+
+@media (max-width: 480px) {
+  body.supplier-dashboard-page .spc-checklist-steps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  body.supplier-dashboard-page .sd-card-header {
+    padding: 16px 16px;
+  }
+}

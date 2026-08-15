@@ -378,6 +378,7 @@
       const current = loadState();
       current[id] = collapsed;
       saveState(current);
+      updateBulkToggleButton();
     };
 
     btn._clickHandler = clickHandler;
@@ -396,6 +397,43 @@
     });
   }
 
+  // True only when every collapsible card on the page is currently open —
+  // a single mixed or fully-collapsed card is enough to call the aggregate
+  // state "not expanded", which is what decides what the bulk button offers
+  // to do next.
+  function allCardsExpanded() {
+    const cards = document.querySelectorAll('.card-collapsible');
+    return (
+      cards.length > 0 &&
+      Array.from(cards).every(card => !card.classList.contains('card--collapsed'))
+    );
+  }
+
+  // Keeps the single bulk button's label/aria-expanded in sync with the
+  // actual aggregate state, whether that state changed via the bulk button
+  // itself, an individual card's own toggle, or cards appearing/disappearing.
+  function updateBulkToggleButton() {
+    const btn = document.querySelector('.card-collapse-bulk-btn[data-bulk-action="toggle"]');
+    if (!btn) {
+      return;
+    }
+    const expanded = allCardsExpanded();
+    const label = btn.querySelector('.card-collapse-bulk-btn__label');
+    const target = label || btn;
+    const text = expanded ? 'Collapse all' : 'Expand all';
+    // Guard against a no-op write: `textContent = text` replaces child text
+    // nodes even when the value is unchanged, which is itself a childList
+    // mutation. observeDynamicCards() below calls this function on every
+    // observed mutation, so an unconditional write here would have this
+    // function's own DOM write re-trigger the observer forever.
+    if (target.textContent !== text) {
+      target.textContent = text;
+    }
+    if (btn.getAttribute('aria-expanded') !== String(expanded)) {
+      btn.setAttribute('aria-expanded', String(expanded));
+    }
+  }
+
   // Drives every visible card to the same state by clicking its existing
   // toggle button when needed, rather than duplicating the collapse/expand/
   // persist logic — one code path stays the source of truth for what
@@ -411,6 +449,7 @@
         btn.click();
       }
     });
+    updateBulkToggleButton();
   }
 
   function initBulkActions() {
@@ -419,11 +458,13 @@
       return;
     }
     container.dataset.bound = 'true';
-    container.querySelectorAll('[data-bulk-action]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        setAllCollapsed(btn.dataset.bulkAction === 'collapse');
+    const toggleBtn = container.querySelector('[data-bulk-action="toggle"]');
+    if (toggleBtn) {
+      toggleBtn.addEventListener('click', () => {
+        setAllCollapsed(allCardsExpanded());
       });
-    });
+    }
+    updateBulkToggleButton();
   }
 
   window.cardCollapseSetAll = setAllCollapsed;
@@ -498,6 +539,7 @@
           }
         });
       });
+      updateBulkToggleButton();
     });
 
     mo.observe(document.body, { childList: true, subtree: true });
@@ -513,6 +555,7 @@
       if (nowMobile && !_mobileActive) {
         _mobileActive = true;
         initAllCards();
+        updateBulkToggleButton();
       } else if (!nowMobile && _mobileActive) {
         _mobileActive = false;
         teardownAllCards();
