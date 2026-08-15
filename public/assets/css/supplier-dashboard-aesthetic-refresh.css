@@ -92,7 +92,14 @@ body.supplier-dashboard-page .sd-card-header__icon {
   background: var(--sd-accent-soft);
 }
 
-body.supplier-dashboard-page .sd-card-header__icon svg { width: 18px; height: 18px; }
+/* supplier-dashboard-improvements.css hardcodes color:white directly on the
+   svg (written for the old solid-gradient icon chips), which wins over any
+   color set on the parent .sd-card-header__icon--<hue> div since it's
+   declared on the svg itself, not inherited. On today's pale-tint chips
+   that rendered every header icon as a near-invisible white shape —
+   inherit instead, so the per-hue colour on the chip actually reaches the
+   icon. */
+body.supplier-dashboard-page .sd-card-header__icon svg { width: 18px; height: 18px; color: inherit; }
 
 body.supplier-dashboard-page .sd-card-header__icon--indigo { background: rgba(99, 102, 241, 0.1); color: #6366f1; }
 body.supplier-dashboard-page .sd-card-header__icon--blue { background: rgba(59, 130, 246, 0.1); color: #3b82f6; }
@@ -222,6 +229,18 @@ body.supplier-dashboard-page .sd-section-divider__label {
   text-transform: uppercase;
   color: var(--sd-muted);
   white-space: nowrap;
+}
+
+/* Pro-plan upsell ribbon, above the hero — the description was wrapping
+   onto two lines well before the card ran out of width, because the whole
+   ribbon (title AND description) inherited the same bold 600 weight from
+   the base .pro-ribbon rule. Regular weight on the description alone saves
+   enough horizontal space to keep it on one line at typical widths; the
+   copy itself was also trimmed ("click here to upgrade today" -> "upgrade
+   today", which is both shorter and a more accessible link label than a
+   bare "click here"). */
+body.supplier-dashboard-page .pro-ribbon--starter .pro-ribbon__desc {
+  font-weight: 500;
 }
 
 /* --------------------------------------------------------------------------
@@ -826,6 +845,25 @@ body.supplier-dashboard-page .sd-chart-empty {
   border-radius: var(--sd-radius-md);
 }
 
+/* Empty-state icon circle. The chart's is a real SVG (stroke: currentColor);
+   the base rule left it at color:#94a3b8 on a low-opacity teal gradient
+   circle, which read as a pale smudge rather than a recognisable icon.
+   Flat neutral circle, full opacity, clearly-visible stroke colour. */
+body.supplier-dashboard-page .sd-empty-state__icon {
+  background: var(--sd-border-soft);
+  opacity: 1;
+}
+
+body.supplier-dashboard-page .sd-chart-empty .sd-empty-state__icon {
+  color: var(--sd-muted);
+  opacity: 1;
+}
+
+body.supplier-dashboard-page .sd-empty-state__icon svg {
+  width: 22px;
+  height: 22px;
+}
+
 body.supplier-dashboard-page #roi-date-range,
 body.supplier-dashboard-page select {
   border-radius: var(--sd-radius-sm);
@@ -1078,4 +1116,20 @@ body.supplier-dashboard-page .sd-empty-state {
   body.supplier-dashboard-page .sd-card-header {
     padding: 16px 16px;
   }
+}
+
+/* --------------------------------------------------------------------------
+   7. Interaction — keep transient toasts from blocking taps
+   --------------------------------------------------------------------------
+   #eventflow-notification-container stacks up to 5 toasts, full-width, at
+   the very top of the mobile viewport (dashboard-mobile.css) — on a page
+   that fires ~8 independent requests on load (messenger, notifications,
+   subscriptions, suppliers...), a couple of transient failures is enough
+   for the stack to cover a third of the screen, right where a user has
+   just scrolled the bulk expand/collapse toggle (or anything else near the
+   top of the card list) into view. Only the newest toast — the last child,
+   since notification-system.js appends — needs to stay tappable; older
+   ones already read fine without blocking whatever's underneath. */
+body.supplier-dashboard-page #eventflow-notification-container .ef-notification:not(:last-child) {
+  pointer-events: none;
 }

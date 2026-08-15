@@ -101,6 +101,16 @@
     inset: -10px -6px;
   }
 
+  /* Tells the browser this control only cares about taps, not the
+     double-tap-to-zoom gesture the viewport meta tag leaves enabled
+     (deliberately, since disabling pinch/double-tap zoom site-wide is an
+     accessibility regression) — skips the tap-vs-zoom disambiguation
+     delay some mobile browsers otherwise apply per touch. */
+  .card-collapse-bulk-btn,
+  .card-collapse-btn {
+    touch-action: manipulation;
+  }
+
   .card-collapse-bulk-btn__icon {
     width: 9px;
     height: 9px;

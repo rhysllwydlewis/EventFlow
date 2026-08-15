@@ -3192,7 +3192,7 @@ async function initDashSupplier() {
               <span class="pro-ribbon__icon" aria-hidden="true">🚀</span>
               <div class="pro-ribbon__text-group">
                 <strong>Level up your plan</strong>
-                <span class="pro-ribbon__desc">Unlock priority visibility, more packages, and dedicated support — <a href="/pricing" class="pro-ribbon__text-link">click here to upgrade today</a>.</span>
+                <span class="pro-ribbon__desc">Unlock priority visibility, more packages, and dedicated support — <a href="/pricing" class="pro-ribbon__text-link">upgrade today</a>.</span>
               </div>
             </div>`;
         }
