@@ -1310,8 +1310,12 @@ h4 {
   }
   
   /* Ensure no text overflow in cards */
+  /* :not(.spc-name) — the supplier business-name heading sets its own size
+     and clamp; this generic card rule was overriding both and cutting real
+     business names off after two lines regardless of how much room the
+     card actually had. */
   .pack h3,
-  .card h3,
+  .card h3:not(.spc-name),
   .package-title {
     font-size: 1.125rem;
     line-height: 1.4;
@@ -1321,9 +1325,12 @@ h4 {
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
   }
-  
+
+  /* :not(.spc-checklist-subtitle) — this one-line checklist caption isn't a
+     card description; the generic 3-line clamp here was cutting its last
+     clause off mid-sentence. */
   .pack p,
-  .card p,
+  .card p:not(.spc-checklist-subtitle),
   .package-description {
     font-size: 0.875rem;
     line-height: 1.5;
