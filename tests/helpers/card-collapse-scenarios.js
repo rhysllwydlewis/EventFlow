@@ -33,8 +33,9 @@ const FIXTURE_BODY = `
   </div>
 
   <div class="card-collapse-bulk-actions" data-test="card-collapse-bulk-actions">
-    <button type="button" class="card-collapse-bulk-btn" data-bulk-action="expand">Expand all</button>
-    <button type="button" class="card-collapse-bulk-btn" data-bulk-action="collapse">Collapse all</button>
+    <button type="button" class="card-collapse-bulk-btn" data-bulk-action="toggle" aria-expanded="false">
+      <span class="card-collapse-bulk-btn__label">Expand all</span>
+    </button>
   </div>
 
   <div class="card sd-card" data-default-expanded="true">
@@ -180,29 +181,49 @@ async function scenarioBulkActions() {
   await settle();
   const { document } = dom.window;
 
+  const btn = document.querySelector('[data-bulk-action="toggle"]');
+  const label = () => btn.querySelector('.card-collapse-bulk-btn__label').textContent;
+
   const initial = {
     profile: cardState(document, 'Your Supplier Profile').collapsed,
     packages: cardState(document, 'Your Packages').collapsed,
     messages: cardState(document, 'Messages').collapsed,
   };
+  const initialLabel = label();
 
-  document.querySelector('[data-bulk-action="expand"]').click();
+  // First click: the page starts in a mixed state (Profile/Packages open,
+  // Messages closed), so the single toggle offers "Expand all" first.
+  btn.click();
   await settle();
   const afterExpandAll = {
     profile: cardState(document, 'Your Supplier Profile').collapsed,
     packages: cardState(document, 'Your Packages').collapsed,
     messages: cardState(document, 'Messages').collapsed,
   };
+  const labelAfterExpandAll = label();
+  const ariaExpandedAfterExpandAll = btn.getAttribute('aria-expanded');
 
-  document.querySelector('[data-bulk-action="collapse"]').click();
+  // Second click: every card is now open, so the same button collapses all.
+  btn.click();
   await settle();
   const afterCollapseAll = {
     profile: cardState(document, 'Your Supplier Profile').collapsed,
     packages: cardState(document, 'Your Packages').collapsed,
     messages: cardState(document, 'Messages').collapsed,
   };
+  const labelAfterCollapseAll = label();
+  const ariaExpandedAfterCollapseAll = btn.getAttribute('aria-expanded');
 
-  return { initial, afterExpandAll, afterCollapseAll };
+  return {
+    initial,
+    initialLabel,
+    afterExpandAll,
+    labelAfterExpandAll,
+    ariaExpandedAfterExpandAll,
+    afterCollapseAll,
+    labelAfterCollapseAll,
+    ariaExpandedAfterCollapseAll,
+  };
 }
 
 async function scenarioPersistenceAcrossReinit() {

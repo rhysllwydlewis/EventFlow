@@ -611,9 +611,10 @@
              card-collapse.css, where the per-card toggle itself doesn't render
              (the collapse feature only activates <=1024px). -->
         <div class="card-collapse-bulk-actions" data-test="card-collapse-bulk-actions">
-          <button type="button" class="card-collapse-bulk-btn" data-bulk-action="expand">Expand all</button>
-          <span class="card-collapse-bulk-sep" aria-hidden="true">·</span>
-          <button type="button" class="card-collapse-bulk-btn" data-bulk-action="collapse">Collapse all</button>
+          <button type="button" class="card-collapse-bulk-btn" data-bulk-action="toggle" aria-expanded="false">
+            <svg class="card-collapse-bulk-btn__icon" aria-hidden="true" width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3.5l3 3 3-3"/></svg>
+            <span class="card-collapse-bulk-btn__label">Expand all</span>
+          </button>
         </div>
 
         <!-- Section Divider -->

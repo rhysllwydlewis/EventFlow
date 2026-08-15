@@ -163,6 +163,26 @@ body.supplier-dashboard-page button.cta.secondary:hover {
   background: var(--sd-canvas);
 }
 
+/* Messenger/calendar "retry" buttons on their error-fallback states: both
+   rely on stylesheets this page never loads (customer-dashboard-improvements
+   .css for one, nothing at all for the other), so they render with the
+   browser's bare default button chrome. Same secondary-button treatment as
+   everywhere else on the page, scoped narrowly to these two classes. */
+body.supplier-dashboard-page .mwv4__retry-btn,
+body.supplier-dashboard-page .cal-fallback-empty__retry {
+  background: #fff;
+  border: 1px solid var(--sd-border);
+  color: var(--sd-ink-soft);
+  box-shadow: none;
+  border-radius: var(--sd-radius-sm);
+}
+
+body.supplier-dashboard-page .mwv4__retry-btn:hover,
+body.supplier-dashboard-page .cal-fallback-empty__retry:hover {
+  border-color: #c7cbd4;
+  background: var(--sd-canvas);
+}
+
 /* Badges/pills — soft tint + coloured text (no solid fill, no gradient,
    no shadow), the same "soft badge" treatment used by Linear/Notion/GitHub
    labels. Existing badge/status colour classes elsewhere on the page keep
@@ -616,6 +636,25 @@ body.supplier-dashboard-page .card-actions {
   border-top: 1px solid var(--sd-border-soft);
 }
 
+/* dashboard-mobile.css only grids the 4-button action row up to 768px; on
+   this page's own 2-column package grid, cards are still narrow enough at
+   tablet widths (769-1024px) for a plain flex row to overflow the card —
+   the Delete button was rendering half outside the card border. */
+@media (min-width: 769px) and (max-width: 1024px) {
+  body.supplier-dashboard-page .card-actions {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  body.supplier-dashboard-page .card-action-btn:only-child {
+    grid-column: span 2;
+  }
+
+  body.supplier-dashboard-page .card-actions > .card-action-btn:last-child:nth-child(3) {
+    grid-column: span 2;
+  }
+}
+
 body.supplier-dashboard-page .card-action-btn {
   border-radius: var(--sd-radius-sm);
   font-weight: 600;
@@ -695,9 +734,43 @@ body.supplier-dashboard-page #supplier-stats-grid .stat-widget:hover {
   border-color: #c7cbd4;
 }
 
+/* Each stat's icon chip is rendered with an inline `style="background: linear-
+   gradient(...)"` (dashboard-widgets.js), so overriding the gradient needs
+   !important — nothing else here can win against an inline style. Colour
+   keyed off the widget's own [data-color] so "Profile Views" stays blue-ish,
+   "Response Rate" stays amber, etc., just as a quiet tint instead of a loud
+   gradient chip. */
 body.supplier-dashboard-page #supplier-stats-grid .icon-with-gradient {
   border-radius: var(--sd-radius-sm);
   box-shadow: none;
+  background: var(--sd-accent-soft) !important;
+  color: var(--sd-accent);
+}
+
+body.supplier-dashboard-page #supplier-stats-grid .stat-widget[data-color='blue'] .icon-with-gradient {
+  background: rgba(59, 130, 246, 0.1) !important;
+  color: #3b82f6;
+}
+
+body.supplier-dashboard-page #supplier-stats-grid .stat-widget[data-color='green'] .icon-with-gradient {
+  background: rgba(16, 185, 129, 0.1) !important;
+  color: #0d9668;
+}
+
+body.supplier-dashboard-page #supplier-stats-grid .stat-widget[data-color='amber'] .icon-with-gradient {
+  background: rgba(245, 158, 11, 0.12) !important;
+  color: #b45309;
+}
+
+body.supplier-dashboard-page #supplier-stats-grid .stat-widget[data-color='purple'] .icon-with-gradient {
+  background: rgba(99, 102, 241, 0.1) !important;
+  color: #6366f1;
+}
+
+/* Infinite pulsing glow reads as loud/decorative against the rest of this
+   page's quiet surfaces — and never stops on its own. */
+body.supplier-dashboard-page #supplier-stats-grid .icon-with-gradient.pulse {
+  animation: none;
 }
 
 body.supplier-dashboard-page #supplier-stats-grid .stat-number {
@@ -710,6 +783,43 @@ body.supplier-dashboard-page #supplier-stats-grid .stat-number {
 body.supplier-dashboard-page #supplier-stats-grid .stat-label {
   color: var(--sd-muted);
   font-weight: 600;
+}
+
+/* Profile Health widget (profile-health.css) is a standalone component with
+   its own glass-card styling — gradient surface, blurred backdrop, gradient
+   icon and gradient CTA button — none of which matches the flat surfaces
+   used everywhere else on this page. Flattened here rather than in the
+   shared file, since the same widget also renders on admin-supplier-detail. */
+body.supplier-dashboard-page .profile-health-widget {
+  padding: 0;
+  background: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: none;
+  box-shadow: none;
+  margin-top: 0;
+}
+
+body.supplier-dashboard-page .profile-health-icon {
+  background: var(--sd-accent-soft);
+  color: var(--sd-accent);
+  box-shadow: none;
+}
+
+body.supplier-dashboard-page .health-cta {
+  background: var(--sd-accent);
+  box-shadow: none;
+  transition: background-color 150ms ease;
+}
+
+body.supplier-dashboard-page .health-cta:hover {
+  background: var(--sd-accent-dark);
+  transform: none;
+  box-shadow: none;
+}
+
+body.supplier-dashboard-page .health-cta:active {
+  transform: none;
 }
 
 body.supplier-dashboard-page .sd-chart-empty {
@@ -731,6 +841,21 @@ body.supplier-dashboard-page .ef-badge-warning {
   border-radius: 999px;
   font-weight: 700;
   box-shadow: none;
+  background: rgba(245, 158, 11, 0.12);
+  color: #b45309;
+}
+
+/* "Next Steps" priority badges ("Recommended") — solid fills everywhere
+   else on the page, so soften these the same way. */
+body.supplier-dashboard-page .sd-next-steps__badge--amber,
+body.supplier-dashboard-page .sd-next-steps__badge--warning {
+  background: rgba(245, 158, 11, 0.14);
+  color: #92400e;
+}
+
+body.supplier-dashboard-page .sd-next-steps__badge--red {
+  background: rgba(220, 38, 38, 0.1);
+  color: #991b1b;
 }
 
 /* --------------------------------------------------------------------------

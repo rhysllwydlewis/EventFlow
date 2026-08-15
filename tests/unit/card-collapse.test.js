@@ -130,19 +130,27 @@ describe('toggling a card', () => {
   });
 });
 
-describe('the bulk "Expand all / Collapse all" control', () => {
+describe('the single bulk expand/collapse toggle', () => {
   const value = outcome('bulkActions');
 
   it('starts from the priority defaults (Profile and Packages open, Messages closed)', () => {
     expect(value.initial).toEqual({ profile: false, packages: false, messages: true });
   });
 
-  it('"Expand all" opens every card, including ones already open', () => {
-    expect(value.afterExpandAll).toEqual({ profile: false, packages: false, messages: false });
+  it('offers "Expand all" first, since the starting state is a mix of open and closed cards', () => {
+    expect(value.initialLabel).toBe('Expand all');
   });
 
-  it('"Collapse all" closes every card, including the priority ones', () => {
+  it('first click opens every card, including ones already open, and flips its own label to "Collapse all"', () => {
+    expect(value.afterExpandAll).toEqual({ profile: false, packages: false, messages: false });
+    expect(value.labelAfterExpandAll).toBe('Collapse all');
+    expect(value.ariaExpandedAfterExpandAll).toBe('true');
+  });
+
+  it('second click closes every card, including the priority ones, and flips the label back to "Expand all"', () => {
     expect(value.afterCollapseAll).toEqual({ profile: true, packages: true, messages: true });
+    expect(value.labelAfterCollapseAll).toBe('Expand all');
+    expect(value.ariaExpandedAfterCollapseAll).toBe('false');
   });
 });
 
