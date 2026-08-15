@@ -7381,6 +7381,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const supplierApproved = supplierItems.some(s => s.approved === true);
         const box = document.createElement('div');
         box.className = 'card sd-card supplier-dashboard-card';
+        // Starts expanded on mobile/tablet (card-collapse.js collapses .sd-card
+        // by default below 1024px unless told otherwise) — matches the
+        // "Your Supplier Profile" card just below it, and this one is now the
+        // first thing after the hero, so collapsing it by default would undercut
+        // the point of moving it up here.
+        box.dataset.defaultExpanded = 'true';
         // Placed right after the hero card rather than appended at the end of
         // the page: this checklist (create profile → get approved → add a
         // package) is the single most useful thing a new supplier can see,
