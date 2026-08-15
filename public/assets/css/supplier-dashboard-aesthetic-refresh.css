@@ -5,215 +5,200 @@
    profile, packages, messages, availability, stats, analytics, reviews,
    performance tips, calendar, subscription and tickets.
 
-   Scoped entirely to `.supplier-dashboard-page` and loaded last in
+   Design language: minimal and restrained — neutral surfaces, quiet 1px
+   borders instead of drop shadows, one accent colour used sparingly, and
+   typography carrying the hierarchy instead of gradients or decoration.
+   No gradient fills, no glow shadows, no blurred background blobs.
+
+   Scoped entirely to `body.supplier-dashboard-page` and loaded last in
    dashboard-supplier.html, after supplier-dashboard-visual-refresh.css, so
-   it settles the cascade without `!important`. Styling only — no markup,
-   class, id or data-attribute here is removed or renamed, so every existing
-   behaviour (collapse/expand, form toggles, JS hooks, tests) keeps working.
+   it settles the cascade without `!important` (except the two spots noted
+   inline, where the base stylesheet already uses `!important` itself).
+   Styling only — no markup, class, id or data-attribute here is removed or
+   renamed, so every existing behaviour (collapse/expand, form toggles, JS
+   hooks, tests) keeps working.
    ========================================================================== */
 
 /* --------------------------------------------------------------------------
    0. Foundations — palette, card surface, section header, buttons, badges
    -------------------------------------------------------------------------- */
-.supplier-dashboard-page {
-  --sd-canvas: #f4f6f8;
-  --sd-ink: #0b1220;
-  --sd-ink-soft: #43506b;
-  --sd-muted: #6b7690;
-  --sd-line: #e7eaf1;
-  --sd-line-soft: #eef1f6;
+body.supplier-dashboard-page {
+  --sd-canvas: #f7f8fa;
+  --sd-ink: #12151a;
+  --sd-ink-soft: #454c5b;
+  --sd-muted: #767d8c;
+  --sd-border: #e3e5ea;
+  --sd-border-soft: #edeef2;
   --sd-surface: #ffffff;
-  --sd-teal: #0b8073;
-  --sd-teal-dark: #086b60;
-  --sd-teal-light: #13b6a2;
-  --sd-radius-card: 20px;
-  --sd-radius-md: 14px;
-  --sd-radius-sm: 10px;
-  --sd-shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04), 0 12px 28px -14px rgba(15, 23, 42, 0.16);
-  --sd-shadow-card-hover: 0 1px 2px rgba(15, 23, 42, 0.05), 0 20px 40px -16px rgba(15, 23, 42, 0.22);
-  --sd-shadow-pop: 0 10px 24px -8px rgba(15, 23, 42, 0.18);
+  --sd-accent: #0b8073;
+  --sd-accent-dark: #086b60;
+  --sd-accent-soft: rgba(11, 128, 115, 0.08);
+  --sd-radius-card: 12px;
+  --sd-radius-md: 10px;
+  --sd-radius-sm: 8px;
+  --sd-shadow-hover: 0 1px 2px rgba(16, 24, 40, 0.04), 0 4px 10px -6px rgba(16, 24, 40, 0.08);
   background: var(--sd-canvas);
 }
 
-.supplier-dashboard-page main#main-content {
+body.supplier-dashboard-page main#main-content {
   background: var(--sd-canvas);
 }
 
-.supplier-dashboard-page .container {
-  max-width: 1320px;
+body.supplier-dashboard-page .container {
+  max-width: 1280px;
 }
 
-/* Card surface — applies to every `.sd-card` regardless of which section it's in */
-.supplier-dashboard-page .sd-card,
-.supplier-dashboard-page section.sd-card {
+/* Card surface — applies to every `.sd-card` regardless of which section it's in.
+   Definition comes from a 1px border, not a shadow; the shadow only appears
+   on hover, as a hint of lift rather than permanent decoration. */
+body.supplier-dashboard-page .sd-card,
+body.supplier-dashboard-page section.sd-card {
   background: var(--sd-surface);
-  border: 1px solid var(--sd-line);
+  border: 1px solid var(--sd-border);
   border-radius: var(--sd-radius-card);
-  box-shadow: var(--sd-shadow-card);
+  box-shadow: none;
   overflow: hidden;
-  transition: box-shadow 240ms ease, border-color 240ms ease;
+  transition: border-color 200ms ease, box-shadow 200ms ease;
 }
 
-.supplier-dashboard-page .sd-card:hover {
-  box-shadow: var(--sd-shadow-card-hover);
+body.supplier-dashboard-page .sd-card:hover {
+  border-color: #d6d9e0;
 }
 
-/* Card header — the coloured strip at the top of every card. Keep the
-   existing per-card colour coding (teal/indigo/blue/amber/rose/sky/emerald/
-   red) — it's a genuinely useful scan aid — but give it real depth instead
-   of a flat pale tint. */
-.supplier-dashboard-page .sd-card-header {
-  position: relative;
-  padding: 22px 26px;
+/* Card header — plain surface, one bottom rule, no tinted wash. The only
+   colour signal left is the small icon chip, which carries the existing
+   per-section colour coding (teal/indigo/blue/amber/rose/sky/emerald/red)
+   as a quiet flat tint — enough to scan by by, without shouting. */
+body.supplier-dashboard-page .sd-card-header {
+  padding: 20px 24px;
   gap: 16px;
-  border-bottom: 1px solid var(--sd-line-soft);
-  background: linear-gradient(135deg, rgba(11, 128, 115, 0.07), rgba(11, 128, 115, 0));
+  background: var(--sd-surface);
+  border-bottom: 1px solid var(--sd-border-soft);
 }
 
-.supplier-dashboard-page .sd-card-header::before {
-  content: '';
-  position: absolute;
-  inset: 0 0 auto 0;
-  height: 3px;
-  background: linear-gradient(90deg, var(--sd-teal), var(--sd-teal-light));
-  opacity: 0.9;
+body.supplier-dashboard-page .sd-card-header::before {
+  content: none;
 }
 
-.supplier-dashboard-page .sd-card-header--indigo { background: linear-gradient(135deg, rgba(99, 102, 241, 0.09), rgba(99, 102, 241, 0)); }
-.supplier-dashboard-page .sd-card-header--indigo::before { background: linear-gradient(90deg, #6366f1, #a5b4fc); }
-.supplier-dashboard-page .sd-card-header--blue { background: linear-gradient(135deg, rgba(59, 130, 246, 0.09), rgba(59, 130, 246, 0)); }
-.supplier-dashboard-page .sd-card-header--blue::before { background: linear-gradient(90deg, #3b82f6, #93c5fd); }
-.supplier-dashboard-page .sd-card-header--amber { background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(245, 158, 11, 0)); }
-.supplier-dashboard-page .sd-card-header--amber::before { background: linear-gradient(90deg, #f59e0b, #fcd34d); }
-.supplier-dashboard-page .sd-card-header--rose { background: linear-gradient(135deg, rgba(225, 29, 72, 0.09), rgba(225, 29, 72, 0)); }
-.supplier-dashboard-page .sd-card-header--rose::before { background: linear-gradient(90deg, #e11d48, #fda4af); }
-.supplier-dashboard-page .sd-card-header--sky { background: linear-gradient(135deg, rgba(14, 165, 233, 0.09), rgba(14, 165, 233, 0)); }
-.supplier-dashboard-page .sd-card-header--sky::before { background: linear-gradient(90deg, #0ea5e9, #7dd3fc); }
-.supplier-dashboard-page .sd-card-header--emerald { background: linear-gradient(135deg, rgba(16, 185, 129, 0.09), rgba(16, 185, 129, 0)); }
-.supplier-dashboard-page .sd-card-header--emerald::before { background: linear-gradient(90deg, #10b981, #6ee7b7); }
-.supplier-dashboard-page .sd-card-header--red { background: linear-gradient(135deg, rgba(239, 68, 68, 0.09), rgba(239, 68, 68, 0)); }
-.supplier-dashboard-page .sd-card-header--red::before { background: linear-gradient(90deg, #ef4444, #fca5a5); }
-.supplier-dashboard-page .sd-card-header--teal::before { background: linear-gradient(90deg, var(--sd-teal), var(--sd-teal-light)); }
-
-.supplier-dashboard-page .sd-card-header__icon {
-  width: 42px;
-  height: 42px;
-  border-radius: 13px;
+body.supplier-dashboard-page .sd-card-header__icon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--sd-radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 6px 14px -6px rgba(11, 128, 115, 0.45);
-  color: #fff;
-  background: linear-gradient(135deg, var(--sd-teal), var(--sd-teal-light));
+  box-shadow: none;
+  color: var(--sd-accent);
+  background: var(--sd-accent-soft);
 }
 
-.supplier-dashboard-page .sd-card-header__icon svg { width: 21px; height: 21px; }
+body.supplier-dashboard-page .sd-card-header__icon svg { width: 18px; height: 18px; }
 
-.supplier-dashboard-page .sd-card-header__icon--indigo { background: linear-gradient(135deg, #6366f1, #818cf8); box-shadow: 0 6px 14px -6px rgba(99, 102, 241, 0.5); }
-.supplier-dashboard-page .sd-card-header__icon--blue { background: linear-gradient(135deg, #3b82f6, #60a5fa); box-shadow: 0 6px 14px -6px rgba(59, 130, 246, 0.5); }
-.supplier-dashboard-page .sd-card-header__icon--amber { background: linear-gradient(135deg, #f59e0b, #fbbf24); box-shadow: 0 6px 14px -6px rgba(245, 158, 11, 0.5); }
-.supplier-dashboard-page .sd-card-header__icon--rose { background: linear-gradient(135deg, #e11d48, #fb7185); box-shadow: 0 6px 14px -6px rgba(225, 29, 72, 0.5); }
-.supplier-dashboard-page .sd-card-header__icon--sky { background: linear-gradient(135deg, #0ea5e9, #38bdf8); box-shadow: 0 6px 14px -6px rgba(14, 165, 233, 0.5); }
-.supplier-dashboard-page .sd-card-header__icon--emerald { background: linear-gradient(135deg, #10b981, #34d399); box-shadow: 0 6px 14px -6px rgba(16, 185, 129, 0.5); }
-.supplier-dashboard-page .sd-card-header__icon--red { background: linear-gradient(135deg, #ef4444, #f87171); box-shadow: 0 6px 14px -6px rgba(239, 68, 68, 0.5); }
-.supplier-dashboard-page .sd-card-header__icon--teal { background: linear-gradient(135deg, var(--sd-teal), var(--sd-teal-light)); }
+body.supplier-dashboard-page .sd-card-header__icon--indigo { background: rgba(99, 102, 241, 0.1); color: #6366f1; }
+body.supplier-dashboard-page .sd-card-header__icon--blue { background: rgba(59, 130, 246, 0.1); color: #3b82f6; }
+body.supplier-dashboard-page .sd-card-header__icon--amber { background: rgba(245, 158, 11, 0.12); color: #b45309; }
+body.supplier-dashboard-page .sd-card-header__icon--rose { background: rgba(225, 29, 72, 0.1); color: #e11d48; }
+body.supplier-dashboard-page .sd-card-header__icon--sky { background: rgba(14, 165, 233, 0.1); color: #0ea5e9; }
+body.supplier-dashboard-page .sd-card-header__icon--emerald { background: rgba(16, 185, 129, 0.1); color: #0d9668; }
+body.supplier-dashboard-page .sd-card-header__icon--red { background: rgba(239, 68, 68, 0.1); color: #dc2626; }
+body.supplier-dashboard-page .sd-card-header__icon--teal { background: var(--sd-accent-soft); color: var(--sd-accent); }
 
-.supplier-dashboard-page .sd-card-header__heading {
-  font-size: 18px;
-  font-weight: 800;
-  letter-spacing: -0.01em;
+body.supplier-dashboard-page .sd-card-header__heading {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.005em;
   color: var(--sd-ink);
 }
 
-.supplier-dashboard-page .sd-card-header__subtitle {
+body.supplier-dashboard-page .sd-card-header__subtitle {
   color: var(--sd-muted);
   font-size: 13px;
   margin-top: 2px;
 }
 
-/* Buttons — one shared pill system for the whole dashboard. Existing
+/* Buttons — one shared system for the whole dashboard. Existing
    .cta/.ef-cta/.card-action-btn/.glass-btn classes keep their JS hooks;
-   this only changes paint. */
-.supplier-dashboard-page .cta,
-.supplier-dashboard-page .ef-cta,
-.supplier-dashboard-page button.cta,
-.supplier-dashboard-page .form-toggle-btn,
-.supplier-dashboard-page .glass-btn {
-  border-radius: 999px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease, border-color 160ms ease;
+   this only changes paint. Solid ink or accent fill for primary actions,
+   a plain bordered button for everything else — no gradients, no drop
+   shadows, a crisp 8px radius rather than a full pill. */
+body.supplier-dashboard-page .cta,
+body.supplier-dashboard-page .ef-cta,
+body.supplier-dashboard-page button.cta,
+body.supplier-dashboard-page .form-toggle-btn,
+body.supplier-dashboard-page .glass-btn {
+  border-radius: var(--sd-radius-sm);
+  font-weight: 600;
+  letter-spacing: 0;
+  transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
 }
 
-.supplier-dashboard-page .cta:not(.secondary):not(.card-action-btn),
-.supplier-dashboard-page button.cta:not(.secondary),
-.supplier-dashboard-page .form-toggle-btn,
-.supplier-dashboard-page .glass-btn--primary {
-  background: linear-gradient(135deg, var(--sd-teal) 0%, var(--sd-teal-light) 100%);
-  border: 1px solid transparent;
+body.supplier-dashboard-page .cta:not(.secondary):not(.card-action-btn),
+body.supplier-dashboard-page button.cta:not(.secondary),
+body.supplier-dashboard-page .form-toggle-btn,
+body.supplier-dashboard-page .glass-btn--primary {
+  background: var(--sd-accent);
+  border: 1px solid var(--sd-accent);
   color: #fff;
-  box-shadow: 0 8px 18px -8px rgba(11, 128, 115, 0.55);
+  box-shadow: none;
 }
 
-.supplier-dashboard-page .cta:not(.secondary):not(.card-action-btn):hover,
-.supplier-dashboard-page button.cta:not(.secondary):hover,
-.supplier-dashboard-page .form-toggle-btn:hover,
-.supplier-dashboard-page .glass-btn--primary:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 12px 24px -8px rgba(11, 128, 115, 0.6);
+body.supplier-dashboard-page .cta:not(.secondary):not(.card-action-btn):hover,
+body.supplier-dashboard-page button.cta:not(.secondary):hover,
+body.supplier-dashboard-page .form-toggle-btn:hover,
+body.supplier-dashboard-page .glass-btn--primary:hover {
+  background: var(--sd-accent-dark);
+  border-color: var(--sd-accent-dark);
 }
 
-.supplier-dashboard-page .cta.secondary,
-.supplier-dashboard-page button.cta.secondary {
+body.supplier-dashboard-page .cta.secondary,
+body.supplier-dashboard-page button.cta.secondary {
   background: #fff;
-  border: 1.5px solid var(--sd-line);
+  border: 1px solid var(--sd-border);
   color: var(--sd-ink-soft);
 }
 
-.supplier-dashboard-page .cta.secondary:hover,
-.supplier-dashboard-page button.cta.secondary:hover {
-  border-color: var(--sd-teal);
-  color: var(--sd-teal-dark);
-  transform: translateY(-1px);
+body.supplier-dashboard-page .cta.secondary:hover,
+body.supplier-dashboard-page button.cta.secondary:hover {
+  border-color: #c7cbd4;
+  background: var(--sd-canvas);
 }
 
-/* Badges/pills used across health, subscription, package and review cards */
-.supplier-dashboard-page .badge,
-.supplier-dashboard-page .ef-badge {
+/* Badges/pills — soft tint + coloured text (no solid fill, no gradient,
+   no shadow), the same "soft badge" treatment used by Linear/Notion/GitHub
+   labels. Existing badge/status colour classes elsewhere on the page keep
+   whatever colour they already carry; this only softens the paint. */
+body.supplier-dashboard-page .badge,
+body.supplier-dashboard-page .ef-badge {
   border-radius: 999px;
-  font-weight: 700;
-  letter-spacing: 0.01em;
+  font-weight: 600;
+  letter-spacing: 0;
+  box-shadow: none;
 }
 
 /* Section dividers between the six page groups ("Profile Management",
-   "Packages & Services", ...). Give each a small teal tick and a fading
-   rule instead of a plain caption. */
-.supplier-dashboard-page .sd-section-divider {
+   "Packages & Services", ...) — a small label and a quiet rule, nothing
+   decorative. */
+body.supplier-dashboard-page .sd-section-divider {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
 }
 
-.supplier-dashboard-page .sd-section-divider::before {
-  content: '';
-  width: 22px;
-  height: 3px;
-  border-radius: 999px;
-  background: linear-gradient(90deg, var(--sd-teal), var(--sd-teal-light));
-  flex: 0 0 auto;
+body.supplier-dashboard-page .sd-section-divider::before {
+  content: none;
 }
 
-.supplier-dashboard-page .sd-section-divider::after {
+body.supplier-dashboard-page .sd-section-divider::after {
   content: '';
   flex: 1 1 auto;
   height: 1px;
-  background: linear-gradient(90deg, var(--sd-line), transparent);
+  background: var(--sd-border);
 }
 
-.supplier-dashboard-page .sd-section-divider__label {
+body.supplier-dashboard-page .sd-section-divider__label {
   font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
+  font-weight: 700;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--sd-muted);
   white-space: nowrap;
@@ -222,297 +207,311 @@
 /* --------------------------------------------------------------------------
    1. Hero — the welcome section
    -------------------------------------------------------------------------- */
-.supplier-dashboard-page .dashboard-hero {
-  border-radius: 28px;
-  border: none;
-  box-shadow: 0 30px 60px -28px rgba(6, 30, 27, 0.55);
+body.supplier-dashboard-page .dashboard-hero {
+  border-radius: var(--sd-radius-card);
+  border: 1px solid var(--sd-border);
+  box-shadow: none;
   overflow: hidden;
 }
 
-.supplier-dashboard-page .dashboard-hero__bg {
-  background:
-    radial-gradient(70% 120% at 100% -10%, rgba(79, 124, 255, 0.5) 0%, rgba(79, 124, 255, 0) 55%),
-    radial-gradient(60% 100% at -10% 110%, rgba(19, 182, 162, 0.55) 0%, rgba(19, 182, 162, 0) 55%),
-    linear-gradient(125deg, #06201c 0%, #0b8073 46%, #0c9c8c 78%, #12b6a2 100%);
+/* Suppress the decorative gradient mesh / dot grid / blurred blobs this card
+   shipped with — a flat, near-white surface reads as considered; a colourful
+   background wash reads as a template. */
+body.supplier-dashboard-page .dashboard-hero__bg {
+  background: #fbfcfc;
 }
 
-.supplier-dashboard-page .dashboard-hero__gradient {
-  background: linear-gradient(180deg, rgba(6, 20, 18, 0.12) 0%, rgba(6, 20, 18, 0) 45%, rgba(6, 20, 18, 0.18) 100%);
+body.supplier-dashboard-page .dashboard-hero__gradient,
+body.supplier-dashboard-page .dashboard-hero__grid,
+body.supplier-dashboard-page .dashboard-hero__blob--1,
+body.supplier-dashboard-page .dashboard-hero__blob--2 {
+  display: none;
 }
 
-.supplier-dashboard-page .dashboard-hero__grid {
-  opacity: 0.5;
+body.supplier-dashboard-page .dashboard-hero__content {
+  padding: 32px 34px 28px;
 }
 
-/* Fine dotted texture layered over the gradient for depth without noise */
-.supplier-dashboard-page .dashboard-hero__blob--1,
-.supplier-dashboard-page .dashboard-hero__blob--2 {
-  opacity: 0.55;
-  filter: blur(60px);
-}
-
-.supplier-dashboard-page .dashboard-hero__content {
-  padding: 40px 42px 32px;
-}
-
-.supplier-dashboard-page .dashboard-hero__greeting {
+body.supplier-dashboard-page .dashboard-hero__greeting {
   font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.16em;
-  color: rgba(255, 255, 255, 0.78);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--sd-muted);
 }
 
-.supplier-dashboard-page .dashboard-hero__title {
-  margin-top: 8px;
+body.supplier-dashboard-page .dashboard-hero__title {
+  margin-top: 6px;
 }
 
-.supplier-dashboard-page .dashboard-hero__title-main {
-  font-size: 40px;
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  color: #ffffff;
-  line-height: 1.08;
-}
-
-.supplier-dashboard-page .dashboard-hero__title-highlight {
-  font-size: 40px;
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  line-height: 1.08;
-  background: linear-gradient(120deg, #baffef 0%, #9fd8ff 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.supplier-dashboard-page .dashboard-hero__subtitle {
-  color: rgba(255, 255, 255, 0.82);
-  font-size: 16px;
-  max-width: 44ch;
-  margin-top: 8px;
-}
-
-.supplier-dashboard-page .dashboard-hero__stats {
-  gap: 14px;
-}
-
-.supplier-dashboard-page .dashboard-stat-card {
-  background: rgba(255, 255, 255, 0.96);
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  border-radius: 18px;
-  box-shadow: 0 20px 34px -16px rgba(4, 22, 20, 0.55);
-  transition: transform 200ms ease, box-shadow 200ms ease;
-}
-
-.supplier-dashboard-page .dashboard-stat-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 26px 40px -14px rgba(4, 22, 20, 0.6);
-}
-
-.supplier-dashboard-page .dashboard-stat-card__icon {
-  border-radius: 12px;
-  box-shadow: 0 6px 14px -6px rgba(15, 23, 42, 0.35);
-}
-
-.supplier-dashboard-page .dashboard-stat-card__value {
-  font-size: 28px;
-  font-weight: 800;
+body.supplier-dashboard-page .dashboard-hero__title-main {
+  font-size: 32px;
+  font-weight: 700;
   letter-spacing: -0.02em;
+  color: var(--sd-ink);
+  line-height: 1.15;
+}
+
+body.supplier-dashboard-page .dashboard-hero__title-highlight {
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  color: var(--sd-accent);
+  background: none;
+  -webkit-text-fill-color: currentColor;
+}
+
+body.supplier-dashboard-page .dashboard-hero__subtitle {
+  color: var(--sd-muted);
+  font-size: 14px;
+  max-width: 46ch;
+  margin-top: 6px;
+}
+
+body.supplier-dashboard-page .dashboard-hero__stats {
+  gap: 12px;
+}
+
+body.supplier-dashboard-page .dashboard-stat-card {
+  background: var(--sd-surface);
+  border: 1px solid var(--sd-border);
+  border-radius: var(--sd-radius-md);
+  box-shadow: none;
+  transition: border-color 200ms ease;
+}
+
+body.supplier-dashboard-page .dashboard-stat-card::before {
+  content: none;
+}
+
+body.supplier-dashboard-page .dashboard-stat-card:hover {
+  border-color: #c7cbd4;
+}
+
+body.supplier-dashboard-page .dashboard-stat-card__icon {
+  border-radius: var(--sd-radius-sm);
+  box-shadow: none;
+  background: var(--sd-accent-soft);
+  color: var(--sd-accent);
+}
+
+body.supplier-dashboard-page .dashboard-stat-card--secondary .dashboard-stat-card__icon {
+  background: rgba(99, 102, 241, 0.1);
+  color: #6366f1;
+}
+
+body.supplier-dashboard-page .dashboard-stat-card--accent .dashboard-stat-card__icon {
+  background: rgba(245, 158, 11, 0.12);
+  color: #b45309;
+}
+
+body.supplier-dashboard-page .dashboard-stat-card__value {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
   color: var(--sd-ink);
 }
 
-.supplier-dashboard-page .dashboard-stat-card__label {
+body.supplier-dashboard-page .dashboard-stat-card__label {
   color: var(--sd-muted);
-  font-weight: 700;
-  letter-spacing: 0.02em;
+  font-weight: 600;
+  letter-spacing: 0;
 }
 
-.supplier-dashboard-page .dashboard-hero__actions {
-  margin-top: 22px;
-  gap: 10px;
-  border-top-color: rgba(255, 255, 255, 0.16);
+body.supplier-dashboard-page .dashboard-stat-card__badge {
+  background: var(--sd-accent-soft);
+  color: var(--sd-accent-dark);
+  box-shadow: none;
 }
 
-.supplier-dashboard-page .dashboard-action-chip {
-  background: rgba(255, 255, 255, 0.94);
-  border: 1px solid rgba(255, 255, 255, 0.6);
-  border-radius: 999px;
-  font-weight: 700;
-  color: var(--sd-ink-soft);
-  box-shadow: 0 6px 14px -8px rgba(4, 22, 20, 0.4);
-  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease, color 160ms ease, background 160ms ease;
+body.supplier-dashboard-page .dashboard-hero__actions {
+  margin-top: 20px;
+  gap: 8px;
+  border-top-color: var(--sd-border-soft);
 }
 
-.supplier-dashboard-page .dashboard-action-chip:hover {
-  transform: translateY(-2px);
+body.supplier-dashboard-page .dashboard-action-chip {
   background: #fff;
-  color: var(--sd-teal-dark);
-  box-shadow: 0 12px 22px -10px rgba(4, 22, 20, 0.45);
+  border: 1px solid var(--sd-border);
+  border-radius: var(--sd-radius-sm);
+  font-weight: 600;
+  color: var(--sd-ink-soft);
+  box-shadow: none;
+  transition: border-color 150ms ease, background 150ms ease, color 150ms ease;
 }
 
-.supplier-dashboard-page .dashboard-action-chip--primary {
-  background: linear-gradient(135deg, #f0fffb 0%, #ffffff 100%);
-  border-color: transparent;
-  color: var(--sd-teal-dark);
-  box-shadow: 0 10px 22px -8px rgba(4, 22, 20, 0.5), inset 0 0 0 1.5px rgba(11, 128, 115, 0.25);
+body.supplier-dashboard-page .dashboard-action-chip:hover {
+  border-color: #c7cbd4;
+  background: var(--sd-canvas);
 }
 
-.supplier-dashboard-page .dashboard-action-chip--primary:hover {
-  color: var(--sd-teal-dark);
-  box-shadow: 0 14px 28px -8px rgba(4, 22, 20, 0.55), inset 0 0 0 1.5px rgba(11, 128, 115, 0.35);
+body.supplier-dashboard-page .dashboard-action-chip--primary {
+  background: var(--sd-accent);
+  border-color: var(--sd-accent);
+  color: #fff;
+  box-shadow: none;
 }
 
-.supplier-dashboard-page .dashboard-hero__tip {
-  margin-top: 16px;
-  background: linear-gradient(135deg, #fff7e8, #fef1d6);
-  border: 1px solid rgba(245, 158, 11, 0.35);
-  border-radius: 999px;
-  color: #92400e;
-  box-shadow: 0 10px 24px -14px rgba(4, 22, 20, 0.5);
+body.supplier-dashboard-page .dashboard-action-chip--primary:hover {
+  background: var(--sd-accent-dark);
+  border-color: var(--sd-accent-dark);
+  color: #fff;
+}
+
+body.supplier-dashboard-page .dashboard-hero__tip {
+  margin-top: 14px;
+  background: #fffaf0;
+  border: 1px solid var(--sd-border-soft);
+  border-left: 3px solid #f59e0b;
+  border-radius: var(--sd-radius-sm);
+  color: var(--sd-ink-soft);
+  box-shadow: none;
 }
 
 /* --------------------------------------------------------------------------
    2. Profile card (spc-*)
    -------------------------------------------------------------------------- */
-.supplier-dashboard-page .spc-root {
+body.supplier-dashboard-page .spc-root {
   border: none;
   box-shadow: none;
-  padding: 26px;
+  padding: 24px;
 }
 
-.supplier-dashboard-page .spc-avatar-col {
-  box-shadow: 0 0 0 4px #fff, 0 0 0 6px rgba(11, 128, 115, 0.25), var(--sd-shadow-pop);
+body.supplier-dashboard-page .spc-avatar-col {
+  box-shadow: 0 0 0 3px #fff, 0 0 0 4px var(--sd-border);
 }
 
-.supplier-dashboard-page .spc-camera-btn {
-  box-shadow: 0 4px 10px -3px rgba(15, 23, 42, 0.4);
+body.supplier-dashboard-page .spc-camera-btn {
+  box-shadow: none;
+  border: 1px solid var(--sd-border);
 }
 
-.supplier-dashboard-page .spc-name {
-  font-size: 24px;
-  font-weight: 800;
+body.supplier-dashboard-page .spc-name {
+  font-size: 20px;
+  font-weight: 700;
   letter-spacing: -0.01em;
   color: var(--sd-ink);
 }
 
-.supplier-dashboard-page .spc-badge {
+body.supplier-dashboard-page .spc-badge {
   border-radius: 999px;
-  font-weight: 700;
-  padding: 4px 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  box-shadow: none;
 }
 
-.supplier-dashboard-page .spc-badge--tier {
-  background: linear-gradient(135deg, #f59e0b, #fbbf24);
-  color: #fff;
-  box-shadow: 0 4px 10px -4px rgba(245, 158, 11, 0.6);
+body.supplier-dashboard-page .spc-badge--tier {
+  background: rgba(245, 158, 11, 0.12);
+  color: #b45309;
 }
 
-.supplier-dashboard-page .spc-badge--approved {
-  background: linear-gradient(135deg, #10b981, #34d399);
-  color: #fff;
-  box-shadow: 0 4px 10px -4px rgba(16, 185, 129, 0.55);
+body.supplier-dashboard-page .spc-badge--approved {
+  background: rgba(13, 150, 104, 0.1);
+  color: #0d9668;
 }
 
-.supplier-dashboard-page .spc-category-chip {
-  background: var(--sd-teal);
-  background: rgba(11, 128, 115, 0.08);
-  color: var(--sd-teal-dark);
+body.supplier-dashboard-page .spc-category-chip {
+  background: var(--sd-accent-soft);
+  color: var(--sd-accent-dark);
   border-radius: 999px;
-  font-weight: 700;
+  font-weight: 600;
   padding: 3px 10px;
 }
 
-.supplier-dashboard-page .spc-ring-track {
-  stroke: var(--sd-line-soft);
+body.supplier-dashboard-page .spc-ring-track {
+  stroke: var(--sd-border-soft);
 }
 
-.supplier-dashboard-page .spc-ring-score {
-  font-weight: 800;
+body.supplier-dashboard-page .spc-ring-score {
+  font-weight: 700;
   color: var(--sd-ink);
 }
 
-.supplier-dashboard-page .spc-ring-label {
+body.supplier-dashboard-page .spc-ring-label {
   color: var(--sd-muted);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 /* .spc-actions renders as a seamless 3-cell segmented bar (each cell
    width:100% !important, border-radius:0 !important, divided by
    border-right, all set !important in supplier-dashboard-improvements.css).
    Restyle its colours with matching !important instead of fighting that
-   layout — wrap the whole bar in a rounded frame and make the middle
-   "Edit Profile" cell the one clear primary action. */
-.supplier-dashboard-page .spc-actions {
-  margin-top: 20px;
-  border-radius: 14px !important;
-  border: 1.5px solid var(--sd-line) !important;
+   layout — a plain bordered frame, with the middle "Edit Profile" cell as
+   the one filled, primary action. */
+body.supplier-dashboard-page .spc-actions {
+  margin-top: 18px;
+  border-radius: var(--sd-radius-md) !important;
+  border: 1px solid var(--sd-border) !important;
   overflow: hidden;
-  box-shadow: var(--sd-shadow-card);
+  box-shadow: none;
 }
 
-.supplier-dashboard-page .spc-action-btn {
+body.supplier-dashboard-page .spc-action-btn {
   background: #fff !important;
   color: var(--sd-ink-soft) !important;
-  font-weight: 700 !important;
-  border-right-color: var(--sd-line) !important;
-  transition: background 160ms ease, color 160ms ease !important;
+  font-weight: 600 !important;
+  border-right-color: var(--sd-border) !important;
+  transition: background 150ms ease, color 150ms ease !important;
 }
 
-.supplier-dashboard-page .spc-action-btn:hover {
-  background: var(--sd-line-soft) !important;
-  color: var(--sd-teal-dark) !important;
+body.supplier-dashboard-page .spc-action-btn:hover {
+  background: var(--sd-canvas) !important;
+  color: var(--sd-ink) !important;
 }
 
-.supplier-dashboard-page .spc-action-btn--edit {
-  background: linear-gradient(135deg, var(--sd-teal), var(--sd-teal-light)) !important;
+body.supplier-dashboard-page .spc-action-btn--edit {
+  background: var(--sd-accent) !important;
   color: #fff !important;
 }
 
-.supplier-dashboard-page .spc-action-btn--edit:hover {
-  background: linear-gradient(135deg, var(--sd-teal-dark), var(--sd-teal)) !important;
+body.supplier-dashboard-page .spc-action-btn--edit:hover {
+  background: var(--sd-accent-dark) !important;
   color: #fff !important;
 }
 
-.supplier-dashboard-page .spc-checklist-card {
-  background: linear-gradient(180deg, #f7faf9 0%, #ffffff 100%);
-  border: 1px solid var(--sd-line-soft);
+body.supplier-dashboard-page .spc-checklist-card {
+  background: var(--sd-canvas);
+  border: 1px solid var(--sd-border-soft);
   border-radius: var(--sd-radius-md);
-  margin-top: 18px;
-  padding: 18px;
+  margin-top: 16px;
+  padding: 16px;
 }
 
-.supplier-dashboard-page .spc-checklist-big-icon {
-  background: var(--sd-line-soft);
+body.supplier-dashboard-page .spc-checklist-big-icon {
+  background: #fff;
+  border: 1px solid var(--sd-border);
   color: var(--sd-muted);
-  border-radius: 12px;
+  border-radius: var(--sd-radius-sm);
 }
 
-.supplier-dashboard-page .spc-checklist-big-icon--complete {
-  background: linear-gradient(135deg, #10b981, #34d399);
-  color: #fff;
+body.supplier-dashboard-page .spc-checklist-big-icon--complete {
+  background: rgba(13, 150, 104, 0.1);
+  border-color: transparent;
+  color: #0d9668;
 }
 
-.supplier-dashboard-page .spc-checklist-title {
-  font-weight: 800;
+body.supplier-dashboard-page .spc-checklist-title {
+  font-weight: 700;
   color: var(--sd-ink);
 }
 
-.supplier-dashboard-page .spc-checklist-count {
-  background: rgba(11, 128, 115, 0.1);
-  color: var(--sd-teal-dark);
+body.supplier-dashboard-page .spc-checklist-count {
+  background: #fff;
+  border: 1px solid var(--sd-border);
+  color: var(--sd-ink-soft);
   border-radius: 999px;
-  font-weight: 800;
-  padding: 2px 10px;
+  font-weight: 700;
+  padding: 2px 9px;
 }
 
-.supplier-dashboard-page .spc-checklist-steps {
+body.supplier-dashboard-page .spc-checklist-steps {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 10px;
+  gap: 8px;
   margin-top: 14px;
 }
 
-.supplier-dashboard-page .spc-checklist-step {
+body.supplier-dashboard-page .spc-checklist-step {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -520,46 +519,45 @@
   text-align: center;
   padding: 12px 8px;
   border-radius: var(--sd-radius-sm);
-  border: 1px solid var(--sd-line-soft);
+  border: 1px solid var(--sd-border-soft);
   background: #fff;
-  transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+  transition: border-color 150ms ease;
 }
 
-.supplier-dashboard-page .spc-checklist-step:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 18px -12px rgba(15, 23, 42, 0.3);
+body.supplier-dashboard-page .spc-checklist-step:hover {
+  border-color: var(--sd-border);
 }
 
-.supplier-dashboard-page .spc-checklist-step-circle {
-  width: 34px;
-  height: 34px;
+body.supplier-dashboard-page .spc-checklist-step-circle {
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--sd-line-soft);
+  background: var(--sd-canvas);
   color: var(--sd-muted);
-  font-weight: 800;
-}
-
-.supplier-dashboard-page .spc-checklist-step--complete {
-  border-color: rgba(16, 185, 129, 0.35);
-  background: rgba(16, 185, 129, 0.05);
-}
-
-.supplier-dashboard-page .spc-checklist-step--complete .spc-checklist-step-circle {
-  background: linear-gradient(135deg, #10b981, #34d399);
-  color: #fff;
-}
-
-.supplier-dashboard-page .spc-checklist-step--milestone {
-  border-color: rgba(11, 128, 115, 0.35);
-  background: rgba(11, 128, 115, 0.06);
-}
-
-.supplier-dashboard-page .spc-checklist-step-label {
-  font-size: 12px;
   font-weight: 700;
+}
+
+body.supplier-dashboard-page .spc-checklist-step--complete {
+  border-color: rgba(13, 150, 104, 0.25);
+  background: rgba(13, 150, 104, 0.04);
+}
+
+body.supplier-dashboard-page .spc-checklist-step--complete .spc-checklist-step-circle {
+  background: rgba(13, 150, 104, 0.12);
+  color: #0d9668;
+}
+
+body.supplier-dashboard-page .spc-checklist-step--milestone {
+  border-color: rgba(11, 128, 115, 0.3);
+  background: var(--sd-accent-soft);
+}
+
+body.supplier-dashboard-page .spc-checklist-step-label {
+  font-size: 12px;
+  font-weight: 600;
   color: var(--sd-ink-soft);
   line-height: 1.25;
 }
@@ -567,114 +565,114 @@
 /* --------------------------------------------------------------------------
    3. Packages
    -------------------------------------------------------------------------- */
-.supplier-dashboard-page #my-packages {
+body.supplier-dashboard-page #my-packages {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 20px;
+  gap: 18px;
 }
 
-.supplier-dashboard-page .package-card {
-  border: 1px solid var(--sd-line);
+body.supplier-dashboard-page .package-card {
+  border: 1px solid var(--sd-border);
   border-radius: var(--sd-radius-md);
-  box-shadow: var(--sd-shadow-card);
+  box-shadow: none;
   overflow: hidden;
-  transition: transform 200ms ease, box-shadow 200ms ease;
+  transition: border-color 200ms ease;
   padding: 0;
 }
 
-.supplier-dashboard-page .package-card:hover {
-  transform: translateY(-3px);
-  box-shadow: var(--sd-shadow-card-hover);
+body.supplier-dashboard-page .package-card:hover {
+  border-color: #c7cbd4;
 }
 
-.supplier-dashboard-page .package-card > img {
+body.supplier-dashboard-page .package-card > img {
   aspect-ratio: 16 / 10;
   object-fit: cover;
   border-radius: 0;
+  /* Overrides supplier-dashboard-v3-polish.css's teal gradient placeholder
+     background and tinted border-bottom under every package photo. */
+  border-bottom: 1px solid var(--sd-border);
+  background: var(--sd-border-soft);
 }
 
-.supplier-dashboard-page .package-card-content {
-  padding: 16px 18px 18px;
+body.supplier-dashboard-page .package-card-content {
+  padding: 14px 16px 16px;
 }
 
-.supplier-dashboard-page .package-card-content h3 {
+body.supplier-dashboard-page .package-card-content h3 {
   font-size: 16px;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--sd-ink);
-  letter-spacing: -0.01em;
+  letter-spacing: -0.005em;
 }
 
-.supplier-dashboard-page .package-card--paused {
-  opacity: 0.72;
+body.supplier-dashboard-page .package-card--paused {
+  opacity: 0.7;
 }
 
-.supplier-dashboard-page .card-actions {
-  gap: 8px;
+body.supplier-dashboard-page .card-actions {
+  gap: 6px;
   margin-top: 12px;
   padding-top: 12px;
-  border-top: 1px dashed var(--sd-line);
+  border-top: 1px solid var(--sd-border-soft);
 }
 
-.supplier-dashboard-page .card-action-btn {
-  border-radius: 999px;
-  font-weight: 700;
+body.supplier-dashboard-page .card-action-btn {
+  border-radius: var(--sd-radius-sm);
+  font-weight: 600;
   font-size: 12px;
-  padding: 7px 12px;
-  border: 1.5px solid var(--sd-line);
+  padding: 6px 10px;
+  border: 1px solid var(--sd-border);
   background: #fff;
   color: var(--sd-ink-soft);
-  transition: transform 160ms ease, border-color 160ms ease, color 160ms ease, background 160ms ease;
+  transition: border-color 150ms ease, color 150ms ease, background 150ms ease;
 }
 
-.supplier-dashboard-page .card-action-btn:hover {
-  transform: translateY(-1px);
-}
-
-.supplier-dashboard-page .card-action-btn.edit-btn:hover { border-color: var(--sd-teal); color: var(--sd-teal-dark); }
-.supplier-dashboard-page .card-action-btn.view-btn:hover { border-color: #3b82f6; color: #1d4ed8; }
-.supplier-dashboard-page .card-action-btn.pause-btn:hover,
-.supplier-dashboard-page .card-action-btn.unpause-btn:hover { border-color: #f59e0b; color: #b45309; }
-.supplier-dashboard-page .card-action-btn.delete-btn {
-  border-color: rgba(239, 68, 68, 0.35);
+body.supplier-dashboard-page .card-action-btn.edit-btn:hover { border-color: var(--sd-accent); color: var(--sd-accent-dark); }
+body.supplier-dashboard-page .card-action-btn.view-btn:hover { border-color: #3b82f6; color: #1d4ed8; }
+body.supplier-dashboard-page .card-action-btn.pause-btn:hover,
+body.supplier-dashboard-page .card-action-btn.unpause-btn:hover { border-color: #b45309; color: #b45309; }
+body.supplier-dashboard-page .card-action-btn.delete-btn {
+  border-color: var(--sd-border);
   color: #dc2626;
 }
-.supplier-dashboard-page .card-action-btn.delete-btn:hover {
-  background: #ef4444;
-  border-color: #ef4444;
-  color: #fff;
+body.supplier-dashboard-page .card-action-btn.delete-btn:hover {
+  background: #fef2f2;
+  border-color: #dc2626;
+  color: #dc2626;
 }
 
 /* --------------------------------------------------------------------------
    4. Messages, Availability
    -------------------------------------------------------------------------- */
-.supplier-dashboard-page .supplier-unread-badge {
+body.supplier-dashboard-page .supplier-unread-badge {
   border-radius: 999px;
-  font-weight: 800;
+  font-weight: 700;
+  box-shadow: none;
 }
 
-.supplier-dashboard-page .sd-messages-toolbar__search,
-.supplier-dashboard-page .sd-messages-toolbar__select {
-  border-radius: 999px;
-  border: 1.5px solid var(--sd-line);
+body.supplier-dashboard-page .sd-messages-toolbar__search,
+body.supplier-dashboard-page .sd-messages-toolbar__select {
+  border-radius: var(--sd-radius-sm);
+  border: 1px solid var(--sd-border);
 }
 
-.supplier-dashboard-page .sd-messages-toolbar__search:focus,
-.supplier-dashboard-page .sd-messages-toolbar__select:focus {
-  border-color: var(--sd-teal);
+body.supplier-dashboard-page .sd-messages-toolbar__search:focus,
+body.supplier-dashboard-page .sd-messages-toolbar__select:focus {
+  border-color: var(--sd-accent);
   outline: none;
-  box-shadow: 0 0 0 3px rgba(11, 128, 115, 0.12);
+  box-shadow: 0 0 0 3px var(--sd-accent-soft);
 }
 
-.supplier-dashboard-page .sd-lqs-bar {
-  background: var(--sd-line-soft);
+body.supplier-dashboard-page .sd-lqs-bar {
+  background: var(--sd-canvas);
   border-radius: var(--sd-radius-sm);
   padding: 10px 14px;
 }
 
-.supplier-dashboard-page [id^="sup-cal-add-event"],
-.supplier-dashboard-page .supplier-availability-toggle,
-.supplier-dashboard-page #supplier-availability-widget button {
-  border-radius: 999px;
+body.supplier-dashboard-page [id^="sup-cal-add-event"],
+body.supplier-dashboard-page .supplier-availability-toggle,
+body.supplier-dashboard-page #supplier-availability-widget button {
+  border-radius: var(--sd-radius-sm);
 }
 
 /* --------------------------------------------------------------------------
@@ -685,259 +683,274 @@
    `display:grid` + `grid-template-columns:repeat(auto-fit,minmax(200px,1fr))`,
    so styling the outer element here would just turn that one child into a
    single grid cell. Style the actual tiles instead. */
-.supplier-dashboard-page #supplier-stats-grid .stat-widget {
+body.supplier-dashboard-page #supplier-stats-grid .stat-widget {
   background: var(--sd-surface);
-  border: 1px solid var(--sd-line);
+  border: 1px solid var(--sd-border);
   border-radius: var(--sd-radius-md);
-  box-shadow: var(--sd-shadow-card);
-  transition: transform 200ms ease, box-shadow 200ms ease;
+  box-shadow: none;
+  transition: border-color 200ms ease;
 }
 
-.supplier-dashboard-page #supplier-stats-grid .stat-widget:hover {
-  transform: translateY(-3px);
-  box-shadow: var(--sd-shadow-card-hover);
+body.supplier-dashboard-page #supplier-stats-grid .stat-widget:hover {
+  border-color: #c7cbd4;
 }
 
-.supplier-dashboard-page #supplier-stats-grid .icon-with-gradient {
-  border-radius: 12px;
-  box-shadow: 0 6px 14px -6px rgba(15, 23, 42, 0.35);
+body.supplier-dashboard-page #supplier-stats-grid .icon-with-gradient {
+  border-radius: var(--sd-radius-sm);
+  box-shadow: none;
 }
 
-.supplier-dashboard-page #supplier-stats-grid .stat-number {
+body.supplier-dashboard-page #supplier-stats-grid .stat-number {
   font-size: 24px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
+  font-weight: 700;
+  letter-spacing: -0.01em;
   color: var(--sd-ink);
 }
 
-.supplier-dashboard-page #supplier-stats-grid .stat-label {
+body.supplier-dashboard-page #supplier-stats-grid .stat-label {
   color: var(--sd-muted);
-  font-weight: 700;
+  font-weight: 600;
 }
 
-.supplier-dashboard-page .sd-chart-empty {
+body.supplier-dashboard-page .sd-chart-empty {
   border-radius: var(--sd-radius-md);
 }
 
-.supplier-dashboard-page #roi-date-range,
-.supplier-dashboard-page select {
-  border-radius: 999px;
-}
-
-.supplier-dashboard-page .ef-stat-card {
-  background: var(--sd-line-soft);
+body.supplier-dashboard-page #roi-date-range,
+body.supplier-dashboard-page select {
   border-radius: var(--sd-radius-sm);
-  border: 1px solid var(--sd-line);
 }
 
-.supplier-dashboard-page .ef-badge-warning {
+body.supplier-dashboard-page .ef-stat-card {
+  background: var(--sd-canvas);
+  border-radius: var(--sd-radius-sm);
+  border: 1px solid var(--sd-border);
+}
+
+body.supplier-dashboard-page .ef-badge-warning {
   border-radius: 999px;
-  font-weight: 800;
+  font-weight: 700;
+  box-shadow: none;
 }
 
 /* --------------------------------------------------------------------------
    6. Reviews
    -------------------------------------------------------------------------- */
-.supplier-dashboard-page .sr-summary {
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.08), rgba(245, 158, 11, 0.01));
-  border: 1px solid rgba(245, 158, 11, 0.22);
+/* #supplier-reviews-section carries an ID selector in supplier-dashboard-
+   improvements.css, which outranks any class-only selector regardless of
+   source order — match it here to actually neutralise the amber wash. */
+#supplier-reviews-section.sr-summary,
+#supplier-reviews-section .sr-summary {
+  background: var(--sd-canvas);
+  border: 1px solid var(--sd-border);
   border-radius: var(--sd-radius-md);
 }
 
-.supplier-dashboard-page .sr-big-rating {
-  font-weight: 800;
+#supplier-reviews-section .sr-big-rating {
+  font-weight: 700;
   color: var(--sd-ink);
 }
 
-.supplier-dashboard-page .sr-review-item,
-.supplier-dashboard-page [class*="review-card"] {
-  border: 1px solid var(--sd-line);
+#supplier-reviews-section .sr-total-count,
+#supplier-reviews-section .sr-dist-label {
+  color: var(--sd-muted);
+}
+
+#supplier-reviews-section .sr-dist-track {
+  background: var(--sd-border-soft);
+}
+
+#supplier-reviews-section .sr-dist-count {
+  color: var(--sd-ink-soft);
+}
+
+body.supplier-dashboard-page .sr-review-item,
+body.supplier-dashboard-page [class*="review-card"] {
+  border: 1px solid var(--sd-border);
   border-radius: var(--sd-radius-sm);
-  transition: box-shadow 200ms ease, transform 200ms ease;
+  transition: border-color 200ms ease;
 }
 
-.supplier-dashboard-page .sr-review-item:hover {
-  box-shadow: var(--sd-shadow-card);
-  transform: translateY(-1px);
+body.supplier-dashboard-page .sr-review-item:hover {
+  border-color: #c7cbd4;
 }
 
-.supplier-dashboard-page .sd-reviews-placeholder__hero {
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(245, 158, 11, 0.02));
+body.supplier-dashboard-page .sd-reviews-placeholder__hero {
+  background: var(--sd-canvas);
   border-radius: var(--sd-radius-md);
 }
 
-.supplier-dashboard-page .sd-reviews-stat-card {
+body.supplier-dashboard-page .sd-reviews-stat-card {
   background: #fff;
-  border: 1px solid var(--sd-line);
+  border: 1px solid var(--sd-border);
   border-radius: var(--sd-radius-sm);
 }
 
-.supplier-dashboard-page .sd-reviews-cta-btn--primary {
-  border-radius: 999px;
+body.supplier-dashboard-page .sd-reviews-cta-btn--primary {
+  border-radius: var(--sd-radius-sm);
 }
 
 /* --------------------------------------------------------------------------
    7. Performance tips
    -------------------------------------------------------------------------- */
-.supplier-dashboard-page #supplier-perf-tips > div {
-  border: 1px solid var(--sd-line);
+body.supplier-dashboard-page #supplier-perf-tips > div {
+  border: 1px solid var(--sd-border);
   border-radius: var(--sd-radius-sm);
-  transition: border-color 200ms ease, box-shadow 200ms ease;
+  transition: border-color 200ms ease;
 }
 
-.supplier-dashboard-page #supplier-perf-tips > div:hover {
-  border-color: var(--sd-teal);
-  box-shadow: var(--sd-shadow-card);
+body.supplier-dashboard-page #supplier-perf-tips > div:hover {
+  border-color: var(--sd-accent);
 }
 
 /* --------------------------------------------------------------------------
    8. Calendar — wrapper chrome + a light FullCalendar skin
    -------------------------------------------------------------------------- */
-.supplier-dashboard-page .supplier-calendar-legend {
+body.supplier-dashboard-page .supplier-calendar-legend {
   gap: 14px;
-  background: var(--sd-line-soft);
+  background: var(--sd-canvas);
   border-radius: var(--sd-radius-sm);
   padding: 10px 14px;
 }
 
-.supplier-dashboard-page .cal-legend-dot {
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.6);
+body.supplier-dashboard-page .cal-legend-dot {
+  box-shadow: none;
 }
 
-.supplier-dashboard-page .supplier-calendar-add-btn {
-  border-radius: 999px;
+body.supplier-dashboard-page .supplier-calendar-add-btn {
+  border-radius: var(--sd-radius-sm);
 }
 
-.supplier-dashboard-page .supplier-calendar-viewport .fc {
-  --fc-border-color: var(--sd-line);
-  --fc-button-bg-color: var(--sd-teal);
-  --fc-button-border-color: var(--sd-teal);
-  --fc-button-hover-bg-color: var(--sd-teal-dark);
-  --fc-button-hover-border-color: var(--sd-teal-dark);
-  --fc-button-active-bg-color: var(--sd-teal-dark);
-  --fc-today-bg-color: rgba(11, 128, 115, 0.08);
+body.supplier-dashboard-page .supplier-calendar-viewport .fc {
+  --fc-border-color: var(--sd-border);
+  --fc-button-bg-color: var(--sd-accent);
+  --fc-button-border-color: var(--sd-accent);
+  --fc-button-hover-bg-color: var(--sd-accent-dark);
+  --fc-button-hover-border-color: var(--sd-accent-dark);
+  --fc-button-active-bg-color: var(--sd-accent-dark);
+  --fc-today-bg-color: var(--sd-accent-soft);
   font-family: inherit;
 }
 
-.supplier-dashboard-page .supplier-calendar-viewport .fc .fc-button {
-  border-radius: 999px;
-  font-weight: 700;
+body.supplier-dashboard-page .supplier-calendar-viewport .fc .fc-button {
+  border-radius: var(--sd-radius-sm);
+  font-weight: 600;
   text-transform: capitalize;
   box-shadow: none;
 }
 
-.supplier-dashboard-page .supplier-calendar-viewport .fc .fc-toolbar-title {
-  font-weight: 800;
+body.supplier-dashboard-page .supplier-calendar-viewport .fc .fc-toolbar-title {
+  font-weight: 700;
   color: var(--sd-ink);
 }
 
 /* --------------------------------------------------------------------------
    9. Subscription, Tickets
    -------------------------------------------------------------------------- */
-.supplier-dashboard-page .sd-subscription-active__badge,
-.supplier-dashboard-page [class*="subscription-badge"] {
-  border-radius: 999px;
-  font-weight: 800;
-}
-
-.supplier-dashboard-page .sd-subscription-active__detail-row {
-  border-radius: var(--sd-radius-sm);
-}
-
-.supplier-dashboard-page .sd-subscription-manage-btn {
+body.supplier-dashboard-page .sd-subscription-active__badge,
+body.supplier-dashboard-page [class*="subscription-badge"] {
   border-radius: 999px;
   font-weight: 700;
+  box-shadow: none;
 }
 
-.supplier-dashboard-page .sd-ticket-create-btn {
-  border-radius: 999px;
+/* Tier badges default to solid purple/amber gradients — soften to the same
+   flat tint-plus-text "soft badge" every other status pill on this page
+   uses, instead of a shiny gradient fill. */
+body.supplier-dashboard-page .sd-subscription-active__badge--pro {
+  background: rgba(124, 58, 237, 0.1);
+  color: #6d28d9;
 }
 
-.supplier-dashboard-page .ticket-item,
-.supplier-dashboard-page .supplier-ticket-item {
-  border: 1px solid var(--sd-line);
+body.supplier-dashboard-page .sd-subscription-active__badge--pro_plus {
+  background: rgba(217, 119, 6, 0.12);
+  color: #b45309;
+}
+
+body.supplier-dashboard-page .sd-subscription-active__detail-row {
   border-radius: var(--sd-radius-sm);
-  transition: box-shadow 200ms ease, transform 200ms ease;
 }
 
-.supplier-dashboard-page .ticket-item:hover,
-.supplier-dashboard-page .supplier-ticket-item:hover {
-  box-shadow: var(--sd-shadow-card);
-  transform: translateY(-1px);
+/* "Manage subscription" / "Manage billing" are actions, not status — follow
+   the page's ordinary secondary-button treatment rather than keeping the
+   purple tint that only makes sense on the tier badge next to it. */
+body.supplier-dashboard-page .sd-subscription-manage-btn {
+  border-radius: var(--sd-radius-sm);
+  font-weight: 600;
+  background: #fff;
+  color: var(--sd-ink-soft);
+  border: 1px solid var(--sd-border);
 }
 
-.supplier-dashboard-page .sd-empty-state {
+body.supplier-dashboard-page .sd-subscription-manage-btn:hover {
+  background: var(--sd-canvas);
+  border-color: #c7cbd4;
+}
+
+body.supplier-dashboard-page .sd-ticket-create-btn {
+  border-radius: var(--sd-radius-sm);
+}
+
+body.supplier-dashboard-page .ticket-item,
+body.supplier-dashboard-page .supplier-ticket-item {
+  border: 1px solid var(--sd-border);
+  border-radius: var(--sd-radius-sm);
+  transition: border-color 200ms ease;
+}
+
+body.supplier-dashboard-page .ticket-item:hover,
+body.supplier-dashboard-page .supplier-ticket-item:hover {
+  border-color: #c7cbd4;
+}
+
+body.supplier-dashboard-page .sd-empty-state {
   border-radius: var(--sd-radius-md);
-  background: var(--sd-line-soft);
-  border: 1px dashed var(--sd-line);
+  background: var(--sd-canvas);
+  border: 1px dashed var(--sd-border);
 }
 
 /* --------------------------------------------------------------------------
    10. Responsive tuning
    -------------------------------------------------------------------------- */
 @media (max-width: 1024px) {
-  .supplier-dashboard-page .spc-checklist-steps {
+  body.supplier-dashboard-page .spc-checklist-steps {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 768px) {
-  .supplier-dashboard-page .dashboard-hero__content {
-    padding: 24px 20px 22px;
+  body.supplier-dashboard-page .dashboard-hero__content {
+    padding: 20px 18px 20px;
   }
 
-  .supplier-dashboard-page .dashboard-hero__title-main,
-  .supplier-dashboard-page .dashboard-hero__title-highlight {
-    font-size: 28px;
+  body.supplier-dashboard-page .dashboard-hero__title-main,
+  body.supplier-dashboard-page .dashboard-hero__title-highlight {
+    font-size: 24px;
   }
 
-  .supplier-dashboard-page .spc-root {
+  body.supplier-dashboard-page .spc-root {
     padding: 18px;
   }
 
-  .supplier-dashboard-page #my-packages {
+  body.supplier-dashboard-page #my-packages {
     grid-template-columns: 1fr;
   }
 
-  /* Bring the same premium gradient hero to mobile: dashboard-mobile.css
-     forces a plain white card + solid navy heading there (its own comment
-     says "clean white card on mobile"). Override both, deliberately, with
-     matching specificity so this dark hero reads as one design everywhere
-     instead of stopping at the tablet breakpoint. */
-  .supplier-dashboard-page .dashboard-hero {
-    background: transparent !important;
-    box-shadow: 0 20px 40px -22px rgba(6, 30, 27, 0.5);
-  }
-
-  .supplier-dashboard-page .dashboard-hero__bg {
-    display: block !important;
-  }
-
-  .supplier-dashboard-page .dashboard-hero__mob-heading {
-    color: #ffffff !important;
-    -webkit-text-fill-color: #ffffff !important;
-  }
-
-  .supplier-dashboard-page .dashboard-hero__illus-inner {
-    background: rgba(255, 255, 255, 0.92);
-    border-color: rgba(255, 255, 255, 0.6);
-  }
-
-  .supplier-dashboard-page .dashboard-hero__tip {
-    border-radius: 16px;
-  }
-
-  .supplier-dashboard-page .dashboard-hero__actions {
-    margin-top: 4px;
+  /* dashboard-mobile.css already forces a plain white hero card with solid
+     navy heading text at this width ("clean white card on mobile") — which
+     is exactly the flat, undecorated treatment this file uses at every
+     other breakpoint too, so nothing needs overriding here. */
+  body.supplier-dashboard-page .dashboard-hero__tip {
+    border-radius: var(--sd-radius-sm);
   }
 }
 
 @media (max-width: 480px) {
-  .supplier-dashboard-page .spc-checklist-steps {
+  body.supplier-dashboard-page .spc-checklist-steps {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .supplier-dashboard-page .sd-card-header {
-    padding: 18px 18px;
+  body.supplier-dashboard-page .sd-card-header {
+    padding: 16px 16px;
   }
 }
