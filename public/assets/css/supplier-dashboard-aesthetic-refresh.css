@@ -1117,3 +1117,19 @@ body.supplier-dashboard-page .sd-empty-state {
     padding: 16px 16px;
   }
 }
+
+/* --------------------------------------------------------------------------
+   7. Interaction — keep transient toasts from blocking taps
+   --------------------------------------------------------------------------
+   #eventflow-notification-container stacks up to 5 toasts, full-width, at
+   the very top of the mobile viewport (dashboard-mobile.css) — on a page
+   that fires ~8 independent requests on load (messenger, notifications,
+   subscriptions, suppliers...), a couple of transient failures is enough
+   for the stack to cover a third of the screen, right where a user has
+   just scrolled the bulk expand/collapse toggle (or anything else near the
+   top of the card list) into view. Only the newest toast — the last child,
+   since notification-system.js appends — needs to stay tappable; older
+   ones already read fine without blocking whatever's underneath. */
+body.supplier-dashboard-page #eventflow-notification-container .ef-notification:not(:last-child) {
+  pointer-events: none;
+}
