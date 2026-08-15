@@ -3867,9 +3867,14 @@ async function initDashSupplier() {
             toggleBtn.setAttribute('aria-label', supplierBlockMessage);
             toggleBtn.title = supplierBlockMessage;
             if (labelEl) {
+              // Explicitly say "Profile" here — this button sits inside the
+              // Packages card, and existing approved packages may already be
+              // listed below it, so an unqualified "Pending approval" reads
+              // as if the packages themselves are pending rather than the
+              // profile that gates *creating new ones*.
               labelEl.textContent = window._supplierProfileMissing
                 ? 'Profile setup needed'
-                : 'Pending approval';
+                : 'Profile pending approval';
             }
           } else {
             toggleBtn.disabled = false;
@@ -7376,7 +7381,24 @@ document.addEventListener('DOMContentLoaded', () => {
         const supplierApproved = supplierItems.some(s => s.approved === true);
         const box = document.createElement('div');
         box.className = 'card sd-card supplier-dashboard-card';
-        document.querySelector('main .container').appendChild(box);
+        // Starts expanded on mobile/tablet (card-collapse.js collapses .sd-card
+        // by default below 1024px unless told otherwise) — matches the
+        // "Your Supplier Profile" card just below it, and this one is now the
+        // first thing after the hero, so collapsing it by default would undercut
+        // the point of moving it up here.
+        box.dataset.defaultExpanded = 'true';
+        // Placed right after the hero card rather than appended at the end of
+        // the page: this checklist (create profile → get approved → add a
+        // package) is the single most useful thing a new supplier can see,
+        // and previously landed after every other section — roughly 8,000px
+        // down the page — where a first-time visitor would rarely scroll.
+        const welcomeSection = document.getElementById('welcome-section');
+        const container = document.querySelector('main .container');
+        if (welcomeSection && welcomeSection.parentElement === container) {
+          welcomeSection.insertAdjacentElement('afterend', box);
+        } else {
+          container.appendChild(box);
+        }
         renderSupplierChecklist(
           box,
           supplierItems.length,

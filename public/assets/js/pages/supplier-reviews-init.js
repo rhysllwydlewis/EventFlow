@@ -528,8 +528,13 @@
     } catch (err) {
       container.innerHTML = `
         <div class="sr-error" role="alert">
-          <p>Unable to load reviews. Please refresh the page to try again.</p>
+          <p>Unable to load reviews right now.</p>
+          <button type="button" class="sr-error__retry ef-cta">Try again</button>
         </div>`;
+      const retryBtn = container.querySelector('.sr-error__retry');
+      if (retryBtn) {
+        retryBtn.addEventListener('click', () => reload(container, supplierId, page, sortBy));
+      }
     }
   }
 

@@ -187,16 +187,15 @@ function updateWelcomeHeading(name) {
  * Prioritizes outstanding action-prompt items so the hero tip aligns with
  * the same "Next Steps" logic shown elsewhere in the dashboard.
  *
+ * Unread messages are intentionally NOT surfaced here — showUrgentAlert()
+ * already renders that exact notice above this tip when messages.unread > 0,
+ * so repeating it here would tell the supplier the same thing twice in one card.
+ *
  * @param {Object|null} summaryData - Dashboard summary payload
  * @param {Object|null} checklistData - /api/me/action-prompt-checklist payload
  * @returns {string}
  */
 function getDynamicHeroTip(summaryData, checklistData) {
-  const unread = summaryData?.messages?.unread || 0;
-  if (unread > 0) {
-    return `💬 You have ${unread} unread message${unread !== 1 ? 's' : ''} — reply within 24 hours to boost your ranking`;
-  }
-
   const outstanding = Array.isArray(checklistData?.outstanding) ? checklistData.outstanding : [];
   const missingPackages = outstanding.find(action => action?.key === 'missingPackages');
   if (missingPackages) {

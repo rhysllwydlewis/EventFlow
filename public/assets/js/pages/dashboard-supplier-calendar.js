@@ -959,6 +959,40 @@
 
   // ── Calendar Initialization ────────────────────────────────────────────────
 
+  // FullCalendar loads from a CDN (see the <script defer> tag two lines above
+  // this file's own in dashboard-supplier.html). `defer` scripts run in
+  // document order, so in the normal case FullCalendar is already defined by
+  // the time this runs — but a slow or blocked CDN request can still leave it
+  // undefined for real users. Give it a few short retries before showing the
+  // fallback, so a merely-slow load doesn't read as a permanent failure.
+  function waitForFullCalendar(attemptsLeft = 8, delayMs = 250) {
+    return new Promise(resolve => {
+      if (typeof FullCalendar !== 'undefined') {
+        resolve(true);
+        return;
+      }
+      if (attemptsLeft <= 0) {
+        resolve(false);
+        return;
+      }
+      setTimeout(() => {
+        resolve(waitForFullCalendar(attemptsLeft - 1, delayMs));
+      }, delayMs);
+    });
+  }
+
+  function renderCalendarUnavailable(container) {
+    container.innerHTML =
+      '<div class="cal-fallback-empty">' +
+      '<p class="cal-fallback-empty__text">We couldn’t load the calendar. Check your connection and try again.</p>' +
+      '<button type="button" class="cal-fallback-empty__retry ef-cta">Try again</button>' +
+      '</div>';
+    const retryBtn = container.querySelector('.cal-fallback-empty__retry');
+    if (retryBtn) {
+      retryBtn.addEventListener('click', () => initSupplierCalendar());
+    }
+  }
+
   async function initSupplierCalendar() {
     const container = document.getElementById('supplier-events-calendar');
     if (!container) {
@@ -966,9 +1000,11 @@
     }
 
     if (typeof FullCalendar === 'undefined') {
-      container.innerHTML =
-        '<div class="cal-fallback-empty"><p class="cal-fallback-empty__text">Calendar library not loaded. Please refresh the page.</p></div>';
-      return;
+      const becameAvailable = await waitForFullCalendar();
+      if (!becameAvailable) {
+        renderCalendarUnavailable(container);
+        return;
+      }
     }
 
     await ensureCsrfToken();
