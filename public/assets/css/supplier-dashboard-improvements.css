@@ -828,7 +828,9 @@ body.supplier-dashboard-page .supplier-cta-section {
 #my-suppliers,
 #my-packages,
 #threads-sup,
-#tickets-sup {
+#tickets-sup,
+#profile-completeness-widget,
+#earnings-overview {
   scroll-margin-top: calc(var(--ef-header-height, 64px) + 92px);
 }
 
