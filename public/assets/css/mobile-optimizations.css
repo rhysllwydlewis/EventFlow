@@ -1332,9 +1332,16 @@ h4 {
      :not(.perf-tip__title):not(.perf-tip__desc) — the Performance Tips
      widget's title/desc <p> tags live inside an element with class "card"
      too; this rule's 14px font + 3-line clamp overrode their own compact
-     13px/12px sizing and truncated them well before the clamp was needed. */
+     13px/12px sizing and truncated them well before the clamp was needed.
+     :not(.sd-empty-state__desc):not(.sd-reviews-placeholder__desc) — same
+     failure mode for the dashboard's empty-state copy (analytics chart,
+     earnings teaser, reviews placeholder): their own unclamped styling
+     wraps fine, but this override's 3-line clamp cut them off mid-word. */
   .pack p,
-  .card p:not(.spc-checklist-subtitle):not(.perf-tip__title):not(.perf-tip__desc),
+  .card
+    p:not(.spc-checklist-subtitle):not(.perf-tip__title):not(.perf-tip__desc):not(
+      .sd-empty-state__desc
+    ):not(.sd-reviews-placeholder__desc),
   .package-description {
     font-size: 0.875rem;
     line-height: 1.5;

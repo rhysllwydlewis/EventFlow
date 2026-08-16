@@ -219,12 +219,21 @@
   .kpi-card__value{font-size:20px}
   .milestones-card{padding:16px}
   .availability-widget{padding:16px}
-  /* Keep each tip to a single compact row instead of wrapping the action
-     onto its own line below — that doubled the height of every card. The
-     title/desc clamp to one line each so the inline button always fits. */
-  .perf-tip{padding:10px 12px}
-  .perf-tip__title,.perf-tip__desc{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .perf-tip__action{flex-shrink:0}
+  /* Keeping the action button inline (tried previously) left only ~80px
+     for title+desc once the icon and button were accounted for, so every
+     tip truncated mid-word ("Upload a...", "Get ...") no matter how the
+     clamp was tuned — the button needs its own row. Trim the padding and
+     the description clamp instead, so each card is still shorter than
+     the original without breaking the copy. */
+  .perf-tip{padding:10px 12px;flex-wrap:wrap}
+  .perf-tip__desc{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+  /* flex-basis:100% forces this onto its own row — .perf-tip__body's
+     min-width:0 would otherwise let the flex box shrink the text column
+     to near-nothing rather than wrap the button down, breaking every
+     title into one character per line. text-align is explicit because a
+     <button> (Request Review) centers by user-agent default while the
+     <a> variants left-align, which looked inconsistent between tips. */
+  .perf-tip__action{flex-basis:100%;text-align:center;margin:6px 0 0 32px}
 }
 
 /* 19. REDUCED MOTION */
