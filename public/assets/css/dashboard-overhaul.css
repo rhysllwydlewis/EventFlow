@@ -219,11 +219,12 @@
   .kpi-card__value{font-size:20px}
   .milestones-card{padding:16px}
   .availability-widget{padding:16px}
-  /* The action chip sitting beside the title/desc in the same flex row
-     leaves too little width for the text (icon + button can eat over half
-     the row), forcing heavy wrapping/truncation. Stack it below instead. */
-  .perf-tip{flex-wrap:wrap}
-  .perf-tip__action{flex-basis:100%;text-align:center;margin-left:32px}
+  /* Keep each tip to a single compact row instead of wrapping the action
+     onto its own line below — that doubled the height of every card. The
+     title/desc clamp to one line each so the inline button always fits. */
+  .perf-tip{padding:10px 12px}
+  .perf-tip__title,.perf-tip__desc{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .perf-tip__action{flex-shrink:0}
 }
 
 /* 19. REDUCED MOTION */

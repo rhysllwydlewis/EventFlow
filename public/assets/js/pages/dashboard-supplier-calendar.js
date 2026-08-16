@@ -185,8 +185,8 @@
         notice.style.borderColor = forceDenied ? '#fecaca' : '#fde68a';
         notice.style.color = forceDenied ? '#991b1b' : '#92400e';
         notice.innerHTML = forceDenied
-          ? '<strong>Calendar publishing has been disabled for this supplier account by an administrator.</strong>'
-          : '<strong>Your supplier category does not currently include shared calendar publishing.</strong><br>Event Planner and Wedding Fayre suppliers can publish by default. Other suppliers can request publishing access if they regularly host public events such as open days, showcases, workshops, venue tours or fayres.<br><button type="button" class="cta secondary" id="sup-request-publishing-btn">Request calendar publishing access</button>';
+          ? '<strong>Calendar publishing disabled by admin.</strong>'
+          : '<strong>Calendar publishing isn\'t included for your category.</strong><button type="button" class="cta secondary" id="sup-request-publishing-btn">Request access</button>';
         document
           .getElementById('sup-request-publishing-btn')
           ?.addEventListener('click', requestPublishingAccess);
@@ -231,8 +231,7 @@
       return;
     }
     if (!isPublisher) {
-      mount.innerHTML =
-        '<h3 style="margin:0 0 .5rem;">My Public Events</h3><p style="color:#6b7280;margin:0;">Publishing access is required before you can create or manage shared public events.</p>';
+      mount.innerHTML = '';
       return;
     }
     try {
