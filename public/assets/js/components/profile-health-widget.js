@@ -168,39 +168,31 @@
   }
 
   /**
-   * Render circular progress ring SVG
+   * Render circular progress ring
+   *
+   * Pure CSS (conic-gradient + mask), not SVG. The previous SVG version drew
+   * its circle at fixed coordinates sized for a 120x120 canvas with no
+   * viewBox, and the "55%" text was a sibling positioned on top of it via
+   * position:absolute + transform — two independent coordinate systems that
+   * had to agree by convention rather than by construction. That's exactly
+   * the kind of gap where rendering engines are free to disagree.
+   *
+   * Here the ring is one element's background (conic-gradient, masked to a
+   * ring shape) and the percentage text is a real flex-centered child of
+   * that same element — centering is a single flexbox computation, not two
+   * separately-positioned pieces that happen to line up.
    * @param {number} percentage - Health score percentage (0-100)
    * @param {string} color - Ring color
-   * @returns {string} - SVG HTML
+   * @returns {string} - HTML
    */
   function renderProgressRing(percentage, color) {
-    const radius = 45;
-    const circumference = 2 * Math.PI * radius;
-    const offset = circumference - (percentage / 100) * circumference;
-    // stroke-linecap:round draws a small round cap at the arc's start even when
-    // its length is zero, so a 0% score still shows a stray coloured dot. Only
-    // draw the progress circle once there is an actual arc to show.
-    const progressCircle =
-      percentage > 0
-        ? `<circle
-          class="progress-ring-progress health-${percentage >= 80 ? 'excellent' : percentage >= 60 ? 'good' : 'poor'}"
-          cx="60"
-          cy="60"
-          r="${radius}"
-          style="stroke: ${color}; stroke-dashoffset: ${offset};"
-        />`
-        : '';
-
     return `
-      <svg class="progress-ring" width="120" height="120" aria-hidden="true">
-        <circle
-          class="progress-ring-background"
-          cx="60"
-          cy="60"
-          r="${radius}"
-        />
-        ${progressCircle}
-      </svg>
+      <div class="health-ring" style="--ring-pct: ${percentage}; --ring-color: ${color};">
+        <div class="health-ring-value" aria-live="polite">
+          ${percentage}%
+          <span class="health-ring-label">Complete</span>
+        </div>
+      </div>
     `;
   }
 
@@ -249,10 +241,6 @@
 
         <div class="profile-health-score">
           ${renderProgressRing(scoreData.percentage, scoreData.color)}
-          <div class="health-score-value" aria-live="polite">
-            ${scoreData.percentage}%
-            <span class="health-score-label">Complete</span>
-          </div>
         </div>
 
         <div class="health-message health-${scoreData.status}" role="status" aria-live="polite">

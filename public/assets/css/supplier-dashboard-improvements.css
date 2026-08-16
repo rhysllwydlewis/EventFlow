@@ -8695,14 +8695,17 @@ label .required {
   .spc-actions .spc-action-btn:last-child {
     border-bottom: none !important;
   }
-  /* Checklist steps: 2 columns on small screens */
-  .spc-checklist-steps {
-    flex-wrap: wrap;
-  }
-  .spc-checklist-step {
-    min-width: 80px;
-    max-width: calc(50% - 6px);
-  }
+  /* Column count for the checklist grid is now owned entirely by the grid
+     breakpoints in supplier-dashboard-aesthetic-refresh.css (6 / 3 / 2
+     columns). This block predates that rewrite: it was written for the old
+     flex-wrap layout, where max-width: 50% meant half of the flex
+     container. Against today's grid parent, percentage widths resolve
+     against the grid *column* instead, so this left every step at ~25% of
+     the available row width — half of an already-halved cell — while
+     looking like dead space around a tiny icon. The grid's own
+     grid-template-columns already sets the column count; this rule has
+     nothing left to do.
+  */
 }
 
 /* ── Category chip ───────────────────────────────────────────────────────────

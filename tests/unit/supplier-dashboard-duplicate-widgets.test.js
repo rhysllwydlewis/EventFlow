@@ -96,13 +96,15 @@ describe('the package Pause/Resume control has a visible text label', () => {
   });
 });
 
-describe('the Profile Health ring does not draw a stray dot at 0%', () => {
-  it('only draws the progress circle when percentage is greater than zero', () => {
-    expect(ringSource).toContain('percentage > 0');
+describe('the Profile Health ring renders as a single conic-gradient element, not an SVG', () => {
+  it('has no percentage-conditional branch — the old SVG stroke-linecap:round drew a stray dot at 0% and needed one; a conic-gradient does not', () => {
+    expect(ringSource).not.toContain('percentage > 0');
   });
 
-  it('the background circle is unconditional so the ring is still visible at 0%', () => {
-    expect(ringSource).toContain('class="progress-ring-background"');
+  it('renders one .health-ring element with the percentage text as its real child, not a separately-positioned sibling', () => {
+    expect(ringSource).toContain('class="health-ring"');
+    expect(ringSource).toContain('class="health-ring-value"');
+    expect(ringSource).not.toContain('<svg');
   });
 });
 

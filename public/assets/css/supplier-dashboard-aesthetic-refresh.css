@@ -816,8 +816,23 @@ body.supplier-dashboard-page .profile-health-widget {
      bar. Zeroing the widget's padding entirely (as the flat-surface design
      otherwise calls for) then left the progress ring with no top clearance
      at all beyond the card's own 1rem section padding — it rendered flush
-     against the top edge, cramped and easy to mistake for clipped. */
-  padding-top: 1rem;
+     against the top edge, cramped and easy to mistake for clipped.
+
+     This can't lean on scroll-margin-top for clearance from the sticky
+     header instead: #profile-completeness-widget sits inside the
+     accordion's .card-body-collapsible wrapper (overflow: hidden), and
+     verified in Chromium, scrollIntoView()/anchor navigation to an element
+     nested inside that wrapper ignores its scroll-margin-top entirely —
+     the real "Improve your profile →" empty-state link
+     (href="#profile-completeness-widget") lands the section flush at the
+     very top of the viewport (0px), not offset by the header. #earnings-
+     overview doesn't have this problem because its ID sits directly on the
+     un-wrapped .card, not on something nested inside the wrapper.
+     So the padding here has to be tall enough on its own to keep the ring
+     clear of the ~65px sticky header even in that flush-scrolled worst
+     case: 16px (card's own section padding) + this + ~19px (ring's own
+     text offset) needs to clear ~65px + a buffer. */
+  padding-top: 3rem;
   background: none;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
