@@ -9171,13 +9171,20 @@ label .required {
 
 /* FullCalendar's own default toolbar CSS is a single no-wrap flex row
    (display:flex; justify-content:space-between) with no responsive
-   handling of its own. At phone widths the 3 chunks (prev/next+Today,
-   month title, Month/Week/List switcher) don't fit together, so the
-   browser flex-shrinks each chunk below its content's natural width —
-   forcing the prev/next group and "Today" to wrap onto separate lines
-   within their own chunk, and the month title to break mid-word. Stack
-   the chunks as full-width rows instead so each renders on one line. */
-@media (max-width: 480px) {
+   handling of its own. Below ~560px of actual card content width the 3
+   chunks (prev/next+Today, month title, Month/Week/List switcher) don't
+   fit together, so the browser flex-shrinks each chunk below its
+   content's natural width — forcing the prev/next group and "Today" to
+   wrap onto separate lines within their own chunk, and the month title to
+   break mid-word. Stack the chunks as full-width rows instead so each
+   renders on one line. 640px (not just the ~480px phone cutoff used
+   elsewhere in this file) because this card's own padding eats a larger
+   share of the viewport than most — verified live that the card's content
+   width is still only ~351px at a 480px viewport, well past where the
+   toolbar breaks; it only naturally fits again around ~600px. Mirrors the
+   same breakpoint already used for the customer dashboard's calendar
+   toolbar (calendar.css). */
+@media (max-width: 640px) {
   #availability-calendar .fc .fc-toolbar {
     flex-direction: column;
     align-items: stretch;
