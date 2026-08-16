@@ -192,7 +192,7 @@
         : '';
 
     return `
-      <svg class="progress-ring" width="120" height="120" aria-hidden="true">
+      <svg class="progress-ring" width="120" height="120" viewBox="0 0 120 120" aria-hidden="true">
         <circle
           class="progress-ring-background"
           cx="60"
