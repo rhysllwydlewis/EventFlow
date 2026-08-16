@@ -8982,6 +8982,24 @@ label .required {
   margin-top: 0.125rem;
 }
 
+/* On phone-width cards, a badge column sized to its own content still eats
+   roughly a third of the item's width (the column stretches to the item's
+   full height via flex's default align-items:stretch, but more importantly
+   sits beside the text rather than above it), leaving too little room for
+   the title/description and forcing them into many more wrapped lines than
+   necessary — inflating the card's height. Stack the badge above the text
+   instead so the content gets the item's full width. */
+@media (max-width: 480px) {
+  .sd-next-steps__item {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .sd-next-steps__badge-col {
+    margin-top: 0;
+  }
+}
+
 .sd-next-steps__badge {
   display: inline-block;
   padding: 0.15rem 0.5rem;
