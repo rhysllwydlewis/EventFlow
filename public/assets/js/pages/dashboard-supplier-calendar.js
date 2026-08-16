@@ -186,7 +186,7 @@
         notice.style.color = forceDenied ? '#991b1b' : '#92400e';
         notice.innerHTML = forceDenied
           ? '<strong>Calendar publishing has been disabled for this supplier account by an administrator.</strong>'
-          : '<strong>Your supplier category does not currently include shared calendar publishing.</strong><br>Event Planner and Wedding Fayre suppliers can publish by default. Other suppliers can request publishing access if they regularly host public events such as open days, showcases, workshops, venue tours or fayres. <button type="button" class="cta secondary" id="sup-request-publishing-btn" style="margin-left:.5rem;">Request calendar publishing access</button>';
+          : '<strong>Your supplier category does not currently include shared calendar publishing.</strong><br>Event Planner and Wedding Fayre suppliers can publish by default. Other suppliers can request publishing access if they regularly host public events such as open days, showcases, workshops, venue tours or fayres.<br><button type="button" class="cta secondary" id="sup-request-publishing-btn">Request calendar publishing access</button>';
         document
           .getElementById('sup-request-publishing-btn')
           ?.addEventListener('click', requestPublishingAccess);

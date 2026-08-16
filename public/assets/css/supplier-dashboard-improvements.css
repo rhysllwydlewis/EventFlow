@@ -9149,8 +9149,49 @@ label .required {
   font-size: 0.875rem;
 }
 
+/* The shared .cta rule (ui-ux-fixes.css) forces white-space:nowrap +
+   ellipsis, sized to fit sitewide short button labels on one line. This
+   button's label is a full sentence, so at that fixed nowrap width it both
+   overflows past the notice box on narrow viewports and gets its text
+   clipped. Let it wrap like a normal block instead. */
+.sup-cal-permission-notice #sup-request-publishing-btn {
+  display: flex;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0.6rem 0 0;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  text-align: center;
+}
+
 .sup-my-public-events {
   margin-bottom: 1rem;
+}
+
+/* FullCalendar's own default toolbar CSS is a single no-wrap flex row
+   (display:flex; justify-content:space-between) with no responsive
+   handling of its own. At phone widths the 3 chunks (prev/next+Today,
+   month title, Month/Week/List switcher) don't fit together, so the
+   browser flex-shrinks each chunk below its content's natural width —
+   forcing the prev/next group and "Today" to wrap onto separate lines
+   within their own chunk, and the month title to break mid-word. Stack
+   the chunks as full-width rows instead so each renders on one line. */
+@media (max-width: 480px) {
+  #availability-calendar .fc .fc-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+
+  #availability-calendar .fc .fc-toolbar-chunk {
+    display: flex;
+    justify-content: center;
+  }
+
+  #availability-calendar .fc .fc-toolbar-title {
+    text-align: center;
+  }
 }
 
 /* ===========================================

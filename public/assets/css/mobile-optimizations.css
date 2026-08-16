@@ -1328,9 +1328,13 @@ h4 {
 
   /* :not(.spc-checklist-subtitle) — this one-line checklist caption isn't a
      card description; the generic 3-line clamp here was cutting its last
-     clause off mid-sentence. */
+     clause off mid-sentence.
+     :not(.perf-tip__title):not(.perf-tip__desc) — the Performance Tips
+     widget's title/desc <p> tags live inside an element with class "card"
+     too; this rule's 14px font + 3-line clamp overrode their own compact
+     13px/12px sizing and truncated them well before the clamp was needed. */
   .pack p,
-  .card p:not(.spc-checklist-subtitle),
+  .card p:not(.spc-checklist-subtitle):not(.perf-tip__title):not(.perf-tip__desc),
   .package-description {
     font-size: 0.875rem;
     line-height: 1.5;

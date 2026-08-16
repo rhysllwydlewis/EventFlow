@@ -219,6 +219,11 @@
   .kpi-card__value{font-size:20px}
   .milestones-card{padding:16px}
   .availability-widget{padding:16px}
+  /* The action chip sitting beside the title/desc in the same flex row
+     leaves too little width for the text (icon + button can eat over half
+     the row), forcing heavy wrapping/truncation. Stack it below instead. */
+  .perf-tip{flex-wrap:wrap}
+  .perf-tip__action{flex-basis:100%;text-align:center;margin-left:32px}
 }
 
 /* 19. REDUCED MOTION */
