@@ -59,58 +59,67 @@
   position: relative;
 }
 
-.progress-ring {
+/* Ring: a conic-gradient background masked into a ring shape, not an SVG.
+   --ring-pct and --ring-color are set inline per-render in
+   profile-health-widget.js. Masking a transparent hole (rather than
+   painting a matching background colour into it) means this renders
+   correctly on any surface behind it — flat, gradient, light or dark card —
+   with no colour to keep in sync. */
+.health-ring {
+  --ring-track: rgba(11, 128, 115, 0.1);
+  --ring-thickness: 10px;
+  position: relative;
   width: 120px;
   height: 120px;
-  transform: rotate(-90deg);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.progress-ring-circle {
-  transition: stroke-dashoffset 0.5s ease-in-out;
-  transform-origin: 50% 50%;
-}
-
-.progress-ring-background {
-  stroke: rgba(11, 128, 115, 0.1);
-  fill: none;
-  stroke-width: 8;
-}
-
-.progress-ring-progress {
-  fill: none;
-  stroke-width: 8;
-  stroke-linecap: round;
-  stroke-dasharray: 283; /* 2πr where r=45 */
-  stroke-dashoffset: 283;
-}
-
-/* Color states based on score */
-.progress-ring-progress.health-excellent {
-  stroke: #10b981;
-}
-
-.progress-ring-progress.health-good {
-  stroke: #f59e0b;
-}
-
-.progress-ring-progress.health-poor {
-  stroke: #ef4444;
-}
-
-/* Score percentage display */
-.health-score-value {
+.health-ring::before {
+  content: '';
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(
+    var(--ring-color) calc(var(--ring-pct) * 1%),
+    var(--ring-track) calc(var(--ring-pct) * 1%)
+  );
+  /* "circle" alone defaults to farthest-corner sizing — on a square box
+     that's the diagonal (~85px for this 120px box), not the 60px radius
+     to the actual edge, so "100%" here would land past the ring entirely
+     and mask it out completely. farthest-side sizes to the actual radius. */
+  -webkit-mask: radial-gradient(
+    circle farthest-side,
+    transparent calc(100% - var(--ring-thickness) - 1px),
+    #000 calc(100% - var(--ring-thickness))
+  );
+  mask: radial-gradient(
+    circle farthest-side,
+    transparent calc(100% - var(--ring-thickness) - 1px),
+    #000 calc(100% - var(--ring-thickness))
+  );
+}
+
+/* The percentage text is a real child of .health-ring, flex-centered on the
+   same box the ring is drawn in — one centering computation, not two
+   independently-positioned elements that have to agree. */
+.health-ring-value {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   font-size: 2rem;
   font-weight: 700;
   color: var(--ef-text, #0b1220);
   text-align: center;
 }
 
-.health-score-label {
+.health-ring-label {
   font-size: 0.75rem;
+  font-weight: 400;
   color: var(--ef-text-muted, #667085);
   margin-top: 0.25rem;
   display: block;
@@ -229,12 +238,13 @@
     padding: 1.5rem;
   }
 
-  .progress-ring {
+  .health-ring {
     width: 100px;
     height: 100px;
+    --ring-thickness: 8px;
   }
 
-  .health-score-value {
+  .health-ring-value {
     font-size: 1.5rem;
   }
 
@@ -245,7 +255,6 @@
 
 /* Accessibility */
 @media (prefers-reduced-motion: reduce) {
-  .progress-ring-progress,
   .health-checklist-item,
   .health-cta {
     transition: none;
