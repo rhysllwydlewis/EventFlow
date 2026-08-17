@@ -1,5 +1,6 @@
 'use strict';
 
+const crypto = require('crypto');
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const validator = require('validator');
@@ -10,7 +11,7 @@ const { uid } = require('../store');
 const { JWT_SECRET, setAuthCookie } = require('../middleware/auth');
 const { getFeatureFlags } = require('../middleware/features');
 const domainAdmin = require('../middleware/domain-admin');
-const googleAuthService = require('../services/googleAuth.service');
+const facebookAuthService = require('../services/facebookAuth.service');
 const userProvenance = require('../services/userProvenance.service');
 const { ensureSupplierProfileForUser } = require('../services/supplierProfileProvisioning.service');
 const { getFounderSignupBadges } = require('../utils/founderBadge');
@@ -20,9 +21,10 @@ const {
 } = require('../utils/behaviourAnalytics');
 
 const router = express.Router();
-const parseGoogleFormPost = express.urlencoded({ extended: false, limit: '32kb' });
-const GOOGLE_LOGIN_PATH = '/api/auth/callback/google';
+const FACEBOOK_LOGIN_PATH = '/api/auth/callback/facebook';
 const PRODUCTION_ORIGIN = 'https://event-flow.co.uk';
+const FACEBOOK_CSRF_COOKIE = 'facebook_auth_csrf';
+const FACEBOOK_CSRF_MAX_AGE_MS = 10 * 60 * 1000;
 
 function getPublicBaseUrl() {
   const configured = String(process.env.BASE_URL || '')
@@ -34,13 +36,13 @@ function getPublicBaseUrl() {
   return PRODUCTION_ORIGIN;
 }
 
-function getGoogleLoginUri() {
-  return `${getPublicBaseUrl()}${GOOGLE_LOGIN_PATH}`;
+function getFacebookLoginUri() {
+  return `${getPublicBaseUrl()}${FACEBOOK_LOGIN_PATH}`;
 }
 
 function redirectWithError(res, reason) {
-  const safeReason = encodeURIComponent(reason || 'google_failed');
-  return res.redirect(303, `/auth?google=error&reason=${safeReason}`);
+  const safeReason = encodeURIComponent(reason || 'facebook_failed');
+  return res.redirect(303, `/auth?facebook=error&reason=${safeReason}`);
 }
 
 function defaultDestinationForRole(role) {
@@ -143,10 +145,20 @@ function destinationFromState(user, state) {
   return destination;
 }
 
-function validateGoogleDoubleSubmitCsrf(req) {
-  const bodyToken = req.body && req.body.g_csrf_token;
-  const cookieToken = req.cookies && req.cookies.g_csrf_token;
-  return Boolean(bodyToken && cookieToken && bodyToken === cookieToken);
+/**
+ * Facebook's OAuth dialog redirects back with a plain top-level GET (unlike
+ * Google/Apple's form_post credential callbacks), so the standard OAuth
+ * `state` double-submit pattern applies directly: a random value is issued
+ * via GET /facebook/csrf, stored in a short-lived cookie, and must come back
+ * unchanged inside the encoded `state` query parameter.
+ */
+function validateFacebookCsrf(req, state) {
+  const cookieToken = req.cookies && req.cookies[FACEBOOK_CSRF_COOKIE];
+  return Boolean(cookieToken && state.csrf && cookieToken === state.csrf);
+}
+
+function clearFacebookCsrfCookie(res) {
+  res.clearCookie(FACEBOOK_CSRF_COOKIE, { path: '/' });
 }
 
 async function updateLastLogin(userId) {
@@ -157,7 +169,7 @@ async function updateLastLogin(userId) {
       { $set: { lastLoginAt: new Date().toISOString() } }
     );
   } catch (error) {
-    logger.error('[GOOGLE REDIRECT LOGIN] Failed to update lastLoginAt', {
+    logger.error('[FACEBOOK REDIRECT LOGIN] Failed to update lastLoginAt', {
       message: error.message,
     });
   }
@@ -214,7 +226,7 @@ function getSignupState(state) {
   return signupState;
 }
 
-async function validateNewGoogleSignupState(signupState) {
+async function validateNewFacebookSignupState(signupState) {
   const features = await getFeatureFlags();
   if (!features.registration) {
     const error = new Error(
@@ -237,13 +249,13 @@ async function validateNewGoogleSignupState(signupState) {
   }
 
   if (!signupState.location) {
-    const error = new Error('Location is required for supplier Google sign up.');
+    const error = new Error('Location is required for supplier Facebook sign up.');
     error.statusCode = 400;
     throw error;
   }
 
   if (!signupState.company) {
-    const error = new Error('Company name is required for supplier Google sign up.');
+    const error = new Error('Company name is required for supplier Facebook sign up.');
     error.statusCode = 400;
     throw error;
   }
@@ -272,27 +284,17 @@ async function recordSupplierPartnerReferral(refCode, user) {
   }
 }
 
-function isAuthoritativeProfileEmail(googleProfile) {
-  if (googleProfile.emailAuthoritative !== undefined) {
-    return Boolean(googleProfile.emailAuthoritative);
-  }
-  const email = String(googleProfile.email || '').toLowerCase();
-  return Boolean(
-    googleProfile.email_verified && (email.endsWith('@gmail.com') || googleProfile.hd)
-  );
-}
-
-function buildGoogleUser(googleProfile, nowIso, signupState = {}) {
-  const email = String(googleProfile.email || '').toLowerCase();
-  const googleSub = String(googleProfile.sub || '');
-  const givenName = String(googleProfile.given_name || '')
+function buildFacebookUser(facebookProfile, nowIso, signupState = {}) {
+  const email = String(facebookProfile.email || '').toLowerCase();
+  const facebookSub = String(facebookProfile.sub || '');
+  const givenName = String(facebookProfile.given_name || '')
     .trim()
     .slice(0, 40);
-  const familyName = String(googleProfile.family_name || '')
+  const familyName = String(facebookProfile.family_name || '')
     .trim()
     .slice(0, 40);
-  const profileName = String(googleProfile.name || '').trim();
-  const fallbackName = email.split('@')[0] || 'Google user';
+  const profileName = String(facebookProfile.name || '').trim();
+  const fallbackName = email.split('@')[0] || 'Facebook user';
   const fullName = (profileName || `${givenName} ${familyName}`.trim() || fallbackName).slice(
     0,
     80
@@ -305,7 +307,7 @@ function buildGoogleUser(googleProfile, nowIso, signupState = {}) {
   return {
     id: uid('usr'),
     name: fullName,
-    firstName: givenName || derivedFirstName || 'Google',
+    firstName: givenName || derivedFirstName || 'Facebook',
     lastName: familyName || derivedLastParts.join(' ') || 'User',
     email,
     role: isOwner ? 'admin' : roleDecision.role,
@@ -322,17 +324,17 @@ function buildGoogleUser(googleProfile, nowIso, signupState = {}) {
     marketingOptIn: false,
     verified: true,
     isOwner,
-    ...userProvenance.googleSignupProvenance(nowIso),
-    authProvider: 'google',
-    authProviderIds: { google: googleSub },
-    googleSub,
-    googleLinkedAt: nowIso,
-    avatarUrl: googleProfile.picture || undefined,
+    ...userProvenance.facebookSignupProvenance(nowIso),
+    authProvider: 'facebook',
+    authProviderIds: { facebook: facebookSub },
+    facebookSub,
+    facebookLinkedAt: nowIso,
+    avatarUrl: facebookProfile.picture || undefined,
     createdAt: nowIso,
   };
 }
 
-const GOOGLE_ATTRIBUTION_KEYS = [
+const FACEBOOK_ATTRIBUTION_KEYS = [
   'attribution_available',
   'first_channel',
   'first_referrer_domain',
@@ -350,13 +352,13 @@ const GOOGLE_ATTRIBUTION_KEYS = [
   'last_partner_reference',
 ];
 
-function getGoogleSignupAttribution(state) {
+function getFacebookSignupAttribution(state) {
   const attribution = state?.attribution;
   if (state?.context !== 'signup' || !attribution) {
     return null;
   }
-  const properties = { conversionType: 'registration', signup_method: 'google' };
-  GOOGLE_ATTRIBUTION_KEYS.forEach(key => {
+  const properties = { conversionType: 'registration', signup_method: 'facebook' };
+  FACEBOOK_ATTRIBUTION_KEYS.forEach(key => {
     const value = attribution[key];
     if (typeof value === 'boolean' || typeof value === 'string') {
       properties[key] = value;
@@ -365,8 +367,8 @@ function getGoogleSignupAttribution(state) {
   return properties.attribution_available === true ? properties : null;
 }
 
-async function recordGoogleSignupAnalytics(user, state) {
-  const properties = getGoogleSignupAttribution(state);
+async function recordFacebookSignupAnalytics(user, state) {
+  const properties = getFacebookSignupAttribution(state);
   const sessionId = cleanStateText(state?.analyticsSessionId, 120);
   if (!properties || !sessionId || !user?.id || user.role === 'admin') {
     return;
@@ -393,30 +395,32 @@ async function recordGoogleSignupAnalytics(user, state) {
       await dbUnified.insertOne(ANALYTICS_COLLECTION, event);
     }
   } catch (error) {
-    logger.warn('[GOOGLE REDIRECT LOGIN] Signup analytics recording failed', {
+    logger.warn('[FACEBOOK REDIRECT LOGIN] Signup analytics recording failed', {
       message: error.message,
     });
   }
 }
 
-async function findOrCreateGoogleUser(googleProfile, state = {}) {
+async function findOrCreateFacebookUser(facebookProfile, state = {}) {
   const users = await dbUnified.read('users');
-  const email = String(googleProfile.email || '').toLowerCase();
-  const googleSub = String(googleProfile.sub || '');
+  const email = String(facebookProfile.email || '').toLowerCase();
+  const facebookSub = String(facebookProfile.sub || '');
   const nowIso = new Date().toISOString();
   const signupState = getSignupState(state);
 
-  let user = users.find(u => u.googleSub === googleSub || u.authProviderIds?.google === googleSub);
+  let user = users.find(
+    u => u.facebookSub === facebookSub || u.authProviderIds?.facebook === facebookSub
+  );
   const existingByEmail = users.find(u => (u.email || '').toLowerCase() === email);
 
   if (user && user.email && (user.email || '').toLowerCase() !== email) {
-    const error = new Error('Google account is linked to another user.');
+    const error = new Error('Facebook account is linked to another user.');
     error.statusCode = 409;
     throw error;
   }
 
   if (!user && existingByEmail) {
-    if (!isAuthoritativeProfileEmail(googleProfile)) {
+    if (!facebookProfile.emailAuthoritative) {
       const error = new Error(
         'An account already exists for this email. Please log in with your password first.'
       );
@@ -430,31 +434,29 @@ async function findOrCreateGoogleUser(googleProfile, state = {}) {
       { id: user.id },
       {
         $set: {
-          googleSub,
-          ...userProvenance.googleLinkProvenance(user, nowIso),
-          authProviderIds: { ...(user.authProviderIds || {}), google: googleSub },
-          googleLinkedAt: user.googleLinkedAt || nowIso,
-          avatarUrl: user.avatarUrl || googleProfile.picture || undefined,
+          facebookSub,
+          ...userProvenance.facebookLinkProvenance(user, nowIso),
+          authProviderIds: { ...(user.authProviderIds || {}), facebook: facebookSub },
+          facebookLinkedAt: user.facebookLinkedAt || nowIso,
+          avatarUrl: user.avatarUrl || facebookProfile.picture || undefined,
         },
       }
     );
     return {
       ...user,
-      googleSub,
-      ...userProvenance.googleLinkProvenance(user, nowIso),
-      authProviderIds: { ...(user.authProviderIds || {}), google: googleSub },
-      googleLinkedAt: user.googleLinkedAt || nowIso,
+      facebookSub,
+      ...userProvenance.facebookLinkProvenance(user, nowIso),
+      authProviderIds: { ...(user.authProviderIds || {}), facebook: facebookSub },
+      facebookLinkedAt: user.facebookLinkedAt || nowIso,
     };
   }
 
   if (!user) {
-    await validateNewGoogleSignupState(signupState);
-    user = buildGoogleUser(googleProfile, nowIso, signupState);
+    await validateNewFacebookSignupState(signupState);
+    user = buildFacebookUser(facebookProfile, nowIso, signupState);
     const insertedUser = await dbUnified.insertOne('users', user);
     if (!insertedUser) {
-      // insertOne returns null on DB error. Throw so the route-level catch block
-      // can redirect the user — res is not in scope inside this helper function.
-      logger.error('[GOOGLE-REDIRECT] insertOne returned null — user account not saved', {
+      logger.error('[FACEBOOK-REDIRECT] insertOne returned null — user account not saved', {
         email: user.email,
       });
       const insertErr = new Error('Failed to create account. Please try again.');
@@ -466,11 +468,14 @@ async function findOrCreateGoogleUser(googleProfile, state = {}) {
       try {
         await ensureSupplierProfileForUser(user);
       } catch (profileError) {
-        logger.error('[GOOGLE-REDIRECT] failed to provision supplier profile; rolling back user', {
-          userId: user.id,
-          email: user.email,
-          error: profileError.message,
-        });
+        logger.error(
+          '[FACEBOOK-REDIRECT] failed to provision supplier profile; rolling back user',
+          {
+            userId: user.id,
+            email: user.email,
+            error: profileError.message,
+          }
+        );
         const rolledBack = await dbUnified.deleteOne('users', { id: user.id });
         if (!rolledBack) {
           await dbUnified.updateOne(
@@ -485,70 +490,91 @@ async function findOrCreateGoogleUser(googleProfile, state = {}) {
       }
       await recordSupplierPartnerReferral(signupState.ref, user);
     }
-    return { ...user, __eventflowNewGoogleSignup: true };
+    return { ...user, __eventflowNewFacebookSignup: true };
   }
 
   if (user.verified === false) {
-    const googleVerifyUpdates = userProvenance.googleLinkProvenance(user, nowIso);
-    await dbUnified.updateOne('users', { id: user.id }, { $set: googleVerifyUpdates });
-    return { ...user, ...googleVerifyUpdates };
+    const facebookVerifyUpdates = userProvenance.facebookLinkProvenance(user, nowIso);
+    await dbUnified.updateOne('users', { id: user.id }, { $set: facebookVerifyUpdates });
+    return { ...user, ...facebookVerifyUpdates };
   }
 
   return user;
 }
 
-router.get('/google/diagnostics', (_req, res) => {
-  const clientIds = googleAuthService.getGoogleClientIds();
+router.get('/facebook/csrf', (req, res) => {
+  const csrf = crypto.randomBytes(24).toString('base64url');
+  res.setHeader('Cache-Control', 'no-store, private');
+  res.cookie(FACEBOOK_CSRF_COOKIE, csrf, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: FACEBOOK_CSRF_MAX_AGE_MS,
+    path: '/',
+  });
+  res.json({ ok: true, csrf });
+});
+
+router.get('/facebook/diagnostics', (_req, res) => {
   res.setHeader('Cache-Control', 'no-store, private');
   res.json({
     ok: true,
-    googleConfigured: clientIds.length > 0,
-    googleClientId: googleAuthService.getGoogleClientId(),
-    googleClientIdsCount: clientIds.length,
-    googleLoginUri: getGoogleLoginUri(),
-    expectedAuthorizedJavaScriptOrigin: PRODUCTION_ORIGIN,
-    expectedAuthorizedRedirectUri: `${PRODUCTION_ORIGIN}${GOOGLE_LOGIN_PATH}`,
+    facebookConfigured: facebookAuthService.isFacebookConfigured(),
+    facebookAppId: facebookAuthService.getFacebookAppId(),
+    facebookLoginUri: getFacebookLoginUri(),
+    expectedRedirectUri: `${PRODUCTION_ORIGIN}${FACEBOOK_LOGIN_PATH}`,
     baseUrlConfigured: Boolean(process.env.BASE_URL),
     baseUrlHost: getPublicBaseUrl(),
   });
 });
 
-router.get('/callback/google', (_req, res) => {
-  return res.redirect(303, '/auth?google=callback_requires_post');
-});
-
 /**
- * POST /api/auth/callback/google
- * Receives the Sign in with Google redirect-mode credential form post.
- * This is not an OAuth authorization-code callback; Google posts an ID token
- * credential here, protected by Google's double-submit g_csrf_token check.
+ * GET /api/auth/callback/facebook
+ * Receives Facebook's OAuth authorization-code redirect. Facebook always
+ * redirects back with a plain top-level GET (never a form_post), carrying
+ * `code` and `state`, or `error`/`error_reason` if the user declined.
  */
-router.post('/callback/google', parseGoogleFormPost, async (req, res) => {
+router.get('/callback/facebook', async (req, res) => {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
   res.setHeader('Pragma', 'no-cache');
 
-  if (!validateGoogleDoubleSubmitCsrf(req)) {
-    logger.warn('[GOOGLE REDIRECT LOGIN] Invalid Google CSRF token');
-    return redirectWithError(res, 'google_csrf');
+  if (req.query && req.query.error) {
+    logger.info('[FACEBOOK REDIRECT LOGIN] Facebook reported an error', {
+      error: req.query.error,
+      reason: req.query.error_reason,
+    });
+    clearFacebookCsrfCookie(res);
+    return redirectWithError(res, String(req.query.error_reason || req.query.error).slice(0, 60));
   }
 
-  const credential = req.body && req.body.credential;
-  if (!credential) {
-    logger.warn('[GOOGLE REDIRECT LOGIN] Missing credential in callback');
-    return redirectWithError(res, 'missing_credential');
+  const state = decodeState(req.query && req.query.state);
+
+  if (!validateFacebookCsrf(req, state)) {
+    logger.warn('[FACEBOOK REDIRECT LOGIN] Invalid Facebook CSRF token');
+    clearFacebookCsrfCookie(res);
+    return redirectWithError(res, 'facebook_csrf');
+  }
+  clearFacebookCsrfCookie(res);
+
+  const code = req.query && req.query.code;
+  if (!code) {
+    logger.warn('[FACEBOOK REDIRECT LOGIN] Missing authorization code in callback');
+    return redirectWithError(res, 'missing_code');
   }
 
   try {
-    const state = decodeState(req.body && req.body.state);
-    const googleProfile = await googleAuthService.verifyGoogleCredential(credential);
-    const user = await findOrCreateGoogleUser(googleProfile, state);
-    if (user.__eventflowNewGoogleSignup === true) {
-      await recordGoogleSignupAnalytics(user, state);
+    const facebookProfile = await facebookAuthService.verifyFacebookAuthorizationCode(
+      code,
+      getFacebookLoginUri()
+    );
+    const user = await findOrCreateFacebookUser(facebookProfile, state);
+    if (user.__eventflowNewFacebookSignup === true) {
+      await recordFacebookSignupAnalytics(user, state);
     }
 
     if (user.twoFactorEnabled) {
-      logger.info('[GOOGLE REDIRECT LOGIN] 2FA required; redirecting to auth');
-      return res.redirect(303, '/auth?google=2fa_required');
+      logger.info('[FACEBOOK REDIRECT LOGIN] 2FA required; redirecting to auth');
+      return res.redirect(303, '/auth?facebook=2fa_required');
     }
 
     await updateLastLogin(user.id);
@@ -559,10 +585,10 @@ router.post('/callback/google', parseGoogleFormPost, async (req, res) => {
     setAuthCookie(res, token, { remember: true });
     return res.redirect(303, destinationFromState(user, state));
   } catch (error) {
-    logger.error('[GOOGLE REDIRECT LOGIN] Failed', { message: error.message });
+    logger.error('[FACEBOOK REDIRECT LOGIN] Failed', { message: error.message });
     return redirectWithError(
       res,
-      error.statusCode ? `google_${error.statusCode}` : 'google_failed'
+      error.statusCode ? `facebook_${error.statusCode}` : 'facebook_failed'
     );
   }
 });

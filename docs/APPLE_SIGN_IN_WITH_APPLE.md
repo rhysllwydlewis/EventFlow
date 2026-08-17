@@ -3,6 +3,23 @@
 This document records the EventFlow "Sign in with Apple" implementation and
 the Apple Developer configuration required to make it work in production.
 
+## Currently switched off
+
+The full implementation below is built and left in place, but the button is
+switched off on the frontend — enrolling in the Apple Developer Program to
+use it costs £79/$99 per year (see "Step-by-step: Apple Developer setup"),
+and that hasn't been paid for yet.
+
+To re-enable once enrolled:
+
+1. Set `APPLE_SIGNIN_ENABLED = true` at the top of
+   `public/assets/js/pages/auth-apple-init.js`.
+2. Complete the Apple Developer setup below and set `APPLE_CLIENT_ID` (and
+   the email-relay domain registration in step 5) in Railway.
+
+Nothing else needs to change — the backend route, verification service and
+tests are unaffected by the frontend switch.
+
 ## Current chosen flow
 
 EventFlow uses Apple's web-based "Sign in with Apple JS" with a server-side

@@ -1,23 +1,16 @@
 (function () {
   'use strict';
 
-  // Sign in with Apple requires a paid Apple Developer Program membership
-  // (£79/$99 per year) to enrol a Services ID. The integration is fully built
-  // and left in place, but is switched off here until that enrolment happens.
-  // To re-enable: set this to true and configure APPLE_CLIENT_ID (see
-  // docs/APPLE_SIGN_IN_WITH_APPLE.md).
-  const APPLE_SIGNIN_ENABLED = false;
-
-  const APPLE_JS_SRC =
-    'https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js';
-  const APPLE_LOGIN_PATH = '/api/auth/callback/apple';
-  const APPLE_NONCE_PATH = '/api/auth/apple/nonce';
+  // Keep in sync with GRAPH_API_VERSION in services/facebookAuth.service.js.
+  const FACEBOOK_OAUTH_DIALOG = 'https://www.facebook.com/v23.0/dialog/oauth';
+  const FACEBOOK_LOGIN_PATH = '/api/auth/callback/facebook';
+  const FACEBOOK_CSRF_PATH = '/api/auth/facebook/csrf';
   const PRODUCTION_ORIGIN = 'https://event-flow.co.uk';
 
-  function getAppleLoginUri() {
+  function getFacebookLoginUri() {
     const origin =
       window.location.hostname === 'event-flow.co.uk' ? window.location.origin : PRODUCTION_ORIGIN;
-    return `${origin}${APPLE_LOGIN_PATH}`;
+    return `${origin}${FACEBOOK_LOGIN_PATH}`;
   }
 
   function setStatus(message, type) {
@@ -37,6 +30,16 @@
     }
   }
 
+  function hasControlCharacter(value) {
+    for (let i = 0; i < value.length; i += 1) {
+      const code = value.charCodeAt(i);
+      if (code <= 0x1f || code === 0x7f) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   function encodeState(payload) {
     try {
       const json = JSON.stringify(payload || {});
@@ -47,16 +50,6 @@
     } catch {
       return '';
     }
-  }
-
-  function hasControlCharacter(value) {
-    for (let i = 0; i < value.length; i += 1) {
-      const code = value.charCodeAt(i);
-      if (code <= 0x1f || code === 0x7f) {
-        return true;
-      }
-    }
-    return false;
   }
 
   function getSafeReturnPath() {
@@ -160,17 +153,17 @@
     return { ready: missing.length === 0, role: snapshot.role, missing };
   }
 
-  function syncAppleSignupButtonReadiness() {
-    const button = document.getElementById('apple-signup-button');
+  function syncFacebookSignupButtonReadiness() {
+    const button = document.getElementById('facebook-signup-button');
     if (!button) {
       return;
     }
     const readiness = getSupplierReadiness();
-    button.classList.toggle('auth-apple-button--disabled', !readiness.ready);
+    button.classList.toggle('auth-facebook-button--disabled', !readiness.ready);
     button.setAttribute('aria-disabled', readiness.ready ? 'false' : 'true');
   }
 
-  function buildAppleState(context, csrf) {
+  function buildFacebookState(context, csrf) {
     const params = new URLSearchParams(window.location.search);
     const normalizedContext = context === 'signup' ? 'signup' : 'signin';
     const state = {
@@ -196,18 +189,12 @@
     return state;
   }
 
-  function showAppleRedirectErrorFromQuery() {
+  function showFacebookRedirectErrorFromQuery() {
     const params = new URLSearchParams(window.location.search);
-    if (params.get('apple') !== 'error') {
-      if (params.get('apple') === 'callback_requires_post') {
+    if (params.get('facebook') !== 'error') {
+      if (params.get('facebook') === '2fa_required') {
         setStatus(
-          'Apple sign-in callback must be opened by Apple. Please use the sign-in button.',
-          'warning'
-        );
-      }
-      if (params.get('apple') === '2fa_required') {
-        setStatus(
-          'This Apple-linked account requires two-factor login. Please use email login to complete 2FA.',
+          'This Facebook-linked account requires two-factor login. Please use email login to complete 2FA.',
           'warning'
         );
       }
@@ -215,73 +202,39 @@
     }
 
     const reason = params.get('reason') || '';
-    if (reason === 'user_cancelled_authorize') {
-      setStatus('Apple sign-in was cancelled.', 'info');
+    if (reason === 'user_denied') {
+      setStatus('Facebook sign-in was cancelled.', 'info');
+      return;
+    }
+    if (reason === 'facebook_403') {
+      setStatus(
+        'Facebook did not share an email address. Please allow email access on Facebook, or use another sign-in method.',
+        'warning'
+      );
       return;
     }
     setStatus(
-      'Apple sign-in could not be completed. Please try again or use email login.',
+      'Facebook sign-in could not be completed. Please try again or use email login.',
       'error'
     );
   }
 
-  function loadAppleScript() {
-    if (window.AppleID?.auth) {
-      return Promise.resolve();
-    }
-
-    if (window.__eventflowAppleScriptPromise) {
-      return window.__eventflowAppleScriptPromise;
-    }
-
-    window.__eventflowAppleScriptPromise = new Promise((resolve, reject) => {
-      const existing = document.querySelector(`script[src="${APPLE_JS_SRC}"]`);
-      const script = existing || document.createElement('script');
-      const timeout = setTimeout(() => {
-        reject(new Error('Sign in with Apple script timed out'));
-      }, 8000);
-
-      const handleLoad = () => {
-        clearTimeout(timeout);
-        resolve();
-      };
-      const handleError = () => {
-        clearTimeout(timeout);
-        reject(new Error('Sign in with Apple script failed to load'));
-      };
-
-      script.addEventListener('load', handleLoad, { once: true });
-      script.addEventListener('error', handleError, { once: true });
-
-      if (!existing) {
-        script.src = APPLE_JS_SRC;
-        script.async = true;
-        script.defer = true;
-        document.head.appendChild(script);
-      }
-    }).finally(() => {
-      window.__eventflowAppleScriptPromise = null;
-    });
-
-    return window.__eventflowAppleScriptPromise;
-  }
-
-  async function fetchAppleNonce() {
-    const res = await fetch(APPLE_NONCE_PATH, {
+  async function fetchFacebookCsrf() {
+    const res = await fetch(FACEBOOK_CSRF_PATH, {
       credentials: 'include',
       cache: 'no-store',
     });
     if (!res.ok) {
-      throw new Error('Failed to obtain Apple sign-in nonce');
+      throw new Error('Failed to obtain Facebook sign-in CSRF token');
     }
     const data = await res.json();
-    if (!data || !data.nonce) {
-      throw new Error('Apple sign-in nonce missing from response');
+    if (!data || !data.csrf) {
+      throw new Error('Facebook sign-in CSRF token missing from response');
     }
-    return data.nonce;
+    return data.csrf;
   }
 
-  function bindAppleButton(button, clientId, context) {
+  function bindFacebookButton(button, appId, context) {
     if (!button) {
       return;
     }
@@ -295,7 +248,7 @@
         const readiness = getSupplierReadiness();
         if (!readiness.ready) {
           setStatus(
-            `Please add your ${readiness.missing.join(' and ')} before continuing with Apple as a supplier.`,
+            `Please add your ${readiness.missing.join(' and ')} before continuing with Facebook as a supplier.`,
             'warning'
           );
           return;
@@ -306,45 +259,38 @@
       setStatus('', 'info');
 
       try {
-        const nonce = await fetchAppleNonce();
-        const state = buildAppleState(context, nonce);
-
-        window.AppleID.auth.init({
-          clientId,
-          scope: 'name email',
-          redirectURI: getAppleLoginUri(),
+        const csrf = await fetchFacebookCsrf();
+        const state = buildFacebookState(context, csrf);
+        const params = new URLSearchParams({
+          client_id: appId,
+          redirect_uri: getFacebookLoginUri(),
           state: encodeState(state),
-          nonce,
-          usePopup: false,
+          scope: 'email',
+          response_type: 'code',
         });
-
-        await window.AppleID.auth.signIn();
+        window.location.href = `${FACEBOOK_OAUTH_DIALOG}?${params.toString()}`;
       } catch (error) {
         button.removeAttribute('aria-busy');
         setStatus(
-          'Apple sign-in could not be started. Please try again or use email login.',
+          'Facebook sign-in could not be started. Please try again or use email login.',
           'error'
         );
       }
     });
   }
 
-  async function initAppleAuth() {
-    if (!APPLE_SIGNIN_ENABLED) {
-      return;
-    }
+  async function initFacebookAuth() {
+    showFacebookRedirectErrorFromQuery();
 
-    showAppleRedirectErrorFromQuery();
-
-    const signInWrap = document.getElementById('apple-signin-wrap');
-    const signUpWrap = document.getElementById('apple-signup-wrap');
+    const signInWrap = document.getElementById('facebook-signin-wrap');
+    const signUpWrap = document.getElementById('facebook-signup-wrap');
     if (!signInWrap && !signUpWrap) {
       return;
     }
 
     let config = {};
     try {
-      const res = await fetch('/api/v1/config?appleAuth=1', {
+      const res = await fetch('/api/v1/config?facebookAuth=1', {
         credentials: 'include',
         cache: 'no-store',
       });
@@ -353,60 +299,50 @@
       return;
     }
 
-    if (!config.appleClientId) {
-      return;
-    }
-
-    try {
-      await loadAppleScript();
-    } catch {
-      return;
-    }
-
-    if (!window.AppleID?.auth) {
+    if (!config.facebookAppId) {
       return;
     }
 
     if (signInWrap) {
       signInWrap.hidden = false;
-      bindAppleButton(
-        document.getElementById('apple-signin-button'),
-        config.appleClientId,
+      bindFacebookButton(
+        document.getElementById('facebook-signin-button'),
+        config.facebookAppId,
         'signin'
       );
     }
 
     if (signUpWrap) {
       signUpWrap.hidden = false;
-      bindAppleButton(
-        document.getElementById('apple-signup-button'),
-        config.appleClientId,
+      bindFacebookButton(
+        document.getElementById('facebook-signup-button'),
+        config.facebookAppId,
         'signup'
       );
-      syncAppleSignupButtonReadiness();
+      syncFacebookSignupButtonReadiness();
 
       document
         .querySelectorAll(
           '#reg-role, #reg-location, #reg-postcode, #reg-company, #reg-jobtitle, #reg-website, #reg-instagram, #reg-facebook, #reg-twitter, #reg-linkedin'
         )
         .forEach(el => {
-          el.addEventListener('input', syncAppleSignupButtonReadiness);
-          el.addEventListener('change', syncAppleSignupButtonReadiness);
+          el.addEventListener('input', syncFacebookSignupButtonReadiness);
+          el.addEventListener('change', syncFacebookSignupButtonReadiness);
         });
 
       document
         .querySelectorAll('.auth-role-picker [data-role], .role-toggle [data-role]')
         .forEach(btn => {
           btn.addEventListener('click', () => {
-            window.setTimeout(syncAppleSignupButtonReadiness, 0);
+            window.setTimeout(syncFacebookSignupButtonReadiness, 0);
           });
         });
     }
   }
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initAppleAuth);
+    document.addEventListener('DOMContentLoaded', initFacebookAuth);
   } else {
-    initAppleAuth();
+    initFacebookAuth();
   }
 })();

@@ -33,7 +33,7 @@ const POLICY_METADATA = Object.freeze({
     title: 'Privacy Notice',
     url: '/privacy',
     sourcePath: 'public/privacy.html',
-    version: '1.2',
+    version: '1.3',
     lastMaterialUpdate: '2026-08-17',
     effectiveFrom: '2026-08-17',
     lastReviewed: '2026-08-17',

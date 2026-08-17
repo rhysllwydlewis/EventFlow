@@ -38,6 +38,7 @@ const googleAuthService = require('../services/googleAuth.service');
 const userProvenance = require('../services/userProvenance.service');
 const partnerRegistrationRisk = require('../services/partnerRegistrationRiskService');
 const { ensureSupplierProfileForUser } = require('../services/supplierProfileProvisioning.service');
+const { getFounderSignupBadges } = require('../utils/founderBadge');
 
 const router = express.Router();
 const supplierRegistrationRiskGuard = partnerRegistrationRisk.registrationRiskGuard({
@@ -335,15 +336,8 @@ router.post(
       : {};
 
     // Determine founder badge eligibility
-    const founderLaunchTs = process.env.FOUNDER_LAUNCH_TS || '2026-01-01T00:00:00Z';
-    const founderLaunchDate = new Date(founderLaunchTs);
-    const founderEndDate = new Date(founderLaunchDate);
-    founderEndDate.setUTCMonth(founderEndDate.getUTCMonth() + 6); // 6 months from launch
-
-    const now = new Date();
-    const badges = [];
-    if (now <= founderEndDate) {
-      badges.push('founder');
+    const badges = getFounderSignupBadges();
+    if (badges.includes('founder')) {
       logger.info('Founder badge awarded (new user registered within 6 months of launch)');
     }
 
@@ -752,11 +746,7 @@ function buildGoogleUser({
   );
   const [derivedFirstName, ...derivedLastParts] = fullName.split(/\s+/);
 
-  const founderLaunchTs = process.env.FOUNDER_LAUNCH_TS || '2026-01-01T00:00:00Z';
-  const founderLaunchDate = new Date(founderLaunchTs);
-  const founderEndDate = new Date(founderLaunchDate);
-  founderEndDate.setUTCMonth(founderEndDate.getUTCMonth() + 6);
-  const badges = new Date() <= founderEndDate ? ['founder'] : [];
+  const badges = getFounderSignupBadges();
 
   const isOwner = domainAdmin.isOwnerEmail(email);
   const roleDecision = domainAdmin.determineRole(email, roleFinal, true);
@@ -958,6 +948,29 @@ router.post('/google', strictAuthLimiter, csrfProtection, async (req, res) => {
             code: 'REGISTRATION_RISK_UNAVAILABLE',
           });
         }
+
+        try {
+          await ensureSupplierProfileForUser(user);
+        } catch (profileError) {
+          logger.error('[GOOGLE-AUTH] failed to provision supplier profile; rolling back user', {
+            userId: user.id,
+            email: user.email,
+            error: profileError.message,
+          });
+          const rolledBack = await dbUnified.deleteOne('users', { id: user.id });
+          if (!rolledBack) {
+            await dbUnified.updateOne(
+              'users',
+              { id: user.id },
+              { $set: { supplierSetupStatus: 'profile_creation_failed' } }
+            );
+          }
+          return res.status(500).json({
+            error: 'Failed to create supplier profile. Please try again.',
+            code: 'SUPPLIER_PROFILE_PROVISIONING_FAILED',
+          });
+        }
+
         await recordSupplierPartnerReferral(refCode, user);
       }
     }
