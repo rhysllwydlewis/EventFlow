@@ -20,19 +20,6 @@ function normaliseEmail(rawEmail) {
     .toLowerCase();
 }
 
-// `email` and `reason` both flow from the Postmark webhook payload (or, for
-// `reason`, from this module's own constants — but nothing here proves that
-// to static analysis). Strip newlines/carriage-returns before interpolating
-// either into a log line so a crafted value can't forge additional log
-// entries (CodeQL js/log-injection).
-function forLog(value) {
-  return String(value === null || value === undefined ? '' : value)
-    .split('\n')
-    .join(' ')
-    .split('\r')
-    .join(' ');
-}
-
 async function suppressEmail(rawEmail, reason, extraUserFields = {}) {
   const email = normaliseEmail(rawEmail);
   if (!email) {
@@ -68,7 +55,13 @@ async function suppressEmail(rawEmail, reason, extraUserFields = {}) {
   ]);
 
   if (usersUpdated || newsletterUpdated) {
-    logger.warn(`[email-suppression] Suppressed ${forLog(email)} (${forLog(reason)})`, {
+    // `email` and `reason` come from the Postmark webhook payload, so they
+    // are passed as structured metadata rather than interpolated into the
+    // log message itself — a crafted value can't forge additional log
+    // entries this way (CodeQL js/log-injection).
+    logger.warn('[email-suppression] Suppressed address', {
+      email,
+      reason,
       usersUpdated: Boolean(usersUpdated),
       newsletterUpdated: Boolean(newsletterUpdated),
     });

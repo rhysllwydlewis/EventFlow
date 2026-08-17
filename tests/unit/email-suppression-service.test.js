@@ -4,9 +4,10 @@
  * services/emailSuppression.service.js
  *
  * Includes regression coverage for a CodeQL log-injection finding: `email`
- * (and, in principle, `reason`) come from the Postmark webhook payload and
- * flow directly into a log line. A crafted value containing CR/LF could
- * forge additional log entries if interpolated raw.
+ * (and, in principle, `reason`) come from the Postmark webhook payload.
+ * They're logged as structured metadata rather than interpolated into the
+ * log message string, so a crafted value can't forge additional log
+ * entries by embedding CR/LF into the message itself.
  */
 
 jest.mock('../../db-unified', () => ({
@@ -39,19 +40,20 @@ describe('emailSuppression.service', () => {
       expect.objectContaining({ $set: expect.objectContaining({ emailUnsubscribed: true }) })
     );
     expect(logger.warn).toHaveBeenCalledWith(
-      expect.stringContaining('user@example.com'),
-      expect.anything()
+      expect.any(String),
+      expect.objectContaining({ email: 'user@example.com' })
     );
   });
 
-  it('strips newlines from the email before logging, so a crafted value cannot forge log entries', async () => {
+  it('logs a crafted email as structured metadata, not interpolated into the message, so it cannot forge log entries', async () => {
     const injected = 'user@example.com\n[fake] Admin login succeeded';
 
     await suppressEmail(injected, REASON_HARD_BOUNCE);
 
-    const loggedMessage = logger.warn.mock.calls[0][0];
+    const [loggedMessage, loggedMeta] = logger.warn.mock.calls[0];
     expect(loggedMessage).not.toContain('\n');
     expect(loggedMessage).not.toContain('\r');
+    expect(loggedMeta.email).toBe(injected.toLowerCase());
   });
 
   it('does not throw and returns false/false for an empty email', async () => {
