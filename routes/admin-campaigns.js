@@ -180,12 +180,33 @@ async function collectRecipients(audience) {
   const emailSet = new Set();
   const recipients = [];
 
+  // Read both stores regardless of the requested audience — a recipient
+  // surfaced from one store must still be excluded if the *other* store
+  // says they unsubscribed, otherwise unsubscribing via the newsletter
+  // link doesn't stop marketing sends (and vice versa).
+  const [users, subs] = await Promise.all([
+    dbUnified.read('users').catch(() => []),
+    dbUnified.read('newsletterSubscribers').catch(() => []),
+  ]);
+
+  const suppressed = new Set();
+  for (const u of users || []) {
+    if (u.emailUnsubscribed && u.email) {
+      suppressed.add(String(u.email).toLowerCase().trim());
+    }
+  }
+  for (const s of subs || []) {
+    if (s.status === 'unsubscribed' && s.email) {
+      suppressed.add(String(s.email).toLowerCase().trim());
+    }
+  }
+
   function addRecipient(email, name) {
     if (!email || typeof email !== 'string') {
       return;
     }
     const key = email.toLowerCase().trim();
-    if (emailSet.has(key)) {
+    if (emailSet.has(key) || suppressed.has(key)) {
       return;
     }
     emailSet.add(key);
@@ -193,8 +214,7 @@ async function collectRecipients(audience) {
   }
 
   if (audience === 'marketing' || audience === 'both') {
-    const users = (await dbUnified.read('users')) || [];
-    for (const u of users) {
+    for (const u of users || []) {
       // Must have marketing opt-in and must not be globally unsubscribed
       if ((u.notify_marketing === true || u.marketingOptIn === true) && !u.emailUnsubscribed) {
         addRecipient(u.email, u.name || u.username || '');
@@ -203,8 +223,7 @@ async function collectRecipients(audience) {
   }
 
   if (audience === 'newsletter' || audience === 'both') {
-    const subs = (await dbUnified.read('newsletterSubscribers')) || [];
-    for (const s of subs) {
+    for (const s of subs || []) {
       if (s.status === 'active') {
         addRecipient(s.email, s.name || '');
       }
@@ -508,3 +527,4 @@ module.exports = router;
 module.exports.CAMPAIGN_SAFE_TEMPLATES = CAMPAIGN_SAFE_TEMPLATES;
 module.exports.buildTemplateData = buildTemplateData;
 module.exports.validateCampaignLinks = validateCampaignLinks;
+module.exports.collectRecipients = collectRecipients;

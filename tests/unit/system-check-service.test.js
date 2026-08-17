@@ -16,14 +16,18 @@ jest.mock('node-schedule', () => ({
   }),
 }));
 
+jest.mock('../../utils/sentry', () => ({ captureException: jest.fn() }));
+
 const schedule = require('node-schedule');
 const dbUnified = require('../../db-unified');
+const sentry = require('../../utils/sentry');
 const {
   resolveBaseUrl,
   getCatalog,
   buildChecks,
   runCheck,
   runSystemChecks,
+  runCatchUpIfMissed,
   scheduleChecks,
   getRecentRuns,
 } = require('../../services/systemCheckService');
@@ -434,7 +438,10 @@ describe('scheduleChecks', () => {
 
     scheduleChecks();
 
-    expect(schedule.scheduleJob).toHaveBeenCalledWith('0 6 * * *', expect.any(Function));
+    expect(schedule.scheduleJob).toHaveBeenCalledWith(
+      { rule: '0 6 * * *', tz: 'Etc/UTC' },
+      expect.any(Function)
+    );
   });
 
   it('defaults to 0 3 * * * cron when not set', () => {
@@ -443,7 +450,10 @@ describe('scheduleChecks', () => {
 
     scheduleChecks();
 
-    expect(schedule.scheduleJob).toHaveBeenCalledWith('0 3 * * *', expect.any(Function));
+    expect(schedule.scheduleJob).toHaveBeenCalledWith(
+      { rule: '0 3 * * *', tz: 'Etc/UTC' },
+      expect.any(Function)
+    );
   });
 
   it('returns scheduled=false when SYSTEM_CHECKS_ENABLED=false', () => {
@@ -481,5 +491,63 @@ describe('getRecentRuns', () => {
       {},
       expect.objectContaining({ sort: { startedAt: -1 }, limit: 10 })
     );
+  });
+});
+
+// ── runCatchUpIfMissed ──────────────────────────────────────────────────────
+
+describe('runCatchUpIfMissed', () => {
+  const originalFetch = global.fetch;
+
+  beforeEach(() => {
+    dbUnified.findWithOptions.mockClear();
+    dbUnified.insertOne.mockClear();
+    sentry.captureException.mockClear();
+    global.fetch = mockFetch(200);
+  });
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+  });
+
+  it('runs a check when there is no recorded run at all', async () => {
+    dbUnified.findWithOptions.mockResolvedValueOnce([]);
+
+    await runCatchUpIfMissed();
+
+    expect(dbUnified.insertOne).toHaveBeenCalledWith(
+      'system_checks',
+      expect.objectContaining({ status: expect.any(String) })
+    );
+  });
+
+  it('runs a check when the last run is older than 24 hours', async () => {
+    dbUnified.findWithOptions.mockResolvedValueOnce([
+      { finishedAt: new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString() },
+    ]);
+
+    await runCatchUpIfMissed();
+
+    expect(dbUnified.insertOne).toHaveBeenCalled();
+  });
+
+  it('does nothing when a run already happened within the last 24 hours', async () => {
+    dbUnified.findWithOptions.mockResolvedValueOnce([
+      { finishedAt: new Date(Date.now() - 60 * 60 * 1000).toISOString() },
+    ]);
+
+    await runCatchUpIfMissed();
+
+    expect(dbUnified.insertOne).not.toHaveBeenCalled();
+  });
+
+  it('never throws even if runSystemChecks itself rejects unexpectedly', async () => {
+    dbUnified.findWithOptions.mockResolvedValueOnce([]);
+    // getRecentRuns() succeeds, but building the checks throws synchronously.
+    global.fetch = jest.fn(() => {
+      throw new Error('unexpected failure');
+    });
+
+    await expect(runCatchUpIfMissed()).resolves.toBeUndefined();
   });
 });

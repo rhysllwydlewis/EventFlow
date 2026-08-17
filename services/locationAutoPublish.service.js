@@ -28,6 +28,8 @@ const schedule = require('node-schedule');
 const dbUnified = require('../db-unified');
 const logger = require('../utils/logger');
 const backgroundJobs = require('./backgroundJobTelemetry.service');
+const schedulerLock = require('./schedulerLock.service');
+const { runScheduledJob, runIfMissed } = require('./scheduledJobRunner');
 const registry = require('./locationRegistry.service');
 const supplierLocation = require('./supplierLocation.service');
 const locationPages = require('./locationPage.service');
@@ -39,6 +41,7 @@ const MIN_SUPPLIERS_TO_PUBLISH = 3;
 
 const MANAGED_BY_AUTOMATION = 'automation';
 const DEFAULT_CRON = '30 3 * * *';
+const EXPECTED_INTERVAL_MS = 24 * 60 * 60 * 1000;
 
 let promotionRunning = false;
 
@@ -149,39 +152,32 @@ function scheduleAutoPublish({ db = dbUnified, log = logger, scheduleModule = sc
   }
 
   const cronExpr = process.env.LOCATION_AUTO_PUBLISH_CRON || DEFAULT_CRON;
-  const job = scheduleModule.scheduleJob(cronExpr, async () => {
-    const startedAt = new Date();
-    try {
-      const result = await promoteEligibleCities({ db, log });
-      await backgroundJobs.recordRun(
-        {
-          jobKey: backgroundJobs.JOB_KEYS.LOCATION_AUTO_PUBLISH,
-          status: result.skipped ? 'skipped' : 'success',
-          startedAt,
-          finishedAt: new Date(),
-          metrics: { checked: result.checked, promoted: result.promoted },
-        },
-        { db, log }
-      );
-    } catch (error) {
-      log.error('[location-auto-publish] Scheduled run failed:', error.message);
-      await backgroundJobs.recordRun(
-        {
-          jobKey: backgroundJobs.JOB_KEYS.LOCATION_AUTO_PUBLISH,
-          status: 'failed',
-          startedAt,
-          finishedAt: new Date(),
-          error: error.message,
-        },
-        { db, log }
-      );
-    }
-  });
+  const runOnce = () => promoteEligibleCities({ db, log });
+  const runTracked = () =>
+    schedulerLock.withLock(backgroundJobs.JOB_KEYS.LOCATION_AUTO_PUBLISH, () =>
+      runScheduledJob(backgroundJobs.JOB_KEYS.LOCATION_AUTO_PUBLISH, runOnce, { db, log })
+    );
+
+  // Pinned explicitly rather than relying on the container's default timezone.
+  const job = scheduleModule.scheduleJob({ rule: cronExpr, tz: 'Etc/UTC' }, runTracked);
 
   if (!job) {
     log.error('[location-auto-publish] Invalid cron:', cronExpr);
     return { scheduled: false, cronExpr, nextRun: null };
   }
+
+  // Publishing is idempotent (never re-processes a city it already
+  // published or demotes one whose coverage later dips), so it's safe to
+  // catch up on every boot if a scheduled tick was genuinely missed.
+  setImmediate(() =>
+    schedulerLock.withLock(backgroundJobs.JOB_KEYS.LOCATION_AUTO_PUBLISH, () =>
+      runIfMissed(backgroundJobs.JOB_KEYS.LOCATION_AUTO_PUBLISH, runOnce, {
+        expectedIntervalMs: EXPECTED_INTERVAL_MS,
+        db,
+        log,
+      })
+    )
+  );
 
   const nextRun = job.nextInvocation();
   log.info(

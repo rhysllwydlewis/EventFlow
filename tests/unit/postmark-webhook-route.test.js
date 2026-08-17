@@ -261,4 +261,136 @@ describe('postmark webhook route', () => {
       .send({ RecordType: 'Delivery', MessageID: 'known-message' })
       .expect(503);
   });
+
+  describe('bounce/complaint suppression', () => {
+    test('a hard bounce suppresses the user and the matching newsletter subscriber', async () => {
+      const { app, dbUnified } = loadApp({
+        POSTMARK_WEBHOOK_USER: 'postmark',
+        POSTMARK_WEBHOOK_PASS: 'secret',
+      });
+
+      const res = await request(app)
+        .post('/api/webhooks/postmark')
+        .set('Authorization', auth('postmark', 'secret'))
+        .send({
+          RecordType: 'Bounce',
+          Type: 'HardBounce',
+          MessageID: 'missing',
+          Email: 'Bounced@Example.com',
+        })
+        .expect(200);
+
+      expect(res.body.suppression).toEqual({ usersUpdated: true, newsletterUpdated: true });
+      expect(dbUnified.updateOne).toHaveBeenCalledWith(
+        'users',
+        { email: 'bounced@example.com' },
+        { $set: expect.objectContaining({ emailUnsubscribed: true, emailBounced: true }) }
+      );
+      expect(dbUnified.updateOne).toHaveBeenCalledWith(
+        'newsletterSubscribers',
+        { email: 'bounced@example.com' },
+        { $set: expect.objectContaining({ status: 'unsubscribed' }) }
+      );
+    });
+
+    test('a soft bounce does not suppress the address', async () => {
+      const { app, dbUnified } = loadApp({
+        POSTMARK_WEBHOOK_USER: 'postmark',
+        POSTMARK_WEBHOOK_PASS: 'secret',
+      });
+
+      const res = await request(app)
+        .post('/api/webhooks/postmark')
+        .set('Authorization', auth('postmark', 'secret'))
+        .send({
+          RecordType: 'Bounce',
+          Type: 'SoftBounce',
+          MessageID: 'missing',
+          Email: 'soft@example.com',
+        })
+        .expect(200);
+
+      expect(res.body.suppression).toEqual({ usersUpdated: false, newsletterUpdated: false });
+      expect(dbUnified.updateOne).not.toHaveBeenCalledWith(
+        'users',
+        expect.anything(),
+        expect.anything()
+      );
+    });
+
+    test('a spam complaint suppresses the user even without a matching email log', async () => {
+      const { app, dbUnified } = loadApp({
+        POSTMARK_WEBHOOK_USER: 'postmark',
+        POSTMARK_WEBHOOK_PASS: 'secret',
+      });
+
+      const res = await request(app)
+        .post('/api/webhooks/postmark')
+        .set('Authorization', auth('postmark', 'secret'))
+        .send({
+          RecordType: 'SpamComplaint',
+          MessageID: 'missing',
+          Email: 'complainer@example.com',
+        })
+        .expect(200);
+
+      expect(res.body.suppression).toEqual({ usersUpdated: true, newsletterUpdated: true });
+      expect(dbUnified.updateOne).toHaveBeenCalledWith(
+        'users',
+        { email: 'complainer@example.com' },
+        { $set: expect.objectContaining({ emailUnsubscribedReason: 'spam_complaint' }) }
+      );
+    });
+
+    test('a link-tracker unsubscribe with SuppressSending suppresses the recipient', async () => {
+      const { app, dbUnified } = loadApp({
+        POSTMARK_WEBHOOK_USER: 'postmark',
+        POSTMARK_WEBHOOK_PASS: 'secret',
+      });
+
+      const res = await request(app)
+        .post('/api/webhooks/postmark')
+        .set('Authorization', auth('postmark', 'secret'))
+        .send({
+          RecordType: 'SubscriptionChange',
+          MessageID: 'missing',
+          Recipient: 'linkout@example.com',
+          SuppressSending: true,
+        })
+        .expect(200);
+
+      expect(res.body.suppression).toEqual({ usersUpdated: true, newsletterUpdated: true });
+      expect(dbUnified.updateOne).toHaveBeenCalledWith(
+        'newsletterSubscribers',
+        { email: 'linkout@example.com' },
+        { $set: expect.objectContaining({ unsubscribedReason: 'link_tracker_unsubscribe' }) }
+      );
+    });
+
+    test('a suppression failure does not fail the webhook response', async () => {
+      const { app, dbUnified } = loadApp({
+        POSTMARK_WEBHOOK_USER: 'postmark',
+        POSTMARK_WEBHOOK_PASS: 'secret',
+      });
+      dbUnified.updateOne.mockImplementation(async collection => {
+        if (collection === 'users' || collection === 'newsletterSubscribers') {
+          throw new Error('db unavailable');
+        }
+        return { matchedCount: 1, modifiedCount: 1 };
+      });
+
+      const res = await request(app)
+        .post('/api/webhooks/postmark')
+        .set('Authorization', auth('postmark', 'secret'))
+        .send({
+          RecordType: 'SpamComplaint',
+          MessageID: 'missing',
+          Email: 'complainer@example.com',
+        })
+        .expect(200);
+
+      expect(res.body.ok).toBe(true);
+      expect(res.body.suppression).toEqual({ usersUpdated: false, newsletterUpdated: false });
+    });
+  });
 });

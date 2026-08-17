@@ -37,6 +37,12 @@ ENV PORT=3000
 # NODE_ENV is set at build time; override via Railway/Docker environment variables if needed.
 ENV NODE_ENV=production
 ENV EVENTFLOW_PROCESS_TYPE=web
+# Pin the container clock explicitly rather than relying on the base image's
+# default. node-schedule's cron rules run in this timezone unless a job
+# passes an explicit `tz` option (see services/*Scheduler.js) — without this,
+# "9am" only means UTC by accident of the node:alpine base image, not by
+# contract, and would silently drift on a base-image or platform change.
+ENV TZ=UTC
 
 # Expose the port for documentation purposes
 EXPOSE 3000

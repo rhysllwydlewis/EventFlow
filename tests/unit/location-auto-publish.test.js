@@ -204,7 +204,10 @@ describe('location auto-publish', () => {
 
       expect(result.scheduled).toBe(true);
       expect(result.cronExpr).toBe('0 4 * * *');
-      expect(scheduleModule.scheduleJob).toHaveBeenCalledWith('0 4 * * *', expect.any(Function));
+      expect(scheduleModule.scheduleJob).toHaveBeenCalledWith(
+        { rule: '0 4 * * *', tz: 'Etc/UTC' },
+        expect.any(Function)
+      );
     });
 
     it('reports a scheduling failure for an invalid cron rather than throwing', () => {

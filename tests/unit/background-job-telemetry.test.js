@@ -141,7 +141,7 @@ describe('background job telemetry', () => {
       log: { warn: jest.fn() },
     });
 
-    expect(data.jobs).toHaveLength(7);
+    expect(data.jobs).toHaveLength(9);
     expect(data.jobs.find(job => job.key === JOB_KEYS.REVIEW_REQUEST_MAINTENANCE)).toEqual(
       expect.objectContaining({ health: 'healthy', telemetry: 'full' })
     );
@@ -158,7 +158,7 @@ describe('background job telemetry', () => {
     expect(data.jobs.find(job => job.key === JOB_KEYS.DATE_MANAGEMENT).nextRun).toBe(
       '2026-08-01T02:00:00.000Z'
     );
-    expect(data.summary).toEqual(expect.objectContaining({ total: 7, attention: 0, unknown: 4 }));
+    expect(data.summary).toEqual(expect.objectContaining({ total: 9, attention: 0, unknown: 6 }));
   });
 
   test('does not mark update-only legacy evidence overdue', () => {

@@ -18,11 +18,29 @@ EventFlow provides comprehensive verification systems for both phone numbers and
 
 ```javascript
 {
+  // Canonical trust field — this is what gates verified-only features
+  // (e.g. services/actionPromptService.js's supplier reminder scheduler).
+  verified: boolean,
+  verifiedAt: datetime,
+  verificationMethod: string, // e.g. 'eventflow_email', 'manual_admin'
+  verifiedBy: { type: string, reason: string },
+
+  // Set alongside `verified` by GET /api/auth/verify-email/:token via
+  // userProvenance.eventflowEmailVerifiedProvenance(). Kept for backwards
+  // compatibility and UI copy that specifically means "email address
+  // confirmed" rather than "account trusted" — always check `verified`
+  // first, and fall back to `emailVerified` only for records created
+  // before the two fields were consolidated onto one write path.
   emailVerified: boolean,
   emailVerificationToken: string,
   emailVerificationExpires: datetime
 }
 ```
+
+> Pre-existing accounts verified before this consolidation may have
+> `emailVerified: true` with `verified` unset. Run
+> `node scripts/backfill-verified-field.js` (see script header for
+> `--dry-run`) to backfill them.
 
 ### API Endpoints
 

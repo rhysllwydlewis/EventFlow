@@ -81,14 +81,63 @@ describe('services/notificationCleanupScheduler.js', () => {
   });
 
   describe('start()/stop()', () => {
-    it('schedules a daily job and reports the next run time', () => {
+    const originalNodeEnv = process.env.NODE_ENV;
+    const originalEnabled = process.env.NOTIFICATION_CLEANUP_ENABLED;
+    const originalCron = process.env.NOTIFICATION_CLEANUP_CRON;
+
+    afterEach(() => {
+      process.env.NODE_ENV = originalNodeEnv;
+      if (originalEnabled === undefined) {
+        delete process.env.NOTIFICATION_CLEANUP_ENABLED;
+      } else {
+        process.env.NOTIFICATION_CLEANUP_ENABLED = originalEnabled;
+      }
+      if (originalCron === undefined) {
+        delete process.env.NOTIFICATION_CLEANUP_CRON;
+      } else {
+        process.env.NOTIFICATION_CLEANUP_CRON = originalCron;
+      }
+    });
+
+    it('is disabled by default outside production, even with nothing else configured', () => {
+      process.env.NODE_ENV = 'test';
+      delete process.env.NOTIFICATION_CLEANUP_ENABLED;
+
       const result = scheduler.start();
 
-      expect(schedule.scheduleJob).toHaveBeenCalledWith('20 3 * * *', expect.any(Function));
+      expect(schedule.scheduleJob).not.toHaveBeenCalled();
+      expect(result).toEqual({ scheduled: false, nextRun: null });
+    });
+
+    it('schedules a daily job and reports the next run time when explicitly enabled', () => {
+      process.env.NOTIFICATION_CLEANUP_ENABLED = 'true';
+
+      const result = scheduler.start();
+
+      expect(schedule.scheduleJob).toHaveBeenCalledWith(
+        { rule: '20 3 * * *', tz: 'Etc/UTC' },
+        expect.any(Function)
+      );
       expect(result).toEqual({ scheduled: true, nextRun: new Date('2026-01-01T03:20:00.000Z') });
     });
 
+    it('honors NOTIFICATION_CLEANUP_CRON instead of the hard-coded default', () => {
+      // backgroundJobTelemetry.service.js's getDefinitions() advertises
+      // NOTIFICATION_CLEANUP_CRON as the active schedule on the dashboard —
+      // this scheduler must actually use it, not just the 03:20 default.
+      process.env.NOTIFICATION_CLEANUP_ENABLED = 'true';
+      process.env.NOTIFICATION_CLEANUP_CRON = '0 5 * * *';
+
+      scheduler.start();
+
+      expect(schedule.scheduleJob).toHaveBeenCalledWith(
+        { rule: '0 5 * * *', tz: 'Etc/UTC' },
+        expect.any(Function)
+      );
+    });
+
     it('cancels any previously scheduled job before scheduling a new one', () => {
+      process.env.NOTIFICATION_CLEANUP_ENABLED = 'true';
       scheduler.start();
       const firstJob = schedule.scheduleJob.mock.results[0].value;
 
@@ -99,6 +148,7 @@ describe('services/notificationCleanupScheduler.js', () => {
     });
 
     it('stop() cancels the scheduled job and clears the reference', () => {
+      process.env.NOTIFICATION_CLEANUP_ENABLED = 'true';
       scheduler.start();
       const job = schedule.scheduleJob.mock.results[0].value;
 

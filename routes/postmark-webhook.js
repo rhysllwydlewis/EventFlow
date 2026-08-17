@@ -5,6 +5,7 @@ const express = require('express');
 const logger = require('../utils/logger');
 const dbUnified = require('../db-unified');
 const emailLogService = require('../services/emailLog.service');
+const emailSuppression = require('../services/emailSuppression.service');
 const { removeLoadedRouterRoute } = require('../utils/legacyRouterRoute');
 
 const removedLegacyPostmarkRoutes = removeLoadedRouterRoute(
@@ -157,6 +158,15 @@ router.post('/postmark', express.json({ limit: '128kb' }), async (req, res) => {
         syncError.message
       );
       result.reviewRequestUpdated = false;
+    }
+    try {
+      result.suppression = await emailSuppression.applyWebhookSuppression(normalizedPayload);
+    } catch (suppressionError) {
+      logger.warn(
+        '[postmark-webhook] Email log updated but suppression handling failed:',
+        suppressionError.message
+      );
+      result.suppression = { usersUpdated: false, newsletterUpdated: false };
     }
     return res.json({ ok: true, ...result });
   } catch (err) {

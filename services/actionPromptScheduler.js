@@ -18,6 +18,9 @@
 
 const schedule = require('node-schedule');
 const crypto = require('crypto');
+const sentry = require('../utils/sentry');
+const { JOB_KEYS } = require('./backgroundJobTelemetry.service');
+const schedulerLock = require('./schedulerLock.service');
 const {
   getSupplierActionItems,
   evaluateCadence,
@@ -29,6 +32,7 @@ const dbUnified = require('../db-unified');
 
 const DEFAULT_CRON = '0 9 * * *'; // 09:00 every day
 const CRON_POLL_INTERVAL_MS = 5 * 60 * 1000; // Check for DB cron changes every 5 minutes
+const EXPECTED_INTERVAL_MS = 24 * 60 * 60 * 1000;
 
 // In-memory lock to prevent overlapping runs
 let _running = false;
@@ -546,13 +550,17 @@ function _rescheduleJob(newCronExpr) {
     logger.info(`[ActionPrompts] Cancelled previous job (was: "${_activeCronExpr}")`);
   }
 
-  const job = schedule.scheduleJob(newCronExpr, async () => {
-    try {
-      await runActionPrompts();
-    } catch (err) {
-      logger.error('[ActionPrompts] Scheduled run failed:', err.message);
-    }
-  });
+  // Pinned explicitly rather than relying on the container's default timezone.
+  const job = schedule.scheduleJob({ rule: newCronExpr, tz: 'Etc/UTC' }, () =>
+    schedulerLock.withLock(JOB_KEYS.ACTION_PROMPTS, async () => {
+      try {
+        await runActionPrompts();
+      } catch (err) {
+        logger.error('[ActionPrompts] Scheduled run failed:', err.message);
+        sentry.captureException(err, { tags: { scheduledJob: JOB_KEYS.ACTION_PROMPTS } });
+      }
+    })
+  );
 
   if (!job) {
     logger.error(
@@ -569,6 +577,34 @@ function _rescheduleJob(newCronExpr) {
   logger.info(
     `[ActionPrompts] Scheduled: cron="${newCronExpr}", nextRun=${nextRun ? nextRun.toISOString() : 'unknown'}`
   );
+}
+
+/**
+ * Runs a catch-up pass at startup only if the last recorded run is older
+ * than the expected daily interval — recovers a day genuinely missed by a
+ * restart near the scheduled hour. Safe to run unconditionally on every
+ * boot despite sending real email: sends are gated per-supplier by
+ * evaluateCadence()'s stored `nextSendAt`, so a supplier already emailed
+ * today by the regular tick is not re-emailed by this catch-up, and one
+ * that's genuinely overdue gets the reminder it would otherwise have
+ * silently missed for a full extra day.
+ */
+async function runCatchUpIfMissed() {
+  try {
+    const settings = (await dbUnified.read('settings')) || {};
+    const lastRun = settings.emailAutomation?.actionPrompts?.lastRun;
+    const lastFinishedAt = lastRun ? Date.parse(lastRun.finishedAt || '') : NaN;
+    const isStale =
+      !Number.isFinite(lastFinishedAt) || Date.now() - lastFinishedAt > EXPECTED_INTERVAL_MS;
+    if (!isStale) {
+      return;
+    }
+    logger.info('[ActionPrompts] No recent run found — running a missed-tick catch-up now');
+    await runActionPrompts({ trigger: 'missed-run-catchup' });
+  } catch (err) {
+    logger.error('[ActionPrompts] Missed-run catch-up failed:', err.message);
+    sentry.captureException(err, { tags: { scheduledJob: JOB_KEYS.ACTION_PROMPTS } });
+  }
 }
 
 /**
@@ -594,6 +630,8 @@ function scheduleActionPrompts() {
   if (!_activeJob) {
     return { scheduled: false, cronExpr, nextRun: null };
   }
+
+  setImmediate(() => schedulerLock.withLock(JOB_KEYS.ACTION_PROMPTS, runCatchUpIfMissed));
 
   // Periodic poll to detect DB cron changes
   setInterval(async () => {
@@ -642,6 +680,7 @@ async function notifyCronChanged() {
 
 module.exports = {
   runActionPrompts,
+  runCatchUpIfMissed,
   scheduleActionPrompts,
   notifyCronChanged,
   generateActionPromptUnsubscribeToken,

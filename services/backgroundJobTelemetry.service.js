@@ -18,6 +18,8 @@ const JOB_KEYS = Object.freeze({
   REVIEW_REQUEST_MAINTENANCE: 'review-request-maintenance',
   LOCATION_AUTO_PUBLISH: 'location-auto-publish',
   COMMUNITY_DIGEST: 'community-digest',
+  CONTENT_REVIEW: 'content-review',
+  NOTIFICATION_CLEANUP: 'notification-cleanup',
 });
 
 function envEnabled(name, defaultValue) {
@@ -114,10 +116,10 @@ async function recordRun(
   try {
     const inserted = await db.insertOne(COLLECTION, document);
     if (!inserted) {
-      log.warn(`[background-jobs] Run was not persisted for ${jobKey}`);
+      safeWarn(log, `[background-jobs] Run was not persisted for ${jobKey}`);
     }
   } catch (persistError) {
-    log.warn(`[background-jobs] Could not persist run for ${jobKey}:`, persistError.message);
+    safeWarn(log, `[background-jobs] Could not persist run for ${jobKey}:`, persistError.message);
   }
 
   return document;
@@ -218,6 +220,32 @@ function getDefinitions(now = new Date()) {
       schedule: process.env.COMMUNITY_DIGEST_DAILY_CRON || '0 8 * * *',
       scheduleSource: process.env.COMMUNITY_DIGEST_DAILY_CRON ? 'environment' : 'default',
       enabled: envEnabled('COMMUNITY_DIGEST_ENABLED', production),
+      expectedIntervalMs: 24 * 60 * 60 * 1000,
+      staleAfterMs: 36 * 60 * 60 * 1000,
+      legacyTelemetry: null,
+      legacyFreshnessReliable: false,
+    },
+    {
+      key: JOB_KEYS.CONTENT_REVIEW,
+      name: 'Content review tasks',
+      description: 'Creates monthly content-review tasks and inspects recent deployment changes.',
+      source: 'services/contentReviewScheduler.js',
+      schedule: '17 8 * * *',
+      scheduleSource: 'default',
+      enabled: envEnabled('CONTENT_REVIEW_ENABLED', production),
+      expectedIntervalMs: 24 * 60 * 60 * 1000,
+      staleAfterMs: 36 * 60 * 60 * 1000,
+      legacyTelemetry: null,
+      legacyFreshnessReliable: false,
+    },
+    {
+      key: JOB_KEYS.NOTIFICATION_CLEANUP,
+      name: 'Notification cleanup',
+      description: 'Purges expired and stale in-app notifications.',
+      source: 'services/notificationCleanupScheduler.js',
+      schedule: process.env.NOTIFICATION_CLEANUP_CRON || '20 3 * * *',
+      scheduleSource: process.env.NOTIFICATION_CLEANUP_CRON ? 'environment' : 'default',
+      enabled: envEnabled('NOTIFICATION_CLEANUP_ENABLED', production),
       expectedIntervalMs: 24 * 60 * 60 * 1000,
       staleAfterMs: 36 * 60 * 60 * 1000,
       legacyTelemetry: null,
@@ -348,11 +376,19 @@ function normaliseReviewActivity(run) {
   );
 }
 
+// Callers throughout this codebase pass a variety of partial logger mocks
+// (e.g. `{ info, error }` with no `warn`) into scheduler dependencies. Fall
+// back rather than let a logging call itself crash the process.
+function safeWarn(log, ...args) {
+  const warn = (log && log.warn) || (log && log.error) || logger.warn;
+  warn(...args);
+}
+
 async function safeQuery(label, operation, fallback, log = logger) {
   try {
     return await operation();
   } catch (error) {
-    log.warn(`[background-jobs] Could not load ${label}:`, error.message);
+    safeWarn(log, `[background-jobs] Could not load ${label}:`, error.message);
     return fallback;
   }
 }
@@ -547,7 +583,7 @@ async function getDashboardData({
     try {
       dateRuntime = dateService.getStatus();
     } catch (error) {
-      log.warn('[background-jobs] Could not read date service runtime status:', error.message);
+      safeWarn(log, '[background-jobs] Could not read date service runtime status:', error.message);
     }
   }
 
@@ -587,6 +623,31 @@ async function getDashboardData({
   };
 }
 
+/**
+ * Most recent recorded run for a single job, or null if none exists yet.
+ * Used to decide whether a scheduler needs a missed-run catch-up at startup
+ * (see services/scheduledJobRunner.js runIfMissed()).
+ *
+ * `extraFilter` lets a caller narrow within a jobKey that records more than
+ * one logically-distinct run type — e.g. `{ 'metrics.cadence': 'weekly' }`
+ * for a job that shares one jobKey across multiple cadences — so a recent
+ * run of one type isn't mistaken for evidence that another type isn't
+ * overdue.
+ */
+async function getLatestRun(jobKey, { db = dbUnified, log = logger, extraFilter = {} } = {}) {
+  try {
+    const rows = await db.findWithOptions(
+      COLLECTION,
+      { jobKey, ...extraFilter },
+      { sort: { finishedAt: -1 }, limit: 1 }
+    );
+    return rows && rows[0] ? rows[0] : null;
+  } catch (error) {
+    safeWarn(log, `[background-jobs] Could not load latest run for ${jobKey}:`, error.message);
+    return null;
+  }
+}
+
 module.exports = {
   COLLECTION,
   DEFAULT_HISTORY_LIMIT,
@@ -595,6 +656,7 @@ module.exports = {
   estimateNextRun,
   getDashboardData,
   getDefinitions,
+  getLatestRun,
   recordRun,
   sanitizeError,
   sanitizeMetrics,
