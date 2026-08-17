@@ -20,7 +20,7 @@ The intended flow is:
    cookie holding that same value.
 2. The browser is redirected (full page navigation, not a popup) to
    Facebook's OAuth dialog
-   (`https://www.facebook.com/v21.0/dialog/oauth`) with `client_id`,
+   (`https://www.facebook.com/v23.0/dialog/oauth`) with `client_id`,
    `redirect_uri`, `scope=email`, `response_type=code`, and an encoded
    `state` that embeds the CSRF token plus the intended destination and,
    for signups, the chosen account type/company/location.

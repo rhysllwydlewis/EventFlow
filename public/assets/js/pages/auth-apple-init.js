@@ -160,6 +160,16 @@
     return { ready: missing.length === 0, role: snapshot.role, missing };
   }
 
+  function syncAppleSignupButtonReadiness() {
+    const button = document.getElementById('apple-signup-button');
+    if (!button) {
+      return;
+    }
+    const readiness = getSupplierReadiness();
+    button.classList.toggle('auth-apple-button--disabled', !readiness.ready);
+    button.setAttribute('aria-disabled', readiness.ready ? 'false' : 'true');
+  }
+
   function buildAppleState(context, csrf) {
     const params = new URLSearchParams(window.location.search);
     const normalizedContext = context === 'signup' ? 'signup' : 'signin';
@@ -373,6 +383,24 @@
         config.appleClientId,
         'signup'
       );
+      syncAppleSignupButtonReadiness();
+
+      document
+        .querySelectorAll(
+          '#reg-role, #reg-location, #reg-postcode, #reg-company, #reg-jobtitle, #reg-website, #reg-instagram, #reg-facebook, #reg-twitter, #reg-linkedin'
+        )
+        .forEach(el => {
+          el.addEventListener('input', syncAppleSignupButtonReadiness);
+          el.addEventListener('change', syncAppleSignupButtonReadiness);
+        });
+
+      document
+        .querySelectorAll('.auth-role-picker [data-role], .role-toggle [data-role]')
+        .forEach(btn => {
+          btn.addEventListener('click', () => {
+            window.setTimeout(syncAppleSignupButtonReadiness, 0);
+          });
+        });
     }
   }
 

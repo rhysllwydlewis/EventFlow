@@ -2,7 +2,10 @@
 
 const logger = require('../utils/logger');
 
-const GRAPH_API_VERSION = process.env.FACEBOOK_GRAPH_API_VERSION || 'v21.0';
+// Meta retires each Graph API version roughly two years after release — check
+// https://developers.facebook.com/docs/graph-api/changelog for the current
+// version and bump this default periodically, or override via the env var.
+const GRAPH_API_VERSION = process.env.FACEBOOK_GRAPH_API_VERSION || 'v23.0';
 const GRAPH_API_BASE = `https://graph.facebook.com/${GRAPH_API_VERSION}`;
 const FACEBOOK_FETCH_TIMEOUT_MS = 5000;
 

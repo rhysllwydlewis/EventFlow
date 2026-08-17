@@ -1,7 +1,8 @@
 (function () {
   'use strict';
 
-  const FACEBOOK_OAUTH_DIALOG = 'https://www.facebook.com/v21.0/dialog/oauth';
+  // Keep in sync with GRAPH_API_VERSION in services/facebookAuth.service.js.
+  const FACEBOOK_OAUTH_DIALOG = 'https://www.facebook.com/v23.0/dialog/oauth';
   const FACEBOOK_LOGIN_PATH = '/api/auth/callback/facebook';
   const FACEBOOK_CSRF_PATH = '/api/auth/facebook/csrf';
   const PRODUCTION_ORIGIN = 'https://event-flow.co.uk';
@@ -150,6 +151,16 @@
     }
 
     return { ready: missing.length === 0, role: snapshot.role, missing };
+  }
+
+  function syncFacebookSignupButtonReadiness() {
+    const button = document.getElementById('facebook-signup-button');
+    if (!button) {
+      return;
+    }
+    const readiness = getSupplierReadiness();
+    button.classList.toggle('auth-facebook-button--disabled', !readiness.ready);
+    button.setAttribute('aria-disabled', readiness.ready ? 'false' : 'true');
   }
 
   function buildFacebookState(context, csrf) {
@@ -308,6 +319,24 @@
         config.facebookAppId,
         'signup'
       );
+      syncFacebookSignupButtonReadiness();
+
+      document
+        .querySelectorAll(
+          '#reg-role, #reg-location, #reg-postcode, #reg-company, #reg-jobtitle, #reg-website, #reg-instagram, #reg-facebook, #reg-twitter, #reg-linkedin'
+        )
+        .forEach(el => {
+          el.addEventListener('input', syncFacebookSignupButtonReadiness);
+          el.addEventListener('change', syncFacebookSignupButtonReadiness);
+        });
+
+      document
+        .querySelectorAll('.auth-role-picker [data-role], .role-toggle [data-role]')
+        .forEach(btn => {
+          btn.addEventListener('click', () => {
+            window.setTimeout(syncFacebookSignupButtonReadiness, 0);
+          });
+        });
     }
   }
 
