@@ -222,6 +222,87 @@
 
   </div><!-- /.campaigns-layout -->
 
+  <!-- ── Automated recurring newsletter ────────────────────────────── -->
+  <section class="admin-card" aria-label="Automated recurring newsletter" style="margin-top:1.5rem;">
+    <div class="campaigns-section-heading">
+      <span class="campaigns-section-icon" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      </span>
+      <h2 class="admin-card-title">Automated recurring newsletter</h2>
+    </div>
+    <p class="dashboard-subtitle" style="margin-bottom:1rem;">
+      Configure a recurring send using the content below — it sends automatically on the schedule you set, without needing to click "Send campaign" each time.
+    </p>
+
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:1rem;">
+      <input id="automationEnabled" type="checkbox" role="switch" style="width:18px;height:18px;">
+      <label for="automationEnabled" style="font-weight:600;">Enable automated sending</label>
+    </div>
+
+    <div class="form-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
+      <div>
+        <label for="automationCadence">Cadence</label>
+        <select id="automationCadence" class="form-control">
+          <option value="weekly">Weekly</option>
+          <option value="monthly">Monthly</option>
+        </select>
+      </div>
+      <div id="automationDayOfWeekWrap">
+        <label for="automationDayOfWeek">Day of week</label>
+        <select id="automationDayOfWeek" class="form-control">
+          <option value="1">Monday</option>
+          <option value="2">Tuesday</option>
+          <option value="3">Wednesday</option>
+          <option value="4">Thursday</option>
+          <option value="5">Friday</option>
+          <option value="6">Saturday</option>
+          <option value="0">Sunday</option>
+        </select>
+      </div>
+      <div id="automationDayOfMonthWrap" style="display:none;">
+        <label for="automationDayOfMonth">Day of month</label>
+        <input id="automationDayOfMonth" type="number" min="1" max="31" value="1" class="form-control">
+      </div>
+      <div>
+        <label for="automationAudience">Audience</label>
+        <select id="automationAudience" class="form-control">
+          <option value="both">Newsletter + marketing opt-in</option>
+          <option value="marketing">Marketing opt-in only</option>
+          <option value="newsletter">Newsletter subscribers only</option>
+        </select>
+      </div>
+    </div>
+
+    <div style="margin-bottom:1rem;">
+      <label for="automationSubject">Subject</label>
+      <input id="automationSubject" type="text" class="form-control" placeholder="This week at EventFlow">
+    </div>
+    <div style="margin-bottom:1rem;">
+      <label for="automationTitle">Title (optional)</label>
+      <input id="automationTitle" type="text" class="form-control">
+    </div>
+    <div style="margin-bottom:1rem;">
+      <label for="automationBodyHtml">Content (HTML)</label>
+      <textarea id="automationBodyHtml" class="form-control" rows="8"></textarea>
+    </div>
+    <div class="form-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
+      <div>
+        <label for="automationCtaText">CTA button text (optional)</label>
+        <input id="automationCtaText" type="text" class="form-control">
+      </div>
+      <div>
+        <label for="automationCtaUrl">CTA button URL (optional)</label>
+        <input id="automationCtaUrl" type="url" class="form-control">
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:12px;">
+      <button type="button" id="automationSaveBtn" class="btn-primary">Save automation settings</button>
+      <span id="automationStatus" role="status" aria-live="polite"></span>
+    </div>
+    <p id="automationLastSent" class="dashboard-subtitle" style="margin-top:0.75rem;"></p>
+  </section>
+
 </main>
 
 <footer class="footer" role="contentinfo">
@@ -239,6 +320,7 @@
 </footer>
 
 <script src="/assets/js/pages/admin-campaigns-init.js?v=18.3.0" defer></script>
+<script src="/assets/js/pages/admin-campaigns-automation-init.js?v=1.0.0" defer></script>
 <script src="/assets/js/cookie-consent.js?v=2.0.0" defer></script>
 </body>
 </html>

@@ -509,7 +509,7 @@ async function updateOne(collectionName, id, updates) {
       if (index >= 0) {
         // Apply $set fields
         const setFields = hasOperators ? updates.$set || {} : updates;
-        all[index] = { ...all[index], ...setFields };
+        all[index] = applyDotPathSet(all[index], setFields);
 
         // Apply $unset fields (remove keys)
         if (hasOperators && updates.$unset) {
@@ -553,7 +553,7 @@ async function updateMany(collectionName, filter, updates) {
         return item;
       }
       modified += 1;
-      const updated = { ...item, ...setFields };
+      const updated = applyDotPathSet(item, setFields);
       for (const key of Object.keys(unsetFields)) {
         delete updated[key];
       }
@@ -730,6 +730,38 @@ function getNestedValue(obj, path) {
   return path
     .split('.')
     .reduce((cur, seg) => (cur !== null && cur !== undefined ? cur[seg] : undefined), obj);
+}
+
+/**
+ * Apply a MongoDB-style $set object to a local-store document, resolving
+ * dotted keys like 'emailPrefs.actionPrompts.enabled' into nested object
+ * writes instead of a literal top-level key named with the dots — MongoDB
+ * handles these natively; this brings the local store into parity (mirrors
+ * getNestedValue's read-side handling above).
+ * @param {Object} target
+ * @param {Object} setFields
+ * @returns {Object} a new object — does not mutate `target` or any nested
+ *   object reachable from it
+ */
+function applyDotPathSet(target, setFields) {
+  const result = { ...target };
+  for (const [key, value] of Object.entries(setFields || {})) {
+    if (!key.includes('.')) {
+      result[key] = value;
+      continue;
+    }
+    const segments = key.split('.');
+    let cursor = result;
+    for (let i = 0; i < segments.length - 1; i++) {
+      const segment = segments[i];
+      const existing = cursor[segment];
+      const isPlainObject = existing && typeof existing === 'object' && !Array.isArray(existing);
+      cursor[segment] = isPlainObject ? { ...existing } : {};
+      cursor = cursor[segment];
+    }
+    cursor[segments[segments.length - 1]] = value;
+  }
+  return result;
 }
 
 function matchesFilter(item, filter) {

@@ -62,6 +62,8 @@
 .settings-info-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 0.75rem 1rem; margin-bottom: 0.5rem; }
 .settings-data-box { padding: 0.75rem 1rem; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb; }
 .settings-indent { margin-left: 0.75rem; border-left: 3px solid #e2e8f0; padding-left: 0.875rem; margin-bottom: 0.75rem; }
+.settings-select { padding: 0.375rem 0.625rem; border: 1px solid #e5e7eb; border-radius: 6px; font-size: 0.8125rem; color: #374151; background: #fff; cursor: pointer; }
+.settings-select:focus-visible { outline: 2px solid #0B8073; outline-offset: 2px; }
 .settings-icon-box { width: 32px; height: 32px; background: linear-gradient(135deg, #0B8073, #13B6A2); border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .settings-action-row { background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 1rem 1.25rem; display: flex; align-items: center; justify-content: space-between; }
 .settings-beta-badge { display: inline-block; padding: 0.125rem 0.5rem; border-radius: 4px; font-size: 0.6875rem; font-weight: 700; background: #fef3c7; color: #92400e; }

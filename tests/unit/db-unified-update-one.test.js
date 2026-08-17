@@ -132,4 +132,93 @@ describe('db-unified – updateOne calling conventions (local storage)', () => {
     // original fields preserved
     expect(doc.name).toBe('Eve');
   });
+
+  // Regression: the local-store branch used to shallow-spread $set fields
+  // directly onto the document, so a dotted key like
+  // 'emailPrefs.actionPrompts.enabled' was written as a literal top-level
+  // property named "emailPrefs.actionPrompts.enabled" instead of nesting —
+  // silently breaking every dot-path update in local/dev/test (MongoDB
+  // handles these natively via its own $set semantics).
+  it('a dotted $set key nests into the object instead of a literal flat key', async () => {
+    await seed({ id: 'u6', name: 'Frank', emailPrefs: { actionPrompts: { enabled: true } } });
+    const result = await dbUnified.updateOne(
+      'users',
+      { id: 'u6' },
+      { $set: { 'emailPrefs.actionPrompts.enabled': false } }
+    );
+    expect(result).toBe(true);
+    const doc = storeData['users'][0];
+    expect(doc.emailPrefs.actionPrompts.enabled).toBe(false);
+    expect(doc['emailPrefs.actionPrompts.enabled']).toBeUndefined();
+  });
+
+  it('a dotted $set key creates intermediate objects when none exist yet', async () => {
+    await seed({ id: 'u7', name: 'Grace' });
+    await dbUnified.updateOne(
+      'users',
+      { id: 'u7' },
+      { $set: { 'communityNotificationPreferences.email': 'daily' } }
+    );
+    const doc = storeData['users'][0];
+    expect(doc.communityNotificationPreferences).toEqual({ email: 'daily' });
+  });
+
+  it('a dotted $set key preserves sibling keys already nested at that path', async () => {
+    await seed({
+      id: 'u8',
+      name: 'Heidi',
+      emailPrefs: { actionPrompts: { enabled: true, missingPackages: false } },
+    });
+    await dbUnified.updateOne(
+      'users',
+      { id: 'u8' },
+      { $set: { 'emailPrefs.actionPrompts.enabled': false } }
+    );
+    const doc = storeData['users'][0];
+    expect(doc.emailPrefs.actionPrompts).toEqual({ enabled: false, missingPackages: false });
+  });
+});
+
+describe('db-unified – updateMany dot-path $set (local storage)', () => {
+  let dbUnified;
+  let storeData;
+
+  beforeEach(() => {
+    jest.resetModules();
+    storeData = {};
+    const mockStore = {
+      uid: jest.fn(p => `${p}_123`),
+      read: jest.fn(name => (storeData[name] ? [...storeData[name]] : [])),
+      write: jest.fn((name, data) => {
+        storeData[name] = [...data];
+      }),
+    };
+    jest.mock('../../db', () => ({ isMongoAvailable: jest.fn(() => false), connect: jest.fn() }));
+    jest.mock('../../store', () => mockStore);
+    dbUnified = require('../../db-unified');
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('nests a dotted $set key across every matched document instead of a literal flat key', async () => {
+    await dbUnified.initializeDatabase();
+    storeData['users'] = [
+      { id: 'u1', role: 'customer', communityNotificationPreferences: { email: 'weekly' } },
+      { id: 'u2', role: 'supplier', communityNotificationPreferences: { email: 'weekly' } },
+    ];
+
+    const modified = await dbUnified.updateMany(
+      'users',
+      { role: 'customer' },
+      { $set: { 'communityNotificationPreferences.email': 'none' } }
+    );
+
+    expect(modified).toBe(1);
+    expect(storeData['users'][0].communityNotificationPreferences).toEqual({ email: 'none' });
+    expect(storeData['users'][0]['communityNotificationPreferences.email']).toBeUndefined();
+    // Untouched sibling document is unaffected
+    expect(storeData['users'][1].communityNotificationPreferences).toEqual({ email: 'weekly' });
+  });
 });
