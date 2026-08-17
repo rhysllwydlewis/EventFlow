@@ -734,12 +734,26 @@ function getNestedValue(obj, path) {
 
 // Property names that would reach up to Object.prototype (or a function's
 // own prototype chain) via bracket-notation assignment instead of landing
-// as an own property of the target. Unlike the plain object-spread this
-// replaced, `cursor[segment] = value` for segment === '__proto__' invokes
-// the real accessor rather than copying a value, so every write in
-// applyDotPathSet must be guarded against these regardless of where the
-// key ultimately originated.
+// as an own property of the target. Kept as a fast-path rejection (and to
+// mirror MongoDB, which itself rejects $set operators on these paths) —
+// safeAssign below is the actual structural guard.
 const UNSAFE_KEY_SEGMENTS = new Set(['__proto__', 'constructor', 'prototype']);
+
+// `obj[key] = value` for key === '__proto__' invokes the real accessor
+// (reassigning obj's prototype) rather than creating an own property named
+// "__proto__" — that's the prototype-pollution vector bracket-notation
+// assignment opens up here. Object.defineProperty never has that special
+// case: even for key === '__proto__' it always creates/overwrites a plain
+// own data property that shadows the inherited accessor, so it's safe
+// regardless of what key a future caller passes.
+function safeAssign(obj, key, value) {
+  Object.defineProperty(obj, key, {
+    value,
+    writable: true,
+    enumerable: true,
+    configurable: true,
+  });
+}
 
 /**
  * Apply a MongoDB-style $set object to a local-store document, resolving
@@ -764,7 +778,7 @@ function applyDotPathSet(target, setFields) {
       continue;
     }
     if (segments.length === 1) {
-      result[key] = value;
+      safeAssign(result, key, value);
       continue;
     }
     let cursor = result;
@@ -772,10 +786,10 @@ function applyDotPathSet(target, setFields) {
       const segment = segments[i];
       const existing = cursor[segment];
       const isPlainObject = existing && typeof existing === 'object' && !Array.isArray(existing);
-      cursor[segment] = isPlainObject ? { ...existing } : {};
+      safeAssign(cursor, segment, isPlainObject ? { ...existing } : {});
       cursor = cursor[segment];
     }
-    cursor[segments[segments.length - 1]] = value;
+    safeAssign(cursor, segments[segments.length - 1], value);
   }
   return result;
 }
