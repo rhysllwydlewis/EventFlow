@@ -543,4 +543,24 @@ describe('Apple auth route', () => {
       properties: { signup_method: 'apple', first_channel: 'organic' },
     });
   });
+
+  it('awards the founder badge to a new Apple signup within the launch window', async () => {
+    process.env.FOUNDER_LAUNCH_TS = new Date().toISOString();
+    try {
+      const { app, inserted } = buildAuthApp();
+      const state = encodeState({ csrf: 'nonce-abc', context: 'signin' });
+
+      await request(app)
+        .post('/api/auth/callback/apple')
+        .set('Cookie', ['apple_auth_nonce=nonce-abc'])
+        .type('form')
+        .send({ id_token: 'valid-apple-id-token', state })
+        .expect(303);
+
+      const userRecord = inserted.find(doc => doc.email === 'new-user@privaterelay.appleid.com');
+      expect(userRecord.badges).toEqual(['founder']);
+    } finally {
+      delete process.env.FOUNDER_LAUNCH_TS;
+    }
+  });
 });

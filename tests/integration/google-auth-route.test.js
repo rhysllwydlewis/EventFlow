@@ -186,6 +186,30 @@ describe('Google auth route', () => {
     });
   });
 
+  it('awards the founder badge to a new SIWG signup within the launch window', async () => {
+    process.env.FOUNDER_LAUNCH_TS = new Date().toISOString();
+    try {
+      const { app, inserted } = buildAuthApp();
+      const state = encodeState({});
+
+      await request(app)
+        .post('/api/auth/callback/google')
+        .set('Cookie', ['g_csrf_token=csrf-token-123'])
+        .type('form')
+        .send({
+          credential: 'valid-google-id-token',
+          g_csrf_token: 'csrf-token-123',
+          state,
+        })
+        .expect(303);
+
+      const userRecord = inserted.find(doc => doc.email === 'new-user@gmail.com');
+      expect(userRecord.badges).toEqual(['founder']);
+    } finally {
+      delete process.env.FOUNDER_LAUNCH_TS;
+    }
+  });
+
   it('creates supplier accounts from Google redirect signup state', async () => {
     const { app, inserted, insertedSuppliers } = buildAuthApp();
     const state = encodeState({
@@ -397,6 +421,23 @@ describe('Google auth route', () => {
       authProvider: 'google',
     });
     expect(response.headers['set-cookie']?.join(';')).toContain('token=');
+  });
+
+  it('awards the founder badge to a new GIS JSON signup within the launch window', async () => {
+    process.env.FOUNDER_LAUNCH_TS = new Date().toISOString();
+    try {
+      const { app, inserted } = buildAuthApp();
+
+      await request(app)
+        .post('/api/v1/auth/google')
+        .send({ credential: 'valid-google-id-token', remember: true })
+        .expect(200);
+
+      const userRecord = inserted.find(doc => doc.email === 'new-user@gmail.com');
+      expect(userRecord.badges).toEqual(['founder']);
+    } finally {
+      delete process.env.FOUNDER_LAUNCH_TS;
+    }
   });
 
   it('provisions a supplier profile for a valid GIS JSON supplier signup', async () => {

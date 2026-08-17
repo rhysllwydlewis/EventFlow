@@ -13,6 +13,7 @@ const domainAdmin = require('../middleware/domain-admin');
 const googleAuthService = require('../services/googleAuth.service');
 const userProvenance = require('../services/userProvenance.service');
 const { ensureSupplierProfileForUser } = require('../services/supplierProfileProvisioning.service');
+const { getFounderSignupBadges } = require('../utils/founderBadge');
 const {
   COLLECTION_NAME: ANALYTICS_COLLECTION,
   sanitizeEvent: sanitizeAnalyticsEvent,
@@ -314,7 +315,7 @@ function buildGoogleUser(googleProfile, nowIso, signupState = {}) {
     jobTitle: signupState.jobTitle || undefined,
     website: signupState.website || undefined,
     socials: signupState.socials || {},
-    badges: [],
+    badges: getFounderSignupBadges(),
     notify: true,
     notify_account: true,
     notify_marketing: false,

@@ -497,4 +497,23 @@ describe('Facebook auth route', () => {
       properties: { signup_method: 'facebook', first_channel: 'organic' },
     });
   });
+
+  it('awards the founder badge to a new Facebook signup within the launch window', async () => {
+    process.env.FOUNDER_LAUNCH_TS = new Date().toISOString();
+    try {
+      const { app, inserted } = buildAuthApp();
+      const state = encodeState({ csrf: 'csrf-abc', context: 'signin' });
+
+      await request(app)
+        .get('/api/auth/callback/facebook')
+        .set('Cookie', ['facebook_auth_csrf=csrf-abc'])
+        .query({ code: 'auth-code', state })
+        .expect(303);
+
+      const userRecord = inserted.find(doc => doc.email === 'new-user@example.com');
+      expect(userRecord.badges).toEqual(['founder']);
+    } finally {
+      delete process.env.FOUNDER_LAUNCH_TS;
+    }
+  });
 });
