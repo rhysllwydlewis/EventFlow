@@ -154,7 +154,19 @@ body.auth-page .auth-google-button {
   margin-inline: auto;
   max-inline-size: 100%;
   min-inline-size: min(100%, 220px);
+  min-block-size: 40px;
   overflow: hidden;
+}
+
+/* GIS repaints this container in place (e.g. swapping to the shorter
+   "Continue as <name>" personalized button once it detects an active
+   Google session) and sets its own inline width when it does — a
+   documented GIS limitation, not something we control. Only an
+   !important rule beats a later inline style, so this is the one place
+   that has to fight it: it keeps the box the same size across both the
+   generic and personalized states instead of visibly shrinking. */
+body.auth-page .auth-google-button {
+  width: min(100%, var(--google-button-width, 320px)) !important;
 }
 
 body.auth-page .auth-google-button > div,
