@@ -367,8 +367,7 @@
       return;
     }
 
-    const availableWidth = Math.max(220, Math.floor(container.parentElement?.clientWidth || 360));
-    const buttonWidth = Math.min(400, availableWidth);
+    const buttonWidth = getGoogleButtonWidth(container);
 
     container.innerHTML = '';
     container.style.width = `${buttonWidth}px`;

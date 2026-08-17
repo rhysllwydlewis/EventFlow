@@ -61,4 +61,15 @@ describe('auth signup layout', () => {
     expect(authCss).toContain('overflow: hidden;');
     expect(googleSignupCss).toContain('inline-size: min(100%, var(--google-button-width, 320px));');
   });
+
+  it('locks the Google button container width so GIS cannot shrink it when it personalizes', () => {
+    const googleSignupCss = fs.readFileSync(
+      path.join(__dirname, '../../public/assets/css/auth-google-signup.css'),
+      'utf8'
+    );
+
+    expect(googleSignupCss).toContain(
+      'width: min(100%, var(--google-button-width, 320px)) !important;'
+    );
+  });
 });
