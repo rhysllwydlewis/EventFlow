@@ -2502,7 +2502,7 @@ router.get('/users/segments', authRequired, roleRequired('admin'), async (req, r
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     const activeSuppliers = suppliers.filter(s => {
       const recentMessages = messages.filter(
-        m => m.senderId === s.userId && new Date(m.createdAt) > thirtyDaysAgo
+        m => m.senderId === s.ownerUserId && new Date(m.createdAt) > thirtyDaysAgo
       );
       return recentMessages.length > 0;
     });
@@ -2511,7 +2511,7 @@ router.get('/users/segments', authRequired, roleRequired('admin'), async (req, r
     const sixtyDaysAgo = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
     const atRiskSuppliers = suppliers.filter(s => {
       const recentMessages = messages.filter(
-        m => m.senderId === s.userId && new Date(m.createdAt) > sixtyDaysAgo
+        m => m.senderId === s.ownerUserId && new Date(m.createdAt) > sixtyDaysAgo
       );
       return recentMessages.length === 0;
     });

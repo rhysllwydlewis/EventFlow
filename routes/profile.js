@@ -15,10 +15,10 @@ const { authRequired } = require('../middleware/auth');
 const { csrfProtection } = require('../middleware/csrf');
 const { writeLimiter, uploadLimiter, apiLimiter } = require('../middleware/rateLimits');
 const photoUpload = require('../photo-upload');
-const partnerService = require('../services/partnerService');
 const catalogCache = require('../services/catalogCache');
 const { clearSearchCache } = require('../middleware/searchCache');
 const { isSafePublicImageUrl } = require('../services/publicSupplierAvatar.service');
+const { deleteUserAndOwnedData } = require('../services/adminUserDeletion.service');
 
 const router = express.Router();
 
@@ -462,27 +462,7 @@ router.delete('/', writeLimiter, authRequired, csrfProtection, async (req, res) 
 
     const userId = user.id;
 
-    // Cancel any live Stripe subscription first. Without this, a paying
-    // supplier who deletes their account keeps being billed indefinitely
-    // with no dashboard or Billing Portal link left to cancel it themselves.
-    try {
-      const subscriptionService = require('../services/subscriptionService');
-      await subscriptionService.cancelSubscriptionForAccountDeletion(userId);
-    } catch (subErr) {
-      logger.warn('Could not cancel subscription during account deletion:', subErr);
-    }
-
-    // Delete associated supplier profiles first
-    try {
-      const userSuppliers = await dbUnified.find('suppliers', { ownerUserId: userId });
-      for (const supplier of userSuppliers) {
-        await dbUnified.deleteOne('suppliers', supplier.id);
-      }
-    } catch (suppErr) {
-      logger.warn('Could not delete supplier profiles during account deletion:', suppErr);
-    }
-
-    // Delete avatar if present
+    // Delete avatar if present — a stored file, not covered by the cascade below.
     if (user.avatarUrl) {
       try {
         await photoUpload.deleteImage(user.avatarUrl);
@@ -491,17 +471,29 @@ router.delete('/', writeLimiter, authRequired, csrfProtection, async (req, res) 
       }
     }
 
-    // Delete the user record
-    await dbUnified.deleteOne('users', userId);
-
-    // Soft-delete any associated partner record to preserve audit trail
+    // Reuse the same cascade the admin "delete user" flow uses, so
+    // self-service deletion cancels any live Stripe subscription, removes
+    // or anonymises everything the account owns (supplier profile,
+    // packages, photos, analytics, review requests, calendar events,
+    // marketplace listings, saved items/shortlists, and anonymised
+    // quote requests/enquiries/threads/messages/bookings/reviews/plans),
+    // removes the newsletter subscription and notifications, and
+    // soft-deletes the partner record — instead of only deleting the
+    // supplier row and orphaning everything else.
+    // Pass no actor (self-service, not admin-initiated) so the "cannot
+    // delete your own account" admin guard doesn't apply here.
+    let cascadeSummary;
     try {
-      await partnerService.softDeletePartnerByUserId(userId);
-    } catch (partnerErr) {
-      logger.warn('Could not soft-delete partner record during account deletion:', partnerErr);
+      cascadeSummary = await deleteUserAndOwnedData(user, null);
+    } catch (deleteErr) {
+      logger.error('Error deleting account with owned data:', deleteErr);
+      return res.status(deleteErr.status || 500).json({
+        error: deleteErr.message || 'Failed to delete account. Please try again.',
+        code: deleteErr.code,
+      });
     }
 
-    logger.info(`Account permanently deleted: ${userId}`);
+    logger.info(`Account permanently deleted (self-service): ${userId}`, { cascadeSummary });
 
     // Clear session / cookie
     if (req.session && typeof req.session.destroy === 'function') {

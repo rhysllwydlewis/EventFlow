@@ -265,6 +265,20 @@ router.post('/unsubscribe', async (req, res) => {
       }
     );
 
+    // Keep account-level marketing consent in sync — an account registered
+    // under the same email shouldn't keep receiving marketing campaigns
+    // just because they unsubscribed via the newsletter link instead of the
+    // account settings page.
+    try {
+      await dbUnified.updateOne(
+        'users',
+        { email: normalizedEmail },
+        { $set: { notify_marketing: false, marketingOptIn: false } }
+      );
+    } catch (syncError) {
+      logger.warn('Failed to sync newsletter unsubscribe to account consent:', syncError.message);
+    }
+
     res.json({
       success: true,
       message: 'Successfully unsubscribed from newsletter',

@@ -1930,6 +1930,23 @@ router.get('/unsubscribe', async (req, res) => {
     }
   );
 
+  // Keep the newsletter subscription in sync — a separate newsletter signup
+  // under the same email shouldn't keep receiving campaigns just because
+  // the account holder unsubscribed via this link instead of the
+  // newsletter's own unsubscribe flow.
+  try {
+    await dbUnified.updateOne(
+      'newsletterSubscribers',
+      { email: normalizedEmail },
+      { $set: { status: 'unsubscribed', unsubscribedAt: new Date().toISOString() } }
+    );
+  } catch (syncError) {
+    logger.warn(
+      'Failed to sync account unsubscribe to newsletter subscription:',
+      syncError.message
+    );
+  }
+
   res.json({
     ok: true,
     message:

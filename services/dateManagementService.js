@@ -343,9 +343,10 @@ class DateManagementService {
         this.scheduledJob.cancel();
       }
 
-      // Schedule for 1st of month at 2:00 AM
+      // Schedule for 1st of month at 2:00 AM UTC
       // Rule: '0 2 1 * *' = minute 0, hour 2, day 1, every month, any day of week
-      this.scheduledJob = schedule.scheduleJob('0 2 1 * *', async () => {
+      // Pinned explicitly rather than relying on the container's default timezone.
+      this.scheduledJob = schedule.scheduleJob({ rule: '0 2 1 * *', tz: 'Etc/UTC' }, async () => {
         this.logger.info('Scheduled policy review check triggered');
         await this.performMonthlyCheck();
       });

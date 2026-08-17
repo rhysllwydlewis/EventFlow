@@ -19,6 +19,8 @@ function emptySummary() {
     deletedMarketplaceListings: 0,
     cleanedReferences: 0,
     anonymisedRecords: 0,
+    deletedNewsletterSubscriptions: 0,
+    deletedNotifications: 0,
     partnerSoftDeleted: false,
     supplierIds: [],
     deletedPackageIds: [],
@@ -335,6 +337,30 @@ async function deleteUserAndOwnedData(userOrUserId, actor, options = {}) {
     } catch (partnerErr) {
       summary.errors.push(`partner:${partnerErr.message}`);
       logger.warn(`Could not soft-delete partner record for user ${targetId}:`, partnerErr);
+    }
+
+    // These live outside the supplier-owned-data cascade above — they're
+    // tied to the account (by email or userId), not to a supplier profile —
+    // and were previously never cleaned up by either deletion path, leaving
+    // an orphaned newsletter subscription and stale notifications behind.
+    if (user.email) {
+      try {
+        summary.deletedNewsletterSubscriptions = await deleteManyCount('newsletterSubscribers', {
+          email: String(user.email).toLowerCase().trim(),
+        });
+      } catch (newsletterErr) {
+        summary.errors.push(`newsletter:${newsletterErr.message}`);
+        logger.warn(
+          `Could not remove newsletter subscription for user ${targetId}:`,
+          newsletterErr
+        );
+      }
+    }
+    try {
+      summary.deletedNotifications = await deleteManyCount('notifications', { userId: targetId });
+    } catch (notifErr) {
+      summary.errors.push(`notifications:${notifErr.message}`);
+      logger.warn(`Could not remove notifications for user ${targetId}:`, notifErr);
     }
 
     summary.deletedUser = await dbUnified.deleteOne('users', userDeleteTarget(user));

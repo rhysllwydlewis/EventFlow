@@ -3,6 +3,8 @@
 const schedule = require('node-schedule');
 const logger = require('../utils/logger');
 const reviewTasks = require('./contentReviewTask.service');
+const { runScheduledJob } = require('./scheduledJobRunner');
+const { JOB_KEYS } = require('./backgroundJobTelemetry.service');
 
 let scheduledJob = null;
 
@@ -32,12 +34,49 @@ async function run(trigger = 'scheduler') {
   }
 }
 
+// The cron/startup-catch-up path routes through the shared runner so a
+// failure is recorded to the telemetry dashboard and reported to Sentry —
+// unlike `run()` itself, which stays non-throwing (see above) since
+// routes/admin-content-reviews.js's manual "run now" endpoint calls it
+// directly and depends on that contract.
+function runTracked(trigger) {
+  return runScheduledJob(
+    JOB_KEYS.CONTENT_REVIEW,
+    async () => {
+      const result = await run(trigger);
+      if (result.error) {
+        throw new Error(result.error);
+      }
+      return { created: Array.isArray(result.created) ? result.created.length : 0 };
+    },
+    { trigger }
+  );
+}
+
+function isEnabled() {
+  const configured = process.env.CONTENT_REVIEW_ENABLED;
+  if (configured === undefined) {
+    return process.env.NODE_ENV === 'production';
+  }
+  return configured !== 'false' && configured !== '0';
+}
+
 function start() {
   if (scheduledJob) {
     scheduledJob.cancel();
   }
-  scheduledJob = schedule.scheduleJob('17 8 * * *', () => run('scheduler'));
-  setImmediate(() => run('startup-catch-up'));
+  if (!isEnabled()) {
+    logger.info('[content-review] Scheduler disabled');
+    logger.info('   Set CONTENT_REVIEW_ENABLED=true to enable');
+    scheduledJob = null;
+    return { scheduled: false, nextRun: null };
+  }
+  // Pinned explicitly rather than relying on the container's default
+  // timezone (see the Dockerfile's TZ=UTC comment).
+  scheduledJob = schedule.scheduleJob({ rule: '17 8 * * *', tz: 'Etc/UTC' }, () =>
+    runTracked('scheduler')
+  );
+  setImmediate(() => runTracked('startup-catch-up'));
   return { scheduled: Boolean(scheduledJob), nextRun: scheduledJob?.nextInvocation() || null };
 }
 
@@ -48,4 +87,4 @@ function stop() {
   scheduledJob = null;
 }
 
-module.exports = { run, start, stop };
+module.exports = { run, runTracked, start, stop };

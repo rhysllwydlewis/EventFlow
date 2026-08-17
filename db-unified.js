@@ -347,6 +347,16 @@ async function createIndexes() {
     // (collection + userId index already declared above; adding userId+start compound)
     await calendarEntriesCollection.createIndex({ userId: 1, date: 1 }); // upcoming events filter
 
+    // Scheduler locks — cross-instance mutual exclusion for node-schedule cron
+    // jobs (see services/schedulerLock.service.js). The unique index on `id`
+    // is what makes acquisition atomic: a losing concurrent insert fails with
+    // a duplicate-key error instead of both processes believing they hold
+    // the lock. The TTL index auto-clears a lock left behind by a process
+    // that crashed mid-run, without needing an app-level sweep.
+    const schedulerLocksCollection = mongodb.collection('scheduler_locks');
+    await schedulerLocksCollection.createIndex({ id: 1 }, { unique: true });
+    await schedulerLocksCollection.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+
     logger.info('✅ Database indexes created successfully');
   } catch (error) {
     logger.info('ℹ️  Database indexes:', error.message);

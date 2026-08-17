@@ -17,9 +17,13 @@
 const schedule = require('node-schedule');
 const dbUnified = require('../db-unified');
 const logger = require('../utils/logger');
+const sentry = require('../utils/sentry');
+const { JOB_KEYS } = require('./backgroundJobTelemetry.service');
+const schedulerLock = require('./schedulerLock.service');
 
 const COLLECTION = 'system_checks';
 const DEFAULT_CRON = '0 3 * * *';
+const EXPECTED_INTERVAL_MS = 24 * 60 * 60 * 1000;
 const CHECK_TIMEOUT_MS = 10000; // 10 s per check
 
 // In-memory lock to prevent overlapping runs
@@ -639,6 +643,31 @@ async function getRecentRuns(limit = 30) {
 }
 
 /**
+ * Runs a system-check pass at startup only if the last recorded run is
+ * older than the expected daily interval — recovers a tick genuinely missed
+ * by a restart near the scheduled hour. Checks system_checks directly
+ * (rather than the shared background_job_runs telemetry) since that
+ * telemetry is only mirrored when services/backgroundJobTelemetryBridge.js
+ * is preloaded, which isn't guaranteed in every environment this runs in.
+ */
+async function runCatchUpIfMissed() {
+  try {
+    const [latest] = await getRecentRuns(1);
+    const latestFinishedAt = latest ? Date.parse(latest.finishedAt || latest.startedAt || '') : NaN;
+    const isStale =
+      !Number.isFinite(latestFinishedAt) || Date.now() - latestFinishedAt > EXPECTED_INTERVAL_MS;
+    if (!isStale) {
+      return;
+    }
+    logger.info('[SystemCheck] No recent run found — running a missed-tick catch-up now');
+    await runSystemChecks();
+  } catch (err) {
+    logger.error('[SystemCheck] Missed-run catch-up failed:', err.message);
+    sentry.captureException(err, { tags: { scheduledJob: JOB_KEYS.SYSTEM_CHECKS } });
+  }
+}
+
+/**
  * Schedule daily system checks.
  * Respects SYSTEM_CHECKS_ENABLED and SYSTEM_CHECKS_CRON env vars.
  * @returns {{ scheduled: boolean, cronExpr: string, nextRun: Date|null }}
@@ -657,18 +686,24 @@ function scheduleChecks() {
 
   const cronExpr = process.env.SYSTEM_CHECKS_CRON || DEFAULT_CRON;
 
-  const job = schedule.scheduleJob(cronExpr, async () => {
-    try {
-      await runSystemChecks();
-    } catch (err) {
-      logger.error('[SystemCheck] Scheduled run failed:', err.message);
-    }
-  });
+  // Pinned explicitly rather than relying on the container's default timezone.
+  const job = schedule.scheduleJob({ rule: cronExpr, tz: 'Etc/UTC' }, () =>
+    schedulerLock.withLock(JOB_KEYS.SYSTEM_CHECKS, async () => {
+      try {
+        await runSystemChecks();
+      } catch (err) {
+        logger.error('[SystemCheck] Scheduled run failed:', err.message);
+        sentry.captureException(err, { tags: { scheduledJob: JOB_KEYS.SYSTEM_CHECKS } });
+      }
+    })
+  );
 
   if (!job) {
     logger.error('[SystemCheck] Failed to schedule job — invalid cron expression?', cronExpr);
     return { scheduled: false, cronExpr, nextRun: null };
   }
+
+  setImmediate(() => schedulerLock.withLock(JOB_KEYS.SYSTEM_CHECKS, runCatchUpIfMissed));
 
   const nextRun = job.nextInvocation();
   logger.info(
@@ -680,6 +715,7 @@ function scheduleChecks() {
 
 module.exports = {
   runSystemChecks,
+  runCatchUpIfMissed,
   scheduleChecks,
   getRecentRuns,
   getCatalog,

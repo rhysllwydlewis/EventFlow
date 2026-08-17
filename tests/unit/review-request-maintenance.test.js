@@ -162,7 +162,10 @@ describe('review request maintenance', () => {
       scheduleModule,
     });
 
-    expect(scheduleModule.scheduleJob).toHaveBeenCalledWith('15 * * * *', expect.any(Function));
+    expect(scheduleModule.scheduleJob).toHaveBeenCalledWith(
+      { rule: '15 * * * *', tz: 'Etc/UTC' },
+      expect.any(Function)
+    );
     expect(result).toEqual({
       scheduled: true,
       cronExpr: '15 * * * *',

@@ -433,8 +433,10 @@ async function getSupplierActionItems({ ignoreGlobalEnabled = false } = {}) {
       continue;
     }
 
-    // Only verified users
-    if (!user.verified) {
+    // Only verified users. `verified` is the canonical field, but tolerate
+    // `emailVerified`-only records (e.g. pre-existing accounts from before
+    // the two fields were consolidated onto a single write path).
+    if (!user.verified && !user.emailVerified) {
       continue;
     }
 

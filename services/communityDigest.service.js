@@ -21,9 +21,11 @@ const schedule = require('node-schedule');
 
 const dbUnified = require('../db-unified');
 const logger = require('../utils/logger');
+const sentry = require('../utils/sentry');
 const community = require('./community.service');
 const postmark = require('../utils/postmark');
 const backgroundJobs = require('./backgroundJobTelemetry.service');
+const schedulerLock = require('./schedulerLock.service');
 
 const DEFAULT_DAILY_CRON = '0 8 * * *'; // 08:00 every day
 const DEFAULT_WEEKLY_CRON = '0 8 * * 1'; // 08:00 every Monday
@@ -203,43 +205,62 @@ function scheduleCommunityDigest({ db = dbUnified, log = logger, scheduleModule 
   const dailyCron = process.env.COMMUNITY_DIGEST_DAILY_CRON || DEFAULT_DAILY_CRON;
   const weeklyCron = process.env.COMMUNITY_DIGEST_WEEKLY_CRON || DEFAULT_WEEKLY_CRON;
 
-  const runCadence = cadence => async () => {
-    const startedAt = new Date();
-    try {
-      const result = await sendCommunityDigests({ cadence, db, log });
-      await backgroundJobs.recordRun(
-        {
-          jobKey: backgroundJobs.JOB_KEYS.COMMUNITY_DIGEST,
-          status: result.skipped ? 'skipped' : 'success',
-          startedAt,
-          finishedAt: new Date(),
-          metrics: { cadence, sent: result.sent, recipients: result.recipients },
-        },
-        { db, log }
-      );
-    } catch (error) {
-      log.error(`[community-digest] Scheduled ${cadence} run failed:`, error.message);
-      await backgroundJobs.recordRun(
-        {
-          jobKey: backgroundJobs.JOB_KEYS.COMMUNITY_DIGEST,
-          status: 'failed',
-          startedAt,
-          finishedAt: new Date(),
-          error: error.message,
-        },
-        { db, log }
-      );
-    }
-  };
+  const runCadenceTracked = (cadence, trigger = 'scheduler') =>
+    schedulerLock.withLock(`${backgroundJobs.JOB_KEYS.COMMUNITY_DIGEST}:${cadence}`, async () => {
+      const startedAt = new Date();
+      try {
+        const result = await sendCommunityDigests({ cadence, db, log });
+        await backgroundJobs.recordRun(
+          {
+            jobKey: backgroundJobs.JOB_KEYS.COMMUNITY_DIGEST,
+            status: result.skipped ? 'skipped' : 'success',
+            trigger,
+            startedAt,
+            finishedAt: new Date(),
+            metrics: { cadence, sent: result.sent, recipients: result.recipients },
+          },
+          { db, log }
+        );
+      } catch (error) {
+        log.error(`[community-digest] Scheduled ${cadence} run failed:`, error.message);
+        sentry.captureException(error, {
+          tags: { scheduledJob: backgroundJobs.JOB_KEYS.COMMUNITY_DIGEST, cadence },
+        });
+        await backgroundJobs.recordRun(
+          {
+            jobKey: backgroundJobs.JOB_KEYS.COMMUNITY_DIGEST,
+            status: 'failed',
+            trigger,
+            startedAt,
+            finishedAt: new Date(),
+            error: error.message,
+          },
+          { db, log }
+        );
+      }
+    });
 
-  const dailyJob = scheduleModule.scheduleJob(dailyCron, runCadence('daily'));
-  const weeklyJob = scheduleModule.scheduleJob(weeklyCron, runCadence('weekly'));
+  // Pinned explicitly rather than relying on the container's default timezone.
+  const dailyJob = scheduleModule.scheduleJob({ rule: dailyCron, tz: 'Etc/UTC' }, () =>
+    runCadenceTracked('daily')
+  );
+  const weeklyJob = scheduleModule.scheduleJob({ rule: weeklyCron, tz: 'Etc/UTC' }, () =>
+    runCadenceTracked('weekly')
+  );
 
   if (!dailyJob || !weeklyJob) {
     log.error('[community-digest] Invalid cron expression(s)', { dailyCron, weeklyCron });
     return { scheduled: false, dailyCron, weeklyCron };
   }
 
+  // Deliberately no missed-run catch-up here, unlike the other schedulers in
+  // this codebase: sendCommunityDigests() selects discussions active within a
+  // fixed lookback window ending "now" (see buildDigestDiscussions/sinceIso
+  // above), not "since this member's last digest". A catch-up run and the
+  // next regular tick shortly after would have heavily overlapping windows,
+  // so members would receive the same discussions twice — a real duplicate
+  // email, not just a wasted computation. Fixing that would mean tracking a
+  // genuine last-sent-per-member watermark, which is out of scope here.
   log.info(`[community-digest] Scheduled: daily="${dailyCron}", weekly="${weeklyCron}"`);
   return { scheduled: true, dailyCron, weeklyCron };
 }

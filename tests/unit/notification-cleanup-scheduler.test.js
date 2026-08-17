@@ -81,14 +81,42 @@ describe('services/notificationCleanupScheduler.js', () => {
   });
 
   describe('start()/stop()', () => {
-    it('schedules a daily job and reports the next run time', () => {
+    const originalNodeEnv = process.env.NODE_ENV;
+    const originalEnabled = process.env.NOTIFICATION_CLEANUP_ENABLED;
+
+    afterEach(() => {
+      process.env.NODE_ENV = originalNodeEnv;
+      if (originalEnabled === undefined) {
+        delete process.env.NOTIFICATION_CLEANUP_ENABLED;
+      } else {
+        process.env.NOTIFICATION_CLEANUP_ENABLED = originalEnabled;
+      }
+    });
+
+    it('is disabled by default outside production, even with nothing else configured', () => {
+      process.env.NODE_ENV = 'test';
+      delete process.env.NOTIFICATION_CLEANUP_ENABLED;
+
       const result = scheduler.start();
 
-      expect(schedule.scheduleJob).toHaveBeenCalledWith('20 3 * * *', expect.any(Function));
+      expect(schedule.scheduleJob).not.toHaveBeenCalled();
+      expect(result).toEqual({ scheduled: false, nextRun: null });
+    });
+
+    it('schedules a daily job and reports the next run time when explicitly enabled', () => {
+      process.env.NOTIFICATION_CLEANUP_ENABLED = 'true';
+
+      const result = scheduler.start();
+
+      expect(schedule.scheduleJob).toHaveBeenCalledWith(
+        { rule: '20 3 * * *', tz: 'Etc/UTC' },
+        expect.any(Function)
+      );
       expect(result).toEqual({ scheduled: true, nextRun: new Date('2026-01-01T03:20:00.000Z') });
     });
 
     it('cancels any previously scheduled job before scheduling a new one', () => {
+      process.env.NOTIFICATION_CLEANUP_ENABLED = 'true';
       scheduler.start();
       const firstJob = schedule.scheduleJob.mock.results[0].value;
 
@@ -99,6 +127,7 @@ describe('services/notificationCleanupScheduler.js', () => {
     });
 
     it('stop() cancels the scheduled job and clears the reference', () => {
+      process.env.NOTIFICATION_CLEANUP_ENABLED = 'true';
       scheduler.start();
       const job = schedule.scheduleJob.mock.results[0].value;
 

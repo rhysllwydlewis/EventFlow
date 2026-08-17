@@ -551,6 +551,28 @@ describe('getSupplierActionItems', () => {
     expect(items).toHaveLength(0);
   });
 
+  it('skips suppliers with neither verified nor emailVerified set', async () => {
+    setupDb({
+      settings: makeSettings(),
+      users: [makeUser({ verified: false, emailVerified: false })],
+      suppliers: [makeSupplier()],
+      packages: [],
+    });
+    const items = await getSupplierActionItems();
+    expect(items).toHaveLength(0);
+  });
+
+  it('still sends to legacy accounts that only have emailVerified set (pre-consolidation records)', async () => {
+    setupDb({
+      settings: makeSettings(),
+      users: [makeUser({ verified: false, emailVerified: true })],
+      suppliers: [makeSupplier()],
+      packages: [],
+    });
+    const items = await getSupplierActionItems();
+    expect(items).toHaveLength(1);
+  });
+
   it('skips suppliers who have opted out at master level', async () => {
     setupDb({
       settings: makeSettings(),
