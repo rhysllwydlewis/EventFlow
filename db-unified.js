@@ -732,13 +732,6 @@ function getNestedValue(obj, path) {
     .reduce((cur, seg) => (cur !== null && cur !== undefined ? cur[seg] : undefined), obj);
 }
 
-// Property names that would reach up to Object.prototype (or a function's
-// own prototype chain) via bracket-notation assignment instead of landing
-// as an own property of the target. Kept as a fast-path rejection (and to
-// mirror MongoDB, which itself rejects $set operators on these paths) —
-// safeAssign below is the actual structural guard.
-const UNSAFE_KEY_SEGMENTS = new Set(['__proto__', 'constructor', 'prototype']);
-
 /**
  * Apply a MongoDB-style $set object to a local-store document, resolving
  * dotted keys like 'emailPrefs.actionPrompts.enabled' into nested object
@@ -756,15 +749,24 @@ const UNSAFE_KEY_SEGMENTS = new Set(['__proto__', 'constructor', 'prototype']);
 function applyDotPathSet(target, setFields) {
   const result = { ...target };
   for (const [key, value] of Object.entries(setFields || {})) {
-    // Inlined rather than routed through a shared helper: the write
-    // (Object.defineProperty) must stay in the same function body as this
-    // guard for it to be recognised as a sanitizing barrier — a barrier in
-    // the caller doesn't carry across a call into a separate function.
     const segments = key.split('.');
-    if (
-      segments.length === 0 ||
-      segments.some(segment => UNSAFE_KEY_SEGMENTS.has(segment) || segment.length === 0)
-    ) {
+    let unsafe = false;
+    for (const segment of segments) {
+      // Direct literal comparisons, not a Set/array membership helper —
+      // this exact shape is what's needed to satisfy CodeQL's static
+      // taint-tracking, which failed to recognise Set.has()/Array.includes()
+      // indirections as a sanitizing barrier for this sink.
+      if (
+        segment === '__proto__' ||
+        segment === 'constructor' ||
+        segment === 'prototype' ||
+        segment === ''
+      ) {
+        unsafe = true;
+        break;
+      }
+    }
+    if (unsafe) {
       logger.warn(`Refusing unsafe $set key: ${key}`);
       continue;
     }
