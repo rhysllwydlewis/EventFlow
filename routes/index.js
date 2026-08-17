@@ -16,6 +16,7 @@ const publicRoutes = require('./public');
 const authRoutes = require('./auth');
 const googleRedirectAuthRoutes = require('./google-redirect-auth');
 const appleRedirectAuthRoutes = require('./apple-redirect-auth');
+const facebookRedirectAuthRoutes = require('./facebook-redirect-auth');
 const adminRoutes = require('./admin');
 const adminHomepageCollageActiveRoutes = require('./admin-homepage-collage-active');
 const adminHomepageManagerRoutes = require('./admin-homepage-manager');
@@ -168,6 +169,10 @@ const mountRoutes = (app, deps) => {
   // credentials (id_token/code/state/user) to its own dedicated callback path.
   app.use('/api/v1/auth', appleRedirectAuthRoutes);
   app.use('/api/auth', appleRedirectAuthRoutes); // Backward compatibility
+
+  // Continue with Facebook: OAuth authorization-code redirect callback.
+  app.use('/api/v1/auth', facebookRedirectAuthRoutes);
+  app.use('/api/auth', facebookRedirectAuthRoutes); // Backward compatibility
 
   // Email verification routes
   app.use('/api/v1/auth', emailVerificationRoutes);

@@ -42,7 +42,7 @@ describe('auth signup layout', () => {
     expect(authHtml).toContain('Plan, shortlist and message suppliers.');
     expect(authHtml).toContain('List your business and manage enquiries.');
     expect(authHtml).toContain('Step 2');
-    expect(authHtml).toContain('Continue with Google, Apple or email');
+    expect(authHtml).toContain('Continue with Google, Facebook or email');
   });
 
   it('keeps auth tabs readable and Google buttons fitted to the card', () => {

@@ -2203,6 +2203,70 @@ body.auth-page .auth-card .checkbox-label-right {
 }
 
 /* ─────────────────────────────────────────────────────────────
+   24c. CONTINUE WITH FACEBOOK
+───────────────────────────────────────────────────────────────*/
+.auth-facebook {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  margin-bottom: 20px;
+}
+
+.auth-facebook[hidden] {
+  display: none !important;
+}
+
+.auth-facebook-button {
+  align-items: center;
+  background: #1877f2;
+  border: 1px solid #1877f2;
+  border-radius: 999px;
+  color: #ffffff;
+  cursor: pointer;
+  display: flex;
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  gap: 0.5rem;
+  justify-content: center;
+  min-height: 44px;
+  padding: 10px 18px;
+  width: 100%;
+  transition:
+    box-shadow 0.18s ease,
+    transform 0.18s ease,
+    opacity 0.18s ease;
+}
+
+.auth-facebook-button:hover {
+  box-shadow: 0 12px 24px rgba(24, 119, 242, 0.28);
+  transform: translateY(-1px);
+}
+
+.auth-facebook-button:active {
+  transform: translateY(0);
+}
+
+.auth-facebook-button svg {
+  flex: 0 0 auto;
+  height: 18px;
+  width: 18px;
+}
+
+.auth-facebook-button[aria-busy='true'] {
+  cursor: wait;
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.auth-facebook-button--disabled {
+  cursor: not-allowed;
+  opacity: 0.46;
+  filter: grayscale(0.18);
+  pointer-events: none;
+}
+
+/* ─────────────────────────────────────────────────────────────
    25. CRITICAL AUTH PAGE POLISH — TRUST
 ───────────────────────────────────────────────────────────────*/
 #login-error-row:has(#login-error:empty),

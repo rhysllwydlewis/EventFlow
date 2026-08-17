@@ -99,6 +99,10 @@ function getPublicAppleClientId() {
   return process.env.APPLE_CLIENT_ID || parseClientIdList(process.env.APPLE_CLIENT_IDS)[0] || '';
 }
 
+function getPublicFacebookAppId() {
+  return process.env.FACEBOOK_APP_ID || '';
+}
+
 function getIntegrationStatus() {
   let redisAdapterInstalled = false;
   try {
@@ -235,6 +239,7 @@ router.get('/config', apiLimiter, async (req, res) => {
     googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY || '',
     googleClientId: getPublicGoogleClientId(),
     appleClientId: getPublicAppleClientId(),
+    facebookAppId: getPublicFacebookAppId(),
     version: APP_VERSION,
     sentryDsn: process.env.SENTRY_DSN_FRONTEND || '',
     altchaChallengeUrl: '/api/v1/altcha/challenge',

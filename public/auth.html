@@ -336,6 +336,23 @@
                   </button>
                 </div>
 
+                <div class="auth-facebook" id="facebook-signin-wrap" hidden>
+                  <button
+                    type="button"
+                    id="facebook-signin-button"
+                    class="auth-facebook-button"
+                    aria-label="Continue with Facebook"
+                  >
+                    <svg viewBox="0 0 320 512" aria-hidden="true" focusable="false">
+                      <path
+                        fill="currentColor"
+                        d="M279.14 288l14.22-92.66h-88.91v-63.62c0-25.35 12.42-50.06 52.24-50.06h40.42V6.26S260.43 0 225.36 0c-73.22 0-121.08 44.38-121.08 124.72v70.62H22.89V288h81.39v224h100.17V288z"
+                      ></path>
+                    </svg>
+                    <span class="auth-facebook-button__label">Continue with Facebook</span>
+                  </button>
+                </div>
+
                 <div class="auth-divider"><span>or use email</span></div>
 
                 <div class="auth-field form-row">
@@ -656,7 +673,7 @@
                 <div class="auth-google auth-google--signup">
                   <div class="auth-google-heading">
                     <span class="auth-step-badge auth-step-badge--muted">Step 2</span>
-                    <span class="auth-step-title">Continue with Google, Apple or email</span>
+                    <span class="auth-step-title">Continue with Google, Facebook or email</span>
                   </div>
                   <div
                     id="google-signup-button"
@@ -679,8 +696,24 @@
                       <span class="auth-apple-button__label">Sign up with Apple</span>
                     </button>
                   </div>
+                  <div class="auth-facebook" id="facebook-signup-wrap" hidden>
+                    <button
+                      type="button"
+                      id="facebook-signup-button"
+                      class="auth-facebook-button"
+                      aria-label="Sign up with Facebook"
+                    >
+                      <svg viewBox="0 0 320 512" aria-hidden="true" focusable="false">
+                        <path
+                          fill="currentColor"
+                          d="M279.14 288l14.22-92.66h-88.91v-63.62c0-25.35 12.42-50.06 52.24-50.06h40.42V6.26S260.43 0 225.36 0c-73.22 0-121.08 44.38-121.08 124.72v70.62H22.89V288h81.39v224h100.17V288z"
+                        ></path>
+                      </svg>
+                      <span class="auth-facebook-button__label">Sign up with Facebook</span>
+                    </button>
+                  </div>
                   <p class="auth-google-note small">
-                    Choose your account type above before continuing with Google or Apple.
+                    Choose your account type above before continuing with Google or Facebook.
                   </p>
                   <div class="auth-divider"><span>or use email</span></div>
                 </div>
@@ -913,6 +946,9 @@
 
     <!-- Sign in with Apple -->
     <script src="/assets/js/pages/auth-apple-init.js" defer></script>
+
+    <!-- Continue with Facebook -->
+    <script src="/assets/js/pages/auth-facebook-init.js" defer></script>
 
     <!-- Initialize form validation -->
     <script src="/assets/js/pages/auth-form-init.js" defer></script>
