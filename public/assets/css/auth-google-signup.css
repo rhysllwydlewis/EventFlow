@@ -154,7 +154,6 @@ body.auth-page .auth-google-button {
   margin-inline: auto;
   max-inline-size: 100%;
   min-inline-size: min(100%, 220px);
-  min-block-size: 40px;
   overflow: hidden;
 }
 
