@@ -12,7 +12,7 @@ function encodeState(payload) {
     .replace(/=+$/g, '');
 }
 
-function buildAuthApp({ appleProfile, appleError, users = [] } = {}) {
+function buildAuthApp({ appleProfile, appleError, users = [], features, insertOneResult } = {}) {
   jest.resetModules();
   process.env.JWT_SECRET = 'test-secret-key-for-apple-route-tests-minimum-32';
   process.env.NODE_ENV = 'test';
@@ -23,6 +23,9 @@ function buildAuthApp({ appleProfile, appleError, users = [] } = {}) {
   jest.doMock('../../db-unified', () => ({
     read: jest.fn(async collection => (collection === 'users' ? users : [])),
     insertOne: jest.fn(async (_collection, doc) => {
+      if (insertOneResult === false) {
+        return null;
+      }
       inserted.push(doc);
       return true;
     }),
@@ -68,6 +71,7 @@ function buildAuthApp({ appleProfile, appleError, users = [] } = {}) {
     getFeatureFlags: jest.fn(async () => ({
       registration: true,
       supplierApplications: true,
+      ...features,
     })),
   }));
 
@@ -285,5 +289,201 @@ describe('Apple auth route', () => {
       .expect(303);
 
     expect(response.headers.location).toBe('/auth?apple=error&reason=apple_401');
+  });
+
+  it('exposes diagnostics for verifying the Apple Services ID and return URL configuration', async () => {
+    const { app } = buildAuthApp();
+
+    const response = await request(app).get('/api/auth/apple/diagnostics').expect(200);
+
+    expect(response.body).toMatchObject({
+      ok: true,
+      appleConfigured: true,
+      appleClientId: 'uk.co.event-flow.web',
+      appleClientIdsCount: 1,
+      appleLoginUri: 'https://event-flow.co.uk/api/auth/callback/apple',
+      expectedReturnUrl: 'https://event-flow.co.uk/api/auth/callback/apple',
+    });
+  });
+
+  it('sends admins to /admin when the redirect state requests it', async () => {
+    const existingAdmin = {
+      id: 'usr_admin',
+      email: 'new-user@privaterelay.appleid.com',
+      role: 'admin',
+      verified: true,
+      appleSub: 'apple-sub-123',
+      authProviderIds: { apple: 'apple-sub-123' },
+    };
+    const { app } = buildAuthApp({ users: [existingAdmin] });
+    const state = encodeState({ csrf: 'nonce-abc', returnTo: '/admin' });
+
+    const response = await request(app)
+      .post('/api/auth/callback/apple')
+      .set('Cookie', ['apple_auth_nonce=nonce-abc'])
+      .type('form')
+      .send({ id_token: 'valid-apple-id-token', state })
+      .expect(303);
+
+    expect(response.headers.location).toBe('/admin');
+  });
+
+  it('redirects to auth for 2FA-enabled accounts instead of completing login', async () => {
+    const existingUser = {
+      id: 'usr_2fa',
+      email: 'new-user@privaterelay.appleid.com',
+      role: 'customer',
+      verified: true,
+      twoFactorEnabled: true,
+      appleSub: 'apple-sub-123',
+      authProviderIds: { apple: 'apple-sub-123' },
+    };
+    const { app } = buildAuthApp({ users: [existingUser] });
+    const state = encodeState({ csrf: 'nonce-abc' });
+
+    const response = await request(app)
+      .post('/api/auth/callback/apple')
+      .set('Cookie', ['apple_auth_nonce=nonce-abc'])
+      .type('form')
+      .send({ id_token: 'valid-apple-id-token', state })
+      .expect(303);
+
+    expect(response.headers.location).toBe('/auth?apple=2fa_required');
+  });
+
+  it('rejects a callback with no id_token after a valid CSRF check', async () => {
+    const { app } = buildAuthApp();
+    const state = encodeState({ csrf: 'nonce-abc' });
+
+    const response = await request(app)
+      .post('/api/auth/callback/apple')
+      .set('Cookie', ['apple_auth_nonce=nonce-abc'])
+      .type('form')
+      .send({ state })
+      .expect(303);
+
+    expect(response.headers.location).toBe('/auth?apple=error&reason=missing_credential');
+  });
+
+  it('rejects a different Apple account already linked to another EventFlow user', async () => {
+    const linkedToSomeoneElse = {
+      id: 'usr_other',
+      email: 'someone-else@example.com',
+      role: 'customer',
+      verified: true,
+      appleSub: 'apple-sub-123',
+      authProviderIds: { apple: 'apple-sub-123' },
+    };
+    const { app, inserted } = buildAuthApp({ users: [linkedToSomeoneElse] });
+    const state = encodeState({ csrf: 'nonce-abc' });
+
+    const response = await request(app)
+      .post('/api/auth/callback/apple')
+      .set('Cookie', ['apple_auth_nonce=nonce-abc'])
+      .type('form')
+      .send({ id_token: 'valid-apple-id-token', state })
+      .expect(303);
+
+    expect(response.headers.location).toBe('/auth?apple=error&reason=apple_409');
+    expect(inserted).toHaveLength(0);
+  });
+
+  it('surfaces a failed account save instead of silently losing the new user', async () => {
+    const { app } = buildAuthApp({ insertOneResult: false });
+    const state = encodeState({ csrf: 'nonce-abc' });
+
+    const response = await request(app)
+      .post('/api/auth/callback/apple')
+      .set('Cookie', ['apple_auth_nonce=nonce-abc'])
+      .type('form')
+      .send({ id_token: 'valid-apple-id-token', state })
+      .expect(303);
+
+    expect(response.headers.location).toBe('/auth?apple=error&reason=apple_500');
+  });
+
+  it('ignores a malformed `user` field instead of failing the sign-in', async () => {
+    const { app, inserted } = buildAuthApp();
+    const state = encodeState({ csrf: 'nonce-abc' });
+
+    const response = await request(app)
+      .post('/api/auth/callback/apple')
+      .set('Cookie', ['apple_auth_nonce=nonce-abc'])
+      .type('form')
+      .send({ id_token: 'valid-apple-id-token', state, user: '{not-json' })
+      .expect(303);
+
+    expect(response.headers.location).toBe('/dashboard/customer');
+    expect(inserted).toHaveLength(1);
+    expect(inserted[0].firstName).toBe('Apple');
+  });
+
+  it('blocks new Apple signups while registration is disabled', async () => {
+    const { app, inserted } = buildAuthApp({ features: { registration: false } });
+    const state = encodeState({ csrf: 'nonce-abc' });
+
+    const response = await request(app)
+      .post('/api/auth/callback/apple')
+      .set('Cookie', ['apple_auth_nonce=nonce-abc'])
+      .type('form')
+      .send({ id_token: 'valid-apple-id-token', state })
+      .expect(303);
+
+    expect(response.headers.location).toBe('/auth?apple=error&reason=apple_503');
+    expect(inserted).toHaveLength(0);
+  });
+
+  it('blocks new supplier Apple signups while supplier applications are disabled', async () => {
+    const { app, inserted } = buildAuthApp({ features: { supplierApplications: false } });
+    const state = encodeState({
+      csrf: 'nonce-abc',
+      context: 'signup',
+      role: 'supplier',
+      location: 'Wales',
+      company: 'EventFlow Test Events',
+    });
+
+    const response = await request(app)
+      .post('/api/auth/callback/apple')
+      .set('Cookie', ['apple_auth_nonce=nonce-abc'])
+      .type('form')
+      .send({ id_token: 'valid-apple-id-token', state })
+      .expect(303);
+
+    expect(response.headers.location).toBe('/auth?apple=error&reason=apple_503');
+    expect(inserted).toHaveLength(0);
+  });
+
+  it('records signup attribution and referral fields for a new supplier signup', async () => {
+    const { app, inserted } = buildAuthApp();
+    const state = encodeState({
+      csrf: 'nonce-abc',
+      context: 'signup',
+      role: 'supplier',
+      location: 'Wales',
+      company: 'EventFlow Test Events',
+      website: 'https://example.com',
+      ref: 'partner-code-123',
+      analyticsSessionId: 'session-abc-123',
+      attribution: {
+        attribution_available: true,
+        first_channel: 'organic',
+      },
+    });
+
+    const response = await request(app)
+      .post('/api/auth/callback/apple')
+      .set('Cookie', ['apple_auth_nonce=nonce-abc'])
+      .type('form')
+      .send({ id_token: 'valid-apple-id-token', state })
+      .expect(303);
+
+    expect(response.headers.location).toBe('/dashboard/supplier');
+    const userRecord = inserted.find(doc => doc.email === 'new-user@privaterelay.appleid.com');
+    expect(userRecord).toMatchObject({ website: 'https://example.com', role: 'supplier' });
+    const analyticsEvent = inserted.find(doc => doc.event === 'registration_completed');
+    expect(analyticsEvent).toMatchObject({
+      properties: { signup_method: 'apple', first_channel: 'organic' },
+    });
   });
 });

@@ -46,7 +46,7 @@ describe('reviewed policy metadata', () => {
     expect(placeholders.POLICY_TERMS_LAST_REVIEWED).toBe('6 August 2026');
     expect(placeholders.POLICY_COOKIE_POLICY_LAST_UPDATED).toBe('6 August 2026');
     expect(placeholders.POLICY_COOKIE_POLICY_LAST_REVIEWED).toBe('6 August 2026');
-    expect(placeholders.POLICY_PRIVACY_VERSION).toBe('1.1');
+    expect(placeholders.POLICY_PRIVACY_VERSION).toBe('1.2');
   });
 
   it('renders every public policy page without unresolved placeholders', () => {
@@ -80,6 +80,7 @@ describe('reviewed policy metadata', () => {
     expect(privacy).toContain('<strong>Postmark:</strong>');
     expect(privacy).toContain('<strong>MongoDB:</strong>');
     expect(privacy).toContain('<strong>Google Identity Services:</strong>');
+    expect(privacy).toContain('<strong>Sign in with Apple:</strong>');
     expect(privacy).not.toMatch(/AWS S3|AWS SES|SendGrid|Custom SMTP Servers/);
     expect(privacy).not.toContain('TLS 1.3');
   });

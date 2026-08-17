@@ -54,12 +54,33 @@ function defaultDestinationForRole(role) {
   return '/dashboard/customer';
 }
 
+/** True if `value` contains an ASCII control character (tab, CR, LF, NUL, ...). */
+function hasControlCharacter(value) {
+  for (let i = 0; i < value.length; i += 1) {
+    const code = value.charCodeAt(i);
+    if (code <= 0x1f || code === 0x7f) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Only same-origin relative paths are ever redirected to. Beyond the `//`
+ * (protocol-relative) and backslash checks, this also rejects any control
+ * character: browsers strip *raw* control characters from a URL before
+ * parsing it, so a value like "/\t/evil.com" would otherwise slip past the
+ * "//" check here and later resolve to "//evil.com". Express's
+ * Location-header encoding already neutralises this for res.redirect()
+ * specifically, but this check must not depend on that.
+ */
 function isSafeRelativePath(value) {
   return Boolean(
     typeof value === 'string' &&
     value.startsWith('/') &&
     !value.startsWith('//') &&
-    !value.includes('\\')
+    !value.includes('\\') &&
+    !hasControlCharacter(value)
   );
 }
 

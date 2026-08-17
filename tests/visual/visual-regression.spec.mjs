@@ -55,7 +55,12 @@ const BASELINE_PAGES = [
   // baselines are generated in an environment that reproduces CI's rendering;
   // the axe scan runs regardless.
   { name: 'home-v2-preview', path: '/home-v2-preview', screenshotApproved: false },
-  { name: 'auth', path: '/auth' },
+  // auth: adding the Sign in with Apple button grew the page by ~12px
+  // (both breakpoints), so the committed baseline no longer matches. Screenshots
+  // are unapproved until a baseline is regenerated in an environment that
+  // reproduces CI's rendering (`npm run test:visual:update`, reviewed, then this
+  // flag removed); the axe scan runs regardless and is unaffected.
+  { name: 'auth', path: '/auth', screenshotApproved: false },
   { name: 'pricing', path: '/pricing', screenshotApproved: false },
   { name: 'for-suppliers', path: '/for-suppliers' },
   { name: 'marketplace', path: '/marketplace' },

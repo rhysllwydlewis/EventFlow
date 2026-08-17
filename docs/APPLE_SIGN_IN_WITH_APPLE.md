@@ -121,12 +121,46 @@ private key, because EventFlow only verifies the ID token Apple posts back
 credentials would only be needed for a future feature such as revoking
 tokens or requesting a refresh token.)
 
+### 5. Register the sending domain for Apple's Private Email Relay (do this before launch)
+
+If a user chooses to hide their email during Apple sign-in, Apple gives
+EventFlow a private relay address (`@privaterelay.appleid.com`) instead of
+their real one. Apple only forwards mail sent to that address **from a
+sending domain you have registered with Apple** — unregistered senders are
+silently dropped, so verification emails, notifications and password resets
+would never reach these users otherwise.
+
+1. In Apple Developer, go to **Certificates, Identifiers & Profiles → More →
+   [Configure](https://developer.apple.com/account/resources/services/email-relay)**
+   under "Sign in with Apple for Email Communication".
+2. Add every domain Postmark actually sends from (the domain in
+   `POSTMARK_FROM` / `EMAIL_DOMAIN`, e.g. `event-flow.co.uk` or a dedicated
+   subdomain such as `mail.event-flow.co.uk`).
+3. Apple also expects SPF/DKIM to be correctly configured for that sending
+   domain (already required for Postmark deliverability generally — see
+   Postmark's Sender Signatures/DKIM setup). If the sending domain differs
+   from `event-flow.co.uk` (e.g. a dedicated `mail.` subdomain), Apple's
+   Configure page may ask for a second domain-verification file specific to
+   that domain — follow its on-screen instructions the same way as step 3.
+4. Apple can disable relay forwarding for a domain that sends a high
+   proportion of marketing/bulk mail to relay addresses. Keep relay-address
+   mail to transactional messages (verification, password reset, booking and
+   account notifications) consistent with EventFlow's existing marketing
+   opt-in rules.
+
 ## Reference links
 
 - [Configure Sign in with Apple for the web](https://developer.apple.com/help/account/configure-app-capabilities/configure-sign-in-with-apple-for-the-web/)
 - [Sign in with Apple JS documentation](https://developer.apple.com/documentation/sign_in_with_apple/sign_in_with_apple_js)
 - [Verifying a user (ID token) — Sign in with Apple REST API](https://developer.apple.com/documentation/sign_in_with_apple/verifying-a-user)
 - [Certificates, Identifiers & Profiles](https://developer.apple.com/account/resources/identifiers/list)
+- [Communication using the private email relay service](https://developer.apple.com/help/account/configure-app-capabilities/communicate-using-the-private-email-relay-service/)
+- [Sign in with Apple: Human Interface Guidelines (button style/logo)](https://developer.apple.com/design/human-interface-guidelines/sign-in-with-apple) —
+  EventFlow renders its own button (a solid-black pill, to match the existing
+  Google button) rather than Apple's auto-rendered `#appleid-signin` widget;
+  it is not pixel-identical to Apple's official button asset, which is an
+  acceptable, commonly-used deviation for web integrations but can be revisited
+  against this guide if desired.
 
 ## Redirect URI / Services ID mismatch checklist
 
