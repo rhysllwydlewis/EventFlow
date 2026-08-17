@@ -18,17 +18,29 @@ function buildAuthApp({
   users = [],
   features,
   insertOneResult,
+  supplierInsertFails = false,
 } = {}) {
   jest.resetModules();
   process.env.JWT_SECRET = 'test-secret-key-for-facebook-route-tests-minimum-32';
   process.env.NODE_ENV = 'test';
 
   const inserted = [];
+  const insertedSuppliers = [];
   const updates = [];
+  const deleted = [];
+  let uidCounter = 0;
 
   jest.doMock('../../db-unified', () => ({
+    uid: jest.fn(prefix => `${prefix}-test-${++uidCounter}`),
     read: jest.fn(async collection => (collection === 'users' ? users : [])),
-    insertOne: jest.fn(async (_collection, doc) => {
+    insertOne: jest.fn(async (collection, doc) => {
+      if (collection === 'suppliers') {
+        if (supplierInsertFails) {
+          return null;
+        }
+        insertedSuppliers.push(doc);
+        return true;
+      }
       if (insertOneResult === false) {
         return null;
       }
@@ -39,7 +51,14 @@ function buildAuthApp({
       updates.push({ filter, update });
       return true;
     }),
-    findOne: jest.fn(async (_collection, query) => {
+    deleteOne: jest.fn(async (_collection, filter) => {
+      deleted.push(filter);
+      return true;
+    }),
+    findOne: jest.fn(async (collection, query) => {
+      if (collection === 'suppliers') {
+        return null;
+      }
       if (typeof query === 'function') {
         return users.find(query) || null;
       }
@@ -87,7 +106,7 @@ function buildAuthApp({
   app.use(cookieParser());
   app.use('/api/v1/auth', require('../../routes/facebook-redirect-auth'));
   app.use('/api/auth', require('../../routes/facebook-redirect-auth'));
-  return { app, inserted, updates };
+  return { app, inserted, insertedSuppliers, updates, deleted };
 }
 
 describe('Facebook auth route', () => {
@@ -208,7 +227,7 @@ describe('Facebook auth route', () => {
   });
 
   it('creates supplier accounts from Facebook redirect signup state', async () => {
-    const { app, inserted } = buildAuthApp();
+    const { app, inserted, insertedSuppliers } = buildAuthApp();
     const state = encodeState({
       csrf: 'csrf-abc',
       context: 'signup',
@@ -232,6 +251,37 @@ describe('Facebook auth route', () => {
       location: 'Wales',
       company: 'EventFlow Test Events',
     });
+    expect(insertedSuppliers).toHaveLength(1);
+    expect(insertedSuppliers[0]).toMatchObject({
+      ownerUserId: inserted[0].id,
+      email: 'new-user@example.com',
+      name: 'EventFlow Test Events',
+      location: 'Wales',
+    });
+  });
+
+  it('rolls back the new user when supplier profile provisioning fails', async () => {
+    const { app, inserted, insertedSuppliers, deleted } = buildAuthApp({
+      supplierInsertFails: true,
+    });
+    const state = encodeState({
+      csrf: 'csrf-abc',
+      context: 'signup',
+      role: 'supplier',
+      location: 'Wales',
+      company: 'EventFlow Test Events',
+    });
+
+    const response = await request(app)
+      .get('/api/auth/callback/facebook')
+      .set('Cookie', ['facebook_auth_csrf=csrf-abc'])
+      .query({ code: 'auth-code', state })
+      .expect(303);
+
+    expect(response.headers.location).toBe('/auth?facebook=error&reason=facebook_500');
+    expect(insertedSuppliers).toHaveLength(0);
+    expect(deleted).toHaveLength(1);
+    expect(deleted[0]).toEqual({ id: inserted[0].id });
   });
 
   it('rejects supplier Facebook redirect signup state without supplier essentials', async () => {

@@ -12,6 +12,7 @@ const { getFeatureFlags } = require('../middleware/features');
 const domainAdmin = require('../middleware/domain-admin');
 const googleAuthService = require('../services/googleAuth.service');
 const userProvenance = require('../services/userProvenance.service');
+const { ensureSupplierProfileForUser } = require('../services/supplierProfileProvisioning.service');
 const {
   COLLECTION_NAME: ANALYTICS_COLLECTION,
   sanitizeEvent: sanitizeAnalyticsEvent,
@@ -461,6 +462,26 @@ async function findOrCreateGoogleUser(googleProfile, state = {}) {
     }
 
     if (signupState.role === 'supplier') {
+      try {
+        await ensureSupplierProfileForUser(user);
+      } catch (profileError) {
+        logger.error('[GOOGLE-REDIRECT] failed to provision supplier profile; rolling back user', {
+          userId: user.id,
+          email: user.email,
+          error: profileError.message,
+        });
+        const rolledBack = await dbUnified.deleteOne('users', { id: user.id });
+        if (!rolledBack) {
+          await dbUnified.updateOne(
+            'users',
+            { id: user.id },
+            { $set: { supplierSetupStatus: 'profile_creation_failed' } }
+          );
+        }
+        const provisionErr = new Error('Failed to create supplier profile. Please try again.');
+        provisionErr.statusCode = 500;
+        throw provisionErr;
+      }
       await recordSupplierPartnerReferral(signupState.ref, user);
     }
     return { ...user, __eventflowNewGoogleSignup: true };
