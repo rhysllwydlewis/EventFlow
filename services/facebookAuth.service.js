@@ -95,7 +95,7 @@ async function verifyFacebookAccessToken(accessToken) {
 
 async function fetchFacebookProfile(accessToken) {
   const params = new URLSearchParams({
-    fields: 'id,name,first_name,last_name,email',
+    fields: 'id,name,first_name,last_name,email,picture.type(large)',
     access_token: accessToken,
   });
 
@@ -151,6 +151,7 @@ async function verifyFacebookAuthorizationCode(code, redirectUri) {
     name: profile.name || '',
     given_name: profile.first_name || '',
     family_name: profile.last_name || '',
+    picture: (profile.picture && profile.picture.data && profile.picture.data.url) || undefined,
     // Facebook only returns the confirmed email tied to the user's account.
     emailAuthoritative: true,
   };

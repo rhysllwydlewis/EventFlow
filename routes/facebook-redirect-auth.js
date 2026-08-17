@@ -327,6 +327,7 @@ function buildFacebookUser(facebookProfile, nowIso, signupState = {}) {
     authProviderIds: { facebook: facebookSub },
     facebookSub,
     facebookLinkedAt: nowIso,
+    avatarUrl: facebookProfile.picture || undefined,
     createdAt: nowIso,
   };
 }
@@ -435,6 +436,7 @@ async function findOrCreateFacebookUser(facebookProfile, state = {}) {
           ...userProvenance.facebookLinkProvenance(user, nowIso),
           authProviderIds: { ...(user.authProviderIds || {}), facebook: facebookSub },
           facebookLinkedAt: user.facebookLinkedAt || nowIso,
+          avatarUrl: user.avatarUrl || facebookProfile.picture || undefined,
         },
       }
     );

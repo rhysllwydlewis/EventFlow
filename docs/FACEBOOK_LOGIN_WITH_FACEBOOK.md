@@ -35,7 +35,7 @@ The intended flow is:
    EventFlow's own Facebook app.
 7. EventFlow verifies the token via Graph API's `debug_token` (confirms it
    is valid and was issued for this app) and fetches the profile via
-   `/me?fields=id,name,first_name,last_name,email`.
+   `/me?fields=id,name,first_name,last_name,email,picture.type(large)`.
 8. If Facebook does not return an email (the user denied the `email`
    permission, or has no confirmed email on their account), EventFlow
    rejects the sign-in with a clear message — every other EventFlow account
