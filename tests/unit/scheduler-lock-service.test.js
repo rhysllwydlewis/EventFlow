@@ -47,6 +47,19 @@ describe('schedulerLock.service — Mongo-backed', () => {
     expect(dbUnified.deleteOne).toHaveBeenCalledWith('scheduler_locks', { id: 'scheduler:my-job' });
   });
 
+  it('stores expiresAt (and acquiredAt) as real Date objects, not ISO strings', async () => {
+    // A Mongo TTL index only expires documents whose indexed field is a
+    // BSON Date — an ISO string would never be reaped, permanently
+    // blocking every future acquisition for that jobKey after a crash.
+    dbUnified.insertOne.mockResolvedValue({ id: 'scheduler:my-job' });
+
+    await acquireLock('my-job');
+
+    const [, document] = dbUnified.insertOne.mock.calls[0];
+    expect(document.expiresAt).toBeInstanceOf(Date);
+    expect(document.acquiredAt).toBeInstanceOf(Date);
+  });
+
   it('fails to acquire when insertOne returns null (duplicate-key / already held)', async () => {
     dbUnified.insertOne.mockResolvedValue(null);
 

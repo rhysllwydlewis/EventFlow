@@ -8,6 +8,7 @@ const { runScheduledJob, runIfMissed } = require('./scheduledJobRunner');
 const { JOB_KEYS } = require('./backgroundJobTelemetry.service');
 
 const EXPECTED_INTERVAL_MS = 24 * 60 * 60 * 1000;
+const DEFAULT_CRON = '20 3 * * *'; // 03:20 UTC — off-peak, away from other scheduled jobs.
 
 let scheduledJob = null;
 
@@ -76,9 +77,12 @@ function start() {
     scheduledJob = null;
     return { scheduled: false, nextRun: null };
   }
-  // Daily at 03:20 UTC — off-peak, away from other scheduled jobs. Pinned
-  // explicitly rather than relying on the container's default timezone.
-  scheduledJob = schedule.scheduleJob({ rule: '20 3 * * *', tz: 'Etc/UTC' }, () =>
+  // Pinned explicitly rather than relying on the container's default
+  // timezone. `NOTIFICATION_CLEANUP_CRON` overrides the default — this must
+  // stay in sync with the schedule backgroundJobTelemetry.service.js
+  // advertises on the dashboard.
+  const cronExpr = process.env.NOTIFICATION_CLEANUP_CRON || DEFAULT_CRON;
+  scheduledJob = schedule.scheduleJob({ rule: cronExpr, tz: 'Etc/UTC' }, () =>
     runTracked('scheduler')
   );
   setImmediate(() => runCatchUpIfMissed());

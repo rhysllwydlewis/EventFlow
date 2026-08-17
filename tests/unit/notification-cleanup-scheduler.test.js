@@ -83,6 +83,7 @@ describe('services/notificationCleanupScheduler.js', () => {
   describe('start()/stop()', () => {
     const originalNodeEnv = process.env.NODE_ENV;
     const originalEnabled = process.env.NOTIFICATION_CLEANUP_ENABLED;
+    const originalCron = process.env.NOTIFICATION_CLEANUP_CRON;
 
     afterEach(() => {
       process.env.NODE_ENV = originalNodeEnv;
@@ -90,6 +91,11 @@ describe('services/notificationCleanupScheduler.js', () => {
         delete process.env.NOTIFICATION_CLEANUP_ENABLED;
       } else {
         process.env.NOTIFICATION_CLEANUP_ENABLED = originalEnabled;
+      }
+      if (originalCron === undefined) {
+        delete process.env.NOTIFICATION_CLEANUP_CRON;
+      } else {
+        process.env.NOTIFICATION_CLEANUP_CRON = originalCron;
       }
     });
 
@@ -113,6 +119,21 @@ describe('services/notificationCleanupScheduler.js', () => {
         expect.any(Function)
       );
       expect(result).toEqual({ scheduled: true, nextRun: new Date('2026-01-01T03:20:00.000Z') });
+    });
+
+    it('honors NOTIFICATION_CLEANUP_CRON instead of the hard-coded default', () => {
+      // backgroundJobTelemetry.service.js's getDefinitions() advertises
+      // NOTIFICATION_CLEANUP_CRON as the active schedule on the dashboard —
+      // this scheduler must actually use it, not just the 03:20 default.
+      process.env.NOTIFICATION_CLEANUP_ENABLED = 'true';
+      process.env.NOTIFICATION_CLEANUP_CRON = '0 5 * * *';
+
+      scheduler.start();
+
+      expect(schedule.scheduleJob).toHaveBeenCalledWith(
+        { rule: '0 5 * * *', tz: 'Etc/UTC' },
+        expect.any(Function)
+      );
     });
 
     it('cancels any previously scheduled job before scheduling a new one', () => {

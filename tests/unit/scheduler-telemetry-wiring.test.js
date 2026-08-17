@@ -50,6 +50,30 @@ describe('contentReviewScheduler.runTracked', () => {
     expect(sentry.captureException).not.toHaveBeenCalled();
   });
 
+  test('records a skipped run — not success — when content-review automation is disabled', async () => {
+    // ensureMonthlyTasks() reports skipped:true when disabled via the
+    // database-backed setting; runTracked() must propagate that through to
+    // runScheduledJob rather than reporting a false "success", or the
+    // dashboard would say automation ran when it didn't.
+    jest.resetModules();
+    jest.doMock('../../services/backgroundJobTelemetry.service', () => {
+      const actual = jest.requireActual('../../services/backgroundJobTelemetry.service');
+      return { ...actual, recordRun: backgroundJobs.recordRun };
+    });
+    jest.doMock('../../utils/sentry', () => sentry);
+    jest.doMock('../../services/contentReviewTask.service', () => ({
+      ensureMonthlyTasks: jest.fn().mockResolvedValue({ created: [], skipped: true }),
+    }));
+    const scheduler = require('../../services/contentReviewScheduler');
+
+    await scheduler.runTracked('scheduler');
+
+    expect(backgroundJobs.recordRun).toHaveBeenCalledWith(
+      expect.objectContaining({ jobKey: 'content-review', status: 'skipped' }),
+      expect.anything()
+    );
+  });
+
   test('reports a failure to Sentry and records status failed', async () => {
     jest.resetModules();
     jest.doMock('../../services/backgroundJobTelemetry.service', () => {

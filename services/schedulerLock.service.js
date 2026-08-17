@@ -58,24 +58,29 @@ async function isMongoBacked() {
 async function acquireLock(jobKey, ttlMs = DEFAULT_TTL_MS) {
   const id = lockId(jobKey);
   const now = Date.now();
-  const expiresAt = new Date(now + Math.max(30000, ttlMs)).toISOString();
+  const expiresAtDate = new Date(now + Math.max(30000, ttlMs));
 
   if (!(await isMongoBacked())) {
     const existing = localLocks.get(id);
     if (existing && !isExpired(existing, now)) {
       return null;
     }
-    localLocks.set(id, { expiresAt });
+    localLocks.set(id, { expiresAt: expiresAtDate.toISOString() });
     return async () => {
       localLocks.delete(id);
     };
   }
 
+  // Stored as a real BSON Date, not an ISO string — the TTL index on
+  // `expiresAt` (see db-unified.js createIndexes()) only expires documents
+  // whose field is a Date. An ISO string would never be reaped by Mongo,
+  // so a lock left behind by a crashed process would permanently block
+  // every future acquisition for that jobKey via the unique `id` index.
   const inserted = await dbUnified.insertOne(COLLECTION, {
     id,
     jobKey,
-    acquiredAt: new Date(now).toISOString(),
-    expiresAt,
+    acquiredAt: new Date(now),
+    expiresAt: expiresAtDate,
   });
   if (!inserted) {
     // Either the unique-index insert lost the race, or another process

@@ -47,7 +47,10 @@ function runTracked(trigger) {
       if (result.error) {
         throw new Error(result.error);
       }
-      return { created: Array.isArray(result.created) ? result.created.length : 0 };
+      return {
+        created: Array.isArray(result.created) ? result.created.length : 0,
+        skipped: Boolean(result.skipped),
+      };
     },
     { trigger }
   );
