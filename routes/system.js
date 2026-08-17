@@ -79,7 +79,7 @@ function applyHealthCheckLimiter(req, res, next) {
   next();
 }
 
-function parseGoogleClientIds(value) {
+function parseClientIdList(value) {
   return String(value || '')
     .split(',')
     .map(id => id.trim())
@@ -90,9 +90,13 @@ function getPublicGoogleClientId() {
   return (
     process.env.GOOGLE_CLIENT_ID ||
     process.env.GOOGLE_OAUTH_CLIENT_ID ||
-    parseGoogleClientIds(process.env.GOOGLE_CLIENT_IDS)[0] ||
+    parseClientIdList(process.env.GOOGLE_CLIENT_IDS)[0] ||
     ''
   );
+}
+
+function getPublicAppleClientId() {
+  return process.env.APPLE_CLIENT_ID || parseClientIdList(process.env.APPLE_CLIENT_IDS)[0] || '';
 }
 
 function getIntegrationStatus() {
@@ -230,6 +234,7 @@ router.get('/config', apiLimiter, async (req, res) => {
   res.json({
     googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY || '',
     googleClientId: getPublicGoogleClientId(),
+    appleClientId: getPublicAppleClientId(),
     version: APP_VERSION,
     sentryDsn: process.env.SENTRY_DSN_FRONTEND || '',
     altchaChallengeUrl: '/api/v1/altcha/challenge',

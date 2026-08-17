@@ -12,6 +12,10 @@ function hasGoogleLink(user) {
   return Boolean(user && (user.googleSub || (user.authProviderIds && user.authProviderIds.google)));
 }
 
+function hasAppleLink(user) {
+  return Boolean(user && (user.appleSub || (user.authProviderIds && user.authProviderIds.apple)));
+}
+
 function safeVerifiedBy(verifiedBy) {
   if (!verifiedBy || typeof verifiedBy !== 'object') {
     return null;
@@ -148,6 +152,67 @@ function googleLinkProvenance(existingUser, nowIso) {
   return updates;
 }
 
+function appleSignupProvenance(nowIso) {
+  return {
+    signupMethod: 'apple',
+    authProvider: 'apple',
+    verifiedAt: nowIso,
+    verificationMethod: 'apple_verified_email',
+    verifiedBy: {
+      type: 'apple',
+      provider: 'apple',
+      reason: 'Apple ID token email_verified=true',
+    },
+    emailDeliveryStatus: 'not_required',
+    verificationEmailSentAt: null,
+    lastVerificationEmailLogId: null,
+    lastVerificationEmailPostmarkMessageId: null,
+  };
+}
+
+function appleLinkProvenance(existingUser, nowIso) {
+  const alreadyVerified = existingUser && existingUser.verified === true;
+  const missingMethod =
+    !existingUser.verificationMethod || existingUser.verificationMethod === 'unknown';
+  const updates = {
+    authProvider: existingUser && existingUser.passwordHash ? 'mixed' : 'apple',
+  };
+  if (!existingUser.signupMethod) {
+    updates.signupMethod = existingUser.passwordHash ? 'email_password' : 'apple';
+  }
+  if (!alreadyVerified) {
+    Object.assign(updates, {
+      verified: true,
+      verifiedAt: nowIso,
+      verificationMethod: 'apple_verified_email',
+      verifiedBy: {
+        type: 'apple',
+        provider: 'apple',
+        reason: 'Existing account linked to authoritative Apple email',
+      },
+      emailDeliveryStatus: 'not_required',
+    });
+  } else {
+    if (!existingUser.verifiedAt) {
+      updates.verifiedAt = nowIso;
+    }
+    if (missingMethod) {
+      updates.verificationMethod = 'apple_verified_email';
+    }
+    if (!existingUser.verifiedBy) {
+      updates.verifiedBy = {
+        type: 'apple',
+        provider: 'apple',
+        reason: 'Existing account linked to authoritative Apple email',
+      };
+    }
+    if (!existingUser.emailDeliveryStatus || missingMethod) {
+      updates.emailDeliveryStatus = 'not_required';
+    }
+  }
+  return updates;
+}
+
 function adminCreatedProvenance(adminId, nowIso) {
   return {
     signupMethod: 'admin_created',
@@ -176,11 +241,13 @@ function canResendVerification(user) {
     return false;
   }
   if (
-    ['google_verified_email', 'admin_created', 'owner_account'].includes(user.verificationMethod)
+    ['google_verified_email', 'apple_verified_email', 'admin_created', 'owner_account'].includes(
+      user.verificationMethod
+    )
   ) {
     return false;
   }
-  if (['google', 'admin', 'owner_seed'].includes(user.signupMethod)) {
+  if (['google', 'apple', 'admin', 'owner_seed'].includes(user.signupMethod)) {
     return false;
   }
   return true;
@@ -202,6 +269,9 @@ function inferSignupMethod(user) {
   if (hasGoogleLink(user) || user.authProvider === 'google') {
     return 'google';
   }
+  if (hasAppleLink(user) || user.authProvider === 'apple') {
+    return 'apple';
+  }
   if (user.passwordHash) {
     return 'email_password';
   }
@@ -212,7 +282,7 @@ function inferAuthProvider(user) {
   if (!user) {
     return 'unknown';
   }
-  if (hasGoogleLink(user) && user.passwordHash) {
+  if ((hasGoogleLink(user) || hasAppleLink(user)) && user.passwordHash) {
     return 'mixed';
   }
   if (user.authProvider) {
@@ -220,6 +290,9 @@ function inferAuthProvider(user) {
   }
   if (hasGoogleLink(user)) {
     return 'google';
+  }
+  if (hasAppleLink(user)) {
+    return 'apple';
   }
   if (user.createdBy && user.verified === true && !user.passwordHash) {
     return 'admin';
@@ -248,6 +321,9 @@ function inferVerificationMethod(user) {
   }
   if (hasGoogleLink(user) || user.authProvider === 'google') {
     return 'google_verified_email';
+  }
+  if (hasAppleLink(user) || user.authProvider === 'apple') {
+    return 'apple_verified_email';
   }
   if (user.verifiedAt && user.verificationEmailSentAt) {
     return 'eventflow_email';
@@ -282,18 +358,23 @@ function safeUserProvenance(user, verificationSummary = {}) {
       null,
     hasGoogleLink: hasGoogleLink(user),
     googleLinkedAt: iso(user && user.googleLinkedAt),
+    hasAppleLink: hasAppleLink(user),
+    appleLinkedAt: iso(user && user.appleLinkedAt),
   };
 }
 
 module.exports = {
   iso,
   hasGoogleLink,
+  hasAppleLink,
   safeVerifiedBy,
   metadataFromSendResult,
   emailPasswordPendingProvenance,
   ownerProvenance,
   googleSignupProvenance,
   googleLinkProvenance,
+  appleSignupProvenance,
+  appleLinkProvenance,
   adminCreatedProvenance,
   eventflowEmailVerifiedProvenance,
   canResendVerification,
