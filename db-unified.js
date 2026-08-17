@@ -739,22 +739,6 @@ function getNestedValue(obj, path) {
 // safeAssign below is the actual structural guard.
 const UNSAFE_KEY_SEGMENTS = new Set(['__proto__', 'constructor', 'prototype']);
 
-// `obj[key] = value` for key === '__proto__' invokes the real accessor
-// (reassigning obj's prototype) rather than creating an own property named
-// "__proto__" — that's the prototype-pollution vector bracket-notation
-// assignment opens up here. Object.defineProperty never has that special
-// case: even for key === '__proto__' it always creates/overwrites a plain
-// own data property that shadows the inherited accessor, so it's safe
-// regardless of what key a future caller passes.
-function safeAssign(obj, key, value) {
-  Object.defineProperty(obj, key, {
-    value,
-    writable: true,
-    enumerable: true,
-    configurable: true,
-  });
-}
-
 /**
  * Apply a MongoDB-style $set object to a local-store document, resolving
  * dotted keys like 'emailPrefs.actionPrompts.enabled' into nested object
@@ -772,13 +756,25 @@ function safeAssign(obj, key, value) {
 function applyDotPathSet(target, setFields) {
   const result = { ...target };
   for (const [key, value] of Object.entries(setFields || {})) {
+    // Inlined rather than routed through a shared helper: the write
+    // (Object.defineProperty) must stay in the same function body as this
+    // guard for it to be recognised as a sanitizing barrier — a barrier in
+    // the caller doesn't carry across a call into a separate function.
     const segments = key.split('.');
-    if (segments.some(segment => UNSAFE_KEY_SEGMENTS.has(segment))) {
+    if (
+      segments.length === 0 ||
+      segments.some(segment => UNSAFE_KEY_SEGMENTS.has(segment) || segment.length === 0)
+    ) {
       logger.warn(`Refusing unsafe $set key: ${key}`);
       continue;
     }
     if (segments.length === 1) {
-      safeAssign(result, key, value);
+      Object.defineProperty(result, key, {
+        value,
+        writable: true,
+        enumerable: true,
+        configurable: true,
+      });
       continue;
     }
     let cursor = result;
@@ -786,10 +782,20 @@ function applyDotPathSet(target, setFields) {
       const segment = segments[i];
       const existing = cursor[segment];
       const isPlainObject = existing && typeof existing === 'object' && !Array.isArray(existing);
-      safeAssign(cursor, segment, isPlainObject ? { ...existing } : {});
+      Object.defineProperty(cursor, segment, {
+        value: isPlainObject ? { ...existing } : {},
+        writable: true,
+        enumerable: true,
+        configurable: true,
+      });
       cursor = cursor[segment];
     }
-    safeAssign(cursor, segments[segments.length - 1], value);
+    Object.defineProperty(cursor, segments[segments.length - 1], {
+      value,
+      writable: true,
+      enumerable: true,
+      configurable: true,
+    });
   }
   return result;
 }
