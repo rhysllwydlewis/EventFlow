@@ -1,5 +1,6 @@
 'use strict';
 
+const crypto = require('crypto');
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const validator = require('validator');
@@ -10,7 +11,7 @@ const { uid } = require('../store');
 const { JWT_SECRET, setAuthCookie } = require('../middleware/auth');
 const { getFeatureFlags } = require('../middleware/features');
 const domainAdmin = require('../middleware/domain-admin');
-const googleAuthService = require('../services/googleAuth.service');
+const appleAuthService = require('../services/appleAuth.service');
 const userProvenance = require('../services/userProvenance.service');
 const {
   COLLECTION_NAME: ANALYTICS_COLLECTION,
@@ -18,9 +19,11 @@ const {
 } = require('../utils/behaviourAnalytics');
 
 const router = express.Router();
-const parseGoogleFormPost = express.urlencoded({ extended: false, limit: '32kb' });
-const GOOGLE_LOGIN_PATH = '/api/auth/callback/google';
+const parseAppleFormPost = express.urlencoded({ extended: false, limit: '32kb' });
+const APPLE_LOGIN_PATH = '/api/auth/callback/apple';
 const PRODUCTION_ORIGIN = 'https://event-flow.co.uk';
+const APPLE_NONCE_COOKIE = 'apple_auth_nonce';
+const APPLE_NONCE_MAX_AGE_MS = 10 * 60 * 1000;
 
 function getPublicBaseUrl() {
   const configured = String(process.env.BASE_URL || '')
@@ -32,13 +35,13 @@ function getPublicBaseUrl() {
   return PRODUCTION_ORIGIN;
 }
 
-function getGoogleLoginUri() {
-  return `${getPublicBaseUrl()}${GOOGLE_LOGIN_PATH}`;
+function getAppleLoginUri() {
+  return `${getPublicBaseUrl()}${APPLE_LOGIN_PATH}`;
 }
 
 function redirectWithError(res, reason) {
-  const safeReason = encodeURIComponent(reason || 'google_failed');
-  return res.redirect(303, `/auth?google=error&reason=${safeReason}`);
+  const safeReason = encodeURIComponent(reason || 'apple_failed');
+  return res.redirect(303, `/auth?apple=error&reason=${safeReason}`);
 }
 
 function defaultDestinationForRole(role) {
@@ -141,10 +144,20 @@ function destinationFromState(user, state) {
   return destination;
 }
 
-function validateGoogleDoubleSubmitCsrf(req) {
-  const bodyToken = req.body && req.body.g_csrf_token;
-  const cookieToken = req.cookies && req.cookies.g_csrf_token;
-  return Boolean(bodyToken && cookieToken && bodyToken === cookieToken);
+/**
+ * Apple has no equivalent of Google's automatic g_csrf_token double-submit
+ * cookie, so EventFlow issues its own single-use nonce via GET /apple/nonce,
+ * stores it in a short-lived cookie, and requires the same value back both
+ * inside the encoded `state` (CSRF binding) and as the ID token's `nonce`
+ * claim (replay protection against a stolen/reused authorization response).
+ */
+function validateAppleCsrf(req, state) {
+  const cookieToken = req.cookies && req.cookies[APPLE_NONCE_COOKIE];
+  return Boolean(cookieToken && state.csrf && cookieToken === state.csrf);
+}
+
+function clearAppleNonceCookie(res) {
+  res.clearCookie(APPLE_NONCE_COOKIE, { path: '/', secure: true, sameSite: 'none' });
 }
 
 async function updateLastLogin(userId) {
@@ -155,7 +168,7 @@ async function updateLastLogin(userId) {
       { $set: { lastLoginAt: new Date().toISOString() } }
     );
   } catch (error) {
-    logger.error('[GOOGLE REDIRECT LOGIN] Failed to update lastLoginAt', {
+    logger.error('[APPLE REDIRECT LOGIN] Failed to update lastLoginAt', {
       message: error.message,
     });
   }
@@ -212,7 +225,7 @@ function getSignupState(state) {
   return signupState;
 }
 
-async function validateNewGoogleSignupState(signupState) {
+async function validateNewAppleSignupState(signupState) {
   const features = await getFeatureFlags();
   if (!features.registration) {
     const error = new Error(
@@ -235,13 +248,13 @@ async function validateNewGoogleSignupState(signupState) {
   }
 
   if (!signupState.location) {
-    const error = new Error('Location is required for supplier Google sign up.');
+    const error = new Error('Location is required for supplier Apple sign up.');
     error.statusCode = 400;
     throw error;
   }
 
   if (!signupState.company) {
-    const error = new Error('Company name is required for supplier Google sign up.');
+    const error = new Error('Company name is required for supplier Apple sign up.');
     error.statusCode = 400;
     throw error;
   }
@@ -270,32 +283,29 @@ async function recordSupplierPartnerReferral(refCode, user) {
   }
 }
 
-function isAuthoritativeProfileEmail(googleProfile) {
-  if (googleProfile.emailAuthoritative !== undefined) {
-    return Boolean(googleProfile.emailAuthoritative);
+function parseAppleUserField(rawUser) {
+  if (!rawUser || typeof rawUser !== 'string') {
+    return {};
   }
-  const email = String(googleProfile.email || '').toLowerCase();
-  return Boolean(
-    googleProfile.email_verified && (email.endsWith('@gmail.com') || googleProfile.hd)
-  );
+  try {
+    const parsed = JSON.parse(rawUser);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch (_) {
+    return {};
+  }
 }
 
-function buildGoogleUser(googleProfile, nowIso, signupState = {}) {
-  const email = String(googleProfile.email || '').toLowerCase();
-  const googleSub = String(googleProfile.sub || '');
-  const givenName = String(googleProfile.given_name || '')
+function buildAppleUser(appleProfile, appleUserInfo, nowIso, signupState = {}) {
+  const email = String(appleProfile.email || '').toLowerCase();
+  const appleSub = String(appleProfile.sub || '');
+  const givenName = String(appleUserInfo?.name?.firstName || '')
     .trim()
     .slice(0, 40);
-  const familyName = String(googleProfile.family_name || '')
+  const familyName = String(appleUserInfo?.name?.lastName || '')
     .trim()
     .slice(0, 40);
-  const profileName = String(googleProfile.name || '').trim();
-  const fallbackName = email.split('@')[0] || 'Google user';
-  const fullName = (profileName || `${givenName} ${familyName}`.trim() || fallbackName).slice(
-    0,
-    80
-  );
-  const [derivedFirstName, ...derivedLastParts] = fullName.split(/\s+/);
+  const fallbackName = email.split('@')[0] || 'Apple user';
+  const fullName = (`${givenName} ${familyName}`.trim() || fallbackName).slice(0, 80);
   const requestedRole = signupState.role === 'supplier' ? 'supplier' : 'customer';
   const isOwner = domainAdmin.isOwnerEmail(email);
   const roleDecision = domainAdmin.determineRole(email, requestedRole, true);
@@ -303,8 +313,8 @@ function buildGoogleUser(googleProfile, nowIso, signupState = {}) {
   return {
     id: uid('usr'),
     name: fullName,
-    firstName: givenName || derivedFirstName || 'Google',
-    lastName: familyName || derivedLastParts.join(' ') || 'User',
+    firstName: givenName || 'Apple',
+    lastName: familyName || 'User',
     email,
     role: isOwner ? 'admin' : roleDecision.role,
     location: signupState.location || 'Not specified',
@@ -320,17 +330,16 @@ function buildGoogleUser(googleProfile, nowIso, signupState = {}) {
     marketingOptIn: false,
     verified: true,
     isOwner,
-    ...userProvenance.googleSignupProvenance(nowIso),
-    authProvider: 'google',
-    authProviderIds: { google: googleSub },
-    googleSub,
-    googleLinkedAt: nowIso,
-    avatarUrl: googleProfile.picture || undefined,
+    ...userProvenance.appleSignupProvenance(nowIso),
+    authProvider: 'apple',
+    authProviderIds: { apple: appleSub },
+    appleSub,
+    appleLinkedAt: nowIso,
     createdAt: nowIso,
   };
 }
 
-const GOOGLE_ATTRIBUTION_KEYS = [
+const APPLE_ATTRIBUTION_KEYS = [
   'attribution_available',
   'first_channel',
   'first_referrer_domain',
@@ -348,13 +357,13 @@ const GOOGLE_ATTRIBUTION_KEYS = [
   'last_partner_reference',
 ];
 
-function getGoogleSignupAttribution(state) {
+function getAppleSignupAttribution(state) {
   const attribution = state?.attribution;
   if (state?.context !== 'signup' || !attribution) {
     return null;
   }
-  const properties = { conversionType: 'registration', signup_method: 'google' };
-  GOOGLE_ATTRIBUTION_KEYS.forEach(key => {
+  const properties = { conversionType: 'registration', signup_method: 'apple' };
+  APPLE_ATTRIBUTION_KEYS.forEach(key => {
     const value = attribution[key];
     if (typeof value === 'boolean' || typeof value === 'string') {
       properties[key] = value;
@@ -363,8 +372,8 @@ function getGoogleSignupAttribution(state) {
   return properties.attribution_available === true ? properties : null;
 }
 
-async function recordGoogleSignupAnalytics(user, state) {
-  const properties = getGoogleSignupAttribution(state);
+async function recordAppleSignupAnalytics(user, state) {
+  const properties = getAppleSignupAttribution(state);
   const sessionId = cleanStateText(state?.analyticsSessionId, 120);
   if (!properties || !sessionId || !user?.id || user.role === 'admin') {
     return;
@@ -391,30 +400,30 @@ async function recordGoogleSignupAnalytics(user, state) {
       await dbUnified.insertOne(ANALYTICS_COLLECTION, event);
     }
   } catch (error) {
-    logger.warn('[GOOGLE REDIRECT LOGIN] Signup analytics recording failed', {
+    logger.warn('[APPLE REDIRECT LOGIN] Signup analytics recording failed', {
       message: error.message,
     });
   }
 }
 
-async function findOrCreateGoogleUser(googleProfile, state = {}) {
+async function findOrCreateAppleUser(appleProfile, appleUserInfo, state = {}) {
   const users = await dbUnified.read('users');
-  const email = String(googleProfile.email || '').toLowerCase();
-  const googleSub = String(googleProfile.sub || '');
+  const email = String(appleProfile.email || '').toLowerCase();
+  const appleSub = String(appleProfile.sub || '');
   const nowIso = new Date().toISOString();
   const signupState = getSignupState(state);
 
-  let user = users.find(u => u.googleSub === googleSub || u.authProviderIds?.google === googleSub);
+  let user = users.find(u => u.appleSub === appleSub || u.authProviderIds?.apple === appleSub);
   const existingByEmail = users.find(u => (u.email || '').toLowerCase() === email);
 
   if (user && user.email && (user.email || '').toLowerCase() !== email) {
-    const error = new Error('Google account is linked to another user.');
+    const error = new Error('Apple account is linked to another user.');
     error.statusCode = 409;
     throw error;
   }
 
   if (!user && existingByEmail) {
-    if (!isAuthoritativeProfileEmail(googleProfile)) {
+    if (!appleProfile.emailAuthoritative) {
       const error = new Error(
         'An account already exists for this email. Please log in with your password first.'
       );
@@ -428,31 +437,28 @@ async function findOrCreateGoogleUser(googleProfile, state = {}) {
       { id: user.id },
       {
         $set: {
-          googleSub,
-          ...userProvenance.googleLinkProvenance(user, nowIso),
-          authProviderIds: { ...(user.authProviderIds || {}), google: googleSub },
-          googleLinkedAt: user.googleLinkedAt || nowIso,
-          avatarUrl: user.avatarUrl || googleProfile.picture || undefined,
+          appleSub,
+          ...userProvenance.appleLinkProvenance(user, nowIso),
+          authProviderIds: { ...(user.authProviderIds || {}), apple: appleSub },
+          appleLinkedAt: user.appleLinkedAt || nowIso,
         },
       }
     );
     return {
       ...user,
-      googleSub,
-      ...userProvenance.googleLinkProvenance(user, nowIso),
-      authProviderIds: { ...(user.authProviderIds || {}), google: googleSub },
-      googleLinkedAt: user.googleLinkedAt || nowIso,
+      appleSub,
+      ...userProvenance.appleLinkProvenance(user, nowIso),
+      authProviderIds: { ...(user.authProviderIds || {}), apple: appleSub },
+      appleLinkedAt: user.appleLinkedAt || nowIso,
     };
   }
 
   if (!user) {
-    await validateNewGoogleSignupState(signupState);
-    user = buildGoogleUser(googleProfile, nowIso, signupState);
+    await validateNewAppleSignupState(signupState);
+    user = buildAppleUser(appleProfile, appleUserInfo, nowIso, signupState);
     const insertedUser = await dbUnified.insertOne('users', user);
     if (!insertedUser) {
-      // insertOne returns null on DB error. Throw so the route-level catch block
-      // can redirect the user — res is not in scope inside this helper function.
-      logger.error('[GOOGLE-REDIRECT] insertOne returned null — user account not saved', {
+      logger.error('[APPLE-REDIRECT] insertOne returned null — user account not saved', {
         email: user.email,
       });
       const insertErr = new Error('Failed to create account. Please try again.');
@@ -463,70 +469,97 @@ async function findOrCreateGoogleUser(googleProfile, state = {}) {
     if (signupState.role === 'supplier') {
       await recordSupplierPartnerReferral(signupState.ref, user);
     }
-    return { ...user, __eventflowNewGoogleSignup: true };
+    return { ...user, __eventflowNewAppleSignup: true };
   }
 
   if (user.verified === false) {
-    const googleVerifyUpdates = userProvenance.googleLinkProvenance(user, nowIso);
-    await dbUnified.updateOne('users', { id: user.id }, { $set: googleVerifyUpdates });
-    return { ...user, ...googleVerifyUpdates };
+    const appleVerifyUpdates = userProvenance.appleLinkProvenance(user, nowIso);
+    await dbUnified.updateOne('users', { id: user.id }, { $set: appleVerifyUpdates });
+    return { ...user, ...appleVerifyUpdates };
   }
 
   return user;
 }
 
-router.get('/google/diagnostics', (_req, res) => {
-  const clientIds = googleAuthService.getGoogleClientIds();
+router.get('/apple/nonce', (req, res) => {
+  const nonce = crypto.randomBytes(24).toString('base64url');
+  res.setHeader('Cache-Control', 'no-store, private');
+  res.cookie(APPLE_NONCE_COOKIE, nonce, {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'none',
+    maxAge: APPLE_NONCE_MAX_AGE_MS,
+    path: '/',
+  });
+  res.json({ ok: true, nonce });
+});
+
+router.get('/apple/diagnostics', (_req, res) => {
+  const clientIds = appleAuthService.getAppleClientIds();
   res.setHeader('Cache-Control', 'no-store, private');
   res.json({
     ok: true,
-    googleConfigured: clientIds.length > 0,
-    googleClientId: googleAuthService.getGoogleClientId(),
-    googleClientIdsCount: clientIds.length,
-    googleLoginUri: getGoogleLoginUri(),
-    expectedAuthorizedJavaScriptOrigin: PRODUCTION_ORIGIN,
-    expectedAuthorizedRedirectUri: `${PRODUCTION_ORIGIN}${GOOGLE_LOGIN_PATH}`,
+    appleConfigured: clientIds.length > 0,
+    appleClientId: appleAuthService.getAppleClientId(),
+    appleClientIdsCount: clientIds.length,
+    appleLoginUri: getAppleLoginUri(),
+    expectedReturnUrl: `${PRODUCTION_ORIGIN}${APPLE_LOGIN_PATH}`,
     baseUrlConfigured: Boolean(process.env.BASE_URL),
     baseUrlHost: getPublicBaseUrl(),
   });
 });
 
-router.get('/callback/google', (_req, res) => {
-  return res.redirect(303, '/auth?google=callback_requires_post');
+router.get('/callback/apple', (_req, res) => {
+  return res.redirect(303, '/auth?apple=callback_requires_post');
 });
 
 /**
- * POST /api/auth/callback/google
- * Receives the Sign in with Google redirect-mode credential form post.
- * This is not an OAuth authorization-code callback; Google posts an ID token
- * credential here, protected by Google's double-submit g_csrf_token check.
+ * POST /api/auth/callback/apple
+ * Receives Apple's Sign in with Apple form_post redirect (response_mode=form_post,
+ * response_type=code id_token). Apple only includes the `user` field (name/email)
+ * on the very first authorization for a given Apple ID + client — every later
+ * sign-in only carries `id_token` and `state`.
  */
-router.post('/callback/google', parseGoogleFormPost, async (req, res) => {
+router.post('/callback/apple', parseAppleFormPost, async (req, res) => {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
   res.setHeader('Pragma', 'no-cache');
 
-  if (!validateGoogleDoubleSubmitCsrf(req)) {
-    logger.warn('[GOOGLE REDIRECT LOGIN] Invalid Google CSRF token');
-    return redirectWithError(res, 'google_csrf');
+  if (req.body && req.body.error) {
+    logger.info('[APPLE REDIRECT LOGIN] Apple reported an error', {
+      error: req.body.error,
+    });
+    clearAppleNonceCookie(res);
+    return redirectWithError(res, String(req.body.error).slice(0, 60));
   }
 
-  const credential = req.body && req.body.credential;
+  const state = decodeState(req.body && req.body.state);
+
+  if (!validateAppleCsrf(req, state)) {
+    logger.warn('[APPLE REDIRECT LOGIN] Invalid Apple CSRF/nonce token');
+    clearAppleNonceCookie(res);
+    return redirectWithError(res, 'apple_csrf');
+  }
+  clearAppleNonceCookie(res);
+
+  const credential = req.body && req.body.id_token;
   if (!credential) {
-    logger.warn('[GOOGLE REDIRECT LOGIN] Missing credential in callback');
+    logger.warn('[APPLE REDIRECT LOGIN] Missing id_token in callback');
     return redirectWithError(res, 'missing_credential');
   }
 
   try {
-    const state = decodeState(req.body && req.body.state);
-    const googleProfile = await googleAuthService.verifyGoogleCredential(credential);
-    const user = await findOrCreateGoogleUser(googleProfile, state);
-    if (user.__eventflowNewGoogleSignup === true) {
-      await recordGoogleSignupAnalytics(user, state);
+    const appleProfile = await appleAuthService.verifyAppleCredential(credential, {
+      nonce: state.csrf,
+    });
+    const appleUserInfo = parseAppleUserField(req.body && req.body.user);
+    const user = await findOrCreateAppleUser(appleProfile, appleUserInfo, state);
+    if (user.__eventflowNewAppleSignup === true) {
+      await recordAppleSignupAnalytics(user, state);
     }
 
     if (user.twoFactorEnabled) {
-      logger.info('[GOOGLE REDIRECT LOGIN] 2FA required; redirecting to auth');
-      return res.redirect(303, '/auth?google=2fa_required');
+      logger.info('[APPLE REDIRECT LOGIN] 2FA required; redirecting to auth');
+      return res.redirect(303, '/auth?apple=2fa_required');
     }
 
     await updateLastLogin(user.id);
@@ -537,11 +570,8 @@ router.post('/callback/google', parseGoogleFormPost, async (req, res) => {
     setAuthCookie(res, token, { remember: true });
     return res.redirect(303, destinationFromState(user, state));
   } catch (error) {
-    logger.error('[GOOGLE REDIRECT LOGIN] Failed', { message: error.message });
-    return redirectWithError(
-      res,
-      error.statusCode ? `google_${error.statusCode}` : 'google_failed'
-    );
+    logger.error('[APPLE REDIRECT LOGIN] Failed', { message: error.message });
+    return redirectWithError(res, error.statusCode ? `apple_${error.statusCode}` : 'apple_failed');
   }
 });
 

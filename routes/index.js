@@ -15,6 +15,7 @@ const systemRoutes = require('./system');
 const publicRoutes = require('./public');
 const authRoutes = require('./auth');
 const googleRedirectAuthRoutes = require('./google-redirect-auth');
+const appleRedirectAuthRoutes = require('./apple-redirect-auth');
 const adminRoutes = require('./admin');
 const adminHomepageCollageActiveRoutes = require('./admin-homepage-collage-active');
 const adminHomepageManagerRoutes = require('./admin-homepage-manager');
@@ -162,6 +163,11 @@ const mountRoutes = (app, deps) => {
   // the JSON auth API because Google posts x-www-form-urlencoded credentials.
   app.use('/api/v1/auth', googleRedirectAuthRoutes);
   app.use('/api/auth', googleRedirectAuthRoutes); // Backward compatibility
+
+  // Sign in with Apple redirect-mode callback. Apple also posts form-urlencoded
+  // credentials (id_token/code/state/user) to its own dedicated callback path.
+  app.use('/api/v1/auth', appleRedirectAuthRoutes);
+  app.use('/api/auth', appleRedirectAuthRoutes); // Backward compatibility
 
   // Email verification routes
   app.use('/api/v1/auth', emailVerificationRoutes);

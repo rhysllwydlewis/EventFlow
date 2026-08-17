@@ -16,6 +16,7 @@
     <meta name="robots" content="noindex,nofollow" />
     <link rel="preconnect" href="https://images.pexels.com" crossorigin />
     <link rel="preconnect" href="https://accounts.google.com" crossorigin />
+    <link rel="preconnect" href="https://appleid.cdn-apple.com" crossorigin />
     <link rel="stylesheet" href="/assets/css/styles.css?v=18.5.0" />
     <link rel="stylesheet" href="/assets/css/eventflow-17.0.0.css?v=18.3.0" />
     <link rel="stylesheet" href="/assets/css/utilities.css?v=18.3.0" />
@@ -316,8 +317,26 @@
                     id="google-signin-button"
                     class="auth-google-button"
                   ></div>
-                  <div class="auth-divider"><span>or use email</span></div>
                 </div>
+
+                <div class="auth-apple" id="apple-signin-wrap" hidden>
+                  <button
+                    type="button"
+                    id="apple-signin-button"
+                    class="auth-apple-button"
+                    aria-label="Sign in with Apple"
+                  >
+                    <svg viewBox="0 0 384 512" aria-hidden="true" focusable="false">
+                      <path
+                        fill="currentColor"
+                        d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.3-41.7-84.7-44.6-35.4-2.8-74.1 20.6-88.1 20.6-14.7 0-49.1-19.6-76.2-19.1-52 .8-107.3 41.5-107.3 124.2 0 24.5 4.5 49.8 13.4 75.9 12 34.6 55.2 119.3 100.2 117.9 24.5-.6 41.8-17.4 73.7-17.4 30.9 0 46.9 17.4 74.2 17.4 45.4-.7 84.5-77.8 96-112.5-61.1-28.8-51.2-84.4-51.2-77.6zM255.1 90.3c26.5-31.4 24.1-60 23.3-70.3-23 1.3-49.7 15.9-64.9 33.8-16.8 19.4-26.6 43.6-24.5 69.9 24.6 1.9 47-11.3 66.1-33.4z"
+                      ></path>
+                    </svg>
+                    <span class="auth-apple-button__label">Sign in with Apple</span>
+                  </button>
+                </div>
+
+                <div class="auth-divider"><span>or use email</span></div>
 
                 <div class="auth-field form-row">
                   <label class="auth-label" for="login-email">Email address</label>
@@ -637,15 +656,31 @@
                 <div class="auth-google auth-google--signup">
                   <div class="auth-google-heading">
                     <span class="auth-step-badge auth-step-badge--muted">Step 2</span>
-                    <span class="auth-step-title">Continue with Google or email</span>
+                    <span class="auth-step-title">Continue with Google, Apple or email</span>
                   </div>
                   <div
                     id="google-signup-button"
                     class="auth-google-button"
                     aria-label="Sign up with Google"
                   ></div>
+                  <div class="auth-apple" id="apple-signup-wrap" hidden>
+                    <button
+                      type="button"
+                      id="apple-signup-button"
+                      class="auth-apple-button"
+                      aria-label="Sign up with Apple"
+                    >
+                      <svg viewBox="0 0 384 512" aria-hidden="true" focusable="false">
+                        <path
+                          fill="currentColor"
+                          d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.3-41.7-84.7-44.6-35.4-2.8-74.1 20.6-88.1 20.6-14.7 0-49.1-19.6-76.2-19.1-52 .8-107.3 41.5-107.3 124.2 0 24.5 4.5 49.8 13.4 75.9 12 34.6 55.2 119.3 100.2 117.9 24.5-.6 41.8-17.4 73.7-17.4 30.9 0 46.9 17.4 74.2 17.4 45.4-.7 84.5-77.8 96-112.5-61.1-28.8-51.2-84.4-51.2-77.6zM255.1 90.3c26.5-31.4 24.1-60 23.3-70.3-23 1.3-49.7 15.9-64.9 33.8-16.8 19.4-26.6 43.6-24.5 69.9 24.6 1.9 47-11.3 66.1-33.4z"
+                        ></path>
+                      </svg>
+                      <span class="auth-apple-button__label">Sign up with Apple</span>
+                    </button>
+                  </div>
                   <p class="auth-google-note small">
-                    Choose your account type above before continuing with Google.
+                    Choose your account type above before continuing with Google or Apple.
                   </p>
                   <div class="auth-divider"><span>or use email</span></div>
                 </div>
@@ -875,6 +910,9 @@
 
     <!-- Google Identity Services sign-in/sign-up -->
     <script src="/assets/js/pages/auth-google-init.js" defer></script>
+
+    <!-- Sign in with Apple -->
+    <script src="/assets/js/pages/auth-apple-init.js" defer></script>
 
     <!-- Initialize form validation -->
     <script src="/assets/js/pages/auth-form-init.js" defer></script>

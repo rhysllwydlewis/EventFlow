@@ -81,6 +81,16 @@
     }
   }
 
+  function hasControlCharacter(value) {
+    for (let i = 0; i < value.length; i += 1) {
+      const code = value.charCodeAt(i);
+      if (code <= 0x1f || code === 0x7f) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   function getSafeReturnPath() {
     const params = new URLSearchParams(window.location.search);
     const redirect = params.get('redirect') || params.get('return') || '';
@@ -88,7 +98,8 @@
       redirect &&
       redirect.startsWith('/') &&
       !redirect.startsWith('//') &&
-      !redirect.includes('\\')
+      !redirect.includes('\\') &&
+      !hasControlCharacter(redirect)
     ) {
       return redirect;
     }
