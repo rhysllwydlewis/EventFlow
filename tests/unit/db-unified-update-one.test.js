@@ -177,6 +177,47 @@ describe('db-unified – updateOne calling conventions (local storage)', () => {
     const doc = storeData['users'][0];
     expect(doc.emailPrefs.actionPrompts).toEqual({ enabled: false, missingPackages: false });
   });
+
+  // Regression for a CodeQL "remote property injection" finding: unlike the
+  // object-spread this replaced, `cursor[segment] = value` for
+  // segment === '__proto__' invokes the real accessor rather than copying a
+  // value, so a $set key containing __proto__/constructor/prototype must be
+  // refused rather than applied — even though every current call site in
+  // this codebase passes hardcoded key literals, not user input, the helper
+  // itself must be safe regardless of what a future caller passes.
+  it('refuses a $set key targeting __proto__ instead of polluting the prototype', async () => {
+    await seed({ id: 'u9', name: 'Ivan' });
+    const result = await dbUnified.updateOne(
+      'users',
+      { id: 'u9' },
+      { $set: { '__proto__.polluted': true } }
+    );
+    expect(result).toBe(true);
+    expect({}.polluted).toBeUndefined();
+    expect(storeData['users'][0].polluted).toBeUndefined();
+  });
+
+  it('refuses a top-level (non-dotted) __proto__ key', async () => {
+    // Object-literal syntax (`{ __proto__: {...} }`) sets the prototype at
+    // creation time rather than creating an own enumerable property, so it
+    // wouldn't exercise this guard at all — JSON.parse does create a real
+    // own "__proto__" property, which is also the actual real-world vector
+    // (a JSON request body parsed by express.json()).
+    await seed({ id: 'u10', name: 'Judy' });
+    const maliciousSet = JSON.parse('{"__proto__": {"polluted": true}}');
+    await dbUnified.updateOne('users', { id: 'u10' }, { $set: maliciousSet });
+    expect({}.polluted).toBeUndefined();
+  });
+
+  it('refuses a $set key with a constructor.prototype segment', async () => {
+    await seed({ id: 'u11', name: 'Kevin' });
+    await dbUnified.updateOne(
+      'users',
+      { id: 'u11' },
+      { $set: { 'constructor.prototype.polluted': true } }
+    );
+    expect({}.polluted).toBeUndefined();
+  });
 });
 
 describe('db-unified – updateMany dot-path $set (local storage)', () => {

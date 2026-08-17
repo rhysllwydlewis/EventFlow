@@ -732,12 +732,24 @@ function getNestedValue(obj, path) {
     .reduce((cur, seg) => (cur !== null && cur !== undefined ? cur[seg] : undefined), obj);
 }
 
+// Property names that would reach up to Object.prototype (or a function's
+// own prototype chain) via bracket-notation assignment instead of landing
+// as an own property of the target. Unlike the plain object-spread this
+// replaced, `cursor[segment] = value` for segment === '__proto__' invokes
+// the real accessor rather than copying a value, so every write in
+// applyDotPathSet must be guarded against these regardless of where the
+// key ultimately originated.
+const UNSAFE_KEY_SEGMENTS = new Set(['__proto__', 'constructor', 'prototype']);
+
 /**
  * Apply a MongoDB-style $set object to a local-store document, resolving
  * dotted keys like 'emailPrefs.actionPrompts.enabled' into nested object
  * writes instead of a literal top-level key named with the dots — MongoDB
  * handles these natively; this brings the local store into parity (mirrors
- * getNestedValue's read-side handling above).
+ * getNestedValue's read-side handling above). Keys containing a
+ * `__proto__`/`constructor`/`prototype` segment are silently dropped
+ * rather than applied, since MongoDB itself rejects `$set` operators
+ * targeting those paths.
  * @param {Object} target
  * @param {Object} setFields
  * @returns {Object} a new object — does not mutate `target` or any nested
@@ -746,11 +758,15 @@ function getNestedValue(obj, path) {
 function applyDotPathSet(target, setFields) {
   const result = { ...target };
   for (const [key, value] of Object.entries(setFields || {})) {
-    if (!key.includes('.')) {
+    const segments = key.split('.');
+    if (segments.some(segment => UNSAFE_KEY_SEGMENTS.has(segment))) {
+      logger.warn(`Refusing unsafe $set key: ${key}`);
+      continue;
+    }
+    if (segments.length === 1) {
       result[key] = value;
       continue;
     }
-    const segments = key.split('.');
     let cursor = result;
     for (let i = 0; i < segments.length - 1; i++) {
       const segment = segments[i];
