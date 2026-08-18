@@ -62,7 +62,7 @@ describe('supplier package production image shape diagnostics', () => {
       "const supplierPkgs = await dbUnified.find('packages', { supplierId: supplier.id });"
     );
     expect(routeContent).toContain(
-      'const pkgs = supplierPkgs.filter(pkg => pkg.approved === true);'
+      'const pkgs = supplierPkgs.filter(pkg => pkg.approved === true && pkg.isTest !== true);'
     );
     expect(routeContent).toContain('duplicateTitleCountForSupplier');
     expect(routeContent).toContain('buildDuplicateTitleCounts(supplierPkgs)');
