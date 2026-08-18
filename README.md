@@ -3,7 +3,7 @@
 A production-ready, feature-rich platform connecting event service suppliers (photographers, venues, caterers, entertainment, etc.) with customers planning events. Built with Node.js, Express, MongoDB, and modern web technologies.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![Node.js Version](https://img.shields.io/badge/node-20.x%20LTS-brightgreen)](https://nodejs.org/)
+[![Node.js Version](https://img.shields.io/badge/node-22.x%20LTS-brightgreen)](https://nodejs.org/)
 [![MongoDB](https://img.shields.io/badge/MongoDB-6.0%2B-green)](https://www.mongodb.com/)
 
 ---
@@ -45,6 +45,14 @@ A production-ready, feature-rich platform connecting event service suppliers (ph
 - ✅ **Admin Moderation** - Photo and review approval queues
 - ✅ **MongoDB Integration** - Schema validation, indexes, connection pooling
 - ✅ **API Documentation** - Interactive Swagger UI at `/api-docs`
+- ✅ **Subscriptions & Billing** - Stripe-powered supplier plans (Basic/Pro/Pro Plus/Enterprise), monthly & yearly pricing, prorated upgrades/downgrades, trials and intro coupons
+- ✅ **Community & Forums** - Discussion boards, moderation queue, and digest emails for suppliers and customers
+- ✅ **Partner & Referral Program** - Partner portal, referral tracking, cashout requests, and anti-abuse safeguards
+- ✅ **Wedding Websites & RSVPs** - Customer-built wedding sites with guest management, RSVP collection, and seating plans
+- ✅ **Quote Requests** - Structured enquiry-to-quote workflow between customers and suppliers
+- ✅ **Two-Factor Authentication** - TOTP-based 2FA plus phone and email verification
+- ✅ **Location Hub Pages** - UK city hub-and-spoke location pages (`/locations/:citySlug`) for supplier discovery
+- ✅ **Real-Time Messenger (v4)** - Typing indicators, read receipts, presence, and group threads over WebSockets
 
 ### Planning Wizard
 
@@ -429,7 +437,7 @@ docker-compose down
 - API Docs: http://localhost:3000/api-docs
 - MongoDB UI: http://localhost:8081
 
-See [DOCKER_GUIDE.md](DOCKER_GUIDE.md) for details.
+See the Docker Compose commands above, or `docker-compose.yml`, for the full service definitions.
 
 ### Production Deployment
 
@@ -525,7 +533,7 @@ Getting "502 Bad Gateway" or "connection refused" errors? This usually means Mon
 
 **Optional:**
 
-- Stripe (payments)
+- Stripe (subscriptions & billing)
 - OpenAI (AI features)
 
 ## 🔧 Environment Variables
@@ -654,7 +662,7 @@ EventFlow uses **Postmark exclusively** for all transactional emails:
    EMAIL_ENABLED=true
    ```
 
-**📖 Full Setup Guide:** See [POSTMARK_SETUP.md](./POSTMARK_SETUP.md) for detailed configuration instructions including webhooks.
+**📖 Admin Email Tools:** See [docs/EMAIL_CENTRE.md](docs/EMAIL_CENTRE.md) for the admin email activity, campaign, and template-preview console at `/admin-emails`.
 
 During development without Postmark configured, emails are saved to `/outbox` folder for inspection.
 
@@ -761,8 +769,7 @@ PUT    /api/messages/:id                          - Update draft message
 DELETE /api/messages/:id                          - Delete draft message
 ```
 
-See [API_DOCUMENTATION.md](API_DOCUMENTATION.md) for complete reference.
-See [ADMIN_API.md](ADMIN_API.md) for detailed admin endpoint documentation.
+See the interactive [Swagger UI](#-api-documentation) at `/api-docs` for the complete, always-current API reference, including admin endpoints.
 
 ## 📱 User Flows & Pages
 
@@ -950,7 +957,7 @@ doctl apps create --spec .do/app.yaml
 
 ### AWS EC2 / VPS
 
-See [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) for detailed instructions.
+See [docs/PRODUCTION_DEPLOYMENT_CHECKLIST.md](docs/PRODUCTION_DEPLOYMENT_CHECKLIST.md) for detailed instructions.
 
 ## 🧪 Testing & Quality Assurance
 
@@ -1198,16 +1205,18 @@ Navigate to **Admin → Debug → Webhooks** tab and click **Test All Webhooks**
 
 | Document                                                                                                     | Description                                |
 | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------ |
-| [API_DOCUMENTATION.md](API_DOCUMENTATION.md)                                                                 | Complete API reference with examples       |
-| [ADMIN_GUIDE.md](ADMIN_GUIDE.md)                                                                             | Admin dashboard user guide                 |
-| [ADMIN_API.md](ADMIN_API.md)                                                                                 | Admin API endpoint documentation           |
-| [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)                                                                   | Production deployment instructions         |
-| [GDPR_COMPLIANCE.md](GDPR_COMPLIANCE.md)                                                                     | Data protection and privacy                |
-| [DOCKER_GUIDE.md](DOCKER_GUIDE.md)                                                                           | Docker Compose usage                       |
-| [POSTMARK_SETUP.md](POSTMARK_SETUP.md)                                                                       | Transactional email configuration          |
-| [STRIPE_INTEGRATION_GUIDE.md](STRIPE_INTEGRATION_GUIDE.md)                                                   | Payment setup                              |
-| [STRIPE_INTRO_PRICING_SETUP.md](STRIPE_INTRO_PRICING_SETUP.md)                                               | Introductory pricing for Professional plan |
-| [AWS_SES_SETUP.md](AWS_SES_SETUP.md)                                                                         | AWS SES email service setup                |
+| [Swagger UI](http://localhost:3000/api-docs)                                                                 | Complete, always-current API reference     |
+| [docs/ADMIN_PANEL_GUIDE.md](docs/ADMIN_PANEL_GUIDE.md)                                                       | Admin dashboard user guide                 |
+| [docs/PRODUCTION_DEPLOYMENT_CHECKLIST.md](docs/PRODUCTION_DEPLOYMENT_CHECKLIST.md)                           | Production deployment instructions         |
+| [docs/LEGAL_COMPLIANCE_CHECKLIST.md](docs/LEGAL_COMPLIANCE_CHECKLIST.md)                                     | Data protection and legal compliance       |
+| [docs/EMAIL_CENTRE.md](docs/EMAIL_CENTRE.md)                                                                 | Admin transactional email console          |
+| [docs/STRIPE_SUBSCRIPTION_GUIDE.md](docs/STRIPE_SUBSCRIPTION_GUIDE.md)                                       | Stripe subscription & billing integration  |
+| [docs/SUBSCRIPTION-TIERS.md](docs/SUBSCRIPTION-TIERS.md)                                                     | Supplier subscription tiers & pricing      |
+| [docs/PARTNER_PORTAL.md](docs/PARTNER_PORTAL.md)                                                             | Partner/referral portal and workflow       |
+| [docs/WEDDING_WEBSITE_FEATURE.md](docs/WEDDING_WEBSITE_FEATURE.md)                                           | Wedding websites, RSVPs, and guest lists   |
+| [docs/uk-city-hub-and-spoke.md](docs/uk-city-hub-and-spoke.md)                                               | Location hub-and-spoke pages               |
+| [docs/2FA_IMPLEMENTATION_GUIDE.md](docs/2FA_IMPLEMENTATION_GUIDE.md)                                         | Two-factor authentication (TOTP)           |
+| [docs/VERIFICATION_SYSTEMS_GUIDE.md](docs/VERIFICATION_SYSTEMS_GUIDE.md)                                     | Phone & email verification systems         |
 | [docs/PERFORMANCE_TESTING.md](docs/PERFORMANCE_TESTING.md)                                                   | Performance verification and QA procedures |
 | [docs/PWA_ICONS.md](docs/PWA_ICONS.md)                                                                       | PWA icon assets and regeneration steps     |
 | [docs/mongodb-migration.md](docs/mongodb-migration.md)                                                       | MongoDB migration guide with architecture  |
@@ -1248,4 +1257,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - 📧 Email: support@eventflow.com
 - 🐛 Issues: [GitHub Issues](https://github.com/rhysllwydlewis/EventFlow/issues)
-- 📖 Docs: [Documentation](API_DOCUMENTATION.md)
+- 📖 Docs: [Documentation](#-documentation)
