@@ -109,6 +109,69 @@ describe('POST /api/me/settings — preference fields', () => {
       .expect(400);
   });
 
+  it('writes notify_account (the field real sends gate on), not just the deprecated notify field', async () => {
+    // utils/postmark.js's sendNotificationEmail and
+    // services/queue/workers/email.worker.js both check notify_account, not
+    // the legacy `notify` field — a user unchecking this toggle here must
+    // actually stop those sends, not just flip a field nothing reads.
+    const db = buildDb({ users: [{ id: 'user_1', email: 'u@example.com' }] });
+    const app = buildApp(db);
+
+    await request(app).post('/api/me/settings').send({ notify: false }).expect(200);
+
+    expect(db.updateOne).toHaveBeenCalledWith(
+      'users',
+      { id: 'user_1' },
+      { $set: expect.objectContaining({ notify: false, notify_account: false }) }
+    );
+  });
+
+  it('does not touch notify/notify_account when the request omits notify entirely', async () => {
+    // Every other field on this endpoint (communityDigestCadence,
+    // browseNudgeOptOut, verificationReminderOptOut) is gated on
+    // `!== undefined` — notify must be too, or a client posting a partial
+    // payload silently disables the user's account notifications as a side
+    // effect of a request that never mentioned them.
+    const db = buildDb({ users: [{ id: 'user_1', email: 'u@example.com' }] });
+    const app = buildApp(db);
+
+    await request(app).post('/api/me/settings').send({ browseNudgeOptOut: true }).expect(200);
+
+    expect(db.updateOne).toHaveBeenCalledWith(
+      'users',
+      { id: 'user_1' },
+      { $set: expect.not.objectContaining({ notify: expect.anything() }) }
+    );
+    const [, , setArg] = db.updateOne.mock.calls[0];
+    expect(setArg.$set).not.toHaveProperty('notify_account');
+  });
+
+  it('reads notify from notify_account, matching what PUT /api/auth/preferences writes', async () => {
+    const db = buildDb({
+      users: [{ id: 'user_1', email: 'u@example.com', notify: true, notify_account: false }],
+    });
+    const app = buildApp(db);
+
+    const res = await request(app).get('/api/me/settings').expect(200);
+
+    expect(res.body.notify).toBe(false);
+  });
+
+  it('falls back to the legacy notify field when notify_account was never explicitly set', async () => {
+    // A user who unchecked this toggle before notify_account existed
+    // already expressed their real preference via `notify: false` — without
+    // this fallback, switching the read to notify_account (undefined here)
+    // would silently show the toggle as back on.
+    const db = buildDb({
+      users: [{ id: 'user_1', email: 'u@example.com', notify: false }],
+    });
+    const app = buildApp(db);
+
+    const res = await request(app).get('/api/me/settings').expect(200);
+
+    expect(res.body.notify).toBe(false);
+  });
+
   it('writes communityDigestCadence as a dot-path key and the opt-outs as flat keys', async () => {
     const db = buildDb({ users: [{ id: 'user_1', email: 'u@example.com' }] });
     const app = buildApp(db);

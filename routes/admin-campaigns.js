@@ -489,6 +489,7 @@ router.post(
         templateData,
         messageStream: CAMPAIGN_MESSAGE_STREAM,
         tags: ['campaign-test'],
+        unsubscribeUrl: templateData.unsubscribeLink,
       });
 
       logger.info(`[campaigns/test] Test sent to ${to}`);
@@ -578,6 +579,7 @@ async function sendCampaign({
             templateData,
             messageStream: CAMPAIGN_MESSAGE_STREAM,
             tags: ['campaign'],
+            unsubscribeUrl: templateData.unsubscribeLink,
           });
           sent++;
         } catch (err) {

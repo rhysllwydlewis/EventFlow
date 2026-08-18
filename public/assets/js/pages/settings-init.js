@@ -355,6 +355,13 @@ document.getElementById('ap-enabled')?.addEventListener('change', updateApSubPre
 
 // ===== EMAIL & NOTIFICATION PREFERENCES (all account types) =====
 let _newsletterStatus = 'not-subscribed';
+// Guards the cadence dropdown in the save handler below: the <select> has
+// no `selected` option in the markup, so the browser default is its first
+// option ("Immediately") until loadEmailNotificationPrefs's fetch resolves
+// and overwrites it with the user's real saved value. Without this flag, a
+// save triggered before that fetch resolves would silently downgrade the
+// user's digest cadence to "Immediately".
+let _emailPrefsLoaded = false;
 
 function renderNewsletterStatus() {
   const text = document.getElementById('newsletter-status-text');
@@ -412,6 +419,7 @@ async function loadEmailNotificationPrefs(user) {
         cb.checked = d.verificationReminderOptOut !== true;
       }
     }
+    _emailPrefsLoaded = true;
   } catch (e) {
     // Non-fatal — section keeps its default state
   }
@@ -559,7 +567,7 @@ document.getElementById('save-settings').addEventListener('click', async () => {
     }
 
     const cadenceSelect = document.getElementById('community-digest-cadence');
-    if (cadenceSelect) {
+    if (cadenceSelect && _emailPrefsLoaded) {
       payload.communityDigestCadence = cadenceSelect.value;
     }
 

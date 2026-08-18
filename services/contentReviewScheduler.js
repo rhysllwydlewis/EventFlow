@@ -5,6 +5,7 @@ const logger = require('../utils/logger');
 const reviewTasks = require('./contentReviewTask.service');
 const { runScheduledJob } = require('./scheduledJobRunner');
 const { JOB_KEYS } = require('./backgroundJobTelemetry.service');
+const schedulerLock = require('./schedulerLock.service');
 
 let scheduledJob = null;
 
@@ -77,9 +78,11 @@ function start() {
   // Pinned explicitly rather than relying on the container's default
   // timezone (see the Dockerfile's TZ=UTC comment).
   scheduledJob = schedule.scheduleJob({ rule: '17 8 * * *', tz: 'Etc/UTC' }, () =>
-    runTracked('scheduler')
+    schedulerLock.withLock(JOB_KEYS.CONTENT_REVIEW, () => runTracked('scheduler'))
   );
-  setImmediate(() => runTracked('startup-catch-up'));
+  setImmediate(() =>
+    schedulerLock.withLock(JOB_KEYS.CONTENT_REVIEW, () => runTracked('startup-catch-up'))
+  );
   return { scheduled: Boolean(scheduledJob), nextRun: scheduledJob?.nextInvocation() || null };
 }
 

@@ -228,7 +228,10 @@ router.get('/confirm', tokenLinkLimiter, async (req, res) => {
  * Unsubscribe from newsletter
  * Body: { email: string }
  */
-router.post('/unsubscribe', async (req, res) => {
+// No token/ownership proof is required here (matches the one-click
+// unsubscribe pattern elsewhere) — the rate limit is the only defence
+// against scripted mass opt-out of arbitrary known emails.
+router.post('/unsubscribe', tokenLinkLimiter, async (req, res) => {
   try {
     const { email } = req.body;
 

@@ -28,6 +28,7 @@ const {
   passwordResetLimiter,
   registrationLimiter,
   tokenLinkLimiter,
+  writeLimiter,
 } = require('../middleware/rateLimits');
 const { csrfProtection } = require('../middleware/csrf');
 const { featureRequired, getFeatureFlags } = require('../middleware/features');
@@ -1853,7 +1854,7 @@ router.get('/me', async (req, res) => {
  * PUT /api/auth/preferences
  * Update user notification preferences
  */
-router.put('/preferences', authRequired, csrfProtection, async (req, res) => {
+router.put('/preferences', writeLimiter, authRequired, csrfProtection, async (req, res) => {
   const { notify_account, notify_marketing } = req.body || {};
 
   const prefUpdates = {};
@@ -1889,11 +1890,12 @@ router.put('/preferences', authRequired, csrfProtection, async (req, res) => {
 });
 
 /**
- * GET /api/auth/unsubscribe
- * Unsubscribe user from marketing emails
- * Requires email and secure token for verification
+ * Shared handler for GET and POST /api/auth/unsubscribe — the action itself
+ * is identical either way (flip notify_marketing off, keyed by the same
+ * token-verified email), only the trigger differs: a clicked link (GET) vs.
+ * a mail client's RFC 8058 one-click List-Unsubscribe-Post request (POST).
  */
-router.get('/unsubscribe', tokenLinkLimiter, async (req, res) => {
+async function handleAccountUnsubscribe(req, res) {
   const { email, token } = req.query || {};
 
   if (!email || !token) {
@@ -1953,7 +1955,26 @@ router.get('/unsubscribe', tokenLinkLimiter, async (req, res) => {
     message:
       'You have been unsubscribed from marketing emails. You will still receive important account notifications.',
   });
-});
+}
+
+/**
+ * GET /api/auth/unsubscribe
+ * Unsubscribe user from marketing emails
+ * Requires email and secure token for verification
+ */
+router.get('/unsubscribe', tokenLinkLimiter, handleAccountUnsubscribe);
+
+/**
+ * POST /api/auth/unsubscribe
+ * RFC 8058 one-click unsubscribe target for the List-Unsubscribe-Post
+ * header set on marketing sends (utils/postmark.js's sendMarketingEmail) —
+ * Gmail/Yahoo/etc. POST here directly with no user interaction beyond the
+ * "Unsubscribe" button they render next to the message, so this must not
+ * require a CSRF token (the mail client has none) or reveal any UI; the
+ * unsubscribe token in the query string is this endpoint's only auth, same
+ * as the GET link it mirrors.
+ */
+router.post('/unsubscribe', tokenLinkLimiter, handleAccountUnsubscribe);
 
 /**
  * POST /api/auth/resend-verification

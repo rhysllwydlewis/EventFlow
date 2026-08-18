@@ -16,6 +16,9 @@ const request = require('supertest');
 
 function matches(row, filter = {}) {
   return Object.keys(filter).every(key => {
+    if (key === '$or' && Array.isArray(filter.$or)) {
+      return filter.$or.some(orFilter => matches(row, orFilter));
+    }
     const expected = filter[key];
     const actual = row[key];
     if (expected && typeof expected === 'object' && Array.isArray(expected.$in)) {
@@ -199,6 +202,130 @@ describe('DELETE /api/profile — self-service account deletion', () => {
 
     expect(db.data.newsletterSubscribers).toHaveLength(0);
     expect(db.data.notifications).toHaveLength(0);
+  });
+
+  test('anonymises the customer-owned records left under their own id, not just supplier-owned ones', async () => {
+    const db = buildDb({
+      users: [{ id: 'user_1', email: 'customer@example.com', role: 'customer' }],
+      quoteRequests: [
+        {
+          id: 'qr_1',
+          userId: 'user_1',
+          name: 'Jane Doe',
+          email: 'customer@example.com',
+          phone: '01234567890',
+          notes: 'Need a DJ',
+        },
+      ],
+      enquiries: [
+        {
+          id: 'enq_1',
+          supplierId: 'sup_other',
+          senderName: 'Jane Doe',
+          senderEmail: 'customer@example.com',
+          message: 'Are you available?',
+        },
+      ],
+      threads: [{ id: 'thr_1', customerId: 'user_1', recipientId: 'sup_other' }],
+      messages: [
+        { id: 'msg_1', threadId: 'thr_1', senderId: 'user_1', content: 'Hi there' },
+        { id: 'msg_2', threadId: 'thr_1', fromUserId: 'user_1', text: 'Legacy field message' },
+      ],
+      bookings: [{ id: 'bk_1', customerId: 'user_1', supplierId: 'sup_other' }],
+      reviews: [{ id: 'rev_1', authorId: 'user_1', supplierId: 'sup_other', text: 'Great!' }],
+      plans: [{ id: 'pln_1', userId: 'user_1' }],
+    });
+    const app = buildApp({
+      db,
+      cancelSubscriptionForAccountDeletion: jest.fn(async () => {}),
+    });
+
+    await request(app).delete('/api/profile').send({ email: 'customer@example.com' }).expect(200);
+
+    expect(db.data.quoteRequests[0]).toMatchObject({
+      customerDeleted: true,
+      userId: null,
+      name: null,
+      email: null,
+      phone: null,
+      notes: null,
+    });
+    expect(db.data.enquiries[0]).toMatchObject({
+      customerDeleted: true,
+      senderName: null,
+      senderEmail: null,
+      message: null,
+    });
+    expect(db.data.threads[0]).toMatchObject({ customerDeleted: true, customerId: null });
+    expect(db.data.messages[0]).toMatchObject({
+      customerDeleted: true,
+      senderId: null,
+      content: null,
+    });
+    expect(db.data.messages[1]).toMatchObject({
+      customerDeleted: true,
+      fromUserId: null,
+      text: null,
+    });
+    expect(db.data.bookings[0]).toMatchObject({ customerDeleted: true, customerId: null });
+    expect(db.data.reviews[0]).toMatchObject({ customerDeleted: true, authorId: null });
+    // Plans are solely owned by the customer, so they're hard-deleted rather
+    // than anonymised.
+    expect(db.data.plans).toHaveLength(0);
+  });
+
+  test('matches enquiries by the same normalised email routes/contact.js stores, not a plain lowercase', async () => {
+    // routes/contact.js stores senderEmail through validator.normalizeEmail(),
+    // which rewrites Gmail dots/+subaddresses — a customer signed up with
+    // "j.smith+wedding@gmail.com" but their contact-form enquiry is stored
+    // as "jsmith@gmail.com". A plain lowercase/trim match would never find it.
+    const db = buildDb({
+      users: [{ id: 'user_1', email: 'j.smith+wedding@gmail.com', role: 'customer' }],
+      enquiries: [
+        {
+          id: 'enq_1',
+          supplierId: 'sup_other',
+          senderName: 'J Smith',
+          senderEmail: 'jsmith@gmail.com',
+          message: 'Are you available?',
+        },
+      ],
+      // The general "Contact Us" form (routes/contact.js's POST /contact)
+      // stores submissions in a sibling collection to the per-supplier
+      // enquiry form — both need the same cascade treatment.
+      contact_enquiries: [
+        {
+          id: 'ceq_1',
+          senderName: 'J Smith',
+          senderEmail: 'jsmith@gmail.com',
+          subject: 'General question',
+          message: 'Are you available?',
+        },
+      ],
+    });
+    const app = buildApp({
+      db,
+      cancelSubscriptionForAccountDeletion: jest.fn(async () => {}),
+    });
+
+    await request(app)
+      .delete('/api/profile')
+      .send({ email: 'j.smith+wedding@gmail.com' })
+      .expect(200);
+
+    expect(db.data.enquiries[0]).toMatchObject({
+      customerDeleted: true,
+      senderName: null,
+      senderEmail: null,
+      message: null,
+    });
+    expect(db.data.contact_enquiries[0]).toMatchObject({
+      customerDeleted: true,
+      senderName: null,
+      senderEmail: null,
+      subject: null,
+      message: null,
+    });
   });
 
   test('rejects deletion when the confirmation email does not match', async () => {
