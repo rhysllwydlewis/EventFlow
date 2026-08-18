@@ -274,6 +274,41 @@ describe('DELETE /api/profile — self-service account deletion', () => {
     expect(db.data.plans).toHaveLength(0);
   });
 
+  test('matches enquiries by the same normalised email routes/contact.js stores, not a plain lowercase', async () => {
+    // routes/contact.js stores senderEmail through validator.normalizeEmail(),
+    // which rewrites Gmail dots/+subaddresses — a customer signed up with
+    // "j.smith+wedding@gmail.com" but their contact-form enquiry is stored
+    // as "jsmith@gmail.com". A plain lowercase/trim match would never find it.
+    const db = buildDb({
+      users: [{ id: 'user_1', email: 'j.smith+wedding@gmail.com', role: 'customer' }],
+      enquiries: [
+        {
+          id: 'enq_1',
+          supplierId: 'sup_other',
+          senderName: 'J Smith',
+          senderEmail: 'jsmith@gmail.com',
+          message: 'Are you available?',
+        },
+      ],
+    });
+    const app = buildApp({
+      db,
+      cancelSubscriptionForAccountDeletion: jest.fn(async () => {}),
+    });
+
+    await request(app)
+      .delete('/api/profile')
+      .send({ email: 'j.smith+wedding@gmail.com' })
+      .expect(200);
+
+    expect(db.data.enquiries[0]).toMatchObject({
+      customerDeleted: true,
+      senderName: null,
+      senderEmail: null,
+      message: null,
+    });
+  });
+
   test('rejects deletion when the confirmation email does not match', async () => {
     const db = buildDb({
       users: [{ id: 'user_1', email: 'customer@example.com', role: 'customer' }],

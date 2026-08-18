@@ -70,8 +70,14 @@ router.get('/', authRequired, async (req, res) => {
       // (utils/postmark.js, services/queue/workers/email.worker.js) — read
       // it here too, not the deprecated `notify` field, so a value set via
       // this endpoint or via PUT /api/auth/preferences reads back the same
-      // either way.
-      notify: user.notify_account !== false,
+      // either way. Fall back to the legacy `notify` field only when
+      // notify_account was never explicitly set: a user who unchecked this
+      // toggle before notify_account existed already expressed their real
+      // preference via `notify: false`, and this endpoint now also writes
+      // notify_account going forward — without this fallback, re-reading
+      // their settings would silently show the toggle as back on.
+      notify:
+        user.notify_account !== undefined ? user.notify_account !== false : user.notify !== false,
       emailPrefs: {
         actionPrompts: {
           enabled: actionPrompts.enabled !== false,

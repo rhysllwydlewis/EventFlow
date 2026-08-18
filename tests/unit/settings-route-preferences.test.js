@@ -137,6 +137,21 @@ describe('POST /api/me/settings — preference fields', () => {
     expect(res.body.notify).toBe(false);
   });
 
+  it('falls back to the legacy notify field when notify_account was never explicitly set', async () => {
+    // A user who unchecked this toggle before notify_account existed
+    // already expressed their real preference via `notify: false` — without
+    // this fallback, switching the read to notify_account (undefined here)
+    // would silently show the toggle as back on.
+    const db = buildDb({
+      users: [{ id: 'user_1', email: 'u@example.com', notify: false }],
+    });
+    const app = buildApp(db);
+
+    const res = await request(app).get('/api/me/settings').expect(200);
+
+    expect(res.body.notify).toBe(false);
+  });
+
   it('writes communityDigestCadence as a dot-path key and the opt-outs as flat keys', async () => {
     const db = buildDb({ users: [{ id: 'user_1', email: 'u@example.com' }] });
     const app = buildApp(db);

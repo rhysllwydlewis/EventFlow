@@ -1,5 +1,6 @@
 'use strict';
 
+const validator = require('validator');
 const dbUnified = require('../db-unified');
 const logger = require('../utils/logger');
 const domainAdmin = require('../middleware/domain-admin');
@@ -330,15 +331,21 @@ async function cleanupCustomerOwnedDataForUser(user, options = {}) {
 
   // enquiries: submitted via the public contact form (routes/contact.js) and
   // never linked to a logged-in user id — only `senderName`/`senderEmail`
-  // are stored. Match by the account's email address instead, the same way
-  // the newsletter-subscription cleanup below does.
+  // are stored. routes/contact.js stores `senderEmail` through
+  // validator.normalizeEmail() (which rewrites Gmail dots/+subaddresses and
+  // similar provider-specific rules), so match against that same normalised
+  // form here too — a plain lowercase/trim would miss e.g.
+  // "j.smith+wedding@gmail.com" against the stored "jsmith@gmail.com".
   if (user.email) {
-    const email = String(user.email).toLowerCase().trim();
-    summary.anonymisedCustomerRecords += await updateManyCount(
-      'enquiries',
-      { senderEmail: email },
-      { $set: { ...anonymise.$set, senderName: null, senderEmail: null, message: null } }
-    );
+    const rawEmail = String(user.email).toLowerCase().trim();
+    const normalisedEmail = validator.normalizeEmail(rawEmail) || rawEmail;
+    const emailFilter =
+      normalisedEmail === rawEmail
+        ? { senderEmail: rawEmail }
+        : { $or: [{ senderEmail: rawEmail }, { senderEmail: normalisedEmail }] };
+    summary.anonymisedCustomerRecords += await updateManyCount('enquiries', emailFilter, {
+      $set: { ...anonymise.$set, senderName: null, senderEmail: null, message: null },
+    });
   }
 
   // threads: the customer side of a conversation is `customerId` (see

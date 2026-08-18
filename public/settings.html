@@ -620,7 +620,11 @@
       <select id="community-digest-cadence" class="settings-select">
         <option value="immediate">Immediately</option>
         <option value="daily">Daily digest</option>
-        <option value="weekly">Weekly digest</option>
+        <!-- Matches the server default in routes/settings.js's GET handler
+             (`user.communityNotificationPreferences?.email || 'weekly'`) so
+             the dropdown doesn't flash "Immediately" before the async prefs
+             fetch in settings-init.js overwrites it with the real value. -->
+        <option value="weekly" selected>Weekly digest</option>
         <option value="none">Never</option>
       </select>
     </div>
