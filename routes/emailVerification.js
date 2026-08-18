@@ -12,7 +12,7 @@ const crypto = require('crypto');
 const dbUnified = require('../db-unified');
 const { authRequired } = require('../middleware/auth');
 // csrfProtection is available but not used in GET endpoints
-const { resendEmailLimiter } = require('../middleware/rateLimits');
+const { resendEmailLimiter, tokenLinkLimiter } = require('../middleware/rateLimits');
 const postmark = require('../utils/postmark');
 const userProvenance = require('../services/userProvenance.service');
 
@@ -119,7 +119,7 @@ router.post('/send-verification', resendEmailLimiter, authRequired, async (req, 
  * GET /api/auth/verify-email/:token
  * Verify email with token (alternative to existing verify endpoints)
  */
-router.get('/verify-email/:token', async (req, res) => {
+router.get('/verify-email/:token', tokenLinkLimiter, async (req, res) => {
   try {
     const { token } = req.params;
 

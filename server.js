@@ -1436,6 +1436,19 @@ function startNotificationCleanupScheduler() {
   }
 }
 
+function startReviewRequestMaintenanceScheduler() {
+  // Previously started as a side effect of utils/reviewRequestOperations.js
+  // being required by a route file, so it never appeared in the startup log
+  // and its scheduling depended on route-loading order. Moved into the same
+  // guarded boot sequence as every other scheduler.
+  try {
+    const result = require('./utils/reviewRequestOperations').initialiseReviewRequestMaintenance();
+    logger.info(`   ✅ Review request maintenance scheduled: ${result?.scheduled ? 'Yes' : 'No'}`);
+  } catch (rrmErr) {
+    logger.warn('   Review request maintenance scheduler failed to initialize:', rrmErr.message);
+  }
+}
+
 /**
  * Initialize all services and start the server
  * This ensures proper startup and health checks before accepting requests
@@ -2024,6 +2037,9 @@ function startServer() {
         } catch (ncErr) {
           logger.warn('   ⚠️  Newsletter Cadence Scheduler failed to initialize:', ncErr.message);
         }
+
+        // 4k. Initialize Review Request Maintenance Scheduler
+        startReviewRequestMaintenanceScheduler();
       } catch (error) {
         logger.error('');
         logger.error('='.repeat(70));
@@ -2127,6 +2143,7 @@ module.exports = app;
 // Also expose selected startup helpers so tests can exercise their
 // try/catch and logging paths without invoking the full startServer() flow.
 module.exports.startNotificationCleanupScheduler = startNotificationCleanupScheduler;
+module.exports.startReviewRequestMaintenanceScheduler = startReviewRequestMaintenanceScheduler;
 
 // Only start the server if this file is run directly (not imported by tests)
 if (require.main === module) {

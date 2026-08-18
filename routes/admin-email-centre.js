@@ -40,6 +40,9 @@ router.get(
         emailDomain: process.env.EMAIL_DOMAIN || safeDomain(defaultFrom),
         campaignMessageStream: process.env.CAMPAIGN_MESSAGE_STREAM || 'outbound',
         lastWebhookAt: emailSummary.lastWebhookAt,
+        totalLogged: emailSummary.total,
+        bounceRatePercent: emailSummary.bounceRate,
+        complaintRatePercent: emailSummary.complaintRate,
         verificationProvenance: provenance.summary,
       },
     });

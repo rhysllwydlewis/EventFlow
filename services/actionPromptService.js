@@ -29,6 +29,7 @@
 
 const dbUnified = require('../db-unified');
 const logger = require('../utils/logger');
+const { hasSupplierGalleryPhotos, hasSupplierPostcode } = require('./supplierProfileCompleteness');
 
 // Required supplier profile fields for "complete profile" check.
 // 'postcode' is a virtual entry — see missingProfileFields() — the dashboard
@@ -97,27 +98,10 @@ const COMPLETE_LABELS = {
 function missingProfileFields(supplier) {
   return REQUIRED_PROFILE_FIELDS.filter(field => {
     if (field === 'postcode') {
-      return !String(supplier.basePostcode || supplier.venuePostcode || '').trim();
+      return !hasSupplierPostcode(supplier);
     }
     return !supplier[field] || String(supplier[field]).trim() === '';
   });
-}
-
-/**
- * Whether a supplier has at least one gallery photo, merging the canonical
- * photosGallery array with the legacy images array so a photo stored under
- * either schema generation counts — mirrors the same union used by
- * profile-health-widget.js and routes/supplier.js's dashboard-summary/
- * performance-tips. Without this, a supplier with photos only under the
- * legacy alias would be nagged with "add photos" emails they don't need.
- *
- * @param {Object} supplier - Supplier document
- * @returns {boolean} true if at least one gallery photo exists under either field
- */
-function hasGalleryPhotos(supplier) {
-  const canonical = Array.isArray(supplier.photosGallery) ? supplier.photosGallery : [];
-  const legacy = Array.isArray(supplier.images) ? supplier.images : [];
-  return canonical.length > 0 || legacy.length > 0;
 }
 
 /**
@@ -169,7 +153,7 @@ function computeActions(supplier, packages, settings, user) {
   // 3. Missing photos (AMBER — behind global and user toggles)
   const globalMissingPhotos = promptTypes.missingPhotos !== false;
   const userMissingPhotosPref = userPrefs.missingPhotos !== false;
-  const hasPhotos = hasGalleryPhotos(supplier);
+  const hasPhotos = hasSupplierGalleryPhotos(supplier);
   if (globalMissingPhotos && userMissingPhotosPref && !hasPhotos) {
     actions.push({
       key: 'missingPhotos',
@@ -247,7 +231,7 @@ function computeFullReport(supplier, packages, settings, user) {
   // 3. Photos (behind global and user toggles)
   const globalMissingPhotos = promptTypes.missingPhotos !== false;
   const userMissingPhotosPref = userPrefs.missingPhotos !== false;
-  const hasPhotos = hasGalleryPhotos(supplier);
+  const hasPhotos = hasSupplierGalleryPhotos(supplier);
   if (!hasPhotos) {
     if (globalMissingPhotos && userMissingPhotosPref) {
       outstanding.push({
@@ -484,7 +468,7 @@ module.exports = {
   updateCadenceState,
   REQUIRED_PROFILE_FIELDS,
   missingProfileFields,
-  hasGalleryPhotos,
+  hasGalleryPhotos: hasSupplierGalleryPhotos,
   DAILY_SENDS_BEFORE_WEEKLY,
   WEEKLY_SENDS_BEFORE_MONTHLY,
   DAILY_INTERVAL_MS,

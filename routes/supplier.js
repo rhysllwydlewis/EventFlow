@@ -11,6 +11,10 @@ const { csrfProtection } = require('../middleware/csrf');
 const { writeLimiter } = require('../middleware/rateLimits');
 const dbUnified = require('../db-unified');
 const logger = require('../utils/logger');
+const {
+  getSupplierGalleryCount,
+  hasSupplierPostcode,
+} = require('../services/supplierProfileCompleteness');
 
 const router = express.Router();
 
@@ -25,38 +29,6 @@ const TRIAL_DURATION_DAYS = 14;
 const DEFAULT_ANALYTICS_WINDOW_DAYS = 30;
 const MAX_ANALYTICS_WINDOW_DAYS = 90;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-
-/**
- * Count of a supplier's unique gallery photos, merging the canonical
- * photosGallery array with the legacy images array so a photo stored under
- * either schema generation counts once. Shared by dashboard-summary and
- * performance-tips so "do you have enough photos" can't drift between them.
- *
- * @param {Object} supplier - Supplier document
- * @returns {number} Unique photo count
- */
-function supplierGalleryCount(supplier) {
-  return new Set(
-    [
-      ...(Array.isArray(supplier.photosGallery) ? supplier.photosGallery : []),
-      ...(Array.isArray(supplier.images) ? supplier.images : []),
-    ]
-      .map(item =>
-        typeof item === 'string'
-          ? item.trim()
-          : String(
-              item?.url ||
-                item?.large ||
-                item?.optimized ||
-                item?.original ||
-                item?.thumbnail ||
-                item?.src ||
-                ''
-            ).trim()
-      )
-      .filter(Boolean)
-  ).size;
-}
 
 /**
  * Count of a supplier's populated social platforms, merging the canonical
@@ -925,7 +897,7 @@ router.get('/dashboard-summary', authRequired, async (req, res) => {
       // profile-health-widget.js) so the "profile health is low" alert on this dashboard
       // fires (or doesn't) in agreement with the percentage the supplier actually sees on
       // the "Profile Health" card, rather than a separate, disagreeing formula.
-      const galleryCount = supplierGalleryCount(topProfile);
+      const galleryCount = getSupplierGalleryCount(topProfile);
       const socialLinkCount = supplierSocialLinkCount(topProfile);
 
       const hasLogo = !!(
@@ -942,13 +914,7 @@ router.get('/dashboard-summary', authRequired, async (req, res) => {
             topProfile.blurb ||
             ''
         ).trim().length >= 100;
-      // basePostcode is what the dashboard's postcode input actually saves to
-      // (sup-base-postcode); venuePostcode is the Venues-category alternative.
-      // Plain `postcode` isn't written anywhere by any supplier-facing form.
-      const hasLocation = !!(
-        (topProfile.location || '').trim() &&
-        (topProfile.basePostcode || topProfile.venuePostcode || '').toString().trim()
-      );
+      const hasLocation = !!((topProfile.location || '').trim() && hasSupplierPostcode(topProfile));
       const hasCoverImage = !!(topProfile.bannerUrl || topProfile.coverImage);
       const hasGallery = galleryCount >= 3;
       const hasSocialLinks = socialLinkCount >= 2;
@@ -1282,7 +1248,7 @@ router.get('/performance-tips', authRequired, async (req, res) => {
         action: { label: 'Edit Profile', href: '#toggle-profile-form' },
       });
     }
-    if (supplierGalleryCount(supplier) < 3) {
+    if (getSupplierGalleryCount(supplier) < 3) {
       tips.push({
         id: 'add-photos',
         priority: 2,

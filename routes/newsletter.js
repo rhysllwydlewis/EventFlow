@@ -14,6 +14,7 @@ const validator = require('validator');
 const dbUnified = require('../db-unified');
 const postmark = require('../utils/postmark');
 const rateLimit = require('express-rate-limit');
+const { tokenLinkLimiter } = require('../middleware/rateLimits');
 
 // Rate limiter for newsletter endpoints (5 requests per hour per IP)
 const newsletterLimiter = rateLimit({
@@ -146,7 +147,7 @@ router.post('/subscribe', newsletterLimiter, async (req, res) => {
  * Confirm newsletter subscription via email link
  * Query: token=xxx
  */
-router.get('/confirm', async (req, res) => {
+router.get('/confirm', tokenLinkLimiter, async (req, res) => {
   try {
     const { token } = req.query;
 

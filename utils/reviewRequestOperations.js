@@ -254,8 +254,6 @@ function listAdminRequests(records, query = {}, now = new Date()) {
   };
 }
 
-const maintenanceSchedule = initialiseReviewRequestMaintenance();
-
 module.exports = {
   ACTIVE_STATUSES,
   KNOWN_STATUSES,
@@ -267,7 +265,6 @@ module.exports = {
   listAdminRequests,
   listSupplierRequests,
   maintenanceIsEnabled,
-  maintenanceSchedule,
   summarise,
   toAdminItem,
   toSupplierItem,

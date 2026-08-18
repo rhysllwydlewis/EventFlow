@@ -25,6 +25,7 @@ describe('GET /api/auth/unsubscribe syncs the newsletter subscription', () => {
       strictAuthLimiter: noOp,
       passwordResetLimiter: noOp,
       registrationLimiter: noOp,
+      tokenLinkLimiter: noOp,
     }));
     jest.doMock('../../middleware/features', () => ({
       featureRequired: () => noOp,
