@@ -106,6 +106,43 @@ describe('GET /api/auth/unsubscribe syncs the newsletter subscription', () => {
 
     expect(res.body.ok).toBe(true);
   });
+
+  it('POST (the RFC 8058 one-click List-Unsubscribe-Post target) performs the same unsubscribe with no CSRF token required', async () => {
+    // Gmail/Yahoo's one-click unsubscribe button POSTs directly to the
+    // List-Unsubscribe header's URL with no user interaction and no CSRF
+    // token — this must work identically to the GET link, guarded only by
+    // the token in the query string.
+    const updateCalls = [];
+    jest.doMock('../../utils/postmark', () => ({
+      verifyUnsubscribeToken: jest.fn(() => true),
+    }));
+    jest.doMock('../../db-unified', () => ({
+      findOne: jest.fn(async (collection, query) => {
+        if (collection === 'users' && query.email === 'oneclick@example.com') {
+          return { id: 'u2', email: 'oneclick@example.com' };
+        }
+        return null;
+      }),
+      updateOne: jest.fn(async (collection, query, update) => {
+        updateCalls.push({ collection, query, update });
+        return true;
+      }),
+    }));
+
+    const authRoutes = require('../../routes/auth');
+    const app = express();
+    app.use(express.json());
+    app.use('/api/auth', authRoutes);
+
+    const res = await request(app)
+      .post('/api/auth/unsubscribe')
+      .query({ email: 'oneclick@example.com', token: 'valid-token' })
+      .expect(200);
+
+    expect(res.body.ok).toBe(true);
+    const usersUpdate = updateCalls.find(c => c.collection === 'users');
+    expect(usersUpdate.update.$set.notify_marketing).toBe(false);
+  });
 });
 
 describe('POST /api/newsletter/unsubscribe syncs account marketing consent', () => {

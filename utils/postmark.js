@@ -378,6 +378,12 @@ async function sendMail(options) {
     // attempts, and each blocked-in-process retry adds up to 3s to a job
     // BullMQ was already about to reschedule on its own.
     retryOnFailure = true,
+    // When set, adds RFC 8058 one-click unsubscribe headers — required by
+    // Gmail/Yahoo's bulk-sender rules (Feb 2024) or mail gets bulk-foldered
+    // or rejected outright. Only pass this for marketing/broadcast sends;
+    // POST /api/auth/unsubscribe (the one-click target) is the same
+    // token-verified action the link itself performs.
+    unsubscribeUrl,
   } = options;
 
   const logOptions = {
@@ -512,6 +518,18 @@ async function sendMail(options) {
     if (tags) {
       const tagArray = Array.isArray(tags) ? tags : [tags];
       emailData.Tag = tagArray.slice(0, 10).join(',');
+    }
+
+    // RFC 8058 one-click unsubscribe headers. Only add List-Unsubscribe-Post
+    // (which promises a POST-only, no-body one-click action) alongside a
+    // real https link the mail client can POST to directly — never for a
+    // bare mailto: link, which can't satisfy that contract.
+    if (unsubscribeUrl && /^https?:\/\//i.test(unsubscribeUrl)) {
+      emailData.Headers = [
+        ...(emailData.Headers || []),
+        { Name: 'List-Unsubscribe', Value: `<${unsubscribeUrl}>` },
+        { Name: 'List-Unsubscribe-Post', Value: 'List-Unsubscribe=One-Click' },
+      ];
     }
 
     try {
@@ -747,6 +765,7 @@ async function sendMarketingEmail(user, subject, message, options = {}) {
     from: sendOptions.from || FROM_INFO,
     tags: sendOptions.tags || ['marketing'],
     messageStream: selectedMessageStream,
+    unsubscribeUrl: unsubscribeLink,
   });
 }
 
