@@ -198,7 +198,7 @@ Logged-in customers (and other users) can click **Save** on any published public
 Publisher suppliers can edit, cancel or delete only their **own** events. Admins can manage any event, filter by status/supplier/date/event type via the API, review publishing requests, and use the Admin → Supplier Detail tri-state override controls:
 
 | Value            | Effect                                         |
-| ---------------- | ----------------------------------------------- |
+| ---------------- | ---------------------------------------------- |
 | `true`           | Supplier can publish regardless of category    |
 | `false`          | Supplier cannot publish regardless of category |
 | `null` (default) | Derive from category (see table above)         |
@@ -458,12 +458,12 @@ See the Docker Compose commands above, or `docker-compose.yml`, for the full ser
 
 Getting "502 Bad Gateway" or "connection refused" errors? This usually means MongoDB isn't configured:
 
-| Error Message                                    | Solution                                                                                                                                                   |
-| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| "Invalid scheme, expected connection string..."   | You're using the placeholder from `.env.example`. Get your real connection string from MongoDB Atlas - [see guide](.github/docs/MONGODB_SETUP_SIMPLE.md) |
-| "Authentication failed" or "bad auth"             | Wrong password in connection string. Reset it in MongoDB Atlas → Database Access                                                                         |
-| "Connection timeout" or "ENOTFOUND"               | IP not whitelisted. Add `0.0.0.0/0` in MongoDB Atlas → Network Access                                                                                     |
-| "No cloud database configured"                    | `MONGODB_URI` environment variable not set on your deployment platform                                                                                    |
+| Error Message                                   | Solution                                                                                                                                                 |
+| ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| "Invalid scheme, expected connection string..." | You're using the placeholder from `.env.example`. Get your real connection string from MongoDB Atlas - [see guide](.github/docs/MONGODB_SETUP_SIMPLE.md) |
+| "Authentication failed" or "bad auth"           | Wrong password in connection string. Reset it in MongoDB Atlas → Database Access                                                                         |
+| "Connection timeout" or "ENOTFOUND"             | IP not whitelisted. Add `0.0.0.0/0` in MongoDB Atlas → Network Access                                                                                    |
+| "No cloud database configured"                  | `MONGODB_URI` environment variable not set on your deployment platform                                                                                   |
 
 **📚 Detailed troubleshooting:** See [MONGODB_SETUP_SIMPLE.md](.github/docs/MONGODB_SETUP_SIMPLE.md#common-problems-and-solutions)
 
@@ -515,7 +515,7 @@ Getting "502 Bad Gateway" or "connection refused" errors? This usually means Mon
 
 - Jest + Supertest, Playwright (+ `@axe-core/playwright` for accessibility), Artillery (load testing), `mongodb-memory-server`
 
-**Notably *not* used**, despite older docs or `.env.example` entries suggesting otherwise: Mongoose (native driver only), AWS SDK/S3 (Cloudinary is the image store), and OpenAI (the in-app AI planning assistant was retired — see [API Endpoints](#-api-endpoints)).
+**Notably _not_ used**, despite older docs or `.env.example` entries suggesting otherwise: Mongoose (native driver only), AWS SDK/S3 (Cloudinary is the image store), and OpenAI (the in-app AI planning assistant was retired — see [API Endpoints](#-api-endpoints)).
 
 ## 🔁 Background Jobs & Queue Architecture
 
@@ -1307,10 +1307,10 @@ When a document in your Atlas cluster changes (insert, update, delete, etc.), At
 
 ### Configuration
 
-| Environment variable      | Description                                                                                            |
-| -------------------------- | -------------------------------------------------------------------------------------------------------- |
-| `MONGODB_WEBHOOK_SECRET`  | **Required in production.** Shared HMAC-SHA256 secret. Set in both `.env` and Atlas Trigger settings.   |
-| `MONGODB_WEBHOOK_ENABLED` | Set to `false` to disable the endpoint entirely (default: `true`).                                       |
+| Environment variable      | Description                                                                                           |
+| ------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `MONGODB_WEBHOOK_SECRET`  | **Required in production.** Shared HMAC-SHA256 secret. Set in both `.env` and Atlas Trigger settings. |
+| `MONGODB_WEBHOOK_ENABLED` | Set to `false` to disable the endpoint entirely (default: `true`).                                    |
 
 Generate a strong secret:
 
@@ -1356,77 +1356,77 @@ Navigate to **Admin → Debug → Webhooks** tab and click **Test All Webhooks**
 
 ### API & Admin
 
-| Document                                                                   | Description                                |
-| --------------------------------------------------------------------------- | ------------------------------------------- |
-| [Swagger UI](http://localhost:3000/api-docs)                                | Complete, always-current API reference      |
-| [docs/api/API_DOCUMENTATION.md](docs/api/API_DOCUMENTATION.md)              | Static API reference with examples          |
-| [docs/api/ADMIN_API.md](docs/api/ADMIN_API.md)                              | Admin API endpoint documentation (v1)       |
-| [docs/api/ADMIN_API_V2.md](docs/api/ADMIN_API_V2.md)                        | Admin API v2 — RBAC/permission model        |
-| [docs/guides/ADMIN_GUIDE.md](docs/guides/ADMIN_GUIDE.md)                    | Admin dashboard user guide                  |
-| [docs/ADMIN_PANEL_GUIDE.md](docs/ADMIN_PANEL_GUIDE.md)                      | Admin panel structure & page index          |
-| [docs/ADMIN_SETUP.md](docs/ADMIN_SETUP.md)                                  | Owner account & domain-based admin setup    |
+| Document                                                       | Description                              |
+| -------------------------------------------------------------- | ---------------------------------------- |
+| [Swagger UI](http://localhost:3000/api-docs)                   | Complete, always-current API reference   |
+| [docs/api/API_DOCUMENTATION.md](docs/api/API_DOCUMENTATION.md) | Static API reference with examples       |
+| [docs/api/ADMIN_API.md](docs/api/ADMIN_API.md)                 | Admin API endpoint documentation (v1)    |
+| [docs/api/ADMIN_API_V2.md](docs/api/ADMIN_API_V2.md)           | Admin API v2 — RBAC/permission model     |
+| [docs/guides/ADMIN_GUIDE.md](docs/guides/ADMIN_GUIDE.md)       | Admin dashboard user guide               |
+| [docs/ADMIN_PANEL_GUIDE.md](docs/ADMIN_PANEL_GUIDE.md)         | Admin panel structure & page index       |
+| [docs/ADMIN_SETUP.md](docs/ADMIN_SETUP.md)                     | Owner account & domain-based admin setup |
 
 ### Billing, Partners & Growth
 
-| Document                                                                             | Description                                |
-| --------------------------------------------------------------------------------------| ------------------------------------------- |
-| [docs/guides/STRIPE_INTEGRATION_GUIDE.md](docs/guides/STRIPE_INTEGRATION_GUIDE.md)    | Stripe.js integration setup                 |
-| [docs/STRIPE_SUBSCRIPTION_GUIDE.md](docs/STRIPE_SUBSCRIPTION_GUIDE.md)                | Stripe subscription system guide            |
-| [docs/guides/STRIPE_INTRO_PRICING_SETUP.md](docs/guides/STRIPE_INTRO_PRICING_SETUP.md)| Introductory pricing / coupon setup         |
-| [docs/SUBSCRIPTION-TIERS.md](docs/SUBSCRIPTION-TIERS.md)                              | Supplier subscription tiers & pricing       |
-| [docs/PARTNER_PORTAL.md](docs/PARTNER_PORTAL.md)                                      | Partner/referral portal and workflow        |
-| [docs/PARTNER_CASHOUT_SOP.md](docs/PARTNER_CASHOUT_SOP.md)                            | Partner cashout operating procedure         |
-| [docs/PARTNER_ANTI_ABUSE.md](docs/PARTNER_ANTI_ABUSE.md)                              | Partner referral anti-fraud system          |
-| [docs/LEAD-SCORING.md](docs/LEAD-SCORING.md)                                          | Quote-request lead-quality scoring          |
+| Document                                                                               | Description                           |
+| -------------------------------------------------------------------------------------- | ------------------------------------- |
+| [docs/guides/STRIPE_INTEGRATION_GUIDE.md](docs/guides/STRIPE_INTEGRATION_GUIDE.md)     | Stripe.js integration setup           |
+| [docs/STRIPE_SUBSCRIPTION_GUIDE.md](docs/STRIPE_SUBSCRIPTION_GUIDE.md)                 | Stripe subscription system guide      |
+| [docs/guides/STRIPE_INTRO_PRICING_SETUP.md](docs/guides/STRIPE_INTRO_PRICING_SETUP.md) | Introductory pricing / coupon setup   |
+| [docs/SUBSCRIPTION-TIERS.md](docs/SUBSCRIPTION-TIERS.md)                               | Supplier subscription tiers & pricing |
+| [docs/PARTNER_PORTAL.md](docs/PARTNER_PORTAL.md)                                       | Partner/referral portal and workflow  |
+| [docs/PARTNER_CASHOUT_SOP.md](docs/PARTNER_CASHOUT_SOP.md)                             | Partner cashout operating procedure   |
+| [docs/PARTNER_ANTI_ABUSE.md](docs/PARTNER_ANTI_ABUSE.md)                               | Partner referral anti-fraud system    |
+| [docs/LEAD-SCORING.md](docs/LEAD-SCORING.md)                                           | Quote-request lead-quality scoring    |
 
 ### Feature Guides
 
-| Document                                                                           | Description                                |
-| -------------------------------------------------------------------------------------| ------------------------------------------- |
-| [docs/WEDDING_WEBSITE_FEATURE.md](docs/WEDDING_WEBSITE_FEATURE.md)                  | Wedding websites, RSVPs, and guest lists    |
-| [docs/uk-city-hub-and-spoke.md](docs/uk-city-hub-and-spoke.md)                      | Location hub-and-spoke pages                |
-| [docs/2FA_IMPLEMENTATION_GUIDE.md](docs/2FA_IMPLEMENTATION_GUIDE.md)                | Two-factor authentication (TOTP)            |
-| [docs/VERIFICATION_SYSTEMS_GUIDE.md](docs/VERIFICATION_SYSTEMS_GUIDE.md)            | Phone & email verification systems          |
-| [docs/features/REVIEWS_SYSTEM.md](docs/features/REVIEWS_SYSTEM.md)                  | Reviews system (v2) architecture            |
-| [docs/architecture/eventflow-community-architecture.md](docs/architecture/eventflow-community-architecture.md) | Community/forum system architecture |
-| [docs/marketplace/ARCHITECTURE.md](docs/marketplace/ARCHITECTURE.md)                | Classifieds marketplace architecture        |
-| [docs/EMAIL_CENTRE.md](docs/EMAIL_CENTRE.md)                                        | Admin transactional email console           |
+| Document                                                                                                       | Description                              |
+| -------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
+| [docs/WEDDING_WEBSITE_FEATURE.md](docs/WEDDING_WEBSITE_FEATURE.md)                                             | Wedding websites, RSVPs, and guest lists |
+| [docs/uk-city-hub-and-spoke.md](docs/uk-city-hub-and-spoke.md)                                                 | Location hub-and-spoke pages             |
+| [docs/2FA_IMPLEMENTATION_GUIDE.md](docs/2FA_IMPLEMENTATION_GUIDE.md)                                           | Two-factor authentication (TOTP)         |
+| [docs/VERIFICATION_SYSTEMS_GUIDE.md](docs/VERIFICATION_SYSTEMS_GUIDE.md)                                       | Phone & email verification systems       |
+| [docs/features/REVIEWS_SYSTEM.md](docs/features/REVIEWS_SYSTEM.md)                                             | Reviews system (v2) architecture         |
+| [docs/architecture/eventflow-community-architecture.md](docs/architecture/eventflow-community-architecture.md) | Community/forum system architecture      |
+| [docs/marketplace/ARCHITECTURE.md](docs/marketplace/ARCHITECTURE.md)                                           | Classifieds marketplace architecture     |
+| [docs/EMAIL_CENTRE.md](docs/EMAIL_CENTRE.md)                                                                   | Admin transactional email console        |
 
 ### Compliance & Security
 
-| Document                                                                     | Description                                |
-| --------------------------------------------------------------------------------| ------------------------------------------- |
-| [docs/guides/GDPR_COMPLIANCE.md](docs/guides/GDPR_COMPLIANCE.md)               | Data protection and privacy                 |
-| [docs/LEGAL_COMPLIANCE_CHECKLIST.md](docs/LEGAL_COMPLIANCE_CHECKLIST.md)       | Legal compliance checklist                  |
-| [docs/SECURITY_FEATURES.md](docs/SECURITY_FEATURES.md)                        | Full security documentation                 |
-| [docs/guides/SECURITY.md](docs/guides/SECURITY.md)                             | Security policy & reporting                 |
-| [docs/compliance/](docs/compliance/)                                           | Community DPIA, child-access assessment, moderation policy, incident runbook, transparency records |
+| Document                                                                 | Description                                                                                        |
+| ------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
+| [docs/guides/GDPR_COMPLIANCE.md](docs/guides/GDPR_COMPLIANCE.md)         | Data protection and privacy                                                                        |
+| [docs/LEGAL_COMPLIANCE_CHECKLIST.md](docs/LEGAL_COMPLIANCE_CHECKLIST.md) | Legal compliance checklist                                                                         |
+| [docs/SECURITY_FEATURES.md](docs/SECURITY_FEATURES.md)                   | Full security documentation                                                                        |
+| [docs/guides/SECURITY.md](docs/guides/SECURITY.md)                       | Security policy & reporting                                                                        |
+| [docs/compliance/](docs/compliance/)                                     | Community DPIA, child-access assessment, moderation policy, incident runbook, transparency records |
 
 ### Deployment & Operations
 
-| Document                                                                              | Description                                |
-| ----------------------------------------------------------------------------------------| ------------------------------------------- |
-| [docs/PRODUCTION_DEPLOYMENT_CHECKLIST.md](docs/PRODUCTION_DEPLOYMENT_CHECKLIST.md)     | Production deployment instructions          |
-| [docs/guides/CLOUDFLARE_SETUP.md](docs/guides/CLOUDFLARE_SETUP.md)                     | Cloudflare CDN setup                        |
-| [docs/guides/RAILWAY_SETUP_GUIDE.md](docs/guides/RAILWAY_SETUP_GUIDE.md)               | Railway-specific deployment setup           |
-| [docs/guides/POSTMARK_SETUP.md](docs/guides/POSTMARK_SETUP.md)                         | Transactional email configuration           |
-| [docs/PERFORMANCE_TESTING.md](docs/PERFORMANCE_TESTING.md)                             | Performance verification and QA procedures  |
-| [docs/guides/PERFORMANCE_OPTIMIZATION.md](docs/guides/PERFORMANCE_OPTIMIZATION.md)     | Performance optimisation reference          |
-| [docs/PWA_ICONS.md](docs/PWA_ICONS.md)                                                 | PWA icon assets and regeneration steps      |
-| [docs/mongodb-migration.md](docs/mongodb-migration.md)                                 | MongoDB migration guide with architecture   |
-| [.github/docs/MONGODB_SETUP.md](.github/docs/MONGODB_SETUP.md)                         | MongoDB technical configuration guide       |
-| [.github/docs/MONGODB_SETUP_SIMPLE.md](.github/docs/MONGODB_SETUP_SIMPLE.md)           | MongoDB setup for non-technical users        |
+| Document                                                                           | Description                                |
+| ---------------------------------------------------------------------------------- | ------------------------------------------ |
+| [docs/PRODUCTION_DEPLOYMENT_CHECKLIST.md](docs/PRODUCTION_DEPLOYMENT_CHECKLIST.md) | Production deployment instructions         |
+| [docs/guides/CLOUDFLARE_SETUP.md](docs/guides/CLOUDFLARE_SETUP.md)                 | Cloudflare CDN setup                       |
+| [docs/guides/RAILWAY_SETUP_GUIDE.md](docs/guides/RAILWAY_SETUP_GUIDE.md)           | Railway-specific deployment setup          |
+| [docs/guides/POSTMARK_SETUP.md](docs/guides/POSTMARK_SETUP.md)                     | Transactional email configuration          |
+| [docs/PERFORMANCE_TESTING.md](docs/PERFORMANCE_TESTING.md)                         | Performance verification and QA procedures |
+| [docs/guides/PERFORMANCE_OPTIMIZATION.md](docs/guides/PERFORMANCE_OPTIMIZATION.md) | Performance optimisation reference         |
+| [docs/PWA_ICONS.md](docs/PWA_ICONS.md)                                             | PWA icon assets and regeneration steps     |
+| [docs/mongodb-migration.md](docs/mongodb-migration.md)                             | MongoDB migration guide with architecture  |
+| [.github/docs/MONGODB_SETUP.md](.github/docs/MONGODB_SETUP.md)                     | MongoDB technical configuration guide      |
+| [.github/docs/MONGODB_SETUP_SIMPLE.md](.github/docs/MONGODB_SETUP_SIMPLE.md)       | MongoDB setup for non-technical users      |
 
 ### Messenger v4 Docs
 
-| Document                                                                                                     | Description                                |
-| ---------------------------------------------------------------------------------------------------------------| ------------------------------------------- |
-| [docs/guides/MESSENGER_V4_MIGRATION.md](docs/guides/MESSENGER_V4_MIGRATION.md)                                | Migrating off legacy v1 messaging endpoints |
-| [docs/messenger/queue.md](docs/messenger/queue.md)                                                             | Messenger BullMQ queue architecture         |
-| [docs/messenger/transactions.md](docs/messenger/transactions.md)                                               | Messenger transaction flag and rollout      |
-| [docs/messenger/step-1-reconciliation.md](docs/messenger/step-1-reconciliation.md)                             | Messenger reconnection + sinceSeq catch-up  |
-| [docs/messenger/step-2-readby-modal.md](docs/messenger/step-2-readby-modal.md)                                 | Messenger group read-by UX                  |
-| [docs/messenger/step-5-group-thread-virtualization.md](docs/messenger/step-5-group-thread-virtualization.md)   | Messenger threads/group UI/virtualization   |
+| Document                                                                                                     | Description                                 |
+| ------------------------------------------------------------------------------------------------------------ | ------------------------------------------- |
+| [docs/guides/MESSENGER_V4_MIGRATION.md](docs/guides/MESSENGER_V4_MIGRATION.md)                               | Migrating off legacy v1 messaging endpoints |
+| [docs/messenger/queue.md](docs/messenger/queue.md)                                                           | Messenger BullMQ queue architecture         |
+| [docs/messenger/transactions.md](docs/messenger/transactions.md)                                             | Messenger transaction flag and rollout      |
+| [docs/messenger/step-1-reconciliation.md](docs/messenger/step-1-reconciliation.md)                           | Messenger reconnection + sinceSeq catch-up  |
+| [docs/messenger/step-2-readby-modal.md](docs/messenger/step-2-readby-modal.md)                               | Messenger group read-by UX                  |
+| [docs/messenger/step-5-group-thread-virtualization.md](docs/messenger/step-5-group-thread-virtualization.md) | Messenger threads/group UI/virtualization   |
 
 ---
 
