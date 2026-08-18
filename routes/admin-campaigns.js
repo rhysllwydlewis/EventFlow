@@ -48,6 +48,16 @@ const DEFAULT_RECIPIENT_NAME = 'Subscriber';
  * Use 'outbound' (always available) unless a dedicated broadcasts stream is configured.
  * Override via CAMPAIGN_MESSAGE_STREAM env var (e.g. 'broadcasts') if your Postmark
  * account has a custom marketing stream set up.
+ *
+ * The engagement-systems audit that drove this PR recommended flipping this
+ * default to a broadcast stream, on the assumption that Postmark
+ * auto-provisions one on every server. Verification during this PR found
+ * conflicting evidence for that (and this file's own long-standing comment,
+ * presumably written from firsthand testing against this project's actual
+ * Postmark account, says the opposite: a 'broadcasts' stream must be
+ * created manually first, or sending fails with a 500). Given a wrong
+ * default here breaks every campaign send in production, this stays
+ * 'outbound' — deliberately not applying that part of the audit.
  */
 const CAMPAIGN_MESSAGE_STREAM = process.env.CAMPAIGN_MESSAGE_STREAM || 'outbound';
 

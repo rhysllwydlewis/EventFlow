@@ -245,9 +245,36 @@ async function getLog(id) {
 }
 
 async function getSummary() {
-  const logs = await dbUnified.read(COLLECTION);
+  // Previously loaded the entire email_logs collection into memory on every
+  // dashboard request to compute counts by hand. Delegates to dbUnified's
+  // aggregation pipeline instead — a real database-side aggregation on
+  // MongoDB, and an equivalent in-memory computation on the local-store
+  // fallback (dev/test only, where the collection is small by construction).
   const now = Date.now();
   const dayMs = 24 * 60 * 60 * 1000;
+  const cutoff24h = new Date(now - dayMs).toISOString();
+  const cutoff7d = new Date(now - 7 * dayMs).toISOString();
+
+  const [statusGroups, last24hResult, last7dResult, totalResult, lastWebhookResult] =
+    await Promise.all([
+      dbUnified.aggregate(COLLECTION, [{ $group: { _id: '$status', count: { $sum: 1 } } }]),
+      dbUnified.aggregate(COLLECTION, [
+        { $match: { createdAt: { $gte: cutoff24h } } },
+        { $count: 'count' },
+      ]),
+      dbUnified.aggregate(COLLECTION, [
+        { $match: { createdAt: { $gte: cutoff7d } } },
+        { $count: 'count' },
+      ]),
+      dbUnified.aggregate(COLLECTION, [{ $count: 'count' }]),
+      dbUnified.aggregate(COLLECTION, [
+        { $match: { lastEventAt: { $ne: null } } },
+        { $sort: { lastEventAt: -1 } },
+        { $limit: 1 },
+        { $project: { lastEventAt: 1 } },
+      ]),
+    ]);
+
   const summary = {
     sent: 0,
     failed: 0,
@@ -255,26 +282,23 @@ async function getSummary() {
     bounced: 0,
     opened: 0,
     clicked: 0,
-    last24h: 0,
-    last7d: 0,
+    complained: 0,
+    suppressed: 0,
+    last24h: last24hResult[0]?.count || 0,
+    last7d: last7dResult[0]?.count || 0,
   };
-  let lastWebhookAt = null;
-  for (const log of logs || []) {
-    if (Object.prototype.hasOwnProperty.call(summary, log.status)) {
-      summary[log.status] += 1;
-    }
-    const created = Date.parse(log.createdAt || log.attemptedAt || 0);
-    if (created && now - created <= dayMs) {
-      summary.last24h += 1;
-    }
-    if (created && now - created <= 7 * dayMs) {
-      summary.last7d += 1;
-    }
-    if (log.lastEventAt && (!lastWebhookAt || log.lastEventAt > lastWebhookAt)) {
-      lastWebhookAt = log.lastEventAt;
+  for (const group of statusGroups) {
+    if (Object.prototype.hasOwnProperty.call(summary, group._id)) {
+      summary[group._id] = group.count;
     }
   }
-  return { summary, lastWebhookAt };
+
+  const total = totalResult[0]?.count || 0;
+  const bounceRate = total > 0 ? Math.round((summary.bounced / total) * 10000) / 100 : 0;
+  const complaintRate = total > 0 ? Math.round((summary.complained / total) * 10000) / 100 : 0;
+  const lastWebhookAt = lastWebhookResult[0]?.lastEventAt || null;
+
+  return { summary, total, bounceRate, complaintRate, lastWebhookAt };
 }
 
 function mapPostmarkEventToStatus(type) {

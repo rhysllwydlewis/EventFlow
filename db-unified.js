@@ -873,6 +873,35 @@ async function aggregate(collectionName, pipeline) {
   }
 }
 
+// Resolves a $group _id/accumulator expression against one document. Only
+// the subset actually used by callers is supported: a '$field' reference,
+// a literal, or a $sum/$max/$min accumulator over a field reference or the
+// literal 1 (i.e. a count).
+function resolveGroupExpression(expr, item) {
+  if (typeof expr === 'string' && expr.startsWith('$')) {
+    return getNestedValue(item, expr.slice(1));
+  }
+  return expr;
+}
+
+function applyGroupAccumulator(expr, items) {
+  const [op, operand] = Object.entries(expr)[0];
+  const values = items.map(item => resolveGroupExpression(operand, item));
+  switch (op) {
+    case '$sum':
+      return operand === 1
+        ? items.length
+        : values.reduce((sum, v) => sum + (typeof v === 'number' ? v : 0), 0);
+    case '$max':
+      return values.reduce((max, v) => (max === undefined || v > max ? v : max), undefined);
+    case '$min':
+      return values.reduce((min, v) => (min === undefined || v < min ? v : min), undefined);
+    default:
+      logger.warn(`Unsupported $group accumulator: ${op}`);
+      return null;
+  }
+}
+
 function processLocalAggregation(data, pipeline) {
   let result = [...data];
   for (const stage of pipeline) {
@@ -889,7 +918,67 @@ function processLocalAggregation(data, pipeline) {
         break;
       }
       case '$group': {
-        logger.warn('$group aggregation on local storage has limited support');
+        const { _id: idExpr, ...accumulators } = stage.$group;
+        const groups = new Map();
+        for (const item of result) {
+          const key = resolveGroupExpression(idExpr, item);
+          if (!groups.has(key)) {
+            groups.set(key, []);
+          }
+          groups.get(key).push(item);
+        }
+        result = Array.from(groups.entries()).map(([key, items]) => {
+          const grouped = { _id: key };
+          for (const [field, accExpr] of Object.entries(accumulators)) {
+            grouped[field] = applyGroupAccumulator(accExpr, items);
+          }
+          return grouped;
+        });
+        break;
+      }
+      case '$sort': {
+        const sortSpec = Object.entries(stage.$sort);
+        result = [...result].sort((a, b) => {
+          for (const [field, direction] of sortSpec) {
+            const av = getNestedValue(a, field);
+            const bv = getNestedValue(b, field);
+            if (av === bv) {
+              continue;
+            }
+            if (av === undefined || av === null) {
+              return 1;
+            }
+            if (bv === undefined || bv === null) {
+              return -1;
+            }
+            return av < bv ? -direction : direction;
+          }
+          return 0;
+        });
+        break;
+      }
+      case '$limit': {
+        result = result.slice(0, stage.$limit);
+        break;
+      }
+      case '$project': {
+        const spec = stage.$project;
+        result = result.map(item => {
+          const projected = {};
+          // MongoDB's real $project keeps _id by default unless the spec
+          // explicitly excludes it (`_id: 0`) — mirror that here so a local
+          // document that happens to carry a real Mongo _id (e.g. seeded for
+          // parity testing) doesn't silently lose it only on this fallback.
+          if (spec._id !== 0 && Object.prototype.hasOwnProperty.call(item, '_id')) {
+            projected._id = item._id;
+          }
+          for (const [field, include] of Object.entries(spec)) {
+            if (field !== '_id' && include) {
+              projected[field] = getNestedValue(item, field);
+            }
+          }
+          return projected;
+        });
         break;
       }
       default:

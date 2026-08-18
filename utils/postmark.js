@@ -106,6 +106,45 @@ function initializePostmark() {
 // Initialize on module load
 initializePostmark();
 
+// Postmark's own 4xx errors (invalid API key, malformed request, inactive
+// recipient) mean the same call will fail identically on every retry — only
+// retry transient failures: 5xx/429 responses (statusCode set by the
+// Postmark client) and network-level errors (no statusCode at all, e.g. a
+// timeout or connection reset).
+function isRetryablePostmarkError(error) {
+  if (!error || typeof error.statusCode !== 'number') {
+    return true;
+  }
+  return error.statusCode >= 500 || error.statusCode === 429;
+}
+
+/**
+ * Send via the Postmark client with retry/backoff for transient failures.
+ * Direct sends (outside the BullMQ email queue, which already retries 5x)
+ * previously failed permanently on the first transient error.
+ */
+async function sendEmailWithRetry(emailData, maxRetries = 3) {
+  let lastError;
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await postmarkClient.sendEmail(emailData);
+    } catch (error) {
+      lastError = error;
+
+      if (!isRetryablePostmarkError(error) || attempt === maxRetries) {
+        throw error;
+      }
+
+      const delay = 2 ** (attempt - 1) * 1000;
+      logger.warn(
+        `Postmark send failed (attempt ${attempt}/${maxRetries}): ${error.message}. Retrying in ${delay}ms...`
+      );
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  throw lastError;
+}
+
 /**
  * Generate secure unsubscribe token for email address
  * @param {string} email - User email address
@@ -329,6 +368,13 @@ async function sendMail(options) {
     trackOpens = true,
     trackLinks = 'HtmlAndText',
     criticalDelivery = false,
+    // The BullMQ email queue (services/queue/workers/email.worker.js) already
+    // retries a failed job 5x with its own exponential backoff, so it opts
+    // out of sendEmailWithRetry's in-process retry here — otherwise a single
+    // logical send during an outage becomes up to 5 outer attempts x 3 inner
+    // attempts, and each blocked-in-process retry adds up to 3s to a job
+    // BullMQ was already about to reschedule on its own.
+    retryOnFailure = true,
   } = options;
 
   const logOptions = {
@@ -466,7 +512,9 @@ async function sendMail(options) {
     }
 
     try {
-      const response = await postmarkClient.sendEmail(emailData);
+      const response = retryOnFailure
+        ? await sendEmailWithRetry(emailData)
+        : await postmarkClient.sendEmail(emailData);
       logger.info(`✅ Email sent successfully via Postmark`);
       logger.info(`   To: ${emailData.To}`);
       logger.info(`   Subject: ${emailData.Subject}`);

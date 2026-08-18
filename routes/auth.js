@@ -27,6 +27,7 @@ const {
   strictAuthLimiter,
   passwordResetLimiter,
   registrationLimiter,
+  tokenLinkLimiter,
 } = require('../middleware/rateLimits');
 const { csrfProtection } = require('../middleware/csrf');
 const { featureRequired, getFeatureFlags } = require('../middleware/features');
@@ -1192,7 +1193,7 @@ router.post('/forgot', passwordResetLimiter, async (req, res) => {
  * Verify email address with token (supports both JWT and legacy tokens)
  * This endpoint maintains backward compatibility
  */
-router.get('/verify', async (req, res) => {
+router.get('/verify', tokenLinkLimiter, async (req, res) => {
   const { token } = req.query || {};
   logger.debug('Verification request received', { hasToken: !!token });
 
@@ -1892,7 +1893,7 @@ router.put('/preferences', authRequired, csrfProtection, async (req, res) => {
  * Unsubscribe user from marketing emails
  * Requires email and secure token for verification
  */
-router.get('/unsubscribe', async (req, res) => {
+router.get('/unsubscribe', tokenLinkLimiter, async (req, res) => {
   const { email, token } = req.query || {};
 
   if (!email || !token) {

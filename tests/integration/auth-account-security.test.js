@@ -20,6 +20,7 @@ function buildApp({ users, updates }) {
     strictAuthLimiter: noOp,
     passwordResetLimiter: noOp,
     registrationLimiter: noOp,
+    tokenLinkLimiter: noOp,
   }));
 
   jest.doMock('../../middleware/features', () => ({

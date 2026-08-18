@@ -49,6 +49,73 @@ jest.mock('../../db-unified', () => {
           })
         ).length
     ),
+    // Minimal stand-in for db-unified's real aggregate()/processLocalAggregation,
+    // covering only the $match/$group/$sort/$limit/$project stages
+    // emailLog.service's getSummary() actually issues.
+    aggregate: jest.fn(async (_collection, pipeline) => {
+      const matchesValue = (actual, expected) => {
+        if (expected && typeof expected === 'object' && !Array.isArray(expected)) {
+          return Object.entries(expected).every(([op, operand]) => {
+            switch (op) {
+              case '$gte':
+                return actual >= operand;
+              case '$ne':
+                return actual !== operand;
+              default:
+                return true;
+            }
+          });
+        }
+        return actual === expected;
+      };
+      let result = [...rows];
+      for (const stage of pipeline) {
+        const [stageType] = Object.keys(stage);
+        if (stageType === '$match') {
+          const filter = stage.$match;
+          result = result.filter(item =>
+            Object.keys(filter).every(key => matchesValue(item[key], filter[key]))
+          );
+        } else if (stageType === '$count') {
+          result = [{ [stage.$count]: result.length }];
+        } else if (stageType === '$group') {
+          const { _id: idExpr, ...accs } = stage.$group;
+          const groups = new Map();
+          for (const item of result) {
+            const key = idExpr.startsWith('$') ? item[idExpr.slice(1)] : idExpr;
+            if (!groups.has(key)) {
+              groups.set(key, []);
+            }
+            groups.get(key).push(item);
+          }
+          result = Array.from(groups.entries()).map(([key, items]) => {
+            const grouped = { _id: key };
+            for (const [field, accExpr] of Object.entries(accs)) {
+              const [op] = Object.keys(accExpr);
+              grouped[field] = op === '$sum' ? items.length : null;
+            }
+            return grouped;
+          });
+        } else if (stageType === '$sort') {
+          const [[field, direction]] = Object.entries(stage.$sort);
+          result = [...result].sort((a, b) =>
+            a[field] < b[field] ? -direction : a[field] > b[field] ? direction : 0
+          );
+        } else if (stageType === '$limit') {
+          result = result.slice(0, stage.$limit);
+        } else if (stageType === '$project') {
+          const fields = Object.keys(stage.$project);
+          result = result.map(item => {
+            const projected = {};
+            for (const field of fields) {
+              projected[field] = item[field];
+            }
+            return projected;
+          });
+        }
+      }
+      return result;
+    }),
   };
 });
 
@@ -162,5 +229,34 @@ describe('emailLog.service', () => {
     await expect(
       emailLogService.appendWebhookEvent({ RecordType: 'Opened', MessageID: 'missing' })
     ).resolves.toEqual({ matched: false, reason: 'unknown_message_id' });
+  });
+
+  test('getSummary aggregates status counts and bounce/complaint rates instead of scanning in JS', async () => {
+    const sent = await emailLogService.createAttempt({ to: 'a@example.com', subject: 'A' });
+    await emailLogService.updateStatus(sent.id, { status: 'sent', postmarkMessageId: 'pm-a' });
+
+    const bounced = await emailLogService.createAttempt({ to: 'b@example.com', subject: 'B' });
+    await emailLogService.updateStatus(bounced.id, {
+      status: 'bounced',
+      postmarkMessageId: 'pm-b',
+    });
+    await emailLogService.appendWebhookEvent({
+      RecordType: 'Bounced',
+      MessageID: 'pm-b',
+      BouncedAt: '2026-03-01T10:05:00Z',
+    });
+
+    const complained = await emailLogService.createAttempt({ to: 'c@example.com', subject: 'C' });
+    await emailLogService.updateStatus(complained.id, { status: 'complained' });
+
+    const result = await emailLogService.getSummary();
+
+    expect(result.summary.sent).toBe(1);
+    expect(result.summary.bounced).toBe(1);
+    expect(result.summary.complained).toBe(1);
+    expect(result.total).toBe(3);
+    expect(result.bounceRate).toBeCloseTo(33.33, 1);
+    expect(result.complaintRate).toBeCloseTo(33.33, 1);
+    expect(result.lastWebhookAt).toBe('2026-03-01T10:05:00.000Z');
   });
 });

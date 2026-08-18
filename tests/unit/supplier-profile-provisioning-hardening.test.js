@@ -459,6 +459,7 @@ describe('supplier registration provisioning integration', () => {
       strictAuthLimiter: (_req, _res, next) => next(),
       passwordResetLimiter: (_req, _res, next) => next(),
       registrationLimiter: (_req, _res, next) => next(),
+      tokenLinkLimiter: (_req, _res, next) => next(),
     }));
     jest.doMock('../../middleware/features', () => ({
       getFeatureFlags: jest.fn(async () => ({ registration: true, supplierApplications: true })),
@@ -472,9 +473,15 @@ describe('supplier registration provisioning integration', () => {
         const matches = row =>
           Object.entries(query).every(([key, expected]) => {
             if (expected && typeof expected === 'object' && !Array.isArray(expected)) {
-              if (Array.isArray(expected.$in)) return expected.$in.includes(row[key]);
-              if (expected.$gte !== undefined) return row[key] >= expected.$gte;
-              if (expected.$gt !== undefined) return row[key] > expected.$gt;
+              if (Array.isArray(expected.$in)) {
+                return expected.$in.includes(row[key]);
+              }
+              if (expected.$gte !== undefined) {
+                return row[key] >= expected.$gte;
+              }
+              if (expected.$gt !== undefined) {
+                return row[key] > expected.$gt;
+              }
               if (expected.$exists !== undefined) {
                 return expected.$exists
                   ? Object.prototype.hasOwnProperty.call(row, key)

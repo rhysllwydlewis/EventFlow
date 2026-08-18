@@ -68,6 +68,11 @@ async function processEmailJob(job) {
     messageStream: 'outbound',
     // Never let a production worker treat the local outbox fallback as delivery.
     criticalDelivery: true,
+    // This job already gets 5 retries with exponential backoff from BullMQ
+    // (services/queue/index.js) — opt out of sendMail's own in-process retry
+    // so a Postmark outage doesn't stack both layers (up to 5 outer x 3 inner
+    // attempts, each blocking the worker for up to 3s longer than necessary).
+    retryOnFailure: false,
   });
   logger.info('[queue] email sent', { recipientId: data.recipientId, messageId: data.messageId });
   return { status: 'sent' };

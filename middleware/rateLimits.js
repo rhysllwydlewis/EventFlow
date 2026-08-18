@@ -270,6 +270,24 @@ const resendEmailLimiter = rateLimit({
 });
 
 /**
+ * Rate limiter for public, unauthenticated token-gated links (email verify,
+ * newsletter confirm, account marketing unsubscribe). These rely solely on
+ * possessing a valid token with no other guard, unlike resend-verification
+ * which already has resendEmailLimiter — a light per-IP limit here adds the
+ * same defence-in-depth for enumeration/brute-force attempts against the
+ * token itself.
+ * 30 requests per 15 minutes per IP.
+ */
+const tokenLinkLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  message: 'Too many requests, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: isBackendE2ERequest,
+});
+
+/**
  * Rate limiter for API documentation and bot-probe paths
  * Applies to /api-docs*, /swagger*, /openapi* to throttle automated scanners
  * 20 requests per 15 minutes per IP
@@ -299,6 +317,7 @@ module.exports = {
   resendEmailLimiter,
   registrationLimiter,
   apiDocsLimiter,
+  tokenLinkLimiter,
   _private: {
     getRequestPath,
     isPhotoAssetRequest,
