@@ -181,11 +181,13 @@ describe('db-unified – updateOne calling conventions (local storage)', () => {
   // Regression for a CodeQL "remote property injection" finding: unlike the
   // object-spread this replaced, `cursor[segment] = value` for
   // segment === '__proto__' invokes the real accessor rather than copying a
-  // value, so a $set key containing __proto__/constructor/prototype must be
-  // refused rather than applied — even though every current call site in
-  // this codebase passes hardcoded key literals, not user input, the helper
-  // itself must be safe regardless of what a future caller passes.
-  it('refuses a $set key targeting __proto__ instead of polluting the prototype', async () => {
+  // value. applyDotPathSet now builds its write tree out of
+  // Object.create(null) nodes (see toNullProtoTree/toPlainObject in
+  // db-unified.js) so a dotted key can never reach Object.prototype
+  // regardless of its segments — a __proto__/constructor/prototype segment
+  // is stored as an ordinary, inert data field rather than rejected, which
+  // also matches real MongoDB (no special handling of those names either).
+  it('stores a __proto__ path segment as an inert field instead of polluting the prototype', async () => {
     await seed({ id: 'u9', name: 'Ivan' });
     const result = await dbUnified.updateOne(
       'users',
@@ -195,21 +197,25 @@ describe('db-unified – updateOne calling conventions (local storage)', () => {
     expect(result).toBe(true);
     expect({}.polluted).toBeUndefined();
     expect(storeData['users'][0].polluted).toBeUndefined();
+    expect(storeData['users'][0].__proto__).toEqual({ polluted: true });
+    expect(Object.getPrototypeOf(storeData['users'][0])).toBe(Object.prototype);
   });
 
-  it('refuses a top-level (non-dotted) __proto__ key', async () => {
+  it('does not pollute the prototype via a genuine own __proto__ property in $set', async () => {
     // Object-literal syntax (`{ __proto__: {...} }`) sets the prototype at
     // creation time rather than creating an own enumerable property, so it
-    // wouldn't exercise this guard at all — JSON.parse does create a real
+    // wouldn't exercise this path at all — JSON.parse does create a real
     // own "__proto__" property, which is also the actual real-world vector
     // (a JSON request body parsed by express.json()).
     await seed({ id: 'u10', name: 'Judy' });
     const maliciousSet = JSON.parse('{"__proto__": {"polluted": true}}');
-    await dbUnified.updateOne('users', { id: 'u10' }, { $set: maliciousSet });
+    const doc = await dbUnified.updateOne('users', { id: 'u10' }, { $set: maliciousSet });
+    expect(doc).toBe(true);
     expect({}.polluted).toBeUndefined();
+    expect(Object.getPrototypeOf(storeData['users'][0])).toBe(Object.prototype);
   });
 
-  it('refuses a $set key with a constructor.prototype segment', async () => {
+  it('does not pollute the prototype via a constructor.prototype segment', async () => {
     await seed({ id: 'u11', name: 'Kevin' });
     await dbUnified.updateOne(
       'users',
@@ -217,6 +223,18 @@ describe('db-unified – updateOne calling conventions (local storage)', () => {
       { $set: { 'constructor.prototype.polluted': true } }
     );
     expect({}.polluted).toBeUndefined();
+    expect(Object.getPrototypeOf(storeData['users'][0])).toBe(Object.prototype);
+  });
+
+  it('returns an ordinary, JSON-serialisable document rather than a null-prototype object', async () => {
+    await seed({ id: 'u12', name: 'Laura' });
+    await dbUnified.updateOne('users', { id: 'u12' }, { $set: { 'a.b.c': 1 } });
+    const doc = storeData['users'][0];
+    expect(Object.getPrototypeOf(doc)).toBe(Object.prototype);
+    expect(Object.getPrototypeOf(doc.a)).toBe(Object.prototype);
+    expect(Object.getPrototypeOf(doc.a.b)).toBe(Object.prototype);
+    expect(() => JSON.stringify(doc)).not.toThrow();
+    expect(typeof doc.hasOwnProperty).toBe('function');
   });
 });
 
