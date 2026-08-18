@@ -600,6 +600,54 @@
     </div>
   </div>
   
+  <!-- Email & Notification Preferences (all account types) -->
+  <div id="email-notification-prefs" style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid #f3f4f6;">
+    <h3 class="settings-card-title">Email &amp; Notification Preferences</h3>
+
+    <div class="toggle-row settings-info-box">
+      <label class="toggle-label">
+        <span style="font-weight:600;">Newsletter</span>
+        <small id="newsletter-status-text">Loading…</small>
+      </label>
+      <button type="button" class="settings-action-btn settings-action-btn--secondary" id="newsletter-toggle-btn" disabled></button>
+    </div>
+
+    <div class="toggle-row">
+      <label class="toggle-label" for="community-digest-cadence">
+        <span>Community digest emails</span>
+        <small>How often we email you about new community discussions</small>
+      </label>
+      <select id="community-digest-cadence" class="settings-select">
+        <option value="immediate">Immediately</option>
+        <option value="daily">Daily digest</option>
+        <option value="weekly">Weekly digest</option>
+        <option value="none">Never</option>
+      </select>
+    </div>
+
+    <div class="toggle-row" id="browse-nudge-row" style="display:none;">
+      <label class="toggle-label" for="browse-nudge-enabled">
+        <span>Saved-supplier reminders</span>
+        <small>Occasional emails about suppliers you saved but haven't contacted yet</small>
+      </label>
+      <label class="toggle-switch">
+        <input id="browse-nudge-enabled" type="checkbox" role="switch" checked>
+        <span class="toggle-track"></span>
+      </label>
+    </div>
+
+    <div class="toggle-row" id="verification-reminder-row" style="display:none;">
+      <label class="toggle-label" for="verification-reminder-enabled">
+        <span>Email verification reminders</span>
+        <small>Reminders to verify your email address (sent at most twice)</small>
+      </label>
+      <label class="toggle-switch">
+        <input id="verification-reminder-enabled" type="checkbox" role="switch" checked>
+        <span class="toggle-track"></span>
+      </label>
+    </div>
+  </div>
+
   <div class="form-actions settings-section-sep">
     <button class="cta" id="save-settings">Save Preferences</button>
     <span id="settings-status" style="font-size:0.875rem;" role="status" aria-live="polite"></span>

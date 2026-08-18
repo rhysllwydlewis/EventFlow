@@ -509,7 +509,7 @@ async function updateOne(collectionName, id, updates) {
       if (index >= 0) {
         // Apply $set fields
         const setFields = hasOperators ? updates.$set || {} : updates;
-        all[index] = { ...all[index], ...setFields };
+        all[index] = applyDotPathSet(all[index], setFields);
 
         // Apply $unset fields (remove keys)
         if (hasOperators && updates.$unset) {
@@ -553,7 +553,7 @@ async function updateMany(collectionName, filter, updates) {
         return item;
       }
       modified += 1;
-      const updated = { ...item, ...setFields };
+      const updated = applyDotPathSet(item, setFields);
       for (const key of Object.keys(unsetFields)) {
         delete updated[key];
       }
@@ -730,6 +730,91 @@ function getNestedValue(obj, path) {
   return path
     .split('.')
     .reduce((cur, seg) => (cur !== null && cur !== undefined ? cur[seg] : undefined), obj);
+}
+
+// Recursively rebuilds a value with ordinary Object.prototype-based objects,
+// undoing toNullProtoTree below. Every object this module hands back to a
+// caller must look and behave like a normal object (JSON.stringify, `in`,
+// .hasOwnProperty, etc.) — the null-prototype tree applyDotPathSet builds
+// internally must never leak out.
+function toPlainObject(value) {
+  if (Array.isArray(value)) {
+    return value.map(toPlainObject);
+  }
+  if (value && typeof value === 'object') {
+    const plain = {};
+    for (const key of Object.keys(value)) {
+      // Object.defineProperty, not `plain[key] = ...` — if the source ever
+      // held a genuine own property literally named "__proto__" (e.g. a
+      // hand-edited local-store file), bracket assignment onto this fresh
+      // *normal*-prototype object would invoke the real accessor and
+      // reassign plain's prototype instead of copying an inert value.
+      Object.defineProperty(plain, key, {
+        value: toPlainObject(value[key]),
+        writable: true,
+        enumerable: true,
+        configurable: true,
+      });
+    }
+    return plain;
+  }
+  return value;
+}
+
+// A prototype-less object has no Object.prototype in its chain — there is
+// no `__proto__` accessor, no `constructor`, nothing a written property
+// name could ever reach up into. Object.defineProperty (or even plain
+// bracket assignment) on a tree built entirely of these is safe by
+// construction for *any* runtime-supplied key, not merely the ones an
+// explicit blocklist happens to name.
+function toNullProtoTree(value) {
+  if (Array.isArray(value)) {
+    return value.map(toNullProtoTree);
+  }
+  if (value && typeof value === 'object') {
+    const node = Object.create(null);
+    for (const key of Object.keys(value)) {
+      node[key] = toNullProtoTree(value[key]);
+    }
+    return node;
+  }
+  return value;
+}
+
+/**
+ * Apply a MongoDB-style $set object to a local-store document, resolving
+ * dotted keys like 'emailPrefs.actionPrompts.enabled' into nested object
+ * writes instead of a literal top-level key named with the dots — MongoDB
+ * handles these natively; this brings the local store into parity (mirrors
+ * getNestedValue's read-side handling above). A key segment named
+ * `__proto__`/`constructor`/`prototype` is stored as an ordinary, inert
+ * data field rather than rejected — that also matches real MongoDB, which
+ * has no special handling of those names either (a BSON document has no
+ * prototype chain to begin with). Builds the write tree out of
+ * Object.create(null) nodes precisely so a dotted key can never reach
+ * Object.prototype, regardless of what segments it contains — see
+ * toNullProtoTree — then converts the result back to ordinary objects
+ * before returning it.
+ * @param {Object} target
+ * @param {Object} setFields
+ * @returns {Object} a new, ordinary object — does not mutate `target` or
+ *   any nested object reachable from it
+ */
+function applyDotPathSet(target, setFields) {
+  const result = toNullProtoTree(target) || Object.create(null);
+  for (const [key, value] of Object.entries(setFields || {})) {
+    const segments = key.split('.');
+    let cursor = result;
+    for (let i = 0; i < segments.length - 1; i++) {
+      const segment = segments[i];
+      const existing = cursor[segment];
+      const isPlainObject = existing && typeof existing === 'object' && !Array.isArray(existing);
+      cursor[segment] = isPlainObject ? existing : Object.create(null);
+      cursor = cursor[segment];
+    }
+    cursor[segments[segments.length - 1]] = toNullProtoTree(value);
+  }
+  return toPlainObject(result);
 }
 
 function matchesFilter(item, filter) {

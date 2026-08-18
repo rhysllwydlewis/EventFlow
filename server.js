@@ -1993,6 +1993,37 @@ function startServer() {
         } catch (cdErr) {
           logger.warn('   ⚠️  Community Digest Scheduler failed to initialize:', cdErr.message);
         }
+
+        // 4h. Initialize Email Verification Reminder Scheduler
+        try {
+          const result = require('./services/emailVerificationReminderScheduler').start();
+          logger.info(
+            `   ✅ Verification reminder emails scheduled: ${result.scheduled ? 'Yes' : 'No'}`
+          );
+        } catch (vrErr) {
+          logger.warn(
+            '   ⚠️  Verification Reminder Scheduler failed to initialize:',
+            vrErr.message
+          );
+        }
+
+        // 4i. Initialize Customer Browse-Supplier Nudge Scheduler
+        try {
+          const result = require('./services/customerBrowseNudgeScheduler').start();
+          logger.info(`   ✅ Browse-supplier nudges scheduled: ${result.scheduled ? 'Yes' : 'No'}`);
+        } catch (bnErr) {
+          logger.warn('   ⚠️  Browse-Nudge Scheduler failed to initialize:', bnErr.message);
+        }
+
+        // 4j. Initialize Newsletter Cadence Scheduler
+        try {
+          const result = require('./services/newsletterCadenceScheduler').start();
+          logger.info(
+            `   ✅ Newsletter cadence checks scheduled: ${result.scheduled ? 'Yes' : 'No'}`
+          );
+        } catch (ncErr) {
+          logger.warn('   ⚠️  Newsletter Cadence Scheduler failed to initialize:', ncErr.message);
+        }
       } catch (error) {
         logger.error('');
         logger.error('='.repeat(70));

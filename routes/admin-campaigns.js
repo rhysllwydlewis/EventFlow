@@ -249,6 +249,100 @@ router.get('/recipient-count', authRequired, roleRequired('admin'), async (req, 
   }
 });
 
+// ── Recurring newsletter automation config ─────────────────────────────────────
+// Read/write settings.newsletterAutomation, consumed by
+// services/newsletterCadenceScheduler.js. Kept in the same file as the
+// manual send endpoints since it configures the same underlying send path.
+
+const VALID_CADENCES = ['weekly', 'monthly'];
+const VALID_AUDIENCES = ['both', 'marketing', 'newsletter'];
+
+router.get('/automation', authRequired, roleRequired('admin'), async (req, res) => {
+  try {
+    const settings = (await dbUnified.read('settings')) || {};
+    return res.json({ ok: true, automation: settings.newsletterAutomation || null });
+  } catch (err) {
+    logger.error('[campaigns/automation] Error reading config:', err.message);
+    return res.status(500).json({ ok: false, error: 'Failed to load automation settings.' });
+  }
+});
+
+router.put('/automation', authRequired, roleRequired('admin'), csrfProtection, async (req, res) => {
+  try {
+    const {
+      enabled = false,
+      cadence,
+      dayOfWeek,
+      dayOfMonth,
+      audience = 'both',
+      subject,
+      title,
+      bodyHtml,
+      ctaText,
+      ctaUrl,
+    } = req.body || {};
+
+    if (enabled) {
+      if (!VALID_CADENCES.includes(cadence)) {
+        return res.status(400).json({ ok: false, error: 'cadence must be "weekly" or "monthly".' });
+      }
+      if (cadence === 'weekly') {
+        const dow = Number(dayOfWeek);
+        if (!Number.isInteger(dow) || dow < 0 || dow > 6) {
+          return res.status(400).json({ ok: false, error: 'dayOfWeek must be an integer 0–6.' });
+        }
+      }
+      if (cadence === 'monthly') {
+        const dom = Number(dayOfMonth);
+        if (!Number.isInteger(dom) || dom < 1 || dom > 31) {
+          return res.status(400).json({ ok: false, error: 'dayOfMonth must be an integer 1–31.' });
+        }
+      }
+      if (!subject || typeof subject !== 'string' || !subject.trim()) {
+        return res
+          .status(400)
+          .json({ ok: false, error: 'subject is required when enabling automation.' });
+      }
+      if (!bodyHtml || typeof bodyHtml !== 'string' || !bodyHtml.trim()) {
+        return res
+          .status(400)
+          .json({ ok: false, error: 'bodyHtml is required when enabling automation.' });
+      }
+    }
+
+    if (!VALID_AUDIENCES.includes(audience)) {
+      return res.status(400).json({ ok: false, error: 'Invalid audience value.' });
+    }
+
+    const validationError = validateCampaignLinks({ ctaText, ctaUrl });
+    if (validationError) {
+      return res.status(400).json({ ok: false, error: validationError });
+    }
+
+    const settings = (await dbUnified.read('settings')) || {};
+    const existing = settings.newsletterAutomation || {};
+    settings.newsletterAutomation = {
+      ...existing,
+      enabled: Boolean(enabled),
+      cadence: cadence || existing.cadence,
+      dayOfWeek: dayOfWeek !== undefined ? Number(dayOfWeek) : existing.dayOfWeek,
+      dayOfMonth: dayOfMonth !== undefined ? Number(dayOfMonth) : existing.dayOfMonth,
+      audience,
+      subject: subject !== undefined ? subject : existing.subject,
+      title: title !== undefined ? title : existing.title,
+      bodyHtml: bodyHtml !== undefined ? bodyHtml : existing.bodyHtml,
+      ctaText: ctaText !== undefined ? ctaText : existing.ctaText,
+      ctaUrl: ctaUrl !== undefined ? ctaUrl : existing.ctaUrl,
+    };
+    await dbUnified.writeAndVerify('settings', settings);
+
+    return res.json({ ok: true, automation: settings.newsletterAutomation });
+  } catch (err) {
+    logger.error('[campaigns/automation] Error saving config:', err.message);
+    return res.status(500).json({ ok: false, error: 'Failed to save automation settings.' });
+  }
+});
+
 // ── POST /campaigns/preview ────────────────────────────────────────────────────
 // No csrfProtection: preview is idempotent (renders template, no side-effects).
 // It still requires authRequired + roleRequired('admin') to prevent unauthenticated access.
@@ -402,6 +496,94 @@ router.post(
 
 const BATCH_SIZE = 50;
 
+/**
+ * Core campaign-send logic, shared by the admin /send endpoint and
+ * services/newsletterCadenceScheduler.js's automated recurring send.
+ * Validates nothing itself (callers validate audience/template/links per
+ * their own input source) — just resolves recipients and sends in batches.
+ *
+ * @param {Object} config
+ * @param {string} config.audience - 'both'|'marketing'|'newsletter'
+ * @param {string} config.subject
+ * @param {string} config.templateName - must be in CAMPAIGN_SAFE_TEMPLATES
+ * @param {string} [config.bodyHtml]
+ * @param {string} [config.intro]
+ * @param {string} [config.bodyText]
+ * @param {string} [config.featureList]
+ * @param {string} [config.bannerUrl]
+ * @param {string} [config.secondaryNote]
+ * @param {string} [config.title]
+ * @param {string} [config.ctaText]
+ * @param {string} [config.ctaUrl]
+ * @returns {Promise<{ sent: number, failed: number, total: number }>}
+ */
+async function sendCampaign({
+  audience,
+  subject,
+  templateName,
+  bodyHtml,
+  intro,
+  bodyText,
+  featureList,
+  bannerUrl,
+  secondaryNote,
+  title,
+  ctaText,
+  ctaUrl,
+}) {
+  const recipients = await collectRecipients(audience);
+  const total = recipients.length;
+
+  if (total === 0) {
+    return { sent: 0, failed: 0, total: 0 };
+  }
+
+  let sent = 0;
+  let failed = 0;
+
+  // Send in batches to avoid timeouts
+  for (let i = 0; i < recipients.length; i += BATCH_SIZE) {
+    const batch = recipients.slice(i, i + BATCH_SIZE);
+    await Promise.allSettled(
+      batch.map(async ({ email, name }) => {
+        try {
+          const templateData = buildTemplateData({
+            title,
+            bodyHtml,
+            intro,
+            bodyText,
+            featureList,
+            bannerUrl,
+            secondaryNote,
+            ctaText,
+            ctaUrl,
+            name,
+          });
+          templateData.unsubscribeLink = buildUnsubscribeLink(email);
+
+          await postmark.sendMail({
+            to: email,
+            subject,
+            template: templateName,
+            templateData,
+            messageStream: CAMPAIGN_MESSAGE_STREAM,
+            tags: ['campaign'],
+          });
+          sent++;
+        } catch (err) {
+          failed++;
+          logger.warn(`[campaigns/send] Failed to send to ${email}: ${err.message}`);
+        }
+      })
+    );
+  }
+
+  logger.info(
+    `[campaigns/send] Done. sent=${sent} failed=${failed} total=${total} audience=${audience}`
+  );
+  return { sent, failed, total };
+}
+
 router.post(
   '/send',
   writeLimiter,
@@ -453,8 +635,20 @@ router.post(
         return res.status(400).json({ ok: false, error: validationError });
       }
 
-      const recipients = await collectRecipients(audience);
-      const total = recipients.length;
+      const { sent, failed, total } = await sendCampaign({
+        audience,
+        subject,
+        templateName: safeTemplateName,
+        bodyHtml,
+        intro,
+        bodyText,
+        featureList,
+        bannerUrl,
+        secondaryNote,
+        title,
+        ctaText,
+        ctaUrl,
+      });
 
       if (total === 0) {
         return res.json({
@@ -466,49 +660,6 @@ router.post(
         });
       }
 
-      let sent = 0;
-      let failed = 0;
-
-      // Send in batches to avoid timeouts
-      for (let i = 0; i < recipients.length; i += BATCH_SIZE) {
-        const batch = recipients.slice(i, i + BATCH_SIZE);
-        await Promise.allSettled(
-          batch.map(async ({ email, name }) => {
-            try {
-              const templateData = buildTemplateData({
-                title,
-                bodyHtml,
-                intro,
-                bodyText,
-                featureList,
-                bannerUrl,
-                secondaryNote,
-                ctaText,
-                ctaUrl,
-                name,
-              });
-              templateData.unsubscribeLink = buildUnsubscribeLink(email);
-
-              await postmark.sendMail({
-                to: email,
-                subject,
-                template: safeTemplateName,
-                templateData,
-                messageStream: CAMPAIGN_MESSAGE_STREAM,
-                tags: ['campaign'],
-              });
-              sent++;
-            } catch (err) {
-              failed++;
-              logger.warn(`[campaigns/send] Failed to send to ${email}: ${err.message}`);
-            }
-          })
-        );
-      }
-
-      logger.info(
-        `[campaigns/send] Done. sent=${sent} failed=${failed} total=${total} audience=${audience}`
-      );
       return res.json({
         ok: true,
         sent,
@@ -527,4 +678,5 @@ module.exports = router;
 module.exports.CAMPAIGN_SAFE_TEMPLATES = CAMPAIGN_SAFE_TEMPLATES;
 module.exports.buildTemplateData = buildTemplateData;
 module.exports.validateCampaignLinks = validateCampaignLinks;
+module.exports.sendCampaign = sendCampaign;
 module.exports.collectRecipients = collectRecipients;

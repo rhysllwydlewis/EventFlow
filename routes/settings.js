@@ -50,6 +50,21 @@ router.get('/', authRequired, async (req, res) => {
     const user = users[i];
     // Default ON when field is absent (backward compatible)
     const actionPrompts = user.emailPrefs?.actionPrompts || {};
+
+    // Newsletter status is read-only here — subscribing/unsubscribing goes
+    // through routes/newsletter.js's own endpoints (double opt-in confirm
+    // flow on subscribe), not this endpoint, so there's one source of truth
+    // for that consent state.
+    let newsletterStatus = 'not-subscribed';
+    if (user.email) {
+      const subscriber = await dbUnified.findOne('newsletterSubscribers', {
+        email: String(user.email).toLowerCase().trim(),
+      });
+      if (subscriber) {
+        newsletterStatus = subscriber.status || 'not-subscribed';
+      }
+    }
+
     res.json({
       notify: user.notify !== false,
       emailPrefs: {
@@ -60,6 +75,11 @@ router.get('/', authRequired, async (req, res) => {
           missingPhotos: actionPrompts.missingPhotos !== false,
         },
       },
+      newsletterStatus,
+      communityDigestCadence: user.communityNotificationPreferences?.email || 'weekly',
+      browseNudgeOptOut: user.browseNudgeOptOut === true,
+      verificationReminderOptOut: user.verificationReminderOptOut === true,
+      verified: user.verified === true || user.emailVerified === true,
     });
   } catch (error) {
     logger.error('Error fetching user settings:', error);
@@ -113,6 +133,30 @@ router.post('/', writeLimiter, authRequired, csrfProtection, async (req, res) =>
       if (ap.missingPhotos !== undefined) {
         updateFields['emailPrefs.actionPrompts.missingPhotos'] = ap.missingPhotos;
       }
+    }
+
+    const VALID_DIGEST_CADENCES = ['immediate', 'daily', 'weekly', 'none'];
+    if (body.communityDigestCadence !== undefined) {
+      if (!VALID_DIGEST_CADENCES.includes(body.communityDigestCadence)) {
+        return res.status(400).json({
+          error: `communityDigestCadence must be one of: ${VALID_DIGEST_CADENCES.join(', ')}`,
+        });
+      }
+      updateFields['communityNotificationPreferences.email'] = body.communityDigestCadence;
+    }
+
+    if (body.browseNudgeOptOut !== undefined) {
+      if (typeof body.browseNudgeOptOut !== 'boolean') {
+        return res.status(400).json({ error: 'browseNudgeOptOut must be a boolean' });
+      }
+      updateFields.browseNudgeOptOut = body.browseNudgeOptOut;
+    }
+
+    if (body.verificationReminderOptOut !== undefined) {
+      if (typeof body.verificationReminderOptOut !== 'boolean') {
+        return res.status(400).json({ error: 'verificationReminderOptOut must be a boolean' });
+      }
+      updateFields.verificationReminderOptOut = body.verificationReminderOptOut;
     }
 
     const updated = await dbUnified.updateOne('users', { id: req.user.id }, { $set: updateFields });

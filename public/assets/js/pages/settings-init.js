@@ -1,7 +1,9 @@
 'use strict';
 
 function escapeHtml(s) {
-  if (s === null || s === undefined) return '';
+  if (s === null || s === undefined) {
+    return '';
+  }
   const d = document.createElement('div');
   d.textContent = String(s);
   return d.innerHTML;
@@ -101,6 +103,8 @@ async function loadProfile() {
       // Load email prefs from settings API
       loadEmailPrefs();
     }
+
+    loadEmailNotificationPrefs(user);
 
     // Avatar preview
     const avatarPreview = document.getElementById('avatar-preview');
@@ -349,6 +353,97 @@ async function loadEmailPrefs() {
 // Wire master toggle visibility
 document.getElementById('ap-enabled')?.addEventListener('change', updateApSubPrefsVisibility);
 
+// ===== EMAIL & NOTIFICATION PREFERENCES (all account types) =====
+let _newsletterStatus = 'not-subscribed';
+
+function renderNewsletterStatus() {
+  const text = document.getElementById('newsletter-status-text');
+  const btn = document.getElementById('newsletter-toggle-btn');
+  if (!text || !btn) {
+    return;
+  }
+  btn.disabled = false;
+  if (_newsletterStatus === 'active') {
+    text.textContent = "You're subscribed to our newsletter";
+    btn.textContent = 'Unsubscribe';
+  } else if (_newsletterStatus === 'pending-confirmation') {
+    text.textContent = 'Check your inbox to confirm your subscription';
+    btn.textContent = 'Resend confirmation';
+  } else {
+    text.textContent = "You're not subscribed to our newsletter";
+    btn.textContent = 'Subscribe';
+  }
+}
+
+async function loadEmailNotificationPrefs(user) {
+  try {
+    const r = await fetch('/api/me/settings', { credentials: 'include' });
+    if (!r.ok) {
+      return;
+    }
+    const d = await r.json();
+
+    _newsletterStatus = d.newsletterStatus || 'not-subscribed';
+    renderNewsletterStatus();
+
+    const cadenceSelect = document.getElementById('community-digest-cadence');
+    if (cadenceSelect) {
+      cadenceSelect.value = d.communityDigestCadence || 'weekly';
+    }
+
+    if (user && user.role === 'customer') {
+      const row = document.getElementById('browse-nudge-row');
+      if (row) {
+        row.style.display = 'flex';
+      }
+      const cb = document.getElementById('browse-nudge-enabled');
+      if (cb) {
+        cb.checked = d.browseNudgeOptOut !== true;
+      }
+    }
+
+    if (!d.verified) {
+      const row = document.getElementById('verification-reminder-row');
+      if (row) {
+        row.style.display = 'flex';
+      }
+      const cb = document.getElementById('verification-reminder-enabled');
+      if (cb) {
+        cb.checked = d.verificationReminderOptOut !== true;
+      }
+    }
+  } catch (e) {
+    // Non-fatal — section keeps its default state
+  }
+}
+
+document.getElementById('newsletter-toggle-btn')?.addEventListener('click', async function () {
+  const btn = this;
+  btn.disabled = true;
+  try {
+    const endpoint =
+      _newsletterStatus === 'active' ? '/api/newsletter/unsubscribe' : '/api/newsletter/subscribe';
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': window.__CSRF_TOKEN__ || '' },
+      credentials: 'include',
+      body: JSON.stringify({ email: document.getElementById('profile-email')?.value || '' }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(data.error || 'Request failed');
+    }
+    _newsletterStatus = _newsletterStatus === 'active' ? 'unsubscribed' : 'pending-confirmation';
+    renderNewsletterStatus();
+  } catch (e) {
+    const text = document.getElementById('newsletter-status-text');
+    if (text) {
+      text.textContent = '✗ Could not update newsletter subscription';
+    }
+    btn.disabled = false;
+  }
+});
+
 // ===== RESTART TOUR =====
 document.getElementById('restart-tour').addEventListener('click', function () {
   localStorage.removeItem('ef_homepage_tour_completed');
@@ -463,6 +558,23 @@ document.getElementById('save-settings').addEventListener('click', async () => {
       };
     }
 
+    const cadenceSelect = document.getElementById('community-digest-cadence');
+    if (cadenceSelect) {
+      payload.communityDigestCadence = cadenceSelect.value;
+    }
+
+    const browseNudgeRow = document.getElementById('browse-nudge-row');
+    if (browseNudgeRow && browseNudgeRow.style.display !== 'none') {
+      payload.browseNudgeOptOut =
+        document.getElementById('browse-nudge-enabled')?.checked === false;
+    }
+
+    const verificationReminderRow = document.getElementById('verification-reminder-row');
+    if (verificationReminderRow && verificationReminderRow.style.display !== 'none') {
+      payload.verificationReminderOptOut =
+        document.getElementById('verification-reminder-enabled')?.checked === false;
+    }
+
     const response = await fetch('/api/me/settings', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': window.__CSRF_TOKEN__ || '' },
@@ -491,7 +603,9 @@ loadNotificationSettings();
 // ===== CHANGE PASSWORD FORM =====
 (function () {
   const form = document.getElementById('change-password-form');
-  if (!form) return;
+  if (!form) {
+    return;
+  }
 
   // Password strength indicator
   const newPwInput = document.getElementById('cp-new');
@@ -501,11 +615,21 @@ loadNotificationSettings();
 
   function calcStrength(pw) {
     let score = 0;
-    if (pw.length >= 8) score++;
-    if (pw.length >= 12) score++;
-    if (/[A-Z]/.test(pw)) score++;
-    if (/[0-9]/.test(pw)) score++;
-    if (/[^A-Za-z0-9]/.test(pw)) score++;
+    if (pw.length >= 8) {
+      score++;
+    }
+    if (pw.length >= 12) {
+      score++;
+    }
+    if (/[A-Z]/.test(pw)) {
+      score++;
+    }
+    if (/[0-9]/.test(pw)) {
+      score++;
+    }
+    if (/[^A-Za-z0-9]/.test(pw)) {
+      score++;
+    }
     return score;
   }
 
@@ -607,13 +731,17 @@ loadNotificationSettings();
 
   function showStep(n) {
     [step1, step2, step3].forEach((el, i) => {
-      if (el) el.hidden = i + 1 !== n;
+      if (el) {
+        el.hidden = i + 1 !== n;
+      }
     });
   }
 
   let _deleteModalOpener = null;
   const _escapeHandler = e => {
-    if (e.key === 'Escape') closeModal();
+    if (e.key === 'Escape') {
+      closeModal();
+    }
   };
 
   function openModal() {
@@ -628,7 +756,9 @@ loadNotificationSettings();
     // Focus the close button for keyboard users
     requestAnimationFrame(() => {
       const closeBtn = document.getElementById('delete-modal-close');
-      if (closeBtn) closeBtn.focus();
+      if (closeBtn) {
+        closeBtn.focus();
+      }
     });
   }
 
