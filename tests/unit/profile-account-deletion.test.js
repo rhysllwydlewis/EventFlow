@@ -290,6 +290,18 @@ describe('DELETE /api/profile — self-service account deletion', () => {
           message: 'Are you available?',
         },
       ],
+      // The general "Contact Us" form (routes/contact.js's POST /contact)
+      // stores submissions in a sibling collection to the per-supplier
+      // enquiry form — both need the same cascade treatment.
+      contact_enquiries: [
+        {
+          id: 'ceq_1',
+          senderName: 'J Smith',
+          senderEmail: 'jsmith@gmail.com',
+          subject: 'General question',
+          message: 'Are you available?',
+        },
+      ],
     });
     const app = buildApp({
       db,
@@ -305,6 +317,13 @@ describe('DELETE /api/profile — self-service account deletion', () => {
       customerDeleted: true,
       senderName: null,
       senderEmail: null,
+      message: null,
+    });
+    expect(db.data.contact_enquiries[0]).toMatchObject({
+      customerDeleted: true,
+      senderName: null,
+      senderEmail: null,
+      subject: null,
       message: null,
     });
   });

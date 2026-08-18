@@ -329,13 +329,15 @@ async function cleanupCustomerOwnedDataForUser(user, options = {}) {
     { $set: { ...anonymise.$set, userId: null, name: null, email: null, phone: null, notes: null } }
   );
 
-  // enquiries: submitted via the public contact form (routes/contact.js) and
-  // never linked to a logged-in user id — only `senderName`/`senderEmail`
-  // are stored. routes/contact.js stores `senderEmail` through
-  // validator.normalizeEmail() (which rewrites Gmail dots/+subaddresses and
-  // similar provider-specific rules), so match against that same normalised
-  // form here too — a plain lowercase/trim would miss e.g.
-  // "j.smith+wedding@gmail.com" against the stored "jsmith@gmail.com".
+  // enquiries + contact_enquiries: submitted via the two public contact
+  // forms (routes/contact.js's /contact-supplier and /contact respectively)
+  // and never linked to a logged-in user id — only `senderName`/
+  // `senderEmail`(/`subject` for the general one) are stored. Both store
+  // `senderEmail` through validator.normalizeEmail() (which rewrites Gmail
+  // dots/+subaddresses and similar provider-specific rules), so match
+  // against that same normalised form here too — a plain lowercase/trim
+  // would miss e.g. "j.smith+wedding@gmail.com" against the stored
+  // "jsmith@gmail.com".
   if (user.email) {
     const rawEmail = String(user.email).toLowerCase().trim();
     const normalisedEmail = validator.normalizeEmail(rawEmail) || rawEmail;
@@ -345,6 +347,15 @@ async function cleanupCustomerOwnedDataForUser(user, options = {}) {
         : { $or: [{ senderEmail: rawEmail }, { senderEmail: normalisedEmail }] };
     summary.anonymisedCustomerRecords += await updateManyCount('enquiries', emailFilter, {
       $set: { ...anonymise.$set, senderName: null, senderEmail: null, message: null },
+    });
+    summary.anonymisedCustomerRecords += await updateManyCount('contact_enquiries', emailFilter, {
+      $set: {
+        ...anonymise.$set,
+        senderName: null,
+        senderEmail: null,
+        subject: null,
+        message: null,
+      },
     });
   }
 

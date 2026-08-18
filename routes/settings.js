@@ -105,15 +105,24 @@ router.get('/', authRequired, async (req, res) => {
 router.post('/', writeLimiter, authRequired, csrfProtection, async (req, res) => {
   try {
     const body = req.body || {};
-    const notify = !!body.notify;
+    const updateFields = {};
 
     // notify_account is the field every actual send-gate checks
     // (utils/postmark.js's sendNotificationEmail, services/queue/workers/
     // email.worker.js) — this endpoint previously only wrote the deprecated
     // `notify` field, so unchecking the toggle here silently had no effect
     // on whether the user actually kept receiving account-notification
-    // email. Write both, mirroring PUT /api/auth/preferences.
-    const updateFields = { notify, notify_account: notify };
+    // email. Write both, mirroring PUT /api/auth/preferences. Gated on
+    // `!== undefined` like every other field below — this previously wrote
+    // unconditionally, so any caller posting a partial payload (e.g. just
+    // `{ browseNudgeOptOut: true }`) silently disabled the user's account
+    // notifications as a side effect of a request that never mentioned them.
+    let notify;
+    if (body.notify !== undefined) {
+      notify = !!body.notify;
+      updateFields.notify = notify;
+      updateFields.notify_account = notify;
+    }
 
     // Update emailPrefs.actionPrompts if provided
     if (body.emailPrefs && typeof body.emailPrefs.actionPrompts === 'object') {

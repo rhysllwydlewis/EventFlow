@@ -126,6 +126,26 @@ describe('POST /api/me/settings — preference fields', () => {
     );
   });
 
+  it('does not touch notify/notify_account when the request omits notify entirely', async () => {
+    // Every other field on this endpoint (communityDigestCadence,
+    // browseNudgeOptOut, verificationReminderOptOut) is gated on
+    // `!== undefined` — notify must be too, or a client posting a partial
+    // payload silently disables the user's account notifications as a side
+    // effect of a request that never mentioned them.
+    const db = buildDb({ users: [{ id: 'user_1', email: 'u@example.com' }] });
+    const app = buildApp(db);
+
+    await request(app).post('/api/me/settings').send({ browseNudgeOptOut: true }).expect(200);
+
+    expect(db.updateOne).toHaveBeenCalledWith(
+      'users',
+      { id: 'user_1' },
+      { $set: expect.not.objectContaining({ notify: expect.anything() }) }
+    );
+    const [, , setArg] = db.updateOne.mock.calls[0];
+    expect(setArg.$set).not.toHaveProperty('notify_account');
+  });
+
   it('reads notify from notify_account, matching what PUT /api/auth/preferences writes', async () => {
     const db = buildDb({
       users: [{ id: 'user_1', email: 'u@example.com', notify: true, notify_account: false }],
